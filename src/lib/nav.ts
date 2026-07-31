@@ -34,9 +34,6 @@ export type HubNavItem = (typeof HUB_NAV_ITEMS)[number];
 // like this one, plus their own layout, when they're actually built.
 
 export const KITCHEN_NAV_ITEMS = [
-  // The branch's own landing page — two cards summarizing Shopping and
-  // Inventory. Distinct from Home: this stays inside Kitchen, Home leaves it.
-  { href: "/kitchen", label: "Kitchen", icon: ChefHat },
   { href: "/kitchen/inventory", label: "Inventory", icon: Package },
   { href: "/kitchen/shopping", label: "Shopping", icon: ShoppingCart },
   // Home is the way out of the branch entirely, to the dashboard — the same
