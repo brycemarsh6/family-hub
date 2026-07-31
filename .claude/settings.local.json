@@ -9,7 +9,10 @@
       "Bash(git -C /Users/brycemarsh/Documents/family-hub log -1 --format='author: %an <%ae>')",
       "Bash(git config *)",
       "Bash(git add *)",
-      "Bash(git commit -q -m 'Add dev server launch config *)"
+      "Bash(git commit -q -m 'Add dev server launch config *)",
+      "Bash(npm install *)",
+      "Bash(npx prisma *)",
+      "Bash(git commit -q -m 'Set up Prisma schema and SQLite database *)"
     ]
   }
 }

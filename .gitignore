@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...but DO commit the example template, so a fresh clone knows what to fill in.
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +41,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Prisma Client is generated code — rebuilt by `npm install` (see the
+# "postinstall" script in package.json), so it doesn't belong in git.
+/src/generated/prisma
+
+# The SQLite database itself. This is *our data*, not source code: it's personal,
+# it changes constantly, and every machine should have its own.
+*.db
+*.db-journal

@@ -1,0 +1,61 @@
+// This file describes the shape of our data. Prisma reads it and generates
+// type-safe code we use to read and write the database.
+//
+// IMPORTANT (see README): we deliberately avoid Prisma `enum` types and any
+// database-specific attributes. SQLite does not support enums, and keeping the
+// schema to the lowest common denominator means moving to hosted Postgres later
+// is a provider swap plus one migration, not a rewrite. The set of allowed
+// values for `category` and `location` is enforced in TypeScript instead, in
+// src/lib/constants.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// Something we need to buy. Lives on the shopping list until it's checked off.
+model GroceryItem {
+  id       String  @id @default(cuid())
+  name     String
+  quantity Float   @default(1)
+  unit     String? // "lbs", "cans", "bunch" — optional, many items are just a count
+  category String  @default("Other")
+  checked  Boolean @default(false)
+  addedBy  String? // free text for now; becomes a relation to a User when profiles exist
+  note     String?
+
+  // Set when this item was generated from a pantry item running low. It's what
+  // lets "put away" know which pantry item to top up, and prevents us adding
+  // the same pantry item to the list twice.
+  pantryItemId String?
+  pantryItem   PantryItem? @relation(fields: [pantryItemId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  checkedAt DateTime?
+
+  @@index([pantryItemId])
+}
+
+/// Something we already own, and where it's stored.
+model PantryItem {
+  id       String  @id @default(cuid())
+  name     String
+  location String  @default("Pantry") // "Pantry" | "Fridge" | "Freezer" | "Storage"
+  quantity Float   @default(1)
+  unit     String?
+  category String  @default("Other")
+
+  /// When quantity drops to this number or below, the item counts as "running low".
+  lowThreshold Float @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  groceryItems GroceryItem[]
+
+  @@index([location])
+}
