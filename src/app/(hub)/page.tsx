@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   return (
     <div className="py-4">
       <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-        Marsh Hub
+        Dashboard
       </h1>
       <p className="mt-2 text-base text-muted">
         What needs attention around the house.
