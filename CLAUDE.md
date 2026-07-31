@@ -33,32 +33,42 @@ else can reach it yet — there's no login, and it only runs locally (see
 
 ## What's built and working
 
-**The hub is organized into branches, not one flat set of pages.** `/` is a
-bare dashboard (just a logo header and, for now, a single link into Kitchen —
-the overview-widget layer is planned but not built). Each branch owns its own
-section and its own nav, added via a nested `layout.tsx` under its folder —
-e.g. `src/app/kitchen/layout.tsx` renders the Kitchen tab bar (bottom on
-phones, top on desktop) for every page under `/kitchen/*`, and the dashboard
-never sees it. Future branches (Calendar, Chores, Lists) will each get the
-same treatment: their own folder, their own layout, their own nav — nothing
-about today's structure needs to move to add one.
+**The hub is organized into branches, not one flat set of pages.** `/` is the
+dashboard — a home base showing live counts and status from each branch (right
+now, just Kitchen), with a tap-through to each one. The hub nav at the bottom
+shows Kitchen, Calendar, Home, Chores, Lists (five branches, with Home centred).
+Each branch owns its own section and its own nav, added via a nested
+`layout.tsx` under its folder — e.g. `src/app/kitchen/layout.tsx` renders the
+Kitchen tab bar for every page under `/kitchen/*`. The dashboard and branches
+that don't yet have their own nav (Calendar, Chores, Lists) share a layout via
+a `(hub)` route group — the parentheses keep it out of the URL, so `/` stays `/`.
+Nothing about this structure needs to move to add a new branch later.
 
-**Kitchen** (`/kitchen`) is the first branch, with five tabs:
+**Kitchen** (`/kitchen`) is the first branch, with five tabs in a fixed bottom
+nav bar:
 
-- **Shopping** (`/kitchen/shopping`) — add items, group by store-aisle
-  category, tap a row to check it off, adjust quantity with +/− steppers,
-  clear checked items, or "put away" checked items straight into the pantry.
 - **Inventory** (`/kitchen/inventory`) — tracks what's stocked across four
   locations (Pantry, Fridge, Freezer, and Storage — the overflow/cold storage
   downstairs), grouped and filterable by location. Items below their "low"
   threshold get a Low (or Out, at zero) badge and float to the top of their
-  group.
-- **Home** (`/kitchen`) — the Kitchen branch's own landing page: two cards
-  summarizing Shopping and Inventory, tap either to go straight there.
+  group. Category and location icons are Lucide outline components; dropdowns
+  fall back to plain text since `<select><option>` can't render SVG.
+- **Shopping** (`/kitchen/shopping`) — add items, group by store-aisle
+  category, tap a row to check it off, adjust quantity with +/− steppers,
+  clear checked items, or "put away" checked items straight into the pantry.
+- **Home** (points to `/`, the dashboard) — the way back out of the Kitchen
+  branch to the hub-level overview.
 - **Expiring** and **Cooking** — placeholder pages only (nav tabs exist,
   pages just say "Coming soon"). A deliberate, named exception to "no feature
   is stubbed out early" below — Bryce wanted the full tab bar visible now
   since these are next in line to actually get built.
+
+`/kitchen` itself still exists as the branch's own landing page — two cards
+summarizing Shopping and Inventory — but nothing in Kitchen's tab bar points
+back to it anymore (Home goes to the dashboard instead). It's reachable via the
+hub nav's Kitchen tab, or the dashboard's Kitchen widget. Worth deciding later
+whether that page still earns its place, since both its cards duplicate tabs
+already in the bar.
 
 **Tap-to-edit** — tapping any pantry item opens a full edit sheet (a bottom
 sheet on phones, a centered dialog on wider screens) covering every field:
@@ -146,17 +156,26 @@ without re-litigating each time:
   that's the one deliberate exception. Decorative one-off emoji elsewhere
   (empty states, the dashboard's Kitchen card) weren't in scope for this rule
   and haven't been touched.
+- **Nav bars are a fixed bar along the bottom of the screen, at every size —
+  phone, tablet, and desktop alike.** No separate top-bar layout for wider
+  screens. Bryce wanted this consistently after trying both; the tabs stay
+  centred in the same `max-w-3xl` column the page content uses, so they don't
+  stretch edge-to-edge on a wide display. Both the hub nav (`HubNav.tsx`) and
+  Kitchen's nav (`KitchenNav.tsx`) follow this.
 - **Each branch (Kitchen, and later Calendar/Chores/Lists) gets its own
   folder with its own `layout.tsx` for its own nav**, following the pattern
-  in `src/app/kitchen/`. The root layout only renders the logo header — it
-  has no idea what branches exist. This is what let the dashboard become a
-  bare page without dragging Kitchen's tab bar along with it.
-- **No feature is stubbed out early** — with one named exception: Kitchen's
-  Expiring and Cooking tabs exist as nav items pointing at "Coming soon"
-  pages, because Bryce wanted the full 5-tab bar visible ahead of building
-  them. Everywhere else (Calendar, Chores, Lists, profiles, etc.) the rule
-  holds as originally stated: no nav entry or placeholder page until it's
-  actually being built.
+  in `src/app/kitchen/`. The dashboard and branches without a nav of their own
+  yet (Calendar, Chores, Lists) share the hub-level nav via a `(hub)` route
+  group — parentheses keep the folder out of the URL, so the dashboard is
+  still `/`. The root layout (`src/app/layout.tsx`) only renders the logo
+  header and has no idea what branches exist.
+- **No feature is stubbed out early** — with named exceptions, extended twice
+  now: Kitchen's Expiring and Cooking tabs, and the hub nav's Calendar, Chores,
+  and Lists tabs, all exist as nav items pointing at "Coming soon" pages.
+  Bryce wanted the full shape of the nav visible ahead of building each
+  feature out, both at the branch level and the hub level. Profiles and any
+  future branch not yet in a nav bar still follow the rule as originally
+  stated: no nav entry or placeholder page until it's actually being built.
 
 ## Planned, not yet built
 
@@ -183,21 +202,43 @@ scheduled:
 
 ## Where I left off
 
-Just finished and verified: splitting the app into branches. The dashboard at
-`/` is now bare (logo header + one link into Kitchen), and everything that
-used to be flat top-level pages — Inventory, Shopping, Home, Expiring,
-Cooking — moved under `/kitchen/*` with its own nav rendered by
-`src/app/kitchen/layout.tsx`. Along the way: the grocery list got renamed
-"Shopping" throughout, and the category/location icon system switched from
-emoji to Lucide (see the design rule above). All committed, tested end-to-end
-across phone/desktop and light/dark, including a full add-item → put-away
-round trip to confirm the route rename didn't break Next's page-revalidation.
+Just finished and verified: giving the dashboard a real nav and a real widget
+layer, on top of the earlier branch split. In order, this session:
 
-Nothing is currently half-finished. The dashboard's widget layer is the
-obvious next piece if continuing down this path — right now it's just a
-placeholder link, not the "overview of what matters across the hub" it's
-meant to become. Beyond that it's the same open direction question as before:
-keep building out branches (Expiring and Cooking are next in line since their
-tabs already exist; Calendar, Chores, Lists, profiles are all independent
-after that), or invest in login + deployment so the rest of the family can
+1. Split the app into branches — `/kitchen/*` got its own nav, the dashboard
+   became a bare page, the grocery list was renamed "Shopping" throughout, and
+   category/location icons switched from emoji to Lucide.
+2. Moved both nav bars (Kitchen's and, once it existed, the hub's) from
+   "bottom on phone, top bar on desktop" to a fixed bottom bar at every screen
+   size, after trying both and preferring the bottom bar consistently. Fixed
+   a real bug this surfaced: Kitchen's Home tab pointed at `/kitchen` while
+   the header logo pointed at `/` — two things both meaning "home," landing in
+   different places. Home now matches the logo everywhere.
+3. Built the dashboard's first real widget — a Kitchen card showing live
+   to-buy/stocked counts and a low-stock badge, tap-through into the branch —
+   replacing the placeholder link. Added a hub-level nav bar alongside it:
+   Kitchen, Calendar, Home, Chores, Lists, with Home centred so it lands in
+   the same spot as in Kitchen's bar. Calendar, Chores, and Lists are
+   currently placeholder pages, the same deliberate call as Kitchen's
+   Expiring and Cooking.
+4. Renamed the dashboard's page heading from "Marsh Hub" to "Dashboard" —
+   the header logo still says "Marsh Hub"; only the two both saying the same
+   thing was the problem.
+
+All committed, tested end-to-end across phone/desktop and light/dark.
+
+Nothing is currently half-finished. Two open threads worth knowing about:
+
+- **`/kitchen` (the branch landing page) is now a dead end in the nav** —
+  reachable via the hub's Kitchen tab or the dashboard widget, but nothing in
+  Kitchen's own tab bar points back to it, and both its cards (Shopping,
+  Inventory) duplicate tabs already in the bar. Worth deciding whether it
+  still earns its place.
+- **Five of ten nav tabs across both bars are now placeholder pages**
+  (Expiring, Cooking, Calendar, Chores, Lists). That's a lot of "Coming soon"
+  for anyone actually opening the app — might be worth making one of them
+  real before adding more.
+
+Beyond that, the same open direction question as before: keep building out
+branches, or invest in login + deployment so the rest of the family can
 actually start using this instead of it only running on Bryce's laptop.
