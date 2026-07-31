@@ -8,7 +8,10 @@ import {
   DEFAULT_LOCATION,
   isLow,
 } from "@/lib/constants";
-import { addPantryItem } from "@/app/actions/pantry";
+import {
+  addPantryItem,
+  addAllLowItemsToGroceryList,
+} from "@/app/actions/pantry";
 import type { PantryItemView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -45,9 +48,10 @@ export default async function PantryPage() {
     onList: onListIds.has(item.id),
   }));
 
-  const lowCount = items.filter((item) =>
-    isLow(item.quantity, item.lowThreshold),
-  ).length;
+  const lowItems = items.filter((item) => isLow(item.quantity, item.lowThreshold));
+  // Only offer the bulk button for low items that aren't already on the list,
+  // so it never appears promising work it won't do.
+  const lowNotYetListed = lowItems.filter((item) => !item.onList).length;
 
   return (
     <div className="py-2">
@@ -55,8 +59,20 @@ export default async function PantryPage() {
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Pantry</h1>
         <p className="mt-1 text-sm text-muted">
           {items.length} {items.length === 1 ? "item" : "items"}
-          {lowCount > 0 && ` · ${lowCount} running low`}
+          {lowItems.length > 0 && ` · ${lowItems.length} running low`}
         </p>
+
+        {lowNotYetListed > 0 && (
+          <form action={addAllLowItemsToGroceryList} className="mt-3">
+            <button
+              type="submit"
+              className="min-h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-fg transition-opacity active:opacity-80"
+            >
+              <span aria-hidden="true">🛒</span> Add {lowNotYetListed} low{" "}
+              {lowNotYetListed === 1 ? "item" : "items"} to the list
+            </button>
+          </form>
+        )}
       </div>
 
       <PantryList items={items} />

@@ -12,7 +12,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { toCategory } from "@/lib/constants";
+import { toCategory, DEFAULT_LOCATION } from "@/lib/constants";
 
 /**
  * Re-render the pages whose contents just changed.
@@ -87,4 +87,77 @@ export async function deleteGroceryItem(id: string) {
 export async function clearCheckedGroceryItems() {
   await db.groceryItem.deleteMany({ where: { checked: true } });
   refreshGroceryViews();
+}
+
+/**
+ * Unpacking the shopping: everything ticked off gets added into the pantry,
+ * then cleared off the list.
+ *
+ * For each bought item we look for the matching pantry item in three steps:
+ *
+ *   1. Did it come FROM the pantry? Then we already know exactly which item it
+ *      is, because we stored its id when it was added to the list.
+ *   2. Otherwise, is there a pantry item with the same name? Compared
+ *      case-insensitively in JavaScript, because SQLite can't do
+ *      case-insensitive matching in a query the way Postgres can.
+ *   3. Still nothing? It's new to the house, so create a pantry entry for it.
+ *
+ * The whole thing runs inside a transaction — a all-or-nothing bundle. Without
+ * it, a failure halfway through could top up the pantry but fail to clear the
+ * list, and the next "put away" would count the same shopping twice.
+ */
+export async function putAwayCheckedItems() {
+  const checkedItems = await db.groceryItem.findMany({
+    where: { checked: true },
+  });
+  if (checkedItems.length === 0) return;
+
+  await db.$transaction(async (tx) => {
+    const pantryItems = await tx.pantryItem.findMany();
+
+    // Two lookup tables so the loop below doesn't hit the database once per item.
+    const byId = new Map(pantryItems.map((item) => [item.id, item]));
+    const byName = new Map(
+      pantryItems.map((item) => [item.name.trim().toLowerCase(), item]),
+    );
+
+    for (const boughtItem of checkedItems) {
+      const linked = boughtItem.pantryItemId
+        ? byId.get(boughtItem.pantryItemId)
+        : undefined;
+      const target =
+        linked ?? byName.get(boughtItem.name.trim().toLowerCase());
+
+      if (target) {
+        // `increment` lets the database do the addition, so two people putting
+        // shopping away at once can't overwrite each other's total.
+        await tx.pantryItem.update({
+          where: { id: target.id },
+          data: { quantity: { increment: boughtItem.quantity } },
+        });
+      } else {
+        const created = await tx.pantryItem.create({
+          data: {
+            name: boughtItem.name,
+            quantity: boughtItem.quantity,
+            unit: boughtItem.unit,
+            category: boughtItem.category,
+            location: DEFAULT_LOCATION,
+          },
+        });
+        // Register it, so a second "Milk" in the same shop tops up this new
+        // entry instead of creating a duplicate.
+        byId.set(created.id, created);
+        byName.set(created.name.trim().toLowerCase(), created);
+      }
+    }
+
+    await tx.groceryItem.deleteMany({
+      where: { id: { in: checkedItems.map((item) => item.id) } },
+    });
+  });
+
+  revalidatePath("/groceries");
+  revalidatePath("/pantry");
+  revalidatePath("/");
 }

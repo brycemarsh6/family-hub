@@ -106,3 +106,44 @@ export async function addPantryItemToGroceryList(id: string) {
 
   refreshKitchenViews();
 }
+
+/**
+ * The one-tap restock: everything at or below its "low" threshold goes on the
+ * shopping list, skipping anything already on there.
+ */
+export async function addAllLowItemsToGroceryList() {
+  const pantryItems = await db.pantryItem.findMany();
+
+  // SQLite can't compare two columns inside a `where`, so the "is it low?"
+  // test happens here rather than in the query.
+  const lowItems = pantryItems.filter(
+    (item) => item.quantity <= item.lowThreshold,
+  );
+  if (lowItems.length === 0) return;
+
+  const alreadyListed = await db.groceryItem.findMany({
+    where: {
+      checked: false,
+      pantryItemId: { in: lowItems.map((item) => item.id) },
+    },
+    select: { pantryItemId: true },
+  });
+  const alreadyListedIds = new Set(
+    alreadyListed.map((entry) => entry.pantryItemId),
+  );
+
+  const toAdd = lowItems.filter((item) => !alreadyListedIds.has(item.id));
+  if (toAdd.length === 0) return;
+
+  await db.groceryItem.createMany({
+    data: toAdd.map((item) => ({
+      name: item.name,
+      quantity: 1,
+      unit: item.unit,
+      category: item.category,
+      pantryItemId: item.id,
+    })),
+  });
+
+  refreshKitchenViews();
+}

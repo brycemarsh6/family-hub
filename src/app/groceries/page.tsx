@@ -5,6 +5,7 @@ import { CATEGORIES, DEFAULT_CATEGORY } from "@/lib/constants";
 import {
   addGroceryItem,
   clearCheckedGroceryItems,
+  putAwayCheckedItems,
 } from "@/app/actions/groceries";
 
 export const dynamic = "force-dynamic";
@@ -30,29 +31,39 @@ export default async function GroceriesPage() {
 
   return (
     <div className="py-2">
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-            Grocery List
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {items.length - checkedCount} to buy
-            {checkedCount > 0 && ` · ${checkedCount} in the trolley`}
-          </p>
-        </div>
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+          Grocery List
+        </h1>
+        <p className="mt-1 text-sm text-muted">
+          {items.length - checkedCount} to buy
+          {checkedCount > 0 && ` · ${checkedCount} in the trolley`}
+        </p>
 
         {checkedCount > 0 && (
-          // A plain form pointed straight at a Server Action. No client-side
-          // JavaScript needed for this one — the browser submits it the
-          // old-fashioned way and Next.js runs the function on the server.
-          <form action={clearCheckedGroceryItems}>
-            <button
-              type="submit"
-              className="min-h-11 shrink-0 rounded-xl border border-line px-4 text-sm font-medium text-muted transition-colors hover:border-danger hover:text-danger"
-            >
-              Clear checked
-            </button>
-          </form>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {/* Plain forms pointed straight at Server Actions. These need no
+                client-side JavaScript at all — the browser submits them the
+                old-fashioned way and Next.js runs the function on the server. */}
+            <form action={putAwayCheckedItems}>
+              <button
+                type="submit"
+                className="min-h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-fg transition-opacity active:opacity-80"
+              >
+                <span aria-hidden="true">📦</span> Put away {checkedCount} into
+                the pantry
+              </button>
+            </form>
+
+            <form action={clearCheckedGroceryItems}>
+              <button
+                type="submit"
+                className="min-h-11 rounded-xl border border-line px-4 text-sm font-medium text-muted transition-colors hover:border-danger hover:text-danger"
+              >
+                Just clear
+              </button>
+            </form>
+          </div>
         )}
       </div>
 
