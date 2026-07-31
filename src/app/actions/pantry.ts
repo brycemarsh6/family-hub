@@ -17,6 +17,8 @@ function refreshKitchenViews() {
   revalidatePath("/kitchen/inventory");
   revalidatePath("/kitchen/shopping");
   revalidatePath("/kitchen");
+  // The dashboard's Kitchen widget shows these counts too.
+  revalidatePath("/");
 }
 
 export async function addPantryItem(formData: FormData) {

@@ -24,6 +24,8 @@ import { toCategory, DEFAULT_LOCATION } from "@/lib/constants";
 function refreshGroceryViews() {
   revalidatePath("/kitchen/shopping");
   revalidatePath("/kitchen");
+  // The dashboard's Kitchen widget shows these counts too.
+  revalidatePath("/");
 }
 
 export async function addGroceryItem(formData: FormData) {
@@ -160,4 +162,5 @@ export async function putAwayCheckedItems() {
   revalidatePath("/kitchen/shopping");
   revalidatePath("/kitchen/inventory");
   revalidatePath("/kitchen");
+  revalidatePath("/");
 }
