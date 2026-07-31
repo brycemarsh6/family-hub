@@ -39,7 +39,10 @@
       "Bash(sqlite3 /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT COUNT\\(*\\) as total FROM PantryItem; SELECT name FROM PantryItem WHERE name LIKE 'Butter%';\")",
       "Bash(sqlite3 /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT id, name, quantity, unit, lowThreshold FROM PantryItem WHERE name = 'Bananas';\")",
       "Bash(sqlite3 -header -column /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name, quantity, unit, location, lowThreshold, category FROM PantryItem ORDER BY name;\")",
-      "Bash(sqlite3 -header -column /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name, quantity, unit, lowThreshold FROM PantryItem WHERE name = 'Spinach';\")"
+      "Bash(sqlite3 -header -column /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name, quantity, unit, lowThreshold FROM PantryItem WHERE name = 'Spinach';\")",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(ls -la ~/.ssh/ 2>&1 | grep -E \"id_|config\" ; echo \"---credential helper---\"; git config --global credential.helper 2>&1; echo \"---git config user---\"; git config --global user.name 2>&1; git config --global user.email 2>&1)"
     ]
   }
 }
