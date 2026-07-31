@@ -10,9 +10,9 @@ import { KITCHEN_NAV_ITEMS } from "@/lib/nav";
 
 /** Is `href` the page we're currently looking at? */
 function isActive(pathname: string, href: string) {
-  // "/kitchen" (the Home tab) would otherwise match every page under it,
-  // since every kitchen path starts with "/kitchen".
-  if (href === "/kitchen") return pathname === "/kitchen";
+  // "/" is a prefix of every path, so it only ever counts on an exact match —
+  // otherwise the Home tab would light up on every page in the branch.
+  if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

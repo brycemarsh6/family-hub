@@ -10,7 +10,10 @@ import { Package, ShoppingCart, Home, Hourglass, ChefHat } from "lucide-react";
 export const KITCHEN_NAV_ITEMS = [
   { href: "/kitchen/inventory", label: "Inventory", icon: Package },
   { href: "/kitchen/shopping", label: "Shopping", icon: ShoppingCart },
-  { href: "/kitchen", label: "Home", icon: Home },
+  // Home is the way back out of the branch, to the dashboard — the same place
+  // the logo goes. It deliberately isn't /kitchen: two things labelled "home"
+  // landing somewhere different is exactly the confusion we hit.
+  { href: "/", label: "Home", icon: Home },
   { href: "/kitchen/expiring", label: "Expiring", icon: Hourglass },
   { href: "/kitchen/cooking", label: "Cooking", icon: ChefHat },
 ] as const;
