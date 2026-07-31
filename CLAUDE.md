@@ -63,12 +63,11 @@ nav bar:
   is stubbed out early" below — Bryce wanted the full tab bar visible now
   since these are next in line to actually get built.
 
-`/kitchen` itself still exists as the branch's own landing page — two cards
-summarizing Shopping and Inventory — but nothing in Kitchen's tab bar points
-back to it anymore (Home goes to the dashboard instead). It's reachable via the
-hub nav's Kitchen tab, or the dashboard's Kitchen widget. Worth deciding later
-whether that page still earns its place, since both its cards duplicate tabs
-already in the bar.
+`/kitchen` itself has no page of its own — it redirects straight to
+`/kitchen/inventory`, Inventory being the branch's front door. It used to be a
+landing page with two cards (Shopping, Inventory) showing the same to-buy/
+stocked/running-low counts as the dashboard's Kitchen widget, one tap earlier
+in the same path. See the design rule below on branch landing pages.
 
 **Tap-to-edit** — tapping any pantry item opens a full edit sheet (a bottom
 sheet on phones, a centered dialog on wider screens) covering every field:
@@ -176,6 +175,18 @@ without re-litigating each time:
   feature out, both at the branch level and the hub level. Profiles and any
   future branch not yet in a nav bar still follow the rule as originally
   stated: no nav entry or placeholder page until it's actually being built.
+- **A branch doesn't get its own landing page unless it shows something
+  neither its own tabs nor the dashboard already show.** Kitchen had one —
+  two cards summarizing Shopping and Inventory — and it ran byte-for-byte the
+  same database queries as the dashboard's Kitchen widget, while its two
+  links duplicated tabs sitting in the bar on that same screen. `/kitchen` now
+  redirects straight to Inventory instead. This came up because we spent two
+  sessions circling it: flagged the page as an orphan, added a tab back to it,
+  removed the tab as redundant, then removed the page itself — worth applying
+  this rule up front for Calendar, Chores, and Lists rather than repeating the
+  cycle. Revisit if a branch earns a genuine overview later — Kitchen's would
+  be what's expiring this week and what's for dinner, which the dashboard's
+  one-line summary doesn't cover.
 
 ## Planned, not yet built
 
@@ -202,42 +213,38 @@ scheduled:
 
 ## Where I left off
 
-Just finished and verified: giving the dashboard a real nav and a real widget
-layer, on top of the earlier branch split. In order, this session:
+Just finished and verified: closing out the `/kitchen` landing-page question
+that was flagged as an open thread last session, plus a couple of small
+naming fixes. This session:
 
-1. Split the app into branches — `/kitchen/*` got its own nav, the dashboard
-   became a bare page, the grocery list was renamed "Shopping" throughout, and
-   category/location icons switched from emoji to Lucide.
-2. Moved both nav bars (Kitchen's and, once it existed, the hub's) from
-   "bottom on phone, top bar on desktop" to a fixed bottom bar at every screen
-   size, after trying both and preferring the bottom bar consistently. Fixed
-   a real bug this surfaced: Kitchen's Home tab pointed at `/kitchen` while
-   the header logo pointed at `/` — two things both meaning "home," landing in
-   different places. Home now matches the logo everywhere.
-3. Built the dashboard's first real widget — a Kitchen card showing live
-   to-buy/stocked counts and a low-stock badge, tap-through into the branch —
-   replacing the placeholder link. Added a hub-level nav bar alongside it:
-   Kitchen, Calendar, Home, Chores, Lists, with Home centred so it lands in
-   the same spot as in Kitchen's bar. Calendar, Chores, and Lists are
-   currently placeholder pages, the same deliberate call as Kitchen's
-   Expiring and Cooking.
-4. Renamed the dashboard's page heading from "Marsh Hub" to "Dashboard" —
+1. Tried adding a "Kitchen" tab back into Kitchen's own nav bar (pointing at
+   `/kitchen`), to fix the "nothing points back to the landing page" problem
+   flagged last time. Immediately reverted — a tab back to the branch you're
+   already in is redundant, and it also reintroduced the same prefix-matching
+   bug the Home tab hit before (`/kitchen` matching every page below it).
+2. Looked closer at why `/kitchen` kept feeling awkward and found the real
+   issue: it ran the exact same database queries as the dashboard's Kitchen
+   widget, so it was showing you the same to-buy/stocked/running-low numbers
+   a second time, one tap later, right before its two links handed you off to
+   tabs already on screen. Replaced the page with a redirect straight to
+   `/kitchen/inventory`. Wrote this up as a design rule (see above) since we
+   spent two sessions circling the same page before landing here.
+3. Renamed the dashboard's page heading from "Marsh Hub" to "Dashboard" —
    the header logo still says "Marsh Hub"; only the two both saying the same
    thing was the problem.
 
-All committed, tested end-to-end across phone/desktop and light/dark.
+All committed, tested end-to-end across phone/desktop and light/dark,
+including confirming Back-button behavior after the redirect (goes to the
+dashboard, doesn't bounce through `/kitchen`).
 
-Nothing is currently half-finished. Two open threads worth knowing about:
+Nothing is currently half-finished. One open thread worth knowing about:
 
-- **`/kitchen` (the branch landing page) is now a dead end in the nav** —
-  reachable via the hub's Kitchen tab or the dashboard widget, but nothing in
-  Kitchen's own tab bar points back to it, and both its cards (Shopping,
-  Inventory) duplicate tabs already in the bar. Worth deciding whether it
-  still earns its place.
-- **Five of ten nav tabs across both bars are now placeholder pages**
+- **Five of ten nav tabs across both bars are still placeholder pages**
   (Expiring, Cooking, Calendar, Chores, Lists). That's a lot of "Coming soon"
   for anyone actually opening the app — might be worth making one of them
-  real before adding more.
+  real before adding more. Worth applying the new landing-page rule above
+  when Calendar, Chores, and Lists get built out, so they don't repeat the
+  Kitchen cycle.
 
 Beyond that, the same open direction question as before: keep building out
 branches, or invest in login + deployment so the rest of the family can
