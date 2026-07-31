@@ -23,7 +23,10 @@
       "Bash(sqlite3 /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name, quantity, lowThreshold, location FROM PantryItem WHERE quantity <= lowThreshold ORDER BY name;\")",
       "Bash(sqlite3 /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name, quantity, unit, location FROM PantryItem WHERE name IN \\('Milk','Apples','Butter'\\) ORDER BY name;\")",
       "Bash(sqlite3 /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name, quantity, location FROM PantryItem WHERE name IN \\('Olive oil','Spaghetti','Canned tomatoes','Orange juice','Bottled water','Ice cream'\\) ORDER BY name;\")",
-      "Bash(git commit -q -m 'Wire the two-way grocery/pantry link *)"
+      "Bash(git commit -q -m 'Wire the two-way grocery/pantry link *)",
+      "Bash(npx tsc *)",
+      "Bash(grep -E \"\\\\.db$|^\\\\.env$\")",
+      "Bash(git commit -q -m 'Write a proper README *)"
     ]
   }
 }
