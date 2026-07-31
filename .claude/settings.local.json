@@ -32,7 +32,14 @@
       "Bash(curl -s -o /dev/null -w \"localhost: HTTP %{http_code}\\\\n\" http://localhost:3000)",
       "Bash(curl -s -o /dev/null -w \"network IP: HTTP %{http_code}\\\\n\" http://10.0.0.8:3000)",
       "Bash(git -C /Users/brycemarsh/Documents/family-hub diff --stat next.config.ts)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(sqlite3 /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name, quantity, unit, category, location, lowThreshold FROM PantryItem WHERE name = 'Bananas';\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(sqlite3 /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name FROM PantryItem WHERE name LIKE 'Butter%';\")",
+      "Bash(sqlite3 /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT COUNT\\(*\\) as total FROM PantryItem; SELECT name FROM PantryItem WHERE name LIKE 'Butter%';\")",
+      "Bash(sqlite3 /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT id, name, quantity, unit, lowThreshold FROM PantryItem WHERE name = 'Bananas';\")",
+      "Bash(sqlite3 -header -column /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name, quantity, unit, location, lowThreshold, category FROM PantryItem ORDER BY name;\")",
+      "Bash(sqlite3 -header -column /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name, quantity, unit, lowThreshold FROM PantryItem WHERE name = 'Spinach';\")"
     ]
   }
 }

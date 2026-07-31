@@ -1,28 +1,21 @@
 "use client";
 
-import { useState } from "react";
 import { QuantityStepper } from "./QuantityStepper";
-import { LOCATIONS, isLow } from "@/lib/constants";
+import { isLow } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
 export function PantryRow({
   item,
   onQuantityChange,
   onAddToList,
-  onLocationChange,
-  onThresholdChange,
-  onDelete,
+  onEdit,
 }: {
   item: PantryItemView;
   onQuantityChange: (quantity: number) => void;
   onAddToList: () => void;
-  onLocationChange: (location: string) => void;
-  onThresholdChange: (lowThreshold: number) => void;
-  onDelete: () => void;
+  /** Opens the full edit sheet (name, quantity, unit, category, location, threshold, delete). */
+  onEdit: () => void;
 }) {
-  // Details are hidden until you tap the name, so the everyday job — bumping a
-  // count up or down — stays a single uncluttered row.
-  const [open, setOpen] = useState(false);
   const low = isLow(item.quantity, item.lowThreshold);
 
   return (
@@ -30,8 +23,7 @@ export function PantryRow({
       <div className="flex items-center gap-1 pr-1">
         <button
           type="button"
-          onClick={() => setOpen((wasOpen) => !wasOpen)}
-          aria-expanded={open}
+          onClick={onEdit}
           className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-xl px-3 text-left transition-colors active:bg-surface-2"
         >
           <span className="min-w-0 flex-1">
@@ -81,44 +73,6 @@ export function PantryRow({
           <span aria-hidden="true">🛒</span>
         </button>
       </div>
-
-      {open && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line px-3 py-3">
-          <label className="flex items-center gap-2 text-sm text-muted">
-            Kept in
-            <select
-              value={item.location}
-              onChange={(event) => onLocationChange(event.target.value)}
-              className="min-h-10 rounded-lg bg-surface-2 px-2 text-sm text-fg outline-none"
-            >
-              {LOCATIONS.map((location) => (
-                <option key={location.name} value={location.name}>
-                  {location.emoji} {location.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="flex items-center gap-2 text-sm text-muted">
-            Low at
-            <QuantityStepper
-              value={item.lowThreshold}
-              onChange={onThresholdChange}
-              min={0}
-              label={`low threshold for ${item.name}`}
-              size="sm"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={onDelete}
-            className="ml-auto min-h-10 rounded-lg px-3 text-sm font-medium text-danger transition-colors hover:bg-surface-2"
-          >
-            Remove item
-          </button>
-        </div>
-      )}
     </li>
   );
 }

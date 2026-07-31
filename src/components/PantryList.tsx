@@ -2,21 +2,21 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { PantryRow } from "./PantryRow";
+import { PantryItemEditSheet, type PantryItemEdits } from "./PantryItemEditSheet";
 import { EmptyState } from "./EmptyState";
 import { LOCATIONS, locationEmoji, locationOrder, isLow } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 import {
   setPantryQuantity,
-  updatePantryItem,
+  editPantryItem,
   deletePantryItem,
   addPantryItemToGroceryList,
 } from "@/app/actions/pantry";
 
 type Change =
   | { type: "quantity"; id: string; quantity: number }
-  | { type: "location"; id: string; location: string }
-  | { type: "threshold"; id: string; lowThreshold: number }
   | { type: "addToList"; id: string }
+  | { type: "edit"; id: string; edits: PantryItemEdits }
   | { type: "delete"; id: string };
 
 function applyChange(
@@ -28,19 +28,13 @@ function applyChange(
       return items.map((item) =>
         item.id === change.id ? { ...item, quantity: change.quantity } : item,
       );
-    case "location":
-      return items.map((item) =>
-        item.id === change.id ? { ...item, location: change.location } : item,
-      );
-    case "threshold":
-      return items.map((item) =>
-        item.id === change.id
-          ? { ...item, lowThreshold: change.lowThreshold }
-          : item,
-      );
     case "addToList":
       return items.map((item) =>
         item.id === change.id ? { ...item, onList: true } : item,
+      );
+    case "edit":
+      return items.map((item) =>
+        item.id === change.id ? { ...item, ...change.edits } : item,
       );
     case "delete":
       return items.filter((item) => item.id !== change.id);
@@ -53,6 +47,10 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
   const [optimisticItems, applyOptimistic] = useOptimistic(items, applyChange);
   const [, startTransition] = useTransition();
   const [filter, setFilter] = useState<string>(ALL);
+  // Which item (if any) has its edit sheet open. Just an id, not the item
+  // itself, so the sheet always reads the latest optimistic data for it.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editingItem = optimisticItems.find((item) => item.id === editingId);
 
   function run(change: Change, serverAction: () => Promise<void>) {
     startTransition(async () => {
@@ -97,16 +95,7 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
         run({ type: "addToList", id: item.id }, () =>
           addPantryItemToGroceryList(item.id),
         ),
-      onLocationChange: (location: string) =>
-        run({ type: "location", id: item.id, location }, () =>
-          updatePantryItem(item.id, { location }),
-        ),
-      onThresholdChange: (lowThreshold: number) =>
-        run({ type: "threshold", id: item.id, lowThreshold }, () =>
-          updatePantryItem(item.id, { lowThreshold }),
-        ),
-      onDelete: () =>
-        run({ type: "delete", id: item.id }, () => deletePantryItem(item.id)),
+      onEdit: () => setEditingId(item.id),
     };
   }
 
@@ -178,6 +167,26 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
             </section>
           ))}
         </div>
+      )}
+
+      {editingItem && (
+        <PantryItemEditSheet
+          key={editingItem.id}
+          item={editingItem}
+          onClose={() => setEditingId(null)}
+          onSave={(edits) => {
+            run({ type: "edit", id: editingItem.id, edits }, () =>
+              editPantryItem(editingItem.id, edits),
+            );
+            setEditingId(null);
+          }}
+          onDelete={() => {
+            run({ type: "delete", id: editingItem.id }, () =>
+              deletePantryItem(editingItem.id),
+            );
+            setEditingId(null);
+          }}
+        />
       )}
     </div>
   );

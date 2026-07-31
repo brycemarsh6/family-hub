@@ -51,20 +51,37 @@ export async function setPantryQuantity(id: string, quantity: number) {
   refreshKitchenViews();
 }
 
-/** Change where an item is kept, or when it should count as running low. */
-export async function updatePantryItem(
+/**
+ * Save every field from the edit sheet at once: name, quantity, unit,
+ * category, location, and the low-stock threshold.
+ *
+ * This is a full replace rather than a partial patch — the sheet always
+ * submits all six fields together, so there's no ambiguity about which ones
+ * changed.
+ */
+export async function editPantryItem(
   id: string,
-  changes: { location?: string; lowThreshold?: number },
+  changes: {
+    name: string;
+    quantity: number;
+    unit: string | null;
+    category: string;
+    location: string;
+    lowThreshold: number;
+  },
 ) {
+  const name = changes.name.trim();
+  if (!name) return;
+
   await db.pantryItem.update({
     where: { id },
     data: {
-      ...(changes.location !== undefined && {
-        location: toLocation(changes.location),
-      }),
-      ...(changes.lowThreshold !== undefined && {
-        lowThreshold: Math.max(0, changes.lowThreshold),
-      }),
+      name,
+      quantity: Math.max(0, Math.round(changes.quantity * 100) / 100),
+      unit: changes.unit?.trim() || null,
+      category: toCategory(changes.category),
+      location: toLocation(changes.location),
+      lowThreshold: Math.max(0, Math.round(changes.lowThreshold * 100) / 100),
     },
   });
 
