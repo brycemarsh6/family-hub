@@ -10,9 +10,10 @@ import { KITCHEN_NAV_ITEMS } from "@/lib/nav";
 
 /** Is `href` the page we're currently looking at? */
 function isActive(pathname: string, href: string) {
-  // "/" is a prefix of every path, so it only ever counts on an exact match —
-  // otherwise the Home tab would light up on every page in the branch.
-  if (href === "/") return pathname === "/";
+  // "/" and "/kitchen" are both prefixes of every page below them, so each
+  // only counts on an exact match — otherwise Home or Kitchen would light up
+  // on every page in the branch, which is the same bug either way.
+  if (href === "/" || href === "/kitchen") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
