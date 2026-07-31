@@ -1,4 +1,4 @@
-# Family Hub
+# Marsh Hub
 
 A private web app for the family: groceries and pantry inventory today, with
 room to grow into a shared calendar, chore charts, recipes, and more.

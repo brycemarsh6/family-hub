@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Family Hub",
+  title: "Marsh Hub",
   description: "Groceries and pantry for the family.",
 };
 
@@ -50,7 +50,7 @@ export default function RootLayout({
               className="flex min-h-12 items-center gap-2 text-lg font-semibold tracking-tight"
             >
               <span aria-hidden="true">🏡</span>
-              Family Hub
+              Marsh Hub
             </Link>
             {/* Links live in the top bar on tablets/laptops; phones get the
                 bottom tab bar instead. */}
