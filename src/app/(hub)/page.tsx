@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   ).length;
 
   return (
-    <div className="py-6">
+    <div className="py-4">
       <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
         Marsh Hub
       </h1>
