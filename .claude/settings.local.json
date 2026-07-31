@@ -26,7 +26,13 @@
       "Bash(git commit -q -m 'Wire the two-way grocery/pantry link *)",
       "Bash(npx tsc *)",
       "Bash(grep -E \"\\\\.db$|^\\\\.env$\")",
-      "Bash(git commit -q -m 'Write a proper README *)"
+      "Bash(git commit -q -m 'Write a proper README *)",
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; cat {}')",
+      "Bash(/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate)",
+      "Bash(curl -s -o /dev/null -w \"localhost: HTTP %{http_code}\\\\n\" http://localhost:3000)",
+      "Bash(curl -s -o /dev/null -w \"network IP: HTTP %{http_code}\\\\n\" http://10.0.0.8:3000)",
+      "Bash(git -C /Users/brycemarsh/Documents/family-hub diff --stat next.config.ts)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }
