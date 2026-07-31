@@ -1,7 +1,7 @@
 "use client";
 
 import { QuantityStepper } from "./QuantityStepper";
-import { categoryEmoji } from "@/lib/constants";
+import { categoryIcon } from "@/lib/constants";
 import type { GroceryItemView } from "@/lib/types";
 
 export function GroceryRow({
@@ -15,6 +15,8 @@ export function GroceryRow({
   onQuantityChange: (quantity: number) => void;
   onDelete: () => void;
 }) {
+  const CategoryIcon = categoryIcon(item.category);
+
   return (
     <li className="flex items-center gap-1 rounded-xl border border-line bg-surface pr-1">
       {/*
@@ -57,10 +59,10 @@ export function GroceryRow({
           {(item.checked || item.pantryItemId) && (
             <span className="block truncate text-sm text-muted">
               {item.checked && (
-                <>
-                  <span aria-hidden="true">{categoryEmoji(item.category)}</span>{" "}
+                <span className="inline-flex items-center gap-1 align-text-bottom">
+                  <CategoryIcon aria-hidden="true" size={14} />
                   {item.category}
-                </>
+                </span>
               )}
               {item.checked && item.pantryItemId && " · "}
               {item.pantryItemId && "from pantry"}

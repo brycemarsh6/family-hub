@@ -105,7 +105,7 @@ export function AddItemSelect({
 }: {
   name: string;
   label: string;
-  options: readonly { name: string; emoji: string }[];
+  options: readonly string[];
   defaultValue: string;
 }) {
   return (
@@ -116,8 +116,8 @@ export function AddItemSelect({
       className="min-h-10 min-w-0 flex-1 rounded-lg bg-surface-2 px-2 text-sm outline-none"
     >
       {options.map((option) => (
-        <option key={option.name} value={option.name}>
-          {option.emoji} {option.name}
+        <option key={option} value={option}>
+          {option}
         </option>
       ))}
     </select>

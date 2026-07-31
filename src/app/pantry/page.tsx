@@ -2,8 +2,8 @@ import { db } from "@/lib/db";
 import { PantryList } from "@/components/PantryList";
 import { AddItemBar, AddItemSelect } from "@/components/AddItemBar";
 import {
-  CATEGORIES,
-  LOCATIONS,
+  CATEGORY_NAMES,
+  LOCATION_NAMES,
   DEFAULT_CATEGORY,
   DEFAULT_LOCATION,
   isLow,
@@ -84,13 +84,13 @@ export default async function PantryPage() {
         <AddItemSelect
           name="location"
           label="Location"
-          options={LOCATIONS}
+          options={LOCATION_NAMES}
           defaultValue={DEFAULT_LOCATION}
         />
         <AddItemSelect
           name="category"
           label="Category"
-          options={CATEGORIES}
+          options={CATEGORY_NAMES}
           defaultValue={DEFAULT_CATEGORY}
         />
       </AddItemBar>

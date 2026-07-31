@@ -1,3 +1,18 @@
+import {
+  Carrot,
+  Milk,
+  Beef,
+  Croissant,
+  Snowflake,
+  Package,
+  CupSoda,
+  SprayCan,
+  ShoppingBag,
+  Refrigerator,
+  Archive,
+  type LucideIcon,
+} from "lucide-react";
+
 // The shared vocabulary of the app: the categories an item can belong to and
 // the places food can be stored.
 //
@@ -8,15 +23,15 @@
 // stores text. TypeScript is what stops us writing "Freezor" by mistake.
 
 export const CATEGORIES = [
-  { name: "Produce", emoji: "🥬" },
-  { name: "Dairy", emoji: "🥛" },
-  { name: "Meat & Seafood", emoji: "🥩" },
-  { name: "Bakery", emoji: "🍞" },
-  { name: "Frozen", emoji: "🧊" },
-  { name: "Pantry", emoji: "🥫" },
-  { name: "Beverages", emoji: "🧃" },
-  { name: "Household", emoji: "🧻" },
-  { name: "Other", emoji: "🛒" },
+  { name: "Produce", icon: Carrot },
+  { name: "Dairy", icon: Milk },
+  { name: "Meat & Seafood", icon: Beef },
+  { name: "Bakery", icon: Croissant },
+  { name: "Frozen", icon: Snowflake },
+  { name: "Pantry", icon: Package },
+  { name: "Beverages", icon: CupSoda },
+  { name: "Household", icon: SprayCan },
+  { name: "Other", icon: ShoppingBag },
 ] as const;
 
 // `(typeof CATEGORIES)[number]["name"]` reads as: "the type of the `name` field
@@ -30,11 +45,11 @@ export const CATEGORY_NAMES: readonly Category[] = CATEGORIES.map((c) => c.name)
 export const DEFAULT_CATEGORY: Category = "Other";
 
 export const LOCATIONS = [
-  { name: "Pantry", emoji: "🥫" },
-  { name: "Fridge", emoji: "❄️" },
-  { name: "Freezer", emoji: "🧊" },
+  { name: "Pantry", icon: Package },
+  { name: "Fridge", icon: Refrigerator },
+  { name: "Freezer", icon: Snowflake },
   // Overflow / cold storage downstairs.
-  { name: "Storage", emoji: "📦" },
+  { name: "Storage", icon: Archive },
 ] as const;
 
 export type Location = (typeof LOCATIONS)[number]["name"];
@@ -43,14 +58,14 @@ export const LOCATION_NAMES: readonly Location[] = LOCATIONS.map((l) => l.name);
 
 export const DEFAULT_LOCATION: Location = "Pantry";
 
-/** Look up a category's emoji, falling back to the generic one. */
-export function categoryEmoji(name: string): string {
-  return CATEGORIES.find((c) => c.name === name)?.emoji ?? "🛒";
+/** Look up a category's icon, falling back to the generic one. */
+export function categoryIcon(name: string): LucideIcon {
+  return CATEGORIES.find((c) => c.name === name)?.icon ?? ShoppingBag;
 }
 
-/** Look up a location's emoji, falling back to the generic one. */
-export function locationEmoji(name: string): string {
-  return LOCATIONS.find((l) => l.name === name)?.emoji ?? "📦";
+/** Look up a location's icon, falling back to the generic one. */
+export function locationIcon(name: string): LucideIcon {
+  return LOCATIONS.find((l) => l.name === name)?.icon ?? Archive;
 }
 
 /**

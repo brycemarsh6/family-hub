@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { GroceryList } from "@/components/GroceryList";
 import { AddItemBar, AddItemSelect } from "@/components/AddItemBar";
-import { CATEGORIES, DEFAULT_CATEGORY } from "@/lib/constants";
+import { CATEGORY_NAMES, DEFAULT_CATEGORY } from "@/lib/constants";
 import {
   addGroceryItem,
   clearCheckedGroceryItems,
@@ -76,7 +76,7 @@ export default async function GroceriesPage() {
         <AddItemSelect
           name="category"
           label="Category"
-          options={CATEGORIES}
+          options={CATEGORY_NAMES}
           defaultValue={DEFAULT_CATEGORY}
         />
       </AddItemBar>

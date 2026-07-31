@@ -133,7 +133,7 @@ export function PantryItemEditSheet({
             >
               {CATEGORIES.map((option) => (
                 <option key={option.name} value={option.name}>
-                  {option.emoji} {option.name}
+                  {option.name}
                 </option>
               ))}
             </select>
@@ -147,7 +147,7 @@ export function PantryItemEditSheet({
             >
               {LOCATIONS.map((option) => (
                 <option key={option.name} value={option.name}>
-                  {option.emoji} {option.name}
+                  {option.name}
                 </option>
               ))}
             </select>

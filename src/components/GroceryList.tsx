@@ -3,7 +3,7 @@
 import { useOptimistic, useTransition } from "react";
 import { GroceryRow } from "./GroceryRow";
 import { EmptyState } from "./EmptyState";
-import { categoryEmoji, categoryOrder } from "@/lib/constants";
+import { categoryIcon, categoryOrder } from "@/lib/constants";
 import type { GroceryItemView } from "@/lib/types";
 import {
   toggleGroceryItem,
@@ -77,40 +77,43 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
 
   return (
     <div className="space-y-6">
-      {sortedGroups.map(([category, categoryItems]) => (
-        <section key={category}>
-          <h2 className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
-            <span aria-hidden="true">{categoryEmoji(category)}</span>
-            {category}
-            <span className="font-normal normal-case">
-              ({categoryItems.length})
-            </span>
-          </h2>
-          <ul className="space-y-2">
-            {categoryItems.map((item) => (
-              <GroceryRow
-                key={item.id}
-                item={item}
-                onToggle={() =>
-                  run({ type: "toggle", id: item.id }, () =>
-                    toggleGroceryItem(item.id),
-                  )
-                }
-                onQuantityChange={(quantity) =>
-                  run({ type: "quantity", id: item.id, quantity }, () =>
-                    setGroceryQuantity(item.id, quantity),
-                  )
-                }
-                onDelete={() =>
-                  run({ type: "delete", id: item.id }, () =>
-                    deleteGroceryItem(item.id),
-                  )
-                }
-              />
-            ))}
-          </ul>
-        </section>
-      ))}
+      {sortedGroups.map(([category, categoryItems]) => {
+        const CategoryIcon = categoryIcon(category);
+        return (
+          <section key={category}>
+            <h2 className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
+              <CategoryIcon aria-hidden="true" size={16} />
+              {category}
+              <span className="font-normal normal-case">
+                ({categoryItems.length})
+              </span>
+            </h2>
+            <ul className="space-y-2">
+              {categoryItems.map((item) => (
+                <GroceryRow
+                  key={item.id}
+                  item={item}
+                  onToggle={() =>
+                    run({ type: "toggle", id: item.id }, () =>
+                      toggleGroceryItem(item.id),
+                    )
+                  }
+                  onQuantityChange={(quantity) =>
+                    run({ type: "quantity", id: item.id, quantity }, () =>
+                      setGroceryQuantity(item.id, quantity),
+                    )
+                  }
+                  onDelete={() =>
+                    run({ type: "delete", id: item.id }, () =>
+                      deleteGroceryItem(item.id),
+                    )
+                  }
+                />
+              ))}
+            </ul>
+          </section>
+        );
+      })}
 
       {unchecked.length === 0 && (
         <p className="rounded-xl bg-accent-soft px-4 py-3 text-base font-medium text-accent">

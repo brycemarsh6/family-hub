@@ -4,7 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import { PantryRow } from "./PantryRow";
 import { PantryItemEditSheet, type PantryItemEdits } from "./PantryItemEditSheet";
 import { EmptyState } from "./EmptyState";
-import { LOCATIONS, locationEmoji, locationOrder, isLow } from "@/lib/constants";
+import { LOCATIONS, locationIcon, locationOrder, isLow } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 import {
   setPantryQuantity,
@@ -114,21 +114,20 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
               option === ALL
                 ? optimisticItems.length
                 : optimisticItems.filter((i) => i.location === option).length;
+            const OptionIcon = option !== ALL ? locationIcon(option) : null;
             return (
               <button
                 key={option}
                 type="button"
                 onClick={() => setFilter(option)}
                 aria-pressed={active}
-                className={`min-h-11 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors ${
+                className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors ${
                   active
                     ? "border-accent bg-accent text-accent-fg"
                     : "border-line bg-surface text-muted"
                 }`}
               >
-                {option !== ALL && (
-                  <span aria-hidden="true">{locationEmoji(option)} </span>
-                )}
+                {OptionIcon && <OptionIcon aria-hidden="true" size={16} />}
                 {option} ({count})
               </button>
             );
@@ -144,28 +143,29 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
         />
       ) : (
         <div className="space-y-6">
-          {groups.map((group) => (
-            <section key={group.location}>
-              {/* No heading when a single location is already selected — the
-                  chip above says it. */}
-              {filter === ALL && (
-                <h2 className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
-                  <span aria-hidden="true">
-                    {locationEmoji(group.location)}
-                  </span>
-                  {group.location}
-                  <span className="font-normal normal-case">
-                    ({group.items.length})
-                  </span>
-                </h2>
-              )}
-              <ul className="space-y-2">
-                {group.items.map((item) => (
-                  <PantryRow key={item.id} item={item} {...rowHandlers(item)} />
-                ))}
-              </ul>
-            </section>
-          ))}
+          {groups.map((group) => {
+            const LocationIcon = locationIcon(group.location);
+            return (
+              <section key={group.location}>
+                {/* No heading when a single location is already selected — the
+                    chip above says it. */}
+                {filter === ALL && (
+                  <h2 className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
+                    <LocationIcon aria-hidden="true" size={16} />
+                    {group.location}
+                    <span className="font-normal normal-case">
+                      ({group.items.length})
+                    </span>
+                  </h2>
+                )}
+                <ul className="space-y-2">
+                  {group.items.map((item) => (
+                    <PantryRow key={item.id} item={item} {...rowHandlers(item)} />
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
         </div>
       )}
 
