@@ -6,22 +6,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_ITEMS } from "@/lib/nav";
+import { KITCHEN_NAV_ITEMS } from "@/lib/nav";
 
 /** Is `href` the page we're currently looking at? */
 function isActive(pathname: string, href: string) {
-  // "/" would otherwise match every page, since every path starts with "/".
-  if (href === "/") return pathname === "/";
+  // "/kitchen" (the Home tab) would otherwise match every page under it,
+  // since every kitchen path starts with "/kitchen".
+  if (href === "/kitchen") return pathname === "/kitchen";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /** The horizontal links shown in the top bar on tablets and laptops. */
-export function TopNavLinks() {
+export function KitchenTopNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Main" className="flex items-center gap-1">
-      {NAV_ITEMS.map((item) => {
+    <nav aria-label="Kitchen" className="flex items-center gap-1">
+      {KITCHEN_NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         return (
           <Link
@@ -47,18 +48,18 @@ export function TopNavLinks() {
  * The fixed tab bar along the bottom of the screen on phones — where your
  * thumb already is. Hidden on larger screens, which use the top bar instead.
  */
-export function BottomNav() {
+export function KitchenBottomNav() {
   const pathname = usePathname();
 
   return (
     <nav
-      aria-label="Main"
+      aria-label="Kitchen"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface/95 backdrop-blur md:hidden"
       // Keeps the bar clear of the home indicator on iPhones.
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex">
-        {NAV_ITEMS.map((item) => {
+        {KITCHEN_NAV_ITEMS.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link

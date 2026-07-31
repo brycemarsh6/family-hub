@@ -1,17 +1,18 @@
 import { Package, ShoppingCart, Home, Hourglass, ChefHat } from "lucide-react";
 
-// The app's main sections. Listed once here so the top bar and the phone's
-// bottom tab bar can never disagree about what exists.
+// The Kitchen branch's own tabs — shown only while inside /kitchen/*, not on
+// the top-level dashboard. Listed once here so the desktop top bar and the
+// phone's bottom tab bar can never disagree about what exists.
 //
-// As the family hub grows (calendar, chores, recipes...), new sections get
-// added to this list.
+// Other branches (calendar, chores, lists...) will each get their own file
+// like this one, plus their own layout, when they're actually built.
 
-export const NAV_ITEMS = [
-  { href: "/pantry", label: "Inventory", icon: Package },
-  { href: "/groceries", label: "Shopping", icon: ShoppingCart },
-  { href: "/", label: "Home", icon: Home },
-  { href: "/expiring", label: "Expiring", icon: Hourglass },
-  { href: "/cooking", label: "Cooking", icon: ChefHat },
+export const KITCHEN_NAV_ITEMS = [
+  { href: "/kitchen/inventory", label: "Inventory", icon: Package },
+  { href: "/kitchen/shopping", label: "Shopping", icon: ShoppingCart },
+  { href: "/kitchen", label: "Home", icon: Home },
+  { href: "/kitchen/expiring", label: "Expiring", icon: Hourglass },
+  { href: "/kitchen/cooking", label: "Cooking", icon: ChefHat },
 ] as const;
 
-export type NavItem = (typeof NAV_ITEMS)[number];
+export type KitchenNavItem = (typeof KITCHEN_NAV_ITEMS)[number];

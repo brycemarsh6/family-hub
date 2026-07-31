@@ -10,12 +10,13 @@ import { toCategory, toLocation } from "@/lib/constants";
 
 /**
  * Both pages can be affected by a pantry change: the pantry obviously, and the
- * grocery list when an item is sent to it. The home page shows counts for both.
+ * grocery list when an item is sent to it. The kitchen home page shows counts
+ * for both.
  */
 function refreshKitchenViews() {
-  revalidatePath("/pantry");
-  revalidatePath("/groceries");
-  revalidatePath("/");
+  revalidatePath("/kitchen/inventory");
+  revalidatePath("/kitchen/shopping");
+  revalidatePath("/kitchen");
 }
 
 export async function addPantryItem(formData: FormData) {

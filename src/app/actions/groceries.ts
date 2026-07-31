@@ -18,12 +18,12 @@ import { toCategory, DEFAULT_LOCATION } from "@/lib/constants";
  * Re-render the pages whose contents just changed.
  *
  * Next.js caches rendered pages. After we change data we have to say "that page
- * is out of date", or the browser would keep showing the old list. The home
- * page is included because it displays the item counts.
+ * is out of date", or the browser would keep showing the old list. The kitchen
+ * home page is included because it displays the item counts.
  */
 function refreshGroceryViews() {
-  revalidatePath("/groceries");
-  revalidatePath("/");
+  revalidatePath("/kitchen/shopping");
+  revalidatePath("/kitchen");
 }
 
 export async function addGroceryItem(formData: FormData) {
@@ -157,7 +157,7 @@ export async function putAwayCheckedItems() {
     });
   });
 
-  revalidatePath("/groceries");
-  revalidatePath("/pantry");
-  revalidatePath("/");
+  revalidatePath("/kitchen/shopping");
+  revalidatePath("/kitchen/inventory");
+  revalidatePath("/kitchen");
 }

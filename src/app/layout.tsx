@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
-import { TopNavLinks, BottomNav } from "@/components/NavLinks";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,8 +20,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   // `viewportFit: "cover"` lets us paint into the rounded corners on modern
-  // phones; the safe-area padding in the bottom nav keeps content clear of the
-  // home indicator.
+  // phones; branches with their own bottom tab bar (like Kitchen) add
+  // safe-area padding themselves to stay clear of the home indicator.
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#faf8f5" },
@@ -30,8 +29,9 @@ export const viewport: Viewport = {
   ],
 };
 
-// This layout wraps every page: the bar across the top, the page itself, and
-// the tab bar along the bottom on phones.
+// This layout wraps every page in the app, dashboard and branches alike: just
+// the logo bar and the page itself. Each branch (Kitchen, and later Calendar,
+// Chores, Lists...) adds its own nav on top of this via its own layout.
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -44,7 +44,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-bg text-fg">
         <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-4 py-3">
+          <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-4 py-3">
             <Link
               href="/"
               className="flex min-h-12 items-center gap-2 text-lg font-semibold tracking-tight"
@@ -52,21 +52,10 @@ export default function RootLayout({
               <span aria-hidden="true">🏡</span>
               Marsh Hub
             </Link>
-            {/* Links live in the top bar on tablets/laptops; phones get the
-                bottom tab bar instead. */}
-            <div className="hidden md:block">
-              <TopNavLinks />
-            </div>
           </div>
         </header>
 
-        {/* pb-28 leaves room for the fixed bottom tab bar on phones so the last
-            row of a list is never trapped underneath it. */}
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-4 md:pb-10">
-          {children}
-        </main>
-
-        <BottomNav />
+        <main className="mx-auto w-full max-w-3xl flex-1 px-4">{children}</main>
       </body>
     </html>
   );
