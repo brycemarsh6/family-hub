@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { QuantityStepper } from "./QuantityStepper";
-import { LOCATIONS, categoryEmoji, isLow } from "@/lib/constants";
+import { LOCATIONS, isLow } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
 export function PantryRow({
@@ -34,9 +34,6 @@ export function PantryRow({
           aria-expanded={open}
           className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-xl px-3 text-left transition-colors active:bg-surface-2"
         >
-          <span aria-hidden="true" className="shrink-0 text-xl">
-            {categoryEmoji(item.category)}
-          </span>
           <span className="min-w-0 flex-1">
             <span className="block text-base font-medium">{item.name}</span>
             {/* The location isn't repeated here: it's always either the group
