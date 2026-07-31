@@ -16,37 +16,11 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** The horizontal links shown in the top bar on tablets and laptops. */
-export function KitchenTopNav() {
-  const pathname = usePathname();
-
-  return (
-    <nav aria-label="Kitchen" className="flex items-center gap-1">
-      {KITCHEN_NAV_ITEMS.map((item) => {
-        const active = isActive(pathname, item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            className={`flex min-h-12 items-center gap-2 rounded-xl px-4 text-base font-medium transition-colors ${
-              active
-                ? "bg-accent text-accent-fg"
-                : "text-muted hover:bg-surface-2 hover:text-fg"
-            }`}
-          >
-            <item.icon aria-hidden="true" size={20} />
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
 /**
- * The fixed tab bar along the bottom of the screen on phones — where your
- * thumb already is. Hidden on larger screens, which use the top bar instead.
+ * The fixed tab bar along the bottom of the screen — where your thumb already
+ * is on a phone, and where the wall tablet's is too. Same bar at every screen
+ * size; on wide screens the tabs stay centred in the same max-w-3xl column the
+ * page content uses, rather than stretching across the whole display.
  */
 export function KitchenBottomNav() {
   const pathname = usePathname();
@@ -54,11 +28,11 @@ export function KitchenBottomNav() {
   return (
     <nav
       aria-label="Kitchen"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface/95 backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface/95 backdrop-blur"
       // Keeps the bar clear of the home indicator on iPhones.
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="flex">
+      <div className="mx-auto flex w-full max-w-3xl">
         {KITCHEN_NAV_ITEMS.map((item) => {
           const active = isActive(pathname, item.href);
           return (

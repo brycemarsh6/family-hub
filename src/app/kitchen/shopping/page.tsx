@@ -70,7 +70,7 @@ export default async function GroceriesPage() {
       <GroceryList items={items} />
 
       {/* Keeps the last row clear of the floating add bar. */}
-      <div aria-hidden="true" className="h-28 md:h-24" />
+      <div aria-hidden="true" className="h-28" />
 
       <AddItemBar action={addGroceryItem} placeholder="Add to the list…">
         <AddItemSelect
