@@ -15,7 +15,10 @@
       "Bash(git commit -q -m 'Set up Prisma schema and SQLite database *)",
       "Bash(npm run *)",
       "Bash(git commit -q -m 'Add database client, shared constants, and seed data *)",
-      "Bash(git commit -q -m 'Add app shell, navigation, and home page *)"
+      "Bash(git commit -q -m 'Add app shell, navigation, and home page *)",
+      "Bash(npx tsx -e ' *)",
+      "Bash(sqlite3 /Users/brycemarsh/Documents/family-hub/prisma/dev.db \"SELECT name, quantity, checked FROM GroceryItem WHERE name IN \\('Coffee beans','Cinnamon'\\); SELECT 'total rows: ' || COUNT\\(*\\) FROM GroceryItem;\")",
+      "Bash(git commit -q -m 'Add the grocery list page *)"
     ]
   }
 }
