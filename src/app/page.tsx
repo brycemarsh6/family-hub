@@ -33,7 +33,7 @@ export default async function HomePage() {
         <HomeCard
           href="/groceries"
           emoji="🛒"
-          title="Grocery List"
+          title="Shopping"
           detail={
             toBuy === 0
               ? "Nothing on the list"

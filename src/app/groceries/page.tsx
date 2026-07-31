@@ -33,7 +33,7 @@ export default async function GroceriesPage() {
     <div className="py-2">
       <div className="mb-4">
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          Grocery List
+          Shopping
         </h1>
         <p className="mt-1 text-sm text-muted">
           {items.length - checkedCount} to buy

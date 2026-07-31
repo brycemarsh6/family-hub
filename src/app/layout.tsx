@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Marsh Hub",
-  description: "Groceries and pantry for the family.",
+  description: "Shopping and inventory for the family.",
 };
 
 export const viewport: Viewport = {

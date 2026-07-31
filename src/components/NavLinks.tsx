@@ -34,7 +34,7 @@ export function TopNavLinks() {
                 : "text-muted hover:bg-surface-2 hover:text-fg"
             }`}
           >
-            <span aria-hidden="true">{item.emoji}</span>
+            <item.icon aria-hidden="true" size={20} />
             {item.label}
           </Link>
         );
@@ -69,9 +69,7 @@ export function BottomNav() {
                 active ? "text-accent" : "text-muted"
               }`}
             >
-              <span aria-hidden="true" className="text-2xl leading-none">
-                {item.emoji}
-              </span>
+              <item.icon aria-hidden="true" size={24} />
               {item.label}
             </Link>
           );
