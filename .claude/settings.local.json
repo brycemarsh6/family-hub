@@ -14,7 +14,8 @@
       "Bash(npx prisma *)",
       "Bash(git commit -q -m 'Set up Prisma schema and SQLite database *)",
       "Bash(npm run *)",
-      "Bash(git commit -q -m 'Add database client, shared constants, and seed data *)"
+      "Bash(git commit -q -m 'Add database client, shared constants, and seed data *)",
+      "Bash(git commit -q -m 'Add app shell, navigation, and home page *)"
     ]
   }
 }
