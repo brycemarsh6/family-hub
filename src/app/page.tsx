@@ -43,7 +43,7 @@ export default async function HomePage() {
         <HomeCard
           href="/pantry"
           emoji="🥫"
-          title="Pantry"
+          title="Inventory"
           detail={`${pantryTotal} ${pantryTotal === 1 ? "item" : "items"} stocked`}
           badge={lowCount > 0 ? `${lowCount} running low` : undefined}
         />

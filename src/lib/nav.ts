@@ -7,7 +7,7 @@
 export const NAV_ITEMS = [
   { href: "/", label: "Home", emoji: "🏠" },
   { href: "/groceries", label: "Groceries", emoji: "🛒" },
-  { href: "/pantry", label: "Pantry", emoji: "🥫" },
+  { href: "/pantry", label: "Inventory", emoji: "🥫" },
 ] as const;
 
 export type NavItem = (typeof NAV_ITEMS)[number];
