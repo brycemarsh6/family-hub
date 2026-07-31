@@ -33,15 +33,32 @@ else can reach it yet — there's no login, and it only runs locally (see
 
 ## What's built and working
 
-**Grocery list** (`/groceries`) — add items, group by store-aisle category,
-tap a row to check it off, adjust quantity with +/− steppers, clear checked
-items, or "put away" checked items straight into the pantry.
+**The hub is organized into branches, not one flat set of pages.** `/` is a
+bare dashboard (just a logo header and, for now, a single link into Kitchen —
+the overview-widget layer is planned but not built). Each branch owns its own
+section and its own nav, added via a nested `layout.tsx` under its folder —
+e.g. `src/app/kitchen/layout.tsx` renders the Kitchen tab bar (bottom on
+phones, top on desktop) for every page under `/kitchen/*`, and the dashboard
+never sees it. Future branches (Calendar, Chores, Lists) will each get the
+same treatment: their own folder, their own layout, their own nav — nothing
+about today's structure needs to move to add one.
 
-**Pantry inventory** (`/pantry`) — tracks what's stocked across four
-locations (Pantry, Fridge, Freezer, and Storage — the overflow/cold storage
-downstairs), grouped and filterable by location. Items below their "low"
-threshold get a Low (or Out, at zero) badge and float to the top of their
-group.
+**Kitchen** (`/kitchen`) is the first branch, with five tabs:
+
+- **Shopping** (`/kitchen/shopping`) — add items, group by store-aisle
+  category, tap a row to check it off, adjust quantity with +/− steppers,
+  clear checked items, or "put away" checked items straight into the pantry.
+- **Inventory** (`/kitchen/inventory`) — tracks what's stocked across four
+  locations (Pantry, Fridge, Freezer, and Storage — the overflow/cold storage
+  downstairs), grouped and filterable by location. Items below their "low"
+  threshold get a Low (or Out, at zero) badge and float to the top of their
+  group.
+- **Home** (`/kitchen`) — the Kitchen branch's own landing page: two cards
+  summarizing Shopping and Inventory, tap either to go straight there.
+- **Expiring** and **Cooking** — placeholder pages only (nav tabs exist,
+  pages just say "Coming soon"). A deliberate, named exception to "no feature
+  is stubbed out early" below — Bryce wanted the full tab bar visible now
+  since these are next in line to actually get built.
 
 **Tap-to-edit** — tapping any pantry item opens a full edit sheet (a bottom
 sheet on phones, a centered dialog on wider screens) covering every field:
@@ -122,9 +139,24 @@ without re-litigating each time:
 - **Delete is a single tap, no confirmation dialog**, consistently across the
   app. Deliberate choice for consistency, not an oversight — revisit only if
   it causes an actual accidental-deletion problem in practice.
-- **No feature is stubbed out early.** The nav and folder structure leave
-  room for calendar, profiles, chores, etc., but none of them exist as
-  placeholder pages — each gets built when it's actually being worked on.
+- **Outline icons only, via Lucide — no emoji in the icon system.** The
+  category and storage-location icons in `src/lib/constants.ts`, and every
+  branch's nav icons, are Lucide components. Native `<select><option>`
+  elements can't render SVG, so dropdowns fall back to plain text there —
+  that's the one deliberate exception. Decorative one-off emoji elsewhere
+  (empty states, the dashboard's Kitchen card) weren't in scope for this rule
+  and haven't been touched.
+- **Each branch (Kitchen, and later Calendar/Chores/Lists) gets its own
+  folder with its own `layout.tsx` for its own nav**, following the pattern
+  in `src/app/kitchen/`. The root layout only renders the logo header — it
+  has no idea what branches exist. This is what let the dashboard become a
+  bare page without dragging Kitchen's tab bar along with it.
+- **No feature is stubbed out early** — with one named exception: Kitchen's
+  Expiring and Cooking tabs exist as nav items pointing at "Coming soon"
+  pages, because Bryce wanted the full 5-tab bar visible ahead of building
+  them. Everywhere else (Calendar, Chores, Lists, profiles, etc.) the rule
+  holds as originally stated: no nav entry or placeholder page until it's
+  actually being built.
 
 ## Planned, not yet built
 
@@ -151,16 +183,21 @@ scheduled:
 
 ## Where I left off
 
-Just finished and verified: the pantry item edit sheet (tap any pantry item →
-full edit panel for name/quantity/unit/category/location/low-threshold, plus
-delete). It's built, tested end-to-end including light/dark mode and
-phone/desktop layouts, and committed.
+Just finished and verified: splitting the app into branches. The dashboard at
+`/` is now bare (logo header + one link into Kitchen), and everything that
+used to be flat top-level pages — Inventory, Shopping, Home, Expiring,
+Cooking — moved under `/kitchen/*` with its own nav rendered by
+`src/app/kitchen/layout.tsx`. Along the way: the grocery list got renamed
+"Shopping" throughout, and the category/location icon system switched from
+emoji to Lucide (see the design rule above). All committed, tested end-to-end
+across phone/desktop and light/dark, including a full add-item → put-away
+round trip to confirm the route rename didn't break Next's page-revalidation.
 
-Nothing is currently half-finished — grocery list and pantry are both fully
-working, including the two-way link between them. The obvious next step is a
-direction decision, not a bug to fix: either keep adding features from the
-"planned" list above (profiles, chores, recipes, etc. are all independent and
-can go in any order), or invest in login + deployment next so the rest of the
-family can actually start using this instead of it only running on Bryce's
-laptop. Worth deciding at the start of the next session rather than
-defaulting into one or the other.
+Nothing is currently half-finished. The dashboard's widget layer is the
+obvious next piece if continuing down this path — right now it's just a
+placeholder link, not the "overview of what matters across the hub" it's
+meant to become. Beyond that it's the same open direction question as before:
+keep building out branches (Expiring and Cooking are next in line since their
+tabs already exist; Calendar, Chores, Lists, profiles are all independent
+after that), or invest in login + deployment so the rest of the family can
+actually start using this instead of it only running on Bryce's laptop.

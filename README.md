@@ -31,7 +31,7 @@ needs its own copy — copying the example is that copy.
 
 | Folder | What it is |
 |---|---|
-| `src/app/` | Every page you can visit, plus the "layout" wrapper around all of them |
+| `src/app/` | Every page you can visit. `layout.tsx` at the root wraps the whole app (just the logo bar); each branch folder (e.g. `kitchen/`) has its own `layout.tsx` for that branch's own nav |
 | `src/app/actions/` | The functions that change the database (add an item, check something off, etc.) |
 | `src/components/` | Reusable pieces of screen — a row, a stepper, the nav bar |
 | `src/lib/` | Shared plumbing: the database connection, and the list of categories/locations |
