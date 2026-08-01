@@ -1,7 +1,7 @@
 "use client";
 
 import { QuantityStepper } from "./QuantityStepper";
-import { categoryIcon } from "@/lib/constants";
+import { categoryIcon, STORE_ICON as StoreIcon } from "@/lib/constants";
 import type { GroceryItemView } from "@/lib/types";
 
 export function GroceryRow({
@@ -55,8 +55,9 @@ export function GroceryRow({
           </span>
           {/* No category shown here normally — it's already the heading this row
               sits under. Checked items are listed together without headings,
-              so those do get one. */}
-          {(item.checked || item.pantryItemId) && (
+              so those do get one. Store shows whenever it's set, checked or
+              not — it's the whole point of this feature. */}
+          {(item.checked || item.pantryItemId || item.store) && (
             <span className="block truncate text-sm text-muted">
               {item.checked && (
                 <span className="inline-flex items-center gap-1 align-text-bottom">
@@ -66,6 +67,13 @@ export function GroceryRow({
               )}
               {item.checked && item.pantryItemId && " · "}
               {item.pantryItemId && "from pantry"}
+              {(item.checked || item.pantryItemId) && item.store && " · "}
+              {item.store && (
+                <span className="inline-flex items-center gap-1 align-text-bottom">
+                  <StoreIcon aria-hidden="true" size={14} />
+                  {item.store}
+                </span>
+              )}
             </span>
           )}
         </span>
