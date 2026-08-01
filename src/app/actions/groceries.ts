@@ -12,7 +12,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { toCategory, DEFAULT_LOCATION } from "@/lib/constants";
+import { toCategory, toStore, DEFAULT_LOCATION } from "@/lib/constants";
 
 /**
  * Re-render the pages whose contents just changed.
@@ -45,6 +45,9 @@ export async function addGroceryItem(formData: FormData) {
       // toCategory() rejects anything that isn't one of our real categories,
       // so a tampered-with form can't put junk in the database.
       category: toCategory(formData.get("category")),
+      // toStore() returns null rather than a default — leaving the store
+      // blank on the add bar is a normal, valid choice, not a mistake.
+      store: toStore(formData.get("store")),
     },
   });
 

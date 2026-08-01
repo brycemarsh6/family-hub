@@ -104,11 +104,18 @@ export function AddItemSelect({
   label,
   options,
   defaultValue,
+  placeholderLabel,
 }: {
   name: string;
   label: string;
   options: readonly string[];
   defaultValue: string;
+  /**
+   * Adds a blank leading option with an empty value, for fields where
+   * "nothing chosen" is itself a valid answer — store, so far. Category and
+   * location always default to a real value, so they leave this out.
+   */
+  placeholderLabel?: string;
 }) {
   return (
     <select
@@ -117,6 +124,7 @@ export function AddItemSelect({
       defaultValue={defaultValue}
       className="min-h-10 min-w-0 flex-1 rounded-lg bg-surface-2 px-2 text-sm outline-none"
     >
+      {placeholderLabel && <option value="">{placeholderLabel}</option>}
       {options.map((option) => (
         <option key={option} value={option}>
           {option}
