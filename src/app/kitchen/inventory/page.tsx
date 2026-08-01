@@ -80,7 +80,7 @@ export default async function PantryPage() {
       {/* Keeps the last row clear of the floating add bar. */}
       <div aria-hidden="true" className="h-28" />
 
-      <AddItemBar action={addPantryItem} placeholder="Add to the pantry…">
+      <AddItemBar action={addPantryItem} placeholder="Add to the inventory…">
         <AddItemSelect
           name="location"
           label="Location"
