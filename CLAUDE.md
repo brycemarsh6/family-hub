@@ -35,17 +35,21 @@ else can reach it yet — there's no login, and it only runs locally (see
 
 **The hub is organized into branches, not one flat set of pages.** `/` is the
 dashboard — a home base showing live counts and status from each branch (right
-now, just Kitchen), with a tap-through to each one. The hub nav at the bottom
-shows Kitchen, Calendar, Home, Chores, Lists (five branches, with Home centred).
-Each branch owns its own section and its own nav, added via a nested
-`layout.tsx` under its folder — e.g. `src/app/kitchen/layout.tsx` renders the
-Kitchen tab bar for every page under `/kitchen/*`. The dashboard and branches
-that don't yet have their own nav (Calendar, Chores, Lists) share a layout via
-a `(hub)` route group — the parentheses keep it out of the URL, so `/` stays `/`.
-Nothing about this structure needs to move to add a new branch later.
+now, just Kitchen), with a tap-through to each one. One nav bar, fixed along
+the bottom of the screen, is the same on every page in the app: Kitchen,
+Calendar, Home, Chores, Lists (with Home centred). It doesn't change contents
+as you move between branches — only which tab is lit up — and it doesn't drill
+into a branch's own sub-pages. Getting from a branch's tab into its sub-pages
+is the job of that branch's own landing page (see Kitchen below) instead of a
+second nav bar. Nothing about this structure needs to move to add a new
+branch later — it gets a tab in `nav.ts` and a landing page, that's it.
 
-**Kitchen** (`/kitchen`) is the first branch, with five tabs in a fixed bottom
-nav bar:
+**Kitchen** (`/kitchen`) is the first branch. Its landing page is a 2×2 grid
+of large tiles, one per sub-page — Inventory, Shopping, Expiring, Cooking —
+each tile the full tap target. Inventory's tile carries a badge for its low
+count, Shopping's for its to-buy count; neither shows a raw item total, since
+the tile's job is "does this need attention," not inventory volume. Expiring
+and Cooking carry no badge — there's no real feature behind them yet.
 
 - **Inventory** (`/kitchen/inventory`) — tracks what's stocked across four
   locations (Pantry, Fridge, Freezer, and Storage — the overflow/cold storage
@@ -62,18 +66,10 @@ nav bar:
 - **Shopping** (`/kitchen/shopping`) — add items, group by store-aisle
   category, tap a row to check it off, adjust quantity with +/− steppers,
   clear checked items, or "put away" checked items straight into the pantry.
-- **Home** (points to `/`, the dashboard) — the way back out of the Kitchen
-  branch to the hub-level overview.
-- **Expiring** and **Cooking** — placeholder pages only (nav tabs exist,
+- **Expiring** and **Cooking** — placeholder pages only (the tiles exist,
   pages just say "Coming soon"). A deliberate, named exception to "no feature
-  is stubbed out early" below — Bryce wanted the full tab bar visible now
-  since these are next in line to actually get built.
-
-`/kitchen` itself has no page of its own — it redirects straight to
-`/kitchen/inventory`, Inventory being the branch's front door. It used to be a
-landing page with two cards (Shopping, Inventory) showing the same to-buy/
-stocked/running-low counts as the dashboard's Kitchen widget, one tap earlier
-in the same path. See the design rule below on branch landing pages.
+  is stubbed out early" below — Bryce wanted the full shape of the branch
+  visible now since these are next in line to actually get built.
 
 **The category vocabulary is 28 groups, not 9.** `src/lib/constants.ts` used
 to hold a flat list (Produce, Dairy, Frozen, Pantry...) that couldn't tell
@@ -176,26 +172,33 @@ without re-litigating each time:
   that's the one deliberate exception. Decorative one-off emoji elsewhere
   (empty states, the dashboard's Kitchen card) weren't in scope for this rule
   and haven't been touched.
-- **Nav bars are a fixed bar along the bottom of the screen, at every size —
-  phone, tablet, and desktop alike.** No separate top-bar layout for wider
-  screens. Bryce wanted this consistently after trying both; the tabs stay
+- **There is exactly one nav bar for the whole app**, rendered once from the
+  root layout (`src/app/layout.tsx`), fixed along the bottom of the screen at
+  every size — phone, tablet, and desktop alike, no separate top-bar layout
+  for wider screens. It's the same bar on every page: only which tab is lit
+  up changes, never the tabs themselves. This replaced an earlier version
+  where Kitchen had its own separate tab bar that swapped in while you were
+  inside `/kitchen/*` — after seeing it work, Bryce noticed most apps don't
+  do that (the nav usually doesn't change contents as you move around) and we
+  went back to one bar. `HUB_NAV_ITEMS` in `src/lib/nav.ts` is the only nav
+  list in the app now; `HubNav.tsx` is the only nav component. The tabs stay
   centred in the same `max-w-3xl` column the page content uses, so they don't
-  stretch edge-to-edge on a wide display. Both the hub nav (`HubNav.tsx`) and
-  Kitchen's nav (`KitchenNav.tsx`) follow this.
-- **Each branch (Kitchen, and later Calendar/Chores/Lists) gets its own
-  folder with its own `layout.tsx` for its own nav**, following the pattern
-  in `src/app/kitchen/`. The dashboard and branches without a nav of their own
-  yet (Calendar, Chores, Lists) share the hub-level nav via a `(hub)` route
-  group — parentheses keep the folder out of the URL, so the dashboard is
-  still `/`. The root layout (`src/app/layout.tsx`) only renders the logo
-  header and has no idea what branches exist.
+  stretch edge-to-edge on a wide display.
+- **A branch gets you into its sub-pages via its own landing page, not a
+  second nav bar.** Kitchen's landing page (`src/app/kitchen/page.tsx`) is a
+  grid of large tiles — one per sub-page (Inventory, Shopping, Expiring,
+  Cooking) — each tile the full tap target. A future branch with sub-pages
+  (Chores might end up with one per kid, say) follows the same pattern:
+  a tile grid at the branch's own route, no nav-list file of its own. Branches
+  with only one page (nothing here yet, but plausible) don't need this at
+  all — the hub tab goes straight to the content.
 - **No feature is stubbed out early** — with named exceptions, extended twice
-  now: Kitchen's Expiring and Cooking tabs, and the hub nav's Calendar, Chores,
-  and Lists tabs, all exist as nav items pointing at "Coming soon" pages.
-  Bryce wanted the full shape of the nav visible ahead of building each
-  feature out, both at the branch level and the hub level. Profiles and any
-  future branch not yet in a nav bar still follow the rule as originally
-  stated: no nav entry or placeholder page until it's actually being built.
+  now: Kitchen's Expiring and Cooking tiles, and the hub nav's Calendar,
+  Chores, and Lists tabs, all exist pointing at "Coming soon" pages. Bryce
+  wanted the full shape of the app visible ahead of building each feature
+  out, both at the branch level and the hub level. Profiles and any future
+  branch not yet built still follow the rule as originally stated: no nav
+  entry, tile, or placeholder page until it's actually being built.
 - **The seed data is typed against the real vocabulary, not bare strings.**
   `prisma/seed.ts` imports `Category` and `Location` from `constants.ts` as
   `import type` — erased before the script ever runs, so it costs nothing at
@@ -204,18 +207,20 @@ without re-litigating each time:
   sat there passing a clean `tsc` run, only visible as generic fallback icons
   in the running app. Renaming or removing a category now breaks the seed at
   compile time instead.
-- **A branch doesn't get its own landing page unless it shows something
-  neither its own tabs nor the dashboard already show.** Kitchen had one —
-  two cards summarizing Shopping and Inventory — and it ran byte-for-byte the
-  same database queries as the dashboard's Kitchen widget, while its two
-  links duplicated tabs sitting in the bar on that same screen. `/kitchen` now
-  redirects straight to Inventory instead. This came up because we spent two
-  sessions circling it: flagged the page as an orphan, added a tab back to it,
-  removed the tab as redundant, then removed the page itself — worth applying
-  this rule up front for Calendar, Chores, and Lists rather than repeating the
-  cycle. Revisit if a branch earns a genuine overview later — Kitchen's would
-  be what's expiring this week and what's for dinner, which the dashboard's
-  one-line summary doesn't cover.
+- **A branch with more than one page needs its own landing page — this is the
+  opposite of an earlier rule, and the reason is structural, not a change of
+  taste.** `/kitchen` used to redirect straight to Inventory. That was correct
+  *at the time*: Kitchen still had its own tab bar back then, so a landing
+  page's links (Shopping, Inventory) just duplicated tabs already sitting in
+  the bar on the same screen. Once the nav became one global bar that doesn't
+  drill into branch sub-pages (see above), that duplication stopped existing
+  — the landing page became the *only* route in, so removing it would have
+  orphaned every sub-page behind it. If a future change ever brings back a
+  branch-level nav, this rule should flip back for the same reason it flipped
+  here. We know this rule can circle — Kitchen's page was flagged as an
+  orphan, given a tab, had the tab reverted, then got redirected away
+  entirely, then rebuilt as tiles — so if it comes up a fourth time, check
+  which nav structure is actually in place before re-deciding it.
 
 ## Planned, not yet built
 
@@ -242,51 +247,47 @@ scheduled:
 
 ## Where I left off
 
-Just finished and verified: rebuilding the category system from a 9-entry
-flat list into a 28-group taxonomy, and making Inventory collapsible so it
-still works at that scale. This session:
+Just finished and verified: collapsing the two-nav-bars structure into one
+global nav, after Bryce noticed most apps don't swap the bar's contents as
+you move around. Done as an explicit 3-step plan, checked in and committed
+after each step so it never risked a big-bang change:
 
-1. **Replaced the 9 flat categories with 28**, worked out from screenshots of
-   a reference app's own category picker (Bryce sent screenshots across
-   several turns; the two-level group > category structure there got
-   flattened to just the groups — the finer level was ~91 entries, too much
-   precision for a family and unusable in a phone dropdown). Ordered as a
-   supermarket walk. Added non-food groups the reference lacked (Household,
-   Personal Care & Beauty, Health & Wellness, Children's Essentials) since the
-   house stocks more than food.
-2. **Typed `prisma/seed.ts` against `Category`/`Location`** instead of bare
-   strings — this is what caught that the old seed had five stale category
-   names in it, invisible until now because `tsc` doesn't check untyped
-   string literals. Expanded the seed itself to 87 pantry items across 27 of
-   28 categories and all 4 locations, 30 of them low, so the new UI has real
-   data to prove itself against.
-3. **Made Inventory's groups collapsible**, and switched what it groups by —
-   category instead of location, with location moved to filter-only (the
-   chips were already there). The design risk was that collapsing by default
-   would bury the low-stock items this page exists to surface; solved by
-   starting low-holding groups open and putting each group's low count on its
-   header even when shut, so a collapsed list still tells you what needs
-   attention without expanding anything.
+1. **Gave Kitchen a real landing page** — a 2×2 grid of tiles (Inventory,
+   Shopping, Expiring, Cooking), replacing the `/kitchen` → Inventory
+   redirect from last session. Each tile's badge is "what needs attention"
+   only: Inventory shows its low count, Shopping shows its to-buy count,
+   neither shows a raw item total. Built first, before touching the nav, so
+   every sub-page stayed reachable throughout the rest of the work.
+2. **Replaced the two swapping nav bars with one.** Moved `HubBottomNav` into
+   the root layout so it renders once, on every page. Deleted `KitchenNav.tsx`
+   and `kitchen/layout.tsx` entirely, and dissolved the `(hub)` route group —
+   it only existed to share the hub nav across the dashboard/Calendar/Chores/
+   Lists, which is now pointless once that nav is global. Net -104/+14 lines;
+   this was a real simplification, not just a preference change.
+3. **Rewrote the design rules this touched**, including reversing the
+   landing-page rule from last session — see that rule's entry above for why
+   it flipped and why that's not just taste.
 
-All committed, tsc/eslint clean, tested across phone/desktop and light/dark
-— including confirming the location filter and category grouping compose
-correctly together (e.g. filtering to Fridge narrows both which groups show
-and their counts).
+All committed (3 commits, one per step), tsc clean, tested across phone/
+desktop and light/dark, confirmed the exact same nav renders identically on
+the dashboard, Kitchen's tile page, and three levels deep in Inventory — only
+the lit-up tab changes.
 
-Nothing is currently half-finished. Two open threads worth knowing about:
+Nothing from this session is half-finished. One pre-existing item noticed but
+deliberately not touched, since it wasn't part of this work: `eslint` flags a
+component-defined-during-render issue in `GroceryRow.tsx` (from several
+sessions back, `categoryIcon()` called at the top of the component and
+assigned to a capitalized variable each render). Small, isolated, worth a
+dedicated pass rather than a drive-by fix.
 
-- **Collapse state doesn't persist.** It's plain component state, so a reload
-  or navigating away and back resets every group to its default open/shut
-  state. Fine for now; worth `localStorage` if the wall-tablet use case makes
-  losing that state annoying in practice.
-- **Shopping didn't get the collapsible treatment.** It picked up the 28
-  categories automatically (grouping still works, just via the existing flat
-  render) but has no collapse/expand. The grocery list is usually short
-  enough that this probably doesn't matter — flagging it as a choice made by
-  omission, not a bug.
+Still open from before:
 
-Also still open from before: **five of ten nav tabs across both bars are
-still placeholder pages** (Expiring, Cooking, Calendar, Chores, Lists).
+- **Collapse state doesn't persist** on Inventory — plain component state,
+  resets on reload.
+- **Shopping has no collapse/expand** — it picked up the 28 categories but
+  not the collapsible treatment.
+- **Five of ten tiles/tabs are still placeholder pages** (Expiring, Cooking,
+  Calendar, Chores, Lists).
 
 Beyond that, the same open direction question as before: keep building out
 branches, or invest in login + deployment so the rest of the family can
