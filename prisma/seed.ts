@@ -14,7 +14,7 @@ import "dotenv/config";
 // never loads lucide-react, which has no business running in a Node script).
 // What it buys us is that renaming a category in constants.ts now breaks this
 // file at compile time, instead of silently leaving stale names in the seed.
-import type { Category, Location } from "../src/lib/constants";
+import type { Category, Location, Store } from "../src/lib/constants";
 
 const adapter = new PrismaBetterSqlite3({
   url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
@@ -36,6 +36,9 @@ type SeedGroceryItem = {
   unit: string;
   category: Category;
   checked?: boolean;
+  /** Left undefined on a couple of items on purpose, to seed the
+   * "added before this feature existed" / not-yet-assigned state. */
+  store?: Store;
 };
 
 // A realistic household spread: every category except "Other" has something in
@@ -170,16 +173,18 @@ const pantryItems: SeedPantryItem[] = [
 ];
 
 const groceryItems: SeedGroceryItem[] = [
-  { name: "Bananas", quantity: 1, unit: "bunch", category: "Produce" },
-  { name: "Spinach", quantity: 1, unit: "bag", category: "Produce" },
-  { name: "Greek yogurt", quantity: 4, unit: "cups", category: "Dairy Products" },
-  { name: "Ground beef", quantity: 2, unit: "lbs", category: "Meat" },
+  { name: "Bananas", quantity: 1, unit: "bunch", category: "Produce", store: "Walmart" },
+  { name: "Spinach", quantity: 1, unit: "bag", category: "Produce", store: "Walmart" },
+  { name: "Greek yogurt", quantity: 4, unit: "cups", category: "Dairy Products", store: "Costco" },
+  { name: "Ground beef", quantity: 2, unit: "lbs", category: "Meat", store: "Costco" },
+  // No store — proves the "not chosen yet" state for items added before, or
+  // without going through, the store picker.
   { name: "Sourdough loaf", quantity: 1, unit: "", category: "Bread & Bakery" },
-  { name: "Coffee beans", quantity: 1, unit: "bag", category: "Beverages" },
-  { name: "Dish soap", quantity: 1, unit: "", category: "Household" },
-  { name: "Tortillas", quantity: 2, unit: "packs", category: "Bread & Bakery" },
-  { name: "Apples", quantity: 6, unit: "", category: "Produce", checked: true },
-  { name: "Butter", quantity: 1, unit: "lb", category: "Dairy Products", checked: true },
+  { name: "Coffee beans", quantity: 1, unit: "bag", category: "Beverages", store: "Target" },
+  { name: "Dish soap", quantity: 1, unit: "", category: "Household", store: "Amazon" },
+  { name: "Tortillas", quantity: 2, unit: "packs", category: "Bread & Bakery", store: "Maceys" },
+  { name: "Apples", quantity: 6, unit: "", category: "Produce", checked: true, store: "Walmart" },
+  { name: "Butter", quantity: 1, unit: "lb", category: "Dairy Products", checked: true, store: "Costco" },
 ];
 
 async function main() {

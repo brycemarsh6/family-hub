@@ -30,6 +30,7 @@ import {
   Package,
   Refrigerator,
   Archive,
+  Store as StoreIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -114,6 +115,29 @@ export const LOCATION_NAMES: readonly Location[] = LOCATIONS.map((l) => l.name);
 
 export const DEFAULT_LOCATION: Location = "Pantry";
 
+// Where a shopping-list item gets bought. Unlike categories and locations,
+// these are brands, so there's no per-store icon to use — Lucide has no
+// Walmart or Costco logo, and the "outline icons only, no emoji" rule rules
+// out the alternatives. Stores render as plain text chips instead, with one
+// shared storefront icon standing for the concept.
+//
+// A store lives on the grocery item only, and disappears when the item is
+// bought: "Put away" deletes the grocery row once it's been added back into
+// the inventory.
+export const STORES = [
+  "Walmart",
+  "Costco",
+  "Amazon",
+  "Target",
+  "Maceys",
+  "Other",
+] as const;
+
+export type Store = (typeof STORES)[number];
+
+/** The icon standing for the *concept* of a store — not for any one shop. */
+export const STORE_ICON = StoreIcon;
+
 /** Look up a category's icon, falling back to the generic one. */
 export function categoryIcon(name: string): LucideIcon {
   return CATEGORIES.find((c) => c.name === name)?.icon ?? ShoppingBag;
@@ -150,6 +174,16 @@ export function toLocation(value: unknown): Location {
   return LOCATION_NAMES.includes(value as Location)
     ? (value as Location)
     : DEFAULT_LOCATION;
+}
+
+/**
+ * Narrow arbitrary text to a Store, or `null` if it isn't one. Unlike
+ * category and location, store has no default to fall back to — "no store
+ * chosen yet" is a real, valid state (e.g. items added before this feature
+ * existed), not an error to paper over with a guess.
+ */
+export function toStore(value: unknown): Store | null {
+  return STORES.includes(value as Store) ? (value as Store) : null;
 }
 
 /** An item counts as "running low" when there's no more than the threshold left. */

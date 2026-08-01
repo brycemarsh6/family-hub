@@ -27,6 +27,7 @@ model GroceryItem {
   checked  Boolean @default(false)
   addedBy  String? // free text for now; becomes a relation to a User when profiles exist
   note     String?
+  store    String? // "Walmart" | "Costco" | "Amazon" | "Target" | "Maceys" | "Other" | null (not chosen yet)
 
   // Set when this item was generated from a pantry item running low. It's what
   // lets "put away" know which pantry item to top up, and prevents us adding

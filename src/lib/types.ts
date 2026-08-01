@@ -14,6 +14,8 @@ export type GroceryItemView = {
   checked: boolean;
   note: string | null;
   pantryItemId: string | null;
+  /** Where this'll be bought. Null until the shopper chooses one. */
+  store: string | null;
 };
 
 export type PantryItemView = {

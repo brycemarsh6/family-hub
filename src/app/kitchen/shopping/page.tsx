@@ -24,6 +24,7 @@ export default async function GroceriesPage() {
       checked: true,
       note: true,
       pantryItemId: true,
+      store: true,
     },
   });
 
