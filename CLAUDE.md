@@ -66,6 +66,16 @@ and Cooking carry no badge — there's no real feature behind them yet.
 - **Shopping** (`/kitchen/shopping`) — add items, group by store-aisle
   category, tap a row to check it off, adjust quantity with +/− steppers,
   clear checked items, or "put away" checked items straight into the pantry.
+  Each item can carry which *store* it's for (Walmart, Costco, Amazon,
+  Target, Maceys, Other) — filterable via chips above the list, same pattern
+  as Inventory's location chips. The store lives only on the grocery item and
+  disappears the moment it's bought, since "Put away" deletes the row rather
+  than archiving it. Three ways to set it, all landing in the same place:
+  typing a new item reveals a Store dropdown next to Category; tapping a
+  pantry item's cart button (or the bulk "Add N low items" button) opens a
+  picker sheet first; either way, the last store you picked is remembered
+  (`localStorage`, see the design rule below) and offered again next time —
+  the dropdown defaults to it, the sheet highlights it "Last used."
 - **Expiring** and **Cooking** — placeholder pages only (the tiles exist,
   pages just say "Coming soon"). A deliberate, named exception to "no feature
   is stubbed out early" below — Bryce wanted the full shape of the branch
@@ -222,6 +232,20 @@ without re-litigating each time:
   entirely, then rebuilt as tiles — so if it comes up a fourth time, check
   which nav structure is actually in place before re-deciding it.
 
+- **Reading a browser-only value (localStorage, so far) uses
+  `useSyncExternalStore`, not `useState` + `useEffect`.** The obvious version
+  — start at `null`, read localStorage in an effect, `setState` the result —
+  actually has a real bug: the server has no localStorage, so the first
+  client render would want to show a different value than the
+  server-rendered HTML, a hydration mismatch. This project's lint rules
+  correctly flag that pattern rather than it being a style nitpick.
+  `useSyncExternalStore` (`src/lib/lastStore.ts`) is React's built-in tool
+  for exactly this: its third argument is the value to use for the server
+  render and the first client render (so the two always agree), and it
+  switches to the real value automatically once available — no manual
+  effect or `setState` at all. Reach for this again for any future
+  browser-only reads (session storage, `matchMedia`, etc.).
+
 ## Planned, not yet built
 
 In roughly the order they'll likely get tackled, though nothing here is
@@ -247,44 +271,44 @@ scheduled:
 
 ## Where I left off
 
-Last session's big piece — collapsing the two-nav-bars structure into one
-global nav — is done, committed, and described accurately above (see the nav
-design rules and the Kitchen section). This session was short: one small
-fix, plus a feature discussion that got interrupted before any code changed.
+Just finished and verified: the whole "which store is this for" feature —
+last session's write-up below turned into a real, working 5-commit build,
+done as an explicit step-by-step plan (checked in and committed after each
+step, same discipline as the nav-consolidation plan two sessions back).
 
-1. **Fixed a leftover label.** Inventory's add-item bar still said "Add to
-   the pantry…" from before the Pantry→Inventory rename. Now says "Add to
-   the inventory…". One line, `src/app/kitchen/inventory/page.tsx`.
-2. **A real mistake got caught and fixed properly.** While amending an
-   earlier commit to fold in two files a broken `git add` had silently
-   dropped, we walked through *why* `git status` before and after every
-   `git add`/`git commit` is the habit that catches this — the box analogy
-   (editing changes the project, `git add` decides what goes in the box,
-   `git commit` seals it, always look inside before sealing). Worth
-   remembering next session: check `git status` reports the expected file
-   count before committing, not just after something looks wrong.
+1. **Data model** — nullable `store` on `GroceryItem`, an additive migration,
+   `STORES`/`toStore()` in `constants.ts` following the same pattern as
+   categories and locations, with one deliberate difference: `toStore()`
+   returns `null` rather than falling back to a default, since "no store
+   chosen yet" is a real, valid state, not an error.
+2. **Shopping** shows each item's store and gained filter chips for it
+   (All / Unassigned / each store), mirroring Inventory's location chips.
+3. **Inventory's cart buttons** (single item and the bulk "Add N low items")
+   now open a picker sheet asking which store before adding. Dismissing it
+   any way — the ×, the backdrop, Escape, or an explicit "Skip" button —
+   still adds the item, just without a store; the button already committed
+   to "add to the list," so the store question shouldn't be able to silently
+   cancel that.
+4. **The "Add to the list…" bar** grew a Store dropdown next to Category,
+   reusing the same `AddItemSelect` component with one small addition (an
+   optional blank placeholder option) rather than a new pattern.
+5. **Last-store memory** — every picker now defaults to whichever store was
+   chosen most recently. This is the one piece worth reading closely if you
+   pick this back up: the natural-looking `useState` + `useEffect` version
+   has a real hydration-mismatch bug, not just a lint nitpick, and got
+   replaced with `useSyncExternalStore`. See the new design rule above
+   before touching `src/lib/lastStore.ts` or copying its pattern elsewhere.
 
-**Interrupted, not started:** a "which store to buy this at" feature for
-Shopping (Walmart, Costco, Target, Amazon, etc.) — Bryce asked for it and I'd
-only gotten as far as reading `schema.prisma` and `shopping/page.tsx` before
-the session ended. No schema changes, no migration, nothing written. Worth
-thinking through as a real design question next time, not just "add a
-`store` column":
+All committed (5 commits, one per step above), tsc/eslint clean throughout,
+verified against the real database at every step — not just the UI looking
+right. Nothing is currently half-finished.
 
-- A free-text field is the fast version but won't group or filter well and
-  invites typos ("Walmart" vs "walmart" vs "Wal-Mart").
-- A fixed list (same pattern as `CATEGORIES`/`LOCATIONS` in `constants.ts`)
-  keeps it consistent and groupable, but stores aren't a fixed household
-  vocabulary the way categories are — Bryce might shop somewhere new any
-  given week, so a rigid enum could be the wrong shape here specifically.
-- Worth asking: does this need its own `Store` concept (a table), or is it
-  a `storeName: String?` on `GroceryItem` like `addedBy` already is (free
-  text now, "becomes a relation... when profiles exist" per the schema
-  comment) — same pattern, same reasoning, applied to stores instead of
-  people.
-- Also open: does Shopping start *grouping* by store (like it already groups
-  by category), or is this just a filter/tag? Grouping by store instead of
-  category would be a bigger UI change than adding the field itself.
+One open thread flagged during the build, not started: nothing remembers a
+*specific pantry item's* usual store yet (paper towels always asks, even
+though it's always Costco). What's built is one global "last store picked,"
+not per-item memory — a reasonable, cheaper first version, but a different
+feature if the global version turns out to be annoying in practice (e.g.
+alternating between a Costco run and an Amazon order back to back).
 
 Still open from before:
 
@@ -294,10 +318,11 @@ Still open from before:
   not the collapsible treatment.
 - **Five of ten tiles/tabs are still placeholder pages** (Expiring, Cooking,
   Calendar, Chores, Lists).
-- **Pre-existing, not this session's:** `eslint` flags a
-  component-defined-during-render issue in `GroceryRow.tsx` (`categoryIcon()`
-  called at the top of the component each render). Small, isolated, noticed
-  twice now but not yet fixed.
+- **Pre-existing:** `eslint` flags a component-defined-during-render issue in
+  `GroceryRow.tsx` (`categoryIcon()` called at the top of the component each
+  render). Small, isolated, noticed three times now but not yet fixed —
+  probably worth just fixing next time it's touched rather than continuing
+  to note it.
 
 Beyond that, the same open direction question as before: keep building out
 branches, or invest in login + deployment so the rest of the family can
