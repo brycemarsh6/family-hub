@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { QuantityStepper } from "./QuantityStepper";
+import { setLastStore } from "@/lib/lastStore";
 
 /**
  * The floating "add something" bar pinned near the bottom of the screen.
@@ -30,6 +31,13 @@ export function AddItemBar({
   function handleSubmit(formData: FormData) {
     const name = String(formData.get("name") ?? "").trim();
     if (!name) return;
+
+    // A no-op on any bar that doesn't have a store field (Inventory's) — this
+    // is the one place every store-bearing submission passes through, so it's
+    // where "remember what I picked" lives, rather than plumbing a callback
+    // through every caller.
+    const store = formData.get("store");
+    if (typeof store === "string" && store) setLastStore(store);
 
     startTransition(async () => {
       await action(formData);

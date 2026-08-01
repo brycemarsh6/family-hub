@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { STORES, STORE_ICON as StoreIcon, type Store } from "@/lib/constants";
+import { useLastStore, setLastStore } from "@/lib/lastStore";
 
 /**
  * "Which store is this for?" — opened by Inventory's cart button (single
@@ -23,6 +24,8 @@ export function StorePickerSheet({
   onChoose: (store: Store) => void;
   onSkip: () => void;
 }) {
+  const lastStore = useLastStore();
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onSkip();
@@ -30,6 +33,14 @@ export function StorePickerSheet({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onSkip]);
+
+  // Remembering it here — right where a store is actually chosen — covers
+  // both callers (a single item's cart button and the bulk restock button)
+  // without either one needing to know this exists.
+  function handleChoose(store: Store) {
+    setLastStore(store);
+    onChoose(store);
+  }
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
@@ -60,17 +71,33 @@ export function StorePickerSheet({
         </div>
 
         <div className="flex flex-col gap-2">
-          {STORES.map((store) => (
-            <button
-              key={store}
-              type="button"
-              onClick={() => onChoose(store)}
-              className="flex min-h-14 items-center gap-3 rounded-xl bg-surface-2 px-4 text-left text-base font-medium transition-colors active:opacity-80"
-            >
-              <StoreIcon aria-hidden="true" size={20} className="text-muted" />
-              {store}
-            </button>
-          ))}
+          {/* The list order stays fixed rather than bumping the last store to
+              the top — reordering a list you're about to tap is more
+              disorienting than helpful. A highlight gets you the speed
+              without moving anything out from under your thumb. */}
+          {STORES.map((store) => {
+            const isLast = store === lastStore;
+            return (
+              <button
+                key={store}
+                type="button"
+                onClick={() => handleChoose(store)}
+                className={`flex min-h-14 items-center gap-3 rounded-xl border px-4 text-left text-base font-medium transition-colors active:opacity-80 ${
+                  isLast
+                    ? "border-accent bg-accent-soft"
+                    : "border-transparent bg-surface-2"
+                }`}
+              >
+                <StoreIcon aria-hidden="true" size={20} className="text-muted" />
+                {store}
+                {isLast && (
+                  <span className="ml-auto text-xs font-normal text-accent">
+                    Last used
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         <div className="mt-4 border-t border-line pt-4">
