@@ -17,9 +17,9 @@ function isActive(pathname: string, href: string) {
 }
 
 /**
- * The hub's top-level tab bar, fixed along the bottom of the screen — one tab
- * per branch. Built to match Kitchen's bar exactly, so moving between the two
- * levels never feels like the furniture moved.
+ * The app's one nav bar, fixed along the bottom of the screen at every size —
+ * one tab per branch. Rendered once, from the root layout, so it's the same
+ * on every page instead of swapping contents as you move around the app.
  */
 export function HubBottomNav() {
   const pathname = usePathname();

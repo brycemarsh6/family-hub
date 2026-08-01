@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import { HubBottomNav } from "@/components/HubNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,9 +30,12 @@ export const viewport: Viewport = {
   ],
 };
 
-// This layout wraps every page in the app, dashboard and branches alike: just
-// the logo bar and the page itself. Each branch (Kitchen, and later Calendar,
-// Chores, Lists...) adds its own nav on top of this via its own layout.
+// This layout wraps every page in the app: the logo bar up top, the fixed tab
+// bar along the bottom, and the page itself in between. One nav for the whole
+// app — it doesn't change contents as you move between the dashboard and a
+// branch like Kitchen, only which tab is lit up. Getting from a branch's own
+// tab (e.g. Kitchen) into its sub-pages (Inventory, Shopping...) is the job of
+// that branch's own landing page now, not a second nav bar.
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -55,7 +59,13 @@ export default function RootLayout({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4">{children}</main>
+        {/* pb-28 leaves room for the fixed bottom tab bar so the last row of
+            a page is never trapped underneath it. */}
+        <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-4">
+          {children}
+        </main>
+
+        <HubBottomNav />
       </body>
     </html>
   );
