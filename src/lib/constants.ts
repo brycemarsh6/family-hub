@@ -1,13 +1,33 @@
 import {
   Carrot,
-  Milk,
-  Beef,
   Croissant,
+  Milk,
+  Egg,
+  Beef,
+  Fish,
   Snowflake,
-  Package,
+  Container,
+  Soup,
+  Droplet,
+  Sandwich,
+  Amphora,
+  Leaf,
+  Cake,
+  Candy,
+  Wheat,
+  Bean,
+  Utensils,
+  Popcorn,
+  Cookie,
+  Nut,
+  IceCreamCone,
   CupSoda,
   SprayCan,
+  Sparkles,
+  Pill,
+  Baby,
   ShoppingBag,
+  Package,
   Refrigerator,
   Archive,
   type LucideIcon,
@@ -22,15 +42,51 @@ import {
 // Note these are plain TypeScript lists, not database enums. The database just
 // stores text. TypeScript is what stops us writing "Freezor" by mistake.
 
+// The order here is a walk through a supermarket — perimeter first (produce,
+// bakery, dairy, meat), then the frozen aisle, then the centre aisles, then
+// non-food, with the catch-all last. The Shopping list groups by this order so
+// it reads in roughly the order you'd actually collect things, and Inventory
+// uses the same order for its collapsible group headers.
+//
+// These came from a reference app's taxonomy, flattened from its two levels
+// (group > category) down to just the groups. The finer level had ~91 entries
+// — far too many for a dropdown on a phone, and more precision than a family
+// needs. Adding one back later is a one-line change.
 export const CATEGORIES = [
+  // Perimeter
   { name: "Produce", icon: Carrot },
-  { name: "Dairy", icon: Milk },
-  { name: "Meat & Seafood", icon: Beef },
-  { name: "Bakery", icon: Croissant },
-  { name: "Frozen", icon: Snowflake },
-  { name: "Pantry", icon: Package },
+  { name: "Bread & Bakery", icon: Croissant },
+  { name: "Dairy Products", icon: Milk },
+  { name: "Eggs", icon: Egg },
+  { name: "Meat", icon: Beef },
+  { name: "Seafood", icon: Fish },
+  { name: "Meals & Frozen Food", icon: Snowflake },
+  // Centre aisles
+  { name: "Canned Food", icon: Container },
+  { name: "Soups & Stocks", icon: Soup },
+  // Pickles live here too — the name says so on purpose, so nobody has to
+  // guess whether they're Produce or Canned Food.
+  { name: "Condiments & Sauces", icon: Droplet },
+  { name: "Dips & Spreads", icon: Sandwich },
+  { name: "Oil & Vinegar", icon: Amphora },
+  { name: "Spices", icon: Leaf },
+  { name: "Baking", icon: Cake },
+  { name: "Sweeteners & Preserves", icon: Candy },
+  { name: "Grains", icon: Wheat },
+  { name: "Legumes", icon: Bean },
+  { name: "Noodles", icon: Utensils },
+  { name: "Cereals", icon: Popcorn },
+  { name: "Snacks", icon: Cookie },
+  { name: "Nut & Seeds", icon: Nut },
+  { name: "Sweets & Desserts", icon: IceCreamCone },
   { name: "Beverages", icon: CupSoda },
+  // Non-food
   { name: "Household", icon: SprayCan },
+  { name: "Personal Care & Beauty", icon: Sparkles },
+  { name: "Health & Wellness", icon: Pill },
+  { name: "Children's Essentials", icon: Baby },
+  // Catch-all — anything that doesn't fit, and the fallback for old data
+  // whose category no longer exists.
   { name: "Other", icon: ShoppingBag },
 ] as const;
 
