@@ -247,38 +247,44 @@ scheduled:
 
 ## Where I left off
 
-Just finished and verified: collapsing the two-nav-bars structure into one
-global nav, after Bryce noticed most apps don't swap the bar's contents as
-you move around. Done as an explicit 3-step plan, checked in and committed
-after each step so it never risked a big-bang change:
+Last session's big piece — collapsing the two-nav-bars structure into one
+global nav — is done, committed, and described accurately above (see the nav
+design rules and the Kitchen section). This session was short: one small
+fix, plus a feature discussion that got interrupted before any code changed.
 
-1. **Gave Kitchen a real landing page** — a 2×2 grid of tiles (Inventory,
-   Shopping, Expiring, Cooking), replacing the `/kitchen` → Inventory
-   redirect from last session. Each tile's badge is "what needs attention"
-   only: Inventory shows its low count, Shopping shows its to-buy count,
-   neither shows a raw item total. Built first, before touching the nav, so
-   every sub-page stayed reachable throughout the rest of the work.
-2. **Replaced the two swapping nav bars with one.** Moved `HubBottomNav` into
-   the root layout so it renders once, on every page. Deleted `KitchenNav.tsx`
-   and `kitchen/layout.tsx` entirely, and dissolved the `(hub)` route group —
-   it only existed to share the hub nav across the dashboard/Calendar/Chores/
-   Lists, which is now pointless once that nav is global. Net -104/+14 lines;
-   this was a real simplification, not just a preference change.
-3. **Rewrote the design rules this touched**, including reversing the
-   landing-page rule from last session — see that rule's entry above for why
-   it flipped and why that's not just taste.
+1. **Fixed a leftover label.** Inventory's add-item bar still said "Add to
+   the pantry…" from before the Pantry→Inventory rename. Now says "Add to
+   the inventory…". One line, `src/app/kitchen/inventory/page.tsx`.
+2. **A real mistake got caught and fixed properly.** While amending an
+   earlier commit to fold in two files a broken `git add` had silently
+   dropped, we walked through *why* `git status` before and after every
+   `git add`/`git commit` is the habit that catches this — the box analogy
+   (editing changes the project, `git add` decides what goes in the box,
+   `git commit` seals it, always look inside before sealing). Worth
+   remembering next session: check `git status` reports the expected file
+   count before committing, not just after something looks wrong.
 
-All committed (3 commits, one per step), tsc clean, tested across phone/
-desktop and light/dark, confirmed the exact same nav renders identically on
-the dashboard, Kitchen's tile page, and three levels deep in Inventory — only
-the lit-up tab changes.
+**Interrupted, not started:** a "which store to buy this at" feature for
+Shopping (Walmart, Costco, Target, Amazon, etc.) — Bryce asked for it and I'd
+only gotten as far as reading `schema.prisma` and `shopping/page.tsx` before
+the session ended. No schema changes, no migration, nothing written. Worth
+thinking through as a real design question next time, not just "add a
+`store` column":
 
-Nothing from this session is half-finished. One pre-existing item noticed but
-deliberately not touched, since it wasn't part of this work: `eslint` flags a
-component-defined-during-render issue in `GroceryRow.tsx` (from several
-sessions back, `categoryIcon()` called at the top of the component and
-assigned to a capitalized variable each render). Small, isolated, worth a
-dedicated pass rather than a drive-by fix.
+- A free-text field is the fast version but won't group or filter well and
+  invites typos ("Walmart" vs "walmart" vs "Wal-Mart").
+- A fixed list (same pattern as `CATEGORIES`/`LOCATIONS` in `constants.ts`)
+  keeps it consistent and groupable, but stores aren't a fixed household
+  vocabulary the way categories are — Bryce might shop somewhere new any
+  given week, so a rigid enum could be the wrong shape here specifically.
+- Worth asking: does this need its own `Store` concept (a table), or is it
+  a `storeName: String?` on `GroceryItem` like `addedBy` already is (free
+  text now, "becomes a relation... when profiles exist" per the schema
+  comment) — same pattern, same reasoning, applied to stores instead of
+  people.
+- Also open: does Shopping start *grouping* by store (like it already groups
+  by category), or is this just a filter/tag? Grouping by store instead of
+  category would be a bigger UI change than adding the field itself.
 
 Still open from before:
 
@@ -288,6 +294,10 @@ Still open from before:
   not the collapsible treatment.
 - **Five of ten tiles/tabs are still placeholder pages** (Expiring, Cooking,
   Calendar, Chores, Lists).
+- **Pre-existing, not this session's:** `eslint` flags a
+  component-defined-during-render issue in `GroceryRow.tsx` (`categoryIcon()`
+  called at the top of the component each render). Small, isolated, noticed
+  twice now but not yet fixed.
 
 Beyond that, the same open direction question as before: keep building out
 branches, or invest in login + deployment so the rest of the family can
