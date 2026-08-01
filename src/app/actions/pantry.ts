@@ -6,7 +6,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { toCategory, toLocation } from "@/lib/constants";
+import { toCategory, toLocation, toStore, type Store } from "@/lib/constants";
 
 /**
  * Both pages can be affected by a pantry change: the pantry obviously, and the
@@ -103,9 +103,15 @@ export async function deletePantryItem(id: string) {
  * (`pantryItemId`). That's what makes the round trip work later: when it's
  * checked off at the shop, "put away" knows exactly which jar to top up.
  *
+ * `store` is `null` when the shopper skipped the store picker — that's a
+ * real, valid choice (assign it later from Shopping), not an error.
+ *
  * Returns silently if it's already on the list, so tapping twice is harmless.
  */
-export async function addPantryItemToGroceryList(id: string) {
+export async function addPantryItemToGroceryList(
+  id: string,
+  store: Store | null,
+) {
   const pantryItem = await db.pantryItem.findUnique({ where: { id } });
   if (!pantryItem) return;
 
@@ -121,6 +127,7 @@ export async function addPantryItemToGroceryList(id: string) {
       unit: pantryItem.unit,
       category: pantryItem.category,
       pantryItemId: pantryItem.id,
+      store: toStore(store),
     },
   });
 
@@ -130,8 +137,11 @@ export async function addPantryItemToGroceryList(id: string) {
 /**
  * The one-tap restock: everything at or below its "low" threshold goes on the
  * shopping list, skipping anything already on there.
+ *
+ * `store` applies to the whole batch — asking once per item would turn a
+ * one-tap restock into a dozen sequential prompts, which defeats the point.
  */
-export async function addAllLowItemsToGroceryList() {
+export async function addAllLowItemsToGroceryList(store: Store | null) {
   const pantryItems = await db.pantryItem.findMany();
 
   // SQLite can't compare two columns inside a `where`, so the "is it low?"
@@ -155,6 +165,8 @@ export async function addAllLowItemsToGroceryList() {
   const toAdd = lowItems.filter((item) => !alreadyListedIds.has(item.id));
   if (toAdd.length === 0) return;
 
+  const validStore = toStore(store);
+
   await db.groceryItem.createMany({
     data: toAdd.map((item) => ({
       name: item.name,
@@ -162,6 +174,7 @@ export async function addAllLowItemsToGroceryList() {
       unit: item.unit,
       category: item.category,
       pantryItemId: item.id,
+      store: validStore,
     })),
   });
 

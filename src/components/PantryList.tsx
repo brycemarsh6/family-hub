@@ -4,6 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import { ChevronRight } from "lucide-react";
 import { PantryRow } from "./PantryRow";
 import { PantryItemEditSheet, type PantryItemEdits } from "./PantryItemEditSheet";
+import { StorePickerSheet } from "./StorePickerSheet";
 import { EmptyState } from "./EmptyState";
 import {
   LOCATIONS,
@@ -58,6 +59,16 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
   // itself, so the sheet always reads the latest optimistic data for it.
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingItem = optimisticItems.find((item) => item.id === editingId);
+
+  // Which item (if any) is waiting on a store choice before it goes on the
+  // list. The cart button doesn't add the item directly anymore — it opens
+  // this sheet, and the item is only added once a store is picked or skipped.
+  const [pickingStoreForId, setPickingStoreForId] = useState<string | null>(
+    null,
+  );
+  const pickingStoreItem = optimisticItems.find(
+    (item) => item.id === pickingStoreForId,
+  );
 
   // Which category groups are expanded.
   //
@@ -141,10 +152,7 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
         run({ type: "quantity", id: item.id, quantity }, () =>
           setPantryQuantity(item.id, quantity),
         ),
-      onAddToList: () =>
-        run({ type: "addToList", id: item.id }, () =>
-          addPantryItemToGroceryList(item.id),
-        ),
+      onAddToList: () => setPickingStoreForId(item.id),
       onEdit: () => setEditingId(item.id),
     };
   }
@@ -274,6 +282,25 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
               deletePantryItem(editingItem.id),
             );
             setEditingId(null);
+          }}
+        />
+      )}
+
+      {pickingStoreItem && (
+        <StorePickerSheet
+          key={pickingStoreItem.id}
+          title={`Add ${pickingStoreItem.name} — which store?`}
+          onChoose={(store) => {
+            run({ type: "addToList", id: pickingStoreItem.id }, () =>
+              addPantryItemToGroceryList(pickingStoreItem.id, store),
+            );
+            setPickingStoreForId(null);
+          }}
+          onSkip={() => {
+            run({ type: "addToList", id: pickingStoreItem.id }, () =>
+              addPantryItemToGroceryList(pickingStoreItem.id, null),
+            );
+            setPickingStoreForId(null);
           }}
         />
       )}

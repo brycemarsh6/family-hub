@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { PantryList } from "@/components/PantryList";
 import { AddItemBar, AddItemSelect } from "@/components/AddItemBar";
+import { AddLowItemsButton } from "@/components/AddLowItemsButton";
 import {
   CATEGORY_NAMES,
   LOCATION_NAMES,
@@ -8,10 +9,7 @@ import {
   DEFAULT_LOCATION,
   isLow,
 } from "@/lib/constants";
-import {
-  addPantryItem,
-  addAllLowItemsToGroceryList,
-} from "@/app/actions/pantry";
+import { addPantryItem } from "@/app/actions/pantry";
 import type { PantryItemView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -62,17 +60,7 @@ export default async function PantryPage() {
           {lowItems.length > 0 && ` · ${lowItems.length} running low`}
         </p>
 
-        {lowNotYetListed > 0 && (
-          <form action={addAllLowItemsToGroceryList} className="mt-3">
-            <button
-              type="submit"
-              className="min-h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-fg transition-opacity active:opacity-80"
-            >
-              <span aria-hidden="true">🛒</span> Add {lowNotYetListed} low{" "}
-              {lowNotYetListed === 1 ? "item" : "items"} to the list
-            </button>
-          </form>
-        )}
+        {lowNotYetListed > 0 && <AddLowItemsButton count={lowNotYetListed} />}
       </div>
 
       <PantryList items={items} />
