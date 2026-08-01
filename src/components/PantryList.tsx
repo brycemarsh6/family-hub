@@ -1,10 +1,17 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
+import { ChevronRight } from "lucide-react";
 import { PantryRow } from "./PantryRow";
 import { PantryItemEditSheet, type PantryItemEdits } from "./PantryItemEditSheet";
 import { EmptyState } from "./EmptyState";
-import { LOCATIONS, locationIcon, locationOrder, isLow } from "@/lib/constants";
+import {
+  LOCATIONS,
+  locationIcon,
+  categoryIcon,
+  categoryOrder,
+  isLow,
+} from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 import {
   setPantryQuantity,
@@ -52,6 +59,29 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingItem = optimisticItems.find((item) => item.id === editingId);
 
+  // Which category groups are expanded.
+  //
+  // Groups holding something low start open — running low is the reason you
+  // opened this page, so collapsing that away would defeat the point. Passing
+  // a function to useState means this runs once, on first render only: topping
+  // an item back up won't yank its group shut while you're looking at it.
+  const [openCategories, setOpenCategories] = useState<Set<string>>(() => {
+    const open = new Set<string>();
+    for (const item of items) {
+      if (isLow(item.quantity, item.lowThreshold)) open.add(item.category);
+    }
+    return open;
+  });
+
+  function toggleCategory(category: string) {
+    setOpenCategories((previous) => {
+      const next = new Set(previous);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }
+
   function run(change: Change, serverAction: () => Promise<void>) {
     startTransition(async () => {
       applyOptimistic(change);
@@ -75,15 +105,35 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
     });
   }
 
-  const groups =
-    filter === ALL
-      ? [...new Set(visible.map((item) => item.location))]
-          .sort((a, b) => locationOrder(a) - locationOrder(b))
-          .map((location) => ({
-            location,
-            items: sortItems(visible.filter((i) => i.location === location)),
-          }))
-      : [{ location: filter, items: sortItems(visible) }];
+  // Grouped by category, in the supermarket order from constants.ts. Location
+  // is handled by the filter chips above instead — between them, the chips
+  // answer "what's in the freezer" and the groups answer "where's the pasta".
+  //
+  // Building groups from the items themselves means a category with nothing in
+  // it simply never appears — no need to filter empty ones out, and no wall of
+  // headers for the twenty-odd categories this house doesn't stock.
+  const groups = [...new Set(visible.map((item) => item.category))]
+    .sort((a, b) => categoryOrder(a) - categoryOrder(b))
+    .map((category) => {
+      const groupItems = sortItems(
+        visible.filter((i) => i.category === category),
+      );
+      return {
+        category,
+        items: groupItems,
+        lowCount: groupItems.filter((i) => isLow(i.quantity, i.lowThreshold))
+          .length,
+      };
+    });
+
+  const allOpen =
+    groups.length > 0 && groups.every((g) => openCategories.has(g.category));
+
+  function toggleAll() {
+    setOpenCategories(
+      allOpen ? new Set() : new Set(groups.map((g) => g.category)),
+    );
+  }
 
   function rowHandlers(item: PantryItemView) {
     return {
@@ -142,27 +192,66 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
           hint="Add what you have below, and the app will tell you when it runs low."
         />
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-2">
+          {/* One tap to open or shut everything, so a collapsed list is never
+              a hunt through twenty headers for the thing you want. */}
+          <div className="flex justify-end pb-1">
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="min-h-11 rounded-lg px-3 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+            >
+              {allOpen ? "Collapse all" : "Expand all"}
+            </button>
+          </div>
+
           {groups.map((group) => {
-            const LocationIcon = locationIcon(group.location);
+            const CategoryIcon = categoryIcon(group.category);
+            const open = openCategories.has(group.category);
             return (
-              <section key={group.location}>
-                {/* No heading when a single location is already selected — the
-                    chip above says it. */}
-                {filter === ALL && (
-                  <h2 className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
-                    <LocationIcon aria-hidden="true" size={16} />
-                    {group.location}
-                    <span className="font-normal normal-case">
-                      ({group.items.length})
+              <section key={group.category}>
+                <h2>
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(group.category)}
+                    aria-expanded={open}
+                    className="flex min-h-12 w-full items-center gap-2 rounded-xl px-1 text-left text-sm font-semibold uppercase tracking-wide text-muted transition-colors active:bg-surface-2"
+                  >
+                    <ChevronRight
+                      aria-hidden="true"
+                      size={16}
+                      className={`shrink-0 transition-transform ${
+                        open ? "rotate-90" : ""
+                      }`}
+                    />
+                    <CategoryIcon aria-hidden="true" size={16} className="shrink-0" />
+                    <span className="min-w-0 flex-1">
+                      {group.category}{" "}
+                      <span className="font-normal normal-case">
+                        ({group.items.length})
+                      </span>
                     </span>
-                  </h2>
+                    {/* The low count rides on the header so a shut group still
+                        tells you whether anything inside needs attention. */}
+                    {group.lowCount > 0 && (
+                      <span className="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium normal-case text-warn">
+                        {group.lowCount} low
+                      </span>
+                    )}
+                  </button>
+                </h2>
+
+                {open && (
+                  <ul className="mt-2 space-y-2">
+                    {group.items.map((item) => (
+                      <PantryRow
+                        key={item.id}
+                        item={item}
+                        {...rowHandlers(item)}
+                      />
+                    ))}
+                  </ul>
                 )}
-                <ul className="space-y-2">
-                  {group.items.map((item) => (
-                    <PantryRow key={item.id} item={item} {...rowHandlers(item)} />
-                  ))}
-                </ul>
               </section>
             );
           })}
