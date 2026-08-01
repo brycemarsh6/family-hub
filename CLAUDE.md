@@ -49,10 +49,16 @@ nav bar:
 
 - **Inventory** (`/kitchen/inventory`) — tracks what's stocked across four
   locations (Pantry, Fridge, Freezer, and Storage — the overflow/cold storage
-  downstairs), grouped and filterable by location. Items below their "low"
-  threshold get a Low (or Out, at zero) badge and float to the top of their
-  group. Category and location icons are Lucide outline components; dropdowns
-  fall back to plain text since `<select><option>` can't render SVG.
+  downstairs). Grouped by category (28 groups, in supermarket order — see
+  "the category vocabulary" below) with location as a filter via chips above
+  the list. Every group is collapsible; groups holding a low item start open,
+  every header shows its own low count even when shut, and "Expand all" /
+  "Collapse all" toggles everything at once. This is what makes the list
+  usable at real-household scale — flat, it was one unbroken run of however
+  many items were in a location. Items below their "low" threshold get a Low
+  (or Out, at zero) badge and float to the top of their group. Category and
+  location icons are Lucide outline components; dropdowns fall back to plain
+  text since `<select><option>` can't render SVG.
 - **Shopping** (`/kitchen/shopping`) — add items, group by store-aisle
   category, tap a row to check it off, adjust quantity with +/− steppers,
   clear checked items, or "put away" checked items straight into the pantry.
@@ -69,6 +75,19 @@ landing page with two cards (Shopping, Inventory) showing the same to-buy/
 stocked/running-low counts as the dashboard's Kitchen widget, one tap earlier
 in the same path. See the design rule below on branch landing pages.
 
+**The category vocabulary is 28 groups, not 9.** `src/lib/constants.ts` used
+to hold a flat list (Produce, Dairy, Frozen, Pantry...) that couldn't tell
+"canned beans" from "cereal" from "dish soap" — everything not obviously
+produce or dairy landed in one giant bucket. It's now 28 categories (Produce,
+Bread & Bakery, Canned Food, Condiments & Sauces, Household, Personal Care &
+Beauty, Health & Wellness, Children's Essentials, and so on), ordered as a
+walk through a supermarket — perimeter first, then centre aisles, then
+non-food, catch-all ("Other") last. Both Shopping and Inventory read that
+order directly, so a longer list actually made grouping *more* useful, not
+less: Shopping's aisle-order grouping got finer, and Inventory's flat list
+became collapsible groups worth collapsing. Adding a category is still the
+one-line change the "one source of truth" rule promises.
+
 **Tap-to-edit** — tapping any pantry item opens a full edit sheet (a bottom
 sheet on phones, a centered dialog on wider screens) covering every field:
 name, quantity, unit, category, location, and the low-stock threshold — shown
@@ -84,10 +103,12 @@ those items off and hitting "Put away" adds the quantity back into the pantry
 automatically — matching by that tag first, falling back to matching by name,
 and creating a new pantry entry if it's genuinely new to the house.
 
-**Sample data** — `npm run db:seed` fills the database with realistic
-starter items across all categories and locations (including a couple already
-below their low threshold), so the app is never being tested against an empty
-list. `npm run db:reset` wipes it back to nothing; seeding again refills it.
+**Sample data** — `npm run db:seed` fills the database with 87 pantry items
+and 10 grocery items covering 27 of the 28 categories ("Other" deliberately
+empty, to prove empty groups just don't render) across all four locations,
+with 30 items sitting at or below their low threshold — realistic enough that
+Inventory's collapsing and low-stock badges have something real to show.
+`npm run db:reset` wipes it back to nothing; seeding again refills it.
 
 **Reachable from other devices on the same WiFi** — the dev server listens on
 the network, not just this laptop, so it can be opened from a phone during
@@ -175,6 +196,14 @@ without re-litigating each time:
   feature out, both at the branch level and the hub level. Profiles and any
   future branch not yet in a nav bar still follow the rule as originally
   stated: no nav entry or placeholder page until it's actually being built.
+- **The seed data is typed against the real vocabulary, not bare strings.**
+  `prisma/seed.ts` imports `Category` and `Location` from `constants.ts` as
+  `import type` — erased before the script ever runs, so it costs nothing at
+  runtime and tsx never loads Lucide in a Node script. This exists because the
+  old seed used plain strings and silently drifted: five stale category names
+  sat there passing a clean `tsc` run, only visible as generic fallback icons
+  in the running app. Renaming or removing a category now breaks the seed at
+  compile time instead.
 - **A branch doesn't get its own landing page unless it shows something
   neither its own tabs nor the dashboard already show.** Kitchen had one —
   two cards summarizing Shopping and Inventory — and it ran byte-for-byte the
@@ -213,38 +242,51 @@ scheduled:
 
 ## Where I left off
 
-Just finished and verified: closing out the `/kitchen` landing-page question
-that was flagged as an open thread last session, plus a couple of small
-naming fixes. This session:
+Just finished and verified: rebuilding the category system from a 9-entry
+flat list into a 28-group taxonomy, and making Inventory collapsible so it
+still works at that scale. This session:
 
-1. Tried adding a "Kitchen" tab back into Kitchen's own nav bar (pointing at
-   `/kitchen`), to fix the "nothing points back to the landing page" problem
-   flagged last time. Immediately reverted — a tab back to the branch you're
-   already in is redundant, and it also reintroduced the same prefix-matching
-   bug the Home tab hit before (`/kitchen` matching every page below it).
-2. Looked closer at why `/kitchen` kept feeling awkward and found the real
-   issue: it ran the exact same database queries as the dashboard's Kitchen
-   widget, so it was showing you the same to-buy/stocked/running-low numbers
-   a second time, one tap later, right before its two links handed you off to
-   tabs already on screen. Replaced the page with a redirect straight to
-   `/kitchen/inventory`. Wrote this up as a design rule (see above) since we
-   spent two sessions circling the same page before landing here.
-3. Renamed the dashboard's page heading from "Marsh Hub" to "Dashboard" —
-   the header logo still says "Marsh Hub"; only the two both saying the same
-   thing was the problem.
+1. **Replaced the 9 flat categories with 28**, worked out from screenshots of
+   a reference app's own category picker (Bryce sent screenshots across
+   several turns; the two-level group > category structure there got
+   flattened to just the groups — the finer level was ~91 entries, too much
+   precision for a family and unusable in a phone dropdown). Ordered as a
+   supermarket walk. Added non-food groups the reference lacked (Household,
+   Personal Care & Beauty, Health & Wellness, Children's Essentials) since the
+   house stocks more than food.
+2. **Typed `prisma/seed.ts` against `Category`/`Location`** instead of bare
+   strings — this is what caught that the old seed had five stale category
+   names in it, invisible until now because `tsc` doesn't check untyped
+   string literals. Expanded the seed itself to 87 pantry items across 27 of
+   28 categories and all 4 locations, 30 of them low, so the new UI has real
+   data to prove itself against.
+3. **Made Inventory's groups collapsible**, and switched what it groups by —
+   category instead of location, with location moved to filter-only (the
+   chips were already there). The design risk was that collapsing by default
+   would bury the low-stock items this page exists to surface; solved by
+   starting low-holding groups open and putting each group's low count on its
+   header even when shut, so a collapsed list still tells you what needs
+   attention without expanding anything.
 
-All committed, tested end-to-end across phone/desktop and light/dark,
-including confirming Back-button behavior after the redirect (goes to the
-dashboard, doesn't bounce through `/kitchen`).
+All committed, tsc/eslint clean, tested across phone/desktop and light/dark
+— including confirming the location filter and category grouping compose
+correctly together (e.g. filtering to Fridge narrows both which groups show
+and their counts).
 
-Nothing is currently half-finished. One open thread worth knowing about:
+Nothing is currently half-finished. Two open threads worth knowing about:
 
-- **Five of ten nav tabs across both bars are still placeholder pages**
-  (Expiring, Cooking, Calendar, Chores, Lists). That's a lot of "Coming soon"
-  for anyone actually opening the app — might be worth making one of them
-  real before adding more. Worth applying the new landing-page rule above
-  when Calendar, Chores, and Lists get built out, so they don't repeat the
-  Kitchen cycle.
+- **Collapse state doesn't persist.** It's plain component state, so a reload
+  or navigating away and back resets every group to its default open/shut
+  state. Fine for now; worth `localStorage` if the wall-tablet use case makes
+  losing that state annoying in practice.
+- **Shopping didn't get the collapsible treatment.** It picked up the 28
+  categories automatically (grouping still works, just via the existing flat
+  render) but has no collapse/expand. The grocery list is usually short
+  enough that this probably doesn't matter — flagging it as a choice made by
+  omission, not a bug.
+
+Also still open from before: **five of ten nav tabs across both bars are
+still placeholder pages** (Expiring, Cooking, Calendar, Chores, Lists).
 
 Beyond that, the same open direction question as before: keep building out
 branches, or invest in login + deployment so the rest of the family can
