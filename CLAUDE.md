@@ -28,8 +28,8 @@ a touchscreen, and quantities changed with +/− buttons instead of a keyboard.
 ## Who uses it
 
 Right now: just Bryce, on his own laptop, for development and testing. Nobody
-else can reach it yet — there's no login, and it only runs locally (see
-"Planned, not yet built" below for what has to happen before that changes).
+else can reach it yet. This is actively changing — see "Deployment plan"
+below, which is in progress, not just planned.
 
 ## What's built and working
 
@@ -121,6 +121,12 @@ the network, not just this laptop, so it can be opened from a phone during
 testing. This is dev-only and not the same thing as being deployed (see
 below) — it only works while Bryce's laptop is on and the dev server is
 running, and only on the home network.
+
+**Session/login plumbing exists but nothing uses it yet** — `src/lib/session.ts`
+(signed cookies) and `src/lib/dal.ts` (`verifySession()`) are built and
+committed, verified as a complete no-op: no page or Server Action calls them,
+so the app still has zero login, same as always. This is Step 1a of the
+deployment plan below — see that section before touching either file.
 
 ## Technology choices, and why
 
@@ -246,17 +252,66 @@ without re-litigating each time:
   effect or `setState` at all. Reach for this again for any future
   browser-only reads (session storage, `matchMedia`, etc.).
 
+## Deployment plan
+
+Bryce wants the family actually using this — see "Where I left off" for how
+far this has gotten. In progress, not just planned; check it off as steps
+land rather than re-deriving the plan from scratch.
+
+**Decisions already made — don't re-litigate these:**
+- **Auth model: one shared family password**, not per-person accounts, for
+  now. Deliberately cheap to swap later (see the DAL note below) — Clerk or
+  real accounts can replace what's *inside* `session.ts`/`dal.ts` without
+  touching any of the Server Actions that call them. Clerk is the easier of
+  the two to retrofit, since it replaces this code rather than adding to it.
+- **Hosting: Vercel. Database: Neon Postgres.** Matches what the "SQLite
+  schema avoids Postgres-incompatible features" design rule was already
+  written for — this is the provider swap it anticipated, not a rewrite.
+- **Next.js 16 renamed `middleware.ts` to `proxy.ts`.** Don't create a
+  `middleware.ts` file from habit or old tutorials — it won't run.
+- **Server Actions are real public POST endpoints**, reachable directly
+  (e.g. with `curl`), not only through our own buttons. This is *why* the
+  DAL pattern exists: the auth check has to live next to the data, in every
+  action, not only in front of pages. Protecting pages alone is not enough.
+
+**The five phases:**
+
+1. **Authentication** — nothing deploys until this is done.
+   - 1a. Session + DAL plumbing (`session.ts`, `dal.ts`). ✅ Done.
+   - 1b. Login page + login/logout Server Actions. *Next up.*
+   - 1c. `verifySession()`/`getVerifiedSession()` guard added to all 12
+     existing Server Actions (`src/app/actions/pantry.ts`,
+     `src/app/actions/groceries.ts`).
+   - 1d. `proxy.ts` for the redirect-to-login UX (optimistic check only —
+     see the DAL note above for why it can't be the real protection).
+   - 1e. Adversarial check: `curl` a Server Action while logged out and
+     confirm it's rejected — not just that the login page looks right.
+2. **Move off SQLite** — schema provider → `postgresql`, swap the adapter in
+   `db.ts`, fresh migration, re-seed, full local retest against the hosted
+   database before anything deploys.
+3. **Deploy** — push to Vercel, set env vars there (a fresh, different
+   `SESSION_SECRET` and the real `FAMILY_PASSWORD` — never the dev values),
+   first deploy to a private URL, verify login is actually required from a
+   phone on cell data (not just home WiFi, which might behave differently).
+4. **Home screen app** — commit the icon files already sitting untracked
+   (`src/app/icon.svg`, `apple-icon.png`) with an `app/manifest.ts` added
+   (`display: "standalone"`, so it opens without browser chrome). Delete
+   `public/_logo-preview.html` — a dev scratch file, shouldn't ship. Also:
+   the icons currently say "Marsh HQ", the app says "Marsh Hub" — reconcile
+   before it's on anyone's home screen.
+5. **Hand-off** — clear test data, seed real household contents, share the
+   URL and password.
+
+**What Claude can't do:** create the Vercel/Neon accounts or enter any
+payment or credential details — that's Bryce, with exact instructions for
+what to click. Claude writes and verifies every line of code.
+
 ## Planned, not yet built
 
-In roughly the order they'll likely get tackled, though nothing here is
-scheduled:
+Everything below is independent of the deployment plan above and not
+currently being worked on. Roughly the order they'll likely get tackled,
+though nothing here is scheduled:
 
-- **Login / authentication** — required before this ever deploys anywhere
-  reachable by more than this laptop. Could be as simple as one shared family
-  password, or real individual accounts per family member.
-- **Deployment** — putting this on the actual internet (or at least the home
-  network permanently) instead of a dev server that only runs while a laptop
-  is on. Needs auth done first.
 - **Family profiles** — a page per family member.
 - **Chore charts** — for the kids.
 - **Recipes**
@@ -271,37 +326,43 @@ scheduled:
 
 ## Where I left off
 
-Just finished and verified: the whole "which store is this for" feature —
-last session's write-up below turned into a real, working 5-commit build,
-done as an explicit step-by-step plan (checked in and committed after each
-step, same discipline as the nav-consolidation plan two sessions back).
+**READ THIS FIRST, BEFORE DOING ANYTHING ELSE:** ask Bryce for the real
+`FAMILY_PASSWORD` value before continuing the deployment plan — he was asked
+this at the end of last session and deferred it to "next session, ask me."
+Don't guess, don't use the dev placeholder, don't proceed past Step 1b's
+login page without it. Two ways he might want to hand it over — offer both:
+type it in `.env` himself (`FAMILY_PASSWORD=` line, currently a placeholder),
+or say it in chat for Claude to set. Either is fine; just ask.
 
-1. **Data model** — nullable `store` on `GroceryItem`, an additive migration,
-   `STORES`/`toStore()` in `constants.ts` following the same pattern as
-   categories and locations, with one deliberate difference: `toStore()`
-   returns `null` rather than falling back to a default, since "no store
-   chosen yet" is a real, valid state, not an error.
-2. **Shopping** shows each item's store and gained filter chips for it
-   (All / Unassigned / each store), mirroring Inventory's location chips.
-3. **Inventory's cart buttons** (single item and the bulk "Add N low items")
-   now open a picker sheet asking which store before adding. Dismissing it
-   any way — the ×, the backdrop, Escape, or an explicit "Skip" button —
-   still adds the item, just without a store; the button already committed
-   to "add to the list," so the store question shouldn't be able to silently
-   cancel that.
-4. **The "Add to the list…" bar** grew a Store dropdown next to Category,
-   reusing the same `AddItemSelect` component with one small addition (an
-   optional blank placeholder option) rather than a new pattern.
-5. **Last-store memory** — every picker now defaults to whichever store was
-   chosen most recently. This is the one piece worth reading closely if you
-   pick this back up: the natural-looking `useState` + `useEffect` version
-   has a real hydration-mismatch bug, not just a lint nitpick, and got
-   replaced with `useSyncExternalStore`. See the new design rule above
-   before touching `src/lib/lastStore.ts` or copying its pattern elsewhere.
+Just started the deployment plan above (Bryce wants the family actually
+using this app). Investigated first rather than assuming: confirmed git
+history has never held a secret or the database file, confirmed there is
+currently zero authentication anywhere (every Server Action is wide open),
+and confirmed via the actual Next.js 16 docs in `node_modules` — not
+memory — that `middleware.ts` is renamed `proxy.ts` in this version, and
+that the official guidance is explicit that Server Actions need their own
+guard, not just a page-level or proxy-level check.
 
-All committed (5 commits, one per step above), tsc/eslint clean throughout,
-verified against the real database at every step — not just the UI looking
-right. Nothing is currently half-finished.
+Decided together and recorded above (see "Deployment plan"): shared family
+password for now, not per-person accounts — deliberately structured so
+Clerk or real accounts can replace the *inside* of `session.ts`/`dal.ts`
+later without touching the 12 Server Actions. Vercel + Neon Postgres for
+hosting, matching the schema rule that's been in place since early on.
+
+**Step 1a is done and committed** (`session.ts`, `dal.ts` — signed cookies,
+constant-time password comparison, the `verifySession()`/`getVerifiedSession()`
+seam). Verified it's a true no-op: nothing calls either file yet, every route
+still returns 200 exactly as before, `tsc` clean.
+
+Explicitly paused here — this was a deliberate check-in point, not a
+stopping-because-something-broke point. Nothing is half-finished; 1a is a
+complete, working unit on its own.
+
+**Obvious next step, once the password question above is answered:** Step
+1b — the login page and login/logout Server Actions. Then 1c (guard all 12
+existing actions), 1d (`proxy.ts`), 1e (the adversarial `curl` check). See
+"Deployment plan" above for the full five-phase shape — Phase 1 is the only
+one started.
 
 One open thread flagged during the build, not started: nothing remembers a
 *specific pantry item's* usual store yet (paper towels always asks, even
@@ -324,6 +385,8 @@ Still open from before:
   probably worth just fixing next time it's touched rather than continuing
   to note it.
 
-Beyond that, the same open direction question as before: keep building out
-branches, or invest in login + deployment so the rest of the family can
-actually start using this instead of it only running on Bryce's laptop.
+The open direction question from previous sessions (keep building branches
+vs. invest in login + deployment) is now decided — deployment, per the plan
+above. Branch work (Expiring, Cooking, Calendar, Chores, Lists, the
+still-open items just above) is paused until the family can actually reach
+the app.
