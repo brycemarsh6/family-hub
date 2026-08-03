@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { HubBottomNav } from "@/components/HubNav";
+import { SignOutButton } from "@/components/SignOutButton";
+import { getSession } from "@/lib/session";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,11 +38,16 @@ export const viewport: Viewport = {
 // branch like Kitchen, only which tab is lit up. Getting from a branch's own
 // tab (e.g. Kitchen) into its sub-pages (Inventory, Shopping...) is the job of
 // that branch's own landing page now, not a second nav bar.
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Only to decide whether to show the Sign out button — this is not a
+  // security check. The real protection lives in the DAL, next to the data
+  // (see src/lib/dal.ts).
+  const session = await getSession();
+
   return (
     <html
       lang="en"
@@ -56,6 +63,7 @@ export default function RootLayout({
               <span aria-hidden="true">🏡</span>
               Marsh Hub
             </Link>
+            {session && <SignOutButton />}
           </div>
         </header>
 

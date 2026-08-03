@@ -24,6 +24,10 @@ function isActive(pathname: string, href: string) {
 export function HubBottomNav() {
   const pathname = usePathname();
 
+  // Nothing to navigate to until you're signed in, and a row of tabs that all
+  // bounce you back to the password box would just be noise.
+  if (pathname === "/login") return null;
+
   return (
     <nav
       aria-label="Sections"
