@@ -27,9 +27,11 @@ a touchscreen, and quantities changed with +/− buttons instead of a keyboard.
 
 ## Who uses it
 
-Right now: just Bryce, on his own laptop, for development and testing. Nobody
-else can reach it yet. This is actively changing — see "Deployment plan"
-below, which is in progress, not just planned.
+Right now: just Bryce, testing against a live Vercel deployment (private
+URL, not shared with the family yet). It's deployed and reachable from
+outside the house with a real production `FAMILY_PASSWORD` already set, but
+still has test/seed data — see "Deployment plan" below for what's left
+(Phase 5, hand-off) before the rest of the family gets the URL.
 
 ## What's built and working
 
@@ -299,16 +301,18 @@ land rather than re-deriving the plan from scratch.
    - 1e. Adversarial check. ✅ Done — see "Where I left off" for what it
      actually proved, not just that it passed.
 2. **Move off SQLite** — ✅ **Done.** Live on Neon Postgres now, not SQLite.
-3. **Deploy** — *Next up.* Push to Vercel, set env vars there (a fresh, different
-   `SESSION_SECRET` and the real `FAMILY_PASSWORD` — never the dev values),
-   first deploy to a private URL, verify login is actually required from a
-   phone on cell data (not just home WiFi, which might behave differently).
-4. **Home screen app** — commit the icon files already sitting untracked
-   (`src/app/icon.svg`, `apple-icon.png`) with an `app/manifest.ts` added
-   (`display: "standalone"`, so it opens without browser chrome). Delete
-   `public/_logo-preview.html` — a dev scratch file, shouldn't ship. Also:
-   the icons currently say "Marsh HQ", the app says "Marsh Hub" — reconcile
-   before it's on anyone's home screen.
+3. **Deploy** — ✅ **Done.** Live on Vercel with `DATABASE_URL`,
+   `SESSION_SECRET`, and `FAMILY_PASSWORD` all set fresh in Vercel's env
+   vars (not the dev values). Verified login is required on a phone on cell
+   data, not just home WiFi — see "Where I left off" for the one snag
+   (Vercel's own Deployment Protection was gating the whole app behind a
+   Vercel account login, on top of our own; disabled for Production).
+4. **Home screen app** — ✅ **Done.** `icon.png`, `apple-icon.png`, and
+   `favicon.ico` all use Bryce's house-and-heart icon; `app/manifest.ts`
+   added (`display: "standalone"`, so it opens without browser chrome). The
+   old "Marsh HQ" vs "Marsh Hub" naming mismatch is moot — the new icon has
+   no text in it. Old placeholder logo files deleted (see "Where I left
+   off").
 5. **Hand-off** — clear test data, seed real household contents, share the
    URL and password.
 
@@ -442,12 +446,66 @@ above. Branch work (Expiring, Cooking, Calendar, Chores, Lists, the
 still-open items just above) is paused until the family can actually reach
 the app.
 
-**Session end, this session:** Bryce is wrapping up for the day right after
-Phase 2 landed. Nothing is mid-edit — the Neon migration, reseed, and
-adversarial retest are all complete and committed. **The obvious next step
-is Phase 3: deploy to Vercel** (see the deployment plan above for the exact
-steps — repo push, env vars set directly in Vercel's UI, first deploy to a
-private URL, verify login from a phone on cell data). Also still sitting
-untracked and unaddressed, earmarked for Phase 4, not this session:
-`public/_logo-preview.html`, `public/marsh-hq-logo.svg`,
-`src/app/apple-icon.png`, `src/app/icon.svg`, `src/components/Logo.tsx`.
+**Phase 3 (deploy) is done.** Walked through step by step, same shape as the
+Neon walkthrough:
+
+- Installed the Vercel GitHub App scoped to just this one repo (not "all
+  repositories" — deliberately narrower access).
+- Imported `family-hub` on Vercel, Next.js auto-detected, set `DATABASE_URL`
+  (the same Neon string), a fresh `SESSION_SECRET` (`openssl rand -base64
+  32`), and a real `FAMILY_PASSWORD` — all typed directly into Vercel's env
+  var UI, never in chat.
+- First deploy succeeded and correctly showed the login page, not the app —
+  proof the family-password gate survived the move to production.
+- **One real snag**: testing from a phone on cell data kept showing
+  *Vercel's own* login page instead of ours. Root cause was Vercel's
+  Deployment Protection ("Vercel Authentication") gating the whole
+  Production URL behind a Vercel account login, layered on top of our app's
+  own auth. Fixed in Project Settings → Deployment Protection → disabled
+  Vercel Authentication for Production. After that, phone-on-cell-data
+  correctly hit our login page, accepted the real `FAMILY_PASSWORD`, and
+  loaded real Kitchen data from Neon.
+
+**Phase 4 (home screen app) is also done, this same session.** Bryce
+generated a house-and-heart icon (AI-generated, 1024×1024 PNG with
+transparency) and shared the file path directly rather than pasting the
+image into chat, since pasted images aren't readable as files. From there:
+
+- Cropped tight to the icon's actual content (the source had a lot of empty
+  transparent padding around a small centered mark), then re-centered onto
+  clean 1024×1024 canvases.
+- `src/app/icon.png` — transparent background, used for tabs/Android.
+- `src/app/apple-icon.png` — same art composited onto the app's actual
+  light-theme color (`#faf8f5`, pulled from `layout.tsx`'s `themeColor`)
+  instead of transparent, since iOS renders transparent home-screen icons
+  oddly.
+- `src/app/favicon.ico` regenerated from the same art (was still the
+  default Next.js/Vercel triangle logo before this).
+- Confirmed via Next's own docs in `node_modules/next/dist/docs` (per
+  AGENTS.md) that `apple-icon` only accepts jpg/jpeg/png, not svg — so no
+  vector version was made for that one.
+- `app/manifest.ts` added (`display: "standalone"`), and old placeholder
+  logo files deleted since nothing referenced them anymore: old
+  `src/app/icon.svg`, `src/components/Logo.tsx`, `public/marsh-hq-logo.svg`,
+  `public/_logo-preview.html`. This also made the old "Marsh HQ" vs "Marsh
+  Hub" naming mismatch moot — the new icon has no text in it at all.
+- Verified in the browser: all four `<link>` tags present (`manifest`,
+  `icon`, `apple-touch-icon`, favicon), `/manifest.webmanifest` returns
+  correct JSON, and the app itself still renders normally.
+
+**One thing flagged mid-session, not resolved, not code-related:** a
+`Passwords and recovery/recovery-codes.txt` folder appeared untracked at
+the project root — almost certainly from setting up 2FA on Vercel or GitHub
+during this session, not something Claude created. Deliberately left out of
+every commit. Bryce still needs to move it out of the repo folder entirely
+(a password manager, or anywhere outside git) — it hasn't been committed,
+but sitting in the repo folder at all is one `git add -A` away from landing
+in history permanently.
+
+**Obvious next step: Phase 5 — hand-off.** Clear the seed/test data (`npm
+run db:reset` against the *production* database — be careful this points
+at Neon, not local), seed or manually enter real household contents, then
+share the Vercel URL and the real `FAMILY_PASSWORD` with the family. Worth
+a last look at the still-open items below (collapse state, Shopping's
+missing collapse/expand, placeholder pages) to decide if any are worth
+doing before the family starts relying on this daily, or after.
