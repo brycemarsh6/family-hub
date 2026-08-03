@@ -7,7 +7,7 @@
 // directly by tsx, outside of Next.js.
 
 import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
 // `import type` is erased before this ever runs, so pulling the vocabulary in
 // here costs nothing at runtime — tsx never loads constants.ts (and therefore
@@ -16,9 +16,7 @@ import "dotenv/config";
 // file at compile time, instead of silently leaving stale names in the seed.
 import type { Category, Location, Store } from "../src/lib/constants";
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-});
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
 
 type SeedPantryItem = {

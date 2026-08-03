@@ -1,5 +1,5 @@
 import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 // This file creates the one object we use everywhere to talk to the database.
 //
@@ -10,9 +10,7 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 // client on `globalThis` (which survives reloads) means we make it once and
 // reuse it. In production the code only loads once, so this is a no-op.
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-});
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

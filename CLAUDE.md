@@ -295,10 +295,8 @@ land rather than re-deriving the plan from scratch.
      see the DAL note above for why it can't be the real protection). ✅ Done.
    - 1e. Adversarial check. ✅ Done — see "Where I left off" for what it
      actually proved, not just that it passed.
-2. **Move off SQLite** — schema provider → `postgresql`, swap the adapter in
-   `db.ts`, fresh migration, re-seed, full local retest against the hosted
-   database before anything deploys. *Next up.*
-3. **Deploy** — push to Vercel, set env vars there (a fresh, different
+2. **Move off SQLite** — ✅ **Done.** Live on Neon Postgres now, not SQLite.
+3. **Deploy** — *Next up.* Push to Vercel, set env vars there (a fresh, different
    `SESSION_SECRET` and the real `FAMILY_PASSWORD` — never the dev values),
    first deploy to a private URL, verify login is actually required from a
    phone on cell data (not just home WiFi, which might behave differently).
@@ -381,10 +379,38 @@ sit permanently in history even a weak dev-only one. Flagged as too weak for
 production as given (short, guessable, no rate limiting yet); the real value
 gets generated fresh and set directly in Vercel during Phase 3.
 
-**Obvious next step: Phase 2 — move off SQLite.** Schema provider →
-`postgresql`, swap the adapter in `db.ts`, fresh migration, re-seed, full
-local retest against the hosted database before anything deploys. This is
-the last engineering phase before Phase 3 (actually deploying).
+**Phase 2 (move off SQLite) is done.** The app runs on Neon Postgres now, not
+SQLite. What changed:
+
+- `prisma/schema.prisma`: `provider = "postgresql"`.
+- `src/lib/db.ts` and `prisma/seed.ts`: swapped `PrismaBetterSqlite3` for
+  `PrismaPg` (`@prisma/adapter-pg`) — both files had their own separate
+  adapter instance, so both needed the swap, not just one.
+- Old SQLite migration history deleted and replaced with one fresh
+  `init_postgres` migration, since SQLite's migration SQL isn't valid
+  Postgres SQL — this wasn't a like-for-like carry-over.
+- Reseeded (87 pantry items, 10 grocery items) and reran the full Phase 1
+  adversarial check against the new database: signed-out requests to both a
+  page and a Server Action still 307, and the row counts were verified
+  unchanged via a direct Prisma query, not just the UI.
+- Bryce made a new Neon project by hand (the first connection string got
+  pasted into chat by accident while drafting the `.env` edit — flagged
+  immediately, and the project was deleted and recreated rather than trying
+  to rotate the exposed password, since nothing had been migrated into it
+  yet).
+
+One snag worth remembering if this pattern comes up again: the generated
+Prisma Client has to be regenerated (`npx prisma generate`) after flipping
+the schema's provider, or it keeps enforcing the old provider even though
+the code and `.env` both already point at Postgres — the seed script's first
+run after the swap failed with "Driver Adapter ... is not compatible with
+the provider sqlite" until this was done.
+
+**Obvious next step: Phase 3 — deploy to Vercel.** Push the repo, set env
+vars there (a fresh `SESSION_SECRET` and a stronger `FAMILY_PASSWORD`, not
+the dev values, not the Neon connection string typed anywhere but Vercel's
+own env var UI), first deploy to a private URL, verify login is actually
+required from a phone on cell data.
 
 One open thread flagged earlier, still not started: nothing remembers a
 *specific pantry item's* usual store yet (paper towels always asks, even
