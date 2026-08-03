@@ -146,10 +146,12 @@ on what that test actually showed.
 - **Tailwind CSS** — styling written directly on the element it affects,
   rather than in a separate stylesheet, so cause and effect stay visible while
   learning.
-- **Prisma + SQLite** — Prisma is the translator between our code and the
-  database; `prisma/schema.prisma` describes the data shape once, and Prisma
-  generates the code that reads and writes it. SQLite is the database itself
-  for now — a single file, nothing to install or log into.
+- **Prisma + Postgres (hosted on Neon)** — Prisma is the translator between
+  our code and the database; `prisma/schema.prisma` describes the data shape
+  once, and Prisma generates the code that reads and writes it. Started on
+  SQLite (a single local file, nothing to install) while the app was still
+  just for Bryce's own laptop; moved to Neon in Phase 2 of the deployment
+  plan below, once other people needed to reach the same data.
 - **Next.js Server Actions** for every database write (adding an item,
   checking something off, editing, deleting) — a button click runs real
   server-side code directly, no hand-written API layer in between.
@@ -177,8 +179,9 @@ without re-litigating each time:
   codebase.
 - **The database schema avoids SQLite/Postgres-incompatible features** — no
   Prisma `enum` types, no database-specific column attributes. TypeScript
-  (via `constants.ts`) enforces valid values instead. This means moving off
-  SQLite later is a provider swap and one migration, not a rewrite.
+  (via `constants.ts`) enforces valid values instead. This is why moving off
+  SQLite to Neon Postgres in Phase 2 was a provider swap and one fresh
+  migration, not a rewrite — the rule paid off exactly as intended.
 - **Instant feedback on every tap.** Checking off a grocery item, adjusting a
   quantity, or saving an edit updates the screen immediately (via React's
   optimistic-update pattern), rather than waiting on a round trip to the
@@ -438,3 +441,13 @@ vs. invest in login + deployment) is now decided — deployment, per the plan
 above. Branch work (Expiring, Cooking, Calendar, Chores, Lists, the
 still-open items just above) is paused until the family can actually reach
 the app.
+
+**Session end, this session:** Bryce is wrapping up for the day right after
+Phase 2 landed. Nothing is mid-edit — the Neon migration, reseed, and
+adversarial retest are all complete and committed. **The obvious next step
+is Phase 3: deploy to Vercel** (see the deployment plan above for the exact
+steps — repo push, env vars set directly in Vercel's UI, first deploy to a
+private URL, verify login from a phone on cell data). Also still sitting
+untracked and unaddressed, earmarked for Phase 4, not this session:
+`public/_logo-preview.html`, `public/marsh-hq-logo.svg`,
+`src/app/apple-icon.png`, `src/app/icon.svg`, `src/components/Logo.tsx`.
