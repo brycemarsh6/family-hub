@@ -122,16 +122,20 @@ testing. This is dev-only and not the same thing as being deployed (see
 below) — it only works while Bryce's laptop is on and the dev server is
 running, and only on the home network.
 
-**The app requires login** — `src/lib/session.ts` (signed cookies) and
-`src/lib/dal.ts` (`verifySession()`/`getVerifiedSession()`) back a single
-shared family password. `src/app/login/` is the sign-in page; a Sign out
-button lives in the header whenever there's a session. All 12 existing
-Server Actions check `getVerifiedSession()` before touching the database,
-and `src/proxy.ts` redirects any signed-out page request to `/login` before
-it renders — verified as a 6-byte redirect with zero data in it, where the
-same request used to return a full 200 with real pantry contents. See
-"Deployment plan" below for what's done and what's left before this can
-actually go live.
+**The app requires login, and it's been attacked to prove it, not just
+built.** `src/lib/session.ts` (signed cookies) and `src/lib/dal.ts`
+(`verifySession()`/`getVerifiedSession()`) back a single shared family
+password. `src/app/login/` is the sign-in page; a Sign out button lives in
+the header whenever there's a session. All 12 existing Server Actions check
+`getVerifiedSession()` before touching the database, and `src/proxy.ts`
+redirects any signed-out page request to `/login` before it renders.
+Phase 1 of the deployment plan below is fully done, including the
+adversarial check: a real Server Action was replayed directly with `curl`
+(no browser, no session), and separately with `proxy.ts` deliberately
+disabled to simulate it being misconfigured — in both cases the action ran
+but the database was untouched, proving the DAL guard holds on its own, not
+just in combination with proxy. See "Where I left off" for the full detail
+on what that test actually showed.
 
 ## Technology choices, and why
 
@@ -281,7 +285,7 @@ land rather than re-deriving the plan from scratch.
 
 **The five phases:**
 
-1. **Authentication** — nothing deploys until this is done.
+1. **Authentication** — ✅ **Done.** Nothing left in this phase.
    - 1a. Session + DAL plumbing (`session.ts`, `dal.ts`). ✅ Done.
    - 1b. Login page + login/logout Server Actions. ✅ Done.
    - 1c. `verifySession()`/`getVerifiedSession()` guard added to all 12
@@ -289,12 +293,11 @@ land rather than re-deriving the plan from scratch.
      `src/app/actions/groceries.ts`). ✅ Done.
    - 1d. `proxy.ts` for the redirect-to-login UX (optimistic check only —
      see the DAL note above for why it can't be the real protection). ✅ Done.
-   - 1e. Adversarial check: `curl` a Server Action while logged out and
-     confirm it's rejected — not just that the login page looks right.
-     *Next up.*
+   - 1e. Adversarial check. ✅ Done — see "Where I left off" for what it
+     actually proved, not just that it passed.
 2. **Move off SQLite** — schema provider → `postgresql`, swap the adapter in
    `db.ts`, fresh migration, re-seed, full local retest against the hosted
-   database before anything deploys.
+   database before anything deploys. *Next up.*
 3. **Deploy** — push to Vercel, set env vars there (a fresh, different
    `SESSION_SECRET` and the real `FAMILY_PASSWORD` — never the dev values),
    first deploy to a private URL, verify login is actually required from a
@@ -332,58 +335,58 @@ though nothing here is scheduled:
 
 ## Where I left off
 
-Four of Phase 1's five steps are done — login actually works and actually
-protects the app now, not just plumbing sitting unused. In order:
+**Phase 1 (Authentication) is complete — all five steps, including the
+adversarial check.** Login actually protects the app now, not just plumbing
+sitting unused, and that claim has been attacked and held rather than just
+asserted.
 
-**1b — login page + actions.** `/login`, a password box, vague-and-identical
-error on any wrong guess (there's only one password, so a specific message
-would just help someone guessing). Sign out button in the header, shown only
-when `getSession()` finds one. `/login` redirects to the dashboard if you're
-already signed in. Verified: wrong password rejected, correct password signs
-in, `document.cookie` can't see the session cookie (`httpOnly` confirmed
-working, not just set).
+**1b–1d recap** (see git log for the individual commits): the login page and
+sign-in/out actions, `getVerifiedSession()` guarding all 12 Server Actions,
+and `proxy.ts` redirecting signed-out page requests before they render — a
+signed-out request to `/kitchen/inventory` used to return a full 200 with
+real pantry contents; it now returns a 6-byte redirect with nothing in it.
 
-**1c — guarded all 12 Server Actions.** Every write in `pantry.ts` and
-`groceries.ts` now opens with `getVerifiedSession()` and returns early
-without touching the database if there isn't one. Verified against the
-database, not the UI: signed out, "Just clear" and the delete button both
-left rows untouched and the count unchanged — the optimistic UI briefly
-*showed* the delete succeeding, but a refresh proved the server had refused
-it. Audited the guard count by exact line match (12 actions, 12 guards) after
-a first, buggy `awk` script gave a false report.
+**1e — the adversarial check — is where this session's real work was**, and
+the methodology matters as much as the result:
 
-**1d — `proxy.ts`.** Signed-out page requests now redirect to `/login` before
-rendering. This is what actually closed the read-side hole: a signed-out
-request to `/kitchen/inventory` used to return a full 200 with real pantry
-contents; it's now a 6-byte redirect with nothing in it. Built inverted from
-the Next.js docs' own example on purpose — they list protected routes, this
-lists the one public route (`/login`) and protects everything else, so a
-forgotten future page fails locked instead of failing open. Static assets
-(`/icon.svg`, `/apple-icon.png`, the CSS bundle) are excluded from the
-matcher, checked specifically because Phase 4's home-screen icon needs to
-load for someone who isn't signed in yet.
+- Minted a valid session JWT by hand (not through the browser) to get a
+  genuine *positive control* — proof that an authenticated request to the
+  same endpoint actually succeeds, so a blocked attack means something.
+- First attempt at replaying a Server Action's POST directly with `curl`
+  "succeeded" at being blocked — but the positive control then failed too
+  (500, malformed body), which meant the block proved nothing. Found the
+  real request shape (`Next-Action` header + JSON body) by reading a live
+  browser request instead of guessing, then reran the control: it genuinely
+  deleted a row and the server log confirmed the action ran.
+- With a *proven-valid* attack request in hand: no-cookie replay → 307,
+  6-byte body, zero rows changed.
+- **The test that actually justifies the DAL architecture:** temporarily
+  added `/kitchen/shopping` to `proxy.ts`'s public routes — simulating proxy
+  being misconfigured — and attacked again with no cookie. The action
+  *executed* (server log: `clearCheckedGroceryItems() in 1ms`, versus 4ms
+  authenticated) but the database was **untouched**. Both layers hold
+  independently; if proxy is ever wrong, the data is still safe. `proxy.ts`
+  was reverted immediately after and diffed byte-identical to the committed
+  version before moving on.
+- Also confirmed forged cookies are rejected across the board: tampered
+  signature, garbage value, empty, and — the one that actually matters — a
+  validly-*formed* JWT signed with the wrong secret. All 307.
+- Database backed up before any of this and restored after; final state
+  verified against the exact baseline (48 grocery items, 1 checked, 87
+  pantry items). No code changed — 1e is pure verification.
 
-All committed, one commit per step, `tsc`/`eslint` clean throughout.
+**The `FAMILY_PASSWORD` question is resolved for local dev, value not
+repeated here** — this file is committed to git, and a password shouldn't
+sit permanently in history even a weak dev-only one. Flagged as too weak for
+production as given (short, guessable, no rate limiting yet); the real value
+gets generated fresh and set directly in Vercel during Phase 3.
 
-**The `FAMILY_PASSWORD` question from last session is resolved, for local
-dev.** Bryce gave a value in chat and it's set in the local `.env` (not
-repeated here — this file is committed to git, and a password shouldn't sit
-permanently in history even a weak dev-only one). Flagged back to him as too
-weak for production as given — short, guessable, no rate limiting yet to
-slow down attempts — and reminded that the *production* value should be
-generated fresh and set directly in Vercel during Phase 3, never typed in a
-chat or a file that gets committed. Don't assume the local `.env` value is
-what ships.
+**Obvious next step: Phase 2 — move off SQLite.** Schema provider →
+`postgresql`, swap the adapter in `db.ts`, fresh migration, re-seed, full
+local retest against the hosted database before anything deploys. This is
+the last engineering phase before Phase 3 (actually deploying).
 
-**Next: Step 1e**, the adversarial check — replay a Server Action's POST
-directly with `curl`, no session, no browser cooperating, and confirm the
-guard holds from outside the app's own UI. Everything verified so far went
-through the browser or `curl` against *pages*; 1e is the one that attacks a
-*Server Action* directly, which is the actual threat model these actions
-have (see the SECURITY note atop `groceries.ts`). This is the last step of
-Phase 1 — Phase 2 (the Postgres migration) is next after it.
-
-One open thread flagged during the build, not started: nothing remembers a
+One open thread flagged earlier, still not started: nothing remembers a
 *specific pantry item's* usual store yet (paper towels always asks, even
 though it's always Costco). What's built is one global "last store picked,"
 not per-item memory — a reasonable, cheaper first version, but a different
