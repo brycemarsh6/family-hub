@@ -1,11 +1,12 @@
 "use server";
 
 // Server Actions for the pantry. See the note at the top of groceries.ts about
-// these being reachable directly — they'll each need an "are you signed in?"
-// check before this app ever goes online.
+// these being reachable directly — which is why every one of them starts with
+// a getVerifiedSession() check.
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { getVerifiedSession } from "@/lib/dal";
 import { toCategory, toLocation, toStore, type Store } from "@/lib/constants";
 
 /**
@@ -22,6 +23,8 @@ function refreshKitchenViews() {
 }
 
 export async function addPantryItem(formData: FormData) {
+  if (!(await getVerifiedSession())) return;
+
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
 
@@ -42,6 +45,8 @@ export async function addPantryItem(formData: FormData) {
 }
 
 export async function setPantryQuantity(id: string, quantity: number) {
+  if (!(await getVerifiedSession())) return;
+
   // Zero is meaningful here ("we're out"), so unlike the grocery list we allow
   // it — we just don't allow negatives.
   const safeQuantity = Math.max(0, Math.round(quantity * 100) / 100);
@@ -73,6 +78,8 @@ export async function editPantryItem(
     lowThreshold: number;
   },
 ) {
+  if (!(await getVerifiedSession())) return;
+
   const name = changes.name.trim();
   if (!name) return;
 
@@ -92,6 +99,8 @@ export async function editPantryItem(
 }
 
 export async function deletePantryItem(id: string) {
+  if (!(await getVerifiedSession())) return;
+
   await db.pantryItem.delete({ where: { id } });
   refreshKitchenViews();
 }
@@ -112,6 +121,8 @@ export async function addPantryItemToGroceryList(
   id: string,
   store: Store | null,
 ) {
+  if (!(await getVerifiedSession())) return;
+
   const pantryItem = await db.pantryItem.findUnique({ where: { id } });
   if (!pantryItem) return;
 
@@ -142,6 +153,8 @@ export async function addPantryItemToGroceryList(
  * one-tap restock into a dozen sequential prompts, which defeats the point.
  */
 export async function addAllLowItemsToGroceryList(store: Store | null) {
+  if (!(await getVerifiedSession())) return;
+
   const pantryItems = await db.pantryItem.findMany();
 
   // SQLite can't compare two columns inside a `where`, so the "is it low?"

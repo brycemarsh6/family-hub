@@ -5,13 +5,19 @@
 // browser calls it. That's what lets a click in the kitchen safely write to the
 // database without us having to build an API by hand.
 //
-// SECURITY NOTE: these functions are reachable by anyone who can reach the
-// site, not just through our buttons. That's fine while the app only runs on
-// this laptop. Before it goes online, every function here needs a check that
-// the caller is signed in.
+// SECURITY: these functions are reachable by anyone who can reach the site —
+// they're real POST endpoints, callable directly with curl, not only through
+// our buttons. So every one of them starts by checking for a valid session,
+// and returns without touching the database if there isn't one.
+//
+// That check lives here, next to the data, rather than only in proxy.ts.
+// The Next.js auth guide is blunt about why: proxy "should not be your only
+// line of defense". Proxy handles the redirect-to-login experience; this is
+// what actually protects the data.
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { getVerifiedSession } from "@/lib/dal";
 import { toCategory, toStore, DEFAULT_LOCATION } from "@/lib/constants";
 
 /**
@@ -29,6 +35,8 @@ function refreshGroceryViews() {
 }
 
 export async function addGroceryItem(formData: FormData) {
+  if (!(await getVerifiedSession())) return;
+
   const name = String(formData.get("name") ?? "").trim();
   // Ignore empty submissions (e.g. someone taps Add with nothing typed).
   if (!name) return;
@@ -55,6 +63,8 @@ export async function addGroceryItem(formData: FormData) {
 }
 
 export async function toggleGroceryItem(id: string) {
+  if (!(await getVerifiedSession())) return;
+
   const item = await db.groceryItem.findUnique({ where: { id } });
   if (!item) return;
 
@@ -72,6 +82,8 @@ export async function toggleGroceryItem(id: string) {
 }
 
 export async function setGroceryQuantity(id: string, quantity: number) {
+  if (!(await getVerifiedSession())) return;
+
   // Never let quantity drop below 1 — removing an item is what delete is for.
   const safeQuantity = Math.max(1, Math.round(quantity * 100) / 100);
 
@@ -84,12 +96,16 @@ export async function setGroceryQuantity(id: string, quantity: number) {
 }
 
 export async function deleteGroceryItem(id: string) {
+  if (!(await getVerifiedSession())) return;
+
   await db.groceryItem.delete({ where: { id } });
   refreshGroceryViews();
 }
 
 /** Remove everything already ticked off, without touching the pantry. */
 export async function clearCheckedGroceryItems() {
+  if (!(await getVerifiedSession())) return;
+
   await db.groceryItem.deleteMany({ where: { checked: true } });
   refreshGroceryViews();
 }
@@ -112,6 +128,8 @@ export async function clearCheckedGroceryItems() {
  * list, and the next "put away" would count the same shopping twice.
  */
 export async function putAwayCheckedItems() {
+  if (!(await getVerifiedSession())) return;
+
   const checkedItems = await db.groceryItem.findMany({
     where: { checked: true },
   });
