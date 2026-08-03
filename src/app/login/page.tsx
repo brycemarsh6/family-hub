@@ -23,7 +23,7 @@ export default async function LoginPage() {
 
   return (
     <div className="mx-auto flex max-w-sm flex-col justify-center py-16">
-      <h1 className="text-3xl font-bold tracking-tight">Marsh Hub</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Marsh HQ</h1>
       <p className="mt-2 text-base text-muted">
         Enter the family password to get in.
       </p>

@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# Marsh Hub — project context
+# Marsh HQ — project context
 
 This file is read automatically at the start of every future session. It's
 written for two readers at once: Bryce (a complete beginner, learning to code
@@ -9,7 +9,7 @@ project back up. Plain English throughout — no assumed programming background.
 
 ## What this is
 
-Marsh Hub is a private web app for one family — not a product, not something
+Marsh HQ is a private web app for one family — not a product, not something
 anyone outside the household will ever use. The long-term vision is a single
 home base for the stuff a family currently tracks across sticky notes, group
 texts, and separate apps: a shared calendar, a profile for each family member,
@@ -309,10 +309,11 @@ land rather than re-deriving the plan from scratch.
    Vercel account login, on top of our own; disabled for Production).
 4. **Home screen app** — ✅ **Done.** `icon.png`, `apple-icon.png`, and
    `favicon.ico` all use Bryce's house-and-heart icon; `app/manifest.ts`
-   added (`display: "standalone"`, so it opens without browser chrome). The
-   old "Marsh HQ" vs "Marsh Hub" naming mismatch is moot — the new icon has
-   no text in it. Old placeholder logo files deleted (see "Where I left
-   off").
+   added (`display: "standalone"`, so it opens without browser chrome). Old
+   placeholder logo files deleted (see "Where I left off"). The app itself
+   was renamed **Marsh HQ** (from "Marsh Hub") to settle the naming
+   mismatch the icon originally surfaced — see the app name change entry in
+   "Where I left off" for every file that touched.
 5. **Hand-off** — clear test data, seed real household contents, share the
    URL and password.
 
@@ -493,14 +494,22 @@ image into chat, since pasted images aren't readable as files. From there:
   `icon`, `apple-touch-icon`, favicon), `/manifest.webmanifest` returns
   correct JSON, and the app itself still renders normally.
 
-**One thing flagged mid-session, not resolved, not code-related:** a
+**One thing flagged mid-session, since resolved, not code-related:** a
 `Passwords and recovery/recovery-codes.txt` folder appeared untracked at
 the project root — almost certainly from setting up 2FA on Vercel or GitHub
-during this session, not something Claude created. Deliberately left out of
-every commit. Bryce still needs to move it out of the repo folder entirely
-(a password manager, or anywhere outside git) — it hasn't been committed,
-but sitting in the repo folder at all is one `git add -A` away from landing
-in history permanently.
+during this session, not something Claude created, and it never got
+committed. Bryce confirmed the codes were already saved elsewhere too, so
+the folder was just deleted outright rather than moved.
+
+**The app was renamed Marsh HQ, replacing "Marsh Hub" everywhere it showed
+up.** Five spots in code: `layout.tsx`'s page `<title>` metadata and the
+header logo text, `manifest.ts`'s `name`/`short_name` (what shows under the
+icon once installed to a home screen), and the `<h1>` on the login page.
+Plus the `# Marsh Hub` headers in this file and README.md. Deliberately did
+*not* touch `package.json`'s `name` field or the `family-hub` folder/repo
+name — those are technical identifiers, not the user-facing app name, and
+renaming them would mean re-pointing the Vercel project and GitHub remote
+for no real benefit.
 
 **Obvious next step: Phase 5 — hand-off.** Clear the seed/test data (`npm
 run db:reset` against the *production* database — be careful this points

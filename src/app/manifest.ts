@@ -5,8 +5,8 @@ import type { MetadataRoute } from "next";
 // screen, so it opens looking like its own app rather than a browser tab.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Marsh Hub",
-    short_name: "Marsh Hub",
+    name: "Marsh HQ",
+    short_name: "Marsh HQ",
     description: "Shopping and inventory for the family.",
     start_url: "/",
     display: "standalone",

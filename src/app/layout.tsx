@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Marsh Hub",
+  title: "Marsh HQ",
   description: "Shopping and inventory for the family.",
 };
 
@@ -61,7 +61,7 @@ export default async function RootLayout({
               className="flex min-h-12 items-center gap-2 text-lg font-semibold tracking-tight"
             >
               <span aria-hidden="true">🏡</span>
-              Marsh Hub
+              Marsh HQ
             </Link>
             {session && <SignOutButton />}
           </div>
