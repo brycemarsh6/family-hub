@@ -104,6 +104,16 @@ Rules:
 - If no photo has a recognizable recipe in it, return an empty title, empty
   ingredients, and empty steps — don't fabricate one.`;
 
+/** Whether an extraction actually found anything — every import path
+ * (pasted text, photos, URL) uses this to decide "success" vs "nothing
+ * here", since structured outputs guarantee the reply's shape but not that
+ * any field in it is non-empty. */
+export function hasRecipeContent(recipe: ExtractedRecipe): boolean {
+  return Boolean(
+    recipe.title || recipe.ingredients.length > 0 || recipe.steps.length > 0,
+  );
+}
+
 /** Parses Claude's structured-output reply into our shape, defensively —
  * structured outputs guarantee the JSON shape, but not that Claude actually
  * finished (a refusal or a hit token ceiling can still end a turn early). */

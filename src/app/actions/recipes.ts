@@ -12,9 +12,11 @@ import { getVerifiedSession } from "@/lib/dal";
 import {
   extractRecipeFromText,
   extractRecipeFromPhotos,
+  hasRecipeContent,
   type ExtractedRecipe,
   type PhotoInput,
 } from "@/lib/recipeExtract";
+import { importRecipeFromUrl } from "@/lib/recipeUrlImport";
 
 function refreshRecipeViews() {
   revalidatePath("/kitchen/cooking/recipes");
@@ -132,9 +134,7 @@ export async function extractRecipeFromPastedText(
   }
 
   const extracted = await extractRecipeFromText(trimmed);
-  const hasContent =
-    extracted.title || extracted.ingredients.length > 0 || extracted.steps.length > 0;
-  if (!hasContent) {
+  if (!hasRecipeContent(extracted)) {
     return {
       error:
         "Couldn't find a recipe in that text. Try pasting just the recipe part, or type it in manually.",
@@ -171,9 +171,7 @@ export async function extractRecipeFromRecipePhotos(
   }
 
   const extracted = await extractRecipeFromPhotos(photos);
-  const hasContent =
-    extracted.title || extracted.ingredients.length > 0 || extracted.steps.length > 0;
-  if (!hasContent) {
+  if (!hasRecipeContent(extracted)) {
     return {
       error:
         "Couldn't find a recipe in those photos. Make sure the text is clear and in frame, or type it in manually.",
@@ -181,6 +179,25 @@ export async function extractRecipeFromRecipePhotos(
   }
 
   return { data: extracted };
+}
+
+export type UrlImportResult = ExtractResult & { sourceUrl?: string };
+
+/**
+ * Pull recipe fields out of a URL for the "From a link" import flow — the
+ * flakiest path, since it depends on someone else's website. Same
+ * no-database-write contract as the text and photo paths: this only ever
+ * hands data back to the client to pre-fill RecipeForm.
+ */
+export async function importRecipeFromLink(
+  url: string,
+): Promise<UrlImportResult> {
+  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+
+  const trimmed = url.trim();
+  if (!trimmed) return { error: "Paste a link first." };
+
+  return importRecipeFromUrl(trimmed);
 }
 
 /**

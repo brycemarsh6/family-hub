@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { LinkImportForm } from "@/components/LinkImportForm";
 
 export default function LinkImportPage() {
   return (
@@ -12,10 +13,15 @@ export default function LinkImportPage() {
         Add recipe
       </Link>
 
-      <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+      <h1 className="mb-1 text-2xl font-bold tracking-tight md:text-3xl">
         From a link
       </h1>
-      <p className="mt-2 text-sm text-muted">Coming soon.</p>
+      <p className="mb-4 text-sm text-muted">
+        Paste a link to a recipe blog, a TikTok, or a Pinterest pin —
+        we&apos;ll pull out the recipe for you to review before saving.
+      </p>
+
+      <LinkImportForm />
     </div>
   );
 }

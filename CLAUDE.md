@@ -709,14 +709,52 @@ any Next API not already used in this repo.
   performance on it should be checked against a real card the next time
   one's handy, per the plan's own fallback ("bump to Sonnet if real
   photos — handwriting especially — prove too hard for it").
-- **R3c. Import: URL.** The flaky one — built last, on purpose, so
-  nothing depends on it. Server-side fetch with a timeout: tiktok.com →
-  oEmbed caption; otherwise fetch HTML → JSON-LD `Recipe` if present →
-  else strip to text → Claude; pinterest.com → find the pin's outbound
-  source link, follow once, treat as above. Every failure lands on the
-  form or a "screenshot it instead" message. Verify with a real recipe
-  blog URL, a caption-recipe TikTok, and a Pinterest pin from the
-  actual boards.
+- **R3c. Import: URL.** ✅ **Done.** `src/lib/recipeUrlImport.ts` routes by
+  host, all behind a 10s timeout: **tiktok.com** → the public oEmbed
+  endpoint's caption → the same text extraction R3a built;
+  **pinterest.com / pin.it** → find the pin's outbound source link,
+  follow it once, then treat it as a blog URL; **anything else** →
+  schema.org JSON-LD `Recipe` if the page has it (exact, free, no model
+  call), else strip the page to text (capped at 15k chars) and send that
+  to Claude. `importRecipeFromLink` in `recipes.ts` wraps it with the
+  same `getVerifiedSession()` + no-database-write contract as the other
+  two paths; `LinkImportForm.tsx` is the same paste-and-pre-fill shape as
+  `PasteImportForm`. Every failure names a specific next step — a 403,
+  an unreadable page, a TikTok whose recipe is only spoken — never a
+  dead end. The JSON-LD normalizer handles what real sites actually
+  emit, not just the spec's happy path: `@type` as a string *or* array,
+  recipes nested in `@graph`, `recipeInstructions` as a plain string /
+  `HowToStep` objects / `HowToSection` groups that need flattening,
+  `recipeYield` as a string / number / array, and ISO-8601 durations
+  (`PT1H15M` → "1 hr 15 min").
+  **Three real-world findings from verifying against live sites**, each
+  of which changed the code:
+  (1) **Pinterest's outbound link lives in an `og:see_also` meta tag**,
+  not in the `__PWS_DATA__` JSON the pin page embeds. The JSON walk was
+  the obvious-looking approach and finds nothing for a signed-out fetch,
+  because the pin's own record is loaded client-side after page load —
+  caught only by actually fetching a real pin and grepping the response.
+  The meta tag is now the primary lookup, with the JSON walk kept as a
+  cheap second pass.
+  (2) **Several major recipe sites (AllRecipes, SimplyRecipes) return a
+  flat 403** to a server-side fetch regardless of anything else. Sending
+  a real browser User-Agent fixes the sites that merely sniff the UA;
+  the ones that block harder now produce an honest "couldn't load that
+  page (error 403) — try pasting the recipe text instead," which is why
+  paste import existing first matters.
+  (3) **A TikTok caption very often doesn't contain the recipe** — the
+  canonical viral example (feelgoodfoodie's baked feta pasta) has a
+  caption reading "Recipe on blog," nothing more. Verified this produces
+  the intended graceful message pointing at photo import rather than a
+  fabricated recipe. This is the "honest TikTok answer" from the plan's
+  decisions, confirmed against the real endpoint rather than assumed.
+  Verified end to end in the running app: a real blog URL
+  (sallysbakingaddiction.com) imported all seven fields exactly via
+  JSON-LD with no model call; a real Pinterest pin resolved through to
+  averiecooks.com and imported the full recipe, with `sourceUrl`
+  correctly recording the blog rather than the pin; and the invalid-URL,
+  403, and no-recipe-in-caption paths each produced their specific
+  message.
 - **R4. Sharing.** Copy-as-text (title, ingredients, steps as clean
   plain text). Share link per the decision above: token generation,
   a public print-friendly page with no nav bar and no session
@@ -1313,9 +1351,37 @@ part is how it got verified without a physical camera:
   stayed at 0 throughout. `tsc`, `eslint`, and `npm run build` all clean
   (the one pre-existing `GroceryRow.tsx` lint error, still untouched).
 
-**Obvious next step: R3c of the Recipes plan** — URL import, the flaky
-one, built last on purpose so nothing else depends on it: TikTok's
-public oEmbed endpoint for caption recipes, JSON-LD `Recipe` schema for
-blog URLs, a Claude fallback when neither is present, and a Pinterest
-pin-to-source-link hop — every failure path landing on the form or a
-"screenshot it instead" message, never a dead end.
+**R3c is done too, same session — which closes out R3 entirely.** All
+four import paths (type, paste, photo, link) now work. See the R3c
+bullet above for the design and the three real-world findings; the
+methodological point worth carrying forward:
+
+- **Every external integration was probed with `curl` against the live
+  service before any of it was written.** That's what surfaced all three
+  findings, and none of them were guessable from documentation: Pinterest
+  putting the source link in `og:see_also` rather than its embedded JSON,
+  AllRecipes/SimplyRecipes hard-403ing server-side fetches, and the
+  canonical viral TikTok having no recipe in its caption at all. Writing
+  the code first and testing after would have produced a Pinterest
+  integration that silently never worked.
+- **The R3 arc validates the plan's ordering decision.** URL import was
+  deliberately built last "so nothing depends on it," and that turned out
+  to matter: it's the only path whose success rate depends on other
+  people's websites, and two of its three failure modes now resolve by
+  pointing the user at paste or photo import — which only works as
+  advice because those were built first.
+- No database writes during verification (extraction only) — confirmed
+  via a direct count staying at 0. `tsc`, `eslint`, and `npm run build`
+  all clean, with the one pre-existing `GroceryRow.tsx` lint error still
+  the only lint failure in the repo.
+
+**Obvious next step: R4 of the Recipes plan** — sharing. Copy-as-text
+for group chats, plus per-recipe opt-in share links: `shareToken`
+generated with crypto randomness (the column already exists from R1,
+unused so far), a public print-friendly page at
+`/share/recipe/[token]` with no nav bar and no session assumptions, its
+`PUBLIC_ROUTES` entry in `proxy.ts`, and "Stop sharing" to null the
+token. Then the house adversarial check: absent/wrong tokens 404 with
+nothing leaked, tokens aren't guessable or sequential, the share page
+renders exactly one recipe, and a Phase-1e-style proxy-misconfiguration
+drill confirming no other route went public by accident.
