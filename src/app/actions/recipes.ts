@@ -7,6 +7,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
 import { getVerifiedSession } from "@/lib/dal";
 import {
@@ -198,6 +199,63 @@ export async function importRecipeFromLink(
   if (!trimmed) return { error: "Paste a link first." };
 
   return importRecipeFromUrl(trimmed);
+}
+
+export type ShareResult = { shareToken?: string | null; error?: string };
+
+/**
+ * Turn sharing on for one recipe, returning the token its public link uses.
+ *
+ * The token IS the gate — /share/recipe/[token] has no session check (it's
+ * meant for people outside the household), so the only thing standing
+ * between a stranger and this recipe is not being able to guess the token.
+ * 32 bytes from crypto.randomBytes is 256 bits of entropy: not sequential,
+ * not derived from the recipe id, and not brute-forceable.
+ *
+ * Idempotent on purpose — re-sharing an already-shared recipe returns the
+ * existing token rather than rotating it, so tapping Share twice doesn't
+ * silently break a link someone already sent.
+ */
+export async function shareRecipe(recipeId: string): Promise<ShareResult> {
+  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+
+  const recipe = await db.recipe.findUnique({
+    where: { id: recipeId },
+    select: { shareToken: true },
+  });
+  if (!recipe) return { error: "That recipe no longer exists." };
+  if (recipe.shareToken) return { shareToken: recipe.shareToken };
+
+  const shareToken = randomBytes(32).toString("base64url");
+  await db.recipe.update({ where: { id: recipeId }, data: { shareToken } });
+
+  revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
+  return { shareToken };
+}
+
+/**
+ * Stop sharing: null the token, which kills the old link immediately —
+ * anyone holding it gets a 404 from then on, since the public page looks a
+ * recipe up *by* that value.
+ */
+export async function stopSharingRecipe(
+  recipeId: string,
+): Promise<ShareResult> {
+  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+
+  const recipe = await db.recipe.findUnique({
+    where: { id: recipeId },
+    select: { id: true },
+  });
+  if (!recipe) return { error: "That recipe no longer exists." };
+
+  await db.recipe.update({
+    where: { id: recipeId },
+    data: { shareToken: null },
+  });
+
+  revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
+  return { shareToken: null };
 }
 
 /**

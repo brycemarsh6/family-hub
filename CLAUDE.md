@@ -99,8 +99,17 @@ feature behind it yet.
   a shared `src/components/BranchTile.tsx` (with a `wide` prop so an odd
   third tile spans both columns instead of leaving a gap) and Kitchen's
   page now imports it too — one tile definition, per the one-source-of-
-  truth rule. All three sub-pages are "Coming soon" placeholders; Recipes
-  is being built first — see the Recipes plan below.
+  truth rule. **Recipes is fully built** (see the Recipes plan below);
+  Menu and Meal planning are still "Coming soon" placeholders.
+  - **Recipes** (`/kitchen/cooking/recipes`) — the household's recipe
+    box. Browse A–Z with a slide-to-jump rail (like the iPhone contacts
+    list), or search by title *or* ingredient. Four ways to add one, all
+    landing on the same reviewable form so nothing is ever saved
+    unreviewed: type it in, paste text off any blog, photograph a
+    cookbook page / handwritten card / screenshot, or paste a link
+    (recipe blog, TikTok, or Pinterest pin). Each recipe can be copied
+    as plain text for a group chat, or shared outside the household via
+    an opt-in, revocable, unguessable link.
 
 **The category vocabulary is 29 groups, not 9.** `src/lib/constants.ts` used
 to hold a flat list (Produce, Dairy, Frozen, Pantry...) that couldn't tell
@@ -755,15 +764,61 @@ any Next API not already used in this repo.
   correctly recording the blog rather than the pin; and the invalid-URL,
   403, and no-recipe-in-caption paths each produced their specific
   message.
-- **R4. Sharing.** Copy-as-text (title, ingredients, steps as clean
-  plain text). Share link per the decision above: token generation,
-  a public print-friendly page with no nav bar and no session
-  assumptions, the `PUBLIC_ROUTES` entry, and "Stop sharing." Then the
-  house adversarial check: absent and wrong tokens 404 with nothing
-  leaked, tokens aren't guessable or sequential, the share page renders
-  exactly one recipe and nothing else, and a quick proxy-misconfiguration
-  drill (Phase-1e style) confirming no other route went public by
-  accident.
+- **R4. Sharing.** ✅ **Done.** `ShareRecipeControls.tsx` on the recipe
+  detail page offers both: **Copy as text** (title, ingredients,
+  numbered steps as clean plain text straight to the clipboard — no
+  link, nothing to revoke, for pasting into a group chat) and a
+  **share link** that's off until you deliberately create it.
+  `shareRecipe`/`stopSharingRecipe` in `recipes.ts` generate and null
+  the token; sharing is idempotent (re-sharing returns the existing
+  token rather than rotating it, so tapping twice doesn't break a link
+  someone already has), and revoking discards it for good — re-sharing
+  afterward mints a completely different one.
+  **The share page forced a structural change worth understanding:**
+  a shared recipe is read by someone with no session, so its page must
+  render with *none* of the app's chrome — no header, no nav bar, and
+  critically no `getSession()` call. Next.js's documented way to give a
+  route subtree a genuinely separate `<html>`/`<body>` is **multiple
+  root layouts via route groups**, not a conditional inside one shared
+  layout. So the entire authenticated app moved into
+  `src/app/(app)/` (route groups are invisible in URLs — every existing
+  path is unchanged), and `src/app/share/layout.tsx` is now a second
+  root layout alongside it. `RecipeBody.tsx` was extracted at the same
+  time, since the ingredients/steps/notes rendering is the one thing
+  both pages must show identically.
+  `proxy.ts` gained `PUBLIC_ROUTE_PREFIXES` — the share URL carries a
+  per-recipe token so it can't be an exact match like the existing
+  entries. Deliberately `"/share/recipe/"` and not a broad `"/share"`,
+  so a future `/share/...` route isn't silently public the day someone
+  adds it.
+  **The adversarial check, run in full** (methodology matters as much as
+  the result — same discipline as Phase 1e):
+  *Positive control first* — a valid token with **no cookie at all**
+  returns 200 with the real recipe, which is what makes every blocked
+  case below meaningful rather than vacuous. Then: a wrong token → 404
+  with zero recipe titles in the body; the recipe's own **id** used as a
+  token → 404 (the token isn't derivable from anything public); an empty
+  token and a path-traversal attempt → no resolution. Token properties
+  checked directly rather than assumed: 43-char base64url, **256 bits**
+  of `crypto.randomBytes` entropy, all unique, URL-safe alphabet only,
+  and **zero shared prefix between consecutive tokens** (i.e. not
+  sequential). The share page renders **exactly one `<h1>`** with none
+  of the other 11 seeded recipes leaked, no "Sign out"/nav/branch
+  strings anywhere in the HTML, and `noindex, nofollow` set so a shared
+  link can't end up in a search index. Revocation verified end-to-end:
+  the exact URL that served the recipe a minute earlier returned **404
+  with nothing leaked** after "Stop sharing."
+  *The proxy-misconfiguration drill* — temporarily broke the prefix to
+  the sloppy `"/share"` a future developer might reasonably write, and
+  measured what it exposed: `/shareX/recipe/abc` and `/share-secrets`
+  both started **bypassing the login gate** (404 = reaching the app,
+  versus 307 = redirected). Nothing lives at those paths today so
+  nothing actually leaked, but it's a real latent hole and the reason
+  the committed prefix is the specific one. `proxy.ts` was restored
+  immediately and `git diff`'d to confirm the only remaining change is
+  the intended R4 addition, with all near-miss paths back to 307.
+  Every protected route (`/`, all of `/kitchen/*`, `/calendar`,
+  `/chores`, `/lists`) re-verified at 307 with no cookie afterward.
 
 **Deliberately not in v1** (revisit only when real use demands it): dish
 photos (needs Vercel Blob — a new account/billing decision, so Bryce's
@@ -1375,13 +1430,61 @@ methodological point worth carrying forward:
   all clean, with the one pre-existing `GroceryRow.tsx` lint error still
   the only lint failure in the repo.
 
-**Obvious next step: R4 of the Recipes plan** — sharing. Copy-as-text
-for group chats, plus per-recipe opt-in share links: `shareToken`
-generated with crypto randomness (the column already exists from R1,
-unused so far), a public print-friendly page at
-`/share/recipe/[token]` with no nav bar and no session assumptions, its
-`PUBLIC_ROUTES` entry in `proxy.ts`, and "Stop sharing" to null the
-token. Then the house adversarial check: absent/wrong tokens 404 with
-nothing leaked, tokens aren't guessable or sequential, the share page
-renders exactly one recipe, and a Phase-1e-style proxy-misconfiguration
-drill confirming no other route went public by accident.
+**R4 is done too, same session — the Recipes plan is now fully
+complete.** Sharing works both ways (copy-as-text and revocable links),
+and the adversarial check passed in full. See the R4 bullet above for
+the design and the complete attack list; three things are worth
+carrying forward beyond this feature:
+
+- **The app now has two root layouts, and the whole authenticated app
+  lives in `src/app/(app)/`.** This is the single biggest structural
+  change since the branch/nav work. Route groups are invisible in URLs,
+  so no path changed and nothing broke — but anyone adding a page now
+  needs to know it belongs in `(app)/` (inside the header + nav + session
+  layout) unless it's deliberately public like `/share`. The `(app)`
+  layout's own comment explains why, and so does `src/app/share/layout.tsx`.
+- **The proxy-misconfiguration drill found a real latent hole, not a
+  clean pass.** Substituting the sloppy `"/share"` prefix a future
+  developer might reasonably write let `/shareX/recipe/abc` and
+  `/share-secrets` bypass the login gate entirely (404 = reaching the
+  app, vs 307 = redirected). Nothing lives at those paths so nothing
+  leaked, but the drill is why the committed prefix is the narrow one —
+  this is the second time (after Phase 1e) that deliberately breaking
+  `proxy.ts` on purpose taught something a passing test wouldn't have.
+- **The positive control is what made the whole check meaningful.**
+  Verifying a valid token returns a real recipe *with no cookie at all*
+  came first; without it, "wrong token → 404" would prove nothing, since
+  a broken page 404s for every input. Same lesson as the Phase-1e
+  session work and the V1 voice check — establish that success is
+  reachable before celebrating that failure is blocked.
+
+Recipe test data cleaned up afterward (`db:clean-recipes`); pantry and
+grocery counts untouched at 462/13 throughout. `tsc`, `eslint`, and
+`npm run build` all clean, with the pre-existing `GroceryRow.tsx` lint
+error still the only failure in the repo.
+
+**The Recipes plan (R1–R4) is fully closed.** Deliberately-not-in-v1
+items from the plan remain untouched and should only be revisited if
+real use demands them: dish photos (needs Vercel Blob — an account and
+billing decision, so Bryce's call), tags/categories, structured
+ingredients and "add this recipe's ingredients to the shopping list"
+(genuinely wanted someday, needs quantity parsing), cook-mode screen
+wake lock, recipe voice verbs, and bulk-importing a Pinterest board.
+
+**Obvious next steps, in no particular order** — nothing is scheduled,
+and the family should probably *use* Recipes for a week first:
+
+- **V3, the Alexa skill** — still the oldest outstanding item, queued
+  since before Expiring. Needs Bryce to create a free Amazon developer
+  account (walkthrough style, like Neon/Vercel), then a skill passing
+  the raw utterance to the existing `/api/voice` endpoint.
+- **Cooking's other two tiles** — Menu and Meal planning are still
+  placeholders, and Recipes existing now makes both considerably more
+  interesting than they were.
+- **A real handwritten recipe card through photo import** — the one
+  R3b source type never tested against genuine input. If Haiku
+  struggles, the plan's own fallback is bumping just that call to
+  Sonnet.
+- **The `GroceryRow.tsx` lint error** — flagged in this file four
+  separate times now without being fixed. It's small and isolated;
+  worth just doing next time anything touches Shopping.

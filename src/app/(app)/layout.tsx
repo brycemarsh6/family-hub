@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
-import "./globals.css";
+import "../globals.css";
 import { HubBottomNav } from "@/components/HubNav";
 import { SignOutButton } from "@/components/SignOutButton";
 import { getSession } from "@/lib/session";
@@ -10,7 +10,7 @@ import { getSession } from "@/lib/session";
 // (icon.png, apple-icon.png — see app-icons.md). Importing it here too means
 // there's still only one icon file to ever replace, not a separate header
 // logo asset drifting out of sync with it.
-import appIcon from "./icon.png";
+import appIcon from "../icon.png";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,12 +38,20 @@ export const viewport: Viewport = {
   ],
 };
 
-// This layout wraps every page in the app: the logo bar up top, the fixed tab
-// bar along the bottom, and the page itself in between. One nav for the whole
-// app — it doesn't change contents as you move between the dashboard and a
-// branch like Kitchen, only which tab is lit up. Getting from a branch's own
-// tab (e.g. Kitchen) into its sub-pages (Inventory, Shopping...) is the job of
-// that branch's own landing page now, not a second nav bar.
+// This layout wraps every page in the authenticated app: the logo bar up
+// top, the fixed tab bar along the bottom, and the page itself in between.
+// One nav for the whole app — it doesn't change contents as you move between
+// the dashboard and a branch like Kitchen, only which tab is lit up. Getting
+// from a branch's own tab (e.g. Kitchen) into its sub-pages (Inventory,
+// Shopping...) is the job of that branch's own landing page now, not a
+// second nav bar.
+//
+// Lives inside the (app) route group rather than directly under app/ because
+// this is one of two root layouts in the project (see src/app/share/layout.tsx
+// for the other) — a shared recipe page needs to render with none of this
+// chrome (no header, no nav, no getSession() call), and Next.js's documented
+// way to give a route subtree a genuinely separate <html>/<body> is multiple
+// root layouts via route groups, not a conditional inside one shared layout.
 export default async function RootLayout({
   children,
 }: Readonly<{

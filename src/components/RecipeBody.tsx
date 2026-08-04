@@ -1,30 +1,26 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { Pencil, Clock, Users, ExternalLink } from "lucide-react";
-import { db } from "@/lib/db";
-import { deleteRecipe } from "@/app/actions/recipes";
+import { Clock, Users, ExternalLink } from "lucide-react";
+import { recipeLines } from "@/lib/recipeText";
 
-export const dynamic = "force-dynamic";
+export type RecipeBodyData = {
+  ingredients: string;
+  steps: string;
+  servings: string | null;
+  prepTime: string | null;
+  cookTime: string | null;
+  sourceUrl: string | null;
+  notes: string | null;
+};
 
-/** Splits a newline-separated field into trimmed, non-empty lines. */
-function lines(text: string): string[] {
-  return text
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-export default async function RecipeDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const recipe = await db.recipe.findUnique({ where: { id } });
-  if (!recipe) notFound();
-
-  const ingredients = lines(recipe.ingredients);
-  const steps = lines(recipe.steps);
+/**
+ * The read-only guts of a recipe — meta row, source link, ingredients,
+ * steps, notes. Shared by the private detail page and the public share
+ * page (src/app/share/recipe/[token]/page.tsx), which are otherwise
+ * unrelated pages under different root layouts — this is the one piece
+ * that has to render identically on both, so it only exists once.
+ */
+export function RecipeBody({ recipe }: { recipe: RecipeBodyData }) {
+  const ingredients = recipeLines(recipe.ingredients);
+  const steps = recipeLines(recipe.steps);
   const meta = [
     recipe.servings && { icon: Users, label: recipe.servings },
     recipe.prepTime && { icon: Clock, label: `Prep ${recipe.prepTime}` },
@@ -32,20 +28,7 @@ export default async function RecipeDetailPage({
   ].filter(Boolean) as { icon: typeof Users; label: string }[];
 
   return (
-    <div className="py-2">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          {recipe.title}
-        </h1>
-        <Link
-          href={`/kitchen/cooking/recipes/${recipe.id}/edit`}
-          aria-label="Edit recipe"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-surface transition-colors active:bg-surface-2"
-        >
-          <Pencil aria-hidden="true" size={20} />
-        </Link>
-      </div>
-
+    <>
       {meta.length > 0 && (
         <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
           {meta.map(({ icon: Icon, label }, index) => (
@@ -112,16 +95,6 @@ export default async function RecipeDetailPage({
           </p>
         </section>
       )}
-
-      <form action={deleteRecipe} className="border-t border-line pt-4">
-        <input type="hidden" name="id" value={recipe.id} />
-        <button
-          type="submit"
-          className="min-h-11 w-full rounded-xl text-sm font-medium text-danger transition-colors hover:bg-surface-2"
-        >
-          Delete recipe
-        </button>
-      </form>
-    </div>
+    </>
   );
 }
