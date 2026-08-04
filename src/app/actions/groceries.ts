@@ -156,7 +156,13 @@ export async function putAwayCheckedItems() {
         // shopping away at once can't overwrite each other's total.
         await tx.pantryItem.update({
           where: { id: target.id },
-          data: { quantity: { increment: boughtItem.quantity } },
+          data: {
+            quantity: { increment: boughtItem.quantity },
+            // This IS the restock, definitionally — groceries just came home
+            // and went in the fridge/pantry. See setPantryQuantity's comment
+            // in pantry.ts for what restockedAt drives.
+            restockedAt: new Date(),
+          },
         });
       } else {
         const created = await tx.pantryItem.create({

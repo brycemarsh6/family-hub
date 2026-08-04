@@ -99,7 +99,7 @@ async function applyAdd(action: ParsedAction): Promise<string> {
   const next = round(current.quantity + action.quantity);
   await db.pantryItem.update({
     where: { id: match.id },
-    data: { quantity: next },
+    data: { quantity: next, restockedAt: new Date() },
   });
   await db.voiceChange.create({
     data: {

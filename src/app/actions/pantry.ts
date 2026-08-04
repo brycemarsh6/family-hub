@@ -51,9 +51,22 @@ export async function setPantryQuantity(id: string, quantity: number) {
   // it — we just don't allow negatives.
   const safeQuantity = Math.max(0, Math.round(quantity * 100) / 100);
 
+  const current = await db.pantryItem.findUnique({
+    where: { id },
+    select: { quantity: true },
+  });
+  if (!current) return;
+
   await db.pantryItem.update({
     where: { id },
-    data: { quantity: safeQuantity },
+    data: {
+      quantity: safeQuantity,
+      // Tapping + is "I just got more of this" — the Expiring page's shelf-life
+      // clock (see src/lib/shelfLife.ts) counts from here, not from when the
+      // row was first created. Tapping − is using what's already there, so it
+      // doesn't reset anything.
+      ...(safeQuantity > current.quantity ? { restockedAt: new Date() } : {}),
+    },
   });
 
   refreshKitchenViews();
@@ -83,15 +96,25 @@ export async function editPantryItem(
   const name = changes.name.trim();
   if (!name) return;
 
+  const current = await db.pantryItem.findUnique({
+    where: { id },
+    select: { quantity: true },
+  });
+  if (!current) return;
+
+  const quantity = Math.max(0, Math.round(changes.quantity * 100) / 100);
+
   await db.pantryItem.update({
     where: { id },
     data: {
       name,
-      quantity: Math.max(0, Math.round(changes.quantity * 100) / 100),
+      quantity,
       unit: changes.unit?.trim() || null,
       category: toCategory(changes.category),
       location: toLocation(changes.location),
       lowThreshold: Math.max(0, Math.round(changes.lowThreshold * 100) / 100),
+      // Same "went up = restocked" rule as the quantity stepper — see there.
+      ...(quantity > current.quantity ? { restockedAt: new Date() } : {}),
     },
   });
 

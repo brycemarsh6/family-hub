@@ -57,7 +57,14 @@ function singular(word: string): string {
   return word;
 }
 
-function tokens(text: string): string[] {
+/**
+ * Split a name into comparable words.
+ *
+ * Exported so shelf-life lookup (src/lib/shelfLife.ts) normalizes names
+ * exactly the way voice and search do — one tokenizer, so "Strawberries" and
+ * "strawberry" agree everywhere or nowhere.
+ */
+export function tokens(text: string): string[] {
   return normalize(text).split(" ").filter(Boolean).map(singular);
 }
 

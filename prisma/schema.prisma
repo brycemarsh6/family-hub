@@ -92,6 +92,23 @@ model PantryItem {
   /// When quantity drops to this number or below, the item counts as "running low".
   lowThreshold Float @default(1)
 
+  /// A real expiry date somebody read off the packet and typed in.
+  ///
+  /// Almost always null: nobody is going to hand-enter dates for 461 items,
+  /// so the Expiring page estimates instead (see src/lib/shelfLife.ts). When
+  /// this IS set it wins over any estimate, because a printed date beats a
+  /// guess. Leftovers get it set automatically from the days-good picker.
+  expiresAt DateTime?
+
+  /// When we last got more of this — the clock estimates count from.
+  ///
+  /// Deliberately not `createdAt`: every one of the 461 imported items was
+  /// created on the same August 2026 afternoon, so counting from creation
+  /// would peg the whole pantry to one date forever. This moves whenever
+  /// quantity goes UP (put-away, voice "add", manual increase), so the
+  /// estimate self-corrects as the house actually shops.
+  restockedAt DateTime @default(now())
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -99,4 +116,6 @@ model PantryItem {
   voiceChanges VoiceChange[]
 
   @@index([location])
+  /// The Expiring page's main query: things with a real date, soonest first.
+  @@index([expiresAt])
 }
