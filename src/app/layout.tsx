@@ -64,7 +64,7 @@ export default async function RootLayout({
           <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-4 py-3">
             <Link
               href="/"
-              className="flex min-h-12 items-center gap-2 text-lg font-semibold tracking-tight"
+              className="flex min-h-12 items-center gap-2 text-2xl font-semibold tracking-tight"
             >
               <Image
                 src={appIcon}
