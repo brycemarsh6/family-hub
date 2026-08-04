@@ -323,11 +323,73 @@ checklist.
 payment or credential details — that's Bryce, with exact instructions for
 what to click. Claude writes and verifies every line of code.
 
+## Voice integration plan — ACTIVE
+
+The current work. Bryce's read on the real risk to this app: his wife won't
+keep the inventory current if updating it means opening a phone, finding
+the item, and tapping — the app quietly goes stale and dies. The fix is
+voice in the kitchen: *"Alexa, tell Marsh HQ I used 2 hot dogs and 2 cans
+of Dr Pepper"* and the counts just change.
+
+**Decisions already made — don't re-litigate these:**
+
+- **One voice backend, thin clients on top.** Alexa and Siri are treated as
+  dumb microphones that relay a transcribed sentence to one API endpoint on
+  the Vercel app. All parsing, matching, applying, and logging happens
+  server-side in one place. A future wall-tablet mic is just another thin
+  client. Chores/to-dos/calendar later are new *verbs* for the same
+  pipeline, not new pipelines.
+- **The parser is a Claude API call (Haiku), not hand-rolled rules.**
+  Natural speech — plurals, brand names, several items in one breath,
+  imperfect transcription — is exactly what rule-based parsing handles
+  badly. Bryce approved the cost (~a dollar or two a month at household
+  scale) and will create the Anthropic API account himself; the key lives
+  in `.env` locally and Vercel's env vars in production, never in chat or
+  git — same handling as the Neon connection string.
+- **Build order: Siri shortcut first, then the Alexa skill.** Siri needs no
+  new accounts (an iOS Shortcut can prompt for dictation and POST the text
+  to our endpoint), so it proves the entire pipeline on the wife's actual
+  phone in one session. Alexa is the destination — there are Echo device(s)
+  in/near the kitchen — and lands right after, reusing everything.
+- **The Alexa skill stays in development mode forever.** A dev-mode skill
+  works indefinitely on Echo devices tied to the developer's own Amazon
+  household — no certification or public publishing for a private family
+  app. Known tradeoff: the wake phrase must name the skill ("Alexa, tell
+  Marsh HQ…"), bare "Alexa, I used…" is not possible — Amazon routes bare
+  speech to its own features. Expectation was set with Bryce up front.
+- **Voice never deletes.** Allowed verbs are bounded and low-stakes:
+  decrement/increment a pantry quantity and add to the shopping list.
+  Every voice change is written to a log table, the spoken response always
+  states exactly what changed ("Took 2 off Hot dogs — 3 left") so mishears
+  are caught in the moment, and an "undo" verb walks the log backwards.
+- **The endpoint is public and gets its own real auth.** It cannot use the
+  family-password session cookie (Alexa/Siri can't log in), so it carries
+  its own long random secret token — set in env vars, sent by the
+  skill/shortcut, rotatable, never in git. Same lesson as deployment
+  Phase 1: it's a public POST endpoint and must be treated as attacked.
+
+**The phases:**
+
+- **V1. Voice backend** — API route (a Route Handler, not a Server Action —
+  external callers, not our own buttons), token auth, Claude-Haiku parsing
+  into structured actions, fuzzy matching against real inventory names
+  (word-boundary/normalized matching — see the substring-matching bug in
+  "Where I left off" for why exact-substring is not acceptable), apply +
+  log + undo, confirmation text in the response. Provable with `curl`
+  before any voice device exists — positive control first, then the
+  no-token and bad-token attacks, per the Phase-1e methodology.
+- **V2. Siri shortcut** — thin client; end-to-end proof on a real phone.
+- **V3. Alexa skill** — free Amazon developer account (Bryce creates it,
+  walkthrough style like Neon/Vercel), skill passes the raw utterance
+  through, endpoint on the Vercel app, dev mode only.
+- **V4. More verbs** — shopping-list add if it didn't make V1, then
+  chores/to-dos/calendar as those branches actually get built.
+
 ## Planned, not yet built
 
-Everything below is independent of the deployment plan above and not
-currently being worked on. Roughly the order they'll likely get tackled,
-though nothing here is scheduled:
+Everything below is independent of the voice plan above and not currently
+being worked on. Roughly the order they'll likely get tackled, though
+nothing here is scheduled:
 
 - **Family profiles** — a page per family member.
 - **Chore charts** — for the kids.
@@ -338,7 +400,8 @@ though nothing here is scheduled:
 - **Photo gallery**
 - **Calendar** — shared family calendar. Planned last on purpose: it's
   expected to be the hardest piece.
-- **Voice input** — useful on a kitchen wall tablet where typing is awkward.
+- **Voice input** — now the ACTIVE plan above (grew from "wall tablet"
+  nice-to-have into the Alexa/Siri integration).
 - **Barcode scanning** — for fast grocery/pantry entry.
 
 ## Where I left off
