@@ -127,10 +127,17 @@ async function applyBuy(action: ParsedAction): Promise<string> {
 
   // If it's a known pantry item, tag the grocery row with it so "put away"
   // later tops up the right jar instead of creating a duplicate.
+  //
+  // An ambiguous match is deliberately treated as no match here, unlike the
+  // use/add paths. Saying "add milk to the list" when the house stocks seven
+  // milks isn't a mishear to be confirmed — the speaker genuinely hasn't
+  // chosen yet, and "milk" on the list lets whoever shops decide. Guessing
+  // would put the wrong carton in the trolley.
   const pantryItems = await db.pantryItem.findMany({
     select: { id: true, name: true },
   });
-  const { match } = matchItem(action.item, pantryItems);
+  const result = matchItem(action.item, pantryItems);
+  const match = result.ambiguous ? null : result.match;
 
   await db.groceryItem.create({
     data: {
