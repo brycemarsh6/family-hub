@@ -69,8 +69,8 @@ export default async function RootLayout({
               <Image
                 src={appIcon}
                 alt=""
-                width={28}
-                height={28}
+                width={44}
+                height={44}
                 className="shrink-0"
                 priority
               />
