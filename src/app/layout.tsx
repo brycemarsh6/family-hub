@@ -1,10 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 import { HubBottomNav } from "@/components/HubNav";
 import { SignOutButton } from "@/components/SignOutButton";
 import { getSession } from "@/lib/session";
+// Same house-and-heart art used for the browser tab/home-screen icon
+// (icon.png, apple-icon.png — see app-icons.md). Importing it here too means
+// there's still only one icon file to ever replace, not a separate header
+// logo asset drifting out of sync with it.
+import appIcon from "./icon.png";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,7 +66,14 @@ export default async function RootLayout({
               href="/"
               className="flex min-h-12 items-center gap-2 text-lg font-semibold tracking-tight"
             >
-              <span aria-hidden="true">🏡</span>
+              <Image
+                src={appIcon}
+                alt=""
+                width={28}
+                height={28}
+                className="shrink-0"
+                priority
+              />
               Marsh HQ
             </Link>
             {session && <SignOutButton />}
