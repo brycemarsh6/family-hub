@@ -26,6 +26,7 @@ export function PastMealWeeks({
     dayOffset: number,
     slot: MealSlot,
     currentTitle: string,
+    currentRecipeId: string | null,
   ) => void;
   onDeletePlan: (mealPlanId: string) => void;
 }) {
@@ -68,8 +69,8 @@ export function PastMealWeeks({
                   <WeekCard
                     plan={plan}
                     today={today}
-                    onSlotTap={(dayOffset, slot, currentTitle) =>
-                      onSlotTap(plan, dayOffset, slot, currentTitle)
+                    onSlotTap={(dayOffset, slot, currentTitle, currentRecipeId) =>
+                      onSlotTap(plan, dayOffset, slot, currentTitle, currentRecipeId)
                     }
                     onDeletePlan={() => onDeletePlan(plan.id)}
                   />

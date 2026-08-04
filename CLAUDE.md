@@ -986,13 +986,36 @@ any unfamiliar Next API.
   since this ran against the live shared database. `tsc`, `eslint`, and
   `npm run build` all clean (the one pre-existing `GroceryRow.tsx` lint
   error, still untouched).
-- **M2. Recipes in the slot sheet.** The picker (search via
-  `searchRecipes`, ranked list, tap to pick) writing `recipeId` +
-  denormalized title. Recipe-linked entries render distinctly (small
-  icon) and offer a path to the recipe's detail page — from inside the
-  slot sheet, not the row itself, since the row's tap already opens the
-  sheet. Verify the SetNull behavior with a seeded recipe: plan it,
-  delete it, confirm the entry survives as plain text.
+- **M2. Recipes in the slot sheet.** ✅ **Done.** The slot sheet's
+  "Pick from your recipes" row is real now: tapping it swaps the sheet
+  to a picker sub-view (a back chevron returns, and Escape steps back
+  one level rather than closing outright) with a search box over the
+  real library — `searchRecipes` when there's a query, alphabetical
+  when there isn't, so the picker is useful before you type anything.
+  Tapping a recipe saves immediately, writing both `recipeId` and the
+  denormalized `title`, same one-tap-is-the-save shape as the preset
+  chips. Recipe-linked entries render with a small accent-colored
+  `BookOpen` in the week row, and the sheet shows a "View recipe" link
+  through to `/kitchen/cooking/recipes/[id]` — inside the sheet, not on
+  the row, since the row's own tap is already spoken for. Everything
+  else that fills a slot (presets, custom text) explicitly writes
+  `recipeId: null`, so retyping over a recipe-linked meal correctly
+  drops the link instead of leaving a stale one pointing at a different
+  dish.
+  Verified in the running app against the household's 8 real recipes:
+  the picker listed them alphabetically, searching "soup" narrowed to
+  exactly the two soups, picking one filled Tuesday's dinner, and a
+  full page reload confirmed it persisted server-side with the book
+  icon on that entry *only* — the other filled entries (plain-text
+  ones) correctly had no icon. The "View recipe" link resolved to the
+  real detail page.
+  **SetNull was verified for real, but not the way the plan said to.**
+  The plan's instruction was "seed a recipe, plan it, delete it" —
+  except the Recipe table now holds the family's actual recipes, so a
+  seeded-then-deleted test recipe had to be surgically scoped. Used a
+  one-off script that created exactly one test recipe, linked it, then
+  deleted that single row by id: the entry survived with `recipeId:
+  null` and its title intact. History never gets hollowed out.
 - **M3. History + plan-ahead + badge.** Past weeks as collapsed
   headers; a future-week section when next week is planned early;
   whole-plan delete; the Cooking tile on Kitchen's landing page gains
@@ -1729,6 +1752,56 @@ the feature itself:
   session. Worth the same discipline next time date math shows up
   anywhere in this app.
 
-**Obvious next step: M2 of the Meal Plan plan** — the recipe picker in
-`SlotEditSheet`, reusing `searchRecipes()` over the real library, with
-recipe-linked entries offering a path to the recipe's own detail page.
+**M2 is done — and the session that built it turned up two things that
+matter more than the feature itself.**
+
+**1. M1 shipped with its main page never actually committed.** Picking
+up after an interruption, `git status` showed one modified file:
+`meal-plan/page.tsx`. The M1 commit had recorded that path as a *pure
+rename* of `meal-planning/page.tsx` (0 content changes) — the edit that
+makes it fetch plans and render `MealPlanList` was made after that `git
+add` and silently never got staged. Every other M1 file was genuinely
+committed and pushed, so the feature looked complete locally while
+production served "Coming soon" from the old placeholder. This is the
+second time in this project's history that something looked broken (or
+in this case, looked fine) because of what was *actually deployed*
+rather than what the code says — the first was the voice work's
+forgotten push. **Both were caught by checking the deployed/committed
+state directly rather than re-reading the source.** Worth doing
+`git show --stat HEAD` after any commit that includes a file rename:
+git recording a rename with 0 changes is exactly what a
+forgotten-content commit looks like.
+
+**2. `db:seed-recipes` and `db:clean-recipes` were one command away
+from destroying the family's real recipes, and this was fixed.** Both
+scripts opened with a blanket `db.recipe.deleteMany()` — completely
+correct when R1 wrote them, since the Recipe table then held nothing
+but test data. That assumption expired the moment the family started
+saving real recipes into the same shared Neon database, and nothing
+flagged it. It surfaced by accident: `db:seed-recipes` was run to set
+up a SetNull test, hung on what looked like a Neon cold start, and a
+direct row count during the hang showed all 8 real recipes still
+present — the delete hadn't landed yet. Killed the process before it
+could. Both scripts now delete only rows whose titles match the test
+data, which lives in its own `prisma/recipe-seed-data.ts` so the
+cleanup script can know what's test data without importing (and
+running) the seeder. Verified by round-trip against the live database:
+seeded 12, deleted exactly 12, and the 8 real recipes plus pantry (462)
+and grocery (13) were untouched throughout.
+**The general lesson, worth applying to every `db:*` script this
+project has:** a seed/clean script's safety depends on an assumption
+about what else lives in its table, and that assumption silently
+expires when the app goes live. `prisma/seed.ts` and `db:reset` are
+still the loaded guns CLAUDE.md has always warned about — but the
+*recipe* scripts were quietly just as dangerous while being documented
+as safe. `seed-meal-plans.ts`/`clean-meal-plans.ts` still blanket-clear
+their tables, which is fine only for as long as meal plans stay test
+data; the day the family plans a real week, those need the same
+treatment.
+
+**Obvious next step: M3 of the Meal Plan plan** — history, plan-ahead,
+and the Cooking tile's "plan this week" badge. Note that M1 already
+shipped past weeks as collapsed headers (`PastMealWeeks.tsx`), a
+future-week "Coming up" section, and whole-plan delete, so M3's real
+remaining work is the badge plus re-verifying the DST week in the
+fuller history UI.

@@ -1,13 +1,14 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { BookOpen, Trash2 } from "lucide-react";
 import { MEAL_SLOTS, type MealSlot } from "@/lib/constants";
 import { addDays, formatDayLabel, formatWeekRange, isSameDay } from "@/lib/mealPlanDates";
 import type { MealPlanView } from "@/lib/types";
 
 /** One planned week: a header (range + delete) and seven days, each with
  * its four meal slots. Every slot is its own tap target — filled slots show
- * the meal, empty ones read as a muted "Add". */
+ * the meal, empty ones read as a muted "Add". A slot linked to a saved
+ * recipe (rather than free text) shows a small book icon. */
 export function WeekCard({
   plan,
   today,
@@ -16,7 +17,12 @@ export function WeekCard({
 }: {
   plan: MealPlanView;
   today: Date;
-  onSlotTap: (dayOffset: number, slot: MealSlot, currentTitle: string) => void;
+  onSlotTap: (
+    dayOffset: number,
+    slot: MealSlot,
+    currentTitle: string,
+    currentRecipeId: string | null,
+  ) => void;
   onDeletePlan: () => void;
 }) {
   return (
@@ -60,18 +66,27 @@ export function WeekCard({
                     <button
                       key={slot}
                       type="button"
-                      onClick={() => onSlotTap(dayOffset, slot, entry?.title ?? "")}
+                      onClick={() =>
+                        onSlotTap(dayOffset, slot, entry?.title ?? "", entry?.recipeId ?? null)
+                      }
                       className="flex min-h-12 items-center gap-2 rounded-xl border border-line bg-surface-2 px-3 text-left transition-colors active:bg-line"
                     >
                       <span className="w-20 shrink-0 text-xs font-medium uppercase tracking-wide text-muted">
                         {slot}
                       </span>
                       <span
-                        className={`min-w-0 flex-1 truncate text-sm ${
+                        className={`flex min-w-0 flex-1 items-center gap-1.5 truncate text-sm ${
                           entry ? "font-medium text-fg" : "text-muted"
                         }`}
                       >
-                        {entry ? entry.title : "Add"}
+                        {entry?.recipeId && (
+                          <BookOpen
+                            aria-hidden="true"
+                            size={13}
+                            className="shrink-0 text-accent"
+                          />
+                        )}
+                        <span className="truncate">{entry ? entry.title : "Add"}</span>
                       </span>
                     </button>
                   );

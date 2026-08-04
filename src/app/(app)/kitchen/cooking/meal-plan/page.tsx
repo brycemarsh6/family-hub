@@ -10,10 +10,15 @@ export const dynamic = "force-dynamic";
 // src/lib/useToday.ts for why "what week is this" has to be decided by the
 // browser's own clock, never the server's.
 export default async function MealPlanPage() {
-  const plans = await db.mealPlan.findMany({
-    include: { entries: true },
-    orderBy: { weekStart: "asc" },
-  });
+  const [plans, recipes] = await Promise.all([
+    db.mealPlan.findMany({
+      include: { entries: true },
+      orderBy: { weekStart: "asc" },
+    }),
+    db.recipe.findMany({
+      select: { id: true, title: true, ingredients: true },
+    }),
+  ]);
 
   const views: MealPlanView[] = plans.map((plan) => ({
     id: plan.id,
@@ -36,7 +41,7 @@ export default async function MealPlanPage() {
         This week, and the weeks before it.
       </p>
 
-      <MealPlanList plans={views} />
+      <MealPlanList plans={views} recipes={recipes} />
     </div>
   );
 }

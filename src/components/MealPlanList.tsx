@@ -11,6 +11,7 @@ import { useToday } from "@/lib/useToday";
 import { addDays, formatDayLabel, isSameDay, sundayOf } from "@/lib/mealPlanDates";
 import type { MealSlot } from "@/lib/constants";
 import type { MealPlanView } from "@/lib/types";
+import type { RecipeListItem } from "./RecipeList";
 import {
   createMealPlan,
   deleteMealPlan,
@@ -21,7 +22,14 @@ import {
 type Change =
   | { type: "createPlan"; tempId: string; weekStart: Date }
   | { type: "deletePlan"; mealPlanId: string }
-  | { type: "setEntry"; mealPlanId: string; dayOffset: number; slot: MealSlot; title: string }
+  | {
+      type: "setEntry";
+      mealPlanId: string;
+      dayOffset: number;
+      slot: MealSlot;
+      title: string;
+      recipeId: string | null;
+    }
   | { type: "clearEntry"; mealPlanId: string; dayOffset: number; slot: MealSlot };
 
 function applyChange(plans: MealPlanView[], change: Change): MealPlanView[] {
@@ -45,7 +53,7 @@ function applyChange(plans: MealPlanView[], change: Change): MealPlanView[] {
               dayOffset: change.dayOffset,
               slot: change.slot,
               title: change.title,
-              recipeId: null,
+              recipeId: change.recipeId,
             },
           ],
         };
@@ -70,6 +78,7 @@ type EditingSlot = {
   slot: MealSlot;
   dayLabel: string;
   currentTitle: string;
+  currentRecipeId: string | null;
 };
 
 /**
@@ -78,7 +87,13 @@ type EditingSlot = {
  * week). "Which week is current" is decided here, from the browser's own
  * clock (see src/lib/useToday.ts), never on the server.
  */
-export function MealPlanList({ plans }: { plans: MealPlanView[] }) {
+export function MealPlanList({
+  plans,
+  recipes,
+}: {
+  plans: MealPlanView[];
+  recipes: RecipeListItem[];
+}) {
   const [optimisticPlans, applyOptimistic] = useOptimistic(plans, applyChange);
   const [, startTransition] = useTransition();
   const today = useToday();
@@ -93,13 +108,20 @@ export function MealPlanList({ plans }: { plans: MealPlanView[] }) {
     });
   }
 
-  function openSlot(plan: MealPlanView, dayOffset: number, slot: MealSlot, currentTitle: string) {
+  function openSlot(
+    plan: MealPlanView,
+    dayOffset: number,
+    slot: MealSlot,
+    currentTitle: string,
+    currentRecipeId: string | null,
+  ) {
     setEditingSlot({
       mealPlanId: plan.id,
       dayOffset,
       slot,
       dayLabel: formatDayLabel(addDays(plan.weekStart, dayOffset)),
       currentTitle,
+      currentRecipeId,
     });
   }
 
@@ -114,11 +136,11 @@ export function MealPlanList({ plans }: { plans: MealPlanView[] }) {
     run({ type: "deletePlan", mealPlanId }, () => deleteMealPlan(mealPlanId));
   }
 
-  function handleSaveSlot(title: string) {
+  function handleSaveSlot(title: string, recipeId: string | null = null) {
     if (!editingSlot) return;
     const { mealPlanId, dayOffset, slot } = editingSlot;
-    run({ type: "setEntry", mealPlanId, dayOffset, slot, title }, () =>
-      setMealPlanEntry({ mealPlanId, dayOffset, slot, title }),
+    run({ type: "setEntry", mealPlanId, dayOffset, slot, title, recipeId }, () =>
+      setMealPlanEntry({ mealPlanId, dayOffset, slot, title, recipeId }),
     );
     setEditingSlot(null);
   }
@@ -183,8 +205,8 @@ export function MealPlanList({ plans }: { plans: MealPlanView[] }) {
             <WeekCard
               plan={currentPlan}
               today={today}
-              onSlotTap={(dayOffset, slot, currentTitle) =>
-                openSlot(currentPlan, dayOffset, slot, currentTitle)
+              onSlotTap={(dayOffset, slot, currentTitle, currentRecipeId) =>
+                openSlot(currentPlan, dayOffset, slot, currentTitle, currentRecipeId)
               }
               onDeletePlan={() => handleDeletePlan(currentPlan.id)}
             />
@@ -207,8 +229,8 @@ export function MealPlanList({ plans }: { plans: MealPlanView[] }) {
                     key={plan.id}
                     plan={plan}
                     today={today}
-                    onSlotTap={(dayOffset, slot, currentTitle) =>
-                      openSlot(plan, dayOffset, slot, currentTitle)
+                    onSlotTap={(dayOffset, slot, currentTitle, currentRecipeId) =>
+                      openSlot(plan, dayOffset, slot, currentTitle, currentRecipeId)
                     }
                     onDeletePlan={() => handleDeletePlan(plan.id)}
                   />
@@ -241,6 +263,8 @@ export function MealPlanList({ plans }: { plans: MealPlanView[] }) {
           dayLabel={editingSlot.dayLabel}
           slot={editingSlot.slot}
           currentTitle={editingSlot.currentTitle}
+          currentRecipeId={editingSlot.currentRecipeId}
+          recipes={recipes}
           onClose={() => setEditingSlot(null)}
           onSave={handleSaveSlot}
           onClear={handleClearSlot}
