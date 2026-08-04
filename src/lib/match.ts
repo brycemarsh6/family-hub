@@ -205,3 +205,35 @@ export function searchItems<T extends { name: string }>(
     .sort((a, b) => b.value - a.value)
     .map((s) => s.item);
 }
+
+/**
+ * Rank recipes against a typed search query, checking title and ingredients.
+ *
+ * A large flat offset on any title match means the worst title match still
+ * outranks the best ingredient-only match — searching "chicken" surfaces
+ * Chicken pot pie before a recipe that merely lists chicken broth as an
+ * ingredient — while still ranking multiple title matches against each other
+ * by quality, same as searchItems.
+ */
+export function searchRecipes<T extends { title: string; ingredients: string }>(
+  query: string,
+  recipes: readonly T[],
+): T[] {
+  const queryTokens = tokens(query);
+  if (queryTokens.length === 0) return [];
+
+  const TITLE_MATCH_OFFSET = 1000;
+
+  return recipes
+    .map((recipe) => {
+      const titleScore = searchScore(queryTokens, tokens(recipe.title));
+      const value =
+        titleScore > 0
+          ? titleScore + TITLE_MATCH_OFFSET
+          : searchScore(queryTokens, tokens(recipe.ingredients));
+      return { recipe, value };
+    })
+    .filter((s) => s.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .map((s) => s.recipe);
+}

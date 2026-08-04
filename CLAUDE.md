@@ -617,16 +617,38 @@ any Next API not already used in this repo.
   the "#" bucket), deleting only `Recipe` rows on cleanup. Verify:
   create, edit, delete through the browser; count returns to baseline
   after cleanup.
-- **R2. A–Z rail + search.** Group the list by first letter (digits and
-  symbols under "#"), sticky section headers. The rail is **one
-  continuous touch surface** pinned to the right edge — pointer
-  down/move maps finger position to the nearest letter and jumps there —
-  *not* 27 separate tiny buttons, which would violate the 48px rule;
-  precision comes from sliding, like the iPhone contacts rail. Letters
-  with no recipes render dimmed and inert. Search box above the list per
-  the decision above. All client-side over the full fetched list —
-  household scale, no pagination. Verify in devtools mobile mode with
-  touch simulation, with the seeded alphabet spread.
+- **R2. A–Z rail + search.** ✅ **Done.** `RecipeList.tsx` groups the list
+  by first letter (digits/symbols under "#"), with sticky section
+  headers. The rail is one continuous touch surface pinned to the
+  viewport's right edge — `onPointerDown`/`onPointerMove` map finger
+  position to the nearest letter and jump there, not 27 separate
+  sub-48px buttons; `setPointerCapture` + `preventDefault` on pointerdown
+  is what makes a drag that wanders off the narrow strip keep tracking,
+  and what stops a mouse-drag from turning into a native text selection.
+  Letters with no recipes render dimmed (`text-line`) and are inert —
+  `scrollToLetter` no-ops if there's no group. The rail's top offset is
+  measured at runtime off the search box's actual position (`ResizeObserver`
+  + `useLayoutEffect`), not a hardcoded pixel guess — the title row's
+  height isn't constant across the `md` breakpoint, and a fixed guess
+  visibly overlapped the New button on mobile before this was fixed.
+  Search reuses `match.ts`'s tokenizer via a new `searchRecipes()`, which
+  checks both title and ingredients but adds a flat offset to any title
+  match so it always outranks an ingredients-only one (searching
+  "chicken" surfaces Honey Mustard Chicken before Jambalaya, which only
+  lists chicken thighs as an ingredient) — verified against the real
+  seeded data, not just read from the code. All client-side over the
+  full fetched list, household scale, no pagination.
+  **Two real bugs the verification caught, worth remembering:**
+  (1) `scrollIntoView({behavior: "smooth"})` doesn't reliably scroll a
+  `position: sticky` target — confirmed by direct testing, not a guess —
+  fixed by putting the scroll-target ref on the plain-flow `<section>`
+  wrapper instead of the sticky `<h2>` inside it. (2) Even after that fix,
+  "smooth" scrolling was unreliable in the same session's browser-preview
+  tooling; switched to `"instant"`, which turned out to be the *more*
+  correct choice anyway — a rail meant to track a moving finger in real
+  time shouldn't be queuing a separate animation per letter crossed
+  during a fast drag, since that would visibly lag behind the gesture on
+  any device, not just this one.
 - **R3a. Import: pasted text.** "Add recipe" opens a chooser — Type it
   in / Paste text / From a photo / From a link (build all four options'
   chooser now; wire photo and link as they land). A new extraction
@@ -1121,7 +1143,50 @@ still untouched throughout. `tsc --noEmit` and `eslint` are clean on
 every new file (the one lint error in the repo, `GroceryRow.tsx`'s
 component-during-render issue, is pre-existing and untouched).
 
-**Obvious next step: R2 of the Recipes plan** — the A-Z jump rail (one
-continuous slide-to-jump touch surface, not 27 tiny buttons) and search
-reusing `src/lib/match.ts`'s tokenizer, on top of the list page R1 just
-built.
+**R2 of the Recipes plan is done too, same session.** The list page R1
+built is now browsable A-Z with a slide-to-jump rail and searchable by
+title or ingredients — see the R2 bullet above for the full design. What
+made this phase take real debugging rather than just typing it out:
+
+- **The rail initially overlapped the New button.** A first pass used a
+  hardcoded `top-20` Tailwind class for the rail's top offset, measured
+  by eyeballing one screenshot. Caught by actually inspecting element
+  positions in the browser (`getBoundingClientRect()`) rather than
+  trusting the screenshot: the New button's real bounding box overlapped
+  the rail's. Fixed properly — not by nudging the guess — by measuring
+  the search box's real position at runtime (`ResizeObserver` +
+  `useLayoutEffect`) instead of a constant, so it can't drift out of sync
+  if the header row's height ever changes.
+- **A mouse-drag on the rail was selecting page text underneath it.**
+  `setPointerCapture` reroutes event dispatch but doesn't itself suppress
+  the browser's native drag-to-select behavior; needed an explicit
+  `event.preventDefault()` in the pointerdown handler too.
+- **The real bug, found by directly dispatching PointerEvents in the
+  browser and checking `window.scrollY` before and after** (clicking
+  around wasn't enough to catch this one — the rail *looked* like it was
+  jumping in the letter-highlight sense, but the page genuinely wasn't
+  scrolling): `scrollIntoView({behavior: "smooth"})` does not reliably
+  scroll a `position: sticky` target. The scroll-target ref was on the
+  sticky `<h2>` letter heading; moving it to the plain-flow `<section>`
+  wrapper around each group fixed it. Then a second issue on top of that
+  one: `"smooth"` scrolling was flatly unreliable in this session's
+  browser-preview tooling even after the sticky fix, which led to
+  switching to `"instant"` — and on reflection that's the *more* correct
+  choice regardless of environment, since a rail meant to track a moving
+  finger shouldn't be queuing a separate 300ms animation per letter
+  crossed during a fast drag; that would visibly lag behind the gesture
+  on real hardware too, not just here.
+- Confirmed end-to-end afterward with both a real drag gesture (via the
+  browser tool's own click-drag, once the text-selection bug was fixed)
+  and a direct PointerEvent dispatch: dragging from the top of the rail
+  to the bottom correctly scrolled from the "#" section down to
+  "Zucchini Bread". Search verified too: typing "chicken" returns Honey
+  Mustard Chicken (title match) before Jambalaya (only matches on the
+  ingredient "chicken thighs"), and clearing the query restores the
+  grouped view exactly. `db:clean-recipes` afterward brought the table
+  back to 0 rows again; `tsc`/`eslint`/`npm run build` all clean.
+
+**Obvious next step: R3a of the Recipes plan** — the "Add recipe" chooser
+(Type it in / Paste text / From a photo / From a link) and the first real
+import path, pasted text via a Claude structured-output call. Load the
+`claude-api` skill before writing that action, per the plan.
