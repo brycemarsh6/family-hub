@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Package, ShoppingCart, Hourglass, ChefHat } from "lucide-react";
+import BranchTile from "@/components/BranchTile";
 import { db } from "@/lib/db";
 import { effectiveExpiry, daysUntil } from "@/lib/expiring";
 import type { Category, Location } from "@/lib/constants";
@@ -86,36 +86,5 @@ export default async function KitchenPage() {
         <BranchTile href="/kitchen/cooking" icon={ChefHat} title="Cooking" />
       </div>
     </div>
-  );
-}
-
-/**
- * One sub-branch tile. Square-ish and icon-forward so it reads at a glance on
- * a wall tablet — the whole tile is the tap target, no smaller link inside it.
- */
-function BranchTile({
-  href,
-  icon: Icon,
-  title,
-  badge,
-}: {
-  href: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  title: string;
-  badge?: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border border-line bg-surface p-5 text-center transition-colors hover:border-accent active:bg-surface-2"
-    >
-      <Icon size={32} className="text-muted" />
-      <span className="text-lg font-semibold">{title}</span>
-      {badge && (
-        <span className="inline-block rounded-full bg-warn-soft px-3 py-1 text-sm font-medium text-warn">
-          {badge}
-        </span>
-      )}
-    </Link>
   );
 }
