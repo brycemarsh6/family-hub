@@ -377,22 +377,98 @@ of Dr Pepper"* and the counts just change.
   `PUBLIC_ROUTES` (meaning "no session cookie", not "no auth" — the
   route's own token check is the real gate). `src/lib/voice/parse.ts`
   calls Claude Haiku with `output_config.format` (structured outputs) to
-  turn a sentence into `{action, item, quantity}[]`. `src/lib/voice/
-  match.ts` fuzzy-matches spoken names against real pantry rows —
-  word-boundary scoring, not substring containment, after substring
-  matching filed real steaks under Beverages during the inventory import
-  (see the Phase-5 entry below). `src/lib/voice/apply.ts` runs
+  turn a sentence into `{action, item, quantity}[]`. `src/lib/match.ts`
+  fuzzy-matches spoken names against real pantry rows — word-boundary
+  scoring, not substring containment, after substring matching filed real
+  steaks under Beverages during the inventory import (see the Phase-5
+  entry below). It lives at `src/lib/` rather than `src/lib/voice/`
+  because Inventory search now shares it. `src/lib/voice/apply.ts` runs
   use/add/buy/undo, logs every change to a new `VoiceChange` table, and
   returns a sentence to read back aloud. No delete verb, ever — voice is
   the one input path nobody double-checks before it lands.
 - **V2. Siri shortcut** — ✅ **Done.** Proven end-to-end from Bryce's
   phone against production. See "Where I left off" for the walkthrough
   and the bugs this surfaced.
-- **V3. Alexa skill** — *Next up.* Free Amazon developer account (Bryce
-  creates it, walkthrough style like Neon/Vercel), skill passes the raw
-  utterance through, endpoint on the Vercel app, dev mode only.
+- **V3. Alexa skill** — *Queued, not abandoned.* Free Amazon developer
+  account (Bryce creates it, walkthrough style like Neon/Vercel), skill
+  passes the raw utterance through, endpoint on the Vercel app, dev mode
+  only. Paused while the Expiring branch gets built — pick it back up
+  after.
 - **V4. More verbs** — shopping-list add already shipped in V1; next
-  would be chores/to-dos/calendar once those branches actually get built.
+  would be logging leftovers by voice (see the Expiring plan below), then
+  chores/to-dos/calendar once those branches actually get built.
+
+## Expiring & leftovers plan — ACTIVE
+
+The current work, and the first real feature built on top of the finished
+inventory. Two problems, one page:
+
+1. **Food quietly goes bad** because nothing tracks age, and nobody will
+   hand-enter expiry dates for 461 items — that's the same "too much
+   hassle, so it goes stale" failure the voice work exists to avoid.
+2. **Leftovers get forgotten and thrown away.** Bryce named this as the
+   sharper of the two: *"we have leftovers all the time and many times
+   they get wasted because we forget…no more."*
+
+**Decisions already made — don't re-litigate these:**
+
+- **Estimates by default, exact dates when they're worth typing.**
+  Precedence per item: an exact `expiresAt` the user entered → a
+  name-level estimate from a shelf-life table ("grapes ≈ 7 days in the
+  fridge") → a category+location fallback ("Produce in Fridge ≈ 1 week")
+  → nothing. An estimate is always *marked* as one in the UI (a `~`), so
+  a guess never masquerades as a fact.
+- **Shelf-life data comes from the USDA/FDA FoodKeeper dataset**, not
+  invented numbers — it publishes storage times per food split by
+  pantry/fridge/freezer, which is exactly the shape needed. Turned into a
+  vocabulary file of ~100 common foods rather than pulled at runtime.
+- **The shelf-life table is matched with the existing fuzzy matcher**
+  (`src/lib/match.ts`), the same code voice and search already use. Third
+  caller, same brain. Crucially this makes coverage *measurable*: run it
+  against the real 461 items and count how many get a name-level
+  estimate vs. category fallback vs. nothing, then tune — the same
+  test-against-real-data discipline that caught the steaks/"tea" and
+  tortilla/"T-bone" bugs.
+- **Day zero is `restockedAt`**, a new timestamp set whenever an item's
+  quantity goes *up* (put-away, voice "add", manual increase) — not
+  `createdAt`, which would freeze the clock at the August 2026 import and
+  never recover. Imported items start stale and self-correct on the next
+  shop.
+- **Leftovers are ordinary pantry items in a new "Leftovers" category**,
+  not a parallel table. One line in `constants.ts`, per the
+  one-source-of-truth rule. They inherit inventory rows, steppers,
+  search, the edit sheet, and (later, cheaply) a voice verb. What's new
+  is only the logging flow and the countdown treatment.
+- **Logging a leftover never involves typing a date.** Name, portions,
+  and a days-good picker as big preset chips (2/3/4/5, default 3 — USDA
+  says cooked leftovers keep 3–4 days refrigerated). Touch-first, same as
+  the quantity steppers.
+- **The page sorts by urgency, not category.** It answers "what needs
+  eating", which is a different question from Inventory's "where's the
+  pasta". Only items inside a ~14-day window appear, plus anything with
+  an explicit date, plus all leftovers — otherwise flour's six-month
+  estimate and canned olives' two-year estimate bury the page.
+- **Expiry never deletes anything.** The system nags and sorts; a human
+  decides. Consistent with "delete is a single tap, no confirmation" —
+  "we ate it" and "we tossed it" are the same tap, because the outcome
+  is identical.
+
+**The phases:**
+
+- **E1. Plumbing + shelf-life data** — schema migration (`expiresAt`,
+  `restockedAt`), the FoodKeeper-derived vocabulary, matcher wiring, and
+  a coverage report against the real 461 items *before* any UI exists.
+- **E2. The Expiring page** — urgency sections (Eat now / This week /
+  Coming up), estimate marking, the Kitchen tile's badge finally earning
+  its place (count expiring within 3 days), and an optional exact-date
+  field in the existing edit sheet.
+- **E3. Leftovers** — the category, the log-leftovers flow, the countdown
+  treatment, and one-tap "finished".
+
+**Deliberately not in v1** (revisit only if real use demands it):
+per-purchase batch tracking (the honest way to handle old and new apples
+sharing one row — real complexity for uncertain gain), push
+notifications, and the leftover voice verb (queued as V4).
 
 ## Planned, not yet built
 
