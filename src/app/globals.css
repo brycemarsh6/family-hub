@@ -22,6 +22,7 @@
   --warn: #b45309; /* the "running low" badge */
   --warn-soft: #fef3c7;
   --danger: #b91c1c; /* delete */
+  --danger-soft: #fee2e2; /* the "eat now" badge on the Expiring page */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -38,6 +39,7 @@
     --warn: #fbbf24;
     --warn-soft: #3a2e11;
     --danger: #f87171;
+    --danger-soft: #3f1a1a;
   }
 }
 
@@ -56,6 +58,7 @@
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

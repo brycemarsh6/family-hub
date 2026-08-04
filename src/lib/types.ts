@@ -28,4 +28,10 @@ export type PantryItemView = {
   lowThreshold: number;
   /** True when this item already has an unchecked entry on the grocery list. */
   onList: boolean;
+  /**
+   * A real expiry date someone read off the packet and typed in. Wins over
+   * any estimate the Expiring page would otherwise guess — see
+   * src/lib/shelfLife.ts for the estimate side of this.
+   */
+  expiresAt: Date | null;
 };

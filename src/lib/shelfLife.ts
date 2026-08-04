@@ -107,6 +107,17 @@ const NAME_OVERRIDES: ShelfLifeEntry[] = [
   { name: "hidden valley ranch", fridgeDays: 21 },
   { name: "kinders barbecue sauce", fridgeDays: 120 },
   { name: "craigs original barbecue sauce", fridgeDays: 120 },
+
+  // These two are categorized "Soups & Stocks" in the real inventory, but
+  // they're concentrates, not the fresh stock that category's fallback
+  // (4 days fridge — right for something like Chicken stock) is tuned for.
+  // Caught by looking at the real Expiring page before shipping it: bouillon
+  // cubes and a paste base don't spoil in 4 days like a pot of stock does.
+  { name: "beef bouillon cubes", fridgeDays: 365, pantryDays: 730 },
+  {
+    name: "better than bouillon roasted chicken base",
+    fridgeDays: 365,
+  },
 ];
 
 // Generic backstop when nothing specific matched — deliberately conservative

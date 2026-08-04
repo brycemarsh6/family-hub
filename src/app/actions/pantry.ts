@@ -89,6 +89,7 @@ export async function editPantryItem(
     category: string;
     location: string;
     lowThreshold: number;
+    expiresAt: Date | null;
   },
 ) {
   if (!(await getVerifiedSession())) return;
@@ -113,6 +114,7 @@ export async function editPantryItem(
       category: toCategory(changes.category),
       location: toLocation(changes.location),
       lowThreshold: Math.max(0, Math.round(changes.lowThreshold * 100) / 100),
+      expiresAt: changes.expiresAt,
       // Same "went up = restocked" rule as the quantity stepper — see there.
       ...(quantity > current.quantity ? { restockedAt: new Date() } : {}),
     },

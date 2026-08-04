@@ -26,6 +26,7 @@ export default async function PantryPage() {
         unit: true,
         category: true,
         lowThreshold: true,
+        expiresAt: true,
       },
     }),
     // Which pantry items already have an unticked entry on the shopping list?

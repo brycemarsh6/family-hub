@@ -12,7 +12,17 @@ export type PantryItemEdits = {
   category: string;
   location: string;
   lowThreshold: number;
+  expiresAt: Date | null;
 };
+
+/** `<input type="date">` wants "YYYY-MM-DD" — local calendar date, not UTC,
+ * so a date typed in the evening doesn't silently roll back a day. */
+function toDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 /**
  * The full "edit this item" panel: every field a pantry item has, plus
@@ -38,6 +48,7 @@ export function PantryItemEditSheet({
   const [category, setCategory] = useState(item.category);
   const [location, setLocation] = useState(item.location);
   const [lowThreshold, setLowThreshold] = useState(item.lowThreshold);
+  const [expiresAt, setExpiresAt] = useState<Date | null>(item.expiresAt);
 
   // Close on Escape, same as tapping the backdrop or the × button.
   useEffect(() => {
@@ -59,6 +70,7 @@ export function PantryItemEditSheet({
       category,
       location,
       lowThreshold,
+      expiresAt,
     });
   }
 
@@ -163,6 +175,40 @@ export function PantryItemEditSheet({
               min={0}
               label="low-stock threshold"
             />
+          </Field>
+
+          <Field label="Expires on (optional)">
+            {/* Optional on purpose — the Expiring page estimates a date for
+                most things automatically (see src/lib/shelfLife.ts). This is
+                only for when a real printed date is worth typing in, and it
+                always wins over the guess once set. */}
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={expiresAt ? toDateInputValue(expiresAt) : ""}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (!value) {
+                    setExpiresAt(null);
+                    return;
+                  }
+                  // "T00:00:00" (not UTC midnight) keeps the picked calendar
+                  // day from shifting when read back on the client's clock.
+                  setExpiresAt(new Date(`${value}T00:00:00`));
+                }}
+                className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base outline-none"
+              />
+              {expiresAt && (
+                <button
+                  type="button"
+                  onClick={() => setExpiresAt(null)}
+                  aria-label="Clear expiry date"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           </Field>
         </div>
 
