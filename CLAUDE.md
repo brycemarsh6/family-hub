@@ -370,20 +370,29 @@ of Dr Pepper"* and the counts just change.
 
 **The phases:**
 
-- **V1. Voice backend** — API route (a Route Handler, not a Server Action —
-  external callers, not our own buttons), token auth, Claude-Haiku parsing
-  into structured actions, fuzzy matching against real inventory names
-  (word-boundary/normalized matching — see the substring-matching bug in
-  "Where I left off" for why exact-substring is not acceptable), apply +
-  log + undo, confirmation text in the response. Provable with `curl`
-  before any voice device exists — positive control first, then the
-  no-token and bad-token attacks, per the Phase-1e methodology.
-- **V2. Siri shortcut** — thin client; end-to-end proof on a real phone.
-- **V3. Alexa skill** — free Amazon developer account (Bryce creates it,
-  walkthrough style like Neon/Vercel), skill passes the raw utterance
-  through, endpoint on the Vercel app, dev mode only.
-- **V4. More verbs** — shopping-list add if it didn't make V1, then
-  chores/to-dos/calendar as those branches actually get built.
+- **V1. Voice backend** — ✅ **Done.** `POST /api/voice`
+  (`src/app/api/voice/route.ts`), a Route Handler rather than a Server
+  Action since Alexa/Siri aren't our own buttons. `VOICE_API_TOKEN`
+  checked first, before the body is even read; added to `proxy.ts`'s
+  `PUBLIC_ROUTES` (meaning "no session cookie", not "no auth" — the
+  route's own token check is the real gate). `src/lib/voice/parse.ts`
+  calls Claude Haiku with `output_config.format` (structured outputs) to
+  turn a sentence into `{action, item, quantity}[]`. `src/lib/voice/
+  match.ts` fuzzy-matches spoken names against real pantry rows —
+  word-boundary scoring, not substring containment, after substring
+  matching filed real steaks under Beverages during the inventory import
+  (see the Phase-5 entry below). `src/lib/voice/apply.ts` runs
+  use/add/buy/undo, logs every change to a new `VoiceChange` table, and
+  returns a sentence to read back aloud. No delete verb, ever — voice is
+  the one input path nobody double-checks before it lands.
+- **V2. Siri shortcut** — ✅ **Done.** Proven end-to-end from Bryce's
+  phone against production. See "Where I left off" for the walkthrough
+  and the bugs this surfaced.
+- **V3. Alexa skill** — *Next up.* Free Amazon developer account (Bryce
+  creates it, walkthrough style like Neon/Vercel), skill passes the raw
+  utterance through, endpoint on the Vercel app, dev mode only.
+- **V4. More verbs** — shopping-list add already shipped in V1; next
+  would be chores/to-dos/calendar once those branches actually get built.
 
 ## Planned, not yet built
 
@@ -620,3 +629,70 @@ Authentication, Postgres, Vercel, the home-screen icon, and hand-off are
 all done and verified, not just claimed. Branch work (see "Planned, not yet
 built" above, and the still-open items just below) is unpaused — there's no
 deployment reason left to hold off on it.
+
+**Voice V1 and V2 are done, this session.** Bryce's stated worry was
+concrete: his wife won't keep the inventory current if updating it means
+opening the app, so voice in the kitchen is what keeps this alive past the
+first week.
+
+- **V1, the backend**, built and adversarially tested the same way as
+  Phase 1: positive control first (a valid token reaching the parser),
+  then no-token / wrong-token / empty-token attacks, all 401, database
+  untouched — proven against local dev, then re-proven against production
+  after deploying.
+- **A real forgotten-push bug caught the adversarial check doing its
+  job.** The first production test returned `307` instead of `401` on
+  every attack — not because the endpoint was insecure, but because the
+  two V1 commits had never been pushed; Vercel was still serving the old
+  build. `git log origin/main..HEAD` showed two unpushed commits.
+  Pushing, then polling until the redeploy actually swapped in the new
+  code (`401` instead of `307` was the tell), fixed it. Worth remembering:
+  a "vulnerability" found in production is sometimes a deploy problem, not
+  a security problem — check what's actually live before concluding the
+  code is wrong.
+- **The exact target sentence works, verified in the database, not just
+  the reply text:** *"I just used 2 hotdogs and 2 cans of dr pepper"* →
+  *"Took 2 off Hot dogs — 3 left. Took 2 off Dr Pepper Zero — 4
+  twelve-packs left."* Hot dogs 5→3 and Dr Pepper 6→4 both confirmed via
+  direct Prisma queries against Neon, not trusted from the HTTP response
+  alone.
+- **One real bug found and fixed before it reached Bryce's wife:** "add
+  milk to the shopping list" was silently resolving to Almond milk,
+  because the `buy` path took the top fuzzy-match candidate without
+  checking whether the runner-up tied. The house stocks seven milks and
+  no plain "Milk" — that's not a mishear to confirm, the speaker hasn't
+  chosen a variety yet. Fixed so an ambiguous match falls back to the
+  spoken name unlinked (`buy`), while `use`/`add` still say which item
+  they picked out loud so a genuine mishear gets caught immediately.
+  Unambiguous names (ketchup, tortilla chips) still link to their pantry
+  row so "put away" keeps working.
+- **V2, the Siri shortcut**, was built on Bryce's phone by hand (Shortcuts
+  has no scriptable setup) — Dictate Text → Get Contents of URL (POST,
+  `x-voice-token` + `Content-Type` headers, JSON body with `transcript`
+  set to the Dictated Text variable) → Show Result. One real mistake
+  caught from a screenshot: the Dictated Text variable had been dropped
+  into the URL field instead of the JSON body field, so the shortcut was
+  POSTing to `[spoken words]https://...` — fixed by deleting the
+  misplaced variable chip. Confirmed working end-to-end against
+  production, verified via the `VoiceChange` log table on the backend,
+  not just Siri's on-screen reply.
+- **The voice token was rotated after a session-end fact-check.** A
+  screenshot sent for shortcut troubleshooting showed a fragment of the
+  live token in the header field. Not exploitable on its own (truncated,
+  and Vercel's env var UI hides full values), but rotated anyway as a
+  matter of hygiene: generated fresh, updated in `.env`, Vercel, and the
+  Shortcut, then verified the old value now fails and the new one works
+  — against production, not assumed from the code.
+- **The wake-phrase two-step is real and worth restating for anyone new
+  to this:** "Hey Siri, Marsh HQ" launches the shortcut; only speech
+  *after* it starts listening reaches the parser. "Hey Siri, Marsh HQ, I
+  used 2 Dr Peppers" as one breath does not work — Dictate Text isn't
+  listening yet when "I used 2 Dr Peppers" is said. Same constraint will
+  apply to the Alexa skill ("Alexa, tell Marsh HQ...").
+
+**Obvious next step: V3 — the Alexa skill**, for the actual kitchen Echo
+device this was originally about. Needs Bryce to create a free Amazon
+developer account (walkthrough style, like Neon/Vercel), then a skill
+that passes the raw utterance through to the same `/api/voice` endpoint,
+kept in development mode (works indefinitely on the developer's own
+household Echo devices, no certification needed for a private app).
