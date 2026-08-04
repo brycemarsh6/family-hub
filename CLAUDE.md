@@ -27,11 +27,11 @@ a touchscreen, and quantities changed with +/− buttons instead of a keyboard.
 
 ## Who uses it
 
-Right now: just Bryce, testing against a live Vercel deployment (private
-URL, not shared with the family yet). It's deployed and reachable from
-outside the house with a real production `FAMILY_PASSWORD` already set, but
-still has test/seed data — see "Deployment plan" below for what's left
-(Phase 5, hand-off) before the rest of the family gets the URL.
+**Live and in use.** Bryce shared the URL and password with his wife, she's
+signed in on her phone with the real house-and-heart icon on her home
+screen, and the pantry holds real household inventory (461 items, entered
+this session — see "Where I left off"). The 5-phase deployment plan below
+is fully complete; this is no longer a dev-only project.
 
 ## What's built and working
 
@@ -268,9 +268,10 @@ without re-litigating each time:
 
 ## Deployment plan
 
-Bryce wants the family actually using this — see "Where I left off" for how
-far this has gotten. In progress, not just planned; check it off as steps
-land rather than re-deriving the plan from scratch.
+**✅ Complete — all five phases done.** The family is actually using this
+now (see "Who uses it" above and "Where I left off" below for how it got
+here). Kept below as a record of the decisions made, not as an active
+checklist.
 
 **Decisions already made — don't re-litigate these:**
 - **Auth model: one shared family password**, not per-person accounts, for
@@ -314,8 +315,9 @@ land rather than re-deriving the plan from scratch.
    was renamed **Marsh HQ** (from "Marsh Hub") to settle the naming
    mismatch the icon originally surfaced — see the app name change entry in
    "Where I left off" for every file that touched.
-5. **Hand-off** — clear test data, seed real household contents, share the
-   URL and password.
+5. **Hand-off** — ✅ **Done.** Test/seed data cleared from production,
+   real household inventory entered (461 pantry items), URL and password
+   shared with the family. See "Where I left off" for the full detail.
 
 **What Claude can't do:** create the Vercel/Neon accounts or enter any
 payment or credential details — that's Bryce, with exact instructions for
@@ -442,10 +444,11 @@ Still open from before:
   to note it.
 
 The open direction question from previous sessions (keep building branches
-vs. invest in login + deployment) is now decided — deployment, per the plan
-above. Branch work (Expiring, Cooking, Calendar, Chores, Lists, the
-still-open items just above) is paused until the family can actually reach
-the app.
+vs. invest in login + deployment) is resolved — deployment came first, per
+the plan above, and it's now fully done (see the hand-off entry further
+down). Branch work (Expiring, Cooking, Calendar, Chores, Lists, the
+still-open items just above) was paused for that reason and is unpaused now
+that the family can actually reach the app.
 
 **Phase 3 (deploy) is done.** Walked through step by step, same shape as the
 Neon walkthrough:
@@ -511,10 +514,46 @@ name — those are technical identifiers, not the user-facing app name, and
 renaming them would mean re-pointing the Vercel project and GitHub remote
 for no real benefit.
 
-**Obvious next step: Phase 5 — hand-off.** Clear the seed/test data (`npm
-run db:reset` against the *production* database — be careful this points
-at Neon, not local), seed or manually enter real household contents, then
-share the Vercel URL and the real `FAMILY_PASSWORD` with the family. Worth
-a last look at the still-open items below (collapse state, Shopping's
-missing collapse/expand, placeholder pages) to decide if any are worth
-doing before the family starts relying on this daily, or after.
+**Phase 5 (hand-off) is done — the deployment plan is fully complete.**
+What actually happened, since the plan's one-line description undersells
+the real work:
+
+- **Production seed data cleared** — not via `npm run db:reset` (that
+  command reseeds automatically, which would've just replaced 87 fake items
+  with the same 87 fake items). Deleted every row from both tables directly
+  instead, verified count reached exactly 0 before touching anything else.
+- **Real household inventory entered — 461 pantry items**, from a
+  500+-line voice-dictated list Bryce had AI write down and saved as an
+  `.rtf` file. This was a real parsing job, not a copy-paste: a Python
+  script matched items to the app's 28 real categories and 4 locations,
+  merged multi-line grouped entries (e.g. three separate "Dino nuggets"
+  lines became one item), and converted fraction/phrase quantities ("½
+  bottle", "almost empty") into real numbers and low-stock flags.
+  - **Two real bugs caught before import, not after:** a plain-substring
+    category matcher filed four cuts of *steak* under Beverages (because
+    "tea" is a substring of "steaks"), and "Butterscotch chips" /
+    "Butter-flavored Crisco" landed in Dairy Products (because "butter" is
+    a substring of "Butterscotch"). Fixed with word-boundary regex matching
+    and specific override rules checked before the general ones. Worth
+    remembering for any future free-text categorization: substring matching
+    silently miscategorizes real words that just happen to contain other
+    words.
+  - Zero items landed in the "Other" catch-all category — a good sign the
+    28-category vocabulary was fine-grained enough for a real 461-item
+    household, not just the smaller seed data.
+- **Header icon added** — the house-and-heart art (already used for
+  favicon/home-screen icon) now also renders in the header via
+  `next/image`, replacing the 🏡 emoji placeholder. Sized at 44px with the
+  "Marsh HQ" wordmark bumped to `text-2xl` to match, after Bryce flagged the
+  first pass (28px) as too small to see.
+- **URL and password shared with the family.** Bryce confirmed the stable
+  production domain (`family-hub-xi-fawn.vercel.app`, not the
+  deployment-specific hashed URL from the first deploy) resolves correctly
+  — 307 redirect to login when signed out, real login page, not gated
+  behind Vercel's own auth. Sent to his wife, who is signed in and using it.
+
+**The deployment plan that opened this whole arc is now fully closed.**
+Authentication, Postgres, Vercel, the home-screen icon, and hand-off are
+all done and verified, not just claimed. Branch work (see "Planned, not yet
+built" above, and the still-open items just below) is unpaused — there's no
+deployment reason left to hold off on it.
