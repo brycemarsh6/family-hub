@@ -94,13 +94,16 @@ feature behind it yet.
   it inherits every other feature (rows, steppers, search, the edit sheet)
   for free rather than needing its own system.
 - **Cooking** (`/kitchen/cooking`) — a landing page of its own now, not a
-  stub: the same tile-grid pattern as Kitchen's landing page, with tiles
-  for Recipes, Menu, and Meal planning. The tile itself was extracted into
-  a shared `src/components/BranchTile.tsx` (with a `wide` prop so an odd
-  third tile spans both columns instead of leaving a gap) and Kitchen's
+  stub: the same tile-grid pattern as Kitchen's landing page. The tile
+  itself was extracted into a shared `src/components/BranchTile.tsx` (with
+  a `wide` prop so an odd tile can span both columns) and Kitchen's
   page now imports it too — one tile definition, per the one-source-of-
-  truth rule. **Recipes is fully built** (see the Recipes plan below);
-  Menu and Meal planning are still "Coming soon" placeholders.
+  truth rule. **Two tiles: Recipes (fully built — see the Recipes plan
+  below) and Meal Plan** (a "Coming soon" placeholder with an ACTIVE plan
+  below). There were briefly three tiles — Recipes / Menu / Meal
+  planning — but Menu ("what's for dinner") and Meal planning turned out
+  to be the same feature described twice, and they were merged into one
+  "Meal Plan" tile before Menu was ever built.
   - **Recipes** (`/kitchen/cooking/recipes`) — the household's recipe
     box. Browse A–Z with a slide-to-jump rail (like the iPhone contacts
     list), or search by title *or* ingredient. Four ways to add one, all
@@ -513,10 +516,12 @@ per-purchase batch tracking (the honest way to handle old and new apples
 sharing one row — real complexity for uncertain gain), push
 notifications, and the leftover voice verb (queued as V4).
 
-## Recipes plan — ACTIVE
+## Recipes plan — ✅ DONE
 
-The current work: the first Cooking sub-page to become real. Alexa (V3)
-stays queued behind it — Bryce chose Recipes next.
+All four phases shipped and verified — the first Cooking sub-page to
+become real. Alexa (V3) stayed queued behind it — Bryce chose Recipes
+first. Kept below as a record of the decisions, same as the other
+finished plans.
 
 What it is: every household recipe in one place — typed in, pasted in,
 photographed out of a cookbook, or pulled in from a link — browsable A–Z
@@ -827,6 +832,197 @@ ingredients to the shopping list" (genuinely wanted someday, needs
 quantity parsing), cook-mode screen wake lock, recipe voice verbs, and
 bulk-importing an entire Pinterest board.
 
+## Meal Plan plan — ACTIVE
+
+The current work: Cooking's second (and now final) tile. Menu and Meal
+planning were merged into one "Meal Plan" tile after noticing they were
+the same feature described twice; the route rename
+(`meal-planning` → `meal-plan`) and the two-tile Cooking page are already
+in the working tree, uncommitted, and ship with M1.
+
+Bryce's vision, in his own terms: open the tab and see this week's plan —
+each day of the week with breakfast, lunch, dinner, and snacks. Look back
+at previous weeks. When the week is over, a **+** creates the next week's
+plan (a window "with the correct dates" — never typed). Tap into any meal
+slot and fill it one of three ways: a custom meal, a meal from the recipe
+box, or an AI assistant that scans the real inventory and suggests what
+the house could actually make. This plan was written for a fresh session
+to implement phase by phase without having been in the design
+conversation.
+
+**Decisions already made — don't re-litigate these:**
+
+- **One week = one `MealPlan` row; one meal per slot.** `MealPlan` holds
+  `weekStart` (`@unique`); `MealPlanEntry` holds `dayOffset` (0–6),
+  `slot`, `title`, and an optional `recipeId` — unique on
+  `(mealPlanId, dayOffset, slot)`, entries cascade-delete with their
+  plan. The slot vocabulary (`MEAL_SLOTS`: Breakfast, Lunch, Dinner,
+  Snacks) lives in `constants.ts` with a `toMealSlot()` guard, per the
+  one-source-of-truth rule and the no-enums schema rule. One meal per
+  slot is deliberate v1 simplicity — "chicken + rice + broccoli" is one
+  custom title, and if real use demands true multi-entry slots, the fix
+  is dropping one unique constraint, not a redesign.
+- **Partial plans are the normal case, not an error.** A week with only
+  dinners filled is the expected real-world plan; 28 slots exist but
+  nothing nags about empty ones. Empty slots render as a muted "Add".
+- **Weeks start Sunday.** One constant. US-family planning convention;
+  flipping to Monday is a one-line change (cheap now, a data migration
+  only once real plans accumulate — so if it's wrong, say so early).
+- **Date math is calendar-component math, never milliseconds.** DST makes
+  two weeks a year 167 or 169 hours long (US clocks fall back
+  Nov 1, 2026 — well within this feature's first months), so
+  `+ 7*24*3600*1000` silently drifts. Build dates with
+  year/month/day arithmetic only, the same local-date discipline the
+  expiry date field already established. `weekStart` is stored as the
+  Sunday's calendar date; entries derive their date from
+  `weekStart + dayOffset` at render, never store their own.
+- **"Which week is current" is computed on the client, from the device
+  clock.** Vercel's servers run UTC — a Saturday-evening render in Utah
+  would flip to "next week" hours early if the server decided. The page
+  fetches all plans (household scale — a year is 52 rows) and a client
+  component partitions current/future/past.
+- **Entries denormalize the title and soft-link the recipe.** `title` is
+  always set; `recipeId` is a nullable FK with `onDelete: SetNull` — the
+  exact `GroceryItem.pantryItemId` pattern — so deleting a recipe never
+  hollows out history. The week of July 27 still says what was eaten.
+- **Creating a plan never involves typing a date.** The + opens a sheet
+  of upcoming weeks as big chips with real ranges ("Week of Aug 9–15"),
+  already-planned weeks visible but inert; the `weekStart` unique
+  constraint makes double-creation impossible even with two phones
+  tapping at once. Same touch-first reasoning as the leftovers
+  days-good picker. The server snaps any incoming date to its week's
+  Sunday, so a confused client can't create an off-grid week.
+- **Slot filling is one bottom sheet, three ways in.** Tap a slot →
+  sheet (house pattern: `PantryItemEditSheet`) offering: preset chips
+  for the real-life frequent answers (**Leftovers / Takeout / Eating
+  out**) plus a free-text field; a recipe picker reusing
+  `searchRecipes()` over the real library (search-as-you-type, ranked,
+  tap to pick); and AI suggestions (M4). Every path ends with an
+  explicit tap that fills the slot — the visual pick *is* the review
+  step, same principle as recipe import's form. Writes are upserts on
+  the slot's unique key, so a double-tap is harmless. Clearing a slot is
+  in the same sheet; deleting a whole plan is single-tap per the house
+  delete rule.
+- **AI suggestions are grounded by index, never by name-matching.** The
+  suggest action sends Claude: the in-stock inventory (names +
+  quantities), the soon-to-expire items (via `effectiveExpiry` — the
+  prompt tells it to prioritize using those up, which points Meal Plan
+  at the same food-waste problem Expiring exists for), the slot being
+  filled, and the recipe library as an **indexed** list. Structured
+  outputs return either a `recipeIndex` (exact — immune to the
+  steaks/"tea" class of fuzzy-match bugs, which is the whole reason we
+  don't return recipe *names* and match them) or a freeform idea, each
+  with a short "why" naming the on-hand items it uses. Haiku first
+  (cost approved; a 462-item inventory prompt is a fraction of a cent).
+  The action is read-only — suggestions are handed back to the client,
+  and a tap fills the slot like any other path. Failures never block
+  the manual paths, which stay visible in the same sheet.
+- **⚠️ The dev database IS the live family database — still.** Additive
+  migrations only (two brand-new tables); never `db:seed`/`db:reset`;
+  test data comes from new meal-plan-only scripts (`db:seed-meal-plans`
+  / `db:clean-meal-plans`) that touch nothing but these tables. And the
+  R1 lesson: a new model needs a **dev-server restart** after
+  `prisma generate`, not just a file save — `db.ts` caches the client on
+  `globalThis`.
+- **Layout: vertical day cards, not a grid.** 7 days × 4 slots = 28
+  cells — a grid doesn't fit a phone. Each day is a card with four
+  tappable slot rows (48px minimum); today is highlighted. Past weeks
+  are collapsed headers, newest first, expanding to the same editable
+  cards (Inventory's collapse pattern) — history stays editable because
+  this is a family log, not an audit trail.
+
+**The phases.** Commit at each boundary; `npx tsc --noEmit`, `eslint`,
+and `npm run build` clean before each commit; verify each phase in the
+running app against real interaction — the discipline that caught the
+steaks/"tea", sticky-scroll, and Pinterest-meta-tag findings in earlier
+plans. Per AGENTS.md, check `node_modules/next/dist/docs` before using
+any unfamiliar Next API.
+
+- **M1. Schema + this week + custom meals.** ✅ **Done.** Shipped the
+  pending Menu→Meal Plan merge in the same commit (`meal-planning/` →
+  `meal-plan/`, `menu/` deleted, Cooking's landing page down to two
+  tiles). `MEAL_SLOTS` + `toMealSlot()` in `constants.ts`.
+  `MealPlan`/`MealPlanEntry` models, additive migration, `prisma
+  generate`, dev-server restart. `src/lib/mealPlanDates.ts` holds every
+  date calculation (calendar-component math only, documented and tested
+  against the real Nov 1, 2026 DST fall-back — see below);
+  `src/lib/useToday.ts` reads the browser's "today" via
+  `useSyncExternalStore`, the same pattern `useLastStore` established,
+  for a reason sharper than localStorage: this dev machine runs
+  Mountain time, Vercel's production runtime runs UTC, and Mountain is
+  *behind* UTC — so for roughly six or seven hours every evening, a
+  server-computed "today" would already be tomorrow. Server Actions in
+  `src/app/actions/mealPlans.ts` — `createMealPlan`, `setMealPlanEntry`
+  (upsert), `clearMealPlanEntry`, `deleteMealPlan` — every one opening
+  with `getVerifiedSession()`; `createMealPlan` treats a unique-
+  constraint collision as success, not an error (two phones tapping the
+  same week chip at once both want the same outcome). The page
+  (force-dynamic) fetches all plans + entries and does zero date
+  interpretation itself; `MealPlanList.tsx` (client, `useOptimistic` +
+  `startTransition`, same pattern as `PantryList.tsx`) partitions
+  current/future/past from the browser's own clock and renders
+  `WeekCard.tsx` (7 day-cards × 4 slot rows, today highlighted),
+  `PastMealWeeks.tsx` (collapsed headers, newest first, same pattern as
+  Inventory's category groups), `SlotEditSheet.tsx` (preset chips —
+  Leftovers/Takeout/Eating out, each a single-tap save — plus custom
+  text, plus two visibly-disabled "coming soon" rows for the recipe
+  picker and AI suggestions, same not-stubbed-early precedent as
+  Recipes' import chooser), and `CreatePlanSheet.tsx` (week chips,
+  already-planned weeks shown but inert, never a typed date). Seed
+  script: 3 weeks — last week, this week, and the real Nov 1, 2026 DST
+  week — cleanup back to zero.
+  **Verified end to end in the browser, not just read from the code**:
+  today (Tuesday, Aug 4) correctly highlighted against the real device
+  clock; the DST week's 7 days rendered as genuinely consecutive dates
+  (Nov 1–7) with no skip or duplicate; a slot filled via a preset chip
+  saved instantly (optimistic) *and* persisted (confirmed via a direct
+  database read, including that the stored UTC timestamp — 06:00 —
+  correctly reflects Mountain midnight); Clear emptied a slot; the +
+  flow correctly marked the current week "Already planned" and created
+  a real new week from a tapped chip; single-tap delete removed it with
+  no confirmation, matching the house rule. Pantry (462), grocery (13),
+  and the 8 real recipes already in the household's library were
+  unchanged throughout — confirmed by direct count before and after,
+  since this ran against the live shared database. `tsc`, `eslint`, and
+  `npm run build` all clean (the one pre-existing `GroceryRow.tsx` lint
+  error, still untouched).
+- **M2. Recipes in the slot sheet.** The picker (search via
+  `searchRecipes`, ranked list, tap to pick) writing `recipeId` +
+  denormalized title. Recipe-linked entries render distinctly (small
+  icon) and offer a path to the recipe's detail page — from inside the
+  slot sheet, not the row itself, since the row's tap already opens the
+  sheet. Verify the SetNull behavior with a seeded recipe: plan it,
+  delete it, confirm the entry survives as plain text.
+- **M3. History + plan-ahead + badge.** Past weeks as collapsed
+  headers; a future-week section when next week is planned early;
+  whole-plan delete; the Cooking tile on Kitchen's landing page gains
+  its first badge — "plan this week" when the current week has no plan
+  (badge philosophy: "does this need attention", and an unplanned week
+  is exactly that; shorten the text if it wraps badly at 375px). Verify
+  against seeded multi-week data, including a week containing
+  Nov 1, 2026 (the DST fall-back) — its day cards must land on the
+  right calendar dates.
+- **M4. AI suggestions — "What can I make?"** Load the `claude-api`
+  skill before writing any of it. `suggestMealsForSlot` Server Action
+  (guarded, read-only) assembling the prompt from the real inventory,
+  the expiring-soon list, the slot, and indexed recipes; structured
+  outputs per the grounding decision above; sheet UI listing
+  suggestions with their why-lines, pending state while Claude thinks,
+  and a failure state that leaves every manual path usable. Verify
+  against the real 462-item inventory: suggestions must name items
+  actually on hand, a recipe suggestion must resolve by index to the
+  actual recipe, and the failure path must degrade gracefully.
+
+**Deliberately not in v1** (revisit only when real use demands it):
+multiple meals per slot (one unique-constraint drop away), **copying a
+previous week as a template** (cheap and probably the first thing real
+use will ask for), generating a shopping list from the week's recipes
+(blocked on structured ingredients, already deferred in the Recipes
+plan — a meal plan makes it distinctly more valuable), a dashboard
+"Tonight" card, voice verbs ("what's for dinner" — a V4 candidate),
+drag-to-move meals between days, per-person columns, notifications, and
+nutrition anything.
+
 ## Planned, not yet built
 
 Everything below is independent of the voice plan above and not currently
@@ -835,10 +1031,9 @@ nothing here is scheduled:
 
 - **Family profiles** — a page per family member.
 - **Chore charts** — for the kids.
-- **Recipes** — now the ACTIVE plan above.
-- **Menu** — Cooking's second tile ("what's for dinner tonight/this
-  week" — scope to be defined when it's picked up).
-- **Meal planning** — Cooking's third tile.
+- **Recipes** — ✅ done, see the plan above.
+- **Meal Plan** — now the ACTIVE plan above (absorbed the old "Menu"
+  tile — they were one feature described twice).
 - **To-dos**
 - **Habit trackers**
 - **Photo gallery**
@@ -1478,9 +1673,9 @@ and the family should probably *use* Recipes for a week first:
   since before Expiring. Needs Bryce to create a free Amazon developer
   account (walkthrough style, like Neon/Vercel), then a skill passing
   the raw utterance to the existing `/api/voice` endpoint.
-- **Cooking's other two tiles** — Menu and Meal planning are still
-  placeholders, and Recipes existing now makes both considerably more
-  interesting than they were.
+- **Meal Plan** — now the ACTIVE plan (see the Meal Plan section
+  above). Menu and Meal planning were merged into it; Recipes existing
+  makes it considerably more interesting than it was.
 - **A real handwritten recipe card through photo import** — the one
   R3b source type never tested against genuine input. If Haiku
   struggles, the plan's own fallback is bumping just that call to
@@ -1488,3 +1683,52 @@ and the family should probably *use* Recipes for a week first:
 - **The `GroceryRow.tsx` lint error** — flagged in this file four
   separate times now without being fixed. It's small and isolated;
   worth just doing next time anything touches Shopping.
+
+**Menu and Meal planning were merged into one "Meal Plan" tile, and the
+Meal Plan plan was written.** Bryce flagged wanting to build Menu while
+uploading recipes; the design conversation surfaced that Menu ("what's
+for dinner tonight/this week") and Meal planning were the same feature
+described twice, so they were merged before Menu was ever built —
+cheaper than discovering the redundancy after both existed. Already done
+in the working tree (uncommitted, ships with M1): `meal-planning/` →
+`meal-plan/` via `git mv`, `menu/` deleted, Cooking's landing page down
+to two tiles (verified in the running app — two clean tiles, no `wide`
+needed; `BranchTile`'s `wide` prop stays, currently unused). Then the
+**Meal Plan plan** (the ACTIVE section above) was designed and
+documented from Bryce's spoken vision: week view with
+breakfast/lunch/dinner/snacks per day, collapsible past weeks, a
+no-typed-dates + flow for planning the next week, and per-slot filling
+via custom text, the recipe box, or AI suggestions grounded in the real
+inventory. The design factors worth remembering are all in the plan's
+decisions: calendar-component date math (DST weeks are 167/169 hours),
+client-side "current week" (Vercel runs UTC), title denormalization with
+`SetNull` recipe links so history survives recipe deletion, and
+index-grounded AI suggestions (never name-matching — the steaks/"tea"
+lesson applied preemptively).
+
+**M1 of the Meal Plan plan is done, same session.** See the M1 bullet
+above for the full design; two things are worth carrying forward beyond
+the feature itself:
+
+- **The Vercel-runs-UTC / dev-machine-runs-Mountain mismatch is a real,
+  frequent bug source for any "what day is it" logic, not a
+  once-in-a-blue-moon edge case.** It's wrong for roughly six or seven
+  hours every single evening, not just near a DST transition — anytime
+  the household clock reads evening, a UTC server already thinks it's
+  tomorrow. `src/lib/useToday.ts` and the "never construct a
+  calendar-meaningful date server-side" rule documented at the top of
+  `src/lib/mealPlanDates.ts` exist because of this, and the same rule
+  applies to any future feature that cares about "today" (a Calendar
+  branch, someday, will need this from day one).
+- **The DST test used the actual date, not a synthetic stand-in.** Nov
+  1, 2026 is the real US fall-back date, still in the future as of this
+  session — seeding a plan for that exact week and verifying all 7 days
+  render as genuinely consecutive calendar dates is what caught (or
+  rather, this time, confirmed the absence of) the class of bug that
+  bit real 4-day-old grocery estimates in the Expiring plan's own
+  session. Worth the same discipline next time date math shows up
+  anywhere in this app.
+
+**Obvious next step: M2 of the Meal Plan plan** — the recipe picker in
+`SlotEditSheet`, reusing `searchRecipes()` over the real library, with
+recipe-linked entries offering a path to the recipe's own detail page.

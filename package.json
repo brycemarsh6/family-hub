@@ -12,7 +12,9 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "db:seed-recipes": "tsx prisma/seed-recipes.ts",
-    "db:clean-recipes": "tsx prisma/clean-recipes.ts"
+    "db:clean-recipes": "tsx prisma/clean-recipes.ts",
+    "db:seed-meal-plans": "tsx prisma/seed-meal-plans.ts",
+    "db:clean-meal-plans": "tsx prisma/clean-meal-plans.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

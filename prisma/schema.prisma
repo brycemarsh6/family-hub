@@ -146,6 +146,57 @@ model Recipe {
   /// then on, since the public page looks a row up by this value.
   shareToken String? @unique
 
+  mealPlanEntries MealPlanEntry[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// One planned week. `weekStart` is always a Sunday (see src/lib/mealPlanDates.ts)
+/// stored as a plain calendar date — never derived from milliseconds, since a
+/// week can be 167 or 169 hours long across a daylight-saving change and
+/// millisecond arithmetic silently drifts across one.
+model MealPlan {
+  id        String   @id @default(cuid())
+  weekStart DateTime @unique
+
+  entries MealPlanEntry[]
+
+  createdAt DateTime @default(now())
+
+  @@index([weekStart])
+}
+
+/// One meal, in one slot, on one day of a MealPlan.
+///
+/// `title` is always set and is what actually renders — `recipeId` is a soft
+/// link for "jump to this recipe" and nothing else. Deleting a recipe must
+/// never hollow out a week that already happened, so the link goes null
+/// (same pattern as GroceryItem.pantryItemId) while the title survives.
+model MealPlanEntry {
+  id String @id @default(cuid())
+
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  mealPlanId String
+
+  /// 0 = the plan's own Sunday, ... 6 = the following Saturday. The entry's
+  /// real calendar date is always derived (mealPlan.weekStart + dayOffset),
+  /// never stored — one source of truth for "what date is this."
+  dayOffset Int
+
+  /// "Breakfast" | "Lunch" | "Dinner" | "Snacks" — see src/lib/constants.ts.
+  slot String
+
+  title String
+
+  recipeId String?
+  recipe   Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// One meal per slot per day — filling an already-filled slot is an
+  /// upsert on this key, not a second row.
+  @@unique([mealPlanId, dayOffset, slot])
+  @@index([recipeId])
 }

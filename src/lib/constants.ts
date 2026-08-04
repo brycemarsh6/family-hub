@@ -198,3 +198,14 @@ export function toStore(value: unknown): Store | null {
 export function isLow(quantity: number, lowThreshold: number): boolean {
   return quantity <= lowThreshold;
 }
+
+// The four slots a day of the Meal Plan can hold. Order here is display
+// order — a day card lists Breakfast, Lunch, Dinner, Snacks top to bottom.
+export const MEAL_SLOTS = ["Breakfast", "Lunch", "Dinner", "Snacks"] as const;
+
+export type MealSlot = (typeof MEAL_SLOTS)[number];
+
+/** Narrow arbitrary text (e.g. from a form) to a MealSlot we actually support. */
+export function toMealSlot(value: unknown): MealSlot | null {
+  return MEAL_SLOTS.includes(value as MealSlot) ? (value as MealSlot) : null;
+}

@@ -35,3 +35,19 @@ export type PantryItemView = {
    */
   expiresAt: Date | null;
 };
+
+export type MealPlanEntryView = {
+  id: string;
+  /** 0 = the plan's own Sunday, ... 6 = the following Saturday. */
+  dayOffset: number;
+  slot: string;
+  title: string;
+  /** Soft link only — see the schema comment on MealPlanEntry.recipeId. */
+  recipeId: string | null;
+};
+
+export type MealPlanView = {
+  id: string;
+  weekStart: Date;
+  entries: MealPlanEntryView[];
+};

@@ -1,13 +1,18 @@
-import { BookOpen, UtensilsCrossed, CalendarDays } from "lucide-react";
+import { BookOpen, CalendarDays } from "lucide-react";
 import BranchTile from "@/components/BranchTile";
 
 // Cooking's landing page — same tile-grid pattern as Kitchen's own landing
 // page (src/app/kitchen/page.tsx), one large tile per sub-page. The global nav
 // bar doesn't drill into a branch's sub-pages, so this page is the only route
-// into Recipes, Menu and Meal planning.
+// into Recipes and Meal Plan.
 //
-// No badges yet: all three sub-pages are placeholders, and a badge's job is to
-// say "this needs attention" — there's nothing behind them to need it.
+// Was three tiles (Recipes / Menu / Meal planning) — Menu and Meal planning
+// were dropped to one line apart in conversation and merged into a single
+// "Meal Plan" tile before Menu was ever built, rather than shipping two
+// features that would have turned out to be the same feature.
+//
+// No badge on Meal Plan yet: it's still a placeholder, and a badge's job is
+// to say "this needs attention" — there's nothing behind it to need it.
 export default function CookingPage() {
   return (
     <div className="py-4">
@@ -23,15 +28,9 @@ export default function CookingPage() {
           title="Recipes"
         />
         <BranchTile
-          href="/kitchen/cooking/menu"
-          icon={UtensilsCrossed}
-          title="Menu"
-        />
-        <BranchTile
-          href="/kitchen/cooking/meal-planning"
+          href="/kitchen/cooking/meal-plan"
           icon={CalendarDays}
-          title="Meal planning"
-          wide
+          title="Meal Plan"
         />
       </div>
     </div>
