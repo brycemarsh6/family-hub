@@ -26,6 +26,7 @@ import {
   Sparkles,
   Pill,
   Baby,
+  UtensilsCrossed,
   ShoppingBag,
   Package,
   Refrigerator,
@@ -62,6 +63,13 @@ export const CATEGORIES = [
   { name: "Meat", icon: Beef },
   { name: "Seafood", icon: Fish },
   { name: "Meals & Frozen Food", icon: Snowflake },
+  // Not really a "walk through the supermarket" category — nobody buys
+  // leftovers — but it lives here anyway, right after the closest neighbor
+  // conceptually (prepared food), because the whole point of E3 was NOT
+  // building a parallel leftovers system: one line here, and leftovers
+  // inherit every pantry feature (rows, steppers, search, the edit sheet,
+  // the Expiring page) for free. See CLAUDE.md's Expiring & leftovers plan.
+  { name: "Leftovers", icon: UtensilsCrossed },
   // Centre aisles
   { name: "Canned Food", icon: Container },
   { name: "Soups & Stocks", icon: Soup },

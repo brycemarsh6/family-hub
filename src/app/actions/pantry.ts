@@ -123,6 +123,50 @@ export async function editPantryItem(
   refreshKitchenViews();
 }
 
+/**
+ * Log a leftover: name, how many portions, how many days it's good for.
+ *
+ * Deliberately never asks for a date — see LogLeftoverSheet for why that's
+ * the whole point. "Days good" converts to a real `expiresAt` right here,
+ * at local midnight N days out, the same convention the edit sheet's date
+ * field uses — so a logged leftover and a hand-typed date behave identically
+ * everywhere downstream (the Expiring page has no idea which one it's
+ * looking at, and doesn't need to).
+ */
+export async function logLeftover(input: {
+  name: string;
+  quantity: number;
+  daysGood: number;
+}) {
+  if (!(await getVerifiedSession())) return;
+
+  const name = input.name.trim();
+  if (!name) return;
+
+  const quantity = Math.max(0.5, Math.round(input.quantity * 100) / 100);
+  const days = Math.max(1, Math.round(input.daysGood));
+
+  const today = new Date();
+  const expiresAt = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() + days,
+  );
+
+  await db.pantryItem.create({
+    data: {
+      name,
+      quantity,
+      category: "Leftovers",
+      location: "Fridge", // freezing a leftover is an edit away, via the same date field
+      expiresAt,
+      lowThreshold: 0, // "running low" isn't a meaningful state for a one-off leftover
+    },
+  });
+
+  refreshKitchenViews();
+}
+
 export async function deletePantryItem(id: string) {
   if (!(await getVerifiedSession())) return;
 

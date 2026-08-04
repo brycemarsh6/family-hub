@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { effectiveExpiry, daysUntil } from "@/lib/expiring";
 import { ExpiringList, type ExpiringEntry } from "@/components/ExpiringList";
 import type { Urgency } from "@/components/ExpiringRow";
+import { LogLeftoverButton } from "@/components/LogLeftoverButton";
 import type { Category, Location } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
@@ -118,6 +119,8 @@ export default async function ExpiringPage() {
             : `${entries.length} ${entries.length === 1 ? "thing needs" : "things need"} eating soon`}
         </p>
       </div>
+
+      <LogLeftoverButton />
 
       <ExpiringList entries={entries} />
     </div>
