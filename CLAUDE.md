@@ -670,15 +670,45 @@ any Next API not already used in this repo.
   the failure path — pasting a travel-blog paragraph with no recipe in
   it returns a clear inline error ("Couldn't find a recipe in that
   text…") instead of silently opening a blank form.
-- **R3b. Import: photo.** `<input type="file" accept="image/*">` (phones
-  offer the camera themselves), up to 3 photos per import for multi-page
-  recipes. **Downscale client-side before upload** — canvas re-encode to
-  ~1600px long edge JPEG — because raw phone photos run 3–10MB and will
-  blow the Server Action body limit; find the body-size config in the
-  Next 16 docs and set it explicitly rather than trusting defaults.
-  Same extraction action with images attached; same form pre-fill.
-  Verify with the three real source types in this house: a printed
-  cookbook page, a handwritten card, a TikTok screenshot.
+- **R3b. Import: photo.** ✅ **Done.** `PhotoImportForm.tsx` shows up to 3
+  square photo slots — tap "Add photo" to open the camera/gallery picker
+  (`<input type="file" accept="image/*" capture="environment">`), each
+  with its own × to remove. Every photo is **downscaled client-side the
+  moment it's picked** — canvas re-encode to a 1600px long edge JPEG at
+  0.85 quality — before it ever leaves the phone, since raw phone photos
+  run 3–10MB and would blow the Server Action body limit. That limit
+  itself is now set explicitly (`next.config.ts`,
+  `experimental.serverActions.bodySizeLimit: "8mb"`, found in the Next
+  16 docs per AGENTS.md) rather than trusted at its 1MB default.
+  `extractRecipeFromPhotos` in `recipeExtract.ts` sends the downscaled
+  JPEGs to Haiku as image content blocks alongside a photo-specific
+  system prompt (cookbook page / handwritten card / screenshot, with an
+  explicit instruction to ignore on-screen UI chrome — likes, usernames,
+  captions, hashtags); `extractRecipeFromRecipePhotos` in
+  `recipes.ts` wraps it with the same `getVerifiedSession()` +
+  no-database-write contract as the text path, plus a count cap (≤3) and
+  a per-photo size cap as a backstop. Same `RecipeForm`
+  remount-on-extraction pattern as `PasteImportForm`.
+  **Verified against two of the three real source types** by
+  constructing genuine full-size (3000×4000 and 1080×1920) synthetic
+  photos client-side and driving the real file input via a `File` +
+  `DataTransfer` (there's no scriptable OS camera/file dialog in this
+  environment, so this is the closest faithful exercise of the actual
+  component code — not a shortcut around it): a printed-cookbook-style
+  page came back with every field exactly correct, and a TikTok-style
+  screenshot — complete with a fake username, like/comment counts, a
+  caption, and hashtags baked into the image — came back with the
+  recipe's 7 ingredients and 5 steps exactly right and *zero* leakage of
+  any of that UI chrome, with servings/prep/cook time correctly left
+  empty rather than guessed since none were stated. Also confirmed the
+  downscale actually fires: the 3000×4000 original was verified,
+  post-encode, at exactly 1200×1600 (long edge capped at 1600, aspect
+  ratio preserved). The third source type (a genuinely handwritten
+  card) wasn't tested — synthesizing a photorealistic handwriting sample
+  is a different problem from the printed/screenshot cases and Haiku's
+  performance on it should be checked against a real card the next time
+  one's handy, per the plan's own fallback ("bump to Sonnet if real
+  photos — handwriting especially — prove too hard for it").
 - **R3c. Import: URL.** The flaky one — built last, on purpose, so
   nothing depends on it. Server-side fetch with a timeout: tiktok.com →
   oEmbed caption; otherwise fetch HTML → JSON-LD `Recipe` if present →
@@ -1242,10 +1272,50 @@ path — works end to end. See the R3a bullet above for the full design.
   counts unchanged throughout. `tsc`, `eslint`, and `npm run build` all
   clean (the one pre-existing `GroceryRow.tsx` lint error is untouched).
 
-**Obvious next step: R3b of the Recipes plan** — photo import. A file
-input (phones offer the camera themselves), client-side downscaling
-before upload (raw phone photos run 3–10MB and will blow the Server
-Action body limit — check the Next 16 docs for the body-size config
-rather than trusting defaults), up to 3 photos per import, then the same
-extraction-and-pre-fill pattern R3a just built, with images attached to
-the Claude call instead of plain text.
+**R3b of the Recipes plan is done too, same session.** Photo import
+works — the third way into the app, alongside typing and pasting. See
+the R3b bullet above for the full design; the operationally interesting
+part is how it got verified without a physical camera:
+
+- **No OS-level camera/file dialog is scriptable in this environment**,
+  so verification couldn't just "attach a file" the way a real person
+  would. The honest substitute: construct a full-size synthetic JPEG
+  entirely in the browser's own JS context (canvas → `toBlob` →
+  `File`), attach it to the real `<input type="file">` via
+  `DataTransfer`, and dispatch a real `change` event — this exercises
+  the actual `onChange` handler, the actual canvas downscale function,
+  and the actual Server Action call over real network traffic to
+  Claude, all the same code path a phone photo would hit. Confirmed
+  the downscale specifically (not just trusted it): read back the
+  resulting thumbnail's decoded pixel dimensions and got exactly
+  1200×1600 from a 3000×4000 source — long edge capped at 1600, aspect
+  ratio intact.
+- **The screenshot test was built to actually stress the "ignore UI
+  chrome" instruction**, not just contain a recipe: a fake
+  `@cookingwithsam` handle, `482K`/`3,201` like/comment counts, a
+  caption ("this changed my life fr no cap 😍🔥"), and hashtags were
+  baked directly into the image alongside the recipe text. All of it
+  was correctly excluded from the result — ingredients and steps came
+  back exactly right with none of that noise, and servings/prep/cook
+  time were correctly left blank rather than invented, since the fake
+  screenshot never stated any.
+- **Login flakiness this session, worth noting for next time**: the
+  browser tool's `computer` click action intermittently failed to
+  register on the login form (no POST ever reached the server, confirmed
+  via dev-server logs) even after retries. The reliable fallback used
+  throughout this session — setting the input's value via the native
+  property setter, dispatching a real `input` event, then calling
+  `.click()` directly on the button element via `javascript_tool` — is
+  worth reaching for immediately next time rather than repeatedly
+  retrying the flaky click.
+- No database writes happened during verification (extraction only, no
+  Save tap on the test recipes) — confirmed via a direct count that
+  stayed at 0 throughout. `tsc`, `eslint`, and `npm run build` all clean
+  (the one pre-existing `GroceryRow.tsx` lint error, still untouched).
+
+**Obvious next step: R3c of the Recipes plan** — URL import, the flaky
+one, built last on purpose so nothing else depends on it: TikTok's
+public oEmbed endpoint for caption recipes, JSON-LD `Recipe` schema for
+blog URLs, a Claude fallback when neither is present, and a Pinterest
+pin-to-source-link hop — every failure path landing on the form or a
+"screenshot it instead" message, never a dead end.

@@ -13,6 +13,15 @@ const nextConfig: NextConfig = {
   // below allows any device on the 10.0.0.x home network. (Dev-only; this
   // setting has no effect in a production build.)
   allowedDevOrigins: ["10.0.0.*"],
+  experimental: {
+    serverActions: {
+      // Default is 1MB. Recipe photo import (src/components/PhotoImportForm.tsx)
+      // downscales each photo client-side before upload, but three base64-encoded
+      // images plus multipart overhead can still add up — this leaves real
+      // headroom rather than trusting the default and finding out in production.
+      bodySizeLimit: "8mb",
+    },
+  },
 };
 
 export default nextConfig;

@@ -69,7 +69,7 @@ const SCHEMA = {
   additionalProperties: false,
 } as const;
 
-const SYSTEM = `You extract recipes from raw pasted text. It is almost always copied
+const SYSTEM_TEXT = `You extract recipes from raw pasted text. It is almost always copied
 straight off a recipe blog, so it's full of site navigation, ads, a long
 personal story before the recipe, comments, and unrelated content. Find the
 actual recipe within that noise and extract only it.
@@ -81,6 +81,50 @@ Rules:
   stated. Leave them empty rather than estimating.
 - If the text has no recognizable recipe in it at all, return an empty
   title, empty ingredients, and empty steps — don't fabricate one.`;
+
+const SYSTEM_PHOTO = `You extract recipes from photos. The photo is one of: a printed cookbook
+or magazine page, a handwritten recipe card, or a screenshot (often from
+TikTok, Instagram, or Pinterest, which means on-screen UI chrome — likes,
+comments, usernames, captions — is mixed in with the actual recipe text).
+Read the recipe carefully, including handwriting when present, and extract
+only the recipe itself.
+
+Rules:
+- Ingredients and steps are extracted exactly as written — don't paraphrase,
+  reorder, or invent quantities that aren't legible in the photo.
+- Ignore on-screen UI chrome entirely: usernames, like/comment/share counts,
+  captions, watermarks, hashtags. None of that is part of the recipe.
+- If a photo covers more than one page or screen of the same recipe,
+  combine them into one recipe rather than returning duplicates.
+- Servings, prep time, and cook time are only filled in when explicitly
+  stated. Leave them empty rather than estimating.
+- If a word or quantity is genuinely illegible, use your best reading rather
+  than leaving a gap — but never invent an ingredient or step that isn't
+  there at all.
+- If no photo has a recognizable recipe in it, return an empty title, empty
+  ingredients, and empty steps — don't fabricate one.`;
+
+/** Parses Claude's structured-output reply into our shape, defensively —
+ * structured outputs guarantee the JSON shape, but not that Claude actually
+ * finished (a refusal or a hit token ceiling can still end a turn early). */
+function parseResponse(response: Anthropic.Message): ExtractedRecipe {
+  const block = response.content.find((b) => b.type === "text");
+  if (!block || block.type !== "text") return EMPTY;
+
+  try {
+    const parsed = JSON.parse(block.text) as Partial<ExtractedRecipe>;
+    return {
+      title: parsed.title ?? "",
+      ingredients: Array.isArray(parsed.ingredients) ? parsed.ingredients : [],
+      steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+      servings: parsed.servings ?? "",
+      prepTime: parsed.prepTime ?? "",
+      cookTime: parsed.cookTime ?? "",
+    };
+  } catch {
+    return EMPTY;
+  }
+}
 
 /**
  * Ask Claude to pull a recipe's fields out of arbitrary pasted text.
@@ -99,25 +143,59 @@ export async function extractRecipeFromText(
   const response = await client.messages.create({
     model: "claude-haiku-4-5",
     max_tokens: 4096,
-    system: SYSTEM,
+    system: SYSTEM_TEXT,
     output_config: { format: { type: "json_schema", schema: SCHEMA } },
     messages: [{ role: "user", content: text }],
   });
 
-  const block = response.content.find((b) => b.type === "text");
-  if (!block || block.type !== "text") return EMPTY;
+  return parseResponse(response);
+}
 
-  try {
-    const parsed = JSON.parse(block.text) as Partial<ExtractedRecipe>;
-    return {
-      title: parsed.title ?? "",
-      ingredients: Array.isArray(parsed.ingredients) ? parsed.ingredients : [],
-      steps: Array.isArray(parsed.steps) ? parsed.steps : [],
-      servings: parsed.servings ?? "",
-      prepTime: parsed.prepTime ?? "",
-      cookTime: parsed.cookTime ?? "",
-    };
-  } catch {
-    return EMPTY;
-  }
+export type PhotoInput = {
+  /** e.g. "image/jpeg" — must match the client's canvas re-encode output. */
+  mediaType: "image/jpeg" | "image/png" | "image/webp";
+  /** Base64, no "data:" prefix. */
+  data: string;
+};
+
+/**
+ * Ask Claude to pull a recipe's fields out of up to 3 photos — a cookbook
+ * page, a handwritten card, or a screenshot. Same schema and the same
+ * never-throws contract as extractRecipeFromText.
+ */
+export async function extractRecipeFromPhotos(
+  photos: PhotoInput[],
+): Promise<ExtractedRecipe> {
+  const client = new Anthropic();
+
+  const response = await client.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: 4096,
+    system: SYSTEM_PHOTO,
+    output_config: { format: { type: "json_schema", schema: SCHEMA } },
+    messages: [
+      {
+        role: "user",
+        content: [
+          ...photos.map((photo) => ({
+            type: "image" as const,
+            source: {
+              type: "base64" as const,
+              media_type: photo.mediaType,
+              data: photo.data,
+            },
+          })),
+          {
+            type: "text" as const,
+            text:
+              photos.length > 1
+                ? "These photos are pages of the same recipe."
+                : "Extract the recipe from this photo.",
+          },
+        ],
+      },
+    ],
+  });
+
+  return parseResponse(response);
 }
