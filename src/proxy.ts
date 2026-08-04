@@ -19,7 +19,13 @@ import { decrypt } from "@/lib/session";
 // leaks. This way forgetting means a page is locked, which is the failure you
 // notice immediately instead of the one you never find out about.
 
-const PUBLIC_ROUTES = ["/login"];
+// "Public" here means "not gated by the family-password cookie" — NOT
+// "unauthenticated". /api/voice is in this list because Alexa and Siri have no
+// way to sign in and hold a session cookie; it authenticates itself with a
+// separate shared token, checked as the first thing it does (see
+// src/app/api/voice/route.ts). Without this entry the proxy would bounce every
+// voice request to /login and the endpoint could never run.
+const PUBLIC_ROUTES = ["/login", "/api/voice"];
 
 export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;

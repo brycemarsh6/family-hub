@@ -41,6 +41,45 @@ model GroceryItem {
   @@index([pantryItemId])
 }
 
+/// One change made by voice, kept so it can be read back or undone.
+///
+/// Voice is the one way into this app where nobody sees what they typed — a
+/// misheard word becomes a wrong number with no visible trace. Every voice
+/// change writes a row here so "undo that" has something real to reverse, and
+/// so a count that looks wrong later can be explained.
+model VoiceChange {
+  id String @id @default(cuid())
+
+  /// What was actually said, as the phone or Echo transcribed it. Kept for
+  /// exactly the case above: working out why a count is wrong.
+  transcript String
+
+  /// "use" | "add" | "buy" — which verb the parser decided on.
+  action String
+
+  /// The pantry item that changed. Null for a "buy" (that writes to the
+  /// grocery list) or when the item was created by this change.
+  pantryItemId String?
+  pantryItem   PantryItem? @relation(fields: [pantryItemId], references: [id], onDelete: SetNull)
+
+  /// The item name as matched, kept as plain text so the log still reads
+  /// correctly after the item itself is renamed or deleted.
+  itemName String
+
+  /// Quantity before and after, so undo is a straight restore rather than
+  /// arithmetic that could drift.
+  quantityBefore Float?
+  quantityAfter  Float?
+
+  /// Set once this row has been undone, so the same change can't be
+  /// reversed twice.
+  undoneAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 /// Something we already own, and where it's stored.
 model PantryItem {
   id       String  @id @default(cuid())
@@ -57,6 +96,7 @@ model PantryItem {
   updatedAt DateTime @updatedAt
 
   groceryItems GroceryItem[]
+  voiceChanges VoiceChange[]
 
   @@index([location])
 }
