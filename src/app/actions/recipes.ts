@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedSession } from "@/lib/dal";
+import { extractRecipeFromText, type ExtractedRecipe } from "@/lib/recipeExtract";
 
 function refreshRecipeViews() {
   revalidatePath("/kitchen/cooking/recipes");
@@ -108,6 +109,41 @@ export async function updateRecipe(
  * in the app. Redirects back to the list since the detail page it was called
  * from no longer exists.
  */
+export type ExtractResult = { data?: ExtractedRecipe; error?: string };
+
+/**
+ * Pull recipe fields out of pasted text via Claude, for the "Paste text"
+ * import flow. Deliberately does not touch the database — this only ever
+ * hands data back to the client to pre-fill RecipeForm; nothing is saved
+ * until the user reviews it and taps Save, same as every import path in the
+ * Recipes plan.
+ */
+export async function extractRecipeFromPastedText(
+  text: string,
+): Promise<ExtractResult> {
+  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+
+  const trimmed = text.trim();
+  if (!trimmed) return { error: "Paste some recipe text first." };
+  if (trimmed.length > 20000) {
+    return {
+      error: "That's a lot of text — try pasting just the recipe portion.",
+    };
+  }
+
+  const extracted = await extractRecipeFromText(trimmed);
+  const hasContent =
+    extracted.title || extracted.ingredients.length > 0 || extracted.steps.length > 0;
+  if (!hasContent) {
+    return {
+      error:
+        "Couldn't find a recipe in that text. Try pasting just the recipe part, or type it in manually.",
+    };
+  }
+
+  return { data: extracted };
+}
+
 export async function deleteRecipe(formData: FormData): Promise<void> {
   if (!(await getVerifiedSession())) return;
 

@@ -649,15 +649,27 @@ any Next API not already used in this repo.
   time shouldn't be queuing a separate animation per letter crossed
   during a fast drag, since that would visibly lag behind the gesture on
   any device, not just this one.
-- **R3a. Import: pasted text.** "Add recipe" opens a chooser — Type it
-  in / Paste text / From a photo / From a link (build all four options'
-  chooser now; wire photo and link as they land). A new extraction
-  Server Action guarded by `getVerifiedSession()`: text in → Claude
-  structured output `{title, ingredients[], steps[], servings?,
-  prepTime?, cookTime?}` → the R1 form pre-filled, via client state —
-  no draft rows in the database. Load the `claude-api` skill before
-  writing it. Verify with a real blog copy-paste, life story and ads
-  included.
+- **R3a. Import: pasted text.** ✅ **Done.** "Add recipe" now opens a
+  chooser (`/kitchen/cooking/recipes/new`) — Type it in / Paste text /
+  From a photo / From a link, all four visible now per the
+  no-feature-stubbed-early rule; Photo and Link point at "Coming soon"
+  pages until R3b/R3c land. `src/lib/recipeExtract.ts` holds the pure
+  Claude call (Haiku, structured outputs, same shape as
+  `voice/parse.ts`); `extractRecipeFromPastedText` in
+  `src/app/actions/recipes.ts` wraps it with `getVerifiedSession()` and
+  a length cap, and never touches the database — it only ever hands
+  parsed fields back to the client. `PasteImportForm.tsx` shows a
+  textarea, calls the action, then remounts `RecipeForm` (via a bumped
+  `key`, since its inputs are uncontrolled) pre-filled with the result —
+  reviewed and edited like any other entry, nothing saved until Save is
+  tapped. Verified against a real messy blog paste (life story, an
+  affiliate-link aside, an ad block, 247 comments) end to end: title
+  correctly picked the recipe card's own name over the blog post's
+  title, ingredients and steps came back clean with zero noise, and the
+  saved recipe round-tripped through the real detail page. Also verified
+  the failure path — pasting a travel-blog paragraph with no recipe in
+  it returns a clear inline error ("Couldn't find a recipe in that
+  text…") instead of silently opening a blank form.
 - **R3b. Import: photo.** `<input type="file" accept="image/*">` (phones
   offer the camera themselves), up to 3 photos per import for multi-page
   recipes. **Downscale client-side before upload** — canvas re-encode to
@@ -1186,7 +1198,54 @@ made this phase take real debugging rather than just typing it out:
   grouped view exactly. `db:clean-recipes` afterward brought the table
   back to 0 rows again; `tsc`/`eslint`/`npm run build` all clean.
 
-**Obvious next step: R3a of the Recipes plan** — the "Add recipe" chooser
-(Type it in / Paste text / From a photo / From a link) and the first real
-import path, pasted text via a Claude structured-output call. Load the
-`claude-api` skill before writing that action, per the plan.
+**R3a of the Recipes plan is done too, same session.** The "Add recipe"
+chooser is real, and pasted-text import — the first actual import
+path — works end to end. See the R3a bullet above for the full design.
+
+- **The chooser restructured the New route**: `/kitchen/cooking/recipes/new`
+  is now the 4-option chooser instead of going straight to a blank form;
+  the old blank-form page moved to `new/manual`. Photo and Link
+  (`new/photo`, `new/link`) are real routes today, just "Coming soon" —
+  same pattern as Cooking's own placeholder pages, not a disabled
+  button, so the shape of the whole import feature is visible before
+  every path is built.
+- **Extraction is a Haiku call using `output_config.format` (structured
+  outputs)**, loaded via the `claude-api` skill before writing any of
+  it, per the plan. `src/lib/recipeExtract.ts` mirrors
+  `voice/parse.ts`'s split exactly: the pure Claude call carries no auth
+  check of its own (`"server-only"`, not `"use server"`), and the
+  Server Action wrapping it in `recipes.ts` is what calls
+  `getVerifiedSession()` — consistent with how voice's parser and its
+  route handler divide that responsibility.
+- **One real implementation snag**: `RecipeForm`'s inputs are
+  uncontrolled (`defaultValue`, not `value`), which is correct for
+  typing and editing but means simply changing the `defaultValues` prop
+  after extraction wouldn't visibly update fields already mounted with
+  their first value. `PasteImportForm` works around this by bumping a
+  `key` on `RecipeForm` once extraction succeeds, forcing a real
+  remount — the standard React pattern for "swap what an uncontrolled
+  component shows."
+- **Verified against real messy input, not a clean test fixture**: a
+  ~250-word paste built to look like an actual recipe blog post (a
+  personal story about a grandmother, an affiliate link aside, a
+  sponsored-ad block, "Jump to Recipe," and a 247-comment section) came
+  back with a title correctly matching the recipe card itself rather
+  than the blog post's own title, and ingredients/steps with zero noise
+  leaked in from any of that surrounding content. Saved and confirmed
+  through the real detail page. Separately verified the empty-result
+  path: a travel-blog paragraph with no recipe in it produces a clear
+  inline error rather than silently opening a blank form — this needed
+  an explicit "did we actually get anything back" check in the Server
+  Action, since structured outputs guarantee the *shape* of a reply but
+  not that any of its fields are non-empty.
+- Test recipe cleaned up afterward via `db:clean-recipes`; pantry/grocery
+  counts unchanged throughout. `tsc`, `eslint`, and `npm run build` all
+  clean (the one pre-existing `GroceryRow.tsx` lint error is untouched).
+
+**Obvious next step: R3b of the Recipes plan** — photo import. A file
+input (phones offer the camera themselves), client-side downscaling
+before upload (raw phone photos run 3–10MB and will blow the Server
+Action body limit — check the Next 16 docs for the body-size config
+rather than trusting defaults), up to 3 photos per import, then the same
+extraction-and-pre-fill pattern R3a just built, with images attached to
+the Claude call instead of plain text.
