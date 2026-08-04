@@ -93,10 +93,14 @@ feature behind it yet.
   — which creates an ordinary pantry item in a new "Leftovers" category, so
   it inherits every other feature (rows, steppers, search, the edit sheet)
   for free rather than needing its own system.
-- **Cooking** — a placeholder page only (the tile exists, the page just says
-  "Coming soon"). A deliberate, named exception to "no feature is stubbed
-  out early" below — Bryce wanted the full shape of the branch visible now
-  since it's next in line to actually get built.
+- **Cooking** (`/kitchen/cooking`) — a landing page of its own now, not a
+  stub: the same tile-grid pattern as Kitchen's landing page, with tiles
+  for Recipes, Menu, and Meal planning. The tile itself was extracted into
+  a shared `src/components/BranchTile.tsx` (with a `wide` prop so an odd
+  third tile spans both columns instead of leaving a gap) and Kitchen's
+  page now imports it too — one tile definition, per the one-source-of-
+  truth rule. All three sub-pages are "Coming soon" placeholders; Recipes
+  is being built first — see the Recipes plan below.
 
 **The category vocabulary is 29 groups, not 9.** `src/lib/constants.ts` used
 to hold a flat list (Produce, Dairy, Frozen, Pantry...) that couldn't tell
@@ -240,9 +244,10 @@ without re-litigating each time:
   a tile grid at the branch's own route, no nav-list file of its own. Branches
   with only one page (nothing here yet, but plausible) don't need this at
   all — the hub tab goes straight to the content.
-- **No feature is stubbed out early** — with named exceptions, extended twice
-  now: Kitchen's Expiring and Cooking tiles, and the hub nav's Calendar,
-  Chores, and Lists tabs, all exist pointing at "Coming soon" pages. Bryce
+- **No feature is stubbed out early** — with named exceptions, extended three
+  times now: Kitchen's Expiring and Cooking tiles, the hub nav's Calendar,
+  Chores, and Lists tabs, and Cooking's own Recipes / Menu / Meal planning
+  tiles, all created pointing at "Coming soon" pages. Bryce
   wanted the full shape of the app visible ahead of building each feature
   out, both at the branch level and the hub level. Profiles and any future
   branch not yet built still follow the rule as originally stated: no nav
@@ -499,6 +504,172 @@ per-purchase batch tracking (the honest way to handle old and new apples
 sharing one row — real complexity for uncertain gain), push
 notifications, and the leftover voice verb (queued as V4).
 
+## Recipes plan — ACTIVE
+
+The current work: the first Cooking sub-page to become real. Alexa (V3)
+stays queued behind it — Bryce chose Recipes next.
+
+What it is: every household recipe in one place — typed in, pasted in,
+photographed out of a cookbook, or pulled in from a link — browsable A–Z
+with a jump rail, searchable, and shareable with people outside the
+family. The pressure test is the real collection: Bryce's wife's recipes
+live in TikTok saves, Pinterest boards, screenshots, and handwritten
+cards, and this feature only matters if getting one into the app takes
+under a minute. The plan was written for a fresh session to implement
+phase by phase without having been part of the design conversation.
+
+**Decisions already made — don't re-litigate these:**
+
+- **Every import path lands on the same pre-filled form, and nothing
+  writes to the database until a human reviews it and taps Save.** Manual
+  entry is the form empty; paste/photo/link import is the same form
+  pre-filled by extraction. Voice gets away with no review step because it
+  reads each change aloud and "undo" is one word away; an import is a
+  whole recipe landing at once, so a silent mis-extraction would quietly
+  rot the library. Build the form once (R1); every import phase after is
+  only "a new way to pre-fill it."
+- **Extraction is a Claude call on the API key voice already uses.**
+  Pasted text and fetched pages go to Claude with structured outputs
+  (same technique as `src/lib/voice/parse.ts`); photos go into the same
+  kind of call as images — Claude reads them directly, no separate OCR
+  service, no new accounts, no new env vars. Implementing session: load
+  the `claude-api` skill before writing any extraction code rather than
+  working from memory. Start with Haiku (proven in parse.ts, cost already
+  approved); bump only the extraction call to Sonnet if real photos —
+  handwriting especially — prove too hard for it in testing.
+- **Photo import is the universal fallback — and it's the honest TikTok
+  answer.** When a TikTok's recipe is written in the caption, the public
+  oEmbed endpoint (`https://www.tiktok.com/oembed?url=...`) returns the
+  caption without auth — verify this still works at build time. When the
+  recipe is only *spoken* in the video there is no text to fetch, and we
+  don't chase video transcription: the path is screenshot the recipe
+  (caption, pinned comment, or the on-screen recipe card) → photo import.
+  Pinterest pins usually wrap a link to the source blog — fetch the pin,
+  follow its outbound link once, else the same screenshot fallback. Set
+  this expectation with the family up front instead of promising magic.
+- **Blog URLs: structured data first, Claude second.** Most recipe sites
+  embed a schema.org `Recipe` object as JSON-LD — exact and free, so
+  parse that first and skip the model call entirely when present.
+  Otherwise strip the page to text (capped in length) and send to Claude.
+  Every failure mode must land somewhere useful: a partially-filled form,
+  or a clear "couldn't read this link — screenshot the recipe instead."
+  Never a dead end.
+- **Ingredients and steps are newline-separated text columns**, one entry
+  per line — not a structured sub-table, and not a Postgres `String[]`
+  (the no-provider-specific-features schema rule still stands; scalar
+  lists don't exist on SQLite). A plain textarea edits them; rendering
+  splits on newlines. Structured quantities, unit parsing, and pantry
+  linkage are deliberately out of v1.
+- **No stored images in v1.** Import photos are transient — resized on
+  the phone, sent to Claude for extraction, never written to disk or the
+  database. This stack has no blob storage and Vercel's filesystem is
+  ephemeral; a photo-of-the-dish field means adding Vercel Blob later
+  (listed under not-in-v1), not sneaking bytes into Postgres now.
+- **Recipes don't join the pantry category vocabulary.** No tags, no
+  categories in v1 — A–Z plus search is the whole navigation. Tags are
+  cheap to add later if browsing outgrows two axes.
+- **Sharing is per-recipe, opt-in, via an unguessable link**, plus a
+  copy-as-text button for group chats. `shareToken` is null until the
+  first share, generated with crypto randomness, and "Stop sharing" nulls
+  it — the old link dies. The public page (`/share/recipe/[token]`) goes
+  in `proxy.ts`'s `PUBLIC_ROUTES`, where — same lesson as `/api/voice` —
+  public means "no session cookie," not "no gate": the token is the gate.
+  Default private, always.
+- **Search reuses the `match.ts` tokenizer** and Inventory's established
+  behavior: typing replaces the browse view with a flat ranked list,
+  clearing restores it. Title matches rank above ingredient-only matches,
+  so "chicken" surfaces Chicken pot pie before things that merely contain
+  chicken.
+- **⚠️ The dev database IS the live family database.** `.env`'s
+  `DATABASE_URL` points at the same Neon database production uses — there
+  is no separate dev database. **Never run `npm run db:seed` or `npm run
+  db:reset` during this work** — they would replace the family's real
+  461-item inventory with sample data. Recipe test data comes from a
+  recipes-only script (R1) that adds and removes rows in the new `Recipe`
+  table and touches nothing else. The `Recipe` migration itself is purely
+  additive (a brand-new table), which is what makes running it against
+  the live database safe.
+
+**The phases.** Commit at each boundary; `npx tsc --noEmit` and `eslint`
+clean before each commit; verify each phase in the running app against
+real interaction, not just by reading the code — that discipline is what
+caught the steaks/"tea", "T-bone"/tortilla, and bouillon bugs in earlier
+plans. Per AGENTS.md, check `node_modules/next/dist/docs` before using
+any Next API not already used in this repo.
+
+- **R1. Schema + manual CRUD.** `Recipe` model in `prisma/schema.prisma`,
+  house style (cuid id, no enums, `///` doc comments): `title`,
+  `ingredients` (text, one per line), `steps` (text, one per line),
+  `servings?`, `prepTime?`, `cookTime?` (all free-text strings — "6-8"
+  and "45 min" are real answers), `sourceUrl?`, `notes?`, `shareToken?
+  @unique`, `createdAt`, `updatedAt`. Migration, then `npx prisma
+  generate` (the Phase-2 lesson). Server Actions in
+  `src/app/actions/recipes.ts` — create/update/delete, each opening with
+  `getVerifiedSession()` like the existing 12. One recipe form component
+  used by both New and Edit: inputs plus textareas, 48px targets,
+  keyboard typing allowed (recipes are laptop-entry, not
+  wet-hands-on-the-wall-tablet — the QuantityStepper rule is about
+  counts, not prose). Pages: the list (flat and alphabetized for now,
+  reuse `EmptyState`), detail at `/kitchen/cooking/recipes/[id]`
+  (ingredients, then numbered steps, Edit, single-tap Delete per the
+  house rule). Plus `db:seed-recipes` / cleanup scripts: ~12 recipes
+  spread across the alphabet including one starting with a digit (for
+  the "#" bucket), deleting only `Recipe` rows on cleanup. Verify:
+  create, edit, delete through the browser; count returns to baseline
+  after cleanup.
+- **R2. A–Z rail + search.** Group the list by first letter (digits and
+  symbols under "#"), sticky section headers. The rail is **one
+  continuous touch surface** pinned to the right edge — pointer
+  down/move maps finger position to the nearest letter and jumps there —
+  *not* 27 separate tiny buttons, which would violate the 48px rule;
+  precision comes from sliding, like the iPhone contacts rail. Letters
+  with no recipes render dimmed and inert. Search box above the list per
+  the decision above. All client-side over the full fetched list —
+  household scale, no pagination. Verify in devtools mobile mode with
+  touch simulation, with the seeded alphabet spread.
+- **R3a. Import: pasted text.** "Add recipe" opens a chooser — Type it
+  in / Paste text / From a photo / From a link (build all four options'
+  chooser now; wire photo and link as they land). A new extraction
+  Server Action guarded by `getVerifiedSession()`: text in → Claude
+  structured output `{title, ingredients[], steps[], servings?,
+  prepTime?, cookTime?}` → the R1 form pre-filled, via client state —
+  no draft rows in the database. Load the `claude-api` skill before
+  writing it. Verify with a real blog copy-paste, life story and ads
+  included.
+- **R3b. Import: photo.** `<input type="file" accept="image/*">` (phones
+  offer the camera themselves), up to 3 photos per import for multi-page
+  recipes. **Downscale client-side before upload** — canvas re-encode to
+  ~1600px long edge JPEG — because raw phone photos run 3–10MB and will
+  blow the Server Action body limit; find the body-size config in the
+  Next 16 docs and set it explicitly rather than trusting defaults.
+  Same extraction action with images attached; same form pre-fill.
+  Verify with the three real source types in this house: a printed
+  cookbook page, a handwritten card, a TikTok screenshot.
+- **R3c. Import: URL.** The flaky one — built last, on purpose, so
+  nothing depends on it. Server-side fetch with a timeout: tiktok.com →
+  oEmbed caption; otherwise fetch HTML → JSON-LD `Recipe` if present →
+  else strip to text → Claude; pinterest.com → find the pin's outbound
+  source link, follow once, treat as above. Every failure lands on the
+  form or a "screenshot it instead" message. Verify with a real recipe
+  blog URL, a caption-recipe TikTok, and a Pinterest pin from the
+  actual boards.
+- **R4. Sharing.** Copy-as-text (title, ingredients, steps as clean
+  plain text). Share link per the decision above: token generation,
+  a public print-friendly page with no nav bar and no session
+  assumptions, the `PUBLIC_ROUTES` entry, and "Stop sharing." Then the
+  house adversarial check: absent and wrong tokens 404 with nothing
+  leaked, tokens aren't guessable or sequential, the share page renders
+  exactly one recipe and nothing else, and a quick proxy-misconfiguration
+  drill (Phase-1e style) confirming no other route went public by
+  accident.
+
+**Deliberately not in v1** (revisit only when real use demands it): dish
+photos (needs Vercel Blob — a new account/billing decision, so Bryce's
+call), tags/categories, structured ingredients and "add this recipe's
+ingredients to the shopping list" (genuinely wanted someday, needs
+quantity parsing), cook-mode screen wake lock, recipe voice verbs, and
+bulk-importing an entire Pinterest board.
+
 ## Planned, not yet built
 
 Everything below is independent of the voice plan above and not currently
@@ -507,8 +678,10 @@ nothing here is scheduled:
 
 - **Family profiles** — a page per family member.
 - **Chore charts** — for the kids.
-- **Recipes**
-- **Meal planning**
+- **Recipes** — now the ACTIVE plan above.
+- **Menu** — Cooking's second tile ("what's for dinner tonight/this
+  week" — scope to be defined when it's picked up).
+- **Meal planning** — Cooking's third tile.
 - **To-dos**
 - **Habit trackers**
 - **Photo gallery**
@@ -855,9 +1028,30 @@ just read from the code:
   tap-to-edit-then-delete pattern instead, since a leftover-only fast
   path would be inconsistent with how every other item gets deleted.
 
-**Obvious next step: V3 — the Alexa skill**, for the actual kitchen Echo
-device the voice work was originally about. Needs Bryce to create a free
-Amazon developer account (walkthrough style, like Neon/Vercel), then a
-skill that passes the raw utterance through to the same `/api/voice`
-endpoint, kept in development mode (works indefinitely on the developer's
-own household Echo devices, no certification needed for a private app).
+**V3 — the Alexa skill — is still queued** but no longer next: Bryce
+chose to build Recipes first. When it's picked up: free Amazon developer
+account (walkthrough style, like Neon/Vercel), a skill that passes the
+raw utterance through to the same `/api/voice` endpoint, kept in
+development mode (works indefinitely on the developer's own household
+Echo devices, no certification needed for a private app).
+
+**New session, 2026-08-04: Cooking became a real branch and the Recipes
+plan was written.** Cooking's "Coming soon" stub was replaced with a
+landing page — the same tile-grid pattern as Kitchen's, with Recipes /
+Menu / Meal planning tiles pointing at new placeholder pages — and the
+tile component was extracted to `src/components/BranchTile.tsx`, now
+shared by both landing pages (with a `wide` prop so Cooking's odd third
+tile spans both columns). Verified in the running app: tiles navigate,
+Kitchen's badges unaffected by the refactor, no console errors, clean
+`tsc` and `eslint`.
+
+Then the **Recipes plan** (see the ACTIVE section above) was designed
+and documented, written to be implemented phase-by-phase by a fresh
+session. The critical operational fact for whoever does R1: **local dev
+and production share one Neon database** — the plan's warning about
+`db:seed`/`db:reset` is not hypothetical, those commands would destroy
+the family's real 461-item inventory.
+
+**Obvious next step: R1 of the Recipes plan** — schema, Server Actions,
+the recipe form, list and detail pages, and the recipes-only seed
+scripts.
