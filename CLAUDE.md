@@ -49,13 +49,14 @@ branch later — it gets a tab in `nav.ts` and a landing page, that's it.
 **Kitchen** (`/kitchen`) is the first branch. Its landing page is a 2×2 grid
 of large tiles, one per sub-page — Inventory, Shopping, Expiring, Cooking —
 each tile the full tap target. Inventory's tile carries a badge for its low
-count, Shopping's for its to-buy count; neither shows a raw item total, since
-the tile's job is "does this need attention," not inventory volume. Expiring
-and Cooking carry no badge — there's no real feature behind them yet.
+count, Shopping's for its to-buy count, Expiring's for its soon-to-expire
+count; none shows a raw item total, since the tile's job is "does this need
+attention," not inventory volume. Cooking carries no badge — there's no real
+feature behind it yet.
 
 - **Inventory** (`/kitchen/inventory`) — tracks what's stocked across four
   locations (Pantry, Fridge, Freezer, and Storage — the overflow/cold storage
-  downstairs). Grouped by category (28 groups, in supermarket order — see
+  downstairs). Grouped by category (29 groups, in supermarket order — see
   "the category vocabulary" below) with location as a filter via chips above
   the list. Every group is collapsible; groups holding a low item start open,
   every header shows its own low count even when shut, and "Expand all" /
@@ -64,7 +65,11 @@ and Cooking carry no badge — there's no real feature behind them yet.
   many items were in a location. Items below their "low" threshold get a Low
   (or Out, at zero) badge and float to the top of their group. Category and
   location icons are Lucide outline components; dropdowns fall back to plain
-  text since `<select><option>` can't render SVG.
+  text since `<select><option>` can't render SVG. A search box above the
+  filter chips (`src/lib/match.ts`'s `searchItems`) doesn't need an exact
+  match — typing "straw" ranks Strawberries above Frozen strawberries — and
+  swaps the grouped view for a flat ranked list while a query is active,
+  respecting whichever location chip is already selected.
 - **Shopping** (`/kitchen/shopping`) — add items, group by store-aisle
   category, tap a row to check it off, adjust quantity with +/− steppers,
   clear checked items, or "put away" checked items straight into the pantry.
@@ -78,23 +83,36 @@ and Cooking carry no badge — there's no real feature behind them yet.
   picker sheet first; either way, the last store you picked is remembered
   (`localStorage`, see the design rule below) and offered again next time —
   the dropdown defaults to it, the sheet highlights it "Last used."
-- **Expiring** and **Cooking** — placeholder pages only (the tiles exist,
-  pages just say "Coming soon"). A deliberate, named exception to "no feature
-  is stubbed out early" below — Bryce wanted the full shape of the branch
-  visible now since these are next in line to actually get built.
+- **Expiring** (`/kitchen/expiring`) — sorts by urgency (Eat now / This week
+  / Coming up), not category, since it answers "what needs eating" rather
+  than "where's the pasta." Most items get an automatic shelf-life estimate
+  (marked with `~`) from `src/lib/shelfLife.ts`; a real date typed into the
+  edit sheet's "Expires on" field always wins over the guess. Only items
+  inside a 14-day window show up at all. The page's marquee action is "Log
+  leftovers" — name, portions, and a 2/3/4/5-day picker, never a typed date
+  — which creates an ordinary pantry item in a new "Leftovers" category, so
+  it inherits every other feature (rows, steppers, search, the edit sheet)
+  for free rather than needing its own system.
+- **Cooking** — a placeholder page only (the tile exists, the page just says
+  "Coming soon"). A deliberate, named exception to "no feature is stubbed
+  out early" below — Bryce wanted the full shape of the branch visible now
+  since it's next in line to actually get built.
 
-**The category vocabulary is 28 groups, not 9.** `src/lib/constants.ts` used
+**The category vocabulary is 29 groups, not 9.** `src/lib/constants.ts` used
 to hold a flat list (Produce, Dairy, Frozen, Pantry...) that couldn't tell
 "canned beans" from "cereal" from "dish soap" — everything not obviously
-produce or dairy landed in one giant bucket. It's now 28 categories (Produce,
+produce or dairy landed in one giant bucket. It's now 29 categories (Produce,
 Bread & Bakery, Canned Food, Condiments & Sauces, Household, Personal Care &
-Beauty, Health & Wellness, Children's Essentials, and so on), ordered as a
-walk through a supermarket — perimeter first, then centre aisles, then
-non-food, catch-all ("Other") last. Both Shopping and Inventory read that
-order directly, so a longer list actually made grouping *more* useful, not
-less: Shopping's aisle-order grouping got finer, and Inventory's flat list
-became collapsible groups worth collapsing. Adding a category is still the
-one-line change the "one source of truth" rule promises.
+Beauty, Health & Wellness, Children's Essentials, Leftovers, and so on),
+ordered as a walk through a supermarket — perimeter first, then centre
+aisles, then non-food, catch-all ("Other") last. Leftovers sits right after
+Meals & Frozen Food despite not really fitting the supermarket metaphor
+(nobody buys leftovers) — see the Expiring & leftovers plan for why. Both
+Shopping and Inventory read that order directly, so a longer list actually
+made grouping *more* useful, not less: Shopping's aisle-order grouping got
+finer, and Inventory's flat list became collapsible groups worth collapsing.
+Adding a category is still the one-line change the "one source of truth"
+rule promises.
 
 **Tap-to-edit** — tapping any pantry item opens a full edit sheet (a bottom
 sheet on phones, a centered dialog on wider screens) covering every field:
@@ -398,10 +416,11 @@ of Dr Pepper"* and the counts just change.
   would be logging leftovers by voice (see the Expiring plan below), then
   chores/to-dos/calendar once those branches actually get built.
 
-## Expiring & leftovers plan — ACTIVE
+## Expiring & leftovers plan — ✅ DONE
 
-The current work, and the first real feature built on top of the finished
-inventory. Two problems, one page:
+The first real feature built on top of the finished inventory — all three
+phases shipped and verified against the real 461-item inventory, not just
+read from the code. Two problems, one page:
 
 1. **Food quietly goes bad** because nothing tracks age, and nobody will
    hand-enter expiry dates for 461 items — that's the same "too much
@@ -418,17 +437,24 @@ inventory. Two problems, one page:
   fridge") → a category+location fallback ("Produce in Fridge ≈ 1 week")
   → nothing. An estimate is always *marked* as one in the UI (a `~`), so
   a guess never masquerades as a fact.
-- **Shelf-life data comes from the USDA/FDA FoodKeeper dataset**, not
-  invented numbers — it publishes storage times per food split by
-  pantry/fridge/freezer, which is exactly the shape needed. Turned into a
-  vocabulary file of ~100 common foods rather than pulled at runtime.
-- **The shelf-life table is matched with the existing fuzzy matcher**
-  (`src/lib/match.ts`), the same code voice and search already use. Third
-  caller, same brain. Crucially this makes coverage *measurable*: run it
-  against the real 461 items and count how many get a name-level
-  estimate vs. category fallback vs. nothing, then tune — the same
-  test-against-real-data discipline that caught the steaks/"tea" and
-  tortilla/"T-bone" bugs.
+- **Shelf-life data comes from USDA FoodKeeper/FDA/FSIS guidance**, not
+  invented numbers — gathered via WebSearch against real cited sources,
+  not recalled from memory. Turned into a name-override vocabulary
+  (`src/lib/shelfLife.ts`) sized to what's actually in the real inventory
+  (~60 entries) plus a category+location fallback for everything else,
+  rather than an untested generic list.
+- **Shelf-life matching is its own stricter matcher, not a reuse of
+  voice/search's `matchItem`.** The plan's original idea was to reuse
+  `matchItem` directly; building it surfaced why that's wrong here.
+  Voice can afford a lenient best guess because it says the pick out loud
+  and "undo" is one word away — a shelf-life estimate has no such
+  feedback loop, so `matchItem`'s leniency silently mislabeled real items
+  (see "Where I left off"). `findOverride` in `shelfLife.ts` requires
+  every word of the override to appear in the item's name, not just one.
+  Coverage is still measured the same way the plan intended: run it
+  against the real 461 items and count what got an estimate vs. nothing,
+  then tune — the same test-against-real-data discipline that caught the
+  steaks/"tea" and tortilla/"T-bone" bugs earlier in the session.
 - **Day zero is `restockedAt`**, a new timestamp set whenever an item's
   quantity goes *up* (put-away, voice "add", manual increase) — not
   `createdAt`, which would freeze the clock at the August 2026 import and
@@ -449,21 +475,24 @@ inventory. Two problems, one page:
   an explicit date, plus all leftovers — otherwise flour's six-month
   estimate and canned olives' two-year estimate bury the page.
 - **Expiry never deletes anything.** The system nags and sorts; a human
-  decides. Consistent with "delete is a single tap, no confirmation" —
-  "we ate it" and "we tossed it" are the same tap, because the outcome
-  is identical.
+  decides. "We ate it" and "we tossed it" both end the same way: tap the
+  row, tap Delete in the edit sheet — no separate quick-action, no
+  confirmation dialog, same pattern as every other item in the app.
 
-**The phases:**
+**The phases — all done:**
 
-- **E1. Plumbing + shelf-life data** — schema migration (`expiresAt`,
-  `restockedAt`), the FoodKeeper-derived vocabulary, matcher wiring, and
-  a coverage report against the real 461 items *before* any UI exists.
-- **E2. The Expiring page** — urgency sections (Eat now / This week /
-  Coming up), estimate marking, the Kitchen tile's badge finally earning
-  its place (count expiring within 3 days), and an optional exact-date
-  field in the existing edit sheet.
-- **E3. Leftovers** — the category, the log-leftovers flow, the countdown
-  treatment, and one-tap "finished".
+- **E1. Plumbing + shelf-life data** — ✅ Done. Schema migration
+  (`expiresAt`, `restockedAt`), the FoodKeeper-derived vocabulary
+  (`src/lib/shelfLife.ts`), and a coverage report against the real 461
+  items before any UI existed. See "Where I left off" for the two real
+  matching bugs this caught.
+- **E2. The Expiring page** — ✅ Done. Urgency sections (Eat now / This
+  week / Coming up), estimate marking with `~`, the Kitchen tile's badge
+  (count expiring within 3 days), and the exact-date field in the
+  existing edit sheet.
+- **E3. Leftovers** — ✅ Done. The "Leftovers" category (`constants.ts`),
+  `LogLeftoverSheet` (name, portions, a 2/3/4/5-day preset picker — never
+  a typed date), and the marquee button on the Expiring page.
 
 **Deliberately not in v1** (revisit only if real use demands it):
 per-purchase batch tracking (the honest way to handle old and new apples
@@ -581,10 +610,10 @@ Still open from before:
 
 - **Collapse state doesn't persist** on Inventory — plain component state,
   resets on reload.
-- **Shopping has no collapse/expand** — it picked up the 28 categories but
+- **Shopping has no collapse/expand** — it picked up the 29 categories but
   not the collapsible treatment.
-- **Five of ten tiles/tabs are still placeholder pages** (Expiring, Cooking,
-  Calendar, Chores, Lists).
+- **Four of ten tiles/tabs are still placeholder pages** (Cooking, Calendar,
+  Chores, Lists) — Expiring shipped this session and is off this list.
 - **Pre-existing:** `eslint` flags a component-defined-during-render issue in
   `GroceryRow.tsx` (`categoryIcon()` called at the top of the component each
   render). Small, isolated, noticed three times now but not yet fixed —
@@ -766,9 +795,69 @@ first week.
   listening yet when "I used 2 Dr Peppers" is said. Same constraint will
   apply to the Alexa skill ("Alexa, tell Marsh HQ...").
 
+**Inventory search shipped this session too, ahead of V3.** Bryce asked
+for it directly — a search box that doesn't need an exact match. Built as
+`searchItems()` in `src/lib/match.ts` (renamed from `src/lib/voice/
+match.ts` since it's no longer voice-only), sharing the same tokenizer as
+voice's `matchItem` but with prefix-tolerant scoring: typing "straw"
+ranks Strawberries above Frozen strawberries above Strawberry jam. One
+real bug caught testing against the real inventory: a reverse-prefix rule
+let "T-bone steaks" (tokenizes to `["t", "bone", "steak"]`) match any
+query starting with T, so searching "tortilla" surfaced steaks — fixed by
+requiring the candidate token be 3+ characters for that branch. The
+search box lives above Inventory's location chips; typing replaces the
+grouped/collapsible view with a flat ranked list, and clearing it
+restores exactly the prior view including collapse state.
+
+**Then the Expiring & leftovers plan (E1-E3) was designed and fully
+shipped, this same session.** Bryce's framing: produce needs a rough
+guess ("grapes go soft around 5 days"), exact dates should be optional,
+and leftovers specifically get wasted because nobody tracks them. All
+three phases done and verified against the real 461-item inventory, not
+just read from the code:
+
+- **E1** — `expiresAt` (exact, user-typed, always wins) and `restockedAt`
+  (the estimate's day-zero, default `now()`) added to `PantryItem`.
+  `restockedAt` advances on every write path that increases quantity —
+  the stepper, the edit sheet, "put away", voice's "add" — verified with
+  a real tap through the running app: qty 5→6 moved the clock, a
+  decrement back to 5 did not. `src/lib/shelfLife.ts` holds ~60
+  name-level entries sourced from USDA FoodKeeper/FDA/FSIS guidance
+  (gathered via WebSearch, not recalled from memory) plus a
+  category+location fallback. Two real bugs caught by the coverage run
+  before any UI existed: reusing `matchItem` for shelf-life let "Dr
+  Pepper Zero" partial-match "Bell peppers" on the shared word "pepper"
+  (10-day estimate on a can of soda), and "Liquid I.V. White Peach" match
+  "white bread" on "white". Fixed with a dedicated stricter matcher,
+  `findOverride`, that requires every word of the override to appear in
+  the item's name — matchItem's leniency is right for voice (it says the
+  pick out loud, "undo" is one word away) and wrong here (no feedback
+  loop, so a weak match just silently mislabels something).
+- **E2** — the actual page: urgency sections (Eat now/red, This
+  week/amber, Coming up/muted — added a `--danger-soft` color token
+  since the palette had `warn-soft` but no red equivalent), an `~` on
+  every estimate, the Kitchen tile's badge (things expiring within 3
+  days), and an "Expires on (optional)" date field in the shared edit
+  sheet. A live test surfaced one more real accuracy bug: "Beef bouillon
+  cubes" and "Better Than Bouillon" showed ~4 days left, inherited from
+  the Soups & Stocks/Fridge fallback tuned for actual fresh stock — wrong
+  for a shelf-stable concentrate that just happened to get filed under
+  that category during the Phase-5 import. Fixed with two more
+  NAME_OVERRIDES entries.
+- **E3** — the "Leftovers" category (one line in `constants.ts`) and
+  `LogLeftoverSheet`: name, a portions stepper, and four big day-count
+  chips (2/3/4/5, default 3) — deliberately never a typed date, which was
+  the entire point. Logged a real leftover through the running app and
+  confirmed it inherited everything for free: showed up correctly in
+  Inventory search, the pantry count moved 461→462, cleanup brought it
+  back to 461. One deliberate deviation from the original plan sketch:
+  no separate one-tap "finished" quick-action — reused the existing
+  tap-to-edit-then-delete pattern instead, since a leftover-only fast
+  path would be inconsistent with how every other item gets deleted.
+
 **Obvious next step: V3 — the Alexa skill**, for the actual kitchen Echo
-device this was originally about. Needs Bryce to create a free Amazon
-developer account (walkthrough style, like Neon/Vercel), then a skill
-that passes the raw utterance through to the same `/api/voice` endpoint,
-kept in development mode (works indefinitely on the developer's own
-household Echo devices, no certification needed for a private app).
+device the voice work was originally about. Needs Bryce to create a free
+Amazon developer account (walkthrough style, like Neon/Vercel), then a
+skill that passes the raw utterance through to the same `/api/voice`
+endpoint, kept in development mode (works indefinitely on the developer's
+own household Echo devices, no certification needed for a private app).
