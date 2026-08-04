@@ -597,7 +597,7 @@ caught the steaks/"tea", "T-bone"/tortilla, and bouillon bugs in earlier
 plans. Per AGENTS.md, check `node_modules/next/dist/docs` before using
 any Next API not already used in this repo.
 
-- **R1. Schema + manual CRUD.** `Recipe` model in `prisma/schema.prisma`,
+- **R1. Schema + manual CRUD.** ✅ **Done.** `Recipe` model in `prisma/schema.prisma`,
   house style (cuid id, no enums, `///` doc comments): `title`,
   `ingredients` (text, one per line), `steps` (text, one per line),
   `servings?`, `prepTime?`, `cookTime?` (all free-text strings — "6-8"
@@ -1052,6 +1052,76 @@ and production share one Neon database** — the plan's warning about
 `db:seed`/`db:reset` is not hypothetical, those commands would destroy
 the family's real 461-item inventory.
 
-**Obvious next step: R1 of the Recipes plan** — schema, Server Actions,
-the recipe form, list and detail pages, and the recipes-only seed
-scripts.
+**R1 of the Recipes plan is done, verified against the running app, not
+just read from the code.** What actually shipped:
+
+- **Schema**: `Recipe` model (title, ingredients, steps, servings?,
+  prepTime?, cookTime?, sourceUrl?, notes?, shareToken? @unique,
+  createdAt, updatedAt) — a purely additive migration, confirmed with a
+  direct Prisma count before and after (`{ pantry: 462, grocery: 13 }`
+  unchanged) since this ran against the live shared database, not a
+  throwaway dev copy.
+- **Server Actions** (`src/app/actions/recipes.ts`): `createRecipe`,
+  `updateRecipe`, `deleteRecipe`, each opening with
+  `getVerifiedSession()` like the existing 12. Create/update use
+  `useActionState`'s `(previousState, formData) => State` shape — the
+  same pattern `login` already established in `auth.ts`/`LoginForm.tsx`
+  — so validation errors ("Give the recipe a title.") render inline and
+  a successful save `redirect()`s straight to the detail page. Delete is
+  a plain `<form action={deleteRecipe}>` with a hidden id field, single
+  tap, no confirmation, matching the house rule.
+- **`RecipeForm`** (`src/components/RecipeForm.tsx`): one form for both
+  New and Edit, real keyboard inputs throughout (not steppers — recipes
+  are typed-out entry, not the wet-hands-on-a-wall-tablet case the
+  QuantityStepper rule targets). Ingredients and steps are plain
+  textareas, one entry per line, exactly as the plan specified — no
+  sub-table, no Postgres array type.
+- **Pages**: the list (`/kitchen/cooking/recipes`, flat and alphabetized
+  in JS via `localeCompare` rather than Prisma's `orderBy`, same
+  reasoning as `PantryList` — collation surprises stay out of it),
+  detail (`/kitchen/cooking/recipes/[id]`, ingredients then numbered
+  steps, an Edit button, single-tap Delete), New, and Edit. All four are
+  new routes two levels under Kitchen (`Kitchen → Cooking → Recipes →
+  [id]`) — the deepest nesting in the app so far, still served by
+  Cooking's own landing page rather than a nav change, per the existing
+  branch-navigation rule.
+- **Recipe-only seed/cleanup scripts** (`prisma/seed-recipes.ts`,
+  `prisma/clean-recipes.ts`, run via `npm run db:seed-recipes` /
+  `db:clean-recipes`): 12 recipes spanning the alphabet plus one digit-led
+  title ("3-Ingredient Peanut Butter Cookies", for R2's future "#"
+  bucket), real recipes with real ingredients and steps, not placeholder
+  text. Deliberately separate from `prisma/seed.ts` and never touch
+  pantry or grocery — the operational warning earlier in this plan about
+  the shared database was written for exactly this step.
+
+**What the adversarial-style verification actually caught**: a stale
+Prisma Client. The dev server had been running since before the `Recipe`
+migration and `prisma generate`, and `db.ts` deliberately caches its
+client on `globalThis` to survive Next.js's normal hot-reloads (see the
+design rule) — but that same caching means a *new model* needs a full
+process restart, not just a file save. First load of the recipes list
+threw `Cannot read properties of undefined (reading 'findMany')`, from
+the browser's own error overlay, not a guess from reading the code.
+Killing and restarting the dev server fixed it. Worth remembering
+alongside the Phase-2 "regenerate the client after changing the
+provider" lesson: **any schema change that adds a new model or field
+needs a dev server restart, not just `prisma generate`, if the server
+was already running.**
+
+Verified end to end in the browser, session-authenticated (not curled
+around auth): the seeded list renders alphabetized (digit-title first,
+"Zucchini Bread" last); a detail page renders ingredients, steps, meta
+(servings/prep/cook), and a saved note; Edit pre-fills every field and a
+real edit round-trips; New with an empty title shows the inline
+validation error instead of silently failing; New with real content
+(“Kimchi Fried Rice”) creates and redirects to its detail page; Delete
+removes it and redirects to the list. `db:clean-recipes` afterward
+brought the table back to exactly 0 rows, with pantry/grocery counts
+still untouched throughout. `tsc --noEmit` and `eslint` are clean on
+every new file (the one lint error in the repo, `GroceryRow.tsx`'s
+component-during-render issue, is pre-existing and untouched).
+
+**Obvious next step: R2 of the Recipes plan** — the A-Z jump rail (one
+continuous slide-to-jump touch surface, not 27 tiny buttons) and search
+reusing `src/lib/match.ts`'s tokenizer, on top of the list page R1 just
+built.

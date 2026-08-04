@@ -10,7 +10,9 @@
     "postinstall": "prisma generate",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "db:seed-recipes": "tsx prisma/seed-recipes.ts",
+    "db:clean-recipes": "tsx prisma/clean-recipes.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

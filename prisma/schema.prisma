@@ -119,3 +119,33 @@ model PantryItem {
   /// The Expiring page's main query: things with a real date, soonest first.
   @@index([expiresAt])
 }
+
+/// Something the household knows how to cook. Ingredients and steps are
+/// stored as plain newline-separated text (one entry per line), not a
+/// sub-table or a Postgres String[] — scalar lists aren't available on
+/// SQLite, and the project avoids provider-specific schema features.
+model Recipe {
+  id String @id @default(cuid())
+
+  title       String
+  ingredients String // one ingredient per line
+  steps       String // one step per line
+
+  /// Free text on purpose — "6-8", "2 loaves", "45 min" are all real answers
+  /// nobody wants forced into a number field.
+  servings String?
+  prepTime String?
+  cookTime String?
+
+  /// Where this came from, if it was imported rather than typed by hand.
+  sourceUrl String?
+  notes     String?
+
+  /// Null until the recipe is first shared. Set to a fresh random value to
+  /// share, cleared ("Stop sharing") to revoke — the old link just 404s from
+  /// then on, since the public page looks a row up by this value.
+  shareToken String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
