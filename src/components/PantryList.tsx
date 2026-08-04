@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Search, X } from "lucide-react";
 import { PantryRow } from "./PantryRow";
 import { PantryItemEditSheet, type PantryItemEdits } from "./PantryItemEditSheet";
 import { StorePickerSheet } from "./StorePickerSheet";
@@ -13,6 +13,7 @@ import {
   categoryOrder,
   isLow,
 } from "@/lib/constants";
+import { searchItems } from "@/lib/match";
 import type { PantryItemView } from "@/lib/types";
 import {
   setPantryQuantity,
@@ -55,6 +56,7 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
   const [optimisticItems, applyOptimistic] = useOptimistic(items, applyChange);
   const [, startTransition] = useTransition();
   const [filter, setFilter] = useState<string>(ALL);
+  const [query, setQuery] = useState("");
   // Which item (if any) has its edit sheet open. Just an id, not the item
   // itself, so the sheet always reads the latest optimistic data for it.
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -104,6 +106,12 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
     filter === ALL
       ? optimisticItems
       : optimisticItems.filter((item) => item.location === filter);
+
+  // Searching within whatever the location chips already narrowed to, so
+  // "Fridge" + "milk" is a real combination, not two separate filters that
+  // fight each other. Ranked by match quality, not A-Z — the whole point of
+  // typing "straw" is that Strawberries floats above Frozen strawberries.
+  const searchResults = query.trim() ? searchItems(query, visible) : null;
 
   // Within any group, whatever's running low floats to the top — that's the
   // thing you actually came to the page to find. Everything else is A–Z.
@@ -159,6 +167,35 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
 
   return (
     <div>
+      {/* Big touch target, one tap to clear — typed search, not voice or
+          barcode (those are separate, planned features), just "don't make me
+          scroll to find the thing I typed part of the name of." */}
+      <div className="relative mb-3">
+        <Search
+          aria-hidden="true"
+          size={18}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+        />
+        <input
+          type="text"
+          inputMode="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search the inventory…"
+          className="min-h-12 w-full rounded-xl border border-line bg-surface pl-10 pr-10 text-base placeholder:text-muted"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            aria-label="Clear search"
+            className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+          >
+            <X aria-hidden="true" size={18} />
+          </button>
+        )}
+      </div>
+
       {/*
         Filter chips. They scroll sideways rather than wrapping or shrinking:
         five of them won't fit across a 375px phone, and shrinking them below a
@@ -193,7 +230,24 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
         </div>
       </div>
 
-      {visible.length === 0 ? (
+      {searchResults ? (
+        searchResults.length === 0 ? (
+          <EmptyState
+            emoji="🔍"
+            title={`No matches for "${query.trim()}"`}
+            hint="Try a shorter or different word — search matches the start of any word in the name."
+          />
+        ) : (
+          // Flat and ranked, not grouped by category — the point of typing
+          // "straw" is seeing Strawberries first, not hunting through
+          // Produce and Meals & Frozen Food to find it.
+          <ul className="space-y-2">
+            {searchResults.map((item) => (
+              <PantryRow key={item.id} item={item} {...rowHandlers(item)} />
+            ))}
+          </ul>
+        )
+      ) : visible.length === 0 ? (
         <EmptyState
           emoji="🥫"
           title={filter === ALL ? "The pantry is empty" : `Nothing in ${filter}`}

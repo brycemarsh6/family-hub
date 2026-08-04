@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { matchItem } from "@/lib/voice/match";
+import { matchItem } from "@/lib/match";
 import type { ParsedAction } from "@/lib/voice/parse";
 import { toCategory, DEFAULT_LOCATION } from "@/lib/constants";
 
