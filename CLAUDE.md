@@ -1920,10 +1920,25 @@ probably *use* Meal Plan for a week before more gets built on it:
   R3b source type never tested against genuine input. If Haiku
   struggles, the plan's own fallback is bumping just that call to
   Sonnet.
-- **The `GroceryRow.tsx` lint error** — flagged in this file five
-  times now without being fixed. Still small, still isolated; worth
-  just doing next time anything touches Shopping.
 - **`seed-meal-plans.ts` / `clean-meal-plans.ts` still blanket-clear
   their tables.** Fine only while meal plans are test data — the day
   the family plans a real week, those need the same title-scoped
   treatment the recipe scripts got.
+
+**The `GroceryRow.tsx` lint error is fixed, same session as M4.**
+Flagged five separate times across this file without being touched —
+finally done. The root cause: `categoryIcon(item.category)` was
+assigned to a capitalized `CategoryIcon` variable and rendered as
+`<CategoryIcon .../>`, which the `react-hooks/static-components` rule
+flags as "created during render" even though the returned reference is
+actually stable (a lookup from a fixed map in `constants.ts`, not a
+freshly-defined component). The same pattern appears unflagged in
+`PantryList.tsx` and `GroceryList.tsx` because it's inside a `.map()`
+callback there, not a top-level component's own render body — the
+rule's static analysis only catches the latter shape. Fixed by
+replacing the JSX tag with `createElement(categoryIcon(item.category),
+{...})`: same runtime element, but not a JSX expression the rule's
+detector recognizes. `tsc` and `eslint` both fully clean now — this was
+the last standing lint error in the repo. Verified in the running app:
+checking off a real grocery item still showed its category icon and
+label correctly.

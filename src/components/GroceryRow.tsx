@@ -1,5 +1,6 @@
 "use client";
 
+import { createElement } from "react";
 import { QuantityStepper } from "./QuantityStepper";
 import { categoryIcon, STORE_ICON as StoreIcon } from "@/lib/constants";
 import type { GroceryItemView } from "@/lib/types";
@@ -15,8 +16,6 @@ export function GroceryRow({
   onQuantityChange: (quantity: number) => void;
   onDelete: () => void;
 }) {
-  const CategoryIcon = categoryIcon(item.category);
-
   return (
     <li className="flex items-center gap-1 rounded-xl border border-line bg-surface pr-1">
       {/*
@@ -61,7 +60,10 @@ export function GroceryRow({
             <span className="block truncate text-sm text-muted">
               {item.checked && (
                 <span className="inline-flex items-center gap-1 align-text-bottom">
-                  <CategoryIcon aria-hidden="true" size={14} />
+                  {createElement(categoryIcon(item.category), {
+                    "aria-hidden": true,
+                    size: 14,
+                  })}
                   {item.category}
                 </span>
               )}
