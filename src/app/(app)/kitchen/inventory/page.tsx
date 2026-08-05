@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { BackLink } from "@/components/BackLink";
 import { PantryList } from "@/components/PantryList";
 import { AddItemBar, AddItemSelect } from "@/components/AddItemBar";
 import { AddLowItemsButton } from "@/components/AddLowItemsButton";
@@ -54,6 +55,8 @@ export default async function PantryPage() {
 
   return (
     <div className="py-2">
+      <BackLink href="/kitchen" label="Kitchen" />
+
       <div className="mb-4">
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Inventory</h1>
         <p className="mt-1 text-sm text-muted">

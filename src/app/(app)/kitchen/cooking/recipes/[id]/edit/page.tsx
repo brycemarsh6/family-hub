@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/db";
+import { BackLink } from "@/components/BackLink";
 import { RecipeForm } from "@/components/RecipeForm";
 import { updateRecipe } from "@/app/actions/recipes";
 
@@ -18,13 +17,10 @@ export default async function EditRecipePage({
 
   return (
     <div className="py-2">
-      <Link
+      <BackLink
         href={`/kitchen/cooking/recipes/${recipe.id}`}
-        className="mb-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted"
-      >
-        <ArrowLeft aria-hidden="true" size={16} />
-        {recipe.title}
-      </Link>
+        label={recipe.title}
+      />
 
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">
         Edit recipe

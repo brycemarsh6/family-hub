@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Keyboard, ClipboardPaste, Camera, Link2 } from "lucide-react";
+import { BackLink } from "@/components/BackLink";
 
 // Every import path — typed, pasted, photo, link — lands here first. Photo
 // and link are visible now (per the Recipes plan's "no feature is stubbed
@@ -8,6 +9,8 @@ import { Keyboard, ClipboardPaste, Camera, Link2 } from "lucide-react";
 export default function NewRecipeChooserPage() {
   return (
     <div className="py-2">
+      <BackLink href="/kitchen/cooking/recipes" label="Recipes" />
+
       <h1 className="mb-1 text-2xl font-bold tracking-tight md:text-3xl">
         Add recipe
       </h1>

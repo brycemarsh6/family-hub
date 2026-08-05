@@ -1,6 +1,7 @@
 import { BookOpen, CalendarDays } from "lucide-react";
 import BranchTile from "@/components/BranchTile";
 import PlanWeekTile from "@/components/PlanWeekTile";
+import { BackLink } from "@/components/BackLink";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,8 @@ export default async function CookingPage() {
 
   return (
     <div className="py-4">
+      <BackLink href="/kitchen" label="Kitchen" />
+
       <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Cooking</h1>
       <p className="mt-2 text-base text-muted">
         What we make, and what we&apos;re making next.

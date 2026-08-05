@@ -256,6 +256,23 @@ without re-litigating each time:
   a tile grid at the branch's own route, no nav-list file of its own. Branches
   with only one page (nothing here yet, but plausible) don't need this at
   all — the hub tab goes straight to the content.
+- **Every page below a nav-bar destination carries a `BackLink` to its
+  parent — no exceptions.** The nav bar only reaches branch roots
+  (Kitchen, Calendar, Home, Chores, Lists) and a landing page only
+  reaches *down* into its own sub-pages, so without this any page deeper
+  than a landing page is a dead end: getting from a recipe back to the
+  recipe list meant Kitchen → Cooking → Recipes. `BackLink` is the one
+  edge going up, and it's the shared component in
+  `src/components/BackLink.tsx` — not a hand-rolled `<Link>` per page,
+  which is how it drifted to only 5 of 13 pages having one.
+  Two deliberate details: it takes an **explicit `href`, never
+  `router.back()`**, so the destination is the page's real parent no
+  matter how you arrived (a shared link, a redirect after saving, a
+  reload) — browser history is right most of the time and confusing
+  exactly when it isn't. And the **label names the destination**
+  ("Recipes", "Cooking") rather than the action ("Back"), so the link
+  says where you'll land. The five nav-bar destinations plus `/login`
+  correctly have none — they're already one tap away.
 - **No feature is stubbed out early** — with named exceptions, extended three
   times now: Kitchen's Expiring and Cooking tiles, the hub nav's Calendar,
   Chores, and Lists tabs, and Cooking's own Recipes / Menu / Meal planning
@@ -1942,3 +1959,24 @@ detector recognizes. `tsc` and `eslint` both fully clean now — this was
 the last standing lint error in the repo. Verified in the running app:
 checking off a real grocery item still showed its category icon and
 label correctly.
+
+**Back navigation shipped, same session — a real usability bug Bryce
+hit in normal use.** His words: opening a recipe and then not being
+able to get back to the recipe list without tapping Kitchen → Cooking →
+Recipes. The cause was structural, not a missing button on one page:
+the global nav bar only reaches branch roots and a landing page only
+links *downward*, so nothing below a landing page had an edge going
+back up. The pattern actually already existed — `recipes/new/manual`,
+`paste`, `photo`, `link`, and `[id]/edit` each had a hand-rolled
+`<Link>` with an `ArrowLeft` — but because it was copy-pasted rather
+than shared, it had only landed on 5 of the 13 pages that needed it,
+and the recipe detail page (the one Bryce actually hit) was among the
+missing 8. Extracted to `src/components/BackLink.tsx` per the
+one-source-of-truth rule, applied to all 13, and the 5 hand-rolled
+copies migrated onto it. See the design rule added above for the two
+decisions worth not re-litigating (explicit `href` over
+`router.back()`, and labelling the destination rather than the action).
+Verified in the running app by walking the full chain — recipe →
+Recipes → Cooking → Kitchen — plus confirming the five nav-bar
+destinations correctly still have no back link. `tsc`, `eslint`, and
+`npm run build` all clean.

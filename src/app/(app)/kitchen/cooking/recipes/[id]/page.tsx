@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteRecipe } from "@/app/actions/recipes";
+import { BackLink } from "@/components/BackLink";
 import { RecipeBody } from "@/components/RecipeBody";
 import { ShareRecipeControls } from "@/components/ShareRecipeControls";
 
@@ -19,6 +20,8 @@ export default async function RecipeDetailPage({
 
   return (
     <div className="py-2">
+      <BackLink href="/kitchen/cooking/recipes" label="Recipes" />
+
       <div className="mb-4 flex items-start justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
           {recipe.title}

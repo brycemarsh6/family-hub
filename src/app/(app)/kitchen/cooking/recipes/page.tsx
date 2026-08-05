@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { db } from "@/lib/db";
+import { BackLink } from "@/components/BackLink";
 import { RecipeList } from "@/components/RecipeList";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ export default async function RecipesPage() {
 
   return (
     <div className="py-2">
+      <BackLink href="/kitchen/cooking" label="Cooking" />
+
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">

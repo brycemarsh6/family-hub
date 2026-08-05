@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { BackLink } from "@/components/BackLink";
 import { effectiveExpiry, daysUntil } from "@/lib/expiring";
 import { ExpiringList, type ExpiringEntry } from "@/components/ExpiringList";
 import type { Urgency } from "@/components/ExpiringRow";
@@ -111,6 +112,8 @@ export default async function ExpiringPage() {
 
   return (
     <div className="py-2">
+      <BackLink href="/kitchen" label="Kitchen" />
+
       <div className="mb-4">
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Expiring</h1>
         <p className="mt-1 text-sm text-muted">

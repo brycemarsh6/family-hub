@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { BackLink } from "@/components/BackLink";
 import { GroceryList } from "@/components/GroceryList";
 import { AddItemBar, AddItemSelect } from "@/components/AddItemBar";
 import { StoreSelect } from "@/components/StoreSelect";
@@ -33,6 +34,8 @@ export default async function GroceriesPage() {
 
   return (
     <div className="py-2">
+      <BackLink href="/kitchen" label="Kitchen" />
+
       <div className="mb-4">
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
           Shopping
