@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { BookOpen, ChevronLeft, Search, Sparkles } from "lucide-react";
 import type { MealSlot } from "@/lib/constants";
 import { searchRecipes } from "@/lib/match";
 import type { RecipeListItem } from "./RecipeList";
+import { suggestMealsForSlot } from "@/app/actions/mealPlans";
+import type { MealSuggestion } from "@/lib/mealSuggest";
 
 // Real-life frequent answers, one tap each — the whole point of these is
 // that a preset tap *is* the save, no second confirmation needed. Free text
@@ -40,19 +42,37 @@ export function SlotEditSheet({
   onClear: () => void;
 }) {
   const [customTitle, setCustomTitle] = useState(currentTitle);
-  const [view, setView] = useState<"main" | "pickRecipe">("main");
+  const [view, setView] = useState<"main" | "pickRecipe" | "askAi">("main");
   const [recipeQuery, setRecipeQuery] = useState("");
+
+  const [suggestions, setSuggestions] = useState<MealSuggestion[]>([]);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
+  const [suggesting, startSuggesting] = useTransition();
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        if (view === "pickRecipe") setView("main");
-        else onClose();
+        if (view === "main") onClose();
+        else setView("main");
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose, view]);
+
+  function askAi() {
+    setView("askAi");
+    setSuggestError(null);
+    startSuggesting(async () => {
+      const result = await suggestMealsForSlot(slot);
+      if (result.error) {
+        setSuggestError(result.error);
+        setSuggestions([]);
+      } else {
+        setSuggestions(result.suggestions ?? []);
+      }
+    });
+  }
 
   function handleSaveCustom() {
     const trimmed = customTitle.trim();
@@ -82,14 +102,14 @@ export function SlotEditSheet({
       >
         <div className="mb-2 flex items-center justify-between">
           <div>
-            {view === "pickRecipe" ? (
+            {view !== "main" ? (
               <button
                 type="button"
                 onClick={() => setView("main")}
                 className="flex min-h-11 items-center gap-1 -ml-1 text-lg font-semibold"
               >
                 <ChevronLeft aria-hidden="true" size={20} />
-                Pick a recipe
+                {view === "pickRecipe" ? "Pick a recipe" : "What can I make?"}
               </button>
             ) : (
               <>
@@ -148,6 +168,60 @@ export function SlotEditSheet({
               )}
             </div>
           </div>
+        ) : view === "askAi" ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted">
+              Ideas from what&apos;s actually in the kitchen, using up
+              anything close to going bad.
+            </p>
+
+            {suggesting ? (
+              <p className="px-1 py-8 text-center text-sm text-muted">
+                Looking through the kitchen…
+              </p>
+            ) : suggestError ? (
+              <div className="px-1 py-6 text-center">
+                <p className="text-sm text-danger">{suggestError}</p>
+                <button
+                  type="button"
+                  onClick={askAi}
+                  className="mt-3 min-h-11 rounded-xl border border-line px-4 text-sm font-semibold transition-colors active:bg-surface-2"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={`${suggestion.title}-${index}`}
+                    type="button"
+                    onClick={() =>
+                      onSave(
+                        suggestion.title,
+                        suggestion.kind === "recipe" ? suggestion.recipeId : null,
+                      )
+                    }
+                    className="flex min-h-14 flex-col items-start gap-0.5 rounded-xl border border-line bg-surface-2 px-4 py-3 text-left transition-colors active:bg-line"
+                  >
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-fg">
+                      {suggestion.kind === "recipe" && (
+                        <BookOpen
+                          aria-hidden="true"
+                          size={14}
+                          className="shrink-0 text-accent"
+                        />
+                      )}
+                      {suggestion.title}
+                    </span>
+                    {suggestion.why && (
+                      <span className="text-xs text-muted">{suggestion.why}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           <>
             {currentRecipeId && (
@@ -188,12 +262,11 @@ export function SlotEditSheet({
                 </button>
                 <button
                   type="button"
-                  disabled
-                  className="flex min-h-12 items-center gap-3 rounded-xl border border-dashed border-line px-4 text-left text-sm font-medium text-muted opacity-60"
+                  onClick={askAi}
+                  className="flex min-h-12 items-center gap-3 rounded-xl border border-line bg-surface-2 px-4 text-left text-sm font-medium text-fg transition-colors active:bg-line"
                 >
                   <Sparkles aria-hidden="true" size={18} />
                   Ask AI what to make
-                  <span className="ml-auto text-xs">Coming soon</span>
                 </button>
               </div>
 

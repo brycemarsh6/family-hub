@@ -14,6 +14,9 @@ import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { getVerifiedSession } from "@/lib/dal";
 import { toMealSlot } from "@/lib/constants";
+import type { Category, Location } from "@/lib/constants";
+import { effectiveExpiry, daysUntil } from "@/lib/expiring";
+import { suggestMeals, type MealSuggestion } from "@/lib/mealSuggest";
 
 function refreshMealPlanViews() {
   revalidatePath("/kitchen/cooking/meal-plan");
@@ -104,6 +107,96 @@ export async function setMealPlanEntry(input: {
 
   refreshMealPlanViews();
   return {};
+}
+
+/** How soon an item has to be going bad to be worth building a meal around.
+ * Wider than the Kitchen tile's 3-day badge — the point here is "plan around
+ * it before it's urgent", not "this is urgent now". */
+const SUGGEST_EXPIRY_WINDOW_DAYS = 7;
+
+export type SuggestMealsResult = {
+  suggestions?: MealSuggestion[];
+  error?: string;
+};
+
+/**
+ * "What can I make?" — asks Claude for meal ideas grounded in the real
+ * inventory. Guarded like every other action here, and deliberately
+ * READ-ONLY: it hands suggestions back to the client and writes nothing.
+ * A suggestion only becomes a meal when the user taps it, which routes
+ * through setMealPlanEntry like any other way of filling a slot.
+ */
+export async function suggestMealsForSlot(
+  slot: string,
+): Promise<SuggestMealsResult> {
+  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+
+  const mealSlot = toMealSlot(slot);
+  if (!mealSlot) return { error: "That's not a real meal slot." };
+
+  const [pantryItems, recipes] = await Promise.all([
+    db.pantryItem.findMany({
+      where: { quantity: { gt: 0 } },
+      select: {
+        name: true,
+        quantity: true,
+        unit: true,
+        category: true,
+        location: true,
+        expiresAt: true,
+        restockedAt: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    db.recipe.findMany({
+      select: { id: true, title: true, ingredients: true },
+      orderBy: { title: "asc" },
+    }),
+  ]);
+
+  const today = new Date();
+  const expiringSoon = pantryItems
+    .map((item) => {
+      const expiry = effectiveExpiry({
+        name: item.name,
+        category: item.category as Category,
+        location: item.location as Location,
+        expiresAt: item.expiresAt,
+        restockedAt: item.restockedAt,
+      });
+      if (!expiry) return null;
+      const daysLeft = daysUntil(expiry.date, today);
+      return daysLeft <= SUGGEST_EXPIRY_WINDOW_DAYS
+        ? { name: item.name, daysLeft }
+        : null;
+    })
+    .filter((item) => item !== null)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+
+  try {
+    const suggestions = await suggestMeals({
+      slot: mealSlot,
+      inventory: pantryItems.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        // `unit` is optional on a pantry item ("3 bananas" needs no unit),
+        // so fall back to a bare count rather than printing "null".
+        unit: item.unit ?? "",
+      })),
+      expiringSoon,
+      recipes,
+    });
+
+    if (suggestions.length === 0) {
+      return { error: "Couldn't think of anything from what's in stock." };
+    }
+    return { suggestions };
+  } catch (error) {
+    // Never let a Claude outage block the manual paths — the sheet keeps
+    // presets, the recipe picker, and free text usable either way.
+    console.error("suggestMealsForSlot failed:", error);
+    return { error: "Couldn't reach the AI just now. Try again in a moment." };
+  }
 }
 
 /** Empties a slot. A no-op (not an error) if it was already empty — the

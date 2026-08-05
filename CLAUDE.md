@@ -832,13 +832,14 @@ ingredients to the shopping list" (genuinely wanted someday, needs
 quantity parsing), cook-mode screen wake lock, recipe voice verbs, and
 bulk-importing an entire Pinterest board.
 
-## Meal Plan plan — ACTIVE
+## Meal Plan plan — ✅ DONE
 
-The current work: Cooking's second (and now final) tile. Menu and Meal
-planning were merged into one "Meal Plan" tile after noticing they were
-the same feature described twice; the route rename
-(`meal-planning` → `meal-plan`) and the two-tile Cooking page are already
-in the working tree, uncommitted, and ship with M1.
+All four phases shipped and verified — Cooking's second (and final)
+tile is complete. Menu and Meal planning were merged into one "Meal
+Plan" tile after noticing they were the same feature described twice;
+the route rename (`meal-planning` → `meal-plan`) and the two-tile
+Cooking page shipped with M1. Kept below as a record of the decisions,
+same as the other finished plans.
 
 Bryce's vision, in his own terms: open the tab and see this week's plan —
 each day of the week with breakfast, lunch, dinner, and snacks. Look back
@@ -1057,16 +1058,47 @@ any unfamiliar Next API.
   `GroceryRow.tsx` lint error, still untouched); pantry (462), grocery
   (13), and the 8 real recipes unchanged throughout, since this ran
   against the live shared database.
-- **M4. AI suggestions — "What can I make?"** Load the `claude-api`
-  skill before writing any of it. `suggestMealsForSlot` Server Action
-  (guarded, read-only) assembling the prompt from the real inventory,
-  the expiring-soon list, the slot, and indexed recipes; structured
-  outputs per the grounding decision above; sheet UI listing
-  suggestions with their why-lines, pending state while Claude thinks,
-  and a failure state that leaves every manual path usable. Verify
-  against the real 462-item inventory: suggestions must name items
-  actually on hand, a recipe suggestion must resolve by index to the
-  actual recipe, and the failure path must degrade gracefully.
+- **M4. AI suggestions — "What can I make?"** ✅ **Done — which
+  completes the Meal Plan plan.** `src/lib/mealSuggest.ts` holds the
+  pure Claude call (Haiku, structured outputs), mirroring
+  `voice/parse.ts`'s split exactly: `"server-only"` with no auth check
+  of its own, because `suggestMealsForSlot` in `mealPlans.ts` is what
+  calls `getVerifiedSession()`. The action is read-only — it assembles
+  the prompt from in-stock pantry rows, the soon-to-expire list (via
+  `effectiveExpiry`, 7-day window — wider than the Kitchen tile's
+  3-day badge, since the point here is "plan around it" rather than
+  "this is urgent"), the slot, and the recipe library — and writes
+  nothing. A suggestion only becomes a meal when the user taps it,
+  routing through `setMealPlanEntry` like every other way of filling a
+  slot. `SlotEditSheet` gains a third sub-view alongside the recipe
+  picker, with a pending state, per-suggestion why-lines, and an error
+  state with a Try again button.
+  **The index grounding is the whole design, and it held.** Recipes go
+  to the model as a numbered list and come back as a `recipeIndex`,
+  never a name — an out-of-range index degrades to a freeform idea
+  rather than producing a dead link, and the recipe's own title is
+  trusted over the model's echo of it. This is the steaks/"tea" lesson
+  applied preemptively instead of learned again.
+  **Verified against the real 462-item inventory and the household's 8
+  real recipes**, not a fixture: asking for Tuesday dinner returned two
+  of the family's own recipes (Loaded Baked Potato Soup, Broccoli
+  Cheddar Soup) plus two freeform ideas, every why-line naming
+  genuinely on-hand items and correctly calling out stock expiring
+  within days. Tapping the Broccoli Cheddar Soup suggestion saved with
+  `recipeId` `cmsf5bmy2…` — confirmed by a direct database read to be
+  the *actual* recipe row, with its title matching the linked recipe
+  exactly. **The failure path was tested for real, not reasoned about**:
+  an invalid key was injected via a temporary `.env.local` (Next.js
+  gives it precedence over `.env`, so the real key was never touched or
+  put at risk), and the sheet showed "Couldn't reach the AI just now"
+  with a Try again button — after which the back chevron returned to a
+  fully working main view and a preset chip still saved normally,
+  confirming an AI outage never blocks the manual paths.
+  One verification-methodology note worth keeping: an early read of the
+  DOM immediately after a `.click()` looked like a broken back button,
+  but was just a synchronous read beating React's re-render — re-reading
+  after a tick showed correct behavior. Worth a `setTimeout` before
+  asserting on post-click state rather than filing a phantom bug.
 
 **Deliberately not in v1** (revisit only when real use demands it):
 multiple meals per slot (one unique-constraint drop away), **copying a
@@ -1847,15 +1879,51 @@ this stack, so any future component that might get wrapped by a client
 component later is worth building with rendered `ReactNode` icon props
 from the start rather than bare component types.
 
-**Obvious next step: M4 of the Meal Plan plan** — AI suggestions
-("What can I make?"). Load the `claude-api` skill before writing any of
-it. Per the plan: a guarded, read-only `suggestMealsForSlot` Server
-Action assembling the prompt from the real inventory, the
-soon-to-expire list (via `effectiveExpiry`), the slot being filled, and
-the recipe library as an indexed list — structured outputs return
-either an exact `recipeIndex` or a freeform idea, each with a short
-"why" naming the on-hand items it uses, grounded by index rather than
-by name-matching (the steaks/"tea" lesson, applied preemptively this
-time instead of learned the hard way). The `SlotEditSheet` picker UI
-already has a visibly-disabled "Ask AI what to make" row waiting for
-this, same not-stubbed-early pattern the Recipes import chooser used.
+**M4 is done, and with it the whole Meal Plan plan (M1–M4).** See the
+M4 bullet above for the design and the full verification. Two things
+generalize past this feature:
+
+- **Grounding an AI feature by index rather than by name is now a
+  proven pattern in this codebase, not just a theory.** The suggestion
+  flow never asks Claude for a recipe *name* it would then have to
+  match — recipes go out numbered and come back as an integer, with an
+  out-of-range value degrading to a plain idea instead of a dead link.
+  Every future "let the model pick from our data" feature should do
+  the same: hand it indexed options, take back an index. The
+  steaks/"tea" and bell-peppers/"Dr Pepper" bugs are what fuzzy
+  name-matching costs, and there's no reason to pay it again.
+- **A "graceful failure" claim is worth actually breaking the thing to
+  test.** Injecting a bad API key through a temporary `.env.local` —
+  which Next.js gives precedence over `.env`, so the real key is never
+  edited or at risk — is a cheap, repeatable way to exercise an
+  outage path for real. Worth reusing for any future external-service
+  integration rather than reasoning about the catch block.
+
+**The Meal Plan plan is fully closed.** Deliberately-not-in-v1 items
+remain untouched and should only be revisited if real use asks for
+them: multiple meals per slot, copying a previous week as a template
+(cheap, and probably the first thing real use will want), generating a
+shopping list from the week's recipes (still blocked on structured
+ingredients), a dashboard "Tonight" card, voice verbs ("what's for
+dinner"), drag-to-move meals, per-person columns, notifications, and
+nutrition anything.
+
+**Obvious next steps, in no particular order** — and the family should
+probably *use* Meal Plan for a week before more gets built on it:
+
+- **V3, the Alexa skill** — now the oldest outstanding item by a wide
+  margin, queued since before Expiring. Needs Bryce to create a free
+  Amazon developer account (walkthrough style, like Neon/Vercel), then
+  a skill passing the raw utterance to the existing `/api/voice`
+  endpoint, kept in development mode.
+- **A real handwritten recipe card through photo import** — the one
+  R3b source type never tested against genuine input. If Haiku
+  struggles, the plan's own fallback is bumping just that call to
+  Sonnet.
+- **The `GroceryRow.tsx` lint error** — flagged in this file five
+  times now without being fixed. Still small, still isolated; worth
+  just doing next time anything touches Shopping.
+- **`seed-meal-plans.ts` / `clean-meal-plans.ts` still blanket-clear
+  their tables.** Fine only while meal plans are test data — the day
+  the family plans a real week, those need the same title-scoped
+  treatment the recipe scripts got.
