@@ -2016,12 +2016,9 @@ placeholder left anywhere under Kitchen.
   used at once.
 - **A real handwritten recipe card through photo import** — the one
   R3b source type never tested against genuine input.
-- **`seed-meal-plans.ts` / `clean-meal-plans.ts` still blanket-clear
-  their tables.** Safe only while meal plans are test data. The day the
-  family plans a real week, these need the same title-scoped treatment
-  `seed-recipes.ts` / `clean-recipes.ts` got — that fix exists because
-  the recipe versions were one command away from destroying the
-  family's real recipes.
+- ~~**`seed-meal-plans.ts` / `clean-meal-plans.ts` blanket-clear their
+  tables**~~ — ✅ fixed, and the fix immediately proved itself (see the
+  entry below).
 - Older small items still true: Inventory's collapse state doesn't
   persist across reloads, Shopping never got the collapsible treatment
   Inventory has, and nothing remembers a *specific* item's usual store
@@ -2037,3 +2034,44 @@ database IS the live family database (never `db:seed` / `db:reset`),
 and local dev and production use *different* `FAMILY_PASSWORD` values
 on purpose — the `.env` one is a deliberate throwaway, the real one
 lives only in Vercel.
+
+**The meal-plan seed/clean scripts are fixed too — and the fix caught a
+real plan on its first run.** Both used to open with
+`db.mealPlan.deleteMany()`. The recipe scripts were fixed by scoping to
+the test data's *titles*, but that approach is wrong here and it's worth
+understanding why: a meal plan's key is `weekStart`, and the weeks this
+seed uses are "last week" and "this week" — precisely the weeks the
+family plans for real. Scoping deletes by `weekStart` would have been
+*more* dangerous than the blanket delete, not less, because it would
+reliably target real plans.
+
+So the fingerprint is the **entry set** instead
+(`prisma/meal-plan-seed-data.ts`): a plan is treated as test data only
+when its meals match a seed template exactly — same count, same
+`(dayOffset, slot, title)` on every one, order-independent. `weekStart`
+is deliberately *not* part of the match, so seeding on a Saturday and
+cleaning on the Sunday after still works. Edit or add a single meal and
+the plan stops matching and is left alone; the failure mode is "refuses
+to delete", which is the right direction when the alternative is
+destroying a real week. The seeder also **never deletes** now: a week
+that already has a plan is skipped with a warning rather than replaced.
+
+**Verified adversarially, and it mattered immediately.** Seeding
+reported `SKIPPED thisWeek: a plan already exists` — that plan turned
+out to be a real one Bryce had made himself while using the app
+(Scrambled Eggs / Leftovers), which the *old* script would have silently
+destroyed on that very run. Two synthetic cases confirmed the rest: a
+fake family week built entirely from titles the seed also uses
+(Leftovers / Takeout / Eating out) was correctly KEPT, proving the
+whole-set fingerprint beats per-title matching; and a seeded week with
+one extra meal added was also correctly KEPT. Cleanup then deleted
+exactly the two untouched seed weeks and listed everything it left
+alone. Pantry, grocery, and the 8 real recipes were untouched
+throughout.
+
+**One loose end from this session, flagged not fixed:** the pantry count
+read 462 all session and read 461 at the end. Nothing in this session's
+work writes to `PantryItem` — the likeliest explanation is Bryce using
+the app himself on the dev server (which is the live database) while we
+worked. Worth a glance if an item seems missing, but not treated as a
+bug.
