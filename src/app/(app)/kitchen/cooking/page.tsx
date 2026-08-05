@@ -1,5 +1,9 @@
 import { BookOpen, CalendarDays } from "lucide-react";
 import BranchTile from "@/components/BranchTile";
+import PlanWeekTile from "@/components/PlanWeekTile";
+import { db } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 // Cooking's landing page — same tile-grid pattern as Kitchen's own landing
 // page (src/app/kitchen/page.tsx), one large tile per sub-page. The global nav
@@ -11,9 +15,13 @@ import BranchTile from "@/components/BranchTile";
 // "Meal Plan" tile before Menu was ever built, rather than shipping two
 // features that would have turned out to be the same feature.
 //
-// No badge on Meal Plan yet: it's still a placeholder, and a badge's job is
-// to say "this needs attention" — there's nothing behind it to need it.
-export default function CookingPage() {
+// Meal Plan carries the same "Plan this week" badge Kitchen's Cooking tile
+// does, deliberately: Kitchen's badge is what makes you tap through, and a
+// badge that vanished on the way in would leave you hunting for whatever it
+// was pointing at.
+export default async function CookingPage() {
+  const mealPlans = await db.mealPlan.findMany({ select: { weekStart: true } });
+
   return (
     <div className="py-4">
       <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Cooking</h1>
@@ -24,13 +32,14 @@ export default function CookingPage() {
       <div className="mt-6 grid grid-cols-2 gap-4">
         <BranchTile
           href="/kitchen/cooking/recipes"
-          icon={BookOpen}
+          icon={<BookOpen size={32} className="text-muted" />}
           title="Recipes"
         />
-        <BranchTile
+        <PlanWeekTile
           href="/kitchen/cooking/meal-plan"
-          icon={CalendarDays}
+          icon={<CalendarDays size={32} className="text-muted" />}
           title="Meal Plan"
+          plannedWeekStarts={mealPlans.map((plan) => plan.weekStart)}
         />
       </div>
     </div>

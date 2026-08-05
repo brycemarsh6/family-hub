@@ -1,5 +1,6 @@
 import { Package, ShoppingCart, Hourglass, ChefHat } from "lucide-react";
 import BranchTile from "@/components/BranchTile";
+import PlanWeekTile from "@/components/PlanWeekTile";
 import { db } from "@/lib/db";
 import { effectiveExpiry, daysUntil } from "@/lib/expiring";
 import type { Category, Location } from "@/lib/constants";
@@ -21,10 +22,11 @@ export const dynamic = "force-dynamic";
 //
 // Each tile's badge reports what needs attention, not how much is in there —
 // deliberately not "87 items stocked", just the count that means "go look at
-// this." Expiring and Cooking don't have a real feature behind them yet, so
-// they carry no badge at all.
+// this." Cooking's badge is the odd one out: it isn't a count at all, since
+// "this week has no meal plan" is a yes/no question, and it's decided on the
+// client rather than here (see PlanWeekTile for why).
 export default async function KitchenPage() {
-  const [toBuy, pantryItems] = await Promise.all([
+  const [toBuy, pantryItems, mealPlans] = await Promise.all([
     db.groceryItem.count({ where: { checked: false } }),
     db.pantryItem.findMany({
       select: {
@@ -37,6 +39,9 @@ export default async function KitchenPage() {
         restockedAt: true,
       },
     }),
+    // Just the week-starts — the Cooking tile's badge decides "is this week
+    // planned" on the client, against the browser's clock (see PlanWeekTile).
+    db.mealPlan.findMany({ select: { weekStart: true } }),
   ]);
 
   // SQLite can't compare two columns to each other inside a `where`, so we
@@ -67,23 +72,28 @@ export default async function KitchenPage() {
       <div className="mt-6 grid grid-cols-2 gap-4">
         <BranchTile
           href="/kitchen/inventory"
-          icon={Package}
+          icon={<Package size={32} className="text-muted" />}
           title="Inventory"
           badge={lowCount > 0 ? `${lowCount} low` : undefined}
         />
         <BranchTile
           href="/kitchen/shopping"
-          icon={ShoppingCart}
+          icon={<ShoppingCart size={32} className="text-muted" />}
           title="Shopping"
           badge={toBuy > 0 ? `${toBuy} to buy` : undefined}
         />
         <BranchTile
           href="/kitchen/expiring"
-          icon={Hourglass}
+          icon={<Hourglass size={32} className="text-muted" />}
           title="Expiring"
           badge={expiringSoonCount > 0 ? `${expiringSoonCount} soon` : undefined}
         />
-        <BranchTile href="/kitchen/cooking" icon={ChefHat} title="Cooking" />
+        <PlanWeekTile
+          href="/kitchen/cooking"
+          icon={<ChefHat size={32} className="text-muted" />}
+          title="Cooking"
+          plannedWeekStarts={mealPlans.map((plan) => plan.weekStart)}
+        />
       </div>
     </div>
   );

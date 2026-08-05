@@ -13,16 +13,21 @@ import Link from "next/link";
  * `wide` makes the tile span both grid columns — used to fill the odd slot
  * when a branch has an odd number of tiles, so the grid looks deliberate
  * rather than like something failed to load.
+ *
+ * `icon` takes an already-rendered element (`<Package size={32} .../>`),
+ * not a component reference — a bare component type can't cross the
+ * Server-to-Client boundary as a prop, which matters because some callers
+ * (PlanWeekTile) are Client Components. A rendered element serializes fine.
  */
 export default function BranchTile({
   href,
-  icon: Icon,
+  icon,
   title,
   badge,
   wide = false,
 }: {
   href: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ReactNode;
   title: string;
   badge?: string;
   wide?: boolean;
@@ -34,7 +39,7 @@ export default function BranchTile({
         wide ? "col-span-2" : ""
       }`}
     >
-      <Icon size={32} className="text-muted" />
+      {icon}
       <span className="text-lg font-semibold">{title}</span>
       {badge && (
         <span className="inline-block rounded-full bg-warn-soft px-3 py-1 text-sm font-medium text-warn">

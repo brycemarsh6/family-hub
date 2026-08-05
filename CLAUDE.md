@@ -1016,15 +1016,47 @@ any unfamiliar Next API.
   one-off script that created exactly one test recipe, linked it, then
   deleted that single row by id: the entry survived with `recipeId:
   null` and its title intact. History never gets hollowed out.
-- **M3. History + plan-ahead + badge.** Past weeks as collapsed
-  headers; a future-week section when next week is planned early;
-  whole-plan delete; the Cooking tile on Kitchen's landing page gains
-  its first badge — "plan this week" when the current week has no plan
-  (badge philosophy: "does this need attention", and an unplanned week
-  is exactly that; shorten the text if it wraps badly at 375px). Verify
-  against seeded multi-week data, including a week containing
-  Nov 1, 2026 (the DST fall-back) — its day cards must land on the
-  right calendar dates.
+- **M3. History + plan-ahead + badge.** ✅ **Done.** History,
+  plan-ahead, and whole-plan delete had already shipped in M1
+  (`PastMealWeeks.tsx`, the "Coming up" section, single-tap delete), so
+  M3's actual work was the badge: a new `PlanWeekTile.tsx` wraps
+  `BranchTile` and badges "Plan this week" when the current week has no
+  plan, on both Kitchen's Cooking tile and Cooking's own Meal Plan tile
+  (a badge that vanished on the way in would leave you hunting for what
+  it was pointing at). It's a client component for the same reason
+  `MealPlanList` is — deciding *which* week is "current" has to happen
+  against the browser's clock, never the server's (see `useToday.ts`) —
+  and it renders no badge at all while `today` is still null (SSR and
+  the first client render), matching what the server sent so there's
+  nothing to flip.
+  **A real bug, not just a design decision:** wrapping `BranchTile` in
+  a client component broke every existing tile, because `BranchTile`
+  took `icon` as a bare Lucide component *reference*
+  (`React.ComponentType`) — fine when every caller was a Server
+  Component rendering it directly, but a hard RSC crash
+  ("Functions cannot be passed directly to Client Components") the
+  moment a Server Component tried to pass that same reference as a
+  *prop* into `PlanWeekTile`. Fixed at the root: `BranchTile.icon` is
+  now `React.ReactNode` — an already-rendered `<Package size={32} .../>`
+  element, which *is* serializable across the Server→Client boundary —
+  and every call site (Kitchen's 4 tiles, Cooking's 2) was updated to
+  render the icon rather than pass the component. Caught immediately by
+  actually loading the page rather than trusting `tsc`/`eslint` (which
+  were both clean and caught nothing — this is a runtime RSC
+  serialization rule, not a type error).
+  Verified in the running app: with the current week planned, both
+  tiles show no badge; deleting just that week's plan (via a scoped
+  one-off script, not `db:clean-meal-plans`) made "Plan this week"
+  appear on both, confirmed to fit on one line at a real 375px
+  viewport; re-seeding restored the plan and the badge correctly
+  disappeared again. Re-verified the DST week in the fuller history UI
+  per the plan's instruction: Nov 1–7, 2026 still renders as seven
+  genuinely consecutive dates with no skip or duplicate, this time
+  inside the real "Coming up" section rather than a throwaway script.
+  `tsc`, `eslint`, and `npm run build` all clean (the pre-existing
+  `GroceryRow.tsx` lint error, still untouched); pantry (462), grocery
+  (13), and the 8 real recipes unchanged throughout, since this ran
+  against the live shared database.
 - **M4. AI suggestions — "What can I make?"** Load the `claude-api`
   skill before writing any of it. `suggestMealsForSlot` Server Action
   (guarded, read-only) assembling the prompt from the real inventory,
@@ -1799,9 +1831,31 @@ their tables, which is fine only for as long as meal plans stay test
 data; the day the family plans a real week, those need the same
 treatment.
 
-**Obvious next step: M3 of the Meal Plan plan** — history, plan-ahead,
-and the Cooking tile's "plan this week" badge. Note that M1 already
-shipped past weeks as collapsed headers (`PastMealWeeks.tsx`), a
-future-week "Coming up" section, and whole-plan delete, so M3's real
-remaining work is the badge plus re-verifying the DST week in the
-fuller history UI.
+**M3 is done, same session as M2.** See the M3 bullet above for the
+full design; the one thing worth carrying forward past this feature is
+the RSC bug it surfaced: `BranchTile`'s `icon` prop used to be a bare
+component reference, which is fine as long as every caller renders it
+on the server — the instant `PlanWeekTile` (a client component, needed
+because "is this week planned" depends on the browser's clock) tried
+to receive that same reference as a prop, React hard-crashed
+("Functions cannot be passed directly to Client Components"). Fixed by
+switching `icon` to `React.ReactNode` — a pre-rendered element — since
+elements, unlike bare component references, serialize across the
+Server→Client boundary. **`tsc` and `eslint` were both clean and caught
+none of it** — this is a runtime RSC rule with no compile-time check in
+this stack, so any future component that might get wrapped by a client
+component later is worth building with rendered `ReactNode` icon props
+from the start rather than bare component types.
+
+**Obvious next step: M4 of the Meal Plan plan** — AI suggestions
+("What can I make?"). Load the `claude-api` skill before writing any of
+it. Per the plan: a guarded, read-only `suggestMealsForSlot` Server
+Action assembling the prompt from the real inventory, the
+soon-to-expire list (via `effectiveExpiry`), the slot being filled, and
+the recipe library as an indexed list — structured outputs return
+either an exact `recipeIndex` or a freeform idea, each with a short
+"why" naming the on-hand items it uses, grounded by index rather than
+by name-matching (the steaks/"tea" lesson, applied preemptively this
+time instead of learned the hard way). The `SlotEditSheet` picker UI
+already has a visibly-disabled "Ask AI what to make" row waiting for
+this, same not-stubbed-early pattern the Recipes import chooser used.
