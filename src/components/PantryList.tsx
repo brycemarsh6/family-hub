@@ -14,6 +14,11 @@ import {
   isLow,
 } from "@/lib/constants";
 import { searchItems } from "@/lib/match";
+import {
+  useInventoryOpenCategories,
+  getInventoryOpenCategories,
+  setInventoryOpenCategories,
+} from "@/lib/inventoryCollapseStore";
 import type { PantryItemView } from "@/lib/types";
 import {
   setPantryQuantity,
@@ -72,26 +77,28 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
     (item) => item.id === pickingStoreForId,
   );
 
-  // Which category groups are expanded. Everything starts collapsed.
+  // Which category groups are expanded, remembered per device across
+  // visits — see src/lib/inventoryCollapseStore.ts for the localStorage
+  // mechanics. Derived from the stored list rather than duplicated into its
+  // own useState, so there's exactly one source of truth: toggling writes
+  // straight to the store, and this render just reflects whatever it says.
   //
-  // This used to auto-open any group holding a low item, on the theory that
-  // running low is why you opened the page. In practice, at real household
-  // scale, ~27 items are low across a dozen categories — so the page opened
-  // half-expanded in a pattern that looked arbitrary, and the only way to a
-  // clean slate was Expand all followed by Collapse all. Starting shut is
-  // the predictable state, and nothing is actually hidden by it: every
-  // collapsed header still shows its own low count.
-  const [openCategories, setOpenCategories] = useState<Set<string>>(
-    () => new Set(),
-  );
+  // First render (server and the very first client paint) always sees an
+  // empty list here — nothing is open until the store hydrates a moment
+  // later. That's a deliberate, harmless flash rather than a bug: it's the
+  // same starts-collapsed default this page already had, and it's what
+  // keeps the server-rendered HTML and the first client render in
+  // agreement (see useInventoryOpenCategories' own comment).
+  const openCategories = new Set(useInventoryOpenCategories());
 
   function toggleCategory(category: string) {
-    setOpenCategories((previous) => {
-      const next = new Set(previous);
-      if (next.has(category)) next.delete(category);
-      else next.add(category);
-      return next;
-    });
+    // Reads the store directly rather than the `openCategories` above —
+    // see getInventoryOpenCategories' own comment. Two taps landing before
+    // a re-render must not let the second one clobber the first.
+    const next = new Set(getInventoryOpenCategories());
+    if (next.has(category)) next.delete(category);
+    else next.add(category);
+    setInventoryOpenCategories(Array.from(next));
   }
 
   function run(change: Change, serverAction: () => Promise<void>) {
@@ -148,9 +155,7 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
     groups.length > 0 && groups.every((g) => openCategories.has(g.category));
 
   function toggleAll() {
-    setOpenCategories(
-      allOpen ? new Set() : new Set(groups.map((g) => g.category)),
-    );
+    setInventoryOpenCategories(allOpen ? [] : groups.map((g) => g.category));
   }
 
   function rowHandlers(item: PantryItemView) {

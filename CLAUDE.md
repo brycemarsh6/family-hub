@@ -65,7 +65,11 @@ feature behind it yet.
   categories, so the page opened half-expanded in a pattern that read as
   arbitrary and the only route to a clean slate was Expand all then Collapse
   all. Bryce asked for it to start shut; nothing is lost, because the
-  collapsed header still carries the low count.) This is what makes the list
+  collapsed header still carries the low count.) **Which groups are open is
+  remembered per device** (`src/lib/inventoryCollapseStore.ts`, localStorage
+  — see the design rule below) — leave three categories open, come back
+  tomorrow, they're still the ones open; "starts collapsed" only describes a
+  device that's never touched this page before. This is what makes the list
   usable at real-household scale — flat, it was one unbroken run of however
   many items were in a location. Items below their "low" threshold get a Low
   (or Out, at zero) badge and float to the top of their group. Category and
@@ -333,7 +337,20 @@ without re-litigating each time:
   render and the first client render (so the two always agree), and it
   switches to the real value automatically once available — no manual
   effect or `setState` at all. Reach for this again for any future
-  browser-only reads (session storage, `matchMedia`, etc.).
+  browser-only reads (session storage, `matchMedia`, etc.). Extended once
+  from a single value to a small collection in
+  `src/lib/inventoryCollapseStore.ts` (which categories are left open) —
+  same pattern, plus two things worth remembering if it's reused again:
+  `getSnapshot` has to return the *same reference* until the value truly
+  changes (`JSON.parse` makes a fresh array every call, so the parsed
+  result is cached against the raw string that produced it — otherwise
+  `useSyncExternalStore` thinks the snapshot changed on every render), and
+  a toggle handler that read-modify-writes should read the store fresh at
+  call time (a plain getter, not the hook's render-time value) — two
+  toggles landing in the same tick before a re-render would otherwise let
+  the second one silently overwrite the first, which is exactly the class
+  of bug `setState`'s functional-updater form exists to prevent and this
+  store has no equivalent of unless callers read fresh themselves.
 
 ## Deployment plan
 
@@ -2036,10 +2053,10 @@ placeholder left anywhere under Kitchen.
 - ~~**`seed-meal-plans.ts` / `clean-meal-plans.ts` blanket-clear their
   tables**~~ — ✅ fixed, and the fix immediately proved itself (see the
   entry below).
-- Older small items still true: Inventory's collapse state doesn't
-  persist across reloads, Shopping never got the collapsible treatment
-  Inventory has, and nothing remembers a *specific* item's usual store
-  (only one global "last store picked").
+- Older small items still true: Shopping never got the collapsible
+  treatment Inventory has, and nothing remembers a *specific* item's
+  usual store (only one global "last store picked"). ~~Inventory's
+  collapse state doesn't persist~~ — ✅ fixed, see the entry below.
 - **Four nav-bar branches are still placeholders**: Calendar, Chores,
   Lists, and the dashboard beyond Kitchen's card. These are the next
   real build targets — see "Planned, not yet built" above for the
@@ -2133,3 +2150,44 @@ low count, and the "Add N low items to the list" button above the list
 is untouched. Verified in the running app against the real inventory —
 27 groups, 0 expanded, 0 item rows on load; tapping Dairy Products
 opened exactly its 18 items and closed cleanly.
+
+**Inventory's collapse state now persists per device, this session.**
+Bryce's ask, right after the "start collapsed" fix landed: he didn't
+want to re-expand the same categories every visit. `src/lib/
+inventoryCollapseStore.ts` extends the `useSyncExternalStore` /
+localStorage pattern from `lastStore.ts` — established for a single
+value — to a small collection (the list of open category names).
+`PantryList.tsx`'s `openCategories` is no longer its own `useState`;
+the store is the single source of truth, and `toggleCategory` /
+`toggleAll` write straight to it.
+
+**A real race was caught by testing rapid double-toggles, not by
+reading the code.** The first version read `openCategories` (the
+hook's render-time value) inside `toggleCategory`, then wrote
+`[...that value, newCategory]`. Two taps landing in the same tick — a
+realistic case, not just a synthetic-test artifact, given React 18's
+automatic batching — both close over the *same* render's value, so the
+second toggle silently discarded the first. This is precisely the bug
+`setState`'s functional-updater form exists to prevent, and a plain
+localStorage-backed store has no equivalent unless callers read fresh
+themselves. Fixed by adding `getInventoryOpenCategories()`, a plain
+synchronous getter distinct from the hook, and having `toggleCategory`
+read *that* instead of the value it rendered with. Verified with the
+exact adversarial case that broke it — two same-tick toggles on
+different categories — both landed correctly after the fix, confirmed
+against `localStorage` directly, not just the rendered DOM.
+
+Also had to get `getSnapshot` right for `useSyncExternalStore`:
+`JSON.parse` produces a new array reference on every call, and
+`useSyncExternalStore` compares snapshots by reference — returning a
+fresh array every time it's asked, even when the underlying value
+hasn't changed, reads as "the snapshot changed on every render." Fixed
+by caching the parsed result against the raw string that produced it,
+so a new array is only ever created when the stored value has
+genuinely changed.
+
+Verified end to end in the running app: same-tick double-toggle test
+confirmed both toggles land; a real page reload brought back exactly
+the two categories that had been left open and nothing else; "Expand
+all" correctly persisted all 27 open, "Collapse all" correctly cleared
+it to `[]`. `tsc`, `eslint`, and `npm run build` all clean.
