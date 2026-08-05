@@ -229,6 +229,18 @@ without re-litigating each time:
 - **Delete is a single tap, no confirmation dialog**, consistently across the
   app. Deliberate choice for consistency, not an oversight — revisit only if
   it causes an actual accidental-deletion problem in practice.
+- **List rows delete via a right-to-left swipe** (`src/components/
+  SwipeToDelete.tsx`), the standard iOS Mail/Reminders gesture — Bryce's
+  wife asked for it directly. Wraps Shopping and Inventory rows; the Delete
+  button underneath is real markup, not a decoration, so it's still
+  reachable without a swipe (keyboard, screen reader). Still single-tap,
+  no confirmation once revealed — consistent with the rule above. Two
+  implementation details worth knowing if this pattern gets reused: a
+  gesture stays undecided for the first ~8px so a vertical scroll isn't
+  mistaken for a swipe, and the open/closed decision on release reads
+  from a ref, not React state — state batching left an earlier version
+  reading a stale drag distance and snapping shut on swipes that should
+  have opened.
 - **Outline icons only, via Lucide — no emoji in the icon system.** The
   category and storage-location icons in `src/lib/constants.ts`, and every
   branch's nav icons, are Lucide components. Native `<select><option>`
@@ -2075,3 +2087,31 @@ work writes to `PantryItem` — the likeliest explanation is Bryce using
 the app himself on the dev server (which is the live database) while we
 worked. Worth a glance if an item seems missing, but not treated as a
 bug.
+
+**Swipe-to-delete shipped this session too, requested directly by
+Bryce's wife.** Right-to-left swipe on Shopping and Inventory rows
+reveals a Delete button, the standard iOS gesture — `src/components/
+SwipeToDelete.tsx`, a shared wrapper so the gesture logic exists in
+exactly one place. Inventory gained a fast delete path it never had
+before (previously: tap the row, open the full edit sheet, find Delete
+at the bottom); Shopping's old always-visible `×` was removed since the
+swipe replaces it and the × was a real squeeze on a 375px row.
+
+**Automated verification hit a real limit this session, and the fix
+came from Bryce testing on his own phone instead.** The browser-preview
+tool couldn't drive a real drag gesture reliably — synthetic
+PointerEvents got the row *most* of the way there but couldn't fully
+confirm the release-and-snap behavior. Two real bugs were still caught
+before it shipped: reading the open/closed decision from React state on
+release could read a stale value (state batches; several pointermove
+events landing in one task left `dragX` behind the finger's actual
+position) and snap a swipe shut that should have opened — fixed by
+tracking the live offset in a ref instead, which is the correct pattern
+for anything read at gesture-end. And an unguarded
+`setPointerCapture()` could throw and abandon a gesture mid-drag,
+leaving a row stuck following the finger with no way to release it —
+now wrapped in a try/catch, since capture is a nicety and the swipe
+works without it. After those fixes, Bryce confirmed on his real phone
+over the LAN dev server that the gesture snaps open and closed
+correctly, doesn't hijack vertical scrolling, and a tap on an open row
+closes it instead of triggering the row's normal action.

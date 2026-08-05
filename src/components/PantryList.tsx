@@ -162,6 +162,8 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
         ),
       onAddToList: () => setPickingStoreForId(item.id),
       onEdit: () => setEditingId(item.id),
+      onDelete: () =>
+        run({ type: "delete", id: item.id }, () => deletePantryItem(item.id)),
     };
   }
 

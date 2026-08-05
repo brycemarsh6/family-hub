@@ -1,6 +1,7 @@
 "use client";
 
 import { QuantityStepper } from "./QuantityStepper";
+import { SwipeToDelete } from "./SwipeToDelete";
 import { isLow } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
@@ -9,17 +10,23 @@ export function PantryRow({
   onQuantityChange,
   onAddToList,
   onEdit,
+  onDelete,
 }: {
   item: PantryItemView;
   onQuantityChange: (quantity: number) => void;
   onAddToList: () => void;
   /** Opens the full edit sheet (name, quantity, unit, category, location, threshold, delete). */
   onEdit: () => void;
+  onDelete: () => void;
 }) {
   const low = isLow(item.quantity, item.lowThreshold);
 
   return (
     <li className="rounded-xl border border-line bg-surface">
+      {/* Swipe right-to-left to delete. Before this, removing a pantry item
+          meant opening the edit sheet and finding Delete in there — fine for
+          a considered edit, far too slow for "we finished the milk". */}
+      <SwipeToDelete onDelete={onDelete} deleteLabel={`Delete ${item.name}`}>
       <div className="flex items-center gap-1 pr-1">
         <button
           type="button"
@@ -73,6 +80,7 @@ export function PantryRow({
           <span aria-hidden="true">🛒</span>
         </button>
       </div>
+      </SwipeToDelete>
     </li>
   );
 }

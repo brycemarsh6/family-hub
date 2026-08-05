@@ -2,6 +2,7 @@
 
 import { createElement } from "react";
 import { QuantityStepper } from "./QuantityStepper";
+import { SwipeToDelete } from "./SwipeToDelete";
 import { categoryIcon, STORE_ICON as StoreIcon } from "@/lib/constants";
 import type { GroceryItemView } from "@/lib/types";
 
@@ -17,12 +18,17 @@ export function GroceryRow({
   onDelete: () => void;
 }) {
   return (
-    <li className="flex items-center gap-1 rounded-xl border border-line bg-surface pr-1">
+    <li className="rounded-xl border border-line bg-surface">
+      {/* Swipe right-to-left to delete — this replaced an always-visible ×,
+          which was both redundant with the gesture and a real squeeze on the
+          row's width at 375px. */}
+      <SwipeToDelete onDelete={onDelete} deleteLabel={`Delete ${item.name}`}>
+        <div className="flex items-center gap-1 pr-1">
       {/*
         The name and checkbox are one big button covering most of the row, so
         ticking something off never requires aiming at a small target. The
-        stepper and delete sit outside it — a button can't legally contain
-        other buttons.
+        stepper sits outside it — a button can't legally contain other
+        buttons.
       */}
       <button
         type="button"
@@ -93,15 +99,8 @@ export function GroceryRow({
           size="sm"
         />
       )}
-
-      <button
-        type="button"
-        onClick={onDelete}
-        aria-label={`Remove ${item.name}`}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg text-muted transition-colors hover:bg-surface-2 hover:text-danger active:bg-line"
-      >
-        ×
-      </button>
+        </div>
+      </SwipeToDelete>
     </li>
   );
 }
