@@ -58,9 +58,14 @@ feature behind it yet.
   locations (Pantry, Fridge, Freezer, and Storage — the overflow/cold storage
   downstairs). Grouped by category (29 groups, in supermarket order — see
   "the category vocabulary" below) with location as a filter via chips above
-  the list. Every group is collapsible; groups holding a low item start open,
+  the list. Every group is collapsible and **every group starts collapsed**;
   every header shows its own low count even when shut, and "Expand all" /
-  "Collapse all" toggles everything at once. This is what makes the list
+  "Collapse all" toggles everything at once. (Groups holding a low item used
+  to auto-open. At real scale that meant ~27 low items across a dozen
+  categories, so the page opened half-expanded in a pattern that read as
+  arbitrary and the only route to a clean slate was Expand all then Collapse
+  all. Bryce asked for it to start shut; nothing is lost, because the
+  collapsed header still carries the low count.) This is what makes the list
   usable at real-household scale — flat, it was one unbroken run of however
   many items were in a location. Items below their "low" threshold get a Low
   (or Out, at zero) badge and float to the top of their group. Category and
@@ -2115,3 +2120,16 @@ works without it. After those fixes, Bryce confirmed on his real phone
 over the LAN dev server that the gesture snaps open and closed
 correctly, doesn't hijack vertical scrolling, and a tap on an open row
 closes it instead of triggering the row's normal action.
+
+**Inventory now starts fully collapsed.** Groups holding a low item used
+to auto-open on first render — a deliberate call ("running low is why
+you opened this page"), and one that real household scale invalidated:
+with ~27 low items spread across a dozen categories, Inventory opened
+half-expanded in a pattern that looked arbitrary, and the only way to a
+clean slate was tapping Expand all and then Collapse all. Now
+`openCategories` initializes empty. Nothing is hidden by the change,
+which is what makes it safe: each collapsed header still shows its own
+low count, and the "Add N low items to the list" button above the list
+is untouched. Verified in the running app against the real inventory —
+27 groups, 0 expanded, 0 item rows on load; tapping Dairy Products
+opened exactly its 18 items and closed cleanly.

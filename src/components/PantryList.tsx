@@ -72,19 +72,18 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
     (item) => item.id === pickingStoreForId,
   );
 
-  // Which category groups are expanded.
+  // Which category groups are expanded. Everything starts collapsed.
   //
-  // Groups holding something low start open — running low is the reason you
-  // opened this page, so collapsing that away would defeat the point. Passing
-  // a function to useState means this runs once, on first render only: topping
-  // an item back up won't yank its group shut while you're looking at it.
-  const [openCategories, setOpenCategories] = useState<Set<string>>(() => {
-    const open = new Set<string>();
-    for (const item of items) {
-      if (isLow(item.quantity, item.lowThreshold)) open.add(item.category);
-    }
-    return open;
-  });
+  // This used to auto-open any group holding a low item, on the theory that
+  // running low is why you opened the page. In practice, at real household
+  // scale, ~27 items are low across a dozen categories — so the page opened
+  // half-expanded in a pattern that looked arbitrary, and the only way to a
+  // clean slate was Expand all followed by Collapse all. Starting shut is
+  // the predictable state, and nothing is actually hidden by it: every
+  // collapsed header still shows its own low count.
+  const [openCategories, setOpenCategories] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   function toggleCategory(category: string) {
     setOpenCategories((previous) => {
