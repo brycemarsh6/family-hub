@@ -1770,23 +1770,23 @@ ingredients and "add this recipe's ingredients to the shopping list"
 (genuinely wanted someday, needs quantity parsing), cook-mode screen
 wake lock, recipe voice verbs, and bulk-importing a Pinterest board.
 
-**Obvious next steps, in no particular order** — nothing is scheduled,
-and the family should probably *use* Recipes for a week first:
+**Obvious next steps, in no particular order** — ⚠️ **this list is a
+snapshot from the end of the Recipes plan and is now partly stale; the
+current one is at the very bottom of this file.** Kept for the
+narrative, with outcomes marked:
 
-- **V3, the Alexa skill** — still the oldest outstanding item, queued
-  since before Expiring. Needs Bryce to create a free Amazon developer
+- **V3, the Alexa skill** — still outstanding, still the oldest item.
+  Needs Bryce to create a free Amazon developer
   account (walkthrough style, like Neon/Vercel), then a skill passing
   the raw utterance to the existing `/api/voice` endpoint.
-- **Meal Plan** — now the ACTIVE plan (see the Meal Plan section
-  above). Menu and Meal planning were merged into it; Recipes existing
-  makes it considerably more interesting than it was.
-- **A real handwritten recipe card through photo import** — the one
+- ~~**Meal Plan**~~ — ✅ built since, M1–M4, plan fully closed.
+- **A real handwritten recipe card through photo import** — still
+  outstanding; the one
   R3b source type never tested against genuine input. If Haiku
   struggles, the plan's own fallback is bumping just that call to
   Sonnet.
-- **The `GroceryRow.tsx` lint error** — flagged in this file four
-  separate times now without being fixed. It's small and isolated;
-  worth just doing next time anything touches Shopping.
+- ~~**The `GroceryRow.tsx` lint error**~~ — ✅ fixed (see the entry near
+  the end of this file); `eslint` is fully clean now.
 
 **Menu and Meal planning were merged into one "Meal Plan" tile, and the
 Meal Plan plan was written.** Bryce flagged wanting to build Menu while
@@ -1980,3 +1980,60 @@ Verified in the running app by walking the full chain — recipe →
 Recipes → Cooking → Kitchen — plus confirming the five nav-bar
 destinations correctly still have no back link. `tsc`, `eslint`, and
 `npm run build` all clean.
+
+---
+
+## Where things stand (end of the 2026-08-04 session)
+
+The single most current summary — read this first; the "obvious next
+steps" lists earlier in this file are older snapshots kept for the
+narrative.
+
+**Everything is committed and pushed. `tsc`, `eslint`, and `npm run
+build` are all fully clean — no known lint errors anywhere in the repo
+for the first time in months.**
+
+Shipped this session, in order: **M2** (recipes in the meal-plan slot
+sheet), **M3** (the "Plan this week" badge), **M4** (AI meal
+suggestions) — which closed the Meal Plan plan entirely — plus the
+long-outstanding **`GroceryRow.tsx` lint fix** and **back navigation**
+across all 13 pages that needed it. Also fixed a silent M1 bug where
+`meal-plan/page.tsx` had been committed as a pure rename with no
+content, so production served "Coming soon" while local looked fine.
+
+**Kitchen is now feature-complete as originally sketched.** All four
+tiles are real (Inventory, Shopping, Expiring, Cooking), and Cooking's
+two sub-pages (Recipes, Meal Plan) are both fully built. There is no
+placeholder left anywhere under Kitchen.
+
+**Genuinely open, nothing scheduled:**
+
+- **V3, the Alexa skill** — the oldest outstanding item by a wide
+  margin, queued since before Expiring. Blocked only on Bryce creating
+  a free Amazon developer account; the `/api/voice` endpoint it needs
+  already exists and is proven (Siri uses it today). Same cost as
+  Siri — both are thin clients over the same endpoint, and both can be
+  used at once.
+- **A real handwritten recipe card through photo import** — the one
+  R3b source type never tested against genuine input.
+- **`seed-meal-plans.ts` / `clean-meal-plans.ts` still blanket-clear
+  their tables.** Safe only while meal plans are test data. The day the
+  family plans a real week, these need the same title-scoped treatment
+  `seed-recipes.ts` / `clean-recipes.ts` got — that fix exists because
+  the recipe versions were one command away from destroying the
+  family's real recipes.
+- Older small items still true: Inventory's collapse state doesn't
+  persist across reloads, Shopping never got the collapsible treatment
+  Inventory has, and nothing remembers a *specific* item's usual store
+  (only one global "last store picked").
+- **Four nav-bar branches are still placeholders**: Calendar, Chores,
+  Lists, and the dashboard beyond Kitchen's card. These are the next
+  real build targets — see "Planned, not yet built" above for the
+  rough order (Family profiles, Chores, To-dos, Habits, Photos, and
+  Calendar last on purpose as the hardest).
+
+**Two operational facts a fresh session must not forget:** the dev
+database IS the live family database (never `db:seed` / `db:reset`),
+and local dev and production use *different* `FAMILY_PASSWORD` values
+on purpose — the `.env` one is a deliberate throwaway, the real one
+lives only in Vercel.
