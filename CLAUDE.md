@@ -479,10 +479,47 @@ merge when something looks like a duplicate.
   grocery, recipe, and meal-plan counts unchanged by this phase (the
   session's counts moved from ordinary household use, not from this
   work — confirmed by direct read).
-- **P2. Location in the shopping edit sheet.** Shows the linked item's
-  current inventory location; put-away applies an explicit override,
-  moving an existing item when told to. `editGroceryItem` sets
-  `categoryEdited`.
+- **P2. Location in the shopping edit sheet.** ✅ **Done.** The sheet
+  gains a Location field, populated from a new `pantryItemLocation`
+  reads-only field on `GroceryItemView` — the linked pantry item's
+  *current* location, joined and read fresh on every page load
+  (`shopping/page.tsx`), never cached on the grocery row itself. A
+  linked item shows no blank option (it always has somewhere it
+  currently lives) and starts pre-selected to that live location, with
+  helper text ("Currently in Fridge…"); an unlinked item shows a real
+  blank "Decide when I put it away" choice, matching the Store field's
+  own "no store yet" pattern.
+  **The "baseline" trick, and why it's there:** the select's *starting*
+  value (the linked item's live location, or blank) is the thing saved
+  is compared against on Save — matching it writes `location: null`
+  ("no opinion"), only a genuine change writes a real override. Storing
+  an override unconditionally would have been simpler but strictly
+  worse: if the household later moves that pantry item to a different
+  shelf directly in Inventory, a frozen "Fridge" written days earlier
+  from the shopping sheet would silently fight that move at the next
+  put-away. Null means "always defer to wherever it actually lives right
+  now," which an explicit override should only ever mean "I looked at
+  where it lives and specifically want it somewhere else."
+  `editGroceryItem` computes `categoryEdited` server-side by comparing
+  against the row's *own current* stored category — never the client's
+  claim about what it used to be — and only ever sets it to `true`;
+  saving with the category untouched passes `undefined` for that field
+  in the Prisma `data` object, which in Prisma means "don't touch this
+  column," leaving a prior edit's flag alone rather than ever silently
+  clearing it back to `false`.
+  Verified against the real list: a linked item ("Chocolate milk boxes")
+  opened pre-selected to its true live location (Fridge) with no blank
+  option; an unlinked item ("Eleanor Diapers") opened with the blank
+  option selected and no helper text; setting an explicit override on
+  the unlinked item persisted it, confirmed by direct database read;
+  re-opening and selecting the blank option again correctly cleared it
+  back to `null`; and changing the linked item's category flipped
+  `categoryEdited` to `true` alongside the new category value. Both real
+  rows were restored afterward to their *exact* original state —
+  including `categoryEdited: false`, which the app itself can never
+  produce once set, so that reset needed a direct database write, not
+  the UI. `tsc`, `eslint`, and `npm run build` all clean; pantry (477)
+  and grocery (10) counts unchanged before and after.
 - **P3. The put-away review sheet.** Classify checked items; commit the
   known ones silently; step through the new ones ("1 of 3") with
   editable fields and fuzzy merge suggestions; commit in one

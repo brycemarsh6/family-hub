@@ -16,6 +16,22 @@ export type GroceryItemView = {
   pantryItemId: string | null;
   /** Where this'll be bought. Null until the shopper chooses one. */
   store: string | null;
+  /**
+   * An explicit "put it here" override for Put away. Null means no
+   * opinion: a linked item stays wherever it's currently stored (read
+   * live at put-away time, not frozen here), and a brand-new item lands
+   * in DEFAULT_LOCATION. See the Put-away review plan in CLAUDE.md.
+   */
+  location: string | null;
+  /** Set only by a deliberate category edit in the sheet — see
+   * editGroceryItem's own comment for why this can't be inferred from a
+   * mismatch. */
+  categoryEdited: boolean;
+  /** The linked pantry item's CURRENT location, for display only — "this
+   * is where it lives right now." Null for an item with no pantry link,
+   * or if the link is somehow dangling. Not the same thing as `location`
+   * above, which is this grocery row's own override. */
+  pantryItemLocation: string | null;
 };
 
 export type PantryItemView = {

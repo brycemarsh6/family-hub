@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { QuantityStepper } from "./QuantityStepper";
-import { CATEGORIES, STORES } from "@/lib/constants";
+import { CATEGORIES, LOCATIONS, STORES } from "@/lib/constants";
 import type { GroceryItemView } from "@/lib/types";
 
 export type GroceryItemEdits = {
@@ -11,6 +11,8 @@ export type GroceryItemEdits = {
   unit: string | null;
   category: string;
   store: string | null;
+  /** Null = no opinion; see GroceryItemView.location's own comment. */
+  location: string | null;
 };
 
 /**
@@ -21,8 +23,10 @@ export type GroceryItemEdits = {
  * fastest action on the page), so editing can't live on the tap.
  *
  * Fewer fields than the pantry version, because a grocery item genuinely
- * has fewer: no location, no low-stock threshold, no expiry — those all
- * describe something already in the house. What it has instead is a store.
+ * has fewer: no low-stock threshold, no expiry — those describe something
+ * already in the house. What it has instead is a store, and (since the
+ * Put-away review plan) a Location — see the field below for why it isn't
+ * simply "whatever's selected."
  */
 export function GroceryItemEditSheet({
   item,
@@ -43,6 +47,17 @@ export function GroceryItemEditSheet({
   // sit on the list before anyone decides where it's being bought.
   const [store, setStore] = useState(item.store ?? "");
 
+  // What "no opinion" resolves to: a linked item's current shelf (read live
+  // on every page load, in pantryItemLocation), or "" for an item with
+  // nothing to defer to yet. The select starts here — or on the item's own
+  // override, if one's already set — and handleSave compares against this
+  // to decide whether to write a real override or clear back to null. That
+  // comparison is what lets "leave it alone" and "put it back where it
+  // already was" both correctly write nothing, so a stale override can
+  // never fight a shelf move made later, directly in Inventory.
+  const baselineLocation = item.pantryItemLocation ?? "";
+  const [location, setLocation] = useState(item.location ?? baselineLocation);
+
   // Close on Escape, same as tapping the backdrop or the × button.
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -62,6 +77,9 @@ export function GroceryItemEditSheet({
       unit: unit.trim() || null,
       category,
       store: store || null,
+      // Matching the baseline means "no opinion" — write null rather than
+      // a redundant override. Only a genuine change is worth remembering.
+      location: location === baselineLocation ? null : location || null,
     });
   }
 
@@ -160,6 +178,40 @@ export function GroceryItemEditSheet({
                 </option>
               ))}
             </select>
+          </Field>
+
+          <Field
+            label={
+              item.pantryItemId
+                ? "Location"
+                : "Location (once it's bought)"
+            }
+          >
+            <select
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base outline-none"
+            >
+              {/* An item with no pantry link doesn't have a "currently in
+                  the ___" to defer to, so it gets a real blank choice —
+                  the same "haven't decided yet" state Store already has.
+                  A linked item always has somewhere it currently lives, so
+                  no blank option is offered for it. */}
+              {!item.pantryItemId && (
+                <option value="">Decide when I put it away</option>
+              )}
+              {LOCATIONS.map((option) => (
+                <option key={option.name} value={option.name}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+            {item.pantryItemId && (
+              <span className="mt-1 block text-xs text-muted">
+                Currently in {baselineLocation || "the inventory"}. Change
+                this to move it somewhere else when it&apos;s put away.
+              </span>
+            )}
           </Field>
         </div>
 

@@ -18,7 +18,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedSession } from "@/lib/dal";
-import { toCategory, toStore, DEFAULT_LOCATION } from "@/lib/constants";
+import { toCategory, toStore, toLocation, DEFAULT_LOCATION } from "@/lib/constants";
 
 /**
  * Re-render the pages whose contents just changed.
@@ -97,10 +97,11 @@ export async function setGroceryQuantity(id: string, quantity: number) {
 
 /**
  * Edit the fields a shopper actually needs to correct in place: a
- * mistyped name, the wrong count or unit, the wrong aisle, or the wrong
- * shop. Deliberately does NOT touch `checked` or `pantryItemId` —
- * ticking off has its own action, and the pantry link is a provenance
- * record ("this came from the pantry"), not something to hand-edit.
+ * mistyped name, the wrong count or unit, the wrong aisle, the wrong
+ * shop, or where it should land when it's put away. Deliberately does
+ * NOT touch `checked` or `pantryItemId` — ticking off has its own
+ * action, and the pantry link is a provenance record ("this came from
+ * the pantry"), not something to hand-edit.
  */
 export async function editGroceryItem(
   id: string,
@@ -110,6 +111,8 @@ export async function editGroceryItem(
     unit: string | null;
     category: string;
     store: string | null;
+    /** Null = no opinion; see GroceryItem.location's schema comment. */
+    location: string | null;
   },
 ) {
   if (!(await getVerifiedSession())) return;
@@ -118,6 +121,14 @@ export async function editGroceryItem(
   // An empty name would render as a blank row with no way to identify it,
   // so treat it the same as the add bar does: ignore the edit entirely.
   if (!name) return;
+
+  const current = await db.groceryItem.findUnique({
+    where: { id },
+    select: { category: true },
+  });
+  if (!current) return;
+
+  const category = toCategory(edits.category);
 
   await db.groceryItem.update({
     where: { id },
@@ -129,8 +140,16 @@ export async function editGroceryItem(
       unit: edits.unit?.trim() || null,
       // Both of these reject anything outside the real vocabulary, so a
       // tampered-with request can't write junk (see addGroceryItem).
-      category: toCategory(edits.category),
+      category,
       store: toStore(edits.store),
+      location: edits.location ? toLocation(edits.location) : null,
+      // Compared against what was actually stored before this save, not
+      // against a value handed in by the client — a tampered-with request
+      // can claim any "previous" category it likes, but it can't fake what
+      // the database already had. Only a genuine change flips this; saving
+      // with the category untouched leaves a prior edit's flag alone
+      // rather than ever clearing it back to false.
+      categoryEdited: category !== current.category ? true : undefined,
     },
   });
 

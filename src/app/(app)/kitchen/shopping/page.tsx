@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function GroceriesPage() {
   // `select` lists exactly the fields we need. Asking for less means less data
   // travelling to the browser, and it's self-documenting.
-  const items = await db.groceryItem.findMany({
+  const rows = await db.groceryItem.findMany({
     orderBy: { createdAt: "asc" },
     select: {
       id: true,
@@ -27,8 +27,19 @@ export default async function GroceriesPage() {
       note: true,
       pantryItemId: true,
       store: true,
+      location: true,
+      categoryEdited: true,
+      // Just enough to show "this lives in the Fridge right now" in the
+      // edit sheet — read fresh on every page load, so it can never go
+      // stale the way storing a copy on the grocery row would.
+      pantryItem: { select: { location: true } },
     },
   });
+
+  const items = rows.map(({ pantryItem, ...row }) => ({
+    ...row,
+    pantryItemLocation: pantryItem?.location ?? null,
+  }));
 
   const checkedCount = items.filter((item) => item.checked).length;
 
