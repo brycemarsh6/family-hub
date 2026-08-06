@@ -402,6 +402,93 @@ checklist.
 payment or credential details — that's Bryce, with exact instructions for
 what to click. Claude writes and verifies every line of code.
 
+## Put-away review plan — ACTIVE
+
+The current work. Bryce noticed that "Put away N into the inventory"
+silently invents facts: a bought item that isn't already in the inventory
+is created in **Pantry**, always, because `putAwayCheckedItems` hardcoded
+`DEFAULT_LOCATION`. Frozen peas land on the pantry shelf. And an item
+that *is* already in the inventory always returns to its usual spot, so
+there's no way to say "put the beef in the fridge, I'm cooking it
+tonight."
+
+His framing for the fix, in his own words: an editable location on the
+shopping item that shows where it came from; **no** prompt when putting
+away something the app already knows; and for genuinely new items, a
+review step "like some budgeting apps will have a pop up review
+transactions window… minimalistic with only a handful of transactions
+showing a small 3 of 6 transactions to review", including a prompt to
+merge when something looks like a duplicate.
+
+**Decisions already made — don't re-litigate these:**
+
+- **A category edit only propagates when it was *explicitly* edited.**
+  Bryce chose "yes, apply my category edit to the inventory", and that's
+  right for the case he hit (fixing Ground beef from Other to Meat). But
+  applying it whenever the values merely *differ* would corrupt the
+  inventory at scale: quick-adds from the add bar and from voice both
+  produce category **Other**, so putting away a quick-typed "milk" would
+  re-file the household's real Milk from Dairy Products into Other. A
+  `categoryEdited` flag on the grocery row, set only by the edit sheet,
+  is what separates a deliberate correction from a drive-by default.
+- **New items default to location `Other`, not `Pantry`.** "Pantry" was
+  a guess dressed up as a fact. `Other` is honest and — critically —
+  *findable*: it gets its own Inventory filter chip, so mis-filed items
+  surface instead of hiding among the real pantry stock. Note the app
+  now has both an "Other" *category* and an "Other" *location*, meaning
+  different things; flagged to Bryce, who kept the name.
+- **Voice gets the same default.** `voice/apply.ts` creates unknown items
+  with `DEFAULT_LOCATION` too, so flipping the constant fixes both paths
+  at once. Voice can't show a review sheet (it's hands-free by design) —
+  landing in `Other` is what makes those items findable afterwards.
+- **Linked and exact-name matches never prompt.** Friction goes only
+  where the app genuinely doesn't know something. This is Bryce's
+  explicit instruction and it's also what keeps unpacking the shopping
+  fast.
+- **Fuzzy matching may *suggest* a merge, never perform one.** The
+  steaks/"tea" and Dr-Pepper/"bell peppers" bugs are what lenient
+  matching costs when it decides on its own. Inside a review sheet a
+  human confirms, which is exactly the feedback loop those bugs lacked —
+  so `searchItems` is the right tool here, and only here.
+- **`location` on `GroceryItem` is an override, nullable.** Null means
+  "no opinion" and preserves today's behaviour exactly; a value means
+  "put it here", including moving an item that already exists.
+
+**The phases:**
+
+- **P1. Vocabulary + schema.** ✅ **Done.** `Other` added to
+  `LOCATIONS` (icon: `CircleDashed` — deliberately not one of the
+  filled-object icons the real four locations use, so it visually reads
+  as "not yet filed" rather than a real fifth place in the house).
+  `DEFAULT_LOCATION` flipped from `"Pantry"` to `"Other"`, which fixes
+  both creation paths in one line: `putAwayCheckedItems` (groceries.ts)
+  and voice's `apply.ts`. Two additive columns on `GroceryItem` —
+  `location String?` (the override; null preserves today's behavior
+  exactly) and `categoryEdited Boolean @default(false)` (only set by a
+  deliberate edit, never inferred from a mismatch) — migration
+  `20260806044426_add_grocery_location_override`, two bare `ADD COLUMN`s,
+  nothing dropped or altered.
+  Verified in the running app: the new "Other" filter chip appeared on
+  Inventory automatically (0 items, as expected — nothing's landed there
+  yet) with no changes needed to the filter-chip code, since it already
+  maps over `LOCATION_NAMES`; the Inventory edit sheet's Location
+  dropdown picked up "Other" the same way, for the same reason. Existing
+  `GroceryItem` rows read back with `location: null`,
+  `categoryEdited: false` — the safe defaults for data that predates the
+  migration. `tsc`, `eslint`, and `npm run build` all clean; pantry,
+  grocery, recipe, and meal-plan counts unchanged by this phase (the
+  session's counts moved from ordinary household use, not from this
+  work — confirmed by direct read).
+- **P2. Location in the shopping edit sheet.** Shows the linked item's
+  current inventory location; put-away applies an explicit override,
+  moving an existing item when told to. `editGroceryItem` sets
+  `categoryEdited`.
+- **P3. The put-away review sheet.** Classify checked items; commit the
+  known ones silently; step through the new ones ("1 of 3") with
+  editable fields and fuzzy merge suggestions; commit in one
+  transaction, re-verifying matches server-side.
+- **P4. Verify against the real list + document.**
+
 ## Voice integration plan — ACTIVE
 
 The current work. Bryce's read on the real risk to this app: his wife won't

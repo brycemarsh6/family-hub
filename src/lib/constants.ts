@@ -31,6 +31,7 @@ import {
   Package,
   Refrigerator,
   Archive,
+  CircleDashed,
   Store as StoreIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -115,13 +116,30 @@ export const LOCATIONS = [
   { name: "Freezer", icon: Snowflake },
   // Overflow / cold storage downstairs.
   { name: "Storage", icon: Archive },
+  // Where a newly-created inventory item lands when nobody said where it
+  // actually goes — see DEFAULT_LOCATION below for why "Pantry" used to be
+  // that default and stopped being honest. Deliberately named the same as
+  // the "Other" *category* even though they mean different things — see
+  // the "Put-away review plan" section of CLAUDE.md for why that naming
+  // collision was kept rather than renamed to something like "Unsorted".
+  // CircleDashed (not Package/Refrigerator/Snowflake/Archive's filled-object
+  // style) reads as "not yet filed" rather than a real fifth place in the
+  // house.
+  { name: "Other", icon: CircleDashed },
 ] as const;
 
 export type Location = (typeof LOCATIONS)[number]["name"];
 
 export const LOCATION_NAMES: readonly Location[] = LOCATIONS.map((l) => l.name);
 
-export const DEFAULT_LOCATION: Location = "Pantry";
+// Was "Pantry" — silently claiming every newly-created item was on the
+// pantry shelf, which was a guess dressed up as a fact (a bought item put
+// away without ever having existed in the inventory has no evidence of
+// where it actually lives). "Other" is honest, and it's findable: it gets
+// its own Inventory filter chip, so mis-filed items surface instead of
+// hiding among real pantry stock. Read by both putAwayCheckedItems
+// (groceries.ts) and voice's apply.ts, so this one line fixes both paths.
+export const DEFAULT_LOCATION: Location = "Other";
 
 // Where a shopping-list item gets bought. Unlike categories and locations,
 // these are brands, so there's no per-store icon to use — Lucide has no

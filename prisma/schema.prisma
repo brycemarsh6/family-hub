@@ -29,6 +29,25 @@ model GroceryItem {
   note     String?
   store    String? // "Walmart" | "Costco" | "Amazon" | "Target" | "Maceys" | "Other" | null (not chosen yet)
 
+  /// Where this should land in the inventory on "Put away" — an override,
+  /// not a description of where it is now (a grocery item isn't stored
+  /// anywhere yet). Null means "no opinion": put-away keeps its default
+  /// behavior (an existing item stays where it already is; a brand-new one
+  /// lands in DEFAULT_LOCATION). A value moves an existing item too, which
+  /// is what makes "put the beef in the fridge, not the freezer, I'm
+  /// cooking it tonight" possible from the shopping list itself.
+  location String?
+
+  /// True only when the category above was deliberately changed in the
+  /// edit sheet — never merely because it differs from a matched inventory
+  /// item's own category. Quick-adds from the add bar and from voice both
+  /// default to category "Other", so applying category on every mismatch
+  /// would silently re-file real inventory items (e.g. Milk) into "Other"
+  /// on a routine put-away. This flag is what lets a genuine correction
+  /// (Ground beef: Other -> Meat) propagate while an unedited default
+  /// doesn't.
+  categoryEdited Boolean @default(false)
+
   // Set when this item was generated from a pantry item running low. It's what
   // lets "put away" know which pantry item to top up, and prevents us adding
   // the same pantry item to the list twice.
