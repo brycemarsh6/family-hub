@@ -656,13 +656,40 @@ Two features, one shared matcher: **prevention** (at add time) and
 
 **The phases:**
 
-- **D1. The strict matcher + a coverage report against real data.** No
-  UI, no schema. Build the subset-name matcher and the three detectors
-  as pure functions, then run them against the real ~477 items and read
-  every hit by hand. Tune until the false-positive rate is genuinely
-  low — this is the phase that decides whether the pulsing icon is
-  useful or noise, and it's the same discipline that caught the
-  Dr-Pepper/bell-peppers and T-bone/tortilla bugs before they shipped.
+- **D1. The strict matcher + a coverage report against real data.** ✅
+  **Done.** `src/lib/duplicates.ts` — pure functions, no `server-only`
+  guard, same reasoning as `match.ts` (it has to be runnable in a plain
+  script against real data, and was). Three detectors:
+  `findSameNamePairs` (identical normalized name + identical location),
+  `findSubsetNamePairs` (proper token-subset pairs), `findParkedInOther`
+  (location or category `Other`), plus `findIrregularities` bundling all
+  three. Leftovers are excluded from pair detection entirely — freeform
+  dish names where overlapping words are normal.
+  **The coverage run against the real 477 items, hit by hit:** detector
+  1 fired zero times (the inventory is currently clean — its value is
+  catching future accidents) and detector 3 zero times (nothing has
+  landed in `Other` yet; P1's default is days old). Detector 2 is where
+  the tuning lived: **unguarded it fired 107 times; with its two guards,
+  21.** The guards were written as hypotheses and the run confirmed both
+  with real examples now cited in the code's own comment: the
+  min-2-token guard alone removed ~70 pairs of pure noise ("Salt" paired
+  with seven other salts, "Sugar" with eight sugary products, "Corn"
+  with corn dogs, Corn Flakes, and corn syrup), and the same-location
+  guard removed the deliberate two-places pattern (canned "Black beans"
+  in Pantry vs "Dry black beans" in Storage, fridge-open vs
+  pantry-stored chicken stock). Of the 21 surviving hits, reading them
+  by hand: **7–8 look like genuine duplicates** ("Dino nuggets" vs
+  "Real Good Dino Nuggets", "Jasmine rice" vs "Jasmine white rice",
+  "Taco Seasoning" filed under both Spices and Baking, "Creole
+  seasoning" vs "Tony's/Creole seasoning", "Pace Chunky Salsa" vs "Pace
+  Chunky Mild Salsa", a zero-quantity "Frozen corn" beside "Fresh frozen
+  corn") and the rest are reasonable ask-once questions ("Black pepper"
+  vs two branded peppers, "Kosher salt" vs "Coarse kosher salt") that a
+  permanent dismissal retires forever. So the first queue open will show
+  ~21 items as a one-time backlog with real findings in it, and go
+  quiet after — which is the precision bar the plan set. `tsc` and
+  `eslint` clean; the coverage script itself was a temp file, findings
+  recorded here.
 - **D2. The add-time duplicate check.** A read-only `checkForDuplicates`
   action (the `classifyForPutAway` shape), a review sheet reusing
   `PutAwayReviewSheet`'s pattern, and the add bar routed through it. No
