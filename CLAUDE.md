@@ -234,13 +234,23 @@ without re-litigating each time:
 - **Delete is a single tap, no confirmation dialog**, consistently across the
   app. Deliberate choice for consistency, not an oversight — revisit only if
   it causes an actual accidental-deletion problem in practice.
-- **List rows delete via a right-to-left swipe** (`src/components/
-  SwipeToDelete.tsx`), the standard iOS Mail/Reminders gesture — Bryce's
-  wife asked for it directly. Wraps Shopping and Inventory rows; the Delete
-  button underneath is real markup, not a decoration, so it's still
-  reachable without a swipe (keyboard, screen reader). Still single-tap,
-  no confirmation once revealed — consistent with the rule above. Two
-  implementation details worth knowing if this pattern gets reused: a
+- **A list row's secondary actions live behind a right-to-left swipe**
+  (`src/components/SwipeActions.tsx`), the standard iOS Mail/Reminders
+  gesture — Bryce's wife asked for it directly. Inventory rows reveal
+  Delete; Shopping rows reveal Edit and Delete. **Destructive actions go
+  last** (furthest from the row), so a short, hesitant swipe surfaces the
+  reversible one rather than Delete. Every action button underneath is
+  real markup, not a decoration, so all of them stay reachable without a
+  swipe (keyboard, screen reader). Still single-tap, no confirmation once
+  revealed — consistent with the rule above.
+  **Why Shopping's edit is here and not on the row's tap, unlike
+  Inventory's:** a shopping row's tap already ticks the item off, which
+  has to remain the fastest thing on that page (phone in one hand, in a
+  shop). Editing is occasional; checking off is constant. So the two
+  pages deliberately differ — tap-to-edit on Inventory, swipe-to-edit on
+  Shopping — and that asymmetry is the point, not an inconsistency to
+  "fix."
+  Two implementation details worth knowing if this pattern gets reused: a
   gesture stays undecided for the first ~8px so a vertical scroll isn't
   mistaken for a swipe, and the open/closed decision on release reads
   from a ref, not React state — state batching left an earlier version
@@ -2133,3 +2143,43 @@ low count, and the "Add N low items to the list" button above the list
 is untouched. Verified in the running app against the real inventory —
 27 groups, 0 expanded, 0 item rows on load; tapping Dairy Products
 opened exactly its 18 items and closed cleanly.
+
+**Shopping list items are editable now, this session.** Bryce's ask:
+Inventory lets you tap a row and fix the name, and Shopping had no
+equivalent — a typo or a wrong store meant deleting the row and re-adding
+it. `GroceryItemEditSheet.tsx` mirrors `PantryItemEditSheet` (same
+bottom-sheet-on-phones / centered-dialog-on-desktop shape) with the
+fields a list entry actually has: name, quantity, unit, category, store.
+No location / low-threshold / expiry — those describe something already
+in the house. `editGroceryItem` in `actions/groceries.ts` is the guarded
+Server Action behind it, deliberately **not** touching `checked` or
+`pantryItemId`: ticking off has its own action, and the pantry link is a
+provenance record, not a hand-editable field.
+
+**The interesting part was where to put the gesture, and it was Bryce's
+call rather than a default.** Copying Inventory's tap-to-edit directly
+would have collided with the shopping row's tap, which ticks the item
+off — the single most-used action on the page. Presented three options
+(tap-name-vs-checkbox split, swipe, always-visible pencil); Bryce chose
+swipe, which keeps check-off tap-anywhere and reuses the gesture the
+household just learned. `SwipeToDelete` was therefore generalized into
+`SwipeActions` (`git mv`, so history follows) taking an actions array
+rather than a hardcoded Delete — the row slides open by
+`88px × actions.length`, and Delete is ordered last so a short swipe
+surfaces Edit first.
+
+Verified against the real list: the sheet opens with all five fields
+pre-filled correctly (Dairy Products / Walmart), and editing every one
+of them — name, quantity 1→3, unit, category, store — persisted to the
+database, confirmed by direct read, with `checked` and `pantryItemId`
+untouched as intended. The test row was restored to its exact original
+values afterward. `tsc`, `eslint`, and `npm run build` all clean.
+
+**Note on the swipe verification, same limit as last time:** the
+browser-preview tool's synthetic PointerEvents still can't drive the
+gesture to a settled open state, so the *release-and-snap* behavior with
+two actions is unverified in automation — what was confirmed
+programmatically is that both buttons exist, are correctly labelled
+(`Edit <item>` / `Delete <item>`), sit fully on screen, and are ordered
+Edit-then-Delete. The single-action version of this gesture was
+confirmed by hand on a real phone earlier in the session.

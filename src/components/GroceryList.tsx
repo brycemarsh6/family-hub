@@ -2,6 +2,10 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { GroceryRow } from "./GroceryRow";
+import {
+  GroceryItemEditSheet,
+  type GroceryItemEdits,
+} from "./GroceryItemEditSheet";
 import { EmptyState } from "./EmptyState";
 import {
   categoryIcon,
@@ -13,6 +17,7 @@ import type { GroceryItemView } from "@/lib/types";
 import {
   toggleGroceryItem,
   setGroceryQuantity,
+  editGroceryItem,
   deleteGroceryItem,
 } from "@/app/actions/groceries";
 
@@ -20,6 +25,7 @@ import {
 type Change =
   | { type: "toggle"; id: string }
   | { type: "quantity"; id: string; quantity: number }
+  | { type: "edit"; id: string; edits: GroceryItemEdits }
   | { type: "delete"; id: string };
 
 function applyChange(
@@ -34,6 +40,10 @@ function applyChange(
     case "quantity":
       return items.map((item) =>
         item.id === change.id ? { ...item, quantity: change.quantity } : item,
+      );
+    case "edit":
+      return items.map((item) =>
+        item.id === change.id ? { ...item, ...change.edits } : item,
       );
     case "delete":
       return items.filter((item) => item.id !== change.id);
@@ -51,6 +61,11 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
   const [optimisticItems, applyOptimistic] = useOptimistic(items, applyChange);
   const [, startTransition] = useTransition();
   const [storeFilter, setStoreFilter] = useState<string>(ALL);
+  // Which item (if any) has its edit sheet open. Just an id, not the item
+  // itself, so the sheet always reads the latest optimistic data for it —
+  // same reasoning as PantryList.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editingItem = optimisticItems.find((item) => item.id === editingId);
 
   function run(change: Change, serverAction: () => Promise<void>) {
     startTransition(async () => {
@@ -160,6 +175,7 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
                           setGroceryQuantity(item.id, quantity),
                         )
                       }
+                      onEdit={() => setEditingId(item.id)}
                       onDelete={() =>
                         run({ type: "delete", id: item.id }, () =>
                           deleteGroceryItem(item.id),
@@ -198,6 +214,7 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
                         setGroceryQuantity(item.id, quantity),
                       )
                     }
+                    onEdit={() => setEditingId(item.id)}
                     onDelete={() =>
                       run({ type: "delete", id: item.id }, () =>
                         deleteGroceryItem(item.id),
@@ -209,6 +226,25 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
             </section>
           )}
         </div>
+      )}
+
+      {editingItem && (
+        <GroceryItemEditSheet
+          item={editingItem}
+          onClose={() => setEditingId(null)}
+          onSave={(edits) => {
+            run({ type: "edit", id: editingItem.id, edits }, () =>
+              editGroceryItem(editingItem.id, edits),
+            );
+            setEditingId(null);
+          }}
+          onDelete={() => {
+            run({ type: "delete", id: editingItem.id }, () =>
+              deleteGroceryItem(editingItem.id),
+            );
+            setEditingId(null);
+          }}
+        />
       )}
     </div>
   );

@@ -1,11 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
 
-// Swipe a list row right-to-left to reveal a Delete button — the iOS Mail /
+// Swipe a list row right-to-left to reveal its actions — the iOS Mail /
 // Reminders gesture, which is what the household already expects from a
-// list on a phone.
+// list on a phone. Inventory rows reveal Delete; shopping rows reveal Edit
+// and Delete, because tapping a shopping row is already spoken for (it
+// ticks the item off, which has to stay the fastest thing on that page).
 //
 // THREE THINGS MAKE THIS FEEL RIGHT RATHER THAN BROKEN, and they're the
 // reason this is a shared component instead of copy-pasted per row:
@@ -33,7 +34,8 @@ import { Trash2 } from "lucide-react";
 // immediate and unconfirmed everywhere. The swipe itself is already the
 // deliberate act, same as it is on iOS.
 
-/** How far the row slides open — wide enough for a 48px-plus tap target. */
+/** Width of a single action button — wide enough for a 48px-plus tap
+ * target. The row slides open by this times the number of actions. */
 const ACTION_WIDTH = 88;
 
 /** Past this much horizontal travel, the gesture is committed to a swipe
@@ -41,23 +43,37 @@ const ACTION_WIDTH = 88;
  * large enough that a sloppy tap isn't read as a drag. */
 const DIRECTION_LOCK_PX = 8;
 
-/** Released past this, the row snaps open instead of closed. */
-const OPEN_THRESHOLD = ACTION_WIDTH / 2;
-
 type GestureMode = "idle" | "undecided" | "swiping" | "scrolling";
 
-export function SwipeToDelete({
-  onDelete,
-  deleteLabel,
+export type SwipeAction = {
+  /** Shown under the icon, and the basis of the accessible name. */
+  label: string;
+  /** Spoken by screen readers, e.g. "Delete Cheddar cheese" — the bare
+   * label alone would be ambiguous when every row has one. */
+  accessibleLabel: string;
+  icon: React.ReactNode;
+  onAction: () => void;
+  /** `danger` paints it red; `neutral` is the muted fill used for
+   * reversible actions like Edit, so Delete stays the only red thing. */
+  tone: "danger" | "neutral";
+};
+
+export function SwipeActions({
+  actions,
   children,
 }: {
-  onDelete: () => void;
-  /** Spoken by screen readers, e.g. "Delete Cheddar cheese". */
-  deleteLabel: string;
+  /** Rendered left-to-right in the revealed strip. Keep destructive
+   * actions last (furthest from the row) so a short swipe doesn't put
+   * Delete under the thumb. */
+  actions: SwipeAction[];
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [dragX, setDragX] = useState<number | null>(null);
+
+  const openWidth = ACTION_WIDTH * actions.length;
+  /** Released past this, the row snaps open instead of closed. */
+  const openThreshold = openWidth / 2;
 
   const mode = useRef<GestureMode>("idle");
   const start = useRef({ x: 0, y: 0 });
@@ -77,7 +93,7 @@ export function SwipeToDelete({
     if (event.pointerType === "mouse" && event.button !== 0) return;
     mode.current = "undecided";
     start.current = { x: event.clientX, y: event.clientY };
-    offsetRef.current = open ? -ACTION_WIDTH : 0;
+    offsetRef.current = open ? -openWidth : 0;
   }
 
   function handlePointerMove(event: React.PointerEvent) {
@@ -112,15 +128,15 @@ export function SwipeToDelete({
 
     // Only ever opens leftward. Dragging right from closed does nothing;
     // from open it closes.
-    const base = open ? -ACTION_WIDTH : 0;
-    const next = Math.max(-ACTION_WIDTH, Math.min(0, base + dx));
+    const base = open ? -openWidth : 0;
+    const next = Math.max(-openWidth, Math.min(0, base + dx));
     offsetRef.current = next;
     setDragX(next);
   }
 
   function endGesture() {
     if (mode.current === "swiping") {
-      setOpen(offsetRef.current <= -OPEN_THRESHOLD);
+      setOpen(offsetRef.current <= -openThreshold);
     }
     mode.current = "idle";
     setDragX(null);
@@ -145,26 +161,33 @@ export function SwipeToDelete({
     }
   }
 
-  const offset = dragX ?? (open ? -ACTION_WIDTH : 0);
+  const offset = dragX ?? (open ? -openWidth : 0);
 
   return (
     <div className="relative overflow-hidden rounded-xl">
       {/* Sits behind the row; revealed as the row slides left. Always
           rendered so it stays keyboard- and screen-reader-reachable. */}
       <div className="absolute inset-y-0 right-0 flex">
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false);
-            onDelete();
-          }}
-          aria-label={deleteLabel}
-          style={{ width: ACTION_WIDTH }}
-          className="flex flex-col items-center justify-center gap-0.5 bg-danger text-xs font-semibold text-white transition-opacity active:opacity-80"
-        >
-          <Trash2 aria-hidden="true" size={18} />
-          Delete
-        </button>
+        {actions.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              action.onAction();
+            }}
+            aria-label={action.accessibleLabel}
+            style={{ width: ACTION_WIDTH }}
+            className={`flex flex-col items-center justify-center gap-0.5 text-xs font-semibold transition-opacity active:opacity-80 ${
+              action.tone === "danger"
+                ? "bg-danger text-white"
+                : "bg-surface-2 text-fg"
+            }`}
+          >
+            {action.icon}
+            {action.label}
+          </button>
+        ))}
       </div>
 
       <div

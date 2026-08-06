@@ -1,8 +1,9 @@
 "use client";
 
 import { createElement } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import { QuantityStepper } from "./QuantityStepper";
-import { SwipeToDelete } from "./SwipeToDelete";
+import { SwipeActions } from "./SwipeActions";
 import { categoryIcon, STORE_ICON as StoreIcon } from "@/lib/constants";
 import type { GroceryItemView } from "@/lib/types";
 
@@ -10,19 +11,41 @@ export function GroceryRow({
   item,
   onToggle,
   onQuantityChange,
+  onEdit,
   onDelete,
 }: {
   item: GroceryItemView;
   onToggle: () => void;
   onQuantityChange: (quantity: number) => void;
+  /** Opens the edit sheet (name, quantity, unit, category, store). */
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
     <li className="rounded-xl border border-line bg-surface">
-      {/* Swipe right-to-left to delete — this replaced an always-visible ×,
-          which was both redundant with the gesture and a real squeeze on the
-          row's width at 375px. */}
-      <SwipeToDelete onDelete={onDelete} deleteLabel={`Delete ${item.name}`}>
+      {/* Swipe right-to-left for Edit and Delete. Both live behind the swipe
+          rather than on the row because the row's own tap is already the
+          most important action on this page — ticking an item off while
+          holding a phone in a shop. Delete sits furthest out so a short,
+          hesitant swipe surfaces Edit rather than the destructive one. */}
+      <SwipeActions
+        actions={[
+          {
+            label: "Edit",
+            accessibleLabel: `Edit ${item.name}`,
+            icon: <Pencil aria-hidden="true" size={18} />,
+            onAction: onEdit,
+            tone: "neutral",
+          },
+          {
+            label: "Delete",
+            accessibleLabel: `Delete ${item.name}`,
+            icon: <Trash2 aria-hidden="true" size={18} />,
+            onAction: onDelete,
+            tone: "danger",
+          },
+        ]}
+      >
         <div className="flex items-center gap-1 pr-1">
       {/*
         The name and checkbox are one big button covering most of the row, so
@@ -100,7 +123,7 @@ export function GroceryRow({
         />
       )}
         </div>
-      </SwipeToDelete>
+      </SwipeActions>
     </li>
   );
 }

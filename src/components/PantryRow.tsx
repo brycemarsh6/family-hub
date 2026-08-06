@@ -1,7 +1,8 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { QuantityStepper } from "./QuantityStepper";
-import { SwipeToDelete } from "./SwipeToDelete";
+import { SwipeActions } from "./SwipeActions";
 import { isLow } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
@@ -25,8 +26,20 @@ export function PantryRow({
     <li className="rounded-xl border border-line bg-surface">
       {/* Swipe right-to-left to delete. Before this, removing a pantry item
           meant opening the edit sheet and finding Delete in there — fine for
-          a considered edit, far too slow for "we finished the milk". */}
-      <SwipeToDelete onDelete={onDelete} deleteLabel={`Delete ${item.name}`}>
+          a considered edit, far too slow for "we finished the milk". No Edit
+          action here, unlike shopping rows: tapping a pantry row already
+          opens the full edit sheet. */}
+      <SwipeActions
+        actions={[
+          {
+            label: "Delete",
+            accessibleLabel: `Delete ${item.name}`,
+            icon: <Trash2 aria-hidden="true" size={18} />,
+            onAction: onDelete,
+            tone: "danger",
+          },
+        ]}
+      >
       <div className="flex items-center gap-1 pr-1">
         <button
           type="button"
@@ -80,7 +93,7 @@ export function PantryRow({
           <span aria-hidden="true">🛒</span>
         </button>
       </div>
-      </SwipeToDelete>
+      </SwipeActions>
     </li>
   );
 }

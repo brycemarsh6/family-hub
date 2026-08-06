@@ -95,6 +95,48 @@ export async function setGroceryQuantity(id: string, quantity: number) {
   refreshGroceryViews();
 }
 
+/**
+ * Edit the fields a shopper actually needs to correct in place: a
+ * mistyped name, the wrong count or unit, the wrong aisle, or the wrong
+ * shop. Deliberately does NOT touch `checked` or `pantryItemId` —
+ * ticking off has its own action, and the pantry link is a provenance
+ * record ("this came from the pantry"), not something to hand-edit.
+ */
+export async function editGroceryItem(
+  id: string,
+  edits: {
+    name: string;
+    quantity: number;
+    unit: string | null;
+    category: string;
+    store: string | null;
+  },
+) {
+  if (!(await getVerifiedSession())) return;
+
+  const name = edits.name.trim();
+  // An empty name would render as a blank row with no way to identify it,
+  // so treat it the same as the add bar does: ignore the edit entirely.
+  if (!name) return;
+
+  await db.groceryItem.update({
+    where: { id },
+    data: {
+      name,
+      // Same floor as setGroceryQuantity — removing an item is what delete
+      // is for, not counting it down to zero.
+      quantity: Math.max(1, Math.round(edits.quantity * 100) / 100),
+      unit: edits.unit?.trim() || null,
+      // Both of these reject anything outside the real vocabulary, so a
+      // tampered-with request can't write junk (see addGroceryItem).
+      category: toCategory(edits.category),
+      store: toStore(edits.store),
+    },
+  });
+
+  refreshGroceryViews();
+}
+
 export async function deleteGroceryItem(id: string) {
   if (!(await getVerifiedSession())) return;
 
