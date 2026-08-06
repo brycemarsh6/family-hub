@@ -1,14 +1,11 @@
 import { db } from "@/lib/db";
 import { BackLink } from "@/components/BackLink";
 import { GroceryList } from "@/components/GroceryList";
+import { PutAwayButton } from "@/components/PutAwayButton";
 import { AddItemBar, AddItemSelect } from "@/components/AddItemBar";
 import { StoreSelect } from "@/components/StoreSelect";
 import { CATEGORY_NAMES, DEFAULT_CATEGORY } from "@/lib/constants";
-import {
-  addGroceryItem,
-  clearCheckedGroceryItems,
-  putAwayCheckedItems,
-} from "@/app/actions/groceries";
+import { addGroceryItem, clearCheckedGroceryItems } from "@/app/actions/groceries";
 
 export const dynamic = "force-dynamic";
 
@@ -58,19 +55,13 @@ export default async function GroceriesPage() {
 
         {checkedCount > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
-            {/* Plain forms pointed straight at Server Actions. These need no
-                client-side JavaScript at all — the browser submits them the
-                old-fashioned way and Next.js runs the function on the server. */}
-            <form action={putAwayCheckedItems}>
-              <button
-                type="submit"
-                className="min-h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-fg transition-opacity active:opacity-80"
-              >
-                <span aria-hidden="true">📦</span> Put away {checkedCount} into
-                the inventory
-              </button>
-            </form>
+            {/* Client-side now, not a plain form: put-away has to classify
+                what's checked before it knows whether to act immediately or
+                open the review sheet for anything new — see PutAwayButton. */}
+            <PutAwayButton checkedCount={checkedCount} />
 
+            {/* Still a plain form pointed straight at a Server Action — this
+                one needs no decision, so no client-side JavaScript at all. */}
             <form action={clearCheckedGroceryItems}>
               <button
                 type="submit"

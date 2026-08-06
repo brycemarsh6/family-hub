@@ -137,7 +137,7 @@ export const LOCATION_NAMES: readonly Location[] = LOCATIONS.map((l) => l.name);
 // away without ever having existed in the inventory has no evidence of
 // where it actually lives). "Other" is honest, and it's findable: it gets
 // its own Inventory filter chip, so mis-filed items surface instead of
-// hiding among real pantry stock. Read by both putAwayCheckedItems
+// hiding among real pantry stock. Read by both commitPutAway
 // (groceries.ts) and voice's apply.ts, so this one line fixes both paths.
 export const DEFAULT_LOCATION: Location = "Other";
 

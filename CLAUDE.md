@@ -402,15 +402,16 @@ checklist.
 payment or credential details — that's Bryce, with exact instructions for
 what to click. Claude writes and verifies every line of code.
 
-## Put-away review plan — ACTIVE
+## Put-away review plan — ✅ DONE
 
-The current work. Bryce noticed that "Put away N into the inventory"
-silently invents facts: a bought item that isn't already in the inventory
-is created in **Pantry**, always, because `putAwayCheckedItems` hardcoded
-`DEFAULT_LOCATION`. Frozen peas land on the pantry shelf. And an item
-that *is* already in the inventory always returns to its usual spot, so
-there's no way to say "put the beef in the fridge, I'm cooking it
-tonight."
+All four phases shipped and verified. Bryce noticed that "Put away N
+into the inventory" silently invented facts: a bought item that wasn't
+already in the inventory was created in **Pantry**, always, because the
+old `putAwayCheckedItems` hardcoded `DEFAULT_LOCATION`. Frozen peas
+landed on the pantry shelf. And an item that *was* already in the
+inventory always returned to its usual spot, so there was no way to say
+"put the beef in the fridge, I'm cooking it tonight." Kept below as a
+record of the decisions, same as the other finished plans.
 
 His framing for the fix, in his own words: an editable location on the
 shopping item that shows where it came from; **no** prompt when putting
@@ -520,11 +521,71 @@ merge when something looks like a duplicate.
   produce once set, so that reset needed a direct database write, not
   the UI. `tsc`, `eslint`, and `npm run build` all clean; pantry (477)
   and grocery (10) counts unchanged before and after.
-- **P3. The put-away review sheet.** Classify checked items; commit the
-  known ones silently; step through the new ones ("1 of 3") with
-  editable fields and fuzzy merge suggestions; commit in one
-  transaction, re-verifying matches server-side.
-- **P4. Verify against the real list + document.**
+- **P3. The put-away review sheet.** ✅ **Done — which also completes
+  P4** (every check below ran against the real 477-item pantry, so
+  there was no separate verification phase left to do). `putAwayCheckedItems`
+  is gone, split into two Server Actions: `classifyForPutAway` (read-only —
+  sorts checked items into "known" vs "new," with ranked merge
+  suggestions for each new one) and `commitPutAway` (the actual
+  transaction, taking the review's decisions). `PutAwayButton.tsx`
+  (client) calls classify first; a fully-known shop commits immediately
+  with **no sheet at all** — Bryce's explicit requirement — and only
+  opens `PutAwayReviewSheet.tsx` when something checked off doesn't
+  exactly match the inventory.
+  **The review sheet is one item at a time, budgeting-app style, per
+  Bryce's own reference.** Each screen shows up to two ranked merge
+  suggestions ("Already in the inventory?") above editable name /
+  quantity / unit / category / location fields defaulting to the
+  grocery row's own values. Tapping a suggestion swaps the editable
+  fields for a plain "Adding to ___ instead of creating a new item"
+  notice plus a quantity stepper — editing fields for a row you're not
+  creating would be editing the wrong thing. Nothing is written until
+  the *last* item's "Put away all" — canceling at any point, on any
+  item, discards the whole review with zero database writes, since
+  decisions only exist as local component state until that final call.
+  **The suggestion matcher is `matchItem`, not `searchItems` —
+  deliberately, and only after checking why.** `searchItems` (the
+  Inventory search box's matcher) requires *every* query token to
+  appear in the candidate, which is exactly backwards for this job: it
+  would return zero suggestions for "Ground beef 80/20" against an
+  existing plain "Ground Beef", because the qualifier tokens ("80",
+  "20") have nothing to match. `matchItem`'s scorer credits partial
+  overlap in both directions and already returns ranked alternatives —
+  it's the one built for "does this phrase refer to an existing row,"
+  which is precisely the question here. Confirmed by hand-tracing both
+  match directions before writing any code, not assumed from the name.
+  **Re-verification at commit time is real, not decorative.** `commitPutAway`
+  re-runs the exact-match lookup fresh against the database rather than
+  trusting what `classifyForPutAway` found a moment earlier — a genuine
+  match found *now* always wins over a stale "create" decision (another
+  phone may have put the same shopping away in between), while a
+  `merge` decision the human explicitly made in the sheet wins over an
+  automatic match, in case they merged into something classification
+  didn't consider exact. A merge only ever adds quantity to the target
+  — it deliberately does **not** apply the row's location override or
+  `categoryEdited` flag to the merged-into item, since "this is the
+  same thing, don't duplicate it" is a different claim than "also
+  re-file it"; those P2 overrides still apply, but only along the
+  automatic-match path, which is what a linked or exact-name item
+  actually is.
+  **Verified against the real 477-item pantry with synthetic
+  `"ZZZ Test …"` rows that touched nothing real**, covering every path:
+  a known item committed with no dialog at all, quantity incrementing
+  correctly (2→3); a mixed batch of one known + two new items opened
+  the review at exactly "1 of 2" (the known item correctly excluded);
+  the fuzzy matcher surfaced both a synthetic candidate *and* the
+  household's real "Ground beef" as a plausible second suggestion —
+  useful confirmation it works against real data, not just the bait;
+  choosing the merge path added exactly the reviewed quantity (1→3 lbs)
+  while leaving the target's real location and category untouched;
+  declining suggestions and editing every field on the create path
+  (name, quantity 5→7, category, location) produced a new pantry row
+  with exactly those edited values, not the originals; and canceling
+  mid-review left the checked-off item and every prior pantry row
+  completely unmodified, confirmed by direct database read. Every
+  synthetic row was deleted afterward; pantry (477) and grocery (10)
+  counts came back to exact baseline. `tsc`, `eslint`, and
+  `npm run build` all clean.
 
 ## Voice integration plan — ACTIVE
 
@@ -2327,3 +2388,17 @@ mismatch and "fixes" it.
 
 `Pantry` as a location name in `constants.ts` is untouched and must stay
 — that one really does mean the pantry shelf.
+
+**The Put-away review plan (P1–P3) is closed, same session.** See the
+plan's own section above for the full design and verification detail —
+worth restating here only because it's the biggest single feature this
+session, and it retires a real trust problem: "Put away" no longer
+silently claims a new item is on the pantry shelf, no longer discards a
+deliberate location/category correction on an existing item, and now
+gives a human a chance to say "that's the same thing" before a
+duplicate lands in the inventory. Nothing about the fully-known path
+changed for the family — a shop where everything matches still commits
+in one tap, no popup, exactly like before.
+
+Everything from this session is committed and pushed. `tsc`, `eslint`,
+and `npm run build` are all clean.
