@@ -587,6 +587,92 @@ merge when something looks like a duplicate.
   counts came back to exact baseline. `tsc`, `eslint`, and
   `npm run build` all clean.
 
+## Duplicate & irregularity review plan — ACTIVE
+
+The current work, and the direct successor to the Put-away review plan
+above — same idea (the app asks a human before it guesses) applied at
+two more moments. Bryce's ask, in his words: catch a "similar existing
+item" when adding to Inventory, plus "a tab for reviewing duplicate
+items or 'odd' entrys the computer notices," with a pulsing review icon
+leading to "a similar review window" where the user clarifies "what to
+do with the irregularity."
+
+Two features, one shared matcher: **prevention** (at add time) and
+**cleanup** (a standing queue).
+
+**Decisions already made — don't re-litigate these:**
+
+- **This needs its own stricter matcher, not `matchItem`.** Put-away's
+  review sheet can afford loose suggestions because a human is already
+  looking at that exact item and glances past a bad one. A queue that
+  *pulses at you unprompted* must be almost always right, or it becomes
+  noise and gets ignored — which is the same "app quietly goes stale"
+  failure the voice work exists to prevent. This is the third time this
+  project has needed a different strictness for a different consumer
+  (see `shelfLife.ts`'s `findOverride` vs `matchItem`); the lesson is
+  reliable enough now to apply up front instead of after a bad run.
+- **v1 detectors are three, all cheap and deterministic.** (1) Same
+  name, same location, two rows. (2) Subset-name pairs — every word of
+  one name appears in the other ("Ground beef" ⊂ "Ground beef 80/20").
+  (3) Anything sitting in location `Other` or category `Other`. No
+  fuzzy scoring in the queue at all.
+- **Same name in *different* locations is legitimate and must never be
+  flagged.** The house really does keep peanut butter and black beans
+  in two places. "Duplicate" is never just "same name."
+- **Irregularities are computed live, never stored.** They run against
+  current data on page load, exactly like low counts and expiry
+  estimates. The only thing persisted is **dismissals** — one small
+  additive table, keyed by detector type plus a fingerprint (sorted pair
+  of item ids, or a single id). Without persistent dismissal the queue
+  nags forever about things the family already decided are fine, which
+  is precisely how these features die.
+- **Merging re-points `GroceryItem.pantryItemId` to the survivor, and
+  deliberately does NOT re-point `VoiceChange.pantryItemId`.** Both are
+  `SetNull`, so both survive a delete — but they want opposite
+  treatment, and this is the sharpest trap in the whole plan. A live
+  shopping-list row that loses its link silently breaks put-away's
+  restock, so it must follow the survivor. A voice-log row must *not*:
+  `applyUndo` deletes the pantry item outright when `quantityBefore` is
+  null (the change created it), so a re-pointed log row could later
+  undo into deleting the survivor holding the merged quantities. Letting
+  it go null degrades undo to a harmless no-op, and the log still reads
+  correctly because `itemName` is plain text — which is exactly what
+  that column's own schema comment says it's for.
+- **The queue is not a nav tab.** The nav bar reaches branch roots only;
+  that rule is settled. It's an icon button with a count badge in the
+  Inventory page header, `animate-pulse` only when something is
+  unreviewed. Inventory hygiene belongs on Inventory. Promoting the
+  count to Kitchen's tile badge later is a one-line change if it earns
+  it.
+- **Exact-name matches at add time still get the sheet**, with the merge
+  option pre-selected. Unlike put-away — where buying more of a known
+  thing is evidence of intent — the add bar has no such evidence:
+  typing a name that already exists might mean "we have more" or "I
+  forgot we had this." One tap to confirm is cheap, and it's the moment
+  the app can teach that the item already exists.
+- **Suggest, never merge automatically.** Same rule as put-away, same
+  reason (the steaks/"tea" class of bug). Nothing in this plan mutates
+  data without a human tapping the specific choice.
+
+**The phases:**
+
+- **D1. The strict matcher + a coverage report against real data.** No
+  UI, no schema. Build the subset-name matcher and the three detectors
+  as pure functions, then run them against the real ~477 items and read
+  every hit by hand. Tune until the false-positive rate is genuinely
+  low — this is the phase that decides whether the pulsing icon is
+  useful or noise, and it's the same discipline that caught the
+  Dr-Pepper/bell-peppers and T-bone/tortilla bugs before they shipped.
+- **D2. The add-time duplicate check.** A read-only `checkForDuplicates`
+  action (the `classifyForPutAway` shape), a review sheet reusing
+  `PutAwayReviewSheet`'s pattern, and the add bar routed through it. No
+  match → creates instantly, zero added friction.
+- **D3. The review queue.** The dismissal table (additive migration),
+  the detectors wired to a header icon with a pulse + count, the review
+  sheet ("1 of 4", one irregularity per screen, decisions committing
+  immediately rather than batching — these are independent fixes), and
+  the merge action with the grocery-relink described above.
+
 ## Voice integration plan — ACTIVE
 
 The current work. Bryce's read on the real risk to this app: his wife won't
