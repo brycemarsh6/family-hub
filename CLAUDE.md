@@ -2183,3 +2183,23 @@ programmatically is that both buttons exist, are correctly labelled
 (`Edit <item>` / `Delete <item>`), sit fully on screen, and are ordered
 Edit-then-Delete. The single-action version of this gesture was
 confirmed by hand on a real phone earlier in the session.
+
+**"from pantry" became "from inventory" in the UI, this session.** Bryce
+flagged it as reading oddly, and he was right: *Pantry* is one of the
+four storage **locations** (Pantry / Fridge / Freezer / Storage), so
+"from pantry" on a shopping row looked like a claim about which shelf an
+item lives on, when it actually means "this row was pushed here from the
+Inventory list, and Put away knows which row to restock." Three
+user-facing strings changed — the row label, the shopping list's empty
+state, and the "Put away N into the inventory" button.
+
+**The database column stays `pantryItemId`, and the model stays
+`PantryItem`.** That's the older name from before Inventory was called
+Inventory, and renaming it would be a migration against the live family
+database for zero user-visible benefit. The gap between the internal
+name and the displayed word is deliberate, not an oversight — the row
+label carries a comment saying so, in case a future session sees the
+mismatch and "fixes" it.
+
+`Pantry` as a location name in `constants.ts` is untouched and must stay
+— that one really does mean the pantry shelf.

@@ -97,7 +97,12 @@ export function GroceryRow({
                 </span>
               )}
               {item.checked && item.pantryItemId && " · "}
-              {item.pantryItemId && "from pantry"}
+              {/* "inventory", not "pantry": Pantry is one of four storage
+                  locations, so "from pantry" read as a claim about which
+                  shelf it lives on rather than "this came off the
+                  Inventory list". The database column stays pantryItemId —
+                  renaming that is a migration with no user benefit. */}
+              {item.pantryItemId && "from inventory"}
               {(item.checked || item.pantryItemId) && item.store && " · "}
               {item.store && (
                 <span className="inline-flex items-center gap-1 align-text-bottom">

@@ -145,7 +145,7 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
         <EmptyState
           emoji="🛒"
           title={emptyTitle}
-          hint="Add something below, or pull in what's running low from the pantry."
+          hint="Add something below, or pull in what's running low from the inventory."
         />
       ) : (
         <div className="space-y-6">
