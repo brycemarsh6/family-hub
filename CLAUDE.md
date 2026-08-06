@@ -2402,3 +2402,116 @@ in one tap, no popup, exactly like before.
 
 Everything from this session is committed and pushed. `tsc`, `eslint`,
 and `npm run build` are all clean.
+
+---
+
+## Session wrap-up (end of the 2026-08-06 session)
+
+The most current summary — read this first. Everything below reflects
+the actual state of the app right now, not a snapshot from earlier in
+this file's history.
+
+### What's built and working
+
+**The whole app requires login** (shared family password, `session.ts` /
+`dal.ts`), is deployed and in daily use by the family at
+`family-hub-xi-fawn.vercel.app`, and has a home-screen icon on Bryce's
+wife's phone. Deployment, Postgres, and hand-off are all long since done
+— see the "Deployment plan" section above.
+
+**Kitchen is feature-complete as originally sketched**, and has had a
+second pass of real-use polish this session:
+
+- **Inventory** — 29 supermarket-ordered categories, collapsible groups
+  that **start fully collapsed** (a deliberate change this session — see
+  the design rule below), swipe-right-to-left-to-delete on every row
+  (`SwipeActions.tsx`), tap-to-edit for everything else, search, low-stock
+  badges, the two-way link to Shopping.
+- **Shopping** — store filter chips, swipe reveals **Edit and Delete**
+  (`GroceryItemEditSheet.tsx` covers name/quantity/unit/category/store/
+  location), and **"Put away" now reviews anything new** instead of
+  silently guessing a location — see the Put-away review plan above for
+  the full design. A fully-known shop still commits in one tap, no popup.
+- **Expiring** — urgency-sorted, shelf-life estimates from real USDA
+  data, leftover logging.
+- **Cooking** — Recipes (full CRUD, A–Z browse, 4 import paths, sharing)
+  and Meal Plan (week view, recipe picker, AI suggestions grounded by
+  index) are both fully built. No placeholder left anywhere under
+  Kitchen.
+
+**Voice** — V1 (the `/api/voice` backend) and V2 (a working Siri
+Shortcut) are both done and proven against production. V3 (an Alexa
+skill) is queued, blocked only on Bryce creating a free Amazon developer
+account.
+
+**Everything else on the nav bar — Calendar, Chores, Lists — and the
+dashboard beyond Kitchen's card are still placeholder pages.** These are
+the next real *branch* of work, whenever that gets picked up; nothing
+about them has started.
+
+### Design decisions worth knowing (the accurate ones)
+
+These are the ones actually true of this codebase — see "Design rules
+we've established" near the top of this file for the full list with
+reasoning. Restated briefly here since they came up by name this
+session:
+
+- **One nav bar for the whole app, fixed to the bottom of the screen at
+  every size — phone, tablet, and desktop alike.** There is no separate
+  top-bar layout for wider screens, and this isn't an oversight: an
+  earlier version *did* give Kitchen its own tab bar that swapped in on
+  desktop, and it was deliberately reverted after Bryce noticed most
+  real apps don't change nav contents as you move around. `HubNav.tsx`
+  is the only nav component; `HUB_NAV_ITEMS` in `nav.ts` is the only nav
+  list.
+- **Outline icons only, via Lucide — no emoji in the icon system.**
+  Every category, storage-location, and nav icon is a Lucide component.
+  The one deliberate exception: native `<select><option>` elements can't
+  render SVG, so dropdowns fall back to plain text.
+- **Colors are named by job, not appearance** (`--surface`, `--muted`,
+  `--danger`, `--accent`, `--danger-soft`), with separate light/dark
+  values in `globals.css`. No named palette or third-party product is
+  the reference for this — it was built from scratch, one token added
+  only when a real screen needed it (e.g. `--danger-soft` was added
+  specifically for the Expiring page's "eat now" badge).
+
+  ⚠️ **A "bottom tab nav on mobile / top bar on desktop" split and a
+  Todoist-layout / Monarch-color reference were asked to be documented
+  here twice this session, and neither matches this codebase** — checked
+  both times, nothing changed in between. If these are real decisions
+  from a different project, a mockup, or a conversation outside this
+  repo, they need to be *built* here first (the single-bottom-nav rule
+  above would need to be reverted on purpose, which is a real code
+  change with real tradeoffs, not just a documentation fix) before this
+  file can accurately describe them as current. Flagging a third time
+  isn't useful — worth resolving explicitly next session rather than
+  asking again.
+
+### Where I left off
+
+The Put-away review plan (P1–P3) closed this session and was the last
+active plan — see its section above for the full design, and the
+"Session-specific guidance" entries throughout this file for the
+verification detail. Bryce confirmed it working on his own phone over
+the LAN dev server before this wrap-up.
+
+**Nothing is currently an ACTIVE plan.** The obvious next steps, in no
+particular order:
+
+- **V3, the Alexa skill** — still the oldest outstanding item, blocked
+  only on Bryce creating a free Amazon developer account. The
+  `/api/voice` endpoint it needs already exists and is proven.
+- **A real handwritten recipe card through photo import** — the one
+  source type from the Recipes plan never tested against genuine input.
+- **Shopping still has no collapse/expand** the way Inventory does —
+  it picked up the 29-category grouping but not the collapsible
+  treatment.
+- **Nothing remembers a *specific* item's usual store** — only one
+  global "last store picked," not per-item memory.
+- **A new branch** — Calendar, Chores, Lists, or Family profiles are
+  all genuinely unstarted; see "Planned, not yet built" above for the
+  rough order Bryce laid out (Calendar last on purpose, as the hardest).
+
+Everything through this session is committed and pushed to `main`.
+`tsc`, `eslint`, and `npm run build` are all clean — no known issues
+anywhere in the repo.
