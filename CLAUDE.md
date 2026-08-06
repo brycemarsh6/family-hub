@@ -587,11 +587,12 @@ merge when something looks like a duplicate.
   counts came back to exact baseline. `tsc`, `eslint`, and
   `npm run build` all clean.
 
-## Duplicate & irregularity review plan — ACTIVE
+## Duplicate & irregularity review plan — ✅ DONE
 
-The current work, and the direct successor to the Put-away review plan
-above — same idea (the app asks a human before it guesses) applied at
-two more moments. Bryce's ask, in his words: catch a "similar existing
+All three phases shipped and verified — the direct successor to the
+Put-away review plan above, same idea (the app asks a human before it
+guesses) applied at two more moments. Kept below as a record of the
+decisions, same as the other finished plans. Bryce's ask, in his words: catch a "similar existing
 item" when adding to Inventory, plus "a tab for reviewing duplicate
 items or 'odd' entrys the computer notices," with a pulsing review icon
 leading to "a similar review window" where the user clarifies "what to
@@ -727,11 +728,55 @@ Two features, one shared matcher: **prevention** (at add time) and
   row was deleted afterward; pantry (477) and grocery (10) counts came
   back to exact baseline. `tsc`, `eslint`, and `npm run build` all
   clean.
-- **D3. The review queue.** The dismissal table (additive migration),
-  the detectors wired to a header icon with a pulse + count, the review
-  sheet ("1 of 4", one irregularity per screen, decisions committing
-  immediately rather than batching — these are independent fixes), and
-  the merge action with the grocery-relink described above.
+- **D3. The review queue.** ✅ **Done — which completes the plan.**
+  `IrregularityDismissal` (migration
+  `20260806214642_add_irregularity_dismissals`, one `CREATE TABLE` plus
+  two indexes, reviewed as SQL before applying) is the only stored
+  piece; irregularities themselves are recomputed on every load.
+  Deliberately **not** a foreign key to `PantryItem` — the rows a
+  fingerprint references may be deleted by the very merge recorded
+  alongside it, and a dangling fingerprint is harmless (it just never
+  matches again). `src/app/actions/irregularities.ts` holds
+  `getReviewQueue` (read-only, feeds both the badge count and the sheet
+  so they can't disagree), `dismissIrregularity` (upsert, so a
+  double-tap is harmless), `mergePantryItems`, and `fileParkedItem`
+  (patches only the field the detector complained about, so filing a
+  location can't clobber a category set from another phone seconds
+  earlier). `ReviewQueueButton.tsx` renders **nothing at all** when the
+  queue is empty — a permanent zero-badge is exactly the low-grade
+  noise that gets tuned out — and `IrregularityReviewSheet.tsx` is the
+  familiar one-per-screen shape.
+  **The merge's two-foreign-key asymmetry, verified rather than
+  assumed.** The seeded test put a live shopping-list row *and* a
+  voice-log row (with `quantityBefore: null`, the shape that makes
+  `applyUndo` delete outright) on the item being merged away. After the
+  merge, a direct database read confirmed: `GroceryItem.pantryItemId`
+  had followed the **survivor**, and `VoiceChange.pantryItemId` was
+  **null**. Both are what the plan predicted and both matter — the
+  first keeps put-away restocking the right row instead of silently
+  re-creating the duplicate this queue exists to remove; the second
+  keeps a later "undo" from deleting the survivor and the merged
+  quantities with it.
+  **One real gap the verification caught:** the sheet shipped with
+  merge / dismiss / file but **no skip**, even though the plan's own
+  decisions listed "skip for now." Without it the queue is a forced
+  march — entry 5 is unreachable without resolving 1–4, and a 21-item
+  backlog makes that a real wall. Added as a distinct action from
+  dismiss (skip writes nothing and the entry returns next time; dismiss
+  is permanent), and only rendered when there *is* a next entry.
+  Verified end to end against the real 477-item inventory: the pulsing
+  badge appeared reading "24 to review" (the 21-item real backlog from
+  D1 plus 3 synthetic rows); merging combined quantities correctly
+  (2 + 5 → 7) and dropped the count to 23; dismissing a real pair
+  ("Frozen corn" vs "Fresh frozen corn" — a genuine finding) dropped it
+  to 22 and advanced; skipping walked 20 entries without writing
+  anything; and filing the synthetic parked item resolved its location
+  and *category* as two independent entries, exactly as
+  `findParkedInOther` reports them. Every synthetic row was deleted
+  afterward, and **the dismissals table was cleared too** — including
+  the Frozen-corn one, which was my test rather than Bryce's decision
+  to make. Pantry (477) and grocery (10) back to exact baseline. `tsc`,
+  `eslint`, and `npm run build` all clean.
 
 ## Voice integration plan — ACTIVE
 

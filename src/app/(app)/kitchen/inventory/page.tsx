@@ -3,6 +3,8 @@ import { BackLink } from "@/components/BackLink";
 import { PantryList } from "@/components/PantryList";
 import { PantryAddFlow } from "@/components/PantryAddFlow";
 import { AddLowItemsButton } from "@/components/AddLowItemsButton";
+import { ReviewQueueButton } from "@/components/ReviewQueueButton";
+import { getReviewQueue } from "@/app/actions/irregularities";
 import { isLow } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
@@ -32,6 +34,10 @@ export default async function PantryPage() {
     }),
   ]);
 
+  // Computed fresh on every load, same as the low counts above — nothing
+  // about the review queue is stored except the dismissals it filters by.
+  const reviewQueue = await getReviewQueue();
+
   const onListIds = new Set(
     openGroceryLinks.map((link) => link.pantryItemId).filter(Boolean),
   );
@@ -58,6 +64,8 @@ export default async function PantryPage() {
         </p>
 
         {lowNotYetListed > 0 && <AddLowItemsButton count={lowNotYetListed} />}
+
+        <ReviewQueueButton initial={reviewQueue} />
       </div>
 
       <PantryList items={items} />

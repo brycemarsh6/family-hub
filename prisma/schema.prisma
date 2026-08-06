@@ -219,3 +219,37 @@ model MealPlanEntry {
   @@unique([mealPlanId, dayOffset, slot])
   @@index([recipeId])
 }
+
+/// A "stop asking me about this" record for the irregularity review queue.
+///
+/// The irregularities themselves are never stored — they're recomputed from
+/// live data on every page load, exactly like low counts and expiry
+/// estimates (see src/lib/duplicates.ts). This table is the one thing that
+/// genuinely must persist: without it, a queue that pulses at the family
+/// would keep re-raising things they've already decided are fine, which is
+/// precisely how these features get ignored and die.
+///
+/// Deliberately NOT a foreign key to PantryItem. The fingerprint is a plain
+/// string covering both shapes a dismissal can take — a pair of item ids
+/// (sorted, so order can't produce two records for one decision) or a single
+/// id — and the rows it references may be deleted by the very merge the
+/// dismissal was recorded alongside. A dangling fingerprint is harmless: it
+/// just never matches anything again.
+model IrregularityDismissal {
+  id String @id @default(cuid())
+
+  /// Which detector raised it: "same-name" | "subset-name" |
+  /// "other-location" | "other-category". Part of the fingerprint already,
+  /// but stored separately so a detector can be retired by deleting its
+  /// dismissals without parsing strings.
+  kind String
+
+  /// Stable, order-independent identity for the thing being dismissed —
+  /// built by src/lib/duplicates.ts so the detectors and this table can
+  /// never disagree about what "the same irregularity" means.
+  fingerprint String @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([kind])
+}
