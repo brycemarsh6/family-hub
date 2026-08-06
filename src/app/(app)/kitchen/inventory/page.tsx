@@ -1,16 +1,9 @@
 import { db } from "@/lib/db";
 import { BackLink } from "@/components/BackLink";
 import { PantryList } from "@/components/PantryList";
-import { AddItemBar, AddItemSelect } from "@/components/AddItemBar";
+import { PantryAddFlow } from "@/components/PantryAddFlow";
 import { AddLowItemsButton } from "@/components/AddLowItemsButton";
-import {
-  CATEGORY_NAMES,
-  LOCATION_NAMES,
-  DEFAULT_CATEGORY,
-  DEFAULT_LOCATION,
-  isLow,
-} from "@/lib/constants";
-import { addPantryItem } from "@/app/actions/pantry";
+import { isLow } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -72,20 +65,7 @@ export default async function PantryPage() {
       {/* Keeps the last row clear of the floating add bar. */}
       <div aria-hidden="true" className="h-28" />
 
-      <AddItemBar action={addPantryItem} placeholder="Add to the inventory…">
-        <AddItemSelect
-          name="location"
-          label="Location"
-          options={LOCATION_NAMES}
-          defaultValue={DEFAULT_LOCATION}
-        />
-        <AddItemSelect
-          name="category"
-          label="Category"
-          options={CATEGORY_NAMES}
-          defaultValue={DEFAULT_CATEGORY}
-        />
-      </AddItemBar>
+      <PantryAddFlow />
     </div>
   );
 }

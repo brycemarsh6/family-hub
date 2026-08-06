@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedSession } from "@/lib/dal";
 import { toCategory, toLocation, toStore, type Store } from "@/lib/constants";
+import { findDuplicateMatches, type DuplicateMatch } from "@/lib/duplicates";
 
 /**
  * Both pages can be affected by a pantry change: the pantry obviously, and the
@@ -38,6 +39,94 @@ export async function addPantryItem(formData: FormData) {
       unit: String(formData.get("unit") ?? "").trim() || null,
       category: toCategory(formData.get("category")),
       location: toLocation(formData.get("location")),
+    },
+  });
+
+  refreshKitchenViews();
+}
+
+/**
+ * Read-only: does a not-yet-created item probably already exist? Called
+ * from the Inventory add bar before it writes anything — see
+ * PantryAddFlow.tsx, and findDuplicateMatches' own comment in
+ * duplicates.ts for how exact-same-location, exact-other-location, and
+ * subset-name matches are ranked and why location changes the answer.
+ */
+export async function checkForDuplicateOnAdd(
+  name: string,
+  location: string,
+): Promise<DuplicateMatch[]> {
+  if (!(await getVerifiedSession())) return [];
+
+  const trimmed = name.trim();
+  if (!trimmed) return [];
+
+  const existing = await db.pantryItem.findMany({
+    select: {
+      id: true,
+      name: true,
+      location: true,
+      category: true,
+      quantity: true,
+      unit: true,
+    },
+  });
+
+  return findDuplicateMatches(trimmed, toLocation(location), existing);
+}
+
+/**
+ * Creates a new pantry item from the add-time review sheet — after a
+ * human has looked at the possible duplicates and confirmed this is
+ * genuinely new (editing any field along the way). Separate from
+ * addPantryItem because the review sheet hands over already-typed
+ * values, not a FormData submission.
+ */
+export async function createPantryItemReviewed(fields: {
+  name: string;
+  quantity: number;
+  unit: string | null;
+  category: string;
+  location: string;
+}) {
+  if (!(await getVerifiedSession())) return;
+
+  const name = fields.name.trim();
+  if (!name) return;
+
+  await db.pantryItem.create({
+    data: {
+      name,
+      quantity: Math.max(0, fields.quantity),
+      unit: fields.unit?.trim() || null,
+      category: toCategory(fields.category),
+      location: toLocation(fields.location),
+    },
+  });
+
+  refreshKitchenViews();
+}
+
+/**
+ * The other half of the add-time review sheet: the human said "that's
+ * the same thing" and picked which existing row it is. Adds quantity
+ * only — deliberately doesn't touch the target's own category or
+ * location, the same restraint commitPutAway's merge path uses and for
+ * the same reason: "this is the same item" is a different claim than
+ * "also re-file it."
+ */
+export async function mergeIntoExistingPantryItem(
+  pantryItemId: string,
+  quantity: number,
+) {
+  if (!(await getVerifiedSession())) return;
+  if (!(quantity > 0)) return;
+
+  await db.pantryItem.update({
+    where: { id: pantryItemId },
+    data: {
+      quantity: { increment: Math.round(quantity * 100) / 100 },
+      restockedAt: new Date(),
     },
   });
 

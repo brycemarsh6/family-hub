@@ -190,6 +190,84 @@ export function findParkedInOther(
   return parked;
 }
 
+export type DuplicateMatchKind =
+  | "exact-same-location"
+  | "exact-other-location"
+  | "subset-name";
+
+export type DuplicateMatch = {
+  kind: DuplicateMatchKind;
+  item: DuplicateCandidate;
+};
+
+/** At most this many subset-name suggestions — same reasoning as
+ * MAX_SUGGESTIONS in the put-away review action: a quick glance, not
+ * another list to read. */
+const MAX_ADD_TIME_SUGGESTIONS = 3;
+
+/**
+ * The add-time question, not the standing-queue question: does a
+ * not-yet-created item probably already exist? Ranked so exact matches
+ * always come first — an exact name match is unambiguous, so if there is
+ * one, subset-name suggestions would only be noise and are skipped
+ * entirely.
+ *
+ * Location matters here in a way it doesn't for the pair detectors:
+ * "exact-same-location" is very likely "I forgot I had this" or "let me
+ * just add more" — the review sheet pre-selects it. "exact-other-location"
+ * is very likely the household's own legitimate two-places pattern (a
+ * second jar of peanut butter downstairs) — it's shown, but never
+ * pre-selected, so a deliberate choice to create separately isn't second-
+ * guessed by default. Same distinction the pair detectors make, just
+ * applied to a single candidate instead of two existing rows.
+ */
+export function findDuplicateMatches(
+  candidateName: string,
+  candidateLocation: string,
+  existing: readonly DuplicateCandidate[],
+): DuplicateMatch[] {
+  const candidateTokens = tokens(candidateName);
+  if (candidateTokens.length === 0) return [];
+  const candidateKey = candidateTokens.join(" ");
+
+  const exact: DuplicateMatch[] = [];
+  for (const item of existing) {
+    if (item.category === "Leftovers") continue;
+    if (nameKey(item) !== candidateKey) continue;
+    exact.push({
+      kind: item.location === candidateLocation ? "exact-same-location" : "exact-other-location",
+      item,
+    });
+  }
+
+  if (exact.length > 0) {
+    // Same-location first: that's the one worth pre-selecting.
+    return exact.sort((a, b) =>
+      a.kind === b.kind ? 0 : a.kind === "exact-same-location" ? -1 : 1,
+    );
+  }
+
+  // No exact match — try subset-name, same location only (mirrors
+  // findSubsetNamePairs' own guard, and for the same reason: a
+  // cross-location subset pair is usually the deliberate two-places
+  // pattern too, just fuzzier than an exact name).
+  const subset: DuplicateMatch[] = [];
+  for (const item of existing) {
+    if (item.category === "Leftovers") continue;
+    if (item.location !== candidateLocation) continue;
+    const itemTokens = tokens(item.name);
+    const [inner, outer] =
+      candidateTokens.length <= itemTokens.length
+        ? [candidateTokens, itemTokens]
+        : [itemTokens, candidateTokens];
+    if (inner.length < 2) continue;
+    if (!isProperTokenSubset(inner, outer)) continue;
+    subset.push({ kind: "subset-name", item });
+  }
+
+  return subset.slice(0, MAX_ADD_TIME_SUGGESTIONS);
+}
+
 export type IrregularityReport = {
   sameName: DuplicatePair[];
   subsetName: DuplicatePair[];

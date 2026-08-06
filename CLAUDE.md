@@ -690,10 +690,43 @@ Two features, one shared matcher: **prevention** (at add time) and
   quiet after — which is the precision bar the plan set. `tsc` and
   `eslint` clean; the coverage script itself was a temp file, findings
   recorded here.
-- **D2. The add-time duplicate check.** A read-only `checkForDuplicates`
-  action (the `classifyForPutAway` shape), a review sheet reusing
-  `PutAwayReviewSheet`'s pattern, and the add bar routed through it. No
-  match → creates instantly, zero added friction.
+- **D2. The add-time duplicate check.** ✅ **Done.** `findDuplicateMatches`
+  in `duplicates.ts` is the add-time twin of the pair detectors — given
+  a not-yet-created name + location, it ranks `exact-same-location` and
+  `exact-other-location` matches first (skipping subset suggestions
+  entirely when an exact match exists, since it would only be noise),
+  falling back to the same guarded subset-name search otherwise.
+  `checkForDuplicateOnAdd` (read-only), `createPantryItemReviewed`, and
+  `mergeIntoExistingPantryItem` are the three new Server Actions in
+  `pantry.ts`. `PantryAddFlow.tsx` wraps the existing `AddItemBar` —
+  which stays completely untouched and still generic, so Shopping's add
+  bar is unaffected — and only Inventory's submit now classifies first:
+  no match creates instantly exactly as before, a match opens
+  `PantryDuplicateReviewSheet.tsx`.
+  **The peanut-butter rule needed a real decision, not just a restated
+  principle, and it's asymmetric on purpose:** an
+  `exact-same-location` match is pre-selected (very likely "I forgot I
+  had this" or "let me add more" — cheap to confirm, one tap). An
+  `exact-other-location` match is shown but **never** pre-selected,
+  because defaulting to merge would silently discard a deliberate
+  second-location purchase — exactly the case the standing-queue
+  detectors already carve out. The review sheet's default action
+  literally depends on which location the household is filing the
+  purchase into, not just on whether the name matches.
+  Verified against the real 477-item inventory with synthetic rows:
+  same-location "ZZZ Test Duplicate" opened pre-selected and merging
+  added exactly the confirmed quantity (2→3); different-location "ZZZ
+  Test Peanut Butter" opened *unselected*, and choosing "create new"
+  produced a genuinely separate row in the new location (Fridge) while
+  the original Pantry row was left completely untouched — the
+  peanut-butter case working exactly as designed, not just reasoned
+  about; a subset-name candidate ("Ground Turkey" ⊂ "Ground Turkey
+  93/7") surfaced correctly with no same/different-spot label (that
+  label is reserved for exact matches); and a name with no plausible
+  match skipped the sheet entirely, creating instantly. Every synthetic
+  row was deleted afterward; pantry (477) and grocery (10) counts came
+  back to exact baseline. `tsc`, `eslint`, and `npm run build` all
+  clean.
 - **D3. The review queue.** The dismissal table (additive migration),
   the detectors wired to a header icon with a pulse + count, the review
   sheet ("1 of 4", one irregularity per screen, decisions committing
