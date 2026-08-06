@@ -2475,17 +2475,16 @@ session:
   only when a real screen needed it (e.g. `--danger-soft` was added
   specifically for the Expiring page's "eat now" badge).
 
-  ⚠️ **A "bottom tab nav on mobile / top bar on desktop" split and a
-  Todoist-layout / Monarch-color reference were asked to be documented
-  here twice this session, and neither matches this codebase** — checked
-  both times, nothing changed in between. If these are real decisions
-  from a different project, a mockup, or a conversation outside this
-  repo, they need to be *built* here first (the single-bottom-nav rule
-  above would need to be reverted on purpose, which is a real code
-  change with real tradeoffs, not just a documentation fix) before this
-  file can accurately describe them as current. Flagging a third time
-  isn't useful — worth resolving explicitly next session rather than
-  asking again.
+  **Resolved, same session:** a bottom-nav-on-mobile/top-bar-on-desktop
+  split and a Todoist/Monarch design reference were asked for twice, and
+  both times neither matched this codebase. Bryce settled it directly:
+  drop the Todoist/Monarch references entirely, and **keep the single
+  bottom nav bar at every screen size, deliberately** — the app is
+  optimized for mobile first, and a desktop-specific layout is a
+  "someday if it's actually needed" call, not a default to build toward
+  now. So the single-nav-bar rule above isn't just undisturbed, it's
+  freshly confirmed as the right call rather than an oversight worth
+  revisiting.
 
 ### Where I left off
 
