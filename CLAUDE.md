@@ -1254,6 +1254,278 @@ ingredients to the shopping list" (genuinely wanted someday, needs
 quantity parsing), cook-mode screen wake lock, recipe voice verbs, and
 bulk-importing an entire Pinterest board.
 
+## Recipes v2 plan — ACTIVE
+
+Cookbooks, tags, ratings, cooked history, nutrition, photos, cross-branch
+buttons, and a redesigned recipe page. Designed 2026-08-07 from a
+screenshot walkthrough of **RecMe** (a commercial recipe app) — Bryce
+walked through it feature by feature, marking what to adopt, adapt, or
+skip. RecMe is a *layout* reference only: what to build comes from those
+explicit calls, recorded below, not from imitating the app wholesale.
+Written for a fresh session to implement phase by phase without having
+been in the design conversation.
+
+**Which model to use, per phase** — Bryce asked for this directly, so a
+session shouldn't have to guess. The rule of thumb: **Sonnet** for
+phases that are well-specified CRUD and UI (the decisions below do the
+hard thinking already); **Opus** for the phases marked as such — the
+ones with cross-cutting data logic, a new external service, or an
+adversarial security check, where a wrong subtle call is expensive on
+the live family database. (This is about the *coding session's* model —
+separate from the in-app Claude API calls, which stay on Haiku per the
+established cost decision.)
+
+**Decisions already made — don't re-litigate these:**
+
+- **The recipe list page grows a view toggle: Cookbooks / All Recipes,
+  default Cookbooks.** It sits in the title position ("Cookbooks ⌄"),
+  opening a bottom sheet with two radio rows — the house sheet pattern,
+  not a custom dropdown. **All Recipes is today's page unchanged**: A–Z
+  groups, the slide-to-jump rail, search. No photo grid, no collage
+  covers — Bryce explicitly skipped RecMe's collage look; a cookbook in
+  the list is its title and a recipe count.
+- **The + button moves to the bottom-left corner** — a floating circle
+  replacing the header "New" button, opening a sheet: "Add a recipe"
+  (the existing 4-way import chooser) / "Add a cookbook". Bottom-*left*
+  is deliberate, not aesthetic: the A–Z rail owns the right edge at full
+  height, so a bottom-right button would sit on X/Y/Z. It must float
+  above the fixed nav bar and pin to the content column's edge (not the
+  raw viewport edge, or it drifts into the margin on wide screens).
+- **A cookbook is a named list; membership is a join table.** `Cookbook`
+  (title, `shareToken? @unique`, timestamps) + `CookbookRecipe`
+  (cookbookId, recipeId, `addedAt`, unique on the pair). A recipe can
+  be in many cookbooks or none. `addedAt` exists because the "most
+  recent" sort means "when was a recipe last added to this book" — not
+  when the book row was touched; a cookbook-level timestamp would get
+  this subtly wrong.
+- **Deleting a cookbook unfiles its recipes, never deletes them** —
+  cascade on the join rows only. And this is one of exactly **two
+  deliberate breaks of the single-tap-delete rule** (the other is
+  deleting a tag): both silently touch many rows' relationships, unlike
+  deleting one grocery item. Each confirms with a count — "Delete Mom's
+  Recipes? Its 14 recipes stay in All Recipes." The reassurance is half
+  the point of the dialog. Scoped to these two; everything else keeps
+  the house rule.
+- **Tags are a table + join** (`Tag`, `RecipeTag`), never text on the
+  recipe — that's what makes rename safe (rename once, every recipe
+  follows) and delete honest (show the count). Normalize on create: the
+  "search or create" box surfaces an existing case-insensitive match
+  first and only offers "create" when nothing matches — same idea as
+  the add-time duplicate check, because "Dessert"/"dessert"/"Desserts"
+  as three tags is how a tag list rots.
+- **The four meal-slot tags are seeded from `MEAL_SLOTS`, not typed.**
+  Slot tag and slot are the same word *by construction*, so the meal
+  suggester never fuzzy-matches a user-typed "breakfast" against the
+  Breakfast slot — the steaks/"tea" lesson applied preemptively, again.
+  Every other tag (Dessert, Side, Special Occasion…) is freely
+  user-created.
+- **The meal-plan AI filters by slot tag *before* the prompt, not in
+  it.** `suggestMealsForSlot` sends only recipes tagged for the slot
+  being filled (falling back to the full library when none are tagged).
+  A model can't ignore a list it never saw — strictly stronger than
+  "prefer breakfast recipes" as prompt text, and cheaper.
+- **Tag filtering on the list page is chips on the All Recipes view
+  only** — filtering *cookbooks* by tag is ambiguous and skipped.
+  Single-select, same as Inventory's location chips and Shopping's
+  store chips.
+- **Rating is 1–5 stars, one tap** (`rating Int?` on Recipe). Tapping
+  the current rating clears it back to unrated. Stars are 44px+ targets.
+- **Cooked is `lastCookedAt DateTime?`, deliberately not a boolean.**
+  "Mark as cooked" stamps now; the Cooked filter is just "is it set";
+  and it hands the meal-plan AI something real later ("you haven't made
+  this since March" beats "you've made this"). Costs the same as a
+  boolean.
+- **Nutrition is estimated once, stored, and marked honest.**
+  "Calculate nutrition" → a confirm sheet asking for a hard servings
+  *number* (stepper — this exists because `servings` is free text like
+  "6-8", and it must **never overwrite** that field) → one Haiku call
+  with structured outputs → store calories/protein/carbs/fat as **whole
+  grams** (12 g, never 12.4 g — an AI estimate doesn't have decimal
+  precision, and a dieter will act on these numbers), plus the servings
+  number used, plus a **fingerprint of the ingredients text** it was
+  computed from. If the ingredients are later edited, the fingerprint
+  mismatch shows a "computed for an older ingredient list" notice with
+  a recompute button, instead of confidently mislabeling a different
+  recipe. Displayed with the `~` estimate mark, per the Expiring rule
+  that a guess never masquerades as a fact. The donut chart splits by
+  **calories** (fat 9/g, protein and carbs 4/g), not grams — a
+  gram-split donut understates fat by more than half. Failure is an
+  inline error + Try again; nutrition can never block the rest of the
+  page.
+- **"Add to groceries" suggests, never auto-adds** — the put-away
+  review pattern pointed the other direction. One Claude parse turns
+  the ingredient lines into plain item names; `matchItem` checks each
+  against the real inventory; a review sheet shows what the house
+  already has vs. what's missing (missing pre-checked, on-hand
+  unchecked but toggleable — the model and matcher both guess, so a
+  human confirms); one tap adds the confirmed set to the shopping
+  list. Rows that matched a pantry item carry `pantryItemId` so
+  put-away restocks the right row.
+- **The Meal Plan button writes through `setMealPlanEntry`, no new
+  write path.** It opens a picker sheet — week, then day (7 chips with
+  real dates), then slot (4 chips) — and saves exactly like picking a
+  recipe from the slot sheet does today, denormalized title and all.
+  Same upsert, same double-tap safety.
+- **Export PDF and Print are the same print view.** A print-stylesheet
+  rendering of the recipe; Print calls `window.print()`, and Export
+  PDF is the *same dialog* — every platform's print sheet offers Save
+  as PDF. No server-side PDF generation: a headless-browser dependency
+  for output identical to what the client already produces.
+- **Recipe photos need Vercel Blob, and that's Bryce's account/billing
+  decision** — same status as v1, now with a phase waiting on it. Two
+  image kinds, same storage: a **hero photo of the finished dish**
+  (photogenic placeholder when absent) and the **original import
+  photo(s)** kept as the recipe's *source* (Bryce: the source line
+  should work for photo-imported recipes the way `sourceUrl` works for
+  links — the cookbook page or handwritten card viewable from the
+  detail page, not used as the hero). Photos are downscaled
+  client-side before upload, reusing R3b's canvas pipeline. Every
+  other phase ships without this one.
+- **Cookbook viewer sharing is the recipe-share machinery pointed at a
+  list.** Unguessable token, revocable, public route under the narrow
+  prefix `"/share/cookbook/"` — the R4 proxy drill is why the prefix
+  is narrow. A share follows the cookbook's *current* contents (adding
+  a recipe later extends what the viewer sees) — right behavior, but
+  the share UI must say it plainly. **Collaborator is out of v2
+  entirely**: the app has one shared family password, so there is no
+  per-person "someone" to grant edit rights to yet. Viewer now,
+  collaborator when accounts exist.
+- **One filter-bar component, used twice.** The cookbook page's bar
+  (search, Tags, Total time, Cooked, Rating, Sort) and All Recipes'
+  tag chips are the same control over different recipe sets — build it
+  once (`BranchTile`/`BackLink` precedent) or it drifts. **No
+  Ingredients filter** — Bryce has a different plan for that later.
+- **Total time filtering is best-effort by design.** `prepTime`/
+  `cookTime` are free text on purpose ("45 min", "1 hr 15 min"); the
+  filter parses them into buckets (Under 30 / 30–60 / Over an hour)
+  and anything unparseable simply matches no bucket. Fuzzier than it
+  looks; that's accepted, not a bug to fix later.
+- **⚠️ The dev database IS the live family database — still.** Additive
+  migrations only; never `db:seed`/`db:reset`; test data only via new
+  scoped scripts that touch the new tables and clean up by fingerprint
+  (the recipe/meal-plan scripts' hard-won lesson). And the standing
+  R1 lesson: a new model needs `prisma generate` **and a dev-server
+  restart**, because `db.ts` caches the client on `globalThis`.
+
+**The phases.** Commit at each boundary; `npx tsc --noEmit`, `eslint`,
+and `npm run build` clean before each commit; verify each phase in the
+running app against real interaction — the discipline that caught the
+steaks/"tea", sticky-scroll, and Pinterest-meta-tag findings. Per
+AGENTS.md, check `node_modules/next/dist/docs` before using any Next
+API not already used in this repo.
+
+- **C1. Cookbooks core.** *(Sonnet.)* `Cookbook` + `CookbookRecipe`
+  schema (additive migration, generate, restart). The view toggle on
+  `/kitchen/cooking/recipes` (Cookbooks default / All Recipes — All
+  Recipes renders exactly today's list). Cookbook list rows (title +
+  count) with the A–Z / most-recent sort sheet. The bottom-left +
+  button and its two-option sheet, replacing the header New button.
+  Create-cookbook flow (title → straight into the new empty book).
+  The cookbook page: title, count, its recipes as the familiar list,
+  "Add recipe" offering **pick from All Recipes** (a search picker
+  over the existing library, the M2 recipe-picker pattern) plus the
+  four import paths — the import chooser and `createRecipe` take an
+  optional cookbookId so a recipe born inside a book lands in it.
+  ⋯ menu: Edit title, Delete (count-confirm; unfiles only). Scoped
+  seed/clean scripts for cookbooks. Verify: create, file existing +
+  newly-imported recipes, unfile, delete a non-empty book and confirm
+  every recipe survives in All Recipes, counts stable throughout.
+- **C2. Tags.** *(Sonnet.)* `Tag` + `RecipeTag` schema; seed the four
+  slot tags from `MEAL_SLOTS` (idempotent — upsert by name, so
+  re-running never duplicates). The select-tags sheet (search-or-
+  create with the existing-match-first rule, selected chips, per-tag
+  ⋯ for rename / delete-with-count). Tag chips on the recipe detail
+  page with an Update entry point. Tag filter chips on All Recipes
+  (single-select). Wire `suggestMealsForSlot` to pre-filter by slot
+  tag with the untagged-library fallback. Verify against the real
+  library: tag a real recipe Breakfast, confirm a Breakfast-slot
+  suggestion request sends only Breakfast-tagged recipes (log the
+  candidate list), and that an untagged slot still falls back to
+  everything; rename and delete round-trips.
+- **C3. Recipe detail v2.** *(Sonnet.)* The redesigned page top to
+  bottom: back + Edit + ⋯ (Export PDF / Print / Delete — delete keeps
+  the house single-tap rule, it touches one recipe); hero area with
+  placeholder art (real photos arrive in C7); title; the three action
+  circles (Meal Plan and Groceries appear now but wire up in C5 —
+  visible-not-stubbed per the house precedent, or wired immediately if
+  C5 lands first); the notes/meta block (prep, cook, source link);
+  Cookbooks chips with Edit (file/unfile from the recipe side, the
+  C1 join reused); stars; Mark as Cooked stamping `lastCookedAt`;
+  then Ingredients → Instructions → Nutrition (placeholder button
+  until C6) → Tags. The print-view route + print stylesheet behind
+  Export PDF/Print. Verify on a real phone-size viewport: every
+  target ≥44px, stars set/clear persists, cooked timestamp lands,
+  print view renders clean.
+- **C4. The filter bar.** *(Sonnet.)* The shared component: search,
+  Tags, Total time (the best-effort parser + its buckets), Cooked,
+  Rating, Sort — used on the cookbook page in full and backing All
+  Recipes' tag chips. Time-parser gets unit tests against real
+  strings ("45 min", "1 hr 15 min", "1½ hours", "a while" → no
+  bucket). Verify filters compose (Dinner + Under 30 + 4★) against
+  seeded variety.
+- **C5. The cross-branch buttons.** *(Opus — this is the phase with
+  real cross-feature data flow.)* **Meal Plan button**: the
+  week/day/slot picker writing through `setMealPlanEntry`. **Add to
+  groceries**: the parse → match → review sheet → confirmed-add flow
+  from the decision above, including `pantryItemId` linking and the
+  have/missing split. Verify against the real inventory: a recipe
+  whose ingredients are partly stocked shows the right split; adding
+  writes only confirmed rows; a linked row put-away restocks the
+  matched pantry item, not a duplicate.
+- **C6. Nutrition.** *(Sonnet; Opus if the estimates come back
+  unreliable and the prompt needs real iteration.)* The confirm-
+  servings sheet, the Haiku call (structured outputs, `server-only`
+  lib + guarded action split, same as every other AI feature), the
+  stored fields + fingerprint staleness check, the calorie-split
+  donut, `~` marking, inline failure + Try again. Verify: compute on
+  a real recipe, edit an ingredient, confirm the stale notice appears
+  and recompute clears it; break the API key via `.env.local` (the
+  M4 trick) and confirm the page degrades gracefully.
+- **C7. Photos.** *(Opus — first stored-images integration in the
+  stack, and it starts with a walkthrough.)* **Gated on Bryce
+  creating/approving Vercel Blob** (account + billing, walkthrough
+  style like Neon/Vercel). Then: hero photo upload (camera/library →
+  client downscale → Blob, upload guarded by session), the camera
+  button on the detail page, placeholder art when absent, and import
+  photos persisted as the recipe's viewable *source*. Deleting a
+  recipe must delete its blobs — Blob storage is billed and orphaned
+  images are invisible. Verify upload/replace/delete round-trips and
+  that a deleted recipe leaves no blob behind.
+- **C8. Cookbook viewer link.** *(Opus — it's a security surface, and
+  the check is adversarial by house rule.)* Share/revoke actions on
+  the cookbook (idempotent share, revoke kills the link for good),
+  the public page under `"/share/cookbook/"` in
+  `PUBLIC_ROUTE_PREFIXES`, chrome-free like the recipe share page,
+  `noindex`. The share sheet states plainly that the link follows the
+  book's current contents. Run the full R4-style check: positive
+  control first (valid token, zero cookies, 200), wrong/empty/id-as-
+  token all 404 with nothing leaked, revoked link dead, proxy-
+  misconfiguration drill with the sloppy prefix, every protected
+  route re-verified at 307 afterward.
+
+**Deliberately not in v2** (revisit only when real use demands it):
+
+- **Structured ingredients — the explanation Bryce asked to be
+  reminded of.** Today `ingredients` is one text column, one line per
+  ingredient ("1 cup sliced bell pepper"). *Structured* would mean
+  each ingredient stored as its own quantity + unit + item-name
+  fields. That's what would unlock: **servings scaling** (tap 10
+  servings and every quantity doubles), **unit conversion** (cups ↔
+  grams), *exact* inventory matching for Add-to-groceries (v2 ships
+  the AI-parse-and-review version instead), and cheaper nutrition
+  (no re-reading raw text). The cost is real: an import-extraction
+  rewrite, a data migration for every existing recipe, and an
+  editing UI for structured rows — which is why it stays out. **The
+  tripwire: v2 now works around its absence three times** (groceries,
+  nutrition, and the deferred scaling). If a fourth feature needs it,
+  stop working around it and build it.
+- Servings scaling + Convert (blocked on the above), ingredient
+  section headers ("For the Dressing") and tappable ingredient links
+  inside steps, Cook step-by-step mode, collaborator sharing (blocked
+  on per-person accounts), the Ingredients filter (Bryce has a
+  different plan), RecMe's Discover tab and "Ask" chat entirely, and
+  the logo/profile header treatment (Bryce: "we can do that later").
+
 ## Meal Plan plan — ✅ DONE
 
 All four phases shipped and verified — Cooking's second (and final)
@@ -2786,3 +3058,17 @@ is gone and `multiple` is on; handing the input two files at once
 produced "2 of 3 photos added" (both kept, not one); and a five-file
 selection correctly capped at "3 of 3 photos added" with the Add button
 hidden and no error.
+
+---
+
+## Session note, 2026-08-07: the Recipes v2 plan was written
+
+No code changed this session — it was a design conversation. Bryce
+walked through a commercial recipe app (RecMe) screenshot by screenshot,
+marking feature by feature what to adopt, adapt, or skip, and the result
+is the **Recipes v2 plan — ACTIVE** section above (after the v1 Recipes
+plan): cookbooks, tags, ratings, cooked history, nutrition, the recipe
+detail redesign, the Meal Plan / Add-to-groceries buttons, photos (gated
+on a Vercel Blob decision), and cookbook viewer links — eight phases,
+C1–C8, each carrying a model recommendation (Sonnet vs. Opus) at Bryce's
+request. The plan is the next build target; nothing in it has started.
