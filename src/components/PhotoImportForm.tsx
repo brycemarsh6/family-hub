@@ -32,17 +32,28 @@ export function PhotoImportForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    // The input is `multiple`, so this can be several photos at once — the
+    // library picker lets you tick two pages of one recipe in a single go.
+    // Only take as many as there's room for; the rest are ignored rather
+    // than silently replacing what's already added.
+    const room = MAX_PHOTOS - photos.length;
+    const files = Array.from(event.target.files ?? []).slice(0, room);
     // Clears the input's own value so picking the same file twice in a row
     // still fires onChange — otherwise a second identical pick is a no-op.
     event.target.value = "";
-    if (!file) return;
+    if (files.length === 0) return;
 
     setError(null);
     setIsReadingFile(true);
     try {
-      const photo = await downscale(file);
-      setPhotos((prev) => [...prev, photo].slice(0, MAX_PHOTOS));
+      // Sequential, not Promise.all: each downscale decodes a full-size
+      // phone photo into a canvas, and doing three at once on a phone is a
+      // real memory spike for no meaningful speed gain.
+      const added: Photo[] = [];
+      for (const file of files) {
+        added.push(await downscale(file));
+      }
+      setPhotos((prev) => [...prev, ...added].slice(0, MAX_PHOTOS));
     } catch {
       setError("Couldn't read that photo. Try another one.");
     } finally {
@@ -134,14 +145,19 @@ export function PhotoImportForm() {
         )}
       </div>
 
-      {/* Phones offer the camera themselves for accept="image/*" — capture
-          just biases toward it (the rear camera) over the gallery picker,
-          since a physical page is the common case here. */}
+      {/* Deliberately NO `capture` attribute. It reads like a hint but it
+          isn't: on iOS, capture="environment" opens the camera directly and
+          removes "Photo Library" and "Choose File" from the sheet entirely.
+          That broke the most common real case — a recipe already sitting in
+          the camera roll as a screenshot, which is exactly where the
+          household's recipes live. Without it, `accept="image/*"` gives the
+          normal iOS sheet with Take Photo, Photo Library, and Choose File,
+          so the camera is still one tap away. */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
+        multiple
         onChange={handleFileSelected}
         className="hidden"
       />

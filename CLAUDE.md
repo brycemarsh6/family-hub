@@ -1106,8 +1106,10 @@ any Next API not already used in this repo.
   text…") instead of silently opening a blank form.
 - **R3b. Import: photo.** ✅ **Done.** `PhotoImportForm.tsx` shows up to 3
   square photo slots — tap "Add photo" to open the camera/gallery picker
-  (`<input type="file" accept="image/*" capture="environment">`), each
-  with its own × to remove. Every photo is **downscaled client-side the
+  (`<input type="file" accept="image/*" multiple>`), each
+  with its own × to remove. **The input deliberately carries no
+  `capture` attribute** — see the fix note near the end of this file for
+  why the original `capture="environment"` was actively wrong on iOS. Every photo is **downscaled client-side the
   moment it's picked** — canvas re-encode to a 1600px long edge JPEG at
   0.85 quality — before it ever leaves the phone, since raw phone photos
   run 3–10MB and would blow the Server Action body limit. That limit
@@ -2755,3 +2757,32 @@ review).
 sequential `await db.…` is another cross-country round trip. Batch into
 one `Promise.all`, and never re-fetch in a helper what the page already
 holds.
+
+**Photo import could only use the camera, never the photo library — fixed.**
+Bryce hit this in real use: tapping "Add photo" on his phone opened the
+camera directly, with no way to reach a screenshot already in his camera
+roll. The cause was `capture="environment"` on the file input, added in
+R3b with a comment claiming it merely "biases toward" the camera. That
+comment was wrong, and the wrongness is the lesson: on iOS, `capture`
+is not a hint. It forces the camera and **removes "Photo Library" and
+"Choose File" from the sheet entirely** — breaking the single most
+common real case, since this household's recipes live as TikTok
+screenshots and saved images, not as pages held under a lens. Removing
+the attribute restores the normal iOS sheet, where Take Photo is still
+one tap away.
+
+`multiple` was added at the same time, because the library picker makes
+selecting two pages of one recipe natural. That needed a matching change
+in `handleFileSelected`, which read only `files[0]` — left alone it would
+have accepted a multi-select and silently kept one photo, which is a
+worse bug than the one being fixed. It now takes only as many as there's
+room for under `MAX_PHOTOS`, and downscales them **sequentially rather
+than with `Promise.all`**: each downscale decodes a full-size phone photo
+into a canvas, and three at once is a real memory spike on a phone for no
+speed gain.
+
+Verified in the browser rather than by reading the attribute: `capture`
+is gone and `multiple` is on; handing the input two files at once
+produced "2 of 3 photos added" (both kept, not one); and a five-file
+selection correctly capped at "3 of 3 photos added" with the Add button
+hidden and no error.
