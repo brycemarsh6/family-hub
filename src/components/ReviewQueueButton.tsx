@@ -11,8 +11,8 @@ import {
   fileParkedItem,
   getReviewQueue,
   mergePantryItems,
-  type ReviewQueue,
 } from "@/app/actions/irregularities";
+import type { ReviewQueue } from "@/lib/duplicates";
 
 /**
  * The pulsing "needs a look" button in the Inventory header, and the

@@ -285,3 +285,36 @@ export function findIrregularities(
     parked: findParkedInOther(items),
   };
 }
+
+export type ReviewQueue = {
+  pairs: DuplicatePair[];
+  parked: ParkedInOther[];
+  total: number;
+};
+
+/**
+ * Detectors + dismissal filtering, over data the caller already holds.
+ *
+ * Lives here rather than in the Server Action so the Inventory page can
+ * build its queue from the pantry rows it has *already* fetched, instead
+ * of paying a second round trip to re-read all of them. That mattered
+ * more than it looks: the app's functions and its database sit in
+ * different regions, so every avoidable query is a cross-country hop.
+ * The action still exists for re-reads after a decision, where the
+ * client genuinely has no data of its own.
+ */
+export function buildReviewQueue(
+  items: readonly DuplicateCandidate[],
+  dismissedFingerprints: ReadonlySet<string>,
+): ReviewQueue {
+  const report = findIrregularities(items);
+
+  const pairs = [...report.sameName, ...report.subsetName].filter(
+    (pair) => !dismissedFingerprints.has(pair.fingerprint),
+  );
+  const parked = report.parked.filter(
+    (entry) => !dismissedFingerprints.has(entry.fingerprint),
+  );
+
+  return { pairs, parked, total: pairs.length + parked.length };
+}

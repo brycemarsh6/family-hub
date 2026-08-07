@@ -13,10 +13,9 @@ import { db } from "@/lib/db";
 import { getVerifiedSession } from "@/lib/dal";
 import { toCategory, toLocation } from "@/lib/constants";
 import {
-  findIrregularities,
+  buildReviewQueue,
   type DuplicateCandidate,
-  type DuplicatePair,
-  type ParkedInOther,
+  type ReviewQueue,
 } from "@/lib/duplicates";
 
 function refreshInventoryViews() {
@@ -26,19 +25,15 @@ function refreshInventoryViews() {
   revalidatePath("/");
 }
 
-export type ReviewQueue = {
-  pairs: DuplicatePair[];
-  parked: ParkedInOther[];
-  total: number;
-};
-
 /**
  * Everything the review queue should show right now: detectors run
  * against live data, minus anything already dismissed forever.
  *
- * Read-only. Called both for the header badge's count and for the sheet
- * itself, so the number on the icon and the list behind it can never
- * disagree.
+ * Read-only. This is the *client's* way back in — used to re-read the
+ * queue after a decision, when the browser has no pantry data of its
+ * own. Server-rendered pages that already hold the rows should call
+ * `buildReviewQueue` directly instead of paying for this second fetch
+ * (see the Inventory page).
  */
 export async function getReviewQueue(): Promise<ReviewQueue> {
   if (!(await getVerifiedSession())) return { pairs: [], parked: [], total: 0 };
@@ -57,17 +52,10 @@ export async function getReviewQueue(): Promise<ReviewQueue> {
     db.irregularityDismissal.findMany({ select: { fingerprint: true } }),
   ]);
 
-  const dismissed = new Set(dismissals.map((d) => d.fingerprint));
-  const report = findIrregularities(items as DuplicateCandidate[]);
-
-  const pairs = [...report.sameName, ...report.subsetName].filter(
-    (pair) => !dismissed.has(pair.fingerprint),
+  return buildReviewQueue(
+    items as DuplicateCandidate[],
+    new Set(dismissals.map((d) => d.fingerprint)),
   );
-  const parked = report.parked.filter(
-    (entry) => !dismissed.has(entry.fingerprint),
-  );
-
-  return { pairs, parked, total: pairs.length + parked.length };
 }
 
 /**

@@ -4,14 +4,18 @@ import { PantryList } from "@/components/PantryList";
 import { PantryAddFlow } from "@/components/PantryAddFlow";
 import { AddLowItemsButton } from "@/components/AddLowItemsButton";
 import { ReviewQueueButton } from "@/components/ReviewQueueButton";
-import { getReviewQueue } from "@/app/actions/irregularities";
+import { buildReviewQueue, type DuplicateCandidate } from "@/lib/duplicates";
 import { isLow } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function PantryPage() {
-  const [pantryItems, openGroceryLinks] = await Promise.all([
+  // One parallel batch, deliberately. The functions and the database sit
+  // in different regions, so each *sequential* await is another
+  // cross-country round trip — the single biggest thing that made
+  // navigating between branches feel slow.
+  const [pantryItems, openGroceryLinks, dismissals] = await Promise.all([
     db.pantryItem.findMany({
       orderBy: { name: "asc" },
       select: {
@@ -32,11 +36,18 @@ export default async function PantryPage() {
       where: { checked: false, pantryItemId: { not: null } },
       select: { pantryItemId: true },
     }),
+    db.irregularityDismissal.findMany({ select: { fingerprint: true } }),
   ]);
 
-  // Computed fresh on every load, same as the low counts above — nothing
+  // Computed fresh on every load, same as the low counts below — nothing
   // about the review queue is stored except the dismissals it filters by.
-  const reviewQueue = await getReviewQueue();
+  // Built from `pantryItems` above rather than calling getReviewQueue(),
+  // which would re-fetch all of them a second time; the select above is
+  // already a superset of what the detectors need.
+  const reviewQueue = buildReviewQueue(
+    pantryItems as DuplicateCandidate[],
+    new Set(dismissals.map((d) => d.fingerprint)),
+  );
 
   const onListIds = new Set(
     openGroceryLinks.map((link) => link.pantryItemId).filter(Boolean),

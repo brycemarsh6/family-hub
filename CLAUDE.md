@@ -2705,3 +2705,53 @@ particular order:
 Everything through this session is committed and pushed to `main`.
 `tsc`, `eslint`, and `npm run build` are all clean — no known issues
 anywhere in the repo.
+
+---
+
+## Performance: why the app felt slow, and what fixed it
+
+Bryce reported 2–3 second waits when moving *between* branches, but not
+when interacting *within* a page. That split is the whole diagnosis:
+in-page taps are optimistic client updates (instant by design), while
+every navigation is a full server render, because every page in this app
+is `force-dynamic` so counts and low-stock badges can never be stale.
+
+Three separate causes, found by measuring rather than guessing:
+
+**1. The functions and the database were on opposite coasts.** The
+response header `x-vercel-id: sfo1::iad1::…` decodes as edge-in-San-
+Francisco, *function-in-Washington-DC* — while Neon sits in
+`us-west-2` (Oregon). Every single query crossed the country and back.
+Fixed with `vercel.json` pinning `"regions": ["pdx1"]` (Portland =
+`us-west-2`), so functions now run beside the database. **That file has
+no comments because `vercel.json` is strict JSON — this paragraph is its
+documentation.** If the database is ever moved, that region must move
+with it.
+
+**2. Nothing rendered until the whole round trip finished.** There was
+no `loading.tsx` anywhere in the app, so a tapped nav item sat there
+looking frozen for the entire render. Added `src/components/Skeleton.tsx`
+plus a `loading.tsx` per branch — grey blocks shaped like the real
+content, so the page doesn't visibly jump when data lands. This doesn't
+make anything *faster*; it makes the app stop looking broken while it
+works, which is most of what "feels slow" actually meant here. Verified
+with a MutationObserver that the skeleton genuinely appears mid-
+navigation (`role="status"`, `aria-label="Loading Kitchen"`), rather
+than assuming the file was enough.
+
+**3. Inventory paid for the same data twice.** D3's `getReviewQueue()`
+ran as a *sequential* `await` after the page's `Promise.all`, and
+internally re-fetched all ~477 pantry rows that the page had just
+loaded — a second cross-country round trip for data already in hand.
+Extracted the pure part into `buildReviewQueue(items, dismissed)` in
+`duplicates.ts`; the page now folds the dismissals query into its
+existing parallel batch and computes the queue from rows it already
+has. `getReviewQueue()` still exists for the client's re-read after a
+decision, where the browser genuinely has no data of its own. Verified
+the page produces identical output afterward (476 items, 34 low, 20 to
+review).
+
+**The general rule this leaves behind:** on a `force-dynamic` page, each
+sequential `await db.…` is another cross-country round trip. Batch into
+one `Promise.all`, and never re-fetch in a helper what the page already
+holds.
