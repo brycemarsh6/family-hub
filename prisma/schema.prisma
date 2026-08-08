@@ -165,6 +165,18 @@ model Recipe {
   /// then on, since the public page looks a row up by this value.
   shareToken String? @unique
 
+  /// 1-5, one tap in RecipeStars. Tapping the current value clears it back
+  /// to null (unrated) rather than requiring a separate "clear" control.
+  rating Int?
+
+  /// Set whenever "Mark as cooked" is tapped — a timestamp, deliberately not
+  /// a boolean. "Mark as cooked" always stamps *now*, overwriting whatever
+  /// was there; the eventual Cooked filter (C4) is just "is this set"; and a
+  /// real date is something the meal-plan AI can eventually reason about
+  /// ("you haven't made this since March") that a boolean never could, for
+  /// the same storage cost.
+  lastCookedAt DateTime?
+
   mealPlanEntries MealPlanEntry[]
   cookbooks       CookbookRecipe[]
   tags            RecipeTag[]

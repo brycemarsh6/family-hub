@@ -68,7 +68,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-bg text-fg">
-        <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
+        <header className="print:hidden sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
           <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-4 py-3">
             <Link
               href="/"
@@ -90,7 +90,7 @@ export default async function RootLayout({
 
         {/* pb-28 leaves room for the fixed bottom tab bar so the last row of
             a page is never trapped underneath it. */}
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-4">
+        <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-4 print:pb-0">
           {children}
         </main>
 

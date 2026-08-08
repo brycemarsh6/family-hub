@@ -290,3 +290,44 @@ export async function deleteRecipe(formData: FormData): Promise<void> {
   refreshRecipeViews();
   redirect("/kitchen/cooking/recipes");
 }
+
+export type RecipeRatingResult = { rating?: number | null; error?: string };
+
+/**
+ * Set (or clear) a recipe's star rating. `rating: null` is a real input,
+ * not an error state — tapping the currently-set star clears it back to
+ * unrated, per the Recipes v2 plan's decision.
+ */
+export async function setRecipeRating(
+  recipeId: string,
+  rating: number | null,
+): Promise<RecipeRatingResult> {
+  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+
+  if (rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
+    return { error: "Ratings run 1 to 5." };
+  }
+
+  await db.recipe.update({ where: { id: recipeId }, data: { rating } });
+  revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
+  return { rating };
+}
+
+export type MarkCookedResult = { lastCookedAt?: Date; error?: string };
+
+/**
+ * "Mark as cooked" always stamps *now*, overwriting whatever was there —
+ * there's no separate "unmark" control, since the point is a running record
+ * of the most recent time this was made, not a toggle.
+ */
+export async function markRecipeCooked(recipeId: string): Promise<MarkCookedResult> {
+  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+
+  const recipe = await db.recipe.update({
+    where: { id: recipeId },
+    data: { lastCookedAt: new Date() },
+    select: { lastCookedAt: true },
+  });
+  revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
+  return { lastCookedAt: recipe.lastCookedAt ?? undefined };
+}

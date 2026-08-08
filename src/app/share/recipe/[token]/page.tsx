@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { RecipeMeta } from "@/components/RecipeMeta";
 import { RecipeBody } from "@/components/RecipeBody";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ export default async function SharedRecipePage({
         {recipe.title}
       </h1>
 
+      <RecipeMeta recipe={recipe} />
       <RecipeBody recipe={recipe} />
 
       <p className="mt-8 border-t border-line pt-4 text-sm text-muted">

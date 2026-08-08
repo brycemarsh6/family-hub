@@ -31,7 +31,7 @@ export function HubBottomNav() {
   return (
     <nav
       aria-label="Sections"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface/95 backdrop-blur"
+      className="print:hidden fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface/95 backdrop-blur"
       // Keeps the bar clear of the home indicator on iPhones.
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >

@@ -1539,20 +1539,109 @@ API not already used in this repo.
   state (pantry 477, grocery 8, recipe 11, cookbook 0, only the 4 slot
   tags remaining at 0 recipes each) confirmed by direct database read.
   `tsc`, `eslint`, and `npm run build` all clean.
-- **C3. Recipe detail v2.** *(Sonnet.)* The redesigned page top to
-  bottom: back + Edit + ⋯ (Export PDF / Print / Delete — delete keeps
-  the house single-tap rule, it touches one recipe); hero area with
-  placeholder art (real photos arrive in C7); title; the three action
-  circles (Meal Plan and Groceries appear now but wire up in C5 —
-  visible-not-stubbed per the house precedent, or wired immediately if
-  C5 lands first); the notes/meta block (prep, cook, source link);
-  Cookbooks chips with Edit (file/unfile from the recipe side, the
-  C1 join reused); stars; Mark as Cooked stamping `lastCookedAt`;
-  then Ingredients → Instructions → Nutrition (placeholder button
-  until C6) → Tags. The print-view route + print stylesheet behind
-  Export PDF/Print. Verify on a real phone-size viewport: every
-  target ≥44px, stars set/clear persists, cooked timestamp lands,
-  print view renders clean.
+- **C3. Recipe detail v2.** ✅ **Done.** `Recipe.rating Int?` and
+  `Recipe.lastCookedAt DateTime?` — additive migration
+  (`20260808211411_recipe_rating_and_cooked`), two bare `ADD COLUMN`s.
+  The page top to bottom, all matching the plan exactly:
+  `RecipeDetailHeader.tsx` (back link on its own line, then Edit + a
+  new ⋯ button on their own row — the title moved below the hero, so
+  it's no longer inline with Edit); `RecipeHero.tsx` (a decorative
+  gradient + `ChefHat` placeholder, swapped for a real photo in C7);
+  title; `RecipeActionCircles.tsx` (Meal Plan, Groceries, Share);
+  `RecipeMeta.tsx` (servings/prep/cook/source — split out of
+  `RecipeBody.tsx`, see below); `RecipeCookbooksSection.tsx`; stars
+  (`RecipeStars.tsx`) and Mark as Cooked (`RecipeCookedButton.tsx`)
+  stacked in their own row; `RecipeBody.tsx` (Ingredients/Instructions/
+  Notes — "Steps" renamed to "Instructions" in the visible heading
+  only, the `steps` column name is untouched); `NutritionPlaceholder.tsx`;
+  `RecipeTagsSection.tsx` (C2, unchanged, just moved to the very end).
+  **The "three action circles" interpretation, since the plan named
+  only two of them:** the plan's own text justifies Meal Plan and
+  Groceries as stubs but is silent on the third — read as evidence the
+  third isn't a stub at all. Went with **Share**, since R4's sharing
+  was already real, working functionality that needed a home once the
+  old standalone Share *section* was folded away (the plan's own
+  top-to-bottom list never mentions a separate Share section, which is
+  the tell that it moved into a circle rather than being silently
+  dropped). `ShareRecipeControls.tsx` became `ShareSheet.tsx` — same
+  logic, wrapped in the sheet chrome the circle opens. Meal Plan and
+  Groceries open `ComingSoonSheet.tsx` (new, generic — a real tap gets
+  a real one-line acknowledgment rather than doing nothing, matching
+  the house's no-dead-click stance on visible-but-unwired controls).
+  **`RecipeBody.tsx` split, and why the shared-with-the-public-page
+  contract mattered here specifically:** `RecipeBody` is the one piece
+  required to render identically on the private detail page *and* the
+  public `/share/recipe/[token]` page (an R4 security surface, already
+  adversarially checked once). The plan wants meta/source near the top
+  and ingredients/instructions further down on the private page, which
+  `RecipeBody`'s old single-block shape couldn't do — so the meta/
+  source row moved out into its own `RecipeMeta.tsx`, and both pages
+  now render `<RecipeMeta>` immediately before `<RecipeBody>`, in the
+  same relative order as before. No new field is exposed publicly;
+  the split is purely about where each page positions the two pieces.
+  **Cookbook chips are real `Link`s to that cookbook's page (unlike
+  tag chips, which are inert spans with no page of their own)** —
+  `RecipeCookbooksSection.tsx` reuses C1's `addRecipeToCookbook`/
+  `removeRecipeFromCookbook` from the opposite direction (recipe →
+  cookbook instead of cookbook → recipe), via a new, simpler
+  `RecipeCookbookPickSheet.tsx` (toggle-only, no rename/delete — that
+  stays on the cookbook's own page).
+  **Print/Export PDF share one destination on purpose**
+  (`recipes/[id]/print/page.tsx`), reusing `RecipeMeta` + `RecipeBody`
+  again rather than duplicating their markup — a platform's print
+  dialog already offers "Save as PDF," which is what makes one button
+  double as both menu entries. `print:hidden` (Tailwind's built-in
+  variant, no config needed) on the shared header and bottom nav
+  (`(app)/layout.tsx`, `HubNav.tsx`) keeps app chrome off every printed
+  page project-wide, not just this one; the print page's own back
+  link/print button carry the same class so they don't show up in the
+  actual printout either.
+  **Two real findings from verification, not just clean tsc/eslint:**
+  (1) the new cookbook-chip `Link`s were sized like the (non-
+  interactive) tag chips they sit near — `py-1.5` with no minimum
+  height, under the 44px the plan's own verification note calls for.
+  Caught by deliberately auditing every new interactive element's
+  target size rather than trusting the visual pass alone; fixed to
+  `min-h-11`. (2) The dev-tools "1 Issue" badge that appeared once
+  during testing turned out to be a stale artifact of a degraded
+  browser tab (see below) — reproduced clean on a fresh navigation,
+  confirmed not a real error via server logs and a from-scratch
+  `tsc`/`eslint`/`npm run build`.
+  **A recurring browser-automation quirk, worth naming for whoever
+  debugs this class of thing next:** several clicks against an
+  already-interacted-with tab silently failed to reach React's
+  handlers at all (no re-render, no server log entry) with zero
+  console or server errors — not the "read the DOM one tick too early"
+  timing issue documented elsewhere in this file, but the click itself
+  never registering. Every one of these resolved on a *fresh* browser
+  tab pointed at the same URL. Treated as a testing-tool limitation,
+  not an app bug, precisely because the *fresh-tab* re-attempt of the
+  identical action always worked and always produced the expected
+  server log line.
+  **Verified end to end against the real "Whole-Wheat Pancakes" recipe**
+  (not synthetic data): section order confirmed via the rendered
+  heading sequence (Cookbooks → Ingredients → Instructions → Nutrition
+  → Tags, exactly the plan's order); rated 4 stars, confirmed via
+  reload, then cleared back to unrated by tapping the same star again,
+  confirmed via reload and via the server's own `setRecipeRating(...,
+  null)` log line; "Mark as cooked" stamped `lastCookedAt` and showed
+  "Cooked today," confirmed by a direct database read; filed the
+  recipe into a synthetic test cookbook from the recipe's own Cookbooks
+  section and confirmed it appeared on that cookbook's own page (the
+  C1 join working from both directions); the ⋯ menu's Print action
+  opened the print route with chrome-free content and the header/nav
+  `print:hidden` classes present; Share opened `ShareSheet`, created a
+  real share link, and the public `/share/recipe/[token]` page rendered
+  correctly with `RecipeMeta` + `RecipeBody` in their new split form
+  and zero private fields (rating, cooked, cookbooks, tags) leaked;
+  single-tap Delete from the ⋯ menu removed a synthetic test recipe
+  with no confirmation and redirected cleanly to the recipe list. Every
+  synthetic recipe/cookbook was removed and the real recipe's rating/
+  cooked-timestamp/share-token/cookbook-membership were restored to
+  exactly their pre-test state afterward; final counts (pantry 477,
+  grocery 8, recipe 11, cookbook 0, tag 4 — just the permanent slot
+  tags) confirmed by direct database read. `tsc`, `eslint`, and
+  `npm run build` all clean.
 - **C4. The filter bar.** *(Sonnet.)* The shared component: search,
   Tags, Total time (the best-effort parser + its buckets), Cooked,
   Rating, Sort — used on the cookbook page in full and backing All
