@@ -27,18 +27,23 @@ import { decrypt } from "@/lib/session";
 // voice request to /login and the endpoint could never run.
 const PUBLIC_ROUTES = ["/login", "/api/voice"];
 
-// Shared recipes are the one case that can't be an exact match: the URL
-// carries a per-recipe token (/share/recipe/<token>), so the path is
-// different every time. Same principle as /api/voice — the route is
-// reachable without a session cookie because the people it's for don't have
-// one, and the token itself is the gate (256 bits of crypto randomness; see
-// shareRecipe in src/app/actions/recipes.ts). An unknown or revoked token
-// 404s at the page.
+// Shared recipes and cookbooks are the cases that can't be an exact match:
+// the URL carries a per-item token (/share/recipe/<token>,
+// /share/cookbook/<token>), so the path is different every time. Same
+// principle as /api/voice — the route is reachable without a session cookie
+// because the people it's for don't have one, and the token itself is the
+// gate (256 bits of crypto randomness; see shareRecipe in
+// src/app/actions/recipes.ts and shareCookbook in
+// src/app/actions/cookbooks.ts). An unknown or revoked token 404s at the
+// page.
 //
-// Deliberately a specific prefix rather than a broad startsWith("/share"):
-// this opens exactly the recipe-sharing subtree and nothing else, so a
+// Deliberately specific prefixes rather than a broad startsWith("/share"):
+// each entry opens exactly one sharing subtree and nothing else, so a
 // future /share/... route isn't silently public the moment someone adds it.
-const PUBLIC_ROUTE_PREFIXES = ["/share/recipe/"];
+// This isn't hypothetical caution — the R4 proxy-misconfiguration drill
+// measured it: with the sloppy "/share" prefix, /shareX/recipe/abc and
+// /share-secrets both bypassed the login gate entirely.
+const PUBLIC_ROUTE_PREFIXES = ["/share/recipe/", "/share/cookbook/"];
 
 export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;

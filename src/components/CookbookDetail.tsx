@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Pencil, Trash2, Plus } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Plus, Link2 } from "lucide-react";
 import { BackLink } from "@/components/BackLink";
 import { EmptyState } from "@/components/EmptyState";
 import { FlatRecipeRows } from "@/components/FlatRecipeRows";
@@ -13,6 +13,7 @@ import { ActionSheet } from "@/components/ActionSheet";
 import { TitleSheet } from "@/components/TitleSheet";
 import { ConfirmSheet } from "@/components/ConfirmSheet";
 import { AddRecipeToCookbookSheet } from "@/components/AddRecipeToCookbookSheet";
+import { CookbookShareSheet } from "@/components/CookbookShareSheet";
 import {
   renameCookbook,
   deleteCookbook,
@@ -36,23 +37,27 @@ import {
 export function CookbookDetail({
   cookbookId,
   initialTitle,
+  initialShareToken,
   initialRecipes,
   allRecipes,
   allTags,
 }: {
   cookbookId: string;
   initialTitle: string;
+  initialShareToken: string | null;
   initialRecipes: FilterableRecipe[];
   allRecipes: FilterableRecipe[];
   allTags: TagFilterOption[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initialTitle);
+  const [shareToken, setShareToken] = useState(initialShareToken);
   const [recipes, setRecipes] = useState(initialRecipes);
   const [filters, setFilters] = useState<RecipeFilterState>(DEFAULT_RECIPE_FILTERS);
   const [menuOpen, setMenuOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -191,6 +196,14 @@ export function CookbookDetail({
               },
             },
             {
+              label: "Share cookbook",
+              icon: <Link2 aria-hidden="true" size={18} />,
+              onClick: () => {
+                setMenuOpen(false);
+                setShareOpen(true);
+              },
+            },
+            {
               label: "Delete cookbook",
               icon: <Trash2 aria-hidden="true" size={18} />,
               destructive: true,
@@ -200,6 +213,15 @@ export function CookbookDetail({
               },
             },
           ]}
+        />
+      )}
+
+      {shareOpen && (
+        <CookbookShareSheet
+          cookbookId={cookbookId}
+          shareToken={shareToken}
+          onShareTokenChange={setShareToken}
+          onClose={() => setShareOpen(false)}
         />
       )}
 

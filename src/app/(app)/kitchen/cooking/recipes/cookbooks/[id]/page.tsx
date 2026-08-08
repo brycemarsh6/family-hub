@@ -55,6 +55,7 @@ export default async function CookbookPage({
       select: {
         id: true,
         title: true,
+        shareToken: true,
         recipes: { select: { recipe: { select: RECIPE_FIELDS } } },
       },
     }),
@@ -73,6 +74,7 @@ export default async function CookbookPage({
     <CookbookDetail
       cookbookId={cookbook.id}
       initialTitle={cookbook.title}
+      initialShareToken={cookbook.shareToken}
       initialRecipes={cookbook.recipes.map((entry) => toFilterableRecipe(entry.recipe))}
       allRecipes={allRecipesRaw.map(toFilterableRecipe)}
       allTags={allTags}

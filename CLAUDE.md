@@ -1883,17 +1883,100 @@ API not already used in this repo.
   recipe must delete its blobs — Blob storage is billed and orphaned
   images are invisible. Verify upload/replace/delete round-trips and
   that a deleted recipe leaves no blob behind.
-- **C8. Cookbook viewer link.** *(Opus — it's a security surface, and
-  the check is adversarial by house rule.)* Share/revoke actions on
-  the cookbook (idempotent share, revoke kills the link for good),
-  the public page under `"/share/cookbook/"` in
-  `PUBLIC_ROUTE_PREFIXES`, chrome-free like the recipe share page,
-  `noindex`. The share sheet states plainly that the link follows the
-  book's current contents. Run the full R4-style check: positive
-  control first (valid token, zero cookies, 200), wrong/empty/id-as-
-  token all 404 with nothing leaked, revoked link dead, proxy-
-  misconfiguration drill with the sloppy prefix, every protected
-  route re-verified at 307 afterward.
+- **C8. Cookbook viewer link.** ✅ **Done — which completes the Recipes
+  v2 plan except C7 (Photos), which stays parked on Bryce's Vercel Blob
+  decision.** **No migration**: `Cookbook.shareToken` (`@unique`) has
+  existed since C1, added in anticipation of exactly this — confirmed
+  present in the live database, along with its unique index, before
+  any code was written.
+  `shareCookbook`/`stopSharingCookbook` in `actions/cookbooks.ts` mirror
+  the recipe pair exactly: 32 bytes of `crypto.randomBytes` as
+  base64url, idempotent share (re-sharing returns the existing token
+  rather than rotating it, so a double tap can't break a link someone
+  already has), and revoke nulls the token. `CookbookShareSheet.tsx`
+  is link-only — there's no "copy as text" equivalent for a whole book
+  — and reached from the cookbook's ⋯ menu, with Delete still last.
+  **The share token is owned by `CookbookDetail`, not mirrored into
+  the sheet's own state**, so closing and reopening the sheet in one
+  session shows the true current value instead of the prop the page
+  render started with.
+  The public page (`src/app/share/cookbook/[token]/page.tsx`) reads
+  the join table **live on every request**, so the link follows the
+  book's current contents rather than a snapshot — which is why the
+  sheet says so in both states, before and after a link exists.
+  **Two deliberate deviations from just reusing the recipe share page,
+  both about it being a list rather than one recipe:** the per-recipe
+  markup is written out here instead of reusing `RecipeBody`, because
+  this page nests many recipes under one `h1` and `RecipeBody`
+  hardcodes `h2` for "Ingredients"/"Instructions" — reusing it would
+  flatten the heading order. And `robots: noindex` is repeated on the
+  page even though the `/share` layout already sets it and Next merges
+  metadata shallowly (confirmed in `node_modules/next/dist/docs`,
+  per AGENTS.md): on a page whose only protection is an unguessable
+  token, that guarantee shouldn't depend on a parent file nobody edits
+  alongside it. The title is overridden too — the layout's default
+  reads "Shared recipe".
+  **The adversarial check, run in full.** *Positive control first* — a
+  valid token with **zero cookies** returns 200 with the real cookbook,
+  which is what makes every blocked case below mean something. The
+  leak check was built to be non-vacuous: the test recipes were seeded
+  with **every** household-private field populated as a named canary
+  (notes, sourceUrl, rating, lastCookedAt, all five nutrition columns,
+  their own recipe `shareToken`s), plus one recipe deliberately left
+  *out* of the cookbook. None of the 14 canaries appeared in the public
+  HTML, and the nutrition/rating numerics returned **zero** occurrences.
+  The only token in the response is the one in the requester's own URL,
+  confirmed by inspecting its context (Next's RSC route-segment
+  payload) rather than waved away. Structure checked directly: exactly
+  **1 `h1`, 2 `h2`, 4 `h3`**, `noindex, nofollow` present, title
+  "Shared cookbook", and no app chrome (no Sign out, no nav) beyond the
+  intentional "Shared from Marsh HQ." footer the recipe page also has.
+  Negative cases, all 404 with nothing leaked: wrong token, the
+  cookbook's own **id** as a token, **a recipe's shareToken** (proving
+  the two share surfaces don't cross over), token-plus-suffix, and a
+  truncated token. Empty token 308s to `/share/cookbook`, which then
+  **307s to login** — because the narrow prefix deliberately doesn't
+  match the parent path; path traversal 307s to login too.
+  Token properties measured over 5000 generations of the exact
+  expression the action uses: 43 chars, URL-safe charset only,
+  **256 bits**, 5000/5000 unique, **max 1-char shared prefix** between
+  consecutive tokens (i.e. not sequential).
+  **Revocation verified end to end through the real UI**: "Stop
+  sharing" flipped the sheet back and the exact URL that had served
+  the cookbook minutes earlier returned **404 with nothing leaked**,
+  token nulled in the database. Re-sharing afterward minted a
+  **completely different** token while the old one stayed 404 — so a
+  revoked link is dead for good, not resurrectable.
+  **The "follows current contents" claim was proven, not just
+  displayed**: a recipe was filed into the already-shared book and
+  appeared on the *same* token's page with no re-share.
+  **The proxy-misconfiguration drill reproduced R4's finding and
+  extended it.** Substituting the sloppy `"/share"` a future developer
+  might reasonably write made **six** paths bypass the login gate
+  (307 → 404): `/shareX/recipe/abc`, `/share-secrets`, `/share`,
+  `/share/cookbook`, and — new to this phase — `/sharecookbook/x` and
+  `/share/cookbooks/x` (note the plural). Nothing lives at those paths,
+  so nothing actually leaked, but it's a real latent hole and the
+  reason the committed prefixes are the narrow ones. `proxy.ts` was
+  restored immediately, `git diff`'d to confirm only the intended C8
+  addition remains, and all six near-misses re-verified back at 307.
+  Afterward: all 12 protected routes re-checked at 307 with no cookie,
+  and **R4's recipe sharing re-verified unaffected** (valid token 200,
+  bad token 404) since this phase edited the file guarding it. All 7
+  exported actions in `cookbooks.ts` audited as session-guarded.
+  Every test cookbook and recipe was deleted afterward, and the
+  household's own real shared recipe ("Bryce's Cheeseburgers") was
+  confirmed to still hold its exact original token; final counts
+  (pantry 477, grocery 8, recipe 11, cookbook 0, cookbookRecipe 0,
+  tag 4, meal plan 1) confirmed by direct database read. `tsc`,
+  `eslint`, `npm test`, and `npm run build` all clean.
+  **One process note worth recording:** this phase was implemented on
+  Sonnet, not the Opus the plan specifies — caught by Bryce mid-phase.
+  The code was then re-audited against the plan before the adversarial
+  check ran (which found the unused-import lint warning, the layout's
+  wrong "Shared recipe" title, and the inherited-`robots` fragility,
+  all fixed above), and no security claim had been made before that
+  check. Worth knowing if anything here is ever revisited.
 
 **Deliberately not in v2** (revisit only when real use demands it):
 

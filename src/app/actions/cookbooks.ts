@@ -5,6 +5,7 @@
 // every one of these opens with a getVerifiedSession() check.
 
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
 import { getVerifiedSession } from "@/lib/dal";
 
@@ -101,4 +102,57 @@ export async function removeRecipeFromCookbook(
   await db.cookbookRecipe.deleteMany({ where: { cookbookId, recipeId } });
   refreshCookbookViews(cookbookId);
   return {};
+}
+
+export type CookbookShareResult = { shareToken?: string | null; error?: string };
+
+/**
+ * Share a cookbook — the recipe-share machinery (R4) pointed at a list, per
+ * the Recipes v2 plan's own words. Same shape as shareRecipe in recipes.ts:
+ * 32 bytes from crypto.randomBytes (256 bits, not sequential, not derived
+ * from the cookbook id), and idempotent — re-sharing an already-shared
+ * cookbook returns the existing token rather than rotating it, so tapping
+ * Share twice doesn't silently break a link someone already has.
+ *
+ * The link follows the cookbook's *current* contents, not a snapshot —
+ * filing a new recipe into an already-shared book extends what the viewer
+ * sees. That's the right behavior, but it's why the share sheet has to say
+ * so plainly rather than let someone assume a link is frozen at share time.
+ */
+export async function shareCookbook(cookbookId: string): Promise<CookbookShareResult> {
+  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+
+  const cookbook = await db.cookbook.findUnique({
+    where: { id: cookbookId },
+    select: { shareToken: true },
+  });
+  if (!cookbook) return { error: "That cookbook no longer exists." };
+  if (cookbook.shareToken) return { shareToken: cookbook.shareToken };
+
+  const shareToken = randomBytes(32).toString("base64url");
+  await db.cookbook.update({ where: { id: cookbookId }, data: { shareToken } });
+
+  refreshCookbookViews(cookbookId);
+  return { shareToken };
+}
+
+/**
+ * Stop sharing: null the token, which kills the old link immediately —
+ * anyone holding it gets a 404 from then on, since the public page looks a
+ * cookbook up *by* that value.
+ */
+export async function stopSharingCookbook(
+  cookbookId: string,
+): Promise<CookbookShareResult> {
+  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+
+  const cookbook = await db.cookbook.findUnique({
+    where: { id: cookbookId },
+    select: { id: true },
+  });
+  if (!cookbook) return { error: "That cookbook no longer exists." };
+
+  await db.cookbook.update({ where: { id: cookbookId }, data: { shareToken: null } });
+  refreshCookbookViews(cookbookId);
+  return { shareToken: null };
 }
