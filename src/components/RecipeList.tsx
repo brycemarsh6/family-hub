@@ -259,7 +259,11 @@ export function RecipeList({
   );
 }
 
-function RecipeRow({
+/** Exported for reuse by FlatRecipeRows (the cookbook page's C4 filtered
+ * view), which needs the exact same row + swipe-to-remove behavior without
+ * RecipeList's own A-Z grouping/rail/search — a flat, already-filtered list
+ * is a fundamentally different shape than "browse the whole library." */
+export function RecipeRow({
   recipe,
   onRemove,
 }: {

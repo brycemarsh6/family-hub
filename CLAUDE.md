@@ -1642,13 +1642,86 @@ API not already used in this repo.
   grocery 8, recipe 11, cookbook 0, tag 4 — just the permanent slot
   tags) confirmed by direct database read. `tsc`, `eslint`, and
   `npm run build` all clean.
-- **C4. The filter bar.** *(Sonnet.)* The shared component: search,
-  Tags, Total time (the best-effort parser + its buckets), Cooked,
-  Rating, Sort — used on the cookbook page in full and backing All
-  Recipes' tag chips. Time-parser gets unit tests against real
-  strings ("45 min", "1 hr 15 min", "1½ hours", "a while" → no
-  bucket). Verify filters compose (Dinner + Under 30 + 4★) against
-  seeded variety.
+- **C4. The filter bar.** ✅ **Done.** `src/lib/recipeTimeFilter.ts`
+  holds the best-effort prep+cook duration parser (`parseTimeToMinutes`,
+  `totalTimeBucket` → `"under30" | "30to60" | "over60" | null`) with
+  **real `node:test` unit tests** (`recipeTimeFilter.test.ts`, zero new
+  dependencies — Node 24's built-in test runner plus the `tsx` loader
+  already in the project, wired up as `npm test`) covering every
+  example the plan named ("45 min", "1 hr 15 min", "1½ hours", "a
+  while" → no bucket) plus boundary cases (exactly 30, exactly 60) and
+  the "one side parses, the other doesn't" case. 17 tests, all passing.
+  `src/lib/recipeFilters.ts` holds the actual filter **composition** as
+  one pure, independently-tested function (`applyRecipeFilters`) —
+  tags, time bucket, Cooked, and minimum rating all narrow the same
+  list together (AND, not OR), a typed search query takes over ordering
+  entirely (ranked by `searchRecipes`, same as everywhere else in the
+  app), and otherwise the Sort control decides (A–Z / Highest rated /
+  Recently cooked).
+  **"One filter-bar component, used twice," done as a real extraction,
+  not a rewrite**: the single-select tag chips already shipped in C2
+  (inline in `RecipesBrowser.tsx`) moved out into `TagFilterChips.tsx`
+  unchanged, and both All Recipes and the new `RecipeFilterBar.tsx`
+  (search + Tags + Total time + Cooked + Rating + Sort) import that one
+  component — there's now exactly one tag-chip implementation in the
+  app, not two that could quietly drift.
+  **The cookbook page trades its A–Z rail for the filter bar, and this
+  was a deliberate call, not a regression:** once Sort can mean
+  "Highest rated" or "Recently cooked," the result stops being
+  something an alphabet rail can meaningfully organize — you're
+  querying a small, already-scoped collection at that point, not
+  browsing the whole library the way All Recipes still does (untouched,
+  rail and all). `FlatRecipeRows.tsx` (new) renders the filtered/sorted
+  results as a plain list, reusing `RecipeList`'s own `RecipeRow`
+  (newly exported) so cookbook pages keep swipe-to-unfile without
+  duplicating that logic.
+  Extending the cookbook page's data to carry rating/lastCookedAt/tagIds/
+  prepTime/cookTime meant `AddRecipeToCookbookSheet` would otherwise
+  echo back a bare id/title/ingredients when a recipe is newly filed —
+  handled by having `CookbookDetail`'s `handleAdded` look the full
+  record up in the page's own already-fetched `allRecipes` rather than
+  trusting what the sheet hands back, instead of making that sheet
+  generic over a type it doesn't actually need to know about.
+  **A real, hard-won lesson about verifying this phase, worth
+  recording in detail:** live-browser clicks on the new filter chips
+  intermittently produced *zero* effect — no state change, no visible
+  update — with no console or server error, which at first looked
+  exactly like a real bug in the Cooked toggle specifically (it failed
+  five-plus times in a row while Tag/Time/Rating chips eventually
+  succeeded). Chased it all the way to instrumenting `update()` with a
+  `console.log` and confirming, via a raw `window.__traces` override
+  bypassing the console-reading tool entirely, that the handler was
+  never invoked — then confirmed the *page's own already-shipped*
+  "Add recipe" button also failed to open its sheet in that same
+  moment, proving the whole tab's click-dispatch had degraded, not
+  anything specific to this code. A fresh tab immediately fixed it, and
+  every control — including Cooked — then worked first try. The
+  general lesson: when a click produces literally no observable
+  effect anywhere (not even a state change one line of code away from
+  the handler), test a known-already-working control on the *same*
+  page before concluding the new code is broken — a page-wide
+  interactivity stall reads identically to a narrow logic bug until
+  you isolate it that way.
+  **Verified end to end against a seeded fixture built to make the
+  plan's own example decisive**: four synthetic recipes (A: Dinner tag,
+  25 total min, 4★, cooked; B: Dinner, 75 min, 4★, never cooked; C:
+  Breakfast, 15 min, 4★; D: Dinner, 20 min, 2★) filed into a test
+  cookbook. Applying Dinner alone → A, B, D. Adding Under 30 → A, D.
+  Adding 4★ → **exactly A**, matching the plan's own "Dinner + Under 30
+  + 4★" example precisely. Cooked alone → exactly A. Sort by Highest
+  Rated → the three 4★ recipes (A, B, C, alphabetical among themselves)
+  before the 2★ one (D). Typing "Breakfast" → exactly C, confirming
+  search overrides sort as designed. The same composition was also
+  proven independently at the pure-function level (8 additional
+  `node:test` cases against the identical fixture) before ever touching
+  a browser, which is what made isolating the tooling stall
+  straightforward rather than a real scare. All Recipes' tag chips
+  (now backed by the extracted `TagFilterChips`) re-verified unaffected
+  after the refactor. Every synthetic recipe and the test cookbook were
+  deleted afterward; final counts (pantry 477, grocery 8, recipe 11,
+  cookbook 0, tag 4 — the permanent slot tags) confirmed by direct
+  database read. `tsc`, `eslint`, `npm test`, and `npm run build` all
+  clean.
 - **C5. The cross-branch buttons.** *(Opus — this is the phase with
   real cross-feature data flow.)* **Meal Plan button**: the
   week/day/slot picker writing through `setMealPlanEntry`. **Add to

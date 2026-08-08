@@ -4,7 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MoreVertical, Pencil, Trash2, Plus } from "lucide-react";
 import { BackLink } from "@/components/BackLink";
-import { RecipeList, type RecipeListItem } from "@/components/RecipeList";
+import { EmptyState } from "@/components/EmptyState";
+import { FlatRecipeRows } from "@/components/FlatRecipeRows";
+import { RecipeFilterBar } from "@/components/RecipeFilterBar";
+import type { RecipeListItem } from "@/components/RecipeList";
+import type { TagFilterOption } from "@/components/TagFilterChips";
 import { ActionSheet } from "@/components/ActionSheet";
 import { TitleSheet } from "@/components/TitleSheet";
 import { ConfirmSheet } from "@/components/ConfirmSheet";
@@ -14,29 +18,38 @@ import {
   deleteCookbook,
   removeRecipeFromCookbook,
 } from "@/app/actions/cookbooks";
+import {
+  applyRecipeFilters,
+  DEFAULT_RECIPE_FILTERS,
+  type FilterableRecipe,
+  type RecipeFilterState,
+} from "@/lib/recipeFilters";
 
 /**
- * A cookbook's own page — title, count, its recipes as the familiar list
- * (RecipeList, reused wholesale, with the swipe-to-unfile action wired on),
- * and the ⋯ menu for renaming or deleting the book. Local state mirrors the
- * server (rather than router.refresh()) so add/remove/rename feel instant,
- * same pattern ShareRecipeControls already established for this kind of
- * plain-async Server Action.
+ * A cookbook's own page — title, count, the C4 filter bar (search, Tags,
+ * Total time, Cooked, Rating, Sort) over its recipes, and the ⋯ menu for
+ * renaming or deleting the book. Local state mirrors the server (rather
+ * than router.refresh()) so add/remove/rename feel instant, same pattern
+ * ShareRecipeControls already established for this kind of plain-async
+ * Server Action.
  */
 export function CookbookDetail({
   cookbookId,
   initialTitle,
   initialRecipes,
   allRecipes,
+  allTags,
 }: {
   cookbookId: string;
   initialTitle: string;
-  initialRecipes: RecipeListItem[];
-  allRecipes: RecipeListItem[];
+  initialRecipes: FilterableRecipe[];
+  allRecipes: FilterableRecipe[];
+  allTags: TagFilterOption[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initialTitle);
   const [recipes, setRecipes] = useState(initialRecipes);
+  const [filters, setFilters] = useState<RecipeFilterState>(DEFAULT_RECIPE_FILTERS);
   const [menuOpen, setMenuOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -74,13 +87,26 @@ export function CookbookDetail({
     });
   }
 
+  // AddRecipeToCookbookSheet only ever hands back the bare id/title/
+  // ingredients it was given (it has no idea about tags/rating/cooked) —
+  // so the recipe it just added is looked up in the full-fields allRecipes
+  // list rather than trusted as-is, keeping the filter bar's data honest.
   function handleAdded(recipe: RecipeListItem) {
-    setRecipes((prev) => [...prev, recipe]);
+    const full = allRecipes.find((r) => r.id === recipe.id);
+    if (full) setRecipes((prev) => [...prev, full]);
   }
 
   const candidateRecipes = allRecipes.filter(
     (recipe) => !recipes.some((r) => r.id === recipe.id),
   );
+
+  const visibleRecipes = applyRecipeFilters(recipes, filters);
+  const filtersActive =
+    filters.query.trim() !== "" ||
+    filters.tagId !== null ||
+    filters.timeBucket !== "all" ||
+    filters.cookedOnly ||
+    filters.minRating !== null;
 
   return (
     <div className="py-2">
@@ -123,11 +149,33 @@ export function CookbookDetail({
         </p>
       )}
 
-      <RecipeList
-        recipes={recipes}
-        onRemove={handleUnfile}
-        emptyHint="Tap Add recipe above to file one here."
-      />
+      {recipes.length === 0 ? (
+        <EmptyState
+          emoji="📖"
+          title="No recipes yet"
+          hint="Tap Add recipe above to file one here."
+        />
+      ) : (
+        <>
+          <RecipeFilterBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            tags={allTags}
+            totalCount={recipes.length}
+            tagCountFor={(tagId) => recipes.filter((r) => r.tagIds.includes(tagId)).length}
+          />
+          <FlatRecipeRows
+            recipes={visibleRecipes}
+            onRemove={handleUnfile}
+            emptyTitle={filtersActive ? "No matches" : "No recipes yet"}
+            emptyHint={
+              filtersActive
+                ? "Try different filters."
+                : "Tap Add recipe above to file one here."
+            }
+          />
+        </>
+      )}
 
       {menuOpen && (
         <ActionSheet

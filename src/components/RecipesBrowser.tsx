@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, BookOpen, LibraryBig } from "lucide-react";
 import { RecipeList, type RecipeListItem } from "./RecipeList";
 import { CookbookList, type CookbookListItem } from "./CookbookList";
+import { TagFilterChips, type TagFilterOption } from "./TagFilterChips";
 import { RadioSheet } from "./RadioSheet";
 import { ActionSheet } from "./ActionSheet";
 import { TitleSheet } from "./TitleSheet";
@@ -14,7 +15,7 @@ import { createCookbook } from "@/app/actions/cookbooks";
 type View = "cookbooks" | "all";
 
 export type RecipeWithTags = RecipeListItem & { tagIds: string[] };
-type TagOption = { id: string; name: string };
+type TagOption = TagFilterOption;
 
 /**
  * The Recipes page's browser: the Cookbooks/All Recipes view toggle (default
@@ -84,43 +85,13 @@ export function RecipesBrowser({
         <CookbookList cookbooks={cookbooks} />
       ) : (
         <>
-          {tags.length > 0 && (
-            <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex w-max gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedTagId(null)}
-                  aria-pressed={selectedTagId === null}
-                  className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors ${
-                    selectedTagId === null
-                      ? "border-accent bg-accent text-accent-fg"
-                      : "border-line bg-surface text-muted"
-                  }`}
-                >
-                  All ({recipes.length})
-                </button>
-                {tags.map((tag) => {
-                  const active = selectedTagId === tag.id;
-                  const count = recipes.filter((r) => r.tagIds.includes(tag.id)).length;
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => setSelectedTagId(tag.id)}
-                      aria-pressed={active}
-                      className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors ${
-                        active
-                          ? "border-accent bg-accent text-accent-fg"
-                          : "border-line bg-surface text-muted"
-                      }`}
-                    >
-                      {tag.name} ({count})
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          <TagFilterChips
+            tags={tags}
+            selectedTagId={selectedTagId}
+            onSelect={setSelectedTagId}
+            totalCount={recipes.length}
+            countFor={(tagId) => recipes.filter((r) => r.tagIds.includes(tagId)).length}
+          />
           <RecipeList
             recipes={visibleRecipes}
             emptyTitle={selectedTagId ? "No matches" : undefined}
