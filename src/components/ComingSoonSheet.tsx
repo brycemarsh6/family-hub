@@ -5,9 +5,11 @@ import { useEffect } from "react";
 /**
  * A one-line "not built yet" acknowledgment for a control that's visible on
  * purpose (per the house's no-feature-stubbed-early rule) but not wired up
- * yet — the Meal Plan/Groceries action circles and the Nutrition button on
- * the recipe detail page (Recipes v2's C3 phase), ahead of C5/C6. A real
- * tap gets a real response instead of silently doing nothing.
+ * yet. A real tap gets a real response instead of silently doing nothing.
+ *
+ * Currently just the Nutrition button (real in C6). The Meal Plan and
+ * Groceries action circles used this too until C5 wired them up — which is
+ * the intended lifecycle for anything pointed here.
  */
 export function ComingSoonSheet({
   title,

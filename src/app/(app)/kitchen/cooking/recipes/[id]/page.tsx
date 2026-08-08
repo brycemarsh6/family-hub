@@ -26,7 +26,7 @@ export default async function RecipeDetailPage({
 }) {
   const { id } = await params;
 
-  const [recipe, allTagsRaw, allCookbooksRaw] = await Promise.all([
+  const [recipe, allTagsRaw, allCookbooksRaw, plannedWeeks] = await Promise.all([
     db.recipe.findUnique({
       where: { id },
       include: {
@@ -42,6 +42,11 @@ export default async function RecipeDetailPage({
       orderBy: { name: "asc" },
     }),
     db.cookbook.findMany({ select: { id: true, title: true }, orderBy: { title: "asc" } }),
+    // Which weeks already have a plan, so the Meal Plan picker reuses one
+    // rather than colliding on MealPlan.weekStart. Deliberately just the
+    // ids and dates — this page decides nothing about *which* week is
+    // current; that's the browser's job (see src/lib/mealPlanDates.ts).
+    db.mealPlan.findMany({ select: { id: true, weekStart: true } }),
   ]);
   if (!recipe) notFound();
 
@@ -72,6 +77,7 @@ export default async function RecipeDetailPage({
         ingredients={recipe.ingredients}
         steps={recipe.steps}
         initialShareToken={recipe.shareToken}
+        plannedWeeks={plannedWeeks}
       />
 
       <RecipeMeta recipe={recipe} />

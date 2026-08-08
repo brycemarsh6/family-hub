@@ -3,16 +3,14 @@
 import { useState } from "react";
 import { CalendarDays, ShoppingCart, Share2 } from "lucide-react";
 import { ShareSheet } from "./ShareSheet";
-import { ComingSoonSheet } from "./ComingSoonSheet";
+import { AddToMealPlanSheet, type PlannedWeek } from "./AddToMealPlanSheet";
+import { AddToGroceriesSheet } from "./AddToGroceriesSheet";
 
 /**
  * The three quick-action circles under the recipe title: Meal Plan, Add to
- * groceries, and Share. Meal Plan and Groceries are visible now but not
- * wired up — real logic lands in C5 (cross-branch buttons) — per the house's
- * no-feature-stubbed-early rule; tapping either gives a real acknowledgment
- * (ComingSoonSheet) rather than doing nothing. Share is real today, reusing
- * everything R4 already built — it just moved from its own standing section
- * into this sheet, opened from here.
+ * groceries, and Share. All three are real as of C5 — Meal Plan and Groceries
+ * shipped visible-but-stubbed in C3 (per the house's no-feature-stubbed-early
+ * rule) and are wired up here.
  */
 export function RecipeActionCircles({
   recipeId,
@@ -20,63 +18,63 @@ export function RecipeActionCircles({
   ingredients,
   steps,
   initialShareToken,
+  plannedWeeks,
 }: {
   recipeId: string;
   title: string;
   ingredients: string;
   steps: string;
   initialShareToken: string | null;
+  /** Weeks that already have a meal plan, so the picker reuses one instead
+   * of colliding on MealPlan.weekStart. */
+  plannedWeeks: PlannedWeek[];
 }) {
-  const [shareOpen, setShareOpen] = useState(false);
-  const [comingSoon, setComingSoon] = useState<{ title: string; message: string } | null>(
-    null,
-  );
+  const [openSheet, setOpenSheet] = useState<
+    "share" | "mealPlan" | "groceries" | null
+  >(null);
 
   return (
     <div className="mb-6 flex items-center justify-around">
       <ActionCircle
         icon={<CalendarDays aria-hidden="true" size={22} />}
         label="Meal Plan"
-        onClick={() =>
-          setComingSoon({
-            title: "Meal Plan",
-            message: "Adding this recipe straight to a meal-plan slot is coming soon.",
-          })
-        }
+        onClick={() => setOpenSheet("mealPlan")}
       />
       <ActionCircle
         icon={<ShoppingCart aria-hidden="true" size={22} />}
         label="Groceries"
-        onClick={() =>
-          setComingSoon({
-            title: "Add to groceries",
-            message:
-              "Adding this recipe's ingredients to your shopping list is coming soon.",
-          })
-        }
+        onClick={() => setOpenSheet("groceries")}
       />
       <ActionCircle
         icon={<Share2 aria-hidden="true" size={22} />}
         label="Share"
-        onClick={() => setShareOpen(true)}
+        onClick={() => setOpenSheet("share")}
       />
 
-      {shareOpen && (
+      {openSheet === "share" && (
         <ShareSheet
           recipeId={recipeId}
           title={title}
           ingredients={ingredients}
           steps={steps}
           initialShareToken={initialShareToken}
-          onClose={() => setShareOpen(false)}
+          onClose={() => setOpenSheet(null)}
         />
       )}
 
-      {comingSoon && (
-        <ComingSoonSheet
-          title={comingSoon.title}
-          message={comingSoon.message}
-          onClose={() => setComingSoon(null)}
+      {openSheet === "mealPlan" && (
+        <AddToMealPlanSheet
+          recipeId={recipeId}
+          recipeTitle={title}
+          plannedWeeks={plannedWeeks}
+          onClose={() => setOpenSheet(null)}
+        />
+      )}
+
+      {openSheet === "groceries" && (
+        <AddToGroceriesSheet
+          recipeId={recipeId}
+          onClose={() => setOpenSheet(null)}
         />
       )}
     </div>

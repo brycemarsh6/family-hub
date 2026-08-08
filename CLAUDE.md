@@ -1722,15 +1722,82 @@ API not already used in this repo.
   cookbook 0, tag 4 — the permanent slot tags) confirmed by direct
   database read. `tsc`, `eslint`, `npm test`, and `npm run build` all
   clean.
-- **C5. The cross-branch buttons.** *(Opus — this is the phase with
-  real cross-feature data flow.)* **Meal Plan button**: the
-  week/day/slot picker writing through `setMealPlanEntry`. **Add to
-  groceries**: the parse → match → review sheet → confirmed-add flow
-  from the decision above, including `pantryItemId` linking and the
-  have/missing split. Verify against the real inventory: a recipe
-  whose ingredients are partly stocked shows the right split; adding
-  writes only confirmed rows; a linked row put-away restocks the
-  matched pantry item, not a duplicate.
+- **C5. The cross-branch buttons.** ✅ **Done.** Both C3 stubs are real
+  now; `ComingSoonSheet` survives for C6's Nutrition button only.
+  **Meal Plan button** (`AddToMealPlanSheet.tsx`): week → day → slot,
+  three steps in one sheet, writing through `setMealPlanEntry` — the
+  same upsert the Meal Plan branch's own slot sheet uses, denormalized
+  title and `recipeId` both. No second way to fill a slot was added.
+  Every date is computed from `new Date()` inside a component that only
+  renders after a tap, per `CreatePlanSheet`'s documented reasoning
+  (Vercel runs UTC, the household runs Mountain — a server-decided
+  calendar day is wrong for several hours every evening).
+  **The one supporting change: `createMealPlan` now returns the new
+  plan's id.** Filling a slot needs a `mealPlanId`, and picking a week
+  that has no plan yet has to create one first. Rather than add a
+  write path, the existing action just hands back what it created —
+  and on the duplicate-week collision it already treats as success, it
+  reads the existing plan's id back, so two phones racing on the same
+  week both get a usable answer.
+  **Add to groceries**: `src/lib/ingredientParse.ts` is the Claude call
+  (Haiku, structured outputs, `server-only` + guarded-action split —
+  the same shape as `voice/parse.ts` and `mealSuggest.ts`), turning
+  free-text ingredient lines into shoppable names. Lines go out
+  **numbered and come back as a `lineIndex`**, never as an echoed copy
+  of the line — the index-grounding rule M4 established, applied so a
+  parsed item can't be attached to the wrong ingredient.
+  `classifyRecipeIngredients` (read-only) then checks each name against
+  the real inventory with `matchItem` and against the current shopping
+  list, and `addIngredientsToGroceries` writes only the confirmed rows.
+  `AddToGroceriesSheet.tsx` shows every row with the recipe line it
+  came from; genuinely-missing rows start ticked, already-stocked and
+  already-on-the-list rows start unticked but stay tappable.
+  **The sharpest decision here — an ambiguous match is shown but never
+  linked.** `pantryItemId` on a grocery row is what makes put-away top
+  up the right inventory item, so a *wrong* link is worse than none:
+  it would silently restock the wrong row weeks later. `matchItem`
+  already reports `ambiguous` (the runner-up tied), which is exactly
+  the signal V1's voice bug needed — so a confident match links and
+  borrows the matched row's category (a real fact), while an ambiguous
+  one is displayed as "you have X" and deliberately left unlinked.
+  Put-away's own exact-name check and review sheet are the layer that
+  catches those later; that's what they're for.
+  **This paid off immediately on real data rather than staying
+  theoretical.** The test recipe's "3 tablespoons harissa paste"
+  matched the household's **Ginger paste** — a genuinely bad match, on
+  the shared word "paste". Checked directly: `matchItem` returned it
+  `ambiguous: true` (Tomato paste and two vanilla bean pastes tied), so
+  it was shown to the human and **not** linked. "2 cups milk" behaved
+  the same way (seven milks, no plain "Milk"). The only two rows that
+  linked — "brown sugar" → Brown sugar, "salt" → Salt — were both
+  correct.
+  **Verified end to end against the real 477-item inventory**, with a
+  test recipe deliberately mixing stocked, ambiguous, and absent
+  ingredients plus a section header and a water line. The parse
+  correctly skipped "For the topping:" and "1 cup water" entirely
+  (7 lines → 5 rows) and stripped quantities and prep throughout. The
+  split was right: saffron threads (absent) pre-ticked, brown sugar /
+  salt / milk / harissa unticked with "you have …" labels. Ticking
+  three and adding wrote **exactly** those three — the two unticked
+  rows were never created — with `brown sugar` linked to the real
+  Brown sugar row and category borrowed (Baking), `milk` and `saffron
+  threads` unlinked with the catch-all category, all confirmed by
+  direct database read. Then the full cross-branch loop: ticking the
+  linked `brown sugar` row off on Shopping and tapping "Put away"
+  committed with **no review sheet** (the fully-known path), took
+  **Brown sugar 0.5 → 1.5**, advanced `restockedAt`, and left the
+  pantry count at **477** — restocking the matched row rather than
+  creating a duplicate, which is the whole point of the link. The Meal
+  Plan side was verified the same way: a not-yet-planned week created
+  a plan at `06:00Z` (Mountain midnight — the browser's date, matching
+  the existing real plan's own convention), filed the recipe at day 3
+  / Dinner with both title and `recipeId` set, and rendered under
+  "Coming up" as Wednesday Aug 12 → Dinner. Every test row was removed
+  afterward and **Brown sugar was restored to its exact pre-test
+  quantity and `restockedAt`**; final counts (pantry 477, grocery 8,
+  recipe 11, cookbook 0, tag 4, 1 real meal plan with its 3 real
+  entries) confirmed by direct read. `tsc`, `eslint`, `npm test`, and
+  `npm run build` all clean.
 - **C6. Nutrition.** *(Sonnet; Opus if the estimates come back
   unreliable and the prompt needs real iteration.)* The confirm-
   servings sheet, the Haiku call (structured outputs, `server-only`

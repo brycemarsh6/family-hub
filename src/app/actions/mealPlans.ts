@@ -26,29 +26,46 @@ function refreshMealPlanViews() {
 
 export type MealPlanActionResult = { error?: string };
 
+/** Adds the new (or already-existing) plan's id to the usual result — the
+ * recipe detail page's "Meal Plan" button needs it to fill a slot in the
+ * same interaction, without a second round trip to find the plan it just
+ * made. See AddToMealPlanSheet. */
+export type CreateMealPlanResult = MealPlanActionResult & { mealPlanId?: string };
+
 /**
  * Create a week's plan. `weekStart` is whatever Date the browser decided on
  * (see CreatePlanSheet) — stored as-is, no server-side reinterpretation.
  *
  * Two phones tapping the same week chip at once both want the same outcome
  * ("this week is planned"), so a unique-constraint collision here isn't an
- * error to surface — it's treated as success either way.
+ * error to surface — it's treated as success either way, and the existing
+ * plan's id is read back so the caller gets the same answer whichever phone
+ * won the race.
  */
 export async function createMealPlan(
   weekStart: Date,
-): Promise<MealPlanActionResult> {
+): Promise<CreateMealPlanResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
+  let mealPlanId: string | undefined;
+
   try {
-    await db.mealPlan.create({ data: { weekStart } });
+    const created = await db.mealPlan.create({ data: { weekStart } });
+    mealPlanId = created.id;
   } catch (error) {
     const isDuplicateWeek =
       error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
     if (!isDuplicateWeek) throw error;
+
+    const existing = await db.mealPlan.findUnique({
+      where: { weekStart },
+      select: { id: true },
+    });
+    mealPlanId = existing?.id;
   }
 
   refreshMealPlanViews();
-  return {};
+  return { mealPlanId };
 }
 
 /**
