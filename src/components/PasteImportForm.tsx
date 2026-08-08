@@ -9,7 +9,7 @@ import { createRecipe, extractRecipeFromPastedText } from "@/app/actions/recipes
  * something, then the same RecipeForm every other path uses — pre-filled,
  * fully editable, nothing written to the database until Save is tapped.
  */
-export function PasteImportForm() {
+export function PasteImportForm({ cookbookId }: { cookbookId?: string }) {
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +52,7 @@ export function PasteImportForm() {
           action={createRecipe}
           submitLabel="Save recipe"
           defaultValues={extracted}
+          cookbookId={cookbookId}
         />
       </div>
     );

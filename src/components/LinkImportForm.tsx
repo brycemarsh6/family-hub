@@ -11,7 +11,7 @@ import { createRecipe, importRecipeFromLink } from "@/app/actions/recipes";
  * The flakiest import path, so failures always name a specific next step
  * rather than dead-ending.
  */
-export function LinkImportForm() {
+export function LinkImportForm({ cookbookId }: { cookbookId?: string }) {
   const [url, setUrl] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +55,7 @@ export function LinkImportForm() {
           action={createRecipe}
           submitLabel="Save recipe"
           defaultValues={extracted}
+          cookbookId={cookbookId}
         />
       </div>
     );

@@ -166,9 +166,53 @@ model Recipe {
   shareToken String? @unique
 
   mealPlanEntries MealPlanEntry[]
+  cookbooks       CookbookRecipe[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// A named list of recipes — "Mom's Recipes", "Quick Weeknight Dinners".
+/// Membership lives in the join table below, not on Recipe itself, since a
+/// recipe can belong to many cookbooks or none.
+model Cookbook {
+  id    String @id @default(cuid())
+  title String
+
+  /// Null until first shared — same pattern as Recipe.shareToken, reused for
+  /// cookbook viewer links (see the Recipes v2 plan's C8 phase).
+  shareToken String? @unique
+
+  recipes CookbookRecipe[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// One recipe filed into one cookbook.
+///
+/// Deleting a Cookbook cascades here only — it unfiles every recipe but
+/// never deletes the recipes themselves. Deleting a Recipe also cascades
+/// here, for the opposite reason: a join row pointing at a recipe that no
+/// longer exists is meaningless, so it goes with the recipe.
+model CookbookRecipe {
+  id String @id @default(cuid())
+
+  cookbook   Cookbook @relation(fields: [cookbookId], references: [id], onDelete: Cascade)
+  cookbookId String
+
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  /// When this recipe was added to this cookbook — not reused from either
+  /// side's own createdAt/updatedAt. "Most recently added to" means "when
+  /// was a recipe last filed into this book", which a cookbook-level
+  /// timestamp would get wrong (renaming the cookbook, or filing a recipe
+  /// into a different one, shouldn't move this book's sort position).
+  addedAt DateTime @default(now())
+
+  @@unique([cookbookId, recipeId])
+  @@index([recipeId])
 }
 
 /// One planned week. `weekStart` is always a Sunday (see src/lib/mealPlanDates.ts)

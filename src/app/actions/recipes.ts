@@ -38,6 +38,11 @@ export type RecipeFormState = { error?: string };
  * Create a recipe from the shared RecipeForm. Redirects to the new recipe's
  * detail page on success — there's nothing useful to show on the form itself
  * once it's saved.
+ *
+ * `cookbookId` is optional and comes from RecipeForm's hidden field — every
+ * import path (type, paste, photo, link) shares this one action, so passing
+ * it through here is what makes a recipe "born inside a book" land in it,
+ * in the same insert rather than a separate write.
  */
 export async function createRecipe(
   _previous: RecipeFormState,
@@ -48,10 +53,19 @@ export async function createRecipe(
   const title = String(formData.get("title") ?? "").trim();
   const ingredients = String(formData.get("ingredients") ?? "").trim();
   const steps = String(formData.get("steps") ?? "").trim();
+  const cookbookId = optionalField(formData, "cookbookId");
 
   if (!title) return { error: "Give the recipe a title." };
   if (!ingredients) return { error: "Add at least one ingredient." };
   if (!steps) return { error: "Add at least one step." };
+
+  if (cookbookId) {
+    const cookbook = await db.cookbook.findUnique({
+      where: { id: cookbookId },
+      select: { id: true },
+    });
+    if (!cookbook) return { error: "That cookbook no longer exists." };
+  }
 
   const recipe = await db.recipe.create({
     data: {
@@ -63,10 +77,12 @@ export async function createRecipe(
       cookTime: optionalField(formData, "cookTime"),
       sourceUrl: optionalField(formData, "sourceUrl"),
       notes: optionalField(formData, "notes"),
+      ...(cookbookId ? { cookbooks: { create: { cookbookId } } } : {}),
     },
   });
 
   refreshRecipeViews();
+  if (cookbookId) revalidatePath(`/kitchen/cooking/recipes/cookbooks/${cookbookId}`);
   redirect(`/kitchen/cooking/recipes/${recipe.id}`);
 }
 

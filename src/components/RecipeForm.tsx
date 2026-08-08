@@ -39,6 +39,7 @@ export function RecipeForm({
   action,
   defaultValues = BLANK,
   submitLabel,
+  cookbookId,
 }: {
   action: (
     state: RecipeFormState,
@@ -46,6 +47,8 @@ export function RecipeForm({
   ) => Promise<RecipeFormState>;
   defaultValues?: RecipeFormDefaults;
   submitLabel: string;
+  /** A recipe born inside a cookbook lands in it — see createRecipe. */
+  cookbookId?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, EMPTY);
 
@@ -53,6 +56,9 @@ export function RecipeForm({
     <form action={formAction} className="flex flex-col gap-4">
       {defaultValues.id && (
         <input type="hidden" name="id" value={defaultValues.id} />
+      )}
+      {cookbookId && (
+        <input type="hidden" name="cookbookId" value={cookbookId} />
       )}
 
       <Field label="Title">

@@ -20,7 +20,7 @@ const JPEG_QUALITY = 0.85;
  * same RecipeForm every other path uses — pre-filled, fully editable,
  * nothing written to the database until Save is tapped.
  */
-export function PhotoImportForm() {
+export function PhotoImportForm({ cookbookId }: { cookbookId?: string }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isReadingFile, setIsReadingFile] = useState(false);
@@ -100,6 +100,7 @@ export function PhotoImportForm() {
           action={createRecipe}
           submitLabel="Save recipe"
           defaultValues={extracted}
+          cookbookId={cookbookId}
         />
       </div>
     );

@@ -1,10 +1,19 @@
 import { BackLink } from "@/components/BackLink";
 import { LinkImportForm } from "@/components/LinkImportForm";
 
-export default function LinkImportPage() {
+export default async function LinkImportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cookbookId?: string }>;
+}) {
+  const { cookbookId } = await searchParams;
+  const backHref = cookbookId
+    ? `/kitchen/cooking/recipes/new?cookbookId=${cookbookId}`
+    : "/kitchen/cooking/recipes/new";
+
   return (
     <div className="py-2">
-      <BackLink href="/kitchen/cooking/recipes/new" label="Add recipe" />
+      <BackLink href={backHref} label="Add recipe" />
 
       <h1 className="mb-1 text-2xl font-bold tracking-tight md:text-3xl">
         From a link
@@ -14,7 +23,7 @@ export default function LinkImportPage() {
         we&apos;ll pull out the recipe for you to review before saving.
       </p>
 
-      <LinkImportForm />
+      <LinkImportForm cookbookId={cookbookId} />
     </div>
   );
 }

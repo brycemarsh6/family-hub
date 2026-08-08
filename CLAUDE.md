@@ -1414,22 +1414,65 @@ steaks/"tea", sticky-scroll, and Pinterest-meta-tag findings. Per
 AGENTS.md, check `node_modules/next/dist/docs` before using any Next
 API not already used in this repo.
 
-- **C1. Cookbooks core.** *(Sonnet.)* `Cookbook` + `CookbookRecipe`
-  schema (additive migration, generate, restart). The view toggle on
-  `/kitchen/cooking/recipes` (Cookbooks default / All Recipes — All
-  Recipes renders exactly today's list). Cookbook list rows (title +
-  count) with the A–Z / most-recent sort sheet. The bottom-left +
-  button and its two-option sheet, replacing the header New button.
-  Create-cookbook flow (title → straight into the new empty book).
-  The cookbook page: title, count, its recipes as the familiar list,
-  "Add recipe" offering **pick from All Recipes** (a search picker
-  over the existing library, the M2 recipe-picker pattern) plus the
-  four import paths — the import chooser and `createRecipe` take an
-  optional cookbookId so a recipe born inside a book lands in it.
-  ⋯ menu: Edit title, Delete (count-confirm; unfiles only). Scoped
-  seed/clean scripts for cookbooks. Verify: create, file existing +
-  newly-imported recipes, unfile, delete a non-empty book and confirm
-  every recipe survives in All Recipes, counts stable throughout.
+- **C1. Cookbooks core.** ✅ **Done.** `Cookbook` + `CookbookRecipe`
+  schema — additive migration (`20260808201127_add_cookbooks`, two
+  `CREATE TABLE`s plus indexes and foreign keys, reviewed as SQL before
+  applying), `prisma generate` run after. `CookbookRecipe` cascades on
+  both sides but for opposite reasons: deleting a `Cookbook` unfiles its
+  recipes (join rows only), deleting a `Recipe` removes any join row
+  that pointed at it (a dangling join row would be meaningless).
+  The view toggle on `/kitchen/cooking/recipes` (`RecipesBrowser.tsx`,
+  Cookbooks default / All Recipes — All Recipes renders exactly the
+  pre-existing `RecipeList`, untouched). Cookbook list rows (title +
+  count, `CookbookList.tsx`) with an A–Z/most-recent sort sheet. The
+  bottom-left floating **+** (`FloatingAddButton.tsx`, pinned to the
+  content column's own left edge via a full-width wrapper, not the raw
+  viewport edge — the A–Z rail already owns the right edge) replaced
+  the header New button, opening a two-option sheet (Add a recipe / Add
+  a cookbook). Create-cookbook is one text field
+  (`TitleSheet.tsx`, reused for rename) → straight into the new empty
+  book, no intermediate screen. The cookbook page
+  (`CookbookDetail.tsx`) reuses `RecipeList` wholesale for "its recipes
+  as the familiar list" — `RecipeList` gained an optional `onRemove`
+  prop that wraps each row in `SwipeActions` with a *neutral*-toned
+  "Remove" action (unfiling is reversible, unlike Delete) — and an
+  "Add recipe" button opening `AddRecipeToCookbookSheet.tsx`: a search
+  picker over recipes not already filed (M2's recipe-picker pattern),
+  plus a link straight into the existing 4-way import chooser carrying
+  `?cookbookId=`. That query param threads through all four `new/*`
+  pages into `RecipeForm`'s hidden `cookbookId` field, and
+  `createRecipe` does the nested `cookbooks: { create: { cookbookId } }`
+  write in the same insert — a recipe born inside a book lands in it
+  atomically, not via a second write. The chooser's own `BackLink`
+  resolves the real cookbook title server-side rather than always
+  saying "Recipes". ⋯ menu (`ActionSheet.tsx`): Edit title, and Delete
+  with a real count-confirm (`ConfirmSheet.tsx`) — one of the plan's two
+  deliberate breaks of the house single-tap-delete rule, since it
+  touches many rows' relationships at once. New small shared sheets
+  (`RadioSheet`, `ActionSheet`, `ConfirmSheet`, `TitleSheet`) are
+  general-purpose, not cookbook-specific, and are meant to be reused by
+  C2's tag UI. Scoped `db:seed-cookbooks` / `db:clean-cookbooks`
+  scripts, same title-matched-test-data pattern as the recipe scripts
+  (`cookbook-seed-data.ts`), with a dependency note that the seed data
+  needs `db:seed-recipes` run first for a full test set.
+  **Verified end to end in the running app against the real household
+  library** (not just read from the code): created a cookbook and
+  landed straight in it, empty; filed an existing seeded recipe via the
+  search picker and confirmed it persisted after a full reload; unfiled
+  it via the swipe action and confirmed — via a direct reload of All
+  Recipes — that the recipe itself survived, only the filing was
+  removed; imported a *brand-new* recipe from inside the cookbook via
+  the manual-entry path and confirmed it landed filed, with the
+  chooser's BackLink correctly naming the cookbook; renamed the
+  cookbook and confirmed the new title persisted; deleted a non-empty
+  cookbook, confirmed the exact count-confirm wording ("Its 2 recipes
+  stay in All Recipes"), and confirmed both recipes were still present
+  in All Recipes afterward; deleting a recipe directly from its own
+  detail page correctly dropped the cookbook's count via the cascade.
+  All test cookbooks/recipes cleaned up afterward; final counts
+  (pantry 477, grocery 8, recipe 11, cookbook 0, cookbookRecipe 0)
+  confirmed by direct database read. `tsc`, `eslint`, and
+  `npm run build` all clean.
 - **C2. Tags.** *(Sonnet.)* `Tag` + `RecipeTag` schema; seed the four
   slot tags from `MEAL_SLOTS` (idempotent — upsert by name, so
   re-running never duplicates). The select-tags sheet (search-or-
@@ -3072,3 +3115,26 @@ detail redesign, the Meal Plan / Add-to-groceries buttons, photos (gated
 on a Vercel Blob decision), and cookbook viewer links — eight phases,
 C1–C8, each carrying a model recommendation (Sonnet vs. Opus) at Bryce's
 request. The plan is the next build target; nothing in it has started.
+
+---
+
+## Session note, 2026-08-08: C1 (Cookbooks core) shipped
+
+The first phase of the Recipes v2 plan is built and verified — see the
+C1 bullet above for the full design and verification detail. The
+Recipes page now defaults to a Cookbooks view with a floating +
+replacing the old header New button, and a cookbook is a real named
+list a recipe can be filed into or out of without ever duplicating or
+deleting the underlying recipe.
+
+Four small shared sheet components came out of this phase that C2 (tags)
+is expected to reuse directly rather than rebuilding: `RadioSheet` (pick
+one of a few things — the view toggle, the sort choice), `ActionSheet`
+(a "+"/"⋯" menu), `ConfirmSheet` (the count-confirm dialog for the
+plan's two deliberate single-tap-delete exceptions), and `TitleSheet`
+(name-this-thing, used for both create and rename). None of them are
+cookbook-specific by construction.
+
+Genuinely open: C2 (Tags) is next in the plan's own order. `tsc`,
+`eslint`, and `npm run build` are all clean; pantry/grocery/recipe
+counts unchanged by this phase, confirmed by direct database read.

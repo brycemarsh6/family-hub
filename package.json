@@ -14,7 +14,9 @@
     "db:seed-recipes": "tsx prisma/seed-recipes.ts",
     "db:clean-recipes": "tsx prisma/clean-recipes.ts",
     "db:seed-meal-plans": "tsx prisma/seed-meal-plans.ts",
-    "db:clean-meal-plans": "tsx prisma/clean-meal-plans.ts"
+    "db:clean-meal-plans": "tsx prisma/clean-meal-plans.ts",
+    "db:seed-cookbooks": "tsx prisma/seed-cookbooks.ts",
+    "db:clean-cookbooks": "tsx prisma/clean-cookbooks.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

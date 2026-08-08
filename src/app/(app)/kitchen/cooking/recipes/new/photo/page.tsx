@@ -1,10 +1,19 @@
 import { BackLink } from "@/components/BackLink";
 import { PhotoImportForm } from "@/components/PhotoImportForm";
 
-export default function PhotoImportPage() {
+export default async function PhotoImportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cookbookId?: string }>;
+}) {
+  const { cookbookId } = await searchParams;
+  const backHref = cookbookId
+    ? `/kitchen/cooking/recipes/new?cookbookId=${cookbookId}`
+    : "/kitchen/cooking/recipes/new";
+
   return (
     <div className="py-2">
-      <BackLink href="/kitchen/cooking/recipes/new" label="Add recipe" />
+      <BackLink href={backHref} label="Add recipe" />
 
       <h1 className="mb-1 text-2xl font-bold tracking-tight md:text-3xl">
         From a photo
@@ -14,7 +23,7 @@ export default function PhotoImportPage() {
         out the recipe for you to review before saving.
       </p>
 
-      <PhotoImportForm />
+      <PhotoImportForm cookbookId={cookbookId} />
     </div>
   );
 }

@@ -2,8 +2,9 @@
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Search, X } from "lucide-react";
+import { Search, X, BookX } from "lucide-react";
 import { EmptyState } from "./EmptyState";
+import { SwipeActions } from "./SwipeActions";
 import { searchRecipes } from "@/lib/match";
 
 export type RecipeListItem = {
@@ -25,8 +26,24 @@ function letterOf(title: string): string {
  * Recipes browsed A-Z with a slide-to-jump rail, or searched — same
  * grouped-view/flat-ranked-view split Inventory already established, plus a
  * jump rail Inventory has no equivalent of.
+ *
+ * `onRemove`, when passed, wraps every row in a swipe-to-reveal "Remove"
+ * action — used by the cookbook detail page (Recipes v2's C1 phase) to
+ * unfile a recipe from that cookbook without touching the recipe itself.
+ * Tone is "neutral", not "danger": unlike deleting a recipe, unfiling is
+ * reversible (it can be added right back), same reasoning as Shopping's
+ * Edit action. Omitted entirely on the All Recipes view, which has no such
+ * per-row action.
  */
-export function RecipeList({ recipes }: { recipes: RecipeListItem[] }) {
+export function RecipeList({
+  recipes,
+  onRemove,
+  emptyHint = "Tap the + button to add one.",
+}: {
+  recipes: RecipeListItem[];
+  onRemove?: (recipeId: string) => void;
+  emptyHint?: string;
+}) {
   const [query, setQuery] = useState("");
   // The letter currently under a finger on the rail, for visual feedback —
   // not tied to scroll position, since scrollIntoView's animation means
@@ -159,16 +176,12 @@ export function RecipeList({ recipes }: { recipes: RecipeListItem[] }) {
         ) : (
           <ul className="space-y-2">
             {searchResults.map((recipe) => (
-              <RecipeRow key={recipe.id} recipe={recipe} />
+              <RecipeRow key={recipe.id} recipe={recipe} onRemove={onRemove} />
             ))}
           </ul>
         )
       ) : sorted.length === 0 ? (
-        <EmptyState
-          emoji="📖"
-          title="No recipes yet"
-          hint="Add the household's first recipe with the New button above."
-        />
+        <EmptyState emoji="📖" title="No recipes yet" hint={emptyHint} />
       ) : (
         <div className="relative pr-8">
           <div>
@@ -193,7 +206,7 @@ export function RecipeList({ recipes }: { recipes: RecipeListItem[] }) {
                 </h2>
                 <ul className="mb-2 space-y-2 py-1">
                   {groups.get(letter)!.map((recipe) => (
-                    <RecipeRow key={recipe.id} recipe={recipe} />
+                    <RecipeRow key={recipe.id} recipe={recipe} onRemove={onRemove} />
                   ))}
                 </ul>
               </section>
@@ -244,15 +257,47 @@ export function RecipeList({ recipes }: { recipes: RecipeListItem[] }) {
   );
 }
 
-function RecipeRow({ recipe }: { recipe: RecipeListItem }) {
+function RecipeRow({
+  recipe,
+  onRemove,
+}: {
+  recipe: RecipeListItem;
+  onRemove?: (recipeId: string) => void;
+}) {
+  // Same composition SwipeActions already establishes on GroceryRow/PantryRow:
+  // the border/background/rounding live on the <li> once a row is wrapped in
+  // SwipeActions (whose own inner div already paints bg-surface), so the
+  // content itself carries none of that — otherwise a swipe-wrapped row would
+  // show a double border. The plain (non-cookbook) row keeps its own
+  // border/bg directly, since it's never wrapped.
+  const link = (
+    <Link
+      href={`/kitchen/cooking/recipes/${recipe.id}`}
+      className={`flex min-h-14 items-center px-4 text-base font-medium transition-colors active:bg-surface-2 ${
+        onRemove ? "" : "rounded-xl border border-line bg-surface"
+      }`}
+    >
+      {recipe.title}
+    </Link>
+  );
+
+  if (!onRemove) return <li>{link}</li>;
+
   return (
-    <li>
-      <Link
-        href={`/kitchen/cooking/recipes/${recipe.id}`}
-        className="flex min-h-14 items-center rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
+    <li className="rounded-xl border border-line bg-surface">
+      <SwipeActions
+        actions={[
+          {
+            label: "Remove",
+            accessibleLabel: `Remove ${recipe.title} from this cookbook`,
+            icon: <BookX aria-hidden="true" size={18} />,
+            onAction: () => onRemove(recipe.id),
+            tone: "neutral",
+          },
+        ]}
       >
-        {recipe.title}
-      </Link>
+        {link}
+      </SwipeActions>
     </li>
   );
 }
