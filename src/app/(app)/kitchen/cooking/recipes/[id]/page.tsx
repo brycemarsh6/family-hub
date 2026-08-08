@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { deleteRecipe } from "@/app/actions/recipes";
 import { BackLink } from "@/components/BackLink";
 import { RecipeBody } from "@/components/RecipeBody";
+import { RecipeTagsSection } from "@/components/RecipeTagsSection";
 import { ShareRecipeControls } from "@/components/ShareRecipeControls";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +16,31 @@ export default async function RecipeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const recipe = await db.recipe.findUnique({ where: { id } });
+
+  const [recipe, allTagsRaw] = await Promise.all([
+    db.recipe.findUnique({
+      where: { id },
+      include: { tags: { select: { tag: { select: { id: true, name: true } } } } },
+    }),
+    // The full vocabulary, with a recipe count on each — cheap at household
+    // scale, and it's what lets the delete-tag confirm show a real count
+    // without a second round trip mid-interaction.
+    db.tag.findMany({
+      select: { id: true, name: true, _count: { select: { recipes: true } } },
+      orderBy: { name: "asc" },
+    }),
+  ]);
   if (!recipe) notFound();
+
+  const allTags = allTagsRaw.map((tag) => ({
+    id: tag.id,
+    name: tag.name,
+    recipeCount: tag._count.recipes,
+  }));
+  const recipeTags = recipe.tags.map(({ tag }) => {
+    const withCount = allTags.find((t) => t.id === tag.id);
+    return withCount ?? { id: tag.id, name: tag.name, recipeCount: 1 };
+  });
 
   return (
     <div className="py-2">
@@ -36,6 +60,8 @@ export default async function RecipeDetailPage({
       </div>
 
       <RecipeBody recipe={recipe} />
+
+      <RecipeTagsSection recipeId={recipe.id} initialTags={recipeTags} allTags={allTags} />
 
       <ShareRecipeControls
         recipeId={recipe.id}

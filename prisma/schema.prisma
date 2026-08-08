@@ -167,9 +167,48 @@ model Recipe {
 
   mealPlanEntries MealPlanEntry[]
   cookbooks       CookbookRecipe[]
+  tags            RecipeTag[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// A label a recipe can carry. Tags are a table + join, never plain text on
+/// the recipe — that's what makes rename safe (rename once, every recipe
+/// follows) and delete honest (the confirm sheet can show a real count of
+/// how many recipes it's on). `name` is unique, but that uniqueness is
+/// case-SENSITIVE at the database level (same "no provider-specific
+/// features" reasoning as the rest of this schema) — the case-insensitive
+/// "search or create" rule from the Recipes v2 plan is enforced in
+/// findOrCreateTag (src/app/actions/tags.ts), not here.
+///
+/// The four meal-slot tags (Breakfast/Lunch/Dinner/Snacks) are seeded from
+/// MEAL_SLOTS by exact name (see prisma/seed-slot-tags.ts) — everything
+/// else is freely user-created. Renaming or deleting one of those four is
+/// allowed like any other tag; it just means suggestMealsForSlot's
+/// exact-name lookup stops finding it and quietly falls back to the full
+/// recipe library, not a crash.
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+
+  recipes RecipeTag[]
+
+  createdAt DateTime @default(now())
+}
+
+/// One tag applied to one recipe.
+model RecipeTag {
+  id String @id @default(cuid())
+
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  tag   Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId String
+
+  @@unique([recipeId, tagId])
+  @@index([tagId])
 }
 
 /// A named list of recipes — "Mom's Recipes", "Quick Weeknight Dinners".

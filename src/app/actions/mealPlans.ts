@@ -134,7 +134,9 @@ export async function suggestMealsForSlot(
   const mealSlot = toMealSlot(slot);
   if (!mealSlot) return { error: "That's not a real meal slot." };
 
-  const [pantryItems, recipes] = await Promise.all([
+  const recipeFields = { id: true, title: true, ingredients: true } as const;
+
+  const [pantryItems, slotRecipes, allRecipes] = await Promise.all([
     db.pantryItem.findMany({
       where: { quantity: { gt: 0 } },
       select: {
@@ -148,11 +150,23 @@ export async function suggestMealsForSlot(
       },
       orderBy: { name: "asc" },
     }),
+    // Pre-filtered by slot tag BEFORE the prompt, not inside it — a model
+    // can't ignore a list it never saw. The tag's name is exactly the slot's
+    // own name (seeded from MEAL_SLOTS in prisma/seed-slot-tags.ts), so this
+    // is an exact match, never a fuzzy one — the steaks/"tea" lesson applied
+    // preemptively rather than learned again.
     db.recipe.findMany({
-      select: { id: true, title: true, ingredients: true },
+      where: { tags: { some: { tag: { name: mealSlot } } } },
+      select: recipeFields,
       orderBy: { title: "asc" },
     }),
+    db.recipe.findMany({ select: recipeFields, orderBy: { title: "asc" } }),
   ]);
+
+  // Untagged-library fallback: if nothing is tagged for this slot yet (the
+  // common case before anyone's tagged anything), fall back to the whole
+  // library rather than suggesting nothing.
+  const recipes = slotRecipes.length > 0 ? slotRecipes : allRecipes;
 
   const today = new Date();
   const expiringSoon = pantryItems

@@ -6,16 +6,22 @@ export const dynamic = "force-dynamic";
 
 // The header (view toggle, count) and the floating + live in RecipesBrowser,
 // a client component — the Cookbooks/All Recipes toggle and its own sheets
-// need client state. This page just fetches both and hands them over. See
-// the Recipes v2 plan's C1 phase.
+// need client state. This page just fetches everything and hands it over.
+// See the Recipes v2 plan's C1 (cookbooks) and C2 (tags) phases.
 export default async function RecipesPage() {
-  const [recipes, cookbooksRaw] = await Promise.all([
+  const [recipesRaw, cookbooksRaw, tags] = await Promise.all([
     db.recipe.findMany({
-      select: { id: true, title: true, ingredients: true },
+      select: {
+        id: true,
+        title: true,
+        ingredients: true,
+        tags: { select: { tagId: true } },
+      },
     }),
     db.cookbook.findMany({
       select: { id: true, title: true, recipes: { select: { addedAt: true } } },
     }),
+    db.tag.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   // "Most recent" for a cookbook means "when was a recipe last filed into
@@ -31,10 +37,20 @@ export default async function RecipesPage() {
         : null,
   }));
 
+  // tagIds ride along on the All Recipes view's own recipe list so the tag
+  // filter chips (RecipesBrowser) can filter client-side without a second
+  // fetch — RecipeList itself never looks at this field.
+  const recipes = recipesRaw.map((recipe) => ({
+    id: recipe.id,
+    title: recipe.title,
+    ingredients: recipe.ingredients,
+    tagIds: recipe.tags.map((t) => t.tagId),
+  }));
+
   return (
     <div className="py-2">
       <BackLink href="/kitchen/cooking" label="Cooking" />
-      <RecipesBrowser recipes={recipes} cookbooks={cookbooks} />
+      <RecipesBrowser recipes={recipes} cookbooks={cookbooks} tags={tags} />
     </div>
   );
 }

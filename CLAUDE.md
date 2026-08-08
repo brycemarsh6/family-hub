@@ -1473,18 +1473,72 @@ API not already used in this repo.
   (pantry 477, grocery 8, recipe 11, cookbook 0, cookbookRecipe 0)
   confirmed by direct database read. `tsc`, `eslint`, and
   `npm run build` all clean.
-- **C2. Tags.** *(Sonnet.)* `Tag` + `RecipeTag` schema; seed the four
-  slot tags from `MEAL_SLOTS` (idempotent — upsert by name, so
-  re-running never duplicates). The select-tags sheet (search-or-
-  create with the existing-match-first rule, selected chips, per-tag
-  ⋯ for rename / delete-with-count). Tag chips on the recipe detail
-  page with an Update entry point. Tag filter chips on All Recipes
-  (single-select). Wire `suggestMealsForSlot` to pre-filter by slot
-  tag with the untagged-library fallback. Verify against the real
-  library: tag a real recipe Breakfast, confirm a Breakfast-slot
-  suggestion request sends only Breakfast-tagged recipes (log the
-  candidate list), and that an untagged slot still falls back to
-  everything; rename and delete round-trips.
+- **C2. Tags.** ✅ **Done.** `Tag` + `RecipeTag` schema — additive
+  migration (`20260808203800_add_tags`), `prisma generate` after.
+  `Tag.name` is `@unique` at the database level, but that uniqueness is
+  case-*sensitive* (no provider-specific collation features, same rule
+  as the rest of the schema) — the case-insensitive "search or create"
+  behavior is enforced in `findOrCreateTag` (`src/app/actions/tags.ts`),
+  not the schema. The four slot tags seed from the real `MEAL_SLOTS`
+  value (`prisma/seed-slot-tags.ts`, `db:seed-slot-tags` — confirmed
+  importing it doesn't drag lucide-react into the plain-Node script
+  before writing the script, rather than assuming; it's fine, and fast)
+  via `db.tag.upsert` by name, safe to rerun.
+  `TagSelectSheet.tsx` is one sheet with an internal `view` state
+  machine (`main`/`menu`/`rename`/`delete`) rather than stacking
+  separate `ActionSheet`/`TitleSheet`/`ConfirmSheet` instances on top
+  of each other — the same shape `SlotEditSheet` already established,
+  and for the same reason: two independent Escape-key listeners on
+  stacked modals would fight over a single keypress. Search-or-create
+  surfaces an existing case-insensitive match first and only offers
+  "Create" when there's truly no match; creating a tag from inside a
+  recipe's own sheet also applies it to that recipe in the same
+  interaction. Per-tag ⋯ offers Rename and Delete-with-count (the
+  second of the plan's two deliberate single-tap-delete exceptions).
+  `RecipeTagsSection.tsx` puts tag chips + an "Add tags"/"Update" entry
+  point on the recipe detail page, with local state mirroring the
+  server (same pattern `ShareRecipeControls`/`CookbookDetail`
+  established). Tag filter chips (single-select, Inventory's location-
+  chip pattern) live on All Recipes only, reading `tagIds` that ride
+  along on `RecipesBrowser`'s own recipe fetch — cookbook filtering by
+  tag stays out of scope, per the plan. `suggestMealsForSlot`
+  (`src/app/actions/mealPlans.ts`) now fetches slot-tagged recipes
+  first and only falls back to the full library when nothing's tagged
+  for that slot — an exact-name lookup against the tag (never fuzzy),
+  since the tag name and the slot name are the same string by
+  construction.
+  **One real bug the verification caught:** the delete-tag confirm's
+  "removes it from N recipes" count went stale mid-session — a tag
+  toggled onto a second recipe without a page reload still showed
+  whatever `recipeCount` the tag had at the *page's own* load time,
+  because nothing incremented/decremented it locally on toggle. Fixed
+  in `RecipeTagsSection.handleToggle`, which now moves `tagOptions`'
+  `recipeCount` by ±1 on every toggle, not just on rename/delete.
+  Caught by literally reading the confirm dialog's count after tagging
+  a second recipe live, not by inspecting the code.
+  **A second, smaller finding**: the sheet's own header showed literal
+  text "Delete tag" on both the back-button label *and* the red confirm
+  button when viewing the delete screen — harmless to a real user (the
+  two are visually distinct), but it was enough to fool a naive
+  text-match test into clicking the wrong one and concluding delete was
+  broken. Simplified the header to show the tag's own name instead
+  (matching what the "menu" view already did), which incidentally also
+  removes the ambiguity for anyone automating against this sheet later.
+  **Verified end to end against the real household library and the
+  real 4 seeded slot tags**: tagged the real "Whole-Wheat Pancakes"
+  recipe as Breakfast through the sheet; confirmed the case-insensitive
+  existing-match-first rule (typing "breakfast" showed no "Create"
+  option); created, toggled, and renamed a test tag, each round-tripping
+  through a full page reload; deleted a test tag and confirmed via a
+  direct database read that only that row (and its one `RecipeTag`
+  join row) was gone; reproduced the `suggestMealsForSlot` filtering
+  directly against the query (matching the action's own where-clause)
+  with the real data — Breakfast returned exactly the 1 tagged recipe,
+  Dinner (0 tagged) correctly fell back to all 11. Test tag and the
+  Breakfast tag on Whole-Wheat Pancakes were removed afterward; final
+  state (pantry 477, grocery 8, recipe 11, cookbook 0, only the 4 slot
+  tags remaining at 0 recipes each) confirmed by direct database read.
+  `tsc`, `eslint`, and `npm run build` all clean.
 - **C3. Recipe detail v2.** *(Sonnet.)* The redesigned page top to
   bottom: back + Edit + ⋯ (Export PDF / Print / Delete — delete keeps
   the house single-tap rule, it touches one recipe); hero area with

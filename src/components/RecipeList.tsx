@@ -38,10 +38,12 @@ function letterOf(title: string): string {
 export function RecipeList({
   recipes,
   onRemove,
+  emptyTitle = "No recipes yet",
   emptyHint = "Tap the + button to add one.",
 }: {
   recipes: RecipeListItem[];
   onRemove?: (recipeId: string) => void;
+  emptyTitle?: string;
   emptyHint?: string;
 }) {
   const [query, setQuery] = useState("");
@@ -181,7 +183,7 @@ export function RecipeList({
           </ul>
         )
       ) : sorted.length === 0 ? (
-        <EmptyState emoji="📖" title="No recipes yet" hint={emptyHint} />
+        <EmptyState emoji="📖" title={emptyTitle} hint={emptyHint} />
       ) : (
         <div className="relative pr-8">
           <div>

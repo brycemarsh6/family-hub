@@ -13,6 +13,9 @@ import { createCookbook } from "@/app/actions/cookbooks";
 
 type View = "cookbooks" | "all";
 
+export type RecipeWithTags = RecipeListItem & { tagIds: string[] };
+type TagOption = { id: string; name: string };
+
 /**
  * The Recipes page's browser: the Cookbooks/All Recipes view toggle (default
  * Cookbooks), whichever list that picks, and the floating "+" that replaced
@@ -23,9 +26,13 @@ type View = "cookbooks" | "all";
 export function RecipesBrowser({
   recipes,
   cookbooks,
+  tags,
 }: {
-  recipes: RecipeListItem[];
+  recipes: RecipeWithTags[];
   cookbooks: CookbookListItem[];
+  /** The full tag vocabulary — filter chips on All Recipes only (filtering
+   * a cookbook by tag is ambiguous and out of scope, per the plan). */
+  tags: TagOption[];
 }) {
   const router = useRouter();
   const [view, setView] = useState<View>("cookbooks");
@@ -34,6 +41,13 @@ export function RecipesBrowser({
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, startCreating] = useTransition();
+  // Single-select, same pattern as Inventory's location chips — null means
+  // "All".
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+
+  const visibleRecipes = selectedTagId
+    ? recipes.filter((recipe) => recipe.tagIds.includes(selectedTagId))
+    : recipes;
 
   function handleCreateCookbook(title: string) {
     setCreateError(null);
@@ -69,7 +83,54 @@ export function RecipesBrowser({
       {view === "cookbooks" ? (
         <CookbookList cookbooks={cookbooks} />
       ) : (
-        <RecipeList recipes={recipes} />
+        <>
+          {tags.length > 0 && (
+            <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex w-max gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTagId(null)}
+                  aria-pressed={selectedTagId === null}
+                  className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors ${
+                    selectedTagId === null
+                      ? "border-accent bg-accent text-accent-fg"
+                      : "border-line bg-surface text-muted"
+                  }`}
+                >
+                  All ({recipes.length})
+                </button>
+                {tags.map((tag) => {
+                  const active = selectedTagId === tag.id;
+                  const count = recipes.filter((r) => r.tagIds.includes(tag.id)).length;
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => setSelectedTagId(tag.id)}
+                      aria-pressed={active}
+                      className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors ${
+                        active
+                          ? "border-accent bg-accent text-accent-fg"
+                          : "border-line bg-surface text-muted"
+                      }`}
+                    >
+                      {tag.name} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <RecipeList
+            recipes={visibleRecipes}
+            emptyTitle={selectedTagId ? "No matches" : undefined}
+            emptyHint={
+              selectedTagId
+                ? `No recipes tagged "${tags.find((t) => t.id === selectedTagId)?.name}".`
+                : undefined
+            }
+          />
+        </>
       )}
 
       <FloatingAddButton onClick={() => setAddSheetOpen(true)} />
