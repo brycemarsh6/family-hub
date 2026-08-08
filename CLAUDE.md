@@ -1798,15 +1798,81 @@ API not already used in this repo.
   recipe 11, cookbook 0, tag 4, 1 real meal plan with its 3 real
   entries) confirmed by direct read. `tsc`, `eslint`, `npm test`, and
   `npm run build` all clean.
-- **C6. Nutrition.** *(Sonnet; Opus if the estimates come back
-  unreliable and the prompt needs real iteration.)* The confirm-
-  servings sheet, the Haiku call (structured outputs, `server-only`
-  lib + guarded action split, same as every other AI feature), the
-  stored fields + fingerprint staleness check, the calorie-split
-  donut, `~` marking, inline failure + Try again. Verify: compute on
-  a real recipe, edit an ingredient, confirm the stale notice appears
-  and recompute clears it; break the API key via `.env.local` (the
-  M4 trick) and confirm the page degrades gracefully.
+- **C6. Nutrition.** ✅ **Done.** `NutritionSection.tsx` replaces
+  `NutritionPlaceholder.tsx`; `ComingSoonSheet.tsx` was deleted outright
+  since nothing points at it anymore (Meal Plan and Groceries were its
+  only other users, and C5 already wired those up).
+  **Schema**: five new nullable columns on `Recipe` —
+  `nutritionCalories`/`ProteinG`/`CarbsG`/`FatG` (all whole `Int`s,
+  never floats — an AI estimate doesn't carry decimal precision, and
+  12.4g reads as more precise than it is), `nutritionServings` (the
+  hard integer the stepper used, kept entirely separate from the free-
+  text `servings` field so a nutrition calculation can never overwrite
+  "6-8" with a number), and `nutritionFingerprint`. Purely additive —
+  reviewed as raw SQL (six bare `ADD COLUMN`s) before applying, same
+  as every prior migration.
+  **The staleness design**: `src/lib/nutritionFingerprint.ts` hashes
+  `ingredients` with `sha256` — a plain function, not `server-only`,
+  because it has to run in both the guarded Server Action that stores
+  it and the Server Component that reads a fresh one back on every
+  render to compare. A mismatch means the ingredient list changed
+  since the estimate was computed, and the page shows "computed for an
+  older ingredient list" with a Recompute link rather than silently
+  mislabeling a different recipe's macros as this one's.
+  **The Claude call**: `src/lib/nutritionEstimate.ts` — Haiku,
+  structured outputs, the same `server-only` pure-call split as
+  `ingredientParse.ts`/`voice/parse.ts`/`mealSuggest.ts`. Asks for
+  per-serving values given the title, ingredients, and the servings
+  count from the sheet; `computeNutrition` in `recipes.ts` is the
+  guarded Server Action that calls it, computes the fingerprint, and
+  writes all five fields in one update so the stored numbers can never
+  describe a different servings count than the fingerprint paired with
+  them.
+  **The confirm-servings sheet** guesses a starting stepper value: the
+  last servings number actually used, else the first integer found in
+  the recipe's own free-text `servings` ("8-10" → 8), else a plain 4 —
+  and never writes back to `servings` itself. Failure is inline
+  ("Couldn't reach the AI just now") with a "Try again" button that
+  keeps the chosen servings count; the sheet stays open and the rest
+  of the page is completely unaffected by a failed call.
+  **The donut** splits by *calories*, not grams — fat 9 cal/g, protein
+  and carbs 4 cal/g each — computed from the macro grams via
+  `conic-gradient`, no chart library. Its three colors (orange/blue/
+  purple) are a fixed data-category palette, deliberately not the
+  app's job-based CSS tokens (`--danger`/`--warn`/`--accent`), since
+  those name UI roles and don't map onto three arbitrary macro
+  categories. Every number — the calorie total and each macro — is
+  `~`-marked, per the Expiring page's rule that a guess never
+  masquerades as a fact.
+  **Verified end to end against a real recipe** (a scratch "ZZZ Test"
+  recipe, deleted afterward): the stepper correctly guessed 8 from
+  "8-10"; a real Haiku call returned ~312 cal, Fat ~10g / Protein ~5g /
+  Carbs ~48g, and the donut's rendered proportions visually matched
+  the calorie-weighted split (carbs dominant, thin protein sliver) —
+  confirmed by screenshot, not assumed from the numbers. Editing the
+  recipe's `ingredients` directly (adding chocolate chips) and
+  reloading showed the stale notice exactly as designed, with
+  "Recalculate" correctly replaced by "Recompute" inside it; tapping
+  Recompute re-guessed the stepper from the *stored* servings (8, not
+  re-derived from "8-10"), and the new estimate (~408 cal, Fat ~18g)
+  correctly reflected the added ingredient and cleared the stale
+  notice, restoring "Recalculate". **The failure path was tested for
+  real**, the same M4 trick this project has used before: an invalid
+  key was injected via a temporary `.env.local` (Next.js gives it
+  precedence over `.env`, so the real key was never touched or put at
+  risk) with a full dev-server restart to pick it up. The sheet showed
+  "Couldn't reach the AI just now. Try again in a moment." — and
+  closing the sheet afterward showed the previously-computed ~408 cal
+  nutrition completely untouched, proving a failed recompute can't
+  corrupt or lose the last good estimate. `.env.local` was deleted and
+  the server restarted on the real key afterward. Test recipe removed;
+  final counts (pantry 477, grocery 8, recipe 11, cookbook 0, tag 4,
+  meal plan 1) confirmed back to exact baseline. `tsc`, `eslint`,
+  `npm test`, and `npm run build` all clean (a transient
+  `.next/types/* 2.ts` duplicate-identifier error appeared once in a
+  combined command but did not fail the actual `tsc` exit code and did
+  not reproduce on an isolated re-run with `.next/types` cleared — the
+  same build-artifact race already documented under C4).
 - **C7. Photos.** *(Opus — first stored-images integration in the
   stack, and it starts with a walkthrough.)* **Gated on Bryce
   creating/approving Vercel Blob** (account + billing, walkthrough

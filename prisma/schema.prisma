@@ -181,6 +181,31 @@ model Recipe {
   cookbooks       CookbookRecipe[]
   tags            RecipeTag[]
 
+  /// Nutrition is estimated once, stored, and marked honest — never
+  /// recomputed silently. All four are null until "Calculate nutrition" is
+  /// first run, and all four are set together (one Claude call, one write).
+  /// Whole numbers on purpose: an AI estimate doesn't have decimal
+  /// precision, and 12.4g reads as more precise than it is.
+  nutritionCalories Int?
+  nutritionProteinG Int?
+  nutritionCarbsG   Int?
+  nutritionFatG     Int?
+
+  /// The servings number the estimate was computed per — a hard integer
+  /// from a stepper, deliberately never `servings` itself (which stays
+  /// free text like "6-8" and must never be overwritten by a nutrition
+  /// calculation).
+  nutritionServings Int?
+
+  /// A fingerprint of `ingredients` at the moment nutrition was computed.
+  /// Compared against a fresh fingerprint of the current `ingredients` on
+  /// every render (src/lib/nutritionFingerprint.ts) — a mismatch means the
+  /// ingredient list changed since, and the stored numbers describe a
+  /// recipe that no longer exists. Shown as a "computed for an older
+  /// ingredient list" notice rather than silently mislabeling a different
+  /// recipe as this one's nutrition.
+  nutritionFingerprint String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

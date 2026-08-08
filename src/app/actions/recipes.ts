@@ -18,6 +18,8 @@ import {
   type PhotoInput,
 } from "@/lib/recipeExtract";
 import { importRecipeFromUrl } from "@/lib/recipeUrlImport";
+import { estimateNutrition } from "@/lib/nutritionEstimate";
+import { fingerprintIngredients } from "@/lib/nutritionFingerprint";
 
 function refreshRecipeViews() {
   revalidatePath("/kitchen/cooking/recipes");
@@ -330,4 +332,68 @@ export async function markRecipeCooked(recipeId: string): Promise<MarkCookedResu
   });
   revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
   return { lastCookedAt: recipe.lastCookedAt ?? undefined };
+}
+
+export type NutritionResult = {
+  nutrition?: {
+    calories: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    servings: number;
+  };
+  error?: string;
+};
+
+/**
+ * Compute (or recompute) a nutrition estimate for one recipe, per serving.
+ *
+ * `servings` is a hard integer from the confirm sheet's stepper — it is
+ * stored on `nutritionServings`, never written back onto `Recipe.servings`,
+ * which stays free text ("6-8") on purpose. All four nutrition fields plus
+ * the fingerprint are written together in one update, so the stored numbers
+ * can never describe a different servings count than the fingerprint they're
+ * paired with.
+ */
+export async function computeNutrition(
+  recipeId: string,
+  servings: number,
+): Promise<NutritionResult> {
+  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+
+  if (!Number.isInteger(servings) || servings < 1 || servings > 50) {
+    return { error: "Servings should be a number from 1 to 50." };
+  }
+
+  const recipe = await db.recipe.findUnique({
+    where: { id: recipeId },
+    select: { title: true, ingredients: true },
+  });
+  if (!recipe) return { error: "That recipe no longer exists." };
+
+  let estimate;
+  try {
+    estimate = await estimateNutrition(recipe.title, recipe.ingredients, servings);
+  } catch (error) {
+    // Same "an AI outage isn't a data problem" pattern as
+    // classifyRecipeIngredients / suggestMealsForSlot — the recipe itself
+    // is fine, only the estimate call failed.
+    console.error("computeNutrition failed:", error);
+    return { error: "Couldn't reach the AI just now. Try again in a moment." };
+  }
+
+  await db.recipe.update({
+    where: { id: recipeId },
+    data: {
+      nutritionCalories: estimate.calories,
+      nutritionProteinG: estimate.proteinG,
+      nutritionCarbsG: estimate.carbsG,
+      nutritionFatG: estimate.fatG,
+      nutritionServings: servings,
+      nutritionFingerprint: fingerprintIngredients(recipe.ingredients),
+    },
+  });
+
+  revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
+  return { nutrition: { ...estimate, servings } };
 }

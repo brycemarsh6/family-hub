@@ -8,8 +8,9 @@ import { RecipeCookbooksSection } from "@/components/RecipeCookbooksSection";
 import { RecipeStars } from "@/components/RecipeStars";
 import { RecipeCookedButton } from "@/components/RecipeCookedButton";
 import { RecipeBody } from "@/components/RecipeBody";
-import { NutritionPlaceholder } from "@/components/NutritionPlaceholder";
+import { NutritionSection } from "@/components/NutritionSection";
 import { RecipeTagsSection } from "@/components/RecipeTagsSection";
+import { fingerprintIngredients } from "@/lib/nutritionFingerprint";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +96,29 @@ export default async function RecipeDetailPage({
 
       <RecipeBody recipe={recipe} />
 
-      <NutritionPlaceholder />
+      <NutritionSection
+        recipeId={recipe.id}
+        servingsText={recipe.servings}
+        initial={
+          recipe.nutritionCalories !== null &&
+          recipe.nutritionProteinG !== null &&
+          recipe.nutritionCarbsG !== null &&
+          recipe.nutritionFatG !== null &&
+          recipe.nutritionServings !== null
+            ? {
+                calories: recipe.nutritionCalories,
+                proteinG: recipe.nutritionProteinG,
+                carbsG: recipe.nutritionCarbsG,
+                fatG: recipe.nutritionFatG,
+                servings: recipe.nutritionServings,
+              }
+            : null
+        }
+        stale={
+          recipe.nutritionFingerprint !== null &&
+          recipe.nutritionFingerprint !== fingerprintIngredients(recipe.ingredients)
+        }
+      />
 
       <RecipeTagsSection recipeId={recipe.id} initialTags={recipeTags} allTags={allTags} />
     </div>
