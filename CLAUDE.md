@@ -103,21 +103,36 @@ feature behind it yet.
   itself was extracted into a shared `src/components/BranchTile.tsx` (with
   a `wide` prop so an odd tile can span both columns) and Kitchen's
   page now imports it too — one tile definition, per the one-source-of-
-  truth rule. **Two tiles: Recipes (fully built — see the Recipes plan
-  below) and Meal Plan** (a "Coming soon" placeholder with an ACTIVE plan
-  below). There were briefly three tiles — Recipes / Menu / Meal
+  truth rule. **Two tiles, both fully built: Recipes and Meal Plan** —
+  see the Recipes, Recipes v2, and Meal Plan plans below. There were
+  briefly three tiles — Recipes / Menu / Meal
   planning — but Menu ("what's for dinner") and Meal planning turned out
   to be the same feature described twice, and they were merged into one
   "Meal Plan" tile before Menu was ever built.
   - **Recipes** (`/kitchen/cooking/recipes`) — the household's recipe
-    box. Browse A–Z with a slide-to-jump rail (like the iPhone contacts
-    list), or search by title *or* ingredient. Four ways to add one, all
+    box. Opens on **Cookbooks** (named lists a recipe can be filed into,
+    each shareable by revocable link), with an **All Recipes** view that
+    browses A–Z via a slide-to-jump rail (like the iPhone contacts list)
+    and searches by title *or* ingredient. Four ways to add one, all
     landing on the same reviewable form so nothing is ever saved
     unreviewed: type it in, paste text off any blog, photograph a
     cookbook page / handwritten card / screenshot, or paste a link
     (recipe blog, TikTok, or Pinterest pin). Each recipe can be copied
     as plain text for a group chat, or shared outside the household via
     an opt-in, revocable, unguessable link.
+    A recipe carries **tags, a 1–5 star rating, and a last-cooked
+    stamp**, all filterable (plus total time and sort) from one filter
+    bar; it can push itself **into the meal plan** or push its
+    **ingredients onto the shopping list** (inventory-aware, reviewed
+    before anything is written); and it can estimate **per-serving
+    nutrition**, marked `~` as an estimate and flagged stale if the
+    ingredients change afterward. There are no recipe photos and won't
+    be — see C7 in the Recipes v2 plan.
+  - **Meal Plan** (`/kitchen/cooking/meal-plan`) — the week at a
+    glance, four slots a day, with past weeks collapsed below. Fill a
+    slot with a preset (Leftovers / Takeout / Eating out), free text, a
+    recipe from the box, or an **AI suggestion grounded in the real
+    inventory** that prioritizes food about to expire.
 
 **The category vocabulary is 29 groups, not 9.** `src/lib/constants.ts` used
 to hold a flat list (Produce, Dairy, Frozen, Pantry...) that couldn't tell
@@ -1254,7 +1269,14 @@ ingredients to the shopping list" (genuinely wanted someday, needs
 quantity parsing), cook-mode screen wake lock, recipe voice verbs, and
 bulk-importing an entire Pinterest board.
 
-## Recipes v2 plan — ACTIVE
+## Recipes v2 plan — ✅ DONE (C7 dropped)
+
+**Seven of eight phases shipped, verified, and pushed. C7 (Photos) was
+dropped outright, not deferred** — Bryce's call, 2026-08-08: it needs
+Vercel Blob, which is a paid service, and he didn't want to take on a
+billing commitment for it. Everything below is kept as a record of the
+decisions, same as the other finished plans; the C7 bullet stays only so
+a future session knows what was skipped and why.
 
 Cookbooks, tags, ratings, cooked history, nutrition, photos, cross-branch
 buttons, and a redesigned recipe page. Designed 2026-08-07 from a
@@ -1873,19 +1895,26 @@ API not already used in this repo.
   combined command but did not fail the actual `tsc` exit code and did
   not reproduce on an isolated re-run with `.next/types` cleared — the
   same build-artifact race already documented under C4).
-- **C7. Photos.** *(Opus — first stored-images integration in the
-  stack, and it starts with a walkthrough.)* **Gated on Bryce
-  creating/approving Vercel Blob** (account + billing, walkthrough
-  style like Neon/Vercel). Then: hero photo upload (camera/library →
-  client downscale → Blob, upload guarded by session), the camera
-  button on the detail page, placeholder art when absent, and import
-  photos persisted as the recipe's viewable *source*. Deleting a
-  recipe must delete its blobs — Blob storage is billed and orphaned
-  images are invisible. Verify upload/replace/delete round-trips and
-  that a deleted recipe leaves no blob behind.
+- **C7. Photos.** ❌ **Dropped, not deferred — Bryce's explicit call
+  (2026-08-08): "lets skip C7 all together. if I have to potentially
+  pay."** This was the one phase gated on **Vercel Blob**, which is a
+  paid service, and the household isn't taking on that billing
+  commitment for recipe photos. Nothing was built and nothing is
+  half-built — no schema columns, no upload route, no Blob dependency
+  in `package.json`. **Don't treat this as a queued next step.**
+  What it *would* have been, if this is ever reconsidered: hero photo
+  upload (camera/library → client downscale reusing R3b's canvas
+  pipeline → Blob, guarded by session), the camera button on the
+  detail page, placeholder art when absent, and import photos
+  persisted as the recipe's viewable *source*. The hard part is
+  cleanup — deleting a recipe must delete its blobs, since Blob
+  storage is billed and orphaned images are invisible.
+  **What shipped instead:** `RecipeHero.tsx` (C3) renders a decorative
+  gradient + `ChefHat` mark in the hero slot. That is the permanent
+  treatment now, not a placeholder waiting on this phase — the recipe
+  page is complete as it stands.
 - **C8. Cookbook viewer link.** ✅ **Done — which completes the Recipes
-  v2 plan except C7 (Photos), which stays parked on Bryce's Vercel Blob
-  decision.** **No migration**: `Cookbook.shareToken` (`@unique`) has
+  v2 plan, C7 (Photos) having been dropped rather than built.** **No migration**: `Cookbook.shareToken` (`@unique`) has
   existed since C1, added in anticipation of exactly this — confirmed
   present in the live database, along with its unique index, before
   any code was written.
@@ -2287,16 +2316,20 @@ nothing here is scheduled:
 
 - **Family profiles** — a page per family member.
 - **Chore charts** — for the kids.
-- **Recipes** — ✅ done, see the plan above.
-- **Meal Plan** — now the ACTIVE plan above (absorbed the old "Menu"
-  tile — they were one feature described twice).
+- **Recipes** — ✅ done, twice over: the v1 plan (browse, search, four
+  import paths, sharing) and the v2 plan (cookbooks, tags, ratings,
+  filters, nutrition, cross-branch buttons) are both closed.
+- **Meal Plan** — ✅ done, M1–M4 (absorbed the old "Menu" tile — they
+  were one feature described twice).
 - **To-dos**
 - **Habit trackers**
 - **Photo gallery**
 - **Calendar** — shared family calendar. Planned last on purpose: it's
   expected to be the hardest piece.
-- **Voice input** — now the ACTIVE plan above (grew from "wall tablet"
-  nice-to-have into the Alexa/Siri integration).
+- **Voice input** — partly done: V1 (the `/api/voice` backend) and V2
+  (the Siri shortcut) are live and proven; **V3, the Alexa skill, is
+  the one piece still outstanding.** See the Voice integration plan
+  above.
 - **Barcode scanning** — for fast grocery/pantry entry.
 
 ## Where I left off
@@ -3541,12 +3574,15 @@ hidden and no error.
 No code changed this session — it was a design conversation. Bryce
 walked through a commercial recipe app (RecMe) screenshot by screenshot,
 marking feature by feature what to adopt, adapt, or skip, and the result
-is the **Recipes v2 plan — ACTIVE** section above (after the v1 Recipes
+is the **Recipes v2 plan** section above (after the v1 Recipes
 plan): cookbooks, tags, ratings, cooked history, nutrition, the recipe
 detail redesign, the Meal Plan / Add-to-groceries buttons, photos (gated
 on a Vercel Blob decision), and cookbook viewer links — eight phases,
 C1–C8, each carrying a model recommendation (Sonnet vs. Opus) at Bryce's
 request. The plan is the next build target; nothing in it has started.
+*(Written before implementation. Seven of the eight phases shipped over
+the following sessions; photos — C7 — was later dropped rather than
+built, since Vercel Blob is paid.)*
 
 ---
 
@@ -3567,6 +3603,83 @@ plan's two deliberate single-tap-delete exceptions), and `TitleSheet`
 (name-this-thing, used for both create and rename). None of them are
 cookbook-specific by construction.
 
-Genuinely open: C2 (Tags) is next in the plan's own order. `tsc`,
-`eslint`, and `npm run build` are all clean; pantry/grocery/recipe
-counts unchanged by this phase, confirmed by direct database read.
+*(C2 was indeed next, and C2–C8 all shipped across the following
+sessions — see the wrap-up immediately below.)*
+
+---
+
+## Where things stand (end of the 2026-08-08 sessions) — READ THIS FIRST
+
+The single most current summary. Every "obvious next steps" list earlier
+in this file is an older snapshot kept for narrative; this one supersedes
+all of them.
+
+**The Recipes v2 plan is closed. C1–C6 and C8 all shipped, are committed,
+and are pushed to `origin/main` — so they're live on Vercel. C7 (Photos)
+was dropped, not deferred** (see its bullet in the plan for the full
+reasoning: it required Vercel Blob, a paid service, and Bryce chose not
+to take on the billing).
+
+**A push-state lesson worth keeping, because this is the third time this
+project has hit it.** All seven Recipes v2 commits sat **unpushed** at
+the end of the implementation sessions — local `main` was 7 commits ahead
+of `origin/main`, so the family's live app was still serving the pre-C1
+recipe pages while the local repo looked finished. Found by running
+`git log origin/main..HEAD`, not by re-reading source. The two prior
+instances were the forgotten voice push (V1 "failed" its production
+adversarial check purely because Vercel was serving an old build) and
+M1's `meal-plan/page.tsx` committed as a pure rename with no content.
+**The standing rule: after any session that claims a feature is done,
+check `git log origin/main..HEAD` before believing it's live.** "It works
+locally" and "the family has it" are different claims.
+
+**What the family actually has now, beyond v1 recipes:** cookbooks
+(named lists with viewer share links), tags (including the four
+meal-slot tags that ground the meal-plan AI), star ratings, cooked
+history, a filter bar (search / tags / total time / cooked / rating /
+sort), one-tap "add this recipe to the meal plan", "add ingredients to
+groceries" with an inventory-aware review sheet, and AI nutrition
+estimates with staleness detection.
+
+**Verified clean at push time:** `npx tsc --noEmit`, `npx eslint .`, and
+`npm run build` all pass with zero output. `npm test` (the
+`recipeTimeFilter` / `recipeFilters` unit tests C4 added) was clean at
+its own commit.
+
+### Genuinely open, nothing scheduled
+
+- **V3, the Alexa skill** — by a wide margin the oldest outstanding
+  item, queued since before the Expiring branch. Blocked only on Bryce
+  creating a **free** Amazon developer account (walkthrough style, like
+  Neon and Vercel). The `/api/voice` endpoint it needs already exists
+  and is proven in production — Siri uses it daily. Both can run at
+  once; they're thin clients over the same endpoint.
+- **A real handwritten recipe card through photo import** — the one
+  R3b source type never tested against genuine input. If Haiku
+  struggles, the plan's own fallback is bumping *only* that call to
+  Sonnet.
+- **A new branch.** Calendar, Chores, Lists, and Family profiles are
+  all genuinely unstarted, and **four nav-bar destinations are still
+  placeholder pages** (Calendar, Chores, Lists, plus the dashboard
+  beyond its Kitchen card). See "Planned, not yet built" above for the
+  rough order Bryce laid out — Calendar deliberately last, as the
+  hardest.
+- **Smaller, long-standing:** Inventory's collapse state doesn't
+  persist across reloads; Shopping never got Inventory's collapsible
+  grouping; nothing remembers a *specific* item's usual store (only one
+  global "last store picked").
+- **The structured-ingredients tripwire is at 3 of 4.** Recipes v2
+  worked around the absence of structured ingredients three times
+  (add-to-groceries, nutrition, and deferred servings scaling). Per the
+  plan's own rule: if a fourth feature needs it, stop working around it
+  and build it.
+
+### Two operational facts a fresh session must not forget
+
+1. **The dev database IS the live family database.** Never run
+   `npm run db:seed` or `npm run db:reset` — they would destroy the
+   household's real 477-item inventory. Test data comes only from the
+   scoped, fingerprint-matched `db:seed-*` / `db:clean-*` scripts.
+2. **Local dev and production use different `FAMILY_PASSWORD` values on
+   purpose.** The `.env` one is a deliberate throwaway; the real one
+   lives only in Vercel's env vars.
