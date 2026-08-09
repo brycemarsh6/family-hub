@@ -20,6 +20,7 @@ import {
 import { importRecipeFromUrl } from "@/lib/recipeUrlImport";
 import { estimateNutrition } from "@/lib/nutritionEstimate";
 import { fingerprintIngredients } from "@/lib/nutritionFingerprint";
+import { isMissingRowError } from "@/lib/prismaErrors";
 
 function refreshRecipeViews() {
   revalidatePath("/kitchen/cooking/recipes");
@@ -310,7 +311,14 @@ export async function setRecipeRating(
     return { error: "Ratings run 1 to 5." };
   }
 
-  await db.recipe.update({ where: { id: recipeId }, data: { rating } });
+  try {
+    await db.recipe.update({ where: { id: recipeId }, data: { rating } });
+  } catch (error) {
+    // Deleted on another phone while this one still had it open.
+    if (isMissingRowError(error)) return { error: "That recipe no longer exists." };
+    throw error;
+  }
+
   revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
   return { rating };
 }
@@ -325,11 +333,19 @@ export type MarkCookedResult = { lastCookedAt?: Date; error?: string };
 export async function markRecipeCooked(recipeId: string): Promise<MarkCookedResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  const recipe = await db.recipe.update({
-    where: { id: recipeId },
-    data: { lastCookedAt: new Date() },
-    select: { lastCookedAt: true },
-  });
+  let recipe;
+  try {
+    recipe = await db.recipe.update({
+      where: { id: recipeId },
+      data: { lastCookedAt: new Date() },
+      select: { lastCookedAt: true },
+    });
+  } catch (error) {
+    // Deleted on another phone while this one still had it open.
+    if (isMissingRowError(error)) return { error: "That recipe no longer exists." };
+    throw error;
+  }
+
   revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
   return { lastCookedAt: recipe.lastCookedAt ?? undefined };
 }

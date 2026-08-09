@@ -108,8 +108,17 @@ export function TagSelectSheet({
 
   function handleDeleteConfirm() {
     if (!activeTag) return;
+    setError(null);
     startTransition(async () => {
-      await deleteTag(activeTag.id);
+      const result = await deleteTag(activeTag.id);
+      // Checked rather than assumed: dropping the tag from the list on a
+      // failed delete would show it gone while it's still in the database,
+      // and this is the destructive path — the one place a silent failure
+      // is least acceptable.
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
       onDeleted(activeTag.id);
       setView("main");
       setActiveTag(null);
@@ -167,7 +176,10 @@ export function TagSelectSheet({
             </button>
             <button
               type="button"
-              onClick={() => setView("delete")}
+              onClick={() => {
+                setError(null);
+                setView("delete");
+              }}
               className="flex min-h-14 items-center gap-3 rounded-xl px-3 text-left text-base font-medium text-danger transition-colors active:bg-surface-2"
             >
               <Trash2 aria-hidden="true" size={18} />
@@ -216,6 +228,14 @@ export function TagSelectSheet({
                     activeTag.recipeCount === 1 ? "recipe" : "recipes"
                   }.`}
             </p>
+            {error && (
+              <p
+                role="alert"
+                className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
+              >
+                {error}
+              </p>
+            )}
             <button
               type="button"
               onClick={handleDeleteConfirm}

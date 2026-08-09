@@ -3683,3 +3683,76 @@ its own commit.
 2. **Local dev and production use different `FAMILY_PASSWORD` values on
    purpose.** The `.env` one is a deliberate throwaway; the real one
    lives only in Vercel's env vars.
+
+---
+
+## Session note, 2026-08-08: a bug review of C2–C8, and four fixes
+
+After Recipes v2 was pushed, the whole C2–C8 range (`851fed0..38c7f38`)
+got a dedicated review pass. The security-shaped things all held up when
+checked rather than assumed: all 12 new Server Actions really do open
+with `getVerifiedSession()`, both public share pages use explicit
+`select` allowlists, the proxy prefixes are the narrow ones, and
+`addIngredientsToGroceries` re-validates client-supplied `pantryItemId`
+against the database instead of trusting it. Four things were worth
+fixing, and they're now fixed.
+
+**1. `applyRecipeFilters` had no committed tests — and this file claimed
+it did.** The C4 entry above says the filter composition was "proven
+independently at the pure-function level (8 additional `node:test`
+cases)". Those cases were real when they ran, but the file was never
+committed: `git log --all` finds no `recipeFilters.test.ts` in history,
+and `npm test` was running only the 17 time-parser tests. So the piece
+of C4 doing the actual work — tags/time/cooked/rating narrowing the same
+list as an AND, search overriding sort, three sort modes — had zero
+regression protection while the plan record said otherwise.
+`src/lib/recipeFilters.test.ts` now exists with **16** tests built on the
+same A/B/C/D fixture documented in C4, including the plan's own worked
+example (Dinner + Under 30 + 4★ → exactly one recipe). `npm test` is 33
+passing.
+**This is the fourth time this project has been bitten by the gap
+between "it worked" and "it's committed"** — after the forgotten voice
+push, M1's `meal-plan/page.tsx` committed as a content-free rename, and
+the seven unpushed Recipes v2 commits. The other three were caught by
+checking git rather than re-reading source; this one only surfaced
+because a review went looking for the test file by name. Worth
+remembering that a verification claim in this file is not evidence the
+verification still exists.
+
+**2. Four actions threw instead of returning the house `{ error }` shape
+when their row was already gone.** `renameTag`, `deleteTag`,
+`setRecipeRating`, and `markRecipeCooked` called `update`/`delete`
+straight on a client-supplied id, so a row deleted on the other phone
+produced an unhandled Server Action error while the optimistic UI kept
+the stale value on screen. Two phones share one account here, so this is
+reachable. New `src/lib/prismaErrors.ts` holds `isMissingRowError`
+(P2025), and all four now handle it.
+**Deliberately a catch, not a `findUnique`-then-update:** reading first
+costs a second round trip (which the performance section above cares
+about) *and* still leaves a window where the row vanishes between the
+two queries — letting the write fail is both cheaper and actually
+race-free. `deleteTag` treats "already gone" as **success**, not an
+error, since that's the outcome the caller wanted; the other three
+return a real message.
+**P2025 was verified, not assumed:** a throwaway script ran all four
+operations against the live database using an id that cannot exist, so
+every `WHERE` matched zero rows (the P2025 throw is itself the proof
+nothing was touched). All four returned `code=P2025` with
+`isMissingRowError` true. Counts unchanged; script deleted.
+
+**3. `findOrCreateTag`'s comment overclaimed.** It said the server-side
+check meant two people typing different casings "at nearly the same
+moment still land on one row." It's a read-then-write with no
+transaction and the database unique is deliberately case-sensitive, so a
+true race can still create both. The comment now states the real,
+weaker guarantee and says why the fix isn't worth it at household scale.
+The code is unchanged — this was a docs correctness fix.
+
+**4. `TagSelectSheet`'s delete ignored the action's result.** It called
+`deleteTag` and ran `onDeleted` unconditionally, so a failure would drop
+the tag from the UI while it survived in the database — on the
+destructive path, which is the worst place for a silent failure. It now
+checks the result, and the delete view gained an error block (it had
+none, so a `setError` there would have rendered nothing).
+
+`tsc`, `eslint`, `npm test` (33), and `npm run build` all clean.
