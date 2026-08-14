@@ -54,6 +54,18 @@ structural changes against it.
   multiple files** — `src/lib/voice/` (`parse.ts`, `apply.ts`) is the
   precedent. `src/lib/` isn't required to stay flat; it's required to stay
   pure and dependency-direction-correct regardless of depth.
+- **Revalidation is per-action-file, private, and duplicated on purpose.**
+  Route revalidation (`revalidatePath`) stays inside the `"use server"`
+  action file whose writes dirty those routes — usually as a private
+  `refresh*Views()` helper, or as inline calls when the paths vary per
+  action (`tags.ts`). Either form is fine; what's fixed is where it
+  lives. Several files deliberately carry identical path lists: these
+  are per-file view declarations, not shared vocabulary, and the
+  duplication is the convention rather than a one-source-of-truth
+  violation. Two hard limits: a `"use server"` file must never export a
+  non-action helper (every export there is a public POST endpoint), and
+  route-path revalidation never moves into `src/lib/` (lib holding app
+  route strings is a backward dependency in spirit).
 
 ## One source of truth
 
@@ -68,9 +80,9 @@ Adding a second definition of any of these is a BLOCKER:
 
 ## File-size caps
 
-- **Soft cap: 350 lines** — a NOTE and a split candidate. (Current largest
-  hand-written file: `actions/groceries.ts` at ~620 — already in the
-  watch zone.)
+- **Soft cap: 350 lines** — a NOTE and a split candidate. (actions/groceries.ts
+  was split three ways at ~624 before hitting the hard cap; current largest
+  hand-written files sit in the ~350–420 range.)
 - **Hard cap: 650 lines** — crossing it needs a written justification in the
   file header, or it's a BLOCKER. `src/generated/` is exempt.
 - Tests are colocated in `src/lib` as `*.test.ts`, run by `npm test`

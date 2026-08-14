@@ -7,7 +7,7 @@ import {
   commitPutAway,
   type PutAwayClassification,
   type PutAwayDecision,
-} from "@/app/actions/groceries";
+} from "@/app/actions/groceriesPutAway";
 
 /**
  * Replaces a plain `<form action={putAwayCheckedItems}>` because put-away

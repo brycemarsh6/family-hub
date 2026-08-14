@@ -7,7 +7,7 @@ import { CATEGORIES, LOCATIONS } from "@/lib/constants";
 import type {
   PutAwayDecision,
   PutAwayNewItem,
-} from "@/app/actions/groceries";
+} from "@/app/actions/groceriesPutAway";
 
 /**
  * Steps through the checked items that don't already exist in the

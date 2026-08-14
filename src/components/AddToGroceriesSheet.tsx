@@ -6,7 +6,7 @@ import {
   classifyRecipeIngredients,
   addIngredientsToGroceries,
   type RecipeIngredientSuggestion,
-} from "@/app/actions/groceries";
+} from "@/app/actions/groceriesRecipes";
 
 /**
  * "Add to groceries": read the recipe's ingredients, work out what the house
