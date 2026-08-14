@@ -25,6 +25,17 @@ It'll eventually run on phones, laptops, and a tablet mounted on the kitchen
 wall, so everything is built touch-first: big tap targets, no fiddly typing on
 a touchscreen, and quantities changed with +/− buttons instead of a keyboard.
 
+## The Avengers Initiative
+
+This project is worked through the **Avengers**, Bryce's user-level agent
+team (built 2026-08-14; lives at `~/.claude/skills/avengers/` and
+`~/.claude/agents/` — Banner/Stark/Vision/Strange/Captain, orchestrated by
+the session as Fury via the `/avengers` skill). This repo's constitutions
+are [DESIGN.md](DESIGN.md) (Strange's — the design rules, distilled from
+this file) and [STRUCTURE.md](STRUCTURE.md) (Captain's — layout, boundaries,
+and the danger register). Missions live in `.avengers/missions/`. For any
+non-trivial build, invoke `/avengers` and follow the doctrine.
+
 ## Who uses it
 
 **Live and in use.** Bryce shared the URL and password with his wife, she's
