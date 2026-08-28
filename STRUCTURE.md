@@ -17,6 +17,7 @@ structural changes against it.
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
 | `prisma/` | Schema, **additive-only** migrations, scoped seed/clean scripts | Blanket `deleteMany` seed scripts |
+| `alexa/` | Alexa skill configuration data (the interaction model), committed so the developer console and the repo can't silently drift. Hand-copied into Amazon's console; never imported by app code | Anything the app imports at build or runtime |
 
 ## Boundary rules
 
@@ -26,6 +27,12 @@ structural changes against it.
   first (`voice/parse.ts`, `mealSuggest.ts`, `recipeExtract.ts`,
   `ingredientParse.ts`, `nutritionEstimate.ts` all follow it). New calls
   follow the same split — auth lives next to the data, once, in the action.
+  For non-browser clients that cannot hold a session, the guard may instead
+  be a Route Handler in `src/app/api/` whose own auth check (a shared token,
+  or a platform signature plus skill ID) runs before the body is parsed and
+  before any lib call — `/api/voice` and `/api/alexa` are the two instances.
+  The invariant is the same either way: the pure `server-only` call carries
+  no auth, and exactly one guarded caller does.
 - **Dependency direction:** `lib` imports from nothing above it (never `app/`
   or `components/`); `components` may import `lib` and `actions`; `actions`
   import `lib` and the db. No cycles, ever.

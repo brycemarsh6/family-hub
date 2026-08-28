@@ -1,0 +1,58 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "marsh h. q.",
+      "intents": [
+        {
+          "name": "CommandIntent",
+          "slots": [
+            {
+              "name": "command",
+              "type": "CatchAllText"
+            }
+          ],
+          "samples": [
+            "{command}"
+          ]
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        }
+      ],
+      "types": [
+        {
+          "name": "CatchAllText",
+          "values": [
+            { "name": { "value": "i used two hot dogs" } },
+            { "name": { "value": "i used a can of dr pepper" } },
+            { "name": { "value": "we're out of paper towels" } },
+            { "name": { "value": "i bought more chicken" } },
+            { "name": { "value": "i just restocked the milk" } },
+            { "name": { "value": "we need diapers" } },
+            { "name": { "value": "add milk to the shopping list" } },
+            { "name": { "value": "put eggs on the shopping list" } },
+            { "name": { "value": "undo" } },
+            { "name": { "value": "never mind" } }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -25,7 +25,14 @@ import { decrypt } from "@/lib/session";
 // separate shared token, checked as the first thing it does (see
 // src/app/api/voice/route.ts). Without this entry the proxy would bounce every
 // voice request to /login and the endpoint could never run.
-const PUBLIC_ROUTES = ["/login", "/api/voice"];
+//
+// /api/alexa is the same story with a stronger gate: Amazon's own request
+// signature, timestamp, and skill-ID checks (src/app/api/alexa/route.ts) —
+// strictly stronger than /api/voice's shared token, since it can't be copied
+// out of a screenshot the way that token once nearly was. It doesn't check
+// x-voice-token at all; the signature is the real gate, run before anything
+// is parsed or written.
+const PUBLIC_ROUTES = ["/login", "/api/voice", "/api/alexa"];
 
 // Shared recipes and cookbooks are the cases that can't be an exact match:
 // the URL carries a per-item token (/share/recipe/<token>,
