@@ -3831,7 +3831,7 @@ no invocation name. The full plan (research citations, LWA account-
 linking security design with a user-id allowlist, tools mapping straight
 onto `applyActions` with NO Haiku call — Alexa+ does the NLU, so this
 client would be free per-command) lives at
-`~/.claude/plans/ancient-discovering-sutherland.md`. **Its B0
+`.avengers/plans/v3b-alexa-plus-addon.md`, in the repo. **Its B0
 feasibility gate failed: the Alexa+ Developer Console shows Bryce
 "coming soon" — add-on building is currently select-partners only.**
 Zero V3b code was written; that was the gate's whole job.
