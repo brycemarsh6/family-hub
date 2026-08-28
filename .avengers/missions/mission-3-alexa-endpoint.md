@@ -1,7 +1,7 @@
 # Mission: V3 Phase A — the Alexa endpoint, built and proven closed
 
 **Project:** family-hub (Marsh HQ)
-**Status:** DELIVERED (uncommitted — awaiting Bryce)
+**Status:** DELIVERED — committed, pushed, and live in production
 **Started:** 2026-08-28 · **Updated:** 2026-08-28
 
 Plan source: `/Users/brycemarsh/.claude/plans/ancient-discovering-sutherland.md`
@@ -404,15 +404,30 @@ and `apply.ts` genuinely carry it.
   `{pantry: 467, grocery: 8, voiceChange: 18}` identical before and after,
   read independently by both Stark and Vision; no Haiku call on any
   rejected path.
-- **Shipped check:** `git log origin/main..HEAD` → **empty. Nothing is
-  committed and nothing is pushed** — per the harness rule that commits
-  happen only when Bryce asks, and the danger register's "never push
-  without the user." Everything above is in the working tree.
-- **Commit-time caution:** `CLAUDE.md` and `.claude/settings.local.json`
-  carry unrelated pre-existing modifications (Fury's handwritten-recipe-
-  card doc edit; a local eslint permission entry). Both gates flagged
-  these as outside boundaries. **A `git add -A` would sweep them into a
-  Phase A commit** — stage deliberately instead.
+- **Shipped check:** Bryce approved the push. Two commits, staged
+  deliberately (never `git add -A` — both gates had flagged the
+  out-of-boundary files):
+  - `fee6aae` — Phase A: the route, helpers, tests, interaction model,
+    proxy entry, `.env.example`, `STRUCTURE.md` amendments, mission file.
+    All 10 files carry real content (checked `git log --stat` — the M1
+    content-free-rename lesson).
+  - `ecc9d72` — the unrelated `CLAUDE.md` doc fix, on its own.
+  - `.claude/settings.local.json` deliberately left uncommitted (local
+    tool-permission bookkeeping, not mission work).
+  - Staged diff scanned for secrets before pushing: only npm lockfile
+    integrity hashes matched. Clean.
+  - `git log origin/main..HEAD` after push → **empty. Fully pushed.**
+- **Deployment confirmed by behavior, not assumption** (the
+  three-times-bitten lesson): polled production until `/api/alexa`
+  flipped **307 → 400**. 307 was the old build's proxy bouncing an
+  unknown route to login; 400 is the new route rejecting an unsigned
+  request. That transition *is* the proof the build swapped in.
+- **Production verification:** all attacks 400 (no signature,
+  non-Amazon cert host, non-JSON body), `GET` 405, response body the
+  uniform terse `{"error":"unauthorised"}`. **Siri regression clean:**
+  `/api/voice` with no token returns **401, not 307** — proving the
+  proxy edit didn't bounce the route Bryce's wife depends on daily.
+  `/kitchen/inventory` still 307 signed-out.
 
 ## Deliberate leftovers
 
