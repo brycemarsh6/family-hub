@@ -447,6 +447,18 @@ and `apply.ts` genuinely carry it.
 - **CLAUDE.md's V3 entry is deliberately NOT updated** — V3 is not done,
   only Phase A is. It gets updated at the end of Phase C, per the plan.
 
+## Postscript (2026-08-28, after delivery)
+
+Phases B and C ran and hit an external wall: the household's account is
+on **Alexa+**, which doesn't run classic custom skills — the Echo
+refuses before ever calling the endpoint. The endpoint itself is proven
+correct (the simulator's unsigned-request quirk confirmed the signature
+gate rejecting exactly what it should) and stays live as a dormant,
+gated route. The successor plan, **V3b (Alexa+ MCP add-on)**, is
+designed and approved but blocked on Amazon's select-partners gate —
+see CLAUDE.md's 2026-08-28 session record for the full story and the
+unblock signal.
+
 ## Handoff for the next session
 
 Phase A is complete and gated. The next move is **Phase B**, which is
