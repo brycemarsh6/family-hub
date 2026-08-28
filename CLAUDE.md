@@ -3765,3 +3765,89 @@ checks the result, and the delete view gained an error block (it had
 none, so a `setError` there would have rendered nothing).
 
 `tsc`, `eslint`, `npm test` (33), and `npm run build` all clean.
+
+---
+
+## Session, 2026-08-28: V3 built and gated — then Alexa+ moved the goalposts
+
+The full story matters here, because the outcome is "blocked by Amazon,"
+not "failed" — and a future session should be able to pick it up without
+re-deriving any of it.
+
+**V3 Phase A shipped and is live.** `/api/alexa`
+(`src/app/api/alexa/route.ts`) is a classic-skill endpoint mirroring
+`/api/voice`'s gate-first shape with strictly stronger auth: Amazon's
+request signature + cert chain + timestamp (via `ask-sdk-express-adapter`'s
+standalone verifiers — Amazon-maintained, current Signature-256 scheme),
+then a skill-ID check (`isFromOurSkill`, `src/lib/voice/alexa.ts`) that
+rejects a validly-signed request meant for someone else's skill. Gate
+order: `request.text()` raw bytes (never `request.json()` first — the
+signature is computed over the exact bytes) → signature + timestamp →
+`JSON.parse` → `ALEXA_SKILL_ID` present (fail-closed 500 if unset) →
+`isFromOurSkill` → dispatch. `parseTranscript`/`applyActions` are
+unreachable until every gate passes. 19 new unit tests (suite 33 → 52,
+`package.json`'s test glob widened to reach `src/lib/voice/`);
+`alexa/interaction-model.json` committed (custom `CatchAllText` slot, NOT
+AMAZON.SearchQuery, which forbids a bare `{command}` sample and whose
+carrier phrases would strip the verb). Run as an Avengers mission
+(`.avengers/missions/mission-3-alexa-endpoint.md`): Vision and Captain
+both PASS on pass 1, zero blockers; STRUCTURE.md gained two amendments
+(an `alexa/` layout row; Route-Handler-as-guard wording). One
+Fury-caught subtlety worth keeping: `Object.fromEntries(headers)`
+lowercases header names, and the one bug the local curl suite
+structurally cannot catch is a case-sensitive header lookup rejecting
+*genuine* traffic — verified safe by reading the SDK source, which
+lowercases before comparing.
+
+**Phase B went fine until the positive control.** Bryce created the
+developer account (his own Prime account — correct, since dev-mode
+skills only reach Echoes on the owner's account), created the skill,
+pasted the model, configured the endpoint (`.vercel.app` = the wildcard-
+certificate dropdown option), set `ALEXA_SKILL_ID` in Vercel, enabled
+Development testing. Two findings along the way:
+
+1. **The dev-console simulator sends UNSIGNED requests** — a documented
+   Alexa quirk (alexa-skills-kit-sdk-for-nodejs issue #533). Our
+   endpoint's "Missing Certificate" 400s against the simulator were the
+   signature gate *working*. A temporary header-names diagnostic proved
+   Amazon was reaching the endpoint; it's been reverted.
+2. **The real blocker: the household is on Alexa+** (auto-upgraded via
+   Prime; the app shows "Alexa+ Preview"), and **Alexa+ does not run
+   classic custom skills** — the Echo says "launching marshee isn't
+   supported on this device" without ever calling the endpoint. The
+   family *likes* Alexa+ and won't opt out.
+
+**The app was meant to be renamed: the skill (and eventually the app) is
+"Marshee"**, Bryce's final name choice. The interaction model's
+invocation name is `marshee` (it passed Amazon's single-word validator —
+coined names are allowed). An in-app rename task (Marsh HQ → Marshee,
+user-facing strings only, per the Marsh Hub precedent) is queued but not
+done.
+
+**V3b was designed and approved: Marshee as an Alexa+ *add-on*** — the
+replacement system, where the developer runs an MCP server (Streamable
+HTTP) and Alexa+'s own AI reasoning calls its tools from natural speech,
+no invocation name. The full plan (research citations, LWA account-
+linking security design with a user-id allowlist, tools mapping straight
+onto `applyActions` with NO Haiku call — Alexa+ does the NLU, so this
+client would be free per-command) lives at
+`~/.claude/plans/ancient-discovering-sutherland.md`. **Its B0
+feasibility gate failed: the Alexa+ Developer Console shows Bryce
+"coming soon" — add-on building is currently select-partners only.**
+Zero V3b code was written; that was the gate's whole job.
+
+**Where voice stands now:**
+- **Siri (V2): the working voice path.** Nothing changed; the family
+  uses it daily.
+- **`/api/alexa`: live, gated, dormant.** Keep it — proven and harmless;
+  useful if a non-Alexa+ device appears or Amazon changes course. The
+  "Marshee" classic skill stays parked in the console; `ALEXA_SKILL_ID`
+  stays in Vercel.
+- **V3b: blocked externally, plan ready.** The unblock signal: the
+  console's "coming soon" tile becoming a real Alexa+ Developer Console,
+  or Amazon announcing MCP add-on GA. Worth a periodic check — the docs
+  (developer.amazon.com/docs/alexaplus/add-ons/) were updated July 2026,
+  so it's moving.
+- The wall-tablet mic remains the other future thin client; Captain's
+  NOTE stands that a third client should hoist the shared caps/strings
+  into `src/lib/voice/` rather than copying them a third time.
