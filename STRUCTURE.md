@@ -16,7 +16,7 @@ structural changes against it.
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
-| `prisma/` | Schema, **additive-only** migrations, scoped seed/clean scripts | Blanket `deleteMany` seed scripts |
+| `prisma/` | Schema, **additive-only** migrations, scoped seed/clean scripts, and `bootstrap-*` scripts — interactive, prompt-driven, idempotent (upsert-keyed) creators of *real* household data, which deliberately have **no** clean counterpart | Blanket `deleteMany` seed scripts; any clean/reset script targeting a table that holds real hand-entered household data — the `User` table above all |
 | `alexa/` | Alexa skill configuration data (the interaction model), committed so the developer console and the repo can't silently drift. Hand-copied into Amazon's console; never imported by app code | Anything the app imports at build or runtime |
 
 ## Boundary rules
@@ -52,6 +52,13 @@ structural changes against it.
   numbered options out, an integer back (the steaks/"tea" lesson).
 - **Browser-only reads use `useSyncExternalStore`**, not
   `useState`+`useEffect` (hydration mismatch — lint enforces it).
+- **A lib module may skip `server-only` only when it is pure over its
+  inputs, reads no env var, and holds no secret of its own** — `match.ts`,
+  `duplicates.ts`, and `password.ts` are the instances. Sensitive material
+  passing *through* such a module (a password, a hash) is the caller's to
+  contain; the guarded action or route that calls it is where secrecy
+  lives. The `server-only` requirement in the guarded-action rule above is
+  written for AI/external-call wrappers, not for pure helpers.
 - **Matcher strictness is per-consumer, deliberately.** `matchItem` (voice —
   lenient, spoken feedback loop), `searchItems` (search box), `findOverride`
   (shelf life — strict, no feedback loop), `duplicates.ts` (queue — strictest,
@@ -91,7 +98,10 @@ Adding a second definition of any of these is a BLOCKER:
   was split three ways at ~624 before hitting the hard cap; current largest
   hand-written files sit in the ~350–420 range.)
 - **Hard cap: 650 lines** — crossing it needs a written justification in the
-  file header, or it's a BLOCKER. `src/generated/` is exempt.
+  file header, or it's a BLOCKER. `src/generated/` is exempt, and so is
+  `prisma/schema.prisma`: a Prisma schema is a single declarative file that
+  this project's conventions give no way to split, so its length is a
+  trend to watch, never a split candidate.
 - Tests are colocated in `src/lib` as `*.test.ts`, run by `npm test`
   (node:test + tsx, no new frameworks).
 
@@ -109,6 +119,12 @@ Adding a second definition of any of these is a BLOCKER:
   or `npm run db:reset`. Test data only via the scoped, fingerprint-matched
   `db:seed-*` / `db:clean-*` scripts — which refuse to delete what they
   didn't create.
+- **Never write a clean/reset script for the `User` table** — it holds the
+  family's credentials, and this repo's own seed-script history shows
+  blanket-clearing scripts outlive the assumptions that made them safe. The
+  only sanctioned cleanup is a one-off, by-id deletion of the exact
+  synthetic rows a mission's own verification created, counts confirmed
+  back to baseline.
 - Migrations are **additive only**; review the SQL before applying.
 - A new/changed Prisma model needs `npx prisma generate` **and a dev-server
   restart** (`db.ts` caches the client on `globalThis`).

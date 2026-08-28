@@ -227,3 +227,69 @@ export type MealSlot = (typeof MEAL_SLOTS)[number];
 export function toMealSlot(value: unknown): MealSlot | null {
   return MEAL_SLOTS.includes(value as MealSlot) ? (value as MealSlot) : null;
 }
+
+// Family Accounts v1 (see .avengers/plans/family-accounts-v1.md). "admin" and
+// "parent" can manage the household (users, settings, deleting things);
+// "kid" can view and participate but not manage; "device" is the wall
+// tablet, signed in as its own real person rather than as a flag on someone
+// else's session — see User's own doc comment in schema.prisma for why.
+export const ROLES = ["admin", "parent", "kid", "device"] as const;
+
+export type Role = (typeof ROLES)[number];
+
+export const DEFAULT_ROLE: Role = "kid";
+
+/** Roles allowed to manage the household — users, settings, deleting things. */
+export const MANAGER_ROLES: readonly Role[] = ["admin", "parent"];
+
+/** Narrow arbitrary text (e.g. from a form) to a Role we actually support. */
+export function toRole(value: unknown): Role {
+  return ROLES.includes(value as Role) ? (value as Role) : DEFAULT_ROLE;
+}
+
+// A fixed data palette for avatar initials — the same reasoning as the
+// nutrition donut's fixed orange/blue/purple (src/app/kitchen/cooking/
+// recipes/[id]/NutritionSection.tsx): these name arbitrary *people*, not UI
+// roles, so they don't belong with the job-based CSS tokens in globals.css
+// (--surface, --danger, etc). Chosen as mid-tone hex values so white text
+// stays legible on top of them in both the light and dark themes — no
+// separate light/dark variant needed, unlike the job tokens.
+//
+// Shaped like CATEGORIES/LOCATIONS above (a stable `name` plus its display
+// data) rather than a bare list of hex strings, and for the same reason a
+// User row stores a category *name* rather than an icon reference: what's
+// persisted on a `User` row (see avatarColor's doc comment in
+// schema.prisma) is the swatch's `name`, not its `hex`. If the palette is
+// ever retuned — darkening a hue for dark-mode contrast, say — every
+// existing row still points at a name that's still in the list; storing
+// the hex directly would strand every existing person on a color that no
+// longer exists the moment the palette changes.
+export const AVATAR_COLORS = [
+  { name: "blue", hex: "#2563eb" },
+  { name: "red", hex: "#dc2626" },
+  { name: "green", hex: "#16a34a" },
+  { name: "amber", hex: "#d97706" },
+  { name: "purple", hex: "#9333ea" },
+  { name: "teal", hex: "#0d9488" },
+  { name: "pink", hex: "#db2777" },
+  { name: "slate", hex: "#4b5563" },
+] as const;
+
+// `(typeof AVATAR_COLORS)[number]["name"]` — the same derivation pattern as
+// `Category`/`Location` above, so AvatarColor is exactly
+// "blue" | "red" | ... | "slate", never typed out twice.
+export type AvatarColor = (typeof AVATAR_COLORS)[number]["name"];
+
+export const AVATAR_COLOR_NAMES: readonly AvatarColor[] = AVATAR_COLORS.map((c) => c.name);
+
+/** Look up a swatch's hex value, falling back to the first swatch. */
+export function avatarColorHex(name: string): string {
+  return AVATAR_COLORS.find((c) => c.name === name)?.hex ?? AVATAR_COLORS[0].hex;
+}
+
+/** Narrow arbitrary text (e.g. from a form) to an AvatarColor we actually support. */
+export function toAvatarColor(value: unknown): AvatarColor {
+  return AVATAR_COLOR_NAMES.includes(value as AvatarColor)
+    ? (value as AvatarColor)
+    : AVATAR_COLOR_NAMES[0];
+}

@@ -25,9 +25,20 @@ model GroceryItem {
   unit     String? // "lbs", "cans", "bunch" — optional, many items are just a count
   category String  @default("Other")
   checked  Boolean @default(false)
-  addedBy  String? // free text for now; becomes a relation to a User when profiles exist
+  /// Retired in place — superseded by addedById below. Kept, not dropped or
+  /// backfilled, per the additive-only rule on the live database; nothing
+  /// reads or writes this column anymore.
+  addedBy  String?
   note     String?
   store    String? // "Walmart" | "Costco" | "Amazon" | "Target" | "Maceys" | "Other" | null (not chosen yet)
+
+  /// Who added this to the list — null for rows created before accounts
+  /// existed, or by a path that doesn't carry an actor (e.g. voice's legacy
+  /// unattributed token). SetNull, same pattern as pantryItemId below: a
+  /// deactivated or deleted person must never take a grocery-list row with
+  /// them.
+  addedById String?
+  addedByUser User? @relation(fields: [addedById], references: [id], onDelete: SetNull)
 
   /// Where this should land in the inventory on "Put away" — an override,
   /// not a description of where it is now (a grocery item isn't stored
@@ -58,6 +69,7 @@ model GroceryItem {
   checkedAt DateTime?
 
   @@index([pantryItemId])
+  @@index([addedById])
 }
 
 /// One change made by voice, kept so it can be read back or undone.
@@ -94,9 +106,20 @@ model VoiceChange {
   /// reversed twice.
   undoneAt DateTime?
 
+  /// Who spoke this change — null for the legacy shared VOICE_API_TOKEN
+  /// (unattributed) and for anyone deactivated or deleted since. SetNull
+  /// rather than a required FK: this row is a log entry, and a log entry
+  /// must survive the person it's about. Deliberately NOT re-pointed by a
+  /// pantry-item merge (see IrregularityDismissal's mergePantryItems) —
+  /// this field identifies the speaker, not the item, so a merge has no
+  /// reason to touch it.
+  userId String?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([userId])
 }
 
 /// Something we already own, and where it's stored.
@@ -372,4 +395,96 @@ model IrregularityDismissal {
   createdAt DateTime @default(now())
 
   @@index([kind])
+}
+
+/// A person in the household, or the wall tablet. One model for both tiers
+/// (login accounts and non-login profiles) and for device mode too — see the
+/// Family Accounts v1 plan (.avengers/plans/family-accounts-v1.md) for the
+/// full reasoning; this comment covers only the two decisions that would
+/// otherwise look like missing fields.
+///
+/// **No `kind` column.** `passwordHash` null means "a non-login profile" (a
+/// real household member — a little kid, say — who can be attributed to
+/// chores or a meal plan later but doesn't sign in); set means "an account".
+/// Upgrading a profile to an account later is one field going from null to
+/// set, not a migration or a second table.
+///
+/// **Device mode is `role: "device"`, not a separate flag or a session-only
+/// concept.** The wall tablet signs in once, long-lived, as a real User row
+/// — a boolean flag pointing at a person (e.g. Bryce) would make every
+/// tablet-originated change lie about who actually acted. Keeping it on the
+/// same `role` axis as admin/parent/kid means role gates, header chrome, and
+/// the future tap-your-name actor picker all read one field instead of two
+/// that could disagree.
+model User {
+  id String @id @default(cuid())
+
+  displayName String
+
+  /// "admin" | "parent" | "kid" | "device" — see ROLES/Role/toRole in
+  /// src/lib/constants.ts. Defaults to the least-privileged real-person
+  /// role; nothing here ever defaults to "admin" or "device".
+  role String @default("kid")
+
+  /// Null = a non-login profile. Set = an account. See the model doc above.
+  /// bcryptjs, cost 11 — src/lib/password.ts.
+  passwordHash String?
+
+  /// A fixed swatch NAME (e.g. "blue"), not a hex value, from AVATAR_COLORS
+  /// (src/lib/constants.ts) — an initial + color circle, deliberately not
+  /// stored image bytes (no blob storage in this stack; see the Recipes v2
+  /// plan's C7 for why that's a billing decision, not a technical one).
+  /// Stored as a name rather than a hex so the palette can be retuned later
+  /// (darkening a hue for dark-mode contrast, say) without stranding every
+  /// existing row on a color value that's no longer in the list.
+  avatarColor String
+
+  /// SHA-256 of this person's personal Siri/voice token — the raw token is
+  /// shown once at issue time and never stored, the same reasoning as a
+  /// password hash. Unique so two people can never collide onto the same
+  /// token by accident. Null until a token is issued (Phase 5).
+  voiceTokenHash String? @unique
+
+  /// Soft deactivation, never a delete — a person with attributed rows
+  /// (grocery items, voice changes, eventually chores) must keep existing
+  /// underneath them. Set = can no longer sign in or act; null = active.
+  deactivatedAt DateTime?
+
+  groceryItemsAdded GroceryItem[]
+  voiceChanges      VoiceChange[]
+
+  // No relation to LoginAttempt here — see that model's own doc comment for
+  // why userId there is deliberately not a foreign key.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// One login attempt, success or failure — the durable half of rate
+/// limiting. An in-memory counter dies with every serverless invocation, so
+/// the real "how many recent failures" state has to live here instead.
+///
+/// **Deliberately no foreign key on `userId`.** Same reasoning as
+/// IrregularityDismissal: this is disposable telemetry, not a relationship
+/// that needs referential integrity, and a userId that outlives the User row
+/// it named (or was never a real id at all — a forged login POST can claim
+/// anything) is harmless here in a way a broken FK constraint wouldn't be.
+model LoginAttempt {
+  id String @id @default(cuid())
+
+  /// The id the attempt claimed to be logging in as — not a relation, see
+  /// above. Null for a device-chip or malformed attempt with no claimed
+  /// identity at all.
+  userId String?
+
+  /// First hop of x-forwarded-for — best-effort, not a guarantee (see the
+  /// plan's "honest limits": the per-user cap is the real bound).
+  ip String
+
+  success Boolean
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([ip, createdAt])
 }

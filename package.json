@@ -18,7 +18,8 @@
     "db:clean-meal-plans": "tsx prisma/clean-meal-plans.ts",
     "db:seed-cookbooks": "tsx prisma/seed-cookbooks.ts",
     "db:clean-cookbooks": "tsx prisma/clean-cookbooks.ts",
-    "db:seed-slot-tags": "tsx prisma/seed-slot-tags.ts"
+    "db:seed-slot-tags": "tsx prisma/seed-slot-tags.ts",
+    "db:bootstrap-users": "tsx prisma/bootstrap-users.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
@@ -26,6 +27,7 @@
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "ask-sdk-express-adapter": "^2.14.0",
+    "bcryptjs": "^3.0.3",
     "jose": "^6.2.7",
     "lucide-react": "^1.28.0",
     "next": "16.2.12",
