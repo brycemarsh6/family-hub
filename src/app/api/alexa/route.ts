@@ -117,6 +117,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     await verifyAlexaRequest(rawBody, request.headers);
   } catch (error) {
+    // TEMPORARY DIAGNOSTIC -- remove once the Alexa handshake is proven.
+    // Header NAMES only, never values: the signature and cert URL are not
+    // secrets, but there is no reason to write request contents to a log.
+    console.error(
+      "[alexa] header names received:",
+      Array.from(request.headers.keys()).sort().join(", "),
+    );
     console.error("[alexa] signature/timestamp check failed:", error);
     return unauthorised();
   }
