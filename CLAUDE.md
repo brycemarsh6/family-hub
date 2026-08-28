@@ -3665,10 +3665,8 @@ its own commit.
   Neon and Vercel). The `/api/voice` endpoint it needs already exists
   and is proven in production — Siri uses it daily. Both can run at
   once; they're thin clients over the same endpoint.
-- **A real handwritten recipe card through photo import** — the one
-  R3b source type never tested against genuine input. If Haiku
-  struggles, the plan's own fallback is bumping *only* that call to
-  Sonnet.
+- ~~**A real handwritten recipe card through photo import**~~ — ✅ tested
+  against genuine input, works.
 - **A new branch.** Calendar, Chores, Lists, and Family profiles are
   all genuinely unstarted, and **four nav-bar destinations are still
   placeholder pages** (Calendar, Chores, Lists, plus the dashboard
