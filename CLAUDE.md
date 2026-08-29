@@ -3851,3 +3851,99 @@ Zero V3b code was written; that was the gate's whole job.
 - The wall-tablet mic remains the other future thin client; Captain's
   NOTE stands that a third client should hoist the shared caps/strings
   into `src/lib/voice/` rather than copying them a third time.
+
+---
+
+## Session, 2026-08-28/29: per-person family accounts (P1 + P2 shipped)
+
+**The single shared family password is retired.** Everyone signs in as
+themselves. This is the foundation Bryce asked for ahead of Calendar,
+Chores, and Tasks — "a fully developed professional grade app with
+logins, settings, permissions."
+
+Full plan: `.avengers/plans/family-accounts-v1.md`. Missions:
+`.avengers/missions/mission-4-accounts-p1-foundation.md` (schema) and
+`mission-5-accounts-p2-cutover.md` (the cutover). **P3a/P3b (role gates,
+Settings, Manage Family), P4 (device mode), and P5 (voice attribution)
+are planned but NOT built.**
+
+**Bryce's four foundation decisions — don't relitigate:** build on the
+existing session/DAL (no Clerk, no vendor); two tiers (login accounts +
+non-login profiles for little kids); "parents manage, kids participate";
+wall tablet as a device-role account.
+
+**The real family, bootstrapped by Bryce himself** via
+`npm run db:bootstrap-users` (passwords typed in his own terminal, never
+through an agent): **Bryce (admin), Emily (parent)** with logins;
+**Ledger, Eleanor, Lucy (kid profiles)** — real people for future chores
+and calendar, no password, cannot sign in.
+
+**Schema (P1, additive):** `User` — **no `kind` column**; whether someone
+can log in *is* whether `passwordHash` is null, so the two can never
+drift, and upgrading a profile to an account is one UPDATE. Device mode
+is `role: "device"` on the same axis rather than a second concept.
+`LoginAttempt` for rate limiting (DB-backed — in-memory counters don't
+survive serverless). Nullable attribution FKs on `VoiceChange.userId`
+and `GroceryItem.addedById`. Per-person recipe ratings, meal plans, and
+irregularity dismissals stay **household-wide** in v1, deliberately.
+
+**Auth (P2):** session payload v2 with a version claim — `decrypt()`
+rejects anything without `v === 2`, which retired every pre-cutover
+cookie at deploy with **zero DB reads**, so `proxy.ts` stays DB-free.
+`getVerifiedSession()` kept its exact shape (all 52 actions compiled
+untouched — the payoff of their always having used it as a bare boolean
+gate) but is now backed by a `cache()`-deduped user lookup, so
+deactivation stops writes on the next request. Pages still render until
+cookie expiry; **rotating `SESSION_SECRET` in Vercel is the hard stop
+and is the documented global-sign-out runbook.** bcryptjs cost 11.
+Rate limiting: 5 failures/user, 20/IP, sliding 15 min, checked **before**
+bcrypt; refusals deliberately unrecorded so a lockout can't be extended
+for free.
+
+**Two gate blockers worth remembering, neither cosmetic:**
+1. **The account menu rendered inside the header, which carries
+   `backdrop-blur`** — and per CSS spec a `backdrop-filter` element
+   becomes the containing block for `position: fixed` descendants. The
+   sheet resolved to the header's 72px strip; the card sat at
+   **y = −137** with the identity block and close button off-screen.
+   Screenshots looked fine; measuring didn't. Fixed with `createPortal`
+   to `document.body`, commented so nobody "cleans up" the portal back
+   into the bug. **It is the only portal-using sheet in the app, because
+   it's the only one under a `backdrop-filter` ancestor** — the other
+   ~15 live under `<main>` and must NOT be converted.
+2. **`loginRateLimit.ts` skipped `server-only` while importing `db`, and
+   its test file imported it — so `npm test` constructed a PrismaClient
+   pointed at the live family database.** Lazy connection meant nothing
+   queried, but one future test would have reached real household data
+   from the test runner. Split into an import-free
+   `loginRateLimitPolicy.ts` (what the tests import) and a
+   `server-only`-guarded wrapper. **General rule, now in STRUCTURE.md:
+   any lib module importing `db` carries the guard; when a module needs
+   both a testable policy and a DB read, split it.**
+
+**Verified adversarially:** a v1 household JWT signed with the real
+current secret — the exact cookie every family member held — refused; a
+deactivated user's valid cookie stopped by the **DAL alone**, which the
+DB-free proxy structurally cannot do (the strongest evidence the two
+layers are independent, not redundant); DB outage fails **closed**;
+wrong password / forged userId / passwordless profile / deactivated all
+return byte-identical copy. Positive control first in every suite.
+
+**Process lesson: gates that create credentialed test data must run
+serially, or own disjoint self-identifying accounts.** Running Vision
+and Strange in parallel put a login-capable `ZZZ` account on the real
+login page; Vision blocked on it and correctly refused to delete another
+agent's in-flight rows. With P3a's role gates not yet in place, that
+account would have had full write power had it reached the cutover.
+
+**⚠️ Standing facts a fresh session must not miss:**
+- **`FAMILY_PASSWORD` is dead in code but deliberately still set in
+  Vercel** for ~7 days from 2026-08-29 as a rollback lane. Deleting it
+  from Vercel and `.env` is a separate later step.
+- **Do NOT create a login for any kid until P3a ships** — role gates
+  don't exist yet, so a kid account today would have the same powers as
+  Bryce. The three kid profiles are safe precisely because they have no
+  password.
+- **Never write a clean/reset script for the `User` table** (STRUCTURE.md
+  danger register). `bootstrap-users.ts` has no counterpart by design.
+- The app rename **Marsh HQ → Marshee** is still queued and unbuilt.
