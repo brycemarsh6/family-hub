@@ -2,31 +2,46 @@ import "server-only";
 
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { createHash, timingSafeEqual } from "node:crypto";
 
 // Everything about "is this person allowed in" lives here and in dal.ts.
 //
-// The app currently has ONE shared family password rather than an account per
-// person. That's a deliberate starting point, not an oversight — see the auth
-// notes in CLAUDE.md. The important part is that the rest of the app never
-// asks about passwords: it asks `verifySession()` (in dal.ts) whether there's
-// a valid session, and gets a user-shaped answer back. Swapping this file for
-// real per-person accounts later shouldn't require touching any of the twelve
-// Server Actions that call it.
+// Family Accounts v1 (see .avengers/plans/family-accounts-v1.md) replaced the
+// single shared family password with per-person accounts in the database
+// (the User table). This file only produces and reads the signed cookie —
+// dal.ts is what turns a valid cookie into a real, currently-active user row.
+// The rest of the app never asks about passwords: it asks getVerifiedSession()
+// (in dal.ts) whether there's a valid session, and gets a user-shaped answer
+// back.
 //
 // "server-only" at the top makes the build fail loudly if any of this is ever
 // imported into browser code by accident, which would leak the secret.
 
-const COOKIE_NAME = "session";
-const SESSION_DAYS = 30;
+export const COOKIE_NAME = "session";
 
-// While there's one shared password, everyone signing in is the same
-// "household" user. When real accounts arrive this becomes a real user id and
-// the callers of verifySession() carry on unchanged.
-export const HOUSEHOLD_USER_ID = "household";
+const PERSON_SESSION_DAYS = 30;
+// Device mode (a User with role "device" — the wall tablet) isn't built
+// until Phase 4, but a long-lived session is cheap to support now and
+// pointless to add later as a special case. Harmless until something
+// actually creates a device-role user.
+const DEVICE_SESSION_DAYS = 365;
+
+// Bumped whenever the session payload's shape changes. decrypt() below
+// rejects any token whose `v` doesn't match this exactly — which is the
+// whole mechanism for the accounts cutover: a pre-cutover cookie was signed
+// under the old shape ({ userId: "household", expiresAt }, no `v` at all),
+// so `payload.v !== SESSION_VERSION` is true for it and it's rejected with
+// zero database reads, before anything about the (now-meaningless)
+// "household" user id is even looked at.
+export const SESSION_VERSION = 2;
 
 export type SessionPayload = {
+  v: typeof SESSION_VERSION;
   userId: string;
+  // A UX hint copied from the User row at sign-in time, not the authority —
+  // dal.ts always re-reads the real row before trusting anything about a
+  // request, so a role in this cookie going stale (someone's role changed
+  // after they signed in) is cosmetic only, never a security gap.
+  role: string;
   expiresAt: string;
 };
 
@@ -43,29 +58,11 @@ function secretKey(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-/** Is this the family password? */
-export function isCorrectPassword(attempt: string): boolean {
-  const actual = process.env.FAMILY_PASSWORD;
-  if (!actual) {
-    throw new Error(
-      "FAMILY_PASSWORD is not set. Copy .env.example to .env, or set it in the host's environment variables.",
-    );
-  }
-
-  // Compared digest-to-digest rather than string-to-string, for two reasons:
-  // timingSafeEqual demands equal-length inputs (raw passwords rarely are),
-  // and a plain `===` bails out at the first wrong character, so how long the
-  // comparison takes leaks how much of the password was right.
-  const a = createHash("sha256").update(attempt).digest();
-  const b = createHash("sha256").update(actual).digest();
-  return timingSafeEqual(a, b);
-}
-
 export async function encrypt(payload: SessionPayload): Promise<string> {
-  return new SignJWT(payload)
+  return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_DAYS}d`)
+    .setExpirationTime(new Date(payload.expiresAt))
     .sign(secretKey());
 }
 
@@ -77,7 +74,12 @@ export async function decrypt(
     const { payload } = await jwtVerify(session, secretKey(), {
       algorithms: ["HS256"],
     });
-    return payload as SessionPayload;
+    // The version gate. This alone is what kills every pre-cutover cookie —
+    // a v1 payload has no `v` field, so `payload.v` is `undefined` here and
+    // this check fails exactly the same way a genuinely tampered payload
+    // would, with no special-casing needed.
+    if (payload.v !== SESSION_VERSION) return null;
+    return payload as unknown as SessionPayload;
   } catch {
     // A tampered, expired, or wrong-secret cookie all land here. There's
     // nothing useful to tell the visitor, so treat it as "not signed in".
@@ -85,10 +87,21 @@ export async function decrypt(
   }
 }
 
-export async function createSession(): Promise<void> {
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+/**
+ * Sign a fresh cookie for a specific person (or the device-mode tablet).
+ * The only caller is `login` in src/app/actions/auth.ts.
+ */
+export async function createSession(user: {
+  id: string;
+  role: string;
+}): Promise<void> {
+  const days =
+    user.role === "device" ? DEVICE_SESSION_DAYS : PERSON_SESSION_DAYS;
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   const session = await encrypt({
-    userId: HOUSEHOLD_USER_ID,
+    v: SESSION_VERSION,
+    userId: user.id,
+    role: user.role,
     expiresAt: expiresAt.toISOString(),
   });
 

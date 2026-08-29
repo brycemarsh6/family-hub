@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import "../globals.css";
 import { HubBottomNav } from "@/components/HubNav";
-import { SignOutButton } from "@/components/SignOutButton";
-import { getSession } from "@/lib/session";
+import { UserMenu } from "@/components/UserMenu";
+import { getVerifiedUser } from "@/lib/dal";
 // Same house-and-heart art used for the browser tab/home-screen icon
 // (icon.png, apple-icon.png — see app-icons.md). Importing it here too means
 // there's still only one icon file to ever replace, not a separate header
@@ -57,10 +57,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Only to decide whether to show the Sign out button — this is not a
-  // security check. The real protection lives in the DAL, next to the data
-  // (see src/lib/dal.ts).
-  const session = await getSession();
+  // Only to decide whether/what to show in the header (the identity button,
+  // with the right name/color/role) — this is not a security check itself.
+  // The real protection lives in the DAL's per-action guard, next to the
+  // data (see src/lib/dal.ts). getVerifiedUser() is the same cached lookup
+  // a page calling requireVerifiedUser()/getVerifiedSession() elsewhere in
+  // this same request already triggers, so this doesn't add an extra
+  // database round trip on top of what the page itself needs.
+  const user = await getVerifiedUser();
 
   return (
     <html
@@ -84,7 +88,13 @@ export default async function RootLayout({
               />
               Marsh HQ
             </Link>
-            {session && <SignOutButton />}
+            {user && (
+              <UserMenu
+                displayName={user.displayName}
+                avatarColor={user.avatarColor}
+                role={user.role}
+              />
+            )}
           </div>
         </header>
 

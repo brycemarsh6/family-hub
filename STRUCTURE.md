@@ -59,6 +59,23 @@ structural changes against it.
   contain; the guarded action or route that calls it is where secrecy
   lives. The `server-only` requirement in the guarded-action rule above is
   written for AI/external-call wrappers, not for pure helpers.
+  `db.ts` is the one sanctioned impure exception: it must stay importable
+  by the plain-Node scripts in `prisma/`, and a browser import fails
+  loudly anyway (PrismaClient refuses to construct in a browser). Any
+  **other** lib module that imports `db` must carry `server-only` —
+  `dal.ts`, `voice/apply.ts`, and `loginRateLimit.ts` are the instances.
+  When a module needs both a testable policy and a database read, split
+  it: the pure half gets its own import-free file and the tests point
+  there (`loginRateLimitPolicy.ts` / `loginRateLimit.ts` is the pattern).
+  This is not pedantry — a test file that transitively imports `db.ts`
+  puts the **live family database** one future test away from the test
+  runner.
+- **The DAL's cached `loadSessionUser()` is the one sanctioned sequential
+  DB read before a page's `Promise.all`** — auth precedes data by design,
+  and `cache()` guarantees at most one user lookup per render pass, shared
+  by the layout and the page. Nothing else re-reads the `User` row in a
+  request, so this is not the re-fetch anti-pattern the performance notes
+  warn about.
 - **Matcher strictness is per-consumer, deliberately.** `matchItem` (voice —
   lenient, spoken feedback loop), `searchItems` (search box), `findOverride`
   (shelf life — strict, no feedback loop), `duplicates.ts` (queue — strictest,

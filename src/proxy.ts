@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { decrypt } from "@/lib/session";
+import { decrypt, COOKIE_NAME } from "@/lib/session";
 
 // Bounces signed-out visitors to the login page before a protected page ever
 // renders. In Next 16 this file is called `proxy.ts` — it was `middleware.ts`
@@ -66,7 +66,7 @@ export default async function proxy(request: NextRequest) {
   // Only reads and verifies the signed cookie — no database call. Proxy runs
   // on every request including prefetches, so anything heavier here would
   // slow the whole app down.
-  const session = await decrypt(request.cookies.get("session")?.value);
+  const session = await decrypt(request.cookies.get(COOKIE_NAME)?.value);
 
   if (!session?.userId) {
     return NextResponse.redirect(new URL("/login", request.nextUrl));
