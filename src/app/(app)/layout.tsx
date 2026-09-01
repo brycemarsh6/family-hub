@@ -97,7 +97,7 @@ export default async function RootLayout({
                 brand on the home screen and the browser tab, where there's
                 no room for a word. */}
             <Link href="/" className="flex min-h-12 items-center">
-              <MarsheeWordmark className="h-8 w-auto text-brand-sage" />
+              <MarsheeWordmark className="h-10 w-auto text-brand-sage" />
             </Link>
             {user && (
               <UserMenu
