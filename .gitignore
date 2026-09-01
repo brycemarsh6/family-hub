@@ -50,3 +50,6 @@ next-env.d.ts
 # it changes constantly, and every machine should have its own.
 *.db
 *.db-journal
+
+# Machine-local Claude Code permission cache — each machine has its own.
+.claude/settings.local.json
