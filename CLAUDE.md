@@ -4469,4 +4469,9 @@ grocery item named `ZZZ Preview Test`, confirm it does **not** appear on
 the production shopping list, then delete it on the preview. Result
 recorded below once Bryce has run it.
 
-*(Verification result: pending at the time this note was written.)*
+**Verified, 2026-09-01.** Bryce ran it on PR #7's preview — the first
+deployment ever built with the Preview-scoped `DATABASE_URL` — and the
+item added there did **not** appear on the real app. Writes on a preview
+now land on the dev branch and nowhere else. (The first preview load was
+slow: the dev branch's compute sleeps when idle and wakes on demand.
+That's normal, and a small tell that you're on the dev branch.)
