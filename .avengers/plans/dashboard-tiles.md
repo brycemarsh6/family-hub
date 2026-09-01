@@ -33,7 +33,7 @@ Derivations (pure): low via **`isLow()`** from `constants.ts:216` (reuse, don't 
 
 ## Hydration safety (the one real hazard)
 
-"Today" is client-only (`useToday()` → null on SSR and first client render; Vercel UTC vs Mountain). `TodayMealsTile` renders a **stable frame**: the four `MEAL_SLOTS` labels always; while `today === null`, value areas are `aria-hidden` fixed-height placeholders (MealPlanList's precedent, per-row) — **no** "Nothing planned today" yet, or it flashes and flips. Once today resolves: `todaysMeals(plans, today)` → null or all-empty ⇒ "Nothing planned today"; else titles (+ `BookOpen` when `recipeId`, WeekCard's treatment), empty slots muted "—". Fixed `min-h` so no layout shift. The 60s poll in `useToday` rolls the wall tablet across midnight for free.
+"Today" is client-only (`useToday()` → null on SSR and first client render; Vercel UTC vs Mountain). `TodayMealsTile` renders a **stable frame**: the four `MEAL_SLOTS` labels always; while `today === null`, value areas are `aria-hidden` fixed-height placeholders (MealPlanList's precedent, per-row) — **no** "Nothing planned today" yet, or it flashes and flips. Once today resolves: four rows always — **superseded during the build**, the spec here said null/all-empty collapses to a single "Nothing planned today" line; that left ~150px of blank space on the app's most prominent tile, so an unplanned day now renders the same four rows reading "—". Strange gated and passed this change: loading is grey bars, *nothing* is a crisp glyph, so the two can't be confused. Otherwise titles (+ `BookOpen` when `recipeId`, WeekCard's treatment), empty slots muted "—". Fixed `min-h` so no layout shift. The 60s poll in `useToday` rolls the wall tablet across midnight for free.
 
 ## Tile contents
 
@@ -58,5 +58,5 @@ Avengers mission (Stark builds against this plan as the contract; **Vision + Str
 
 - Gauntlet: `tsc`, `eslint`, `npm test` (90 → ~102), `build` (build also proves the route-group move didn't orphan `/`)
 - Browser 375px, light + dark: no hydration warning; no flash of the empty state before data; no layout shift when titles populate; all four tiles navigate; hard reload shows the new tile skeleton while `/settings` keeps the list skeleton
-- Count cross-checks against live pages: stocked/low vs `/kitchen/inventory`; expiring vs Kitchen's Expiring badge; to-buy + per-store vs Shopping's own chip counts (`GroceryList.tsx:116-123` computes them identically); meals vs today's row in the current WeekCard; add a recipe → "Newest" updates
+- Count cross-checks against live pages: stocked/low vs `/kitchen/inventory`; expiring vs Kitchen's Expiring badge; to-buy + per-store vs Shopping's own chip counts — note these agree only while nothing is checked off: the dashboard deliberately counts *unchecked* items ("to buy" means still to buy), whereas `GroceryList.tsx:116-123` counts every row including checked-but-not-put-away ones; meals vs today's row in the current WeekCard; add a recipe → "Newest" updates
 - TZ skew spot-check: dev server with `TZ=UTC`, browser still shows the correct Mountain day

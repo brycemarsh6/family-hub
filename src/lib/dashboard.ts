@@ -89,8 +89,9 @@ export function storeBreakdown(items: { store: string | null }[]): StoreCount[] 
     return index === -1 ? STORES.length : index;
   }
 
+  // No `count > 0` filter: an entry only lands in the Map when something
+  // increments it, so a zero-count store is already absent by construction.
   return [...counts.entries()]
-    .filter(([, count]) => count > 0)
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => {
       // Unassigned is pinned last regardless of count -- checked before the

@@ -1,7 +1,7 @@
 # Mission: Dashboard rebuild — four data tiles
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** AT-THE-GATES (pass 2)
 **Started:** 2026-09-01 · **Updated:** 2026-09-01
 
 ## Brief
@@ -43,7 +43,8 @@
 ## Contracts
 
 ### DB1 — Build the dashboard per the approved plan
-- **Status:** DISPATCHED
+- **Status:** DONE — gauntlet clean, 90 → 106 tests, boundaries exact
+  (verified by Vision). Fury then applied gate fixes on top; see below.
 - **Boundaries:** may touch: `src/lib/dashboard.ts` (new),
   `src/lib/dashboard.test.ts` (new), `src/components/DashboardTile.tsx`
   (new), `src/components/TodayMealsTile.tsx` (new),
@@ -62,8 +63,49 @@
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| — | Vision | — | — | — |
-| — | Strange | — | — | — |
+| 1 | Vision | BLOCK | 1 | 5 |
+| 1 | Strange | BLOCK | 2 | 6 |
+| 2 | both | pending re-gate | — | — |
+
+**Both gates independently found the same defect** — the meals tile shifted
+the page ~16px when `today` resolved — from opposite directions: Strange by
+measuring rendered rows in a browser, Vision by reading the compiled CSS
+(`h-4` placeholder = 16px vs `text-sm` resolved line box = 20px). Two
+methods, one bug, and the contract had promised "fixed min-h so no layout
+shift" in writing. That agreement is the strongest signal either gate has
+produced so far.
+
+**Strange's second blocker, which only a browser could find:** the icon on
+Inventory and Grocery was **flex-crushed to zero width at 375px**. A
+half-width tile's header has ~131px; icon + title + badge want ~161px, so
+flex resolved it by erasing the icon — two of four tiles silently lost
+their icon on the exact screen DESIGN.md names as the target, while
+rendering correctly on a laptop. Fixed with `flex-wrap` + a `shrink-0` icon
+slot (badge drops to its own line instead).
+
+**Fury's fixes (commit `ad36afa` + follow-up):**
+- Both meals-tile branches now pin `h-5` rows. Verified empirically, not
+  reasoned: both row variants built with the component's exact classes
+  against the app's live CSS measure **20px / 20px, delta 0 across four
+  rows**.
+- `loading.tsx` heights replaced with the tiles' **measured** heights
+  (164/182/182/108). The originals were guesses — the meals block was
+  `h-56` (224px) for a 164px tile, snapping the page up ~60px per cold
+  load, the precise failure skeletons exist to prevent.
+- Non-breaking space in the store breakdown (Vision + Strange both saw
+  "Amazon 2" orphan a bare "2").
+- Removed an unreachable `count > 0` filter in `dashboard.ts` (Vision).
+- **Plan file reconciled with what shipped** (Vision): its spec still
+  described the superseded "Nothing planned today" line, and overstated
+  that the dashboard's per-store counts match Shopping's chips — they
+  agree only while nothing is checked, because the dashboard deliberately
+  counts *unchecked* items.
+
+**Strange PASSED the design question the mission was least sure about:** an
+unplanned day showing four "—" rows reads as honest, not broken, because
+the app now has two distinct vocabularies here — loading is grey bars,
+*nothing* is a crisp glyph — and a genuine failure throws to the error
+boundary rather than rendering dashes.
 
 ## Handoff log
 
