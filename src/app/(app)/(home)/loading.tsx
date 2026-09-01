@@ -9,18 +9,21 @@ import { SkeletonHeader, SkeletonBlock } from "@/components/Skeleton";
 // the whole reason this route lives in its own (home) route group: two
 // loading.tsx files can't share one URL segment.
 //
-// Block sizes echo the real tile shapes on the page below: Today's meals is
-// the tallest tile (it lists 4 meal slots), Inventory/Grocery are the two
-// side-by-side tiles, and Recipes is a short single-line wide tile.
+// Block heights are the tiles' real measured heights at 375px, not
+// eyeballed: a skeleton that's the wrong size doesn't just look off, it
+// makes the page jump when content lands, which is the exact problem
+// skeletons exist to prevent. The first version guessed h-56 (224px) for a
+// tile that renders at 164px and the whole page snapped up ~60px on every
+// load. Re-measure these if a tile's contents change shape.
 export default function Loading() {
   return (
-    <div className="py-4" role="status" aria-label="Loading Marshee">
+    <div className="py-4" role="status" aria-label="Loading Dashboard">
       <SkeletonHeader />
       <div className="mt-6 grid grid-cols-2 gap-4">
-        <SkeletonBlock className="col-span-2 h-56" />
-        <SkeletonBlock className="h-36" />
-        <SkeletonBlock className="h-36" />
-        <SkeletonBlock className="col-span-2 h-24" />
+        <SkeletonBlock className="col-span-2 h-[164px]" /> {/* Today's meals */}
+        <SkeletonBlock className="h-[182px]" /> {/* Inventory */}
+        <SkeletonBlock className="h-[182px]" /> {/* Grocery */}
+        <SkeletonBlock className="col-span-2 h-[108px]" /> {/* Recipes */}
       </div>
     </div>
   );

@@ -161,7 +161,9 @@ export default async function DashboardPage() {
             <p className="text-sm text-muted">Nothing to buy</p>
           ) : (
             <p className="line-clamp-2 text-sm text-muted">
-              {breakdown.map((store) => `${store.label} ${store.count}`).join(" · ")}
+              {/* Non-breaking space: a plain one let "Amazon 2" wrap between the
+                  store and its count, orphaning a bare "2" on the next line. */}
+              {breakdown.map((store) => `${store.label}\u00A0${store.count}`).join(" · ")}
             </p>
           )}
         </DashboardTile>

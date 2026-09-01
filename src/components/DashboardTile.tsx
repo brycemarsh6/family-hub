@@ -41,11 +41,20 @@ export default function DashboardTile({
         wide ? "col-span-2" : ""
       }`}
     >
-      <div className="flex items-center gap-2">
-        {icon}
+      {/*
+        `flex-wrap` and the `shrink-0` icon slot together are load-bearing at
+        375px, not tidiness. A half-width tile's header has ~131px of room,
+        and icon + title + badge want ~161px — without wrap the badge won
+        the fight and flex crushed the icon to *zero width*, so Inventory
+        and Grocery silently lost their icons on the exact screen this app
+        is designed for, while looking fine on a laptop. Now the badge drops
+        to its own line when it doesn't fit and the icon always survives.
+      */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="flex shrink-0 items-center">{icon}</span>
         <span className="text-base font-semibold">{title}</span>
         {badge && (
-          <span className="ml-auto inline-block shrink-0 rounded-full bg-warn-soft px-2.5 py-0.5 text-xs font-medium text-warn">
+          <span className="inline-block shrink-0 rounded-full bg-warn-soft px-2.5 py-0.5 text-xs font-medium text-warn">
             {badge}
           </span>
         )}

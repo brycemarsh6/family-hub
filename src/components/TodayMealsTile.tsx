@@ -73,11 +73,14 @@ export default function TodayMealsTile({
           // real claim about the data, and we don't know it's true until
           // `today` resolves a moment later.
           MEAL_SLOTS.map((slot) => (
-            <div key={slot} className="flex items-center gap-2">
+            // h-5 matches a resolved row exactly: a 16px placeholder shifted
+            // the three tiles below down 16px the moment `today` resolved,
+            // on every single page view.
+            <div key={slot} className="flex h-5 items-center gap-2">
               <span className="w-20 shrink-0 text-xs font-medium uppercase tracking-wide text-muted">
                 {slot}
               </span>
-              <span aria-hidden="true" className="h-4 w-28 rounded bg-surface-2" />
+              <span aria-hidden="true" className="h-5 w-28 rounded bg-surface-2" />
             </div>
           ))
         ) : (
@@ -86,7 +89,7 @@ export default function TodayMealsTile({
           // tile, "no plan exists" and "nothing filled in yet" are the same
           // actionable fact, and tapping through goes to the same place.
           (slots ?? EMPTY_DAY).map((slot) => (
-            <div key={slot.slot} className="flex items-center gap-2">
+            <div key={slot.slot} className="flex h-5 items-center gap-2">
               <span className="w-20 shrink-0 text-xs font-medium uppercase tracking-wide text-muted">
                 {slot.slot}
               </span>
