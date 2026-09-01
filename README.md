@@ -100,6 +100,8 @@ internet or the kitchen tablet joins over Wi-Fi:
 ```bash
 npm run dev         # start the app for development
 npm run build       # check that it builds cleanly for real use
+npm run build:vercel # what Vercel runs: on a production build, apply any new
+                     # database migrations first, then build (see CLAUDE.md)
 npm run lint        # check code style / catch likely mistakes
 npm run db:seed     # wipe and refill the database with sample data
 npm run db:studio   # opens a visual browser for the database in your browser
