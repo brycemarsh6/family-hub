@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Manrope, Cormorant_Garamond } from "next/font/google";
 import "../globals.css";
 
 // The second root layout in the project (the other is src/app/(app)/layout.tsx).
@@ -16,13 +16,24 @@ import "../globals.css";
 // conditional inside one shared layout — which is why the authenticated
 // app moved into an (app) group when this was added.
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Marshee's three brand faces — see (app)/layout.tsx for why the variable
+// names avoid colliding with the Tailwind theme keys in globals.css.
+// Cormorant Garamond isn't actually used on any /share page today (it's the
+// login page's tagline only), but is loaded here too so this layout's own
+// <html> carries the same three font variables as the authenticated one.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const manrope = Manrope({
+  variable: "--font-manrope",
+  subsets: ["latin"],
+});
+
+const cormorantGaramond = Cormorant_Garamond({
+  variable: "--font-accent-serif",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -36,8 +47,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#faf8f5" },
-    { media: "(prefers-color-scheme: dark)", color: "#17150f" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f0e8" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1b16" },
   ],
 };
 
@@ -49,7 +60,7 @@ export default function ShareLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${manrope.variable} ${cormorantGaramond.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-bg text-fg">
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">

@@ -5,13 +5,13 @@ import type { MetadataRoute } from "next";
 // screen, so it opens looking like its own app rather than a browser tab.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Marsh HQ",
-    short_name: "Marsh HQ",
+    name: "Marshee",
+    short_name: "Marshee",
     description: "Shopping and inventory for the family.",
     start_url: "/",
     display: "standalone",
-    background_color: "#faf8f5",
-    theme_color: "#faf8f5",
+    background_color: "#f6f0e8",
+    theme_color: "#f6f0e8",
     icons: [
       {
         src: "/icon.png",

@@ -56,7 +56,7 @@ export default async function SharedRecipePage({
       <RecipeBody recipe={recipe} />
 
       <p className="mt-8 border-t border-line pt-4 text-sm text-muted">
-        Shared from Marsh HQ.
+        Shared from Marshee.
       </p>
     </div>
   );

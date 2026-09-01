@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# Marsh HQ — project context
+# Marshee — project context
 
 This file is read automatically at the start of every future session. It's
 written for two readers at once: Bryce (a complete beginner, learning to code
@@ -9,7 +9,7 @@ project back up. Plain English throughout — no assumed programming background.
 
 ## What this is
 
-Marsh HQ is a private web app for one family — not a product, not something
+Marshee is a private web app for one family — not a product, not something
 anyone outside the household will ever use. The long-term vision is a single
 home base for the stuff a family currently tracks across sticky notes, group
 texts, and separate apps: a shared calendar, a profile for each family member,
@@ -3820,9 +3820,10 @@ Development testing. Two findings along the way:
 **The app was meant to be renamed: the skill (and eventually the app) is
 "Marshee"**, Bryce's final name choice. The interaction model's
 invocation name is `marshee` (it passed Amazon's single-word validator —
-coined names are allowed). An in-app rename task (Marsh HQ → Marshee,
-user-facing strings only, per the Marsh Hub precedent) is queued but not
-done.
+coined names are allowed). The in-app rename (Marsh HQ → Marshee,
+user-facing strings only, per the Marsh Hub precedent) **shipped
+2026-08-31** as part of the Marshee rebrand — see that session's entry at
+the end of this file.
 
 **V3b was designed and approved: Marshee as an Alexa+ *add-on*** — the
 replacement system, where the developer runs an MCP server (Streamable
@@ -3946,4 +3947,11 @@ account would have had full write power had it reached the cutover.
   password.
 - **Never write a clean/reset script for the `User` table** (STRUCTURE.md
   danger register). `bootstrap-users.ts` has no counterpart by design.
-- The app rename **Marsh HQ → Marshee** is still queued and unbuilt.
+- ~~The app rename **Marsh HQ → Marshee** is still queued and unbuilt.~~
+  ✅ **Done 2026-08-31**, with the full rebrand (palette, typography, logo).
+  **One thing the rename could NOT reach: Bryce's Siri Shortcut is named
+  on his phone, not in this repo.** The `/api/voice` endpoint is unchanged
+  so the shortcut keeps working exactly as before — but its spoken trigger
+  is whatever he named it, and only he can rename it in the Shortcuts app.
+  Same for the parked Alexa skill, whose invocation name is already
+  `marshee` in `alexa/interaction-model.json`.

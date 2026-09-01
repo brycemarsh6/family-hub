@@ -1,4 +1,4 @@
-# DESIGN.md — Marsh HQ
+# DESIGN.md — Marshee
 
 Strange's constitution for this app. These rules codify decisions the project
 already made deliberately (full reasoning in CLAUDE.md's history); Strange
@@ -43,9 +43,9 @@ tell when a rule's reason has expired.
   real markup — reachable without the gesture (keyboard, screen reader).
 - **Outline icons only, via Lucide — no emoji in the icon system.** Two
   deliberate exceptions: native `<select><option>` can't render SVG, so
-  dropdowns fall back to plain text; and the header's house-and-heart PNG is
-  a **brand mark**, not a member of the icon system, so it isn't a Lucide
-  outline either. (Decorative one-off emoji in empty states are outside the
+  dropdowns fall back to plain text; and the Marshee mark and wordmark are
+  **brand artwork**, not members of the icon system, so they aren't Lucide
+  outlines either. (Decorative one-off emoji in empty states are outside the
   icon system and tolerated.)
 - **Exactly one nav bar**, rendered once from the root layout, fixed to the
   bottom at every screen size. Its tabs never change as you move — only
@@ -65,12 +65,55 @@ tell when a rule's reason has expired.
   state machine — never stacked modals (two Escape listeners fight over one
   keypress).
 
+## Brand
+
+The app is **Marshee**. The brand is defined by the Marshee Brand Blueprint
+(Sage, Dusty Blue, Peach, Cream, Butter, Warm Gray, Charcoal; Manrope /
+Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
+
+- **`brand/` holds the master vectors — they are the source of truth and
+  are never redrawn.** `marshee-mark.svg`, `marshee-wordmark.svg`,
+  `marshee-app-icon.svg`. Everything else is *generated* from them: the
+  PNG/ICO icons in `src/app/`, and the two React components. Recoloring via
+  `fill` is allowed (that's what the brand sheet's monochrome variants are);
+  redrawing, restretching, or approximating the paths is not.
+- **The wordmark is artwork, not text.** `MarsheeWordmark` is outlined
+  vector paths, because the lettering is custom-drawn — no font produces it.
+  It uses `fill="currentColor"` so it inherits `--fg`: Charcoal in light,
+  Cream in dark, which are exactly the brand sheet's own "monochrome dark"
+  and "monochrome light" variants, from one asset. `MarsheeIcon` does the
+  opposite and pins sage/cream, because an app icon that changes color
+  isn't the same icon.
+- **App-icon PNGs stay square; only in-app uses get rounded corners.** iOS
+  and Android apply their own mask to a home-screen icon, so a pre-rounded
+  source comes out double-rounded. `MarsheeIcon` bakes in `rx` because it's
+  a UI element, not an OS icon.
+
 ## Color semantics
 
 - Tokens are named by **job**, not appearance — `--surface`, `--muted`,
   `--danger`, `--accent`, `--warn-soft`, `--danger-soft` — in `globals.css`,
   with light and dark values. New tokens are added only when a real screen
   needs one.
+- **The brand palette is the *source*, not the token values.** Brand colors
+  are chosen to look good; UI tokens must also be *readable*. Raw Sage
+  (#A8B498) is 2.18:1 on white and fails WCAG AA outright as an interactive
+  color; raw Warm Gray (#8C847A) is 3.69:1 and also fails. So `--accent` is
+  a deepened sage (#5A6B4F, 5.75:1) and `--muted` a deepened warm gray
+  (#6F6A60, 5.38:1). Every text-bearing pair in `globals.css` clears 4.5:1,
+  and the comments there record each derivation. **Do not "correct" a token
+  back to its raw brand hex** — that reintroduces a real accessibility bug,
+  and the comment beside it says so.
+- **Dusty Blue (#8EAFC0) is reserved and currently has no job.** It is part
+  of the brand but no screen needs it yet. Leave it unassigned rather than
+  inventing a use — a token exists when a screen needs it, per the rule
+  above.
+- **Typography has three faces, each with one job.** Manrope (`--font-display`)
+  for headings, applied globally to `h1`–`h3` rather than per-component.
+  Inter (`--font-sans`) for body. Cormorant Garamond italic (`--font-accent`)
+  is used in exactly **one** place — the login page's tagline. That
+  restraint is the design decision; a serif italic used widely would fight
+  the app's plain, quick-scanning voice.
 - **Semantic truth:** red means urgent/destructive, never decoration; before
   coloring anything "good," confirm more/higher is actually good in context.
 - Fixed data-category palettes (e.g. the nutrition donut's three macro

@@ -1,4 +1,4 @@
-# STRUCTURE.md — Marsh HQ
+# STRUCTURE.md — Marshee
 
 Captain's constitution for this repo. It codifies the layout and boundaries
 the project already holds (full reasoning in CLAUDE.md); Captain gates
@@ -17,6 +17,7 @@ structural changes against it.
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
 | `prisma/` | Schema, **additive-only** migrations, scoped seed/clean scripts, and `bootstrap-*` scripts — interactive, prompt-driven, idempotent (upsert-keyed) creators of *real* household data, which deliberately have **no** clean counterpart | Blanket `deleteMany` seed scripts; any clean/reset script targeting a table that holds real hand-entered household data — the `User` table above all |
+| `brand/` | Master brand vectors (`marshee-mark.svg`, `marshee-wordmark.svg`, `marshee-app-icon.svg`) — the source every other brand asset is generated from. Committed so the artwork and the generated files can't silently drift; **never imported by app code** (the components in `src/components/` carry their own copy of the path data, generated from these) | Generated output — the icon PNG/ICO files live in `src/app/` as Next's file conventions require; anything the app imports at build or runtime |
 | `alexa/` | Alexa skill configuration data (the interaction model), committed so the developer console and the repo can't silently drift. Hand-copied into Amazon's console; never imported by app code | Anything the app imports at build or runtime |
 
 ## Boundary rules
@@ -137,6 +138,13 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it
+- `brand/` — the logo artwork. The two `Marshee*.tsx` components and the
+  `src/app/` icon files are all **generated from** these masters; a
+  hand-drawn or re-traced second version of the mark or wordmark is a
+  BLOCKER. (An approximation already exists in
+  `~/Desktop/marshee_brand_assets/` and is explicitly not a source — its
+  mark is missing the M's centre descender despite its README claiming to
+  be authoritative.)
 - `src/lib/personInfo.ts` — `PERSON_SELECT` / `toPersonInfo`, the single
   place a `User` row becomes something a client may see. **This is the
   security-relevant one**: it builds the public shape field by field so a

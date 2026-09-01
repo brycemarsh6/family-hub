@@ -231,7 +231,7 @@ async function addOnePerson(colorIndex: number): Promise<Summary> {
 }
 
 async function main() {
-  console.log("Marsh HQ — add household members (accounts and profiles).");
+  console.log("Marshee — add household members (accounts and profiles).");
   console.log(
     "Re-running with the same display name updates that person instead of duplicating them.\n",
   );

@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { getVerifiedUser } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { toRole } from "@/lib/constants";
+import { MarsheeIcon } from "@/components/MarsheeIcon";
+import { MarsheeWordmark } from "@/components/MarsheeWordmark";
 import { LoginForm } from "./LoginForm";
 
 // Reads the session cookie, so it can never be cached.
@@ -56,7 +58,17 @@ export default async function LoginPage() {
 
   return (
     <div className="mx-auto flex max-w-sm flex-col justify-center py-16">
-      <h1 className="text-3xl font-bold tracking-tight">Marsh HQ</h1>
+      <h1 className="flex flex-col items-center gap-2">
+        <MarsheeIcon className="h-16 w-16" />
+        <MarsheeWordmark className="h-9 w-auto" />
+      </h1>
+      {/* The brand sheet's own tagline, in Cormorant Garamond italic — the
+          ONLY place that font is used anywhere in the app. That restraint
+          is deliberate: an accent serif is for one quiet moment of brand
+          voice, not a face to sprinkle around. */}
+      <p className="mt-1 text-center font-accent text-base italic text-muted">
+        A family hub app designed to bring what matters together.
+      </p>
 
       {accounts.length === 0 ? (
         // No dead form — an honest state naming the actual fix, matching

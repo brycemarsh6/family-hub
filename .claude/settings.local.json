@@ -57,7 +57,8 @@
       "Bash(git commit -m ' *)",
       "Bash(grep -iE \"^\\(carrot|milk|beef|croissant|snowflake|package|cup-soda|spray-can|shopping-bag|refrigerator|archive|fish|drumstick|wheat\\)\\\\.js$\")",
       "Bash(curl -s http://localhost:3000/groceries)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/groceries)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/groceries)",
+      "Bash(npx eslint *)"
     ]
   }
 }

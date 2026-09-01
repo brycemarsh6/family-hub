@@ -39,9 +39,16 @@ export function PantryRow({
                 heading above or the selected filter chip. */}
             <span className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
               {/* "Out" and "Low" are different problems: one means don't plan
-                  dinner around it, the other means pick some up soon. */}
+                  dinner around it, the other means pick some up soon — so
+                  they differ by *background*, not just text color. Out is
+                  danger-soft, Low is warn-soft, matching the identical
+                  distinction ExpiringRow already makes between "overdue" and
+                  "this week". Both once shared warn-soft, leaving only the
+                  text hue to tell them apart; those two hues measure 1.20:1
+                  against each other, so the signal was invisible to a
+                  color-blind reader and faint to everyone else. */}
               {item.quantity === 0 ? (
-                <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-danger">
+                <span className="rounded-full bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger">
                   Out
                 </span>
               ) : (

@@ -7,39 +7,69 @@
    what they look like ("beige", "grey"). That way switching to dark mode — or
    changing the accent colour later — happens here, once, and every screen
    follows along.
+
+   These values are the Marshee brand palette (Sage, Dusty Blue, Peach,
+   Cream, Butter, Warm Gray, Charcoal — see the Marshee Brand Blueprint),
+   mapped onto the job-named tokens above. Several brand colours don't pass
+   WCAG AA contrast when used raw for text or interactive elements, so those
+   specific tokens use a *derived* shade (darkened or lightened from the
+   brand hex) instead of the literal brand colour — each comment below says
+   which brand colour it comes from and, where a derivation happened, why.
+   Never "simplify" one of these back to the raw brand hex — it was moved on
+   purpose, to stay readable. Ratios were computed and checked against real
+   AA thresholds (4.5:1 for normal text) before being chosen.
    --------------------------------------------------------------------------- */
 
 :root {
-  --bg: #faf8f5; /* page background — warm off-white, easier on the eye than pure white */
-  --surface: #ffffff; /* cards and rows sitting on top of the background */
-  --surface-2: #f3efe9; /* subtle fills: section headers, pressed states */
-  --fg: #1c1917; /* main text */
-  --muted: #78716c; /* secondary text: units, counts, hints */
-  --line: #e7e1d8; /* borders and dividers */
-  --accent: #15803d; /* primary green — buttons, active nav */
-  --accent-fg: #ffffff; /* text on top of the accent colour */
-  --accent-soft: #dcfce7; /* tinted background for accent-ish chips */
-  --warn: #b45309; /* the "running low" badge */
-  --warn-soft: #fef3c7;
-  --danger: #b91c1c; /* delete */
-  --danger-soft: #fee2e2; /* the "eat now" badge on the Expiring page */
+  --bg: #f6f0e8; /* Cream, brand-exact — page background */
+  --surface: #ffffff; /* cards and rows sitting on top of the cream background */
+  --surface-2: #ede6d9; /* cream deepened a step — fill only (section headers, pressed states), not used for text */
+  --fg: #4e5256; /* Charcoal, brand-exact — 7.88:1 on white, 6.96:1 on cream, easily passes AA */
+  --muted: #6f6a60; /* Warm Gray darkened — the raw brand grey (#8c847a) is only 3.69:1 on white and fails AA; this is 5.38:1 on white / 4.75:1 on cream */
+  --line: #e2d9c9; /* cream/warm-gray border — decorative only, never carries text, so it doesn't need to pass a contrast ratio */
+  --accent: #5a6b4f; /* Sage deepened for interaction — raw Sage (#a8b498) is only 2.18:1 on white and fails AA; this is 5.75:1 on white / 5.08:1 on cream */
+  --accent-fg: #f6f0e8; /* Cream text on top of the deep sage accent — 5.08:1, and it's the brand's own Cream, not an invented white */
+  --accent-soft: #e4e9dc; /* Sage lightened — tinted background for accent-ish chips; --accent on top of this is 4.65:1 */
+  --warn: #8a6410; /* Butter deepened — raw Butter (#f4d26b) is far too light for text; this is 5.37:1 on white / 4.53:1 on --warn-soft */
+  --warn-soft: #faebc3; /* Butter lightened — the "running low" badge background */
+  --danger: #a63a2a; /* a brick red from the Peach family — red still reads as red, but Peach itself (#f3b99e) is too light for text; this is 6.44:1 on white / 5.14:1 on --danger-soft */
+  --danger-soft: #f9e1d6; /* Peach lightened — the "eat now" badge on the Expiring page */
+
+  /* --- brand artwork colour, NOT a job token -------------------------------
+     Brand Sage exactly as the blueprint specifies it. This is deliberately
+     the *raw* brand green, unlike --accent, which is a deepened derivation
+     built to pass contrast as an interactive colour. The two are not
+     interchangeable: --accent is for buttons and links, this is for the
+     logo.
+
+     It is intentionally the same value in light and dark mode, for the same
+     reason MarsheeIcon pins its sage tile — a logo that changes colour
+     between themes isn't the same logo.
+
+     Contrast note, so nobody "fixes" this later: on the light header it is
+     only 2.18:1, which would fail WCAG AA for *text*. It isn't text — WCAG
+     explicitly exempts logotypes from contrast minimums — and the wordmark's
+     strokes are thick enough to carry it at its rendered size. On the dark
+     header it's 7.12:1. If it ever needs more weight in light mode, the fix
+     is `text-accent` on the wordmark, not editing this value. */
+  --brand-sage: #a8b498;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #17150f;
-    --surface: #221f19;
-    --surface-2: #2c2820;
-    --fg: #f5f1ea;
-    --muted: #a8a29e;
-    --line: #38332a;
-    --accent: #4ade80;
-    --accent-fg: #14210f;
-    --accent-soft: #1e3a26;
-    --warn: #fbbf24;
-    --warn-soft: #3a2e11;
-    --danger: #f87171;
-    --danger-soft: #3f1a1a;
+    --bg: #1c1b16;
+    --surface: #262420;
+    --surface-2: #302d27;
+    --fg: #f6f0e8; /* Cream, brand-exact — main text on the dark background */
+    --muted: #a9a296; /* lightened for dark mode — 6.81:1 on --bg, 6.12:1 on --surface */
+    --line: #3b372f;
+    --accent: #b7c3a6; /* a light sage — dark surfaces need a *lighter* accent than light mode's deep one; 8.39:1 on --surface */
+    --accent-fg: #232b1c; /* dark text on top of the light accent — 7.93:1 */
+    --accent-soft: #2c3324;
+    --warn: #f4d26b; /* Butter, brand-exact — the light background it failed on in light mode isn't a problem here; 11.72:1 on --bg, 10.53:1 on --surface */
+    --warn-soft: #3d3212;
+    --danger: #e89078; /* a lighter Peach-family red for a dark background — 7.14:1 on --bg, 6.41:1 on --surface, 5.84:1 on --danger-soft */
+    --danger-soft: #472018;
   }
 }
 
@@ -59,17 +89,33 @@
   --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-brand-sage: var(--brand-sage);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Named --font-inter/--font-manrope/--font-accent-serif (not --font-sans
+     etc.) by the next/font calls in layout.tsx, specifically so they don't
+     collide with the Tailwind theme keys being defined right here — a
+     Tailwind key defined as its own name (e.g. `--font-sans: var(--font-sans)`)
+     is a self-reference and silently falls back to nothing. */
+  --font-sans: var(--font-inter); /* Inter — body text */
+  --font-display: var(--font-manrope); /* Manrope — headings; also usable directly via the font-display utility class */
+  --font-accent: var(--font-accent-serif); /* Cormorant Garamond — the login page's tagline only, see login/page.tsx */
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   /* Stops iOS Safari inflating text in landscape. */
   -webkit-text-size-adjust: 100%;
+}
+
+/* Headings render in the display face (Manrope) app-wide, so every one of
+   the ~50 components with an <h1>/<h2>/<h3> picks it up automatically
+   instead of needing a font-display class added by hand everywhere. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), system-ui, sans-serif;
 }
 
 /* Don't let a stray wide element cause the whole page to scroll sideways on a

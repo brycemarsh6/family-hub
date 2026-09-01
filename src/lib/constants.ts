@@ -286,15 +286,33 @@ export const ASSIGNABLE_ROLES: readonly Role[] = ROLES.filter((role) => role !==
 // existing row still points at a name that's still in the list; storing
 // the hex directly would strand every existing person on a color that no
 // longer exists the moment the palette changes.
+//
+// Retuned for the Marshee brand (2026-08-31). These used to be the stock
+// vivid web colors (#2563eb, #dc2626, ...), which read as loud and generic
+// against the app's sage-and-cream palette. Each is now warmer and less
+// saturated, in the same family as its own name.
+//
+// Two hard constraints, both measured rather than eyeballed, because
+// retuning by taste alone is how the previous set went wrong:
+//   1. White text must clear WCAG AA (4.5:1) on every swatch. The OLD set
+//      genuinely failed this on three colors — green was 3.30:1, amber
+//      3.19:1, teal 3.74:1 — even though the comment above claimed white
+//      stayed legible on all of them. Every swatch below is 4.6:1 or
+//      better.
+//   2. They must stay tellable apart at a glance, since that's the entire
+//      job of an avatar color. Minimum pairwise perceptual distance is
+//      ΔE 23 (closest: blue/teal), comfortably above the ~10 where colors
+//      start getting confused.
+// Re-check both if any value here is ever changed.
 export const AVATAR_COLORS = [
-  { name: "blue", hex: "#2563eb" },
-  { name: "red", hex: "#dc2626" },
-  { name: "green", hex: "#16a34a" },
-  { name: "amber", hex: "#d97706" },
-  { name: "purple", hex: "#9333ea" },
-  { name: "teal", hex: "#0d9488" },
-  { name: "pink", hex: "#db2777" },
-  { name: "slate", hex: "#4b5563" },
+  { name: "blue", hex: "#41708c" },
+  { name: "red", hex: "#a6432f" },
+  { name: "green", hex: "#5c7a42" },
+  { name: "amber", hex: "#9a6b1a" },
+  { name: "purple", hex: "#6e5478" },
+  { name: "teal", hex: "#2f6f68" },
+  { name: "pink", hex: "#a04e68" },
+  { name: "slate", hex: "#5e5952" },
 ] as const;
 
 // `(typeof AVATAR_COLORS)[number]["name"]` — the same derivation pattern as

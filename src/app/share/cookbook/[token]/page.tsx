@@ -140,7 +140,7 @@ export default async function SharedCookbookPage({
       )}
 
       <p className="mt-10 border-t border-line pt-4 text-sm text-muted">
-        Shared from Marsh HQ.
+        Shared from Marshee.
       </p>
     </div>
   );

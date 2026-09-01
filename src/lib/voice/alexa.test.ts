@@ -140,13 +140,13 @@ test("speech: can leave the session open", () => {
 
 test("speechWithReprompt: includes both outputSpeech and a reprompt, session open", () => {
   const result = speechWithReprompt(
-    "Tell Marsh HQ what you need.",
+    "Tell Marshee what you need.",
     "I didn't catch that — what would you like to do?",
   );
   assert.deepEqual(result, {
     version: "1.0",
     response: {
-      outputSpeech: { type: "PlainText", text: "Tell Marsh HQ what you need." },
+      outputSpeech: { type: "PlainText", text: "Tell Marshee what you need." },
       reprompt: {
         outputSpeech: {
           type: "PlainText",
