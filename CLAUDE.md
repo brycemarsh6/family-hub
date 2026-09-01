@@ -4088,3 +4088,32 @@ the Avengers (5 agent definitions + the /avengers skill) are committed into
 (Codex reads AGENTS.md, not CLAUDE.md) see it. Next steps on the
 professionalization path, in order: a GitHub Actions gauntlet on PRs +
 branch protection on main, then trying claude.ai/code from other devices.
+
+---
+
+## Session, 2026-09-01 (continued): CI + branch protection
+
+**`.github/workflows/ci.yml` runs the gauntlet on every PR and every push
+to main** — the same four commands every mission always had to pass, now
+enforced by a machine that can't forget. Deliberately zero secrets in CI:
+env values are dummies, which works because the gauntlet never touches a
+real database (the loginRateLimitPolicy split keeps tests pure, and every
+page is force-dynamic so build renders no data). This was verified locally
+under exact CI conditions — .env hidden, dummies exported — before the
+workflow was ever pushed, not assumed from reading the scripts.
+
+**With branch protection on `main` (GitHub ruleset), the workflow for ALL
+changes — every agent, every tool, every device — becomes:**
+
+1. Branch (`git checkout -b <topic>`)
+2. Commit there; push the branch
+3. Open a PR (Vercel builds a preview deployment automatically)
+4. The Gauntlet check must be green
+5. Merge → push to main → Vercel deploys production
+
+**Direct pushes to main are blocked, including for admins.** The escape
+hatch for a genuine emergency is deactivating the ruleset in GitHub
+Settings → Rules — deliberately a human-only step. The four-times-bitten
+"finished but unpushed" lesson now has a corollary: finished-but-unmerged.
+The shipped check becomes "is the PR merged and the deploy live," not just
+"is it pushed."

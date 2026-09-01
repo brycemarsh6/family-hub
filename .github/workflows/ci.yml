@@ -1,0 +1,48 @@
+# The gauntlet, run by GitHub on every pull request and every push to main.
+#
+# This is the same four commands every mission has always had to pass
+# locally (see CLAUDE.md's gauntlet sections) — now enforced by a machine
+# that can't forget, on every change, from any device or tool.
+#
+# Deliberately NO secrets in here: the env values below are dummies. The
+# gauntlet never talks to a real database (tests are pure by design — the
+# loginRateLimitPolicy split exists exactly so `npm test` can't reach a
+# database), and every page is force-dynamic so `next build` renders no
+# data. If a future change makes any of these steps need a *real* secret,
+# treat that as a design smell to fix in the change, not a reason to add
+# secrets to CI.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  gauntlet:
+    name: Gauntlet
+    runs-on: ubuntu-latest
+    env:
+      # Dummy values, never real. DATABASE_URL points at a host that does
+      # not exist in CI; nothing in the gauntlet connects to it.
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      SESSION_SECRET: "ci-dummy-session-secret-not-used-anywhere-real"
+      VOICE_API_TOKEN: "ci-dummy-voice-token"
+      ALEXA_SKILL_ID: "amzn1.ask.skill.00000000-0000-0000-0000-000000000000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # npm ci also runs the postinstall `prisma generate` (schema-only,
+      # no database contact).
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npx eslint .
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
