@@ -4117,3 +4117,13 @@ Settings → Rules — deliberately a human-only step. The four-times-bitten
 "finished but unpushed" lesson now has a corollary: finished-but-unmerged.
 The shipped check becomes "is the PR merged and the deploy live," not just
 "is it pushed."
+
+**Postscript, same session — the PR loop is now fully automated.** Branch
+protection was verified in both directions (a probe direct-push to main was
+rejected citing both rules; PR #1 with a green Gauntlet merged cleanly),
+and the GitHub CLI (`gh` 2.98.0, checksum-verified against the official
+release, installed to `~/.local/bin`, authenticated as brycemarsh6 via
+one-time device flow) closes the loop: Claude creates PRs, watches checks,
+and merges from the terminal. Bryce's workflow is unchanged — he asks,
+Claude handles branch → PR → green → merge. GitHub.com is no longer a
+required stop for routine work.
