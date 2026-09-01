@@ -3955,3 +3955,80 @@ account would have had full write power had it reached the cutover.
   is whatever he named it, and only he can rename it in the Shortcuts app.
   Same for the parked Alexa skill, whose invocation name is already
   `marshee` in `alexa/interaction-model.json`.
+
+---
+
+## Session, 2026-08-31: the Marshee rebrand (shipped to production)
+
+**Marsh HQ is now Marshee**, rebranded end to end and live for the family
+(commit `b9fa618`, verified against the production URL, not assumed —
+production served the *old* build for ~30s after the push, which is exactly
+the "pushed ≠ deployed" trap this file records twice before).
+
+**Bryce supplied real vectors himself**, which changed the plan: no tracing
+was needed. `brand/` now holds the three masters and is the source of truth
+— icons and components are generated from them. See the Brand section in
+DESIGN.md and the `brand/` row in STRUCTURE.md for the rules; the short
+version is **recolor via `fill`, never redraw**, and if a new logo file
+shows up, overlay it against the master first (the "Sage Wordmark" he sent
+turned out to be identical artwork, only recolored, so it became a
+`--brand-sage` token instead of a second copy of the paths).
+
+**The rebrand itself was 13 token values.** 821 token-based color utilities
+across 109 `.tsx` files followed automatically, and there are zero hardcoded
+Tailwind palette colors in `src/`. The colors-named-by-job rule, followed
+since the first week of this project, is what made a whole-app rebrand a
+one-file change. Worth remembering the next time that rule feels like extra
+ceremony.
+
+**Three bugs found that had nothing to do with branding**, all by *measuring
+what a comment merely claimed*:
+1. The regenerated `favicon.ico` embedded **RGB** PNG frames; Turbopack's
+   ICO decoder requires RGBA, and since favicon is a Next file convention,
+   it 500'd **every route**. Headless Chrome writes RGB when the page
+   background is opaque — convert with PIL before assembling an `.ico`.
+2. **Three `AVATAR_COLORS` failed WCAG AA** against the white initials
+   rendered on them (green 3.30:1, amber 3.19:1, teal 3.74:1) while
+   `AvatarBadge`'s comment said legibility was "verified visually against
+   all 8 colors." All eight retuned; every one ≥4.6:1, min pairwise ΔE 23.
+3. **Inventory rendered Out and Low on the same `warn-soft` background**, so
+   only text hue separated them — and those hues are **1.20:1** apart,
+   invisible to a color-blind reader. Out now uses `danger-soft`, matching
+   what `ExpiringRow` already did. The file's own comment already said "Out
+   and Low are different problems."
+
+**The `* 2.ts` files are iCloud, not a build race — correcting this file.**
+The C4 and C6 entries above attribute transient `.next/types/* 2.ts`
+duplicate-identifier errors to a dev-server/build race. That diagnosis is
+wrong. This repo sits in `~/Documents`, which macOS syncs to iCloud Drive,
+and " 2"/" 3" is iCloud's conflict-copy naming. It interfered three times in
+this session and also produced `src/app/(app)/layout 2.tsx`. When a
+typecheck fails on duplicate identifiers, run
+`find . -path ./node_modules -prune -o -name "* [0-9].*" -print` and delete
+the strays first. **The real fix — not yet done — is moving the repo out of
+`~/Documents` or excluding it from sync.**
+
+**One thing the rename could not reach:** Bryce's **Siri Shortcut** is named
+on his phone, not in this repo. `/api/voice` is untouched so it still works,
+but its spoken trigger is whatever he named it, and only he can change that
+in the Shortcuts app.
+
+### Next up — the dashboard (Bryce's own ask, 2026-08-31)
+
+**Bryce asked to be reminded that optimizing the dashboard is what he wants
+to build next.** In his words: the most highly used functions should live on
+a "super clean dashboard that also serves as quick links to things that we
+use the most."
+
+`/` currently shows only live counts and a Kitchen card — it's the least
+developed surface in an app whose branches are now deep. Every branch got
+built before the front door.
+
+The question the code can't answer is *which* functions the family actually
+uses most; that's Bryce and Emily's real habits, not a guess. But the app
+can partly answer it from real data (`VoiceChange` logs what voice touched,
+`GroceryItem`/`PantryItem` timestamps show what gets edited), so proposing
+two or three candidate layouts beats opening with an open-ended question.
+Constraint that still holds: **the bottom nav reaches branch roots only and
+never changes contents**, so the dashboard is a tiles/quick-links surface
+like a landing page — not a second nav bar.
