@@ -4127,3 +4127,41 @@ one-time device flow) closes the loop: Claude creates PRs, watches checks,
 and merges from the terminal. Bryce's workflow is unchanged — he asks,
 Claude handles branch → PR → green → merge. GitHub.com is no longer a
 required stop for routine work.
+
+---
+
+## Session note, 2026-09-01: the repo moved out of iCloud
+
+**The repo now lives at `~/Developer/family-hub`, not `~/Documents/family-hub`.**
+Documents is synced to iCloud Drive, and iCloud does not understand git: when
+it saw the same file change in two places it wrote conflict copies —
+`layout 2.tsx`, `cache-life.d 2.ts`, `cache-life.d 3.ts` — which break
+`tsc` with duplicate-identifier errors. It interfered three separate times in
+two days, and **this file misdiagnosed it twice** (the C4 and C6 entries call
+it a build/dev-server race; it never was). `~/Developer` is not synced, so the
+class of problem is gone rather than worked around.
+
+The move was `mv` after confirming a clean tree (0 uncommitted, 0 ahead, 0
+behind, 0 stashes). Gitignored files that git could never have restored —
+`.env`, `.env.backup-preneonsplit`, `.claude/settings.local.json` — came along
+with the directory. `.next` and `node_modules` were deleted first (1.8G → 17M,
+both regenerable), then `npm ci` + `npx prisma generate` at the new path.
+Gauntlet green afterward: tsc, eslint, 106 tests, build. GitHub and Vercel are
+entirely unaffected — neither knows or cares where the working copy sits.
+
+**Two things a fresh session should know:**
+- **Claude Code keys its per-project state to the folder path**, so
+  `~/.claude/projects/-Users-brycemarsh-Documents-family-hub/` (memory files
+  and transcripts) was copied to `…-Users-brycemarsh-Developer-family-hub/`.
+  The old directory is left in place, harmless, in case anything else refers
+  to it.
+- **A session started before the move stays anchored to the old path** — its
+  preview/dev-server tooling looks for `~/Documents/family-hub` and fails.
+  Restarting Claude Code from `~/Developer/family-hub` fixes it. Nothing is
+  wrong with the repo when that happens.
+
+**On local vs. GitHub, since the question came up:** the local clone falling
+behind is normal and is what `git pull` is for — multiple clones drifting and
+re-syncing on demand is git's design, not a problem. That was never the reason
+to leave iCloud. The reason is that iCloud was trying to do git's job, badly,
+on top of git already doing it correctly.
