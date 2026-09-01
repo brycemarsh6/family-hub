@@ -4015,6 +4015,10 @@ in the Shortcuts app.
 
 ### Next up — the dashboard (Bryce's own ask, 2026-08-31)
 
+*(✅ Built 2026-09-01 — see "the dashboard became four data tiles" at
+the end of this file. Kept below as the record of what was asked for and
+why; the constraint in the last paragraph still holds for future tiles.)*
+
 **Bryce asked to be reminded that optimizing the dashboard is what he wants
 to build next.** In his words: the most highly used functions should live on
 a "super clean dashboard that also serves as quick links to things that we
@@ -4165,3 +4169,161 @@ behind is normal and is what `git pull` is for — multiple clones drifting and
 re-syncing on demand is git's design, not a problem. That was never the reason
 to leave iCloud. The reason is that iCloud was trying to do git's job, badly,
 on top of git already doing it correctly.
+
+---
+
+## Session, 2026-09-01: the dashboard became four data tiles
+
+**The front door is real.** `/` was a single Kitchen card with three counts
+— the least-developed surface in an app whose branches had all grown deep.
+It's now four tiles reading live data: **Today's meals** (wide, top),
+**Inventory** and **Grocery** side by side, **Recipes** (wide, bottom).
+Shipped as Avengers mission-7, merged as PR #3. The mission file
+(`.avengers/missions/mission-7-dashboard-tiles.md`) and the approved plan
+(`.avengers/plans/dashboard-tiles.md`) are the authoritative record; this
+entry is the summary.
+
+**Provenance of this entry, since it matters for how much to trust it:**
+it was written *after* the fact from a Claude Code **web** session,
+reconstructed from the mission file and the commit messages — not by the
+session that did the build. Everything below traces to those artifacts.
+Anything that lived only in the original session's memory is not here, and
+the mission file's gate ledger is the deeper record. That the
+reconstruction was possible at all is the strongest evidence so far that
+the Avengers' habit of writing contracts and gate verdicts into the repo
+is worth its cost: the work was recoverable a day later, from a different
+device, by a session that had never seen it.
+
+**Decisions already made with Bryce — don't re-litigate these:**
+
+- **Today's meals is wide and on top** because it's the only tile whose
+  content changes daily. Inventory and Grocery pair 2-up; Recipes goes
+  wide at the bottom.
+- **The old Kitchen card is replaced entirely, not demoted.** The bottom
+  nav still reaches the Kitchen branch, so nothing is orphaned — and the
+  standing rule holds: the nav reaches branch roots only, so the dashboard
+  is a tiles surface like a landing page, never a second nav bar.
+- **Badges only where a count means "go look"** (Inventory, Grocery),
+  inheriting `BranchTile`'s badge philosophy rather than inventing a
+  second one. The whole tile is the tap target; no inner interactive
+  elements.
+- **Inventory shows the 2–3 *most urgent* low item names**, Out first.
+  There is no "staples" concept in the data to rank by — flagged to Bryce
+  as a someday feature needing a per-item flag, not faked in the meantime.
+- **More tiles are expected** ("in the future I will be adding more"), so
+  `DashboardTile.tsx` is a shared shell from day one rather than four
+  hand-rolled cards.
+
+**The `(home)` route group, and why it exists:** the dashboard needed its
+own tile-shaped `loading.tsx`, but `(app)/loading.tsx` is simultaneously
+the dashboard's Suspense boundary *and* the catch-all for calendar,
+chores, lists, and settings. Two `loading.tsx` can't share a segment, and
+reshaping the shared one would mis-shape four other routes. A route group
+gives `/` a private boundary; route groups are URL-invisible, so the path
+is unchanged. `(app)/loading.tsx` stays exactly as it was for everyone
+else.
+
+**One new data pattern, owned by a comment in the page:** the meal query
+fetches plans with `weekStart` inside `[serverNow − 8d, serverNow + 8d]`.
+The server clock is used for **window tolerance only, never for "today"** —
+the ±8 days is wide enough to always contain the client's true current
+week despite the Vercel-UTC / Mountain skew, while *which* week is current
+stays client-side in `useToday()`, per the rule established in M1. Kitchen's
+tolerated server clock is a different thing (an expiring window), which is
+why this one needed its own justification rather than citing that
+precedent.
+
+### What the gates caught — the strongest pass either has produced
+
+Both gates BLOCKED on pass 1 (Vision 1 blocker, Strange 2) and both PASSED
+on pass 2. Three findings are worth carrying past this feature:
+
+**1. Both gates independently found the same defect, from opposite
+directions.** The meals tile shifted the page ~16px the moment `today`
+resolved — Strange by measuring rendered rows in a browser, Vision by
+reading the compiled CSS (`h-4` placeholder = 16px vs a `text-sm` resolved
+line box = 20px). Two methods, one bug, on a contract that had promised
+"fixed min-h so no layout shift" **in writing**. A promise in a contract is
+not a property of the code, and this is the clearest demonstration yet that
+the two gates aren't redundant.
+The fix went further than either asked: `h-5` is pinned on the row `div`
+itself, so row height no longer depends on its children in either branch —
+the frames are equal **by construction rather than by coincidence of child
+metrics**. Vision explicitly noted this is stronger than its own
+suggestion. Worth the same treatment anywhere a loading and a resolved
+state must agree.
+
+**2. A browser found what no amount of reading could: the icon on
+Inventory and Grocery was flex-crushed to *zero width* at 375px.** A
+half-width tile's header has ~131px; icon + title + badge want ~161px, and
+flex resolved the overflow by erasing the icon entirely. Two of four tiles
+silently lost their icon **on the exact screen DESIGN.md names as the
+target**, while rendering perfectly on a laptop. Fixed with `flex-wrap`
+plus a `shrink-0` icon slot, so the badge drops to its own line instead.
+This is the recurring lesson of this project stated once more: verify at
+375px, in a browser, or you are verifying the wrong device.
+
+**3. Skeleton heights were guessed, not measured — the precise failure
+skeletons exist to prevent.** The meals block was `h-56` (224px) for a tile
+that renders at 164px, so the page snapped up ~60px on every cold load.
+All four now carry measured heights (164/182/182/108). `h-56` survives only
+inside `loading.tsx`'s own comment, as the record of what went wrong.
+**A skeleton whose height you didn't measure is a layout shift you
+haven't noticed yet.**
+
+**The design question the mission was least sure about, and Strange passed
+it:** an unplanned day renders four "—" rows rather than collapsing to a
+single "Nothing planned today" line (which the plan originally specified,
+and which left ~150px of blank space on the app's most prominent tile).
+It reads as honest rather than broken because the app now has two distinct
+vocabularies here — **loading is grey bars, *nothing* is a crisp glyph** —
+and a genuine failure throws to the error boundary rather than rendering
+dashes. Worth reusing: an empty state and a loading state must not be able
+to be mistaken for each other.
+
+**One latent consequence, deliberately written into the code rather than
+left to be discovered.** The badge-wrap fix dropped the `ml-auto` that used
+to pin a badge right. Neither wide tile has a badge today, so nobody can
+see it — but a future badge on a wide tile would sit inline after the
+title, and the obvious "fix" (re-adding `ml-auto`) would silently bring
+back the crushed icons. `DashboardTile.tsx:52-59` carries the explanation
+so whoever adds the first one **decides** instead of discovering. This is
+the house pattern for a trap you can't currently trigger: comment it where
+the next person will stand, not in a plan file they won't read.
+
+**Also fixed on the way through:** an unreachable `count > 0` filter in
+`dashboard.ts` (Vision); "Amazon 2" orphaning a bare "2" across a line
+break (both gates), joined with a non-breaking space; and the plan file
+itself reconciled with what shipped — it still described the superseded
+"Nothing planned today" line and overstated that the dashboard's per-store
+counts match Shopping's chips. **They agree only while nothing is checked
+off:** the dashboard deliberately counts *unchecked* items ("to buy" means
+still to buy), whereas `GroceryList.tsx` counts every row including
+checked-but-not-put-away ones. That reconciliation matters — a contract
+record that contradicts the code is worse than no record.
+
+`npm test` went 90 → 106 (16 new cases in `src/lib/dashboard.test.ts`,
+covering `todaysMeals` including the real Nov 1 2026 DST week,
+`storeBreakdown`, and `urgentLowItems`). The test file **must** live in
+`src/lib/` — the `npm test` glob only reaches `src/lib/*.test.ts` and
+`src/lib/voice/*.test.ts`, so a test placed elsewhere silently never runs.
+
+### The recording gap this entry closes
+
+The dashboard shipped and merged, and CLAUDE.md was never updated — it
+still read "Next up — the dashboard" while the dashboard was live. Found a
+day later by a fresh session comparing `git log` against the file.
+
+**This is the fifth time this project has been bitten by the gap between
+doing and recording**, after the forgotten voice push, M1's
+`meal-plan/page.tsx` committed as a content-free rename, the seven unpushed
+Recipes v2 commits, and C4's `recipeFilters.test.ts` that this file claimed
+existed and didn't. The first four were about code; this one is about the
+memory itself, which is arguably worse — a wrong "next up" would have sent
+the next session to build something that already exists.
+
+The standing rule earned a companion: **after any session that claims a
+feature is done, check `git log origin/main..HEAD`** — and now also **check
+that the last session note describes the last merged PR.** The mission file
+said DELIVERED; CLAUDE.md didn't know. Two records, one of them stale, is
+the failure mode to watch for now that the Avengers write their own.
