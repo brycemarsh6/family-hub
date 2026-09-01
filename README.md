@@ -1,5 +1,7 @@
 # Marshee
 
+[![CI](https://github.com/brycemarsh6/family-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/brycemarsh6/family-hub/actions/workflows/ci.yml)
+
 A private web app for the family: groceries and pantry inventory today, with
 room to grow into a shared calendar, chore charts, recipes, and more.
 
