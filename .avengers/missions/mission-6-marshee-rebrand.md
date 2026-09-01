@@ -1,7 +1,7 @@
 # Mission: Marshee rebrand — palette, typography, rename
 
 **Project:** family-hub (Marsh HQ → Marshee)
-**Status:** DELIVERED (uncommitted — awaiting Bryce's go)
+**Status:** DELIVERED (merged and pushed to origin/main)
 **Started:** 2026-08-31 · **Updated:** 2026-08-31
 
 ## Brief
@@ -406,10 +406,12 @@ Vision's NOTEs, and their disposition:
   `build` 0.
 - **Gates:** Vision PASS (0 blockers, 5 notes) · Strange PASS (0 blockers,
   2 notes, one of which became CB6).
-- **Shipped check:** NOT COMMITTED and NOT PUSHED — everything is in the
-  working tree awaiting Bryce's explicit go. `git log origin/main..HEAD`
-  must be re-run after any commit; this repo has been bitten four times by
-  finished-but-unshipped work.
+- **Shipped check:** ✅ **`b9fa618` is on `origin/main`.** Committed on a
+  `marshee-rebrand` branch, gauntlet re-run on the committed tree,
+  fast-forward merged to main, gauntlet run once more on main, then pushed.
+  `git rev-list --count origin/main..HEAD` = **0**; branch deleted after
+  merge. Verified the commit carries real content per file rather than
+  trusting the stat line (the M1 content-free-rename lesson).
 - **Deliberate leftovers:** Dusty Blue #8EAFC0 is in the brand but has no
   UI job yet — deliberately unassigned rather than forced onto a token
   (DESIGN.md records it as reserved). The old house-and-heart art is fully
