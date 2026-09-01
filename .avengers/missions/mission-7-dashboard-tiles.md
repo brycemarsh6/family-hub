@@ -1,7 +1,7 @@
 # Mission: Dashboard rebuild — four data tiles
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (pass 2)
+**Status:** DELIVERED
 **Started:** 2026-09-01 · **Updated:** 2026-09-01
 
 ## Brief
@@ -65,7 +65,38 @@
 |---|---|---|---|---|
 | 1 | Vision | BLOCK | 1 | 5 |
 | 1 | Strange | BLOCK | 2 | 6 |
-| 2 | both | pending re-gate | — | — |
+| 2 | Vision | **PASS** | 0 | 3 |
+| 2 | Strange | **PASS** | 0 | 2 |
+
+**Pass 2 — both PASS.** Vision confirmed the row fix is *stronger* than the
+one it asked for: with `h-5` pinned on the row `div` itself, row height no
+longer depends on its children in either branch, so the loading and
+resolved frames are equal **by construction rather than by coincidence of
+child metrics** — the pass-1 failure mode is structurally gone, not
+patched. It re-verified the ±8-day window, the single `Promise.all`, the
+pure functions, and re-ran the live count cross-checks (all still
+byte-identical to the served SSR).
+Strange re-measured every icon at a true 20×20px and the skeleton at
+164/182/182/108 — matching the real tiles to the pixel — and **endorsed
+Fury's badge-wrap fix over its own suggested option**: both narrow tiles
+wrap identically so the page stays symmetric, and the pill's rounded
+`warn-soft` shape reads as a placed chip wherever it sits, where bare text
+would have looked fallen-off. Keeping icons on all four tiles also removes
+the mobile/desktop inconsistency it originally flagged.
+
+Pass-2 notes, all recorded rather than actioned except the first:
+1. *Latent `ml-auto` consequence* — a future badge on a **wide** tile would
+   now sit inline after the title rather than pinned right, and the obvious
+   "fix" (re-adding `ml-auto`) would silently bring back the crushed icons.
+   **Actioned:** written into `DashboardTile.tsx` as a comment so whoever
+   adds the first wide-tile badge decides rather than discovers.
+2. *Skeleton heights are right for the current data shape* — 0 expiring, a
+   1-line urgent list, or 0 recipes would shrink the real tiles ~20–44px
+   and the skeleton would drift. The file's own comment owns this, and
+   approximate skeletons are the house norm.
+3. *`SkeletonHeader` is ~12px shorter than the real h1 + subtitle*
+   app-wide — pre-existing, out of scope, imperceptible beside the 60px
+   jump this mission fixed.
 
 **Both gates independently found the same defect** — the meals tile shifted
 the page ~16px when `today` resolved — from opposite directions: Strange by
