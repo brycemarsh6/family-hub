@@ -49,6 +49,14 @@ export default function DashboardTile({
         and Grocery silently lost their icons on the exact screen this app
         is designed for, while looking fine on a laptop. Now the badge drops
         to its own line when it doesn't fit and the icon always survives.
+
+        One consequence to know before adding a badge to a *wide* tile
+        (Meals and Recipes have none today): this row dropped the `ml-auto`
+        that used to pin the badge right. On a narrow tile that's what lets
+        it wrap; on a wide one there's room to spare and no wrap to save it,
+        so a badge would sit inline right after the title rather than at the
+        far edge. Decide which you want then — don't just re-add `ml-auto`,
+        or the narrow tiles go back to eating their own icons.
       */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="flex shrink-0 items-center">{icon}</span>
