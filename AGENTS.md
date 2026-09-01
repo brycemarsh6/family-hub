@@ -9,14 +9,20 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This applies to every agent and every tool (Claude, Codex, anything else)
 working in this repo:
 
-- **The dev `DATABASE_URL` currently points at the LIVE family database** —
-  real household inventory (~467 items), real family accounts. Until a
-  dev/prod database split exists (Neon branching — planned), treat every
-  database write as touching production.
-- **NEVER run `npm run db:seed` or `npm run db:reset`.** They replace the
-  family's real inventory with sample data. Test data goes only through the
-  scoped `db:seed-*` / `db:clean-*` scripts, which refuse to delete what
-  they didn't create.
+- **Local dev runs against the Neon `dev` branch** (a copy-on-write clone
+  of production; split done and isolation-proven 2026-09-01). The
+  production connection string lives ONLY in Vercel's env vars — no dev
+  environment should ever hold it. If you find a `DATABASE_URL` whose host
+  is not the dev branch endpoint, stop and say so.
+- **`npm run db:seed` / `npm run db:reset` remain forbidden by default.**
+  Against the dev branch they destroy "only" the disposable copy — but the
+  copy is what makes dev data realistic, and a branch reset (Neon console)
+  is the sanctioned way to refresh it. The scoped `db:seed-*` /
+  `db:clean-*` scripts, which refuse to delete what they didn't create,
+  are still the only test-data mechanism.
+- **The dev branch contains a real snapshot of family data** — including
+  password hashes and personal info. Isolation stops *writes* from reaching
+  production; it does not make the data fake. Treat it as private.
 - **NEVER write a clean/reset script for the `User` table.** It holds the
   family's credentials.
 - Database migrations are **additive only**; review the SQL before applying.

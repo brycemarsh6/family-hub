@@ -175,10 +175,14 @@ Adding a second definition of any of these is a BLOCKER:
 
 ## Danger register (absolute, for every agent)
 
-- **The dev database IS the live family database.** Never `npm run db:seed`
-  or `npm run db:reset`. Test data only via the scoped, fingerprint-matched
-  `db:seed-*` / `db:clean-*` scripts — which refuse to delete what they
-  didn't create.
+- **Local dev uses the Neon `dev` branch — a copy-on-write clone of
+  production — as of 2026-09-01.** The production URL lives only in
+  Vercel's env vars. `npm run db:seed` / `npm run db:reset` stay forbidden
+  by default (they'd wipe the realistic dev copy; a Neon branch reset is
+  the sanctioned refresh); test data still goes only through the scoped,
+  fingerprint-matched `db:seed-*` / `db:clean-*` scripts. The dev branch
+  holds a real snapshot of family data (password hashes included) — writes
+  can't reach production, but the data itself is still private.
 - **Never write a clean/reset script for the `User` table** — it holds the
   family's credentials, and this repo's own seed-script history shows
   blanket-clearing scripts outlive the assumptions that made them safe. The

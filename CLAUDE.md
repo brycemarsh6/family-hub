@@ -4032,3 +4032,59 @@ two or three candidate layouts beats opening with an open-ended question.
 Constraint that still holds: **the bottom nav reaches branch roots only and
 never changes contents**, so the dashboard is a tiles/quick-links surface
 like a landing page — not a second nav bar.
+
+---
+
+## Session, 2026-09-01: the dev/prod database split (Neon branching)
+
+**The single most dangerous fact about this repo — "the dev database IS the
+live family database" — is retired.** Local dev now runs against a Neon
+`dev` branch, a copy-on-write clone of production. Bryce created the branch
+in the Neon console (auto-delete deliberately set to never — the dialog
+defaults to "After 1 day," which would have silently deleted it overnight);
+the connection string travelled clipboard → `.env` via `pbpaste`, never
+through chat, preserving the never-in-chat rule from Phase 2.
+
+**Isolation was proven, not assumed:** a synthetic write on dev moved dev
+467→468 while production stayed 467 and a direct read-only query against
+production found zero matching rows; cleanup returned dev to exactly 467.
+The running app was then verified against the branch (dashboard reads the
+dev copy's real counts; sessions survive, since auth doesn't depend on
+which branch you read).
+
+**What this changes operationally** (danger registers in AGENTS.md and
+STRUCTURE.md both updated):
+- The production URL lives ONLY in Vercel's env vars now. `.env` keeps it
+  as a commented reference line; the active `DATABASE_URL` is the dev
+  branch. A backup of the pre-split `.env` sits at
+  `.env.backup-preneonsplit` (gitignored).
+- `db:seed`/`db:reset` stay forbidden by default — they'd wipe the
+  realistic dev copy. The sanctioned refresh is a **branch reset** in the
+  Neon console (Branches → dev → Reset from parent), which re-clones
+  production instantly. Do that whenever dev data drifts too far stale.
+- The dev branch holds a real snapshot of family data, password hashes
+  included. Write-isolation is not privacy — treat dev data as private.
+
+**Open item this split creates — migrations no longer reach production
+automatically.** Until now, migrating locally migrated prod, because they
+were the same database. The next schema change must apply to production
+deliberately: either wire `prisma migrate deploy` into the Vercel build, or
+run it once against the prod URL at release time. **The first post-split
+migration will silently leave prod behind if this is forgotten** — set up
+the deploy-time step before or with that migration.
+
+**Two small gotchas recorded for reuse:** (1) the old `.env` line wrapped
+its URL in double quotes — dotenv strips them, but shell extraction
+(`grep | sed`) does not, and the stray quote produced a baffling "Can't
+reach database server at base" from the pg parser; strip quotes when
+pulling values out of `.env` by hand. (2) A tsx script outside the repo
+can't resolve the project's bare imports (`dotenv/config`,
+`@prisma/adapter-pg`) — run one-off DB scripts from the repo root with
+`npx tsx --env-file=.env`.
+
+**Also this session:** the repo became self-contained for any-device work —
+the Avengers (5 agent definitions + the /avengers skill) are committed into
+`.claude/`, and AGENTS.md carries the danger register so non-Claude tools
+(Codex reads AGENTS.md, not CLAUDE.md) see it. Next steps on the
+professionalization path, in order: a GitHub Actions gauntlet on PRs +
+branch protection on main, then trying claude.ai/code from other devices.
