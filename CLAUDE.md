@@ -4420,3 +4420,53 @@ write to prod. The fix is a Vercel-console decision for Bryce: give
 Preview its own `DATABASE_URL` pointing at the Neon `dev` branch (the same
 string `.env` uses), so previews get realistic data with zero production
 risk. Worth doing before the next real branch of work.
+
+---
+
+## Session, 2026-09-01: preview deployments moved off the production database
+
+**Every Vercel preview deployment now reads and writes the Neon `dev`
+branch, not production.** Bryce did this in the Vercel console (walkthrough
+style, same as every other credential change in this project): the
+existing `DATABASE_URL` was narrowed from "Production and Preview" to
+**Production only**, and a second `DATABASE_URL` — the dev branch's
+connection string, the same one `.env` uses — was added scoped to
+**Preview only**. The string travelled Neon's Connect dialog → clipboard →
+Vercel, never through chat. Confirmed by screenshot: two `DATABASE_URL`
+rows, one tagged Production, one tagged Preview, both Secret.
+
+**Why this mattered:** since Aug 3, every PR's preview deployment had been
+running against the family's real data — a half-finished PR could write
+to production before anyone reviewed it. Not a bug anyone had hit, but
+exactly the kind of build that shouldn't be able to. Flagged in the
+migrate-on-production entry above; closed here.
+
+**Two Vercel UI details worth knowing the next time an env var changes:**
+
+1. **The Environments dropdown refuses to go to zero.** Unchecking the only
+   ticked environment does nothing. Either check the new one first and
+   *then* uncheck the old, or hover a row and click its **"Only"** link,
+   which selects that one and clears the rest in a single click.
+2. **Vercel won't allow two variables with the same name covering the same
+   environment.** So the existing row has to be narrowed *before* the
+   Preview-only one can be added — do it in that order or the add fails.
+
+**"A new deployment is needed" toast — dismissed on purpose, not
+redeployed.** Production's value didn't change, only its scope, so a
+production redeploy had nothing to pick up. The Preview value applies to
+the next preview build automatically.
+
+**A consequence that's an improvement, not a caveat:** previews now run
+against the dev branch's *schema*. A PR that adds a migration will have had
+`prisma migrate dev` run against the dev branch while it was being built,
+so its preview matches its code. Under the old setup, that same preview ran
+new code against production's *un*migrated schema and could error on a
+column that didn't exist yet.
+
+**Proof of isolation** — the same test the Neon split used: on this very
+PR's preview deployment, the first one built against the dev branch, add a
+grocery item named `ZZZ Preview Test`, confirm it does **not** appear on
+the production shopping list, then delete it on the preview. Result
+recorded below once Bryce has run it.
+
+*(Verification result: pending at the time this note was written.)*
