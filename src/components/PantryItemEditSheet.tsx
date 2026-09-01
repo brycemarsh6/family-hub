@@ -40,7 +40,10 @@ export function PantryItemEditSheet({
   item: PantryItemView;
   onClose: () => void;
   onSave: (edits: PantryItemEdits) => void;
-  onDelete: () => void;
+  /** Omitted entirely (not disabled) for a kid session — deletePantryItem is
+   * parent/admin-only server-side. See PantryList/ExpiringList for where
+   * that decision is made. */
+  onDelete?: () => void;
 }) {
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity);
@@ -220,13 +223,15 @@ export function PantryItemEditSheet({
           >
             Save changes
           </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="min-h-11 w-full rounded-xl text-sm font-medium text-danger transition-colors hover:bg-surface-2"
-          >
-            Delete item
-          </button>
+          {onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="min-h-11 w-full rounded-xl text-sm font-medium text-danger transition-colors hover:bg-surface-2"
+            >
+              Delete item
+            </button>
+          )}
         </div>
       </div>
     </div>

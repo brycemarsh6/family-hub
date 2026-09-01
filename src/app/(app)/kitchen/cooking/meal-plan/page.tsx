@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { BackLink } from "@/components/BackLink";
 import { MealPlanList } from "@/components/MealPlanList";
+import { getVerifiedUser } from "@/lib/dal";
+import { MANAGER_ROLES } from "@/lib/constants";
 import type { MealPlanView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +13,11 @@ export const dynamic = "force-dynamic";
 // src/lib/useToday.ts for why "what week is this" has to be decided by the
 // browser's own clock, never the server's.
 export default async function MealPlanPage() {
+  // Only to decide whether each week's delete button renders below —
+  // deleteMealPlan is the real, server-side gate (mission-6's C1).
+  const user = await getVerifiedUser();
+  const canManage = user !== null && MANAGER_ROLES.includes(user.role);
+
   const [plans, recipes] = await Promise.all([
     db.mealPlan.findMany({
       include: { entries: true },
@@ -44,7 +51,7 @@ export default async function MealPlanPage() {
         This week, and the weeks before it.
       </p>
 
-      <MealPlanList plans={views} recipes={recipes} />
+      <MealPlanList plans={views} recipes={recipes} canManage={canManage} />
     </div>
   );
 }

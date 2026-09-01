@@ -52,7 +52,17 @@ function applyChange(
 
 const ALL = "All";
 
-export function PantryList({ items }: { items: PantryItemView[] }) {
+export function PantryList({
+  items,
+  canManage,
+}: {
+  items: PantryItemView[];
+  /** True for admin/parent sessions — deletePantryItem refuses a kid's
+   * session server-side, so the delete controls below are omitted rather
+   * than shown-and-disabled for one. Computed once on the server (the
+   * page itself) via getVerifiedUser(), not re-derived here. */
+  canManage: boolean;
+}) {
   const [optimisticItems, applyOptimistic] = useOptimistic(items, applyChange);
   const [, startTransition] = useTransition();
   const [filter, setFilter] = useState<string>(ALL);
@@ -161,8 +171,9 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
         ),
       onAddToList: () => setPickingStoreForId(item.id),
       onEdit: () => setEditingId(item.id),
-      onDelete: () =>
-        run({ type: "delete", id: item.id }, () => deletePantryItem(item.id)),
+      onDelete: canManage
+        ? () => run({ type: "delete", id: item.id }, () => deletePantryItem(item.id))
+        : undefined,
     };
   }
 
@@ -332,12 +343,16 @@ export function PantryList({ items }: { items: PantryItemView[] }) {
             );
             setEditingId(null);
           }}
-          onDelete={() => {
-            run({ type: "delete", id: editingItem.id }, () =>
-              deletePantryItem(editingItem.id),
-            );
-            setEditingId(null);
-          }}
+          onDelete={
+            canManage
+              ? () => {
+                  run({ type: "delete", id: editingItem.id }, () =>
+                    deletePantryItem(editingItem.id),
+                  );
+                  setEditingId(null);
+                }
+              : undefined
+          }
         />
       )}
 

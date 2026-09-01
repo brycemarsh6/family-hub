@@ -9,7 +9,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
-import { getVerifiedSession } from "@/lib/dal";
+import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
+import { MANAGER_ROLES } from "@/lib/constants";
 import {
   extractRecipeFromText,
   extractRecipeFromPhotos,
@@ -89,12 +90,21 @@ export async function createRecipe(
   redirect(`/kitchen/cooking/recipes/${recipe.id}`);
 }
 
-/** Same shape as createRecipe, plus a hidden `id` field the form carries. */
+/**
+ * Same shape as createRecipe, plus a hidden `id` field the form carries.
+ *
+ * Gated to admin/parent — editing an existing recipe is management, not
+ * participation ("parents manage, kids participate"); kids can still
+ * create/import new recipes via createRecipe, which stays ungated.
+ */
 export async function updateRecipe(
   _previous: RecipeFormState,
   formData: FormData,
 ): Promise<RecipeFormState> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
 
   const id = String(formData.get("id") ?? "");
   const title = String(formData.get("title") ?? "").trim();
@@ -236,7 +246,12 @@ export type ShareResult = { shareToken?: string | null; error?: string };
  * silently break a link someone already sent.
  */
 export async function shareRecipe(recipeId: string): Promise<ShareResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  // Gated to admin/parent — sharing publishes household data to the public
+  // internet, which is management, not participation.
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
 
   const recipe = await db.recipe.findUnique({
     where: { id: recipeId },
@@ -260,7 +275,11 @@ export async function shareRecipe(recipeId: string): Promise<ShareResult> {
 export async function stopSharingRecipe(
   recipeId: string,
 ): Promise<ShareResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  // Gated to admin/parent — same reasoning as shareRecipe above.
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
 
   const recipe = await db.recipe.findUnique({
     where: { id: recipeId },
@@ -283,7 +302,10 @@ export async function stopSharingRecipe(
  * from no longer exists.
  */
 export async function deleteRecipe(formData: FormData): Promise<void> {
-  if (!(await getVerifiedSession())) return;
+  // Gated to admin/parent — deleting a recipe is management, not
+  // participation; kids can still create/import via createRecipe.
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) return;
 
   const id = String(formData.get("id") ?? "");
   if (!id) return;

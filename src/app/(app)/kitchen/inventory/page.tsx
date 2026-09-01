@@ -5,12 +5,19 @@ import { PantryAddFlow } from "@/components/PantryAddFlow";
 import { AddLowItemsButton } from "@/components/AddLowItemsButton";
 import { ReviewQueueButton } from "@/components/ReviewQueueButton";
 import { buildReviewQueue, type DuplicateCandidate } from "@/lib/duplicates";
-import { isLow } from "@/lib/constants";
+import { getVerifiedUser } from "@/lib/dal";
+import { isLow, MANAGER_ROLES } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function PantryPage() {
+  // Only to decide whether to show delete controls below — deletePantryItem
+  // itself is the real, server-side gate (mission-6's C1). Read once here,
+  // not per-row, since it's the same answer for the whole page.
+  const user = await getVerifiedUser();
+  const canManage = user !== null && MANAGER_ROLES.includes(user.role);
+
   // One parallel batch, deliberately. The functions and the database sit
   // in different regions, so each *sequential* await is another
   // cross-country round trip — the single biggest thing that made
@@ -79,7 +86,7 @@ export default async function PantryPage() {
         <ReviewQueueButton initial={reviewQueue} />
       </div>
 
-      <PantryList items={items} />
+      <PantryList items={items} canManage={canManage} />
 
       {/* Keeps the last row clear of the floating add bar. */}
       <div aria-hidden="true" className="h-28" />

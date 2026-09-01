@@ -12,8 +12,8 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
-import { getVerifiedSession } from "@/lib/dal";
-import { toMealSlot } from "@/lib/constants";
+import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
+import { toMealSlot, MANAGER_ROLES } from "@/lib/constants";
 import type { Category, Location } from "@/lib/constants";
 import { effectiveExpiry, daysUntil } from "@/lib/expiring";
 import { suggestMeals, type MealSuggestion } from "@/lib/mealSuggest";
@@ -73,7 +73,11 @@ export async function createMealPlan(
  * in the app. Entries cascade-delete with their plan (schema-level).
  */
 export async function deleteMealPlan(mealPlanId: string): Promise<void> {
-  if (!(await getVerifiedSession())) return;
+  // Gated to admin/parent — deleting a whole week's plan is management,
+  // not participation; filling/clearing individual slots stays open to
+  // any signed-in user (setMealPlanEntry, clearMealPlanEntry).
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) return;
 
   await db.mealPlan.deleteMany({ where: { id: mealPlanId } });
   refreshMealPlanViews();

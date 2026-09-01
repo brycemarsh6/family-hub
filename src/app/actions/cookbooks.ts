@@ -7,7 +7,8 @@
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
-import { getVerifiedSession } from "@/lib/dal";
+import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
+import { MANAGER_ROLES } from "@/lib/constants";
 
 function refreshCookbookViews(cookbookId?: string) {
   revalidatePath("/kitchen/cooking/recipes");
@@ -63,7 +64,13 @@ export type DeleteCookbookResult = { error?: string };
 export async function deleteCookbook(
   cookbookId: string,
 ): Promise<DeleteCookbookResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  // Gated to admin/parent — deleting a cookbook (even though it only
+  // unfiles recipes rather than deleting them) is management, not
+  // participation.
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
 
   await db.cookbook.delete({ where: { id: cookbookId } });
   refreshCookbookViews();
@@ -120,7 +127,12 @@ export type CookbookShareResult = { shareToken?: string | null; error?: string }
  * so plainly rather than let someone assume a link is frozen at share time.
  */
 export async function shareCookbook(cookbookId: string): Promise<CookbookShareResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  // Gated to admin/parent — sharing publishes household data to the public
+  // internet, which is management, not participation.
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
 
   const cookbook = await db.cookbook.findUnique({
     where: { id: cookbookId },
@@ -144,7 +156,11 @@ export async function shareCookbook(cookbookId: string): Promise<CookbookShareRe
 export async function stopSharingCookbook(
   cookbookId: string,
 ): Promise<CookbookShareResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  // Gated to admin/parent — same reasoning as shareCookbook above.
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
 
   const cookbook = await db.cookbook.findUnique({
     where: { id: cookbookId },

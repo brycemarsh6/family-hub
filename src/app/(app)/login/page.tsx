@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { getVerifiedUser } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { toRole } from "@/lib/constants";
 import { LoginForm } from "./LoginForm";
@@ -27,9 +27,16 @@ export const metadata: Metadata = {
  */
 export default async function LoginPage() {
   // Already signed in? Don't make someone stare at a login form they don't
-  // need — send them where they were going.
-  const session = await getSession();
-  if (session?.userId) {
+  // need — send them where they were going. This has to be the DB-backed
+  // getVerifiedUser(), not the cookie-only getSession(): a session cookie
+  // that merely *decrypts* still redirects here even after its owner was
+  // deactivated, because getSession() never checks the database. That used
+  // to strand a deactivated person on a dead shell (app chrome, no account
+  // menu, every branch bouncing) with /login unreachable until the 30-day
+  // cookie expired — the DAL is what actually knows the account is gone,
+  // so it's the DAL that has to gate this convenience redirect.
+  const user = await getVerifiedUser();
+  if (user) {
     redirect("/");
   }
 

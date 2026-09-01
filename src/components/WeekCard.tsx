@@ -23,20 +23,25 @@ export function WeekCard({
     currentTitle: string,
     currentRecipeId: string | null,
   ) => void;
-  onDeletePlan: () => void;
+  /** Omitted entirely (not disabled) for a kid session — deleteMealPlan is
+   * parent/admin-only server-side (mission-6's C1). See MealPlanList's own
+   * comment for where that decision is made. */
+  onDeletePlan?: () => void;
 }) {
   return (
     <div className="rounded-2xl border border-line bg-surface p-3">
       <div className="mb-2 flex items-center justify-between px-1">
         <h3 className="text-base font-semibold">{formatWeekRange(plan.weekStart)}</h3>
-        <button
-          type="button"
-          onClick={onDeletePlan}
-          aria-label={`Delete the week of ${formatWeekRange(plan.weekStart)}`}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-danger"
-        >
-          <Trash2 aria-hidden="true" size={16} />
-        </button>
+        {onDeletePlan && (
+          <button
+            type="button"
+            onClick={onDeletePlan}
+            aria-label={`Delete the week of ${formatWeekRange(plan.weekStart)}`}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-danger"
+          >
+            <Trash2 aria-hidden="true" size={16} />
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col gap-3">

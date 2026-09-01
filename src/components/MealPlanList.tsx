@@ -90,9 +90,15 @@ type EditingSlot = {
 export function MealPlanList({
   plans,
   recipes,
+  canManage,
 }: {
   plans: MealPlanView[];
   recipes: RecipeListItem[];
+  /** True for admin/parent sessions — deleteMealPlan refuses a kid's
+   * session server-side (mission-6's C1), so every WeekCard's delete
+   * button is omitted entirely for one rather than shown-and-disabled.
+   * Filling/clearing a slot stays available to everyone. */
+  canManage: boolean;
 }) {
   const [optimisticPlans, applyOptimistic] = useOptimistic(plans, applyChange);
   const [, startTransition] = useTransition();
@@ -208,7 +214,7 @@ export function MealPlanList({
               onSlotTap={(dayOffset, slot, currentTitle, currentRecipeId) =>
                 openSlot(currentPlan, dayOffset, slot, currentTitle, currentRecipeId)
               }
-              onDeletePlan={() => handleDeletePlan(currentPlan.id)}
+              onDeletePlan={canManage ? () => handleDeletePlan(currentPlan.id) : undefined}
             />
           ) : (
             <EmptyState
@@ -232,7 +238,7 @@ export function MealPlanList({
                     onSlotTap={(dayOffset, slot, currentTitle, currentRecipeId) =>
                       openSlot(plan, dayOffset, slot, currentTitle, currentRecipeId)
                     }
-                    onDeletePlan={() => handleDeletePlan(plan.id)}
+                    onDeletePlan={canManage ? () => handleDeletePlan(plan.id) : undefined}
                   />
                 ))}
               </div>
@@ -244,7 +250,7 @@ export function MealPlanList({
               plans={pastPlans}
               today={today}
               onSlotTap={openSlot}
-              onDeletePlan={handleDeletePlan}
+              onDeletePlan={canManage ? handleDeletePlan : undefined}
             />
           )}
         </div>

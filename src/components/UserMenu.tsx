@@ -2,20 +2,11 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
+import { Settings, Users } from "lucide-react";
 import { AvatarBadge } from "@/components/AvatarBadge";
 import { logout } from "@/app/actions/auth";
-import type { Role } from "@/lib/constants";
-
-/** "Parent", not "parent" — the identity row shows a human label, the
- * database keeps the lowercase vocabulary value. "Device" is included for
- * completeness even though device-role sign-in doesn't exist until Phase 4;
- * a role this menu doesn't recognize would be worse than an unused entry. */
-const ROLE_LABELS: Record<Role, string> = {
-  admin: "Admin",
-  parent: "Parent",
-  kid: "Kid",
-  device: "Device",
-};
+import { ROLE_LABELS, type Role } from "@/lib/constants";
 
 /**
  * The header's identity control — a tappable avatar that opens a small sheet
@@ -30,9 +21,9 @@ const ROLE_LABELS: Record<Role, string> = {
  * shape ActionSheet/TagSelectSheet already use, so it still reads as the
  * one house sheet rather than a one-off.
  *
- * Settings and Manage Family are Phase 3b of the Family Accounts plan —
- * deliberately not rendered here yet, not even disabled, per the house rule
- * that a visible control should do something real.
+ * Settings (everyone) and Manage Family (admin only) are real now — Phase
+ * 3b of the Family Accounts plan. Both are plain `Link`s, not action rows,
+ * since they navigate rather than mutate anything.
  */
 export function UserMenu({
   displayName,
@@ -108,6 +99,28 @@ export function UserMenu({
             <p className="text-lg font-semibold">{displayName}</p>
             <p className="text-sm text-muted">{ROLE_LABELS[role]}</p>
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1 border-t border-line pt-2">
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="flex min-h-14 w-full items-center gap-3 rounded-xl px-3 text-left text-base font-medium text-fg transition-colors active:bg-surface-2"
+          >
+            <Settings aria-hidden="true" size={18} />
+            Settings
+          </Link>
+
+          {role === "admin" && (
+            <Link
+              href="/settings/family"
+              onClick={() => setOpen(false)}
+              className="flex min-h-14 w-full items-center gap-3 rounded-xl px-3 text-left text-base font-medium text-fg transition-colors active:bg-surface-2"
+            >
+              <Users aria-hidden="true" size={18} />
+              Manage family
+            </Link>
+          )}
         </div>
 
         {/* A plain form pointed at the Server Action, same as the old

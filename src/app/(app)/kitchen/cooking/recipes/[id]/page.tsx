@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { getVerifiedUser } from "@/lib/dal";
+import { MANAGER_ROLES } from "@/lib/constants";
 import { RecipeDetailHeader } from "@/components/RecipeDetailHeader";
 import { RecipeHero } from "@/components/RecipeHero";
 import { RecipeActionCircles } from "@/components/RecipeActionCircles";
@@ -26,6 +28,11 @@ export default async function RecipeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  // Only to decide whether Edit/Delete render below — updateRecipe and
+  // deleteRecipe are the real, server-side gates (mission-6's C1).
+  const user = await getVerifiedUser();
+  const canManage = user !== null && MANAGER_ROLES.includes(user.role);
 
   const [recipe, allTagsRaw, allCookbooksRaw, plannedWeeks] = await Promise.all([
     db.recipe.findUnique({
@@ -64,7 +71,11 @@ export default async function RecipeDetailPage({
 
   return (
     <div className="py-2">
-      <RecipeDetailHeader recipeId={recipe.id} recipeTitle={recipe.title} />
+      <RecipeDetailHeader
+        recipeId={recipe.id}
+        recipeTitle={recipe.title}
+        canManage={canManage}
+      />
 
       <RecipeHero />
 

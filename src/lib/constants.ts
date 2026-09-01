@@ -247,6 +247,28 @@ export function toRole(value: unknown): Role {
   return ROLES.includes(value as Role) ? (value as Role) : DEFAULT_ROLE;
 }
 
+/** A human label for each role — "Parent", not "parent". Used anywhere a
+ * role is shown to a person rather than stored: the account menu, Settings,
+ * and Manage Family's person list and per-person sheets. */
+export const ROLE_LABELS: Record<Role, string> = {
+  admin: "Admin",
+  parent: "Parent",
+  kid: "Kid",
+  device: "Device",
+};
+
+/**
+ * Roles an admin can hand out through the Manage Family UI. Device mode
+ * (the wall tablet, role "device") is created and managed through its own
+ * Phase 4 flow, not this one — the same restriction
+ * prisma/bootstrap-users.ts already applies to interactive person creation
+ * (see its own PERSON_ROLES). Excluding it here means neither the create
+ * nor the role-change UI can ever accidentally spin up, or promote someone
+ * into, a device-role user — and the server-side actions narrow to this
+ * same list, so it's never just a UI nicety.
+ */
+export const ASSIGNABLE_ROLES: readonly Role[] = ROLES.filter((role) => role !== "device");
+
 // A fixed data palette for avatar initials — the same reasoning as the
 // nutrition donut's fixed orange/blue/purple (src/app/kitchen/cooking/
 // recipes/[id]/NutritionSection.tsx): these name arbitrary *people*, not UI

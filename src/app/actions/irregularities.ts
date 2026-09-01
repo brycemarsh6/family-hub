@@ -10,8 +10,8 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getVerifiedSession } from "@/lib/dal";
-import { toCategory, toLocation } from "@/lib/constants";
+import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
+import { toCategory, toLocation, MANAGER_ROLES } from "@/lib/constants";
 import {
   buildReviewQueue,
   type DuplicateCandidate,
@@ -114,7 +114,12 @@ export async function mergePantryItems(input: {
   /** Recorded so the pair never comes back if the same names recur. */
   fingerprint: string;
 }): Promise<MergeResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  // Gated to admin/parent — a merge deletes the source inventory row, which
+  // is management, not participation. See the Family Accounts v1 plan.
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
   if (input.survivorId === input.mergedId) {
     return { error: "Can't merge an item into itself." };
   }

@@ -28,7 +28,9 @@ export function PastMealWeeks({
     currentTitle: string,
     currentRecipeId: string | null,
   ) => void;
-  onDeletePlan: (mealPlanId: string) => void;
+  /** Omitted entirely (not disabled) for a kid session — see WeekCard's own
+   * comment on the same prop. */
+  onDeletePlan?: (mealPlanId: string) => void;
 }) {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
@@ -72,7 +74,7 @@ export function PastMealWeeks({
                     onSlotTap={(dayOffset, slot, currentTitle, currentRecipeId) =>
                       onSlotTap(plan, dayOffset, slot, currentTitle, currentRecipeId)
                     }
-                    onDeletePlan={() => onDeletePlan(plan.id)}
+                    onDeletePlan={onDeletePlan ? () => onDeletePlan(plan.id) : undefined}
                   />
                 </div>
               )}

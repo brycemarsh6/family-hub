@@ -13,6 +13,8 @@ import {
   AVATAR_COLOR_NAMES,
   ROLES,
   MANAGER_ROLES,
+  ROLE_LABELS,
+  ASSIGNABLE_ROLES,
 } from "./constants";
 
 test("toRole: a real role passes through unchanged", () => {
@@ -69,4 +71,16 @@ test("MANAGER_ROLES: exactly admin and parent, nothing else", () => {
   for (const role of MANAGER_ROLES) {
     assert.ok((ROLES as readonly string[]).includes(role));
   }
+});
+
+test("ROLE_LABELS: every real role has a human label, and only real roles", () => {
+  for (const role of ROLES) {
+    assert.ok(typeof ROLE_LABELS[role] === "string" && ROLE_LABELS[role].length > 0);
+  }
+  assert.deepEqual(Object.keys(ROLE_LABELS).sort(), [...ROLES].sort());
+});
+
+test("ASSIGNABLE_ROLES: every real role except device, and nothing else", () => {
+  assert.deepEqual([...ASSIGNABLE_ROLES].sort(), ["admin", "kid", "parent"]);
+  assert.ok(!ASSIGNABLE_ROLES.includes("device"));
 });

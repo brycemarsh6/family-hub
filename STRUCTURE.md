@@ -11,7 +11,7 @@ structural changes against it.
 | `src/app/(app)/` | Authenticated routes — header + nav + session chrome. `/login` deliberately lives here too and suppresses its own nav bar in `HubNav.tsx`, rather than moving to a separate layout for one page | Pages needing a genuinely chrome-free root layout — those go in `src/app/share/` |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`) | Logic that belongs in an action or lib |
-| `src/app/actions/` | Server Actions — **every exported action opens with `getVerifiedSession()`, except `auth.ts`'s `login`/`logout`** — a login action can't require the session it exists to create | Unguarded exports outside that one named exception; pure logic (goes in lib) |
+| `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action |
 | `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
@@ -52,6 +52,32 @@ structural changes against it.
   numbered options out, an integer back (the steaks/"tea" lesson).
 - **Browser-only reads use `useSyncExternalStore`**, not
   `useState`+`useEffect` (hydration mismatch — lint enforces it).
+- **Which guard form an action uses is decided by who can reach its
+  trigger, never by taste.**
+  **(a) Null-returning** — `getVerifiedSession()` or `getVerifiedUser()`,
+  failing with the file's house shape (`{ error }`, void, or the typed
+  empty value). **Required for any action a legitimately signed-in user
+  can trigger from shipped UI**: those callers render failures inline, so
+  a thrown `redirect()` would bounce the browser mid-request. Role checks
+  in this form read `MANAGER_ROLES` (or a named role) from
+  `constants.ts` — never a hand-rolled role list.
+  **(b) Redirecting** — `requireRole(...)`, permitted **only** when every
+  export in the file requires the same role *and* the file's only UI
+  lives behind a page gated by that same `requireRole`. An authorization
+  failure then means the caller doesn't belong on the page at all, and
+  the redirect matches the page's own bounce. `users.ts` and
+  `usersRoles.ts` behind `/settings/family` are the instances. Internal
+  *domain* guards (self-targeting, the last-admin lockout) still return
+  the house shape — "you don't belong here" and "you're allowed, but this
+  can't happen" are different outcomes.
+  Pages use the redirecting guards (`requireVerifiedUser`,
+  `requireRole`), never the null-returning ones. Route Handlers for
+  non-browser clients keep their own token/signature gates.
+- **Hiding UI is never the gate.** A page may compute `canManage`
+  server-side (`getVerifiedUser()` + `MANAGER_ROLES`) and pass a
+  **boolean** into client components to omit controls that would only
+  refuse — but the action's own check remains the real gate, and
+  components never receive role or user objects for gating purposes.
 - **A lib module may skip `server-only` only when it is pure over its
   inputs, reads no env var, and holds no secret of its own** — `match.ts`,
   `duplicates.ts`, and `password.ts` are the instances. Sensitive material
@@ -102,11 +128,20 @@ structural changes against it.
 
 Adding a second definition of any of these is a BLOCKER:
 
-- `src/lib/constants.ts` — categories, locations, meal slots, stores, their
-  icons and order
+- `src/lib/constants.ts` — categories, locations, meal slots, stores,
+  **roles with their display labels and assignability, avatar colors**,
+  their icons and order
 - `src/lib/nav.ts` — `HUB_NAV_ITEMS`, the only nav list
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
+- `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
+  long must my password be", shared by the actions that enforce it and
+  the inputs that advertise it
+- `src/lib/personInfo.ts` — `PERSON_SELECT` / `toPersonInfo`, the single
+  place a `User` row becomes something a client may see. **This is the
+  security-relevant one**: it builds the public shape field by field so a
+  `passwordHash` can never ride along, and a second copy is a second
+  chance to get that wrong
 - Shared UI jobs — see DESIGN.md's component vocabulary
 
 ## File-size caps

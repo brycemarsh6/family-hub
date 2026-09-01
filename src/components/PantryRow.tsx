@@ -18,28 +18,15 @@ export function PantryRow({
   onAddToList: () => void;
   /** Opens the full edit sheet (name, quantity, unit, category, location, threshold, delete). */
   onEdit: () => void;
-  onDelete: () => void;
+  /** Omitted entirely (not just disabled) for a kid session — deletePantryItem
+   * is parent/admin-only server-side, and a control that would only ever
+   * refuse is worse than one that isn't there. See PantryList's own comment
+   * for where this is decided. */
+  onDelete?: () => void;
 }) {
   const low = isLow(item.quantity, item.lowThreshold);
 
-  return (
-    <li className="rounded-xl border border-line bg-surface">
-      {/* Swipe right-to-left to delete. Before this, removing a pantry item
-          meant opening the edit sheet and finding Delete in there — fine for
-          a considered edit, far too slow for "we finished the milk". No Edit
-          action here, unlike shopping rows: tapping a pantry row already
-          opens the full edit sheet. */}
-      <SwipeActions
-        actions={[
-          {
-            label: "Delete",
-            accessibleLabel: `Delete ${item.name}`,
-            icon: <Trash2 aria-hidden="true" size={18} />,
-            onAction: onDelete,
-            tone: "danger",
-          },
-        ]}
-      >
+  const row = (
       <div className="flex items-center gap-1 pr-1">
         <button
           type="button"
@@ -93,7 +80,33 @@ export function PantryRow({
           <span aria-hidden="true">🛒</span>
         </button>
       </div>
-      </SwipeActions>
+  );
+
+  return (
+    <li className="rounded-xl border border-line bg-surface">
+      {/* Swipe right-to-left to delete. Before this, removing a pantry item
+          meant opening the edit sheet and finding Delete in there — fine for
+          a considered edit, far too slow for "we finished the milk". No Edit
+          action here, unlike shopping rows: tapping a pantry row already
+          opens the full edit sheet. Omitted (not disabled) entirely when
+          onDelete isn't provided — see the prop's own doc comment. */}
+      {onDelete ? (
+        <SwipeActions
+          actions={[
+            {
+              label: "Delete",
+              accessibleLabel: `Delete ${item.name}`,
+              icon: <Trash2 aria-hidden="true" size={18} />,
+              onAction: onDelete,
+              tone: "danger",
+            },
+          ]}
+        >
+          {row}
+        </SwipeActions>
+      ) : (
+        row
+      )}
     </li>
   );
 }

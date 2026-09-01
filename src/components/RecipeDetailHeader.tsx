@@ -19,9 +19,15 @@ import { deleteRecipe } from "@/app/actions/recipes";
 export function RecipeDetailHeader({
   recipeId,
   recipeTitle,
+  canManage,
 }: {
   recipeId: string;
   recipeTitle: string;
+  /** True for admin/parent sessions — updateRecipe and deleteRecipe both
+   * refuse a kid's session server-side (mission-6's C1), so Edit and
+   * Delete are omitted entirely for one rather than shown-and-disabled.
+   * Print/Export PDF stay available to everyone; neither writes anything. */
+  canManage: boolean;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -41,13 +47,15 @@ export function RecipeDetailHeader({
       <BackLink href="/kitchen/cooking/recipes" label="Recipes" />
 
       <div className="mb-4 flex justify-end gap-2">
-        <Link
-          href={`/kitchen/cooking/recipes/${recipeId}/edit`}
-          aria-label="Edit recipe"
-          className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface transition-colors active:bg-surface-2"
-        >
-          <Pencil aria-hidden="true" size={18} />
-        </Link>
+        {canManage && (
+          <Link
+            href={`/kitchen/cooking/recipes/${recipeId}/edit`}
+            aria-label="Edit recipe"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface transition-colors active:bg-surface-2"
+          >
+            <Pencil aria-hidden="true" size={18} />
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => setMenuOpen(true)}
@@ -79,12 +87,18 @@ export function RecipeDetailHeader({
                 router.push(`/kitchen/cooking/recipes/${recipeId}/print`);
               },
             },
-            {
-              label: "Delete",
-              icon: <Trash2 aria-hidden="true" size={18} />,
-              destructive: true,
-              onClick: handleDelete,
-            },
+            // Omitted entirely (not disabled) for a kid session — see the
+            // canManage prop's own doc comment.
+            ...(canManage
+              ? [
+                  {
+                    label: "Delete",
+                    icon: <Trash2 aria-hidden="true" size={18} />,
+                    destructive: true,
+                    onClick: handleDelete,
+                  },
+                ]
+              : []),
           ]}
         />
       )}

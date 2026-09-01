@@ -10,6 +10,10 @@ import { Check } from "lucide-react";
  * Recipes view toggle and the cookbook list's A–Z/most-recent sort, and
  * meant to be reused anywhere else a small radio-style choice comes up
  * rather than a native <select> or a custom dropdown.
+ *
+ * `leading` (optional, per-option) renders before the label — added for
+ * Family Accounts' avatar-colour picker, where each row needs a small
+ * color swatch inline. Every existing caller omits it and is unaffected.
  */
 export function RadioSheet<T extends string>({
   title,
@@ -19,7 +23,7 @@ export function RadioSheet<T extends string>({
   onClose,
 }: {
   title: string;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; leading?: React.ReactNode }[];
   selected: T;
   onSelect: (value: T) => void;
   onClose: () => void;
@@ -69,9 +73,12 @@ export function RadioSheet<T extends string>({
                 onSelect(option.value);
                 onClose();
               }}
-              className="flex min-h-12 items-center justify-between rounded-xl px-3 text-left text-base font-medium text-fg transition-colors active:bg-surface-2"
+              className="flex min-h-12 items-center justify-between gap-3 rounded-xl px-3 text-left text-base font-medium text-fg transition-colors active:bg-surface-2"
             >
-              {option.label}
+              <span className="flex min-w-0 items-center gap-3">
+                {option.leading}
+                <span className="min-w-0 truncate">{option.label}</span>
+              </span>
               {selected === option.value && (
                 <Check aria-hidden="true" size={18} className="text-accent" />
               )}

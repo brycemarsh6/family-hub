@@ -115,12 +115,19 @@ export async function requireVerifiedUser(): Promise<VerifiedUser> {
 }
 
 /**
- * Require a signed-in, active visitor whose role is one of `roles`. Not
- * called from any action yet — role gates on existing Server Actions are
- * Phase 3a's work, deliberately not part of this change. This exists now so
- * that phase (and any page-level gate before it, e.g. a future
- * /settings/family) has a single place to add to rather than reinventing
- * the redirect-on-wrong-role check per caller.
+ * Require a signed-in, active visitor whose role is one of `roles`.
+ * Redirects on failure, which is what makes this the wrong form for most
+ * callers — see STRUCTURE.md's guard-form rule for the decision procedure.
+ * In short: this is the **redirecting** form, valid only where every
+ * exported action in the file requires the same role *and* the file's only
+ * UI lives behind a page gated by that same `requireRole` — `users.ts` and
+ * `usersRoles.ts` behind `/settings/family` are the instances, plus the
+ * page itself. Any action reachable from shipped UI that renders a failure
+ * inline (which is nearly everything else in `src/app/actions/`) must use
+ * the null-returning `getVerifiedSession()`/`getVerifiedUser()` form
+ * instead — a thrown `redirect()` inside an action a signed-in user can
+ * legitimately trigger would bounce their browser mid-request rather than
+ * let the caller show an error.
  */
 export async function requireRole(...roles: Role[]): Promise<VerifiedUser> {
   const user = await requireVerifiedUser();

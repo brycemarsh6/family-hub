@@ -17,8 +17,8 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getVerifiedSession } from "@/lib/dal";
-import { toCategory, toStore, toLocation } from "@/lib/constants";
+import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
+import { toCategory, toStore, toLocation, MANAGER_ROLES } from "@/lib/constants";
 
 /**
  * Re-render the pages whose contents just changed.
@@ -35,7 +35,8 @@ function refreshGroceryViews() {
 }
 
 export async function addGroceryItem(formData: FormData) {
-  if (!(await getVerifiedSession())) return;
+  const user = await getVerifiedUser();
+  if (!user) return;
 
   const name = String(formData.get("name") ?? "").trim();
   // Ignore empty submissions (e.g. someone taps Add with nothing typed).
@@ -56,6 +57,9 @@ export async function addGroceryItem(formData: FormData) {
       // toStore() returns null rather than a default — leaving the store
       // blank on the add bar is a normal, valid choice, not a mistake.
       store: toStore(formData.get("store")),
+      // Family Accounts v1: who added this. Any signed-in user (kids
+      // included — adding to the list is participation, not management).
+      addedById: user.userId,
     },
   });
 
@@ -163,9 +167,16 @@ export async function deleteGroceryItem(id: string) {
   refreshGroceryViews();
 }
 
-/** Remove everything already ticked off, without touching the pantry. */
+/**
+ * Remove everything already ticked off, without touching the pantry.
+ *
+ * Gated to admin/parent — bulk-clearing the list is management, not
+ * participation; deleteGroceryItem (undoing your own mistake on one row)
+ * stays open to any signed-in user.
+ */
 export async function clearCheckedGroceryItems() {
-  if (!(await getVerifiedSession())) return;
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) return;
 
   await db.groceryItem.deleteMany({ where: { checked: true } });
   refreshGroceryViews();

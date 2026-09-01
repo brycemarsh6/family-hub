@@ -24,6 +24,17 @@ import bcrypt from "bcryptjs";
 const COST = 11;
 
 /**
+ * The minimum length for any new or reset password. Chosen for a household
+ * app with no email-based recovery flow: long enough that it isn't a single
+ * common word, short enough that a parent typing it out loud while handing
+ * a kid their new phone isn't a chore. Lives here — not duplicated per
+ * action file or component — so "how long does my password need to be" has
+ * exactly one true answer, checked both server-side (the actions) and as
+ * the `minLength` attribute on every password `<input>`.
+ */
+export const MIN_PASSWORD_LENGTH = 8;
+
+/**
  * Hash a plaintext password for storage. Rejects an empty string outright —
  * an "empty password" is never a valid account state, and bcrypt itself
  * would happily hash "" into something that looks like a real hash.

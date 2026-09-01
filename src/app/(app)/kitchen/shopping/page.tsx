@@ -4,12 +4,19 @@ import { GroceryList } from "@/components/GroceryList";
 import { PutAwayButton } from "@/components/PutAwayButton";
 import { AddItemBar, AddItemSelect } from "@/components/AddItemBar";
 import { StoreSelect } from "@/components/StoreSelect";
-import { CATEGORY_NAMES, DEFAULT_CATEGORY } from "@/lib/constants";
+import { getVerifiedUser } from "@/lib/dal";
+import { CATEGORY_NAMES, DEFAULT_CATEGORY, MANAGER_ROLES } from "@/lib/constants";
 import { addGroceryItem, clearCheckedGroceryItems } from "@/app/actions/groceries";
 
 export const dynamic = "force-dynamic";
 
 export default async function GroceriesPage() {
+  // Only to decide whether "Just clear" renders below — clearCheckedGroceryItems
+  // itself is the real, server-side gate (mission-6's C1). A kid session can
+  // still check items off and Put away; only the bulk discard is hidden.
+  const user = await getVerifiedUser();
+  const canManage = user !== null && MANAGER_ROLES.includes(user.role);
+
   // `select` lists exactly the fields we need. Asking for less means less data
   // travelling to the browser, and it's self-documenting.
   const rows = await db.groceryItem.findMany({
@@ -61,15 +68,19 @@ export default async function GroceriesPage() {
             <PutAwayButton checkedCount={checkedCount} />
 
             {/* Still a plain form pointed straight at a Server Action — this
-                one needs no decision, so no client-side JavaScript at all. */}
-            <form action={clearCheckedGroceryItems}>
-              <button
-                type="submit"
-                className="min-h-11 rounded-xl border border-line px-4 text-sm font-medium text-muted transition-colors hover:border-danger hover:text-danger"
-              >
-                Just clear
-              </button>
-            </form>
+                one needs no decision, so no client-side JavaScript at all.
+                Omitted entirely (not disabled) for a kid session — see the
+                canManage comment above. */}
+            {canManage && (
+              <form action={clearCheckedGroceryItems}>
+                <button
+                  type="submit"
+                  className="min-h-11 rounded-xl border border-line px-4 text-sm font-medium text-muted transition-colors hover:border-danger hover:text-danger"
+                >
+                  Just clear
+                </button>
+              </form>
+            )}
           </div>
         )}
       </div>

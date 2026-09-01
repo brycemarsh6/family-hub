@@ -6,7 +6,8 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getVerifiedSession } from "@/lib/dal";
+import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
+import { MANAGER_ROLES } from "@/lib/constants";
 import { isMissingRowError } from "@/lib/prismaErrors";
 
 export type TagInfo = { id: string; name: string; recipeCount: number };
@@ -89,7 +90,14 @@ export type TagActionResult = { error?: string };
  * calling this.
  */
 export async function deleteTag(tagId: string): Promise<TagActionResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  // Gated to admin/parent — deleting a tag silently drops it from every
+  // recipe carrying it, which is management, not participation. Kids can
+  // still create/rename/apply tags via findOrCreateTag/renameTag/
+  // addTagToRecipe/removeTagFromRecipe, all ungated.
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
 
   try {
     await db.tag.delete({ where: { id: tagId } });

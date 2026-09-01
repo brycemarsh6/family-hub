@@ -4,7 +4,8 @@ import { effectiveExpiry, daysUntil } from "@/lib/expiring";
 import { ExpiringList, type ExpiringEntry } from "@/components/ExpiringList";
 import type { Urgency } from "@/components/ExpiringRow";
 import { LogLeftoverButton } from "@/components/LogLeftoverButton";
-import type { Category, Location } from "@/lib/constants";
+import { getVerifiedUser } from "@/lib/dal";
+import { MANAGER_ROLES, type Category, type Location } from "@/lib/constants";
 import type { PantryItemView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,11 @@ function urgencyFor(daysLeft: number): Urgency {
 }
 
 export default async function ExpiringPage() {
+  // Same purpose as Inventory's own copy of this check — see that page's
+  // comment. deletePantryItem is the real, server-side gate.
+  const user = await getVerifiedUser();
+  const canManage = user !== null && MANAGER_ROLES.includes(user.role);
+
   const [pantryItems, openGroceryLinks] = await Promise.all([
     db.pantryItem.findMany({
       select: {
@@ -125,7 +131,7 @@ export default async function ExpiringPage() {
 
       <LogLeftoverButton />
 
-      <ExpiringList entries={entries} />
+      <ExpiringList entries={entries} canManage={canManage} />
     </div>
   );
 }

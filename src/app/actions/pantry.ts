@@ -6,8 +6,14 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getVerifiedSession } from "@/lib/dal";
-import { toCategory, toLocation, toStore, type Store } from "@/lib/constants";
+import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
+import {
+  toCategory,
+  toLocation,
+  toStore,
+  MANAGER_ROLES,
+  type Store,
+} from "@/lib/constants";
 import { findDuplicateMatches, type DuplicateMatch } from "@/lib/duplicates";
 
 /**
@@ -256,8 +262,15 @@ export async function logLeftover(input: {
   refreshKitchenViews();
 }
 
+/**
+ * Gated to admin/parent — deleting an inventory row is management, not
+ * participation ("parents manage, kids participate"; see the Family
+ * Accounts v1 plan's Phase 3a). Replaces the plain getVerifiedSession()
+ * check that used to guard this action rather than duplicating it.
+ */
 export async function deletePantryItem(id: string) {
-  if (!(await getVerifiedSession())) return;
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) return;
 
   await db.pantryItem.delete({ where: { id } });
   refreshKitchenViews();
@@ -279,7 +292,8 @@ export async function addPantryItemToGroceryList(
   id: string,
   store: Store | null,
 ) {
-  if (!(await getVerifiedSession())) return;
+  const user = await getVerifiedUser();
+  if (!user) return;
 
   const pantryItem = await db.pantryItem.findUnique({ where: { id } });
   if (!pantryItem) return;
@@ -297,6 +311,8 @@ export async function addPantryItemToGroceryList(
       category: pantryItem.category,
       pantryItemId: pantryItem.id,
       store: toStore(store),
+      // Family Accounts v1: who pushed this onto the list.
+      addedById: user.userId,
     },
   });
 
@@ -311,7 +327,8 @@ export async function addPantryItemToGroceryList(
  * one-tap restock into a dozen sequential prompts, which defeats the point.
  */
 export async function addAllLowItemsToGroceryList(store: Store | null) {
-  if (!(await getVerifiedSession())) return;
+  const user = await getVerifiedUser();
+  if (!user) return;
 
   const pantryItems = await db.pantryItem.findMany();
 
@@ -346,6 +363,8 @@ export async function addAllLowItemsToGroceryList(store: Store | null) {
       category: item.category,
       pantryItemId: item.id,
       store: validStore,
+      // Family Accounts v1: who triggered this batch add.
+      addedById: user.userId,
     })),
   });
 

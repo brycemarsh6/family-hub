@@ -62,7 +62,16 @@ const SECTION_TITLES: Record<Urgency, string> = {
  * Inventory already answers "where's the pasta"; this page answers "what
  * needs eating", and category is irrelevant to that question.
  */
-export function ExpiringList({ entries }: { entries: ExpiringEntry[] }) {
+export function ExpiringList({
+  entries,
+  canManage,
+}: {
+  entries: ExpiringEntry[];
+  /** Same meaning as PantryList's own prop — deletePantryItem is
+   * parent/admin-only, so the edit sheet's Delete button is omitted for a
+   * kid session rather than shown-and-disabled. */
+  canManage: boolean;
+}) {
   const [optimisticEntries, applyOptimistic] = useOptimistic(
     entries,
     applyChange,
@@ -147,12 +156,16 @@ export function ExpiringList({ entries }: { entries: ExpiringEntry[] }) {
             );
             setEditingId(null);
           }}
-          onDelete={() => {
-            run({ type: "delete", id: editingEntry.item.id }, () =>
-              deletePantryItem(editingEntry.item.id),
-            );
-            setEditingId(null);
-          }}
+          onDelete={
+            canManage
+              ? () => {
+                  run({ type: "delete", id: editingEntry.item.id }, () =>
+                    deletePantryItem(editingEntry.item.id),
+                  );
+                  setEditingId(null);
+                }
+              : undefined
+          }
         />
       )}
 

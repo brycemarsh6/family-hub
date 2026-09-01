@@ -7,7 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getVerifiedSession } from "@/lib/dal";
+import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import { toCategory, DEFAULT_CATEGORY } from "@/lib/constants";
 import { matchItem } from "@/lib/match";
 import { recipeLines } from "@/lib/recipeText";
@@ -185,7 +185,8 @@ export type AddIngredientsResult = { added?: number; error?: string };
 export async function addIngredientsToGroceries(
   items: ConfirmedIngredient[],
 ): Promise<AddIngredientsResult> {
-  if (!(await getVerifiedSession())) return { error: "Not signed in." };
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
 
   const wanted = items
     .map((item) => ({ ...item, name: item.name.trim() }))
@@ -215,6 +216,8 @@ export async function addIngredientsToGroceries(
         item.pantryItemId && existingPantryIds.has(item.pantryItemId)
           ? item.pantryItemId
           : null,
+      // Family Accounts v1: who added these ingredients to the list.
+      addedById: user.userId,
     })),
   });
 
