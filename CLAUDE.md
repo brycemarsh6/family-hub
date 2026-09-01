@@ -4070,7 +4070,8 @@ STRUCTURE.md both updated):
   included. Write-isolation is not privacy — treat dev data as private.
 
 **Open item this split creates — migrations no longer reach production
-automatically.** Until now, migrating locally migrated prod, because they
+automatically.** *(✅ Resolved 2026-09-01 — see "migrations reach production
+again" at the end of this file. Kept as written so the reasoning survives.)* Until now, migrating locally migrated prod, because they
 were the same database. The next schema change must apply to production
 deliberately: either wire `prisma migrate deploy` into the Vercel build, or
 run it once against the prod URL at release time. **The first post-split
@@ -4327,3 +4328,95 @@ feature is done, check `git log origin/main..HEAD`** — and now also **check
 that the last session note describes the last merged PR.** The mission file
 said DELIVERED; CLAUDE.md didn't know. Two records, one of them stale, is
 the failure mode to watch for now that the Avengers write their own.
+
+---
+
+## Session, 2026-09-01: migrations reach production again (the Vercel build hook)
+
+**The open item the Neon split created is closed.** `vercel.json` now sets
+`"buildCommand": "npm run build:vercel"`, which runs
+`prisma/migrate-on-production.mjs` and then `next build`. The script runs
+`prisma migrate deploy` **only when Vercel's own `VERCEL_ENV` is
+`"production"`** and exits 0 without touching a database in every other
+case. So a merged PR that adds a migration now migrates the family's real
+database as part of the production build, and nothing else does.
+
+**Built from a Claude Code web session, with no database access and with
+Vercel's, Prisma's, and Neon's doc sites egress-blocked** — so every claim
+below rests on either a local test or the repo's own history, and the note
+says which.
+
+**Why the preview guard is essential, not decorative.** Bryce's screenshot
+of Vercel's env vars shows `DATABASE_URL` scoped to **Production *and*
+Preview**. Without the guard, opening a PR that adds a migration would have
+applied it to production during the PR's *preview* build — before review,
+before merge, and again if the PR were abandoned. `VERCEL_ENV` is unset on a
+laptop and in CI, so both skip too; the Gauntlet's dummy `DATABASE_URL`
+(which can't connect) is never reached. `npm run build` itself is
+untouched, which is what keeps CI byte-identical.
+
+**Why "the value is hidden" in Vercel — not a glitch.** The lock icon on
+`DATABASE_URL` means it was created as a **Sensitive** variable. Vercel
+never shows those again after creation, not even to the owner. So the
+"does the hostname contain `-pooler`" question can't be answered from
+Vercel at all. It was answered from evidence instead:
+
+- **The pooled-connection concern is real in general** (Prisma Migrate
+  needs a direct connection; a transaction-mode pooler can break it) **but
+  it doesn't apply to this string.** Vercel shows it "Added Aug 3" and never
+  updated; the deploy entry in this file records it as the same Neon string
+  `.env` held; and that `.env` string successfully ran all **12** migrations
+  via `migrate dev` through Aug 28. `migrate deploy` applies migrations over
+  the same connection path. A string that applied twelve migrations will
+  apply the thirteenth.
+- **A one-command confirmation Bryce can run on the desktop, no secret
+  shared:** `grep -c pooler .env.backup-preneonsplit` — `0` means direct.
+- **If a pooled string ever does end up in Vercel:** add
+  `directUrl: process.env.DIRECT_DATABASE_URL` to `prisma.config.ts` and a
+  Production-only `DIRECT_DATABASE_URL` in Vercel holding the *production*
+  branch's direct string. Paste the production branch's, not dev's — the
+  wrong one would migrate dev and leave prod behind, the exact failure this
+  hook exists to prevent.
+
+**Verified locally under CI's dummy env:** `VERCEL_ENV` unset → skip,
+exit 0. `VERCEL_ENV=preview` → skip, exit 0. `VERCEL_ENV=production`
+against the unreachable dummy → Prisma **attempted** the deploy and failed
+with `P1001`, exit 1 — the guard fires, and the failure is loud. Then the
+full `npm run build:vercel` with `VERCEL_ENV` unset built all 30 routes
+cleanly, and `tsc` / `eslint` / `npm test` (106) stayed green.
+
+**What could NOT be verified from here, and is the required next check:**
+the first **production** build after this merges. Its Vercel build log must
+show the line `migrate-on-production: VERCEL_ENV is "production" — running
+\`prisma migrate deploy\`` followed by Prisma reporting **no pending
+migrations** — production already carries all 12, so the first run is a
+no-op by design. That log line is this change's positive control; until
+it's been read, treat the hook as installed but unproven. Bryce reads it in
+Vercel → Deployments → the build's logs.
+
+**Two consequences worth knowing:**
+
+1. **"Additive-only migrations" is now load-bearing, not just hygiene.**
+   The migration runs *during* the build while the previous deployment is
+   still serving, so for a minute or so old code runs against the new
+   schema. That's only safe because old code never references a column or
+   table it doesn't know about. A destructive migration would break the
+   live app for that window even if the new code were perfect.
+2. **The failure runbook.** If a migration fails partway, Prisma records it
+   as failed in `_prisma_migrations` and **every subsequent production
+   build fails** until it's resolved — which is the right behavior (nothing
+   deploys on top of a half-applied schema) but will look like "Vercel is
+   broken." The fix is `prisma migrate resolve` (see the repo's own
+   reference at `.agents/skills/prisma-cli/references/migrate-deploy.md`),
+   run once against production, then redeploy. The previous deployment
+   keeps serving throughout.
+
+**One pre-existing thing this made visible, flagged not changed:** because
+`DATABASE_URL` is scoped to Preview, every PR's preview deployment has
+been running against the **family's real production data** since Aug 3 —
+reads and writes. Not this change's doing, and not new, but a preview of a
+half-finished PR is exactly the kind of build that shouldn't be able to
+write to prod. The fix is a Vercel-console decision for Bryce: give
+Preview its own `DATABASE_URL` pointing at the Neon `dev` branch (the same
+string `.env` uses), so previews get realistic data with zero production
+risk. Worth doing before the next real branch of work.
