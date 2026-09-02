@@ -1,20 +1,24 @@
 // Removes the test data seeded by seed-calendar.ts: the events, matched by
-// their exact titles, and the passwordless test people, matched by their
-// exact displayNames — never the household's own real events or real
-// people, which live in these same tables.
+// their exact "ZZZ Test"-prefixed titles — never the household's own real
+// events, which live in this same table.
 //
-// This is NOT a general clean/reset script for the User table (that's
-// forbidden — see AGENTS.md's danger register): it deletes only the exact
-// "ZZZ Test"-prefixed rows this script's own seed created, by exact name,
-// the same narrow fingerprint-matching discipline the recipe and meal-plan
-// scripts use for their own tables. It never touches any other User row.
+// This script touches ONLY CalendarEvent (its people rows cascade with it,
+// schema-level). It never touches the User table in either direction —
+// seed-calendar.ts attaches its test events to whichever real people
+// already exist rather than creating its own, so there is no test person
+// for this script to remove. See AGENTS.md's danger register and this
+// file's own history (mission-8's Captain B1 finding): a committed script
+// that creates or deletes `User` rows is forbidden outright, because
+// `displayName` carries no `@unique` constraint and a name-matched delete
+// can catch a row the seeder never created — including a same-named row
+// that later gained a real login.
 //
 // Run with:  npm run db:clean-calendar
 
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
-import { CALENDAR_SEED_PEOPLE, CALENDAR_SEED_EVENTS } from "./calendar-seed-data";
+import { CALENDAR_SEED_EVENTS } from "./calendar-seed-data";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
@@ -25,12 +29,7 @@ async function main() {
     where: { title: { in: eventTitles } },
   });
 
-  const personNames = CALENDAR_SEED_PEOPLE.map((p) => p.displayName);
-  const { count: peopleDeleted } = await db.user.deleteMany({
-    where: { displayName: { in: personNames } },
-  });
-
-  console.log(`Deleted ${eventsDeleted} test events and ${peopleDeleted} test people.`);
+  console.log(`Deleted ${eventsDeleted} test events. No User rows touched.`);
 }
 
 main()

@@ -61,6 +61,13 @@ const DAY_NAMES = [
   "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 ] as const;
 
+/** "Sun", "Mon", ... — the short weekday vocabulary, exported (unlike
+ * DAY_NAMES above) because the Calendar branch's day gutter needs it too;
+ * see mission-8's Captain finding that DaySection.tsx had started a second,
+ * private copy of this exact list, which K2's Month header would otherwise
+ * have copied a third time. */
+export const SHORT_DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
 /** "Aug 9–15" for a week that stays in one month, "Jul 27 – Aug 2" for one
  * that crosses a month boundary. */
 export function formatWeekRange(weekStart: Date): string {

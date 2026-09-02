@@ -2,7 +2,8 @@ import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { addDays } from "@/lib/mealPlanDates";
-import { CalendarViews, type CalendarEventView } from "@/components/CalendarViews";
+import { CalendarViews } from "@/components/CalendarViews";
+import type { CalendarEventView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,13 @@ export const dynamic = "force-dynamic";
 // happens entirely client-side, in CalendarViews, via useToday()). Wide
 // enough to give Previous/Next real room to page through without hitting
 // the edge of what was fetched; K1 has no follow-up fetch for paging past
-// this window, so that's this phase's one real limit, not a bug.
+// this window, so that's this phase's one real limit — and it's now a
+// VISIBLE one rather than a silent one: `windowStart`/`windowEnd` are
+// passed to CalendarViews, which disables Prev/Next at the edge instead of
+// letting the user page into a day whose events were never queried and
+// see a false "No events" (mission-8's Vision V3 finding — reproduced with
+// this file's own Nov 1 2026 DST seed event, which sits just outside a
+// ±60-day window).
 const WINDOW_DAYS = 60;
 
 /**
@@ -82,7 +89,12 @@ export default async function CalendarPage() {
     <div className="py-2">
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Calendar</h1>
       <div className="mt-4">
-        <CalendarViews events={eventViews} canManage={canManage} />
+        <CalendarViews
+          events={eventViews}
+          canManage={canManage}
+          windowStart={windowStart}
+          windowEnd={windowEnd}
+        />
       </div>
     </div>
   );

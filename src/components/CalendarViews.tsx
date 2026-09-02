@@ -11,34 +11,49 @@ import {
   formatDayLabel,
   formatWeekRange,
   isSameDay,
+  startOfDay,
   sundayOf,
 } from "@/lib/mealPlanDates";
+import type { CalendarEventView } from "@/lib/types";
 
-/** One person on an event, as the browser needs it — a User row narrowed to
- * exactly what a calendar card shows (see personInfo.ts's own reasoning for
- * why this project always narrows a User row by hand rather than passing
- * one through wholesale). */
-export type CalendarPersonView = {
-  userId: string;
-  displayName: string;
-  avatarColor: string;
-};
-
-/** One CalendarEvent, as the browser needs it. Owned here (not
- * src/lib/types.ts) because C3's boundary doesn't include that file —
- * DaySection.tsx and EventCard.tsx import it from this one. */
-export type CalendarEventView = {
-  id: string;
-  title: string;
-  notes: string | null;
-  location: string | null;
-  startAt: Date;
-  endAt: Date;
-  allDay: boolean;
-  people: CalendarPersonView[];
-};
+// CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
+// — this file, DaySection.tsx, and EventCard.tsx all import them from that
+// one shared place rather than from one another, which is what keeps the
+// module graph free of the component-to-component cycle mission-8's
+// Captain gate flagged (B2). Import from "@/lib/types" directly rather than
+// re-exporting from here, or the cycle comes right back (this file already
+// imports the DaySection *component*, so a type re-export pointed the other
+// way would recreate exactly the loop this fix removes).
 
 type CalendarViewMode = "week" | "day";
+
+type CalendarViewsProps = {
+  events: CalendarEventView[];
+  /**
+   * True for admin/parent sessions, computed server-side in page.tsx.
+   * Unused by C3 — this branch is read-only in K1's third contract — and
+   * kept in this type (not destructured below — an unused destructured
+   * binding is what the lint rule actually flags, a type field costs
+   * nothing) only so C4 (create/edit/delete) can gate its
+   * FloatingAddButton and per-event Edit/Delete on the exact boolean the
+   * page already computed, rather than every client component
+   * re-deriving it. Per STRUCTURE.md, hiding UI is never the real gate —
+   * the write actions in actions/calendar.ts check this independently.
+   */
+  canManage: boolean;
+  /**
+   * The bounds of page.tsx's one server fetch (day-level; see its own
+   * WINDOW_DAYS comment) — used ONLY to decide whether paging further
+   * would reach a period whose events were never queried, never to decide
+   * "today" (that's useToday()'s job alone). Prev/Next disable at these
+   * edges rather than letting the user page into a false "No events" —
+   * see DaySection.tsx's NotLoadedCard for the same guarantee applied a
+   * second, defensive way (a Week/Day view switch right at the edge can
+   * still land a day outside the window even with paging disabled).
+   */
+  windowStart: Date;
+  windowEnd: Date;
+};
 
 /**
  * The Calendar branch's whole client-side shell: which view (Week/Day) and
@@ -49,22 +64,7 @@ type CalendarViewMode = "week" | "day";
  * query — see page.tsx's own comment); everything else — which specific
  * days to show, which of `events` land on each one — is computed here.
  */
-export function CalendarViews({
-  events,
-  canManage,
-}: {
-  events: CalendarEventView[];
-  /**
-   * True for admin/parent sessions, computed server-side in page.tsx.
-   * Unused by C3 — this branch is read-only in K1's third contract — and
-   * threaded through only so C4 (create/edit/delete) can gate its
-   * FloatingAddButton and per-event Edit/Delete on the exact boolean the
-   * page already computed, rather than every client component
-   * re-deriving it. Per STRUCTURE.md, hiding UI is never the real gate —
-   * the write actions in actions/calendar.ts check this independently.
-   */
-  canManage: boolean,
-}) {
+export function CalendarViews({ events, windowStart, windowEnd }: CalendarViewsProps) {
   const today = useToday();
   const [view, setView] = useState<CalendarViewMode>("week");
   const [offsetDays, setOffsetDays] = useState(0);
@@ -109,15 +109,62 @@ export function CalendarViews({
   // exactly what the resolved frame will show.
   const placeholderCount = view === "week" ? 7 : 1;
 
+  // Disable Next/Prev the moment stepping ONE MORE period would land on a
+  // period with NO loaded days at all — not the moment the CURRENT period
+  // merely touches the edge. That distinction matters and was only found
+  // by actually running this with a Mountain-timezone browser against this
+  // UTC-clocked dev server: `windowStart`/`windowEnd` are instants built
+  // server-side from the SERVER's own local calendar components
+  // (page.tsx), while every date below is local midnight in the BROWSER's
+  // timezone (from useToday()). Because Mountain is BEHIND UTC, a
+  // server-built "midnight of day X" instant reads back as still being on
+  // day X-1 by the time a Mountain browser's OWN local midnight for day X
+  // arrives — so a check like "is this period's last day already past
+  // windowEnd" can go true for a period whose local calendar days, read
+  // from the browser's own clock, turn out to have NONE of them actually
+  // inside [windowStart, windowEnd] (confirmed live: the seeded Nov 1 2026
+  // week rendered as reachable but showed the NotLoaded card on all seven
+  // days). Checking the NEXT candidate period's first (or previous
+  // period's last) day instead is what keeps every reachable period
+  // guaranteed to hold at least one real loaded day — a partially-loaded
+  // period right at the edge is still reachable, only a period with
+  // nothing loaded in it at all becomes unreachable, which is what "cannot
+  // reach a period whose data was never loaded" actually requires.
+  // Comparing with plain `.getTime()` (never re-flooring a server-built
+  // instant through the browser's own startOfDay/getFullYear) is what
+  // avoids the reinterpretation in the first place — a Date's epoch
+  // timestamp is the same absolute instant no matter whose clock reads it.
+  const nextPeriodStart =
+    view === "week"
+      ? weekStart === null
+        ? null
+        : addDays(weekStart, 7)
+      : anchor === null
+        ? null
+        : addDays(anchor, 1);
+  const previousPeriodEnd =
+    view === "week"
+      ? weekStart === null
+        ? null
+        : addDays(weekStart, -1)
+      : anchor === null
+        ? null
+        : addDays(anchor, -1);
+  const atWindowEnd = nextPeriodStart !== null && nextPeriodStart.getTime() > windowEnd.getTime();
+  const atWindowStart =
+    previousPeriodEnd !== null && previousPeriodEnd.getTime() < windowStart.getTime();
+
+  // `day` here is always a browser-built local midnight already (from
+  // daysOfWeek/the anchor), so flooring it with startOfDay is a safe no-op
+  // — unlike windowStart/windowEnd above, it never crossed the server/
+  // client boundary, so there's nothing to reinterpret.
+  function isOutsideWindow(day: Date): boolean {
+    const time = startOfDay(day).getTime();
+    return time < windowStart.getTime() || time > windowEnd.getTime();
+  }
+
   return (
     <div>
-      {/* C4 renders the FloatingAddButton and this event's Edit/Delete
-          controls gated on `canManage` — nothing to show yet in C3's
-          read-only views, but reading the prop here proves its shape is
-          already correct ahead of that phase, per this contract's own
-          "threaded through unused, or used to render nothing" allowance. */}
-      {canManage && null}
-
       <div className="mb-5 flex items-center justify-center gap-10">
         <ActionCircle
           icon={<CalendarCheck aria-hidden="true" size={22} />}
@@ -136,7 +183,7 @@ export function CalendarViews({
         <button
           type="button"
           onClick={() => step(-1)}
-          disabled={today === null}
+          disabled={today === null || atWindowStart}
           aria-label={view === "week" ? "Previous week" : "Previous day"}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors active:bg-surface-2 disabled:opacity-40"
         >
@@ -160,7 +207,7 @@ export function CalendarViews({
         <button
           type="button"
           onClick={() => step(1)}
-          disabled={today === null}
+          disabled={today === null || atWindowEnd}
           aria-label={view === "week" ? "Next week" : "Next day"}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors active:bg-surface-2 disabled:opacity-40"
         >
@@ -179,6 +226,8 @@ export function CalendarViews({
                 day={day}
                 today={today}
                 showLocation={view === "day"}
+                compact={view === "week"}
+                notLoaded={isOutsideWindow(day)}
                 events={events.filter(
                   (event) =>
                     daysEventCovers(event.startAt, event.endAt, event.allDay, [day]).length > 0,

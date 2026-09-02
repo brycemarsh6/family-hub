@@ -208,3 +208,63 @@ test("daysEventCovers: a multi-day timed event spanning midnight covers both cal
   const dates = covered.map((day) => day.getDate());
   assert.deepEqual(dates, [11, 12]);
 });
+
+// ---------------------------------------------------------------------------
+// Regression tests — mission-8 pass-1 blockers (Vision V1, V2)
+
+test("REGRESSION (V1): a timed event ending exactly at local midnight belongs to the day it closes, not the day it opens", () => {
+  // The natural way to type "8 PM to midnight": Sep 4 8:00 PM -> Sep 5
+  // 12:00 AM. Before the fix, calendarDayDiff saw this as a genuine 2-day
+  // span (firstDay Sep 4, lastDay Sep 5), so it leaked onto Sep 5 and lost
+  // its time label on both days. An end instant landing exactly on
+  // midnight belongs to the day it CLOSES.
+  const start = d(2026, 8, 4, 20, 0); // Sep 4, 8:00 PM
+  const end = d(2026, 8, 5, 0, 0); // Sep 5, 12:00 AM (exactly midnight)
+  const week = [d(2026, 8, 4), d(2026, 8, 5)];
+
+  const covered = daysEventCovers(start, end, false, week);
+  assert.deepEqual(
+    covered.map((day) => day.getDate()),
+    [4],
+    "must cover only Sep 4, not leak onto Sep 5",
+  );
+
+  // Multi-day badge must not appear for what is really a same-day event.
+  assert.equal(formatAllDayLabel(start, end, false, d(2026, 8, 4)), null);
+  assert.equal(formatAllDayLabel(start, end, false, d(2026, 8, 5)), null);
+
+  // And the real time range must render, on the one day it actually covers.
+  assert.equal(formatTimeRange(start, end), "8 PM – 12 AM");
+});
+
+test("REGRESSION (V1): an ordinary same-day event ending mid-afternoon is unaffected by the midnight-close rule", () => {
+  // Guards against an overly broad fix: only an end instant that is
+  // EXACTLY midnight (and after the start) should get the day-back
+  // adjustment. 2 PM should stay 2 PM.
+  const start = d(2026, 8, 4, 14, 0);
+  const end = d(2026, 8, 4, 15, 0);
+  const week = [d(2026, 8, 4), d(2026, 8, 5)];
+  const covered = daysEventCovers(start, end, false, week);
+  assert.deepEqual(
+    covered.map((day) => day.getDate()),
+    [4],
+  );
+});
+
+test("REGRESSION (V2): a degenerate all-day event (end not after start) still renders as one day, never zero", () => {
+  // validateEventInput now rejects a NEW event shaped like this (see
+  // actions/calendar.ts), but eventDaySpan must independently clamp so an
+  // already-saved bad row can't silently disappear from every view forever
+  // — defense in depth, not a substitute for the validation.
+  const start = d(2026, 7, 9); // Aug 9 midnight
+  const end = d(2026, 7, 9); // exclusive end equal to start: zero real days
+  const week = daysOfWeek(d(2026, 7, 9)); // Aug 9-15
+
+  const covered = daysEventCovers(start, end, true, week);
+  assert.deepEqual(
+    covered.map((day) => day.getDate()),
+    [9],
+    "a degenerate span must still render on its own start day, not vanish",
+  );
+  assert.equal(formatAllDayLabel(start, end, true, d(2026, 7, 9)), "All day");
+});

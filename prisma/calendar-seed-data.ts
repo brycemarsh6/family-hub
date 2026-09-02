@@ -3,31 +3,23 @@
 // exactly which rows are test data without importing (and thereby running)
 // the seeder.
 //
-// Every event title AND every seeded person's displayName carries a
-// "ZZZ Test" prefix. Both scripts match on these exact strings rather than
-// touching the CalendarEvent or User tables broadly — CalendarEvent because
-// a future session's real events will live in this same table, and User
-// because it holds the household's actual accounts and must never have a
-// blanket clean/reset script (see AGENTS.md's danger register).
+// Every event title carries a "ZZZ Test" prefix; both scripts match on that
+// exact string rather than touching the CalendarEvent table broadly, since
+// a future session's real events live in this same table.
+//
+// This file used to also define three throwaway "ZZZ Test" User rows for
+// the seeder to create and delete — removed per mission-8's Captain B1
+// finding: a committed script may never create or delete `User` rows (see
+// AGENTS.md's danger register). `displayName` carries no `@unique`
+// constraint, so a name-matched delete can catch a row the seeder never
+// created, including a same-named row that later gained a real login. The
+// seeder now ATTACHES to whichever real people already exist in the
+// database instead (see seed-calendar.ts) — this file only describes which
+// of those found people (by index) each event is for.
 //
 // Dates are described here as offsets from "the seeder's own reference
 // dates" (see seed-calendar.ts) rather than concrete Date objects, so this
 // file stays pure data with no Date-construction opinions of its own.
-
-import type { AvatarColor } from "../src/lib/constants";
-
-export type SeedPerson = {
-  displayName: string;
-  avatarColor: AvatarColor;
-};
-
-// Three passwordless test profiles — enough to prove the "3+ people on one
-// event" split-color case without touching any real household member.
-export const CALENDAR_SEED_PEOPLE: SeedPerson[] = [
-  { displayName: "ZZZ Test Alice", avatarColor: "blue" },
-  { displayName: "ZZZ Test Ben", avatarColor: "green" },
-  { displayName: "ZZZ Test Cleo", avatarColor: "amber" },
-];
 
 export type SeedEventKind =
   | "singlePersonTimed"
@@ -54,7 +46,10 @@ export type SeedEventTemplate = {
    * comment describes. */
   startTime?: { hour: number; minute: number };
   endTime?: { hour: number; minute: number };
-  /** Indices into CALENDAR_SEED_PEOPLE. */
+  /** Indices into whichever real, non-deactivated `User` rows
+   * seed-calendar.ts found (0, 1, 2 — up to the first three, ordered by
+   * `createdAt`). Not into a fixture this file owns — see this file's own
+   * header for why it no longer defines any test people of its own. */
   people: number[];
 };
 

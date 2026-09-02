@@ -292,8 +292,8 @@ Vision explicitly so it is verified, not assumed.
   never the gate.
 - **Report:** —
 
-### C5 — Fix contract: all 5 pass-1 blockers, plus 5 cheap same-file notes
-- **Status:** DISPATCHED
+### C5 — Fix contract: all 8 pass-1 blockers, plus 5 cheap same-file notes
+- **Status:** DONE
 - **Boundaries:**
   - may touch: `src/lib/calendarDates.ts`, `src/lib/calendarDates.test.ts`,
     `src/lib/types.ts`, `src/lib/mealPlanDates.ts` (add one export only),
@@ -319,6 +319,43 @@ Vision explicitly so it is verified, not assumed.
   the app must distinguish **three** states, not two: loading (grey bars),
   genuinely empty (the crisp "No events" glyph), and outside the loaded
   window (its own treatment). Never collapse them.
+- **Report:** DONE, all 8 fixed, no conflicts, no BLOCKED-ON-CONTRACT.
+  Gauntlet **re-run by Fury**: tsc 0, eslint 0, **131/131 under
+  `TZ=America/Denver` AND 131/131 under `TZ=UTC`**, build 0.
+  Fury also verified the three claims a builder shouldn't be trusted on:
+  `grep` shows the only `db.user` write/delete left in `prisma/` is
+  `bootstrap-users.ts` (the sanctioned exception, untouched) — `seed-calendar`
+  holds a `findMany` read only and `clean-calendar` zero `db.user` calls;
+  the component graph is now a one-way tree (`CalendarViews → DaySection →
+  EventCard`) with no type imported from a component; the loading branch
+  renders `SkeletonBlock` and `NoEventsCard` survives only in the resolved
+  branch; band alpha is **0.10** over `var(--surface)` in one shorthand;
+  `prisma/tmp-*` gone.
+  **Regression tests proven red-then-green**, as required: V1 failed
+  `[4,5] vs [4]` and V2 failed `[] vs [9]` before the fix, both green after.
+  **Contrast re-measured live** on a rendered card rather than recomputed:
+  worst case **4.64:1** light (red) and 5.53:1 dark (amber), both clear of
+  the 4.5 floor — the builder took the safer 0.10 rather than the 0.12 that
+  landed exactly on it.
+
+  **The builder found a real bug in its own first V3 fix by running it, not
+  by reasoning** — and this one is worth remembering. Its first edge check
+  compared `startOfDay(periodEnd)` against `startOfDay(windowEnd)`, which
+  re-floors a *server*-built instant through the *browser's* local getters:
+  exactly the trap `mealPlanDates.ts`'s own header warns about, hitting a
+  window boundary instead of "today." Live, that made the Nov 1 week
+  reachable but rendered "Outside the loaded range" on all seven days.
+  Fixed twice over: compare raw `.getTime()` instants, and change the
+  criterion from "this period's edge is past the boundary" to "the *next*
+  candidate period's edge is past it," which guarantees every reachable
+  period holds at least one loaded day.
+
+  **Residual honest limit the builder volunteered:** the per-day
+  "not loaded" card is implemented and was seen rendering correctly, but
+  under the final boundary logic the day- and week-granularity edges happen
+  to align on today's date, so that defensive path isn't reachable by a live
+  path right now without contriving an artificial window. Recorded rather
+  than dressed up as verified.
 - **Verification:** the four gauntlet commands **plus** the same suite under
   `TZ=UTC` and `TZ=America/Denver`; a regression test per date blocker;
   seed/clean proven against look-alike rows; the window edge demonstrated in

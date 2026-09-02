@@ -96,20 +96,52 @@ function calendarDayDiff(a: Date, b: Date): number {
  * many days that spans. All-day events store their end **exclusive** —
  * the common iCal/Google convention, where a Mon–Wed all-day event's end
  * is Thursday midnight — so this subtracts one day back onto Wednesday
- * before counting; a timed event's `end` instant is used as-is, since a
- * timed event genuinely does span into the next calendar day if it runs
- * past midnight (a New Year's Eve party, say) and shouldn't have a day
- * subtracted for that. This is the one function in the file responsible
- * for that distinction — every day-span calculation below goes through it,
- * which is what keeps an all-day event from leaking onto the extra day its
- * stored end instant would otherwise imply. */
+ * before counting; a timed event's `end` instant is used as-is in the
+ * general case, since a timed event genuinely does span into the next
+ * calendar day if it runs past midnight (a New Year's Eve party, say) and
+ * shouldn't have a day subtracted for that. This is the one function in
+ * the file responsible for that distinction — every day-span calculation
+ * below goes through it, which is what keeps an all-day event from leaking
+ * onto the extra day its stored end instant would otherwise imply.
+ *
+ * Two fixes from mission-8's pass-1 gates, both in this one function so
+ * `formatAllDayLabel` and `daysEventCovers` can never disagree about them:
+ *
+ * V1 (Vision) — a TIMED event's end instant needs one more case than "use
+ * it as-is": when it lands EXACTLY on local midnight (the natural way to
+ * type "ends at midnight" — 8:00 PM to 12:00 AM), that midnight belongs to
+ * the day it's CLOSING, not the day it would otherwise open. Without this,
+ * "8 PM – 12 AM" silently became a real 2-day span with no time label on
+ * either day. Only exact midnight triggers it, and only when the event is
+ * a genuine span (end after start) — an ordinary 2 PM–3 PM event is
+ * untouched.
+ *
+ * V2 (Vision) — a degenerate row (an all-day event whose end isn't
+ * actually after its start) would otherwise put `lastDay` BEFORE
+ * `firstDay`, which makes `daysEventCovers`' range check impossible to
+ * satisfy for ANY day — the event silently never appears anywhere, ever.
+ * `validateEventInput` (actions/calendar.ts) now rejects a *new* row shaped
+ * like this; this clamp is what keeps an already-saved one from vanishing
+ * instead — validate AND clamp, the same defense-in-depth shape the rest
+ * of this app already uses for its write paths.
+ */
 function eventDaySpan(
   start: Date,
   end: Date,
   allDay: boolean,
 ): { firstDay: Date; lastDay: Date; totalDays: number } {
   const firstDay = startOfDay(start);
-  const lastDay = allDay ? addDays(startOfDay(end), -1) : startOfDay(end);
+
+  const endDay = startOfDay(end);
+  const lastDayRaw = allDay
+    ? addDays(endDay, -1)
+    : end.getTime() === endDay.getTime() && end.getTime() > start.getTime()
+      ? addDays(endDay, -1)
+      : endDay;
+
+  // V2's clamp: never let the span run backwards.
+  const lastDay = lastDayRaw.getTime() < firstDay.getTime() ? firstDay : lastDayRaw;
+
   const totalDays = Math.max(calendarDayDiff(firstDay, lastDay) + 1, 1);
   return { firstDay, lastDay, totalDays };
 }

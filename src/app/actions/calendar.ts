@@ -76,6 +76,17 @@ async function validateEventInput(input: CalendarEventInput): Promise<string | n
   if (input.endAt.getTime() < input.startAt.getTime()) {
     return "End time can't be before the start time.";
   }
+  // All-day events store their end EXCLUSIVE (see CalendarEvent.endAt's own
+  // schema comment) — an all-day event posted with endAt === startAt covers
+  // zero real days and, unenforced, saves successfully and is then
+  // invisible in every view forever (mission-8's Vision V2 finding).
+  // calendarDates.ts's eventDaySpan independently clamps this so an
+  // already-saved bad row can't vanish either — this check is what stops a
+  // NEW one from ever being written, which is the cheaper place to catch
+  // it.
+  if (input.allDay && input.endAt.getTime() <= input.startAt.getTime()) {
+    return "An all-day event has to end after it starts.";
+  }
   return validatedPeople(input.userIds);
 }
 

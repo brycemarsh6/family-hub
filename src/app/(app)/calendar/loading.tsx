@@ -18,8 +18,12 @@ import { SkeletonBlock } from "@/components/Skeleton";
 //   h1 "Calendar" (text-2xl font-bold):                     32px  -> h-8
 //   action-circles row (Today + view switcher), no margin:  78px  -> h-[78px], mb-5 below (20px)
 //   prev/next + title row:                                  44px  -> h-11, mb-4 below (16px)
-//   one day row (gutter + "No events" card, the shape every
-//     DaySection's own `loading` state already renders):    82px  -> h-[82px]
+//   one day row (gutter placeholder + a 46px grey body block —
+//     the SAME two pieces DaySection's own `loading` state
+//     renders, drawn here as one flat block instead of the two-
+//     piece markup; NEVER the real "No events" card — a loading
+//     row must not assert a fact about data it hasn't fetched
+//     yet, see DaySection.tsx's own comment):                82px  -> h-[82px]
 //   gap between day rows:                                    16px  -> gap-4
 //
 // Seven rows because Week is CalendarViews' own default view — the same
