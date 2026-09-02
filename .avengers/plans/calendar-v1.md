@@ -110,8 +110,11 @@ gauntlet green, verified in a browser at 375px, additive migrations only.
 
 ## Phases
 
-- **K1. Foundation.** Schema above (events, people, tags tables even if
-  tag UI waits for K3 — one migration, one restart), `actions/calendar.ts`
+- **K1. Foundation.** Schema above (events and people — **the tag tables
+  and `exdates` moved to K3 and K4 respectively**, a deliberate deviation
+  made during the build: adding tables nothing reads is speculative, and
+  additive migrations are cheap; Captain flagged the plan/build mismatch
+  and this is its resolution, 2026-09-02), `actions/calendar.ts`
   (create/update/delete, manager-gated), `src/lib/calendarDates.ts`
   (range formatting, week/day math, tests), **Week + Day views** as one
   `DaySection` component, `EventCard` with color bands and avatars,
