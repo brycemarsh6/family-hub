@@ -1,7 +1,7 @@
 # Mission: Calendar K1 — foundation (schema, actions, Week + Day views, event form)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (C5 fix pass; C4 still held)
+**Status:** AT-THE-GATES (pass 2 of 3; C4 still held)
 **Started:** 2026-09-02 · **Updated:** 2026-09-02
 
 ## Brief
@@ -373,6 +373,9 @@ Vision explicitly so it is verified, not assumed.
 | 1 | Vision | **BLOCK** | 3 | 7 notes; all blockers reproduced with output |
 | 1 | Strange | **BLOCK** | 3 | 7 notes; all measured, not eyeballed |
 | 1 | Captain | **BLOCK** | 2 | 7 notes; gauntlet re-run clean, no boundary violations |
+| 2 | Vision | DISPATCHED | — | running alone in the container, by design |
+| 2 | Captain | DISPATCHED | — | read-only, so safe alongside Vision |
+| 2 | Strange | HELD | — | starts when Vision finishes (pass-1 collision) |
 
 Budget: 3 passes per gate, then STOP and surface.
 
