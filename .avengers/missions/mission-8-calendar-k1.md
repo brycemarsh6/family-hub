@@ -1,7 +1,7 @@
 # Mission: Calendar K1 — foundation (schema, actions, Week + Day views, event form)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (C4 — read path fully gated: Captain P2, Strange P2, Vision P3 all PASS)
+**Status:** AT-THE-GATES (C4 pass 1: Vision + Captain running, Strange held)
 **Started:** 2026-09-02 · **Updated:** 2026-09-02
 
 ## Brief
@@ -583,6 +583,9 @@ Vision explicitly so it is verified, not assumed.
 | 2 | Captain | **PASS** | 0 | both pass-1 blockers RESOLVED; 10 notes |
 | 2 | Strange | **PASS** | 0 | S1–S3 RESOLVED, re-measured; 11 notes |
 | 3 | Vision | **PASS** | 0 | V4 and C7 RESOLVED, re-derived; 5 notes |
+| C4-1 | Vision | DISPATCHED | — | on C4 (`ad2de84`); write path end to end, alone with the DB |
+| C4-1 | Captain | DISPATCHED | — | on C4; the three mandates + new surface; reads alongside Vision |
+| C4-1 | Strange | HELD | — | starts when Vision finishes |
 
 Budget: 3 passes per gate, then STOP and surface.
 
