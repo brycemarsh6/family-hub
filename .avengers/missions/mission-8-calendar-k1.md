@@ -107,7 +107,7 @@ touch overlapping component files, so they run in sequence.
 - **Report:** —
 
 ### C2 — `src/lib/calendarDates.ts` + tests (pure, no DB, no React)
-- **Status:** DISPATCHED
+- **Status:** DONE
 - **Boundaries:**
   - may touch: `src/lib/calendarDates.ts` (new),
     `src/lib/calendarDates.test.ts` (new).
@@ -128,6 +128,31 @@ touch overlapping component files, so they run in sequence.
   `mealPlanDates.ts` rather than redefining them. Tests must include the
   **Nov 1 2026** DST week returning seven consecutive dates.
 - **Report:** —
+
+- **Report:** DONE. `src/lib/calendarDates.ts` exports `daysOfWeek`,
+  `formatTimeRange`, `formatAllDayLabel`, `isPast`, `daysEventCovers`;
+  imports `addDays`/`isSameDay`/`startOfDay` from `mealPlanDates.ts` rather
+  than redefining them; no function calls `new Date()` internally; no
+  millisecond arithmetic. `src/lib/calendarDates.test.ts` adds **22** cases
+  including the real Nov 1 2026 DST week. Evidence: `npm test` exit 0,
+  **128/128** (106 baseline + 22); `tsc` exit 0; `eslint` exit 0.
+  Two judgment calls the builder made and documented, both accepted:
+  `formatAllDayLabel` returns `null` for a plain single-day timed event
+  (unspecified in the contract — "not applicable, use `formatTimeRange`")
+  rather than inventing a string; and the day-span logic behind
+  `formatAllDayLabel` and `daysEventCovers` was factored into one internal
+  helper so the two can never disagree about which days an event covers.
+
+⚠️ **OPEN SEAM — the all-day `end` convention. Fury must reconcile before
+C3.** C2 could not see C1's schema (out of boundary) so it assumed the
+iCal/Google **exclusive** end convention: a Mon–Wed all-day event stores
+`end` = Thursday midnight. If C1 stored all-day `end` *inclusively*, every
+all-day event renders one day too long. This is the exact class of bug two
+parallel contracts produce, and it is not visible inside either one.
+Resolution: on C1's report, read the seed data's all-day rows and the
+action's write path, confirm which convention is in force, and make the
+losing side conform **in code**, not in a comment. Hand the finding to
+Vision explicitly so it is verified, not assumed.
 
 ### C3 — Week + Day views (read-only rendering)
 - **Status:** PENDING (depends on C1, C2)
@@ -201,6 +226,9 @@ Budget: 3 passes per gate, then STOP and surface.
 - 2026-09-02 — C1 and C2 dispatched to Stark in parallel (disjoint
   boundaries: C1 owns prisma/actions/constants, C2 owns two new lib files).
   Next: read both reports, then C3.
+- 2026-09-02 — C2 DONE (128/128 tests, tsc/eslint clean). Its report raises
+  an open seam on the all-day `end` convention that C1 owns — logged under
+  C2's report; must be settled before C3 renders anything. C1 still running.
 
 ## Delivery
 
