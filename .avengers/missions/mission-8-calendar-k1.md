@@ -290,7 +290,40 @@ Vision explicitly so it is verified, not assumed.
   alone. Delete is single-tap (no recurrence in K1, so no This/All choice).
   `canManage` is computed server-side and passed as a **boolean**; hiding is
   never the gate.
-- **Report:** —
+- **Report:** DONE. **Step 1 first, proven:** `CalendarHeader.tsx` (100) and
+  `ActionCircle.tsx` (38) extracted; `CalendarViews.tsx` 275 → 213 before
+  the rest of C4 grew it to a final 307; `RecipeActionCircles.tsx` imports
+  the one `ActionCircle` (Fury-verified: exactly one definition in `src/`).
+  Pixel diff of Week at 375px before/after extraction: **max diff 0,
+  nonzero pixels 0**. Then `EventForm.tsx` (346), `EventDetailSheet.tsx`
+  (189, ⋯ as an internal `view` state, full names, "Added by", single-tap
+  Delete), `/calendar/new` and `/calendar/[id]/edit` (server-gated, kid →
+  redirect, missing id → `notFound()`), `FloatingAddButton` → `ActionSheet`
+  (Event / Meal) on `canManage`, `EventCard` a real `<button>`, past
+  treatment per Strange verbatim (measured live: past title `--muted`
+  weight 400, future `--fg` 600, opacities 1), Day view stacks badges below
+  text so location gets a full line, Week `line-clamp-2` + overlap-stacked
+  badges, `NotLoadedCard` per 6d, both Vision pass-3 notes done.
+  `loading.tsx` untouched — the pixel diff proved its heights hold.
+  **Through the real form, rows read back:** create (`createdById` =
+  session), edit (`updatedAt` advanced), delete (0 remain), **all-day
+  exclusive end via the UI**: Starts 09/10, Ends 09/12 → `endAt
+  2026-09-13T00:00Z`. Sheet shows "Day 2 of 3" and Bryce/Emily/Eleanor by
+  full name.
+  **Kid check went beyond the contract:** the real `Next-Action` POST was
+  captured and replayed — Bryce's cookie 200 + row (positive control);
+  Eleanor's kid cookie 200 with `{"error":"Only parents can do that."}`
+  and **no row**; no cookie 307. No `+`/Edit/⋯ for the kid; both write
+  pages redirect by URL. Gauntlet 135/135 both timezones; three routes
+  built; counts 0; `playwright` reverted (package files clean,
+  Fury-verified). **`EventForm.tsx` at 346 is 4 under the soft cap.**
+  **Deviations for the gates:** (1) next-whole-hour default via a local
+  `useSyncExternalStore` "browser minute" hook + adjust-state-during-render,
+  because `useEffect`+`setState` trips this repo's `set-state-in-effect`
+  rule and render-time `new Date()` mismatches hydration; (2) "Added by" as
+  a `createdByNames` map in `page.tsx` rather than widening
+  `CalendarEventView` (`types.ts` was out of bounds); (3) no CSS-sticky
+  submit — no such pattern exists here.
 
 ### C7 — Micro-fix: paging must never strand the user (Strange pass-2 note)
 - **Status:** DONE
@@ -322,7 +355,7 @@ Vision explicitly so it is verified, not assumed.
   identical.
 
 ### C4 — Create / edit / delete UI
-- **Status:** DISPATCHED — all three gates PASSED on the read path (Captain P2, Strange P2, Vision P3)
+- **Status:** DONE — at the gates (committed `ad2de84`)
 - **Boundaries:**
   - may touch: `src/app/(app)/calendar/new/page.tsx` (new),
     `src/app/(app)/calendar/[id]/edit/page.tsx` (new),
@@ -1130,6 +1163,11 @@ plan quietly rot.
   fully gated: Captain P2, Strange P2, Vision P3 all PASS.** Two small notes
   folded into C4 (skewed-clock strand; a comment overclaim about
   `Intl.DateTimeFormat` freezing its zone). **C4 dispatched.**
+- 2026-09-02 — **C4 DONE**, Fury-verified, committed `ad2de84`. (The record
+  for it missed its anchor on the first try and the code commit went out
+  without it — caught immediately, fixed in the next commit. Anchor
+  assertions work; they need the *whole* script to be atomic too.) Next:
+  **Vision + Captain on C4 in parallel**, Strange after Vision.
 
 ## Delivery
 
