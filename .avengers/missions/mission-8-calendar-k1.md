@@ -293,7 +293,7 @@ Vision explicitly so it is verified, not assumed.
 - **Report:** —
 
 ### C7 — Micro-fix: paging must never strand the user (Strange pass-2 note)
-- **Status:** DISPATCHED
+- **Status:** DONE
 - **Boundaries:** may touch `src/components/CalendarViews.tsx` only (plus
   `src/lib/calendarDates.ts` + test **only** if a `stepsTowardToday`-style
   helper is cleaner there than inline). Must not touch anything else.
@@ -308,7 +308,18 @@ Vision explicitly so it is verified, not assumed.
 - **Done criteria:** from any reachable period, at least one of Prev/Next/
   Today leads back toward loaded data, and no step away from today past
   the edge is possible.
-- **Report:** —
+- **Report:** DONE. +14/−2 in `CalendarViews.tsx` only (262 → 274, half of
+  it a comment on direction-of-travel): `atWindowEnd`/`atWindowStart` now
+  require `today !== null` and a raw `.getTime()` comparison showing the
+  step moves *away* from today before `canStepToPeriod` may refuse it.
+  Strand reproduced before (`Prev disabled: true, Next disabled: true` on
+  Wed Jul 1) and escaped after (`Next disabled: false` → Jul 2, Jul 3 as
+  not-loaded → Jul 4 loaded "No events" → onward). Forward edge still stops
+  Next at Oct 25–31; Day forward paging still stops at Fri Oct 30; Week Prev
+  still disabled at Jun 28–Jul 4. Gauntlet 135/135 both timezones, build 0.
+  Helper extraction judged unnecessary for two inline comparisons — the lib
+  is untouched. Counts 0/0/0, scratch gone. Fury re-ran the gauntlet:
+  identical.
 
 ### C4 — Create / edit / delete UI (DRAFTED, awaiting Strange pass 2 + Vision pass 3)
 - **Status:** DRAFTED — dispatch only after all three gates PASS on the read path
@@ -1060,6 +1071,8 @@ plan quietly rot.
   the back edge with both arrows dead. Decision under autonomy: batching a
   known two-line fix before the last gate pass beats spending that pass on
   it.
+- 2026-09-02 — **C7 DONE**, Fury-verified. Committing; **Vision pass 3 (the
+  last in budget)** dispatched on the C7 head, alone in the container.
 
 ## Delivery
 

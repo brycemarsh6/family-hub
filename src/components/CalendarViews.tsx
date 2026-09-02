@@ -141,10 +141,22 @@ export function CalendarViews({ events, windowStart, windowEnd }: CalendarViewsP
       : anchor === null
         ? null
         : addDays(anchor, -1);
+  // The window check is only the right question when a step moves AWAY from
+  // today — a step TOWARD today must never be refused, even into a
+  // candidate period that's itself outside the window (it shows the honest
+  // NotLoadedCard, and the next step gets closer). Without this a Week→Day
+  // switch right at the edge could strand both arrows: Prev'd to
+  // Jun 28–Jul 4, Day view on Wed Jul 1 has a not-loaded day on BOTH sides.
   const atWindowEnd =
-    nextPeriodStart !== null && !canStepToPeriod(nextPeriodStart, windowStart, windowEnd);
+    today !== null &&
+    nextPeriodStart !== null &&
+    nextPeriodStart.getTime() > today.getTime() &&
+    !canStepToPeriod(nextPeriodStart, windowStart, windowEnd);
   const atWindowStart =
-    previousPeriodEnd !== null && !canStepToPeriod(previousPeriodEnd, windowStart, windowEnd);
+    today !== null &&
+    previousPeriodEnd !== null &&
+    previousPeriodEnd.getTime() < today.getTime() &&
+    !canStepToPeriod(previousPeriodEnd, windowStart, windowEnd);
 
   return (
     <div>
