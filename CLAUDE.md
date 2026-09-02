@@ -4475,3 +4475,23 @@ item added there did **not** appear on the real app. Writes on a preview
 now land on the dev branch and nowhere else. (The first preview load was
 slow: the dev branch's compute sleeps when idle and wakes on demand.
 That's normal, and a small tell that you're on the dev branch.)
+
+---
+
+## Feature idea, noted 2026-09-02: quick-action icons for Out/Low on Shopping
+
+Not built yet — Bryce's own idea, recorded here so it isn't lost. His
+words, paraphrased: a small icon on the Shopping page (red, for "out of
+stock") that his wife can tap to pull up every item currently showing as
+Out — one filtered list, each row with a one-tap "add to cart" (i.e. add
+to the shopping list). Same idea for a second icon covering Low items.
+
+This is effectively a shortcut into the existing low-stock push that
+Inventory already has (`PantryList`'s "Add N low items to the list"
+button, plus the per-item cart button in the picker-sheet flow from
+CLAUDE.md's Kitchen/Shopping section) — but surfaced from the **Shopping**
+page instead of Inventory, and split into two states (Out vs. Low) rather
+than one combined "low" bucket. Worth deciding, when this gets built,
+whether it's a new UI on Shopping or just a more prominent entry point to
+the Inventory action that already exists — the underlying data (Out/Low
+badges, the low-stock query) is already there.
