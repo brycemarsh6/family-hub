@@ -1,7 +1,7 @@
 # Mission: Calendar K1 — foundation (schema, actions, Week + Day views, event form)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (C1-C3; C4 held pending verdicts)
+**Status:** BUILDING (C5 fix pass; C4 still held)
 **Started:** 2026-09-02 · **Updated:** 2026-09-02
 
 ## Brief
@@ -292,15 +292,105 @@ Vision explicitly so it is verified, not assumed.
   never the gate.
 - **Report:** —
 
+### C5 — Fix contract: all 5 pass-1 blockers, plus 5 cheap same-file notes
+- **Status:** DISPATCHED
+- **Boundaries:**
+  - may touch: `src/lib/calendarDates.ts`, `src/lib/calendarDates.test.ts`,
+    `src/lib/types.ts`, `src/lib/mealPlanDates.ts` (add one export only),
+    `src/lib/constants.ts` (one comment only), `src/app/actions/calendar.ts`,
+    `src/app/(app)/calendar/page.tsx`, `src/components/CalendarViews.tsx`,
+    `src/components/DaySection.tsx`, `src/components/EventCard.tsx`,
+    `prisma/seed-calendar.ts`, `prisma/clean-calendar.ts`,
+    `prisma/calendar-seed-data.ts`, `package.json` (test script only).
+  - must not touch: `prisma/schema.prisma`, any migration (**no schema
+    change is needed or permitted** — every fix is code-level),
+    `src/lib/dal.ts`, `src/proxy.ts`, `src/lib/session.ts`, any other action
+    file, `DESIGN.md`, `STRUCTURE.md` (Fury owns the amendments).
+- **Fixes required — all 8 pass-1 blockers:** Captain B1 (no `User`
+  writes/deletes in committed scripts), Captain B2 (types to
+  `src/lib/types.ts`, cycle gone), Vision V1 (midnight-end leak), Vision V2
+  (all-day invariant enforced + span clamped), Vision V3 (window edge
+  visible), Strange S1 (loading frame must not say "No events"), Strange S2
+  (band contrast to AA), Strange S3 (Day view stops truncating). Plus five
+  folded notes in the same files: dead `{canManage && null}`,
+  re-implemented `isSameDay`, vacuous-in-CI test timezone, overclaiming
+  `HOUSEHOLD_TIME_ZONE` comment, duplicate weekday vocabulary.
+  **The unifying insight:** V3 and S1 are the same lie from two causes —
+  the app must distinguish **three** states, not two: loading (grey bars),
+  genuinely empty (the crisp "No events" glyph), and outside the loaded
+  window (its own treatment). Never collapse them.
+- **Verification:** the four gauntlet commands **plus** the same suite under
+  `TZ=UTC` and `TZ=America/Denver`; a regression test per date blocker;
+  seed/clean proven against look-alike rows; the window edge demonstrated in
+  a browser at 375px.
+- **Done criteria:** no `db.user.*` write or delete anywhere in `prisma/`;
+  no component-to-component import cycle; the Nov 1 2026 seed event
+  reachable or its absence visibly explained; every regression test fails
+  before the fix and passes after.
+- **Report:** —
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Vision | **BLOCK** | 3 | 7 notes; all blockers reproduced with output |
-| 1 | Strange | DISPATCHED | — | on C3's views |
+| 1 | Strange | **BLOCK** | 3 | 7 notes; all measured, not eyeballed |
 | 1 | Captain | **BLOCK** | 2 | 7 notes; gauntlet re-run clean, no boundary violations |
 
 Budget: 3 passes per gate, then STOP and surface.
+
+### Strange pass 1 — BLOCK (3 blockers, 7 notes)
+
+Reviewed 19 screenshots across 320/375/1024, light and dark, including the
+streamed loading frame (DB query stalled with a table lock) and the
+hydration-null frame (React chunks aborted). Seeded four profiles named
+**Emily / Eleanor / Ledger / Lucy** to exercise the real colliding initials
+Fury flagged. All throwaway rows deleted, counts read back at zero, tree
+clean.
+
+**S1 — the loading frame literally says "No events" for every day.**
+`DaySection.tsx:64` renders the real `NoEventsCard()` inside its `loading`
+branch, so the streamed HTML asserts seven empty days while Wednesday is
+about to show three events. **This overturns the thing Fury praised.** The
+"identical by construction" trick satisfied my no-layout-shift requirement
+by making loading and empty *the same component* — and this repo's own
+dashboard lesson is that loading is grey bars and nothing is a crisp glyph,
+precisely so the two can't be confused. Both requirements are satisfiable:
+a 46px `SkeletonBlock` (the measured `NoEventsCard` height) keeps the 82px
+row and the no-shift property while restoring the distinct vocabulary.
+
+**S2 — `--muted` text over the color bands fails AA in light theme.**
+Measured over the rendered tint across all 8 avatar colors: worst case
+**3.77–3.93:1** against a 4.5 floor, for the time range, "All day"/"Day N
+of 3", and the location line at 14px. `--fg` passes (5.53–5.76); dark theme
+passes (5.75–6.06). `EventCard.tsx:83-86` claims the alpha was chosen so
+text stays readable "without a per-color contrast check" — measured, that
+holds for the title only. Strange computed the fix rather than guessing:
+paint the bands over `--surface` and drop alpha 0.16 → 0.12, giving worst
+case **4.50** light / 5.41 dark, and noted 4.50 is the floor with no margin
+(prefer 0.10 if the bands still read).
+
+**S3 — Day view truncates titles, which is the one thing Day view exists
+for.** The plan's Day design is "room spent on full titles, location";
+`EventCard.tsx:46` applies `truncate` in both views. Measured on a 5-person
+card in Day view: the title gets **149px and needs 223px** — so a
+whole-family event shows ~17 characters in the view built to read it, with a
+screen of empty space below.
+
+**Notes worth knowing:** Week's badge strip takes up to 49% of the card at
+5 people, so real titles like "Ledger's birthday party" will not fit;
+past-event `opacity-55` measures fg 2.36:1 and shares its vocabulary with
+the *disabled* Today circle, which becomes a real falsehood at C4 when cards
+turn tappable; the colliding-initials judgment came back honest — two
+swatches are clearly different at 28px, but the card cannot say *which* E,
+which is exactly why C4's sheet must carry names; Day view never renders
+`notes` though it is fetched; and the `ActionCircle` duplication was
+confirmed independently of Captain.
+
+**Independent confirmation of Vision's V3:** Strange found the Nov 1 DST
+week renders seven consecutive dates but shows "No events", because the
+seeded DST event falls just outside the ±60-day window. Two gates reached
+the same defect from opposite directions — the strongest kind of finding.
 
 ### Vision pass 1 — BLOCK (3 blockers, 7 notes)
 
