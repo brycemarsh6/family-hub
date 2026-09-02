@@ -373,11 +373,81 @@ Vision explicitly so it is verified, not assumed.
 | 1 | Vision | **BLOCK** | 3 | 7 notes; all blockers reproduced with output |
 | 1 | Strange | **BLOCK** | 3 | 7 notes; all measured, not eyeballed |
 | 1 | Captain | **BLOCK** | 2 | 7 notes; gauntlet re-run clean, no boundary violations |
-| 2 | Vision | DISPATCHED | — | running alone in the container, by design |
+| 2 | Vision | **BLOCK** | 1 | V1, V2 RESOLVED; V3 partial — boundary day still lies |
 | 2 | Captain | **PASS** | 0 | both pass-1 blockers RESOLVED; 10 notes |
 | 2 | Strange | HELD | — | starts when Vision finishes (pass-1 collision) |
 
 Budget: 3 passes per gate, then STOP and surface.
+
+### Vision pass 2 — BLOCK (1 blocker, 8 notes)
+
+Gauntlet re-run: tsc 0, eslint 0, **131/131 under both timezones**, build 0.
+Boundary audit clean; `git show --stat 75d65bb -- prisma/schema.prisma
+prisma/migrations` empty. **The red-then-green claim was re-derived, not
+read**: Vision extracted the pre-fix module from git and ran the same 23
+cases against both versions — pre-fix `[9/4, 9/5]` / `[]`, fixed `[9/4]` /
+`[8/9]`, identical under Mountain and UTC.
+
+**V1 RESOLVED.** 8 PM → midnight covers one day labelled "8 PM – 12 AM".
+Every edge the fix introduced holds in both timezones: zero-length at
+midnight, midnight→midnight, multi-day ending at midnight (with a 12:01 AM
+control correctly staying 3 days), Oct 31→Nov 1, Nov 1 1:30 AM (the
+ambiguous fall-back hour)→Nov 2, and the March spring-forward.
+
+**V2 RESOLVED.** Validation refuses `endAt === startAt` on create *and*
+update and accepts legitimate one-day and three-day all-day events. The
+clamp was proven **independently of the validation**: a degenerate row
+written straight to the database with Prisma rendered as exactly one card
+in both a Mountain and a UTC browser; the pre-fix module gives `[]` for the
+same row.
+
+**V3 PARTIALLY RESOLVED — the residual is the new blocker.** The
+whole-period lie is gone: Next disables at Oct 25–31, Prev at Jun 28–Jul 4,
+the Nov 1–7 week is unreachable, and the code compares raw `.getTime()`
+against the *next* candidate period exactly as the builder claimed. But:
+
+**V4 (BLOCKER) — the boundary day still renders "No events" over a real
+row.** `CalendarViews.tsx:153,161-164` calls a day "loaded" when its
+**start** is inside the window, but the query fetched only up to
+`windowEnd`, which is the *server's* midnight — **6 PM Mountain**. Reproduced
+with no stubbing: a "Halloween Party 7 PM Oct 31" row confirmed in the table
+by `psql` at the same instant, and the Mountain browser shows **`Sat 31 —
+No events`** in both Week and Day. In production this silently drops every
+evening event on the 60th day out, and the day looks honestly empty. Second
+manifestation at the back edge: Jul 3 renders as a normal complete day
+holding one 8 PM event while a 9 AM event on the same day is in the table
+and absent — a day whose start is outside the window but that received one
+overlapping row presents as complete, because `DaySection` shows
+`NotLoadedCard` only when `events.length === 0`. And in a UTC browser the
+**mission's own Nov 1 seed row** is the victim: `Sun 1 — No events`.
+Fix, specified by Vision: define "loaded" as **full containment** —
+`isOutsideWindow(day)` is true when the day's start precedes `windowStart`
+*or* the day's end exceeds `windowEnd` — use the same predicate for Next
+(Prev is already right), render `NotLoadedCard` whenever a day is outside
+the window **regardless of whether any events were fetched for it**, hoist
+both predicates into `calendarDates.ts` (Captain asked for the same), and
+add a TZ-pinned regression test (`windowEnd = 2026-11-01T00:00Z`, day =
+Oct 31 in `America/Denver` → outside).
+
+**Item 4 ruling — the builder's "unreachable" claim was wrong: (b) and
+(c).** In a Mountain browser, Prev to Jun 28–Jul 4 renders "Outside the
+loaded range" on Jun 28–Jul 2 live, no stubbing; in a UTC browser Next
+reaches Nov 1–7 with it on Nov 2–7. The "edges align on today's date" claim
+holds only when the boundary day is a Saturday (forward) or Sunday (back);
+the builder saw one edge align and generalized. **Keep the card**; after V4
+it becomes reachable at both edges.
+
+**Notes:** a timed midnight→midnight event now reads "12 – 12 AM" on one
+day (coverage right, label odd — C4's form should steer that case to
+all-day); an all-day event with non-midnight instants passes validation and
+renders via the clamp (harmless, but validation does not enforce midnight
+alignment); Day view can step through fully-outside days after a Week→Day
+switch, each honestly showing `NotLoadedCard`. **Seed/clean re-verified on
+the rewritten scripts** including six look-alike survivors and byte-
+identical `User` rows. **Security suite re-run on the changed action
+file**: positive control first, then kid / no-cookie / deactivated /
+forged-admin / wrong-secret / v1-shaped cookies all refused with counts
+unchanged. Baseline restored, scratch removed.
 
 ### Captain pass 2 — PASS (0 blockers, 10 notes)
 
@@ -737,6 +807,15 @@ plan quietly rot.
   building, not about opening review requests on his behalf.
 - 2026-09-02 — **Vision pass 2 re-dispatched**, alone in the container;
   Strange still held.
+- 2026-09-02 — **Vision pass 2: BLOCK** (1 blocker). V1 and V2 RESOLVED with
+  the red-then-green claim re-derived from git. V3's residual (V4): the
+  boundary day is called "loaded" by its *start*, but the fetch stops at the
+  server's midnight = 6 PM Mountain, so evening events on the edge day
+  vanish behind an honest-looking "No events" — reproduced with a row
+  confirmed in the table at the same instant. Vision also overturned the
+  builder's "unreachable" claim about `NotLoadedCard` by reaching it live.
+  **Decision under autonomy:** fix V4 as C6 before Strange runs, so Strange
+  gates the final read path once rather than twice. Pass 3 is the last.
 
 ## Delivery
 
