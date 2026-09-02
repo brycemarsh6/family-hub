@@ -837,6 +837,15 @@ plan quietly rot.
   builder's "unreachable" claim about `NotLoadedCard` by reaching it live.
   **Decision under autonomy:** fix V4 as C6 before Strange runs, so Strange
   gates the final read path once rather than twice. Pass 3 is the last.
+- 2026-09-02 — **C6 dispatched** (V4 fix + window-predicate hoist into
+  `calendarDates.ts`, red-then-green TZ-pinned regression test required).
+- 2026-09-02 — **Autonomy decisions closed** (`eade7f8`): Captain's two
+  STRUCTURE.md amendments applied verbatim (User-table rule now names
+  fingerprint-scoped deletes and codifies attach-to-existing; personInfo
+  rule's edge stated as `passwordHash`); calendar-v1.md's K1 entry now
+  records that tag tables and `exdates` moved to K3/K4 deliberately. The
+  tsconfig scratch exclusion (`4861fe1`) is the third of Captain's
+  follow-ups, already landed.
 
 ## Delivery
 
