@@ -1225,6 +1225,15 @@ plan quietly rot.
 - 2026-09-02 — **Captain, C4: PASS.** Mandates verified from the diff. Nine
   notes routed into mission-9 (K2) and forward to K3/K4; test-cap amendment
   applied to STRUCTURE.md under autonomy. Vision still running on C4.
+- 2026-09-02 14:00 UTC — **Vision's C4 gate died on a session rate limit
+  mid-run** (second time this mission; reset was 12:20 UTC). It had created
+  its five verification people (Bryce/Emily/Eleanor/Ledger/Lucy) and four
+  events and left `prisma/tmp-vision/`; no source touched, nothing
+  committed. Fury cleaned up by exact id — 5 users, 4 events, scratch —
+  counts back to 0/0/0. Recorded as a one-off by-id deletion of another
+  agent's abandoned synthetic rows, the danger register's sanctioned path;
+  the ids are in the container log above. Re-dispatching Vision on C4 with
+  the same brief.
 
 ## Delivery
 
