@@ -583,9 +583,9 @@ Vision explicitly so it is verified, not assumed.
 | 2 | Captain | **PASS** | 0 | both pass-1 blockers RESOLVED; 10 notes |
 | 2 | Strange | **PASS** | 0 | S1–S3 RESOLVED, re-measured; 11 notes |
 | 3 | Vision | **PASS** | 0 | V4 and C7 RESOLVED, re-derived; 5 notes |
-| C4-1 | Vision | DISPATCHED | — | on C4 (`ad2de84`); write path end to end, alone with the DB |
+| C4-1 | Vision | **PASS** | 0 | write path attacked end to end; 2 notes |
 | C4-1 | Captain | **PASS** | 0 | all three mandates DONE; 9 notes routed to K2/K3/K4 |
-| C4-1 | Strange | HELD | — | starts when Vision finishes |
+| C4-1 | Strange | DISPATCHED | — | **first gate on Opus** (tier change `cc98b33`) |
 
 Budget: 3 passes per gate, then STOP and surface.
 
@@ -658,6 +658,63 @@ identical `User` rows. **Security suite re-run on the changed action
 file**: positive control first, then kid / no-cookie / deactivated /
 forged-admin / wrong-secret / v1-shaped cookies all refused with counts
 unchanged. Baseline restored, scratch removed.
+
+### Vision, C4 pass 1 — PASS (0 blockers, 2 notes)
+
+Gauntlet re-run: tsc 0, eslint 0, 135/135 both timezones, build 0 with all
+three calendar routes dynamic. Boundary clean (12 files, `loading.tsx`
+correctly untouched, `actions/calendar.ts` byte-identical since C5,
+`package.json`/lock untouched). Spot-checked the builder's own claims and
+matched all three — including noticing the report quoted the all-day
+`endAt` in local time where the database holds `2026-09-13T06:00:00Z`, the
+same instant.
+
+**The write path, positive control first, every case reproduced:**
+- **Pages:** admin/parent → 200 with the form; kid → a *page* redirect
+  (`NEXT_REDIRECT;replace;/calendar`, no form in the response); no cookie
+  and deactivated parent → `/login`; a forged admin cookie signed with the
+  wrong secret → `/login`; a missing id → 404 for an admin, redirect for a
+  kid (gate first, then lookup). No `redirect()` anywhere in the action
+  file, per the guard-form rule.
+- **Tampered payloads from a parent:** `createdById` in the body ignored
+  (the row's creator is the session, not the claim); nonexistent `userId`
+  refused with no row; duplicate `userId` → clean create with exactly one
+  person row; `endAt < startAt` refused; zero-length all-day refused; empty
+  title refused; a 10,000-character title and notes → clean create,
+  persisted whole, no throw and no partial write.
+- **All-day exclusive end, built by the form:** Sep 10–12 → exactly Thu/
+  Fri/Sat with no leak to Sunday; **Oct 31–Nov 2 across the DST fall-back**
+  → `startAt 06:00Z`, `endAt Nov 3 07:00Z` (the offset changes mid-span)
+  covering exactly three days; a timed 8 PM Denver event renders on its own
+  Saturday, not the next UTC day.
+- **Edit fidelity:** a title-only edit left `startAt`/`endAt`/`allDay`/
+  `location`/`notes` byte-identical with only `updatedAt` advancing; a
+  people-only edit produced exactly the new set with **zero orphan person
+  rows**.
+- **Delete:** single tap removes the event and cascades its people; an
+  already-deleted id returns the house shape; a kid's sheet exposes no Edit,
+  no ⋯, no Add.
+- **The hook the builder flagged for scrutiny:** SSR emits no date/time
+  inputs (server snapshot `null`) and there is **no hydration warning**;
+  the default really tracks the browser clock (9:07 PM → 22:00–23:00,
+  11:07 PM → midnight next day, 9:00 PM → 21:00 exactly); and the
+  `start === null` guard held — a user's typed 14:30 survived a 31-second
+  clock tick rather than being re-seeded.
+- **`createdByNames`** comes from the page's single `findMany` (no second
+  query), never selects `passwordHash`, and a null creator after `SetNull`
+  renders the sheet without an "Added by" line rather than crashing.
+- **`EventCard` as a button:** zero nested buttons, focusable, Enter and
+  Space open the sheet; the sheet's `view` machine steps `menu` → `main` on
+  the first Escape and closes on the second.
+- **C7's rule survived C4's heavy edit** of `CalendarViews.tsx`, and item
+  8a works: with a clock 61 days ahead, `today` is outside the window and
+  Prev stays enabled, so at least one control escapes.
+
+**Notes:** the all-day → timed toggle defaults to a fixed 9–10 AM rather
+than re-reading the clock (intentional, from a click handler, reviewable
+before Save); and there is **no length cap** on title or notes — 10,000
+characters persist cleanly, which Vision judged acceptable rather than a
+defect.
 
 ### Captain, C4 pass 1 — PASS (0 blockers, 9 notes)
 
@@ -1234,6 +1291,18 @@ plan quietly rot.
   agent's abandoned synthetic rows, the danger register's sanctioned path;
   the ids are in the container log above. Re-dispatching Vision on C4 with
   the same brief.
+- 2026-09-02 — **Gate tiering changed** (`cc98b33`): Strange and Captain
+  moved to **Opus**, Vision stays on **Fable**. K1 spent ~1.9M tokens on
+  gates and lost ~7 hours of wall clock to two session rate limits;
+  correctness gating is where raw capability converts into findings, while
+  design and structure gating is measurement and rule-checking. Reasoning
+  and the exit condition are written into the doctrine.
+- 2026-09-02 — **Vision, C4: PASS.** Write path attacked end to end —
+  page gates, seven tampered payloads, the all-day span across the DST
+  fall-back, edit fidelity, orphan-row check, the hydration question on the
+  new hook, keyboard and Escape behavior, and C7's rule re-verified after
+  C4 rewrote the file. Two notes, neither a defect. **Strange dispatched —
+  the first gate to run on Opus.**
 
 ## Delivery
 
