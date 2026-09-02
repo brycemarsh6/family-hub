@@ -76,7 +76,7 @@ boundaries and may run in parallel.** C3 and C4 both depend on C1+C2 and
 touch overlapping component files, so they run in sequence.
 
 ### C1 — Schema, constants, and guarded Server Actions for calendar events
-- **Status:** DISPATCHED
+- **Status:** DONE
 - **Boundaries:**
   - may touch: `prisma/schema.prisma`, `prisma/migrations/**` (new dir only),
     `src/lib/constants.ts` (append only), `src/app/actions/calendar.ts` (new),
@@ -104,7 +104,40 @@ touch overlapping component files, so they run in sequence.
   because these actions are reachable from shipped UI that renders errors
   inline. Read actions are session-gated but not manager-gated (kids read).
   No Prisma enum. Fingerprint-scoped clean script.
-- **Report:** —
+- **Report:** DONE. `CalendarEvent` + `CalendarEventPerson` (cascade both
+  sides), `createdById` SetNull, indexes on `startAt` and `createdById`;
+  back-relations on `User` only. Migration
+  `20260902025526_add_calendar_events` is **additive only** — CREATE TABLE /
+  CREATE INDEX / ADD CONSTRAINT, no DROP, no ALTER COLUMN (full SQL in the
+  builder report). `HOUSEHOLD_TIME_ZONE` appended to `constants.ts`.
+  `src/app/actions/calendar.ts` exports `createCalendarEvent`,
+  `updateCalendarEvent`, `deleteCalendarEvent`, each opening with the
+  null-returning guard, verified identical at lines 93-96, 133-136, 180-183:
+  `getVerifiedUser()` then `MANAGER_ROLES.includes(user.role)` →
+  `{ error: "Only parents can do that." }`. Client-supplied `userId`s are
+  re-validated against non-deactivated `User` rows; `createdById` comes from
+  the session, never the client. Seed/clean follow the recipe pattern with a
+  `ZZZ Test` fingerprint. Counts: baseline all-zero → seed 3 users/5
+  events/8 people → clean back to exactly zero, groceries/pantry/recipes
+  untouched throughout.
+
+  **Fury-verified beyond the report** (a builder's claim is not evidence):
+  `prisma/tmp-check/` confirmed gone from disk and from `git status`;
+  `npm run build` — which C1 correctly noted was absent from its own
+  verification list — run by Fury, **exit 0**, `/calendar` present in the
+  route table.
+
+  **⚠️ C4 is bound to this signature:** the write actions take a plain
+  object (`CalendarEventInput`), **not `FormData`** — the
+  `setMealPlanEntry`/`AddToMealPlanSheet` style, not `RecipeForm`'s
+  `useActionState`+`FormData`. C1 chose this because the form composes real
+  `Date` objects client-side from separate date/time/all-day inputs.
+  Accepted; C4's contract must not assume `useActionState`.
+
+  **There is no read action, by design.** Pages in this repo read through
+  `db` directly in the Server Component (the dashboard precedent), so C3
+  owns its own range query. Kids therefore read without a manager gate for
+  free, which is what the plan requires.
 
 ### C2 — `src/lib/calendarDates.ts` + tests (pure, no DB, no React)
 - **Status:** DONE
@@ -143,8 +176,22 @@ touch overlapping component files, so they run in sequence.
   `formatAllDayLabel` and `daysEventCovers` was factored into one internal
   helper so the two can never disagree about which days an event covers.
 
-⚠️ **OPEN SEAM — the all-day `end` convention. Fury must reconcile before
-C3.** C2 could not see C1's schema (out of boundary) so it assumed the
+✅ **SEAM CLOSED — verified in code against real rows, not by comparing two
+reports.** C1 independently chose the same **exclusive** convention C2
+assumed, and documented it on the `startAt`/`endAt` fields in
+`schema.prisma:20-25`. Fury did not take that agreement on trust: a
+throwaway script seeded the real fixtures and ran C2's own
+`daysEventCovers`/`formatAllDayLabel` over them. Result — the single all-day
+event (`startAt` Wed 00:00, `endAt` Thu 00:00) covers **exactly 1 day**,
+labelled "All day", and does **not** leak onto Thursday; the multi-day event
+(`startAt` Thu 00:00, `endAt` Sun 00:00) covers **exactly 3 days**, labelled
+"Day 1 of 3" … "Day 3 of 3", and does **not** leak onto Sunday; timed events
+render "9 – 10 AM" and "7 – 9:30 PM"; the real Nov 1 2026 DST event resolves
+to its own single day. Script deleted, seed cleaned, counts back to zero.
+Vision must still re-run this independently — it is now a *verified* claim,
+not an open question.
+
+**Original wording, kept for the record:** C2 could not see C1's schema (out of boundary) so it assumed the
 iCal/Google **exclusive** end convention: a Mon–Wed all-day event stores
 `end` = Thursday midnight. If C1 stored all-day `end` *inclusively*, every
 all-day event renders one day too long. This is the exact class of bug two
@@ -229,6 +276,13 @@ Budget: 3 passes per gate, then STOP and surface.
 - 2026-09-02 — C2 DONE (128/128 tests, tsc/eslint clean). Its report raises
   an open seam on the all-day `end` convention that C1 owns — logged under
   C2's report; must be settled before C3 renders anything. C1 still running.
+- 2026-09-02 — C1 DONE. Fury verified past the report: tmp artifacts gone,
+  `npm run build` exit 0 (C1's list omitted it), guard lines read directly.
+  **The all-day seam is CLOSED with real evidence** — C2's functions run over
+  C1's seeded rows give exactly 1 and exactly 3 covered days, no leak.
+  Gauntlet now: tsc 0, eslint 0, 128/128 tests, build 0. C2 committed and
+  pushed (1cf4bbe); C1's diff is staged for review, not yet committed.
+  Next: dispatch C3 (Week + Day views).
 
 ## Delivery
 

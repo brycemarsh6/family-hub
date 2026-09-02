@@ -333,3 +333,12 @@ export function toAvatarColor(value: unknown): AvatarColor {
     ? (value as AvatarColor)
     : AVATAR_COLOR_NAMES[0];
 }
+
+// Calendar v1 (.avengers/plans/calendar-v1.md). One household constant
+// rather than a per-user timezone column: every family member sharing one
+// house is presumed to share one clock, and there's no UI anywhere in this
+// app yet for someone to set their own. If the household ever spans two
+// timezones (a college kid, a trip), this becomes a column read per-user —
+// a one-line schema change, not a redesign, since every call site already
+// takes a timezone as a value rather than hardcoding "Denver" inline.
+export const HOUSEHOLD_TIME_ZONE = "America/Denver";

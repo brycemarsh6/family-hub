@@ -20,7 +20,9 @@
     "db:seed-cookbooks": "tsx prisma/seed-cookbooks.ts",
     "db:clean-cookbooks": "tsx prisma/clean-cookbooks.ts",
     "db:seed-slot-tags": "tsx prisma/seed-slot-tags.ts",
-    "db:bootstrap-users": "tsx prisma/bootstrap-users.ts"
+    "db:bootstrap-users": "tsx prisma/bootstrap-users.ts",
+    "db:seed-calendar": "tsx prisma/seed-calendar.ts",
+    "db:clean-calendar": "tsx prisma/clean-calendar.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
