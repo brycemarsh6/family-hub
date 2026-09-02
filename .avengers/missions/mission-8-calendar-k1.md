@@ -1,7 +1,7 @@
 # Mission: Calendar K1 — foundation (schema, actions, Week + Day views, event form)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (C4 pass 1: Vision + Captain running, Strange held)
+**Status:** DELIVERED (2026-09-02 — 8 contracts, 11 gate passes, all three gates PASS)
 **Started:** 2026-09-02 · **Updated:** 2026-09-02
 
 ## Brief
@@ -609,6 +609,7 @@ Vision explicitly so it is verified, not assumed.
 | C4-1 | Vision | **PASS** | 0 | write path attacked end to end; 2 notes |
 | C4-1 | Captain | **PASS** | 0 | all three mandates DONE; 9 notes routed to K2/K3/K4 |
 | C4-1 | Strange | **BLOCK** | 1 | first gate on Opus; 8 notes; its own four instructions all satisfied |
+| C4-2 | Strange | **PASS** | 0 | blocker RESOLVED; 3 prescriptions satisfied; 4 notes |
 
 Budget: 3 passes per gate, then STOP and surface.
 
@@ -681,6 +682,90 @@ identical `User` rows. **Security suite re-run on the changed action
 file**: positive control first, then kid / no-cookie / deactivated /
 forged-admin / wrong-secret / v1-shaped cookies all refused with counts
 unchanged. Baseline restored, scratch removed.
+
+### Strange, C4 pass 2 — PASS (0 blockers, 4 notes) — K1's final gate
+
+Denver browser at 09:31 MDT against this container's UTC server at 15:31 —
+six hours apart, the exact Vercel/house pairing — production build.
+`git diff 36a61e0..HEAD -- src prisma` empty, so the four C8 files are the
+whole surface.
+
+**Pass-1 blocker RESOLVED, re-derived rather than read.** Live: "Saturday,
+Sep 5" → `+` → `?date=2026-09-05` → prefill `2026-09-05` → row read back as
+`2026-09-05T16:00:00Z` = Sat Sep 5, 10:00 Denver. And it reproduced the
+*mechanism* arithmetically without touching source: the old expression
+yields the instant `2026-09-05T00:00:00Z`, which in Denver is Fri Sep 4
+18:00, whose `startOfDay` is `2026-09-04` — exactly its pass-1 result.
+Five live FAB paths (Day, Week current, both window edges, Day forward
+edge) all agree URL → page → form. **Eight rows read back from the
+database**, and the sharpest evidence is the offsets: September and March
+rows store `16:00Z` (MDT) while **Nov 1 2026 and Jan 2030 store `17:00Z`
+(MST)** — local 10:00 AM preserved across both, which is what
+calendar-component math looks like when it is actually right rather than
+accidentally right. The `combineDateAndTime` refactor was proven
+**equivalent across 49 date×time pairs** spanning both DST boundaries,
+with the non-existent 02:30 on Mar 8 normalizing to 03:30 and the ambiguous
+01:30 on Nov 1 resolving to the first occurrence. Edit path re-checked:
+both DST events round-trip byte-identically.
+
+**Sixteen attacks on the new parser and validation: zero crashes, zero
+blank forms, zero silently-wrong days.** Unpadded, empty, an ISO instant,
+and two path-traversal attempts all fall back to today; a date far outside
+the window works and saves correctly.
+
+**Three prescriptions SATISFIED.** `NotLoadedCard` at **5.38:1 light /
+6.12:1 dark** by two methods, and Strange answered its own worry in the
+negative: solid-vs-dashed did **not** become too subtle, because the
+difference is carried on five axes (opaque plate vs transparent, solid vs
+dashed border, icon, two lines vs one, 80px vs 46px) and the plate lift
+against the page actually measures *stronger* than the fill it replaced
+(1.13:1 vs 1.10:1) while fixing the text contrast that fill broke —
+nothing was traded away. The meridiem renders whole on both rows at 320
+and 375, red-then-green reproduced by restoring the old class in the DOM.
+Past title weight 500 over a 400 time line, and the past-vs-disabled
+separation is still structural: disabled is opacity (Today control at
+`opacity: 0.4`, 1.89:1) while a past card never touches opacity and its
+title is 5.38:1 — a **2.85× gap** — with identity badges at full
+saturation.
+
+**Strange corrected its own pass-1 measurement, unprompted.** Its earlier
+"no overflow at 320/375" used `documentElement.scrollWidth`, which the html
+element clips; `body.scrollWidth` is the correct instrument and reports
+overflow at 320. So: **320 overflows by 29px, pre-existing — C8 widened it
+by 16px rather than creating it — and 375 is exactly clean.** Not a
+DESIGN.md violation, since the constitution names 375 as the coverage
+width. The consequence that matters forward: **at 375 the date input sits
+just 10px above its intrinsic floor, so any further control added to that
+row overflows immediately.** A timezone chip or duration stepper cannot go
+there.
+
+**Notes:** the parser's regex is shape-only, so syntactically valid
+impossible dates roll over (`2026-02-30` → Mar 2) — unreachable from any
+in-app affordance, no crash, and an impossible date has no correct day it
+could show; the cheap close for K2 is a round-trip check
+(`toDateParam(parse(d)) === d`). Regressions re-checked because C8 touched
+these files: All day still removes both time inputs, the streamed loading
+frame still contains neither empty-state string, `NoEventsCard` is still
+46px so the skeleton's parity holds. Colliding initials still separable
+with the real five-person household.
+
+**The unasked question Strange was given — does the form have room for
+K3?** Measured: 1066px document, 745px form, 14 controls, and the honest
+denominator is the **747px above the fixed nav**, so **1.43 usable
+screens** — one short scroll, submit clearing the nav. Without scrolling a
+parent gets Title, All day, Starts, Ends and **all five People**: the
+entire "what, when, who". Verdict: room for both K3 additions, but
+**conditionally, and the condition belongs in K3's contract** — tags and
+Sync-to as **one 48px sheet-opening row each** (+176px → 1.66 screens,
+already the app's canonical vocabulary via `RecipeTagsSection` →
+`TagSelectSheet`), and **never** as N inline toggles, one per connected
+calendar (+272px at three calendars and growing with an external account
+count — "a form whose length is a function of an external account count is
+the thing to refuse"). Ordering matters more than length: **Title / When /
+Who must stay above the fold**, so both new sections go *below* People.
+No design objection to Captain's extraction precondition — it changes zero
+pixels.
+
 
 ### Strange, C4 pass 1 — BLOCK (1 blocker, 8 notes) — first gate on Opus
 
@@ -1426,6 +1511,13 @@ plan quietly rot.
   placeholders left by those misses are deleted here. Rule from now on:
   print the structure, anchor on a **short unique single line**, edit by
   line index, and assert each target's exact content before writing.
+
+- 2026-09-02 — **Strange, C4 pass 2: PASS.** Blocker RESOLVED (re-derived,
+  and the mechanism reproduced arithmetically), three prescriptions
+  satisfied, 16 parser attacks clean, DST offsets correct across MDT and
+  MST. **All three gates now PASS. K1 is DELIVERED.** Notes routed forward:
+  the 375 row has only 10px of slack, the parser's regex is shape-only, and
+  K3's form additions must be sheet-opening rows placed below People.
 
 ## Delivery
 

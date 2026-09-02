@@ -166,7 +166,23 @@ alongside either.
 | `mealPlanDates.ts` | 85 | 265 |
 | `ActionCircle.tsx` | 38 | 312 |
 
-## Inherited from K1's gates (Captain, C4 pass 1) — fold into C1/C2
+## Inherited from K1's gates — fold into C1/C2
+
+**From Strange, C4 pass 2 (the last K1 gate):**
+- **`body.scrollWidth`, never `documentElement.scrollWidth`**, is the
+  correct instrument for horizontal overflow in this app — the html element
+  clips and hides it. Strange caught itself under-reporting with the wrong
+  one. Any K2 overflow check must use `body`.
+- **The Starts/Ends row at 375 has ~10px of slack**, with the date input at
+  its intrinsic floor. **No further control fits in that row.** (320 already
+  overflows by 29px, pre-existing; the constitution's coverage width is 375
+  and that is clean.)
+- **Close the parser note cheaply if K2 touches the page:** the `?date=`
+  regex is shape-only, so `2026-02-30` rolls over to Mar 2. A round-trip
+  check — reject unless `toDateParam(parse(date)) === date` — makes the
+  validation semantic rather than lexical, at the cost of one comparison.
+
+**From Captain, C4 pass 1:**
 
 - **`CalendarEventView.createdByName: string | null`** in `src/lib/types.ts`
   replaces K1's `createdByNames` map (`page.tsx`, `CalendarViews.tsx`,

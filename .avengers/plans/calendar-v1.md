@@ -126,7 +126,15 @@ gauntlet green, verified in a browser at 375px, additive migrations only.
   measured heights.
 - **K2. Month view.** Six-week grid, spanning bars with lane assignment,
   three-pill cap + "+N more", day tap → Day view.
-- **K3. Filters, tags, meals.** Filter sheet (people toggles, tag
+- **K3. Filters, tags, meals.** ⚠️ **Two preconditions from K1's gates,
+  both binding:** (a) `EventForm.tsx` sits at exactly 350 lines, on the soft
+  cap, so **extract `EventDateTimeFields.tsx` before adding anything**
+  (Captain); (b) tags and Sync-to each go in as **one 48px sheet-opening
+  row**, the `RecipeTagsSection` → `TagSelectSheet` vocabulary — **never as
+  N inline toggles per connected calendar**, whose length would grow with an
+  external account count — and both belong **below People**, because Title,
+  When and Who must stay above the fold (Strange, measured: the form is 1.43
+  usable screens today and sheet-rows take it to 1.66). Filter sheet (people toggles, tag
   toggles, Show meals), persisted per device via the `lastStore` pattern;
   `TagSelectSheet` generalized and used on the event form; the meals card
   per day (week/day only) reading `MealPlanEntry`.
