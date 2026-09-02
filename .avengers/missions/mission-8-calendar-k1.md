@@ -1521,6 +1521,54 @@ plan quietly rot.
 
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
-- **Deliberate leftovers:** —
+- **Shipped:** Calendar K1 — the branch's first real feature. `CalendarEvent`
+  + `CalendarEventPerson` schema with one additive migration; three
+  manager-gated Server Actions; `src/lib/calendarDates.ts` (+ `monthLayout`
+  precursors) and `src/lib/types.ts` view shapes; Week and Day views from one
+  shared `DaySection`; `EventCard`, `EventDetailSheet`, `EventForm`,
+  `CalendarHeader`, `ActionCircle`; `/calendar`, `/calendar/new`,
+  `/calendar/[id]/edit`; measured loading skeleton; scoped
+  `db:seed-calendar` / `db:clean-calendar`.
+- **Contracts:** 8 (C1, C2, C3 build; C5, C6, C7, C8 fixes; C4 the write UI).
+- **Gate passes:** 11. Pass-1 blocked 8 times across three gates; every
+  blocker fixed and re-verified rather than argued down. Final verdicts —
+  **Vision PASS, Strange PASS, Captain PASS.**
+- **Gauntlet on the delivered head (`ba17cc7`), run by Fury:** `tsc` 0,
+  `eslint` 0, **135/135 under `TZ=America/Denver` and 135/135 under
+  `TZ=UTC`**, `npm run build` clean with all three calendar routes dynamic.
+  Tests went 106 → 135; the suite is now TZ-pinned after a gate found the
+  DST tests had been vacuous in CI.
+- **Shipped check:** `git log origin/<branch>..HEAD` → **0 local-only
+  commits**; 51 commits ahead of `origin/main`; working tree clean.
+  Draft **PR #9** open (`https://github.com/brycemarsh6/family-hub/pull/9`),
+  marked ready on delivery. **Not merged** — that is Bryce's call after he
+  looks at the Vercel preview.
+- **Container DB left at baseline:** users 0, events 0, people 0.
+- **Deliberate leftovers, routed not dropped:**
+  - **K2 (mission 9, contracts already written and measured):** fold
+    `createdByName` into `CalendarEventView`; collapse four copies of the
+    same date formatter into two lib exports; use `body.scrollWidth` for
+    overflow checks; the Starts/Ends row has ~10px slack at 375 and takes no
+    further control; close the shape-only `?date=` regex with a round-trip
+    check; new date tests go in `monthLayout.test.ts`, not the 349-line
+    existing file.
+  - **K3 (recorded in the plan as binding preconditions):** extract
+    `EventDateTimeFields.tsx` *before* adding anything — `EventForm.tsx` is
+    at exactly 350; tags and Sync-to each as **one sheet-opening row**, never
+    N inline toggles per connected calendar; both **below People**, since
+    Title/When/Who must stay above the fold. Also: a Week card conveys
+    *who* only through `aria-hidden` swatches, so a screen-reader user hears
+    no people — first-class once filters land.
+  - **K4:** Repeats in its own `EventRepeatsFields.tsx` from the start.
+  - **Unscheduled:** hoist the local "browser minute" hook to
+    `src/lib/useNow.ts` whenever `useToday.ts` is next edited; decide
+    whether to outline the source card while its sheet is open; no length cap
+    on title/notes (10k chars persist cleanly — judged acceptable).
+- **Two constitution amendments applied** under the autonomy grant
+  (Captain's wording): the `User`-table rule now names fingerprint-scoped
+  deletes as inside the prohibition and codifies attach-to-existing as the
+  sanctioned seed pattern; the `personInfo` one-source rule's edge is stated
+  as `passwordHash`. Plus: test files follow the soft cap, split by module.
+- **Plan reconciled:** `calendar-v1.md`'s K1 entry now records that the tag
+  tables and `exdates` moved to K3 and K4 deliberately, closing the
+  plan-vs-build mismatch Captain flagged.
