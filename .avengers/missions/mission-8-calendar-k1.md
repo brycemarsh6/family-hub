@@ -678,6 +678,42 @@ plan quietly rot.
   CI**, which runs UTC. Fury process error recorded: parallel gates with
   credentialed data collided, exactly the lesson CLAUDE.md already carries.
 
+- 2026-09-02 — **Strange pass 1: BLOCK** (3 blockers, measured not eyeballed;
+  seeded real colliding-initial names to test it properly). S1 overturns the
+  loading trick Fury praised — "identical by construction" made the loading
+  frame *say* "No events" for seven days. S2 is a measured AA failure
+  (3.77–3.93:1) on every event card in light theme. S3: Day view truncates
+  titles, the one thing Day view exists for. Strange also independently
+  reproduced Vision's V3 from the opposite direction.
+- 2026-09-02 — **C5 dispatched: one batched fix contract covering all 8
+  blockers** plus 5 folded same-file notes, per the batch-before-re-gating
+  rule. Every date fix requires a regression test proven **red before, green
+  after**. Schema and migrations explicitly out of bounds: all 8 fixes are
+  code-level.
+- 2026-09-02 — **C5 DONE: all 8 blockers fixed** (`75d65bb`). Fury re-ran the
+  gauntlet independently (131/131 under both timezones, build 0) and
+  re-verified the `db.user`, import-cycle, loading-branch, and contrast
+  claims by reading the code. The vacuous-in-CI test problem is fixed at the
+  root: `npm test` pins Mountain time, and the suite was proven green under
+  UTC too.
+- 2026-09-02 — **Pass 2 dispatched: Vision + Captain**, Strange deliberately
+  held until Vision reports (pass-1 collision). Each gate told which of its
+  own pass-1 blockers to re-derive and not to accept the C5 report or Fury's
+  gauntlet run as proof.
+- 2026-09-02 — **Captain pass 2: PASS.** Both blockers RESOLVED, 10 notes.
+  Confirmed C5 touched no schema and left `bootstrap-users.ts` alone.
+  Flagged the `prisma/tmp-*`-breaks-`tsc` container defect. Three firm C4
+  recommendations: extract `CalendarHeader.tsx` up front, hoist the
+  window-edge logic into `calendarDates.ts`, hoist `ActionCircle`.
+- 2026-09-02 — **Recording defect, Fury's own.** The five entries above were
+  written to this log on their original dates but never landed: each edit
+  anchored on text inside an earlier bullet, the replace silently matched
+  nothing, and the script printed "ok" regardless. The gate-verdict
+  *sections* did land (they anchored on headings), so the facts were never
+  lost — but the log claimed less than had happened, which is the exact
+  doing-vs-recording gap this project has now been bitten by six times.
+  Caught by grepping for each entry rather than trusting the commit. Every
+  log edit from here asserts its anchor matched exactly once.
 - 2026-09-02 07:2x UTC — **Vision's first pass-2 attempt died on an API
   session rate limit** partway through (the gates run on the Fable tier;
   the limit reset at 06:10 UTC). It had begun work — a `prisma/tmp-vision/`
