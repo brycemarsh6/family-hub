@@ -12,7 +12,8 @@ bar and, by his own earlier call, the hardest piece of the app. It is modelled
 on **Skylight** (screenshots to come). Functionality he listed: color per
 profile, Google sync, month/week/day views, parents+admin edit while kids
 can't, meal plan shown on week/day views, filters (profile / event type /
-meals on-off), and AI import via voice, photo, and forwarded email.
+meals on-off), and AI import via voice and photo. (Email import was in the
+original ask and was dropped — see decision 6.)
 
 This document is NOT the calendar plan. It is the agreed process for
 producing that plan, the decisions already settled in this conversation, and
@@ -46,12 +47,12 @@ phase, one PR each.
    event to any linked account in the household, using that account
    owner's stored token — household trust, consistent with "parents
    manage". Default state of the toggles is a K0 walkthrough question.
-6. **Email import = forward to a Marshee address.** Requires an inbound
-   email service and a public webhook. Because nobody is in the loop when
-   an email arrives, emailed events land in a **review queue** (the D3
-   irregularity-queue pattern: badge on the Calendar page, one-per-screen
-   review sheet), never straight onto the calendar — the "nothing saved
-   unreviewed" rule from recipe import.
+6. **Email import is dropped, not deferred — Bryce's call, 2026-09-02.**
+   It would have needed an inbound-email service plus a public webhook
+   with a sender allowlist, and the app has no custom domain to hang an
+   address on. A screenshot of an email is already a photo import, and
+   pasting the email's text is a paste import; that covers the real case.
+   Don't queue it as a next step.
 
 ## What already exists that the calendar reuses (found, not assumed)
 
@@ -73,8 +74,6 @@ phase, one PR each.
 - **Import precedents**: `extractRecipeFromPhotos` (`src/lib/recipeExtract.ts:176`),
   paste-text import, and the voice pipeline (`src/lib/voice/parse.ts` →
   `applyActions` at `apply.ts:213`, every change logged to `VoiceChange`).
-- **Review-queue precedent**: `src/app/actions/irregularities.ts` +
-  `ReviewQueueButton.tsx` / `IrregularityReviewSheet.tsx`.
 - **House components**: `RadioSheet` / `ActionSheet` / `ConfirmSheet` /
   `TitleSheet`, `BackLink`, `BranchTile`, `Skeleton`, `EmptyState`; filter
   chips at the 44px compact tier (DESIGN.md:21-23); one sheet with an
@@ -116,14 +115,6 @@ phase, one PR each.
   the last one is older than N minutes) plus a manual refresh; Google push
   channels later if freshness matters. Freshness "when someone looks" is
   the household-scale honest answer.
-- **The forwarding address needs either a domain or a service that hosts
-  one.** The app lives on `vercel.app` with no custom domain. Postmark's
-  inbound feature issues a hosted `@inbound.postmarkapp.com` address on
-  its free developer tier (verify limits at build time); a custom domain is
-  the alternative and a billing decision (Bryce dropped C7 over cost).
-  The webhook is public: it needs its own secret and a **sender allowlist**
-  (only the family's known addresses), or anyone who learns the address
-  can inject events into the queue.
 - **Voice never deletes** (`parse.ts:22-24`). A calendar voice verb only
   creates; "undo" removes the event it created, the same shape as voice's
   create-then-undo on pantry items. Calendar gets its own parse schema,
@@ -165,9 +156,8 @@ browser at 375px. Additive migrations only. Order is Bryce's to shuffle.
   toggle on week/day only. Kid read-only rendering verified with a real
   kid role.
 - **K4. Recurrence UI** — presets + "this one / all" edits.
-- **K5. AI import (in-app)** — text → events extractor (serves paste now,
-  email later), photo → events, voice verb. All land in the create sheet
-  for review before saving.
+- **K5. AI import** — text → events extractor (paste), photo → events,
+  voice verb. All land in the create sheet for review before saving.
 - **K6. Google: link accounts + outbound** — OAuth from Settings, encrypted
   refresh tokens, per-account direction, per-event push/update/delete.
   Feasibility gate first (work account links at all?). Serves the work-
@@ -175,9 +165,6 @@ browser at 375px. Additive migrations only. Order is Bryce's to shuffle.
 - **K7. Google: inbound for two-way accounts** — syncToken incremental
   pull, sync-on-open + refresh, imported events colored by the account
   owner, conflict rule (last write wins, recorded).
-- **K8. Email forwarding** — inbound service webhook → the K5 extractor →
-  review queue with badge. Sender allowlist + webhook secret, adversarial
-  check like `/api/voice` and `/api/alexa`.
 
 Sync sits late on purpose: everything before it is useful alone, and it is
 the only work depending on outside accounts.
@@ -189,7 +176,6 @@ the only work depending on outside accounts.
 - Whether an event is "for" one person or many (a join table either way;
   the UI differs).
 - The event-type list (Skylight's categories screenshot will answer it).
-- Whether Bryce has, or wants, a custom domain (email path).
 
 ## Verification (for the K0 output)
 
