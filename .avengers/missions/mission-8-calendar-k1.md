@@ -202,7 +202,7 @@ losing side conform **in code**, not in a comment. Hand the finding to
 Vision explicitly so it is verified, not assumed.
 
 ### C3 — Week + Day views (read-only rendering)
-- **Status:** PENDING (depends on C1, C2)
+- **Status:** DONE
 - **Boundaries:**
   - may touch: `src/app/(app)/calendar/page.tsx`,
     `src/app/(app)/calendar/loading.tsx` (new),
@@ -223,7 +223,48 @@ Vision explicitly so it is verified, not assumed.
   dimmed. `loading.tsx` heights are **measured, not guessed** (the dashboard
   lesson). No `BackLink` (a nav-bar root), and the last row clears the fixed
   bottom nav.
-- **Report:** —
+- **Report:** DONE. `page.tsx` (Server Component, force-dynamic, own range
+  read + server-side `canManage` boolean), `CalendarViews.tsx` (client shell:
+  view + period state from `useToday()`, `RadioSheet` switcher, visible
+  prev/next arrows, Today disabled in the current period),
+  `DaySection.tsx` (the one gutter+cards component — 7 for Week, 1 for Day),
+  `EventCard.tsx` (label from C2's helpers, `AvatarBadge` per person,
+  diagonal `avatarColorHex()` bands, past dimmed, `location` in Day view),
+  `loading.tsx` (measured heights). Gauntlet: tsc 0, eslint 0, **128/128**,
+  build 0 with `/calendar` dynamic. Seed → clean returned every count to
+  zero, throwaway manager account created for sign-in and deleted after.
+  Sizes 57–230 lines, all under the 350 soft cap (Fury-checked).
+
+  **The layout-shift requirement was met unusually well.** The builder made
+  the loading branch call the *same* `NoEventsCard()` JSX as the resolved-
+  empty branch, so the frames are identical by construction, then verified
+  three ways: skeleton row 82px, hydration-null row 82px (caught live by
+  lagging hydration behind the server HTML), resolved-empty row 82px.
+  Fury viewed the 375px screenshot and confirms: Sunday-first, today
+  circled with an accent edge bar, the multi-day event correctly reading
+  "Day 1 of 3" / "Day 2 of 3" / "Day 3 of 3" across three days, a 3-person
+  event with three badges, past events dimmed, labels "9 – 10 AM" and
+  "7 – 9:30 PM".
+
+  **Accepted deviation:** the range query is ±60 days, not the contract's
+  ±8 minimum, so prev/next has room to page without a fetch API. Paging
+  beyond that window is K1's honest limit, commented in `page.tsx`.
+
+  **Honest limit the builder volunteered:** days that hold real events do
+  grow when `today` resolves, since a specific day's event count is
+  unknowable until the day is known. Distinct from the dashboard's
+  fixed-row case, and documented in `DaySection.tsx` rather than papered
+  over.
+
+  **⚠️ Two Fury concerns handed to the gates rather than fixed here:**
+  (1) `CalendarViews.tsx:119` contains `{canManage && null}` — dead code
+  whose only purpose is to satisfy the linter about an unused prop. My
+  contract's "threaded through unused" wording invited it, so this is my
+  defect, not the builder's; Captain and Vision decide whether it stands or
+  the prop should leave until C4 uses it. (2) Every seeded person is named
+  `ZZZ Test …`, so every avatar renders "Z" and the real family's initial
+  collisions (Emily/Eleanor, Ledger/Lucy) were never exercised — Strange
+  should judge the bands and badges against names that actually collide.
 
 ### C4 — Create / edit / delete UI
 - **Status:** PENDING (depends on C1, C2, C3)
@@ -283,6 +324,11 @@ Budget: 3 passes per gate, then STOP and surface.
   Gauntlet now: tsc 0, eslint 0, 128/128 tests, build 0. C2 committed and
   pushed (1cf4bbe); C1's diff is staged for review, not yet committed.
   Next: dispatch C3 (Week + Day views).
+- 2026-09-02 — C1 committed and pushed (3a2f804). C3 DONE and Fury-verified
+  (screenshot read, sizes checked, scratch confirmed clean). Next: commit C3,
+  then dispatch Vision + Strange + Captain in parallel on C1-C3, with C4
+  held until the gates rule — a blocker in the read path would otherwise be
+  built on top of.
 
 ## Delivery
 
