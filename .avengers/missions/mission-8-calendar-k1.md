@@ -1,7 +1,7 @@
 # Mission: Calendar K1 — foundation (schema, actions, Week + Day views, event form)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (pass 2 of 3; C4 still held)
+**Status:** BUILDING (C4 — read path fully gated: Captain P2, Strange P2, Vision P3 all PASS)
 **Started:** 2026-09-02 · **Updated:** 2026-09-02
 
 ## Brief
@@ -321,8 +321,8 @@ Vision explicitly so it is verified, not assumed.
   is untouched. Counts 0/0/0, scratch gone. Fury re-ran the gauntlet:
   identical.
 
-### C4 — Create / edit / delete UI (DRAFTED, awaiting Strange pass 2 + Vision pass 3)
-- **Status:** DRAFTED — dispatch only after all three gates PASS on the read path
+### C4 — Create / edit / delete UI
+- **Status:** DISPATCHED — all three gates PASSED on the read path (Captain P2, Strange P2, Vision P3)
 - **Boundaries:**
   - may touch: `src/app/(app)/calendar/new/page.tsx` (new),
     `src/app/(app)/calendar/[id]/edit/page.tsx` (new),
@@ -333,7 +333,9 @@ Vision explicitly so it is verified, not assumed.
     `src/components/CalendarViews.tsx`, `src/components/DaySection.tsx`,
     `src/components/EventCard.tsx`, `src/app/(app)/calendar/page.tsx`,
     `src/app/(app)/calendar/loading.tsx` (if the header extraction changes
-    measured heights — re-measure, don't guess).
+    measured heights — re-measure, don't guess), and
+    `src/lib/calendarDates.test.ts` **for one comment sentence only**
+    (Vision pass-3 note 2).
   - must not touch: `prisma/**`, `src/app/actions/calendar.ts` (its
     signatures are the contract — `CalendarEventInput` plain object, not
     `FormData`), `src/lib/calendarDates.ts` (C6 finished it), `dal.ts`,
@@ -393,6 +395,13 @@ Vision explicitly so it is verified, not assumed.
      not share a glyph, exactly as loading and empty must not.
   7. `EventCard` becomes a `<button>` (or gets `role="button"` + keyboard
      handling) opening the sheet; 48px minimum height already holds.
+  8. **Two Vision pass-3 notes, small:** (a) in `CalendarViews.tsx`, when
+     `isOutsideWindow(today, …)` is true (a device clock ≥61 days off),
+     permit whichever step moves *toward* the window so Prev/Next/Today
+     can't all be dead; (b) in `calendarDates.test.ts`, add one sentence
+     to `withTimeZone()`'s comment: Node re-reads `TZ` for `Date` getters
+     but **not** for the module-level `Intl.DateTimeFormat` instances in
+     `calendarDates.ts`, so never call a formatter inside the helper.
 - **Verification:** gauntlet under both timezones; browser at 375px:
   create → appears in Week and Day; edit → changes persist after reload;
   delete → gone; an all-day event created through the form covers exactly
@@ -540,7 +549,7 @@ Vision explicitly so it is verified, not assumed.
 | 2 | Vision | **BLOCK** | 1 | V1, V2 RESOLVED; V3 partial — boundary day still lies |
 | 2 | Captain | **PASS** | 0 | both pass-1 blockers RESOLVED; 10 notes |
 | 2 | Strange | **PASS** | 0 | S1–S3 RESOLVED, re-measured; 11 notes |
-| 3 | Vision | DISPATCHED | — | LAST pass in budget; on C7 head 89b6532, alone |
+| 3 | Vision | **PASS** | 0 | V4 and C7 RESOLVED, re-derived; 5 notes |
 
 Budget: 3 passes per gate, then STOP and surface.
 
@@ -613,6 +622,47 @@ identical `User` rows. **Security suite re-run on the changed action
 file**: positive control first, then kid / no-cookie / deactivated /
 forged-admin / wrong-secret / v1-shaped cookies all refused with counts
 unchanged. Baseline restored, scratch removed.
+
+### Vision pass 3 — PASS (0 blockers, 5 notes) — the read path is fully gated
+
+Gauntlet re-run: tsc 0, eslint 0, 135/135 under both timezones, build 0.
+Boundary audit clean (`page.tsx`, `actions/calendar.ts`, and `prisma/`
+all byte-identical since pass 2, confirmed by diff, so the security suite
+and look-alike test were correctly not repeated).
+
+**V4 RESOLVED — re-derived, not read.** The old start-only predicate,
+recovered from git, returns `false` (the lie) on the Halloween inputs;
+`isOutsideWindow` returns `true`. Live in a Denver production build: Sat 31
+renders the not-loaded card **alongside** the fetched 10 AM event, no
+"No events", no 7 PM card; the back-edge case (Fri 3 with one fetched 8 PM
+row and one un-fetched 9 AM row) shows the caveat alongside the fetched
+card. Exact-fit boundary proven to the millisecond in both directions. DST:
+Nov 1 2026 measured as a 25-hour day in Denver; the true local end is
+inside, the naive start+24h answer is outside; a window edge inside the
+repeated 1 AM hour flags the right day. `withTimeZone()` proven on Node
+v22.22.2 — set takes effect immediately, restore works, a thrown assertion
+inside still restores via `finally`, no leakage path.
+
+**C7 RESOLVED.** Strand reproduced and escaped live (Wed Jul 1: Prev
+disabled, Next enabled → Jul 2 → Jul 3 → Jul 4 loaded). Toward-today
+overshoot shown impossible with sane clocks; Day forward walk stops after
+exactly 58 Nexts at Fri Oct 30 and backward after exactly 60 Prevs; SSR
+frame with `today === null` has both arrows `disabled`.
+
+**Notes, folded into C4 where they belong:** (1) a client clock ≥61 days
+*ahead* of the server strands all three controls (today itself is outside
+the window, so both directions are "away") — needs a broken device clock,
+every card says why, fix is "when `isOutsideWindow(today)`, permit the step
+toward the window"; (2) the `withTimeZone()` doc comment overclaims — Node
+re-reads `TZ` for `Date` getters but **not** for the module-level
+`Intl.DateTimeFormat` instances in `calendarDates.ts:37-45`, which freeze
+their zone at construction (proven: `formatTimeRange` inside the helper
+returns the ambient zone's label) — harmless today since the V4 test only
+calls `isOutsideWindow`, but one sentence in the comment prevents a future
+test silently asserting the wrong zone; (3) K2's Month grid gets
+`isOutsideWindow` as a one-import reuse; (4) `NotLoadedCard` still
+visually identical to `NoEventsCard` — C4 step 6d; (5) both fix commits
+also touched the mission file, Fury's own record, inert to the build.
 
 ### Strange pass 2 — PASS (0 blockers, 11 notes)
 
@@ -1074,6 +1124,12 @@ plan quietly rot.
   it.
 - 2026-09-02 — **C7 DONE**, Fury-verified. Committing; **Vision pass 3 (the
   last in budget)** dispatched on the C7 head, alone in the container.
+- 2026-09-02 — **Vision pass 3: PASS.** V4 and C7 RESOLVED by re-derivation
+  (old predicate recovered from git and shown to lie; DST 25-hour day
+  measured; `withTimeZone` proven on the real Node). **The read path is
+  fully gated: Captain P2, Strange P2, Vision P3 all PASS.** Two small notes
+  folded into C4 (skewed-clock strand; a comment overclaim about
+  `Intl.DateTimeFormat` freezing its zone). **C4 dispatched.**
 
 ## Delivery
 
