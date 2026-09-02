@@ -266,65 +266,6 @@ Vision explicitly so it is verified, not assumed.
   collisions (Emily/Eleanor, Ledger/Lucy) were never exercised — Strange
   should judge the bands and badges against names that actually collide.
 
-### C4 — Create / edit / delete UI
-- **Status:** PENDING (depends on C1, C2, C3)
-- **Boundaries:**
-  - may touch: `src/app/(app)/calendar/new/page.tsx` (new),
-    `src/app/(app)/calendar/[id]/edit/page.tsx` (new),
-    `src/components/EventForm.tsx` (new),
-    `src/components/EventDetailSheet.tsx` (new),
-    `src/components/CalendarViews.tsx`, `src/components/EventCard.tsx`.
-  - must not touch: `prisma/**`, `src/app/actions/calendar.ts` (C1 owns its
-    signatures — a needed change is BLOCKED-ON-CONTRACT, not an edit),
-    `src/lib/**`.
-- **Verification:** create, edit, and delete an event through the browser as
-  a parent; reload and confirm persistence by a direct database read; repeat
-  as a **kid-role** session and confirm the controls are absent **and** a
-  direct action call is refused.
-- **Evidence required:** before/after database rows for one created event;
-  the kid-session screenshot; the refused-action output.
-- **Done criteria:** one `EventForm` serves both new and edit
-  (`RecipeForm` precedent). Native `<input type="date">` / `type="time">`.
-  At least one person required; the creator pre-selected; `createdById`
-  recorded. Detail sheet is the house bottom sheet with names, not initials
-  alone. Delete is single-tap (no recurrence in K1, so no This/All choice).
-  `canManage` is computed server-side and passed as a **boolean**; hiding is
-  never the gate.
-- **Report:** DONE. **Step 1 first, proven:** `CalendarHeader.tsx` (100) and
-  `ActionCircle.tsx` (38) extracted; `CalendarViews.tsx` 275 → 213 before
-  the rest of C4 grew it to a final 307; `RecipeActionCircles.tsx` imports
-  the one `ActionCircle` (Fury-verified: exactly one definition in `src/`).
-  Pixel diff of Week at 375px before/after extraction: **max diff 0,
-  nonzero pixels 0**. Then `EventForm.tsx` (346), `EventDetailSheet.tsx`
-  (189, ⋯ as an internal `view` state, full names, "Added by", single-tap
-  Delete), `/calendar/new` and `/calendar/[id]/edit` (server-gated, kid →
-  redirect, missing id → `notFound()`), `FloatingAddButton` → `ActionSheet`
-  (Event / Meal) on `canManage`, `EventCard` a real `<button>`, past
-  treatment per Strange verbatim (measured live: past title `--muted`
-  weight 400, future `--fg` 600, opacities 1), Day view stacks badges below
-  text so location gets a full line, Week `line-clamp-2` + overlap-stacked
-  badges, `NotLoadedCard` per 6d, both Vision pass-3 notes done.
-  `loading.tsx` untouched — the pixel diff proved its heights hold.
-  **Through the real form, rows read back:** create (`createdById` =
-  session), edit (`updatedAt` advanced), delete (0 remain), **all-day
-  exclusive end via the UI**: Starts 09/10, Ends 09/12 → `endAt
-  2026-09-13T00:00Z`. Sheet shows "Day 2 of 3" and Bryce/Emily/Eleanor by
-  full name.
-  **Kid check went beyond the contract:** the real `Next-Action` POST was
-  captured and replayed — Bryce's cookie 200 + row (positive control);
-  Eleanor's kid cookie 200 with `{"error":"Only parents can do that."}`
-  and **no row**; no cookie 307. No `+`/Edit/⋯ for the kid; both write
-  pages redirect by URL. Gauntlet 135/135 both timezones; three routes
-  built; counts 0; `playwright` reverted (package files clean,
-  Fury-verified). **`EventForm.tsx` at 346 is 4 under the soft cap.**
-  **Deviations for the gates:** (1) next-whole-hour default via a local
-  `useSyncExternalStore` "browser minute" hook + adjust-state-during-render,
-  because `useEffect`+`setState` trips this repo's `set-state-in-effect`
-  rule and render-time `new Date()` mismatches hydration; (2) "Added by" as
-  a `createdByNames` map in `page.tsx` rather than widening
-  `CalendarEventView` (`types.ts` was out of bounds); (3) no CSS-sticky
-  submit — no such pattern exists here.
-
 ### C7 — Micro-fix: paging must never strand the user (Strange pass-2 note)
 - **Status:** DONE
 - **Boundaries:** may touch `src/components/CalendarViews.tsx` only (plus
@@ -353,6 +294,36 @@ Vision explicitly so it is verified, not assumed.
   Helper extraction judged unnecessary for two inline comparisons — the lib
   is untouched. Counts 0/0/0, scratch gone. Fury re-ran the gauntlet:
   identical.
+
+### C8 — Fix contract: the `?date=` off-by-one-day, plus three cheap notes
+- **Status:** DISPATCHED
+- **Boundaries:** may touch `src/app/(app)/calendar/new/page.tsx`,
+  `src/components/EventForm.tsx` (346 — the fix must not grow it past 350;
+  trim comments if needed), `src/components/DaySection.tsx`
+  (`NotLoadedCard` only), `src/components/EventCard.tsx` (past title weight
+  only). Must not touch anything else; **no schema, no actions, no lib**.
+- **Fixes:**
+  1. **BLOCKER.** Never build a calendar-meaningful `Date` on the server.
+     `new/page.tsx` passes the **string** (`initialDateISO={date}`);
+     `EventForm` takes `initialDateISO?: string` and builds
+     `new Date(y, m - 1, d)` from a split of it, in the browser. Delete the
+     comment that claims the property it lacked; state what is actually
+     guaranteed.
+  2. `NotLoadedCard`: `bg-surface-2` → `bg-surface` + solid `border
+     border-line` (keeps solid-vs-dashed as the axis; `--muted` 4.33 →
+     5.38:1). Keep the icon and copy.
+  3. `DateTimeRow`'s time input: `w-32 shrink-0` → `basis-36 shrink-0` so
+     the meridiem isn't clipped.
+  4. Past card title `font-normal` → `font-medium`.
+- **Verification:** in a **Denver browser against the UTC server**, `+` →
+  Event from Day view on Sat Sep 5 must pre-fill **09/05/2026** and save to
+  **Sat 5**; repeat from Week and from a day at each end of the visible
+  range; confirm no-`?date=` still works. Re-measure the not-loaded text
+  (≥4.5 both themes); screenshot "09:00 AM" unclipped at 320. Gauntlet both
+  timezones. Report `EventForm.tsx`'s line count.
+- **Done criteria:** the day you tap is the day the form opens and the day
+  the event lands, in the Vercel/Mountain pairing; three notes closed.
+- **Report:** —
 
 ### C4 — Create / edit / delete UI
 - **Status:** DONE — at the gates (committed `ad2de84`)
@@ -447,7 +418,40 @@ Vision explicitly so it is verified, not assumed.
 - **Done criteria:** a parent can run the whole create/edit/delete loop on
   a phone without typing a date; a kid cannot reach any write; no new
   component duplicates a sanctioned one.
-- **Report:** —
+- **Report:** DONE. **Step 1 first, proven:** `CalendarHeader.tsx` (100) and
+  `ActionCircle.tsx` (38) extracted; `CalendarViews.tsx` 275 → 213 before
+  the rest of C4 grew it to a final 307; `RecipeActionCircles.tsx` imports
+  the one `ActionCircle` (Fury-verified: exactly one definition in `src/`).
+  Pixel diff of Week at 375px before/after extraction: **max diff 0,
+  nonzero pixels 0**. Then `EventForm.tsx` (346), `EventDetailSheet.tsx`
+  (189, ⋯ as an internal `view` state, full names, "Added by", single-tap
+  Delete), `/calendar/new` and `/calendar/[id]/edit` (server-gated, kid →
+  redirect, missing id → `notFound()`), `FloatingAddButton` → `ActionSheet`
+  (Event / Meal) on `canManage`, `EventCard` a real `<button>`, past
+  treatment per Strange verbatim (measured live: past title `--muted`
+  weight 400, future `--fg` 600, opacities 1), Day view stacks badges below
+  text so location gets a full line, Week `line-clamp-2` + overlap-stacked
+  badges, `NotLoadedCard` per 6d, both Vision pass-3 notes done.
+  `loading.tsx` untouched — the pixel diff proved its heights hold.
+  **Through the real form, rows read back:** create (`createdById` =
+  session), edit (`updatedAt` advanced), delete (0 remain), **all-day
+  exclusive end via the UI**: Starts 09/10, Ends 09/12 → `endAt
+  2026-09-13T00:00Z`. Sheet shows "Day 2 of 3" and Bryce/Emily/Eleanor by
+  full name.
+  **Kid check went beyond the contract:** the real `Next-Action` POST was
+  captured and replayed — Bryce's cookie 200 + row (positive control);
+  Eleanor's kid cookie 200 with `{"error":"Only parents can do that."}`
+  and **no row**; no cookie 307. No `+`/Edit/⋯ for the kid; both write
+  pages redirect by URL. Gauntlet 135/135 both timezones; three routes
+  built; counts 0; `playwright` reverted (package files clean,
+  Fury-verified). **`EventForm.tsx` at 346 is 4 under the soft cap.**
+  **Deviations for the gates:** (1) next-whole-hour default via a local
+  `useSyncExternalStore` "browser minute" hook + adjust-state-during-render,
+  because `useEffect`+`setState` trips this repo's `set-state-in-effect`
+  rule and render-time `new Date()` mismatches hydration; (2) "Added by" as
+  a `createdByNames` map in `page.tsx` rather than widening
+  `CalendarEventView` (`types.ts` was out of bounds); (3) no CSS-sticky
+  submit — no such pattern exists here.
 
 ### C5 — Fix contract: all 8 pass-1 blockers, plus 5 cheap same-file notes
 - **Status:** DONE
@@ -585,7 +589,7 @@ Vision explicitly so it is verified, not assumed.
 | 3 | Vision | **PASS** | 0 | V4 and C7 RESOLVED, re-derived; 5 notes |
 | C4-1 | Vision | **PASS** | 0 | write path attacked end to end; 2 notes |
 | C4-1 | Captain | **PASS** | 0 | all three mandates DONE; 9 notes routed to K2/K3/K4 |
-| C4-1 | Strange | DISPATCHED | — | **first gate on Opus** (tier change `cc98b33`) |
+| C4-1 | Strange | **BLOCK** | 1 | first gate on Opus; 8 notes; its own four instructions all satisfied |
 
 Budget: 3 passes per gate, then STOP and surface.
 
@@ -658,6 +662,74 @@ identical `User` rows. **Security suite re-run on the changed action
 file**: positive control first, then kid / no-cookie / deactivated /
 forged-admin / wrong-secret / v1-shaped cookies all refused with counts
 unchanged. Baseline restored, scratch removed.
+
+### Strange, C4 pass 1 — BLOCK (1 blocker, 8 notes) — first gate on Opus
+
+Gated the production build from a Denver-timezone browser against a UTC
+server — the exact Vercel/house pairing. 43 screenshots. Five real-shaped
+people created and deleted by id; counts back to zero.
+
+**S-BLOCKER — `+` → Event opens the form on the day *before* the one in
+view, every time in production.** Proven end to end: the Day header reads
+"Saturday, Sep 5", the client correctly requests `?date=2026-09-05`, the
+form pre-fills **09/04/2026**, and saving lands the event on **Friday the
+4th**. One line in `new/page.tsx`: `new Date(\`${date}T00:00:00\`)` builds
+local midnight **in the server's zone**, and a `Date` crossing the RSC
+boundary is an instant — Sep 5 00:00 UTC re-reads as Sep 4 18:00 Mountain.
+Vercel is UTC and the house is Mountain, so this is wrong on **every tap**,
+not at an edge. It breaks the plan's own settled rule, and the page's
+comment claims exactly the property it lacks. `/calendar/new` with no
+`?date=` is correct, so only the FAB path — the primary create affordance —
+is broken. Eighth appearance of the UTC/Mountain trap here, first in a
+write path.
+
+**All four of Strange's own instructions: SATISFIED**, with the
+past-vs-disabled question answered properly — the separation is
+*structural*, not degree. The app's disabled vocabulary is opacity (Today
+circle and edge-disabled arrow both `opacity: 0.4`, ~1.8:1); a past card
+never touches opacity and its title measures **5.00:1**, a 2.6× gap, with
+fully saturated badges. Past vs future differs on three axes at once
+(weight, contrast, tint). 6b took the *better* option (badges stacked
+below), giving the text the full 317px — a 138-character title renders 4
+unclipped lines. 6c: 5 people down to **33.8%** of the row from 49%, ring
+keeps the two E's apart, no "+N" cap. 6d: against six dashed 46px empty
+cards the solid iconed notice "reads immediately as a different kind of
+thing, where before all seven were identical until read"; the loading
+frame contains zero occurrences of either empty-state string.
+
+**Strange caught an error in its own pass-2 prescription** — the note worth
+acting on: `bg-surface-2` puts the not-loaded text at **4.33:1**, and
+`globals.css:26` says of that token "fill only … **not used for text**",
+which it prescribed without checking. Its fix keeps solid-vs-dashed as the
+axis: `bg-surface` + solid `border-line` → 5.38:1.
+
+**Other notes to fix:** the time input's `w-32` is 1–2px short so "09:00
+AM" renders **"09:00 AN"** — invisible to every DOM metric, and the clipped
+glyph is the meridiem; and a past card loses internal hierarchy (title and
+time both weight 400), which `font-medium` restores.
+
+**Deferred, with reasons:** no outline on the source card while the sheet is
+open (a gap in Strange's own question — the scrim covers it and the sheet
+repeats the title; K2/K3); the FAB overlaps mid-list content at some scroll
+positions (inherent, same on Recipes, last card guaranteed clear); **a Week
+card conveys *who* only through `aria-hidden` swatches, so a screen-reader
+user hears no people** — the plan's own settled hazard, flagged for K3
+where filters make "whose event" first-class; chips are neutral pills with
+a coloured badge rather than tinted (substance met, and reusing
+`AvatarBadge` is correct); the dark unchecked checkbox is loud but its
+343×48 label row is the target.
+
+**Everything else measured and held:** 48px inputs and submit, All day
+removing the time boxes and relabelling Ends → "Ends (last day)" (an
+honest unrequested touch about the exclusive-end convention),
+next-whole-hour default, duration preserved when the start moves, 44px
+`BackLink` labelled "Calendar", inline errors `role="alert"` at 4.53:1, **no
+dead controls**, no overflow at 320/375 either theme. The sheet answers
+"which E", is a bottom sheet at 375 and a centred 448px dialog at 1024,
+keeps exactly one `[role=dialog]`, Escape steps back once then closes. The
+FAB is **absent entirely** for a kid, whose direct URLs both redirect. The
+extractions hold and Recipes' circles measure identically to the pre-hoist
+copy.
 
 ### Vision, C4 pass 1 — PASS (0 blockers, 2 notes)
 
@@ -1303,6 +1375,22 @@ plan quietly rot.
   new hook, keyboard and Escape behavior, and C7's rule re-verified after
   C4 rewrote the file. Two notes, neither a defect. **Strange dispatched —
   the first gate to run on Opus.**
+- 2026-09-02 — **Strange, C4: BLOCK** (1 blocker, 8 notes). The `+` → Event
+  flow pre-fills and saves the **day before** the one tapped, every time in
+  the Vercel-UTC/house-Mountain pairing, because the page rebuilds the date
+  server-side. All four of Strange's own instructions satisfied, and it
+  **caught an error in its own pass-2 prescription**. **C8 dispatched.**
+  Strange gets pass 2 of 3 after it. **Draft PR #9 is open and currently
+  carries this bug** — Bryce chose to wait for a clean build, which was the
+  right call.
+- 2026-09-02 — **Record defect fixed, Fury's own.** This file carried **two**
+  `### C4` sections: the original PENDING placeholder from mission open, and
+  the real contract drafted later — and the C4 report had landed on the
+  stale one (the anchor search found the first heading). The stale block is
+  deleted and the report moved onto the live contract. Lesson for the log:
+  asserting an anchor matches *once* is not enough when the document itself
+  contains a duplicate heading; assert the section is unique before
+  searching inside it.
 
 ## Delivery
 
