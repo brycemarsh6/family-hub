@@ -292,6 +292,75 @@ Vision explicitly so it is verified, not assumed.
   never the gate.
 - **Report:** —
 
+### C4 — Create / edit / delete UI (DRAFTED, awaiting Strange pass 2 + Vision pass 3)
+- **Status:** DRAFTED — dispatch only after all three gates PASS on the read path
+- **Boundaries:**
+  - may touch: `src/app/(app)/calendar/new/page.tsx` (new),
+    `src/app/(app)/calendar/[id]/edit/page.tsx` (new),
+    `src/components/EventForm.tsx` (new), `src/components/EventDetailSheet.tsx`
+    (new), `src/components/CalendarHeader.tsx` (new, extracted),
+    `src/components/ActionCircle.tsx` (new, hoisted), `src/components/
+    RecipeActionCircles.tsx` (import the hoisted circle only),
+    `src/components/CalendarViews.tsx`, `src/components/DaySection.tsx`,
+    `src/components/EventCard.tsx`, `src/app/(app)/calendar/page.tsx`,
+    `src/app/(app)/calendar/loading.tsx` (if the header extraction changes
+    measured heights — re-measure, don't guess).
+  - must not touch: `prisma/**`, `src/app/actions/calendar.ts` (its
+    signatures are the contract — `CalendarEventInput` plain object, not
+    `FormData`), `src/lib/calendarDates.ts` (C6 finished it), `dal.ts`,
+    `proxy.ts`, constitutions.
+- **Objective:** parents and admin can create, edit, and delete events from
+  the calendar; kids see everything and can change nothing; the detail
+  sheet names people in full.
+- **Required, in this order (Captain's mandates first so the files shrink
+  before they grow):**
+  1. Extract the header row (Today / view circles + prev/next/title) into
+     `CalendarHeader.tsx`; hoist `ActionCircle` (the calendar copy is the
+     superset — it has `disabled`) into `ActionCircle.tsx` and make
+     `RecipeActionCircles.tsx` import it. Zero behavior change; verify by
+     screenshot diff at 375px before continuing.
+  2. `EventForm.tsx`: one form for New and Edit (the `RecipeForm`
+     precedent). Title; All day toggle; native `<input type="date">` /
+     `type="time">` for start and end (the OS wheel for free); default
+     next whole hour, one hour long, changing start keeps the duration;
+     all-day hides the time boxes; people as multi-select avatar circles
+     with names, creator pre-selected, ≥1 required; optional Location and
+     Notes. **All-day end is EXCLUSIVE** — the form constructs `endAt` as
+     local midnight of the day *after* the last covered day, never equal
+     to `startAt` (validation would refuse it). Submit calls
+     `createCalendarEvent` / `updateCalendarEvent` with a plain object;
+     render `{ error }` inline. Sync-to toggles, tags, repeats: **not in
+     K1** — leave no dead controls.
+  3. `/calendar/new?date=YYYY-MM-DD` and `/calendar/[id]/edit`, each with a
+     `BackLink` to Calendar. Edit page 404s cleanly for a missing id.
+  4. `EventDetailSheet.tsx`: the house bottom sheet on card tap — title,
+     date line ("Wednesday, Sep 2, 6 – 7 PM" via C2's formatters), one
+     tinted chip **with full name** per person (the initials collide),
+     location, notes, "Added by <name>". For managers: Edit (→ edit page)
+     and a ⋯ `ActionSheet` with single-tap Delete. **Kids see no Edit and
+     no ⋯** — the UI mirrors the gate; the actions are the gate.
+  5. `FloatingAddButton` → `ActionSheet` with **Event** (→ `/calendar/new`
+     for the day in view) and **Meal** (→ `/kitchen/cooking/meal-plan`; the
+     `SlotEditSheet` reuse is a K3 call). Managers only.
+  6. **Past-event dimming:** apply Strange's pass-2 instruction verbatim —
+     `<<STRANGE_OPACITY_INSTRUCTION>>` — so a tappable past card never
+     reads as disabled.
+  7. `EventCard` becomes a `<button>` (or gets `role="button"` + keyboard
+     handling) opening the sheet; 48px minimum height already holds.
+- **Verification:** gauntlet under both timezones; browser at 375px:
+  create → appears in Week and Day; edit → changes persist after reload;
+  delete → gone; an all-day event created through the form covers exactly
+  the chosen days (the exclusive-end proof, again, through the real UI
+  this time); a **kid session** sees cards and the sheet but no Edit/⋯/+;
+  the seeded three-day event's sheet shows "Day N of 3"; screenshots of the
+  sheet with Emily/Eleanor both present, names legible. Counts back to
+  zero. Sizes: every file under 350; `CalendarViews.tsx` must be *smaller*
+  after step 1 than before it.
+- **Done criteria:** a parent can run the whole create/edit/delete loop on
+  a phone without typing a date; a kid cannot reach any write; no new
+  component duplicates a sanctioned one.
+- **Report:** —
+
 ### C5 — Fix contract: all 8 pass-1 blockers, plus 5 cheap same-file notes
 - **Status:** DONE
 - **Boundaries:**
