@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CalendarDays, ShoppingCart, Share2 } from "lucide-react";
+import { ActionCircle } from "./ActionCircle";
 import { ShareSheet } from "./ShareSheet";
 import { AddToMealPlanSheet, type PlannedWeek } from "./AddToMealPlanSheet";
 import { AddToGroceriesSheet } from "./AddToGroceriesSheet";
@@ -78,28 +79,5 @@ export function RecipeActionCircles({
         />
       )}
     </div>
-  );
-}
-
-function ActionCircle({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col items-center gap-1.5"
-    >
-      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-2 text-fg transition-colors active:bg-line">
-        {icon}
-      </span>
-      <span className="text-xs font-medium text-muted">{label}</span>
-    </button>
   );
 }

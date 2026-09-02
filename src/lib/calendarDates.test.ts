@@ -289,7 +289,11 @@ test("REGRESSION (V2): a degenerate all-day event (end not after start) still re
  * the same thing under either invocation. (The other three cases just
  * below don't need this — they build both the day and the window from the
  * same local calendar semantics, so they hold under any ambient TZ without
- * help.)
+ * help.) One sharp edge (Vision pass-3, note 2): this only works for `Date`
+ * getters — calendarDates.ts's module-level `Intl.DateTimeFormat`
+ * instances freeze their zone at construction and never re-read `TZ`, so
+ * `run` must call only isOutsideWindow/canStepToPeriod here, never a
+ * formatter (formatTimeRange, formatAllDayLabel).
  */
 function withTimeZone<T>(tz: string, run: () => T): T {
   const previous = process.env.TZ;

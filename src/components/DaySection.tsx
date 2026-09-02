@@ -1,3 +1,4 @@
+import { CalendarOff } from "lucide-react";
 import { EventCard } from "./EventCard";
 import { SkeletonBlock } from "./Skeleton";
 import type { CalendarEventView } from "@/lib/types";
@@ -33,11 +34,26 @@ function NoEventsCard() {
  * stray view-switch edge case: the closest day of a reachable Week/Day
  * period can itself be only partially loaded even while CalendarViews
  * correctly refuses to page one period further (see calendarDates.ts's
- * `canStepToPeriod`) — confirmed live at both the forward and back edges. */
+ * `canStepToPeriod`) — confirmed live at both the forward and back edges.
+ *
+ * Deliberately NOT NoEventsCard's dashed-and-crisp look (mission-8's
+ * Strange pass-2 finding): seven visually-identical dashed cards on a
+ * paged-out week read as seven empty days until the last one is actually
+ * read, which is the same "unknown must not look like empty" lesson S1
+ * already applied to the loading state — the app now has THREE states
+ * that must each look distinct (loading, empty, unknown), not two. Solid
+ * fill, no dash, an icon, and a plain-language hint naming the actual
+ * limit and the way back. */
 function NotLoadedCard() {
   return (
-    <div className="rounded-xl border border-dashed border-line px-3 py-3 text-sm text-muted">
-      Outside the loaded range
+    <div className="flex items-start gap-2 rounded-xl bg-surface-2 px-3 py-3 text-sm text-muted">
+      <CalendarOff aria-hidden="true" size={16} className="mt-0.5 shrink-0" />
+      <span>
+        Not all events loaded
+        <span className="mt-0.5 block text-xs">
+          Marshee shows about two months each way — tap Today to come back.
+        </span>
+      </span>
     </div>
   );
 }
@@ -98,6 +114,10 @@ export function DaySection(
          * Defaults false so every other caller (and every existing test/
          * screenshot) is unaffected. */
         notLoaded?: boolean;
+        /** Opens the detail sheet for one event, on the day it's rendered
+         * for — see EventCard/EventDetailSheet. Required alongside
+         * `events` (both live on the non-loading branch of this union). */
+        onOpenEvent?: (event: CalendarEventView, day: Date) => void;
       },
 ) {
   if (props.loading) {
@@ -120,7 +140,7 @@ export function DaySection(
     );
   }
 
-  const { day, today, events, showLocation, compact, notLoaded } = props;
+  const { day, today, events, showLocation, compact, notLoaded, onOpenEvent } = props;
   const isToday = isSameDay(day, today);
 
   return (
@@ -167,6 +187,7 @@ export function DaySection(
             today={today}
             showLocation={showLocation}
             compact={compact}
+            onOpen={() => onOpenEvent?.(event, day)}
           />
         ))}
       </div>

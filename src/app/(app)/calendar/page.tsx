@@ -67,6 +67,12 @@ export default async function CalendarPage() {
           user: { select: { id: true, displayName: true, avatarColor: true } },
         },
       },
+      // Narrow select, never `{ ...row }` — the same "no passwordHash can
+      // ever ride along" discipline personInfo.ts documents, applied here
+      // for the detail sheet's "Added by" line (C4). This nested select is
+      // the exact instance STRUCTURE.md's one-source-of-truth note on
+      // personInfo.ts names as NOT a second definition.
+      createdBy: { select: { displayName: true } },
     },
   });
 
@@ -85,6 +91,16 @@ export default async function CalendarPage() {
     })),
   }));
 
+  // Kept as its own map rather than a field on CalendarEventView (see that
+  // type's own home in src/lib/types.ts) — the detail sheet is the only
+  // consumer of "who created this," so it travels alongside the events
+  // rather than widening a type every other reader of CalendarEventView
+  // would also have to carry.
+  const createdByNames: Record<string, string | null> = {};
+  for (const event of events) {
+    createdByNames[event.id] = event.createdBy?.displayName ?? null;
+  }
+
   return (
     <div className="py-2">
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Calendar</h1>
@@ -92,6 +108,7 @@ export default async function CalendarPage() {
         <CalendarViews
           events={eventViews}
           canManage={canManage}
+          createdByNames={createdByNames}
           windowStart={windowStart}
           windowEnd={windowEnd}
         />

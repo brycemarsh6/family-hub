@@ -9,8 +9,10 @@ import type { CalendarEventView } from "@/lib/types";
  * decides which days that is, via calendarDates.ts's daysEventCovers, so
  * this component only ever has to describe a single day's worth of it).
  *
- * Read-only in K1 (C3) — no onClick, no swipe, no ⋯. C4 adds the tap-to-open
- * detail sheet on top of this same card.
+ * A real `<button>` now (C4) — tapping opens the detail sheet. 48px
+ * minimum height already held before this change (the card's own padding
+ * plus a 28px avatar), so no size adjustment was needed to satisfy the
+ * house touch-target rule.
  */
 export function EventCard({
   event,
@@ -18,23 +20,27 @@ export function EventCard({
   today,
   showLocation = false,
   compact = false,
+  onOpen,
 }: {
   event: CalendarEventView;
   day: Date;
   today: Date;
   /** Day view has room to show it; Week's agenda cards stay compact. */
   showLocation?: boolean;
-  /** Week's agenda rows need a single-line title (`truncate`) to keep the
-   * list scannable; Day view exists specifically to read a whole title, so
-   * it wraps instead (`break-words`, no truncation) — see the measured S3
-   * finding on EventCard's own module comment below for why reusing
-   * `showLocation` to mean both "show the location" and "wrap the title"
-   * would have been the wrong shortcut: Week could plausibly want one
-   * without the other later, and a prop that means two things is exactly
-   * the kind of thing that quietly breaks when only one of its meanings
-   * changes. Set by Week explicitly (`compact`); Day leaves it at its
-   * default `false`. */
+  /** Week's agenda rows need a single-line title (`truncate`/`line-clamp`)
+   * to keep the list scannable; Day view exists specifically to read a
+   * whole title, so it wraps instead (`break-words`, no truncation) — see
+   * the measured S3 finding on EventCard's own module comment below for
+   * why reusing `showLocation` to mean both "show the location" and "wrap
+   * the title" would have been the wrong shortcut: Week could plausibly
+   * want one without the other later, and a prop that means two things is
+   * exactly the kind of thing that quietly breaks when only one of its
+   * meanings changes. Set by Week explicitly (`compact`); Day leaves it at
+   * its default `false`. */
   compact?: boolean;
+  /** Opens the detail sheet for this event/day pair — see EventDetailSheet
+   * and its caller in CalendarViews.tsx. */
+  onOpen: () => void;
 }) {
   // formatAllDayLabel returns null for a plain single-day timed event —
   // that's this file's own cue to fall back to formatTimeRange instead,
@@ -44,13 +50,25 @@ export function EventCard({
     formatTimeRange(event.startAt, event.endAt);
 
   const past = isPast(event.endAt, today);
-  const background = bandBackground(event.people.map((p) => p.avatarColor));
+  // Strange's verbatim past-event instruction (mission-8, C4): opacity is
+  // the wrong tool (0.55 measured 2.62:1; even 0.80 left the muted time
+  // line at 3.53) — a tappable card's opacity must stay 1 so it keeps
+  // reading as tappable. Past state is carried by TWO signals instead:
+  // the title drops from text-fg/font-semibold to text-muted/font-normal
+  // (5.38:1 light / 6.12:1 dark, both AA), and the color bands halve to
+  // 0.05 alpha so the tint drains without touching AvatarBadge, which
+  // stays full color — identity, not state. No line-through: that
+  // vocabulary means cancelled, not "already happened."
+  const background = bandBackground(
+    event.people.map((p) => p.avatarColor),
+    past ? 0.05 : 0.1,
+  );
 
   return (
-    <div
-      className={`rounded-xl border border-line p-3 transition-opacity ${
-        past ? "opacity-55" : ""
-      }`}
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full rounded-xl border border-line p-3 text-left"
       // `background` is a gradient of translucent bands ONLY — it needs an
       // opaque layer underneath for the alpha math bandBackground()'s own
       // comment describes to mean anything, and that layer has to be named
@@ -62,35 +80,49 @@ export function EventCard({
       // math was never what was actually on screen.
       style={background ? { background: `${background}, var(--surface)` } : undefined}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className={`flex gap-3 ${compact ? "items-start justify-between" : "flex-col"}`}>
         <div className="min-w-0 flex-1">
           <p
-            className={`text-base font-semibold text-fg ${
-              compact ? "truncate" : "break-words"
+            className={`text-base ${past ? "font-normal text-muted" : "font-semibold text-fg"} ${
+              compact ? "line-clamp-2" : "break-words"
             }`}
           >
             {event.title}
           </p>
           <p className="mt-0.5 text-sm text-muted">{badge}</p>
           {showLocation && event.location && (
-            <p className="mt-0.5 truncate text-sm text-muted">{event.location}</p>
+            <p className={`mt-0.5 text-sm text-muted ${compact ? "truncate" : "break-words"}`}>
+              {event.location}
+            </p>
           )}
         </div>
 
         {event.people.length > 0 && (
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+          <div
+            className={
+              compact
+                ? "flex shrink-0 -space-x-1.5 self-start"
+                : "flex flex-wrap items-center gap-1"
+            }
+          >
             {event.people.map((person) => (
               <AvatarBadge
                 key={person.userId}
                 displayName={person.displayName}
                 avatarColor={person.avatarColor}
                 size={28}
+                // The overlap-stack (Week/compact only) needs a ring in the
+                // card's own background color so two overlapping swatches
+                // of the same-first-letter people (E/E, L/L) stay visually
+                // separated rather than reading as one blob — never "+N",
+                // per the plan: five people is the whole household.
+                className={compact ? "ring-2 ring-surface" : ""}
               />
             ))}
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -112,30 +144,22 @@ function hexToRgba(hex: string, alpha: number): string {
  * person-less event (there is always at least one person once C4 ships
  * creation, but a defensive fallback costs nothing).
  *
- * The alpha is 0.10 (was 0.16, briefly 0.12 — see below), and this needs an
+ * `alpha` is now a parameter (C4) rather than a fixed constant — the
+ * caller passes 0.05 for a past event, draining the tint the same way the
+ * title drops to muted, and 0.10 otherwise. 0.10 is the value mission-8's
+ * Strange pass-2 measured across all 8 AVATAR_COLORS in both themes: worst
+ * case **4.64:1 light / 5.53:1 dark**, both clear of the 4.5 AA floor, and
+ * still readable as visibly different people at 28px. This needs an
  * opaque `var(--surface)` backdrop in the same `background` shorthand to
- * mean anything real (the caller supplies that). Earlier text here claimed
- * the alpha was chosen "without a per-color contrast check" — that was
- * false, not just imprecise: measured against the rendered page, the worst
- * of the 8 AVATAR_COLORS came out at 3.77:1 in light mode (mission-8's
- * Strange S2 finding), well under the 4.5 floor, because the card had no
- * opaque backdrop at all and the translucent band was actually compositing
- * over the page's cream `--bg`, not the white `--surface` this comment had
- * assumed. Fixed two ways together: an explicit `--surface` backdrop (see
- * the caller) and a lower alpha. 0.12 measures to 4.50 in light mode —
- * exactly the floor, with no margin — so 0.10 was tried instead per the
- * contract's own preference for headroom. Measured for real (a live
- * EventCard's own `getComputedStyle`, not a hand calculation) across all 8
- * AVATAR_COLORS in both themes: worst case **4.64:1 light / 5.53:1 dark**,
- * while still reading as 8 visibly different people at 28px. Re-measure
- * this comment's numbers if AVATAR_COLORS, `--surface`, or `--muted` ever
- * change.
+ * mean anything real (the caller supplies that) — see the caller's own
+ * comment for why an earlier version without one measured the wrong thing
+ * entirely (compositing over the page's cream `--bg`, not `--surface`).
  */
-function bandBackground(avatarColors: string[]): string | undefined {
+function bandBackground(avatarColors: string[], alpha: number): string | undefined {
   if (avatarColors.length === 0) return undefined;
   const bandWidth = 100 / avatarColors.length;
   const stops = avatarColors.flatMap((name, index) => {
-    const color = hexToRgba(avatarColorHex(name), 0.1);
+    const color = hexToRgba(avatarColorHex(name), alpha);
     const start = index * bandWidth;
     const end = (index + 1) * bandWidth;
     return [`${color} ${start}%`, `${color} ${end}%`];
