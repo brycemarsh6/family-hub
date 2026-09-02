@@ -296,11 +296,81 @@ Vision explicitly so it is verified, not assumed.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | DISPATCHED | — | on C1-C3 |
+| 1 | Vision | **BLOCK** | 3 | 7 notes; all blockers reproduced with output |
 | 1 | Strange | DISPATCHED | — | on C3's views |
 | 1 | Captain | **BLOCK** | 2 | 7 notes; gauntlet re-run clean, no boundary violations |
 
 Budget: 3 passes per gate, then STOP and surface.
+
+### Vision pass 1 — BLOCK (3 blockers, 7 notes)
+
+Re-ran the gauntlet (tsc 0, eslint 0, 128/128, build 0) **and then re-ran the
+tests under `TZ=America/Denver`** — see the CI note below for why that
+mattered. Boundary audit across all 16 changed files: clean. Migration read
+in full: additive. Every C1/C3 evidence claim spot-checked and matched.
+
+**How the security claims were actually proven.** The calendar actions have
+no server reference in the build yet (nothing imports them until C4), so
+they are unreachable over HTTP today. Vision called the real functions
+in-process with real cookies minted by the app's own `encrypt()`, positive
+control first. Parent creates (people rows +2, `createdById` from session);
+kid create/update/delete all refused with the database unchanged; no cookie
+refused; deactivated user refused; **a forged JWT claiming `role: admin` for
+a kid's id refused** (the DAL re-reads the row, so the cookie's role claim is
+inert). Nonexistent, deactivated, and duplicated `userId`s all handled;
+client-supplied `createdById` and `id` both ignored. Validation, missing-row
+handling, and cascade cleanup all confirmed. Kid read path confirmed against
+the running server: 200 with `canManage: false`; no cookie → 307.
+The clean-script safety test ran on a **sibling database** seeded with
+look-alike rows (`zzz test alice`, `ZZZ Test`, `ZZZ Test Alice Jr`): all 5
+survivors survived, all 3 look-alike events survived, exact seed rows gone.
+
+**V1 — a timed event ending exactly at local midnight leaks onto the next
+day and loses its time label.** `calendarDates.ts:112`. Reproduced: an event
+entered as Sep 4 8:00 PM → Sep 5 12:00 AM — the natural way to enter "ends
+at midnight" — renders a card on **both** days reading "Day 1 of 2" /
+"Day 2 of 2", and the correct string "8 PM – 12 AM" is never shown. An end
+instant of exactly midnight belongs to the day it closes, not the day it
+opens.
+
+**V2 — the exclusive-end invariant is documented in the schema but not
+enforced by the write path.** `actions/calendar.ts:74-80`. An all-day event
+posted with `endAt === startAt` — precisely the "caller passes an inclusive
+end" case C2's own report worried about — is **accepted and saved**, then
+covers zero days and is **invisible in every view forever**. C4's contract
+forbids touching `calendar.ts`, so if C4 makes this exact mistake nothing
+catches it. Needs both layers: reject it in validation, and clamp the span
+so a degenerate row still renders as one day rather than vanishing.
+
+**V3 — paging past the ±60-day window prints "No events" on days that have
+events.** `page.tsx:15,46-47`. Vision escalated the question I asked it to
+rule on, and it is right to: this is not a missing feature, it is the UI
+stating something false. The proof is damning because it uses **this
+mission's own seed data** — the Nov 1 2026 daylight-saving event sits
+*outside* the window, so the page returns 200 with the near event present
+and that one absent. Tapping Next to that week shows "No events" while the
+row is in the database. Any event more than 60 days out (Thanksgiving, the
+first day of school) fails identically. A limit has to be visible to be
+honest: either disable paging at the window edge or render a distinct
+"not loaded" state — never the empty-day card.
+
+**Notes worth acting on:** `npm test` runs in the process timezone, and both
+this container and GitHub Actions are **UTC**, where the Nov 1 2026 DST test
+never crosses a DST boundary at all — it has been vacuous in CI. `isPast`
+receives local midnight, so dimming is day-granular: at 9 PM this morning's
+appointment is still undimmed. A multi-day *timed* event shows only
+"Day N of 3" and never its times. `HOUSEHOLD_TIME_ZONE` confirmed dead
+(matches Captain independently). Non-`Date` inputs throw instead of
+returning the house shape.
+
+**Process note — Fury's error, repeated from this project's own history.**
+Vision found the shared database holding Strange's in-flight credentialed
+rows, so "counts back to baseline" was unverifiable there and it had to
+build a sibling database to test the clean script. CLAUDE.md already records
+this exact lesson from the accounts work: **gates that create credentialed
+test data must run serially, or own disjoint self-identifying accounts.** I
+dispatched three gates in parallel anyway. Pass 2 runs Vision and Strange
+serially.
 
 ### Captain pass 1 — BLOCK (2 blockers, 7 notes)
 
@@ -398,6 +468,14 @@ plan quietly rot.
   create and delete `User` rows (danger-register violation), and C3 was
   denied `src/lib/types.ts`, forcing the type cycle. Holding fix contracts
   until Vision and Strange report, per the batch-fixes-before-re-gating rule.
+- 2026-09-02 — **Vision pass 1: BLOCK** (3 blockers, all reproduced). Two are
+  real date-logic defects (midnight-end leak; unenforced all-day invariant
+  that silently saves an invisible event) and one is a false UI statement
+  (paging past the window shows "No events" over real rows — proved with
+  this mission's own Nov 1 seed event). Security surface held completely,
+  including a forged admin role claim. Also: the DST test is **vacuous in
+  CI**, which runs UTC. Fury process error recorded: parallel gates with
+  credentialed data collided, exactly the lesson CLAUDE.md already carries.
 
 ## Delivery
 
