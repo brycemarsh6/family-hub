@@ -678,6 +678,30 @@ plan quietly rot.
   CI**, which runs UTC. Fury process error recorded: parallel gates with
   credentialed data collided, exactly the lesson CLAUDE.md already carries.
 
+- 2026-09-02 07:2x UTC — **Vision's first pass-2 attempt died on an API
+  session rate limit** partway through (the gates run on the Fable tier;
+  the limit reset at 06:10 UTC). It had begun work — a `prisma/tmp-vision/`
+  scratch directory with look-alike and preload scripts — but wrote nothing
+  to the database (counts read 0/0/0) and touched no source. Scratch removed
+  by Fury. Postgres had also stopped (container idle) and was restarted.
+- 2026-09-02 — **Captain's container fix landed** (`4861fe1`):
+  `prisma/tmp-*` added to `tsconfig.json`'s `exclude`. Proven rather than
+  assumed: a deliberately type-broken file placed under `prisma/tmp-probe/`
+  left `tsc` at exit 0. No gate's scratch can break another's typecheck
+  again.
+- 2026-09-02 — **Bryce granted full autonomy**: resolve blockers and
+  choices by best judgment without asking; finish K1, then proceed through
+  K2, K3, and onward; adversarial checks throughout. Consequences recorded
+  here so a fresh session inherits the mandate: (1) the two STRUCTURE.md
+  amendments and the tag-table plan deviation are now Fury's to decide, not
+  to escalate; (2) K6/K7 still carry an external dependency — a Google Cloud
+  project and OAuth consent screen only Bryce can create — so those phases
+  build everything that doesn't need live credentials and stop at the exact
+  point that does; (3) "no PR unless asked" still stands — autonomy is about
+  building, not about opening review requests on his behalf.
+- 2026-09-02 — **Vision pass 2 re-dispatched**, alone in the container;
+  Strange still held.
+
 ## Delivery
 
 - **Shipped:** —
