@@ -366,6 +366,27 @@ Vision explicitly so it is verified, not assumed.
   before the fix and passes after.
 - **Report:** —
 
+### C6 — Fix contract: V4 (boundary-day lie) + the window-predicate hoist
+- **Status:** DISPATCHED
+- **Boundaries:**
+  - may touch: `src/lib/calendarDates.ts`, `src/lib/calendarDates.test.ts`,
+    `src/components/CalendarViews.tsx`, `src/components/DaySection.tsx`,
+    `src/app/(app)/calendar/page.tsx` (only if the padded-fetch alternative
+    is chosen; the client must still receive the unpadded bounds).
+  - must not touch: `prisma/**`, `src/app/actions/**`, `EventCard.tsx`,
+    `loading.tsx`, `types.ts`, `mealPlanDates.ts`, constitutions.
+- **Objective:** a day is "loaded" only when the fetch window fully
+  contains it; a day outside the window always shows `NotLoadedCard`, even
+  if some overlapping rows were fetched; Next uses the same predicate.
+- **Verification:** TZ-pinned regression test that fails before / passes
+  after (`windowEnd = 2026-11-01T00:00Z`, day Oct 31 America/Denver →
+  outside); both predicates live in `calendarDates.ts` with tests; browser
+  reproduction of Vision's Halloween scenario showing `NotLoadedCard` on
+  Sat Oct 31 in a Mountain browser; gauntlet under both timezones.
+- **Done criteria:** no day can render "No events" while a row for that
+  day exists in the database; `NotLoadedCard` reachable at both edges.
+- **Report:** —
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
