@@ -374,10 +374,81 @@ Vision explicitly so it is verified, not assumed.
 | 1 | Strange | **BLOCK** | 3 | 7 notes; all measured, not eyeballed |
 | 1 | Captain | **BLOCK** | 2 | 7 notes; gauntlet re-run clean, no boundary violations |
 | 2 | Vision | DISPATCHED | — | running alone in the container, by design |
-| 2 | Captain | DISPATCHED | — | read-only, so safe alongside Vision |
+| 2 | Captain | **PASS** | 0 | both pass-1 blockers RESOLVED; 10 notes |
 | 2 | Strange | HELD | — | starts when Vision finishes (pass-1 collision) |
 
 Budget: 3 passes per gate, then STOP and surface.
+
+### Captain pass 2 — PASS (0 blockers, 10 notes)
+
+Re-derived both of its own blockers rather than accepting the C5 report, and
+confirmed independently that `git show 75d65bb -- prisma/schema.prisma
+prisma/migrations` is **empty** (C5 honoured the no-schema-change boundary)
+and that `bootstrap-users.ts` is untouched (0 lines changed).
+
+**B1 RESOLVED.** `grep -rn "db\.user" prisma/` returns four hits: three in
+the sanctioned `bootstrap-users.ts`, and one `findMany` read in
+`seed-calendar.ts`. `clean-calendar.ts` has zero `db.user` calls.
+Captain went further and judged the *new* shape on its merits, as asked:
+"a seeder that borrows real people is strictly safer than one that owns fake
+ones, because the only table it can damage is the one it fingerprints." On
+the dev branch the events will attach to Bryce and Emily, which is fine for
+a disposable snapshot, and clean-by-title removes them regardless of whose
+row they hung on.
+
+**B2 RESOLVED.** The component graph is now a tree
+(`CalendarViews → {RadioSheet, DaySection}`, `DaySection → {EventCard,
+Skeleton}`, `EventCard → {AvatarBadge}`); `src/lib/` imports nothing from
+`app/` or `components/`. Captain ruled `src/lib/types.ts` is the correct
+home — it already holds exactly this kind of server→browser shape, and K4's
+`recurrence.ts` should put its occurrence type there too. If calendar types
+ever outgrow it, the sanctioned move is a `src/lib/calendar/` directory,
+never back into a component.
+
+**All five folded notes verified**, including that `mealPlanDates.ts` gained
+**exactly** one export (+7 lines, nothing else) and that `constants.ts`'s
+change was comment-only — both boundary limits C5 was held to.
+
+**A live environment defect Captain hit while gating, worth acting on:**
+`tsc` and `npm run build` were **red in the container during its pass**, and
+only because Vision's git-ignored scratch file (`prisma/tmp-vision/`) sits
+inside `tsconfig.json`'s `**/*.ts` include. Nothing in the reviewed diff is
+red — `tsc` with `prisma/tmp-*` excluded exits 0. This is not this mission's
+defect, but it means **any agent's scratch script breaks the typecheck for
+everyone sharing the container**. One-line follow-up: add `"prisma/tmp-*"`
+to tsconfig's `exclude`. Worth doing after the gates clear, not during.
+
+**Notes to fold into C4** (Captain's firm recommendations):
+- **Mandate the `CalendarHeader.tsx` extraction up front**, not later.
+  Re-measured sizes: `CalendarViews.tsx` grew 21% in a *fix* pass, 230 → 279,
+  and C4 realistically adds 70–100 more, landing 350–380 *before* K2's Month
+  branch and K3's filter sheet. Extracting the header (~75 lines) plus
+  Note 2's lib hoist lands it near 200 with room to grow. "Waiting means K2
+  inherits a 380-line shell and extracts under pressure."
+- **Hoist the window-edge date logic into `calendarDates.ts`** as
+  `isOutsideWindow(day, window)` / `canStep(period, direction, window)` with
+  TZ-pinned tests. Captain agreed passing `windowStart`/`windowEnd` as props
+  is the right seam, but the *decisions* made from them are pure date logic
+  sitting in a client component behind a 25-line comment — and K2's Month
+  grid needs the identical per-cell test across 42 cells, so it will
+  otherwise copy it.
+- **Hoist `ActionCircle`** to a shared component; the drift is now concrete
+  (the calendar copy has `disabled`, the recipe copy doesn't) and the
+  calendar version is a strict superset, so it's a zero-behavior move.
+- Two small factual fixes: `seed-calendar.ts`'s `orderBy` has no tiebreaker
+  though its comment promises determinism (add `id`), and
+  `HOUSEHOLD_TIME_ZONE`'s newly-corrected comment cites the **wrong phases**
+  (says K5/K6 recurrence and notifications; recurrence is K4 and
+  notifications are explicitly skipped).
+
+**Boundary audit:** 15 of 16 files in `75d65bb` were on C5's may-touch list.
+Two were not: `loading.tsx` (an 8-line comment-only correction of a comment
+S1 had made false — necessary, but unauthorized by my contract) and the
+mission file (mine). Recorded so the contract record matches the commit.
+
+**Both STRUCTURE.md amendments stand**, with amendment 1 rewritten to
+codify the attach-to-existing pattern as the sanctioned one. Still owed to
+Bryce alongside the plan-vs-build tag-table deviation.
 
 ### Strange pass 1 — BLOCK (3 blockers, 7 notes)
 
