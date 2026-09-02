@@ -1,7 +1,7 @@
 # Mission: Calendar K1 — foundation (schema, actions, Week + Day views, event form)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** AT-THE-GATES (C1-C3; C4 held pending verdicts)
 **Started:** 2026-09-02 · **Updated:** 2026-09-02
 
 ## Brief
@@ -296,9 +296,9 @@ Vision explicitly so it is verified, not assumed.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
-| 1 | Strange | — | — | — |
-| 1 | Captain | — | — | — |
+| 1 | Vision | DISPATCHED | — | on C1-C3 |
+| 1 | Strange | DISPATCHED | — | on C3's views |
+| 1 | Captain | DISPATCHED | — | on C1-C3 |
 
 Budget: 3 passes per gate, then STOP and surface.
 
@@ -329,6 +329,13 @@ Budget: 3 passes per gate, then STOP and surface.
   then dispatch Vision + Strange + Captain in parallel on C1-C3, with C4
   held until the gates rule — a blocker in the read path would otherwise be
   built on top of.
+- 2026-09-02 — C3 committed and pushed (814404e). All three gates dispatched
+  in parallel on C1-C3 (read-only, so parallel is safe). Each was handed the
+  contracts, the builder reports, the gauntlet, the danger register, its own
+  constitution, and Fury's two self-identified findings to rule on. **C4 is
+  deliberately NOT dispatched**: it extends `CalendarViews.tsx` and
+  `EventCard.tsx`, the exact files under review, so a blocker there would
+  otherwise land under already-built write UI.
 
 ## Delivery
 
