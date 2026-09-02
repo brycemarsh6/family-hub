@@ -169,6 +169,9 @@ Adding a second definition of any of these is a BLOCKER:
   trend to watch, never a split candidate.
 - Tests are colocated in `src/lib` as `*.test.ts`, run by `npm test`
   (node:test + tsx, no new frameworks).
+- **Test files follow the same soft cap**; the split is by module under
+  test — one `*.test.ts` per lib module — never a numbered second file.
+  (Added 2026-09-02, mission 8, on Captain's ruling.)
 
 ## Naming
 

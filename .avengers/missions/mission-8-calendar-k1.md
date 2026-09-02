@@ -584,7 +584,7 @@ Vision explicitly so it is verified, not assumed.
 | 2 | Strange | **PASS** | 0 | S1–S3 RESOLVED, re-measured; 11 notes |
 | 3 | Vision | **PASS** | 0 | V4 and C7 RESOLVED, re-derived; 5 notes |
 | C4-1 | Vision | DISPATCHED | — | on C4 (`ad2de84`); write path end to end, alone with the DB |
-| C4-1 | Captain | DISPATCHED | — | on C4; the three mandates + new surface; reads alongside Vision |
+| C4-1 | Captain | **PASS** | 0 | all three mandates DONE; 9 notes routed to K2/K3/K4 |
 | C4-1 | Strange | HELD | — | starts when Vision finishes |
 
 Budget: 3 passes per gate, then STOP and surface.
@@ -658,6 +658,57 @@ identical `User` rows. **Security suite re-run on the changed action
 file**: positive control first, then kid / no-cookie / deactivated /
 forged-admin / wrong-secret / v1-shaped cookies all refused with counts
 unchanged. Baseline restored, scratch removed.
+
+### Captain, C4 pass 1 — PASS (0 blockers, 9 notes)
+
+Gauntlet re-run: tsc 0, eslint 0, 135/135, build 0. Import-graph scan over
+all 84 files in `src/components/`: **0 cycles**; the calendar subtree is a
+tree. `passwordHash` never named by any new select. `package.json`/lock
+diff empty. Boundary: 12 of 14 files on the may-touch list, the other two
+Fury's records.
+
+**All three mandates DONE, verified from the diff rather than the
+report:** every class string in the extracted header reappears verbatim,
+so pixel identity is *plausible from the code* and not only from the
+builder's screenshot diff; `disabled={today === null || …}` became
+`disabled={!todayResolved || …}` with the same boolean; one `ActionCircle`
+definition in `src/`, the calendar superset, Recipes' three call sites
+pass no `disabled` so nothing changed for them; `CalendarViews.tsx` 307
+against the no-extraction prediction of 350–380.
+
+**Rulings on the deviations the builder flagged:** importing `type
+CalendarEventInput` from the `"use server"` action file is **the
+sanctioned way** (erased at compile time; precedents `RecipeFormState`,
+`TagInfo`) — do not copy it into `types.ts`. The page guards are correct
+(pages redirect; they skipped `requireRole` because it hardcodes a bounce
+to `/` and a kid belongs on `/calendar`). The local minute hook satisfies
+the written `useSyncExternalStore` rule; placement is a low-priority note.
+The adjust-state-during-render seed is Vision's question, not structure's.
+
+**Notes, routed by phase:**
+- **K2:** fold `createdByName` into `CalendarEventView` (the parallel map
+  keyed by event id is a second structure that must stay in sync, and
+  Month → Day-tap → sheet would thread it through a third component);
+  export `toLocalDateString` from `mealPlanDates.ts` and `calendarDayDiff`
+  from `calendarDates.ts` and collapse the **four** copies of the same
+  `YYYY-MM-DD` formatter C4's `src/lib` exclusion forced (the "different
+  vocabularies" comment doesn't hold — `new/page.tsx` parses the param
+  byte-for-byte); new date tests in `monthLayout.test.ts`, since
+  `calendarDates.test.ts` is at 349 and **test files are not exempt from
+  the cap as written**; extract the three empty-state cards to
+  `CalendarEmptyStates.tsx` if Month reuses any.
+- **K3:** `EventForm.tsx` at **346 is a split candidate on day one** — the
+  seam is the date/time block (`DateTimeRow` + three converters +
+  `daysBetween` + the Starts/Ends rows, ~110 self-contained lines) →
+  `EventDateTimeFields.tsx`, leaving the form near 240. Projection without
+  it: ~420 after K3's tags + Sync-to, ~490 after K4's Repeats. **K3 must
+  shrink it before growing it**, the same order C4 was held to. Also make
+  `DaySection.onOpenEvent` required (its comment already says so).
+- **K4:** Repeats goes in `EventRepeatsFields.tsx` from the start.
+- **Whenever `useToday.ts` is next edited:** hoist the minute hook to
+  `src/lib/useNow.ts`.
+- **Amendment applied** (autonomy): test files follow the soft cap, split
+  by module under test.
 
 ### Vision pass 3 — PASS (0 blockers, 5 notes) — the read path is fully gated
 
@@ -1171,6 +1222,9 @@ plan quietly rot.
   without it — caught immediately, fixed in the next commit. Anchor
   assertions work; they need the *whole* script to be atomic too.) Next:
   **Vision + Captain on C4 in parallel**, Strange after Vision.
+- 2026-09-02 — **Captain, C4: PASS.** Mandates verified from the diff. Nine
+  notes routed into mission-9 (K2) and forward to K3/K4; test-cap amendment
+  applied to STRUCTURE.md under autonomy. Vision still running on C4.
 
 ## Delivery
 

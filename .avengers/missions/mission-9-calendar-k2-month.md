@@ -124,6 +124,27 @@ alongside either.
 - **Done criteria:** the "Done means" list above, every item shown by
   screenshot or measurement; counts back to zero.
 
+## Inherited from K1's gates (Captain, C4 pass 1) — fold into C1/C2
+
+- **`CalendarEventView.createdByName: string | null`** in `src/lib/types.ts`
+  replaces K1's `createdByNames` map (`page.tsx`, `CalendarViews.tsx`,
+  `EventDetailSheet.tsx` adjust). C2 owns this since it touches those files.
+- **Collapse the four `YYYY-MM-DD` formatters**: export
+  `toLocalDateString(date)` from `mealPlanDates.ts` and `calendarDayDiff`
+  from `calendarDates.ts`; replace the copies in `PantryItemEditSheet.tsx:20`,
+  `EventForm.tsx:40`, `CalendarViews.tsx:302` (`toDateParam`), and
+  `EventForm.tsx:56` (`daysBetween`). C1 exports; C2 replaces the calendar
+  copies (the pantry one is out of K2's scope — a note for whoever touches
+  it next).
+- **New date tests go in `monthLayout.test.ts`**, never into
+  `calendarDates.test.ts` (349, one under the cap; tests are not exempt).
+- **If Month cells reuse any empty-state card**, extract
+  `NoEventsCard`/`NotLoadedCard`/the skeleton row into
+  `CalendarEmptyStates.tsx` rather than importing `DaySection` for its
+  private components.
+- **Make `DaySection.onOpenEvent` required** on the non-loading branch (its
+  own comment already says "required").
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
