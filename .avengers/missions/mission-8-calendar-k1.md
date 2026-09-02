@@ -540,6 +540,7 @@ Vision explicitly so it is verified, not assumed.
 | 2 | Vision | **BLOCK** | 1 | V1, V2 RESOLVED; V3 partial — boundary day still lies |
 | 2 | Captain | **PASS** | 0 | both pass-1 blockers RESOLVED; 10 notes |
 | 2 | Strange | **PASS** | 0 | S1–S3 RESOLVED, re-measured; 11 notes |
+| 3 | Vision | DISPATCHED | — | LAST pass in budget; on C7 head 89b6532, alone |
 
 Budget: 3 passes per gate, then STOP and surface.
 
