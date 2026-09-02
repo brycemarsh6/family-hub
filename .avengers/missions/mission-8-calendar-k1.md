@@ -292,6 +292,24 @@ Vision explicitly so it is verified, not assumed.
   never the gate.
 - **Report:** —
 
+### C7 — Micro-fix: paging must never strand the user (Strange pass-2 note)
+- **Status:** DISPATCHED
+- **Boundaries:** may touch `src/components/CalendarViews.tsx` only (plus
+  `src/lib/calendarDates.ts` + test **only** if a `stepsTowardToday`-style
+  helper is cleaner there than inline). Must not touch anything else.
+- **Objective:** Prev/Next are disabled only for steps that move *away*
+  from today past the window edge; a step *toward* today is always allowed
+  even if the candidate period is itself outside the window.
+- **Verification:** reproduce Strange's strand (Denver browser, Prev ×9,
+  Week→Day → Wed Jul 1 with both arrows dead) before; after, Next is
+  enabled there and walks Jul 2 → Jul 3 → Jul 4 (loaded) → onward; the
+  forward edge still disables Next at the last loaded period; gauntlet
+  both timezones.
+- **Done criteria:** from any reachable period, at least one of Prev/Next/
+  Today leads back toward loaded data, and no step away from today past
+  the edge is possible.
+- **Report:** —
+
 ### C4 — Create / edit / delete UI (DRAFTED, awaiting Strange pass 2 + Vision pass 3)
 - **Status:** DRAFTED — dispatch only after all three gates PASS on the read path
 - **Boundaries:**
@@ -342,9 +360,26 @@ Vision explicitly so it is verified, not assumed.
   5. `FloatingAddButton` → `ActionSheet` with **Event** (→ `/calendar/new`
      for the day in view) and **Meal** (→ `/kitchen/cooking/meal-plan`; the
      `SlotEditSheet` reuse is a K3 call). Managers only.
-  6. **Past-event dimming:** apply Strange's pass-2 instruction verbatim —
-     `<<STRANGE_OPACITY_INSTRUCTION>>` — so a tappable past card never
-     reads as disabled.
+  6. **Past-event dimming — Strange's instruction, verbatim:** remove
+     `opacity-55` entirely (card opacity stays 1); when `past`, render the
+     title `text-muted font-normal` instead of `text-fg font-semibold`
+     (5.38:1 light / 6.12:1 dark, AA both) and pass a halved band alpha
+     (0.05) into `bandBackground` so the tint drains; leave the
+     `AvatarBadge`s at full color (identity, not state). No
+     `line-through` (that means cancelled).
+  6b. **Day view location line** (`EventCard.tsx:76`): `compact ?
+     "truncate" : "break-words"`, or better, in non-compact mode stack the
+     badge row *below* the text block so title, time, and location all get
+     the full width. Required, not optional — the detail sheet is not an
+     excuse for the card to clip.
+  6c. **Week badge strip**: `line-clamp-2` on Week titles; badges
+     overlap-stack (`-space-x-1.5` + `ring-2 ring-surface` so E/E and L/L
+     stay separated). Never "+N".
+  6d. **`NotLoadedCard` distinct from `NoEventsCard`**: solid `bg-surface-2`,
+     no dashed border, a 16px Lucide `CalendarOff` before the text; copy
+     "Not all events loaded" plus a `text-xs` line "Marshee shows about
+     two months each way — tap Today to come back." Unknown and empty must
+     not share a glyph, exactly as loading and empty must not.
   7. `EventCard` becomes a `<button>` (or gets `role="button"` + keyboard
      handling) opening the sheet; 48px minimum height already holds.
 - **Verification:** gauntlet under both timezones; browser at 375px:
@@ -493,7 +528,7 @@ Vision explicitly so it is verified, not assumed.
 | 1 | Captain | **BLOCK** | 2 | 7 notes; gauntlet re-run clean, no boundary violations |
 | 2 | Vision | **BLOCK** | 1 | V1, V2 RESOLVED; V3 partial — boundary day still lies |
 | 2 | Captain | **PASS** | 0 | both pass-1 blockers RESOLVED; 10 notes |
-| 2 | Strange | DISPATCHED | — | on HEAD 60ca91b, alone in the container |
+| 2 | Strange | **PASS** | 0 | S1–S3 RESOLVED, re-measured; 11 notes |
 
 Budget: 3 passes per gate, then STOP and surface.
 
@@ -566,6 +601,72 @@ identical `User` rows. **Security suite re-run on the changed action
 file**: positive control first, then kid / no-cookie / deactivated /
 forged-admin / wrong-secret / v1-shaped cookies all refused with counts
 unchanged. Baseline restored, scratch removed.
+
+### Strange pass 2 — PASS (0 blockers, 11 notes)
+
+Gated `60ca91b` from a production build, with five real-shaped people
+(Bryce/Emily/Eleanor/Ledger/Lucy) so the colliding initials were exercised.
+All fixtures deleted by id; counts 0/0/0; scratch gone.
+
+**S1 RESOLVED.** Streamed `loading.tsx` frame and the hydration-null frame
+both contain **zero** occurrences of "No events"; seven rows at **82px** in
+every frame (loading, null, resolved-empty) — the no-shift property
+survived the vocabulary fix. Loading is grey bars; empty is a dashed crisp
+glyph; distinct in both themes.
+
+**S2 RESOLVED.** Re-measured on rendered cards two ways — `getComputedStyle`
+composites *and* screenshot pixel sampling — all 8 colors, both themes.
+Worst `--muted` over band: **4.63** light (red) / **5.52** dark (green);
+sampled 4.60 / 5.47. All 16 pairs clear 4.5. (A first sample read 3.87 and
+was correctly discarded: it hit the border stroke inside a rounded corner,
+not the band.) The bands at 0.10 still read as a split on a 2-person card,
+"but it is a whisper", and dark-theme slate (ΔE 2.5) is effectively
+invisible — no semantic loss, since the 28px badges carry identity. If
+Skylight-strength bands are ever wanted, move the color off the text's
+backdrop (a full-opacity left-edge stripe per person), never raise alpha.
+
+**S3 RESOLVED.** 5-person long title in Day: 4 line boxes, no clip, at 375;
+7 lines at 320. Week: same card truncates to one line.
+
+**The instruction C4 was waiting for (verbatim, replaces the placeholder):**
+"No opacity value keeps a tappable past card honest" — 0.55 measures
+2.62:1, and raising it to 0.80 still leaves the muted time line at 3.53.
+Opacity is the wrong tool. Remove `opacity-55`; when past, render the title
+`text-muted font-normal` (5.38 light / 6.12 dark) and halve the band alpha
+to 0.05 so the tint drains; leave `AvatarBadge`s at full color (identity,
+not state). No `line-through` (that vocabulary means cancelled).
+
+**Also for C4, treat as required:** Day view still truncates the
+**location** line (`EventCard.tsx:76`) — same plan intent as S3, one line
+below the fix; honest ellipsis today, becomes a blocker if C4's sheet omits
+location. Week badge strip at 5 people is **49%** of the row at 375, 60% at
+320: use `line-clamp-2` on Week titles and overlap-stack the badges with a
+surface ring; **never** cap with "+N" — five people is the whole household.
+
+**Third-state findings (notes, not blockers):** `NotLoadedCard` is verbally
+distinct but **visually identical** to `NoEventsCard` — same dashed border,
+fill, text, height — so seven dashed cards on Oct 25–31 scan as seven empty
+days until the last is read. Suggested: solid `bg-surface-2` fill, no dash,
+a 16px `CalendarOff` glyph. Wording "Outside the loaded range" is developer
+vocabulary with no next step; suggested "Not all events loaded" with a
+`text-xs` hint naming the two-month window and Today. Disabled arrows are
+clearly distinct (1.70 vs 4.75) at 44×44, but nothing says *why* paging
+stopped.
+
+**The one that gets fixed before Vision's last pass — Day view can strand
+the user with both arrows dead.** Denver browser, Prev ×9 to Jun 28–Jul 4,
+switch Week→Day: lands on Wed Jul 1 with Prev *and* Next disabled; only
+Today or the switcher gets out. Cause: `canStepToPeriod` refuses every
+candidate outside the window, including steps *toward* today. Fix: only
+refuse steps that move *away* from today. Honest (the card says why), but a
+dead end, and a two-line change in a file no gate is currently reviewing —
+so it is C7, batched ahead of Vision pass 3 rather than left for C4.
+
+**Both edges re-verified honest in Denver**: forward, Sat 31 shows the
+caveat above a fetched 10 AM event with the 7 PM one correctly absent;
+back, Fri 3 shows the caveat above a fetched 8 PM event with the 9 AM one
+absent; Sun 25–Fri 30 correctly "No events". Hygiene clean: tokens only,
+targets 44/56, nav clearance unchanged.
 
 ### Captain pass 2 — PASS (0 blockers, 10 notes)
 
@@ -950,6 +1051,15 @@ plan quietly rot.
   dispatched** on that HEAD, alone in the container: re-measure S1–S3, judge
   the new third state (`NotLoadedCard`) and the disabled paging arrows, and
   hand C4 a concrete instruction on past-vs-disabled opacity.
+- 2026-09-02 — **Strange pass 2: PASS.** S1–S3 RESOLVED by independent
+  measurement (two methods for contrast). Delivered C4's opacity instruction
+  (opacity is the wrong tool; drain weight and tint instead) and three
+  further C4 requirements (location wrap, badge strip, distinct
+  `NotLoadedCard` glyph + plain-language copy). One note promoted to a
+  micro-fix **C7** ahead of Vision pass 3: Day view can strand the user at
+  the back edge with both arrows dead. Decision under autonomy: batching a
+  known two-line fix before the last gate pass beats spending that pass on
+  it.
 
 ## Delivery
 
