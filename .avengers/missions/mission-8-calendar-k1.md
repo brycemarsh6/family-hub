@@ -298,9 +298,66 @@ Vision explicitly so it is verified, not assumed.
 |---|---|---|---|---|
 | 1 | Vision | DISPATCHED | — | on C1-C3 |
 | 1 | Strange | DISPATCHED | — | on C3's views |
-| 1 | Captain | DISPATCHED | — | on C1-C3 |
+| 1 | Captain | **BLOCK** | 2 | 7 notes; gauntlet re-run clean, no boundary violations |
 
 Budget: 3 passes per gate, then STOP and surface.
+
+### Captain pass 1 — BLOCK (2 blockers, 7 notes)
+
+Re-ran the gauntlet himself (tsc 0, eslint 0, 128/128) and audited every
+commit against each contract's boundaries: **no boundary violations** — C2
+touched only its two files, C1 only its may-touch list plus exactly the two
+allowed `User` back-relation lines, C3 only its five.
+
+**B1 — `db.user.deleteMany` / `db.user.create` in committed `prisma/`
+scripts.** `clean-calendar.ts:29-31` and `seed-calendar.ts:90`. STRUCTURE.md's
+layout map and danger register both forbid a clean/reset script touching
+`User`. Captain ruled a *fingerprint-scoped* delete is **inside** the
+prohibition, and the reasoning is what makes it convincing rather than
+literalist: it is a committed rerunnable script rather than a one-off;
+it matches on `displayName`, which carries **no `@unique`**, so the `in [...]`
+can match rows the seed never created — including a same-named row that
+later gained a `passwordHash`; and the seeder *writes* `User` rows too, so
+both halves target the table the rule names "above all."
+
+**⚠️ This is Fury's defect, not Stark's.** The C1 contract explicitly
+instructed the builder to create and delete its own `ZZZ Test` users, and
+the builder followed it exactly and flagged the tension in its report. The
+contract was wrong. Recorded here so the pattern is not repeated: a contract
+may not authorize what the danger register forbids, and "there is no family
+data in this container" is a fact about *this* container, not about the
+committed script that outlives it.
+
+**B2 — the first component-to-component import cycle in the codebase.**
+`DaySection.tsx:2` and `EventCard.tsx:4` import `CalendarEventView` from
+`CalendarViews.tsx`, which imports them back. STRUCTURE.md: "No cycles,
+ever." Type-only, so erased at runtime and harmless today — Captain said so
+plainly rather than inflating it — but it is a cycle in the module graph and
+exists only because `src/lib/types.ts` sat outside C3's boundary. Another
+contract artifact of mine.
+
+**Notes worth acting on now** (Captain's, condensed): `DaySection.tsx:71-74`
+re-implements `isSameDay` that `mealPlanDates.ts` already exports;
+`WEEKDAY_NAMES` is a second weekday vocabulary that K2's Month header will
+otherwise copy a third time; `CalendarViews.tsx:206-230` is a second private
+`ActionCircle` already drifting from `RecipeActionCircles.tsx`'s;
+`HOUSEHOLD_TIME_ZONE` has **zero** consumers and its comment overclaims that
+call sites exist; `{canManage && null}` is a NOTE, not a blocker, with a
+cleaner alternative (keep it in the props *type*, don't destructure it).
+Size trend: `CalendarViews.tsx` lands 360-410 by K3 — extract the header row
+at C4.
+
+**Two STRUCTURE.md amendments recommended, with exact wording supplied** —
+tightening the `User` danger bullet to name fingerprint-scoped deletes, and
+clarifying that the `personInfo.ts` one-source rule's real edge is
+`passwordHash` (a narrow select that never names it is fine, which is what
+`login/page.tsx` and `dal.ts` have always done).
+
+**Plan-vs-build note, for Fury:** `calendar-v1.md:113-114` said K1 ships the
+tag tables and `exdates` so K3/K4 need no further migration; my C1 contract
+explicitly excluded them. Deliberate deviation, but it was mine and it
+contradicts the approved plan — resolve it explicitly rather than let the
+plan quietly rot.
 
 ## Handoff log
 
@@ -336,6 +393,11 @@ Budget: 3 passes per gate, then STOP and surface.
   deliberately NOT dispatched**: it extends `CalendarViews.tsx` and
   `EventCard.tsx`, the exact files under review, so a blocker there would
   otherwise land under already-built write UI.
+- 2026-09-02 — **Captain pass 1: BLOCK** (2 blockers, 7 notes). Both blockers
+  trace to Fury's contract wording, not to builder error: C1 was *told* to
+  create and delete `User` rows (danger-register violation), and C3 was
+  denied `src/lib/types.ts`, forcing the type cycle. Holding fix contracts
+  until Vision and Strange report, per the batch-fixes-before-re-gating rule.
 
 ## Delivery
 
