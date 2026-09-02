@@ -160,7 +160,6 @@ touch overlapping component files, so they run in sequence.
   the tests can pin it. Reuses `startOfDay` / `addDays` / `isSameDay` from
   `mealPlanDates.ts` rather than redefining them. Tests must include the
   **Nov 1 2026** DST week returning seven consecutive dates.
-- **Report:** —
 
 - **Report:** DONE. `src/lib/calendarDates.ts` exports `daysOfWeek`,
   `formatTimeRange`, `formatAllDayLabel`, `isPast`, `daysEventCovers`;
@@ -296,7 +295,7 @@ Vision explicitly so it is verified, not assumed.
   identical.
 
 ### C8 — Fix contract: the `?date=` off-by-one-day, plus three cheap notes
-- **Status:** DISPATCHED
+- **Status:** DONE
 - **Boundaries:** may touch `src/app/(app)/calendar/new/page.tsx`,
   `src/components/EventForm.tsx` (346 — the fix must not grow it past 350;
   trim comments if needed), `src/components/DaySection.tsx`
@@ -323,7 +322,28 @@ Vision explicitly so it is verified, not assumed.
   timezones. Report `EventForm.tsx`'s line count.
 - **Done criteria:** the day you tap is the day the form opens and the day
   the event lands, in the Vercel/Mountain pairing; three notes closed.
-- **Report:** —
+- **Report:** DONE, all four fixes, Fury-verified (four files only, no
+  `new Date` construction left in `new/page.tsx` outside a comment quoting
+  the old line, gauntlet 135/135 both timezones, build clean, no scratch).
+  The page validates `?date=` against `^\d{4}-\d{2}-\d{2}$` and passes the
+  **string**; `EventForm` gained `parseLocalDateString()` and reuses it in
+  three places, so the `Date` is built once, in the browser.
+  **Red-then-green, by reverting the four files with `git stash` and
+  rebuilding**: before, "Saturday, Sep 5" → form `2026-09-04` → row saved
+  `2026-09-04T16:00:00Z` (Friday). After, **five cases all correct**: Day
+  view Sat Sep 5 → prefill `2026-09-05`, row `2026-09-05T16:00:00Z`; Week
+  view today → `2026-09-02`; the **back edge** (Sat Jul 4) and **forward
+  edge** (Fri Oct 30) both exact; and no-`?date=` still defaults to today
+  plus the next whole hour. 16:00Z = 10:00 MDT throughout — right day *and*
+  right hour. Not-loaded text now **5.38:1 light / 6.12:1 dark**, still
+  visibly a different card than the six dashed ones above it. Meridiem
+  screenshotted before ("09:00 AN") and after ("09:00 AM") at 320px. Past
+  title measured at weight 500.
+  **⚠️ `EventForm.tsx` is now exactly 350 — on the soft cap**, four comment
+  lines spent to hold the shared parser. This promotes Captain's K3 note
+  from advice to a **precondition**: K3 must extract
+  `EventDateTimeFields.tsx` before adding tags or Sync-to, because there is
+  no room left.
 
 ### C4 — Create / edit / delete UI
 - **Status:** DONE — at the gates (committed `ad2de84`)
@@ -525,7 +545,6 @@ Vision explicitly so it is verified, not assumed.
   no component-to-component import cycle; the Nov 1 2026 seed event
   reachable or its absence visibly explained; every regression test fails
   before the fix and passes after.
-- **Report:** —
 
 ### C6 — Fix contract: V4 (boundary-day lie) + the window-predicate hoist
 - **Status:** DONE
@@ -1391,6 +1410,22 @@ plan quietly rot.
   asserting an anchor matches *once* is not enough when the document itself
   contains a duplicate heading; assert the section is unique before
   searching inside it.
+
+- 2026-09-02 — **C8 DONE**, Fury-verified. Blocker fixed at the root (no
+  calendar-meaningful `Date` is built server-side any more), proven
+  red-then-green by reverting and rebuilding, five cases including both
+  window edges. Three notes closed, one of them Strange's own prescription
+  error. **`EventForm.tsx` now sits exactly on the 350 cap**, promoting
+  Captain's K3 extraction note to a precondition. Committed `36a61e0`.
+  **Strange pass 2 of 3** next.
+- 2026-09-02 — **Record-keeping rule, after three anchor failures.** Three
+  edits this session missed because I matched against *wrapped multi-line
+  prose* whose breaks I was guessing at; one wrote a report onto a stale
+  duplicate section, and one "not inside C8" assertion was itself wrong (a
+  slice bound off by three, not the file). Two orphan `- **Report:** —`
+  placeholders left by those misses are deleted here. Rule from now on:
+  print the structure, anchor on a **short unique single line**, edit by
+  line index, and assert each target's exact content before writing.
 
 ## Delivery
 
