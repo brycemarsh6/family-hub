@@ -424,7 +424,7 @@ Vision explicitly so it is verified, not assumed.
 | 1 | Captain | **BLOCK** | 2 | 7 notes; gauntlet re-run clean, no boundary violations |
 | 2 | Vision | **BLOCK** | 1 | V1, V2 RESOLVED; V3 partial — boundary day still lies |
 | 2 | Captain | **PASS** | 0 | both pass-1 blockers RESOLVED; 10 notes |
-| 2 | Strange | HELD | — | starts when Vision finishes (pass-1 collision) |
+| 2 | Strange | DISPATCHED | — | on HEAD 60ca91b, alone in the container |
 
 Budget: 3 passes per gate, then STOP and surface.
 
@@ -877,6 +877,10 @@ plan quietly rot.
 - 2026-09-02 — **C6 DONE**, Fury-verified (gauntlet both timezones, 135/135,
   build 0, four files only, no scratch). Committing; Strange pass 2 next,
   then Vision pass 3 (last).
+- 2026-09-02 — C6 committed and pushed (`60ca91b`). **Strange pass 2
+  dispatched** on that HEAD, alone in the container: re-measure S1–S3, judge
+  the new third state (`NotLoadedCard`) and the disabled paging arrows, and
+  hand C4 a concrete instruction on past-vs-disabled opacity.
 
 ## Delivery
 
