@@ -1,7 +1,7 @@
 # Mission: Calendar K2 — Month view + navigation
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED-DRAFT (contracts written from the plan; boundaries and line budgets to be re-checked against the K1 tree once C4 lands and K1 is delivered)
+**Status:** CONTRACTED (boundaries and line budgets re-checked against the real post-C4 tree, 2026-09-02; ready to dispatch C1 the moment K1 delivers)
 **Started:** 2026-09-02 · **Updated:** 2026-09-02
 
 ## Brief
@@ -67,14 +67,20 @@ alongside either.
 
 ## Contracts (DRAFT — re-check boundaries against the post-C4 tree before dispatch)
 
-### C1 — Pure month layout: `src/lib/monthLayout.ts` + tests
-- **Status:** PENDING
+### C1 — Pure month layout + the shared-vocabulary exports Captain asked for
+- **Status:** PENDING (dispatch first; C2 depends on it)
 - **Objective:** given a month, a Sunday-first six-week grid of 42 days,
   and given the events, a per-row **lane assignment** so spanning bars and
   pills never collide — pure functions, no React, no DB, no `new Date()`.
 - **Boundaries:** may touch `src/lib/monthLayout.ts` (new),
-  `src/lib/monthLayout.test.ts` (new). Must not touch anything else;
-  imports only from `mealPlanDates.ts` and `calendarDates.ts`.
+  `src/lib/monthLayout.test.ts` (new), and — for Captain's collapse-the-
+  duplicates note only — `src/lib/mealPlanDates.ts` (85 lines; **add one
+  export**, `toLocalDateString`) and `src/lib/calendarDates.ts` (250;
+  **export the existing private `calendarDayDiff`**, no behavior change)
+  plus `src/lib/calendarDates.test.ts` (349 — **at the cap: add no tests
+  here**, only adjust if the export rename requires it). Must not touch
+  any component, page, action, or `prisma/**`. `monthLayout.ts` imports
+  only from `mealPlanDates.ts` and `calendarDates.ts`.
 - **Shape:** `monthGridDays(anchor): Date[42]` (always six rows, so the
   grid height never jumps between months); `assignLanes(rowDays,
   events): { spans: {event, startCol, endCol, lane}[], overflowByDay:
@@ -91,7 +97,10 @@ alongside either.
   lanes 0 and 1, a cell with five single-day events → three shown + 2
   overflow, and a cell outside the fetch window. Both timezones.
 - **Done criteria:** tests red-then-green for the lane collision case;
-  the 42-day grid for every month of 2026 has no duplicate and no gap.
+  the 42-day grid for every month of 2026 has no duplicate and no gap;
+  `calendarDates.test.ts` line count unchanged or lower; the two new
+  exports have tests in **`monthLayout.test.ts`** (per the amended cap
+  rule, tests split by module under test).
 
 ### C2 — `MonthGrid.tsx` + the Month branch in `CalendarViews.tsx`
 - **Status:** PENDING (depends on C1)
@@ -105,13 +114,29 @@ alongside either.
   month via `canStepToPeriod` with the C7 direction rule.
 - **Boundaries:** may touch `src/components/MonthGrid.tsx` (new),
   `src/components/MonthCell.tsx` (new, if the cell earns its own file),
-  `src/components/CalendarViews.tsx`, `src/components/CalendarHeader.tsx`
-  (label only), `src/app/(app)/calendar/loading.tsx` (the Month skeleton —
-  **measure**), `src/app/(app)/calendar/page.tsx` (only if the fetch window
-  must widen to cover a six-week grid at the edges — say so in the report).
-  Must not touch: `DaySection.tsx`, `EventCard.tsx`, `EventForm*`, actions,
-  prisma, `calendarDates.ts`, `monthLayout.ts` (C1 owns it — BLOCKED-ON-
-  CONTRACT if it lacks something).
+  `src/components/CalendarEmptyStates.tsx` (new — see the extraction rule
+  below), `src/components/CalendarViews.tsx` (**307 of 350 — read the line
+  budget below before writing a line**), `src/components/CalendarHeader.tsx`
+  (100, label only), `src/components/DaySection.tsx` (196, **only** to
+  import the extracted empty-state cards and to make `onOpenEvent`
+  required), `src/lib/types.ts` (96 — add `createdByName` to
+  `CalendarEventView`), `src/components/EventDetailSheet.tsx` (189) and
+  `src/app/(app)/calendar/page.tsx` (118) for the `createdByNames`→field
+  migration, `src/app/(app)/calendar/loading.tsx` (the Month skeleton —
+  **measure it, never guess; this repo has shipped that bug twice**).
+  Must not touch: `EventCard.tsx`, `EventForm.tsx`, any action, `prisma/**`,
+  `monthLayout.ts` or `calendarDates.ts` (C1 owns both — a missing helper is
+  BLOCKED-ON-CONTRACT, not an edit).
+- **⚠️ Line budget, the reason this contract has an order.**
+  `CalendarViews.tsx` is **307** and holds five `useState`s plus the
+  view-router; Captain's standing prediction is 350–380 by K3. A third view
+  branch **will** cross the soft cap. So: **extract the view-router into
+  `MonthGrid`/`DaySection` call sites and, if still over 330 after the
+  Month branch, split the period/paging state into
+  `useCalendarPeriod.ts`** (a lib hook — that needs a boundary extension,
+  so report it rather than doing it silently). Report `CalendarViews.tsx`'s
+  line count at three points: before, after the type migration, after the
+  Month branch.
 - **Verification:** 375px screenshots light/dark of: the current month
   with a 3-day bar crossing a week break, a five-event cell showing "+2
   more", the Nov 2026 month (30 consecutive dates, DST), the month at the
@@ -123,6 +148,23 @@ alongside either.
   view-router and say so.
 - **Done criteria:** the "Done means" list above, every item shown by
   screenshot or measurement; counts back to zero.
+
+## Post-C4 tree, measured 2026-09-02 (the numbers the contracts assume)
+
+| file | lines | headroom to 350 |
+|---|---|---|
+| `EventForm.tsx` | 346 | **4** — K3's problem, not K2's; do not touch |
+| `calendarDates.test.ts` | 349 | **1** — add no tests here |
+| `CalendarViews.tsx` | 307 | 43 — the Month branch eats this |
+| `calendarDates.ts` | 250 | 100 |
+| `DaySection.tsx` | 196 | 154 |
+| `EventDetailSheet.tsx` | 189 | 161 |
+| `EventCard.tsx` | 168 | 182 (untouched by K2) |
+| `page.tsx` | 118 | 232 |
+| `CalendarHeader.tsx` | 100 | 250 |
+| `types.ts` | 96 | 254 |
+| `mealPlanDates.ts` | 85 | 265 |
+| `ActionCircle.tsx` | 38 | 312 |
 
 ## Inherited from K1's gates (Captain, C4 pass 1) — fold into C1/C2
 
