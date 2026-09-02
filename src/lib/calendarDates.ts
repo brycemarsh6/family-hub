@@ -193,3 +193,58 @@ export function daysEventCovers(
     return d.getTime() >= firstDay.getTime() && d.getTime() <= lastDay.getTime();
   });
 }
+
+/**
+ * Whether `day` is missing from page.tsx's fetch window — even partially.
+ * A day counts as loaded only when the window FULLY CONTAINS it: true when
+ * the day's own local START falls before `windowStart`, OR the day's own
+ * local END (`addDays(startOfDay(day), 1)`, i.e. its following midnight)
+ * falls after `windowEnd`. An equal end (`dayEnd === windowEnd`) counts as
+ * inside — the window's own edge instant is still loaded.
+ *
+ * This full-containment rule exists because a weaker "does the day's START
+ * land inside the window" check (mission-8's V4, pass 2) is a real lie:
+ * page.tsx builds `windowEnd` from the SERVER's own clock (UTC on Vercel),
+ * while `day` here is always a BROWSER-built local midnight (see
+ * CalendarViews.tsx's `daysOfWeek`/anchor construction). Because the
+ * household's browser runs America/Denver, which is BEHIND UTC, a day
+ * whose start reads as safely inside the window can still have its own
+ * local END land hours after the server actually stopped fetching — an
+ * evening event on that day is genuinely in the database, was never
+ * queried, and a start-only check called the day "loaded" anyway. Compare
+ * raw `.getTime()` instants on both sides, never re-floor one side's
+ * instant through the OTHER side's local getters (`startOfDay`/
+ * `getFullYear`/etc. all read the CURRENT environment's own clock — a
+ * server-built instant re-floored through a browser's local getters, or
+ * vice versa, silently becomes a different absolute instant) — see this
+ * file's own top-of-file rule 2 and `mealPlanDates.ts`'s original warning
+ * for the same trap in a different shape.
+ */
+export function isOutsideWindow(day: Date, windowStart: Date, windowEnd: Date): boolean {
+  const dayStart = startOfDay(day).getTime();
+  const dayEnd = addDays(startOfDay(day), 1).getTime();
+  return dayStart < windowStart.getTime() || dayEnd > windowEnd.getTime();
+}
+
+/**
+ * Whether paging one more period in a direction is allowed, given the
+ * CANDIDATE period's own edge day closest to "now" — the first day of the
+ * next period when stepping forward, or the last day of the previous
+ * period when stepping backward (CalendarViews.tsx computes both the same
+ * way already, calling them `nextPeriodStart` / `previousPeriodEnd`).
+ * Reuses `isOutsideWindow` on that single day: if even the CLOSEST day of
+ * the candidate period is outside the loaded window, every day further
+ * into that period is guaranteed to be outside too (each one moves further
+ * from "now", never back toward it), so the whole period would render
+ * nothing but `NotLoadedCard` — stepping there is refused instead. One
+ * shared definition for both Prev and Next (Prev was already correct, but
+ * now shares the exact same predicate rather than a second hand-written
+ * copy of the same idea), so they can never disagree about the edge.
+ */
+export function canStepToPeriod(
+  candidateEdgeDay: Date,
+  windowStart: Date,
+  windowEnd: Date,
+): boolean {
+  return !isOutsideWindow(candidateEdgeDay, windowStart, windowEnd);
+}

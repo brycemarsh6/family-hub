@@ -17,13 +17,23 @@ function NoEventsCard() {
   );
 }
 
-/** Shown for a day that falls outside page.tsx's fetch window (see its
- * WINDOW_DAYS comment) — its events were never queried, so "No events"
- * would be a false claim rather than an honest one. In normal use this is
- * unreachable (CalendarViews disables Prev/Next at the window edge), but a
- * view switch right at that edge can still land here — same
- * validate-AND-clamp defense-in-depth shape as the V2 all-day fix in
- * actions/calendar.ts, applied to a UI truth instead of a database row. */
+/** Shown for a day the fetch window doesn't FULLY contain — see
+ * calendarDates.ts's `isOutsideWindow` (full containment: the day's own
+ * local START must not precede windowStart AND its own local END must not
+ * exceed windowEnd). Rendered whenever `notLoaded` is true REGARDLESS of
+ * whether any events were actually fetched for that day — a day whose
+ * START is inside the window but whose END exceeds it (mission-8's V4: the
+ * household's Mountain browser runs six hours behind the server's UTC
+ * clock, so an evening event on the last loaded day can sit past
+ * windowEnd) still receives SOME rows from page.tsx's overlap query, and
+ * showing it as a normal, complete day would be a false "this day is fully
+ * known" claim over data that's actually partial. Any cards that WERE
+ * fetched for that day still render alongside this notice below, not
+ * instead of it. Genuinely reachable in ordinary navigation, not just a
+ * stray view-switch edge case: the closest day of a reachable Week/Day
+ * period can itself be only partially loaded even while CalendarViews
+ * correctly refuses to page one period further (see calendarDates.ts's
+ * `canStepToPeriod`) — confirmed live at both the forward and back edges. */
 function NotLoadedCard() {
   return (
     <div className="rounded-xl border border-dashed border-line px-3 py-3 text-sm text-muted">
@@ -80,11 +90,13 @@ export function DaySection(
          * short" could never vary independently later. Threaded straight
          * through to EventCard. */
         compact?: boolean;
-        /** True when `day` sits outside page.tsx's fetch window — see
+        /** True when the fetch window doesn't FULLY contain `day` — see
          * NotLoadedCard's own comment above for why that's a third state,
-         * distinct from both loading and genuinely-empty. Defaults false
-         * so every other caller (and every existing test/screenshot) is
-         * unaffected. */
+         * distinct from both loading and genuinely-empty, and why it's
+         * checked regardless of whether `events` happens to be non-empty
+         * (a partially fetched day is exactly the case this must catch).
+         * Defaults false so every other caller (and every existing test/
+         * screenshot) is unaffected. */
         notLoaded?: boolean;
       },
 ) {
@@ -135,24 +147,28 @@ export function DaySection(
           isToday ? "border-l-2 border-accent pl-3" : ""
         }`}
       >
-        {events.length === 0 ? (
-          notLoaded ? (
-            <NotLoadedCard />
-          ) : (
-            <NoEventsCard />
-          )
-        ) : (
-          events.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              day={day}
-              today={today}
-              showLocation={showLocation}
-              compact={compact}
-            />
-          ))
-        )}
+        {/* Three independent facts, not one either/or: `notLoaded` renders
+            the caveat whenever it's true, no matter how many events came
+            back for this day — a day the window only partially covers is
+            exactly the case that must never look complete (mission-8's
+            V4). The empty glyph renders only when the day IS fully loaded
+            AND genuinely has zero events, never merely because `events`
+            happens to be empty. And every fetched card always renders
+            regardless of `notLoaded`, since a real row we DID get for this
+            day is still worth showing next to the caveat, not replaced by
+            it. */}
+        {notLoaded && <NotLoadedCard />}
+        {!notLoaded && events.length === 0 && <NoEventsCard />}
+        {events.map((event) => (
+          <EventCard
+            key={event.id}
+            event={event}
+            day={day}
+            today={today}
+            showLocation={showLocation}
+            compact={compact}
+          />
+        ))}
       </div>
     </section>
   );

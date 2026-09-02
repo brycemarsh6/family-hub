@@ -5,13 +5,17 @@ import { CalendarCheck, CalendarRange, ChevronLeft, ChevronRight } from "lucide-
 import { RadioSheet } from "./RadioSheet";
 import { DaySection } from "./DaySection";
 import { useToday } from "@/lib/useToday";
-import { daysEventCovers, daysOfWeek } from "@/lib/calendarDates";
+import {
+  canStepToPeriod,
+  daysEventCovers,
+  daysOfWeek,
+  isOutsideWindow,
+} from "@/lib/calendarDates";
 import {
   addDays,
   formatDayLabel,
   formatWeekRange,
   isSameDay,
-  startOfDay,
   sundayOf,
 } from "@/lib/mealPlanDates";
 import type { CalendarEventView } from "@/lib/types";
@@ -111,29 +115,16 @@ export function CalendarViews({ events, windowStart, windowEnd }: CalendarViewsP
 
   // Disable Next/Prev the moment stepping ONE MORE period would land on a
   // period with NO loaded days at all — not the moment the CURRENT period
-  // merely touches the edge. That distinction matters and was only found
-  // by actually running this with a Mountain-timezone browser against this
-  // UTC-clocked dev server: `windowStart`/`windowEnd` are instants built
-  // server-side from the SERVER's own local calendar components
-  // (page.tsx), while every date below is local midnight in the BROWSER's
-  // timezone (from useToday()). Because Mountain is BEHIND UTC, a
-  // server-built "midnight of day X" instant reads back as still being on
-  // day X-1 by the time a Mountain browser's OWN local midnight for day X
-  // arrives — so a check like "is this period's last day already past
-  // windowEnd" can go true for a period whose local calendar days, read
-  // from the browser's own clock, turn out to have NONE of them actually
-  // inside [windowStart, windowEnd] (confirmed live: the seeded Nov 1 2026
-  // week rendered as reachable but showed the NotLoaded card on all seven
-  // days). Checking the NEXT candidate period's first (or previous
-  // period's last) day instead is what keeps every reachable period
-  // guaranteed to hold at least one real loaded day — a partially-loaded
-  // period right at the edge is still reachable, only a period with
-  // nothing loaded in it at all becomes unreachable, which is what "cannot
-  // reach a period whose data was never loaded" actually requires.
-  // Comparing with plain `.getTime()` (never re-flooring a server-built
-  // instant through the browser's own startOfDay/getFullYear) is what
-  // avoids the reinterpretation in the first place — a Date's epoch
-  // timestamp is the same absolute instant no matter whose clock reads it.
+  // merely touches the edge. `nextPeriodStart` / `previousPeriodEnd` are
+  // the CANDIDATE period's own edge day closest to "now" (its first day
+  // forward, or its last day backward); `canStepToPeriod` (calendarDates.ts)
+  // is what decides whether that day is fully loaded, and it's the exact
+  // same full-containment predicate `isOutsideWindow` below uses per-day —
+  // Prev and Next and every individual DaySection now all agree by
+  // construction, not by two hand-written copies of the same idea staying
+  // in sync. See calendarDates.ts's own doc comments for why this needs
+  // full containment (not just "does this day's start land inside") and
+  // why raw `.getTime()` comparisons matter here.
   const nextPeriodStart =
     view === "week"
       ? weekStart === null
@@ -150,18 +141,10 @@ export function CalendarViews({ events, windowStart, windowEnd }: CalendarViewsP
       : anchor === null
         ? null
         : addDays(anchor, -1);
-  const atWindowEnd = nextPeriodStart !== null && nextPeriodStart.getTime() > windowEnd.getTime();
+  const atWindowEnd =
+    nextPeriodStart !== null && !canStepToPeriod(nextPeriodStart, windowStart, windowEnd);
   const atWindowStart =
-    previousPeriodEnd !== null && previousPeriodEnd.getTime() < windowStart.getTime();
-
-  // `day` here is always a browser-built local midnight already (from
-  // daysOfWeek/the anchor), so flooring it with startOfDay is a safe no-op
-  // — unlike windowStart/windowEnd above, it never crossed the server/
-  // client boundary, so there's nothing to reinterpret.
-  function isOutsideWindow(day: Date): boolean {
-    const time = startOfDay(day).getTime();
-    return time < windowStart.getTime() || time > windowEnd.getTime();
-  }
+    previousPeriodEnd !== null && !canStepToPeriod(previousPeriodEnd, windowStart, windowEnd);
 
   return (
     <div>
@@ -227,7 +210,7 @@ export function CalendarViews({ events, windowStart, windowEnd }: CalendarViewsP
                 today={today}
                 showLocation={view === "day"}
                 compact={view === "week"}
-                notLoaded={isOutsideWindow(day)}
+                notLoaded={isOutsideWindow(day, windowStart, windowEnd)}
                 events={events.filter(
                   (event) =>
                     daysEventCovers(event.startAt, event.endAt, event.allDay, [day]).length > 0,

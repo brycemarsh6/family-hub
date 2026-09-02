@@ -367,7 +367,7 @@ Vision explicitly so it is verified, not assumed.
 - **Report:** —
 
 ### C6 — Fix contract: V4 (boundary-day lie) + the window-predicate hoist
-- **Status:** DISPATCHED
+- **Status:** DONE
 - **Boundaries:**
   - may touch: `src/lib/calendarDates.ts`, `src/lib/calendarDates.test.ts`,
     `src/components/CalendarViews.tsx`, `src/components/DaySection.tsx`,
@@ -385,7 +385,35 @@ Vision explicitly so it is verified, not assumed.
   Sat Oct 31 in a Mountain browser; gauntlet under both timezones.
 - **Done criteria:** no day can render "No events" while a row for that
   day exists in the database; `NotLoadedCard` reachable at both edges.
-- **Report:** —
+- **Report:** DONE. `isOutsideWindow` (full containment; equal end counts as
+  inside) and `canStepToPeriod` now live in `calendarDates.ts:223-262` with
+  the instant-reinterpretation warning moved into their doc comments;
+  `CalendarViews.tsx` lost its inline copy and its 25-line comment and
+  **shrank 279 → 262**; `DaySection.tsx` renders `NotLoadedCard` whenever
+  the day is outside the window, alongside any fetched cards. Predicate
+  tightening chosen over the padded fetch, so `page.tsx` is untouched.
+  **Regression red-then-green, verbatim:** `not ok 26 … false !== true`
+  against the old start-only logic, then 135/135 — under both `npm test`
+  (Mountain) and `TZ=UTC`. Fury re-ran all four gauntlet commands plus the
+  UTC suite: identical.
+  **Browser reproduction, before and after, no stubbing** — today's real
+  ±60-day window puts `windowEnd` exactly at `2026-11-01T00:00Z`, so
+  Vision's scenario needed no contrivance: a hand-inserted 7 PM Oct 31
+  Mountain event, Denver-timezone Chromium, eight Nexts to Oct 25–31.
+  Before (components stashed back to origin): `SAT 31 / No events`. After:
+  `SAT 31 / Outside the loaded range`. In a UTC browser the mission's own
+  Nov 1 seed row was hidden behind `SUN 1 / No events` before; after, the
+  Nov 1–7 week is **unreachable** (Next disables one click earlier) because
+  full containment flags Nov 1 itself — a stronger guarantee than showing
+  the caveat. `NotLoadedCard` reached live at **both** edges in Denver
+  (Oct 31 forward; Jun 28–Jul 3 backward with Prev disabled).
+  **One technique for Vision to scrutinize, flagged by the builder itself:**
+  the V4 test uses a `withTimeZone()` helper that sets `process.env.TZ` for
+  one test and restores it in a `finally`, relying on Node re-reading `TZ`
+  for subsequent local `Date` getters — verified empirically with a
+  throwaway `node -e` before use, and the only test in the file that needs
+  it. Three one-off `User` ids created and deleted; counts back to 0/0/0;
+  scratch removed; exactly the four allowed files changed.
 
 ## Gate ledger
 
@@ -846,6 +874,9 @@ plan quietly rot.
   records that tag tables and `exdates` moved to K3/K4 deliberately. The
   tsconfig scratch exclusion (`4861fe1`) is the third of Captain's
   follow-ups, already landed.
+- 2026-09-02 — **C6 DONE**, Fury-verified (gauntlet both timezones, 135/135,
+  build 0, four files only, no scratch). Committing; Strange pass 2 next,
+  then Vision pass 3 (last).
 
 ## Delivery
 
