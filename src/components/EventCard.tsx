@@ -50,14 +50,16 @@ export function EventCard({
     formatTimeRange(event.startAt, event.endAt);
 
   const past = isPast(event.endAt, today);
-  // Strange's verbatim past-event instruction (mission-8, C4): opacity is
-  // the wrong tool (0.55 measured 2.62:1; even 0.80 left the muted time
+  // Strange's verbatim past-event instruction (mission-8, C4/C8): opacity
+  // is the wrong tool (0.55 measured 2.62:1; even 0.80 left the muted time
   // line at 3.53) — a tappable card's opacity must stay 1 so it keeps
   // reading as tappable. Past state is carried by TWO signals instead:
-  // the title drops from text-fg/font-semibold to text-muted/font-normal
-  // (5.38:1 light / 6.12:1 dark, both AA), and the color bands halve to
-  // 0.05 alpha so the tint drains without touching AvatarBadge, which
-  // stays full color — identity, not state. No line-through: that
+  // the title drops from text-fg/font-semibold to text-muted/font-medium
+  // (5.38:1 light / 6.12:1 dark, both AA — font-medium restores the
+  // title-over-time weight hierarchy a past card otherwise loses, since
+  // the time line below is already font-normal), and the color bands
+  // halve to 0.05 alpha so the tint drains without touching AvatarBadge,
+  // which stays full color — identity, not state. No line-through: that
   // vocabulary means cancelled, not "already happened."
   const background = bandBackground(
     event.people.map((p) => p.avatarColor),
@@ -83,7 +85,7 @@ export function EventCard({
       <div className={`flex gap-3 ${compact ? "items-start justify-between" : "flex-col"}`}>
         <div className="min-w-0 flex-1">
           <p
-            className={`text-base ${past ? "font-normal text-muted" : "font-semibold text-fg"} ${
+            className={`text-base ${past ? "font-medium text-muted" : "font-semibold text-fg"} ${
               compact ? "line-clamp-2" : "break-words"
             }`}
           >

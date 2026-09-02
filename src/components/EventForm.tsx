@@ -10,9 +10,8 @@ import type { CalendarPersonView } from "@/lib/types";
 
 // A new event's default start needs the browser's real clock; only
 // useToday() (day-granular) exists in src/lib/, off this contract's
-// boundary. Same useSyncExternalStore shape (getServerSnapshot `null`,
-// nothing to mismatch) — a plain useEffect+setState is exactly what this
-// project's lint config now forbids as a cascading-render risk.
+// boundary. Same useSyncExternalStore shape as that hook (getServerSnapshot
+// `null`) — a plain useEffect+setState trips this repo's lint rule.
 function subscribeToClock(callback: () => void) {
   const interval = setInterval(callback, 30_000);
   return () => clearInterval(interval);
@@ -44,10 +43,16 @@ function toDateInputValue(date: Date): string {
 function toTimeInputValue(date: Date): string {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
+/** "YYYY-MM-DD" as local midnight, never Date's own UTC-leaning parser. */
+function parseLocalDateString(value: string): Date {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 function combineDateAndTime(dateValue: string, timeValue: string): Date {
-  const [y, m, d] = dateValue.split("-").map(Number);
   const [h, min] = timeValue.split(":").map(Number);
-  return new Date(y, m - 1, d, h, min, 0, 0);
+  const date = parseLocalDateString(dateValue);
+  date.setHours(h, min, 0, 0);
+  return date;
 }
 
 /** Whole calendar days from `a` to `b` (`b` >= `a`, both local midnight),
@@ -73,12 +78,13 @@ export function EventForm({
   people, // full household roster, kids included — an event can be FOR a kid
   currentUserId,
   defaultValues,
-  initialDate, // the day in view when "+" was tapped; ignored once editing
+  initialDateISO, // "YYYY-MM-DD" day in view when "+" was tapped, ignored
+  // once editing — a string, built into a Date only here (see new/page.tsx).
 }: {
   people: CalendarPersonView[];
   currentUserId: string;
   defaultValues?: EventFormDefaults;
-  initialDate?: Date;
+  initialDateISO?: string;
 }) {
   const router = useRouter();
   const isEdit = defaultValues !== undefined;
@@ -97,11 +103,10 @@ export function EventForm({
 
   const browserMinute = useSyncExternalStore(subscribeToClock, getBrowserMinute, () => null);
 
-  // Fires exactly once (guarded by start === null); after that, start/end
-  // are the user's own values, never overwritten by the clock ticking.
+  // Fires once (guarded by start === null), then never overwrites the user's own values.
   if (!isEdit && start === null && browserMinute !== null) {
     const now = new Date(browserMinute);
-    const seedDay = initialDate ? startOfDay(initialDate) : startOfDay(now);
+    const seedDay = initialDateISO ? parseLocalDateString(initialDateISO) : startOfDay(now);
     const nextHour = (now.getMinutes() === 0 ? now.getHours() : now.getHours() + 1) % 24;
     const seededStart = new Date(seedDay.getFullYear(), seedDay.getMonth(), seedDay.getDate(), nextHour);
     setStart(seededStart);
@@ -316,8 +321,7 @@ function DateTimeRow({
         value={toDateInputValue(date)}
         onChange={(e) => {
           if (!e.target.value) return;
-          const [y, m, d] = e.target.value.split("-").map(Number);
-          onDateChange(new Date(y, m - 1, d));
+          onDateChange(parseLocalDateString(e.target.value));
         }}
         className="min-h-12 flex-1 rounded-xl bg-surface-2 px-4 text-base outline-none"
       />
@@ -326,7 +330,7 @@ function DateTimeRow({
           type="time"
           value={toTimeInputValue(time)}
           onChange={(e) => e.target.value && onTimeChange(e.target.value)}
-          className="min-h-12 w-32 shrink-0 rounded-xl bg-surface-2 px-3 text-base outline-none"
+          className="min-h-12 basis-36 shrink-0 rounded-xl bg-surface-2 px-3 text-base outline-none"
         />
       )}
     </div>

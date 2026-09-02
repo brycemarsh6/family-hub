@@ -46,7 +46,7 @@ function NoEventsCard() {
  * limit and the way back. */
 function NotLoadedCard() {
   return (
-    <div className="flex items-start gap-2 rounded-xl bg-surface-2 px-3 py-3 text-sm text-muted">
+    <div className="flex items-start gap-2 rounded-xl border border-line bg-surface px-3 py-3 text-sm text-muted">
       <CalendarOff aria-hidden="true" size={16} className="mt-0.5 shrink-0" />
       <span>
         Not all events loaded

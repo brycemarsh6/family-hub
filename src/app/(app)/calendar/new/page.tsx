@@ -29,13 +29,18 @@ export default async function NewEventPage({
   }
 
   const { date } = await searchParams;
-  // "YYYY-MM-DD" parsed as local midnight, not UTC — the same
-  // toDateInputValue/parse pairing PantryItemEditSheet's own date field
-  // uses, so a date CalendarViews already decided on the browser's clock
-  // isn't reinterpreted through the server's. This is parsing an EXPLICIT
-  // string the client handed us, not deciding "what day is it" ourselves —
-  // the rule that date belongs to the client is about the latter.
-  const initialDate = date ? new Date(`${date}T00:00:00`) : undefined;
+  // Pass the raw "YYYY-MM-DD" STRING through, never a Date built from it —
+  // `new Date(\`${date}T00:00:00\`)` (the pre-fix version of this line)
+  // builds local midnight in the SERVER's zone, and a Date crossing this
+  // Server-to-Client boundary is an instant, not a calendar day: on Vercel
+  // (UTC) that instant reads back one day earlier in a Mountain browser,
+  // on every single tap (mission-8, Strange's C4 pass-1 blocker). What's
+  // actually guaranteed here is only that this is real client input, not
+  // yet a decided day — EventForm is what turns it into a Date, in the
+  // browser, from a split of this same string (parseLocalDateString, next
+  // to combineDateAndTime). A malformed value is dropped rather than
+  // passed through; EventForm falls back to today when it's undefined.
+  const initialDateISO = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined;
 
   // The full household roster, kids included — an event can be FOR a kid
   // (a soccer practice) even though only a manager can create one. Narrow
@@ -62,7 +67,7 @@ export default async function NewEventPage({
           avatarColor: person.avatarColor,
         }))}
         currentUserId={user.userId}
-        initialDate={initialDate}
+        initialDateISO={initialDateISO}
       />
     </div>
   );
