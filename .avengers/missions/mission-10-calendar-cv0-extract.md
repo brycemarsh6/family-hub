@@ -341,8 +341,31 @@ that quietly costs correctness.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
-| 1 | Captain | — | — | — |
+| 1 | Vision | **NOT RUN** | — | 3 dispatches killed by API 529 (Fable ×2, Opus ×1) |
+| 1 | Captain | **NOT RUN** | — | 2 dispatches killed by API 529 (Opus ×2) |
+
+**⚠️ 2026-09-03 — the gates could not run: an Anthropic-side incident, not a
+finding.** Five dispatches died on HTTP 529 *Overloaded* before reporting.
+Confirmed against `status.claude.com` rather than inferred: an active
+incident titled **"Elevated errors for multiple models"** covering **Opus 5,
+Opus 4.8, Opus 4.6, Mythos 5.1 and Fable 5.1**, with Claude API / Claude Code
+/ claude.ai all at **partial outage**; cause identified, fix being
+implemented, last update 13:50 UTC.
+
+Fury's own main loop kept working throughout — consistent with *elevated
+errors* rather than a hard outage: a long-running gate makes many more
+requests and so has many more chances to catch a bad one.
+
+**Fury stopped re-dispatching after five failures.** Each dead dispatch burns
+tokens before it dies, and retrying into a declared outage is the
+"push harder against a budget" behaviour the doctrine forbids. **Resuming is
+simply: re-dispatch Vision and Captain with the same briefs.** Nothing about
+CV0 changed and nothing needs re-deriving.
+
+**One earlier claim of Fury's was wrong and is corrected here:** after two
+Fable failures it said the congestion looked Fable-specific. Captain then
+failed twice on Opus and Vision once. Both models are on the incident's list;
+the conclusion had been drawn from two data points.
 
 Budget: 3 passes per gate, then STOP and surface. (K2 spent every pass; the
 extra round was Bryce's explicit call, not a precedent.)
