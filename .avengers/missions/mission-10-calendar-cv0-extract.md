@@ -338,7 +338,65 @@ that quietly costs correctness.
 - **Done criteria:** the above; `git diff --stat` shows only owned files.
 
 ### C4 — Fix contract: the guard's settle-blind spot (Vision's BLOCKER)
-- **Status:** PENDING
+- **Status:** ✅ **DONE, committed `0fa8d5b`.** Every push now runs inside
+  `useTransition`, and a **settle effect** (ordered after the URL-resync
+  effect) empties `pushed` and lets the URL win once `!isNavigating`.
+  `urlTarget()`/`isInSyncWith()` extracted so both effects answer "where does
+  the URL point, is the cursor there" through **one** piece of code.
+  `useCalendarNavigation.ts` 220 → **283** (cap 350). Fury re-verified: tsc 0,
+  eslint 0, **182/182 both timezones**, build 0; boundary clean — the commit
+  touches exactly its four permitted files.
+- **The Next-docs check was inconclusive, so the builder measured instead of
+  assuming.** The docs never state that `isPending` tracks `router.push`:
+  `use-router.md` only hints a transition exists, and every `isPending` hit
+  in the App Router docs is about Server Actions, while the one documented
+  navigation-pending API (`useLinkStatus`) is `<Link>`-only. So it
+  instrumented the real hook on Next 16.2.12 / React 19.2.4 and got the
+  answer empirically:
+  ```
+  fast Next+Prev (40ms):  +11ms isPending=true  pushed=[09-17]
+                          +50ms isPending=true  pushed=[09-17, 09-10]
+                         +288ms isPending=false dateParam UNCHANGED
+  ```
+  **That last line is precisely the render the old guard never received** —
+  the settle with no URL change. Branch 1 taken on evidence, not on the
+  proposal's optimism.
+- **Vision's literal S1 did not reproduce here, and the builder said so
+  rather than closing the blocker.** At gaps ≤120ms on this machine the two
+  pushes add *no* history entry at all, so Back leaves the calendar entirely
+  — identically on all three builds. Vision's transcript shows an
+  intermediate entry, so their round trip committed the first push before the
+  second superseded it. The builder therefore constructed **S2**, which pages
+  slowly first so history holds an entry the burst can strand, and it
+  reproduces exactly the described defect. **Then it swept the whole 0–250ms
+  band so neither machine's timing is load-bearing:**
+  ```
+  gap        0    5   20   40   80  120  150  250 ms
+  pre-fix   BAD  BAD  BAD  BAD  BAD  BAD   ok   ok
+  fixed      ok   ok   ok   ok   ok   ok   ok   ok
+  base       ok   ok   ok   ok   ok   ok   ok   ok
+  ```
+  Confirmed in Day and Month too. Vision's note-1 case (three Next clicks in
+  one 0ms task) also resolves to the base build's outcome.
+- **The C8/C9 fix is not regressed** — double-tap sampler reads three titles
+  with no revert flash on the fixed build, five with the flash on the base.
+- **The 35-step sequential trace still diffs empty** — 1947 lines, identical
+  md5, rebuilt from a worktree pinned at `bcc23cb` so all four contracts sit
+  on the "after" side. **With a positive control**, on the stated ground that
+  an empty diff from a harness blind to the hook is worthless: flipping one
+  line of `openDay` moved **174 lines**; reverted, md5 returned identical.
+- **No test added, and the builder explained why rather than faking
+  coverage:** the fix lives in effect scheduling and needs a router; there is
+  no renderer in devDependencies. It instead documented in the test file's
+  header what the six `consumePushedSearch` cases **structurally cannot
+  see** — they assume the reconciliation ran, and the blocker was that it
+  doesn't. Vision's point made readable from the file itself.
+- Both stale comments corrected; `grep` confirms the three remaining
+  `canStepToPeriod` mentions are honest tombstones, none claiming it exists.
+- **Environment note for whoever is next:** a leftover `next dev` from the
+  previous session had been running 16 hours and was killed to free the
+  per-directory lock. **Nothing is serving this repo — a fresh `npm run dev`
+  is needed.**
 - **Objective:** the compare-and-clear guard in `useCalendarNavigation.ts`
   leaves a stale `pushed` entry whenever a push produces no URL change, and
   that entry then swallows a later, legitimate Back — reproduced on a
