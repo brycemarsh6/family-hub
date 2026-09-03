@@ -575,6 +575,7 @@ a real user notices. Handed to Vision explicitly rather than accepted.
 |---|---|---|---|---|
 | 1 | Vision | **BLOCK** | 1 | Back is broken on the bare `/calendar` URL the nav bar links to; both builders' trace harnesses were blind to the picker |
 | 2 | Vision | **BLOCK** | 1 | pass-1 blocker RESOLVED as specified — but Vision's own prescribed shape can't cover a remount; prototyped the real fix |
+| 3 | Vision | **PASS** | 0 | blocker RESOLVED; **forced the case two agents called unforceable**; corrected the zero-cost claim; 1 consequence routed |
 | 1 | Captain | **PASS** | 0 | extraction ruled REQUIRED before CV3; found the same hazard class living in `constants.ts`; 4 amendments proposed |
 
 Budget: 3 passes per gate, then STOP and surface.
@@ -882,6 +883,92 @@ reasoned it is safe (both inputs are snapshots read in the same render) and
   needs either a sibling module or the extraction Captain already ruled
   required before CV3.
 
+## Vision, pass 3 (final) — PASS (0 blockers, 5 notes). Blocker RESOLVED.
+
+Every scenario re-derived on its own harness across three fresh worktrees,
+and **its own C3 transcript reproduces both pass-2 failures** — so the
+comparison is independent, not inherited. Trace C3-vs-fixed is **1 record
+line**: step 48's `search` key. Gauntlet 207/207 both timezones.
+
+### It forced the case two agents had called unforceable
+
+C3's builder labelled it reasoning-not-measurement; C4's builder pushed to
+80× throttle across 12 runs and still couldn't separate them. **Vision built
+a harness that settles it.** A document-start trap timestamps the hook's
+`replaceState`; a MutationObserver writes the store at the first `<main>`
+(pre-hydration) or the first `<h2>` (the `today`-resolve commit), plus a
+`setTimeout(0)` variant.
+
+> **18/18 runs (1×, 20×, production): the hook's write *precedes* the resolve
+> commit becoming observable** — by 2.2 ms at 1×, ~30 ms at 20×, 0.9 ms in
+> prod. The passive effect flushes **inside the same task as the commit**, so
+> no task or microtask, same-tab or cross-tab, can run between `today`
+> resolving and the URL being written.
+
+And a structural argument on top: both `useSyncExternalStore` reads happen in
+one render function and the effect consumes that render's captured target, so
+even a hypothetical separation could not write a value the render did not
+show. **Turning an honest "I couldn't test this" into a measured answer is
+the best thing in this pass.**
+
+### ⚠️ Record correction — "zero cost" was true for the paths measured, false for one nobody measured
+
+The GET claim (15/15/30) holds for **loads and picks**. It does **not** hold
+for a **cold Back into a canonicalised entry**: **2 RSC fetches versus 1 on
+base**, deterministic (3/3 dev, 3/3 prod), confirmed in the server log.
+
+Cause, measured rather than guessed: the entry's stored tree (bare) mismatches
+its URL, so Next's `restoreReducer` fetches, detects a route-tree mismatch and
+soft-retries. **The render is correct** (6 event cards, same as a fresh load),
+and the entry's state is repaired afterward so it costs **once**. The
+escalation Next documents — two successive mismatches forcing a full page
+reload — is **not reachable**, because every canonicalised entry shares one
+cache key, so after one retry the rest are cache hits.
+
+Crucially: **base does the same thing** for a synthetic native-`pushState`
+entry. This is the price of the native History API integration Next's own docs
+recommend, not of our hook. Net against `router.replace`: **+1 fetch per cold
+Back, versus +1 per bare load** — native still wins.
+
+**Both the module comment and Fury's commit message overclaim and must be
+corrected** — routed to C5 below.
+
+### The finding closest to the line, routed rather than waved through
+
+**Re-tapping the *already-active* Calendar tab now pushes a duplicate history
+entry and serves the stale bare tree.** Open `?view=week`, pick Month, tap the
+Calendar tab → Month, history 6→7; **Back 1 is a dead press** (identical URL
+and view); Back 2 works. Base: tab → Week, Back → Month, no dead press.
+
+And the half that matters more: base **refetches** on an active re-tap (a
+same-URL navigation), fixed fetches **nothing**. Vision's note —
+**that refetch was the only refresh gesture an iOS standalone PWA has.**
+Given F8 exists because Emily's phone backgrounds and reloads the app, losing
+the manual refresh is a real cost.
+
+Vision's reasons for NOTE rather than BLOCKER, which Fury accepts: the gesture
+is a no-op, the entry honestly records it, URL and view agree at every step,
+nothing is *reinterpreted* (the pass-1/2 class), and the dead press undoes a
+no-op. But it is the pass-1 symptom in miniature. Its prescribed fix, outside
+C4's files: render the active tab's `<Link>` with `replace`, and
+`router.refresh()` on active re-tap.
+
+### Other notes
+
+- **Fires twice per bare load in dev, once in production** — React StrictMode's
+  mount-effect double-invoke. Identical URL, same entry, idempotent. Wants a
+  one-line comment so the next harness author doesn't chase it.
+- The rewrite **hardcodes `/calendar` and drops any `#hash`** — consistent
+  today (the hook has exactly one consumer, and its own `navigateTo`
+  hardcodes the same path), but a future consumer on another route would be
+  rewritten onto `/calendar`.
+- Rapid tab taps collapse into one history entry in dev **on base too** —
+  transition batching, not ours.
+- A harness detail worth keeping: a plain prototype wrapper on
+  `history.replaceState` **sees nothing**, because Next patches it. Vision
+  needed a getter/setter trap to observe the hook's call before Next's patch
+  stamps it.
+
 ## Handoff log
 
 - 2026-09-03 — Opened by Fury immediately after CV0 delivered. Two serial
@@ -889,8 +976,68 @@ reasoned it is safe (both inputs are snapshots read in the same render) and
   C1 closes Captain's CV0 Ruling 2 **before** C2 widens the union, so the
   widening lands on a totality check that actually covers everything.
 
+### C5 — Correct the cost claim, and restore the iOS refresh gesture
+- **Status:** QUEUED (dispatch before CV2, or as CV2's opening contract —
+  small, and one half is a comment correcting a claim now known to be wrong).
+- **Boundaries:** `src/lib/useCanonicalCalendarUrl.ts` (comment only),
+  `src/components/HubNav.tsx`, and `.avengers/` records.
+- **1. The comment at `useCanonicalCalendarUrl.ts:71-77` overclaims.** It says
+  the native replace costs nothing. Vision measured a **cold Back into a
+  canonicalised entry at 2 RSC fetches versus 1**. Correct it to state: free
+  on loads and picks; **+1 fetch on a cold Back into a canonicalised entry**,
+  bounded to once because every such entry shares a cache key; base does the
+  same for any native-`pushState` entry, so this is the price of the History
+  API integration Next's docs recommend, not of this hook; and native still
+  beats `router.replace` overall. Also note the **dev-only double-fire**
+  (StrictMode), so the next harness author doesn't chase it.
+- **2. Restore the refresh gesture.** Re-tapping the active Calendar tab now
+  pushes a duplicate entry (making the next Back a dead press) and **fetches
+  nothing** — and that same-URL refetch was **the only refresh gesture an iOS
+  standalone PWA has.** Vision's fix: render the active tab's `<Link>` with
+  `replace`, and `router.refresh()` on an active re-tap.
+- **Check the whole nav bar, not just Calendar** — `HubNav` renders five tabs
+  and the change applies to all of them; verify Kitchen/Home/Chores/Lists
+  re-taps behave sensibly too.
+- **Verification:** active re-tap adds no history entry and refetches; Back
+  after it is not dead; the CV1 scenarios (S1/S3/F5/F7/F8) still hold; trace
+  still diffs to the known single line; gauntlet both timezones, 207 baseline.
+
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
-- **Deliberate leftovers:** —
+- **Shipped:** CV1 — the six-name view vocabulary, with **no catch-alls left**
+  in the cursor math or the labels, a `BUILT_VIEWS` gate so nothing unbuilt is
+  reachable from picker or URL, per-device last-used-view persistence the URL
+  always overrides, and URL canonicalisation so an ambiguous history entry
+  can never be reinterpreted. Tests **182 → 207**.
+- **Contracts:** 4 — C1 (close Captain's CV0 Ruling 2), C2 (the vocabulary),
+  C3 and C4 (two attempts at Vision's blocker; C4 supersedes C3's shape).
+- **Gate passes:** 4. Captain PASS. Vision BLOCK → BLOCK → **PASS**, and it
+  **blocked its own pass-1 prescription at pass 2** — "I own that the shape
+  was mine; the finding stands regardless."
+- **Gauntlet on the delivered head:** tsc 0, eslint 0, **207/207 under
+  `npm test` and the direct `TZ=UTC` invocation**, build 0. Every file under
+  the 350 cap.
+- **Deliberate leftovers, routed:**
+  - **C5** above — the cost-claim correction and the iOS refresh gesture.
+  - **Captain's ruling stands: `CalendarViews.tsx` (348) must be extracted to
+    ~230 before CV3 writes a line** — `ViewConfig`/`VIEW_CONFIG` into
+    `src/lib/calendarViewConfig.ts`, **not** the render switch. CV2
+    (`timelineLayout.ts`) can land first without it.
+  - `useCalendarPeriod.test.ts` at **344/350** needs the concern-split
+    STRUCTURE.md's *text* currently forbids and its *practice* already
+    shipped — amendment B below.
+  - **`constants.ts`'s `ASSIGNABLE_ROLES` gates with a filter predicate, not
+    a total record**, so a new role becomes assignable silently. Captain's own
+    CV0 hazard, found in untouched code. Route to whichever mission next
+    touches roles.
+  - `lastCalendarView.ts:9-11` still justifies itself by the cap rather than
+    its concept — the second instance of the pattern Captain's Ruling 2 warns
+    about.
+  - **Four STRUCTURE.md amendments await Bryce** (A: one reachability gate per
+    widened vocabulary, as a total record not a predicate; B: permit the
+    test-file concern-split; C: a filename must name a live export;
+    D: a member may not become reachable while any per-member difference sits
+    outside a total record).
+  - `EventForm.tsx` still at 350/350 with `daysBetween`'s `b < a` infinite
+    loop — **CT1 owns it, and its extraction and the fix should land
+    together.**
