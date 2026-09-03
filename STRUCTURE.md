@@ -181,10 +181,10 @@ Adding a second definition of any of these is a BLOCKER:
 
   Live instances of the adoption clause — keep this list short, and empty it
   by splitting rather than by growing it:
-  - `monthLayout.test.ts` holds `calendarDates.ts`'s `calendarDayDiff` case,
-    because `calendarDates.test.ts` sits at 349 of 350. **Queued for repair:**
-    mission 9's C3 splits `calendarDates.test.ts` and sends that test home,
-    which will empty this list.
+  - (none — emptied 2026-09-02, mission 10's C2, which split
+    `calendarDates.test.ts` by concern into `calendarDates.test.ts`
+    (day/span math) and `calendarDatesFormat.test.ts` (label formatting) and
+    sent `calendarDayDiff`'s test home from `monthLayout.test.ts`.)
 
 ## Naming
 
