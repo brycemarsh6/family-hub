@@ -78,8 +78,14 @@ export function formatTimeRange(start: Date, end: Date): string {
  * first), computed by walking `addDays`/`isSameDay` rather than an epoch
  * subtraction — the same calendar-component discipline as everything else
  * in this file, just applied to counting instead of shifting. Realistic
- * event spans are days or weeks, never long enough for the loop to matter. */
-function calendarDayDiff(a: Date, b: Date): number {
+ * event spans are days or weeks, never long enough for the loop to matter.
+ *
+ * Exported as of mission-9 (K2/C1) so `monthLayout.ts` and, later,
+ * `CalendarViews.tsx`'s own `daysBetween` copy can share this one
+ * implementation instead of re-deriving it — no behavior change, same
+ * signature, still called locally by `eventDaySpan`/`formatAllDayLabel`
+ * below exactly as before. */
+export function calendarDayDiff(a: Date, b: Date): number {
   const from = startOfDay(a);
   const to = startOfDay(b);
   const forward = to.getTime() >= from.getTime();

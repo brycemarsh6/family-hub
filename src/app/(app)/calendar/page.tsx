@@ -1,34 +1,40 @@
 import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
-import { addDays } from "@/lib/mealPlanDates";
+import { resolveServerFetchWindow } from "@/lib/calendarPaging";
 import { CalendarViews } from "@/components/CalendarViews";
 import type { CalendarEventView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-// How far each side of the server's own clock to fetch events for. This
-// bounds the QUERY only — it is never used to decide "today" (that decision
-// happens entirely client-side, in CalendarViews, via useToday()). Wide
-// enough to give Previous/Next real room to page through without hitting
-// the edge of what was fetched; K1 has no follow-up fetch for paging past
-// this window, so that's this phase's one real limit — and it's now a
-// VISIBLE one rather than a silent one: `windowStart`/`windowEnd` are
-// passed to CalendarViews, which disables Prev/Next at the edge instead of
-// letting the user page into a day whose events were never queried and
-// see a false "No events" (mission-8's Vision V3 finding — reproduced with
-// this file's own Nov 1 2026 DST seed event, which sits just outside a
-// ±60-day window).
-const WINDOW_DAYS = 60;
-
 /**
- * The Calendar branch's landing page — also its only page in K1 (Week and
- * Day views; no Month view yet, see calendar-v1.md). No read action exists
- * for calendar events by design (see mission-8's C1 report): pages in this
- * app read through `db` directly in the Server Component, same as the
- * dashboard, so this page owns its own range query.
+ * The Calendar branch's landing page. No read action exists for calendar
+ * events by design (see mission-8's C1 report): pages in this app read
+ * through `db` directly in the Server Component, same as the dashboard, so
+ * this page owns its own range query.
+ *
+ * mission-9/C6 ("We HAVE to fix it. Let's do it the way Google does it."):
+ * the fetch window now follows the period being VIEWED (the "?date="
+ * search param — CalendarViews.tsx pushes a real navigation here every
+ * time the user pages, switches view, or taps Today), not a fixed ±60 days
+ * around the server's own clock. `resolveServerFetchWindow`
+ * (calendarPaging.ts) is where the two rules this contract is built around
+ * both live: the param is validated SEMANTICALLY, not lexically (rejects
+ * "2026-02-30" rather than letting `Date` roll it to Mar 2), and the
+ * window it builds is a padded RANGE, never a decided calendar day — see
+ * that function's own comment for exactly why that distinction is what
+ * makes it safe to build server-side at all. No parameter (a fresh visit
+ * to `/calendar`) falls back to the server's own clock for this BOUNDING
+ * purpose only, same as K1 always did — WHICH day is "today" for
+ * rendering is still decided entirely in the browser, by
+ * CalendarViews.tsx's useToday()/useCalendarPeriod, completely unchanged
+ * by this contract.
  */
-export default async function CalendarPage() {
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
   // Only to decide whether CalendarViews should ever show create/edit/
   // delete controls (C4) — the real gate is each write action's own
   // MANAGER_ROLES check in actions/calendar.ts. Reuses the DAL's cached
@@ -37,9 +43,8 @@ export default async function CalendarPage() {
   const user = await getVerifiedUser();
   const canManage = user !== null && MANAGER_ROLES.includes(user.role);
 
-  const serverNow = new Date();
-  const windowStart = addDays(serverNow, -WINDOW_DAYS);
-  const windowEnd = addDays(serverNow, WINDOW_DAYS);
+  const { date } = await searchParams;
+  const { windowStart, windowEnd } = resolveServerFetchWindow(date, new Date());
 
   // One query, events joined with their people in the same round trip
   // (Prisma's nested `select`, not a second query) — there's nothing else
@@ -89,17 +94,12 @@ export default async function CalendarPage() {
       displayName: person.user.displayName,
       avatarColor: person.user.avatarColor,
     })),
+    // See CalendarEventView's own comment (src/lib/types.ts): this used to
+    // be a separate `Record<eventId, name>` map threaded alongside `events`
+    // until mission-9's Captain finding (K2/C2a) folded it into the event
+    // itself.
+    createdByName: event.createdBy?.displayName ?? null,
   }));
-
-  // Kept as its own map rather than a field on CalendarEventView (see that
-  // type's own home in src/lib/types.ts) — the detail sheet is the only
-  // consumer of "who created this," so it travels alongside the events
-  // rather than widening a type every other reader of CalendarEventView
-  // would also have to carry.
-  const createdByNames: Record<string, string | null> = {};
-  for (const event of events) {
-    createdByNames[event.id] = event.createdBy?.displayName ?? null;
-  }
 
   return (
     <div className="py-2">
@@ -108,7 +108,6 @@ export default async function CalendarPage() {
         <CalendarViews
           events={eventViews}
           canManage={canManage}
-          createdByNames={createdByNames}
           windowStart={windowStart}
           windowEnd={windowEnd}
         />

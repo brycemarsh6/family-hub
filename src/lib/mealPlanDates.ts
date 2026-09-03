@@ -83,3 +83,42 @@ export function formatWeekRange(weekStart: Date): string {
 export function formatDayLabel(date: Date): string {
   return `${DAY_NAMES[date.getDay()]}, ${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
 }
+
+/** Local "YYYY-MM-DD" — the one shared answer to a job that had grown
+ * several private copies (CalendarViews.tsx's `toDateParam`, EventForm.tsx's
+ * `toDateInputValue`, PantryItemEditSheet.tsx's own copy; see mission-9's
+ * Captain finding). Never `date.toISOString()` for this: that renders in
+ * UTC, which silently rolls an evening local date back a day on this
+ * household's Mountain clock — the same trap rule 2 above exists to avoid,
+ * just at the string-formatting layer instead of the date-math layer. */
+export function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** True when `a` and `b` fall in the same calendar month (and year — two
+ * Novembers a year apart are NOT the same month). Added for mission-9's
+ * Month view (K2/C2a): the grid highlights the current month's own days
+ * differently from adjacent-month filler, and this is the one-line
+ * comparison that decision needs. */
+export function isSameMonth(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
+/** The full month name, e.g. "September" — deliberately a SEPARATE list
+ * from `MONTH_NAMES` above, not a substring/lookup trick against it: that
+ * list is abbreviated ("Sep") for the Week view's compact range label, and
+ * Month's own title ("September 2026") needs the unabbreviated word. Added
+ * for mission-9 Month view (K2/C2a); see that mission's Captain finding
+ * that no full-month vocabulary existed anywhere in this repo before this. */
+const FULL_MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+] as const;
+
+/** "September 2026" — the Month view's title. */
+export function formatMonthTitle(date: Date): string {
+  return `${FULL_MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
+}

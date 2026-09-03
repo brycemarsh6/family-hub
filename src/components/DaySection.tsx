@@ -115,9 +115,10 @@ export function DaySection(
          * screenshot) is unaffected. */
         notLoaded?: boolean;
         /** Opens the detail sheet for one event, on the day it's rendered
-         * for — see EventCard/EventDetailSheet. Required alongside
-         * `events` (both live on the non-loading branch of this union). */
-        onOpenEvent?: (event: CalendarEventView, day: Date) => void;
+         * for — see EventCard/EventDetailSheet. Required (mission-9/C2b —
+         * the sole caller, CalendarViews.tsx, always passes one; the `?`
+         * only ever masked that). */
+        onOpenEvent: (event: CalendarEventView, day: Date) => void;
       },
 ) {
   if (props.loading) {
@@ -187,7 +188,7 @@ export function DaySection(
             today={today}
             showLocation={showLocation}
             compact={compact}
-            onOpen={() => onOpenEvent?.(event, day)}
+            onOpen={() => onOpenEvent(event, day)}
           />
         ))}
       </div>

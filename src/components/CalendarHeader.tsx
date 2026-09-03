@@ -1,11 +1,11 @@
 "use client";
 
-import { CalendarCheck, CalendarRange, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarCheck, CalendarRange, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
 
 /**
- * The Calendar branch's header row: the Today/view-switcher circles, then
- * the prev/next arrows around the period title. Extracted out of
+ * The Calendar branch's header row: the Today/view-switcher/Add circles,
+ * then the prev/next arrows around the period title. Extracted out of
  * CalendarViews.tsx (mission-8's Captain pass-2 recommendation, made "up
  * front" rather than after K2/K3 pile more onto that file) — this
  * component owns zero state of its own, it only renders what CalendarViews
@@ -13,6 +13,17 @@ import { ActionCircle } from "./ActionCircle";
  * JSX used to read directly; moving this out changes nothing about what
  * renders, which is why the C4 contract requires a pixel diff before
  * building anything new on top of it.
+ *
+ * The Add circle (mission-9/C5, Strange's B1 remedy) replaces the
+ * FloatingAddButton the Calendar branch used to render on top of the page
+ * content. That overlay covered real, tappable day numbers on Month's
+ * 7-column grid — the FAB is 56px, wider than a 44.42px cell, so no corner
+ * placement escapes it, and a fixed-position overlay can't be moved by
+ * document padding either (both were measured and both failed). Removing
+ * it here rather than per-view keeps the switcher's own DESIGN.md rule —
+ * "its tabs never change as you move" — from being violated by an Add
+ * button that would otherwise jump from a floating bottom-left position on
+ * Week/Day to a header circle on Month alone.
  */
 export function CalendarHeader({
   view,
@@ -27,8 +38,10 @@ export function CalendarHeader({
   nextDisabled,
   prevLabel,
   nextLabel,
+  canManage,
+  onAdd,
 }: {
-  view: "week" | "day";
+  view: "week" | "day" | "month";
   onPickView: () => void;
   /** False while useToday() hasn't resolved yet — see CalendarViews.tsx. */
   todayResolved: boolean;
@@ -43,6 +56,14 @@ export function CalendarHeader({
   nextDisabled: boolean;
   prevLabel: string;
   nextLabel: string;
+  /** True for admin/parent sessions only — a kid session renders two
+   * circles, not three, and `justify-center` re-centers them automatically
+   * (no separate layout branch needed). This is UI-only convenience: the
+   * real gate is the MANAGER_ROLES check inside the write actions
+   * themselves (actions/calendar.ts), same as every other manage-only
+   * control in this branch. */
+  canManage: boolean;
+  onAdd: () => void;
 }) {
   return (
     <>
@@ -55,9 +76,16 @@ export function CalendarHeader({
         />
         <ActionCircle
           icon={<CalendarRange aria-hidden="true" size={22} />}
-          label={view === "week" ? "Week" : "Day"}
+          label={view === "week" ? "Week" : view === "day" ? "Day" : "Month"}
           onClick={onPickView}
         />
+        {canManage && (
+          <ActionCircle
+            icon={<Plus aria-hidden="true" size={22} />}
+            label="Add"
+            onClick={onAdd}
+          />
+        )}
       </div>
 
       <div className="mb-4 flex items-center justify-between gap-2">

@@ -93,4 +93,15 @@ export type CalendarEventView = {
   endAt: Date;
   allDay: boolean;
   people: CalendarPersonView[];
+  /**
+   * The creator's display name, for the detail sheet's "Added by" line.
+   * Null when the creator was deactivated (SetNull) or the event predates
+   * this field. Was a separate `Record<eventId, name>` map threaded
+   * alongside `events` (page.tsx built it, CalendarViews.tsx looked it up
+   * by id) until mission-9's Captain finding (K2/C2a): a per-event field is
+   * simpler to thread through a view switch than a same-length sibling map
+   * that has to be kept in sync by id, and every other CalendarEventView
+   * consumer that doesn't care about it just ignores the field.
+   */
+  createdByName: string | null;
 };
