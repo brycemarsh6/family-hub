@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
+import { parseDateParam } from "@/lib/calendarPaging";
 import { BackLink } from "@/components/BackLink";
 import { EventForm } from "@/components/EventForm";
 
@@ -40,7 +41,18 @@ export default async function NewEventPage({
   // browser, from a split of this same string (parseLocalDateString, next
   // to combineDateAndTime). A malformed value is dropped rather than
   // passed through; EventForm falls back to today when it's undefined.
-  const initialDateISO = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined;
+  //
+  // Validity is checked with `parseDateParam` (calendarPaging.ts) — mission-
+  // 10/C3, replacing a shape-only `/^\d{4}-\d{2}-\d{2}$/` regex that let
+  // through calendar days that don't exist (`2026-02-30` matches that shape
+  // fine) and handed EventForm a string its own `new Date(2026, 1, 30)`
+  // rolls over to Mar 2 with no warning. `parseDateParam` round-trips the
+  // parsed date back through `toLocalDateString` and rejects anything that
+  // doesn't come back byte-identical, which a nonexistent day never does.
+  // Its returned `Date` is discarded here — only the null/non-null verdict
+  // is used — for the exact reason in the paragraph above: this page still
+  // must never pass a `Date` itself across the Server-to-Client boundary.
+  const initialDateISO = date && parseDateParam(date) ? date : undefined;
 
   // The full household roster, kids included — an event can be FOR a kid
   // (a soccer practice) even though only a manager can create one. Narrow

@@ -4571,6 +4571,12 @@ an interruption** — C4 alone was 529k tokens in a single dispatch.
 
 ### Where the Calendar goes next
 
+> ⚠️ **Stale as of the next session (2026-09-02, below).** K2 shipped, and
+> Bryce then walked through Google Calendar and re-shaped the roadmap — the
+> K3–K7 *ordering* here is superseded by `.avengers/plans/calendar-v2.md`.
+> The two K3 preconditions at the end of this section still bind. Read the
+> final section of this file first.
+
 K2 (Month view) is **already contracted** in
 `.avengers/missions/mission-9-calendar-k2-month.md`, with boundaries and a
 line budget measured against the real post-K1 tree. Then K3 filters/tags/
@@ -4586,3 +4592,130 @@ and tags and Sync-to each go in as **one sheet-opening row** below People
 (never N inline toggles per connected calendar — a form whose length grows
 with an external account count), because Title/When/Who must stay above the
 fold.
+
+
+---
+
+## Session, 2026-09-02: K2 shipped, then Bryce re-shaped the whole calendar
+
+Two halves. The morning finished **K2 (Month view + unbounded navigation)**;
+the evening replaced the plan for everything after it. **Read
+`.avengers/plans/calendar-v2.md` before touching the calendar** — it
+supersedes the K3–K7 *ordering* in `calendar-v1.md` (their content survives,
+re-slotted).
+
+### K2 — what shipped (PR #10, open, unmerged, stacked on K1's PR #9)
+
+Month view: Sunday-first six-week grid, spanning bars, up to three colour
+bands per pill, "+N more", day-tap → Day view. Plus a typed period cursor
+(`useCalendarPeriod.ts`) and **`calendarPaging.ts`** — the `?date=`/`?view=`
+URL contract. Tests **135 → 180**, green under both timezones. Nine
+contracts, eleven gate passes.
+
+**The headline is not the Month grid. It's that the calendar only reached
+±60 days, and Bryce found it on first contact with the preview.** The page
+fetched a fixed window around today and *disabled the arrows* at its edge —
+you could not book next June. Every gate had passed the "window-edge
+honesty" machinery as *correct*, because it was: three distinct states,
+adversarially verified twice. Nobody asked whether you could book a dentist
+appointment in March. **Gates verify what the contract asked for; only a
+person using the thing asks whether it's the right thing.** The fix (C6) made
+the fetch window follow the viewed period, Google-style.
+
+### The findings worth carrying (all reproduced, none argued)
+
+- **`offsetDays` structurally could not express month paging.** Captain
+  demonstrated rather than reasoned: stepping by "days in month" from Jan 31
+  **skips February entirely**, and a Prev/Next round trip from Mar 31 loses 3
+  days. A scalar day-offset cannot be a month cursor. `monthOffset` is now a
+  separate integer, which makes Prev∘Next an exact identity by cancellation.
+- **Size and reachability are different properties.** The floating **+**
+  occluded a day number: every tap-target *size* check passed while tapping
+  "20" opened the Add sheet. **Measure at the scroll position the user
+  actually arrives at** — Fury's first measurement, taken scrolled-to-bottom,
+  reported zero failures and would have shipped it. Strange then measured all
+  three candidate fixes and found **two structurally incapable** of working
+  (a 56px button is wider than a 44px cell; `position: fixed` cannot be moved
+  by document padding).
+- **Verified logic ≠ verified pixels.** Vision confirmed the multi-day bar's
+  rounding flags were right; Strange measured the render and found **11.9px
+  of page background between segments** — three week-long events drawing as
+  21 discrete chips, 18 unlabelled. Both checks were honest; only one looked
+  at the screen.
+- **A fix can promote something to load-bearing without re-measuring it.**
+  Hiding truncated titles made the pill's colour fill the *only* signal an
+  event exists — at **1.00:1** contrast, all 55 pills. Same defect the
+  rebrand session fixed once already. And `hidden` is `display:none`, which
+  **strips an element from the accessibility tree**: Month at phone width
+  exposed **0** event names versus 24 in Week.
+- **`package.json:11` pins `TZ` inside the test script, so `TZ=UTC npm test`
+  silently runs Denver twice.** Only the direct
+  `TZ=UTC node --import tsx --test …` invocation proves both timezones.
+- **The CI test glob is a hand-enumerated two-directory list, not
+  recursive.** A `src/lib/calendar/` subdirectory would silently drop its
+  tests from `npm test` **and CI while the suite still reported green at a
+  lower count.** If a test directory is ever added, its glob entry ships in
+  the same commit.
+- **Check your instrument before your result.** A builder found its own
+  screenshot driver only forced the theme when capturing dark — every "light"
+  capture was inheriting the Mac's dark OS theme. It fixed the tool and
+  re-ran everything. A gate had made the identical mistake one pass earlier.
+- **Nine overclaiming comments surfaced in one mission** — including one that
+  was the *stated rationale* for a design decision ("at 375px the pill holds
+  ~2 characters") after the measurement it rested on had been superseded.
+  The argument outlived its evidence. This class has now bitten the project
+  enough times to be worth naming in review.
+- **Fury's own miss, recorded:** a danger-register correction was announced as
+  done, lost to a later write, and never re-verified — caught by a gate two
+  passes later. Same claimed-but-not-durable pattern as the unpushed commits
+  and the empty rename. **Verify a file edit landed; don't trust the write.**
+
+### Then Bryce re-shaped the calendar (evening)
+
+Emily likes Apple's calendar; Bryce likes Google's layouts. He walked through
+Google screen by screen — the K0 Skylight process — and the result is
+`.avengers/plans/calendar-v2.md`, approved the same evening.
+
+**Decisions not to re-litigate:** six views (**Schedule / Day / 3 Day / Week /
+Month / Year**) in the existing `RadioSheet`; **Schedule replaces the
+list-Week and Week becomes an hour timeline** (a rendering model that does
+not exist anywhere in `src/` today — nothing positions by time); paging is
+**swipe + arrows + dropdown**, never swipe-only; last-used view remembered
+per device, but **only when the URL has no `?view=`**, or the stored
+preference fights the resync effect; **`Task` is its own table** with one
+all-day due date, completed tasks staying struck through, and **kids may
+complete their own** (the reward-points loop later); the Add sheet becomes
+**Event / Task** with Meal removed; **long-press-drag** to reschedule on the
+timeline first.
+
+**Bryce reversed one earlier deferral, and the reason changed rather than his
+mind:** the all-day storage bug (all-day events stored as local-midnight
+instants, so the Camping Trip renders a day early once his phone switches to
+Pacific in California) is **fixed in CT1** alongside the Task migration —
+because a second all-day table would otherwise have copied the bug, and every
+renderer would carry two date conventions.
+
+Order: **CV0 → CV1 → CT1 → CV2 → CV3 → CV4 → CV5 → CT2 → CV6 → CD1**, then
+K3 filters/tags, K4 recurrence, the **RSVP/inbox** and **search** walkthroughs
+Bryce still owes (RSVP is a schema decision and **must precede K6**, because
+Google's attendee-response model has to map onto ours), K5 import, K6/K7
+Google sync.
+
+### Where this leaves the tree
+
+Three PRs deep, none merged: **#9 (K1)** → **#10 (K2)** → branch
+`claude/calendar-cv0-extract` (**mission 10, CV0**, in progress). K2's
+preview is live and verified. CV0 is the extraction both K2 gates ruled a
+prerequisite: `CalendarViews.tsx` at 350/350 gets its navigation cluster
+lifted into `useCalendarNavigation.ts`, `calendarDates.test.ts` is split
+(done), and K2's queued one-source-of-truth repairs land. **Mission 10's file
+opens with a RESUMING section that tells a fresh session to trust `git` over
+its prose** — written pre-emptively because a rate limit gives no warning.
+
+### Open for Bryce, none blocking
+
+Two constitution amendments (Captain's on dormant exports, Strange's on
+unoccluded targets); the Neon **dev-branch** password rotation (an agent
+leaked a fragment into a transcript — dev only, hygiene); and whether to
+merge #9/#10 to production, which is what puts the Calendar in front of
+Emily.
