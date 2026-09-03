@@ -453,7 +453,84 @@ a real user notices. Handed to Vision explicitly rather than accepted.
   have seen it. Reuse Vision's (`scratchpad/trace.mjs`), not C1's or C2's.
 
 ### C4 — Fix contract: canonicalise the URL instead of freezing the read
-- **Status:** PENDING. ⚠️ **Vision has one gate pass left** — this must be right.
+- **Status:** ✅ **DONE, committed `5a24526`.** Fury re-verified: tsc 0,
+  eslint 0, **207/207 both timezones** (206 → 207: −6 freeze, +7 canonical),
+  build 0. `freezeFallbackView` **gone from the tree**; native
+  `window.history.replaceState` confirmed at `useCanonicalCalendarUrl.ts:95`.
+- **Every scenario, three servers (base / broken C3 / fixed):**
+  | | BASE | C3 | FIXED |
+  |---|---|---|---|
+  | S1 bare → Month → Back | Week | Week | **Week ✓** |
+  | S2 cross-tab Next → Back | Week | Week | **Week ✓** |
+  | S3 `?view=year` → Day → Back | Week | Week | **Week ✓** |
+  | **F7** bare → Month → Kitchen → Back×3 | Month, Week, /kitchen | Month, **Month**, /kitchen | **Month, Week, /kitchen ✓** |
+  | **F8** bare → Month → reload → Back | Week | **Month** | **Week ✓** |
+  | F2 fresh bare, `month` stored | — | Month | **Month ✓** |
+  | F4 bare (`month`) → Day → Back | — | Month | **Month ✓** |
+  | **F5** `?view=week` (`day`) → Month → tab | Week | **Day** | **Month ✓** |
+  It **reproduced Vision's blocker on the C3 build before fixing it** rather
+  than taking the finding on trust.
+- **The freeze was dropped**, per Fury's preference, on three grounds it gave
+  independently: no ambiguous history entry left for a per-mount freeze to
+  defend; keeping it would need a comment that cannot honestly claim to close
+  the class F7/F8 disprove; and it frees the room the new effect needed. Its
+  six tests went with it — a dormant export whose only justification is a
+  superseded design is exactly what STRUCTURE.md's rule rejects.
+- **It measured the `router.replace` alternative itself** rather than citing
+  Vision: 14 bare loads, counted between injected markers —
+  ```
+  C3 (0 canonicalisations)          : 15 GET /calendar
+  FIXED (14/14 canonicalised)       : 15 GET /calendar   ← zero cost
+  router.replace swapped in (14/14) : 30 GET /calendar   ← +15
+  ```
+  and diagnosed *why*: `router.replace` also invalidates the router cache, so
+  later pushes re-fetch too. Variant reverted and the file re-verified.
+- **Trace: C3-vs-fixed is 2 lines**, both step 48 ("load bare /calendar"), and
+  **only the `search` key moved** (`""` → `"?date=…&view=week"`). Title, arrow
+  labels and states, circles, sections, cards, cells, dialogs — byte-identical,
+  as are all 47 other steps. Positive control moved **78 lines, 6 of them
+  dialog lines**, then reverted to the identical md5.
+- **`useCalendarNavigation.ts` 349 → 314**, via a new sibling
+  `useCanonicalCalendarUrl.ts` (98). The contract permitted a sibling only if
+  the budget forced it — it did (372 after dropping the freeze and tightening
+  prose). **The header argues the module's concept against Captain's Ruling 2
+  rather than pleading the cap:** the hook reconciles the cursor *with* the
+  URL and treats the URL as truth; this module is the one place that ever
+  *corrects* the URL. `CalendarViews.tsx` md5-identical at 348.
+- **S3's URL is now canonicalised rather than left saying `year`** — the
+  contract allowed either. Its reasoning: `?view=year` names no built view, so
+  its meaning came from the mutable store, which is *precisely* the ambiguity
+  this contract removes; exempting it leaves the blocker reachable through a
+  bookmark. This reverses C2's documented non-fix, and **says why that
+  reversal is legitimate**: C2's objection was that a *push* costs a history
+  entry and a round trip — the native replace costs neither, so the objection
+  no longer applies.
+
+### The honesty worth recording
+
+- **The one case it could not force, stated as an argument and labelled as
+  one.** A store write landing strictly between hydration and `today`
+  resolving: it pushed harder than Vision (CPU throttle 20/40/60/**80×**, a
+  document-start write at +0/1/5/15/20/30/40ms, 12 runs) and never separated
+  them. It believes the interleaving is structurally unobservable — both are
+  `useSyncExternalStore` reads checked in one post-hydration pass — and
+  **explicitly reported that as reasoning, not measurement.**
+- **It caught its own probe lying.** An earlier run reported "no
+  canonicalisation" at 40×/60× throttle; it traced that to **its own settle
+  loop bailing before hydration finished**, fixed the readiness condition, and
+  re-ran. It reported the false result and its cause rather than the clean
+  re-run alone.
+- **It disclosed a danger-register brush:** terminal output during dialog
+  inspection surfaced a real event title. Not reproduced anywhere in the
+  report, and it redacted the remaining dialog checks to counts only.
+- **Noticed and deliberately not touched:** `lastCalendarView.ts:9-11` still
+  says it exists "only because that hook is at 300+ lines" — true when
+  written, and now a **second instance of the pattern Captain's Ruling 2
+  warns about** (splitting-to-fit as a stated justification). Left alone
+  because rewriting it is a judgement about that module's concept that no
+  contract asked for. Routed forward.
+
+
 - **Objective:** a bare or unbuilt-view `/calendar` URL survives in history
   longer than any mount, so no per-mount freeze can stop a remount between the
   pick and the Back from re-resolving through the just-written preference.
