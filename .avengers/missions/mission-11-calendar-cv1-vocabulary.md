@@ -75,7 +75,74 @@ Baseline **182/182**. Each contract reports its own delta; Fury reconciles.
 ## Contracts — serial, C1 then C2
 
 ### C1 — Close Captain's Ruling 2: all five per-view differences into `VIEW_CONFIG`
-- **Status:** PENDING (dispatch first)
+- **Status:** ✅ **DONE, committed `09b7a59`.** `title`, `days` and
+  `isCurrentPeriod` promoted into `ViewConfig`; the three ternaries and the
+  component-level `weekStart` are gone. `CalendarViews.tsx` 267 → **304**,
+  `CalendarHeader.tsx` 128 → 133, `MonthLoadingSkeleton.tsx` 76 → **60**.
+  Fury re-verified: tsc 0, eslint 0, **182/182 both timezones**, build 0.
+- **The probe is the proof, and it was run against *both* trees.** A CV0-era
+  row (`prevLabel`/`nextLabel`/`placeholderCount` only) added to a scratch
+  seventh view:
+  ```
+  fixed tree: TS2739 — missing title, days, isCurrentPeriod
+  BASE tree:  accepted with ZERO errors
+  ```
+  **That is the silent Day-inheritance this contract closed, demonstrated
+  rather than described.** Both scratch edits reverted, both trees clean.
+- **Trace diff empty**, md5 identical, with a positive control that moved 96
+  lines and reverted to the same md5 — and re-run against a **cold-restarted**
+  server to rule out an HMR artifact. It also measured the
+  `today === null` hydration frame separately under 20× CPU throttling
+  (9/9 samples identical), since `settle()` skips that frame by design.
+- **Decisions the builder made and justified:**
+  - `weekStart` derived per config row rather than passed in — `sundayOf` is a
+    clone-and-`setDate`, and it removed `weekStart` from the component
+    entirely once it verified the old `weekStart !== null` guard was
+    equivalent to `anchor !== null`.
+  - `title` is `(anchor) => string`, **not** `(anchor, today)` as the contract
+    suggested — no view's title depends on today, and an unused parameter is
+    the same speculative-maintenance class STRUCTURE.md's dormant-export rule
+    rejects. Widening it later is one line in one place.
+  - **`MonthLoadingSkeleton` deleted**, not given a dated expiry: zero callers
+    across two missions, and CV4 replaces the skeleton entirely, so a
+    dormant-export comment would preserve a promise the app will not keep.
+    First real application of the rule Bryce approved today.
+
+## ⚠️ C1's most valuable finding: its own contracted change removed a safety net
+
+`CalendarHeader.tsx:84` reads
+`label={view === "week" ? "Week" : view === "day" ? "Day" : "Month"}` — a
+**catch-all over the same union**. Until C1, `CalendarHeader` hand-wrote its
+own view union, and that mismatch was a **compile tripwire** — it is the
+error Captain's CV0 probe actually fired on. C1 was contracted to import the
+real type, which was correct and which **removed that tripwire**. Net effect:
+
+> **When C2 widens the union, Schedule / 3 Day / Year will silently render a
+> view-switcher circle labelled "Month" — with no compile error.**
+
+The builder found this, **did not fix it**, and explained why both in-boundary
+options were wrong: a second label list inside `CalendarHeader` violates one
+source of truth against `VIEW_OPTIONS`, and importing `VIEW_CONFIG` from
+`CalendarViews` recreates the component-to-component cycle that file's own
+header warns against. **Its recommendation is now a C2 requirement:** a total
+`Record<CalendarPeriodView, string>` label map in a lib module, read by both
+`VIEW_OPTIONS` and the header — making the label a **sixth compiler-checked
+per-view difference** instead of a fourth catch-all.
+
+That is a builder noticing that doing exactly what it was told made something
+else less safe, and saying so instead of shipping a green gauntlet.
+
+### Two more findings routed to C2
+
+- **The first painted frame is always the *Week* frame** — 7 placeholders,
+  "Previous week" — even for `?view=day` and `?view=month`, because
+  `useCalendarNavigation("week")` supplies the initial view and the URL parse
+  lands a tick later. **Pre-existing, identical on base**, so not a
+  regression — but C2 owns `loading.tsx`'s per-view skeleton and needs to
+  know the skeleton it picks is not the frame the user first sees.
+- `MonthLoadingSkeleton.tsx` now exports only `MonthGridSkeletonRows`. The
+  filename mismatch is recorded in the file's own header; C2 may touch
+  `loading.tsx` and could rename then.
 - **Why first:** CV0 shipped a `Record<CalendarPeriodView, ViewConfig>` whose
   totality is compiler-proven — but Captain probed it and found it covers
   only **2 of 5** per-view differences. `days` (`CalendarViews.tsx:131`),
