@@ -349,9 +349,129 @@ cap, worth a split candidate before CV2 adds timeline-adjacent cases.
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Vision | — | — | — |
-| 1 | Captain | — | — | — |
+| 1 | Captain | **PASS** | 0 | extraction ruled REQUIRED before CV3; found the same hazard class living in `constants.ts`; 4 amendments proposed |
 
 Budget: 3 passes per gate, then STOP and surface.
+
+## Captain, pass 1 — PASS (0 blockers)
+
+Gauntlet re-verified independently: tsc 0, eslint 0, **200/200 Denver and
+200/200 UTC (direct invocation)**, build 0. Boundary clean — every off-limits
+file confirmed **byte-identical by md5**, not merely absent from
+`--name-status`. Both commits carry real content (checked against the M1
+rename-with-no-content trap).
+
+### Ruling 1 — extraction is REQUIRED before **CV3**, not CV2. `ViewConfig` is the seam.
+
+```
+CV0 delivered  CalendarViews=267   cursorTest=245
+C1             CalendarViews=304   cursorTest=245
+C2             CalendarViews=348   cursorTest=344
+```
+**CV1 spent 81 of the 83 lines CV0 bought, in one mission.** That trend is the
+finding, not the number.
+
+CV2 (`timelineLayout.ts`, a new pure lib) touches nothing here and can land
+as-is. **CV3 cannot** — the plan has it adding `showArrows` to
+`CalendarHeader` (a sixth `ViewConfig` field × six rows), a Schedule branch
+and its import: ~25 lines, landing at ~373. So: **`CalendarViews.tsx` must be
+back under ~250 before CV3's first contract writes a line.**
+
+**The decisive argument for `ViewConfig` as the seam is coverage, not size.**
+`npm test` globs `src/lib/*.test.ts` only. `VIEW_CURSOR` — a total record of
+per-view date logic in `src/lib/` — has property tests across every day of
+2026 plus Feb 29 2028. **`VIEW_CONFIG` is the same kind of thing** (three-day
+`isCurrentPeriod`, `sundayOf` week math, six views) and has **zero tests,
+solely because it sits in a `.tsx` the runner cannot see.** Two sibling
+records of per-view date logic, one proven and one unprovable. Extraction
+fixes that as a side effect. It also carries seven imports out with it
+(~37% of the file), landing at ~215–225.
+
+**Placement: its own `src/lib/calendarViewConfig.ts`, NOT folded into
+`calendarViewVocabulary.ts`** — folding would put presentation config into
+the module `calendarPaging.ts` imports and therefore into `page.tsx`'s
+**server graph**, and would couple the URL parser to the header's title
+strings.
+
+**Do NOT extract the render switch instead** — that is where CV3–CV6's growth
+lands. Moving it exports future growth into a new file that then grows, while
+`VIEW_CONFIG` (which gains a field × six rows per phase) stays behind. Wrong
+direction.
+
+### Ruling 2 — the two new modules hold, and the principle is sharper than "it fit"
+
+> **Splitting to fit a cap is a legitimate reason to *look* for a boundary,
+> never a legitimate reason to *accept* one.** A file created only because
+> another was full is a file with no concept, and it drifts into a junk
+> drawer.
+
+`lastCalendarView.ts` survives that test four ways: it reconciles
+*localStorage* where its host reconciles the *URL* (two sources, two
+subscriptions, two lifetimes); it mirrors `lastStore.ts` line for line; it is
+independently importable (CV6's dropdown could read it); and its two
+divergences from `lastStore.ts` are deliberate and documented — same-tab
+event only (another tab's pick must not move the view under your finger) and
+reads narrowed through `toBuiltCalendarView`.
+
+`calendarViewVocabulary.ts` verified a **leaf — zero imports**, so cycle-free
+by construction, with all six consumers pointing one way at it.
+
+### Ruling 3 — `server-only` correctly absent, and Captain caught its own false positive
+
+An earlier grep appeared to show `"use client"` in the vocabulary module —
+Captain checked and found it was **the string inside that file's own
+explanatory comment**, not a directive, and said so rather than reporting it.
+Directive-free is the only correct answer here: `page.tsx` (server) →
+`calendarPaging.ts` → this module at runtime via `BUILT_VIEWS`, so
+`server-only` would break the client half and `"use client"` would put a
+client reference in the server bundle.
+
+### Ruling 5 — the ledger improved, and the hazard class survives in three named places
+
+Five total records, no sixth list, no hand-written label anywhere; the picker
+**cannot** be a second list by construction, and a test asserts it.
+
+But `CalendarViews.tsx:260/284/286` still hold inline per-view tests with a
+**falsy default** — `view === "month"` selects the renderer,
+`showLocation={view === "day"}`, `compact={view === "week"}`. The day any of
+the three new views flips to built, each silently inherits `false` with no
+compile error — the same silent inheritance C1 just closed, one expression
+over. Not a blocker **only because `BUILT_VIEWS` makes those views
+unreachable**, which is exactly what buys the time. Hence amendment D.
+
+### Ruling 6 — the gate is not a local trick; the repo already runs it, in a weaker form
+
+`src/lib/constants.ts` solves the identical problem for roles —
+`ROLES` → `ROLE_LABELS` → `ASSIGNABLE_ROLES` (a `device` role exists but must
+never be pickable). Same three-part answer, arrived at independently. **That
+second instance is what makes it a convention rather than a clever trick.**
+
+**And the comparison exposed a live weakness in the older one:**
+`ASSIGNABLE_ROLES` gates with a **filter predicate** (`role !== "device"`),
+not a total record — so **a new role added to `ROLES` becomes assignable
+silently, with no compile error.** That is Captain's own CV0 Ruling 2 hazard,
+sitting in `constants.ts` today, found by comparing this mission's work
+against code nobody had touched. Out of boundary; routed to whichever mission
+next touches roles.
+
+### Two more notes
+
+- **`useCalendarPeriod.test.ts` is at 344/350** (+99 this mission) and needs a
+  concern-split before CV2/CV4 add timeline cases — **but STRUCTURE.md's
+  *text* currently forbids the split its *practice* already shipped**
+  (mission-10/C2's `calendarDates.test.ts` / `calendarDatesFormat.test.ts`).
+  Amendment B fixes the letter to match.
+- `BUILT_VIEWS` (record) vs `BUILT_CALENDAR_VIEWS` (list derived from it)
+  differ by one word and name different kinds of thing. Cheap rename at next
+  touch: `VIEW_IS_BUILT` / `BUILT_VIEWS`.
+- `MonthLoadingSkeleton.tsx` names an export that **no longer exists
+  anywhere** — a grep for the filename comes up empty. Delete-or-rename in
+  the next mission touching it or `loading.tsx`; **must not survive CV3.**
+- `EventForm.tsx` confirmed byte-identical at 350/350 with the `b < a`
+  infinite loop still live. Captain's note: it is simultaneously at the cap,
+  carrying a known defect, and scheduled for extraction in CT1 — **the
+  extraction and the fix should land together**, since the extraction is what
+  creates room to fix it safely.
 
 ## Handoff log
 
