@@ -348,7 +348,79 @@ cap, worth a split candidate before CV2 adds timeline-adjacent cases.
   must survive the widening it was built for.
 
 ### C3 — Fix contract: freeze the preference at mount (Vision's BLOCKER)
-- **Status:** PENDING
+- **Status:** ✅ **DONE, committed `a13cd22`.** Fury re-verified: tsc 0,
+  eslint 0, **206/206 both timezones** (200 → 206, +6), build 0.
+- **All three of Vision's scenarios now match base**, measured across three
+  servers (base / broken HEAD / fixed):
+  ```
+  1  Calendar tab → Month → Back : base Week · HEAD Month · MINE Week
+  2  cross-tab, A's Next→Back     : base Week · HEAD Month · MINE Week
+  3  ?view=year → Day → Back      : base Week · HEAD Day   · MINE Week
+  ```
+- **The feature survives its own fix**, which was the other half of the
+  contract: a *fresh* open of bare `/calendar` still restores Month. And F4 is
+  the case that proves the freeze means the right thing — open bare **with
+  `month` stored**, pick Day, Back → **Month**, i.e. what that URL meant *at
+  open*, not a hardcoded default.
+- **Trace empty** against broken HEAD, md5 identical across three runs, using
+  **Vision's dialog-capturing harness** as required. Its positive control
+  moved **404 lines including inside dialog steps** — the specific blindness
+  that let C1 and C2 both report empty diffs they weren't entitled to.
+
+### The contracted shape was rejected by lint, and the builder took the better trade
+
+Fury specified `useRef`. **`react-hooks/refs` rejects it** — 4 errors across 2
+lines (`Cannot update ref during render`, `Cannot access ref value during
+render`). Rather than suppress a rule this repo treats as substantive
+(CLAUDE.md's `useSyncExternalStore` precedent is the same rule protecting the
+same class of bug), it used `useState` with a guarded set during render —
+React's documented "adjust state while rendering" — and argued it is
+**strictly safer than the ref**: it cannot retain a value written by a render
+React discarded. The rule itself is extracted as a pure exported
+`freezeFallbackView(...)` with 6 tests, so the logic is provable either way.
+It did **not** reach for `router.replace`, as instructed.
+
+### ⚠️ One behaviour change beyond the three scenarios — self-reported, for the gate to rule on
+
+**F5, the soft-nav case.** From a mount opened at `?view=week` while the store
+held `day`: pick Month, then tap the **Calendar nav tab** — a soft navigation
+to bare `/calendar` *within the same mount*, no remount.
+
+```
+base  → Week    HEAD → Month (just-picked)    MINE → Day (this mount's frozen value)
+```
+
+The builder's argument, which is honest and probably right: **a soft nav and
+a popstate are indistinguishable to this hook** — Vision's own point restated
+— so no version of the freeze can answer them differently without a
+`popstate` listener, which is new machinery of exactly the drift class CV0
+closed. It judges the trade worth it: with the freeze, **bare `/calendar`
+means one thing for the whole session no matter how you arrive**, where HEAD
+let its meaning change under the user; and tapping the tab you are already on
+is far rarer than Back.
+
+**Fury's read: it is defensible but it is the weakest point of the fix**, and
+"you get Day when you picked Month and never chose Day" is the kind of thing
+a real user notices. Handed to Vision explicitly rather than accepted.
+
+### Notes
+
+- `lastCalendarView.ts`'s cross-tab comment **claimed the wrong mechanism** —
+  it credited the absent `storage` subscription, when `getSnapshot` re-reads
+  every render regardless, which is exactly how tab B's pick reached tab A.
+  Rewritten to name the reader's freeze as what actually delivers the promise.
+  A newly-true comment resting on the wrong reason is still a comment that
+  lies.
+- The builder notes the `LAST_VIEW_CHANGED` same-tab event now changes nothing
+  on screen, kept it deliberately (it is what makes the module a correct
+  external store *on its own terms* rather than one whose correctness depends
+  on its caller freezing it), and said so in the comment rather than leaving
+  it as mystery code.
+- **`useCalendarNavigation.ts` is at 349/350** — a second file at the cap
+  alongside `CalendarViews.tsx` at 348. Both are now Captain's extraction
+  problem, not just the one it ruled on.
+
+
 - **Objective:** `useCalendarNavigation.ts:122` reads `fallbackView` live on
   every render, so a Back to a bare or unbuilt URL re-resolves through the
   preference **the undone action just wrote** — breaking Back on the exact
