@@ -228,7 +228,71 @@ extra round was Bryce's explicit call, not a precedent.)
 - 2026-09-02 — Mission opened by Fury from `calendar-v2.md` CV0, immediately
   after plan approval. Branch cut from K2's head (`bcc23cb`). Three disjoint
   contracts written from the K2 gate reports' own citations; no Banner
-  needed. Dispatching C1 (Opus), C2, C3 (Sonnet) in parallel.
+  needed. Dispatched C1 (Opus), C2, C3 (Sonnet) in parallel.
+- 2026-09-02, evening — **Bryce heading into the night; handoff written
+  pre-emptively** because a session rate limit gives no warning (K1 lost
+  ~6h45m to two of them, killing gates mid-run). Fury cannot see credit
+  balance or usage — so this section is written while the builders are still
+  running, not after.
+
+## ⚠️ RESUMING THIS MISSION — read this first, trust `git`, not this file's prose
+
+**The three builders are subagents of a session that may have ended. If it
+did, they died with it.** Their work survives only where it reached disk.
+Establish reality before doing anything:
+
+```
+git branch --show-current              # expect claude/calendar-cv0-extract
+git log claude/calendar-k2-month..HEAD --oneline    # what actually committed
+git status --porcelain                 # uncommitted = a builder was mid-flight
+npx tsc --noEmit && npx eslint . && npm test && npm run build
+```
+
+**State at the moment this was written** (branch `claude/calendar-cv0-extract`,
+cut from K2 head `bcc23cb`, 2 commits, C3's files uncommitted and in motion):
+
+| contract | owner files | state then |
+|---|---|---|
+| **C1** — extract `useCalendarNavigation`, view-switch config, delete `periodWindowEdges`/`canStepToPeriod` | `CalendarViews.tsx`, `useCalendarNavigation.ts` (new), `calendarPaging.ts` + test, `calendarDates.ts`, `useCalendarPeriod.ts` (comment) | **not committed** — no trace in tree yet |
+| **C2** — split `calendarDates.test.ts`, empty the adoption list | `calendarDates*.test.ts`, `monthLayout.test.ts`, `STRUCTURE.md` | ✅ **committed `da915bc`** |
+| **C3** — one `hexToRgba`, relocate the skeleton, `parseDateParam` on `new/page.tsx` | `color.ts`+test (new), `MonthLoadingSkeleton.tsx` (new), `EventCard.tsx`, `MonthCell.tsx`, `loading.tsx`, `new/page.tsx` | **mid-write, uncommitted** |
+
+**If C1 did not land:** its contract is written in full above and is
+re-dispatchable verbatim to a fresh Stark. Nothing depends on partial C1
+work; `CalendarViews.tsx` unchanged is a valid starting point.
+
+**If C3's files are uncommitted and unfinished:** inspect them, then either
+finish or `git checkout --` them and re-dispatch C3. Do **not** assume
+half-written files are correct — `git diff` them against the contract's
+three repairs.
+
+**No gate has run.** Vision and Captain are assembled but undispatched.
+Nothing in CV0 is verified beyond whatever a builder self-reported.
+
+**Nothing here touched the database, and nothing should have.** If counts are
+off baseline (`calendarEvent` 3, `user` 5), something went wrong — investigate
+before continuing.
+
+## Where the whole project stands (so a fresh session doesn't re-derive it)
+
+- **K1** = PR #9, open, unmerged, `claude/calendar-app-planning-1l9jdl`.
+  Bryce said he is happy with it but has not merged; merging deploys to the
+  family's live app.
+- **K2** = PR #10, open, unmerged, `claude/calendar-k2-month`, stacked on K1.
+  Preview verified working:
+  `https://family-hub-git-claude-calendar-k2-month-marsh-team.vercel.app`
+- **CV0** = this mission, stacked on K2. Three PRs deep; nothing merged.
+- **Next after CV0:** CV1 (view vocabulary), then **CT1** — the Task schema
+  *and* the all-day timezone fix Bryce reversed his deferral on. Full order
+  and every settled decision: `.avengers/plans/calendar-v2.md`.
+
+## Awaiting Bryce, not blocking any build
+
+1. Two constitution amendments: Captain's (dormant exports — **C1 is acting
+   on its spirit already by deleting two**), Strange's (unoccluded targets).
+2. Neon **dev-branch password rotation** — an agent leaked a fragment into a
+   transcript during K2. Dev only; hygiene, not exposure.
+3. Whether to merge PR #9/#10 to production, and in which order.
 
 ## Delivery
 
