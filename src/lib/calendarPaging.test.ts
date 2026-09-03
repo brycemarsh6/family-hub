@@ -15,6 +15,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   parseDateParam,
+  parseViewParam,
+  buildCalendarSearch,
   buildFetchWindow,
   resolveServerFetchWindow,
   CALENDAR_FETCH_WINDOW_DAYS,
@@ -96,4 +98,60 @@ test("resolveServerFetchWindow: missing/invalid ?date= falls back to the server'
   assert.equal(missing.windowEnd.getTime(), expected.windowEnd.getTime());
   assert.equal(invalid.windowStart.getTime(), expected.windowStart.getTime());
   assert.equal(invalid.windowEnd.getTime(), expected.windowEnd.getTime());
+});
+
+// ---------------------------------------------------------------------------
+// parseViewParam / buildCalendarSearch — mission-11/C2 gated the "?view="
+// half of the URL through the vocabulary's BUILT_VIEWS table. The test for
+// the table itself lives in calendarViewVocabulary.test.ts; these cover what
+// the URL layer does with it.
+
+test("parseViewParam: accepts the three built views unchanged", () => {
+  assert.equal(parseViewParam("week"), "week");
+  assert.equal(parseViewParam("day"), "day");
+  assert.equal(parseViewParam("month"), "month");
+});
+
+test("parseViewParam: a real-but-unbuilt view normalizes to the default rather than reaching a missing renderer", () => {
+  assert.equal(parseViewParam("year"), "week");
+  assert.equal(parseViewParam("schedule"), "week");
+  assert.equal(parseViewParam("threeDay"), "week");
+});
+
+test("parseViewParam: missing, malformed and stray values fall back too", () => {
+  assert.equal(parseViewParam(undefined), "week");
+  assert.equal(parseViewParam(null), "week");
+  assert.equal(parseViewParam(""), "week");
+  assert.equal(parseViewParam("Week"), "week");
+  assert.equal(parseViewParam("../month"), "week");
+});
+
+test("parseViewParam: the fallback is used ONLY when the param does not name a built view", () => {
+  // The last-used-view preference (useCalendarNavigation.ts) arrives here.
+  // A URL that names a view still wins — that is the whole rule.
+  assert.equal(parseViewParam(null, "month"), "month");
+  assert.equal(parseViewParam(undefined, "day"), "day");
+  assert.equal(parseViewParam("week", "month"), "week");
+  assert.equal(parseViewParam("day", "month"), "day");
+  // An unbuilt view in the URL is not a view; the device's default answers.
+  assert.equal(parseViewParam("year", "month"), "month");
+});
+
+test("buildCalendarSearch: round-trips through parseViewParam for every built view", () => {
+  const anchor = d(2026, 8, 2);
+  for (const view of ["day", "week", "month"] as const) {
+    const search = buildCalendarSearch(view, anchor);
+    const params = new URLSearchParams(search);
+    assert.equal(params.get("date"), toLocalDateString(anchor));
+    assert.equal(parseViewParam(params.get("view")), view);
+    assert.equal(parseDateParam(params.get("date"))?.getTime(), anchor.getTime());
+  }
+});
+
+test("buildCalendarSearch: a search naming an unbuilt view parses back to the default, not to that view", () => {
+  // Nothing can produce this today, but it is the property that makes a
+  // stale bookmark from a future build safe rather than broken.
+  const params = new URLSearchParams(buildCalendarSearch("year", d(2026, 8, 2)));
+  assert.equal(params.get("view"), "year");
+  assert.equal(parseViewParam(params.get("view")), "week");
 });

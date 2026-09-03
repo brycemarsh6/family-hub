@@ -33,6 +33,17 @@ function dayPeriod(dayOffset: number): CalendarPeriod {
   return { view: "day", dayOffset, monthOffset: 0, monthDay: 1 };
 }
 
+/** Asserts Next∘Prev AND Prev∘Next both land back on `start`'s own anchor. */
+function assertRoundTripsExactly(start: CalendarPeriod, today: Date, where: string) {
+  const startAnchor = periodAnchor(start, today);
+  for (const trip of [stepPeriod(stepPeriod(start, 1), -1), stepPeriod(stepPeriod(start, -1), 1)]) {
+    assert.ok(
+      isSameDay(periodAnchor(trip, today), startAnchor),
+      `${where}: round trip landed on ${periodAnchor(trip, today).toDateString()}, expected ${startAnchor.toDateString()}`,
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Property 1 — Prev∘Next (and Next∘Prev) is identity, every day of every
 // month of 2026, including Jan 31 and the days adjacent to Feb 28/29. This
@@ -45,22 +56,7 @@ test("Prev∘Next (month view) is identity: every day of every month of 2026", (
   for (let month = 0; month < 12; month++) {
     const daysInMonth = new Date(2026, month + 1, 0).getDate();
     for (let day = 1; day <= daysInMonth; day++) {
-      const start = monthPeriod(month, day);
-      const startAnchor = periodAnchor(start, today);
-
-      const nextThenPrev = stepPeriod(stepPeriod(start, 1), -1);
-      const prevThenNext = stepPeriod(stepPeriod(start, -1), 1);
-
-      assert.ok(
-        isSameDay(periodAnchor(nextThenPrev, today), startAnchor),
-        `month ${month + 1} day ${day}: Next∘Prev landed on ` +
-          `${periodAnchor(nextThenPrev, today).toDateString()}, expected ${startAnchor.toDateString()}`,
-      );
-      assert.ok(
-        isSameDay(periodAnchor(prevThenNext, today), startAnchor),
-        `month ${month + 1} day ${day}: Prev∘Next landed on ` +
-          `${periodAnchor(prevThenNext, today).toDateString()}, expected ${startAnchor.toDateString()}`,
-      );
+      assertRoundTripsExactly(monthPeriod(month, day), today, `month ${month + 1} day ${day}`);
     }
   }
 });
@@ -242,4 +238,107 @@ test("resetToToday: zeroes both offsets, sets monthDay to today's own day, and k
   const resetWeek = resetToToday("week", today);
   assert.equal(resetWeek.view, "week");
   assert.ok(isSameDay(periodAnchor(resetWeek, today), today));
+});
+
+// ---------------------------------------------------------------------------
+// mission-11/C2 — the same three properties, extended to the view names the
+// vocabulary gained (`schedule`, `threeDay`, `year`). Nothing renders them
+// yet (`BUILT_VIEWS`, calendarViewVocabulary.ts), but the cursor arithmetic
+// is real and is what CV3/CV4/CV5 build on.
+
+function threeDayPeriod(dayOffset: number): CalendarPeriod {
+  return { view: "threeDay", dayOffset, monthOffset: 0, monthDay: 1 };
+}
+
+function yearPeriod(monthOffset: number, monthDay: number): CalendarPeriod {
+  return { view: "year", dayOffset: 0, monthOffset, monthDay };
+}
+
+test("stepPeriod: 3 Day steps 3 days, Year steps 12 months on monthOffset, Schedule does not step at all", () => {
+  // 3 Day is what the old `view === "week" ? 7 : 1` catch-all got wrong.
+  assert.equal(stepPeriod(threeDayPeriod(0), 1).dayOffset, 3);
+  assert.equal(stepPeriod(threeDayPeriod(3), 1).dayOffset, 6);
+  assert.equal(stepPeriod(threeDayPeriod(3), -1).dayOffset, 0);
+
+  // Year rides monthOffset — no new offset field, and neither dayOffset
+  // nor monthDay moves.
+  assert.deepEqual(stepPeriod(yearPeriod(0, 15), 1), yearPeriod(12, 15));
+  assert.deepEqual(stepPeriod(yearPeriod(12, 15), -1), yearPeriod(0, 15));
+
+  // Schedule scrolls: no period to page between, so a step is an exact
+  // no-op rather than the 1 day the catch-all would have given it.
+  const schedule: CalendarPeriod = { view: "schedule", dayOffset: 4, monthOffset: 2, monthDay: 9 };
+  assert.equal(stepPeriod(schedule, 1), schedule);
+  assert.equal(stepPeriod(schedule, -1), schedule);
+});
+
+test("Prev∘Next (3 Day view) is identity, and the step is genuinely 3 days: every day of 2026", () => {
+  const today = d(2026, 0, 1);
+  for (let offset = 0; offset < 365; offset++) {
+    assertRoundTripsExactly(threeDayPeriod(offset), today, `offset ${offset}`);
+    const stepped = stepPeriod(threeDayPeriod(offset), 1);
+    assert.ok(isSameDay(periodAnchor(stepped, today), periodAnchor(threeDayPeriod(offset + 3), today)));
+  }
+});
+
+test("Prev∘Next (year view) is identity: every day of every month of 2026, Jan 31 and the Feb boundary included", () => {
+  const today = d(2026, 0, 1); // monthOffset === month index
+  for (let month = 0; month < 12; month++) {
+    const daysInMonth = new Date(2026, month + 1, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      assertRoundTripsExactly(yearPeriod(month, day), today, `month ${month + 1} day ${day}`);
+    }
+  }
+});
+
+test("Prev∘Next identity (year view): Feb 29 2028 — the leap day neither adjacent year has", () => {
+  const today = d(2026, 0, 1);
+  const start = yearPeriod(25, 29); // 25 months from Jan 2026 = Feb 2028
+  const startAnchor = periodAnchor(start, today);
+  assert.equal(startAnchor.toDateString(), "Tue Feb 29 2028", "2028 is a leap year — Feb 29 is real");
+  const back = stepPeriod(start, -1);
+  assert.equal(
+    periodAnchor(back, today).toDateString(),
+    "Sun Feb 28 2027",
+    "Feb 2027 has 28 days — the clamp, not a bug",
+  );
+  assert.ok(
+    isSameDay(periodAnchor(stepPeriod(back, 1), today), startAnchor),
+    "must land back on Feb 29 2028 exactly — monthDay never forgot the 29th",
+  );
+});
+
+test("Next x12 (year view) visits 12 distinct consecutive years, none skipped, none repeated", () => {
+  const today = d(2026, 5, 15); // June 15, 2026
+  let period = yearPeriod(0, 15);
+  const seen: number[] = [];
+  for (let i = 0; i < 12; i++) {
+    const anchor = periodAnchor(period, today);
+    seen.push(anchor.getFullYear());
+    assert.equal(anchor.getMonth(), 5, `step ${i}: a year step must not drift the month`);
+    period = stepPeriod(period, 1);
+  }
+  // deepEqual against the literal run proves distinct AND consecutive.
+  assert.deepEqual(seen, [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035, 2036, 2037]);
+});
+
+test("withView: the anchored day survives a switch to — and back from — every view", () => {
+  const today = d(2026, 0, 1);
+  // Day-basis, week, and a month-basis start holding a CLAMPED anchor
+  // (Month aiming at the 31st of a 28-day February).
+  for (const start of [dayPeriod(45), weekPeriod(45), monthPeriod(1, 31)]) {
+    const startAnchor = periodAnchor(start, today);
+    for (const view of ["schedule", "day", "threeDay", "week", "month", "year"] as const) {
+      const switched = withView(start, view, today);
+      const back = withView(switched, start.view, today);
+      const trail = `${start.view} -> ${view}`;
+      assert.ok(isSameDay(periodAnchor(switched, today), startAnchor), `${trail} moved the anchor`);
+      assert.ok(isSameDay(periodAnchor(back, today), startAnchor), `${trail} -> ${start.view} moved the anchor`);
+    }
+  }
+  // A switch converts the cursor, never carrying the old step size over.
+  const year = yearPeriod(14, 20); // March 2027
+  const month = withView(year, "month", today);
+  assert.equal(periodAnchor(stepPeriod(month, 1), today).getMonth(), 3);
+  assert.equal(periodAnchor(stepPeriod(withView(month, "year", today), 1), today).getFullYear(), 2028);
 });

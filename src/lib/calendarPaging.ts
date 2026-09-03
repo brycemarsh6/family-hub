@@ -50,6 +50,11 @@
 // (calendarDates.ts), which IS still live in MonthGrid and CalendarViews.
 
 import { addDays, startOfDay, toLocalDateString } from "./mealPlanDates";
+import {
+  DEFAULT_CALENDAR_VIEW,
+  toBuiltCalendarView,
+  type CalendarPeriodView,
+} from "./calendarViewVocabulary";
 
 const DATE_PARAM_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -79,20 +84,49 @@ export function parseDateParam(value: string | undefined | null): Date | null {
   return toLocalDateString(parsed) === value ? parsed : null;
 }
 
-/** Narrows a raw "?view=" string to a real Calendar view, falling back to
- * Week for anything else (missing, malformed, or a stray value) — same
- * "invalid input dropped, not trusted" posture as `parseDateParam`. Kept
- * next to it since both are the two halves of the one URL shape
- * CalendarViews.tsx reads and writes (`buildCalendarSearch` below). */
-export function parseViewParam(value: string | undefined | null): "day" | "week" | "month" {
-  return value === "day" || value === "month" ? value : "week";
+/**
+ * Narrows a raw "?view=" string to a view that actually RENDERS, falling
+ * back to `fallback` for anything else — missing, malformed, a stray
+ * value, or a real view name that has no renderer yet. Same "invalid input
+ * dropped, not trusted" posture as `parseDateParam`, and kept next to it
+ * since both are the two halves of the one URL shape useCalendarNavigation
+ * reads and writes (`buildCalendarSearch` below).
+ *
+ * THE UNBUILT CASE IS THE POINT (mission-11/C2). `CalendarPeriodView` now
+ * holds six names but only three render, so `?view=year` — a bookmark
+ * saved from a future build, a hand-typed URL, a link from a phone running
+ * ahead of this deploy — must not reach a renderer that does not exist.
+ * `toBuiltCalendarView` reads the single `BUILT_VIEWS` table the picker
+ * reads, so "what a URL may name" and "what the picker offers" cannot
+ * drift apart: an unbuilt view is normalized away here and never appears
+ * there. This is the plan's "no stubs" rule kept — the vocabulary and the
+ * cursor arithmetic for all six views are real, but nothing half-built is
+ * reachable.
+ *
+ * `fallback` exists for the last-used-view preference
+ * (useCalendarNavigation.ts): with no "?view=" at all, the answer is the
+ * view this device last picked, and only `DEFAULT_CALENDAR_VIEW` when
+ * there is no such preference. An unrecognised value falls back the same
+ * way — the URL asked for something that does not exist, so the device's
+ * own default is the best available answer.
+ */
+export function parseViewParam(
+  value: string | undefined | null,
+  fallback: CalendarPeriodView = DEFAULT_CALENDAR_VIEW,
+): CalendarPeriodView {
+  return toBuiltCalendarView(value) ?? fallback;
 }
 
-/** The "date=...&view=..." query string CalendarViews.tsx pushes on every
- * real navigation (mission-9/C6) — the exact inverse of
+/** The "date=...&view=..." query string useCalendarNavigation pushes on
+ * every real navigation (mission-9/C6) — the exact inverse of
  * `parseDateParam`/`parseViewParam` above, kept next to them so the two
- * directions can't quietly drift into different string shapes. */
-export function buildCalendarSearch(view: "day" | "week" | "month", anchor: Date): string {
+ * directions can't quietly drift into different string shapes. Takes the
+ * full `CalendarPeriodView` rather than only the built three: it is the
+ * inverse of a parse, and narrowing it here would just move the question
+ * of what may appear in a URL away from `BUILT_VIEWS`, which is the one
+ * place that answers it. Nothing can hand it an unbuilt view today —
+ * every caller's view came from `parseViewParam` or the picker. */
+export function buildCalendarSearch(view: CalendarPeriodView, anchor: Date): string {
   const params = new URLSearchParams();
   params.set("date", toLocalDateString(anchor));
   params.set("view", view);

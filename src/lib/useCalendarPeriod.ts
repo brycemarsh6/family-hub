@@ -39,17 +39,48 @@
 import { useState } from "react";
 import { addDays } from "./mealPlanDates";
 import { calendarDayDiff } from "./calendarDates";
+import type { CalendarPeriodView } from "./calendarViewVocabulary";
 
 /**
- * The three things the Calendar branch's period cursor can express.
- * Broader than CalendarViews.tsx's own local view-mode type on purpose:
- * Month (K2/C2b) is a cursor concept this module has to model correctly
- * NOW even though no UI offers it yet — this contract is headless plumbing
- * only (see mission-9's C2a). CalendarViews.tsx keeps passing its own
- * narrower "week" | "day" values in, which TypeScript accepts structurally
- * wherever a `CalendarPeriodView` is expected.
+ * How each view moves and what it anchors on — one row per view, so the
+ * cursor has no catch-all arm anywhere (mission-11/C2).
+ *
+ * `basis` says which of the two offsets the view reads: "day" views render
+ * `addDays(today, dayOffset)`, "month" views go through `monthAnchor`.
+ * `step` is how far ONE Prev/Next tap moves, counted in that same basis —
+ * so Week is 7 days, 3 Day is 3 days, Year is 12 months, and the two
+ * numbers can never describe different units by accident.
+ *
+ * The pair lives in ONE record rather than two, because "steps by 12" and
+ * "anchors on months" are the same fact about Year stated twice, and two
+ * tables can drift into a combination that cannot work (a view stepping
+ * `monthOffset` while rendering `dayOffset` would page without moving).
+ *
+ * `step: 0` is Schedule, and it is a real answer rather than a missing
+ * one: Schedule is a continuous scrolling list, so it has no period to
+ * page between, and CV3 hides the header's arrows for it entirely
+ * (calendar-v2.md's `showArrows`). Stepping it is a no-op — deliberately
+ * NOT the one-day step that this function's old
+ * `view === "week" ? 7 : 1` catch-all would have silently given it, and
+ * given 3 Day too.
  */
-export type CalendarPeriodView = "day" | "week" | "month";
+type ViewCursor = { basis: "day" | "month"; step: number };
+
+const VIEW_CURSOR: Record<CalendarPeriodView, ViewCursor> = {
+  schedule: { basis: "day", step: 0 },
+  day: { basis: "day", step: 1 },
+  threeDay: { basis: "day", step: 3 },
+  week: { basis: "day", step: 7 },
+  month: { basis: "month", step: 1 },
+  // Year deliberately reuses `monthOffset` at 12 per step rather than
+  // introducing a `yearOffset` of its own: `monthOffset ± 12` is exact
+  // integer arithmetic on the counter that already round-trips (see this
+  // file's header), so Year inherits Prev∘Next identity, the December/
+  // January rollover, and `monthAnchor`'s clamping for free — and
+  // `withView("year")` is simply the Month arm. A third offset would have
+  // been a third thing to keep in sync for no new expressive power.
+  year: { basis: "month", step: 12 },
+};
 
 /**
  * A period, expressed as offsets from `today` rather than one committed
@@ -108,28 +139,33 @@ function calendarMonthDiff(a: Date, b: Date): number {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 }
 
-/** The specific calendar day a period currently renders as its anchor —
- * Day/Week just add `dayOffset` days to `today` (unchanged pre-K2
- * behavior); Month goes through `monthAnchor` above. Pure: no `new Date()`
- * with no arguments, no `Date.now()` — `today` is always the caller's. */
+/** The specific calendar day a period currently renders as its anchor.
+ * Which of the two offsets that reads is `VIEW_CURSOR`'s `basis`, never a
+ * `view === "month"` test with a trailing else: the day-basis views
+ * (Schedule/Day/3 Day/Week) add `dayOffset` days to `today`, exactly as
+ * the pre-K2 scalar did, and the month-basis ones (Month/Year) go through
+ * `monthAnchor` above. Pure: no `new Date()` with no arguments, no
+ * `Date.now()` — `today` is always the caller's. */
 export function periodAnchor(period: CalendarPeriod, today: Date): Date {
-  return period.view === "month"
+  return VIEW_CURSOR[period.view].basis === "month"
     ? monthAnchor(today, period.monthOffset, period.monthDay)
     : addDays(today, period.dayOffset);
 }
 
-/** Moves a period one step in `direction` — 7 days for Week, 1 day for
- * Day (both exactly as the pre-K2 `offsetDays` scalar did), or 1 whole
- * calendar month for Month. Month stepping touches ONLY `monthOffset` —
- * `monthDay` is carried through completely untouched, which is what makes
- * a Prev∘Next round trip exact even when an intermediate step clamps (see
- * this file's header). */
+/** Moves a period one step in `direction`, by whatever `VIEW_CURSOR` says
+ * that view's step is — 1/3/7 days for Day/3 Day/Week (Day and Week
+ * exactly as the pre-K2 `offsetDays` scalar did), 1 or 12 months for
+ * Month/Year, and nothing at all for Schedule. Month-basis stepping
+ * touches ONLY `monthOffset` — `monthDay` is carried through completely
+ * untouched, which is what makes a Prev∘Next round trip exact even when an
+ * intermediate step clamps (see this file's header), and is why Year gets
+ * that same exactness for free from `± 12`. */
 export function stepPeriod(period: CalendarPeriod, direction: 1 | -1): CalendarPeriod {
-  if (period.view === "month") {
-    return { ...period, monthOffset: period.monthOffset + direction };
-  }
-  const days = period.view === "week" ? 7 : 1;
-  return { ...period, dayOffset: period.dayOffset + direction * days };
+  const { basis, step } = VIEW_CURSOR[period.view];
+  if (step === 0) return period;
+  return basis === "month"
+    ? { ...period, monthOffset: period.monthOffset + direction * step }
+    : { ...period, dayOffset: period.dayOffset + direction * step };
 }
 
 /**
@@ -152,7 +188,7 @@ export function withView(
 ): CalendarPeriod {
   if (view === period.view) return period;
   const anchor = periodAnchor(period, today);
-  if (view === "month") {
+  if (VIEW_CURSOR[view].basis === "month") {
     return {
       view,
       dayOffset: period.dayOffset,
@@ -211,19 +247,21 @@ export type UseCalendarPeriodResult<V extends CalendarPeriodView> = {
 };
 
 /**
- * The stateful wrapper CalendarViews.tsx actually calls — a thin `useState`
+ * The stateful wrapper useCalendarNavigation calls — a thin `useState`
  * shell around the pure functions above, which is where every property
  * this contract requires is actually proven (see useCalendarPeriod.test.ts;
  * none of it depends on React, so none of it needs a render to verify).
  *
- * Generic over `V` (the caller's OWN view-mode type, e.g.
- * CalendarViews.tsx's local `"week" | "day"`) rather than always returning
- * the broad `CalendarPeriodView` — a caller that hasn't wired up Month yet
- * gets back exactly the narrower type its own switcher/header components
- * already expect, with no cast needed at every call site. The one
- * `as V` below is safe because `setView`'s own parameter type is `V`, so
- * `period.view` can only ever actually hold a `V` value at runtime — this
- * hook never assigns it anything else.
+ * Generic over `V` (the caller's OWN view-mode type) rather than always
+ * returning the broad `CalendarPeriodView`, so a caller that handles only
+ * some of the six views gets back exactly the narrower type its own
+ * switcher/header components expect, with no cast at every call site.
+ * Today's one caller passes the full union — the narrower instantiation
+ * was CalendarViews.tsx's pre-K2 `"week" | "day"`, retired in mission-10/
+ * CV0 when the navigation cluster moved out. The one `as V` below is safe
+ * because `setView`'s own parameter type is `V`, so `period.view` can only
+ * ever hold a `V` value at runtime — this hook never assigns it anything
+ * else.
  *
  * `monthDay`'s initial value (below) is an inert placeholder. `view`
  * becomes "month" through `setView` OR through `jumpTo` (the URL resync in

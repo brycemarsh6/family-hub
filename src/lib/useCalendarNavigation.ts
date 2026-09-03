@@ -35,14 +35,10 @@
 import { useEffect, useRef, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToday } from "./useToday";
-import {
-  useCalendarPeriod,
-  periodAnchor,
-  stepPeriod,
-  withView,
-  type CalendarPeriodView,
-} from "./useCalendarPeriod";
+import { useCalendarPeriod, periodAnchor, stepPeriod, withView } from "./useCalendarPeriod";
 import { buildCalendarSearch, parseDateParam, parseViewParam } from "./calendarPaging";
+import type { CalendarPeriodView } from "./calendarViewVocabulary";
+import { useLastCalendarView, writeLastCalendarView } from "./lastCalendarView";
 import { isSameDay } from "./mealPlanDates";
 
 /**
@@ -86,12 +82,18 @@ export type CalendarNavigation = {
   openDay: (day: Date) => void;
 };
 
-export function useCalendarNavigation(initialView: CalendarPeriodView): CalendarNavigation {
+/**
+ * `defaultView` is the seed: the view the cursor starts on, and the answer
+ * when neither the URL nor this device's stored preference has one. It is
+ * NOT overridden by the preference on the first render on purpose — see
+ * `fallbackView` below.
+ */
+export function useCalendarNavigation(defaultView: CalendarPeriodView): CalendarNavigation {
   const router = useRouter();
   const searchParams = useSearchParams();
   const today = useToday();
   const { view, anchor, period, setView, step, goToToday, jumpTo } =
-    useCalendarPeriod<CalendarPeriodView>(initialView, today);
+    useCalendarPeriod<CalendarPeriodView>(defaultView, today);
 
   // Keyed on VALUES from `searchParams`/`today`, never those objects
   // (mission-9/C8) — `useToday()` returns a FRESH `Date` each call, so
@@ -102,6 +104,22 @@ export function useCalendarNavigation(initialView: CalendarPeriodView): Calendar
   const dateParam = searchParams.get("date");
   const viewParam = searchParams.get("view");
   const todayTime = today === null ? null : today.getTime();
+
+  // What a MISSING "?view=" means on this device: the last view its owner
+  // picked, else `defaultView`. `null` until localStorage is readable (SSR
+  // and the hydration render), which is exactly when `today` is null too,
+  // so nothing below can act on it before it resolves.
+  //
+  // Deliberately NOT in either effect's dependency list. Both already
+  // re-run when `todayTime` flips null -> real, which is the same render
+  // this resolves on (both are useSyncExternalStore reads, checked in the
+  // one post-hydration pass), so the preference is applied the first time
+  // there is anything to reconcile. Adding it as a dependency would make a
+  // picker tap — which writes the preference — re-run the resync effect
+  // MID-PUSH, against a URL that still names the old view: the guard would
+  // read that stale URL as an external navigation and jump the cursor
+  // straight back, which is precisely the C8/C9 drift class CV0 closed.
+  const fallbackView = useLastCalendarView() ?? defaultView;
 
   // THE PUSH GUARD (Vision's compare-and-clear design, mission-9/C8 pass 4;
   // implemented here rather than in CalendarViews.tsx because both K2 gates
@@ -163,7 +181,10 @@ export function useCalendarNavigation(initialView: CalendarPeriodView): Calendar
   const currentSearch =
     todayTime === null
       ? null
-      : buildCalendarSearch(parseViewParam(viewParam), parseDateParam(dateParam) ?? new Date(todayTime));
+      : buildCalendarSearch(
+          parseViewParam(viewParam, fallbackView),
+          parseDateParam(dateParam) ?? new Date(todayTime),
+        );
 
   function navigateTo(nextView: CalendarPeriodView, nextAnchor: Date) {
     const search = buildCalendarSearch(nextView, nextAnchor);
@@ -184,7 +205,7 @@ export function useCalendarNavigation(initialView: CalendarPeriodView): Calendar
   function urlTarget(): { view: CalendarPeriodView; anchor: Date } | null {
     if (todayTime === null) return null;
     return {
-      view: parseViewParam(viewParam),
+      view: parseViewParam(viewParam, fallbackView),
       anchor: parseDateParam(dateParam) ?? new Date(todayTime),
     };
   }
@@ -255,6 +276,11 @@ export function useCalendarNavigation(initialView: CalendarPeriodView): Calendar
   }
 
   function handleSetView(nextView: CalendarPeriodView) {
+    // The one write of the per-device preference: this is the only path a
+    // human deliberately chooses a view on. Written before the early
+    // return below so a pick made while `today` is still resolving is
+    // still remembered.
+    writeLastCalendarView(nextView);
     if (today === null) {
       setView(nextView);
       return;

@@ -3,6 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import { SkeletonBlock } from "@/components/Skeleton";
 import { MonthGridSkeletonRows } from "@/components/MonthLoadingSkeleton";
+import { parseViewParam } from "@/lib/calendarPaging";
+import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 
 // Calendar's own loading.tsx (Next's route-level Suspense fallback, shown
 // while page.tsx's server-side query is still running) — can't be the
@@ -52,27 +54,46 @@ import { MonthGridSkeletonRows } from "@/components/MonthLoadingSkeleton";
 //     yet, see DaySection.tsx's own comment):                82px  -> h-[82px]
 //   gap between day rows:                                    16px  -> gap-4
 //
-// Seven rows for Week/Day because Week is CalendarViews' own default view
-// — the same count its internal today===null hydration placeholder
-// renders (see CalendarViews.tsx) — so this skeleton, that placeholder,
-// and the first resolved render all agree on shape, and any day that
-// turns out to have zero events transitions through all three with no
-// shift at all (see DaySection.tsx's own comment on why that's the
-// honest limit: a day *with* real events genuinely grows once they're
-// known). Month gets its own shape, imported below from
-// src/components/MonthLoadingSkeleton.tsx (mission-10/C3 relocated it out
-// of this file — see that module's own header for why) —
-// mission-9/C8 correction: this file only actually renders on a genuinely
-// FRESH mount (see this file's own C8 comment above), so the case that
-// needs the Month shape is a first visit / reload / external link landing
-// directly on `?view=month`, not Prev/Next/Today paging from inside an
-// already-open Month view, which never re-shows this fallback at all.
-function isMonthView(searchParams: ReturnType<typeof useSearchParams>): boolean {
-  return searchParams.get("view") === "month";
-}
+// WHICH SHAPE, per view — a total `Record`, read through the same
+// `parseViewParam` the app itself uses (mission-11/C2). It used to be a
+// hardcoded `searchParams.get("view") === "month"`, which produced NO
+// compile error when the union widened to six views: Schedule, 3 Day and
+// Year would each have silently taken the seven-row Week shape. Going
+// through `parseViewParam` also means an unbuilt or malformed "?view="
+// gets the same shape the app will actually render for it, because both
+// answers now come from the one `BUILT_VIEWS` table.
+//
+// SEVEN ROWS FOR DAY IS DELIBERATE, and the reason is worth stating
+// because it looks like a bug: a skeleton's job is to match the frame that
+// paints NEXT, and that frame is always CalendarViews' own
+// `today === null` placeholder — which renders SEVEN rows whatever the URL
+// says, because `useCalendarNavigation` seeds the cursor with the default
+// view (Week) and the URL's view lands a tick later (measured in
+// mission-11/C1, identical on the pre-C1 build). A "measured" one-row Day
+// skeleton would therefore ADD a shape jump rather than remove one. Month
+// is the case that argues the other way and is why this file branches at
+// all: its grid is tall enough that the seven-row shape is the worse
+// mismatch of the two.
+//
+// The unbuilt views' rows are unreachable — `parseViewParam` normalizes
+// them away — and each is the Week shape rather than a guess at a view
+// that does not exist. CV3/CV4/CV5 replace their own row with a MEASURED
+// shape in the commit that flips `BUILT_VIEWS`, per calendar-v2.md; this
+// repo has shipped a guessed skeleton twice and both times it was wrong.
+type CalendarSkeletonShape = { dayRows: number } | { monthGrid: true };
+
+const SKELETON_SHAPE: Record<CalendarPeriodView, CalendarSkeletonShape> = {
+  schedule: { dayRows: 7 },
+  day: { dayRows: 7 },
+  threeDay: { dayRows: 7 },
+  week: { dayRows: 7 },
+  month: { monthGrid: true },
+  year: { dayRows: 7 },
+};
 
 export default function Loading() {
   const searchParams = useSearchParams();
+  const shape = SKELETON_SHAPE[parseViewParam(searchParams.get("view"))];
   return (
     <div className="py-2" role="status" aria-label="Loading Calendar">
       <SkeletonBlock className="h-8 w-32" />
@@ -89,11 +110,11 @@ export default function Loading() {
           <SkeletonBlock className="h-11 w-11" />
         </div>
 
-        {isMonthView(searchParams) ? (
+        {"monthGrid" in shape ? (
           <MonthGridSkeletonRows />
         ) : (
           <div className="flex flex-col gap-4">
-            {Array.from({ length: 7 }, (_, index) => (
+            {Array.from({ length: shape.dayRows }, (_, index) => (
               <SkeletonBlock key={index} className="h-[82px] w-full" />
             ))}
           </div>
