@@ -9,9 +9,11 @@
 // `toLocalDateString`'s test is MOVED here from monthLayout.test.ts (per
 // mission-9's C2a contract, explicitly authorized) — this is its proper
 // permanent home, since the function it tests is declared in THIS file, not
-// monthLayout.ts. `calendarDayDiff`'s test stays in monthLayout.test.ts:
-// calendarDates.test.ts is at its 350-line soft cap, and moving that one
-// test isn't in this contract's scope.
+// monthLayout.ts. The same move has since been made for the other adopted
+// test: `calendarDayDiff`'s test went home to calendarDates.test.ts in
+// mission-10's C2, which split that file by concern (266 lines now, well
+// under the 350-line soft cap that had been the reason for the adoption) and
+// emptied STRUCTURE.md's adoption-clause list.
 //
 // isSameMonth/formatMonthTitle are new exports added by this same contract
 // (Month view vocabulary Captain's C1 pass-1 gate flagged as missing —

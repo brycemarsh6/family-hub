@@ -21,16 +21,18 @@
 //   functions useCalendarPeriod uses internally, update local state, push a
 //   matching navigation, all in one function — see `navigateTo`.
 //
-//   URL -> LOCAL, via the one effect below: re-points the cursor with
-//   `jumpTo` only when the URL names something local state doesn't already
-//   match — a deep link, a reload, or Back/Forward.
+//   URL -> LOCAL, via two effects below: the resync effect re-points the
+//   cursor with `jumpTo` when the URL names something local state doesn't
+//   already match — a deep link, a reload, or Back/Forward — and the settle
+//   effect reconciles again once the router reports it has finished, which
+//   is the one moment the first effect cannot see (see the guard's (c)).
 //
 // WHO DECIDES WHAT: the SERVER (calendar/page.tsx) only ever turns "?date="
 // into a fetch WINDOW — a range, never a decided day (calendarPaging.ts's
 // header). WHICH day is "today", and which day each event card renders
 // under, is decided here in the browser, from useToday().
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToday } from "./useToday";
 import {
@@ -131,14 +133,29 @@ export function useCalendarNavigation(initialView: CalendarPeriodView): Calendar
   // Prev push and leave the cursor and the URL disagreeing with nothing left
   // in flight to fix it.
   //
-  // RESIDUAL, stated rather than hidden: a push the router discards (a newer
-  // one supersedes it before it commits) leaves its string in the list until
-  // the next sync or the next mismatch clears it. While it sits there a Back
-  // to that exact search would be consumed as "ours" and skipped. It is much
-  // narrower than the counter's drift — guard (a) means only a real,
-  // superseded navigation can leave one, where the counter leaked on every
-  // re-pick — and any in-sync render empties the list.
+  //   (c) the SETTLE effect below. (b) alone still inherited the counter's
+  //       real defect, because both reconcile only when the URL's PARAMS
+  //       change: two fast taps in opposite directions (Next then Prev, the
+  //       ordinary "wrong way, correct it" double-tap) push two searches that
+  //       cancel out, so the URL never changes, so the effect never runs, so
+  //       both strings sit in the list forever — and the next Back that lands
+  //       on one of them is consumed as "ours" and swallowed, leaving the
+  //       cursor and the URL disagreeing with nothing in flight to fix it.
+  //       Reproduced against the real app (mission-10/C4, Vision pass 1) and
+  //       confirmed to be a regression against the pre-extraction build.
+  //       The missing signal is "the router has finished", which is not the
+  //       same event as "the params changed" — see the settle effect.
   const pushed = useRef<string[]>([]);
+
+  // Each push is made inside a transition purely so this flag exists.
+  // MEASURED, not assumed (the Next 16.2.12 / React 19.2.4 docs are silent on
+  // it): `router.push` called inside `startTransition` keeps `isPending` true
+  // until the navigation actually commits — a slow single Next holds it true
+  // from the click to the very render where `dateParam` changes, and a fast
+  // Next-then-Prev whose params cancel out holds it true across BOTH pushes
+  // and then drops it on a render where the params never changed at all.
+  // That last edge is precisely the one (b) could not see.
+  const [isNavigating, startNavigation] = useTransition();
 
   // The search string the URL currently names, normalized through the same
   // parse/build pair the effect uses, so "?view=day" and
@@ -153,26 +170,72 @@ export function useCalendarNavigation(initialView: CalendarPeriodView): Calendar
     const heading = pushed.current.at(-1) ?? currentSearch;
     if (search === heading) return;
     pushed.current = [...pushed.current, search];
-    router.push(`/calendar?${search}`);
+    startNavigation(() => {
+      router.push(`/calendar?${search}`);
+    });
+  }
+
+  // What the URL currently names, and whether the cursor is already there.
+  // Read by BOTH effects below so they can never drift apart on the one
+  // question they both have to answer the same way. Recomputed per call
+  // rather than memoised because `targetAnchor` is a fresh Date every time —
+  // keeping it out of any dependency array is the same C8 value-keying rule
+  // the effect deps follow.
+  function urlTarget(): { view: CalendarPeriodView; anchor: Date } | null {
+    if (todayTime === null) return null;
+    return {
+      view: parseViewParam(viewParam),
+      anchor: parseDateParam(dateParam) ?? new Date(todayTime),
+    };
+  }
+
+  function isInSyncWith(target: { view: CalendarPeriodView; anchor: Date }) {
+    return anchor !== null && view === target.view && isSameDay(anchor, target.anchor);
   }
 
   useEffect(() => {
-    if (todayTime === null) return;
-    const targetView = parseViewParam(viewParam);
-    const targetAnchor = parseDateParam(dateParam) ?? new Date(todayTime);
-    const inSync = anchor !== null && view === targetView && isSameDay(anchor, targetAnchor);
-    if (inSync) {
+    const target = urlTarget();
+    if (target === null) return;
+    if (isInSyncWith(target)) {
       pushed.current = [];
       return;
     }
     const { ours, remaining } = consumePushedSearch(
       pushed.current,
-      buildCalendarSearch(targetView, targetAnchor),
+      buildCalendarSearch(target.view, target.anchor),
     );
     pushed.current = remaining;
-    if (!ours) jumpTo(targetAnchor, targetView);
+    if (!ours) jumpTo(target.anchor, target.view);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateParam, viewParam, todayTime]);
+
+  // THE SETTLE EFFECT — ordered after the resync effect on purpose, so that on
+  // a render where both run, the reconciliation above has already had its say.
+  //
+  // Nothing is in flight here, so nothing is left to guard: the list is
+  // emptied unconditionally (that is the whole fix — a push whose params
+  // cancelled another one out can no longer sit there and swallow a later
+  // Back), and the URL, being the source of truth, wins any disagreement.
+  //
+  // While `isNavigating` is TRUE this does nothing, which is what keeps the
+  // double-tap fix intact: the second tap's push starts its own transition
+  // before the first one's commit renders, so the flag never dips between two
+  // taps of a burst, and the resync effect's "this URL is our own late push,
+  // don't follow it" rule is still the one in charge.
+  //
+  // RESIDUAL, stated rather than hidden: a navigation that never settles at
+  // all (a push the router never resolves) leaves `isNavigating` true and the
+  // list unemptied — the behaviour this fix replaced, no worse. Nothing
+  // observed doing that; every burst measured settled within ~300ms.
+  useEffect(() => {
+    if (isNavigating) return;
+    const target = urlTarget();
+    if (target === null) return;
+    pushed.current = [];
+    if (isInSyncWith(target)) return;
+    jumpTo(target.anchor, target.view);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNavigating, dateParam, viewParam, todayTime]);
 
   // `nextPeriod`/`nextAnchor` below use the SAME pure functions the cursor
   // uses internally, rather than waiting a render to read `anchor` back, so

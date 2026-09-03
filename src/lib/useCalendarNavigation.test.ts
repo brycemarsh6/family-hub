@@ -7,6 +7,17 @@
 // What each case pins is the failure the counter version had: a URL that is
 // one of our own late-arriving pushes must NOT re-point the cursor, and
 // nothing may be left behind afterwards that could swallow a later Back.
+//
+// WHAT THESE CASES STRUCTURALLY CANNOT SEE, so nobody reads a green run as
+// more than it is: every one of them assumes the reconciliation RAN. The
+// blocker mission-10's C4 fixed was that it doesn't — two fast taps in
+// opposite directions leave the URL's params unchanged, so the effect keyed
+// on those params never fires, and a correct answer nobody asks for is worth
+// nothing. That failure lives in effect scheduling, not in this function, and
+// the fix for it (the settle effect, keyed on a `useTransition` pending flag)
+// needs a router and a real navigation to exercise. It is verified in the
+// running app instead — the reproduction and its before/after are recorded in
+// the C4 contract — and this file deliberately does not pretend to cover it.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -32,9 +32,15 @@ function NoEventsCard() {
  * fetched for that day still render alongside this notice below, not
  * instead of it. Genuinely reachable in ordinary navigation, not just a
  * stray view-switch edge case: the closest day of a reachable Week/Day
- * period can itself be only partially loaded even while CalendarViews
- * correctly refuses to page one period further (see calendarDates.ts's
- * `canStepToPeriod`) — confirmed live at both the forward and back edges.
+ * period can itself be only partially loaded, because its local END can run
+ * past windowEnd even when its start is comfortably inside — confirmed live
+ * at both the forward and back edges. It became MORE reachable, not less,
+ * once mission-9's C6 made paging unbounded: the arrows are never disabled
+ * at the fetched window's edges any more, so the cursor can outrun the
+ * window while the next fetch is in flight. (This paragraph used to cite
+ * calendarDates.ts's `canStepToPeriod` as the refusal-to-page rule that
+ * bounded the case; that wall is what C6 retired, and mission-10/CV0
+ * deleted the now-dormant predicate itself.)
  *
  * Deliberately NOT NoEventsCard's dashed-and-crisp look (mission-8's
  * Strange pass-2 finding): seven visually-identical dashed cards on a
