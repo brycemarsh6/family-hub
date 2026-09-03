@@ -34,11 +34,21 @@ import type { CalendarEventView } from "@/lib/types";
 
 /**
  * The per-view differences the shell itself has to know about, as one row
- * per view rather than a ternary per difference (mission-10/CV0). Typed as
- * a total `Record`, so widening `CalendarPeriodView` for Schedule / 3 Day /
- * Year (CV1) is a compile error until each one has a row here — which is
- * the point: a new view ADDS A ROW, it doesn't add a branch to three
- * separate expressions that can then disagree.
+ * per view rather than a ternary per difference (mission-10/CV0, completed
+ * in mission-11/C1). Typed as a total `Record`, so widening
+ * `CalendarPeriodView` for Schedule / 3 Day / Year is a compile error until
+ * each one has a row here — which is the point: a new view ADDS A ROW, it
+ * doesn't add a branch to several separate expressions that can then
+ * disagree.
+ *
+ * That claim was only two-fifths true when CV0 first wrote it. `title`,
+ * `days` and `isCurrentPeriod` stayed behind as ternaries in the component
+ * body, each ending in a catch-all `: <day behaviour>` — so a new view
+ * name compiled clean and silently rendered a Day title over a single-day
+ * array (Captain's CV0 Ruling 2; the same catch-all-else hazard
+ * `useCalendarPeriod.stepPeriod` carries). All five per-view differences
+ * live here now, so the sentence above is true of every one of them rather
+ * than of the two labels.
  */
 type ViewConfig = {
   prevLabel: string;
@@ -52,12 +62,58 @@ type ViewConfig = {
    * actually reached.
    */
   placeholderCount: number;
+  /**
+   * The header title. Takes `anchor` only: no view's title depends on what
+   * day it is today, and a parameter nothing uses would be a promise the
+   * rows don't keep. The component still withholds the title until `today`
+   * resolves (that's the loading frame, below) — widening this to
+   * `(anchor, today)` is a one-line change here if a view ever wants to say
+   * "Today" instead of a date.
+   */
+  title: (anchor: Date) => string;
+  /**
+   * Which days the shell renders as DaySections. Month's row returns its
+   * anchor day for honesty about where the period is pointed, but nothing
+   * reads it: Month renders MonthGrid, which builds its own 42-day grid
+   * from `anchor` (monthLayout.ts's `monthGridDays`).
+   */
+  days: (anchor: Date) => Date[];
+  /** Whether the cursor is parked on the period containing `today` — what
+   * greys out the header's Today circle. */
+  isCurrentPeriod: (anchor: Date, today: Date) => boolean;
 };
 
+// Each row derives its own week start with `sundayOf(anchor)` rather than
+// taking one computed once in the component. It is a clone-and-setDate, so
+// the repeat costs nothing measurable, and it keeps every row readable on
+// its own terms — no row is handed a value only Week uses, and none has to
+// deal with the `null` that a component-level `weekStart` carries while
+// `today` is still resolving.
 const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
-  week: { prevLabel: "Previous week", nextLabel: "Next week", placeholderCount: 7 },
-  day: { prevLabel: "Previous day", nextLabel: "Next day", placeholderCount: 1 },
-  month: { prevLabel: "Previous month", nextLabel: "Next month", placeholderCount: 1 },
+  week: {
+    prevLabel: "Previous week",
+    nextLabel: "Next week",
+    placeholderCount: 7,
+    title: (anchor) => formatWeekRange(sundayOf(anchor)),
+    days: (anchor) => daysOfWeek(sundayOf(anchor)),
+    isCurrentPeriod: (anchor, today) => isSameDay(sundayOf(anchor), sundayOf(today)),
+  },
+  day: {
+    prevLabel: "Previous day",
+    nextLabel: "Next day",
+    placeholderCount: 1,
+    title: (anchor) => formatDayLabel(anchor),
+    days: (anchor) => [anchor],
+    isCurrentPeriod: (anchor, today) => isSameDay(anchor, today),
+  },
+  month: {
+    prevLabel: "Previous month",
+    nextLabel: "Next month",
+    placeholderCount: 1,
+    title: (anchor) => formatMonthTitle(anchor),
+    days: (anchor) => [anchor],
+    isCurrentPeriod: (anchor, today) => isSameMonth(anchor, today),
+  },
 };
 
 const VIEW_OPTIONS: { value: CalendarPeriodView; label: string }[] = [
@@ -125,36 +181,17 @@ export function CalendarViews({
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
 
   const config = VIEW_CONFIG[view];
-  const weekStart = anchor === null ? null : sundayOf(anchor);
-  // Week/Day only — Month builds its own 42-day grid from `anchor` inside
-  // MonthGrid (monthLayout.ts's `monthGridDays`), not from this list.
-  const days =
-    view === "week"
-      ? weekStart === null
-        ? []
-        : daysOfWeek(weekStart)
-      : anchor === null
-        ? []
-        : [anchor];
+  // The null-guards below are about `today` not having resolved yet — NOT
+  // about which view is active, which is why they stay here rather than
+  // moving into VIEW_CONFIG (every row would carry the same null check).
+  // `anchor` is null exactly while `today` is (useCalendarPeriod derives one
+  // from the other), so guarding both is belt-and-braces, not two cases.
+  const days = anchor === null ? [] : config.days(anchor);
 
   const isCurrentPeriod =
-    today !== null &&
-    anchor !== null &&
-    weekStart !== null &&
-    (view === "week"
-      ? isSameDay(weekStart, sundayOf(today))
-      : view === "month"
-        ? isSameMonth(anchor, today)
-        : isSameDay(anchor, today));
+    today !== null && anchor !== null && config.isCurrentPeriod(anchor, today);
 
-  const title =
-    today === null || anchor === null || weekStart === null
-      ? null
-      : view === "week"
-        ? formatWeekRange(weekStart)
-        : view === "month"
-          ? formatMonthTitle(anchor)
-          : formatDayLabel(anchor);
+  const title = today === null || anchor === null ? null : config.title(anchor);
 
   return (
     <div>

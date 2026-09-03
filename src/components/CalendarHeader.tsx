@@ -2,6 +2,7 @@
 
 import { CalendarCheck, CalendarRange, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
+import type { CalendarPeriodView } from "@/lib/useCalendarPeriod";
 
 /**
  * The Calendar branch's header row: the Today/view-switcher/Add circles,
@@ -41,7 +42,11 @@ export function CalendarHeader({
   canManage,
   onAdd,
 }: {
-  view: "week" | "day" | "month";
+  /** The real union, imported rather than hand-written (mission-11/C1) —
+   * the local copy that used to sit here was a second place the view
+   * vocabulary lived, and it disagreed with `CalendarPeriodView` the moment
+   * anything widened the type. */
+  view: CalendarPeriodView;
   onPickView: () => void;
   /** False while useToday() hasn't resolved yet — see CalendarViews.tsx. */
   todayResolved: boolean;
