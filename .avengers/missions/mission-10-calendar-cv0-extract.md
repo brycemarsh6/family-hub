@@ -196,7 +196,60 @@ Boundary map, so no two builders touch one file:
 - **Done criteria:** the above, plus `git diff --stat` shows only owned files.
 
 ### C3 — The C4 repairs: one `hexToRgba`; the skeleton relocated; `new/page.tsx` validates semantically (Sonnet)
-- **Status:** PENDING
+- **Status:** ✅ **DONE.** One `hexToRgba` (new pure `src/lib/color.ts`, no
+  `server-only`, 3 tests); both `MonthLoadingSkeleton` **and**
+  `MonthGridSkeletonRows` relocated to `src/components/` with their measured
+  heights intact (`loading.tsx` 160 → **104**); `new/page.tsx` routed through
+  `parseDateParam`. Gauntlet green, **183/183** both timezones, every file
+  under cap.
+- **The no-visual-change proof, done well without a browser.** This
+  environment gave the builder no browser tool, so it extracted the *pre-C3*
+  `EventCard.tsx`/`MonthCell.tsx` from commit `616d190`, rendered old and new
+  side by side through `react-dom/server` with identical props, and diffed
+  the inline `style` strings — the same value `getComputedStyle` would report,
+  since the code deliberately overrides any class-based background. Both
+  identical:
+  `background:linear-gradient(135deg, rgba(65,112,140,0.1) 0%, … ), var(--surface)`.
+  A colour refactor that silently shifts an alpha is exactly what this
+  catches, and it found a way to catch it with the tools it had.
+- **`?date=` verified at the RSC payload, not inferred:** `2026-02-30` →
+  `initialDateISO:"$undefined"` (falls back to today); `2026-09-15` →
+  `"2026-09-15"`. Confirmed by `curl` + grep.
+
+## ⚠️ Fury's error, recorded: `git add -A` swept a builder's in-flight work
+
+Commit `a28f535` was meant to be CLAUDE.md + AGENTS.md documentation. Fury
+staged it with **`git add -A`** while C3 was mid-write, so it swept in seven
+of C3's files plus two of its throwaway verification scripts. C3 caught this,
+correctly **did not rewrite a commit that wasn't its own**, and removed the
+strays in a clearly-labelled follow-up (`38f9a59`).
+
+**Not being fixed by history rewrite** — the branch is pushed, the *tree* is
+correct, and everything passes; rewriting is riskier than the mess. **The
+habit changes instead: while parallel builders are running, Fury stages by
+explicit path (`git add .avengers/ CLAUDE.md AGENTS.md`), never `-A`.**
+Fury had been using scoped adds earlier in the session and reached for `-A`
+on the documentation commit out of convenience. Same class as the K2
+danger-register edit that was announced and then lost: the small convenience
+that quietly costs correctness.
+
+## Two things the gates should know before they run
+
+1. **The `calendarEvent` baseline is now 4, not 3.** C3 read 4 on its first
+   read-only query, before any writes, and made none. Almost certainly Bryce
+   using the app himself — he has been adding real events all session, and one
+   of the four reads as a genuine household entry. **Gates should restore to
+   4, not 3**, and must not delete an event they did not create. `user` is 5,
+   unchanged.
+2. **A register slip to not repeat.** C3's report quoted a real family event's
+   title back into its transcript while explaining the count discrepancy. The
+   register says do not print personal rows; "isolation is not privacy" covers
+   titles as much as hashes. Harmless here (a local transcript, Bryce's own
+   data) and it was in service of an honest flag — but the right shape is
+   "one of the four looks like a real entry", without the title. Worth a line
+   in future gate briefs.
+3. `prisma/tmp-c1/` holds a still-running builder's scratch (`mint-cookie.ts`,
+   `probe.ts`). Leave it until C1 reports; it is gitignored.
 - **Objective:** three one-source-of-truth fixes K2's Captain queued and two
   gates independently asked for.
   1. **Hoist `hexToRgba`** — byte-identical bodies at `MonthCell.tsx:35` and
