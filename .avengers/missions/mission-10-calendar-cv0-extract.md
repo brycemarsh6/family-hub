@@ -1,7 +1,7 @@
 # Mission: Calendar CV0 — extract the navigation cluster; split the test file; the C4 repairs
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES — all three contracts DONE and committed; Vision and Captain not yet dispatched (2026-09-02)
+**Status:** ✅ **DELIVERED** 2026-09-03 — four contracts, both gates PASS, gauntlet green, pushed
 **Started:** 2026-09-02 · **Updated:** 2026-09-02
 **Plan:** `.avengers/plans/calendar-v2.md` — phase CV0 (the prerequisite for everything after it)
 **Branch:** `claude/calendar-cv0-extract`, stacked on `claude/calendar-k2-month` (PR #10, unmerged)
@@ -446,6 +446,7 @@ that quietly costs correctness.
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Vision | **BLOCK** | 1 | C1/C2/C3 pass every check except one guard bug; fix contract C4 written |
+| 2 | Vision | **PASS** | 0 | blocker RESOLVED and proven *fixed*, not merely unreachable — throttled-network sweep closes the production concern |
 | 1 | Captain | **PASS** | 0 | `VIEW_CONFIG` totality proven by compiler; 12 findings, most-actionable: only 2/5 per-view differences are in the table |
 
 **⚠️ 2026-09-03 — the gates could not run: an Anthropic-side incident, not a
@@ -693,6 +694,58 @@ pushing — accepts the old transient flash in that one case only.
   CV0 stacks on #10 regardless. **This is the step that puts the Calendar in
   front of Emily** — surface it again when CV0 delivers.
 
+## Vision, pass 2 — PASS (0 blockers, 3 notes). Blocker RESOLVED.
+
+Re-derived every claim on its own harness against three live servers (fixed
+HEAD, pre-fix, and base `bcc23cb`). S2 gap sweep matched C4's table exactly:
+pre-fix disagrees at 5/20/40/80/120ms, **fixed and base agree at every gap**
+with no compounding on a second Back. Double-tap sampler unregressed (3
+titles fixed, 5 with the flash on base). 35-step trace re-derived from a
+fresh pinned worktree — **md5-identical, diff 0 lines** — with its own
+positive control (flipping a Prev→Next moved 203 lines and changed the md5;
+reverting restored it, proving the harness genuinely sees the hook).
+
+### The check that answers Fury's question — fixed, not merely unreachable
+
+Fury asked whether the blocker was genuinely fixed or just out of reach on
+this hardware, since Vercel's RSC round trip is slower than localhost and
+would *widen* the window. Vision tested it directly under **CDP throttling
+(400ms latency, CPU 1×/4×, gaps out to 1200ms)**:
+
+> pre-fix's disagreement window **widens** — now failing through gap 250,
+> confirming the production concern — **and the fixed build is `agree=true`
+> at every gap under every profile.**
+
+**The wider-in-production risk is closed, not merely local.** Mid-flight
+interruptions (Back@50ms, view-switch@40ms, Today@40ms) all agree on the
+fixed build.
+
+### The stated residual, tested rather than accepted
+
+Vision held the RSC fetch open with CDP `Fetch` interception. A hung push is
+*superseded* by the next navigation (Next's own action queue marks it
+`discarded`), so `isNavigating` drops on the superseding action and the
+settle effect stays live — a net-zero burst after a hung-then-superseded push
+still lands `agree=true` on fixed, `agree=false` on pre-fix. Only a **lone**
+push whose fetch never resolves and is never superseded pins `isNavigating`,
+leaving the list unemptied — i.e. today's pre-fix behaviour, **no worse**,
+exactly as the code comment claims.
+
+### Notes
+
+- **Concurs that adding no unit test was correct, not a coverage gap** — the
+  defect is effect scheduling, needs a real router, and there is no test
+  renderer or jsdom in devDependencies. The test header's statement of what
+  the six `consumePushedSearch` cases structurally cannot see is "an honest
+  limit, verified in the running app instead."
+- Corrected comments verified truthful against the code, not just re-read:
+  `DaySection.tsx:37`'s claim that arrows are never disabled matches
+  `CalendarViews.tsx:170-171` binding them to `today === null` only.
+- Vision's own literal-S1 harness flaked on warm-up (a CDP target bug in its
+  driver, not app behaviour) — flagged as an instrument artifact rather than
+  left to look like a finding. S1's only role was to show the defect doesn't
+  enter by that path here; the verdict rests on S2.
+
 ## Handoff log
 
 - 2026-09-02 — Mission opened by Fury from `calendar-v2.md` CV0, immediately
@@ -766,6 +819,50 @@ before continuing.
 
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
-- **Deliberate leftovers:** —
+- **Shipped:** CV0 — the extraction Calendar v2 could not start without.
+  `CalendarViews.tsx` **350 → 267** with the URL↔cursor cluster in
+  `useCalendarNavigation.ts`; per-view differences in a total `Record` whose
+  totality is **compiler-proven**, so CV1 cannot add a view without adding a
+  row. `calendarDates.test.ts` **349 → 266** split by concern with
+  `calendarDayDiff`'s test home and STRUCTURE.md's adoption list emptied.
+  One `hexToRgba`; the Month skeleton out of the route-segment file, closing
+  the last plausible `components → app/` arrow; `new/page.tsx` no longer
+  accepts `2026-02-30`. Two dormant exports deleted under the rule that
+  deletion first tested. **Net duplication fell for the first time in this
+  arc.**
+- **Contracts:** 4 — C1, C2, C3 built in parallel on disjoint boundaries;
+  C4 the fix for Vision's blocker.
+- **Gate passes:** 3. Captain PASS (pass 1, 12 notes). Vision BLOCK then
+  **PASS**. The blocker was real and worse than what it replaced: the guard
+  could swallow a Back and settle with cursor and URL permanently
+  disagreeing, compounding — a regression against the branch base on an
+  ordinary correcting double-tap.
+- **Gauntlet on the delivered head:** tsc 0, eslint 0, **182/182 under
+  `npm test` and the direct `TZ=UTC` invocation**, build 0. Every file under
+  the 350 cap.
+- **Shipped check:** `git log origin/claude/calendar-cv0-extract..HEAD` →
+  **0 local-only commits**. Branch pushed. Database at baseline
+  (`calendarEvent` 4, `user` 5).
+- **Deliberate leftovers, routed not dropped:**
+  - **CV1's first order of business (Captain, Ruling 2):** `VIEW_CONFIG`
+    covers only **2 of 5** per-view differences — `title`, `days` and
+    `isCurrentPeriod` are still ternaries with silent catch-all arms, proven
+    by probe to compile clean for a new view and render Day behaviour.
+    Promote them to `(anchor, today) => …` fields so the totality check
+    covers everything, while the file is at its smallest.
+  - **CV1 also owns:** `loading.tsx:71`'s hardcoded `=== "month"` (no
+    compile error on a wider union — the three new views would silently get
+    the Week skeleton); `CalendarHeader.tsx:44`'s hand-written view union
+    (a compile tripwire, so CV1 is forced to touch it anyway); and
+    `MonthLoadingSkeleton`, the wrapper, which reaches the dormant-export
+    two-mission threshold at CV1's end — delete or give it a dated expiry.
+  - **CT1 must fix `EventForm.tsx:61`'s `daysBetween`** — still walks
+    forward unconditionally, so a backward pair **never terminates**. The one
+    deferred duplication that is also a live hang. CT1 owns that file.
+  - `calendarDates.ts:84`'s export rationale names the wrong file
+    (`CalendarViews.tsx` never had a `daysBetween`; it's in `EventForm.tsx`).
+  - **A danger-register line Captain proposed and Fury has not yet
+    written:** never `git add -A` while another agent may be writing — stage
+    by explicit path. Captain deliberately refused to make this a
+    STRUCTURE.md rule, on the ground that gating commit graphs rather than
+    trees would let a mission with a correct tree BLOCK on history.
