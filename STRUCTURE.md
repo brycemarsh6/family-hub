@@ -186,6 +186,21 @@ Adding a second definition of any of these is a BLOCKER:
     (day/span math) and `calendarDatesFormat.test.ts` (label formatting) and
     sent `calendarDayDiff`'s test home from `monthLayout.test.ts`.)
 
+- **A lib export with no application caller is dormant, not dead — but it
+  must say so.** Keeping one is allowed when a named future consumer
+  justifies it; the export carries a comment naming why it is dormant and
+  what would revive it, and any function it in turn orphans carries the same
+  note at its own definition. **Two consecutive missions with no caller means
+  delete it and its tests** — a hypothetical consumer that never arrives is
+  not a reason to maintain code. (Added 2026-09-03 on Captain's ruling,
+  missions 9–10.) One refinement from its first application: prefer deletion
+  outright when the dormant code describes behaviour the app **no longer
+  has**, rather than behaviour merely unused — a dormant-export comment would
+  then preserve a wrong answer for a future reader, which is the
+  overclaiming-comment failure this repo tracks. `periodWindowEdges` was the
+  retired navigation wall; deleting it removed both the code and that future
+  wrong answer.
+
 ## Naming
 
 - Components: `PascalCase.tsx`, flat in `src/components/`.

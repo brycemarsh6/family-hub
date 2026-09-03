@@ -337,12 +337,58 @@ that quietly costs correctness.
   before/after `background` strings, both counts.
 - **Done criteria:** the above; `git diff --stat` shows only owned files.
 
+### C4 — Fix contract: the guard's settle-blind spot (Vision's BLOCKER)
+- **Status:** PENDING
+- **Objective:** the compare-and-clear guard in `useCalendarNavigation.ts`
+  leaves a stale `pushed` entry whenever a push produces no URL change, and
+  that entry then swallows a later, legitimate Back — reproduced on a
+  human-reachable fast-Next-then-Prev-then-Back sequence, where it settles
+  with the cursor and URL **permanently disagreeing** and compounds on a
+  second Back. This is a regression against the pre-C1 branch base on that
+  exact sequence.
+- **Boundaries:** `src/lib/useCalendarNavigation.ts` and its test file only.
+  **Also fix, same dispatch (Vision's suggestion):** the two stale comments
+  at `src/components/DaySection.tsx:37` and
+  `src/lib/mealPlanDates.test.ts:12-14` — both in files this contract does
+  not otherwise touch, comment-only, zero runtime effect, and cheaper to
+  land now than to carry to a future CV1 contract that would exist only for
+  them.
+- **First step, before writing any fix:** check
+  `node_modules/next/dist/docs` (per AGENTS.md) for whether `useTransition`'s
+  `isPending` tracks `router.push` in this repo's Next version — Vision
+  offered the fix but explicitly did not verify this.
+- **If it tracks:** wrap the push in `useTransition`; add a second effect,
+  ordered after the existing URL-resync effect, that runs once `!isPending`
+  — clear `pushed`, then apply the same in-sync check the resync effect
+  uses; if not in sync, `jumpTo` the URL's own anchor/view, since the URL is
+  the source of truth once nothing is in flight.
+- **If it does not track:** the narrower fallback — in `navigateTo`, when
+  the normalized next search equals the current search (a push returning to
+  the URL already shown), clear `pushed` **before** pushing. Accepts the old
+  transient revert flash in that one case only; state this residual in the
+  comment.
+- **Must not regress what the guard already fixed:** the 60ms double-tap
+  sampler must still read three distinct titles with no revert
+  (`["Aug 30 – Sep 5","Sep 6–12","Sep 13–19"]`), not the base build's
+  five-entry flash.
+- **Verification:** Vision's exact reproduction — fast Next+Prev 40ms apart
+  then Back lands with title and URL agreeing; a further slow Next then
+  Back also agrees; the 60ms double-tap sampler unregressed; **the 35-step
+  sequential trace (Vision's version, pinned at `bcc23cb`) still diffs
+  empty**. Full gauntlet, both timezones, 182 baseline unchanged (comment
+  fixes move no test count).
+- **Evidence required:** the Next-docs check's outcome, quoted; before/after
+  of Vision's exact repro sequence; the double-tap sampler output; the trace
+  diff; both timezone counts.
+- **Done criteria:** all of the above; `grep` confirms both stale comments
+  corrected.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | **NOT RUN** | — | 3 dispatches killed by API 529 (Fable ×2, Opus ×1) |
-| 1 | Captain | **NOT RUN** | — | 2 dispatches killed by API 529 (Opus ×2) |
+| 1 | Vision | **BLOCK** | 1 | C1/C2/C3 pass every check except one guard bug; fix contract C4 written |
+| 1 | Captain | **PASS** | 0 | `VIEW_CONFIG` totality proven by compiler; 12 findings, most-actionable: only 2/5 per-view differences are in the table |
 
 **⚠️ 2026-09-03 — the gates could not run: an Anthropic-side incident, not a
 finding.** Five dispatches died on HTTP 529 *Overloaded* before reporting.
@@ -369,6 +415,225 @@ the conclusion had been drawn from two data points.
 
 Budget: 3 passes per gate, then STOP and surface. (K2 spent every pass; the
 extra round was Bryce's explicit call, not a precedent.)
+
+## Captain, pass 1 — PASS (0 blockers, 12 notes). This mission was largely its own work; it audited itself.
+
+Gauntlet re-run independently: tsc 0, eslint 0, **182/182 both timezones**,
+build 0. Boundary audit clean across all three contracts — every
+must-not-touch file byte-identical to K2 head, no two contracts touched one
+file, no strays.
+
+### The load-bearing check: `VIEW_CONFIG`'s totality, proven by compiler
+
+Captain widened `CalendarPeriodView` in a scratch edit and ran `tsc`:
+```
+error TS2741: Property 'schedule' is missing in type '{ week; day; month }'
+  but required in type 'Record<CalendarPeriodView, ViewConfig>'.
+```
+Reverted, tree clean again. **The promise is real** — CV1 cannot widen the
+union without adding a row.
+
+### ⚠️ But the table covers only 2 of 5 per-view differences
+
+`VIEW_CONFIG` holds `prevLabel`/`nextLabel`/`placeholderCount`. Three more
+still live as ternaries in `CalendarViews.tsx`'s body — `days` (:131),
+`isCurrentPeriod` (:140), `title` (:150) — each with a trailing `: <day
+behaviour>` catch-all arm. Captain's probe proved **none of the three
+errored** when the union widened: a `schedule` view compiles clean and
+silently renders a Day title and a single-day array. **This is `stepPeriod`'s
+catch-all-else hazard, reproduced one file over** — the exact class
+`calendar-v2.md` already names as requiring explicit arms.
+
+The file's own comment (:98) claims "adding a view means adding a row to
+VIEW_CONFIG rather than another handler" — true of 2 differences, false of 3.
+Twelfth instance of this repo's overclaiming-comment class, and — Captain's
+framing — this one should be closed by fixing the *code*, not the comment,
+since the recommendation below makes the claim true rather than merely
+correcting it.
+
+**Recommended for CV1, cheap now, expensive at six views:** promote `title`,
+`days`, `isCurrentPeriod` into `ViewConfig` as `(anchor, today) => …` fields.
+Then the totality check covers every per-view difference, not two of five.
+
+### The one-source-of-truth ledger — net duplication fell for the first time in this arc
+
+| | at K2 | now |
+|---|---|---|
+| `hexToRgba` | 2 copies | **1** — collapsed |
+| `toDateInputValue` | 2 | 2 — deferred (`EventForm.tsx`, `PantryItemEditSheet.tsx`) |
+| `daysBetween` vs `calendarDayDiff` | 2 | 2 — deferred, **still hangs on `b < a`** |
+| view vocabulary (new to the ledger) | — | 2 (`CalendarHeader.tsx:44`'s hand-written union) |
+| created by CV0 | — | **none** |
+
+**`EventForm.tsx:61`'s `daysBetween` still carries the infinite loop** — it
+walks forward unconditionally, so a backward pair never terminates. Correctly
+untouched (must-not-touch, 350/350) but **CT1 must fix it there**; it's the
+one deferred duplication that's also a live hang, not just drift.
+
+### The dormant-export rule, applied for the first time: deletion was the right branch, and Captain refined why
+
+Not simply "two missions, no caller." `periodWindowEdges` **was** the
+navigation wall; C6 retired walls entirely; a comment-and-expiry would have
+preserved a predicate describing behaviour the app no longer has — exactly
+the overclaiming class this project tracks. Deletion removed both the code
+and a future wrong answer. `canStepToPeriod`'s sole caller went with it,
+transitively, which is the rule working as designed on its first real test.
+
+### Line budget: 83 lines is enough for CV1 alone, not through CV5 — unless Ruling 2's fix is taken
+
+Untouched: `EventForm.tsx` **350** (at cap, CT1's), `MonthGrid.tsx` 140,
+`DaySection.tsx` 197, `CalendarHeader.tsx` 128, `page.tsx` 127. If the three
+ternaries stay ternaries, 3→6 views turns them into 6-arm chains (~25 lines),
+then CV3/CV4/CV5 branches land `CalendarViews.tsx` at **340–360 by CV5** —
+the standing 350–380 prediction, unchanged. Taking Ruling 2 converts that
+growth from ~25 lines/phase to ~1 row/phase, while the file is at its
+smallest.
+
+### Fury's `git add -A` mistake — a process note and one danger-register line, explicitly NOT a boundary rule
+
+Captain's own test: does commingled history change the tree, create an
+illegal arrow, a second definition, a cap breach, or a misplaced file? **No,
+five times.** The cost is real but narrow — provenance archaeology, and this
+repo's own techniques (C1's pinned worktree, C3's extraction from a named
+commit) depend on commits meaning what they say. **Refused to make it a
+STRUCTURE.md rule**, reasoning explicitly: that would mean gating commit
+graphs instead of trees, and a mission with a correct tree could BLOCK on
+history — "the verdict must always be readable off the tree," which is one
+of Captain's own laws. Proposed danger-register wording instead (Fury to
+write):
+
+> **Never `git add -A` or `git add .` while another agent may be writing.**
+> Stage by explicit path. A commit that sweeps in a parallel builder's
+> in-flight files is not a correctness failure — the tree can still be right
+> — but it makes the commit message lie about its contents.
+
+### Other notes, routed
+
+- `CalendarHeader.tsx:44` hand-writes `"week"|"day"|"month"` instead of
+  importing `CalendarPeriodView` — no written rule covers it yet (the view
+  vocabulary isn't in STRUCTURE.md's one-source-of-truth list), but it IS a
+  compile tripwire (produced the error above), so CV1 is forced to touch it.
+- `loading.tsx:71` checks `searchParams.get("view") === "month"` as a
+  **hardcoded literal**, not `parseViewParam` — unlike `CalendarHeader`, this
+  produces **no compile error** on a wider union. CV1's three new views will
+  silently render the Week skeleton. `calendar-v2.md` already promises a
+  measured skeleton per view; route this through `parseViewParam` to make
+  that promise enforceable rather than remembered.
+- `MonthLoadingSkeleton` (the wrapper, not the rows) has **zero callers
+  repo-wide** and its own comment justifies it with a speculative caller that
+  doesn't exist. Reaches Captain's two-mission dormant threshold at CV1's
+  end — delete then, or give it a dated expiry.
+- `calendarDates.ts:84`'s export rationale names `CalendarViews.tsx`'s
+  `daysBetween` copy — that copy has never lived there; it's in
+  `EventForm.tsx`. Pre-existing at K2 head, reachable this pass. Eleventh.
+- **The comment sweep needs its own CV1 contract, not a "fold in."** Neither
+  `DaySection.tsx:37` nor `mealPlanDates.test.ts:9-14` has a CV1 boundary
+  owner — CV1 touches `useCalendarPeriod.ts`/`calendarPaging.ts`/
+  `CalendarHeader.tsx`, none of which is either file. That mismatch is
+  exactly how a comment reaches instance twelve. Four file:line targets now
+  named across this pass; CV1 should carry an explicit contract for them with
+  a `grep`-clean done-criterion.
+
+## Vision, pass 1 — BLOCK (1 blocker, 8 notes)
+
+Independently rebuilt C1's trace from a **worktree pinned at `bcc23cb`, the
+branch base** (stronger than C1's own pin — puts all three contracts on the
+"after" side only): 2077 lines, matching md5, empty diff, with its own
+positive control (flipped `prevLabel`, watched it appear, reverted). **For
+every sequential paging path, behaviour is genuinely byte-identical.**
+C2's 39→39 verified at the assertion-body level, not just the count — all
+39 test bodies match their `bcc23cb` originals. C3's `2026-02-30` fix and
+the no-visual-change claim both verified against real `input[type=date]`
+values and computed styles, not asserted.
+
+### BLOCKER — the guard swallows a Back, and worse: settles disagreeing
+
+The compare-and-clear guard leaves a stale entry in `pushed` whenever a push
+produces **no URL change** — `histDelta 0` — because the resync effect that
+would normally clear it **never runs**. The six `consumePushedSearch` unit
+tests cannot see this: the defect is that the effect doesn't fire, not that
+the reconciliation answers wrongly once it does.
+
+**Reproduced on the pristine HEAD build** (Week view, fast Next then Prev 40ms
+apart, then Back):
+
+```
+fast Next+Prev 40ms: search unchanged, pushed=["…09-10…","…09-03…"]  (effect never ran)
+Back: search→"…09-10…" title→"Aug 30 – Sep 5"
+reloadTitle: "Sep 6–12"   cursorUrlAgree: false      ← URL and page permanently disagree
+Next Back (from the disagreeing state): swallowed AGAIN — it compounds
+```
+
+**The pre-C1 build (`bcc23cb`) handles the identical sequence correctly** —
+`cursorUrlAgree: true` throughout. This is a regression against the branch
+base on a human-reachable sequence (two quick taps correcting a wrong
+direction), not a hypothetical. Confirmed also reachable at 20ms and 5ms.
+On Vercel the RSC round trip is longer than local, so **the coalescing
+window is wider in production, not narrower.**
+
+**What guard (b) genuinely buys, confirmed, and the fix must not regress
+it:** the 60ms double-tap sampler shows a visible revert flash on the base
+build (`[…,"Sep 6–12","Sep 13–19","Sep 6–12","Sep 13–19"]`) and none on
+HEAD (`[…,"Sep 6–12","Sep 13–19"]`). C8/C9's original bug stays fixed;
+this is a narrower, newer failure mode the fix introduced on top of it.
+
+**Vision's own fix, offered with an open verification step:** reconcile
+against the router's *settle* signal, not only URL-param changes — wrap the
+push in `useTransition`, and after the existing resync effect, add one that
+clears `pushed` and reconciles once `!isPending`. Vision did **not** verify
+`useTransition`'s `isPending` tracks `router.push` in this Next version and
+said so explicitly — that check is now Stark's first step, via
+`node_modules/next/dist/docs` per AGENTS.md. **Fallback if it doesn't
+track:** in `navigateTo`, when the normalized next search equals the current
+search (a push returning to the already-shown URL), clear `pushed` before
+pushing — accepts the old transient flash in that one case only.
+
+### Notes
+
+- **Synthetic trigger, not yet thumb-reachable, but CV2/CV5 open a path to
+  it:** three Next clicks in one 0ms task settle with cursor +3 but URL +1;
+  in Month this leaves 26 not-loaded glyphs on a December grid whose URL
+  names October. At 10/20/30ms both builds are correct. A swipe or
+  key-repeat gesture (CV2/CV5) could reach the 0ms case. The settle-based
+  fix covers this too (collapses to the base build's outcome).
+- `pushed` growth is **bounded by the burst, not unbounded** — 20
+  alternations at 30ms produced 20 entries, emptied by the next in-sync
+  landing.
+- C1's claimed discriminator (re-pick pushed history 2→3 before, 2→2 after)
+  **did not reproduce** — the base build also shows no history entry for a
+  same-URL push. Not a correctness issue; guard (a), the no-op-push check,
+  is still correct and unaffected by the blocker.
+- Deletions confirmed safe: only tombstones remain; `isOutsideWindow` live
+  and correct on both builds (26 glyphs in Month, 7 in Week when the cursor
+  outruns the window).
+- **`DaySection.tsx:37` and `mealPlanDates.test.ts:12-14`** — same two stale
+  comments Captain flagged. Vision's own suggestion, worth taking: since
+  Stark is coming back for the BLOCKER anyway, **widen that fix contract's
+  boundary to these two comment-only lines** rather than carry them forward
+  to a CV1 "comment sweep" contract that doesn't strictly need to exist yet.
+
+## Bryce's decisions, 2026-09-03
+
+- ✅ **Agent model drift fixed.** `~/.claude/agents/` had all three gates on
+  Fable; CLAUDE.md's K1 cost review had decided **Strange and Captain move to
+  Opus, Vision stays Fable** and the files were never updated. So K1's and
+  K2's eleven gate passes ran three-Fable-deep when the project had decided
+  on one. Now `captain: opus`, `strange: opus`, `vision: fable` — a 3× cut in
+  Fable per mission, and the reason Bryce's weekly allowance drained faster
+  than expected.
+- ✅ **Both constitution amendments applied.** Strange's *unoccluded target*
+  rule → `DESIGN.md` (beneath the two-tier touch minimum); Captain's
+  *dormant export* rule → `STRUCTURE.md` (before Naming), including the
+  refinement its first application produced: prefer outright deletion when
+  the dormant code describes behaviour the app **no longer has**, since a
+  dormant-export comment would otherwise preserve a wrong answer.
+- ❌ **Neon dev-branch password rotation declined.** Dev branch only, the
+  fragment sat in a local transcript, nothing exposed. Not revisiting unless
+  something changes.
+- 📌 **Merging PRs #9 (K1) and #10 (K2) to production: noted, not decided.**
+  Bryce asked to keep it on the list rather than act. Nothing blocks on it;
+  CV0 stacks on #10 regardless. **This is the step that puts the Calendar in
+  front of Emily** — surface it again when CV0 delivers.
 
 ## Handoff log
 

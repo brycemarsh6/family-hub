@@ -27,6 +27,18 @@ tell when a rule's reason has expired.
   which is how a constitution becomes noise on day one. 44px is still
   Apple's HIG minimum, so the floor is a real one, not a loophole. The wall
   tablet and the phone-in-a-store are the design targets, not a mouse.
+- **A target must also be unoccluded.** For every interactive control there
+  must exist a scroll position the user can actually reach at which
+  `elementFromPoint` at the control's centre returns that control. A fixed
+  overlay the page reserves no room for — a floating action button, a toast,
+  a sticky banner — fails this even at 44px, because no amount of scrolling
+  moves what sits at a fixed viewport y. The bottom nav passes because the
+  page reserves bottom padding for it (measured: 55px clearance at 375 and
+  320). **Size and reachability are different properties.** (Added 2026-09-03
+  on Strange's ruling, mission 9: Month's grid passed every size check while
+  one of its day numbers opened the Add sheet instead of Day view, and the
+  first measurement — taken scrolled to the bottom — reported zero failures
+  and would have shipped it. Measure at the position the user arrives at.)
 - **Quantities change only by tapping** — the shared `QuantityStepper` (+/−),
   never a typed number. Typing numbers is fiddly on a phone and worse on a
   wall tablet. (Prose is different: recipes and notes are keyboard entry —
