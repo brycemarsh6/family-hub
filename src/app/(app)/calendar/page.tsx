@@ -33,7 +33,10 @@ export const dynamic = "force-dynamic";
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>;
+  // mission-9/C8: `string`, not the reality — Next hands `string[]` for a
+  // REPEATED key ("?date=X&date=X"), which the old `{ date?: string }`
+  // annotation lied about. See the normalization below.
+  searchParams: Promise<{ date?: string | string[] }>;
 }) {
   // Only to decide whether CalendarViews should ever show create/edit/
   // delete controls (C4) — the real gate is each write action's own
@@ -43,7 +46,14 @@ export default async function CalendarPage({
   const user = await getVerifiedUser();
   const canManage = user !== null && MANAGER_ROLES.includes(user.role);
 
-  const { date } = await searchParams;
+  const { date: rawDate } = await searchParams;
+  // A repeated "?date=" key made this coerce to "X,X" (failing
+  // parseDateParam's regex and silently centering on today) while
+  // CalendarViews.tsx's `searchParams.get("date")` took only the first "X"
+  // — the two sides disagreeing produced 42 not-loaded glyphs and 0 pills.
+  // Taking the first value here is exactly what `.get()` already does
+  // client-side, so both sides agree again.
+  const date = Array.isArray(rawDate) ? rawDate[0] : rawDate;
   const { windowStart, windowEnd } = resolveServerFetchWindow(date, new Date());
 
   // One query, events joined with their people in the same round trip

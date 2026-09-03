@@ -164,12 +164,16 @@ export function MonthCell({
                 } ${slot.roundLeft ? "rounded-l border-l" : ""} ${slot.roundRight ? "rounded-r border-r" : ""}`}
                 style={{ background: pillBackground(colors, past ? 0.05 : 0.1) }}
               >
-                {/* B3 (mission-9/C5): at 375px the pill can hold ~2
-                    characters — not enough for any real title, and just
-                    enough to make two DIFFERENT events sharing a prefix
-                    ("Ledger Pre-School" / "Ledger soccer") render
-                    identically, which is worse than no label at all
-                    (Strange's finding). Below `md` the pill is colour-only,
+                {/* B3 (mission-9/C5, figure corrected mission-9/C8): at
+                    375px the pill's inner slot measures ~38px
+                    (`500 9px Inter`) and holds roughly 7-8 characters
+                    (measured live: 7 by Vision, 8 by Strange) — NOT the "~2"
+                    this comment used to claim. Still not enough for any real
+                    title, and still enough to make two DIFFERENT events
+                    sharing a prefix ("Ledger Pre-School" / "Ledger soccer")
+                    render identically or near-identically, which is worse
+                    than no label at all (Strange's finding). Below `md` the
+                    pill is colour-only,
                     same as Google's and Apple's own phone month grids —
                     "+N more" and the day tap carry identification instead.
                     At `md` and up (Strange measured 768px: 9–10 characters

@@ -571,6 +571,97 @@ acceptable, or whether a hybrid is wanted after all.**
   today** (Google's and Apple's behaviour, and what he asked for) unless he
   says otherwise.
 
+### C8 — Vision's blocker: the resync effect cancels every optimistic step
+- **Status:** DONE (2026-09-02), awaiting the authorized final gate round.
+  **Fury verified the blocker itself is dead, in the running app:**
+  - **Double tap, 60ms apart, no throttling** (the exact case that failed
+    before) from March 2028 → **May 2028**, URL `?date=2028-05-15`. March + 2.
+  - **Single tap → no revert**: exactly two transitions (March → April),
+    `revertedMidFlight: false`, where the bug produced April → March → April.
+  - **Optimistic flip measured at 26ms** on a warm route; the 349/614ms seen
+    on other runs is `npm run dev` recompile, not design cost. **Vision's
+    prod-build figure (107–192ms) is the honest number** — and Fury's earlier
+    1213ms claim was measuring the bug, as Vision established.
+  - Gauntlet: tsc 0, eslint 0, **180/180** under `npm test` *and* under the
+    direct `TZ=UTC node --import tsx --test …` invocation, build 0.
+- **The builder exceeded the contract, correctly, and found two real failures
+  the contract's own suggestion would have shipped.** Implementing Vision's
+  literal "remember the pushed search string in a ref" passed Vision's
+  1500ms-latency acceptance test but failed twice under stress testing the
+  builder did on its own initiative: (1) **unthrottled double-tap at 60ms** —
+  Next does not reliably cancel the first in-flight navigation, so both
+  commit independently and the *earlier, superseded* one reverts local state,
+  reproducing the original bug; and (2) **Forward navigation** — the stale
+  string matched a URL the browser returned to via history, so a genuine
+  external navigation was **silently swallowed** and the page stayed on the
+  wrong month until reload. Replaced with a `pendingSelfNav` counter that is
+  *decremented* on an out-of-sync commit and cleared the instant local state
+  is observed back in sync, so it cannot linger and eat a later real change.
+  5/5 clean re-runs. **Found and fixed inside budget rather than deferred** —
+  and it means the acceptance test Vision wrote would have passed a fix that
+  was still broken in two ways.
+- Also landed: `?date=X&date=X` normalization (was 42 not-loaded glyphs, 0
+  pills — now 0 glyphs, 42 cells), plus three of the mission's overclaiming
+  comments corrected (`loading.tsx`'s false "fires on every navigation",
+  `MonthCell.tsx:167`'s "~2 characters", `CalendarViews.tsx:184`'s false
+  citation). `useCalendarPeriod.ts:229` was reported not fixed, correctly —
+  off boundary.
+- **⚠️ `CalendarViews.tsx` is now 348 of 350 — two lines.** Captain's pass-3
+  finding that 11 lines "will not survive K3" is now acute: **its recommended
+  extraction of the URL/navigation cluster (~57 lines, taking the file to
+  ~285) should be K3's first contract and is no longer advisory.**
+- The builder did not commit, noting the contract permitted but did not
+  instruct it — the right reading of a standing rule. **Bryce authorized one more gate round (2026-09-02)
+  after Fury surfaced the exhausted budget**, on the ground that this is a new
+  blocker in new code with a precise diagnosis — not the same finding
+  recurring, which is what the 3-pass cap exists to catch.
+- **Boundaries:** `src/components/CalendarViews.tsx` (339),
+  `src/app/(app)/calendar/loading.tsx` (154, comment only),
+  `src/components/MonthCell.tsx` (218, comment only),
+  `src/app/(app)/calendar/page.tsx` (117). Must not touch
+  `src/lib/useToday.ts` (**the fresh-Date-per-call behaviour is correct and
+  deliberate** — the consumer's dependency array is what is wrong), any lib
+  module, `EventForm.tsx`, `EventCard.tsx`, actions, `prisma/**`.
+- **The blocker.** `useToday()` returns `new Date(timestamp)` — a fresh object
+  each call — and it sits in the effect's dependency array
+  `[searchParams, today]`, so the URL→local resync runs on **every render**.
+  After `step()` and before `router.push` commits, it compares the stepped
+  anchor to the unchanged URL and `jumpTo`s back. **Two fast taps advance one
+  period**, reproduced with no throttling at 60ms apart, and in Week view too.
+- **Fix:** depend on **values, not identities** — read
+  `searchParams.get("date")`, `searchParams.get("view")` and
+  `today?.getTime()` into locals, depend on those, parse inside the effect.
+  **Recommended on top:** record the search string `navigateTo` just pushed in
+  a ref and skip the resync while `searchParams.toString()` matches it, so two
+  in-flight pushes cannot bounce May→April→May.
+- **Cheap notes to fold in, all comment-only except the last:**
+  - `loading.tsx:13-27` claims the skeleton "fires on every real navigation".
+    **Measured false** — `statusSeen: 0` across Prev/Next, Today and view
+    switches, with and without 1.5s latency, because a same-route
+    search-param push is a transition over an already-mounted Suspense
+    boundary. **Seventh overclaiming comment this mission.**
+  - `MonthCell.tsx:167`'s "~2 characters at 375px" — **measured 7** (Vision)
+    / 8 (Strange). It is the stated rationale for the `md:` breakpoint, so fix
+    it to the measured number. The `md:`→`sm:` *decision* is not a builder
+    call; leave the breakpoint alone.
+  - `CalendarViews.tsx:184` cites loading.tsx never needing a Month shape;
+    C6 gave it one. `useCalendarPeriod.ts:229` says view becomes "month" only
+    via `setView`; `jumpTo` can too (the safety property survives — it also
+    routes through `withView` — but the sentence names the wrong mechanism).
+    **`useCalendarPeriod.ts` is off-boundary**: report that one, don't fix it.
+  - `page.tsx:36`'s `searchParams: { date?: string }` is a lie at runtime —
+    Next hands `string[]` for repeated keys, and `?date=X&date=X` yields **42
+    not-loaded glyphs and 0 pills**. Normalize `Array.isArray(d) ? d[0] : d`
+    once so server and client agree. This is the one behavioural change here.
+- **Verification (Vision's own acceptance test, verbatim):** double-tap Next
+  under `Network.emulateNetworkConditions latency:1500`, taps 150ms apart →
+  expect **May 2028**; Week view → **Mar 26 – Apr 1**. Also confirm the single
+  tap no longer reverts (no "April→March→April" sequence), that the URL still
+  commits, and that Back/Forward/reload still land correctly. Full gauntlet,
+  both timezones via the **direct** `TZ=UTC node --import tsx --test …`
+  invocation — `TZ=UTC npm test` silently runs Denver twice
+  (`package.json:11` pins TZ inline).
+
 ### C4 — The one-source-of-truth repairs C2b's boundaries forced
 - **Status:** QUEUED (Captain's ruling, C2-1). Dispatch with or after C3.
 - **Objective:** undo the three compromises C2b's must-not-touch list forced,

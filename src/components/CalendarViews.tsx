@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, UtensilsCrossed } from "lucide-react";
 import { RadioSheet } from "./RadioSheet";
@@ -114,29 +114,39 @@ export function CalendarViews({
   const [addingEvent, setAddingEvent] = useState(false);
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
 
-  // Real navigation (mission-9/C6) that keeps the URL in sync with wherever
-  // the period cursor just moved — `router.push` re-runs page.tsx
-  // server-side with a fresh fetch window centered on `nextAnchor`, and
-  // the route's own `loading.tsx` is what shows meanwhile (no bespoke
-  // spinner for this one page).
+  // Real navigation (mission-9/C6); `pendingSelfNav` (C8) counts this
+  // component's OWN pushes not yet accounted for by the resync effect below.
+  const pendingSelfNav = useRef(0);
   function navigateTo(nextView: CalendarViewMode, nextAnchor: Date) {
+    pendingSelfNav.current += 1;
     router.push(`/calendar?${buildCalendarSearch(nextView, nextAnchor)}`);
   }
 
-  // URL → LOCAL sync (see this component's header): re-points the cursor
-  // via `jumpTo` only when the URL names something local state doesn't
-  // already match. Deliberately NOT depending on `anchor`/`view`/`jumpTo`
-  // — this effect exists to pull state FROM the url; the handlers below
-  // already push a matching URL themselves, so by the time this runs for
-  // THAT reason the comparison finds them equal and does nothing.
+  // URL → LOCAL sync: re-points the cursor via `jumpTo` only when the URL
+  // names something local state doesn't already match. mission-9/C8 fix:
+  // keys on VALUES pulled from `searchParams`/`today`, never those objects
+  // — `today` hands back a FRESH `Date` every call, so depending on it
+  // reran this effect EVERY render, including right after `handleStep`
+  // moved local state but before `router.push` committed: it saw a
+  // "mismatch" against the unchanged URL and `jumpTo`'d back, so a second
+  // tap only advanced from a reverted state. `pendingSelfNav` guards a
+  // second race (proven live): fast UNTHROTTLED taps can each complete
+  // their OWN `push` independently rather than the second superseding the
+  // first, so an EARLIER stale push can commit after state has moved past
+  // it — presumed ours, consumed not compared, cleared once state is synced.
+  const dateParam = searchParams.get("date");
+  const viewParam = searchParams.get("view");
+  const todayTime = today === null ? null : today.getTime();
   useEffect(() => {
-    if (today === null) return;
-    const targetView = parseViewParam(searchParams.get("view"));
-    const targetAnchor = parseDateParam(searchParams.get("date")) ?? today;
-    if (anchor !== null && view === targetView && isSameDay(anchor, targetAnchor)) return;
-    jumpTo(targetAnchor, targetView);
+    if (todayTime === null) return;
+    const targetView = parseViewParam(viewParam);
+    const targetAnchor = parseDateParam(dateParam) ?? new Date(todayTime);
+    const inSync = anchor !== null && view === targetView && isSameDay(anchor, targetAnchor);
+    if (inSync) pendingSelfNav.current = 0;
+    else if (pendingSelfNav.current > 0) pendingSelfNav.current -= 1;
+    else jumpTo(targetAnchor, targetView);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, today]);
+  }, [dateParam, viewParam, todayTime]);
 
   // `today` (and therefore `anchor`) is null during SSR and the first
   // client render (see useToday()'s own comment). Every value below that
@@ -177,12 +187,11 @@ export function CalendarViews({
 
   // Week always shows seven DaySections, Day always shows one — fixed by
   // `view` alone, never by `today` — so the loading frame below can render
-  // the right COUNT of placeholders before `today` resolves, matching
-  // exactly what the resolved frame will show. No Month arm needed: `view`
-  // only becomes "month" via `setView`, which requires a tap — by then
-  // `today` has already resolved (useToday.ts), so this branch can never
-  // actually be showing Month (same reason loading.tsx's own Week-shaped
-  // fallback never needs a Month shape either).
+  // the right COUNT of placeholders before `today` resolves. No Month arm
+  // needed: every path to `view === "month"` (`setView`, or `jumpTo` above)
+  // requires `today` already resolved (useCalendarPeriod.ts). (mission-9/C8:
+  // dropped the old, now-false claim that loading.tsx's Week fallback never
+  // needs a Month shape — C6 gave it one; the conclusion above still holds.)
   const placeholderCount = view === "week" ? 7 : 1;
 
   // Moves the period one step and immediately asks the server for a fresh

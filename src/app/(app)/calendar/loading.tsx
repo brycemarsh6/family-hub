@@ -10,21 +10,27 @@ import { SkeletonBlock } from "@/components/Skeleton";
 // circles, a prev/next+title row, seven day rows) is nothing like a plain
 // list of rows.
 //
-// mission-9/C6: this file now ALSO fires on every real navigation
-// CalendarViews.tsx's paging triggers (Prev/Next, Today, a view switch, a
-// deep link), not just the very first load — real navigation is the whole
-// point of that contract (see page.tsx's own comment). A Client Component
-// (`"use client"`, per this file's own doc comment options — loading.js
-// "can also be used as a Client Component") is what lets this read the
-// in-flight "?view=" param via `useSearchParams()` and choose the Month
-// shape below instead of the Week/Day one when that's genuinely what's
-// loading — without this, navigating Month→Month would flash the 7-row
-// Week skeleton (wrong dimensions entirely) on every single step, a real
-// regression C6 would otherwise have introduced. `useSearchParams()` is
-// safe to call here without its own extra <Suspense> wrapper: this route
-// is `force-dynamic` (never statically prerendered — see that doc's own
-// "Prerendering" caveat), and loading.tsx is ONLY ever rendered as part of
-// an already-in-flight client-side navigation to begin with.
+// mission-9/C8 correction: an earlier version of this comment claimed this
+// file "now ALSO fires on every real navigation CalendarViews.tsx's paging
+// triggers (Prev/Next, Today, a view switch, a deep link)". MEASURED FALSE
+// with a MutationObserver across all three, with and without 1.5s injected
+// latency: `statusSeen` stayed 0 every time. A same-route "?date="/"?view="
+// search-param push (CalendarViews.tsx's `navigateTo`) is a transition over
+// an ALREADY-MOUNTED Suspense boundary, so React keeps the old UI on screen
+// rather than re-showing this fallback — this file only actually renders on
+// a genuinely FRESH mount: a first visit to `/calendar`, a hard reload, or
+// an external/deep link landing here before the Suspense boundary exists
+// yet. It still has to pick the right shape for THAT case — a fresh visit
+// to `?view=month` (a bookmark, a shared link) must render the Month
+// skeleton below, not the Week one. A Client Component (`"use client"`, per
+// this file's own doc comment options — loading.js "can also be used as a
+// Client Component") is what lets this read the "?view=" param via
+// `useSearchParams()` and choose that shape on first render.
+// `useSearchParams()` is safe to call here without its own extra
+// <Suspense> wrapper: this route is `force-dynamic` (never statically
+// prerendered — see that doc's own "Prerendering" caveat), and loading.tsx
+// is ONLY ever rendered as part of a route-level Suspense fallback to
+// begin with.
 //
 // Every height below is MEASURED against the real signed-in page at 375px
 // (getBoundingClientRect in the browser), not guessed — the dashboard's own
@@ -52,12 +58,12 @@ import { SkeletonBlock } from "@/components/Skeleton";
 // turns out to have zero events transitions through all three with no
 // shift at all (see DaySection.tsx's own comment on why that's the
 // honest limit: a day *with* real events genuinely grows once they're
-// known). Month gets its own shape below (`MonthGridSkeletonRows`) as of
-// mission-9/C6 — real navigation now reaches this file while Month is
-// the active view (Prev/Next/Today from inside Month, or a deep link
-// straight to one), which couldn't happen before that contract (`view`
-// only ever became "month" via a tap, by which point `useToday()` had
-// already resolved — see this file's own C6 comment above).
+// known). Month gets its own shape below (`MonthGridSkeletonRows`) —
+// mission-9/C8 correction: this file only actually renders on a genuinely
+// FRESH mount (see this file's own C8 comment above), so the case that
+// needs the Month shape is a first visit / reload / external link landing
+// directly on `?view=month`, not Prev/Next/Today paging from inside an
+// already-open Month view, which never re-shows this fallback at all.
 function isMonthView(searchParams: ReturnType<typeof useSearchParams>): boolean {
   return searchParams.get("view") === "month";
 }
