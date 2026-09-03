@@ -1838,6 +1838,112 @@ not `router.push`, is the mechanism.
   and `origin/main..HEAD` holds only mission-8 commits. Not a C6/C7 defect,
   but the exact finished-but-uncommitted trap this repo has hit four times.
 
+## Vision, C8 pass 4 (Bryce-authorized extra) — BLOCK. Original blocker RESOLVED.
+
+**The pass-3 blocker is dead.** Value-keying works: on a **prod build** a
+single tap flips in **2–4 ms** with no revert (Fury's 26 ms was dev-server
+cost), and every multi-tap case lands right — double @60ms → May 2028, triple
+@40ms → June, quad @30ms → July, URL agreeing each time. Acceptance test
+verbatim under 1500 ms latency: **May 2028**; Week → **Mar 26 – Apr 1**.
+`?date=X&X` → 0 glyphs / 42 cells. Boundary clean; `useToday.ts` and
+`useCalendarPeriod.ts` untouched.
+
+### BLOCKER — the `pendingSelfNav` counter drifts and swallows Back
+
+`CalendarViews.tsx:119-123, 144-147`. The counter is incremented per push but
+only decremented inside an effect that runs on a **search-param value
+change** — so **a push that produces no value change never consumes its
+increment**, and each stale increment silently swallows one later external
+navigation. Cumulative.
+
+**Trigger 1 needs no timing at all.** `RadioSheet.tsx:72-75` fires `onSelect`
+for the *already-checked* option, so picking "Month" while on Month pushes an
+identical URL, Next adds no history entry, and the effect never runs:
+
+```
+after picking Month while already on Month: title "March 2028", hlen 30
+after Back:  search "?date=2028-02-15"  BUT title still "March 2028"
+```
+
+Back visibly does nothing, and the URL and page now disagree. Three same-view
+picks then four Backs: the first three Backs are eaten, the fourth finally
+moves. Two more triggers reproduced (Next-then-Prev inside the round trip;
+Back inside the round trip after Next — page shows April while the URL and
+the server's fetch window say February, masked by the ±61-day window).
+
+**The deeper finding: Next is unreliable in *both* directions.** Sometimes it
+**discards** a superseded push (`ACTION_RESTORE`,
+`app-router-instance.js:143-154`); sometimes **both** commit in order, even
+under 1500 ms latency. The counter accounts for only one of those.
+
+**Vision's prescribed fix (~10 lines, same file):** (a) in `navigateTo`,
+return **without pushing or incrementing** when the computed search equals the
+current one — a no-op navigation is nothing to guard, which kills trigger 1
+outright; (b) replace the count with **compare-and-clear**: a `Set<string>` of
+search strings this component pushed — in sync → `clear()`; URL in the set →
+`delete` and skip (consume once); otherwise **`clear()` then `jumpTo`**, since
+an external navigation discards every in-flight own push anyway. Residual, to
+be stated in the comment rather than hidden: a push Next discarded leaves its
+string until the next mismatch or sync.
+
+### Notes
+
+- The 12-line comment claims the counter is "cleared once state is synced";
+  the logs show the effect **never ran at all** after a same-URL push, so that
+  is not a guarantee the code can make. **Eighth overclaiming comment.**
+- **"Could have been smaller": that comment block is the largest single C8
+  addition to a 348/350 file. Vision's verdict — Captain's extraction of the
+  URL/navigation cluster is now *prerequisite* to fixing this, not optional.**
+  Two gates have now independently reached that conclusion.
+- The value-keying fix itself is correct and minimal; `todayTime` via
+  `getTime()` is exactly the stable primitive `useToday.ts` already documents.
+- `page.tsx`'s repeated-key normalization verified correct; the
+  `string | string[]` annotation is now honest.
+- Process: two gates shared debug port 9333. Vision could not fully rule out
+  that one CDP session reached Strange's idle `about:blank` tab; it verified
+  no cookie remained there and cleaned up. **Gates sharing a browser debug
+  port must pick distinct ones.**
+
+## C9 — the counter removed, not replaced (Bryce's call, 2026-09-02)
+
+Presented with three options after both gate budgets were spent, Bryce chose
+**revert the counter, ship K2, and make Captain's extraction K3's opening
+move.** Fury implemented it directly — both gate budgets are exhausted, the
+change is a **removal** rather than an addition, and it is verifiable
+end-to-end in the running app.
+
+**Why removal fixes Vision's trigger 1 outright rather than merely mitigating
+it:** the drift existed because increments were never consumed by pushes that
+produced no search-param change. With nothing incremented, there is nothing
+stale to swallow a later Back.
+
+**Verified by Fury on one build, all three behaviours:**
+
+| case | result |
+|---|---|
+| Re-pick the already-active view ×3, then Back | **March 2028**, title and URL agree — Vision's trigger 1 dead (it previously ate three Backs) |
+| Double tap, 60 ms apart, no throttling | April → **June 2028** (+2) — C8's value-keying intact, not regressed |
+| Single tap | **no revert**, `transitions: 2`, flip **25 ms** |
+
+Gauntlet: tsc 0, eslint 0, **180/180** under `npm test` and under the direct
+`TZ=UTC node --import tsx --test …` invocation, build 0.
+
+**The accepted residual, stated plainly rather than hidden:** when two fast
+taps both commit, the earlier commit can briefly show the intermediate period
+before the later one lands — a flicker that settles correctly. That is
+strictly milder than a swallowed Back, and strictly better than the
+pre-C8 state where two taps advanced one period.
+
+**Two things Fury got wrong in its own edit and caught before committing:**
+the first version left `useRef` imported but unused, and the explanatory
+comment pushed `CalendarViews.tsx` to **359 — over the cap** — which is
+exactly the failure this whole thread is about. Trimmed to **350, at the cap
+with zero headroom**, which only sharpens the case for the extraction.
+
+**The in-code comment carries a "do NOT add a pending-navigation guard here"
+warning** naming what C8 tried, why it drifted, and where the real repair
+belongs — so the next session doesn't re-derive the same broken idea.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -1849,7 +1955,9 @@ not `router.push`, is the mechanism.
 | C1-1 | Captain | **PASS** | 0 | 9 notes; two change C2's shape; 1 proposed STRUCTURE.md amendment |
 | C2-1 | Captain | **PASS** | 0 | 11 notes; found the CI test-glob trap; 1 Fury miscount corrected |
 | C5/6/7-3 | Captain | **PASS** | 0 | final pass; 11 notes; skeleton measured against pre-C5 geometry; new `?date=` duplication |
-| C6/7-3 | Vision | **BLOCK** | 1 | **budget exhausted.** C7 passes; C6's resync effect cancels every optimistic step — two taps advance one month |
+| C6/7-3 | Vision | **BLOCK** | 1 | C7 passes; C6's resync effect cancels every optimistic step — two taps advance one month |
+| C8-4 | Vision | **BLOCK** | 1 | Original blocker RESOLVED; the counter C8 added *on top* drifts and swallows Back |
+| C9 | — | resolved by removal | 0 | Bryce chose revert-not-replace; Fury implemented and verified directly (both gate budgets spent) |
 | — | Strange | HELD | — | its last pass withheld: gating code that is about to change would waste it |
 | C2b-1 | Strange | **BLOCK** | 4 | tested all 3 FAB remedies and measured them; 8 notes; 1 DESIGN.md amendment proposed |
 
@@ -1864,6 +1972,29 @@ Budget: 3 passes per gate, then STOP and surface.
 
 ## Delivery
 
-- **Shipped:** —
+- **Shipped:** Calendar K2 — the Month view, a typed period cursor, and
+  **unbounded navigation** (Bryce's own ask; the ±60-day wall is gone and the
+  calendar reaches 2028 and beyond). 9 contracts, 11 gate passes, three
+  gates. Tests 135 → **180**, green under both timezones.
+- **Deliberate leftovers, routed not dropped:**
+  - **K3's first contract, now prerequisite rather than advisory** (both
+    Captain and Vision independently): extract `CalendarViews.tsx`'s
+    URL/navigation cluster (~57 lines → ~285) **before any filter code**, then
+    apply Vision's compare-and-clear `Set` + no-op-push guard there. The file
+    is at 350/350.
+  - **C3** (split `calendarDates.test.ts`, 349/350; decide `canStepToPeriod`'s
+    fate) and **C4** (hoist `hexToRgba`; move the Month skeleton *and*
+    `MonthGridSkeletonRows`; re-measure the skeleton against post-C5 geometry;
+    route `new/page.tsx` through `parseDateParam`, which today accepts
+    `2026-02-30`; fix `MonthCell.tsx:167`'s stale rationale and decide
+    `md:`→`sm:`).
+  - **The all-day timezone defect** — deferred by Bryce, recorded in
+    `calendar-v1.md` with its reproduction and with the plan's own wrong rule
+    annotated.
+  - Two proposed constitution amendments awaiting Bryce: Captain's on dormant
+    exports, Strange's on unoccluded targets.
+  - `useCalendarPeriod.ts:229`'s stale comment (off every boundary so far).
+  - **Nine overclaiming comments surfaced across this mission** — worth its
+    own note in project memory.
 - **Shipped check:** —
 - **Deliberate leftovers:** —

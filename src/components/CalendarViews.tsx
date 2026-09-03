@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, UtensilsCrossed } from "lucide-react";
 import { RadioSheet } from "./RadioSheet";
@@ -114,26 +114,30 @@ export function CalendarViews({
   const [addingEvent, setAddingEvent] = useState(false);
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
 
-  // Real navigation (mission-9/C6); `pendingSelfNav` (C8) counts this
-  // component's OWN pushes not yet accounted for by the resync effect below.
-  const pendingSelfNav = useRef(0);
+  // Real navigation (mission-9/C6).
   function navigateTo(nextView: CalendarViewMode, nextAnchor: Date) {
-    pendingSelfNav.current += 1;
     router.push(`/calendar?${buildCalendarSearch(nextView, nextAnchor)}`);
   }
 
   // URL → LOCAL sync: re-points the cursor via `jumpTo` only when the URL
-  // names something local state doesn't already match. mission-9/C8 fix:
-  // keys on VALUES pulled from `searchParams`/`today`, never those objects
-  // — `today` hands back a FRESH `Date` every call, so depending on it
-  // reran this effect EVERY render, including right after `handleStep`
-  // moved local state but before `router.push` committed: it saw a
-  // "mismatch" against the unchanged URL and `jumpTo`'d back, so a second
-  // tap only advanced from a reverted state. `pendingSelfNav` guards a
-  // second race (proven live): fast UNTHROTTLED taps can each complete
-  // their OWN `push` independently rather than the second superseding the
-  // first, so an EARLIER stale push can commit after state has moved past
-  // it — presumed ours, consumed not compared, cleared once state is synced.
+  // names something local state doesn't already match.
+  //
+  // mission-9/C8: keys on VALUES from `searchParams`/`today`, never those
+  // objects — `useToday()` returns a FRESH `Date` each call, so depending on
+  // it reran this every render, including after `handleStep` moved state but
+  // before `router.push` committed; it saw a "mismatch" against the stale URL
+  // and jumped back, so two taps moved one period.
+  //
+  // KNOWN GAP — do NOT add a pending-navigation guard here. C8 tried one (a
+  // counter of our own pushes); Vision proved it drifts: a push with no
+  // search-param change never runs this effect, so its increment is never
+  // consumed and each stale one swallows a later Back — reachable with no
+  // timing by re-picking the current view, and cumulative. Removed rather
+  // than replaced (Bryce, 2026-09-02): the residual it guarded is milder —
+  // two fast taps that both commit briefly show the intermediate period,
+  // then settle. A flicker, not a lost step. The real repair is Vision's
+  // compare-and-clear Set plus a no-op-push guard, and it belongs AFTER
+  // Captain's extraction of this cluster — both gates ruled: split first.
   const dateParam = searchParams.get("date");
   const viewParam = searchParams.get("view");
   const todayTime = today === null ? null : today.getTime();
@@ -142,9 +146,7 @@ export function CalendarViews({
     const targetView = parseViewParam(viewParam);
     const targetAnchor = parseDateParam(dateParam) ?? new Date(todayTime);
     const inSync = anchor !== null && view === targetView && isSameDay(anchor, targetAnchor);
-    if (inSync) pendingSelfNav.current = 0;
-    else if (pendingSelfNav.current > 0) pendingSelfNav.current -= 1;
-    else jumpTo(targetAnchor, targetView);
+    if (!inSync) jumpTo(targetAnchor, targetView);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateParam, viewParam, todayTime]);
 
