@@ -171,7 +171,20 @@ Adding a second definition of any of these is a BLOCKER:
   (node:test + tsx, no new frameworks).
 - **Test files follow the same soft cap**; the split is by module under
   test — one `*.test.ts` per lib module — never a numbered second file.
-  (Added 2026-09-02, mission 8, on Captain's ruling.)
+  **When the natural home is already at the cap, a small number of tests may
+  be adopted by a sibling module's test file, with a header comment naming
+  the module they cover and why they live there. This is a debt marker, not
+  a pattern: it means the crowded test file is a split candidate, and the
+  split is the real fix.** (Added 2026-09-02, mission 8, on Captain's
+  ruling; adoption clause added 2026-09-02, mission 9, on Captain's proposed
+  wording, approved by Bryce.)
+
+  Live instances of the adoption clause — keep this list short, and empty it
+  by splitting rather than by growing it:
+  - `monthLayout.test.ts` holds `calendarDates.ts`'s `calendarDayDiff` case,
+    because `calendarDates.test.ts` sits at 349 of 350. **Queued for repair:**
+    mission 9's C3 splits `calendarDates.test.ts` and sends that test home,
+    which will empty this list.
 
 ## Naming
 

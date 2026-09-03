@@ -90,6 +90,16 @@ gauntlet green, verified in a browser at 375px, additive migrations only.
   events follow the `weekStart` precedent (browser-built local midnight,
   since `@db.Date` breaks the no-provider-specific rule). Display via
   `Intl.DateTimeFormat`.
+  > ⚠️ **The all-day half of this rule is WRONG and produced a real bug —
+  > see "Known defect: all-day events shift a day when the device leaves
+  > Mountain" below.** Browser-built local midnight makes an all-day event
+  > an *instant*, so it translates when the device changes zone and lands on
+  > the previous day west of Mountain. Store all-day at **UTC midnight** and
+  > read UTC components instead. The timed-event and `Intl` halves of this
+  > rule are correct and confirmed working — keep them.
+  > `HOUSEHOLD_TIME_ZONE` still has zero consumers and must not acquire one
+  > for *display*: display follows the device, per Bryce's ruling
+  > 2026-09-02.
 - **OAuth + encrypted tokens** (K6) are the app's first reversible secret
   at rest: `TOKEN_ENCRYPTION_KEY` env var, AES-GCM via `node:crypto`.
   Opus-tier phase, adversarial check like `/api/voice`.
@@ -151,6 +161,54 @@ gauntlet green, verified in a browser at 375px, additive migrations only.
 - **K7. Google: inbound.** syncToken pull for two-way calendars,
   sync-on-open + manual refresh, imported events colored by the account
   owner, last-write-wins recorded.
+
+## Known defect: all-day events shift a day when the device leaves Mountain
+
+**Found 2026-09-02 by Bryce, not by a gate. Deferred by his call ("not a
+HUGE deal"), NOT fixed. Do not close the Calendar branch without it.**
+
+Bryce works in California roughly a third of each month, so his phone
+switches to Pacific regularly. His stated rule, which is the correct one:
+**the app should read the device's timezone; the event's instant is fixed
+when created, only the display translates.**
+
+**Half of that already works and needs no change.** `HOUSEHOLD_TIME_ZONE`
+(`constants.ts:348`) has **zero consumers**, and `calendarDates.ts`'s
+`Intl.DateTimeFormat` pins no `timeZone`, so timed events already render in
+the device's own zone.
+
+**All-day events are broken**, because they are stored as *local-midnight
+instants*. Reproduced against the real "Camping Trip" row
+(`startAt 2026-09-03T06:00:00.000Z`, i.e. Sep 3 00:00 Mountain):
+
+```
+TZ=America/Denver       all-day Camping Trip → Thu, Sep 3  ✓   timed Ledger → 3:00 PM
+TZ=America/Los_Angeles  all-day Camping Trip → Wed, Sep 2  ✗   timed Ledger → 2:00 PM ✓
+```
+
+A three-day camping trip draws **starting a day early** on the grid. Not a
+display nicety — the wrong squares.
+
+**Why the two differ, and why the fix is not "translate less".** A timed
+event genuinely *is* an instant; 3 PM Mountain and 2 PM Pacific are the same
+moment, so translating is correct and desirable. An all-day event is **a
+label on a calendar square**, not a moment — Sep 3 is Sep 3 everywhere — so
+it must never translate. Today both are stored as instants, so all-day ones
+get translated too.
+
+**Fix when picked up:** store all-day events at **UTC midnight** and read
+them with UTC getters (`getUTCDate`, etc.), so the date is invariant
+worldwide. Needs a one-time shift of existing all-day rows — cheap now
+(**one** real all-day event as of 2026-09-02) and steadily more expensive
+later, which is the argument for doing it before K4's recurrence lands and
+multiplies all-day instances.
+
+**Sequence:** right after mission 9's C6 (unbounded navigation) — both touch
+date handling and want the same gates looking at them together. Every
+`allDay` consumer must be audited, not just the renderer: `eventDaySpan` /
+`daysEventCovers` / `formatAllDayLabel` (`calendarDates.ts`), `monthLayout`'s
+lane assignment, `validateEventInput` (`actions/calendar.ts`), and
+`EventForm`'s date inputs.
 
 ## Hazards to verify at build time
 
