@@ -230,7 +230,10 @@ else less safe, and saying so instead of shipping a green gauntlet.
   reasoning rather than just complying: six pickable views with three
   rendering something else *is* the stub the plan forbids — "a control that
   lies when tapped." Picker shows exactly `["Day","Week","Month"]`;
-  `?view=year|schedule|threeDay|bogus` all normalize to Week.
+  `?view=year|schedule|threeDay|bogus` normalize to Week **when nothing is
+  stored** — Vision corrected this: with `month` stored they render **Month**,
+  which is `parseViewParam`'s documented fallback semantics and is stated
+  honestly in `calendarPaging.ts:94-98`. The overclaim was this record's.
 - **Last-used view verified end to end**, including the case that matters
   most: **a `?view=` in the URL still wins over the stored preference.** And
   incidentally proven across the whole 35-step trace — the after-run's own
@@ -344,11 +347,44 @@ cap, worth a split candidate before CV2 adds timeline-adjacent cases.
   view name still errors until it has a `VIEW_CONFIG` row — the mechanism
   must survive the widening it was built for.
 
+### C3 — Fix contract: freeze the preference at mount (Vision's BLOCKER)
+- **Status:** PENDING
+- **Objective:** `useCalendarNavigation.ts:122` reads `fallbackView` live on
+  every render, so a Back to a bare or unbuilt URL re-resolves through the
+  preference **the undone action just wrote** — breaking Back on the exact
+  URL the nav bar links to. Read the preference **once per mount**, at its
+  first resolution, and freeze it.
+- **Shape (Vision's, and it makes the plan's own wording literally true):** a
+  `useRef<CalendarPeriodView | undefined>` set on the first render where
+  `todayTime !== null` to `useLastCalendarView() ?? defaultView`, never
+  updated afterward; use it as `fallbackView` in **both** `currentSearch` and
+  `urlTarget()`. `writeLastCalendarView` keeps writing, for the *next* open.
+  Plan decision 5 says the preference applies "only when `/calendar` **opens**
+  with no `?view=`" — freezing is what makes that true rather than aspirational.
+- **Do not** reach for the alternative (`router.replace` canonicalising the
+  bare URL on mount) without saying why — it routes through the push guard
+  CV0 spent four contracts stabilising.
+- **Also in scope:** `lastCalendarView.ts:29-31`'s comment currently promises
+  cross-tab behaviour the code does not deliver (scenario 2). When the fix
+  lands the promise becomes true — rewrite it to say **why**: the frozen read,
+  not the absent `storage` subscription, is what delivers it.
+- **Boundaries:** `src/lib/useCalendarNavigation.ts`, its test, and
+  `src/lib/lastCalendarView.ts` (comment). Nothing else.
+- **Verification — all three of Vision's scenarios, base-vs-HEAD:**
+  (1) Calendar tab → pick Month → Back lands on **Week**; (2) tab B picks
+  Month, tab A's Next→Back stays **Week**; (3) `?view=year` → pick Day → Back
+  shows **Week** with the URL still saying `year`. Plus: a *fresh* open of
+  bare `/calendar` still restores the last-used view — the feature must
+  survive its own fix. Full gauntlet, both timezones, **200 baseline**.
+- **The trace harness must capture `[role=dialog]` contents** — both prior
+  harnesses were blind to the picker and reported empty diffs that could not
+  have seen it. Reuse Vision's (`scratchpad/trace.mjs`), not C1's or C2's.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
+| 1 | Vision | **BLOCK** | 1 | Back is broken on the bare `/calendar` URL the nav bar links to; both builders' trace harnesses were blind to the picker |
 | 1 | Captain | **PASS** | 0 | extraction ruled REQUIRED before CV3; found the same hazard class living in `constants.ts`; 4 amendments proposed |
 
 Budget: 3 passes per gate, then STOP and surface.
@@ -472,6 +508,103 @@ next touches roles.
   carrying a known defect, and scheduled for extraction in CT1 — **the
   extraction and the fix should land together**, since the extraction is what
   creates room to fix it safely.
+
+## Vision, pass 1 — BLOCK (1 blocker, 6 notes)
+
+Gauntlet re-run: 200/200 both timezones, build 0. Boundary clean. The
+seventh-view probe **matched exactly** — 5 errors and only 5.
+
+### BLOCKER — Back is broken on the bare `/calendar` URL, which is the one the nav bar links to
+
+`useCalendarNavigation.ts:122` reads `fallbackView` **live on every render**.
+So a Back to a URL naming no built view re-resolves through the preference
+**that the very action being undone just wrote.** `HUB_NAV_ITEMS` links to
+bare `/calendar` (`nav.ts:12`), so this is the first thing a family member
+does.
+
+**Three scenarios, each measured base-vs-HEAD:**
+
+1. **Same tab.** Calendar tab → Week; pick Month; Back.
+   Base → **Week**. HEAD → **stays on Month**; Back appears to do nothing,
+   and a second Back leaves the calendar entirely.
+2. **Cross-tab** — and this **directly contradicts `lastCalendarView.ts:29-31`'s
+   own comment** ("another tab's picker tap is not a reason to change the view
+   under someone's finger"). Tab A on bare `/calendar` (Week); tab B picks
+   Month; tab A taps Next then Back → **A lands on Month**, a view A never
+   chose.
+3. **The `?view=year` non-fix, answering the question Fury put to the gate.**
+   Load `?view=year` (renders Week); pick Day; Back → **URL says `year`,
+   screen says Day.** The un-rewritten URL is honest *only until the
+   preference changes underneath it.*
+
+**The stated rule — "the URL wins when `?view=` is present" — held everywhere
+Vision attacked it.** The hole is the **history** dimension the rule never
+mentions: a bare or unbuilt URL's *meaning* is mutated by the user's own tap,
+and popstate re-reads the mutated meaning. Same class the mission says the
+effect dependency arrays were designed to avoid — it just enters through
+`useSyncExternalStore`'s per-render `getSnapshot` re-read instead.
+
+**Fix:** read the preference **once per mount**, at its first resolution, and
+freeze it as `fallbackView`. That makes plan decision 5 literally true —
+"applied only when `/calendar` **opens** with no `?view=`" — so within one
+mount every popstate to a bare or unbuilt URL resolves to what it meant at
+open, while a fresh open still restores the last-used view.
+
+### ⚠️ The methodology finding: both builders' empty trace diffs were blind
+
+C1 and C2 each reported an **empty** trace diff with a passing positive
+control. Vision's own harness — which additionally captures every open
+`[role=dialog]`'s text — found a **24-line diff**, and every line is the same
+change:
+
+```
+< "dialogs":["View :: View × Week Day Month"]
+> "dialogs":["View :: View × Day Week Month"]
+```
+
+The picker's row order changed (plan decision 1's order, sanctioned) and
+**neither builder's harness recorded dialogs, so their positive controls
+proved only that the harness saw `VIEW_CONFIG` — not that it saw the one
+thing that visibly changed.** Behaviour across all **45 non-picker steps** is
+byte-identical, so the finding is about the instrument, not the code.
+**Future trace harnesses must record `[role=dialog]` contents.**
+
+Vision's own run: 48 steps including the real Nov 1 2026 DST week in all
+three views, the Add sheet, the detail sheet, five Back/Forward pairs, and a
+bare `/calendar`; 2751 lines each side; positive control moved 68 lines and
+reverted to the exact same md5; zero timeout markers.
+
+### Notes
+
+- **The mission record overclaims and is corrected below:** "`?view=year|
+  schedule|threeDay|bogus` all normalize to **Week**" is true **only with no
+  stored preference.** With `month` stored, `?view=year` and `?view=bogus`
+  render **Month**. `calendarPaging.ts:94-98`'s own comment states this
+  honestly — the mission file was the thing that was wrong.
+- Under 20× CPU throttle, bare `/calendar` with `month` stored paints a
+  **fully resolved Week frame** before flipping to Month — one *more* frame
+  than the wrong-shaped skeleton the mission documents. Inherent to
+  jumpTo-in-an-effect and present on base for a `?view=month` deep link, so
+  not a regression, but `loading.tsx`'s comment shouldn't imply the skeleton
+  is the only mismatch.
+- A stored unbuilt or corrupt value is normalised on read but never cleared —
+  harmless.
+
+### What held under attack, for the record
+
+URL-wins verified from every angle Vision could construct. Stored unbuilt
+(`year`/`schedule`/`threeDay`) and corrupt values (`"Month"`, `""`, `"null"`,
+JSON, `toString`, `__proto__`, `constructor`, `" week"`, `"week\n"`) → all
+Week. The `BUILT_VIEWS` gate held against `?view=` of every unbuilt name plus
+`toString`/`__proto__`/`constructor`/`WEEK`/`Day`. **Cursor properties
+independently re-probed**: Prev∘Next identity for **all six views** from every
+offset −400..+800 against four `today` values including Nov 1 2026 and **Feb
+29 2028 as today** (year Next → Feb 28 2029, Prev → Feb 29 2028, Next×4 →
+Feb 29 2032); threeDay across both 2026 DST transitions is exactly 3 calendar
+days at local midnight. Both documented non-fixes verified sound, including
+reading `CalendarViews.tsx:243-247` to confirm the "seed from URL renders
+nothing" claim. Add sheet, detail sheet, Month day-cell tap and its
+Back/Forward all byte-identical to base.
 
 ## Handoff log
 
