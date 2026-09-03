@@ -150,7 +150,26 @@ Boundary map, so no two builders touch one file:
   `canStepToPeriod` absent repo-wide (`grep`); gauntlet green.
 
 ### C2 — Split `calendarDates.test.ts` by concern; empty the adoption list (Sonnet)
-- **Status:** PENDING
+- **Status:** ✅ **DONE, committed `da915bc`.** Split by concern, not number:
+  `calendarDates.test.ts` 349 → **266** (day/span math incl. `calendarDayDiff`
+  moved home, and the V1/V2/V4 regression suites) + new
+  `calendarDatesFormat.test.ts` **125** (label formatting).
+  `monthLayout.test.ts` 205 → **195**, adoption header removed.
+  **Test count 39 → 39** across owned files (15+15+9) — nothing lost, which
+  is the whole instrument for a move like this. STRUCTURE.md's live-instances
+  list emptied, clause intact. Gauntlet green, 183/183 both timezones.
+  *(183 not 180 because C3's uncommitted `color.test.ts` was already on disk
+  when C2 ran; C1's −5 had not landed. Fury reconciles the final total.)*
+- **Judgment worth keeping:** it kept the V1/V2/V4 regression suites with the
+  day/span file even though they assert on `formatAllDayLabel` output,
+  because the bug and fix were about **day-boundary math**, not formatting.
+  Split by what the test is *about*, not by what it touches.
+- **Flagged, out of its boundary — someone must fix:**
+  `src/lib/mealPlanDates.test.ts:9-14` still says "`calendarDayDiff`'s test
+  stays in `monthLayout.test.ts` … moving that one test isn't in this
+  contract's scope." **That is now false** — C2 moved it. Ninth-and-counting
+  stale comment in this codebase's tracked overclaim class. Not C2's file, so
+  correctly left alone. **Fold into C1's report or a CV1 sweep.**
 - **Objective:** `calendarDates.test.ts` (349/350) becomes two or three files
   split **by concern, never by number** (STRUCTURE.md forbids a numbered
   second file): e.g. `calendarDates.test.ts` (day/span math:
