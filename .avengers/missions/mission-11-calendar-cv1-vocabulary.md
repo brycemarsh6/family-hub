@@ -199,7 +199,89 @@ else less safe, and saying so instead of shipping a green gauntlet.
   gauntlet green; `MonthLoadingSkeleton`'s fate decided and stated.
 
 ### C2 — The six view names, explicit cursor arms, the picker, and last-used persistence
-- **Status:** PENDING (after C1 — shares files)
+- **Status:** ✅ **DONE, committed `8e6e11a`.** Fury re-verified: tsc 0,
+  eslint 0, **200/200 both timezones** (182 → 200, +18), build 0.
+- **Two new lib modules:** `calendarViewVocabulary.ts` (129) owns the union,
+  the **total `VIEW_LABELS` map C1 asked for**, `BUILT_VIEWS`, and picker
+  options *derived* from the label map rather than listed twice; and
+  `lastCalendarView.ts` (70) holds the per-device preference. The second file
+  exists because keeping the preference inside `useCalendarNavigation.ts`
+  pushed it to **369 — over the cap this mission's own contract calls
+  binding**; splitting brought it to 309. The builder split rather than
+  shipped over, and said why in the file header.
+- **The catch-all C1 found is closed:** `CalendarHeader.tsx` now reads
+  `VIEW_LABELS[view]`. **The seventh-view probe proves the mechanism survived
+  the widening** — adding `"agenda"` errors on **five** total records
+  including the new label map and the new cursor map:
+  ```
+  loading.tsx(85)            TS2741 missing in Record<…, CalendarSkeletonShape>
+  CalendarViews.tsx(94)      TS2741 missing in Record<…, ViewConfig>
+  calendarViewVocabulary(64) TS2741 missing in Record<…, string>   ← the label map
+  calendarViewVocabulary(89) TS2741 missing in Record<…, boolean>
+  useCalendarPeriod.ts(69)   TS2741 missing in Record<…, ViewCursor> ← the cursor
+  ```
+- **No catch-alls left in the cursor math:** one total `VIEW_CURSOR` record
+  drives `periodAnchor`, `stepPeriod` and `withView`. Year is `monthOffset ±
+  12` with **no new offset field**, so the existing round-trip property tests
+  stayed intact — and were extended: Prev∘Next identity for threeDay and year
+  across every day of 2026, **plus Feb 29 2028**, the leap day 2026 cannot
+  cover (Next clamps to Feb 28 2027, Prev returns to Feb 29 2028 exactly).
+- **`BUILT_VIEWS` gate implemented**, and the builder agreed with the
+  reasoning rather than just complying: six pickable views with three
+  rendering something else *is* the stub the plan forbids — "a control that
+  lies when tapped." Picker shows exactly `["Day","Week","Month"]`;
+  `?view=year|schedule|threeDay|bogus` all normalize to Week.
+- **Last-used view verified end to end**, including the case that matters
+  most: **a `?view=` in the URL still wins over the stored preference.** And
+  incidentally proven across the whole 35-step trace — the after-run's own
+  view switches wrote the preference mid-walk and the trace *still* matched
+  base exactly, because every step names a `?view=`.
+- **Trace empty**, md5 identical, positive control moved 44 lines and
+  reverted to the same md5. Skeleton and hydration frame measured identical
+  to base under 20× CPU throttling.
+- **Deliberate non-fixes, each with the in-boundary alternative shown to be
+  worse:**
+  - `?view=year` renders Week and **leaves the URL saying `year`** — not
+    rewritten, because a mount-time corrective push adds a history entry and
+    a server round trip through the machinery CV0 spent four contracts
+    stabilising, for a URL nothing reads twice.
+  - **The first painted frame is always the Week frame**, documented not
+    fixed. The one-line "fix" (seed the cursor from the URL) makes
+    `?view=month` render **nothing at all** during the `today === null`
+    branch — trading a wrong-shaped frame for an empty one. And it cannot be
+    fixed in general: a bare `/calendar` with a stored preference *must*
+    paint the default first, because localStorage does not exist during SSR
+    by construction. `loading.tsx`'s comment now says why seven rows for Day
+    is correct rather than lazy.
+  - The preference is **deliberately absent from both effects' dependency
+    arrays**, with the reasoning in code: `todayTime` flipping `null → real`
+    already re-runs them on the same render the store resolves on, and adding
+    it would re-run the resync effect *mid-push* on a picker tap against a URL
+    still naming the old view — the C8/C9 drift class.
+
+## ⚠️ `CalendarViews.tsx` is at 348/350 — this is CV0's situation, one phase later
+
+CV0 existed because this file hit its cap. It ended at 267. C1 took it to
+304, C2 to **348** — and **CV3 (Schedule) and CV4 (the timeline) still have
+render branches to add.** It cannot absorb them.
+
+The builder identified the extraction candidate and did not do it, correctly,
+because no contract asked: **`ViewConfig` / `VIEW_CONFIG` itself** — pure
+functions over `Date`, no JSX, no component dependency — which it estimates
+drops the file to **~230**. That is the natural seam and it is now *more*
+extractable than at CV0, because C1 turned three ternaries into three
+functions.
+
+Also noticed and deliberately left, since promoting them now would encode
+guesses about components that don't exist (`TimelineGrid`, Schedule's rows):
+`showLocation={view === "day"}` and `compact={view === "week"}` are still
+inline booleans, and `view === "month"` still selects the renderer. CV3/CV4
+own those.
+
+**`useCalendarPeriod.test.ts` is at 344/350** — a second file approaching the
+cap, worth a split candidate before CV2 adds timeline-adjacent cases.
+
+
 - **Objective:** widen `CalendarPeriodView` to
   `"schedule" | "day" | "threeDay" | "week" | "month" | "year"`, give every
   view an explicit arm in the cursor math, gate the picker to views that
