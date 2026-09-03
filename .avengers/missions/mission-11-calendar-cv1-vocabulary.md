@@ -452,11 +452,52 @@ a real user notices. Handed to Vision explicitly rather than accepted.
   harnesses were blind to the picker and reported empty diffs that could not
   have seen it. Reuse Vision's (`scratchpad/trace.mjs`), not C1's or C2's.
 
+### C4 — Fix contract: canonicalise the URL instead of freezing the read
+- **Status:** PENDING. ⚠️ **Vision has one gate pass left** — this must be right.
+- **Objective:** a bare or unbuilt-view `/calendar` URL survives in history
+  longer than any mount, so no per-mount freeze can stop a remount between the
+  pick and the Back from re-resolving through the just-written preference.
+  **Canonicalise the URL once `today` resolves**, so no ambiguous entry is
+  ever left in history to come back to.
+- **Shape (Vision's, prototyped and measured — do not substitute without
+  arguing):** once `today` resolves and the URL names no built view, write
+  **native `window.history.replaceState(null, "", "/calendar?" +
+  buildCalendarSearch(view, anchor))`**. Next documents native `replaceState`
+  integrating with `useSearchParams`
+  (`node_modules/next/dist/docs/…/04-linking-and-navigating.md:343-345`) —
+  **confirm that yourself per AGENTS.md.** Use it rather than `router.replace`,
+  which Vision measured at **14 server GETs for 14 picks** on this
+  `force-dynamic` page against **zero** for the native call.
+- **This is a URL-resync write. It must never write the preference.**
+- **The freeze becomes redundant** — with no ambiguous entry in history the
+  fallback can go back to a live read. **Decide: keep or drop.** Dropping is
+  Fury's preference: it undoes C3's shape in favour of a better one, and it
+  frees lines in a file at **349/350**. If you keep it, its comment **must
+  not** claim to close a class it does not (F7/F8 prove it doesn't).
+- **Room:** `useCalendarNavigation.ts` is at 349/350. Dropping the freeze
+  should cover it. If not, put the effect in a sibling lib module rather than
+  going over — do **not** touch `CalendarViews.tsx` (348/350).
+- **Boundaries:** `src/lib/useCalendarNavigation.ts` + test,
+  `src/lib/lastCalendarView.ts` (comment), and one new sibling lib module if
+  the line budget forces it. Nothing else.
+- **Verification — every scenario, base vs yours:** S1/S2/S3 (pass-1's three),
+  **F7** (pick → Kitchen tab → Back → Back), **F8** (pick → reload → Back),
+  F2 (fresh open restores), F4 (bare with `month` stored → Day → Back →
+  Month), and **F5** (should now yield Month). Plus the guard chain
+  Next/Prev/Back/Back/Forward after canonicalisation, all coherent.
+  **Prove the no-extra-GET claim yourself** from the dev server log.
+- **The trace must capture `[role=dialog]`** — reuse Vision's
+  `scratchpad/trace.mjs`. Gauntlet both timezones, **206 baseline**.
+- **One case Vision could not exercise and neither may you fake:** a store
+  write landing between hydration and `today` resolving. If you cannot force
+  it, say so plainly, as Vision did.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Vision | **BLOCK** | 1 | Back is broken on the bare `/calendar` URL the nav bar links to; both builders' trace harnesses were blind to the picker |
+| 2 | Vision | **BLOCK** | 1 | pass-1 blocker RESOLVED as specified — but Vision's own prescribed shape can't cover a remount; prototyped the real fix |
 | 1 | Captain | **PASS** | 0 | extraction ruled REQUIRED before CV3; found the same hazard class living in `constants.ts`; 4 amendments proposed |
 
 Budget: 3 passes per gate, then STOP and surface.
@@ -677,6 +718,92 @@ days at local midnight. Both documented non-fixes verified sound, including
 reading `CalendarViews.tsx:243-247` to confirm the "seed from URL renders
 nothing" claim. Add sheet, detail sheet, Month day-cell tap and its
 Back/Forward all byte-identical to base.
+
+## Vision, pass 2 — BLOCK (1 blocker, 5 notes). Pass-1 blocker RESOLVED as specified.
+
+All three named scenarios re-derived independently across three servers and
+**match base**. F2/F4 matched. Trace HEAD-vs-fixed **0 lines, md5 identical**;
+base-vs-fixed 12 lines, all the sanctioned picker-order change — which
+doubles as the positive control proving the harness sees dialogs.
+
+### Vision blocked its own prescription, and said so
+
+> *"I own that the shape was mine; the finding stands regardless."*
+
+The per-mount freeze was Vision's pass-1 fix. It works for everything it was
+scoped to — and Vision then found the same symptom reachable by two ordinary
+paths **no per-mount shape can cover**, because a bare `/calendar` history
+entry **outlives the mount**, so any remount between the pick and the Back
+re-freezes from the store the pick just wrote:
+
+```
+F7  bare → pick Month → Kitchen tab → Back → Back → Back
+    BASE : Month, Week,  /kitchen
+    FIXED: Month, Month, /kitchen     ← the second Back does nothing; the third exits the branch
+
+F8  bare → pick Month → RELOAD → Back
+    BASE : Week          FIXED: Month
+```
+
+**F8 is routine on the household's iOS home-screen app** — pages reload after
+backgrounding. This is Emily's actual usage pattern, not a contrived case.
+
+### Vision prototyped the real fix in-browser, without editing source
+
+**Canonicalise any URL naming no built view, once `today` resolves** — via
+**native `window.history.replaceState`**, not `router.replace`. Next's own
+docs confirm native `replaceState` integrates with `useSearchParams`
+(`node_modules/next/dist/docs/…/04-linking-and-navigating.md:343-345`), and
+Vision measured the difference that matters on this `force-dynamic` page:
+
+> native `replaceState` → **no server GET**.
+> `router.replace` → **14 GETs for 14 picks.**
+
+Prototype results (`scratchpad/v2-proto.mjs`, run against the fixed build with
+no source change):
+```
+P7  … → Kitchen → Back → Back  : Month, Week   ✓
+P8  … → reload → Back          : Week          ✓
+P-guard  Next/Prev/Back/Back/Forward after canon: all coherent, URL and view agree
+```
+
+**And it collapses the whole problem class:** with no bare entry ever left in
+history, the fallback can safely return to a live read — **the freeze becomes
+redundant.**
+
+### F5 ruled: acceptable in isolation, and **moot under the fix**
+
+Base also snaps away from the just-picked view (to Week); the frozen answer
+is at least a coherent model; and it needs the already-active tab tapped
+after a pick, with a store differing from the opening view. Vision confirmed
+the indistinguishability claim is **true for this hook**, though a signal does
+exist (Navigation API `navigationType`) at the cost of new machinery and
+Safari risk. **Under canonicalisation F5 yields Month — HEAD's answer, which
+Vision calls the best one.**
+
+### The pass-3 attacks that held
+
+Deep chain across two stored writes, pick+Next with no settle, two rapid
+mounts — all match base. Frozen-equal-to-default did not re-open the question
+*in the app*, not just in the unit test. Frozen cannot be `null` after
+resolution. `today` never resolving leaves the value unobservable.
+**One case honestly not exercised:** a store write landing between hydration
+and `today` resolving — at 20× throttle the write never beat `today`. Vision
+reasoned it is safe (both inputs are snapshots read in the same render) and
+**said it had not tested it** rather than implying it had.
+
+### Notes
+
+- The `useState`-during-render shape verified: guarded, fires once, cannot
+  loop. "Strictly safer than a ref" confirmed correct — a render-phase update
+  lives on the discarded work-in-progress hook where a ref write survives —
+  **though Vision notes it is marginal here** since both inputs are snapshots.
+- `lastCalendarView.ts`'s rewritten comment names the real mechanism and
+  matches Vision's own measurement. One triviality: it credits "C3" for a
+  measurement that was Vision pass 1.
+- **`useCalendarNavigation.ts` is at 349/350** — the canonicalisation effect
+  needs either a sibling module or the extraction Captain already ruled
+  required before CV3.
 
 ## Handoff log
 
