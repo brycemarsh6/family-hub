@@ -21,7 +21,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { consumePushedSearch } from "./useCalendarNavigation";
+import { consumePushedSearch, freezeFallbackView } from "./useCalendarNavigation";
 
 const S0 = "date=2026-09-02&view=week";
 const S1 = "date=2026-09-09&view=week";
@@ -69,4 +69,61 @@ test("consumePushedSearch: never mutates the list it was given", () => {
   const pushed = [S1, S2];
   consumePushedSearch(pushed, S1);
   assert.deepEqual(pushed, [S1, S2]);
+});
+
+// ---------------------------------------------------------------------------
+// freezeFallbackView — mission-11/C3, the fix for Vision's pass-1 blocker.
+//
+// The hook read this device's stored view preference LIVE on every render, so
+// a Back to a URL naming no built view (a bare "/calendar" — the one
+// HUB_NAV_ITEMS links to — or a "?view=year") re-resolved it through the
+// preference the picker tap being undone had just written. Back appeared to
+// do nothing. What these cases pin is the one property that fixes it: once
+// decided, the answer does not move, no matter what the store says later.
+//
+// WHAT THEY STRUCTURALLY CANNOT SEE, so nobody reads a green run as more than
+// it is: that the hook calls this once per render with the ref it stores the
+// result in, and that `todayResolved` is really the render the localStorage
+// read resolves on. Both are wiring, need a renderer and a real popstate, and
+// are verified in the running app instead — base-vs-HEAD transcripts of all
+// three of Vision's scenarios are recorded in the C3 contract.
+
+test("freezeFallbackView: nothing is frozen before `today` resolves — that render would freeze the ABSENCE of a preference", () => {
+  assert.equal(freezeFallbackView(null, false, null, "week"), null);
+  assert.equal(
+    freezeFallbackView(null, false, "month", "week"),
+    null,
+    "even a readable store waits: on that render the URL parse has nothing to reconcile yet",
+  );
+});
+
+test("freezeFallbackView: at first resolution it takes the stored preference", () => {
+  assert.equal(freezeFallbackView(null, true, "month", "week"), "month");
+});
+
+test("freezeFallbackView: at first resolution with nothing stored it takes the default", () => {
+  assert.equal(freezeFallbackView(null, true, null, "week"), "week");
+});
+
+test("freezeFallbackView: THE BLOCKER — a later write cannot move an already-frozen answer", () => {
+  // The exact sequence: opened on a bare "/calendar" with nothing stored
+  // (frozen "week"), then the picker tap that wrote "month" re-renders.
+  assert.equal(
+    freezeFallbackView("week", true, "month", "week"),
+    "week",
+    "Back to the bare URL must resolve to what that URL meant at open, not to the tap being undone",
+  );
+  // And the cross-tab case, which is the same call: another tab's write is
+  // just as much a later write as this tab's own.
+  assert.equal(freezeFallbackView("week", true, "day", "week"), "week");
+});
+
+test("freezeFallbackView: freezing to the same value as the default is still frozen, not undecided", () => {
+  // The trap a `?? defaultView` guard would fall into: "week" frozen because
+  // nothing was stored must NOT re-open the question once "month" is written.
+  assert.equal(freezeFallbackView("week", true, "month", "week"), "week");
+});
+
+test("freezeFallbackView: a frozen answer survives `today` going unresolved again", () => {
+  assert.equal(freezeFallbackView("month", false, null, "week"), "month");
 });
