@@ -10,8 +10,11 @@ Google sync, month/week/day views, parents and admin edit while kids can't,
 meal plan shown on week/day views, filters (people / tags / meals), and AI
 import via voice and photo. Email import was dropped mid-conversation.
 
-**Status:** K0 (design) complete, 2026-09-02. Nothing below is built yet;
-K1 is the first Avengers mission. Every phase is one mission, one PR,
+**Status:** K0 designed, K1 and K2 shipped (PRs #9, #10), 2026-09-02.
+**⚠️ The ORDER of K3–K7 below is superseded by `calendar-v2.md`** — after
+K2, Bryce walked through Google Calendar and re-shaped the view system, added
+Tasks as their own entity, and added long-press drag. K3–K7's *content*
+stands and is re-slotted at the end of v2. Read v2 first. Every phase is one mission, one PR,
 gauntlet green, verified in a browser at 375px, additive migrations only.
 
 ## Decisions settled with Bryce — don't re-litigate
