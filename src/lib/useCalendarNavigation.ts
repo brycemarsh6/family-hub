@@ -32,13 +32,14 @@
 // header). WHICH day is "today", and which day each event card renders
 // under, is decided here in the browser, from useToday().
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToday } from "./useToday";
 import { useCalendarPeriod, periodAnchor, stepPeriod, withView } from "./useCalendarPeriod";
 import { buildCalendarSearch, parseDateParam, parseViewParam } from "./calendarPaging";
 import type { CalendarPeriodView } from "./calendarViewVocabulary";
 import { useLastCalendarView, writeLastCalendarView } from "./lastCalendarView";
+import { useCanonicalCalendarUrl } from "./useCanonicalCalendarUrl";
 import { isSameDay } from "./mealPlanDates";
 
 /**
@@ -63,43 +64,6 @@ export function consumePushedSearch(
   const index = pushed.indexOf(urlSearch);
   if (index === -1) return { ours: false, remaining: [] };
   return { ours: true, remaining: pushed.slice(index + 1) };
-}
-
-/**
- * The fallback view a URL naming no BUILT view resolves through — decided
- * once, on the first render where this device's stored preference resolves,
- * and never re-decided for the rest of the mount.
- *
- * WHY FROZEN, NOT READ LIVE (mission-11/C3, Vision's pass-1 blocker).
- * `HUB_NAV_ITEMS` links to a bare `/calendar`, so a URL naming no view is the
- * first thing a family member lands on — and a live read made Back to that URL
- * re-resolve through the value the very picker tap being undone had just
- * written. Back appeared to do nothing (the screen stayed on Month) and a
- * second Back left the calendar; another tab's pick moved this tab's view
- * under its finger; a `?view=year` URL kept saying "year" while the screen
- * followed a preference chosen after it was loaded.
- *
- * Freezing makes calendar-v2.md decision 5 literally true — the preference
- * applies when `/calendar` OPENS with no `?view=`, not whenever it is re-read.
- * Every popstate within one mount resolves to what that URL meant at open,
- * which is what Back means; a fresh open reads the preference again.
- *
- * Pure and exported so "never re-decided" is testable without a renderer, as
- * `consumePushedSearch` above is. The caller holds it in STATE, not the ref
- * this was drafted as: `react-hooks/refs` forbids touching a ref during render,
- * and "adjust state while rendering" also can't keep a discarded render's write.
- */
-export function freezeFallbackView(
-  frozen: CalendarPeriodView | null,
-  todayResolved: boolean,
-  stored: CalendarPeriodView | null,
-  defaultView: CalendarPeriodView,
-): CalendarPeriodView | null {
-  if (frozen !== null) return frozen;
-  // The store resolves on the same render `today` does (both are
-  // useSyncExternalStore reads), so freezing earlier freezes the ABSENCE.
-  if (!todayResolved) return null;
-  return stored ?? defaultView;
 }
 
 export type CalendarNavigation = {
@@ -142,23 +106,16 @@ export function useCalendarNavigation(defaultView: CalendarPeriodView): Calendar
   const todayTime = today === null ? null : today.getTime();
 
   // What a MISSING (or unbuilt) "?view=" means on this device: the last view
-  // its owner picked, else `defaultView` — frozen here, at the single place
-  // it is consumed, so the two readers below (`currentSearch`, `urlTarget`)
-  // can never answer it differently. `freezeFallbackView` says why live was a
-  // bug, not a simplification. Still absent from both effects' dependency
-  // lists, and now trivially so: past its first resolution it cannot change,
-  // so nothing is left for a dependency to observe. When it COULD change,
-  // listing it there would have re-run the resync effect mid-push on a picker
-  // tap against a URL still naming the old view — the C8/C9 drift class CV0
-  // closed. The effects still see it the first time they have anything to
-  // reconcile: `todayTime` flipping null -> real is the render it resolves on.
-  const storedView = useLastCalendarView();
-  const [frozenView, setFrozenView] = useState<CalendarPeriodView | null>(null);
-  const frozen = freezeFallbackView(frozenView, todayTime !== null, storedView, defaultView);
-  if (frozen !== null && frozenView === null) setFrozenView(frozen);
-  // `defaultView` only pre-freeze — i.e. only while `today` is null, which are
-  // exactly the renders on which nothing below acts on it.
-  const fallbackView = frozen ?? defaultView;
+  // its owner picked, else `defaultView`. Read LIVE again (C3 froze it per
+  // mount; useCanonicalCalendarUrl.ts says why that was not enough), which is
+  // safe because the effect below rewrites such a URL the moment `today`
+  // resolves: this value decides what gets WRITTEN, and afterwards no entry is
+  // left whose meaning a later store write could change. Absent from both
+  // effects' dependency lists deliberately — `todayTime` flipping null -> real
+  // is the render it resolves on, so they see it the first time they have
+  // anything to reconcile, while listing it would re-run the resync effect
+  // mid-push against a URL still naming the old view: CV0's C8/C9 drift.
+  const fallbackView = useLastCalendarView() ?? defaultView;
 
   // THE PUSH GUARD (Vision's compare-and-clear design, mission-9/C8 pass 4;
   // implemented here rather than in CalendarViews.tsx because both K2 gates
@@ -297,6 +254,13 @@ export function useCalendarNavigation(defaultView: CalendarPeriodView): Calendar
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNavigating, dateParam, viewParam, todayTime]);
 
+  // Keeps the URL honest: a URL naming no built view is rewritten, in place,
+  // to name the one it actually renders — see useCanonicalCalendarUrl.ts for
+  // the whole reason this exists. Called AFTER the two effects above so its
+  // own effect is registered last: it WRITES the URL they READ, so both have
+  // already acted on this render's view of it before the correction lands.
+  useCanonicalCalendarUrl(viewParam, dateParam, todayTime, urlTarget());
+
   // `nextPeriod`/`nextAnchor` below use the SAME pure functions the cursor
   // uses internally, rather than waiting a render to read `anchor` back, so
   // the navigation URL can be built synchronously in the same handler.
@@ -316,10 +280,11 @@ export function useCalendarNavigation(defaultView: CalendarPeriodView): Calendar
 
   function handleSetView(nextView: CalendarPeriodView) {
     // The one write of the per-device preference: the only path a human
-    // deliberately chooses a view on. It is for the NEXT open — this mount's
-    // fallback is already frozen and does not move (C3). Written before the
-    // early return below so a pick made while `today` is still resolving is
-    // still remembered.
+    // deliberately chooses a view on. It is for the NEXT open — every URL
+    // already in this session's history names its own view outright by now
+    // (useCanonicalCalendarUrl.ts), so this write has nothing behind it left
+    // to reinterpret. Written before the early return below so a pick made
+    // while `today` is still resolving is still remembered.
     writeLastCalendarView(nextView);
     if (today === null) {
       setView(nextView);

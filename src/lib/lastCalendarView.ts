@@ -11,13 +11,13 @@
 // the 350-line cap is real. Two rules travel with it, and both are
 // enforced at the call site rather than here:
 //
-//   READ ONLY WHEN "?view=" IS ABSENT, AND ONLY ONCE PER MOUNT. The URL
-//   stays the source of truth; a stored preference that argued with the URL
-//   would re-invent the C8/C9 drift CV0 spent four contracts killing. It is
-//   a FALLBACK passed to `parseViewParam`, never an override — and it is
-//   frozen at the moment it first resolves (`freezeFallbackView`), because
-//   a URL naming no view must keep meaning what it meant when it was
-//   opened, or Back to it stops working (mission-11/C3).
+//   READ ONLY WHEN "?view=" IS ABSENT OR NAMES NO BUILT VIEW. The URL stays
+//   the source of truth; a stored preference that argued with the URL would
+//   re-invent the C8/C9 drift CV0 spent four contracts killing. It is a
+//   FALLBACK passed to `parseViewParam`, never an override — and such a URL
+//   is then rewritten to name what it resolved to, so a history entry cannot
+//   keep meaning something this store can still change under it, which is
+//   what broke Back on a bare "/calendar" (mission-11/C4).
 //
 //   WRITTEN ONLY BY A PICKER TAP, never by the URL resync. "Last used"
 //   means the last view this person deliberately chose — a deep link
@@ -34,18 +34,25 @@ const LAST_VIEW_KEY = "marshee:last-calendar-view";
 //
 // Not subscribing to "storage" is deliberate — but it is NOT what stops
 // another tab's picker tap from changing the view under this one's finger,
-// and this comment used to claim it was. Vision measured the opposite in
-// mission-11/C3: tab B picked Month, and tab A's next Back landed on Month.
-// A subscription only decides whether a re-render is TRIGGERED; React calls
+// and this comment used to claim it was. Vision measured the opposite (pass
+// 1): tab B picked Month, and tab A's next Back landed on Month. A
+// subscription only decides whether a re-render is TRIGGERED; React calls
 // `getSnapshot` on every render either way, so any unrelated re-render in
-// tab A (a Next tap, say) picked up tab B's write. What actually delivers
-// the promise is the READER — useCalendarNavigation freezes this value at
-// mount — so a write from anywhere, another tab or this one's own picker,
-// cannot reach a mount already under way.
+// tab A (a Next tap, say) picked up tab B's write.
+//
+// What actually delivers the promise is that this value is never read twice
+// for the same question: useCanonicalCalendarUrl.ts rewrites a URL naming no
+// built view into one that names the view it renders, so the preference is
+// read to DECIDE that rewrite and the URL answers every time afterwards —
+// including after a reload or a Back from another branch, which a per-mount
+// freeze could not (mission-11/C4). A write from anywhere, another tab or
+// this one's own picker, therefore has nothing left to change: it is a
+// preference for the next OPEN, which is all calendar-v2.md decision 5 ever
+// claimed it was.
 //
 // The event still earns its place: it keeps this a correct external store
 // on its own terms (write then read, same tab, same answer) rather than one
-// whose correctness depends on its only caller happening to freeze it.
+// whose correctness depends on how its callers happen to use it.
 const LAST_VIEW_CHANGED = "marshee:last-calendar-view-changed";
 
 function readLastCalendarView(): CalendarPeriodView | null {
@@ -78,8 +85,8 @@ function subscribeLastCalendarView(callback: () => void) {
  * same render `useToday()` resolves on, since both are external-store
  * reads checked in the one post-hydration pass. That co-timing is what
  * lets useCalendarNavigation's resync effect see the preference the first
- * time it has anything to reconcile — and what makes the value frozen there
- * the real preference rather than this `null` placeholder.
+ * time it has anything to reconcile, and what makes the URL rewritten from
+ * it the real preference rather than this `null` placeholder.
  */
 export function useLastCalendarView(): CalendarPeriodView | null {
   return useSyncExternalStore(subscribeLastCalendarView, readLastCalendarView, () => null);
