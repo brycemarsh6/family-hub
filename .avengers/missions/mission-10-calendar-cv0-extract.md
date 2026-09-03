@@ -1,7 +1,7 @@
 # Mission: Calendar CV0 — extract the navigation cluster; split the test file; the C4 repairs
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (three disjoint contracts, dispatched in parallel 2026-09-02)
+**Status:** AT-THE-GATES — all three contracts DONE and committed; Vision and Captain not yet dispatched (2026-09-02)
 **Started:** 2026-09-02 · **Updated:** 2026-09-02
 **Plan:** `.avengers/plans/calendar-v2.md` — phase CV0 (the prerequisite for everything after it)
 **Branch:** `claude/calendar-cv0-extract`, stacked on `claude/calendar-k2-month` (PR #10, unmerged)
@@ -56,9 +56,12 @@ included**. Isolation is not privacy.
   — **the direct invocation**; `TZ=UTC npm test` silently runs Denver twice
 - `npm run build`
 
-Baseline **180/180**. Expected after CV0: 180 − 5 (`periodWindowEdges` ×4 +
-the `canStepToPeriod` control) + whatever C3 adds for `hexToRgba`. Each
-contract reports its exact delta; Fury reconciles the sum.
+Baseline **180/180**. **Reconciled after all three contracts: 182.**
+180 + 3 (C3's `color.test.ts`) − 7 (C1's deletion — the block held **six**
+tests plus the `canStepToPeriod` control, not the four this section
+originally guessed) + 6 (C1's `useCalendarNavigation.test.ts`, added
+unprompted so the guard's reconciliation is unit-testable) = **182**.
+Verified by Fury under both `npm test` and the direct `TZ=UTC` invocation.
 
 ## Assembled
 
@@ -95,7 +98,56 @@ Boundary map, so no two builders touch one file:
 | `EventForm.tsx`, `MonthGrid.tsx`, `DaySection.tsx`, `CalendarHeader.tsx`, `page.tsx`, actions, `prisma/**` | must not | must not | must not |
 
 ### C1 — Extract `useCalendarNavigation`; the view switch; delete the dormant predicate (Opus)
-- **Status:** PENDING
+- **Status:** ✅ **DONE, committed `03d5330`.** `CalendarViews.tsx`
+  **350 → 267** (target ≤290); new `useCalendarNavigation.ts` (220) owns the
+  whole URL↔cursor cluster; `calendarPaging.ts` 250 → 146,
+  `calendarPaging.test.ts` 228 → 99, `calendarDates.ts` 256 → 233.
+  Fury re-verified: tsc 0, eslint 0, **182/182 both timezones**, build 0,
+  every cap clear, `periodWindowEdges`/`canStepToPeriod` gone from source
+  (tombstone comments only).
+- **The trace diff is empty — and the method is why it means anything.**
+  620 lines each, **identical md5** (`fbb3645…`), 37 steps across Week / Day /
+  Month covering initial load, Next ×2, Prev ×2, Today (inert and real), a
+  view switch, a Month day-cell tap, Back and Forward — capturing header
+  title, `location.search`, `document.title`, both arrows' labels and disabled
+  states, section/cell/card counts, **and the full `innerText` of the views
+  container**. Crucially the "before" run came from a **git worktree pinned at
+  `88c317d`** with its own dev server, so C2's and C3's parallel commits sit
+  on *both* sides and cannot pollute the diff. Plus a **positive control**:
+  it temporarily flipped `prevLabel` and watched the SSR HTML follow
+  (`"Previous week"` → `"Previous PROBE"` → restored), proving the "after"
+  run was exercising the new code at all. That is the discipline this project
+  keeps having to relearn.
+- **`VIEW_CONFIG` is a total `Record<CalendarPeriodView, ViewConfig>`**, so
+  **CV1 widening the union is a compile error until each new view has a
+  row** — "a row, not a branch," enforced by the type system rather than by a
+  comment asking nicely.
+- **It improved on Vision's guard design, and said so.** Vision's (a) compares
+  the next search string against the *URL*; under concurrency that is wrong —
+  tap Next then Prev inside one push's flight and the URL still names the
+  period Prev returns to, so the Prev push is skipped and cursor and URL
+  settle **disagreeing with nothing in flight to fix it**. The comparison is
+  now against `pushed.at(-1) ?? currentSearch`. Two further hardenings, both
+  documented in the file: the current search is **normalized** through the
+  same parse/build triple (so `?view=day` and `?date=<today>&view=day` compare
+  equal — that is what makes the re-pick guard fire on a bare URL), and
+  consuming a landed push **drops every entry pushed before it**, since those
+  were superseded and are exactly how a stale entry swallows a Back.
+  Measured discriminating: re-picking the current view now pushes nothing
+  (`history 2 → 2`, URL unchanged) where before it pushed (`2 → 3`).
+- **Two honest corrections to Fury's contract:** the deleted block held
+  **six** tests plus the control, not four — so the delta is **−7, not −5**
+  (arithmetic error in the mission's Gauntlet section, corrected below). And
+  it **added 6 tests nobody asked for** by making the guard's reconciliation
+  a pure exported `consumePushedSearch`, precisely so the part that has been
+  wrong twice is unit-testable. **Fury keeps them** — that is the right
+  instinct, not scope creep.
+- **Flagged, correctly not touched:** `loading.tsx` still reads
+  `useSearchParams` (C3's file; CV4 replaces that skeleton anyway) — the
+  *navigation* cluster has exactly one reader as specified. And
+  `DaySection.tsx:37` now carries a **doubly**-stale comment, citing
+  `canStepToPeriod` (deleted here) and a refusal-to-page behaviour C6 retired.
+  Must-not-touch, so left; one-line fix for CV1.
 - **Objective:** lift the URL↔cursor cluster out of `CalendarViews.tsx` into
   a lib hook, apply the compare-and-clear guard there, reduce
   `CalendarViews` to header + view switch, and delete the two dormant
