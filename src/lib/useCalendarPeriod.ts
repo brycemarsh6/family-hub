@@ -225,10 +225,13 @@ export type UseCalendarPeriodResult<V extends CalendarPeriodView> = {
  * `period.view` can only ever actually hold a `V` value at runtime — this
  * hook never assigns it anything else.
  *
- * `monthDay`'s initial value (below) is an inert placeholder: `view` only
- * ever becomes "month" through `setView`, which always calls `withView` —
- * and `withView` always recomputes `monthDay` from a REAL anchor. There is
- * no code path that renders a Month period whose `monthDay` still holds
+ * `monthDay`'s initial value (below) is an inert placeholder. `view`
+ * becomes "month" through `setView` OR through `jumpTo` (the URL resync in
+ * useCalendarNavigation.ts, and MonthGrid's day tap) — the comment here
+ * used to name only `setView`, which was wrong. The safety property
+ * survives the correction because BOTH route through `withView`, and
+ * `withView` always recomputes `monthDay` from a REAL anchor: there is
+ * still no code path that renders a Month period whose `monthDay` holds
  * the placeholder.
  */
 export function useCalendarPeriod<V extends CalendarPeriodView>(

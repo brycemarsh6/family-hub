@@ -231,26 +231,3 @@ export function isOutsideWindow(day: Date, windowStart: Date, windowEnd: Date): 
   const dayEnd = addDays(startOfDay(day), 1).getTime();
   return dayStart < windowStart.getTime() || dayEnd > windowEnd.getTime();
 }
-
-/**
- * Whether paging one more period in a direction is allowed, given the
- * CANDIDATE period's own edge day closest to "now" — the first day of the
- * next period when stepping forward, or the last day of the previous
- * period when stepping backward (CalendarViews.tsx computes both the same
- * way already, calling them `nextPeriodStart` / `previousPeriodEnd`).
- * Reuses `isOutsideWindow` on that single day: if even the CLOSEST day of
- * the candidate period is outside the loaded window, every day further
- * into that period is guaranteed to be outside too (each one moves further
- * from "now", never back toward it), so the whole period would render
- * nothing but `NotLoadedCard` — stepping there is refused instead. One
- * shared definition for both Prev and Next (Prev was already correct, but
- * now shares the exact same predicate rather than a second hand-written
- * copy of the same idea), so they can never disagree about the edge.
- */
-export function canStepToPeriod(
-  candidateEdgeDay: Date,
-  windowStart: Date,
-  windowEnd: Date,
-): boolean {
-  return !isOutsideWindow(candidateEdgeDay, windowStart, windowEnd);
-}

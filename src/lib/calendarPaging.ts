@@ -39,24 +39,17 @@
 //    CalendarViews.tsx's own period cursor (useCalendarPeriod.ts),
 //    completely unchanged by this contract.
 //
-// `periodWindowEdges` is a THIRD, separate export — CalendarViews.tsx's
-// OLD (pre-C6) window/paging predicate block, lines 163-214, moved here
-// verbatim (Captain's C2-1 recommendation, "unavoidable anyway" per
-// mission-9's own pre-authorization note). C6 retired `canStepToPeriod`'s
-// use as a navigation WALL — see CalendarViews.tsx's own comment on why
-// Prev/Next are never disabled by a window edge anymore now that the
-// window follows wherever the URL's own "?date=" points — but the
-// predicate itself is kept, not deleted, per that contract's explicit "do
-// not delete the honesty machinery, retire only its use as a wall"
-// instruction. Moving it here is what finally makes its two previously
-// browser-only-verified invariants (C7's direction-of-travel rule; Vision
-// pass-3's skewed-clock guard) real `node:test` cases — see
-// calendarPaging.test.ts, including the red-then-green transcript in
-// Stark's C6 report showing both were unreachable before this file
-// existed.
+// `periodWindowEdges` used to be a third export here — CalendarViews.tsx's
+// pre-C6 window/paging predicate, kept when C6 retired its use as a
+// navigation WALL. It was deleted in mission-10/CV0 (contract C1) together
+// with calendarDates.ts's `canStepToPeriod`, which only it called: two
+// missions passed with no application caller, which is Captain's
+// dormant-export rule for deleting rather than commenting. Paging is
+// unbounded now — the window follows wherever "?date=" points, and a day the
+// fetch didn't cover still renders honestly through `isOutsideWindow`
+// (calendarDates.ts), which IS still live in MonthGrid and CalendarViews.
 
 import { addDays, startOfDay, toLocalDateString } from "./mealPlanDates";
-import { canStepToPeriod } from "./calendarDates";
 
 const DATE_PARAM_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -150,101 +143,4 @@ export function resolveServerFetchWindow(
 ): { windowStart: Date; windowEnd: Date } {
   const anchorDay = parseDateParam(dateParam) ?? startOfDay(serverNow);
   return buildFetchWindow(anchorDay);
-}
-
-// ---------------------------------------------------------------------------
-// periodWindowEdges — see this file's header.
-
-export type PeriodWindowEdgesInput = {
-  view: "day" | "week" | "month";
-  /** `useCalendarPeriod`'s own `anchor` — `null` only before `today`
-   * resolves (see that hook's own comment). */
-  anchor: Date | null;
-  /** Week view only; `null` for Day/Month (mirrors CalendarViews.tsx's own
-   * `weekStart`). */
-  weekStart: Date | null;
-  today: Date | null;
-  windowStart: Date;
-  windowEnd: Date;
-};
-
-export type PeriodWindowEdges = {
-  /** True only when stepping BACKWARD one more period would land somewhere
-   * the fetch window doesn't fully contain, AND that step would move AWAY
-   * from today (never true for a step that moves toward it — C7's
-   * direction-of-travel rule) — see this function's own body for the
-   * skewed-clock guard on top of that. */
-  atWindowStart: boolean;
-  /** The forward-stepping mirror of `atWindowStart`. */
-  atWindowEnd: boolean;
-};
-
-/**
- * Whether stepping one more period, in either direction, from `anchor`
- * would land somewhere the fetch window doesn't fully cover — moved
- * verbatim from CalendarViews.tsx (mission-9/C6; see this file's header
- * for why it still exists even though C6 retired its use as a navigation
- * WALL — CalendarViews.tsx no longer imports this function at all). Two
- * invariants, both pinned in calendarPaging.test.ts:
- *
- * C7 (direction-of-travel) — a step that moves TOWARD today must never be
- * flagged, even into a candidate period the window doesn't cover (that
- * candidate still renders honestly via `isOutsideWindow`/`NotLoadedCard`;
- * the next step only gets closer). Guarded by comparing the CANDIDATE
- * period's own near edge against `today`, not by the window at all.
- *
- * Vision pass-3 (skewed clock) — if `today` itself sits outside the
- * window (a badly-skewed device clock), the direction check above can't
- * tell which way is "toward" the data anymore the first time
- * `anchor === today`. `anchorBeforeWindow`/`anchorAfterWindow` track
- * whether the CURRENT period itself hasn't reached the window yet — once
- * paging carries the anchor into or past the window, they go false and
- * the ordinary check above resumes unaided.
- */
-export function periodWindowEdges({
-  view,
-  anchor,
-  weekStart,
-  today,
-  windowStart,
-  windowEnd,
-}: PeriodWindowEdgesInput): PeriodWindowEdges {
-  const nextPeriodStart =
-    anchor === null
-      ? null
-      : view === "week"
-        ? weekStart === null
-          ? null
-          : addDays(weekStart, 7)
-        : view === "month"
-          ? new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1)
-          : addDays(anchor, 1);
-  const previousPeriodEnd =
-    anchor === null
-      ? null
-      : view === "week"
-        ? weekStart === null
-          ? null
-          : addDays(weekStart, -1)
-        : view === "month"
-          ? new Date(anchor.getFullYear(), anchor.getMonth(), 0)
-          : addDays(anchor, -1);
-
-  const anchorBeforeWindow = anchor !== null && anchor.getTime() < windowStart.getTime();
-  const anchorAfterWindow = anchor !== null && anchor.getTime() > windowEnd.getTime();
-
-  const atWindowEnd =
-    today !== null &&
-    nextPeriodStart !== null &&
-    nextPeriodStart.getTime() > today.getTime() &&
-    !canStepToPeriod(nextPeriodStart, windowStart, windowEnd) &&
-    !anchorBeforeWindow;
-  const atWindowStart =
-    today !== null &&
-    previousPeriodEnd !== null &&
-    previousPeriodEnd.getTime() < today.getTime() &&
-    !canStepToPeriod(previousPeriodEnd, windowStart, windowEnd) &&
-    !anchorAfterWindow;
-
-  return { atWindowStart, atWindowEnd };
 }
