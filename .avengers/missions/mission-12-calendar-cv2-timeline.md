@@ -72,7 +72,42 @@ Baseline **207**. C2 raises it substantially; C1 should not move it.
 | everything else | must not | must not |
 
 ### C1 — Restore the iOS refresh gesture; correct the overclaiming cost comment
-- **Status:** PENDING
+- **Status:** ✅ **DONE, committed `f4ed18a`.** Fury re-verified: tsc 0,
+  eslint 0, 236 both zones (232 + 4 gated skips under UTC), build 0, tree
+  clean. **`git diff` on `HubNav.tsx` changes zero `className` lines** — the
+  markup is byte-identical, so no Strange escalation is warranted.
+- **The fix:** the active tab's `<Link>` now renders `replace={active}` (no
+  duplicate history entry on a re-tap) and
+  `onClick={active ? () => router.refresh() : undefined}` (the refetch a
+  re-tap used to perform). **Both props are conditioned on `active`, so
+  inter-tab taps are untouched** — that conditioning is what keeps the change
+  from leaking into normal navigation.
+- **Measured on two tabs, as required** — request captures *and* the dev
+  server log, not one or the other:
+  ```
+  Calendar re-tap: history.length 2 → 2 (unchanged), GET /calendar 200 ×3
+  Kitchen  re-tap: history.length 3 → 3 (unchanged), GET /kitchen  200 ×3
+  ```
+- **The dead press is gone**, reproducing mission-11 pass-3's own transcript
+  on the fixed build: pick Month (history 6), re-tap Calendar (still 6),
+  **Back #1 lands straight on Week** rather than repeating the same URL.
+- **Inter-tab navigation verified unchanged** — Calendar → Kitchen → Calendar
+  still pushes per tap and Back walks both entries.
+- **All five mission-11 scenarios re-run and matching their documented FIXED
+  results**: S1, S3, F7 (Back×3 → Month, Week, /kitchen), F8, F5.
+- **The comment now states the truth it previously overclaimed**: free on
+  loads and picks; **+1 fetch on a cold Back into a canonicalised entry**,
+  bounded to once by the shared cache key, with Next's two-mismatch
+  escalation unreachable; **base pays the same for any native `pushState`
+  entry**, so it is the price of the History API integration Next's docs
+  recommend rather than a cost this hook introduced; native still beats
+  `router.replace`. Plus the dev-only StrictMode double-fire note.
+- **A discrepancy it flagged rather than let be misread:** the contract's
+  "baseline 207" was the mission's starting point, but C2 had already landed
+  on the shared branch, so HEAD was 236 when it began. **It verified its own
+  delta was 0 by `git stash`-ing its two files and re-running** — which is
+  what "C1 should not move the count" actually requires, and is a more useful
+  check than comparing against a stale headline number.
 - **1. The comment at `useCanonicalCalendarUrl.ts:71-77` overclaims**, and
   Fury repeated the claim in a commit message. It says the native replace
   costs nothing. Vision measured a **cold Back into a canonicalised entry at
