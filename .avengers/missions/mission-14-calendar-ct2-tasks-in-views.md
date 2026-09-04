@@ -1,7 +1,7 @@
 # Mission: CT2 — Tasks in every view, the detail sheet, and mark-complete
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** AT-THE-GATES
 **Started:** 2026-09-04 · **Updated:** 2026-09-04
 
 ## Why this mission, and why now
@@ -154,7 +154,7 @@ Sequential — every contract after C1 touches files C1 moves. Sized so one
 dispatch completes one.
 
 ### C1 — Extract `VIEW_CONFIG`, because `CalendarViews.tsx` is at the cap
-- **Status:** PENDING
+- **Status:** DONE — `f12ae11`. 348 → 217; tests 241 → **252** (11 new, covering both 2026 DST transitions and the Jan 31 boundary — the coverage Captain's ruling was actually about). Purity proven by reconstructing the old config from `git show HEAD` and comparing across 6 views × 9 anchors × step/back/Today × 9 "today" values: **1674 comparisons, 0 mismatches.**
 - **Why first:** the file is at **348/350** and CT2 must add lines to it to
   thread tasks through. Captain's CT1 ruling is a written trigger: *the
   next mission that must add a line performs the `ViewConfig` →
@@ -177,7 +177,7 @@ dispatch completes one.
   point), `CalendarViews.tsx` comfortably under cap.
 
 ### C2 — `CalendarTaskView`, and the parallel query
-- **Status:** PENDING
+- **Status:** DONE — `3dc628c`. Concurrency **measured**: the two queries dispatch 0.57ms apart, both long before either returns. `isMine` computed server-side from people already joined in the same round trip — no second query, and only a boolean crosses into a component.
 - **Boundaries:** may touch: `src/app/(app)/calendar/page.tsx`,
   `src/components/CalendarViews.tsx`, a new type home · must not touch:
   `src/app/actions/**`, `prisma/**`.
@@ -191,7 +191,7 @@ dispatch completes one.
   proving two queries, not two round trips in series.
 
 ### C3 — Render tasks in the views that exist
-- **Status:** PENDING
+- **Status:** DONE — `03042b7`. `TaskCard.tsx` new (justified: `EventCard` exists to describe a start/end *span*, a task has one due date). `EventCard.tsx:63`'s "line-through means cancelled" corrected — it was never true anywhere, `GroceryRow` has struck checked items since it was built. Distinction proven by computed style in one frame: completed task struck through, past events same weight-drain but not struck. **Caught a bug outside the brief:** `DaySection`'s "No events" card only checked events, so a task-only day showed it beside a visible task.
 - **Boundaries:** may touch: `src/components/DaySection.tsx`,
   `EventCard.tsx` (or a new `TaskCard.tsx`), `MonthGrid.tsx`,
   `CalendarViews.tsx` · must not touch: `src/lib/monthLayout.ts`,
@@ -204,7 +204,7 @@ dispatch completes one.
   task visibly distinct from a past event; no layout shift.
 
 ### C4 — `TaskDetailSheet`, mark complete, and the kid attack
-- **Status:** PENDING
+- **Status:** DONE — `17f7c6d`. The kid attack ran through the **shipped bundle** (action ids pulled from the chunk the running server served), positive control first, same kid session throughout: completes own ✅ → refused on another's ✅ → refused on un-complete, timestamp unchanged to the byte ✅ → refused on edit/delete ✅ → manager succeeds on all four ✅. Rendered DOM per role captured, not reasoned. **Dormant-export deadline met and measured: task action ids in the manifest 0 → 4.** Flagged two things honestly, both taken by C5.
 - **Boundaries:** may touch: new `src/components/TaskDetailSheet.tsx`,
   `CalendarViews.tsx` · must not touch: `EventDetailSheet.tsx` (a separate
   sheet — a task's fields and verbs genuinely differ), `actions/tasks.ts`
@@ -219,6 +219,52 @@ dispatch completes one.
 - **Done criteria:** `deleteTask`/`completeTask`/`uncompleteTask` now have
   real Server Action ids in the built manifest — CT1 recorded **zero**;
   that number changing is the proof the dormant-export deadline is met.
+
+
+### C3b — a completed task must not read as outstanding in Month view
+- **Status:** DONE — `f8c4a40`
+- **Recorded late.** C3's builder flagged that `MonthCell.tsx` sat outside
+  its boundary, so a completed task's pill was pixel-identical to an open
+  one — a signal that lies, in a primary view, about the very thing CT2
+  exists to do. Fury made it a contract rather than letting it reach the
+  design gate.
+- **Boundaries:** may touch `MonthCell.tsx`, `MonthGrid.tsx`; must not
+  touch `monthLayout.ts` or any file a parallel builder held.
+- **Report — the contract named `line-through`, and the builder measured
+  instead of obeying.** Below `md` the pill's title span is `sr-only`,
+  genuinely display-hidden: a pill shows **zero** visible characters at
+  375px, so `line-through` alone would have been invisible at exactly the
+  viewport DESIGN.md targets. It shipped a checkmark glyph (renders at
+  every size) with `line-through` layered on at `md`+, joining
+  `TaskCard`/`GroceryRow`'s vocabulary rather than inventing a fourth.
+  Completion is computed independently of past-ness, so a task finished
+  early still reads done and an overdue-but-open one is never struck.
+  **Lane assignment proven untouched**: identical pill counts and the same
+  "+1 more" before and after; `monthLayout.ts` byte-identical.
+  It also declined to clean up shared test data a sibling builder was
+  still using — the right call.
+
+### C5 — Split the sheet under the cap, and let Edit reassign people
+- **Status:** DONE — `6aa2aef`
+- **Recorded late — the builder flagged the gap itself**, exactly as Vision
+  did in CT1. *A boundary living only in a dispatch prompt is not a
+  boundary*; written down here so the audit trail is real.
+- **Boundaries:** may touch `TaskDetailSheet.tsx`, new `TaskEditView.tsx`,
+  `CalendarViews.tsx`, `page.tsx`; must not touch `actions/**`,
+  `EventPeopleField.tsx` (import unchanged), `EventDateTimeFields.tsx`,
+  `TaskForm.tsx`, `src/lib/**`, `prisma/**`.
+- **Report:** 418 → **290**, edit view now its own 173-line component. The
+  roster joins the existing `Promise.all` as a **third element** — all
+  three dispatch at +0ms, where a sequential chain would stagger by
+  hundreds of ms. Reuses `EventPeopleField` rather than a second picker.
+  Reassignment proven end to end: chips toggled in a real browser, then
+  `TaskPerson` rows confirmed by direct database read to match.
+  **The kid check from two angles is the useful one:** a kid who *is*
+  assigned sees Mark complete but still never sees Edit — proving
+  membership and management are separate gates, not one.
+  Kept CT1's standing constraint: wrote a local date helper rather than
+  importing `parseLocalDateString`, which would have tripped Captain's
+  third-consumer rule and forced a move outside its boundary.
 
 ## Gate ledger
 
