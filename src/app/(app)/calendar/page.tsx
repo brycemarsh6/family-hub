@@ -62,7 +62,7 @@ export default async function CalendarPage({
   // be a single `await db.calendarEvent.findMany(...)` with a comment
   // claiming there was nothing else on the page to batch it with, and that
   // stopped being true the moment tasks (and now the roster, for
-  // TaskEditView's people picker) needed to render here too. Sequential
+  // TaskForm's people picker) needed to render here too. Sequential
   // `await db.…` calls on a force-dynamic page are each their own
   // cross-country round trip (CLAUDE.md's performance section, from the
   // Inventory fix this mirrors) — batching keeps this page at ONE round

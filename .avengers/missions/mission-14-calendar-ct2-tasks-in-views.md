@@ -266,11 +266,52 @@ dispatch completes one.
   importing `parseLocalDateString`, which would have tripped Captain's
   third-consumer rule and forced a move outside its boundary.
 
+
+### C6 — Fold the duplicate edit form back into `TaskForm`
+- **Status:** DONE — `1d88afa`
+- **Why it exists — Fury's contract error, the second of this arc.**
+  `TaskForm.tsx:34` already declared itself *"One form for both New and
+  Edit"* and already implemented it. C4's and C5's contracts — which Fury
+  wrote — said **"must not touch `TaskForm.tsx`"** without checking that.
+  The builders complied, `TaskEditView.tsx` got built, and `TaskForm`'s
+  edit branch went dead. Captain put on record that the builders could not
+  have avoided it. Both of this arc's contract errors were the same shape:
+  **a false premise about what already existed.**
+- **Boundaries:** may touch `TaskForm.tsx`, `TaskDetailSheet.tsx`,
+  `CalendarViews.tsx`, and **delete** `TaskEditView.tsx` · must not touch
+  `src/app/**`, `src/app/actions/**`, `src/lib/**`, `prisma/**`,
+  `EventPeopleField.tsx`, `EventDateTimeFields.tsx`, `MonthGrid.tsx`,
+  `MonthCell.tsx`, `TaskCard.tsx`, `DaySection.tsx`.
+  **Recorded late — Captain filed this as a NOTE at pass 2 and was right.**
+  Third time this session a contract reached a gate with its boundary
+  living only in a dispatch prompt (C3b, C5, C6). Captain audited the diff
+  and found no deviation, but could not check it *against* anything.
+- **Verification:** full gauntlet, three timezone legs; `grep -rn
+  "TaskEditView" src/` empty; editing proven by direct database read.
+- **Report:** `TaskEditView.tsx` deleted (173 lines); `TaskForm` gained an
+  optional `onSaved` (supplied → callback, absent → `router.push`
+  unchanged) and an optional `currentUserId`. Net **−129**. Editing proven
+  end to end — retitled and reassigned a task, saved, reverted, saved
+  again, both writes confirmed by direct read. Create path unchanged (it
+  still navigates). A kid still sees zero edit controls and still sees
+  Mark complete. **Repaid the first instalment on the grandfathered
+  date-helper debt**: the forward conversion went 5 definitions → 4 (3 in
+  components, exactly the survivors STRUCTURE.md names), the inverse
+  2 → 1 — verified by Captain.
+  One measurement **routed to Strange rather than decided**: the edit view
+  now carries `Repeat · coming soon`, leaving **23px of overflow** with
+  the Save button's last ~7px below the fold at first render. Reachable by
+  scrolling, and a real click produced a confirmed write — a near-miss,
+  not an occlusion.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Captain | **BLOCKED** | 1 | 4 notes; retired one of its own rules as failed |
+| — | C6 fix | DONE `1d88afa` | — | Captain's blocker; Fury's contract error behind it |
+| 2 | Captain | **PASS** | 0 | 6 notes; confirmed the debt repayment and the new rule's wording |
+| 2 | Vision (Fable) | dispatched — narrow, C5/C6 surface only | — | — |
 | 1 | Vision (Opus) | **PASS**, scoped to `c5fa5a0` | 0 | 4 notes; **C5's surface needs re-gating after C6** |
 | 1 | Strange | queued (runs after Vision — both use fixtures) | — | — |
 
