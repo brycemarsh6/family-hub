@@ -310,7 +310,8 @@ single dispatch and a rate limit killed it mid-run.
   diff empty.
 
 ### C4 — `actions/tasks.ts`, `TaskForm.tsx`, and the Event/Task Add sheet
-- **Status:** PENDING (depends on C1 + C2)
+- **Status:** (a)+(b) DONE — commit `34ab27f`. (c) **BLOCKED-ON-CONTRACT**,
+  Fury's error; reissued as C4b below.
 - **Boundaries:** may touch: new `src/app/actions/tasks.ts`, new
   `src/components/TaskForm.tsx`, `src/app/(app)/calendar/new/**` ·
   must not touch: `src/app/actions/calendar.ts`, `src/lib/calendarDates.ts`.
@@ -328,6 +329,65 @@ single dispatch and a rate limit killed it mid-run.
 - **Constitution note:** the membership guard is a **third** guard form.
   STRUCTURE.md documents two. Captain drafts the amendment; Bryce
   approves it. Do not self-authorize it.
+- **Report:** actions and form built and verified. The kid guard was
+  demonstrated against real household roles, **positive control first** —
+  kid completes an assigned task (succeeds, `completedAt` set), same kid
+  refused on an unassigned one (`completedAt` confirmed still null), plus
+  manager-bypass and a signed-out `307`. Reaching them at all took real
+  work: no UI references these actions yet, so they had **no Server
+  Action id in the manifest**; the builder stood up a throwaway client
+  harness to mint real ids, hand-signed session JWTs the Phase-1e way,
+  replayed genuine POSTs, then deleted everything — a rebuilt manifest
+  confirms the actions are unreachable again. Test rows cleaned:
+  `Task` 0 / `TaskPerson` 0, `CalendarEvent` 4 and `User` 5 unchanged
+  (Fury re-read). `EventDateTimeFields` deliberately **not** reused —
+  it does start/end range math and a task has one due date — but the same
+  `localDayToAllDayInstant` conversion is used, so storage matches C3.
+
+### C4b — Fix Fury's contract error: the Add sheet, and un-complete
+- **Status:** PENDING
+- **Why this exists — my error, recorded plainly.** C4's contract asserted
+  "*today `/calendar/new` opens `EventForm` directly*" and, relaying
+  Banner unverified, "*no Meal path was ever built*". **Both are false.**
+  `src/components/CalendarViews.tsx:307-329` wires the "+" to a live
+  `ActionSheet` offering **Event** and **Meal**. So the contract demanded
+  "the Meal entry is gone" while listing the only file that can remove it
+  as must-not-touch. The builder stopped instead of improvising, and
+  reverted a redundant chooser it had begun — both correct. Doctrine:
+  `BLOCKED-ON-CONTRACT` means *the contract* was wrong. This is the
+  second time this mission that a Banner fact went into a contract and
+  had to be corrected; the lesson is that a *negative* claim ("X was
+  never built") deserves the same verification as a positive one.
+- **Two changes:**
+  1. `CalendarViews.tsx:307-329` — replace the **Meal** item with
+     **Task**, routing to `/calendar/new/task` (already built, gated, and
+     working — just unreachable). Mirror the Event item's shape exactly,
+     `dateParam` included. Meal keeps its own home under Kitchen; it was
+     never a calendar concept.
+  2. `uncompleteTask` → **`MANAGER_ROLES` only.** The builder implemented
+     membership for both and flagged the tension rather than guessing —
+     right call, and the plan settles it. `calendar-v2.md:73-74`: "Kids
+     can mark their OWN tasks complete (**complete only**, tasks they're
+     assigned to). Parents create/edit/delete/**un-complete**." A kid
+     un-doing a parent's completion is exactly what "complete only"
+     excludes. Not a question for Bryce — already his recorded decision.
+- **Boundaries:** may touch: `src/components/CalendarViews.tsx`,
+  `src/app/actions/tasks.ts` · must not touch: anything else.
+- **⚠️ `CalendarViews.tsx` is at 348/350** and CV3's precondition is
+  extracting it to ~230. The Task item is one line longer than Meal's.
+  **Hoist the duplicated `dateParam` line out of both items** so the file
+  comes back to 348 or below — that also removes a real duplication
+  rather than merely paying for the swap. **The file must not leave this
+  mission over 350.**
+- **Verification:** full gauntlet, all three timezones; `wc -l
+  src/components/CalendarViews.tsx` ≤ 348.
+- **Evidence required:** the line count; the sheet's two items shown in
+  the rendered output or the source diff; and the un-complete change
+  demonstrated — a kid refused, a manager allowed, both against real
+  roles, positive control first. **Report roles, never names.**
+- **Done criteria:** the "+" offers Event and Task; `/calendar/new/task`
+  is reachable from shipped UI; `uncompleteTask` manager-only;
+  `CalendarViews.tsx` ≤ 348.
 
 ### C5 — Scoped seed/clean scripts, and the timezone legs in CI
 - **Status:** PENDING (depends on C2 + C4)
@@ -408,6 +468,11 @@ single dispatch and a rate limit killed it mid-run.
 - 2026-09-04 — **C1 DONE** (`98ab9cc`), re-verified. Two notes carried (see
   above). C3 dispatched — it is deliberately NOT parallel with C4, because
   C4's `TaskForm` reuses the very components C3 is editing.
+- 2026-09-04 — **C4 (a,b) DONE** (`34ab27f`); **(c) BLOCKED-ON-CONTRACT
+  on Fury's own wrong premise.** The Add sheet exists and offers
+  Event/Meal; the contract both demanded Meal's removal and forbade
+  touching the file holding it. Reissued as C4b, which also corrects
+  `uncompleteTask` to manager-only per the plan's decision #12.
 - 2026-09-04 — **C3 DONE** (`40a93bc`). The do-not-merge banner is lifted;
   Fury re-ran all three zones and separately confirmed four. Two notes
   carried, one of them red: the calendar seeder still writes the old
