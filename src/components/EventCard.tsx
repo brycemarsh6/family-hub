@@ -60,8 +60,17 @@ export function EventCard({
   // title-over-time weight hierarchy a past card otherwise loses, since
   // the time line below is already font-normal), and the color bands
   // halve to 0.05 alpha so the tint drains without touching AvatarBadge,
-  // which stays full color — identity, not state. No line-through: that
-  // vocabulary means cancelled, not "already happened."
+  // which stays full color — identity, not state.
+  //
+  // Deliberately NO line-through here. That vocabulary is real and already
+  // used elsewhere in this app — GroceryRow.tsx strikes a CHECKED grocery
+  // item, TaskCard.tsx (mission-14/C3) strikes a COMPLETED task — and both
+  // mean the same thing: struck off a list, i.e. done. A past event is a
+  // different claim entirely: "already happened" is not "done," so it must
+  // never be styled the way a completed task is, or the two become
+  // impossible to tell apart at a glance. (An earlier version of this
+  // comment said line-through "means cancelled" — that was never true
+  // anywhere in this codebase; corrected in mission-14/C3, per D2.)
   const background = bandBackground(
     event.people.map((p) => p.avatarColor),
     past ? 0.05 : 0.1,

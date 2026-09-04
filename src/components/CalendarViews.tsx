@@ -16,8 +16,8 @@ import {
   type CalendarPeriodView,
 } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
-import { daysEventCovers, isOutsideWindow } from "@/lib/calendarDates";
-import { toLocalDateString } from "@/lib/mealPlanDates";
+import { daysEventCovers, isOutsideWindow, allDayInstantToLocalDay } from "@/lib/calendarDates";
+import { isSameDay, toLocalDateString } from "@/lib/mealPlanDates";
 import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
@@ -38,10 +38,11 @@ type CalendarViewsProps = {
   events: CalendarEventView[];
   /**
    * mission-14/C2 — page.tsx's parallel `db.task.findMany`, converted the
-   * same way `events` is. Accepted here and threaded no further yet: C3 is
-   * what wires this into DaySection/MonthGrid rendering. Per D1
-   * (mission-14's Banner brief), this is deliberately its OWN prop, not
-   * folded into `events` — see CalendarTaskView's own comment in
+   * same way `events` is. mission-14/C3: filtered per day and handed to
+   * DaySection for Week/Day, and passed straight through to MonthGrid for
+   * Month (which does its own per-row conversion — see that component).
+   * Per D1 (mission-14's Banner brief), this is deliberately its OWN prop,
+   * not folded into `events` — see CalendarTaskView's own comment in
    * src/lib/types.ts for why a union would force a discriminant into three
    * other components for no benefit yet.
    */
@@ -88,10 +89,6 @@ type CalendarViewsProps = {
  */
 export function CalendarViews({
   events,
-  // Accepted, not yet rendered — see the prop's own comment above. C3 wires
-  // this into DaySection/MonthGrid; until then it's an intentional
-  // type-level gap, not a lint TODO.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   tasks,
   canManage,
   windowStart,
@@ -141,6 +138,15 @@ export function CalendarViews({
       />
 
       <div className="flex flex-col gap-4">
+        {/* mission-14/C3 renders `tasks` into the two views that exist
+            today (Month below, and the Week/Day DaySection branch further
+            down) — Schedule (CV3), the hour timeline (CV4/Day+Week), and
+            Year (CV5) don't exist yet, so they inherit the same obligation
+            when they land here: thread `tasks` into whatever they render,
+            the same way `events` already has to be. Not a silent gap —
+            BUILT_VIEWS (calendarViewVocabulary.ts) already keeps those
+            three unreachable until each ships its own branch in this exact
+            switch. */}
         {view === "month" ? (
           // Guaranteed non-null (see ViewConfig.placeholderCount's comment
           // in calendarViewConfig.ts); this check is for TypeScript, not a
@@ -151,6 +157,7 @@ export function CalendarViews({
               anchor={anchor}
               today={today}
               events={events}
+              tasks={tasks}
               windowStart={windowStart}
               windowEnd={windowEnd}
               onOpenDay={openDay}
@@ -173,7 +180,18 @@ export function CalendarViews({
                 (event) =>
                   daysEventCovers(event.startAt, event.endAt, event.allDay, [day]).length > 0,
               )}
+              // A task has exactly one due date, never a span, so this is a
+              // plain same-day comparison rather than daysEventCovers'
+              // range check — see allDayInstantToLocalDay's own comment
+              // (calendarDates.ts) for why a UTC-midnight-stored due date
+              // has to be read back through it, not a bare local getter.
+              tasks={tasks.filter((task) => isSameDay(allDayInstantToLocalDay(task.dueDate), day))}
               onOpenEvent={(event, eventDay) => setSelected({ event, day: eventDay })}
+              // Rendering only (mission-14/C3) — C4 wires this to a real
+              // TaskDetailSheet, the same way EventDetailSheet backs
+              // onOpenEvent above. No state to hold yet, so this stays a
+              // no-op rather than introducing a `selectedTask` nothing reads.
+              onOpenTask={() => {}}
             />
           ))
         )}
