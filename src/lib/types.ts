@@ -67,3 +67,41 @@ export type MealPlanView = {
   weekStart: Date;
   entries: MealPlanEntryView[];
 };
+
+/** One person on a calendar event, as the browser needs it — a User row
+ * narrowed to exactly what a calendar card shows (see personInfo.ts's own
+ * reasoning for why this project always narrows a User row by hand rather
+ * than passing one through wholesale). Lives here, not in CalendarViews.tsx,
+ * because DaySection.tsx and EventCard.tsx also need it — a component
+ * importing a type from another component is exactly the cycle STRUCTURE.md
+ * forbids (see mission-8's Captain B2 finding). */
+export type CalendarPersonView = {
+  userId: string;
+  displayName: string;
+  avatarColor: string;
+};
+
+/** One CalendarEvent, as the browser needs it. Same cycle-avoidance reason
+ * as CalendarPersonView above: CalendarViews.tsx, DaySection.tsx, and
+ * EventCard.tsx all import this from here rather than from one another. */
+export type CalendarEventView = {
+  id: string;
+  title: string;
+  notes: string | null;
+  location: string | null;
+  startAt: Date;
+  endAt: Date;
+  allDay: boolean;
+  people: CalendarPersonView[];
+  /**
+   * The creator's display name, for the detail sheet's "Added by" line.
+   * Null when the creator was deactivated (SetNull) or the event predates
+   * this field. Was a separate `Record<eventId, name>` map threaded
+   * alongside `events` (page.tsx built it, CalendarViews.tsx looked it up
+   * by id) until mission-9's Captain finding (K2/C2a): a per-event field is
+   * simpler to thread through a view switch than a same-length sibling map
+   * that has to be kept in sync by id, and every other CalendarEventView
+   * consumer that doesn't care about it just ignores the field.
+   */
+  createdByName: string | null;
+};

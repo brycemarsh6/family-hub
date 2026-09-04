@@ -149,7 +149,12 @@ Adding a second definition of any of these is a BLOCKER:
   place a `User` row becomes something a client may see. **This is the
   security-relevant one**: it builds the public shape field by field so a
   `passwordHash` can never ride along, and a second copy is a second
-  chance to get that wrong
+  chance to get that wrong. The edge this rule guards is
+  `passwordHash`: a Prisma `select` that names only display fields (`id`,
+  `displayName`, `avatarColor`, `role`) and never `passwordHash` — as
+  `login/page.tsx`, `dal.ts`, and the calendar page's nested people select
+  do — is not a second definition. A second place that *selects*
+  `passwordHash` and strips it by hand is. (Clarified 2026-09-02, mission 8.)
 - Shared UI jobs — see DESIGN.md's component vocabulary
 
 ## File-size caps
@@ -164,6 +169,22 @@ Adding a second definition of any of these is a BLOCKER:
   trend to watch, never a split candidate.
 - Tests are colocated in `src/lib` as `*.test.ts`, run by `npm test`
   (node:test + tsx, no new frameworks).
+- **Test files follow the same soft cap**; the split is by module under
+  test — one `*.test.ts` per lib module — never a numbered second file.
+  **When the natural home is already at the cap, a small number of tests may
+  be adopted by a sibling module's test file, with a header comment naming
+  the module they cover and why they live there. This is a debt marker, not
+  a pattern: it means the crowded test file is a split candidate, and the
+  split is the real fix.** (Added 2026-09-02, mission 8, on Captain's
+  ruling; adoption clause added 2026-09-02, mission 9, on Captain's proposed
+  wording, approved by Bryce.)
+
+  Live instances of the adoption clause — keep this list short, and empty it
+  by splitting rather than by growing it:
+  - `monthLayout.test.ts` holds `calendarDates.ts`'s `calendarDayDiff` case,
+    because `calendarDates.test.ts` sits at 349 of 350. **Queued for repair:**
+    mission 9's C3 splits `calendarDates.test.ts` and sends that test home,
+    which will empty this list.
 
 ## Naming
 
@@ -183,12 +204,21 @@ Adding a second definition of any of these is a BLOCKER:
   fingerprint-matched `db:seed-*` / `db:clean-*` scripts. The dev branch
   holds a real snapshot of family data (password hashes included) — writes
   can't reach production, but the data itself is still private.
-- **Never write a clean/reset script for the `User` table** — it holds the
+- **No committed, rerunnable script may create, update, or delete `User`
+  rows** — `bootstrap-users.ts` is the one sanctioned exception
+  (interactive, upsert-keyed, no clean counterpart). The table holds the
   family's credentials, and this repo's own seed-script history shows
-  blanket-clearing scripts outlive the assumptions that made them safe. The
-  only sanctioned cleanup is a one-off, by-id deletion of the exact
-  synthetic rows a mission's own verification created, counts confirmed
-  back to baseline.
+  blanket-clearing scripts outlive the assumptions that made them safe. A
+  *fingerprint-scoped* delete is inside this prohibition, not outside it:
+  `displayName` carries no `@unique`, so a name-matched `deleteMany` can
+  catch a row the script never created, including one that later gained a
+  `passwordHash`. A scoped seed that needs people **attaches to existing
+  rows** via a narrow `select` read, ordered deterministically (`createdAt`
+  then `id`), and exits non-zero naming `npm run db:bootstrap-users` when
+  too few exist — `seed-calendar.ts` is the pattern. The only sanctioned
+  cleanup of synthetic people is a one-off, by-id deletion of the exact
+  rows a mission's own verification created, counts confirmed back to
+  baseline. (Amended 2026-09-02, mission 8, on Captain's finding.)
 - Migrations are **additive only**; review the SQL before applying.
 - A new/changed Prisma model needs `npx prisma generate` **and a dev-server
   restart** (`db.ts` caches the client on `globalThis`).

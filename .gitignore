@@ -53,3 +53,9 @@ next-env.d.ts
 
 # Machine-local Claude Code permission cache — each machine has its own.
 .claude/settings.local.json
+
+# Verification scratch. Agents (and people) writing a one-off count or
+# inspect script under prisma/ have twice left the directory behind for the
+# next commit to sweep up. These are throwaway by definition and must never
+# ship: ignore the pattern rather than trusting each author to clean up.
+prisma/tmp-*/

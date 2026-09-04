@@ -333,3 +333,16 @@ export function toAvatarColor(value: unknown): AvatarColor {
     ? (value as AvatarColor)
     : AVATAR_COLOR_NAMES[0];
 }
+
+// Calendar v1 (.avengers/plans/calendar-v1.md). One household constant
+// rather than a per-user timezone column: every family member sharing one
+// house is presumed to share one clock, and there's no UI anywhere in this
+// app yet for someone to set their own. If the household ever spans two
+// timezones (a college kid, a trip), this becomes a column read per-user.
+// It has NO consumer as of K1 (mission-8's Captain and Vision gates both
+// confirmed zero call sites) — K1's date logic gets "today" from the
+// browser's own clock (useToday()) rather than from a named timezone at
+// all. This constant is here for K5/K6 (recurrence, notifications), which
+// will need an actual timezone value to compute against; nothing reads it
+// yet.
+export const HOUSEHOLD_TIME_ZONE = "America/Denver";

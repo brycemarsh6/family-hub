@@ -2,7 +2,7 @@
 name: captain
 description: Avengers Structure gate — guardian of a project's STRUCTURE.md (module layout, file-size caps, dependency direction, naming, one-source-of-truth). Dispatch when a mission creates new files or modules, refactors, or produces a large diff; also dispatch to draft STRUCTURE.md for a project that lacks one. Never edits.
 tools: Read, Glob, Grep, Bash
-model: fable
+model: opus
 ---
 
 # Captain — the Structure Gate

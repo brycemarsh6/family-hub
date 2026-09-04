@@ -397,6 +397,77 @@ model IrregularityDismissal {
   @@index([kind])
 }
 
+/// A calendar event — Calendar v1, phase K1
+/// (.avengers/plans/calendar-v1.md). Foundation only: this model, its
+/// people join table below, `createdById`, and `rrule` all ship in K1, but
+/// K1 never *reads* `rrule` — recurrence expansion is K4. Storing the
+/// column now means the eventual K4 migration only has to teach the app to
+/// read a field that's already been sitting there, never a backfill.
+model CalendarEvent {
+  id String @id @default(cuid())
+
+  title    String
+  notes    String?
+  location String?
+
+  /// Timed events are stored as real UTC instants. All-day events follow
+  /// the MealPlan.weekStart precedent instead: a plain calendar date built
+  /// from browser-local year/month/day components (never `@db.Date`, which
+  /// would break the no-provider-specific-features rule), so "the 4th"
+  /// means the 4th regardless of which timezone reads it back.
+  ///
+  /// For an all-day/multi-day event, `endAt` is EXCLUSIVE — local midnight
+  /// of the day AFTER the last day it covers (the Google/Outlook all-day
+  /// convention), not the last day itself. A single all-day event on the
+  /// 4th is therefore startAt = midnight of the 4th, endAt = midnight of
+  /// the 5th. Timed events are the ordinary inclusive range a start/end
+  /// instant already implies.
+  startAt DateTime
+  endAt   DateTime
+
+  allDay Boolean @default(false)
+
+  /// An RRULE string (FREQ/INTERVAL/BYDAY/UNTIL), or verbatim custom rules
+  /// from a synced Google event too rich for our own picker to express.
+  /// K1 stores whatever it's given and does nothing else with it — no
+  /// expansion, no recurrence UI. See src/lib/recurrence.ts (K4).
+  rrule String?
+
+  /// Who created this event — null for a deactivated/deleted creator, same
+  /// SetNull pattern as GroceryItem.addedById: a person leaving the
+  /// household must never take an event (or its history) with them.
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  people CalendarEventPerson[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// The Week/Day views' main query: "what falls in this range" filters and
+  /// sorts on startAt.
+  @@index([startAt])
+  @@index([createdById])
+}
+
+/// One person on one event — the Skylight-style split-color pill needs
+/// every event to carry a real list of who it's for, not just its creator.
+/// Both sides cascade: a person row for a deleted event is meaningless, and
+/// removing a person from an event should just remove their row, never the
+/// event itself.
+model CalendarEventPerson {
+  id String @id @default(cuid())
+
+  event   CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
 /// A person in the household, or the wall tablet. One model for both tiers
 /// (login accounts and non-login profiles) and for device mode too — see the
 /// Family Accounts v1 plan (.avengers/plans/family-accounts-v1.md) for the
@@ -452,6 +523,13 @@ model User {
 
   groceryItemsAdded GroceryItem[]
   voiceChanges      VoiceChange[]
+
+  /// Calendar v1 (K1): events this person created, and events this person
+  /// is on. See CalendarEvent's own doc comment for why the first is
+  /// SetNull (history survives the creator) while the join row above is
+  /// Cascade (a person row for a deleted event is meaningless).
+  calendarEventsCreated CalendarEvent[]
+  calendarEventPeople   CalendarEventPerson[]
 
   // No relation to LoginAttempt here — see that model's own doc comment for
   // why userId there is deliberately not a foreign key.

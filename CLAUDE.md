@@ -4475,3 +4475,114 @@ item added there did **not** appear on the real app. Writes on a preview
 now land on the dev branch and nowhere else. (The first preview load was
 slow: the dev branch's compute sleeps when idle and wakes on demand.
 That's normal, and a small tell that you're on the dev branch.)
+
+---
+
+## Session, 2026-09-02: the Calendar branch began — K0 designed, K1 shipped
+
+**Calendar is no longer a placeholder.** `/calendar` now opens on a real
+Week view. Plan: `.avengers/plans/calendar-v1.md` (phases K0–K7). Mission:
+`.avengers/missions/mission-8-calendar-k1.md` — 8 contracts, 11 gate
+passes, all three gates PASS. Draft **PR #9**; **not merged** — Bryce looks
+at the Vercel preview first.
+
+### K0: designed from a Skylight walkthrough
+
+Bryce chose **Skylight** as the reference and sent seven screens; every one
+got an adopt / adapt / skip call, all logged in the plan. **Decisions not to
+re-litigate:** each parent links their **own** Google account(s), so
+linking is rows under a `User`, never a field on it; **sync direction is
+per linked calendar** (his work calendar outbound-only so Emily can block
+time without its appointments cluttering Marshee; personal two-way);
+**sync is chosen per event** with the creator's two-way calendars
+pre-ticked and the creating account recorded; kids' events live only in
+Marshee; **tags, not event types** (Bryce's call, for cohesion with
+Recipes, in their own table since the vocabularies don't overlap); and
+**email import is dropped, not deferred** — a screenshot of an email is
+already a photo import.
+
+### K1: what shipped
+
+`CalendarEvent` + `CalendarEventPerson` (an event belongs to **many**
+people, which is what lets a card carry a colour band and avatar each);
+three manager-gated actions; `src/lib/calendarDates.ts`; Week and Day as
+one shared `DaySection`; `EventForm` (one form for new and edit, native
+date/time pickers), `EventDetailSheet`, `CalendarHeader`, `ActionCircle`;
+three routes; a measured loading skeleton; scoped seed/clean scripts.
+Tests 106 → 135.
+
+### The lessons worth keeping
+
+- **The UTC/Mountain trap reached a write path for the first time.** The `+`
+  button pre-filled and saved the **day before** the one tapped, *every
+  time in production*: the page received the date as text from the browser
+  and rebuilt it as a `Date` on the server, where a date crossing the RSC
+  boundary is an **instant**, not a calendar day — midnight on the 5th in
+  UTC is 6 PM on the 4th in Mountain. Worse, the page's own comment claimed
+  the guarantee it lacked. **Never construct a calendar-meaningful `Date`
+  server-side; pass the string and build it in the browser.** Eighth
+  appearance of this trap here.
+- **Three states, never two.** The calendar must distinguish loading (grey
+  bars), genuinely empty (crisp dashed card), and **outside the loaded
+  window** (solid, iconed, plain-language). Collapsing any pair produces a
+  lie, and two separate gates found two separate versions of exactly that.
+- **A day is "loaded" only when the window fully contains it.** The fetch
+  window's end is the *server's* midnight = 6 PM Mountain, so treating a
+  day as loaded by its **start** silently dropped every evening event on
+  the 60th day out behind an honest-looking empty day.
+- **`body.scrollWidth`, never `documentElement.scrollWidth`,** for
+  horizontal-overflow checks — the html element clips and hides it. A gate
+  caught itself under-reporting with the wrong one.
+- **Opacity is the wrong tool for "already happened."** No value keeps a
+  *tappable* past card honest (0.55 → 2.6:1; even 0.80 leaves the muted
+  line at 3.5), and it collides with the app's disabled vocabulary. Drain
+  **weight and tint** instead: `text-muted font-medium` + halved band
+  alpha, badges at full colour, never `line-through`.
+- **A regression test never seen red proves nothing.** Every date fix in K1
+  had to fail before it passed, and the boundary fix was proven by
+  reverting the files and rebuilding.
+- **The DST tests had been vacuous in CI for their whole life** — `npm test`
+  inherited the process timezone and CI runs UTC, where the Nov 1 2026 week
+  never crosses a boundary. The script is now pinned to
+  `TZ=America/Denver`, and the suite is proven green under UTC too so the
+  pin can't mask a timezone-dependent test.
+- **A contract may not authorize what the danger register forbids.** Fury's
+  own C1 contract told the seeder to create and delete `User` rows; the
+  builder complied and flagged it, and Captain blocked. A committed,
+  rerunnable script is not the register's "one-off by-id" exception, and
+  `displayName` has no `@unique`, so a name-scoped delete can catch rows it
+  never created. **A scoped seed attaches to existing people and exits
+  loudly when there are too few.** STRUCTURE.md amended accordingly.
+- **Gates that create credentialed test data must run serially.** Two ran in
+  parallel, collided, and one had to build a sibling database to verify a
+  clean script — the exact lesson this file already carried from the
+  accounts work.
+
+### Cost and pacing, honestly
+
+~11 hours elapsed, ~4.5 hours of actual work: **two session rate limits ate
+~6h45m**, killing a gate mid-run twice. K1 spent ~3.5M subagent tokens,
+~1.9M on gates. Two changes came out of it: **Strange and Captain now run
+on Opus while Vision stays on Fable** (correctness gating is where raw
+capability converts into findings; design and structure gating is
+measurement and rule-checking — reasoning and the exit condition are in the
+avengers SKILL.md), and **contracts must be sized so one dispatch survives
+an interruption** — C4 alone was 529k tokens in a single dispatch.
+
+### Where the Calendar goes next
+
+K2 (Month view) is **already contracted** in
+`.avengers/missions/mission-9-calendar-k2-month.md`, with boundaries and a
+line budget measured against the real post-K1 tree. Then K3 filters/tags/
+meal overlay, K4 recurrence UI, K5 AI import. **K6/K7 (Google) cannot
+finish without Bryce** — they need a Google Cloud project and an OAuth
+consent screen only he can create, so they build everything up to that
+point and stop.
+
+**Two binding preconditions for K3**, both from K1's gates:
+`EventForm.tsx` sits at **exactly 350 lines**, the soft cap, so
+`EventDateTimeFields.tsx` must be extracted **before** anything is added;
+and tags and Sync-to each go in as **one sheet-opening row** below People
+(never N inline toggles per connected calendar — a form whose length grows
+with an external account count), because Title/When/Who must stay above the
+fold.
