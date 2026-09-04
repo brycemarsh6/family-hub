@@ -18,7 +18,7 @@ import {
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { daysEventCovers, isOutsideWindow } from "@/lib/calendarDates";
 import { toLocalDateString } from "@/lib/mealPlanDates";
-import type { CalendarEventView } from "@/lib/types";
+import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
 // — this file, DaySection.tsx, and EventCard.tsx all import them from that
@@ -36,6 +36,16 @@ import type { CalendarEventView } from "@/lib/types";
 
 type CalendarViewsProps = {
   events: CalendarEventView[];
+  /**
+   * mission-14/C2 — page.tsx's parallel `db.task.findMany`, converted the
+   * same way `events` is. Accepted here and threaded no further yet: C3 is
+   * what wires this into DaySection/MonthGrid rendering. Per D1
+   * (mission-14's Banner brief), this is deliberately its OWN prop, not
+   * folded into `events` — see CalendarTaskView's own comment in
+   * src/lib/types.ts for why a union would force a discriminant into three
+   * other components for no benefit yet.
+   */
+  tasks: CalendarTaskView[];
   /**
    * True for admin/parent sessions, computed server-side in page.tsx —
    * gates the header's Add circle (mission-9/C5, Strange's B1 remedy) and
@@ -78,6 +88,11 @@ type CalendarViewsProps = {
  */
 export function CalendarViews({
   events,
+  // Accepted, not yet rendered — see the prop's own comment above. C3 wires
+  // this into DaySection/MonthGrid; until then it's an intentional
+  // type-level gap, not a lint TODO.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  tasks,
   canManage,
   windowStart,
   windowEnd,
