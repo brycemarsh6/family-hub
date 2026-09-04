@@ -4944,11 +4944,17 @@ gesture. Tests **207 → 237**.
 
 ### Open at the pause
 
-- **C4 in flight:** `timelineLayout.test.ts` is **376/350**. C3's correctness
-  fix pushed it over, and the split needed a file outside C3's boundary; it
-  judged that **blocking a correctness fix on file organisation was the worse
-  trade** and surfaced the debt instead. Split by concern — geometry + DST,
-  and columns + partition — per the clause added that morning.
+- **C4 ✅ done** (`aae9cd8`): `timelineLayout.test.ts` **376 → 232**, with
+  column packing and partition moved to `timelineLayoutPacking.test.ts`
+  (187). C3's correctness fix had pushed it over the cap and the split
+  needed a file outside C3's boundary; C3 judged that **blocking a
+  correctness fix on file organisation was the worse trade** and surfaced
+  the debt instead, which was right. **The count is the instrument** —
+  17 + 13 = the 30 the single file held, 237 total under both zones, the
+  4 DST cases still skipping under UTC — and because a count cannot see a
+  moved test that runs but no longer asserts, every moved body was diffed
+  byte-identical against its original. First live use of the concern-split
+  clause added that morning.
 - **Gates have not re-run since C3.** Nothing in CV2 is gate-verified past
   C1/C2.
 - **`calendarDates.ts`'s `calendarDayDiff` loops forever on an invalid

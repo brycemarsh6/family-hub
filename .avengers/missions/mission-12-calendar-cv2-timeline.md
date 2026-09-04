@@ -1,7 +1,7 @@
 # Mission: Calendar CV2 — the timeline layout library (+ the queued C5 repairs)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (two contracts, **disjoint boundaries — run in parallel**)
+**Status:** BUILT — C1, C2, C3, C4 all delivered and committed. **Gates have not re-run since C3**; CV2 is gate-verified only through C1/C2.
 **Started:** 2026-09-03 · **Updated:** 2026-09-03
 **Plan:** `.avengers/plans/calendar-v2.md` — phase CV2, plus mission-11's queued C5
 **Branch:** `claude/calendar-cv2-timeline`, stacked on `claude/calendar-cv1-vocabulary` — **five branches deep, none merged**, by Bryce's standing decision to hold production until the Calendar is genuinely usable
@@ -402,6 +402,45 @@ correcting for overclaiming.
   `partitionForTimeline`, and the pinned test **fails if its pin is removed**
   (prove it by removing the pin and showing red). Gauntlet both timezones;
   `className` diff still 0.
+
+### C4 — DONE, committed `aae9cd8`
+
+`timelineLayout.test.ts` **376 → 232**; new sibling
+`timelineLayoutPacking.test.ts` **187**. Both under the cap; no source file
+touched (`git status` showed only the two permitted paths).
+
+**The count is the instrument, and it holds:** 17 + 13 = the **30** the
+single file carried. Suite **237** under both zones, and the **4 DST cases
+still skip under UTC** rather than passing vacuously — the gating survived
+the move. tsc 0, eslint 0, build 0.
+
+**The count alone cannot see a moved test that still runs but no longer
+asserts**, so every moved body was diffed byte-identical against the exact
+pre-split line ranges. Both diffs were empty.
+
+The **composition case moved verbatim** — the one feeding a
+`TimelineEvent[]` straight into `monthLayout.assignLanes`. Captain flagged
+it as load-bearing structure rather than coverage, and it is: it is the
+only thing proving the two libraries compose with no conversion. **It must
+survive CV4's real call site making it look redundant.**
+
+**Two judgment calls the builder made and flagged:**
+
+1. **C3's zero-length-midnight regression stayed with geometry**, not with
+   partition. Three of its four assertions call `blockGeometry` directly and
+   it uses `partitionForTimeline` only as a one-line cross-check, so moving
+   it would have split one test's assertions across two concerns — which
+   the no-behaviour-change boundary doesn't permit anyway.
+2. **The sibling is named `…Packing`, not `…Columns`.** "Columns" undersells
+   the `belongsInAllDayRow` / `partitionForTimeline` half, roughly half the
+   file. "Packing" is the module's own vocabulary — `assignColumns`'s doc
+   comment calls itself greedy interval packing, and the `assignLanes` it
+   composes with is described the same way.
+
+**It also declined to commit**, reading the contract as not authorising it
+and preferring to surface the question rather than assume. Fury committed
+after re-verifying independently (counts, both zones, skip gating, tree).
+
 
 ## Gate ledger
 
