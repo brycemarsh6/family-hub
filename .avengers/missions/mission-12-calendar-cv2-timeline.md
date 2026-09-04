@@ -287,6 +287,50 @@ Fri 10 AM → Sun 2 PM → row; 8 PM → midnight → grid.
   test that pins it.
 
 ### C3 — Fix contract: the re-tap should not navigate at all; plus two library corrections
+
+**The contract as dispatched** (re-filed here in pass 2 — Captain found
+this body sitting under C4's heading, where its boundary line would have
+authorised C4 to edit source. C4's actual diff is two test files; no harm
+reached the tree, but this repo has reconstructed a mission from these
+files before, and that reader would have been misled.):
+
+- **The blocker:** `active` is prefix-based, so C1's `replace` and
+  `router.refresh()` fire on **20 sub-pages** where the tap is a *real*
+  navigation — discarding the entry the user is standing on and reintroducing
+  the dead Back press C1 exists to remove.
+- **Fix — Vision's, which removes F as well as D and E.** An exact-path
+  predicate alone (Captain's) fixes D and E but **leaves F**, because a paged
+  Calendar entry's pathname is already `/calendar`. So: add
+  `const sameUrl = pathname === item.href` for the *history* question (keeping
+  `active` for styling and `aria-current`), and on that path
+  **`event.preventDefault(); router.refresh()` — no navigation at all.**
+  Safe because **the Today circle already covers "go to today"**, so a re-tap
+  that refreshes rather than resets loses nothing.
+- **Also fix, both from Vision:**
+  - **`blockGeometry` and `daysEventCovers` disagree on a zero-length timed
+    event at exactly local midnight** — writable through the sanctioned path,
+    since `validateEventInput` rejects only `endAt < startAt`. It would show
+    in list views and vanish from the timeline. Treat `end <= start` as
+    "covers `startOfDay(start)` only", mirroring `eventDaySpan`'s clamp, and
+    correct the header's claim (it mirrors `eventDaySpan` **only for same-day**
+    rows). **Must land before CV4 consumes this library.**
+  - **The pinned-Denver test cannot prove its own pin.** Under UTC with the
+    pin removed the fixture is 2 hours and `heightMinutes` is still 120, so
+    the assertion can't detect the pin failing. Add the same
+    `assert.equal(end - start, 3h)` the gated cases carry.
+- **Also fix the comment.** It says *"Re-tapping the tab you're already on is
+  a no-op navigation"*, which is **false on those 20 pages** — an
+  overclaiming comment inside the contract whose other half was fixing one.
+- **Boundaries:** `src/components/HubNav.tsx`, `src/lib/timelineLayout.ts`,
+  `src/lib/timelineLayout.test.ts`.
+- **Verification — all three of Vision's measured cases (D, E, F), before and
+  after**, plus **every C1 result re-confirmed unchanged**: root re-taps on
+  two tabs (no history entry, real refetch), inter-tab navigation, and
+  mission-11's S1/S3/F5/F7/F8. Then the library: the zero-length-midnight
+  event agrees across `daysEventCovers` / `blockGeometry` /
+  `partitionForTimeline`, and the pinned test **fails if its pin is removed**
+  (prove it by removing the pin and showing red). Gauntlet both timezones;
+  `className` diff still 0.
 - **Status:** ✅ **DONE, committed `8cdef13`** — with **one open item**
   (`timelineLayout.test.ts` is now over cap; C4 below). Fury re-verified:
   tsc 0, eslint 0, **237** (236 → 237), 233 + 4 gated skips under UTC,
@@ -347,7 +391,6 @@ boundary; routed. This is the same file whose sibling comment C1 was
 correcting for overclaiming.
 
 ### C4 — Split `timelineLayout.test.ts` (Captain's Ruling 2, now due)
-- **Status:** PENDING — dispatch before re-gating.
 - `timelineLayout.test.ts` is **376/350**, over the soft cap. Captain's
   Ruling 2 required "the mission adding the first new case splits it in that
   same commit"; C3 added that case. **The builder did not split** because the
@@ -365,43 +408,6 @@ correcting for overclaiming.
   after under both zones, with the **4 zone-gated skips still gated** (they
   must land in whichever file keeps the DST cases and still skip under UTC).
   Both files under 350. `tsc`, `eslint`, `build` clean.
-- **The blocker:** `active` is prefix-based, so C1's `replace` and
-  `router.refresh()` fire on **20 sub-pages** where the tap is a *real*
-  navigation — discarding the entry the user is standing on and reintroducing
-  the dead Back press C1 exists to remove.
-- **Fix — Vision's, which removes F as well as D and E.** An exact-path
-  predicate alone (Captain's) fixes D and E but **leaves F**, because a paged
-  Calendar entry's pathname is already `/calendar`. So: add
-  `const sameUrl = pathname === item.href` for the *history* question (keeping
-  `active` for styling and `aria-current`), and on that path
-  **`event.preventDefault(); router.refresh()` — no navigation at all.**
-  Safe because **the Today circle already covers "go to today"**, so a re-tap
-  that refreshes rather than resets loses nothing.
-- **Also fix, both from Vision:**
-  - **`blockGeometry` and `daysEventCovers` disagree on a zero-length timed
-    event at exactly local midnight** — writable through the sanctioned path,
-    since `validateEventInput` rejects only `endAt < startAt`. It would show
-    in list views and vanish from the timeline. Treat `end <= start` as
-    "covers `startOfDay(start)` only", mirroring `eventDaySpan`'s clamp, and
-    correct the header's claim (it mirrors `eventDaySpan` **only for same-day**
-    rows). **Must land before CV4 consumes this library.**
-  - **The pinned-Denver test cannot prove its own pin.** Under UTC with the
-    pin removed the fixture is 2 hours and `heightMinutes` is still 120, so
-    the assertion can't detect the pin failing. Add the same
-    `assert.equal(end - start, 3h)` the gated cases carry.
-- **Also fix the comment.** It says *"Re-tapping the tab you're already on is
-  a no-op navigation"*, which is **false on those 20 pages** — an
-  overclaiming comment inside the contract whose other half was fixing one.
-- **Boundaries:** `src/components/HubNav.tsx`, `src/lib/timelineLayout.ts`,
-  `src/lib/timelineLayout.test.ts`.
-- **Verification — all three of Vision's measured cases (D, E, F), before and
-  after**, plus **every C1 result re-confirmed unchanged**: root re-taps on
-  two tabs (no history entry, real refetch), inter-tab navigation, and
-  mission-11's S1/S3/F5/F7/F8. Then the library: the zero-length-midnight
-  event agrees across `daysEventCovers` / `blockGeometry` /
-  `partitionForTimeline`, and the pinned test **fails if its pin is removed**
-  (prove it by removing the pin and showing red). Gauntlet both timezones;
-  `className` diff still 0.
 
 ### C4 — DONE, committed `aae9cd8`
 
@@ -464,6 +470,19 @@ constraint this week.
 
 **The tripwire:** if anything before CV4 puts `timelineLayout.ts`'s output
 on screen, Strange gates that mission, no exceptions.
+
+**Corrected in pass 2 — the conclusion survives, the argument did not.** I
+wrote "the one human-facing change is felt rather than seen." Vision then
+measured a **second** felt change I did not know about: the re-tap also
+stopped scrolling to top, because `preventDefault()` takes Next's
+scroll-to-top with it. Vision named my own commit while doing it.
+
+Strange still isn't the right gate — scroll position is no more visual than
+refresh is — so the verdict stands. But "the one change" was a claim I had
+not measured, in a note whose whole purpose was justifying *not* measuring.
+**That is the overclaiming class this mission has been cataloguing, authored
+by the person cataloguing it.** C5 fixes the regression; this records that a
+correct conclusion rested on an argument that happened to be wrong.
 
 
 ## Gate ledger
@@ -711,3 +730,94 @@ tests 11–14 under UTC.
 - **Shipped:** —
 - **Shipped check:** —
 - **Deliberate leftovers:** —
+
+
+---
+
+## Captain, pass 2 — **PASS** (0 blockers, 5 notes)
+
+Gauntlet re-run in full: tsc 0, eslint 0, 237/237/0 Denver, 237/233/4 UTC,
+build 0, tree clean. Boundaries verified **off the tree, not the report** —
+C4 touched exactly two test files and no source.
+
+**Ruling 2 came due, and Captain ruled against its own wording.** It had
+required the split happen "in that same commit"; C3 declined, for a stated
+reason. Captain's finding: **C3 was right, and the rule named the wrong
+unit.** A boundary is per-*contract*, so a same-commit requirement can only
+be met by whichever contract happens to own the file — which the ruling
+could not know in advance. What the rule actually protects is *the file does
+not leave this mission over cap*, which C4 satisfied. Future rulings of this
+shape say **mission**, not **commit**. It declined to amend STRUCTURE.md,
+holding its pass-1 line that the constitution is better lean.
+
+**It measured the composition case rather than trusting its own pass-1
+reading.** Copied four lib files plus the test out of the repo, added one
+required field to `MonthLayoutEvent`, and got `TS2345` at exactly the
+`assignLanes` call — control clean, drift caught. `git status` empty
+afterward; the repo tree was never touched.
+
+**The split verified by a stronger instrument than the contract asked for.**
+Rather than counting tests, it extracted every `test(...)` block from all
+three files and compared bodies: `30 → 17 + 13`, zero titles dropped, zero
+added, **zero bodies changed**. The cut fell between the file's own existing
+dividers, subdividing none.
+
+Notes: the CV4 consumption line missing from the plan; the "don't delete
+me" comment missing from the composition test; **this mission file's C3/C4
+heading mixup** (fixed above); a cap-trend flag on `timelineLayout.ts`
+(331/350, 19 lines of headroom, CV4 is the consumer); and both test headers
+claiming a cleaner separation than the files have. All routed to C5.
+
+Confirmed clean and stated so a later gate need not re-open them: the test
+glob reaches both files (21 `*.test.ts` enumerated against what the glob
+resolves — identical sets); `d()`/`ev()` duplication is the established
+per-file fixture pattern in eight test files, and `withTimeZone` was
+correctly **not** copied into the zone-free file; dependency direction
+intact; `HubNav.tsx` markup byte-identical to base; `ASSIGNABLE_ROLES`
+already routed by constitutional text ("convert it at the next touch").
+
+## Vision, pass 2 — **PASS** (0 blockers, 3 notes)
+
+Gauntlet re-run: same numbers, independently.
+
+**All three pass-1 findings confirmed independently rather than from the
+record.**
+
+- **The library sweep was reproduced, not matched.** Vision built its own
+  harness with a different fixture — 750 events × 9 days × **5** zones
+  including `Pacific/Chatham`, a +12:45 half-hour DST zone the builder never
+  used — and found **0** disagreements. Then proved the harness non-vacuous
+  by running it against the pre-fix file: **89 / 85 / 85**. Its sweep also
+  finds *more* shapes than the recorded midnight-only case (any `end <=
+  start` near a day boundary), and the fix covers all of them.
+- **The pin proof: matched.** Pin present under UTC, 13 pass / 0 fail; pin
+  removed, **1 fail** with the exact assertion message.
+- **C4's byte-identity: matched, after Vision caught its own instrument.**
+  Its first parser silently under-counted (13 of 30) — it caught that
+  against the runtime count, rebuilt it line-based, and got 30 → 17 + 13,
+  0 missing, 0 added, 0 bodies changed, **67 `assert.*` calls both sides**.
+
+**On whether "don't navigate" covers the class or just three instances** —
+the question the contract asked it to be sceptical about: the predicate
+splits on `pathname === href`, so the only divergence from a real navigation
+is query/hash state at a tab root, and **of the five roots only `/calendar`
+reads `searchParams`.** The F-class is bounded to one route. It then
+measured the claim that makes the trade safe (Today reaches the current
+period from both a paged date and a distant month, and disables correctly)
+rather than taking it from the comment.
+
+**Its first network capture returned `[]` even for the control** — a broken
+instrument, not a result. It fixed the capture and re-ran before reporting.
+Second time on this mission a gate has caught its own tooling.
+
+Notes: the scroll-to-top regression (above); the "not reachable here"
+sentence — **0 document reloads across every path it constructed, so not a
+blocker**, but the sentence states an app-wide claim a single file cannot
+own and was already falsified once by a change in a *different* file; and
+`isModifiedClick`'s comment, which claims to mirror Next's `isModifiedEvent`
+but omits its `target` early-return. All routed to C5.
+
+## Verdict
+
+**Both assembled gates PASS.** CV2 is gate-verified end to end. C5 clears
+the combined notes; no blocker was found by either gate on this pass.
