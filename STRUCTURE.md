@@ -155,7 +155,30 @@ Adding a second definition of any of these is a BLOCKER:
   `login/page.tsx`, `dal.ts`, and the calendar page's nested people select
   do — is not a second definition. A second place that *selects*
   `passwordHash` and strips it by hand is. (Clarified 2026-09-02, mission 8.)
+- `src/lib/mealPlanDates.ts` — the **local-calendar-date string
+  conversions**. `toLocalDateString` is the forward direction
+  (`Date` → `"YYYY-MM-DD"`); its inverse belongs beside it. A new private
+  copy in a component is a second definition and is a BLOCKER. The
+  existing copies (`PantryItemEditSheet.tsx`, `EventDateTimeFields.tsx`,
+  `TaskForm.tsx`) are **grandfathered debt to be migrated in one mission,
+  not a pattern to cite**. That distinction is load-bearing:
+  `mealPlanDates.ts` already described itself as this job's shared home
+  while `TaskForm.tsx` cited the survivors as "the house pattern" — two
+  comments asserting opposite conventions for the same function.
+  (Added 2026-09-04, mission-14, replacing a failed rule — see below.)
 - Shared UI jobs — see DESIGN.md's component vocabulary
+
+- **Trip conditions are keyed to DEFINITIONS, never to importer counts.**
+  A rule of the form "a third *consumer* forces the extraction" is
+  satisfiable by writing a fourth copy, which is precisely the outcome it
+  exists to prevent — so it does not restrain, it *instructs*. This is not
+  hypothetical: the retired `parseLocalDateString` trip condition
+  (mission-13/Captain) said a third importer would force a move to
+  `src/lib/`, and two builders in consecutive contracts complied **by
+  copying**, each documenting in-file that it was doing so to stay under
+  the threshold. The importer count never reached three; the tree reached
+  five copies of a five-line function. Count what exists, not what points
+  at it. (Added 2026-09-04, mission-14; Bryce approved.)
 
 - **A vocabulary widened ahead of its consumers carries exactly one
   reachability gate.** When a union names more members than the app can serve

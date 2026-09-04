@@ -26,6 +26,14 @@ export type MonthCellSlot = {
   showLabel: boolean;
   roundLeft: boolean;
   roundRight: boolean;
+  /** mission-14/C3b: true only for a completed TASK slot (MonthGrid.tsx
+   * checks `completedAt !== null` against the real Task rows before this
+   * shape is built — a plain CalendarEventView, which `event` above is
+   * typed as, has no such field, and a real event must never set this).
+   * `false` for every event and for an open task. See the render below for
+   * why this needs its own always-visible glyph rather than leaning on
+   * `line-through` alone. */
+  taskCompleted: boolean;
 } | null;
 
 /** Up to THREE diagonal color bands, not one-per-person like EventCard's
@@ -144,15 +152,60 @@ export function MonthCell({
             const slot = slots[lane];
             if (!slot) return <span key={lane} aria-hidden="true" className="block h-4" />;
             const past = isPast(slot.event.endAt, today);
+            // C3b: a completed task is "done", which is a DIFFERENT claim
+            // from a past event being merely over (see EventCard.tsx:63-73's
+            // corrected comment — `line-through` means done, and a past
+            // event must never carry it). `done` therefore drains weight and
+            // tint the same way `past` already does (same muted/border
+            // classes, same halved fill alpha below) rather than inventing a
+            // second dimming scale, but is checked independently: a task
+            // completed ahead of its due date (not yet `past`) still reads
+            // as done, and a task that's merely overdue but not completed
+            // stays in the normal "font-semibold text-fg" style — matching
+            // TaskCard.tsx's own "no overdue treatment, only completedAt
+            // changes rendering" rule.
+            const done = slot.taskCompleted;
             const colors = slot.event.people.slice(0, 3).map((p) => avatarColorHex(p.avatarColor));
             return (
               <span
                 key={lane}
                 className={`block h-4 truncate border-y px-1 text-[9px] leading-4 ${
-                  past ? "font-medium text-muted border-muted" : "font-semibold text-fg border-fg"
+                  past || done ? "font-medium text-muted border-muted" : "font-semibold text-fg border-fg"
                 } ${slot.roundLeft ? "rounded-l border-l" : ""} ${slot.roundRight ? "rounded-r border-r" : ""}`}
-                style={{ background: pillBackground(colors, past ? 0.05 : 0.1) }}
+                style={{ background: pillBackground(colors, past || done ? 0.05 : 0.1) }}
               >
+                {/* C3b: below `md` the title span two lines down is
+                    `sr-only` (see B3's comment there) — genuinely `display:
+                    none`-equivalent for sighted readers at 375px, not just
+                    small. Putting `line-through` ONLY on that hidden text
+                    would satisfy the letter of "strike through a completed
+                    task" while being invisible on exactly the phone
+                    viewport this contract measures. A checkmark glyph is
+                    the one thing this pill has room for at EVERY
+                    breakpoint (below `md` a pill currently shows nothing
+                    but color/border — B3 below — so a 1-character glyph
+                    fits where zero characters fit before), so it renders
+                    unconditionally on `showLabel` (never on a continuation
+                    column with no title of its own — moot in practice
+                    today since a Task is always single-day/single-column,
+                    but kept consistent with how the title itself is
+                    gated). `line-through` is layered on TOP of that glyph
+                    once the title becomes visible at `md`+, joining
+                    TaskCard.tsx's and GroceryRow.tsx's existing "struck off
+                    a list" vocabulary rather than inventing a second one
+                    for the same fact. aria-hidden because the checkmark is
+                    decorative pixels only — same call TaskCard.tsx made for
+                    its own checkbox glyph, and this cell's accessible name
+                    is already fully owned by the day BUTTON's own
+                    aria-label (`Open ${formatDayLabel(day)}` above) — an
+                    aria-label always wins over child text content when
+                    computing an element's accessible name, so this span's
+                    text is ignored there regardless. */}
+                {done && slot.showLabel && (
+                  <span aria-hidden="true" className="mr-0.5">
+                    ✓
+                  </span>
+                )}
                 {/* B3 (mission-9/C5, figure corrected mission-9/C8): at
                     375px the pill's inner slot measures ~38px
                     (`500 9px Inter`) and holds roughly 7-8 characters
@@ -194,7 +247,9 @@ export function MonthCell({
                     the node in the AX tree while contributing zero layout —
                     the phone view stays pixel-identical to what C5 shipped,
                     border aside. */}
-                <span className="sr-only md:not-sr-only md:inline">
+                <span
+                  className={`sr-only md:not-sr-only md:inline ${done ? "line-through" : ""}`}
+                >
                   {slot.showLabel ? slot.event.title : ""}
                 </span>
               </span>

@@ -2,10 +2,11 @@
 
 import { useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
-import { AvatarBadge } from "./AvatarBadge";
 import { createCalendarEvent, updateCalendarEvent, type CalendarEventInput } from "@/app/actions/calendar";
-import { addDays, isSameDay, startOfDay } from "@/lib/mealPlanDates";
+import { addDays, startOfDay } from "@/lib/mealPlanDates";
+import { allDayInstantToLocalDay, localDayToAllDayInstant } from "@/lib/calendarDates";
+import { EventDateTimeFields, parseLocalDateString } from "./EventDateTimeFields";
+import { EventPeopleField } from "./EventPeopleField";
 import type { CalendarPersonView } from "@/lib/types";
 
 // A new event's default start needs the browser's real clock; only
@@ -32,41 +33,6 @@ export type EventFormDefaults = {
   notes: string;
   userIds: string[];
 };
-
-/** Local "YYYY-MM-DD"/"HH:MM" for the native inputs — PantryItemEditSheet's
- * own toDateInputValue trick, so an evening edit never rolls back a day
- * through UTC. */
-function toDateInputValue(date: Date): string {
-  const [y, m, d] = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
-  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-}
-function toTimeInputValue(date: Date): string {
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-/** "YYYY-MM-DD" as local midnight, never Date's own UTC-leaning parser. */
-function parseLocalDateString(value: string): Date {
-  const [y, m, d] = value.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-function combineDateAndTime(dateValue: string, timeValue: string): Date {
-  const [h, min] = timeValue.split(":").map(Number);
-  const date = parseLocalDateString(dateValue);
-  date.setHours(h, min, 0, 0);
-  return date;
-}
-
-/** Whole calendar days from `a` to `b` (`b` >= `a`, both local midnight),
- * via addDays/isSameDay — a tiny private copy of calendarDates.ts's
- * unexported calendarDayDiff (off this may-touch list). */
-function daysBetween(a: Date, b: Date): number {
-  let count = 0;
-  let cursor = a;
-  while (!isSameDay(cursor, b)) {
-    cursor = addDays(cursor, 1);
-    count += 1;
-  }
-  return count;
-}
 
 /** One form for both New and Edit (the RecipeForm precedent) — calls
  * createCalendarEvent/updateCalendarEvent with a plain object, not
@@ -113,32 +79,22 @@ export function EventForm({
     setEnd(new Date(seededStart.getTime() + 60 * 60 * 1000));
   }
 
-  // Changing the start keeps the duration (both date and time funnel here).
-  function handleStartChange(newStart: Date) {
-    const durationMs = start && end ? end.getTime() - start.getTime() : 60 * 60 * 1000;
-    setStart(newStart);
-    setEnd(new Date(newStart.getTime() + durationMs));
-  }
-
-  // All-day equivalent: keep the DAY-count span, not a ms duration.
-  function handleAllDayStartChange(newStartDay: Date) {
-    if (!start || !end) return;
-    const spanDays = daysBetween(startOfDay(start), addDays(startOfDay(end), -1));
-    const newStart = startOfDay(newStartDay);
-    setStart(newStart);
-    setEnd(addDays(newStart, spanDays + 1));
-  }
-
-  // Timed -> all-day: one day on the current start day. All-day -> timed:
-  // same day, a plain 9-10 AM default (a click handler, so unlike the seed
-  // above a fixed value is fine — still reviewable before Save).
+  // Timed -> all-day: one day on the current LOCAL start day, converted to
+  // the UTC-midnight instant all-day rows are stored as (calendarDates.ts's
+  // allDayInstantToLocalDay/localDayToAllDayInstant — mission-13/C3). All-day
+  // -> timed: `start` is CURRENTLY a UTC-midnight instant, so it's read back
+  // through allDayInstantToLocalDay, never startOfDay directly, before
+  // building a plain 9-10 AM default on that local day (a click handler, so
+  // unlike the seed above a fixed value is fine — still reviewable before
+  // Save).
   function toggleAllDay(next: boolean) {
     if (start && end) {
       if (next) {
-        setStart(startOfDay(start));
-        setEnd(addDays(startOfDay(start), 1));
+        const localDay = startOfDay(start);
+        setStart(localDayToAllDayInstant(localDay));
+        setEnd(localDayToAllDayInstant(addDays(localDay, 1)));
       } else {
-        const day = startOfDay(start);
+        const day = allDayInstantToLocalDay(start);
         const newStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 9);
         setStart(newStart);
         setEnd(new Date(newStart.getTime() + 3600_000));
@@ -203,65 +159,10 @@ export function EventForm({
       </label>
 
       {start && end && (
-        <div className="flex flex-col gap-3">
-          <Field label="Starts">
-            <DateTimeRow
-              date={start}
-              time={start}
-              allDay={allDay}
-              onDateChange={(picked) => {
-                const newStart = new Date(start);
-                newStart.setFullYear(picked.getFullYear(), picked.getMonth(), picked.getDate());
-                if (allDay) handleAllDayStartChange(newStart);
-                else handleStartChange(newStart);
-              }}
-              onTimeChange={(value) => handleStartChange(combineDateAndTime(toDateInputValue(start), value))}
-            />
-          </Field>
-
-          <Field label={allDay ? "Ends (last day)" : "Ends"}>
-            <DateTimeRow
-              date={allDay ? addDays(startOfDay(end), -1) : end}
-              time={end}
-              allDay={allDay}
-              onDateChange={(picked) => {
-                if (allDay) {
-                  const clamped = picked.getTime() < start.getTime() ? start : picked;
-                  setEnd(addDays(startOfDay(clamped), 1));
-                } else {
-                  const newEnd = new Date(end);
-                  newEnd.setFullYear(picked.getFullYear(), picked.getMonth(), picked.getDate());
-                  setEnd(newEnd);
-                }
-              }}
-              onTimeChange={(value) => setEnd(combineDateAndTime(toDateInputValue(end), value))}
-            />
-          </Field>
-        </div>
+        <EventDateTimeFields start={start} end={end} allDay={allDay} setStart={setStart} setEnd={setEnd} />
       )}
 
-      <Field label="People">
-        <div className="flex flex-wrap gap-2">
-          {people.map((person) => {
-            const selected = selectedUserIds.includes(person.userId);
-            return (
-              <button
-                key={person.userId}
-                type="button"
-                onClick={() => togglePerson(person.userId)}
-                aria-pressed={selected}
-                className={`flex min-h-12 items-center gap-2 rounded-full border px-3 pl-1.5 text-left text-sm font-medium transition-colors ${
-                  selected ? "border-accent bg-accent-soft text-fg" : "border-line bg-surface text-muted"
-                }`}
-              >
-                <AvatarBadge displayName={person.displayName} avatarColor={person.avatarColor} size={32} />
-                {person.displayName}
-                {selected && <Check aria-hidden="true" size={16} className="text-accent" />}
-              </button>
-            );
-          })}
-        </div>
-      </Field>
+      <EventPeopleField people={people} selectedUserIds={selectedUserIds} onToggle={togglePerson} />
 
       <Field label="Location" hint="Optional">
         <input
@@ -296,44 +197,6 @@ export function EventForm({
         {pending ? "Saving…" : isEdit ? "Save changes" : "Add event"}
       </button>
     </form>
-  );
-}
-
-/** One date input, plus a paired time input when not all-day — "Starts"
- * and "Ends" share this shape, differing only in their onChange. */
-function DateTimeRow({
-  date,
-  time,
-  allDay,
-  onDateChange,
-  onTimeChange,
-}: {
-  date: Date;
-  time: Date;
-  allDay: boolean;
-  onDateChange: (picked: Date) => void;
-  onTimeChange: (value: string) => void;
-}) {
-  return (
-    <div className="flex gap-2">
-      <input
-        type="date"
-        value={toDateInputValue(date)}
-        onChange={(e) => {
-          if (!e.target.value) return;
-          onDateChange(parseLocalDateString(e.target.value));
-        }}
-        className="min-h-12 flex-1 rounded-xl bg-surface-2 px-4 text-base outline-none"
-      />
-      {!allDay && (
-        <input
-          type="time"
-          value={toTimeInputValue(time)}
-          onChange={(e) => e.target.value && onTimeChange(e.target.value)}
-          className="min-h-12 basis-36 shrink-0 rounded-xl bg-surface-2 px-3 text-base outline-none"
-        />
-      )}
-    </div>
   );
 }
 

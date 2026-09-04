@@ -22,7 +22,9 @@
     "db:seed-slot-tags": "tsx prisma/seed-slot-tags.ts",
     "db:bootstrap-users": "tsx prisma/bootstrap-users.ts",
     "db:seed-calendar": "tsx prisma/seed-calendar.ts",
-    "db:clean-calendar": "tsx prisma/clean-calendar.ts"
+    "db:clean-calendar": "tsx prisma/clean-calendar.ts",
+    "db:seed-tasks": "tsx prisma/seed-tasks.ts",
+    "db:clean-tasks": "tsx prisma/clean-tasks.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

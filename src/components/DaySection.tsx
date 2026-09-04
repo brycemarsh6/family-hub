@@ -1,18 +1,25 @@
 import { CalendarOff } from "lucide-react";
 import { EventCard } from "./EventCard";
+import { TaskCard } from "./TaskCard";
 import { SkeletonBlock } from "./Skeleton";
-import type { CalendarEventView } from "@/lib/types";
+import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
 import { isSameDay, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 
-/** The compact "no events today" card — genuinely empty, not loading and
- * not outside the fetched window. Those are two DIFFERENT other states
- * (see the `loading` branch below and `NotLoadedCard`) — this repo's own
- * dashboard lesson is that a loading frame must never say something as
- * crisp and factual as "No events" about data it hasn't looked at yet, and
- * a day outside the query window hasn't been looked at either. */
+/** The compact "no events today" card — genuinely empty (no events AND no
+ * tasks — mission-14/C3), not loading and not outside the fetched window.
+ * Those are two DIFFERENT other states (see the `loading` branch below and
+ * `NotLoadedCard`) — this repo's own dashboard lesson is that a loading
+ * frame must never say something as crisp and factual as "No events" about
+ * data it hasn't looked at yet, and a day outside the query window hasn't
+ * been looked at either. */
 function NoEventsCard() {
   return (
     <div className="rounded-xl border border-dashed border-line px-3 py-3 text-sm text-muted">
+      {/* Text left as "No events" rather than reworded to "Nothing" — the
+          CHECK below now correctly gates on events AND tasks both being
+          empty, so this never renders while a task exists, but the wording
+          itself is shared with a quoted reference in calendar/loading.tsx's
+          own comment, which mission-14/C3's boundary doesn't include. */}
       No events
     </div>
   );
@@ -100,6 +107,11 @@ export function DaySection(
         day: Date;
         today: Date;
         events: CalendarEventView[];
+        /** Tasks due on THIS day (mission-14/C3) — already filtered by the
+         * caller (CalendarViews.tsx), same convention as `events` above.
+         * Rendered before the event cards; see the render body below for
+         * why. */
+        tasks: CalendarTaskView[];
         /** Day view has room to show a card's location; Week's cards stay
          * compact. Threaded straight through to EventCard. */
         showLocation?: boolean;
@@ -125,6 +137,13 @@ export function DaySection(
          * the sole caller, CalendarViews.tsx, always passes one; the `?`
          * only ever masked that). */
         onOpenEvent: (event: CalendarEventView, day: Date) => void;
+        /** Opens the task detail sheet (mission-14/C4 — TaskDetailSheet)
+         * for one task, on the day it's rendered for — same
+         * required-not-optional convention as `onOpenEvent` above. `day`
+         * is threaded through for symmetry with onOpenEvent but currently
+         * unused by the sole caller, since a task has exactly one due
+         * date, never a span. */
+        onOpenTask: (task: CalendarTaskView, day: Date) => void;
       },
 ) {
   if (props.loading) {
@@ -147,7 +166,8 @@ export function DaySection(
     );
   }
 
-  const { day, today, events, showLocation, compact, notLoaded, onOpenEvent } = props;
+  const { day, today, events, tasks, showLocation, compact, notLoaded, onOpenEvent, onOpenTask } =
+    props;
   const isToday = isSameDay(day, today);
 
   return (
@@ -175,17 +195,25 @@ export function DaySection(
         }`}
       >
         {/* Three independent facts, not one either/or: `notLoaded` renders
-            the caveat whenever it's true, no matter how many events came
-            back for this day — a day the window only partially covers is
-            exactly the case that must never look complete (mission-8's
-            V4). The empty glyph renders only when the day IS fully loaded
-            AND genuinely has zero events, never merely because `events`
-            happens to be empty. And every fetched card always renders
-            regardless of `notLoaded`, since a real row we DID get for this
-            day is still worth showing next to the caveat, not replaced by
-            it. */}
+            the caveat whenever it's true, no matter how many events (or,
+            as of mission-14/C3, tasks) came back for this day — a day the
+            window only partially covers is exactly the case that must
+            never look complete (mission-8's V4). The empty glyph renders
+            only when the day IS fully loaded AND genuinely has zero events
+            AND zero tasks — never merely because `events` happens to be
+            empty, since a task-only day is not an empty day. And every
+            fetched card always renders regardless of `notLoaded`, since a
+            real row we DID get for this day is still worth showing next to
+            the caveat, not replaced by it. */}
         {notLoaded && <NotLoadedCard />}
-        {!notLoaded && events.length === 0 && <NoEventsCard />}
+        {!notLoaded && events.length === 0 && tasks.length === 0 && <NoEventsCard />}
+        {/* Tasks render before events — an all-day-style item (a task has
+            no time of day, just a due DATE) reading above the timed agenda
+            below it is the same convention Google/Apple use for all-day
+            rows in a day view. */}
+        {tasks.map((task) => (
+          <TaskCard key={task.id} task={task} onOpen={() => onOpenTask(task, day)} />
+        ))}
         {events.map((event) => (
           <EventCard
             key={event.id}

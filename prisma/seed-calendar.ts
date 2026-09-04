@@ -27,6 +27,14 @@
 // (and the K1 calendarDates.ts it's paired with) for why that's NOT safe
 // inside the app itself.
 //
+// All-day rows are built via calendarDates.ts's localDayToAllDayInstant —
+// mission-13/CT1's fixed all-day convention: UTC midnight of the intended
+// calendar date, not local midnight. This script used to build them as
+// bare local midnight (the exact bug CT1 exists to close), which would
+// have written freshly-wrong rows into the database on every future
+// re-seed; fixed as part of CT1/C5. Timed events are unaffected — they
+// keep building local-time instants exactly as before.
+//
 // Uses relative imports (not the "@/" shortcut) because this script is run
 // directly by tsx, outside of Next.js.
 
@@ -34,6 +42,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
 import { addDays, sundayOf } from "../src/lib/mealPlanDates";
+import { localDayToAllDayInstant } from "../src/lib/calendarDates";
 import { CALENDAR_SEED_EVENTS, type SeedEventTemplate } from "./calendar-seed-data";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -52,11 +61,6 @@ function referenceSunday(template: SeedEventTemplate): Date {
   return template.kind === "dstWeek" ? dstWeekSunday : thisWeekSunday;
 }
 
-/** Local midnight of `date`. */
-function localMidnight(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
 function buildRange(template: SeedEventTemplate): { startAt: Date; endAt: Date } {
   const startDay = addDays(referenceSunday(template), template.startDayOffset);
   const lastDay = addDays(startDay, template.spanDays - 1);
@@ -64,7 +68,15 @@ function buildRange(template: SeedEventTemplate): { startAt: Date; endAt: Date }
   if (template.allDay) {
     // endAt is EXCLUSIVE for all-day events — midnight of the day AFTER
     // the last day covered. See CalendarEvent.endAt's own doc comment.
-    return { startAt: localMidnight(startDay), endAt: addDays(localMidnight(lastDay), 1) };
+    // startDay/lastDay are already local-midnight Date objects (built via
+    // addDays from a local-midnight reference Sunday), so
+    // localDayToAllDayInstant reads their real local Y/M/D straight off —
+    // this is exactly the "LOCAL calendar day" input its own doc comment
+    // describes, not a raw instant that would need re-interpreting.
+    return {
+      startAt: localDayToAllDayInstant(startDay),
+      endAt: localDayToAllDayInstant(addDays(lastDay, 1)),
+    };
   }
 
   const { startTime, endTime } = template;

@@ -2,31 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, UtensilsCrossed } from "lucide-react";
+import { CalendarDays, ListChecks } from "lucide-react";
 import { RadioSheet } from "./RadioSheet";
 import { ActionSheet } from "./ActionSheet";
 import { CalendarHeader } from "./CalendarHeader";
 import { DaySection } from "./DaySection";
 import { MonthGrid } from "./MonthGrid";
 import { EventDetailSheet } from "./EventDetailSheet";
+import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import {
   CALENDAR_VIEW_OPTIONS,
   DEFAULT_CALENDAR_VIEW,
   type CalendarPeriodView,
 } from "@/lib/calendarViewVocabulary";
-import { daysEventCovers, daysOfWeek, isOutsideWindow } from "@/lib/calendarDates";
-import {
-  addDays,
-  formatDayLabel,
-  formatMonthTitle,
-  formatWeekRange,
-  isSameDay,
-  isSameMonth,
-  sundayOf,
-  toLocalDateString,
-} from "@/lib/mealPlanDates";
-import type { CalendarEventView } from "@/lib/types";
+import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
+import { daysEventCovers, isOutsideWindow, allDayInstantToLocalDay } from "@/lib/calendarDates";
+import { isSameDay, toLocalDateString } from "@/lib/mealPlanDates";
+import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
 // — this file, DaySection.tsx, and EventCard.tsx all import them from that
@@ -37,137 +30,32 @@ import type { CalendarEventView } from "@/lib/types";
 // imports the DaySection *component*, so a type re-export pointed the other
 // way would recreate exactly the loop this fix removes).
 
-/**
- * The per-view differences the shell itself has to know about, as one row
- * per view rather than a ternary per difference (mission-10/CV0, completed
- * in mission-11/C1). Typed as a total `Record`, so a new name in
- * `CalendarPeriodView` is a compile error until it has a row here: a new
- * view ADDS A ROW, it never adds a branch to several separate expressions
- * that can then disagree.
- *
- * That claim was only two-fifths true when CV0 wrote it — `title`, `days`
- * and `isCurrentPeriod` were still ternaries ending in a catch-all
- * `: <day behaviour>`, so a new view compiled clean and silently rendered
- * a Day title over a single-day array (Captain's CV0 Ruling 2). C1 moved
- * all five here; C2 widened the union to six views against that check and
- * added the label as a sixth difference, in
- * `calendarViewVocabulary.VIEW_LABELS`, where the picker and the header's
- * switcher circle both read it.
- */
-type ViewConfig = {
-  prevLabel: string;
-  nextLabel: string;
-  /**
-   * How many DaySection placeholders the loading frame renders. Fixed by
-   * `view` alone, never by `today` — that's what lets the frame below show
-   * the right COUNT before `today` resolves. Month renders MonthGrid, and
-   * every path to Month (`setView`, or the URL resync's `jumpTo`) requires
-   * `today` already resolved, so its value here is never reached.
-   */
-  placeholderCount: number;
-  /**
-   * The header title. Takes `anchor` only: no view's title depends on what
-   * day it is today, and a parameter nothing uses would be a promise the
-   * rows don't keep. The component still withholds the title until `today`
-   * resolves (the loading frame, below); widening this to `(anchor, today)`
-   * is a one-line change if a view ever wants to say "Today" instead.
-   */
-  title: (anchor: Date) => string;
-  /**
-   * Which days the shell renders as DaySections. Month's row returns its
-   * anchor day for honesty about where the period is pointed, but nothing
-   * reads it: Month renders MonthGrid, which builds its own 42-day grid
-   * from `anchor` (monthLayout.ts's `monthGridDays`).
-   */
-  days: (anchor: Date) => Date[];
-  /** Whether the cursor is parked on the period containing `today` — what
-   * greys out the header's Today circle. */
-  isCurrentPeriod: (anchor: Date, today: Date) => boolean;
-};
-
-// Each row derives its own week start with `sundayOf(anchor)` rather than
-// taking one computed once in the component. It is a clone-and-setDate, so
-// the repeat costs nothing measurable, and it keeps every row readable on
-// its own terms — no row is handed a value only Week uses, and none has to
-// deal with the `null` that a component-level `weekStart` carries while
-// `today` is still resolving.
-const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
-  week: {
-    prevLabel: "Previous week",
-    nextLabel: "Next week",
-    placeholderCount: 7,
-    title: (anchor) => formatWeekRange(sundayOf(anchor)),
-    days: (anchor) => daysOfWeek(sundayOf(anchor)),
-    isCurrentPeriod: (anchor, today) => isSameDay(sundayOf(anchor), sundayOf(today)),
-  },
-  day: {
-    prevLabel: "Previous day",
-    nextLabel: "Next day",
-    placeholderCount: 1,
-    title: (anchor) => formatDayLabel(anchor),
-    days: (anchor) => [anchor],
-    isCurrentPeriod: (anchor, today) => isSameDay(anchor, today),
-  },
-  month: {
-    prevLabel: "Previous month",
-    nextLabel: "Next month",
-    placeholderCount: 1,
-    title: (anchor) => formatMonthTitle(anchor),
-    days: (anchor) => [anchor],
-    isCurrentPeriod: (anchor, today) => isSameMonth(anchor, today),
-  },
-  // The three views the vocabulary names but nothing renders YET
-  // (mission-11/C2). None is reachable: `BUILT_VIEWS`
-  // (calendarViewVocabulary.ts) says false for all three, so the picker
-  // never offers them and `parseViewParam` normalizes a URL naming one.
-  // The rows exist because this Record is total, and because
-  // `days`/`isCurrentPeriod` are already real facts about the period each
-  // will show. What cannot be known before the renderer exists is marked
-  // PROVISIONAL and belongs to the phase that builds it (CV3 Schedule, CV4
-  // 3 Day, CV5 Year) — with a measurement, not a guess.
-  schedule: {
-    // PROVISIONAL, all three: Schedule has no period to page between (CV3
-    // hides the arrows; the cursor's `step: 0` already refuses to move
-    // it), its title tracks the month at the top of the scroll, and its
-    // Today scrolls rather than pages.
-    prevLabel: "Previous",
-    nextLabel: "Next",
-    placeholderCount: 7,
-    title: (anchor) => formatMonthTitle(anchor),
-    // CV3 builds its own rolling window from `anchor` (scheduleWindow.ts).
-    days: (anchor) => [anchor],
-    isCurrentPeriod: (anchor, today) => isSameDay(anchor, today),
-  },
-  threeDay: {
-    prevLabel: "Previous 3 days",
-    nextLabel: "Next 3 days",
-    placeholderCount: 3,
-    // PROVISIONAL: the first column's day. A real 3-day range label needs a
-    // formatter for spans other than a week (`formatWeekRange` is
-    // hard-wired to 7); adding one belongs with CV4's timeline.
-    title: (anchor) => formatDayLabel(anchor),
-    // Anchor-relative, never snapped to a boundary: Google's own 3 Day
-    // behaviour, and exactly what calendar-v2.md gives CV4 for `columnDays`.
-    days: (anchor) => [anchor, addDays(anchor, 1), addDays(anchor, 2)],
-    isCurrentPeriod: (anchor, today) =>
-      isSameDay(anchor, today) ||
-      isSameDay(addDays(anchor, 1), today) ||
-      isSameDay(addDays(anchor, 2), today),
-  },
-  year: {
-    prevLabel: "Previous year",
-    nextLabel: "Next year",
-    // Year renders 12 mini month grids, not DaySections — unreachable for
-    // the same reason Month's is.
-    placeholderCount: 1,
-    title: (anchor) => String(anchor.getFullYear()),
-    days: (anchor) => [anchor],
-    isCurrentPeriod: (anchor, today) => anchor.getFullYear() === today.getFullYear(),
-  },
-};
+// ViewConfig / VIEW_CONFIG (title, days, isCurrentPeriod per view) moved
+// to src/lib/calendarViewConfig.ts in mission-14/C1 — see that file's own
+// header for why (coverage: it's per-view date logic a .tsx file the test
+// glob can't reach). The render switch below stays here on purpose.
 
 type CalendarViewsProps = {
   events: CalendarEventView[];
+  /**
+   * mission-14/C2 — page.tsx's parallel `db.task.findMany`, converted the
+   * same way `events` is. mission-14/C3: filtered per day and handed to
+   * DaySection for Week/Day, and passed straight through to MonthGrid for
+   * Month (which does its own per-row conversion — see that component).
+   * Per D1 (mission-14's Banner brief), this is deliberately its OWN prop,
+   * not folded into `events` — see CalendarTaskView's own comment in
+   * src/lib/types.ts for why a union would force a discriminant into three
+   * other components for no benefit yet.
+   */
+  tasks: CalendarTaskView[];
+  /**
+   * The full household roster — page.tsx's third parallel query
+   * (mission-14/C5), threaded straight to TaskDetailSheet's edit view
+   * (TaskForm, mission-14/C6) so a task's People field is a real
+   * reassignable picker rather than a static echo of who's currently on
+   * it. Unused by every other branch below; passed through, not read here.
+   */
+  people: CalendarPersonView[];
   /**
    * True for admin/parent sessions, computed server-side in page.tsx —
    * gates the header's Add circle (mission-9/C5, Strange's B1 remedy) and
@@ -196,7 +84,8 @@ type CalendarViewsProps = {
  * fast taps from cancelling each other — lives in
  * `useCalendarNavigation` (src/lib/useCalendarNavigation.ts), extracted
  * there in mission-10/CV0 so that adding a view means adding a row to
- * VIEW_CONFIG above rather than another handler here.
+ * VIEW_CONFIG (src/lib/calendarViewConfig.ts) rather than another handler
+ * here.
  *
  * `today` comes from that hook (which reads useToday()), and is `null`
  * during SSR and the first client render — every value below that would
@@ -210,6 +99,8 @@ type CalendarViewsProps = {
  */
 export function CalendarViews({
   events,
+  tasks,
+  people,
   canManage,
   windowStart,
   windowEnd,
@@ -223,6 +114,11 @@ export function CalendarViews({
   const [pickingView, setPickingView] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
+  // mission-14/C4 — the sheet TaskCard/DaySection's onOpenTask now opens
+  // for real. Just the task itself, no day: unlike an event, a task has
+  // exactly one due date, never a span, so there's no "which day was this
+  // card rendered for" ambiguity onOpenEvent's callback has to carry.
+  const [selectedTask, setSelectedTask] = useState<CalendarTaskView | null>(null);
 
   const config = VIEW_CONFIG[view];
   // The null-guards below are about `today` not having resolved yet — NOT
@@ -236,6 +132,7 @@ export function CalendarViews({
     today !== null && anchor !== null && config.isCurrentPeriod(anchor, today);
 
   const title = today === null || anchor === null ? null : config.title(anchor);
+  const addSheetDateParam = anchor ? `?date=${toLocalDateString(anchor)}` : "";
 
   return (
     <div>
@@ -257,15 +154,26 @@ export function CalendarViews({
       />
 
       <div className="flex flex-col gap-4">
+        {/* mission-14/C3 renders `tasks` into the two views that exist
+            today (Month below, and the Week/Day DaySection branch further
+            down) — Schedule (CV3), the hour timeline (CV4/Day+Week), and
+            Year (CV5) don't exist yet, so they inherit the same obligation
+            when they land here: thread `tasks` into whatever they render,
+            the same way `events` already has to be. Not a silent gap —
+            BUILT_VIEWS (calendarViewVocabulary.ts) already keeps those
+            three unreachable until each ships its own branch in this exact
+            switch. */}
         {view === "month" ? (
           // Guaranteed non-null (see ViewConfig.placeholderCount's comment
-          // above); this check is for TypeScript, not a reachable branch.
+          // in calendarViewConfig.ts); this check is for TypeScript, not a
+          // reachable branch.
           today !== null &&
           anchor !== null && (
             <MonthGrid
               anchor={anchor}
               today={today}
               events={events}
+              tasks={tasks}
               windowStart={windowStart}
               windowEnd={windowEnd}
               onOpenDay={openDay}
@@ -288,7 +196,18 @@ export function CalendarViews({
                 (event) =>
                   daysEventCovers(event.startAt, event.endAt, event.allDay, [day]).length > 0,
               )}
+              // A task has exactly one due date, never a span, so this is a
+              // plain same-day comparison rather than daysEventCovers'
+              // range check — see allDayInstantToLocalDay's own comment
+              // (calendarDates.ts) for why a UTC-midnight-stored due date
+              // has to be read back through it, not a bare local getter.
+              tasks={tasks.filter((task) => isSameDay(allDayInstantToLocalDay(task.dueDate), day))}
               onOpenEvent={(event, eventDay) => setSelected({ event, day: eventDay })}
+              // mission-14/C4 — the real TaskDetailSheet, wired the same
+              // way onOpenEvent backs EventDetailSheet above. `day` is
+              // unused: see selectedTask's own comment for why a task
+              // needs none.
+              onOpenTask={(task) => setSelectedTask(task)}
             />
           ))
         )}
@@ -314,16 +233,15 @@ export function CalendarViews({
               icon: <CalendarDays aria-hidden="true" size={18} />,
               onClick: () => {
                 setAddingEvent(false);
-                const dateParam = anchor ? `?date=${toLocalDateString(anchor)}` : "";
-                router.push(`/calendar/new${dateParam}`);
+                router.push(`/calendar/new${addSheetDateParam}`);
               },
             },
             {
-              label: "Meal",
-              icon: <UtensilsCrossed aria-hidden="true" size={18} />,
+              label: "Task",
+              icon: <ListChecks aria-hidden="true" size={18} />,
               onClick: () => {
                 setAddingEvent(false);
-                router.push("/kitchen/cooking/meal-plan");
+                router.push(`/calendar/new/task${addSheetDateParam}`);
               },
             },
           ]}
@@ -339,6 +257,20 @@ export function CalendarViews({
           onClose={() => setSelected(null)}
           onDeleted={() => {
             setSelected(null);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {selectedTask && (
+        <TaskDetailSheet
+          task={selectedTask}
+          people={people}
+          canManage={canManage}
+          onClose={() => setSelectedTask(null)}
+          onChanged={() => router.refresh()}
+          onDeleted={() => {
+            setSelectedTask(null);
             router.refresh();
           }}
         />

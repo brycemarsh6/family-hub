@@ -105,3 +105,39 @@ export type CalendarEventView = {
    */
   createdByName: string | null;
 };
+
+/**
+ * One Task, as the browser needs it — mission-14/C2, the first consumer of
+ * CT1's Task model. Deliberately its OWN type, not a union member of
+ * CalendarEventView: see calendar-v2's D1 (mission-14's Banner brief) for
+ * why a shared discriminated type would force every one of
+ * CalendarViews.tsx / DaySection.tsx / EventCard.tsx / MonthGrid.tsx to
+ * branch on it, versus a parallel `tasks` prop that leaves the event path
+ * completely untouched and makes "this view doesn't render tasks yet" (true
+ * of every view as of C2 — C3 is what wires rendering in) a visible
+ * type-level gap instead of a silent one.
+ *
+ * No `createdByName` the way CalendarEventView has one — the brief's own
+ * "at minimum" field list for the detail sheet (title, details, people, due
+ * date, Mark complete) doesn't include an "Added by" line, unlike events.
+ */
+export type CalendarTaskView = {
+  id: string;
+  title: string;
+  details: string | null;
+  dueDate: Date;
+  completedAt: Date | null;
+  people: CalendarPersonView[];
+  /**
+   * True when the SIGNED-IN user is one of this task's people — computed
+   * server-side in page.tsx (calendar-v2's D3), from the verified session
+   * against real TaskPerson rows already joined into the same query, never
+   * from a role or a user object handed to a component. This decides only
+   * whether a mark-complete control is DRAWN for this task; it grants
+   * nothing on its own. `completeTask`'s own membership guard
+   * (actions/tasks.ts) is the real gate, reached independently every time —
+   * see STRUCTURE.md's "components never receive role or user objects for
+   * gating purposes" / "hiding UI is never the gate."
+   */
+  isMine: boolean;
+};

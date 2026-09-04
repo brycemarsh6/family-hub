@@ -531,6 +531,12 @@ model User {
   calendarEventsCreated CalendarEvent[]
   calendarEventPeople   CalendarEventPerson[]
 
+  /// Calendar v2 (CT1): tasks this person created, and tasks this person
+  /// is on. Same SetNull/Cascade split as the calendar event relations
+  /// just above, for the same reasons.
+  tasksCreated Task[]
+  taskPeople   TaskPerson[]
+
   // No relation to LoginAttempt here — see that model's own doc comment for
   // why userId there is deliberately not a foreign key.
 
@@ -565,4 +571,64 @@ model LoginAttempt {
 
   @@index([userId, createdAt])
   @@index([ip, createdAt])
+}
+
+/// A calendar task — Calendar v2, phase CT1
+/// (.avengers/plans/calendar-v2.md). A task is not a `CalendarEvent`: it
+/// has one all-day due date rather than a start/end range, and it can be
+/// completed. `rrule` is stored now so K4's recurrence expansion doesn't
+/// need a backfill, but nothing reads it yet — same precedent as
+/// CalendarEvent.rrule above.
+model Task {
+  id String @id @default(cuid())
+
+  title   String
+  details String?
+
+  /// Stored at UTC MIDNIGHT, not local midnight — deliberately the
+  /// opposite convention CalendarEvent.startAt/endAt originally shipped
+  /// with for all-day events, which is exactly the bug CT1 fixes (an
+  /// all-day event stored as local midnight renders a day early once the
+  /// device is west of Mountain). A task's due date is read with UTC
+  /// getters everywhere, the same fix CT1 applies to CalendarEvent.
+  dueDate DateTime
+
+  completedAt DateTime?
+
+  /// An RRULE string, or verbatim custom rules from a synced source too
+  /// rich for our own picker. Stored, not expanded — see K4.
+  rrule String?
+
+  /// Who created this task — null for a deactivated/deleted creator, same
+  /// SetNull pattern as CalendarEvent.createdById: a person leaving the
+  /// household must never take a task (or its history) with them.
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  people TaskPerson[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// The calendar's main query for tasks: "what's due in this range."
+  @@index([dueDate])
+  @@index([createdById])
+}
+
+/// One person on one task — same shape as CalendarEventPerson, and for the
+/// same reason: a task can belong to more than one person (a shared
+/// chore), and each of them needs to be able to complete it. Both sides
+/// cascade: a person row for a deleted task is meaningless, and removing a
+/// person from a task should just remove their row, never the task itself.
+model TaskPerson {
+  id String @id @default(cuid())
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([taskId, userId])
+  @@index([userId])
 }

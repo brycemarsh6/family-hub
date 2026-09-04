@@ -41,9 +41,11 @@ export type SeedEventTemplate = {
    * 1 for a same-day event, 3 for "starts Tuesday, ends Thursday". */
   spanDays: number;
   /** Local hour/minute for a timed event's start and end. Ignored for
-   * all-day events, which the seeder builds as local midnight-to-midnight
-   * over `spanDays`, the same all-day convention CalendarEvent's own doc
-   * comment describes. */
+   * all-day events, which the seeder builds as UTC-midnight instants of
+   * the intended calendar date over `spanDays` (via calendarDates.ts's
+   * localDayToAllDayInstant) — mission-13/CT1's fixed all-day convention,
+   * the same one CalendarEvent.startAt/endAt's own schema comment now
+   * describes. */
   startTime?: { hour: number; minute: number };
   endTime?: { hour: number; minute: number };
   /** Indices into whichever real, non-deactivated `User` rows

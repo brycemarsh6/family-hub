@@ -80,11 +80,13 @@ export function formatTimeRange(start: Date, end: Date): string {
  * in this file, just applied to counting instead of shifting. Realistic
  * event spans are days or weeks, never long enough for the loop to matter.
  *
- * Exported as of mission-9 (K2/C1) so `monthLayout.ts` and, later,
- * `CalendarViews.tsx`'s own `daysBetween` copy can share this one
- * implementation instead of re-deriving it — no behavior change, same
- * signature, still called locally by `eventDaySpan`/`formatAllDayLabel`
- * below exactly as before. */
+ * Exported as of mission-9 (K2/C1) so `monthLayout.ts` could share this one
+ * implementation instead of re-deriving it. A second private copy did later
+ * appear in `EventForm.tsx` (`daysBetween`, with a real `b < a` infinite
+ * loop) — mission-13/C1 deleted it in favor of importing this one, so as of
+ * that commit every day-count in the app goes through this single
+ * implementation. No behavior change here, same signature, still called
+ * locally by `eventDaySpan`/`formatAllDayLabel` below exactly as before. */
 export function calendarDayDiff(a: Date, b: Date): number {
   const from = startOfDay(a);
   const to = startOfDay(b);
@@ -96,6 +98,43 @@ export function calendarDayDiff(a: Date, b: Date): number {
     count += forward ? 1 : -1;
   }
   return count;
+}
+
+/**
+ * All-day `CalendarEvent` rows are stored as UTC midnight of their intended
+ * calendar date (mission-13/C2's schema comment and backfill migration) —
+ * a calendar date isn't an instant, so it has no timezone of its own, and
+ * UTC midnight is the one fixed point every reader and writer can agree on
+ * regardless of which device is looking. TIMED events keep reading/writing
+ * device-local everywhere else in this file, completely unaffected —
+ * `HOUSEHOLD_TIME_ZONE` in constants.ts still has zero consumers,
+ * deliberately (Bryce's ruling: the app reads the device's own timezone;
+ * only a calendar-date all-day event is the fixed exception).
+ *
+ * This is the ONLY place that boundary is crossed. Reading an all-day
+ * instant back into the calendar day it names: pull its Y/M/D via the UTC
+ * getters, then re-express them as a LOCAL midnight `Date` carrying those
+ * same numbers. That's what lets `eventDaySpan` below (and therefore
+ * `formatAllDayLabel`/`daysEventCovers`) keep using the plain LOCAL
+ * date-math helpers (`addDays`/`isSameDay`/`calendarDayDiff`, all of which
+ * read the CURRENT environment's own local getters) unchanged for the
+ * all-day case too — the Date this returns carries the correct calendar
+ * day as its OWN local components, by construction, so no local getter
+ * downstream can misread it, in any timezone.
+ */
+export function allDayInstantToLocalDay(instant: Date): Date {
+  return new Date(instant.getUTCFullYear(), instant.getUTCMonth(), instant.getUTCDate());
+}
+
+/**
+ * The inverse of `allDayInstantToLocalDay` above: given a LOCAL calendar
+ * day (`startOfDay(now)`, a native `<input type="date">`'s parsed value —
+ * see `EventDateTimeFields.tsx`'s `parseLocalDateString` — or any other
+ * local-midnight `Date`), builds the UTC-midnight instant an all-day
+ * event's `startAt`/`endAt` must be saved as.
+ */
+export function localDayToAllDayInstant(localDay: Date): Date {
+  return new Date(Date.UTC(localDay.getFullYear(), localDay.getMonth(), localDay.getDate()));
 }
 
 /** The inclusive first/last local calendar day an event covers, and how
@@ -130,15 +169,23 @@ export function calendarDayDiff(a: Date, b: Date): number {
  * like this; this clamp is what keeps an already-saved one from vanishing
  * instead — validate AND clamp, the same defense-in-depth shape the rest
  * of this app already uses for its write paths.
+ *
+ * mission-13/C3 — an ALL-DAY `start`/`end` is read through
+ * `allDayInstantToLocalDay` first, never `startOfDay` directly: the two
+ * disagree on any instant that isn't already local midnight, which a
+ * UTC-midnight-stored all-day row never is once the browser's own
+ * timezone offset isn't zero. A TIMED event's `start`/`end` are untouched —
+ * `startOfDay` is still exactly right for those, same as before this
+ * mission.
  */
 function eventDaySpan(
   start: Date,
   end: Date,
   allDay: boolean,
 ): { firstDay: Date; lastDay: Date; totalDays: number } {
-  const firstDay = startOfDay(start);
+  const firstDay = allDay ? allDayInstantToLocalDay(start) : startOfDay(start);
 
-  const endDay = startOfDay(end);
+  const endDay = allDay ? allDayInstantToLocalDay(end) : startOfDay(end);
   const lastDayRaw = allDay
     ? addDays(endDay, -1)
     : end.getTime() === endDay.getTime() && end.getTime() > start.getTime()
