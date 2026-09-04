@@ -442,6 +442,30 @@ and preferring to surface the question rather than assume. Fury committed
 after re-verifying independently (counts, both zones, skip gating, tree).
 
 
+### Assemble: Strange is deliberately NOT on this mission
+
+Recorded because the doctrine says to assemble minimally *and say so*, and
+because a future session reading "two gates, not three" should find a
+reason rather than an omission.
+
+Strange gates **anything a human will see changed**. CV2 ships no pixels:
+`timelineLayout.ts` is a pure library with **no component consuming it
+yet** — that is CV4 — and C4 is a test-file split. The one human-facing
+change is C3's tab re-tap, which is *felt* rather than *seen*: no layout,
+no colour, no type. Vision already measured it in a real browser across
+three navigation cases and caught a fourth that a code-read fix would have
+missed.
+
+**CV4 is Strange's mission**, and heavily so — that is where the hour rail,
+the now-line, column widths at 375px, and the contrast-by-border ruling all
+land. Spending an Opus design pass on a library with no rendered surface
+would buy nothing and cost against an allowance that is already the binding
+constraint this week.
+
+**The tripwire:** if anything before CV4 puts `timelineLayout.ts`'s output
+on screen, Strange gates that mission, no exceptions.
+
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
