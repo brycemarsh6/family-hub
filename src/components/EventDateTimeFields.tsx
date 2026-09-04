@@ -1,5 +1,5 @@
 import { addDays, startOfDay } from "@/lib/mealPlanDates";
-import { calendarDayDiff } from "@/lib/calendarDates";
+import { allDayInstantToLocalDay, calendarDayDiff, localDayToAllDayInstant } from "@/lib/calendarDates";
 
 /**
  * The Starts/Ends `<Field>` pair and their shared `DateTimeRow` input, lifted
@@ -21,6 +21,16 @@ import { calendarDayDiff } from "@/lib/calendarDates";
  * toDateInputValue precedent) except `parseLocalDateString`, which EventForm
  * still needs once (seeding a new event's day from `initialDateISO`) and
  * imports back from here rather than keeping a second copy.
+ *
+ * mission-13/C3 — one more conversion sits on top of the local ones above:
+ * `start`/`end` are UTC-midnight instants whenever `allDay` is true
+ * (calendarDates.ts's `allDayInstantToLocalDay`/`localDayToAllDayInstant`
+ * — see that pair's own doc comment for why). Every place below that reads
+ * or builds an all-day date routes through one of those two first, so the
+ * native date input always shows and saves the SAME calendar day
+ * regardless of the browser's own timezone; a TIMED `start`/`end` never
+ * touches either one and keeps reading/writing device-local exactly as
+ * before this mission.
  */
 
 /** Local "YYYY-MM-DD" for the native date input. */
@@ -64,18 +74,26 @@ export function EventDateTimeFields({
   }
 
   // All-day equivalent: keep the DAY-count span, not a ms duration.
+  // `start`/`end` are UTC-midnight instants when allDay (calendarDates.ts's
+  // allDayInstantToLocalDay/localDayToAllDayInstant — mission-13/C3), so the
+  // day-count math itself happens entirely in LOCAL calendar-day space
+  // (addDays/calendarDayDiff both read the CURRENT environment's own local
+  // getters) and only the final setStart/setEnd values are converted back
+  // to the UTC instant that gets saved.
   function handleAllDayStartChange(newStartDay: Date) {
-    const spanDays = calendarDayDiff(startOfDay(start), addDays(startOfDay(end), -1));
-    const newStart = startOfDay(newStartDay);
-    setStart(newStart);
-    setEnd(addDays(newStart, spanDays + 1));
+    const localStart = allDayInstantToLocalDay(start);
+    const localEnd = allDayInstantToLocalDay(end);
+    const spanDays = calendarDayDiff(localStart, addDays(localEnd, -1));
+    const newLocalStart = startOfDay(newStartDay);
+    setStart(localDayToAllDayInstant(newLocalStart));
+    setEnd(localDayToAllDayInstant(addDays(newLocalStart, spanDays + 1)));
   }
 
   return (
     <div className="flex flex-col gap-3">
       <Field label="Starts">
         <DateTimeRow
-          date={start}
+          date={allDay ? allDayInstantToLocalDay(start) : start}
           time={start}
           allDay={allDay}
           onDateChange={(picked) => {
@@ -90,13 +108,18 @@ export function EventDateTimeFields({
 
       <Field label={allDay ? "Ends (last day)" : "Ends"}>
         <DateTimeRow
-          date={allDay ? addDays(startOfDay(end), -1) : end}
+          date={allDay ? addDays(allDayInstantToLocalDay(end), -1) : end}
           time={end}
           allDay={allDay}
           onDateChange={(picked) => {
             if (allDay) {
-              const clamped = picked.getTime() < start.getTime() ? start : picked;
-              setEnd(addDays(startOfDay(clamped), 1));
+              // `picked` is already a LOCAL calendar day (parseLocalDateString,
+              // via DateTimeRow's date input) — compare and clamp against
+              // `start`'s own local calendar day, never its raw UTC-midnight
+              // instant, then convert back to a UTC instant only for the save.
+              const localStart = allDayInstantToLocalDay(start);
+              const clamped = picked.getTime() < localStart.getTime() ? localStart : picked;
+              setEnd(localDayToAllDayInstant(addDays(clamped, 1)));
             } else {
               const newEnd = new Date(end);
               newEnd.setFullYear(picked.getFullYear(), picked.getMonth(), picked.getDate());

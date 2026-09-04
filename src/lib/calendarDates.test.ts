@@ -24,6 +24,18 @@ function d(year: number, month: number, day: number, hour = 0, minute = 0): Date
   return new Date(year, month, day, hour, minute);
 }
 
+// mission-13/C3 — real `CalendarEvent` rows with `allDay: true` are stored
+// as UTC midnight of their intended calendar date (calendarDates.ts's
+// `allDayInstantToLocalDay`/`localDayToAllDayInstant` carry the full
+// reasoning), NOT local midnight. `d()` above is exactly right for a TIMED
+// event's start/end, and for the `days`/`week` arrays every test here
+// passes (always browser-local, per `daysOfWeek`) — but it is the WRONG
+// fixture for an all-day event's OWN start/end, which is what `utc()`
+// below is for.
+function utc(year: number, month: number, day: number): Date {
+  return new Date(Date.UTC(year, month, day));
+}
+
 // ---------------------------------------------------------------------------
 // daysOfWeek
 
@@ -96,15 +108,15 @@ test("daysEventCovers: a single-day timed event covers exactly its own day", () 
 
 test("daysEventCovers: a multi-day all-day event covers each real day, not the exclusive boundary", () => {
   const week = daysOfWeek(d(2026, 7, 9)); // Aug 9-15
-  // All-day Mon-Wed, stored end exclusive as Thursday midnight.
-  const covered = daysEventCovers(d(2026, 7, 10), d(2026, 7, 13), true, week);
+  // All-day Mon-Wed, stored end exclusive as Thursday UTC midnight.
+  const covered = daysEventCovers(utc(2026, 7, 10), utc(2026, 7, 13), true, week);
   const dates = covered.map((day) => day.getDate());
   assert.deepEqual(dates, [10, 11, 12]);
 });
 
 test("daysEventCovers: an event entirely outside the given days covers none of them", () => {
   const week = daysOfWeek(d(2026, 7, 9)); // Aug 9-15
-  const covered = daysEventCovers(d(2026, 7, 20), d(2026, 7, 21), true, week);
+  const covered = daysEventCovers(utc(2026, 7, 20), utc(2026, 7, 21), true, week);
   assert.equal(covered.length, 0);
 });
 
@@ -174,8 +186,8 @@ test("REGRESSION (V2): a degenerate all-day event (end not after start) still re
   // actions/calendar.ts), but eventDaySpan must independently clamp so an
   // already-saved bad row can't silently disappear from every view forever
   // — defense in depth, not a substitute for the validation.
-  const start = d(2026, 7, 9); // Aug 9 midnight
-  const end = d(2026, 7, 9); // exclusive end equal to start: zero real days
+  const start = utc(2026, 7, 9); // Aug 9 UTC midnight
+  const end = utc(2026, 7, 9); // exclusive end equal to start: zero real days
   const week = daysOfWeek(d(2026, 7, 9)); // Aug 9-15
 
   const covered = daysEventCovers(start, end, true, week);
@@ -185,6 +197,49 @@ test("REGRESSION (V2): a degenerate all-day event (end not after start) still re
     "a degenerate span must still render on its own start day, not vanish",
   );
   assert.equal(formatAllDayLabel(start, end, true, d(2026, 7, 9)), "All day");
+});
+
+// ---------------------------------------------------------------------------
+// REGRESSION (mission-13/C3) — the all-day storage/reading mismatch.
+//
+// Before this fix, `daysEventCovers`/`eventDaySpan` read an all-day event's
+// stored UTC-midnight instant with LOCAL getters (`startOfDay`). In any
+// timezone other than UTC itself, local midnight and UTC midnight are
+// different instants, so a real "Camping Trip Sep 3-6" row covered the
+// wrong real-world days — including under this project's own default
+// test/dev timezone, America/Denver, not "only somewhere exotic." These
+// tests are run three times by the gauntlet (America/Denver via
+// `npm test`, UTC, and America/Los_Angeles via direct
+// `node --import tsx --test` invocation — see AGENTS.md) with NO per-test
+// timezone pinning, and must agree exactly every time: that sameness
+// *is* the fix. `withTimeZone` (below, for isOutsideWindow) is
+// deliberately NOT used here — this defect is precisely about NOT needing
+// per-test pinning once storage and reading agree on UTC.
+test("REGRESSION (C3) — the California case: a real 3-night all-day trip (Sep 3-5) covers the same three calendar days regardless of the viewer's own timezone", () => {
+  // Mirrors the real "Camping Trip" row this mission's migration fixed:
+  // startAt 2026-09-03T00:00:00.000Z, endAt 2026-09-06T00:00:00.000Z
+  // (exclusive) — three real days, Sep 3-5.
+  const start = utc(2026, 8, 3);
+  const end = utc(2026, 8, 6);
+  const week = daysOfWeek(d(2026, 8, 1)); // Aug 30 - Sep 5 (Sunday-start)
+
+  const covered = daysEventCovers(start, end, true, week);
+  assert.deepEqual(covered.map((day) => day.getDate()), [3, 4, 5]);
+});
+
+test("REGRESSION (C3): a single-day all-day event covers exactly its own day, not the evening before", () => {
+  // The exact shape of the defect this mission's brief describes: an event
+  // stored at UTC midnight for Sep 3 must not be read as Sep 2 evening.
+  const start = utc(2026, 8, 3);
+  const end = utc(2026, 8, 4); // exclusive end -> a single real day, Sep 3
+  const week = daysOfWeek(d(2026, 8, 1)); // Aug 30 - Sep 5
+
+  const covered = daysEventCovers(start, end, true, week);
+  assert.deepEqual(
+    covered.map((day) => day.getDate()),
+    [3],
+    "must cover Sep 3 only — a day-back reading error would shift this to Sep 2 or drop it from the visible week entirely",
+  );
 });
 
 // ---------------------------------------------------------------------------

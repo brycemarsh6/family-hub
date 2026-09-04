@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createCalendarEvent, updateCalendarEvent, type CalendarEventInput } from "@/app/actions/calendar";
 import { addDays, startOfDay } from "@/lib/mealPlanDates";
+import { allDayInstantToLocalDay, localDayToAllDayInstant } from "@/lib/calendarDates";
 import { EventDateTimeFields, parseLocalDateString } from "./EventDateTimeFields";
 import { EventPeopleField } from "./EventPeopleField";
 import type { CalendarPersonView } from "@/lib/types";
@@ -78,16 +79,22 @@ export function EventForm({
     setEnd(new Date(seededStart.getTime() + 60 * 60 * 1000));
   }
 
-  // Timed -> all-day: one day on the current start day. All-day -> timed:
-  // same day, a plain 9-10 AM default (a click handler, so unlike the seed
-  // above a fixed value is fine — still reviewable before Save).
+  // Timed -> all-day: one day on the current LOCAL start day, converted to
+  // the UTC-midnight instant all-day rows are stored as (calendarDates.ts's
+  // allDayInstantToLocalDay/localDayToAllDayInstant — mission-13/C3). All-day
+  // -> timed: `start` is CURRENTLY a UTC-midnight instant, so it's read back
+  // through allDayInstantToLocalDay, never startOfDay directly, before
+  // building a plain 9-10 AM default on that local day (a click handler, so
+  // unlike the seed above a fixed value is fine — still reviewable before
+  // Save).
   function toggleAllDay(next: boolean) {
     if (start && end) {
       if (next) {
-        setStart(startOfDay(start));
-        setEnd(addDays(startOfDay(start), 1));
+        const localDay = startOfDay(start);
+        setStart(localDayToAllDayInstant(localDay));
+        setEnd(localDayToAllDayInstant(addDays(localDay, 1)));
       } else {
-        const day = startOfDay(start);
+        const day = allDayInstantToLocalDay(start);
         const newStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 9);
         setStart(newStart);
         setEnd(new Date(newStart.getTime() + 3600_000));
