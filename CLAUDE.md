@@ -5004,3 +5004,121 @@ gesture. Tests **207 → 237**.
   for CT1; `ASSIGNABLE_ROLES` is still a predicate not a record;
   `MonthLoadingSkeleton.tsx` names an export it no longer has and **must not
   survive CV3**.
+
+---
+
+## Session, 2026-09-04: CT1 delivered, CT2 built — and the calendar's merge gate
+
+Two missions. **CT1 (mission 13) is DELIVERED**, all three gates PASS,
+open as **PR #12**. **CT2 (mission 14) is built and at the gates** on
+`claude/calendar-ct2-tasks-in-views` — **unpushed at the time of writing**,
+so no PR and no preview for it yet.
+
+**⚠️ The ordering in the previous session's note was wrong.** It records
+`CV0 → CV1 → CV2 → CV3 → CV4 → CV5 → CT1 → CT2`, putting CT1 seventh.
+`.avengers/plans/calendar-v2.md:112` and `CLAUDE.md:4698` both put CT1
+**third**, and AGENTS.md designates the plan file as authoritative for
+calendar work. The plan won. Corroborating measurement: the database held
+**exactly one** `allDay` row, so the data migration would never be cheaper.
+
+### Bryce's merge decision, which now gates everything
+
+Offered three options, he chose the middle: **the four stacked PRs merge as
+one complete release after CT2**, so nothing half-visible reaches Emily.
+He rejected merging immediately (CT1 leaves a "+ → Task" button that creates
+invisible tasks) and his own first instinct of holding until Google sync —
+which would have waited for K6/K7, the far end of the roadmap, gated on a
+Google Cloud account only he can create.
+
+### What CT1 shipped
+
+`Task`/`TaskPerson`, guarded actions, `TaskForm`, the Event/Task Add sheet
+(Meal moved out — it was never a calendar concept), scoped seed/clean
+scripts, and **the all-day timezone fix**: all-day events now resolve to the
+same calendar days in every zone. Bryce is in California ~a third of each
+month, where the Camping Trip previously drew a day early.
+
+`EventForm.tsx` 350 → 213; `daysBetween` **deleted** rather than fixed (it
+stepped forward unconditionally, so `b < a` never terminated — and
+mission-9 had already exported `calendarDayDiff`, so the private copy had
+stopped earning its place).
+
+### What CT2 built (six contracts)
+
+Tasks render in Week/Day/Month; `TaskDetailSheet` with mark-complete, edit,
+delete; **a kid can complete their own chore and nothing else** — proven
+through the shipped bundle rather than a harness. `CalendarViews.tsx`
+348 → 217 (C1's extraction) → 279. Tests **241 → 252**.
+
+### The lessons, and most of them are about measurement
+
+- **All three CT1 blockers were documentation promising a property the code
+  did not have** — never the feature. A migration comment claiming safety it
+  lacked; a clean script claiming to refuse rows it deleted; a form row
+  claiming to be a control while being a dead `div`.
+- **Five instrument errors, two of them Fury's own.** Gates caught a frozen
+  CSS transition (an *enabled* button reading `opacity: 0.5`), a
+  `<nextjs-portal>` dev-overlay false occlusion, and a dev server serving
+  404ing chunks. Fury's two were worse: an idempotency probe that modelled
+  the wrong SQL expression, and a measurement that **bypassed the implicit
+  assignment cast** — `(ts AT TIME ZONE 'UTC')::time` on a *timestamptz*
+  reads the session zone, and storing a timestamptz into a
+  `timestamp without time zone` column casts at **assignment**. That second
+  one caused Fury to wrongly downgrade a real Vision blocker. **Measure the
+  operation, not a rendering of it.**
+- **A gate's finding can stand while its prescription fails.** Vision's
+  replacement SQL drifted a day under a Denver session — it would have
+  introduced the corruption it warned about. Second recorded instance
+  (CV1 was the first). Finding the bug and fixing it are different jobs.
+- **Vacuous evidence is worse than none.** C5 "proved" the clean script
+  refuses foreign rows using a title that is not a seed template — a test
+  that cannot exercise its own claim. Vision used a real template title and
+  the row was deleted.
+- **Two Fury contract errors, both the same shape: a false premise about
+  what already existed.** CT1/C4 forbade touching the only file that could
+  satisfy its own done-criteria (the Add sheet was real; Banner said it
+  wasn't). CT2/C5 forbade touching `TaskForm.tsx` without checking that it
+  **already implemented edit** — so a second edit form got built and the
+  original's edit branch went dead. **Verify a negative claim ("X was never
+  built") as carefully as a positive one.**
+- **A trip condition keyed to importer counts is satisfiable by copying.**
+  Captain retired its own `parseLocalDateString` rule after two builders in
+  consecutive contracts complied *by writing a copy*, each documenting that
+  it was doing so to stay under the threshold. Five copies of a five-line
+  function. **Bryce approved the replacement**: STRUCTURE.md now names
+  `mealPlanDates.ts` as that job's home, calls the survivors *grandfathered
+  debt, not a pattern to cite*, and adds the general rule — **trip
+  conditions are keyed to definitions, never to references.**
+- **Contracts that live only in a dispatch prompt are not boundaries.**
+  Filed by Vision in CT1 and by a *builder* in CT2. A gate auditing scope
+  has nothing to audit against.
+- **CI proved exactly one timezone, and it was the wrong one.** `npm test`
+  pins `TZ=America/Denver` *inside* the script, so `TZ=UTC npm test`
+  silently reran Denver. K2 had found these DST tests vacuous in CI for
+  their whole life because CI ran UTC; pinning Denver closed that by opening
+  the mirror hole. **Three named legs now**, and the new LA leg was proven
+  capable of going red before being trusted.
+- **A contract naming a fix can still be wrong.** C3b was told to use
+  `line-through` on completed month pills; the builder measured and found
+  the pill's title is `sr-only` below `md`, so it would have been invisible
+  at 375px. It shipped a checkmark glyph instead. **The evidence
+  requirement caught that, not the instruction.**
+
+### Standing facts a fresh session must not miss
+
+- **The migration `20260904144140_…` must not be edited.** Its checksum is
+  patched in `_prisma_migrations` on dev; any edit reintroduces drift. It is
+  **unmerged**, so production applies it fresh.
+- The scoped `db:seed-tasks` / `db:clean-tasks` now carry a **sentinel** in
+  `details`, so they genuinely refuse rows they did not create — C5's
+  original title-only version did not.
+- Baseline for every CT-era verification: `Task 0, TaskPerson 0,
+  CalendarEvent 4, User 5`.
+- **Two STRUCTURE.md amendments remain drafted and pending with Bryce**: the
+  membership guard form (a third form — a kid completing a task they are on)
+  and the data-migration exception to additive-only.
+- Strange found **the dev server on :3000 serving HTML that references
+  404ing chunks**. It needs a restart; it is not an app defect.
+- Standing from CT1, still true: `MonthLoadingSkeleton.tsx` names a deleted
+  export and must not survive CV3; `ASSIGNABLE_ROLES` is still a predicate
+  rather than a total record.
