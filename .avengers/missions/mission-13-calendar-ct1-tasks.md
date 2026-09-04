@@ -479,7 +479,7 @@ single dispatch and a rate limit killed it mid-run.
 | 1 | Vision (Opus) | **BLOCKED** | 2 | 9 notes; both blockers are "a comment claims a guarantee the code lacks", neither is the feature |
 | 1 | Strange | **BLOCKED** | 1 | 3 notes; 2 of them pre-existing and app-wide, correctly not charged to CT1 |
 | — | C6 fix batch | DONE `9169a64` | — | Both Vision blockers fixed; C6 corrected Fury's own measurement in the process |
-| — | C7 fix | dispatched | — | Strange's blocker: the inert repeat row |
+| — | C7 fix | DONE `f0a2b1c` | — | Strange's blocker fixed; left one stale comment, queued for C8 |
 | 2 | Vision | dispatched | — | — |
 
 ### Strange, pass 1 — BLOCKED, and it checked three instruments before trusting any reading
@@ -662,6 +662,19 @@ instead of re-measuring at dispatch. That is this project's
 "recorded but not verified" class pointed at me: **a figure in a report
 describes the tree at report time, not the tree you are dispatching
 against.** Re-measure at dispatch.
+
+## Queued for the next fix batch (C8)
+
+- **`src/components/TaskForm.tsx:48-52` is now stale, and C7 judged it
+  accurate.** It quotes `"Does not repeat"` — a label C7 itself replaced
+  with `"Repeat · coming soon"` — and calls the row "a plain,
+  non-interactive row rather than a working control", when C7 made it a
+  real `<button disabled>`. Fury caught it on verification rather than
+  accepting the builder's judgement. It is a small thing and it is
+  *exactly* the class Strange's own blocker was about: a description that
+  outlived what it describes. The sentence's substance (the row exists so
+  K4's control has a fixed place to land, per the no-stubbing rule) is
+  still right and should survive the rewrite.
 
 ## Handoff log
 
