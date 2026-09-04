@@ -3,7 +3,7 @@ import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { resolveServerFetchWindow } from "@/lib/calendarPaging";
 import { CalendarViews } from "@/components/CalendarViews";
-import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
+import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -56,15 +56,18 @@ export default async function CalendarPage({
   const date = Array.isArray(rawDate) ? rawDate[0] : rawDate;
   const { windowStart, windowEnd } = resolveServerFetchWindow(date, new Date());
 
-  // Two independent range queries, in ONE Promise.all — mission-14/C2. This
-  // used to be a single `await db.calendarEvent.findMany(...)` with a
-  // comment claiming there was nothing else on the page to batch it with;
-  // that stopped being true the moment tasks needed to render here too.
-  // Sequential `await db.…` calls on a force-dynamic page are each their
-  // own cross-country round trip (CLAUDE.md's performance section, from the
+  // Three independent queries, in ONE Promise.all — mission-14/C2 made it
+  // two (events + tasks); C5 adds the household roster as a third rather
+  // than a sequential `await` after it, for the same reason: this used to
+  // be a single `await db.calendarEvent.findMany(...)` with a comment
+  // claiming there was nothing else on the page to batch it with, and that
+  // stopped being true the moment tasks (and now the roster, for
+  // TaskEditView's people picker) needed to render here too. Sequential
+  // `await db.…` calls on a force-dynamic page are each their own
+  // cross-country round trip (CLAUDE.md's performance section, from the
   // Inventory fix this mirrors) — batching keeps this page at ONE round
-  // trip's worth of latency for two queries, not two.
-  const [events, tasks] = await Promise.all([
+  // trip's worth of latency for three queries, not three.
+  const [events, tasks, roster] = await Promise.all([
     // Events joined with their people in the same round trip (Prisma's
     // nested `select`, not a second query).
     db.calendarEvent.findMany({
@@ -122,6 +125,18 @@ export default async function CalendarPage({
         },
       },
     }),
+    // The full household roster, kids included — a task can be reassigned
+    // to a kid even though only a manager can open the edit view
+    // (TaskDetailSheet's own `canManage` gate). Same `where`/`select`/
+    // `orderBy` as new/page.tsx's own roster query, on purpose — narrow
+    // select, no `passwordHash`, the same nested-select shape the events
+    // query's own people join and personInfo.ts's rule both already
+    // sanction.
+    db.user.findMany({
+      where: { deactivatedAt: null },
+      select: { id: true, displayName: true, avatarColor: true },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   const eventViews: CalendarEventView[] = events.map((event) => ({
@@ -164,6 +179,12 @@ export default async function CalendarPage({
     isMine: user !== null && task.people.some((person) => person.user.id === user.userId),
   }));
 
+  const people: CalendarPersonView[] = roster.map((person) => ({
+    userId: person.id,
+    displayName: person.displayName,
+    avatarColor: person.avatarColor,
+  }));
+
   return (
     <div className="py-2">
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Calendar</h1>
@@ -171,6 +192,7 @@ export default async function CalendarPage({
         <CalendarViews
           events={eventViews}
           tasks={taskViews}
+          people={people}
           canManage={canManage}
           windowStart={windowStart}
           windowEnd={windowEnd}

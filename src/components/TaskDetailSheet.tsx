@@ -3,61 +3,34 @@
 import { useEffect, useState, useTransition } from "react";
 import { Check, ChevronLeft, MoreVertical, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
-import {
-  completeTask,
-  deleteTask,
-  uncompleteTask,
-  updateTask,
-  type TaskInput,
-} from "@/app/actions/tasks";
-import { allDayInstantToLocalDay, localDayToAllDayInstant } from "@/lib/calendarDates";
+import { TaskEditView } from "./TaskEditView";
+import { completeTask, deleteTask, uncompleteTask } from "@/app/actions/tasks";
+import { allDayInstantToLocalDay } from "@/lib/calendarDates";
 import { formatDayLabel } from "@/lib/mealPlanDates";
-import type { CalendarTaskView } from "@/lib/types";
-
-/** Local "YYYY-MM-DD" for the native date input, and its inverse — plain
- * per-file copies rather than importing TaskForm's/EventDateTimeFields'
- * own private helpers, which is the house pattern those two files'
- * comments already name (TaskForm.tsx's own header: "everything else
- * stays a per-file copy"). Mission-14's own standing constraint makes this
- * more than a style choice here: TaskForm.tsx and EventForm.tsx are
- * already EventDateTimeFields.tsx's `parseLocalDateString` two consumers,
- * and Captain's CT1 trip condition is that a THIRD consumer makes moving
- * it to `src/lib/` mandatory — which this contract's boundary (no
- * `src/lib/` edits) can't do. Not importing it keeps that trigger
- * unpulled. */
-function toDateInputValue(date: Date): string {
-  const [y, m, d] = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
-  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-}
-function parseDateInputValue(value: string): Date {
-  const [y, m, d] = value.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
+import type { CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 /**
  * The house bottom sheet for one task, opened by tapping its card
  * (mission-14/C4 — DaySection/TaskCard's `onOpenTask` was wired to a no-op
  * by C3, this is what makes it real). Same `view` state-machine shape as
  * EventDetailSheet (main / menu), plus a third `edit` view — deliberately
- * its OWN component rather than a branch inside that one, since a task's
- * fields and verbs genuinely differ (TaskCard.tsx's own comment already
- * makes this call for the card; the same reasoning extends to the sheet).
+ * its OWN component (TaskEditView.tsx, mission-14/C5) rather than a branch
+ * inside this one, since a task's fields and verbs genuinely differ
+ * (TaskCard.tsx's own comment already makes this call for the card; the
+ * same reasoning extends to the sheet).
  *
  * Edit is INLINE here, not a route push the way EventDetailSheet's Edit
  * button navigates to `/calendar/[id]/edit`. That's a boundary
- * consequence, not a style preference: this contract's may-touch list has
- * no `src/app/` route, so there is nowhere to navigate Edit to, and
- * building one would need `page.tsx`'s already-fetched household roster
- * threaded down through `CalendarViews.tsx` — out of scope here. Title,
- * details, and due date are genuinely editable; PEOPLE stay exactly as
- * they are (shown, not reassignable) — `updateTask` always requires a
- * `userIds` list, and the task's own current people is what's resubmitted.
- * Reassigning who a task is for would need the full roster this component
- * doesn't have; flagged as a real gap in this mission's own report rather
- * than worked around by reaching outside the boundary.
+ * consequence, not a style preference: C4's may-touch list had no
+ * `src/app/` route, so there was nowhere to navigate Edit to. C5 closed
+ * the other half of that gap instead — the full household roster now
+ * flows page.tsx → CalendarViews.tsx → here → TaskEditView, so People is a
+ * real reassignable picker (EventPeopleField, the same one TaskForm.tsx
+ * uses), not a static echo of who's currently on the task.
  */
 export function TaskDetailSheet({
   task,
+  people,
   canManage,
   onClose,
   onChanged,
@@ -70,6 +43,10 @@ export function TaskDetailSheet({
    * (actions/tasks.ts) is the real gate, reached independently of it
    * every time. */
   task: CalendarTaskView;
+  /** The full household roster — page.tsx's parallel `db.user.findMany`
+   * (mission-14/C5), threaded straight through to TaskEditView's people
+   * picker. Unused outside the "edit" view. */
+  people: CalendarPersonView[];
   canManage: boolean;
   onClose: () => void;
   /** Called after a successful mark-complete/uncomplete/edit — the parent
@@ -93,9 +70,6 @@ export function TaskDetailSheet({
   // starts from the prop, then only ever moves in response to a
   // confirmed server write, never guessed.
   const [current, setCurrent] = useState(task);
-  const [title, setTitle] = useState(task.title);
-  const [details, setDetails] = useState(task.details ?? "");
-  const [dueDay, setDueDay] = useState(() => allDayInstantToLocalDay(task.dueDate));
 
   useEffect(() => {
     function handleKeyDown(keyboardEvent: KeyboardEvent) {
@@ -152,40 +126,6 @@ export function TaskDetailSheet({
         return;
       }
       onDeleted();
-    });
-  }
-
-  function handleSaveEdit(formEvent: React.FormEvent) {
-    formEvent.preventDefault();
-    if (!title.trim()) {
-      setError("Give the task a title.");
-      return;
-    }
-
-    const input: TaskInput = {
-      title: title.trim(),
-      details: details.trim() || null,
-      dueDate: localDayToAllDayInstant(dueDay),
-      // People are unchanged in this pass — see this file's header comment
-      // for why. Always the current, already-validated list, never empty.
-      userIds: current.people.map((person) => person.userId),
-    };
-
-    setError(null);
-    startTransition(async () => {
-      const result = await updateTask(current.id, input);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-      setCurrent((prev) => ({
-        ...prev,
-        title: input.title,
-        details: input.details ?? null,
-        dueDate: input.dueDate,
-      }));
-      setView("main");
-      onChanged();
     });
   }
 
@@ -262,80 +202,15 @@ export function TaskDetailSheet({
             </button>
           </div>
         ) : view === "edit" ? (
-          <form onSubmit={handleSaveEdit} className="flex flex-col gap-4">
-            <label className="block text-sm text-muted">
-              <span className="mb-1 block">Title</span>
-              <input
-                type="text"
-                value={title}
-                onChange={(inputEvent) => setTitle(inputEvent.target.value)}
-                autoComplete="off"
-                autoFocus
-                className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base text-fg outline-none"
-              />
-            </label>
-
-            <label className="block text-sm text-muted">
-              <span className="mb-1 flex items-baseline justify-between">
-                <span>Details</span>
-                <span className="text-xs">Optional</span>
-              </span>
-              <textarea
-                value={details}
-                onChange={(inputEvent) => setDetails(inputEvent.target.value)}
-                rows={3}
-                className="w-full resize-y rounded-xl bg-surface-2 px-4 py-3 text-base text-fg outline-none"
-              />
-            </label>
-
-            {current.people.length > 0 && (
-              <div>
-                <p className="mb-1 text-sm text-muted">People</p>
-                <div className="flex flex-wrap gap-2">
-                  {current.people.map((person) => (
-                    <span
-                      key={person.userId}
-                      className="flex items-center gap-2 rounded-full bg-surface-2 py-1 pl-1 pr-3"
-                    >
-                      <AvatarBadge
-                        displayName={person.displayName}
-                        avatarColor={person.avatarColor}
-                        size={28}
-                      />
-                      <span className="text-sm font-medium">{person.displayName}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <label className="block text-sm text-muted">
-              <span className="mb-1 block">Due date</span>
-              <input
-                type="date"
-                value={toDateInputValue(dueDay)}
-                onChange={(inputEvent) => {
-                  if (!inputEvent.target.value) return;
-                  setDueDay(parseDateInputValue(inputEvent.target.value));
-                }}
-                className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base text-fg outline-none"
-              />
-            </label>
-
-            {error && (
-              <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={pending}
-              className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
-            >
-              {pending ? "Saving…" : "Save changes"}
-            </button>
-          </form>
+          <TaskEditView
+            task={current}
+            people={people}
+            onSaved={(updated) => {
+              setCurrent((prev) => ({ ...prev, ...updated }));
+              setView("main");
+              onChanged();
+            }}
+          />
         ) : (
           <>
             <p className="mb-4 text-sm text-muted">Due {dueLabel}</p>
@@ -397,9 +272,6 @@ export function TaskDetailSheet({
                 <button
                   type="button"
                   onClick={() => {
-                    setTitle(current.title);
-                    setDetails(current.details ?? "");
-                    setDueDay(allDayInstantToLocalDay(current.dueDate));
                     setError(null);
                     setView("edit");
                   }}

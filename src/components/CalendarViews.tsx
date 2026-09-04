@@ -19,7 +19,7 @@ import {
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { daysEventCovers, isOutsideWindow, allDayInstantToLocalDay } from "@/lib/calendarDates";
 import { isSameDay, toLocalDateString } from "@/lib/mealPlanDates";
-import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
+import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
 // — this file, DaySection.tsx, and EventCard.tsx all import them from that
@@ -48,6 +48,14 @@ type CalendarViewsProps = {
    * other components for no benefit yet.
    */
   tasks: CalendarTaskView[];
+  /**
+   * The full household roster — page.tsx's third parallel query
+   * (mission-14/C5), threaded straight to TaskDetailSheet's edit view
+   * (TaskEditView.tsx) so a task's People field is a real reassignable
+   * picker rather than a static echo of who's currently on it. Unused by
+   * every other branch below; passed through, not read here.
+   */
+  people: CalendarPersonView[];
   /**
    * True for admin/parent sessions, computed server-side in page.tsx —
    * gates the header's Add circle (mission-9/C5, Strange's B1 remedy) and
@@ -91,6 +99,7 @@ type CalendarViewsProps = {
 export function CalendarViews({
   events,
   tasks,
+  people,
   canManage,
   windowStart,
   windowEnd,
@@ -255,6 +264,7 @@ export function CalendarViews({
       {selectedTask && (
         <TaskDetailSheet
           task={selectedTask}
+          people={people}
           canManage={canManage}
           onClose={() => setSelectedTask(null)}
           onChanged={() => router.refresh()}
