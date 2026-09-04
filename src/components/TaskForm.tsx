@@ -157,13 +157,14 @@ export function TaskForm({
         />
       </Field>
 
-      <div
-        aria-disabled="true"
-        className="flex min-h-12 items-center gap-3 rounded-xl bg-surface-2 px-4 text-muted"
+      <button
+        type="button"
+        disabled
+        className="flex min-h-12 items-center gap-3 rounded-xl bg-surface-2 px-4 text-muted disabled:opacity-50"
       >
         <Repeat aria-hidden="true" size={18} />
-        <span className="text-base font-medium">Does not repeat</span>
-      </div>
+        <span className="text-base font-medium">Repeat · coming soon</span>
+      </button>
 
       {error && (
         <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
