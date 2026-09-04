@@ -6,7 +6,8 @@
 // grid), and the composition case proving the all-day row partitionForTimeline
 // produces is packed by monthLayout.assignLanes unchanged — no second packer.
 // Block geometry and the DST policy live in the sibling timelineLayout.test.ts,
-// apart from a single cross-check assertion in each direction — split by
+// apart from a few deliberate cross-check assertions pointing each way,
+// which are what prove the two halves still agree — split by
 // concern (never by number, per STRUCTURE.md), mission-12's C4, because that
 // file was at 376 of the 350-line soft cap.
 //

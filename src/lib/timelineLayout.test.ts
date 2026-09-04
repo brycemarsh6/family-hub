@@ -5,7 +5,8 @@
 // all-day/timed partition (assignColumns, belongsInAllDayRow,
 // partitionForTimeline, and the composition case against
 // monthLayout.assignLanes) live in the sibling timelineLayoutPacking.test.ts,
-// apart from a single cross-check assertion in each direction — split by
+// apart from a few deliberate cross-check assertions pointing each way,
+// which are what prove the two halves still agree — split by
 // concern (never by number, per STRUCTURE.md), mission-12's C4, because this
 // file was at 376 of the 350-line soft cap.
 //
