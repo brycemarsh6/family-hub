@@ -25,6 +25,27 @@ CV2 was built ahead of CT1, out of plan order. That is harmless — CV2 is a
 pure library with no consumer yet — but it is why this mission arrives
 fourth rather than third.
 
+
+> ## 🛑 DO NOT MERGE OR DEPLOY BETWEEN C2 AND C3
+>
+> **C2 alone is a regression.** It fixed the *storage* half (all-day rows
+> now sit at UTC midnight) while every *reader* still uses local getters.
+> Measured, not reasoned — `new Date("2026-09-03T00:00:00.000Z")` under
+> each zone:
+>
+> | tree state | Denver | Los Angeles |
+> |---|---|---|
+> | before C2 | Sep 3 ✅ | Sep 2 ❌ |
+> | **C2 landed, C3 not** | **Sep 2 ❌** | **Sep 2 ❌** |
+> | after C3 (target) | Sep 3 ✅ | Sep 3 ✅ |
+>
+> So the intermediate tree is **worse than the bug it is fixing**: the
+> Camping Trip now reads a day early in Mountain, where it used to be
+> correct. C2 and C3 are one atomic change from the family's point of
+> view and must ship together. If this session is interrupted here, the
+> next one finishes C3 before anything else — it does not merge, and it
+> does not reorder.
+
 ## Brief
 
 - **Goal:** Add `Task` as a first-class thing on the calendar (schema,
@@ -340,6 +361,11 @@ single dispatch and a rate limit killed it mid-run.
 - 2026-09-04 — **C1 DONE** (`98ab9cc`), re-verified. Two notes carried (see
   above). C3 dispatched — it is deliberately NOT parallel with C4, because
   C4's `TaskForm` reuses the very components C3 is editing.
+- 2026-09-04 — ⚠️ **Fury measured the intermediate state and it is a
+  regression** (see the banner at the top of this file). C2's storage fix
+  without C3's reader fix leaves all-day events a day early in *both*
+  zones, including Mountain, where they were previously correct. Recorded
+  as a hard do-not-merge boundary rather than trusted to memory.
 
 ## Delivery
 
