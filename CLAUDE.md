@@ -4719,3 +4719,136 @@ unoccluded targets); the Neon **dev-branch** password rotation (an agent
 leaked a fragment into a transcript — dev only, hygiene); and whether to
 merge #9/#10 to production, which is what puts the Calendar in front of
 Emily.
+
+---
+
+## Session, 2026-09-03: CV0 and CV1 — the extraction, and the vocabulary
+
+Two Calendar v2 phases delivered, eight build contracts, seven gate passes.
+**Nothing merged** — PRs #9 (K1) and #10 (K2) are still open by Bryce's
+decision, and CV0/CV1 stack on them, four branches deep. His reasoning, which
+is sound: a calendar Emily can't fill isn't a feature, and holding also keeps
+the deferred all-day-storage migration cheap. **My refinement, still open:**
+"wait for Google sync" may be waiting longer than needed — the real milestone
+is "useful enough that she'd open it on purpose," which is plausibly after
+tasks and the hour views, not after sync.
+
+### What shipped
+
+**CV0** (`mission-10`, 4 contracts) — the extraction both K2 gates ruled a
+prerequisite. `CalendarViews.tsx` **350 → 267** with the URL↔cursor cluster in
+`useCalendarNavigation.ts`; `calendarDates.test.ts` **349 → 266** split by
+concern; one `hexToRgba`; the Month skeleton out of the route-segment file,
+closing the last plausible `components → app/` arrow; two dormant exports
+deleted under the rule Bryce approved that morning. **Net duplication fell for
+the first time in the arc.**
+
+**CV1** (`mission-11`, 4 contracts) — six view names (Schedule / Day / 3 Day /
+Week / Month / Year) with **no catch-alls left** in the cursor math or the
+labels, a `BUILT_VIEWS` gate so nothing unbuilt is reachable from picker or
+URL, per-device last-used-view persistence the URL always overrides, and URL
+canonicalisation so an ambiguous history entry can never be reinterpreted.
+Tests **182 → 207**.
+
+### The lessons, and most of them are about verification rather than code
+
+- **Two independent harnesses were blind in the same place, and both reported
+  a clean result they weren't entitled to.** C1 and C2 each claimed an empty
+  before/after trace diff *with a passing positive control*. Vision's harness —
+  which additionally captured `[role=dialog]` contents — found a 24-line diff:
+  the view picker's row order had changed. Their positive controls proved the
+  harness saw `VIEW_CONFIG`, **not that it saw everything.** A positive control
+  only licenses claims about what it actually moved. **Trace harnesses must
+  record dialog contents**, now written into the contracts.
+- **Vision blocked its own prescription.** It diagnosed the Back bug at pass 1
+  and specified the fix; the builder implemented exactly that; at pass 2
+  Vision found the same symptom reachable by two paths *no per-mount shape can
+  cover*, and said so: *"I own that the shape was mine; the finding stands
+  regardless."* Then it prototyped the real fix in-browser without editing
+  source, and measured why native `history.replaceState` beats
+  `router.replace` on a `force-dynamic` page — **zero server GETs against 14
+  for 14 picks.**
+- **"I couldn't test this" became a measured answer.** Two builders honestly
+  labelled a timing question as *reasoning, not measurement* (one after
+  pushing to 80× CPU throttle across 12 runs). Vision built a document-start
+  trap plus a MutationObserver and settled it 18/18: the passive effect
+  flushes **inside the same task as the commit**, so nothing can run between
+  `today` resolving and the URL being written. **Label the distinction, and
+  someone can close it later.**
+- **A gate corrected a claim Fury had repeated in a commit message.**
+  "Canonicalisation costs nothing" holds for loads and picks but **not** for a
+  cold Back into a rewritten entry (+1 fetch, bounded, and base does the same
+  for any native `pushState` entry). Queued as C5.
+- **The cap is a treadmill, not a one-off.** CV0 existed because
+  `CalendarViews.tsx` hit 350; it ended at 267; **CV1 spent 81 of those 83
+  lines in one mission** and ended at 348. Captain's ruling: extraction to
+  ~230 (`ViewConfig` → `src/lib/calendarViewConfig.ts`, **not** the render
+  switch, which is where future growth lands) is **required before CV3**, and
+  its decisive argument was coverage, not size — `VIEW_CURSOR` sits in `lib`
+  and has property tests across every day of 2026, while `VIEW_CONFIG` is the
+  same kind of per-view date logic with **zero tests, solely because it lives
+  in a `.tsx` the test glob cannot see.**
+- **A gate found a live hazard in code nobody had touched.** Checking whether
+  `BUILT_VIEWS` was a local trick or a convention, Captain found
+  `constants.ts` already solves the identical problem for roles — but with a
+  **filter predicate** (`role !== "device"`) rather than a total record, so
+  **a new role becomes assignable silently, with no compile error.** That is
+  Captain's own CV0 hazard class, sitting in the accounts code since it was
+  built. Route to whichever mission next touches roles.
+- **A builder refused to suppress a lint rule and argued the substitute was
+  strictly safer**, rather than adding an ignore comment — the rule protects
+  the same class as CLAUDE.md's `useSyncExternalStore` precedent.
+- **Fury's own mistake: `git add -A` while parallel builders were writing**,
+  sweeping seven of a builder's in-flight files into a documentation commit.
+  The builder caught it, **declined to rewrite a commit that wasn't its own**,
+  and cleaned up separately. Not fixed by history rewrite (branch pushed, tree
+  correct); **the habit changed instead — stage by explicit path.** Captain
+  refused to make it a STRUCTURE.md rule, reasoning that gating commit graphs
+  rather than trees would let a mission with a correct tree BLOCK on history:
+  *"the verdict must always be readable off the tree."*
+- **A real event title reached a builder's terminal** during dialog
+  inspection. It disclosed it, kept it out of the report, and switched to
+  counting rather than quoting for the rest of the run. Dev-branch data is
+  real data.
+
+### Two operational facts that cost time
+
+- **The agent model files had drifted from the project's own decision.**
+  CLAUDE.md's K1 cost review moved Strange and Captain to Opus with Vision on
+  Fable; `~/.claude/agents/` still said `fable` for all three. So K1's and
+  K2's eleven gate passes ran three-Fable-deep when the project had decided on
+  one — a large part of why Bryce's weekly allowance drained faster than
+  planned. **Fixed 2026-09-03** (`captain: opus`, `strange: opus`,
+  `vision: fable`). *This is user-level config outside the repo and is not
+  under git — if it ever looks wrong again, check there first.*
+- **An Anthropic incident killed five gate dispatches** ("Elevated errors for
+  multiple models", Opus and Fable both affected, ~2.5 h). Each dead dispatch
+  burns tokens before it dies. **Stop re-dispatching into a declared outage**
+  — check `status.claude.com` and wait. My own foreground calls kept working
+  throughout, which is what "elevated errors" looks like from the inside: a
+  long-running agent makes far more requests and so catches far more failures.
+
+### Where the Calendar stands
+
+`CV0 ✅ → CV1 ✅ → CV2 (timeline layout lib) → CV3 → CV4 → CV5 → CT1 → CT2 →
+CV6 → CD1`, then filters, recurrence, the RSVP and search walkthroughs Bryce
+still owes, and Google sync. Full plan: `.avengers/plans/calendar-v2.md`.
+
+**CV2 can start immediately** — it is a new pure lib module and touches
+nothing at the cap. **CV3 cannot start** until `CalendarViews.tsx` is
+extracted.
+
+### Open for Bryce
+
+- **Five STRUCTURE.md/DESIGN.md amendments**, all documentation: one
+  reachability gate per widened vocabulary (as a total record, never a
+  predicate); permit the test-file concern-split the *practice* already
+  shipped but the *text* forbids; a filename must name a live export; a member
+  may not become reachable while any per-member difference sits outside a
+  total record; and the `ASSIGNABLE_ROLES` predicate above.
+- **C5**, queued: correct the overclaiming cost comment, and restore the
+  refresh gesture — re-tapping the active Calendar tab no longer refetches,
+  and **that was the only refresh an iOS standalone PWA has**, which matters
+  because F8 exists precisely because Emily's phone backgrounds and reloads
+  the app.
+- Merging #9/#10 to production — deliberately held.
