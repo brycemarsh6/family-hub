@@ -180,13 +180,28 @@ way); and a no-op on a production database that has already been fixed.
 **Restore value, recorded so the one real row is recoverable:** Camping
 Trip — `startAt 2026-09-03T06:00:00.000Z`, `endAt 2026-09-06T06:00:00.000Z`.
 
-**Accepted deploy-window risk, with its remedy.** `build:vercel` runs
-`migrate deploy` *then* `next build`, while the previous deployment keeps
-serving. An all-day event created in that ~1–2 minute window is written by
-old code at local midnight *after* the backfill has run, and stays wrong.
-The remedy is to re-run the UPDATE above once post-deploy — safe precisely
-because the guard makes it idempotent. Recorded rather than engineered
-around; the probability is low and the fix is one statement.
+**Accepted deploy-window risk, with its remedy — corrected by C6.** `build:vercel`
+runs `migrate deploy` *then* `next build`, while the previous deployment
+keeps serving. An all-day event created in that ~1–2 minute window is
+written by old code at local midnight *after* the backfill has run, and
+stays wrong. The remedy is to re-run the UPDATE above once post-deploy.
+**The original wording here — "safe precisely because the guard makes it
+idempotent" — was wrong and has been corrected** (mission-13/C6, following
+Vision's pass-1 finding): the *shipped* guard and SET were both
+session-timezone dependent, so from a Mountain-time `psql` session that
+statement would have silently skipped genuinely broken rows rather than
+fixing them, and in one measured case (the SET applied to an already-fixed
+row under an America/Denver session) actively corrupted a correct row
+instead of no-opping. C6 replaced both the guard and the SET with forms
+that are session-timezone independent by construction — verified
+byte-identical under UTC, America/Denver, and America/Los_Angeles
+sessions, on both a first pass and a second (idempotency) pass. The
+remedy now genuinely holds regardless of which session timezone runs it:
+re-running the corrected UPDATE post-deploy is safe because it is truly
+idempotent, not merely idempotent under the one session zone it happened
+to be tested against. Recorded rather than engineered around further; the
+probability of the deploy-window race itself is still low and the fix is
+still one statement.
 
 **Banner's open question, resolved:** CT1 owns the `EventForm` extraction.
 The plan is explicit — "Extract from `EventForm.tsx` first (it is at

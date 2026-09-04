@@ -75,12 +75,8 @@ export type TaskInput = {
  * Re-validates a proposed people list against the database rather than
  * trusting client-supplied ids — the same discipline calendar.ts's own
  * validatedPeople and addIngredientsToGroceries's pantryItemId check use.
- * Deliberately a separate copy rather than an import from calendar.ts: this
- * contract's boundary does not include that file, and STRUCTURE.md already
- * sanctions this exact kind of per-action-file duplication (see its
- * "Revalidation is per-action-file, private, and duplicated on purpose"
- * rule — the same reasoning applies to a small validation helper that has
- * no reason to become shared vocabulary).
+ * Deliberately a separate copy rather than an import from calendar.ts:
+ * this contract's boundary does not include that file.
  */
 async function validatedPeople(userIds: string[]): Promise<string | null> {
   const unique = Array.from(new Set(userIds));

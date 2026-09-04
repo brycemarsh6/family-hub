@@ -38,7 +38,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
 import { addDays, startOfDay } from "../src/lib/mealPlanDates";
 import { localDayToAllDayInstant } from "../src/lib/calendarDates";
-import { TASK_SEED_TEMPLATES } from "./task-seed-data";
+import { TASK_SEED_TEMPLATES, TASK_SEED_SENTINEL } from "./task-seed-data";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
@@ -69,17 +69,27 @@ async function main() {
 
   const today = startOfDay(new Date());
 
+  // Scoped on title AND the sentinel — see task-seed-data.ts's own header
+  // for why title alone isn't a safe discriminator. Every seeded row's
+  // `details` carries the sentinel (appended to any real details text, or
+  // standing alone when a template has none), so this can never match a
+  // real household task even one titled identically to a template.
   const taskTitles = TASK_SEED_TEMPLATES.map((t) => t.title);
-  await db.task.deleteMany({ where: { title: { in: taskTitles } } });
+  await db.task.deleteMany({
+    where: { title: { in: taskTitles }, details: { contains: TASK_SEED_SENTINEL } },
+  });
 
   for (const template of TASK_SEED_TEMPLATES) {
     const dueDay = addDays(today, template.dueDayOffset);
     const dueDate = localDayToAllDayInstant(dueDay);
+    const details = template.details
+      ? `${template.details}\n\n${TASK_SEED_SENTINEL}`
+      : TASK_SEED_SENTINEL;
 
     await db.task.create({
       data: {
         title: template.title,
-        details: template.details ?? null,
+        details,
         dueDate,
         completedAt: template.completed ? new Date() : null,
         people: {

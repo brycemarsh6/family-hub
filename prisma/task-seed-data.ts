@@ -3,9 +3,21 @@
 // exactly which rows are test data without importing (and thereby running)
 // the seeder.
 //
-// Every title carries a "ZZZ Test" prefix; both scripts match on that exact
-// string rather than touching the Task table broadly, since a future
-// session's real tasks live in this same table.
+// Every title carries a "ZZZ Test" prefix, but title alone is NOT the
+// discriminator the scripts match on — mission-13/C6 found that a real
+// household task titled identically to a seed template (a household
+// member typing "ZZZ Test Pack swim bag" as a joke, say — implausible, but
+// not the point) would be silently deleted by a title-only match, and the
+// original version of this file's own scripts did exactly that when
+// tested: `db:clean-tasks` deleted a task created through the real
+// `createTask` action once its title matched a template, even though the
+// file's own comment claimed it "refuses" to. TASK_SEED_SENTINEL is the
+// second, independent factor that makes the "refuses to delete a real
+// task" claim actually true: seed-tasks.ts appends it to every task's
+// `details` field (even templates with no other details text), and both
+// scripts match on title AND a `details` field containing the sentinel.
+// A real task can share a seed title; it cannot also happen to carry this
+// exact marker string in its details.
 //
 // Due dates are described here as day offsets from "today" (the seeder's
 // own reference date), rather than concrete Date objects, so this file
@@ -14,6 +26,11 @@
 // calendarDates.ts's localDayToAllDayInstant — mission-13/CT1's fixed
 // all-day convention (UTC midnight, not local midnight) — never a bare
 // `new Date(y, m, d)`.
+
+/** Appended to every seeded task's `details` field (see this file's own
+ * header) — the second factor, alongside an exact title match, that both
+ * seed-tasks.ts and clean-tasks.ts require before touching a row. */
+export const TASK_SEED_SENTINEL = "[mission-13/CT1 seed data — do not edit]";
 
 export type SeedTaskTemplate = {
   title: string;

@@ -58,9 +58,44 @@ ALTER TABLE "TaskPerson" ADD CONSTRAINT "TaskPerson_userId_fkey" FOREIGN KEY ("u
 -- the wrong way) or already fixed on a database that received this
 -- migration before. See mission-13's "The migration hazard Fury measured
 -- before contracting" for the read-only proof.
+--
+-- Both the WHERE guard and the SET below must be SESSION-TIMEZONE
+-- INDEPENDENT: this statement can run under a `psql`/Prisma session whose
+-- TimeZone GUC is anything at all (Neon's own default is 'GMT', but a
+-- developer's local `psql` or a differently configured client is not
+-- guaranteed to match), and the guard/SET must produce the identical
+-- result regardless. "startAt"/"endAt" are TIMESTAMP(3) — naive, no zone
+-- attached — so `"startAt"::time` reads the stored clock digits literally
+-- and is session-independent by construction. The *first-shipped* version
+-- of this migration got this wrong in both places, and both were verified
+-- broken by direct measurement (mission-13/C6, temp-table UPDATEs under
+-- SET LOCAL TimeZone, never against real rows) before being corrected:
+--   - The guard used `("startAt" AT TIME ZONE 'UTC')::time`. `naive AT
+--     TIME ZONE 'UTC'` produces a *timestamptz*, and casting a timestamptz
+--     to `::time` (with no explicit zone) reads the session's TimeZone —
+--     so the guard fired/skipped exactly backwards under an
+--     America/Denver session versus a UTC one.
+--   - The SET used `(("col" AT TIME ZONE 'America/Denver')::date)::timestamp
+--     AT TIME ZONE 'UTC'`. The middle `::date` cast reduces a timestamptz
+--     to a session-local calendar date (session-dependent), and the final
+--     `AT TIME ZONE 'UTC'` produces a timestamptz that is then implicitly
+--     cast back down to the naive column type on write — also
+--     session-dependent. Measured effect: applied under an
+--     America/Denver session, this SET took an already-correct
+--     `2026-09-03 00:00:00` row and rewrote it to `2026-09-02 18:00:00` —
+--     a genuine day-and-six-hour corruption, not a no-op.
+-- The corrected SET below instead converts through two *explicit*-zone
+-- `AT TIME ZONE` steps only (naive → timestamptz via 'UTC', then that
+-- timestamptz → naive via 'America/Denver'), each of which is
+-- session-independent because the zone is always named rather than
+-- implied — the `::date`/`::timestamp` casts on either side operate on
+-- values that are already naive, so no ambient session zone is ever
+-- consulted. Verified byte-identical under UTC, America/Denver, and
+-- America/Los_Angeles sessions, both on first application and on a
+-- second (idempotency) pass.
 UPDATE "CalendarEvent"
-SET "startAt" = ((("startAt" AT TIME ZONE 'America/Denver')::date)::timestamp AT TIME ZONE 'UTC'),
-    "endAt"   = ((("endAt"   AT TIME ZONE 'America/Denver')::date)::timestamp AT TIME ZONE 'UTC')
+SET "startAt" = (((("startAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Denver')::date)::timestamp),
+    "endAt"   = (((("endAt"   AT TIME ZONE 'UTC') AT TIME ZONE 'America/Denver')::date)::timestamp)
 WHERE "allDay" = true
-  AND (("startAt" AT TIME ZONE 'UTC')::time <> '00:00:00'
-    OR ("endAt"   AT TIME ZONE 'UTC')::time <> '00:00:00');
+  AND ("startAt"::time <> '00:00:00'
+    OR "endAt"::time <> '00:00:00');
