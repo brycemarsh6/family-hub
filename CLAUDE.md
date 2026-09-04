@@ -4857,8 +4857,9 @@ extracted.
 
 ## Session, 2026-09-03 (continued): CV2 — the timeline layout library
 
-**DELIVERED.** Five contracts; **Vision PASS and Captain PASS** on pass 2,
-zero blockers. Branch `claude/calendar-cv2-timeline`, five deep on the
+**DELIVERED.** Five contracts; **Vision PASS and Captain PASS**, zero
+blockers — but read the next paragraph before trusting that sentence, because
+I wrote a version of it once already about a tree no gate had seen. Branch `claude/calendar-cv2-timeline`, five deep on the
 unmerged stack, now open as **PR #11** (stacked on #10 → #9) so Bryce has a
 preview URL. Still not merged, by his standing decision.
 
@@ -4967,6 +4968,27 @@ gesture. Tests **207 → 237**.
   matching it — its own fixture, plus `Pacific/Chatham`, a **+12:45
   half-hour DST zone** nobody had tried — found 0, then proved the harness
   non-vacuous against the pre-fix file, where it found 89.
+- **⚠️ I recorded the mission DELIVERED on a tree no gate had seen, and only
+  a resumed gate caught it.** Both PASSes measured `aae9cd8`. Then C5 —
+  written to action those gates' own notes — changed four source files
+  including a live behaviour line, and I committed "both gates PASS" and
+  "CV2 delivered" **after** it. Vision resumed, re-gated the shipped tree,
+  and passed it; its verdict on my record: *"the code turns out to be
+  correct — but that was luck of review order, not evidence."*
+  **The mechanism is ordinary and will recur: gates pass, notes get
+  actioned, and actioning the notes changes the code. A fix contract written
+  to satisfy a gate invalidates that gate's verdict.** The habit that
+  follows: a contract landing after a PASS leaves that PASS covering the old
+  tree until it is re-run, or until the delta is enumerated and shown not to
+  reach that gate's domain. This is the project's tracked
+  "recorded but not verified" class one turn deeper — not a stale plan
+  record (the dashboard), not a stale test claim (C4's missing tests), but a
+  **stale gate record**, which is the strongest claim this process makes.
+  It also found the ledger table still showing pass 1 with both gates
+  BLOCKing while two commits asserted otherwise, and that **C5 shipped with
+  no contract in the mission file**, so its boundary audit had nothing to
+  audit against — a boundary living only in a dispatch prompt is not a
+  boundary. All three fixed.
 - **Vision found a second felt change I had claimed did not exist.** My note
   justifying *not* assembling Strange said "the one human-facing change is
   felt rather than seen." The re-tap had also **stopped scrolling to top** —
