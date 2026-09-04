@@ -286,35 +286,51 @@ Fri 10 AM → Sun 2 PM → row; 8 PM → midnight → grid.
   exported signatures (CV4 consumes them); and your stated DST policy with the
   test that pins it.
 
-### C3 — Fix contract: separate "this branch is current" from "this tap goes nowhere"
-- **Status:** PENDING — **held until Vision reports**, so its in-flight gate
-  isn't measuring a build that changed underneath it.
+### C3 — Fix contract: the re-tap should not navigate at all; plus two library corrections
+- **Status:** PENDING (Vision has reported; safe to dispatch).
 - **The blocker:** `active` is prefix-based, so C1's `replace` and
   `router.refresh()` fire on **20 sub-pages** where the tap is a *real*
   navigation — discarding the entry the user is standing on and reintroducing
   the dead Back press C1 exists to remove.
-- **Fix (Captain's, inside C1's own boundary):** keep `active` for class names
-  and `aria-current`; add `const isCurrentPage = pathname === item.href` and
-  condition `replace` / `onClick` on **that**. **Pathname equality, not
-  full-URL equality** — `/calendar?view=month` has pathname `/calendar`, so
-  every measured C1 result is preserved byte-for-byte and only the sub-pages
-  change.
+- **Fix — Vision's, which removes F as well as D and E.** An exact-path
+  predicate alone (Captain's) fixes D and E but **leaves F**, because a paged
+  Calendar entry's pathname is already `/calendar`. So: add
+  `const sameUrl = pathname === item.href` for the *history* question (keeping
+  `active` for styling and `aria-current`), and on that path
+  **`event.preventDefault(); router.refresh()` — no navigation at all.**
+  Safe because **the Today circle already covers "go to today"**, so a re-tap
+  that refreshes rather than resets loses nothing.
+- **Also fix, both from Vision:**
+  - **`blockGeometry` and `daysEventCovers` disagree on a zero-length timed
+    event at exactly local midnight** — writable through the sanctioned path,
+    since `validateEventInput` rejects only `endAt < startAt`. It would show
+    in list views and vanish from the timeline. Treat `end <= start` as
+    "covers `startOfDay(start)` only", mirroring `eventDaySpan`'s clamp, and
+    correct the header's claim (it mirrors `eventDaySpan` **only for same-day**
+    rows). **Must land before CV4 consumes this library.**
+  - **The pinned-Denver test cannot prove its own pin.** Under UTC with the
+    pin removed the fixture is 2 hours and `heightMinutes` is still 120, so
+    the assertion can't detect the pin failing. Add the same
+    `assert.equal(end - start, 3h)` the gated cases carry.
 - **Also fix the comment.** It says *"Re-tapping the tab you're already on is
   a no-op navigation"*, which is **false on those 20 pages** — an
   overclaiming comment inside the contract whose other half was fixing one.
-- **Boundaries:** `src/components/HubNav.tsx` only.
-- **Verification:** the sub-page case Captain named, measured before and
-  after — `/kitchen/inventory` → tap Kitchen → **Back must not be dead**; the
-  same for a `/calendar` sub-page. Plus **every C1 result re-confirmed
-  unchanged**: root re-taps on two tabs (no history entry, real refetch),
-  inter-tab navigation, and mission-11's S1/S3/F5/F7/F8. Gauntlet both
-  timezones, **236 unchanged**; `className` diff still 0.
+- **Boundaries:** `src/components/HubNav.tsx`, `src/lib/timelineLayout.ts`,
+  `src/lib/timelineLayout.test.ts`.
+- **Verification — all three of Vision's measured cases (D, E, F), before and
+  after**, plus **every C1 result re-confirmed unchanged**: root re-taps on
+  two tabs (no history entry, real refetch), inter-tab navigation, and
+  mission-11's S1/S3/F5/F7/F8. Then the library: the zero-length-midnight
+  event agrees across `daysEventCovers` / `blockGeometry` /
+  `partitionForTimeline`, and the pinned test **fails if its pin is removed**
+  (prove it by removing the pin and showing red). Gauntlet both timezones;
+  `className` diff still 0.
 
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
+| 1 | Vision | **BLOCK** | 1 | converges with Captain from measurement, and **extends it** — case F survives an exact-path fix; 6 notes incl. a real library disagreement |
 | 1 | Captain | **BLOCK** | 1 | C2 clean; C1's `active` is prefix-based, so `replace` discards the entry on 20 sub-pages — the same dead Back press it exists to remove |
 
 Budget: 3 passes per gate, then STOP and surface.
@@ -444,6 +460,104 @@ against a written plan phase**, whose header names its consumer twice.
 **CV3 is mission one with no caller; CV4 is the named consumer. If CV4 ships
 without consuming it, the rule bites and it should be deleted with its
 tests.**
+
+## Vision, pass 1 — BLOCK (1 blocker, 6 notes)
+
+**Two gates reached the same blocker by different routes** — Captain from a
+code read, Vision from measurement — which is the strongest form of
+agreement available. Vision's version **extends** it.
+
+Gauntlet re-run; the 4 UTC skips confirmed as **tests 11–14, zone-conditional,
+0 skips under Denver**. It also verified the mission-11 defect is genuinely
+fixed by measuring a **base worktree**: Calendar re-tap there was history
+2→**3** with **0 GETs** and a dead Back, against 2→2 with a real GET on the
+fixed build.
+
+### BLOCKER — measured, and case F is not what Captain found
+
+```
+D  / → Kitchen → Inventory → Kitchen tab → Back → Back
+   BASE : history 4→5 · Back#1 /kitchen/inventory · Back#2 /kitchen
+   FIXED: history 4→4 · Back#1 /kitchen (DEAD)     · Back#2 /
+
+E  /kitchen → Cooking → Recipes → Kitchen tab → Back
+   BASE : Back#1 /kitchen/cooking/recipes    FIXED: Back#1 /kitchen/cooking
+
+F  /calendar (today) → Next → Calendar tab → Back
+   BASE : Back#1 ?date=2026-09-10   FIXED: Back#1 ?date=2026-09-03 (DEAD, identical URL)
+```
+
+D and E are Captain's prefix-matching finding, measured. **F is not** — the
+paged entry's *pathname* is already `/calendar`, so **an exact-path fix
+would leave F standing.** Vision also measured that on D the
+`router.refresh()` refetched the page being **left** (`GET
+/kitchen/inventory`, and `/kitchen` served from cache) — so the "refresh
+gesture" refreshes the wrong page on that path.
+
+The user-facing scenario, in its words: *Emily opens Kitchen, taps Inventory,
+taps the Kitchen tab to go back up, presses Back — she lands on `/kitchen`
+again, and the Inventory entry is gone.*
+
+**Vision's clean fix, which removes D, E *and* F:** on an exact-path re-tap,
+`event.preventDefault(); router.refresh()` — **no navigation at all.**
+And the observation that makes it safe: **the Today circle already covers
+"go to today"**, so a re-tap that refreshes rather than resets loses nothing.
+The alternative is to accept F and record it; **Fury chose the clean fix** —
+a re-tap's job is *refresh*, and resetting the view is a different button
+that already exists.
+
+### ⚠️ NOTE that becomes a blocker if ignored — the two libraries *do* disagree, in exactly one case
+
+This is the failure the contract was written to prevent, and Vision found the
+single instance: a **zero-length timed event at exactly local midnight**
+(00:00 → 00:00). `validateEventInput` rejects only `endAt < startAt`, so
+`end === start` **is writable through the sanctioned path**.
+
+```
+daysEventCovers      → covers that day (eventDaySpan clamps it)
+blockGeometry        → null on every day (end > dayStart is false)
+belongsInAllDayRow   → false
+partitionForTimeline → { allDayRow: 0, timed: 0 }
+```
+
+**The event would appear in the list views and be absent from the timeline.**
+Across **225 events × 10 days** the agreement sweep found *only* these five
+zero-length-midnight cases — everything else, including exact-midnight ends
+and both DST days, agrees exactly. NOTE rather than BLOCKER because no view
+renders blocks yet, **but it must be fixed before CV4 consumes this.**
+Fix: treat `end <= start` as "covers `startOfDay(start)` only", mirroring
+`eventDaySpan`'s own clamp. Vision also corrected the header's claim: the
+degenerate clamp mirrors `eventDaySpan` **only for same-day** rows.
+
+### ⚠️ A correction to *this record* — Fury repeated a claim that isn't true
+
+This file says C2's pinned-Denver test is "genuinely non-vacuous under both
+invocations." **Vision checked, and it is not.** Under `TZ=UTC` with the pin
+removed, the same fixture is 2 real hours and `heightMinutes` is still 120 —
+so the test's sole assertion **cannot detect the pin failing.** The pin does
+work; the test just can't prove it did. Fix: add inside `withTimeZone` the
+same `assert.equal(end - start, 3h)` the gated cases already carry.
+
+**The gated skips are real** — zone-conditional, 0 under Denver, exactly
+tests 11–14 under UTC.
+
+### Other notes
+
+- **`belongsInAllDayRow` hangs forever on an invalid `Date`** (reproduced with
+  a 6-second watchdog) — `calendarDayDiff`'s `while (!isSameDay(...))` never
+  terminates on NaN. **Pre-existing in `calendarDates.ts:88-99` and shared
+  with `assignLanes`**, so not this mission's; `blockGeometry` handles the
+  same input correctly. Not reachable from Prisma dates. Worth a guard
+  someday.
+- Duplicate id **with identical geometry** binds payload↔column by input
+  order — exactly the K4 caller obligation the doc already states. Duplicate
+  ids with *different* geometry are fine. **3,000 fuzzed runs** otherwise held
+  every invariant; a 12-deep chain resolved to 6 columns correctly.
+- The corrected cost comment **matches mission-11 pass 3 claim for claim** —
+  neither over- nor under-claiming.
+- DST guarantee held over **7,512 events × 3 columns** at 5-minute steps
+  across both transition weekends in both zones; the all-day battery (15
+  cases) matched; `allDayRow` composes with `assignLanes` unchanged.
 
 ## Handoff log
 
