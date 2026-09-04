@@ -1,7 +1,7 @@
 # Mission: CT1 — Tasks, and the all-day storage fix
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** DELIVERED
 **Started:** 2026-09-04 · **Updated:** 2026-09-04
 
 ## Why this mission is next (the ordering was contested — resolved)
@@ -514,7 +514,47 @@ single dispatch and a rate limit killed it mid-run.
 | 1 | Strange | **BLOCKED** | 1 | 3 notes; 2 of them pre-existing and app-wide, correctly not charged to CT1 |
 | — | C6 fix batch | DONE `9169a64` | — | Both Vision blockers fixed; C6 corrected Fury's own measurement in the process |
 | — | C7 fix | DONE `214a546` | — | Strange's blocker fixed; left one stale comment, queued for C8 |
-| 2 | Vision | dispatched | — | — |
+| 2 | Vision | **PASS** | 0 | 7 notes; both pass-1 blockers closed and proven non-vacuous |
+| — | C8 fix | DONE `2109f75` | — | Four comments made true; SQL byte-identical |
+| 2 | Strange | **PASS** | 0 | 2 notes; blocker closed, and it caught a false blocker in its own instrument |
+
+### Strange, pass 2 — PASS
+
+`ALL_THREE_SAME` is now **false** (`bgSame` true, `colorSame` true,
+**`opSame` false**) — identical in light and dark, at 375 and 320.
+
+It judged the fix on the pixels rather than the numbers, and pressed on
+whether its own prescription was sufficient: **it is, but the label is
+load-bearing, not decorative.** `disabled:opacity-50` alone would have
+been ambiguous; the dimming plus the words "coming soon" is what makes it
+read as *not built yet* rather than *broken*. And the disablement is real,
+not cosmetic: zero handlers fired, focus refused, no navigation.
+
+**Vocabulary confirmed, no fourth invented:** `disabled:opacity-50` is the
+app's dominant treatment (**30** uses in `src/`), so CT1 joined the
+majority. `aria-disabled` is now at **zero** occurrences.
+
+**It caught a false blocker in its own instrument.** Its first occlusion
+sweep flagged the header account button — which turned out to be
+`<nextjs-portal>`, the Next dev overlay, not the app. Re-swept with it
+removed: **0 of 18** controls occluded at both widths. Third instrument
+trap this mission, and the third one caught before it became a finding.
+
+**NOTE** — the disabled label composites to 1.88:1 in light. Readable, and
+WCAG 1.4.3 exempts inactive components, so not a violation. Recorded
+because it is a property of the app's *existing* disabled vocabulary,
+not something CT1 introduced — `CalendarHeader`'s arrows (`opacity-40`)
+and `PantryRow`'s steppers (`opacity-30`) are fainter still. Holding CT1
+to a stricter bar than shipped code would be inventing a rule at gate
+time.
+
+**NOTE** — `<button disabled>` drops the row from tab order. Correct for a
+control with nothing to do, and not a regression: the previous
+`aria-disabled` `<div>` had no `tabindex` either.
+
+**It verified a claim in its own dispatch rather than accepting it** —
+that C8 was comment-only — by hashing the SQL with comments stripped
+(identical both sides) and diffing the two source files comment-free.
 
 ### Strange, pass 1 — BLOCKED, and it checked three instruments before trusting any reading
 
@@ -760,8 +800,21 @@ this branch sits four deep on unmerged PRs by Bryce's standing decision.
 The mission's own commits start at `926f97b`. Branch pushed; PR #12 open;
 CI green including the new UTC and Los Angeles legs.
 
-**Gate verdicts:** Captain PASS (pass 1). Vision PASS (pass 2). Strange
-BLOCKED (pass 1) → C7 → **pass 2 pending**.
+**Gate verdicts — all three PASS.** Captain PASS (pass 1, 0 blockers).
+Vision BLOCKED (pass 1, 2 blockers) → C6 → **PASS** (pass 2). Strange
+BLOCKED (pass 1, 1 blocker) → C7 → **PASS** (pass 2). No gate exceeded
+2 of its 3-pass budget.
+
+**The pattern worth carrying:** all three blockers this mission produced
+were **documentation promising a property the code did not have** — never
+the feature. And there were **five instrument errors**, three caught by
+gates before becoming findings (a frozen-transition false positive, a
+`<nextjs-portal>` false occlusion, a stale dev server) and **two of them
+Fury's own** (an idempotency probe that modelled the wrong expression, and
+a measurement that bypassed the implicit assignment cast and wrongly
+downgraded a real blocker). *Check the instrument before the result* is no
+longer a slogan here; it is the single highest-yield habit in this
+mission.
 
 **Deliberate leftovers:** see the C8 queue above, plus Strange's two
 app-wide notes (form text at 4.33:1; the calendar-shaped skeleton on form
