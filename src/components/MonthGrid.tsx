@@ -71,15 +71,15 @@ const ROW_CLASS = "grid grid-cols-7 px-1";
  * `taskAsMonthEvent` above and the `eventById` construction below for how a
  * task becomes a pill without teaching `assignLanes` or MonthCell.tsx a
  * second shape (D1: "no second packer", same rule CV2 followed for the
- * timeline/Month split). One real, deliberate limitation this accepts:
- * MonthCell.tsx is outside this contract's file boundary, so it stays
- * completely unmodified — a task pill in Month therefore renders with the
- * exact same visual language an event pill already has (title, color
- * bands, past-due dimming via the same `isPast(endAt, today)` MonthCell
- * already computes) and CANNOT show the checkbox/line-through completed
- * affordance TaskCard.tsx (DaySection's Week/Day rendering) has. That's a
- * scope line, not an oversight — extending it means editing MonthCell.tsx,
- * which is future work for whichever mission next touches Month.
+ * timeline/Month split).
+ *
+ * mission-14/C3 shipped with a real, disclosed gap: MonthCell.tsx was
+ * outside that contract's file boundary, so a completed task's pill was
+ * pixel-identical to an open one. C3b closes it — `completedTaskIds` below
+ * is the only new plumbing this needed, since MonthCell.tsx (now in
+ * bounds) does the actual rendering. Lane assignment and the "+N more"
+ * count are untouched: a completed task is still just another
+ * {id, startAt, endAt, allDay} span to `assignLanes`, exactly as before.
  */
 export function MonthGrid({
   anchor,
@@ -128,6 +128,16 @@ export function MonthGrid({
     endAt: event.endAt,
     allDay: event.allDay,
   }));
+  // C3b: `taskAsMonthEvent` reshapes a Task into a CalendarEventView-shaped
+  // proxy that has no `completedAt` field at all (a real event genuinely
+  // has none), so completion has to be looked up by id from the ORIGINAL
+  // `tasks` array, not read off anything in `eventById`. An event's id can
+  // never collide with a task's id (separate cuid-keyed tables), so a plain
+  // id set is a safe lookup with no risk of a real event being mistaken for
+  // a completed task.
+  const completedTaskIds = new Set(
+    tasks.filter((task) => task.completedAt !== null).map((task) => task.id),
+  );
 
   return (
     <div>
@@ -167,6 +177,7 @@ export function MonthGrid({
                 showLabel: col === span.startCol,
                 roundLeft: col === span.startCol && !continuesBefore,
                 roundRight: col === span.endCol && !continuesAfter,
+                taskCompleted: completedTaskIds.has(event.id),
               };
             }
           }
