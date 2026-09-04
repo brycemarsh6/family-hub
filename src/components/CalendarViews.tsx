@@ -9,6 +9,7 @@ import { CalendarHeader } from "./CalendarHeader";
 import { DaySection } from "./DaySection";
 import { MonthGrid } from "./MonthGrid";
 import { EventDetailSheet } from "./EventDetailSheet";
+import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import {
   CALENDAR_VIEW_OPTIONS,
@@ -103,6 +104,11 @@ export function CalendarViews({
   const [pickingView, setPickingView] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
+  // mission-14/C4 — the sheet TaskCard/DaySection's onOpenTask now opens
+  // for real. Just the task itself, no day: unlike an event, a task has
+  // exactly one due date, never a span, so there's no "which day was this
+  // card rendered for" ambiguity onOpenEvent's callback has to carry.
+  const [selectedTask, setSelectedTask] = useState<CalendarTaskView | null>(null);
 
   const config = VIEW_CONFIG[view];
   // The null-guards below are about `today` not having resolved yet — NOT
@@ -187,11 +193,11 @@ export function CalendarViews({
               // has to be read back through it, not a bare local getter.
               tasks={tasks.filter((task) => isSameDay(allDayInstantToLocalDay(task.dueDate), day))}
               onOpenEvent={(event, eventDay) => setSelected({ event, day: eventDay })}
-              // Rendering only (mission-14/C3) — C4 wires this to a real
-              // TaskDetailSheet, the same way EventDetailSheet backs
-              // onOpenEvent above. No state to hold yet, so this stays a
-              // no-op rather than introducing a `selectedTask` nothing reads.
-              onOpenTask={() => {}}
+              // mission-14/C4 — the real TaskDetailSheet, wired the same
+              // way onOpenEvent backs EventDetailSheet above. `day` is
+              // unused: see selectedTask's own comment for why a task
+              // needs none.
+              onOpenTask={(task) => setSelectedTask(task)}
             />
           ))
         )}
@@ -241,6 +247,19 @@ export function CalendarViews({
           onClose={() => setSelected(null)}
           onDeleted={() => {
             setSelected(null);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {selectedTask && (
+        <TaskDetailSheet
+          task={selectedTask}
+          canManage={canManage}
+          onClose={() => setSelectedTask(null)}
+          onChanged={() => router.refresh()}
+          onDeleted={() => {
+            setSelectedTask(null);
             router.refresh();
           }}
         />

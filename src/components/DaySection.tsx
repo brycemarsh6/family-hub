@@ -137,10 +137,12 @@ export function DaySection(
          * the sole caller, CalendarViews.tsx, always passes one; the `?`
          * only ever masked that). */
         onOpenEvent: (event: CalendarEventView, day: Date) => void;
-        /** Opens the (not-yet-built — mission-14/C4) task detail sheet for
-         * one task, on the day it's rendered for — same required-not-
-         * optional convention as `onOpenEvent` above. C3's callers pass a
-         * no-op here; C3 is rendering only, per its own boundary. */
+        /** Opens the task detail sheet (mission-14/C4 — TaskDetailSheet)
+         * for one task, on the day it's rendered for — same
+         * required-not-optional convention as `onOpenEvent` above. `day`
+         * is threaded through for symmetry with onOpenEvent but currently
+         * unused by the sole caller, since a task has exactly one due
+         * date, never a span. */
         onOpenTask: (task: CalendarTaskView, day: Date) => void;
       },
 ) {
