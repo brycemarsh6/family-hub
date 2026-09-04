@@ -1,7 +1,7 @@
 # Mission: Calendar CV2 — the timeline layout library (+ the queued C5 repairs)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILT — C1, C2, C3, C4 all delivered and committed. **Gates have not re-run since C3**; CV2 is gate-verified only through C1/C2.
+**Status:** DELIVERED — C1–C5 committed; **Vision PASS, Captain PASS** (pass 2, 0 blockers). Strange deliberately not assembled (see below). On PR #11, stacked on #10 → #9. Not merged, by Bryce's standing decision.
 **Started:** 2026-09-03 · **Updated:** 2026-09-03
 **Plan:** `.avengers/plans/calendar-v2.md` — phase CV2, plus mission-11's queued C5
 **Branch:** `claude/calendar-cv2-timeline`, stacked on `claude/calendar-cv1-vocabulary` — **five branches deep, none merged**, by Bryce's standing decision to hold production until the Calendar is genuinely usable
@@ -821,3 +821,60 @@ but omits its `target` early-return. All routed to C5.
 
 **Both assembled gates PASS.** CV2 is gate-verified end to end. C5 clears
 the combined notes; no blocker was found by either gate on this pass.
+
+
+## C5 — DONE, committed `117cd33` + `9b8d5ea`
+
+Clears both gates' combined notes. No blocker existed; this is the
+"true but worth fixing" batch.
+
+**The one behaviour change: scroll-to-top restored** on an active-tab
+re-tap. `window.scrollTo({ top: 0 })` beside `router.refresh()`,
+unconditional. Measured in a real authenticated browser: `/kitchen`
+scrollY **150 → 0**, `/calendar` **120 → 0**, history unchanged in both,
+and the RSC refetch still fires — the refresh was not traded away for the
+scroll. Sub-page taps, inter-tab taps, and modified clicks all confirmed
+unaffected (`className` diff 0, so no design-gate escalation created).
+
+**Three comments narrowed to claims their file can keep:**
+`useCanonicalCalendarUrl`'s app-wide reachability sentence → what the hook
+itself guarantees; `isModifiedClick`'s "mirrors Next's `isModifiedEvent`" →
+the real relationship, after reading `link.js:47-52` in this tree rather
+than from memory; and both test headers' overstated split.
+
+**Two "don't delete this" facts moved to where the next person stands:**
+the composition test now carries its own load-bearing comment (with the
+type-probe both gates independently ran as the evidence), and
+`calendar-v2.md`'s CV4 section now names the exports CV4 consumes plus the
+dormant-export deletion deadline. Neither lived anywhere a CV4 builder
+would look.
+
+**One correction to my own contract.** I prescribed the phrase *"apart from
+a single cross-check assertion in each direction."* The builder applied it
+verbatim **and flagged that it is false for the packing file**, which
+cross-checks `blockGeometry` at four call sites across two tests. It was
+right on both counts — right to apply its contract rather than silently
+re-derive Captain's wording, and right to say so. Fixed in `9b8d5ea`:
+both headers now say a few cross-checks point each way, and say *why* they
+exist, which is the claim that stays true as the files move.
+
+Shipping a comment claiming one assertion where there are four, inside the
+batch whose entire purpose was removing comments that claim more than they
+can keep, would have been the precise failure under repair.
+
+## Delivery
+
+- **C1–C5 committed and pushed.** `git log origin/…..HEAD` → 0 local-only.
+- Gauntlet at HEAD: tsc 0, eslint 0, **237/237/0** Denver, **237/233/4**
+  UTC, build 0 (30 routes).
+- Caps: `timelineLayout.ts` **331**, `timelineLayout.test.ts` **234**,
+  `timelineLayoutPacking.test.ts` **199** — all under 350.
+  `CalendarViews.tsx` **348, unchanged**, so Captain's pre-CV3 extraction
+  ruling is undisturbed.
+- **PR #11** opened against `claude/calendar-k2-month`; Gauntlet green.
+
+**Deliberately not done:** Strange (no rendered surface until CV4 — tripwire
+recorded); `CalendarViews.tsx`'s extraction (CV3's precondition, not CV2's
+work); `calendarDayDiff`'s invalid-`Date` infinite loop (pre-existing, out of
+every boundary so far); `ASSIGNABLE_ROLES` (already routed by constitutional
+text). **Awaiting Bryce:** Captain's STRUCTURE.md concern-split re-wording.

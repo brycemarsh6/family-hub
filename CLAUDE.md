@@ -4857,9 +4857,10 @@ extracted.
 
 ## Session, 2026-09-03 (continued): CV2 — the timeline layout library
 
-**In progress at time of writing.** Four contracts built; **the gates have not
-re-run since C3**, and **C4 (a test-file split) is still in flight.** Branch
-`claude/calendar-cv2-timeline`, five deep on the unmerged stack.
+**DELIVERED.** Five contracts; **Vision PASS and Captain PASS** on pass 2,
+zero blockers. Branch `claude/calendar-cv2-timeline`, five deep on the
+unmerged stack, now open as **PR #11** (stacked on #10 → #9) so Bryce has a
+preview URL. Still not merged, by his standing decision.
 
 ### What's built
 
@@ -4955,8 +4956,24 @@ gesture. Tests **207 → 237**.
   moved test that runs but no longer asserts, every moved body was diffed
   byte-identical against its original. First live use of the concern-split
   clause added that morning.
-- **Gates have not re-run since C3.** Nothing in CV2 is gate-verified past
-  C1/C2.
+- **Both gates PASS (pass 2), and both ruled against their own prior work.**
+  Captain found its **own Ruling 2 named the wrong unit** — it had demanded
+  the file be split "in that same commit," but a boundary is per-*contract*,
+  so only whichever contract happens to own the file could comply. What the
+  rule protects is *the file does not leave the mission over cap*, which C4
+  satisfied; the builder who declined was right. Vision **caught its own
+  network capture returning an empty control** and rebuilt the instrument
+  before reporting. It also reproduced C3's library sweep rather than
+  matching it — its own fixture, plus `Pacific/Chatham`, a **+12:45
+  half-hour DST zone** nobody had tried — found 0, then proved the harness
+  non-vacuous against the pre-fix file, where it found 89.
+- **Vision found a second felt change I had claimed did not exist.** My note
+  justifying *not* assembling Strange said "the one human-facing change is
+  felt rather than seen." The re-tap had also **stopped scrolling to top** —
+  `preventDefault()` takes Next's scroll-to-top with it — measured at
+  scrollY 150→150. Restored in C5 (150→0, refresh still firing). The
+  conclusion held; the argument was an unmeasured claim sitting inside a
+  note whose purpose was justifying not measuring.
 - **`calendarDates.ts`'s `calendarDayDiff` loops forever on an invalid
   `Date`** — pre-existing, shared with `assignLanes`, unreachable from Prisma
   dates. Out of every boundary so far; worth a guard someday.
