@@ -76,7 +76,10 @@ export type TaskInput = {
  * trusting client-supplied ids — the same discipline calendar.ts's own
  * validatedPeople and addIngredientsToGroceries's pantryItemId check use.
  * Deliberately a separate copy rather than an import from calendar.ts:
- * this contract's boundary does not include that file.
+ * a "use server" file may not export a non-action helper, so a shared
+ * home for this would have to be a new server-only module in src/lib/,
+ * not an import between action files. A third copy (K4, CT2, or K6)
+ * makes it shared vocabulary and forces that extraction.
  */
 async function validatedPeople(userIds: string[]): Promise<string | null> {
   const unique = Array.from(new Set(userIds));

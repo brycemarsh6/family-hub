@@ -53,11 +53,15 @@ ALTER TABLE "TaskPerson" ADD CONSTRAINT "TaskPerson_userId_fkey" FOREIGN KEY ("u
 -- NOT idempotent on its own — proven read-only against the dev branch,
 -- running it twice shifted a fixed row back a second day. The WHERE
 -- clause below is what makes a second run a no-op, and it additionally
--- protects any row already correctly stored at UTC midnight (including
--- one created east of Mountain, which the naive expression would shift
--- the wrong way) or already fixed on a database that received this
--- migration before. See mission-13's "The migration hazard Fury measured
--- before contracting" for the read-only proof.
+-- protects any row already stored at exact UTC midnight (00:00:00 in
+-- this naive column) — which covers a database that already received
+-- this migration. It is NOT a guarantee about where a row was created:
+-- a row written at some other timezone's local midnight is not
+-- necessarily at UTC midnight and is not protected by this guard — see
+-- the unreachable-OR-edge note below for the one case this was
+-- measured to matter for, and why it cannot occur today. See
+-- mission-13's "The migration hazard Fury measured before contracting"
+-- for the read-only proof.
 --
 -- Both the WHERE guard and the SET below must be SESSION-TIMEZONE
 -- INDEPENDENT: this statement can run under a `psql`/Prisma session whose
@@ -93,6 +97,23 @@ ALTER TABLE "TaskPerson" ADD CONSTRAINT "TaskPerson_userId_fkey" FOREIGN KEY ("u
 -- consulted. Verified byte-identical under UTC, America/Denver, and
 -- America/Los_Angeles sessions, both on first application and on a
 -- second (idempotency) pass.
+--
+-- The WHERE guard's OR is across both columns, not per-column: if only
+-- ONE of startAt/endAt sits off exact midnight, the guard still fires
+-- and the SET rewrites BOTH columns — including the one that was
+-- already correct. Measured: a row with startAt at 06:00:00 (broken)
+-- and endAt already at 00:00:00 (correct) rewrites to startAt
+-- `2026-09-03 00:00:00` / endAt `2026-09-05 00:00:00`, shifting the
+-- already-correct endAt back a day; the same holds for a broken
+-- sub-second value on either column. This is unreachable against every
+-- row this migration will ever see: every all-day CalendarEvent's
+-- startAt/endAt is produced by localDayToAllDayInstant from a single
+-- parseLocalDateString call on one device, so the two columns always
+-- share the same offset and a zero-millisecond field — either both are
+-- broken or both are already correct, never one of each. A future bulk
+-- import or hand-edit path that can set startAt/endAt independently
+-- must preserve that invariant, or this guard needs splitting into two
+-- independent per-column conditions before such a path ships.
 UPDATE "CalendarEvent"
 SET "startAt" = (((("startAt" AT TIME ZONE 'UTC') AT TIME ZONE 'America/Denver')::date)::timestamp),
     "endAt"   = (((("endAt"   AT TIME ZONE 'UTC') AT TIME ZONE 'America/Denver')::date)::timestamp)

@@ -45,11 +45,11 @@ export type TaskFormDefaults = {
  * localDayToAllDayInstant/allDayInstantToLocalDay pair EventDateTimeFields
  * itself uses for all-day dates, is the whole job here.
  *
- * "Does not repeat" is a plain, non-interactive row rather than a working
- * control — rrule has no UI until K4 (see actions/tasks.ts's own header
- * comment). It's shown so the eventual control has a fixed place to land,
- * per this app's "no feature is stubbed out early" rule, without pretending
- * to be tappable today.
+ * "Repeat · coming soon" is a real `<button disabled>` — rrule has no UI
+ * until K4 (see actions/tasks.ts's own header comment). It's shown so the
+ * eventual control has a fixed place to land, per this app's "no feature
+ * is stubbed out early" rule, with the disabled state genuinely disabled
+ * rather than merely looking that way.
  */
 export function TaskForm({
   people, // full household roster, kids included — a task can be FOR a kid
