@@ -2,16 +2,20 @@ import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { resolveServerFetchWindow } from "@/lib/calendarPaging";
+import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
 import { CalendarViews } from "@/components/CalendarViews";
-import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
+import type { CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 /**
- * The Calendar branch's landing page. No read action exists for calendar
- * events by design (see mission-8's C1 report): pages in this app read
- * through `db` directly in the Server Component, same as the dashboard, so
- * this page owns its own range query.
+ * The Calendar branch's landing page. This page still reads through the
+ * database directly, in the Server Component, same as the dashboard — it
+ * has no `searchParams`-shaped need for a client-triggered fetch, unlike
+ * the Schedule view's endless scroll (mission-15/C1), which is what
+ * `fetchCalendarEvents` (actions/calendar.ts) exists for. Both callers now
+ * share the same select/mapper via `calendarEventQuery.ts`, so this page's
+ * own query and that action's can't drift apart from each other.
  *
  * mission-9/C6 ("We HAVE to fix it. Let's do it the way Google does it."):
  * the fetch window now follows the period being VIEWED (the "?date="
@@ -67,40 +71,16 @@ export default async function CalendarPage({
   // cross-country round trip (CLAUDE.md's performance section, from the
   // Inventory fix this mirrors) — batching keeps this page at ONE round
   // trip's worth of latency for three queries, not three.
-  const [events, tasks, roster] = await Promise.all([
+  const [eventViews, tasks, roster] = await Promise.all([
     // Events joined with their people in the same round trip (Prisma's
-    // nested `select`, not a second query).
-    db.calendarEvent.findMany({
-      where: {
-        // Overlap test: an event is in range if it starts before the window
-        // ends AND ends after the window starts — this is what also catches
-        // a multi-day event that started before windowStart but still runs
-        // into it.
-        startAt: { lt: windowEnd },
-        endAt: { gt: windowStart },
-      },
-      orderBy: { startAt: "asc" },
-      select: {
-        id: true,
-        title: true,
-        notes: true,
-        location: true,
-        startAt: true,
-        endAt: true,
-        allDay: true,
-        people: {
-          select: {
-            user: { select: { id: true, displayName: true, avatarColor: true } },
-          },
-        },
-        // Narrow select, never `{ ...row }` — the same "no passwordHash can
-        // ever ride along" discipline personInfo.ts documents, applied here
-        // for the detail sheet's "Added by" line (C4). This nested select is
-        // the exact instance STRUCTURE.md's one-source-of-truth note on
-        // personInfo.ts names as NOT a second definition.
-        createdBy: { select: { displayName: true } },
-      },
-    }),
+    // nested `select`, not a second query) — the select and the
+    // row→CalendarEventView mapping both moved to calendarEventQuery.ts in
+    // mission-15/C1, which is now this page's ONLY caller until
+    // `fetchCalendarEvents` (actions/calendar.ts) becomes its second, for
+    // the Schedule view's endless scroll. See that module's own comment for
+    // why (the personInfo.ts precedent, and why this one carries
+    // `server-only` when personInfo.ts doesn't).
+    getCalendarEventsInRange(windowStart, windowEnd),
     // A Task has one due date, not a start/end span, so "in range" is a
     // plain point-in-window test rather than the events query's overlap
     // test above. `dueDate` is stored at UTC midnight (Task's own schema
@@ -138,26 +118,6 @@ export default async function CalendarPage({
       orderBy: { createdAt: "asc" },
     }),
   ]);
-
-  const eventViews: CalendarEventView[] = events.map((event) => ({
-    id: event.id,
-    title: event.title,
-    notes: event.notes,
-    location: event.location,
-    startAt: event.startAt,
-    endAt: event.endAt,
-    allDay: event.allDay,
-    people: event.people.map((person) => ({
-      userId: person.user.id,
-      displayName: person.user.displayName,
-      avatarColor: person.user.avatarColor,
-    })),
-    // See CalendarEventView's own comment (src/lib/types.ts): this used to
-    // be a separate `Record<eventId, name>` map threaded alongside `events`
-    // until mission-9's Captain finding (K2/C2a) folded it into the event
-    // itself.
-    createdByName: event.createdBy?.displayName ?? null,
-  }));
 
   const taskViews: CalendarTaskView[] = tasks.map((task) => ({
     id: task.id,

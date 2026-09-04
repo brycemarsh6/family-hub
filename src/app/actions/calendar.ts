@@ -19,9 +19,11 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getVerifiedUser } from "@/lib/dal";
+import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { isMissingRowError } from "@/lib/prismaErrors";
+import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
+import type { CalendarEventView } from "@/lib/types";
 
 function refreshCalendarViews() {
   revalidatePath("/calendar");
@@ -201,4 +203,80 @@ export async function deleteCalendarEvent(id: string): Promise<CalendarEventActi
 
   refreshCalendarViews();
   return {};
+}
+
+/**
+ * A day span, in milliseconds — used only for the scan cap below, never for
+ * constructing a calendar-meaningful Date (that rule is about deciding
+ * WHICH day something falls on; this is a plain duration comparison, which
+ * milliseconds are fine for).
+ */
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * How far apart `windowStart`/`windowEnd` may be. This is a PUBLIC POST
+ * endpoint (mission-15/D2) — an unbounded span would let anyone ask for a
+ * full table scan of every event the household has ever created. 124 days
+ * is comfortably wider than any single UI window this app builds today
+ * (Month's six-week grid, Schedule's 30-day chunks) while still bounding the
+ * query.
+ *
+ * Not exported: this file carries `"use server"`, and Next requires every
+ * top-level export from a Server Actions module to be an async function —
+ * exporting this plain constant made the whole module fail to resolve at
+ * build time ("the module has no exports at all"), taking every OTHER
+ * export in this file down with it. Caught by `npm run build`, not `tsc`.
+ */
+const MAX_FETCH_SPAN_DAYS = 124;
+
+function isValidDate(value: unknown): value is Date {
+  return value instanceof Date && !Number.isNaN(value.getTime());
+}
+
+/**
+ * The first DATA-RETURNING guarded action in this file — every other export
+ * above returns `{ error? }` or void. That precedent matters for what a
+ * refusal looks like: this returns `[]`, the type's own empty value, rather
+ * than throwing. `useScheduleWindow` (mission-15/C3) treats `[]` as "stop
+ * fetching in this direction" — a thrown error from a guard refusal would
+ * instead be something a naive retry loop could hammer forever.
+ *
+ * Deliberately EVENTS ONLY, not events-and-tasks, even though Schedule (C3)
+ * has to render both. Two reasons, not one: (1) this contract's own
+ * boundary only permits touching `actions/calendar.ts` — tasks have their
+ * OWN Server Actions file (`actions/tasks.ts`), and adding a task query here
+ * would be exactly the kind of file this file shouldn't own. (2) Tasks and
+ * events are already two independent queries even on the page that renders
+ * both today (`(app)/calendar/page.tsx`'s own `Promise.all`) — there is no
+ * existing "one call gets both" precedent to preserve, so an events-only
+ * action here doesn't invent a new inconsistency, it continues the existing
+ * one. Schedule's hook is expected to call a SIBLING `fetchCalendarTasks`
+ * (or similarly-named action) added to `actions/tasks.ts` in a later
+ * contract, and merge the two client-side.
+ *
+ * Uses the null-returning `getVerifiedSession()` form (STRUCTURE.md's guard
+ * form (a)), not `getVerifiedUser()`: this only needs "is someone signed
+ * in", not a role — reading the calendar is not gated to MANAGER_ROLES the
+ * way writing one is ("parents manage, kids participate" is about
+ * mutation, not visibility) — and it's reachable from shipped UI (Schedule's
+ * scroll), so a thrown `redirect()` would bounce the browser mid-scroll
+ * instead of just returning nothing to render.
+ */
+export async function fetchCalendarEvents(
+  windowStart: Date,
+  windowEnd: Date,
+): Promise<CalendarEventView[]> {
+  const session = await getVerifiedSession();
+  if (!session) return [];
+
+  // A Server Action is a public POST endpoint — anything can be sent here,
+  // so the `Date` type annotations above are a claim to verify, not a
+  // guarantee to trust.
+  if (!isValidDate(windowStart) || !isValidDate(windowEnd)) return [];
+  if (windowEnd.getTime() <= windowStart.getTime()) return [];
+  if (windowEnd.getTime() - windowStart.getTime() > MAX_FETCH_SPAN_DAYS * MS_PER_DAY) {
+    return [];
+  }
+
+  return getCalendarEventsInRange(windowStart, windowEnd);
 }
