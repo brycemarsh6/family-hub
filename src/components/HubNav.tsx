@@ -8,7 +8,20 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { HUB_NAV_ITEMS } from "@/lib/nav";
 
-/** Is `href` the page we're currently looking at? */
+/** A click the browser should keep handling itself — a new tab, a new
+ * window, a download. Mirrors the cases Next's own `isModifiedEvent` hands
+ * back (node_modules/next/dist/client/app-dir/link.js:47-52); without it, the
+ * re-tap's `preventDefault` would swallow a cmd-click on the active tab and
+ * make it the one tab in the app you can't open in a new tab. */
+function isModifiedClick(event: React.MouseEvent<HTMLAnchorElement>) {
+  return (
+    event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.nativeEvent.button === 1
+  );
+}
+
+/** Which tab lights up? Prefix-based on purpose — every page below a branch
+ * belongs to that branch. NOT the predicate for "this tap goes nowhere": see
+ * `atTabRoot` below. */
 function isActive(pathname: string, href: string) {
   // "/" is a prefix of every path, so it only ever counts on an exact match —
   // otherwise the Home tab would light up everywhere.
@@ -38,21 +51,51 @@ export function HubBottomNav() {
     >
       <div className="mx-auto flex w-full max-w-3xl">
         {HUB_NAV_ITEMS.map((item) => {
+          // Two different questions, and they need two different predicates
+          // (mission-12/C3, found by both gates). `isActive` is PREFIX-based
+          // by construction, so it is true on the ~20 pages BELOW a tab as
+          // well as on the tab's own — right for "which tab lights up",
+          // wrong for "does this tap go anywhere". Tapping Kitchen from
+          // /kitchen/inventory is a REAL navigation; treating it as a re-tap
+          // discarded the entry the user was standing on, so Back landed on
+          // /kitchen again with the Inventory entry gone — the same dead
+          // press this gesture exists to remove, one level down.
           const active = isActive(pathname, item.href);
+          // Pathname only, deliberately: a paged calendar (/calendar?date=…)
+          // is still this tab's own page, and its re-tap is still a refresh.
+          const atTabRoot = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              // Re-tapping the tab you're already on is a no-op navigation —
-              // `replace` keeps it from pushing a second, identical history
-              // entry (which would otherwise make the next Back a dead
-              // press), and the `router.refresh()` below restores what that
+              // Re-tapping the page you're already on does not navigate at
+              // all. `preventDefault` stops the browser AND Next, whose Link
+              // returns early on `defaultPrevented`
+              // (node_modules/next/dist/client/app-dir/link.js:319, read in
+              // this tree per AGENTS.md) — so nothing is pushed and nothing
+              // is REPLACED either, and `router.refresh()` restores what the
               // tap used to do: refetch. On an iOS home-screen install
               // there's no address bar and no reload button, so this re-tap
               // is the only manual refresh gesture the app has at all
               // (mission-11/C5).
-              replace={active}
-              onClick={active ? () => router.refresh() : undefined}
+              //
+              // It refreshes in place rather than resetting the view, and
+              // that loses nothing: the Calendar's own Today circle is
+              // already the control for "take me back to today".
+              //
+              // Modified clicks (cmd/ctrl/shift/alt, middle button) are left
+              // alone, so cmd-clicking a tab still opens a new tab the way it
+              // does on every other page — the same clicks Next's own
+              // `isModifiedEvent` hands back to the browser (link.js:47-52).
+              onClick={
+                atTabRoot
+                  ? (event) => {
+                      if (isModifiedClick(event)) return;
+                      event.preventDefault();
+                      router.refresh();
+                    }
+                  : undefined
+              }
               aria-current={active ? "page" : undefined}
               className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors ${
                 active ? "text-accent" : "text-muted"

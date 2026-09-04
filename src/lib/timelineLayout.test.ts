@@ -138,6 +138,28 @@ test("blockGeometry: a degenerate row (end before start) never yields a negative
   assert.ok(geometry.topMinutes >= 0);
 });
 
+test("REGRESSION: a zero-length event at exactly local midnight draws on its own day, and all three functions agree", () => {
+  // `validateEventInput` (actions/calendar.ts) rejects only `endAt < startAt`,
+  // so `end === start` is writable through the sanctioned path. Before
+  // mission-12/C3 this drew NOWHERE — `end > dayStart` is false on its own day
+  // — while `daysEventCovers` still listed it: present in the list views,
+  // absent from the timeline. The one shape the two libraries disagreed on.
+  const midnight = d(2026, 8, 3, 0, 0);
+  const event = ev("a", midnight, midnight);
+  const days = [d(2026, 8, 2), d(2026, 8, 3), d(2026, 8, 4)];
+
+  assert.deepEqual(blockGeometry(d(2026, 8, 3), event), {
+    topMinutes: 0,
+    heightMinutes: MIN_BLOCK_MINUTES,
+    clippedStart: false,
+    clippedEnd: false,
+  });
+  assert.equal(blockGeometry(d(2026, 8, 2), event), null, "it must not leak onto the day before");
+  assert.equal(blockGeometry(d(2026, 8, 4), event), null, "nor onto the day after");
+  assert.equal(daysEventCovers(event.startAt, event.endAt, event.allDay, days).length, 1);
+  assert.deepEqual(partitionForTimeline(days, [event]), { allDayRow: [], timed: [event] });
+});
+
 // ---------------------------------------------------------------------------
 // DST — the stated policy: a FIXED 24-row wall-clock rail (Google/Apple do the
 // same). The repeated hour collapses, the missing hour is an empty row, and
@@ -179,10 +201,15 @@ test("DST spring-forward (Mar 8 2026): the rail is still exactly 1440 minutes on
 
 test("DST (America/Denver pinned, so this runs under TZ=UTC too): the fall-back collapse is deliberate, not ambient luck", () => {
   withTimeZone("America/Denver", () => {
-    const geometry = blockGeometry(
-      new Date(2026, 10, 1),
-      ev("a", new Date(2026, 10, 1, 0, 30), new Date(2026, 10, 1, 2, 30)),
-    );
+    const start = new Date(2026, 10, 1, 0, 30);
+    const end = new Date(2026, 10, 1, 2, 30);
+    // THE PIN'S OWN PROOF, and the reason it is inside `withTimeZone`: under
+    // an ambient UTC this same fixture is 2 real hours, and a 120-minute
+    // height assertion passes vacuously. Without this line the test cannot
+    // detect its own pin failing (mission-12/C3, Vision — it corrected a
+    // claim in the mission record that this case was already non-vacuous).
+    assert.equal(end.getTime() - start.getTime(), 3 * 60 * 60 * 1000, "the pin must hold: 00:30 to 02:30 is 3 REAL hours only under a zone that falls back");
+    const geometry = blockGeometry(new Date(2026, 10, 1), ev("a", start, end));
     assert.equal(geometry?.heightMinutes, 120);
   });
 });

@@ -119,6 +119,15 @@ export function minutesOfDay(instant: Date): number {
  * days one event touches is precisely how "8 PM - midnight" silently became a
  * two-day span the first time.
  *
+ * A DEGENERATE ROW (end at or before start) covers `startOfDay(start)` and
+ * nothing else, which is what `eventDaySpan`'s V2 clamp gives it too — for
+ * every degenerate shape, not only same-day ones: a zero-length row, an end
+ * earlier the same day, and an end on a PREVIOUS day all land on the start's
+ * own day in both libraries. Only the last of those is unreachable through
+ * `validateEventInput`, which rejects `endAt < startAt` but not
+ * `endAt === startAt`. See the branch below for the case that made this
+ * necessary.
+ *
  * Deliberately takes only `startAt`/`endAt`: it cannot read `allDay`, because
  * routing an all-day event is `belongsInAllDayRow`'s job and the timed path
  * must never interpret an all-day row's stored times (see that function).
@@ -131,6 +140,31 @@ export function blockGeometry(
   const dayEnd = addDays(dayStart, 1);
   const start = event.startAt.getTime();
   const end = event.endAt.getTime();
+
+  // A DEGENERATE ROW — end at or before start — covers exactly the one day
+  // `eventDaySpan` (calendarDates.ts) gives it, `startOfDay(start)`, and no
+  // other. Deciding it here rather than letting it reach the window test below
+  // is what keeps the two libraries agreeing: a zero-length event at exactly
+  // local midnight fails `end > dayStart` on its OWN day, so it drew nowhere
+  // at all while `daysEventCovers` still listed it — visible in the list views
+  // and absent from the timeline. `validateEventInput` rejects only
+  // `endAt < startAt`, so `end === start` is writable through the sanctioned
+  // path (mission-12/C3, measured by Vision across 225 events x 10 days: this
+  // was the only shape the two disagreed on).
+  //
+  // An invalid Date never reaches this branch — every comparison against NaN
+  // is false — so it still falls out of the window test below rather than
+  // propagating NaN into the geometry.
+  if (end <= start) {
+    if (dayStart.getTime() !== startOfDay(event.startAt).getTime()) return null;
+    const degenerateTop = minutesOfDay(event.startAt);
+    return {
+      topMinutes: Math.min(degenerateTop, MINUTES_PER_DAY - MIN_BLOCK_MINUTES),
+      heightMinutes: MIN_BLOCK_MINUTES,
+      clippedStart: false,
+      clippedEnd: false,
+    };
+  }
 
   // Strict on both sides: an event that ends exactly when the day begins, or
   // begins exactly when it ends, belongs to the neighbouring day only. An
@@ -148,9 +182,13 @@ export function blockGeometry(
   // named explicitly rather than measured.
   const endMinutes = end >= dayEnd.getTime() ? MINUTES_PER_DAY : minutesOfDay(event.endAt);
 
-  // `Math.max(0, ...)` is the degenerate-row clamp, the same defensive shape
-  // as `eventDaySpan`'s V2 clamp: a stored row whose end precedes its start
-  // must draw something small, never a negative box.
+  // `Math.max(0, ...)` is NOT the degenerate-row clamp — that case returned
+  // above and never reaches here. It stays because a genuinely FORWARD event
+  // can still run backwards on the RAIL: on the fall-back repeat, 01:30 MDT
+  // to 01:15 MST is 45 real minutes later at 15 fewer wall-clock minutes, so
+  // `endMinutes - topMinutes` is -15. That block draws MIN_BLOCK_MINUTES tall
+  // at minute 90, never a negative box. (Measured under America/Denver, not
+  // reasoned about — mission-12/C3.)
   const heightMinutes = Math.max(MIN_BLOCK_MINUTES, Math.max(0, endMinutes - topMinutes));
 
   return {
