@@ -167,7 +167,7 @@ dispatch completes one contract — mission-8's C4 burned 529k tokens in a
 single dispatch and a rate limit killed it mid-run.
 
 ### C1 — Extract `EventForm.tsx` under the cap, and delete its duplicated date helper
-- **Status:** PENDING
+- **Status:** DONE — commit `98ab9cc`
 - **Boundaries:** may touch: `src/components/EventForm.tsx`, new
   `src/components/EventDateTimeFields.tsx`, new
   `src/components/EventPeopleField.tsx` · must not touch: anything under
@@ -183,6 +183,22 @@ single dispatch and a rate limit killed it mid-run.
   `calendarDayDiff` imported, with the call sites shown.
 - **Done criteria:** `EventForm.tsx` under cap; zero `daysBetween`
   occurrences repo-wide; test count unchanged at 237; DOM diff empty.
+- **Report:** 350 → **206** (EventDateTimeFields 164, EventPeopleField 59).
+  `daysBetween` deleted. Fury re-verified all of it: line counts, the grep,
+  tsc/eslint/237 tests.
+  **The builder could not do the browser DOM trace** — it had no Browser
+  pane tools — and said so plainly rather than skipping the evidence. It
+  used the contract's permitted fallback: reconstructing the OLD JSX from
+  `git show HEAD` and rendering it against the NEW components with
+  identical props via `renderToStaticMarkup`, across both the timed and
+  all-day branches. Its first run found a diff, **traced to a bug in its
+  own comparison script**, not the source; fixed, then byte-identical in
+  both scenarios. Instrument checked before result — the same discipline
+  C2 needed independently.
+  One behaviour-adjacent judgement, verified by Fury rather than accepted:
+  it dropped a `!start || !end` guard as unreachable. It is —
+  `EventForm.tsx:154` renders `<EventDateTimeFields>` only inside
+  `{start && end && (…)}`.
 
 ### C2 — `Task`/`TaskPerson` schema, plus the guarded all-day backfill
 - **Status:** DONE — commit `325bde7`
@@ -285,6 +301,20 @@ single dispatch and a rate limit killed it mid-run.
   so a missed entry silently drops tests from `npm test` *and* CI while
   the suite still reports green.
 
+## Notes carried (not blockers, routed to a later contract)
+
+- **`src/lib/calendarDates.ts:84` is now doubly stale.** It reads
+  "`CalendarViews.tsx`'s own `daysBetween` copy can share this one" — but
+  the copy lived in `EventForm.tsx`, not `CalendarViews.tsx`, and C1 has
+  now deleted it. C1 flagged the mismatch rather than reaching outside its
+  boundary to fix it, which was right. **Routed to C3**, whose boundary
+  already includes that file. This repo surfaced nine overclaiming comments
+  in one mission (K2); the class is worth clearing on contact.
+- **`parseLocalDateString` is exported from a component file** and imported
+  by `EventForm.tsx` — a component→component helper edge. It may belong in
+  `src/lib/`. **Left for Captain to rule on**; Fury is not pre-empting the
+  structure gate.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -307,6 +337,9 @@ single dispatch and a rate limit killed it mid-run.
 - 2026-09-04 — **C2 DONE** (`325bde7`), evidence accepted and
   independently re-verified read-only. C1 still building. Next: C3 (UTC
   getters) once C1 lands, since both touch `EventForm.tsx`.
+- 2026-09-04 — **C1 DONE** (`98ab9cc`), re-verified. Two notes carried (see
+  above). C3 dispatched — it is deliberately NOT parallel with C4, because
+  C4's `TaskForm` reuses the very components C3 is editing.
 
 ## Delivery
 
