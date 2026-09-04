@@ -1,7 +1,7 @@
 # Mission: CT2 — Tasks in every view, the detail sheet, and mark-complete
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERED
 **Started:** 2026-09-04 · **Updated:** 2026-09-04
 
 ## Why this mission, and why now
@@ -312,7 +312,87 @@ dispatch completes one.
 | — | C6 fix | DONE `1d88afa` | — | Captain's blocker; Fury's contract error behind it |
 | 2 | Captain | **PASS** | 0 | 6 notes; confirmed the debt repayment and the new rule's wording |
 | 2 | Vision (Fable) | **PASS** | 0 | 5 notes; found a real pre-existing bug on a sibling surface |
-| 1 | Strange | dispatched (last gate) | — | — |
+| 1 | Strange | **PASS** | 0 | 5 notes; ruled to KEEP the Repeat row, with a measurable trigger for revisiting |
+
+### Strange, pass 1 — PASS
+
+**It discarded its own first instrument.** The built-in browser pane runs
+`document.hidden === true` and stalls Suspense streams — three loads sat on
+a skeleton for 60s+ while the server had returned 200 in 519ms, and one
+screenshot showed a skeleton *over* a fully-rendered DOM. It threw all of
+that out and drove headless Chrome instead — then checked *that* instrument
+in both directions and caught its driver inheriting the Mac's dark OS theme
+when a run omitted the override, the exact trap CLAUDE.md records. It also
+proved transitions were live rather than frozen by catching a button
+mid-transition at `opacity: 0.911839`.
+
+**The ruling: keep `Repeat · coming soon` in the sheet. No `!isEdit`.**
+It reproduced the numbers to the pixel and then measured the
+counterfactual — hiding the row takes overflow 23 → **0** and Save's bottom
+to 796 — so the row is the entire cause and "Save is below the fold" is
+**not** an independent finding. It passes anyway: Save's **centre** is at
+`y 794.8`, on screen, and `elementFromPoint` there returns the button, so
+DESIGN.md's unocclusion rule is satisfied **with no scrolling at all**. The
+clipped 6.8px is a button's bottom radius, which reads as a scroll
+affordance. The overflow is constant, not content-dependent. And `!isEdit`
+would re-split create from edit for 7 pixels, one contract after C6 spent
+itself merging them.
+**The revisit trigger is measurable, not taste:** watch **Save's centre
+crossing y=812**, not its bottom. A real Repeat control, or a sixth
+household member wrapping the chips to a fourth row, would do it — at which
+point the arrival position stops being reachable and it becomes a blocker.
+
+**Verified clean:** zero controls under 44px at 375 **or** 320 (21 measured
+at 320); no horizontal overflow; 55px nav clearance at max scroll, the exact
+figure DESIGN.md records; the ⋯ menu **replaces** sheet content rather than
+stacking (`[role=dialog]` stays 1); three states stay distinct; and the `✓`
+is `GroceryRow`'s existing character, not a fourth vocabulary.
+**Roles read right, not just enforce right** — a kid on someone else's task
+gets a clean read-only card, not a dead-ended sheet.
+**And the completed-vs-past distinction holds in one frame, both themes:**
+completed task struck through, three genuinely past events muted but *not*
+struck. Deliberate and correct: an **overdue but open** task stays
+`font-semibold` — pastness never dims a task, only completion does.
+
+## Notes carried out of CT2 (none blocking; two need Bryce)
+
+1. **⚠️ Mark complete is not optimistic, and DESIGN.md requires it.** The
+   rule: *"instant feedback on every tap — optimistic updates, never a wait
+   on the server round trip."* Measured settle over four toggles:
+   **600 / 349 / 211 / 187 ms**. Strange did **not** block, for two recorded
+   reasons: the screen never lies (the tap is acknowledged in-frame and the
+   button is `disabled` while pending, so a double-tap **cannot** fire a
+   second toggle — the one outcome that would have made it a real bug), and
+   `EventDetailSheet` ships the identical pattern and **passed this gate in
+   mission 8**, so charging CT2 alone would apply the rule for the first
+   time to its second offender.
+   **But CT2 is where the rule's reason starts to bite.** Delete is a
+   one-shot verb on a row that vanishes; **Mark complete is a toggle on a
+   row that stays on screen** — precisely `GroceryRow`'s check-off shape,
+   which is what the rule was written for, and which the v2 plan's
+   reward-points loop will make the most-tapped control in the app.
+   **Decision needed: either DESIGN.md gains an explicit carve-out for
+   one-shot/destructive verbs, or both sheets adopt `useOptimistic`.**
+   Strange's words: *it should not go a third mission unexamined.*
+2. **Month: an *open* task is pixel-identical to an event.** A pill is
+   `47.9×16` with its title `sr-only`, so the completed task's `✓` is the
+   **only** cue in all of Month that a pill is a task at all — meaning it
+   reads ambiguously as "done" *or* "is a task". `TaskCard` already solved
+   this in Week/Day with a two-state glyph (empty square open, filled ✓
+   done). Rendering the empty `☐` on an open task's pill completes the same
+   vocabulary for ~8px of a 48px pill. C3b's reasoning holds as far as it
+   went; this is the half it did not need to cover.
+3. **`NoEventsCard` says "No events" on a surface that now holds tasks.**
+   The gate is correct and never asserts anything false — confirmed: a day
+   with a task and no events shows the task and **no** card. But the label
+   no longer names everything it covers.
+4. **`NotLoadedCard` says "Not all *events* loaded" — the sharper of the
+   two.** The task query shares `windowStart`/`windowEnd` exactly, so a day
+   at the window edge may be missing a **task** too, and the caveat names
+   only events. The state itself is present and distinct; it is the noun
+   that is incomplete.
+5. `current.isMine` goes stale after a manager reassigns people — inert
+   today, since only managers reach Edit.
 
 ### Vision, pass 2 — PASS
 
@@ -518,4 +598,34 @@ ignores.
 
 ## Delivery
 
-_Pending._
+**Shipped:** CT2 in full — tasks render in Week, Day and Month; a task
+detail sheet with Mark complete / Mark not complete, Edit and Delete;
+per-task reassignment through the existing people picker; and the kid
+path (complete your own chore, nothing else) proven through shipped UI.
+Seven contracts (C1, C2, C3, C3b, C4, C5, C6).
+
+**Gate verdicts — all three PASS.** Captain BLOCKED (pass 1) → C6 →
+**PASS** (pass 2). Vision **PASS** (pass 1, scoped) → **PASS** (pass 2,
+narrow, on Fable). Strange **PASS** (pass 1). No gate exceeded 2 of its
+3-pass budget.
+
+**Numbers:** tests **241 → 252**. `CalendarViews.tsx` 348 → 217 → 280.
+`TaskDetailSheet.tsx` 418 → 296. Net of C6: −129. Database back to exact
+baseline after every run — `Task 0, TaskPerson 0, CalendarEvent 4,
+User 5` — with the household's one real calendar event untouched
+throughout.
+
+**Fury's own record, since it is the honest part:** **two contract
+errors**, both a false premise about what already existed (CT1/C4
+forbade the only file that could satisfy its own done-criteria; CT2/C5
+forbade `TaskForm.tsx` without checking it already did edit). **Three
+contracts dispatched without a written boundary** (C3b, C5, C6) — caught
+by a builder once and Captain once. **Three commits landed mid-gate**,
+the last caught by Vision and downgraded only on proof of inertness.
+Every one of those is a process failure, not a code failure, and each is
+recorded where the next session will read it.
+
+**Deliberate leftovers:** the five notes above, plus the deactivated-member
+bug traced by Vision (pre-existing, same shape on the event edit page
+since K1, needs a contract that can touch two files and a decision from
+Bryce on which reading of "deactivated" is intended).
