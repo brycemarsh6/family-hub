@@ -459,7 +459,46 @@ single dispatch and a rate limit killed it mid-run.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 1 | Vision | **died — Fable rate limit**, zero work done | — | Re-dispatched on Opus. Vision is Fable-pinned by K1's cost review; Captain and Strange are already Opus, so only this gate was affected. Substituting an equal-tier model beat leaving the mission ungated. |
+| 1 | Captain | **PASS** | 0 | 6 notes; 2 constitution amendments drafted for Bryce |
+| 1 | Strange | pending (runs after Vision — both may seed) | — | — |
+
+### Captain, pass 1 — PASS, and it corrected Fury twice
+
+Structure clean: `src/lib/` imports nothing from `app/`/`components/`; no
+new lib module imports `db`; no test file can transitively reach it (the
+`loginRateLimitPolicy` hazard not repeated); schema additive with no
+enums; zero hand-rolled role lists; `prisma/*.ts` → `calendarDates.ts`
+holds because that file is pure and carries no `server-only`.
+
+**Its three rulings:**
+1. **The membership guard is genuinely a third form** — it reads a *row*
+   to decide authorization, which neither documented form does. Amendment
+   drafted; awaiting Bryce.
+2. **`parseLocalDateString`: NOTE, not blocker.** No written rule forbids
+   a component→component helper. But the edge got *worse* —
+   `TaskForm.tsx` now imports that one function from
+   `EventDateTimeFields` and **nothing else**, having deliberately
+   declined to reuse the component. Captain declined to invent a rule for
+   a three-line function and instead set a **trip condition**: a third
+   consumer, or any consumer outside `src/components/`, makes the move
+   mandatory.
+3. **The size call was right, and not the treadmill** — measured:
+   CV0 ended 267, CV1 spent 81 lines to 348, **CT1 spent zero.** It also
+   made the precondition enforceable: *the next mission needing a line in
+   `CalendarViews.tsx` performs the `ViewConfig` extraction first, whether
+   or not it is CV3* — because C4b spent the one duplication available to
+   pay for a line, and the next one has nothing left.
+
+**⚠️ Captain corrected two figures in Fury's own dispatch.** I quoted
+`EventForm.tsx` at 206 and `tasks.ts` at 266 — the numbers from C1's and
+C4's *reports*. Real values at gate time: **213** and **278**; later
+contracts had added to both. Neither is near a cap, so nothing turned on
+it — but I passed builder-reported numbers to a gate as current fact
+instead of re-measuring at dispatch. That is this project's
+"recorded but not verified" class pointed at me: **a figure in a report
+describes the tree at report time, not the tree you are dispatching
+against.** Re-measure at dispatch.
 
 ## Handoff log
 
