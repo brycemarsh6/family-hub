@@ -110,7 +110,81 @@ Baseline **207**. C2 raises it substantially; C1 should not move it.
   mission-11 scenarios; both timezone counts.
 
 ### C2 — `src/lib/timelineLayout.ts`, pure and tested
-- **Status:** PENDING
+- **Status:** ✅ **DONE, committed `4125372`.** Fury re-verified: tsc 0,
+  eslint 0, build 0, **236 tests** (207 → 236, +29) — 236/236 under Denver,
+  232 pass + **4 deliberately skipped** under UTC, which is exactly the four
+  zone-gated DST cases. `timelineLayout.ts` **293**, its test **349**, both
+  under cap. Imports confirmed to be **only** `./mealPlanDates` and
+  `./calendarDates`; no `new Date()`, no `Date.now()`, no pixels.
+- **The red-then-green was done better than the contract asked.** It
+  implemented the *plausible wrong reading* first (`top > clusterEnd`,
+  `columnEnd < top` — i.e. "touching counts as overlapping") and ran the
+  failing test **alongside a control that passed in the same run**:
+  ```
+  ✖ REGRESSION: touching events (9-10 and 10-11) are NOT an overlap
+      actual:   [['a',0,2], ['b',1,2]]
+      expected: [['a',0,1], ['b',0,1]]
+  ✔ CONTROL: genuinely overlapping events DO get two columns
+  ```
+  **The passing control is what makes the red meaningful** — mission-9's own
+  red was a module-not-found, which Vision correctly noted proves only that
+  an import resolves. This is the improved version of that lesson, applied
+  without being told.
+
+### It followed the contract's reason where the letter fell short
+
+The contract said to gate the fall-back tests with `skip` so they cannot pass
+vacuously under UTC. It did that — all four transition cases, both
+directions — **and then noticed that `skip` leaves the UTC invocation with
+*zero* DST coverage, when the entire stated worry was that DST tests prove
+nothing.** So it added one further case pinning `America/Denver` explicitly
+via the `withTimeZone` helper `calendarDates.test.ts` already established,
+which is **genuinely non-vacuous under both invocations**. Additive; the
+gated cases all remain.
+
+### Two shape decisions that matter to CV4
+
+- **`TimelineEvent` is structurally identical to `MonthLayoutEvent`**, so the
+  `allDayRow` feeds `assignLanes` with **no conversion** — the "don't write a
+  second packer" instruction enforced by the type, not by discipline.
+- **`blockGeometry` takes only `startAt`/`endAt` — it *cannot* read
+  `allDay`.** That is what structurally keeps the timed path off the deferred
+  all-day-storage-bug audit list, rather than relying on a future editor
+  remembering.
+- `assignColumns` is generic where `assignLanes` isn't, so a caller hands it
+  `{ id, ...geometry, event }` and gets its own object back instead of doing
+  an id lookup.
+
+### One reading the contract's wording would have got wrong
+
+"Spans ≥ 1 full calendar day" as a plain `calendarDayDiff(start, end) >= 1`
+**would have sent Fri 10 PM → Sat 2 AM to the all-day row — which the same
+contract forbids two sentences later.** It implemented the question actually
+being asked — *does the event swallow at least one calendar day end to end* —
+purely in calendar components. Verified: Fri 10 PM → Sat 2 AM → grid;
+Fri 10 AM → Sun 2 PM → row; 8 PM → midnight → grid.
+
+### Notes
+
+- **DST policy, stated in the header and pinned by tests:** a fixed 24-row
+  wall-clock rail; a day is always 1440 rail minutes even when it is 23 or
+  25 hours long. Nov 1 2026's repeated 1:30s both land on rail minute 90 (a
+  3-hour event draws 2 hours); Mar 8's 2 AM row is empty. Its recorded
+  rationale: an elapsed-time rail would make **the hour gutter lie** — the row
+  labelled "2 AM" wouldn't sit where 2 AM is — and a rail matching the clock
+  on the kitchen wall is worth more than a faithful duration twice a year.
+  Each transition test **asserts the fixture really does span 3 hours / the
+  day really is 25 hours** before asserting the rail answer, plus an ungated
+  sweep asserting the guarantee (finite, positive, within bounds).
+- The `assignColumns` doc states K4's requirement explicitly: `id` must be
+  unique **per rendered block, not per database row**, since one `rrule` row
+  expands into many instances — Vision's mission-9 note, carried forward to
+  the only place that can guarantee it.
+- **Noticed, deliberately not acted on:** a degenerate row (end before start)
+  clamps to a `MIN_BLOCK_MINUTES` box rather than returning `null`, mirroring
+  `eventDaySpan`'s V2 clamp — a bad stored row stays visible and fixable
+  instead of vanishing. Flagged as a caller-side decision for CV4, not
+  changed unilaterally.
 - **Objective:** given a day and an event, the block's position and height
   **in minutes**; given a day's events, side-by-side columns for overlaps;
   given a set of column days, the split between the all-day row and the timed
