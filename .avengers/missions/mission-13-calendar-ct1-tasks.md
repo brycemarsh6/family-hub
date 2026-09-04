@@ -26,7 +26,13 @@ pure library with no consumer yet — but it is why this mission arrives
 fourth rather than third.
 
 
-> ## 🛑 DO NOT MERGE OR DEPLOY BETWEEN C2 AND C3
+> ## ✅ RESOLVED — the C2/C3 window is closed (`40a93bc`)
+>
+> Kept below as the record. The banner was live between `325bde7` and
+> `40a93bc`; if a future phase ever splits a storage fix from its reader
+> fix again, this is the shape of the hazard.
+>
+> ## 🛑 (was) DO NOT MERGE OR DEPLOY BETWEEN C2 AND C3
 >
 > **C2 alone is a regression.** It fixed the *storage* half (all-day rows
 > now sit at UTC midnight) while every *reader* still uses local getters.
@@ -37,7 +43,13 @@ fourth rather than third.
 > |---|---|---|
 > | before C2 | Sep 3 ✅ | Sep 2 ❌ |
 > | **C2 landed, C3 not** | **Sep 2 ❌** | **Sep 2 ❌** |
-> | after C3 (target) | Sep 3 ✅ | Sep 3 ✅ |
+> | after C3 — **measured** | Sep 3 ✅ | Sep 3 ✅ |
+>
+> Fury confirmed the real stored instants through the real
+> `daysEventCovers` in four zones — Denver, Los Angeles, UTC and New York
+> — all returning Sep 3, 4, 5. New York was added beyond the contract
+> because it is *east* of Mountain, the direction the naive migration
+> would have shifted the wrong way.
 >
 > So the intermediate tree is **worse than the bug it is fixing**: the
 > Camping Trip now reads a day early in Mountain, where it used to be
@@ -263,7 +275,7 @@ single dispatch and a rate limit killed it mid-run.
   stale-gate-record findings: check the instrument before the result.
 
 ### C3 — Read all-day dates with UTC getters, everywhere
-- **Status:** PENDING (depends on C1 + C2)
+- **Status:** DONE — commit `40a93bc`
 - **Boundaries:** may touch: `src/lib/calendarDates.ts`,
   `src/app/actions/calendar.ts`, `src/components/EventForm.tsx`,
   `src/components/EventDateTimeFields.tsx`, and their test files ·
@@ -282,6 +294,20 @@ single dispatch and a rate limit killed it mid-run.
 - **Done criteria:** an all-day event renders on identical calendar days
   in all three zones; timed events are provably unchanged (`HOUSEHOLD_TIME_ZONE`
   still has zero consumers — do not "fix" the half that works).
+- **Report:** `allDayInstantToLocalDay` / `localDayToAllDayInstant` added to
+  `calendarDates.ts`; `eventDaySpan` branches on `allDay`, so
+  `formatAllDayLabel` and `daysEventCovers` are both corrected at **one
+  point**. A repo-wide grep confirmed every other consumer
+  (`EventCard`, `EventDetailSheet`, `MonthGrid`, `CalendarViews`) reaches
+  all-day dates only through those two — so the single-point fix is a
+  measured claim, not an architectural hope.
+  **Red-then-green, with the failure quoted:** pre-fix the California case
+  failed `actual: [2,3,4], expected: [3,4,5]`, alongside three other
+  all-day tests going correctly red. Post-fix: Denver 241/241, UTC 241
+  (237 pass / 4 pre-existing DST skips), Los Angeles 241/241 — all
+  re-run by Fury. `actions/calendar.ts`, `timelineLayout.ts` and
+  `monthLayout.ts` were **confirmed clean rather than skipped**; boundary
+  diff empty.
 
 ### C4 — `actions/tasks.ts`, `TaskForm.tsx`, and the Event/Task Add sheet
 - **Status:** PENDING (depends on C1 + C2)
@@ -307,8 +333,12 @@ single dispatch and a rate limit killed it mid-run.
 - **Status:** PENDING (depends on C2 + C4)
 - **Boundaries:** may touch: new `prisma/seed-tasks.ts`, new
   `prisma/clean-tasks.ts`, new `prisma/task-seed-data.ts`, `package.json`,
-  `.github/workflows/ci.yml` · must not touch: any existing `prisma/seed-*`
-  or `clean-*` script.
+  `.github/workflows/ci.yml`, **plus `prisma/calendar-seed-data.ts` and
+  `prisma/seed-calendar.ts`** (carved out deliberately — see the carried
+  note above; the seeder still writes the retired local-midnight
+  convention and would reintroduce wrong rows on its next run) ·
+  must not touch: any *other* existing `prisma/seed-*` or `clean-*`
+  script.
 - **Verification:** seed, then clean, then confirm the table returns to its
   exact pre-seed count; run the seed against a roster deliberately too
   small and show it exits **non-zero** naming `db:bootstrap-users`.
@@ -378,6 +408,10 @@ single dispatch and a rate limit killed it mid-run.
 - 2026-09-04 — **C1 DONE** (`98ab9cc`), re-verified. Two notes carried (see
   above). C3 dispatched — it is deliberately NOT parallel with C4, because
   C4's `TaskForm` reuses the very components C3 is editing.
+- 2026-09-04 — **C3 DONE** (`40a93bc`). The do-not-merge banner is lifted;
+  Fury re-ran all three zones and separately confirmed four. Two notes
+  carried, one of them red: the calendar seeder still writes the old
+  convention. C5's boundary widened to own it. Next: C4.
 - 2026-09-04 — ⚠️ **Fury measured the intermediate state and it is a
   regression** (see the banner at the top of this file). C2's storage fix
   without C3's reader fix leaves all-day events a day early in *both*
