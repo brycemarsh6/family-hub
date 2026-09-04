@@ -270,7 +270,77 @@ dispatch completes one.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 1 | Captain | **BLOCKED** | 1 | 4 notes; retired one of its own rules as failed |
+| 1 | Vision | dispatched | — | — |
+| 1 | Strange | queued (runs after Vision — both use fixtures) | — | — |
+
+### Captain, pass 1 — BLOCKED, and the blocker is Fury's contract error
+
+**BLOCKER — `TaskEditView.tsx` is a second task-editing form.**
+`TaskForm.tsx:34` already declares itself *"One form for both New and Edit
+(the EventForm/RecipeForm precedent)"* and already implements it —
+`defaultValues`, `isEdit`, `updateTask`, a "Save changes" label. Verified
+by Fury: its only call site (`new/task/page.tsx`) passes **no**
+`defaultValues`, and no task-edit route exists, so **CT2 created dead
+code** — `TaskFormDefaults`, `isEdit` and the `updateTask` branch now have
+zero callers and never will, because CT2 built the alternative.
+
+The damage is measured, not principled: drift is **already present**
+(`TaskForm` renders the `Repeat · coming soon` row, `TaskEditView` does
+not, so K4 has two homes and one is unreachable), plus a third copy of two
+validation strings and a second copy of the `Field` label pattern.
+
+**Captain put on record that the builder could not have avoided this**, and
+it is right: **C5's boundary — which Fury wrote — says "must not touch
+`TaskForm.tsx`."** I never checked whether that file already did the job
+before forbidding it. C4's contract made the same omission one contract
+earlier. **Second contract error of this arc** (CT1's C4 was the first,
+also a false premise about what already existed). The remedy needs a
+contract that *can* touch `TaskForm.tsx`, which is exactly why it is a
+blocker rather than a note.
+
+### Captain retired one of its OWN rules as failed — the most valuable thing in this gate
+
+Its CT1 trip condition was *"a third consumer of `parseLocalDateString`
+forces the move to `src/lib/`."* Both C4 and C5 complied **by writing a
+local copy**, each documenting that it was doing so to stay under the
+threshold. So the importer count never reached three and the tree now
+holds **five** copies of the forward conversion and **two** of the inverse.
+
+> *"The rule counted importers, and a builder can hold importers at two
+> forever by writing a copy. That is exactly what happened, twice."*
+
+It also found `mealPlanDates.ts:87` already claims to be the shared home
+for this job, while `TaskForm.tsx:13` cites the surviving copies as "the
+house pattern" — **two comments asserting opposite conventions for the
+same function.**
+
+It declined to make this a blocker, and the reasoning is worth keeping:
+three copies survived a previous Captain's PASS and a fourth survived its
+own at CT1, so blocking the fifth *"would apply a standard I did not apply
+one mission ago — the exact unpredictability Law 3 exists to prevent."*
+**A replacement rule keyed to definitions rather than importers is drafted
+and awaits Bryce.** The C6 fix deletes `TaskEditView.tsx`, which retires
+CT2's two new copies for free.
+
+**Its four rulings on my questions:** (1) the right thing moved — and the
+*real* reason is stronger than C1's stated one: the render switch imports
+`MonthGrid`/`DaySection`/the sheets, so moving it to `src/lib/` would be a
+dependency-direction violation outright; it is structurally unable to
+move. (2) Trajectory fine, cap returns in ~2 missions, and the next
+candidate is the **sheets block** (`CalendarViews.tsx:215-277`), not the
+switch. (3) Rule failed, see above. (4) **D1 holds at every boundary** —
+no union exists anywhere — with one honest exception noted in `MonthGrid`.
+
+**NOTES:** `MonthGrid`'s adapter makes an *open* task structurally
+indistinguishable from an event below `MonthGrid` (right trade today, buys
+"no second packer"; CV5 will need to tell them apart — and Captain gave
+credit that `taskCompleted` is a **required** field, so a new slot site
+must answer it); a **fourth** verbatim copy of the household-roster query
+(sanctioned by the `personInfo.ts` clarification, but a trend at four);
+`CalendarViews.tsx:87` still says `VIEW_CONFIG` is "above" when C1 moved
+it; and `DaySection`'s `onOpenTask` promises a `day` its only caller
+ignores.
 
 ## Handoff log
 
