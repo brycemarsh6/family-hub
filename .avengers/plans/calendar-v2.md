@@ -227,6 +227,15 @@ Sibling of `monthLayout.ts`: imports only `mealPlanDates` and
   Day return in CV4 — the family never loses the list view.)
 
 ### CV4 — `TimelineGrid`: Day / 3 Day / Week (Opus; Strange-heavy)
+- **Consumes `src/lib/timelineLayout.ts` (CV2)**: `partitionForTimeline`
+  splits `columnDays`/`events` into the all-day row (fed to the existing
+  `monthLayout.assignLanes`, unchanged — no second packer) and the timed
+  set; `blockGeometry` + `assignColumns` place each timed block on the hour
+  rail and give overlapping ones side-by-side columns. That library has **no
+  application caller until this phase** — per STRUCTURE.md's dormant-export
+  rule (CV2/Captain's Ruling 5), **if CV4 ships without consuming it, delete
+  `timelineLayout.ts` and both its test files** (`timelineLayout.test.ts`,
+  `timelineLayoutPacking.test.ts`).
 - One component: `TimelineGrid({columnDays, events, today, now, windowStart,
   windowEnd, onOpenEvent})`. `columnDays` = `[anchor]` / `[anchor,+1,+2]`
   (anchor-relative, not snapped — Google) / `daysOfWeek(sundayOf(anchor))`.

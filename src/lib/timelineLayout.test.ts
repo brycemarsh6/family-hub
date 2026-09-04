@@ -4,9 +4,10 @@
 // the DST policy's transition/guarantee cases. Column packing and the
 // all-day/timed partition (assignColumns, belongsInAllDayRow,
 // partitionForTimeline, and the composition case against
-// monthLayout.assignLanes) live in the sibling timelineLayoutPacking.test.ts
-// — split by concern (never by number, per STRUCTURE.md), mission-12's C4,
-// because this file was at 376 of the 350-line soft cap.
+// monthLayout.assignLanes) live in the sibling timelineLayoutPacking.test.ts,
+// apart from a single cross-check assertion in each direction — split by
+// concern (never by number, per STRUCTURE.md), mission-12's C4, because this
+// file was at 376 of the 350-line soft cap.
 //
 // Run with `npm test`, which pins TZ=America/Denver; the gauntlet re-runs
 // this file directly under TZ=UTC to prove nothing here silently depends on

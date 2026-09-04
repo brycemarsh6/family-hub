@@ -9,10 +9,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { HUB_NAV_ITEMS } from "@/lib/nav";
 
 /** A click the browser should keep handling itself — a new tab, a new
- * window, a download. Mirrors the cases Next's own `isModifiedEvent` hands
- * back (node_modules/next/dist/client/app-dir/link.js:47-52); without it, the
- * re-tap's `preventDefault` would swallow a cmd-click on the active tab and
- * make it the one tab in the app you can't open in a new tab. */
+ * window, a download. Covers the same modifier-key and middle-click cases
+ * Next's own `isModifiedEvent` does (node_modules/next/dist/client/app-dir/
+ * link.js:47-52, read in this tree per AGENTS.md) — `button === 1` here is
+ * the same middle button as Next's `which === 2`. It does NOT also mirror
+ * Next's `target && target !== '_self'` check, since no nav `<Link>` here
+ * ever sets `target` — inert today, but worth knowing precisely rather than
+ * assuming full parity if one ever does. Without this, the re-tap's
+ * `preventDefault` would swallow a cmd-click on the active tab and make it
+ * the one tab in the app you can't open in a new tab. */
 function isModifiedClick(event: React.MouseEvent<HTMLAnchorElement>) {
   return (
     event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.nativeEvent.button === 1
@@ -74,10 +79,16 @@ export function HubBottomNav() {
               // (node_modules/next/dist/client/app-dir/link.js:319, read in
               // this tree per AGENTS.md) — so nothing is pushed and nothing
               // is REPLACED either, and `router.refresh()` restores what the
-              // tap used to do: refetch. On an iOS home-screen install
-              // there's no address bar and no reload button, so this re-tap
-              // is the only manual refresh gesture the app has at all
-              // (mission-11/C5).
+              // tap used to do: refetch. Suppressing the navigation also
+              // suppressed the scroll-to-top a real navigation gives for
+              // free, so `window.scrollTo({ top: 0 })` restores that too,
+              // unconditionally — re-tapping while already at the top is
+              // harmless, and tapping the active tab to jump back to the top
+              // is a near-universal iOS idiom, on an app that's a
+              // home-screen PWA on the family's iPhones (mission-12/C5). On
+              // an iOS home-screen install there's no address bar and no
+              // reload button either, so this re-tap is the only manual
+              // refresh gesture the app has at all (mission-11/C5).
               //
               // It refreshes in place rather than resetting the view, and
               // that loses nothing: the Calendar's own Today circle is
@@ -93,6 +104,7 @@ export function HubBottomNav() {
                       if (isModifiedClick(event)) return;
                       event.preventDefault();
                       router.refresh();
+                      window.scrollTo({ top: 0 });
                     }
                   : undefined
               }

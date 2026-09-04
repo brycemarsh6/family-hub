@@ -5,9 +5,10 @@
 // partitionForTimeline (routing events into the all-day row vs. the timed
 // grid), and the composition case proving the all-day row partitionForTimeline
 // produces is packed by monthLayout.assignLanes unchanged — no second packer.
-// Block geometry and the DST policy live in the sibling timelineLayout.test.ts
-// — split by concern (never by number, per STRUCTURE.md), mission-12's C4,
-// because that file was at 376 of the 350-line soft cap.
+// Block geometry and the DST policy live in the sibling timelineLayout.test.ts,
+// apart from a single cross-check assertion in each direction — split by
+// concern (never by number, per STRUCTURE.md), mission-12's C4, because that
+// file was at 376 of the 350-line soft cap.
 //
 // Run with `npm test`, which pins TZ=America/Denver; the gauntlet re-runs
 // this file directly under TZ=UTC too. Nothing in this file is zone-dependent
@@ -166,6 +167,16 @@ test("partitionForTimeline: the overnight event draws on BOTH days of the grid, 
   assert.equal(blockGeometry(columnDays[1], timed[0])?.clippedStart, true);
 });
 
+// DO NOT DELETE THIS TEST WHEN CV4 ADDS A REAL CALL SITE. Both gates on
+// mission-12 independently proved it is load-bearing structure, not just
+// coverage: each copied timelineLayout.ts and monthLayout.ts out of the repo,
+// added a required field to MonthLayoutEvent, and got a compiler error
+// (TS2345) at exactly this call — the only place anything checks that
+// TimelineEvent stays assignable to MonthLayoutEvent, which is what lets the
+// all-day row feed monthLayout.assignLanes with no conversion and no second
+// packer. Once CV4 wires up a real TimelineGrid caller, this assertion will
+// look redundant next to it. It isn't — the type-probe was verified in
+// mission-12 pass 2, and CV4's caller doesn't repeat what this test proves.
 test("COMPOSITION: the all-day row partitionForTimeline produces is packed by monthLayout.assignLanes unchanged — no second packer", () => {
   const columnDays = Array.from({ length: 7 }, (_, offset) => addDays(d(2026, 8, 6), offset));
   const events = [

@@ -84,8 +84,14 @@ export function canonicalSearchFor(
  * soft-retries. The render is correct either way (same cards as a fresh
  * load), and the entry is repaired by the retry — so this costs ONCE: every
  * canonicalised entry shares one cache key, so every later cold Back is a
- * cache hit. The escalation Next documents for two successive mismatches
- * (forcing a full page reload) is not reachable here.
+ * cache hit. Next's own escalation for two successive tree/URL mismatches
+ * (forcing a full page reload) needs a SECOND writer replacing the same
+ * entry again — this hook itself writes at most one replace per entry, so
+ * that guarantee is what THIS HOOK can promise, not a claim about the whole
+ * app. It has already been reached once with a second writer present: the
+ * tab bar's own `replace` onto an already-canonicalised entry hit exactly
+ * that reload (mission-12/C3); the fix there removed the second writer, not
+ * anything about this hook's own behaviour.
  *
  * AND BASE PAYS THIS SAME PRICE for any native `pushState` entry of its own
  * — this is the cost of the native History API integration Next's own docs
