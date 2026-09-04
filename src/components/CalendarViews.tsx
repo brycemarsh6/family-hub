@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, UtensilsCrossed } from "lucide-react";
+import { CalendarDays, ListChecks } from "lucide-react";
 import { RadioSheet } from "./RadioSheet";
 import { ActionSheet } from "./ActionSheet";
 import { CalendarHeader } from "./CalendarHeader";
@@ -236,6 +236,7 @@ export function CalendarViews({
     today !== null && anchor !== null && config.isCurrentPeriod(anchor, today);
 
   const title = today === null || anchor === null ? null : config.title(anchor);
+  const addSheetDateParam = anchor ? `?date=${toLocalDateString(anchor)}` : "";
 
   return (
     <div>
@@ -314,16 +315,15 @@ export function CalendarViews({
               icon: <CalendarDays aria-hidden="true" size={18} />,
               onClick: () => {
                 setAddingEvent(false);
-                const dateParam = anchor ? `?date=${toLocalDateString(anchor)}` : "";
-                router.push(`/calendar/new${dateParam}`);
+                router.push(`/calendar/new${addSheetDateParam}`);
               },
             },
             {
-              label: "Meal",
-              icon: <UtensilsCrossed aria-hidden="true" size={18} />,
+              label: "Task",
+              icon: <ListChecks aria-hidden="true" size={18} />,
               onClick: () => {
                 setAddingEvent(false);
-                router.push("/kitchen/cooking/meal-plan");
+                router.push(`/calendar/new/task${addSheetDateParam}`);
               },
             },
           ]}

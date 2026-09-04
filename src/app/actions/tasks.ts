@@ -13,14 +13,23 @@
 // a thrown redirect() would bounce a signed-in kid's browser mid-request
 // instead of just refusing the write. See STRUCTURE.md's guard-form rule.
 //
-// complete/uncomplete use a THIRD guard form neither of STRUCTURE.md's two
-// documented ones covers: a verified user may toggle a task's completion if
-// they are either a manager, or a person the task is actually assigned to
-// (a real TaskPerson row) — "kids can mark their own tasks complete" is the
-// whole reward-points loop this phase exists to make room for. This is not
+// complete uses a THIRD guard form neither of STRUCTURE.md's two documented
+// ones covers: a verified user may mark a task done if they are either a
+// manager, or a person the task is actually assigned to (a real TaskPerson
+// row) — "kids can mark their own tasks complete" is the whole
+// reward-points loop this phase exists to make room for. This is not
 // self-authorized as a new house pattern: mission-13/C4 flags it for
 // Captain to draft a STRUCTURE.md amendment and Bryce to approve, same as
 // every other structural change in this repo.
+//
+// uncomplete does NOT share that guard — it's back to the plain
+// MANAGER_ROLES form create/update/delete use. Per
+// .avengers/plans/calendar-v2.md's decision #12 ("Kids can mark their OWN
+// tasks complete — complete only. Parents create/edit/delete/un-complete."),
+// a kid may only ever move a task forward to done, never undo a completion
+// — theirs or a parent's. (mission-13/C4b — the first version of this file
+// gave uncomplete the same membership guard as complete and flagged the
+// tension instead of guessing; this is that tension resolved.)
 //
 // `rrule` is accepted as opaque, optional text and stored as-given — K4
 // reads and expands it, nothing here does. TaskForm (CT1) has no control
@@ -200,14 +209,16 @@ export async function deleteTask(id: string): Promise<TaskActionResult> {
 }
 
 /**
- * The membership guard behind complete/uncomplete — see this file's header
+ * The membership guard behind completeTask only — see this file's header
  * comment for why it's a third guard form and who has to approve it landing
  * in STRUCTURE.md. A manager may act on any task; anyone else may act only
  * on a task they are genuinely a person on (a real TaskPerson row, read
  * fresh here — never inferred from anything client-supplied). Returns an
  * error message, or null when the caller is allowed to proceed.
+ * uncompleteTask does NOT use this — it's MANAGER_ROLES-only, see the file
+ * header.
  */
-async function assertCanToggleTask(
+async function assertCanCompleteTask(
   user: VerifiedUser,
   taskId: string,
 ): Promise<string | null> {
@@ -230,7 +241,7 @@ export async function completeTask(id: string): Promise<TaskActionResult> {
   const user = await getVerifiedUser();
   if (!user) return { error: "Sign in to do that." };
 
-  const guardError = await assertCanToggleTask(user, id);
+  const guardError = await assertCanCompleteTask(user, id);
   if (guardError) return { error: guardError };
 
   try {
@@ -244,15 +255,16 @@ export async function completeTask(id: string): Promise<TaskActionResult> {
   return {};
 }
 
-/** The inverse of completeTask — same membership guard, same reasoning:
- * a kid can un-complete their own task (a mis-tap) without touching anyone
- * else's. */
+/** The inverse of completeTask — but NOT the same guard. Undoing a
+ * completion is a parent-only action (calendar-v2.md decision #12: kids
+ * get "complete only"), so this uses the plain MANAGER_ROLES form
+ * create/update/delete already use, not assertCanCompleteTask's membership
+ * check. */
 export async function uncompleteTask(id: string): Promise<TaskActionResult> {
   const user = await getVerifiedUser();
-  if (!user) return { error: "Sign in to do that." };
-
-  const guardError = await assertCanToggleTask(user, id);
-  if (guardError) return { error: guardError };
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
 
   try {
     await db.task.update({ where: { id }, data: { completedAt: null } });
