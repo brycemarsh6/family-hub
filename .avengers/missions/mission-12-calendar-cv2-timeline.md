@@ -286,14 +286,164 @@ Fri 10 AM → Sun 2 PM → row; 8 PM → midnight → grid.
   exported signatures (CV4 consumes them); and your stated DST policy with the
   test that pins it.
 
+### C3 — Fix contract: separate "this branch is current" from "this tap goes nowhere"
+- **Status:** PENDING — **held until Vision reports**, so its in-flight gate
+  isn't measuring a build that changed underneath it.
+- **The blocker:** `active` is prefix-based, so C1's `replace` and
+  `router.refresh()` fire on **20 sub-pages** where the tap is a *real*
+  navigation — discarding the entry the user is standing on and reintroducing
+  the dead Back press C1 exists to remove.
+- **Fix (Captain's, inside C1's own boundary):** keep `active` for class names
+  and `aria-current`; add `const isCurrentPage = pathname === item.href` and
+  condition `replace` / `onClick` on **that**. **Pathname equality, not
+  full-URL equality** — `/calendar?view=month` has pathname `/calendar`, so
+  every measured C1 result is preserved byte-for-byte and only the sub-pages
+  change.
+- **Also fix the comment.** It says *"Re-tapping the tab you're already on is
+  a no-op navigation"*, which is **false on those 20 pages** — an
+  overclaiming comment inside the contract whose other half was fixing one.
+- **Boundaries:** `src/components/HubNav.tsx` only.
+- **Verification:** the sub-page case Captain named, measured before and
+  after — `/kitchen/inventory` → tap Kitchen → **Back must not be dead**; the
+  same for a `/calendar` sub-page. Plus **every C1 result re-confirmed
+  unchanged**: root re-taps on two tabs (no history entry, real refetch),
+  inter-tab navigation, and mission-11's S1/S3/F5/F7/F8. Gauntlet both
+  timezones, **236 unchanged**; `className` diff still 0.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Vision | — | — | — |
-| 1 | Captain | — | — | — |
+| 1 | Captain | **BLOCK** | 1 | C2 clean; C1's `active` is prefix-based, so `replace` discards the entry on 20 sub-pages — the same dead Back press it exists to remove |
 
 Budget: 3 passes per gate, then STOP and surface.
+
+## Captain, pass 1 — BLOCK (1 blocker, 7 notes). **C2 passes clean.**
+
+Gauntlet re-run: tsc 0, eslint **0 bytes** of output, 236/236 Denver, tree
+clean. Boundary audit: **5 files, no others** — the two contracts stayed
+disjoint and every named off-limits file is untouched.
+
+### BLOCKER — `replace` fires on 20 sub-pages, where the tap is a *real* navigation
+
+`isActive` is **prefix-matching by construction** and says so
+(`HubNav.tsx:16`: `pathname === href || pathname.startsWith(href + "/")`).
+That is correct for **highlighting** — "this branch is current" — and wrong
+for **history semantics** — "this tap goes nowhere". C1 conditioned both on
+the same predicate.
+
+So on `/kitchen/inventory`, `/calendar/new`, `/calendar/[id]/edit` and 17
+others (**20 pages**, counted by `find`), tapping the tab is a genuine
+navigation, and `<Link replace>` **discards the entry the user is standing
+on**:
+
+```
+history [/calendar, /calendar/123/edit]  --tap Calendar (replace)-->  [/calendar, /calendar]
+Back → /calendar → the same page again.  Dead press.
+```
+
+**That is the identical defect C1's own brief describes itself as removing**,
+one level down. `router.refresh()` also fires there, adding a refetch to a
+real navigation — the very cost the sibling comment rewrite in the same
+contract was correcting elsewhere.
+
+And the new comment — *"Re-tapping the tab you're already on is a no-op
+navigation"* — **is false on those 20 pages.** An overclaiming comment, inside
+the contract whose other half was fixing an overclaiming comment.
+
+**Why C1's evidence didn't reach it:** both measured re-taps were taken at
+tab **roots**, where `pathname === href` and the two predicates agree. The
+test wasn't wrong; it was taken where the bug can't appear.
+
+**Fix (inside C1's existing boundary, `HubNav.tsx` only):** keep `active` for
+class names and `aria-current`; introduce `const isCurrentPage = pathname ===
+item.href` for the history behaviour, and condition `replace` / `onClick` on
+that. **Pathname equality, not full-URL equality, is the right grain** —
+`/calendar?view=month` has pathname `/calendar`, so **every measured C1 result
+is preserved byte-for-byte** and only the 20 sub-pages change.
+
+### Ruling 1 — `timelineLayout.ts` earns the sibling slot; all four shape decisions stand
+
+Imports verified as exactly the two allowed; no `server-only` correctly; no
+lib module imports `app/` or `components/`; no cycle.
+
+- **`TimelineEvent` ≡ `MonthLayoutEvent` is good reuse, and the compiler
+  really is enforcing it today** — `timelineLayout.test.ts:339` passes a
+  `TimelineEvent[]` straight into `assignLanes` and `tsc` exits 0 over it.
+  Captain notes which direction that catches (adding a field to
+  `MonthLayoutEvent` breaks that line; adding one to `TimelineEvent`
+  correctly does not) and flags: **that composition test is load-bearing
+  structure, not just coverage — it must not be deleted when CV4's real call
+  site makes it look redundant.**
+- **`blockGeometry`'s `Pick<…, "startAt" | "endAt">` is "the strongest thing
+  in the file"** — it converts "the timed path must never read an all-day
+  row's stored times" from a rule an editor must remember into one the
+  compiler refuses.
+- `assignColumns` being generic where `assignLanes` isn't: divergence worth
+  having. Generifying `assignLanes` to match would be churn in an
+  out-of-contract file for a caller that doesn't exist yet.
+- Not importing `monthLayout.ts` is **a stronger constraint than the
+  constitution requires**, and buys something real: two packers with disjoint
+  jobs, composed visibly at the call site rather than buried an import deep.
+
+### Ruling 2 — the new test file at 349/350, and a threshold Captain declined to invent
+
+Under the cap by the letter, so not a blocker — but **a file *born* at 349 is
+different from one that grew there: the very next case breaks it, and CV4 is
+the mission that adds timeline-adjacent cases.** The split line is already
+visible in the file's own structure. **Requirement: the mission adding the
+first new case splits it in that same commit** — geometry + DST, and column
+packing + partition, each header naming the module both cover.
+
+Captain **deliberately did not propose an amendment** for "born near the cap":
+*"a line-count threshold on new files is my taste, not a structural rule, and
+the constitution is better lean."* Cap ledger: `EventForm.tsx` 350, this file
+349, `CalendarViews.tsx` 348, `useCalendarPeriod.test.ts` 344.
+
+### Ruling 3 — amendments A and D held on their first live mission
+
+CV2 adds no vocabulary, no gate, and **no view-conditioned logic at all**, so
+D is satisfied the strongest way available: nothing flipped, and nothing new
+was placed where it would later have to move. **D now binds CV4 exactly as
+intended** — flipping `threeDay: true` is blocked until
+`CalendarViews.tsx`'s three inline per-view expressions move into
+`VIEW_CONFIG`. *"That is the enforcement working ahead of the mistake, which
+is what it was for."*
+
+One wording ambiguity, raised and then set aside: `BUILT_CALENDAR_VIEWS` is
+built with `.filter(view => BUILT_VIEWS[view])`, which a quick reader might
+mistake for the forbidden predicate form. It isn't — filtering **through** the
+record is the sanctioned derivation; the forbidden thing is a *separately
+maintained* predicate like `ASSIGNABLE_ROLES`. Captain offered exact wording
+and then declined to push it: **"I'd rather not amend twice in two days."**
+
+### Ruling 4 — conditioning belongs in `HubNav.tsx`, not `nav.ts`
+
+The blocker is that the *predicate is wrong*, not that it lives in the wrong
+file. "Am I on this page" is a function of runtime `pathname`, not a property
+of a tab, and `router.refresh()` is client-runtime behaviour that would drag
+navigation semantics into a pure lib vocabulary. Not amendment-A/D territory
+either — the behaviour is uniform across all five tabs, not a per-member
+difference. Singular-nav decision intact; `className` diff is **0**.
+
+### Ruling 5 + the dormant clock
+
+Ledger unchanged; CV2 created no duplication. `minutesOfDay` is the only
+wall-clock-minutes computation in `src/`. `compareBlocks` and
+`compareCandidates` are a shared *idiom* over different fields and types —
+not copy-pasted logic, and a shared comparator across divergent field names
+would be worse than both.
+
+**`timelineLayout.ts` has no application caller, and Captain recorded the
+reading rather than starting a mechanical count:** the dormant-export rule
+was written for exports whose caller *went away* (`periodWindowEdges`, the
+retired wall), and its refinement targets code describing behaviour the app
+no longer has. **This is the opposite — a library built one phase ahead
+against a written plan phase**, whose header names its consumer twice.
+**CV3 is mission one with no caller; CV4 is the named consumer. If CV4 ships
+without consuming it, the rule bites and it should be deleted with its
+tests.**
 
 ## Handoff log
 
