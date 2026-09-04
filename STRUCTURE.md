@@ -196,14 +196,31 @@ Adding a second definition of any of these is a BLOCKER:
   (node:test + tsx, no new frameworks).
 - **Test files follow the same soft cap**; the split is by module under
   test — one `*.test.ts` per lib module. **When a single module's test file
-  reaches the cap, splitting it by concern is permitted**, provided each half
-  names its concern in the filename and its header names the module both
-  cover — `calendarDates.test.ts` / `calendarDatesFormat.test.ts`
-  (mission-10/C2) is the precedent. A numbered second file is never the
-  answer. (Clause added 2026-09-03: the previous text read as forbidding the
+  reaches the cap, splitting it by concern is permitted.** The file that
+  keeps the module's **primary** concern keeps the module's bare name
+  (`<module>.test.ts`), so searching for the module still lands on its
+  canonical test file; each file that splits off appends the concern it takes
+  (`<module><Concern>.test.ts`). Every header names the module it covers and
+  points at its siblings by filename. A numbered or generic file (`…2`,
+  `…More`, `…Other`) is never the answer. **If a module ever needs a second
+  split, name every resulting file for its concern** — the bare name is only
+  honest while one file still holds the primary concern; after two splits it
+  would sit on whatever was left over, which is the broadest label on the
+  narrowest content. Precedents: `calendarDates.test.ts` /
+  `calendarDatesFormat.test.ts` (mission-10/C2) and `timelineLayout.test.ts` /
+  `timelineLayoutPacking.test.ts` (mission-12/C4).
+  (Clause added 2026-09-03: the previous text read as forbidding the
   concern-split this repo had already shipped, and
   `useCalendarPeriod.test.ts` at 344 now needs it — the letter was corrected
-  to match the practice before a builder obeyed the letter.)
+  to match the practice before a builder obeyed the letter. **Re-worded
+  2026-09-03**, Bryce approving, after mission-12's second live use: Captain
+  found the text still demanded *each half* name its concern while both real
+  splits had deliberately kept the bare name on one of them. Tying the name
+  to the **primary concern** rather than to which file happened to be
+  retained turns an accident into a principle, and settles the second-split
+  case the previous wording left silent — which matters because files in this
+  repo demonstrably return to the cap: this very file was born at 349 and hit
+  376 inside one mission, and `useCalendarPeriod.test.ts` at 344 is next.)
   **When the natural home is already at the cap, a small number of tests may
   be adopted by a sibling module's test file, with a header comment naming
   the module they cover and why they live there. This is a debt marker, not

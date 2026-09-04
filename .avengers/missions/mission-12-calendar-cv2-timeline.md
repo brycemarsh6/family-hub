@@ -877,4 +877,15 @@ can keep, would have been the precise failure under repair.
 recorded); `CalendarViews.tsx`'s extraction (CV3's precondition, not CV2's
 work); `calendarDayDiff`'s invalid-`Date` infinite loop (pre-existing, out of
 every boundary so far); `ASSIGNABLE_ROLES` (already routed by constitutional
-text). **Awaiting Bryce:** Captain's STRUCTURE.md concern-split re-wording.
+text). **Closed:** Captain's STRUCTURE.md concern-split re-wording — Bryce chose
+the extended version. Captain's own text was adopted, plus one sentence
+tying the bare name to the module's **primary concern** rather than to
+whichever file happened to be retained, which also answers what a *second*
+split does. That gap was worth closing rather than deferring: the rule's own
+text already names `useCalendarPeriod.test.ts` at 344 as the next file
+needing it, and this repo's files provably return to the cap — this one was
+born at 349 and hit 376 within a single mission. Left unsaid, the bare name
+would eventually land on whatever concern hadn't been named yet: the
+broadest label on the narrowest content. Nothing else was added — Captain's
+"the constitution is better lean" is right, and it turned down two other
+amendments this week on that ground.
