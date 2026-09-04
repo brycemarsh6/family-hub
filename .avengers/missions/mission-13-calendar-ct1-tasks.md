@@ -303,7 +303,7 @@ single dispatch and a rate limit killed it mid-run.
   STRUCTURE.md documents two. Captain drafts the amendment; Bryce
   approves it. Do not self-authorize it.
 
-### C5 — Scoped seed/clean scripts, and the timezone leg in CI
+### C5 — Scoped seed/clean scripts, and the timezone legs in CI
 - **Status:** PENDING (depends on C2 + C4)
 - **Boundaries:** may touch: new `prisma/seed-tasks.ts`, new
   `prisma/clean-tasks.ts`, new `prisma/task-seed-data.ts`, `package.json`,
@@ -321,6 +321,23 @@ single dispatch and a rate limit killed it mid-run.
   commit** — `package.json`'s test glob is hand-enumerated, not recursive,
   so a missed entry silently drops tests from `npm test` *and* CI while
   the suite still reports green.
+- **The CI gap Fury measured while preparing this contract.**
+  `.github/workflows/ci.yml:45-46` runs **only** `npm test`, which pins
+  `TZ=America/Denver` internally. So the UTC and `America/Los_Angeles`
+  legs — *the entire point of this phase* — never run in CI, and a future
+  change could silently reintroduce the California bug with a green
+  check.
+  Note the history: K2 found the DST tests had been **vacuous in CI for
+  their whole life**, because CI ran UTC where the Nov 1 2026 week never
+  crosses a boundary. The fix pinned Denver. That closed one hole by
+  opening another — CI now proves exactly one zone, and this mission's
+  defect lives in the difference between zones.
+  **C5 must add the missing legs**, as separate named CI steps using the
+  direct `TZ=… node --import tsx --test …` form (never `TZ=… npm test`,
+  which the internal pin silently overrides). Evidence required: a CI run
+  showing all three legs green, and a demonstration that the LA leg
+  **would fail** against pre-C3 code — a leg that has never been red
+  proves nothing, same standard as C3's own regression test.
 
 ## Notes carried (not blockers, routed to a later contract)
 
