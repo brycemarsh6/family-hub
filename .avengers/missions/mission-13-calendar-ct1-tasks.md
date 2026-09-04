@@ -1,7 +1,7 @@
 # Mission: CT1 — Tasks, and the all-day storage fix
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** BUILDING
 **Started:** 2026-09-04 · **Updated:** 2026-09-04
 
 ## Why this mission is next (the ordering was contested — resolved)
@@ -185,7 +185,7 @@ single dispatch and a rate limit killed it mid-run.
   occurrences repo-wide; test count unchanged at 237; DOM diff empty.
 
 ### C2 — `Task`/`TaskPerson` schema, plus the guarded all-day backfill
-- **Status:** PENDING
+- **Status:** DONE — commit `325bde7`
 - **Boundaries:** may touch: `prisma/schema.prisma`, one new directory
   under `prisma/migrations/` · must not touch: any `src/` file, any
   existing migration directory.
@@ -203,6 +203,27 @@ single dispatch and a rate limit killed it mid-run.
   specified above; idempotency demonstrated, not asserted.
 - **Danger note:** `npm run db:seed` / `db:reset` are forbidden. Do not
   touch the `User` table.
+- **Report:** Schema half verbatim-additive (`CREATE TABLE` ×2,
+  `CREATE INDEX` ×4, `ADD CONSTRAINT` ×3 — nothing dropped, no existing
+  column altered). Data half carries the guard verbatim. Camping Trip
+  moved `06:00:00.000Z` → `00:00:00.000Z` on both ends. **Idempotency
+  demonstrated:** the hand re-run reported `UPDATE 0`.
+  **Fury re-verified independently, read-only** (a pasted result is a
+  claim): a `count(*)` of rows still matching the migration's own `WHERE`
+  returns **0**, the row reads `2026-09-03T00:00:00.000Z` /
+  `2026-09-06T00:00:00.000Z` through Prisma, and both new tables exist.
+  That count is the stronger instrument than the builder's re-run,
+  because it proves the no-op *without* performing a write.
+  Gauntlet green; 237 tests unchanged (no test files touched).
+- **Lesson recorded — instrument, not result.** The builder first read the
+  "before" value as `12:00:00.000Z` and briefly suspected the row had
+  drifted. It hadn't: node-postgres' default type parser converts a
+  `timestamp without time zone` column using the *ambient process
+  timezone*, while Prisma treats the same naive column as literal UTC
+  wall-clock. Two readers, two answers, same bytes. **Anyone hand-querying
+  a naive timestamp column in this repo via `pg` must bypass the OID-1114
+  parser or read through Prisma.** Same class as the screenshot-driver and
+  stale-gate-record findings: check the instrument before the result.
 
 ### C3 — Read all-day dates with UTC getters, everywhere
 - **Status:** PENDING (depends on C1 + C2)
@@ -283,6 +304,9 @@ single dispatch and a rate limit killed it mid-run.
   before writing C2: the naive expression shifts a fixed row back a second
   day on a second pass. The `WHERE` guard is now a contract requirement,
   not a suggestion. Five contracts written; C1 ∥ C2 dispatched.
+- 2026-09-04 — **C2 DONE** (`325bde7`), evidence accepted and
+  independently re-verified read-only. C1 still building. Next: C3 (UTC
+  getters) once C1 lands, since both touch `EventForm.tsx`.
 
 ## Delivery
 
