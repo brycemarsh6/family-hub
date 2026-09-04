@@ -360,7 +360,7 @@ single dispatch and a rate limit killed it mid-run.
   `localDayToAllDayInstant` conversion is used, so storage matches C3.
 
 ### C4b — Fix Fury's contract error: the Add sheet, and un-complete
-- **Status:** PENDING
+- **Status:** DONE — commit `d46a114`
 - **Why this exists — my error, recorded plainly.** C4's contract asserted
   "*today `/calendar/new` opens `EventForm` directly*" and, relaying
   Banner unverified, "*no Meal path was ever built*". **Both are false.**
@@ -403,7 +403,6 @@ single dispatch and a rate limit killed it mid-run.
 - **Done criteria:** the "+" offers Event and Task; `/calendar/new/task`
   is reachable from shipped UI; `uncompleteTask` manager-only;
   `CalendarViews.tsx` ≤ 348.
-- **Status:** DONE — commit `d46a114`.
 - **Report:** sheet now Event/Task; `dateParam` hoisted to one shared
   `const`, so the file lands back at **348** rather than 350+ — the extra
   line paid for by removing a duplication. `assertCanToggleTask` renamed
@@ -417,7 +416,7 @@ single dispatch and a rate limit killed it mid-run.
   count, both guards, and three zones.
 
 ### C5 — Scoped seed/clean scripts, and the timezone legs in CI
-- **Status:** PENDING (depends on C2 + C4)
+- **Status:** DONE — commit `1ed7632`
 - **Boundaries:** may touch: new `prisma/seed-tasks.ts`, new
   `prisma/clean-tasks.ts`, new `prisma/task-seed-data.ts`, `package.json`,
   `.github/workflows/ci.yml`, **plus `prisma/calendar-seed-data.ts` and
@@ -469,6 +468,41 @@ single dispatch and a rate limit killed it mid-run.
   by `EventForm.tsx` — a component→component helper edge. It may belong in
   `src/lib/`. **Left for Captain to rule on**; Fury is not pre-empting the
   structure gate.
+
+
+### C6 — Fix batch for Vision's two pass-1 blockers
+- **Status:** DONE — commit `9169a64`
+- **Boundaries:** may touch: the migration directory, `prisma/clean-tasks.ts`,
+  `prisma/seed-tasks.ts`, `prisma/task-seed-data.ts`,
+  `src/app/(app)/calendar/new/task/page.tsx`, `src/app/actions/tasks.ts`,
+  and the mission file's remedy paragraph only · must not touch:
+  `prisma/schema.prisma`, `prisma/seed-calendar.ts`,
+  `prisma/calendar-seed-data.ts`, `src/lib/**`, `src/components/**`,
+  `.github/**`, `package.json`.
+  **Recorded late — Vision pass 2 filed this as a NOTE and it was right.**
+  The contract existed only in the dispatch prompt, so Vision had to
+  reconstruct the may-touch list to audit against it. *A boundary living
+  only in a dispatch prompt is not a boundary* — the same finding
+  mission-12 filed. Written down here so the audit trail is real.
+- **Verification:** full gauntlet, three timezone legs, baseline exact.
+- **Report:** both blockers closed. **C6 deviated from the contract and was
+  right to**: Fury said "keep the SET exactly as shipped", C6 measured that
+  the SET was *also* session-dependent and fixed both clauses. Verified by
+  Fury under 4 sessions and by Vision under **8**, including three
+  quarter-hour offsets — identical everywhere, pass 1 updates the broken
+  row, pass 2 updates 0. Checksum patched on dev and audited by Vision
+  (`shasum -a 256` matches; `migrate status` clean; the migration is absent
+  from `main`, so production applies the corrected file fresh, and
+  `migrate-on-production.mjs` skips outside production so no preview ran it).
+
+### C7 — Strange's blocker: make the repeat row a real disabled control
+- **Status:** DONE — commit `214a546`
+- **Boundaries:** may touch: `src/components/TaskForm.tsx` only.
+- **Report:** `<button type="button" disabled>` + `disabled:opacity-50`,
+  label reworded to `Repeat · coming soon`, `aria-disabled` removed (now
+  zero instances repo-wide). Measured after: `opacity 0.5`/`disabled true`
+  vs `1`/`false` on both live inputs, light and dark, still 343×48, no
+  overflow at 375. Left one stale comment — see the C8 queue.
 
 ## Gate ledger
 
@@ -716,4 +750,20 @@ against.** Re-measure at dispatch.
 
 ## Delivery
 
-_Pending._
+**Shipped:** CT1 in full — `Task`/`TaskPerson` schema, guarded task
+actions, `TaskForm`, the Event/Task Add sheet, the all-day storage fix,
+scoped seed/clean scripts, and three timezone legs in CI. Eight contracts
+(C1–C7 plus C4b). PR **#12**, stacked on #11 → #10 → #9.
+
+**Shipped check:** `git log origin/main..HEAD` is expected to be large —
+this branch sits four deep on unmerged PRs by Bryce's standing decision.
+The mission's own commits start at `926f97b`. Branch pushed; PR #12 open;
+CI green including the new UTC and Los Angeles legs.
+
+**Gate verdicts:** Captain PASS (pass 1). Vision PASS (pass 2). Strange
+BLOCKED (pass 1) → C7 → **pass 2 pending**.
+
+**Deliberate leftovers:** see the C8 queue above, plus Strange's two
+app-wide notes (form text at 4.33:1; the calendar-shaped skeleton on form
+routes), Captain's two amendments awaiting Bryce, and Vision's
+unreachable-`OR`-guard note.
