@@ -4852,3 +4852,110 @@ extracted.
   because F8 exists precisely because Emily's phone backgrounds and reloads
   the app.
 - Merging #9/#10 to production — deliberately held.
+
+---
+
+## Session, 2026-09-03 (continued): CV2 — the timeline layout library
+
+**In progress at time of writing.** Four contracts built; **the gates have not
+re-run since C3**, and **C4 (a test-file split) is still in flight.** Branch
+`claude/calendar-cv2-timeline`, five deep on the unmerged stack.
+
+### What's built
+
+`src/lib/timelineLayout.ts` (331) + tests — the hour timeline's pure maths:
+block position and height **in minutes**, side-by-side columns for
+overlapping events, and the split between the all-day strip and the timed
+grid. **Nothing in `src/` positioned anything by time before this**;
+`monthLayout.ts` is the sibling it mirrors. Plus the restored tab-refresh
+gesture. Tests **207 → 237**.
+
+### The design choices worth not re-litigating
+
+- **DST: a fixed 24-row wall-clock rail.** A day is always 1440 rail minutes
+  even when it is 23 or 25 hours long, so on Nov 1 2026 both 1:30s land on
+  rail minute 90 and a genuinely 3-hour event draws 2 hours tall. Google and
+  Apple make the same trade. The recorded reason: an elapsed-time rail would
+  make **the hour gutter lie** — the row labelled "2 AM" wouldn't sit where
+  2 AM is — and a rail matching the kitchen wall clock is worth more than a
+  faithful duration twice a year. The guarantee that *is* absolute: finite,
+  positive height, on the rail, always.
+- **`blockGeometry` cannot read `allDay`** — its parameter type excludes it.
+  That turns "the timed path must never read an all-day row's stored times"
+  (the deferred storage bug) from a rule an editor must remember into one the
+  compiler refuses. Captain called it the strongest thing in the file.
+- **`TimelineEvent` is structurally identical to `MonthLayoutEvent`**, so the
+  all-day strip feeds the *existing* `assignLanes` with no conversion and no
+  second packer. **The composition test that proves this is load-bearing
+  structure, not coverage — do not delete it when CV4's real call site makes
+  it look redundant** (Captain).
+- **`timelineLayout.ts` deliberately does not import `monthLayout.ts`** — the
+  caller composes them, so the two packers stay visibly disjoint.
+
+### The lessons
+
+- **Both gates found the same blocker by different routes** — Captain by
+  reading, Vision by measuring — and **Vision's version extended it**. The
+  tab-refresh fix keyed its behaviour on `active`, which is *prefix*-based, so
+  it fired on ~20 sub-pages where the tap is a real navigation and `replace`
+  discarded the entry the user was standing on: **the identical dead Back
+  press the fix existed to remove.** Vision then measured a third case
+  (a paged Calendar) that **an exact-path fix would not have caught**, because
+  a paged entry's pathname is already `/calendar`. The answer that removes all
+  three: on a same-page re-tap, **don't navigate at all — just refresh.** Safe
+  because the Today circle already covers "go to today".
+- **The evidence wasn't wrong; it was taken where the bug can't appear.**
+  Both of the original measurements were at tab *roots*, where the loose and
+  strict readings agree.
+- **The one place two libraries disagreed, found by sweeping rather than
+  reasoning.** Vision compared `daysEventCovers` against `blockGeometry`
+  across 225 events × 10 days and found exactly one divergence: a
+  **zero-length timed event at exactly local midnight** — writable through
+  the sanctioned path, since `validateEventInput` rejects only
+  `endAt < startAt`. It would have appeared in the list views and vanished
+  from the timeline. The post-fix sweep across four timezones found **0**.
+- **A test that could not detect its own precondition failing.** A
+  timezone-pinned DST case was recorded (by me, repeating the builder) as
+  "non-vacuous under both invocations". Vision removed the pin and it **still
+  passed**. The fix wasn't a new test — it was making that test *able to
+  fail*, proven by removing the pin and watching it go red.
+- **A comment said an expensive failure mode was "not reachable here." It was
+  reachable** — the first version of the tab fix triggered exactly that full
+  document reload. The shipped code removes the trigger so the claim is true
+  again, but the reasoning was wrong and untested. Same file whose sibling
+  comment was being corrected for overclaiming in the same contract.
+- **A builder renamed a variable I had specified**, because one of the three
+  cases is *precisely* a differing URL and my name (`sameUrl`) "would be the
+  kind of overclaiming this contract exists to remove."
+- **A builder added something unasked and was right to:** blocking the tab's
+  default click would have swallowed cmd/shift-click, making the nav tabs the
+  one link in the app you cannot open in a new tab.
+- **Captain declined to legislate twice.** It found an ambiguity in an
+  amendment approved that morning, drafted the clarification, then set it
+  aside — *"I'd rather not amend twice in two days"* — and separately refused
+  to invent a rule about files created near the cap: *"a line-count threshold
+  on new files is my taste, not a structural rule, and the constitution is
+  better lean."*
+- **The dormant-export rule was read, not applied mechanically.**
+  `timelineLayout.ts` has no application caller yet. Captain recorded that the
+  rule targets exports whose caller *went away*, not **a library built one
+  phase ahead against a written plan** — and set the real deadline: **if CV4
+  ships without consuming it, delete it with its tests.**
+
+### Open at the pause
+
+- **C4 in flight:** `timelineLayout.test.ts` is **376/350**. C3's correctness
+  fix pushed it over, and the split needed a file outside C3's boundary; it
+  judged that **blocking a correctness fix on file organisation was the worse
+  trade** and surfaced the debt instead. Split by concern — geometry + DST,
+  and columns + partition — per the clause added that morning.
+- **Gates have not re-run since C3.** Nothing in CV2 is gate-verified past
+  C1/C2.
+- **`calendarDates.ts`'s `calendarDayDiff` loops forever on an invalid
+  `Date`** — pre-existing, shared with `assignLanes`, unreachable from Prisma
+  dates. Out of every boundary so far; worth a guard someday.
+- Standing: `CalendarViews.tsx` (348) must be extracted before CV3;
+  `EventForm.tsx` (350) still carries `daysBetween`'s `b < a` infinite loop
+  for CT1; `ASSIGNABLE_ROLES` is still a predicate not a record;
+  `MonthLoadingSkeleton.tsx` names an export it no longer has and **must not
+  survive CV3**.
