@@ -15,17 +15,9 @@ import {
   DEFAULT_CALENDAR_VIEW,
   type CalendarPeriodView,
 } from "@/lib/calendarViewVocabulary";
-import { daysEventCovers, daysOfWeek, isOutsideWindow } from "@/lib/calendarDates";
-import {
-  addDays,
-  formatDayLabel,
-  formatMonthTitle,
-  formatWeekRange,
-  isSameDay,
-  isSameMonth,
-  sundayOf,
-  toLocalDateString,
-} from "@/lib/mealPlanDates";
+import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
+import { daysEventCovers, isOutsideWindow } from "@/lib/calendarDates";
+import { toLocalDateString } from "@/lib/mealPlanDates";
 import type { CalendarEventView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
@@ -37,134 +29,10 @@ import type { CalendarEventView } from "@/lib/types";
 // imports the DaySection *component*, so a type re-export pointed the other
 // way would recreate exactly the loop this fix removes).
 
-/**
- * The per-view differences the shell itself has to know about, as one row
- * per view rather than a ternary per difference (mission-10/CV0, completed
- * in mission-11/C1). Typed as a total `Record`, so a new name in
- * `CalendarPeriodView` is a compile error until it has a row here: a new
- * view ADDS A ROW, it never adds a branch to several separate expressions
- * that can then disagree.
- *
- * That claim was only two-fifths true when CV0 wrote it — `title`, `days`
- * and `isCurrentPeriod` were still ternaries ending in a catch-all
- * `: <day behaviour>`, so a new view compiled clean and silently rendered
- * a Day title over a single-day array (Captain's CV0 Ruling 2). C1 moved
- * all five here; C2 widened the union to six views against that check and
- * added the label as a sixth difference, in
- * `calendarViewVocabulary.VIEW_LABELS`, where the picker and the header's
- * switcher circle both read it.
- */
-type ViewConfig = {
-  prevLabel: string;
-  nextLabel: string;
-  /**
-   * How many DaySection placeholders the loading frame renders. Fixed by
-   * `view` alone, never by `today` — that's what lets the frame below show
-   * the right COUNT before `today` resolves. Month renders MonthGrid, and
-   * every path to Month (`setView`, or the URL resync's `jumpTo`) requires
-   * `today` already resolved, so its value here is never reached.
-   */
-  placeholderCount: number;
-  /**
-   * The header title. Takes `anchor` only: no view's title depends on what
-   * day it is today, and a parameter nothing uses would be a promise the
-   * rows don't keep. The component still withholds the title until `today`
-   * resolves (the loading frame, below); widening this to `(anchor, today)`
-   * is a one-line change if a view ever wants to say "Today" instead.
-   */
-  title: (anchor: Date) => string;
-  /**
-   * Which days the shell renders as DaySections. Month's row returns its
-   * anchor day for honesty about where the period is pointed, but nothing
-   * reads it: Month renders MonthGrid, which builds its own 42-day grid
-   * from `anchor` (monthLayout.ts's `monthGridDays`).
-   */
-  days: (anchor: Date) => Date[];
-  /** Whether the cursor is parked on the period containing `today` — what
-   * greys out the header's Today circle. */
-  isCurrentPeriod: (anchor: Date, today: Date) => boolean;
-};
-
-// Each row derives its own week start with `sundayOf(anchor)` rather than
-// taking one computed once in the component. It is a clone-and-setDate, so
-// the repeat costs nothing measurable, and it keeps every row readable on
-// its own terms — no row is handed a value only Week uses, and none has to
-// deal with the `null` that a component-level `weekStart` carries while
-// `today` is still resolving.
-const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
-  week: {
-    prevLabel: "Previous week",
-    nextLabel: "Next week",
-    placeholderCount: 7,
-    title: (anchor) => formatWeekRange(sundayOf(anchor)),
-    days: (anchor) => daysOfWeek(sundayOf(anchor)),
-    isCurrentPeriod: (anchor, today) => isSameDay(sundayOf(anchor), sundayOf(today)),
-  },
-  day: {
-    prevLabel: "Previous day",
-    nextLabel: "Next day",
-    placeholderCount: 1,
-    title: (anchor) => formatDayLabel(anchor),
-    days: (anchor) => [anchor],
-    isCurrentPeriod: (anchor, today) => isSameDay(anchor, today),
-  },
-  month: {
-    prevLabel: "Previous month",
-    nextLabel: "Next month",
-    placeholderCount: 1,
-    title: (anchor) => formatMonthTitle(anchor),
-    days: (anchor) => [anchor],
-    isCurrentPeriod: (anchor, today) => isSameMonth(anchor, today),
-  },
-  // The three views the vocabulary names but nothing renders YET
-  // (mission-11/C2). None is reachable: `BUILT_VIEWS`
-  // (calendarViewVocabulary.ts) says false for all three, so the picker
-  // never offers them and `parseViewParam` normalizes a URL naming one.
-  // The rows exist because this Record is total, and because
-  // `days`/`isCurrentPeriod` are already real facts about the period each
-  // will show. What cannot be known before the renderer exists is marked
-  // PROVISIONAL and belongs to the phase that builds it (CV3 Schedule, CV4
-  // 3 Day, CV5 Year) — with a measurement, not a guess.
-  schedule: {
-    // PROVISIONAL, all three: Schedule has no period to page between (CV3
-    // hides the arrows; the cursor's `step: 0` already refuses to move
-    // it), its title tracks the month at the top of the scroll, and its
-    // Today scrolls rather than pages.
-    prevLabel: "Previous",
-    nextLabel: "Next",
-    placeholderCount: 7,
-    title: (anchor) => formatMonthTitle(anchor),
-    // CV3 builds its own rolling window from `anchor` (scheduleWindow.ts).
-    days: (anchor) => [anchor],
-    isCurrentPeriod: (anchor, today) => isSameDay(anchor, today),
-  },
-  threeDay: {
-    prevLabel: "Previous 3 days",
-    nextLabel: "Next 3 days",
-    placeholderCount: 3,
-    // PROVISIONAL: the first column's day. A real 3-day range label needs a
-    // formatter for spans other than a week (`formatWeekRange` is
-    // hard-wired to 7); adding one belongs with CV4's timeline.
-    title: (anchor) => formatDayLabel(anchor),
-    // Anchor-relative, never snapped to a boundary: Google's own 3 Day
-    // behaviour, and exactly what calendar-v2.md gives CV4 for `columnDays`.
-    days: (anchor) => [anchor, addDays(anchor, 1), addDays(anchor, 2)],
-    isCurrentPeriod: (anchor, today) =>
-      isSameDay(anchor, today) ||
-      isSameDay(addDays(anchor, 1), today) ||
-      isSameDay(addDays(anchor, 2), today),
-  },
-  year: {
-    prevLabel: "Previous year",
-    nextLabel: "Next year",
-    // Year renders 12 mini month grids, not DaySections — unreachable for
-    // the same reason Month's is.
-    placeholderCount: 1,
-    title: (anchor) => String(anchor.getFullYear()),
-    days: (anchor) => [anchor],
-    isCurrentPeriod: (anchor, today) => anchor.getFullYear() === today.getFullYear(),
-  },
-};
+// ViewConfig / VIEW_CONFIG (title, days, isCurrentPeriod per view) moved
+// to src/lib/calendarViewConfig.ts in mission-14/C1 — see that file's own
+// header for why (coverage: it's per-view date logic a .tsx file the test
+// glob can't reach). The render switch below stays here on purpose.
 
 type CalendarViewsProps = {
   events: CalendarEventView[];
@@ -260,7 +128,8 @@ export function CalendarViews({
       <div className="flex flex-col gap-4">
         {view === "month" ? (
           // Guaranteed non-null (see ViewConfig.placeholderCount's comment
-          // above); this check is for TypeScript, not a reachable branch.
+          // in calendarViewConfig.ts); this check is for TypeScript, not a
+          // reachable branch.
           today !== null &&
           anchor !== null && (
             <MonthGrid
