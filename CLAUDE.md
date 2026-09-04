@@ -4571,6 +4571,12 @@ an interruption** — C4 alone was 529k tokens in a single dispatch.
 
 ### Where the Calendar goes next
 
+> ⚠️ **Stale as of the next session (2026-09-02, below).** K2 shipped, and
+> Bryce then walked through Google Calendar and re-shaped the roadmap — the
+> K3–K7 *ordering* here is superseded by `.avengers/plans/calendar-v2.md`.
+> The two K3 preconditions at the end of this section still bind. Read the
+> final section of this file first.
+
 K2 (Month view) is **already contracted** in
 `.avengers/missions/mission-9-calendar-k2-month.md`, with boundaries and a
 line budget measured against the real post-K1 tree. Then K3 filters/tags/
@@ -4586,3 +4592,415 @@ and tags and Sync-to each go in as **one sheet-opening row** below People
 (never N inline toggles per connected calendar — a form whose length grows
 with an external account count), because Title/When/Who must stay above the
 fold.
+
+
+---
+
+## Session, 2026-09-02: K2 shipped, then Bryce re-shaped the whole calendar
+
+Two halves. The morning finished **K2 (Month view + unbounded navigation)**;
+the evening replaced the plan for everything after it. **Read
+`.avengers/plans/calendar-v2.md` before touching the calendar** — it
+supersedes the K3–K7 *ordering* in `calendar-v1.md` (their content survives,
+re-slotted).
+
+### K2 — what shipped (PR #10, open, unmerged, stacked on K1's PR #9)
+
+Month view: Sunday-first six-week grid, spanning bars, up to three colour
+bands per pill, "+N more", day-tap → Day view. Plus a typed period cursor
+(`useCalendarPeriod.ts`) and **`calendarPaging.ts`** — the `?date=`/`?view=`
+URL contract. Tests **135 → 180**, green under both timezones. Nine
+contracts, eleven gate passes.
+
+**The headline is not the Month grid. It's that the calendar only reached
+±60 days, and Bryce found it on first contact with the preview.** The page
+fetched a fixed window around today and *disabled the arrows* at its edge —
+you could not book next June. Every gate had passed the "window-edge
+honesty" machinery as *correct*, because it was: three distinct states,
+adversarially verified twice. Nobody asked whether you could book a dentist
+appointment in March. **Gates verify what the contract asked for; only a
+person using the thing asks whether it's the right thing.** The fix (C6) made
+the fetch window follow the viewed period, Google-style.
+
+### The findings worth carrying (all reproduced, none argued)
+
+- **`offsetDays` structurally could not express month paging.** Captain
+  demonstrated rather than reasoned: stepping by "days in month" from Jan 31
+  **skips February entirely**, and a Prev/Next round trip from Mar 31 loses 3
+  days. A scalar day-offset cannot be a month cursor. `monthOffset` is now a
+  separate integer, which makes Prev∘Next an exact identity by cancellation.
+- **Size and reachability are different properties.** The floating **+**
+  occluded a day number: every tap-target *size* check passed while tapping
+  "20" opened the Add sheet. **Measure at the scroll position the user
+  actually arrives at** — Fury's first measurement, taken scrolled-to-bottom,
+  reported zero failures and would have shipped it. Strange then measured all
+  three candidate fixes and found **two structurally incapable** of working
+  (a 56px button is wider than a 44px cell; `position: fixed` cannot be moved
+  by document padding).
+- **Verified logic ≠ verified pixels.** Vision confirmed the multi-day bar's
+  rounding flags were right; Strange measured the render and found **11.9px
+  of page background between segments** — three week-long events drawing as
+  21 discrete chips, 18 unlabelled. Both checks were honest; only one looked
+  at the screen.
+- **A fix can promote something to load-bearing without re-measuring it.**
+  Hiding truncated titles made the pill's colour fill the *only* signal an
+  event exists — at **1.00:1** contrast, all 55 pills. Same defect the
+  rebrand session fixed once already. And `hidden` is `display:none`, which
+  **strips an element from the accessibility tree**: Month at phone width
+  exposed **0** event names versus 24 in Week.
+- **`package.json:11` pins `TZ` inside the test script, so `TZ=UTC npm test`
+  silently runs Denver twice.** Only the direct
+  `TZ=UTC node --import tsx --test …` invocation proves both timezones.
+- **The CI test glob is a hand-enumerated two-directory list, not
+  recursive.** A `src/lib/calendar/` subdirectory would silently drop its
+  tests from `npm test` **and CI while the suite still reported green at a
+  lower count.** If a test directory is ever added, its glob entry ships in
+  the same commit.
+- **Check your instrument before your result.** A builder found its own
+  screenshot driver only forced the theme when capturing dark — every "light"
+  capture was inheriting the Mac's dark OS theme. It fixed the tool and
+  re-ran everything. A gate had made the identical mistake one pass earlier.
+- **Nine overclaiming comments surfaced in one mission** — including one that
+  was the *stated rationale* for a design decision ("at 375px the pill holds
+  ~2 characters") after the measurement it rested on had been superseded.
+  The argument outlived its evidence. This class has now bitten the project
+  enough times to be worth naming in review.
+- **Fury's own miss, recorded:** a danger-register correction was announced as
+  done, lost to a later write, and never re-verified — caught by a gate two
+  passes later. Same claimed-but-not-durable pattern as the unpushed commits
+  and the empty rename. **Verify a file edit landed; don't trust the write.**
+
+### Then Bryce re-shaped the calendar (evening)
+
+Emily likes Apple's calendar; Bryce likes Google's layouts. He walked through
+Google screen by screen — the K0 Skylight process — and the result is
+`.avengers/plans/calendar-v2.md`, approved the same evening.
+
+**Decisions not to re-litigate:** six views (**Schedule / Day / 3 Day / Week /
+Month / Year**) in the existing `RadioSheet`; **Schedule replaces the
+list-Week and Week becomes an hour timeline** (a rendering model that does
+not exist anywhere in `src/` today — nothing positions by time); paging is
+**swipe + arrows + dropdown**, never swipe-only; last-used view remembered
+per device, but **only when the URL has no `?view=`**, or the stored
+preference fights the resync effect; **`Task` is its own table** with one
+all-day due date, completed tasks staying struck through, and **kids may
+complete their own** (the reward-points loop later); the Add sheet becomes
+**Event / Task** with Meal removed; **long-press-drag** to reschedule on the
+timeline first.
+
+**Bryce reversed one earlier deferral, and the reason changed rather than his
+mind:** the all-day storage bug (all-day events stored as local-midnight
+instants, so the Camping Trip renders a day early once his phone switches to
+Pacific in California) is **fixed in CT1** alongside the Task migration —
+because a second all-day table would otherwise have copied the bug, and every
+renderer would carry two date conventions.
+
+Order: **CV0 → CV1 → CT1 → CV2 → CV3 → CV4 → CV5 → CT2 → CV6 → CD1**, then
+K3 filters/tags, K4 recurrence, the **RSVP/inbox** and **search** walkthroughs
+Bryce still owes (RSVP is a schema decision and **must precede K6**, because
+Google's attendee-response model has to map onto ours), K5 import, K6/K7
+Google sync.
+
+### Where this leaves the tree
+
+Three PRs deep, none merged: **#9 (K1)** → **#10 (K2)** → branch
+`claude/calendar-cv0-extract` (**mission 10, CV0**, in progress). K2's
+preview is live and verified. CV0 is the extraction both K2 gates ruled a
+prerequisite: `CalendarViews.tsx` at 350/350 gets its navigation cluster
+lifted into `useCalendarNavigation.ts`, `calendarDates.test.ts` is split
+(done), and K2's queued one-source-of-truth repairs land. **Mission 10's file
+opens with a RESUMING section that tells a fresh session to trust `git` over
+its prose** — written pre-emptively because a rate limit gives no warning.
+
+### Open for Bryce, none blocking
+
+Two constitution amendments (Captain's on dormant exports, Strange's on
+unoccluded targets); the Neon **dev-branch** password rotation (an agent
+leaked a fragment into a transcript — dev only, hygiene); and whether to
+merge #9/#10 to production, which is what puts the Calendar in front of
+Emily.
+
+---
+
+## Session, 2026-09-03: CV0 and CV1 — the extraction, and the vocabulary
+
+Two Calendar v2 phases delivered, eight build contracts, seven gate passes.
+**Nothing merged** — PRs #9 (K1) and #10 (K2) are still open by Bryce's
+decision, and CV0/CV1 stack on them, four branches deep. His reasoning, which
+is sound: a calendar Emily can't fill isn't a feature, and holding also keeps
+the deferred all-day-storage migration cheap. **My refinement, still open:**
+"wait for Google sync" may be waiting longer than needed — the real milestone
+is "useful enough that she'd open it on purpose," which is plausibly after
+tasks and the hour views, not after sync.
+
+### What shipped
+
+**CV0** (`mission-10`, 4 contracts) — the extraction both K2 gates ruled a
+prerequisite. `CalendarViews.tsx` **350 → 267** with the URL↔cursor cluster in
+`useCalendarNavigation.ts`; `calendarDates.test.ts` **349 → 266** split by
+concern; one `hexToRgba`; the Month skeleton out of the route-segment file,
+closing the last plausible `components → app/` arrow; two dormant exports
+deleted under the rule Bryce approved that morning. **Net duplication fell for
+the first time in the arc.**
+
+**CV1** (`mission-11`, 4 contracts) — six view names (Schedule / Day / 3 Day /
+Week / Month / Year) with **no catch-alls left** in the cursor math or the
+labels, a `BUILT_VIEWS` gate so nothing unbuilt is reachable from picker or
+URL, per-device last-used-view persistence the URL always overrides, and URL
+canonicalisation so an ambiguous history entry can never be reinterpreted.
+Tests **182 → 207**.
+
+### The lessons, and most of them are about verification rather than code
+
+- **Two independent harnesses were blind in the same place, and both reported
+  a clean result they weren't entitled to.** C1 and C2 each claimed an empty
+  before/after trace diff *with a passing positive control*. Vision's harness —
+  which additionally captured `[role=dialog]` contents — found a 24-line diff:
+  the view picker's row order had changed. Their positive controls proved the
+  harness saw `VIEW_CONFIG`, **not that it saw everything.** A positive control
+  only licenses claims about what it actually moved. **Trace harnesses must
+  record dialog contents**, now written into the contracts.
+- **Vision blocked its own prescription.** It diagnosed the Back bug at pass 1
+  and specified the fix; the builder implemented exactly that; at pass 2
+  Vision found the same symptom reachable by two paths *no per-mount shape can
+  cover*, and said so: *"I own that the shape was mine; the finding stands
+  regardless."* Then it prototyped the real fix in-browser without editing
+  source, and measured why native `history.replaceState` beats
+  `router.replace` on a `force-dynamic` page — **zero server GETs against 14
+  for 14 picks.**
+- **"I couldn't test this" became a measured answer.** Two builders honestly
+  labelled a timing question as *reasoning, not measurement* (one after
+  pushing to 80× CPU throttle across 12 runs). Vision built a document-start
+  trap plus a MutationObserver and settled it 18/18: the passive effect
+  flushes **inside the same task as the commit**, so nothing can run between
+  `today` resolving and the URL being written. **Label the distinction, and
+  someone can close it later.**
+- **A gate corrected a claim Fury had repeated in a commit message.**
+  "Canonicalisation costs nothing" holds for loads and picks but **not** for a
+  cold Back into a rewritten entry (+1 fetch, bounded, and base does the same
+  for any native `pushState` entry). Queued as C5.
+- **The cap is a treadmill, not a one-off.** CV0 existed because
+  `CalendarViews.tsx` hit 350; it ended at 267; **CV1 spent 81 of those 83
+  lines in one mission** and ended at 348. Captain's ruling: extraction to
+  ~230 (`ViewConfig` → `src/lib/calendarViewConfig.ts`, **not** the render
+  switch, which is where future growth lands) is **required before CV3**, and
+  its decisive argument was coverage, not size — `VIEW_CURSOR` sits in `lib`
+  and has property tests across every day of 2026, while `VIEW_CONFIG` is the
+  same kind of per-view date logic with **zero tests, solely because it lives
+  in a `.tsx` the test glob cannot see.**
+- **A gate found a live hazard in code nobody had touched.** Checking whether
+  `BUILT_VIEWS` was a local trick or a convention, Captain found
+  `constants.ts` already solves the identical problem for roles — but with a
+  **filter predicate** (`role !== "device"`) rather than a total record, so
+  **a new role becomes assignable silently, with no compile error.** That is
+  Captain's own CV0 hazard class, sitting in the accounts code since it was
+  built. Route to whichever mission next touches roles.
+- **A builder refused to suppress a lint rule and argued the substitute was
+  strictly safer**, rather than adding an ignore comment — the rule protects
+  the same class as CLAUDE.md's `useSyncExternalStore` precedent.
+- **Fury's own mistake: `git add -A` while parallel builders were writing**,
+  sweeping seven of a builder's in-flight files into a documentation commit.
+  The builder caught it, **declined to rewrite a commit that wasn't its own**,
+  and cleaned up separately. Not fixed by history rewrite (branch pushed, tree
+  correct); **the habit changed instead — stage by explicit path.** Captain
+  refused to make it a STRUCTURE.md rule, reasoning that gating commit graphs
+  rather than trees would let a mission with a correct tree BLOCK on history:
+  *"the verdict must always be readable off the tree."*
+- **A real event title reached a builder's terminal** during dialog
+  inspection. It disclosed it, kept it out of the report, and switched to
+  counting rather than quoting for the rest of the run. Dev-branch data is
+  real data.
+
+### Two operational facts that cost time
+
+- **The agent model files had drifted from the project's own decision.**
+  CLAUDE.md's K1 cost review moved Strange and Captain to Opus with Vision on
+  Fable; `~/.claude/agents/` still said `fable` for all three. So K1's and
+  K2's eleven gate passes ran three-Fable-deep when the project had decided on
+  one — a large part of why Bryce's weekly allowance drained faster than
+  planned. **Fixed 2026-09-03** (`captain: opus`, `strange: opus`,
+  `vision: fable`). *This is user-level config outside the repo and is not
+  under git — if it ever looks wrong again, check there first.*
+- **An Anthropic incident killed five gate dispatches** ("Elevated errors for
+  multiple models", Opus and Fable both affected, ~2.5 h). Each dead dispatch
+  burns tokens before it dies. **Stop re-dispatching into a declared outage**
+  — check `status.claude.com` and wait. My own foreground calls kept working
+  throughout, which is what "elevated errors" looks like from the inside: a
+  long-running agent makes far more requests and so catches far more failures.
+
+### Where the Calendar stands
+
+`CV0 ✅ → CV1 ✅ → CV2 (timeline layout lib) → CV3 → CV4 → CV5 → CT1 → CT2 →
+CV6 → CD1`, then filters, recurrence, the RSVP and search walkthroughs Bryce
+still owes, and Google sync. Full plan: `.avengers/plans/calendar-v2.md`.
+
+**CV2 can start immediately** — it is a new pure lib module and touches
+nothing at the cap. **CV3 cannot start** until `CalendarViews.tsx` is
+extracted.
+
+### Open for Bryce
+
+- **Five STRUCTURE.md/DESIGN.md amendments**, all documentation: one
+  reachability gate per widened vocabulary (as a total record, never a
+  predicate); permit the test-file concern-split the *practice* already
+  shipped but the *text* forbids; a filename must name a live export; a member
+  may not become reachable while any per-member difference sits outside a
+  total record; and the `ASSIGNABLE_ROLES` predicate above.
+- **C5**, queued: correct the overclaiming cost comment, and restore the
+  refresh gesture — re-tapping the active Calendar tab no longer refetches,
+  and **that was the only refresh an iOS standalone PWA has**, which matters
+  because F8 exists precisely because Emily's phone backgrounds and reloads
+  the app.
+- Merging #9/#10 to production — deliberately held.
+
+---
+
+## Session, 2026-09-03 (continued): CV2 — the timeline layout library
+
+**DELIVERED.** Five contracts; **Vision PASS and Captain PASS**, zero
+blockers — but read the next paragraph before trusting that sentence, because
+I wrote a version of it once already about a tree no gate had seen. Branch `claude/calendar-cv2-timeline`, five deep on the
+unmerged stack, now open as **PR #11** (stacked on #10 → #9) so Bryce has a
+preview URL. Still not merged, by his standing decision.
+
+### What's built
+
+`src/lib/timelineLayout.ts` (331) + tests — the hour timeline's pure maths:
+block position and height **in minutes**, side-by-side columns for
+overlapping events, and the split between the all-day strip and the timed
+grid. **Nothing in `src/` positioned anything by time before this**;
+`monthLayout.ts` is the sibling it mirrors. Plus the restored tab-refresh
+gesture. Tests **207 → 237**.
+
+### The design choices worth not re-litigating
+
+- **DST: a fixed 24-row wall-clock rail.** A day is always 1440 rail minutes
+  even when it is 23 or 25 hours long, so on Nov 1 2026 both 1:30s land on
+  rail minute 90 and a genuinely 3-hour event draws 2 hours tall. Google and
+  Apple make the same trade. The recorded reason: an elapsed-time rail would
+  make **the hour gutter lie** — the row labelled "2 AM" wouldn't sit where
+  2 AM is — and a rail matching the kitchen wall clock is worth more than a
+  faithful duration twice a year. The guarantee that *is* absolute: finite,
+  positive height, on the rail, always.
+- **`blockGeometry` cannot read `allDay`** — its parameter type excludes it.
+  That turns "the timed path must never read an all-day row's stored times"
+  (the deferred storage bug) from a rule an editor must remember into one the
+  compiler refuses. Captain called it the strongest thing in the file.
+- **`TimelineEvent` is structurally identical to `MonthLayoutEvent`**, so the
+  all-day strip feeds the *existing* `assignLanes` with no conversion and no
+  second packer. **The composition test that proves this is load-bearing
+  structure, not coverage — do not delete it when CV4's real call site makes
+  it look redundant** (Captain).
+- **`timelineLayout.ts` deliberately does not import `monthLayout.ts`** — the
+  caller composes them, so the two packers stay visibly disjoint.
+
+### The lessons
+
+- **Both gates found the same blocker by different routes** — Captain by
+  reading, Vision by measuring — and **Vision's version extended it**. The
+  tab-refresh fix keyed its behaviour on `active`, which is *prefix*-based, so
+  it fired on ~20 sub-pages where the tap is a real navigation and `replace`
+  discarded the entry the user was standing on: **the identical dead Back
+  press the fix existed to remove.** Vision then measured a third case
+  (a paged Calendar) that **an exact-path fix would not have caught**, because
+  a paged entry's pathname is already `/calendar`. The answer that removes all
+  three: on a same-page re-tap, **don't navigate at all — just refresh.** Safe
+  because the Today circle already covers "go to today".
+- **The evidence wasn't wrong; it was taken where the bug can't appear.**
+  Both of the original measurements were at tab *roots*, where the loose and
+  strict readings agree.
+- **The one place two libraries disagreed, found by sweeping rather than
+  reasoning.** Vision compared `daysEventCovers` against `blockGeometry`
+  across 225 events × 10 days and found exactly one divergence: a
+  **zero-length timed event at exactly local midnight** — writable through
+  the sanctioned path, since `validateEventInput` rejects only
+  `endAt < startAt`. It would have appeared in the list views and vanished
+  from the timeline. The post-fix sweep across four timezones found **0**.
+- **A test that could not detect its own precondition failing.** A
+  timezone-pinned DST case was recorded (by me, repeating the builder) as
+  "non-vacuous under both invocations". Vision removed the pin and it **still
+  passed**. The fix wasn't a new test — it was making that test *able to
+  fail*, proven by removing the pin and watching it go red.
+- **A comment said an expensive failure mode was "not reachable here." It was
+  reachable** — the first version of the tab fix triggered exactly that full
+  document reload. The shipped code removes the trigger so the claim is true
+  again, but the reasoning was wrong and untested. Same file whose sibling
+  comment was being corrected for overclaiming in the same contract.
+- **A builder renamed a variable I had specified**, because one of the three
+  cases is *precisely* a differing URL and my name (`sameUrl`) "would be the
+  kind of overclaiming this contract exists to remove."
+- **A builder added something unasked and was right to:** blocking the tab's
+  default click would have swallowed cmd/shift-click, making the nav tabs the
+  one link in the app you cannot open in a new tab.
+- **Captain declined to legislate twice.** It found an ambiguity in an
+  amendment approved that morning, drafted the clarification, then set it
+  aside — *"I'd rather not amend twice in two days"* — and separately refused
+  to invent a rule about files created near the cap: *"a line-count threshold
+  on new files is my taste, not a structural rule, and the constitution is
+  better lean."*
+- **The dormant-export rule was read, not applied mechanically.**
+  `timelineLayout.ts` has no application caller yet. Captain recorded that the
+  rule targets exports whose caller *went away*, not **a library built one
+  phase ahead against a written plan** — and set the real deadline: **if CV4
+  ships without consuming it, delete it with its tests.**
+
+### Open at the pause
+
+- **C4 ✅ done** (`aae9cd8`): `timelineLayout.test.ts` **376 → 232**, with
+  column packing and partition moved to `timelineLayoutPacking.test.ts`
+  (187). C3's correctness fix had pushed it over the cap and the split
+  needed a file outside C3's boundary; C3 judged that **blocking a
+  correctness fix on file organisation was the worse trade** and surfaced
+  the debt instead, which was right. **The count is the instrument** —
+  17 + 13 = the 30 the single file held, 237 total under both zones, the
+  4 DST cases still skipping under UTC — and because a count cannot see a
+  moved test that runs but no longer asserts, every moved body was diffed
+  byte-identical against its original. First live use of the concern-split
+  clause added that morning.
+- **Both gates PASS (pass 2), and both ruled against their own prior work.**
+  Captain found its **own Ruling 2 named the wrong unit** — it had demanded
+  the file be split "in that same commit," but a boundary is per-*contract*,
+  so only whichever contract happens to own the file could comply. What the
+  rule protects is *the file does not leave the mission over cap*, which C4
+  satisfied; the builder who declined was right. Vision **caught its own
+  network capture returning an empty control** and rebuilt the instrument
+  before reporting. It also reproduced C3's library sweep rather than
+  matching it — its own fixture, plus `Pacific/Chatham`, a **+12:45
+  half-hour DST zone** nobody had tried — found 0, then proved the harness
+  non-vacuous against the pre-fix file, where it found 89.
+- **⚠️ I recorded the mission DELIVERED on a tree no gate had seen, and only
+  a resumed gate caught it.** Both PASSes measured `aae9cd8`. Then C5 —
+  written to action those gates' own notes — changed four source files
+  including a live behaviour line, and I committed "both gates PASS" and
+  "CV2 delivered" **after** it. Vision resumed, re-gated the shipped tree,
+  and passed it; its verdict on my record: *"the code turns out to be
+  correct — but that was luck of review order, not evidence."*
+  **The mechanism is ordinary and will recur: gates pass, notes get
+  actioned, and actioning the notes changes the code. A fix contract written
+  to satisfy a gate invalidates that gate's verdict.** The habit that
+  follows: a contract landing after a PASS leaves that PASS covering the old
+  tree until it is re-run, or until the delta is enumerated and shown not to
+  reach that gate's domain. This is the project's tracked
+  "recorded but not verified" class one turn deeper — not a stale plan
+  record (the dashboard), not a stale test claim (C4's missing tests), but a
+  **stale gate record**, which is the strongest claim this process makes.
+  It also found the ledger table still showing pass 1 with both gates
+  BLOCKing while two commits asserted otherwise, and that **C5 shipped with
+  no contract in the mission file**, so its boundary audit had nothing to
+  audit against — a boundary living only in a dispatch prompt is not a
+  boundary. All three fixed.
+- **Vision found a second felt change I had claimed did not exist.** My note
+  justifying *not* assembling Strange said "the one human-facing change is
+  felt rather than seen." The re-tap had also **stopped scrolling to top** —
+  `preventDefault()` takes Next's scroll-to-top with it — measured at
+  scrollY 150→150. Restored in C5 (150→0, refresh still firing). The
+  conclusion held; the argument was an unmeasured claim sitting inside a
+  note whose purpose was justifying not measuring.
+- **`calendarDates.ts`'s `calendarDayDiff` loops forever on an invalid
+  `Date`** — pre-existing, shared with `assignLanes`, unreachable from Prisma
+  dates. Out of every boundary so far; worth a guard someday.
+- Standing: `CalendarViews.tsx` (348) must be extracted before CV3;
+  `EventForm.tsx` (350) still carries `daysBetween`'s `b < a` infinite loop
+  for CT1; `ASSIGNABLE_ROLES` is still a predicate not a record;
+  `MonthLoadingSkeleton.tsx` names an export it no longer has and **must not
+  survive CV3**.

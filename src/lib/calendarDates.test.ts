@@ -1,7 +1,11 @@
 // Real unit tests (node:test, zero new dependencies) for the Calendar
-// branch's pure date/label helpers — see calendarDates.ts's own header for
-// the two rules every case here is checking: calendar-component math only,
-// and "now"/"today" always arrives as a parameter, never from `new Date()`.
+// branch's day/span math — see calendarDates.ts's own header for the two
+// rules every case here is checking: calendar-component math only, and
+// "now"/"today" always arrives as a parameter, never from `new Date()`.
+// Label-formatting tests (formatTimeRange, formatAllDayLabel, isPast) live
+// in the sibling calendarDatesFormat.test.ts — split by concern (never by
+// number, per STRUCTURE.md), mission 10's C2, because this file was at 349
+// of the 350-line soft cap.
 // Run with `npm test` — this file must live directly in src/lib/, since
 // that's the only place (plus src/lib/voice/) the test glob reaches.
 
@@ -9,11 +13,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   daysOfWeek,
-  formatTimeRange,
-  formatAllDayLabel,
-  isPast,
+  calendarDayDiff,
   daysEventCovers,
   isOutsideWindow,
+  formatTimeRange,
+  formatAllDayLabel,
 } from "./calendarDates";
 
 function d(year: number, month: number, day: number, hour = 0, minute = 0): Date {
@@ -62,110 +66,17 @@ test("daysOfWeek: truncates a weekStart carrying a time-of-day to local midnight
 });
 
 // ---------------------------------------------------------------------------
-// formatTimeRange
+// calendarDayDiff
+//
+// Moved home from monthLayout.test.ts, mission 10's C2. It landed there
+// (mission 9's C1) only because this file was already at the 349/350 cap —
+// STRUCTURE.md's adoption clause always called that a debt marker, and the
+// split above is the real fix. This is its function's own file again.
 
-test("formatTimeRange: whole hours, same meridiem (PM)", () => {
-  assert.equal(formatTimeRange(d(2026, 0, 1, 20, 0), d(2026, 0, 1, 21, 0)), "8 – 9 PM");
-});
-
-test("formatTimeRange: whole hours, same meridiem (AM)", () => {
-  assert.equal(formatTimeRange(d(2026, 0, 1, 10, 0), d(2026, 0, 1, 11, 0)), "10 – 11 AM");
-});
-
-test("formatTimeRange: half-hour times, same meridiem", () => {
-  assert.equal(
-    formatTimeRange(d(2026, 0, 1, 12, 30), d(2026, 0, 1, 16, 30)),
-    "12:30 – 4:30 PM",
-  );
-});
-
-test("formatTimeRange: crossing AM to PM shows the meridiem on both ends", () => {
-  assert.equal(
-    formatTimeRange(d(2026, 0, 1, 11, 30), d(2026, 0, 1, 13, 0)),
-    "11:30 AM – 1 PM",
-  );
-});
-
-test("formatTimeRange: midnight formats as 12 AM, not 0", () => {
-  assert.equal(formatTimeRange(d(2026, 0, 1, 0, 0), d(2026, 0, 1, 1, 0)), "12 – 1 AM");
-});
-
-test("formatTimeRange: noon formats as 12 PM, not 0", () => {
-  assert.equal(formatTimeRange(d(2026, 0, 1, 12, 0), d(2026, 0, 1, 13, 0)), "12 – 1 PM");
-});
-
-test("formatTimeRange: noon crossing into the afternoon still shows both meridiems if they differ", () => {
-  // 11:45 AM to 12:15 PM crosses the noon boundary, so AM/PM legitimately
-  // differ even though both are "12"-adjacent times.
-  assert.equal(
-    formatTimeRange(d(2026, 0, 1, 11, 45), d(2026, 0, 1, 12, 15)),
-    "11:45 AM – 12:15 PM",
-  );
-});
-
-// ---------------------------------------------------------------------------
-// formatAllDayLabel
-
-test("formatAllDayLabel: single-day all-day event reads 'All day'", () => {
-  // Stored end is the exclusive convention: an all-day event on Aug 9
-  // stores end = Aug 10 midnight.
-  const label = formatAllDayLabel(d(2026, 7, 9), d(2026, 7, 10), true, d(2026, 7, 9));
-  assert.equal(label, "All day");
-});
-
-test("formatAllDayLabel: a 5-day all-day event reads 'Day 2 of 5' on its second day", () => {
-  const start = d(2026, 7, 9); // Sunday
-  const end = d(2026, 7, 14); // exclusive: covers Aug 9-13 inclusive (5 days)
-  const label = formatAllDayLabel(start, end, true, d(2026, 7, 10));
-  assert.equal(label, "Day 2 of 5");
-});
-
-test("formatAllDayLabel: the exclusive stored end does not leak onto an extra day", () => {
-  const start = d(2026, 7, 9);
-  const end = d(2026, 7, 10); // exclusive end => a single real day, Aug 9
-  // Asking about Aug 10 (the exclusive boundary, not a real day of the event)
-  // must not be treated as day 2 of a 2-day span.
-  const label = formatAllDayLabel(start, end, true, d(2026, 7, 9));
-  assert.equal(label, "All day");
-});
-
-test("formatAllDayLabel: a plain single-day timed event returns null (use formatTimeRange instead)", () => {
-  const label = formatAllDayLabel(
-    d(2026, 7, 9, 14, 0),
-    d(2026, 7, 9, 15, 0),
-    false,
-    d(2026, 7, 9),
-  );
-  assert.equal(label, null);
-});
-
-test("formatAllDayLabel: a multi-day timed event (inclusive end instant) labels each day correctly", () => {
-  // A business trip: Tue 9 AM to Thu 5 PM — a timed event, so its end
-  // instant is used as-is (no exclusive-end adjustment), and it genuinely
-  // spans 3 calendar days.
-  const start = d(2026, 7, 11, 9, 0); // Tuesday
-  const end = d(2026, 7, 13, 17, 0); // Thursday
-  assert.equal(formatAllDayLabel(start, end, false, d(2026, 7, 11)), "Day 1 of 3");
-  assert.equal(formatAllDayLabel(start, end, false, d(2026, 7, 12)), "Day 2 of 3");
-  assert.equal(formatAllDayLabel(start, end, false, d(2026, 7, 13)), "Day 3 of 3");
-});
-
-// ---------------------------------------------------------------------------
-// isPast
-
-test("isPast: an event that ended earlier today is past", () => {
-  const now = d(2026, 7, 9, 15, 0);
-  assert.equal(isPast(d(2026, 7, 9, 14, 0), now), true);
-});
-
-test("isPast: an event still running (end in the future) is not past", () => {
-  const now = d(2026, 7, 9, 15, 0);
-  assert.equal(isPast(d(2026, 7, 9, 16, 0), now), false);
-});
-
-test("isPast: an event ending exactly at now counts as past", () => {
-  const now = d(2026, 7, 9, 15, 0);
-  assert.equal(isPast(d(2026, 7, 9, 15, 0), now), true);
+test("calendarDayDiff: forward, backward, and zero", () => {
+  assert.equal(calendarDayDiff(d(2026, 10, 1), d(2026, 10, 1)), 0);
+  assert.equal(calendarDayDiff(d(2026, 10, 1), d(2026, 10, 5)), 4);
+  assert.equal(calendarDayDiff(d(2026, 10, 5), d(2026, 10, 1)), -4);
 });
 
 // ---------------------------------------------------------------------------
@@ -212,6 +123,12 @@ test("daysEventCovers: a multi-day timed event spanning midnight covers both cal
 
 // ---------------------------------------------------------------------------
 // Regression tests — mission-8 pass-1 blockers (Vision V1, V2)
+//
+// These exercise daysEventCovers — the day-boundary/span function this file
+// owns — together with the two label formatters, since the bug and its fix
+// were both about which calendar day an event's span belongs to; confirming
+// the label output alongside the span is what proves the fix, not scope
+// creep into calendarDatesFormat.test.ts's own territory.
 
 test("REGRESSION (V1): a timed event ending exactly at local midnight belongs to the day it closes, not the day it opens", () => {
   // The natural way to type "8 PM to midnight": Sep 4 8:00 PM -> Sep 5
@@ -281,7 +198,7 @@ test("REGRESSION (V2): a degenerate all-day event (end not after start) still re
  * for exactly this reason), so this is a reliable, zero-dependency way to
  * pin ONE test's simulated browser timezone regardless of which TZ the
  * whole suite happens to be invoked under. That matters specifically here:
- * `npm test` always forces America/Denver, but mission-8's own gauntlet
+ * `npm test` always forces America/Denver, but this project's own gauntlet
  * also re-runs this file directly under `TZ=UTC` to prove nothing else in
  * it silently depends on ambient TZ — and the V4 scenario below is
  * genuinely, deliberately about a Mountain browser watching a UTC-built
@@ -292,8 +209,8 @@ test("REGRESSION (V2): a degenerate all-day event (end not after start) still re
  * help.) One sharp edge (Vision pass-3, note 2): this only works for `Date`
  * getters — calendarDates.ts's module-level `Intl.DateTimeFormat`
  * instances freeze their zone at construction and never re-read `TZ`, so
- * `run` must call only isOutsideWindow/canStepToPeriod here, never a
- * formatter (formatTimeRange, formatAllDayLabel).
+ * `run` must call only isOutsideWindow here, never a formatter
+ * (formatTimeRange, formatAllDayLabel — see calendarDatesFormat.test.ts).
  */
 function withTimeZone<T>(tz: string, run: () => T): T {
   const previous = process.env.TZ;

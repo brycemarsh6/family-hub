@@ -1,6 +1,7 @@
 import { AvatarBadge } from "./AvatarBadge";
 import { avatarColorHex } from "@/lib/constants";
 import { formatAllDayLabel, formatTimeRange, isPast } from "@/lib/calendarDates";
+import { hexToRgba } from "@/lib/color";
 import type { CalendarEventView } from "@/lib/types";
 
 /**
@@ -126,16 +127,6 @@ export function EventCard({
       </div>
     </button>
   );
-}
-
-/** `#rrggbb` -> `rgba(r, g, b, alpha)`. AVATAR_COLORS (constants.ts) are all
- * plain 6-digit hex, so this doesn't need to handle shorthand (#rgb) or
- * named colors — the one format that vocabulary ever produces. */
-function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 /**

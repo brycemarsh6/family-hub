@@ -157,6 +157,31 @@ Adding a second definition of any of these is a BLOCKER:
   `passwordHash` and strips it by hand is. (Clarified 2026-09-02, mission 8.)
 - Shared UI jobs — see DESIGN.md's component vocabulary
 
+- **A vocabulary widened ahead of its consumers carries exactly one
+  reachability gate.** When a union names more members than the app can serve
+  — a view with no renderer, a role nobody may be assigned — the answer to
+  "which of these is real today" lives in **one total
+  `Record<Union, boolean>`**, and every reachability decision (URL/param
+  parsing, picker and option lists, deep links, stored preferences) derives
+  from that record rather than keeping its own list. **A total record, never a
+  `filter` predicate:** the record makes a new member *answer* the question; a
+  predicate lets it default silently. Shipping the consumer is then one entry
+  flipped in the same commit.
+  Instances: `BUILT_VIEWS` → `BUILT_CALENDAR_VIEWS` → `CALENDAR_VIEW_OPTIONS`
+  (`src/lib/calendarViewVocabulary.ts`, mission-11/C2). And **`ROLES` →
+  `ASSIGNABLE_ROLES` (`src/lib/constants.ts`) is currently the weaker
+  predicate form — a new role becomes assignable with no compile error.
+  Convert it at the next touch.**
+  Where such a record exists, **a new per-member difference goes into it, not
+  into an inline `x === "member"` expression beside it** — an inline test with
+  a falsy default is the same silent-inheritance hazard the record exists to
+  prevent. It is tolerable only while the members it would mislabel are
+  unreachable through the gate, so **a member's reachability entry may not
+  flip to `true` in a commit that leaves any per-member difference outside a
+  total record.** (`showLocation`, `compact` and the renderer selection in
+  `CalendarViews.tsx` are the live instances; CV3/CV4/CV5 own them.)
+  (Added 2026-09-03, mission-11, on Captain's ruling.)
+
 ## File-size caps
 
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (actions/groceries.ts
@@ -170,7 +195,32 @@ Adding a second definition of any of these is a BLOCKER:
 - Tests are colocated in `src/lib` as `*.test.ts`, run by `npm test`
   (node:test + tsx, no new frameworks).
 - **Test files follow the same soft cap**; the split is by module under
-  test — one `*.test.ts` per lib module — never a numbered second file.
+  test — one `*.test.ts` per lib module. **When a single module's test file
+  reaches the cap, splitting it by concern is permitted.** The file that
+  keeps the module's **primary** concern keeps the module's bare name
+  (`<module>.test.ts`), so searching for the module still lands on its
+  canonical test file; each file that splits off appends the concern it takes
+  (`<module><Concern>.test.ts`). Every header names the module it covers and
+  points at its siblings by filename. A numbered or generic file (`…2`,
+  `…More`, `…Other`) is never the answer. **If a module ever needs a second
+  split, name every resulting file for its concern** — the bare name is only
+  honest while one file still holds the primary concern; after two splits it
+  would sit on whatever was left over, which is the broadest label on the
+  narrowest content. Precedents: `calendarDates.test.ts` /
+  `calendarDatesFormat.test.ts` (mission-10/C2) and `timelineLayout.test.ts` /
+  `timelineLayoutPacking.test.ts` (mission-12/C4).
+  (Clause added 2026-09-03: the previous text read as forbidding the
+  concern-split this repo had already shipped, and
+  `useCalendarPeriod.test.ts` at 344 now needs it — the letter was corrected
+  to match the practice before a builder obeyed the letter. **Re-worded
+  2026-09-03**, Bryce approving, after mission-12's second live use: Captain
+  found the text still demanded *each half* name its concern while both real
+  splits had deliberately kept the bare name on one of them. Tying the name
+  to the **primary concern** rather than to which file happened to be
+  retained turns an accident into a principle, and settles the second-split
+  case the previous wording left silent — which matters because files in this
+  repo demonstrably return to the cap: this very file was born at 349 and hit
+  376 inside one mission, and `useCalendarPeriod.test.ts` at 344 is next.)
   **When the natural home is already at the cap, a small number of tests may
   be adopted by a sibling module's test file, with a header comment naming
   the module they cover and why they live there. This is a debt marker, not
@@ -181,10 +231,25 @@ Adding a second definition of any of these is a BLOCKER:
 
   Live instances of the adoption clause — keep this list short, and empty it
   by splitting rather than by growing it:
-  - `monthLayout.test.ts` holds `calendarDates.ts`'s `calendarDayDiff` case,
-    because `calendarDates.test.ts` sits at 349 of 350. **Queued for repair:**
-    mission 9's C3 splits `calendarDates.test.ts` and sends that test home,
-    which will empty this list.
+  - (none — emptied 2026-09-02, mission 10's C2, which split
+    `calendarDates.test.ts` by concern into `calendarDates.test.ts`
+    (day/span math) and `calendarDatesFormat.test.ts` (label formatting) and
+    sent `calendarDayDiff`'s test home from `monthLayout.test.ts`.)
+
+- **A lib export with no application caller is dormant, not dead — but it
+  must say so.** Keeping one is allowed when a named future consumer
+  justifies it; the export carries a comment naming why it is dormant and
+  what would revive it, and any function it in turn orphans carries the same
+  note at its own definition. **Two consecutive missions with no caller means
+  delete it and its tests** — a hypothetical consumer that never arrives is
+  not a reason to maintain code. (Added 2026-09-03 on Captain's ruling,
+  missions 9–10.) One refinement from its first application: prefer deletion
+  outright when the dormant code describes behaviour the app **no longer
+  has**, rather than behaviour merely unused — a dormant-export comment would
+  then preserve a wrong answer for a future reader, which is the
+  overclaiming-comment failure this repo tracks. `periodWindowEdges` was the
+  retired navigation wall; deleting it removed both the code and that future
+  wrong answer.
 
 ## Naming
 
@@ -194,7 +259,25 @@ Adding a second definition of any of these is a BLOCKER:
 - Routes follow Next App Router conventions; route groups like `(app)` are
   invisible in URLs.
 
+- **A component file's name must name something the file still exports.**
+  Naming a family of exports is fine (`Skeleton.tsx`); naming a **deleted**
+  export is not — a `grep` for the filename must not come up empty. Rename in
+  the mission that deletes the last matching export, or in the next mission
+  that touches the file. (Added 2026-09-03, mission-11; `MonthLoadingSkeleton.tsx`,
+  which now exports only `MonthGridSkeletonRows`, is the live instance and
+  must not survive CV3.)
+
 ## Danger register (absolute, for every agent)
+
+- **Never `git add -A` or `git add .` while another agent may be writing.**
+  Stage by explicit path. A commit that sweeps in a parallel builder's
+  in-flight files is not a correctness failure — the tree can still be right —
+  but it makes the commit message lie about its contents, and this repo's own
+  debugging routinely depends on pinning a worktree or extracting a file at a
+  named commit. (Recorded 2026-09-03, mission-10: a documentation commit swept
+  seven of a builder's source files plus two throwaway scripts. Removing the
+  strays in a follow-up, rather than rewriting a pushed branch, is the right
+  remedy.)
 
 - **Local dev uses the Neon `dev` branch — a copy-on-write clone of
   production — as of 2026-09-01.** The production URL lives only in

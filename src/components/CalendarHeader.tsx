@@ -2,6 +2,7 @@
 
 import { CalendarCheck, CalendarRange, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
+import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 
 /**
  * The Calendar branch's header row: the Today/view-switcher/Add circles,
@@ -41,7 +42,15 @@ export function CalendarHeader({
   canManage,
   onAdd,
 }: {
-  view: "week" | "day" | "month";
+  /** The real union, imported rather than hand-written (mission-11/C1) —
+   * the local copy that used to sit here was a second place the view
+   * vocabulary lived, and it disagreed with `CalendarPeriodView` the moment
+   * anything widened the type. It now comes from calendarViewVocabulary.ts,
+   * which is also where this file reads the switcher circle's label from
+   * (mission-11/C2) — importing `VIEW_CONFIG` out of CalendarViews.tsx for
+   * that would have recreated the component-to-component cycle that file's
+   * own header warns about. */
+  view: CalendarPeriodView;
   onPickView: () => void;
   /** False while useToday() hasn't resolved yet — see CalendarViews.tsx. */
   todayResolved: boolean;
@@ -76,7 +85,16 @@ export function CalendarHeader({
         />
         <ActionCircle
           icon={<CalendarRange aria-hidden="true" size={22} />}
-          label={view === "week" ? "Week" : view === "day" ? "Day" : "Month"}
+          // The label comes from the one total `Record<CalendarPeriodView,
+          // string>` the picker also reads (mission-11/C2), never a ternary
+          // chain. The chain this replaced ended in a catch-all `: "Month"`,
+          // so the moment C2 widened the union, Schedule / 3 Day / Year
+          // would each have rendered a circle labelled "Month" with no
+          // compile error — the label had been protected only by this file
+          // hand-writing its own copy of the view union, which C1 correctly
+          // removed. A total record makes the label a compiler-checked
+          // per-view difference instead.
+          label={VIEW_LABELS[view]}
           onClick={onPickView}
         />
         {canManage && (

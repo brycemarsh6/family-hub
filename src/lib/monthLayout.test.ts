@@ -1,14 +1,16 @@
 // Real unit tests (node:test, zero new dependencies) for the Month view's
 // pure layout helpers — mission-9 (K2), contract C1. Run with `npm test`;
 // this file lives directly in src/lib/, the only place (plus src/lib/voice/)
-// the test glob reaches. Per STRUCTURE.md's amended cap rule, the
-// `calendarDayDiff` export C1 added to calendarDates.ts is tested HERE
-// rather than in calendarDates.test.ts (already at the 350-line soft cap).
-// `toLocalDateString`'s own DEDICATED test moved to mealPlanDates.test.ts
-// in mission-9's C2a (that's the function's real home, declared in
-// mealPlanDates.ts, not here) — it's still imported below, just as a
-// convenience uniqueness check inside `monthGridDays`' own test, not as
-// something this file is responsible for verifying.
+// the test glob reaches. `toLocalDateString`'s own DEDICATED test moved to
+// mealPlanDates.test.ts in mission-9's C2a (that's the function's real home,
+// declared in mealPlanDates.ts, not here) — it's still imported below, just
+// as a convenience uniqueness check inside `monthGridDays`' own test, not as
+// something this file is responsible for verifying. `calendarDayDiff` is
+// imported below only as this file's own consecutive-day helper
+// (`assertConsecutiveNoGapNoDuplicate`) — its own test, adopted here by
+// mission 9's C1 because calendarDates.test.ts was at the 350-line soft cap,
+// moved home in mission 10's C2, which emptied STRUCTURE.md's adoption-clause
+// list.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -190,16 +192,4 @@ test("assignLanes-adjacent: a grid cell can be marked outside the fetch window",
   const lateDay = grid[35]; // deep into row 6 — outside
   assert.equal(isOutsideWindow(earlyDay, windowStart, windowEnd), false);
   assert.equal(isOutsideWindow(lateDay, windowStart, windowEnd), true);
-});
-
-// ---------------------------------------------------------------------------
-// The `calendarDayDiff` export C1 added to calendarDates.ts — tested here
-// per the amended cap rule, not in calendarDates.test.ts's own already-at-
-// cap file. (`toLocalDateString`'s test lives in mealPlanDates.test.ts now
-// — see this file's header.)
-
-test("calendarDayDiff: forward, backward, and zero", () => {
-  assert.equal(calendarDayDiff(d(2026, 10, 1), d(2026, 10, 1)), 0);
-  assert.equal(calendarDayDiff(d(2026, 10, 1), d(2026, 10, 5)), 4);
-  assert.equal(calendarDayDiff(d(2026, 10, 5), d(2026, 10, 1)), -4);
 });

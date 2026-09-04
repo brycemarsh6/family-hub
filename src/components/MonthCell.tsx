@@ -2,6 +2,7 @@ import { CalendarOff } from "lucide-react";
 import { avatarColorHex } from "@/lib/constants";
 import { isPast } from "@/lib/calendarDates";
 import { formatDayLabel } from "@/lib/mealPlanDates";
+import { hexToRgba } from "@/lib/color";
 import type { CalendarEventView } from "@/lib/types";
 
 /**
@@ -26,18 +27,6 @@ export type MonthCellSlot = {
   roundLeft: boolean;
   roundRight: boolean;
 } | null;
-
-/** `#rrggbb` -> `rgba(r, g, b, alpha)`. A near-duplicate of EventCard.tsx's
- * own private helper of the same name — EventCard.tsx is off this
- * contract's boundary (must-not-touch) and never exported it, so there's
- * no legal way to share one copy without editing that file. Identical
- * behavior, kept in sync by eye if the format ever needs to change. */
-function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 /** Up to THREE diagonal color bands, not one-per-person like EventCard's
  * uncapped version — the mission brief's own words ("a multi-person pill
