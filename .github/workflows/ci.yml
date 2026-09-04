@@ -1,8 +1,11 @@
 # The gauntlet, run by GitHub on every pull request and every push to main.
 #
-# This is the same four commands every mission has always had to pass
+# This is the same set of commands every mission has always had to pass
 # locally (see CLAUDE.md's gauntlet sections) — now enforced by a machine
-# that can't forget, on every change, from any device or tool.
+# that can't forget, on every change, from any device or tool. Tests run as
+# three separate legs (America/Denver, UTC, America/Los_Angeles) rather than
+# one — see the comment above the Tests steps below for why a single pinned
+# timezone can't be trusted to catch a timezone-dependent bug.
 #
 # Deliberately NO secrets in here: the env values below are dummies. The
 # gauntlet never talks to a real database (tests are pure by design — the
@@ -42,7 +45,19 @@ jobs:
         run: npx tsc --noEmit
       - name: Lint
         run: npx eslint .
-      - name: Tests
+      - name: Tests (America/Denver)
         run: npm test
+      # npm test pins TZ=America/Denver INSIDE the script, so `TZ=UTC npm
+      # test` would silently still run Denver — these two extra legs use
+      # the direct node invocation instead, the only way to actually
+      # change the process timezone. Added for mission-13/CT1: the
+      # all-day-event storage fix this phase makes lives entirely in the
+      # difference between timezones (a bug invisible to a single pinned
+      # zone), and CI must prove all three the gauntlet has always required
+      # locally, not just one of them.
+      - name: Tests (UTC)
+        run: TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts
+      - name: Tests (America/Los_Angeles)
+        run: TZ=America/Los_Angeles node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts
       - name: Build
         run: npm run build
