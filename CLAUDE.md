@@ -5122,3 +5122,85 @@ through the shipped bundle rather than a harness. `CalendarViews.tsx`
 - Standing from CT1, still true: `MonthLoadingSkeleton.tsx` names a deleted
   export and must not survive CV3; `ASSIGNABLE_ROLES` is still a predicate
   rather than a total record.
+
+---
+
+## 🎉 2026-09-04: the Calendar is LIVE. The five-PR stack is merged.
+
+**Bryce's decision, then executed the same session.** Offered merge-now,
+merge-after-CT2, or hold-until-Google-sync, he chose the middle — so
+nothing half-visible would reach Emily. CT2 delivered, and the stack
+merged immediately after.
+
+`#9 → #10 → #11 → #12 → #13`, **all MERGED**. The stack was perfectly
+linear, so #9 closed itself when #10 landed, and #12 closed itself when
+#13 landed. Three Production deployments (`61075b3`, `a3d498b`,
+`5b51015`), **all reporting success** — which is also the proof the
+all-day migration ran, since `build:vercel` runs `prisma migrate deploy`
+*before* `next build`, so a failed migration fails the build.
+
+**What the family now has:** a real calendar — Week, Day and Month views,
+unbounded navigation, event creation with people and locations — plus
+**Tasks**: create, assign, complete, reassign, delete, rendered in every
+built view. **A kid can tick off their own chore and nothing else**, which
+is the foundation for the reward-points loop. And all-day events land on
+the right day in every timezone, which matters because Bryce is in
+California about a third of each month.
+
+Tests **241 → 252**. `main` green on all four gauntlet commands.
+
+### One instrument failure worth recording, because it is mine and it is instructive
+
+Verifying the new build was live, I tested whether `/calendar/new/task`
+returned 307 (exists) rather than 404 (doesn't). **It returned 307 — and
+so did `/calendar/definitely-not-a-route`.** `proxy.ts` redirects every
+unauthenticated request to `/login` *before* routing, so the test cannot
+distinguish a real route from a fictional one. The positive control is
+what caught it; without one I would have reported a meaningless 307 as
+proof. **A test that returns the same answer for the real and the
+fictional case is not a test.** The GitHub deployments API gave the real
+answer.
+
+### The honest ledger for CT1 + CT2
+
+**All four blockers across both missions were documentation promising a
+property the code did not have** — never the feature. And **six instrument
+errors**, three of them Fury's: an idempotency probe that modelled the
+wrong SQL expression; a measurement that bypassed an implicit assignment
+cast and so wrongly downgraded a real Vision blocker; and the 307 test
+above. Gates caught the other three (a frozen CSS transition, a
+`<nextjs-portal>` false occlusion, a Suspense-stalling browser pane).
+
+**Fury's process failures, recorded because they cost real cycles:** two
+**contract errors**, both a false premise about what already existed
+(forbidding the only file that could satisfy a contract's own
+done-criteria; forbidding `TaskForm.tsx` without checking it already did
+edit). **Three contracts dispatched without a written boundary** (C3b, C5,
+C6) — caught once by a builder and once by Captain. **Three commits landed
+mid-gate**; Vision caught the last and downgraded it only on proof of
+inertness.
+
+### Approved and agreed with Bryce, 2026-09-04
+
+- **STRUCTURE.md gained two clauses** (his approval): `mealPlanDates.ts`
+  owns the local-calendar-date conversions, survivors named grandfathered
+  debt rather than precedent; and the general rule that **trip conditions
+  are keyed to definitions, never to importer counts** — a threshold you
+  can satisfy by copying instructs rather than restrains.
+- **A follow-up mission is agreed** for three things: optimistic
+  `Mark complete` (with an explicit DESIGN.md carve-out for one-shot
+  destructive verbs like Delete), the empty `☐` on open task pills in
+  Month, and the deactivated-member picker fix (show active people **plus
+  anyone already on this item**, preserving history rather than erasing
+  it — the reading his own recipe/meal-plan precedents already chose).
+- **Still pending his approval:** the two CT1 amendments — the membership
+  guard form, and the data-migration exception to additive-only.
+- **Queued:** run one gate on **Fable** next mission for a real comparison
+  (see the `gate-model-fable-experiment` memory).
+
+### Next
+
+`CV3` (Schedule), `CV4` (the hour timeline — Day / 3 Day / Week), `CV5`
+(Month text pills, Year). Only Day, Week and Month are reachable today;
+`BUILT_VIEWS` gates the other three so the picker cannot offer a blank
+screen.
