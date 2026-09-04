@@ -41,7 +41,11 @@ See D1.
   something that cannot render.
   Adding is the safe half; removing is the opinionated half and is **one
   record's worth of flips** whenever Bryce says. Building it removed and
-  then restoring it is rework. **Awaiting Bryce; default is keep.**
+  then restoring it is rework.
+  **✅ CONFIRMED by Bryce, 2026-09-04: keep Day and Week.** No longer a
+  default standing in for an answer — the picker ends this mission with
+  **four** views (Schedule, Day, Week, Month), and Week/Day become hour
+  timelines in CV4 rather than disappearing first.
 - **D2. `fetchCalendarEvents` is this file's first data-returning guarded
   action**, so it sets a precedent. It is a **public POST** — cap the scan
   (`MAX_FETCH_SPAN_DAYS = 124`), validate the `Date`s, require
@@ -106,8 +110,14 @@ src/lib/voice/*.test.ts` legs.
 - **Captain** — three new modules and a new action shape.
 - **Banner** — done; brief accepted with one correction (above).
 - **Gate models:** Vision `fable`, Strange `opus`, **Captain on `fable`
-  for this mission** — Bryce's experiment to get a real comparison against
-  CT2's Opus baseline on this same codebase.
+  for this mission — ✅ CONFIRMED by Bryce, 2026-09-04.** The experiment
+  exists because there is **no** Fable data to reason from: Fable's limit
+  was exhausted during missions 13 and 14, so every gate in both ran on
+  Opus. CT2 is the baseline — Captain there BLOCKED on a real duplication,
+  retired one of its own rules as unenforceable, and declined to block on
+  a fifth copy to stay predictable. **The comparison to make is whether
+  Fable-Captain finds structural problems of that calibre**, not whether
+  it passes.
 
 ## Contracts
 
