@@ -271,8 +271,65 @@ dispatch completes one.
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Captain | **BLOCKED** | 1 | 4 notes; retired one of its own rules as failed |
-| 1 | Vision | dispatched | — | — |
+| 1 | Vision (Opus) | **PASS**, scoped to `c5fa5a0` | 0 | 4 notes; **C5's surface needs re-gating after C6** |
 | 1 | Strange | queued (runs after Vision — both use fixtures) | — | — |
+
+### Vision, pass 1 — PASS, and it verified far past what it was asked
+
+Gauntlet matched exactly (252 / 252 / 248+4). Boundaries clean on all six
+contracts. It re-derived every headline claim rather than accepting one:
+
+- C1's purity proof was claimed at **1,674** comparisons; Vision redid it
+  at **200,340** — every day of 2026 plus DST and year boundaries × 5
+  "today" values × 3 timezones — then **proved its own harness could go
+  red** by injecting a one-day shift and a stray space.
+- C2's concurrency: dispatch offsets **0, 0, 0 ms**; parallel 66ms vs
+  sequential 239ms, **3.6× over three runs**.
+- The task→month adapter: **12,045 cases** (1,095 days × 11 timezones)
+  including three quarter-hour offsets, half-hour DST, and the +14/−11
+  extremes. Zero failures. The Week/Day filter got its own 6,570-case
+  sweep.
+
+**The permission attack, through the shipped bundle.** Nine kid attacks,
+every refusal confirmed against the *database* rather than the response —
+including `updateTask` with a **crafted `userIds` adding themselves to
+another kid's task**, refused with `TaskPerson` unmoved. Then five forged
+cookies signed with the **real** secret; the sharp one is a kid's userId
+claiming `role: "admin"`, refused — **proving `dal.ts` re-reads the real
+row rather than trusting the JWT's role claim.** Action confusion tested
+too: real `CalendarEvent` ids passed to all four task actions left every
+event byte-identical, same `updatedAt`.
+
+It also swept a bug class nobody asked about — fetch-window honesty for
+tasks — across 7 timezones, found **zero** cases of the dangerous
+direction, and proved the harness detects it by reintroducing the
+start-only check (5 lies in Kiritimati).
+
+**⚠️ The caveat, and it is Fury's process error.** I dispatched C6 **while
+Vision was gating.** Its verdict covers `c5fa5a0`; C6 is deleting
+`TaskEditView.tsx`, which is C5's entire deliverable and the surface
+Vision probed for the edit path. So **C1/C2/C3/C3b/C4 stand; C5's surface
+is already stale** and needs re-gating after C6 — specifically that
+`TaskForm`'s edit branch enforces the same manager-only path, that the
+crafted-`userIds` attack still refuses, and that a kid still never reaches
+an edit control.
+
+This is the **stale-gate-record failure from CV2 arriving from the other
+direction**: there a fix landed *after* a PASS; here a fix landed *during*
+one. Doctrine says batch fixes before re-gating — I dispatched a fix mid-
+gate instead, which is the same mistake wearing different clothes.
+Vision refused to pretend otherwise: *"I did not re-run against a tree
+that does not yet exist."*
+
+**NOTES:** C4 touched `DaySection.tsx` outside its may-touch list —
+provably inert (one doc-comment rewrite, zero code), recorded because a
+boundary deviation should be visible even when harmless; the full roster
+(names + avatar colours) now serialises to every client including kids,
+which is **no new exposure** (`AvatarBadge` already renders those names
+for all roles) but matters if per-person visibility ever arrives; and
+`Task`/`TaskPerson` did **not** return to 0 — Vision deleted all five of
+its own rows and verified them gone, then correctly **declined to delete
+the C6 builder's live fixtures**, created after its cleanup.
 
 ### Captain, pass 1 — BLOCKED, and the blocker is Fury's contract error
 
