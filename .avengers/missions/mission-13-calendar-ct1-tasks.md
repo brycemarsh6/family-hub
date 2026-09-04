@@ -478,6 +478,7 @@ single dispatch and a rate limit killed it mid-run.
 | 1 | Captain | **PASS** | 0 | 6 notes; 2 constitution amendments drafted for Bryce |
 | 1 | Vision (Opus) | **BLOCKED** | 2 | 9 notes; both blockers are "a comment claims a guarantee the code lacks", neither is the feature |
 | 1 | Strange | dispatched | — | — |
+| — | C6 fix batch | DONE `9169a64` | — | Both blockers fixed; C6 corrected Fury's own measurement in the process |
 
 ### Vision, pass 1 — BLOCKED, and Fury verified both before acting
 
@@ -501,15 +502,49 @@ the verbatim shipped SQL as pure SELECTs under two session zones:
 
 Inverted, exactly as Vision said — `(ts AT TIME ZONE 'UTC')::time` casts a
 *timestamptz*, and `::time` on a timestamptz reads the session zone. But:
-- The shipped **SET** is session-*robust* (`2026-09-03 00:00` in both), so
-  the "fires on a fixed row" branch is a **no-op by value**, not the
-  day-per-run corruption Vision described.
+- ~~The shipped **SET** is session-robust, so the "fires on a fixed row"
+  branch is a no-op by value, not the corruption Vision described.~~
+  **❌ WRONG — Fury's error, corrected by C6 and re-verified by Fury.**
+  See "Fury's instrument error" below. Vision's severity claim was
+  **right**: under a Denver session the shipped statement corrupts an
+  already-fixed row to `2026-09-02 18:00`.
 - **Vision's proposed replacement SET drifts.** Measured:
   `date_trunc('day', (ts AT TIME ZONE 'America/Denver') AT TIME ZONE 'UTC')`
   yields **`2026-09-02 18:00`** under a Denver session. Applying its
   prescription would have introduced the corruption it was warning about.
-- The genuine hazard is the *opposite* of the one reported: from a
-  Mountain session the statement **silently fails to fix broken rows**.
+- Both hazards are real, not one instead of the other: from a Mountain
+  session the statement **skips genuinely broken rows** *and* **corrupts
+  already-fixed ones**.
+
+#### ⚠️ Fury's instrument error — the second this mission, same class
+
+I measured the SET expression and reported it session-robust. It is not.
+My probe rendered the result with an explicit
+`to_char(… AT TIME ZONE 'UTC')`, which **bypassed the implicit assignment
+cast**. The expression yields a `timestamptz`; storing that into a
+`timestamp without time zone` column applies a session-timezone cast at
+*assignment*, and that is where the corruption happens — not in the
+expression I was watching. C6 caught it by writing to a real temp table
+with `TIMESTAMP(3)` columns and reading back via `::text`, which is the
+faithful test. Fury reproduced it:
+
+| session | broken (06:00) | already-fixed (00:00) |
+|---|---|---|
+| `UTC` | → `2026-09-03 00:00` ✅ | unchanged ✅ |
+| `America/Denver` | **unchanged** ❌ | **→ `2026-09-02 18:00`** ❌ |
+
+**So Vision was right and I partially overruled it on a bad measurement.**
+Only its *prescription* was wrong (its `date_trunc` replacement drifts
+under Denver — that part stands). The lesson is the one this repo already
+records twice and I repeated anyway: **measure the operation, not a
+rendering of it.** An expression's value and the value that lands in a
+typed column are different things, and only one of them is the bug.
+
+C6's fix converts through explicit `AT TIME ZONE` in both directions and
+never leaves a `timestamptz` to be implicitly cast. Fury verified it under
+**four** sessions (UTC, Denver, Los Angeles, `Asia/Kathmandu` +5:45):
+pass 1 updates exactly the broken row, **pass 2 updates 0**, every row
+landing at correct UTC midnight, identical in all four.
 
 Correct fix, measured in both zones: keep the shipped SET, change the
 guard to the **naive** form `"startAt"::time <> '00:00:00'` —
