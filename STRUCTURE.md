@@ -157,6 +157,31 @@ Adding a second definition of any of these is a BLOCKER:
   `passwordHash` and strips it by hand is. (Clarified 2026-09-02, mission 8.)
 - Shared UI jobs — see DESIGN.md's component vocabulary
 
+- **A vocabulary widened ahead of its consumers carries exactly one
+  reachability gate.** When a union names more members than the app can serve
+  — a view with no renderer, a role nobody may be assigned — the answer to
+  "which of these is real today" lives in **one total
+  `Record<Union, boolean>`**, and every reachability decision (URL/param
+  parsing, picker and option lists, deep links, stored preferences) derives
+  from that record rather than keeping its own list. **A total record, never a
+  `filter` predicate:** the record makes a new member *answer* the question; a
+  predicate lets it default silently. Shipping the consumer is then one entry
+  flipped in the same commit.
+  Instances: `BUILT_VIEWS` → `BUILT_CALENDAR_VIEWS` → `CALENDAR_VIEW_OPTIONS`
+  (`src/lib/calendarViewVocabulary.ts`, mission-11/C2). And **`ROLES` →
+  `ASSIGNABLE_ROLES` (`src/lib/constants.ts`) is currently the weaker
+  predicate form — a new role becomes assignable with no compile error.
+  Convert it at the next touch.**
+  Where such a record exists, **a new per-member difference goes into it, not
+  into an inline `x === "member"` expression beside it** — an inline test with
+  a falsy default is the same silent-inheritance hazard the record exists to
+  prevent. It is tolerable only while the members it would mislabel are
+  unreachable through the gate, so **a member's reachability entry may not
+  flip to `true` in a commit that leaves any per-member difference outside a
+  total record.** (`showLocation`, `compact` and the renderer selection in
+  `CalendarViews.tsx` are the live instances; CV3/CV4/CV5 own them.)
+  (Added 2026-09-03, mission-11, on Captain's ruling.)
+
 ## File-size caps
 
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (actions/groceries.ts
@@ -170,7 +195,15 @@ Adding a second definition of any of these is a BLOCKER:
 - Tests are colocated in `src/lib` as `*.test.ts`, run by `npm test`
   (node:test + tsx, no new frameworks).
 - **Test files follow the same soft cap**; the split is by module under
-  test — one `*.test.ts` per lib module — never a numbered second file.
+  test — one `*.test.ts` per lib module. **When a single module's test file
+  reaches the cap, splitting it by concern is permitted**, provided each half
+  names its concern in the filename and its header names the module both
+  cover — `calendarDates.test.ts` / `calendarDatesFormat.test.ts`
+  (mission-10/C2) is the precedent. A numbered second file is never the
+  answer. (Clause added 2026-09-03: the previous text read as forbidding the
+  concern-split this repo had already shipped, and
+  `useCalendarPeriod.test.ts` at 344 now needs it — the letter was corrected
+  to match the practice before a builder obeyed the letter.)
   **When the natural home is already at the cap, a small number of tests may
   be adopted by a sibling module's test file, with a header comment naming
   the module they cover and why they live there. This is a debt marker, not
@@ -209,7 +242,25 @@ Adding a second definition of any of these is a BLOCKER:
 - Routes follow Next App Router conventions; route groups like `(app)` are
   invisible in URLs.
 
+- **A component file's name must name something the file still exports.**
+  Naming a family of exports is fine (`Skeleton.tsx`); naming a **deleted**
+  export is not — a `grep` for the filename must not come up empty. Rename in
+  the mission that deletes the last matching export, or in the next mission
+  that touches the file. (Added 2026-09-03, mission-11; `MonthLoadingSkeleton.tsx`,
+  which now exports only `MonthGridSkeletonRows`, is the live instance and
+  must not survive CV3.)
+
 ## Danger register (absolute, for every agent)
+
+- **Never `git add -A` or `git add .` while another agent may be writing.**
+  Stage by explicit path. A commit that sweeps in a parallel builder's
+  in-flight files is not a correctness failure — the tree can still be right —
+  but it makes the commit message lie about its contents, and this repo's own
+  debugging routinely depends on pinning a worktree or extracting a file at a
+  named commit. (Recorded 2026-09-03, mission-10: a documentation commit swept
+  seven of a builder's source files plus two throwaway scripts. Removing the
+  strays in a follow-up, rather than rewriting a pushed branch, is the right
+  remedy.)
 
 - **Local dev uses the Neon `dev` branch — a copy-on-write clone of
   production — as of 2026-09-01.** The production URL lives only in
