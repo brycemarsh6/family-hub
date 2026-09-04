@@ -479,7 +479,7 @@ single dispatch and a rate limit killed it mid-run.
 | 1 | Vision (Opus) | **BLOCKED** | 2 | 9 notes; both blockers are "a comment claims a guarantee the code lacks", neither is the feature |
 | 1 | Strange | **BLOCKED** | 1 | 3 notes; 2 of them pre-existing and app-wide, correctly not charged to CT1 |
 | — | C6 fix batch | DONE `9169a64` | — | Both Vision blockers fixed; C6 corrected Fury's own measurement in the process |
-| — | C7 fix | DONE `f0a2b1c` | — | Strange's blocker fixed; left one stale comment, queued for C8 |
+| — | C7 fix | DONE `214a546` | — | Strange's blocker fixed; left one stale comment, queued for C8 |
 | 2 | Vision | dispatched | — | — |
 
 ### Strange, pass 1 — BLOCKED, and it checked three instruments before trusting any reading
