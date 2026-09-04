@@ -491,8 +491,26 @@ correct conclusion rested on an argument that happened to be wrong.
 |---|---|---|---|---|
 | 1 | Vision | **BLOCK** | 1 | converges with Captain from measurement, and **extends it** — case F survives an exact-path fix; 6 notes incl. a real library disagreement |
 | 1 | Captain | **BLOCK** | 1 | C2 clean; C1's `active` is prefix-based, so `replace` discards the entry on 20 sub-pages — the same dead Back press it exists to remove |
+| 2 | Captain | **PASS** | 0 | 5 notes. Ruled its own Ruling 2 named the wrong unit; type-probed the composition case. **Covers `aae9cd8`.** |
+| 2 | Vision | **PASS** | 0 | 3 notes. Reproduced the library sweep with its own fixture + a +12:45 DST zone; caught its own empty control. **Covers `aae9cd8`.** |
+| 3 | Vision | **PASS** | 0 | 3 notes, all record-keeping. **Re-gate of `fe26316` — the tree that actually shipped.** Supersedes its pass-2 verdict. |
 
-Budget: 3 passes per gate, then STOP and surface.
+Budget: 3 passes per gate. **Vision is now exhausted (3/3); Captain has used
+2/3.**
+
+**What each verdict covers, because it is not the same tree.** Both pass-2
+PASSes were measured against `aae9cd8`. `117cd33` (C5) then changed four
+source files — three comment-only, one a **live behaviour line**
+(`window.scrollTo`) — followed by `544f0a5` and `fe26316`. Vision re-gated
+`fe26316` on pass 3 and passed it. **Captain's PASS still covers `aae9cd8`
+only.**
+
+Not re-gated for structure, with the reasoning stated so the next reader can
+disagree: C5 added no file, moved no module, added no import, changed no
+`className` (diff 0), and left both test files under cap (232→234, 187→199).
+Captain's domain is placement, caps, dependency direction, and one source of
+truth — none of which C5 touched. That is a checkable claim, not a
+reassurance; if any of it is wrong, Captain has a pass left.
 
 ## Captain, pass 1 — BLOCK (1 blocker, 7 notes). **C2 passes clean.**
 
@@ -823,6 +841,26 @@ but omits its `target` early-return. All routed to C5.
 the combined notes; no blocker was found by either gate on this pass.
 
 
+## C5 — the contract, reconstructed after the fact
+
+**Recorded late, and that is the finding.** C5 was dispatched with
+boundaries in its prompt but **no contract was ever written into this
+file**, so Vision's pass-3 boundary audit had no declared may-touch list to
+audit against. It recorded that rather than blocking — the changes were
+correct and it had reviewed the substance — while noting the boundary rule
+"bought nothing here, and would have bought nothing had the change been
+wrong." That is the right reading: a boundary that exists only in a dispatch
+prompt is not a boundary, because the prompt is not the durable record.
+
+- **Objective:** clear both gates' combined notes. No blocker existed.
+- **May touch:** `HubNav.tsx`, `useCanonicalCalendarUrl.ts`, both timeline
+  test files, `.avengers/plans/calendar-v2.md`.
+- **Must not touch:** `timelineLayout.ts`, any other source file, and this
+  mission file (Fury was writing it in parallel).
+- **Verification:** gauntlet both zones, count unmoved at 237, `className`
+  diff 0, and the scroll fix measured in a real browser without costing the
+  refetch or adding a history entry.
+
 ## C5 — DONE, committed `117cd33` + `9b8d5ea`
 
 Clears both gates' combined notes. No blocker existed; this is the
@@ -889,3 +927,46 @@ would eventually land on whatever concern hadn't been named yet: the
 broadest label on the narrowest content. Nothing else was added — Captain's
 "the constitution is better lean" is right, and it turned down two other
 amendments this week on that ground.
+
+
+---
+
+## Vision, pass 3 — **PASS** (re-gate of `fe26316`; supersedes its pass-2 verdict)
+
+Gauntlet re-run on the C5 tree: tsc 0, eslint 0, **237/237/0** Denver,
+**237/233/4** UTC, build 0. Database at baseline (`calendarEvent` 4,
+`user` 5), tree clean.
+
+All three blocker cases re-measured and still fixed **under C5**, rather
+than inferred from C5 not having touched the predicate: D and E preserve the
+entry (history 4→5, 7→8, Back returns to the sub-page); F is 0 document
+loads and 1 RSC fetch. **The scroll fix costs neither the refetch nor a
+history entry** — `/kitchen` 180→0, `/` 318→0, 1 RSC, 0 doc loads, modified
+clicks still unswallowed. Both comment corrections checked against the Next
+source it read this pass. Test assertions untouched at **41 + 26 = 67**,
+identical to its C4 audit.
+
+### The finding that matters, and it is Fury's
+
+**The mission was recorded DELIVERED on a tree no gate had seen.** `8ffb271`
+("both gates PASS") and `7db42f5` ("CV2 delivered: both gates PASS") both
+**post-date** `117cd33`, which changed four source files including a live
+behaviour line. Both gates' PASSes covered `aae9cd8`. Until this re-gate,
+nothing had verified the shipped tree.
+
+**The code turns out to be correct — but that was luck of review order, not
+evidence.** Vision's own words. This is the project's tracked
+"recorded but not verified" class one turn deeper: not a stale *plan* record
+(the dashboard), not a stale *test* claim (C4's missing `recipeFilters`
+tests), but **a stale gate record** — the strongest kind of claim this
+process makes, asserted about a tree the gate never saw.
+
+The mechanism was ordinary and will recur: gates passed, then notes were
+actioned, and actioning the notes changed the code. **A fix contract written
+to satisfy a gate invalidates that gate's verdict.** The habit that follows:
+if a contract lands after a PASS, the PASS covers the old tree until it is
+re-run or the delta is enumerated and shown not to reach that gate's domain.
+
+Its two other notes — the ledger table stopping at pass 1 while commits
+asserted otherwise, and C5 having no written contract — are both fixed
+above.
