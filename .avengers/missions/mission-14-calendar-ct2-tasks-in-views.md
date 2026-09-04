@@ -311,7 +311,76 @@ dispatch completes one.
 | 1 | Captain | **BLOCKED** | 1 | 4 notes; retired one of its own rules as failed |
 | — | C6 fix | DONE `1d88afa` | — | Captain's blocker; Fury's contract error behind it |
 | 2 | Captain | **PASS** | 0 | 6 notes; confirmed the debt repayment and the new rule's wording |
-| 2 | Vision (Fable) | dispatched — narrow, C5/C6 surface only | — | — |
+| 2 | Vision (Fable) | **PASS** | 0 | 5 notes; found a real pre-existing bug on a sibling surface |
+| 1 | Strange | dispatched (last gate) | — | — |
+
+### Vision, pass 2 — PASS
+
+All three re-gate items verified. **Case H re-run and still refused**: a
+kid `updateTask` on a task they are not on, with `userIds` crafted as
+[owner, self] *and* as [self only] — both refused, target row
+byte-identical (`updatedAt` unchanged to the millisecond). Plus a forged
+cookie signed with the **real** secret carrying the kid's userId but
+`role: "admin"` — refused, because the DAL re-reads the row. Kid cookie
+proven live first, every time.
+
+Membership and management confirmed still separate: an **assigned** kid
+(`isMine: true`) sees exactly `[Close, Mark complete]`; an unassigned kid
+`[Close]`; neither has a form, "Edit", "Save changes" or "More actions"
+anywhere on the page.
+
+**The new surface got a genuinely adversarial test.** It proved `onSaved`
+fires only on success by **deleting the task server-side while the edit
+form was open**, then pressing Save: inline error, sheet stayed in the
+edit view, `onSaved` never fired. And it proved an empty people selection
+cannot look saved — client refuses, server independently refuses
+`userIds: []` and a bogus id, row untouched in every case.
+
+**⚠️ It caught Fury's third mid-gate commit.** `2178a9c` landed during the
+run and touched `page.tsx`, inside C6's must-not-touch `src/app/**`.
+Vision downgraded it from BLOCKER **only on proof**: the diff is one word
+inside a `//` comment, comments are stripped at compile so the served
+bundle is behaviourally identical, and it re-ran all four gauntlet legs at
+HEAD. Its rule, which is now three-for-three this session: *a fix landing
+after a PASS must either be enumerated as inert or re-gated.*
+
+**NOTES:** the roster note stands (real display names serialise to every
+role's client — no new exposure, `AvatarBadge` already did this);
+`current.isMine` goes stale after a manager reassigns people (inert today,
+since only managers reach Edit); and the 23px / 7px edit-view overflow
+confirmed **to the pixel** for Strange.
+
+## 🐞 Pre-existing bug found by Vision — NOT CT2's, and not fixed here
+
+**A deactivated family member makes a task — or an event — permanently
+uneditable.** Traced end to end, deliberately *not* reproduced, because
+demonstrating it needs a `User` row update and the danger register forbids
+that absolutely.
+
+The chain: an admin deactivates someone via `PersonManageSheet`
+(`/settings/family`, shipped); `deactivatePerson` keeps every row, so
+their `TaskPerson` rows survive; `page.tsx:121` joins task people with
+**no `deactivatedAt` filter**, so the sheet seeds `userIds` with the
+deactivated id; the roster query (`page.tsx:136`) **does** filter
+`deactivatedAt: null`, so no chip is drawn for them and the id **cannot be
+deselected**; `validatedPeople` (`actions/tasks.ts:88`) then refuses it.
+Every Save fails with *"One of those people isn't available anymore."*
+until the task is deleted.
+
+**The same shape exists on the event edit page and has since K1**
+(`src/app/(app)/calendar/[id]/edit/page.tsx:75`) — so this is a sibling
+surface **two gates have already passed**, which is why it is a NOTE
+rather than a blocker here.
+
+Two candidate fixes, and they mean different things — **Bryce's call**:
+1. Filter the people joins with `where: { user: { deactivatedAt: null } }`
+   — deactivated people then also stop appearing on cards, which may be
+   the intended reading of "deactivated".
+2. Seed `userIds` from `current.people` filtered to ids present in the
+   roster — deactivated people keep showing on existing items but drop off
+   on the next save.
+
+Needs a contract that can touch `page.tsx` **and** the event edit page.
 | 1 | Vision (Opus) | **PASS**, scoped to `c5fa5a0` | 0 | 4 notes; **C5's surface needs re-gating after C6** |
 | 1 | Strange | queued (runs after Vision — both use fixtures) | — | — |
 
