@@ -51,9 +51,9 @@ type CalendarViewsProps = {
   /**
    * The full household roster — page.tsx's third parallel query
    * (mission-14/C5), threaded straight to TaskDetailSheet's edit view
-   * (TaskEditView.tsx) so a task's People field is a real reassignable
-   * picker rather than a static echo of who's currently on it. Unused by
-   * every other branch below; passed through, not read here.
+   * (TaskForm, mission-14/C6) so a task's People field is a real
+   * reassignable picker rather than a static echo of who's currently on
+   * it. Unused by every other branch below; passed through, not read here.
    */
   people: CalendarPersonView[];
   /**
@@ -84,7 +84,8 @@ type CalendarViewsProps = {
  * fast taps from cancelling each other — lives in
  * `useCalendarNavigation` (src/lib/useCalendarNavigation.ts), extracted
  * there in mission-10/CV0 so that adding a view means adding a row to
- * VIEW_CONFIG above rather than another handler here.
+ * VIEW_CONFIG (src/lib/calendarViewConfig.ts) rather than another handler
+ * here.
  *
  * `today` comes from that hook (which reads useToday()), and is `null`
  * during SSR and the first client render — every value below that would

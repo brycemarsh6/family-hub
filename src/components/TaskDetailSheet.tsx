@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Check, ChevronLeft, MoreVertical, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
-import { TaskEditView } from "./TaskEditView";
+import { TaskForm } from "./TaskForm";
 import { completeTask, deleteTask, uncompleteTask } from "@/app/actions/tasks";
 import { allDayInstantToLocalDay } from "@/lib/calendarDates";
 import { formatDayLabel } from "@/lib/mealPlanDates";
@@ -13,20 +13,20 @@ import type { CalendarPersonView, CalendarTaskView } from "@/lib/types";
  * The house bottom sheet for one task, opened by tapping its card
  * (mission-14/C4 — DaySection/TaskCard's `onOpenTask` was wired to a no-op
  * by C3, this is what makes it real). Same `view` state-machine shape as
- * EventDetailSheet (main / menu), plus a third `edit` view — deliberately
- * its OWN component (TaskEditView.tsx, mission-14/C5) rather than a branch
- * inside this one, since a task's fields and verbs genuinely differ
- * (TaskCard.tsx's own comment already makes this call for the card; the
- * same reasoning extends to the sheet).
+ * EventDetailSheet (main / menu), plus a third `edit` view — which renders
+ * the real `TaskForm` (mission-14/C6), not a second task-editing form.
+ * C4/C5 forbade touching TaskForm.tsx and so built a standalone copy of
+ * it in its own file; C6 discovered TaskForm already implements edit
+ * (`defaultValues`, `isEdit`, `updateTask`) and had simply never been
+ * given a caller that used it, and folded the two back into one.
  *
  * Edit is INLINE here, not a route push the way EventDetailSheet's Edit
  * button navigates to `/calendar/[id]/edit`. That's a boundary
- * consequence, not a style preference: C4's may-touch list had no
- * `src/app/` route, so there was nowhere to navigate Edit to. C5 closed
- * the other half of that gap instead — the full household roster now
- * flows page.tsx → CalendarViews.tsx → here → TaskEditView, so People is a
- * real reassignable picker (EventPeopleField, the same one TaskForm.tsx
- * uses), not a static echo of who's currently on the task.
+ * consequence, not a style preference: there is no task-edit route, so
+ * there's nowhere to navigate Edit to. The full household roster flows
+ * page.tsx → CalendarViews.tsx → here → TaskForm, so People is a real
+ * reassignable picker (EventPeopleField), not a static echo of who's
+ * currently on the task.
  */
 export function TaskDetailSheet({
   task,
@@ -44,7 +44,7 @@ export function TaskDetailSheet({
    * every time. */
   task: CalendarTaskView;
   /** The full household roster — page.tsx's parallel `db.user.findMany`
-   * (mission-14/C5), threaded straight through to TaskEditView's people
+   * (mission-14/C5), threaded straight through to TaskForm's people
    * picker. Unused outside the "edit" view. */
   people: CalendarPersonView[];
   canManage: boolean;
@@ -202,9 +202,15 @@ export function TaskDetailSheet({
             </button>
           </div>
         ) : view === "edit" ? (
-          <TaskEditView
-            task={current}
+          <TaskForm
             people={people}
+            defaultValues={{
+              id: current.id,
+              title: current.title,
+              details: current.details ?? "",
+              dueDate: current.dueDate,
+              userIds: current.people.map((person) => person.userId),
+            }}
             onSaved={(updated) => {
               setCurrent((prev) => ({ ...prev, ...updated }));
               setView("main");

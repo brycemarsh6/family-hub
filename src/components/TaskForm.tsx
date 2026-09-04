@@ -12,9 +12,12 @@ import type { CalendarPersonView } from "@/lib/types";
 
 /** Local "YYYY-MM-DD" for the native date input — the same private helper
  * EventDateTimeFields.tsx keeps for its own job (that file only exports
- * parseLocalDateString, the one conversion EventForm needs back from it;
- * everything else stays a per-file copy, matching the house pattern that
- * file's own doc comment names). */
+ * parseLocalDateString, the one conversion EventForm needs back from it).
+ * This per-file copy is grandfathered debt, not a pattern to cite — per
+ * STRUCTURE.md's One-source-of-truth section, local-calendar-date string
+ * conversions belong in src/lib/mealPlanDates.ts, and the existing copies
+ * (this one, EventDateTimeFields.tsx's own) get migrated there together in
+ * one dedicated mission rather than piecemeal. */
 function toDateInputValue(date: Date): string {
   const [y, m, d] = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -50,6 +53,17 @@ export type TaskFormDefaults = {
  * eventual control has a fixed place to land, per this app's "no feature
  * is stubbed out early" rule, with the disabled state genuinely disabled
  * rather than merely looking that way.
+ *
+ * Two ways to finish a save (mission-14/C6): the standalone `/calendar/
+ * new/task` page has nowhere to go but the calendar, so it keeps the
+ * original `router.push("/calendar")`. TaskDetailSheet's inline edit view
+ * has no route to push to (it's a sheet already sitting over the
+ * calendar) and needs the saved fields back to update its own local
+ * `current` state without a re-fetch — so when `onSaved` is supplied, it's
+ * called instead of navigating, and navigation never happens. This is what
+ * let TaskDetailSheet drop its own standalone copy of this form (built
+ * before this form's own edit support was discovered) rather than
+ * keeping two task-editing forms in the app.
  */
 export function TaskForm({
   people, // full household roster, kids included — a task can be FOR a kid
@@ -57,11 +71,25 @@ export function TaskForm({
   defaultValues,
   initialDateISO, // "YYYY-MM-DD" day in view when "+" was tapped, ignored
   // once editing — a string, built into a Date only here (see new/task/page.tsx).
+  onSaved,
 }: {
   people: CalendarPersonView[];
-  currentUserId: string;
+  /** Only read to seed a brand-new task's default person (see
+   * selectedUserIds below) — the sheet's inline edit passes no value,
+   * since `defaultValues.userIds` is always non-empty there (the server
+   * refuses a task with no people; see actions/tasks.ts). */
+  currentUserId?: string;
   defaultValues?: TaskFormDefaults;
   initialDateISO?: string;
+  /** Supplied only by TaskDetailSheet's inline edit view. When present,
+   * a successful save calls this instead of `router.push("/calendar")` —
+   * see this component's own header comment for why. */
+  onSaved?: (updated: {
+    title: string;
+    details: string | null;
+    dueDate: Date;
+    people: CalendarPersonView[];
+  }) => void;
 }) {
   const router = useRouter();
   const isEdit = defaultValues !== undefined;
@@ -72,7 +100,7 @@ export function TaskForm({
     defaultValues ? allDayInstantToLocalDay(defaultValues.dueDate) : null,
   );
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
-    defaultValues?.userIds ?? [currentUserId],
+    defaultValues?.userIds ?? (currentUserId ? [currentUserId] : []),
   );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -117,6 +145,15 @@ export function TaskForm({
         ? await updateTask(defaultValues.id, input)
         : await createTask(input);
       if (result.error) return setError(result.error);
+      if (onSaved) {
+        onSaved({
+          title: input.title,
+          details: input.details ?? null,
+          dueDate: input.dueDate,
+          people: people.filter((person) => selectedUserIds.includes(person.userId)),
+        });
+        return;
+      }
       router.push("/calendar");
     });
   }
