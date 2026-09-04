@@ -388,6 +388,18 @@ single dispatch and a rate limit killed it mid-run.
 - **Done criteria:** the "+" offers Event and Task; `/calendar/new/task`
   is reachable from shipped UI; `uncompleteTask` manager-only;
   `CalendarViews.tsx` ≤ 348.
+- **Status:** DONE — commit `d46a114`.
+- **Report:** sheet now Event/Task; `dateParam` hoisted to one shared
+  `const`, so the file lands back at **348** rather than 350+ — the extra
+  line paid for by removing a duplication. `assertCanToggleTask` renamed
+  `assertCanCompleteTask` (a helper whose name outlived its generality is
+  the overclaiming class this repo keeps hitting). **The un-complete
+  demonstration isolates the guard rather than observing a refusal:** the
+  *same* kid session completed twice and was then refused on un-complete,
+  timestamp unchanged to the byte, with a manager's successful
+  un-complete in between as positive control. A refusal alone would be
+  consistent with a broken cookie; this is not. Fury re-verified line
+  count, both guards, and three zones.
 
 ### C5 — Scoped seed/clean scripts, and the timezone legs in CI
 - **Status:** PENDING (depends on C2 + C4)
@@ -468,6 +480,10 @@ single dispatch and a rate limit killed it mid-run.
 - 2026-09-04 — **C1 DONE** (`98ab9cc`), re-verified. Two notes carried (see
   above). C3 dispatched — it is deliberately NOT parallel with C4, because
   C4's `TaskForm` reuses the very components C3 is editing.
+- 2026-09-04 — **C4b DONE** (`d46a114`). Tasks are now reachable from the
+  shipped "+" sheet. C5 dispatched — the last contract, and the one
+  closest to the danger register (it writes seed scripts against a
+  database holding real family data).
 - 2026-09-04 — **C4 (a,b) DONE** (`34ab27f`); **(c) BLOCKED-ON-CONTRACT
   on Fury's own wrong premise.** The Add sheet exists and offers
   Event/Meal; the contract both demanded Meal's removal and forbade
