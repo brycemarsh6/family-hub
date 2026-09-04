@@ -5,7 +5,7 @@
 // you're currently on, so it can highlight the right tab.
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { HUB_NAV_ITEMS } from "@/lib/nav";
 
 /** Is `href` the page we're currently looking at? */
@@ -23,6 +23,7 @@ function isActive(pathname: string, href: string) {
  */
 export function HubBottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
 
   // Nothing to navigate to until you're signed in, and a row of tabs that all
   // bounce you back to the password box would just be noise.
@@ -42,6 +43,16 @@ export function HubBottomNav() {
             <Link
               key={item.href}
               href={item.href}
+              // Re-tapping the tab you're already on is a no-op navigation —
+              // `replace` keeps it from pushing a second, identical history
+              // entry (which would otherwise make the next Back a dead
+              // press), and the `router.refresh()` below restores what that
+              // tap used to do: refetch. On an iOS home-screen install
+              // there's no address bar and no reload button, so this re-tap
+              // is the only manual refresh gesture the app has at all
+              // (mission-11/C5).
+              replace={active}
+              onClick={active ? () => router.refresh() : undefined}
               aria-current={active ? "page" : undefined}
               className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors ${
                 active ? "text-accent" : "text-muted"

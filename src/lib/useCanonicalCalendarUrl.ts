@@ -67,14 +67,38 @@ export function canonicalSearchFor(
  * native History API as integrating with the router and `useSearchParams`
  * (node_modules/next/dist/docs/01-app/01-getting-started/
  * 04-linking-and-navigating.md:343-345, :397-412 — read in this tree per
- * AGENTS.md, not recalled), and the difference is measured, not assumed, on
- * the Calendar's "force-dynamic" page. Fourteen bare-URL loads, each rewritten
- * and then picked through, counted off the dev server's own log: 15 "GET
- * /calendar" with the native call — byte-identical to a build that rewrites
- * NOTHING — against 30 with `router.replace` swapped in, which also
- * invalidates the router cache and so re-fetches every later push as well.
- * The native call corrects the entry in place; it does not re-fetch a page
- * whose contents did not change.
+ * AGENTS.md, not recalled). The cost is measured, not assumed — and it is
+ * NOT zero everywhere. An earlier version of this comment, and a commit
+ * message, claimed the native call costs nothing; mission-11's Vision pass 3
+ * corrected that (see mission-11/C5, mission-12/C1).
+ *
+ * FREE on loads and picks. Fourteen bare-URL loads, each rewritten and then
+ * picked through, counted off the dev server's own log: 15 "GET /calendar"
+ * with the native call — byte-identical to a build that rewrites nothing.
+ *
+ * +1 FETCH on a cold Back into a canonicalised entry, and this is real: 2 RSC
+ * fetches versus 1 on base, deterministic (3/3 dev, 3/3 production,
+ * confirmed in the server log). Cause: the entry's history-stored route tree
+ * is still the bare one, but its URL now names a built view, so on restore
+ * Next's `restoreReducer` fetches, detects the tree/URL mismatch, and
+ * soft-retries. The render is correct either way (same cards as a fresh
+ * load), and the entry is repaired by the retry — so this costs ONCE: every
+ * canonicalised entry shares one cache key, so every later cold Back is a
+ * cache hit. The escalation Next documents for two successive mismatches
+ * (forcing a full page reload) is not reachable here.
+ *
+ * AND BASE PAYS THIS SAME PRICE for any native `pushState` entry of its own
+ * — this is the cost of the native History API integration Next's own docs
+ * recommend, not a cost this hook introduces. Net against `router.replace`:
+ * +1 fetch per cold Back here, versus +1 fetch per bare LOAD there (15 vs 30
+ * GETs across 14 picks, measured above) — native still wins overall.
+ *
+ * DEV-ONLY DOUBLE-FIRE, unrelated to the above: this effect's mount runs
+ * twice per bare load in development (React StrictMode double-invoking
+ * mount effects) and once in production. Both calls write the identical
+ * search string to the identical entry, so it's idempotent — noted here so
+ * the next person building a harness against this hook doesn't chase it as
+ * a bug.
  *
  * REPLACE, never push — this corrects the entry the user is standing on, not
  * a place they went, and a push would put a second calendar entry under every
