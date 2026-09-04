@@ -461,7 +461,59 @@ single dispatch and a rate limit killed it mid-run.
 |---|---|---|---|---|
 | 1 | Vision | **died — Fable rate limit**, zero work done | — | Re-dispatched on Opus. Vision is Fable-pinned by K1's cost review; Captain and Strange are already Opus, so only this gate was affected. Substituting an equal-tier model beat leaving the mission ungated. |
 | 1 | Captain | **PASS** | 0 | 6 notes; 2 constitution amendments drafted for Bryce |
-| 1 | Strange | pending (runs after Vision — both may seed) | — | — |
+| 1 | Vision (Opus) | **BLOCKED** | 2 | 9 notes; both blockers are "a comment claims a guarantee the code lacks", neither is the feature |
+| 1 | Strange | dispatched | — | — |
+
+### Vision, pass 1 — BLOCKED, and Fury verified both before acting
+
+Gauntlet re-run and matched exactly. Boundaries clean on all six contracts.
+Danger register clean. Baseline restored (`Task 0, TaskPerson 0,
+CalendarEvent 4, User 5`), real all-day row byte-identical.
+**It could not break the all-day fix**: 9 cases × **17 timezones**
+including `Pacific/Chatham` (+12:45), Kathmandu (+5:45), Eucla (+8:45),
+Kiritimati (+14), both 2026 DST transitions, single-day and degenerate
+spans — 17/17 pass, and the probe goes red on 7 of 9 against pre-C3 code,
+so it is non-vacuous.
+
+**B1 — the migration guard is session-timezone dependent. REAL, but
+Vision's severity and its prescribed fix are both WRONG.** Fury measured
+the verbatim shipped SQL as pure SELECTs under two session zones:
+
+| session | broken row (06:00) | already-fixed row (00:00) |
+|---|---|---|
+| `UTC` (Neon serves `GMT` — confirmed) | fires ✅ | skips ✅ |
+| `America/Denver` | **skips** ❌ | **fires** ❌ |
+
+Inverted, exactly as Vision said — `(ts AT TIME ZONE 'UTC')::time` casts a
+*timestamptz*, and `::time` on a timestamptz reads the session zone. But:
+- The shipped **SET** is session-*robust* (`2026-09-03 00:00` in both), so
+  the "fires on a fixed row" branch is a **no-op by value**, not the
+  day-per-run corruption Vision described.
+- **Vision's proposed replacement SET drifts.** Measured:
+  `date_trunc('day', (ts AT TIME ZONE 'America/Denver') AT TIME ZONE 'UTC')`
+  yields **`2026-09-02 18:00`** under a Denver session. Applying its
+  prescription would have introduced the corruption it was warning about.
+- The genuine hazard is the *opposite* of the one reported: from a
+  Mountain session the statement **silently fails to fix broken rows**.
+
+Correct fix, measured in both zones: keep the shipped SET, change the
+guard to the **naive** form `"startAt"::time <> '00:00:00'` —
+session-independent because `naive::time` never consults the session zone.
+This is the second recorded instance of a gate's *prescription* being
+wrong while its *finding* stood (CV1: "Vision blocked its own
+prescription"). **The finding is what a gate is for; the fix still gets
+measured.**
+
+**B2 — `clean-tasks.ts` does not have the property it asserts. REAL,
+accepted outright.** Vision planted a task through the real `createTask`
+action titled *exactly* a seed template title; `db:clean-tasks` deleted
+it and reported "Deleted 6 test tasks". The file claims it "**refuses** to
+touch a real task, even one a household member happened to title
+identically" — false. **C5's own evidence was vacuous:** the builder
+tested with a title *not* in the templates, which cannot exercise the
+claim. `seed-tasks.ts` carries the same title-only `deleteMany`, so
+re-seeding destroys a matching real row too. Matters because CT2 puts
+real chores in this table.
 
 ### Captain, pass 1 — PASS, and it corrected Fury twice
 
