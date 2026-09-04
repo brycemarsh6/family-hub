@@ -477,8 +477,69 @@ single dispatch and a rate limit killed it mid-run.
 | 1 | Vision | **died — Fable rate limit**, zero work done | — | Re-dispatched on Opus. Vision is Fable-pinned by K1's cost review; Captain and Strange are already Opus, so only this gate was affected. Substituting an equal-tier model beat leaving the mission ungated. |
 | 1 | Captain | **PASS** | 0 | 6 notes; 2 constitution amendments drafted for Bryce |
 | 1 | Vision (Opus) | **BLOCKED** | 2 | 9 notes; both blockers are "a comment claims a guarantee the code lacks", neither is the feature |
-| 1 | Strange | dispatched | — | — |
-| — | C6 fix batch | DONE `9169a64` | — | Both blockers fixed; C6 corrected Fury's own measurement in the process |
+| 1 | Strange | **BLOCKED** | 1 | 3 notes; 2 of them pre-existing and app-wide, correctly not charged to CT1 |
+| — | C6 fix batch | DONE `9169a64` | — | Both Vision blockers fixed; C6 corrected Fury's own measurement in the process |
+| — | C7 fix | dispatched | — | Strange's blocker: the inert repeat row |
+| 2 | Vision | dispatched | — | — |
+
+### Strange, pass 1 — BLOCKED, and it checked three instruments before trusting any reading
+
+**Instrument checks first, and all three mattered.** It proved theme
+emulation genuinely switches before making any colour claim (mission-12's
+lesson). It found **the dev server on :3000 serving SSR HTML referencing
+chunks that 404** — every page rendering "This page couldn't load" — and
+refused to review through it, running an isolated server instead. And it
+**nearly filed a false defect**: with the Browser pane hidden, CSS
+transitions freeze, so the *enabled* submit button read `opacity: 0.5`;
+`getAnimations()` showed a running transition at `currentTime: 0`, and a
+transition-suppressed clone resolved to `opacity: 1`. Layout stayed live,
+so its size measurements remained valid.
+
+**BLOCKER — the inert "Does not repeat" row is pixel-identical to the live
+editable fields above it.** Measured against both the live `Due date`
+input and the `Title` input holding typed text: same background, same
+text colour, same 343×48 box, same radius, `opacity: 1` —
+`ALL_THREE_SAME: true` in **both** themes, and still identical at 1280px.
+Tapping does nothing.
+
+The mechanism is the valuable part, because the obvious fix would not have
+worked: the row's only disabled signal is `text-muted`, but **every live
+field in this form already renders `--muted`**, inherited from its
+`<label className="block text-sm text-muted">` wrapper — so the dimming
+buys *zero* differentiation. And `aria-disabled` sits on a `<div>` with no
+`role`, where ARIA states are inert. It is also the only `aria-disabled`
+in the repo, inventing a third vocabulary where two are settled
+(`disabled` + `disabled:opacity-50` on a real button — used on line 180 of
+this very file — and the plain "Coming soon." wording on `/chores`).
+The wording is not the lie; the **affordance** is.
+
+**NOTES (all three correctly not charged to CT1):**
+1. Navigating to the task form shows a **calendar-shaped skeleton** (892px,
+   day rows and circles) before a 693px form paints —
+   `calendar/loading.tsx` is the nearest Suspense ancestor for
+   `/calendar/new` too, so this has been true since K1. A loading state
+   shaped like different content. **Route to whichever phase adds the next
+   form route**; CT2 will add more under this boundary. The form's own
+   CLS measured **0**.
+2. **User-entered text renders at 4.33:1, below WCAG AA** — `--muted` on
+   `--surface-2` — on the Event form too, so it comes from the shared
+   `Field` wrapper pattern, not this mission. Dark mode is fine (5.44:1).
+   It slipped because DESIGN.md's contrast promise is about declared
+   token *pairs*, and this pair is an inheritance accident. **Deserves its
+   own contract** — the fix touches every form in the app.
+3. The all-day due date reads honestly: no time input offered, none
+   implied.
+
+**Verified clean, measured:** every tap target at 375 *and* 320 (chips 48,
+Submit 343×48, BackLink 82×44, no horizontal overflow); the Add sheet's
+two rows both 343×**56**, balanced in both themes; **occlusion checked at
+the scroll position a user actually taps from** — Submit clears the nav by
+55px, matching DESIGN.md's own recorded figure; the error state in
+`--warn` on `--warn-soft` at 4.51:1, correct per the warn-vs-danger rule;
+loading (grey bars) and empty (crisp dashed card) not mistakable; role
+gates positive-control-first — admin 200 with the form, kid 200 with no
+form *and no Add button at all*, signed out 307; and the all-day fix
+semantically correct in four zones including `Pacific/Auckland`.
 
 ### Vision, pass 1 — BLOCKED, and Fury verified both before acting
 
