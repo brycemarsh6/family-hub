@@ -287,7 +287,84 @@ Fri 10 AM → Sun 2 PM → row; 8 PM → midnight → grid.
   test that pins it.
 
 ### C3 — Fix contract: the re-tap should not navigate at all; plus two library corrections
-- **Status:** PENDING (Vision has reported; safe to dispatch).
+- **Status:** ✅ **DONE, committed `8cdef13`** — with **one open item**
+  (`timelineLayout.test.ts` is now over cap; C4 below). Fury re-verified:
+  tsc 0, eslint 0, **237** (236 → 237), 233 + 4 gated skips under UTC,
+  build 0, `className` diff **0**.
+- **All three cases fixed, measured across three builds** (base / C1 / fixed),
+  with both C1 defects reproduced before being fixed:
+  ```
+  D  BASE Back#1 /kitchen/inventory · C1 /kitchen [DEAD] · MINE /kitchen/inventory  ✓
+  E  BASE Back#1 …/recipes          · C1 …/cooking       · MINE …/recipes           ✓
+  F  BASE Back#1 09-10 [live]       · C1 09-03 [DEAD]    · MINE 09-03 [live], Fwd restores 09-10 ✓
+  ```
+- **C1's own results re-confirmed across all five tabs**, with a finding
+  inside them: C1's Calendar re-tap cost **2 RSC + 1 full document reload**;
+  the fixed build is **1 RSC, 0 documents, no history entry**, and base was
+  0 RSC with a dead Back. So the fix is better than *both* prior builds.
+- **The two libraries now agree.** Before → after on the same probe, plus a
+  sweep across four zones:
+  ```
+  zero-length at exact midnight: BEFORE blockGeometry [] → AFTER [3], partition timed 1
+  sweep: 76 (Denver) / 81 (UTC) disagreements before → 0 after,
+         in Denver, UTC, Europe/London and Australia/Sydney
+  ```
+- **The pin now proves itself** — removed, it goes red with a message naming
+  the reason; restored, green in both zones:
+  ```
+  pin removed, PRE-C3 test: 25 pass, 0 fail   ← Vision's finding: cannot detect its own pin
+  pin removed, C3 test    : 25 pass, 1 fail   "00:30 to 02:30 is 3 REAL hours only under a zone that falls back"
+  ```
+
+### Three judgment calls the builder made and flagged rather than glossed
+
+- **Case F cannot match base's transcript, and it explained why instead of
+  fudging it.** Base's tab tap *performs a navigation* (reset to today) that
+  the prescribed fix deliberately removes, so base's Back#1 is `09-10` and
+  the fixed build's is `09-03`. **What the criterion protects is met and
+  measured** — no dead press, and no discarded entry (Forward restores
+  `09-10`, which C1 destroyed). The only shape matching base exactly is
+  full-URL equality, which reintroduces C1's dead press at `/calendar`
+  proper. It flagged the trade rather than choosing silently.
+- **It named the predicate `atTabRoot`, not the contract's `sameUrl`** —
+  because case F is *exactly* a differing URL, so `sameUrl` "would be the
+  kind of overclaiming this contract exists to remove." Naming discipline
+  applied to itself.
+- **It added `isModifiedClick` unasked**, and the reason is sound: an
+  unconditional `preventDefault` would swallow cmd/shift-click on the active
+  tab, **making it the one link in the app you cannot open in a new tab** — a
+  regression against base. Verified at parity: plain click
+  `defaultPrevented=true`, cmd/shift-click `false`, on all three builds.
+
+### ⚠️ A comment that said something was unreachable — and it was reachable
+
+`useCanonicalCalendarUrl.ts:87-88` states Next's two-mismatch escalation is
+"not reachable here." **C1's Calendar re-tap triggered a full document
+reload** — that escalation — via `replace` onto a canonicalised entry. The C3
+build removes the trigger, so **the claim is true again for shipped code**,
+but the *reasoning* behind it was wrong and nobody had tested it. Out of
+boundary; routed. This is the same file whose sibling comment C1 was
+correcting for overclaiming.
+
+### C4 — Split `timelineLayout.test.ts` (Captain's Ruling 2, now due)
+- **Status:** PENDING — dispatch before re-gating.
+- `timelineLayout.test.ts` is **376/350**, over the soft cap. Captain's
+  Ruling 2 required "the mission adding the first new case splits it in that
+  same commit"; C3 added that case. **The builder did not split** because the
+  split needs a fourth file outside its boundary, and it judged that blocking
+  a correctness fix on file organisation was the worse trade — then surfaced
+  it. Fury agrees with that ordering.
+- **Split on the line Captain named and the file's own structure already
+  shows:** geometry + DST, and column packing + partition. `timelineLayout.test.ts`
+  keeps the first; a new sibling named for the second concern takes the rest.
+  **No numbered second file** (STRUCTURE.md), and each header names the module
+  both cover (amendment B's requirement).
+- **Boundaries:** `src/lib/timelineLayout.test.ts` and the one new sibling
+  test file. **Nothing else** — no source change.
+- **Verification:** the test **count is the instrument** — 237 before and
+  after under both zones, with the **4 zone-gated skips still gated** (they
+  must land in whichever file keeps the DST cases and still skip under UTC).
+  Both files under 350. `tsc`, `eslint`, `build` clean.
 - **The blocker:** `active` is prefix-based, so C1's `replace` and
   `router.refresh()` fire on **20 sub-pages** where the tap is a *real*
   navigation — discarding the entry the user is standing on and reintroducing
