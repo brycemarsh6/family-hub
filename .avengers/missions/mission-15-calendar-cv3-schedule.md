@@ -1,7 +1,7 @@
 # Mission: CV3 — Schedule, the continuous list
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING — C12 dispatched on Bryce's authorization (Vision budget extended to a 4th pass, 2026-09-05); Strange PASS and Captain PASS stand on `6598c0b`
+**Status:** AT-THE-GATES — C12 DONE `4b10184`; Vision pass 4 (Bryce-authorized) is the last gate. Strange PASS and Captain PASS stand on `6598c0b`
 **Started:** 2026-09-04 · **Updated:** 2026-09-05
 
 ## ⚠️ This is the first mission since the calendar went LIVE
@@ -332,10 +332,60 @@ than a wheel flick** (up to four rounds vs one; a 15s sustained gesture
 spent 92 POSTs) — within the documented "one more chunk per gesture"
 intent and visually stable, flagged for whoever tunes the burst.
 
-### C12 — Vision's two pass-3 blockers (Bryce-authorized, with a 4th Vision pass)
-- **Status:** DISPATCHED — **Bryce authorized C12 and a 4th Vision pass,
+### C12 — Vision's two pass-3 blockers (DONE; Bryce-authorized 4th Vision pass next)
+- **Status:** DONE `4b10184` — **Bryce authorized C12 and a 4th Vision pass,
   2026-09-05** ("C12 + one more Vision pass"), explicitly extending the
   doctrine's 3-pass budget by his decision.
+- **Report:** both defects closed, **both pre-fix controls reproducing
+  Vision's own numbers exactly.**
+  **Item 1** — the null branch resets `emptyStreak<Direction>` to 0, so a
+  refusal always reads `streak 0 < cap` however it was reached. Live, on
+  the household's naturally empty-cap-stopped edge with a ghost cookie
+  (valid signature, DAL refuses): one reopening gesture → 2 refused POSTs
+  establishing the refusal-stop, then **6 further gestures → `[0,0,0,0,0,0]`,
+  zero POSTs.** Pre-fix control (null branch reverted, rebuilt, restarted):
+  **`[2,2,2,2,2,2]` = 12** — Vision measured 12.
+  **Item 2** — a `windowGeneration` ref bumped by the reset effect, which
+  now also clears both in-flight flags; each loader captures the generation
+  at start and re-checks it before `setState`, before the second
+  `prepareAdjustment()`, **and inside `finally`** (Fury's named trap: an
+  unguarded `finally` would clear the *fresh* load's flag mid-flight and
+  let a third concurrent load start). Live: deep-link +200d, one mount POST
+  held 4s in flight, Today tapped while held → today's row at
+  `scrollTop 634`, Today **disabled**, headings read the current month,
+  **confirmed after the stale far chunk was released at 3463ms** — the
+  stale result was discarded, not applied. Pre-fix control (hook reverted
+  only): Today **enabled**, `scrollTop 0`, POSTs drifting 290→110 days out
+  long after the click.
+  **Clean path unchanged** (Strange's PASS must survive this delta): Month
+  → Next ×6 → picker → Schedule → settle → Today → `scrollTop 634`, Today
+  disabled, 16 POSTs; 6 mid-page flicks → **0 POSTs.**
+  **Non-vacuity:** reverting the 2-line null-branch change turned exactly
+  the 3 new tests red (28 pass / 3 fail), restored 31/0.
+  Gauntlet green: tsc, eslint, build; **310 tests** under Denver and LA,
+  303 + 7 skipped under UTC. Baseline `Task 0, TaskPerson 0,
+  CalendarEvent 4, User 5` confirmed before and after. Boundary clean —
+  exactly the three permitted files, 204 insertions / 14 deletions.
+- **Deliberate leftover (Fury's call, recorded not deferred silently):**
+  `useScheduleWindow.ts` is **431/350** — over the soft cap, which
+  STRUCTURE.md makes a NOTE and a split candidate, never a blocker. The
+  contract forbade extracting mid-fix; the candidate is named — the two
+  loaders → `useScheduleLoaders.ts`, the same shape as the
+  `useScheduleSentinels.ts` and `useScrollAnchor.ts` extractions this file
+  already produced. Captain's 3-pass budget is spent and a soft-cap
+  crossing is not blocker-class, so this goes to the follow-up mission
+  rather than buying a 4th Captain pass. `scheduleWindowState.ts` 493,
+  `scheduleWindowState.test.ts` 630/650.
+- **Instrument findings worth keeping** (both from the builder, both real):
+  blanket `Network.emulateNetworkConditions` throttles the RSC navigation
+  GET through the *same simulated pipe* as the Schedule's POSTs, so the
+  Today tap's own navigation never completes and the test measures the
+  instrument, not the app — a per-request `Fetch.enable`/`requestPaused`
+  delay on POSTs only reproduces the race cleanly. And Next appears to
+  **serialize** the mount's four Server-Action calls rather than firing
+  them concurrently, so only one can be held genuinely pre-click; the
+  durable evidence is therefore the settled state after the held chunk's
+  release, not the raw request timeline.
 - **Objective:** (1) a direction reopened after the empty cap and then
   REFUSED becomes refusal-stopped — no further gesture reopens it; (2) a
   load in flight when the window resets (`initialDayTime` change) can
@@ -979,6 +1029,11 @@ meet badly wherever the two are compared without conversion.
 - 2026-09-05 — Bryce chose "C12 + one more Vision pass" over ship-as-is
   and stop. C12 dispatched to Stark. Next: Vision pass 4 on the delta
   only, then delivery (push, PR, CLAUDE.md, merge).
+- 2026-09-05 — C12 DONE `4b10184`, both pre-fix controls reproducing
+  Vision's own numbers. Fury audited the diff: boundary clean (3 files),
+  the generation guard traced by hand including the `finally` case, all
+  three overclaiming comments rewritten. **Vision pass 4 dispatched on the
+  delta `6598c0b..4b10184`.** Nothing commits while it runs.
 
 ## Delivery
 
