@@ -99,28 +99,43 @@ export function TaskDetailSheet({
   const canComplete = canManage || current.isMine;
   const canUncomplete = canManage;
 
+  // mission-16/C1: flip first, call the action, revert on refusal — the
+  // DESIGN.md carve-out added the same day (search "reversible state flip")
+  // is what makes this the right call here and the WRONG call for
+  // handleDelete just below, which is deliberately untouched. Completing a
+  // task is cheap to show and cheap to undo, so a refusal reading as "that
+  // didn't take" (the flip snaps back) is honest; a one-shot destructive
+  // verb reappearing after "vanishing" would read as the app losing and
+  // then finding the row, which is why Delete still waits on the server.
+  // `previous` is captured from `current` (not recomputed) so the revert on
+  // failure restores EXACTLY the value the user was looking at before the
+  // tap — not a fresh "null"/"now" guess that could differ from it.
   function handleComplete() {
     setError(null);
+    const previous = current.completedAt;
+    setCurrent((prev) => ({ ...prev, completedAt: new Date() }));
     startTransition(async () => {
       const result = await completeTask(current.id);
       if (result.error) {
+        setCurrent((prev) => ({ ...prev, completedAt: previous }));
         setError(result.error);
         return;
       }
-      setCurrent((prev) => ({ ...prev, completedAt: new Date() }));
       onChanged();
     });
   }
 
   function handleUncomplete() {
     setError(null);
+    const previous = current.completedAt;
+    setCurrent((prev) => ({ ...prev, completedAt: null }));
     startTransition(async () => {
       const result = await uncompleteTask(current.id);
       if (result.error) {
+        setCurrent((prev) => ({ ...prev, completedAt: previous }));
         setError(result.error);
         return;
       }
-      setCurrent((prev) => ({ ...prev, completedAt: null }));
       onChanged();
     });
   }
