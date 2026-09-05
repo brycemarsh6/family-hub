@@ -176,7 +176,30 @@ src/lib/voice/*.test.ts` legs.
   added** to an item they were not already on.
 
 ### C3b — the deactivated-member fix, with the boundary the code implies
-- **Status:** PENDING
+- **Status:** DONE `7b0dc1c`
+- **Report:** `validatedPeople` in both action files gains an
+  `alreadyAssignedUserIds` carve-out, read **fresh from the database** by
+  the caller (one `findMany` against that exact row) — never from input.
+  Default `[]` means `createTask`/`createCalendarEvent` still refuse every
+  deactivated id **by construction**, not by a branch someone could later
+  delete. Unknown ids stay refused by their own separate check.
+  **The evidence is the interesting part**, because no deactivated `User`
+  row exists and the register forbids making one: the builder exercised the
+  **real shipped functions** in-process (mocking only `dal`'s cookie access
+  and `revalidatePath`, monkey-patching `db`), and proved non-vacuity by
+  `git stash` — the same 9 tests against the pre-fix code failed **exactly
+  3**: both positive controls and the unrelated-field-edit symptom. The
+  6 refusal/regression cases passed before *and* after, which is what shows
+  the carve-out didn't loosen anything it shouldn't.
+  **Fury's audit added two checks the report didn't claim:** the label is
+  display-only (ids are what get written, so it cannot reach a save), and
+  `AvatarBadge` takes only `charAt(0)`, so the "(no longer active)" suffix
+  cannot disturb the avatar's initial.
+- ⚠️ **The builder left all five files uncommitted** while reporting DONE.
+  Fury caught it by checking `git log` rather than trusting the report,
+  re-ran the full gauntlet on the tree, and committed it. **Sixth instance
+  of this project's done-but-not-durable class**, and the first from a
+  builder rather than from Fury.
 - **The real blocker, verified by Fury:** `validatedPeople` exists
   **identically in both** `src/app/actions/tasks.ts:87` and
   `src/app/actions/calendar.ts:60`, and rejects the whole save if *any*
@@ -281,7 +304,19 @@ src/lib/voice/*.test.ts` legs.
   heights and stacking, trust neither number.**
 
 ### C6 — the A–Z rail's offset, now that sticky is real (NEW, from C4)
-- **Status:** PENDING
+- **Status:** DONE `12336ca`
+- **Report:** runtime `ResizeObserver` measurement, **not** a second
+  hardcoded `73` — matching this file's own `railTop` precedent, since
+  mission-R2 already fixed a guessed pixel offset here for exactly this
+  reason. Proven with a 9-point `elementFromPoint` sweep of the stuck
+  heading's full box in **both** themes (verified genuinely different
+  computed backgrounds), and non-vacuously: stashing the fix and rebuilding
+  reproduced the true pre-fix bug (`headingTop 64` vs `headerHeight 73`,
+  the top of the box resolving to the header). The rail's drag-to-jump was
+  re-checked with real `PointerEvent`s and lands correctly — worth doing
+  rather than assuming, because mission-R2 records that `scrollIntoView`
+  does not reliably scroll a `position: sticky` target, and sticky is now
+  real for the first time.
 - **A visible regression the family would hit**, exposed rather than
   caused by C4: `RecipeList.tsx:206`'s letter headers use `top-16` (64px)
   against a real app header of **73px**, so the stuck letter's top ~9px is
@@ -312,7 +347,27 @@ src/lib/voice/*.test.ts` legs.
   `position: sticky` target and sticky is now, for the first time, real.
 
 ### C5 — the loaders split (mechanical)
-- **Status:** PENDING (last; needs C4 landed to avoid an index collision)
+- **Status:** **DEFERRED — Fury's call, with the measurement that changed
+  it.** Not dropped: routed to whichever mission next genuinely works in
+  `useScheduleWindow.ts`, for Captain to re-seam.
+- **Why the named candidate is no longer a clean seam.** Captain named
+  `useScheduleLoaders.ts` at CV3's pass 3 — **before C12 added the window
+  generation guard.** Measured now, `loadBackward`/`loadForward` close over
+  **ten** distinct bindings (`windowGeneration`, `backwardInFlight`,
+  `forwardInFlight`, `currentWindow`, `fetchersRef`,
+  `hasLoadedBackwardOnce`, `prepareAdjustment`, `setState`,
+  `setLoadingBackward`, `setLoadingForward`). Extracting them means either
+  threading ten things into a new hook or moving most of the hook with
+  them — and the code being moved is the generation guard, the single most
+  delicate thing in CV3, which took **four** contracts to get right and
+  whose `finally` semantics a careless move would quietly break.
+- **The trade, stated plainly:** the gain is organisational (431 → under a
+  **soft** cap, which STRUCTURE.md itself makes a NOTE and never a
+  blocker); the risk is re-opening a bug that cost four contracts and a
+  budget extension. Nothing in CV4 touches this hook, so nothing is
+  blocked by waiting. **This is new information since Captain's ruling,
+  not a disagreement with it** — Captain should pick the real seam with
+  the guard in view.
 - `useScheduleWindow.ts` is 431/350. Extract `loadBackward`/`loadForward`
   into `src/lib/useScheduleLoaders.ts`, the precedent being
   `useScheduleSentinels.ts` and `useScrollAnchor.ts` from CV3.
@@ -333,6 +388,8 @@ src/lib/voice/*.test.ts` legs.
 | — | C1 + C2 | DONE `f7edaa3`, `33a934f` | — | Optimistic flip proven mid-flight; three pill kinds in one real cell, lanes unchanged by construction |
 | — | C3 | **BLOCKED-ON-CONTRACT** | — | Fury's boundary wrong: 4 roster queries not 2, one of them a create page, and the real blocker sits in the forbidden `actions/**`. Rewritten as C3b |
 | — | C4 | DONE `0ef18ac` | — | `clip` not `hidden`; guard's job proven intact at 375/320 across 8 pages. **Two findings: the app's own header was inert too and now pins app-wide; RecipeList's offset is now 9px wrong → C6** |
+| — | C3b + C6 | DONE `7b0dc1c`, `12336ca` | — | Carve-out read fresh from the row; non-vacuity proven by stash (3 of 9 fail pre-fix). **Builder left both uncommitted — Fury caught it via `git log`, re-ran the gauntlet, sealed them** |
+| — | C5 | **DEFERRED** | — | The named seam degraded after C12: the loaders close over **10** bindings and carry the generation guard. Soft cap is a NOTE; nothing in CV4 is blocked |
 
 ## Handoff log
 
@@ -356,6 +413,13 @@ src/lib/voice/*.test.ts` legs.
   above) and RecipeList's now-wrong 64px offset (**C6**). C3b and C6
   dispatched together — disjoint file sets, and one builder per tree
   avoids the `.next`/index collision two would cause.
+- 2026-09-05 — C3b and C6 DONE; **Fury committed them** after finding the
+  builder had left five files modified and zero commits while reporting
+  DONE. Gauntlet re-run on that tree before sealing. C5 **deferred** with
+  its measurement recorded. **All build work is complete; three gates
+  dispatched in parallel, each in its own worktree and port** — three
+  simultaneous `npm run build`s in one tree collide on `.next`, which cost
+  a gate a rebuild last mission.
 
 ## ⚠️ Surfaced to Bryce — an app-wide change he has not seen
 
