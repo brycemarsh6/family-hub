@@ -70,14 +70,23 @@ structural changes against it.
   a thrown `redirect()` would bounce the browser mid-request. Role checks
   in this form read `MANAGER_ROLES` (or a named role) from
   `constants.ts` — never a hand-rolled role list.
-  For a **data-returning** read action the house shape is the type's own
-  empty value (`[]` for a list), chosen **per action, not per file** — a
-  file may hold `{ error }` writers and `[]` readers side by side
+  For a **data-returning** read action the house shape distinguishes
+  **refusal** from **emptiness**, chosen **per action, not per file** — a
+  file may hold `{ error }` writers and data readers side by side
   (`fetchCalendarEvents` in `actions/calendar.ts`, `fetchTasks` in
   `actions/tasks.ts`). A read action is still a public POST: it treats its
   typed inputs as claims (`Date` instance, not NaN, `end > start`) and
-  **bounds any range it will scan with an explicit span cap**, refusing
-  with the same empty value rather than throwing. That cap is **one
+  **bounds any range it will scan with an explicit span cap**, returning
+  **`null`** on any refusal rather than throwing — while the type's own
+  empty value (`[]` for a list) means the request SUCCEEDED and genuinely
+  found nothing. **Amended 2026-09-05, Bryce-approved**: this clause used
+  to say refuse with the empty value, and mission-15/C6 found that costs a
+  real bug — a client that cannot tell "you may not have this" from "there
+  is nothing here" either retries a refusal forever or treats an
+  unconfirmed range as checked territory. The Schedule's endless scroll
+  walled off every event beyond the first quiet month for exactly that
+  reason. A caller that ignores the distinction is free to; one that needs
+  it must be able to make it. That cap is **one
   security number for every endpoint that scans a range**, and its home is
   `src/lib/` (proposed `fetchWindow.ts`: `MAX_FETCH_SPAN_DAYS`,
   `isValidDate`, `isAcceptableFetchWindow`), imported by each action —
