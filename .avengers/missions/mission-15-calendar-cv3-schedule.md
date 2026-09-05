@@ -1,8 +1,8 @@
 # Mission: CV3 — Schedule, the continuous list
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
-**Started:** 2026-09-04 · **Updated:** 2026-09-04
+**Status:** STOPPED (Vision's 3-pass budget spent with 2 blockers open on `6598c0b`; Strange PASS, Captain PASS; C12 drafted, not dispatched — surfaced to Bryce)
+**Started:** 2026-09-04 · **Updated:** 2026-09-05
 
 ## ⚠️ This is the first mission since the calendar went LIVE
 
@@ -223,6 +223,188 @@ src/lib/voice/*.test.ts` legs.
 | — | C9 | DONE `25a7a4b` | — | test-only split, 768 → 488 + 371; `withTimeZone` stays at 4 |
 | 1 | Vision (4th instance) | **BLOCKED** | 1 | The gesture retries a refusal — D2 defeated. 4 notes. B1/B2/Today/teardown verified closed. |
 | 2 | Strange | **BLOCKED** | 2 | 5 notes; corrected C8's record on the 54px residual; B2 and B3 genuinely fixed |
+| — | C10 + C11 | DONE `6598c0b` | — | extend gated on `isStoppedByEmptyCap`; extremity+direction gating; reset on anchor change; 54px; 65px band; scoped `preserveScroll` |
+| 3 | Vision (5th instance) | **BLOCKED — budget exhausted** | 2 | 4 notes. B1 *narrowed, not closed*: a refused **reopen** leaves the edge reopenable. B2: C10's reset races an in-flight load — Today can fail to arrive. **Mission STOPPED → Bryce.** |
+| 3 | Strange | **PASS** | 0 | 3 notes. Both pass-2 blockers closed and *felt*; 54px proven fixed with a paired control (0 vs 54); 65px band exact |
+
+### Vision, pass 3 (the last) — BLOCKED, two blockers; the budget is spent
+
+On `6598c0b`, scope `25a7a4b..6598c0b`. Gauntlet re-run: tsc, eslint,
+build clean; **307/307** under Denver and LA, 300 + 7 skipped under UTC.
+Boundary audit clean — exactly the seven declared files plus the mission
+file. `preserveScroll` reaches exactly one call site
+(`CalendarViews.tsx:163`). Baseline restored exactly. The new
+`isStoppedByEmptyCap` tests were proven non-vacuous (flipping `>=`→`>`
+turned 2 red).
+
+**B1 — the predecessor's blocker is narrowed, not closed.**
+`extend` is now gated on `isStoppedByEmptyCap`, so a *refusal*-stopped
+edge with `streak < cap` is a genuine no-op (measured: 4+4 gestures →
+`[0,0,0,0]`). But an **empty-cap-stopped** edge (`streak >= cap`)
+reopens, loads, and if that load is **refused**, `applyChunkResult`'s null
+branch deliberately leaves the streak untouched — so the edge is still
+`!hasMore && streak >= cap`, still reopenable, and the same refused chunk
+re-fetches on every gesture, forever. **Measured on the actual null
+branch** (a valid-signature cookie the DAL refuses — the deactivated-
+member case, which passes `proxy.ts` and reaches `getVerifiedSession()`):
+6 gestures → **12 refused POSTs**, identical range, flat 2/gesture, no
+ceiling. Confirmed three ways (pure trace, real empty window, ghost
+cookie). This is the retry loop D2 exists to prevent, on a path C10 did
+not close. Vision's prescription: the null branch resets the streak to 0
+alongside `hasMore = false`, so *any* refusal leaves the edge
+refusal-stopped — reversing that branch's documented "never touch the
+streak" invariant, which is precisely the invariant that opened the gap.
+
+**B2 — C10's reset is new state-machine surface, and a load in flight
+during the reset writes a stale boundary back.** The reset effect (on
+`initialDayTime` change — tapping Today from far away) resets the window,
+`hasMore` and streak refs and `setState(fresh)`, but **not**
+`backwardInFlight`/`forwardInFlight`, and it neither cancels nor ignores a
+load started before it. Sequence: an old far-away backward load is in
+flight → Today tapped → reset → the fresh initial `loadBackward()` is
+**skipped** (in-flight flag still true) → the old load resolves and
+applies its far chunk over the fresh state → `windowStart` becomes the
+stale far value, far entries merge into the near-today window, and the
+re-arm effect keeps loading around the old position. **Pure trace,
+deterministic:** fresh `windowStart 2026-09-05` → `2027-02-22`. **Browser,
+two gated runs** (2.5–4s latency, tapped only with Today enabled and a
+backward load in flight): URL flips to today, reader never arrives, Today
+stays **enabled**, `scrollTop 0`, ~11 wasted far-away POSTs. Recoverable
+with a second tap after loads settle; still a concrete, reachable failure
+of the exact behaviour C10/C11 guarantee, on the slow force-dynamic loads
+that are C11's own premise. Prescription: reset the in-flight flags too,
+and make a pre-reset load unable to apply (generation token captured at
+load start, checked in the updater).
+
+**Notes (4):** the 54px skeleton shift is genuinely fixed — `refJump 0`
+across 7 real mid-list loads on a production build, with the instrument
+control (native anchoring forced on) producing 1479px + the +54 residual.
+The 65px `rootMargin` sits only on the today-visibility observer; the
+fetch-ahead observer (`100% 0px`) is separate, no interference. The
+direction+extremity gating works: TOP wheel-down ×3 → 0 POSTs, BOTTOM
+wheel-up ×3 → 0, a mid-list flick → 1 legitimate fetch-ahead (vs. +6
+before). And the five new unit tests test the predicate in isolation —
+they pass while B1 stands, because the defect is in how `extend` and
+`applyChunkResult` compose across a refused reopen; **a state-machine-
+level test (empty-cap-stopped → reopen → refusal → gesture → zero loads)
+would have caught it.**
+
+### Strange, pass 3 (the last) — PASS
+
+On `6598c0b`, production build in an isolated worktree on its own port,
+real headless Chrome at 375×812 (the built-in pane runs hidden — Strange
+measured `IntersectionObserver` and `requestAnimationFrame` as NEVER
+firing there, so it is structurally incapable of this pass). Theme
+proven both directions. Zero database writes; counts exactly baseline.
+
+**B1 — CLOSED, and the arrival is felt.** Its own walk, no typed URL:
+picker → Month → Next ×6 → picker → Schedule (today's row genuinely not
+loaded — the fallback branch `preserveScroll` is passed from) → Today.
+Today's row settles at `top 94` by **371ms**, Today disables at
+**493ms**, flat through 7s; `minScrollTop` never returns to 0 — no
+flash. On the 4-event list the row lands at `top 536` and holds 11s.
+Pass 2 was 3687px away, permanently. **Week/Day/Month unchanged, now
+non-vacuously:** at 812px Day and Month don't scroll, so the first
+0→0 reading proved nothing; re-measured at 375×500 where they do —
+Month `243 → 0` after Next, `145 → 0` after Today; Week likewise.
+
+**B2 — CLOSED, on wheel and touch.** Full matrix on the settled real
+page: mid-page down/up → **0 POSTs** on both inputs, no skeleton, no
+message change, height fixed over 3.5s; at the true top, downward →
+**0**; at the true top, upward → one chunk. Extremity and direction
+gating each independently observable. The reopen reads as asking: the
+message goes absent for **191ms** with one skeleton, then returns;
+nothing shifts.
+
+**NOTE (its own record correction) — the 54px is genuinely fixed, and
+the control proves it.** Per-animation-frame, mid-list, `maxDeviation 0`
+across 270 frames through a full insert-and-replace cycle; **paired
+control with native anchoring forced back on: `maxDeviation 54`, never
+recovers.** Its first two attempts returned zero *including the control*
+and were rejected — the metric was rebuilt rather than a clean number
+reported unearned. **NOTE — the 65px band is exact:** nav occupies y
+747–812 (height 65); a row with 2px visible above the nav → Today
+disabled; 0px → enabled. **NOTE — Day lands at `scrollTop 5`, not 0**,
+after Next and Today (Month at exactly 0) — pre-existing, not from this
+delta, imperceptible, recorded only so nobody reads "verified at 0" into
+this evidence. **NOTE — a touch flick at the boundary grants more chunks
+than a wheel flick** (up to four rounds vs one; a 15s sustained gesture
+spent 92 POSTs) — within the documented "one more chunk per gesture"
+intent and visually stable, flagged for whoever tunes the burst.
+
+### C12 — Vision's two pass-3 blockers (DRAFTED, NOT DISPATCHED — needs Bryce)
+- **Status:** PENDING BRYCE — Vision's three-pass budget is spent, so
+  dispatching this **and the 4th Vision pass it needs** is his call, not
+  Fury's. Nothing runs until he decides.
+- **Objective:** (1) a direction reopened after the empty cap and then
+  REFUSED becomes refusal-stopped — no further gesture reopens it; (2) a
+  load in flight when the window resets (`initialDayTime` change) can
+  neither block the fresh window's own initial loads nor write its result
+  into the fresh state.
+- **Fix guidance** — the findings stand; the prescriptions must be
+  *verified*, not assumed (mission-13: a gate's finding can stand while
+  its prescription fails):
+  1. `applyChunkResult`'s null branch resets `emptyStreak<Direction>` to
+     `0` alongside `hasMore<Direction> = false`. **Rewrite the three
+     comments that currently promise the opposite** — the null branch's
+     own, `isStoppedByEmptyCap`'s header ("left wherever it was"), and
+     `reopenAfterEmptyStreak`'s "never advances the streak" paragraph. An
+     overclaiming comment is this project's named defect class. The
+     existing refused-state test (`emptyStreakBackward: 0`) stays true.
+  2. In the hook: a generation counter (or equivalent) bumped by the reset
+     effect, which also clears `backwardInFlight`/`forwardInFlight`. Each
+     loader captures the generation at start and, after its `await`,
+     applies its `setState` **and clears its own in-flight/loading flags
+     only if the generation still matches.** Trap, named by Fury: a stale
+     load's `finally` clearing the in-flight flag unconditionally would
+     clear the *fresh* load's flag mid-flight, letting a second fresh load
+     start concurrently — the `finally` must be generation-guarded too.
+     Effect order is load-bearing (the reset effect is declared before
+     the initial-load effect; both key on `initialDayTime`) — say so in a
+     comment where the next editor will stand.
+  3. Tests, pure level, `scheduleWindowState.test.ts`: empty-cap-stopped →
+     `reopenAfterEmptyStreak` → `applyChunkResult(…, null, null)` →
+     `isStoppedByEmptyCap` is **false** and a second reopen is a no-op,
+     both directions — the state-machine-level test Vision asked for.
+     Prove it non-vacuous: revert the null-branch change, watch it go red.
+     The race in item 2 has no pure surface; its evidence is the
+     production-build measurement below.
+- **Evidence required:** gauntlet green under all three timezone legs.
+  **Item 1:** a browser run of Vision's T2 shape — an empty-cap-stopped
+  edge, a refused reopen (a DAL-refused cookie, or a fetcher stub
+  returning `null`), then ≥6 gestures → **zero** further POSTs; pre-fix
+  control on the reverted file → 2 POSTs/gesture. **Item 2:** production
+  build, 375×812, a backward load held in flight (throttled network or a
+  delayed fetcher), Today tapped while it is in flight with the button
+  enabled → today's row lands in the viewport, Today disables, and **no**
+  POST after the tap carries a range outside the fresh window's own
+  chunks; pre-fix control on the reverted file → Today stays enabled,
+  far-away POSTs. **Clean path unchanged:** Strange's B1 walk tapped
+  *after* settle still lands today's row, and mid-page flicks still
+  produce zero POSTs — the delta must not disturb Strange's pass-3 PASS.
+  **Counts:** `useScheduleWindow.ts` is at 348/350 and will cross the
+  soft cap — report it; do NOT extract mid-fix; name the split candidate
+  (the two loaders → `useScheduleLoaders.ts`) for Captain.
+- **Boundaries:** may touch `src/lib/useScheduleWindow.ts`,
+  `src/lib/scheduleWindowState.ts`, `src/lib/scheduleWindowState.test.ts`
+  · must not touch `useScheduleSentinels.ts`, `ScheduleView.tsx`,
+  `CalendarViews.tsx`, `useCalendarNavigation.ts`, `actions/**`,
+  `prisma/**`.
+- **Done criteria:** both pre-fix controls red on the reverted tree and
+  green on the shipped tree; the pure tests red with the null-branch
+  change reverted; gauntlet green; counts reported.
+- **Gate plan if authorized:** Vision pass 4 on the delta only
+  (`6598c0b..HEAD`), explicitly outside the doctrine's budget by Bryce's
+  decision. Strange's PASS stands on `6598c0b`; the delta reaches its
+  domain only in the race case, and Vision's re-check of the clean B1
+  walk is the evidence that the PASS still covers the shipped tree.
+- **Deliberate leftover to record at delivery, whatever Bryce decides:**
+  the stop *reason* per direction is inferred from `(hasMore, streak)`
+  rather than stored. Four fix contracts in a row (C6, C8, C10, C12) each
+  opened a new edge in the same state machine. An explicit per-direction
+  `status` (`open | refused | exhausted`) plus the generation token would
+  make this class structurally impossible; queue it as its own contract
+  before anything else builds on this hook — nothing in CV4/CV5 does.
 
 ### Strange, pass 2 — BLOCKED
 
@@ -414,135 +596,10 @@ is the documented, scoped limitation, not new.
 - **Budget:** after this, **Vision and Strange each get one pass — their
   last.** If either blocks, the mission stops and surfaces.
 
-## Gate ledger
-
-| Pass | Gate | Verdict | Blockers | Notes |
-|---|---|---|---|---|
-| 1 | Captain (**Fable**) | **BLOCKED** | 2 | 10 notes, 4 amendment drafts — the experiment's result |
-| 1 | Vision | **DIED — session rate limit**, mid-report | — | Its fragment named a real bug; Fury reproduced it (below) |
-| 2 | Captain (**Fable**) | **PASS** | 0 | 8 notes; finalised 4 amendments — all now in STRUCTURE.md, plus a 5th Bryce approved |
-| 1 | Vision (fresh run) | **BLOCKED** | 4 | 6 notes; found three real user-facing failures |
-| — | C6 fix batch | dispatched | — | — |
-| 1 | Strange | **BLOCKED** | 3 | 3 notes; all three blockers trace to Fury's design calls |
-| — | C8 fix | DONE `2e3e1ae` | — | all three closed on a production build; tests 297 → 302 |
-| 2 | Vision | **DIED — session limit** (Fury's), mid-run | — | Was genuinely on `claude-fable-5-1`. No verdict. Third Vision instance to die this mission. |
-| 3 | Captain (Fable) | **BLOCKED — budget exhausted** | 1 | 7 notes; blocker is a test file over the HARD cap, fix is mechanical |
-| — | C9 | DONE `25a7a4b` | — | test-only split, 768 → 488 + 371; `withTimeZone` stays at 4 |
-| 1 | Vision (4th instance) | **BLOCKED** | 1 | The gesture retries a refusal — D2 defeated. 4 notes. B1/B2/Today/teardown verified closed. |
-| 2 | Strange | **BLOCKED** | 2 | 5 notes; corrected C8's record on the 54px residual; B2 and B3 genuinely fixed |
-
-### Strange, pass 2 — BLOCKED
-
-**B1 — tapping Today navigates but never arrives.** Walked without a
-typed URL: Month → Next ×6 → picker → Schedule → Today. URL becomes
-`?date=today&view=schedule`, then 10s later, fully settled, today's row is
-**3687px = 4.54 viewports away**, Today still enabled, and the circle has
-scrolled itself 1839px off the top. Reproduced via +200d deep link,
-byte-identical over 16s — not transient. **Cause:** `hasScrolledInitially`
-(`ScheduleView.tsx:173`) is a one-shot ref; `goToToday()` changes the
-`initialDay` prop **without remounting**, so the initial-scroll effect
-returns immediately. `useScheduleWindow` *does* rebuild its window on the
-same key — the data re-centres, only the scroll does not.
-**C8's evidence verified the mechanism (navigation fired), not the
-outcome (reader arrived). Fury accepted it. Named as a lesson.**
-**Fix:** re-arm the one-shot on `initialDayTime` change, mirroring the
-window rebuild already keyed on it.
-
-**B2 — every ordinary flick reopens both stopped directions.** On the
-real 4-event calendar the page is 1383px against 812, so with
-`rootMargin: "100% 0px"` **both sentinels are permanently intersecting**
-and the guard at `useScheduleSentinels.ts:167` never engages. One small
-*downward* mid-page flick: "as far back" message vanishes, skeleton
-appears, **+6 POSTs**, content shifts, ~2s later everything reverts
-unchanged. Scrolling toward the future re-queries the past. Makes the
-four-state vocabulary unstable in ordinary use. **Same root as Vision's
-blocker — the extend gesture is under-guarded from two directions.**
-**Fix:** gate `handlePossibleExtend` on the scroller genuinely being at
-its extremity (`scrollTop ≤ ε` / `scrollTop + clientHeight ≥ scrollHeight − ε`),
-not on sentinel intersection, which is page-height dependent; and gate on
-gesture direction so a downward gesture can only extend forward.
-
-**⚠️ NOTE that corrects the record — the 54px residual is NOT gone.**
-C8 reported it as "the same root cause — gone." Paired control on
-identical skeleton-insertion frames: native anchoring on → `refJump 0`;
-**as shipped → `refJump +54`, `dScrollTop 0`**. Own cause:
-`prepareAdjustment()` wraps only the *content* commit
-(`useScheduleWindow.ts:228`); the `setLoadingBackward(true)` commit that
-inserts the skeleton (`:221`) is uncorrected. Chromium's native anchoring
-was the only thing absorbing it, and B2's fix switched that off. **WebKit
-never had it, so this has always been live on the family's iPhones** —
-C8 brought Chromium into line with the broken behaviour. Four ±30px
-shifts inside 600ms on one flick. Kept a NOTE for consistency with pass-1
-severity on the same magnitude; **the record must be corrected** — done
-here, and the fix goes in C10.
-
-**NOTE — B2 (the double correction) is genuinely fixed**, with an honest
-instrument disclosure: Strange's first control was void because it
-triggered prepends by jumping to `scrollTop: 0`, where Chromium
-suppresses anchoring; re-taken mid-list: **ratio 1.00 / refJump 0** as
-shipped across 8 prepends, **1.93–2.00 / up to −1298px** with native
-forced back on. `overflow-anchor` restored to `auto` on unmount to Week
-and on onward navigation to Kitchen.
-**NOTE** — a ~65px band where Today still lies: the visibility observer
-uses the layout viewport but the bottom nav covers the last 65px, so a
-row fully behind the nav reads "visible" and Today disables. Not
-reachable on the 4-event page; reachable on any longer list.
-`rootMargin: "0px 0px -65px 0px"` fixes it. **NOTE** — the header with
-the Today circle scrolls off on an endless list; on bounded views this
-never bites. Pre-existing shared-header behaviour; **Bryce's call.**
-**NOTE** — the month label renders twice ~65px apart at a fresh open.
-
-**Re-verified passing:** B3's headline — **16 POSTs, last at 1878ms**,
-from 100 / ~11s; reachability feels like asking, not fighting (one
-sustained gesture carried Oct → Mar 2027); B1's two good paths; the
-stopped message never shows early; 46 elements × 32 scroll positions at
-375 and 320, both themes, zero under 44px, zero never-unoccluded, zero
-overflow; picker exact; Week/Day/Month unchanged; both flagged comments
-corrected accurately.
-
-### Vision, final instance — BLOCKED
-
-**The blocker is the acceptance question the dispatch asked verbatim**
-(*"can a gesture reopen a direction stopped by a genuine refusal?"*) and
-the answer is yes. `extend()` in `useScheduleWindow.ts:265-272` calls
-`loadBackward()`/`loadForward()` **unconditionally** after
-`reopenAfterEmptyStreak`; the pure function is correctly a no-op on a
-refusal-stopped edge (its unit test passes), but the loaders have no
-`hasMore` guard, so the refused chunk is re-fetched. **Failure scenario,
-and it is this household's:** a sparse calendar sits with *both* edges at
-the empty cap in ordinary use; if the session then lapses — expiry,
-deactivation, or the documented `SESSION_SECRET`-rotation sign-out —
-with a Schedule tab open, every scroll gesture at an edge re-fetches the
-same refused chunk. **Measured: 5 wheel events → 20 POSTs, the same two
-ranges repeated, unbounded.** That is precisely the retry loop D2 exists
-to prevent. Harm is contract/resource, not data — the list stays
-correctly stopped — but B3 is not closed on this path.
-**Fix (Vision's, precise):** mirror `emptyStreak` in a ref as `hasMoreRef`
-already is, and gate `extend`'s loader call on the same empty-cap
-condition `reopenAfterEmptyStreak` uses — only reopen+load when
-`!hasMore && emptyStreak >= MAX_CONSECUTIVE_EMPTY_CHUNKS`, so a
-refusal-stopped edge is a true no-op on gesture. The re-arm effect at
-`:312-319` already guards on `state.hasMore` and is unaffected.
-
-**Verified closed:** B1 terminates on a short page at 375×812 (12 POSTs =
-3+3 chunks, both "as far" messages, quiet-4s → 0 further); B2's
-edit-then-delete case — the one the C7 builder named as where re-seating
-actually matters — **ghosts without re-seating, removed correctly with
-it**; Today disabled at rest / enabled scrolled away / navigates on
-deep-link; both `IntersectionObserver`s torn down on unmount;
-`overflow-anchor` restored to `""` on Schedule → Week. Seam sweep, 11
-zones: zero drops at or west of UTC.
-
-**NOTES:** the B4 record gap (now backfilled above); five empty `sgx-*.ts`
-files in the repo root are **Strange's in-flight probes** — untracked,
-inert, must not be swept into any commit; the prepend ratio could not be
-independently reproduced on now-sparse data (Strange's 1.00 / 2.00
-control stands as the measurement); east-of-UTC one-day-early placement
-is the documented, scoped limitation, not new.
-
-### C10 — Vision's blocker: a gesture must not retry a refusal
-- **Status:** PENDING — **waits for Strange's verdict, then batches with
-  any Strange findings.** No dispatch while a gate runs.
+### C10 (first draft — SUPERSEDED) — Vision's blocker: a gesture must not retry a refusal
+- **Status:** SUPERSEDED — folded into the five-item C10 above once
+  Strange's pass 2 landed. Kept only as the record of what Vision's
+  blocker looked like before Strange's findings were batched with it.
 - **Fix:** per Vision above. Plus a regression test: a refusal-stopped
   direction receives a gesture → zero loader calls; an empty-cap-stopped
   direction receives a gesture → exactly one reopen and one load.
@@ -907,6 +964,18 @@ meet badly wherever the two are compared without conversion.
   one correction (it misattributed Captain's extraction ruling). **D1
   departs from the plan deliberately** — the app is live now, and removing
   Week/Day would make `DEFAULT_CALENDAR_VIEW` name an unbuilt view.
+- 2026-09-04/05 — C1–C11 built and gated across two session limits (see
+  the ledger; every verdict is recorded there). HEAD `6598c0b`, tree
+  clean. **Final gates, both on `6598c0b`: Vision pass 3 BLOCKED (2),
+  Strange pass 3 PASS, Captain pass 2 PASS (pass 3's blocker fixed by C9,
+  count-checked by Captain, 4th pass declined pending Bryce).** Per the
+  doctrine the mission STOPPED; C12 is drafted above with the evidence and
+  boundaries it needs, and waits for Bryce to authorize a 4th Vision pass.
+  **Also found and fixed in this file:** a 126-line block (the ledger,
+  Strange pass 2, Vision final instance) had been duplicated by an earlier
+  insertion — deleted; the first-draft C10 it exposed is marked
+  SUPERSEDED. **A fresh session resumes from:** the Status line, the C12
+  contract, and `git log` — trust git over prose.
 
 ## Delivery
 
