@@ -1,7 +1,7 @@
 # Mission: CV3 — Schedule, the continuous list
 
 **Project:** family-hub (Marshee)
-**Status:** STOPPED (Vision's 3-pass budget spent with 2 blockers open on `6598c0b`; Strange PASS, Captain PASS; C12 drafted, not dispatched — surfaced to Bryce)
+**Status:** BUILDING — C12 dispatched on Bryce's authorization (Vision budget extended to a 4th pass, 2026-09-05); Strange PASS and Captain PASS stand on `6598c0b`
 **Started:** 2026-09-04 · **Updated:** 2026-09-05
 
 ## ⚠️ This is the first mission since the calendar went LIVE
@@ -332,10 +332,10 @@ than a wheel flick** (up to four rounds vs one; a 15s sustained gesture
 spent 92 POSTs) — within the documented "one more chunk per gesture"
 intent and visually stable, flagged for whoever tunes the burst.
 
-### C12 — Vision's two pass-3 blockers (DRAFTED, NOT DISPATCHED — needs Bryce)
-- **Status:** PENDING BRYCE — Vision's three-pass budget is spent, so
-  dispatching this **and the 4th Vision pass it needs** is his call, not
-  Fury's. Nothing runs until he decides.
+### C12 — Vision's two pass-3 blockers (Bryce-authorized, with a 4th Vision pass)
+- **Status:** DISPATCHED — **Bryce authorized C12 and a 4th Vision pass,
+  2026-09-05** ("C12 + one more Vision pass"), explicitly extending the
+  doctrine's 3-pass budget by his decision.
 - **Objective:** (1) a direction reopened after the empty cap and then
   REFUSED becomes refusal-stopped — no further gesture reopens it; (2) a
   load in flight when the window resets (`initialDayTime` change) can
@@ -976,6 +976,9 @@ meet badly wherever the two are compared without conversion.
   insertion — deleted; the first-draft C10 it exposed is marked
   SUPERSEDED. **A fresh session resumes from:** the Status line, the C12
   contract, and `git log` — trust git over prose.
+- 2026-09-05 — Bryce chose "C12 + one more Vision pass" over ship-as-is
+  and stop. C12 dispatched to Stark. Next: Vision pass 4 on the delta
+  only, then delivery (push, PR, CLAUDE.md, merge).
 
 ## Delivery
 
