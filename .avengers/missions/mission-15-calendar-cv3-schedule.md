@@ -356,7 +356,19 @@ is the documented, scoped limitation, not new.
   navigation hook, not the view.
 
 ### C11 — Today must arrive: preserve scroll on Schedule's navigation only
-- **Status:** PENDING — written before dispatch.
+- **Status:** DONE — see `git log`.
+- **Report:** `preserveScroll` option on `navigateTo`/`goToToday`; passed
+  from exactly one call site, Schedule's not-loaded fallback. **Outcome
+  measured, production build, Chromium 375×812:** Month→Next×6→picker→
+  Schedule→Today and a +200d deep link→Today both land today's row at
+  `top 536`, Today **disabled**, **one** navigation, flat over an 11s
+  poll. **Pre-fix control on the same walk:** `scrollTop` → 0 at t=2s,
+  row at `top 1083` — Strange's defect reproduced on demand. Week/Day/
+  Month: `scrollTop === 0` after Next and after Today, unchanged; Week
+  HTML byte-identical after normalising build hashes. No unit test — the
+  effect is what reaches `router.push`, which the existing test file's
+  own header already scopes out as needing a real router; the builder
+  declined to invent a mock that would test its own wiring.
 - **Fix:** the builder's experiment was a *blanket* `{ scroll: false }` on
   `useCalendarNavigation.ts:191`. **Not acceptable as-is**: Week, Day and
   Month are live and paging them *should* start at the top. Scope it:
