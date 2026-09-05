@@ -265,42 +265,68 @@ export function ScheduleView({
   // have shown anyway (no jump on load) — this observer only ever moves it
   // from there once the reader actually scrolls into a different month.
   const [visibleMonthAnchor, setVisibleMonthAnchor] = useState(initialDay);
+  // mission-16/C7 — mirrors `visibleMonthAnchor`'s latest value without
+  // being a state read the effect below has to depend on (same ref-not-
+  // state reasoning as `hasScrolledInitially`/`seededInitialDayTime`
+  // above). Needed to break a genuine infinite-render loop the scroll-
+  // driven effect below would otherwise cause: `useScheduleWindow.ts`'s
+  // `months` is memoized on `[state, today, initialDay]`, and `useToday()`
+  // hands back a FRESH `Date` object every render even when the underlying
+  // calendar day hasn't moved — so `months` gets a new array reference on
+  // effectively every render, re-running that effect every time. The old
+  // IntersectionObserver-based version this replaced only ever called
+  // `setVisibleMonthAnchor` from a genuine browser intersection-change
+  // callback, so re-running its setup on every render was merely wasteful.
+  // This version calls `setVisibleMonthAnchor` synchronously from the
+  // effect body itself (matching `syncTitleSlot`'s own established
+  // pattern) — without this ref-backed guard, it would hand back a new
+  // `Date` instance for the SAME calendar month on every run, which
+  // `Object.is` always treats as changed, triggering a re-render, a new
+  // `months` reference, another effect run, another "changed" Date... an
+  // unbounded loop (reproduced and confirmed via React's own "Maximum
+  // update depth exceeded" error before this guard was added).
+  const visibleMonthAnchorRef = useRef(initialDay);
 
   // The header portal's target node. CalendarHeader and this component are
   // SIBLINGS under CalendarViews.tsx, both committed to the DOM in the same
   // pass, so by the time the effect below runs the node reliably already
   // exists — same ordering CalendarHeader's own comment on
-  // SCHEDULE_TITLE_SLOT_ID relies on. Looked up inside the observer effect
-  // just below rather than a standalone effect of its own: an effect that
-  // does nothing but a direct DOM read + setState, with no subscription of
-  // any kind, is exactly the "cascading render" shape
+  // SCHEDULE_TITLE_SLOT_ID relies on. Looked up inside the scroll-driven
+  // effect just below rather than a standalone effect of its own: an effect
+  // that does nothing but a direct DOM read + setState, with no subscription
+  // of any kind, is exactly the "cascading render" shape
   // react-hooks/set-state-in-effect exists to catch — RecipeList.tsx's own
   // `railTop` measurement establishes the same fix (fold the direct read
   // into an effect that ALSO subscribes to something real), rather than
   // suppressing the rule.
   const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
 
-  // Reuses the SAME instrument as the "today visible" observer above (an
-  // IntersectionObserver keyed off a `rootMargin` that accounts for real
-  // fixed chrome, per this file's own established pattern) rather than
-  // inventing a second technique — but answers a different question: not
-  // "is this one node visible", but "of several month sections, which one
-  // is currently at the top". The `rootMargin` carves the observing area
-  // down to a thin band starting exactly where content clears BOTH pinned
-  // bars (the app's own global header, APP_HEADER_HEIGHT_PX, AND this
-  // component's own pinned CalendarHeader, SCHEDULE_HEADER_BAR_HEIGHT_PX —
-  // both measured against the real running app, not guessed) — so a
-  // month's `<section>` is only ever marked "current" once its content has
-  // genuinely scrolled to just below the two stacked bars, not some
-  // arbitrary earlier point. `-80%` gives that band real height (the
-  // opposite edge, near the bottom of the viewport, matters far less: a
-  // month rarely needs to be "current" while its own top is still that far
-  // down the screen).
+  // mission-16/C7 (Vision's BLOCKER) — this used to reuse the "today
+  // visible" observer's own instrument: an IntersectionObserver whose
+  // `rootMargin` (`-227px 0px -80% 0px`) carved out a thin band meant to
+  // start exactly where content clears both pinned bars. That band is
+  // INVERTED — its top edge sits below its bottom edge — on any viewport
+  // shorter than 1135px (227px is already more than 20% of a 375-tall
+  // phone screen), which makes it empty. Chrome silently clamps an
+  // inverted rect to a zero-height line and still reports edge-adjacent
+  // intersections, so it looked like it worked; WebKit's
+  // `edgeInclusiveIntersect` does not clamp, and never intersects at all —
+  // which is why the label froze on one month for the whole session on
+  // every iPhone and the installed PWA (measured on Playwright WebKit
+  // 26.6: 65 scroll steps, 0 label changes). A narrower band would only
+  // trade this bug for the same class at some OTHER viewport; there is no
+  // `rootMargin` that is provably non-empty at every phone height.
   //
-  // Only `isIntersecting: true` entries are ever acted on — a `false`
-  // entry just means some OTHER month's section has taken the band's
-  // place, which its own `true` entry (in the same or a following batch)
-  // already reports.
+  // The fix drops the observer entirely and reads the DOM directly on
+  // scroll: of the 5-12 month `<section>`s actually rendered, which one's
+  // top has scrolled up past `revealLineY` (the real bottom edge of the
+  // two stacked pinned bars) — the LAST one for which that's true, since
+  // months render in chronological/DOM order and a `<section>` further
+  // down the list can never start higher on screen than one before it.
+  // `getBoundingClientRect()` on a handful of nodes per scroll/resize is
+  // not a performance concern at this scale; batched behind
+  // `requestAnimationFrame` so a fast scroll can't queue the read more
+  // than once per frame.
   useLayoutEffect(() => {
     // Named, rather than an inline `setTitleSlot(...)` statement, for the
     // same reason RecipeList.tsx's own `measure()` is: a bare direct
@@ -315,25 +341,50 @@ export function ScheduleView({
     syncTitleSlot();
 
     if (months.length === 0) return;
-    const nodeToTime = new Map(
-      Array.from(monthRefs.current.entries(), ([time, node]) => [node, time]),
-    );
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          const time = nodeToTime.get(entry.target as HTMLElement);
-          const month = months.find((candidate) => candidate.monthStart.getTime() === time);
-          if (month) setVisibleMonthAnchor(month.monthStart);
-        }
-      },
-      {
-        threshold: 0,
-        rootMargin: `-${APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX}px 0px -80% 0px`,
-      },
-    );
-    for (const node of monthRefs.current.values()) observer.observe(node);
-    return () => observer.disconnect();
+
+    const revealLineY = APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX;
+    let framePending = false;
+
+    function syncVisibleMonth() {
+      framePending = false;
+      let current: Date | null = null;
+      for (const month of months) {
+        const node = monthRefs.current.get(month.monthStart.getTime());
+        if (!node) continue;
+        if (node.getBoundingClientRect().top > revealLineY) break;
+        current = month.monthStart;
+      }
+      // A `null` result means the reader hasn't scrolled far enough for
+      // ANY month's top to have cleared the reveal line yet (e.g. still at
+      // the very start of the list) — leave `visibleMonthAnchor` at
+      // whatever it already is (seeded to `initialDay`'s own month) rather
+      // than clearing it, matching this state's own established rule that
+      // it only ever moves once the reader genuinely scrolls into a
+      // different month.
+      //
+      // The `.getTime()` comparison against the ref (not the `current`
+      // Date's own identity) is what makes this idempotent — see
+      // `visibleMonthAnchorRef`'s own comment above for the infinite-loop
+      // this guards against.
+      if (current && current.getTime() !== visibleMonthAnchorRef.current.getTime()) {
+        visibleMonthAnchorRef.current = current;
+        setVisibleMonthAnchor(current);
+      }
+    }
+
+    function onScrollOrResize() {
+      if (framePending) return;
+      framePending = true;
+      requestAnimationFrame(syncVisibleMonth);
+    }
+
+    syncVisibleMonth();
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
   }, [months]);
 
   useImperativeHandle(ref, () => ({
@@ -362,12 +413,22 @@ export function ScheduleView({
             leaving this sticky too would show the month name TWICE at
             once, stacked under the pinned CalendarHeader's own now-live
             title (which this component feeds via a portal — see
-            visibleMonthAnchor, above). A plain heading, matching the
-            week-range divider just below it, is what keeps there being
-            exactly one live label on screen at a time. */}
-        <h2 className="px-1 py-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
-          {formatMonthTitle(month.monthStart)}
-        </h2>
+            visibleMonthAnchor, above).
+
+            mission-16/C7 (Strange's BLOCKER) — a PLAIN, visible divider
+            wasn't enough: at the very top of a month, this heading sits in
+            the 0-120px landing range where the pinned bar's own title
+            (same month, same words) is ALSO on screen, so the same name
+            rendered twice at once — exactly what D2 says must never
+            happen, just reached from a range C4's own check didn't cover.
+            `sr-only`, not `hidden` — `hidden` is `display:none`, which
+            STRIPS an element from the accessibility tree (mission-8/K2's
+            own finding: Month at phone width exposed 0 event names that
+            way). `sr-only` keeps this month heading in document order for
+            a screen reader — the same role the week-range divider below
+            already plays for structure inside a month — while the pinned
+            bar carries the only VISIBLE label. */}
+        <h2 className="sr-only">{formatMonthTitle(month.monthStart)}</h2>
         <div className="flex flex-col gap-4 py-2">
           {groupByWeek(month.days).map((week) => (
             <div key={week.weekStart.getTime()}>
@@ -382,7 +443,28 @@ export function ScheduleView({
                       if (element) dayRefs.current.set(row.day.getTime(), element);
                       else dayRefs.current.delete(row.day.getTime());
                     }}
-                    className="scroll-mt-16"
+                    // mission-16/C7 (Captain by reading, Strange by
+                    // measuring — BLOCKER) — `scroll-mt-16` (64px) is a
+                    // leftover from CV3, when this app's own global header
+                    // was still inert (see globals.css's C4 comment) and
+                    // nothing on the page was pinned at all. C4 pinned 227px
+                    // of real chrome above this list (the app header,
+                    // APP_HEADER_HEIGHT_PX, plus this file's own Schedule bar,
+                    // SCHEDULE_HEADER_BAR_HEIGHT_PX) without updating this
+                    // number, so both `scrollIntoView` call sites (the
+                    // initial/deep-link effect above, and `scrollToToday`'s
+                    // imperative handle) landed the target day's TOP at 64px
+                    // — fully behind the bars (Strange measured `visiblePx:
+                    // 0`, `elementFromPoint` returning the app header, 3/3).
+                    // A constant sum, not a runtime measurement, because
+                    // ScheduleView only ever renders while CalendarHeader's
+                    // Schedule bar is pinned — CalendarViews.tsx mounts this
+                    // component exclusively inside `view === "schedule"`,
+                    // and CalendarHeader.tsx's own `pinned` flag is exactly
+                    // that same condition — so there is no render of this
+                    // row where the two constants imported above don't
+                    // already describe the real, current chrome height.
+                    style={{ scrollMarginTop: APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX }}
                   >
                     {today !== null &&
                     isSameDay(row.day, today) &&
