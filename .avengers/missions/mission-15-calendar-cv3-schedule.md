@@ -222,7 +222,232 @@ src/lib/voice/*.test.ts` legs.
 | 3 | Captain (Fable) | **BLOCKED — budget exhausted** | 1 | 7 notes; blocker is a test file over the HARD cap, fix is mechanical |
 | — | C9 | DONE `25a7a4b` | — | test-only split, 768 → 488 + 371; `withTimeZone` stays at 4 |
 | 1 | Vision (4th instance) | **BLOCKED** | 1 | The gesture retries a refusal — D2 defeated. 4 notes. B1/B2/Today/teardown verified closed. |
-| 2 | Strange | running | — | — |
+| 2 | Strange | **BLOCKED** | 2 | 5 notes; corrected C8's record on the 54px residual; B2 and B3 genuinely fixed |
+
+### Strange, pass 2 — BLOCKED
+
+**B1 — tapping Today navigates but never arrives.** Walked without a
+typed URL: Month → Next ×6 → picker → Schedule → Today. URL becomes
+`?date=today&view=schedule`, then 10s later, fully settled, today's row is
+**3687px = 4.54 viewports away**, Today still enabled, and the circle has
+scrolled itself 1839px off the top. Reproduced via +200d deep link,
+byte-identical over 16s — not transient. **Cause:** `hasScrolledInitially`
+(`ScheduleView.tsx:173`) is a one-shot ref; `goToToday()` changes the
+`initialDay` prop **without remounting**, so the initial-scroll effect
+returns immediately. `useScheduleWindow` *does* rebuild its window on the
+same key — the data re-centres, only the scroll does not.
+**C8's evidence verified the mechanism (navigation fired), not the
+outcome (reader arrived). Fury accepted it. Named as a lesson.**
+**Fix:** re-arm the one-shot on `initialDayTime` change, mirroring the
+window rebuild already keyed on it.
+
+**B2 — every ordinary flick reopens both stopped directions.** On the
+real 4-event calendar the page is 1383px against 812, so with
+`rootMargin: "100% 0px"` **both sentinels are permanently intersecting**
+and the guard at `useScheduleSentinels.ts:167` never engages. One small
+*downward* mid-page flick: "as far back" message vanishes, skeleton
+appears, **+6 POSTs**, content shifts, ~2s later everything reverts
+unchanged. Scrolling toward the future re-queries the past. Makes the
+four-state vocabulary unstable in ordinary use. **Same root as Vision's
+blocker — the extend gesture is under-guarded from two directions.**
+**Fix:** gate `handlePossibleExtend` on the scroller genuinely being at
+its extremity (`scrollTop ≤ ε` / `scrollTop + clientHeight ≥ scrollHeight − ε`),
+not on sentinel intersection, which is page-height dependent; and gate on
+gesture direction so a downward gesture can only extend forward.
+
+**⚠️ NOTE that corrects the record — the 54px residual is NOT gone.**
+C8 reported it as "the same root cause — gone." Paired control on
+identical skeleton-insertion frames: native anchoring on → `refJump 0`;
+**as shipped → `refJump +54`, `dScrollTop 0`**. Own cause:
+`prepareAdjustment()` wraps only the *content* commit
+(`useScheduleWindow.ts:228`); the `setLoadingBackward(true)` commit that
+inserts the skeleton (`:221`) is uncorrected. Chromium's native anchoring
+was the only thing absorbing it, and B2's fix switched that off. **WebKit
+never had it, so this has always been live on the family's iPhones** —
+C8 brought Chromium into line with the broken behaviour. Four ±30px
+shifts inside 600ms on one flick. Kept a NOTE for consistency with pass-1
+severity on the same magnitude; **the record must be corrected** — done
+here, and the fix goes in C10.
+
+**NOTE — B2 (the double correction) is genuinely fixed**, with an honest
+instrument disclosure: Strange's first control was void because it
+triggered prepends by jumping to `scrollTop: 0`, where Chromium
+suppresses anchoring; re-taken mid-list: **ratio 1.00 / refJump 0** as
+shipped across 8 prepends, **1.93–2.00 / up to −1298px** with native
+forced back on. `overflow-anchor` restored to `auto` on unmount to Week
+and on onward navigation to Kitchen.
+**NOTE** — a ~65px band where Today still lies: the visibility observer
+uses the layout viewport but the bottom nav covers the last 65px, so a
+row fully behind the nav reads "visible" and Today disables. Not
+reachable on the 4-event page; reachable on any longer list.
+`rootMargin: "0px 0px -65px 0px"` fixes it. **NOTE** — the header with
+the Today circle scrolls off on an endless list; on bounded views this
+never bites. Pre-existing shared-header behaviour; **Bryce's call.**
+**NOTE** — the month label renders twice ~65px apart at a fresh open.
+
+**Re-verified passing:** B3's headline — **16 POSTs, last at 1878ms**,
+from 100 / ~11s; reachability feels like asking, not fighting (one
+sustained gesture carried Oct → Mar 2027); B1's two good paths; the
+stopped message never shows early; 46 elements × 32 scroll positions at
+375 and 320, both themes, zero under 44px, zero never-unoccluded, zero
+overflow; picker exact; Week/Day/Month unchanged; both flagged comments
+corrected accurately.
+
+### Vision, final instance — BLOCKED
+
+**The blocker is the acceptance question the dispatch asked verbatim**
+(*"can a gesture reopen a direction stopped by a genuine refusal?"*) and
+the answer is yes. `extend()` in `useScheduleWindow.ts:265-272` calls
+`loadBackward()`/`loadForward()` **unconditionally** after
+`reopenAfterEmptyStreak`; the pure function is correctly a no-op on a
+refusal-stopped edge (its unit test passes), but the loaders have no
+`hasMore` guard, so the refused chunk is re-fetched. **Failure scenario,
+and it is this household's:** a sparse calendar sits with *both* edges at
+the empty cap in ordinary use; if the session then lapses — expiry,
+deactivation, or the documented `SESSION_SECRET`-rotation sign-out —
+with a Schedule tab open, every scroll gesture at an edge re-fetches the
+same refused chunk. **Measured: 5 wheel events → 20 POSTs, the same two
+ranges repeated, unbounded.** That is precisely the retry loop D2 exists
+to prevent. Harm is contract/resource, not data — the list stays
+correctly stopped — but B3 is not closed on this path.
+**Fix (Vision's, precise):** mirror `emptyStreak` in a ref as `hasMoreRef`
+already is, and gate `extend`'s loader call on the same empty-cap
+condition `reopenAfterEmptyStreak` uses — only reopen+load when
+`!hasMore && emptyStreak >= MAX_CONSECUTIVE_EMPTY_CHUNKS`, so a
+refusal-stopped edge is a true no-op on gesture. The re-arm effect at
+`:312-319` already guards on `state.hasMore` and is unaffected.
+
+**Verified closed:** B1 terminates on a short page at 375×812 (12 POSTs =
+3+3 chunks, both "as far" messages, quiet-4s → 0 further); B2's
+edit-then-delete case — the one the C7 builder named as where re-seating
+actually matters — **ghosts without re-seating, removed correctly with
+it**; Today disabled at rest / enabled scrolled away / navigates on
+deep-link; both `IntersectionObserver`s torn down on unmount;
+`overflow-anchor` restored to `""` on Schedule → Week. Seam sweep, 11
+zones: zero drops at or west of UTC.
+
+**NOTES:** the B4 record gap (now backfilled above); five empty `sgx-*.ts`
+files in the repo root are **Strange's in-flight probes** — untracked,
+inert, must not be swept into any commit; the prepend ratio could not be
+independently reproduced on now-sparse data (Strange's 1.00 / 2.00
+control stands as the measurement); east-of-UTC one-day-early placement
+is the documented, scoped limitation, not new.
+
+### C10 — the extend gesture, from both gates, plus Today and the 54px
+- **Status:** PENDING — dispatched only after this record was written.
+- **Both gates blocked on the same under-guarded gesture, from two
+  directions; one contract owns all of it:**
+  1. **(Vision)** a gesture must never retry a **refusal**-stopped
+     direction. Mirror `emptyStreak` in a ref; `extend` reopens+loads
+     only when `!hasMore && emptyStreak >= MAX_CONSECUTIVE_EMPTY_CHUNKS`.
+  2. **(Strange)** a gesture must fire only when the scroller is
+     genuinely at that extremity **and** the gesture points that way —
+     not on sentinel intersection, which is page-height dependent and
+     permanently true on a short page.
+  3. **(Strange)** Today must *arrive*: re-arm `hasScrolledInitially` on
+     `initialDayTime` change so a client-side `goToToday()` scrolls.
+  4. **(Strange, record correction)** the 54px skeleton-insertion shift:
+     wrap the `setLoadingBackward` commits in `prepareAdjustment()` too,
+     or reserve the skeleton's height. **Live on iPhones today.**
+  5. **(Strange NOTE, cheap, same file)** `rootMargin: "0px 0px -65px 0px"`
+     on the today-visibility observer so a row behind the bottom nav does
+     not read as visible.
+- **Regression tests** for 1 and 2 at the pure level where possible; for
+  3 and 4, production-build measurement in Chromium **and** the outcome,
+  not the mechanism — the reader's row must land on screen.
+- **Boundaries:** may touch `useScheduleWindow.ts`, `useScheduleSentinels.ts`,
+  `scheduleWindowState.ts`, `scheduleWindowState.test.ts`,
+  `scheduleWindowStateRefresh.test.ts`, `ScheduleView.tsx` · must not
+  touch `CalendarViews.tsx`, `CalendarHeader.tsx`, `actions/**`,
+  `prisma/**`, `globals.css`, `layout.tsx`.
+- **Budget:** after this, **Vision and Strange each get one pass — their
+  last.** If either blocks, the mission stops and surfaces.
+
+## Gate ledger
+
+| Pass | Gate | Verdict | Blockers | Notes |
+|---|---|---|---|---|
+| 1 | Captain (**Fable**) | **BLOCKED** | 2 | 10 notes, 4 amendment drafts — the experiment's result |
+| 1 | Vision | **DIED — session rate limit**, mid-report | — | Its fragment named a real bug; Fury reproduced it (below) |
+| 2 | Captain (**Fable**) | **PASS** | 0 | 8 notes; finalised 4 amendments — all now in STRUCTURE.md, plus a 5th Bryce approved |
+| 1 | Vision (fresh run) | **BLOCKED** | 4 | 6 notes; found three real user-facing failures |
+| — | C6 fix batch | dispatched | — | — |
+| 1 | Strange | **BLOCKED** | 3 | 3 notes; all three blockers trace to Fury's design calls |
+| — | C8 fix | DONE `2e3e1ae` | — | all three closed on a production build; tests 297 → 302 |
+| 2 | Vision | **DIED — session limit** (Fury's), mid-run | — | Was genuinely on `claude-fable-5-1`. No verdict. Third Vision instance to die this mission. |
+| 3 | Captain (Fable) | **BLOCKED — budget exhausted** | 1 | 7 notes; blocker is a test file over the HARD cap, fix is mechanical |
+| — | C9 | DONE `25a7a4b` | — | test-only split, 768 → 488 + 371; `withTimeZone` stays at 4 |
+| 1 | Vision (4th instance) | **BLOCKED** | 1 | The gesture retries a refusal — D2 defeated. 4 notes. B1/B2/Today/teardown verified closed. |
+| 2 | Strange | **BLOCKED** | 2 | 5 notes; corrected C8's record on the 54px residual; B2 and B3 genuinely fixed |
+
+### Strange, pass 2 — BLOCKED
+
+**B1 — tapping Today navigates but never arrives.** Walked without a
+typed URL: Month → Next ×6 → picker → Schedule → Today. URL becomes
+`?date=today&view=schedule`, then 10s later, fully settled, today's row is
+**3687px = 4.54 viewports away**, Today still enabled, and the circle has
+scrolled itself 1839px off the top. Reproduced via +200d deep link,
+byte-identical over 16s — not transient. **Cause:** `hasScrolledInitially`
+(`ScheduleView.tsx:173`) is a one-shot ref; `goToToday()` changes the
+`initialDay` prop **without remounting**, so the initial-scroll effect
+returns immediately. `useScheduleWindow` *does* rebuild its window on the
+same key — the data re-centres, only the scroll does not.
+**C8's evidence verified the mechanism (navigation fired), not the
+outcome (reader arrived). Fury accepted it. Named as a lesson.**
+**Fix:** re-arm the one-shot on `initialDayTime` change, mirroring the
+window rebuild already keyed on it.
+
+**B2 — every ordinary flick reopens both stopped directions.** On the
+real 4-event calendar the page is 1383px against 812, so with
+`rootMargin: "100% 0px"` **both sentinels are permanently intersecting**
+and the guard at `useScheduleSentinels.ts:167` never engages. One small
+*downward* mid-page flick: "as far back" message vanishes, skeleton
+appears, **+6 POSTs**, content shifts, ~2s later everything reverts
+unchanged. Scrolling toward the future re-queries the past. Makes the
+four-state vocabulary unstable in ordinary use. **Same root as Vision's
+blocker — the extend gesture is under-guarded from two directions.**
+**Fix:** gate `handlePossibleExtend` on the scroller genuinely being at
+its extremity (`scrollTop ≤ ε` / `scrollTop + clientHeight ≥ scrollHeight − ε`),
+not on sentinel intersection, which is page-height dependent; and gate on
+gesture direction so a downward gesture can only extend forward.
+
+**⚠️ NOTE that corrects the record — the 54px residual is NOT gone.**
+C8 reported it as "the same root cause — gone." Paired control on
+identical skeleton-insertion frames: native anchoring on → `refJump 0`;
+**as shipped → `refJump +54`, `dScrollTop 0`**. Own cause:
+`prepareAdjustment()` wraps only the *content* commit
+(`useScheduleWindow.ts:228`); the `setLoadingBackward(true)` commit that
+inserts the skeleton (`:221`) is uncorrected. Chromium's native anchoring
+was the only thing absorbing it, and B2's fix switched that off. **WebKit
+never had it, so this has always been live on the family's iPhones** —
+C8 brought Chromium into line with the broken behaviour. Four ±30px
+shifts inside 600ms on one flick. Kept a NOTE for consistency with pass-1
+severity on the same magnitude; **the record must be corrected** — done
+here, and the fix goes in C10.
+
+**NOTE — B2 (the double correction) is genuinely fixed**, with an honest
+instrument disclosure: Strange's first control was void because it
+triggered prepends by jumping to `scrollTop: 0`, where Chromium
+suppresses anchoring; re-taken mid-list: **ratio 1.00 / refJump 0** as
+shipped across 8 prepends, **1.93–2.00 / up to −1298px** with native
+forced back on. `overflow-anchor` restored to `auto` on unmount to Week
+and on onward navigation to Kitchen.
+**NOTE** — a ~65px band where Today still lies: the visibility observer
+uses the layout viewport but the bottom nav covers the last 65px, so a
+row fully behind the nav reads "visible" and Today disables. Not
+reachable on the 4-event page; reachable on any longer list.
+`rootMargin: "0px 0px -65px 0px"` fixes it. **NOTE** — the header with
+the Today circle scrolls off on an endless list; on bounded views this
+never bites. Pre-existing shared-header behaviour; **Bryce's call.**
+**NOTE** — the month label renders twice ~65px apart at a fresh open.
+
+**Re-verified passing:** B3's headline — **16 POSTs, last at 1878ms**,
+from 100 / ~11s; reachability feels like asking, not fighting (one
+sustained gesture carried Oct → Mar 2027); B1's two good paths; the
+stopped message never shows early; 46 elements × 32 scroll positions at
+375 and 320, both themes, zero under 44px, zero never-unoccluded, zero
+overflow; picker exact; Week/Day/Month unchanged; both flagged comments
+corrected accurately.
 
 ### Vision, final instance — BLOCKED
 
