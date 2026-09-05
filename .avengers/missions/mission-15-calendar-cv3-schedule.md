@@ -384,6 +384,34 @@ a Captain run that was **asked** to be Fable found two real blockers. The
 fallback, and `/usage` accounting actually work; its answer goes here.
 Until then the experiment is **unrun**, not passed.
 
+**Follow-up, same day — three probes and a doc lookup:**
+- `claude-code-guide` (from the docs): subagent model resolves
+  per-invocation param → frontmatter → `CLAUDE_CODE_SUBAGENT_MODEL` →
+  parent model. **No 429 fallback is documented. Precedence between
+  `~/.claude/agents/` and `.claude/agents/` is not documented.** `/usage`
+  attribution of subagent tokens to a specific model allowance is not
+  documented. Subagents receive CLAUDE.md + git status + tool schemas,
+  **not** the conversation — so the ~90–160k per-dispatch floor is
+  CLAUDE.md (5,100 lines) plus schemas, scaling with the agent's tool
+  count (banner/haiku ≈ 90k, vision ≈ 119k, general-purpose ≈ 157k).
+- Probe: `banner` with the **repo** copy set to `sonnet`, user copy
+  `haiku` → reported **Haiku**. Ambiguous.
+- Probe: **both** copies set to `sonnet` → **still Haiku.**
+  **Conclusion: agent definition files are read once at session start.
+  Mid-session edits have no effect until restart.** This is an
+  undocumented drift vector: the 2026-09-03 model "fix" recorded in
+  CLAUDE.md could not have taken effect in the session that made it.
+  The repo-vs-user precedence question **cannot be answered without a
+  restart** — set the copies to differ, restart, probe. Both files
+  reverted; repo copy byte-identical to HEAD.
+- **Consequence for the Fable mystery:** if the harness resolved
+  `vision: fable` at session start while Fable's limit was exhausted and
+  cached a fallback, every Vision run this session ran on it regardless
+  of the file — consistent with the `opus-4-8` error and 0% Fable. Still
+  a hypothesis; the docs are silent. Whether Captain's explicit
+  `model: fable` bypassed the cache is likewise unverified — the probes
+  that returned Fable ran only after the session's own model was switched.
+
 Separately measured: a trivial probe subagent costs **~120–160k tokens**
 with zero tool uses — the fixed cost of loading CLAUDE.md (5,100 lines)
 plus tool schemas. At ~40 dispatches this session that is several million
