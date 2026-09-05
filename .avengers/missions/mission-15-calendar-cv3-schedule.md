@@ -216,7 +216,83 @@ src/lib/voice/*.test.ts` legs.
 | 2 | Captain (**Fable**) | **PASS** | 0 | 8 notes; finalised 4 amendments — all now in STRUCTURE.md, plus a 5th Bryce approved |
 | 1 | Vision (fresh run) | **BLOCKED** | 4 | 6 notes; found three real user-facing failures |
 | — | C6 fix batch | dispatched | — | — |
-| 1 | Strange | queued | — | — |
+| 1 | Strange | **BLOCKED** | 3 | 3 notes; all three blockers trace to Fury's design calls |
+
+### Strange, pass 1 — BLOCKED
+
+**It re-measured its three decisive findings against a PRODUCTION build**,
+because two could have been dev-only artifacts. One was — the dev build
+exaggerated B2, and it reported the honest production number instead.
+
+**B1 — the Today circle is permanently disabled on Schedule, asserting
+"you are already on today" while the screen shows two months away.**
+`isCurrentPeriod: (anchor, today) => isSameDay(anchor, today)` — and
+scrolling deliberately never moves the anchor, so it is true forever.
+Measured `disabled:true, opacity:0.4` at rest *and* scrolled to the last
+loaded day. Shipped Week is the contrast: disabled on the current week,
+enabled the moment you page away — **so the family has already learned
+that a greyed Today means "you're here."** There is no way back to today
+but a reload. **Fury's gap:** the contract asked for "Today scrolls if
+loaded, else navigates" without checking `isCurrentPeriod` could express
+it.
+
+**B2 — the viewport lurches 696px up on prepend in Chromium, and the
+cause is a correct comment with a wrong conclusion.**
+`useScheduleWindow.ts:202` says *"WebKit has no `overflow-anchor`"* —
+true — and manually corrects. But **Chromium's native anchoring is on**,
+so the correction lands **twice**: measured `dST` is exactly `2 × dH` on
+every run, 3/3, net **−696px**, 86% of an 812px viewport, in under half a
+second. Decisive control: injecting `*{overflow-anchor:none}` gives
+`dST == dH` and `refJump 0.00`.
+**⚠️ iOS Safari is unaffected — this reads fine on a phone and fails on
+laptop and Android. Do not "verify" the fix on an iPhone alone.**
+
+**B3 — 100 POSTs and ~11 seconds of skeletons on every open, on the
+household's real data, to display 4 rows.** Production build, zero
+interaction: 10 posts at 1s, 32 at 3s, 64 at 6s, settling at **100** with
+both skeletons up until ~11s. Cause: `MAX_CONSECUTIVE_EMPTY_CHUNKS = 24`
+× 30 days × **both directions** ≈ 720 days scanned unprompted.
+**This is Fury's number, chosen in C6 without asking what it means on a
+sparse calendar — and a sparse calendar is this household's normal
+case.** My own comment beside it claims the cap is *"not a limit anyone
+should expect to hit in practice"*; the real data falsifies that on every
+single open. It also has a correctness face — 100 unprompted calls to a
+public POST endpoint per view open — which Vision should own.
+
+**NOTES:** the sticky month header **does not stick** (`globals.css:125`'s
+`overflow-x: hidden` on `body` makes `position: sticky` inert app-wide —
+**pre-existing**, the shipped Week header measures the same), but
+`calendarViewConfig.ts:134` justifies freezing the header title *on the
+belief that it works*; a residual **54px** jump when a skeleton is torn
+down in the same commit as a prepend, which survives the B2 fix; and
+`TodayEmptyRow` still hand-copies `DaySection`'s gutter.
+
+**Passed, measured:** the **four-state distinguishability holds** — the
+mission's sharpest design question. Loading (grey bars), empty-today
+(dashed box + CTA), outside-window (solid + `CalendarOff`), and
+direction-stopped (centred muted prose, 4.75:1 / 6.81:1) are mutually
+unmistakable, and the boundary messages are gated on `!loading` — at
+t=1s both read false with skeletons up. No overflow at 375 or 320; no tap
+target under 44px; **reachability scanned across every scroll position,
+not one** — its first pass flagged a Week card as occluded and that was
+its own instrument measuring a single position, the exact error DESIGN.md
+warns about. Week/Day/Month unchanged. And Schedule **does** read as a
+distinct view, not Week unwalled.
+
+### C8 — Strange's three blockers
+- **Status:** DISPATCHED
+- **B1** Schedule drives Today's disabled state from its own scroll
+  position, not the anchor; `onToday` scrolls if loaded, navigates if not.
+- **B2** `overflow-anchor: none` on Schedule's scrolling container — the
+  manual mechanism requires being the *only* corrector. Correct the
+  comment: WebKit's gap is real, the conclusion drawn from it was not.
+- **B3** cut the empty-chunk cap to 2–3 and let a further scroll gesture
+  extend it, rather than scanning ~720 days unprompted. Correct the
+  comment that calls the cap unreachable.
+- **Boundaries:** may touch `useScheduleWindow.ts`, `ScheduleView.tsx`,
+  `CalendarViews.tsx`, `CalendarHeader.tsx`, `scheduleWindowState.ts`,
+  `scheduleWindowState.test.ts`, `calendarViewConfig.ts` · must not touch
+  `globals.css`, `layout.tsx`, `DaySection.tsx`, `actions/**`, `prisma/**`.
 
 ### Vision, pass 1 (fresh run) — BLOCKED, four blockers, three of them things the family would hit
 
