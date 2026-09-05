@@ -131,26 +131,32 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     prevLabel: "Previous",
     nextLabel: "Next",
     placeholderCount: 7,
-    // Settled as the ANCHOR's month, not "whatever month is currently
-    // scrolled to" — the header title cannot track scroll position without
-    // ScheduleView reporting it back up, and nothing has asked for that
-    // (mission-15/C8's own fix threads a value back up for Today's disabled
-    // state specifically — see this file's isCurrentPeriod row below — but
-    // the title stays as originally settled here). This is an honest
-    // simplification, not a stub.
+    // mission-16/C4 — this function's return VALUE is no longer what
+    // Schedule's header actually displays. CalendarHeader.tsx now renders
+    // a portal target for Schedule instead of this string (see
+    // SCHEDULE_TITLE_SLOT_ID's own comment in that file), fed by
+    // ScheduleView.tsx's own "which month is topmost on screen" answer —
+    // exactly the scroll-driven label the comment this replaces said
+    // wasn't built and wasn't going to be. What this function still does
+    // is decide whether the title is null vs. resolved (the
+    // loading-placeholder check in CalendarHeader.tsx needs SOME value
+    // here, not none); its concrete text is otherwise unused for schedule
+    // specifically. Kept computing the anchor's real month anyway, rather
+    // than returning e.g. `""`, since an honest (if now-overridden) value
+    // is a stranger thing to read here than a placeholder would be.
     //
-    // CORRECTED, mission-15/C8: this comment used to justify it by saying
-    // the reader's real per-scroll-position label was ScheduleView's own
-    // "sticky" month headers. Those headers do NOT actually stick —
-    // globals.css's `overflow-x: hidden` on `body` makes `position: sticky`
-    // inert app-wide, a pre-existing, whole-app fact this mission did not
-    // introduce and is not the one to fix (the shipped Week header has the
-    // identical property). What the reader genuinely sees scrolling past,
-    // in practice, is ScheduleView's plain, non-sticky week-range dividers
-    // (`formatWeekRange` rows) rendered inline between day groups — those
-    // really do move with scroll and are what stands in for a live label
-    // today. This header title only ever reflects wherever the URL points
-    // (today on a fresh open, or a deep-linked "?date=").
+    // CORRECTED AGAIN, mission-16/C4 (previously corrected mission-15/C8):
+    // that earlier correction was itself an overclaim of this exact
+    // project's own named defect class. It said the sticky month headers
+    // "do NOT actually stick" because of globals.css's `overflow-x:
+    // hidden` rule, and called that "a pre-existing, whole-app fact this
+    // mission did not introduce and is not the one to fix" — true when
+    // written, false now. `overflow-x: clip` (globals.css, this same
+    // contract) removes that rule's side effect without losing its job
+    // (still clips a stray wide element, per that file's own comment) —
+    // every `position: sticky` element in the app, including this file's
+    // own now-moot claim about week-range dividers standing in for a live
+    // label, actually sticks.
     title: (anchor) => formatMonthTitle(anchor),
     // CV3 builds its own rolling window from `anchor` (scheduleWindow.ts).
     days: (anchor) => [anchor],

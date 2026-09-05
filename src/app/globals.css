@@ -119,10 +119,32 @@ h3 {
 }
 
 /* Don't let a stray wide element cause the whole page to scroll sideways on a
-   phone — a very common and very annoying mobile bug. */
+   phone — a very common and very annoying mobile bug.
+
+   mission-16/C4: this used to be `overflow-x: hidden`. Per spec, setting
+   overflow-x without overflow-y computes overflow-y to `auto` on any element
+   that doesn't specify it — so BOTH html and body became scroll containers.
+   body never actually needs to scroll (its own box always exactly contains
+   its content, since nothing constrains its height below that), so it was a
+   scrollport permanently parked at offset zero. position: sticky computes
+   its containing block from the NEAREST scrolling ancestor, so every sticky
+   element in the app — this file's own <header>, ScheduleView's per-month
+   heading, RecipeList's A-Z letter headers — was sticking relative to that
+   dead scrollport instead of the one that actually moves (html). Measured
+   directly, not assumed: the app header's rendered position tracked
+   scrollY pixel-for-pixel instead of staying pinned at top:0.
+
+   `overflow-x: clip` still clips a horizontally-overflowing element (proven:
+   window.scrollTo can't move scrollX past 0 on any page, before or after
+   this change) but — unlike `hidden` — is explicitly exempted from that
+   cross-axis auto-computation, so neither html nor body becomes a scroll
+   container. html stays the document's one real scroller, and every
+   position: sticky element in the app now genuinely sticks. Don't
+   "simplify" this back to `hidden` — that silently reintroduces the exact
+   bug this comment describes. */
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Kill the blue flash when tapping on iOS; we style our own pressed states. */

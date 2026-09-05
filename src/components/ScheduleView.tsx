@@ -6,12 +6,18 @@
 // scroll anchoring); this file is rendering only.
 
 import { useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DaySection } from "./DaySection";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { SkeletonBlock } from "./Skeleton";
+import {
+  SCHEDULE_TITLE_SLOT_ID,
+  APP_HEADER_HEIGHT_PX,
+  SCHEDULE_HEADER_BAR_HEIGHT_PX,
+} from "./CalendarHeader";
 import {
   useScheduleWindow,
   type ScheduleFetchers,
@@ -173,6 +179,12 @@ export function ScheduleView({
   const hasScrolledInitially = useRef(false);
   const initialDayTime = startOfDay(initialDay).getTime();
 
+  // mission-16/C4 (D2) — one ref per rendered month `<section>`, watched by
+  // the "which month is topmost" observer below. Same reasoning as
+  // `dayRefs` above: a ref map churns on every render without needing to
+  // trigger one itself.
+  const monthRefs = useRef(new Map<number, HTMLElement>());
+
   // mission-15/C10 (Strange's blocker) — re-arms the one-shot below
   // whenever `initialDayTime` genuinely changes, mirroring
   // useScheduleWindow.ts's own window-rebuild effect keyed on the same
@@ -246,6 +258,84 @@ export function ScheduleView({
     return () => observer.disconnect();
   }, [today, months, onTodayVisibleChange]);
 
+  // mission-16/C4 (D2) — the pinned CalendarHeader now owns the one live
+  // month label for Schedule (see SCHEDULE_TITLE_SLOT_ID's own comment for
+  // why this is a portal rather than a prop). Seeded with `initialDay`'s
+  // own month so the very first paint matches whatever the header would
+  // have shown anyway (no jump on load) — this observer only ever moves it
+  // from there once the reader actually scrolls into a different month.
+  const [visibleMonthAnchor, setVisibleMonthAnchor] = useState(initialDay);
+
+  // The header portal's target node. CalendarHeader and this component are
+  // SIBLINGS under CalendarViews.tsx, both committed to the DOM in the same
+  // pass, so by the time the effect below runs the node reliably already
+  // exists — same ordering CalendarHeader's own comment on
+  // SCHEDULE_TITLE_SLOT_ID relies on. Looked up inside the observer effect
+  // just below rather than a standalone effect of its own: an effect that
+  // does nothing but a direct DOM read + setState, with no subscription of
+  // any kind, is exactly the "cascading render" shape
+  // react-hooks/set-state-in-effect exists to catch — RecipeList.tsx's own
+  // `railTop` measurement establishes the same fix (fold the direct read
+  // into an effect that ALSO subscribes to something real), rather than
+  // suppressing the rule.
+  const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
+
+  // Reuses the SAME instrument as the "today visible" observer above (an
+  // IntersectionObserver keyed off a `rootMargin` that accounts for real
+  // fixed chrome, per this file's own established pattern) rather than
+  // inventing a second technique — but answers a different question: not
+  // "is this one node visible", but "of several month sections, which one
+  // is currently at the top". The `rootMargin` carves the observing area
+  // down to a thin band starting exactly where content clears BOTH pinned
+  // bars (the app's own global header, APP_HEADER_HEIGHT_PX, AND this
+  // component's own pinned CalendarHeader, SCHEDULE_HEADER_BAR_HEIGHT_PX —
+  // both measured against the real running app, not guessed) — so a
+  // month's `<section>` is only ever marked "current" once its content has
+  // genuinely scrolled to just below the two stacked bars, not some
+  // arbitrary earlier point. `-80%` gives that band real height (the
+  // opposite edge, near the bottom of the viewport, matters far less: a
+  // month rarely needs to be "current" while its own top is still that far
+  // down the screen).
+  //
+  // Only `isIntersecting: true` entries are ever acted on — a `false`
+  // entry just means some OTHER month's section has taken the band's
+  // place, which its own `true` entry (in the same or a following batch)
+  // already reports.
+  useLayoutEffect(() => {
+    // Named, rather than an inline `setTitleSlot(...)` statement, for the
+    // same reason RecipeList.tsx's own `measure()` is: a bare direct
+    // setState call in an effect's own immediate body is what
+    // react-hooks/set-state-in-effect flags — nesting it one level down,
+    // even when (as here) it's still invoked synchronously right away,
+    // reads as "seed an initial value" rather than "an effect whose only
+    // job is calling setState", which is the actual pattern being flagged.
+    function syncTitleSlot() {
+      setTitleSlot(document.getElementById(SCHEDULE_TITLE_SLOT_ID));
+    }
+    syncTitleSlot();
+
+    if (months.length === 0) return;
+    const nodeToTime = new Map(
+      Array.from(monthRefs.current.entries(), ([time, node]) => [node, time]),
+    );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const time = nodeToTime.get(entry.target as HTMLElement);
+          const month = months.find((candidate) => candidate.monthStart.getTime() === time);
+          if (month) setVisibleMonthAnchor(month.monthStart);
+        }
+      },
+      {
+        threshold: 0,
+        rootMargin: `-${APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX}px 0px -80% 0px`,
+      },
+    );
+    for (const node of monthRefs.current.values()) observer.observe(node);
+    return () => observer.disconnect();
+  }, [months]);
+
   useImperativeHandle(ref, () => ({
     scrollToToday: () => {
       if (today === null) return false;
@@ -258,13 +348,24 @@ export function ScheduleView({
 
   function renderMonth(month: ScheduleRenderMonth) {
     return (
-      <section key={month.monthStart.getTime()}>
-        {/* Sticky month header — the same construction RecipeList's own
-            letter headers use (a plain-flow scroll target just below it,
-            never on the sticky element itself — see that file's own
-            comment on why scrollIntoView doesn't reliably scroll a
-            position: sticky node). */}
-        <h2 className="sticky top-16 z-10 -mx-4 bg-bg px-4 py-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+      <section
+        key={month.monthStart.getTime()}
+        ref={(element) => {
+          if (element) monthRefs.current.set(month.monthStart.getTime(), element);
+          else monthRefs.current.delete(month.monthStart.getTime());
+        }}
+      >
+        {/* mission-16/C4 (D2): no longer sticky. Before this contract's
+            globals.css fix, `sticky` here was already inert app-wide (see
+            that file's own comment), so this rendered as a plain in-flow
+            divider anyway — now that sticky positioning actually works,
+            leaving this sticky too would show the month name TWICE at
+            once, stacked under the pinned CalendarHeader's own now-live
+            title (which this component feeds via a portal — see
+            visibleMonthAnchor, above). A plain heading, matching the
+            week-range divider just below it, is what keeps there being
+            exactly one live label on screen at a time. */}
+        <h2 className="px-1 py-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
           {formatMonthTitle(month.monthStart)}
         </h2>
         <div className="flex flex-col gap-4 py-2">
@@ -417,6 +518,21 @@ export function ScheduleView({
           }}
         />
       )}
+
+      {/* mission-16/C4 (D2) — feeds the pinned CalendarHeader's own live
+          month label. `titleSlot` is null for one paint on first mount
+          (see its own declaration above) and briefly again if this whole
+          view unmounts — createPortal simply renders nothing until it's a
+          real node, no separate loading branch needed. Matches the
+          non-pinned title's own markup exactly (CalendarHeader.tsx), so
+          switching in and out of Schedule shows the identical style. */}
+      {titleSlot &&
+        createPortal(
+          <h2 className="truncate text-lg font-semibold">
+            {formatMonthTitle(visibleMonthAnchor)}
+          </h2>,
+          titleSlot,
+        )}
     </div>
   );
 }
