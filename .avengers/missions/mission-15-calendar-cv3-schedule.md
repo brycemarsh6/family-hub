@@ -220,6 +220,61 @@ src/lib/voice/*.test.ts` legs.
 | — | C8 fix | DONE `2e3e1ae` | — | all three closed on a production build; tests 297 → 302 |
 | 2 | Vision | **DIED — session limit** (Fury's), mid-run | — | Was genuinely on `claude-fable-5-1`. No verdict. Third Vision instance to die this mission. |
 | 3 | Captain (Fable) | **BLOCKED — budget exhausted** | 1 | 7 notes; blocker is a test file over the HARD cap, fix is mechanical |
+| — | C9 | DONE `25a7a4b` | — | test-only split, 768 → 488 + 371; `withTimeZone` stays at 4 |
+| 1 | Vision (4th instance) | **BLOCKED** | 1 | The gesture retries a refusal — D2 defeated. 4 notes. B1/B2/Today/teardown verified closed. |
+| 2 | Strange | running | — | — |
+
+### Vision, final instance — BLOCKED
+
+**The blocker is the acceptance question the dispatch asked verbatim**
+(*"can a gesture reopen a direction stopped by a genuine refusal?"*) and
+the answer is yes. `extend()` in `useScheduleWindow.ts:265-272` calls
+`loadBackward()`/`loadForward()` **unconditionally** after
+`reopenAfterEmptyStreak`; the pure function is correctly a no-op on a
+refusal-stopped edge (its unit test passes), but the loaders have no
+`hasMore` guard, so the refused chunk is re-fetched. **Failure scenario,
+and it is this household's:** a sparse calendar sits with *both* edges at
+the empty cap in ordinary use; if the session then lapses — expiry,
+deactivation, or the documented `SESSION_SECRET`-rotation sign-out —
+with a Schedule tab open, every scroll gesture at an edge re-fetches the
+same refused chunk. **Measured: 5 wheel events → 20 POSTs, the same two
+ranges repeated, unbounded.** That is precisely the retry loop D2 exists
+to prevent. Harm is contract/resource, not data — the list stays
+correctly stopped — but B3 is not closed on this path.
+**Fix (Vision's, precise):** mirror `emptyStreak` in a ref as `hasMoreRef`
+already is, and gate `extend`'s loader call on the same empty-cap
+condition `reopenAfterEmptyStreak` uses — only reopen+load when
+`!hasMore && emptyStreak >= MAX_CONSECUTIVE_EMPTY_CHUNKS`, so a
+refusal-stopped edge is a true no-op on gesture. The re-arm effect at
+`:312-319` already guards on `state.hasMore` and is unaffected.
+
+**Verified closed:** B1 terminates on a short page at 375×812 (12 POSTs =
+3+3 chunks, both "as far" messages, quiet-4s → 0 further); B2's
+edit-then-delete case — the one the C7 builder named as where re-seating
+actually matters — **ghosts without re-seating, removed correctly with
+it**; Today disabled at rest / enabled scrolled away / navigates on
+deep-link; both `IntersectionObserver`s torn down on unmount;
+`overflow-anchor` restored to `""` on Schedule → Week. Seam sweep, 11
+zones: zero drops at or west of UTC.
+
+**NOTES:** the B4 record gap (now backfilled above); five empty `sgx-*.ts`
+files in the repo root are **Strange's in-flight probes** — untracked,
+inert, must not be swept into any commit; the prepend ratio could not be
+independently reproduced on now-sparse data (Strange's 1.00 / 2.00
+control stands as the measurement); east-of-UTC one-day-early placement
+is the documented, scoped limitation, not new.
+
+### C10 — Vision's blocker: a gesture must not retry a refusal
+- **Status:** PENDING — **waits for Strange's verdict, then batches with
+  any Strange findings.** No dispatch while a gate runs.
+- **Fix:** per Vision above. Plus a regression test: a refusal-stopped
+  direction receives a gesture → zero loader calls; an empty-cap-stopped
+  direction receives a gesture → exactly one reopen and one load.
+- **Boundaries:** may touch `useScheduleWindow.ts`, `useScheduleSentinels.ts`,
+  `scheduleWindowState.ts`, `scheduleWindowState.test.ts` · must not touch
+  `ScheduleView.tsx`, `CalendarViews.tsx`, `actions/**`, `prisma/**`.
+- **Budget note:** Vision has produced two verdicts (both BLOCKED) across
+  four instances; the next is treated as **pass 3, the last**.
 
 ### Captain, pass 3 — BLOCKED, and the 3-pass budget is spent
 
@@ -338,6 +393,32 @@ its own instrument measuring a single position, the exact error DESIGN.md
 warns about. Week/Day/Month unchanged. And Schedule **does** read as a
 distinct view, not Week unwalled.
 
+
+### C6 — Vision's B1 and B3 (sentinel re-arm; refusal vs. emptiness)
+- **Status:** DONE — in `6d06e7b` (with C7)
+- **Boundaries:** may touch `useScheduleWindow.ts`, `scheduleWindowState.ts`,
+  `scheduleWindowState.test.ts`, `actions/calendar.ts`, `actions/tasks.ts`,
+  new `useScheduleSentinels.ts` (cap extraction, Captain's named candidate)
+  · must not touch `TaskDetailSheet.tsx`, `ScheduleView.tsx` (C7's),
+  `scheduleWindow.ts`, `CalendarViews.tsx`, `page.tsx`, `prisma/**`.
+- **Report:** B1 proven 4 → 102 requests, flat for 6s, on real data with
+  zero manual scroll. B3: actions return `null` on refusal / `[]` on
+  empty; `applyChunkResult` stops only on `null`. Cap set to 24 — **later
+  found wrong by Strange (C8 cut it to 3).**
+
+### C7 — Vision's B2 (task moved >7 days vanishes)
+- **Status:** DONE — in `6d06e7b` (with C6)
+- **Boundaries:** may touch `TaskDetailSheet.tsx`, `ScheduleView.tsx`,
+  `scheduleWindowState.test.ts` · must not touch `useScheduleWindow.ts`,
+  `scheduleWindowState.ts`, `actions/**`, `scheduleWindow.ts`,
+  `CalendarViews.tsx`, `page.tsx`, `prisma/**`.
+  **⚠️ Overlapped C6 on `scheduleWindowState.test.ts` — Fury's error;
+  both sets of tests survived by luck, not design. Now a checklist item.**
+- **Report:** `onChanged` carries the updated record; old and new day both
+  refreshed; `selectedTask` re-seated. Builder declined to fabricate a
+  failing second-edit case and named edit-then-delete as where re-seating
+  matters — **Vision's final pass confirmed exactly that case.**
+
 ### C8 — Strange's three blockers
 - **Status:** DONE — see `git log` for the hash (recorded after commit, per checklist)
 - **B1** Schedule drives Today's disabled state from its own scroll
@@ -348,10 +429,16 @@ distinct view, not Week unwalled.
 - **B3** cut the empty-chunk cap to 2–3 and let a further scroll gesture
   extend it, rather than scanning ~720 days unprompted. Correct the
   comment that calls the cap unreachable.
-- **Boundaries:** may touch `useScheduleWindow.ts`, `ScheduleView.tsx`,
-  `CalendarViews.tsx`, `CalendarHeader.tsx`, `scheduleWindowState.ts`,
-  `scheduleWindowState.test.ts`, `calendarViewConfig.ts` · must not touch
-  `globals.css`, `layout.tsx`, `DaySection.tsx`, `actions/**`, `prisma/**`.
+- **Boundaries (as dispatched):** may touch `useScheduleWindow.ts`,
+  `ScheduleView.tsx`, `CalendarViews.tsx`, `CalendarHeader.tsx`,
+  `scheduleWindowState.ts`, `scheduleWindowState.test.ts`,
+  `calendarViewConfig.ts` · must not touch `globals.css`, `layout.tsx`,
+  `DaySection.tsx`, `actions/**`, `prisma/**`.
+  **Boundaries (as shipped, per Vision's audit):** additionally
+  `useScheduleSentinels.ts` (+45, the extend gesture — **undisclosed in
+  the report's boundary line**) and new `useScrollAnchor.ts` (disclosed in
+  prose, contract-required by the cap clause). Both Schedule work, neither
+  dangerous; recorded so the next audit has the true list.
 - **Report:** all three fixed, all three measured on a **production**
   build. **B2 proven with a control**: ratio 1.00 across three prepends
   as shipped; forcing native `overflow-anchor` back on reproduces exactly
