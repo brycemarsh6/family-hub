@@ -73,16 +73,21 @@ export default async function EditEventPage({
       <EventForm
         people={people.map((person) => ({
           userId: person.id,
-          // A deactivated-but-already-on-this-event person only reaches
-          // this array via the OR clause above — mark them right in the
-          // label rather than adding a `deactivated` field to the shared
-          // CalendarPersonView type (src/lib/types.ts), which every other
-          // caller of that type would then have to account for. See this
-          // file's own header comment for the full mission-16/C3b reasoning.
-          displayName: person.deactivatedAt
-            ? `${person.displayName} (no longer active)`
-            : person.displayName,
+          // mission-16/C8 — `displayName` is never touched; the marker is
+          // a real `deactivated` field on CalendarPersonView now (see that
+          // type's own comment), rendered by EventPeopleField at display
+          // time. The old version of this file suffixed the label with
+          // "(no longer active)" as a string, which read as a longer NAME
+          // rather than the app annotating a status, and — the sharper bug
+          // — TaskForm's own onSaved echoed a person object straight back
+          // into local state, so a second edit in one sitting showed the
+          // suffix twice ("(no longer active) (no longer active)"). A
+          // deactivated-but-already-on-this-event person only reaches this
+          // array via the OR clause above — see this file's own header
+          // comment for the full mission-16/C3b reasoning.
+          displayName: person.displayName,
           avatarColor: person.avatarColor,
+          deactivated: person.deactivatedAt !== null,
         }))}
         currentUserId={user.userId}
         defaultValues={{

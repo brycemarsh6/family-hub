@@ -34,7 +34,23 @@ export function EventPeopleField({
               }`}
             >
               <AvatarBadge displayName={person.displayName} avatarColor={person.avatarColor} size={32} />
-              {person.displayName}
+              <span>{person.displayName}</span>
+              {/* mission-16/C8 — the app annotating a STATUS, not a longer
+                  name: `--muted` is this app's existing "the app is
+                  talking, not the data" signal (the same instinct as the
+                  `~` estimate mark on a shelf-life guess), applied here
+                  rather than the old version of this field's caller, which
+                  suffixed `displayName` itself with this exact string — a
+                  fix that read as a longer name (same weight, same color
+                  as the real one) and, worse, got echoed back into local
+                  state on save, doubling on a second edit in one sitting.
+                  `font-normal` (this button is `font-medium` throughout)
+                  is what keeps the marker visually distinct from the name
+                  even in the chip's unselected state, where both colors
+                  already read `text-muted`. */}
+              {person.deactivated && (
+                <span className="font-normal text-muted">(no longer active)</span>
+              )}
               {selected && <Check aria-hidden="true" size={16} className="text-accent" />}
             </button>
           );

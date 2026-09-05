@@ -107,14 +107,30 @@ export default async function CalendarPage({
     }),
     // The full household roster, kids included — a task can be reassigned
     // to a kid even though only a manager can open the edit view
-    // (TaskDetailSheet's own `canManage` gate). Same `where`/`select`/
-    // `orderBy` as new/page.tsx's own roster query, on purpose — narrow
-    // select, no `passwordHash`, the same nested-select shape the events
-    // query's own people join and personInfo.ts's rule both already
-    // sanction.
+    // (TaskDetailSheet's own `canManage` gate).
+    //
+    // mission-16/C8 (Captain's N5): active, PLUS anyone already assigned to
+    // a task somewhere in THIS window — the same "active, plus already on
+    // it" shape calendar/[id]/edit/page.tsx already uses for a single
+    // event, adapted here to a whole fetched RANGE of tasks rather than one
+    // id, since this page (unlike that one) has no single task to key an
+    // OR-clause off of. Before this, TaskDetailSheet.tsx had no way to know
+    // a person was deactivated except by INFERENCE — present in a task's
+    // own assignee list but absent from this (then active-only) roster —
+    // which only held because `User` rows are never deleted, a register
+    // rule rather than a data guarantee. Filtering through the SAME
+    // `windowStart`/`windowEnd` the tasks query above already uses (rather
+    // than needing that query's own result first) is what keeps this
+    // parallel-fetchable in the same `Promise.all` instead of becoming a
+    // second, sequential round trip.
     db.user.findMany({
-      where: { deactivatedAt: null },
-      select: { id: true, displayName: true, avatarColor: true },
+      where: {
+        OR: [
+          { deactivatedAt: null },
+          { taskPeople: { some: { task: { dueDate: { gte: windowStart, lt: windowEnd } } } } },
+        ],
+      },
+      select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
       orderBy: { createdAt: "asc" },
     }),
   ]);
@@ -143,6 +159,9 @@ export default async function CalendarPage({
     userId: person.id,
     displayName: person.displayName,
     avatarColor: person.avatarColor,
+    // mission-16/C8 — real field, not a suffix baked into displayName
+    // above; see CalendarPersonView's own comment (src/lib/types.ts).
+    deactivated: person.deactivatedAt !== null,
   }));
 
   return (

@@ -45,11 +45,18 @@ export function TaskDetailSheet({
   task: CalendarTaskView;
   /** The full household roster — page.tsx's parallel `db.user.findMany`
    * (mission-14/C5), threaded straight through to TaskForm's people
-   * picker. Unused outside the "edit" view. Active-only by construction
-   * (page.tsx's own query filters `deactivatedAt: null` — it has no
-   * per-task notion of "already assigned," unlike the event-edit route's
-   * own roster query); see `editablePeople` below (mission-16/C3b) for how
-   * a deactivated person already ON this task still reaches the picker. */
+   * picker. Unused outside the "edit" view.
+   *
+   * mission-16/C8 (Captain's N5): active, PLUS anyone already assigned to
+   * a task somewhere in the page's fetched window (page.tsx's own
+   * OR-clause query) — the same "active, plus already on it" shape
+   * calendar/[id]/edit/page.tsx's roster query uses for events, adapted to
+   * a whole window of tasks rather than one id. `current.task` is always
+   * one of the tasks that window query already covers (it's how
+   * CalendarViews.tsx got a task to open this sheet with in the first
+   * place), so a deactivated person on THIS task is guaranteed to already
+   * be present here — no separate merge needed, unlike the C3b version of
+   * this comment that used to live here. */
   people: CalendarPersonView[];
   canManage: boolean;
   onClose: () => void;
@@ -82,23 +89,6 @@ export function TaskDetailSheet({
   // starts from the prop, then only ever moves in response to a
   // confirmed server write, never guessed.
   const [current, setCurrent] = useState(task);
-
-  // mission-16/C3b: `people` (page.tsx's roster prop, active-only) never
-  // includes someone deactivated after being assigned — that's correct for
-  // OFFERING a new assignment, but it would silently drop that person's
-  // chip from the edit picker entirely, so the manager can't even see who
-  // they're editing around. `current.people` is this task's own real
-  // assignment (page.tsx's task query, unfiltered by deactivatedAt — see
-  // that query's own select), so anyone present there but absent from the
-  // active roster can only be a deactivated member. Recomputed on every
-  // render rather than memoized: both arrays are household-scale, and
-  // `current` legitimately changes after an edit.
-  const editablePeople: CalendarPersonView[] = [
-    ...people,
-    ...current.people
-      .filter((assigned) => !people.some((roster) => roster.userId === assigned.userId))
-      .map((assigned) => ({ ...assigned, displayName: `${assigned.displayName} (no longer active)` })),
-  ];
 
   useEffect(() => {
     function handleKeyDown(keyboardEvent: KeyboardEvent) {
@@ -247,7 +237,7 @@ export function TaskDetailSheet({
           </div>
         ) : view === "edit" ? (
           <TaskForm
-            people={editablePeople}
+            people={people}
             defaultValues={{
               id: current.id,
               title: current.title,
