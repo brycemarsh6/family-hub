@@ -280,7 +280,7 @@ warns about. Week/Day/Month unchanged. And Schedule **does** read as a
 distinct view, not Week unwalled.
 
 ### C8 — Strange's three blockers
-- **Status:** DISPATCHED
+- **Status:** DONE — see `git log` for the hash (recorded after commit, per checklist)
 - **B1** Schedule drives Today's disabled state from its own scroll
   position, not the anchor; `onToday` scrolls if loaded, navigates if not.
 - **B2** `overflow-anchor: none` on Schedule's scrolling container — the
@@ -293,6 +293,29 @@ distinct view, not Week unwalled.
   `CalendarViews.tsx`, `CalendarHeader.tsx`, `scheduleWindowState.ts`,
   `scheduleWindowState.test.ts`, `calendarViewConfig.ts` · must not touch
   `globals.css`, `layout.tsx`, `DaySection.tsx`, `actions/**`, `prisma/**`.
+- **Report:** all three fixed, all three measured on a **production**
+  build. **B2 proven with a control**: ratio 1.00 across three prepends
+  as shipped; forcing native `overflow-anchor` back on reproduces exactly
+  2.00. The 54px residual NOTE was the same root cause — gone. **B3 on the
+  household's real 4 events: 100 requests / 14.3s → 16 / ~3s**; a distant
+  event at +200 days still reached by continued scrolling (18 further
+  requests, gesture-driven). **B1**: Today disabled at rest, enabled when
+  scrolled away, disabled again after tapping; deep-linked 300 days out it
+  *navigated* — the previously unreachable path. Week/Day/Month
+  re-verified. Tests 297 → **302**. `CalendarHeader.tsx` untouched — the
+  existing props sufficed.
+  **Deviation, contract-required:** new `src/lib/useScrollAnchor.ts`
+  (95) — `useScheduleWindow.ts` was at 349/350 and the fix had to sit
+  beside the correction it interacts with; extracted the whole anchoring
+  mechanism, per the `useScheduleSentinels.ts` precedent. **Captain must
+  re-gate this** — a new file and a grown one (`ScheduleView.tsx` now
+  **406**, over the soft cap) after its PASS.
+  Two stale comments in `ScheduleView.tsx` (lines 8, 63) still say C4
+  hasn't happened; C8 correctly left them — not among its three named
+  fixes. **For delivery.**
+  The builder also caught that Fury's dispatch named the wrong HEAD
+  (`a6e6a86`; actual `6e496a1`) — second time this mission a gate or
+  builder was handed a stale hash, *after* the checklist item was added.
 
 ### Vision, pass 1 (fresh run) — BLOCKED, four blockers, three of them things the family would hit
 
