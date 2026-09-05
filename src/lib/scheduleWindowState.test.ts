@@ -24,6 +24,7 @@ import {
   applyRefresh,
   buildInitialScheduleState,
   buildScheduleRenderMonths,
+  MAX_CONSECUTIVE_EMPTY_CHUNKS,
   refreshChunkFor,
   type ScheduleWindowState,
 } from "./scheduleWindowState";
@@ -134,7 +135,47 @@ test("applyChunkResult: the SAME real rows, applied forward, advance windowEnd a
   assert.equal(next.hasMoreForward, true);
 });
 
-test("applyChunkResult: an EMPTY result (no events, no tasks) does not advance the boundary and flips hasMore to false", () => {
+// ---------------------------------------------------------------------------
+// mission-15/C6 (B3) — a refusal (null) stops a direction immediately; a
+// genuinely empty chunk ([]) ADVANCES the boundary and keeps going, up to a
+// bounded streak of consecutive empties. This amends the original D2
+// contract, which conflated the two by returning `[]` for both — verified
+// live to permanently wall off real, further-out data behind one quiet
+// 30-day chunk. See applyChunkResult's own header for the full mechanism.
+
+test("applyChunkResult: a REFUSAL (null) does not advance the boundary and flips hasMore to false immediately", () => {
+  const initial = buildInitialScheduleState(d(2026, 5, 15));
+  const chunk = { start: d(2026, 4, 16), end: d(2026, 5, 15) };
+
+  const next = applyChunkResult(initial, "backward", chunk, null, null);
+
+  assert.equal(
+    next.windowStart.getTime(),
+    initial.windowStart.getTime(),
+    "a refused range must not start looking loaded — the boundary must not move",
+  );
+  assert.equal(next.hasMoreBackward, false, "a refusal must never be retried");
+  // The forward direction, and every other field, must be completely
+  // unaffected by a backward chunk being refused.
+  assert.equal(next.windowEnd.getTime(), initial.windowEnd.getTime());
+  assert.equal(next.hasMoreForward, initial.hasMoreForward);
+  assert.equal(next.entries.size, 0);
+});
+
+test("applyChunkResult: a refusal on just ONE of events/tasks is still treated as a refusal for the whole chunk", () => {
+  const initial = buildInitialScheduleState(d(2026, 5, 15));
+  const chunk = { start: d(2026, 5, 15), end: d(2026, 6, 14) };
+
+  const eventsRefused = applyChunkResult(initial, "forward", chunk, null, []);
+  assert.equal(eventsRefused.hasMoreForward, false);
+  assert.equal(eventsRefused.windowEnd.getTime(), initial.windowEnd.getTime());
+
+  const tasksRefused = applyChunkResult(initial, "forward", chunk, [], null);
+  assert.equal(tasksRefused.hasMoreForward, false);
+  assert.equal(tasksRefused.windowEnd.getTime(), initial.windowEnd.getTime());
+});
+
+test("applyChunkResult: a genuinely EMPTY result (no events, no tasks) still ADVANCES the boundary and keeps hasMore true", () => {
   const initial = buildInitialScheduleState(d(2026, 5, 15));
   const chunk = { start: d(2026, 4, 16), end: d(2026, 5, 15) };
 
@@ -142,25 +183,72 @@ test("applyChunkResult: an EMPTY result (no events, no tasks) does not advance t
 
   assert.equal(
     next.windowStart.getTime(),
-    initial.windowStart.getTime(),
-    "an unconfirmed range must not start looking loaded — the boundary must not move",
+    chunk.start.getTime(),
+    "a confirmed-but-empty range IS checked territory — the boundary must advance",
   );
-  assert.equal(next.hasMoreBackward, false, "an empty chunk means 'nothing more this way, ever'");
+  assert.equal(next.hasMoreBackward, true, "one empty chunk must not stop scrolling — see B3");
+  assert.equal(next.emptyStreakBackward, 1);
   // The forward direction, and every other field, must be completely
   // unaffected by a backward chunk coming back empty.
   assert.equal(next.windowEnd.getTime(), initial.windowEnd.getTime());
   assert.equal(next.hasMoreForward, initial.hasMoreForward);
 });
 
-test("applyChunkResult: an empty FORWARD result flips only hasMoreForward, mirroring the backward case", () => {
+test("applyChunkResult: an empty FORWARD result mirrors the backward case — advances windowEnd, keeps hasMoreForward true", () => {
   const initial = buildInitialScheduleState(d(2026, 5, 15));
   const chunk = { start: d(2026, 5, 15), end: d(2026, 6, 14) };
 
   const next = applyChunkResult(initial, "forward", chunk, [], []);
 
-  assert.equal(next.windowEnd.getTime(), initial.windowEnd.getTime());
-  assert.equal(next.hasMoreForward, false);
+  assert.equal(next.windowEnd.getTime(), chunk.end.getTime());
+  assert.equal(next.hasMoreForward, true);
+  assert.equal(next.emptyStreakForward, 1);
   assert.equal(next.hasMoreBackward, initial.hasMoreBackward);
+});
+
+test("applyChunkResult: the real B3 scenario — a quiet chunk in between must not wall off real data further out", () => {
+  // today Sep 4, a quiet "October", Thanksgiving beyond it in November.
+  let state = buildInitialScheduleState(d(2026, 8, 4)); // Sep 4
+  const quietChunk = { start: d(2026, 8, 4), end: d(2026, 9, 4) }; // Sep 4 - Oct 4, empty
+  state = applyChunkResult(state, "forward", quietChunk, [], []);
+  assert.equal(state.hasMoreForward, true, "a single quiet chunk must not stop forward scrolling");
+  assert.equal(state.windowEnd.getTime(), quietChunk.end.getTime());
+
+  const thanksgivingChunk = { start: d(2026, 9, 4), end: d(2026, 10, 4) }; // Oct 4 - Nov 4
+  const thanksgiving = fakeEvent("thanksgiving", d(2026, 10, 26, 12, 0), d(2026, 10, 26, 13, 0));
+  state = applyChunkResult(state, "forward", thanksgivingChunk, [thanksgiving], []);
+
+  assert.ok(state.entries.has("thanksgiving"), "the real event beyond the quiet chunk must be reachable");
+  assert.equal(state.emptyStreakForward, 0, "a non-empty chunk resets the streak");
+});
+
+test("applyChunkResult: MAX_CONSECUTIVE_EMPTY_CHUNKS consecutive empties eventually stop a direction for good", () => {
+  let state = buildInitialScheduleState(d(2026, 5, 15));
+  let cursor = state.windowEnd;
+
+  for (let i = 0; i < MAX_CONSECUTIVE_EMPTY_CHUNKS; i++) {
+    assert.equal(state.hasMoreForward, true, `must still be scrolling before empty chunk #${i + 1}`);
+    const chunk = { start: cursor, end: addDays(cursor, 30) };
+    state = applyChunkResult(state, "forward", chunk, [], []);
+    cursor = chunk.end;
+  }
+
+  assert.equal(
+    state.emptyStreakForward,
+    MAX_CONSECUTIVE_EMPTY_CHUNKS,
+    "sanity: every one of those chunks really was empty",
+  );
+  assert.equal(
+    state.hasMoreForward,
+    false,
+    "hitting the cap must stop the direction the same way a refusal does",
+  );
+
+  // And it must actually STAY stopped — calling again (as a caller
+  // ignoring hasMoreForward might) must not un-stop it.
+  const oneMore = { start: cursor, end: addDays(cursor, 30) };
+  const next = applyChunkResult(state, "forward", oneMore, [], []);
+  assert.equal(next.hasMoreForward, false);
 });
 
 test("applyChunkResult: a server-side deletion drops from both entries and records on the next overlapping chunk", () => {
@@ -252,6 +340,20 @@ test("applyRefresh: an edited event's fields update in place", () => {
   }
 });
 
+test("applyRefresh: a REFUSAL (null) leaves state completely untouched — a refused re-check tells us nothing new", () => {
+  const chunk = { start: d(2026, 5, 1), end: d(2026, 6, 1) };
+  const seeded = applyChunkResult(
+    buildInitialScheduleState(d(2026, 5, 15)),
+    "forward",
+    chunk,
+    [fakeEvent("keep", d(2026, 5, 10), d(2026, 5, 11))],
+    [],
+  );
+
+  const refreshed = applyRefresh(seeded, refreshChunkFor(d(2026, 5, 10)), null, null);
+  assert.equal(refreshed, seeded, "a refusal must return the exact same state object, not merely an equal one");
+});
+
 // ---------------------------------------------------------------------------
 // buildScheduleRenderMonths
 
@@ -263,6 +365,8 @@ test("buildScheduleRenderMonths: today is present even when the loaded window ho
     records: new Map(),
     hasMoreBackward: true,
     hasMoreForward: true,
+    emptyStreakBackward: 0,
+    emptyStreakForward: 0,
   };
   const months = buildScheduleRenderMonths(state, d(2026, 5, 5));
   assert.equal(months.length, 1);
@@ -302,6 +406,8 @@ test("buildScheduleRenderMonths: an entry id with no matching record is skipped 
     records: new Map(), // deliberately missing "ghost"
     hasMoreBackward: false,
     hasMoreForward: false,
+    emptyStreakBackward: 0,
+    emptyStreakForward: 0,
   };
   const months = buildScheduleRenderMonths(state, d(2026, 5, 1));
   assert.equal(months.length, 1);
@@ -416,4 +522,168 @@ test("mission-15/C5: the same scenario, re-run across every zone the contract re
   for (const tz of ["America/Los_Angeles", "UTC", "Asia/Tokyo"]) {
     assertTaskSurvivesEdgeRefresh(tz);
   }
+});
+
+// ---------------------------------------------------------------------------
+// mission-15/C7 — Vision's blocker B2: a task edited to a due date MORE
+// THAN 7 DAYS away vanishes until the whole view remounts. A different
+// mechanism from C5 above (that one was a REFRESH wrongly reading a
+// still-valid task as server-deleted); this one is a refresh that's
+// legitimately correct on its own — the OLD day's chunk genuinely no
+// longer contains the task after the edit — but was the ONLY refresh ever
+// fired. ScheduleView.tsx's `TaskDetailSheet` `onChanged` handler used to
+// call `refreshDay` with just the stale `selectedTask.dueDate` it captured
+// when the sheet was opened; nothing ever re-fetched the day the task
+// actually moved TO, so its entry was dropped by `mergeWindow` (correctly,
+// for that one query) and never re-added by anything else.
+//
+// C7's fix lives entirely in ScheduleView.tsx / TaskDetailSheet.tsx (no
+// change to scheduleWindowState.ts) — it's the CALLING pattern that was
+// wrong, not the pure merge logic mergeWindow/applyRefresh already
+// implement correctly. Per this repo's own established practice for view-
+// orchestration code with no meaning outside a real DOM (see
+// useScheduleWindow.ts's and useCalendarNavigation.ts's own header
+// comments — "verified live in the running app rather than a renderer-
+// free unit test"), there's no seam here to unit-test the JSX handler
+// itself. What CAN be pinned down, and is below: the state-layer boundary
+// the fix depends on — that refreshing only the OLD day loses a task moved
+// past the 14-day refresh span (red), that ALSO refreshing the NEW day
+// restores it (green, and the exact two-call sequence the fixed
+// `onChanged` now performs), that a move small enough to stay inside the
+// old day's own refresh span survives on a single refresh (the control
+// proving this is a >7-day BOUNDARY bug, not "editing is broken"), and
+// that a second consecutive edit lands correctly too (proving the fix
+// re-seats which day counts as "old" rather than special-casing the first
+// move — see ScheduleView.tsx's own comment on why `selectedTask` is
+// re-seated from the saved record on every successful edit).
+
+/** Where (if anywhere) a task with this id renders after a merge — the
+ * question every test below actually cares about, not just "is its entry
+ * present" (an id could theoretically survive in `state.entries` yet
+ * resolve to zero rendered days if `state.records` disagreed; going
+ * through the real render path is what `buildScheduleRenderMonths`'s own
+ * production caller — ScheduleView.tsx — actually sees). */
+function findTaskDay(state: ScheduleWindowState, today: Date, taskId: string): Date | null {
+  const months = buildScheduleRenderMonths(state, today);
+  for (const month of months) {
+    for (const row of month.days) {
+      if (row.tasks.some((task) => task.id === taskId)) return row.day;
+    }
+  }
+  return null;
+}
+
+test("mission-15/C7 (red): refreshing ONLY the old day after a >7-day move drops the task for good — the exact production bug", () => {
+  const wideChunk = { start: d(2026, 7, 1), end: d(2026, 9, 30) }; // Aug 1 - Oct 30
+  const dueSep10 = localDayToAllDayInstant(d(2026, 8, 10));
+  const seeded = applyChunkResult(
+    buildInitialScheduleState(d(2026, 8, 1)),
+    "forward",
+    wideChunk,
+    [],
+    [fakeTask("t-move", dueSep10)],
+  );
+  assert.ok(seeded.entries.has("t-move"), "sanity: loaded to start with");
+
+  // The task is edited to Sep 25 — 15 days away, outside refreshChunkFor's
+  // own 14-day span around the OLD due date ([Sep 3, Sep 17)). A real
+  // fetchTasks(Sep 3, Sep 17) called AFTER the edit correctly returns []:
+  // the task genuinely isn't due in that range anymore. That's exactly the
+  // input the pre-fix `onChanged` produced by only ever refreshing the day
+  // it had on hand when the sheet was opened.
+  const buggyResult = applyRefresh(seeded, refreshChunkFor(d(2026, 8, 10)), [], []);
+
+  assert.equal(buggyResult.entries.has("t-move"), false, "the entry is dropped — nothing else ever re-adds it");
+  assert.equal(findTaskDay(buggyResult, d(2026, 8, 1), "t-move"), null, "renders on NO day at all — the vanish, reproduced");
+});
+
+test("mission-15/C7 (green): also refreshing the NEW day — the fixed sequence — restores the task at its true position", () => {
+  const wideChunk = { start: d(2026, 7, 1), end: d(2026, 9, 30) };
+  const dueSep10 = localDayToAllDayInstant(d(2026, 8, 10));
+  const seeded = applyChunkResult(
+    buildInitialScheduleState(d(2026, 8, 1)),
+    "forward",
+    wideChunk,
+    [],
+    [fakeTask("t-move", dueSep10)],
+  );
+
+  // ScheduleView.tsx's fixed `onChanged`: refresh the OLD day first (the
+  // real post-edit fetch for that now-stale range: empty), then — since
+  // the new day differs from the old — the NEW day too, with the task's
+  // real current data.
+  const dueSep25 = localDayToAllDayInstant(d(2026, 8, 25));
+  const afterOldRefresh = applyRefresh(seeded, refreshChunkFor(d(2026, 8, 10)), [], []);
+  const afterNewRefresh = applyRefresh(afterOldRefresh, refreshChunkFor(d(2026, 8, 25)), [], [fakeTask("t-move", dueSep25)]);
+
+  const renderedDay = findTaskDay(afterNewRefresh, d(2026, 8, 1), "t-move");
+  assert.ok(renderedDay, "must render on SOME day after both refreshes");
+  assert.equal(renderedDay?.getMonth(), 8, "September");
+  assert.equal(renderedDay?.getDate(), 25, "at its NEW due date, not the old one");
+});
+
+test("mission-15/C7 control: a 3-day move stays INSIDE refreshChunkFor's own 14-day span, so a single old-day refresh is already correct — proves the fix targets the >7-day BOUNDARY, not editing in general", () => {
+  const wideChunk = { start: d(2026, 7, 1), end: d(2026, 9, 30) };
+  const dueSep10 = localDayToAllDayInstant(d(2026, 8, 10));
+  const seeded = applyChunkResult(
+    buildInitialScheduleState(d(2026, 8, 1)),
+    "forward",
+    wideChunk,
+    [],
+    [fakeTask("t-small-move", dueSep10)],
+  );
+
+  // Sep 13 (+3 days) is still inside [Sep 3, Sep 17) — the OLD day's own
+  // refresh span — so a real fetchTasks(Sep 3, Sep 17) after this edit
+  // correctly returns the task with its new date. A single old-day
+  // refresh, exactly what the pre-fix code always did, is already enough.
+  const dueSep13 = localDayToAllDayInstant(d(2026, 8, 13));
+  const afterOldRefresh = applyRefresh(seeded, refreshChunkFor(d(2026, 8, 10)), [], [fakeTask("t-small-move", dueSep13)]);
+
+  const renderedDay = findTaskDay(afterOldRefresh, d(2026, 8, 1), "t-small-move");
+  assert.ok(renderedDay, "must still render somewhere");
+  assert.equal(renderedDay?.getDate(), 13, "at its new (nearby) date, via the single refresh alone");
+});
+
+test('mission-15/C7: a SECOND consecutive edit (Sep 25 -> Oct 20) also lands correctly, proving the fix re-seats its notion of "old day" rather than special-casing the first move', () => {
+  const wideChunk = { start: d(2026, 7, 1), end: d(2026, 9, 30) };
+  const dueSep10 = localDayToAllDayInstant(d(2026, 8, 10));
+  const seeded = applyChunkResult(
+    buildInitialScheduleState(d(2026, 8, 1)),
+    "forward",
+    wideChunk,
+    [],
+    [fakeTask("t-double-move", dueSep10)],
+  );
+
+  // Edit 1: Sep 10 -> Sep 25, the fixed two-refresh sequence (as above).
+  const dueSep25 = localDayToAllDayInstant(d(2026, 8, 25));
+  const afterEdit1Old = applyRefresh(seeded, refreshChunkFor(d(2026, 8, 10)), [], []);
+  const afterEdit1 = applyRefresh(
+    afterEdit1Old,
+    refreshChunkFor(d(2026, 8, 25)),
+    [],
+    [fakeTask("t-double-move", dueSep25)],
+  );
+  assert.equal(findTaskDay(afterEdit1, d(2026, 8, 1), "t-double-move")?.getDate(), 25, "sanity: edit 1 landed at Sep 25 first");
+
+  // Edit 2: Sep 25 -> Oct 20. The "old day" for THIS refresh must be Sep
+  // 25 — the RE-SEATED value ScheduleView.tsx now tracks in `selectedTask`
+  // after edit 1 — not the original Sep 10 the sheet opened with. Using
+  // the true current old day (Sep 25) is what correctly empties that
+  // position; using the stale original would refresh the wrong range.
+  const dueOct20 = localDayToAllDayInstant(d(2026, 9, 20));
+  const afterEdit2Old = applyRefresh(afterEdit1, refreshChunkFor(d(2026, 8, 25)), [], []);
+  const afterEdit2 = applyRefresh(
+    afterEdit2Old,
+    refreshChunkFor(d(2026, 9, 20)),
+    [],
+    [fakeTask("t-double-move", dueOct20)],
+  );
+
+  const months = buildScheduleRenderMonths(afterEdit2, d(2026, 8, 1));
+  const rowsWithTask = months.flatMap((m) => m.days).filter((row) => row.tasks.some((t) => t.id === "t-double-move"));
+  assert.equal(rowsWithTask.length, 1, "must render on exactly ONE day, not zero and not two");
+  assert.equal(rowsWithTask[0].day.getMonth(), 9, "October");
+  assert.equal(rowsWithTask[0].day.getDate(), 20);
 });

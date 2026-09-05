@@ -235,11 +235,28 @@ function isValidDate(value: unknown): value is Date {
 
 /**
  * The first DATA-RETURNING guarded action in this file — every other export
- * above returns `{ error? }` or void. That precedent matters for what a
- * refusal looks like: this returns `[]`, the type's own empty value, rather
- * than throwing. `useScheduleWindow` (mission-15/C3) treats `[]` as "stop
- * fetching in this direction" — a thrown error from a guard refusal would
- * instead be something a naive retry loop could hammer forever.
+ * above returns `{ error? }` or void.
+ *
+ * **mission-15/C6 (B3) amends this function's original contract.** It used
+ * to return `[]` — the type's own empty value — on BOTH a guard refusal and
+ * a genuinely empty range, on the reasoning that `useScheduleWindow`
+ * (mission-15/C3) would treat either the same way: "stop fetching in this
+ * direction." Verified live, that conflation is a real bug: a single quiet
+ * 30-day chunk (say, a quiet October between today and a Thanksgiving
+ * event in November) reads exactly like a refusal and permanently walls off
+ * everything past it — Schedule stops scrolling forever, even though there
+ * is more real data further out. A refusal and "there is nothing here" are
+ * different facts and must not share a return value.
+ *
+ * The fix: **`null` means refused, `[]` means "asked, and there is
+ * genuinely nothing in this exact range."** `useScheduleWindow`'s
+ * `applyChunkResult` (scheduleWindowState.ts) stops that scroll direction
+ * on `null` — a refusal must never be retried — but on `[]` it advances the
+ * window boundary and keeps going, exactly as it would for a chunk that
+ * came back with real rows. A bounded cap on *consecutive* empty chunks
+ * (also in `applyChunkResult`) is what keeps that path from scrolling
+ * forever if the household's data genuinely runs out; this action's own job
+ * is unchanged — say honestly what happened for THIS one range.
  *
  * Deliberately EVENTS ONLY, not events-and-tasks, even though Schedule (C3)
  * has to render both. Two reasons, not one: (1) this contract's own
@@ -250,9 +267,8 @@ function isValidDate(value: unknown): value is Date {
  * both today (`(app)/calendar/page.tsx`'s own `Promise.all`) — there is no
  * existing "one call gets both" precedent to preserve, so an events-only
  * action here doesn't invent a new inconsistency, it continues the existing
- * one. Schedule's hook is expected to call a SIBLING `fetchCalendarTasks`
- * (or similarly-named action) added to `actions/tasks.ts` in a later
- * contract, and merge the two client-side.
+ * one. Schedule's hook calls a SIBLING `fetchTasks` (`actions/tasks.ts`),
+ * which follows the same `null`/`[]` split, and merges the two client-side.
  *
  * Uses the null-returning `getVerifiedSession()` form (STRUCTURE.md's guard
  * form (a)), not `getVerifiedUser()`: this only needs "is someone signed
@@ -265,18 +281,22 @@ function isValidDate(value: unknown): value is Date {
 export async function fetchCalendarEvents(
   windowStart: Date,
   windowEnd: Date,
-): Promise<CalendarEventView[]> {
+): Promise<CalendarEventView[] | null> {
   const session = await getVerifiedSession();
-  if (!session) return [];
+  if (!session) return null;
 
   // A Server Action is a public POST endpoint — anything can be sent here,
   // so the `Date` type annotations above are a claim to verify, not a
-  // guarantee to trust.
-  if (!isValidDate(windowStart) || !isValidDate(windowEnd)) return [];
-  if (windowEnd.getTime() <= windowStart.getTime()) return [];
+  // guarantee to trust. Every one of these is a REFUSAL (null), never a
+  // legitimate empty result — the caller asked for something invalid or
+  // out of bounds, not for a range that happens to hold nothing.
+  if (!isValidDate(windowStart) || !isValidDate(windowEnd)) return null;
+  if (windowEnd.getTime() <= windowStart.getTime()) return null;
   if (windowEnd.getTime() - windowStart.getTime() > MAX_FETCH_SPAN_DAYS * MS_PER_DAY) {
-    return [];
+    return null;
   }
 
+  // Whatever this returns — including a genuinely empty array — is a real
+  // answer about the requested range, not a refusal.
   return getCalendarEventsInRange(windowStart, windowEnd);
 }

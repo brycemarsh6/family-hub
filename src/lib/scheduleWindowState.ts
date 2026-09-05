@@ -135,7 +135,12 @@ function toFetchedParts(
 
 /** The hook's whole state: the loaded window, the merged minimal set (for
  * scheduleRows/mergeWindow), the full records behind it (for rendering),
- * and whether either direction is still worth trying to extend. */
+ * whether either direction is still worth trying to extend, and — since
+ * mission-15/C6 (B3) — how many CONSECUTIVE chunks in a row have come back
+ * genuinely empty in each direction (see applyChunkResult's own header for
+ * why this exists: a quiet-but-real stretch must not be confused with "no
+ * more data", but it must still eventually stop). Reset to 0 the moment a
+ * chunk in that direction comes back with anything real. */
 export type ScheduleWindowState = {
   windowStart: Date;
   windowEnd: Date;
@@ -143,7 +148,23 @@ export type ScheduleWindowState = {
   records: Map<string, ScheduleFullRecord>;
   hasMoreBackward: boolean;
   hasMoreForward: boolean;
+  emptyStreakBackward: number;
+  emptyStreakForward: number;
 };
+
+/**
+ * How many CONSECUTIVE genuinely-empty chunks (mission-15/C6's `[]`, never
+ * a `null` refusal) a single scroll direction may load before that
+ * direction gives up. Termination must stay guaranteed even for a
+ * household whose real data thins out to nothing for a long stretch —
+ * without SOME cap, a quiet decade would scroll forever fetching empty
+ * 30-day pages one after another. 24 chunks × `CHUNK_DAYS` (30) is roughly
+ * two years of real calendar time with not one event or task in it, which
+ * is far past what any realistic gap in this household's data should ever
+ * reach — the cap exists as a backstop against an unbounded loop, not as a
+ * limit anyone should expect to hit in practice.
+ */
+export const MAX_CONSECUTIVE_EMPTY_CHUNKS = 24;
 
 /**
  * The seed state before anything has ever been fetched: a genuinely EMPTY
@@ -165,6 +186,8 @@ export function buildInitialScheduleState(initialDay: Date): ScheduleWindowState
     records: new Map(),
     hasMoreBackward: true,
     hasMoreForward: true,
+    emptyStreakBackward: 0,
+    emptyStreakForward: 0,
   };
 }
 
@@ -173,26 +196,53 @@ export function buildInitialScheduleState(initialDay: Date): ScheduleWindowState
  * DOM, nothing but the inputs — so this is where the real bugs would show
  * up and where they're actually tested (scheduleWindowState.test.ts).
  *
- * `[]` back from BOTH fetchCalendarEvents and fetchTasks for this chunk is
- * treated as "nothing more this way, ever" (mission-15/D2's own comment on
- * fetchCalendarEvents): the window boundary is NOT advanced (an
- * unconfirmed range must not start looking loaded — this app's own
- * standing "three states must never be mistakable" rule, applied to
- * Schedule's one state that isn't loading/empty/outside-window: "still
- * scrollable" vs "nothing more here"), and `hasMore<Direction>` flips to
- * `false` so the hook stops trying. This can't tell a genuine empty 30-day
- * stretch apart from a guard refusal (both return `[]`) — deliberately: a
- * refusal must never be retried, and an ambiguous empty signal is safest
- * treated the same way, rather than silently claiming a range is "checked"
- * when it might not have been.
+ * **mission-15/C6 (B3) amends this function's original contract**, which
+ * treated `[]` from BOTH fetchCalendarEvents and fetchTasks as "nothing
+ * more this way, ever" and never advanced the window boundary. Verified
+ * live against the real household data, that was a genuine bug: a single
+ * quiet 30-day chunk (say, a calm October between today and a real
+ * Thanksgiving event in November) permanently walled off everything past
+ * it — nine real items became unreachable by scrolling, in exactly the
+ * "endless scroll" feature this view exists to be. The two calls this
+ * function receives (fetchCalendarEvents, fetchTasks — see their own
+ * headers) were changed alongside this to make the distinction
+ * expressible in the first place:
+ *
+ * - **`null`** (from either fetch) means the request was REFUSED — a guard
+ *   failure, an invalid range, or the `MAX_FETCH_SPAN_DAYS` cap. A refusal
+ *   must never be retried, so this stops that direction immediately: the
+ *   window boundary does NOT advance (an unconfirmed range must not start
+ *   looking loaded), and `hasMore<Direction>` flips to `false` for good.
+ * - **`[]`** (from both) means the request SUCCEEDED and genuinely found
+ *   nothing in that exact range. The window boundary DOES advance — a
+ *   quiet stretch is still confirmed, checked territory, not an unknown —
+ *   and scrolling keeps going. `emptyStreak<Direction>` counts these in a
+ *   row (reset to 0 the moment a chunk isn't fully empty) so a direction
+ *   that runs out of real data forever still terminates eventually, via
+ *   `MAX_CONSECUTIVE_EMPTY_CHUNKS`, rather than fetching empty pages
+ *   without end.
+ *
+ * A MIX — one fetch refused, the other didn't — is still treated as a
+ * refusal for this chunk as a whole: `fetchCalendarEvents`/`fetchTasks`
+ * share the exact same guard order and `MAX_FETCH_SPAN_DAYS` value, so in
+ * practice either both refuse the same chunk or neither does, and treating
+ * "we don't have a trustworthy answer for BOTH halves of this chunk" as
+ * "don't trust this chunk" is the safer read of an inputs shape that
+ * shouldn't occur.
  */
 export function applyChunkResult(
   state: ScheduleWindowState,
   direction: "backward" | "forward",
   chunk: ScheduleChunk,
-  fetchedEvents: CalendarEventView[],
-  fetchedTasks: CalendarTaskView[],
+  fetchedEvents: CalendarEventView[] | null,
+  fetchedTasks: CalendarTaskView[] | null,
 ): ScheduleWindowState {
+  if (fetchedEvents === null || fetchedTasks === null) {
+    return direction === "backward"
+      ? { ...state, hasMoreBackward: false }
+      : { ...state, hasMoreForward: false };
+  }
+
   const { scheduleEvents, recordsById } = toFetchedParts(fetchedEvents, fetchedTasks);
   const nextEntries = mergeWindow(state.entries, chunk.start, chunk.end, scheduleEvents);
 
@@ -209,21 +259,25 @@ export function applyChunkResult(
   const isEmpty = fetchedEvents.length === 0 && fetchedTasks.length === 0;
 
   if (direction === "backward") {
+    const emptyStreakBackward = isEmpty ? state.emptyStreakBackward + 1 : 0;
     return {
       ...state,
       entries: nextEntries,
       records: nextRecords,
-      windowStart: isEmpty ? state.windowStart : chunk.start,
-      hasMoreBackward: !isEmpty,
+      windowStart: chunk.start,
+      emptyStreakBackward,
+      hasMoreBackward: emptyStreakBackward < MAX_CONSECUTIVE_EMPTY_CHUNKS,
     };
   }
 
+  const emptyStreakForward = isEmpty ? state.emptyStreakForward + 1 : 0;
   return {
     ...state,
     entries: nextEntries,
     records: nextRecords,
-    windowEnd: isEmpty ? state.windowEnd : chunk.end,
-    hasMoreForward: !isEmpty,
+    windowEnd: chunk.end,
+    emptyStreakForward,
+    hasMoreForward: emptyStreakForward < MAX_CONSECUTIVE_EMPTY_CHUNKS,
   };
 }
 
@@ -238,13 +292,24 @@ export function applyChunkResult(
  * logic as a real chunk load, so an edit or delete made while the sheet was
  * open is reflected (a deleted row drops, an edited one's fields update)
  * the moment the caller invokes this.
+ *
+ * mission-15/C6: `fetchedEvents`/`fetchedTasks` share fetchCalendarEvents'/
+ * fetchTasks' own `null`-means-refused shape now. A refresh is a much
+ * narrower, always-valid range (`refreshChunkFor`'s own 14 days, far under
+ * `MAX_FETCH_SPAN_DAYS`), so a refusal here should never happen in
+ * practice — but if one somehow does (a signed-out session between the
+ * detail sheet opening and this call, say), the safe response is to leave
+ * `state` exactly as it was: a refused re-check tells us nothing new, so
+ * there is nothing trustworthy to merge in.
  */
 export function applyRefresh(
   state: ScheduleWindowState,
   chunk: ScheduleChunk,
-  fetchedEvents: CalendarEventView[],
-  fetchedTasks: CalendarTaskView[],
+  fetchedEvents: CalendarEventView[] | null,
+  fetchedTasks: CalendarTaskView[] | null,
 ): ScheduleWindowState {
+  if (fetchedEvents === null || fetchedTasks === null) return state;
+
   const { scheduleEvents, recordsById } = toFetchedParts(fetchedEvents, fetchedTasks);
   const entries = mergeWindow(state.entries, chunk.start, chunk.end, scheduleEvents);
   const records = new Map<string, ScheduleFullRecord>();

@@ -313,11 +313,17 @@ function isValidDate(value: unknown): value is Date {
  * Promise.all already draws between events and tasks. Same guard shape:
  * null-returning getVerifiedSession() (reading the calendar needs no role —
  * MANAGER_ROLES only gates writing one), Date-instance/NaN validation,
- * `end > start`, and this file's own MAX_FETCH_SPAN_DAYS cap — every
- * refusal returns `[]`, never throws, so useScheduleWindow (mission-15/C3)
- * can treat an empty result as "stop fetching this direction" without ever
- * distinguishing a genuine refusal from a genuinely empty range (see that
- * hook's own header for why it doesn't need to).
+ * `end > start`, and this file's own MAX_FETCH_SPAN_DAYS cap.
+ *
+ * **mission-15/C6 (B3) amends the original contract here too, the same way
+ * and for the same reason as fetchCalendarEvents's own header.** Every
+ * refusal above now returns `null`, never `[]` — a genuinely empty range
+ * (the query legitimately found no tasks due in it) still returns `[]`.
+ * `useScheduleWindow`'s `applyChunkResult` (scheduleWindowState.ts) stops
+ * scrolling that direction on `null` (a refusal must never be retried) but
+ * ADVANCES the window and keeps going on `[]` — a quiet stretch with no
+ * tasks due must not permanently wall off everything further out. See
+ * fetchCalendarEvents's own comment for the live bug this fixes.
  *
  * THE QUERY ITSELF DELIBERATELY IS NOT A PLAIN `dueDate: { gte: windowStart,
  * lt: windowEnd }` the way page.tsx's inline task query is — that query is
@@ -364,17 +370,19 @@ function isValidDate(value: unknown): value is Date {
 export async function fetchTasks(
   windowStart: Date,
   windowEnd: Date,
-): Promise<CalendarTaskView[]> {
+): Promise<CalendarTaskView[] | null> {
   const session = await getVerifiedSession();
-  if (!session) return [];
+  if (!session) return null;
 
   // A Server Action is a public POST endpoint — anything can be sent here,
   // so the `Date` type annotations above are a claim to verify, not a
-  // guarantee to trust. Same checks, same order, as fetchCalendarEvents.
-  if (!isValidDate(windowStart) || !isValidDate(windowEnd)) return [];
-  if (windowEnd.getTime() <= windowStart.getTime()) return [];
+  // guarantee to trust. Same checks, same order, as fetchCalendarEvents —
+  // every one of these is a REFUSAL (null), never a legitimate empty
+  // result.
+  if (!isValidDate(windowStart) || !isValidDate(windowEnd)) return null;
+  if (windowEnd.getTime() <= windowStart.getTime()) return null;
   if (windowEnd.getTime() - windowStart.getTime() > MAX_FETCH_SPAN_DAYS * MS_PER_DAY) {
-    return [];
+    return null;
   }
 
   const dueDateWindowStart = localDayToAllDayInstant(startOfDay(windowStart));

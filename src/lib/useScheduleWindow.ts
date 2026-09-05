@@ -54,6 +54,7 @@ import {
   type ScheduleRenderMonth,
   type ScheduleWindowState,
 } from "./scheduleWindowState";
+import { useScheduleSentinels } from "./useScheduleSentinels";
 import type { CalendarEventView, CalendarTaskView } from "./types";
 
 export type { ScheduleFullRecord, ScheduleRenderDay, ScheduleRenderMonth } from "./scheduleWindowState";
@@ -67,8 +68,16 @@ export type { ScheduleFullRecord, ScheduleRenderDay, ScheduleRenderMonth } from 
  * which is the whole point of the inversion above.
  */
 export type ScheduleFetchers = {
-  fetchEvents: (windowStart: Date, windowEnd: Date) => Promise<CalendarEventView[]>;
-  fetchTasks: (windowStart: Date, windowEnd: Date) => Promise<CalendarTaskView[]>;
+  /**
+   * mission-15/C6 (B3): `null` means the request was REFUSED (a guard
+   * failure, an invalid range, or the fetcher's own span cap) and must
+   * never be retried; `[]` means it succeeded and genuinely found nothing
+   * in that range, which should NOT stop scrolling — see
+   * scheduleWindowState.ts's `applyChunkResult` for how the two are told
+   * apart.
+   */
+  fetchEvents: (windowStart: Date, windowEnd: Date) => Promise<CalendarEventView[] | null>;
+  fetchTasks: (windowStart: Date, windowEnd: Date) => Promise<CalendarTaskView[] | null>;
 };
 
 export type UseScheduleWindowResult = {
@@ -262,54 +271,17 @@ export function useScheduleWindow(
     }
   }, []);
 
-  const topSentinel = useRef<HTMLDivElement | null>(null);
-  const bottomSentinel = useRef<HTMLDivElement | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-
-  const attachObserver = useCallback(
-    (top: HTMLDivElement | null, bottom: HTMLDivElement | null) => {
-      observerRef.current?.disconnect();
-      if (!top && !bottom) return;
-
-      // rootMargin: "100% 0px" — a sentinel starts a fetch a full viewport
-      // height BEFORE it's actually on screen, so the next chunk is already
-      // loading while the reader is still scrolling toward the edge, not
-      // after they hit it.
-      const observer = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (!entry.isIntersecting) continue;
-            if (entry.target === top && hasMoreRef.current.backward) void loadBackward();
-            if (entry.target === bottom && hasMoreRef.current.forward) void loadForward();
-          }
-        },
-        { rootMargin: "100% 0px" },
-      );
-      if (top) observer.observe(top);
-      if (bottom) observer.observe(bottom);
-      observerRef.current = observer;
-    },
-    [loadBackward, loadForward],
-  );
-
-  const topSentinelRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      topSentinel.current = node;
-      attachObserver(topSentinel.current, bottomSentinel.current);
-    },
-    [attachObserver],
-  );
-  const bottomSentinelRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      bottomSentinel.current = node;
-      attachObserver(topSentinel.current, bottomSentinel.current);
-    },
-    [attachObserver],
-  );
-
-  useEffect(() => {
-    return () => observerRef.current?.disconnect();
-  }, []);
+  // mission-15/C6 — the sentinel elements, the shared IntersectionObserver,
+  // and each sentinel's latest-known intersection state all live in
+  // useScheduleSentinels.ts now (Captain's own extraction ruling, once this
+  // file first hit its 350-line soft cap). See that file's header for why a
+  // sentinel needs re-arming at all — short version: IntersectionObserver
+  // only fires on a TRANSITION, and a sentinel already inside `rootMargin`
+  // the moment it's observed (a short page at a real 375px viewport,
+  // proven live) can go silent forever even while the reader keeps
+  // scrolling toward it.
+  const { topSentinelRef, bottomSentinelRef, topIntersectingRef, bottomIntersectingRef } =
+    useScheduleSentinels(loadBackward, loadForward, hasMoreRef);
 
   // The very first load: both directions, unconditionally, so Schedule
   // never opens on a blank screen waiting for a scroll gesture that hasn't
@@ -321,6 +293,30 @@ export function useScheduleWindow(
     void loadForward();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDayTime]);
+
+  // mission-15/C6 (B1) — re-arms a sentinel still sitting inside
+  // `rootMargin` once a load settles, which IntersectionObserver never
+  // does on its own. A `useEffect` keyed on window/hasMore STATE, not code
+  // in `loadBackward`/`loadForward`'s own `finally`: `finally` runs before
+  // React commits the `setState` it just made, so `currentWindow`/
+  // `hasMoreRef` (updated by their OWN effects, reacting to that same
+  // commit) would still read the PREVIOUS values there — reading
+  // `state.hasMore<Direction>` straight from this effect's closure avoids
+  // that ordering question entirely.
+  //
+  // Bounded: each re-invocation is a no-op while the prior one is still in
+  // flight (`backwardInFlight`/`forwardInFlight`), and `hasMoreBackward`/
+  // `hasMoreForward` eventually flip `false` — a genuine refusal, or
+  // `MAX_CONSECUTIVE_EMPTY_CHUNKS` (B3, scheduleWindowState.ts) — which
+  // this effect's own guard respects exactly like the observer's does.
+  useEffect(() => {
+    if (topIntersectingRef.current && state.hasMoreBackward) void loadBackward();
+    if (bottomIntersectingRef.current && state.hasMoreForward) void loadForward();
+    // topIntersectingRef/bottomIntersectingRef are refs (from
+    // useScheduleSentinels) — stable identity, read for their CURRENT
+    // value rather than reacted to, same as every other ref in this file.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.windowStart, state.windowEnd, state.hasMoreBackward, state.hasMoreForward, loadBackward, loadForward]);
 
   const refreshDay = useCallback((day: Date) => {
     const chunk = refreshChunkFor(day);

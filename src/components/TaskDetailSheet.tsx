@@ -52,8 +52,16 @@ export function TaskDetailSheet({
   /** Called after a successful mark-complete/uncomplete/edit — the parent
    * refreshes the page's own data (there's no client-side task list to
    * splice locally, same reasoning as EventDetailSheet's onDeleted). Sheet
-   * stays open; local state below already reflects the change. */
-  onChanged: () => void;
+   * stays open; local state below already reflects the change.
+   *
+   * `updated` is supplied ONLY on a successful edit (mission-15/C7's fix
+   * for the vanishing-task bug) — carrying the just-saved `dueDate`, since
+   * an edit is the one action that can move a task's due date to a day
+   * outside the caller's own stale `refreshDay` target. Mark-complete/
+   * uncomplete never move the due date, so they call this with no
+   * argument and the caller's existing single-day refresh is still
+   * correct for them. */
+  onChanged: (updated?: { dueDate: Date }) => void;
   /** Called after a successful delete — the parent closes this sheet AND
    * refreshes, same split EventDetailSheet's onDeleted/onClose make. */
   onDeleted: () => void;
@@ -214,7 +222,7 @@ export function TaskDetailSheet({
             onSaved={(updated) => {
               setCurrent((prev) => ({ ...prev, ...updated }));
               setView("main");
-              onChanged();
+              onChanged({ dueDate: updated.dueDate });
             }}
           />
         ) : (

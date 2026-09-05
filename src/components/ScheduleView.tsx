@@ -286,14 +286,31 @@ export function ScheduleView({ initialDay, people, canManage }: ScheduleViewProp
           people={people}
           canManage={canManage}
           onClose={() => setSelectedTask(null)}
-          onChanged={() => {
-            // A Task's dueDate is stored at UTC MIDNIGHT (Task's own schema
-            // comment) — reading it with LOCAL getters (what refreshDay's
-            // own startOfDay does) would land on the PREVIOUS calendar day
-            // for this household's real, west-of-UTC timezone. Converting
-            // through allDayInstantToLocalDay first is the same fix CT1
-            // applied everywhere else a due date is read for display.
-            refreshDay(allDayInstantToLocalDay(selectedTask.dueDate));
+          onChanged={(updated) => {
+            // mission-15/C7 — the vanishing-task fix. `selectedTask` is a
+            // snapshot captured when the sheet was opened (see its own
+            // declaration above); an edit that MOVES the due date makes
+            // that snapshot stale the instant the save succeeds. Refreshing
+            // only the OLD day (what this used to do) re-fetches a chunk
+            // centered on the day the task no longer lives on — the new
+            // day's chunk is never touched, so the task renders on no day
+            // at all until the whole view remounts.
+            //
+            // The fix: when `updated` carries a new dueDate (edit only —
+            // mark-complete/uncomplete pass none, see TaskDetailSheet's own
+            // comment), refresh the OLD day and, if it differs, the NEW
+            // day too — and re-seat `selectedTask` to the updated record so
+            // a SECOND edit reads the right "old day" instead of repeating
+            // this same bug one move later. Both conversions go through
+            // allDayInstantToLocalDay for the same UTC-midnight reason the
+            // comment below already explains.
+            const oldDay = allDayInstantToLocalDay(selectedTask.dueDate);
+            refreshDay(oldDay);
+            if (updated) {
+              const newDay = allDayInstantToLocalDay(updated.dueDate);
+              if (!isSameDay(newDay, oldDay)) refreshDay(newDay);
+              setSelectedTask((prev) => (prev ? { ...prev, dueDate: updated.dueDate } : prev));
+            }
             router.refresh();
           }}
           onDeleted={() => {
