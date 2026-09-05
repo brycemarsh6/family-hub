@@ -1,46 +1,22 @@
 "use client";
 
 // The Schedule view's data hook — mission-15 (CV3), contract C3 (split
-// further in C3b). Owns the endless-scroll state machine: which
+// further in C3b, C10). Owns the endless-scroll state machine: which
 // [windowStart, windowEnd) range is currently loaded, the merged event+task
 // set inside it, and the two booleans that decide whether scrolling further
 // in either direction should even try to fetch more.
 //
-// The pure data transforms — building the initial state, folding one
-// fetched chunk into it, turning state into render-ready months — used to
-// live directly in this file with their own node:test coverage, the same
-// split useCalendarNavigation.ts uses. C3b moved them out to
-// scheduleWindowState.ts instead, because this file USED TO transitively
-// import fetchCalendarEvents/fetchTasks (src/app/actions/calendar.ts,
-// src/app/actions/tasks.ts) -> dal.ts -> db.ts, which carries
-// "server-only" — importing THIS file from a plain `node:test` process
-// threw before a single assertion ran. See scheduleWindowState.ts's own
-// header for the loginRateLimitPolicy.ts/loginRateLimit.ts precedent this
-// follows, and scheduleWindowState.test.ts for the coverage that split
-// makes possible.
-//
-// mission-15/C5: this hook no longer imports those actions directly either.
-// STRUCTURE.md's src/lib/ row forbids importing from app/ or components/ —
-// this file was the one exception in the whole tree, caught by Captain.
-// The fix is a plain dependency inversion: the CALLER (ScheduleView.tsx, a
-// component, which may import actions) passes its fetchers in as a
-// `ScheduleFetchers` argument, and this hook calls whatever it was handed
-// rather than reaching for a specific Server Action module by name. One
-// side benefit worth keeping deliberate, not incidental: with the fetchers
-// injected, this file's own import graph no longer reaches dal.ts/db.ts at
-// all — the "server-only" chain above is now HISTORY, not a live reason;
-// see the C3b split's own justification for why scheduleWindowState.ts is
-// still kept separate regardless (pure functions with real node:test
-// coverage, independent of whether this file could theoretically be
-// tested too).
-//
-// What's left here — the hook itself — wires scheduleWindowState.ts's pure
-// functions to React state, refs, an IntersectionObserver, and manual
-// scroll anchoring, and — like useCalendarNavigation's own push guard — is
-// verified live in the running app rather than with a renderer-free unit
-// test, because what it's actually responsible for (a real scrollHeight
-// not jumping, a real IntersectionObserver firing once) has no meaning
-// without a real DOM.
+// The pure data transforms live in scheduleWindowState.ts, not here — kept
+// separate for its own real node:test coverage, since this file (React
+// state/refs/IntersectionObserver/manual scroll anchoring) has no meaning
+// outside a real DOM and stays verified live in the running app instead.
+// It USED TO import fetchCalendarEvents/fetchTasks directly, which reach
+// dal.ts/db.ts's "server-only" and crashed under plain `node:test` (see
+// that file's header); C5 also found this was `src/lib/`'s one exception
+// to STRUCTURE.md's app/-and-components/-import ban. Fixed by dependency
+// inversion: ScheduleView.tsx (a component, which MAY import actions)
+// passes its fetchers in as a `ScheduleFetchers` argument, so this hook
+// never names a Server Action module itself.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { nextBackwardChunk, nextForwardChunk } from "./scheduleWindow";
@@ -50,6 +26,7 @@ import {
   applyRefresh,
   buildInitialScheduleState,
   buildScheduleRenderMonths,
+  isStoppedByEmptyCap,
   refreshChunkFor,
   reopenAfterEmptyStreak,
   type ScheduleRenderMonth,
@@ -171,6 +148,12 @@ export function useScheduleWindow(
     hasMoreRef.current = { backward: state.hasMoreBackward, forward: state.hasMoreForward };
   }, [state.hasMoreBackward, state.hasMoreForward]);
 
+  // mission-15/C10 — mirrored the same way, for `extend` below.
+  const emptyStreakRef = useRef({ backward: state.emptyStreakBackward, forward: state.emptyStreakForward });
+  useEffect(() => {
+    emptyStreakRef.current = { backward: state.emptyStreakBackward, forward: state.emptyStreakForward };
+  }, [state.emptyStreakBackward, state.emptyStreakForward]);
+
   // ONE in-flight ref per direction (mission-15/C3's own requirement): a
   // second backward fetch must not start while the first is still running,
   // even if the sentinel reports intersecting twice in quick succession.
@@ -197,7 +180,17 @@ export function useScheduleWindow(
     if (seededInitialDayTime.current === initialDayTime) return;
     seededInitialDayTime.current = initialDayTime;
     hasLoadedBackwardOnce.current = false;
-    setState(buildInitialScheduleState(initialDay));
+    // mission-15/C10 — the load effect just below fires in this SAME
+    // commit and reads these refs SYNCHRONOUSLY, but their own sync-effects
+    // only catch up a render late. Found LIVE tapping Today from six
+    // months out: the reload tiled off the OLD stale boundary instead of
+    // fresh ones near today, landing a window a day short of today. Reset
+    // here too, same as the ref above.
+    const fresh = buildInitialScheduleState(initialDay);
+    currentWindow.current = { windowStart: fresh.windowStart, windowEnd: fresh.windowEnd };
+    hasMoreRef.current = { backward: fresh.hasMoreBackward, forward: fresh.hasMoreForward };
+    emptyStreakRef.current = { backward: fresh.emptyStreakBackward, forward: fresh.emptyStreakForward };
+    setState(fresh);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDayTime]);
 
@@ -218,6 +211,10 @@ export function useScheduleWindow(
     // against a "before" height measured while the page was still blank.
     const isInitialLoad = !hasLoadedBackwardOnce.current;
     hasLoadedBackwardOnce.current = true;
+    // mission-15/C10 — the skeleton is a DOM-height change too; C8's B2 fix
+    // needs the manual correction to be the ONLY corrector, so every
+    // height-changing commit below gets its own "before" capture.
+    if (!isInitialLoad) prepareAdjustment();
     setLoadingBackward(true);
     try {
       const chunk = nextBackwardChunk(currentWindow.current.windowStart);
@@ -229,6 +226,7 @@ export function useScheduleWindow(
       setState((previous) => applyChunkResult(previous, "backward", chunk, events, tasks));
     } finally {
       backwardInFlight.current = false;
+      if (!isInitialLoad) prepareAdjustment();
       setLoadingBackward(false);
     }
   }, [prepareAdjustment]);
@@ -255,15 +253,16 @@ export function useScheduleWindow(
 
   // mission-15/C8 (B3) — the hook's own half of "let a further scroll
   // gesture extend it": useScheduleSentinels.ts detects the GENUINE
-  // gesture (wheel/touchmove, never a plain `scroll` — see that file's own
-  // comment for why) and calls this. reopenAfterEmptyStreak
-  // (scheduleWindowState.ts) is the pure check that `direction` was
-  // actually stopped by MAX_CONSECUTIVE_EMPTY_CHUNKS specifically, never a
-  // genuine refusal (which must never be retried — D2); the load call
-  // right after is what actually spends the reopened budget, rather than
-  // just flipping a flag nothing then acts on.
+  // gesture (wheel/touchmove — see that file's own comment for why) and
+  // calls this. mission-15/C10 (Vision's blocker): this used to call
+  // loadBackward/loadForward UNCONDITIONALLY, so a gesture at a direction
+  // stopped by a genuine REFUSAL (never safe to retry — D2) kept
+  // re-fetching the same refused chunk forever. isStoppedByEmptyCap now
+  // gates it — the exact question reopenAfterEmptyStreak answers
+  // internally, so only an empty-cap stop reopens and loads.
   const extend = useCallback(
     (direction: "backward" | "forward") => {
+      if (!isStoppedByEmptyCap(direction, hasMoreRef.current, emptyStreakRef.current)) return;
       setState((previous) => reopenAfterEmptyStreak(previous, direction));
       if (direction === "backward") void loadBackward();
       else void loadForward();

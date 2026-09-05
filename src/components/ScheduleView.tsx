@@ -5,7 +5,7 @@
 // src/lib/useScheduleWindow.ts for the data side (windowing, merging,
 // scroll anchoring); this file is rendering only.
 
-import { useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
+import { useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DaySection } from "./DaySection";
@@ -173,13 +173,27 @@ export function ScheduleView({
   const hasScrolledInitially = useRef(false);
   const initialDayTime = startOfDay(initialDay).getTime();
 
+  // mission-15/C10 (Strange's blocker) — re-arms the one-shot below
+  // whenever `initialDayTime` genuinely changes, mirroring
+  // useScheduleWindow.ts's own window-rebuild effect keyed on the same
+  // value. Before this, tapping Today (a CLIENT-SIDE navigation that only
+  // changes the `initialDay` prop, no remount) rebuilt the DATA but left
+  // this ref permanently spent from the component's first mount — the URL
+  // and the window both moved, but the reader never actually arrived.
+  const seededInitialDayTime = useRef(initialDayTime);
+  useEffect(() => {
+    if (seededInitialDayTime.current === initialDayTime) return;
+    seededInitialDayTime.current = initialDayTime;
+    hasScrolledInitially.current = false;
+  }, [initialDayTime]);
+
   // Initial scroll to `initialDay` — instant, not smooth, matching
   // RecipeList's own established finding for anything that should land
   // immediately rather than queue a visible animation. Runs on every
   // render until the target day's ref actually exists (it may not yet —
   // still loading, or a genuinely empty non-today day that never renders a
-  // row at all) and then never again. Scrolling itself never touches the
-  // URL — this reads `dayRefs`/DOM only.
+  // row at all) and then never again, UNTIL the effect above re-arms it.
+  // Scrolling itself never touches the URL — this reads `dayRefs`/DOM only.
   useLayoutEffect(() => {
     if (hasScrolledInitially.current) return;
     const target = dayRefs.current.get(initialDayTime);
@@ -204,6 +218,13 @@ export function ScheduleView({
   // ahead of the edge (`rootMargin: "100%"`); this one answers a different
   // question ("is this exact row visible right now") and needs a tight
   // margin, not a generous one.
+  //
+  // mission-15/C10 (Strange's NOTE) — a bare `threshold: 0` uses the
+  // LAYOUT viewport, which the app's fixed 65px bottom nav sits on top of:
+  // a row fully behind the nav still read "intersecting", disabling Today
+  // while the reader genuinely couldn't see it. `rootMargin`'s bottom
+  // value shrinks the effective observing area by that same 65px, so a row
+  // has to be visible ABOVE the nav to count.
   useLayoutEffect(() => {
     if (today === null) {
       onTodayVisibleChange(false);
@@ -219,7 +240,7 @@ export function ScheduleView({
     }
     const observer = new IntersectionObserver(
       ([entry]) => onTodayVisibleChange(entry.isIntersecting),
-      { threshold: 0 },
+      { threshold: 0, rootMargin: "0px 0px -65px 0px" },
     );
     observer.observe(node);
     return () => observer.disconnect();

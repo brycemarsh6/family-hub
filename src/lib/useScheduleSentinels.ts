@@ -153,25 +153,70 @@ export function useScheduleSentinels(
   // `scrollTop` write, so either one can only mean a real person is still
   // trying to go further.
   //
-  // Gated on `topIntersectingRef`/`bottomIntersectingRef` — the SAME
-  // "is this sentinel currently on/near screen" signal the observer above
-  // already keeps current on every real transition — so a gesture
-  // happening anywhere else on the page (scrolling through the middle of
-  // an otherwise-long list) doesn't spuriously reopen an edge nobody is
-  // actually trying to reach. `extend` itself, and the `loadBackward`/
-  // `loadForward` it triggers, are single-flight guarded already
-  // (useScheduleWindow.ts's own in-flight refs), so a burst of wheel
-  // events from one gesture spends at most one fetch, not one per event.
+  // mission-15/C10 (Strange's blocker) — this used to gate on
+  // `topIntersectingRef`/`bottomIntersectingRef`, which is WRONG:
+  // `rootMargin: "100% 0px"` means a sentinel a full viewport away already
+  // reads "intersecting", so on the household's real SHORT page (under two
+  // viewports tall) BOTH sentinels are permanently intersecting — an
+  // ordinary flick ANYWHERE reopened whichever direction happened to be
+  // stopped, including the WRONG one, since intersection alone says
+  // nothing about which way the reader is actually trying to go. Gated
+  // instead on the scroller genuinely being AT that extremity
+  // (`document.scrollingElement` — the same scroller useScrollAnchor.ts
+  // corrects) AND the gesture's own direction: a downward gesture (wheel's
+  // own `deltaY`, or the touch-drag equivalent) can only ever extend
+  // forward; an upward one, only backward. `extend` itself, and the
+  // `loadBackward`/`loadForward` it triggers, are single-flight guarded
+  // already (useScheduleWindow.ts's own in-flight refs), so a burst of
+  // wheel events from one gesture spends at most one fetch, not one per
+  // event.
   useEffect(() => {
-    function handlePossibleExtend() {
-      if (topIntersectingRef.current && !hasMoreRef.current.backward) extend("backward");
-      if (bottomIntersectingRef.current && !hasMoreRef.current.forward) extend("forward");
+    // A small dead zone, not a bare `<= 0`/`>= scrollHeight`: real
+    // sub-pixel rounding in scrollTop/scrollHeight/clientHeight across
+    // browsers would otherwise miss a genuine extremity by a fraction of a
+    // pixel.
+    const EXTREMITY_EPSILON = 4;
+    let lastTouchY: number | null = null;
+
+    function atTop(scroller: Element): boolean {
+      return scroller.scrollTop <= EXTREMITY_EPSILON;
     }
-    document.addEventListener("wheel", handlePossibleExtend, { passive: true });
-    document.addEventListener("touchmove", handlePossibleExtend, { passive: true });
+    function atBottom(scroller: Element): boolean {
+      return scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - EXTREMITY_EPSILON;
+    }
+
+    function handleWheel(event: WheelEvent) {
+      const scroller = document.scrollingElement;
+      if (!scroller) return;
+      if (event.deltaY < 0 && atTop(scroller) && !hasMoreRef.current.backward) extend("backward");
+      if (event.deltaY > 0 && atBottom(scroller) && !hasMoreRef.current.forward) extend("forward");
+    }
+
+    function handleTouchStart(event: TouchEvent) {
+      lastTouchY = event.touches[0]?.clientY ?? null;
+    }
+
+    function handleTouchMove(event: TouchEvent) {
+      const scroller = document.scrollingElement;
+      const currentY = event.touches[0]?.clientY;
+      const previousY = lastTouchY;
+      lastTouchY = currentY ?? null;
+      if (!scroller || currentY === undefined || previousY === null) return;
+      // A finger moving UP drags content up — the same "further forward"
+      // intent as a positive wheel deltaY; moving DOWN is the backward
+      // equivalent of a negative one.
+      const deltaY = previousY - currentY;
+      if (deltaY < 0 && atTop(scroller) && !hasMoreRef.current.backward) extend("backward");
+      if (deltaY > 0 && atBottom(scroller) && !hasMoreRef.current.forward) extend("forward");
+    }
+
+    document.addEventListener("wheel", handleWheel, { passive: true });
+    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    document.addEventListener("touchmove", handleTouchMove, { passive: true });
     return () => {
-      document.removeEventListener("wheel", handlePossibleExtend);
-      document.removeEventListener("touchmove", handlePossibleExtend);
+      document.removeEventListener("wheel", handleWheel);
+      document.removeEventListener("touchstart", handleTouchStart);
+      document.removeEventListener("touchmove", handleTouchMove);
     };
   }, [extend, hasMoreRef]);
 

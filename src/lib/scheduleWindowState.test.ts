@@ -34,6 +34,7 @@ import {
   applyRefresh,
   buildInitialScheduleState,
   buildScheduleRenderMonths,
+  isStoppedByEmptyCap,
   MAX_CONSECUTIVE_EMPTY_CHUNKS,
   refreshChunkFor,
   reopenAfterEmptyStreak,
@@ -320,6 +321,64 @@ test("reopenAfterEmptyStreak: end to end — reopening buys exactly ONE more chu
   assert.equal(state.hasMoreForward, true, "a real chunk resets the streak and keeps the direction open");
   assert.equal(state.emptyStreakForward, 0);
   assert.ok(state.entries.has("distant"), "the distant event must actually be reachable this way");
+});
+
+// ---------------------------------------------------------------------------
+// mission-15/C10 (Vision's blocker) — isStoppedByEmptyCap: the exact
+// question useScheduleWindow.ts's own `extend` now asks BEFORE calling
+// reopenAfterEmptyStreak or a loader at all. Before this fix, `extend`
+// called loadBackward/loadForward unconditionally, so a gesture aimed at a
+// REFUSAL-stopped direction re-fetched the same refused chunk forever —
+// these tests are the pure-level regression for that exact gate.
+
+test("isStoppedByEmptyCap: false while a direction hasn't stopped at all, regardless of a stale streak count", () => {
+  // A streak can only reach the cap on the SAME state.applyChunkResult
+  // pass that would also flip hasMore false — so hasMore true alongside a
+  // streak at/above the cap shouldn't occur in practice, but this proves
+  // hasMore is the deciding vote either way: a direction still running
+  // must never be "stopped".
+  assert.equal(isStoppedByEmptyCap("backward", { backward: true, forward: false }, { backward: MAX_CONSECUTIVE_EMPTY_CHUNKS, forward: 0 }), false);
+  assert.equal(isStoppedByEmptyCap("forward", { backward: false, forward: true }, { backward: 0, forward: MAX_CONSECUTIVE_EMPTY_CHUNKS }), false);
+});
+
+test("isStoppedByEmptyCap: false on a direction stopped by a REFUSAL (hasMore false, streak below the cap) — a gesture here must produce zero loads", () => {
+  assert.equal(isStoppedByEmptyCap("backward", { backward: false, forward: true }, { backward: 0, forward: 0 }), false);
+  assert.equal(isStoppedByEmptyCap("forward", { backward: true, forward: false }, { backward: 0, forward: 0 }), false);
+});
+
+test("isStoppedByEmptyCap: true on a direction stopped by the EMPTY CAP (hasMore false, streak at/above the cap) — a gesture here must reopen and load exactly once", () => {
+  assert.equal(
+    isStoppedByEmptyCap("backward", { backward: false, forward: true }, { backward: MAX_CONSECUTIVE_EMPTY_CHUNKS, forward: 0 }),
+    true,
+  );
+  assert.equal(
+    isStoppedByEmptyCap("forward", { backward: true, forward: false }, { backward: 0, forward: MAX_CONSECUTIVE_EMPTY_CHUNKS }),
+    true,
+  );
+});
+
+test("isStoppedByEmptyCap: the two directions never get confused with each other, even in the SAME state", () => {
+  // backward stopped by a genuine refusal; forward independently stopped by
+  // the empty cap — a gesture at the refusal edge must still gate to
+  // false even though the OTHER direction in this exact state is a
+  // legitimate reopen.
+  const hasMore = { backward: false, forward: false };
+  const emptyStreak = { backward: 0, forward: MAX_CONSECUTIVE_EMPTY_CHUNKS };
+  assert.equal(isStoppedByEmptyCap("backward", hasMore, emptyStreak), false, "refusal-stopped backward must not be reopenable");
+  assert.equal(isStoppedByEmptyCap("forward", hasMore, emptyStreak), true, "empty-cap-stopped forward must still be reopenable");
+});
+
+test("isStoppedByEmptyCap: reopenAfterEmptyStreak agrees with it on every case above — the two are answering the same question", () => {
+  const refused = { ...buildInitialScheduleState(d(2026, 5, 15)), hasMoreBackward: false, emptyStreakBackward: 0 };
+  assert.equal(reopenAfterEmptyStreak(refused, "backward"), refused, "isStoppedByEmptyCap said false, so reopening must be a no-op");
+
+  const cappedState = {
+    ...buildInitialScheduleState(d(2026, 5, 15)),
+    hasMoreForward: false,
+    emptyStreakForward: MAX_CONSECUTIVE_EMPTY_CHUNKS,
+  };
+  const reopened = reopenAfterEmptyStreak(cappedState, "forward");
+  assert.equal(reopened.hasMoreForward, true, "isStoppedByEmptyCap said true, so reopening must actually happen");
 });
 
 test("applyChunkResult: a server-side deletion drops from both entries and records on the next overlapping chunk", () => {

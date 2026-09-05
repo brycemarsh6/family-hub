@@ -299,6 +299,33 @@ export function applyChunkResult(
 }
 
 /**
+ * mission-15/C10 (Vision's blocker) — the exact question `reopenAfterEmptyStreak`
+ * below already answers internally for ONE direction, pulled out and
+ * exported so useScheduleWindow.ts's own `extend` can ask it too, BEFORE
+ * calling `loadBackward`/`loadForward` at all. `extend` used to call those
+ * unconditionally right after `reopenAfterEmptyStreak` (a pure no-op on
+ * anything but a genuine empty-cap stop) — so a gesture aimed at a
+ * direction stopped by a genuine REFUSAL (`hasMore` false, `emptyStreak`
+ * left wherever it was when the refusal landed — see `applyChunkResult`'s
+ * null branch, which never touches it) re-fetched the exact same refused
+ * chunk on every gesture, forever. D2: a refusal must never be retried.
+ *
+ * Takes the two `hasMore`/`emptyStreak` mirrors as plain objects (not a
+ * whole `ScheduleWindowState`) so useScheduleWindow.ts can call this from
+ * its ref-mirrored "current" values directly, the same shape `hasMoreRef`
+ * already uses, without needing a real `ScheduleWindowState` on hand.
+ */
+export function isStoppedByEmptyCap(
+  direction: "backward" | "forward",
+  hasMore: { backward: boolean; forward: boolean },
+  emptyStreak: { backward: number; forward: number },
+): boolean {
+  return direction === "backward"
+    ? !hasMore.backward && emptyStreak.backward >= MAX_CONSECUTIVE_EMPTY_CHUNKS
+    : !hasMore.forward && emptyStreak.forward >= MAX_CONSECUTIVE_EMPTY_CHUNKS;
+}
+
+/**
  * mission-15/C8 (B3) — the OTHER half of "let a further scroll gesture
  * extend it": reopens `direction` for exactly one more chunk after it
  * stopped because it hit `MAX_CONSECUTIVE_EMPTY_CHUNKS` above. Called by
@@ -320,26 +347,23 @@ export function applyChunkResult(
  * events this is gated on, reads as a sustained stream of "one more
  * chunk" grants rather than a single lump re-scan.
  *
- * A no-op unless `direction` is stopped for EXACTLY the empty-cap reason:
- * `hasMore<Direction>` false AND `emptyStreak<Direction>` already at or
- * above the cap. A direction stopped by a genuine REFUSAL never advances
- * `emptyStreak<Direction>` past whatever it already was when the refusal
- * landed (`applyChunkResult`'s null branch returns before touching it), so
- * the two stop reasons can never be confused here — which is what keeps
- * D2's own rule (a refusal must never be retried) intact.
+ * A no-op unless `direction` is stopped for EXACTLY the empty-cap reason —
+ * `isStoppedByEmptyCap` above is that exact check. A direction stopped by a
+ * genuine REFUSAL never advances `emptyStreak<Direction>` past whatever it
+ * already was when the refusal landed, so the two stop reasons can never be
+ * confused here — which is what keeps D2's own rule (a refusal must never
+ * be retried) intact.
  */
 export function reopenAfterEmptyStreak(
   state: ScheduleWindowState,
   direction: "backward" | "forward",
 ): ScheduleWindowState {
-  if (direction === "backward") {
-    const stoppedByEmptyCap =
-      !state.hasMoreBackward && state.emptyStreakBackward >= MAX_CONSECUTIVE_EMPTY_CHUNKS;
-    return stoppedByEmptyCap ? { ...state, hasMoreBackward: true } : state;
-  }
-  const stoppedByEmptyCap =
-    !state.hasMoreForward && state.emptyStreakForward >= MAX_CONSECUTIVE_EMPTY_CHUNKS;
-  return stoppedByEmptyCap ? { ...state, hasMoreForward: true } : state;
+  const hasMore = { backward: state.hasMoreBackward, forward: state.hasMoreForward };
+  const emptyStreak = { backward: state.emptyStreakBackward, forward: state.emptyStreakForward };
+  if (!isStoppedByEmptyCap(direction, hasMore, emptyStreak)) return state;
+  return direction === "backward"
+    ? { ...state, hasMoreBackward: true }
+    : { ...state, hasMoreForward: true };
 }
 
 /**
