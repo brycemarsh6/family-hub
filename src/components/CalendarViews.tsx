@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ListChecks } from "lucide-react";
 import { RadioSheet } from "./RadioSheet";
@@ -8,6 +8,7 @@ import { ActionSheet } from "./ActionSheet";
 import { CalendarHeader } from "./CalendarHeader";
 import { DaySection } from "./DaySection";
 import { MonthGrid } from "./MonthGrid";
+import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
@@ -120,6 +121,14 @@ export function CalendarViews({
   // card rendered for" ambiguity onOpenEvent's callback has to carry.
   const [selectedTask, setSelectedTask] = useState<CalendarTaskView | null>(null);
 
+  // mission-15/C8 (B1) — Schedule's own live answer to "is the reader on
+  // today right now," reported up by ScheduleView.tsx's own visibility
+  // tracker (see that file's comment). `scheduleRef` is what lets the
+  // header's Today circle scroll Schedule directly rather than always
+  // navigating — see handleToday below.
+  const scheduleRef = useRef<ScheduleViewHandle>(null);
+  const [scheduleTodayVisible, setScheduleTodayVisible] = useState(false);
+
   const config = VIEW_CONFIG[view];
   // The null-guards below are about `today` not having resolved yet — NOT
   // about which view is active, which is why they stay here rather than
@@ -131,6 +140,32 @@ export function CalendarViews({
   const isCurrentPeriod =
     today !== null && anchor !== null && config.isCurrentPeriod(anchor, today);
 
+  // mission-15/C8 (B1) — for Schedule specifically, override with
+  // ScheduleView's own live visibility answer rather than the anchor
+  // comparison above, which is true FOREVER the instant the reader scrolls
+  // anywhere at all (scrolling deliberately never moves the anchor — D2/D3).
+  // Every other view is completely untouched by this override.
+  const headerIsCurrentPeriod = view === "schedule" ? scheduleTodayVisible : isCurrentPeriod;
+
+  function handleToday() {
+    if (view === "schedule") {
+      // "Scrolls if loaded, navigates if not" (the mission's Done #3):
+      // scrollToToday returns false when today's row isn't loaded at all
+      // (e.g. a deep link far away that hasn't been scrolled back from),
+      // in which case falling through to goToToday() re-anchors the URL at
+      // today, which resets useScheduleWindow.ts's whole window around it.
+      // preserveScroll (mission-15/C11): ScheduleView re-arms its own
+      // scroll-to-today once the rebuilt window lands (C10) — without this,
+      // Next's default post-push scroll-to-top fires seconds later, after
+      // the slow force-dynamic round trip, and undoes it. Only this
+      // fallback needs it; the scrolled-already branch above never navigates.
+      const scrolled = scheduleRef.current?.scrollToToday() ?? false;
+      if (!scrolled) goToToday({ preserveScroll: true });
+      return;
+    }
+    goToToday();
+  }
+
   const title = today === null || anchor === null ? null : config.title(anchor);
   const addSheetDateParam = anchor ? `?date=${toLocalDateString(anchor)}` : "";
 
@@ -140,8 +175,8 @@ export function CalendarViews({
         view={view}
         onPickView={() => setPickingView(true)}
         todayResolved={today !== null}
-        isCurrentPeriod={isCurrentPeriod}
-        onToday={goToToday}
+        isCurrentPeriod={headerIsCurrentPeriod}
+        onToday={handleToday}
         title={title}
         onPrev={() => step(-1)}
         onNext={() => step(1)}
@@ -149,20 +184,20 @@ export function CalendarViews({
         nextDisabled={today === null}
         prevLabel={config.prevLabel}
         nextLabel={config.nextLabel}
+        showArrows={view !== "schedule"}
         canManage={canManage}
         onAdd={() => setAddingEvent(true)}
       />
 
       <div className="flex flex-col gap-4">
-        {/* mission-14/C3 renders `tasks` into the two views that exist
-            today (Month below, and the Week/Day DaySection branch further
-            down) — Schedule (CV3), the hour timeline (CV4/Day+Week), and
-            Year (CV5) don't exist yet, so they inherit the same obligation
-            when they land here: thread `tasks` into whatever they render,
-            the same way `events` already has to be. Not a silent gap —
-            BUILT_VIEWS (calendarViewVocabulary.ts) already keeps those
-            three unreachable until each ships its own branch in this exact
-            switch. */}
+        {/* mission-14/C3's comment used to say Schedule (CV3), the hour
+            timeline (CV4/Day+Week), and Year (CV5) all still owed this
+            switch a branch of their own. mission-15/C4 pays Schedule's:
+            it renders its OWN events/tasks (fetched client-side via
+            useScheduleWindow, never these page-level `events`/`tasks`
+            props — see ScheduleView.tsx's own header), which is why its
+            branch below takes only `initialDay`/`people`/`canManage`. The
+            hour timeline (CV4) and Year (CV5) still owe theirs. */}
         {view === "month" ? (
           // Guaranteed non-null (see ViewConfig.placeholderCount's comment
           // in calendarViewConfig.ts); this check is for TypeScript, not a
@@ -183,6 +218,21 @@ export function CalendarViews({
           Array.from({ length: config.placeholderCount }, (_, index) => (
             <DaySection key={index} loading />
           ))
+        ) : view === "schedule" ? (
+          // `anchor` is guaranteed non-null here — it is null exactly when
+          // `today` is (useCalendarPeriod.ts), and the branch above already
+          // ruled `today === null` out. TypeScript can't see that
+          // relationship across the two branches, so this check stays for
+          // the compiler, not because the case is reachable.
+          anchor !== null && (
+            <ScheduleView
+              ref={scheduleRef}
+              initialDay={anchor}
+              people={people}
+              canManage={canManage}
+              onTodayVisibleChange={setScheduleTodayVisible}
+            />
+          )
         ) : (
           days.map((day) => (
             <DaySection

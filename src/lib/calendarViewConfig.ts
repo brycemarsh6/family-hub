@@ -110,26 +110,62 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     days: (anchor) => [anchor],
     isCurrentPeriod: (anchor, today) => isSameMonth(anchor, today),
   },
-  // The three views the vocabulary names but nothing renders YET
-  // (mission-11/C2). None is reachable: `BUILT_VIEWS`
-  // (calendarViewVocabulary.ts) says false for all three, so the picker
-  // never offers them and `parseViewParam` normalizes a URL naming one.
-  // The rows exist because this Record is total, and because
-  // `days`/`isCurrentPeriod` are already real facts about the period each
-  // will show. What cannot be known before the renderer exists is marked
-  // PROVISIONAL and belongs to the phase that builds it (CV3 Schedule, CV4
-  // 3 Day, CV5 Year) — with a measurement, not a guess.
+  // Originally the three views the vocabulary named but nothing rendered
+  // (mission-11/C2) — mission-15/C4 built Schedule's renderer and flipped
+  // `BUILT_VIEWS.schedule` to true, so its row below is no longer one of
+  // them; 3 Day and Year still are. `BUILT_VIEWS` (calendarViewVocabulary.ts)
+  // says false for those two, so the picker never offers them and
+  // `parseViewParam` normalizes a URL naming one. Their rows exist because
+  // this Record is total, and because `days`/`isCurrentPeriod` are already
+  // real facts about the period each will show. What cannot be known before
+  // a renderer exists is marked PROVISIONAL and belongs to the phase that
+  // builds it (CV4 3 Day, CV5 Year) — with a measurement, not a guess.
   schedule: {
-    // PROVISIONAL, all three: Schedule has no period to page between (CV3
-    // hides the arrows; the cursor's `step: 0` already refuses to move
-    // it), its title tracks the month at the top of the scroll, and its
-    // Today scrolls rather than pages.
+    // SETTLED, mission-15/C4 (was PROVISIONAL since CV1). Schedule has no
+    // period to page between — the cursor's `step: 0` already refuses to
+    // move it — so `CalendarHeader`'s `showArrows` hides the prev/next
+    // buttons entirely for this view; `prevLabel`/`nextLabel` below are
+    // real strings anyway (never empty) so nothing about the type needs an
+    // escape hatch, and so a future accessibility fallback that briefly
+    // shows them isn't stuck with placeholders.
     prevLabel: "Previous",
     nextLabel: "Next",
     placeholderCount: 7,
+    // Settled as the ANCHOR's month, not "whatever month is currently
+    // scrolled to" — the header title cannot track scroll position without
+    // ScheduleView reporting it back up, and nothing has asked for that
+    // (mission-15/C8's own fix threads a value back up for Today's disabled
+    // state specifically — see this file's isCurrentPeriod row below — but
+    // the title stays as originally settled here). This is an honest
+    // simplification, not a stub.
+    //
+    // CORRECTED, mission-15/C8: this comment used to justify it by saying
+    // the reader's real per-scroll-position label was ScheduleView's own
+    // "sticky" month headers. Those headers do NOT actually stick —
+    // globals.css's `overflow-x: hidden` on `body` makes `position: sticky`
+    // inert app-wide, a pre-existing, whole-app fact this mission did not
+    // introduce and is not the one to fix (the shipped Week header has the
+    // identical property). What the reader genuinely sees scrolling past,
+    // in practice, is ScheduleView's plain, non-sticky week-range dividers
+    // (`formatWeekRange` rows) rendered inline between day groups — those
+    // really do move with scroll and are what stands in for a live label
+    // today. This header title only ever reflects wherever the URL points
+    // (today on a fresh open, or a deep-linked "?date=").
     title: (anchor) => formatMonthTitle(anchor),
     // CV3 builds its own rolling window from `anchor` (scheduleWindow.ts).
     days: (anchor) => [anchor],
+    // SETTLED, mission-15/C8 (was "a known, accepted limitation" through
+    // C4). This field is REQUIRED by the total Record type above but no
+    // longer READ for schedule: CalendarViews.tsx now computes
+    // isCurrentPeriod for this one view from ScheduleView's own live scroll
+    // position (whether TODAY's row is actually visible on screen), not
+    // from the anchor — an anchor that scrolling deliberately never moves
+    // (D2/D3) made this exact comparison true FOREVER the instant the
+    // reader scrolled anywhere at all, which permanently disabled the
+    // header's Today circle while the screen showed a day months away.
+    // Kept here, unchanged in VALUE, only because every row of this Record
+    // needs one — `isSameDay(anchor, today)` remains an honest (if now
+    // unused by the header) answer to "is the URL's own anchor today."
     isCurrentPeriod: (anchor, today) => isSameDay(anchor, today),
   },
   threeDay: {

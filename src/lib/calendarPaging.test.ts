@@ -106,7 +106,8 @@ test("resolveServerFetchWindow: missing/invalid ?date= falls back to the server'
 // the table itself lives in calendarViewVocabulary.test.ts; these cover what
 // the URL layer does with it.
 
-test("parseViewParam: accepts the three built views unchanged", () => {
+test("parseViewParam: accepts the four built views unchanged", () => {
+  assert.equal(parseViewParam("schedule"), "schedule");
   assert.equal(parseViewParam("week"), "week");
   assert.equal(parseViewParam("day"), "day");
   assert.equal(parseViewParam("month"), "month");
@@ -114,7 +115,6 @@ test("parseViewParam: accepts the three built views unchanged", () => {
 
 test("parseViewParam: a real-but-unbuilt view normalizes to the default rather than reaching a missing renderer", () => {
   assert.equal(parseViewParam("year"), "week");
-  assert.equal(parseViewParam("schedule"), "week");
   assert.equal(parseViewParam("threeDay"), "week");
 });
 
@@ -139,7 +139,7 @@ test("parseViewParam: the fallback is used ONLY when the param does not name a b
 
 test("buildCalendarSearch: round-trips through parseViewParam for every built view", () => {
   const anchor = d(2026, 8, 2);
-  for (const view of ["day", "week", "month"] as const) {
+  for (const view of ["schedule", "day", "week", "month"] as const) {
     const search = buildCalendarSearch(view, anchor);
     const params = new URLSearchParams(search);
     assert.equal(params.get("date"), toLocalDateString(anchor));

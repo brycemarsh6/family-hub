@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { SkeletonBlock } from "@/components/Skeleton";
-import { MonthGridSkeletonRows } from "@/components/MonthLoadingSkeleton";
+import { MonthGridSkeletonRows } from "@/components/MonthGridSkeletonRows";
 import { parseViewParam } from "@/lib/calendarPaging";
 import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 

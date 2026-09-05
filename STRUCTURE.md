@@ -37,6 +37,14 @@ structural changes against it.
 - **Dependency direction:** `lib` imports from nothing above it (never `app/`
   or `components/`); `components` may import `lib` and `actions`; `actions`
   import `lib` and the db. No cycles, ever.
+  A client hook in `src/lib/` that needs a Server Action **receives it as a
+  parameter** — a small named type beside the hook
+  (`type XFetchers = { … }`) describing only the signature — and the
+  component that owns the view imports the action and injects it.
+  `useScheduleWindow` / `ScheduleView.tsx` (`ScheduleFetchers`,
+  mission-15/C5) is the instance. A lib file importing from
+  `@/app/actions/` is the same backward arrow as any other lib→app import
+  and is a **BLOCKER**; `grep -rn "@/app" src/lib/` must stay empty.
 - **Server Actions are public POST endpoints.** Protecting pages (proxy.ts)
   is UX, not security — the `getVerifiedSession()` guard inside each action
   is the real gate. Public routes are added to proxy.ts as exact matches
@@ -62,6 +70,22 @@ structural changes against it.
   a thrown `redirect()` would bounce the browser mid-request. Role checks
   in this form read `MANAGER_ROLES` (or a named role) from
   `constants.ts` — never a hand-rolled role list.
+  For a **data-returning** read action the house shape is the type's own
+  empty value (`[]` for a list), chosen **per action, not per file** — a
+  file may hold `{ error }` writers and `[]` readers side by side
+  (`fetchCalendarEvents` in `actions/calendar.ts`, `fetchTasks` in
+  `actions/tasks.ts`). A read action is still a public POST: it treats its
+  typed inputs as claims (`Date` instance, not NaN, `end > start`) and
+  **bounds any range it will scan with an explicit span cap**, refusing
+  with the same empty value rather than throwing. That cap is **one
+  security number for every endpoint that scans a range**, and its home is
+  `src/lib/` (proposed `fetchWindow.ts`: `MAX_FETCH_SPAN_DAYS`,
+  `isValidDate`, `isAcceptableFetchWindow`), imported by each action —
+  never re-declared per action file, which the `use server`
+  no-plain-exports rule would otherwise push you toward. The two existing
+  copies are **grandfathered debt to migrate in one contract, not a
+  pattern to cite**; a third copy is a BLOCKER.
+  (Added 2026-09-04, mission-15, on Captain's ruling; Bryce approved.)
   **(b) Redirecting** — `requireRole(...)`, permitted **only** when every
   export in the file requires the same role *and* the file's only UI
   lives behind a page gated by that same `requireRole`. An authorization
@@ -90,7 +114,10 @@ structural changes against it.
   by the plain-Node scripts in `prisma/`, and a browser import fails
   loudly anyway (PrismaClient refuses to construct in a browser). Any
   **other** lib module that imports `db` must carry `server-only` —
-  `dal.ts`, `voice/apply.ts`, and `loginRateLimit.ts` are the instances.
+  `dal.ts`, `voice/apply.ts`, `loginRateLimit.ts`, and
+  `calendarEventQuery.ts` are the instances — the last (mission-15/C1) is a
+  SELECT-plus-mapper module shaped like `personInfo.ts` but, unlike it,
+  runs the query itself, so it carries the guard.
   When a module needs both a testable policy and a database read, split
   it: the pure half gets its own import-free file and the tests point
   there (`loginRateLimitPolicy.ts` / `loginRateLimit.ts` is the pattern).
@@ -286,9 +313,28 @@ Adding a second definition of any of these is a BLOCKER:
   Naming a family of exports is fine (`Skeleton.tsx`); naming a **deleted**
   export is not — a `grep` for the filename must not come up empty. Rename in
   the mission that deletes the last matching export, or in the next mission
-  that touches the file. (Added 2026-09-03, mission-11; `MonthLoadingSkeleton.tsx`,
-  which now exports only `MonthGridSkeletonRows`, is the live instance and
-  must not survive CV3.)
+  that touches the file. (Added 2026-09-03, mission-11. First instance:
+  `MonthLoadingSkeleton.tsx`, which exported only `MonthGridSkeletonRows`
+  after mission-11/C1 deleted the wrapper, was renamed to
+  `MonthGridSkeletonRows.tsx` in mission-15/C5 — no live instance remains.)
+
+- **Shared *test* helpers live in `src/lib/testing/`, and that directory is
+  exempt from the dormant-export rule** — its tests are its callers, so an
+  export with no application caller there is correct rather than dead.
+  This exists because `withTimeZone` — the helper that pins a timezone so a
+  DST case cannot pass vacuously — reached **four** definitions
+  (`scheduleWindow.test.ts`, `scheduleWindowState.test.ts`,
+  `timelineLayout.test.ts`, `calendarDates.test.ts`), which the
+  count-definitions rule above already makes a failure, while the
+  constitution offered nowhere to put it. **A new copy of a test helper
+  that already has a home is a BLOCKER**; the four existing copies are
+  grandfathered debt to migrate in one contract.
+  ⚠️ **A new directory under `src/lib/` needs its test glob entry in the
+  SAME commit, in all three places** — `package.json`'s `test` script and
+  both timezone steps in `.github/workflows/ci.yml`. The glob is
+  hand-enumerated, not recursive: a missed entry drops those tests from
+  `npm test` *and* CI while the suite still reports green at a lower count.
+  (Added 2026-09-04, mission-15; Bryce approved.)
 
 ## Danger register (absolute, for every agent)
 

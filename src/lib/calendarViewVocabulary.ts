@@ -86,7 +86,16 @@ export const VIEW_LABELS: Record<CalendarPeriodView, string> = {
  * without changing this table).
  */
 export const BUILT_VIEWS: Record<CalendarPeriodView, boolean> = {
-  schedule: false,
+  // mission-15/C4: Schedule's renderer (ScheduleView.tsx) ships in this
+  // same commit. Day and Week deliberately STAY true here — the plan's
+  // original text has them retired the moment Schedule lands, but the app
+  // went LIVE before this phase shipped, and Bryce confirmed keeping both
+  // (mission-15's Banner brief, D1): unbuilding either would leave
+  // `DEFAULT_CALENDAR_VIEW` ("week", below) naming a view with no
+  // renderer, which every rejected "?view=" and every stale stored
+  // preference would then resolve to. They become hour timelines in CV4
+  // rather than disappearing first.
+  schedule: true,
   day: true,
   threeDay: false,
   week: true,
