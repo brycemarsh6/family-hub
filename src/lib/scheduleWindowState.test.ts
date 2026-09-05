@@ -282,7 +282,7 @@ test("reopenAfterEmptyStreak: a no-op on a direction stopped by a REFUSAL, not t
   const refused = {
     ...buildInitialScheduleState(d(2026, 5, 15)),
     hasMoreBackward: false,
-    emptyStreakBackward: 0, // a refusal never advances the streak — see applyChunkResult's null branch
+    emptyStreakBackward: 0, // a refusal resets the streak to 0 (mission-15/C12) — see applyChunkResult's null branch
   };
   const next = reopenAfterEmptyStreak(refused, "backward");
   assert.equal(next, refused, "must return the exact same state object — a refusal must never be retried");
@@ -380,6 +380,89 @@ test("isStoppedByEmptyCap: reopenAfterEmptyStreak agrees with it on every case a
   const reopened = reopenAfterEmptyStreak(cappedState, "forward");
   assert.equal(reopened.hasMoreForward, true, "isStoppedByEmptyCap said true, so reopening must actually happen");
 });
+
+// ---------------------------------------------------------------------------
+// mission-15/C12 — Vision's pass-3 blocker: a direction reopened after the
+// empty cap and then REFUSED must become refusal-stopped, not stay
+// reopenable. Before this fix, applyChunkResult's null branch left
+// emptyStreak<Direction> untouched, so a refusal reached BY reopening an
+// empty-cap-stopped direction landed back at `!hasMore && streak >= cap` —
+// the exact same reading isStoppedByEmptyCap gives a genuine empty-cap
+// stop — and the same refused chunk re-fetched on every further gesture,
+// forever (measured live: 6 gestures -> 12 refused POSTs, no ceiling).
+
+test("applyChunkResult: a refusal resets emptyStreak<Direction> to 0 even when it arrives already AT the cap — the reopen-then-refuse case", () => {
+  const atCap = (direction: "backward" | "forward") => ({
+    ...buildInitialScheduleState(d(2026, 5, 15)),
+    ...(direction === "backward"
+      ? { hasMoreBackward: true, emptyStreakBackward: MAX_CONSECUTIVE_EMPTY_CHUNKS }
+      : { hasMoreForward: true, emptyStreakForward: MAX_CONSECUTIVE_EMPTY_CHUNKS }),
+  });
+
+  const backward = applyChunkResult(atCap("backward"), "backward", { start: d(2026, 4, 16), end: d(2026, 5, 15) }, null, null);
+  assert.equal(backward.hasMoreBackward, false);
+  assert.equal(backward.emptyStreakBackward, 0, "must reset, not leave it wherever reopening found it");
+
+  const forward = applyChunkResult(atCap("forward"), "forward", { start: d(2026, 5, 15), end: d(2026, 6, 14) }, null, null);
+  assert.equal(forward.hasMoreForward, false);
+  assert.equal(forward.emptyStreakForward, 0);
+});
+
+/** Drives a fresh state to the empty cap in `direction` — the same loop the
+ * pre-existing "MAX_CONSECUTIVE_EMPTY_CHUNKS consecutive empties" test above
+ * uses, factored out so the reopen-then-refuse test below can run identically
+ * for both directions instead of duplicating it twice. */
+function reachEmptyCap(direction: "backward" | "forward"): ScheduleWindowState {
+  let state = buildInitialScheduleState(d(2026, 5, 15));
+  let cursor = direction === "backward" ? state.windowStart : state.windowEnd;
+  for (let i = 0; i < MAX_CONSECUTIVE_EMPTY_CHUNKS; i++) {
+    const chunk = direction === "backward" ? { start: addDays(cursor, -30), end: cursor } : { start: cursor, end: addDays(cursor, 30) };
+    state = applyChunkResult(state, direction, chunk, [], []);
+    cursor = direction === "backward" ? chunk.start : chunk.end;
+  }
+  return state;
+}
+
+for (const direction of ["backward", "forward"] as const) {
+  test(`mission-15/C12 end to end (${direction}): empty-cap-stopped -> reopen -> REFUSED -> refusal-stopped, and a second reopen is a true no-op`, () => {
+    const hasMoreOf = (s: ScheduleWindowState) => (direction === "backward" ? s.hasMoreBackward : s.hasMoreForward);
+    const stopReading = (s: ScheduleWindowState) =>
+      isStoppedByEmptyCap(
+        direction,
+        { backward: s.hasMoreBackward, forward: s.hasMoreForward },
+        { backward: s.emptyStreakBackward, forward: s.emptyStreakForward },
+      );
+
+    let state = reachEmptyCap(direction);
+    assert.equal(hasMoreOf(state), false, "sanity: stopped by the empty cap");
+    assert.equal(stopReading(state), true, "sanity: this is an EMPTY-CAP stop, the reopenable kind");
+
+    // A genuine scroll gesture reopens it — mirrors useScheduleWindow.ts's
+    // own `extend`, which calls exactly this before calling a loader.
+    state = reopenAfterEmptyStreak(state, direction);
+    assert.equal(hasMoreOf(state), true, "reopening must actually reopen it");
+
+    // The reopened load comes back REFUSED (a session lapse, an invalid
+    // range, the fetch span cap — see applyChunkResult's own header).
+    const cursor = direction === "backward" ? state.windowStart : state.windowEnd;
+    const refusedChunk =
+      direction === "backward" ? { start: addDays(cursor, -30), end: cursor } : { start: cursor, end: addDays(cursor, 30) };
+    state = applyChunkResult(state, direction, refusedChunk, null, null);
+
+    assert.equal(hasMoreOf(state), false, "a refusal must stop the direction");
+    assert.equal(
+      stopReading(state),
+      false,
+      "must now read as REFUSAL-stopped, not empty-cap-stopped — a further gesture must produce zero loads",
+    );
+
+    // A second reopen attempt must be a genuine no-op — the exact same
+    // object back, per D2 (a refusal must never be retried), even though
+    // this direction WAS reopenable a moment ago via the empty cap.
+    const reopenedAgain = reopenAfterEmptyStreak(state, direction);
+    assert.equal(reopenedAgain, state, "a refusal-stopped direction must never be reopened again");
+  });
+}
 
 test("applyChunkResult: a server-side deletion drops from both entries and records on the next overlapping chunk", () => {
   const chunk = { start: d(2026, 5, 1), end: d(2026, 6, 1) };

@@ -229,7 +229,16 @@ export function buildInitialScheduleState(initialDay: Date): ScheduleWindowState
  *   failure, an invalid range, or the `MAX_FETCH_SPAN_DAYS` cap. A refusal
  *   must never be retried, so this stops that direction immediately: the
  *   window boundary does NOT advance (an unconfirmed range must not start
- *   looking loaded), and `hasMore<Direction>` flips to `false` for good.
+ *   looking loaded), `hasMore<Direction>` flips to `false` for good, and
+ *   (mission-15/C12) `emptyStreak<Direction>` resets to 0. That reset
+ *   matters for a refusal reached BY REOPENING an already-empty-cap-stopped
+ *   direction: `reopenAfterEmptyStreak` deliberately leaves the streak AT
+ *   the cap when it reopens (see its own header), so without this reset a
+ *   refused reopen would land right back at `!hasMore && streak >= cap` —
+ *   indistinguishable from a genuine empty-cap stop to `isStoppedByEmptyCap`
+ *   — and the same refused chunk would re-fetch on every further gesture,
+ *   forever. Resetting to 0 here means a refusal always reads
+ *   `streak 0 < cap`, so it can never be mistaken for reopenable again.
  * - **`[]`** (from both) means the request SUCCEEDED and genuinely found
  *   nothing in that exact range. The window boundary DOES advance — a
  *   quiet stretch is still confirmed, checked territory, not an unknown —
@@ -256,8 +265,8 @@ export function applyChunkResult(
 ): ScheduleWindowState {
   if (fetchedEvents === null || fetchedTasks === null) {
     return direction === "backward"
-      ? { ...state, hasMoreBackward: false }
-      : { ...state, hasMoreForward: false };
+      ? { ...state, hasMoreBackward: false, emptyStreakBackward: 0 }
+      : { ...state, hasMoreForward: false, emptyStreakForward: 0 };
   }
 
   const { scheduleEvents, recordsById } = toFetchedParts(fetchedEvents, fetchedTasks);
@@ -305,10 +314,21 @@ export function applyChunkResult(
  * calling `loadBackward`/`loadForward` at all. `extend` used to call those
  * unconditionally right after `reopenAfterEmptyStreak` (a pure no-op on
  * anything but a genuine empty-cap stop) — so a gesture aimed at a
- * direction stopped by a genuine REFUSAL (`hasMore` false, `emptyStreak`
- * left wherever it was when the refusal landed — see `applyChunkResult`'s
- * null branch, which never touches it) re-fetched the exact same refused
+ * direction stopped by a genuine REFUSAL re-fetched the exact same refused
  * chunk on every gesture, forever. D2: a refusal must never be retried.
+ *
+ * mission-15/C12 — that fix alone left one path open: a refusal reached BY
+ * REOPENING an already-empty-cap-stopped direction. `reopenAfterEmptyStreak`
+ * flips `hasMore<Direction>` back to `true` without touching
+ * `emptyStreak<Direction>` (by design — see its own header), so if the
+ * reopened load then came back refused, `applyChunkResult`'s null branch
+ * used to leave the streak exactly where reopening found it — AT the cap —
+ * landing back at `!hasMore && streak >= cap`, the same reading a genuine
+ * empty-cap stop gives. This predicate would then keep saying "reopenable"
+ * forever, and the same refused chunk re-fetched on every further gesture.
+ * Fixed in `applyChunkResult`'s own null branch, which now resets
+ * `emptyStreak<Direction>` to 0 on every refusal regardless of how it was
+ * reached, so a refused edge always reads `streak 0 < cap` here.
  *
  * Takes the two `hasMore`/`emptyStreak` mirrors as plain objects (not a
  * whole `ScheduleWindowState`) so useScheduleWindow.ts can call this from
@@ -349,8 +369,12 @@ export function isStoppedByEmptyCap(
  *
  * A no-op unless `direction` is stopped for EXACTLY the empty-cap reason —
  * `isStoppedByEmptyCap` above is that exact check. A direction stopped by a
- * genuine REFUSAL never advances `emptyStreak<Direction>` past whatever it
- * already was when the refusal landed, so the two stop reasons can never be
+ * genuine REFUSAL always reads `emptyStreak<Direction> === 0` (mission-15/
+ * C12 — `applyChunkResult`'s null branch now resets it on every refusal,
+ * specifically so a refusal reached BY REOPENING an empty-cap-stopped
+ * direction — see this function's own "deliberately does NOT reset" note
+ * above, and `isStoppedByEmptyCap`'s header — can never be mistaken for
+ * still being empty-cap-stopped), so the two stop reasons can never be
  * confused here — which is what keeps D2's own rule (a refusal must never
  * be retried) intact.
  */

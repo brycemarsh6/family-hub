@@ -154,6 +154,18 @@ export function useScheduleWindow(
     emptyStreakRef.current = { backward: state.emptyStreakBackward, forward: state.emptyStreakForward };
   }, [state.emptyStreakBackward, state.emptyStreakForward]);
 
+  // mission-15/C12 — a monotonically increasing counter, bumped only by the
+  // reset effect below whenever `initialDay` genuinely changes (Today
+  // tapped from far away, or any other fresh-window restart). loadBackward/
+  // loadForward each capture the CURRENT value the moment they START; if it
+  // no longer matches by the time their fetch RESOLVES, a reset happened
+  // mid-flight and this load's chunk was computed against a window that no
+  // longer exists — both loaders check this before touching state, and the
+  // `finally` block that clears the in-flight flag checks it too (see both
+  // loaders' own comments for exactly why the finally check matters just as
+  // much as the setState one).
+  const windowGeneration = useRef(0);
+
   // ONE in-flight ref per direction (mission-15/C3's own requirement): a
   // second backward fetch must not start while the first is still running,
   // even if the sentinel reports intersecting twice in quick succession.
@@ -190,6 +202,23 @@ export function useScheduleWindow(
     currentWindow.current = { windowStart: fresh.windowStart, windowEnd: fresh.windowEnd };
     hasMoreRef.current = { backward: fresh.hasMoreBackward, forward: fresh.hasMoreForward };
     emptyStreakRef.current = { backward: fresh.emptyStreakBackward, forward: fresh.emptyStreakForward };
+    // mission-15/C12 — bump the generation and clear BOTH in-flight flags.
+    // Found LIVE tapping Today while a far-away backward load was still in
+    // flight: without this, that stale load's own `backwardInFlight.current`
+    // stayed true, so the initial-load effect just below (same commit, same
+    // `initialDayTime` dependency, and declared AFTER this effect — so it
+    // runs SECOND in this same pass) would see "already in flight" and
+    // silently skip starting a fresh load of its own. The stale load would
+    // then resolve later, its result generation-mismatched by the bump
+    // below, and get discarded (see loadBackward/loadForward) rather than
+    // being written into this fresh window — but with the flag never
+    // cleared, nothing would have replaced it, and the window would stay
+    // exactly where the reset left it: today's row centered but never
+    // actually loaded. Clearing the flags here is what lets the fresh loads
+    // start in the first place.
+    windowGeneration.current += 1;
+    backwardInFlight.current = false;
+    forwardInFlight.current = false;
     setState(fresh);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDayTime]);
@@ -205,6 +234,12 @@ export function useScheduleWindow(
   const loadBackward = useCallback(async () => {
     if (backwardInFlight.current) return;
     backwardInFlight.current = true;
+    // mission-15/C12 — captured at the same moment as isInitialLoad below,
+    // for the same reason: this closure must judge staleness against the
+    // window generation that was CURRENT when this specific load started,
+    // never a later one a concurrent reset might bump to before this
+    // finishes.
+    const generation = windowGeneration.current;
     // Captured now, not after the await below: this is specifically the
     // FIRST-ever backward load (racing the initial forward load on mount),
     // which must render top-down naturally rather than being anchored
@@ -222,18 +257,46 @@ export function useScheduleWindow(
         fetchersRef.current.fetchEvents(chunk.start, chunk.end),
         fetchersRef.current.fetchTasks(chunk.start, chunk.end),
       ]);
+      // mission-15/C12 — the reset effect above may have bumped
+      // `windowGeneration` while this fetch was in flight (Today tapped
+      // from far away while a backward load was already running). If so,
+      // `chunk` was computed against a window that's already been replaced
+      // — applying it now would write a stale, far-away boundary back over
+      // the fresh one (this is the exact bug Vision measured: `windowStart`
+      // ending up months away from the fresh window it should have been).
+      // Bail out BEFORE the second `prepareAdjustment()` call too: arming a
+      // scroll correction against a scrollHeight baseline taken from the
+      // ALREADY-RESET page, for a `setState` we're about to skip anyway,
+      // would leave a correction pending that the next unrelated commit
+      // consumes against the wrong delta.
+      if (windowGeneration.current !== generation) return;
       if (!isInitialLoad) prepareAdjustment();
       setState((previous) => applyChunkResult(previous, "backward", chunk, events, tasks));
     } finally {
-      backwardInFlight.current = false;
-      if (!isInitialLoad) prepareAdjustment();
-      setLoadingBackward(false);
+      // mission-15/C12 — a STALE load's `finally` must not touch these: by
+      // the time it runs, a FRESH load for the same direction may already
+      // be in flight (started by the reset effect's own initial-load
+      // re-trigger, which cleared `backwardInFlight` for exactly this
+      // reason). Clearing the flag unconditionally here would let a THIRD
+      // concurrent backward load start on top of that fresh one — the same
+      // "second load starts while the first is still running" case
+      // `backwardInFlight` exists to prevent in the first place, just
+      // reached via a reset instead of a double gesture.
+      if (windowGeneration.current === generation) {
+        backwardInFlight.current = false;
+        if (!isInitialLoad) prepareAdjustment();
+        setLoadingBackward(false);
+      }
     }
   }, [prepareAdjustment]);
 
   const loadForward = useCallback(async () => {
     if (forwardInFlight.current) return;
     forwardInFlight.current = true;
+    // mission-15/C12 — same reasoning as loadBackward's own capture above:
+    // judge staleness against the generation that was current when THIS
+    // load started, not whatever it becomes by the time the fetch resolves.
+    const generation = windowGeneration.current;
     setLoadingForward(true);
     try {
       const chunk = nextForwardChunk(currentWindow.current.windowEnd);
@@ -241,13 +304,24 @@ export function useScheduleWindow(
         fetchersRef.current.fetchEvents(chunk.start, chunk.end),
         fetchersRef.current.fetchTasks(chunk.start, chunk.end),
       ]);
+      // mission-15/C12 — a reset may have bumped `windowGeneration` while
+      // this fetch was in flight; if so, `chunk` was computed against a
+      // window that's already gone and must not be written over the fresh
+      // one. See loadBackward's own comment for the full mechanism — the
+      // failure is identical, just on the forward edge.
+      if (windowGeneration.current !== generation) return;
       // Forward-appended content never needs anchoring — it's added BELOW
       // whatever the reader is currently looking at, so scrollHeight growing
       // past the fold doesn't move anything already on screen.
       setState((previous) => applyChunkResult(previous, "forward", chunk, events, tasks));
     } finally {
-      forwardInFlight.current = false;
-      setLoadingForward(false);
+      // mission-15/C12 — generation-guarded for the same reason
+      // loadBackward's finally is: a stale load's finally must not clear a
+      // flag a FRESH load of the same direction may already be relying on.
+      if (windowGeneration.current === generation) {
+        forwardInFlight.current = false;
+        setLoadingForward(false);
+      }
     }
   }, []);
 
@@ -287,6 +361,15 @@ export function useScheduleWindow(
   // happened yet. Keyed on initialDayTime alone (not on hasMore/in-flight
   // refs, which are refs and can't be effect dependencies anyway) so a
   // genuine initialDay change (the reset effect above) re-runs this too.
+  // mission-15/C12 — effect ORDER is load-bearing here: React runs a
+  // component's passive effects in the order they're DECLARED, and the
+  // reset effect above is declared first, so on a commit where
+  // `initialDayTime` genuinely changed, that effect's generation bump and
+  // `backwardInFlight`/`forwardInFlight` clears have already happened by
+  // the time this effect's `loadBackward()`/`loadForward()` calls run —
+  // which is exactly what lets them start fresh loads instead of finding
+  // the in-flight flags still true (left over from whatever was running
+  // before the reset) and silently no-opping.
   useEffect(() => {
     void loadBackward();
     void loadForward();
