@@ -198,7 +198,85 @@ src/lib/voice/*.test.ts` legs.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 1 | Captain (**Fable**) | **BLOCKED** | 2 | 10 notes, 4 amendment drafts — the experiment's result |
+| 1 | Vision | **DIED — session rate limit**, mid-report | — | Its fragment named a real bug; Fury reproduced it (below) |
+| 1 | Strange | queued | — | — |
+
+### 🧪 The Fable experiment — result
+
+Captain ran on **Fable** this mission (Bryce's call) against CT2's Opus
+baseline. It returned **BLOCKED with two real blockers, both of which Fury
+missed**, and both verified rather than read:
+
+1. **`useScheduleWindow.ts:33-34` imports Server Actions from
+   `@/app/actions/`.** The layout map's `src/lib/` row says plainly what
+   never lives there: *"Anything importing from `app/` or
+   `components/`."* Captain grepped and confirmed it is the **only** such
+   import in `src/lib/` — no precedent to shelter behind. Its fix is
+   better than a patch: **inject the fetchers as parameters** from
+   `ScheduleView` (a component, which *may* import actions). And it saw
+   the consequence Fury did not: **that removes the root cause C3b worked
+   around** — with fetchers injected the hook never reaches `dal.ts` at
+   all. It still recommends keeping C3b's split on its own merits, but
+   says the file's header must stop citing a chain that will no longer
+   exist.
+2. **`MonthLoadingSkeleton.tsx` still exists, and `STRUCTURE.md:289` says
+   it "must not survive CV3."** This is CV3. Captain checked missions
+   12–15 and confirmed nobody re-based that deadline — **and noted the
+   builders could not have known, because Fury never carried it into the
+   mission file.** Fury's omission, two-line fix.
+
+**Verdict on the experiment: Fable held its own, and arguably better.** It
+verified rather than read (grepped the import; ran both new test files in
+isolation to prove no database in their graph), corrected the record on
+C3b's rationale, declined to invent a rule where form (a) already covered
+the case, and drafted four amendments while marking none a condition of
+passing. Its sharpest note is about a **security number**: the 124-day cap
+is now defined twice, once per endpoint, and *"the cap is a security
+number for two public endpoints that must agree."*
+It also caught an irony Fury missed: **the task select and mapper now
+exist twice — created in the same mission whose C1 extracted the event
+query to prevent exactly that.**
+One data point, not proof; nothing here argues for putting Captain back
+on Opus.
+
+### 🛑 BLOCKER — a task silently vanishes. Found by Vision, reproduced by Fury.
+
+Vision died to a session rate limit mid-report, but its fragment named the
+finding: *"Sequence 3 matches exactly what I observed live (Sep 11 task
+vanished after completing Sep 4's)."* `SendMessage` is unavailable in this
+session, so Fury could not resume it — and reproduced it independently
+instead.
+
+**Mechanism, proven:** `taskToScheduleEvent`
+(`scheduleWindowState.ts`) gives a task the span
+`startAt = endAt = dueDate`, a **UTC-midnight** instant (CT1's
+convention). `overlapsWindow` (`scheduleWindow.ts`) compares that against
+**browser-local-midnight** window bounds. But `fetchTasks`
+(`actions/tasks.ts`) converts those same bounds *to UTC midnight* before
+querying. **In the gap between the two coordinate systems — exactly one
+UTC offset wide — a task is "inside the window" to the merger and
+"outside" to the fetcher.** `mergeWindow` then reads its absence as a
+server-side deletion and drops it.
+
+Reproduced deterministically:
+
+| TZ | merger says overlaps | fetch returns it | survives |
+|---|---|---|---|
+| `America/Denver` | **true** | false | **❌ dropped** |
+| `America/Los_Angeles` | **true** | false | **❌ dropped** |
+| `UTC` | false | false | ✅ |
+| `Asia/Tokyo` | false | false | ✅ |
+
+**It only bites west of UTC — the entire household — and is invisible in
+UTC, which is where CI and Vercel's server run.** A family member
+completes any task and a task roughly a week out disappears from their
+view until reload. **BLOCKER.**
+
+This is the *second* bug at the UTC-midnight/local-midnight seam this
+mission (C3 caught the first). The seam itself is the finding: CT1's
+storage convention and D3's unpadded local window are each correct and
+meet badly wherever the two are compared without conversion.
 
 ## Handoff log
 
