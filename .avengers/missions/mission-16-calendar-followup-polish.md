@@ -389,7 +389,10 @@ src/lib/voice/*.test.ts` legs.
 | — | C3 | **BLOCKED-ON-CONTRACT** | — | Fury's boundary wrong: 4 roster queries not 2, one of them a create page, and the real blocker sits in the forbidden `actions/**`. Rewritten as C3b |
 | — | C4 | DONE `0ef18ac` | — | `clip` not `hidden`; guard's job proven intact at 375/320 across 8 pages. **Two findings: the app's own header was inert too and now pins app-wide; RecipeList's offset is now 9px wrong → C6** |
 | — | C3b + C6 | DONE `7b0dc1c`, `12336ca` | — | Carve-out read fresh from the row; non-vacuity proven by stash (3 of 9 fail pre-fix). **Builder left both uncommitted — Fury caught it via `git log`, re-ran the gauntlet, sealed them** |
-| — | C5 | **DEFERRED** | — | The named seam degraded after C12: the loaders close over **10** bindings and carry the generation guard. Soft cap is a NOTE; nothing in CV4 is blocked |
+| — | C5 | **DEFERRED → CLOSED by Captain** | — | Captain withdrew its own CV3 candidate and ruled the file is **not** a split candidate: 431 lines, **172 of code** (60% documentation) |
+| 1 | Captain | **PASS** | 0 | 8 notes, 2 rulings, 3 amendments. Found the `scroll-mt-16`/227px defect **by reading** and routed it to Strange |
+| 1 | Vision | **BLOCKED** | 1 | The month observer's rect is **inverted below 1135px** — label frozen on WebKit, i.e. every iPhone. 6 notes |
+| 1 | Strange | **BLOCKED** | 2 | Confirmed the anchor defect **by measurement** (3/3, `visiblePx 0`); plus a **double month label on landing** that C4's record says cannot happen. 3 notes |
 
 ## Handoff log
 
@@ -420,6 +423,158 @@ src/lib/voice/*.test.ts` legs.
   dispatched in parallel, each in its own worktree and port** — three
   simultaneous `npm run build`s in one tree collide on `.next`, which cost
   a gate a rebuild last mission.
+- 2026-09-05 — **Gate round 1: Captain PASS, Vision BLOCKED (1), Strange
+  BLOCKED (2).** Three distinct defects, all in `ScheduleView.tsx`, all
+  from C4, all invisible on a laptop. Batched as **C7**; the three
+  converging deactivated-marker findings batched as **C8**, so one
+  re-gate covers both. Captain's `useScheduleLoaders` deferral is now
+  **closed** by Captain's own ruling, not merely deferred.
+
+### The gate round — Captain PASS, Vision BLOCKED, Strange BLOCKED
+
+**Two gates found one defect from opposite directions, and that is the
+headline.** Captain found `ScheduleView.tsx:385`'s stale `scroll-mt-16`
+**by reading** the source against C4's own imported constants, called it a
+NOTE in its own domain, and explicitly routed the behavioural half:
+*"Strange should measure whether Today now lands behind the bars. If it
+does, that is a BLOCKER in your domain."* Strange then measured it
+independently and blocked. Fury had verified the code fact in between.
+Three routes, one defect — the clearest demonstration this arc that the
+gates are not redundant.
+
+**Vision — BLOCKED (1).** `ScheduleView.tsx:329`'s
+`rootMargin: "-227px 0px -80% 0px"` produces an **inverted, empty
+observation rect on every viewport shorter than 1135px**. Fury re-derived
+it: at 375×812 the band runs 227 → 162.4, i.e. **−64.6px tall**. Chrome
+clamps it to a zero-height line and counts edge-adjacency, so it *appears*
+to work; **WebKit** (`edgeInclusiveIntersect`, unclamped) never
+intersects. Measured on Playwright WebKit 26.6: **65 steps, 0 label
+changes, 14 mismatches**, stuck on "September 2026" while January 2027
+spanned the bar. **WebKit is the family's engine — every iPhone and the
+installed PWA.** Bryce's own refinement is broken on the devices it was
+built for and correct on the laptop it was tested on. **Third time this
+project has verified on the wrong device.** The comment claiming `-80%`
+"gives that band real height" is false below 1135px.
+Vision's other work all held: the loosened people guard was replayed over
+**live HTTP** with forged inputs — kid, ghost cookie, no cookie,
+nonexistent userId, a forged third argument, and a forged
+`alreadyAssignedUserIds` smuggled into the input — all refused, positive
+control first. C4's overflow guard re-proven 16/16.
+
+**Strange — BLOCKED (2).**
+1. **The anchor defect, measured.** `?date=…&view=schedule` scrolls to
+   y=323 and lands the target day at `top 64`, `bottom 212` —
+   **`visiblePx: 0`**, `elementFromPoint` at its top returns the app
+   header, and **the first day actually rendered is the next one.** 3/3.
+   Not one date's arithmetic: every unclamped anchor landed at exactly
+   `top 64`. *"The UI claims it took you to the day you asked for; it
+   shows you a different day."*
+2. **The double month label — which D2 exists to prevent and C4's record
+   says cannot happen** (*"No two copies of a month name are ever
+   simultaneously visible"*). Both the portaled label and the in-list
+   divider are visible together from **scrollY 0–120, and Schedule lands
+   at scrollY 24 — inside that range.** C4's check was right for the range
+   where the divider passes *under* the opaque bar and missed the landing
+   range where it sits *below* it. Structural: the top of any month puts
+   its divider under a pinned label saying the same words.
+
+**What Strange confirmed working:** the app-wide header pin holds on all
+12 pages with **zero controls made unreachable** (full-scroll-range sweep
+at 375 and 320; 158 focusable controls, none landing under the header),
+the P2 `backdrop-filter` portal bug has **not** returned, blur reads
+correctly in both themes; C1's flip restyles at **frame 1, 21ms**, reverts
+byte-identically on a real refusal, and Delete can never appear beside
+Mark complete (`completeAndDeleteEverVisibleTogether: false`), so the
+carve-out cannot read as inconsistency; C2's three pill kinds are
+distinguishable at 375 in both themes (contrast 5.38–13.68); C6's letter
+sits at exactly 73px, **0px clipped**, 9/9 sweep, rail drag still tracking.
+
+**Notes carried:** the deactivated marker is typographically identical to
+a name (`--muted` is the app's existing "the app is talking, not the data"
+signal — same instinct as the `~` estimate mark); the suffix is written
+back into `current.people` on save, so a second edit in one session shows
+it twice; `validatedPeople`'s pure decision should live in `src/lib/`
+where `npm test` can reach it (Vision **and** Captain, independently);
+`RecipeList`'s rail is off by one letter at 375×667 — **pre-existing**,
+but it contradicts C6's "lands correctly", which was measured taller; a
+TOCTOU window between the people read and the write (manager-only, not
+client-exploitable, acceptable at household scale).
+
+**Strange could not exercise the cross-month swap** — its environment
+never loaded a second month — so that half of F4 rests on the builder's
+walk and Vision's WebKit measurement, not on Strange's. Recorded rather
+than glossed.
+
+
+### C7 — the pinned header's three defects (fix batch)
+- **Status:** PENDING
+- All three live in `ScheduleView.tsx` and all three are the same mistake
+  repeated: **227px of chrome appeared and the numbers describing the top
+  of the list were not re-derived from it.**
+  1. **(Vision, BLOCKER)** `:329`'s inverted `rootMargin`. Preferred fix
+     is to **delete the observer** for a scroll-driven "which `<section>`
+     spans y = TOP" read — 5–12 sections, trivial, and it is what the
+     label actually means. Removes the whole class rather than patching
+     the band. Rewrite the false comment.
+  2. **(Captain + Strange, BLOCKER)** `:385`'s `scroll-mt-16`. Use the two
+     constants the file already imports, as C6 did in `RecipeList.tsx`.
+     **First check whether these rows ever render where the Schedule bar
+     is not pinned** — if so the margin must follow the real chrome, not a
+     constant sum.
+  3. **(Strange, BLOCKER)** the double label. **Fury's call: make the
+     in-list month heading `sr-only`.** D2 said one visible label and the
+     pinned bar owns it; a "plain divider" that renders the month's name
+     is still a month label. `sr-only` — never `hidden`, which is
+     `display:none` and **strips the element from the accessibility
+     tree** (K2's own finding, where Month at phone width exposed 0 event
+     names) — keeps per-month headings in document order for a screen
+     reader while the bar carries the only visible one. Week dividers
+     already mark structure inside a month.
+- **Boundaries:** may touch `src/components/ScheduleView.tsx` · must not
+  touch `CalendarHeader.tsx`, `globals.css`, `calendarViewConfig.ts`,
+  `useScheduleWindow.ts`, `RecipeList.tsx`, `actions/**`, `prisma/**`.
+- **Evidence — outcomes, on the right engine.** **Playwright WebKit is
+  mandatory; a Chrome-only pass is exactly what shipped this.** Production
+  build, 375×812, both themes. **Positive controls first, reproducing each
+  defect on the current tree**, then: the label changes once per crossing
+  **on WebKit and Chrome**; an anchored day lands **below 227px**, fully
+  visible, `elementFromPoint` returning the row; exactly **one** visible
+  month label across the **whole** scroll range including the landing
+  range 0–120; the `sr-only` heading still present in the accessibility
+  tree. Both anchor call sites — deep link and in-view. **Do not disturb
+  what CV3 proved:** a refused reopen → zero further POSTs; mid-page
+  flicks → zero.
+
+### C8 — the deactivated marker, done properly
+- **Status:** PENDING
+- Three findings converge on one cause — the status is encoded **into the
+  name string**. Strange: it renders identically to a name (`fontWeight
+  500`, same colour, same selected chip), reading as a longer name rather
+  than the app annotating a status. Vision: `onSaved` writes the suffixed
+  name back into `current.people`, so a second edit in one session yields
+  **"(no longer active) (no longer active)"**. Captain (N6): a
+  presentation fact became data — any future consumer that sorts,
+  searches, compares or copies `displayName` inherits the suffix silently.
+- **Fix:** carry a real `deactivated` flag on `CalendarPersonView` and
+  render the marker, in `--muted` — the app's existing "the app is
+  talking, not the data" signal, the same instinct as the `~` estimate
+  mark. Never mutate `displayName`. This also lets Captain's N5 land: the
+  task path currently *infers* deactivation from absence from the active
+  roster, which holds only because `User` rows are never deleted; move it
+  to the event path's explicit server-side shape so one mechanism answers
+  the question and the label string has one home.
+- **Boundaries:** may touch `src/lib/types.ts`,
+  `src/app/(app)/calendar/[id]/edit/page.tsx`,
+  `src/app/(app)/calendar/page.tsx`, `src/components/TaskDetailSheet.tsx`,
+  `src/components/EventPeopleField.tsx` · must not touch `actions/**`
+  (C3b's guard is verified and stays), `prisma/**`, `ScheduleView.tsx`,
+  `globals.css`, `RecipeList.tsx`.
+- **Evidence:** the marker visually distinct from a name (measure the
+  colour difference, both themes); **edit twice in one session and show
+  the marker appears exactly once**; `displayName` proven unsuffixed at
+  the type boundary; ids still what get written. No `User` row may be
+  created, updated, deleted or deactivated — render the exact shape the
+  server supplies, as Strange did.
 
 ## ⚠️ Surfaced to Bryce — an app-wide change he has not seen
 
