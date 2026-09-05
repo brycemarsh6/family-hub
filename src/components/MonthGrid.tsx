@@ -75,11 +75,17 @@ const ROW_CLASS = "grid grid-cols-7 px-1";
  *
  * mission-14/C3 shipped with a real, disclosed gap: MonthCell.tsx was
  * outside that contract's file boundary, so a completed task's pill was
- * pixel-identical to an open one. C3b closes it — `completedTaskIds` below
- * is the only new plumbing this needed, since MonthCell.tsx (now in
- * bounds) does the actual rendering. Lane assignment and the "+N more"
- * count are untouched: a completed task is still just another
- * {id, startAt, endAt, allDay} span to `assignLanes`, exactly as before.
+ * pixel-identical to an open one. C3b closed the completed half —
+ * `completedTaskIds` below was the plumbing that needed, since
+ * MonthCell.tsx (now in bounds) does the actual rendering — but left a
+ * SECOND gap disclosed at the time: an open task still rendered
+ * identically to a real event, because the slot only ever said "completed
+ * task" or "not that." mission-16/C2 closes it: `taskIds` below (every
+ * task id due in this window, completed or not) plus `completedTaskIds`
+ * together produce a real three-way `taskStatus` per slot. Lane assignment
+ * and the "+N more" count are untouched either way: a task (open or
+ * completed) is still just another {id, startAt, endAt, allDay} span to
+ * `assignLanes`, exactly as before.
  */
 export function MonthGrid({
   anchor,
@@ -128,13 +134,15 @@ export function MonthGrid({
     endAt: event.endAt,
     allDay: event.allDay,
   }));
-  // C3b: `taskAsMonthEvent` reshapes a Task into a CalendarEventView-shaped
-  // proxy that has no `completedAt` field at all (a real event genuinely
-  // has none), so completion has to be looked up by id from the ORIGINAL
-  // `tasks` array, not read off anything in `eventById`. An event's id can
-  // never collide with a task's id (separate cuid-keyed tables), so a plain
-  // id set is a safe lookup with no risk of a real event being mistaken for
-  // a completed task.
+  // C3b + mission-16/C2: `taskAsMonthEvent` reshapes a Task into a
+  // CalendarEventView-shaped proxy that has no `completedAt` field at all
+  // (a real event genuinely has none), so BOTH "is this a task at all" and
+  // "is it completed" have to be looked up by id from the ORIGINAL `tasks`
+  // array, never read off anything in `eventById`. An event's id can never
+  // collide with a task's id (separate cuid-keyed tables), so a plain id
+  // set is a safe lookup with no risk of a real event being mistaken for a
+  // task of either status.
+  const taskIds = new Set(tasks.map((task) => task.id));
   const completedTaskIds = new Set(
     tasks.filter((task) => task.completedAt !== null).map((task) => task.id),
   );
@@ -171,13 +179,23 @@ export function MonthGrid({
               daysEventCovers(event.startAt, event.endAt, event.allDay, [dayBeforeRow]).length > 0;
             const continuesAfter =
               daysEventCovers(event.startAt, event.endAt, event.allDay, [dayAfterRow]).length > 0;
+            // mission-16/C2: three-way, not a boolean — `completedTaskIds`
+            // is checked first since a completed id is ALSO in `taskIds`
+            // (completion doesn't remove a task from the "is a task at
+            // all" set), and a real event id is in neither set, falling
+            // through to `null`.
+            const taskStatus: "open" | "completed" | null = completedTaskIds.has(event.id)
+              ? "completed"
+              : taskIds.has(event.id)
+                ? "open"
+                : null;
             for (let col = span.startCol; col <= span.endCol; col++) {
               cellSlots[col][span.lane] = {
                 event,
                 showLabel: col === span.startCol,
                 roundLeft: col === span.startCol && !continuesBefore,
                 roundRight: col === span.endCol && !continuesAfter,
-                taskCompleted: completedTaskIds.has(event.id),
+                taskStatus,
               };
             }
           }
