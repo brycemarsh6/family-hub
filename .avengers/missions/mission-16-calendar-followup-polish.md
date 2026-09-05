@@ -226,7 +226,30 @@ src/lib/voice/*.test.ts` legs.
   which half was proven live and which by construction.
 
 ### C4 — the pinned Schedule header, and the sticky rule that never worked
-- **Status:** PENDING (dispatched after C1–C3 land — same tree)
+- **Status:** DONE `0ef18ac`
+- **Report:** `overflow-x: hidden` → **`overflow-x: clip`** on `html, body`.
+  `clip` is explicitly exempt from the cross-axis `auto` computation, so
+  neither element becomes a scroll container, `html` stays the document's
+  one real scroller, and sticky works — while the guard's actual job
+  survives, **proven**: `body.scrollWidth` identical before and after at
+  **375 and 320** across all eight pages, `canScrollX` 0 everywhere.
+  Schedule's header bar now pins (measured stack: app header **73px**,
+  calendar bar **154px**, zero gap or overlap) with a **scroll-driven**
+  month label portaled in from `ScheduleView`, reusing the existing
+  today-visibility observer instrument. The in-list heading lost `sticky`
+  and is a plain divider, per D2.
+  **Label correctness proven three ways**: an independent DOM check of
+  which section genuinely spans the observation line agreed with the
+  portaled title at **every** point of a 250-step walk across four month
+  boundaries — zero mismatches; a 10px-step sweep at one boundary showed
+  a clean two-state transition, no flicker; and where bounding boxes
+  *appeared* to overlap, `document.elementFromPoint` — the browser's own
+  hit test rather than a box heuristic — showed the in-list divider
+  genuinely occluded by the opaque pinned bar every time. **No two copies
+  of a month name are ever simultaneously visible.** Theme proven in both
+  directions with genuinely different computed backgrounds, ruling out the
+  K1-era trap of two captures secretly showing the same theme.
+  `calendarViewConfig.ts`'s overclaiming comment rewritten.
 - **Root cause, measured:** `globals.css:123-126` sets `overflow-x:
   hidden` on **both `html` and `body`**. Per spec that computes
   `overflow-y` to `auto`, making `body` a scroll container that never
@@ -257,6 +280,37 @@ src/lib/voice/*.test.ts` legs.
   containing block for `position: fixed` descendants) — **measure the real
   heights and stacking, trust neither number.**
 
+### C6 — the A–Z rail's offset, now that sticky is real (NEW, from C4)
+- **Status:** PENDING
+- **A visible regression the family would hit**, exposed rather than
+  caused by C4: `RecipeList.tsx:206`'s letter headers use `top-16` (64px)
+  against a real app header of **73px**, so the stuck letter's top ~9px is
+  clipped behind the header. C4 measured it by pixel-sweeping
+  `elementFromPoint` and confirmed it in both themes; it was correctly
+  reported rather than fixed, being outside C4's boundary.
+- **The one-source-of-truth question this raises, and the preferred
+  answer:** C4 exported `APP_HEADER_HEIGHT_PX = 73` from
+  `CalendarHeader.tsx`. RecipeList must **not** import a calendar
+  component, and a second hardcoded `73` would be exactly the duplication
+  STRUCTURE.md forbids. **Prefer measuring at runtime** — `RecipeList.tsx`
+  already runs `ResizeObserver` + `useLayoutEffect` to position its rail
+  against the search box's real geometry, which is the same technique and
+  the same file's own established precedent (mission-R2 fixed a hardcoded
+  guess there once already, for this exact reason). If a shared constant
+  genuinely reads better, it belongs in `src/lib/`, imported by both —
+  **say which you chose and why.**
+- **Boundaries:** may touch `src/components/RecipeList.tsx`, and — only if
+  you choose the shared-constant route — a new `src/lib/` module plus
+  `src/components/CalendarHeader.tsx`'s export site · must not touch
+  `globals.css`, `ScheduleView.tsx`, `calendarViewConfig.ts`,
+  `(app)/layout.tsx`, `actions/**`, `prisma/**`.
+- **Evidence:** the stuck letter fully visible — `elementFromPoint` across
+  its whole box returning the heading, not the app header — in **both**
+  themes at 375px; the rail's own drag-to-jump still working (that is what
+  the file exists for); and the A–Z jump landing correctly, since
+  mission-R2 records that `scrollIntoView` does not reliably scroll a
+  `position: sticky` target and sticky is now, for the first time, real.
+
 ### C5 — the loaders split (mechanical)
 - **Status:** PENDING (last; needs C4 landed to avoid an index collision)
 - `useScheduleWindow.ts` is 431/350. Extract `loadBackward`/`loadForward`
@@ -278,6 +332,7 @@ src/lib/voice/*.test.ts` legs.
 |---|---|---|---|---|
 | — | C1 + C2 | DONE `f7edaa3`, `33a934f` | — | Optimistic flip proven mid-flight; three pill kinds in one real cell, lanes unchanged by construction |
 | — | C3 | **BLOCKED-ON-CONTRACT** | — | Fury's boundary wrong: 4 roster queries not 2, one of them a create page, and the real blocker sits in the forbidden `actions/**`. Rewritten as C3b |
+| — | C4 | DONE `0ef18ac` | — | `clip` not `hidden`; guard's job proven intact at 375/320 across 8 pages. **Two findings: the app's own header was inert too and now pins app-wide; RecipeList's offset is now 9px wrong → C6** |
 
 ## Handoff log
 
@@ -296,6 +351,26 @@ src/lib/voice/*.test.ts` legs.
   (the "already assigned" fact must be read from the row, never from the
   client). **Fourth boundary error of this exact shape in three missions —
   the preflight tool Fury proposed to Bryce is aimed squarely at it.**
+- 2026-09-05 — C4 DONE and audited by Fury. Two findings routed rather
+  than absorbed: the app-wide header pin (**surfaced to Bryce**, section
+  above) and RecipeList's now-wrong 64px offset (**C6**). C3b and C6
+  dispatched together — disjoint file sets, and one builder per tree
+  avoids the `.next`/index collision two would cause.
+
+## ⚠️ Surfaced to Bryce — an app-wide change he has not seen
+
+**C4's fix makes the app's own global header pin on every page.**
+`(app)/layout.tsx:92` has carried `sticky top-0 z-40 … backdrop-blur`
+since it was written and has **never once stuck** — C4 measured it
+scrolling away in lockstep with the page (`top = -scrollY`) before the
+fix, and holding at `top: 0` after. Nobody chose this today; whoever wrote
+that class chose it, and the CSS silently overrode them.
+
+It is defensible as *restoring intent* rather than a new decision, and it
+is what almost every app does. But it is visible on **every screen in the
+app**, it costs 73px of a phone's height, and Bryce has never seen it. So
+it is his call, not Fury's: **keep it (one line, already done) or opt the
+header out (one class).** Strange gates it across pages either way.
 
 ## Delivery
 
