@@ -217,6 +217,65 @@ src/lib/voice/*.test.ts` legs.
 | 1 | Vision (fresh run) | **BLOCKED** | 4 | 6 notes; found three real user-facing failures |
 | — | C6 fix batch | dispatched | — | — |
 | 1 | Strange | **BLOCKED** | 3 | 3 notes; all three blockers trace to Fury's design calls |
+| — | C8 fix | DONE `2e3e1ae` | — | all three closed on a production build; tests 297 → 302 |
+| 2 | Vision | **DIED — session limit** (Fury's), mid-run | — | Was genuinely on `claude-fable-5-1`. No verdict. Third Vision instance to die this mission. |
+| 3 | Captain (Fable) | **BLOCKED — budget exhausted** | 1 | 7 notes; blocker is a test file over the HARD cap, fix is mechanical |
+
+### Captain, pass 3 — BLOCKED, and the 3-pass budget is spent
+
+**The blocker:** `scheduleWindowState.test.ts` is **768 lines** — 118 over the
+**650 hard cap**, with no justification in its header. It was 419 at pass
+2 (a soft-cap NOTE); C7 and C8 grew it 349 lines without the split the
+constitution names as the remedy. Only file in the repo over 650.
+**Fix:** split at line **497** — the retained file keeps the pure
+transforms (primary concern, bare name); a new
+`scheduleWindowStateRefresh.test.ts` takes `refreshChunkFor`, the DST
+block, and the C5/C7 refresh regressions. **Two constraints Captain
+checked:** that cut leaves `withTimeZone` entirely in the moved half, so
+the count stays at **four** and no fifth copy appears (which would be its
+own BLOCKER under the clause Bryce approved); and no new directory, so
+none of the three hand-enumerated globs changes.
+**Captain's own ruling on re-gating:** the fix touches **no application
+source**, so it *"cannot invalidate Vision's correctness verdict… does
+not need a correctness re-gate — only a confirmation that the suite count
+is unchanged and the DST cases still skip under UTC."*
+
+**Fury's brief was wrong three times:** `useScheduleSentinels.ts` was
+described as 134 → 179 and "a precedent you accepted" — it was **added**
+in this scope, Captain had never seen it; the test file was 419 → 768 not
+362 → 689; `scheduleWindowState.ts` was 319 → 445 not → 384. All three
+were numbers copied from C7's report instead of re-measured — the
+checklist item that already existed. Captain gated the real tree anyway.
+
+**NOTES worth carrying:** `ScheduleView.tsx` **406** — split candidate
+`ScheduleMonthSection.tsx` (~110 presentational lines, the part CV4/CV5
+will touch); `scheduleWindowState.ts` **445** — split candidate is the
+render projection, mirroring the test split; `ScheduleView.tsx:8-11`
+still says the view is not wired in — **delete**; `actions/tasks.ts` 426.
+**Inline per-member differences beside `VIEW_CONFIG` went 1 → 3** —
+Captain did *not* block, with reasoning on record: the members those
+ternaries would mislabel (`threeDay`, `year`) are unbuilt *and* fall
+through to the correct answer, so the harm the clause names does not
+obtain. It declined to force a discriminated `todayCircle` shape on one
+data point because CV4 may want a third sourcing mode; **trip condition,
+keyed to definitions: a second per-member difference for the Today circle
+forces the discriminated shape. CV4 owns this.**
+**Its four amendments all hold against the tree** — no upward imports in
+either new hook, still two span-cap copies, still four `withTimeZone`,
+nothing of the renamed-file class. **But one now misdescribes the code**:
+the read-action clause says refuse with the empty value; C6 made refusal
+`null` to fix a real bug. Captain wants the *rule* corrected, not the
+code — text drafted, **awaiting Bryce**.
+
+### C9 — the hard-cap split, and the stale header
+- **Status:** DISPATCHED
+- Split `scheduleWindowState.test.ts` at line 497 per Captain, verifying
+  `withTimeZone` stays at four definitions and the test count is
+  unchanged; delete `ScheduleView.tsx:8-11`.
+- **Boundaries:** may touch `src/lib/scheduleWindowState.test.ts`, new
+  `src/lib/scheduleWindowStateRefresh.test.ts`, `src/components/ScheduleView.tsx`
+  **comment lines 8–11 only** · must not touch any other file, any
+  application logic, `package.json`, `.github/**`.
 
 ### Strange, pass 1 — BLOCKED
 
