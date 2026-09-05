@@ -82,6 +82,52 @@ export function RecipeList({
     };
   }, []);
 
+  // mission-16/C6: the app's one global header (src/app/(app)/layout.tsx)
+  // is `position: sticky`, sits above this list in the DOM, and — since
+  // mission-16/C4 replaced the `overflow-x: hidden` guard that silently
+  // defeated every `position: sticky` in the app — actually pins now. The
+  // letter headings below are sticky too, so they need to sit exactly this
+  // far below the viewport's top edge, or the header clips their top edge.
+  // This file used to hardcode that gap as `top-16` (64px), a guess from
+  // before the header ever genuinely stuck; C4 measured the real header at
+  // 73px and found the stuck letter's top ~9px clipped behind it.
+  //
+  // Measured at runtime rather than hardcoding 73, for the same reason
+  // railTop above is: a fixed guess drifts the moment the header's own
+  // content changes, silently reintroducing this exact bug. C4 also
+  // exported `APP_HEADER_HEIGHT_PX` from CalendarHeader.tsx, but this file
+  // must not import a calendar component for a Kitchen-branch page, and a
+  // second hardcoded 73 here would be exactly the one-source-of-truth
+  // drift that fixed value exists to prevent — this ResizeObserver is the
+  // same technique already used for railTop, just pointed at the header.
+  // `document.querySelector("header")` is safe because there is exactly
+  // one `<header>` element in the whole app (the root layout's own).
+  const [headerHeight, setHeaderHeight] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return;
+
+    function measure() {
+      setHeaderHeight(header!.getBoundingClientRect().height);
+    }
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  // Fallback matches the old hardcoded guess (64px) — only ever visible for
+  // the instant before useLayoutEffect's first measurement lands, which
+  // useLayoutEffect (unlike useEffect) guarantees happens before the
+  // browser paints.
+  const stickyOffset = headerHeight ?? 64;
+
   const sorted = useMemo(
     () => [...recipes].sort((a, b) => a.title.localeCompare(b.title)),
     [recipes],
@@ -194,7 +240,7 @@ export function RecipeList({
                   if (el) sectionRefs.current.set(letter, el);
                   else sectionRefs.current.delete(letter);
                 }}
-                className="scroll-mt-16"
+                style={{ scrollMarginTop: stickyOffset }}
               >
                 {/* The scroll target is this plain section, not the sticky
                     heading below — scrollIntoView's "smooth" behavior doesn't
@@ -203,7 +249,10 @@ export function RecipeList({
                     Chromium can compute zero scroll distance). A normal-flow
                     wrapper doesn't have that problem, and starts in the same
                     spot the heading would anyway. */}
-                <h2 className="sticky top-16 z-10 -mx-4 bg-bg px-4 py-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
+                <h2
+                  style={{ top: stickyOffset }}
+                  className="sticky z-10 -mx-4 bg-bg px-4 py-1.5 text-sm font-semibold uppercase tracking-wide text-muted"
+                >
                   {letter}
                 </h2>
                 <ul className="mb-2 space-y-2 py-1">
