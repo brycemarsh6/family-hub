@@ -38,9 +38,12 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
+import { getVerifiedSession, getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { isMissingRowError } from "@/lib/prismaErrors";
+import { localDayToAllDayInstant } from "@/lib/calendarDates";
+import { startOfDay } from "@/lib/mealPlanDates";
+import type { CalendarTaskView } from "@/lib/types";
 
 function refreshCalendarViews() {
   revalidatePath("/calendar");
@@ -274,4 +277,142 @@ export async function uncompleteTask(id: string): Promise<TaskActionResult> {
 
   refreshCalendarViews();
   return {};
+}
+
+/**
+ * A day span, in milliseconds — used only for the scan cap below, never for
+ * constructing a calendar-meaningful Date. Same constant, same reasoning, as
+ * actions/calendar.ts's own MS_PER_DAY — kept as a separate copy rather than
+ * an import between two "use server" files, same reason validatedPeople
+ * above is its own copy (see that function's comment).
+ */
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * How far apart `windowStart`/`windowEnd` may be — the exact same
+ * MAX_FETCH_SPAN_DAYS value and reasoning as actions/calendar.ts's
+ * fetchCalendarEvents (mission-15/D2: this is a PUBLIC POST endpoint, so an
+ * unbounded span would let anyone force a full-table scan). Not exported,
+ * for the same reason as actions/calendar.ts's own copy: every top-level
+ * export of a "use server" file must be an async function, and exporting a
+ * plain constant broke that file's entire module resolution at build time
+ * once already (see that file's own comment) — `tsc`/`eslint` stayed clean
+ * and only `npm run build` caught it.
+ */
+const MAX_FETCH_SPAN_DAYS = 124;
+
+function isValidDate(value: unknown): value is Date {
+  return value instanceof Date && !Number.isNaN(value.getTime());
+}
+
+/**
+ * The Task sibling to fetchCalendarEvents (actions/calendar.ts) —
+ * mission-15/C3's Schedule view needs both, and that contract's own
+ * boundary keeps them in their existing separate files rather than
+ * inventing a single cross-file query, the same split page.tsx's own
+ * Promise.all already draws between events and tasks. Same guard shape:
+ * null-returning getVerifiedSession() (reading the calendar needs no role —
+ * MANAGER_ROLES only gates writing one), Date-instance/NaN validation,
+ * `end > start`, and this file's own MAX_FETCH_SPAN_DAYS cap — every
+ * refusal returns `[]`, never throws, so useScheduleWindow (mission-15/C3)
+ * can treat an empty result as "stop fetching this direction" without ever
+ * distinguishing a genuine refusal from a genuinely empty range (see that
+ * hook's own header for why it doesn't need to).
+ *
+ * THE QUERY ITSELF DELIBERATELY IS NOT A PLAIN `dueDate: { gte: windowStart,
+ * lt: windowEnd }` the way page.tsx's inline task query is — that query is
+ * safe there only because page.tsx's window carries generous padding
+ * (calendarPaging.ts's own `WINDOW_TZ_SKEW_PAD_DAYS`) for an unrelated
+ * reason (the server's own clock skew), which happens to also swallow the
+ * skew described below as a side effect. Schedule's window carries no such
+ * padding (mission-15/D3 — it's built from real browser-local midnights, so
+ * there's nothing to guess), and CHUNK_DAYS tiles windows edge-to-edge every
+ * 30 days, which makes an edge day far more likely to be hit than it ever
+ * is on page.tsx's ±60-day span.
+ *
+ * The edge case, worked through: Task.dueDate is stored at UTC MIDNIGHT of
+ * its calendar day (Task's own schema comment), while `windowStart`/
+ * `windowEnd` here are browser-LOCAL midnights. For this household's real
+ * timezone (Mountain, UTC-6/-7 — west of UTC), a browser-local midnight is
+ * SEVERAL HOURS LATER, as an absolute instant, than UTC midnight of that
+ * same calendar day (local midnight = UTC midnight + the zone's positive
+ * offset). So a task due exactly on `windowStart`'s own calendar day has a
+ * `dueDate` instant that is EARLIER than `windowStart` — a plain
+ * `gte: windowStart` query would silently drop it, precisely on the one day
+ * most likely to matter (the very first day of a freshly-loaded chunk).
+ * Confirmed live against this exact household's zone before writing the fix
+ * below — see this contract's own evidence.
+ *
+ * The fix: re-express `windowStart`/`windowEnd` in Task.dueDate's OWN
+ * storage convention (`localDayToAllDayInstant` — the exact function
+ * Task.dueDate is always written through) before querying, rather than
+ * padding the query and re-filtering. `startOfDay` reads `windowStart`'s
+ * calendar day using THIS PROCESS's own local getters; that's safe here
+ * specifically because converting an instant that is Mountain-local
+ * midnight into ANY server runtime at or east of Mountain (this repo's dev
+ * machine, and Vercel's UTC production runtime) lands on the SAME calendar
+ * day — the shift is only a few hours, never enough to cross a day
+ * boundary in that direction. (This is the same reasoning
+ * `allDayInstantToLocalDay`'s own file already leans on for the household's
+ * one real, established timezone — not a claim of correctness for every
+ * timezone on Earth, which this codebase has never promised — see
+ * constants.ts's own note that `HOUSEHOLD_TIME_ZONE` has zero consumers by
+ * design.) The result is an exact, no-padding query whose bounds are
+ * expressed in the exact same units `dueDate` is stored in, so there is no
+ * skew left to compensate for at all.
+ */
+export async function fetchTasks(
+  windowStart: Date,
+  windowEnd: Date,
+): Promise<CalendarTaskView[]> {
+  const session = await getVerifiedSession();
+  if (!session) return [];
+
+  // A Server Action is a public POST endpoint — anything can be sent here,
+  // so the `Date` type annotations above are a claim to verify, not a
+  // guarantee to trust. Same checks, same order, as fetchCalendarEvents.
+  if (!isValidDate(windowStart) || !isValidDate(windowEnd)) return [];
+  if (windowEnd.getTime() <= windowStart.getTime()) return [];
+  if (windowEnd.getTime() - windowStart.getTime() > MAX_FETCH_SPAN_DAYS * MS_PER_DAY) {
+    return [];
+  }
+
+  const dueDateWindowStart = localDayToAllDayInstant(startOfDay(windowStart));
+  const dueDateWindowEnd = localDayToAllDayInstant(startOfDay(windowEnd));
+
+  const tasks = await db.task.findMany({
+    where: { dueDate: { gte: dueDateWindowStart, lt: dueDateWindowEnd } },
+    orderBy: { dueDate: "asc" },
+    select: {
+      id: true,
+      title: true,
+      details: true,
+      dueDate: true,
+      completedAt: true,
+      people: {
+        select: {
+          user: { select: { id: true, displayName: true, avatarColor: true } },
+        },
+      },
+    },
+  });
+
+  return tasks.map((task) => ({
+    id: task.id,
+    title: task.title,
+    details: task.details,
+    dueDate: task.dueDate,
+    completedAt: task.completedAt,
+    people: task.people.map((person) => ({
+      userId: person.user.id,
+      displayName: person.user.displayName,
+      avatarColor: person.user.avatarColor,
+    })),
+    // Same source and reasoning as page.tsx's own CalendarTaskView mapping
+    // (D3, mission-14's Banner brief): computed from the verified session
+    // against real TaskPerson rows already joined above, never from a role
+    // or user object. Decides only whether a mark-complete control is
+    // DRAWN — completeTask's own membership guard is the real gate.
+    isMine: task.people.some((person) => person.user.id === session.userId),
+  }));
 }
