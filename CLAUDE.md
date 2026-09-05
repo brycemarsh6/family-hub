@@ -4818,9 +4818,13 @@ Tests **182 → 207**.
   Fable; `~/.claude/agents/` still said `fable` for all three. So K1's and
   K2's eleven gate passes ran three-Fable-deep when the project had decided on
   one — a large part of why Bryce's weekly allowance drained faster than
-  planned. **Fixed 2026-09-03** (`captain: opus`, `strange: opus`,
-  `vision: fable`). *This is user-level config outside the repo and is not
-  under git — if it ever looks wrong again, check there first.*
+  planned. **Fixed 2026-09-03.** *The model assignments live in
+  `.claude/agents/*.md` (committed) and a user-level copy at
+  `~/.claude/agents/` — **do not restate the values here.** A sentence
+  saying "Vision runs on X" is a second definition in English, and it is
+  the one that drifted. Read the files. (Reworded 2026-09-04 under the
+  count-definitions rule; and note the two copies themselves are a
+  duplication with no check between them — see mission-15's handoff log.)*
 - **An Anthropic incident killed five gate dispatches** ("Elevated errors for
   multiple models", Opus and Fable both affected, ~2.5 h). Each dead dispatch
   burns tokens before it dies. **Stop re-dispatching into a declared outage**

@@ -368,19 +368,26 @@ missed**, and both verified rather than read:
    builders could not have known, because Fury never carried it into the
    mission file.** Fury's omission, two-line fix.
 
-**Verdict on the experiment: Fable held its own, and arguably better.** It
-verified rather than read (grepped the import; ran both new test files in
-isolation to prove no database in their graph), corrected the record on
-C3b's rationale, declined to invent a rule where form (a) already covered
-the case, and drafted four amendments while marking none a condition of
-passing. Its sharpest note is about a **security number**: the 124-day cap
-is now defined twice, once per endpoint, and *"the cap is a security
-number for two public endpoints that must agree."*
-It also caught an irony Fury missed: **the task select and mapper now
-exist twice — created in the same mission whose C1 extracted the event
-query to prevent exactly that.**
-One data point, not proof; nothing here argues for putting Captain back
-on Opus.
+**~~Verdict on the experiment: Fable held its own, and arguably better.~~
+RETRACTED, 2026-09-04.** Bryce's `/usage` showed **Fable at 0%** after
+both Captain runs that were dispatched with an explicit `model: fable`.
+Two probes run afterward (a bare `general-purpose` with `model: fable`,
+and a bare `vision` with no override) both reported `claude-fable-5-1` —
+so both mechanisms resolve correctly **now**. But an earlier Vision run,
+configured `fable`, died with an error naming `claude-opus-4-8`, and 0%
+usage is not consistent with two real Fable gate runs. **Whether Captain's
+CV3 verdicts were produced by Fable is therefore unverified**, and the
+"held its own" conclusion was a claim whose evidence did not support it —
+the exact failure the gates spent all day catching. What *can* be said:
+a Captain run that was **asked** to be Fable found two real blockers. The
+`claude-code-guide` agent has been asked how model resolution, rate-limit
+fallback, and `/usage` accounting actually work; its answer goes here.
+Until then the experiment is **unrun**, not passed.
+
+Separately measured: a trivial probe subagent costs **~120–160k tokens**
+with zero tool uses — the fixed cost of loading CLAUDE.md (5,100 lines)
+plus tool schemas. At ~40 dispatches this session that is several million
+tokens of overhead before any agent did anything. Worth a decision.
 
 ### 🛑 BLOCKER — a task silently vanishes. Found by Vision, reproduced by Fury.
 
