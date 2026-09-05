@@ -1,7 +1,7 @@
 # Mission: CV3 — Schedule, the continuous list
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES — C12 DONE `4b10184`; Vision pass 4 (Bryce-authorized) is the last gate. Strange PASS and Captain PASS stand on `6598c0b`
+**Status:** DELIVERED — all three gates PASS (Vision 4, Strange 3, Captain 2)
 **Started:** 2026-09-04 · **Updated:** 2026-09-05
 
 ## ⚠️ This is the first mission since the calendar went LIVE
@@ -226,6 +226,88 @@ src/lib/voice/*.test.ts` legs.
 | — | C10 + C11 | DONE `6598c0b` | — | extend gated on `isStoppedByEmptyCap`; extremity+direction gating; reset on anchor change; 54px; 65px band; scoped `preserveScroll` |
 | 3 | Vision (5th instance) | **BLOCKED — budget exhausted** | 2 | 4 notes. B1 *narrowed, not closed*: a refused **reopen** leaves the edge reopenable. B2: C10's reset races an in-flight load — Today can fail to arrive. **Mission STOPPED → Bryce.** |
 | 3 | Strange | **PASS** | 0 | 3 notes. Both pass-2 blockers closed and *felt*; 54px proven fixed with a paired control (0 vs 54); 65px band exact |
+| — | C12 | DONE `4b10184` | — | Both blockers closed; both pre-fix controls reproduce Vision pass 3's own numbers exactly |
+| **4** | **Vision** (Bryce-authorized, outside the 3-pass budget) | **PASS** | **0** | 8 notes. Re-ran all three legs; enumerated the edge's reachable states rather than sampling; reproduced both controls and Strange's walk |
+
+### Vision, pass 4 (Bryce-authorized) — PASS, zero blockers
+
+Gated `6598c0b..483ed2f` at HEAD `483ed2f`. **All three legs re-run:**
+tsc, eslint, build clean; **310** under Denver and LA, 303 + 7 skipped
+under UTC. Boundary clean — a diff of the delta restricted to every
+must-not-touch path is **empty**. Baseline `Task 0, TaskPerson 0,
+CalendarEvent 4, User 5` before *and* after. No `User` writes: the
+ghost-cookie technique only, cookies minted to files and never printed,
+`grep -c "session=" *.log` → none.
+
+**Item 1 settled by ENUMERATION, not sampling** — which is the answer to
+the "each fix closed the case in front of it" pattern that produced three
+blockers in a row. Per direction, `(hasMore, streak)` has exactly five
+reachable classes: `(true, 0..cap-1)` open; `(true, ≥cap)` reopened (only
+via `reopenAfterEmptyStreak`); `(false, ≥cap)` empty-cap stop (only via
+`[]`); `(false, 0)` refusal (only via `null`); `(true, 0)` reset.
+**`(false, 1..cap-1)` is unreachable** — a `[]` below the cap keeps
+`hasMore` true. So `isStoppedByEmptyCap` false with `hasMore` false is now
+exactly "refused", **from every path**, not just the two we had found. The
+reset costs nothing on `refreshDay`/`applyRefresh` (neither reads the
+streak) and nothing on a refuses-then-succeeds edge (after a refusal
+nothing calls that loader until a window reset, which rewrites the streak
+anyway). All 4 named comments and the 7 new ones checked against the code
+they describe — accurate.
+
+**Measured, shipped vs. pre-fix control, both on production builds in
+isolated worktrees on separate ports:** item 1 — valid cookie at the top
+`[2,2,2]` (instrument proven live first), ghost cookie → reopen `2` then
+six gestures **`[0,0,0,0,0,0]`**, touch `[0,0]`, forward `[2,0,0,0]`;
+control on `6598c0b` → **`[2,2,2,2,2,2]` = 12**, matching pass 3's own
+number. Item 2 — deep link +200d, first mount POST held 4000ms, Today
+tapped at 580ms → row at **`top 536`**, Today **disabled by 2.35s, during
+the hold**, and unmoved after release at 4.6s; every post-tap chunk tiles
+outward from today, **nothing beyond the pre-tap frontier ever
+requested**; control → Today **enabled**, `scrollTop 0`, 9 of 11 post-tap
+POSTs in the far window walking on to `2027-05-23`. A third variant (a
+stale *forward* load held across the reset) settled identically with
+`refJump 0`. **Both edges answered a gesture afterward — no stranded
+in-flight flag.**
+
+**Strange's PASS survives the delta**, re-driven through the real UI:
+picker → Month → Next ×6 → picker → Schedule → Today → row present, Today
+disabled at **524ms**, 16 POSTs; 12 genuinely mid-page gestures → **all
+0**, `scrollHeight` 1383 → 1383, no skeletons.
+
+**Non-vacuity reproduced independently:** a scratch copy with only the two
+null-branch lines reverted → **28 pass / 3 fail**, the three being exactly
+the new C12 tests; restored 31/0.
+
+**The effect-order claim was checked against React's source**, not
+accepted: `pushSimpleEffect` appends to the tail of the circular list and
+`commitHookEffectListMount` walks from the head — declaration order, as
+the comment says.
+
+**NOTES (8), all recorded, none blocker-class:** `refreshDay` carries no
+generation guard — harmless today (`applyRefresh` touches no boundary and
+`scheduleRows` walks only the window, so a stale entry is invisible and
+reconciled by the next covering chunk) and **queued into the explicit
+per-direction `status` refactor**. `useScheduleWindow.ts` 431/350 —
+Captain's, not Vision's, to block on. **C12's "Next serializes the mount's
+four Server-Action calls" is only partly true** — in one run the fresh
+POSTs dispatched at 760ms while the held one stayed outstanding to
+4612ms; serialization is not a property to rely on, the settled state is.
+**For whoever re-measures item 2:** the shipped tree shows *3* far-window
+POSTs after the tap (the mount's already-queued siblings) whose results
+are discarded — **count chunks past the pre-tap frontier (shipped 0), not
+raw far POSTs, or the fix reads as a regression.** "Mid-page" on this
+1383px page is narrower than it looks — three +120 wheels reach the true
+bottom and legitimately reopen; ±40–60px is genuinely mid-page (Vision's
+own instrument, not the app). A same-document double reset is unreachable
+in Schedule (no Prev/Next by design, Back is a cold document reload, and
+Today either scrolls or is disabled) — the guard is an order-independent
+integer compare and would hold regardless. **Pre-existing, outside the
+delta:** a page GET with a DAL-refused cookie returns **200**, not 307 —
+the streaming shell around a redirect inside the Suspense boundary; body
+verified to contain no calendar markup, recorded so nobody reads it as a
+leak. And earlier passes left minted session tokens in the shared
+scratchpad — **swept by Fury at delivery; zero JWT-shaped strings
+remain.**
 
 ### Vision, pass 3 (the last) — BLOCKED, two blockers; the budget is spent
 
@@ -1037,4 +1119,37 @@ meet badly wherever the two are compared without conversion.
 
 ## Delivery
 
-_Pending._
+- **Shipped:** the Schedule view — one continuous list of days, endless in
+  both directions, today always present, events **and** tasks. Twelve
+  contracts, **ten gate verdicts** (Captain 3, Vision 4, Strange 3; two
+  further Vision instances died to rate limits before reporting). Tests
+  **252 → 310**, green under Denver, UTC and Los Angeles.
+- **Final verdicts, all on the shipped tree:** Vision pass 4 **PASS**
+  (`483ed2f`, zero blockers, 8 notes); Strange pass 3 **PASS**
+  (`6598c0b`, zero blockers, 3 notes); Captain pass 2 **PASS** plus a
+  count-check on C9's test split — **Bryce accepted the count-check over a
+  4th Captain pass, 2026-09-05.**
+- **The budget extension, on the record:** Vision blocked three times and
+  the doctrine stopped the mission. Bryce chose "C12 + one more Vision
+  pass" over shipping with two blockers open or abandoning the branch.
+  C12 closed both, with pre-fix controls reproducing pass 3's own numbers.
+- **Deliberate leftovers, each routed:** `useScheduleWindow.ts` 431/350
+  (soft-cap NOTE; split candidate the two loaders → `useScheduleLoaders.ts`)
+  → follow-up mission. The explicit per-direction stop `status` +
+  generation refactor — **four fix contracts in a row each opened a new
+  edge in this state machine (C6, C8, C10, C12)**; the state machine
+  *infers* why an edge stopped instead of recording it, and `refreshDay`'s
+  missing generation guard folds into the same refactor → its own contract
+  before anything builds on this hook (nothing in CV4/CV5 does). The
+  grandfathered-debt migrations (3 `toDateInputValue`, 4 `withTimeZone`,
+  2 span-cap copies, the duplicated task SELECT+mapper). The sticky month
+  header — **root cause now measured**: `globals.css:123-126` sets
+  `overflow-x: hidden` on **both `html` and `body`**, which computes
+  `overflow-y` to `auto` and makes `body` a scroll container that never
+  scrolls, so **every `position: sticky` in the app is inert** — including
+  `ScheduleView.tsx:267` and `RecipeList.tsx:206`, both already coded to
+  stick. → follow-up mission F4, **Bryce-approved 2026-09-05** with his own
+  refinement ("pinned… until it changes months") and Fury's sub-decision
+  that the label lives in the pinned bar only, retiring the double label
+  and the stale `calendarViewConfig.ts:134` comment that justifies freezing
+  the title *on the belief that sticky works*.

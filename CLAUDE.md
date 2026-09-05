@@ -5208,3 +5208,198 @@ inertness.
 (Month text pills, Year). Only Day, Week and Month are reachable today;
 `BUILT_VIEWS` gates the other three so the picker cannot offer a blank
 screen.
+---
+
+## Session, 2026-09-04/05: CV3 — the Schedule view, and the mission the doctrine stopped
+
+**Schedule shipped** — Google's "what's coming up?" list: one continuous
+run of days, scrolling endlessly backward and forward, today always
+present, events **and tasks** in every row. Mission
+`.avengers/missions/mission-15-calendar-cv3-schedule.md` is the
+authoritative record: **twelve contracts, nine gate verdicts** (Captain
+3, Vision 3, Strange 3 — plus two Vision instances that died to rate
+limits before reporting), and one decision that belongs in this file's
+history: **Vision blocked three times, the doctrine stopped the mission,
+and Bryce extended the budget by one pass, on the record.** Tests
+**252 → 310**, green under Denver, UTC and Los Angeles.
+
+### Decisions made with Bryce — don't re-litigate
+
+- **Day and Week are KEPT; Schedule is added.** The plan said remove
+  them. The plan was written before the calendar went live, and Banner
+  found the trap: `DEFAULT_CALENDAR_VIEW` is `"week"`, so unbuilding Week
+  makes every rejected `?view=` and every stale saved preference resolve
+  to a view with no renderer. Four views in the picker now; Day and Week
+  become hour timelines in CV4 rather than disappearing first.
+- **Refusal and emptiness are different answers, and the code says so.**
+  `fetchCalendarEvents`/`fetchTasks` return **`null`** when the server
+  refuses (guard failure, invalid range, the 124-day cap) and **`[]`**
+  when a range is genuinely empty. A refusal stops that direction for
+  good and is *never* retried; an empty stretch advances the boundary
+  and keeps going, bounded by a cap of **three** consecutive empty
+  chunks — after which a further scroll gesture asks for one more.
+  This amended the mission's own D2, which had conflated the two, and
+  STRUCTURE.md's read-action clause needs the matching correction
+  (drafted, pending Bryce).
+- **Captain ran on Fable for this mission** (Bryce's experiment) and
+  found two real blockers Fury had missed. Whether it actually ran on
+  Fable is **unverified** — see "the Fable experiment" below — and the
+  investigation is **parked by Bryce**: "move forward with confidence as
+  long as we've double checked things."
+
+### What's new in the tree
+
+`src/lib/calendarEventQuery.ts` (`server-only`; one `SELECT` + one
+field-by-field mapper, shared by `page.tsx` and the action so they cannot
+drift); `fetchCalendarEvents` — **the calendar's first data-returning
+guarded action**, a public POST with a 124-day span cap — and its
+`fetchTasks` sibling; `scheduleWindow.ts` (pure: merge, 30-day chunks,
+rows) and `scheduleWindowState.ts` (the window state machine, tested
+across every 2026 DST transition); `useScheduleWindow.ts`,
+`useScheduleSentinels.ts`, `useScrollAnchor.ts`; `ScheduleView.tsx`.
+`MonthLoadingSkeleton.tsx` — which STRUCTURE.md said "must not survive
+CV3" — is now `MonthGridSkeletonRows.tsx`, named for what it exports.
+STRUCTURE.md gained **six** Bryce-approved amendments, and the Avengers
+`MISSION.md` template gained **Fury's nine-item pre-dispatch checklist**,
+every item a real incident from missions 13–15.
+
+### The lessons — most of them about a seam, a browser, and a foreman
+
+- **Three bugs at one seam: UTC-midnight storage vs. local-midnight
+  windows.** CT1 stores every all-day instant (task due dates, all-day
+  events) at UTC midnight; the Schedule builds its windows from the
+  browser's local midnights with no pad (the client knows its own
+  midnight). Each is correct. **Wherever the two are compared without a
+  conversion, a task sits inside the window to the merger and outside it
+  to the fetcher — one UTC offset wide — and `mergeWindow` reads its
+  absence as a deletion.** Completing a task made a task a week out
+  vanish. **It bites only west of UTC (the whole household) and is
+  invisible in UTC, which is where CI and Vercel run.** Every comparison
+  now converts at the boundary (`allDayInstantToLocalDay`; `fetchTasks`
+  converts its bounds), and the suite runs three timezone legs.
+- **Chromium's native scroll anchoring doubled the manual correction.**
+  `useScheduleWindow.ts` said "WebKit has no `overflow-anchor`" — true —
+  and corrected the scroll position by hand. Chromium *does* have it, so
+  the correction landed **twice**: measured `dScrollTop = 2 × dHeight`,
+  a 696px lurch, 86% of the viewport. Fixed with `overflow-anchor: none`
+  while Schedule is mounted, so the manual mechanism is the *only*
+  corrector. **iOS Safari never had the bug — do not "verify" scroll
+  behaviour on an iPhone alone.** And the 54px residual on skeleton
+  insertion was a *second* uncorrected height change, live on iPhones,
+  which a gate proved was not the same root cause after the record
+  claimed it was.
+- **`IntersectionObserver` fires only on transitions.** A sentinel that
+  starts *inside* `rootMargin` on a short page, whose single callback is
+  swallowed by an in-flight guard, never fires again — scrolling up
+  loaded nothing at 375×812 on the household's own data. Re-arm from an
+  effect keyed on the window state, never from a `finally`, where the
+  refs are still stale.
+- **"Let a further gesture ask for more" must be gated on the scroller's
+  real extremity and the gesture's direction** — not on sentinel
+  intersection, which is page-height dependent and permanently true on a
+  short page. Before that, every mid-page flick reopened both stopped
+  directions and flashed the boundary message.
+- **`router.push` scrolls to top by default.** Documented, and it fires
+  *after* the slow `force-dynamic` round trip — so "Today" scrolled to
+  today and then Next undid it two seconds later. `{ scroll: false }`,
+  scoped to exactly one call site (Schedule's not-loaded fallback);
+  Week/Day/Month still land at the top, proven at a viewport where they
+  actually scroll.
+- **A number chosen without asking what it means on real data.** Fury
+  set the empty-chunk cap to 24 and wrote "not a limit anyone should
+  expect to hit in practice." On the household's real four events that
+  was **100 POSTs and 11 seconds of skeletons on every open** — a sparse
+  calendar is this family's *normal* case. Now 3.
+- **A `"use server"` file may export only async functions.** A
+  top-level `export const` breaks the whole module at runtime while
+  `tsc` and `eslint` stay clean. `MAX_FETCH_SPAN_DAYS` is un-exported
+  for that reason, which is why the span cap is duplicated (queued).
+- **The built-in browser pane is structurally incapable of gating
+  scroll behaviour.** Its renderer runs hidden — Strange measured
+  `IntersectionObserver` and `requestAnimationFrame` as *never firing*
+  there (a screenshot forces one frame, which is how it looks like it
+  works). Every decisive scroll measurement this mission came from a
+  real headless Chrome driven over CDP, on a production build.
+- **Strange rejected two of its own clean readings** because their
+  controls also read zero, and rebuilt the metric — then reported
+  `maxDeviation 0` shipped against a paired control of exactly the 54 it
+  had named. A zero whose control is also zero is not a measurement.
+- **A gate's finding stands while its prescription can fail** — third
+  recorded instance. Vision's C12 prescription would have let a stale
+  load's cleanup clear the *fresh* load's in-flight flag; the contract
+  names the trap rather than forwarding the fix verbatim.
+- **Four fix contracts in a row each opened a new edge in the same
+  state machine** (C6, C8, C10, C12). That is the signal the three-pass
+  rule exists to surface: the hook *infers* why an edge stopped from
+  `(hasMore, emptyStreak)` instead of recording it. An explicit
+  per-direction stop reason is queued as its own contract before
+  anything builds on this hook — nothing in CV4/CV5 does.
+
+### Fury's own ledger, because the checklist exists for a reason
+
+Three contract-boundary errors, all the same shape — a false premise
+about *which file the fix lives in* (the scroll-after-navigation fix
+lived in the navigation hook, not the view that showed the bug; a
+builder proved the one-line fix by experiment and had to revert it).
+Contracts dispatched without written boundaries, filed by Vision and by
+a *builder*. A stale HEAD in a gate dispatch, twice, *after* the
+checklist item existed. Line counts copied from a builder's report
+instead of re-measured — Captain's brief was wrong three times. Two
+parallel contracts overlapping on one test file, survived by luck. An
+empty commit (`git add` aborted on a nonexistent path; the commit
+recorded a rename with zero content). Twice nothing was running when
+Bryce asked "who is working?" because the next step had been described
+and not taken. And the mission file itself accumulated a 126-line
+duplicated block from an insertion error, found while recording the
+final verdicts. **All of these are now items in the template's checklist,
+which is mechanical on purpose: every one was known at the time and
+simply not applied on turn 200.**
+
+### The Fable experiment — retracted, then parked
+
+Captain was dispatched on Fable and returned two real blockers. Fury
+wrote "Fable held its own" — and Bryce's `/usage` showed **Fable at 0%**.
+The claim had no evidence. Probes afterward established: **agent
+definition files (`~/.claude/agents/`, `.claude/agents/`) are read once
+at session start — mid-session edits have no effect until restart**,
+which means the 2026-09-03 model "fix" could not have taken effect in the
+session that made it; no 429 fallback is documented; user-vs-repo
+precedence is undocumented and untestable without a restart; and a
+trivial subagent dispatch costs **~90–160k tokens** before it does
+anything (CLAUDE.md plus tool schemas, not conversation history). A later
+Vision death error named `claude-fable-5-1`, so it *was* on Fable by
+then. **Parked by Bryce until later.** The decision that's still worth
+making someday: the per-dispatch overhead, at ~40 dispatches per mission.
+
+### Deliberate leftovers, all recorded in the mission file
+
+Captain's split candidates (`ScheduleView.tsx` → `ScheduleMonthSection.tsx`;
+`scheduleWindowState.ts`'s render projection; `CalendarViews.tsx`'s sheets
+block; `useScheduleWindow.ts`'s two loaders). The grandfathered-debt
+migrations, one contract each: three `toDateInputValue` copies →
+`mealPlanDates.ts`; four `withTimeZone` copies → `src/lib/testing/`; two
+span-cap copies → `src/lib/fetchWindow.ts`; the task `SELECT` + mapper
+duplicated between `page.tsx` and `actions/tasks.ts`. The explicit
+stop-reason state machine. The sticky month header that does not stick —
+`globals.css`'s `overflow-x: hidden` on `body` makes `position: sticky`
+inert **app-wide**, pre-existing, and one comment justifies a design call
+on the belief that it works. A touch flick at a boundary grants more
+chunks than a wheel flick. Day lands at `scrollTop 5`, not 0.
+`calendarDayDiff` still loops forever on an invalid `Date`.
+`ASSIGNABLE_ROLES` is still a predicate, not a total record.
+
+### Pending with Bryce, none blocking
+
+Accept Captain's count-check for C9 rather than a fourth Captain pass;
+approve the corrected STRUCTURE.md read-action sentence (`null` on
+refusal); whether the header and Today circle should stick on an endless
+Schedule list; and the two CT1 amendments (membership guard form; the
+data-migration exception to additive-only).
+
+### Next
+
+The agreed **three-fix follow-up** (optimistic Mark-complete with a
+DESIGN.md carve-out for one-shot destructive verbs; the empty `☐` on
+open month task pills; the deactivated-member picker showing active
+people plus anyone already on the item), then **CV4** — the hour
+timeline for Day / 3 Day / Week, `timelineLayout.ts`'s first consumer.
