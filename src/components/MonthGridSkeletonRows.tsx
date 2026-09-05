@@ -12,12 +12,13 @@ import { SkeletonBlock } from "./Skeleton";
 // measured (CV4 replaces this skeleton entirely later, so re-measuring now
 // would be wasted work).
 //
-// The file is still named for a `MonthLoadingSkeleton` wrapper that used to
-// live below `MonthGridSkeletonRows` and was deleted in mission-11/C1: it
-// had zero callers repo-wide across two missions, and STRUCTURE.md's
-// dormant-export rule says that is a delete rather than a comment. Renaming
-// the file would mean editing `loading.tsx`, which is outside that
-// contract's boundary — the mismatch is deliberate, not an oversight.
+// This file's OWN filename used to name a wrapper component that lived
+// below `MonthGridSkeletonRows` and was deleted in mission-11/C1: it had
+// zero callers repo-wide across two missions, and STRUCTURE.md's
+// dormant-export rule says that is a delete rather than a comment. The file
+// itself was renamed to match its one remaining export (mission-15/C5, per
+// STRUCTURE.md's own note that this mission must close that gap) — its
+// single importer, `loading.tsx`, was updated in the same commit.
 
 /**
  * The Month-shaped header-row-plus-six-rows content (mission-9/C2b),

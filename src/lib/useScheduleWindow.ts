@@ -10,14 +10,29 @@
 // fetched chunk into it, turning state into render-ready months — used to
 // live directly in this file with their own node:test coverage, the same
 // split useCalendarNavigation.ts uses. C3b moved them out to
-// scheduleWindowState.ts instead, because this file transitively imports
-// fetchCalendarEvents/fetchTasks (src/app/actions/calendar.ts,
+// scheduleWindowState.ts instead, because this file USED TO transitively
+// import fetchCalendarEvents/fetchTasks (src/app/actions/calendar.ts,
 // src/app/actions/tasks.ts) -> dal.ts -> db.ts, which carries
 // "server-only" — importing THIS file from a plain `node:test` process
-// throws before a single assertion runs. See scheduleWindowState.ts's own
+// threw before a single assertion ran. See scheduleWindowState.ts's own
 // header for the loginRateLimitPolicy.ts/loginRateLimit.ts precedent this
 // follows, and scheduleWindowState.test.ts for the coverage that split
 // makes possible.
+//
+// mission-15/C5: this hook no longer imports those actions directly either.
+// STRUCTURE.md's src/lib/ row forbids importing from app/ or components/ —
+// this file was the one exception in the whole tree, caught by Captain.
+// The fix is a plain dependency inversion: the CALLER (ScheduleView.tsx, a
+// component, which may import actions) passes its fetchers in as a
+// `ScheduleFetchers` argument, and this hook calls whatever it was handed
+// rather than reaching for a specific Server Action module by name. One
+// side benefit worth keeping deliberate, not incidental: with the fetchers
+// injected, this file's own import graph no longer reaches dal.ts/db.ts at
+// all — the "server-only" chain above is now HISTORY, not a live reason;
+// see the C3b split's own justification for why scheduleWindowState.ts is
+// still kept separate regardless (pure functions with real node:test
+// coverage, independent of whether this file could theoretically be
+// tested too).
 //
 // What's left here — the hook itself — wires scheduleWindowState.ts's pure
 // functions to React state, refs, an IntersectionObserver, and manual
@@ -30,8 +45,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { nextBackwardChunk, nextForwardChunk } from "./scheduleWindow";
 import { startOfDay } from "./mealPlanDates";
-import { fetchCalendarEvents } from "@/app/actions/calendar";
-import { fetchTasks } from "@/app/actions/tasks";
 import {
   applyChunkResult,
   applyRefresh,
@@ -41,8 +54,22 @@ import {
   type ScheduleRenderMonth,
   type ScheduleWindowState,
 } from "./scheduleWindowState";
+import type { CalendarEventView, CalendarTaskView } from "./types";
 
 export type { ScheduleFullRecord, ScheduleRenderDay, ScheduleRenderMonth } from "./scheduleWindowState";
+
+/**
+ * The two fetch functions the hook needs — shaped to match
+ * `fetchCalendarEvents` (actions/calendar.ts) and `fetchTasks`
+ * (actions/tasks.ts) exactly, but this file names neither of them: the
+ * caller supplies whichever implementations it likes (the real Server
+ * Actions in the running app; a fake pair in a future component test),
+ * which is the whole point of the inversion above.
+ */
+export type ScheduleFetchers = {
+  fetchEvents: (windowStart: Date, windowEnd: Date) => Promise<CalendarEventView[]>;
+  fetchTasks: (windowStart: Date, windowEnd: Date) => Promise<CalendarTaskView[]>;
+};
 
 export type UseScheduleWindowResult = {
   windowStart: Date;
@@ -87,10 +114,22 @@ export type UseScheduleWindowResult = {
  * already holds for Week/Day/Month. `null` (SSR / first client render)
  * renders the same "haven't resolved yet" placeholder every other view
  * does; see ScheduleView.tsx's own loading branch.
+ *
+ * `fetchers` (mission-15/C5) is the caller's own `fetchEvents`/`fetchTasks`
+ * pair — see `ScheduleFetchers`'s own comment above for why this hook takes
+ * them as a parameter rather than importing a Server Action module by
+ * name. Read through a ref (`fetchersRef` below), the same pattern
+ * `currentWindow`/`hasMoreRef` already use in this file: `loadBackward`/
+ * `loadForward`/`refreshDay` all need to stay referentially stable
+ * (`useCallback([])`), and ScheduleView.tsx has no obligation to memoize
+ * the object it passes in — the underlying `fetchEvents`/`fetchTasks`
+ * function references (real Server Action imports) are already stable on
+ * their own, so a ref that's simply kept current is enough.
  */
 export function useScheduleWindow(
   initialDay: Date,
   today: Date | null,
+  fetchers: ScheduleFetchers,
 ): UseScheduleWindowResult {
   const initialDayTime = startOfDay(initialDay).getTime();
   const [state, setState] = useState<ScheduleWindowState>(() =>
@@ -98,6 +137,11 @@ export function useScheduleWindow(
   );
   const [loadingBackward, setLoadingBackward] = useState(false);
   const [loadingForward, setLoadingForward] = useState(false);
+
+  const fetchersRef = useRef(fetchers);
+  useEffect(() => {
+    fetchersRef.current = fetchers;
+  }, [fetchers]);
 
   // `loadBackward`/`loadForward` below read the CURRENT window bounds and
   // hasMore flags through these refs rather than closing over `state`
@@ -184,8 +228,8 @@ export function useScheduleWindow(
     try {
       const chunk = nextBackwardChunk(currentWindow.current.windowStart);
       const [events, tasks] = await Promise.all([
-        fetchCalendarEvents(chunk.start, chunk.end),
-        fetchTasks(chunk.start, chunk.end),
+        fetchersRef.current.fetchEvents(chunk.start, chunk.end),
+        fetchersRef.current.fetchTasks(chunk.start, chunk.end),
       ]);
       if (!isInitialLoad) {
         const scroller = document.scrollingElement;
@@ -205,8 +249,8 @@ export function useScheduleWindow(
     try {
       const chunk = nextForwardChunk(currentWindow.current.windowEnd);
       const [events, tasks] = await Promise.all([
-        fetchCalendarEvents(chunk.start, chunk.end),
-        fetchTasks(chunk.start, chunk.end),
+        fetchersRef.current.fetchEvents(chunk.start, chunk.end),
+        fetchersRef.current.fetchTasks(chunk.start, chunk.end),
       ]);
       // Forward-appended content never needs anchoring — it's added BELOW
       // whatever the reader is currently looking at, so scrollHeight growing
@@ -282,8 +326,8 @@ export function useScheduleWindow(
     const chunk = refreshChunkFor(day);
     void (async () => {
       const [events, tasks] = await Promise.all([
-        fetchCalendarEvents(chunk.start, chunk.end),
-        fetchTasks(chunk.start, chunk.end),
+        fetchersRef.current.fetchEvents(chunk.start, chunk.end),
+        fetchersRef.current.fetchTasks(chunk.start, chunk.end),
       ]);
       setState((previous) => applyRefresh(previous, chunk, events, tasks));
     })();

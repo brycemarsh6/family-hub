@@ -28,7 +28,7 @@ import {
   type ScheduleWindowState,
 } from "./scheduleWindowState";
 import { addDays } from "./mealPlanDates";
-import { calendarDayDiff } from "./calendarDates";
+import { calendarDayDiff, localDayToAllDayInstant } from "./calendarDates";
 import type { CalendarEventView, CalendarTaskView } from "./types";
 
 function d(year: number, month: number, day: number, hour = 0, minute = 0): Date {
@@ -359,4 +359,61 @@ test("DST (America/Denver pinned, so this runs under TZ=UTC too): the boundary a
     const allDays = months.flatMap((m) => m.days);
     assert.ok(allDays.some((row) => row.day.getMonth() === 10 && row.day.getDate() === 1), "Nov 1 must appear even though it's the fall-back date itself");
   });
+});
+
+// ---------------------------------------------------------------------------
+// mission-15/C5 — the real vanish bug: a task due right at a re-queried
+// window's edge used to be dropped by mergeWindow, reading its own correct
+// exclusion from a narrower fetch as a server-side deletion. See
+// taskToScheduleEvent's own header comment (scheduleWindowState.ts) for the
+// full mechanism. `d()` above builds a LOCAL midnight, which is NOT the real
+// Task.dueDate storage convention — every fake task below is built with
+// `localDayToAllDayInstant`, the exact function every real Task.dueDate is
+// written through, so this reproduces the real bug shape rather than an
+// approximation of it.
+
+/**
+ * Reproduces the exact production trigger: a task is loaded via a wide
+ * chunk (the initial scroll), then a narrower window — refreshChunkFor's
+ * own real shape, triggered by completing or editing a DIFFERENT, nearby
+ * task or event — is re-fetched and legitimately does NOT include this
+ * task's own due day (it sits exactly on the narrower window's exclusive
+ * edge). `fetchTasks` would correctly return `[]` for that narrower query
+ * (actions/tasks.ts's own comment); passing `[]` here is that exact
+ * response, replayed. A correct implementation must leave the task alone —
+ * a REFRESH of a range that never claimed to cover this task's day must
+ * not be read as proof the task was deleted.
+ */
+function assertTaskSurvivesEdgeRefresh(tz: string) {
+  withTimeZone(tz, () => {
+    // Window [Aug 28, Sep 11) local — the exact repro window mission-15/C5
+    // was diagnosed against. A generous chunk seeds it first.
+    const wideChunk = { start: d(2026, 7, 1), end: d(2026, 9, 30) }; // Aug 1 - Oct 30
+    const dueSep11 = localDayToAllDayInstant(d(2026, 8, 11)); // real Task.dueDate convention
+    const task = fakeTask("t-edge", dueSep11);
+
+    const seeded = applyChunkResult(buildInitialScheduleState(d(2026, 8, 1)), "forward", wideChunk, [], [task]);
+    assert.ok(seeded.entries.has("t-edge"), `sanity (${tz}): the task is loaded to start with`);
+
+    // The narrow refresh: [Aug 28, Sep 11) — the task's own due day, Sep
+    // 11, is the window's exclusive edge, so it correctly returns no tasks.
+    const narrowChunk = { start: d(2026, 7, 28), end: d(2026, 8, 11) };
+    const refreshed = applyRefresh(seeded, narrowChunk, [], []);
+
+    assert.ok(
+      refreshed.entries.has("t-edge"),
+      `(${tz}) a task due on a refreshed window's own exclusive edge must survive — it was never claimed to be inside that window, so its absence from the fetch is not a deletion`,
+    );
+    assert.ok(refreshed.records.has("t-edge"), `(${tz}) its full record must survive alongside the entry`);
+  });
+}
+
+test("mission-15/C5: a task due at a re-queried window's edge does not silently vanish (America/Denver — the real household zone, and the zone this bug was found in)", () => {
+  assertTaskSurvivesEdgeRefresh("America/Denver");
+});
+
+test("mission-15/C5: the same scenario, re-run across every zone the contract requires — America/Los_Angeles, UTC, and Asia/Tokyo (east of UTC, the one zone this fix does not promise correct RENDER-day placement for, but must still never vanish)", () => {
+  for (const tz of ["America/Los_Angeles", "UTC", "Asia/Tokyo"]) {
+    assertTaskSurvivesEdgeRefresh(tz);
+  }
 });

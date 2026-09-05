@@ -29,6 +29,7 @@ import {
   type ScheduleEvent,
 } from "./scheduleWindow";
 import { addDays, startOfDay } from "./mealPlanDates";
+import { allDayInstantToLocalDay } from "./calendarDates";
 import type { CalendarEventView, CalendarTaskView } from "./types";
 
 /**
@@ -55,19 +56,61 @@ function eventToScheduleEvent(event: CalendarEventView): ScheduleEvent {
 }
 
 /**
- * Adapts a CalendarTaskView the same way — a task has one due date, never a
- * span, so it's represented as a zero-length all-day entry
- * (`startAt === endAt === dueDate`, `allDay: true`). Traced through
- * calendarDates.ts's own `eventDaySpan` before relying on this: a
- * zero-length ALL-DAY span hits that function's own V2 clamp
- * (`lastDayRaw` computed one day before `firstDay`, then clamped back up to
- * `firstDay`), which is exactly what turns it into a correct single-day
- * span — the same clamp that exists there to keep a malformed CalendarEvent
- * row from vanishing, reused here rather than re-derived, since it already
- * does precisely what a task's degenerate span needs.
+ * Adapts a CalendarTaskView — mission-15/C5's own fix for a real vanish bug
+ * live in production, so read this before touching it again.
+ *
+ * The OLD version represented a task as a zero-length all-day entry
+ * (`startAt === endAt === task.dueDate`). `task.dueDate` is stored at UTC
+ * MIDNIGHT of its intended calendar day (Task.dueDate's own schema
+ * comment, always written through `localDayToAllDayInstant`) — a
+ * DIFFERENT convention than the half-open BROWSER-LOCAL-midnight
+ * `[windowStart, windowEnd)` bounds `mergeWindow`'s `overlapsWindow`
+ * compares a `ScheduleEvent`'s raw instants against. For any timezone AT
+ * OR WEST of UTC (this household's real zone, America/Denver, and every
+ * other US timezone), a calendar day's UTC-midnight instant is an EARLIER
+ * absolute instant than that SAME day's local midnight — so a task due
+ * exactly on `windowEnd`'s own calendar day could still read as
+ * "overlaps this window" to a raw instant comparison, even though
+ * `fetchTasks` (actions/tasks.ts's own comment) correctly excludes it,
+ * because THAT query re-expresses the window bounds in `dueDate`'s own
+ * UTC-midnight terms before comparing. `mergeWindow` then reads "used to
+ * overlap this window, but didn't come back in the fetch" as a
+ * server-side deletion, and drops a task that's still very real —
+ * confirmed live: completing or editing a nearby task/event triggers
+ * `refreshDay`'s own 14-day window (`refreshChunkFor`), and a task due
+ * right at that window's edge silently vanishes from the list.
+ *
+ * The fix: re-express the task's span in the SAME units `windowStart`/
+ * `windowEnd` are already in. `allDayInstantToLocalDay` (calendarDates.ts)
+ * recovers the calendar day `dueDate` names — the exact inverse of
+ * `localDayToAllDayInstant`, the function that wrote it — and
+ * `[localDay, localDay + 1 day)` expresses that day as a genuine
+ * BROWSER-LOCAL half-open range, exactly the units `windowStart`/
+ * `windowEnd` are built in (this module's own D3 rule). Worked through
+ * algebraically (and pinned in scheduleWindowState.test.ts across
+ * America/Denver, America/Los_Angeles, UTC, and Asia/Tokyo): a task's
+ * `overlapsWindow(windowStart, windowEnd)` now holds if and only if
+ * `fetchTasks(windowStart, windowEnd)` would actually return it, in ANY
+ * timezone — not just "less likely to disagree," but structurally unable
+ * to, since both sides now reduce to the exact same half-open local-day
+ * comparison.
+ *
+ * The one accepted tradeoff, not a NEW gap this fix introduces: `scheduleRows`
+ * (scheduleWindow.ts) feeds this exact span through the shared
+ * `daysEventCovers`/`eventDaySpan` (calendarDates.ts) to decide which day
+ * to RENDER the task under, and that shared code re-applies
+ * `allDayInstantToLocalDay` — a no-op for any zone AT OR WEST of UTC
+ * (the shift never crosses a day boundary in that direction, so the
+ * render day is unchanged from before this fix), but one calendar day
+ * early for a zone STRICTLY EAST of UTC (e.g. Tokyo). That's the same
+ * "not a claim of correctness for every timezone on Earth" limitation
+ * `fetchTasks`'s own comment already accepts, for the identical reason —
+ * fixing it would mean changing calendarDates.ts's shared, DB-storage-
+ * convention-aware decoder, outside this fix's own boundary.
  */
 function taskToScheduleEvent(task: CalendarTaskView): ScheduleEvent {
-  return { id: task.id, startAt: task.dueDate, endAt: task.dueDate, allDay: true };
+  const localDay = allDayInstantToLocalDay(task.dueDate);
+  return { id: task.id, startAt: localDay, endAt: addDays(localDay, 1), allDay: true };
 }
 
 /** Combines one chunk's fetched events+tasks into the two lookup structures

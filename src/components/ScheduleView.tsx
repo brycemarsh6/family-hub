@@ -10,7 +10,7 @@
 // self-contained, but nothing in the shipped UI can reach it until
 // CalendarViews.tsx adds a "schedule" branch to its render switch.
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DaySection } from "./DaySection";
@@ -19,11 +19,18 @@ import { TaskDetailSheet } from "./TaskDetailSheet";
 import { SkeletonBlock } from "./Skeleton";
 import {
   useScheduleWindow,
+  type ScheduleFetchers,
   type ScheduleRenderDay,
   type ScheduleRenderMonth,
 } from "@/lib/useScheduleWindow";
 import { useToday } from "@/lib/useToday";
 import { allDayInstantToLocalDay } from "@/lib/calendarDates";
+// mission-15/C5: this component is the boundary that's ALLOWED to know
+// which Server Actions back the Schedule view — useScheduleWindow.ts no
+// longer imports either of these itself (see that file's own header for
+// why: a lib module reaching into app/ was a real STRUCTURE.md violation).
+import { fetchCalendarEvents } from "@/app/actions/calendar";
+import { fetchTasks } from "@/app/actions/tasks";
 import {
   SHORT_DAY_NAMES,
   formatMonthTitle,
@@ -107,6 +114,14 @@ function TodayEmptyRow({ day }: { day: Date }) {
 export function ScheduleView({ initialDay, people, canManage }: ScheduleViewProps) {
   const router = useRouter();
   const today = useToday();
+  // Stable across renders (useScheduleWindow.ts's own fetchersRef only
+  // needs this to be kept CURRENT, not referentially stable — but
+  // memoizing it costs nothing and avoids re-running that ref-sync effect
+  // on every render for no reason).
+  const fetchers: ScheduleFetchers = useMemo(
+    () => ({ fetchEvents: fetchCalendarEvents, fetchTasks }),
+    [],
+  );
   const {
     months,
     hasMoreBackward,
@@ -116,7 +131,7 @@ export function ScheduleView({ initialDay, people, canManage }: ScheduleViewProp
     topSentinelRef,
     bottomSentinelRef,
     refreshDay,
-  } = useScheduleWindow(initialDay, today);
+  } = useScheduleWindow(initialDay, today, fetchers);
 
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
   const [selectedTask, setSelectedTask] = useState<CalendarTaskView | null>(null);
