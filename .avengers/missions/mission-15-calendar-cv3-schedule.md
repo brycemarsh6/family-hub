@@ -334,7 +334,46 @@ control stands as the measurement); east-of-UTC one-day-early placement
 is the documented, scoped limitation, not new.
 
 ### C10 — the extend gesture, from both gates, plus Today and the 54px
-- **Status:** PENDING — dispatched only after this record was written.
+- **Status:** 4 of 5 DONE — see `git log`; item 3 **BLOCKED-ON-CONTRACT**
+  (Fury's boundary error, the third this mission) → C11.
+- **Report:** items 1, 2, 4, 5 measured on a production build, positive
+  and negative controls each. **Item 3 turned out to be two bugs**: stale
+  `currentWindow`/`hasMoreRef`/`emptyStreakRef` not reset on anchor
+  change (today's row *never loaded* — `months` came back empty), fixed;
+  and **Next's documented default scroll-to-top after `router.push`**,
+  which fires after the slow `force-dynamic` round trip and undoes the
+  scroll-to-today. Proven by a reverted experiment: with `{ scroll:
+  false }` the row lands at `top 536`, Today disables. The fix lives in
+  `useCalendarNavigation.ts:191` — **not in C10's boundary.** Builder
+  stopped, correctly.
+  Item 1's live evidence scoped honestly: the clean `null` path is behind
+  `proxy.ts`'s own gate for a Server Action POST, so it proved
+  *boundedness* after a real session lapse (16 → 20, flat) rather than
+  the exact branch; the pure tests cover the predicate.
+  **Lesson for the checklist:** grepping what a file *exports* before
+  forbidding it was not enough here — the question is *which file the
+  fix actually lives in*, and a scroll-after-navigation bug lives in the
+  navigation hook, not the view.
+
+### C11 — Today must arrive: preserve scroll on Schedule's navigation only
+- **Status:** PENDING — written before dispatch.
+- **Fix:** the builder's experiment was a *blanket* `{ scroll: false }` on
+  `useCalendarNavigation.ts:191`. **Not acceptable as-is**: Week, Day and
+  Month are live and paging them *should* start at the top. Scope it:
+  `navigateTo`/`goToToday` gain an optional `{ preserveScroll?: boolean }`;
+  `CalendarViews.handleToday`'s **Schedule branch** passes it; every other
+  caller is untouched. Then `ScheduleView`'s re-armed scroll-to-today (C10)
+  is no longer undone.
+- **Evidence:** the outcome, not the mechanism — Month → Next ×6 → picker
+  → Schedule → Today, and a +200d deep link → Today: today's row `top`
+  inside the viewport, Today **disabled**, no further navigation, on a
+  production build at 375×812. **And** Week, Day, Month: after Next and
+  after Today, `scrollTop === 0` — provably unchanged.
+- **Boundaries:** may touch `src/lib/useCalendarNavigation.ts`,
+  `src/components/CalendarViews.tsx`, `src/lib/useCalendarNavigation.test.ts`
+  if it exists · must not touch `ScheduleView.tsx`, `useScheduleWindow.ts`,
+  `useScheduleSentinels.ts`, `CalendarHeader.tsx`, `actions/**`, `prisma/**`.
+  `CalendarViews.tsx` is at 325/350 — report the count.
 - **Both gates blocked on the same under-guarded gesture, from two
   directions; one contract owns all of it:**
   1. **(Vision)** a gesture must never retry a **refusal**-stopped
