@@ -39,6 +39,7 @@ export function CalendarHeader({
   nextDisabled,
   prevLabel,
   nextLabel,
+  showArrows,
   canManage,
   onAdd,
 }: {
@@ -65,6 +66,16 @@ export function CalendarHeader({
   nextDisabled: boolean;
   prevLabel: string;
   nextLabel: string;
+  /**
+   * mission-15/C4 — Schedule has no period to page between (its cursor
+   * `step` is 0, `useCalendarPeriod.ts`), so its prev/next arrows would be
+   * controls that do nothing: a real tap producing no effect is worse than
+   * no control at all. `false` removes them from the DOM entirely (not
+   * just visually) rather than disabling them, so the header can never be
+   * measured as having two dead buttons. Day, Week and Month all pass
+   * `true`, unchanged from before this prop existed.
+   */
+  showArrows: boolean;
   /** True for admin/parent sessions only — a kid session renders two
    * circles, not three, and `justify-center` re-centers them automatically
    * (no separate layout branch needed). This is UI-only convenience: the
@@ -107,15 +118,17 @@ export function CalendarHeader({
       </div>
 
       <div className="mb-4 flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={onPrev}
-          disabled={prevDisabled}
-          aria-label={prevLabel}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors active:bg-surface-2 disabled:opacity-40"
-        >
-          <ChevronLeft aria-hidden="true" size={22} />
-        </button>
+        {showArrows && (
+          <button
+            type="button"
+            onClick={onPrev}
+            disabled={prevDisabled}
+            aria-label={prevLabel}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors active:bg-surface-2 disabled:opacity-40"
+          >
+            <ChevronLeft aria-hidden="true" size={22} />
+          </button>
+        )}
 
         {/* Pinned height: this is the one piece of the header whose CONTENT
             depends on `today` (the title text itself), so it's the one
@@ -131,15 +144,17 @@ export function CalendarHeader({
           )}
         </span>
 
-        <button
-          type="button"
-          onClick={onNext}
-          disabled={nextDisabled}
-          aria-label={nextLabel}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors active:bg-surface-2 disabled:opacity-40"
-        >
-          <ChevronRight aria-hidden="true" size={22} />
-        </button>
+        {showArrows && (
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={nextDisabled}
+            aria-label={nextLabel}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors active:bg-surface-2 disabled:opacity-40"
+          >
+            <ChevronRight aria-hidden="true" size={22} />
+          </button>
+        )}
       </div>
     </>
   );

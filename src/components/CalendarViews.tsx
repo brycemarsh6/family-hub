@@ -8,6 +8,7 @@ import { ActionSheet } from "./ActionSheet";
 import { CalendarHeader } from "./CalendarHeader";
 import { DaySection } from "./DaySection";
 import { MonthGrid } from "./MonthGrid";
+import { ScheduleView } from "./ScheduleView";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
@@ -149,20 +150,20 @@ export function CalendarViews({
         nextDisabled={today === null}
         prevLabel={config.prevLabel}
         nextLabel={config.nextLabel}
+        showArrows={view !== "schedule"}
         canManage={canManage}
         onAdd={() => setAddingEvent(true)}
       />
 
       <div className="flex flex-col gap-4">
-        {/* mission-14/C3 renders `tasks` into the two views that exist
-            today (Month below, and the Week/Day DaySection branch further
-            down) — Schedule (CV3), the hour timeline (CV4/Day+Week), and
-            Year (CV5) don't exist yet, so they inherit the same obligation
-            when they land here: thread `tasks` into whatever they render,
-            the same way `events` already has to be. Not a silent gap —
-            BUILT_VIEWS (calendarViewVocabulary.ts) already keeps those
-            three unreachable until each ships its own branch in this exact
-            switch. */}
+        {/* mission-14/C3's comment used to say Schedule (CV3), the hour
+            timeline (CV4/Day+Week), and Year (CV5) all still owed this
+            switch a branch of their own. mission-15/C4 pays Schedule's:
+            it renders its OWN events/tasks (fetched client-side via
+            useScheduleWindow, never these page-level `events`/`tasks`
+            props — see ScheduleView.tsx's own header), which is why its
+            branch below takes only `initialDay`/`people`/`canManage`. The
+            hour timeline (CV4) and Year (CV5) still owe theirs. */}
         {view === "month" ? (
           // Guaranteed non-null (see ViewConfig.placeholderCount's comment
           // in calendarViewConfig.ts); this check is for TypeScript, not a
@@ -183,6 +184,15 @@ export function CalendarViews({
           Array.from({ length: config.placeholderCount }, (_, index) => (
             <DaySection key={index} loading />
           ))
+        ) : view === "schedule" ? (
+          // `anchor` is guaranteed non-null here — it is null exactly when
+          // `today` is (useCalendarPeriod.ts), and the branch above already
+          // ruled `today === null` out. TypeScript can't see that
+          // relationship across the two branches, so this check stays for
+          // the compiler, not because the case is reachable.
+          anchor !== null && (
+            <ScheduleView initialDay={anchor} people={people} canManage={canManage} />
+          )
         ) : (
           days.map((day) => (
             <DaySection

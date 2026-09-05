@@ -30,7 +30,7 @@ test("canonicalSearchFor: a URL already naming a built view is left completely a
   // The common case by far, and the one that must stay free: every URL this
   // hook itself pushes names a built view, so a push can never trigger a
   // rewrite of its own arrival.
-  for (const built of ["day", "week", "month"]) {
+  for (const built of ["schedule", "day", "week", "month"]) {
     assert.equal(canonicalSearchFor(built, WEEK), null, `${built} needs no rewrite`);
   }
 });
@@ -49,7 +49,7 @@ test("canonicalSearchFor: an unbuilt view name is rewritten too, not just a miss
   // through the same preference a bare URL does, so it is ambiguous the same
   // way and is made honest rather than left saying "year" over a Week screen.
   assert.equal(canonicalSearchFor("year", WEEK), "date=2026-09-03&view=week");
-  assert.equal(canonicalSearchFor("schedule", MONTH), "date=2026-09-03&view=month");
+  assert.equal(canonicalSearchFor("threeDay", MONTH), "date=2026-09-03&view=month");
   assert.equal(canonicalSearchFor("threeDay", WEEK), "date=2026-09-03&view=week");
 });
 
