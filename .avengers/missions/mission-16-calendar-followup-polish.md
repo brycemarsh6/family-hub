@@ -94,7 +94,18 @@ src/lib/voice/*.test.ts` legs.
 ## Contracts
 
 ### C1 — Mark complete flips instantly
-- **Status:** PENDING
+- **Status:** DONE `f7edaa3`
+- **Report:** flips before the POST resolves — **proven by holding the
+  request** and reading the DOM mid-flight (the button's rendered *branch*
+  had already switched, not merely its label). Reverts on a **real**
+  failure, not a fabricated one: the builder deleted the task row
+  mid-flight so `completeTask`'s existing missing-row path fired, and the
+  reverted state was byte-identical to pre-tap. `previous` is captured
+  from `current` rather than recomputed, so the revert restores exactly
+  what the reader was looking at. Kid gating survives: on a kid session
+  the optimistic flip left **both** buttons gone (complete now true,
+  un-complete manager-only) — a kid cannot un-complete even transiently.
+  Delete untouched, per the DESIGN.md carve-out.
 - `TaskDetailSheet.tsx`'s `handleComplete`/`handleUncomplete` currently
   `await` the action and only then `setCurrent`. Flip the state first,
   call the action, and **revert on failure** while surfacing the existing
@@ -109,7 +120,17 @@ src/lib/voice/*.test.ts` legs.
   task they are on and may **not** un-complete.
 
 ### C2 — an open task pill carries an empty ☐
-- **Status:** PENDING
+- **Status:** DONE `33a934f`
+- **Report:** the boundary correction was the whole job — `MonthCell`'s
+  `taskCompleted: boolean` became `taskStatus: "open" | "completed" |
+  null`, and `MonthGrid` computes it **after** `assignLanes`/`overflowByDay`
+  have run, so packing cannot be affected *by construction* rather than by
+  measurement. Found a real day holding all three pill kinds at once:
+  `["", "✓<completed>", "☐<open>"]`, 3 lanes, zero overflow; adding a 4th
+  item left the visible three identical and produced "+1 more". Glyph
+  contrast measured in both themes and both variants — **5.04 / 5.86 /
+  6.80 / 12.76:1**, all clearing the 3:1 non-text bar. Day-button target
+  unchanged at 78.5×47.9px.
 - `MonthCell.tsx` takes a flag that is *"true only for a completed TASK
   slot"*, so it currently cannot distinguish an **open task** from an
   **event** — `MonthGrid.tsx` must pass that fact too. Open task → empty
@@ -124,7 +145,19 @@ src/lib/voice/*.test.ts` legs.
   contrast of the new glyph measured, and the 44px target rule respected.
 
 ### C3 — re-assigning must not erase a deactivated member
-- **Status:** PENDING
+- **Status:** **BLOCKED-ON-CONTRACT — Fury's boundary was wrong.**
+  Superseded by C3b below. The builder was right to refuse and right not
+  to attempt a partial fix that would have *looked* handled while the
+  save-preservation guarantee did not hold.
+- **What I got wrong, recorded because it is the fourth of this exact
+  shape in three missions:** I named two roster queries. There are
+  **four** (`calendar/page.tsx:116`, `calendar/new/page.tsx:62`,
+  `calendar/new/task/page.tsx:42`, `calendar/[id]/edit/page.tsx:44`), and
+  one of the two I named — `new/page.tsx` — is a **create** page where
+  there is no existing assignment to preserve, so it is not the bug's site
+  at all. Worse, I forbade `actions/**`, which is where the actual blocker
+  lives. I verified all of this myself after the report rather than taking
+  it on trust.
 - Two roster queries filter `deactivatedAt: null` —
   `src/app/(app)/calendar/page.tsx:116` and
   `src/app/(app)/calendar/new/page.tsx:62`. A person deactivated after
@@ -141,6 +174,56 @@ src/lib/voice/*.test.ts` legs.
   anyone. Prove the picker lists them, that saving **preserves** the
   existing assignment, and that a deactivated person **cannot be newly
   added** to an item they were not already on.
+
+### C3b — the deactivated-member fix, with the boundary the code implies
+- **Status:** PENDING
+- **The real blocker, verified by Fury:** `validatedPeople` exists
+  **identically in both** `src/app/actions/tasks.ts:87` and
+  `src/app/actions/calendar.ts:60`, and rejects the whole save if *any*
+  submitted id is deactivated — on **every** create and update. So a
+  person deactivated after being assigned makes every later edit to that
+  item fail, **including edits that never touch the people field**, with
+  a message ("One of those people isn't available anymore") that names a
+  field the reader did not touch.
+- **The client half is already correct and must not be "fixed":** the
+  forms' `selectedUserIds` already retains a deactivated assignee's id on
+  open, because `current.people` / `event.people` are not filtered by
+  `deactivatedAt`. Nothing is dropped client-side today. The bug is
+  entirely the server's unconditional refusal plus the picker having no
+  way to *show* that person.
+- **The security-critical shape — this is the sharp edge of the
+  contract.** `validatedPeople` guards a **public POST**. The carve-out is
+  "an id already on the row being updated is allowed"; it must be decided
+  by reading **that row's current people fresh from the database**, never
+  from anything the client sent. A client claim of "they were already
+  assigned" is exactly the forgery this guard exists to stop. And the
+  **create** paths get no carve-out at all — with no existing row, every
+  deactivated id is by definition a new assignment and must still be
+  refused. This is the same re-verify-at-commit-time discipline
+  `commitPutAway` already uses.
+- **Boundaries:** may touch `src/app/actions/tasks.ts`,
+  `src/app/actions/calendar.ts`, `src/app/(app)/calendar/page.tsx`,
+  `src/app/(app)/calendar/[id]/edit/page.tsx`,
+  `src/app/(app)/calendar/new/page.tsx`,
+  `src/app/(app)/calendar/new/task/page.tsx`,
+  `src/components/TaskForm.tsx`, `src/components/EventForm.tsx`,
+  `src/components/TaskDetailSheet.tsx` (to pass a deactivated assignee's
+  display info through for tasks — tasks are edited in a sheet, not a
+  route) · **must not touch** `src/app/actions/usersRoles.ts`,
+  `src/app/actions/users.ts`, `src/app/actions/auth.ts`, `dal.ts`,
+  `prisma/**`, `constants.ts`, `globals.css`, `MonthCell.tsx`,
+  `MonthGrid.tsx`, `ScheduleView.tsx`, `CalendarHeader.tsx`,
+  `calendarViewConfig.ts`, `login/page.tsx`.
+- **Evidence:** an **adversarial check, positive control first** — a
+  legitimate update preserving an already-assigned deactivated person
+  succeeds (the control that makes the rest mean anything); a **forged**
+  POST submitting a deactivated id that is *not* on the row is still
+  refused; a create carrying a deactivated id is still refused. Plus the
+  picker showing the person marked as no longer active, and an edit to an
+  unrelated field on such an item saving cleanly — the family-visible
+  symptom. **Never create, update, delete or deactivate a `User` row** to
+  produce any of this; if no deactivated member exists, state plainly
+  which half was proven live and which by construction.
 
 ### C4 — the pinned Schedule header, and the sticky rule that never worked
 - **Status:** PENDING (dispatched after C1–C3 land — same tree)
@@ -193,7 +276,8 @@ src/lib/voice/*.test.ts` legs.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| — | — | — | — | _mission opened 2026-09-05_ |
+| — | C1 + C2 | DONE `f7edaa3`, `33a934f` | — | Optimistic flip proven mid-flight; three pill kinds in one real cell, lanes unchanged by construction |
+| — | C3 | **BLOCKED-ON-CONTRACT** | — | Fury's boundary wrong: 4 roster queries not 2, one of them a create page, and the real blocker sits in the forbidden `actions/**`. Rewritten as C3b |
 
 ## Handoff log
 
@@ -203,6 +287,15 @@ src/lib/voice/*.test.ts` legs.
   of assembling Banner, and it **moved C2's boundary** — `MonthCell`
   cannot tell an open task from an event, so `MonthGrid` is in scope.
   Constitution edits (D4) made by Fury before any dispatch.
+- 2026-09-05 — C1 and C2 DONE and audited by Fury (diff read, not trusted).
+  **C3 returned BLOCKED-ON-CONTRACT and the builder was right.** Fury
+  verified the diagnosis independently: `validatedPeople` is duplicated in
+  both action files and refuses any deactivated id on every write, there
+  are four roster queries rather than two, and one of the two named was a
+  create page. Rewritten as **C3b** with the security shape spelled out
+  (the "already assigned" fact must be read from the row, never from the
+  client). **Fourth boundary error of this exact shape in three missions —
+  the preflight tool Fury proposed to Bryce is aimed squarely at it.**
 
 ## Delivery
 
