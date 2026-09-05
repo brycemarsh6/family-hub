@@ -194,13 +194,79 @@ src/lib/voice/*.test.ts` legs.
   if it approaches 350, extract the sheets block first and say so.
   Week, Day and Month must be **provably unchanged**.
 
+### C6 — Vision's four blockers
+- **Status:** DISPATCHED
+- **B1** re-arm the sentinels after a load settles (record `isIntersecting`
+  in a ref; re-check in an effect keyed on the window/hasMore state, **not**
+  in `finally`, where the refs are still stale).
+- **B2** `TaskDetailSheet.onSaved` passes the updated record up; refresh the
+  **old and new** due days when they differ, and re-seat `selectedTask`.
+- **B3** separate refusal from emptiness — **Fury's call, flagged to
+  Bryce**: `null` = refused (stop), `[]` = empty (**advance** the
+  boundary), plus a bounded cap on consecutive empties so termination stays
+  guaranteed. This amends **D2**, which conflated the two.
+- **B4** Fury fixes the mission record; not a builder's job.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Captain (**Fable**) | **BLOCKED** | 2 | 10 notes, 4 amendment drafts — the experiment's result |
 | 1 | Vision | **DIED — session rate limit**, mid-report | — | Its fragment named a real bug; Fury reproduced it (below) |
+| 2 | Captain (**Fable**) | **PASS** | 0 | 8 notes; finalised 4 amendments — all now in STRUCTURE.md, plus a 5th Bryce approved |
+| 1 | Vision (fresh run) | **BLOCKED** | 4 | 6 notes; found three real user-facing failures |
+| — | C6 fix batch | dispatched | — | — |
 | 1 | Strange | queued | — | — |
+
+### Vision, pass 1 (fresh run) — BLOCKED, four blockers, three of them things the family would hit
+
+**It gated `b1c18af`, not the `eb3e67b` Fury's dispatch named** — the
+dangling pre-amend commit — and said so. Captain caught the same thing
+independently. That stale hash is Fury's empty-commit error propagating
+into two gate dispatches.
+
+**B1 — scrolling up never loads earlier days at 375×812, the app's target
+viewport.** Verified on real data: four scroll-to-top gestures produced
+**zero** backward requests and no "as far back" message; the list silently
+ends. Mechanism, isolated: the top sentinel is *already inside*
+`rootMargin: "100% 0px"` when the observer attaches, that single callback
+is swallowed by `backwardInFlight` (the mount effect started the same
+load), and `IntersectionObserver` only fires on **transitions** — on a
+1781px page the sentinel never leaves the margin, so it never fires again.
+At 300px (sentinel starts outside the margin) the first scroll worked.
+**Fails Done #2 on the household's own data.**
+
+**B2 — a task edited more than 7 days away vanishes until remount.** Same
+class C5 just fixed. `ScheduleView.tsx:296` calls
+`refreshDay(…selectedTask.dueDate)` with the **stale** record, so moving
+Sep 10 → Sep 25 refreshes `[Sep 3, Sep 17)`, the fetch doesn't return it,
+and `mergeWindow` reads overlapping-but-absent as deleted. A 3-day move
+survives; that control is what makes it decisive.
+
+**B3 — one empty 30-day chunk permanently walls off everything beyond it.**
+Verified live: deep-linked to Oct 20, both directions stopped on their
+first chunk and nine September items were unreachable — zero day rows, two
+stop messages. Real scenario: today Sep 4, Thanksgiving on Nov 26, nothing
+in between → forward stops at Oct 4 and Nov 26 is never reachable by
+scrolling. **The root cause is D2**: refusal and emptiness both return
+`[]`, so the hook cannot tell "you may not have this" from "there is
+nothing here". Contradicts the plan's "endless".
+
+**B4 — the mission record does not match what was authorised.** `fetchTasks`
+was added in C3; Fury's *dispatch* authorised `actions/tasks.ts` but the
+mission file's C3 contract does not list it, and **C3b and C5 have no
+written contract at all** — so a boundary audit had nothing to audit
+against. Third time this arc. Fury's.
+
+**NOTES worth keeping:** the "structurally unable to disagree in ANY
+timezone" comment **overclaims** — a full sweep of every day of 2026 found
+zero drops at or west of UTC under both server zones, but drops *and*
+extras strictly east of UTC with a UTC server; scope the claim.
+**A kid reads every household event and task, and Vision ruled that
+correct** — the page already renders everything to any verified user and
+the plan's line is about mutation. Endpoint attacks all held: nonexistent
+userId dies at the DAL with `200 []`, every malformed input refuses, the
+cap holds at exactly 124 days + 1ms.
 
 ### 🧪 The Fable experiment — result
 
