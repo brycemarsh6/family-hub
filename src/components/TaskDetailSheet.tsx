@@ -45,7 +45,11 @@ export function TaskDetailSheet({
   task: CalendarTaskView;
   /** The full household roster — page.tsx's parallel `db.user.findMany`
    * (mission-14/C5), threaded straight through to TaskForm's people
-   * picker. Unused outside the "edit" view. */
+   * picker. Unused outside the "edit" view. Active-only by construction
+   * (page.tsx's own query filters `deactivatedAt: null` — it has no
+   * per-task notion of "already assigned," unlike the event-edit route's
+   * own roster query); see `editablePeople` below (mission-16/C3b) for how
+   * a deactivated person already ON this task still reaches the picker. */
   people: CalendarPersonView[];
   canManage: boolean;
   onClose: () => void;
@@ -78,6 +82,23 @@ export function TaskDetailSheet({
   // starts from the prop, then only ever moves in response to a
   // confirmed server write, never guessed.
   const [current, setCurrent] = useState(task);
+
+  // mission-16/C3b: `people` (page.tsx's roster prop, active-only) never
+  // includes someone deactivated after being assigned — that's correct for
+  // OFFERING a new assignment, but it would silently drop that person's
+  // chip from the edit picker entirely, so the manager can't even see who
+  // they're editing around. `current.people` is this task's own real
+  // assignment (page.tsx's task query, unfiltered by deactivatedAt — see
+  // that query's own select), so anyone present there but absent from the
+  // active roster can only be a deactivated member. Recomputed on every
+  // render rather than memoized: both arrays are household-scale, and
+  // `current` legitimately changes after an edit.
+  const editablePeople: CalendarPersonView[] = [
+    ...people,
+    ...current.people
+      .filter((assigned) => !people.some((roster) => roster.userId === assigned.userId))
+      .map((assigned) => ({ ...assigned, displayName: `${assigned.displayName} (no longer active)` })),
+  ];
 
   useEffect(() => {
     function handleKeyDown(keyboardEvent: KeyboardEvent) {
@@ -226,7 +247,7 @@ export function TaskDetailSheet({
           </div>
         ) : view === "edit" ? (
           <TaskForm
-            people={people}
+            people={editablePeople}
             defaultValues={{
               id: current.id,
               title: current.title,

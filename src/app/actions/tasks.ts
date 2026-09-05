@@ -83,16 +83,45 @@ export type TaskInput = {
  * home for this would have to be a new server-only module in src/lib/,
  * not an import between action files. A third copy (K4, CT2, or K6)
  * makes it shared vocabulary and forces that extraction.
+ *
+ * mission-16/C3b: a person deactivated AFTER being assigned to a task used
+ * to make every LATER edit of that task fail outright — this ran on every
+ * write, so even an edit that never touched the people field was refused
+ * with a message naming a field the reader hadn't touched. The fix is a
+ * carve-out: `alreadyAssignedUserIds` — read FRESH from the database by
+ * the caller, one `db.taskPerson.findMany` against this exact task, never
+ * anything client-supplied — describes who is already on the row right
+ * now. An id in that set is let through even if deactivated, because
+ * submitting it back changes nothing that isn't already true; an id NOT
+ * in that set is a genuinely new assignment and stays refused, deactivated
+ * or not. createTask calls this with no second argument at all: a
+ * brand-new task has no existing row, so nothing is "already assigned" and
+ * every deactivated id is by construction a new assignment. Same
+ * re-verify-at-commit-time discipline commitPutAway (actions/groceries.ts)
+ * already uses for its own merge decision.
  */
-async function validatedPeople(userIds: string[]): Promise<string | null> {
+async function validatedPeople(
+  userIds: string[],
+  alreadyAssignedUserIds: readonly string[] = [],
+): Promise<string | null> {
   const unique = Array.from(new Set(userIds));
   if (unique.length === 0) return "Add at least one person.";
 
   const real = await db.user.findMany({
-    where: { id: { in: unique }, deactivatedAt: null },
-    select: { id: true },
+    where: { id: { in: unique } },
+    select: { id: true, deactivatedAt: true },
   });
   if (real.length !== unique.length) {
+    // Some id doesn't match any User row at all — never allowed, active,
+    // deactivated, or otherwise.
+    return "One of those people isn't available anymore.";
+  }
+
+  const alreadyAssigned = new Set(alreadyAssignedUserIds);
+  const newlyProposedDeactivated = real.some(
+    (person) => person.deactivatedAt !== null && !alreadyAssigned.has(person.id),
+  );
+  if (newlyProposedDeactivated) {
     return "One of those people isn't available anymore.";
   }
   return null;
@@ -101,10 +130,15 @@ async function validatedPeople(userIds: string[]): Promise<string | null> {
 /** Shared field validation for both create and update — title and people.
  * No time-range check the way calendar.ts's validateEventInput has one:
  * a task has exactly one due date, nothing to compare it against. Returns
- * an error message, or null when the input is good. */
-async function validateTaskInput(input: TaskInput): Promise<string | null> {
+ * an error message, or null when the input is good. `alreadyAssignedUserIds`
+ * passes straight through to validatedPeople — see that function's own
+ * comment (mission-16/C3b). */
+async function validateTaskInput(
+  input: TaskInput,
+  alreadyAssignedUserIds: readonly string[] = [],
+): Promise<string | null> {
   if (!input.title.trim()) return "Give the task a title.";
-  return validatedPeople(input.userIds);
+  return validatedPeople(input.userIds, alreadyAssignedUserIds);
 }
 
 export type CreateTaskResult = TaskActionResult & { id?: string };
@@ -157,7 +191,21 @@ export async function updateTask(
     return { error: "Only parents can do that." };
   }
 
-  const validationError = await validateTaskInput(input);
+  // Fresh from the database, never from `input.userIds` — this is exactly
+  // the fact a forged POST would try to fake (mission-16/C3b). A missing
+  // task (deleted on another phone) simply reads back no rows here, which
+  // is fine: validateTaskInput below would then refuse any deactivated id
+  // as "newly assigned," and the transaction itself still catches the
+  // missing row with its own, more accurate error.
+  const existingPeople = await db.taskPerson.findMany({
+    where: { taskId: id },
+    select: { userId: true },
+  });
+
+  const validationError = await validateTaskInput(
+    input,
+    existingPeople.map((person) => person.userId),
+  );
   if (validationError) return { error: validationError };
 
   const uniqueUserIds = Array.from(new Set(input.userIds));
