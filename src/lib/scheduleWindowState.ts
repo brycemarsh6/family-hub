@@ -154,17 +154,34 @@ export type ScheduleWindowState = {
 
 /**
  * How many CONSECUTIVE genuinely-empty chunks (mission-15/C6's `[]`, never
- * a `null` refusal) a single scroll direction may load before that
- * direction gives up. Termination must stay guaranteed even for a
- * household whose real data thins out to nothing for a long stretch —
- * without SOME cap, a quiet decade would scroll forever fetching empty
- * 30-day pages one after another. 24 chunks × `CHUNK_DAYS` (30) is roughly
- * two years of real calendar time with not one event or task in it, which
- * is far past what any realistic gap in this household's data should ever
- * reach — the cap exists as a backstop against an unbounded loop, not as a
- * limit anyone should expect to hit in practice.
+ * a `null` refusal) a single scroll direction auto-loads, UNPROMPTED,
+ * before pausing and showing "that's as far as this loads" — NOT a hard
+ * ceiling; see `reopenAfterEmptyStreak` below for how a reader can still
+ * get past it.
+ *
+ * mission-15/C8 (B3): this used to be 24, on the strength of a claim this
+ * comment made that turned out to be false the moment there was real data
+ * to check it against — "24 × CHUNK_DAYS (30) is roughly two years... far
+ * past what any realistic gap in this household's data should ever
+ * reach... not a limit anyone should expect to hit in practice." This
+ * household's real calendar IS the sparse case that dismissed: measured on
+ * a production build against the real 4-event household data, 24 meant
+ * ~720 days scanned in BOTH directions on every single open, unprompted —
+ * 100 POST requests and ~11 seconds of loading skeletons, to show 4 rows.
+ *
+ * 3 is small enough to settle in a couple of round trips even on a
+ * calendar this quiet (90 days scanned, not 720), and large enough that an
+ * ordinary quiet season — a slow month or two with nothing on it — is
+ * never even noticed. Hitting this cap is no longer the direction's END:
+ * `reopenAfterEmptyStreak` is what a further, GENUINE scroll gesture
+ * (useScheduleSentinels.ts's own wheel/touchmove listener — never an
+ * automatic re-arm) spends to buy one more chunk, so a real gap wider than
+ * 90 days is still reachable by continuing to scroll for it, rather than
+ * being scanned for free the moment the view opens. Bryce's own ruling is
+ * unchanged by any of this: a quiet month must never PERMANENTLY end the
+ * list.
  */
-export const MAX_CONSECUTIVE_EMPTY_CHUNKS = 24;
+export const MAX_CONSECUTIVE_EMPTY_CHUNKS = 3;
 
 /**
  * The seed state before anything has ever been fetched: a genuinely EMPTY
@@ -279,6 +296,50 @@ export function applyChunkResult(
     emptyStreakForward,
     hasMoreForward: emptyStreakForward < MAX_CONSECUTIVE_EMPTY_CHUNKS,
   };
+}
+
+/**
+ * mission-15/C8 (B3) — the OTHER half of "let a further scroll gesture
+ * extend it": reopens `direction` for exactly one more chunk after it
+ * stopped because it hit `MAX_CONSECUTIVE_EMPTY_CHUNKS` above. Called by
+ * useScheduleWindow.ts's own `extend`, which useScheduleSentinels.ts
+ * invokes only on a GENUINE wheel/touchmove gesture still aimed at that
+ * edge — see that file's own comment for why it must be one of those two
+ * events specifically, never a plain `scroll` (this hook's own manual
+ * scroll-anchoring correction, useScrollAnchor.ts, writes `scrollTop`
+ * directly, which dispatches a real, indistinguishable `scroll` event of
+ * its own).
+ *
+ * Deliberately does NOT reset `emptyStreak<Direction>` back to 0: the next
+ * chunk this buys is checked against the SAME running streak, so one more
+ * empty chunk re-stops immediately — one more chunk per further gesture —
+ * while a chunk that turns out to hold something real resets the streak
+ * the ordinary way (this function's sibling, `applyChunkResult`'s
+ * `isEmpty` branch) and hands ordinary automatic loading back the wheel.
+ * A sustained scroll, which keeps generating the very wheel/touchmove
+ * events this is gated on, reads as a sustained stream of "one more
+ * chunk" grants rather than a single lump re-scan.
+ *
+ * A no-op unless `direction` is stopped for EXACTLY the empty-cap reason:
+ * `hasMore<Direction>` false AND `emptyStreak<Direction>` already at or
+ * above the cap. A direction stopped by a genuine REFUSAL never advances
+ * `emptyStreak<Direction>` past whatever it already was when the refusal
+ * landed (`applyChunkResult`'s null branch returns before touching it), so
+ * the two stop reasons can never be confused here — which is what keeps
+ * D2's own rule (a refusal must never be retried) intact.
+ */
+export function reopenAfterEmptyStreak(
+  state: ScheduleWindowState,
+  direction: "backward" | "forward",
+): ScheduleWindowState {
+  if (direction === "backward") {
+    const stoppedByEmptyCap =
+      !state.hasMoreBackward && state.emptyStreakBackward >= MAX_CONSECUTIVE_EMPTY_CHUNKS;
+    return stoppedByEmptyCap ? { ...state, hasMoreBackward: true } : state;
+  }
+  const stoppedByEmptyCap =
+    !state.hasMoreForward && state.emptyStreakForward >= MAX_CONSECUTIVE_EMPTY_CHUNKS;
+  return stoppedByEmptyCap ? { ...state, hasMoreForward: true } : state;
 }
 
 /**

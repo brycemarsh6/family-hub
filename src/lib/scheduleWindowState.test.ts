@@ -26,6 +26,7 @@ import {
   buildScheduleRenderMonths,
   MAX_CONSECUTIVE_EMPTY_CHUNKS,
   refreshChunkFor,
+  reopenAfterEmptyStreak,
   type ScheduleWindowState,
 } from "./scheduleWindowState";
 import { addDays } from "./mealPlanDates";
@@ -249,6 +250,84 @@ test("applyChunkResult: MAX_CONSECUTIVE_EMPTY_CHUNKS consecutive empties eventua
   const oneMore = { start: cursor, end: addDays(cursor, 30) };
   const next = applyChunkResult(state, "forward", oneMore, [], []);
   assert.equal(next.hasMoreForward, false);
+});
+
+// ---------------------------------------------------------------------------
+// mission-15/C8 (B3) — reopenAfterEmptyStreak: the "let a further scroll
+// gesture extend it" half. A direction that stopped because it hit
+// MAX_CONSECUTIVE_EMPTY_CHUNKS gets exactly one more chunk's worth of
+// budget; a direction stopped by a genuine refusal, or not stopped at all,
+// is untouched.
+
+test("reopenAfterEmptyStreak: reopens a direction stopped by the empty cap, without resetting its streak", () => {
+  const stopped = {
+    ...buildInitialScheduleState(d(2026, 5, 15)),
+    hasMoreBackward: false,
+    emptyStreakBackward: MAX_CONSECUTIVE_EMPTY_CHUNKS,
+  };
+  const reopened = reopenAfterEmptyStreak(stopped, "backward");
+  assert.equal(reopened.hasMoreBackward, true, "must reopen the stopped direction");
+  assert.equal(
+    reopened.emptyStreakBackward,
+    MAX_CONSECUTIVE_EMPTY_CHUNKS,
+    "the streak is NOT reset — one more empty chunk must re-stop immediately, not buy a whole new batch",
+  );
+});
+
+test("reopenAfterEmptyStreak: mirrors for the forward direction", () => {
+  const stopped = {
+    ...buildInitialScheduleState(d(2026, 5, 15)),
+    hasMoreForward: false,
+    emptyStreakForward: MAX_CONSECUTIVE_EMPTY_CHUNKS,
+  };
+  const reopened = reopenAfterEmptyStreak(stopped, "forward");
+  assert.equal(reopened.hasMoreForward, true);
+  assert.equal(reopened.emptyStreakForward, MAX_CONSECUTIVE_EMPTY_CHUNKS);
+});
+
+test("reopenAfterEmptyStreak: a no-op on a direction stopped by a REFUSAL, not the empty cap — D2's 'never retry a refusal' rule", () => {
+  const refused = {
+    ...buildInitialScheduleState(d(2026, 5, 15)),
+    hasMoreBackward: false,
+    emptyStreakBackward: 0, // a refusal never advances the streak — see applyChunkResult's null branch
+  };
+  const next = reopenAfterEmptyStreak(refused, "backward");
+  assert.equal(next, refused, "must return the exact same state object — a refusal must never be retried");
+});
+
+test("reopenAfterEmptyStreak: a no-op when the direction hasn't stopped at all", () => {
+  const running = buildInitialScheduleState(d(2026, 5, 15));
+  assert.equal(reopenAfterEmptyStreak(running, "backward"), running);
+  assert.equal(reopenAfterEmptyStreak(running, "forward"), running);
+});
+
+test("reopenAfterEmptyStreak: end to end — reopening buys exactly ONE more chunk, then re-stops on the next empty one", () => {
+  let state = buildInitialScheduleState(d(2026, 5, 15));
+  let cursor = state.windowEnd;
+  for (let i = 0; i < MAX_CONSECUTIVE_EMPTY_CHUNKS; i++) {
+    const chunk = { start: cursor, end: addDays(cursor, 30) };
+    state = applyChunkResult(state, "forward", chunk, [], []);
+    cursor = chunk.end;
+  }
+  assert.equal(state.hasMoreForward, false, "sanity: stopped by the cap, same as the earlier test");
+
+  state = reopenAfterEmptyStreak(state, "forward");
+  assert.equal(state.hasMoreForward, true);
+
+  const nextEmptyChunk = { start: cursor, end: addDays(cursor, 30) };
+  state = applyChunkResult(state, "forward", nextEmptyChunk, [], []);
+  assert.equal(state.hasMoreForward, false, "one more empty chunk after reopening must re-stop it immediately");
+  cursor = nextEmptyChunk.end;
+
+  // Reopen again, but this time a REAL event shows up — ordinary automatic
+  // loading must resume from there, exactly as if it had never stopped.
+  state = reopenAfterEmptyStreak(state, "forward");
+  const realChunk = { start: cursor, end: addDays(cursor, 30) };
+  const realEvent = fakeEvent("distant", addDays(cursor, 5), addDays(cursor, 6));
+  state = applyChunkResult(state, "forward", realChunk, [realEvent], []);
+  assert.equal(state.hasMoreForward, true, "a real chunk resets the streak and keeps the direction open");
+  assert.equal(state.emptyStreakForward, 0);
+  assert.ok(state.entries.has("distant"), "the distant event must actually be reachable this way");
 });
 
 test("applyChunkResult: a server-side deletion drops from both entries and records on the next overlapping chunk", () => {

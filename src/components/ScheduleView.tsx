@@ -10,7 +10,7 @@
 // self-contained, but nothing in the shipped UI can reach it until
 // CalendarViews.tsx adds a "schedule" branch to its render switch.
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DaySection } from "./DaySection";
@@ -42,6 +42,23 @@ import {
 } from "@/lib/mealPlanDates";
 import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
+/**
+ * mission-15/C8 (B1) — lets CalendarViews.tsx call `scrollToToday`
+ * imperatively from the header's Today circle. React 19 accepts `ref` as
+ * an ordinary prop on a function component (see `ScheduleViewProps` below)
+ * — no `forwardRef` needed; this is the first component in this codebase
+ * to use the pattern.
+ */
+export type ScheduleViewHandle = {
+  /**
+   * Attempts to scroll TODAY's row into view. Returns `true` when today is
+   * currently loaded (a row exists to scroll to) and `false` otherwise —
+   * CalendarViews.tsx's own Today-circle handler treats `false` as its
+   * signal to NAVIGATE instead ("scrolls if loaded, navigates if not").
+   */
+  scrollToToday: () => boolean;
+};
+
 type ScheduleViewProps = {
   /** Where the initial load is centered — C4's job to resolve
    * `parseDateParam(?date=) ?? today` before handing this down; this
@@ -52,6 +69,16 @@ type ScheduleViewProps = {
    * TaskDetailSheet's edit view, same as CalendarViews.tsx already does. */
   people: CalendarPersonView[];
   canManage: boolean;
+  /**
+   * mission-15/C8 (B1) — reports whether TODAY's own row is genuinely on
+   * screen right now. CalendarViews.tsx forwards this straight into the
+   * header's Today circle `isCurrentPeriod`, for this one view only — see
+   * this file's own tracking effect, below, for how it's determined, and
+   * calendarViewConfig.ts's corrected comment for why the OLD anchor-based
+   * check was wrong.
+   */
+  onTodayVisibleChange: (visible: boolean) => void;
+  ref?: Ref<ScheduleViewHandle>;
 };
 
 /** One month's days, grouped into Sunday-start week sections — a
@@ -111,7 +138,13 @@ function TodayEmptyRow({ day }: { day: Date }) {
   );
 }
 
-export function ScheduleView({ initialDay, people, canManage }: ScheduleViewProps) {
+export function ScheduleView({
+  initialDay,
+  people,
+  canManage,
+  onTodayVisibleChange,
+  ref,
+}: ScheduleViewProps) {
   const router = useRouter();
   const today = useToday();
   // Stable across renders (useScheduleWindow.ts's own fetchersRef only
@@ -159,6 +192,53 @@ export function ScheduleView({ initialDay, people, canManage }: ScheduleViewProp
     target.scrollIntoView({ behavior: "instant", block: "start" });
     hasScrolledInitially.current = true;
   });
+
+  // mission-15/C8 (B1) — tracks whether TODAY's own row is genuinely ON
+  // SCREEN right now, which is what CalendarViews.tsx now disables the
+  // header's Today circle against (see calendarViewConfig.ts's own
+  // corrected comment for why the OLD anchor-based check was wrong: an
+  // anchor that scrolling deliberately never moves read "you're on today"
+  // forever, the instant the reader scrolled anywhere at all).
+  //
+  // A plain IntersectionObserver targeted at whichever DOM node `dayRefs`
+  // currently holds for today, re-run whenever `today`/`months` change so
+  // it re-targets the moment today's row actually mounts (a deep link far
+  // from today has no such row until the reader scrolls all the way back
+  // to it) — separate from the two endless-scroll sentinels in
+  // useScheduleSentinels.ts, which exist to trigger a FETCH a viewport
+  // ahead of the edge (`rootMargin: "100%"`); this one answers a different
+  // question ("is this exact row visible right now") and needs a tight
+  // margin, not a generous one.
+  useLayoutEffect(() => {
+    if (today === null) {
+      onTodayVisibleChange(false);
+      return;
+    }
+    const node = dayRefs.current.get(startOfDay(today).getTime());
+    if (!node) {
+      // Not loaded at all — can't be on screen, and CalendarViews.tsx's own
+      // fallback (scrollToToday returning false, below) is what makes a tap
+      // on Today NAVIGATE instead of scroll in exactly this case.
+      onTodayVisibleChange(false);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => onTodayVisibleChange(entry.isIntersecting),
+      { threshold: 0 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [today, months, onTodayVisibleChange]);
+
+  useImperativeHandle(ref, () => ({
+    scrollToToday: () => {
+      if (today === null) return false;
+      const node = dayRefs.current.get(startOfDay(today).getTime());
+      if (!node) return false;
+      node.scrollIntoView({ behavior: "instant", block: "start" });
+      return true;
+    },
+  }));
 
   function renderMonth(month: ScheduleRenderMonth) {
     return (

@@ -70,11 +70,16 @@ export type UseScheduleSentinelsResult = {
  * `void` at the call site (never awaited here) — this hook only ever
  * triggers them, never inspects their result, matching how
  * useScheduleWindow.ts's own initial-load effect calls them too.
+ *
+ * `extend` (mission-15/C8, B3) is useScheduleWindow.ts's own
+ * `reopenAfterEmptyStreak` + load pairing — see the wheel/touchmove effect
+ * below for when this hook calls it.
  */
 export function useScheduleSentinels(
   loadBackward: () => void,
   loadForward: () => void,
   hasMoreRef: ScheduleHasMoreRef,
+  extend: (direction: "backward" | "forward") => void,
 ): UseScheduleSentinelsResult {
   const topSentinel = useRef<HTMLDivElement | null>(null);
   const bottomSentinel = useRef<HTMLDivElement | null>(null);
@@ -129,6 +134,46 @@ export function useScheduleSentinels(
   useEffect(() => {
     return () => observerRef.current?.disconnect();
   }, []);
+
+  // mission-15/C8 (B3) — "let a further SCROLL GESTURE extend it": once a
+  // direction has stopped (its own hasMore flag false, having already spent
+  // its one small MAX_CONSECUTIVE_EMPTY_CHUNKS batch —
+  // scheduleWindowState.ts's own comment), an actual wheel/touch gesture
+  // still aimed at that edge buys ONE more chunk via `extend`.
+  //
+  // DELIBERATELY wheel/touchmove, never a plain `scroll` listener: this
+  // view's own manual scroll-anchoring correction (useScrollAnchor.ts)
+  // WRITES `scrollTop` directly after every backward load, and writing
+  // `scrollTop` dispatches a real "scroll" event indistinguishable from one
+  // a human generated — a plain scroll listener would treat the app's OWN
+  // correction as "the reader is still trying" and re-open the very
+  // direction it had just correctly stopped, forever. `wheel` (trackpad/
+  // mouse) and `touchmove` (phone/tablet — this app's PRIMARY input, per
+  // DESIGN.md's touch-first rule) are never synthesized by a programmatic
+  // `scrollTop` write, so either one can only mean a real person is still
+  // trying to go further.
+  //
+  // Gated on `topIntersectingRef`/`bottomIntersectingRef` — the SAME
+  // "is this sentinel currently on/near screen" signal the observer above
+  // already keeps current on every real transition — so a gesture
+  // happening anywhere else on the page (scrolling through the middle of
+  // an otherwise-long list) doesn't spuriously reopen an edge nobody is
+  // actually trying to reach. `extend` itself, and the `loadBackward`/
+  // `loadForward` it triggers, are single-flight guarded already
+  // (useScheduleWindow.ts's own in-flight refs), so a burst of wheel
+  // events from one gesture spends at most one fetch, not one per event.
+  useEffect(() => {
+    function handlePossibleExtend() {
+      if (topIntersectingRef.current && !hasMoreRef.current.backward) extend("backward");
+      if (bottomIntersectingRef.current && !hasMoreRef.current.forward) extend("forward");
+    }
+    document.addEventListener("wheel", handlePossibleExtend, { passive: true });
+    document.addEventListener("touchmove", handlePossibleExtend, { passive: true });
+    return () => {
+      document.removeEventListener("wheel", handlePossibleExtend);
+      document.removeEventListener("touchmove", handlePossibleExtend);
+    };
+  }, [extend, hasMoreRef]);
 
   return { topSentinelRef, bottomSentinelRef, topIntersectingRef, bottomIntersectingRef };
 }

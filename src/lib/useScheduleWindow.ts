@@ -42,7 +42,7 @@
 // not jumping, a real IntersectionObserver firing once) has no meaning
 // without a real DOM.
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { nextBackwardChunk, nextForwardChunk } from "./scheduleWindow";
 import { startOfDay } from "./mealPlanDates";
 import {
@@ -51,10 +51,12 @@ import {
   buildInitialScheduleState,
   buildScheduleRenderMonths,
   refreshChunkFor,
+  reopenAfterEmptyStreak,
   type ScheduleRenderMonth,
   type ScheduleWindowState,
 } from "./scheduleWindowState";
 import { useScheduleSentinels } from "./useScheduleSentinels";
+import { useScrollAnchor } from "./useScrollAnchor";
 import type { CalendarEventView, CalendarTaskView } from "./types";
 
 export type { ScheduleFullRecord, ScheduleRenderDay, ScheduleRenderMonth } from "./scheduleWindowState";
@@ -199,30 +201,13 @@ export function useScheduleWindow(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDayTime]);
 
-  // MANUAL SCROLL ANCHORING — WebKit has no `overflow-anchor`. Whenever a
-  // NON-INITIAL backward merge is about to prepend content above what's
-  // already on screen, loadBackward records the page's scrollHeight
-  // synchronously (before the state update that will grow the DOM above the
-  // fold), and this useLayoutEffect adds the resulting delta to scrollTop
-  // BEFORE the browser paints — so the reader's eye never sees the jump.
-  //
-  // `document.scrollingElement` (never `document.body`/`documentElement`
-  // directly) is the standards-defined answer to "which element is the
-  // page's real scroller" — Schedule scrolls the page itself, not a boxed
-  // sub-container (unlike CV4's TimelineGrid, a different view with its own
-  // dedicated overflow-y-auto scroller), matching how the rest of this
-  // app's pages scroll.
-  const pendingScrollAdjustment = useRef<number | null>(null);
-
-  useLayoutEffect(() => {
-    const previousHeight = pendingScrollAdjustment.current;
-    if (previousHeight === null) return;
-    pendingScrollAdjustment.current = null;
-    const scroller = document.scrollingElement;
-    if (!scroller) return;
-    const delta = scroller.scrollHeight - previousHeight;
-    if (delta !== 0) scroller.scrollTop += delta;
-  });
+  // MANUAL SCROLL ANCHORING, and disabling the BROWSER's own native
+  // anchoring — split out to useScrollAnchor.ts in mission-15/C8: partly to
+  // make room under this file's own 350-line cap, but mainly because the
+  // two are one story — see that file's own header for why Chromium's
+  // native anchoring firing ALONGSIDE this manual correction (not merely
+  // redundant with it) was the exact B2 bug.
+  const { prepareAdjustment } = useScrollAnchor();
 
   const loadBackward = useCallback(async () => {
     if (backwardInFlight.current) return;
@@ -240,16 +225,13 @@ export function useScheduleWindow(
         fetchersRef.current.fetchEvents(chunk.start, chunk.end),
         fetchersRef.current.fetchTasks(chunk.start, chunk.end),
       ]);
-      if (!isInitialLoad) {
-        const scroller = document.scrollingElement;
-        pendingScrollAdjustment.current = scroller ? scroller.scrollHeight : null;
-      }
+      if (!isInitialLoad) prepareAdjustment();
       setState((previous) => applyChunkResult(previous, "backward", chunk, events, tasks));
     } finally {
       backwardInFlight.current = false;
       setLoadingBackward(false);
     }
-  }, []);
+  }, [prepareAdjustment]);
 
   const loadForward = useCallback(async () => {
     if (forwardInFlight.current) return;
@@ -271,6 +253,24 @@ export function useScheduleWindow(
     }
   }, []);
 
+  // mission-15/C8 (B3) — the hook's own half of "let a further scroll
+  // gesture extend it": useScheduleSentinels.ts detects the GENUINE
+  // gesture (wheel/touchmove, never a plain `scroll` — see that file's own
+  // comment for why) and calls this. reopenAfterEmptyStreak
+  // (scheduleWindowState.ts) is the pure check that `direction` was
+  // actually stopped by MAX_CONSECUTIVE_EMPTY_CHUNKS specifically, never a
+  // genuine refusal (which must never be retried — D2); the load call
+  // right after is what actually spends the reopened budget, rather than
+  // just flipping a flag nothing then acts on.
+  const extend = useCallback(
+    (direction: "backward" | "forward") => {
+      setState((previous) => reopenAfterEmptyStreak(previous, direction));
+      if (direction === "backward") void loadBackward();
+      else void loadForward();
+    },
+    [loadBackward, loadForward],
+  );
+
   // mission-15/C6 — the sentinel elements, the shared IntersectionObserver,
   // and each sentinel's latest-known intersection state all live in
   // useScheduleSentinels.ts now (Captain's own extraction ruling, once this
@@ -281,7 +281,7 @@ export function useScheduleWindow(
   // proven live) can go silent forever even while the reader keeps
   // scrolling toward it.
   const { topSentinelRef, bottomSentinelRef, topIntersectingRef, bottomIntersectingRef } =
-    useScheduleSentinels(loadBackward, loadForward, hasMoreRef);
+    useScheduleSentinels(loadBackward, loadForward, hasMoreRef, extend);
 
   // The very first load: both directions, unconditionally, so Schedule
   // never opens on a blank screen waiting for a scroll gesture that hasn't
