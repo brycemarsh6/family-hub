@@ -4,11 +4,6 @@
 // scrolls endlessly backward and forward, today always present. See
 // src/lib/useScheduleWindow.ts for the data side (windowing, merging,
 // scroll anchoring); this file is rendering only.
-//
-// NOT wired into the Calendar branch's picker/header yet — that's C4's job
-// (mission-15's own contract split). This component is fully built and
-// self-contained, but nothing in the shipped UI can reach it until
-// CalendarViews.tsx adds a "schedule" branch to its render switch.
 
 import { useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import Link from "next/link";
