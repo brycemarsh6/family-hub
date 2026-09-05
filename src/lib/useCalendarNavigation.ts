@@ -77,7 +77,17 @@ export type CalendarNavigation = {
   today: Date | null;
   /** Move one period and ask the server for a window centred where it lands. */
   step: (direction: 1 | -1) => void;
-  goToToday: () => void;
+  /**
+   * `preserveScroll` (mission-15/C11): Next's documented default is to
+   * scroll to the top of the page on every `router.push` — correct for
+   * Week/Day/Month, where paging to a new period should land at its top,
+   * but wrong for Schedule's Today, which has already scrolled the reader
+   * to today's row (ScheduleView's own re-armed effect, C10) before this
+   * slow `force-dynamic` navigation resolves and undoes it. Only Schedule's
+   * fallback-to-navigate path (CalendarViews.tsx's handleToday) sets it;
+   * every other caller is unaffected by its mere existence.
+   */
+  goToToday: (options?: { preserveScroll?: boolean }) => void;
   setView: (view: CalendarPeriodView) => void;
   /** Opens `day` (e.g. one of Month's 42 grid days) in Day view. */
   openDay: (day: Date) => void;
@@ -182,13 +192,22 @@ export function useCalendarNavigation(defaultView: CalendarPeriodView): Calendar
           parseDateParam(dateParam) ?? new Date(todayTime),
         );
 
-  function navigateTo(nextView: CalendarPeriodView, nextAnchor: Date) {
+  function navigateTo(
+    nextView: CalendarPeriodView,
+    nextAnchor: Date,
+    options?: { preserveScroll?: boolean },
+  ) {
     const search = buildCalendarSearch(nextView, nextAnchor);
     const heading = pushed.current.at(-1) ?? currentSearch;
     if (search === heading) return;
     pushed.current = [...pushed.current, search];
     startNavigation(() => {
-      router.push(`/calendar?${search}`);
+      // `scroll: false` only when a caller opts in (see goToToday's own
+      // comment) — every other push keeps Next's default top-of-page scroll.
+      router.push(
+        `/calendar?${search}`,
+        options?.preserveScroll ? { scroll: false } : undefined,
+      );
     });
   }
 
@@ -272,10 +291,10 @@ export function useCalendarNavigation(defaultView: CalendarPeriodView): Calendar
     navigateTo(nextPeriod.view, nextAnchor);
   }
 
-  function handleToday() {
+  function handleToday(options?: { preserveScroll?: boolean }) {
     if (today === null) return;
     goToToday();
-    navigateTo(view, today);
+    navigateTo(view, today, options);
   }
 
   function handleSetView(nextView: CalendarPeriodView) {

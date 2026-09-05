@@ -154,8 +154,13 @@ export function CalendarViews({
       // (e.g. a deep link far away that hasn't been scrolled back from),
       // in which case falling through to goToToday() re-anchors the URL at
       // today, which resets useScheduleWindow.ts's whole window around it.
+      // preserveScroll (mission-15/C11): ScheduleView re-arms its own
+      // scroll-to-today once the rebuilt window lands (C10) — without this,
+      // Next's default post-push scroll-to-top fires seconds later, after
+      // the slow force-dynamic round trip, and undoes it. Only this
+      // fallback needs it; the scrolled-already branch above never navigates.
       const scrolled = scheduleRef.current?.scrollToToday() ?? false;
-      if (!scrolled) goToToday();
+      if (!scrolled) goToToday({ preserveScroll: true });
       return;
     }
     goToToday();
