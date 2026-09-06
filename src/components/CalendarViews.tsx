@@ -7,12 +7,14 @@ import { RadioSheet } from "./RadioSheet";
 import { ActionSheet } from "./ActionSheet";
 import { CalendarHeader } from "./CalendarHeader";
 import { DaySection } from "./DaySection";
+import { MonthChips } from "./MonthChips";
 import { MonthGrid } from "./MonthGrid";
 import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
 import { TimelineGrid } from "./TimelineGrid";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
+import { buildCalendarSearch } from "@/lib/calendarPaging";
 import {
   CALENDAR_VIEW_OPTIONS,
   DEFAULT_CALENDAR_VIEW,
@@ -186,6 +188,34 @@ export function CalendarViews({
     goToToday();
   }
 
+  // mission-18/C3 — `MonthChips`' own tap handler. This is a DIRECT
+  // `router.push`, not a call through `useCalendarNavigation`'s `step`/
+  // `goToToday`/`setView`: none of those can express "stay on Month, but
+  // jump the anchor to an ARBITRARY month" — `step` only moves by one
+  // period per call and reads its own stale closure if called in a loop,
+  // and `setView` only ever converts the CURRENT anchor into a new view,
+  // never takes one in. The hook exposes exactly one arbitrary-jump path,
+  // `openDay`, and it is hardcoded to Day view. Extending the hook itself
+  // to expose a general `jumpTo(day, view)` — which `calendar-v2.md`'s own
+  // CV6 entry will need too, for its "tap a day in the dropdown -> jumpTo
+  // (day, currentView)" — is a real gap, but `useCalendarNavigation.ts` is
+  // outside this contract's boundary, so it is left for whichever contract
+  // is allowed to touch it.
+  //
+  // This push is NOT unguarded: `useCalendarNavigation.ts`'s own resync
+  // effect is written to treat exactly this shape of push — a URL change
+  // that doesn't match anything in its `pushed` ref — as "an external
+  // navigation" (its own comment: "a deep link, a reload, or Back/
+  // Forward... discards every in-flight push") and re-points the cursor
+  // with `jumpTo` accordingly. `buildCalendarSearch` (calendarPaging.ts) is
+  // the SAME pure function that hook's own `navigateTo` builds every push
+  // from, so the string this produces is byte-identical to what a guarded
+  // push would have written — `useCanonicalCalendarUrl` has nothing left
+  // to rewrite once it lands.
+  function handlePickMonth(day: Date) {
+    router.push(`/calendar?${buildCalendarSearch("month", day)}`);
+  }
+
   const title = today === null || anchor === null ? null : config.title(anchor);
   const addSheetDateParam = anchor ? `?date=${toLocalDateString(anchor)}` : "";
 
@@ -211,15 +241,18 @@ export function CalendarViews({
       return (
         today !== null &&
         anchor !== null && (
-          <MonthGrid
-            anchor={anchor}
-            today={today}
-            events={events}
-            tasks={tasks}
-            windowStart={windowStart}
-            windowEnd={windowEnd}
-            onOpenDay={openDay}
-          />
+          <>
+            <MonthChips anchor={anchor} onPickMonth={handlePickMonth} />
+            <MonthGrid
+              anchor={anchor}
+              today={today}
+              events={events}
+              tasks={tasks}
+              windowStart={windowStart}
+              windowEnd={windowEnd}
+              onOpenDay={openDay}
+            />
+          </>
         )
       );
     }
