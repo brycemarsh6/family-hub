@@ -86,6 +86,14 @@ one below is a real incident from missions 13-15, and every one was
       gate leaves its verdict covering a tree that no longer exists. Batch
       fixes; re-gate after.
 
+**Before handing over any change to a record (CLAUDE.md, a mission file, a
+constitution):**
+- [ ] **Run `recordcheck.mjs` over the range and read every REVIEW line.**
+      Three false claims in one session were introduced by *corrections*, and
+      all three sat in REVIEW lines with zero hard failures. A count of
+      headings is not an existence check — `git log` is. And name the item
+      rather than counting into it: "item four" goes stale silently.
+
 **At the end of every report to the user:**
 - [ ] **Something is dispatched, or the report says nothing is queued and
       why.** Twice in one session the user had to ask "who is working?" and

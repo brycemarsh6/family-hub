@@ -76,7 +76,14 @@ Order: **Vision always**, then Strange and/or Captain if assembled. Hand each ga
 1. Mission file brought to its final state — status, gate verdicts, evidence pointers, deliberate leftovers.
 2. Commits at clean boundaries, only per the project's/user's standing rules on committing.
 3. **The shipped check:** run `git log origin/main..HEAD` (or the project's equivalent) and report what exists locally but isn't pushed. "Works locally" and "the user has it" are different claims — this exact gap has bitten real projects three separate times (a "failed" production security check that was actually an unpushed build; a page committed as an empty rename; seven finished commits sitting unpushed). Pushing itself follows the user's standing rules; unattended missions never push.
-4. Final report to the user: what shipped, the evidence, the verdicts, what was deliberately not done.
+4. **The record check.** Before the final report, run
+   `node <skill-dir>/recordcheck.mjs` over the range you are about to hand
+   over. A change to CLAUDE.md, a mission file or a constitution is a change
+   like any other and gets checked like one. Read every REVIEW line — the tool
+   hard-fails only on what is decidable (a named file that isn't there, a
+   commit hash that doesn't resolve), and **every false claim it exists for
+   produced zero hard failures.**
+5. Final report to the user: what shipped, the evidence, the verdicts, what was deliberately not done.
 
 ## Cross-cutting laws
 
@@ -86,6 +93,8 @@ These bind every agent, every phase:
 - **Gates re-run, never trust.** A pasted result is a claim; evidence is what happens when the gate runs it.
 - **Positive control.** Before believing "the bad path is blocked," prove the good path works — a broken feature blocks everything, which looks identical to protection working.
 - **Severity discipline.** A BLOCKER names a concrete failure scenario, a failed gauntlet, or a violated written rule. Everything else is a NOTE. Gates that cry wolf get ignored; this is the law that keeps them heard.
+- **A correction is a change, and is not more trustworthy for being a correction.** On 2026-09-06 a session audited a project's context file for accuracy and was gated three times; each pass found a false claim, and **each one had been introduced by the fix for the one before it**. None was in code. None would have been caught by re-reading — only by running the command that settles the claim. So: a record edit gets the same evidence standard as a code edit, and **a count of headings in a file is never an existence check — `git log` is.**
+- **Name the item; never count into it.** A reference like "item four on the checklist" is correct exactly until the list gains a row, and nothing can detect the staleness if the sentence never names its target. One such reference went stale *inside a single commit*, because the same commit inserted the new item.
 - **The danger register is absolute.** No exceptions, no cleverness, no "it should be fine."
 - **Budgets everywhere.** Gate passes are capped; unattended loops have stop conditions; when a budget is exhausted the move is *stop and surface*, never *push harder*.
 - **The mission file is always current.** Update it as state changes, not at the end. An interrupted session — or a different machine or subscription picking up the repo — must be able to resume from the file alone.

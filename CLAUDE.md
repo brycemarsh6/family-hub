@@ -5561,10 +5561,14 @@ that never landed.**
   an earlier version of this bullet named **mission-16/C5**, which is
   wrong twice over — it carries an explicit may-touch/must-not-touch
   boundary, and it was **DEFERRED and never built**, so it shipped
-  nothing.)* Filed by Vision repeatedly, and it is already item **five** on
-  Fury's own pre-dispatch checklist — item four is now "Run preflight",
-  inserted by this very branch, which is how a correct reference goes stale
-  inside a single commit.
+  nothing.)* Filed by Vision repeatedly, and Fury's pre-dispatch checklist
+  already carries **the "contract is written in the mission file" item**.
+  *(This sentence used to say "item four", then "item five" — it went stale
+  once inside a single commit, and the checklist has since gained another
+  row. It now **names** the item instead of counting into it, which is the
+  rule that came out of it: a positional reference is correct exactly until
+  the list grows, and nothing can detect that if the sentence never names its
+  target.)*
 - **A builder reported DONE having committed nothing** (mission-16/C3b +
   C6), caught by `git log` rather than by reading the report.
 

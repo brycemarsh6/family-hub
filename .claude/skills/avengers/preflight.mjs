@@ -56,6 +56,15 @@
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve, join } from "node:path";
+// Shared with recordcheck.mjs. One definition of what counts as a claim —
+// two copies of this regex would drift, and its subtleties were each learned
+// from a real miss.
+import {
+  findClaims,
+  findIdentifiers,
+  filesDefining,
+  filesReferencing,
+} from "./lib/claims.mjs";
 
 const [, , missionPath, onlyContract] = process.argv;
 
@@ -243,27 +252,10 @@ function lineCounts(file) {
   return { total, code };
 }
 
-function grepDefining(symbol) {
-  // Where is this symbol DEFINED (not merely referenced)?
-  const patterns = [
-    `(export\\s+)?(async\\s+)?function\\s+${symbol}\\b`,
-    `(export\\s+)?(const|let|class|type|interface|enum)\\s+${symbol}\\b`,
-  ];
-  const hits = new Set();
-  for (const pat of patterns) {
-    try {
-      const out = execFileSync(
-        "git",
-        ["grep", "-lE", pat, "--", "*.ts", "*.tsx", "*.mjs", "*.js"],
-        { cwd: repoRoot, encoding: "utf8" },
-      );
-      out.split("\n").filter(Boolean).forEach((f) => hits.add(f));
-    } catch {
-      /* git grep exits 1 when nothing matches */
-    }
-  }
-  return [...hits];
-}
+
+
+/** Local shim: the shared helpers take an explicit repoRoot. */
+const filesDefining_ = (sym) => filesDefining(sym, repoRoot);
 
 // ---------------------------------------------------------------- reporting --
 
@@ -392,24 +384,10 @@ for (const c of targets) {
   // requiring the whole span to be one. Replay found `deactivatedAt: null`
   // was skipped entirely because of the ": null" — and `deactivatedAt` was
   // the field the miscounted claim was about.
-  const symbols = new Set(
-    [...c.text.matchAll(/`([^`]+)`/g)]
-      .map((m) => m[1].trim())
-      // A path is not a symbol. Without this the leading-identifier grab
-      // turned `@/lib/dal` and `src/lib/constants.ts` into "dal" and "src",
-      // which then dominated the reference-count list with noise.
-      .filter((t) => !t.includes("/") && !/\.(tsx?|mjs|jsx?|css|json|md)$/.test(t))
-      .map((t) => (t.match(/^[A-Za-z_$][A-Za-z0-9_$]{2,}/) || [])[0])
-      .filter(Boolean)
-      // Keep things that LOOK like identifiers: camelCase, PascalCase,
-      // CONSTANT_CASE, or simply long. A bare lowercase word in backticks is
-      // almost always prose (`null`, `style`, `scroll`), and on the control
-      // run those three alone buried the line that mattered.
-      .filter((t) => /[A-Z_]/.test(t) || t.length > 8),
-  );
+  const symbols = findIdentifiers(c.text);
   let clashes = 0;
   for (const sym of symbols) {
-    const defs = grepDefining(sym);
+    const defs = filesDefining_(sym);
     const forbidden = defs.filter((d) => mustNotFiles.has(join(repoRoot, d)));
     if (forbidden.length > 0) {
       clashes++;
@@ -467,45 +445,15 @@ for (const c of targets) {
   // and reported the contract clear. A claim does not announce itself with
   // the word "only". Noise here is the correct trade: the check's job is to
   // put a claim in front of a human, not to be precise about which.
-  const claimRe = new RegExp(
-    "[^.\\n]*\\b(" +
-      "never (?:built|existed|implemented|written)|" +
-      "does not (?:exist|yet)|doesn't (?:exist|yet)|there (?:is|are) no|" +
-      "no such|not yet built|nothing (?:reads|calls|imports|uses)|" +
-      "the (?:only|sole)|only (?:the|one)|" +
-      // No leading (?:^|\s) on the cardinal branch below: it fought the outer
-      // \b and made the whole branch dead. Replay caught it — "Two roster
-      // queries filter …", the exact sentence behind incident 1, matched
-      // nothing, while a differently-punctuated sentence DID match. That is
-      // how a half-working regex reads as a working one.
-      // bare cardinals: "Two roster queries…", "all four call sites…"
-      "(?:one|two|three|four|five|six|seven|eight|nine|ten|both|all|each|every|\\d+)\\s+" +
-      "(?:[a-z][a-z-]*\\s+){0,2}[a-z][a-z-]*s\\b" +
-      ")[^.\\n]*(?:\\.|—|$)",
-    "gim",
-  );
-  const claims = [
-    ...new Set(
-      [...c.text.matchAll(claimRe)].map((m) => m[0].trim().replace(/\s+/g, " ")),
-    ),
-  ];
+  const claims = findClaims(c.text);
 
   // Every backticked identifier, with how many files actually reference it.
   // This is what lets a human check "two roster queries" against reality
   // without leaving the report.
   const refCounts = [];
   for (const sym of symbols) {
-    try {
-      const out = execFileSync("git", ["grep", "-lF", sym, "--", "*.ts", "*.tsx"], {
-        cwd: repoRoot,
-        encoding: "utf8",
-      })
-        .split("\n")
-        .filter(Boolean);
-      if (out.length > 0) refCounts.push({ sym, files: out });
-    } catch {
-      /* no matches */
-    }
+    const files = filesReferencing(sym, repoRoot);
+    if (files.length > 0) refCounts.push({ sym, files });
   }
 
   if (claims.length === 0) {
