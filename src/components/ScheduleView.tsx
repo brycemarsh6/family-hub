@@ -200,11 +200,39 @@ export function ScheduleView({
   // still loading, or a genuinely empty non-today day that never renders a
   // row at all) and then never again, UNTIL the effect above re-arms it.
   // Scrolling itself never touches the URL — this reads `dayRefs`/DOM only.
+  //
+  // mission-16/C10 (Vision, correcting this mission's own earlier record)
+  // — `scrollIntoView` can land CLAMPED on this route: measured 12/12, the
+  // target stopped at the document's max `scrollTop` rather than at the
+  // reveal margin, because the initial commit that first renders `target`
+  // can happen BEFORE the forward chunk that gives the page enough height
+  // to actually place it there. `scrollToToday` (the imperative handle
+  // below) never hits this — by the time a reader can tap Today, the
+  // surrounding content has long since loaded. Detected by checking BOTH
+  // that the landing missed the margin AND that the scroller is pinned to
+  // its own maximum — top alone can't tell "landed short because clamped"
+  // from "landed short for some other reason," and only the clamped case
+  // should be retried.
   useLayoutEffect(() => {
     if (hasScrolledInitially.current) return;
     const target = dayRefs.current.get(initialDayTime);
     if (!target) return;
     target.scrollIntoView({ behavior: "instant", block: "start" });
+
+    const scroller = document.scrollingElement;
+    const margin = APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX;
+    const landedShort = target.getBoundingClientRect().top > margin + 1;
+    const pinnedToScrollMax =
+      scroller !== null && scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 1;
+
+    // Bounded: a clamped landing leaves the flag false, which re-runs this
+    // SAME effect on the next render a forward chunk commit causes (no
+    // separate timer or retry loop) — either that chunk gives the page
+    // enough height to land exactly (landedShort flips false) or, once
+    // `hasMoreForward` goes false, there's nothing left to wait for and
+    // the flag is forced true regardless of where it landed, so this can
+    // never re-arm itself indefinitely.
+    if (landedShort && pinnedToScrollMax && hasMoreForward) return;
     hasScrolledInitially.current = true;
   });
 
