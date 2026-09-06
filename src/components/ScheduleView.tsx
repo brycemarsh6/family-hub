@@ -6,7 +6,6 @@
 // scroll anchoring); this file is rendering only.
 
 import { useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DaySection } from "./DaySection";
@@ -24,6 +23,7 @@ import {
   type ScheduleRenderDay,
   type ScheduleRenderMonth,
 } from "@/lib/useScheduleWindow";
+import { useScheduleMonthTitle } from "@/lib/useScheduleMonthTitle";
 import { useToday } from "@/lib/useToday";
 import { allDayInstantToLocalDay } from "@/lib/calendarDates";
 // mission-15/C5: this component is the boundary that's ALLOWED to know
@@ -179,12 +179,6 @@ export function ScheduleView({
   const hasScrolledInitially = useRef(false);
   const initialDayTime = startOfDay(initialDay).getTime();
 
-  // mission-16/C4 (D2) — one ref per rendered month `<section>`, watched by
-  // the "which month is topmost" observer below. Same reasoning as
-  // `dayRefs` above: a ref map churns on every render without needing to
-  // trigger one itself.
-  const monthRefs = useRef(new Map<number, HTMLElement>());
-
   // mission-15/C10 (Strange's blocker) — re-arms the one-shot below
   // whenever `initialDayTime` genuinely changes, mirroring
   // useScheduleWindow.ts's own window-rebuild effect keyed on the same
@@ -258,134 +252,25 @@ export function ScheduleView({
     return () => observer.disconnect();
   }, [today, months, onTodayVisibleChange]);
 
-  // mission-16/C4 (D2) — the pinned CalendarHeader now owns the one live
-  // month label for Schedule (see SCHEDULE_TITLE_SLOT_ID's own comment for
-  // why this is a portal rather than a prop). Seeded with `initialDay`'s
-  // own month so the very first paint matches whatever the header would
-  // have shown anyway (no jump on load) — this observer only ever moves it
-  // from there once the reader actually scrolls into a different month.
-  const [visibleMonthAnchor, setVisibleMonthAnchor] = useState(initialDay);
-  // mission-16/C7 — mirrors `visibleMonthAnchor`'s latest value without
-  // being a state read the effect below has to depend on (same ref-not-
-  // state reasoning as `hasScrolledInitially`/`seededInitialDayTime`
-  // above). Needed to break a genuine infinite-render loop the scroll-
-  // driven effect below would otherwise cause: `useScheduleWindow.ts`'s
-  // `months` is memoized on `[state, today, initialDay]`, and `useToday()`
-  // hands back a FRESH `Date` object every render even when the underlying
-  // calendar day hasn't moved — so `months` gets a new array reference on
-  // effectively every render, re-running that effect every time. The old
-  // IntersectionObserver-based version this replaced only ever called
-  // `setVisibleMonthAnchor` from a genuine browser intersection-change
-  // callback, so re-running its setup on every render was merely wasteful.
-  // This version calls `setVisibleMonthAnchor` synchronously from the
-  // effect body itself (matching `syncTitleSlot`'s own established
-  // pattern) — without this ref-backed guard, it would hand back a new
-  // `Date` instance for the SAME calendar month on every run, which
-  // `Object.is` always treats as changed, triggering a re-render, a new
-  // `months` reference, another effect run, another "changed" Date... an
-  // unbounded loop (reproduced and confirmed via React's own "Maximum
-  // update depth exceeded" error before this guard was added).
-  const visibleMonthAnchorRef = useRef(initialDay);
-
-  // The header portal's target node. CalendarHeader and this component are
-  // SIBLINGS under CalendarViews.tsx, both committed to the DOM in the same
-  // pass, so by the time the effect below runs the node reliably already
-  // exists — same ordering CalendarHeader's own comment on
-  // SCHEDULE_TITLE_SLOT_ID relies on. Looked up inside the scroll-driven
-  // effect just below rather than a standalone effect of its own: an effect
-  // that does nothing but a direct DOM read + setState, with no subscription
-  // of any kind, is exactly the "cascading render" shape
-  // react-hooks/set-state-in-effect exists to catch — RecipeList.tsx's own
-  // `railTop` measurement establishes the same fix (fold the direct read
-  // into an effect that ALSO subscribes to something real), rather than
-  // suppressing the rule.
-  const [titleSlot, setTitleSlot] = useState<HTMLElement | null>(null);
-
-  // mission-16/C7 (Vision's BLOCKER) — this used to reuse the "today
-  // visible" observer's own instrument: an IntersectionObserver whose
-  // `rootMargin` (`-227px 0px -80% 0px`) carved out a thin band meant to
-  // start exactly where content clears both pinned bars. That band is
-  // INVERTED — its top edge sits below its bottom edge — on any viewport
-  // shorter than 1135px (227px is already more than 20% of a 375-tall
-  // phone screen), which makes it empty. Chrome silently clamps an
-  // inverted rect to a zero-height line and still reports edge-adjacent
-  // intersections, so it looked like it worked; WebKit's
-  // `edgeInclusiveIntersect` does not clamp, and never intersects at all —
-  // which is why the label froze on one month for the whole session on
-  // every iPhone and the installed PWA (measured on Playwright WebKit
-  // 26.6: 65 scroll steps, 0 label changes). A narrower band would only
-  // trade this bug for the same class at some OTHER viewport; there is no
-  // `rootMargin` that is provably non-empty at every phone height.
-  //
-  // The fix drops the observer entirely and reads the DOM directly on
-  // scroll: of the 5-12 month `<section>`s actually rendered, which one's
-  // top has scrolled up past `revealLineY` (the real bottom edge of the
-  // two stacked pinned bars) — the LAST one for which that's true, since
-  // months render in chronological/DOM order and a `<section>` further
-  // down the list can never start higher on screen than one before it.
-  // `getBoundingClientRect()` on a handful of nodes per scroll/resize is
-  // not a performance concern at this scale; batched behind
-  // `requestAnimationFrame` so a fast scroll can't queue the read more
-  // than once per frame.
-  useLayoutEffect(() => {
-    // Named, rather than an inline `setTitleSlot(...)` statement, for the
-    // same reason RecipeList.tsx's own `measure()` is: a bare direct
-    // setState call in an effect's own immediate body is what
-    // react-hooks/set-state-in-effect flags — nesting it one level down,
-    // even when (as here) it's still invoked synchronously right away,
-    // reads as "seed an initial value" rather than "an effect whose only
-    // job is calling setState", which is the actual pattern being flagged.
-    function syncTitleSlot() {
-      setTitleSlot(document.getElementById(SCHEDULE_TITLE_SLOT_ID));
-    }
-    syncTitleSlot();
-
-    if (months.length === 0) return;
-
-    const revealLineY = APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX;
-    let framePending = false;
-
-    function syncVisibleMonth() {
-      framePending = false;
-      let current: Date | null = null;
-      for (const month of months) {
-        const node = monthRefs.current.get(month.monthStart.getTime());
-        if (!node) continue;
-        if (node.getBoundingClientRect().top > revealLineY) break;
-        current = month.monthStart;
-      }
-      // A `null` result means the reader hasn't scrolled far enough for
-      // ANY month's top to have cleared the reveal line yet (e.g. still at
-      // the very start of the list) — leave `visibleMonthAnchor` at
-      // whatever it already is (seeded to `initialDay`'s own month) rather
-      // than clearing it, matching this state's own established rule that
-      // it only ever moves once the reader genuinely scrolls into a
-      // different month.
-      //
-      // The `.getTime()` comparison against the ref (not the `current`
-      // Date's own identity) is what makes this idempotent — see
-      // `visibleMonthAnchorRef`'s own comment above for the infinite-loop
-      // this guards against.
-      if (current && current.getTime() !== visibleMonthAnchorRef.current.getTime()) {
-        visibleMonthAnchorRef.current = current;
-        setVisibleMonthAnchor(current);
-      }
-    }
-
-    function onScrollOrResize() {
-      if (framePending) return;
-      framePending = true;
-      requestAnimationFrame(syncVisibleMonth);
-    }
-
-    syncVisibleMonth();
-    window.addEventListener("scroll", onScrollOrResize, { passive: true });
-    window.addEventListener("resize", onScrollOrResize);
-    return () => {
-      window.removeEventListener("scroll", onScrollOrResize);
-      window.removeEventListener("resize", onScrollOrResize);
-    };
-  }, [months]);
+  // mission-16/C9 — "which month is topmost" and the header portal it feeds
+  // moved out to src/lib/useScheduleMonthTitle.ts (Captain's own named seam:
+  // this file hit 620/650, the mechanical hard cap, after C7 added the
+  // render-loop guard below). `revealLineY`/`titleSlotId` are computed HERE
+  // and passed in rather than the hook importing CalendarHeader's constants
+  // itself — this component stays the one boundary "ALLOWED to know" which
+  // component owns them (see useScheduleWindow.ts's own C5 header for why a
+  // src/lib/ module reaching into src/components/ would be a real
+  // STRUCTURE.md violation). The render-loop guard from C7 — `useToday()`
+  // returns a fresh `Date` every render, so `months` gets a new reference on
+  // effectively every render, and only a `.getTime()`-compared ref (never
+  // `Date` identity) stops that from looping forever — moved WITH it,
+  // unchanged; see the hook's own header for the full explanation.
+  const { monthSectionRef, portal } = useScheduleMonthTitle(
+    months,
+    initialDay,
+    APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX,
+    SCHEDULE_TITLE_SLOT_ID,
+  );
 
   useImperativeHandle(ref, () => ({
     scrollToToday: () => {
@@ -401,10 +286,7 @@ export function ScheduleView({
     return (
       <section
         key={month.monthStart.getTime()}
-        ref={(element) => {
-          if (element) monthRefs.current.set(month.monthStart.getTime(), element);
-          else monthRefs.current.delete(month.monthStart.getTime());
-        }}
+        ref={monthSectionRef(month.monthStart)}
       >
         {/* mission-16/C4 (D2): no longer sticky. Before this contract's
             globals.css fix, `sticky` here was already inert app-wide (see
@@ -413,7 +295,7 @@ export function ScheduleView({
             leaving this sticky too would show the month name TWICE at
             once, stacked under the pinned CalendarHeader's own now-live
             title (which this component feeds via a portal — see
-            visibleMonthAnchor, above).
+            useScheduleMonthTitle.ts, mission-16/C9).
 
             mission-16/C7 (Strange's BLOCKER) — a PLAIN, visible divider
             wasn't enough: at the very top of a month, this heading sits in
@@ -601,20 +483,12 @@ export function ScheduleView({
         />
       )}
 
-      {/* mission-16/C4 (D2) — feeds the pinned CalendarHeader's own live
-          month label. `titleSlot` is null for one paint on first mount
-          (see its own declaration above) and briefly again if this whole
-          view unmounts — createPortal simply renders nothing until it's a
-          real node, no separate loading branch needed. Matches the
-          non-pinned title's own markup exactly (CalendarHeader.tsx), so
-          switching in and out of Schedule shows the identical style. */}
-      {titleSlot &&
-        createPortal(
-          <h2 className="truncate text-lg font-semibold">
-            {formatMonthTitle(visibleMonthAnchor)}
-          </h2>,
-          titleSlot,
-        )}
+      {/* mission-16/C9 — feeds the pinned CalendarHeader's own live month
+          label; see useScheduleMonthTitle.ts's own header for the full
+          design. `portal` is `null` for one paint on first mount and
+          briefly again if this whole view unmounts — nothing renders until
+          it's a real node, no separate loading branch needed here. */}
+      {portal}
     </div>
   );
 }
