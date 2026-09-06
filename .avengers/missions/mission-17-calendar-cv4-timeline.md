@@ -114,7 +114,41 @@ src/lib/voice/*.test.ts` legs.
 ## Contracts
 
 ### C1 — `appChrome.ts`: the chrome height gets one home
-- **Status:** PENDING · **runs parallel with C2**
+- **Status:** DONE — branch `cv4-c1`, commit `62764c4`, merged.
+- **Report:** `src/lib/appChrome.ts` (22 code / 84 total) holds the
+  constant **and** `useAppHeaderHeight()`, the hook seeded with the
+  constant rather than `null` so no consumer needs a `?? fallback`.
+  **The rule paid immediately**: `RecipeList.tsx`'s private
+  header-measuring effect turned out to be a **byte-for-byte duplicate**
+  of the new shared hook and was deleted; its separate `railTop`
+  measurement (a different job — the rail against the search box) was
+  correctly left alone rather than forced. `ScheduleView.tsx`'s three
+  inline sums became one named `scheduleChromeHeight` (Captain's N7
+  rider). `(app)/layout.tsx` names its three dependents at the `<header>`.
+  **A/B control against the un-refactored tree via `git stash`, same
+  server and seeded data: pixel-identical** in every case — header 73,
+  bar stacking 73/227, anchor landing, one visible month label at 13
+  scroll positions, the Recipes letter clearing at 9 interior points.
+  32/32 checks across Chromium + WebKit × both themes.
+- **It also confirmed a pre-existing quirk is not ours**: the deep-link
+  scroll clamp Vision diagnosed in mission-16 (`todayTop 416`) is
+  **byte-identical before and after** this refactor.
+- **Two of its own harness bugs, found by measuring rather than
+  trusting**: sampling the literal edge pixels of a sticky heading is
+  ambiguous by box-boundary rounding (fixed with interior insets — the
+  heading's right edge and the rail's left edge have a clean 4px gap);
+  and a `waitForURL` regex that matched the current URL made a wait
+  vacuous.
+- ⚠️ **Disclosure, recorded rather than omitted:** an early diagnostic
+  script printed **real event titles** from the live dev branch into the
+  builder's own output before it had internalised that path's
+  sensitivity. Caught immediately; every later diagnostic read only
+  day-of-month numbers and boolean flags. Dev-branch data is real family
+  data — the register's "counts and positions, never titles" rule exists
+  for exactly this, and the transcript is local.
+- **No test file for `appChrome.ts`**, stated rather than skipped
+  silently: its only logic is DOM measurement with no pure surface, the
+  same reason `useToday.ts` ships without one.
 - Captain's N3 ruling, now a written rule (STRUCTURE.md, Bryce-approved
   2026-09-05) and named there as **CV4's first contract**. Move
   `APP_HEADER_HEIGHT_PX` out of `CalendarHeader.tsx` — it is a fact about
@@ -221,7 +255,7 @@ src/lib/voice/*.test.ts` legs.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| — | — | — | — | _mission opened 2026-09-06_ |
+| — | C1 | DONE `62764c4` → merged | — | Parallel worktree #1. A/B pixel-identical; `RecipeList`'s private duplicate deleted |
 
 ## Handoff log
 
@@ -232,6 +266,12 @@ src/lib/voice/*.test.ts` legs.
   bind C1 and C3 directly. **First mission running builders in parallel
   worktrees** — C1 ∥ C2 dispatched together, file sets verified disjoint
   before dispatch.
+- 2026-09-06 — C1 DONE and merged; **C2 still running in its own
+  worktree, untouched by the merge** (disjoint by construction). Because
+  C1 has landed, **C3 is dispatched now rather than after C2** — it needs
+  `CalendarHeader.tsx`, which C1 has released, and its file set is
+  disjoint from C2's. That is two builders in flight again, which is the
+  point of the process change.
 
 ## Delivery
 
