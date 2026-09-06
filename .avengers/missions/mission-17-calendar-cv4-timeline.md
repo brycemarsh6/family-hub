@@ -424,7 +424,7 @@ differently if they do.
 | 3 | **Vision** (retry) | **PASS** | 0 | 6 notes. Blocker closed and **not clipped** — ink ends inside the box at every width. Answered the dead run's proxy question |
 | 3 | **Strange** (retry) | **BLOCKED** | 2 | **Both on DESIGN.md text Fury wrote in this same commit** — none on the four items' behaviour. 8 notes. Budget spent |
 | — | C8 | DONE ×2 | — | Both notes closed. Container query beats the prescribed viewport breakpoint — and the builder said why |
-| 4 | Strange | dispatched | — | **Bryce-authorized beyond the 3-pass budget**, after he reviewed the preview himself |
+| 4 | Strange | **BLOCKED** | 1 | Bryce-authorized beyond the budget. The new string is **false on the UTC-server path** — the recurring seam, in a sentence. 5 notes; **endorsed the builder's deviation over its own prescription** |
 
 ## Gate round 1 — three BLOCKED, eight blockers, one cause worth more than the rest
 
@@ -925,6 +925,111 @@ picker lists Schedule first.
   disjoint from C2's. That is two builders in flight again, which is the
   point of the process change.
 
+- 2026-09-06 — C2 merged; `timelineLayout.ts` has a real caller, so CV2's
+  dormant-export deadline is met and it stays. Two findings raised for the
+  gates rather than settled by Fury: the 24px short block against
+  DESIGN.md's 48px floor, and the library comment overclaiming
+  tappability.
+- 2026-09-06 — C3 merged. **All three parallel branches composed cleanly
+  at 328 tests, zero conflicts, zero index collisions** — the process
+  change works. C4 dispatched: the last build contract, and the one C3
+  landed specifically to make safe.
+- 2026-09-06 — C4 DONE. All six views live. It found and fixed a **225px
+  skeleton jump** by measuring the placeholder against the real render,
+  and **disclosed a state it could not reach** rather than claiming either
+  way — checking its method against Month, untouched and same mechanism.
+- 2026-09-06 — **Gate round 1: all three BLOCKED, eight blockers.** Strange
+  **ruled** the 24px question rather than escalating it. Batched as C5,
+  one contract not two, because Captain's finding this round was that
+  splitting a shared definition across boundaries produced three of the
+  eight.
+- 2026-09-06 — C5 DONE; it pushed `TimelineGrid.tsx` to **809/650**, with
+  a justification whose real content was *"my boundary did not permit a
+  new file."* **C6 dispatched to take Captain's already-measured seam**
+  rather than ask a gate to accept that. Result: 623/321.
+- 2026-09-06 — **Gate round 2: Captain PASS, Strange PASS, Vision BLOCKED
+  (1).** Captain **withdrew its own proposed amendment** after measuring
+  the premise Fury argued it from and finding it false. C5's boundary
+  backfilled here — it had lived only in a dispatch prompt, Fury's own
+  checklist item, filed by Vision twice before.
+- 2026-09-06 — **DESIGN.md gained the two rules Strange drafted** (the
+  timeline's 44px exception with its four-part boundary; `line-through`
+  means *done*) — both already governing shipped code while living in no
+  constitution at all. C7 dispatched.
+- 2026-09-06 — C7 DONE, all four closed. Captain's third pass **declined
+  and enumerated** rather than spent — the first use of the
+  gate-proportionally change.
+- 2026-09-06 — **Both round-3 gates died to the session rate limit
+  mid-run**, neither reporting, leaving two worktrees and **25 stranded
+  rows** against a baseline of 4. Cleaned up by creation-date arithmetic
+  without reading a single event title, behind an abort guard. Both
+  re-dispatched with a new standing instruction: **delete fixtures by id
+  as each measurement finishes, never batched at the end.**
+- 2026-09-06 — **Round 3: Vision PASS. Strange BLOCKED on two clauses of
+  Fury's own DESIGN.md text**, both replacements dictated by Strange and
+  applied verbatim.
+- 2026-09-06 — **Bryce reviewed the preview (PR #17) himself and chose
+  "fix it and then merge if everything looks good"**, authorizing C8 and
+  one Strange pass beyond the spent budget. C8 DONE — and the builder
+  **improved on the prescribed fix**, using a container query rather than
+  a viewport breakpoint because a viewport rule would have fixed Week's
+  inversion by creating a new one on Day.
+- 2026-09-06 — **Strange pass 4: BLOCKED on one string.** C8's new wording
+  is **false on the UTC-server path**. Surfaced to Bryce rather than fixed
+  unilaterally: his authorization covered the two known notes, and this is
+  a new finding after that pass.
+- 2026-09-06 — ⚠️ **Fury's record failure, found while writing the above.**
+  This handoff log held **two** entries when it should have held fourteen.
+  Every append after C1's targeted an anchor from a *previous* append that
+  had itself silently failed to match, so each one did nothing — and Fury
+  reported them to Bryce as written. The contract sections and the gate
+  ledger landed (different anchors); the log a fresh session resumes from
+  did not. **Mission-9's own lesson, verbatim: "verify a file edit landed;
+  don't trust the write."** Rebuilt here from the commit history, which is
+  the record that was never wrong.
+
+## Deliberate leftovers (each routed, none absorbed)
+
+- **`TimelineGrid.tsx` at 649/650 total** — compliant, **one line of
+  margin**, and Strange has established that the outstanding blocker's fix
+  and the extraction are **coupled**: the string change costs zero lines
+  but its justifying comment must change with it. **Trip condition: the
+  next contract touching this file extracts first.** Captain has already
+  measured the seam and its cost. Do not write a hard-cap justification
+  instead — that failure already happened once in this mission.
+- **The all-day strip does not drain past events** — it imports no
+  `isPast`, so a past all-day bar renders identically to a current one
+  while past *timed* blocks correctly drain. DESIGN.md records this as
+  *"a known gap, not a licence."*
+- **The container query's residual risk:** adding horizontal padding to
+  the overflow button would make it read a smaller number than the visible
+  column, silently invalidating all three thresholds. Worth a clause.
+- **The three tiers are mis-calibrated in detail** — Inter at 9px has no
+  tabular figures, so real maxima are 36.08 / 41.89 / **47.70** against
+  thresholds 36 / 42 / 47, the 3-digit tier off by 2.4px in the unsafe
+  direction; the comment also cites `font-semibold` where the computed
+  weight is 400. **One** sub-pixel clipping event in 1,128 measurements.
+  Suggested 37 / 42 / 48 with corrected figures.
+- **Focus lands on `BODY`** after tapping "+N more" or "− Show less" (the
+  activated button unmounts). Nothing unreachable.
+- **The collapse control leaves the fold at ~15 all-day items** on one day
+  at 375×667 — measured **reachable**, but through a wall of bars.
+- **The overflow label is per-day; the action is strip-wide.** Fine at
+  realistic counts; matters before anyone raises the lane cap.
+- **Captain's round-1 notes, all open**, routed to CV5/CD1: the
+  self-contradicting reachability clause (it declined to BLOCKER and
+  drafted the repair); `chromeOffsetPx`'s expired justification; a second
+  short-month vocabulary; the dormant-export rule over-reaching three
+  times; **`src/lib/`'s twelve client-hook modules absent from the layout
+  map**; `scheduleWindowState.test.ts` at 441/630; `MonthGridSkeletonRows`'s
+  false "CV4 replaces this" claim; `VISIBLE_LANES` defined twice;
+  `HubNav`'s dependents list naming two of three.
+- **For Bryce, not blocking:** a 96px hour rail on **Day only** would clear
+  the 44px floor outright at the cost of halving Day's visible span —
+  Strange ruled it not worth it, one constant if he disagrees. And the
+  now-line's `--danger` use is an unlisted use of a reserved token;
+  Strange asked for a sanctioning line in DESIGN.md — **still unwritten.**
+
 ## Delivery
 
-_Pending._
+_Pending — one blocker open (the UTC-path string), surfaced to Bryce._
