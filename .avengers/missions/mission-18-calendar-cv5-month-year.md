@@ -168,7 +168,38 @@ that writing a hard-cap justification instead is self-refuting.
   lost from the accessibility tree, gauntlet green.
 
 ### C3 — `MonthChips`: the month-name scroller
-- **Status:** PENDING (sequential — shares `CalendarViews.tsx` with C4)
+- **Status:** **DONE** — merged. 25 chips (±12 months), Januaries carry the
+  year and **no other month does** (`nonJanuariesWithYear: []`), selected
+  chip auto-recentres. Measured: every chip **exactly 44px tall at 375 and
+  320** — the DESIGN.md floor, not eyeballed. The scroller absorbs its own
+  overflow (`scrollWidth 1782` against `clientWidth 320`) while
+  `body.scrollWidth === innerWidth` at both widths, before and after, so
+  nothing leaks to the page. A **real tap** moved the rendered heading
+  September 2026 → March 2026. `CalendarViews.tsx` 459 → **492 total / ~236
+  code** (158 under the hard cap); `MonthChips.tsx` 106/52. Boundary exactly
+  the two allowed files; gauntlet re-run by Fury.
+- ⚠️ **A REAL GAP IN THE PLAN, found by the builder and verified by Fury.**
+  `.avengers/plans/calendar-v2.md:262` specifies *"tap = `jumpTo(1st,
+  "month")`"*. **That is not reachable.** `useCalendarNavigation.ts`'s return
+  value is `{view, anchor, today, step, goToToday, setView, openDay}` —
+  **`jumpTo` is not in it** (confirmed by reading the return statement, not
+  the imports; the hook destructures `jumpTo` from `useCalendarPeriod` and
+  uses it only internally). `openDay` forces Day view; `step` moves one
+  period and reads a stale closure, so looping it is wrong; `setView` takes
+  no target day. The builder pushed `buildCalendarSearch("month", day)`
+  through the router already present for the Add sheet — **not an unguarded
+  bypass**: the hook's own resync effect is documented to treat an unmatched
+  search-param change as an external navigation and re-point the cursor with
+  `jumpTo`, which it verified live. **CV6's dropdown hits this identical gap**,
+  so re-exporting `jumpTo` belongs to whichever contract may touch that hook.
+- ⚠️ **Disclosed by the builder, verified by Fury: a full dev-branch
+  connection string was printed into its own local transcript** by an early
+  `grep`, before it added redaction. **Nothing durable was touched** — the
+  only `postgresql://` strings anywhere in the branch are vendored Prisma
+  **documentation placeholders** (`USER:PASSWORD@HOST`), the worktree's
+  `.env` was deleted, and `git status` is clean. **Second transcript
+  exposure of a dev credential** (2026-09-02 was a fragment; this was the
+  whole string). Strengthens the case for the parked dev-branch rotation.
 - **Objective:** A horizontal scroller of month names above the Month grid;
   the year is shown once at each January; tapping a month jumps to its 1st.
 - **Boundaries:** may touch new `src/components/MonthChips.tsx`,
@@ -258,6 +289,12 @@ Settled by hand, because the tool cannot settle them:
 
 ## Handoff log
 
+- 2026-09-06 — **C3 DONE and merged.** Two findings, both verified rather
+  than taken on trust: the plan's `jumpTo` call is not reachable through the
+  navigation hook's public surface, and a dev connection string reached a
+  local transcript while nothing durable was touched. **C4 is next and its
+  preflight must be re-run now** — `MonthChips.tsx` exists as of this merge,
+  which is what its earlier FAIL was about.
 - 2026-09-06 — **C2 DONE and merged.** Boundary clean (one file). Gauntlet
   re-run by Fury. Two findings recorded above: my contract's premise was
   stale for the fifth time, and preflight had already quoted it back to me.
