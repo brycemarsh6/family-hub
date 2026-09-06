@@ -5216,12 +5216,21 @@ screen.
 run of days, scrolling endlessly backward and forward, today always
 present, events **and tasks** in every row. Mission
 `.avengers/missions/mission-15-calendar-cv3-schedule.md` is the
-authoritative record: **twelve contracts, nine gate verdicts** (Captain
-3, Vision 3, Strange 3 — plus two Vision instances that died to rate
-limits before reporting), and one decision that belongs in this file's
-history: **Vision blocked three times, the doctrine stopped the mission,
-and Bryce extended the budget by one pass, on the record.** Tests
-**252 → 310**, green under Denver, UTC and Los Angeles.
+authoritative record: **thirteen contracts dispatched** (C1–C12 plus
+C3b), of which only **eleven have a written contract in the mission
+file** — **C3b and C5 shipped with none at all**, which a gate filed as
+its own defect, and `STRUCTURE.md` now cites "mission-15/C5" for a
+contract the mission file never recorded. Plus **ten gate verdicts** —
+Captain 3, Vision 4, Strange 3 — and two Vision instances that died to
+rate limits before reporting. Merged as **PR #15** (`cdafb91`). One decision belongs
+in this file rather than only in the mission file: **Vision blocked three
+times, the doctrine stopped the mission, and Bryce extended the budget by
+one pass, on the record** — that authorized fourth pass is why Vision's
+count is four and not three. Tests **252 → 310**, green under Denver, UTC
+and Los Angeles.
+*(Corrected 2026-09-06 against the mission file's own ledger: this
+paragraph previously read "twelve contracts, nine gate verdicts … Vision
+3", which contradicted the sentence immediately after it.)*
 
 ### Decisions made with Bryce — don't re-litigate
 
@@ -5255,11 +5264,20 @@ drift); `fetchCalendarEvents` — **the calendar's first data-returning
 guarded action**, a public POST with a 124-day span cap — and its
 `fetchTasks` sibling; `scheduleWindow.ts` (pure: merge, 30-day chunks,
 rows) and `scheduleWindowState.ts` (the window state machine, tested
-across every 2026 DST transition); `useScheduleWindow.ts`,
+across the **Nov 1 2026 fall-back** — the *spring-forward* has **no case in
+either state-machine test file**, so "every DST transition" overstates it.
+Mar 8 *is* covered, in three other modules: `scheduleWindow.test.ts`,
+`calendarViewConfig.test.ts` and `timelineLayout.test.ts`. *(Corrected
+2026-09-06, twice: the original claimed every transition; the first fix
+said the coverage sat in two files and missed `timelineLayout.test.ts`,
+which carries two dedicated spring-forward cases — the second false claim
+introduced by a correction in one session. See the subsection below.)*); `useScheduleWindow.ts`,
 `useScheduleSentinels.ts`, `useScrollAnchor.ts`; `ScheduleView.tsx`.
 `MonthLoadingSkeleton.tsx` — which STRUCTURE.md said "must not survive
 CV3" — is now `MonthGridSkeletonRows.tsx`, named for what it exports.
-STRUCTURE.md gained **six** Bryce-approved amendments, and the Avengers
+STRUCTURE.md gained **five** Bryce-approved amendments (one commit,
+`aa680e1`; a sixth — the read-action `null`-on-refusal correction drafted
+here — landed the next day at the top of mission 16), and the Avengers
 `MISSION.md` template gained **Fury's nine-item pre-dispatch checklist**,
 every item a real incident from missions 13–15.
 
@@ -5383,18 +5401,32 @@ duplicated between `page.tsx` and `actions/tasks.ts`. The explicit
 stop-reason state machine. The sticky month header that does not stick —
 `globals.css`'s `overflow-x: hidden` on `body` makes `position: sticky`
 inert **app-wide**, pre-existing, and one comment justifies a design call
-on the belief that it works. A touch flick at a boundary grants more
+on the belief that it works. *(✅ Closed the next day by mission 16, which
+found it reached every `sticky` in the app including the global header —
+see the next entry. **Two others closed too, and not as written here:**
+Captain **withdrew** its own `useScheduleWindow.ts` loaders-split
+candidate after measuring the file at 431 lines but **172 of code** — the
+measurement that became the caps amendment — and `ScheduleView.tsx` was
+split in mission-16/C9 via `useScheduleMonthTitle.ts`, not the
+`ScheduleMonthSection.tsx` named above, which does not exist. **Verified
+still open as of 2026-09-06:** three `toDateInputValue` copies, four
+`withTimeZone` copies, `calendarDayDiff`'s unguarded loop, and the
+`ASSIGNABLE_ROLES` predicate.)* A touch flick at a boundary grants more
 chunks than a wheel flick. Day lands at `scrollTop 5`, not 0.
 `calendarDayDiff` still loops forever on an invalid `Date`.
 `ASSIGNABLE_ROLES` is still a predicate, not a total record.
 
-### Pending with Bryce, none blocking
+### Pending with Bryce — ✅ all four resolved since
 
-Accept Captain's count-check for C9 rather than a fourth Captain pass;
-approve the corrected STRUCTURE.md read-action sentence (`null` on
-refusal); whether the header and Today circle should stick on an endless
-Schedule list; and the two CT1 amendments (membership guard form; the
-data-migration exception to additive-only).
+*(Verified 2026-09-06; kept as the record of what was open at the time.)*
+He **accepted Captain's C9 count-check** over a fourth Captain pass on
+2026-09-05, which is what closed this mission's last standing blocker.
+The corrected STRUCTURE.md read-action sentence (`null` on refusal) **is
+in the file**. The header and Today circle **do** stick on the endless
+Schedule list — mission 16 shipped it the next day, and doing so uncovered
+that no `sticky` in the app had ever worked. And both CT1 amendments (the
+membership guard form; the data-migration exception to additive-only)
+**are in STRUCTURE.md**.
 
 ### Next
 
@@ -5408,8 +5440,17 @@ timeline for Day / 3 Day / Week, `timelineLayout.ts`'s first consumer.
 
 ## Session, 2026-09-05/06: mission 16 (the follow-up) and CV4 (the hour timeline)
 
-Two missions, both merged. **Nineteen contracts, seven gate rounds.** Tests
-**310 → 333**. `.avengers/missions/mission-16-calendar-followup-polish.md`
+Two missions, both merged. **Twenty contract headings** (twelve, then
+eight) and **seven gate rounds** — mission 16 three, CV4 four. *(Headings,
+not dispatches: mission 16's twelve include one rewritten after
+BLOCKED-ON-CONTRACT and one deferred and never built, and its own commit
+counts "nine build contracts". The CV3 entry above counts dispatches,
+because two of its contracts had no heading to count — so the two numbers
+are not comparable.)* Tests **310 → 317 →
+333**. Merged as **PR #16** (`17b6e60`) and **PR #17** (`b372f0f`), each
+production deployment verified successful through the deployments API
+rather than assumed, and `git log origin/main..HEAD` clean after both.
+`.avengers/missions/mission-16-calendar-followup-polish.md`
 and `mission-17-calendar-cv4-timeline.md` are the authoritative records.
 
 ### What the family has now
@@ -5423,8 +5464,16 @@ changing as you scroll.
 **CV4** — Day, 3 Day and Week are **hour timelines**: events placed by
 their real times, overlapping ones side by side, a now-line, all-day
 events *and tasks* in a strip above, scroll-to-now on open. **Nothing in
-`src/` positioned anything by time before this.** All six views are built
-and reachable.
+`src/` positioned anything by time before this.** **Five of the six views
+are now built and reachable** — Schedule, Day, 3 Day, Week, Month.
+**`BUILT_VIEWS.year` is still `false`**, so the picker does not offer Year
+and no `?view=year` resolves; Year is CV5's work.
+*(Corrected 2026-09-06. Both this entry and mission-17's own delivery
+record claimed "all six views built and reachable", which contradicted
+this file's own "where the calendar stands" line two screens below and,
+more to the point, `calendarViewVocabulary.ts:125` — the picker filters
+its options through `BUILT_VIEWS`. Verified by reading the table, not the
+prose.)*
 
 ### The accidental discovery that mattered most
 
@@ -5473,7 +5522,11 @@ CSS silently overrode them.
 - **A death is not a verdict.** Both final gates were killed mid-run by a
   session limit; re-running completed the pass rather than spending a
   fourth.
-- **The UTC/Mountain seam reached a *sentence* — its ninth appearance.**
+- **The UTC/Mountain seam reached a *sentence*.** (This file has called
+  it the "eighth" and then the "ninth" appearance, but it records at least
+  two unnumbered ones in between — CT1's all-day storage bug and CV3's
+  "three bugs at one seam" — so treat the tally as "roughly a dozen and
+  still arriving", not a count.)
   `isOutsideWindow` flags a *partially* fetched day, and on Vercel's UTC
   server the boundary falls at 5 PM Denver, so a screen reader is told
   "no events loaded for this day" while that day's morning events render
@@ -5486,7 +5539,68 @@ CSS silently overrode them.
   from did not. **Mission-9's own rule, ignored: verify a file edit
   landed; don't trust the write.** Rebuilt from the commit history.
 
+### Fury's ledger for these two missions
+
+Mirroring CV3's, because the class is the tracked one: **every failure
+below is either a false premise about what already existed, or a record
+that never landed.**
+
+- **A contract omitted `tasks` from `TimelineGrid`'s props**, so tasks
+  were **entirely absent from Day, 3 Day and Week** — the three views the
+  picker defaults into. A kid could not have completed a chore from the
+  view they land on. Caught by a gate, not by the build. Same shape as
+  CV3's three boundary errors: a false premise written into a boundary,
+  and therefore correctly obeyed.
+- **Contracts shipped with no written boundary — four of them, across the
+  two calendar missions in this entry** — **CV4/C5, CV4/C7, and CV3's C3b
+  and C5**. *(Corrected 2026-09-06: the fix that got the contract count
+  right said "three missions" in the same breath. They sit in two. And the
+  running total across the whole arc is **seven**, not four — mission-14
+  contributed C3b, C5 and C6, recorded in the CT-era entry above.)* (dispatched and shipped
+  with no contract in the mission file at all). *(Corrected 2026-09-06:
+  an earlier version of this bullet named **mission-16/C5**, which is
+  wrong twice over — it carries an explicit may-touch/must-not-touch
+  boundary, and it was **DEFERRED and never built**, so it shipped
+  nothing.)* Filed by Vision repeatedly, and it is already item **five** on
+  Fury's own pre-dispatch checklist — item four is now "Run preflight",
+  inserted by this very branch, which is how a correct reference goes stale
+  inside a single commit.
+- **A builder reported DONE having committed nothing** (mission-16/C3b +
+  C6), caught by `git log` rather than by reading the report.
+
+### ⚠️ Bryce's second budget extension, and the ship decision
+
+The three-pass gate budget was extended by Bryce for the **second time in
+two days.** Shown Strange's round-3 notes on CV4, he said *"let's fix it
+and then merge with the main app if everything looks good"* — which
+authorized **C8 plus a fourth Strange pass**. That pass then blocked on
+the screen-reader string described below, and he chose **"ship it"**.
+Both extensions are recorded here because stop-and-surface only means
+anything if the override is visible: **the budget was never exceeded
+quietly, it was extended deliberately, twice, by the person whose family
+uses the app.**
+
+### What the gates caught before it reached the family
+
+Tasks absent from the three default views (above); the **fourth all-day
+item unreachable**, with Month's "+N more" escalating into a Day view
+showing the same dead "+N more"; consecutive half-hour events abutting at
+**0.0px**; "not loaded" rendering **byte-identical to "empty"** in the
+accessibility tree; a nine-line function copied byte-for-byte; a **wrong
+bottom-nav height** (64 against a real 65); and a **225px** skeleton jump
+found by measuring rather than trusting. The permission boundary was
+proven at the **network level** — `completeTask` replayed over raw HTTP
+as one kid against another kid's task, refused, database unchanged, with
+a positive control first so the refusal meant something.
+
 ### Process changes Bryce approved, and their first results
+
+**All three came from Bryce raising pace, not from a retrospective.** His
+words: *"I feel like things are moving really slow. Any insight into
+that?"*, and when asked what he meant — *"The clock. I just wasn't sure if
+we were going in circles or making headway."* That is the right question to
+answer with a measurement rather than reassurance, and the three changes
+below are what the measurement produced.
 
 **Builders now run in parallel, each in its own git worktree on its own
 branch**, merged by Fury — three at once in CV4, zero conflicts. Mission
@@ -5501,10 +5615,18 @@ held behind app-wide work that needed three gate rounds.
 `STRUCTURE.md` gained **seven**: `validatedPeople`'s decision gets a home
 in `src/lib/` as `personInfo.ts`'s write-side twin (third copy is a
 BLOCKER); a measured chrome dimension has one home and its markup names
-its dependents; **caps are judged on code lines, both reported**;
+its dependents; **caps are measured on TOTAL lines, but a file whose
+non-comment code is well under the cap is not a split candidate — report
+BOTH counts**;
 `CalendarHeader`'s inline `view === "schedule"` joins the named-instance
 list; the four accounts-cutover decisions; guard form **(c)**, membership;
-and the named data-migration exception.
+and the named data-migration exception. *(Corrected 2026-09-06: the caps clause
+read "caps are judged on code lines", which **inverts** the rule. The
+difference is not academic — `TimelineGrid.tsx` is **649 total / 341
+code**, so it sits at the hard cap with **one line of
+headroom**, not with 300. An eighth Bryce-approved amendment landed in
+this same window and is not in the seven above: the read-action `null`-on-refusal
+correction, `021049e`.)*
 `DESIGN.md` gained **three**: the optimistic carve-out (a one-shot
 destructive verb waits, a reversible flip does not — *"if this fails, does
 undoing it read as a correction or a loss?"*); the timeline's sanctioned
@@ -5521,6 +5643,33 @@ production. **First item for CV5**, and it is coupled to an extraction:
 `TimelineGrid.tsx` is at **649/650**, and the comment justifying the
 current wording must change with the string.
 
+### Deliberate leftovers, all routed (mission-17's own list is fuller)
+
+`TimelineGrid.tsx` sits at **649/650** with the trip condition that **the
+next contract touching it extracts first — do not write a hard-cap
+justification instead, because that exact failure already happened once
+in this mission.** The all-day strip does not drain past events, which
+DESIGN.md records as *"a known gap, not a licence."* The overflow label's
+three width tiers are mis-calibrated by about 2.4px in the unsafe
+direction — one sub-pixel clipping event in 1,128 measurements.
+
+**Captain's round-1 notes, all open, routed to CV5/CD1:** the
+self-contradicting reachability clause (it declined to BLOCKER and
+drafted its own repair), `chromeOffsetPx`'s expired justification, a
+second short-month vocabulary, the dormant-export rule over-reaching
+three times, **`src/lib`'s twelve client-hook modules absent from the
+layout map**, `scheduleWindowState.test.ts` at 630 total / 441 code,
+`MonthGridSkeletonRows`'s false "CV4 replaces this" claim,
+`VISIBLE_LANES` defined twice, and `HubNav`'s dependents list naming two
+of three.
+
+**For Bryce, not blocking:** a 96px hour rail on **Day only** would clear
+the 44px touch floor outright, at the cost of halving Day's visible span
+— Strange ruled it not worth it, and it is one constant if he disagrees.
+And **the now-line's `--danger` use is an unlisted use of a reserved
+token**; Strange asked for a sanctioning line in DESIGN.md, and it is
+**still unwritten.**
+
 ### Where the calendar stands
 
 `CV0 ✅ CV1 ✅ CT1 ✅ CV2 ✅ CV3 ✅ CT2 ✅ CV4 ✅` — **CV5** (Month text pills,
@@ -5531,3 +5680,211 @@ Cloud project only Bryce can create**). Full plan:
 `.avengers/plans/calendar-v2.md`. **CD1 lands in `TimelineGrid.tsx` and
 adds code, not prose — it extracts first.**
 
+
+---
+
+## Session, 2026-09-06: an audit of this file, and two records that had drifted
+
+Bryce asked for this directly, and his reason is in the ask: *"You have told
+me in the past that you've missed recording multiple important things into
+Claude. So I want you to scan across everything and make sure everything is
+logged correctly and thoroughly."* He is right that it has happened — this
+file already names the gap between doing and recording as a tracked defect
+class, five times over. So the audit was run the way a gate is run:
+**every checkable claim got the command that settles it, rather than a
+re-read for plausibility.**
+
+### What was wrong, and is now fixed
+
+- **A claim that contradicted the code: "All six views are built and
+  reachable."** `BUILT_VIEWS.year` is `false`, and the picker filters its
+  options through that table (`calendarViewVocabulary.ts:125`), so **five**
+  views are reachable and Year is still CV5's work. The same false sentence
+  was in **mission-17's own Delivery section**, which is supposed to be the
+  authoritative record — both corrected. It also contradicted this file's
+  own "where the calendar stands" line two screens below it.
+- **CV3's contract and verdict counts were wrong and self-contradicting** —
+  "twelve contracts, nine gate verdicts … Vision 3", where the mission file
+  holds only eleven *written* contracts — **thirteen were dispatched**, which
+  the subsection below corrects a second time — and Vision reported **four**
+  times, the fourth being the pass Bryce authorized. The sentence immediately after it
+  described that extension, so the paragraph disagreed with itself.
+- **"Nineteen contracts" for mission 16 + CV4**; the two mission files hold
+  **twenty** (twelve, then eight).
+- **PR numbers and deployment verification were missing entirely** for all
+  three merges (**#15**, **#16**, **#17**), though this file's own
+  convention has recorded them since the dashboard.
+- **Four things the entries never recorded at all**, now added: Fury's
+  contract error that **omitted tasks from the timeline's props** (tasks
+  absent from Day / 3 Day / Week — the three views the picker defaults
+  into); the three contracts dispatched with no written boundary; **Bryce's
+  second budget extension** and the "ship it" call; and CV4's deliberate
+  leftovers, including Captain's nine open notes routed to CV5/CD1.
+
+### ⚠️ The audit's own correction was wrong, and only a gate caught it
+
+**The single most important finding, because it is the tracked class one
+turn deeper again.** Correcting the CV3 entry's contract count, I wrote
+*"eleven contracts, numbered C1–C12 with no C5"* — counting the **headings
+in the mission file** and concluding the missing number never existed.
+`git log` shows `CV3/C5` and `CV3/C3b` as real, shipped commits.
+**Thirteen contracts were dispatched; only eleven were ever written down**,
+which a gate had already filed at the time as its own defect. So the
+mission file's silence was the evidence of a known failure, and I read it
+as evidence the work never happened — and `STRUCTURE.md` cites
+"mission-15/C5" in two places, which my correction would have made look
+like a citation of something fictional.
+
+Dispatched to check the entries, **Vision returned nine findings where I
+had found three**, including that one. The others: the caps rule stated
+**backwards** (STRUCTURE.md measures **total** lines and asks for both
+counts; I wrote "judged on code lines", which would have licensed growing
+a file that is one line under a hard cap); "tested across every 2026 DST
+transition" when the **spring-forward has no case at all** in either
+state-machine test file; "six" STRUCTURE.md amendments where git shows
+five; a no-written-boundary bullet naming a contract that **had** a
+boundary and was **never built**; and a "still open" note I had *just
+added*, listing two items that were closed — one of them **withdrawn by
+Captain** — and that withdrawal is the cited basis of the caps amendment
+recorded in the very next session entry.
+
+**The lesson, and it is the whole reason this session's work is worth
+anything: an audit is a claim, and a claim needs a gate.** Re-reading my
+own corrections would have confirmed every one of them. What caught them
+was another agent running the command that settles each claim — `git log`
+against a heading count, `grep` against a coverage claim, the constitution
+against a paraphrase of the constitution. The habit that follows: **a
+correction to this file is a change like any other, and is not more
+trustworthy for being a correction.** It was pass 1 of a gate on a record,
+and it blocked.
+
+### The drift worth knowing about, because it is invisible from inside a session
+
+**`.claude/` (committed, travels with the repo) and `~/.claude/` (this
+laptop only) had drifted in BOTH directions at once**, and neither copy was
+wrong on purpose:
+
+- **`skills/avengers/templates/MISSION.md`** — the user copy carried
+  **Fury's nine-item pre-dispatch checklist** (added in mission 15, every
+  item a real incident); **the committed copy had zero of them.** This file
+  claims that checklist exists. On any other device — claude.ai/code,
+  another machine, Codex — it did not, which is the precise reason the
+  Avengers were committed into `.claude/` in the first place: *"the repo
+  became self-contained for any-device work."*
+- **`skills/avengers/SKILL.md`** — the reverse. The committed copy carried
+  the 2026-09-02 gate-tiering decision and its reasoning; **the user copy
+  still listed Strange and Captain as Fable.** Documentation-only, because
+  the agent *definition* files set the model and those five were verified
+  identical and correct — but it is exactly the "second definition in
+  English, and it is the one that drifted" hazard this file already names.
+
+Both are now synced to their newer version, and the five agent definitions
+were checked file-by-file rather than assumed. **The standing rule this
+earns: the two `.claude/` copies have no check between them, so diff them
+whenever either is edited.** A drift here is silent, survives a session,
+and only shows up on a different device.
+
+### What was verified TRUE, so nobody re-does it
+
+The CT-era database baseline still holds **exactly** — `Task 0,
+TaskPerson 0, CalendarEvent 4, User 5`, read directly, which also confirms
+the 25 rows stranded by a rate-limit death were genuinely cleaned up. `npm
+test` reports **333**. All **seven** claimed STRUCTURE.md amendments and all
+**three** DESIGN.md amendments are present (the caps one is worded
+"report BOTH counts", not "code lines" — it is there). `overflow-x: clip`
+is in `globals.css` with its explanation. The grandfathered debt is still
+open as recorded: **three** `toDateInputValue` copies, **four**
+`withTimeZone` copies, no `fetchWindow.ts`, no `src/lib/testing/`,
+`calendarDayDiff` still unguarded, `ASSIGNABLE_ROLES` still a predicate.
+Nothing is unpushed.
+
+### Also corrected outside this file
+
+**AGENTS.md** — read by non-Claude tools, and it did not say that **direct
+pushes to `main` are blocked by a ruleset** or that the PR + green Gauntlet
+path is the only one. It also lacked the **never `git add -A`** rule, which
+exists because a blanket stage swept a parallel builder's in-flight files
+into an unrelated commit. Both added to its danger register.
+
+**Memory** — three saved memories described work that had since shipped and
+would have actively misled: the dashboard as "Bryce's next build target"
+(built 2026-09-01), the all-day timezone defect as "deferred" (fixed in
+CT1), and the Fable experiment as "remind him at the start of the next
+mission" (it ran, the claim was retracted, Bryce parked it). The first two
+were retired; the third was rewritten to keep the part that is not in the
+repo — **agent definition files are read once at session start, so a
+mid-session edit does nothing until restart, and a trivial subagent
+dispatch costs ~90-160k tokens before it does any work.**
+
+### It happened a second time, in the fix for the first — and the tool got built
+
+**Vision was dispatched twice, blocked twice, and the second block was the
+same defect as the first.** Correcting "tested across every 2026 DST
+transition", I wrote that Mar 8 is covered *"only in"* two named test files.
+`timelineLayout.test.ts` carries **two dedicated spring-forward cases**. So a
+correction written specifically to remove an overclaim introduced a fresh
+false claim — the second in one session, both in corrections, both caught by
+a gate and neither by re-reading. Pass 2 also caught a fix that **annotated
+rather than repaired**: mission-17's ledger row and handoff log still read
+"all six views" while my correction merely *named* them, and the handoff log
+is the thing a fresh session resumes from. Both are now actually fixed.
+
+**So the preflight tool was built the same day, and Bryce approved it.** It
+lives at `.claude/skills/avengers/preflight.mjs` (synced to `~/.claude/`,
+per this session's own drift finding) and is item one on the dispatch
+checklist. Six checks, each derived from a real incident rather than
+invented: a missing contract heading; a path that does not resolve or a
+"new" file that already exists; re-measured line counts against both caps; a
+symbol the contract needs that is **defined inside a must-not-touch file**;
+**may-touch code that imports must-not-touch code**; and two parallel
+contracts naming the same file. It then surfaces every negative or
+quantitative claim with a reference count beside each identifier.
+
+**The verification is the part worth keeping, because the tool failed it.**
+Replayed against mission-16/C3 at its own pre-dispatch commit in a throwaway
+worktree, the first version reported **PREFLIGHT CLEAR** *(attested by this
+session only — that version was never committed, so unlike every other claim
+here it cannot be re-run)* — it would not have
+caught the incident it was built for. Three real gaps, each fixed and
+re-replayed: the symbol check only inspected symbols the contract *names*,
+but the blocker was the one it failed to name; the claim regex demanded the
+word "only", so it read straight past *"Two roster queries filter
+`deactivatedAt: null`"*, the actual sentence; and identifier extraction
+required the whole backtick span to be an identifier, so that field was
+skipped entirely. It now quotes the false sentence back and prints, directly
+beneath it, that `deactivatedAt` appears in **17 files** — including the two
+roster queries the contract missed — plus the forbidden import that was the
+real blocker. Replay against mission-14/C5 hard-fails on the missing
+contract heading. A control that went DONE first pass stays at zero hard
+failures. **It never prints "CLEAR" while anything needs judgement**,
+because on replay the worst boundary error in this project's history
+produced zero hard failures.
+
+The tool also found three bugs in itself on the way: a block parser that
+stopped at any `###` and so reported a boundary as missing when it sat below
+a sub-heading; a total-line count **off by one against `wc -l`**, in the
+instrument that measures the hard cap; and no glob support, so `actions/**`
+read as a missing file. **A tool that measures caps must agree with `wc -l`
+to the line, or it is another record that claims more than it verified.**
+
+### Parked with Bryce — raised, decided, not forgotten
+
+None of these block anything. They are listed together so a fresh session
+neither loses them nor re-raises them every time:
+
+- **Two dev-only credential rotations**, both shelved by him as not urgent:
+  the Neon **dev-branch** password (an agent leaked a fragment into a
+  transcript, 2026-09-02) and the dev **`SESSION_SECRET`** (2026-09-06).
+  Production values live in Vercel and are untouched in both cases.
+- **A 96px hour rail on Day only** — would clear the 44px touch floor
+  outright at the cost of halving Day's visible span. Strange ruled it not
+  worth it; it is one constant if Bryce disagrees.
+- **The DESIGN.md sentence sanctioning the now-line's `--danger` use** —
+  an unlisted use of a reserved token. Strange asked for it. **Still
+  unwritten.**
+- ~~**The preflight tool Fury proposed**~~ — ✅ **built 2026-09-06**, with
+  Bryce's approval the same day; see the subsection above. It targets the
+  most-repeated Fury failure here: a contract boundary written from a false
+  premise about what already exists. **The honest tally is six of that exact
+  shape** — four contract boundaries across missions 13, 14, 16 and 17, plus
+  **two** in this session's own record corrections.

@@ -1,7 +1,7 @@
 # Mission: CV3 — Schedule, the continuous list
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERED — all three gates PASS (Vision 4, Strange 3, Captain 2)
+**Status:** DELIVERED — Vision PASS (4 passes, the 4th Bryce-authorized), Strange PASS (3), Captain 3 passes ending **BLOCKED on budget**, closed by the C9 count-check **Bryce accepted over a 4th Captain pass, 2026-09-05** (recorded in Delivery — the handoff log's last word on it still reads "pending Bryce"). *(Corrected 2026-09-06: this line read "all three gates PASS … Captain 2" — the ledger shows three Captain rows and its last verdict is BLOCKED, so "all three gates PASS" overstated it.)*
 **Started:** 2026-09-04 · **Updated:** 2026-09-05
 
 ## ⚠️ This is the first mission since the calendar went LIVE
@@ -194,8 +194,8 @@ src/lib/voice/*.test.ts` legs.
   if it approaches 350, extract the sheets block first and say so.
   Week, Day and Month must be **provably unchanged**.
 
-### C6 — Vision's four blockers
-- **Status:** DISPATCHED
+### C6 (first draft — SUPERSEDED by the C6 below) — Vision's four blockers
+- **Status:** SUPERSEDED — see the later C6, which shipped as `6d06e7b`
 - **B1** re-arm the sentinels after a load settles (record `isIntersecting`
   in a ref; re-check in an effect keyed on the window/hasMore state, **not**
   in `finally`, where the refs are still stale).
@@ -1120,8 +1120,11 @@ meet badly wherever the two are compared without conversion.
 ## Delivery
 
 - **Shipped:** the Schedule view — one continuous list of days, endless in
-  both directions, today always present, events **and** tasks. Twelve
-  contracts, **ten gate verdicts** (Captain 3, Vision 4, Strange 3; two
+  both directions, today always present, events **and** tasks. **Thirteen
+  contracts dispatched** (C1–C12 plus C3b); only **eleven** have a written
+  contract in this file — C3b and C5 shipped with none, which Vision filed
+  as B4. *(Corrected 2026-09-06: this read "Twelve contracts".)*
+  **Ten gate verdicts** (Captain 3, Vision 4, Strange 3; two
   further Vision instances died to rate limits before reporting). Tests
   **252 → 310**, green under Denver, UTC and Los Angeles.
 - **Final verdicts, all on the shipped tree:** Vision pass 4 **PASS**
