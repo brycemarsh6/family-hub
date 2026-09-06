@@ -11,9 +11,18 @@
 // in `src/lib/` with property tests across every day of 2026. Now this one
 // does too — see calendarViewConfig.test.ts.
 //
-// The render switch (which component draws MonthGrid vs DaySection) stays
-// in CalendarViews.tsx on purpose — that's where future views land, and it
-// should stay flat and visible there, not buried in a config object.
+// mission-17/C3 — the render switch's SELECTION (which family of component
+// a view uses) now lives here too, as the `renderer` field below. What
+// stays in CalendarViews.tsx is the switch's BODY — the actual JSX for each
+// renderer — because `src/lib/` must not import from `src/components/`
+// (STRUCTURE.md's layout map), so this record cannot hold a component
+// reference, only a string tag the switch matches on. That switch is
+// exhaustive over `CalendarRenderer` (a `never`-typed default), so a new
+// renderer value here is a compile error in CalendarViews.tsx until it has
+// a case — the same totality guarantee this whole file already gives
+// `title`/`days`/`isCurrentPeriod`, extended to "which component draws
+// this view" instead of stopping short of it. See CalendarRenderer's own
+// comment for why this was a live gap.
 //
 // No "server-only" guard: this module is pure over its inputs (a `Date` in,
 // a string/boolean/Date[] out), same standing as calendarDates.ts and
@@ -32,6 +41,23 @@ import { daysOfWeek } from "./calendarDates";
 import type { CalendarPeriodView } from "./calendarViewVocabulary";
 
 /**
+ * The families of component a view can render. A string tag, not a
+ * component reference — `src/lib/` may not import from `src/components/`
+ * (STRUCTURE.md), so the actual `MonthGrid`/`ScheduleView`/`DaySection`
+ * elements stay in CalendarViews.tsx's switch. This is deliberately
+ * narrower than `CalendarPeriodView`: `day`, `threeDay`, `week` and `year`
+ * all render the SAME way today (one `DaySection` per `days(anchor)`
+ * entry) — a real fact about the current app, not a placeholder — so they
+ * share the `"daySection"` tag rather than each inventing a distinct one
+ * that would just alias it. CV4 changes `day`/`threeDay`/`week`'s rows to
+ * a new tag when `TimelineGrid` replaces `DaySection` for them; CV5 does
+ * the same for `year`. Widening this union is a compile error in
+ * CalendarViews.tsx's switch until every case is handled — see that
+ * switch's own `never`-typed default.
+ */
+export type CalendarRenderer = "month" | "schedule" | "daySection";
+
+/**
  * The per-view differences the shell itself has to know about, as one row
  * per view rather than a ternary per difference (mission-10/CV0, completed
  * in mission-11/C1). Typed as a total `Record`, so a new name in
@@ -46,11 +72,33 @@ import type { CalendarPeriodView } from "./calendarViewVocabulary";
  * all five here; C2 widened the union to six views against that check and
  * added the label as a sixth difference, in
  * `calendarViewVocabulary.VIEW_LABELS`, where the picker and the header's
- * switcher circle both read it.
+ * switcher circle both read it. mission-17/C3 closes the remaining two
+ * gaps Captain's ruling named: `pinned` (CalendarHeader.tsx's own
+ * `const pinned = view === "schedule"`) and `renderer` (CalendarViews.tsx's
+ * render switch) were both still inline `view === "member"` tests beside
+ * this record rather than rows inside it — tolerable only while `threeDay`
+ * and `year` stayed unreachable, and CV4 is what makes `threeDay`
+ * reachable (see `calendarViewVocabulary.ts`'s `BUILT_VIEWS`).
  */
 export type ViewConfig = {
   prevLabel: string;
   nextLabel: string;
+  /**
+   * Which family of component this view renders — see `CalendarRenderer`'s
+   * own comment. Read by CalendarViews.tsx's switch, never branched on
+   * inline anywhere else.
+   */
+  renderer: CalendarRenderer;
+  /**
+   * Whether CalendarHeader pins itself (`position: sticky`) below the app
+   * header instead of scrolling away with the page. Today this is true for
+   * Schedule alone — it is the one view whose content scrolls far enough,
+   * and long enough, for a persistent header to earn its keep — but it is
+   * a row here, not a `view === "schedule"` expression in
+   * CalendarHeader.tsx, so a future view that also wants this has
+   * somewhere to say so instead of silently inheriting `false`.
+   */
+  pinned: boolean;
   /**
    * How many DaySection placeholders the loading frame renders. Fixed by
    * `view` alone, never by `today` — that's what lets the frame below show
@@ -89,6 +137,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   week: {
     prevLabel: "Previous week",
     nextLabel: "Next week",
+    renderer: "daySection",
+    pinned: false,
     placeholderCount: 7,
     title: (anchor) => formatWeekRange(sundayOf(anchor)),
     days: (anchor) => daysOfWeek(sundayOf(anchor)),
@@ -97,6 +147,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   day: {
     prevLabel: "Previous day",
     nextLabel: "Next day",
+    renderer: "daySection",
+    pinned: false,
     placeholderCount: 1,
     title: (anchor) => formatDayLabel(anchor),
     days: (anchor) => [anchor],
@@ -105,6 +157,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   month: {
     prevLabel: "Previous month",
     nextLabel: "Next month",
+    renderer: "month",
+    pinned: false,
     placeholderCount: 1,
     title: (anchor) => formatMonthTitle(anchor),
     days: (anchor) => [anchor],
@@ -130,6 +184,11 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     // shows them isn't stuck with placeholders.
     prevLabel: "Previous",
     nextLabel: "Next",
+    renderer: "schedule",
+    // The one `true` row. Schedule is the one view whose content scrolls
+    // far enough, and long enough, for a persistent header to earn its
+    // keep — see `pinned`'s own comment on `ViewConfig` above.
+    pinned: true,
     placeholderCount: 7,
     // mission-16/C4 — this function's return VALUE is no longer what
     // Schedule's header actually displays. CalendarHeader.tsx now renders
@@ -177,6 +236,14 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   threeDay: {
     prevLabel: "Previous 3 days",
     nextLabel: "Next 3 days",
+    // PROVISIONAL, same status as the label above: today this still
+    // renders via the shared `"daySection"` path (matches current
+    // behaviour exactly — `BUILT_VIEWS.threeDay` is false, so this row is
+    // unreachable through the picker or a URL either way). CV4 is the
+    // phase that flips `BUILT_VIEWS.threeDay` and gives Day/3 Day/Week a
+    // real timeline tag in the same commit.
+    renderer: "daySection",
+    pinned: false,
     placeholderCount: 3,
     // PROVISIONAL: the first column's day. A real 3-day range label needs a
     // formatter for spans other than a week (`formatWeekRange` is
@@ -193,8 +260,15 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   year: {
     prevLabel: "Previous year",
     nextLabel: "Next year",
-    // Year renders 12 mini month grids, not DaySections — unreachable for
-    // the same reason Month's is.
+    // PROVISIONAL: Year is meant to render 12 mini month grids, not
+    // DaySections, but `BUILT_VIEWS.year` is false (unreachable through the
+    // picker or a URL) and no such renderer exists yet — CV5's job. Tagged
+    // `"daySection"` for now because that is what this row's `days`
+    // (`[anchor]`, one entry) currently produces if ever reached directly,
+    // matching pre-C3 behaviour exactly rather than inventing a value
+    // nothing renders.
+    renderer: "daySection",
+    pinned: false,
     placeholderCount: 1,
     title: (anchor) => String(anchor.getFullYear()),
     days: (anchor) => [anchor],

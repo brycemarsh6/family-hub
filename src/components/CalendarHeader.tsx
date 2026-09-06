@@ -3,6 +3,7 @@
 import { CalendarCheck, CalendarRange, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
 import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
+import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { APP_HEADER_HEIGHT_PX } from "@/lib/appChrome";
 
 /**
@@ -133,7 +134,17 @@ export function CalendarHeader({
   // this used to return) is what lets that element carry `position:
   // sticky` at all — for every other view this div is unstyled and
   // changes nothing about the rendered layout.
-  const pinned = view === "schedule";
+  //
+  // mission-17/C3 — this used to be its own `view === "schedule"` test,
+  // the second independent one (CalendarViews.tsx's render switch had the
+  // other) beside `VIEW_CONFIG`, a total record over all six views with no
+  // `pinned` field — so `threeDay` and `year` would have inherited
+  // `pinned = false` silently the moment either became reachable
+  // (STRUCTURE.md's per-member-difference clause; Captain's finding).
+  // Reading `VIEW_CONFIG[view].pinned` instead makes a future view that
+  // also wants this decide so in one place rather than reintroducing a
+  // second inline test beside the record that already owns the answer.
+  const pinned = VIEW_CONFIG[view].pinned;
 
   return (
     <div
