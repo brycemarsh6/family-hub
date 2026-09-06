@@ -108,6 +108,19 @@ export default async function RootLayout({
               margin and its month-title reveal boundary).
             - `RecipeList.tsx` — offsets its sticky A-Z letter headings by
               this same height so the app header doesn't clip them.
+          mission-17/C5 adds two more dependents Fury's original list missed:
+            - `CalendarViews.tsx` — reads `useAppHeaderHeight()` and hands the
+              result to `TimelineGrid.tsx` as a `chromeOffsetPx` prop (that
+              component can't import appChrome.ts itself — see its own file
+              header for why: mission-17/C1 was moving this constant into
+              existence in a PARALLEL worktree while it was being written).
+            - `(app)/calendar/loading.tsx`'s `TimelineGridSkeleton` — its
+              `calc(100dvh - 369px)` is a COMPOSITE that folds this header's
+              height in alongside the page's own title/action-circle rows and
+              the bottom nav, so `369` does NOT contain this constant's name
+              and no grep will ever find the dependency. Named here instead,
+              since that is the only place a future header-height change can
+              learn this number needs re-measuring too.
           If this header's real height ever changes, update
           `APP_HEADER_HEIGHT_PX` in `src/lib/appChrome.ts` (or switch a
           dependent to the runtime-measuring `useAppHeaderHeight` hook the
