@@ -116,9 +116,20 @@ structural changes against it.
   sent** — a client claim of membership is exactly the forgery the guard
   exists to stop (mission-16/C3b's deactivated-person carve-out is the
   second instance and follows this form). And a membership guard
-  **narrows, never widens**: it may permit a role-refused caller for one
-  row, and may never permit anything the role gate refuses for a reason
-  other than that row.
+  **narrows, never widens** *as a caller guard*: it may permit a
+  role-refused caller for one row, and may never permit anything the role
+  gate refuses for a reason other than that row.
+  **Corrected 2026-09-05 on Captain's finding, the same day it was
+  written:** the C3b citation above is the second instance of the
+  **fresh-read discipline**, not of this caller-guard form. C3b relaxes
+  which *person ids* may be written to a row whose callers are
+  manager-gated either way — a **value** carve-out, and one that widens
+  the accepted set — so "narrows, never widens" does not reach it. What
+  the two genuinely share, and what generalises, is the shape worth
+  naming: a blanket refusal relaxed for **one specific row**, on a fact
+  **read fresh from the database**. A clause whose binding rule cannot
+  describe the case it cites produces unsound verdicts later, which is
+  why this was fixed before form (c) was ever used to judge anything.
   Pages use the redirecting guards (`requireVerifiedUser`,
   `requireRole`), never the null-returning ones. Route Handlers for
   non-browser clients keep their own token/signature gates.
@@ -437,5 +448,9 @@ Adding a second definition of any of these is a BLOCKER:
 - **Ingredients/steps are newline-separated text columns**, not structured
   rows. The tripwire stands at 3 of 4 workarounds — a fourth feature needing
   structured ingredients means build it, stop working around it.
-- **One shared family password** (session.ts/dal.ts) until real per-person
-  accounts are needed; the swap is designed to be cheap.
+- **Per-person accounts** (`session.ts`/`dal.ts`, `getVerifiedUser`,
+  `MANAGER_ROLES`, the `User` table, `bootstrap-users.ts`) — shipped
+  2026-08-28/29, replacing the single shared family password, which the
+  cheap-swap design anticipated. **(Corrected 2026-09-05 on Captain's
+  finding: this line still described the retired architecture as current,
+  inside the section headed "don't relitigate.")**

@@ -395,7 +395,10 @@ src/lib/voice/*.test.ts` legs.
 | 1 | Strange | **BLOCKED** | 2 | Confirmed the anchor defect **by measurement** (3/3, `visiblePx 0`); plus a **double month label on landing** that C4's record says cannot happen. 3 notes |
 | — | C7 + C8 | DONE `4dfc603`, `3a644f5` | — | All three blockers closed, proven on **WebKit and Chromium** with pre-fix controls. C7 exposed a real pre-existing render loop — guarded, and flagged for CV4 |
 | — | C9 | DONE `4bf380e` | — | 620 → **494**; new hook 219. Behaviour proven identical by a **byte-identical A/B** against the pre-split build. Captain's N4 closed, N3 left open on purpose |
-| 2 | Vision · Strange · Captain | dispatched | — | Scoped to the delta `c13547f..4bf380e`; all three in parallel, own worktrees |
+| 2 | Captain | **PASS** | 0 | 9 notes, 3 rulings. Measured that C7's 82 lines were **70 prose / 8 code** — the cap pressure that forced C9 was documentation |
+| 2 | Strange | **BLOCKED** | 1 | Both its blockers closed and *felt*; six real month crossings, 350 samples, 0 mismatches. Blocker is **4.35:1** contrast on one chip state |
+| 2 | Vision | **BLOCKED** | 1 | A **regression from C8** on Schedule's far tasks — and it corrected contaminated evidence in two earlier reports |
+| — | C10 | dispatched | — | Both blockers, the anchor claim made true, and the pure kernel extracted and tested |
 
 ## Handoff log
 
@@ -450,6 +453,15 @@ src/lib/voice/*.test.ts` legs.
   `c13547f..4bf380e`** — their pass-1 findings covered everything outside
   it, and `globals.css` is untouched since, so the app-wide sweep does not
   need repeating.
+- 2026-09-05 — Gate round 2: **Captain PASS, Strange BLOCKED (1), Vision
+  BLOCKED (1)**, batched as **C10**. Vision corrected two false claims and
+  one overstatement in this mission's own record — one of them caused by
+  **a parallel gate's seed data contaminating another gate's
+  measurement**, which is worth more than the code fix. Fury applied
+  Captain's two `STRUCTURE.md` repairs: form (c)'s wrong second-instance
+  citation (Fury's own text, written hours earlier) and a "Settled
+  decisions" line still describing the retired shared password as
+  current.
 
 ### The gate round — Captain PASS, Vision BLOCKED, Strange BLOCKED
 
@@ -713,6 +725,120 @@ than glossed.
   including 0–120; `sr-only` heading in the a11y tree). Report both files'
   line counts, and **prove the render loop has not returned** — the guard
   moving is the risk this contract carries.
+
+### Gate round 2 — Captain PASS, Strange BLOCKED (1), Vision BLOCKED (1)
+
+**Both remaining blockers are small; the corrections Vision made to this
+mission's own *record* matter more than either.**
+
+**Vision's blocker — C8 regressed the path it was meant to fix.** C8
+replaced `TaskDetailSheet`'s per-task merge with a roster widened
+server-side to tasks inside the page's **±61-day** window. But
+`ScheduleView` opens that same sheet for tasks it fetched **client-side in
+30-day chunks that auto-extend far past it** — measured live: a September
+landing loaded through **January 2027** after one gesture, and a task
+**100 days out** opened with its picker built from the page roster. The
+comment's stated rationale ("`current.task` is always one of the tasks
+that window query already covers") is **false for Schedule**.
+Consequence: a deactivated member on a far task is **absent from the
+picker entirely** — no marker, no way to unassign — while
+`TaskForm.selectedUserIds` still carries their id, so Save silently
+preserves an invisible assignment. **Before C8 the merge rendered them.**
+Captain's N5 saw the window-vs-row mismatch structurally; Vision found
+what it costs. My C8 contract pushed toward "one server-side mechanism"
+and made that mechanism window-scoped while its consumer is not.
+
+**Strange's blocker — 4.35:1 against a 4.5:1 floor**: `--muted` on
+`--accent-soft`, light theme, **selected** chip — the default state for
+this feature. Dark 5.17:1, unselected 5.38:1. It checked whether the
+pairing exists elsewhere: **13 other sites use that background, none with
+this text colour.** Genuinely new here.
+
+### ⚠️ Two claims in this mission's record were wrong, and a third overstated
+
+**1. "Both anchor call sites land at `top 227`, `wasClamped: false`" is
+false for the deep-link route.** Vision instrumented `scrollIntoView`
+itself instead of polling: **12/12 on HEAD, 6/6 pre-C9**, the deep-link
+target lands **clamped** — `scrollHeight 1225`, `maxY 413`, row `top 348`.
+The 16 earlier runs reading 227 **coincided with a parallel gate's `ZZZ`
+rows sitting in the forward chunk**, whose extra content below the target
+lifted the clamp. Those rows are gone; the reading is 348. **Two gates
+measured the same thing and disagreed solely because a third agent's test
+data was in the shared dev branch.** A process finding, and it belongs
+with the parallel-gates lesson this project already carries.
+
+**2. The C9 builder's diagnosis of that drift was wrong**, though its
+observation was real. It is **document-height clamping**, not the
+`loadBackward`/`loadForward` race it named: Next **serialises** the
+server-action POSTs (`reqB→resB→reqB→resB→reqF→resF→reqF→resF`, ~90ms
+apart, every run), so backward always resolves first and the named race
+cannot occur. The target is the first day of the forward chunk, so at the
+commit that first renders it the page is too short to place it at 227, and
+nothing re-runs the scroll when later chunks arrive.
+
+**3. "Byte-identical" overstates what a refactor A/B can prove.** Every
+deterministic field matched across the pre- and post-C9 trees; the
+timing-dependent ones **differ run to run on the same tree**. Matched in
+substance — the word was mine to repeat and it was too strong.
+
+**Notes carried:** `useScheduleMonthTitle`'s pure kernel is unexported and
+untested in a directory the glob now reaches — filed by **both** Vision
+and Captain, and CV3's `VIEW_CONFIG` lesson verbatim. The today-visibility
+observer is rebuilt on every `months` identity change (30+ per label
+walk) — same `useToday()` root C7 named, bounded, **CV4's**. Vision
+re-confirmed the refusal distinction through the shipped bundle by
+**rewriting a chunk's response to `null` in transit**: four further
+gestures → 0 POSTs.
+
+### C10 — the two round-2 blockers, and the anchor claim made true
+- **Status:** PENDING
+1. **(Vision, BLOCKER) The far-task regression.** Carry the fact on the
+   **task's own people**, never on a window. Add `deactivatedAt: true` to
+   the people `user` select in `calendar/page.tsx` **and** in `fetchTasks`
+   (`actions/tasks.ts` — read-only widening; **this contract explicitly
+   admits that file**, which C8's did not); map
+   `deactivated: user.deactivatedAt !== null` into
+   `CalendarTaskView.people`; in `TaskDetailSheet` pass
+   `[...people, ...current.people.filter(not already in people)]` to
+   `TaskForm`. No string mutation, no inference, no window dependence.
+   Keep `page.tsx`'s `OR` — Vision measured it as **exactly one SQL
+   statement** inside the existing `Promise.all`.
+2. **(Strange, BLOCKER) The contrast.** Add a **`--muted-strong`** token
+   (light ≈ `rgb(105,100,90)`, measured **4.76:1** on `--accent-soft`,
+   6.1:1 on `--surface`) and use it for the marker. Preferred over
+   flattening to `--fg` because it keeps the "the app is talking, not the
+   data" tint — the same reason `--danger-soft` was added when Expiring
+   needed it. **Do not make the selected state weight-only**: Strange's
+   NOTE is that the *unselected* state already leans on weight alone
+   (500 vs 400) and is the weaker of the two. Prove dark did not regress.
+3. **Make B1's claim actually true.** The deep-link anchor is clamped
+   (12/12). After `scrollIntoView`, if
+   `target.getBoundingClientRect().top > margin + 1` **and**
+   `scrollY === scrollHeight - innerHeight`, leave `hasScrolledInitially`
+   false so the next chunk commit re-runs it — bounded, since the flag
+   flips once the landing is exact or forward loading stops. Without it,
+   "the day you ask for is the day you arrive at" is true for Today and
+   false for a shared link.
+4. **Extract and test `topmostClearedMonth(tops, revealLineY)`** — filed
+   by **both** gates. Pure, now in a directory `npm test` reaches, and
+   shipping it untested repeats CV3's `VIEW_CONFIG` lesson verbatim.
+- **Boundaries:** may touch `src/app/globals.css` (**the new token
+  only**), `src/app/(app)/calendar/page.tsx`, `src/app/actions/tasks.ts`
+  (**the people select only** — `validatedPeople` and every guard stay
+  exactly as verified), `src/components/TaskDetailSheet.tsx`,
+  `src/components/EventPeopleField.tsx`, `src/lib/types.ts`,
+  `src/components/ScheduleView.tsx`, `src/lib/useScheduleMonthTitle.ts`,
+  new `src/lib/useScheduleMonthTitle.test.ts` · must not touch
+  `actions/calendar.ts`, `prisma/**`, `CalendarHeader.tsx`,
+  `useScheduleWindow.ts`, `useScheduleSentinels.ts`, `RecipeList.tsx`.
+- **Evidence:** **seed your own data and state plainly what is in the
+  database when you measure** — two gates disagreed about the anchor this
+  round *solely* because another agent's rows were present, so an anchor
+  reading without that context is worthless. Instrument `scrollIntoView`
+  itself, never poll. Contrast in **both** themes and **both** chip
+  states. The far-task path exercised **from Schedule**, on a task beyond
+  ±61 days, not from Week. WebKit **and** Chromium. Positive control
+  first in each. The new unit test proven able to fail.
 
 ## ⚠️ Surfaced to Bryce — an app-wide change he has not seen
 
