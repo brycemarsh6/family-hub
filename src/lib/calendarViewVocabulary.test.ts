@@ -38,20 +38,23 @@ test("every view name has a label and a BUILT_VIEWS answer, and nothing else doe
   }
 });
 
-test("exactly four views are built today — Schedule, Day, Week and Month", () => {
-  // mission-15/C4 flipped schedule (was the first of CV3/CV4/CV5 to land).
-  // CV4/CV5 each flip one more entry in the same commit that adds its own
-  // renderer; this assertion is meant to fail then, and to be updated then.
-  assert.deepEqual([...BUILT_CALENDAR_VIEWS], ["schedule", "day", "week", "month"]);
-  for (const view of ["threeDay", "year"] as const) {
-    assert.equal(BUILT_VIEWS[view], false, `${view} has no renderer yet`);
-  }
+test("exactly five views are built today — Schedule, Day, 3 Day, Week and Month", () => {
+  // mission-15/C4 flipped schedule (the first of CV3/CV4/CV5 to land);
+  // mission-17/C4 flips threeDay in the same commit that gives Day/3 Day/
+  // Week a real timeline renderer. CV5 flips the last one (year); this
+  // assertion is meant to fail then, and to be updated then.
+  assert.deepEqual(
+    [...BUILT_CALENDAR_VIEWS],
+    ["schedule", "day", "threeDay", "week", "month"],
+  );
+  assert.equal(BUILT_VIEWS.year, false, "year has no renderer yet");
 });
 
 test("the picker offers exactly the built views, labelled from the one label map", () => {
   assert.deepEqual(CALENDAR_VIEW_OPTIONS, [
     { value: "schedule", label: "Schedule" },
     { value: "day", label: "Day" },
+    { value: "threeDay", label: "3 Day" },
     { value: "week", label: "Week" },
     { value: "month", label: "Month" },
   ]);
@@ -75,9 +78,7 @@ test("toBuiltCalendarView accepts built views and rejects everything else", () =
   }
   // Real view names with no renderer are rejected exactly like nonsense is:
   // that is what keeps `?view=year` off a page that cannot draw it.
-  for (const view of ["threeDay", "year"] as const) {
-    assert.equal(toBuiltCalendarView(view), null, `${view} is not built yet`);
-  }
+  assert.equal(toBuiltCalendarView("year"), null, "year is not built yet");
   for (const value of ["", " week", "WEEK", "Week", "weekly", "3day", null, undefined]) {
     assert.equal(toBuiltCalendarView(value), null, `rejected: ${String(value)}`);
   }

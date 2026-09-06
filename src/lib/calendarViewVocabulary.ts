@@ -93,11 +93,20 @@ export const BUILT_VIEWS: Record<CalendarPeriodView, boolean> = {
   // (mission-15's Banner brief, D1): unbuilding either would leave
   // `DEFAULT_CALENDAR_VIEW` ("week", below) naming a view with no
   // renderer, which every rejected "?view=" and every stale stored
-  // preference would then resolve to. They become hour timelines in CV4
-  // rather than disappearing first.
+  // preference would then resolve to. mission-17/C4 is what makes that
+  // sentence literally true — Day and Week's `renderer` row
+  // (calendarViewConfig.ts) switched from `"daySection"` to `"timeline"`
+  // in this same commit, so they render `TimelineGrid` now, not the plain
+  // agenda list.
   schedule: true,
   day: true,
-  threeDay: false,
+  // mission-17/C4 — the last entry to flip before Year (CV5): 3 Day now has
+  // a real renderer (`TimelineGrid`, the same one Day/Week just switched
+  // to), so it can leave the vocabulary-only state CV1 first named it in.
+  // The picker and every URL/localStorage path read this table, never a
+  // second list, so flipping the one boolean here is what makes 3 Day
+  // reachable everywhere at once.
+  threeDay: true,
   week: true,
   month: true,
   year: false,

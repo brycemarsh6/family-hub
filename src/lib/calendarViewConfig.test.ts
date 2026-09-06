@@ -60,13 +60,14 @@ test("pinned is true for Schedule alone", () => {
 test("renderer matches each view's actual component today", () => {
   assert.equal(VIEW_CONFIG.month.renderer, "month");
   assert.equal(VIEW_CONFIG.schedule.renderer, "schedule");
-  // day/threeDay/week/year all render via the shared DaySection path today
-  // (CV4 gives day/threeDay/week a distinct tag when TimelineGrid replaces
-  // it; CV5 does the same for year) — see calendarViewConfig.ts's own
-  // per-row comments for why this is the current fact, not a placeholder.
-  assert.equal(VIEW_CONFIG.day.renderer, "daySection");
-  assert.equal(VIEW_CONFIG.threeDay.renderer, "daySection");
-  assert.equal(VIEW_CONFIG.week.renderer, "daySection");
+  // mission-17/C4 — day/threeDay/week switched from the shared DaySection
+  // path to `TimelineGrid` (the hour timeline) in this commit; year is the
+  // one view still on the shared path, until CV5 gives it its own
+  // 12-mini-grid renderer — see calendarViewConfig.ts's own per-row
+  // comments for why this is the current fact, not a placeholder.
+  assert.equal(VIEW_CONFIG.day.renderer, "timeline");
+  assert.equal(VIEW_CONFIG.threeDay.renderer, "timeline");
+  assert.equal(VIEW_CONFIG.week.renderer, "timeline");
   assert.equal(VIEW_CONFIG.year.renderer, "daySection");
 });
 
@@ -170,16 +171,21 @@ test("month: days returns the anchor itself, per its own documented contract", (
 });
 
 // ---------------------------------------------------------------------------
-// Schedule / 3 Day / Year — unbuilt (BUILT_VIEWS says false for all three),
-// but the rows are real, testable facts about the period, per VIEW_CONFIG's
-// own header comment: "days"/"isCurrentPeriod" are already real facts about
-// the period each will show.
+// Schedule — `isCurrentPeriod` is REQUIRED by the total Record type but no
+// longer READ for this view (see VIEW_CONFIG's own per-row comment: the
+// header computes it from ScheduleView's live scroll position instead), so
+// this is the one thing left to test about the row beyond `title`/`days`,
+// both of which are exercised through the running app rather than here.
 
 test("schedule: isCurrentPeriod matches the anchor day exactly (its own row is PROVISIONAL beyond that)", () => {
   const anchor = d(2026, 10, 3);
   assert.equal(VIEW_CONFIG.schedule.isCurrentPeriod(anchor, anchor), true);
   assert.equal(VIEW_CONFIG.schedule.isCurrentPeriod(anchor, d(2026, 10, 4)), false);
 });
+
+// ---------------------------------------------------------------------------
+// 3 Day — mission-17/C4 (was PROVISIONAL, `BUILT_VIEWS.threeDay` false,
+// through CV1–C3; see calendarViewConfig.ts's own per-row comment).
 
 test("threeDay: days spans three consecutive calendar days across the Nov 1 2026 DST boundary", () => {
   const anchor = d(2026, 9, 31); // Halloween, the day before the fall-back
@@ -197,6 +203,22 @@ test("threeDay: days spans three consecutive calendar days across the Nov 1 2026
   assert.equal(isCurrentPeriod(anchor, d(2026, 10, 3)), false);
   assert.equal(isCurrentPeriod(anchor, d(2026, 9, 30)), false);
 });
+
+test("threeDay: title spans the anchor's own 3-day window, same-month and cross-month", () => {
+  // Anchor-relative (the anchor plus the next two days), never a
+  // week-snapped range — the same property the `days` test above checks
+  // for the column set, checked here for the label that describes it.
+  assert.equal(VIEW_CONFIG.threeDay.title(d(2026, 8, 9)), "Sep 9–11");
+  // Crosses a month boundary: Aug 30, 31, Sep 1 — the same shape
+  // formatWeekRange's own doc comment illustrates for a week-long span.
+  assert.equal(VIEW_CONFIG.threeDay.title(d(2026, 7, 30)), "Aug 30 – Sep 1");
+});
+
+// ---------------------------------------------------------------------------
+// Year — still unbuilt (`BUILT_VIEWS.year` is false; CV5's job), but the row
+// is a real, testable fact about the period, per VIEW_CONFIG's own header
+// comment: "days"/"isCurrentPeriod" are already real facts about the period
+// it will show.
 
 test("year: title and isCurrentPeriod", () => {
   const anchor = d(2026, 10, 3);

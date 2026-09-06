@@ -9,6 +9,7 @@ import { CalendarHeader } from "./CalendarHeader";
 import { DaySection } from "./DaySection";
 import { MonthGrid } from "./MonthGrid";
 import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
+import { TimelineGrid } from "./TimelineGrid";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
@@ -20,6 +21,8 @@ import {
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { daysEventCovers, isOutsideWindow, allDayInstantToLocalDay } from "@/lib/calendarDates";
 import { isSameDay, toLocalDateString } from "@/lib/mealPlanDates";
+import { useNowMinute } from "@/lib/useNowMinute";
+import { useAppHeaderHeight } from "@/lib/appChrome";
 import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
@@ -116,6 +119,19 @@ export function CalendarViews({
   const { view, anchor, today, step, goToToday, setView, openDay } =
     useCalendarNavigation(DEFAULT_CALENDAR_VIEW);
 
+  // mission-17/C4 — TimelineGrid's two dependency-injected values (see that
+  // file's own header for why they're props rather than internal hooks).
+  // Called unconditionally, same convention as `today` above: cheap even on
+  // the four out of six views that never read them, and it keeps every hook
+  // call in this component at the top level regardless of which view is
+  // active. `now` is a SEPARATE useSyncExternalStore value from `today` —
+  // both are `null` on SSR and the first client render, but nothing
+  // guarantees they resolve on the exact same tick, so `renderPeriodContent`'s
+  // own "timeline" branch guards it on its own rather than assuming
+  // `today !== null` covers it too.
+  const now = useNowMinute();
+  const chromeOffsetPx = useAppHeaderHeight();
+
   const [pickingView, setPickingView] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
@@ -178,9 +194,13 @@ export function CalendarViews({
   // the `never`-typed default below. That field is the render-SELECTION
   // half of the hazard STRUCTURE.md names for `pinned` (CalendarHeader.tsx):
   // a per-view difference that used to be tested inline beside
-  // `VIEW_CONFIG` — a total record — instead of read from it. Behaviour is
-  // unchanged; see that file's per-row comments for why each view got the
-  // tag it did.
+  // `VIEW_CONFIG` — a total record — instead of read from it. C3 itself
+  // changed no behaviour (see that file's per-row comments for why each
+  // view got the tag it did); mission-17/C4, immediately below, is the
+  // first contract to actually MOVE a view between tags — day/threeDay/
+  // week's rows switched from `"daySection"` to `"timeline"` in that same
+  // commit, which is a real, visible change (an hour rail instead of a flat
+  // agenda list), not a refactor.
   function renderPeriodContent() {
     const renderer = config.renderer;
 
@@ -199,6 +219,52 @@ export function CalendarViews({
             windowStart={windowStart}
             windowEnd={windowEnd}
             onOpenDay={openDay}
+          />
+        )
+      );
+    }
+
+    if (renderer === "timeline") {
+      // mission-17/C4 — handled here, ahead of the generic `today === null`
+      // placeholder below, for the SAME reason "month" is: rendering
+      // `config.placeholderCount` DaySection-loading blocks while `today`
+      // resolves would show Week's 7-block shape (loading.tsx's own comment
+      // explains why EVERY non-month view briefly renders that shape,
+      // regardless of which one was actually requested — `view` hasn't
+      // synced from the URL's default seed yet), immediately before
+      // snapping to a single `TimelineGrid` box. MEASURED against the real
+      // running app: that snap is a genuine ~225px height drop (a 7-block
+      // list settles around 1093px of page height; the real TimelineGrid
+      // box settles around 868px at a 375×812 viewport) — a far bigger,
+      // more visible jump than the list-to-list swap the OTHER
+      // daySection-rendered views make. Skipping the placeholder here,
+      // exactly like Month already does, removes it: the brief gap while
+      // `today`/`now` resolve is covered by loading.tsx's own (now
+      // TimelineGrid-shaped) fallback instead, and resolves fast enough in
+      // practice — both are client-side `useSyncExternalStore` reads, no
+      // network round trip — not to read as a blank flash.
+      //
+      // `now` (useNowMinute.ts) is a SEPARATE value from `today`, with its
+      // own null-on-first-render window, so it gets its own guard here —
+      // the same "guard every independently-resolving value" convention
+      // the "month" case above already follows for `today`/`anchor`
+      // together. `columnDays` is just `days` (already computed above from
+      // `config.days(anchor)` — see ViewConfig.days's own comment for why
+      // each row already returns exactly the column set this component
+      // needs: `[anchor]` for Day, the anchor-relative 3-day span for
+      // 3 Day, `sundayOf(anchor)`'s week for Week).
+      return (
+        today !== null &&
+        now !== null && (
+          <TimelineGrid
+            columnDays={days}
+            events={events}
+            today={today}
+            now={now}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
+            onOpenEvent={(event, day) => setSelected({ event, day })}
+            chromeOffsetPx={chromeOffsetPx}
           />
         )
       );
@@ -239,20 +305,28 @@ export function CalendarViews({
           )
         );
       case "daySection":
-        // showLocation/compact stay inline `view === "member"` checks, NOT
-        // folded into VIEW_CONFIG alongside `renderer`/`pinned` above: CV4
-        // replaces this whole branch's renderer for day/threeDay/week with
-        // TimelineGrid, at which point these two DaySection-only props stop
-        // applying to those views rather than needing a matching shape in
-        // the new record. `threeDay` becoming reachable in CV4 is what
-        // binds `renderer`/`pinned` above — not these two.
+        // mission-17/C4 confirms the prediction the comment here used to
+        // make: this branch is now reached ONLY by `year` — day/threeDay/
+        // week all moved to their own "timeline" branch, handled earlier in
+        // this function (alongside "month", ahead of the generic
+        // `today === null` placeholder below — see its own comment for
+        // why), and schedule is its own case above. `year` is itself
+        // unreachable today (`BUILT_VIEWS.year` is false), so this case is
+        // defensive fallthrough for a total switch, not a path real
+        // navigation takes — the same standing MonthGrid's own `today !==
+        // null` check above has ("for TypeScript, not a reachable branch").
+        // `showLocation`/`compact` are DROPPED here rather than kept as
+        // `view === "day"`/`view === "week"` checks that can never be true
+        // any more: leaving them would read as live behaviour for views
+        // this case no longer serves. Both are optional on DaySection
+        // (default falsy), and Year has no stated need for either — CV5
+        // replaces this whole case with Year's real 12-mini-grid renderer
+        // rather than ever exercising it.
         return days.map((day) => (
           <DaySection
             key={day.getTime()}
             day={day}
             today={today}
-            showLocation={view === "day"}
-            compact={view === "week"}
             notLoaded={isOutsideWindow(day, windowStart, windowEnd)}
             events={events.filter(
               (event) =>

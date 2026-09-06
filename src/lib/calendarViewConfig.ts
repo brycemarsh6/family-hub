@@ -24,6 +24,13 @@
 // this view" instead of stopping short of it. See CalendarRenderer's own
 // comment for why this was a live gap.
 //
+// mission-17/C4 — the `"timeline"` renderer lands: Day, 3 Day and Week all
+// switch their row from `"daySection"` to it in this commit, and
+// `BUILT_VIEWS.threeDay` (calendarViewVocabulary.ts) flips to `true` at the
+// same time, so the vocabulary and the renderers agree completely for the
+// first time since CV1. `formatThreeDayRange`, below, is the one other loose
+// end this reachability change closes — see its own comment.
+//
 // No "server-only" guard: this module is pure over its inputs (a `Date` in,
 // a string/boolean/Date[] out), same standing as calendarDates.ts and
 // mealPlanDates.ts.
@@ -43,19 +50,20 @@ import type { CalendarPeriodView } from "./calendarViewVocabulary";
 /**
  * The families of component a view can render. A string tag, not a
  * component reference — `src/lib/` may not import from `src/components/`
- * (STRUCTURE.md), so the actual `MonthGrid`/`ScheduleView`/`DaySection`
- * elements stay in CalendarViews.tsx's switch. This is deliberately
- * narrower than `CalendarPeriodView`: `day`, `threeDay`, `week` and `year`
- * all render the SAME way today (one `DaySection` per `days(anchor)`
- * entry) — a real fact about the current app, not a placeholder — so they
- * share the `"daySection"` tag rather than each inventing a distinct one
- * that would just alias it. CV4 changes `day`/`threeDay`/`week`'s rows to
- * a new tag when `TimelineGrid` replaces `DaySection` for them; CV5 does
- * the same for `year`. Widening this union is a compile error in
- * CalendarViews.tsx's switch until every case is handled — see that
- * switch's own `never`-typed default.
+ * (STRUCTURE.md), so the actual `MonthGrid`/`ScheduleView`/`DaySection`/
+ * `TimelineGrid` elements stay in CalendarViews.tsx's switch. `year` is the
+ * one view still sharing `"daySection"` today — a real fact about the
+ * current app (its `days(anchor)` returns one entry, rendered as a single
+ * plain `DaySection`), not a placeholder — because CV5 is what gives it its
+ * own 12-mini-grid renderer. `day`, `threeDay` and `week` moved OFF that
+ * shared tag in mission-17/C4: they render `TimelineGrid` now, an hour
+ * timeline rather than a plain agenda list, so `"timeline"` is a genuinely
+ * different family, not an alias for `"daySection"` under a new name.
+ * Widening this union is a compile error in CalendarViews.tsx's switch
+ * until every case is handled — see that switch's own `never`-typed
+ * default.
  */
-export type CalendarRenderer = "month" | "schedule" | "daySection";
+export type CalendarRenderer = "month" | "schedule" | "daySection" | "timeline";
 
 /**
  * The per-view differences the shell itself has to know about, as one row
@@ -133,11 +141,46 @@ export type ViewConfig = {
 // own terms — no row is handed a value only Week uses, and none has to deal
 // with the `null` that a component-level `weekStart` carries while `today`
 // is still resolving.
+
+/** Short month name via `Intl`, formatted against the LOCAL calendar fields
+ * of a plain calendar-component `Date` (no `timeZone` option, so it reads
+ * the runtime's own default zone — the same convention `TimelineGrid.tsx`'s
+ * `HOUR_LABEL_FORMATTER` already uses) — a self-contained, one-line
+ * substitute for `mealPlanDates.ts`'s own (unexported) `MONTH_NAMES` array,
+ * which this file is not allowed to import (off this contract's boundary).
+ * Module-level, not per-call, matching that same file's own `Intl` instance
+ * — `DateTimeFormat` construction is real work worth doing once. */
+const SHORT_MONTH_FORMATTER = new Intl.DateTimeFormat("en-US", { month: "short" });
+
+/** "Sep 9–11" / "Aug 30 – Sep 1" — 3 Day's own range label, mission-17/C4.
+ * The exact same shape as `formatWeekRange` (mealPlanDates.ts) — same-month
+ * gets the tight en dash, a month crossing gets the wider one plus both
+ * month names — deliberately re-implemented locally rather than
+ * generalizing that function to an arbitrary span: `formatWeekRange` is off
+ * this contract's boundary, and widening a shared, already-tested function's
+ * signature to serve a single new caller is a bigger change than a five-line
+ * local copy for a genuinely different view. */
+function formatThreeDayRange(anchor: Date): string {
+  const end = addDays(anchor, 2);
+  const startMonth = SHORT_MONTH_FORMATTER.format(anchor);
+  const endMonth = SHORT_MONTH_FORMATTER.format(end);
+  return startMonth === endMonth
+    ? `${startMonth} ${anchor.getDate()}–${end.getDate()}`
+    : `${startMonth} ${anchor.getDate()} – ${endMonth} ${end.getDate()}`;
+}
+
 export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   week: {
     prevLabel: "Previous week",
     nextLabel: "Next week",
-    renderer: "daySection",
+    // mission-17/C4 — was "daySection" (a plain agenda list); Week now
+    // renders `TimelineGrid`, the hour timeline. `placeholderCount` below is
+    // unaffected: it still only feeds CalendarViews.tsx's `today === null`
+    // guard, which runs BEFORE the renderer switch and renders the same
+    // DaySection-shaped loading rows it always has — that transient frame
+    // is governed by `today` resolving, not by which renderer is about to
+    // take over once it does.
+    renderer: "timeline",
     pinned: false,
     placeholderCount: 7,
     title: (anchor) => formatWeekRange(sundayOf(anchor)),
@@ -147,7 +190,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   day: {
     prevLabel: "Previous day",
     nextLabel: "Next day",
-    renderer: "daySection",
+    // mission-17/C4 — same switch as Week's row above, same reasoning.
+    renderer: "timeline",
     pinned: false,
     placeholderCount: 1,
     title: (anchor) => formatDayLabel(anchor),
@@ -166,14 +210,15 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   },
   // Originally the three views the vocabulary named but nothing rendered
   // (mission-11/C2) — mission-15/C4 built Schedule's renderer and flipped
-  // `BUILT_VIEWS.schedule` to true, so its row below is no longer one of
-  // them; 3 Day and Year still are. `BUILT_VIEWS` (calendarViewVocabulary.ts)
-  // says false for those two, so the picker never offers them and
-  // `parseViewParam` normalizes a URL naming one. Their rows exist because
-  // this Record is total, and because `days`/`isCurrentPeriod` are already
-  // real facts about the period each will show. What cannot be known before
-  // a renderer exists is marked PROVISIONAL and belongs to the phase that
-  // builds it (CV4 3 Day, CV5 Year) — with a measurement, not a guess.
+  // `BUILT_VIEWS.schedule` to true; mission-17/C4 did the same for 3 Day
+  // (below). Year is the one left — `BUILT_VIEWS.year`
+  // (calendarViewVocabulary.ts) still says false, so the picker never
+  // offers it and `parseViewParam` normalizes a URL naming it. Its row
+  // exists because this Record is total, and because `days`/
+  // `isCurrentPeriod` are already real facts about the period it will
+  // show. What cannot be known before a renderer exists is marked
+  // PROVISIONAL and belongs to the phase that builds it (CV5) — with a
+  // measurement, not a guess.
   schedule: {
     // SETTLED, mission-15/C4 (was PROVISIONAL since CV1). Schedule has no
     // period to page between — the cursor's `step: 0` already refuses to
@@ -236,19 +281,19 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   threeDay: {
     prevLabel: "Previous 3 days",
     nextLabel: "Next 3 days",
-    // PROVISIONAL, same status as the label above: today this still
-    // renders via the shared `"daySection"` path (matches current
-    // behaviour exactly — `BUILT_VIEWS.threeDay` is false, so this row is
-    // unreachable through the picker or a URL either way). CV4 is the
-    // phase that flips `BUILT_VIEWS.threeDay` and gives Day/3 Day/Week a
-    // real timeline tag in the same commit.
-    renderer: "daySection",
+    // SETTLED, mission-17/C4 (was PROVISIONAL through CV1–C3): `BUILT_VIEWS
+    // .threeDay` (calendarViewVocabulary.ts) is `true` as of this same
+    // commit, so this row is reachable through the picker and a URL now —
+    // it renders `TimelineGrid`, the same hour timeline Day/Week just
+    // switched to, not a third implementation.
+    renderer: "timeline",
     pinned: false,
     placeholderCount: 3,
-    // PROVISIONAL: the first column's day. A real 3-day range label needs a
-    // formatter for spans other than a week (`formatWeekRange` is
-    // hard-wired to 7); adding one belongs with CV4's timeline.
-    title: (anchor) => formatDayLabel(anchor),
+    // SETTLED, mission-17/C4: a real 3-day range label, via the local
+    // `formatThreeDayRange` above — see its own comment for why that's a
+    // small local copy of `formatWeekRange`'s shape rather than a
+    // generalization of that (off-boundary) function.
+    title: (anchor) => formatThreeDayRange(anchor),
     // Anchor-relative, never snapped to a boundary: Google's own 3 Day
     // behaviour, and exactly what calendar-v2.md gives CV4 for `columnDays`.
     days: (anchor) => [anchor, addDays(anchor, 1), addDays(anchor, 2)],
