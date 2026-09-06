@@ -44,6 +44,32 @@ test("placeholderCount matches each view's real day count", () => {
   assert.equal(VIEW_CONFIG.year.placeholderCount, 1);
 });
 
+// mission-17/C3 — `pinned` and `renderer` used to be inline `view ===
+// "member"` tests beside this file (CalendarHeader.tsx, CalendarViews.tsx)
+// rather than rows inside it. Now that they're plain data here, they're
+// exactly as testable as `placeholderCount` above — closing the coverage
+// gap the totality clause exists to prevent (a per-member difference that
+// TypeScript's total-Record check alone can't catch is wrong, only that a
+// row is present, not what it's set to).
+test("pinned is true for Schedule alone", () => {
+  for (const view of ALL_VIEWS) {
+    assert.equal(VIEW_CONFIG[view].pinned, view === "schedule", `${view}.pinned`);
+  }
+});
+
+test("renderer matches each view's actual component today", () => {
+  assert.equal(VIEW_CONFIG.month.renderer, "month");
+  assert.equal(VIEW_CONFIG.schedule.renderer, "schedule");
+  // day/threeDay/week/year all render via the shared DaySection path today
+  // (CV4 gives day/threeDay/week a distinct tag when TimelineGrid replaces
+  // it; CV5 does the same for year) — see calendarViewConfig.ts's own
+  // per-row comments for why this is the current fact, not a placeholder.
+  assert.equal(VIEW_CONFIG.day.renderer, "daySection");
+  assert.equal(VIEW_CONFIG.threeDay.renderer, "daySection");
+  assert.equal(VIEW_CONFIG.week.renderer, "daySection");
+  assert.equal(VIEW_CONFIG.year.renderer, "daySection");
+});
+
 // ---------------------------------------------------------------------------
 // Week
 
