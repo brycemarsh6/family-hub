@@ -24,11 +24,21 @@
 //
 // Bryce approved building it after the third instance.
 //
-// WHAT THIS TOOL IS NOT. It cannot decide whether a claim is true. It hard-
-// fails only on things that are decidable — a named file that does not exist,
-// a commit hash that does not resolve, a positional reference into a file
-// changed by the same diff. Everything else it SURFACES. A clean run means
-// the decidable traps are clear, never that the record is accurate.
+// WHAT THIS TOOL IS NOT. It cannot decide whether a claim is true.
+//
+// It hard-fails on ONE thing: a commit hash that does not resolve. That is
+// the only check measured to have zero false positives against real history
+// (six merges). Everything else it SURFACES, deliberately. The first cut
+// hard-failed on named-but-absent files and on positional references too,
+// and would have blocked FOUR of those six merges on ordinary prose — a
+// mission file legitimately names a file a contract proposes to create, and
+// "Step 1 … `CalendarHeader.tsx`" is not a reference into that file. A gate
+// that cries wolf gets tuned out, which is the failure this tool exists to
+// address, so it informs where it cannot be certain.
+//
+// A clean run means the one decidable trap is clear, never that the record
+// is accurate. Read the REVIEW lines; that is where every false claim this
+// tool was built for actually sat.
 //
 // USAGE
 //   node recordcheck.mjs                 # origin/main..HEAD
@@ -149,20 +159,46 @@ for (const file of recordFiles) {
       }
     }
     if (!exists) {
-      FAIL(
-        `\`${p}\` is named as if it exists, and no such file is tracked. If ` +
-          `the sentence means it is absent, say so in the sentence.`,
+      // REVIEW, not FAIL. Tested against six real merges: mission files
+      // legitimately name files that a contract PROPOSES to create, or that
+      // a split candidate WOULD produce, or that were deleted — four of the
+      // six would have been blocked on that prose alone. A gate that cries
+      // wolf gets tuned out, which is the failure this whole exercise is
+      // about, so this one informs and does not block.
+      REVIEW(
+        `\`${p}\` is named and no such file is tracked. Fine if it is a ` +
+          `proposal or something removed; wrong if the sentence means it is ` +
+          `there today.`,
       );
     }
   }
 
-  // CHECK 2 — a commit hash must resolve.
+  // CHECK 2 — a commit hash must resolve. The ONLY blocking check.
+  //
+  // With one carve-out, found by running this against real history: a record
+  // may deliberately cite a WRONG hash to document a mistake, as mission-15
+  // does with "(`a6e6a86`; actual `6e496a1`)" — the record of a stale HEAD in
+  // a gate dispatch. That is the record doing its job, not a defect, so a
+  // line that flags its own bad hash is exempt.
+  const hashDenial =
+    /\b(actual|stale|wrong|incorrect|does not resolve|never existed|superseded|amended away|typo)\b/i;
   for (const m of text.matchAll(/`([0-9a-f]{7,40})`/g)) {
     const sha = m[1];
     try {
       git(["cat-file", "-e", `${sha}^{commit}`]);
     } catch {
-      FAIL(`\`${sha}\` does not resolve to a commit in this repo.`);
+      const line = added.find((l) => l.includes("`" + sha + "`")) || "";
+      if (hashDenial.test(line)) {
+        REVIEW(
+          `\`${sha}\` does not resolve, but the line marks it as wrong on ` +
+            `purpose. Confirm that is what it means.`,
+        );
+      } else {
+        FAIL(
+          `\`${sha}\` does not resolve to a commit in this repo. A record ` +
+            `that cites a hash nobody can check is a record you cannot audit.`,
+        );
+      }
     }
   }
 
@@ -186,10 +222,12 @@ for (const file of recordFiles) {
         ctx.toLowerCase().includes(f.split("/").pop().toLowerCase().replace(/\.md$/, "")),
       );
       if (referenced.length > 0) {
-        FAIL(
-          `"${phrase}" points at a position inside ${referenced.join(", ")}, ` +
+        REVIEW(
+          `"${phrase}" may point at a position inside ${referenced.join(", ")}, ` +
             `which THIS SAME DIFF changes. Re-count it. A correct positional ` +
-            `reference went stale inside one commit on 2026-09-06.`,
+            `reference went stale inside one commit on 2026-09-06. (REVIEW, ` +
+            `not FAIL: on real history this also matches a step number that ` +
+            `merely sits near a filename.)`,
         );
       } else {
         REVIEW(
@@ -259,8 +297,8 @@ for (const file of recordFiles) {
           line.toLowerCase().includes(base.toLowerCase())
         ) {
           flagged++;
-          FAIL(
-            `${rec} counts a position into ${changed}, which this diff ` +
+          REVIEW(
+            `${rec} may count a position into ${changed}, which this diff ` +
               `changes: "${line.trim().slice(0, 120)}". Re-count it — this ` +
               `exact shape went stale inside one commit on 2026-09-06.`,
           );

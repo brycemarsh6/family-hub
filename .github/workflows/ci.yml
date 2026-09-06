@@ -34,6 +34,11 @@ jobs:
       ALEXA_SKILL_ID: "amzn1.ask.skill.00000000-0000-0000-0000-000000000000"
     steps:
       - uses: actions/checkout@v4
+        with:
+          # recordcheck (below) diffs a commit range. The default shallow
+          # clone has no parent to diff against, so the step would find
+          # nothing and report clean — a check that cannot fail.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -61,3 +66,39 @@ jobs:
         run: TZ=America/Los_Angeles node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts
       - name: Build
         run: npm run build
+
+      # The record gets checked like the code does.
+      #
+      # Added 2026-09-06, after a session audited CLAUDE.md for accuracy and
+      # was gated three times — each pass finding a false claim that the FIX
+      # for the previous one had introduced. None was in code. None would
+      # have been caught by re-reading. All three were caught by running a
+      # command against the claim, which is what this step does.
+      #
+      # It BLOCKS on one thing only: a commit hash in a record that does not
+      # resolve. That is the single check measured to have zero false
+      # positives across six real merges. Everything else prints as REVIEW
+      # and does not block — the first cut also blocked on named-but-absent
+      # files and on positional references, and would have failed FOUR of
+      # those six merges on ordinary mission prose (a mission legitimately
+      # names a file a contract proposes to create). A gate that cries wolf
+      # gets tuned out, which is the very failure this step exists to reduce.
+      #
+      # So: read the REVIEW lines in the log. That is where every false claim
+      # this was built for actually sat.
+      - name: Record check
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          # A first push, a force-push or a squash can hand us a base that is
+          # absent or all-zeros. Fall back to the parent rather than diffing
+          # against nothing and reporting a vacuous pass.
+          if ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            echo "base '${BASE}' not present; falling back to HEAD^"
+            BASE="HEAD^"
+          fi
+          echo "range: ${BASE}..HEAD"
+          node .claude/skills/avengers/recordcheck.mjs "${BASE}..HEAD"
