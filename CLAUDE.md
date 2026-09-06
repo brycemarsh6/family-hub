@@ -5937,6 +5937,15 @@ flags its own bad hash is exempt.
 **Proven able to fail:** a scratch commit citing `deadbee1234` with no denial
 wording exits 1. A check never seen red proves nothing.
 
+**And it caught itself on this very entry.** Run against the paragraph above,
+the hash check blocked — because prose *wraps*, so a hash landed on one line
+while the word explaining it sat on the next, and the check tested one line.
+A per-line test of wrapped prose is the wrong unit; it now reads a small
+context window. The fix to the vocabulary then **silently did not apply** (an
+escaping mismatch in the edit), which the re-run caught rather than the edit's
+own success message — mission-9's rule paying out for the fourth time today:
+verify a file edit landed; don't trust the write.
+
 **Two details that would have made the CI step vacuous**, both caught before
 it shipped: `actions/checkout` is **shallow by default**, so a range diff has
 no parent and reports clean; and a first push, force-push or squash can hand
