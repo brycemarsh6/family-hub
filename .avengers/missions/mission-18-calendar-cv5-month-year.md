@@ -71,7 +71,20 @@ that writing a hard-cap justification instead is self-refuting.
 ## Contracts
 
 ### C1 — the false screen-reader string, and the extraction it is coupled to
-- **Status:** PENDING
+- **Status:** **DONE** — merged. **CV4's one open finding is closed.**
+  `TimelineGrid.tsx` **649 → 555 total / 297 code** (95 under the hard cap,
+  45 under the contract's own target); new `TimelineDayColumn.tsx` 232/113.
+  Old string: **0 occurrences**. All four numbers and the whole gauntlet
+  re-measured by Fury, not taken from the report.
+  **Evidence worth keeping:** behaviour-preservation was proven by a
+  **byte-identical before/after DOM trace** on two real days (one with three
+  timed events, one with none) at 375×812, driven by headless Chromium over
+  CDP against a **production build** — not the browser pane, whose renderer
+  runs hidden. And the builder **declined to claim** it had reproduced the
+  false-string path: it stated plainly that a single request can never see
+  its own columns as outside a window centred on their own anchor, so the
+  defect is a genuine UTC-only production artifact. Saying "I could not test
+  this, and here is why" is the behaviour the doctrine wants.
 - **Objective:** Make the boundary-day `sr-only` string true on the
   production path, and bring `TimelineGrid.tsx` under the hard cap with real
   headroom in the same contract, because CV4 established the two are coupled.
@@ -218,6 +231,11 @@ Settled by hand, because the tool cannot settle them:
 
 ## Handoff log
 
+- 2026-09-06 — **C1 DONE and merged.** Boundary audit clean: exactly the two
+  files it was allowed. Worktree left clean, no `.env` survived, zero secrets
+  in the diff — checked, because C1 temporarily copied `.env` in to drive a
+  production build and minted a short-lived session token for the DOM trace.
+  Both deleted by the builder and verified gone by Fury.
 - 2026-09-06 — Mission opened. Scope read from `.avengers/plans/calendar-v2.md`'s
   CV5 section; file sizes, the `md:` gate at `MonthCell.tsx:285`, the
   `sr-only` string at `TimelineGrid.tsx:423`, and `MonthGrid`'s mount inside
