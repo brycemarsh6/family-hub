@@ -116,7 +116,34 @@ that writing a hard-cap justification instead is self-refuting.
   `TimelineGrid.tsx` total ≤ 600 (real headroom, not one line); gauntlet green.
 
 ### C2 — Month pills show their text on a phone
-- **Status:** PENDING
+- **Status:** **DONE** — merged. The `md:` gate is gone (`md:not-sr-only`
+  count is **0**); a pill shows its title at every width. Capacity
+  re-measured with `Range.getClientRects` on real data: **6–8 characters at
+  375px**, 5–6 at 320, dropping to **5** when a completed task's checkmark
+  shares the box. Accessibility names **4/4 exposed before and after** —
+  `sr-only` was already keeping them in the tree, so the `md:` gate was
+  hiding them only visually. `body.scrollWidth === innerWidth` at both
+  widths. `MonthCell.tsx` **300 → 350 total / ~108 code — exactly ON the
+  soft cap**, flagged for Captain.
+- ⚠️ **FURY'S CONTRACT WAS WRONG, for the fifth time in this project, and
+  this time the tool had already told me.** C2's contract asserted the
+  comment "says a pill holds `~2 characters`". At the very commit I
+  contracted against, `MonthCell.tsx:245` already read **"holds roughly 7-8
+  characters"** — corrected by mission-9/C8 long before. What was genuinely
+  stale was the *hide-it-below-`md`* rationale, which is what the builder
+  fixed. It proceeded rather than blocking, because the objective was
+  reachable regardless, and **disclosed the wrinkle instead of quietly
+  working around it** — the right call on both counts.
+- ⚠️ **The part that matters more: `preflight.mjs` caught this and I did not
+  read it.** Its C2 run printed *"4 claim(s) about what exists or how many —
+  THIS TOOL CANNOT SETTLE THEM"* and quoted my false sentence back to me
+  **twice**, verbatim. I settled the dependency findings by hand and skipped
+  the claims list. **Within the same hour I had told Bryce that CI can print
+  a REVIEW line but cannot make anyone read it.** The tool worked; the
+  foreman didn't. Surfacing is not enough, and this is the evidence.
+- ⚠️ **Hygiene:** the builder left a copy of `.env` in its worktree. Never
+  committed (gitignored, and the diff carries zero secrets — both verified),
+  but a worktree must not keep a live secrets file. Deleted by Fury.
 - **Objective:** Drop the `md:` gate so a Month pill shows its title at phone
   width, and replace the stale rationale that justified hiding it.
 - **Boundaries:** may touch `src/components/MonthCell.tsx` · must not touch
@@ -231,6 +258,10 @@ Settled by hand, because the tool cannot settle them:
 
 ## Handoff log
 
+- 2026-09-06 — **C2 DONE and merged.** Boundary clean (one file). Gauntlet
+  re-run by Fury. Two findings recorded above: my contract's premise was
+  stale for the fifth time, and preflight had already quoted it back to me.
+  A stray `.env` in the worktree was deleted.
 - 2026-09-06 — **C1 DONE and merged.** Boundary audit clean: exactly the two
   files it was allowed. Worktree left clean, no `.env` survived, zero secrets
   in the diff — checked, because C1 temporarily copied `.env` in to drive a
