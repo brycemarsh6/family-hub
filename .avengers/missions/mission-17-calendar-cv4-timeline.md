@@ -416,7 +416,10 @@ differently if they do.
 | 1 | Strange | **BLOCKED** | 3 | **Ruled on the 24px block rather than handing it up.** Reached the state C4 could not. Three states fail for the third time on this branch |
 | — | C5 | DONE ×6 | — | All eight blockers closed. **224/224 live checks across 8 engine×theme×width combos.** Tests 329 → **333** |
 | — | C6 | DONE `64ba63a` | — | **809/434 → 623/321**, under both caps. C5's suites re-run 26/26; the justification is gone rather than accepted |
-| 2 | Vision · Strange · Captain | dispatched | — | Round 2. All three blocked at round 1; each has two passes left |
+| 2 | Captain | **PASS** | 0 | 7 notes, 3 rulings — and it **withdrew its own proposed sixth amendment** after measuring the premise Fury argued it from and finding it false |
+| 2 | Strange | **PASS** | 0 | 5 notes. All three blockers closed *as felt*; extended its own ruling to cover the 24px bar, with reasons |
+| 2 | Vision | **BLOCKED** | 1 | The 320px ink escape **rotated** rather than closed — and C5's evidence for it was a box probe that structurally cannot see ink |
+| — | C7 | dispatched | — | Vision's blocker plus three Strange notes; DESIGN.md's two missing rules written by Fury |
 
 ## Gate round 1 — three BLOCKED, eight blockers, one cause worth more than the rest
 
@@ -523,6 +526,22 @@ underneath it (4 → 15 → 25 → 30 → 20 → 4), naming the count at every
 measurement so nothing load-bearing rested on one.
 
 ### C5 — all eight blockers, and the one thing it could not fix from inside its boundary
+- ⚠️ **Boundaries backfilled 2026-09-06 on Vision's finding — they were
+  never written here, only in the dispatch prompt.** That is Fury's own
+  checklist item (*"the contract is written in the mission file, not only
+  the prompt — a boundary living only in a dispatch prompt is not a
+  boundary; a gate auditing scope has nothing to audit against"*), filed by
+  Vision in CV2 and again in CT1/CT2, and repeated here. Vision audited C5
+  against the eight blockers instead and found every file traceable to one.
+  **As dispatched:** may touch `TimelineGrid.tsx`, `CalendarViews.tsx`,
+  `color.ts`, `MonthCell.tsx` (the `pillBackground` hoist only),
+  `appChrome.ts`, `ScheduleView.tsx` (the `-65px` constant only),
+  `HubNav.tsx` (comment only), `(app)/layout.tsx` (comment only),
+  `types.ts` if needed, and any `src/lib/*.test.ts` the changes require ·
+  must not touch `timelineLayout.ts` and its tests, `monthLayout.ts`
+  **except** an optional `visibleLanes` parameter with Month's call
+  unchanged, `calendarViewConfig.ts`, `calendarViewVocabulary.ts`,
+  `actions/**`, `prisma/**`, `DESIGN.md`, `STRUCTURE.md`.
 
 **DONE, six commits.** Tests **329 → 333**. Live verification: **224/224
 checks across 8 engine × theme × width combinations**, plus a separate
@@ -613,6 +632,71 @@ understating the total by its own length.
   particular the five-item expansion, the kid-permission case, the
   not-loaded banner and the 2px gap. Report both files' code and total
   counts, and confirm the sticky strip still behaves as one unit.
+
+### Gate round 2 — Captain PASS, Strange PASS, Vision BLOCKED (1)
+
+**Captain withdrew an amendment it had proposed, because Fury argued for
+it from a false number.** The dispatch claimed the hard cap *"fired on a
+file whose code was under the soft cap — exactly the 'cost a mission for
+prose' outcome you predicted."* Captain measured before agreeing: **426 /
+434 / 353 code lines by three different counters, all over the 350 soft
+cap.** The claim was wrong, **and the mission file already said so** —
+line 589 reads *"past the 650 hard cap, and past the 350 soft cap on code
+as well."* Two records of this mission disagreed and **the prose one was
+the stale one**, which is this project's tracked "recorded but not
+verified" class appearing *inside an argument to change the constitution.*
+Its conclusion inverts the dispatch's: **the cap worked** — a file over
+both caps was split at a real job boundary into 623/314 and 292/153 with
+zero logic change, and under its own proposed rule the hard cap would not
+have fired, C6 would have been discretionary, and a 434-code-line
+component with a measured seam would plausibly still be one file. Held for
+a specific trigger — *the first file at 650 total with code genuinely
+under 350* — rather than put to Bryce on evidence that contradicts it.
+It also corrected Fury's framing on C6: **not "the trip condition tripped
+early" but "it was superseded"** — a schedule Captain sets cannot license
+crossing a cap the constitution sets, and the two readings have different
+consequences for the next mission. Its three rulings: dispatching C6 was
+right (on stronger grounds than Fury gave — the justification was
+*self-refuting*, since its content was "a cheap measured seam exists and
+is scheduled", and the hard cap has no deferral machinery); the seam is
+the one it named, **improved** (153 code lines / 7 props = ~22 lines per
+prop, against the sheets block it *rejected* at ~4.8); and the
+`assignLanes` widening is correct and in the risk-reducing direction.
+
+**Strange PASSED and judged its own blockers as felt, not counted.** The
+2px seam *"resolves to a plain `DIV` with no interactive ancestor at any
+depth, so a near-miss does nothing rather than handing the tap to a
+create-here handler"* — aim tolerance to a *wrong* event moved 11px → 13px,
+and top-aligned titles give ~15px of slack. **It extended its own round-1
+boundary to cover the 24px all-day bar and explained why that is not
+softening:** at round 1 the bar failed on two counts — 18px, *arbitrarily*
+smaller with no arithmetic behind it, and a dead-end overflow. Both fixed,
+the residual is *identical in kind* to the block one row below in the same
+view, and blocking one while accepting the other *"would be incoherent to
+a reader who experiences them as one surface."* It verified C6 with
+**16/16 identical fingerprints** pre- vs post-extraction on a harness
+proven non-vacuous (it reports DIFFERENT for a theme or width change), and
+sticky holding as one unit in all 8 combos. It also **nearly filed an
+overclaim against C5 and caught itself**: its first probe said Month
+strikes through at 375px; measured properly, Month's title is
+`1×1px, clip: inset(50%)` there — so C5's reasoning was right and
+Strange's instinct was wrong.
+
+**Vision BLOCKED on one, and it is the same defect rotated.** C5's
+`whitespace-nowrap` moved the 320px ink escape from **vertical to
+horizontal**: `Range.getClientRects` measures "+2 more" spilling 4.6px and
+"+10 more" 8.8px past their boxes, and on adjacent days the two labels'
+ink **overlaps** — the last glyph of one sitting under the "+" of the
+next. **C5's evidence claimed the ink was contained, using a box probe
+that structurally cannot see ink** — the exact instrument error Strange
+made at round 1 and corrected. Clean at 375; 3px at 360.
+**Everything else it examined held**, and one piece is the strongest
+evidence in the mission: it replayed `completeTask` **over raw HTTP with
+no browser**, kid1 against kid2's task → `{"error":"You're not assigned to
+that task."}` with the DB unchanged, no cookie → 307/6 bytes, and a
+**positive control** (kid2 against their own task → `{}`, `completedAt`
+set) proving the refusals meant something. That is `assertCanCompleteTask`
+tested, not the UI in front of it.
 
 ## Handoff log
 

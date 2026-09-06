@@ -39,6 +39,28 @@ tell when a rule's reason has expired.
   one of its day numbers opened the Add sheet instead of Day view, and the
   first measurement — taken scrolled to the bottom — reported zero failures
   and would have shipped it. Measure at the position the user arrives at.)
+- **The hour timeline is a sanctioned exception to the 44px floor, and it
+  carries a written boundary.** On Day / 3 Day / Week a block's height *is*
+  its duration: at `HOUR_HEIGHT_PX` 48 a `MIN_BLOCK_MINUTES` (30) block
+  draws 24px. Inflating past its geometry would either paint over a
+  neighbour or reintroduce the ambiguous tap the floor exists to prevent,
+  and doubling the rail to clear 44px halves the visible day from 9.2 hours
+  to 4.6 on the app's most-used view. The boundary: **(a)** every block
+  stays a real `<button>` with a real accessible name; **(b)** consecutive
+  blocks never abut — each draws 2px shorter and 2px narrower than its
+  computed geometry, so a near-miss lands on a non-interactive seam instead
+  of opening the wrong event; **(c)** the all-day strip's bars and its
+  "+N more" share that same 24px as a **floor, not a derivation** — they
+  have no duration to be faithful to, which is why 24px is the minimum they
+  may be and never a licence to go under it; **(d)** Schedule (112px
+  full-width rows, listing everything) is the conforming route and must
+  stay one tap away in the picker. **Nothing outside the timeline inherits
+  this.** *(Strange's ruling, mission-17 rounds 1–2. Round 1 rejected an
+  18px all-day bar as arbitrarily smaller with a dead-end overflow; round 2
+  accepted 24px once both were fixed, because the residual is then
+  identical in kind to the timed block beside it. The precedent it rests on
+  is the app's own: in Month the **cell** is the 44px target and the pills
+  inside it are non-interactive.)*
 - **Quantities change only by tapping** — the shared `QuantityStepper` (+/−),
   never a typed number. Typing numbers is fiddly on a phone and worse on a
   wall tablet. (Prose is different: recipes and notes are keyboard entry —
@@ -144,6 +166,20 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   forcing data categories into them corrupts both vocabularies.
 - **Estimates are marked** — a `~` prefix on any guessed value (shelf life,
   nutrition). A guess never masquerades as a fact.
+- **`line-through` means *done* — never *past*, never *cancelled*.** A
+  completed task is struck through; an event that has merely already
+  happened drains to `--muted` in weight and colour and is **never** struck.
+  "Already happened" and "done" are different facts and must stay tellable
+  apart. An overdue but incomplete task does **not** drain — only completion
+  changes how a task renders. Struck text is always paired with a ✓/☐ glyph
+  rather than carrying the fact alone, for two measured reasons: a strike is
+  invisible wherever the title is `sr-only` (Month's pills below `md`,
+  measured 1×1px with `clip: inset(50%)`), and a strike without a checkmark
+  can read as "cancelled". This joins `GroceryRow`'s existing
+  struck-checked-item vocabulary rather than inventing a second one.
+  *(mission-14 D2, applied a third time in mission-17 and written down here
+  only then — Strange found the rule had steered three implementations while
+  living in no constitution at all.)*
 
 ## Component vocabulary
 
