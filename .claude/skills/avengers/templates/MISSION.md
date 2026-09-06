@@ -52,6 +52,17 @@ one below is a real incident from missions 13-15, and every one was
       code that decides the behaviour, and put *that* file in the boundary.
 
 **Before dispatching:**
+- [ ] **Run preflight and read every line of it.**
+      `node <skill-dir>/preflight.mjs <mission-file> <contract-id>`
+      It hard-fails on a missing contract heading, a missing/typo'd path, a
+      "new" file that already exists, a may-touch file already over the hard
+      cap, and two parallel contracts sharing a file. It then SURFACES — it
+      cannot settle — every negative or quantitative claim in the contract,
+      with a reference count for each identifier beside it, and every
+      may-touch file that imports a must-not-touch file.
+      **"0 hard failures" is not permission to dispatch.** On replay against
+      the worst boundary error in this project's history it reported zero
+      hard failures, and the REVIEW lines were where the whole answer sat.
 - [ ] **The contract is written in the mission file, not only the prompt.**
       A boundary living only in a dispatch prompt is not a boundary — a
       gate auditing scope has nothing to audit against. Filed by a gate
