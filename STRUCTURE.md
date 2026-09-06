@@ -115,7 +115,7 @@ structural changes against it.
   is read **fresh from the database, never from anything the client
   sent** — a client claim of membership is exactly the forgery the guard
   exists to stop (mission-16/C3b's deactivated-person carve-out is the
-  second instance and follows this form). And a membership guard
+  second instance of *this* rule only — see the correction below). And a membership guard
   **narrows, never widens** *as a caller guard*: it may permit a
   role-refused caller for one row, and may never permit anything the role
   gate refuses for a reason other than that row.
@@ -423,8 +423,16 @@ Adding a second definition of any of these is a BLOCKER:
   window.
 - A new/changed Prisma model needs `npx prisma generate` **and a dev-server
   restart** (`db.ts` caches the client on `globalThis`).
-- `FAMILY_PASSWORD` differs between dev and prod on purpose; secrets live in
-  `.env`/Vercel only, never in chat or git.
+- Secrets live in `.env` and Vercel env vars only — never in chat, git or
+  a terminal transcript. **(Corrected 2026-09-05: this rule used to open
+  with `FAMILY_PASSWORD` differing between dev and prod, which stopped
+  being current at the 2026-08-29 accounts cutover — Captain confirmed
+  zero references remain in `src/`, `prisma/`, `.github/` or AGENTS.md.
+  It survives only as a value in `.env` and Vercel, as a rollback lane
+  whose stated ~7-day window has now expired; deleting it from both is
+  outstanding cleanup, not a live rule.)** Rotating the **dev**
+  `SESSION_SECRET` is the response when a dev cookie leaks into a
+  transcript — mission-16 gate round 3 is the recorded instance.
 - It's `proxy.ts`, not `middleware.ts` (Next 16) — a middleware.ts won't run.
 - Never push without the user; after "done," check
   `git log origin/main..HEAD` — this repo has been bitten three times by

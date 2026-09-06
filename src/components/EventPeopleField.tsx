@@ -53,10 +53,19 @@ export function EventPeopleField({
                   (globals.css) fixes that: 4.76:1 on `--accent-soft` /
                   5.88:1 on `--surface`, both themes. Deliberately used in
                   BOTH the selected and unselected branches, not just the
-                  one that was failing — the unselected chip already leaned
-                  on weight alone to read as an annotation rather than a
-                  name, so this is the stronger of the two states, in
-                  colour as well as weight, everywhere the marker appears. */}
+                  one that was failing, so the token means one thing.
+                  What that actually buys, measured in gate round 3 rather
+                  than assumed: in the SELECTED chip the marker is
+                  separated from the name by colour AND weight (1.34:1
+                  light / 1.86:1 dark, plus 400 vs 500). In the UNSELECTED
+                  chip the name is `--muted` and the marker
+                  `--muted-strong` — only **1.09:1** apart (1.20:1 dark),
+                  perceptually identical — so there the annotation signal
+                  is still weight and the parentheses, exactly as before.
+                  An earlier version of this comment claimed colour
+                  separation "everywhere the marker appears"; that does not
+                  render, and overclaiming comments are this project's
+                  named defect class. */}
               {person.deactivated && (
                 <span className="font-normal text-muted-strong">(no longer active)</span>
               )}

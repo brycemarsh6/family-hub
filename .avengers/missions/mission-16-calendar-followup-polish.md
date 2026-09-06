@@ -1,7 +1,7 @@
 # Mission: the CV3 follow-up — four fixes the family will feel
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** DELIVERED — all three gates PASS (Vision 3, Strange 3, Captain 3)
 **Started:** 2026-09-05 · **Updated:** 2026-09-05
 
 ## Brief
@@ -399,7 +399,10 @@ src/lib/voice/*.test.ts` legs.
 | 2 | Strange | **BLOCKED** | 1 | Both its blockers closed and *felt*; six real month crossings, 350 samples, 0 mismatches. Blocker is **4.35:1** contrast on one chip state |
 | 2 | Vision | **BLOCKED** | 1 | A **regression from C8** on Schedule's far tasks — and it corrected contaminated evidence in two earlier reports |
 | — | C10 | DONE ×4 | — | Both blockers closed; the anchor converges to 227 where it was stuck at 536 forever; kernel extracted + 7 tests. **310 → 317** |
-| 3 | Vision · Strange · Captain | dispatched | — | Scoped to `4df44f8..e5a6c2f`. **Vision and Strange are on their LAST pass** — if either blocks, the mission stops and surfaces |
+| 3 | Captain | **PASS** | 0 | 8 notes. Caught that Fury's own repair still contained the sentence its correction refutes |
+| 3 | Strange | **PASS** | 0 | 8 notes. Measured the arrival frame-by-frame: monotone, no overshoot — "a list tightening up as it loads" |
+| 3 | **Vision** | **PASS** | 0 | 5 notes. Closed the far-task blocker end to end by injecting a ghost deactivated person into the live RSC response |
+| — | C11 (Fury, comment-only) | DONE | — | The four corrections all three gates asked for; enumerated below as not reaching any gate's domain |
 
 ## Handoff log
 
@@ -883,6 +886,89 @@ gestures → 0 POSTs.
   ±61 days, not from Week. WebKit **and** Chromium. Positive control
   first in each. The new unit test proven able to fail.
 
+### Gate round 3 — all three PASS
+
+**Vision (last pass) — PASS.** It closed its own blocker *end to end* on a
+path real data cannot reach: no deactivated person exists and the register
+forbids creating one, so it **rewrote the live `fetchTasks` RSC response in
+transit**, replacing one assignee's id with an id absent from the roster
+and `deactivated: true`. Result on a far-forward task (+70 days), both
+engines: **6 chips, the ghost appended last, pre-selected, marked**, no
+duplicate; toggled off; and the Save body carried
+`"userIds":["<adminId>"]` — **no ghost id, no `deactivated` key**. The
+invisible-assignment scenario is closed at the wire, not by inspection.
+It also enumerated `fetchTasks`'s response keys: the pre-delta allowlist
+plus one boolean; **`deactivatedAt` never leaves the server as a date and
+`passwordHash` appears in no response of any kind.** SQL measured: the
+`OR` is still **1 statement**, byte-identical; the widened nested select is
+**3 before and 3 after**. The re-arm is bounded on both engines (clamped →
+5 calls → exactly 227, unchanged at 10s; never-reachable target → 13 calls
+→ stops with the boundary message, stable through +14s **and a resize**).
+The extracted kernel's 7 tests were mutation-checked three ways
+(`continue→break`, `break→continue`, `>→>=`), each killed by exactly one
+distinct test.
+
+**Strange (last pass) — PASS.** It answered the question a ratio cannot:
+does 14 scroll corrections *look* like hunting? Frame-by-frame, the target
+climbs **482 → 352 → 227 in three small steps, monotone, never back down,
+no overshoot**, then holds through 8s — *"a list tightening up as it
+loads."* On the give-up path, **12 of 13 retries move the page 0px** (the
+whole loop contributes 54px), then stop dead. All four contrast numbers
+verified twice, arithmetic and live cascade agreeing exactly.
+
+**Captain (pass 3) — PASS.** Its best finding is about Fury's own writing:
+the repair to guard form (c) **left the sentence its correction refutes**
+four lines above it, so the clause said one thing and then the opposite —
+and the wrong half is what a reader grepping `C3b` hits first. It also
+found **the same stale `FAMILY_PASSWORD` statement 26 lines earlier, in
+the danger register** — the section headed *absolute, for every agent* —
+after Fury had corrected the "don't relitigate" copy and missed it.
+
+### C11 — the comment-only corrections (Fury, deliberate doctrine deviation)
+Four edits, **no logic anywhere**: Fury's self-contradicting parenthetical
+deleted; the danger register's `FAMILY_PASSWORD` sentence retired (its
+second, load-bearing half kept, plus the dev-secret-rotation response);
+`--muted-strong`'s general promise given the evidence **both** Captain and
+Strange independently measured (every soft token, both themes, and the
+~5/255 budget stated so the next person inherits the number rather than
+the reassurance); and `EventPeopleField`'s rationale corrected — it
+claimed colour separation *"everywhere the marker appears"* when the
+unselected chip separates at **1.09:1**, i.e. not at all.
+
+**Why Fury made these rather than dispatching a builder, stated as a
+deviation rather than done quietly:** all four are prose, three of them
+correcting text Fury itself wrote today, and a full builder dispatch for
+four comments is poor value against a stated concern about pace. **The
+staleness question is answered by enumeration**, per this project's own
+rule that a post-PASS delta must be shown not to reach a gate's domain:
+no behaviour, no structure, no placement, no dependency changed —
+`tsc`, `eslint`, **317 tests** and `build` all re-run green afterward.
+
+**Deliberate leftovers, each routed rather than absorbed:**
+- **Vision's own** — while the anchor is armed, a user's scroll is
+  discarded at each chunk commit (measured: a scroll-up yanked back ~0.5s
+  later, 2 yank-backs over ~5 commits). Bounded and self-resolving,
+  ~1–3s, deep-link-into-sparse-data only. *"This is a consequence of the
+  design I prescribed at pass 2, so I own it."* Fix named: end the re-arm
+  on the first user gesture — a person who has moved has stopped waiting
+  to be placed. **→ CV4.**
+- **Strange's** — four `placeholder:text-muted` inputs on `bg-surface-2`
+  sit at **4.33:1** (`AddItemBar`, `TitleSheet`, `PutAwayReviewSheet`,
+  `RecipeCookbookPickSheet`). Pre-existing, out of this delta — **and
+  C10 just built the token that fixes them.** → its own contract.
+- **Captain's** — `TaskForm`'s prop comment still says "full household
+  roster"; `TaskForm.tsx:153` silently drops any selected id absent from
+  `people`, which is the mechanism behind the C8 regression. Safe today
+  only because *this one caller* merges; **a second caller reintroduces it
+  with no compile error.** → the CV4 contract that touches `TaskForm`.
+- **Captain's N3/N4** and the `CalendarViews.tsx` ruling → CV4's first
+  contracts. **Four amendments + one addition await Bryce.**
+- **Security hygiene → Bryce:** Playwright echoed a **dev-branch** session
+  cookie into a gate's terminal output. Signed with the local throwaway
+  secret (production's differs, so it cannot authenticate there) and
+  expired within 24h. Response, same precedent as the voice-token
+  rotation: **rotate the dev `SESSION_SECRET` in `.env`.**
+
 ## ⚠️ Surfaced to Bryce — an app-wide change he has not seen
 
 **C4's fix makes the app's own global header pin on every page.**
@@ -900,4 +986,31 @@ header out (one class).** Strange gates it across pages either way.
 
 ## Delivery
 
-_Pending._
+- **Shipped:** four Bryce-agreed fixes to the live Calendar, plus
+  everything fixing them turned out to require. **Eleven contracts, three
+  gate rounds, nine gate verdicts.** Tests **310 → 317**, green under
+  Denver, UTC and Los Angeles.
+- **What the family gets:** Mark complete flips instantly and reverts
+  honestly on failure; an open task pill in Month carries an empty `☐`;
+  a deactivated person already assigned stays visible and removable
+  instead of blocking every future edit of that item; and the Schedule's
+  month name and Today control stay pinned, with the month changing as
+  you scroll — Bryce's own refinement.
+- **And one nobody asked for:** `overflow-x: hidden` on `html, body` had
+  made **every `position: sticky` in the app inert since it was written**
+  — including the app's own global header, which has carried `sticky
+  top-0` and never once stuck. One token change (`clip`) restored all of
+  them; the sideways-scroll guard's real job was proven intact at 375 and
+  320 across eight pages.
+- **The three gates earned their cost this mission.** They caught: a
+  feature **completely broken on every iPhone** (an inverted observation
+  rect that Chrome silently rescued and WebKit did not), a "go to today"
+  that landed you on the wrong day, a duplicate month label, a regression
+  **Fury's own C8 contract introduced**, and a contrast failure on a
+  feature's default state. Every one would have shipped.
+- **Two evidence corrections matter as much as the fixes.** A parallel
+  gate's rows in the shared dev branch lifted a clamp and made a broken
+  anchor read as fixed — **16 runs in a row**, across two different
+  gates. And "byte-identical" overstated what a refactor A/B can prove.
+  Both are now standing instructions in every measurement brief.
+- **Shipped check:** `git log origin/main..HEAD` run before the PR.
