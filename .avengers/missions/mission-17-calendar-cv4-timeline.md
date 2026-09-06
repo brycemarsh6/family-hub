@@ -411,7 +411,114 @@ differently if they do.
 | — | C2 | DONE `4d3904d` → merged | — | Parallel worktree #2. Both Nov-1 1:30 AMs at one rail minute in separate columns. **317 → 326.** Two findings need a ruling |
 | — | C3 | DONE `f8ae2a8` → merged | — | Parallel worktree #3. Totality proven by two pasted compile errors; byte-identical trace after a positive control. **All three compose: 328** |
 | — | C4 | DONE `8a47a64` | — | All six views live. Found and fixed a **225px** skeleton jump → 2px. **329 tests.** Third state disclosed as unreachable, method checked against Month |
-| 1 | Vision · Strange · Captain | dispatched | — | All four build contracts complete; three gates in parallel worktrees |
+| 1 | Captain | **BLOCKED** | 3 | All three trace to one cause **Captain named**: a must-not-touch boundary is a threshold you can satisfy by copying |
+| 1 | Vision | **BLOCKED** | 2 | **Tasks vanished from Day/3 Day/Week** — Fury's contract omitted them. Also solved C4's unreachable-state mystery |
+| 1 | Strange | **BLOCKED** | 3 | **Ruled on the 24px block rather than handing it up.** Reached the state C4 could not. Three states fail for the third time on this branch |
+| — | C5 | dispatched | — | All eight blockers; one contract, because every one of them lands in or beside `TimelineGrid.tsx` |
+
+## Gate round 1 — three BLOCKED, eight blockers, one cause worth more than the rest
+
+### Strange's ruling on the 24px block — settled, not escalated
+
+**"Accept the height. Reject the abutment."** It declined to hand this to
+Bryce and explained why, which is the outcome I wanted from asking.
+
+*Accept*, because inflating the box would either paint over a neighbour or
+reintroduce the ambiguous tap the pad exists to prevent — and 96px/hour
+halves the visible day from **9.2 hours to 4.6**, paid on every opening of
+the app's most-used view, to fix a mis-tap whose worst outcome is opening
+the adjacent event and tapping back. **And crucially the licence is
+structural, not "Google does it"** — DESIGN.md explicitly disowns
+third-party references. **The app already solved this in Month**: the
+*cell* is the 44px target (measured `min-h-11`, 44 × 47.9) and the pills
+inside are non-interactive. Coarse view, conforming target one step away —
+and Schedule, a peer in the same picker, has **112px full-width rows and
+lists everything**.
+
+**The exception gets a written boundary**, which is the part that matters:
+*a timeline block's height is its duration; its floor is whatever
+`MIN_BLOCK_MINUTES × HOUR_HEIGHT_PX` buys; every block stays a real
+`<button>` with a real accessible name; Schedule is the conforming route.*
+**Anything with no duration to be faithful to gets no cover** — which is
+exactly why it then blocked the 18px all-day bar.
+*One line for Bryce, not blocking: a 96px rail on **Day only** (one
+column, no width cost) would clear 48px outright at the price of halving
+Day's span. Strange ruled it not worth it; it is a one-constant change if
+Bryce disagrees.*
+
+### The eight blockers
+
+**Vision B1 — tasks vanished from Day, 3 Day and Week.** Measured: a task
+due today appears **0 times** in all three, 1 in Month (control), present
+in Schedule. So a chore due today is invisible on the view the app opens
+to, and **a kid cannot complete their own chore from there** — the
+feature CT2 built. **This is Fury's contract error**, and the sharpest
+kind: `.avengers/plans/calendar-v2.md:272` says plainly *"timeline → the
+all-day row via `partitionForTimeline`"*, and C2's contract enumerated the
+component's props and **left `tasks` out**. Every check I wrote asked
+whether the timeline placed *events* correctly. It does. Nobody asked what
+happened to the other thing that lives on a calendar day.
+
+**Vision B2 + Strange B2 — the same defect, and Strange traced it
+further.** All-day items beyond the third are withheld with **no route to
+them**: `assignLanes` caps at 3 and the "+N more" is an inert `<span>` —
+not a button, not focusable. Vision measured the 4th event **absent from
+the DOM entirely**; Strange then traced the escalation and found it
+**circular**: Month's own "+N more" navigates to Day, which renders the
+same dead "+N more". Month's overflow affordance, whose entire
+justification is "tap through to see them all," now terminates in a second
+overflow. DESIGN.md: *"Never a dead end."* Two riders land with the fix —
+the all-day bar is **18px**, smaller than the 24px block and with **no
+duration to justify it** (so the ruling above explicitly denies it cover);
+and at 320px the "+N more" ink **escapes its box by 9px** onto the
+scrolling rail, caught only because Strange re-measured with
+`Range.getClientRects` after its own bounding-box probe said clean.
+
+**Strange B3 — consecutive half-hour events abut at exactly 0.0px.** Two
+distinct destinations separated by a hairline; a 12px aim error opens the
+wrong one, and **opening the wrong event is worse than missing.** Its
+acceptance of the 24px height is *conditional on this*. Fix is free and
+needs no library change: draw each block 2px shorter than its computed
+geometry — **shrinking is always safe** because `assignColumns` guarantees
+non-overlap up to the padded box.
+
+**Strange B1 — "not loaded" and "genuinely empty" are indistinguishable,
+the third failure of the three-states rule on this branch.** It **reached
+the state C4 could not** (2000ms latency + 14 rapid Next taps → all 7
+columns out of window) and found the accessible text **byte-identical
+apart from the dates**, because the only differentiator is a 9×9px glyph
+that is `aria-hidden`. **C4's own change caused it**: moving
+`day`/`threeDay`/`week` from `daySection` to `timeline` removed
+`NotLoadedCard`'s *worded* answer from exactly the views Month escalates
+into. `ScheduleView` still renders it, which proves the treatment is
+affordable.
+
+**Captain B1/B2/B3 — and the cause is mine.** A nine-line function copied
+**byte-for-byte** from `MonthCell` with a comment claiming it isn't a copy
+(Fury diffed it: identical); a **second hardcoded bottom-nav height that
+is wrong** (64 against a real 65 — it matched the inner row and missed the
+border, and `env(safe-area-inset-bottom)` makes both wrong by ~34px on a
+phone); and a dependents list naming **3 of 5**, missing a *composite*
+number that no grep could ever find.
+**Captain's diagnosis is the most valuable thing in this round:** *a
+must-not-touch boundary is a threshold you can satisfy by copying.* Three
+times a builder correctly obeyed, correctly disclosed, and correctly
+copied — because the file the shared thing belonged in was forbidden to
+it. `color.ts` **already records this happening before, and its remedy**
+("put both files in the SAME contract"); it happened again one level up
+the same call stack. **It also answers my parallelisation question:
+disjoint file sets are not the whole precondition — what makes contracts
+safely parallel is that neither needs to read a definition the other
+owns.** My C1/C2/C3 map passed the first test and failed the second.
+
+### Two things resolved rather than found
+**Vision solved C4's disclosed mystery:** `isOutsideWindow` is **not dead
+code** — the reachable path is the client rendering ahead of an in-flight
+fetch, and both gates reached it independently once they stopped sweeping
+dates and started delaying responses. And **Strange restored the database
+to exact baseline** while recording that a parallel gate's rows moved
+underneath it (4 → 15 → 25 → 30 → 20 → 4), naming the count at every
+measurement so nothing load-bearing rested on one.
 
 ## Handoff log
 
