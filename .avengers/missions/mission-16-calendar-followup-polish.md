@@ -394,7 +394,8 @@ src/lib/voice/*.test.ts` legs.
 | 1 | Vision | **BLOCKED** | 1 | The month observer's rect is **inverted below 1135px** — label frozen on WebKit, i.e. every iPhone. 6 notes |
 | 1 | Strange | **BLOCKED** | 2 | Confirmed the anchor defect **by measurement** (3/3, `visiblePx 0`); plus a **double month label on landing** that C4's record says cannot happen. 3 notes |
 | — | C7 + C8 | DONE `4dfc603`, `3a644f5` | — | All three blockers closed, proven on **WebKit and Chromium** with pre-fix controls. C7 exposed a real pre-existing render loop — guarded, and flagged for CV4 |
-| — | C9 | dispatched | — | `ScheduleView.tsx` hit **620/650 hard cap**; Captain's clean seam, taken before re-gating so one round covers everything |
+| — | C9 | DONE `4bf380e` | — | 620 → **494**; new hook 219. Behaviour proven identical by a **byte-identical A/B** against the pre-split build. Captain's N4 closed, N3 left open on purpose |
+| 2 | Vision · Strange · Captain | dispatched | — | Scoped to the delta `c13547f..4bf380e`; all three in parallel, own worktrees |
 
 ## Handoff log
 
@@ -441,6 +442,14 @@ src/lib/voice/*.test.ts` legs.
   the named data-migration exception) — Fury had reported them approved
   and then not written them, which is this project's recorded
   claimed-but-not-durable class applied to its own constitution.
+- 2026-09-05 — C9 DONE and audited. **All nine build contracts complete.**
+  `ScheduleView.tsx` 494, `useScheduleMonthTitle.ts` 219,
+  **`CalendarViews.tsx` 349/350 — one line off the soft cap**, worth
+  Captain's eye since CV4 touches that file next. Gate round 2 dispatched:
+  all three, in parallel, each in its own worktree, **scoped to the delta
+  `c13547f..4bf380e`** — their pass-1 findings covered everything outside
+  it, and `globals.css` is untouched since, so the app-wide sweep does not
+  need repeating.
 
 ### The gate round — Captain PASS, Vision BLOCKED, Strange BLOCKED
 
@@ -631,7 +640,48 @@ than glossed.
   server supplies, as Strange did.
 
 ### C9 — the split Captain named, now unavoidable
-- **Status:** PENDING
+- **Status:** DONE `4bf380e`
+- **Report:** `ScheduleView.tsx` **620 → 494**; new
+  `src/lib/useScheduleMonthTitle.ts` (219). The hook takes `revealLineY`
+  and `titleSlotId` as **parameters** rather than importing
+  `CalendarHeader.tsx`'s constants — the same dependency-injection shape
+  `ScheduleFetchers` established in CV3, which keeps `src/lib/` from
+  reaching into `components/`. So **Captain's N3 (where the height
+  constants live) is left untouched and still open for Captain to rule
+  on**, rather than being pre-empted mid-extraction. Captain's **N4 is
+  closed**: `CalendarViews.tsx` now states the co-mounting requirement in
+  the one file that decides both sides of it.
+- **The evidence is the strongest form available for a refactor:**
+  `git stash` the three files → rebuild the pre-C9 tree → run the script →
+  restore → rebuild → run the identical script. **The two result sets are
+  byte-identical, zero lines of difference** across the label-flip walk,
+  both anchor tests, the render-loop test, the a11y heading query and the
+  network-discipline check. Plus fresh WebKit 26.6 + Chromium runs in both
+  themes: `flips: 1`, `mismatches: 0` on all four engine×theme
+  combinations; Today taps land at `top 227`, `hiddenBehindChrome: false`;
+  the `sr-only` heading found by role query on both engines.
+- **The render-loop guard was proven non-vacuous by breaking it**:
+  reverting the `.getTime()` comparison to `Date`-identity reproduced
+  **React error #185** in a production build, then was restored and
+  `grep`-confirmed. That is the check this contract most needed.
+- **A pre-existing bug found and correctly routed, not absorbed:** a
+  *deep link* to a day can land it at `top 416` rather than 227 — present
+  **identically on both trees** (so not caused here), traced rather than
+  guessed: `useScheduleWindow`'s mount effect races `loadBackward`/
+  `loadForward`, and if backward resolves after forward has already fired
+  the one-shot `scrollIntoView`, `useScrollAnchor`'s "don't correct the
+  very first backward load" rule — written when nothing was on screen yet
+  — lets that prepend push the scrolled-to row down uncompensated. Never
+  the dangerous case C7 fixed (`hiddenBehindChrome: false` throughout).
+  Lives in two must-not-touch files. **Routes to the same contract as
+  C7's `useToday()` instability — both are in `useScheduleWindow.ts`'s
+  neighbourhood and CV4 is the next thing to touch it.**
+- **It also declined to claim a pass it had not earned:** its network
+  check saw `refusedReopenPosts: 2`, and rather than reporting a
+  violation or waving it through, it distinguished the **empty-cap
+  reopen** (documented to buy one chunk per gesture) from the **hard
+  `null` refusal** CV3's "zero POSTs" claim is actually about — a path it
+  did not exercise. `midFlickPosts: 0` matched CV3 exactly.
 - **`ScheduleView.tsx` is 620/650 — 95% of the HARD cap**, up from the 538
   Captain called *"the genuine split candidate this mission produced"*
   before C7 added another 82 lines to the very code it named. This is no
