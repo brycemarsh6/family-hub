@@ -286,9 +286,20 @@ export function TimelineAllDayStrip({
           8.8px past a Week column's ~31px box at 320px, with ADJACENT
           days' ink actually overlapping. `min-w-0 overflow-hidden` keeps
           the ink inside the box no matter the label length (a grid item's
-          default `min-width: auto` is what let it escape at all); Week
-          additionally gets a shortened "+N" label, since no other view's
-          columns (Day ~290px, 3 Day ~75px) are narrow enough to need it.
+          default `min-width: auto` is what let it escape at all) — that part
+          is unconditional and still true below. C7 additionally shortened
+          the label to "+N" whenever `columnDays.length === 7` (Week), which
+          mission-17/C8 (round 3, Strange) found INVERTS: measured live,
+          1280px puts `+23 more` in a 96px Month cell (a different
+          component) next to `+23` in a 98px Week column — the WIDER box got
+          the SHORTER label — and at 320px a 74.7px 3 Day column shows the
+          full label while a ~185px Week column at 1024px does not. It also
+          over-fired: "+2 more" is 35.4px of ink inside a 38.7px Week column
+          at 375px — it already fit. `columnDays.length === 7` was a stand-in
+          for "this column is narrow," and view identity has no causal
+          relationship to a column's actual rendered width (Day's own column
+          is hundreds of pixels wide at every viewport this file supports —
+          D5 — so no flat viewport breakpoint could be right for it either).
           The ACCESSIBLE name never shortens — every button keeps a real
           "+N more" aria-label regardless of what its visible text says, per
           the contract's own instruction that the control must keep saying
@@ -314,19 +325,43 @@ export function TimelineAllDayStrip({
         </button>
       ) : (
         columnDays.map((day, col) => {
-          if (overflowByDay[col] <= 0) return null;
-          const overflowLabel = `+${overflowByDay[col]} more`;
-          const visibleLabel = columnDays.length === 7 ? `+${overflowByDay[col]}` : overflowLabel;
+          const count = overflowByDay[col];
+          if (count <= 0) return null;
+          const overflowLabel = `+${count} more`;
+          // mission-17/C8 (round 3, Strange) — the noun goes, not the whole
+          // label, and it goes based on THIS BUTTON'S OWN rendered width,
+          // never the view it happens to be in. `@container` below sets
+          // `container-type: inline-size` on the button itself, so it
+          // becomes its own query context; the child `<span>` asks "is my
+          // nearest container (this button) at least this wide," which is
+          // the one question `columnDays.length === 7` was standing in for
+          // and got backwards. Day's column stays hundreds of pixels wide
+          // at every width this file supports, so its container query never
+          // fires there regardless of viewport — the flat viewport
+          // breakpoint Strange's own note also offered would have shortened
+          // Day too below 360px, which is wrong for a box that never needs
+          // it.
+          //
+          // Three tiers, not one, because the ink that has to fit grows
+          // with the digit count — measured directly against this button's
+          // own font (`text-[9px] font-semibold`), not assumed: "+9 more"
+          // is 35.8px of ink, "+99 more" is 41.4px, "+999 more" is 45.3px.
+          // A single threshold sized for one digit would clip the trailing
+          // "e" off a two- or three-digit count in a column just wide
+          // enough for the shorter case.
+          const shortAt =
+            count >= 100 ? "@min-[47px]:inline" : count >= 10 ? "@min-[42px]:inline" : "@min-[36px]:inline";
           return (
             <button
               key={`overflow-${day.getTime()}`}
               type="button"
               onClick={expandAllDay}
               aria-label={overflowLabel}
-              className="min-w-0 overflow-hidden whitespace-nowrap text-left text-[9px] leading-[24px] text-muted underline decoration-dotted"
+              className="@container min-w-0 overflow-hidden whitespace-nowrap text-left text-[9px] leading-[24px] text-muted underline decoration-dotted"
               style={{ gridColumn: col + 2, gridRow: maxAllDayLane + 2 }}
             >
-              {visibleLabel}
+              <span>+{count}</span>
+              <span className={`hidden ${shortAt}`}> more</span>
             </button>
           );
         })
