@@ -415,7 +415,8 @@ differently if they do.
 | 1 | Vision | **BLOCKED** | 2 | **Tasks vanished from Day/3 Day/Week** — Fury's contract omitted them. Also solved C4's unreachable-state mystery |
 | 1 | Strange | **BLOCKED** | 3 | **Ruled on the 24px block rather than handing it up.** Reached the state C4 could not. Three states fail for the third time on this branch |
 | — | C5 | DONE ×6 | — | All eight blockers closed. **224/224 live checks across 8 engine×theme×width combos.** Tests 329 → **333** |
-| — | C6 | dispatched | — | `TimelineGrid.tsx` crossed the **650 hard cap** (809/434). Captain's named seam, taken now rather than deferred behind a justification |
+| — | C6 | DONE `64ba63a` | — | **809/434 → 623/321**, under both caps. C5's suites re-run 26/26; the justification is gone rather than accepted |
+| 2 | Vision · Strange · Captain | dispatched | — | Round 2. All three blocked at round 1; each has two passes left |
 
 ## Gate round 1 — three BLOCKED, eight blockers, one cause worth more than the rest
 
@@ -559,7 +560,31 @@ cited a line count taken *before* the disclosure paragraph existed,
 understating the total by its own length.
 
 ### C6 — the seam, taken now rather than deferred behind a justification
-- **Status:** PENDING
+- **Status:** DONE `64ba63a`. **`TimelineGrid.tsx` 809/434 → 623/321** —
+  under the 650 hard cap *and* the 350 soft cap on code. New
+  `TimelineAllDayStrip.tsx` 292/154. **The header justification is gone
+  rather than accepted**, which was the point.
+- **Report:** it proved the move was a move, not a rewrite — stripped both
+  files of comments and diffed the relocated region against the original,
+  leaving exactly two differences: code that legitimately stayed behind
+  (weekday header, `columnSlots`, the not-loaded banner), and a
+  `{cond && (...)}` becoming an equivalent early `return null`. All of
+  C5's suites re-run live, **26/26**, both engines: the five-item
+  expansion including the real Month→Day path, the kid-permission boundary
+  (owner completes and it **persists**, confirmed by direct DB read;
+  another kid gets no control), the **2.00px** gap with three distinct
+  `elementFromPoint` targets, the sticky wrapper pinned as one unit across
+  a 300px rail scroll, and the not-loaded banner with its text **not**
+  `aria-hidden`.
+- **Two judgement calls worth keeping.** It passes `gridTemplateColumns`
+  as a computed **string prop** rather than letting the child re-derive it
+  from a second copy of `GUTTER_WIDTH_PX` — a deliberate departure from
+  Captain's four-prop sketch, made *specifically* to avoid recreating the
+  copied-magic-number failure this mission's own gate round diagnosed.
+  And it found by **measuring** that a "Next day" burst can never clear
+  the ±61-day window — only Week's seven-day jump reaches the not-loaded
+  race — rather than assuming its first attempt had failed for the reason
+  it looked like.
 - **`TimelineGrid.tsx` is 809 total / 434 code** — past the **650 hard
   cap**, and past the 350 soft cap on code as well. C5 wrote the header
   justification STRUCTURE.md permits, and named CD1 as the deferred
