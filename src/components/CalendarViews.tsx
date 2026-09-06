@@ -253,17 +253,30 @@ export function CalendarViews({
       // each row already returns exactly the column set this component
       // needs: `[anchor]` for Day, the anchor-relative 3-day span for
       // 3 Day, `sundayOf(anchor)`'s week for Week).
+      //
+      // `tasks`/`onOpenTask` — mission-17/C5. Fury's original C2 contract
+      // enumerated this component's props and left `tasks` out entirely, so
+      // a task due today was invisible on Day/3 Day/Week even though Month
+      // and Schedule both already rendered it. Passed straight through
+      // unfiltered, exactly as the "month" case above already does for
+      // MonthGrid — TimelineGrid decides which tasks touch `days` itself,
+      // via `assignLanes`, the same way MonthGrid does per row. `onOpenTask`
+      // is the identical one-arg closure the "daySection" case below
+      // already passes (a task has exactly one due date, never a span, so
+      // the `day` argument that closure ignores is unused here too).
       return (
         today !== null &&
         now !== null && (
           <TimelineGrid
             columnDays={days}
             events={events}
+            tasks={tasks}
             today={today}
             now={now}
             windowStart={windowStart}
             windowEnd={windowEnd}
             onOpenEvent={(event, day) => setSelected({ event, day })}
+            onOpenTask={(task) => setSelectedTask(task)}
             chromeOffsetPx={chromeOffsetPx}
           />
         )
