@@ -826,6 +826,49 @@ Scroll-to-now judged *as felt*: "now, with the day in front of you."
 Alignment holds, the sticky wrapper is one unit, rule (d) verified — the
 picker lists Schedule first.
 
+### C8 — Strange's two round-3 notes (Bryce: "fix it and then merge")
+- **Status:** PENDING. **Bryce authorized the fix and a final verification
+  pass, 2026-09-06**, after reviewing the preview himself — which
+  extends Strange's spent 3-pass budget by one, his call not Fury's.
+1. **The label proxy inverts on a wide screen.** `columnDays.length === 7`
+   stands in for "the columns are narrow", and the two come apart:
+   measured at 1280px the app renders **`+23 more` in a 96px Month cell**
+   and **`+23` in a 98px Week column** — the wider box gets the shorter
+   label; at 320px a 74.7px 3 Day column shows the full label while a
+   ~185px Week column at 1024px does not. It also **over-fires**: `+2 more`
+   ink is 35.4px in a 38.7px box at 375 — it fits. **And nothing depends
+   on it** — `min-w-0 overflow-hidden` is what actually closed Vision's
+   blocker, and that is unconditional. **The wall tablet is a named
+   primary device in DESIGN.md's Identity section**, which is exactly
+   where this reads worst.
+   **Strange's fix:** drop the JS condition and let CSS decide, so the
+   noun is the part that goes — `<span>+{n}</span><span className="hidden
+   min-[360px]:inline"> more</span>` inside the existing `overflow-hidden`
+   box. Shortens where the box is short and nowhere else. **Keep
+   `aria-label={`+${n} more`}` either way** — Vision confirmed the
+   accessible name must never shorten.
+2. **The screen-reader collision.** `"Fri 6 events not loaded"` parses as
+   *"Friday, 6 events not loaded"* — a number adjacent to a plural noun is
+   read aloud as a count. Strange judged the **terse register correct** for
+   a per-column marker (repeating the banner's "tap Today to come back"
+   seven times would be worse); it is the collision that needs fixing.
+   **Fix:** `— no events loaded for this day`, or move the text ahead of
+   the number. Either kills the count reading.
+- **Boundaries:** may touch `src/components/TimelineAllDayStrip.tsx`,
+  `src/components/TimelineGrid.tsx` · must not touch `timelineLayout.ts`
+  and its tests, `monthLayout.ts`, `color.ts`, `appChrome.ts`,
+  `CalendarViews.tsx`, `MonthCell.tsx`, `ScheduleView.tsx`, `HubNav.tsx`,
+  `src/app/**`, `actions/**`, `prisma/**`, `DESIGN.md`, `STRUCTURE.md`.
+- **Evidence:** the label measured at **320, 360, 375, 1024 and 1280** on
+  both engines — full text wherever it fits, shortened only where the box
+  is genuinely short, and **`Range.getClientRects` for every ink reading**
+  (this element has now been fixed three times, twice on box probes that
+  structurally cannot see ink). The accessible name unchanged in the
+  **accessibility tree**. The `sr-only` string read back from
+  `ariaSnapshot()` in the mixed state — **reached**, not assumed — with a
+  positive control first. Nothing else disturbed: the expand/collapse
+  round trip, the 2px seam, tasks in the strip, scroll-to-now's third.
+
 ## Handoff log
 
 - 2026-09-06 — Opened on `claude/calendar-cv4-timeline` from `main` at
