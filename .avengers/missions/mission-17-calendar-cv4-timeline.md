@@ -1,7 +1,7 @@
 # Mission: CV4 — the hour timeline (Day / 3 Day / Week)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** DELIVERED — merged with **one known open finding**, Bryce's call (below)
 **Started:** 2026-09-06 · **Updated:** 2026-09-06
 
 ## Brief
@@ -1032,4 +1032,56 @@ picker lists Schedule first.
 
 ## Delivery
 
-_Pending — one blocker open (the UTC-path string), surfaced to Bryce._
+- **Shipped:** the hour timeline. Day, 3 Day and Week place events by
+  their real times, overlapping ones side by side, a now-line tracking
+  the clock, all-day events **and tasks** in a strip above, scroll-to-now
+  on open. **Nothing in this app positioned anything by time before.**
+  All six views are now built and reachable: Schedule · Day · 3 Day ·
+  Week · Month · Year. **Eight contracts, four gate rounds, ten verdicts.
+  Tests 317 → 333.**
+- **Three of four build contracts ran in parallel git worktrees** — a
+  first — with zero conflicts and zero index collisions.
+
+### ⚠️ MERGED WITH ONE KNOWN OPEN BLOCKER — Bryce's decision, 2026-09-06
+
+Strange pass 4 blocked on a **screen-reader string that is false on the
+production path**, and Bryce chose **"ship it"** after being shown the
+finding, the fix, and the alternative. Recorded here as his call, not an
+oversight, and **first item for CV5**:
+
+> `TimelineGrid.tsx`'s per-column `sr-only` reads **"— no events loaded
+> for this day"**. `isOutsideWindow` flags a **partially** fetched day
+> (`dayEnd > windowEnd`), and on Vercel's **UTC** server the boundary
+> falls at **5:00 PM Denver** — so the boundary day's morning events are
+> fetched and render *underneath* a column announcing that none loaded.
+> Reproduced in both engines with an event strictly contained in that
+> column. **Cannot reproduce on a Denver server**, so local dev
+> structurally cannot show it.
+> **Fix, one line:** `— not all events loaded` — true in both the
+> unfetched and partly-fetched cases, still unmisreadable as a count,
+> shorter than the shipped string, and it reuses `DaySection`'s existing
+> `NotLoadedCard` wording verbatim.
+> **Coupled to the extraction:** the comment justifying the current
+> wording must change with it, and `TimelineGrid.tsx` is at **649/650**.
+
+Scope of the harm, stated plainly so CV5 can prioritise honestly: it
+affects **screen-reader users only**, on **one boundary day**, **only in
+production**. Sighted users see `CalendarOff`, which makes no
+quantitative claim.
+
+- **What the gates caught that would otherwise have shipped:** tasks
+  **entirely absent** from Day/3 Day/Week (Fury's contract omitted them,
+  so a kid could not complete a chore from the default view); the fourth
+  all-day item unreachable with Month's "+N more" escalating into a Day
+  view showing the same dead "+N more"; consecutive half-hour events
+  abutting at **0.0px**; "not loaded" **byte-identical** to "empty" in the
+  accessibility tree; a nine-line function copied **byte-for-byte**; a
+  **wrong** bottom-nav height (64 against a real 65).
+- **Evidence worth keeping:** the permission boundary proven at the
+  **network level** — `completeTask` replayed over raw HTTP as one kid
+  against another's task, refused, database unchanged, with a positive
+  control proving the refusal meant something. **DST on the real date** —
+  both Nov 1 2026 1:30 AMs at one rail minute in separate columns. A
+  **225px** skeleton jump found by measuring rather than trusting, fixed
+  to a 2px border delta.
+- **Shipped check:** `git log origin/main..HEAD` run before the PR.

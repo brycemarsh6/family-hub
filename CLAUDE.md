@@ -5403,3 +5403,131 @@ DESIGN.md carve-out for one-shot destructive verbs; the empty `☐` on
 open month task pills; the deactivated-member picker showing active
 people plus anyone already on the item), then **CV4** — the hour
 timeline for Day / 3 Day / Week, `timelineLayout.ts`'s first consumer.
+
+---
+
+## Session, 2026-09-05/06: mission 16 (the follow-up) and CV4 (the hour timeline)
+
+Two missions, both merged. **Nineteen contracts, seven gate rounds.** Tests
+**310 → 333**. `.avengers/missions/mission-16-calendar-followup-polish.md`
+and `mission-17-calendar-cv4-timeline.md` are the authoritative records.
+
+### What the family has now
+
+**Mission 16** — Mark complete flips instantly; an open task pill in Month
+carries an empty `☐`; a deactivated person already assigned stays visible
+and removable instead of **blocking every future edit of that item**; and
+the Schedule's month name and Today control stay pinned, the month
+changing as you scroll.
+
+**CV4** — Day, 3 Day and Week are **hour timelines**: events placed by
+their real times, overlapping ones side by side, a now-line, all-day
+events *and tasks* in a strip above, scroll-to-now on open. **Nothing in
+`src/` positioned anything by time before this.** All six views are built
+and reachable.
+
+### The accidental discovery that mattered most
+
+**`overflow-x: hidden` on `html, body` had made every `position: sticky`
+in the app inert since the day it was written** — including the app's own
+global header, which carries `sticky top-0` and had never once stuck.
+`clip` is exempt from the cross-axis `auto` computation that was creating
+a dead scroll container; one token restored all of them. The
+sideways-scroll guard's real job was proven intact at 375 and 320 across
+eight pages, before and after. **The header now pins on every screen** —
+nobody chose that this session; whoever wrote the class chose it, and the
+CSS silently overrode them.
+
+### Lessons, and most are about how a claim gets believed
+
+- **A boundary is a threshold you can satisfy by copying** (Captain).
+  Three times in one mission a builder correctly obeyed its boundary,
+  correctly disclosed, and correctly wrote a duplicate — because the file
+  the shared thing belonged in was forbidden to it. `color.ts` **already
+  recorded this happening once, and its remedy**; it happened again one
+  level up the same call stack. **And it answers what makes contracts
+  safely parallel: not disjoint file sets, but neither needing to read a
+  definition the other owns.**
+- **The same boundary also buys prose instead of a seam.** A file crossed
+  the 650 hard cap and shipped a justification whose real content was *"my
+  boundary did not permit a new file."* Captain: the justification was
+  **self-refuting** — the hard cap has no deferral machinery, and a
+  justification saying *"a cheap measured seam exists and is scheduled"*
+  documents that the cap is being crossed for a removable reason.
+- **A gate stopped Fury changing the constitution on a false premise.**
+  The dispatch claimed a cap had fired on a file whose code was under the
+  soft limit; Captain measured **434 against 350** by three counters and
+  **withdrew its own proposed amendment** — *"the cap worked."* The
+  mission file already said so; the prose was the stale record.
+- **Measure ink, not boxes.** One label defect was fixed **three times**:
+  it spilled downward, then sideways, then read falsely — and **twice** a
+  fix was signed off on `getBoundingClientRect`, which structurally cannot
+  see ink overflow. `Range.getClientRects` is the tool.
+- **Parallel gates on one shared dev branch contaminate each other's
+  evidence.** A gate's rows lifted a scroll clamp and made a broken anchor
+  read as **fixed, 16 runs running, across two gates**; later, the same
+  contamination made Chromium and WebKit disagree about one fixture.
+  Every measurement brief now states the database count at the moment it
+  measures, and fixtures are deleted **by id as each measurement
+  finishes** — batching cleanup is why a rate-limit death stranded 25 rows.
+- **A death is not a verdict.** Both final gates were killed mid-run by a
+  session limit; re-running completed the pass rather than spending a
+  fourth.
+- **The UTC/Mountain seam reached a *sentence* — its ninth appearance.**
+  `isOutsideWindow` flags a *partially* fetched day, and on Vercel's UTC
+  server the boundary falls at 5 PM Denver, so a screen reader is told
+  "no events loaded for this day" while that day's morning events render
+  beneath the claim. **It cannot reproduce on a Denver server.**
+- **Fury's own record failure, recorded because it is the tracked class:**
+  mission-17's handoff log held **two** entries when it should have held
+  fourteen. Every append anchored to a previous append that had itself
+  silently failed to match — and each was reported to Bryce as written.
+  Contracts and the gate ledger landed; the log a fresh session resumes
+  from did not. **Mission-9's own rule, ignored: verify a file edit
+  landed; don't trust the write.** Rebuilt from the commit history.
+
+### Process changes Bryce approved, and their first results
+
+**Builders now run in parallel, each in its own git worktree on its own
+branch**, merged by Fury — three at once in CV4, zero conflicts. Mission
+16 had run 2h23m of strictly sequential builder work over barely
+overlapping files. **Gate proportionally** — Captain's third CV4 pass was
+**declined and enumerated** rather than spent. **Split by risk** — mission
+16's instant-checkbox fix was finished at 14:43 and shipped after 22:00,
+held behind app-wide work that needed three gate rounds.
+
+### Constitution changes (all Bryce-approved)
+
+`STRUCTURE.md` gained **seven**: `validatedPeople`'s decision gets a home
+in `src/lib/` as `personInfo.ts`'s write-side twin (third copy is a
+BLOCKER); a measured chrome dimension has one home and its markup names
+its dependents; **caps are judged on code lines, both reported**;
+`CalendarHeader`'s inline `view === "schedule"` joins the named-instance
+list; the four accounts-cutover decisions; guard form **(c)**, membership;
+and the named data-migration exception.
+`DESIGN.md` gained **three**: the optimistic carve-out (a one-shot
+destructive verb waits, a reversible flip does not — *"if this fails, does
+undoing it read as a correction or a loss?"*); the timeline's sanctioned
+44px exception **with a four-part boundary** so it cannot spread; and
+`line-through` means **done**, never *past* — a rule that had steered
+three implementations while living in no constitution at all.
+
+### ⚠️ CV4 merged with one known open finding — Bryce's call
+
+The screen-reader string above is **false on the production path**. Shown
+the finding, the one-line fix and the alternative, Bryce chose **ship
+it**. It affects screen-reader users only, on one boundary day, only in
+production. **First item for CV5**, and it is coupled to an extraction:
+`TimelineGrid.tsx` is at **649/650**, and the comment justifying the
+current wording must change with the string.
+
+### Where the calendar stands
+
+`CV0 ✅ CV1 ✅ CT1 ✅ CV2 ✅ CV3 ✅ CT2 ✅ CV4 ✅` — **CV5** (Month text pills,
+Year), **CV6** (month dropdown, swipe paging), **CD1** (drag to
+reschedule) remain, then filters, recurrence, the RSVP and search
+walkthroughs Bryce still owes, and Google sync (**K6/K7 need a Google
+Cloud project only Bryce can create**). Full plan:
+`.avengers/plans/calendar-v2.md`. **CD1 lands in `TimelineGrid.tsx` and
+adds code, not prose — it extracts first.**
+
