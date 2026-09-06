@@ -420,7 +420,9 @@ differently if they do.
 | 2 | Strange | **PASS** | 0 | 5 notes. All three blockers closed *as felt*; extended its own ruling to cover the 24px bar, with reasons |
 | 2 | Vision | **BLOCKED** | 1 | The 320px ink escape **rotated** rather than closed — and C5's evidence for it was a box probe that structurally cannot see ink |
 | — | C7 | DONE `ff323f7` | — | All four closed. Scroll-to-now back to **0.333 at every strip size** (was 0.537). Both files under both caps |
-| 3 | Vision · Strange | dispatched | — | **Final pass for both.** Captain's pass 3 declined — the delta is two component files, no new module, both under cap; enumerated below |
+| 3 | Vision · Strange | **DIED — session rate limit**, both, mid-run | — | Neither reported. A death is not a verdict; Fury cleaned 2 worktrees and **25 stranded rows**, then re-dispatched |
+| 3 | **Vision** (retry) | **PASS** | 0 | 6 notes. Blocker closed and **not clipped** — ink ends inside the box at every width. Answered the dead run's proxy question |
+| 3 | **Strange** (retry) | **BLOCKED** | 2 | **Both on DESIGN.md text Fury wrote in this same commit** — none on the four items' behaviour. 8 notes. Budget spent |
 
 ## Gate round 1 — three BLOCKED, eight blockers, one cause worth more than the rest
 
@@ -741,6 +743,88 @@ derivation of the shared grid template string, which Captain made a
 that a post-PASS delta must be **enumerated and shown not to reach a
 gate's domain**, that is the enumeration. Captain's pass 3 stays available
 if Vision or Strange surfaces something structural.
+
+### Gate round 3 — Vision PASS, Strange BLOCKED on Fury's own constitution text
+
+**Both gates first died to a session rate limit mid-run**, neither reporting.
+They left two worktrees and **25 stranded calendar rows** against a
+baseline of 4. Fury cleaned up: worktrees removed; the rows identified
+**without reading a single title** — exactly 4 predated today (Sep 2–3,
+when calendar work began) and 25 were created today, and `29 − 25 = 4`
+matched the baseline precisely — then deleted by id behind an abort guard
+that would have refused if the survivor count came out as anything but 4.
+**One process change went into both re-dispatches: delete fixtures by id
+as each measurement finishes, not all at the end** — batching cleanup is
+why a death stranded 25 rows instead of none.
+
+**Vision — PASS.** It verified the thing the fix could have faked: **does
+`overflow-hidden` merely clip the escape?** Positive ink margins at
+320/360/375/1024 on both engines — the label genuinely *fits*, nothing is
+cut mid-glyph. Accessible name confirmed **in the accessibility tree**
+(`button "+23 more": "+23"`), never shortened. The `sr-only` string
+reached with a positive control first (settled week: 0 of 7; mixed: exactly
+2 of 7; all-out: 7 plus the banner). Expand round-trip exact and reusable,
+`gridColumn: "2 / -1"` measured spanning precisely the day columns. And it
+**attacked the effect ordering** rather than re-reading the fraction:
+expanding after the initial scroll did *not* re-run the effect (the 598px
+jump is the browser's own scroll anchoring — a re-run would have produced a
+different number), resize held stable across 5 samples, and a +60s tick
+moved the now-line 0.8px with `scrollTop` unchanged.
+
+**Strange — BLOCKED, and both blockers are Fury's prose, written in this
+very commit.** It said so plainly: *"the rule failed on its first day."*
+1. **The `line-through` rule promised draining the code does not do.** It
+   measured a past all-day bar as **byte-identical** to a current one
+   (`rgb(78,82,86)`, weight 600) while past *timed* blocks correctly drain
+   to `--muted` at weight 400 in the same view — `TimelineAllDayStrip.tsx`
+   imports no `isPast` at all. **The behaviour predates C7 and Strange
+   explicitly did not re-open it; the text was new.** This is the
+   project's single most-repeated failure — three of CT1's four blockers
+   were documentation promising a property the code lacked.
+2. **The 44px exception did not enumerate its own new control.** `− Show
+   less` measures **24.0px** in all 8 configurations. The exception's value
+   is that it is *bounded*, so anything unenumerated falls back to the hard
+   rule — making this an unsanctioned sub-44px control introduced by the
+   same commit that wrote the boundary. **It explicitly did not ask for the
+   control to grow** (283×24 is comfortable; inflating it would break the
+   row rhythm the clause protects): *"the defect is the enumeration, not
+   the pixel."*
+
+**Both fixes were dictated by Strange and applied verbatim by Fury** —
+clause (c) now names the collapse counterpart, and the draining sentence
+is scoped to the surfaces that actually drain, with the strip's gap
+recorded as *"a known gap, not a licence."*
+
+**It also caught the contamination pattern in itself.** Its first 36-run
+sweep ran while the other gate seeded: `CalendarEvent` went 4 → 22 → 41
+mid-sweep, and **Chromium measured `+10` where WebKit measured `+23` for
+the same fixture.** It recognised that as a *database* discrepancy rather
+than an engine one — *"mission-16 round 3 repeating"* — and bracketed every
+subsequent measurement with a count. Left the other gate's rows alone;
+restored baseline exactly.
+
+**Two notes worth acting on (C8):**
+- **The `columnDays.length === 7` proxy inverts.** At **1280px the app
+  renders `+23 more` in a 96px Month cell and `+23` in a 98px Week
+  column** — the wider box gets the shorter label; and at 320 a 74.7px
+  3 Day column shows the full label while a ~185px Week column at 1024
+  does not. It also over-fires: `+2 more` ink is 35.4px in a 38.7px box at
+  375 — it fits. And **nothing depends on it**: `min-w-0 overflow-hidden`
+  is what actually closed Vision's blocker, unconditionally. **The wall
+  tablet is a named primary device in DESIGN.md's Identity section**, which
+  is where this reads worst.
+- **`"Fri 6 events not loaded"` parses as "Friday, 6 events not loaded."**
+  A number adjacent to a plural noun is read aloud as a count — a new
+  ambiguity, not a terseness complaint. Strange judged the terse register
+  *correct* for a per-column marker; it is the collision that needs fixing.
+
+**Cleared, measured, not re-litigated:** the collapse control leaves the
+fold at ~15 all-day items but is **reachable** — Strange expected a dead
+end and measured that it is not (a sticky element taller than its
+scrollport scrolls with content; a real click collapsed it at 26 lanes).
+Scroll-to-now judged *as felt*: "now, with the day in front of you."
+Alignment holds, the sticky wrapper is one unit, rule (d) verified — the
+picker lists Schedule first.
 
 ## Handoff log
 

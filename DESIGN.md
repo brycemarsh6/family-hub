@@ -49,8 +49,9 @@ tell when a rule's reason has expired.
   stays a real `<button>` with a real accessible name; **(b)** consecutive
   blocks never abut — each draws 2px shorter and 2px narrower than its
   computed geometry, so a near-miss lands on a non-interactive seam instead
-  of opening the wrong event; **(c)** the all-day strip's bars and its
-  "+N more" share that same 24px as a **floor, not a derivation** — they
+  of opening the wrong event; **(c)** the all-day strip's bars, its
+  "+N more", **and its "− Show less" collapse counterpart** share that same
+  24px as a **floor, not a derivation** — they
   have no duration to be faithful to, which is why 24px is the minimum they
   may be and never a licence to go under it; **(d)** Schedule (112px
   full-width rows, listing everything) is the conforming route and must
@@ -168,7 +169,14 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   nutrition). A guess never masquerades as a fact.
 - **`line-through` means *done* — never *past*, never *cancelled*.** A
   completed task is struck through; an event that has merely already
-  happened drains to `--muted` in weight and colour and is **never** struck.
+  happened drains to `--muted` in weight and colour **wherever the app
+  draws past events — the hour rail, Month's pills, and `EventCard`** — and
+  is **never** struck. **The timeline's all-day strip does not yet drain**
+  (`TimelineAllDayStrip.tsx` imports no `isPast`, so a past all-day bar
+  renders identically to a current one — measured, mission-17 round 3).
+  That is a **known gap, not a licence**: a surface that draws past events
+  drains them, and the strip is owed the same treatment whenever it is next
+  opened.
   "Already happened" and "done" are different facts and must stay tellable
   apart. An overdue but incomplete task does **not** drain — only completion
   changes how a task renders. Struck text is always paired with a ✓/☐ glyph
