@@ -26,6 +26,7 @@
   --surface-2: #ede6d9; /* cream deepened a step — fill only (section headers, pressed states), not used for text */
   --fg: #4e5256; /* Charcoal, brand-exact — 7.88:1 on white, 6.96:1 on cream, easily passes AA */
   --muted: #6f6a60; /* Warm Gray darkened — the raw brand grey (#8c847a) is only 3.69:1 on white and fails AA; this is 5.38:1 on white / 4.75:1 on cream */
+  --muted-strong: #69645a; /* mission-16/C10 — a darker step of --muted, for muted text sitting on a TINTED background rather than plain --surface/--bg. --muted itself is only 4.35:1 on --accent-soft (below the 4.5:1 floor, on the selected People chip's "(no longer active)" marker) — this is 4.76:1 on --accent-soft / 5.88:1 on --surface. Reach for this, not --fg, anywhere muted text needs to survive a soft/tinted chip background; using --fg there would read as promoting an annotation to full-strength content. */
   --line: #e2d9c9; /* cream/warm-gray border — decorative only, never carries text, so it doesn't need to pass a contrast ratio */
   --accent: #5a6b4f; /* Sage deepened for interaction — raw Sage (#a8b498) is only 2.18:1 on white and fails AA; this is 5.75:1 on white / 5.08:1 on cream */
   --accent-fg: #f6f0e8; /* Cream text on top of the deep sage accent — 5.08:1, and it's the brand's own Cream, not an invented white */
@@ -62,6 +63,7 @@
     --surface-2: #302d27;
     --fg: #f6f0e8; /* Cream, brand-exact — main text on the dark background */
     --muted: #a9a296; /* lightened for dark mode — 6.81:1 on --bg, 6.12:1 on --surface */
+    --muted-strong: #b8b2a6; /* mission-16/C10 — dark counterpart of --muted-strong above. Dark --muted was never the blocked pairing (5.17:1 on --accent-soft, already over the 4.5:1 floor), but this stays lighter than it anyway so the token means the same thing — "the stronger of the two mutes" — in both themes: 6.20:1 on --accent-soft / 7.35:1 on --surface, both improvements over --muted's own dark values. */
     --line: #3b372f;
     --accent: #b7c3a6; /* a light sage — dark surfaces need a *lighter* accent than light mode's deep one; 8.39:1 on --surface */
     --accent-fg: #232b1c; /* dark text on top of the light accent — 7.93:1 */
@@ -81,6 +83,7 @@
   --color-surface-2: var(--surface-2);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
+  --color-muted-strong: var(--muted-strong);
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);

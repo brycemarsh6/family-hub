@@ -36,7 +36,7 @@ export function EventPeopleField({
               <AvatarBadge displayName={person.displayName} avatarColor={person.avatarColor} size={32} />
               <span>{person.displayName}</span>
               {/* mission-16/C8 — the app annotating a STATUS, not a longer
-                  name: `--muted` is this app's existing "the app is
+                  name: a muted tone is this app's existing "the app is
                   talking, not the data" signal (the same instinct as the
                   `~` estimate mark on a shelf-life guess), applied here
                   rather than the old version of this field's caller, which
@@ -45,11 +45,20 @@ export function EventPeopleField({
                   as the real one) and, worse, got echoed back into local
                   state on save, doubling on a second edit in one sitting.
                   `font-normal` (this button is `font-medium` throughout)
-                  is what keeps the marker visually distinct from the name
-                  even in the chip's unselected state, where both colors
-                  already read `text-muted`. */}
+                  is what keeps the marker distinct from the name even in
+                  the SELECTED chip, where `--muted` measured 4.35:1 on
+                  `--accent-soft` — under the 4.5:1 floor, and this chip's
+                  default state (an already-assigned deactivated person
+                  opens pre-selected). mission-16/C10 — `--muted-strong`
+                  (globals.css) fixes that: 4.76:1 on `--accent-soft` /
+                  5.88:1 on `--surface`, both themes. Deliberately used in
+                  BOTH the selected and unselected branches, not just the
+                  one that was failing — the unselected chip already leaned
+                  on weight alone to read as an annotation rather than a
+                  name, so this is the stronger of the two states, in
+                  colour as well as weight, everywhere the marker appears. */}
               {person.deactivated && (
-                <span className="font-normal text-muted">(no longer active)</span>
+                <span className="font-normal text-muted-strong">(no longer active)</span>
               )}
               {selected && <Check aria-hidden="true" size={16} className="text-accent" />}
             </button>
