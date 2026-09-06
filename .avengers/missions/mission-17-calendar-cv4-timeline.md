@@ -178,7 +178,74 @@ src/lib/voice/*.test.ts` legs.
   `elementFromPoint` sweep. Both engines, both themes, production build.
 
 ### C2 — `TimelineGrid` + `useNowMinute` (the heart of CV4)
-- **Status:** PENDING · **runs parallel with C1**
+- **Status:** DONE — branch `cv4-c2`, commit `4d3904d`, merged.
+  `TimelineGrid.tsx` **310 code / 519 total**; `useNowMinute.ts` 16/85;
+  9 new tests (**317 → 326**).
+- **Report:** consumes `timelineLayout.ts` **unchanged** — so D1 is
+  satisfied and the library is no longer dormant. All-day strip feeds the
+  **existing** `monthLayout.assignLanes`, imported directly (no second
+  packer): 6 all-day items rendered as 3 lanes + "+3 more", and a 3-day
+  span as **one** button via `gridColumn`, not three copies. Scroller
+  height measured at runtime from its own top plus a **live** query of the
+  bottom nav — deliberately not a second hardcode of ScheduleView's
+  inline 65px — seeded by a `calc()` on the injected `chromeOffsetPx` for
+  first paint.
+- **The DST evidence is the strongest single measurement of this
+  mission.** Nov 1 2026, America/Denver: the two events at the two
+  genuinely distinct UTC instants that both read as local "1:30 AM"
+  (07:30Z = MDT, 08:30Z = MST) render at the **identical y-position**
+  (rail minute 90) and in **separate columns**, each independently
+  clickable — proving the wall-clock rail collapse (D2) and the overlap
+  packer in one shot, on both engines, on the real date rather than a
+  synthetic stand-in.
+- Overlap tappability confirmed at **375 and 320**, both engines, both
+  themes, no horizontal overflow. Scroll-to-now: real now at ~23:31 gave
+  a target of 949.8 correctly **clamped to the scroller's true max of
+  687** (nothing exists below now near midnight) — reported as a clamp
+  rather than as a pass; the not-today case landed at exactly `7*60*0.8`.
+  **Sticky verified rather than assumed** — the first component built
+  since mission-16 made `position: sticky` work at all: a weekday label
+  held at 214px across a 300px inner scroll while the grid moved beneath.
+- **A real bug found in verification, not assumed away:** scroll-to-now
+  first computed against the scroller's **stale** `calc()` height, because
+  a sibling layout effect's measured height had not reached the DOM in the
+  same commit — both `useLayoutEffect`s run in one pass, but a state
+  update does not paint until the next render. Fixed by applying the
+  measured height imperatively and synchronously inside the sizing effect.
+
+### ⚠️ Two findings from C2 that need a ruling, surfaced now rather than discovered later
+
+**1. A 30-minute block is 24px tall, and DESIGN.md's floor is 48px.**
+Geometric necessity, not an oversight: `MIN_BLOCK_MINUTES = 30` × the
+plan's own `HOUR_HEIGHT_PX = 48` (0.8px/min) = **24px**. A 2-hour block
+measures 96px. The builder **disclosed this rather than inflating the box
+past its computed geometry** — which would have been the wrong fix, since
+`assignColumns` only guarantees non-overlap up to exactly that padded box.
+**The plan specifies 48 and DESIGN.md specifies 48px targets; at short
+durations those two cannot both hold.** Doubling `HOUR_HEIGHT_PX` to 96
+would satisfy the floor and make a day 2304px tall — roughly five hours
+visible at a time. Google and Apple both ship the small block.
+**This is Strange's ruling, and it may be Bryce's.** Not resolved by
+Fury; recorded here so the gate meets it as a stated tension rather than
+as a defect.
+
+**2. `timelineLayout.ts:53-59`'s comment is an overclaim — confirmed by
+Fury.** It calls `MIN_BLOCK_MINUTES` *"the shortest block that is still
+comfortably tappable at the app's touch-first 48px minimum."* At
+`HOUR_HEIGHT_PX = 48` that block draws **24px**; the claim is only true
+at ≈96. It was written in CV2 when **nothing consumed the library**, so
+nothing could contradict it — the first real caller did, immediately.
+The builder reported it rather than editing a must-not-touch file, which
+was correct. **Whichever contract resolves finding 1 owns this comment**;
+it is wrong no matter which way the ruling goes.
+
+**3. A placement judgement the builder flagged for the gates rather than
+deciding quietly:** the per-column not-loaded glyph went in the weekday
+**header** cell beside the day number, mirroring `MonthCell.tsx`'s literal
+placement, because the contract's "the not-loaded treatment in the all-day
+row" is ambiguous between the all-day strip specifically and the top
+summary strip generally. Named so Vision and Strange can read it
+differently if they do.
 - One component: `TimelineGrid({ columnDays, events, today, now,
   windowStart, windowEnd, onOpenEvent })`. `columnDays` is `[anchor]` /
   `[anchor,+1,+2]` (**anchor-relative, not snapped** — Google's
@@ -256,6 +323,7 @@ src/lib/voice/*.test.ts` legs.
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | — | C1 | DONE `62764c4` → merged | — | Parallel worktree #1. A/B pixel-identical; `RecipeList`'s private duplicate deleted |
+| — | C2 | DONE `4d3904d` → merged | — | Parallel worktree #2. Both Nov-1 1:30 AMs at one rail minute in separate columns. **317 → 326.** Two findings need a ruling |
 
 ## Handoff log
 
