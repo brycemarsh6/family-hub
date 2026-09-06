@@ -393,6 +393,8 @@ src/lib/voice/*.test.ts` legs.
 | 1 | Captain | **PASS** | 0 | 8 notes, 2 rulings, 3 amendments. Found the `scroll-mt-16`/227px defect **by reading** and routed it to Strange |
 | 1 | Vision | **BLOCKED** | 1 | The month observer's rect is **inverted below 1135px** — label frozen on WebKit, i.e. every iPhone. 6 notes |
 | 1 | Strange | **BLOCKED** | 2 | Confirmed the anchor defect **by measurement** (3/3, `visiblePx 0`); plus a **double month label on landing** that C4's record says cannot happen. 3 notes |
+| — | C7 + C8 | DONE `4dfc603`, `3a644f5` | — | All three blockers closed, proven on **WebKit and Chromium** with pre-fix controls. C7 exposed a real pre-existing render loop — guarded, and flagged for CV4 |
+| — | C9 | dispatched | — | `ScheduleView.tsx` hit **620/650 hard cap**; Captain's clean seam, taken before re-gating so one round covers everything |
 
 ## Handoff log
 
@@ -429,6 +431,16 @@ src/lib/voice/*.test.ts` legs.
   converging deactivated-marker findings batched as **C8**, so one
   re-gate covers both. Captain's `useScheduleLoaders` deferral is now
   **closed** by Captain's own ruling, not merely deferred.
+- 2026-09-05 — C7 and C8 DONE and audited (boundary clean, both commits
+  present, the render-loop guard read and confirmed idempotent by
+  `getTime()`). **C7's fixes pushed `ScheduleView.tsx` to 620/650**, so
+  Captain's named seam is taken now as **C9** rather than after a
+  re-gate — batching it means one gate round covers the fixes and the
+  split together. **The two CT1 amendments Bryce approved on 2026-09-04
+  are finally written into STRUCTURE.md** (guard form (c), membership; and
+  the named data-migration exception) — Fury had reported them approved
+  and then not written them, which is this project's recorded
+  claimed-but-not-durable class applied to its own constitution.
 
 ### The gate round — Captain PASS, Vision BLOCKED, Strange BLOCKED
 
@@ -507,7 +519,33 @@ than glossed.
 
 
 ### C7 — the pinned header's three defects (fix batch)
-- **Status:** PENDING
+- **Status:** DONE `4dfc603`
+- **Report:** the observer is **gone** — replaced by a scroll/resize read
+  of which month section has cleared the chrome, rAF-batched. That removes
+  the margin-geometry class rather than patching the band. Anchor margin
+  now the two imported constants (227px), after confirming from
+  `CalendarViews.tsx`/`CalendarHeader.tsx` that ScheduleView only ever
+  renders with the bar pinned. In-list heading `sr-only`, not `hidden`.
+  **Measured on Playwright WebKit 26.6 *and* Chromium, positive control
+  first:** pre-fix (rebuilt on a stashed tree) the label froze across 45
+  scroll steps on **both** engines, anchors landed at `top 64` with the
+  header on top, and the in-list heading was genuinely topmost alongside
+  the pinned one from scrollY 0–90. Post-fix: label flips exactly once
+  (`["September 2026","November 2026"]`, captured **mid-scroll**, not
+  just at the ends) on both engines; both anchor call sites land at
+  `top 227`, `visiblePx 253`, **`wasClamped: false`**; the `sr-only`
+  heading is present in the a11y tree and never the topmost paint.
+- ⚠️ **The rewrite exposed a real pre-existing landmine, and this is the
+  note CV4 must read.** `useToday()` returns a **fresh `Date` every
+  render**, so `useScheduleWindow`'s memoized `months` gets a new
+  reference on effectively every render. The old observer never depended
+  on that identity; a scroll-driven read does, and the first version
+  looped unboundedly — **React "Maximum update depth exceeded",
+  reproduced and confirmed** before the guard was written. Fixed here with
+  a ref compared by `getTime()`, documented in place. **The underlying
+  instability is still there**, one boundary away in `useScheduleWindow.ts`
+  / `useToday.ts`, and it is armed for the next feature that depends on
+  `months` being referentially stable. **CV4 is that feature.**
 - All three live in `ScheduleView.tsx` and all three are the same mistake
   repeated: **227px of chrome appeared and the numbers describing the top
   of the list were not re-derived from it.**
@@ -546,7 +584,23 @@ than glossed.
   flicks → zero.
 
 ### C8 — the deactivated marker, done properly
-- **Status:** PENDING
+- **Status:** DONE `3a644f5`
+- **Report:** `CalendarPersonView` gains `deactivated?: boolean`; the
+  marker renders as its own `--muted` span in `EventPeopleField`;
+  **nothing mutates `displayName` anywhere** — verified by
+  `git grep "no longer active"` returning exactly **one** render site, so
+  the double-suffix bug is **structurally impossible now, not merely
+  untested.** Captain's N5 landed too: `TaskDetailSheet`'s inference merge
+  is **deleted**, and `calendar/page.tsx`'s roster is widened
+  server-side with an `OR` on the task join — filtered through the same
+  window as the tasks query and kept inside the existing `Promise.all`,
+  so it costs no extra round trip. One mechanism now answers the question
+  for both tasks and events.
+  Colours measured both themes — light `--fg rgb(78,82,86)` vs `--muted
+  rgb(111,106,96)`; dark `rgb(246,240,232)` vs `rgb(169,162,150)`; weight
+  differs 500/400 even in the selected state where both read muted. At
+  320px the widest chip is 288px in a 288px container, no wrap, 48px
+  targets.
 - Three findings converge on one cause — the status is encoded **into the
   name string**. Strange: it renders identically to a name (`fontWeight
   500`, same colour, same selected chip), reading as a longer name rather
@@ -575,6 +629,40 @@ than glossed.
   the type boundary; ids still what get written. No `User` row may be
   created, updated, deleted or deactivated — render the exact shape the
   server supplies, as Strange did.
+
+### C9 — the split Captain named, now unavoidable
+- **Status:** PENDING
+- **`ScheduleView.tsx` is 620/650 — 95% of the HARD cap**, up from the 538
+  Captain called *"the genuine split candidate this mission produced"*
+  before C7 added another 82 lines to the very code it named. This is no
+  longer a soft-cap NOTE; the next contract to touch this file would cross
+  a hard cap that requires written justification.
+- **Captain already measured the seam and it is clean** — unlike the
+  loaders split it withdrew: *"`monthRefs`, `visibleMonthAnchor`,
+  `titleSlot`, the observer effect and the `createPortal` block. Interface
+  in: `months`, `initialDay`. Out: a ref-setter and the portal.
+  Structurally identical to `useScheduleSentinels`, which already returns
+  refs used inside this same render — the precedent is in this very
+  file."* Extract to `src/lib/useScheduleMonthTitle.ts`.
+- **It also resolves Captain's N4**, the unnamed co-mounting invariant:
+  the portal works only because `CalendarHeader` is mounted *and* pinned,
+  both decided by `CalendarViews.tsx`, which mentions neither side. Giving
+  the coupling a hook's name is where that requirement can finally be
+  written down. **And the render-loop guard from C7 moves with it** — it
+  must survive the move intact, and its `getTime()` comparison is the
+  thing a careless extraction breaks.
+- **Boundaries:** may touch `src/components/ScheduleView.tsx`, new
+  `src/lib/useScheduleMonthTitle.ts`, and a comment-only edit in
+  `src/components/CalendarViews.tsx` naming the co-mounting requirement ·
+  must not touch `CalendarHeader.tsx`, `globals.css`,
+  `useScheduleWindow.ts`, `useScheduleSentinels.ts`, `actions/**`,
+  `prisma/**`.
+- **Evidence:** behaviour-identical — **re-run C7's own WebKit + Chromium
+  measurements** (label flips exactly once mid-scroll on both engines;
+  anchors land at 227 unclamped; one visible label across the whole range
+  including 0–120; `sr-only` heading in the a11y tree). Report both files'
+  line counts, and **prove the render loop has not returned** — the guard
+  moving is the risk this contract carries.
 
 ## ⚠️ Surfaced to Bryce — an app-wide change he has not seen
 

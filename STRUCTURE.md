@@ -104,6 +104,21 @@ structural changes against it.
   *domain* guards (self-targeting, the last-admin lockout) still return
   the house shape — "you don't belong here" and "you're allowed, but this
   can't happen" are different outcomes.
+  **(c) Membership** — the third form, added 2026-09-04 (mission-13/CT1,
+  Bryce-approved; written up 2026-09-05). Some actions are reachable by a
+  user whose *role* does not permit them but whose *relationship to the
+  specific row* does — a kid may complete a task they are genuinely
+  assigned to, and nothing else. That check reads the join table for that
+  exact row (`assertCanCompleteTask` in `actions/tasks.ts` is the
+  reference implementation) and is **not** expressible as a role list, so
+  it never lives in `constants.ts`. Two rules bind it. The membership fact
+  is read **fresh from the database, never from anything the client
+  sent** — a client claim of membership is exactly the forgery the guard
+  exists to stop (mission-16/C3b's deactivated-person carve-out is the
+  second instance and follows this form). And a membership guard
+  **narrows, never widens**: it may permit a role-refused caller for one
+  row, and may never permit anything the role gate refuses for a reason
+  other than that row.
   Pages use the redirecting guards (`requireVerifiedUser`,
   `requireRole`), never the null-returning ones. Route Handlers for
   non-browser clients keep their own token/signature gates.
@@ -381,6 +396,20 @@ Adding a second definition of any of these is a BLOCKER:
   rows a mission's own verification created, counts confirmed back to
   baseline. (Amended 2026-09-02, mission 8, on Captain's finding.)
 - Migrations are **additive only**; review the SQL before applying.
+  **One named exception, added 2026-09-04 (mission-13/CT1,
+  Bryce-approved; written up 2026-09-05): a data migration that corrects
+  values already written under a convention now known to be wrong.**
+  CT1's all-day fix had to rewrite existing `CalendarEvent` rows —
+  leaving them would have meant two date conventions live in one column
+  with every reader guessing which one it held. Such a migration must
+  change **values only**, never drop or retype a column; be
+  **idempotent**, so a partial run and a re-run land in the same place;
+  carry its reasoning in the migration file itself; and be **counted
+  before and after** against the danger register's baseline. Dropping,
+  renaming or narrowing stays forbidden: the production build applies
+  migrations while the previous deployment is still serving, so old code
+  must keep working against the new schema for the length of that
+  window.
 - A new/changed Prisma model needs `npx prisma generate` **and a dev-server
   restart** (`db.ts` caches the client on `globalThis`).
 - `FAMILY_PASSWORD` differs between dev and prod on purpose; secrets live in
