@@ -5399,13 +5399,17 @@ chunks than a wheel flick. Day lands at `scrollTop 5`, not 0.
 `calendarDayDiff` still loops forever on an invalid `Date`.
 `ASSIGNABLE_ROLES` is still a predicate, not a total record.
 
-### Pending with Bryce, none blocking
+### Pending with Bryce — ✅ all four resolved since
 
-Accept Captain's count-check for C9 rather than a fourth Captain pass;
-approve the corrected STRUCTURE.md read-action sentence (`null` on
-refusal); whether the header and Today circle should stick on an endless
-Schedule list; and the two CT1 amendments (membership guard form; the
-data-migration exception to additive-only).
+*(Verified 2026-09-06; kept as the record of what was open at the time.)*
+He **accepted Captain's C9 count-check** over a fourth Captain pass on
+2026-09-05, which is what closed this mission's last standing blocker.
+The corrected STRUCTURE.md read-action sentence (`null` on refusal) **is
+in the file**. The header and Today circle **do** stick on the endless
+Schedule list — mission 16 shipped it the next day, and doing so uncovered
+that no `sticky` in the app had ever worked. And both CT1 amendments (the
+membership guard form; the data-migration exception to additive-only)
+**are in STRUCTURE.md**.
 
 ### Next
 
