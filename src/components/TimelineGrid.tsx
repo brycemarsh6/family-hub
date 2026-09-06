@@ -409,11 +409,18 @@ export function TimelineGrid({
                         `aria-hidden`, telling a screen reader nothing in a
                         mixed window; the sr-only span says it in words.
                         Never `hidden` — `display: none` drops it from the
-                        a11y tree entirely (mission-9's finding). */}
+                        a11y tree entirely (mission-9's finding).
+                        mission-17/C8 (round 3, Strange) — the day number
+                        sits right before this ("Fri", "6", then this span),
+                        so a number ahead of a plural noun read as a count:
+                        "6 events not loaded" parsed as "six events not
+                        loaded." Terse is still right here (a marker beside
+                        one day, not the worded banner below) — leading
+                        with "no" can't be misheard as a quantity. */}
                     {notLoaded && (
                       <>
                         <CalendarOff aria-hidden="true" size={9} className="shrink-0 text-muted" />
-                        <span className="sr-only">events not loaded</span>
+                        <span className="sr-only">— no events loaded for this day</span>
                       </>
                     )}
                   </span>
