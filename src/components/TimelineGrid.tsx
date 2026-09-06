@@ -78,20 +78,25 @@
 // show them either.
 //
 // STRUCTURE.md HARD-CAP DISCLOSURE (mission-17/C5): this file now reads
-// 788 total lines / 345 lines of actual code (stripped of comments and
-// blanks) — over the 650-line hard cap on TOTAL lines, though still well
-// under it on CODE alone (the same "report both counts, a file whose
-// non-comment code is well under the cap is not a split candidate" rule
-// STRUCTURE.md already applies to useScheduleWindow.ts). Captain named the
-// all-day strip as this file's own seam BEFORE this contract ran ("63
-// lines for 4 props," mission-17's own report) with **CD1** (a later,
-// dedicated mission) as the trip condition for actually extracting it into
-// its own component — this contract's boundary does not include creating a
-// new file, so five more all-day-strip features (tasks, the not-loaded
-// banner, the real "+N more" button, the 24px raise, the task/event branch)
-// landed here instead, pushing total lines up by ~270 in one pass. Flagged
-// here in writing, per the hard-cap rule, rather than silently crossing it
-// — CD1 remains the right place to actually split this file, not this one.
+// roughly 805 total lines / 345 lines of actual code (stripped of comments
+// and blanks) — a deliberately approximate TOTAL figure, since this
+// disclosure paragraph is itself part of what's being counted, and editing
+// it to cite an exact number changes that number by a line or two. The
+// CODE figure is stable and exact, and is the one this rule cares about
+// most: total is over the 650-line hard cap, but code alone is still well
+// under it (the same "report both counts, a file whose non-comment code is
+// well under the cap is not a split candidate" rule STRUCTURE.md already
+// applies to useScheduleWindow.ts). Captain named the all-day strip as this
+// file's own seam BEFORE this contract ran ("63 lines for 4 props,"
+// mission-17's own report) with **CD1** (a later, dedicated mission) as the
+// trip condition for actually extracting it into its own component — this
+// contract's boundary does not include creating a new file, so five more
+// all-day-strip features (tasks, the not-loaded banner, the real "+N more"
+// button, the 24px raise, the task/event branch) landed here instead,
+// pushing total lines up by roughly 285 from C2's own reported 519 in one
+// pass. Flagged here in writing, per the hard-cap rule, rather than
+// silently crossing it — CD1 remains the right place to actually split
+// this file, not this one.
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CalendarOff } from "lucide-react";
