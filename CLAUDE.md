@@ -5264,10 +5264,14 @@ drift); `fetchCalendarEvents` — **the calendar's first data-returning
 guarded action**, a public POST with a 124-day span cap — and its
 `fetchTasks` sibling; `scheduleWindow.ts` (pure: merge, 30-day chunks,
 rows) and `scheduleWindowState.ts` (the window state machine, tested
-across the **Nov 1 2026 fall-back** — note the *spring-forward* has **no
-case in either state-machine test file**, so "every DST transition" would
-overstate it; Mar 8 is covered only in `scheduleWindow.test.ts` and
-`calendarViewConfig.test.ts`, different modules); `useScheduleWindow.ts`,
+across the **Nov 1 2026 fall-back** — the *spring-forward* has **no case in
+either state-machine test file**, so "every DST transition" overstates it.
+Mar 8 *is* covered, in three other modules: `scheduleWindow.test.ts`,
+`calendarViewConfig.test.ts` and `timelineLayout.test.ts`. *(Corrected
+2026-09-06, twice: the original claimed every transition; the first fix
+said the coverage sat in two files and missed `timelineLayout.test.ts`,
+which carries two dedicated spring-forward cases — the second false claim
+introduced by a correction in one session. See the subsection below.)*); `useScheduleWindow.ts`,
 `useScheduleSentinels.ts`, `useScrollAnchor.ts`; `ScheduleView.tsx`.
 `MonthLoadingSkeleton.tsx` — which STRUCTURE.md said "must not survive
 CV3" — is now `MonthGridSkeletonRows.tsx`, named for what it exports.
@@ -5547,8 +5551,8 @@ that never landed.**
   view they land on. Caught by a gate, not by the build. Same shape as
   CV3's three boundary errors: a false premise written into a boundary,
   and therefore correctly obeyed.
-- **Contracts shipped with no written boundary, three times across this
-  arc** — **CV4/C5, CV4/C7, and CV3's C3b + C5** (dispatched and shipped
+- **Contracts shipped with no written boundary — four of them, across three
+  missions** — **CV4/C5, CV4/C7, and CV3's C3b and C5** (dispatched and shipped
   with no contract in the mission file at all). *(Corrected 2026-09-06:
   an earlier version of this bullet named **mission-16/C5**, which is
   wrong twice over — it carries an explicit may-touch/must-not-touch
@@ -5613,9 +5617,9 @@ list; the four accounts-cutover decisions; guard form **(c)**, membership;
 and the named data-migration exception. *(Corrected 2026-09-06: the caps clause
 read "caps are judged on code lines", which **inverts** the rule. The
 difference is not academic — `TimelineGrid.tsx` is **649 total / 341
-code**, so by the constitution one more line is a hard-cap BLOCKER, not a
-file with 300 lines of headroom. An eighth change landed in this same
-window and is not in the seven above: the read-action `null`-on-refusal
+code**, so it sits at the hard cap with **one line of
+headroom**, not with 300. An eighth Bryce-approved amendment landed in
+this same window and is not in the seven above: the read-action `null`-on-refusal
 correction, `021049e`.)*
 `DESIGN.md` gained **three**: the optimistic carve-out (a one-shot
 destructive verb waits, a reversible flip does not — *"if this fails, does
@@ -5694,9 +5698,10 @@ re-read for plausibility.**
   authoritative record — both corrected. It also contradicted this file's
   own "where the calendar stands" line two screens below it.
 - **CV3's contract and verdict counts were wrong and self-contradicting** —
-  "twelve contracts, nine gate verdicts … Vision 3", where the mission
-  ledger holds eleven contracts and Vision reported **four** times, the
-  fourth being the pass Bryce authorized. The sentence immediately after it
+  "twelve contracts, nine gate verdicts … Vision 3", where the mission file
+  holds only eleven *written* contracts — **thirteen were dispatched**, which
+  the subsection below corrects a second time — and Vision reported **four**
+  times, the fourth being the pass Bryce authorized. The sentence immediately after it
   described that extension, so the paragraph disagreed with itself.
 - **"Nineteen contracts" for mission 16 + CV4**; the two mission files hold
   **twenty** (twelve, then eight).
@@ -5734,8 +5739,8 @@ state-machine test file; "six" STRUCTURE.md amendments where git shows
 five; a no-written-boundary bullet naming a contract that **had** a
 boundary and was **never built**; and a "still open" note I had *just
 added*, listing two items that were closed — one of them **withdrawn by
-Captain**, whose withdrawal is the cited basis of the caps amendment
-sitting three paragraphs away.
+Captain** — and that withdrawal is the cited basis of the caps amendment
+recorded in the very next session entry.
 
 **The lesson, and it is the whole reason this session's work is worth
 anything: an audit is a claim, and a claim needs a gate.** Re-reading my
@@ -5805,6 +5810,55 @@ repo — **agent definition files are read once at session start, so a
 mid-session edit does nothing until restart, and a trivial subagent
 dispatch costs ~90-160k tokens before it does any work.**
 
+### It happened a second time, in the fix for the first — and the tool got built
+
+**Vision was dispatched twice, blocked twice, and the second block was the
+same defect as the first.** Correcting "tested across every 2026 DST
+transition", I wrote that Mar 8 is covered *"only in"* two named test files.
+`timelineLayout.test.ts` carries **two dedicated spring-forward cases**. So a
+correction written specifically to remove an overclaim introduced a fresh
+false claim — the second in one session, both in corrections, both caught by
+a gate and neither by re-reading. Pass 2 also caught a fix that **annotated
+rather than repaired**: mission-17's ledger row and handoff log still read
+"all six views" while my correction merely *named* them, and the handoff log
+is the thing a fresh session resumes from. Both are now actually fixed.
+
+**So the preflight tool was built the same day, and Bryce approved it.** It
+lives at `.claude/skills/avengers/preflight.mjs` (synced to `~/.claude/`,
+per this session's own drift finding) and is item one on the dispatch
+checklist. Six checks, each derived from a real incident rather than
+invented: a missing contract heading; a path that does not resolve or a
+"new" file that already exists; re-measured line counts against both caps; a
+symbol the contract needs that is **defined inside a must-not-touch file**;
+**may-touch code that imports must-not-touch code**; and two parallel
+contracts naming the same file. It then surfaces every negative or
+quantitative claim with a reference count beside each identifier.
+
+**The verification is the part worth keeping, because the tool failed it.**
+Replayed against mission-16/C3 at its own pre-dispatch commit in a throwaway
+worktree, the first version reported **PREFLIGHT CLEAR** — it would not have
+caught the incident it was built for. Three real gaps, each fixed and
+re-replayed: the symbol check only inspected symbols the contract *names*,
+but the blocker was the one it failed to name; the claim regex demanded the
+word "only", so it read straight past *"Two roster queries filter
+`deactivatedAt: null`"*, the actual sentence; and identifier extraction
+required the whole backtick span to be an identifier, so that field was
+skipped entirely. It now quotes the false sentence back and prints, directly
+beneath it, that `deactivatedAt` appears in **17 files** — including the two
+roster queries the contract missed — plus the forbidden import that was the
+real blocker. Replay against mission-14/C5 hard-fails on the missing
+contract heading. A control that went DONE first pass stays at zero hard
+failures. **It never prints "CLEAR" while anything needs judgement**,
+because on replay the worst boundary error in this project's history
+produced zero hard failures.
+
+The tool also found three bugs in itself on the way: a block parser that
+stopped at any `###` and so reported a boundary as missing when it sat below
+a sub-heading; a total-line count **off by one against `wc -l`**, in the
+instrument that measures the hard cap; and no glob support, so `actions/**`
+read as a missing file. **A tool that measures caps must agree with `wc -l`
+to the line, or it is another record that claims more than it verified.**
+
 ### Parked with Bryce — raised, decided, not forgotten
 
 None of these block anything. They are listed together so a fresh session
@@ -5820,7 +5874,9 @@ neither loses them nor re-raises them every time:
 - **The DESIGN.md sentence sanctioning the now-line's `--danger` use** —
   an unlisted use of a reserved token. Strange asked for it. **Still
   unwritten.**
-- **The preflight tool Fury proposed** — aimed squarely at the most-repeated
-  Fury failure in this project's history: a contract boundary written from a
-  false premise about what already exists. **Four occurrences of that exact
-  shape across three missions.** Proposed, never built.
+- ~~**The preflight tool Fury proposed**~~ — ✅ **built 2026-09-06**, with
+  Bryce's approval the same day; see the subsection above. It targets the
+  most-repeated Fury failure here: a contract boundary written from a false
+  premise about what already exists. **The honest tally is six of that exact
+  shape** — four contract boundaries across missions 13, 14, 16 and 17, plus
+  **two** in this session's own record corrections.

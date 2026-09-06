@@ -1,7 +1,7 @@
 # Mission: CV3 — Schedule, the continuous list
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERED — Vision PASS (4 passes, the 4th Bryce-authorized), Strange PASS (3), Captain 3 passes ending **BLOCKED on budget**, closed by the C9 count-check **Bryce accepted over a 4th Captain pass, 2026-09-05** (see the handoff log). *(Corrected 2026-09-06: this line read "all three gates PASS … Captain 2" — the ledger shows three Captain rows and its last verdict is BLOCKED, so "all three gates PASS" overstated it.)*
+**Status:** DELIVERED — Vision PASS (4 passes, the 4th Bryce-authorized), Strange PASS (3), Captain 3 passes ending **BLOCKED on budget**, closed by the C9 count-check **Bryce accepted over a 4th Captain pass, 2026-09-05** (recorded in Delivery — the handoff log's last word on it still reads "pending Bryce"). *(Corrected 2026-09-06: this line read "all three gates PASS … Captain 2" — the ledger shows three Captain rows and its last verdict is BLOCKED, so "all three gates PASS" overstated it.)*
 **Started:** 2026-09-04 · **Updated:** 2026-09-05
 
 ## ⚠️ This is the first mission since the calendar went LIVE

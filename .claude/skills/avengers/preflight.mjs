@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Fury's preflight — run this BEFORE dispatching a contract.
 //
-// WHY THIS EXISTS. One failure shape has now hit this project five times
-// across four missions, and every single time it was a *negative or
-// quantitative claim about what already exists*, written into a contract
-// without running the command that settles it:
+// WHY THIS EXISTS. One failure shape has now hit this project SIX times —
+// four contract boundaries across missions 13, 14, 16 and 17, plus two in a
+// single session's own record corrections. Every one was a *negative or
+// quantitative claim about what already exists*, asserted without running
+// the command that settles it:
 //
 //   1. mission-16/C3  — "two roster queries". There are four, one of them a
 //                       create page with different semantics, and the real
@@ -24,6 +25,12 @@
 //                       mission file, found no C5, and concluded C5 never
 //                       existed. `git log` shows it shipped. Same shape, in
 //                       prose rather than a contract.
+//   6. 2026-09-06     — the FIX for an overclaim ("tested across every DST
+//                       transition") asserted the coverage lived "only in"
+//                       two named files. A third had two dedicated cases.
+//                       Two false claims introduced by corrections in one
+//                       session; both were caught by a gate, neither by
+//                       re-reading. That is the argument for this tool.
 //
 // A sixth shape rides along because it is mechanically identical to check and
 // has hit five times: a contract dispatched with its boundary living only in

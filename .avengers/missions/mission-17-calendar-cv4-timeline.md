@@ -411,7 +411,7 @@ differently if they do.
 | — | C1 | DONE `62764c4` → merged | — | Parallel worktree #1. A/B pixel-identical; `RecipeList`'s private duplicate deleted |
 | — | C2 | DONE `4d3904d` → merged | — | Parallel worktree #2. Both Nov-1 1:30 AMs at one rail minute in separate columns. **317 → 326.** Two findings need a ruling |
 | — | C3 | DONE `f8ae2a8` → merged | — | Parallel worktree #3. Totality proven by two pasted compile errors; byte-identical trace after a positive control. **All three compose: 328** |
-| — | C4 | DONE `8a47a64` | — | All six views live. Found and fixed a **225px** skeleton jump → 2px. **329 tests.** Third state disclosed as unreachable, method checked against Month |
+| — | C4 | DONE `8a47a64` | — | *(Corrected 2026-09-06: **five** of six — Year is unbuilt, `BUILT_VIEWS.year` is false. See Delivery.)* All six views live. Found and fixed a **225px** skeleton jump → 2px. **329 tests.** Third state disclosed as unreachable, method checked against Month |
 | 1 | Captain | **BLOCKED** | 3 | All three trace to one cause **Captain named**: a must-not-touch boundary is a threshold you can satisfy by copying |
 | 1 | Vision | **BLOCKED** | 2 | **Tasks vanished from Day/3 Day/Week** — Fury's contract omitted them. Also solved C4's unreachable-state mystery |
 | 1 | Strange | **BLOCKED** | 3 | **Ruled on the 24px block rather than handing it up.** Reached the state C4 could not. Three states fail for the third time on this branch |
@@ -935,7 +935,9 @@ picker lists Schedule first.
   at 328 tests, zero conflicts, zero index collisions** — the process
   change works. C4 dispatched: the last build contract, and the one C3
   landed specifically to make safe.
-- 2026-09-06 — C4 DONE. All six views live. It found and fixed a **225px
+- 2026-09-06 — C4 DONE. *(Corrected 2026-09-06: **five** of six — Year is
+  unbuilt; a fresh session resumes from this log, so it must not say six.)*
+  All six views live. It found and fixed a **225px
   skeleton jump** by measuring the placeholder against the real render,
   and **disclosed a state it could not reach** rather than claiming either
   way — checking its method against Month, untouched and same mechanism.
