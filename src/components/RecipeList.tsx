@@ -6,6 +6,7 @@ import { Search, X, BookX } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { SwipeActions } from "./SwipeActions";
 import { searchRecipes } from "@/lib/match";
+import { useAppHeaderHeight } from "@/lib/appChrome";
 
 export type RecipeListItem = {
   id: string;
@@ -90,43 +91,23 @@ export function RecipeList({
   // far below the viewport's top edge, or the header clips their top edge.
   // This file used to hardcode that gap as `top-16` (64px), a guess from
   // before the header ever genuinely stuck; C4 measured the real header at
-  // 73px and found the stuck letter's top ~9px clipped behind it.
+  // 73px and found the stuck letter's top ~9px clipped behind it, then
+  // re-derived that number here with this file's own `ResizeObserver`
+  // rather than importing a calendar component for it (this is a
+  // Kitchen-branch page).
   //
-  // Measured at runtime rather than hardcoding 73, for the same reason
-  // railTop above is: a fixed guess drifts the moment the header's own
-  // content changes, silently reintroducing this exact bug. C4 also
-  // exported `APP_HEADER_HEIGHT_PX` from CalendarHeader.tsx, but this file
-  // must not import a calendar component for a Kitchen-branch page, and a
-  // second hardcoded 73 here would be exactly the one-source-of-truth
-  // drift that fixed value exists to prevent — this ResizeObserver is the
-  // same technique already used for railTop, just pointed at the header.
-  // `document.querySelector("header")` is safe because there is exactly
-  // one `<header>` element in the whole app (the root layout's own).
-  const [headerHeight, setHeaderHeight] = useState<number | null>(null);
-
-  useLayoutEffect(() => {
-    const header = document.querySelector("header");
-    if (!header) return;
-
-    function measure() {
-      setHeaderHeight(header!.getBoundingClientRect().height);
-    }
-    measure();
-
-    const observer = new ResizeObserver(measure);
-    observer.observe(header);
-    window.addEventListener("resize", measure);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", measure);
-    };
-  }, []);
-
-  // Fallback matches the old hardcoded guess (64px) — only ever visible for
-  // the instant before useLayoutEffect's first measurement lands, which
-  // useLayoutEffect (unlike useEffect) guarantees happens before the
-  // browser paints.
-  const stickyOffset = headerHeight ?? 64;
+  // mission-17/C1 — that private measurement is gone now that
+  // `APP_HEADER_HEIGHT_PX`/`useAppHeaderHeight` moved to `src/lib/
+  // appChrome.ts`: a fact about `(app)/layout.tsx`, not a calendar
+  // component, so importing it here no longer means reaching into Calendar
+  // at all — this was never a Kitchen/Calendar boundary issue, only a
+  // "the header height lived in the wrong file" one. The old private
+  // effect was a byte-for-byte duplicate of what the shared hook does, so
+  // this is a genuine simplification, not a forced fit: the rail's OWN
+  // `railTop` measurement just above is a different job (it positions the
+  // A-Z rail against this page's search box, not against the app header)
+  // and correctly keeps its own separate `ResizeObserver`.
+  const stickyOffset = useAppHeaderHeight();
 
   const sorted = useMemo(
     () => [...recipes].sort((a, b) => a.title.localeCompare(b.title)),

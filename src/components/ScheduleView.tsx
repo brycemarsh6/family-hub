@@ -12,11 +12,8 @@ import { DaySection } from "./DaySection";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { SkeletonBlock } from "./Skeleton";
-import {
-  SCHEDULE_TITLE_SLOT_ID,
-  APP_HEADER_HEIGHT_PX,
-  SCHEDULE_HEADER_BAR_HEIGHT_PX,
-} from "./CalendarHeader";
+import { SCHEDULE_TITLE_SLOT_ID, SCHEDULE_HEADER_BAR_HEIGHT_PX } from "./CalendarHeader";
+import { APP_HEADER_HEIGHT_PX, BOTTOM_NAV_HEIGHT_PX } from "@/lib/appChrome";
 import {
   useScheduleWindow,
   type ScheduleFetchers,
@@ -179,6 +176,16 @@ export function ScheduleView({
   const hasScrolledInitially = useRef(false);
   const initialDayTime = startOfDay(initialDay).getTime();
 
+  // mission-17/C1 (Captain's rider) — named once rather than recomputed at
+  // each of the three places below (this file's own initial-scroll effect,
+  // useScheduleMonthTitle's offset argument, and every day row's own
+  // scrollMarginTop): the real chrome this view has pinned above it is the
+  // app header PLUS this component's own Schedule bar. All three read the
+  // same two imported constants, so they can't drift from each other today
+  // — this is verbosity, not risk — but this is the one file that touches
+  // all three, so it's the one that gets to name it.
+  const scheduleChromeHeight = APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX;
+
   // mission-15/C10 (Strange's blocker) — re-arms the one-shot below
   // whenever `initialDayTime` genuinely changes, mirroring
   // useScheduleWindow.ts's own window-rebuild effect keyed on the same
@@ -220,8 +227,7 @@ export function ScheduleView({
     target.scrollIntoView({ behavior: "instant", block: "start" });
 
     const scroller = document.scrollingElement;
-    const margin = APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX;
-    const landedShort = target.getBoundingClientRect().top > margin + 1;
+    const landedShort = target.getBoundingClientRect().top > scheduleChromeHeight + 1;
     const pinnedToScrollMax =
       scroller !== null && scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 1;
 
@@ -254,11 +260,15 @@ export function ScheduleView({
   // margin, not a generous one.
   //
   // mission-15/C10 (Strange's NOTE) — a bare `threshold: 0` uses the
-  // LAYOUT viewport, which the app's fixed 65px bottom nav sits on top of:
-  // a row fully behind the nav still read "intersecting", disabling Today
-  // while the reader genuinely couldn't see it. `rootMargin`'s bottom
-  // value shrinks the effective observing area by that same 65px, so a row
-  // has to be visible ABOVE the nav to count.
+  // LAYOUT viewport, which the app's fixed bottom nav sits on top of: a row
+  // fully behind the nav still read "intersecting", disabling Today while
+  // the reader genuinely couldn't see it. `rootMargin`'s bottom value
+  // shrinks the effective observing area by that same height, so a row has
+  // to be visible ABOVE the nav to count. mission-17/C5: that height now
+  // reads `BOTTOM_NAV_HEIGHT_PX` (appChrome.ts) rather than a hardcoded
+  // `-65px` — this one happened to already be the right number, but
+  // TimelineGrid.tsx's own copy of the same fact had drifted to 64 (see
+  // that constant's own comment), which is why the two now share one home.
   useLayoutEffect(() => {
     if (today === null) {
       onTodayVisibleChange(false);
@@ -274,7 +284,7 @@ export function ScheduleView({
     }
     const observer = new IntersectionObserver(
       ([entry]) => onTodayVisibleChange(entry.isIntersecting),
-      { threshold: 0, rootMargin: "0px 0px -65px 0px" },
+      { threshold: 0, rootMargin: `0px 0px -${BOTTOM_NAV_HEIGHT_PX}px 0px` },
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -296,7 +306,7 @@ export function ScheduleView({
   const { monthSectionRef, portal } = useScheduleMonthTitle(
     months,
     initialDay,
-    APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX,
+    scheduleChromeHeight,
     SCHEDULE_TITLE_SLOT_ID,
   );
 
@@ -358,23 +368,23 @@ export function ScheduleView({
                     // leftover from CV3, when this app's own global header
                     // was still inert (see globals.css's C4 comment) and
                     // nothing on the page was pinned at all. C4 pinned 227px
-                    // of real chrome above this list (the app header,
-                    // APP_HEADER_HEIGHT_PX, plus this file's own Schedule bar,
-                    // SCHEDULE_HEADER_BAR_HEIGHT_PX) without updating this
-                    // number, so both `scrollIntoView` call sites (the
-                    // initial/deep-link effect above, and `scrollToToday`'s
-                    // imperative handle) landed the target day's TOP at 64px
-                    // — fully behind the bars (Strange measured `visiblePx:
-                    // 0`, `elementFromPoint` returning the app header, 3/3).
+                    // of real chrome above this list (the app header plus
+                    // this file's own Schedule bar — `scheduleChromeHeight`,
+                    // named once above) without updating this number, so
+                    // both `scrollIntoView` call sites (the initial/deep-link
+                    // effect above, and `scrollToToday`'s imperative handle)
+                    // landed the target day's TOP at 64px — fully behind the
+                    // bars (Strange measured `visiblePx: 0`,
+                    // `elementFromPoint` returning the app header, 3/3).
                     // A constant sum, not a runtime measurement, because
                     // ScheduleView only ever renders while CalendarHeader's
                     // Schedule bar is pinned — CalendarViews.tsx mounts this
                     // component exclusively inside `view === "schedule"`,
                     // and CalendarHeader.tsx's own `pinned` flag is exactly
                     // that same condition — so there is no render of this
-                    // row where the two constants imported above don't
-                    // already describe the real, current chrome height.
-                    style={{ scrollMarginTop: APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX }}
+                    // row where `scheduleChromeHeight` doesn't already
+                    // describe the real, current chrome height.
+                    style={{ scrollMarginTop: scheduleChromeHeight }}
                   >
                     {today !== null &&
                     isSameDay(row.day, today) &&

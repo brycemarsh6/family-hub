@@ -106,16 +106,22 @@ test("resolveServerFetchWindow: missing/invalid ?date= falls back to the server'
 // the table itself lives in calendarViewVocabulary.test.ts; these cover what
 // the URL layer does with it.
 
-test("parseViewParam: accepts the four built views unchanged", () => {
+test("parseViewParam: accepts the five built views unchanged", () => {
   assert.equal(parseViewParam("schedule"), "schedule");
   assert.equal(parseViewParam("week"), "week");
   assert.equal(parseViewParam("day"), "day");
+  // mission-17/C4 — threeDay joined the built views (see the next test's
+  // own comment for where it moved from).
+  assert.equal(parseViewParam("threeDay"), "threeDay");
   assert.equal(parseViewParam("month"), "month");
 });
 
 test("parseViewParam: a real-but-unbuilt view normalizes to the default rather than reaching a missing renderer", () => {
+  // "threeDay" was this test's second example through CV1–C3; mission-17/C4
+  // flipped `BUILT_VIEWS.threeDay` to true (calendarViewVocabulary.ts), so
+  // it moved to the "built" test above instead — "year" is the only view
+  // left with no renderer (CV5's job).
   assert.equal(parseViewParam("year"), "week");
-  assert.equal(parseViewParam("threeDay"), "week");
 });
 
 test("parseViewParam: missing, malformed and stray values fall back too", () => {

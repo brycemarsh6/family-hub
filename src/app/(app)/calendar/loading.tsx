@@ -63,33 +63,83 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 // gets the same shape the app will actually render for it, because both
 // answers now come from the one `BUILT_VIEWS` table.
 //
-// SEVEN ROWS FOR DAY IS DELIBERATE, and the reason is worth stating
-// because it looks like a bug: a skeleton's job is to match the frame that
-// paints NEXT, and that frame is always CalendarViews' own
-// `today === null` placeholder — which renders SEVEN rows whatever the URL
-// says, because `useCalendarNavigation` seeds the cursor with the default
-// view (Week) and the URL's view lands a tick later (measured in
-// mission-11/C1, identical on the pre-C1 build). A "measured" one-row Day
-// skeleton would therefore ADD a shape jump rather than remove one. Month
-// is the case that argues the other way and is why this file branches at
-// all: its grid is tall enough that the seven-row shape is the worse
-// mismatch of the two.
+// SEVEN ROWS FOR SCHEDULE (and Year, still unbuilt) IS DELIBERATE, and the
+// reason is worth stating because it looks like a bug: a skeleton's job is
+// to match the frame that paints NEXT, and for those two views that frame
+// is CalendarViews' own generic `today === null` placeholder — which
+// renders SEVEN rows whatever the URL says, because `useCalendarNavigation`
+// seeds the cursor with the default view (Week) and the URL's view lands a
+// tick later (measured in mission-11/C1, identical on the pre-C1 build). A
+// "measured" one-row Day skeleton would therefore ADD a shape jump rather
+// than remove one, back when Day also fell through that generic
+// placeholder. Month is the case that argues the other way and is why this
+// file branches at all: its grid is tall enough that the seven-row shape is
+// the worse mismatch of the two.
 //
-// The unbuilt views' rows are unreachable — `parseViewParam` normalizes
-// them away — and each is the Week shape rather than a guess at a view
-// that does not exist. CV3/CV4/CV5 replace their own row with a MEASURED
-// shape in the commit that flips `BUILT_VIEWS`, per calendar-v2.md; this
-// repo has shipped a guessed skeleton twice and both times it was wrong.
-type CalendarSkeletonShape = { dayRows: number } | { monthGrid: true };
+// mission-17/C4 gives Day/3 Day/Week a SECOND reason to branch away from
+// the seven-row shape, on top of Month's: `CalendarViews.tsx`'s
+// `renderPeriodContent` now handles `renderer === "timeline"` the same way
+// it already handles "month" — BEFORE the generic placeholder, not through
+// it — because `today === null`'s seven-block shape is what USED to paint
+// next for these three (the same mechanism the paragraph above describes),
+// and MEASURED against the real app that produces a ~225px height DROP the
+// instant `TimelineGrid` mounts (a 7-block list settles around 1093px of
+// page height at 375×812; the real timeline box settles around 868px) — a
+// far bigger mismatch than the list-to-list swap Schedule/Year still make.
+// So the frame that now paints next for these three is a brief gap (both
+// `today` and `now` are client-side `useSyncExternalStore` reads, not a
+// network round trip) followed directly by the real `TimelineGrid`, and
+// this file's own timeline shape below is sized to match THAT box, not the
+// seven-block shape it replaces.
+//
+// The still-unbuilt views' rows (Year) are unreachable — `parseViewParam`
+// normalizes them away — and stay the Week shape rather than a guess at a
+// view that does not exist. CV5 replaces Year's own row with a MEASURED
+// shape in the commit that flips `BUILT_VIEWS.year`, per calendar-v2.md;
+// this repo has shipped a guessed skeleton twice and both times it was
+// wrong.
+type CalendarSkeletonShape =
+  | { dayRows: number }
+  | { monthGrid: true }
+  | { timelineGrid: true };
 
 const SKELETON_SHAPE: Record<CalendarPeriodView, CalendarSkeletonShape> = {
   schedule: { dayRows: 7 },
-  day: { dayRows: 7 },
-  threeDay: { dayRows: 7 },
-  week: { dayRows: 7 },
+  day: { timelineGrid: true },
+  threeDay: { timelineGrid: true },
+  week: { timelineGrid: true },
   month: { monthGrid: true },
   year: { dayRows: 7 },
 };
+
+/**
+ * The hour timeline's own box (mission-17/C4) — a single bordered block
+ * rather than stacked rows, matching `TimelineGrid.tsx`'s real
+ * `overflow-hidden rounded-xl border border-line` wrapper shape rather than
+ * this file's day-row shape. Sized with the SAME formula that component
+ * itself falls back on before its own runtime measurement lands (see its
+ * own `scrollerHeightStyle` and `MIN_SCROLLER_HEIGHT_PX`) — `369` is
+ * `top + navHeight` MEASURED against the real running page at 375px
+ * (`getBoundingClientRect`, the same technique every other number in this
+ * file was measured with): the app header, this page's own title/action-
+ * circles/prev-next rows (all reproduced above, unchanged), and the bottom
+ * nav together reserve that much of the viewport before the timeline box
+ * itself starts. An inline `style`, not a Tailwind arbitrary class, to
+ * match `TimelineGrid.tsx`'s own technique for the identical `calc()` —
+ * `min-h` is `MIN_SCROLLER_HEIGHT_PX` (320) as a real Tailwind utility
+ * rather than folded into the `calc()`, since CSS `calc()` can't express a
+ * clamp on its own and `max()` nested inside a template string is harder to
+ * read than the same floor `min-h-80` already states plainly.
+ */
+function TimelineGridSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      className="min-h-80 w-full animate-pulse rounded-lg bg-surface-2"
+      style={{ height: "calc(100dvh - 369px)" }}
+    />
+  );
+}
 
 export default function Loading() {
   const searchParams = useSearchParams();
@@ -112,6 +162,8 @@ export default function Loading() {
 
         {"monthGrid" in shape ? (
           <MonthGridSkeletonRows />
+        ) : "timelineGrid" in shape ? (
+          <TimelineGridSkeleton />
         ) : (
           <div className="flex flex-col gap-4">
             {Array.from({ length: shape.dayRows }, (_, index) => (

@@ -3,6 +3,8 @@
 import { CalendarCheck, CalendarRange, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
 import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
+import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
+import { APP_HEADER_HEIGHT_PX } from "@/lib/appChrome";
 
 /**
  * mission-16/C4 — the DOM id ScheduleView.tsx portals its own scroll-driven
@@ -22,20 +24,14 @@ import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabula
 export const SCHEDULE_TITLE_SLOT_ID = "calendar-header-schedule-title-slot";
 
 /**
- * mission-16/C4 — the app's global header's real rendered height, measured
- * directly against the running app
- * (`document.querySelector("header").getBoundingClientRect().height`),
- * not assumed: it reads 73px, not the 64px `top-16` the CV3-era sticky
- * headings guessed (see globals.css's own C4 comment for why neither
- * number had ever actually been exercised — sticky was inert app-wide
- * until this same contract's CSS fix). Safe to hardcode, same "stable
- * chrome dimension, verified rather than guessed" precedent as
- * ScheduleView's own `-65px` bottom-nav margin: the header's content (the
- * wordmark, plus at most one row of account-menu button) never wraps or
- * grows, so this isn't a value that can silently drift the way a
- * text-driven height could.
+ * mission-17/C1 — `APP_HEADER_HEIGHT_PX` moved to `src/lib/appChrome.ts`
+ * (re-exported into this file's own imports above, not re-declared here):
+ * it's a fact about `(app)/layout.tsx`'s `<header>`, not about this
+ * component, and a second file (`RecipeList.tsx`) needed the identical
+ * number without importing a calendar component to get it. See that
+ * module's own comment for the full reasoning and the "one hardcoded copy
+ * went stale" history that made this a written STRUCTURE.md rule.
  */
-export const APP_HEADER_HEIGHT_PX = 73;
 
 /**
  * mission-16/C4 — this component's OWN rendered height while pinned for
@@ -138,7 +134,17 @@ export function CalendarHeader({
   // this used to return) is what lets that element carry `position:
   // sticky` at all — for every other view this div is unstyled and
   // changes nothing about the rendered layout.
-  const pinned = view === "schedule";
+  //
+  // mission-17/C3 — this used to be its own `view === "schedule"` test,
+  // the second independent one (CalendarViews.tsx's render switch had the
+  // other) beside `VIEW_CONFIG`, a total record over all six views with no
+  // `pinned` field — so `threeDay` and `year` would have inherited
+  // `pinned = false` silently the moment either became reachable
+  // (STRUCTURE.md's per-member-difference clause; Captain's finding).
+  // Reading `VIEW_CONFIG[view].pinned` instead makes a future view that
+  // also wants this decide so in one place rather than reintroducing a
+  // second inline test beside the record that already owns the answer.
+  const pinned = VIEW_CONFIG[view].pinned;
 
   return (
     <div

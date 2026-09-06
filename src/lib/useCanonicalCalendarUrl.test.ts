@@ -29,8 +29,10 @@ test("canonicalSearchFor: nothing is written before `today` resolves — there i
 test("canonicalSearchFor: a URL already naming a built view is left completely alone", () => {
   // The common case by far, and the one that must stay free: every URL this
   // hook itself pushes names a built view, so a push can never trigger a
-  // rewrite of its own arrival.
-  for (const built of ["schedule", "day", "week", "month"]) {
+  // rewrite of its own arrival. "threeDay" joined this list in mission-17/C4
+  // (BUILT_VIEWS.threeDay flipped to true) — see the next test's own comment
+  // for where its old "unbuilt" example moved.
+  for (const built of ["schedule", "day", "threeDay", "week", "month"]) {
     assert.equal(canonicalSearchFor(built, WEEK), null, `${built} needs no rewrite`);
   }
 });
@@ -48,9 +50,13 @@ test("canonicalSearchFor: an unbuilt view name is rewritten too, not just a miss
   // from a future build, or a phone running ahead of this deploy. It resolves
   // through the same preference a bare URL does, so it is ambiguous the same
   // way and is made honest rather than left saying "year" over a Week screen.
+  //
+  // "threeDay" was this test's second example through CV1–C3; mission-17/C4
+  // flipped `BUILT_VIEWS.threeDay` to true, so it moved to the
+  // "left completely alone" test above instead — "year" is the only view
+  // left with no renderer (CV5's job).
   assert.equal(canonicalSearchFor("year", WEEK), "date=2026-09-03&view=week");
-  assert.equal(canonicalSearchFor("threeDay", MONTH), "date=2026-09-03&view=month");
-  assert.equal(canonicalSearchFor("threeDay", WEEK), "date=2026-09-03&view=week");
+  assert.equal(canonicalSearchFor("year", MONTH), "date=2026-09-03&view=month");
 });
 
 test("canonicalSearchFor: garbage and prototype-chain names are rewritten, never trusted", () => {

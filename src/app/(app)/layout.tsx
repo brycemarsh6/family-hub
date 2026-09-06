@@ -89,6 +89,44 @@ export default async function RootLayout({
       className={`${inter.variable} ${manrope.variable} ${cormorantGaramond.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-bg text-fg">
+        {/*
+          mission-17/C1 — this header's real rendered height is a measured
+          fact other files position against, per STRUCTURE.md's rule that a
+          measured chrome dimension two-or-more surfaces depend on gets ONE
+          home in src/lib/, not a hardcoded copy per consumer. That home is
+          `src/lib/appChrome.ts` (`APP_HEADER_HEIGHT_PX` /
+          `useAppHeaderHeight`) — this comment is the other half of the
+          rule: naming every dependent here so a future edit to this
+          header (a taller logo, a second row, a bigger touch target) has
+          a list to re-check instead of a silent re-break. As of this
+          writing:
+            - `CalendarHeader.tsx` — pins its own Schedule-view bar directly
+              below this header (`style={{ top: APP_HEADER_HEIGHT_PX }}`).
+            - `ScheduleView.tsx` — adds this header's height to
+              CalendarHeader's own pinned-bar height to compute where its
+              content starts being visible on screen (its scroll-anchor
+              margin and its month-title reveal boundary).
+            - `RecipeList.tsx` — offsets its sticky A-Z letter headings by
+              this same height so the app header doesn't clip them.
+          mission-17/C5 adds two more dependents Fury's original list missed:
+            - `CalendarViews.tsx` — reads `useAppHeaderHeight()` and hands the
+              result to `TimelineGrid.tsx` as a `chromeOffsetPx` prop (that
+              component can't import appChrome.ts itself — see its own file
+              header for why: mission-17/C1 was moving this constant into
+              existence in a PARALLEL worktree while it was being written).
+            - `(app)/calendar/loading.tsx`'s `TimelineGridSkeleton` — its
+              `calc(100dvh - 369px)` is a COMPOSITE that folds this header's
+              height in alongside the page's own title/action-circle rows and
+              the bottom nav, so `369` does NOT contain this constant's name
+              and no grep will ever find the dependency. Named here instead,
+              since that is the only place a future header-height change can
+              learn this number needs re-measuring too.
+          If this header's real height ever changes, update
+          `APP_HEADER_HEIGHT_PX` in `src/lib/appChrome.ts` (or switch a
+          dependent to the runtime-measuring `useAppHeaderHeight` hook the
+          same module exports) — never add a second hardcoded number here
+          or in a dependent file.
+        */}
         <header className="print:hidden sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
           <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-4 py-3">
             {/* The wordmark alone, in brand Sage — no icon tile beside it.

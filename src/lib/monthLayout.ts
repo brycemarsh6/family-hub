@@ -120,8 +120,24 @@ function compareCandidates(a: Candidate, b: Candidate): number {
  * visible lanes at three per cell. `events` may include events that don't
  * touch this row at all (e.g. the caller's whole fetched set) — anything
  * `daysEventCovers` returns no days for is silently skipped, so the caller
- * doesn't need to pre-filter per row. */
-export function assignLanes(rowDays: Date[], events: MonthLayoutEvent[]): MonthLaneAssignment {
+ * doesn't need to pre-filter per row.
+ *
+ * `visibleLanes` defaults to the module's own `VISIBLE_LANES` (3) — Month's
+ * own call (MonthGrid.tsx) never passes a third argument, so its behavior
+ * is byte-for-byte unchanged by this parameter's existence. It exists for a
+ * SECOND caller (mission-17/C5): TimelineGrid.tsx's all-day strip caps at
+ * the same 3 lanes by default, but its "+N more" used to be a dead end — an
+ * inert `<span>`, no route to the 4th+ item at all, and Month's own "+N
+ * more" escalates INTO that exact dead end by navigating to Day. Passing a
+ * larger `visibleLanes` (effectively unbounded) is what lets that "+N more"
+ * become a real button that EXPANDS the strip in place instead of
+ * navigating somewhere that can't show them either — see that component's
+ * own comment for why expanding was chosen over a second navigation. */
+export function assignLanes(
+  rowDays: Date[],
+  events: MonthLayoutEvent[],
+  visibleLanes: number = VISIBLE_LANES,
+): MonthLaneAssignment {
   const width = rowDays.length;
   const overflowByDay = new Array(width).fill(0) as number[];
 
@@ -163,7 +179,7 @@ export function assignLanes(rowDays: Date[], events: MonthLayoutEvent[]): MonthL
       laneOccupancy[lane][col] = true;
     }
 
-    if (lane < VISIBLE_LANES) {
+    if (lane < visibleLanes) {
       spans.push({ event: candidate.event, startCol: candidate.startCol, endCol: candidate.endCol, lane });
     } else {
       for (let col = candidate.startCol; col <= candidate.endCol; col++) {

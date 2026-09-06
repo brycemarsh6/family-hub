@@ -9,6 +9,7 @@ import { CalendarHeader } from "./CalendarHeader";
 import { DaySection } from "./DaySection";
 import { MonthGrid } from "./MonthGrid";
 import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
+import { TimelineGrid } from "./TimelineGrid";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
@@ -20,6 +21,8 @@ import {
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { daysEventCovers, isOutsideWindow, allDayInstantToLocalDay } from "@/lib/calendarDates";
 import { isSameDay, toLocalDateString } from "@/lib/mealPlanDates";
+import { useNowMinute } from "@/lib/useNowMinute";
+import { useAppHeaderHeight } from "@/lib/appChrome";
 import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
@@ -34,7 +37,11 @@ import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/
 // ViewConfig / VIEW_CONFIG (title, days, isCurrentPeriod per view) moved
 // to src/lib/calendarViewConfig.ts in mission-14/C1 — see that file's own
 // header for why (coverage: it's per-view date logic a .tsx file the test
-// glob can't reach). The render switch below stays here on purpose.
+// glob can't reach). mission-17/C3: the switch's SELECTION (which
+// `config.renderer` tag maps to which component) now lives there too, as a
+// total record — this file just holds the switch's BODY (the actual JSX),
+// since `src/lib/` can't import a component. renderPeriodContent, below,
+// is that switch.
 
 type CalendarViewsProps = {
   events: CalendarEventView[];
@@ -112,6 +119,19 @@ export function CalendarViews({
   const { view, anchor, today, step, goToToday, setView, openDay } =
     useCalendarNavigation(DEFAULT_CALENDAR_VIEW);
 
+  // mission-17/C4 — TimelineGrid's two dependency-injected values (see that
+  // file's own header for why they're props rather than internal hooks).
+  // Called unconditionally, same convention as `today` above: cheap even on
+  // the four out of six views that never read them, and it keeps every hook
+  // call in this component at the top level regardless of which view is
+  // active. `now` is a SEPARATE useSyncExternalStore value from `today` —
+  // both are `null` on SSR and the first client render, but nothing
+  // guarantees they resolve on the exact same tick, so `renderPeriodContent`'s
+  // own "timeline" branch guards it on its own rather than assuming
+  // `today !== null` covers it too.
+  const now = useNowMinute();
+  const chromeOffsetPx = useAppHeaderHeight();
+
   const [pickingView, setPickingView] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
@@ -169,6 +189,185 @@ export function CalendarViews({
   const title = today === null || anchor === null ? null : config.title(anchor);
   const addSheetDateParam = anchor ? `?date=${toLocalDateString(anchor)}` : "";
 
+  // mission-17/C3 — replaces the old `view === "member"` ternary chain with
+  // a switch on `config.renderer` (calendarViewConfig.ts), exhaustive via
+  // the `never`-typed default below. That field is the render-SELECTION
+  // half of the hazard STRUCTURE.md names for `pinned` (CalendarHeader.tsx):
+  // a per-view difference that used to be tested inline beside
+  // `VIEW_CONFIG` — a total record — instead of read from it. C3 itself
+  // changed no behaviour (see that file's per-row comments for why each
+  // view got the tag it did); mission-17/C4, immediately below, is the
+  // first contract to actually MOVE a view between tags — day/threeDay/
+  // week's rows switched from `"daySection"` to `"timeline"` in that same
+  // commit, which is a real, visible change (an hour rail instead of a flat
+  // agenda list), not a refactor.
+  function renderPeriodContent() {
+    const renderer = config.renderer;
+
+    if (renderer === "month") {
+      // Guaranteed non-null (see ViewConfig.placeholderCount's comment
+      // in calendarViewConfig.ts); this check is for TypeScript, not a
+      // reachable branch.
+      return (
+        today !== null &&
+        anchor !== null && (
+          <MonthGrid
+            anchor={anchor}
+            today={today}
+            events={events}
+            tasks={tasks}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
+            onOpenDay={openDay}
+          />
+        )
+      );
+    }
+
+    if (renderer === "timeline") {
+      // mission-17/C4 — handled here, ahead of the generic `today === null`
+      // placeholder below, for the SAME reason "month" is: rendering
+      // `config.placeholderCount` DaySection-loading blocks while `today`
+      // resolves would show Week's 7-block shape (loading.tsx's own comment
+      // explains why EVERY non-month view briefly renders that shape,
+      // regardless of which one was actually requested — `view` hasn't
+      // synced from the URL's default seed yet), immediately before
+      // snapping to a single `TimelineGrid` box. MEASURED against the real
+      // running app: that snap is a genuine ~225px height drop (a 7-block
+      // list settles around 1093px of page height; the real TimelineGrid
+      // box settles around 868px at a 375×812 viewport) — a far bigger,
+      // more visible jump than the list-to-list swap the OTHER
+      // daySection-rendered views make. Skipping the placeholder here,
+      // exactly like Month already does, removes it: the brief gap while
+      // `today`/`now` resolve is covered by loading.tsx's own (now
+      // TimelineGrid-shaped) fallback instead, and resolves fast enough in
+      // practice — both are client-side `useSyncExternalStore` reads, no
+      // network round trip — not to read as a blank flash.
+      //
+      // `now` (useNowMinute.ts) is a SEPARATE value from `today`, with its
+      // own null-on-first-render window, so it gets its own guard here —
+      // the same "guard every independently-resolving value" convention
+      // the "month" case above already follows for `today`/`anchor`
+      // together. `columnDays` is just `days` (already computed above from
+      // `config.days(anchor)` — see ViewConfig.days's own comment for why
+      // each row already returns exactly the column set this component
+      // needs: `[anchor]` for Day, the anchor-relative 3-day span for
+      // 3 Day, `sundayOf(anchor)`'s week for Week).
+      //
+      // `tasks`/`onOpenTask` — mission-17/C5. Fury's original C2 contract
+      // enumerated this component's props and left `tasks` out entirely, so
+      // a task due today was invisible on Day/3 Day/Week even though Month
+      // and Schedule both already rendered it. Passed straight through
+      // unfiltered, exactly as the "month" case above already does for
+      // MonthGrid — TimelineGrid decides which tasks touch `days` itself,
+      // via `assignLanes`, the same way MonthGrid does per row. `onOpenTask`
+      // is the identical one-arg closure the "daySection" case below
+      // already passes (a task has exactly one due date, never a span, so
+      // the `day` argument that closure ignores is unused here too).
+      return (
+        today !== null &&
+        now !== null && (
+          <TimelineGrid
+            columnDays={days}
+            events={events}
+            tasks={tasks}
+            today={today}
+            now={now}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
+            onOpenEvent={(event, day) => setSelected({ event, day })}
+            onOpenTask={(task) => setSelectedTask(task)}
+            chromeOffsetPx={chromeOffsetPx}
+          />
+        )
+      );
+    }
+
+    if (today === null) {
+      return Array.from({ length: config.placeholderCount }, (_, index) => (
+        <DaySection key={index} loading />
+      ));
+    }
+
+    switch (renderer) {
+      case "schedule":
+        // `anchor` is guaranteed non-null here (useCalendarPeriod.ts — it's
+        // null exactly when `today` is, ruled out above).
+        //
+        // mission-16/C9 (Captain's N4), updated mission-17/C3: an invariant
+        // lives HERE, not in either file it constrains. ScheduleView's
+        // month-title portal (useScheduleMonthTitle.ts) only renders
+        // anything because CalendarHeader is mounted AND in its own
+        // `pinned` branch (`VIEW_CONFIG[view].pinned`) at the exact same
+        // moment this case runs (`config.renderer === "schedule"`) — both
+        // now derive from the same `VIEW_CONFIG[view]` row, which is what
+        // keeps them from ever disagreeing. If a future row ever sets
+        // `renderer: "schedule"` without also setting `pinned: true` (or
+        // the reverse), the title's portal target never exists and the
+        // month label silently disappears — no error, no test failure.
+        // Keep the two on the same row.
+        return (
+          anchor !== null && (
+            <ScheduleView
+              ref={scheduleRef}
+              initialDay={anchor}
+              people={people}
+              canManage={canManage}
+              onTodayVisibleChange={setScheduleTodayVisible}
+            />
+          )
+        );
+      case "daySection":
+        // mission-17/C4 confirms the prediction the comment here used to
+        // make: this branch is now reached ONLY by `year` — day/threeDay/
+        // week all moved to their own "timeline" branch, handled earlier in
+        // this function (alongside "month", ahead of the generic
+        // `today === null` placeholder below — see its own comment for
+        // why), and schedule is its own case above. `year` is itself
+        // unreachable today (`BUILT_VIEWS.year` is false), so this case is
+        // defensive fallthrough for a total switch, not a path real
+        // navigation takes — the same standing MonthGrid's own `today !==
+        // null` check above has ("for TypeScript, not a reachable branch").
+        // `showLocation`/`compact` are DROPPED here rather than kept as
+        // `view === "day"`/`view === "week"` checks that can never be true
+        // any more: leaving them would read as live behaviour for views
+        // this case no longer serves. Both are optional on DaySection
+        // (default falsy), and Year has no stated need for either — CV5
+        // replaces this whole case with Year's real 12-mini-grid renderer
+        // rather than ever exercising it.
+        return days.map((day) => (
+          <DaySection
+            key={day.getTime()}
+            day={day}
+            today={today}
+            notLoaded={isOutsideWindow(day, windowStart, windowEnd)}
+            events={events.filter(
+              (event) =>
+                daysEventCovers(event.startAt, event.endAt, event.allDay, [day]).length > 0,
+            )}
+            // A task has exactly one due date, never a span, so this is a
+            // plain same-day comparison rather than daysEventCovers'
+            // range check — see allDayInstantToLocalDay's own comment
+            // (calendarDates.ts) for why a UTC-midnight-stored due date
+            // has to be read back through it, not a bare local getter.
+            tasks={tasks.filter((task) => isSameDay(allDayInstantToLocalDay(task.dueDate), day))}
+            onOpenEvent={(event, eventDay) => setSelected({ event, day: eventDay })}
+            // mission-14/C4 — the real TaskDetailSheet, wired the same
+            // way onOpenEvent backs EventDetailSheet above. `day` is
+            // unused: see selectedTask's own comment for why a task
+            // needs none.
+            onOpenTask={(task) => setSelectedTask(task)}
+          />
+        ));
+      default: {
+        // Exhaustiveness check, the whole point of this contract: a new
+        // `CalendarRenderer` value with no case here fails to compile.
+        const exhaustiveCheck: never = renderer;
+        throw new Error(`Unhandled calendar renderer: ${String(exhaustiveCheck)}`);
+      }
+    }
+  }
+
   return (
     <div>
       <CalendarHeader
@@ -189,98 +388,9 @@ export function CalendarViews({
         onAdd={() => setAddingEvent(true)}
       />
 
-      <div className="flex flex-col gap-4">
-        {/* mission-14/C3's comment used to say Schedule (CV3), the hour
-            timeline (CV4/Day+Week), and Year (CV5) all still owed this
-            switch a branch of their own. mission-15/C4 pays Schedule's:
-            it renders its OWN events/tasks (fetched client-side via
-            useScheduleWindow, never these page-level `events`/`tasks`
-            props — see ScheduleView.tsx's own header), which is why its
-            branch below takes only `initialDay`/`people`/`canManage`. The
-            hour timeline (CV4) and Year (CV5) still owe theirs. */}
-        {view === "month" ? (
-          // Guaranteed non-null (see ViewConfig.placeholderCount's comment
-          // in calendarViewConfig.ts); this check is for TypeScript, not a
-          // reachable branch.
-          today !== null &&
-          anchor !== null && (
-            <MonthGrid
-              anchor={anchor}
-              today={today}
-              events={events}
-              tasks={tasks}
-              windowStart={windowStart}
-              windowEnd={windowEnd}
-              onOpenDay={openDay}
-            />
-          )
-        ) : today === null ? (
-          Array.from({ length: config.placeholderCount }, (_, index) => (
-            <DaySection key={index} loading />
-          ))
-        ) : view === "schedule" ? (
-          // `anchor` is guaranteed non-null here — it is null exactly when
-          // `today` is (useCalendarPeriod.ts), and the branch above already
-          // ruled `today === null` out. TypeScript can't see that
-          // relationship across the two branches, so this check stays for
-          // the compiler, not because the case is reachable.
-          //
-          // mission-16/C9 (Captain's N4) — an invariant lives HERE, not in
-          // either file it constrains: ScheduleView's month-title portal
-          // (useScheduleMonthTitle.ts) only renders anything because
-          // CalendarHeader is BOTH mounted AND in its own `pinned` branch
-          // (`view === "schedule"`, CalendarHeader.tsx) at the exact same
-          // moment ScheduleView itself is mounted (`view === "schedule"`,
-          // this branch). Both conditions read this same `view` variable,
-          // which is what keeps them from ever disagreeing today — but
-          // neither CalendarHeader.tsx nor useScheduleMonthTitle.ts states
-          // the requirement, because neither one can see the other's
-          // condition. If this switch is ever restructured so ScheduleView
-          // can render while CalendarHeader's pinned branch does not (a
-          // test harness mounting ScheduleView alone, or a future reshuffle
-          // of this file), `SCHEDULE_TITLE_SLOT_ID`'s node never exists,
-          // `useScheduleMonthTitle`'s `portal` stays `null` forever, and the
-          // month label silently disappears — no error, no warning, no
-          // failing test. Keep ScheduleView's mount condition and
-          // CalendarHeader's `pinned` flag identical.
-          anchor !== null && (
-            <ScheduleView
-              ref={scheduleRef}
-              initialDay={anchor}
-              people={people}
-              canManage={canManage}
-              onTodayVisibleChange={setScheduleTodayVisible}
-            />
-          )
-        ) : (
-          days.map((day) => (
-            <DaySection
-              key={day.getTime()}
-              day={day}
-              today={today}
-              showLocation={view === "day"}
-              compact={view === "week"}
-              notLoaded={isOutsideWindow(day, windowStart, windowEnd)}
-              events={events.filter(
-                (event) =>
-                  daysEventCovers(event.startAt, event.endAt, event.allDay, [day]).length > 0,
-              )}
-              // A task has exactly one due date, never a span, so this is a
-              // plain same-day comparison rather than daysEventCovers'
-              // range check — see allDayInstantToLocalDay's own comment
-              // (calendarDates.ts) for why a UTC-midnight-stored due date
-              // has to be read back through it, not a bare local getter.
-              tasks={tasks.filter((task) => isSameDay(allDayInstantToLocalDay(task.dueDate), day))}
-              onOpenEvent={(event, eventDay) => setSelected({ event, day: eventDay })}
-              // mission-14/C4 — the real TaskDetailSheet, wired the same
-              // way onOpenEvent backs EventDetailSheet above. `day` is
-              // unused: see selectedTask's own comment for why a task
-              // needs none.
-              onOpenTask={(task) => setSelectedTask(task)}
-            />
-          ))
-        )}
-      </div>
+      {/* The render switch itself — which case runs for which view — lives
+          in `renderPeriodContent`, above; see that function's own comment. */}
+      <div className="flex flex-col gap-4">{renderPeriodContent()}</div>
 
       {pickingView && (
         <RadioSheet<CalendarPeriodView>

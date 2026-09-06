@@ -207,6 +207,42 @@ Adding a second definition of any of these is a BLOCKER:
   `~/Desktop/marshee_brand_assets/` and is explicitly not a source — its
   mark is missing the M's centre descender despite its README claiming to
   be authoritative.)
+- **The `validatedPeople` decision** — which `User` ids may be **written**
+  onto an item. `personInfo.ts` below is the read-side twin of this rule;
+  this is the write side, and it is security-relevant for the same reason.
+  **Home: `src/lib/`, pure over its inputs** — `(requestedIds, rows, alreadyAssignedIds) -> string | null`,
+  with the `db.user.findMany` staying in each action, the same
+  policy/DB-read split `loginRateLimitPolicy.ts` already established. That
+  placement is not cosmetic: the decision currently lives in a
+  `"use server"` file, where the no-plain-exports rule means it **cannot be
+  exported and therefore cannot be tested at all** — an authorization
+  decision `npm test` structurally cannot reach, which is CV3's
+  `VIEW_CONFIG` lesson in a worse form. **The two current copies
+  (`actions/tasks.ts`, `actions/calendar.ts`) are grandfathered debt to
+  migrate in one contract; a third copy is a BLOCKER.** Note what changed
+  its class: it was ordinary input validation until mission-16/C3b gave it
+  an authorization carve-out, and that same security-shaped edit then had
+  to be made by hand in both copies — correctly, only because one builder
+  happened to hold both files in one contract.
+  (Added 2026-09-05, mission-16, on Captain's ruling; Bryce approved.)
+- **A measured dimension of app chrome** that two or more surfaces position
+  against **has one home in `src/lib/`**, and the markup that produces it
+  carries a comment naming its dependents. A **runtime measurement** is an
+  equal-standing alternative for any one surface; **a second hardcoded copy
+  is not.** This rule exists because mission-16's worst defect was exactly
+  this shape: the app header is 73px, three files positioned against it,
+  and one still said 64 — so "go to today" scrolled the reader to a spot
+  hidden behind the header, and the same stale 64 sat in a second file one
+  directory away. One fact, three encodings, two agreeing by import and one
+  silently stale. **`APP_HEADER_HEIGHT_PX` is the open instance** — it is a
+  fact about `(app)/layout.tsx` currently living in `CalendarHeader.tsx`,
+  which `RecipeList.tsx` explicitly declines to import and re-derives at
+  runtime instead; its home is a new `src/lib/appChrome.ts` exporting
+  **both** the constant and the measuring hook, with
+  `SCHEDULE_HEADER_BAR_HEIGHT_PX` and `SCHEDULE_TITLE_SLOT_ID` correctly
+  staying in `CalendarHeader.tsx` as facts about that component. CV4's
+  first contract. (Added 2026-09-05, mission-16, on Captain's ruling;
+  Bryce approved.)
 - `src/lib/personInfo.ts` — `PERSON_SELECT` / `toPersonInfo`, the single
   place a `User` row becomes something a client may see. **This is the
   security-relevant one**: it builds the public shape field by field so a
@@ -264,11 +300,29 @@ Adding a second definition of any of these is a BLOCKER:
   unreachable through the gate, so **a member's reachability entry may not
   flip to `true` in a commit that leaves any per-member difference outside a
   total record.** (`showLocation`, `compact` and the renderer selection in
-  `CalendarViews.tsx` are the live instances; CV3/CV4/CV5 own them.)
+  `CalendarViews.tsx` are the live instances; CV3/CV4/CV5 own them.
+  **`CalendarHeader.tsx`'s `const pinned = view === "schedule"` joins
+  that list, added 2026-09-05 on Captain's finding — a factual
+  completion of this inventory, not a new rule.** It is the second
+  independent `view === "schedule"` test, and `VIEW_CONFIG` — a total
+  record over all six views — has no `pinned` field, so `threeDay` and
+  `year` would inherit `pinned = false` silently. **CV4 flips
+  `threeDay`, which makes this clause bind there as a BLOCKER.**)
   (Added 2026-09-03, mission-11, on Captain's ruling.)
 
 ## File-size caps
 
+- **Both caps are measured in total lines, but a file whose non-comment
+  code is well under the cap is not a split candidate — report BOTH counts
+  before naming a seam.** This project deliberately explains itself at
+  length, and the caps were quietly taxing that. Two measurements from
+  mission-16 are why: `useScheduleWindow.ts` read 431/350 and was carried
+  as debt across two missions, but is **172 lines of code** — 60%
+  documentation, and Captain withdrew its own split ruling on measuring it.
+  And the change that pushed `ScheduleView.tsx` to 95% of the **hard** cap,
+  forcing a whole extra contract, added **82 lines of which 8 were code**.
+  A seam named on total lines alone can cost a mission for prose.
+  (Added 2026-09-05, mission-16, on Captain's ruling; Bryce approved.)
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (actions/groceries.ts
   was split three ways at ~624 before hitting the hard cap; current largest
   hand-written files sit in the ~350–420 range.)
@@ -448,6 +502,17 @@ Adding a second definition of any of these is a BLOCKER:
 5. Naming — consistent with conventions and neighbors.
 
 ## Settled decisions — don't relitigate
+
+- **The four accounts-cutover decisions stay settled** (2026-08-28/29;
+  written into this document 2026-09-05 on Captain's finding that they
+  lived only in CLAUDE.md's prose and not in the constitution agents
+  actually gate against — Bryce approved):
+  **no auth vendor**, Clerk included — the swap-cheap design was spent,
+  not saved; **two tiers with no `kind` column**, because whether someone
+  can log in *is* whether `passwordHash` is null, so the two can never
+  drift and upgrading a profile to an account is one UPDATE;
+  **parents manage, kids participate**; and **device mode is a `role` on
+  the same axis**, never a second concept.
 
 - **`PantryItem` / `pantryItemId` keep their internal names** even though the
   UI says "inventory" — renaming means a live-database migration for zero
