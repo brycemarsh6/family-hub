@@ -390,7 +390,8 @@ differently if they do.
   entirely later"*, which is false for the CV4 that actually shipped.
 - `BUILT_VIEWS.threeDay → true`; Day and Week switch from the list
   renderer to `TimelineGrid`; measured `loading.tsx` shapes.
-- **The picker ends this mission with six views, all built** — the first
+- **The picker ends this mission with five of six views built** (Year
+  excluded — see the correction in Delivery) — the first
   time since CV1 that the vocabulary and the renderers agree completely.
 - **Per-column `isOutsideWindow`** → the not-loaded treatment in the
   all-day row, per `MonthCell`'s policy. Three states, never two.
@@ -1036,8 +1037,13 @@ picker lists Schedule first.
   their real times, overlapping ones side by side, a now-line tracking
   the clock, all-day events **and tasks** in a strip above, scroll-to-now
   on open. **Nothing in this app positioned anything by time before.**
-  All six views are now built and reachable: Schedule · Day · 3 Day ·
-  Week · Month · Year. **Eight contracts, four gate rounds, ten verdicts.
+  **Five** of the six views are built and reachable: Schedule · Day ·
+  3 Day · Week · Month. **Year is NOT** — `BUILT_VIEWS.year` is still
+  `false`, so the picker filters it out (`calendarViewVocabulary.ts:125`)
+  and no `?view=year` resolves. Year is CV5's work.
+  *(Corrected 2026-09-06 during a CLAUDE.md audit: this line, the C4
+  ledger row and the handoff log all read "all six views", which the
+  vocabulary table contradicts.)* **Eight contracts, four gate rounds, ten verdicts.
   Tests 317 → 333.**
 - **Three of four build contracts ran in parallel git worktrees** — a
   first — with zero conflicts and zero index collisions.

@@ -28,7 +28,19 @@ working in this repo:
 - Database migrations are **additive only**; review the SQL before applying.
 - Secrets live in `.env` (gitignored) and Vercel env vars only — never in
   git, chat, or code.
-- Pushing `main` deploys to the family's production app on Vercel.
+- **Direct pushes to `main` are BLOCKED by a GitHub ruleset, including for
+  admins.** The only path for every change, every agent and every tool is:
+  branch → commit → push the branch → open a PR → the **Gauntlet** check
+  goes green → merge. Merging `main` is what deploys to the family's
+  production app on Vercel, and a merged migration is applied to the real
+  database by the build hook. The emergency escape hatch (deactivating the
+  ruleset in GitHub Settings) is deliberately a human-only step.
+- **Never `git add -A` or `git add .` — stage by explicit path.** A blanket
+  stage swept seven of a parallel builder's in-flight files into an
+  unrelated commit (2026-09-03), and `git add` naming a path that no longer
+  exists aborts the *whole* staging operation, recording a commit with zero
+  content that looks exactly like success. Run `git show --stat HEAD` after
+  committing.
 
 - **The test script pins `TZ=America/Denver` inside `package.json`**, so
   `TZ=UTC npm test` silently runs Denver twice. Only the direct
