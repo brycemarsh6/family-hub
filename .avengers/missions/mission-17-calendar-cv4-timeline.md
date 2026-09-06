@@ -414,7 +414,8 @@ differently if they do.
 | 1 | Captain | **BLOCKED** | 3 | All three trace to one cause **Captain named**: a must-not-touch boundary is a threshold you can satisfy by copying |
 | 1 | Vision | **BLOCKED** | 2 | **Tasks vanished from Day/3 Day/Week** — Fury's contract omitted them. Also solved C4's unreachable-state mystery |
 | 1 | Strange | **BLOCKED** | 3 | **Ruled on the 24px block rather than handing it up.** Reached the state C4 could not. Three states fail for the third time on this branch |
-| — | C5 | dispatched | — | All eight blockers; one contract, because every one of them lands in or beside `TimelineGrid.tsx` |
+| — | C5 | DONE ×6 | — | All eight blockers closed. **224/224 live checks across 8 engine×theme×width combos.** Tests 329 → **333** |
+| — | C6 | dispatched | — | `TimelineGrid.tsx` crossed the **650 hard cap** (809/434). Captain's named seam, taken now rather than deferred behind a justification |
 
 ## Gate round 1 — three BLOCKED, eight blockers, one cause worth more than the rest
 
@@ -519,6 +520,74 @@ dates and started delaying responses. And **Strange restored the database
 to exact baseline** while recording that a parallel gate's rows moved
 underneath it (4 → 15 → 25 → 30 → 20 → 4), naming the count at every
 measurement so nothing load-bearing rested on one.
+
+### C5 — all eight blockers, and the one thing it could not fix from inside its boundary
+
+**DONE, six commits.** Tests **329 → 333**. Live verification: **224/224
+checks across 8 engine × theme × width combinations**, plus a separate
+not-loaded suite (8/8 both engines), an escalation suite (3/3) and 96/96
+control checks proving Month, Schedule and the Nov 1 2026 DST behaviour
+unaffected.
+
+**The permission evidence is the part worth keeping.** It minted **three
+real sessions** — admin, kid1, kid2 — and confirmed kid1's own task offers
+"Mark complete" and persists it (verified by direct DB read), while
+**kid2's task offers kid1 no complete control at all.** That is CT2's
+rewards-loop foundation, restored on the timeline and proven at the
+session level rather than by reading a boolean.
+
+Other measurements: 5 all-day items expanded from "+2 more" to all five in
+Day, 3 Day, Week **and via the real Month-tap→Day path** — the circular
+escalation Strange traced is gone; the half-hour gap reads **2px** with
+`elementFromPoint` resolving A, B and the gap to **three different
+targets**; the all-day bar is 24px; the 320px overflow ink stays in its
+box; the not-loaded banner was **reached** (3s injected latency + a
+rapid-tap burst) with its text confirmed **not** `aria-hidden`, and a
+genuinely-empty in-window day shows neither banner nor glyph.
+
+**Judgement calls it made and defended:** it chose *expand in place* over
+*navigate to Schedule* for the overflow, keeping the reader on the view
+they are in; it used `line-through` for a completed task on the timeline —
+permitted there and only there — reasoning that Month avoids it because
+its pill title is `sr-only` below `md`, which is not true at timeline
+width; and when the naive reset-on-column-change tripped
+`react-hooks/set-state-in-effect`, it used React's documented
+adjust-state-during-render pattern rather than suppressing the rule.
+
+**It caught its own error in a follow-up commit:** the hard-cap disclosure
+cited a line count taken *before* the disclosure paragraph existed,
+understating the total by its own length.
+
+### C6 — the seam, taken now rather than deferred behind a justification
+- **Status:** PENDING
+- **`TimelineGrid.tsx` is 809 total / 434 code** — past the **650 hard
+  cap**, and past the 350 soft cap on code as well. C5 wrote the header
+  justification STRUCTURE.md permits, and named CD1 as the deferred
+  extraction because **its boundary did not allow creating a new file.**
+- **That justification is a process artifact, not a structural reason —
+  and it is this morning's lesson in new clothes.** Captain's round-1
+  finding was that *a must-not-touch boundary is a threshold you can
+  satisfy by copying*; a boundary that forbids a new file is one you
+  satisfy by **writing a justification instead of a seam.** Fury's
+  boundary caused both.
+- **Captain already measured the seam and it is the cheap one:** the
+  all-day strip, **63 lines for 4 props**, against the `CalendarViews`
+  sheets block it ruled *against* at 62 lines for 14 — *"the same line
+  count for less than a third of the coupling."* It stays inside the same
+  sticky wrapper, so the "sticky as ONE unit" property is preserved. C5
+  has since grown that strip (tasks, the expand button, the 24px bar), so
+  the seam is larger — and more clearly its own job.
+- Captain's stated trip condition was **CD1**, on the grounds that CD1
+  adds *code* here. C5 added **291 lines** to this file, which is more
+  than CD1 plausibly will. **The condition has effectively tripped early.**
+- **Boundaries:** may touch `src/components/TimelineGrid.tsx`, new
+  `src/components/TimelineAllDayStrip.tsx` · must not touch
+  `timelineLayout.ts`, `monthLayout.ts`, `color.ts`, `appChrome.ts`,
+  `CalendarViews.tsx`, `MonthCell.tsx`, `actions/**`, `prisma/**`.
+- **Evidence:** behaviour identical — **re-run C5's own suites**, in
+  particular the five-item expansion, the kid-permission case, the
+  not-loaded banner and the 2px gap. Report both files' code and total
+  counts, and confirm the sticky strip still behaves as one unit.
 
 ## Handoff log
 
