@@ -2,7 +2,7 @@ import { CalendarOff } from "lucide-react";
 import { avatarColorHex } from "@/lib/constants";
 import { isPast } from "@/lib/calendarDates";
 import { formatDayLabel } from "@/lib/mealPlanDates";
-import { hexToRgba } from "@/lib/color";
+import { bandedBackground } from "@/lib/color";
 import type { CalendarEventView } from "@/lib/types";
 
 /**
@@ -44,27 +44,24 @@ export type MonthCellSlot = {
   taskStatus: "open" | "completed" | null;
 } | null;
 
-/** Up to THREE diagonal color bands, not one-per-person like EventCard's
- * uncapped version — the mission brief's own words ("a multi-person pill
- * shows up to three color bands") are a deliberate, tighter constant for
- * Month's much smaller pill, not a bug inherited from EventCard. Alpha
- * values (0.10 normal / 0.05 past) and the `var(--surface)` opaque backdrop
- * the caller supplies are copied exactly from EventCard's own already-
- * measured numbers (Strange, mission-8, worst case 4.64:1 light / 5.53:1
- * dark against all 8 AVATAR_COLORS) — reusing the identical inputs is what
- * makes reusing that contrast finding valid here too, without a new pass.
- * The cap at three bands lives in the CALLER (this file's own `slice(0, 3)`
- * below), not in this function — it just renders however many colors it's
- * handed. */
-function pillBackground(colors: string[], alpha: number): string {
-  if (colors.length === 0) return "var(--surface-2)";
-  const bandWidth = 100 / colors.length;
-  const stops = colors.flatMap((hex, index) => {
-    const color = hexToRgba(hex, alpha);
-    return [`${color} ${index * bandWidth}%`, `${color} ${(index + 1) * bandWidth}%`];
-  });
-  return `linear-gradient(135deg, ${stops.join(", ")}), var(--surface)`;
-}
+// Up to THREE diagonal color bands, not one-per-person like EventCard's
+// uncapped version — the mission brief's own words ("a multi-person pill
+// shows up to three color bands") are a deliberate, tighter constant for
+// Month's much smaller pill, not a bug inherited from EventCard. Alpha
+// values (0.10 normal / 0.05 past) and the `var(--surface)` opaque backdrop
+// are copied exactly from EventCard's own already-measured numbers
+// (Strange, mission-8, worst case 4.64:1 light / 5.53:1 dark against all 8
+// AVATAR_COLORS) — reusing the identical inputs is what makes reusing that
+// contrast finding valid here too, without a new pass. The cap at three
+// bands lives HERE (this file's own `slice(0, 3)` below), not in
+// `bandedBackground` itself — that function just renders however many
+// colors it's handed. `bandedBackground` (src/lib/color.ts) used to be a
+// private copy in this file named `pillBackground` — mission-17/C5 hoisted
+// it after Fury found it byte-for-byte identical to TimelineGrid.tsx's own
+// `blockBackground`, the same "must-not-touch boundary satisfied by
+// copying" failure color.ts's own header already names for `hexToRgba`, one
+// call stack higher. See that file's header for the full reasoning and why
+// EventCard.tsx's `bandBackground` stays a genuinely separate function.
 
 /**
  * One day of the Month grid: the day number (adjacent-month muted, today
@@ -189,7 +186,7 @@ export function MonthCell({
                 className={`block h-4 truncate border-y px-1 text-[9px] leading-4 ${
                   past || done ? "font-medium text-muted border-muted" : "font-semibold text-fg border-fg"
                 } ${slot.roundLeft ? "rounded-l border-l" : ""} ${slot.roundRight ? "rounded-r border-r" : ""}`}
-                style={{ background: pillBackground(colors, past || done ? 0.05 : 0.1) }}
+                style={{ background: bandedBackground(colors, past || done ? 0.05 : 0.1) }}
               >
                 {/* C3b: below `md` the title span two lines down is
                     `sr-only` (see B3's comment there) — genuinely `display:
