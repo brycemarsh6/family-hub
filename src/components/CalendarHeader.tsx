@@ -3,6 +3,7 @@
 import { CalendarCheck, CalendarRange, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
 import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
+import { APP_HEADER_HEIGHT_PX } from "@/lib/appChrome";
 
 /**
  * mission-16/C4 — the DOM id ScheduleView.tsx portals its own scroll-driven
@@ -22,20 +23,14 @@ import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabula
 export const SCHEDULE_TITLE_SLOT_ID = "calendar-header-schedule-title-slot";
 
 /**
- * mission-16/C4 — the app's global header's real rendered height, measured
- * directly against the running app
- * (`document.querySelector("header").getBoundingClientRect().height`),
- * not assumed: it reads 73px, not the 64px `top-16` the CV3-era sticky
- * headings guessed (see globals.css's own C4 comment for why neither
- * number had ever actually been exercised — sticky was inert app-wide
- * until this same contract's CSS fix). Safe to hardcode, same "stable
- * chrome dimension, verified rather than guessed" precedent as
- * ScheduleView's own `-65px` bottom-nav margin: the header's content (the
- * wordmark, plus at most one row of account-menu button) never wraps or
- * grows, so this isn't a value that can silently drift the way a
- * text-driven height could.
+ * mission-17/C1 — `APP_HEADER_HEIGHT_PX` moved to `src/lib/appChrome.ts`
+ * (re-exported into this file's own imports above, not re-declared here):
+ * it's a fact about `(app)/layout.tsx`'s `<header>`, not about this
+ * component, and a second file (`RecipeList.tsx`) needed the identical
+ * number without importing a calendar component to get it. See that
+ * module's own comment for the full reasoning and the "one hardcoded copy
+ * went stale" history that made this a written STRUCTURE.md rule.
  */
-export const APP_HEADER_HEIGHT_PX = 73;
 
 /**
  * mission-16/C4 — this component's OWN rendered height while pinned for
