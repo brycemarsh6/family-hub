@@ -194,8 +194,8 @@ src/lib/voice/*.test.ts` legs.
   if it approaches 350, extract the sheets block first and say so.
   Week, Day and Month must be **provably unchanged**.
 
-### C6 — Vision's four blockers
-- **Status:** DISPATCHED
+### C6 (first draft — SUPERSEDED by the C6 below) — Vision's four blockers
+- **Status:** SUPERSEDED — see the later C6, which shipped as `6d06e7b`
 - **B1** re-arm the sentinels after a load settles (record `isIntersecting`
   in a ref; re-check in an effect keyed on the window/hasMore state, **not**
   in `finally`, where the refs are still stale).

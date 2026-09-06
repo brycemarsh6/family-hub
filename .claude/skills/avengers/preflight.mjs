@@ -33,8 +33,11 @@
 //                       re-reading. That is the argument for this tool.
 //
 // A sixth shape rides along because it is mechanically identical to check and
-// has hit five times: a contract dispatched with its boundary living only in
+// has hit SEVEN times: a contract dispatched with its boundary living only in
 // the dispatch prompt, so a gate auditing scope has nothing to audit against.
+// (mission-14 C3b/C5/C6, mission-15 C3b/C5, mission-17 C5/C7. An earlier
+// version of this header said five — it counted only what the entry in front
+// of it listed, which is the same shape as every incident above.)
 //
 // WHAT THIS TOOL IS NOT. It cannot read intent. Checks 4 and 5 SURFACE claims
 // for a human to settle; they do not settle them. A clean run means "the
@@ -292,7 +295,7 @@ if (onlyContract && targets.length === 0) {
   FAIL(
     `no "### ${onlyContract} — ..." heading in ${missionPath}. A boundary that ` +
       `lives only in the dispatch prompt is not a boundary — a gate auditing ` +
-      `scope has nothing to audit against. This has happened 5 times.`,
+      `scope has nothing to audit against. This has happened 7 times.`,
   );
   say(`\n${hardFailures} hard failure(s).`);
   process.exit(1);
@@ -316,7 +319,7 @@ for (const c of targets) {
   // CHECK 1 — the contract is written down, with a boundary.
   if (!b) {
     FAIL(
-      `no "**Boundaries:**" line. Five contracts in this project shipped with ` +
+      `no "**Boundaries:**" line. Seven contracts in this project shipped with ` +
         `the boundary only in the dispatch prompt; a gate could not audit scope.`,
     );
     continue;
@@ -368,7 +371,11 @@ for (const c of targets) {
     if (total > 650) {
       FAIL(`${note} — OVER the 650 hard cap before this contract adds a line.`);
     } else if (total > 600) {
-      WARN(`${note} — ${650 - total} lines from the HARD cap. Extract first.`);
+      // REVIEW, not WARN: "Extract first" is an instruction, and STRUCTURE.md
+      // carries a trip condition saying exactly that for the file which
+      // triggers this. A gate pointed out that printing CLEAR over it was the
+      // wrong headline, and it was right.
+      REVIEW(`${note} — ${650 - total} lines from the HARD cap. Extract first.`);
     } else if (total > 350) {
       WARN(`${note} — over the 350 soft cap (code is the judgement aid; ` +
         `the cap is measured on total).`);

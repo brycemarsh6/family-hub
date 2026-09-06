@@ -5551,14 +5551,20 @@ that never landed.**
   view they land on. Caught by a gate, not by the build. Same shape as
   CV3's three boundary errors: a false premise written into a boundary,
   and therefore correctly obeyed.
-- **Contracts shipped with no written boundary — four of them, across three
-  missions** — **CV4/C5, CV4/C7, and CV3's C3b and C5** (dispatched and shipped
+- **Contracts shipped with no written boundary — four of them, across the
+  two calendar missions in this entry** — **CV4/C5, CV4/C7, and CV3's C3b
+  and C5**. *(Corrected 2026-09-06: the fix that got the contract count
+  right said "three missions" in the same breath. They sit in two. And the
+  running total across the whole arc is **seven**, not four — mission-14
+  contributed C3b, C5 and C6, recorded in the CT-era entry above.)* (dispatched and shipped
   with no contract in the mission file at all). *(Corrected 2026-09-06:
   an earlier version of this bullet named **mission-16/C5**, which is
   wrong twice over — it carries an explicit may-touch/must-not-touch
   boundary, and it was **DEFERRED and never built**, so it shipped
-  nothing.)* Filed by Vision repeatedly, and it is already item four on
-  Fury's own pre-dispatch checklist.
+  nothing.)* Filed by Vision repeatedly, and it is already item **five** on
+  Fury's own pre-dispatch checklist — item four is now "Run preflight",
+  inserted by this very branch, which is how a correct reference goes stale
+  inside a single commit.
 - **A builder reported DONE having committed nothing** (mission-16/C3b +
   C6), caught by `git log` rather than by reading the report.
 
@@ -5836,7 +5842,9 @@ quantitative claim with a reference count beside each identifier.
 
 **The verification is the part worth keeping, because the tool failed it.**
 Replayed against mission-16/C3 at its own pre-dispatch commit in a throwaway
-worktree, the first version reported **PREFLIGHT CLEAR** — it would not have
+worktree, the first version reported **PREFLIGHT CLEAR** *(attested by this
+session only — that version was never committed, so unlike every other claim
+here it cannot be re-run)* — it would not have
 caught the incident it was built for. Three real gaps, each fixed and
 re-replayed: the symbol check only inspected symbols the contract *names*,
 but the blocker was the one it failed to name; the claim regex demanded the
