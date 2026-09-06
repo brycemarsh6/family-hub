@@ -20,17 +20,74 @@
 // (useScheduleWindow.ts) and `loadBackward`/`loadForward`/`hasMoreRef`
 // (useScheduleSentinels.ts) already establish in this same file family.
 //
-// No unit test alongside this one, for the same reason useScheduleSentinels
-// .ts and useScrollAnchor.ts carry none: the one thing this hook computes —
-// "which of these real DOM nodes' bounding rects has scrolled past a real
-// pixel line" — has no meaning against a fake DOM node with no layout.
-// Verified live against a running browser instead (see C9's own evidence:
+// mission-16/C10 — the hook's own DOM reads still have no meaning against a
+// fake node with no layout (same reason useScheduleSentinels.ts and
+// useScrollAnchor.ts carry no test file), but the DECISION made from those
+// reads — "of these months, which one has genuinely cleared the reveal
+// line" — is pure over `(tops, revealLineY)` and doesn't need a DOM at all.
+// It shipped unexported and untested in mission-16/C9, in a directory
+// `npm test` already reaches — the exact CV3 `VIEW_CONFIG` lesson repeated
+// verbatim (both Vision and Captain filed it independently at C9's gate).
+// `topmostClearedMonth` below is that kernel, extracted and covered by
+// useScheduleMonthTitle.test.ts; `syncVisibleMonth` inside the effect is
+// now just the DOM read that builds its input. The rest of this hook (the
+// portal, the scroll/resize subscription, the render-loop guard) is still
+// verified live against a running browser (see C9's own evidence:
 // re-running C7's WebKit + Chromium measurements after the move).
 
 import { createElement, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { formatMonthTitle } from "@/lib/mealPlanDates";
 import type { ScheduleRenderMonth } from "@/lib/scheduleWindowState";
+
+/**
+ * One rendered month `<section>`'s top position, as measured by
+ * `getBoundingClientRect()` — or `null` for a month that hasn't rendered a
+ * DOM node yet (out of the currently-loaded window). Kept separate from
+ * `ScheduleRenderMonth` on purpose: this is the ONE fact the pure kernel
+ * below needs, not everything a month carries.
+ */
+export type MonthTop = { monthStart: Date; top: number | null };
+
+/**
+ * mission-16/C10 — the pure decision `syncVisibleMonth` used to make
+ * inline: of the months currently rendered, which one's top has genuinely
+ * scrolled up past `revealLineY` (the real bottom edge of the two stacked
+ * pinned bars)? Answered by walking `tops` in DOM order (the caller must
+ * supply them in that order — chronological, matching `months`) and taking
+ * the LAST entry whose top has cleared the line.
+ *
+ * Two things worth being explicit about, because both are load-bearing and
+ * neither is obvious from the loop alone:
+ *
+ * - **`continue`, never `break`, on a `top: null` entry.** A month with no
+ *   rendered node yet (still loading, or scrolled far enough away to have
+ *   been dropped) tells us nothing — skipping it must not stop the scan
+ *   from reaching a LATER month that DOES have a node and HAS cleared the
+ *   line. Breaking here would freeze the title on a stale month the moment
+ *   any gap opened in what's currently mounted.
+ * - **`break` relies on DOM-order monotonicity.** Months render in
+ *   chronological order, so a month further down the list can never start
+ *   higher on screen than one before it — once a month's top hasn't
+ *   cleared the line, nothing after it can have either, so this stops
+ *   scanning rather than checking every remaining month. This is an
+ *   assumption about the CALLER's ordering, not something this function
+ *   verifies — see this file's own test for what happens if it's violated.
+ *
+ * Returns `null` when no month has cleared the line yet (e.g. still at the
+ * very top of the list) — the caller's own established rule is to leave
+ * whatever anchor it already has rather than clear it, so `null` here means
+ * "no opinion," not "nothing is visible."
+ */
+export function topmostClearedMonth(tops: MonthTop[], revealLineY: number): Date | null {
+  let current: Date | null = null;
+  for (const { monthStart, top } of tops) {
+    if (top === null) continue;
+    if (top > revealLineY) break;
+    current = monthStart;
+  }
+  return current;
+}
 
 export type UseScheduleMonthTitleResult = {
   /**
@@ -146,13 +203,15 @@ export function useScheduleMonthTitle(
 
     function syncVisibleMonth() {
       framePending = false;
-      let current: Date | null = null;
-      for (const month of months) {
+      // The DOM read `topmostClearedMonth` (above) can't do itself — months
+      // are handed through in the same chronological/DOM order `months`
+      // already carries, which is the ordering that kernel's `break`
+      // depends on.
+      const tops: MonthTop[] = months.map((month) => {
         const node = monthRefs.current.get(month.monthStart.getTime());
-        if (!node) continue;
-        if (node.getBoundingClientRect().top > revealLineY) break;
-        current = month.monthStart;
-      }
+        return { monthStart: month.monthStart, top: node ? node.getBoundingClientRect().top : null };
+      });
+      const current = topmostClearedMonth(tops, revealLineY);
       // A `null` result means the reader hasn't scrolled far enough for ANY
       // month's top to have cleared the reveal line yet (e.g. still at the
       // very start of the list) — leave `visibleMonthAnchor` at whatever it
