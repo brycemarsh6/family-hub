@@ -153,6 +153,15 @@ export function TimelineAllDayStrip({
   function expandAllDay() {
     setAllDayExpandedFor({ key: columnDaysKey, expanded: true });
   }
+  // mission-17/C7, item 3 (Strange) — expanding used to have no way back:
+  // the sticky header grew from 156px to 234px (a 3-lane strip) with
+  // nothing to shrink it again except paging away and back, which resets
+  // the state as a SIDE EFFECT of navigation rather than offering collapse
+  // as a real action (DESIGN.md: "never a dead end"). Same setter, same
+  // shape as `expandAllDay` above, just the other value.
+  function collapseAllDay() {
+    setAllDayExpandedFor({ key: columnDaysKey, expanded: false });
+  }
 
   const { spans: allDaySpans, overflowByDay } = useMemo(
     () => assignLanes(columnDays, allDayItems, allDayExpanded ? Number.POSITIVE_INFINITY : undefined),
@@ -268,24 +277,59 @@ export function TimelineAllDayStrip({
           </button>
         );
       })}
-      {columnDays.map((day, col) =>
-        overflowByDay[col] > 0 ? (
-          // A real BUTTON now, not an inert `<span>` — see TimelineGrid.tsx's
-          // own header for why the old version was a circular dead end.
-          // `whitespace-nowrap` (Strange's finding): at 320px this text
-          // wrapped to two lines, measured with `Range.getClientRects` (a
-          // bounding-box probe reported it clean and was wrong) — 9px of
-          // ink escaped the 24px row onto the scrolling rail below.
-          <button
-            key={`overflow-${day.getTime()}`}
-            type="button"
-            onClick={expandAllDay}
-            className="whitespace-nowrap text-left text-[9px] leading-[24px] text-muted underline decoration-dotted"
-            style={{ gridColumn: col + 2, gridRow: maxAllDayLane + 2 }}
-          >
-            +{overflowByDay[col]} more
-          </button>
-        ) : null,
+      {/* mission-17/C7 — item 1 (Vision) and item 3 (Strange), both on this
+          row. Item 1: C5's `whitespace-nowrap` (added to fix the round-1
+          two-line wrap) turned the escape HORIZONTAL instead of closing it —
+          measured with `Range.getClientRects` (a bounding-box probe reports
+          this clean, and is WRONG: the same instrument error Strange
+          corrected at round 1), "+2 more" spilled 4.6px and "+10 more"
+          8.8px past a Week column's ~31px box at 320px, with ADJACENT
+          days' ink actually overlapping. `min-w-0 overflow-hidden` keeps
+          the ink inside the box no matter the label length (a grid item's
+          default `min-width: auto` is what let it escape at all); Week
+          additionally gets a shortened "+N" label, since no other view's
+          columns (Day ~290px, 3 Day ~75px) are narrow enough to need it.
+          The ACCESSIBLE name never shortens — every button keeps a real
+          "+N more" aria-label regardless of what its visible text says, per
+          the contract's own instruction that the control must keep saying
+          what it does.
+          Item 3: expanding used to have no collapse affordance anywhere —
+          the only way back was paging away and returning, which resets the
+          state as a side effect rather than offering it as an action
+          (DESIGN.md: "never a dead end"). One "− Show less" button, not one
+          per day: expanding/collapsing is a single strip-wide toggle (there
+          is no per-day axis on `allDayExpandedFor`), so it spans every day
+          column via `gridColumn: "2 / -1"` rather than sitting in one — which
+          also sidesteps item 1's narrow-column problem outright, since
+          "− Show less" comfortably fits the full row width at every size
+          this file renders and needs no further shortening. */}
+      {allDayExpanded ? (
+        <button
+          type="button"
+          onClick={collapseAllDay}
+          className="min-w-0 overflow-hidden whitespace-nowrap text-left text-[9px] leading-[24px] text-muted underline decoration-dotted"
+          style={{ gridColumn: "2 / -1", gridRow: maxAllDayLane + 2 }}
+        >
+          − Show less
+        </button>
+      ) : (
+        columnDays.map((day, col) => {
+          if (overflowByDay[col] <= 0) return null;
+          const overflowLabel = `+${overflowByDay[col]} more`;
+          const visibleLabel = columnDays.length === 7 ? `+${overflowByDay[col]}` : overflowLabel;
+          return (
+            <button
+              key={`overflow-${day.getTime()}`}
+              type="button"
+              onClick={expandAllDay}
+              aria-label={overflowLabel}
+              className="min-w-0 overflow-hidden whitespace-nowrap text-left text-[9px] leading-[24px] text-muted underline decoration-dotted"
+              style={{ gridColumn: col + 2, gridRow: maxAllDayLane + 2 }}
+            >
+              {visibleLabel}
+            </button>
+          );
+        })
       )}
     </div>
   );

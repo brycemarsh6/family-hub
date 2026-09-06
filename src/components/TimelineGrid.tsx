@@ -212,6 +212,10 @@ export function TimelineGrid({
   chromeOffsetPx,
 }: TimelineGridProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // mission-17/C7 (item 4) — a live DOM query, not React state, to avoid
+  // the same-commit staleness the sizing effect's own imperative write
+  // below already dodges the same way.
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
   const columnDaysKey = columnDays.map((day) => day.getTime()).join(",");
 
   // --- Sizing: this component's own overflow-y-auto scroller, sized from
@@ -300,10 +304,15 @@ export function TimelineGrid({
     const scroller = scrollerRef.current;
     if (!scroller) return;
     const todayIndex = columnDays.findIndex((day) => isSameDay(day, today));
+    // mission-17/C7, item 4 (Strange) — `clientHeight` covers the sticky
+    // header too, so dividing it by 3 overshot "1/3 of the visible rail"
+    // (measured 0.537, not ~0.33) as the all-day strip grew. Subtract it.
+    const stickyHeaderHeightPx = stickyHeaderRef.current?.getBoundingClientRect().height ?? 0;
+    const visibleRailHeightPx = Math.max(0, scroller.clientHeight - stickyHeaderHeightPx);
     const targetTopPx =
       todayIndex === -1
         ? 7 * 60 * PX_PER_MINUTE
-        : Math.max(0, minutesOfDay(now) * PX_PER_MINUTE - scroller.clientHeight / 3);
+        : Math.max(0, minutesOfDay(now) * PX_PER_MINUTE - visibleRailHeightPx / 3);
     scroller.scrollTop = targetTopPx;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnDaysKey]);
@@ -371,7 +380,7 @@ export function TimelineGrid({
             `TimelineAllDayStrip` renders as an ordinary child of this SAME
             sticky div — not its own sticky element — so this property
             survives the extraction unchanged. */}
-        <div className="sticky top-0 z-20 border-b border-line bg-bg">
+        <div ref={stickyHeaderRef} className="sticky top-0 z-20 border-b border-line bg-bg">
           <div className="grid py-1" style={{ gridTemplateColumns }}>
             <span aria-hidden="true" />
             {columnDays.map((day) => {
@@ -395,8 +404,18 @@ export function TimelineGrid({
                         rather than inside the all-day lanes below: a day
                         with zero all-day events still needs somewhere to
                         say "not fully fetched," and the header cell is
-                        where MonthCell puts the identical fact. */}
-                    {notLoaded && <CalendarOff aria-hidden="true" size={9} className="shrink-0 text-muted" />}
+                        where MonthCell puts the identical fact.
+                        mission-17/C7, item 2 — the glyph alone was
+                        `aria-hidden`, telling a screen reader nothing in a
+                        mixed window; the sr-only span says it in words.
+                        Never `hidden` — `display: none` drops it from the
+                        a11y tree entirely (mission-9's finding). */}
+                    {notLoaded && (
+                      <>
+                        <CalendarOff aria-hidden="true" size={9} className="shrink-0 text-muted" />
+                        <span className="sr-only">events not loaded</span>
+                      </>
+                    )}
                   </span>
                 </div>
               );
