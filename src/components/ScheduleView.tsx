@@ -13,7 +13,7 @@ import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { SkeletonBlock } from "./Skeleton";
 import { SCHEDULE_TITLE_SLOT_ID, SCHEDULE_HEADER_BAR_HEIGHT_PX } from "./CalendarHeader";
-import { APP_HEADER_HEIGHT_PX } from "@/lib/appChrome";
+import { APP_HEADER_HEIGHT_PX, BOTTOM_NAV_HEIGHT_PX } from "@/lib/appChrome";
 import {
   useScheduleWindow,
   type ScheduleFetchers,
@@ -260,11 +260,15 @@ export function ScheduleView({
   // margin, not a generous one.
   //
   // mission-15/C10 (Strange's NOTE) — a bare `threshold: 0` uses the
-  // LAYOUT viewport, which the app's fixed 65px bottom nav sits on top of:
-  // a row fully behind the nav still read "intersecting", disabling Today
-  // while the reader genuinely couldn't see it. `rootMargin`'s bottom
-  // value shrinks the effective observing area by that same 65px, so a row
-  // has to be visible ABOVE the nav to count.
+  // LAYOUT viewport, which the app's fixed bottom nav sits on top of: a row
+  // fully behind the nav still read "intersecting", disabling Today while
+  // the reader genuinely couldn't see it. `rootMargin`'s bottom value
+  // shrinks the effective observing area by that same height, so a row has
+  // to be visible ABOVE the nav to count. mission-17/C5: that height now
+  // reads `BOTTOM_NAV_HEIGHT_PX` (appChrome.ts) rather than a hardcoded
+  // `-65px` — this one happened to already be the right number, but
+  // TimelineGrid.tsx's own copy of the same fact had drifted to 64 (see
+  // that constant's own comment), which is why the two now share one home.
   useLayoutEffect(() => {
     if (today === null) {
       onTodayVisibleChange(false);
@@ -280,7 +284,7 @@ export function ScheduleView({
     }
     const observer = new IntersectionObserver(
       ([entry]) => onTodayVisibleChange(entry.isIntersecting),
-      { threshold: 0, rootMargin: "0px 0px -65px 0px" },
+      { threshold: 0, rootMargin: `0px 0px -${BOTTOM_NAV_HEIGHT_PX}px 0px` },
     );
     observer.observe(node);
     return () => observer.disconnect();

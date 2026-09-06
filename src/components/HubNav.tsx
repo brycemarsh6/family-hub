@@ -48,6 +48,26 @@ export function HubBottomNav() {
   if (pathname === "/login") return null;
 
   return (
+    // This element's real rendered height (`min-h-16` + this `border-t`, no
+    // `env(safe-area-inset-bottom)` — see appChrome.ts's own comment for why
+    // that inset is excluded from the shared constant) is a measured fact
+    // other files position against — mission-17/C5, following the exact
+    // precedent (app)/layout.tsx's own `<header>` comment already set for
+    // `APP_HEADER_HEIGHT_PX`. That home is `src/lib/appChrome.ts`
+    // (`BOTTOM_NAV_HEIGHT_PX` / `useBottomNavHeight`); this comment is the
+    // other half of the rule — naming every dependent here so a future edit
+    // to this bar (a taller icon, a second row) has a list to re-check
+    // instead of a silent re-break. As of this writing:
+    //   - `ScheduleView.tsx` — shrinks its "is today's row on screen"
+    //     IntersectionObserver by this bar's height, so a row hidden behind
+    //     the nav doesn't read as visible.
+    //   - `TimelineGrid.tsx` — sizes its own hour-rail scroller against the
+    //     viewport height minus this bar (plus the app header) — see that
+    //     component's own comment for why it keeps a LIVE DOM measurement
+    //     here rather than calling `useBottomNavHeight` itself.
+    // If this bar's real height ever changes, update `BOTTOM_NAV_HEIGHT_PX`
+    // in `src/lib/appChrome.ts` — never add a second hardcoded number here
+    // or in a dependent file.
     <nav
       aria-label="Sections"
       className="print:hidden fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface/95 backdrop-blur"
