@@ -282,7 +282,42 @@ differently if they do.
   all-day strip proven to use the existing packer (not a copy).
 
 ### C3 — `pinned` and the renderer selection into `VIEW_CONFIG`
-- **Status:** PENDING (after C1 — shares `CalendarHeader.tsx`)
+- **Status:** DONE — branch `cv4-c3`, commit `f8ae2a8`, merged.
+- **Report:** `pinned` and a new `renderer` discriminant
+  (`"month" | "schedule" | "daySection"`) are now fields on the total
+  record, one row per view. `CalendarHeader.tsx`'s inline
+  `view === "schedule"` is gone; `CalendarViews.tsx`'s ternary chain is a
+  `switch` with a **`never`-typed default**. The record holds a
+  discriminant rather than a component, because `src/lib/` may not import
+  from `components/` — the constraint Captain had already ruled on.
+- **The totality was demonstrated, not asserted — both compile errors
+  pasted and reverted:** adding a fourth renderer value with no case →
+  `TS2322: Type '"timeline"' is not assignable to type 'never'`; removing
+  `renderer` from `week`'s row → `TS2741: Property 'renderer' is
+  missing`. That demonstration was the contract's whole point.
+- **Positive control before the no-diff verdict**, per mission-11's
+  lesson that two harnesses once both reported a clean diff they were not
+  entitled to: a deliberate `"Today" → "Today-POSITIVECONTROL"` mutation
+  was detected on all four built views first. Then the real trace —
+  `<main>` innerHTML **plus the view picker's `[role="dialog"]`
+  contents**, the exact capture those harnesses were missing —
+  **byte-identical** before and after. The pinned styling was captured as
+  evidence rather than inferred: only Schedule's wrapper carries
+  `sticky … style="top: 73px"`.
+- **It declined to fold in `showLocation`/`compact`, and the reasoning is
+  right:** they are DaySection-specific props consumed only in the
+  `"daySection"` case, and **C4 replaces that renderer for
+  `day`/`threeDay`/`week` outright** — so folding them in now would add
+  rows C4 immediately deletes. It left an inline comment so the omission
+  cannot be read as an oversight, and checked C4's own boundaries to
+  confirm that is where the decision belongs.
+- It also **trimmed its own first draft**: an initial version grew
+  `CalendarViews.tsx` to 407/217 on heavier commentary; noticing the
+  mission's framing said the switch should *shrink*, it cut back to
+  372 total / **206 code** (+7 code).
+- **Tests 317 → 319**, and the two new ones give the totality real
+  value-coverage rather than only the type-level guarantee. **All three
+  parallel branches compose: 328 tests, gauntlet green.**
 - **Captain's own ruling, coming due exactly here.** `CalendarHeader.tsx`
   computes `const pinned = view === "schedule"` itself, and
   `CalendarViews.tsx` switches on the same string independently — two
@@ -324,6 +359,7 @@ differently if they do.
 |---|---|---|---|---|
 | — | C1 | DONE `62764c4` → merged | — | Parallel worktree #1. A/B pixel-identical; `RecipeList`'s private duplicate deleted |
 | — | C2 | DONE `4d3904d` → merged | — | Parallel worktree #2. Both Nov-1 1:30 AMs at one rail minute in separate columns. **317 → 326.** Two findings need a ruling |
+| — | C3 | DONE `f8ae2a8` → merged | — | Parallel worktree #3. Totality proven by two pasted compile errors; byte-identical trace after a positive control. **All three compose: 328** |
 
 ## Handoff log
 
