@@ -172,6 +172,23 @@ test("assignLanes: a cell with five single-day events shows three, overflowByDay
   });
 });
 
+test("assignLanes: a third argument raises the visible-lane cap — Month's own 2-argument call is unaffected", () => {
+  // Same 5-event fixture as the test above, but asking for up to 10 visible
+  // lanes (mission-17/C5 — TimelineGrid.tsx's all-day-strip expand-in-place
+  // fix). All five should now be visible and overflowByDay should read 0
+  // everywhere — the exact opposite of the default-cap test right above,
+  // proving the parameter actually widens the cap rather than being ignored.
+  const events = [0, 1, 2, 3, 4].map((i) =>
+    event(`single-${i}`, d(2026, 10, 3, 8 + i, 0), d(2026, 10, 3, 8 + i, 30)),
+  );
+  const { spans, overflowByDay } = assignLanes(NOV_ROW1, events, 10);
+  const forThisColumn = spans.filter((s) => s.startCol === 2 && s.endCol === 2);
+  assert.equal(forThisColumn.length, 5, "all 5 should be visible with a raised cap");
+  const lanesUsed = forThisColumn.map((s) => s.lane).sort();
+  assert.deepEqual(lanesUsed, [0, 1, 2, 3, 4]);
+  assert.deepEqual(overflowByDay, [0, 0, 0, 0, 0, 0, 0]);
+});
+
 test("assignLanes: an event with no coverage of the row contributes nothing", () => {
   const elsewhere = event("elsewhere", d(2026, 9, 1), d(2026, 9, 2), true); // October, unrelated
   const { spans, overflowByDay } = assignLanes(NOV_ROW1, [elsewhere]);
