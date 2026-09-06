@@ -337,7 +337,57 @@ differently if they do.
   `CalendarViews.tsx`'s **code** and total lines.
 
 ### C4 — wire it up: the picker, the views, the skeletons
-- **Status:** PENDING (after C2 + C3)
+- **Status:** DONE `8a47a64`. Tests **328 → 329**.
+  `CalendarViews.tsx` 446 total / **225 code** — under the cap on the
+  measure that now counts.
+- **Report:** `BUILT_VIEWS.threeDay → true`; `"timeline"` added to the
+  `CalendarRenderer` union, which C3's `never`-typed switch made a compile
+  error until every branch handled it — **the mechanism working as
+  designed, one contract after it was built.** All six views walked in a
+  real browser: the picker shows exactly Schedule / Day / 3 Day / Week /
+  Month, Year correctly absent, and `?view=year` normalises to Week with
+  zero page errors. **3 Day proven anchor-relative** from a Wednesday
+  anchor: Wed/Thu/Fri, titled "Sep 9–11", not snapped to a week.
+- **It found and fixed a real ~225px layout jump rather than shipping the
+  skeleton it was handed.** Measured with a `MutationObserver` frame
+  trace: the skeleton settled at **1093px** while the real grid rendered
+  at **868px**. Root cause was ordering — the generic `today === null`
+  placeholder ran ahead of the timeline branch. After moving the case and
+  matching `loading.tsx`'s shape: **866 vs 868, a 2px delta that is the
+  real box's border**, holding across four viewport heights *and* the
+  320px clamp, on all three timeline views. This is mission-7's lesson
+  applied instead of relearned: *a skeleton whose height you did not
+  measure is a layout shift you have not noticed yet.*
+- **Schedule and Month byte-identical** — same SHA-256 for `<main>`
+  before and after, **after a positive control** proved the harness could
+  detect a deliberate `h1` mutation. The picker dialog differs by exactly
+  one line: the added "3 Day" button.
+- **The honest one — it could not reach the third state, and checked its
+  own method rather than claiming either way.** `isOutsideWindow` would
+  not reproduce live for the timeline views across −70…+70 days, nor
+  under an artificial ~21-hour browser/server skew. So it ran the
+  identical sweep against **Month** — untouched by this contract, same
+  mechanism — and found it **equally unreachable**, establishing that
+  this is not a regression its wiring introduced. The wiring is correct by
+  inspection (`windowStart`/`windowEnd` passed through exactly as
+  `MonthGrid`/`DaySection` already receive them) and the glyph's markup
+  was verified structurally distinct by source reading. **Recorded as a
+  disclosed limit, not a claim of success — and worth a gate's attention
+  precisely because a state nobody can reach is a state nobody has
+  tested.**
+- **Boundary deviation, verified by Fury and accepted:**
+  `calendarPaging.test.ts` and `useCanonicalCalendarUrl.test.ts` both used
+  `"threeDay"` as their stand-in for *a real view name with no renderer* —
+  a fixture literal that flipping `BUILT_VIEWS.threeDay` necessarily makes
+  false. The fix swaps the example to `"year"` (the one view still
+  unbuilt) and moves `threeDay` into the built-views assertions, with
+  comments explaining the move. **No source logic in either module was
+  touched** (confirmed from the diff). Mechanical, foreseeable, and the
+  alternative was leaving the gauntlet red.
+- **It left both open findings alone as instructed** — the 24px block and
+  `timelineLayout.ts`'s overclaiming comment — and flagged a third for
+  CV5: `MonthGridSkeletonRows.tsx` says *"CV4 replaces this skeleton
+  entirely later"*, which is false for the CV4 that actually shipped.
 - `BUILT_VIEWS.threeDay → true`; Day and Week switch from the list
   renderer to `TimelineGrid`; measured `loading.tsx` shapes.
 - **The picker ends this mission with six views, all built** — the first
@@ -360,6 +410,8 @@ differently if they do.
 | — | C1 | DONE `62764c4` → merged | — | Parallel worktree #1. A/B pixel-identical; `RecipeList`'s private duplicate deleted |
 | — | C2 | DONE `4d3904d` → merged | — | Parallel worktree #2. Both Nov-1 1:30 AMs at one rail minute in separate columns. **317 → 326.** Two findings need a ruling |
 | — | C3 | DONE `f8ae2a8` → merged | — | Parallel worktree #3. Totality proven by two pasted compile errors; byte-identical trace after a positive control. **All three compose: 328** |
+| — | C4 | DONE `8a47a64` | — | All six views live. Found and fixed a **225px** skeleton jump → 2px. **329 tests.** Third state disclosed as unreachable, method checked against Month |
+| 1 | Vision · Strange · Captain | dispatched | — | All four build contracts complete; three gates in parallel worktrees |
 
 ## Handoff log
 
