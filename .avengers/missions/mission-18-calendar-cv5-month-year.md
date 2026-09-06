@@ -281,6 +281,30 @@ Settled by hand, because the tool cannot settle them:
   the contract's whole point, not a surprise.
 - **C3/C4 `CalendarViews.tsx` at 459/350** — the named risk above.
 
+## C4's preflight, re-run at dispatch time — and every claim settled
+
+The earlier FAIL **cleared on its own**, exactly as predicted: `MonthChips.tsx`
+exists as of C3's merge, so the boundary that was false at writing time is
+true at dispatch time. That is the whole reason preflight is a pre-dispatch
+check.
+
+Seven claims surfaced. Five are done-criteria or evidence requirements, not
+assertions about the tree. **The two real assertions were both checked:**
+
+- *"the switch is `never`-typed, so adding a renderer is a compile error"* —
+  **TRUE.** `CalendarViews.tsx`'s renderer switch ends in
+  `default: { const exhaustiveCheck: never = renderer; … }`. Worth recording
+  **how nearly I got this wrong**: a first `grep` for `never` in that file
+  returned only prose comments and made the claim look false. Reading the
+  actual switch showed the guard is real. Verifying cuts both ways — the
+  discipline is not "assume my claim is wrong", it is "run the command".
+- *"Year steps by `monthOffset ± 12` and reuses `monthAnchor`"* — **TRUE.**
+  `useCalendarPeriod.ts:82` reads `year: { basis: "month", step: 12 }`. No new
+  offset is needed, and that file is forbidden to C4.
+
+**This is the settlement step I skipped on C2**, where preflight quoted my
+false claim back to me twice and I read only the dependency findings.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
