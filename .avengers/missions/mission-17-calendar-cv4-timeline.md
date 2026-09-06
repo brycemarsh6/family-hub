@@ -423,6 +423,8 @@ differently if they do.
 | 3 | Vision · Strange | **DIED — session rate limit**, both, mid-run | — | Neither reported. A death is not a verdict; Fury cleaned 2 worktrees and **25 stranded rows**, then re-dispatched |
 | 3 | **Vision** (retry) | **PASS** | 0 | 6 notes. Blocker closed and **not clipped** — ink ends inside the box at every width. Answered the dead run's proxy question |
 | 3 | **Strange** (retry) | **BLOCKED** | 2 | **Both on DESIGN.md text Fury wrote in this same commit** — none on the four items' behaviour. 8 notes. Budget spent |
+| — | C8 | DONE ×2 | — | Both notes closed. Container query beats the prescribed viewport breakpoint — and the builder said why |
+| 4 | Strange | dispatched | — | **Bryce-authorized beyond the 3-pass budget**, after he reviewed the preview himself |
 
 ## Gate round 1 — three BLOCKED, eight blockers, one cause worth more than the rest
 
@@ -827,7 +829,45 @@ Alignment holds, the sticky wrapper is one unit, rule (d) verified — the
 picker lists Schedule first.
 
 ### C8 — Strange's two round-3 notes (Bryce: "fix it and then merge")
-- **Status:** PENDING. **Bryce authorized the fix and a final verification
+- **Status:** DONE — `f5e9eac`, `91c0cdd`.
+- **Report, and it improved on the prescribed fix for a sound reason.**
+  Strange's sample used a viewport breakpoint (`hidden min-[360px]:inline`).
+  The builder chose a **CSS container query** instead and gave the right
+  argument: a *viewport* breakpoint would wrongly shorten **Day's** label
+  below a 360px viewport even though Day's column measures 228–676px —
+  *"it would have fixed the Week/3 Day inversion by introducing a new one
+  on Day."* A container query asks the box's own width, **which is exactly
+  what Strange's own framing pointed at** (*"the box, not the viewport, is
+  what decides"*). It then added **three threshold tiers keyed to digit
+  count** — measured, not guessed: real ink widths of 35.8 / 41.4 / 45.3px
+  for `+9 more` / `+99 more` / `+999 more` against this button's actual
+  font, because one threshold sized for the short case would clip the
+  trailing "e" off `+23 more`.
+- **Every case in Strange's inversion table is now right**: Week@320 stays
+  short (genuinely 34px); Week@**360/375** now shows the full `+2 more`
+  (the exact over-fire — 35.4px ink in a 38.7px box); Week@**1024/1280**
+  now shows the full `+23 more` in a 94.9px box (**the exact 1280
+  inversion**); Day and 3 Day full at every width.
+  Ink measured with `Range.getClientRects` at 5 widths × 2 engines × 2
+  themes — **every `escapeRight` negative**, tightest margin 0.8px, and no
+  adjacent-column overlap anywhere. Accessible name confirmed **in the
+  accessibility tree**: `button "+2 more": "+2"`.
+- **Item 2:** `"— no events loaded for this day"`, so the day number can no
+  longer linearise into a count. Positive control first (settled week: 0
+  occurrences); mixed state **reached** with 4s latency and an 8-tap
+  burst: exactly 2 of 7, confirmed by `ariaSnapshot()` and by walking the
+  DOM upward for an `aria-hidden` ancestor (none).
+- **Nothing else disturbed, all measured live:** expand → collapse →
+  re-expand at **156 → 754 → 156 → 754 exactly**; the 2px seam resolving
+  three distinct targets; a real task completed from the strip with
+  `completedAt` confirmed by direct database read; scroll-to-now at
+  **0.3342** of the visible rail.
+- ⚠️ **`TimelineGrid.tsx` is 649/650 — one line under the hard cap.** The
+  builder trimmed its own comment **twice** to get there, disclosed it, and
+  kept the reasoning intact. Compliant, but a **trap for the next
+  contract**: see the leftover below.
+
+ **Bryce authorized the fix and a final verification
   pass, 2026-09-06**, after reviewing the preview himself — which
   extends Strange's spent 3-pass budget by one, his call not Fury's.
 1. **The label proxy inverts on a wide screen.** `columnDays.length === 7`
