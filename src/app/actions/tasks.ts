@@ -447,7 +447,14 @@ export async function fetchTasks(
       completedAt: true,
       people: {
         select: {
-          user: { select: { id: true, displayName: true, avatarColor: true } },
+          // mission-16/C10 — same select as page.tsx's identical query,
+          // and for the same reason: this is the ONLY place a task loaded
+          // by ScheduleView's far-scrolled chunks (well outside the page's
+          // own ±61-day roster window) can carry the fact that one of its
+          // assignees is deactivated. See CalendarTaskView's mapping below.
+          user: {
+            select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
+          },
         },
       },
     },
@@ -463,6 +470,12 @@ export async function fetchTasks(
       userId: person.user.id,
       displayName: person.user.displayName,
       avatarColor: person.user.avatarColor,
+      // mission-16/C10 — fixes the C8 regression: a task fetched from far
+      // outside the page's roster window used to get a picker with no
+      // opinion on its assignees at all. Carrying the flag on the task's
+      // own person row makes it true regardless of which window fetched
+      // this task.
+      deactivated: person.user.deactivatedAt !== null,
     })),
     // Same source and reasoning as page.tsx's own CalendarTaskView mapping
     // (D3, mission-14's Banner brief): computed from the verified session

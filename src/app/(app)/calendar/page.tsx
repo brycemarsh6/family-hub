@@ -100,7 +100,17 @@ export default async function CalendarPage({
         completedAt: true,
         people: {
           select: {
-            user: { select: { id: true, displayName: true, avatarColor: true } },
+            // mission-16/C10 — `deactivatedAt` added here so the fact
+            // lives on the TASK's own people, never inferred from window
+            // membership. See taskViews' own mapping below for why: the
+            // roster fetched a few lines down is scoped to THIS page's
+            // window, but ScheduleView's client-side fetch
+            // (actions/tasks.ts's fetchTasks, which shares this exact
+            // select) can load a task from far outside it, where the
+            // roster carries no opinion about that person at all.
+            user: {
+              select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
+            },
           },
         },
       },
@@ -145,6 +155,16 @@ export default async function CalendarPage({
       userId: person.user.id,
       displayName: person.user.displayName,
       avatarColor: person.user.avatarColor,
+      // mission-16/C10 — a fact about THIS person on THIS task, read
+      // straight off the row the query above already joined. Fixes the
+      // mission-16/C8 regression: that version widened the ROSTER to
+      // cover deactivated people, which only reaches tasks inside this
+      // page's own window — a task ScheduleView loads from further out
+      // got a roster with no opinion on its assignees at all, so a
+      // deactivated person on it vanished from the picker with no marker
+      // and no way to unassign. Carrying the flag here means it's true
+      // (or false) regardless of which window fetched the task.
+      deactivated: person.user.deactivatedAt !== null,
     })),
     // Per D3 (mission-14's Banner brief): computed here, from the verified
     // session against real TaskPerson rows already joined above — never a

@@ -43,20 +43,25 @@ export function TaskDetailSheet({
    * (actions/tasks.ts) is the real gate, reached independently of it
    * every time. */
   task: CalendarTaskView;
-  /** The full household roster — page.tsx's parallel `db.user.findMany`
-   * (mission-14/C5), threaded straight through to TaskForm's people
-   * picker. Unused outside the "edit" view.
+  /** The household roster — page.tsx's parallel `db.user.findMany`
+   * (mission-14/C5): active, PLUS anyone already assigned to a task
+   * somewhere in the PAGE's own fetched window (mission-16/C8, Captain's
+   * N5). Read this as "the roster for tasks near today," not "every task
+   * this sheet could ever be opened for."
    *
-   * mission-16/C8 (Captain's N5): active, PLUS anyone already assigned to
-   * a task somewhere in the page's fetched window (page.tsx's own
-   * OR-clause query) — the same "active, plus already on it" shape
-   * calendar/[id]/edit/page.tsx's roster query uses for events, adapted to
-   * a whole window of tasks rather than one id. `current.task` is always
-   * one of the tasks that window query already covers (it's how
-   * CalendarViews.tsx got a task to open this sheet with in the first
-   * place), so a deactivated person on THIS task is guaranteed to already
-   * be present here — no separate merge needed, unlike the C3b version of
-   * this comment that used to live here. */
+   * mission-16/C10 — the C8 comment that used to live here claimed
+   * `current.task` is always one of the tasks that window query already
+   * covers. **That's false for ScheduleView**, which fetches tasks
+   * client-side in chunks that auto-extend far past the page's own
+   * ±61-day roster window (Vision measured a September landing loading
+   * through January 2027 after one scroll gesture) — a task from out
+   * there can open this sheet with a deactivated assignee this `people`
+   * prop has no opinion on at all. Fixed not by widening this prop
+   * further (a window will always eventually be too narrow for SOME far
+   * task) but by carrying `deactivated` on the task's OWN people
+   * (CalendarTaskView, set in both page.tsx and fetchTasks) and merging
+   * any of `current.people` this roster is missing — see `editorRoster`
+   * below, which is what actually reaches TaskForm. */
   people: CalendarPersonView[];
   canManage: boolean;
   onClose: () => void;
@@ -99,6 +104,18 @@ export function TaskDetailSheet({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose, view]);
+
+  // mission-16/C10 — the roster TaskForm's picker actually renders. Starts
+  // from the page's own `people` (near-today, window-scoped) and appends
+  // any of THIS task's assignees it's missing — which only happens for a
+  // task ScheduleView loaded from far outside that window (see `people`'s
+  // own doc comment above). Household scale (single digits of people, at
+  // most a handful of task assignees), so a plain filter beats reaching
+  // for useMemo here.
+  const editorRoster =
+    current.people.length === 0
+      ? people
+      : [...people, ...current.people.filter((person) => !people.some((r) => r.userId === person.userId))];
 
   const completed = current.completedAt !== null;
   // Per the permission model (D3, actions/tasks.ts's own header comment):
@@ -237,7 +254,7 @@ export function TaskDetailSheet({
           </div>
         ) : view === "edit" ? (
           <TaskForm
-            people={people}
+            people={editorRoster}
             defaultValues={{
               id: current.id,
               title: current.title,
