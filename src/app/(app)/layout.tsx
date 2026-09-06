@@ -89,6 +89,31 @@ export default async function RootLayout({
       className={`${inter.variable} ${manrope.variable} ${cormorantGaramond.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-bg text-fg">
+        {/*
+          mission-17/C1 — this header's real rendered height is a measured
+          fact other files position against, per STRUCTURE.md's rule that a
+          measured chrome dimension two-or-more surfaces depend on gets ONE
+          home in src/lib/, not a hardcoded copy per consumer. That home is
+          `src/lib/appChrome.ts` (`APP_HEADER_HEIGHT_PX` /
+          `useAppHeaderHeight`) — this comment is the other half of the
+          rule: naming every dependent here so a future edit to this
+          header (a taller logo, a second row, a bigger touch target) has
+          a list to re-check instead of a silent re-break. As of this
+          writing:
+            - `CalendarHeader.tsx` — pins its own Schedule-view bar directly
+              below this header (`style={{ top: APP_HEADER_HEIGHT_PX }}`).
+            - `ScheduleView.tsx` — adds this header's height to
+              CalendarHeader's own pinned-bar height to compute where its
+              content starts being visible on screen (its scroll-anchor
+              margin and its month-title reveal boundary).
+            - `RecipeList.tsx` — offsets its sticky A-Z letter headings by
+              this same height so the app header doesn't clip them.
+          If this header's real height ever changes, update
+          `APP_HEADER_HEIGHT_PX` in `src/lib/appChrome.ts` (or switch a
+          dependent to the runtime-measuring `useAppHeaderHeight` hook the
+          same module exports) — never add a second hardcoded number here
+          or in a dependent file.
+        */}
         <header className="print:hidden sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
           <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-4 py-3">
             {/* The wordmark alone, in brand Sage — no icon tile beside it.
