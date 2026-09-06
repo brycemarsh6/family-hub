@@ -1120,8 +1120,11 @@ meet badly wherever the two are compared without conversion.
 ## Delivery
 
 - **Shipped:** the Schedule view — one continuous list of days, endless in
-  both directions, today always present, events **and** tasks. Twelve
-  contracts, **ten gate verdicts** (Captain 3, Vision 4, Strange 3; two
+  both directions, today always present, events **and** tasks. **Thirteen
+  contracts dispatched** (C1–C12 plus C3b); only **eleven** have a written
+  contract in this file — C3b and C5 shipped with none, which Vision filed
+  as B4. *(Corrected 2026-09-06: this read "Twelve contracts".)*
+  **Ten gate verdicts** (Captain 3, Vision 4, Strange 3; two
   further Vision instances died to rate limits before reporting). Tests
   **252 → 310**, green under Denver, UTC and Los Angeles.
 - **Final verdicts, all on the shipped tree:** Vision pass 4 **PASS**

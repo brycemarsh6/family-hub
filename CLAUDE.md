@@ -5216,10 +5216,13 @@ screen.
 run of days, scrolling endlessly backward and forward, today always
 present, events **and tasks** in every row. Mission
 `.avengers/missions/mission-15-calendar-cv3-schedule.md` is the
-authoritative record: **eleven contracts** (numbered C1–C12 with no C5,
-plus one superseded C10 draft) and **ten gate verdicts** — Captain 3,
-Vision 4, Strange 3 — plus two Vision instances that died to rate limits
-before reporting. Merged as **PR #15** (`cdafb91`). One decision belongs
+authoritative record: **thirteen contracts dispatched** (C1–C12 plus
+C3b), of which only **eleven have a written contract in the mission
+file** — **C3b and C5 shipped with none at all**, which a gate filed as
+its own defect, and `STRUCTURE.md` now cites "mission-15/C5" for a
+contract the mission file never recorded. Plus **ten gate verdicts** —
+Captain 3, Vision 4, Strange 3 — and two Vision instances that died to
+rate limits before reporting. Merged as **PR #15** (`cdafb91`). One decision belongs
 in this file rather than only in the mission file: **Vision blocked three
 times, the doctrine stopped the mission, and Bryce extended the budget by
 one pass, on the record** — that authorized fourth pass is why Vision's
@@ -5261,11 +5264,16 @@ drift); `fetchCalendarEvents` — **the calendar's first data-returning
 guarded action**, a public POST with a 124-day span cap — and its
 `fetchTasks` sibling; `scheduleWindow.ts` (pure: merge, 30-day chunks,
 rows) and `scheduleWindowState.ts` (the window state machine, tested
-across every 2026 DST transition); `useScheduleWindow.ts`,
+across the **Nov 1 2026 fall-back** — note the *spring-forward* has **no
+case in either state-machine test file**, so "every DST transition" would
+overstate it; Mar 8 is covered only in `scheduleWindow.test.ts` and
+`calendarViewConfig.test.ts`, different modules); `useScheduleWindow.ts`,
 `useScheduleSentinels.ts`, `useScrollAnchor.ts`; `ScheduleView.tsx`.
 `MonthLoadingSkeleton.tsx` — which STRUCTURE.md said "must not survive
 CV3" — is now `MonthGridSkeletonRows.tsx`, named for what it exports.
-STRUCTURE.md gained **six** Bryce-approved amendments, and the Avengers
+STRUCTURE.md gained **five** Bryce-approved amendments (one commit,
+`aa680e1`; a sixth — the read-action `null`-on-refusal correction drafted
+here — landed the next day at the top of mission 16), and the Avengers
 `MISSION.md` template gained **Fury's nine-item pre-dispatch checklist**,
 every item a real incident from missions 13–15.
 
@@ -5391,10 +5399,15 @@ stop-reason state machine. The sticky month header that does not stick —
 inert **app-wide**, pre-existing, and one comment justifies a design call
 on the belief that it works. *(✅ Closed the next day by mission 16, which
 found it reached every `sticky` in the app including the global header —
-see the next entry. The rest of this list was still open as of
-2026-09-06: three `toDateInputValue` copies, four `withTimeZone` copies,
-`calendarDayDiff`'s unguarded loop and the `ASSIGNABLE_ROLES` predicate
-all verified still present.)* A touch flick at a boundary grants more
+see the next entry. **Two others closed too, and not as written here:**
+Captain **withdrew** its own `useScheduleWindow.ts` loaders-split
+candidate after measuring the file at 431 lines but **172 of code** — the
+measurement that became the caps amendment — and `ScheduleView.tsx` was
+split in mission-16/C9 via `useScheduleMonthTitle.ts`, not the
+`ScheduleMonthSection.tsx` named above, which does not exist. **Verified
+still open as of 2026-09-06:** three `toDateInputValue` copies, four
+`withTimeZone` copies, `calendarDayDiff`'s unguarded loop, and the
+`ASSIGNABLE_ROLES` predicate.)* A touch flick at a boundary grants more
 chunks than a wheel flick. Day lands at `scrollTop 5`, not 0.
 `calendarDayDiff` still loops forever on an invalid `Date`.
 `ASSIGNABLE_ROLES` is still a predicate, not a total record.
@@ -5423,8 +5436,13 @@ timeline for Day / 3 Day / Week, `timelineLayout.ts`'s first consumer.
 
 ## Session, 2026-09-05/06: mission 16 (the follow-up) and CV4 (the hour timeline)
 
-Two missions, both merged. **Twenty contracts** (twelve, then eight) and
-**seven gate rounds** — mission 16 three, CV4 four. Tests **310 → 317 →
+Two missions, both merged. **Twenty contract headings** (twelve, then
+eight) and **seven gate rounds** — mission 16 three, CV4 four. *(Headings,
+not dispatches: mission 16's twelve include one rewritten after
+BLOCKED-ON-CONTRACT and one deferred and never built, and its own commit
+counts "nine build contracts". The CV3 entry above counts dispatches,
+because two of its contracts had no heading to count — so the two numbers
+are not comparable.)* Tests **310 → 317 →
 333**. Merged as **PR #16** (`17b6e60`) and **PR #17** (`b372f0f`), each
 production deployment verified successful through the deployments API
 rather than assumed, and `git log origin/main..HEAD` clean after both.
@@ -5500,7 +5518,11 @@ CSS silently overrode them.
 - **A death is not a verdict.** Both final gates were killed mid-run by a
   session limit; re-running completed the pass rather than spending a
   fourth.
-- **The UTC/Mountain seam reached a *sentence* — its ninth appearance.**
+- **The UTC/Mountain seam reached a *sentence*.** (This file has called
+  it the "eighth" and then the "ninth" appearance, but it records at least
+  two unnumbered ones in between — CT1's all-day storage bug and CV3's
+  "three bugs at one seam" — so treat the tally as "roughly a dozen and
+  still arriving", not a count.)
   `isOutsideWindow` flags a *partially* fetched day, and on Vercel's UTC
   server the boundary falls at 5 PM Denver, so a screen reader is told
   "no events loaded for this day" while that day's morning events render
@@ -5525,10 +5547,14 @@ that never landed.**
   view they land on. Caught by a gate, not by the build. Same shape as
   CV3's three boundary errors: a false premise written into a boundary,
   and therefore correctly obeyed.
-- **Three contracts shipped with no written boundary in the mission
-  file** (mission-16/C5, CV4/C5, CV4/C7). Filed by Vision three times
-  across this arc, and it is already item four on Fury's own
-  pre-dispatch checklist.
+- **Contracts shipped with no written boundary, three times across this
+  arc** — **CV4/C5, CV4/C7, and CV3's C3b + C5** (dispatched and shipped
+  with no contract in the mission file at all). *(Corrected 2026-09-06:
+  an earlier version of this bullet named **mission-16/C5**, which is
+  wrong twice over — it carries an explicit may-touch/must-not-touch
+  boundary, and it was **DEFERRED and never built**, so it shipped
+  nothing.)* Filed by Vision repeatedly, and it is already item four on
+  Fury's own pre-dispatch checklist.
 - **A builder reported DONE having committed nothing** (mission-16/C3b +
   C6), caught by `git log` rather than by reading the report.
 
@@ -5579,10 +5605,18 @@ held behind app-wide work that needed three gate rounds.
 `STRUCTURE.md` gained **seven**: `validatedPeople`'s decision gets a home
 in `src/lib/` as `personInfo.ts`'s write-side twin (third copy is a
 BLOCKER); a measured chrome dimension has one home and its markup names
-its dependents; **caps are judged on code lines, both reported**;
+its dependents; **caps are measured on TOTAL lines, but a file whose
+non-comment code is well under the cap is not a split candidate — report
+BOTH counts**;
 `CalendarHeader`'s inline `view === "schedule"` joins the named-instance
 list; the four accounts-cutover decisions; guard form **(c)**, membership;
-and the named data-migration exception.
+and the named data-migration exception. *(Corrected 2026-09-06: the caps clause
+read "caps are judged on code lines", which **inverts** the rule. The
+difference is not academic — `TimelineGrid.tsx` is **649 total / 341
+code**, so by the constitution one more line is a hard-cap BLOCKER, not a
+file with 300 lines of headroom. An eighth change landed in this same
+window and is not in the seven above: the read-action `null`-on-refusal
+correction, `021049e`.)*
 `DESIGN.md` gained **three**: the optimistic carve-out (a one-shot
 destructive verb waits, a reversible flip does not — *"if this fails, does
 undoing it read as a correction or a loss?"*); the timeline's sanctioned
@@ -5614,7 +5648,7 @@ self-contradicting reachability clause (it declined to BLOCKER and
 drafted its own repair), `chromeOffsetPx`'s expired justification, a
 second short-month vocabulary, the dormant-export rule over-reaching
 three times, **`src/lib`'s twelve client-hook modules absent from the
-layout map**, `scheduleWindowState.test.ts` at 441/630,
+layout map**, `scheduleWindowState.test.ts` at 630 total / 441 code,
 `MonthGridSkeletonRows`'s false "CV4 replaces this" claim,
 `VISIBLE_LANES` defined twice, and `HubNav`'s dependents list naming two
 of three.
@@ -5675,6 +5709,43 @@ re-read for plausibility.**
   into); the three contracts dispatched with no written boundary; **Bryce's
   second budget extension** and the "ship it" call; and CV4's deliberate
   leftovers, including Captain's nine open notes routed to CV5/CD1.
+
+### ⚠️ The audit's own correction was wrong, and only a gate caught it
+
+**The single most important finding, because it is the tracked class one
+turn deeper again.** Correcting the CV3 entry's contract count, I wrote
+*"eleven contracts, numbered C1–C12 with no C5"* — counting the **headings
+in the mission file** and concluding the missing number never existed.
+`git log` shows `CV3/C5` and `CV3/C3b` as real, shipped commits.
+**Thirteen contracts were dispatched; only eleven were ever written down**,
+which a gate had already filed at the time as its own defect. So the
+mission file's silence was the evidence of a known failure, and I read it
+as evidence the work never happened — and `STRUCTURE.md` cites
+"mission-15/C5" in two places, which my correction would have made look
+like a citation of something fictional.
+
+Dispatched to check the entries, **Vision returned nine findings where I
+had found three**, including that one. The others: the caps rule stated
+**backwards** (STRUCTURE.md measures **total** lines and asks for both
+counts; I wrote "judged on code lines", which would have licensed growing
+a file that is one line under a hard cap); "tested across every 2026 DST
+transition" when the **spring-forward has no case at all** in either
+state-machine test file; "six" STRUCTURE.md amendments where git shows
+five; a no-written-boundary bullet naming a contract that **had** a
+boundary and was **never built**; and a "still open" note I had *just
+added*, listing two items that were closed — one of them **withdrawn by
+Captain**, whose withdrawal is the cited basis of the caps amendment
+sitting three paragraphs away.
+
+**The lesson, and it is the whole reason this session's work is worth
+anything: an audit is a claim, and a claim needs a gate.** Re-reading my
+own corrections would have confirmed every one of them. What caught them
+was another agent running the command that settles each claim — `git log`
+against a heading count, `grep` against a coverage claim, the constitution
+against a paraphrase of the constitution. The habit that follows: **a
+correction to this file is a change like any other, and is not more
+trustworthy for being a correction.** It was pass 1 of a gate on a record,
+and it blocked.
 
 ### The drift worth knowing about, because it is invisible from inside a session
 
