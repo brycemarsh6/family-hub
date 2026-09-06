@@ -419,7 +419,8 @@ differently if they do.
 | 2 | Captain | **PASS** | 0 | 7 notes, 3 rulings — and it **withdrew its own proposed sixth amendment** after measuring the premise Fury argued it from and finding it false |
 | 2 | Strange | **PASS** | 0 | 5 notes. All three blockers closed *as felt*; extended its own ruling to cover the 24px bar, with reasons |
 | 2 | Vision | **BLOCKED** | 1 | The 320px ink escape **rotated** rather than closed — and C5's evidence for it was a box probe that structurally cannot see ink |
-| — | C7 | dispatched | — | Vision's blocker plus three Strange notes; DESIGN.md's two missing rules written by Fury |
+| — | C7 | DONE `ff323f7` | — | All four closed. Scroll-to-now back to **0.333 at every strip size** (was 0.537). Both files under both caps |
+| 3 | Vision · Strange | dispatched | — | **Final pass for both.** Captain's pass 3 declined — the delta is two component files, no new module, both under cap; enumerated below |
 
 ## Gate round 1 — three BLOCKED, eight blockers, one cause worth more than the rest
 
@@ -697,6 +698,49 @@ that task."}` with the DB unchanged, no cookie → 307/6 bytes, and a
 **positive control** (kid2 against their own task → `{}`, `completedAt`
 set) proving the refusals meant something. That is `assertCanCompleteTask`
 tested, not the UI in front of it.
+
+### C7 — the last four
+**DONE `ff323f7`.** `TimelineGrid.tsx` 642/334, `TimelineAllDayStrip.tsx`
+336/198 — both under the 650 hard and 350 soft caps. Tests 333.
+
+- **Vision's blocker (item 1):** `min-w-0 overflow-hidden`, and the label
+  shortens to `+N` **at Week width only** — Day and 3 Day keep the full
+  text, since their columns are wide enough. **The visible label shortens;
+  the accessible name does not** — `aria-label` stays `"+2 more"` /
+  `"+10 more"` in every configuration, verified. Measured with
+  `Range.getClientRects` (the tool whose absence let this through twice):
+  ink never escapes its box at 320/360/375, both engines, both themes —
+  margins of −15 to −29px where the escape was +4.6 and +8.8 — and never
+  overlaps a neighbouring day's ink.
+- **Item 2, the silent mixed state:** an `sr-only` "events not loaded"
+  beside the glyph. **Positive control first** — a settled in-window week
+  flagged **0** of 7 columns — then the real mixed state reached with 4s
+  latency and 8 taps: exactly **2 of 7** flagged, confirmed present in the
+  page's own `ariaSnapshot()` and **not** `aria-hidden`.
+- **Item 3, the one-way expansion:** the overflow row becomes a single
+  full-width **"− Show less"**. The builder chose full-width deliberately
+  — expand/collapse is a strip-wide toggle with no per-day axis, and it
+  **sidesteps item 1's narrow-column ink problem outright**. Round-trip
+  verified 4/4 (both engines × both themes): 156px → 416px → back to
+  exactly 156px, and reusable rather than one-shot.
+- **Item 4, the drifting now-line:** the sticky header's height is now
+  measured directly — **not cached in React state**, avoiding the stale-read
+  bug C5 already hit here — and subtracted before dividing. Result:
+  **0.3333 / 0.3343 / 0.3322–0.3355** at 0, 1 and 3 all-day lanes, both
+  engines, both clock times. Previously 0.537 at 3 lanes, i.e. a busy day
+  opened showing more past than future.
+
+### Why Captain's third pass is declined rather than spent
+Its pass-2 PASS covered `6d22eaa`. The delta since is **two component
+files**: no new module, no new export, no dependency-direction change, no
+test-glob change, and both files **remain under both caps** (642/334 and
+336/198). The one structural question C7 could have raised — a fourth
+derivation of the shared grid template string, which Captain made a
+**BLOCKER** trip condition — did not arise: the "Show less" control spans
+`gridColumn: "2 / -1"` and derives nothing. Per this project's own rule
+that a post-PASS delta must be **enumerated and shown not to reach a
+gate's domain**, that is the enumeration. Captain's pass 3 stays available
+if Vision or Strange surfaces something structural.
 
 ## Handoff log
 
