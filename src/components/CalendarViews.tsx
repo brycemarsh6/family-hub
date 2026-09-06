@@ -224,6 +224,25 @@ export function CalendarViews({
           // ruled `today === null` out. TypeScript can't see that
           // relationship across the two branches, so this check stays for
           // the compiler, not because the case is reachable.
+          //
+          // mission-16/C9 (Captain's N4) — an invariant lives HERE, not in
+          // either file it constrains: ScheduleView's month-title portal
+          // (useScheduleMonthTitle.ts) only renders anything because
+          // CalendarHeader is BOTH mounted AND in its own `pinned` branch
+          // (`view === "schedule"`, CalendarHeader.tsx) at the exact same
+          // moment ScheduleView itself is mounted (`view === "schedule"`,
+          // this branch). Both conditions read this same `view` variable,
+          // which is what keeps them from ever disagreeing today — but
+          // neither CalendarHeader.tsx nor useScheduleMonthTitle.ts states
+          // the requirement, because neither one can see the other's
+          // condition. If this switch is ever restructured so ScheduleView
+          // can render while CalendarHeader's pinned branch does not (a
+          // test harness mounting ScheduleView alone, or a future reshuffle
+          // of this file), `SCHEDULE_TITLE_SLOT_ID`'s node never exists,
+          // `useScheduleMonthTitle`'s `portal` stays `null` forever, and the
+          // month label silently disappears — no error, no warning, no
+          // failing test. Keep ScheduleView's mount condition and
+          // CalendarHeader's `pinned` flag identical.
           anchor !== null && (
             <ScheduleView
               ref={scheduleRef}

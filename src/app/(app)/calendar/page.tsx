@@ -100,21 +100,47 @@ export default async function CalendarPage({
         completedAt: true,
         people: {
           select: {
-            user: { select: { id: true, displayName: true, avatarColor: true } },
+            // mission-16/C10 — `deactivatedAt` added here so the fact
+            // lives on the TASK's own people, never inferred from window
+            // membership. See taskViews' own mapping below for why: the
+            // roster fetched a few lines down is scoped to THIS page's
+            // window, but ScheduleView's client-side fetch
+            // (actions/tasks.ts's fetchTasks, which shares this exact
+            // select) can load a task from far outside it, where the
+            // roster carries no opinion about that person at all.
+            user: {
+              select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
+            },
           },
         },
       },
     }),
     // The full household roster, kids included — a task can be reassigned
     // to a kid even though only a manager can open the edit view
-    // (TaskDetailSheet's own `canManage` gate). Same `where`/`select`/
-    // `orderBy` as new/page.tsx's own roster query, on purpose — narrow
-    // select, no `passwordHash`, the same nested-select shape the events
-    // query's own people join and personInfo.ts's rule both already
-    // sanction.
+    // (TaskDetailSheet's own `canManage` gate).
+    //
+    // mission-16/C8 (Captain's N5): active, PLUS anyone already assigned to
+    // a task somewhere in THIS window — the same "active, plus already on
+    // it" shape calendar/[id]/edit/page.tsx already uses for a single
+    // event, adapted here to a whole fetched RANGE of tasks rather than one
+    // id, since this page (unlike that one) has no single task to key an
+    // OR-clause off of. Before this, TaskDetailSheet.tsx had no way to know
+    // a person was deactivated except by INFERENCE — present in a task's
+    // own assignee list but absent from this (then active-only) roster —
+    // which only held because `User` rows are never deleted, a register
+    // rule rather than a data guarantee. Filtering through the SAME
+    // `windowStart`/`windowEnd` the tasks query above already uses (rather
+    // than needing that query's own result first) is what keeps this
+    // parallel-fetchable in the same `Promise.all` instead of becoming a
+    // second, sequential round trip.
     db.user.findMany({
-      where: { deactivatedAt: null },
-      select: { id: true, displayName: true, avatarColor: true },
+      where: {
+        OR: [
+          { deactivatedAt: null },
+          { taskPeople: { some: { task: { dueDate: { gte: windowStart, lt: windowEnd } } } } },
+        ],
+      },
+      select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
       orderBy: { createdAt: "asc" },
     }),
   ]);
@@ -129,6 +155,16 @@ export default async function CalendarPage({
       userId: person.user.id,
       displayName: person.user.displayName,
       avatarColor: person.user.avatarColor,
+      // mission-16/C10 — a fact about THIS person on THIS task, read
+      // straight off the row the query above already joined. Fixes the
+      // mission-16/C8 regression: that version widened the ROSTER to
+      // cover deactivated people, which only reaches tasks inside this
+      // page's own window — a task ScheduleView loads from further out
+      // got a roster with no opinion on its assignees at all, so a
+      // deactivated person on it vanished from the picker with no marker
+      // and no way to unassign. Carrying the flag here means it's true
+      // (or false) regardless of which window fetched the task.
+      deactivated: person.user.deactivatedAt !== null,
     })),
     // Per D3 (mission-14's Banner brief): computed here, from the verified
     // session against real TaskPerson rows already joined above — never a
@@ -143,6 +179,9 @@ export default async function CalendarPage({
     userId: person.id,
     displayName: person.displayName,
     avatarColor: person.avatarColor,
+    // mission-16/C8 — real field, not a suffix baked into displayName
+    // above; see CalendarPersonView's own comment (src/lib/types.ts).
+    deactivated: person.deactivatedAt !== null,
   }));
 
   return (

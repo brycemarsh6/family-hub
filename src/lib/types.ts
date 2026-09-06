@@ -79,6 +79,22 @@ export type CalendarPersonView = {
   userId: string;
   displayName: string;
   avatarColor: string;
+  /**
+   * mission-16/C8 — true when this person is a deactivated household
+   * member reachable ONLY because they're already assigned to the
+   * event/task being viewed (see calendar/[id]/edit/page.tsx's and
+   * calendar/page.tsx's own OR-clause roster queries, mission-16/C3b/C8).
+   * A real, render-time fact rather than the status being baked into
+   * `displayName` as a string suffix — the app annotates the STATUS,
+   * never edits the NAME, so `displayName` stays exactly what's on the
+   * `User` row no matter how a caller renders this. Optional (not every
+   * caller needs it, and every existing construction site that doesn't
+   * supply it is correctly read as "not deactivated" — `undefined` is
+   * falsy) so this addition doesn't ripple into every other place this
+   * type gets built (events/tasks rendered read-only elsewhere in the
+   * app, ScheduleView's fetched records, etc.).
+   */
+  deactivated?: boolean;
 };
 
 /** One CalendarEvent, as the browser needs it. Same cycle-avoidance reason

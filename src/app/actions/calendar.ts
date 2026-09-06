@@ -56,24 +56,58 @@ export type CalendarEventInput = {
  * addIngredientsToGroceries uses for pantryItemId: a stale or tampered id
  * here would silently attach the wrong person (or a deactivated one) to an
  * event. Returns null (all good) or an error message.
+ *
+ * mission-16/C3b: a person deactivated AFTER being added to an event used
+ * to make every LATER edit of that event fail outright — this ran on every
+ * write, so even an edit that never touched the people field was refused
+ * with a message naming a field the reader hadn't touched. The fix is a
+ * carve-out: `alreadyAssignedUserIds` — read FRESH from the database by the
+ * caller, one `db.calendarEventPerson.findMany` against this exact event,
+ * never anything client-supplied — describes who is already on the row
+ * right now. An id in that set is let through even if deactivated, because
+ * submitting it back changes nothing that isn't already true; an id NOT in
+ * that set is a genuinely new assignment and stays refused, deactivated or
+ * not. createCalendarEvent calls this with no second argument at all: a
+ * brand-new event has no existing row, so nothing is "already assigned" and
+ * every deactivated id is by construction a new assignment. Same
+ * re-verify-at-commit-time discipline commitPutAway (actions/groceries.ts)
+ * already uses for its own merge decision.
  */
-async function validatedPeople(userIds: string[]): Promise<string | null> {
+async function validatedPeople(
+  userIds: string[],
+  alreadyAssignedUserIds: readonly string[] = [],
+): Promise<string | null> {
   const unique = Array.from(new Set(userIds));
   if (unique.length === 0) return "Add at least one person.";
 
   const real = await db.user.findMany({
-    where: { id: { in: unique }, deactivatedAt: null },
-    select: { id: true },
+    where: { id: { in: unique } },
+    select: { id: true, deactivatedAt: true },
   });
   if (real.length !== unique.length) {
+    // Some id doesn't match any User row at all — never allowed, active,
+    // deactivated, or otherwise.
+    return "One of those people isn't available anymore.";
+  }
+
+  const alreadyAssigned = new Set(alreadyAssignedUserIds);
+  const newlyProposedDeactivated = real.some(
+    (person) => person.deactivatedAt !== null && !alreadyAssigned.has(person.id),
+  );
+  if (newlyProposedDeactivated) {
     return "One of those people isn't available anymore.";
   }
   return null;
 }
 
 /** Shared field validation for both create and update — title, time range,
- * and people. Returns an error message, or null when the input is good. */
-async function validateEventInput(input: CalendarEventInput): Promise<string | null> {
+ * and people. Returns an error message, or null when the input is good.
+ * `alreadyAssignedUserIds` passes straight through to validatedPeople — see
+ * that function's own comment (mission-16/C3b). */
+async function validateEventInput(
+  input: CalendarEventInput,
+  alreadyAssignedUserIds: readonly string[] = [],
+): Promise<string | null> {
   if (!input.title.trim()) return "Give the event a title.";
   if (input.endAt.getTime() < input.startAt.getTime()) {
     return "End time can't be before the start time.";
@@ -89,7 +123,7 @@ async function validateEventInput(input: CalendarEventInput): Promise<string | n
   if (input.allDay && input.endAt.getTime() <= input.startAt.getTime()) {
     return "An all-day event has to end after it starts.";
   }
-  return validatedPeople(input.userIds);
+  return validatedPeople(input.userIds, alreadyAssignedUserIds);
 }
 
 export type CreateCalendarEventResult = CalendarEventActionResult & { id?: string };
@@ -148,7 +182,21 @@ export async function updateCalendarEvent(
     return { error: "Only parents can do that." };
   }
 
-  const validationError = await validateEventInput(input);
+  // Fresh from the database, never from `input.userIds` — this is exactly
+  // the fact a forged POST would try to fake (mission-16/C3b). A missing
+  // event (deleted on another phone) simply reads back no rows here, which
+  // is fine: validateEventInput below would then refuse any deactivated id
+  // as "newly assigned," and the transaction itself still catches the
+  // missing row with its own, more accurate error.
+  const existingPeople = await db.calendarEventPerson.findMany({
+    where: { eventId: id },
+    select: { userId: true },
+  });
+
+  const validationError = await validateEventInput(
+    input,
+    existingPeople.map((person) => person.userId),
+  );
   if (validationError) return { error: validationError };
 
   const uniqueUserIds = Array.from(new Set(input.userIds));

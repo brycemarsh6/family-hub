@@ -5,6 +5,51 @@ import { ActionCircle } from "./ActionCircle";
 import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 
 /**
+ * mission-16/C4 — the DOM id ScheduleView.tsx portals its own scroll-driven
+ * month title into (see this file's `pinned` branch, below). A plain id +
+ * `createPortal`, not a prop: ScheduleView is CalendarViews.tsx's SIBLING,
+ * not this component's child, so lifting "which month is topmost on
+ * screen" up through CalendarViews and back down as a `title` override
+ * would need a change there — and CalendarViews.tsx sits outside this
+ * contract's boundary (it already owns the identical, working pattern for
+ * "is today visible", `scheduleTodayVisible`/`onTodayVisibleChange`; this
+ * is the same problem with no legal way to reuse that wiring). Same
+ * precedent as `UserMenu`'s own `document.body` portal, for the same root
+ * reason: a value the natural parent can't hand down as a prop. Exported
+ * so the contract between the two files is a named constant, not a magic
+ * string duplicated in each.
+ */
+export const SCHEDULE_TITLE_SLOT_ID = "calendar-header-schedule-title-slot";
+
+/**
+ * mission-16/C4 — the app's global header's real rendered height, measured
+ * directly against the running app
+ * (`document.querySelector("header").getBoundingClientRect().height`),
+ * not assumed: it reads 73px, not the 64px `top-16` the CV3-era sticky
+ * headings guessed (see globals.css's own C4 comment for why neither
+ * number had ever actually been exercised — sticky was inert app-wide
+ * until this same contract's CSS fix). Safe to hardcode, same "stable
+ * chrome dimension, verified rather than guessed" precedent as
+ * ScheduleView's own `-65px` bottom-nav margin: the header's content (the
+ * wordmark, plus at most one row of account-menu button) never wraps or
+ * grows, so this isn't a value that can silently drift the way a
+ * text-driven height could.
+ */
+export const APP_HEADER_HEIGHT_PX = 73;
+
+/**
+ * mission-16/C4 — this component's OWN rendered height while pinned for
+ * Schedule (both rows: the Today/view/Add circles, then the title row),
+ * measured the same way and for the same reason as APP_HEADER_HEIGHT_PX
+ * above. ScheduleView.tsx adds this to that value to know exactly where
+ * its own content starts being visible on screen — the offset its
+ * "which month is topmost" observer needs, so the label flips the moment
+ * a new month's content actually clears the bottom of this pinned bar,
+ * not some other guessed point.
+ */
+export const SCHEDULE_HEADER_BAR_HEIGHT_PX = 154;
+
+/**
  * The Calendar branch's header row: the Today/view-switcher/Add circles,
  * then the prev/next arrows around the period title. Extracted out of
  * CalendarViews.tsx (mission-8's Captain pass-2 recommendation, made "up
@@ -85,8 +130,21 @@ export function CalendarHeader({
   canManage: boolean;
   onAdd: () => void;
 }) {
+  // mission-16/C4 (D1/Done#4) — Schedule is the one view whose content
+  // scrolls far enough, and long enough, for "which month is on screen" to
+  // ever change; Week/Day/Month each show one fixed period and never need
+  // this. So the pin is scoped to Schedule alone rather than applied to
+  // every view. Wrapping in a real element (rather than the bare Fragment
+  // this used to return) is what lets that element carry `position:
+  // sticky` at all — for every other view this div is unstyled and
+  // changes nothing about the rendered layout.
+  const pinned = view === "schedule";
+
   return (
-    <>
+    <div
+      className={pinned ? "sticky z-20 -mx-4 bg-bg px-4 pb-1 pt-2" : undefined}
+      style={pinned ? { top: APP_HEADER_HEIGHT_PX } : undefined}
+    >
       <div className="mb-5 flex items-center justify-center gap-10">
         <ActionCircle
           icon={<CalendarCheck aria-hidden="true" size={22} />}
@@ -139,6 +197,18 @@ export function CalendarHeader({
         <span className="flex h-7 min-w-0 flex-1 items-center justify-center">
           {title === null ? (
             <span aria-hidden="true" className="h-5 w-32 animate-pulse rounded bg-surface-2" />
+          ) : pinned ? (
+            // mission-16/C4 (D2): the pinned bar owns the one live month
+            // label for Schedule. ScheduleView.tsx portals its own
+            // scroll-driven `<h2>` into this exact node (see
+            // SCHEDULE_TITLE_SLOT_ID's own comment for why a portal, not a
+            // prop) — this span renders NOTHING of its own on purpose: any
+            // fallback children here would sit ALONGSIDE the portaled
+            // content in the live DOM rather than being replaced by it,
+            // producing exactly the double label D2 exists to prevent.
+            // `title` (the anchor's static month) is intentionally unused
+            // in this branch — ScheduleView's live answer is what's shown.
+            <span id={SCHEDULE_TITLE_SLOT_ID} className="flex w-full items-center justify-center" />
           ) : (
             <h2 className="truncate text-lg font-semibold">{title}</h2>
           )}
@@ -156,6 +226,6 @@ export function CalendarHeader({
           </button>
         )}
       </div>
-    </>
+    </div>
   );
 }

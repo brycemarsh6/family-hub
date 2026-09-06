@@ -26,6 +26,7 @@
   --surface-2: #ede6d9; /* cream deepened a step — fill only (section headers, pressed states), not used for text */
   --fg: #4e5256; /* Charcoal, brand-exact — 7.88:1 on white, 6.96:1 on cream, easily passes AA */
   --muted: #6f6a60; /* Warm Gray darkened — the raw brand grey (#8c847a) is only 3.69:1 on white and fails AA; this is 5.38:1 on white / 4.75:1 on cream */
+  --muted-strong: #69645a; /* mission-16/C10 — a darker step of --muted, for muted text sitting on a TINTED background rather than plain --surface/--bg. --muted itself is only 4.35:1 on --accent-soft (below the 4.5:1 floor, on the selected People chip's "(no longer active)" marker) — this is 4.76:1 on --accent-soft / 5.88:1 on --surface. Reach for this, not --fg, anywhere muted text needs to survive a soft/tinted chip background; using --fg there would read as promoting an annotation to full-strength content. That general claim was measured rather than assumed (mission-16 gate round 3, independently by two gates): it clears 4.5:1 on EVERY soft/tinted token in both themes — light accent-soft 4.76 / warn-soft 4.97 / danger-soft 4.70 / surface-2 4.74; dark all >= 5.99. The budget is thin and inherited deliberately: a light-mode tint fails once it darkens by ~5-11/255 per channel (5 on danger-soft, the tightest). Plain --muted had 0-1/255 there and already fails warn-soft (4.54) and danger-soft (4.29), which is what makes this token non-obvious. Enough for every tint the app has today; NOT enough to add a new soft token without re-measuring. */
   --line: #e2d9c9; /* cream/warm-gray border — decorative only, never carries text, so it doesn't need to pass a contrast ratio */
   --accent: #5a6b4f; /* Sage deepened for interaction — raw Sage (#a8b498) is only 2.18:1 on white and fails AA; this is 5.75:1 on white / 5.08:1 on cream */
   --accent-fg: #f6f0e8; /* Cream text on top of the deep sage accent — 5.08:1, and it's the brand's own Cream, not an invented white */
@@ -62,6 +63,7 @@
     --surface-2: #302d27;
     --fg: #f6f0e8; /* Cream, brand-exact — main text on the dark background */
     --muted: #a9a296; /* lightened for dark mode — 6.81:1 on --bg, 6.12:1 on --surface */
+    --muted-strong: #b8b2a6; /* mission-16/C10 — dark counterpart of --muted-strong above. Dark --muted was never the blocked pairing (5.17:1 on --accent-soft, already over the 4.5:1 floor), but this stays lighter than it anyway so the token means the same thing — "the stronger of the two mutes" — in both themes: 6.20:1 on --accent-soft / 7.35:1 on --surface, both improvements over --muted's own dark values. */
     --line: #3b372f;
     --accent: #b7c3a6; /* a light sage — dark surfaces need a *lighter* accent than light mode's deep one; 8.39:1 on --surface */
     --accent-fg: #232b1c; /* dark text on top of the light accent — 7.93:1 */
@@ -81,6 +83,7 @@
   --color-surface-2: var(--surface-2);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
+  --color-muted-strong: var(--muted-strong);
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
@@ -119,10 +122,32 @@ h3 {
 }
 
 /* Don't let a stray wide element cause the whole page to scroll sideways on a
-   phone — a very common and very annoying mobile bug. */
+   phone — a very common and very annoying mobile bug.
+
+   mission-16/C4: this used to be `overflow-x: hidden`. Per spec, setting
+   overflow-x without overflow-y computes overflow-y to `auto` on any element
+   that doesn't specify it — so BOTH html and body became scroll containers.
+   body never actually needs to scroll (its own box always exactly contains
+   its content, since nothing constrains its height below that), so it was a
+   scrollport permanently parked at offset zero. position: sticky computes
+   its containing block from the NEAREST scrolling ancestor, so every sticky
+   element in the app — this file's own <header>, ScheduleView's per-month
+   heading, RecipeList's A-Z letter headers — was sticking relative to that
+   dead scrollport instead of the one that actually moves (html). Measured
+   directly, not assumed: the app header's rendered position tracked
+   scrollY pixel-for-pixel instead of staying pinned at top:0.
+
+   `overflow-x: clip` still clips a horizontally-overflowing element (proven:
+   window.scrollTo can't move scrollX past 0 on any page, before or after
+   this change) but — unlike `hidden` — is explicitly exempted from that
+   cross-axis auto-computation, so neither html nor body becomes a scroll
+   container. html stays the document's one real scroller, and every
+   position: sticky element in the app now genuinely sticks. Don't
+   "simplify" this back to `hidden` — that silently reintroduces the exact
+   bug this comment describes. */
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Kill the blue flash when tapping on iOS; we style our own pressed states. */

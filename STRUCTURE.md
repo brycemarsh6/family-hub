@@ -70,14 +70,23 @@ structural changes against it.
   a thrown `redirect()` would bounce the browser mid-request. Role checks
   in this form read `MANAGER_ROLES` (or a named role) from
   `constants.ts` — never a hand-rolled role list.
-  For a **data-returning** read action the house shape is the type's own
-  empty value (`[]` for a list), chosen **per action, not per file** — a
-  file may hold `{ error }` writers and `[]` readers side by side
+  For a **data-returning** read action the house shape distinguishes
+  **refusal** from **emptiness**, chosen **per action, not per file** — a
+  file may hold `{ error }` writers and data readers side by side
   (`fetchCalendarEvents` in `actions/calendar.ts`, `fetchTasks` in
   `actions/tasks.ts`). A read action is still a public POST: it treats its
   typed inputs as claims (`Date` instance, not NaN, `end > start`) and
-  **bounds any range it will scan with an explicit span cap**, refusing
-  with the same empty value rather than throwing. That cap is **one
+  **bounds any range it will scan with an explicit span cap**, returning
+  **`null`** on any refusal rather than throwing — while the type's own
+  empty value (`[]` for a list) means the request SUCCEEDED and genuinely
+  found nothing. **Amended 2026-09-05, Bryce-approved**: this clause used
+  to say refuse with the empty value, and mission-15/C6 found that costs a
+  real bug — a client that cannot tell "you may not have this" from "there
+  is nothing here" either retries a refusal forever or treats an
+  unconfirmed range as checked territory. The Schedule's endless scroll
+  walled off every event beyond the first quiet month for exactly that
+  reason. A caller that ignores the distinction is free to; one that needs
+  it must be able to make it. That cap is **one
   security number for every endpoint that scans a range**, and its home is
   `src/lib/` (proposed `fetchWindow.ts`: `MAX_FETCH_SPAN_DAYS`,
   `isValidDate`, `isAcceptableFetchWindow`), imported by each action —
@@ -95,6 +104,32 @@ structural changes against it.
   *domain* guards (self-targeting, the last-admin lockout) still return
   the house shape — "you don't belong here" and "you're allowed, but this
   can't happen" are different outcomes.
+  **(c) Membership** — the third form, added 2026-09-04 (mission-13/CT1,
+  Bryce-approved; written up 2026-09-05). Some actions are reachable by a
+  user whose *role* does not permit them but whose *relationship to the
+  specific row* does — a kid may complete a task they are genuinely
+  assigned to, and nothing else. That check reads the join table for that
+  exact row (`assertCanCompleteTask` in `actions/tasks.ts` is the
+  reference implementation) and is **not** expressible as a role list, so
+  it never lives in `constants.ts`. Two rules bind it. The membership fact
+  is read **fresh from the database, never from anything the client
+  sent** — a client claim of membership is exactly the forgery the guard
+  exists to stop (mission-16/C3b's deactivated-person carve-out is the
+  second instance of *this* rule only — see the correction below). And a membership guard
+  **narrows, never widens** *as a caller guard*: it may permit a
+  role-refused caller for one row, and may never permit anything the role
+  gate refuses for a reason other than that row.
+  **Corrected 2026-09-05 on Captain's finding, the same day it was
+  written:** the C3b citation above is the second instance of the
+  **fresh-read discipline**, not of this caller-guard form. C3b relaxes
+  which *person ids* may be written to a row whose callers are
+  manager-gated either way — a **value** carve-out, and one that widens
+  the accepted set — so "narrows, never widens" does not reach it. What
+  the two genuinely share, and what generalises, is the shape worth
+  naming: a blanket refusal relaxed for **one specific row**, on a fact
+  **read fresh from the database**. A clause whose binding rule cannot
+  describe the case it cites produces unsound verdicts later, which is
+  why this was fixed before form (c) was ever used to judge anything.
   Pages use the redirecting guards (`requireVerifiedUser`,
   `requireRole`), never the null-returning ones. Route Handlers for
   non-browser clients keep their own token/signature gates.
@@ -372,10 +407,32 @@ Adding a second definition of any of these is a BLOCKER:
   rows a mission's own verification created, counts confirmed back to
   baseline. (Amended 2026-09-02, mission 8, on Captain's finding.)
 - Migrations are **additive only**; review the SQL before applying.
+  **One named exception, added 2026-09-04 (mission-13/CT1,
+  Bryce-approved; written up 2026-09-05): a data migration that corrects
+  values already written under a convention now known to be wrong.**
+  CT1's all-day fix had to rewrite existing `CalendarEvent` rows —
+  leaving them would have meant two date conventions live in one column
+  with every reader guessing which one it held. Such a migration must
+  change **values only**, never drop or retype a column; be
+  **idempotent**, so a partial run and a re-run land in the same place;
+  carry its reasoning in the migration file itself; and be **counted
+  before and after** against the danger register's baseline. Dropping,
+  renaming or narrowing stays forbidden: the production build applies
+  migrations while the previous deployment is still serving, so old code
+  must keep working against the new schema for the length of that
+  window.
 - A new/changed Prisma model needs `npx prisma generate` **and a dev-server
   restart** (`db.ts` caches the client on `globalThis`).
-- `FAMILY_PASSWORD` differs between dev and prod on purpose; secrets live in
-  `.env`/Vercel only, never in chat or git.
+- Secrets live in `.env` and Vercel env vars only — never in chat, git or
+  a terminal transcript. **(Corrected 2026-09-05: this rule used to open
+  with `FAMILY_PASSWORD` differing between dev and prod, which stopped
+  being current at the 2026-08-29 accounts cutover — Captain confirmed
+  zero references remain in `src/`, `prisma/`, `.github/` or AGENTS.md.
+  It survives only as a value in `.env` and Vercel, as a rollback lane
+  whose stated ~7-day window has now expired; deleting it from both is
+  outstanding cleanup, not a live rule.)** Rotating the **dev**
+  `SESSION_SECRET` is the response when a dev cookie leaks into a
+  transcript — mission-16 gate round 3 is the recorded instance.
 - It's `proxy.ts`, not `middleware.ts` (Next 16) — a middleware.ts won't run.
 - Never push without the user; after "done," check
   `git log origin/main..HEAD` — this repo has been bitten three times by
@@ -399,5 +456,9 @@ Adding a second definition of any of these is a BLOCKER:
 - **Ingredients/steps are newline-separated text columns**, not structured
   rows. The tripwire stands at 3 of 4 workarounds — a fourth feature needing
   structured ingredients means build it, stop working around it.
-- **One shared family password** (session.ts/dal.ts) until real per-person
-  accounts are needed; the swap is designed to be cheap.
+- **Per-person accounts** (`session.ts`/`dal.ts`, `getVerifiedUser`,
+  `MANAGER_ROLES`, the `User` table, `bootstrap-users.ts`) — shipped
+  2026-08-28/29, replacing the single shared family password, which the
+  cheap-swap design anticipated. **(Corrected 2026-09-05 on Captain's
+  finding: this line still described the retired architecture as current,
+  inside the section headed "don't relitigate.")**

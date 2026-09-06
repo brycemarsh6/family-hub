@@ -26,14 +26,22 @@ export type MonthCellSlot = {
   showLabel: boolean;
   roundLeft: boolean;
   roundRight: boolean;
-  /** mission-14/C3b: true only for a completed TASK slot (MonthGrid.tsx
-   * checks `completedAt !== null` against the real Task rows before this
-   * shape is built — a plain CalendarEventView, which `event` above is
-   * typed as, has no such field, and a real event must never set this).
-   * `false` for every event and for an open task. See the render below for
-   * why this needs its own always-visible glyph rather than leaning on
-   * `line-through` alone. */
-  taskCompleted: boolean;
+  /** mission-14/C3b + mission-16/C2: which of the three kinds of slot this
+   * is. `null` means a real event — a plain CalendarEventView, which
+   * `event` above is typed as, has no completion concept at all, and a
+   * real event must never set this to anything but `null`. `"open"` /
+   * `"completed"` mean a TASK slot (MonthGrid.tsx checks `completedAt` on
+   * the real Task rows before this shape is built) that is respectively
+   * not-yet-done or done.
+   *
+   * Before mission-16/C2 this was a bare `taskCompleted: boolean` that
+   * could only say "completed task" vs. "everything else" — so an OPEN
+   * task and a real EVENT rendered pixel-identically, and "no mark" was
+   * doing two different jobs (this is genuinely an event / this is a task
+   * nobody's done yet) with the same absence of a glyph. See the render
+   * below for why each of the three states gets its own always-visible
+   * glyph (or none) rather than leaning on `line-through` alone. */
+  taskStatus: "open" | "completed" | null;
 } | null;
 
 /** Up to THREE diagonal color bands, not one-per-person like EventCard's
@@ -164,7 +172,16 @@ export function MonthCell({
             // stays in the normal "font-semibold text-fg" style — matching
             // TaskCard.tsx's own "no overdue treatment, only completedAt
             // changes rendering" rule.
-            const done = slot.taskCompleted;
+            const done = slot.taskStatus === "completed";
+            // mission-16/C2: an open task is neither a completed task nor
+            // a real event, and until now rendered identically to one —
+            // "no mark" was doing two jobs (this is genuinely an event /
+            // this is a task nobody's done yet). An open task is NOT
+            // `past || done` by itself (TaskCard.tsx's "no overdue
+            // treatment" rule applies here too — see `done`'s own comment
+            // above), so it gets the live "font-semibold text-fg" styling
+            // whenever it isn't independently past its due day.
+            const openTask = slot.taskStatus === "open";
             const colors = slot.event.people.slice(0, 3).map((p) => avatarColorHex(p.avatarColor));
             return (
               <span
@@ -204,6 +221,26 @@ export function MonthCell({
                 {done && slot.showLabel && (
                   <span aria-hidden="true" className="mr-0.5">
                     ✓
+                  </span>
+                )}
+                {/* mission-16/C2: the OPEN-task twin of the checkmark just
+                    above — same placement (`mr-0.5`, gated on `showLabel`
+                    for the identical reason), same aria-hidden reasoning
+                    (this cell's accessible name is the day button's own
+                    aria-label, not this span's text), and it inherits the
+                    SAME color class as the rest of this pill (`text-fg` or
+                    `text-muted`, decided by the `past || done` ternary
+                    above) rather than a color of its own — so its contrast
+                    against the pill background is exactly the border-fg/
+                    border-muted figures already measured in B5's comment
+                    below (6.96:1 light / 15.23:1 dark live, 4.75:1 /
+                    6.81:1 past), not a new pair of numbers to verify.
+                    `done` and `openTask` can never both be true (taskStatus
+                    is one of exactly three values), so this and the
+                    checkmark above never render together. */}
+                {openTask && slot.showLabel && (
+                  <span aria-hidden="true" className="mr-0.5">
+                    ☐
                   </span>
                 )}
                 {/* B3 (mission-9/C5, figure corrected mission-9/C8): at

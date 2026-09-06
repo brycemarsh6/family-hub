@@ -45,6 +45,17 @@ tell when a rule's reason has expired.
   the stepper rule is about *counts*.)
 - **Instant feedback on every tap** — optimistic updates (`useOptimistic` +
   `startTransition`), never a wait on the server round trip.
+  **One carve-out (added 2026-09-05, Bryce-approved): a one-shot
+  destructive verb is NOT optimistic.** Delete waits for the server and
+  then removes the row, because an optimistic delete shows the row
+  vanishing and — on failure — reappearing, which reads as the app losing
+  and then finding the thing rather than as an error. A **reversible state
+  flip** (a task's complete / un-complete, a checkbox, a rating) is the
+  opposite case and must be optimistic: the flip is cheap to show, cheap
+  to revert, and the revert reads as "that didn't take" rather than as
+  data loss. The test is not "does this write to the database" — it is
+  **"if this fails, does undoing it on screen look like a correction or
+  like a loss?"**
 - **Delete is a single tap, no confirmation** — everywhere, for consistency.
   Exactly two sanctioned exceptions, both because they silently touch many
   rows' relationships: deleting a **cookbook** and deleting a **tag**, each

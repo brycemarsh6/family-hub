@@ -13,11 +13,17 @@ import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { SkeletonBlock } from "./Skeleton";
 import {
+  SCHEDULE_TITLE_SLOT_ID,
+  APP_HEADER_HEIGHT_PX,
+  SCHEDULE_HEADER_BAR_HEIGHT_PX,
+} from "./CalendarHeader";
+import {
   useScheduleWindow,
   type ScheduleFetchers,
   type ScheduleRenderDay,
   type ScheduleRenderMonth,
 } from "@/lib/useScheduleWindow";
+import { useScheduleMonthTitle } from "@/lib/useScheduleMonthTitle";
 import { useToday } from "@/lib/useToday";
 import { allDayInstantToLocalDay } from "@/lib/calendarDates";
 // mission-15/C5: this component is the boundary that's ALLOWED to know
@@ -194,11 +200,39 @@ export function ScheduleView({
   // still loading, or a genuinely empty non-today day that never renders a
   // row at all) and then never again, UNTIL the effect above re-arms it.
   // Scrolling itself never touches the URL — this reads `dayRefs`/DOM only.
+  //
+  // mission-16/C10 (Vision, correcting this mission's own earlier record)
+  // — `scrollIntoView` can land CLAMPED on this route: measured 12/12, the
+  // target stopped at the document's max `scrollTop` rather than at the
+  // reveal margin, because the initial commit that first renders `target`
+  // can happen BEFORE the forward chunk that gives the page enough height
+  // to actually place it there. `scrollToToday` (the imperative handle
+  // below) never hits this — by the time a reader can tap Today, the
+  // surrounding content has long since loaded. Detected by checking BOTH
+  // that the landing missed the margin AND that the scroller is pinned to
+  // its own maximum — top alone can't tell "landed short because clamped"
+  // from "landed short for some other reason," and only the clamped case
+  // should be retried.
   useLayoutEffect(() => {
     if (hasScrolledInitially.current) return;
     const target = dayRefs.current.get(initialDayTime);
     if (!target) return;
     target.scrollIntoView({ behavior: "instant", block: "start" });
+
+    const scroller = document.scrollingElement;
+    const margin = APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX;
+    const landedShort = target.getBoundingClientRect().top > margin + 1;
+    const pinnedToScrollMax =
+      scroller !== null && scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 1;
+
+    // Bounded: a clamped landing leaves the flag false, which re-runs this
+    // SAME effect on the next render a forward chunk commit causes (no
+    // separate timer or retry loop) — either that chunk gives the page
+    // enough height to land exactly (landedShort flips false) or, once
+    // `hasMoreForward` goes false, there's nothing left to wait for and
+    // the flag is forced true regardless of where it landed, so this can
+    // never re-arm itself indefinitely.
+    if (landedShort && pinnedToScrollMax && hasMoreForward) return;
     hasScrolledInitially.current = true;
   });
 
@@ -246,6 +280,26 @@ export function ScheduleView({
     return () => observer.disconnect();
   }, [today, months, onTodayVisibleChange]);
 
+  // mission-16/C9 — "which month is topmost" and the header portal it feeds
+  // moved out to src/lib/useScheduleMonthTitle.ts (Captain's own named seam:
+  // this file hit 620/650, the mechanical hard cap, after C7 added the
+  // render-loop guard below). `revealLineY`/`titleSlotId` are computed HERE
+  // and passed in rather than the hook importing CalendarHeader's constants
+  // itself — this component stays the one boundary "ALLOWED to know" which
+  // component owns them (see useScheduleWindow.ts's own C5 header for why a
+  // src/lib/ module reaching into src/components/ would be a real
+  // STRUCTURE.md violation). The render-loop guard from C7 — `useToday()`
+  // returns a fresh `Date` every render, so `months` gets a new reference on
+  // effectively every render, and only a `.getTime()`-compared ref (never
+  // `Date` identity) stops that from looping forever — moved WITH it,
+  // unchanged; see the hook's own header for the full explanation.
+  const { monthSectionRef, portal } = useScheduleMonthTitle(
+    months,
+    initialDay,
+    APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX,
+    SCHEDULE_TITLE_SLOT_ID,
+  );
+
   useImperativeHandle(ref, () => ({
     scrollToToday: () => {
       if (today === null) return false;
@@ -258,15 +312,33 @@ export function ScheduleView({
 
   function renderMonth(month: ScheduleRenderMonth) {
     return (
-      <section key={month.monthStart.getTime()}>
-        {/* Sticky month header — the same construction RecipeList's own
-            letter headers use (a plain-flow scroll target just below it,
-            never on the sticky element itself — see that file's own
-            comment on why scrollIntoView doesn't reliably scroll a
-            position: sticky node). */}
-        <h2 className="sticky top-16 z-10 -mx-4 bg-bg px-4 py-1.5 text-sm font-semibold uppercase tracking-wide text-muted">
-          {formatMonthTitle(month.monthStart)}
-        </h2>
+      <section
+        key={month.monthStart.getTime()}
+        ref={monthSectionRef(month.monthStart)}
+      >
+        {/* mission-16/C4 (D2): no longer sticky. Before this contract's
+            globals.css fix, `sticky` here was already inert app-wide (see
+            that file's own comment), so this rendered as a plain in-flow
+            divider anyway — now that sticky positioning actually works,
+            leaving this sticky too would show the month name TWICE at
+            once, stacked under the pinned CalendarHeader's own now-live
+            title (which this component feeds via a portal — see
+            useScheduleMonthTitle.ts, mission-16/C9).
+
+            mission-16/C7 (Strange's BLOCKER) — a PLAIN, visible divider
+            wasn't enough: at the very top of a month, this heading sits in
+            the 0-120px landing range where the pinned bar's own title
+            (same month, same words) is ALSO on screen, so the same name
+            rendered twice at once — exactly what D2 says must never
+            happen, just reached from a range C4's own check didn't cover.
+            `sr-only`, not `hidden` — `hidden` is `display:none`, which
+            STRIPS an element from the accessibility tree (mission-8/K2's
+            own finding: Month at phone width exposed 0 event names that
+            way). `sr-only` keeps this month heading in document order for
+            a screen reader — the same role the week-range divider below
+            already plays for structure inside a month — while the pinned
+            bar carries the only VISIBLE label. */}
+        <h2 className="sr-only">{formatMonthTitle(month.monthStart)}</h2>
         <div className="flex flex-col gap-4 py-2">
           {groupByWeek(month.days).map((week) => (
             <div key={week.weekStart.getTime()}>
@@ -281,7 +353,28 @@ export function ScheduleView({
                       if (element) dayRefs.current.set(row.day.getTime(), element);
                       else dayRefs.current.delete(row.day.getTime());
                     }}
-                    className="scroll-mt-16"
+                    // mission-16/C7 (Captain by reading, Strange by
+                    // measuring — BLOCKER) — `scroll-mt-16` (64px) is a
+                    // leftover from CV3, when this app's own global header
+                    // was still inert (see globals.css's C4 comment) and
+                    // nothing on the page was pinned at all. C4 pinned 227px
+                    // of real chrome above this list (the app header,
+                    // APP_HEADER_HEIGHT_PX, plus this file's own Schedule bar,
+                    // SCHEDULE_HEADER_BAR_HEIGHT_PX) without updating this
+                    // number, so both `scrollIntoView` call sites (the
+                    // initial/deep-link effect above, and `scrollToToday`'s
+                    // imperative handle) landed the target day's TOP at 64px
+                    // — fully behind the bars (Strange measured `visiblePx:
+                    // 0`, `elementFromPoint` returning the app header, 3/3).
+                    // A constant sum, not a runtime measurement, because
+                    // ScheduleView only ever renders while CalendarHeader's
+                    // Schedule bar is pinned — CalendarViews.tsx mounts this
+                    // component exclusively inside `view === "schedule"`,
+                    // and CalendarHeader.tsx's own `pinned` flag is exactly
+                    // that same condition — so there is no render of this
+                    // row where the two constants imported above don't
+                    // already describe the real, current chrome height.
+                    style={{ scrollMarginTop: APP_HEADER_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX }}
                   >
                     {today !== null &&
                     isSameDay(row.day, today) &&
@@ -417,6 +510,13 @@ export function ScheduleView({
           }}
         />
       )}
+
+      {/* mission-16/C9 — feeds the pinned CalendarHeader's own live month
+          label; see useScheduleMonthTitle.ts's own header for the full
+          design. `portal` is `null` for one paint on first mount and
+          briefly again if this whole view unmounts — nothing renders until
+          it's a real node, no separate loading branch needed here. */}
+      {portal}
     </div>
   );
 }

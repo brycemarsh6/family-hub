@@ -13,6 +13,17 @@ export const dynamic = "force-dynamic";
  * signed-out visitor bounces to `/login`, a signed-in kid to `/calendar`.
  * A missing/deleted id 404s cleanly, the same RecipeForm-precedent shape
  * `/kitchen/cooking/recipes/[id]/edit/page.tsx` already uses.
+ *
+ * mission-16/C3b: the roster below is "active, PLUS anyone already on THIS
+ * event" — the relation filter (`calendarEventPeople: { some: { eventId } }`)
+ * reads that fact fresh from the database for this specific event, never
+ * from anything the client sent, so a deactivated assignee's chip still
+ * renders in EventForm's picker instead of silently vanishing (and taking
+ * their assignment with it on Save — `updateCalendarEvent`'s own carve-out
+ * in actions/calendar.ts is the real guard; this is what makes the picker
+ * tell the truth about who's on the event before Save is even tapped).
+ * `/calendar/new/page.tsx`'s own roster query stays active-only on purpose
+ * — there is no existing event there for anyone to already be on.
  */
 export default async function EditEventPage({
   params,
@@ -41,8 +52,10 @@ export default async function EditEventPage({
       },
     }),
     db.user.findMany({
-      where: { deactivatedAt: null },
-      select: { id: true, displayName: true, avatarColor: true },
+      where: {
+        OR: [{ deactivatedAt: null }, { calendarEventPeople: { some: { eventId: id } } }],
+      },
+      select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
       orderBy: { createdAt: "asc" },
     }),
   ]);
@@ -60,8 +73,21 @@ export default async function EditEventPage({
       <EventForm
         people={people.map((person) => ({
           userId: person.id,
+          // mission-16/C8 — `displayName` is never touched; the marker is
+          // a real `deactivated` field on CalendarPersonView now (see that
+          // type's own comment), rendered by EventPeopleField at display
+          // time. The old version of this file suffixed the label with
+          // "(no longer active)" as a string, which read as a longer NAME
+          // rather than the app annotating a status, and — the sharper bug
+          // — TaskForm's own onSaved echoed a person object straight back
+          // into local state, so a second edit in one sitting showed the
+          // suffix twice ("(no longer active) (no longer active)"). A
+          // deactivated-but-already-on-this-event person only reaches this
+          // array via the OR clause above — see this file's own header
+          // comment for the full mission-16/C3b reasoning.
           displayName: person.displayName,
           avatarColor: person.avatarColor,
+          deactivated: person.deactivatedAt !== null,
         }))}
         currentUserId={user.userId}
         defaultValues={{
