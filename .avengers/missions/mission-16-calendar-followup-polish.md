@@ -398,7 +398,8 @@ src/lib/voice/*.test.ts` legs.
 | 2 | Captain | **PASS** | 0 | 9 notes, 3 rulings. Measured that C7's 82 lines were **70 prose / 8 code** — the cap pressure that forced C9 was documentation |
 | 2 | Strange | **BLOCKED** | 1 | Both its blockers closed and *felt*; six real month crossings, 350 samples, 0 mismatches. Blocker is **4.35:1** contrast on one chip state |
 | 2 | Vision | **BLOCKED** | 1 | A **regression from C8** on Schedule's far tasks — and it corrected contaminated evidence in two earlier reports |
-| — | C10 | dispatched | — | Both blockers, the anchor claim made true, and the pure kernel extracted and tested |
+| — | C10 | DONE ×4 | — | Both blockers closed; the anchor converges to 227 where it was stuck at 536 forever; kernel extracted + 7 tests. **310 → 317** |
+| 3 | Vision · Strange · Captain | dispatched | — | Scoped to `4df44f8..e5a6c2f`. **Vision and Strange are on their LAST pass** — if either blocks, the mission stops and surfaces |
 
 ## Handoff log
 
@@ -462,6 +463,13 @@ src/lib/voice/*.test.ts` legs.
   citation (Fury's own text, written hours earlier) and a "Settled
   decisions" line still describing the retired shared password as
   current.
+- 2026-09-05 — C10 DONE (4 commits) and audited: boundary clean across 8
+  files, `globals.css` touched **only** by the new token and its Tailwind
+  binding, tree clean. **Gate round 3 dispatched — Vision's and
+  Strange's third and final pass under the 3-pass budget.** If either
+  blocks, the mission stops and goes to Bryce rather than spending a
+  fourth pass; Captain is on pass 3 of its own budget with two PASSes
+  behind it.
 
 ### The gate round — Captain PASS, Vision BLOCKED, Strange BLOCKED
 
@@ -791,7 +799,42 @@ re-confirmed the refusal distinction through the shipped bundle by
 gestures → 0 POSTs.
 
 ### C10 — the two round-2 blockers, and the anchor claim made true
-- **Status:** PENDING
+- **Status:** DONE — `ace7f04`, `50997b0`, `2a3fa91`, `e5a6c2f` (one per
+  item, in order). Tests **310 → 317**.
+- **Report.** *(1)* The fact now rides on the task's own people in **both**
+  `calendar/page.tsx` **and** `fetchTasks` — the function ScheduleView
+  actually calls for far chunks, which is where the regression lived. Live
+  on a task **70 days out reached by scrolling** (not deep-linked, which
+  would not be the same path): sheet opens, assignee pre-selected,
+  **toggles off** — so they can be unassigned — 5 chips, no duplicate from
+  the merge, `deactivated` confirmed on the wire, zero console errors on
+  both engines. The deactivated half by construction, exercising the
+  **real shipped** `fetchTasks` and page mapper in-process; non-vacuity by
+  reverting each file and reproducing the exact failure.
+  *(2)* `--muted-strong` (light `#69645a`, dark `#b8b2a6`). All four
+  states measured against the real cascade: **4.76 / 5.88 light, 6.20 /
+  7.34 dark** — and **dark improved** on its baseline rather than
+  regressing, which was the risk of touching a token that already passed.
+  *(3)* The anchor. **Positive control first:** pre-fix, a deep link
+  clamps at `top 536` with `callCount: 1` **forever** — stable across 3
+  extra seconds, so it is genuinely stuck rather than slow. Post-fix:
+  `callCount: 14`, converging to **exactly `top 227`**, and **still 14
+  after 6 more seconds** — bounded, not merely eventually-correct. The
+  second termination path was exercised too: near the end of loaded data
+  it retries 18 times and then genuinely stops once `hasMoreForward` goes
+  false, stable at +8s.
+  *(4)* `topmostClearedMonth` extracted and exported; **7** tests covering
+  the `continue`-on-missing-node and the `break`/monotonicity dependency,
+  proven able to fail by mutating `continue` to `break`.
+- **Honest deviation, and the right call:** it could **not** reproduce
+  Vision's exact numbers (`scrollHeight 1225`, `top 348`) — the dev
+  branch's real data differs run to run and from Vision's fixture. Rather
+  than chase a number or quietly report a different one, it found **two**
+  scenarios in the current data that reproduce the clamp reliably on both
+  engines and exercised both termination paths. That is the correct
+  response to this round's own lesson about data-dependent measurements.
+
+
 1. **(Vision, BLOCKER) The far-task regression.** Carry the fact on the
    **task's own people**, never on a window. Add `deactivatedAt: true` to
    the people `user` select in `calendar/page.tsx` **and** in `fetchTasks`
