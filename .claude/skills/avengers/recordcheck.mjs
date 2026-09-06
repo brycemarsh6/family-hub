@@ -181,14 +181,22 @@ for (const file of recordFiles) {
   // a gate dispatch. That is the record doing its job, not a defect, so a
   // line that flags its own bad hash is exempt.
   const hashDenial =
-    /\b(actual|stale|wrong|incorrect|does not resolve|never existed|superseded|amended away|typo)\b/i;
+    // Vocabulary widened after running this tool on its own session entry,
+    // which described two hashes as deliberately bad and was blocked for it.
+    /\b(actual|stale|wrong|incorrect|does not resolve|never existed|superseded|amended away|typo|deliberately|scratch|fictional|placeholder|no denial)\b/i;
   for (const m of text.matchAll(/`([0-9a-f]{7,40})`/g)) {
     const sha = m[1];
     try {
       git(["cat-file", "-e", `${sha}^{commit}`]);
     } catch {
-      const line = added.find((l) => l.includes("`" + sha + "`")) || "";
-      if (hashDenial.test(line)) {
+      // A CONTEXT WINDOW, not the single line. Found by running this tool on
+      // its own session entry: prose wraps, so "mission-15 cites `a6e6a86`
+      // where the real hash is …" put the hash on one line and the word that
+      // explains it on the next, and the check blocked a record that was
+      // being careful. A per-line test of wrapped prose is the wrong unit.
+      const i = added.findIndex((l) => l.includes("`" + sha + "`"));
+      const ctx = i === -1 ? "" : added.slice(Math.max(0, i - 2), i + 3).join(" ");
+      if (hashDenial.test(ctx)) {
         REVIEW(
           `\`${sha}\` does not resolve, but the line marks it as wrong on ` +
             `purpose. Confirm that is what it means.`,

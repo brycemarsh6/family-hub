@@ -5892,3 +5892,88 @@ neither loses them nor re-raises them every time:
   premise about what already exists. **The honest tally is six of that exact
   shape** — four contract boundaries across missions 13, 14, 16 and 17, plus
   **two** in this session's own record corrections.
+
+---
+
+## Session, 2026-09-06 (closing): what now stops this happening again
+
+Bryce asked the right question at the end of the audit: *"what are we going
+to do to make these things happen less? Have you already written them in? And
+where?"* The answer is worth keeping, because the honest half of it is the
+useful half.
+
+### Three tiers, and only one of them is enforcement
+
+| Tier | What | Enforced by |
+|---|---|---|
+| 1 | Typecheck, lint, three timezone test legs, build, **and now the record check** | A machine, on every PR |
+| 2 | `preflight.mjs`, before a contract is dispatched | Nothing. Someone must remember |
+| 3 | The checklist and the doctrine laws | Nothing. Prose |
+
+**The gap was real and I put it to Bryce rather than papering over it:** the
+answer to "three false claims in prose" had been to write *more prose* and
+build two tools that also depend on remembering to run them. Nothing ran
+them. No CI step, no git hook, no editor hook — verified, not assumed. He
+approved closing it, so **`recordcheck.mjs` now runs in CI on every pull
+request** (`.github/workflows/ci.yml`).
+
+### Testing against real history changed the design, and that is the lesson
+
+The proposal was "fail the build on the decidable errors." Replayed against
+**six real merges, the first cut would have blocked four of them** — on
+ordinary mission prose. A mission legitimately names a file a contract
+*proposes* to create (`useScheduleLoaders.ts`, `ScheduleMonthSection.tsx`) or
+one since deleted (`MonthLoadingSkeleton.tsx`); and *"Step 1 first, proven:
+`CalendarHeader.tsx`"* is not a positional reference into that file.
+
+**A gate that cries wolf gets tuned out — the same finding that shaped the
+irregularity queue two months ago.** So the blocking surface was cut to the
+one check measured at zero false positives: **a commit hash that does not
+resolve.** Everything else reports. That check found a true positive on the
+way — mission-15 cites `a6e6a86` where the real hash is `6e496a1`,
+deliberately, recording a stale HEAD in a gate dispatch — so a line that
+flags its own bad hash is exempt.
+
+**Proven able to fail:** a scratch commit citing `deadbee1234` with no denial
+wording exits 1. A check never seen red proves nothing.
+
+**And it caught itself on this very entry.** Run against the paragraph above,
+the hash check blocked — because prose *wraps*, so a hash landed on one line
+while the word explaining it sat on the next, and the check tested one line.
+A per-line test of wrapped prose is the wrong unit; it now reads a small
+context window. The fix to the vocabulary then **silently did not apply** (an
+escaping mismatch in the edit), which the re-run caught rather than the edit's
+own success message — mission-9's rule paying out for the fourth time today:
+verify a file edit landed; don't trust the write.
+
+**Two details that would have made the CI step vacuous**, both caught before
+it shipped: `actions/checkout` is **shallow by default**, so a range diff has
+no parent and reports clean; and a first push, force-push or squash can hand
+the step an absent or all-zero base. `fetch-depth: 0`, and a fallback to
+`HEAD^` rather than diffing against nothing.
+
+### Where each safeguard lives
+
+`preflight.mjs`, `recordcheck.mjs` and their shared `lib/claims.mjs` sit in
+`.claude/skills/avengers/` (and are synced to `~/.claude/` — diff them
+whenever either is edited). `SKILL.md` carries the record check as a Deliver
+step plus two cross-cutting laws: **a correction is a change and is not more
+trustworthy for being a correction**, and **name the item, never count into
+it**. The `MISSION.md` template carries both tools in its checklist.
+`AGENTS.md` carries the danger register for non-Claude tools.
+
+### The limit, stated rather than hidden
+
+**`preflight.mjs` cannot be CI-enforced by nature** — it runs before a
+contract is dispatched, not on a pull request — so it stays a discipline
+item, which is the tier that failed us. And the record check *blocks* on very
+little by design: CI can print its REVIEW lines but cannot make anyone read
+them. **Every false claim these tools exist for produced zero hard failures
+and sat in a REVIEW line.** That is the sentence to remember.
+
+### No restart was needed
+
+Worth recording, since it came up: the tools are files executed by `node` and
+worked immediately; CI is independent of any session. **Only agent definition
+files are pinned to session start**, and none changed. A fresh session reads
+everything above from disk anyway.
