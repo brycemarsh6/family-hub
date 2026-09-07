@@ -344,7 +344,41 @@ false claim back to me twice and I read only the dependency findings.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 1 | Captain | **BLOCKED** | 1 | 7 notes, 2 amendments drafted. Re-ran all six gauntlet legs first |
+| 1 | Vision | running | — | — |
+| 1 | Strange | queued (serial after Vision — shared dev branch) | — | — |
+
+### Captain pass 1 — BLOCKED, and the argument is better than the finding
+
+**The blocker:** three per-member differences sit outside the total record in
+the very commit that flips a reachability entry —
+`CalendarViews.tsx:405` (`showArrows={view !== "schedule"}`), `:170`
+(`headerIsCurrentPeriod`) and `:173` (`if (view === "schedule")` in
+`handleToday`). STRUCTURE.md: *"a member's reachability entry may not flip to
+`true` in a commit that leaves any per-member difference outside a total
+record."*
+
+**None of the three actually mislabels `year`** — Captain checked each, and
+`showArrows = true`, year-comparison `isCurrentPeriod` and plain `goToToday()`
+are all correct for Year. It ruled BLOCKER anyway, and the decisive reason is
+one I had not thought of: **this is the LAST flip.** `BUILT_VIEWS` is now
+all-`true`, so the tripwire that would ever collect this debt **can never fire
+again** for calendar views. Waving it through does not defer the cleanup, it
+retires the mechanism. My own C4 contract quoted this clause and then
+addressed only `renderer`.
+
+**Accepted without argument.** Fix contract **C5** below.
+
+### A bug Captain found in Fury's own tool, and it is fixed
+
+`preflight.mjs`'s code counter tested `startsWith("/*")`, which a **JSX**
+comment never satisfies — it opens with `{`. So `{/* … */}`, this repo's
+dominant documentation form in `.tsx`, was counted as **code**. The same file
+read **237** code lines by the tool and **108** by Captain's JSX-aware count,
+and STRUCTURE.md's size clause takes that number as its judgement input: the
+counter was arguing to split the files that explain themselves best. Fixed;
+the tool now reads MonthCell 105 / CalendarViews 224 / TimelineGrid 201
+against Captain's independent 108 / 223 / 206. Synced to both copies.
 
 ## Handoff log
 
