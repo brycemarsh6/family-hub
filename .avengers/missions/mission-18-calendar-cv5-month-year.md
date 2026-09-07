@@ -429,10 +429,10 @@ false claim back to me twice and I read only the dependency findings.
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Captain | **BLOCKED** | 1 | 7 notes, 2 amendments drafted. Re-ran all six gauntlet legs first |
-| 1 | Vision | **BLOCKED** | 1 | 9 notes. Re-ran all six legs. **Reproduced the CV4 finding that C1 said could not be reproduced locally** |
+| 1 | Vision | **BLOCKED** | 1 | "9 notes" — but only **4 were ever written down**; see N-V4. Re-ran all six legs. **Reproduced the CV4 finding that C1 said could not be reproduced locally** |
 | — | C5 | DONE — merged | — | Both blockers closed, four notes cleared, tests 333 → 335 |
 | 1 | Strange | **NOT RUN — paused for usage** | — | Bryce is low on usage; the design gate is the most expensive remaining step |
-| 2 | Vision | **IN FLIGHT** | — | Dispatched on the post-C5 tree. Gauntlet re-verified green by Fury first |
+| 2 | Vision | **PASS** | 0 | 7 notes. Both blockers closed by its own measurement, with stated positive controls. **Corrected its own first ink measurement** |
 | 2 | Captain | queued | — | Runs after Vision — serial, shared `.next` |
 
 ### Captain pass 1 — BLOCKED, and the argument is better than the finding
@@ -499,6 +499,92 @@ and STRUCTURE.md's size clause takes that number as its judgement input: the
 counter was arguing to split the files that explain themselves best. Fixed;
 the tool now reads MonthCell 105 / CalendarViews 224 / TimelineGrid 201
 against Captain's independent 108 / 223 / 206. Synced to both copies.
+
+### Vision pass 2 — PASS, and the method is the finding
+
+**Verdict: PASS.** Zero blockers. Gauntlet re-run on all six legs
+(335 / 328+7-skipped / 335, build clean); boundary **exactly** the eight
+declared files plus the mission file — no `actions/**`, no `prisma/**`, none
+of the nine forbidden files.
+
+**B2 (Month skeleton) closed independently, and the instrument is worth more
+than the number.** Vision's harness was **wrong three times and a control
+caught it each time**: truncate + `Fetch.fulfillRequest` (control failed, 0
+pulse blocks); JS disabled (shows only the *outer* app fallback — the
+calendar skeleton sits behind a nested boundary that needs JS); neutralising
+the `$RC` reveal (hydration reveals it from the embedded flight payload
+anyway). What finally worked: stream the server's own bytes through
+`$RC("B:0","S:0")` and hold the socket, so all 13 `__next_f.push` chunks fall
+after the cut and hydration cannot complete. **Positive control: 60 visible
+pulse blocks on the skeleton, 0 on the real page.** Result: Month weekday-row
+top **379 skeleton / 379 real, 0.00px**, at both 375 and 320. **No leak into
+Year** (C4's 0px preserved) or the timeline views — the strip is structurally
+confined to the `"monthGrid" in shape` branch.
+
+**B1 (reachability) closed for all six views, proven two ways.** The real
+`VIEW_CONFIG` was run against the exact pre-C5 expressions: identical for all
+six, **with a negative control proving the probe can detect divergence**. The
+non-comment diff in `CalendarViews.tsx` is **exactly three lines** — two
+conditions and one prop deletion — so branch bodies genuinely stayed put. And
+the two `ownsTodayScroll` branches were proven *distinct* rather than merely
+equal: Month's Today pushes a URL, Schedule's Today scrolls with **no push**.
+
+**Vision corrected its own work, unprompted.** Its first ink-overflow pass
+reported real escapes on Month pills of up to 45.8px. That was the
+instrument, not the app — `Range.getClientRects` reports **layout**, so an
+overflowing inline inside a `truncate` ancestor looks like an escape.
+Re-measured against the actual clipping ancestor: `realEscapes: []` at both
+widths; every overflow is clipped by `overflow: hidden`, which is the
+ellipsis doing its job. **C2's claim holds.** A gate that publishes its own
+false positive and the correction is worth more than one that only publishes
+clean numbers.
+
+**Notes (7), recorded in full:**
+
+- **N-V1 — `MonthGridSkeletonRows.tsx` is 192px taller than the real grid on
+  real data** (`main` 957 vs 765). Skeleton rows are all 78.5px; real rows are
+  78.5 when populated then **44 for each of five empty rows**. **Pre-existing,
+  not introduced here** — the file is untouched since CV3/C5, and C2's only
+  structural change cannot shorten a cell with no pills. It sits *below* the
+  weekday row, so it moves no landmark C5 fixed. **C5 made the right trade:**
+  it bought exact alignment of everything above the grid. Worth knowing that
+  the file's "MEASURED 78.5px" comment is true only for a *populated* row.
+- **N-V2 — a stale comment in the code C5 just wrote.**
+  `loading.tsx` ~:183's `MonthChipsSkeleton` comment says "same `min-h-11`
+  chip height"; the code uses `h-11`. Measured equal today (44/44 at both
+  widths, both `2.75rem`) and chips are `w-max` single-line so no wrap
+  divergence — comment accuracy only, but this project tracks stale comments
+  as a named defect class. Routed to Captain.
+- **N-V3 — three files over the soft cap**, none near the 650 hard cap:
+  `calendarViewConfig.ts` **392/110** (C5 pushed it over), `CalendarViews.tsx`
+  **484/223**, `TimelineGrid.tsx` **555/201**. Explicitly Captain's call under
+  STRUCTURE.md's own clause that code well under the cap is not a split
+  candidate.
+- **N-V4 — ⚠️ FIVE OF VISION'S OWN PASS-1 NOTES WERE NEVER WRITTEN DOWN.**
+  The gate ledger's pass-1 row claims **9 notes**; only four exist in this
+  file (B2 + N1/N2/N3). Vision cannot restate the other five — **they are
+  lost to the record.** This is the project's "claimed but not durable" class
+  applied to a gate report, and the loss is **Fury's**: I wrote the ledger row
+  from the report and recorded only the notes C5 was going to action. A
+  count in a ledger is not a record of the things counted.
+- **N-V5 — two commits landed mid-gate** (`b31b715`, `8599bde`). **Provably
+  inert for Vision's domain**: `git diff --stat` over `src/`, `prisma/`,
+  `package.json`, `package-lock.json`, `next.config.ts`, `tsconfig.json`,
+  `eslint.config.mjs`, `.github/` and `vercel.json` is **empty** — the delta
+  is `.md`-only. Its verdict therefore covers `8599bde`. Recorded because
+  "a contract landing after a PASS leaves that PASS covering the old tree" is
+  this arc's named hazard, and Fury created the situation again even while
+  writing about it.
+- **N-V6 — third transcript exposure of real family data on this arc.** A
+  real event title and **a child's first name** reached Vision's own
+  transcript while it read pill text off the live dev branch for the ink
+  measurement. Nothing durable was written, it did not repeat them in its
+  report, and it switched to counting rather than quoting. Strengthens the
+  standing case for the parked dev-branch rotation and for treating dev data
+  as private.
+- **N-V7 — Week's timeline skeleton is 2px shorter than its real render**
+  (793 vs 795), from `calc(100dvh - 369px)` against a runtime measurement.
+  Pre-existing, untouched by C5. Logged so it is not rediscovered as new.
 
 ## Handoff log
 
