@@ -1,7 +1,7 @@
 # Mission: CV5 — Month text pills, MonthChips, Year
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES — all four contracts DONE
+**Status:** AT-THE-GATES — 5 contracts DONE, Vision + Captain blockers closed, **Strange not yet run (paused for usage)**
 **Started:** 2026-09-06 · **Updated:** 2026-09-06
 
 ## Brief
@@ -341,7 +341,23 @@ assertions about the tree. **The two real assertions were both checked:**
 false claim back to me twice and I read only the dependency findings.
 
 ### C5 — both gates' blockers, and four notes, in one batch
-- **Status:** PENDING
+- **Status:** **DONE** — merged. Both blockers closed, four notes cleared.
+  `showArrows` and `ownsTodayScroll` are now fields on the total `VIEW_CONFIG`
+  record; `CalendarHeader` reads `showArrows` itself and the prop is gone;
+  **zero inline `view === "schedule"` tests remain in the shell** (grep: 0).
+  Two new per-row tests assert both fields across all six views — tests
+  **333 → 335**. The Month skeleton reproduced Vision's **76px** gap first
+  (303 against 379), then measured **379/379, three runs**, by mirroring the
+  real box model rather than hardcoding a margin. MDT/MST labels corrected to
+  **6 PM MDT / 5 PM MST**. `MonthChips`' suppression removed by hoisting
+  (grep: 0); the other five files' suppressions deliberately untouched.
+  Boundary exactly the eight allowed files; gauntlet re-run by Fury.
+- **A builder judgement worth keeping:** for N3 it **rejected** my offered
+  cast of `"quarter" as CalendarPeriodView`, on the grounds that it would
+  call a typed function with a value its own type promises it never receives
+  — "a smaller, quieter version of the fictional-view pattern already
+  disclosed once this mission." It renamed the test instead. That is the
+  right instinct, and it declined a shortcut I had explicitly offered.
 - **Objective:** close Captain's reachability blocker and Vision's Month-skeleton
   blocker, and clear four notes, in one contract so neither gate is re-run twice.
 - **Boundaries:** may touch `src/lib/calendarViewConfig.ts`,
@@ -414,7 +430,8 @@ false claim back to me twice and I read only the dependency findings.
 |---|---|---|---|---|
 | 1 | Captain | **BLOCKED** | 1 | 7 notes, 2 amendments drafted. Re-ran all six gauntlet legs first |
 | 1 | Vision | **BLOCKED** | 1 | 9 notes. Re-ran all six legs. **Reproduced the CV4 finding that C1 said could not be reproduced locally** |
-| 1 | Strange | queued (serial after Vision — shared dev branch) | — | — |
+| — | C5 | DONE — merged | — | Both blockers closed, four notes cleared, tests 333 → 335 |
+| 1 | Strange | **NOT RUN — paused for usage** | — | Bryce is low on usage; the design gate is the most expensive remaining step |
 
 ### Captain pass 1 — BLOCKED, and the argument is better than the finding
 
@@ -483,6 +500,14 @@ against Captain's independent 108 / 223 / 206. Synced to both copies.
 
 ## Handoff log
 
+- 2026-09-06 — **C5 DONE and merged; both gate blockers closed.** **PAUSED
+  HERE, deliberately:** Bryce is low on usage and Strange (the design gate)
+  is the most expensive remaining step. Nothing is half-done — five contracts
+  are merged, the six-leg gauntlet is green, and the branch is unpushed.
+  **To resume:** run Strange on this tree, then deliver. Vision and Captain
+  both blocked on the *previous* tree, so **their PASS is not on record for
+  the current one** — re-run them, or enumerate the C5 delta and show it does
+  not reach their domains. Vision said so itself.
 - 2026-09-06 — **C4 DONE and merged. All four contracts built; ALL SIX VIEWS
   REACHABLE.** My boundary was wrong for the sixth time — proven by reverting
   the four test files and reproducing exactly 9 failures. Preflight had named
