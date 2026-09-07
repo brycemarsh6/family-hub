@@ -508,8 +508,17 @@ both `.claude/` copies, per the drift lesson.
   — Vision, Strange and Captain have all seen exactly nothing of CV6. Branch
   `claude/calendar-cv6` is **pushed for recoverability but has NO PR and is
   NOT merged; nothing from CV6 is live.** Gauntlet green at the pause:
-  **336 / 329 + 7 skipped / 336**, tsc 0, eslint 0, build clean; DB baseline
-  `Task 0, TaskPerson 0, CalendarEvent 4, User 5` confirmed unchanged.
+  **336 / 329 + 7 skipped / 336**, tsc 0, eslint 0, build clean — **all six
+  legs re-run by Fury**. **DB baseline: attributed, not re-verified by Fury.**
+  C3 read it directly at the end of its contract —
+  `{task:0, taskPerson:0, calendarEvent:4, user:5}`, exact — and no contract
+  in this mission has a database write path at all (CV6 is entirely
+  client-side navigation). **Fury's own re-check at wrap-up would not run**:
+  `src/lib/db.ts` carries `server-only`, which throws outside Next's bundler,
+  and importing the generated client directly hit an esbuild transform error.
+  **Worth solving before a mission that does touch data** — the CLAUDE.md
+  recipe ("run one-off DB scripts from the repo root with
+  `npx tsx --env-file=.env`") is not sufficient on its own now.
   **To resume:** re-run C4's preflight, dispatch C4, then gate the whole
   mission (all three gates — Strange especially, since a new control and a
   new gesture are both squarely its domain, and it is the gate that found
