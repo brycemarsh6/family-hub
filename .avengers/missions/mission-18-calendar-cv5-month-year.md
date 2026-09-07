@@ -1,7 +1,8 @@
 # Mission: CV5 — Month text pills, MonthChips, Year
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES — 5 contracts DONE, Vision + Captain blockers closed, **Strange not yet run (paused for usage)**
+**Status:** **COMPLETE — all three gates PASS.** 6 contracts DONE. Unpushed by
+decision: the merge is Bryce's call.
 **Started:** 2026-09-06 · **Updated:** 2026-09-06
 
 ## Brief
@@ -493,6 +494,8 @@ false claim back to me twice and I read only the dependency findings.
 | 2 | Vision | **PASS** | 0 | 7 notes. Both blockers closed by its own measurement, with stated positive controls. **Corrected its own first ink measurement** |
 | 2 | Captain | **PASS** | 0 | 12 notes, 3 amendments. **Swept for a fourth per-view difference it was never asked about** |
 | 1 | Strange | **BLOCKED** | 1 | 8 notes, 2 amendments. Found a real bug both other gates missed |
+| — | C6 | DONE — merged | — | The today-marker guard, in both `YearView` and `MonthGrid` |
+| 2 | Strange | **PASS** | 0 | 3 notes. Positive control reproduced the bug pre-fix. **Ruled Fury's scope widening correct, against its own pass-1 advice** |
 
 ### Captain pass 1 — BLOCKED, and the argument is better than the finding
 
@@ -866,7 +869,121 @@ control that distinguishes; and `MonthChips` **reuses `PantryList`/
 `GroceryList`/`TagFilterChips`' exact chip markup including `aria-pressed`**
 rather than reinventing a vocabulary.
 
+### Strange pass 2 — PASS, and it overturned its own pass-1 advice
+
+**Verdict: PASS**, measured on `5004b48`. Zero blockers, 3 notes. All six
+gauntlet legs re-run. Production builds at 375×812, **theme forced explicitly
+in both directions and re-verified from inside the page** via
+`matchMedia(...).matches` on every reading; clock frozen by overriding the
+`Date` constructor — *which is what `useToday`'s `getTodayTimestamp` actually
+reads* — and re-render forced through the app's own year controls. **No
+fixtures created at any point**; every measurement was read-only against real
+household data, nothing quoted, baseline unchanged.
+
+**The blocker is closed with a real positive control** — the pre-fix commit
+`b9b809b` was built in an isolated worktree and served separately, so the
+control is a genuinely different build rather than a simulated one:
+
+| | pre-fix `b9b809b` | post-fix `5004b48` |
+|---|---|---|
+| Year, frozen 2026-10-01 | **2 circles** — "1" in *September* **and** "1" in *October* | **1** — October only |
+| Year, real clock | 1 — "6" in September | 1 — unchanged |
+| Month anchored Sept, frozen 2026-10-01 | **1** — Oct-1 cell `accent:true, muted:false`, 11 muted cells | **0** — that cell `muted:true`, **12** muted |
+| Month anchored Oct, frozen 2026-10-01 | — | 1 — the marker still works |
+
+The harness demonstrably produces **2** and captured it visually, so the
+post-fix **1** is a measurement rather than an instrument ceiling. The freeze
+is non-vacuous: the circled day moves 6 → 1 and its tile September → October.
+
+**Nothing was removed that shouldn't be**, proven structurally rather than by
+eyeballing: across all 42 cells per tile, September post-fix has **exactly two**
+distinct computed `color|background` pairs — muted and in-month, **no accent
+present at all** — with its whole trailing run uniformly muted; October has
+three, the third being the circle. Identical in dark. Geometry unchanged;
+circle contrast 5.08 light / 7.87 dark.
+
+**⚠️ N-S9 — Strange ruled that Fury's scope widening was right and its own
+pass-1 advice was wrong, and gave the measurement that settles it.** It had
+called `MonthGrid` "milder" because one grid is on screen with the month named
+in the header. The measurement it had not taken: pre-fix, September's Oct-1
+cell rendered **`accent: true, muted: false`** — styled as an in-month today,
+**visually indistinguishable from a real one**, in the app's most-used
+calendar view. *"That is the same semantic falsehood as the Year blocker, not
+a lesser cousin. My 'fix Year alone' advice would have shipped the rule with a
+live counterexample."* **This is the second time on this arc a gate's finding
+stood while its prescription was wrong** — and the first time the gate itself
+supplied the correction.
+
+**And it verified the widening was COMPLETE rather than assuming it** —
+independently reproducing Fury's own preflight settlement: `monthGridDays` has
+**exactly two callers**, both now guarded; every other
+`isToday = isSameDay(day, today)` site (`TimelineGrid.tsx:388`/`:541`,
+`DaySection.tsx:171`, `WeekCard.tsx:50`) derives its days from the viewed
+period and has no padding concept. **No false instance of the new rule
+remains** — which is what lets the amendment be written flatly.
+
+**Notes:**
+
+- **N-S10 — the guard lives at both call sites, not in the consumer.**
+  `MonthCell` still accepts `isToday` and `isCurrentMonth` as independent
+  props while they now carry an **unexpressed invariant** (`isToday` implies
+  same-month). Correct as shipped and the cheaper fix — but **a third
+  `MonthCell` caller would reintroduce the bug with no compile error.** Routed
+  to the follow-up; Captain's call whether it rises above taste.
+- **N-S11 — five instrument failures hit and corrected**, recorded because a
+  clean reading from a broken instrument is this arc's recurring defect:
+  (1) headless Chrome driven from the Bash tool cannot reach the network —
+  `Page.navigate` hung and poisoned the CDP session; (2) **the first pre-fix
+  build FAILED while its wrapper still exited 0** (Turbopack rejects a
+  symlinked `node_modules`) — caught by checking for `BUILD_ID`, **not the
+  exit code**; (3) the pre-fix page looked un-hydrated, so it loaded the
+  *known-good* build in the same tab and saw the identical symptom, matching
+  the hidden-pane finding already on record; (4) it **nearly labelled a
+  pre-fix screenshot as post-fix**, so every measurement now records
+  `location.origin`; (5) `.rounded-full.bg-accent` matches `MonthChips`' active
+  chip — measured `nonSpanAccent: 1` live, **independently confirming the
+  builder's reported trap is real**. All counts are `span`-scoped.
+- **Amendments stand as drafted, with one clarification:** because C6 fixed
+  **both** instances, the today-marker rule can be written **flatly** — *a
+  today-marker may only be drawn on a cell belonging to the period being
+  displayed* — with **no carve-out for a known-live exception**. The now-line
+  `--danger` amendment is untouched by C6.
+
+**Carried forward from pass 1, with the reason stated:** the delta is two
+conjuncts in two boolean expressions (+10/−2 including comments), no new
+imports, no styling or layout change, so it cannot reach N-S1, N-S2, N-S3,
+N-S4, N-S7, or the settled N-S8/N-V1 and N-V7. **N-S5 was re-measured
+incidentally** and is unchanged at 1.47:1. **N-S6 is now CLOSED.**
+
 ## Handoff log
+- 2026-09-06 — **MISSION COMPLETE. All three gates PASS.** Vision PASS
+  (0 blockers, 7 notes), Captain PASS (0 blockers, 12 notes, 3 amendments),
+  Strange PASS on pass 2 after blocking on pass 1 (0 blockers, 11 notes total,
+  2 amendments). **C6** closed Strange's blocker. Six-leg gauntlet green;
+  recordcheck run. **Nothing pushed — the branch is local**, and merging is
+  what deploys to the family's live app, so it is Bryce's decision.
+  **Gate coverage, stated precisely rather than glossed:** Strange's PASS
+  covers the final tree `5004b48`. **Captain's PASS covers `7dbf18b`, and the
+  C6 delta provably does not reach its domain** — zero import lines added or
+  removed, zero exports changed, no new files, and both touched files far
+  under the soft cap (`YearView` 106, `MonthGrid` 235 against 350). **Vision's
+  PASS covers `8599bde`, before C6** — that is the one gap, and it is
+  recorded rather than glossed. What stands in for it: C6 alters exactly one
+  boolean per cell, whose only two failure directions (today circles where it
+  should not / today stops circling) were both measured by Strange **against
+  a genuinely separate pre-fix build**, plus a boundary audit by Fury and a
+  green six-leg gauntlet. **A re-run of Vision is the rigorous option and is
+  Bryce's call on usage.**
+  **Fury's ledger for this session:** the mid-gate-commit habit that Captain
+  flagged as four-missions-running was **broken** — Captain's verdict was
+  staged in the scratchpad *outside the repo* while Strange ran, and C6 was
+  committed before its gate was dispatched. Preflight's judgement items were
+  **settled rather than skipped**, which is the failure this mission had
+  already recorded twice; asking "what do these references *do*" found that
+  `monthGridDays` has exactly two callers, which Strange later reproduced
+  independently. And running recordcheck at the **start** of the resume rather
+  than at delivery caught a false count in a STRUCTURE.md amendment.
+
 
 - 2026-09-06 — **RESUMED at the gate phase.** Fury re-ran the full six-leg
   gauntlet on the post-C5 tree before spending anything on a gate: tsc 0,
@@ -933,6 +1050,38 @@ rather than reinventing a vocabulary.
 
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
-- **Deliberate leftovers:** —
+- **Shipped:** CV4's open `sr-only` finding closed and `TimelineGrid`
+  extracted (C1); Month pills show their titles at phone width (C2);
+  `MonthChips`, the month-name scroller (C3); `YearView`, and
+  **all six calendar views reachable for the first time** (C4); both gates'
+  blockers plus four notes (C5); the today-marker guard in `YearView` **and**
+  `MonthGrid` (C6). Tests **333 → 335**.
+- **Shipped check:** `git log origin/main..HEAD` — **NOT pushed.** The branch
+  is local only. Merging deploys to the family's live app, so it is Bryce's
+  decision, not the mission's. **"Works locally" and "the family has it" are
+  different claims**, and this project has been bitten by that gap five times.
+- **Deliberate leftovers** (none blocking; all recorded above with detail):
+  - **N-S1** a multi-day bar's title is confined to one cell while the bar
+    spans three (~95.8px of blank bar) — the cheapest remaining improvement to
+    C2's own goal, and only visible *because* C2 shipped.
+  - **N-S4** `MonthChips` chips left of the first January carry no year, so a
+    chip reading "Sep" can navigate to the *previous* September.
+  - **N-S5** `YearView`'s 7px day numbers carry in-month vs adjacent-month by
+    colour alone at **1.47:1**, where `MonthCell` uses 11px + `font-semibold`.
+  - **N-S10** the today invariant lives at both call sites, not in
+    `MonthCell` — a third caller would reintroduce the bug with no compile
+    error.
+  - **N-C5/N-C6** five month-name definitions across two mechanisms, and one
+    identifier meaning two different things — amendment 3.
+  - **N-C8/N-C9/N-C10** three stale comments, one of which
+    (`MonthGridSkeletonRows.tsx:12`) is the stated reason its own heights were
+    never re-measured.
+  - **N-C2** `CalendarViews.tsx` is the only file in the arc with a rising
+    multi-mission trend, and **CV6 and CD1 both land there**; the sheets block
+    is the standing seam.
+  - **N-S7** on a cold document load the first painted frame is the *generic
+    app* skeleton, not the calendar one — pre-existing, outside CV5.
+  - **Both gates' pass-1 note counts have no records behind them** (Vision's
+    N-V4, Captain's own) — five of Vision's nine and all seven of Captain's
+    were never written down. **That loss is Fury's**, and the standing lesson
+    is that a count in a ledger is not a record of the things counted.
