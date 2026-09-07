@@ -84,12 +84,25 @@
 // file — because the same value has to line up across the weekday header,
 // the all-day strip, and the hour rail, and a private second copy is
 // exactly the kind of drift Captain's own finding above warns about.
+//
+// mission-18/C1 EXTRACTION, the second one: C6's own split left this file
+// at 649/650 total — one line under the hard cap, the contract's own named
+// "known risk." The per-day TIMED render (gridlines, every event `<button>`,
+// the now-line) moved wholesale to `./TimelineDayColumn.tsx`, one call per
+// column, leaving real headroom rather than the one line C6 did. Same
+// discipline throughout: every class name, inline style, and comment
+// reproduced exactly, not rewritten — this is a line-count fix, not a
+// behaviour change. `HOURS_PER_DAY`/`PX_PER_MINUTE` are passed down as
+// plain numbers rather than re-derived in the new file from a private copy
+// of `HOUR_HEIGHT_PX`, for the identical reason `gridTemplateColumns`
+// itself is a prop and not a second formula. This same contract also fixed
+// the per-column not-loaded `sr-only` string — see its own comment, right
+// where the string lives, for the full defect.
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CalendarOff } from "lucide-react";
 import {
   MINUTES_PER_DAY,
-  MIN_BLOCK_MINUTES,
   minutesOfDay,
   blockGeometry,
   partitionForTimeline,
@@ -99,11 +112,10 @@ import {
   type TimelineBlock,
 } from "@/lib/timelineLayout";
 import { isSameDay, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
-import { formatTimeRange, isOutsideWindow, isPast } from "@/lib/calendarDates";
-import { avatarColorHex } from "@/lib/constants";
-import { bandedBackground } from "@/lib/color";
+import { isOutsideWindow } from "@/lib/calendarDates";
 import { BOTTOM_NAV_HEIGHT_PX } from "@/lib/appChrome";
 import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
+import { TimelineDayColumn } from "./TimelineDayColumn";
 import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
 
 /** The rail's own scale — CSS custom property `--hour-height`, per the
@@ -132,24 +144,13 @@ const HOUR_LABELS = Array.from({ length: HOURS_PER_DAY }, (_, hour) =>
   HOUR_LABEL_FORMATTER.format(new Date(2000, 0, 1, hour, 0)),
 );
 
-// Up to 3 diagonal bands (Month's own cap, EventCard.tsx's own comment for
-// why THIS pill is capped tighter than EventCard's uncapped list version) —
-// `bandedBackground` (src/lib/color.ts) used to be a private copy in this
-// file named `blockBackground`, under a comment claiming it was "a private,
-// minimal variant, not a copy." That claim was WRONG — Fury diffed it
-// against MonthCell.tsx's own `pillBackground` and found the two
-// byte-for-byte identical, only reachable because mission-17's C2/C3
-// contracts put the two files in DIFFERENT boundaries, neither allowed to
-// touch the other's. mission-17/C5 hoisted it; see color.ts's own header
-// for the fuller reasoning and why EventCard.tsx's `bandBackground` stays a
-// genuinely separate function. `alpha`/opaque `var(--surface)` backdrop and
-// the two alpha values used below (0.10 live / 0.05 past-or-done) are
-// EventCard's own already-measured numbers (mission-8/Strange: worst case
-// 4.64:1 light / 5.53:1 dark across all 8 AVATAR_COLORS) — reusing the
-// identical inputs is what makes reusing that finding valid here too, with
-// no new contrast pass needed. mission-17/C6: the all-day strip's own use of
-// this function now lives in `./TimelineAllDayStrip.tsx`; the timed grid's
-// use below is what keeps the import here.
+// The timed block's own colour banding (`bandedBackground`, up to 3
+// diagonal bands, Month's own cap) used to be explained HERE, because this
+// file called it directly. mission-18/C1 moved the timed block's whole
+// render — including that call — into `./TimelineDayColumn.tsx`; see that
+// file's own comment for the full history (the `blockBackground`
+// misdiagnosis, the measured contrast numbers it reuses) rather than a
+// stale copy of it sitting next to code that no longer calls the function.
 
 type TimelineGridProps = {
   /** `[anchor]` (Day) / `[anchor, +1, +2]` (3 Day, anchor-relative, never
@@ -410,17 +411,48 @@ export function TimelineGrid({
                         mixed window; the sr-only span says it in words.
                         Never `hidden` — `display: none` drops it from the
                         a11y tree entirely (mission-9's finding).
+                        mission-18/C1 — the string used to read "no events
+                        loaded for this day," which is FALSE on the real
+                        production path and was shipped anyway (mission-17's
+                        own delivery note names it as CV4's one open
+                        finding). `isOutsideWindow` (calendarDates.ts) flags
+                        a day whenever EITHER edge fails full containment —
+                        including a day that's only PARTIALLY outside, which
+                        is the common case here, not an edge case: the fetch
+                        window's edges are built server-side from
+                        `startOfDay`/`addDays` (calendarPaging.ts's
+                        `buildFetchWindow`), both of which construct
+                        midnight in the SERVER's own runtime timezone (UTC
+                        on Vercel). Rendered here in the BROWSER (this file
+                        is "use client"), that UTC-midnight instant lands at
+                        6 PM Mountain Daylight Time (5 PM Standard) the
+                        PRECEDING Denver calendar day — so the last day the
+                        window is meant to cover still gets everything from
+                        its own local midnight up to that afternoon/evening
+                        cutoff fetched and rendered right here, in the same
+                        column, underneath a label claiming zero did. This
+                        can only be OBSERVED on a UTC server: a Denver dev
+                        server's own `startOfDay` already lands on a Denver
+                        midnight, so the two edges agree and the false case
+                        never occurs locally — confirmed by reading
+                        `buildFetchWindow`'s and `isOutsideWindow`'s own
+                        implementations, not by trying to reproduce it here.
+                        "Not all events loaded" is true in BOTH the fully-
+                        unfetched case and this partial one, reads the same
+                        as a count could never be misheard as ("not all"
+                        can't parse as a number the way "no events" briefly
+                        could), and is the exact phrase this file's own
+                        worded banner below and DaySection.tsx's
+                        `NotLoadedCard` already use — one wording for the
+                        same fact everywhere the app states it, not three.
                         mission-17/C8 (round 3, Strange) — the day number
                         sits right before this ("Fri", "6", then this span),
-                        so a number ahead of a plural noun read as a count:
-                        "6 events not loaded" parsed as "six events not
-                        loaded." Terse is still right here (a marker beside
-                        one day, not the worded banner below) — leading
-                        with "no" can't be misheard as a quantity. */}
+                        which is why a leading "no"/"not" still matters:
+                        nothing here should ever read as a quantity. */}
                     {notLoaded && (
                       <>
                         <CalendarOff aria-hidden="true" size={9} className="shrink-0 text-muted" />
-                        <span className="sr-only">— no events loaded for this day</span>
+                        <span className="sr-only">— not all events loaded</span>
                       </>
                     )}
                   </span>
@@ -502,146 +534,20 @@ export function TimelineGrid({
             ))}
           </div>
 
-          {columnDays.map((day, columnIndex) => {
-            const isToday = isSameDay(day, today);
-            return (
-              <div key={day.getTime()} className="relative border-l border-line">
-                {Array.from({ length: HOURS_PER_DAY }, (_, hour) => (
-                  <div
-                    key={hour}
-                    aria-hidden="true"
-                    className="absolute inset-x-0 border-t border-line/60"
-                    style={{ top: `calc(var(--hour-height) * ${hour})` }}
-                  />
-                ))}
-
-                {columnSlots[columnIndex].map((slot) => {
-                  const event = eventById.get(slot.block.id);
-                  if (!event) return null; // defensive; every block came from `timed`/`eventById`
-                  const past = isPast(event.endAt, now); // real "now", not day-granular `today` — see below
-                  const colors = event.people.slice(0, 3).map((p) => avatarColorHex(p.avatarColor));
-                  // The library's own padded geometry — used for "is there
-                  // room for a second/third line" thresholds below, which
-                  // care about the box's real computed size, not the 2px
-                  // cosmetic trim applied only to what's actually drawn.
-                  const heightPx = slot.block.heightMinutes * PX_PER_MINUTE;
-                  // mission-17/C5, Strange B3: two consecutive half-hour
-                  // events measured a 0.0px gap between them — each one's
-                  // 24px hit band sharing an exact edge, so a ~12px aim
-                  // error opens the wrong one, which is worse than missing.
-                  // Drawing 2px SHORTER than the computed geometry (top
-                  // unchanged) is free and needs no `timelineLayout.ts`
-                  // change: `assignColumns` only guarantees non-overlap up
-                  // to exactly the padded box, so shrinking what's drawn can
-                  // never reintroduce an overlap the way inflating it could.
-                  const drawnHeightPx = Math.max(0, heightPx - 2);
-                  // The box's real duration is PADDED UP to
-                  // MIN_BLOCK_MINUTES by blockGeometry (timelineLayout.ts),
-                  // so a genuinely 15-minute event draws exactly like a
-                  // 30-minute one — the one case where the box's height is
-                  // not a fact about the event. `trueDurationMinutes` is the
-                  // event's OWN unpadded span, used only to force the time
-                  // line to show even when the drawn box is too short to
-                  // "earn" it on the usual height-based test below — a guess
-                  // (this box's height) must never stand in for a fact (how
-                  // long this really is) when the two disagree.
-                  const trueDurationMinutes = (event.endAt.getTime() - event.startAt.getTime()) / 60000;
-                  return (
-                    <button
-                      key={slot.block.id}
-                      type="button"
-                      onClick={() => onOpenEvent(event, day)}
-                      // D5 ("contrast by border, not alpha" — C7's Month-pill
-                      // ruling applies here too): the fill alone (0.05/0.10
-                      // alpha) measures under WCAG's 3:1 non-text floor by
-                      // itself, so a solid `border-fg`/`border-muted` carries
-                      // the real contrast, exactly MonthCell's own technique.
-                      //
-                      // 44px NOTE — Strange's ruling (mission-17, gate round
-                      // 1): "accept the height, reject the abutment." At this
-                      // file's HOUR_HEIGHT_PX (48), a MIN_BLOCK_MINUTES
-                      // (30 min, timelineLayout.ts) block draws
-                      // 30/60 * 48 = 24px tall — under DESIGN.md's 44px
-                      // floor. Inflating the box past its computed geometry
-                      // was rejected (it would either paint over a neighbor
-                      // or reintroduce the ambiguous tap the pad exists to
-                      // prevent, and doubling HOUR_HEIGHT_PX to clear 44px
-                      // outright would halve the visible day from 9.2 hours
-                      // to 4.6, paid on every open of the app's most-used
-                      // view). The exception carries a written boundary: a
-                      // timeline block's height is its duration; every block
-                      // stays a real `<button>` with a real accessible name;
-                      // Schedule (112px full-width rows) is the conforming
-                      // route for anyone who wants one. What the ruling did
-                      // NOT accept is the abutment between two such
-                      // blocks — see `drawnHeightPx` above for that fix.
-                      className={`absolute flex flex-col justify-start overflow-hidden rounded-md border px-1 text-left leading-tight ${
-                        past ? "border-muted text-muted" : "border-fg text-fg"
-                      }`}
-                      style={{
-                        top: `${slot.block.topMinutes * PX_PER_MINUTE}px`,
-                        height: `${drawnHeightPx}px`,
-                        left: `calc(${slot.column} / ${slot.columnCount} * 100%)`,
-                        // 2px narrower than the raw percentage split, for the
-                        // identical reason `drawnHeightPx` is 2px shorter —
-                        // a real gap between two side-by-side blocks in the
-                        // same overlap cluster, not just top-to-bottom ones.
-                        width: `calc(100% / ${slot.columnCount} - 2px)`,
-                        background: bandedBackground(colors, past ? 0.05 : 0.1),
-                      }}
-                    >
-                      {/* `<button>` elements are vertically centered by the
-                          browser's own default rendering UNLESS overridden
-                          (the same reason a short `<button>`'s text never
-                          looks top-aligned even with no CSS at all) — on a
-                          tall block that reads as WRONG: measured live, a
-                          144px 3-hour block put its title 59.7px down,
-                          reading as roughly 2:30 for an event that actually
-                          starts at 1:00. On an hour grid the box's TOP edge
-                          IS the start time, so its content must start there
-                          too. `flex flex-col justify-start` above overrides
-                          the default centering; `truncate` on each span
-                          still works under it since column-direction
-                          flex-shrink only touches the cross axis (height)
-                          here, not the width truncation depends on. */}
-                      <span className={`block truncate text-[10px] font-semibold ${compact ? "" : "text-xs"}`}>
-                        {event.title}
-                      </span>
-                      {/* Day view only (D5) — 3 Day/Week's ~44px columns get
-                          a colour band with 2-3 characters, same as the
-                          Month pill's own phone-width treatment; showing a
-                          time/location line there would just overflow
-                          illegibly. Gated on the block's own drawn height
-                          too, so a 30-min Day-view block (24px) doesn't try
-                          to cram two more text lines into a box shorter than
-                          one already is — UNLESS the event's real duration
-                          is itself under MIN_BLOCK_MINUTES, in which case the
-                          height is a pad, not a fact, and the time line is
-                          the only place the truth (a genuine 15-minute
-                          appointment, not 30) can still be told. */}
-                      {!compact && (heightPx >= 40 || trueDurationMinutes < MIN_BLOCK_MINUTES) && (
-                        <span className="block truncate text-[9px]">{formatTimeRange(event.startAt, event.endAt)}</span>
-                      )}
-                      {!compact && heightPx >= 72 && event.location && (
-                        <span className="block truncate text-[9px]">{event.location}</span>
-                      )}
-                    </button>
-                  );
-                })}
-
-                {isToday && (
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-x-0 z-10 flex items-center"
-                    style={{ top: `${minutesOfDay(now) * PX_PER_MINUTE}px` }}
-                  >
-                    <span className="h-2 w-2 -translate-x-1 rounded-full bg-danger" />
-                    <span className="h-px flex-1 bg-danger" />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {columnDays.map((day, columnIndex) => (
+            <TimelineDayColumn
+              key={day.getTime()}
+              day={day}
+              isToday={isSameDay(day, today)}
+              slots={columnSlots[columnIndex]}
+              eventById={eventById}
+              now={now}
+              hoursPerDay={HOURS_PER_DAY}
+              pxPerMinute={PX_PER_MINUTE}
+              compact={compact}
+              onOpenEvent={onOpenEvent}
+            />
+          ))}
         </div>
       </div>
     </div>

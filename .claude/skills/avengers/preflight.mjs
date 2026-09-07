@@ -239,10 +239,19 @@ function lineCounts(file) {
     const t = line.trim();
     if (!t) continue;
     if (inBlock) {
+      // `*/}` closes a JSX comment, `*/` a plain one.
       if (t.includes("*/")) inBlock = false;
       continue;
     }
-    if (t.startsWith("/*")) {
+    // `{/* … */}` is this repo's DOMINANT documentation form inside .tsx,
+    // and an earlier version of this counter missed it entirely — it tested
+    // `startsWith("/*")`, which a JSX comment never satisfies because it
+    // opens with `{`. Captain caught it: the same file read 237 code lines
+    // by this heuristic and 108 by a JSX-aware count, and STRUCTURE.md's
+    // size clause takes that number as its judgement input. A counter that
+    // over-reports code exactly where the rule is meant to protect prose
+    // argues for splitting the files that explain themselves best.
+    if (t.startsWith("{/*") || t.startsWith("/*")) {
       if (!t.includes("*/")) inBlock = true;
       continue;
     }

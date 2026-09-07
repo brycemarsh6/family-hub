@@ -30,9 +30,9 @@ test("canonicalSearchFor: a URL already naming a built view is left completely a
   // The common case by far, and the one that must stay free: every URL this
   // hook itself pushes names a built view, so a push can never trigger a
   // rewrite of its own arrival. "threeDay" joined this list in mission-17/C4
-  // (BUILT_VIEWS.threeDay flipped to true) — see the next test's own comment
-  // for where its old "unbuilt" example moved.
-  for (const built of ["schedule", "day", "threeDay", "week", "month"]) {
+  // (BUILT_VIEWS.threeDay flipped to true); "year" joined it in mission-18/C4
+  // — the last one, so this is now all six.
+  for (const built of ["schedule", "day", "threeDay", "week", "month", "year"]) {
     assert.equal(canonicalSearchFor(built, WEEK), null, `${built} needs no rewrite`);
   }
 });
@@ -46,17 +46,18 @@ test("canonicalSearchFor: THE BLOCKER — a bare '/calendar' is rewritten to the
 });
 
 test("canonicalSearchFor: an unbuilt view name is rewritten too, not just a missing one", () => {
-  // "?view=year" is a real name with no renderer (BUILT_VIEWS) — a bookmark
-  // from a future build, or a phone running ahead of this deploy. It resolves
-  // through the same preference a bare URL does, so it is ambiguous the same
-  // way and is made honest rather than left saying "year" over a Week screen.
+  // "?view=quarter" stands in for a plausible future seventh view — a
+  // bookmark from a future build, or a phone running ahead of this deploy.
+  // It resolves through the same preference a bare URL does, so it is
+  // ambiguous the same way and is made honest rather than left saying
+  // "quarter" over a Week screen.
   //
-  // "threeDay" was this test's second example through CV1–C3; mission-17/C4
-  // flipped `BUILT_VIEWS.threeDay` to true, so it moved to the
-  // "left completely alone" test above instead — "year" is the only view
-  // left with no renderer (CV5's job).
-  assert.equal(canonicalSearchFor("year", WEEK), "date=2026-09-03&view=week");
-  assert.equal(canonicalSearchFor("year", MONTH), "date=2026-09-03&view=month");
+  // "threeDay" was this test's example through CV1–C3, then "year" through
+  // CV4 — mission-18/C4 built the last real view name, so "quarter" is a
+  // stand-in now rather than something spelled in `CalendarPeriodView`
+  // (see calendarPaging.test.ts's matching note for the same substitution).
+  assert.equal(canonicalSearchFor("quarter", WEEK), "date=2026-09-03&view=week");
+  assert.equal(canonicalSearchFor("quarter", MONTH), "date=2026-09-03&view=month");
 });
 
 test("canonicalSearchFor: garbage and prototype-chain names are rewritten, never trusted", () => {
@@ -80,5 +81,9 @@ test("canonicalSearchFor: the rewrite always pins the date as well as the view",
 test("canonicalSearchFor: the rewrite is exactly what the hook would have pushed", () => {
   // The string shape has to match `buildCalendarSearch` byte for byte, or the
   // push guard's own comparisons (`consumePushedSearch`) would stop matching.
-  assert.equal(canonicalSearchFor("year", MONTH), canonicalSearchFor(null, MONTH));
+  // "year" (built as of mission-18/C4) no longer triggers a rewrite at all —
+  // see the "left completely alone" test above — so "quarter" (a stand-in
+  // unbuilt name, same substitution as the tests above) is what exercises
+  // this comparison now.
+  assert.equal(canonicalSearchFor("quarter", MONTH), canonicalSearchFor(null, MONTH));
 });

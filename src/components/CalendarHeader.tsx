@@ -80,7 +80,6 @@ export function CalendarHeader({
   nextDisabled,
   prevLabel,
   nextLabel,
-  showArrows,
   canManage,
   onAdd,
 }: {
@@ -107,16 +106,6 @@ export function CalendarHeader({
   nextDisabled: boolean;
   prevLabel: string;
   nextLabel: string;
-  /**
-   * mission-15/C4 — Schedule has no period to page between (its cursor
-   * `step` is 0, `useCalendarPeriod.ts`), so its prev/next arrows would be
-   * controls that do nothing: a real tap producing no effect is worse than
-   * no control at all. `false` removes them from the DOM entirely (not
-   * just visually) rather than disabling them, so the header can never be
-   * measured as having two dead buttons. Day, Week and Month all pass
-   * `true`, unchanged from before this prop existed.
-   */
-  showArrows: boolean;
   /** True for admin/parent sessions only — a kid session renders two
    * circles, not three, and `justify-center` re-centers them automatically
    * (no separate layout branch needed). This is UI-only convenience: the
@@ -145,6 +134,13 @@ export function CalendarHeader({
   // also wants this decide so in one place rather than reintroducing a
   // second inline test beside the record that already owns the answer.
   const pinned = VIEW_CONFIG[view].pinned;
+  // mission-18/C5 (Captain's reachability blocker) — `showArrows` used to
+  // be a prop CalendarViews.tsx computed as `view !== "schedule"` and
+  // handed down, a third inline per-view test beside this same record.
+  // Read the same way `pinned` is, directly above: see `showArrows`'s own
+  // comment on `ViewConfig` (calendarViewConfig.ts) for why this was the
+  // last chance for that pattern to hide a per-member difference.
+  const showArrows = VIEW_CONFIG[view].showArrows;
 
   return (
     <div

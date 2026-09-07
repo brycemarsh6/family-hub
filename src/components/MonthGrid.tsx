@@ -208,7 +208,11 @@ export function MonthGrid({
                   day={day}
                   today={today}
                   isCurrentMonth={isSameMonth(day, anchor)}
-                  isToday={isSameDay(day, today)}
+                  // monthGridDays pads this grid with up to 12 days from
+                  // the neighbouring months, so isToday must also check
+                  // isSameMonth or today's date circles on the wrong
+                  // month's cell.
+                  isToday={isSameDay(day, today) && isSameMonth(day, anchor)}
                   // Constraint 3 (Vision/mission-9): a bar the app DOES
                   // have real data for still renders through a not-loaded
                   // cell — this glyph means "there may be MORE we don't

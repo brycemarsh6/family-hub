@@ -106,7 +106,7 @@ test("resolveServerFetchWindow: missing/invalid ?date= falls back to the server'
 // the table itself lives in calendarViewVocabulary.test.ts; these cover what
 // the URL layer does with it.
 
-test("parseViewParam: accepts the five built views unchanged", () => {
+test("parseViewParam: accepts all six built views unchanged", () => {
   assert.equal(parseViewParam("schedule"), "schedule");
   assert.equal(parseViewParam("week"), "week");
   assert.equal(parseViewParam("day"), "day");
@@ -114,14 +114,21 @@ test("parseViewParam: accepts the five built views unchanged", () => {
   // own comment for where it moved from).
   assert.equal(parseViewParam("threeDay"), "threeDay");
   assert.equal(parseViewParam("month"), "month");
+  // mission-18/C4 — year, the last one, moved here too (see the next
+  // test's own comment for why it has no replacement example).
+  assert.equal(parseViewParam("year"), "year");
 });
 
-test("parseViewParam: a real-but-unbuilt view normalizes to the default rather than reaching a missing renderer", () => {
-  // "threeDay" was this test's second example through CV1–C3; mission-17/C4
-  // flipped `BUILT_VIEWS.threeDay` to true (calendarViewVocabulary.ts), so
-  // it moved to the "built" test above instead — "year" is the only view
-  // left with no renderer (CV5's job).
-  assert.equal(parseViewParam("year"), "week");
+test("parseViewParam: a plausible-but-nonexistent view name normalizes to the default rather than reaching a missing renderer", () => {
+  // "threeDay" was this test's example through CV1–C3, then "year" through
+  // CV4 — mission-18/C4 built the last real name in `CalendarPeriodView`,
+  // so there is no longer a REAL vocabulary member left to demonstrate this
+  // with (calendarViewVocabulary.test.ts's own "all six views are built"
+  // test is the place that fact is now pinned). "quarter" stands in for a
+  // plausible future seventh view — the same "spelled sensibly, but not
+  // (yet) in BUILT_VIEWS" shape this test exists to prove is handled,
+  // without pretending it's a real view today.
+  assert.equal(parseViewParam("quarter"), "week");
 });
 
 test("parseViewParam: missing, malformed and stray values fall back too", () => {
@@ -139,8 +146,13 @@ test("parseViewParam: the fallback is used ONLY when the param does not name a b
   assert.equal(parseViewParam(undefined, "day"), "day");
   assert.equal(parseViewParam("week", "month"), "week");
   assert.equal(parseViewParam("day", "month"), "day");
-  // An unbuilt view in the URL is not a view; the device's default answers.
-  assert.equal(parseViewParam("year", "month"), "month");
+  // mission-18/C4 — "year" moved from "names no view" to "names a view" in
+  // this same test: it now wins over the fallback exactly like every other
+  // built name above, rather than falling through to it.
+  assert.equal(parseViewParam("year", "month"), "year");
+  // A name that names no view at all still falls through; the device's
+  // default answers.
+  assert.equal(parseViewParam("quarter", "month"), "month");
 });
 
 test("buildCalendarSearch: round-trips through parseViewParam for every built view", () => {
@@ -154,10 +166,26 @@ test("buildCalendarSearch: round-trips through parseViewParam for every built vi
   }
 });
 
-test("buildCalendarSearch: a search naming an unbuilt view parses back to the default, not to that view", () => {
-  // Nothing can produce this today, but it is the property that makes a
-  // stale bookmark from a future build safe rather than broken.
-  const params = new URLSearchParams(buildCalendarSearch("year", d(2026, 8, 2)));
-  assert.equal(params.get("view"), "year");
+test("parseViewParam: a URL naming an unbuilt view parses back to the default, not to that view", () => {
+  // mission-18/C5 — renamed from "buildCalendarSearch: ...". "year" was
+  // this test's example through CV1–CV4 — mission-18/C4 built it, so
+  // `buildCalendarSearch` (typed to `CalendarPeriodView`) has no real name
+  // left to construct this with, per this file's own note above, and this
+  // test has called only `parseViewParam` ever since. Renamed rather than
+  // pushed through `buildCalendarSearch` via a cast (e.g. `"quarter" as
+  // CalendarPeriodView`): that would call the function with a value its
+  // own type promises never to receive, which is a smaller, more dishonest
+  // version of the exact "test a fictional not-built view" pattern
+  // mission-18/C4's own handoff disclosed doing once already — worth not
+  // repeating quietly in a rename that has no reason to touch the
+  // assertions at all. Built directly as a search string instead, since a
+  // URL is just a string and a stale bookmark from a future build could
+  // carry any "?view=" value regardless of what this build's own type
+  // union allows constructing today. The property this proves — a
+  // future/unknown view name is safe rather than broken — still matters
+  // even with nothing left in THIS build's own vocabulary to demonstrate
+  // it with.
+  const params = new URLSearchParams(`date=${toLocalDateString(d(2026, 8, 2))}&view=quarter`);
+  assert.equal(params.get("view"), "quarter");
   assert.equal(parseViewParam(params.get("view")), "week");
 });

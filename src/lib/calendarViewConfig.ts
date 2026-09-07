@@ -31,6 +31,16 @@
 // first time since CV1. `formatThreeDayRange`, below, is the one other loose
 // end this reachability change closes — see its own comment.
 //
+// mission-18/C4 — Year's row gets its own `"year"` tag (`YearView`,
+// CalendarViews.tsx: twelve mini month-grids) in the same commit that
+// flips `BUILT_VIEWS.year`. That was the LAST view still marked
+// PROVISIONAL/unbuilt, so `"daySection"` — the placeholder tag it borrowed
+// while it had no renderer of its own, and the tag `day`/`threeDay`/`week`
+// already moved off in mission-17/C4 — has no row left that produces it and
+// is deleted from `CalendarRenderer` entirely (see that type's own comment).
+// All six views in `CalendarPeriodView` now have a real, distinct-family
+// renderer — the reachability CV1 widened the union for, closed.
+//
 // No "server-only" guard: this module is pure over its inputs (a `Date` in,
 // a string/boolean/Date[] out), same standing as calendarDates.ts and
 // mealPlanDates.ts.
@@ -50,20 +60,29 @@ import type { CalendarPeriodView } from "./calendarViewVocabulary";
 /**
  * The families of component a view can render. A string tag, not a
  * component reference — `src/lib/` may not import from `src/components/`
- * (STRUCTURE.md), so the actual `MonthGrid`/`ScheduleView`/`DaySection`/
- * `TimelineGrid` elements stay in CalendarViews.tsx's switch. `year` is the
- * one view still sharing `"daySection"` today — a real fact about the
- * current app (its `days(anchor)` returns one entry, rendered as a single
- * plain `DaySection`), not a placeholder — because CV5 is what gives it its
- * own 12-mini-grid renderer. `day`, `threeDay` and `week` moved OFF that
- * shared tag in mission-17/C4: they render `TimelineGrid` now, an hour
- * timeline rather than a plain agenda list, so `"timeline"` is a genuinely
- * different family, not an alias for `"daySection"` under a new name.
+ * (STRUCTURE.md), so the actual `MonthGrid`/`ScheduleView`/`TimelineGrid`/
+ * `YearView` elements stay in CalendarViews.tsx's switch. `day`, `threeDay`
+ * and `week` share `"timeline"` (mission-17/C4: an hour-rail rendering,
+ * `TimelineGrid`), `schedule` and `month` each have their own tag, and
+ * `year` is the newest, added in mission-18/C4 for `YearView`'s twelve
+ * mini month-grids — a fourth, genuinely different family from all three,
+ * not an alias for any of them.
+ *
+ * `"daySection"` — the shared "plain agenda list" tag `day`/`threeDay`/
+ * `week` used before mission-17/C4, and `year` used as a placeholder
+ * through CV1–CV5 while it had no renderer of its own — is GONE as of this
+ * commit: once `year` got its own tag, nothing in `VIEW_CONFIG` produced
+ * `"daySection"` any more, so it was deleted from this union rather than
+ * left as a name with no row that could ever select it (CalendarViews.tsx's
+ * `switch` narrows it out below the "month"/"timeline"/"year" `if`s for the
+ * same reason — see that file's own comment on the now-single-case switch
+ * that remains).
+ *
  * Widening this union is a compile error in CalendarViews.tsx's switch
  * until every case is handled — see that switch's own `never`-typed
  * default.
  */
-export type CalendarRenderer = "month" | "schedule" | "daySection" | "timeline";
+export type CalendarRenderer = "month" | "schedule" | "timeline" | "year";
 
 /**
  * The per-view differences the shell itself has to know about, as one row
@@ -107,6 +126,40 @@ export type ViewConfig = {
    * somewhere to say so instead of silently inheriting `false`.
    */
   pinned: boolean;
+  /**
+   * mission-18/C5 — closes Captain's reachability blocker: this used to be
+   * `CalendarHeader.tsx`'s own inline `view !== "schedule"` expression
+   * (`CalendarViews.tsx` passed it in as a prop computed the same way)
+   * rather than a row here, which is exactly the per-member difference
+   * outside a total record that STRUCTURE.md's tripwire fires on the
+   * moment a reachability entry flips to `true` — and `year`'s flip
+   * (mission-18/C4) was the LAST one, so this was the last chance for the
+   * tripwire to ever catch it. Schedule has no period to page between —
+   * the cursor's `step: 0` (useCalendarPeriod.ts) already refuses to move
+   * it — so `false` here removes Schedule's prev/next buttons from the DOM
+   * entirely (not just visually): a real tap producing no effect is worse
+   * than no control at all. `true` for every other view.
+   * `CalendarHeader.tsx` reads `VIEW_CONFIG[view].showArrows` directly, the
+   * same way it already reads `pinned` above — there is no prop for this
+   * any more.
+   */
+  showArrows: boolean;
+  /**
+   * mission-18/C5 — closes the second half of Captain's reachability
+   * blocker. Whether this view answers "is the cursor parked on today"
+   * from its OWN live state (`ScheduleView`'s scroll position) rather than
+   * from the plain `isCurrentPeriod(anchor, today)` comparison every other
+   * view uses, and whether tapping the header's Today circle scrolls this
+   * view's own content instead of calling `goToToday()`. `true` for
+   * Schedule alone: scrolling deliberately never moves its anchor (D2/D3),
+   * which makes the anchor comparison true FOREVER the instant the reader
+   * scrolls anywhere at all — see `schedule.isCurrentPeriod`'s own comment
+   * below, which this field is what makes safe to leave in place rather
+   * than delete: the Record stays total, and the override lives here
+   * instead of a second `view === "schedule"` test beside it in
+   * `CalendarViews.tsx`.
+   */
+  ownsTodayScroll: boolean;
   /**
    * How many DaySection placeholders the loading frame renders. Fixed by
    * `view` alone, never by `today` — that's what lets the frame below show
@@ -182,6 +235,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     // take over once it does.
     renderer: "timeline",
     pinned: false,
+    showArrows: true,
+    ownsTodayScroll: false,
     placeholderCount: 7,
     title: (anchor) => formatWeekRange(sundayOf(anchor)),
     days: (anchor) => daysOfWeek(sundayOf(anchor)),
@@ -193,6 +248,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     // mission-17/C4 — same switch as Week's row above, same reasoning.
     renderer: "timeline",
     pinned: false,
+    showArrows: true,
+    ownsTodayScroll: false,
     placeholderCount: 1,
     title: (anchor) => formatDayLabel(anchor),
     days: (anchor) => [anchor],
@@ -203,6 +260,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     nextLabel: "Next month",
     renderer: "month",
     pinned: false,
+    showArrows: true,
+    ownsTodayScroll: false,
     placeholderCount: 1,
     title: (anchor) => formatMonthTitle(anchor),
     days: (anchor) => [anchor],
@@ -222,11 +281,12 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   schedule: {
     // SETTLED, mission-15/C4 (was PROVISIONAL since CV1). Schedule has no
     // period to page between — the cursor's `step: 0` already refuses to
-    // move it — so `CalendarHeader`'s `showArrows` hides the prev/next
-    // buttons entirely for this view; `prevLabel`/`nextLabel` below are
-    // real strings anyway (never empty) so nothing about the type needs an
-    // escape hatch, and so a future accessibility fallback that briefly
-    // shows them isn't stuck with placeholders.
+    // move it — so `showArrows` below is `false` for this row;
+    // `prevLabel`/`nextLabel` here are real strings anyway (never empty)
+    // so nothing about the type needs an escape hatch, and so a future
+    // accessibility fallback that briefly shows them isn't stuck with
+    // placeholders. See `showArrows`'s own comment on `ViewConfig` above
+    // for why this is a row here rather than a second inline test.
     prevLabel: "Previous",
     nextLabel: "Next",
     renderer: "schedule",
@@ -234,6 +294,9 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     // far enough, and long enough, for a persistent header to earn its
     // keep — see `pinned`'s own comment on `ViewConfig` above.
     pinned: true,
+    showArrows: false,
+    // The one `true` row — see `ownsTodayScroll`'s own comment above.
+    ownsTodayScroll: true,
     placeholderCount: 7,
     // mission-16/C4 — this function's return VALUE is no longer what
     // Schedule's header actually displays. CalendarHeader.tsx now renders
@@ -288,6 +351,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     // switched to, not a third implementation.
     renderer: "timeline",
     pinned: false,
+    showArrows: true,
+    ownsTodayScroll: false,
     placeholderCount: 3,
     // SETTLED, mission-17/C4: a real 3-day range label, via the local
     // `formatThreeDayRange` above — see its own comment for why that's a
@@ -305,17 +370,22 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   year: {
     prevLabel: "Previous year",
     nextLabel: "Next year",
-    // PROVISIONAL: Year is meant to render 12 mini month grids, not
-    // DaySections, but `BUILT_VIEWS.year` is false (unreachable through the
-    // picker or a URL) and no such renderer exists yet — CV5's job. Tagged
-    // `"daySection"` for now because that is what this row's `days`
-    // (`[anchor]`, one entry) currently produces if ever reached directly,
-    // matching pre-C3 behaviour exactly rather than inventing a value
-    // nothing renders.
-    renderer: "daySection",
+    // SETTLED, mission-18/C4 (was PROVISIONAL, tagged `"daySection"` as a
+    // placeholder, through CV1–CV5). Year renders `YearView`
+    // (CalendarViews.tsx) now: twelve mini month-grids, one per calendar
+    // month of `anchor`'s year, built entirely from `anchor.getFullYear()`
+    // — it reuses `monthGridDays` (monthLayout.ts), the exact function
+    // MonthGrid.tsx's own real grid is built from, so a mini-grid's shape
+    // can never drift from what tapping through to Month itself shows.
+    renderer: "year",
     pinned: false,
+    showArrows: true,
+    ownsTodayScroll: false,
     placeholderCount: 1,
     title: (anchor) => String(anchor.getFullYear()),
+    // Still just the anchor, still unread by the renderer — same standing
+    // as Month's own row (see that row's `days` comment): YearView derives
+    // its twelve months from `anchor`'s year directly, not from this array.
     days: (anchor) => [anchor],
     isCurrentPeriod: (anchor, today) => anchor.getFullYear() === today.getFullYear(),
   },

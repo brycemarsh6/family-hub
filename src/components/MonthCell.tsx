@@ -188,33 +188,43 @@ export function MonthCell({
                 } ${slot.roundLeft ? "rounded-l border-l" : ""} ${slot.roundRight ? "rounded-r border-r" : ""}`}
                 style={{ background: bandedBackground(colors, past || done ? 0.05 : 0.1) }}
               >
-                {/* C3b: below `md` the title span two lines down is
-                    `sr-only` (see B3's comment there) — genuinely `display:
-                    none`-equivalent for sighted readers at 375px, not just
-                    small. Putting `line-through` ONLY on that hidden text
-                    would satisfy the letter of "strike through a completed
-                    task" while being invisible on exactly the phone
-                    viewport this contract measures. A checkmark glyph is
-                    the one thing this pill has room for at EVERY
-                    breakpoint (below `md` a pill currently shows nothing
-                    but color/border — B3 below — so a 1-character glyph
-                    fits where zero characters fit before), so it renders
-                    unconditionally on `showLabel` (never on a continuation
-                    column with no title of its own — moot in practice
-                    today since a Task is always single-day/single-column,
-                    but kept consistent with how the title itself is
-                    gated). `line-through` is layered on TOP of that glyph
-                    once the title becomes visible at `md`+, joining
-                    TaskCard.tsx's and GroceryRow.tsx's existing "struck off
-                    a list" vocabulary rather than inventing a second one
-                    for the same fact. aria-hidden because the checkmark is
-                    decorative pixels only — same call TaskCard.tsx made for
-                    its own checkbox glyph, and this cell's accessible name
-                    is already fully owned by the day BUTTON's own
-                    aria-label (`Open ${formatDayLabel(day)}` above) — an
-                    aria-label always wins over child text content when
-                    computing an element's accessible name, so this span's
-                    text is ignored there regardless. */}
+                {/* C3b / mission-18/C2: the title span two lines down used
+                    to be `sr-only` below `md` (see B3's comment there) —
+                    genuinely `display: none`-equivalent for sighted readers
+                    at 375px, not just small — which is why this checkmark
+                    glyph was originally added: it was the one thing this
+                    pill had room for at EVERY breakpoint, since below `md`
+                    the pill showed nothing but color/border otherwise.
+                    mission-18/C2 dropped that `md:` gate, so the title now
+                    renders at every width too — but the glyph stays, because
+                    it's still a much stronger "done" signal than the title
+                    is: B3 below measures only ~5 characters of an
+                    already-truncated, 9px `line-through` title once the
+                    glyph itself is sharing the same box, which reads far
+                    less reliably at a glance than one glyph that never
+                    truncates. Renders unconditionally on `showLabel` (never
+                    on a continuation column with no title of its own — moot
+                    in practice today since a Task is always
+                    single-day/single-column, but kept consistent with how
+                    the title itself is gated). `line-through` is layered on
+                    the title alongside it (not "on top of" — both are
+                    visible at every width now, not sequenced by breakpoint),
+                    joining TaskCard.tsx's and GroceryRow.tsx's existing
+                    "struck off a list" vocabulary rather than inventing a
+                    second one for the same fact — and per DESIGN.md,
+                    `line-through` means DONE, never merely PAST (see the
+                    `done`/`past` split above: a `past`-but-not-`done` event
+                    never gets this class). aria-hidden because the
+                    checkmark is decorative pixels only — same call
+                    TaskCard.tsx made for its own checkbox glyph, and this
+                    cell's accessible name is already fully owned by the day
+                    BUTTON's own aria-label (`Open ${formatDayLabel(day)}`
+                    above) — an aria-label always wins over child text
+                    content when computing an element's accessible name, so
+                    this span's text is ignored there regardless. (The
+                    TITLE span two lines down is a separate matter — see B6:
+                    its own text is still exposed as a named node elsewhere
+                    in the tree, unaffected by the button's aria-label.) */}
                 {done && slot.showLabel && (
                   <span aria-hidden="true" className="mr-0.5">
                     ✓
@@ -240,50 +250,90 @@ export function MonthCell({
                     ☐
                   </span>
                 )}
-                {/* B3 (mission-9/C5, figure corrected mission-9/C8): at
-                    375px the pill's inner slot measures ~38px
-                    (`500 9px Inter`) and holds roughly 7-8 characters
-                    (measured live: 7 by Vision, 8 by Strange) — NOT the "~2"
-                    this comment used to claim. Still not enough for any real
-                    title, and still enough to make two DIFFERENT events
-                    sharing a prefix ("Ledger Pre-School" / "Ledger soccer")
-                    render identically or near-identically, which is worse
-                    than no label at all (Strange's finding). Below `md` the
-                    pill is colour-only,
-                    same as Google's and Apple's own phone month grids —
-                    "+N more" and the day tap carry identification instead.
-                    At `md` and up (Strange measured 768px: 9–10 characters
-                    fit and it genuinely works) the title reappears; no font
-                    shrink, no contrast change, both forbidden by the
-                    contract.
+                {/* B3 (mission-9/C5, figure corrected mission-9/C8,
+                    breakpoint gate DROPPED mission-18/C2 — this is the
+                    "stale rationale" that contract set out to replace): at
+                    375px the pill's inner slot measures ~38-40px
+                    (`500`/`600` weight, `9px` Inter — clientWidth minus
+                    padding gives ~38px, `getBoundingClientRect()` minus
+                    padding gives ~40px; the gap is sub-pixel/border
+                    rounding, not a real disagreement) and holds 6-8
+                    characters of a REAL household event title before CSS
+                    `truncate` ellipsizes it — re-measured live,
+                    mission-18/C2, with `Range.getClientRects()` (never
+                    `getBoundingClientRect()` on the truncated ancestor,
+                    which can't see where the glyph run itself would fall —
+                    that's the general lesson from CV4's own label-overflow
+                    history, applied here before it repeated): for each of
+                    the real event titles on the currently-rendered month,
+                    binary-searched the largest leading substring of the
+                    text node whose rendered rect still fits inside the
+                    pill's own padding box. Four real titles measured 6, 7,
+                    and 8 (twice) — consistent with, not a copy of, the
+                    "7-8" this comment already carried from mission-9/C8; NOT
+                    the "~2" an earlier version of this same comment claimed
+                    before that. A completed task's pill has less room again
+                    — measured 5, not 6-8 — because the `✓` glyph above eats
+                    real space out of the same box before the title even
+                    starts. Still not enough for any real title, and still
+                    enough to make two DIFFERENT events sharing a prefix
+                    ("Ledger Pre-School" / "Ledger soccer") render
+                    identically or near-identically, which is worse than no
+                    label at all (Strange's finding) — mitigated, not
+                    solved, by "+N more" and the day tap still carrying full
+                    identification.
 
-                    B5 (mission-9/C7): below `md` the fill alone is the ONLY
-                    visual carrier that an event exists here, and Strange
-                    measured that fill at 1.00–1.24:1 against the page —
-                    invisible by WCAG 1.4.11's 3:1 bar. The `border-y`/
-                    `border-l`/`border-r` above (gated on the SAME
-                    roundLeft/roundRight flags that already decide rounding,
-                    so a continuing bar's shared edge between two cells stays
-                    seamless) fixes that without touching alpha or `--line`
+                    mission-18/C2 removed the `md:` gate entirely: the title
+                    now renders at every width, matching Google's and
+                    Apple's own phone month grids only in the sense that
+                    both truncate hard — those hide the title below a
+                    breakpoint too, this app no longer does, because a
+                    375px phone is the household's actual daily case. No
+                    font shrink, no contrast change; both were forbidden by
+                    the original C7/C8 contracts and remain untouched here.
+
+                    B5 (mission-9/C7): even with the title visible at every
+                    width now, the FILL alone is still not an adequate
+                    visual carrier by itself — Strange measured that fill at
+                    1.00–1.24:1 against the page, invisible by WCAG 1.4.11's
+                    3:1 bar, and a title truncated to 5-8 characters (B3
+                    above) is too weak a backstop on its own for a pair of
+                    events that are blank-looking or near-identical at a
+                    glance. The `border-y`/`border-l`/`border-r` above
+                    (gated on the SAME roundLeft/roundRight flags that
+                    already decide rounding, so a continuing bar's shared
+                    edge between two cells stays seamless) fixes the
+                    CONTRAST problem without touching alpha or `--line`
                     (both dead ends Strange already measured: fill α 0.40
                     still only 1.51:1, `--line` is 1.24:1 light). `border-fg`
                     (6.96:1 light / 15.23:1 dark) and `border-muted` (4.75 /
                     6.81) both clear 3:1 in both themes — and reusing them
-                    for past-vs-live restores the ended-event dimming K1
-                    asked for to something visible below `md`, where the
-                    0.05-vs-0.10 fill alpha delta alone is imperceptible.
+                    for past-vs-live keeps the ended-event dimming K1 asked
+                    for visible at every width, not just below the old `md`
+                    gate.
 
-                    B6 (mission-9/C7): `hidden` is `display:none`, which
-                    strips the title from the accessibility tree — Strange
-                    measured 0 AX nodes naming an event at 375px, all 43
-                    cells reading identically regardless of content.
-                    `sr-only` is absolute-positioned + clipped, so it keeps
-                    the node in the AX tree while contributing zero layout —
-                    the phone view stays pixel-identical to what C5 shipped,
-                    border aside. */}
-                <span
-                  className={`sr-only md:not-sr-only md:inline ${done ? "line-through" : ""}`}
-                >
+                    B6 (mission-9/C7; the switch this note explains is now
+                    historical after mission-18/C2, kept for why `sr-only`
+                    was the right choice while the switch existed): this
+                    file used to flip the title between `hidden`
+                    (`display:none`, which strips it from the accessibility
+                    tree — Strange measured 0 AX nodes naming an event at
+                    375px, all 43 cells reading identically regardless of
+                    content) and `sr-only` (absolute-positioned + clipped,
+                    which keeps the node in the AX tree while contributing
+                    zero layout) depending on the `md` breakpoint.
+                    mission-18/C2 deleted the switch outright — the title is
+                    now plain, unconditionally visible inline content, so
+                    it's exposed to assistive tech the ordinary way a
+                    browser exposes any visible text, no special-casing
+                    needed. Re-verified directly rather than assumed: the
+                    same real event titles that were accessible-name-exposed
+                    before this change (via `sr-only`) are still exposed,
+                    at their full un-truncated length, after it — CSS
+                    `text-overflow: ellipsis` only affects what's PAINTED,
+                    never the accessible name computed from the underlying
+                    text. */}
+                <span className={done ? "line-through" : ""}>
                   {slot.showLabel ? slot.event.title : ""}
                 </span>
               </span>
