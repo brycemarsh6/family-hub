@@ -189,6 +189,36 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   only then — Strange found the rule had steered three implementations while
   living in no constitution at all.)*
 
+- **A "today" marker may only be drawn on a cell that belongs to the period
+  the surface is showing.** A 42-cell month grid contains up to 12 days of its
+  neighbours, so `isSameDay(day, today)` **alone** circles today in the *wrong
+  month's* grid — and in Year, where twelve grids share one screen, it draws
+  **two markers at once**. Pair every today test with the in-month test that
+  is already computed beside it. *(Added 2026-09-06, mission-18, on Strange's
+  ruling. Instance: Year circled 1 October in both the September and October
+  tiles; measured at 2 markers with the clock frozen, against a control of 1,
+  and **126 of 365 days in both 2026 and 2027** fall in more than one tile.
+  The rule is written flatly because mission-18/C6 fixed **both** live
+  instances — `YearView` and `MonthGrid` — so it carries no carve-out.
+  Strange had ruled the `MonthGrid` case "milder" and advised fixing Year
+  alone, then **overturned its own advice** on the measurement that settles
+  it: the wrongly-circled cell rendered `accent: true, muted: false`,
+  visually indistinguishable from a real today, in the app's most-used view.
+  Note the invariant currently lives at both **call sites**, not in
+  `MonthCell`, which still takes `isToday` and `isCurrentMonth` as
+  independent props — a third caller would reintroduce this with no compile
+  error.)*
+- **The hour timeline's now-line is a sanctioned use of `--danger`.** It is
+  not destructive and not an error, so it is a deliberate exception to "red
+  means urgent/destructive." The reason is that the now-line must be the
+  single most locatable mark on a dense rail of coloured event blocks, and
+  `--danger` is the one token in the palette **no event block uses** — the
+  reservation is what makes it work, so widening `--danger` to any other
+  decorative use would take this with it. **Nothing else inherits this
+  exception.** *(Added 2026-09-06, mission-18. Strange asked for this line in
+  mission-17 and it went unwritten for a session — an unlisted use of a
+  reserved token is exactly the drift these rules exist to stop.)*
+
 ## Component vocabulary
 
 A new one-off that duplicates one of these jobs is a design violation:

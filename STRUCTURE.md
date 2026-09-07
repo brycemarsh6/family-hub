@@ -276,6 +276,29 @@ Adding a second definition of any of these is a BLOCKER:
   while `TaskForm.tsx` cited the survivors as "the house pattern" — two
   comments asserting opposite conventions for the same function.
   (Added 2026-09-04, mission-14, replacing a failed rule — see below.)
+- `src/lib/mealPlanDates.ts` also owns **month and weekday names — and the
+  names are exported.** It already holds `MONTH_NAMES` (short) and
+  `FULL_MONTH_NAMES` (long); both were **unexported**, which is the whole
+  reason there are now **five** definitions of how to spell a month.
+  `calendarViewConfig.ts` (mission-17), `MonthChips.tsx` (mission-18/C3) and
+  `YearView.tsx` (mission-18/C4) each wrote a local `Intl.DateTimeFormat`, and
+  **each documented in-file that it did so because the canonical array was
+  off-boundary or unimportable** — *a boundary satisfied by copying*, which
+  the trip-condition rule below already names as instructing rather than
+  restraining. Two mechanisms now coexist for one fact: three copies derive
+  names from `Intl` at runtime and two are hardcoded English arrays, so a
+  locale or ICU-data change moves three and leaves two, **and two screens
+  spell the same month differently**. Export the two arrays (or one
+  `monthName(date, "short" | "long")` helper) and import them; **the four
+  existing copies are grandfathered debt to migrate in one contract, not a
+  pattern to cite, and a sixth definition is a BLOCKER.** A caller wanting a
+  *different length* is not a new definition — it is an argument to the shared
+  one. (Added 2026-09-06, mission-18, on Captain's finding. Related:
+  `MONTH_NAME_FORMATTER` is currently defined in **both** `MonthChips.tsx` and
+  `YearView.tsx` with the same identifier and different behaviour — `short` vs
+  `long` — so a `grep` for it returns two things that are not the same thing.
+  The migration closes that too; short of it, rename to
+  `SHORT_`/`LONG_MONTH_FORMATTER` at the next touch.)
 - Shared UI jobs — see DESIGN.md's component vocabulary
 
 - **Trip conditions are keyed to DEFINITIONS, never to importer counts.**
@@ -311,15 +334,19 @@ Adding a second definition of any of these is a BLOCKER:
   prevent. It is tolerable only while the members it would mislabel are
   unreachable through the gate, so **a member's reachability entry may not
   flip to `true` in a commit that leaves any per-member difference outside a
-  total record.** (`showLocation`, `compact` and the renderer selection in
-  `CalendarViews.tsx` are the live instances; CV3/CV4/CV5 own them.
-  **`CalendarHeader.tsx`'s `const pinned = view === "schedule"` joins
-  that list, added 2026-09-05 on Captain's finding — a factual
-  completion of this inventory, not a new rule.** It is the second
-  independent `view === "schedule"` test, and `VIEW_CONFIG` — a total
-  record over all six views — has no `pinned` field, so `threeDay` and
-  `year` would inherit `pinned = false` silently. **CV4 flips
-  `threeDay`, which makes this clause bind there as a BLOCKER.**)
+  total record.** (**All named instances are now closed, and this is worth
+  recording rather than deleting: `BUILT_VIEWS` went all-`true` at
+  mission-18/C4, so for calendar views this tripwire can never fire again.**
+  The clause was collected in full before that happened — `renderer` and
+  `CalendarHeader.tsx`'s `pinned` moved into `VIEW_CONFIG` in mission-17/C3;
+  `showArrows` and `ownsTodayScroll` followed in mission-18/C5, on Captain's
+  ruling that the *last* flip is the last chance to collect the debt at all,
+  since waving it through retires the mechanism rather than deferring the
+  cleanup. `showLocation` and `compact`, listed here through CV3–CV4, were
+  resolved differently and correctly: they now derive from the data shape
+  (`columnDays.length > 1`) rather than from the view tag, which answers for a
+  new member automatically. **The clause still binds for any future vocabulary
+  widened ahead of its consumers** — `ASSIGNABLE_ROLES` below is the open one.)
   (Added 2026-09-03, mission-11, on Captain's ruling.)
 - **A reachability flip carries its assertions with it.** The record exists so
   that "which members are real" is answered in exactly one place — which makes
@@ -440,7 +467,15 @@ Adding a second definition of any of these is a BLOCKER:
   that touches the file. (Added 2026-09-03, mission-11. First instance:
   `MonthLoadingSkeleton.tsx`, which exported only `MonthGridSkeletonRows`
   after mission-11/C1 deleted the wrapper, was renamed to
-  `MonthGridSkeletonRows.tsx` in mission-15/C5 — no live instance remains.)
+  `MonthGridSkeletonRows.tsx` in mission-15/C5. **One live instance remains,
+  found 2026-09-06: `HubNav.tsx` exports only `HubBottomNav`** — the earlier
+  text claimed none remained, which was checked against the calendar
+  components only. It is deliberately left rather than renamed: the filename
+  is cited by five other files' comments and by `nav.ts`'s own vocabulary, so
+  the cheaper repair is renaming the *export* to `HubNav` at the next touch of
+  that file — one importer, `(app)/layout.tsx`. Either direction closes it;
+  what is not allowed is leaving the rule asserting a clean sweep it does not
+  have.)
 
 - **Shared *test* helpers live in `src/lib/testing/`, and that directory is
   exempt from the dormant-export rule** — its tests are its callers, so an
