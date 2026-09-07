@@ -394,6 +394,43 @@ A sequential contract's boundary is true at dispatch time, not writing time;
 mission-18 established that by having C4's preflight legitimately FAIL on a
 file C3 had not yet created.
 
+## A bug in Fury's own tool, found by using it
+
+**C3's preflight HARD-FAILED on a file that was never claimed to exist.**
+`grab()` treated **every backticked string in a boundary line as a path**, so
+the prop shape `` `{anchor, onPickMonth}` `` — prose, written to tell the
+builder *not* to change `MonthChips` — was resolved as a filename, found
+missing, and reported as a wrong premise. **The contract was right and the
+tool was wrong**, which is the one failure mode a pre-dispatch gate cannot
+afford: a tool that cries wolf gets read past, and *this mission's
+predecessor already recorded twice that its judgement items were surfaced and
+skipped.*
+
+**Fixed**: a path candidate must now actually look like one — a `/`, a glob,
+or a file extension. Anything else is reported as a **visible WARN** ("read as
+prose, not checked as a file — if that was meant to be a path, it is
+mistyped") rather than dropped silently, because **a silent filter would hide
+a genuinely mistyped path**, which is worse than the bug being fixed.
+
+**Verified before being trusted, and the first attempt at verifying was
+itself broken** — recorded because that is the recurring defect on this arc:
+the pre-patch backup was run from `/tmp`, where it **could not resolve its
+own `lib/claims.mjs`** and died. That comparison was **vacuous** and was
+nearly reported as a real one. Re-run with the backup beside its dependency,
+the before/after is genuine:
+
+| | old tool | new tool |
+|---|---|---|
+| C3's `{anchor, onPickMonth}` | **FAIL** (false) | **WARN**, 0 hard failures |
+| a genuinely missing path (probe) | FAIL | **FAIL** — still catches it |
+| C1 (`new` file that now exists) | FAIL | FAIL — **identical**, so not a regression |
+
+That last row is the positive control: C1's failure is **correct** — it is
+marked `new` and C1 has since built it — and it appears in **both** tools, so
+the patch changed nothing it shouldn't. **Second bug found in this tool by
+using it** (Captain found the JSX-comment counter in mission-18). Synced to
+both `.claude/` copies, per the drift lesson.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -401,6 +438,14 @@ file C3 had not yet created.
 | — | — | not yet run | — | — |
 
 ## Handoff log
+- 2026-09-06 — **C3's preflight found a bug in `preflight.mjs` itself**
+  (above); fixed, regression-tested with a positive control, synced to both
+  copies. C3's remaining review items settled: `loading.tsx`'s `MonthChips`
+  references are **the Month skeleton mission-18/C5 built to mirror its box**
+  — a real coupling, but C3 mounts `MonthChips` inside a **sheet** and may not
+  touch the component, so the page skeleton is undisturbed; `YearView`'s and
+  `useCalendarPeriod`'s references are **comments only**. **C3 dispatched.**
+
 - 2026-09-06 — **C1 and C5 DONE; C1 merged. Combined-tree gauntlet re-run by
   Fury and green: 336 / 329 + 7 skipped / 336, tsc 0, eslint 0, build clean.**
   Both worktrees removed and pruned. **C3 and C4 both touch

@@ -151,7 +151,20 @@ function parseBoundaries(body) {
     const re = /(new\s+)?`([^`]+)`/g;
     let g;
     while ((g = re.exec(chunk))) {
-      out.push({ path: g[2].trim(), isNew: Boolean(g[1]) });
+      const path = g[2].trim();
+      // A boundary line legitimately contains backticked PROSE as well as
+      // paths — a prop shape (`{anchor, onPickMonth}`), a symbol name, a
+      // parenthetical. Treating those as paths produced a hard FAIL on
+      // mission-19/C3 for a file that was never claimed to exist, which is
+      // the tool crying wolf: the contract was right and the tool was wrong.
+      // A path candidate must actually look like one — a directory
+      // separator, a file extension, or a glob. Anything else is recorded
+      // as skipped rather than dropped silently, because a genuinely
+      // mistyped path must not vanish into this filter.
+      const looksLikePath =
+        path.includes("/") || path.includes("*") || /\.[a-z0-9]+$/i.test(path);
+      if (looksLikePath) out.push({ path, isNew: Boolean(g[1]) });
+      else out.push({ path, isNew: Boolean(g[1]), notAPath: true });
     }
     return out;
   };
@@ -344,6 +357,14 @@ for (const c of targets) {
       } else {
         OK(`\`${f.path}\` — new, does not exist yet`);
       }
+      continue;
+    }
+    if (f.notAPath) {
+      WARN(
+        `\`${f.path}\` in the boundary is not path-shaped (no \`/\`, no ` +
+          `extension, no glob) — read as prose, not checked as a file. If ` +
+          `that was meant to be a path, it is mistyped.`,
+      );
       continue;
     }
     if (found.length === 0) {
