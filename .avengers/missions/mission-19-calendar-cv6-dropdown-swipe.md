@@ -189,7 +189,36 @@ both. C4 needs C1. C5 is documentation and can go any time.
   four sheets gone; all four still open and close; gauntlet green.
 
 ### C2 — a view-preserving jump on the navigation hook
-- **Status:** WRITTEN
+- **Status:** **DONE** — merged. `jumpToDay(day)` is on the hook's public
+  surface, and the logic sits in an **exported pure function**
+  `jumpToDayTargets(view, day)` that takes the view as a **parameter** — so
+  "preserves the current view" is a property of the signature, not a habit of
+  the caller, and it is unit-testable without mounting a hook. Verified by
+  Fury from source, not the report: the returned object now ends
+  `openDay, jumpToDay`, and `jumpToDayTargets` hardcodes no view.
+  Tests **335 → 336** on all three legs (336 / 329+7 skipped / 336).
+- **The `jumpTo` + `navigateTo` question was answered rather than
+  cargo-culted**, which is what the contract asked for. They are **not**
+  redundant: `jumpTo` is a synchronous `setState` on the local cursor, so the
+  jump paints immediately instead of waiting on the slow `force-dynamic`
+  round trip; `navigateTo` is the real `router.push`, which is what changes
+  the URL (so a reload, a shared link, or Back lands on the right day) **and
+  what moves the server's fetch window**. Drop the first and the screen shows
+  the old period until the resync effect notices; drop the second and the
+  jump survives nothing and never refetches. `jumpToDay` reuses the pair
+  exactly — the only thing it changes from `openDay` is not hardcoding
+  `"day"`.
+- **Red-then-green was really done**, with the break chosen well: the test was
+  first run against an implementation hardcoding `"day"` — *`openDay`'s actual
+  behaviour*, i.e. the realistic wrong answer rather than a strawman — and
+  failed with `'day' !== 'week'`. The real implementation was then restored
+  and **diffed byte-identical against a pre-break backup** before the green
+  run, so the passing test is known to be testing the shipped code.
+- **Note:** the builder ran `npx prisma generate` in its fresh worktree, since
+  `src/generated/prisma` does not exist in a new checkout and `tsc` cannot run
+  without it. Generated output only, outside every boundary, and disclosed.
+  **Worth knowing for every future worktree-isolated contract in this repo.**
+- **Objective:** (as written)
 - **Objective:** Give `useCalendarNavigation` a public way to jump to a day
   **keeping the current view** — the thing C3's dropdown needs and the gap
   CV5/C3 recorded.
@@ -325,6 +354,12 @@ file C3 had not yet created.
 | — | — | not yet run | — | — |
 
 ## Handoff log
+- 2026-09-06 — **C2 DONE and merged.** Boundary exactly its two files.
+  Gauntlet re-verified. The hook now exposes `jumpToDay`, so **C3 is
+  unblocked** on that dependency. Waiting on C1 (the sheets extraction) before
+  C3 and C4 can dispatch, since both touch `CalendarViews.tsx`.
+  **Baseline moves: tests are now 336 / 329 + 7 skipped / 336.**
+
 
 - 2026-09-06 — **Mission opened on branch `claude/calendar-cv6`.** Scope read
   from `.avengers/plans/calendar-v2.md`'s CV6 section. **CD1 deliberately
