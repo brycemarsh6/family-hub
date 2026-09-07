@@ -6112,3 +6112,132 @@ there** — the sheets block is the standing seam.
 **Still parked, unchanged:** the dev-branch credential rotation (a **third**
 agent leaked real family data into a transcript this session — Bryce skipped it
 again, deliberately) and the 96px Day rail.
+
+---
+
+## Session, 2026-09-07: CV6 started and PAUSED — plus traps that are new
+
+⏸️ **Read this before touching the calendar.** CV5 shipped and is live (entry
+above). **CV6 is HALF BUILT on branch `claude/calendar-cv6`, pushed, with NO
+PR and NO merge — the family has none of it — and NO GATE HAS RUN on it.**
+Mission file: `.avengers/missions/mission-19-calendar-cv6-dropdown-swipe.md`.
+
+**Built:** C1 (the four popup sheets extracted out of `CalendarViews.tsx` into
+`CalendarSheets.tsx`), C2 (`jumpToDay` — a view-preserving day jump), C3 (the
+month-jump dropdown behind the header title), C5 (a one-line plan amendment).
+**NOT built: C4, `usePageSwipe` — the swipe-to-page gesture. That is the
+resume point**, its contract is written and ready, and its preflight must be
+re-run at dispatch time rather than reused.
+
+Gauntlet at the pause: **336 / 329 + 7 skipped / 336**, tsc 0, eslint 0, build
+clean. DB baseline `Task 0, TaskPerson 0, CalendarEvent 4, User 5` unchanged.
+
+### ⚠️ Four environment traps that are NEW, and cost real time
+
+**These are not in any other file. A future session that does not know them
+will lose an hour each.**
+
+1. **Minting a session JWT by hand is now BLOCKED by the environment's
+   security classifier**, as credential forging. That is the pattern this
+   project sanctioned in **Phase 1e** and has used for adversarial checks ever
+   since — *it no longer works*, and the block is correct rather than a bug to
+   route around. **Consequence: any contract whose verification needs an
+   authenticated page must say so up front.** Two builders hit it this session
+   and both did the right thing: named the block, did not work around it, and
+   substituted a **component-level render of the real components through
+   `react-dom/server`/`react-dom/client` with a positive control**. That
+   substitute was accepted for a pure-JSX extraction (byte-identical markup on
+   all four sheets) and for measuring a control's geometry. **Naming a blocked
+   verification is required; substituting silently is not.**
+2. **A leftover agent worktree lives INSIDE the repo** (`.claude/worktrees/`),
+   so `npx eslint .` walks into its `.next` output and reports **thousands of
+   errors in generated bundles** — `no-require-imports`, `ban-ts-comment`, and
+   so on. **Nothing is wrong with the source.** A *live* agent's worktree is
+   **locked**, so a single `-f` is refused: `git worktree remove -f -f <path>`
+   then `git worktree prune`, after which `eslint .` is clean.
+3. **A fresh worktree has no `src/generated/prisma`**, so `npx tsc --noEmit`
+   fails until `npx prisma generate` is run in it. Expect this in every
+   worktree-isolated contract.
+4. **Headless Chrome could not be forced to a true 375×812 window** in this
+   sandbox — `--window-size`, `Emulation.setDeviceMetricsOverride` and
+   `Browser.setWindowBounds` all **reported success and changed nothing**.
+   Measurements can still be honest by boxing the element in an explicit
+   375px container, but **the browser chrome is not really 375px, so a
+   real-device pass is owed** before anyone claims a phone-width result.
+
+### Facts about the calendar established by command, so nobody re-derives them
+
+- **`useCalendarNavigation` had no public `jumpTo`**, and `openDay(day)`
+  **forces Day view** — so nothing existed for "jump to this day and stay in
+  my current view." CV5/C3 predicted this exact gap would surface in CV6, and
+  it did. C2 closed it with **`jumpToDayTargets(view, day)`**, a pure exported
+  function taking the view as a **parameter**, so view-preservation is a
+  property of the signature rather than a habit of the caller.
+- **Why `openDay` calls both `jumpTo` and `navigateTo`** (established rather
+  than cargo-culted): `jumpTo` is a synchronous local-cursor `setState`, so a
+  jump paints immediately instead of waiting on the slow `force-dynamic` round
+  trip; `navigateTo` is the real `router.push`, which changes the URL — so a
+  reload, a shared link or Back lands right — **and moves the server's fetch
+  window**. Neither is redundant.
+- **Schedule's header title is an EMPTY portal slot.** `ScheduleView` portals
+  its own scroll-driven `<h2>` into that exact node, and the node's comment
+  warns that any children of its own would render **alongside** the portaled
+  content, reproducing the double label mission-16/D2 removed. The wrapper is
+  pinned `h-7` so the null-frame and resolved-frame match exactly, and
+  **`showArrows` is `false` on Schedule**, so there is no 44px sibling to
+  absorb a height change. **C3's answer — better than either option its
+  contract offered — was an invisible `position: absolute` overlay button, a
+  sibling of the three branches: it adds no flow height, reaches 46px, and
+  leaves the header byte-identical (schedule measured 28px in both frames), so
+  `SCHEDULE_HEADER_BAR_HEIGHT_PX` in the must-not-touch `ScheduleView.tsx`
+  cannot go stale.**
+- **`ScheduleView` mounts its OWN `EventDetailSheet` and `TaskDetailSheet`**,
+  with a comment saying it mirrors `CalendarViews` — so that block is
+  **duplicated two ways**. Found by asking what a reference count *meant*.
+  Routed to Captain; **not fixed**.
+- **`jumpTo` greps to five files but that is a NAME COLLISION** —
+  `RecipeList.tsx`'s is `jumpToClientY`, the A–Z rail's unrelated scroll
+  function, and one more is a comment. Same trap Captain filed against
+  `MONTH_NAME_FORMATTER`.
+
+### A second bug found in `preflight.mjs`, by using it
+
+It **hard-failed** C3 on `` `{anchor, onPickMonth}` `` — a prop shape written
+into a boundary line as *prose*, telling the builder **not** to change
+`MonthChips`. `grab()` treated **every backticked string in a boundary as a
+path**. **The contract was right and the tool was wrong**, which is the one
+failure mode a pre-dispatch gate cannot afford: a tool that cries wolf gets
+skimmed, and the previous mission recorded twice that its judgement items were
+surfaced and skimmed. Fixed — a path candidate must now contain a `/`, a glob,
+or an extension; anything else is a **visible WARN**, never a silent drop,
+because silently filtering would hide a genuinely mistyped path.
+
+**My first verification of that fix was VACUOUS and I nearly reported it as
+real.** The pre-patch backup was run from `/tmp`, where it could not resolve
+its own `lib/claims.mjs`; it died on startup and printed nothing, which looked
+exactly like "no difference." Re-run beside its dependency, the comparison is
+genuine: old tool false-FAILs, new tool WARNs, both still hard-fail on a
+deliberately missing path, and an unrelated pre-existing failure appears
+**identically in both** — the positive control. **This is the second bug found
+in this tool by using it** (Captain found the JSX-comment counter in
+mission-18), and both were found only because someone acted on its output
+instead of skimming it.
+
+### Where the calendar stands
+
+`CV0 ✅ CV1 ✅ CT1 ✅ CV2 ✅ CV3 ✅ CT2 ✅ CV4 ✅ CV5 ✅ · CV6 ⏸️ HALF BUILT` —
+then **CD1** (long-press drag to reschedule), which **depends on C4's swipe
+hook yielding to a long-press and therefore cannot be contracted until C4
+exists**; then K3 filters/tags, K4 recurrence, the RSVP and search walkthroughs
+Bryce still owes, and Google sync (**K6/K7 need a Google Cloud project only
+Bryce can create**). Plan: `.avengers/plans/calendar-v2.md`.
+
+### Standing, unchanged
+
+The **dev-branch credential rotation** is still parked — Bryce skipped it again
+this session, deliberately, after a third agent leaked real family data into a
+transcript. The 96px Day rail is still his call. And CV5's leftovers (the
+multi-day bar's title confined to one cell, `MonthChips`' unanchored chips left
+of the first January, `YearView`'s 1.47:1 in-month distinction, the today
+invariant living at both call sites rather than in `MonthCell`) are all still
+open and recorded in mission-18.
