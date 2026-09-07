@@ -1,7 +1,8 @@
 # Mission: CV6 — month dropdown + swipe-to-page
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTS WRITTEN — preflight next
+**Status:** **PAUSED — 4 of 5 contracts DONE. C4 (`usePageSwipe`) NOT BUILT.**
+No gate has run. Branch `claude/calendar-cv6`, pushed, **no PR, nothing live.**
 **Started:** 2026-09-06 · **Updated:** 2026-09-06
 
 ## Brief
@@ -291,7 +292,66 @@ both. C4 needs C1. C5 is documentation and can go any time.
   green.
 
 ### C3 — the month dropdown
-- **Status:** WRITTEN — dispatches after C1 and C2 are DONE.
+- **Status:** **DONE** — committed to the branch. Boundary audited by Fury:
+  exactly the four allowed files, and **`MonthChips` is genuinely untouched**
+  (0 diff lines). Sizes: `CalendarHeader.tsx` 304/168,
+  `CalendarSheets.tsx` 197/134, `CalendarViews.tsx` **459**/194,
+  `MonthJumpSheet.tsx` 132/80. Gauntlet re-run by Fury: **336 / 329 + 7
+  skipped / 336**, tsc 0, eslint 0, build clean.
+- **THE SCHEDULE-TITLE PROBLEM WAS SOLVED WITHOUT TOUCHING THE HEIGHT AT
+  ALL** — the answer the contract asked for and a better one than either
+  option it offered. The control is an **invisible `position: absolute`
+  overlay `<button>`**, a **sibling** of the three title branches (never a
+  child of the portal slot), at `absolute inset-x-0 -inset-y-[9px] z-10`.
+  Because it is absolutely positioned it **contributes nothing to flow
+  height**, so it reaches the 44px floor (28 + 9 + 9 = **46px**, measured)
+  while the row's rendered height stays **byte-identical to before this
+  contract, on every view, in both frames**. Measured: `week` 44px in the
+  null-frame and the resolved frame; **`schedule` 28px in both** — so
+  `SCHEDULE_HEADER_BAR_HEIGHT_PX` (owned by the must-not-touch
+  `ScheduleView.tsx`) needed no edit and cannot go stale. Growing the shared
+  `h-7` box would have silently invalidated that constant across a boundary.
+- **The single-label check had a working positive control**, which is what
+  makes it mean anything: one real `<h2>` portaled into the real slot node →
+  count **1**; then a raw fallback `<h2>` appended directly into the slot —
+  *the exact mission-16/D2 failure mode* — → count **2**; removed → back to
+  **1**. The counter can see two when there are two.
+- **The sticky-occlusion check was taken at the scroll position actually
+  reached**, per CV4's lesson: Schedule's list scrolled 1000px while the
+  control's viewport `top` stayed pinned at **170px** across
+  before/scrolled/restored, and a content marker moved **1154 → 154 → 1154**
+  — proving content genuinely moved under a genuinely pinned control.
+  `elementFromPoint` returned the control itself in all six views and all
+  three scroll states.
+- ⚠️ **Deliberate scope reduction, DISCLOSED IN THE CODE rather than
+  silently:** the sheet has **no per-day "colour bands shrunk to dots"** —
+  it is a plain day-number grid with today filled. The builder recorded why
+  in `MonthJumpSheet.tsx`'s own header comment: the embellishment appears in
+  neither the Done criteria nor the verification steps, and would have meant
+  plumbing `events`/`tasks`/window data through a fifth sheet. **Fury accepts
+  this** — but it is a real difference from the plan's wording and **Strange
+  should rule on whether the plain grid is enough**, since a jump target with
+  no density hint is a different affordance from one with it.
+- ⚠️ **`CalendarViews.tsx` is back to 459 total / 194 code**, over the soft
+  cap again after C1 brought it to 438. Not a blocker (194 code, 191 under
+  hard) but **C4 adds the swipe wrapper to this same file** — Captain should
+  see this before C4 dispatches.
+- **The builder found a bug in its OWN harness, not the app:** an early
+  version wrapped `CalendarHeader` in an extra `<div>` to find the portal
+  slot, and that wrapper — being the sticky element's containing block, sized
+  exactly to its child — **silently broke `position: sticky`** (measured: the
+  "sticky" element moved −1000px in lockstep with scroll). Fixed by using
+  `document.getElementById(SCHEDULE_TITLE_SLOT_ID)` in an effect, matching how
+  `ScheduleView` itself does it — which also made the harness structurally
+  closer to production.
+- ⚠️ **Disclosed limit:** headless Chrome **could not be forced to a true
+  375×812 window** in this sandbox (`--window-size`,
+  `Emulation.setDeviceMetricsOverride` and `Browser.setWindowBounds` all
+  reported success and left `innerWidth`/`innerHeight` unchanged). Every
+  measured element was boxed to an explicit real 375px-wide container, so the
+  numbers are honest measurements of 375px-wide UI — but the **surrounding
+  browser chrome is not genuinely 375px**, so a real-device pass is still
+  owed. Said plainly instead of worked around.
 - **Objective:** The header title becomes a **≥44px control on every view**,
   opening a sheet with a compact month grid + `MonthChips`; tapping a day
   jumps there in the current view.
@@ -333,7 +393,11 @@ both. C4 needs C1. C5 is documentation and can go any time.
   header layout shift, gauntlet green.
 
 ### C4 — `usePageSwipe`
-- **Status:** WRITTEN — dispatches after C1 is DONE.
+- **Status:** ⛔ **NOT BUILT — THIS IS THE RESUME POINT.** C1 is done, so it
+  is unblocked and its contract below is ready to dispatch as written. Its
+  preflight must be **re-run immediately before dispatch**, not now — a
+  boundary is true at dispatch time, not writing time. Note before dispatching:
+  `CalendarViews.tsx` is at **459/194** and C4 adds to it.
 - **Objective:** Extract `SwipeActions`' gesture machine into a reusable
   `usePageSwipe` and mount it on **timeline, Month and Year only**, calling
   the same `step()` the arrows call. **The arrows stay.**
@@ -438,6 +502,23 @@ both `.claude/` copies, per the drift lesson.
 | — | — | not yet run | — | — |
 
 ## Handoff log
+- 2026-09-07 — ⏸️ **PAUSED HERE at Bryce's request, at a clean boundary.**
+  C1, C2, C3 and C5 are DONE and committed; **C4 (`usePageSwipe`) is NOT
+  BUILT and is the resume point.** **NO GATE HAS RUN on this mission at all**
+  — Vision, Strange and Captain have all seen exactly nothing of CV6. Branch
+  `claude/calendar-cv6` is **pushed for recoverability but has NO PR and is
+  NOT merged; nothing from CV6 is live.** Gauntlet green at the pause:
+  **336 / 329 + 7 skipped / 336**, tsc 0, eslint 0, build clean; DB baseline
+  `Task 0, TaskPerson 0, CalendarEvent 4, User 5` confirmed unchanged.
+  **To resume:** re-run C4's preflight, dispatch C4, then gate the whole
+  mission (all three gates — Strange especially, since a new control and a
+  new gesture are both squarely its domain, and it is the gate that found
+  CV5's real bug). **Two things a gate must see and neither has:** C3's
+  deliberate omission of the sheet's per-day density dots (disclosed in
+  `MonthJumpSheet.tsx`'s own comment — Strange should rule on whether a plain
+  grid is enough), and `CalendarViews.tsx` back at **459/194** with C4 still
+  to add to it (Captain's call).
+
 - 2026-09-06 — **C3's preflight found a bug in `preflight.mjs` itself**
   (above); fixed, regression-tested with a positive control, synced to both
   copies. C3's remaining review items settled: `loading.tsx`'s `MonthChips`
@@ -472,6 +553,20 @@ both `.claude/` copies, per the drift lesson.
 
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
-- **Deliberate leftovers:** —
+**NOT DELIVERED — mission paused mid-flight, deliberately.**
+
+- **Built so far:** C1 (sheets extracted → `CalendarSheets.tsx`), C2
+  (`jumpToDay`, view-preserving), C3 (the month-jump dropdown), C5 (the v1
+  plan amendment). **C4 (`usePageSwipe`) not started.**
+- **Shipped check:** the branch is **pushed**, so the work survives this
+  machine — but there is **no PR and no merge**, so **the family does not
+  have any of CV6**. "Committed", "pushed" and "the family has it" are three
+  different claims and this project has been bitten by conflating them five
+  times.
+- **Gates:** **none have run.** The gate ledger is empty on purpose, not by
+  oversight.
+- **Deliberate leftovers, carried:** `ScheduleView` mounts its **own** copy of
+  `EventDetailSheet`/`TaskDetailSheet`, so that block is duplicated two ways
+  (routed to Captain, unfixed); the month-jump sheet has no per-day density
+  dots; a **real-device 375px pass is owed**, because headless Chrome could
+  not be forced to a true 375×812 window in this sandbox.
