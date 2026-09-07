@@ -1,7 +1,7 @@
 # Mission: CV5 — Month text pills, MonthChips, Year
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** AT-THE-GATES — all four contracts DONE
 **Started:** 2026-09-06 · **Updated:** 2026-09-06
 
 ## Brief
@@ -220,7 +220,42 @@ that writing a hard-cap justification instead is self-refuting.
   horizontal page overflow, gauntlet green.
 
 ### C4 — `YearView`, and Year becomes reachable
-- **Status:** PENDING (sequential — after C3)
+- **Status:** **DONE** — merged. **ALL SIX VIEWS ARE NOW REACHABLE**, the
+  first time in this project: `BUILT_VIEWS.year` is `true` and the picker
+  lists Schedule · Day · 3 Day · Week · Month · Year. Twelve mini-grids from
+  the **same `monthGridDays`** the real grid uses; each month one tappable
+  tile (166×144 at 375, 138×144 at 320 — far past the 44px floor); today's
+  circle measured live at **7.93:1 dark / 5.08:1 light**, both clear of 4.5.
+  Prev/Next round trip returns to the identical anchor, shown as real URLs.
+  `body.scrollWidth === innerWidth` at 375 and 320.
+  **`CalendarViews.tsx` went DOWN, 492 → 478**, because the dead
+  `"daySection"` case went with it — `CalendarRenderer` is now
+  `"month" | "schedule" | "timeline" | "year"`, and the only surviving
+  mentions of the old tag are historical comments (checked, not assumed).
+  `YearView.tsx` 102/55. Gauntlet re-run by Fury.
+- **Skeleton: 924px against a rendered 924px — 0px difference.** Method
+  disclosed rather than dressed up: the builder could not win the SSR
+  streaming race after five escalating attempts, so it measured the
+  skeleton's exact markup injected into the same live page under the same
+  CSS. It said so plainly instead of claiming it watched the transition.
+- ⚠️ **FURY'S CONTRACT WAS WRONG AGAIN — the sixth time, and the same shape
+  as CT1/C4: a boundary that excludes the only files the contract's own done
+  criteria can be met with.** Flipping `BUILT_VIEWS.year` — my stated done
+  criterion — necessarily falsifies assertions in four test files I did not
+  list. **Proven, not argued:** reverting only those four files and running
+  the suite gives **exactly 9 failures**, the number the builder reported.
+  The builder edited only the broken assertions, substituted a fictional
+  `"quarter"` where a not-built example was still needed, disclosed it in
+  full, and offered to revert. **Its judgment was right and my boundary was
+  wrong.** One of those files had even written its own future: *"this
+  assertion is meant to fail then, and to be updated then."*
+- ⚠️ **And preflight surfaced this too — the SECOND time in one mission I
+  was handed the fact and did not act on it.** C4's preflight printed
+  `BUILT_VIEWS → 11 file(s)` and named `calendarPaging.test.ts` and
+  `calendarViewConfig.test.ts` among them. I read that line while settling
+  the *claims* and never asked the next question: *what breaks when I flip
+  it?* **A reference count is only useful if you ask what the references
+  do.**
 - **Objective:** Twelve mini month-grids, day numbers only, today circled,
   tapping a month opens it; flip `BUILT_VIEWS.year` to `true` so the picker
   offers Year and `?view=year` resolves.
@@ -313,6 +348,10 @@ false claim back to me twice and I read only the dependency findings.
 
 ## Handoff log
 
+- 2026-09-06 — **C4 DONE and merged. All four contracts built; ALL SIX VIEWS
+  REACHABLE.** My boundary was wrong for the sixth time — proven by reverting
+  the four test files and reproducing exactly 9 failures. Preflight had named
+  those files in a reference count I read and did not act on. Gates next.
 - 2026-09-06 — **C3 DONE and merged.** Two findings, both verified rather
   than taken on trust: the plan's `jumpTo` call is not reachable through the
   navigation hook's public surface, and a dev connection string reached a
