@@ -21,7 +21,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { consumePushedSearch } from "./useCalendarNavigation";
+import { consumePushedSearch, jumpToDayTargets } from "./useCalendarNavigation";
 
 const S0 = "date=2026-09-02&view=week";
 const S1 = "date=2026-09-09&view=week";
@@ -69,4 +69,29 @@ test("consumePushedSearch: never mutates the list it was given", () => {
   const pushed = [S1, S2];
   consumePushedSearch(pushed, S1);
   assert.deepEqual(pushed, [S1, S2]);
+});
+
+// jumpToDayTargets — mission-19/C2. `jumpToDay` (CV6's month-jump dropdown
+// needs it) must keep whichever view the calendar is ALREADY showing, unlike
+// `openDay`, which hardcodes "day" for both the local jump and the
+// navigation. This is the exact bug a naive copy-paste of `openDay` would
+// reintroduce: hardcode "day" here too, and every jump silently switches the
+// screen to Day view regardless of where the tap came from.
+test("jumpToDayTargets: preserves the CURRENT view on both the local jump and the navigation — timeline, Month, and Year", () => {
+  const day = new Date(2026, 10, 15); // Nov 15, 2026 — arbitrary, not "today"
+  for (const view of ["week", "month", "year"] as const) {
+    const { jumpToArgs, navigateToArgs } = jumpToDayTargets(view, day);
+    assert.equal(
+      jumpToArgs[1],
+      view,
+      `jumpTo must receive the CURRENT view (${view}), not a hardcoded one`,
+    );
+    assert.equal(
+      navigateToArgs[0],
+      view,
+      `navigateTo must receive the CURRENT view (${view}), not a hardcoded one`,
+    );
+    assert.equal(jumpToArgs[0].getTime(), day.getTime());
+    assert.equal(navigateToArgs[1].getTime(), day.getTime());
+  }
 });
