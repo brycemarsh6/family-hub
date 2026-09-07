@@ -345,7 +345,7 @@ false claim back to me twice and I read only the dependency findings.
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Captain | **BLOCKED** | 1 | 7 notes, 2 amendments drafted. Re-ran all six gauntlet legs first |
-| 1 | Vision | running | — | — |
+| 1 | Vision | **BLOCKED** | 1 | 9 notes. Re-ran all six legs. **Reproduced the CV4 finding that C1 said could not be reproduced locally** |
 | 1 | Strange | queued (serial after Vision — shared dev branch) | — | — |
 
 ### Captain pass 1 — BLOCKED, and the argument is better than the finding
@@ -368,6 +368,39 @@ retires the mechanism. My own C4 contract quoted this clause and then
 addressed only `renderer`.
 
 **Accepted without argument.** Fix contract **C5** below.
+
+### Vision pass 1 — BLOCKED, and it proved the thing nobody could prove
+
+**It reproduced the defect CV4 shipped open.** C1 honestly said the false
+string could not be reproduced locally, and it was right about *steady
+state*. Vision found the **transition** state: holding every RSC response
+with CDP `Fetch` and paging Week ×8 (the cursor moves optimistically before
+the push) puts Nov 1–7 against a Sep-6 window. A Denver server then flags two
+days; **`TZ=UTC next start` flags three** — Nov 5 being the partially-fetched
+day — and the column reads **`— not all events loaded`**. So the fix is
+*verified on the failing path*, not merely reasoned about. That closes CV4's
+open finding properly.
+
+**The blocker: this mission broke the Month skeleton, and it is my boundary
+again.** C3 mounted `MonthChips` above `MonthGrid`, but `loading.tsx` was
+**not in C3's may-touch list** and C4 touched only Year. So the Month
+skeleton no longer matches the Month render: measured at 375×812 on a
+production build, skeleton weekday row **y=303** against a real **y=379** —
+a **76px** jump on every cold load of `/calendar?view=month`. Vision proved
+the 76px belongs to this mission by removing the strip from the live page and
+watching the real row return to exactly 303. A tap aimed at skeleton row N
+lands on real row N−1 during the swap. **Seventh contract error, and the
+second in this mission of the identical shape** — a boundary that excludes
+the file which must change for the change to be complete. DESIGN.md's
+"skeletons shaped like the real content" is a written rule, so it is a
+BLOCKER by the severity test, not taste.
+
+**And a number I got wrong that propagated into the code.** This mission file
+said UTC midnight falls at **"5 PM Denver"**. It does not: MDT is UTC−6, so
+it is **6 PM MDT / 5 PM MST**. The builder copied my framing into
+`TimelineGrid.tsx:428` as *"5 PM Mountain Daylight Time (6 PM Standard)"* —
+labels swapped. **A wrong number in a contract becomes a wrong comment in the
+code**, which is this project's named stale-justification class, seeded by me.
 
 ### A bug Captain found in Fury's own tool, and it is fixed
 
