@@ -432,6 +432,8 @@ false claim back to me twice and I read only the dependency findings.
 | 1 | Vision | **BLOCKED** | 1 | 9 notes. Re-ran all six legs. **Reproduced the CV4 finding that C1 said could not be reproduced locally** |
 | — | C5 | DONE — merged | — | Both blockers closed, four notes cleared, tests 333 → 335 |
 | 1 | Strange | **NOT RUN — paused for usage** | — | Bryce is low on usage; the design gate is the most expensive remaining step |
+| 2 | Vision | **IN FLIGHT** | — | Dispatched on the post-C5 tree. Gauntlet re-verified green by Fury first |
+| 2 | Captain | queued | — | Runs after Vision — serial, shared `.next` |
 
 ### Captain pass 1 — BLOCKED, and the argument is better than the finding
 
@@ -499,6 +501,34 @@ the tool now reads MonthCell 105 / CalendarViews 224 / TimelineGrid 201
 against Captain's independent 108 / 223 / 206. Synced to both copies.
 
 ## Handoff log
+
+- 2026-09-06 — **RESUMED at the gate phase.** Fury re-ran the full six-leg
+  gauntlet on the post-C5 tree before spending anything on a gate: tsc 0,
+  eslint 0, **335 Denver / 328+7-skipped UTC / 335 LA**, build clean.
+  **Vision pass 2 DISPATCHED** on this tree. Captain pass 2 and Strange pass 1
+  follow **serially** — not parallel: all three run `npm run build` into the
+  same `.next`, and mission-16 already paid for parallel gates contaminating
+  each other's evidence. Serial costs the same tokens as parallel (the
+  constraint is usage, not wall-clock) and is interruptible.
+  **A false claim found in a constitution, and fixed.** `recordcheck.mjs` was
+  run at the *start* of the resume rather than at delivery — deliberately,
+  because this mission's own record says preflight quoted a false claim back
+  to me twice and I read only the dependency findings. 0 hard failures, 6
+  REVIEW items. Settling them by command found that STRUCTURE.md's new
+  reachability amendment claimed **"three of which had written their own
+  obsolescence in-file"**. Checked against the **pre-C4 blobs**: exactly
+  **one** did. The other three read that way only because C4 added the
+  framing while updating them. Corrected; committed doc-only, **0 files under
+  `src/`**, so no gate's domain moves and no verdict is invalidated by it.
+  The other five REVIEW items were judged benign with reasons: `vision.md`'s
+  only change is `model: fable → opus`, which cannot stale a past report's
+  "item 1"; mission-8's `CalendarHeader.tsx (100)` is frozen history, correct
+  as of mission-8. Load-bearing claims re-settled by command, not re-reading:
+  old `sr-only` string **0**, `md:not-sr-only` **0**, all six `BUILT_VIEWS`
+  entries genuinely `true` (read from the record, not its comment, which
+  *asserts* uniformity), inline `view === "schedule"` in the shell **0**,
+  `MonthChips` suppression **0**, and `VIEW_CONFIG` carrying both new fields
+  on all six rows.
 
 - 2026-09-06 — **C5 DONE and merged; both gate blockers closed.** **PAUSED
   HERE, deliberately:** Bryce is low on usage and Strange (the design gate)
