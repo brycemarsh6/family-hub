@@ -176,6 +176,54 @@ function YearGridSkeleton() {
   );
 }
 
+/**
+ * `MonthChips`' own skeleton (mission-18/C5, closes Vision's blocker) —
+ * same outer scroll-container classes as the real component
+ * (`-mx-4 mb-4 overflow-x-auto px-4`, plus its scrollbar-hiding utilities,
+ * copied verbatim so this can never drift out of sync with a class change
+ * over there), same `flex w-max gap-2` inner row, same `min-h-11` chip
+ * height — five grey pills rather than the real 25 month names, since a
+ * skeleton doesn't scroll and five is enough to fill the strip's visible
+ * width at 375px.
+ *
+ * WHY THIS EXISTS: mission-18/C3 mounted the real `MonthChips` above
+ * `MonthGrid` on the Month view, but this file was outside that
+ * contract's own may-touch list, so the Month skeleton went untouched —
+ * exactly the boundary gap Vision's mission-18 blocker named. MEASURED at
+ * 375×812 against a real production build (Runtime.evaluate over CDP,
+ * cookie-authenticated, CPU- and network-throttled to widen the streaming
+ * race enough to catch the skeleton frame at all): the real weekday-name
+ * row sits at y=379; without this strip the skeleton's own weekday-row
+ * placeholder sat at y=303 instead — a 76px jump on every cold load of
+ * `/calendar?view=month`, and a tap aimed at skeleton row N would land on
+ * real row N−1 during the swap.
+ *
+ * That 76px is deliberately NOT derived as `44 + 16` (this strip's chip
+ * height plus its own `mb-4`) — CalendarViews.tsx renders the real
+ * `MonthChips` and `MonthGrid` as siblings inside its own
+ * `flex flex-col gap-4` wrapper, so a SECOND 16px (that parent's `gap-4`)
+ * sits between them too: 44 + 16 + 16 = 76. `Loading`, below, reproduces
+ * that same wrapper around this component and `MonthGridSkeletonRows` for
+ * the `monthGrid` shape specifically, which is what makes the 76px come
+ * out of the real box model rather than a constant chosen to match a
+ * number — confirmed by re-measuring the wrapped result, not by the
+ * arithmetic alone. Year does NOT get this treatment: `YearGridSkeleton`
+ * measured a 0px difference against its own real render and is already
+ * correct, and this component would only be a stray hardcoded month strip
+ * — the wrong content for a view that has no month-chips row at all.
+ */
+function MonthChipsSkeleton() {
+  return (
+    <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex w-max gap-2">
+        {Array.from({ length: 5 }, (_, index) => (
+          <SkeletonBlock key={index} className="h-11 w-16 shrink-0 rounded-full" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Loading() {
   const searchParams = useSearchParams();
   const shape = SKELETON_SHAPE[parseViewParam(searchParams.get("view"))];
@@ -196,7 +244,15 @@ export default function Loading() {
         </div>
 
         {"monthGrid" in shape ? (
-          <MonthGridSkeletonRows />
+          // mission-18/C5 — the `flex flex-col gap-4` wrapper here is the
+          // SAME class CalendarViews.tsx uses around MonthChips + MonthGrid
+          // (its own siblings), not a lookalike — see MonthChipsSkeleton's
+          // own comment for why the 76px gap this closes depends on
+          // reproducing that exact structure rather than a single margin.
+          <div className="flex flex-col gap-4">
+            <MonthChipsSkeleton />
+            <MonthGridSkeletonRows />
+          </div>
         ) : "timelineGrid" in shape ? (
           <TimelineGridSkeleton />
         ) : "yearGrid" in shape ? (

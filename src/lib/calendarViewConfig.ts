@@ -127,6 +127,40 @@ export type ViewConfig = {
    */
   pinned: boolean;
   /**
+   * mission-18/C5 — closes Captain's reachability blocker: this used to be
+   * `CalendarHeader.tsx`'s own inline `view !== "schedule"` expression
+   * (`CalendarViews.tsx` passed it in as a prop computed the same way)
+   * rather than a row here, which is exactly the per-member difference
+   * outside a total record that STRUCTURE.md's tripwire fires on the
+   * moment a reachability entry flips to `true` — and `year`'s flip
+   * (mission-18/C4) was the LAST one, so this was the last chance for the
+   * tripwire to ever catch it. Schedule has no period to page between —
+   * the cursor's `step: 0` (useCalendarPeriod.ts) already refuses to move
+   * it — so `false` here removes Schedule's prev/next buttons from the DOM
+   * entirely (not just visually): a real tap producing no effect is worse
+   * than no control at all. `true` for every other view.
+   * `CalendarHeader.tsx` reads `VIEW_CONFIG[view].showArrows` directly, the
+   * same way it already reads `pinned` above — there is no prop for this
+   * any more.
+   */
+  showArrows: boolean;
+  /**
+   * mission-18/C5 — closes the second half of Captain's reachability
+   * blocker. Whether this view answers "is the cursor parked on today"
+   * from its OWN live state (`ScheduleView`'s scroll position) rather than
+   * from the plain `isCurrentPeriod(anchor, today)` comparison every other
+   * view uses, and whether tapping the header's Today circle scrolls this
+   * view's own content instead of calling `goToToday()`. `true` for
+   * Schedule alone: scrolling deliberately never moves its anchor (D2/D3),
+   * which makes the anchor comparison true FOREVER the instant the reader
+   * scrolls anywhere at all — see `schedule.isCurrentPeriod`'s own comment
+   * below, which this field is what makes safe to leave in place rather
+   * than delete: the Record stays total, and the override lives here
+   * instead of a second `view === "schedule"` test beside it in
+   * `CalendarViews.tsx`.
+   */
+  ownsTodayScroll: boolean;
+  /**
    * How many DaySection placeholders the loading frame renders. Fixed by
    * `view` alone, never by `today` — that's what lets the frame below show
    * the right COUNT before `today` resolves. Month renders MonthGrid, and
@@ -201,6 +235,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     // take over once it does.
     renderer: "timeline",
     pinned: false,
+    showArrows: true,
+    ownsTodayScroll: false,
     placeholderCount: 7,
     title: (anchor) => formatWeekRange(sundayOf(anchor)),
     days: (anchor) => daysOfWeek(sundayOf(anchor)),
@@ -212,6 +248,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     // mission-17/C4 — same switch as Week's row above, same reasoning.
     renderer: "timeline",
     pinned: false,
+    showArrows: true,
+    ownsTodayScroll: false,
     placeholderCount: 1,
     title: (anchor) => formatDayLabel(anchor),
     days: (anchor) => [anchor],
@@ -222,6 +260,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     nextLabel: "Next month",
     renderer: "month",
     pinned: false,
+    showArrows: true,
+    ownsTodayScroll: false,
     placeholderCount: 1,
     title: (anchor) => formatMonthTitle(anchor),
     days: (anchor) => [anchor],
@@ -241,11 +281,12 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   schedule: {
     // SETTLED, mission-15/C4 (was PROVISIONAL since CV1). Schedule has no
     // period to page between — the cursor's `step: 0` already refuses to
-    // move it — so `CalendarHeader`'s `showArrows` hides the prev/next
-    // buttons entirely for this view; `prevLabel`/`nextLabel` below are
-    // real strings anyway (never empty) so nothing about the type needs an
-    // escape hatch, and so a future accessibility fallback that briefly
-    // shows them isn't stuck with placeholders.
+    // move it — so `showArrows` below is `false` for this row;
+    // `prevLabel`/`nextLabel` here are real strings anyway (never empty)
+    // so nothing about the type needs an escape hatch, and so a future
+    // accessibility fallback that briefly shows them isn't stuck with
+    // placeholders. See `showArrows`'s own comment on `ViewConfig` above
+    // for why this is a row here rather than a second inline test.
     prevLabel: "Previous",
     nextLabel: "Next",
     renderer: "schedule",
@@ -253,6 +294,9 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     // far enough, and long enough, for a persistent header to earn its
     // keep — see `pinned`'s own comment on `ViewConfig` above.
     pinned: true,
+    showArrows: false,
+    // The one `true` row — see `ownsTodayScroll`'s own comment above.
+    ownsTodayScroll: true,
     placeholderCount: 7,
     // mission-16/C4 — this function's return VALUE is no longer what
     // Schedule's header actually displays. CalendarHeader.tsx now renders
@@ -307,6 +351,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     // switched to, not a third implementation.
     renderer: "timeline",
     pinned: false,
+    showArrows: true,
+    ownsTodayScroll: false,
     placeholderCount: 3,
     // SETTLED, mission-17/C4: a real 3-day range label, via the local
     // `formatThreeDayRange` above — see its own comment for why that's a
@@ -333,6 +379,8 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
     // can never drift from what tapping through to Month itself shows.
     renderer: "year",
     pinned: false,
+    showArrows: true,
+    ownsTodayScroll: false,
     placeholderCount: 1,
     title: (anchor) => String(anchor.getFullYear()),
     // Still just the anchor, still unread by the renderer — same standing

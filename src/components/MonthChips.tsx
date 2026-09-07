@@ -56,6 +56,14 @@ export function MonthChips({ anchor, onPickMonth }: MonthChipsProps) {
 
   const selectedRef = useRef<HTMLButtonElement | null>(null);
 
+  // Hoisted out of the effect's own dependency array (mission-18/C5) so
+  // exhaustive-deps can name them directly rather than being suppressed:
+  // the effect below only cares about the MONTH `anchor` falls in (see its
+  // own comment), and these two primitives are exactly that fact, read
+  // once here instead of recomputed inline in the array.
+  const year = anchor.getFullYear();
+  const month = anchor.getMonth();
+
   // Recentres the strip on whichever chip is selected — on mount, and again
   // whenever the selected MONTH actually changes (paging, Today, a tap
   // here). Keyed on the calendar fields themselves, not the `anchor` object
@@ -67,8 +75,7 @@ export function MonthChips({ anchor, onPickMonth }: MonthChipsProps) {
   // wherever the user just tapped shouldn't queue a competing animation.
   useEffect(() => {
     selectedRef.current?.scrollIntoView({ inline: "center", block: "nearest", behavior: "instant" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anchor.getFullYear(), anchor.getMonth()]);
+  }, [year, month]);
 
   return (
     <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
