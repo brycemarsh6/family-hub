@@ -57,6 +57,29 @@ test("pinned is true for Schedule alone", () => {
   }
 });
 
+// mission-18/C5 (Captain's reachability blocker) — `showArrows` and
+// `ownsTodayScroll` used to be inline `view === "schedule"` tests beside
+// this file (CalendarHeader.tsx, CalendarViews.tsx) rather than rows here,
+// same shape as `pinned`/`renderer` before mission-17/C3. Asserted the
+// same way those two already are: every view checked against what it
+// should be, not just Schedule's own row, so a future view silently
+// inheriting the wrong default would fail here too.
+test("showArrows is false for Schedule alone", () => {
+  for (const view of ALL_VIEWS) {
+    assert.equal(VIEW_CONFIG[view].showArrows, view !== "schedule", `${view}.showArrows`);
+  }
+});
+
+test("ownsTodayScroll is true for Schedule alone", () => {
+  for (const view of ALL_VIEWS) {
+    assert.equal(
+      VIEW_CONFIG[view].ownsTodayScroll,
+      view === "schedule",
+      `${view}.ownsTodayScroll`,
+    );
+  }
+});
+
 test("renderer matches each view's actual component today", () => {
   assert.equal(VIEW_CONFIG.month.renderer, "month");
   assert.equal(VIEW_CONFIG.schedule.renderer, "schedule");

@@ -167,10 +167,17 @@ export function CalendarViews({
   // comparison above, which is true FOREVER the instant the reader scrolls
   // anywhere at all (scrolling deliberately never moves the anchor — D2/D3).
   // Every other view is completely untouched by this override.
-  const headerIsCurrentPeriod = view === "schedule" ? scheduleTodayVisible : isCurrentPeriod;
+  //
+  // mission-18/C5 (Captain's reachability blocker) — the condition used to
+  // be an inline check of `view` against the literal Schedule tag, the
+  // third one beside `VIEW_CONFIG` (a total record with no field for this)
+  // that Captain's finding named. `config.ownsTodayScroll` is that field
+  // now — see its own comment on `ViewConfig` (calendarViewConfig.ts). The
+  // branch bodies below are unchanged; only the condition moved.
+  const headerIsCurrentPeriod = config.ownsTodayScroll ? scheduleTodayVisible : isCurrentPeriod;
 
   function handleToday() {
-    if (view === "schedule") {
+    if (config.ownsTodayScroll) {
       // "Scrolls if loaded, navigates if not" (the mission's Done #3):
       // scrollToToday returns false when today's row isn't loaded at all
       // (e.g. a deep link far away that hasn't been scrolled back from),
@@ -402,7 +409,6 @@ export function CalendarViews({
         nextDisabled={today === null}
         prevLabel={config.prevLabel}
         nextLabel={config.nextLabel}
-        showArrows={view !== "schedule"}
         canManage={canManage}
         onAdd={() => setAddingEvent(true)}
       />

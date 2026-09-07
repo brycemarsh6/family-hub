@@ -425,7 +425,7 @@ export function TimelineGrid({
                         midnight in the SERVER's own runtime timezone (UTC
                         on Vercel). Rendered here in the BROWSER (this file
                         is "use client"), that UTC-midnight instant lands at
-                        5 PM Mountain Daylight Time (6 PM Standard) the
+                        6 PM Mountain Daylight Time (5 PM Standard) the
                         PRECEDING Denver calendar day — so the last day the
                         window is meant to cover still gets everything from
                         its own local midnight up to that afternoon/evening

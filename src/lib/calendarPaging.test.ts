@@ -166,17 +166,25 @@ test("buildCalendarSearch: round-trips through parseViewParam for every built vi
   }
 });
 
-test("buildCalendarSearch: a URL naming an unbuilt view parses back to the default, not to that view", () => {
-  // "year" was this test's example through CV1–CV4 — mission-18/C4 built
-  // it, so `buildCalendarSearch` (typed to `CalendarPeriodView`) has no
-  // real name left to construct this with, per this file's own note above.
-  // Built directly as a search string rather than through
-  // `buildCalendarSearch`, since a URL is just a string and a stale
-  // bookmark from a future build could carry any "?view=" value regardless
-  // of what this build's own type union allows constructing today. The
-  // property this proves — a future/unknown view name is safe rather than
-  // broken — still matters even with nothing left in THIS build's own
-  // vocabulary to demonstrate it with.
+test("parseViewParam: a URL naming an unbuilt view parses back to the default, not to that view", () => {
+  // mission-18/C5 — renamed from "buildCalendarSearch: ...". "year" was
+  // this test's example through CV1–CV4 — mission-18/C4 built it, so
+  // `buildCalendarSearch` (typed to `CalendarPeriodView`) has no real name
+  // left to construct this with, per this file's own note above, and this
+  // test has called only `parseViewParam` ever since. Renamed rather than
+  // pushed through `buildCalendarSearch` via a cast (e.g. `"quarter" as
+  // CalendarPeriodView`): that would call the function with a value its
+  // own type promises never to receive, which is a smaller, more dishonest
+  // version of the exact "test a fictional not-built view" pattern
+  // mission-18/C4's own handoff disclosed doing once already — worth not
+  // repeating quietly in a rename that has no reason to touch the
+  // assertions at all. Built directly as a search string instead, since a
+  // URL is just a string and a stale bookmark from a future build could
+  // carry any "?view=" value regardless of what this build's own type
+  // union allows constructing today. The property this proves — a
+  // future/unknown view name is safe rather than broken — still matters
+  // even with nothing left in THIS build's own vocabulary to demonstrate
+  // it with.
   const params = new URLSearchParams(`date=${toLocalDateString(d(2026, 8, 2))}&view=quarter`);
   assert.equal(params.get("view"), "quarter");
   assert.equal(parseViewParam(params.get("view")), "week");
