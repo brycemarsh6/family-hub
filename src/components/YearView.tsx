@@ -77,8 +77,12 @@ export function YearView({ anchor, today, onPickMonth }: YearViewProps) {
               button's own aria-label already resolves. */}
           <div className="grid grid-cols-7 gap-0.5" aria-hidden="true">
             {monthGridDays(month).map((day) => {
-              const isToday = isSameDay(day, today);
               const inMonth = isSameMonth(day, month);
+              // The 42-cell grid `monthGridDays` returns spills up to 12
+              // days into neighbouring months, so a bare isSameDay(day,
+              // today) can circle today's date on a month it doesn't
+              // belong to — guard on inMonth too.
+              const isToday = isSameDay(day, today) && inMonth;
               return (
                 <span
                   key={day.getTime()}
