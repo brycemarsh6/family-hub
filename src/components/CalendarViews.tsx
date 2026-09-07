@@ -110,7 +110,11 @@ export function CalendarViews({
   // For the Add sheet's own destinations only — the calendar's own paging
   // navigations all go through useCalendarNavigation.
   const router = useRouter();
-  const { view, anchor, today, step, goToToday, setView, openDay } =
+  // mission-19/C3 — `jumpToDay` (mission-19/C2) is what MonthJumpSheet's
+  // day taps call: jumps to an arbitrary day while keeping the CURRENT
+  // view, unlike `openDay` (Month's own day-cell tap), which always forces
+  // Day view.
+  const { view, anchor, today, step, goToToday, setView, openDay, jumpToDay } =
     useCalendarNavigation(DEFAULT_CALENDAR_VIEW);
 
   // mission-17/C4 — TimelineGrid's two dependency-injected values (see that
@@ -128,6 +132,11 @@ export function CalendarViews({
 
   const [pickingView, setPickingView] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
+  // mission-19/C3 — the month-jump sheet CalendarHeader's title control
+  // opens. A fifth independent boolean, same shape as `pickingView`/
+  // `addingEvent` above (CalendarHeader also flips this one — see the
+  // header's own `onOpenMonthJump` prop).
+  const [pickingMonth, setPickingMonth] = useState(false);
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
   // mission-14/C4 — the sheet TaskCard/DaySection's onOpenTask now opens
   // for real. Just the task itself, no day: unlike an event, a task has
@@ -403,6 +412,7 @@ export function CalendarViews({
         nextLabel={config.nextLabel}
         canManage={canManage}
         onAdd={() => setAddingEvent(true)}
+        onOpenMonthJump={() => setPickingMonth(true)}
       />
 
       {/* The render switch itself — which case runs for which view — lives
@@ -417,7 +427,13 @@ export function CalendarViews({
           CalendarHeader above, and `selected`/`selectedTask` are also set
           from renderPeriodContent()'s onOpenEvent/onOpenTask callbacks —
           so this component remains the one place all four are read from
-          and written to, exactly as before this extraction. */}
+          and written to, exactly as before this extraction.
+
+          mission-19/C3 added a FIFTH: `pickingMonth`, also set from
+          CalendarHeader (its new `onOpenMonthJump`), plus the two
+          read-only values (`anchor`, `today`) and the one action
+          (`jumpToDay`) MonthJumpSheet needs — none of which are new state,
+          just values/functions this component already held. */}
       <CalendarSheets
         view={view}
         onSelectView={setView}
@@ -432,6 +448,11 @@ export function CalendarViews({
         onCloseTask={() => setSelectedTask(null)}
         people={people}
         canManage={canManage}
+        pickingMonth={pickingMonth}
+        onClosePickingMonth={() => setPickingMonth(false)}
+        anchor={anchor}
+        today={today}
+        onJumpToDay={jumpToDay}
       />
     </div>
   );

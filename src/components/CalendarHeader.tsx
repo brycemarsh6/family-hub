@@ -82,6 +82,7 @@ export function CalendarHeader({
   nextLabel,
   canManage,
   onAdd,
+  onOpenMonthJump,
 }: {
   /** The real union, imported rather than hand-written (mission-11/C1) —
    * the local copy that used to sit here was a second place the view
@@ -114,6 +115,13 @@ export function CalendarHeader({
    * control in this branch. */
   canManage: boolean;
   onAdd: () => void;
+  /**
+   * mission-19/C3 — opens the month-jump sheet (`MonthJumpSheet.tsx`, mounted
+   * from `CalendarSheets.tsx`). Called from the invisible overlay button
+   * below, never from the title `<h2>`/portal slot themselves — see that
+   * button's own comment for why.
+   */
+  onOpenMonthJump: () => void;
 }) {
   // mission-16/C4 (D1/Done#4) — Schedule is the one view whose content
   // scrolls far enough, and long enough, for "which month is on screen" to
@@ -195,8 +203,15 @@ export function CalendarHeader({
             piece that needs the null-frame and resolved-frame to match
             exactly rather than by coincidence. The buttons on either side
             render identically regardless of `today`, so they need no such
-            pinning. */}
-        <span className="flex h-7 min-w-0 flex-1 items-center justify-center">
+            pinning.
+
+            mission-19/C3 — `relative` added so the overlay button below can
+            position against THIS span, not the page. The three branches
+            inside are otherwise byte-identical to before this contract:
+            the Schedule `pinned` branch in particular is STILL the same
+            empty, childless `<span id={SCHEDULE_TITLE_SLOT_ID}>` — see its
+            own comment for why it must stay that way. */}
+        <span className="relative flex h-7 min-w-0 flex-1 items-center justify-center">
           {title === null ? (
             <span aria-hidden="true" className="h-5 w-32 animate-pulse rounded bg-surface-2" />
           ) : pinned ? (
@@ -214,6 +229,62 @@ export function CalendarHeader({
           ) : (
             <h2 className="truncate text-lg font-semibold">{title}</h2>
           )}
+
+          {/* mission-19/C3 — THE control every view opens the month-jump
+              sheet from. A SIBLING of the three branches above, not a
+              child of any one of them — deliberately, because the Schedule
+              branch's own span must stay exactly as it was (see its
+              comment just above): adding a click target INSIDE it, or
+              swapping it for a `<button>`, would either put fallback
+              content next to ScheduleView's portaled `<h2>` (the double-
+              label bug D2 already fixed once) or hand the portal target
+              itself `disabled`/button semantics that have nothing to do
+              with what's portaled into it.
+
+              THE DESIGN DECISION THIS CONTRACT ASKED FOR, WRITTEN DOWN:
+              this wraps the slot rather than becoming it, AND it wraps by
+              overlaying rather than by growing the shared `h-7` box. A
+              plain `min-h-11` on that box (the naive fix) would have
+              worked on the five arrow-views for free (their row is
+              already 44px because of the arrows either side), but
+              Schedule's row has NO 44px sibling to hide the growth behind
+              (`showArrows` is false there) — the row's OWN flow height
+              would have grown 28px -> 44px, and `SCHEDULE_HEADER_BAR_HEIGHT_PX`
+              below (which ScheduleView.tsx, out of this contract's
+              boundary, adds to its own scroll-offset math) would have gone
+              stale the moment this shipped.
+
+              Instead, this button is `position: absolute` — entirely
+              outside document flow — so it contributes NOTHING to the row's
+              rendered height on any view. Its own box is what gets measured
+              for the 44px floor: `-inset-y-[9px]` expands 9px past the
+              shared span's top and bottom edges, so a 28px box becomes a
+              46px hit target (28 + 9 + 9), comfortably clearing 44 rather
+              than landing exactly on the boundary. On the five arrow-views
+              that 46px sits centered inside the row's own already-44px
+              height (spilling by 1px into the row's own margin either
+              side — inconsequential, nothing else occupies that space); on
+              Schedule it spills into the pinned bar's own padding/margin
+              instead of growing the bar. Either way: the row's rendered
+              height is UNCHANGED from before this contract, on every view,
+              in both the null-frame and the resolved-frame — which is what
+              keeps `SCHEDULE_HEADER_BAR_HEIGHT_PX` correct with no edit
+              needed, and what keeps the null/resolved frames matching
+              (they already matched at h-7; nothing about this button's
+              presence depends on `title`, so it changes nothing about that
+              equality).
+
+              `disabled` while `today` hasn't resolved yet, matching every
+              other header control's convention (`onToday`'s own
+              disabled={!todayResolved || isCurrentPeriod}` just above) —
+              there is no anchor to seed the sheet with before then. */}
+          <button
+            type="button"
+            onClick={onOpenMonthJump}
+            disabled={!todayResolved}
+            aria-label="Jump to a month or day"
+            className="absolute inset-x-0 -inset-y-[9px] z-10"
+          />
         </span>
 
         {showArrows && (

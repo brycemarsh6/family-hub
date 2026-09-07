@@ -6,6 +6,7 @@ import { RadioSheet } from "./RadioSheet";
 import { ActionSheet } from "./ActionSheet";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
+import { MonthJumpSheet } from "./MonthJumpSheet";
 import { CALENDAR_VIEW_OPTIONS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
@@ -26,6 +27,15 @@ import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/
  * `useRouter()` returns the same shared object regardless of which
  * component calls it, so this is not a fifth piece of state to keep in
  * sync with the caller, just a second read of one that already exists.
+ *
+ * mission-19/C3 added a FIFTH sheet, `MonthJumpSheet` — `pickingMonth`,
+ * `onClosePickingMonth`, `anchor`, `today`, and `onJumpToDay` below are its
+ * own props, independent of the original four exactly the way those four
+ * are independent of each other. `anchor`/`today` are read-only values
+ * (not state this component owns or sets) so the sheet can seed its own
+ * grid and highlight the real "today" without duplicating
+ * `useCalendarNavigation`'s own hook call — that hook is outside this
+ * contract's boundary, and CalendarViews.tsx already holds both values.
  *
  * `ScheduleView.tsx` mounts its OWN `EventDetailSheet`/`TaskDetailSheet`
  * (its own comment says "same as CalendarViews.tsx already does") — this
@@ -58,6 +68,22 @@ type CalendarSheetsProps = {
 
   people: CalendarPersonView[];
   canManage: boolean;
+
+  /** mission-19/C3 — `MonthJumpSheet`'s own open/closed state and the two
+   * read-only values it needs to seed itself (see this file's own header
+   * comment for why these are read-only rather than a sixth setter). */
+  pickingMonth: boolean;
+  onClosePickingMonth: () => void;
+  /** Null exactly while `today` hasn't resolved yet — CalendarViews.tsx
+   * only ever flips `pickingMonth` true from a control that's already
+   * `disabled` until then (CalendarHeader's own overlay button), so this
+   * is guarded here purely so the type matches what CalendarViews.tsx
+   * actually holds, not because the sheet is expected to render null. */
+  anchor: Date | null;
+  today: Date | null;
+  /** `useCalendarNavigation`'s `jumpToDay` (mission-19/C2) — jumps to the
+   * tapped day while keeping whichever view is already showing. */
+  onJumpToDay: (day: Date) => void;
 };
 
 export function CalendarSheets({
@@ -74,6 +100,11 @@ export function CalendarSheets({
   onCloseTask,
   people,
   canManage,
+  pickingMonth,
+  onClosePickingMonth,
+  anchor,
+  today,
+  onJumpToDay,
 }: CalendarSheetsProps) {
   const router = useRouter();
 
@@ -139,6 +170,26 @@ export function CalendarSheets({
             onCloseTask();
             router.refresh();
           }}
+        />
+      )}
+
+      {/* mission-19/C3 — guarded on BOTH `anchor` and `today` (belt-and-
+          braces, same convention CalendarViews.tsx already uses for this
+          exact pair — they resolve together, but guarding both is what
+          lets TypeScript narrow both to non-null below without an
+          assertion). In practice `pickingMonth` can only ever become true
+          from a control that's already disabled until `today` resolves
+          (CalendarHeader's overlay button), so this guard is never
+          expected to fail closed, only to prove it to the compiler. */}
+      {pickingMonth && anchor !== null && today !== null && (
+        <MonthJumpSheet
+          anchor={anchor}
+          today={today}
+          onPickDay={(day) => {
+            onClosePickingMonth();
+            onJumpToDay(day);
+          }}
+          onClose={onClosePickingMonth}
         />
       )}
     </>
