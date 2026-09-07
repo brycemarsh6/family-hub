@@ -244,7 +244,9 @@ row of round icon buttons (Today / Month / Filter / Search).
 **Adopt**: grid, reading-view pills, spanning bars, faded past, disabled
 Today when in view, many-people-per-event. **Adapt**: header → the
 action-circle pattern; switcher → `RadioSheet`; paging → visible arrows
-(swipe-only is hover-only's cousin); "+" → `FloatingAddButton`
+(swipe-only is hover-only's cousin — **CV6 adds swipe as an ADDITION and
+the arrows stay; this line rules out swipe-*only*, never swipe**, and is
+not to be cited against the gesture); "+" → `FloatingAddButton`
 bottom-left (one component, one place); house typography; bottom nav
 stays; three pills then "+N more". **Skip**: Search for v1.
 

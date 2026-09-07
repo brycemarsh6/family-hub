@@ -166,7 +166,49 @@ C1 and C2 touch disjoint files and go in **parallel worktrees**. C3 needs
 both. C4 needs C1. C5 is documentation and can go any time.
 
 ### C1 — extract the sheets block (Captain's named seam)
-- **Status:** WRITTEN
+- **Status:** **DONE** — merged. `CalendarViews.tsx` **484 → 438 total /
+  223 → 182 code**; new `CalendarSheets.tsx` **146/104**. Four sheets: **0**
+  left in `CalendarViews`, **4** in `CalendarSheets` (Fury's own grep).
+  **Captain's "no shared state beyond the four setters" was verified, not
+  trusted, and HELD** — each of the four state names appears only inside its
+  own conditional block; `canManage`, `people` and `router` are shared across
+  the two detail sheets but are ordinary props/hook values, not a fifth piece
+  of entangled state. The four setters stayed in `CalendarViews` because each
+  is also read or set from `CalendarHeader` or `renderPeriodContent`, not only
+  by the sheets.
+- ⚠️ **THE LIVE-BROWSER TRACE COULD NOT BE DONE, AND THE BUILDER SAID SO
+  RATHER THAN QUIETLY SUBSTITUTING.** The contract asked for a before/after
+  DOM trace *"the way mission-18/C1 did"* — i.e. against a production build
+  over CDP. That needs an authenticated session, and **minting a session JWT
+  by hand — the pattern this project sanctioned back in Phase 1e — was
+  BLOCKED by the environment's own security classifier as credential
+  forging.** The builder had no real family password and correctly did not
+  look for a way around the block.
+  **What it did instead is arguably stronger for a pure JSX move**: it
+  reconstructed the pre-extraction block byte-faithfully from
+  `git show 977fff4:src/components/CalendarViews.tsx`, then rendered **the
+  old reconstruction and the new `CalendarSheets` with identical props** for
+  all four sheet-open states through `react-dom/server`, shimming **only**
+  `next/navigation`'s `useRouter` and `server-only` (both of which throw
+  outside Next's bundler) — **`RadioSheet`, `ActionSheet`, `EventDetailSheet`
+  and `TaskDetailSheet` were the real production components throughout.**
+  All four rendered **byte-identical** markup (2686 / 1994 / 2554 / 2980
+  chars, old == new), and the **positive control** — deliberately flipping
+  `canManage` on one side only — correctly reported DIFFERENT, so the harness
+  is not blind. The router call log was empty.
+  **This is the right shape of answer to a blocked verification**: name the
+  block, don't route around it, substitute the strongest thing that is
+  actually available, and prove the substitute can fail.
+- ⚠️ **A worktree artifact that can masquerade as a broken tree, found by
+  Fury after merging:** a leftover agent worktree under `.claude/worktrees/`
+  is **inside the repo**, so `npx eslint .` walks into its `.next` build
+  output and reports **thousands of errors** in generated bundles
+  (`no-require-imports`, `ban-ts-comment`, …). Nothing is wrong with the
+  source. `git worktree remove -f -f` (a live agent's worktree is *locked*,
+  so a single `-f` is refused) then `git worktree prune` clears it, after
+  which `eslint .` is clean. **Worth knowing before someone debugs a
+  phantom lint failure.**
+- **Objective:** (as written)
 - **Objective:** Move `CalendarViews.tsx`'s four-sheet block into
   `src/components/CalendarSheets.tsx`, with **no behaviour change**, before
   CV6 grows the file.
@@ -330,7 +372,12 @@ both. C4 needs C1. C5 is documentation and can go any time.
   `SwipeActions` unchanged in behaviour, gauntlet green.
 
 ### C5 — amend the v1 plan so swipe reads as additive
-- **Status:** WRITTEN
+- **Status:** **DONE** — done by Fury directly rather than spending a builder
+  dispatch on a one-sentence documentation edit. `calendar-v1.md:247` now
+  records that the line **rules out swipe-*only*, never swipe**, that CV6 adds
+  the gesture as an addition with the arrows kept, and that it is not to be
+  cited against the gesture. Anchored on the sentence, **not** on the v2
+  plan's cited line number, which is off by ~3 (fact 7).
 - **Objective:** `.avengers/plans/calendar-v1.md` ~`:247` reads *"paging →
   visible arrows (swipe-only is hover-only's cousin)"*. That reasoning is
   **correct and stays** — amend it to record that **CV6 adds swipe as an
@@ -354,6 +401,13 @@ file C3 had not yet created.
 | — | — | not yet run | — | — |
 
 ## Handoff log
+- 2026-09-06 — **C1 and C5 DONE; C1 merged. Combined-tree gauntlet re-run by
+  Fury and green: 336 / 329 + 7 skipped / 336, tsc 0, eslint 0, build clean.**
+  Both worktrees removed and pruned. **C3 and C4 both touch
+  `CalendarViews.tsx`, so they are SEQUENTIAL, not parallel** — C3 first,
+  because its Schedule-title problem is the mission's real design risk and is
+  better settled before another contract edits the same file.
+
 - 2026-09-06 — **C2 DONE and merged.** Boundary exactly its two files.
   Gauntlet re-verified. The hook now exposes `jumpToDay`, so **C3 is
   unblocked** on that dependency. Waiting on C1 (the sheets extraction) before
