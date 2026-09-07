@@ -38,16 +38,18 @@ test("every view name has a label and a BUILT_VIEWS answer, and nothing else doe
   }
 });
 
-test("exactly five views are built today — Schedule, Day, 3 Day, Week and Month", () => {
+test("all six views are built — mission-18/C4 (Year) was the last one", () => {
   // mission-15/C4 flipped schedule (the first of CV3/CV4/CV5 to land);
-  // mission-17/C4 flips threeDay in the same commit that gives Day/3 Day/
-  // Week a real timeline renderer. CV5 flips the last one (year); this
-  // assertion is meant to fail then, and to be updated then.
+  // mission-17/C4 flipped threeDay in the same commit that gave Day/3 Day/
+  // Week a real timeline renderer. mission-18/C4 flips the last one (year),
+  // via `YearView` — see this repo's own prediction, previously recorded
+  // right here, that this assertion was "meant to fail then, and to be
+  // updated then."
   assert.deepEqual(
     [...BUILT_CALENDAR_VIEWS],
-    ["schedule", "day", "threeDay", "week", "month"],
+    ["schedule", "day", "threeDay", "week", "month", "year"],
   );
-  assert.equal(BUILT_VIEWS.year, false, "year has no renderer yet");
+  assert.equal(BUILT_VIEWS.year, true, "year has a renderer now — YearView");
 });
 
 test("the picker offers exactly the built views, labelled from the one label map", () => {
@@ -57,6 +59,7 @@ test("the picker offers exactly the built views, labelled from the one label map
     { value: "threeDay", label: "3 Day" },
     { value: "week", label: "Week" },
     { value: "month", label: "Month" },
+    { value: "year", label: "Year" },
   ]);
   // Not a second hand-written list: whatever is built is offered, and
   // whatever is offered is labelled the same way the header labels it.
@@ -76,9 +79,10 @@ test("toBuiltCalendarView accepts built views and rejects everything else", () =
   for (const view of BUILT_CALENDAR_VIEWS) {
     assert.equal(toBuiltCalendarView(view), view);
   }
-  // Real view names with no renderer are rejected exactly like nonsense is:
-  // that is what keeps `?view=year` off a page that cannot draw it.
-  assert.equal(toBuiltCalendarView("year"), null, "year is not built yet");
+  // A real view name with no renderer used to be rejected exactly like
+  // nonsense — that was what kept `?view=year` off a page that couldn't
+  // draw it. mission-18/C4 gave year a renderer, so this is what's left to
+  // prove the rule still works: genuine nonsense is still rejected.
   for (const value of ["", " week", "WEEK", "Week", "weekly", "3day", null, undefined]) {
     assert.equal(toBuiltCalendarView(value), null, `rejected: ${String(value)}`);
   }
