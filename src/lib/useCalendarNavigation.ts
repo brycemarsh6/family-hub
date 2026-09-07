@@ -66,6 +66,27 @@ export function consumePushedSearch(
   return { ours: true, remaining: pushed.slice(index + 1) };
 }
 
+/**
+ * The pure decision behind `jumpToDay` (mission-19/C2) — which arguments to
+ * hand to `jumpTo` (local cursor state) and which to hand to `navigateTo`
+ * (the URL push), when jumping to an arbitrary DAY while keeping the
+ * CURRENT view. Both always resolve to the same `view` — unlike `openDay`,
+ * which hardcodes `"day"` for both, `jumpToDay` must hardcode nothing: the
+ * whole point is that the caller's current view survives the jump.
+ *
+ * Pure and exported so this is provable without a renderer, same pattern as
+ * `consumePushedSearch` above — see useCalendarNavigation.test.ts.
+ */
+export function jumpToDayTargets(
+  view: CalendarPeriodView,
+  day: Date,
+): {
+  jumpToArgs: [Date, CalendarPeriodView];
+  navigateToArgs: [CalendarPeriodView, Date];
+} {
+  return { jumpToArgs: [day, view], navigateToArgs: [view, day] };
+}
+
 export type CalendarNavigation = {
   view: CalendarPeriodView;
   /** The day the current period is anchored to — `null` only while
@@ -91,6 +112,18 @@ export type CalendarNavigation = {
   setView: (view: CalendarPeriodView) => void;
   /** Opens `day` (e.g. one of Month's 42 grid days) in Day view. */
   openDay: (day: Date) => void;
+  /**
+   * Jumps to `day` while PRESERVING whichever view is already showing —
+   * mission-19/C2. `openDay` above always forces Day view; this is the gap
+   * CV5/C3 recorded and CV6's month-jump dropdown needs: tapping a day in
+   * the dropdown's compact month grid should move the Week/Month/Year
+   * screen you were already on to that day, not silently switch you to
+   * Day. Deliberately not a raw re-export of `useCalendarPeriod`'s own
+   * `jumpTo` (which takes an arbitrary view) — a caller that could pass any
+   * view here would duplicate `setView`'s job and widen this hook's public
+   * surface further than the dropdown needs.
+   */
+  jumpToDay: (day: Date) => void;
 };
 
 /**
@@ -321,6 +354,29 @@ export function useCalendarNavigation(defaultView: CalendarPeriodView): Calendar
     navigateTo("day", day);
   }
 
+  // WHY BOTH `jumpTo` AND `navigateTo` (mission-19/C2, answering the
+  // contract's own question): they are not redundant, and neither is
+  // optional. `jumpTo` is a synchronous `setState` inside
+  // useCalendarPeriod — it updates the LOCAL cursor (`view`/`anchor`) on
+  // THIS render, which is what makes the jump feel instant rather than
+  // waiting on the slow `force-dynamic` round trip `navigateTo` kicks off
+  // (see this file's header comment, "LOCAL -> URL"). `navigateTo` is the
+  // real `router.push` — it is what changes the URL (so a reload, a
+  // shared link, or Back/Forward lands on the right day) and what makes
+  // the server refetch the event window centred on the new period. Drop
+  // `jumpTo` and the screen would sit on the old period until the resync
+  // effect notices the URL changed a beat later; drop `navigateTo` and the
+  // jump would never survive a reload or move the fetch window at all.
+  // `openDay` above does the identical pair, just with `"day"` hardcoded
+  // instead of the caller's own `view` — that hardcoding is the ONLY
+  // difference `jumpToDay` removes.
+  function jumpToDay(day: Date) {
+    if (today === null) return;
+    const { jumpToArgs, navigateToArgs } = jumpToDayTargets(view, day);
+    jumpTo(...jumpToArgs);
+    navigateTo(...navigateToArgs);
+  }
+
   return {
     view,
     anchor,
@@ -329,5 +385,6 @@ export function useCalendarNavigation(defaultView: CalendarPeriodView): Calendar
     goToToday: handleToday,
     setView: handleSetView,
     openDay,
+    jumpToDay,
   };
 }
