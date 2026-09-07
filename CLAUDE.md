@@ -5977,3 +5977,138 @@ Worth recording, since it came up: the tools are files executed by `node` and
 worked immediately; CI is independent of any session. **Only agent definition
 files are pinned to session start**, and none changed. A fresh session reads
 everything above from disk anyway.
+
+---
+
+## Session, 2026-09-06 (evening): CV5 shipped — the calendar's Month/Year half
+
+**Merged as [PR #22](https://github.com/brycemarsh6/family-hub/pull/22)
+(`2a69540`) and deployed to production — verified against the merge sha, not
+"the newest deployment."** Mission-18, six contracts, **all three gates PASS**.
+Tests **333 → 335**. `.avengers/missions/mission-18-calendar-cv5-month-year.md`
+is the authoritative record; this is the summary.
+
+**What the family got:** Month pills now show their titles **at phone width**
+(below `md` a pill was previously a bare colour band, so identifying an event
+meant tapping); `MonthChips`, a month-name scroller above the grid; `YearView`,
+twelve mini month-grids; and **`BUILT_VIEWS.year` flipped true, so all six views
+are reachable for the first time** — Schedule · Day · 3 Day · Week · Month ·
+Year. Plus CV4's one open finding closed (the boundary-day `sr-only` string was
+false on the UTC production path) with `TimelineGrid.tsx` extracted 649 → 555 in
+the same contract, and the Month skeleton's 76px cold-load jump removed.
+
+### The bug the design gate caught, and what it says about the other two
+
+`YearView` circled **today in two different month tiles at once**, on **126 of
+365 days (34.5%)**. A 42-cell month grid pads into its neighbours and
+`isSameDay(day, today)` carried no in-month guard, so on 1 October September's
+tile asserted today fell in September — in a view whose own doc comment says it
+exists to answer *which week does this fall in*. **Vision and Captain both
+PASSed the same code.** Neither was wrong: the code did exactly what it said,
+and the defect was only in what it *meant*. That is the whole argument for a
+third gate that looks at the screen.
+
+**Strange then overturned its own advice, and supplied the measurement that
+settled it.** It had ruled the identical defect in `MonthGrid` a mere NOTE —
+milder, one grid on screen, month named in the header — and advised fixing Year
+alone. Fury overrode that and included it after verifying there is **no
+downstream guard** (`MonthCell.tsx:129` renders
+`isToday ? … : (isCurrentMonth ? …)`, so `isToday` **wins**). On re-measurement
+Strange agreed and said why: pre-fix, September's Oct-1 cell rendered
+`accent: true, muted: false` — **visually indistinguishable from a real today**,
+in the app's most-used view. *"My 'fix Year alone' advice would have shipped the
+rule with a live counterexample."* **Second time on this arc a gate's finding
+stood while its prescription was wrong — and the first time the gate itself
+supplied the correction.**
+
+### Lessons worth keeping
+
+- **A count in a ledger is not a record of the things counted.** Vision's
+  pass-1 row said "9 notes"; **only four were ever written down**, and the other
+  five are **lost** — Vision could not restate them. Captain's row said "7
+  notes" and the file enumerates **none**. Both losses are Fury's: the rows were
+  written from the reports while recording only the notes the fix contract was
+  going to action. Same "claimed but not durable" class as the unpushed commits
+  and the empty rename, now applied to gate reports.
+- **Run the record check at the START of a session, not at delivery.** Doing so
+  found a **false claim inside a constitution** — the reachability amendment
+  cited "three of which had written their own obsolescence in-file"; checked
+  against the **pre-C4 blobs**, exactly **one** had. The other three read that
+  way only because the fix contract added the framing while updating them. The
+  tool reported **0 hard failures** and sat it in a REVIEW line, which is the
+  standing warning made concrete.
+- **A reference count is only useful if you ask what the references *do*.**
+  Preflight flagged `isToday` in seven files. Asking the next question found
+  that only `monthGridDays` produces padding and only two components iterate it
+  — so the fix was provably complete. **Strange independently reproduced that
+  same sweep.** This mission had already recorded twice that preflight's
+  judgement items were surfaced and skipped; this time they were settled.
+- **Five instrument failures, all caught by controls rather than by luck.** The
+  sharpest: a builder's pre-fix control build **failed while its wrapper still
+  exited 0** (Turbopack rejects a symlinked `node_modules`) — caught by checking
+  for `BUILD_ID`, **not the exit code**. And a gate nearly labelled a pre-fix
+  screenshot as post-fix, so every measurement now records `location.origin`.
+- **The mid-gate-commit habit was broken**, after Captain flagged it as four
+  missions running: a gate's verdict was staged **outside the repo** in the
+  scratchpad while the next gate ran, and the fix contract was committed
+  **before** its gate was dispatched.
+- **A deployment check must match the sha.** The first poll here accepted
+  `state=success` on the newest Production deployment — which was the
+  *previous* PR. Matching the merge commit's sha is the check; "newest and
+  successful" is not.
+
+### Five constitution amendments (Bryce approved; judgement left to Fury)
+
+Three correct statements the files made that were **false**; two are rules this
+mission paid to learn. `STRUCTURE.md`: the reachability clause's live-instance
+list was entirely historical and its closing sentence described a mission that
+shipped two sessions earlier — rewritten to record that **`BUILT_VIEWS` is now
+all-`true`, so for calendar views that tripwire can never fire again**, while
+the clause still binds for any future vocabulary widened ahead of its consumers
+(`ASSIGNABLE_ROLES` is the open one); the component-filename rule claimed "no
+live instance remains" and **`HubNav.tsx` exports only `HubBottomNav`**; and a
+new rule giving **month and weekday names one home**, because there are now
+**five definitions across two mechanisms** — three deriving from `Intl` at
+runtime, two hardcoded English arrays — so a locale or ICU change moves three
+and leaves two and **two screens spell the same month differently**. Each copy
+documented in-file that it existed because the canonical array was off-boundary
+or unexported: **a boundary satisfied by copying.** Four are grandfathered debt;
+a **sixth is a BLOCKER**. `DESIGN.md`: the today-marker rule, written flatly
+because C6 fixed both live instances; and the now-line's `--danger` use
+sanctioned explicitly, which Strange had asked for in mission-17 and went
+unwritten for a session.
+
+### ⚠️ One gate's approval does not cover the shipped tree, on purpose
+
+**Vision's PASS predates C6.** Re-running it was offered; **Bryce declined on
+usage and the gap is recorded rather than glossed.** Captain's PASS also
+predates C6 but **provably cannot be reached by it** — zero imports, zero
+exports, no new files, both touched files far under cap. What stands in for
+Vision: C6 alters exactly one boolean per cell, whose only two failure
+directions were both measured by Strange **against a genuinely separate pre-fix
+build**, plus a Fury boundary audit and a green six-leg gauntlet.
+
+### Where the calendar stands
+
+`CV0 ✅ CV1 ✅ CT1 ✅ CV2 ✅ CV3 ✅ CT2 ✅ CV4 ✅ CV5 ✅` — **CV6** (month dropdown,
+swipe paging) and **CD1** (drag to reschedule) remain, then K3 filters/tags, K4
+recurrence, the RSVP and search walkthroughs Bryce still owes, and Google sync
+(**K6/K7 need a Google Cloud project only Bryce can create**). Plan:
+`.avengers/plans/calendar-v2.md`.
+
+**Routed to CV6/CD1** (all recorded in mission-18 with measurements): a
+multi-day bar's title is confined to one cell while the bar spans three (~95.8px
+of blank bar, and **only visible because CV5 shipped**); `MonthChips` chips left
+of the first January carry no year, so a chip reading "Sep" can navigate to the
+*previous* September; `YearView`'s 7px day numbers carry in-month vs
+adjacent-month **by colour alone at 1.47:1**; the today invariant lives at both
+call sites rather than in `MonthCell`, so a third caller reintroduces the bug
+with **no compile error**; three stale comments, one of which
+(`MonthGridSkeletonRows.tsx:12`) is the **stated reason its own heights were
+never re-measured**; and `CalendarViews.tsx` is the only file in the arc with a
+rising multi-mission trend (459 → 492 → 478 → 484) while **CV6 and CD1 both land
+there** — the sheets block is the standing seam.
+
+**Still parked, unchanged:** the dev-branch credential rotation (a **third**
+agent leaked real family data into a transcript this session — Bryce skipped it
+again, deliberately) and the 96px Day rail.
