@@ -340,6 +340,74 @@ assertions about the tree. **The two real assertions were both checked:**
 **This is the settlement step I skipped on C2**, where preflight quoted my
 false claim back to me twice and I read only the dependency findings.
 
+### C5 — both gates' blockers, and four notes, in one batch
+- **Status:** PENDING
+- **Objective:** close Captain's reachability blocker and Vision's Month-skeleton
+  blocker, and clear four notes, in one contract so neither gate is re-run twice.
+- **Boundaries:** may touch `src/lib/calendarViewConfig.ts`,
+  `src/lib/calendarViewConfig.test.ts`, `src/components/CalendarHeader.tsx`,
+  `src/components/CalendarViews.tsx`, `src/app/(app)/calendar/loading.tsx`,
+  `src/components/TimelineGrid.tsx`, `src/components/MonthChips.tsx`,
+  `src/lib/calendarPaging.test.ts` · must not touch
+  `src/components/YearView.tsx`, `src/components/MonthCell.tsx`,
+  `src/components/MonthGrid.tsx`, `src/components/TimelineDayColumn.tsx`,
+  `src/lib/calendarViewVocabulary.ts`, `src/lib/useCalendarNavigation.ts`,
+  `src/lib/useCalendarPeriod.ts`, `src/app/actions/**`, `prisma/**`.
+- **Note on the boundary:** `src/app/(app)/calendar/loading.tsx` is **in** the
+  may-touch list this time. Its absence from C3's list is what produced
+  Vision's blocker. There are **eight** `loading.tsx` files in this repo —
+  preflight flagged the bare name as ambiguous — so the full path is what
+  binds, and it is the only one this contract may touch.
+- **B1 (Captain).** Add `showArrows: boolean` and `ownsTodayScroll: boolean`
+  to `ViewConfig` beside `pinned`. `showArrows` is `false` on `schedule`,
+  `true` on the other five; **delete the `showArrows` prop from
+  `CalendarHeader` entirely** and read `VIEW_CONFIG[view].showArrows` inside
+  it, mirroring `pinned` (it already imports `VIEW_CONFIG`). Move
+  `calendarViewConfig.ts:244`'s existing explanation onto the new field's doc
+  comment. `ownsTodayScroll` is `true` on `schedule` only;
+  `CalendarViews.tsx:170` becomes `config.ownsTodayScroll ? … : …` and `:173`
+  becomes `if (config.ownsTodayScroll)`. **Branch bodies stay put — only the
+  condition moves.** Extend `calendarViewConfig.test.ts`'s per-row assertions
+  to cover both new fields. Leave **zero** inline `view === "<member>"` tests
+  in the calendar shell.
+- **B2 (Vision).** The Month skeleton is **76px short** since C3 mounted
+  `MonthChips`: skeleton weekday row y=303 against a real y=379, measured at
+  375×812 on a production build. In the **`monthGrid` branch only** (Year must
+  NOT get it — Year measured 0px difference and is correct), render a strip
+  placeholder above `<MonthGridSkeletonRows />` mirroring `MonthChips`' outer
+  box. **Do not derive the number as 44+16** — measure until the skeleton's
+  weekday-row top equals the rendered 379.
+- **N1.** `TimelineGrid.tsx:428` reads *"5 PM Mountain Daylight Time (6 PM
+  Standard)"*. **The labels are swapped**: MDT is UTC−6, so UTC midnight is
+  **6 PM MDT / 5 PM MST**. Fix the comment. *(The wrong number was mine — this
+  mission file said "5 PM Denver" and the builder copied it. Corrected here
+  too.)*
+- **N2 — downgraded, because Vision's premise is false and I checked before
+  passing it on.** The suppression is at **`MonthChips.tsx:70`, not :97**, and
+  it is **not** "the first suppression in non-generated `src/`": six files
+  outside `src/generated` carry one — `TimelineGrid.tsx`,
+  `PhotoImportForm.tsx`, `MonthChips.tsx`, `useCanonicalCalendarUrl.ts`,
+  `useScheduleWindow.ts`, `useCalendarNavigation.ts`. So the "don't start this
+  pattern" argument does not apply; it is the sixth, not the first.
+  **Still do the fix**, for the ordinary reason rather than the dramatic one:
+  hoisting `const year = anchor.getFullYear()` and
+  `const month = anchor.getMonth()` and depending on `[year, month]` is
+  simply better than suppressing the rule, and the project has a standing
+  precedent of a builder refusing a suppression when a safer substitute
+  exists. **Do not remove the other five** — out of boundary and unexamined.
+- **N3.** `calendarPaging.test.ts:169` is titled `"buildCalendarSearch: …"` but
+  no longer calls it. Rename the test to what it asserts, or cast
+  `"quarter" as CalendarPeriodView` to keep exercising the function.
+- **Verification:** the full six-leg gauntlet; the measured skeleton
+  weekday-row top against the rendered one; `grep -rn 'view === "schedule"'
+  src/components/CalendarViews.tsx` → 0; `grep -c "eslint-disable" src/components/MonthChips.tsx` → 0 (the other five
+  files keep theirs).
+- **Evidence required:** the measured before/after skeleton offsets by the
+  same method Vision used; the two greps; the new `ViewConfig` rows; gauntlet
+  output.
+- **Done criteria:** both blockers closed, four notes cleared, gauntlet green,
+  no inline per-view test left in the shell.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |

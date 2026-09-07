@@ -225,6 +225,18 @@ Adding a second definition of any of these is a BLOCKER:
   to be made by hand in both copies — correctly, only because one builder
   happened to hold both files in one contract.
   (Added 2026-09-05, mission-16, on Captain's ruling; Bryce approved.)
+  **"Code lines" means one thing, and the tool is the definition.**
+  `preflight.mjs`'s `lineCounts` is the canonical counter; a report quoting a
+  code count states which counter produced it. Its original heuristic did
+  **not** recognise `{/* … */}` JSX comments — they open with `{`, so a
+  `startsWith("/*")` test never matched — and JSX comments are this repo's
+  dominant documentation form in components, so it over-reported code exactly
+  where this clause is meant to protect prose. **Fixed 2026-09-06**; a `.tsx`
+  code count from an older report is an upper bound.
+  (Added 2026-09-06, mission-18, on Captain's finding; Bryce approved.
+  Instance: one mission file reported `TimelineGrid.tsx` 555/297 and
+  `MonthCell.tsx` 350/108 by two different methods, three contracts apart —
+  the same file reading 237 or 108 depending on the counter.)
 - **A measured dimension of app chrome** that two or more surfaces position
   against **has one home in `src/lib/`**, and the markup that produces it
   carries a comment naming its dependents. A **runtime measurement** is an
@@ -309,6 +321,25 @@ Adding a second definition of any of these is a BLOCKER:
   `year` would inherit `pinned = false` silently. **CV4 flips
   `threeDay`, which makes this clause bind there as a BLOCKER.**)
   (Added 2026-09-03, mission-11, on Captain's ruling.)
+- **A reachability flip carries its assertions with it.** The record exists so
+  that "which members are real" is answered in exactly one place — which makes
+  the tests pinning today's answer part of that record's contract, not
+  incidental collateral. Flipping an entry to `true` therefore lands, in the
+  same commit, with every assertion that named the old answer. Those test
+  files are **in scope by construction**: a task that forbids them cannot meet
+  a "the suite is green" criterion, so a boundary excluding them is wrong
+  rather than binding, and a builder that edits them and discloses it has
+  obeyed the constitution over the contract. Where an assertion demonstrated
+  the *unbuilt* case and no unbuilt member is left to demonstrate it with, a
+  clearly-labelled fictional name is the correct substitute — the property
+  under test ("a name this build does not know is normalised away") outlives
+  the vocabulary's own membership.
+  (Added 2026-09-06, mission-18, on Captain's ruling; Bryce approved.
+  Instance: mission-18/C4 flipped `BUILT_VIEWS.year` and necessarily
+  falsified nine test cases across `calendarPaging.test.ts`,
+  `calendarViewConfig.test.ts`, `calendarViewVocabulary.test.ts` and
+  `useCanonicalCalendarUrl.test.ts` — three of which had written their own
+  obsolescence in-file.)
 
 ## File-size caps
 
