@@ -18,11 +18,16 @@
 // vocabulary (pure data) <- calendarPaging (pure) <- useCalendarPeriod
 // (client cursor) <- useCalendarNavigation <- the components.
 //
-// THE UNION IS WIDER THAN WHAT RENDERS, ON PURPOSE. CV1's job was the
-// vocabulary and the cursor math for all six views; the renderers land in
-// CV3 (Schedule), CV4 (Day / 3 Day / Week timeline) and CV5 (Year).
-// `BUILT_VIEWS` below is the one gate that keeps the two facts from
-// disagreeing — see its own comment.
+// THE UNION WAS WIDER THAN WHAT RENDERS, ON PURPOSE, FROM CV1 THROUGH CV5.
+// CV1's job was the vocabulary and the cursor math for all six views; the
+// renderers landed in CV3 (Schedule), CV4 (Day / 3 Day / Week timeline) and
+// mission-18/C4 (Year) — the last of the three, and the one that closes the
+// gap: every name in `CalendarPeriodView` now has a real renderer, so
+// `BUILT_VIEWS` below is every entry `true`. It stays the gate rather than
+// being deleted now that it's uniform — a SEVENTH view added later is
+// exactly the "vocabulary real, renderer not built yet" state this table
+// exists for, and it would be wrong to have removed the mechanism the one
+// time it's temporarily not doing visible work.
 
 /**
  * Every view the Calendar's period cursor can express. Widened from
@@ -80,10 +85,12 @@ export const VIEW_LABELS: Record<CalendarPeriodView, string> = {
  * (calendarPaging.ts) normalizes an unbuilt "?view=" back to the default
  * instead of routing to a missing renderer, and `CALENDAR_VIEW_OPTIONS`
  * below builds the picker from it — so the two can never disagree about
- * what exists. Each later phase flips exactly one entry to `true` in the
- * same commit that adds its renderer: CV3 schedule, CV4 threeDay, CV5
- * year (Day and Week move from the list renderer to the timeline in CV4
- * without changing this table).
+ * what exists. Each phase flipped exactly one entry to `true` in the same
+ * commit that added its renderer — CV3 schedule, mission-17/C4 threeDay
+ * (Day and Week moved from the list renderer to the timeline in that same
+ * commit without changing this table), mission-18/C4 year, the last one —
+ * so every row here is `true` today. See this file's own header for why
+ * the table stays rather than being deleted now that it's uniform.
  */
 export const BUILT_VIEWS: Record<CalendarPeriodView, boolean> = {
   // mission-15/C4: Schedule's renderer (ScheduleView.tsx) ships in this
@@ -100,16 +107,22 @@ export const BUILT_VIEWS: Record<CalendarPeriodView, boolean> = {
   // agenda list.
   schedule: true,
   day: true,
-  // mission-17/C4 — the last entry to flip before Year (CV5): 3 Day now has
-  // a real renderer (`TimelineGrid`, the same one Day/Week just switched
-  // to), so it can leave the vocabulary-only state CV1 first named it in.
-  // The picker and every URL/localStorage path read this table, never a
-  // second list, so flipping the one boolean here is what makes 3 Day
-  // reachable everywhere at once.
+  // mission-17/C4 — 3 Day now has a real renderer (`TimelineGrid`, the same
+  // one Day/Week just switched to), so it can leave the vocabulary-only
+  // state CV1 first named it in. The picker and every URL/localStorage path
+  // read this table, never a second list, so flipping the one boolean here
+  // is what makes 3 Day reachable everywhere at once.
   threeDay: true,
   week: true,
   month: true,
-  year: false,
+  // mission-18/C4 — the last entry, and it's what makes all six views in
+  // `CalendarPeriodView` reachable for the first time since CV1 widened the
+  // union. `YearView` (CalendarViews.tsx) is the real renderer this flips
+  // on; `calendarViewConfig.ts`'s `year` row carries the matching
+  // `renderer: "year"` tag, added in the SAME commit as this boolean, per
+  // this table's own rule above ("each later phase flips exactly one entry
+  // to `true` in the same commit that adds its renderer").
+  year: true,
 };
 
 /** The view a request falls back to when nothing else decides — a missing

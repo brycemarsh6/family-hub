@@ -61,14 +61,15 @@ test("renderer matches each view's actual component today", () => {
   assert.equal(VIEW_CONFIG.month.renderer, "month");
   assert.equal(VIEW_CONFIG.schedule.renderer, "schedule");
   // mission-17/C4 — day/threeDay/week switched from the shared DaySection
-  // path to `TimelineGrid` (the hour timeline) in this commit; year is the
-  // one view still on the shared path, until CV5 gives it its own
-  // 12-mini-grid renderer — see calendarViewConfig.ts's own per-row
-  // comments for why this is the current fact, not a placeholder.
+  // path to `TimelineGrid` (the hour timeline) in this commit.
   assert.equal(VIEW_CONFIG.day.renderer, "timeline");
   assert.equal(VIEW_CONFIG.threeDay.renderer, "timeline");
   assert.equal(VIEW_CONFIG.week.renderer, "timeline");
-  assert.equal(VIEW_CONFIG.year.renderer, "daySection");
+  // mission-18/C4 — year gets its own tag, `YearView`'s twelve mini
+  // month-grids, the last of the four families and the one that retired
+  // `"daySection"` entirely — see calendarViewConfig.ts's own per-row and
+  // `CalendarRenderer` comments.
+  assert.equal(VIEW_CONFIG.year.renderer, "year");
 });
 
 // ---------------------------------------------------------------------------
@@ -215,10 +216,9 @@ test("threeDay: title spans the anchor's own 3-day window, same-month and cross-
 });
 
 // ---------------------------------------------------------------------------
-// Year — still unbuilt (`BUILT_VIEWS.year` is false; CV5's job), but the row
-// is a real, testable fact about the period, per VIEW_CONFIG's own header
-// comment: "days"/"isCurrentPeriod" are already real facts about the period
-// it will show.
+// Year — built as of mission-18/C4 (`YearView`, CalendarViews.tsx). `title`/
+// `isCurrentPeriod` were real, testable facts about the period even before
+// that — this test predates the renderer and is unchanged by it.
 
 test("year: title and isCurrentPeriod", () => {
   const anchor = d(2026, 10, 3);

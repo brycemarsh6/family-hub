@@ -13,6 +13,7 @@ import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
 import { TimelineGrid } from "./TimelineGrid";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
+import { YearView } from "./YearView";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
 import {
@@ -21,8 +22,7 @@ import {
   type CalendarPeriodView,
 } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
-import { daysEventCovers, isOutsideWindow, allDayInstantToLocalDay } from "@/lib/calendarDates";
-import { isSameDay, toLocalDateString } from "@/lib/mealPlanDates";
+import { toLocalDateString } from "@/lib/mealPlanDates";
 import { useNowMinute } from "@/lib/useNowMinute";
 import { useAppHeaderHeight } from "@/lib/appChrome";
 import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
@@ -294,9 +294,9 @@ export function CalendarViews({
       // unfiltered, exactly as the "month" case above already does for
       // MonthGrid — TimelineGrid decides which tasks touch `days` itself,
       // via `assignLanes`, the same way MonthGrid does per row. `onOpenTask`
-      // is the identical one-arg closure the "daySection" case below
-      // already passes (a task has exactly one due date, never a span, so
-      // the `day` argument that closure ignores is unused here too).
+      // is a plain one-arg closure: a task has exactly one due date, never
+      // a span, so there's no "which day was this card rendered for"
+      // ambiguity to pass through, unlike `onOpenEvent` just below it.
       return (
         today !== null &&
         now !== null && (
@@ -313,6 +313,24 @@ export function CalendarViews({
             chromeOffsetPx={chromeOffsetPx}
           />
         )
+      );
+    }
+
+    if (renderer === "year") {
+      // mission-18/C4 — handled here, ahead of the generic `today === null`
+      // placeholder below, for the SAME reason "month" and "timeline" are
+      // (see their own comments): Year's real content — twelve mini
+      // month-grids — is nothing like the single/seven DaySection-loading
+      // blocks that placeholder renders, so rendering it briefly first
+      // would ADD a shape jump rather than avoid one. `today !== null &&
+      // anchor !== null` is TypeScript-only, the same standing as "month"'s
+      // own guard — this component's `today`/`anchor` resolve together
+      // (useCalendarPeriod.ts), and by the time any renderer branch here
+      // runs at all, loading.tsx's own route-level Suspense fallback has
+      // already covered the fetch itself.
+      return (
+        today !== null &&
+        anchor !== null && <YearView anchor={anchor} today={today} onPickMonth={handlePickMonth} />
       );
     }
 
@@ -350,51 +368,19 @@ export function CalendarViews({
             />
           )
         );
-      case "daySection":
-        // mission-17/C4 confirms the prediction the comment here used to
-        // make: this branch is now reached ONLY by `year` — day/threeDay/
-        // week all moved to their own "timeline" branch, handled earlier in
-        // this function (alongside "month", ahead of the generic
-        // `today === null` placeholder below — see its own comment for
-        // why), and schedule is its own case above. `year` is itself
-        // unreachable today (`BUILT_VIEWS.year` is false), so this case is
-        // defensive fallthrough for a total switch, not a path real
-        // navigation takes — the same standing MonthGrid's own `today !==
-        // null` check above has ("for TypeScript, not a reachable branch").
-        // `showLocation`/`compact` are DROPPED here rather than kept as
-        // `view === "day"`/`view === "week"` checks that can never be true
-        // any more: leaving them would read as live behaviour for views
-        // this case no longer serves. Both are optional on DaySection
-        // (default falsy), and Year has no stated need for either — CV5
-        // replaces this whole case with Year's real 12-mini-grid renderer
-        // rather than ever exercising it.
-        return days.map((day) => (
-          <DaySection
-            key={day.getTime()}
-            day={day}
-            today={today}
-            notLoaded={isOutsideWindow(day, windowStart, windowEnd)}
-            events={events.filter(
-              (event) =>
-                daysEventCovers(event.startAt, event.endAt, event.allDay, [day]).length > 0,
-            )}
-            // A task has exactly one due date, never a span, so this is a
-            // plain same-day comparison rather than daysEventCovers'
-            // range check — see allDayInstantToLocalDay's own comment
-            // (calendarDates.ts) for why a UTC-midnight-stored due date
-            // has to be read back through it, not a bare local getter.
-            tasks={tasks.filter((task) => isSameDay(allDayInstantToLocalDay(task.dueDate), day))}
-            onOpenEvent={(event, eventDay) => setSelected({ event, day: eventDay })}
-            // mission-14/C4 — the real TaskDetailSheet, wired the same
-            // way onOpenEvent backs EventDetailSheet above. `day` is
-            // unused: see selectedTask's own comment for why a task
-            // needs none.
-            onOpenTask={(task) => setSelectedTask(task)}
-          />
-        ));
       default: {
         // Exhaustiveness check, the whole point of this contract: a new
         // `CalendarRenderer` value with no case here fails to compile.
+        // mission-18/C4 removed the `"daySection"` case that used to sit
+        // here (a plain agenda list, reached only by `year` as a
+        // placeholder before it had its own renderer — see that type's own
+        // comment in calendarViewConfig.ts) once `year` moved to its own
+        // `if (renderer === "year")` branch above, the same place "month"
+        // and "timeline" are handled. With "month", "timeline" and "year"
+        // all narrowed out by the `if`s above, `renderer` here is only ever
+        // `"schedule"` — so this `default` is reachable the instant a
+        // SEVENTH renderer tag is ever added with no case for it, exactly
+        // as it always was.
         const exhaustiveCheck: never = renderer;
         throw new Error(`Unhandled calendar renderer: ${String(exhaustiveCheck)}`);
       }

@@ -63,18 +63,17 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 // gets the same shape the app will actually render for it, because both
 // answers now come from the one `BUILT_VIEWS` table.
 //
-// SEVEN ROWS FOR SCHEDULE (and Year, still unbuilt) IS DELIBERATE, and the
-// reason is worth stating because it looks like a bug: a skeleton's job is
-// to match the frame that paints NEXT, and for those two views that frame
-// is CalendarViews' own generic `today === null` placeholder — which
-// renders SEVEN rows whatever the URL says, because `useCalendarNavigation`
-// seeds the cursor with the default view (Week) and the URL's view lands a
-// tick later (measured in mission-11/C1, identical on the pre-C1 build). A
-// "measured" one-row Day skeleton would therefore ADD a shape jump rather
-// than remove one, back when Day also fell through that generic
-// placeholder. Month is the case that argues the other way and is why this
-// file branches at all: its grid is tall enough that the seven-row shape is
-// the worse mismatch of the two.
+// SEVEN ROWS FOR SCHEDULE IS DELIBERATE, and the reason is worth stating
+// because it looks like a bug: a skeleton's job is to match the frame that
+// paints NEXT, and for Schedule that frame is CalendarViews' own generic
+// `today === null` placeholder — which renders SEVEN rows whatever the URL
+// says, because `useCalendarNavigation` seeds the cursor with the default
+// view (Week) and the URL's view lands a tick later (measured in
+// mission-11/C1, identical on the pre-C1 build). A "measured" one-row Day
+// skeleton would therefore ADD a shape jump rather than remove one, back
+// when Day also fell through that generic placeholder. Month is the case
+// that argues the other way and is why this file branches at all: its grid
+// is tall enough that the seven-row shape is the worse mismatch of the two.
 //
 // mission-17/C4 gives Day/3 Day/Week a SECOND reason to branch away from
 // the seven-row shape, on top of Month's: `CalendarViews.tsx`'s
@@ -85,23 +84,30 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 // and MEASURED against the real app that produces a ~225px height DROP the
 // instant `TimelineGrid` mounts (a 7-block list settles around 1093px of
 // page height at 375×812; the real timeline box settles around 868px) — a
-// far bigger mismatch than the list-to-list swap Schedule/Year still make.
-// So the frame that now paints next for these three is a brief gap (both
+// far bigger mismatch than the list-to-list swap Schedule still makes
+// (mission-18/C4 moved Year off this list entirely — see its own paragraph
+// below, past `SKELETON_SHAPE`). So the frame that now paints next for
+// these three is a brief gap (both
 // `today` and `now` are client-side `useSyncExternalStore` reads, not a
 // network round trip) followed directly by the real `TimelineGrid`, and
 // this file's own timeline shape below is sized to match THAT box, not the
 // seven-block shape it replaces.
 //
-// The still-unbuilt views' rows (Year) are unreachable — `parseViewParam`
-// normalizes them away — and stay the Week shape rather than a guess at a
-// view that does not exist. CV5 replaces Year's own row with a MEASURED
-// shape in the commit that flips `BUILT_VIEWS.year`, per calendar-v2.md;
-// this repo has shipped a guessed skeleton twice and both times it was
-// wrong.
+// mission-18/C4 gives Year the SAME third reason mission-17/C4 gave
+// Day/3 Day/Week: `CalendarViews.tsx`'s `renderPeriodContent` now handles
+// `renderer === "year"` ahead of the generic `today === null` placeholder
+// too (the same place "month" and "timeline" are handled), so the frame
+// that paints next for Year is the real `YearView`, not the seven-block
+// shape — which is what makes a MEASURED Year shape correct here rather
+// than another guess. This repo has shipped a guessed skeleton twice
+// already and both times it was wrong (see `TimelineGridSkeleton`'s own
+// header for the ~225px drop that caught the second one); `YearGridSkeleton`
+// below is sized from the real rendered grid instead, the same discipline.
 type CalendarSkeletonShape =
   | { dayRows: number }
   | { monthGrid: true }
-  | { timelineGrid: true };
+  | { timelineGrid: true }
+  | { yearGrid: true };
 
 const SKELETON_SHAPE: Record<CalendarPeriodView, CalendarSkeletonShape> = {
   schedule: { dayRows: 7 },
@@ -109,7 +115,7 @@ const SKELETON_SHAPE: Record<CalendarPeriodView, CalendarSkeletonShape> = {
   threeDay: { timelineGrid: true },
   week: { timelineGrid: true },
   month: { monthGrid: true },
-  year: { dayRows: 7 },
+  year: { yearGrid: true },
 };
 
 /**
@@ -141,6 +147,35 @@ function TimelineGridSkeleton() {
   );
 }
 
+/**
+ * Year's own shape (mission-18/C4): twelve grey blocks in `YearView.tsx`'s
+ * own `grid grid-cols-2 gap-3` — the exact same wrapper class, not a
+ * lookalike, so a real device's column width can never drift from what
+ * this skeleton assumes. Unlike the timeline box above, this shape has a
+ * FIXED height regardless of viewport (twelve fixed-size tiles, not
+ * "however much of the screen is left"), matching `MonthGridSkeletonRows`'
+ * own reasoning rather than `TimelineGridSkeleton`'s `calc()`.
+ *
+ * `h-36` (144px) per tile is MEASURED, not guessed: the real rendered
+ * `YearView` at 375×812 gives every month tile a 166×144px box (`Range
+ * .getClientRects`/`getBoundingClientRect` on a live tile, `Open September
+ * 2026`'s own button), and the six-row/gap-3 total — 6×144 + 5×12 = 924px —
+ * matches the real content container's measured height (924px) exactly,
+ * which is the cross-check that the per-tile number is right rather than
+ * merely close. Width is `w-full` (not a fixed px), since the grid's own
+ * `grid-cols-2` already divides the row — the same reason `MonthGridSkeletonRows`
+ * uses `w-full` cells rather than hardcoding a pixel width per column.
+ */
+function YearGridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {Array.from({ length: 12 }, (_, index) => (
+        <SkeletonBlock key={index} className="h-36 w-full" />
+      ))}
+    </div>
+  );
+}
+
 export default function Loading() {
   const searchParams = useSearchParams();
   const shape = SKELETON_SHAPE[parseViewParam(searchParams.get("view"))];
@@ -164,6 +199,8 @@ export default function Loading() {
           <MonthGridSkeletonRows />
         ) : "timelineGrid" in shape ? (
           <TimelineGridSkeleton />
+        ) : "yearGrid" in shape ? (
+          <YearGridSkeleton />
         ) : (
           <div className="flex flex-col gap-4">
             {Array.from({ length: shape.dayRows }, (_, index) => (

@@ -31,6 +31,16 @@
 // first time since CV1. `formatThreeDayRange`, below, is the one other loose
 // end this reachability change closes — see its own comment.
 //
+// mission-18/C4 — Year's row gets its own `"year"` tag (`YearView`,
+// CalendarViews.tsx: twelve mini month-grids) in the same commit that
+// flips `BUILT_VIEWS.year`. That was the LAST view still marked
+// PROVISIONAL/unbuilt, so `"daySection"` — the placeholder tag it borrowed
+// while it had no renderer of its own, and the tag `day`/`threeDay`/`week`
+// already moved off in mission-17/C4 — has no row left that produces it and
+// is deleted from `CalendarRenderer` entirely (see that type's own comment).
+// All six views in `CalendarPeriodView` now have a real, distinct-family
+// renderer — the reachability CV1 widened the union for, closed.
+//
 // No "server-only" guard: this module is pure over its inputs (a `Date` in,
 // a string/boolean/Date[] out), same standing as calendarDates.ts and
 // mealPlanDates.ts.
@@ -50,20 +60,29 @@ import type { CalendarPeriodView } from "./calendarViewVocabulary";
 /**
  * The families of component a view can render. A string tag, not a
  * component reference — `src/lib/` may not import from `src/components/`
- * (STRUCTURE.md), so the actual `MonthGrid`/`ScheduleView`/`DaySection`/
- * `TimelineGrid` elements stay in CalendarViews.tsx's switch. `year` is the
- * one view still sharing `"daySection"` today — a real fact about the
- * current app (its `days(anchor)` returns one entry, rendered as a single
- * plain `DaySection`), not a placeholder — because CV5 is what gives it its
- * own 12-mini-grid renderer. `day`, `threeDay` and `week` moved OFF that
- * shared tag in mission-17/C4: they render `TimelineGrid` now, an hour
- * timeline rather than a plain agenda list, so `"timeline"` is a genuinely
- * different family, not an alias for `"daySection"` under a new name.
+ * (STRUCTURE.md), so the actual `MonthGrid`/`ScheduleView`/`TimelineGrid`/
+ * `YearView` elements stay in CalendarViews.tsx's switch. `day`, `threeDay`
+ * and `week` share `"timeline"` (mission-17/C4: an hour-rail rendering,
+ * `TimelineGrid`), `schedule` and `month` each have their own tag, and
+ * `year` is the newest, added in mission-18/C4 for `YearView`'s twelve
+ * mini month-grids — a fourth, genuinely different family from all three,
+ * not an alias for any of them.
+ *
+ * `"daySection"` — the shared "plain agenda list" tag `day`/`threeDay`/
+ * `week` used before mission-17/C4, and `year` used as a placeholder
+ * through CV1–CV5 while it had no renderer of its own — is GONE as of this
+ * commit: once `year` got its own tag, nothing in `VIEW_CONFIG` produced
+ * `"daySection"` any more, so it was deleted from this union rather than
+ * left as a name with no row that could ever select it (CalendarViews.tsx's
+ * `switch` narrows it out below the "month"/"timeline"/"year" `if`s for the
+ * same reason — see that file's own comment on the now-single-case switch
+ * that remains).
+ *
  * Widening this union is a compile error in CalendarViews.tsx's switch
  * until every case is handled — see that switch's own `never`-typed
  * default.
  */
-export type CalendarRenderer = "month" | "schedule" | "daySection" | "timeline";
+export type CalendarRenderer = "month" | "schedule" | "timeline" | "year";
 
 /**
  * The per-view differences the shell itself has to know about, as one row
@@ -305,17 +324,20 @@ export const VIEW_CONFIG: Record<CalendarPeriodView, ViewConfig> = {
   year: {
     prevLabel: "Previous year",
     nextLabel: "Next year",
-    // PROVISIONAL: Year is meant to render 12 mini month grids, not
-    // DaySections, but `BUILT_VIEWS.year` is false (unreachable through the
-    // picker or a URL) and no such renderer exists yet — CV5's job. Tagged
-    // `"daySection"` for now because that is what this row's `days`
-    // (`[anchor]`, one entry) currently produces if ever reached directly,
-    // matching pre-C3 behaviour exactly rather than inventing a value
-    // nothing renders.
-    renderer: "daySection",
+    // SETTLED, mission-18/C4 (was PROVISIONAL, tagged `"daySection"` as a
+    // placeholder, through CV1–CV5). Year renders `YearView`
+    // (CalendarViews.tsx) now: twelve mini month-grids, one per calendar
+    // month of `anchor`'s year, built entirely from `anchor.getFullYear()`
+    // — it reuses `monthGridDays` (monthLayout.ts), the exact function
+    // MonthGrid.tsx's own real grid is built from, so a mini-grid's shape
+    // can never drift from what tapping through to Month itself shows.
+    renderer: "year",
     pinned: false,
     placeholderCount: 1,
     title: (anchor) => String(anchor.getFullYear()),
+    // Still just the anchor, still unread by the renderer — same standing
+    // as Month's own row (see that row's `days` comment): YearView derives
+    // its twelve months from `anchor`'s year directly, not from this array.
     days: (anchor) => [anchor],
     isCurrentPeriod: (anchor, today) => anchor.getFullYear() === today.getFullYear(),
   },
