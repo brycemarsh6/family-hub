@@ -2,25 +2,17 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ListChecks } from "lucide-react";
-import { RadioSheet } from "./RadioSheet";
-import { ActionSheet } from "./ActionSheet";
 import { CalendarHeader } from "./CalendarHeader";
+import { CalendarSheets } from "./CalendarSheets";
 import { DaySection } from "./DaySection";
 import { MonthChips } from "./MonthChips";
 import { MonthGrid } from "./MonthGrid";
 import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
 import { TimelineGrid } from "./TimelineGrid";
-import { EventDetailSheet } from "./EventDetailSheet";
-import { TaskDetailSheet } from "./TaskDetailSheet";
 import { YearView } from "./YearView";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
-import {
-  CALENDAR_VIEW_OPTIONS,
-  DEFAULT_CALENDAR_VIEW,
-  type CalendarPeriodView,
-} from "@/lib/calendarViewVocabulary";
+import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { toLocalDateString } from "@/lib/mealPlanDates";
 import { useNowMinute } from "@/lib/useNowMinute";
@@ -417,68 +409,30 @@ export function CalendarViews({
           in `renderPeriodContent`, above; see that function's own comment. */}
       <div className="flex flex-col gap-4">{renderPeriodContent()}</div>
 
-      {pickingView && (
-        <RadioSheet<CalendarPeriodView>
-          title="View"
-          options={CALENDAR_VIEW_OPTIONS}
-          selected={view}
-          onSelect={setView}
-          onClose={() => setPickingView(false)}
-        />
-      )}
-
-      {addingEvent && (
-        <ActionSheet
-          title="Add"
-          onClose={() => setAddingEvent(false)}
-          items={[
-            {
-              label: "Event",
-              icon: <CalendarDays aria-hidden="true" size={18} />,
-              onClick: () => {
-                setAddingEvent(false);
-                router.push(`/calendar/new${addSheetDateParam}`);
-              },
-            },
-            {
-              label: "Task",
-              icon: <ListChecks aria-hidden="true" size={18} />,
-              onClick: () => {
-                setAddingEvent(false);
-                router.push(`/calendar/new/task${addSheetDateParam}`);
-              },
-            },
-          ]}
-        />
-      )}
-
-      {selected && (
-        <EventDetailSheet
-          event={selected.event}
-          day={selected.day}
-          createdByName={selected.event.createdByName}
-          canManage={canManage}
-          onClose={() => setSelected(null)}
-          onDeleted={() => {
-            setSelected(null);
-            router.refresh();
-          }}
-        />
-      )}
-
-      {selectedTask && (
-        <TaskDetailSheet
-          task={selectedTask}
-          people={people}
-          canManage={canManage}
-          onClose={() => setSelectedTask(null)}
-          onChanged={() => router.refresh()}
-          onDeleted={() => {
-            setSelectedTask(null);
-            router.refresh();
-          }}
-        />
-      )}
+      {/* mission-19/C1 — the view picker, Add, event-detail, and
+          task-detail sheets were extracted verbatim into CalendarSheets
+          (see that file's own header comment for why and what's shared).
+          The four booleans/values below and their setters stay HERE,
+          unmoved: `pickingView`/`addingEvent` are also set from
+          CalendarHeader above, and `selected`/`selectedTask` are also set
+          from renderPeriodContent()'s onOpenEvent/onOpenTask callbacks —
+          so this component remains the one place all four are read from
+          and written to, exactly as before this extraction. */}
+      <CalendarSheets
+        view={view}
+        onSelectView={setView}
+        pickingView={pickingView}
+        onClosePickingView={() => setPickingView(false)}
+        addingEvent={addingEvent}
+        onCloseAdding={() => setAddingEvent(false)}
+        addSheetDateParam={addSheetDateParam}
+        selected={selected}
+        onCloseSelected={() => setSelected(null)}
+        selectedTask={selectedTask}
+        onCloseTask={() => setSelectedTask(null)}
+        people={people}
+        canManage={canManage}
+      />
     </div>
   );
 }
