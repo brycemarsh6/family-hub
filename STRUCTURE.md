@@ -338,8 +338,12 @@ Adding a second definition of any of these is a BLOCKER:
   Instance: mission-18/C4 flipped `BUILT_VIEWS.year` and necessarily
   falsified nine test cases across `calendarPaging.test.ts`,
   `calendarViewConfig.test.ts`, `calendarViewVocabulary.test.ts` and
-  `useCanonicalCalendarUrl.test.ts` — three of which had written their own
-  obsolescence in-file.)
+  `useCanonicalCalendarUrl.test.ts` — one of which, `calendarViewVocabulary.
+  test.ts`, had written its own obsolescence in-file: *"this assertion is
+  meant to fail then, and to be updated then."* The other three carry that
+  framing only because C4 added it while updating them; checked against the
+  pre-C4 blobs rather than the post-fix text, which reads as though all four
+  had foreseen it.)
 
 ## File-size caps
 
