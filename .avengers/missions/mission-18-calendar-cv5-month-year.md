@@ -424,6 +424,64 @@ false claim back to me twice and I read only the dependency findings.
 - **Done criteria:** both blockers closed, four notes cleared, gauntlet green,
   no inline per-view test left in the shell.
 
+### C6 — the "today" marker belongs to the surface's own period
+
+- **Status:** WRITTEN — preflight next, then dispatch.
+- **Objective:** Close Strange's blocker: a today-marker may only be drawn on
+  a cell belonging to the period its surface is showing. Fix `YearView`
+  (the blocker) and `MonthGrid` (N-S6 — the identical defect, milder, and
+  **confirmed by Fury to have no downstream guard**).
+- **Boundaries:** may touch `src/components/YearView.tsx`,
+  `src/components/MonthGrid.tsx` · must not touch
+  `src/components/MonthCell.tsx`, `src/components/MonthChips.tsx`,
+  `src/components/CalendarViews.tsx`, `src/components/TimelineGrid.tsx`,
+  `src/components/TimelineDayColumn.tsx`, `src/lib/**`,
+  `src/app/(app)/calendar/loading.tsx`, `src/app/actions/**`, `prisma/**`.
+- **⚠️ SCOPE WIDENED BY ONE LINE BEYOND THE BLOCKER, deliberately, and said
+  out loud so a gate can hold me to it.** Strange's own advice was "one line
+  in `YearView.tsx`, then re-run me on Year alone." `MonthGrid` is added
+  anyway, because: it is the *same one-line conjunct*; **Fury verified the
+  defect is real** rather than taking it on trust (`MonthCell.tsx:129` renders
+  `isToday ? … : (isCurrentMonth ? … )`, so `isToday` **wins** and there is no
+  downstream guard); Month is the app's most-used calendar view, where on
+  1 October September's grid circles a day that is not in September; and
+  shipping a mission that *establishes* this rule while knowingly leaving a
+  live instance is exactly the "clause whose cited instances are false"
+  problem Captain filed as N-C11 in this same pass. The cost is that Strange
+  re-verifies two views instead of one.
+- **The defect, exactly, read from source not from the report:**
+  - `YearView.tsx:80` — `const isToday = isSameDay(day, today);` and
+    **`:81` already computes `const inMonth = isSameMonth(day, month);`** on
+    the very next line. `isSameMonth` is already imported at `:4`.
+  - `MonthGrid.tsx:211` — `isToday={isSameDay(day, today)}`, and **`:210`
+    already computes `isCurrentMonth={isSameMonth(day, anchor)}`** on the
+    adjacent line. `isSameMonth` is already imported at `:10`.
+  Neither fix needs a new import, a new helper, or a new value — in both files
+  the guard is **already computed one line away**.
+- **The fix:** in `YearView.tsx`, reorder the two consts so `inMonth` is
+  declared first, then `const isToday = isSameDay(day, today) && inMonth;`.
+  In `MonthGrid.tsx`, `isToday={isSameDay(day, today) && isSameMonth(day, anchor)}`.
+  **Do not restructure anything else**; do not touch the styling branches.
+- **Comment discipline — this project's named defect class.** If either file
+  carries a comment about the today marker that the change makes untrue, fix
+  the comment in the same edit. Do **not** add a comment that merely restates
+  the code; add one only where it records *why* the guard exists (the
+  42-cell grid contains up to 12 neighbour days).
+- **Verification:** the full six-leg gauntlet; and a real render at
+  375×812 on a **production build** with the browser clock frozen to
+  **2026-10-01** — a date Strange measured as producing the bug — showing
+  **exactly one** today-circle in Year, plus the **positive control** at the
+  real clock also showing exactly one. A count that reads 1 in both states
+  without a control proving the harness can see 2 is **not** a measurement.
+- **Evidence required:** the two diffs; the frozen-clock Year circle count
+  **with** its control; the same check for Month (September's grid on
+  2026-10-01 must circle nothing); confirmation that today is still circled
+  correctly on an ordinary in-month day in **both** views; gauntlet output.
+- **Done criteria:** exactly one today-circle in Year on 2026-10-01 and on an
+  ordinary day; no today-circle on an adjacent-month cell in Month; today
+  still circles correctly where it should; gauntlet green; boundary exactly
+  the two allowed files.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -433,7 +491,8 @@ false claim back to me twice and I read only the dependency findings.
 | — | C5 | DONE — merged | — | Both blockers closed, four notes cleared, tests 333 → 335 |
 | 1 | Strange | **NOT RUN — paused for usage** | — | Bryce is low on usage; the design gate is the most expensive remaining step |
 | 2 | Vision | **PASS** | 0 | 7 notes. Both blockers closed by its own measurement, with stated positive controls. **Corrected its own first ink measurement** |
-| 2 | Captain | queued | — | Runs after Vision — serial, shared `.next` |
+| 2 | Captain | **PASS** | 0 | 12 notes, 3 amendments. **Swept for a fourth per-view difference it was never asked about** |
+| 1 | Strange | **BLOCKED** | 1 | 8 notes, 2 amendments. Found a real bug both other gates missed |
 
 ### Captain pass 1 — BLOCKED, and the argument is better than the finding
 
@@ -585,6 +644,227 @@ clean numbers.
 - **N-V7 — Week's timeline skeleton is 2px shorter than its real render**
   (793 vs 795), from `calc(100dvh - 369px)` against a runtime measurement.
   Pre-existing, untouched by C5. Logged so it is not rediscovered as new.
+
+### Captain pass 2 — PASS, and it swept past the fix it asked for
+
+**Verdict: PASS**, pinned to `7dbf18b`. Zero blockers, 12 notes, 3 amendments.
+All six gauntlet legs re-run with real exit codes. C5's boundary audited:
+exactly the eight declared files, none of the nine forbidden. It also
+**independently re-verified Fury's own STRUCTURE.md correction against the
+pre-C4 blobs** rather than trusting it — accurate, exactly one file — citing
+the law that a correction is not more trustworthy for being a correction.
+
+**The blocker is closed, and Captain did not stop there.** It swept for a
+*fourth* per-member difference nobody had named, by **four independent
+mechanisms**: literal `view ===`/`!==` tests, `switch (view)`, arrays and
+`includes` of view tags, and every `Record<CalendarPeriodView, …>`
+declaration. Result: **zero live inline per-view tests anywhere in `src/`**.
+Every per-view dispatch surface is now a total record (`VIEW_LABELS`,
+`BUILT_VIEWS`, `VIEW_CURSOR`, `VIEW_CONFIG`, `SKELETON_SHAPE`), the one
+surviving `switch` dispatches on `config.renderer` and ends in a
+`never`-typed exhaustiveness check, and **`showLocation`/`compact` — which
+STRUCTURE.md still names as live instances — are no longer view-keyed at
+all**: `compact` derives from `columnDays.length > 1`, which answers
+correctly for a future member automatically. Totality is enforced, not
+decorative: a sibling test pins `Object.keys(VIEW_CONFIG)` to `ALL_VIEWS`, so
+a seventh view **fails the suite** rather than silently inheriting a falsy
+default.
+
+**Sizes — Captain's ruling on Vision's N-V3.** Re-measured; the canonical
+counter and `wc -l` agree exactly on all three.
+
+- **N-C1** `calendarViewConfig.ts` **392/110** — over soft, **explicitly not a
+  split candidate**. 110 code is 31% of the soft cap, and C5's 58 added lines
+  are ~14 code against ~44 of doc comment. *"Precisely the file the caps
+  amendment was written to protect"* — splitting a per-row record because its
+  rows explain themselves would invert the rule. No action.
+- **N-C2** `CalendarViews.tsx` **484/223** — over soft, 166 under hard. The
+  only file in this arc with a **rising multi-mission trend**
+  (459 → 492 → 478 → 484), and **CV6 and CD1 both land here**. Standing seam:
+  the sheets block (`:420–481`, ~62 lines, four sheet mounts, no shared state
+  beyond four setters) → a clean `CalendarSheets.tsx`. Flagged, not required.
+- **N-C3** `TimelineGrid.tsx` **555/201** — **mission-17's trip condition on
+  this file is SATISFIED and is hereby RECORDED CLOSED.** It said "the next
+  contract touching it extracts first"; C1 *was* that contract and extracted
+  649 → 555; C5's later touch added zero lines. Recorded explicitly so the
+  condition is not cited against a future contract forever.
+- **N-C4** `MonthCell.tsx` **350/105** — exactly on the soft cap; not a split
+  candidate, same clause.
+
+**One source of truth — the finding with live consequences:**
+
+- **N-C5 — month-name formatting now has FIVE definitions, and this mission
+  added two of them.** `mealPlanDates.ts:55` (`MONTH_NAMES`, short, hardcoded,
+  **unexported**), `:116` (`FULL_MONTH_NAMES`, long, hardcoded, **unexported**),
+  `calendarViewConfig.ts:206` (`Intl`, mission-17), `MonthChips.tsx:35`
+  (`Intl`, short — C3), `YearView.tsx:54` (`Intl`, long — C4). The failure
+  scenario is that they split across **two mechanisms**: three derive names
+  from `Intl` at runtime and two are hardcoded English arrays, so a locale or
+  ICU-data change moves three and leaves two, and **two screens spell the same
+  month differently**. **The root cause is written in the code itself** —
+  `calendarViewConfig.ts:202` says it wrote its own copy because
+  `mealPlanDates.ts`'s array is off its contract boundary *and* unexported.
+  **That is a boundary satisfied by copying**, the exact shape STRUCTURE.md's
+  trip-condition clause names, and it has now produced three copies in two
+  missions. Amendment 3 below.
+- **N-C6 — `MONTH_NAME_FORMATTER` is defined in both `MonthChips.tsx:35` and
+  `YearView.tsx:54`, same identifier, different behaviour** (`short` vs
+  `long`). Both document why, so the divergence is deliberate — but a `grep`
+  for that identifier returns two things that are not the same thing. If
+  amendment 3 is not taken, the cheap fix is renaming to
+  `SHORT_`/`LONG_MONTH_FORMATTER` at the next touch.
+- **N-C7 — grandfathered debt did NOT grow this mission**, re-counted rather
+  than assumed: `toDateInputValue` **3**, `withTimeZone` **4**,
+  `MAX_FETCH_SPAN_DAYS` **2**, `validatedPeople` **2**, `VISIBLE_LANES` **2**.
+  `ASSIGNABLE_ROLES` is still the weaker `.filter()` predicate
+  (`constants.ts:270`) and correctly remains open — `constants.ts` was in no
+  contract's boundary.
+
+**Stale comments:**
+
+- **N-C8 — `loading.tsx:184`** (Vision's N-V2, confirmed independently). The
+  comment says "same `min-h-11` chip height"; the code is `h-11` (`:220`) and
+  the real chip is `min-h-11` (`MonthChips.tsx:100`). **Not cosmetic:**
+  `min-h-11` is a **floor**, `h-11` is a **pin**. Any change that makes a real
+  chip taller — a line-height or font-size change, a January label wrapping at
+  a narrow width — grows the render and not the skeleton, **silently
+  reintroducing a smaller version of the exact 76px landmark shift C5 just
+  spent a contract removing**. The comment asserting they are "the same" is
+  what would stop the next reader noticing.
+- **N-C9 — `MonthGridSkeletonRows.tsx:12`** says *"CV4 replaces this skeleton
+  entirely later, so re-measuring now would be wasted work."* **CV4 has
+  shipped and did not replace it.** C5 built a sibling strip above it and now
+  *depends* on it for the measured alignment — so the file is load-bearing
+  while claiming it is about to be deleted, **and that claim is the stated
+  reason its own heights were never re-measured** — the same file as Vision's
+  N-V1 192px finding. Route both together.
+- **N-C10 — `TimelineGrid.tsx:25`** still says mission-17/C1 *"is relocating"*
+  `APP_HEADER_HEIGHT_PX` *"at the same time … in a separate worktree."* That
+  relocation completed. The justification remains sound but is written in
+  present tense about a worktree that no longer exists. **This file was in two
+  of this mission's may-touch lists (C1, C5) and was not taken.**
+
+**Constitution accuracy — Captain's own file:**
+
+- **N-C11 — STRUCTURE.md:315–322's live-instance parenthetical is now entirely
+  historical.** Every instance it names is closed, and its trailing sentence
+  ("CV4 flips `threeDay`, which makes this clause bind there as a BLOCKER")
+  describes a mission that shipped two sessions ago. Amendment 1.
+- **N-C12 — STRUCTURE.md:436–443 ends "no live instance remains." That is
+  false.** `HubNav.tsx` exports only `HubBottomNav`. Amendment 2.
+
+**Process, and it lands on Fury:** three commits landed mid-gate
+(`b31b715`, `8599bde` before dispatch; `7dbf18b` **during** it). All provably
+`.md`-only, so the verdict covers `7dbf18b` — but this is the **fourth
+mission running**. And **Captain's own pass-1 row says "7 notes, 2 amendments"
+while this file enumerates none of the seven** — the identical loss as Vision's
+N-V4. **Both gates on this mission now have a count in the ledger with no
+record of what was counted.** Four of Captain's seven were recoverable only by
+re-derivation, and are the notes above.
+
+### Strange pass 1 — BLOCKED, and it found what two other gates walked past
+
+**Verdict: BLOCKED**, 1 blocker, 8 notes, 2 amendments. Gauntlet re-run on all
+six legs. Real headless Chromium over CDP against a production build; session
+minted **read-only** from an existing admin row; baseline `Task 0, TaskPerson
+0, CalendarEvent 4, User 5` confirmed before and after, with one scoped
+`db:seed-tasks` → measure → `db:clean-tasks` cycle. **Pill and chip text
+reported as character counts, never quoted** — the danger-register discipline
+three earlier agents on this arc failed.
+
+**THE BLOCKER — `YearView` circles "today" in two different month tiles at
+once, on 34.5% of days.** `YearView.tsx:80` is
+`const isToday = isSameDay(day, today);` with **no in-month guard**, while
+`monthGridDays` returns adjacent-month padding. Semantically the September
+tile asserts *today falls in September* — and on 1 October that is simply
+false, in a view whose own doc comment says it exists to answer "which week
+does this fall in."
+
+**Measured with a stated positive control:** clock frozen to `2026-10-01`,
+`?view=year` → **2** accent circles (`Open September 2026` and
+`Open October 2026`, both reading "1"). Control at the real clock
+`2026-09-06` → **1** circle. The harness detects both states, so the count is
+real. Frequency computed from `monthGridDays`' own 42-cell construction:
+**126 of 365 days (34.5%)** in both 2026 and 2027 appear in more than one
+month's grid.
+
+**Notes:**
+
+- **N-S1 — a multi-day bar's title is confined to one cell while the bar spans
+  three.** At 375 a spanning event renders as three 47.9px segments; only the
+  first carries a label (8 of 17 characters), the other two measure
+  `titleLen: 0` — so ~**95.8px of continuous bar is blank** while the title is
+  ellipsised at 8 characters. **This only became visible because C2 removed
+  the `md:` gate**, and it is the cheapest available improvement to C2's own
+  goal. Fix: let the first segment's label overflow into its continuations, or
+  render the label once at bar level.
+- **N-S2 — capacity at 320px, and the risk C2's own comment names.** Events
+  6–7 characters, **tasks 4** (the glyph consumes 7.5–8.1px of a 40px box).
+  `MonthCell.tsx`'s comment quotes Strange's *earlier* finding that a
+  near-identical truncation is *"worse than no label at all"* — and 320px is
+  where that condition now exists. **Strange did not block**: the ellipsis is
+  honest, `+N more` and the day tap still carry full identification, and at
+  375 (6–8 chars) C2 is a clear net gain over a 1.00:1 fill with no text.
+  Flagged so the trade is on the record rather than discovered later.
+- **N-S3 — the written rule C2 could have broken HOLDS.** Every task pill
+  carries its glyph fully inside the box at both widths, and the completed one
+  measures `text-decoration-line: line-through`. `line-through` appears on
+  **completion only** — no past event is struck. (DESIGN.md's "line-through
+  means done, never past".)
+- **N-S4 — `MonthChips`: the chips left of the first January carry no year
+  anchor.** Demonstrated, not argued: scrolled fully left from a September
+  anchor the strip reads `Sep · Oct · Nov · Dec · Jan 2026`, and tapping the
+  chip labelled **"Sep"** — byte-identical to the selected chip's label —
+  navigates to **September 2025**. From September that leading run is 4 chips;
+  from a February anchor it would be 11. Fix: also print the year at
+  `index === 0`.
+- **N-S5 — `YearView`'s 7px day numbers carry in-month vs adjacent-month by
+  colour alone**, same size, same weight, at **1.47:1 between the two text
+  colours** in light. `MonthCell.tsx:131` makes the identical distinction at
+  **11px and `font-semibold`**. Dark is materially better, so light is the
+  weak case; February's tile carries 14 padding cells and reads as a 42-day
+  month at a glance. Not a rule violation — the token use is correct — but the
+  app's weakest application of that distinction. Cheap fix: `font-medium` on
+  in-month days, or 8px.
+- **N-S6 — `MonthGrid.tsx:211` has the SAME missing in-month guard as the
+  blocker.** Milder (one grid on screen, the header names the month) and
+  **pre-existing since K2**, so not part of the blocker. *(Fury verified this
+  independently and found `MonthCell.tsx:129` lets `isToday` win over
+  `isCurrentMonth`, so there is no downstream guard — it is a real defect, and
+  C6 takes it.)*
+- **N-S7 — Strange could NOT reproduce Vision's 379/379, and said so rather
+  than reporting numbers as if they bore on C5.** Its valid instrument
+  (8 visible pulse blocks / 0 `grid-cols-7` against the real page's 0 / 7)
+  captured the **outer** `(app)/loading.tsx` `SkeletonPage`, not
+  `calendar/loading.tsx`. **So on a cold document load the first painted frame
+  is the generic app skeleton, and the file C5 fixed is reached on client
+  navigation.** Pre-existing and outside CV5's boundary. Two later attempts to
+  force the inner fallback failed their own controls and were **discarded
+  rather than reported**. No evidence contradicts Vision's measurement.
+- **N-S8 — ruling on N-V1 (skeleton 192px taller than the real grid): ACCEPTED
+  TRADE, not a violation; recorded as settled.** DESIGN.md asks for skeletons
+  "shaped like the real content" and the shape is right — six week rows of a
+  seven-column grid. The residual comes entirely from real *empty* rows
+  collapsing to 44px, **which the skeleton cannot know before the data
+  arrives** — and guessing a mix of tall and short rows would assert a fact
+  about unfetched data, the exact error `DaySection` already refuses in its
+  own comment. **N-V7** (Week timeline 2px) is below any perceptual threshold;
+  settled.
+
+**What Strange proved holds:** all six views reachable, every picker row 48px
+with `elementFromPoint` returning the row itself; all 25 chips **exactly
+44.0px** at both widths; Year tiles 165.5×144 / 138×144; **unoccluded swept
+rather than sampled** — Year checked every 40px of scroll (14 positions at
+375, 20 at 320), and the sweep is **non-vacuous** because it *did* flag July
+and August as nav-occluded at the bottom position, which scrolling clears; no
+horizontal leak (`body.scrollWidth === innerWidth`, both widths, both themes);
+contrast re-measured not taken — selected chip 5.08 light / 7.93 dark, today's
+circle 5.08 / 7.93 (**confirming C4's claim**), accent fill vs page 5.08 /
+9.34, **so the selected state is not carried by a sub-3:1 fill, the failure
+this project has already paid for twice**; zero ink escapes with a positive
+control that distinguishes; and `MonthChips` **reuses `PantryList`/
+`GroceryList`/`TagFilterChips`' exact chip markup including `aria-pressed`**
+rather than reinventing a vocabulary.
 
 ## Handoff log
 
