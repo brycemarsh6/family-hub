@@ -562,6 +562,55 @@ both. C4 needs C1. C5 is documentation and can go any time.
 - **Done criteria:** the control is visibly a control and acknowledges a press;
   every geometry number above unchanged; gauntlet green.
 
+### F3 — the press state must paint BEHIND the title (Strange pass-2 blocker)
+
+- **Status:** dispatched 2026-09-08. **Paint-only.** Strange's own assessment:
+  Vision's and Captain's pass-2 PASSes survive this on the same argument the mission
+  already accepted for mission-18/C6 — no imports, no exports, no new files, no
+  geometry, no logic.
+- **Objective:** F2's `active:bg-surface-2` sits on a **childless** overlay, so it
+  paints **over** the title instead of behind it. Make the press fill paint behind
+  the label, and dim the caret while the control is disabled.
+- **⚠️ Fury's contract caused this, not the builder.** F2 was told to match the
+  arrows — which have children to protect their labels. This control is childless by
+  C3's deliberate geometry decision. Recorded so nobody re-issues that instruction.
+- **Boundaries:** may touch `src/components/CalendarHeader.tsx` · must not touch
+  `src/components/ScheduleView.tsx`, `src/components/MonthJumpSheet.tsx`,
+  `src/components/CalendarViews.tsx`, `src/components/CalendarSheets.tsx`,
+  `src/lib/**`, `src/app/actions/**`, `prisma/**`.
+- **Fix 1 — name the PROPERTY, not a class string.** Strange measured the property
+  deliberately, *"because this arc has recorded three times that a gate's finding
+  stood while its prescription failed."* The property: **the title and caret stay
+  legible for the entire press, and every geometry number is unchanged.** Two forms
+  reach it — an `:active` background on the shared parent span (what Strange
+  prototyped, `span:has(> button:active)`), or leaving the fill on the button and
+  raising the title branches above it with `relative z-…` **plus**
+  `pointer-events-none` so the hit test still returns the button. Pick one and
+  re-measure it yourself.
+- **⚠️ Do NOT give the button a negative z-index.** The title is a **sibling**, not
+  a child, so a click landing on it would never reach the button — reachability
+  would break **silently**.
+- **Fix 2 (Strange's NOTE 1, same file, same paint layer, one line):** the caret
+  renders at `opacity 1` in the null frame while the Today circle, Prev and Next are
+  all `opacity 0.4, disabled` — it is the brightest mark in a row where everything
+  live has dimmed, on a button that is itself `disabled`. `disabled:` on the button
+  cannot reach it because the caret is a sibling. **Dimming is paint-only and
+  geometry-neutral** — Strange measured that class of change explicitly, correcting
+  Fury's framing that it might trade against layout.
+- **Verification:** the six-leg gauntlet; **and re-measure Strange's own table** —
+  6 views × 2 frames × 2 themes: `h-7` span 28, flex row 28/44, button 46,
+  `elementFromPoint` returns THE BUTTON at centre, caret a sibling with the portal
+  slot childless, `body.scrollWidth` 375, no truncation. Plus the ink/contrast pair
+  **through the press, sampled over time, not just at rest** — Strange sampled
+  40/80/120/160/300ms and erasure completed at 80ms.
+- **Evidence required:** title ink and contrast at rest and while `:active`; the
+  geometry table before and after; confirmation the hit test still returns the
+  button; gauntlet output. **Use the Prev arrow as your control** — it holds 143 →
+  143 ink pixels under the same token and is the proof the measurement is real.
+- **Done criteria:** title and caret legible throughout the press, caret dimmed in
+  the null frame, every geometry number unchanged, gauntlet green,
+  `CalendarHeader.tsx` the only file in the diff.
+
 ### C5 — amend the v1 plan so swipe reads as additive
 - **Status:** **DONE** — done by Fury directly rather than spending a builder
   dispatch on a one-sentence documentation edit. `calendar-v1.md:247` now
@@ -665,7 +714,108 @@ both `.claude/` copies, per the drift lesson.
 | — | **F2** | ✅ DONE `8fbc50c` — cleared Strange ×1 | — | one consequence routed back to Strange |
 | 2 | **Vision** | ✅ **PASS** | 0 | 10 — enumerated below |
 | 2 | **Captain** | ✅ **PASS** | 0 | 13 — enumerated below |
-| 2 | Strange | outstanding — F2 is entirely its blocker | — | — |
+| 2 | **Strange** | **BLOCKED** | 1 | 10 — enumerated below |
+| 3 | Strange | pending F3 — **final pass of the 3-pass budget** | — | — |
+
+### Strange pass 2 — BLOCKED (1 blocker, 10 notes)
+
+**F2 did the job it was written for** — re-verified independently across **6 views ×
+2 frames × 2 themes = 24 configurations**: `h-7` span 28px, flex row 28/44, button
+46px, `elementFromPoint` returns THE BUTTON at centre in all 24, caret a flex
+sibling glued at `gap-1` 4.00px, **portal slot still childless**, zero overlaps, no
+truncation, `body.scrollWidth` 375 everywhere. At rest the control now reads
+unmistakably as a dropdown. **But the press state it added erases the thing it is
+attached to.**
+
+**BLOCKER — the press does not highlight the control, it blanks it.** Measured
+inside the title's own rect: title ink **2509 → 1774 (40ms) → 0 (80ms)**, contrast
+**6.96:1 → 1.00:1**, and F2's own caret **114 → 0**. Dark identical in shape.
+Erasure is complete inside an ordinary tap, so no quick tap outruns it.
+**The control that makes it a defect rather than taste:** the Prev arrow 8px away
+holds **143 → 143 ink pixels** under the *same* `active:bg-surface-2`, in both
+themes, because its icon is a **child** of its own button. Strange swept `src/` and
+found **no instance anywhere** of a press fill that hides its own label — so the
+builder's honest framing ("comparable to a list-row tap highlight") is measurably
+not the case.
+**And the semantic half is worse than the contrast half:** the fill is
+`bg-surface-2` — the **identical token, rounding and row** as the null-frame
+skeleton `h-5 w-32 animate-pulse rounded bg-surface-2`. Pressing the title renders
+the app's own **loading** vocabulary. *The UI says "this title is loading"; the truth
+is "you pressed this."* Third appearance of the two-states-collapsed class this
+project has already paid for twice (mission-7's *"an empty state and a loading state
+must not be able to be mistaken for each other"*; CV3's refusal-vs-emptiness split).
+Rule: `DESIGN.md` checklist item 5, *every visual signal tells the truth*, plus
+States, *loading via skeletons shaped like the real content*.
+**⚠️ This one traces to Fury's contract, not to the builder.** F2 was told to add
+`active:bg-surface-2` *"matching what the Prev/Next arrows already use"* — but the
+arrows have children to protect their labels and this control is childless **by
+C3's deliberate geometry decision**. The builder implemented the instruction
+exactly. **And Strange's own pass-1 amendment was satisfied exactly by F2 and the
+defect shipped anyway** — which is why that amendment is now revised rather than
+merely pending.
+**The fix was prototyped outside the repo and measured, not reasoned:** moving the
+fill onto the shared parent so it paints *behind* the title gives title ink
+**2509 → 2500**, contrast **6.96 → 6.35** (still clearing AA), and geometry
+**byte-identical** in both themes at rest, changed and pressed — so
+`SCHEDULE_HEADER_BAR_HEIGHT_PX` stays correct and null/resolved equality is
+untouched. **Strange deliberately measured the PROPERTY, not a class string**,
+citing that this arc has three times recorded a gate's finding standing while its
+prescription failed.
+**It also named a wrong fix to avoid:** a negative z-index on the button would break
+reachability **silently**, because the title is a *sibling*, not a child, so a click
+landing on it would never reach the button.
+
+**Three instrument errors Strange caught and corrected mid-pass**, each disclosed
+because each would have produced a wrong number: (a) its first harness passed
+`prevDisabled={false}` while the app passes `today === null`; (b) a **font race**
+made dark-theme geometry read 112.55 against light's 115.5 — the "before" sample had
+run pre-Manrope, fixed with an explicit `document.fonts.load` settle, after which
+both themes agree exactly; (c) `MonthJumpSheet` holds `shownMonth` in
+`useState(anchor)` — **initial state only** — so re-rendering one root with a new
+anchor silently measures the same month four times; fixed with a reload per case,
+and the corrected run prints the selected chip as proof the month actually moved.
+
+**NOTES (all 10):** (1) **the caret renders at full strength in the null frame**
+where everything else has dimmed — Today circle, Prev and Next all `opacity 0.4,
+disabled`, caret `opacity 1`, on a `disabled` button beside a skeleton bar. Cause is
+structural and is *why* the frames match: the caret is a sibling, so `disabled:`
+cannot reach it. **NOTE** — the whole title is visibly a skeleton and the window is
+only SSR plus hydration. **Contrary to how Fury framed the question there is no
+tension with layout at all**: dimming is paint-only and geometry-neutral. **Take it
+in the same contract as the blocker.** (2) **the sheet names no year, and the hole
+is wider than pass 1 recorded**: 25 chips with only **2** carrying a year, **12**
+duplicate labels, and — new — **0 of 42 day cells carry a year in their
+`aria-label`**, so a screen-reader user has no route to it at all; the landing
+surface often does not say either (`threeDay` is byte-identical across years).
+Mitigation is real but partial: scrolling always crosses a January, but repeated
+chip *taps* re-frame the strip so a user can walk across a year boundary without one
+ever being central. **"It does not want a blocker, and it does want the fix"** —
+`formatMonthTitle(shownMonth)` as a heading fixes both audiences where an
+`aria-label` fixes one. **Routed, not contracted.** (3) swipe still has no
+in-progress feedback — confirmed on the shipped tree, not carried over: the surface
+is a bare `touch-pan-y` div with no transform anywhere. NOTE; the arrows and the
+dropdown both remain. (4) in-month vs padding day numbers at **1.47:1 light /
+2.24:1 dark**, informational — both clear AA independently, cells are 44×44, and a
+padding cell still jumps correctly. Same 1.47:1 CV5 routed for `YearView`; pair them
+if either is taken. (5) **⚠️ Strange corrects its OWN pass-1 record** — it said 11
+duplicate chip labels; the true figure is **12**. *"A correction to a gate report is
+a claim like any other and I am flagging mine rather than letting the number
+stand."* (6) **its own system-font caveat is retired with a real number**: swept
+every day of 2026 across all five arrow views in genuine Manrope — worst case is
+Day's "Wednesday, May 20" at 168px in a 239px row, **49.0px clearance, zero
+truncation on any view on any day**. The 16.8px figure should not be cited again.
+(7) **F1's today fix confirmed on screen by its own instrument** with a positive
+control and three negatives, one reload per case: anchor Oct 2026 → **1** marked;
+Sep 2026 → **0** (the exact padding-cell case); Nov 2026 → **0**; **Oct 2025 → 0**,
+the sharper same-month/wrong-year case. (8) **the correct press pattern is already
+the house convention three places over** — the jump sheet's own day cells,
+`ActionCircle`, and the header arrows all paint behind a child. Only this control
+has no child to protect its label. *The fix restores the convention rather than
+inventing one.* (9) pass-1 NOTE 1 stands: the plain grid is correct and density dots
+would still be a defect. (10) everything else clean — sheet 448px fits at 375×812
+**and 375×667**, all 42 cells exactly 44×44, close button 44×44, chips `min-h-11`,
+`body.scrollWidth` 375 in all 24 header configurations and every sheet
+configuration, both themes, no one-off component invented, caret is a token.
 
 *(F1's row was previously buried inside the Strange pass-1 narrative rather than in
 this table — Vision's pass-2 NOTE 7. Moved here 2026-09-08.)*
