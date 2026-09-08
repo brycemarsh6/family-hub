@@ -457,7 +457,7 @@ both. C4 needs C1. C5 is documentation and can go any time.
 
 ### F1 — clear both gate blockers (pass-1 fix batch)
 
-- **Status:** dispatched 2026-09-08. **Batched deliberately** — re-gating after each
+- **Status:** ✅ **DONE (`0bed8b4`).** **Batched deliberately** — re-gating after each
   one-line fix burns the budget that assembling minimally saved.
 - **Objective:** Clear Captain's blocker and both of Vision's, and home the invariant
   that produced the first one so a fourth caller cannot reintroduce it.
@@ -588,7 +588,37 @@ both `.claude/` copies, per the drift lesson.
 |---|---|---|---|---|
 | 1 | Captain | **BLOCKED** | 1 | 11 — every one enumerated below, not counted |
 | 1 | Vision | **BLOCKED** | 2 | 6 — every one enumerated below, not counted |
-| 1 | Strange | not yet run — deliberately held until F1 lands | — | — |
+| 1 | Strange | dispatched after F1, on the fixed tree | — | — |
+| — | **F1** | ✅ **DONE `0bed8b4`** — all 3 blockers cleared | — | tests 344 → 350 |
+
+**F1 verified by Fury independently, not taken on report.** All three today-test
+call sites now route through `isTodayCell` (`MonthJumpSheet.tsx:122`,
+`MonthGrid.tsx:216`, `YearView.tsx:86`); the invariant is homed beside
+`monthGridDays` — the function that creates the padding it guards against — and is
+now reachable by `npm test`, which three inline `.tsx` copies structurally were
+not. `onPickDay` is unchanged, per both gates' instruction that tapping a padding
+cell to jump is *correct*. `pointerdown` clears the stale swallow flag (`:222`)
+while `lockToSwiping` still arms it (`:252`) and the click-consume path is intact
+(`:281-282`). Every must-not-touch file confirmed at **0 changed lines**.
+
+**Disclosed deviation, and it was the right call:** the contract prescribed an
+inline `swallowNextClick.current = false`. The builder extracted the decision into
+a pure exported `nextSwallowNextClick` instead, **because the contract's own
+"every fix ships a test proven able to fail" requirement is unsatisfiable against
+an inline ref mutation in a `"use client"` hook — this toolchain has no DOM, so
+only a pure exported decision is reachable by `node:test`.** Same reasoning
+`nextGestureMode`/`resolveSwipeDirection` already established in that file. Net
+behaviour identical; disclosed rather than done silently.
+**For the gates to rule on, not Fury:** `nextSwallowNextClick(current, event)`
+never reads `current` — it is `pointerdown → false`, otherwise `true`. Eslint is
+clean and it mirrors `nextGestureMode`'s signature, but an unused parameter on a
+pure function is a wart and it is Captain's call, not mine.
+
+**Both fixes proven RED before GREEN**, per this project's law that a regression
+test never seen red proves nothing: `isTodayCell`'s three tests failed with
+*"isTodayCell is not a function"*; `nextSwallowNextClick`'s failed on a
+placeholder returning `current` (`true !== false`). Gauntlet green all six legs,
+**350 tests** (UTC 343 + 7 skipped — the baseline skip count preserved).
 
 **Both gates gated all four contracts at once** (`977fff4..d5d33a5`), since none of
 CV6 had ever been gated. **They independently found the same blocker by different
