@@ -115,6 +115,38 @@ export function resolveSwipeDirection(dx: number, thresholdPx: number): PageSwip
   return null;
 }
 
+/** The two things that change the click-swallow flag — see
+ * `nextSwallowNextClick` immediately below. */
+export type SwallowEvent = "pointerdown" | "lockToSwiping";
+
+/**
+ * The click-swallow flag's next value given what just happened —
+ * mission-19/F1 (Vision blocker, gate pass 1, measured via real Chrome
+ * Input.dispatchTouchEvent against the shipped hook). Pure and exported
+ * for the same reason nextGestureMode/resolveSwipeDirection are: this
+ * project's toolchain has no DOM, so this decision has no other way to
+ * get real test coverage. The hook below is a thin ref wrapper around
+ * this — see its two call sites.
+ *
+ * THE BUG: on TOUCH, a drag past Chrome's tap slop produces NO
+ * compatibility click event, so a swipe that locked in and then released
+ * left swallowNextClick TRUE with nothing left to clear it. The NEXT
+ * gesture's own real click — a plain tap, or even a drag that never
+ * reached the page threshold — then got eaten by a flag an entirely
+ * earlier gesture set.
+ *
+ * THE FIX: "pointerdown" — the start of a NEW gesture — always clears
+ * whatever the previous gesture left behind. Safe because pointerdown
+ * always precedes pointermove within the SAME gesture, so this can never
+ * clear a flag the CURRENT gesture itself is about to set. Verified this
+ * doesn't defeat the swallow's real job either: a mouse drag starting on
+ * a day cell still suppresses its own click, identically before and after.
+ */
+export function nextSwallowNextClick(current: boolean, event: SwallowEvent): boolean {
+  if (event === "pointerdown") return false;
+  return true; // "lockToSwiping" always arms it
+}
+
 /** Past this much horizontal travel, a released swipe pages. Deliberately
  * a plain constant rather than something derived from screen width or
  * SwipeActions' own `openWidth` math: this gesture has no live visual
@@ -183,6 +215,11 @@ export function usePageSwipe({
     // same guard as SwipeActions.tsx:93.
     if (event.pointerType === "mouse" && event.button !== 0) return;
     if (isGestureClaimed?.()) return; // CD1 seam — never even enters "undecided"
+    // mission-19/F1: a NEW gesture starting always clears whatever the
+    // PREVIOUS gesture left behind — see nextSwallowNextClick's own
+    // comment for why a touch swipe can leave this flag stuck true with
+    // no compat click ever arriving to clear it.
+    swallowNextClick.current = nextSwallowNextClick(swallowNextClick.current, "pointerdown");
     mode.current = "undecided";
     start.current = { x: event.clientX, y: event.clientY };
     offsetRef.current = 0;
@@ -212,7 +249,7 @@ export function usePageSwipe({
         return;
       }
       mode.current = "swiping";
-      swallowNextClick.current = true;
+      swallowNextClick.current = nextSwallowNextClick(swallowNextClick.current, "lockToSwiping");
       // Same guard as SwipeActions.tsx:118-124 — setPointerCapture throws
       // when the pointer isn't current, and an unguarded call here would
       // abandon THIS gesture the same way an unguarded call there once

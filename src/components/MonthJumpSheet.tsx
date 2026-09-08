@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { monthGridDays } from "@/lib/monthLayout";
-import { formatDayLabel, isSameDay, isSameMonth, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
+import { monthGridDays, isTodayCell } from "@/lib/monthLayout";
+import { formatDayLabel, isSameMonth, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 import { MonthChips } from "./MonthChips";
 
 /**
@@ -109,7 +109,17 @@ export function MonthJumpSheet({
 
         <div className="grid grid-cols-7 gap-y-1">
           {gridDays.map((day) => {
-            const isToday = isSameDay(day, today);
+            // monthGridDays pads this grid with up to 12 days from the
+            // neighbouring months (see monthLayout.ts's own comment), so a
+            // bare isSameDay(day, today) circles today's date on a padding
+            // cell belonging to the WRONG month whenever shownMonth isn't
+            // today's real month (mission-19/F1 — the exact bug this fixed:
+            // browsing to September while today is Oct 1 circled the
+            // trailing Oct-1 padding cell as today, inside a grid the user
+            // reads as September). isTodayCell (monthLayout.ts) is the one
+            // home for this invariant, same guard MonthGrid.tsx and
+            // YearView.tsx already apply inline.
+            const isToday = isTodayCell(day, shownMonth, today);
             const inMonth = isSameMonth(day, shownMonth);
             return (
               <button
