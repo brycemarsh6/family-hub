@@ -455,6 +455,41 @@ both. C4 needs C1. C5 is documentation and can go any time.
 - **Done criteria:** swipe pages the three views, arrows unaffected,
   `SwipeActions` unchanged in behaviour, gauntlet green.
 
+### F1 — clear both gate blockers (pass-1 fix batch)
+
+- **Status:** dispatched 2026-09-08. **Batched deliberately** — re-gating after each
+  one-line fix burns the budget that assembling minimally saved.
+- **Objective:** Clear Captain's blocker and both of Vision's, and home the invariant
+  that produced the first one so a fourth caller cannot reintroduce it.
+- **Boundaries:** may touch `src/components/MonthJumpSheet.tsx`,
+  `src/lib/monthLayout.ts`, `src/lib/monthLayout.test.ts`,
+  `src/components/MonthGrid.tsx`, `src/components/YearView.tsx`,
+  `src/lib/usePageSwipe.ts`, `src/lib/usePageSwipe.test.ts` · must not touch
+  `src/components/SwipeActions.tsx`, `src/components/CalendarViews.tsx`,
+  `src/components/CalendarHeader.tsx`, `src/lib/useCalendarNavigation.ts`,
+  `src/components/ScheduleView.tsx`, `src/app/actions/**`, `prisma/**`.
+- **Fix 1 (both gates) — the today marker.** `MonthJumpSheet.tsx:112` must pair the
+  today test with the in-month test already computed beside it. **Do NOT change
+  `onPickDay`** — tapping a padding cell and jumping to that day is correct behaviour
+  for a jump sheet; only the *marker* is wrong.
+- **Fix 2 (Captain, the structural half) — home the invariant.** Add
+  `isTodayCell(day, shownMonth, today)` to `src/lib/monthLayout.ts`, beside the
+  function that creates the padding in the first place, and route **all three**
+  callers through it (`MonthGrid.tsx:215`, `YearView.tsx:85`,
+  `MonthJumpSheet.tsx:112`). This is what makes the invariant reachable by
+  `npm test` — three inline copies in `.tsx` files structurally are not.
+- **Fix 3 (Vision) — stop eating the next tap.** Reset `swallowNextClick.current =
+  false` in `handlePointerDown`, immediately before `mode.current = "undecided"`.
+  Vision verified this on a patched *copy* and separately proved it does **not**
+  defeat the swallow's real job. It is safe because the flag is set during
+  pointermove, strictly after pointerdown.
+- **Every fix ships a test that is proven able to fail.** Write it, watch it go
+  **red** against the current code, then fix and watch it go green, and report both.
+  *A regression test never seen red proves nothing* — this project's own law.
+- **Verification:** the six-leg gauntlet; the red-then-green evidence above.
+- **Done criteria:** all three blockers cleared, invariant homed and unit-tested,
+  gauntlet green, no boundary file touched.
+
 ### C5 — amend the v1 plan so swipe reads as additive
 - **Status:** **DONE** — done by Fury directly rather than spending a builder
   dispatch on a one-sentence documentation edit. `calendar-v1.md:247` now
@@ -519,7 +554,168 @@ both `.claude/` copies, per the drift lesson.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| — | — | not yet run | — | — |
+| 1 | Captain | **BLOCKED** | 1 | 11 — every one enumerated below, not counted |
+| 1 | Vision | **BLOCKED** | 2 | 6 — every one enumerated below, not counted |
+| 1 | Strange | not yet run — deliberately held until F1 lands | — | — |
+
+**Both gates gated all four contracts at once** (`977fff4..d5d33a5`), since none of
+CV6 had ever been gated. **They independently found the same blocker by different
+routes** — Captain by reading the constitution's own prediction, Vision by rendering
+it with a positive *and* a negative control. Vision's second blocker is its own.
+
+### Captain pass 1 — BLOCKED (1 blocker, 11 notes)
+
+**BLOCKER — `MonthJumpSheet.tsx:112`, the today marker has no in-month guard.**
+`isToday = isSameDay(day, today)` wins the className ternary at `:121`, so an
+adjacent-month padding cell renders `bg-accent text-accent-fg`, indistinguishable
+from a real today — while `inMonth` sits computed and unused on the very next line.
+**`DESIGN.md:207` predicted this in writing one mission ago** — *"a third caller
+would reintroduce this with no compile error"* — and `MonthJumpSheet` is that third
+caller, one mission later. Measured across 2026: **141 days** affected, with an
+in-month control reading 1==1 so the harness is not reporting a constant. The other
+two callers are correct (`MonthGrid.tsx:215`, `YearView.tsx:85`, both fixed in
+mission-18/C6).
+
+**NOTES (all 11):**
+1. **The `usePageSwipe`/`SwipeActions` duplication is a NOTE, not a BLOCKER** —
+   the ruling Fury asked for. Captain checked **its own precedent rather than its
+   instinct**: every prior instance of this shape (`parseLocalDateString`,
+   `withTimeZone`, month names, `validatedPeople`, `fetchWindow`) was a NOTE at
+   first sighting with the BLOCKER set at the next copy, and *"a builder needs to be
+   able to know in advance what will pass."* **Trip condition: a THIRD definition of
+   the lock distance or the four-state mode is a BLOCKER — keyed to definitions, not
+   to consumers**, since a threshold you can satisfy by copying instructs rather than
+   restrains. It **corrects the builder halfway**: the can't-verify-a-runtime-refactor
+   argument is decisive for the *stateful* half (`openWidth/2`, live `translateX`,
+   `open` state) but does **not** reach `DIRECTION_LOCK_PX` (an import swap, `tsc`
+   proves it) or `nextGestureMode` (pure, already unit-tested; Captain verified the
+   hook's claim that it mirrors `:105-115` *exactly*, rather than trusting it).
+2. **`useCalendarNavigation.ts` is 390/150 and crossed the soft cap during C2 —
+   and nobody recorded it.** C1 and C3's status entries carry line counts; **C2's
+   carries none**, and fact 8 still cites the pre-mission 333. Not a split candidate
+   (150 code); **the finding is the silent crossing**, so the next contract touching
+   the hook starts from a true number.
+3. **`CalendarViews.tsx`'s measured trend contradicts the mission's narrative.**
+   `main` 484/223 → after C1 **438** → after C3 459/194 → HEAD **496/191**. The file
+   **entered at 484 and leaves at 496**: C1 absorbed one mission's growth, it did not
+   reverse the trend. Explicitly **NOT a split candidate** — 154 lines from the hard
+   cap and code *fell* 223→191. **CD1 should not open with a defensive extraction**;
+   if it ever needs one, the remaining seam is the sheets **state** block (C1 took the
+   rendering and left the state). Captain deliberately set no trip: the hard cap
+   already is one.
+4. **Captain CLEARS ITS OWN earlier framing of `ScheduleView`'s duplicate sheet
+   mounts.** Measured `ScheduleView.tsx:459-520` against `CalendarSheets.tsx:148-174`:
+   the behaviour is **genuinely divergent, not copied** — `ScheduleView`'s `onChanged`
+   carries the entire mission-15/C7 vanishing-task fix, because Schedule is
+   client-fetched over a sliding window while the other views are server-rendered.
+   *"My prior verdict was mis-framed; C1 did not change it, my measurement did."*
+   One fact for anyone revisiting: `CalendarSheets` **hardcodes** `onDeleted`/
+   `onChanged` rather than taking them as props, so `ScheduleView` could not adopt it
+   today; its `:44-48` comment claiming a reuse-shaped prop surface is half true.
+5. **Month/weekday vocabulary CLEARED — the sixth definition did not arrive.**
+   Captain ruled in mission-18 that a sixth would be a BLOCKER, so it checked:
+   `MonthJumpSheet.tsx:5` imports `SHORT_DAY_NAMES` from the canonical
+   `mealPlanDates` and reuses `formatDayLabel` for its `aria-label`. Still five.
+   *"The mission's cleanest structural result, and it was not accidental."*
+6. **Placement, dependency direction and naming all clean.** `grep -rn "@/app"
+   src/lib/` and `grep -rn "@/components" src/lib/` both **empty**; no cycle.
+   Filename-names-a-live-export holds on all three new files. `CalendarHeader`'s new
+   `onOpenMonthJump` is **required**, so every call site is compile-forced.
+7. **`MonthChips` correctly sits OUTSIDE the swipe wrapper** (`CalendarViews.tsx:272`
+   vs `:273`), documented in place — it owns its own `overflow-x-auto` and would have
+   fought the same gesture.
+8. **`usePageSwipe`'s four zero-referenced type exports are house convention, not
+   dormant exports.** Established rather than assumed: `useCalendarNavigation.ts:90`
+   exports `CalendarNavigation`, also 0 external references. No finding.
+9. **`openDay` does not route through `jumpToDayTargets`** — two expressions of one
+   two-line shape, one of them tested. Fold it in if anything else touches it.
+10. **`CalendarSheets.tsx:14` opens "the four sheets" while the file mounts five**
+    (amended honestly at `:31`, so a reader reaches the truth — but the first
+    sentence is now false alone, and this repo tracks comments outliving evidence).
+11. **Every standing debt confirmed still open, and this mission added to none:**
+    `ASSIGNABLE_ROLES` still a filter predicate not a total record; `toDateInputValue`
+    ×3; `withTimeZone` ×4; no `src/lib/testing/`; no `fetchWindow.ts`;
+    `validatedPeople` ×2; `calendarDayDiff` still an unguarded loop on an invalid
+    `Date`; `HubNav.tsx` still exports only `HubBottomNav`. **Test-glob reach
+    confirmed:** `usePageSwipe.test.ts` matches `src/lib/*.test.ts`.
+
+### Vision pass 1 — BLOCKED (2 blockers, 6 notes)
+
+**Gauntlet re-run, all six legs green and exactly matching the builder's claim:**
+tsc 0, eslint 0, Denver 344/344/0, UTC 344 → 337 + **7 skipped (matches baseline)**,
+LA 344/344/0, build 30 routes clean. Confirmed `usePageSwipe.test.ts` is genuinely
+*executed*, not merely present. **Boundary audit clean.** Evidence spot-checked
+rather than trusted: C1's "byte-identical extraction" reconstructed from
+`git show 977fff4:` and matched; `touch-pan-y` confirmed to actually compile into
+the CSS bundle; every line-number claim in the new comments resolves correctly.
+
+**BLOCKER 1 — the same `MonthJumpSheet` today marker**, found independently and
+rendered with **both a positive and a negative control**. Vision's sweep is wider
+than Captain's: **282 of 730 days across 2026-2027**, *higher* than the 126/365
+`DESIGN.md` measured for Year **because this sheet lets you browse anywhere**.
+Concrete: on Thu 1 Oct 2026, open the sheet and tap "Sep" — 1 October is a trailing
+padding cell in September's grid and renders with the today fill.
+
+**BLOCKER 2 — `usePageSwipe.ts:179,215,243-248`: every swipe silently eats the
+user's next tap, including swipes that do nothing at all.** `swallowNextClick` is
+set on lock-in at `:215` and cleared **only** inside `handleClickCapture` — but on
+touch, a drag past Chrome's tap slop produces **no compat click**, so the flag
+survives into the next interaction. Measured through real Chrome
+`Input.dispatchTouchEvent` against the **shipped** hook, positive control first:
+a tap alone fires `DAY_TAP`; a tap immediately after any swipe fires only
+`BROWSER_CLICK`; a second tap works. **The worse half is a 30px sub-threshold drag** —
+it crosses the 8px direction lock but not the 60px page threshold, so it produces
+*no visible feedback whatsoever* and **still eats the next tap**. On a phone, an
+imprecise tap that drifts 10px is exactly that gesture. Applies to Month and Year
+(confirmed by grep that only `TimelineGrid` has an inner `overflow-y-auto`).
+**Vision verified the fix rather than prescribing it** — a patched *copy*, repo
+untouched — and separately proved the fix does not defeat the swallow's real job
+(a mouse drag starting on a day cell still suppresses its click, identically on
+both trees). Safe because the flag is set during pointermove, strictly after
+pointerdown.
+
+**NOTES (all 6):**
+1. **C4's objective was not satisfied; its Done criteria were** — Vision's ruling,
+   since Fury asked for it. The verb was "Extract" and nothing was extracted, but
+   the criteria said *"`SwipeActions` unchanged in **behaviour**"*, which is the
+   weaker wording a copy satisfies. Vision could construct no scenario where drift
+   yields *wrong* rather than *divergent* behaviour, so under its own severity law it
+   declined to manufacture a blocker in Captain's lane. **But it hands Captain the
+   fact that decides it: the copy has ALREADY cost a defect.** BLOCKER 2 exists
+   *precisely because* `SwipeActions`' compensating `handleRowPointerDownCapture` did
+   not come across. *"That is not a hypothetical drift cost — it is a shipped one."*
+2. **One third of C4's Done criteria has no evidence behind it, from anyone.**
+   The contract required a real gesture paging **each** of timeline/Month/Year.
+   Vision settled Month and Year but **could not settle the timeline** — and reports
+   it as unproven rather than as a finding, **because its instrument fails its own
+   positive control there**: the real, production-proven `SwipeActions` placed inside
+   an `overflow-y:auto` host also failed, with Chrome issuing `pointercancel` after
+   ~24px inside a nested scroller. **So whether swipe pages Day / 3 Day / Week at all
+   is genuinely unknown**, and it is the highest-value item on the owed real-device
+   pass — *"given the same `pointercancel` shape could occur on a real device, I'd
+   test it first."*
+3. **`CalendarViews.tsx` measured at 496 total / 216 code** — note this **disagrees
+   with Captain's 191 code**; the two counters differ and STRUCTURE.md's canonical
+   counter is `preflight.mjs`'s. Either way: over soft, well under hard.
+4. **`MonthJumpSheet.tsx` renders no month/year label on the grid at all.** The only
+   cue is the selected chip — and `MonthChips` shows the year on January chips only
+   (CV5's routed leftover, *"a chip reading 'Sep' can navigate to the previous
+   September"*), now reachable from **all six views** rather than only Month. Not a
+   blocker alone; it **materially amplifies BLOCKER 1**, since with the marker on a
+   padding cell and no heading, very little names the month.
+5. **C3's Schedule-title solution holds, checked structurally rather than by
+   measurement.** The portal slot is still childless (no double label — mission-16/D2
+   stands), the overlay button is a `position: absolute` sibling and therefore cannot
+   contribute flow height **by CSS spec rather than by measurement**, `ScheduleView.tsx`
+   is byte-identical to `main`, and `SCHEDULE_HEADER_BAR_HEIGHT_PX = 154` cannot have
+   gone stale. The 46px figure is part of the owed real-device pass.
+6. **The signature UTC-vs-local bug class comes up CLEAN for this diff** — swept
+   every added line: exactly one `new Date` was added across all four contracts, in a
+   test, built from local components and explicitly not "today". Also verified C2's
+   core claim *from source*: `openDay` (`:350`) still hardcodes `jumpTo(day, "day")`
+   so existing callers are unaffected, and view preservation is a property of
+   `jumpToDayTargets`' signature — its test is **red-then-green** against a
+   `"day"`-forcing implementation.
 
 ## Handoff log
 - 2026-09-08 — **C4 DONE and committed (`e653609`) — with ONE deviation that
