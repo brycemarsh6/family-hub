@@ -11,6 +11,7 @@ import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
 import { TimelineGrid } from "./TimelineGrid";
 import { YearView } from "./YearView";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
+import { usePageSwipe } from "@/lib/usePageSwipe";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
 import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
@@ -129,6 +130,20 @@ export function CalendarViews({
   // `today !== null` covers it too.
   const now = useNowMinute();
   const chromeOffsetPx = useAppHeaderHeight();
+
+  // mission-19/C4 — swipe-to-page, via a hook rather than folded in here
+  // (see usePageSwipe.ts's own header for why it's a sibling of
+  // SwipeActions.tsx's gesture machine rather than a shared import from
+  // it). Called unconditionally, the same convention as useNowMinute/
+  // useAppHeaderHeight just above — only renderPeriodContent's "month",
+  // "timeline" and "year" branches actually spread these handlers onto
+  // anything; Schedule manages its own scrolling and is never wrapped.
+  // `step` is the SAME call the header's Prev/Next arrows make (below) —
+  // this is an addition to how the calendar pages, not a replacement.
+  const pageSwipeHandlers = usePageSwipe({
+    onSwipeLeft: () => step(1),
+    onSwipeRight: () => step(-1),
+  });
 
   const [pickingView, setPickingView] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
@@ -250,16 +265,22 @@ export function CalendarViews({
         today !== null &&
         anchor !== null && (
           <>
+            {/* mission-19/C4 — MonthChips is deliberately OUTSIDE the
+                swipe wrapper below: it scrolls itself HORIZONTALLY (its
+                own `overflow-x-auto`), so wrapping it too would fight
+                its own drag-to-scroll for the same gesture. */}
             <MonthChips anchor={anchor} onPickMonth={handlePickMonth} />
-            <MonthGrid
-              anchor={anchor}
-              today={today}
-              events={events}
-              tasks={tasks}
-              windowStart={windowStart}
-              windowEnd={windowEnd}
-              onOpenDay={openDay}
-            />
+            <div className="touch-pan-y" {...pageSwipeHandlers}>
+              <MonthGrid
+                anchor={anchor}
+                today={today}
+                events={events}
+                tasks={tasks}
+                windowStart={windowStart}
+                windowEnd={windowEnd}
+                onOpenDay={openDay}
+              />
+            </div>
           </>
         )
       );
@@ -308,18 +329,26 @@ export function CalendarViews({
       return (
         today !== null &&
         now !== null && (
-          <TimelineGrid
-            columnDays={days}
-            events={events}
-            tasks={tasks}
-            today={today}
-            now={now}
-            windowStart={windowStart}
-            windowEnd={windowEnd}
-            onOpenEvent={(event, day) => setSelected({ event, day })}
-            onOpenTask={(task) => setSelectedTask(task)}
-            chromeOffsetPx={chromeOffsetPx}
-          />
+          // mission-19/C4 — the swipe wrapper. TimelineGrid owns its own
+          // internal vertical scroller (`overflow-y-auto`); `touch-pan-y`
+          // here is what lets that scroll pass through undisturbed when a
+          // drag's vertical travel wins the direction lock (see
+          // usePageSwipe.ts's header) — the same reasoning SwipeActions.tsx
+          // already relies on for its own rows.
+          <div className="touch-pan-y" {...pageSwipeHandlers}>
+            <TimelineGrid
+              columnDays={days}
+              events={events}
+              tasks={tasks}
+              today={today}
+              now={now}
+              windowStart={windowStart}
+              windowEnd={windowEnd}
+              onOpenEvent={(event, day) => setSelected({ event, day })}
+              onOpenTask={(task) => setSelectedTask(task)}
+              chromeOffsetPx={chromeOffsetPx}
+            />
+          </div>
         )
       );
     }
@@ -338,7 +367,15 @@ export function CalendarViews({
       // already covered the fetch itself.
       return (
         today !== null &&
-        anchor !== null && <YearView anchor={anchor} today={today} onPickMonth={handlePickMonth} />
+        anchor !== null && (
+          // mission-19/C4 — the swipe wrapper. YearView's own tappable
+          // units are its 12 month buttons; a swipe's click-swallow (see
+          // usePageSwipe.ts's header) is what stops a released drag from
+          // also firing whichever tile it ends on.
+          <div className="touch-pan-y" {...pageSwipeHandlers}>
+            <YearView anchor={anchor} today={today} onPickMonth={handlePickMonth} />
+          </div>
+        )
       );
     }
 
