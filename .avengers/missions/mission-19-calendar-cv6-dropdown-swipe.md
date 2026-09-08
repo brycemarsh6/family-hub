@@ -1,9 +1,20 @@
 # Mission: CV6 — month dropdown + swipe-to-page
 
 **Project:** family-hub (Marshee)
-**Status:** **PAUSED — 4 of 5 contracts DONE. C4 (`usePageSwipe`) NOT BUILT.**
-No gate has run. Branch `claude/calendar-cv6`, pushed, **no PR, nothing live.**
-**Started:** 2026-09-06 · **Updated:** 2026-09-06
+**Status:** **ALL 5 CONTRACTS + 2 FIX CONTRACTS BUILT. Vision PASS, Captain PASS
+(both pass 2); Strange pass 2 outstanding on F2.** Branch `claude/calendar-cv6` —
+**no PR, nothing live, and 11 commits AHEAD of its own remote** (the pushed-at-pause
+state is `1755d00`; both fix contracts are local-only).
+**Started:** 2026-09-06 · **Updated:** 2026-09-08
+
+> ⚠️ **This header said "C4 NOT BUILT" for two days after C4 was built**, because
+> C4's own status line was updated and this one was not. Captain caught it at pass 2
+> and named the cost exactly: *"Had I acted on it I would have reported on
+> `usePageSwipe.ts` — a file F1 modified — believing it did not exist."* A fresh
+> session resuming from it would have built the hook a **second** time. Fifth
+> recorded instance of this project's doing-vs-recording gap, and the first that is
+> a stale **inventory** rather than a stale next-step. `CLAUDE.md`'s pause entry
+> carried the same false line and is corrected too.
 
 ## Brief
 
@@ -108,7 +119,10 @@ exists.
    is hover-only's cousin)"* is at **~:247**. Recorded rather than propagated
    — a wrong line number in a contract becomes a wrong comment in the code,
    which is this project's named defect class.
-8. **Sizes now:** `CalendarViews.tsx` **484/223**, `CalendarHeader.tsx` 233,
+8. **Sizes AT DISPATCH, 2026-09-06 — NOT current** *(re-dated 2026-09-08 on
+   Captain's pass-2 NOTE 4; this was headed "Sizes now" and so read as live. At
+   HEAD they are `CalendarViews.tsx` 496/191, `CalendarHeader.tsx` 332/119,
+   `useCalendarNavigation.ts` 390/150.)*: `CalendarViews.tsx` **484/223**, `CalendarHeader.tsx` 233,
    `SwipeActions.tsx` 212, `MonthChips.tsx` 113,
    `useCalendarNavigation.ts` 333, `useCalendarPeriod.ts` 313.
 
@@ -240,6 +254,13 @@ both. C4 needs C1. C5 is documentation and can go any time.
   Fury from source, not the report: the returned object now ends
   `openDay, jumpToDay`, and `jumpToDayTargets` hardcodes no view.
   Tests **335 → 336** on all three legs (336 / 329+7 skipped / 336).
+- **⚠️ Line count, added 2026-09-08 on Captain's pass-2 NOTE 5 — this entry
+  recorded none, so a soft-cap crossing went unrecorded.** C2 added 57 lines to
+  `useCalendarNavigation.ts`, taking it **333 → 390 total / 150 code** and across
+  the 350 soft cap. **Not a split candidate** — 150 code is well under 350, which
+  is the amended caps clause working exactly as `useScheduleWindow.ts` (431/172)
+  taught it to. The finding was the silent crossing, so the next contract touching
+  this hook starts from a true number rather than the 333 in fact 8.
 - **The `jumpTo` + `navigateTo` question was answered rather than
   cargo-culted**, which is what the contract asked for. They are **not**
   redundant: `jumpTo` is a synchronous `setState` on the local cursor, so the
@@ -294,9 +315,16 @@ both. C4 needs C1. C5 is documentation and can go any time.
 ### C3 — the month dropdown
 - **Status:** **DONE** — committed to the branch. Boundary audited by Fury:
   exactly the four allowed files, and **`MonthChips` is genuinely untouched**
-  (0 diff lines). Sizes: `CalendarHeader.tsx` 304/168,
-  `CalendarSheets.tsx` 197/134, `CalendarViews.tsx` **459**/194,
-  `MonthJumpSheet.tsx` 132/80. Gauntlet re-run by Fury: **336 / 329 + 7
+  (0 diff lines). Sizes **at `6a98c73`, measured with
+  `preflight.mjs`'s `lineCounts` — the canonical counter per STRUCTURE.md**:
+  `CalendarHeader.tsx` 304/**111**, `CalendarSheets.tsx` 197/**126**,
+  `CalendarViews.tsx` **459**/**178**, `MonthJumpSheet.tsx` 132/80.
+  *(Corrected 2026-09-08 on Captain's pass-2 NOTE 3: three of these four code
+  counts were wrong — 168, 134 and 194 — and none named its counter. Totals were
+  right, and no cap decision turned on them since every file was hundreds under,
+  which is why Captain filed it as a NOTE rather than blocking a merge on a status
+  line's arithmetic. Recorded anyway because mission-18 hit the same shape at a
+  file that WAS near the cap.)* Gauntlet re-run by Fury: **336 / 329 + 7
   skipped / 336**, tsc 0, eslint 0, build clean.
 - **THE SCHEDULE-TITLE PROBLEM WAS SOLVED WITHOUT TOUCHING THE HEIGHT AT
   ALL** — the answer the contract asked for and a better one than either
@@ -633,7 +661,138 @@ both `.claude/` copies, per the drift lesson.
 | 1 | Captain | **BLOCKED** | 1 | 11 — every one enumerated below, not counted |
 | 1 | Vision | **BLOCKED** | 2 | 6 — every one enumerated below, not counted |
 | 1 | Strange | **BLOCKED** | 1 | 9 — every one enumerated below |
-| — | **F2** | ✅ **DONE** — Strange's blocker cleared | — | one consequence routed back to Strange |
+| — | **F1** | ✅ DONE `0bed8b4` — cleared Vision ×2 + Captain ×1 | — | tests 344 → 350 |
+| — | **F2** | ✅ DONE `8fbc50c` — cleared Strange ×1 | — | one consequence routed back to Strange |
+| 2 | **Vision** | ✅ **PASS** | 0 | 10 — enumerated below |
+| 2 | **Captain** | ✅ **PASS** | 0 | 13 — enumerated below |
+| 2 | Strange | outstanding — F2 is entirely its blocker | — | — |
+
+*(F1's row was previously buried inside the Strange pass-1 narrative rather than in
+this table — Vision's pass-2 NOTE 7. Moved here 2026-09-08.)*
+
+### Vision pass 2 — ✅ PASS (0 blockers, 10 notes)
+
+**Both of its pass-1 blockers cleared, by its own instruments with negative
+controls.** Today marker: a sweep of **730 days × 25 reachable months = 18,250 grid
+renders** reads `daysAffected 0, cellsWrong 0` **while `positiveHits` is 730** — so
+the fix did not over-correct into never marking today. **The same harness against
+pre-F1 logic reports 282, its exact pass-1 figure**, so it is provably able to fail.
+Identical under Denver, UTC, LA **and Pacific/Chatham (+12:45)**. It also closed an
+instrument hazard of its own: its *expected* value used `isSameMonth`, so had that
+function ignored the year the whole sweep would have been vacuous across its ±12
+month reach — it read `mealPlanDates.ts:106` directly (compares year **and** month)
+and confirmed with 11 adversarial probes including Feb 29 2028 and both 2026 DST
+days, verified by direct grid membership to be genuinely padding cells.
+Eaten tap: real Chrome over raw CDP at a genuine **375×812 DPR 2 touch**, against a
+bundle **sha256-verified identical** to the shipped hook — all four cases correct on
+the shipped tree, and the pre-F1 negative control reproduces **both halves including
+the sub-threshold one**. **The disclosed deviation was proven behaviourally
+identical exhaustively, not by reading:** `nextSwallowNextClick` over its complete
+2×2 input domain returns exactly what the prescribed inline write would, **0
+mismatches**. And the 6 new tests were proven able to fail by Vision itself, by
+reverting both to their pre-fix implementations in a scratch copy (`pass 22 / fail
+2`, control `24 / 0`).
+**Boundary audit clean** — exactly the 8 declared files plus the mission file and
+`preflight.mjs` (confirmed inert: not referenced from `src/`, `package.json` or
+`next.config.ts`, and `.mjs` is outside `tsconfig`'s include). Every must-not-touch
+file at **0 changed lines**; `src/app/` and `prisma/` untouched across the **whole
+mission**, confirming no database write path.
+**NOTES (all 10):** (1) **build is 34 routes, not the 30 recorded — wrong in both
+passes**; no route changed all mission, so it was 34 at pass 1 too. Corrected above.
+(2) `nextSwallowNextClick`'s unused `current` has **zero behavioural consequence**,
+exhaustive over the full domain — supplied so Captain's ruling rests on a fact.
+(3) ⚠️ **the pointerdown clear sits AFTER two early returns** (`:216` non-primary
+button, `:217` `isGestureClaimed`), so it is not unconditional on "a new gesture
+started". Unreachable today — the hook's one call site does not pass
+`isGestureClaimed` — **but CD1 is the next mission and exists to pass it**, and
+Vision named the exact resurrection: swipe pages (arms the flag, no compat click) →
+long-press claims the pointer → pointerdown returns early → the stale flag eats the
+click ending the long-press. **Making the clear the first statement retires the
+class. Routed to CD1.** (4) the caret renders in the **null-frame too, where the
+button is `disabled`** — which is *why* the two frames match at 0 geometry diffs, so
+it is load-bearing, but it puts a tappability affordance on a control that cannot
+yet be tapped. **Strange's call.** (5) two `assignLanes` tests fail under
+`Pacific/Chatham` — **pre-existing**, reproduced against `main`; Chatham is not a
+gauntlet leg. Recorded so the next agent reaching for it knows they are not theirs.
+(6) the branch is **11 commits ahead of its own remote**, including both fix
+contracts — the recorded "pushed for recoverability" property is stale. (7) F1's
+ledger row was in the wrong section — fixed above. (8) `recordcheck` on the delta: 0
+hard failures, 5 REVIEW, none actionable (two are positional references into frozen
+history, already annotated as such). (9) F1 orphaned nothing — `inMonth` is still
+used for styling at `MonthJumpSheet.tsx:131`, and `isSameDay` now appears **only in
+comments** in all three re-routed files. (10) **no regression in the two re-routed
+callers, proven not read:** a differential sweep of **1,333,710 comparisons each**
+for `MonthGrid` and `YearView`, pre-F1 expression vs `isTodayCell`, **0
+differences**, with a non-vacuity control returning 1.
+
+### Captain pass 2 — ✅ PASS (0 blockers, 13 notes)
+
+**Blocker cleared and verified by sweep rather than by reading the contract:**
+`monthGridDays` has **exactly three** consumers and **all three** now call
+`isTodayCell`. Net **−2 definitions**, and a fourth caller has one obvious import.
+Crucially it also established what is **not** an instance: the remaining
+`isSameDay(day, today)` sites (`TimelineGrid:388,541`, `DaySection:171`,
+`WeekCard:50`, `ScheduleView:390`) iterate `columnDays` or a week, contain no
+foreign days, and **routing them through `isTodayCell` would be wrong**.
+`SwipeActions.tsx` has **zero commits across the entire branch**. Line counts
+re-measured with a replica of the canonical counter and **cross-checked against
+`wc -l` on five files, agreeing to the line**. And a positive worth stating: **both
+fix contracts shipped with written boundaries in the mission file** — the
+seven-times-recorded no-boundary failure did not recur.
+**Its rulings on the two things routed to it:**
+**The deviation — APPROVED, and the better call.** The constitution points this way
+twice (`loginRateLimitPolicy.ts`'s split rule; the `validatedPeople` clause calling
+an untestable decision *"CV3's `VIEW_CONFIG` lesson in a worse form"*), with
+`nextGestureMode`/`resolveSwipeDirection` as literal in-file precedent. *"The
+builder converted an untestable ref mutation into three real assertions. That is the
+house pattern, not a departure from it."*
+**The unused parameter — NOTE, and it would drop it.** No written rule reaches it,
+so it cannot be a BLOCKER — but the signature is an **overclaiming signature**, the
+repo's tracked overclaiming-comment class one level up: it presents as a transition
+over `(current, event)` and is a function of `event` alone, and the cited precedent
+does not cover it since `nextGestureMode` genuinely reads `mode`. Named future cost:
+a third `SwallowEvent` whose correct answer depends on `current` would compile, pass,
+and silently inherit `return true`.
+**⚠️ THE DUPLICATION RULING KEPT — but Captain checked Vision's MECHANISM rather
+than accepting it, and found it does not hold as stated, in a direction that is
+WORSE.** `SwipeActions.tsx:156` `handleRowPointerDownCapture` is **not** a
+compensating clear: it *sets* the flag, and only `if (open && mode.current ===
+"idle")` — the tap-an-open-row-to-close behaviour. `SwipeActions.handlePointerDown`
+(`:91-98`) does not clear it either. **So `usePageSwipe` did not drop a guard that
+existed: both copies shipped the same latent defect, and F1 has fixed one of them.**
+Reasoning from that (**Captain labels this explicitly as reasoning from code plus
+Vision's measured premise, NOT its own measurement**): a ~30px touch drag on a
+*closed* Inventory or Shopping row locks in, releases below `openWidth/2`, snaps
+shut, no click ever arrives to clear the flag — and **the user's next tap on that
+row is eaten**. Those are the two surfaces Bryce's wife uses daily. **Pre-existing,
+in a file this mission was correctly forbidden to touch, on a surface the calendar
+never interacts with — so NOT a merge condition.** It changes the migration's
+urgency and content, which is what amendment B now records.
+**Captain CLEARED ITS OWN pass-1 note 10** (`CalendarSheets.tsx:14` "the four
+sheets"): checked properly, the sentence is **C1-scoped and historically accurate**,
+and the file self-corrects three paragraphs down at `:31`. *"A correction is a change
+and is not more trustworthy for being a correction — that applies to my findings
+too."*
+**The 191-vs-216 discrepancy reconciled exactly:** it is **the file's 25 blank
+lines**. Vision counted non-comment lines *including* blanks; `preflight.mjs`
+excludes them. Neither is wrong; STRUCTURE.md names `lineCounts` canonical, so
+**191 stands** — and Captain proposes a one-line clarification of what "code"
+excludes, since two gates producing 191 and 216 in good faith is the failure that
+clause exists to end.
+**Remaining notes:** `useCalendarNavigation.ts` 390/150 is over soft cap and
+explicitly **not** a split candidate; `CalendarViews.tsx` is **net +12 over a mission
+whose first contract existed to shrink it** (484 → 438 → 459 → 496; C1 bought 46,
+CV6 spent 58) — under both caps, 191 code, not a split candidate today, but the only
+file in the arc with a rising multi-mission trend, **and CD1 lands there and adds
+code**; `src/lib/` now holds **15 `"use client"` modules, 10 of them `use*` hooks**
+(mission-17's note said twelve), so amendment A's number needs updating; all standing
+debts re-verified open with **none added**, though STRUCTURE.md's `withTimeZone`
+instance list is **stale by one filename** (`scheduleWindowState.test.ts` no longer
+defines it; `scheduleWindowStateRefresh.test.ts` does); `ScheduleView.tsx` still
+mounts its own detail sheets, the residue of the standing sheets seam, routed to CD1.
+**F2's three structural questions all PASS:** the portal slot is byte-identical and
+childless, `lucide-react` is correct per outline-icons-only, and the tokens are
+job-named. `CalendarHeader.tsx` **332/119**.
 
 **F2 verified by Fury independently.** The caret is a flex **sibling** of the three
 title branches inside the `h-7 gap-1` span — the portal slot is **still childless**,
@@ -864,7 +1023,9 @@ mission-18/C6).
 
 **Gauntlet re-run, all six legs green and exactly matching the builder's claim:**
 tsc 0, eslint 0, Denver 344/344/0, UTC 344 → 337 + **7 skipped (matches baseline)**,
-LA 344/344/0, build 30 routes clean. Confirmed `usePageSwipe.test.ts` is genuinely
+LA 344/344/0, build clean — **34 routes, not the 30 recorded here and at pass 1;
+corrected 2026-09-08 on Vision's pass-2 NOTE 1, which measured 34 and confirmed no
+route changed anywhere in the mission, so it was 34 at pass 1 too.** Confirmed `usePageSwipe.test.ts` is genuinely
 *executed*, not merely present. **Boundary audit clean.** Evidence spot-checked
 rather than trusted: C1's "byte-identical extraction" reconstructed from
 `git show 977fff4:` and matched; `touch-pan-y` confirmed to actually compile into

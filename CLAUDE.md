@@ -6125,9 +6125,15 @@ Mission file: `.avengers/missions/mission-19-calendar-cv6-dropdown-swipe.md`.
 **Built:** C1 (the four popup sheets extracted out of `CalendarViews.tsx` into
 `CalendarSheets.tsx`), C2 (`jumpToDay` — a view-preserving day jump), C3 (the
 month-jump dropdown behind the header title), C5 (a one-line plan amendment).
-**NOT built: C4, `usePageSwipe` — the swipe-to-page gesture. That is the
-resume point**, its contract is written and ready, and its preflight must be
-re-run at dispatch time rather than reused.
+~~**NOT built: C4, `usePageSwipe`.**~~ ⚠️ **CORRECTED 2026-09-08 — C4 IS BUILT**
+(`e653609`), along with two fix contracts, and all three gates have now run. This
+line stayed false for two days and **a fresh session resuming from it would have
+built the whole hook a second time.** Captain caught it at mission-19's pass 2.
+Fifth recorded instance of this project's doing-vs-recording gap, and the first
+that is a stale *inventory* rather than a stale next-step — so the standing rule
+gains a third clause: after any session that claims a feature is done, check
+`git log origin/main..HEAD`, check that the last session note describes the last
+merged PR, **and check that every "not built" claim is still true.**
 
 Gauntlet at the pause: **336 / 329 + 7 skipped / 336**, tsc 0, eslint 0, build
 clean. DB baseline `Task 0, TaskPerson 0, CalendarEvent 4, User 5` unchanged.
