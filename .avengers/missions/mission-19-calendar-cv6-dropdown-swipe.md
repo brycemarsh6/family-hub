@@ -632,7 +632,99 @@ both `.claude/` copies, per the drift lesson.
 |---|---|---|---|---|
 | 1 | Captain | **BLOCKED** | 1 | 11 — every one enumerated below, not counted |
 | 1 | Vision | **BLOCKED** | 2 | 6 — every one enumerated below, not counted |
-| 1 | Strange | dispatched after F1, on the fixed tree | — | — |
+| 1 | Strange | **BLOCKED** | 1 | 9 — every one enumerated below |
+
+### Strange pass 1 — BLOCKED (1 blocker, 9 notes), run on the post-F1 tree
+
+**BLOCKER — the month-jump control is invisible, on all six views.** It is the
+**sole entry point to CV6's headline feature** and carries
+`absolute inset-x-0 -inset-y-[9px] z-10` and nothing else: no background, no
+border, no children, no `hover:`, no `active:` — while the **Prev arrow 8px away**
+carries `active:bg-surface-2` and the Today circle is a filled disc. So the title
+reads as a plain heading, and a tap that lands produces **zero pixels of change**
+until the sheet animates. Violates `DESIGN.md` checklist item 5 (*"tappable looks
+tappable"*). **Vision and Captain both PASSed this same code** — it does exactly
+what it says, and the defect is only in what it *means*. That is precisely the
+class Strange exists for, and the second time on this arc it has caught it.
+**The geometry is CORRECT and must not regress** — Strange verified what Vision
+could not: **46.0px on all six views in both frames**, `elementFromPoint` returns
+the control at centre in **all twelve**, zero interactive elements overlapped, and
+row height byte-identical between frames (schedule 28, others 44), so
+`SCHEDULE_HEADER_BAR_HEIGHT_PX` is genuinely safe. C3's structural solution stands.
+
+**⭐ THE MISSION'S HIGHEST-VALUE UNKNOWN IS SETTLED: swipe DOES page the
+timeline.** Against the **real `TimelineGrid`** inside the **real swipe wrapper**
+at a genuine 375×812 — left → `SWIPE_LEFT`, right → `SWIPE_RIGHT`, vertical →
+nothing; real `MonthGrid` correct on all four cases including sub-threshold. Vision's
+*"genuinely unknown"* no longer holds. **And Strange found the mechanism behind the
+failed positive control:** synthetic touch `pointercancel`s after ~25px in a
+scrolling host — but forcing `touch-action: none` **did not stop it**, and disabling
+the inner scroller **did not stop it either**, so synthetic touch is not honouring
+`touch-action` at all and the very arbitration `touch-pan-y` exists to drive is
+never exercised. **What remains owed on a real device is now narrower**: not "does
+swipe work", only "does a real finger's touch-vs-scroll arbitration hand the gesture
+to the wrapper inside `TimelineGrid`'s scroller" — one minute on Bryce's phone.
+
+**F1 confirmed genuinely fixed ON SCREEN, against pre-F1 controls that reproduced
+both bugs.** Today marker: 0 marked in four negatives, exactly 1 in the positive
+control — and the **pre-F1 tree rebuilt from `git show d5d33a5` reproduced the bug
+in 3 of 4 negatives**, so the harness is proven able to fail. No regression on the
+two re-routed callers. Eaten tap: reproduced independently with **real touch**
+including the sub-threshold half; both register on the shipped tree.
+**Strange disclosed its own two vacuous attempts** — a mouse drag always emits a
+compat click that clears the flag, so the pre-F1 control passed and proved nothing;
+it only trusted the third run when the control finally went red. It also found and
+removed **its own harness artifact** (a 391px reading caused by forcing a 375 box
+inside the app's own `px-4`) and re-ran unchanged.
+
+**NOTES (all 9):**
+1. **Q1 RULED — the plain grid is CORRECT and density dots would be a *defect*.**
+   Uphold C3's omission as a decision, not a debt. The fetch window is 60+1 days
+   each side = **123 days loaded**; the sheet reaches ±12 months = **~760 days**. So
+   **~84% of the days the sheet can display have no loaded data**, and a dot-less
+   day there would mean "not loaded", not "empty" — a lie on the large majority of
+   its reach, and exactly the two-states-where-there-are-three collapse two gates
+   have already caught on this arc. **The sheet is honest *because* it makes no
+   content claim.** Recorded so a later contract doesn't "finish" it.
+2. **Q5 — no fourth ambiguity.** Same reason: jumping to an unloaded month routes
+   through `jumpToDay` → `navigateTo`, which moves the server window, so the
+   existing loading / empty / outside-window machinery applies unchanged.
+3. **Q2 — the sheet names no year, and its strip contains three chips reading
+   "Sep".** Measured at anchor Sep 2026: 25 chips, **11 duplicate labels**. The grid
+   shows day numbers only and the sheet's `<h2>` is the static "Jump to a date".
+   **A NOTE because it is recoverable** — Strange drove the real sheet, tapped the
+   leftmost "Sep", and the strip re-anchored to show "Jan 2025". Fix if taken:
+   render `formatMonthTitle(shownMonth)` above the grid.
+4. **3 Day's title is byte-identical across years**, which is what makes NOTE 3
+   bite hardest there: `formatThreeDayRange` gives `"Sep 15–17"` for **both** 2025
+   and 2026. Week and Day differ only by a weekday name, which no human reads as a
+   year. Pre-existing, but CV6 makes reaching a distant year far easier.
+5. **Strange's own prototype's weakness, quantified so it isn't adopted blind.**
+   It measured a `justify-end` caret first and **rejected it**: 78.3px gap between
+   title and caret on Schedule vs 26.3px on the arrow views. Hence the caret is
+   *glued to the title*. Its 16.8px worst-case ink clearance was measured in a
+   **system font, not Manrope** — re-measure rather than cite it.
+6. **Q4 — swipe has no in-progress feedback; a real gap, not a blocker.** A drag
+   under 60px produces literally nothing: no movement, no page turn, and (post-F1)
+   no eaten tap. `SwipeActions`, the house's other gesture, tracks the finger live.
+   A NOTE because **the arrows stay**, so nothing is unreachable and no written rule
+   is violated. Shape if ever taken: a live `translateX` on the wrapper.
+7. **In-month vs padding day numbers are distinguished by colour alone at 1.47:1
+   light / 2.24:1 dark** — the *same* 1.47:1 CV5 routed as a leftover for
+   `YearView`. Milder here: both colours clear AA against the sheet background
+   independently, cells are full 44×44 targets, and because F1 deliberately left
+   `onPickDay` alone, **tapping a padding cell jumps correctly**. Informational, not
+   load-bearing.
+8. **⚠️ CORRECT THE MISSION FILE'S AND `CLAUDE.md`'s RECORDED INSTRUMENT LIMIT — it
+   is wrong for this setup.** See the correction written into the traps section
+   below. A future gate must not skip a width measurement on the strength of it.
+9. **Everything else measures clean.** Day cells 44×44, close button 44×44, chips
+   44 tall. Sheet is 448px and fits without scrolling at 375×812 **and at 375×667
+   (iPhone SE)**. No horizontal overflow in either theme. All contrast pairs pass
+   both themes (heading 7.88/13.68, selected chip 5.08/7.93, unselected 5.38/6.12,
+   today cell 5.08). Component vocabulary clean — reuses `MonthChips` untouched and
+   `SHORT_DAY_NAMES`/`formatDayLabel` from the canonical `mealPlanDates`, inventing
+   no one-off. The invisible overlay occludes nothing that matters.
 | — | **F1** | ✅ **DONE `0bed8b4`** — all 3 blockers cleared | — | tests 344 → 350 |
 
 **F1 verified by Fury independently, not taken on report.** All three today-test
