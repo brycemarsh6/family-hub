@@ -492,7 +492,7 @@ both. C4 needs C1. C5 is documentation and can go any time.
 
 ### F2 — make the month-jump control visible as a control (Strange pass-1 blocker)
 
-- **Status:** dispatched 2026-09-08.
+- **Status:** ✅ **DONE (`ee7bb5a`).**
 - **Objective:** The month-jump control is the **sole entry point to CV6's headline
   feature** and is completely invisible — `absolute inset-x-0 -inset-y-[9px] z-10`
   and nothing else: no background, no border, no children, no `hover:`, no
@@ -633,6 +633,29 @@ both `.claude/` copies, per the drift lesson.
 | 1 | Captain | **BLOCKED** | 1 | 11 — every one enumerated below, not counted |
 | 1 | Vision | **BLOCKED** | 2 | 6 — every one enumerated below, not counted |
 | 1 | Strange | **BLOCKED** | 1 | 9 — every one enumerated below |
+| — | **F2** | ✅ **DONE** — Strange's blocker cleared | — | one consequence routed back to Strange |
+
+**F2 verified by Fury independently.** The caret is a flex **sibling** of the three
+title branches inside the `h-7 gap-1` span — the portal slot is **still childless**,
+so mission-16/D2's double label cannot return — and the overlay carries
+`rounded-lg transition-colors active:bg-surface-2`. Only `CalendarHeader.tsx` moved
+(32 insertions, 4 deletions); the builder's temp comparison file was deleted and the
+tree is clean. Gauntlet green, **350 tests**, UTC still 343 + 7 skipped.
+**The evidence is the strongest of this mission:** every geometry number was
+measured against a **parallel render of the pre-fix file extracted from `HEAD~1`**
+and diffed as result sets rather than re-read from source — row height, button rect,
+`elementFromPoint`, overlap count and `body.scrollWidth` all byte-identical across
+**six views × both frames**, in both themes. The press state was proven by a real
+CDP `mousedown` plus a 150ms wait (`rgba(0,0,0,0)` → exactly `--surface-2`), **with
+the already-shipped Prev arrow as a control** — which is what proves the transition
+delay, not the fix, explained an immediate-read null and rules out an instrument
+artifact.
+**One consequence flagged by the builder rather than judged, routed to Strange
+pass 2:** because the control is a childless `position: absolute` overlay (C3's
+geometry decision, outside F2's boundary), the pressed highlight paints **above**
+the title text and briefly obscures it — unlike the arrows, whose icon is a child of
+their own button. The builder read it as an ordinary transient press-flash and said
+so without deciding. **That is Strange's call, not the builder's and not Fury's.**
 
 ### Strange pass 1 — BLOCKED (1 blocker, 9 notes), run on the post-F1 tree
 
