@@ -492,7 +492,7 @@ both. C4 needs C1. C5 is documentation and can go any time.
 
 ### F2 — make the month-jump control visible as a control (Strange pass-1 blocker)
 
-- **Status:** ✅ **DONE (`ee7bb5a`).**
+- **Status:** ✅ **DONE (`8fbc50c`).**
 - **Objective:** The month-jump control is the **sole entry point to CV6's headline
   feature** and is completely invisible — `absolute inset-x-0 -inset-y-[9px] z-10`
   and nothing else: no background, no border, no children, no `hover:`, no
