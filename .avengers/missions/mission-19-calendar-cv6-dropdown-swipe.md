@@ -490,6 +490,50 @@ both. C4 needs C1. C5 is documentation and can go any time.
 - **Done criteria:** all three blockers cleared, invariant homed and unit-tested,
   gauntlet green, no boundary file touched.
 
+### F2 — make the month-jump control visible as a control (Strange pass-1 blocker)
+
+- **Status:** dispatched 2026-09-08.
+- **Objective:** The month-jump control is the **sole entry point to CV6's headline
+  feature** and is completely invisible — `absolute inset-x-0 -inset-y-[9px] z-10`
+  and nothing else: no background, no border, no children, no `hover:`, no
+  `active:`. The Prev arrow 8px away carries `active:bg-surface-2`; the Today circle
+  is a filled disc. Give it a persistent affordance and a press state.
+- **The geometry is CORRECT and must not regress** — Strange verified what Vision
+  could not: **46.0px on all six views in both frames**, `elementFromPoint` returns
+  the control at its centre in all twelve, **zero interactive elements overlapped**,
+  and row height byte-identical null-frame vs resolved-frame (schedule 28px, others
+  44px), so `SCHEDULE_HEADER_BAR_HEIGHT_PX` is genuinely safe. C3's structural
+  solution stands; only visibility is missing.
+- **Boundaries:** may touch `src/components/CalendarHeader.tsx` · must not touch
+  `src/components/ScheduleView.tsx`, `src/components/MonthJumpSheet.tsx`,
+  `src/components/CalendarViews.tsx`, `src/components/CalendarSheets.tsx`,
+  `src/lib/**`, `src/app/actions/**`, `prisma/**`.
+- **The fix, prototyped and measured by Strange outside the repo:** add
+  `<ChevronDown aria-hidden="true" size={18} className="shrink-0 text-muted" />` as
+  a **flex sibling after the three title branches**, inside the `h-7` span, with
+  `gap-1` on that span. An 18px glyph in a 28px box adds **no** flow height. Add
+  `rounded-lg transition-colors active:bg-surface-2` to the overlay button.
+- **⚠️ Do NOT use the `justify-end` variant** — Strange measured it first and
+  rejected it: it leaves a **78.3px gap** between title and caret on Schedule
+  (343px span, no arrows) vs 26.3px on the arrow views, far enough to read as
+  unrelated to the title. The caret is **glued to the title**, not pinned right.
+- **⚠️ The caret must never become a child of the portal slot.** `ScheduleView`
+  portals its own `<h2>` into that node; a child of its own would render alongside,
+  reproducing the double label mission-16/D2 removed. A flex **sibling** is safe.
+- **Verification:** the six-leg gauntlet; and re-measure at a genuine 375×812
+  across **all six views × both frames**: row height unchanged (28 schedule / 44
+  others), control still ≥44px, `elementFromPoint` still returns it at centre,
+  `body.scrollWidth` still 375, no title truncation.
+- **Note on the font:** Strange's worst-case ink clearance (16.8px, Day's
+  "Wednesday, Jan 14") was measured in a **system font, not Manrope**, since
+  next/font is unavailable in the harness. It bore on the rejected variant; if any
+  clearance question arises, re-measure rather than citing that number.
+- **Evidence required:** the measurement table across all six views and both
+  frames, with its control; confirmation the caret is a sibling not a child;
+  gauntlet output.
+- **Done criteria:** the control is visibly a control and acknowledges a press;
+  every geometry number above unchanged; gauntlet green.
+
 ### C5 — amend the v1 plan so swipe reads as additive
 - **Status:** **DONE** — done by Fury directly rather than spending a builder
   dispatch on a one-sentence documentation edit. `calendar-v1.md:247` now
