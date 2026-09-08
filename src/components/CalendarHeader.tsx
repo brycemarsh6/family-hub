@@ -1,6 +1,13 @@
 "use client";
 
-import { CalendarCheck, CalendarRange, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import {
+  CalendarCheck,
+  CalendarRange,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+} from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
 import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
@@ -211,7 +218,7 @@ export function CalendarHeader({
             the Schedule `pinned` branch in particular is STILL the same
             empty, childless `<span id={SCHEDULE_TITLE_SLOT_ID}>` — see its
             own comment for why it must stay that way. */}
-        <span className="relative flex h-7 min-w-0 flex-1 items-center justify-center">
+        <span className="relative flex h-7 min-w-0 flex-1 items-center justify-center gap-1">
           {title === null ? (
             <span aria-hidden="true" className="h-5 w-32 animate-pulse rounded bg-surface-2" />
           ) : pinned ? (
@@ -229,6 +236,19 @@ export function CalendarHeader({
           ) : (
             <h2 className="truncate text-lg font-semibold">{title}</h2>
           )}
+
+          {/* mission-19/F2 (Strange's blocker) — a visible affordance that
+              the title row opens the month-jump sheet. A flex SIBLING of
+              the three branches above (never a child of the portal slot —
+              see that branch's own comment), glued to the title via the
+              parent's `gap-1` rather than pinned to the row's right edge:
+              Strange measured a `justify-end` caret leaving a 78.3px gap
+              from Schedule's title (a 343px span with no arrows) versus
+              26.3px on the arrow views, far enough to read as unrelated to
+              the title it's meant to belong to. An 18px glyph inside the
+              shared `h-7` box adds no flow height on any view — verified
+              unchanged in both the null-frame and the resolved-frame. */}
+          <ChevronDown aria-hidden="true" size={18} className="shrink-0 text-muted" />
 
           {/* mission-19/C3 — THE control every view opens the month-jump
               sheet from. A SIBLING of the three branches above, not a
@@ -277,13 +297,21 @@ export function CalendarHeader({
               `disabled` while `today` hasn't resolved yet, matching every
               other header control's convention (`onToday`'s own
               disabled={!todayResolved || isCurrentPeriod}` just above) —
-              there is no anchor to seed the sheet with before then. */}
+              there is no anchor to seed the sheet with before then.
+
+              mission-19/F2 — `rounded-lg transition-colors
+              active:bg-surface-2` added, matching the Prev/Next arrows in
+              this same row: a plain tap used to produce zero pixels of
+              change until the sheet's own open animation started. This is
+              purely a paint added on top of the button's existing
+              (unchanged) box — it doesn't touch the geometry those
+              comments above depend on. */}
           <button
             type="button"
             onClick={onOpenMonthJump}
             disabled={!todayResolved}
             aria-label="Jump to a month or day"
-            className="absolute inset-x-0 -inset-y-[9px] z-10"
+            className="absolute inset-x-0 -inset-y-[9px] z-10 rounded-lg transition-colors active:bg-surface-2"
           />
         </span>
 
