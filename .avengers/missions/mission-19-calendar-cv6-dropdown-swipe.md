@@ -393,11 +393,23 @@ both. C4 needs C1. C5 is documentation and can go any time.
   header layout shift, gauntlet green.
 
 ### C4 — `usePageSwipe`
-- **Status:** ⛔ **NOT BUILT — THIS IS THE RESUME POINT.** C1 is done, so it
-  is unblocked and its contract below is ready to dispatch as written. Its
-  preflight must be **re-run immediately before dispatch**, not now — a
-  boundary is true at dispatch time, not writing time. Note before dispatching:
-  `CalendarViews.tsx` is at **459/194** and C4 adds to it.
+- **Status:** ✅ **DONE (`e653609`) — one deviation routed to the gates, see handoff log.** Preflight re-run at
+  dispatch time as required: **0 hard failures, 2 judgement items, both
+  settled by command rather than skipped** (this project has twice recorded
+  preflight judgement items being surfaced and skimmed).
+  **(a) may-touch depends on must-not-touch — SAFE, not
+  BLOCKED-ON-CONTRACT:** `CalendarViews.tsx:117` already destructures `step`
+  from `useCalendarNavigation`, and the arrows call `step(-1)`/`step(1)` at
+  `:407-408`. C4 *reads* an already-exposed API; it does not need to change
+  the hook, `CalendarHeader` or `MonthChips`, all three of which it merely
+  renders. **(b) the blast-radius claim was FALSE and is corrected below** —
+  three call sites, not two. Every other named fact verified present:
+  `DIRECTION_LOCK_PX = 8` (`:44`), four-state `GestureMode` (`:46`),
+  try/caught `setPointerCapture` (`:118-124`), `touch-pan-y` (`:201`), click
+  swallowing (`:145`); and CD1 confirmed non-existent (no mission file, no
+  `usePageSwipe`, no long-press anywhere in `src/`).
+  `CalendarViews.tsx` is at **459 total / 178 code** — over the 350 soft cap,
+  and C4 adds to it. Captain's call at the gate.
 - **Objective:** Extract `SwipeActions`' gesture machine into a reusable
   `usePageSwipe` and mount it on **timeline, Month and Year only**, calling
   the same `step()` the arrows call. **The arrows stay.**
@@ -419,8 +431,16 @@ both. C4 needs C1. C5 is documentation and can go any time.
   long-press has claimed the pointer**. CD1 does not exist yet, so build the
   seam — a documented way for an owner to say "this gesture is mine" — and do
   **not** build the long-press itself.
-- **`SwipeActions` must keep working identically.** It is live on Inventory
-  and Shopping rows, which Bryce's wife uses. If the extraction cannot leave
+- **`SwipeActions` must keep working identically. It has THREE call sites,
+  not the two this contract originally claimed** — corrected at dispatch-time
+  preflight, 2026-09-08, by `grep -rn "SwipeActions" src/components/*.tsx`:
+  `PantryRow.tsx:101` (Inventory), `GroceryRow.tsx:31` (Shopping) — both of
+  which Bryce's wife uses — **and `RecipeList.tsx:324`** (cookbook
+  swipe-to-unfile, Recipes v2/C1). The third is the one nobody would think to
+  re-test, which is exactly why it is named here. `ScheduleView.tsx:173` is a
+  **comment only**, not a call site. Note also that `RecipeList.tsx` contains
+  a **second, unrelated** `setPointerCapture` — the A–Z jump rail — which is
+  not this gesture and must not be touched. If the extraction cannot leave
   it byte-identical in behaviour, prove equivalence rather than asserting it.
 - **Verification:** the gauntlet; a **real gesture** paging each of
   timeline/Month/Year; a vertical drag still scrolling; the arrows still
@@ -502,6 +522,53 @@ both `.claude/` copies, per the drift lesson.
 | — | — | not yet run | — | — |
 
 ## Handoff log
+- 2026-09-08 — **C4 DONE and committed (`e653609`) — with ONE deviation that
+  is the mission's central open question, and Fury is NOT resolving it.**
+  Gauntlet green, all six legs, re-run by the builder after its own
+  positive-control edit/restore: tsc 0, eslint 0, build clean, tests
+  **336 → 344** (+8, its new `usePageSwipe.test.ts`, correctly placed in
+  `src/lib/` so the hand-enumerated glob reaches it).
+  **The deviation: the contract's objective said "extract"; what shipped is a
+  parallel copy.** `SwipeActions.tsx` is **byte-identical to `main`** (`git
+  diff --stat main..HEAD -- src/components/SwipeActions.tsx` → empty), so
+  `DIRECTION_LOCK_PX = 8` is now defined **twice** (`SwipeActions.tsx:44`,
+  `usePageSwipe.ts:69`), as are the four-state mode, the try/caught
+  `setPointerCapture` and the click-swallow. **This is the "boundary satisfied
+  by copying" shape the contract explicitly warned against** — and the builder
+  **disclosed it openly and asked for a gate's ruling** rather than burying it,
+  which is the behaviour the doctrine wants. Its argument is substantive: the
+  two gestures release into different math (`openWidth/2` driving a live
+  `translateX` vs. a fixed 60px with no visual output), and it could not
+  verify a runtime refactor of a component live on three call sites that
+  Bryce's wife uses daily. **Routed to Captain (one source of truth) and
+  Vision (was the contract satisfied). Fury does not pre-empt either.**
+  Verification limits stated honestly rather than papered over: the blocked
+  JWT mint was **named, not routed around**; the substitute drove the hook's
+  **real exported handlers** and was proven non-vacuous by injecting a real
+  break (`"left"` → `"right"`) and watching the harness fail, then restoring
+  byte-identically. A real-device 375px pass remains owed.
+  `CalendarViews.tsx` is now **496 total / 191 code** — over the 350 soft cap,
+  under the 650 hard cap. Captain's call.
+
+- 2026-09-08 — 🛠️ **RESUMED. C4 dispatched.** Its preflight was re-run at
+  dispatch time as the contract requires (a boundary is true at dispatch time,
+  not writing time): **0 hard failures, 2 judgement items, both settled by
+  running the command that settles them** rather than surfaced and skimmed —
+  which this project has recorded happening twice.
+  **The dependency item is safe:** `CalendarViews.tsx:117` already
+  destructures `step` from `useCalendarNavigation`, and the arrows call
+  `step(-1)`/`step(1)` at `:407-408`, so C4 reads an already-exposed API and
+  the must-not-touch hook stays shut. **The claim item found a false premise
+  in Fury's own contract** — it said `SwipeActions` "is live on Inventory and
+  Shopping rows"; `grep -rn "SwipeActions" src/components/*.tsx` returns
+  **three** call sites, the third being `RecipeList.tsx:324` (cookbook
+  swipe-to-unfile), which is precisely the one nobody would re-test.
+  `ScheduleView.tsx:173` is a comment, not a call site. Contract corrected
+  before dispatch; **eighth instance of this project's most-repeated failure
+  class, and the first caught by the tool built for it.** Also flagged to the
+  builder: `RecipeList.tsx` carries a *second, unrelated* `setPointerCapture`
+  (the A-Z rail). Every other named fact verified present by grep, and CD1
+  confirmed non-existent. **No gate has still run on this mission.**
 - 2026-09-07 — ⏸️ **PAUSED HERE at Bryce's request, at a clean boundary.**
   C1, C2, C3 and C5 are DONE and committed; **C4 (`usePageSwipe`) is NOT
   BUILT and is the resume point.** **NO GATE HAS RUN on this mission at all**
