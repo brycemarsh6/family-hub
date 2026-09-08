@@ -513,6 +513,38 @@ A sequential contract's boundary is true at dispatch time, not writing time;
 mission-18 established that by having C4's preflight legitimately FAIL on a
 file C3 had not yet created.
 
+## A THIRD bug in Fury's own tool, found by using it (2026-09-08)
+
+`F1` would not preflight: *"no `### F1 — ...` heading"*, on a heading that is
+plainly there. The cause is that `preflight.mjs`'s heading regex hardcoded
+**`C`-prefixed** ids — `/^###\s+(C[0-9]+[a-z]?)\s*[—-]/` — so it was
+**structurally blind to every non-`C` contract in this project's history**:
+`B1-B6`, `CB1-CB7`, `DB1`, `F1`, `S1-S5`. Measured across all mission files,
+**103 headings visible to the old pattern against 126 to the corrected one — 20
+contract ids it could never see.** Preflight is *item one* on the dispatch
+checklist, so each of those was either dispatched unpreflighted or hard-failed
+and was worked around.
+
+**The contract was right and the tool was wrong** — the same shape as
+mission-19/C3's backtick-path false-FAIL, and the reason that matters is
+unchanged: **a tool that cries wolf gets skimmed**, and this mission file
+already records twice that preflight's judgement items were surfaced and
+skipped. Renaming `F1` to fit the instrument was the wrong fix; `F1` and `F5`
+already exist in this repo's own history.
+
+Verified before shipping, not asserted: **positive control** (old tool
+hard-fails on `F1`, patched tool preflights it fully), **zero regression** (every
+one of the 103 previously-visible headings still found), and **zero narrative
+sub-headings wrongly matched** across every mission file — the 1-3 uppercase
+bound is what excludes them, since `### Captain pass 1 — BLOCKED` has a
+lowercase second character. Synced to both `.claude/` copies and diffed
+identical, per the standing rule that those two have no check between them.
+
+**This is the third bug found in this tool by using it**, after Captain's
+JSX-comment counter (mission-18) and the backtick-path false-FAIL
+(mission-19/C3) — and all three were found only because someone acted on its
+output instead of skimming it.
+
 ## A bug in Fury's own tool, found by using it
 
 **C3's preflight HARD-FAILED on a file that was never claimed to exist.**

@@ -109,7 +109,16 @@ function parseContracts(text) {
   const blocks = [];
   let current = null;
   for (const line of lines) {
-    const heading = line.match(/^###\s+(C[0-9]+[a-z]?)\s*[—-]/);
+    // Contract ids are NOT always C-prefixed. This repo's own history uses
+    // B1-B6, CB1-CB7, DB1, F1, S1-S5 as well — 20 ids the old `C`-only
+    // pattern was structurally blind to, across 103 vs 126 headings. Since
+    // preflight is item one on the dispatch checklist, every one of those
+    // was either dispatched unpreflighted or hard-failed and worked around.
+    // Found 2026-09-08 by a fix contract named F1 failing to preflight.
+    // The 1-3 uppercase bound is what keeps narrative sub-headings out
+    // ("### Captain pass 1 — BLOCKED" has a lowercase second char, so it
+    // cannot match); verified 0 wrongly-matched headings across all missions.
+    const heading = line.match(/^###\s+([A-Z]{1,3}[0-9]+[a-z]?)\s*[—-]/);
     if (heading) {
       if (current) blocks.push(current);
       current = { id: heading[1], heading: line, body: [] };
