@@ -1,8 +1,9 @@
 # Mission: CD1 — long-press and drag to reschedule
 
 **Project:** family-hub (Marshee)
-**Status:** **OPEN — contracts written, none dispatched.**
-Branch `claude/calendar-cd1`. Nothing built, no PR, nothing live.
+**Status:** **ALL 5 CONTRACTS BUILT AND MERGED to the branch. F1 (a real defect
+C5 found) is WRITTEN BUT NOT DISPATCHED — the resume point. NO GATE HAS RUN.**
+Branch `claude/calendar-cd1`, pushed, **no PR, nothing live.**
 **Started:** 2026-09-09 · **Updated:** 2026-09-09
 
 ## Brief
@@ -410,7 +411,14 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
 
 ### F1 — a tap permanently disables dragging (found by C5, confirmed by Fury)
 
-- **Status:** dispatched 2026-09-09.
+- **Status:** ⛔ **NOT DISPATCHED — THIS IS THE RESUME POINT.** The contract is
+  written and its preflight ran clean (0 hard failures, 1 judgement item).
+  **Fury recorded it as "dispatched" and it never was** — the second record
+  error in this mission and the same class as the first: a claim written before
+  the action, then never reconciled. The defect is still live in the branch:
+  `useLongPressDrag.ts`'s `pending` branch still reads
+  `return "pending"; // a stray extra pointerDown while already pending — no-op`.
+  **Re-run its preflight at dispatch time**, not reusing the earlier run.
 - **The defect.** `nextLongPressPhase`'s `"pending"` branch
   (`src/lib/useLongPressDrag.ts`) handles `move`, `holdElapsed` and `cancel`,
   but **`release` falls through to `return "pending"`** — under a comment
@@ -479,7 +487,8 @@ they were surfaced and skimmed.
 | — | **C2** | ✅ DONE, merged | — | tests 350 → 378; suite now **382** |
 | — | **C4** | ✅ DONE, merged | — | tests 382 → **402** |
 | — | **C5** | ✅ DONE `df4ef31`, merged | — | found a C4 defect; `CalendarViews.tsx` at **640/650** |
-| — | — | no gate has run yet — F1 dispatched | — | — |
+| — | **F1** | ⛔ **WRITTEN AND PREFLIGHTED, NEVER DISPATCHED** | — | **the resume point** |
+| — | — | **no gate has run on any of CD1** | — | — |
 
 ## Handoff log
 - 2026-09-09 — **Mission opened.** Banner assembled and reported first; its
