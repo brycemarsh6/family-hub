@@ -6266,6 +6266,13 @@ has no in-progress feedback; padding day numbers sit at 1.47:1; 18px of the 46px
 hit target never paints; and the `usePageSwipe`/`SwipeActions` duplication is
 scheduled for one migration contract, with **a third definition a BLOCKER**.
 
+### Where it stands
+
+**Open as [PR #24](https://github.com/brycemarsh6/family-hub/pull/24), Gauntlet
+green, Vercel preview deployed, MERGEABLE — deliberately NOT merged.** Preview:
+`https://family-hub-git-claude-calendar-cv6-marsh-team.vercel.app`. `CV0-CV6 ✅`;
+**CD1** (drag to reschedule) is next and was blocked on C4's hook existing.
+
 ### ⚠️ Two things only Bryce can settle
 
 1. **A possible eaten tap on Inventory and Shopping rows.** Captain's reasoning

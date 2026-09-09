@@ -1472,8 +1472,11 @@ successfully**. Tests **335 → 350** across the mission.
 
 ### The shipped check
 
-`git log origin/main..HEAD` — this branch has **never had a PR** and **nothing
-from CV6 is live**. "Committed", "pushed", "merged" and "the family has it" are
+**Pushed, and open as [PR #24](https://github.com/brycemarsh6/family-hub/pull/24)
+— Gauntlet ✅ green (1m8s), Vercel preview ✅ deployed, MERGEABLE. NOT MERGED:
+the merge decision is Bryce's, and merging `main` is what deploys to the
+family's production app.** Preview for the two owed real-device checks:
+`https://family-hub-git-claude-calendar-cv6-marsh-team.vercel.app` "Committed", "pushed", "merged" and "the family has it" are
 four different claims and this project has conflated them five times.
 
 ### Deliberately not done — routed, with measurements, in the notes above
