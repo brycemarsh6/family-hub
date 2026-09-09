@@ -564,7 +564,7 @@ both. C4 needs C1. C5 is documentation and can go any time.
 
 ### F3 — the press state must paint BEHIND the title (Strange pass-2 blocker)
 
-- **Status:** dispatched 2026-09-08. **Paint-only.** Strange's own assessment:
+- **Status:** ✅ **DONE (`eb2a16d`).** **Paint-only.** Strange's own assessment:
   Vision's and Captain's pass-2 PASSes survive this on the same argument the mission
   already accepted for mission-18/C6 — no imports, no exports, no new files, no
   geometry, no logic.
@@ -715,7 +715,30 @@ both `.claude/` copies, per the drift lesson.
 | 2 | **Vision** | ✅ **PASS** | 0 | 10 — enumerated below |
 | 2 | **Captain** | ✅ **PASS** | 0 | 13 — enumerated below |
 | 2 | **Strange** | **BLOCKED** | 1 | 10 — enumerated below |
-| 3 | Strange | pending F3 — **final pass of the 3-pass budget** | — | — |
+| — | **F3** | ✅ DONE `eb2a16d` — Strange's pass-2 blocker | — | one evidence gap, flagged to Strange |
+| 3 | Strange | dispatched on F3 — **final pass of the 3-pass budget** | — | — |
+
+**F3 verified by Fury.** The fill moved off the childless overlay onto the shared
+parent via Tailwind's `has-[>button:active]:` variant, so it paints in the parent's
+own background step — **structurally behind the title, not merely styled to look
+that way.** Fury confirmed the variant **actually compiles into the shipped CSS**
+(`button:active){background-color:var(--surface-2)` is present) — a `:has()` variant
+that silently fails to compile would have looked exactly like a fix. The overlay
+button now carries geometry classes only; the two remaining `active:bg-surface-2`
+in the file are the Prev/Next arrows, which correctly keep theirs. Caret dimmed to
+`opacity-40` while `title === null`. Gauntlet green, 350 tests, **34 routes**. Only
+`CalendarHeader.tsx` in the diff.
+**⚠️ EVIDENCE GAP, flagged rather than accepted — and it is the class Strange
+disclosed about itself at pass 1.** F3's harness reports the title stable through
+the press (509 → 525 light) and offers the Prev arrow's stability (22 → 22) as its
+control. **But a stable control does not demonstrate a harness can SEE erasure.**
+The genuine positive control is running that harness against the **pre-F3** code and
+reproducing the 2509 → 0 Strange measured; F3 did not do that. Its absolute numbers
+also differ from Strange's by ~5× at rest (509 vs 2509; control 22 vs 143), so the
+two instruments are measuring differently and **cannot be compared across reports**.
+**Strange's harness is already proven able to detect this exact defect** — it found
+2509 → 0 on the shipped tree and 2509 → 2500 on its own prototype — so pass 3
+re-measures with the proven instrument rather than the unproven one.
 
 ### Strange pass 2 — BLOCKED (1 blocker, 10 notes)
 
