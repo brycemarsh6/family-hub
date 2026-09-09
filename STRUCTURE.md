@@ -237,6 +237,64 @@ Adding a second definition of any of these is a BLOCKER:
   Instance: one mission file reported `TimelineGrid.tsx` 555/297 and
   `MonthCell.tsx` 350/108 by two different methods, three contracts apart —
   the same file reading 237 or 108 depending on the counter.)
+  **A code line is one that is neither blank nor comment-only** —
+  `lineCounts` skips blanks, `//`, `*`, `/* … */` and `{/* … */}` blocks. A
+  count that **includes** blank lines is a different measurement and must not
+  be compared against a cap threshold or another gate's figure.
+  (Added 2026-09-09, mission-19, on Captain's pass-2 finding; Bryce approved.
+  Instance: two gates reported the same file at **191 and 216 on the same
+  commit**, both in good faith, differing by exactly its **25 blank lines** —
+  the failure this clause exists to end, arriving in the clause's own terms.)
+- **The pointer-gesture machine has two definitions, and the divergence has
+  already cost a shipped defect.** `SwipeActions.tsx` and
+  `src/lib/usePageSwipe.ts` each implement the same four-state machine
+  (`idle`/`undecided`/`swiping`/`scrolling`), the 8px direction lock, the
+  try/caught `setPointerCapture`, and the capture-phase click swallow.
+  `DIRECTION_LOCK_PX = 8` is defined in both. `usePageSwipe.ts`'s header
+  records why the copy was made — `SwipeActions` is live on Inventory and
+  Shopping rows and this environment's tooling cannot drive that gesture to a
+  settled state — and that reasoning is sound; it is the reason this is debt
+  rather than a mistake.
+  **What makes it debt with a deadline:** mission-19/F1 fixed a stuck
+  click-swallow flag in `usePageSwipe.ts` (a touch drag past tap slop produces
+  no compatibility click, so the flag survived into the next gesture and ate
+  its tap). `SwipeActions.tsx` was outside that contract's boundary and
+  **still carries the same shape** — its `handlePointerDown` does not clear the
+  flag, and `handleRowPointerDownCapture` only *sets* it, and only on an
+  already-open row. One machine, one bug, fixed in one copy. This is the
+  `validatedPeople` failure exactly: a correctness-shaped edit that had to be
+  made by hand in both copies, and was made in one.
+  **The migration is one contract, and it carries three obligations**: extract
+  the shared machine (mode transitions, lock distance, capture guard, swallow
+  decision) into `src/lib/`, keeping each caller's own release math
+  (`openWidth / 2` vs `SWIPE_PAGE_THRESHOLD_PX`) at the call site; **carry
+  F1's `pointerdown` clear into `SwipeActions.tsx`, verified on a real
+  device** — this repo has twice recorded that synthetic PointerEvents cannot
+  settle this gesture, so a real-hardware pass by Bryce is the evidence, not a
+  harness; and collapse `DIRECTION_LOCK_PX` to one definition. **A third copy
+  of the machine is a BLOCKER.**
+  (Added 2026-09-09, mission-19, on Captain's ruling across two gate passes;
+  the shipped-defect evidence is Vision's, the mechanism Captain's. Bryce
+  approved.)
+- **A padded month grid's "today" test has one home.** `monthGridDays`
+  (`src/lib/monthLayout.ts`) returns 42 days, up to 12 of them belonging to a
+  neighbouring month, so a bare `isSameDay(day, today)` circles today on the
+  **wrong month's** grid — DESIGN.md's today-marker rule, and a defect that
+  shipped inline in three components before it was found.
+  `isTodayCell(day, shownMonth, today)` is that invariant's one home,
+  deliberately placed **beside the function that creates the padding**, and all
+  three consumers of `monthGridDays` route through it. Its value over three
+  inline copies is not brevity: a `.tsx` expression is **unreachable by
+  `npm test`**, which is the `VIEW_CONFIG` lesson this document already
+  records. **A fourth consumer of `monthGridDays` that writes its own today
+  test is a BLOCKER.** An `isSameDay(day, today)` over a week or a
+  `columnDays` array is **not** an instance — those grids contain no foreign
+  days, and routing them through this would be wrong.
+  (Added 2026-09-09, mission-19/F1, on Captain's ruling; Bryce approved.
+  DESIGN.md predicted this failure in writing one mission earlier — *"a third
+  caller would reintroduce this with no compile error"* — and `MonthJumpSheet`
+  was that third caller, one mission later, wrong on arrival: **282 of 730
+  days** across 2026–27 painted a today marker on a foreign month's cell.)
 - **A measured dimension of app chrome** that two or more surfaces position
   against **has one home in `src/lib/`**, and the markup that produces it
   carries a comment naming its dependents. A **runtime measurement** is an
