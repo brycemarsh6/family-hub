@@ -153,6 +153,18 @@ project, always from a false premise about what already exists.**
 C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
 
 ### C1 — the precondition Vision named
+- **Status:** ✅ **DONE (`abbd61c`), merged.** Tests **350 → 354**. Gauntlet green
+  all six legs. Verified by Fury: the swallow-clear now runs as the **first**
+  statement, ahead of both guards.
+- **Disclosed deviation, and it is the one the contract authorized.** The
+  contract described reordering three statements; the builder extracted the
+  whole decision into a pure exported `nextPointerDownDecision` instead —
+  because the contract itself warned that a test against `nextSwallowNextClick`
+  alone **cannot go red** (its contract is unchanged by a reordering), and asked
+  for a falsifiable seam rather than an unfalsifiable test. Same shape as
+  `nextGestureMode`/`resolveSwipeDirection` already in that file. **Proven RED**
+  against the historical ordering (2 failures, `true !== false`) **then GREEN**,
+  with the reverted file confirmed byte-identical by `diff`.
 - **Objective:** In `usePageSwipe.ts`, make the click-swallow clear the **first
   statement** of `handlePointerDown`, before both early returns.
 - **Why this is a precondition and not a note:** it currently sits at `:222`,
@@ -273,7 +285,8 @@ they were surfaced and skimmed.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| — | — | not yet run | — | — |
+| — | **C1** | ✅ DONE `abbd61c`, merged | — | tests 350 → 354 |
+| — | — | no gate has run yet | — | — |
 
 ## Handoff log
 - 2026-09-09 — **Mission opened.** Banner assembled and reported first; its
