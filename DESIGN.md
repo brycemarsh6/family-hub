@@ -39,6 +39,28 @@ tell when a rule's reason has expired.
   one of its day numbers opened the Add sheet instead of Day view, and the
   first measurement — taken scrolled to the bottom — reported zero failures
   and would have shipped it. Measure at the position the user arrives at.)
+- **A press state must never reduce the legibility of a label inside its own
+  target.** A control whose tap target is an absolutely-positioned overlay over
+  text — the standard way to make a text row a big target — paints **above**
+  that text **regardless of `z-index`**, so an `:active` background on the
+  overlay erases the very label the press is feedback for. Put the fill on the
+  shared **parent**, where a background paints in the parent's own background
+  step before any child (`span:has(> button:active)`), or on a `-z-10`
+  pseudo-element of that parent — **never on the overlay, and never on the
+  overlay with a negative `z-index`**, which silently breaks the reachability
+  rule above. The measurable property: **the label's ink count and its contrast
+  must survive the press**, and contrast must stay above 4.5:1 for text.
+  (Added 2026-09-09, Strange, mission-19 passes 2–3; Bryce approved. Instance:
+  the month-jump control's fill erased the header title completely **by 50ms
+  into an ordinary tap** — ink 2686 → 0, contrast 6.96 → **1.00** light and
+  15.23 → **1.00** dark — leaving a tinted pill visually identical to the app's
+  own loading skeleton, so a press claimed *"this is loading"*. Verified fixed
+  at 2686 → 2686 / 6.35 against a pre-fix control that **still reproduces the
+  erasure**, on both the inline-`<h2>` and `createPortal` title paths. Note the
+  rule binds the **property**, not the mechanism: Strange's first draft required
+  only that a control "acknowledge a press", and the fix that shipped this
+  defect satisfied that draft exactly. CD1 layers more gestures over content and
+  should be held to this.)
 - **The hour timeline is a sanctioned exception to the 44px floor, and it
   carries a written boundary.** On Day / 3 Day / Week a block's height *is*
   its duration: at `HOUR_HEIGHT_PX` 48 a `MIN_BLOCK_MINUTES` (30) block
