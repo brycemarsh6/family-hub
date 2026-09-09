@@ -716,7 +716,71 @@ both `.claude/` copies, per the drift lesson.
 | 2 | **Captain** | ✅ **PASS** | 0 | 13 — enumerated below |
 | 2 | **Strange** | **BLOCKED** | 1 | 10 — enumerated below |
 | — | **F3** | ✅ DONE `eb2a16d` — Strange's pass-2 blocker | — | one evidence gap, flagged to Strange |
-| 3 | Strange | dispatched on F3 — **final pass of the 3-pass budget** | — | — |
+| 3 | **Strange** | ✅ **PASS** | 0 | 8 — enumerated below |
+
+**ALL THREE GATES PASS. Gate budget: Vision 2/3, Captain 2/3, Strange 3/3.**
+
+### Strange pass 3 — ✅ PASS (0 blockers, 8 notes)
+
+**The pass-2 blocker is cleared on evidence that could have failed** — the negative
+control F3's own report lacked. Two bundles from one CSS, same harness, same run:
+
+| build | theme | title ink rest → pressed | contrast rest → pressed | control (Prev icon) |
+|---|---|---|---|---|
+| **pre** (`8c1db52`) | light | **2686 → 0** | **6.96 → 1.00** | 143 → 143 |
+| **pre** | dark | **2549 → 0** | **15.23 → 1.00** | 143 → 143 |
+| **post** (HEAD) | light | 2686 → **2686** | 6.96 → **6.35** | 143 → 143 |
+| **post** | dark | 2549 → **2601** | 15.23 → **12.12** | 143 → 143 |
+
+*"The instrument went red on the known defect thirty seconds before it read clean on
+the fix."* Erasure was complete by **50ms** — even faster than pass 2's 80ms — and
+post-fix contrast stays above the 4.5:1 AA floor **during** the press in both themes.
+**Strange caught its own vacuous run first**, and it is the exact failure this pass
+existed to avoid: `Input.dispatchTouchEvent` **reported success and never put the
+button into `:active`**, so every sample equalled rest — *"which reads exactly like a
+fix."* Replaced with a real mouse press plus a **hard assertion that throws unless
+`btn.matches(':active')`** before any sample is trusted.
+**It verified Schedule's portal path SEPARATELY rather than assuming coverage** —
+that title arrives by `createPortal`, a different mechanism from the other five
+views' inline `<h2>`: pre **2686 → 0 / 2549 → 0**, post **2686 → 2686 / 2549 →
+2601**. The fix covers it.
+**It also built the CSS itself**, reproducing the existing chunk **byte-identically**
+and confirming `:has(>button:active){background-color:var(--surface-2)}` is really in
+it. **The 24-cell table is unchanged** — span 28, row 28/44, button 46,
+`elementFromPoint` returns THE BUTTON 24/24, portal slot childless, `body.scrollWidth`
+375, zero truncation (widest ink 159.34px). **NOTE 1's fix verified:** caret
+`opacity 0.4` in all 12 null frames, `1` in all 12 resolved frames.
+
+**NOTES (all 8):** (1) **routed — 18px of the 46px hit target never paints.** The
+fill is on the 28px span while the target is `-inset-y-[9px]` = 46px, so a press in
+the top or bottom 9px paints a fill excluding the pressed point. It **under-draws
+rather than lies**, and painting the full 46px would spill into neighbours' margins
+and Schedule's pinned-bar padding — a real trade C3 already made for good reason.
+The number is recorded so a future fix starts from it. (2) **pre-existing, explicitly
+NOT F3's — a disabled header control paints its press fill.** In the null frame the
+button is `disabled` yet the span paints `--surface-2` — **and the untouched Prev
+arrow does the identical thing in both builds**, so it is app-wide and predates the
+mission. The null frame is also not user-reachable (CV1 measured the `useToday`
+effect flushing in the same task as the commit, 18/18). *Worth knowing before someone
+"fixes" it here and leaves the arrows alone.* (3) the caret's press contrast is
+**4.33:1 light / 5.42:1 dark** — below the 4.5:1 *text* floor but it is `aria-hidden`
+decoration, where WCAG 1.4.11's bar is **3:1**. Clears it; recorded so nobody
+re-derives it. (4) **⚠️ Strange corrects its own record again — absolute ink counts
+are instrument-defined and comparable only within one run.** Its pass-2 said 2509;
+this pass reads 2686/2549 on identical markup, from a different ink-rect definition.
+*"This is precisely the objection I raised against F3's 509-vs-2509 numbers, so it
+applies to mine too — do not compare ink counts across reports."* (5) **`:has()` is
+novel in this codebase** — F3's class and its own comment are the only occurrences.
+It compiles, and the failure mode on an unsupporting browser is a **dropped rule**
+(no press fill, i.e. F2's state), never a broken layout. Safari has shipped it since
+15.4. No action. (6) routed, unchanged — no year in the sheet's heading, and 0 of 42
+day cells carry one in their `aria-label`; `formatMonthTitle(shownMonth)` remains the
+named remedy. (7) standing, no action — no in-progress swipe feedback; padding day
+numbers at 1.47:1 (paired with CV5's own routed item); the plain grid is correct and
+dots would be a defect. (8) **closing the semantic half of the pass-2 blocker
+explicitly rather than letting it lapse:** the fill still uses the skeleton's token,
+radius and row, *but that only mattered while the title was gone* — with the title
+legible on top, the two are no longer confusable in any frame a user can reach.
 
 **F3 verified by Fury.** The fill moved off the childless overlay onto the shared
 parent via Tailwind's `has-[>button:active]:` variant, so it paints in the parent's
