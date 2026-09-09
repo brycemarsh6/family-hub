@@ -350,7 +350,9 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
   the 400ms/8px thresholds are named constants, gauntlet green.
 
 ### C5 — wire it up
-- **Status:** ✅ **DONE (`df4ef31`), merged.** Gauntlet green, **402 tests
+- **Status:** ✅ **DONE (`df4ef31`), merged — but see Fury's error below; the
+  first merge attempt silently brought NOTHING and was reported as success.**
+  Gauntlet green, **402 tests
   unchanged** (this contract added none and touched no test file, as required).
 - **⭐ IT FOUND A SERIOUS DEFECT IN C4'S ALREADY-MERGED CODE and disclosed it
   rather than fixing it** — `useLongPressDrag.ts` was on its must-not-touch
@@ -435,6 +437,31 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
   every (phase, event) pair and assert each, so a missing case cannot hide again.
 - **Done criteria:** an ordinary tap returns the phase to `idle`; a full
   (phase × event) matrix is asserted; red-then-green evidence; gauntlet green.
+
+## ⚠️ FURY'S ERROR: "Already up to date" is a FAILURE signal, not a success one
+
+**I merged the wrong branch, deleted the right one, and recorded C5 as merged
+when the tree contained none of it.**
+
+The harness reported C5's worktree branch as `worktree-agent-ae2f3f7662de0f29b`,
+but the builder had committed to **`claude/calendar-cd1-c5-wire-up`**. I merged
+the former — which still pointed at the old base — got **"Already up to date"**,
+read it as success, then **deleted both branches** and committed a mission-file
+entry saying C5 was merged. `grep -c useLongPressDrag src/components/CalendarViews.tsx`
+returned **0**. The work existed only as an unreferenced commit object.
+
+Recovered by merging the commit sha directly (`git merge df4ef31`); the tree now
+matches C5's reported sizes exactly (640 / 599 / 347) and the gauntlet is green.
+
+**Two lessons, both cheap and both mine:**
+1. **"Already up to date" on a merge you expect to bring changes is a failure
+   signal.** I read it as confirmation. The check that settles it costs one
+   command: grep the tree for a string unique to the work.
+2. **Verify the merge landed, do not trust the merge command** — the same shape
+   as mission-9's *"verify a file edit landed; don't trust the write"*, and
+   **the same shape as the mistake C5 disclosed one report earlier** (its harness
+   importing the main repo's copy instead of the worktree's). It flagged that
+   class explicitly, and I committed it minutes later.
 
 ## Preflight
 
