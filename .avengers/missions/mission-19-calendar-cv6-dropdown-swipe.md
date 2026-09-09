@@ -1444,20 +1444,66 @@ pointerdown.
 
 ## Delivery
 
-**NOT DELIVERED — mission paused mid-flight, deliberately.**
+**✅ DELIVERED. All 5 contracts + 3 fix contracts built; all three gates PASS.**
+Gate budget spent: **Vision 2/3, Captain 2/3, Strange 3/3** — no budget exceeded,
+no pass skipped, and **no gate argued out of a blocker.**
 
-- **Built so far:** C1 (sheets extracted → `CalendarSheets.tsx`), C2
-  (`jumpToDay`, view-preserving), C3 (the month-jump dropdown), C5 (the v1
-  plan amendment). **C4 (`usePageSwipe`) not started.**
-- **Shipped check:** the branch is **pushed**, so the work survives this
-  machine — but there is **no PR and no merge**, so **the family does not
-  have any of CV6**. "Committed", "pushed" and "the family has it" are three
-  different claims and this project has been bitten by conflating them five
-  times.
-- **Gates:** **none have run.** The gate ledger is empty on purpose, not by
-  oversight.
-- **Deliberate leftovers, carried:** `ScheduleView` mounts its **own** copy of
-  `EventDetailSheet`/`TaskDetailSheet`, so that block is duplicated two ways
-  (routed to Captain, unfixed); the month-jump sheet has no per-day density
-  dots; a **real-device 375px pass is owed**, because headless Chrome could
-  not be forced to a true 375×812 window in this sandbox.
+**Gauntlet re-run by Fury on the delivered tree** (not taken from any report):
+tsc **0**, eslint **0**, Denver **350/350/0**, UTC **350 → 343 + 7 skipped**
+(the baseline skip count preserved), LA **350/350/0**, build **compiled
+successfully**. Tests **335 → 350** across the mission.
+
+### What shipped
+
+- **C1** — the four-sheet block extracted into `CalendarSheets.tsx` (a seam
+  Captain itself had named in mission-18).
+- **C2** — `jumpToDay` on the navigation hook, view-preserving **by signature**
+  (`jumpToDayTargets(view, day)` takes the view as a parameter), not by caller habit.
+- **C3** — the month-jump dropdown, a ≥44px control on **all six views**,
+  including Schedule, where the title is an empty portal slot and the answer was an
+  invisible absolute overlay that adds no flow height.
+- **C4** — `usePageSwipe`: swipe pages timeline, Month and Year through the same
+  `step()` the arrows call. **The arrows stay.** Carries the CD1 seam
+  (`isGestureClaimed`) without building the long-press.
+- **C5** — the v1 plan amended so its paging line reads as ruling out
+  swipe-*only*, never swipe.
+- **F1/F2/F3** — the three gate blockers, each with a test proven **red before
+  green**.
+
+### The shipped check
+
+`git log origin/main..HEAD` — this branch has **never had a PR** and **nothing
+from CV6 is live**. "Committed", "pushed", "merged" and "the family has it" are
+four different claims and this project has conflated them five times.
+
+### Deliberately not done — routed, with measurements, in the notes above
+
+**To CD1:** the `pointerdown` swallow-clear sits after two early returns and
+**CD1 exists to pass the flag that resurrects it**; `CalendarViews.tsx` is net
++12 over a mission whose first contract existed to shrink it; `ScheduleView`'s
+duplicate sheet mounts.
+**Open:** no year in the sheet (and **0 of 42 day cells carry one in their
+`aria-label`**); no in-progress swipe feedback; padding day numbers at 1.47:1;
+18px of the 46px hit target never paints; the gesture-machine migration, with a
+**third definition a BLOCKER**; and `ASSIGNABLE_ROLES` still a predicate.
+
+### ⚠️ Owed to a real device — neither is reachable by any instrument here
+
+1. **Touch-vs-scroll arbitration** for swipe inside `TimelineGrid`'s scroller.
+   Everything else about the gesture is proven; synthetic touch does not honour
+   `touch-action` at all, so this specific arbitration is never exercised.
+2. **A possible eaten tap on Inventory and Shopping rows** — Captain's
+   *reasoning from code, explicitly not measured*: both copies of the gesture
+   machine shipped the same stuck-flag defect and **F1 fixed only one**. Months
+   old, not from this work. Swipe a row a little, let go, tap it.
+
+### Pending Bryce — four constitution amendments
+
+Three for `STRUCTURE.md` (Captain: the `src/lib/` client-hook layout row; the
+pointer-gesture machine with its third-definition BLOCKER; the month-grid today
+invariant, revised to past tense since it landed as code) plus Captain's
+one-line clarification that a "code" count excludes blank lines — **two gates
+reported the same file at 191 and 216 in good faith, differing by exactly its 25
+blank lines.** One for `DESIGN.md` (Strange, revised twice: a press state must
+never reduce the legibility of a label inside its own target, binding the
+measurable property rather than the mechanism).
