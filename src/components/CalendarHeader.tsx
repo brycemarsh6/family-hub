@@ -217,8 +217,30 @@ export function CalendarHeader({
             inside are otherwise byte-identical to before this contract:
             the Schedule `pinned` branch in particular is STILL the same
             empty, childless `<span id={SCHEDULE_TITLE_SLOT_ID}>` — see its
-            own comment for why it must stay that way. */}
-        <span className="relative flex h-7 min-w-0 flex-1 items-center justify-center gap-1">
+            own comment for why it must stay that way.
+
+            mission-19/F3 (Strange's press-state blocker) — `rounded-lg
+            transition-colors has-[>button:active]:bg-surface-2` moved HERE,
+            onto this span, and removed from the overlay button below. F2's
+            first version painted the fill on the button itself, which sits
+            at `z-10` above the title/portal-slot/caret (all plain, unpositioned
+            flow content) — so the fill painted OVER the title, not behind it,
+            erasing it completely by 80ms into an ordinary tap (measured:
+            title ink 2509 -> 0, contrast 6.96:1 -> 1.00:1) and doing so with
+            the exact token/rounding/row the app's own loading skeleton three
+            lines below uses, so a press visually claimed "this is loading"
+            instead of "you pressed this". A background painted on a PARENT
+            box paints in that box's own background step, which happens
+            before any of its children are painted — title, portal slot, and
+            caret alike — regardless of the button's z-index, so the fill is
+            now structurally behind them rather than merely styled to look
+            that way. `:has()` is why no JS state is needed: the browser
+            already tracks `:active` on the child button, this only asks the
+            parent to read it. Confirmed this doesn't touch this span's own
+            box: background-color never affects layout, so the h-7 sizing
+            the comment above this one depends on (null/resolved-frame
+            equality) is unchanged. */}
+        <span className="relative flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg transition-colors has-[>button:active]:bg-surface-2">
           {title === null ? (
             <span aria-hidden="true" className="h-5 w-32 animate-pulse rounded bg-surface-2" />
           ) : pinned ? (
@@ -247,8 +269,28 @@ export function CalendarHeader({
               26.3px on the arrow views, far enough to read as unrelated to
               the title it's meant to belong to. An 18px glyph inside the
               shared `h-7` box adds no flow height on any view — verified
-              unchanged in both the null-frame and the resolved-frame. */}
-          <ChevronDown aria-hidden="true" size={18} className="shrink-0 text-muted" />
+              unchanged in both the null-frame and the resolved-frame.
+
+              mission-19/F3 (Strange's NOTE 1) — dimmed to `opacity-40`
+              while `title === null` (the same condition the skeleton
+              placeholder branch above and the overlay button's own
+              `disabled` prop already key off — all three describe the
+              identical "today hasn't resolved yet" moment). Before this,
+              the caret was the ONE control in this row still at full
+              opacity while Today/Prev/Next were all dimmed to 0.4 and
+              disabled — the brightest mark in a row of dimmed, inert
+              controls, on a control that is itself disabled underneath it.
+              `disabled:` can't reach the caret directly (it's a sibling of
+              the button, not a descendant), so this reads the same
+              condition the button's `disabled` prop already reads, rather
+              than inventing a second source of truth for "is today ready
+              yet". Paint-only: opacity never affects layout, so this
+              changes nothing in the geometry table. */}
+          <ChevronDown
+            aria-hidden="true"
+            size={18}
+            className={title === null ? "shrink-0 text-muted opacity-40" : "shrink-0 text-muted"}
+          />
 
           {/* mission-19/C3 — THE control every view opens the month-jump
               sheet from. A SIBLING of the three branches above, not a
@@ -299,19 +341,26 @@ export function CalendarHeader({
               disabled={!todayResolved || isCurrentPeriod}` just above) —
               there is no anchor to seed the sheet with before then.
 
-              mission-19/F2 — `rounded-lg transition-colors
-              active:bg-surface-2` added, matching the Prev/Next arrows in
-              this same row: a plain tap used to produce zero pixels of
-              change until the sheet's own open animation started. This is
-              purely a paint added on top of the button's existing
-              (unchanged) box — it doesn't touch the geometry those
-              comments above depend on. */}
+              mission-19/F2 — added a press fill matching the Prev/Next
+              arrows in this same row, so a plain tap wasn't zero pixels of
+              change until the sheet's own open animation started. F3
+              (Strange's blocker): that fill lived on THIS button, which
+              sits above the title/caret in paint order (an absolutely
+              positioned element paints above in-flow content regardless of
+              z-index) — so it painted OVER the title instead of behind it,
+              erasing it completely partway into an ordinary tap. The fill
+              itself moved up to the parent span above (see its own comment)
+              so it paints behind everything in this box instead; this
+              button now contributes NOTHING visible, only the click target
+              and its geometry — unchanged from F2/C3, still the same
+              `-inset-y-[9px]` 46px-tall hit box that the giant comment two
+              blocks up depends on. */}
           <button
             type="button"
             onClick={onOpenMonthJump}
             disabled={!todayResolved}
             aria-label="Jump to a month or day"
-            className="absolute inset-x-0 -inset-y-[9px] z-10 rounded-lg transition-colors active:bg-surface-2"
+            className="absolute inset-x-0 -inset-y-[9px] z-10"
           />
         </span>
 
