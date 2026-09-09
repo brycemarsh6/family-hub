@@ -350,6 +350,40 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
   the 400ms/8px thresholds are named constants, gauntlet green.
 
 ### C5 — wire it up
+- **Status:** ✅ **DONE (`df4ef31`), merged.** Gauntlet green, **402 tests
+  unchanged** (this contract added none and touched no test file, as required).
+- **⭐ IT FOUND A SERIOUS DEFECT IN C4'S ALREADY-MERGED CODE and disclosed it
+  rather than fixing it** — `useLongPressDrag.ts` was on its must-not-touch
+  list. **Confirmed independently by Fury.** See F1 below.
+- Wiring as contracted: one hook instance in `CalendarViews.tsx`,
+  `isGestureClaimed` into `usePageSwipe` (`:280-284`), `getHandlers` threaded
+  two levels to `TimelineDayColumn.tsx:228`. **No React context introduced.**
+- **The kid gate is at `getHandlers={canManage ? … : undefined}`** — the same
+  level `canManage` already gates the header's Add circle — so a kid's block
+  never lifts at all rather than lifting and snapping back with a refusal.
+  **The server's `MANAGER_ROLES` guard remains the real one.**
+- **Rejection needs no manual revert, and the builder explained why rather than
+  writing one:** `moveCalendarEvent` calls `refreshCalendarViews()` only on
+  success, so a failed call leaves the underlying prop unchanged and
+  `useOptimistic`'s transition settles back onto it automatically. The block
+  snaps back with zero extra code.
+- **The press-state rule was MEASURED, not asserted.** Title ink at rest
+  **1755.94** → during drag **1935.92**, which is exactly `1755.94 × 1.05²` —
+  the title got *larger*, not covered — with colour and opacity byte-identical,
+  because the transform and shadow are applied **to the button itself, never a
+  separate overlay layer**. That is the structural version of the rule Bryce
+  approved, not a styled approximation.
+- **Two instrument errors caught by the builder itself, both disclosed:** a CDP
+  driver sending `buttons: 1` on `mouseReleased`, and — the one worth keeping —
+  **a harness that imported from the MAIN repo's copy instead of the worktree's**
+  (both paths coexist since worktrees nest on disk), silently exercising stale
+  pre-C5 code and producing a false negative. Caught by grepping the built
+  bundle for strings unique to its own edits. *"Exactly the class of 'verified
+  the wrong tree' mistake this project has been bitten by before."*
+- **⚠️ Sizes after this contract — `CalendarViews.tsx` has TEN LINES of
+  headroom:** `CalendarViews.tsx` **640 total / 247 code (650 hard cap)**,
+  `TimelineGrid.tsx` **599/213**, `TimelineDayColumn.tsx` **347/122**.
+  **Captain's call, and it is now urgent rather than theoretical.**
 - **Objective:** Attach the gesture to timed blocks, render the lift, apply the
   optimistic move, and pass `isGestureClaimed` to `usePageSwipe`.
 - **Boundaries:** may touch `src/components/TimelineDayColumn.tsx`,
@@ -372,6 +406,36 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
   a horizontal drag still pages, a kid cannot lift, a rejected drop snaps back;
   gauntlet green.
 
+### F1 — a tap permanently disables dragging (found by C5, confirmed by Fury)
+
+- **Status:** dispatched 2026-09-09.
+- **The defect.** `nextLongPressPhase`'s `"pending"` branch
+  (`src/lib/useLongPressDrag.ts`) handles `move`, `holdElapsed` and `cancel`,
+  but **`release` falls through to `return "pending"`** — under a comment
+  claiming the fallthrough is *"a stray extra pointerDown while already
+  pending"*, which is an **overclaiming comment**: `release` is a real member of
+  `LongPressDragEvent` (the `dragging` branch tests for it explicitly) and it is
+  **the common case** — an ordinary tap is pointerdown → release before 400ms.
+- **Why it is severe.** The phase never returns to `idle`, and this project's
+  own design puts **exactly one hook instance per page**. So **any tap that
+  opens an event disables dragging for the rest of the page's life.** Tapping an
+  event is the single most common thing anyone does on this screen.
+- **C5 reproduced it with a control**, which is what makes it a finding rather
+  than a reading: ordinary tap → second long-press `claimed = false`; **control**
+  — completed drag → second long-press `claimed = true`.
+- **Boundaries:** may touch `src/lib/useLongPressDrag.ts`,
+  `src/lib/useLongPressDrag.test.ts` · must not touch `src/components/**`,
+  `src/lib/usePageSwipe.ts`, `src/lib/timelineDrag.ts`, `src/app/**`,
+  `prisma/**`.
+- **Fix the comment too.** It states a false reason for the fallthrough and is
+  part of why the case was missed. This repo tracks overclaiming comments.
+- **The test must be proven RED first**, and **ask why C4's 20 tests missed
+  this** — the gap is that no case exercised `pending` + `release`. Whatever
+  else that reveals about the phase machine's coverage, close it: enumerate
+  every (phase, event) pair and assert each, so a missing case cannot hide again.
+- **Done criteria:** an ordinary tap returns the phase to `idle`; a full
+  (phase × event) matrix is asserted; red-then-green evidence; gauntlet green.
+
 ## Preflight
 
 Run on every contract **immediately before its dispatch**, not when written — a
@@ -387,7 +451,8 @@ they were surfaced and skimmed.
 | — | **C3** | ✅ DONE `8526245`, merged | — | no live verification — see its entry |
 | — | **C2** | ✅ DONE, merged | — | tests 350 → 378; suite now **382** |
 | — | **C4** | ✅ DONE, merged | — | tests 382 → **402** |
-| — | — | no gate has run yet — C5 dispatched | — | — |
+| — | **C5** | ✅ DONE `df4ef31`, merged | — | found a C4 defect; `CalendarViews.tsx` at **640/650** |
+| — | — | no gate has run yet — F1 dispatched | — | — |
 
 ## Handoff log
 - 2026-09-09 — **Mission opened.** Banner assembled and reported first; its
