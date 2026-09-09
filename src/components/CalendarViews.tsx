@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarHeader } from "./CalendarHeader";
 import { CalendarSheets } from "./CalendarSheets";
@@ -10,8 +10,19 @@ import { MonthGrid } from "./MonthGrid";
 import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
 import { TimelineGrid } from "./TimelineGrid";
 import { YearView } from "./YearView";
+import type { TimelineDragPayload } from "./TimelineDayColumn";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import { usePageSwipe } from "@/lib/usePageSwipe";
+import { useLongPressDrag } from "@/lib/useLongPressDrag";
+import {
+  minutesFromPixels,
+  snapMinutes,
+  clampStartMinutes,
+  minutesOfDayToDate,
+  columnIndexFromOffset,
+  columnDateForIndex,
+} from "@/lib/timelineDrag";
+import { moveCalendarEvent } from "@/app/actions/calendar";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
 import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
@@ -19,6 +30,29 @@ import { toLocalDateString } from "@/lib/mealPlanDates";
 import { useNowMinute } from "@/lib/useNowMinute";
 import { useAppHeaderHeight } from "@/lib/appChrome";
 import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
+
+// mission-20 (CD1)/C5 — the optimistic move + its own inline error, wired up
+// here rather than in TimelineGrid.tsx/TimelineDayColumn.tsx: this file is
+// the one place that already holds `events` as a prop and can compare a
+// resolved drag against the real `days` (config.days(anchor)) the timeline
+// itself renders. `applyDragMove` is a pure `(events, change) => events[]`,
+// the exact PantryList.tsx:66-73 shape (`useOptimistic(items, applyChange)`
+// + `useTransition`) — a rejected drop calls no `refreshCalendarViews()`, so
+// the transition settles back onto the SAME `events` prop it started from
+// and the optimistic value is discarded automatically; nothing here needs
+// to manually "undo" the change.
+type DragMoveChange = { id: string; startAt: Date; endAt: Date };
+
+function applyDragMove(
+  events: CalendarEventView[],
+  change: DragMoveChange,
+): CalendarEventView[] {
+  return events.map((event) =>
+    event.id === change.id
+      ? { ...event, startAt: change.startAt, endAt: change.endAt }
+      : event,
+  );
+}
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
 // — this file, DaySection.tsx, and EventCard.tsx all import them from that
@@ -118,6 +152,18 @@ export function CalendarViews({
   const { view, anchor, today, step, goToToday, setView, openDay, jumpToDay } =
     useCalendarNavigation(DEFAULT_CALENDAR_VIEW);
 
+  // mission-20 (CD1)/C5 — moved up (used to sit right before the render
+  // switch) so `days` is in scope for `onDragEnd`'s closure below, rather
+  // than a forward reference. Only depends on `view`/`anchor`, already
+  // destructured above.
+  const config = VIEW_CONFIG[view];
+  // The null-guards below are about `today` not having resolved yet — NOT
+  // about which view is active, which is why they stay here rather than
+  // moving into VIEW_CONFIG (every row would carry the same null check).
+  // `anchor` is null exactly while `today` is (useCalendarPeriod derives one
+  // from the other), so guarding both is belt-and-braces, not two cases.
+  const days = anchor === null ? [] : config.days(anchor);
+
   // mission-17/C4 — TimelineGrid's two dependency-injected values (see that
   // file's own header for why they're props rather than internal hooks).
   // Called unconditionally, same convention as `today` above: cheap even on
@@ -131,6 +177,77 @@ export function CalendarViews({
   const now = useNowMinute();
   const chromeOffsetPx = useAppHeaderHeight();
 
+  // mission-20 (CD1)/C5 — optimistic drag-to-reschedule state:
+  // `useOptimistic(events, applyDragMove)` + `useTransition`,
+  // PantryList.tsx:66-73's own shape. `optimisticEvents` (not the raw
+  // `events` prop) goes to the "timeline" branch below ONLY — every other
+  // branch (Month/Year/Schedule) keeps reading `events` unchanged, since
+  // only the hour timeline can start a drag. `dragError` is a separate
+  // plain `useState`: the snap-back on rejection is `useOptimistic`'s own
+  // job (the transition settles back onto the unchanged `events` prop),
+  // but the house `{ error }` string still needs somewhere to render —
+  // see the inline banner near the bottom of this component.
+  const [optimisticEvents, applyOptimisticMove] = useOptimistic(events, applyDragMove);
+  const [, startDragTransition] = useTransition();
+  const [dragError, setDragError] = useState<string | null>(null);
+
+  // mission-20 (CD1)/C4 — the long-press gesture. ONE instance, here:
+  // `isGestureClaimed` below has to reach `usePageSwipe` in this SAME
+  // component, and `useLongPressDrag` guarantees only a single pointer can
+  // ever be claimed at a time — a per-block instance could never make
+  // either of those true.
+  const longPress = useLongPressDrag<TimelineDragPayload>({
+    // Resolves a FINISHED drag into a new start time and (possibly) day,
+    // then applies it the way every write in this app does: optimistic
+    // dispatch first, inside the SAME `startTransition` that awaits the
+    // server call.
+    onDragEnd: (payload, dx, dy) => {
+      // A hold-then-release with no travel — nothing to snap/clamp, and
+      // nothing worth a server round trip (`activeDrag`/`offsetRef` both
+      // start at `{dx: 0, dy: 0}` in useLongPressDrag.ts).
+      if (dx === 0 && dy === 0) return;
+
+      // The block's own start, reconstructed from the moment the drag
+      // began — the baseline the snapped/clamped result is compared
+      // against below, so a drag that nets to zero commits nothing.
+      const originalStartAt = minutesOfDayToDate(payload.day, payload.topMinutes);
+
+      // Vertical: pixels -> minutes -> snapped to 15 -> clamped so the
+      // block can't be dropped off the bottom of the day.
+      const deltaMinutes = minutesFromPixels(dy, payload.pxPerMinute);
+      const snappedTopMinutes = snapMinutes(payload.topMinutes + deltaMinutes);
+      const clampedTopMinutes = clampStartMinutes(snappedTopMinutes, payload.durationMinutes);
+
+      // Horizontal: the block's own starting column's left edge plus the
+      // raw drag distance, resolved into a column index (clamped to the
+      // real count) and then a real day — `days`, the SAME array
+      // TimelineGrid.tsx is rendering right now (fact 7, preflight).
+      const startColumnLeftPx = payload.columnIndex * payload.columnWidthPx;
+      const newColumnIndex =
+        columnIndexFromOffset(startColumnLeftPx + dx, payload.columnWidthPx, days.length) ??
+        payload.columnIndex;
+      const newDay = columnDateForIndex(days, newColumnIndex) ?? payload.day;
+
+      const newStartAt = minutesOfDayToDate(newDay, clampedTopMinutes);
+      // Snapped/clamped straight back to the original slot — nothing
+      // changed, so nothing is worth an optimistic flicker or a call.
+      if (newStartAt.getTime() === originalStartAt.getTime()) return;
+
+      // Duration is preserved by construction (timelineDrag.ts's own
+      // rule): only a new START is computed above; `endAt` here previews
+      // what `moveCalendarEvent` independently recomputes server-side from
+      // the stored row's own duration — not a second source of truth.
+      const newEndAt = new Date(newStartAt.getTime() + payload.durationMinutes * 60_000);
+
+      setDragError(null);
+      startDragTransition(async () => {
+        applyOptimisticMove({ id: payload.eventId, startAt: newStartAt, endAt: newEndAt });
+        const result = await moveCalendarEvent(payload.eventId, newStartAt);
+        if (result.error) setDragError(result.error);
+      });
+    },
+  });
+
   // mission-19/C4 — swipe-to-page, via a hook rather than folded in here
   // (see usePageSwipe.ts's own header for why it's a sibling of
   // SwipeActions.tsx's gesture machine rather than a shared import from
@@ -140,9 +257,15 @@ export function CalendarViews({
   // anything; Schedule manages its own scrolling and is never wrapped.
   // `step` is the SAME call the header's Prev/Next arrows make (below) —
   // this is an addition to how the calendar pages, not a replacement.
+  //
+  // mission-20 (CD1)/C5 — `isGestureClaimed: longPress.isGestureClaimed`
+  // fills in CV6's own existing seam: a long-press that's claimed the
+  // pointer always wins over a page-swipe reading the same drag, on every
+  // move, not just at pointerdown.
   const pageSwipeHandlers = usePageSwipe({
     onSwipeLeft: () => step(1),
     onSwipeRight: () => step(-1),
+    isGestureClaimed: longPress.isGestureClaimed,
   });
 
   const [pickingView, setPickingView] = useState(false);
@@ -166,14 +289,6 @@ export function CalendarViews({
   // navigating — see handleToday below.
   const scheduleRef = useRef<ScheduleViewHandle>(null);
   const [scheduleTodayVisible, setScheduleTodayVisible] = useState(false);
-
-  const config = VIEW_CONFIG[view];
-  // The null-guards below are about `today` not having resolved yet — NOT
-  // about which view is active, which is why they stay here rather than
-  // moving into VIEW_CONFIG (every row would carry the same null check).
-  // `anchor` is null exactly while `today` is (useCalendarPeriod derives one
-  // from the other), so guarding both is belt-and-braces, not two cases.
-  const days = anchor === null ? [] : config.days(anchor);
 
   const isCurrentPeriod =
     today !== null && anchor !== null && config.isCurrentPeriod(anchor, today);
@@ -326,6 +441,19 @@ export function CalendarViews({
       // is a plain one-arg closure: a task has exactly one due date, never
       // a span, so there's no "which day was this card rendered for"
       // ambiguity to pass through, unlike `onOpenEvent` just below it.
+      //
+      // mission-20 (CD1)/C5 — `events={optimisticEvents}`, not the raw
+      // `events` prop: this is the ONLY branch a drag can start from (only
+      // blocks in the `timed` partition are draggable, and only
+      // TimelineGrid renders them), so it's the only branch that needs the
+      // optimistic array; Month/Year/Schedule keep reading `events`
+      // directly. `getHandlers` is the client-side "can this session
+      // manage the calendar" gate, decided HERE rather than inside
+      // TimelineGrid.tsx/TimelineDayColumn.tsx: a kid's session gets
+      // `undefined`, so no pointer handlers ever attach and a long-press
+      // can never even start. The SERVER'S guard in `moveCalendarEvent`
+      // (MANAGER_ROLES) is the real gate regardless — this only spares a
+      // kid a block that lifts and then snaps back with a refusal.
       return (
         today !== null &&
         now !== null && (
@@ -338,7 +466,7 @@ export function CalendarViews({
           <div className="touch-pan-y" {...pageSwipeHandlers}>
             <TimelineGrid
               columnDays={days}
-              events={events}
+              events={optimisticEvents}
               tasks={tasks}
               today={today}
               now={now}
@@ -347,6 +475,8 @@ export function CalendarViews({
               onOpenEvent={(event, day) => setSelected({ event, day })}
               onOpenTask={(task) => setSelectedTask(task)}
               chromeOffsetPx={chromeOffsetPx}
+              getHandlers={canManage ? longPress.getHandlers : undefined}
+              activeDrag={longPress.activeDrag}
             />
           </div>
         )
@@ -451,6 +581,20 @@ export function CalendarViews({
         onAdd={() => setAddingEvent(true)}
         onOpenMonthJump={() => setPickingMonth(true)}
       />
+
+      {/* mission-20 (CD1)/C5 — the house `{ error }` pattern
+          (PutAwayButton.tsx's own `{error && <p role="alert" ...>}`), for a
+          rejected drag. No sheet exists to put this inside, so it renders
+          here — the one place in this component not specific to a single
+          renderer branch. The snap-back needs no code: `useOptimistic`'s
+          transition settles back onto the unchanged `events` prop the
+          moment `moveCalendarEvent` returns without refreshing, so the
+          block is already back by the time this message appears. */}
+      {dragError && (
+        <p role="alert" className="px-1 text-sm text-danger">
+          {dragError}
+        </p>
+      )}
 
       {/* The render switch itself — which case runs for which view — lives
           in `renderPeriodContent`, above; see that function's own comment. */}
