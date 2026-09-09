@@ -301,6 +301,30 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
   server-side, refuses all-day and rrule rows; gauntlet green.
 
 ### C4 — `useLongPressDrag`
+- **Status:** ✅ **DONE, merged.** Tests **382 → 402** (+20). **Preflight was
+  CLEAR** — 0 hard failures, nothing flagged, the first on this project.
+- **It applied C1's lesson PREEMPTIVELY** rather than waiting for a gate: the
+  swallow-clear is the first act of pointerdown (`:242-249`, decided at
+  `:194-196` before either guard). **Proven RED by rewriting the function to the
+  pre-C1 historical bug shape** — 2 failures, `true !== false` — then restored
+  and confirmed **byte-identical by `diff`** before re-running green.
+- **All four house gesture laws hold, each cited:** release reads a **ref**
+  (`:358` `finalOffset = offsetRef.current`), `setPointerCapture` is
+  **try/caught** (`:278-282`), the swallow-clear is first (above), and the
+  thresholds are named constants (`LONG_PRESS_HOLD_MS = 400` `:66`,
+  `LONG_PRESS_SLOP_PX = 8` `:72`).
+- **The seam is used, not duplicated:** `isGestureClaimed: () => phase.current
+  === "dragging"` is returned for `usePageSwipe` to consume.
+  `usePageSwipe.ts` was **not touched** — confirmed by the diff.
+- **Disclosed judgement call:** it added its **own** click-swallow tracking,
+  because a completed drag's release is followed by a `click` on the same block
+  (pointer capture retargets it) that must not also fire `onOpenEvent`. Not
+  named in the objective, but implied — and building it into the hook stops C5
+  reinventing the swallow pattern inline. Entirely inside its own file.
+- **Honestly labelled limit:** its reasoning that native scroll and page-swipe
+  survive the "pending" window is **reasoning, not browser measurement** — the
+  hook never captures or prevents default until after it commits. C5's wiring is
+  where that becomes measurable.
 - **Objective:** New `src/lib/useLongPressDrag.ts` — hold **≥400ms** without
   moving **>8px** → drag mode; anything sooner is yielded to the scroller and to
   page-swipe.
@@ -362,7 +386,8 @@ they were surfaced and skimmed.
 | — | **C1** | ✅ DONE `abbd61c`, merged | — | tests 350 → 354 |
 | — | **C3** | ✅ DONE `8526245`, merged | — | no live verification — see its entry |
 | — | **C2** | ✅ DONE, merged | — | tests 350 → 378; suite now **382** |
-| — | — | no gate has run yet — C4 dispatched | — | — |
+| — | **C4** | ✅ DONE, merged | — | tests 382 → **402** |
+| — | — | no gate has run yet — C5 dispatched | — | — |
 
 ## Handoff log
 - 2026-09-09 — **Mission opened.** Banner assembled and reported first; its
