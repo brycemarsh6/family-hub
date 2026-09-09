@@ -6112,3 +6112,174 @@ there** — the sheets block is the standing seam.
 **Still parked, unchanged:** the dev-branch credential rotation (a **third**
 agent leaked real family data into a transcript this session — Bryce skipped it
 again, deliberately) and the 96px Day rail.
+
+---
+
+## Session, 2026-09-07/08: CV6 — the month dropdown and swipe-to-page
+
+**Five contracts, three fix contracts, eight gate passes, and all three gates
+PASS.** Mission file:
+`.avengers/missions/mission-19-calendar-cv6-dropdown-swipe.md` — authoritative;
+this is the summary. Started 2026-09-07, **paused mid-flight at Bryce's request
+with C4 unbuilt and no gate having run**, resumed and finished 2026-09-08.
+
+### What the family gets
+
+A **month-jump dropdown** behind the header title on **every** view — tap the
+title, get a compact month grid plus the `MonthChips` strip, tap a day and it
+jumps there **keeping the view you were in** (the pre-existing `openDay` forces
+Day). And **swipe left/right to page** the timeline, Month and Year, by exactly
+what the arrows do. **The arrows stay.** Tests **335 → 350**.
+
+### The three defects the gates caught before the family saw them
+
+1. **The today marker was drawn on days belonging to another month** — browse to
+   September and 1 October, a padding cell, renders identical to a real today.
+   Vision measured **282 of 730 days** affected across 2026-27, worse than CV5's
+   Year case because this sheet browses anywhere. **`DESIGN.md:207` predicted
+   this in writing one mission earlier** — *"a third caller would reintroduce
+   this with no compile error"* — and `MonthJumpSheet` was that third caller.
+   Fixed by **homing the invariant**: `isTodayCell` now lives in
+   `monthLayout.ts` beside the function that creates the padding, with all three
+   callers routed through it, which also makes it reachable by `npm test` where
+   three inline `.tsx` copies structurally were not.
+2. **Every swipe silently ate the user's next tap.** Swipe to next month, tap a
+   day, nothing; tap again, it works. **The worse half: a 30px drag crosses the
+   direction lock but not the page threshold, does nothing visible, and still
+   eats the tap** — on a phone, an imprecise tap that drifts is exactly that.
+3. **The month-jump control was completely invisible, then it erased its own
+   title.** Strange found it carrying `absolute inset-x-0 -inset-y-[9px] z-10`
+   and nothing else — no glyph, no press state — while the Prev arrow 8px away
+   had both. It is the **sole entry point to the headline feature**. The fix
+   added a caret and a press state; the press state then **blanked the title
+   completely by 50ms** (ink 2686 → 0, contrast 6.96:1 → **1.00:1**), in the
+   **same token and shape as the loading skeleton**, so a press rendered the
+   app's *loading* vocabulary. Fixed by moving the fill onto the parent, where a
+   background paints before any child.
+
+### Lessons worth keeping
+
+- **A gate that only knows "tappable looks tappable" is not enough.** Vision and
+  Captain both PASSed the invisible control — it did exactly what it said, and
+  the defect was only in what it *meant*. Second time on this arc Strange has
+  caught that class where the other two passed the same code.
+- **A rule can be satisfied exactly and the defect still ship.** Strange's
+  pass-1 amendment said a control must acknowledge a press; F2 satisfied it
+  precisely and produced defect 3. The amendment now binds the **property** — the
+  label's ink and contrast must survive the press — because that is what a
+  future gate can measure.
+- **Fury's contract caused defect 3, not the builder.** F2 was told to match the
+  arrows' press state; the arrows have **children** to protect their labels and
+  this control is childless by design. The builder implemented the instruction
+  exactly.
+- **A stable control is not a positive control.** F3 offered the Prev arrow's
+  stability as evidence its harness worked — but that only proves an instrument
+  can report stability, never that it can *see* degradation. Strange's pass-3
+  run supplied the real one: pre-fix code still reproduces 2686 → 0, thirty
+  seconds before reading clean on the fix.
+- **Two gates disagreed and the more careful one was right.** Vision said the
+  new swipe code *dropped* a compensating handler from `SwipeActions`; Captain
+  read that handler and found it **isn't compensating at all** — it *sets* the
+  flag, only on an already-open row. **So both copies shipped the same defect
+  and only one was fixed.** Captain labelled its conclusion *reasoning from
+  code, not measurement*, which is why it is routed rather than acted on.
+- **Every agent corrected its own record at least once.** Captain retracted a
+  pass-1 note on re-reading; Strange corrected a count (11 → 12), retired a
+  figure it had measured in the wrong font, and then ruled its **own** ink
+  numbers non-comparable across reports — the same objection it had raised
+  against F3's. *A correction is a change and is not more trustworthy for being
+  a correction.*
+- **Three instrument failures were caught by their own controls, not by luck:**
+  a harness modelling the wrong disabled state; a **font race** making dark and
+  light disagree by 3px; and `dispatchTouchEvent` **reporting success while
+  never triggering `:active`**, so every sample equalled rest — *"which reads
+  exactly like a fix."* A hard assertion now throws before any sample is trusted.
+
+### ⚠️ A record that was false for two days, and the rule it earns
+
+**This file and the mission file both said "C4 NOT BUILT" for two days after C4
+was built**, because C4's own status line was updated and the headers were not.
+Captain caught it and named the cost: a fresh session resuming from it would
+have **built the whole hook a second time**. Fifth recorded instance of this
+project's doing-vs-recording gap, and the first that is a stale **inventory**
+rather than a stale next-step. **The standing rule gains a third clause:** after
+any session that claims a feature is done, check `git log origin/main..HEAD`,
+check that the last session note describes the last merged PR, **and check that
+every "not built" claim is still true.** Five other record errors were corrected
+in the same pass — three wrong code counts, a "Sizes now" block holding
+pre-mission numbers, a missing line count that hid a soft-cap crossing, and a
+route count that was wrong in two consecutive gate reports (30, measured 34).
+
+### Environment facts — two are CORRECTIONS to what this file said
+
+1. ⚠️ **Headless Chrome CAN be driven to a genuine 375×812 here.** This file
+   previously recorded that `--window-size`,
+   `Emulation.setDeviceMetricsOverride` and `Browser.setWindowBounds` all
+   "reported success and changed nothing." **Strange proved that false for raw
+   CDP** in `--headless=new` Chrome 152 — 500×725 → 375×812, DPR 2, mobile
+   touch, verified by reading `innerWidth` back — and Vision reproduced it
+   independently. The original finding stands only for whatever driver produced
+   it. **Do not skip a width measurement on the strength of the old note.**
+2. ⚠️ **Whether swipe pages the timeline is no longer unknown — it works.**
+   Strange drove the **real `TimelineGrid`** inside the real wrapper at a genuine
+   375×812. It also found *why* earlier attempts failed: **synthetic touch does
+   not honour `touch-action` at all**, proven by two probes (forcing
+   `touch-action: none` didn't stop the cancel; disabling the inner scroller
+   didn't either), so the very arbitration the gesture depends on is never
+   exercised. **Do not chase it.**
+3. **Minting a session JWT by hand is BLOCKED** by the environment's security
+   classifier as credential forging — this project's sanctioned pattern since
+   Phase 1e. **The block is correct; do not route around it.** Every agent this
+   session named it and substituted a component-level render of the *real*
+   components with a positive control. Naming a blocked verification is
+   required; substituting silently is not.
+4. **A leftover agent worktree inside the repo** (`.claude/worktrees/`) makes
+   `npx eslint .` walk into generated `.next` bundles and report thousands of
+   false errors. A *live* agent's worktree is locked:
+   `git worktree remove -f -f <path>` then `git worktree prune`.
+5. **A fresh worktree has no `src/generated/prisma`** — run `npx prisma
+   generate` in it or `tsc` fails.
+
+### A fourth bug in `preflight.mjs`, found by using it
+
+`F1` would not preflight, on a heading that was plainly there: the regex
+hardcoded **`C`-prefixed** contract ids, so it was blind to `B1-B6`, `CB1-CB7`,
+`DB1`, `F1`, `S1-S5` — **103 headings visible against 126**, twenty ids it could
+never see, while being item one on the dispatch checklist. **The contract was
+right and the tool was wrong**, so the tool was fixed rather than the contract
+renamed. Verified with a positive control, zero regressions across all 103
+previously-visible headings, and zero narrative sub-headings wrongly matched;
+synced to both `.claude/` copies and diffed identical. **All four bugs in this
+tool were found by acting on its output instead of skimming it.**
+
+### Routed, not done — all recorded in the mission file with measurements
+
+**To CD1 specifically:** the swipe's `pointerdown` clear sits **after two early
+returns**, so it is not unconditional — unreachable today, but **CD1 exists to
+pass the exact `isGestureClaimed` flag that resurrects it**; Vision named the
+sequence and the one-line fix. Also: `CalendarViews.tsx` is **net +12 over a
+mission whose first contract existed to shrink it** (484 → 438 → 459 → 496), and
+CD1 lands there and adds code.
+**Open elsewhere:** the sheet names no year and **0 of 42 day cells carry one in
+their `aria-label`** (`formatMonthTitle(shownMonth)` is the named remedy); swipe
+has no in-progress feedback; padding day numbers sit at 1.47:1; 18px of the 46px
+hit target never paints; and the `usePageSwipe`/`SwipeActions` duplication is
+scheduled for one migration contract, with **a third definition a BLOCKER**.
+
+### Where it stands
+
+**Open as [PR #24](https://github.com/brycemarsh6/family-hub/pull/24), Gauntlet
+green, Vercel preview deployed, MERGEABLE — deliberately NOT merged.** Preview:
+`https://family-hub-git-claude-calendar-cv6-marsh-team.vercel.app`. `CV0-CV6 ✅`;
+**CD1** (drag to reschedule) is next and was blocked on C4's hook existing.
+
+### ⚠️ Two things only Bryce can settle
+
+1. **A possible eaten tap on Inventory and Shopping rows.** Captain's reasoning
+   (labelled as such, **not** measured): a short sideways swipe that doesn't open
+   a row may make your **next tap on that row** do nothing. Months old, not from
+   this work, in a file this mission was correctly forbidden to touch. **Sixty
+   seconds on a phone settles it** — swipe a row a little, let go, tap it.
+2. **Touch-vs-scroll arbitration for swipe inside the timeline's scroller** —
+   the only part of the gesture no instrument here can reach.
+

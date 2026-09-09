@@ -28,7 +28,7 @@
 // mission brief acknowledges that when the second row's own event mix
 // differs enough, it may not.
 
-import { addDays, isSameDay, sundayOf } from "./mealPlanDates";
+import { addDays, isSameDay, isSameMonth, sundayOf } from "./mealPlanDates";
 import { daysEventCovers } from "./calendarDates";
 
 const GRID_ROWS = 6;
@@ -44,6 +44,24 @@ export function monthGridDays(anchor: Date): Date[] {
   const firstOfMonth = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
   const gridStart = sundayOf(firstOfMonth);
   return Array.from({ length: GRID_LENGTH }, (_, offset) => addDays(gridStart, offset));
+}
+
+/** A padded month grid (see `monthGridDays` above) contains up to 12 days
+ * of its neighbouring months, so a bare `isSameDay(day, today)` circles
+ * today's date on the WRONG month's grid whenever that grid is showing a
+ * month other than today's real one — DESIGN.md's today-marker rule, and
+ * the exact bug mission-19/F1 fixed in MonthJumpSheet.tsx. `MonthGrid.tsx`
+ * and `YearView.tsx` each guarded this inline before this function existed;
+ * `MonthJumpSheet.tsx` didn't, which is the "no compile error" failure
+ * DESIGN.md predicted one mission earlier. This is the invariant's one
+ * home now — homed beside the function that creates the padding it guards
+ * against, and reachable by `npm test`, which three inline `.tsx` copies
+ * structurally were not (the same `VIEW_CONFIG` lesson STRUCTURE.md
+ * already records). Route every caller that circles "today" on a padded
+ * month grid through this, rather than writing `isSameDay(day, today)` by
+ * hand again. */
+export function isTodayCell(day: Date, shownMonth: Date, today: Date): boolean {
+  return isSameDay(day, today) && isSameMonth(day, shownMonth);
 }
 
 /** The minimal, structural shape `assignLanes` needs from an event — not a

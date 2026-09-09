@@ -1,13 +1,13 @@
 "use client";
 
-import { monthGridDays, assignLanes, type MonthLayoutEvent } from "@/lib/monthLayout";
+import { monthGridDays, assignLanes, isTodayCell, type MonthLayoutEvent } from "@/lib/monthLayout";
 import {
   daysEventCovers,
   isOutsideWindow,
   allDayInstantToLocalDay,
   localDayToAllDayInstant,
 } from "@/lib/calendarDates";
-import { addDays, isSameDay, isSameMonth, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
+import { addDays, isSameMonth, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 import { MonthCell, type MonthCellSlot } from "./MonthCell";
 import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
 
@@ -209,10 +209,11 @@ export function MonthGrid({
                   today={today}
                   isCurrentMonth={isSameMonth(day, anchor)}
                   // monthGridDays pads this grid with up to 12 days from
-                  // the neighbouring months, so isToday must also check
-                  // isSameMonth or today's date circles on the wrong
-                  // month's cell.
-                  isToday={isSameDay(day, today) && isSameMonth(day, anchor)}
+                  // the neighbouring months, so a bare isSameDay would
+                  // circle today's date on the wrong month's cell.
+                  // isTodayCell (monthLayout.ts) is the one home for that
+                  // guard now (mission-19/F1) — see its own comment.
+                  isToday={isTodayCell(day, anchor, today)}
                   // Constraint 3 (Vision/mission-9): a bar the app DOES
                   // have real data for still renders through a not-loaded
                   // cell — this glyph means "there may be MORE we don't

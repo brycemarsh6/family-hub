@@ -14,7 +14,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { monthGridDays, assignLanes, type MonthLayoutEvent } from "./monthLayout";
+import { monthGridDays, assignLanes, isTodayCell, type MonthLayoutEvent } from "./monthLayout";
 import { toLocalDateString } from "./mealPlanDates";
 import { calendarDayDiff, isOutsideWindow } from "./calendarDates";
 
@@ -209,4 +209,35 @@ test("assignLanes-adjacent: a grid cell can be marked outside the fetch window",
   const lateDay = grid[35]; // deep into row 6 — outside
   assert.equal(isOutsideWindow(earlyDay, windowStart, windowEnd), false);
   assert.equal(isOutsideWindow(lateDay, windowStart, windowEnd), true);
+});
+
+// ---------------------------------------------------------------------------
+// isTodayCell — mission-19/F1 (both gates, independently): a padded month
+// grid contains up to 12 days of a neighbouring month, so a bare
+// isSameDay(day, today) circles today's date on the WRONG month's grid.
+// MonthGrid.tsx and YearView.tsx already guard this inline; MonthJumpSheet.tsx
+// (mission-19/C3) didn't, which is exactly the "no compile error" failure
+// DESIGN.md predicted one mission ago. This is the invariant's one home —
+// see monthLayout.ts's own comment beside monthGridDays, the function that
+// creates the padding this guards against.
+
+test("isTodayCell: today's real date, viewed from its own month, is true", () => {
+  const today = d(2026, 9, 1); // Oct 1 2026
+  assert.equal(isTodayCell(today, d(2026, 9, 15), today), true);
+});
+
+test("isTodayCell: today's date rendered as a PADDING cell in the wrong month's grid is false", () => {
+  // Oct 1 2026 is a Thursday and appears as a trailing padding cell in
+  // September's 42-day grid (30 Aug -> 10 Oct) -- the exact scenario in the
+  // contract: tap "Sep" on Oct 1 and the padding cell for Oct 1 must NOT
+  // read as today.
+  const today = d(2026, 9, 1); // Oct 1 2026
+  const shownMonth = d(2026, 8, 15); // September 2026
+  assert.equal(isTodayCell(today, shownMonth, today), false);
+});
+
+test("isTodayCell: a different day in the correct month is false", () => {
+  const today = d(2026, 9, 1); // Oct 1 2026
+  const otherDay = d(2026, 9, 15); // Oct 15 2026, same month, not today
+  assert.equal(isTodayCell(otherDay, d(2026, 9, 20), today), false);
 });

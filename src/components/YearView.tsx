@@ -1,7 +1,7 @@
 "use client";
 
-import { monthGridDays } from "@/lib/monthLayout";
-import { isSameDay, isSameMonth } from "@/lib/mealPlanDates";
+import { monthGridDays, isTodayCell } from "@/lib/monthLayout";
+import { isSameMonth } from "@/lib/mealPlanDates";
 
 /**
  * The Year view's whole content (mission-18/C4): twelve mini month-grids
@@ -81,8 +81,9 @@ export function YearView({ anchor, today, onPickMonth }: YearViewProps) {
               // The 42-cell grid `monthGridDays` returns spills up to 12
               // days into neighbouring months, so a bare isSameDay(day,
               // today) can circle today's date on a month it doesn't
-              // belong to — guard on inMonth too.
-              const isToday = isSameDay(day, today) && inMonth;
+              // belong to. isTodayCell (monthLayout.ts) is the one home
+              // for that guard now (mission-19/F1) — see its own comment.
+              const isToday = isTodayCell(day, month, today);
               return (
                 <span
                   key={day.getTime()}

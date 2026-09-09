@@ -109,7 +109,16 @@ function parseContracts(text) {
   const blocks = [];
   let current = null;
   for (const line of lines) {
-    const heading = line.match(/^###\s+(C[0-9]+[a-z]?)\s*[—-]/);
+    // Contract ids are NOT always C-prefixed. This repo's own history uses
+    // B1-B6, CB1-CB7, DB1, F1, S1-S5 as well — 20 ids the old `C`-only
+    // pattern was structurally blind to, across 103 vs 126 headings. Since
+    // preflight is item one on the dispatch checklist, every one of those
+    // was either dispatched unpreflighted or hard-failed and worked around.
+    // Found 2026-09-08 by a fix contract named F1 failing to preflight.
+    // The 1-3 uppercase bound is what keeps narrative sub-headings out
+    // ("### Captain pass 1 — BLOCKED" has a lowercase second char, so it
+    // cannot match); verified 0 wrongly-matched headings across all missions.
+    const heading = line.match(/^###\s+([A-Z]{1,3}[0-9]+[a-z]?)\s*[—-]/);
     if (heading) {
       if (current) blocks.push(current);
       current = { id: heading[1], heading: line, body: [] };
@@ -151,7 +160,20 @@ function parseBoundaries(body) {
     const re = /(new\s+)?`([^`]+)`/g;
     let g;
     while ((g = re.exec(chunk))) {
-      out.push({ path: g[2].trim(), isNew: Boolean(g[1]) });
+      const path = g[2].trim();
+      // A boundary line legitimately contains backticked PROSE as well as
+      // paths — a prop shape (`{anchor, onPickMonth}`), a symbol name, a
+      // parenthetical. Treating those as paths produced a hard FAIL on
+      // mission-19/C3 for a file that was never claimed to exist, which is
+      // the tool crying wolf: the contract was right and the tool was wrong.
+      // A path candidate must actually look like one — a directory
+      // separator, a file extension, or a glob. Anything else is recorded
+      // as skipped rather than dropped silently, because a genuinely
+      // mistyped path must not vanish into this filter.
+      const looksLikePath =
+        path.includes("/") || path.includes("*") || /\.[a-z0-9]+$/i.test(path);
+      if (looksLikePath) out.push({ path, isNew: Boolean(g[1]) });
+      else out.push({ path, isNew: Boolean(g[1]), notAPath: true });
     }
     return out;
   };
@@ -344,6 +366,14 @@ for (const c of targets) {
       } else {
         OK(`\`${f.path}\` — new, does not exist yet`);
       }
+      continue;
+    }
+    if (f.notAPath) {
+      WARN(
+        `\`${f.path}\` in the boundary is not path-shaped (no \`/\`, no ` +
+          `extension, no glob) — read as prose, not checked as a file. If ` +
+          `that was meant to be a path, it is mistyped.`,
+      );
       continue;
     }
     if (found.length === 0) {

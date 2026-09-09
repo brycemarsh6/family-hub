@@ -2,25 +2,18 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ListChecks } from "lucide-react";
-import { RadioSheet } from "./RadioSheet";
-import { ActionSheet } from "./ActionSheet";
 import { CalendarHeader } from "./CalendarHeader";
+import { CalendarSheets } from "./CalendarSheets";
 import { DaySection } from "./DaySection";
 import { MonthChips } from "./MonthChips";
 import { MonthGrid } from "./MonthGrid";
 import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
 import { TimelineGrid } from "./TimelineGrid";
-import { EventDetailSheet } from "./EventDetailSheet";
-import { TaskDetailSheet } from "./TaskDetailSheet";
 import { YearView } from "./YearView";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
+import { usePageSwipe } from "@/lib/usePageSwipe";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
-import {
-  CALENDAR_VIEW_OPTIONS,
-  DEFAULT_CALENDAR_VIEW,
-  type CalendarPeriodView,
-} from "@/lib/calendarViewVocabulary";
+import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { toLocalDateString } from "@/lib/mealPlanDates";
 import { useNowMinute } from "@/lib/useNowMinute";
@@ -118,7 +111,11 @@ export function CalendarViews({
   // For the Add sheet's own destinations only — the calendar's own paging
   // navigations all go through useCalendarNavigation.
   const router = useRouter();
-  const { view, anchor, today, step, goToToday, setView, openDay } =
+  // mission-19/C3 — `jumpToDay` (mission-19/C2) is what MonthJumpSheet's
+  // day taps call: jumps to an arbitrary day while keeping the CURRENT
+  // view, unlike `openDay` (Month's own day-cell tap), which always forces
+  // Day view.
+  const { view, anchor, today, step, goToToday, setView, openDay, jumpToDay } =
     useCalendarNavigation(DEFAULT_CALENDAR_VIEW);
 
   // mission-17/C4 — TimelineGrid's two dependency-injected values (see that
@@ -134,8 +131,27 @@ export function CalendarViews({
   const now = useNowMinute();
   const chromeOffsetPx = useAppHeaderHeight();
 
+  // mission-19/C4 — swipe-to-page, via a hook rather than folded in here
+  // (see usePageSwipe.ts's own header for why it's a sibling of
+  // SwipeActions.tsx's gesture machine rather than a shared import from
+  // it). Called unconditionally, the same convention as useNowMinute/
+  // useAppHeaderHeight just above — only renderPeriodContent's "month",
+  // "timeline" and "year" branches actually spread these handlers onto
+  // anything; Schedule manages its own scrolling and is never wrapped.
+  // `step` is the SAME call the header's Prev/Next arrows make (below) —
+  // this is an addition to how the calendar pages, not a replacement.
+  const pageSwipeHandlers = usePageSwipe({
+    onSwipeLeft: () => step(1),
+    onSwipeRight: () => step(-1),
+  });
+
   const [pickingView, setPickingView] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
+  // mission-19/C3 — the month-jump sheet CalendarHeader's title control
+  // opens. A fifth independent boolean, same shape as `pickingView`/
+  // `addingEvent` above (CalendarHeader also flips this one — see the
+  // header's own `onOpenMonthJump` prop).
+  const [pickingMonth, setPickingMonth] = useState(false);
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
   // mission-14/C4 — the sheet TaskCard/DaySection's onOpenTask now opens
   // for real. Just the task itself, no day: unlike an event, a task has
@@ -249,16 +265,22 @@ export function CalendarViews({
         today !== null &&
         anchor !== null && (
           <>
+            {/* mission-19/C4 — MonthChips is deliberately OUTSIDE the
+                swipe wrapper below: it scrolls itself HORIZONTALLY (its
+                own `overflow-x-auto`), so wrapping it too would fight
+                its own drag-to-scroll for the same gesture. */}
             <MonthChips anchor={anchor} onPickMonth={handlePickMonth} />
-            <MonthGrid
-              anchor={anchor}
-              today={today}
-              events={events}
-              tasks={tasks}
-              windowStart={windowStart}
-              windowEnd={windowEnd}
-              onOpenDay={openDay}
-            />
+            <div className="touch-pan-y" {...pageSwipeHandlers}>
+              <MonthGrid
+                anchor={anchor}
+                today={today}
+                events={events}
+                tasks={tasks}
+                windowStart={windowStart}
+                windowEnd={windowEnd}
+                onOpenDay={openDay}
+              />
+            </div>
           </>
         )
       );
@@ -307,18 +329,26 @@ export function CalendarViews({
       return (
         today !== null &&
         now !== null && (
-          <TimelineGrid
-            columnDays={days}
-            events={events}
-            tasks={tasks}
-            today={today}
-            now={now}
-            windowStart={windowStart}
-            windowEnd={windowEnd}
-            onOpenEvent={(event, day) => setSelected({ event, day })}
-            onOpenTask={(task) => setSelectedTask(task)}
-            chromeOffsetPx={chromeOffsetPx}
-          />
+          // mission-19/C4 — the swipe wrapper. TimelineGrid owns its own
+          // internal vertical scroller (`overflow-y-auto`); `touch-pan-y`
+          // here is what lets that scroll pass through undisturbed when a
+          // drag's vertical travel wins the direction lock (see
+          // usePageSwipe.ts's header) — the same reasoning SwipeActions.tsx
+          // already relies on for its own rows.
+          <div className="touch-pan-y" {...pageSwipeHandlers}>
+            <TimelineGrid
+              columnDays={days}
+              events={events}
+              tasks={tasks}
+              today={today}
+              now={now}
+              windowStart={windowStart}
+              windowEnd={windowEnd}
+              onOpenEvent={(event, day) => setSelected({ event, day })}
+              onOpenTask={(task) => setSelectedTask(task)}
+              chromeOffsetPx={chromeOffsetPx}
+            />
+          </div>
         )
       );
     }
@@ -337,7 +367,15 @@ export function CalendarViews({
       // already covered the fetch itself.
       return (
         today !== null &&
-        anchor !== null && <YearView anchor={anchor} today={today} onPickMonth={handlePickMonth} />
+        anchor !== null && (
+          // mission-19/C4 — the swipe wrapper. YearView's own tappable
+          // units are its 12 month buttons; a swipe's click-swallow (see
+          // usePageSwipe.ts's header) is what stops a released drag from
+          // also firing whichever tile it ends on.
+          <div className="touch-pan-y" {...pageSwipeHandlers}>
+            <YearView anchor={anchor} today={today} onPickMonth={handlePickMonth} />
+          </div>
+        )
       );
     }
 
@@ -411,74 +449,48 @@ export function CalendarViews({
         nextLabel={config.nextLabel}
         canManage={canManage}
         onAdd={() => setAddingEvent(true)}
+        onOpenMonthJump={() => setPickingMonth(true)}
       />
 
       {/* The render switch itself — which case runs for which view — lives
           in `renderPeriodContent`, above; see that function's own comment. */}
       <div className="flex flex-col gap-4">{renderPeriodContent()}</div>
 
-      {pickingView && (
-        <RadioSheet<CalendarPeriodView>
-          title="View"
-          options={CALENDAR_VIEW_OPTIONS}
-          selected={view}
-          onSelect={setView}
-          onClose={() => setPickingView(false)}
-        />
-      )}
+      {/* mission-19/C1 — the view picker, Add, event-detail, and
+          task-detail sheets were extracted verbatim into CalendarSheets
+          (see that file's own header comment for why and what's shared).
+          The four booleans/values below and their setters stay HERE,
+          unmoved: `pickingView`/`addingEvent` are also set from
+          CalendarHeader above, and `selected`/`selectedTask` are also set
+          from renderPeriodContent()'s onOpenEvent/onOpenTask callbacks —
+          so this component remains the one place all four are read from
+          and written to, exactly as before this extraction.
 
-      {addingEvent && (
-        <ActionSheet
-          title="Add"
-          onClose={() => setAddingEvent(false)}
-          items={[
-            {
-              label: "Event",
-              icon: <CalendarDays aria-hidden="true" size={18} />,
-              onClick: () => {
-                setAddingEvent(false);
-                router.push(`/calendar/new${addSheetDateParam}`);
-              },
-            },
-            {
-              label: "Task",
-              icon: <ListChecks aria-hidden="true" size={18} />,
-              onClick: () => {
-                setAddingEvent(false);
-                router.push(`/calendar/new/task${addSheetDateParam}`);
-              },
-            },
-          ]}
-        />
-      )}
-
-      {selected && (
-        <EventDetailSheet
-          event={selected.event}
-          day={selected.day}
-          createdByName={selected.event.createdByName}
-          canManage={canManage}
-          onClose={() => setSelected(null)}
-          onDeleted={() => {
-            setSelected(null);
-            router.refresh();
-          }}
-        />
-      )}
-
-      {selectedTask && (
-        <TaskDetailSheet
-          task={selectedTask}
-          people={people}
-          canManage={canManage}
-          onClose={() => setSelectedTask(null)}
-          onChanged={() => router.refresh()}
-          onDeleted={() => {
-            setSelectedTask(null);
-            router.refresh();
-          }}
-        />
-      )}
+          mission-19/C3 added a FIFTH: `pickingMonth`, also set from
+          CalendarHeader (its new `onOpenMonthJump`), plus the two
+          read-only values (`anchor`, `today`) and the one action
+          (`jumpToDay`) MonthJumpSheet needs — none of which are new state,
+          just values/functions this component already held. */}
+      <CalendarSheets
+        view={view}
+        onSelectView={setView}
+        pickingView={pickingView}
+        onClosePickingView={() => setPickingView(false)}
+        addingEvent={addingEvent}
+        onCloseAdding={() => setAddingEvent(false)}
+        addSheetDateParam={addSheetDateParam}
+        selected={selected}
+        onCloseSelected={() => setSelected(null)}
+        selectedTask={selectedTask}
+        onCloseTask={() => setSelectedTask(null)}
+        people={people}
+        canManage={canManage}
+        pickingMonth={pickingMonth}
+        onClosePickingMonth={() => setPickingMonth(false)}
+        anchor={anchor}
+        today={today}
+        onJumpToDay={jumpToDay}
+      />
     </div>
   );
 }
