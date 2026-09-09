@@ -124,7 +124,16 @@ export function nextLongPressPhase(
       return hasExceededLongPressSlop(event.dx, event.dy) ? "idle" : "pending";
     }
     if (event.type === "holdElapsed") return "dragging";
-    if (event.type === "cancel") return "idle";
+    // `release` here is an ordinary tap: pointerdown, then release before
+    // the hold elapsed — the single most common gesture on this screen (it
+    // fires every time someone taps a block to open its detail sheet). It
+    // must yield to idle exactly like `cancel` does, or the phase can never
+    // return to idle and every long press after the first tap is silently
+    // disabled for the rest of the page's life. Only a genuinely stray
+    // extra `pointerDown` (a second finger touching down, or a duplicate
+    // event) falls through below, and it is a true no-op: nothing about
+    // this gesture's state changes.
+    if (event.type === "release" || event.type === "cancel") return "idle";
     return "pending"; // a stray extra pointerDown while already pending — no-op
   }
   // dragging: once claimed, movement no longer has a "slop" to exceed —

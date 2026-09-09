@@ -20,6 +20,7 @@ import {
   nextLongPressPointerDownDecision,
   LONG_PRESS_SLOP_PX,
 } from "./useLongPressDrag";
+import type { LongPressDragPhase, LongPressDragEvent } from "./useLongPressDrag";
 
 // ---------------------------------------------------------------------------
 // hasExceededLongPressSlop
@@ -103,6 +104,68 @@ test("nextLongPressPhase: dragging ignores a stray pointerDown or a second holdE
 });
 
 // ---------------------------------------------------------------------------
+// nextLongPressPhase — the FULL (phase × event) matrix, asserted
+// exhaustively. mission-20/F1: this hook shipped with 20 tests and still
+// hid a defect (pending + release fell through to "pending" instead of
+// "idle" — an ordinary tap permanently disabled dragging) because no test
+// exercised that one pair. Every phase had a test, every event type had a
+// test — just never every combination of the two at once. Every dedicated
+// test above stays (each documents WHY a transition is what it is); this
+// table exists so a missing pair can't hide again — every cell below is
+// asserted, including the ones that are genuine no-ops. `move` uses a
+// representative under-slop delta (0, 0) here; the slop-crossing behavior
+// itself already has its own dedicated tests above and isn't re-derived
+// per phase in this table.
+const LONG_PRESS_PHASES: LongPressDragPhase[] = ["idle", "pending", "dragging"];
+const LONG_PRESS_EVENTS: LongPressDragEvent[] = [
+  { type: "pointerDown" },
+  { type: "move", dx: 0, dy: 0 },
+  { type: "holdElapsed" },
+  { type: "release" },
+  { type: "cancel" },
+];
+
+const EXPECTED_LONG_PRESS_PHASE: Record<
+  LongPressDragPhase,
+  Record<LongPressDragEvent["type"], LongPressDragPhase>
+> = {
+  idle: {
+    pointerDown: "pending",
+    move: "idle", // ignored — no gesture in progress
+    holdElapsed: "idle", // ignored — nothing pending to elapse
+    release: "idle", // ignored — nothing to release
+    cancel: "idle", // ignored — nothing to cancel
+  },
+  pending: {
+    pointerDown: "pending", // a genuinely stray extra pointerDown — no-op
+    move: "pending", // under the slop
+    holdElapsed: "dragging",
+    release: "idle", // mission-20/F1: the fix this contract exists for
+    cancel: "idle",
+  },
+  dragging: {
+    pointerDown: "dragging", // a stray extra pointerDown once already claimed — no-op
+    move: "dragging", // no slop left to exceed once claimed
+    holdElapsed: "dragging", // the timer only fires once in practice — no-op if it recurred
+    release: "idle",
+    cancel: "idle",
+  },
+};
+
+test("nextLongPressPhase: the full (phase × event) matrix — every pair asserted, so a missing case cannot hide again", () => {
+  for (const phase of LONG_PRESS_PHASES) {
+    for (const event of LONG_PRESS_EVENTS) {
+      const expected = EXPECTED_LONG_PRESS_PHASE[phase][event.type];
+      assert.equal(
+        nextLongPressPhase(phase, event),
+        expected,
+        `${phase} + ${event.type} should resolve to ${expected}, got a different phase`,
+      );
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
 // nextLongPressSwallowNextClick — same shape as usePageSwipe.ts's
 // nextSwallowNextClick, with "lockToSwiping" replaced by "holdElapsed".
 
@@ -167,4 +230,8 @@ test("nextLongPressPointerDownDecision: no-op clear when nothing needed clearing
   );
   assert.equal(decision.swallowNextClick, false);
   assert.equal(decision.shouldStartGesture, true);
+});
+
+test("nextLongPressPhase: pending + release resolves to idle — an ordinary tap (pointerDown then release before the hold elapses)", () => {
+  assert.equal(nextLongPressPhase("pending", { type: "release" }), "idle");
 });
