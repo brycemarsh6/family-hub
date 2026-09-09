@@ -1,9 +1,8 @@
 # Mission: CD1 — long-press and drag to reschedule
 
 **Project:** family-hub (Marshee)
-**Status:** **ALL 5 CONTRACTS BUILT AND MERGED to the branch. F1 (a real defect
-C5 found) is WRITTEN BUT NOT DISPATCHED — the resume point. NO GATE HAS RUN.**
-Branch `claude/calendar-cd1`, pushed, **no PR, nothing live.**
+**Status:** **ALL 5 CONTRACTS + F1 BUILT AND ON THE BRANCH. GATES RUNNING.**
+Branch `claude/calendar-cd1`. **Nothing merged; nothing live.**
 **Started:** 2026-09-09 · **Updated:** 2026-09-09
 
 ## Brief
@@ -411,14 +410,16 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
 
 ### F1 — a tap permanently disables dragging (found by C5, confirmed by Fury)
 
-- **Status:** ⛔ **NOT DISPATCHED — THIS IS THE RESUME POINT.** The contract is
-  written and its preflight ran clean (0 hard failures, 1 judgement item).
-  **Fury recorded it as "dispatched" and it never was** — the second record
-  error in this mission and the same class as the first: a claim written before
-  the action, then never reconciled. The defect is still live in the branch:
-  `useLongPressDrag.ts`'s `pending` branch still reads
-  `return "pending"; // a stray extra pointerDown while already pending — no-op`.
-  **Re-run its preflight at dispatch time**, not reusing the earlier run.
+- **Status:** ✅ **DONE `8035220`**, committed to `claude/calendar-cd1`.
+  Preflight was re-run immediately before dispatch (0 hard failures, 1 judgement
+  item — **settled by command, not skimmed**: 20 tests confirmed, and `release`
+  confirmed asserted at `:56` for `idle` and `:96` for `dragging` but **never**
+  paired with `pending`). Dispatched in the **main tree, not a worktree** —
+  deliberately, given this mission's own worktree/`.env` trap and its lost-C5
+  merge error, and this contract needs no database at all.
+  *(Historical: Fury previously recorded F1 as "dispatched" when it never was —
+  the second record error in this mission, same class as the first: a claim
+  written before the action, then never reconciled.)*
 - **The defect.** `nextLongPressPhase`'s `"pending"` branch
   (`src/lib/useLongPressDrag.ts`) handles `move`, `holdElapsed` and `cancel`,
   but **`release` falls through to `return "pending"`** — under a comment
@@ -445,6 +446,21 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
   every (phase, event) pair and assert each, so a missing case cannot hide again.
 - **Done criteria:** an ordinary tap returns the phase to `idle`; a full
   (phase × event) matrix is asserted; red-then-green evidence; gauntlet green.
+- **Outcome.** All met. Red first (`pass 20 / fail 2` against the unfixed
+  source), then green; non-vacuousness re-proven *after* committing by stashing
+  the fix back out and watching the matrix go red again. Tests **402 → 404**;
+  the matrix asserts all **15** cells. `useLongPressDrag.ts` **409 total /
+  ~181 code** — over the soft cap on totals, well under on code, so **not** a
+  split candidate under STRUCTURE.md's amended clause; not split.
+- **⚠️ The answer to "why did C4's 20 tests miss this" generalises, and is the
+  finding worth keeping.** Coverage was **per-axis, not per-cell**: every
+  *phase* had a test and every *event* had a test, so both axes looked fully
+  covered while the actual grid had an unasserted cell — and the defect lived
+  in exactly that cell. **A state machine tested by rows and columns is not
+  tested.** The builder hand-checked all 15 cells against the source and found
+  exactly one wrong pair, the one this contract targeted; no other pair was
+  incorrect. Fury verified the commit, the boundary audit, `tsc` and the
+  404-test count independently rather than trusting the report.
 
 ## ⚠️ FURY'S ERROR: "Already up to date" is a FAILURE signal, not a success one
 
@@ -487,10 +503,27 @@ they were surfaced and skimmed.
 | — | **C2** | ✅ DONE, merged | — | tests 350 → 378; suite now **382** |
 | — | **C4** | ✅ DONE, merged | — | tests 382 → **402** |
 | — | **C5** | ✅ DONE `df4ef31`, merged | — | found a C4 defect; `CalendarViews.tsx` at **640/650** |
-| — | **F1** | ⛔ **WRITTEN AND PREFLIGHTED, NEVER DISPATCHED** | — | **the resume point** |
-| — | — | **no gate has run on any of CD1** | — | — |
+| — | **F1** | ✅ DONE `8035220`, on branch | — | tests 402 → **404**; per-cell matrix, 15 cells |
+| 1 | **Vision** | _running_ | — | first gate ever to see CD1 |
+| 1 | **Captain** | _running_ | — | parallel with Vision — read-only, creates no fixtures |
+| 1 | **Strange** | _queued_ | — | **serial after Vision** — both create DB fixtures |
 
 ## Handoff log
+- 2026-09-09 — **F1 dispatched and DONE (`8035220`), gates opened.** Preflight
+  re-run at dispatch time per this file's own rule; both judgement items settled
+  by command. Verified in the tree by Fury (commit content, boundary audit,
+  `tsc`, 404 tests) rather than trusted from the report. Branch pushed and a PR
+  opened **before** the gates finish, deliberately: CV6 established that
+  synthetic touch in this environment does not honour `touch-action` at all, so
+  touch-vs-scroll arbitration on a real finger is the one thing no gate here can
+  measure — a preview in Bryce's hands during the gate rounds is the only
+  instrument that reaches it.
+- 2026-09-09 — **Gate sequencing decided.** Vision ‖ Captain, then Strange.
+  Not all three in parallel: mission-16 recorded parallel gates on the shared
+  dev branch contaminating each other's evidence (a gate's own fixture rows made
+  a broken scroll anchor read as *fixed*, across 16 runs and two gates), and CD1
+  is the first mission since CT2 with a real database write path. Captain is
+  read-only and creates no fixtures, so it is safe alongside Vision.
 - 2026-09-09 — **Mission opened.** Banner assembled and reported first; its
   brief **corrected a false premise of mine** (blocks live in
   `TimelineDayColumn.tsx`, not `TimelineGrid.tsx`) and **killed half a planned
