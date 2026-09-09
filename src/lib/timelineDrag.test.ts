@@ -19,7 +19,6 @@ import assert from "node:assert/strict";
 import {
   SNAP_MINUTES,
   minutesFromPixels,
-  pixelsFromMinutes,
   snapMinutes,
   clampStartMinutes,
   minutesOfDayToDate,
@@ -27,26 +26,17 @@ import {
   columnDateForIndex,
 } from "./timelineDrag";
 import { MINUTES_PER_DAY, MIN_BLOCK_MINUTES, minutesOfDay } from "./timelineLayout";
+// Shared with scheduleWindow.test.ts / timelineLayout.test.ts /
+// calendarDates.test.ts / scheduleWindowStateRefresh.test.ts. This file was
+// the FIFTH copy of this exact helper before mission-20/F4 migrated all
+// five to one definition — see testing/withTimeZone.ts for what it does and
+// why it's safe. Safe here because timelineDrag.ts touches only Date
+// getters and the local-component constructor — no `Intl.DateTimeFormat`,
+// which would freeze its zone at construction.
+import { withTimeZone } from "./testing/withTimeZone";
 
 function d(year: number, month: number, day: number, hour = 0, minute = 0): Date {
   return new Date(year, month, day, hour, minute);
-}
-
-/** Same trick timelineLayout.test.ts / calendarDates.test.ts use: Node
- * re-reads `process.env.TZ` for every local Date getter/constructor, so one
- * test can pin a simulated browser zone regardless of how the suite was
- * invoked. Safe here because timelineDrag.ts touches only Date getters and
- * the local-component constructor — no `Intl.DateTimeFormat`, which would
- * freeze its zone at construction. */
-function withTimeZone<T>(tz: string, run: () => T): T {
-  const previous = process.env.TZ;
-  process.env.TZ = tz;
-  try {
-    return run();
-  } finally {
-    if (previous === undefined) delete process.env.TZ;
-    else process.env.TZ = previous;
-  }
 }
 
 // Nov 1 2026 (US fall back) and Mar 8 2026 (US spring forward) — the real
@@ -79,20 +69,6 @@ test("minutesFromPixels: the inverse of topMinutes * pxPerMinute", () => {
 test("minutesFromPixels: a non-positive pxPerMinute returns 0, never Infinity/NaN", () => {
   assert.equal(minutesFromPixels(100, 0), 0);
   assert.equal(minutesFromPixels(100, -1), 0);
-});
-
-test("pixelsFromMinutes / minutesFromPixels: exhaustive round trip across realistic pxPerMinute values", () => {
-  const pxPerMinuteValues = [0.5, 1, 1.5, 2, 2.5, 3, 3.5];
-  for (const pxPerMinute of pxPerMinuteValues) {
-    for (let minutes = 0; minutes <= MINUTES_PER_DAY; minutes += 7) {
-      const px = pixelsFromMinutes(minutes, pxPerMinute);
-      const roundTripped = minutesFromPixels(px, pxPerMinute);
-      assert.ok(
-        Math.abs(roundTripped - minutes) < 1e-9,
-        `round trip drifted at minutes=${minutes}, pxPerMinute=${pxPerMinute}: got ${roundTripped}`,
-      );
-    }
-  }
 });
 
 // ---------------------------------------------------------------------------

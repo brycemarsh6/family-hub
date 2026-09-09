@@ -61,9 +61,9 @@ jobs:
       # zone), and CI must prove all three the gauntlet has always required
       # locally, not just one of them.
       - name: Tests (UTC)
-        run: TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts
+        run: TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/testing/*.test.ts
       - name: Tests (America/Los_Angeles)
-        run: TZ=America/Los_Angeles node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts
+        run: TZ=America/Los_Angeles node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/testing/*.test.ts
       - name: Build
         run: npm run build
 

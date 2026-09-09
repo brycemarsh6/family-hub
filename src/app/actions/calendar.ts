@@ -306,9 +306,13 @@ function isValidDate(value: unknown): value is Date {
  * regardless to recompute duration, so the check is free, and because a
  * silent drag of a future recurring master — once K4 starts writing rrules
  * — would move every occurrence with no this/all dialog, which is
- * data-corruption-shaped. Its own unit test uses a synthetic row for
- * exactly this reason; it is NOT exercised end to end by anything in this
- * app right now.
+ * data-corruption-shaped. **It has no unit test of its own and is NOT
+ * exercised end to end by anything in this app right now** — a `"use
+ * server"` file can only export async functions, so testing this two-line
+ * check in place would need the same policy-module split
+ * `loginRateLimitPolicy.ts` established, and doing that purely to cover an
+ * unreachable branch would be ceremony; that split is worth doing once K4
+ * gives this guard something more than "refuse" to decide.
  */
 export async function moveCalendarEvent(
   id: string,

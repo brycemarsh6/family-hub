@@ -55,18 +55,6 @@ export function minutesFromPixels(offsetPx: number, pxPerMinute: number): number
   return offsetPx / pxPerMinute;
 }
 
-/**
- * The forward direction `TimelineDayColumn.tsx` already computes inline.
- * Exported here only as `minutesFromPixels`'s round-trip partner for tests
- * and for a caller (C5's drag preview) that wants to draw the ghost block at
- * a SNAPPED minutes value without re-deriving the multiplication itself —
- * not a second copy of anything, since the component's own inline
- * `topMinutes * pxPerMinute` stays exactly as it is.
- */
-export function pixelsFromMinutes(minutes: number, pxPerMinute: number): number {
-  return minutes * pxPerMinute;
-}
-
 // ---------------------------------------------------------------------------
 // snapping
 

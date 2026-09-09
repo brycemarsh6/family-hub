@@ -3,9 +3,10 @@
 // Run with `npm test`, which pins TZ=America/Denver; the gauntlet re-runs
 // this file directly under TZ=UTC and TZ=America/Los_Angeles to prove
 // nothing here silently depends on the ambient zone. This file lives
-// directly in src/lib/ — the only place (plus src/lib/voice/) the test
-// glob (`package.json` + two CI steps, all three hand-enumerated) reaches;
-// a new subdirectory would silently drop these tests from all three.
+// directly in src/lib/ — one of the three places (plus src/lib/voice/ and,
+// since mission-20/F4, src/lib/testing/) the test glob (`package.json` +
+// two CI steps, all three hand-enumerated) reaches; a new subdirectory
+// would silently drop these tests from all three.
 //
 // Same DST-vacuity trap `timelineLayout.test.ts` and `monthLayout.test.ts`
 // already document: a fall-back/spring-forward assertion built from local
@@ -27,6 +28,13 @@ import {
 } from "./scheduleWindow";
 import { calendarDayDiff } from "./calendarDates";
 import { addDays } from "./mealPlanDates";
+// Shared with timelineLayout.test.ts / calendarDates.test.ts /
+// scheduleWindowStateRefresh.test.ts / timelineDrag.test.ts, migrated to one
+// definition in mission-20/F4 — see that file for what it does and why it's
+// safe. Safe here because scheduleWindow.ts touches only Date getters and
+// mealPlanDates/calendarDates' own local-getter helpers — no
+// `Intl.DateTimeFormat`, which would freeze its zone at construction.
+import { withTimeZone } from "./testing/withTimeZone";
 
 function d(year: number, month: number, day: number, hour = 0, minute = 0): Date {
   return new Date(year, month, day, hour, minute);
@@ -35,23 +43,6 @@ function d(year: number, month: number, day: number, hour = 0, minute = 0): Date
 /** A schedule entry; `id` doubles as the deterministic tiebreak. */
 function ev(id: string, startAt: Date, endAt: Date, allDay = false): ScheduleEvent {
   return { id, startAt, endAt, allDay };
-}
-
-/** Same trick calendarDates.test.ts / timelineLayout.test.ts use: Node
- * re-reads `process.env.TZ` for every local Date getter/constructor, so one
- * test can pin a simulated browser zone regardless of how the suite was
- * invoked. Safe here because scheduleWindow.ts touches only Date getters
- * and mealPlanDates/calendarDates' own local-getter helpers — no
- * `Intl.DateTimeFormat`, which would freeze its zone at construction. */
-function withTimeZone<T>(tz: string, run: () => T): T {
-  const previous = process.env.TZ;
-  process.env.TZ = tz;
-  try {
-    return run();
-  } finally {
-    if (previous === undefined) delete process.env.TZ;
-    else process.env.TZ = previous;
-  }
 }
 
 // Mar 8 2026 (US spring forward) and Nov 1 2026 (US fall back) — the real
