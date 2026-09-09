@@ -136,7 +136,7 @@ project, always from a false premise about what already exists.**
 ## ⚠️ A NEW environment trap, found by C3 (2026-09-09)
 
 **An agent worktree has no `.env`, and therefore no `DATABASE_URL`.** `.gitignore`
-line 34 is `.env*`, so a fresh `git worktree` gets none — confirmed by direct
+carries an `.env*` entry, so a fresh `git worktree` gets none — confirmed by direct
 `ls` on a live worktree while another builder held it. **Any contract whose
 verification needs the database cannot be verified in a worktree**, no matter how
 it is written.
@@ -462,6 +462,174 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
   incorrect. Fury verified the commit, the boundary audit, `tsc` and the
   404-test count independently rather than trusting the report.
 
+### Gate pass 1 — what both gates found, and the one pattern behind it
+
+**Both gates re-ran all six legs green** (404 tests, 34 routes) and both returned
+a **clean boundary audit** across all 10 source files. Every blocker is a
+correctness or structure finding, not a failed leg. Vision created **zero**
+fixtures and took one read-only count: `Task 0, TaskPerson 0, CalendarEvent 4,
+User 5` — exactly baseline.
+
+**Vision's three, each measured with a positive control:**
+
+1. **Any leftward pixel of drag moves the event to the previous day.**
+   `CalendarViews.tsx` resolves the column with `floor` **from the starting
+   column's left edge**, so `dx = -0.01` already lands one day earlier while
+   `+1` day needs a full column width. Measured at Week's real 47.28px column:
+   `dx=-1 → -1 day`, `dx=+46 → 0 days`. Real drags essentially never end at
+   exactly `dx = 0`, so **roughly half of all intended vertical-only drags land
+   on the wrong day** — and the optimistic update makes it look deliberate. Day
+   view is immune (one column); 3 Day and Week are not.
+2. **Midnight-crossing timed events are draggable despite being out of scope,
+   and both fragments compute a wrong time.** `belongsInAllDayRow` routes them
+   into `timed`, so C5 attached handlers to both clipped fragments; neither the
+   payload nor `onDragEnd` reads `clippedStart`/`clippedEnd`. Measured: dragging
+   the late fragment down an hour shifts it **120 minutes** and silently
+   discards the other day's portion; dragging the early fragment **up or down**
+   an hour both save the same earlier time, because `clampStartMinutes` assumes
+   single-day containment. **Present in live data** — 1 of the 4 real events has
+   this shape (count only, per the register).
+3. **An ordinary mouse mis-click leaves the gesture permanently claimed.** The
+   hold timer checks the phase but **not that the pointer is still down**, and
+   capture is taken *after* `holdElapsed` — so once the cursor leaves the block
+   no `pointermove` or `pointerup` reaches the hook, and the timer claims a drag
+   with nothing held. Measured in headless Chrome against the **real hook**:
+   positive control (press-hold-move-release) works; yanking the mouse away
+   leaves `claimed=true` with no pointer down; **touch is immune** (implicit
+   capture). From that stuck state the next press writes a **fabricated delta** —
+   a straight-down 24px drag reported `dx=+10, dy=−6` — *and* fires the click
+   that opens the detail sheet on top of it. CV6's page-swipe is dead for the
+   rest of the page's life.
+
+**Captain's two — and both are Fury's contract errors, not the builders'.** In
+each case the may-touch set made the compliant route unreachable, so the builder
+obeyed the boundary by copying, and disclosed it. **A boundary is a threshold
+you can satisfy by copying** — `color.ts` already carries that lesson on its
+face, and this is now the fourth and fifth instance on this arc.
+
+1. **A fifth `withTimeZone`**, byte-identical to the four STRUCTURE.md already
+   carries as debt, in the one clause that names a specific helper and a
+   specific count. The new copy's header cites the debt *as a pattern*, which is
+   what the clause's "not a pattern to cite" language exists to stop.
+2. **A third copy of the gesture machine's shared elements** — capture guard,
+   swallow decision, pointer-down decision, guarded `setPointerCapture` — while
+   the hold machine itself is legitimately different. Captain is explicit that
+   this is a *partial* third copy and a narrower reading is defensible, but its
+   harm test is decisive: a bug in the swallow decision now needs **three** hand
+   edits, and **the divergence the rule predicts is already live** —
+   mission-19/F1's `pointerdown` clear is in `usePageSwipe.ts` and
+   `useLongPressDrag.ts` and **still absent from `SwipeActions.tsx`**. Fury
+   confirmed that independently: `SwipeActions.tsx` arms the flag at `:116`/`:159`
+   and clears it only inside the click handler at `:149`, so a swipe that
+   produces no following click leaves it armed to eat the next tap. **That is the
+   standing "eaten tap on Inventory and Shopping" question in CLAUDE.md, which
+   until now was only ever labelled reasoning rather than measurement.**
+
+### F2 — the two component blockers
+
+- **Objective.** Fix Vision's blockers 1 and 2, plus the undismissable error.
+- **Boundaries:** may touch `src/components/CalendarViews.tsx`,
+  `src/components/TimelineDayColumn.tsx`, and any new component file extracted
+  from them · must not touch `src/lib/**`, `src/app/**`, `prisma/**`,
+  `package.json`, `.github/**`.
+- **(a) Column resolution must be symmetric.** Resolve from the column's
+  **centre**, not its left edge, so the threshold is half a column in each
+  direction. *(Vision's prescription is recorded separately from its finding —
+  on this arc a gate's finding has three times stood while its prescription was
+  wrong. Verify the prescription before adopting it.)*
+- **(b) Honour the declared scope: a clipped fragment must not be liftable.**
+  Withhold the drag handlers when `slot.block.clippedStart || clippedEnd`. Do
+  **not** attempt to make midnight-crossing drag genuinely correct — that needs
+  `onDragEnd` to work from the real `startAt` and `clampStartMinutes` to stop
+  assuming one day, and it is **out of scope per the mission Brief**.
+- **(c) `dragError` must be dismissable** — today it is cleared only by the
+  *next* drag, so a refusal sits above the calendar across view switches and
+  paging.
+- **⚠️ (d) The cap.** `CalendarViews.tsx` is at **640 of a 650 hard cap**.
+  Measure with `node .claude/skills/avengers/preflight.mjs`'s canonical counter
+  **before and after**. If your change would cross 650, **extract first, in this
+  same contract** — the seam is the **sheets/modal block**, not the render
+  switch (Captain's CV5 note: the switch is where future growth lands). Do
+  **not** write a hard-cap justification instead; mission-17 already recorded a
+  file shipping prose instead of a seam for exactly that reason, and Fury
+  recorded before dispatch that crossing 650 here is BLOCKED-ON-CONTRACT.
+- **Evidence:** for (a), a table of resolved column indices across a range of
+  `dx` either side of zero at a real column width, showing symmetry; for (b),
+  proof a clipped fragment renders identically but carries no handlers; both
+  line counts for every file touched; the six-leg gauntlet.
+
+### F3 — the stuck-gesture blocker
+
+- **Objective.** Fix Vision's blocker 3: the hold timer must not claim a drag
+  when the pointer is no longer down.
+- **Boundaries:** may touch `src/lib/useLongPressDrag.ts`,
+  `src/lib/useLongPressDrag.test.ts` · must not touch `src/components/**`,
+  `src/lib/usePageSwipe.ts`, `src/lib/timelineDrag.ts`, `src/app/**`,
+  `prisma/**`, `package.json`, `.github/**`.
+- **The structural fix is preferred over the guard.** Vision notes that
+  capturing at `pointerdown` rather than at `holdElapsed` makes both
+  `pointermove` and `pointerup` unconditionally reachable, which removes the
+  whole class rather than patching one exit. Evaluate that first; fall back to
+  an explicit pointer-is-down check only if capture-at-pointerdown breaks the
+  scroller or the page-swipe hand-off.
+- **Also add unmount cleanup** — the hook has no `useEffect` teardown at all, so
+  a pending hold timer survives the hook unmounting. Benign in React 19 on its
+  own, but it is the same missing teardown that makes this blocker possible.
+- **Reproduce before fixing.** Vision's harness bundled the real hook with
+  esbuild and drove it in headless Chrome, verifying the bundle really contained
+  the hook by grepping it for `LONG_PRESS_HOLD_MS = 400`. Reproduce the stuck
+  state that way, with the **positive control** (press-hold-move-release works)
+  and the **touch control** (touch is immune) both present — a stuck reading
+  without those two controls proves nothing.
+- **Evidence:** the reproduction before, the same harness clean after, both
+  controls in both runs, the (phase × event) matrix still green, six-leg
+  gauntlet.
+
+### F4 — the fifth copy, and two honesty fixes
+
+- **Objective.** Close Captain's blocker 1 outright, and remove two comments
+  that claim more than the code does.
+- **Boundaries:** may touch `src/lib/testing/withTimeZone.ts` **(new)**,
+  `src/lib/scheduleWindow.test.ts`, `src/lib/timelineLayout.test.ts`,
+  `src/lib/calendarDates.test.ts`, `src/lib/scheduleWindowStateRefresh.test.ts`,
+  `src/lib/timelineDrag.test.ts`, `src/lib/timelineDrag.ts`,
+  `src/app/actions/calendar.ts`, `package.json`, `.github/workflows/ci.yml` ·
+  must not touch `src/components/**`, `src/lib/useLongPressDrag*`,
+  `src/lib/usePageSwipe*`, `prisma/**`.
+- **(a) Migrate all five copies**, not just the new one — that is the clause's
+  stated intent and it closes the debt outright rather than moving it.
+  **⚠️ The glob entries ship in the same commit**: `package.json`'s test script
+  **and** `.github/workflows/ci.yml`'s **two** timezone steps are a
+  hand-enumerated, non-recursive list, so a test under `src/lib/testing/` would
+  otherwise vanish from `npm test` **and CI while the suite still reported green
+  at a lower count.**
+- **(b) `calendar.ts`'s `rrule` guard comment claims a unit test that does not
+  exist.** Captain's ruling, which I adopt: **delete the false sentence, do not
+  build the test** — extracting a two-line check into a lib module purely to
+  make it testable is ceremony, and the paragraph's other claims are accurate
+  and worth keeping.
+- **(c) `timelineDrag.ts`'s `pixelsFromMinutes` is dormant and its justification
+  has expired** — it names C5 as its reviving consumer, and C5 shipped without
+  it (the preview is a raw `translate`). Delete it and its tests, or rewrite the
+  comment to name a real future consumer. Captain's own CV2 ruling arriving on
+  schedule: a library built a phase ahead is legitimately dormant *until the
+  consuming contract ships without it.*
+- **Evidence:** proof the migrated tests actually run (a count that moves when
+  you break one on purpose), the diff of both CI steps, six-leg gauntlet at an
+  unchanged 404.
+
+### HELD — the gesture de-duplication (Captain's blocker 2)
+
+**Not dispatched. Bryce's decision**, because Captain offered a legitimate
+either/or rather than forcing it: run the migration `STRUCTURE.md` already
+schedules (one contract earlier than planned), or narrow the clause — Captain
+drafted the exact amendment text. Fury's recommendation is to run it, on the
+grounds that it is no longer hygiene: it is the contract that carries
+mission-19/F1's fix into `SwipeActions.tsx` and stops Inventory and Shopping
+eating taps. **Its final step cannot be verified by any instrument here** —
+synthetic PointerEvents cannot settle that gesture, recorded twice on this
+project — so it ends with Bryce checking it on a real phone.
+
 ## ⚠️ FURY'S ERROR: "Already up to date" is a FAILURE signal, not a success one
 
 **I merged the wrong branch, deleted the right one, and recorded C5 as merged
@@ -504,9 +672,10 @@ they were surfaced and skimmed.
 | — | **C4** | ✅ DONE, merged | — | tests 382 → **402** |
 | — | **C5** | ✅ DONE `df4ef31`, merged | — | found a C4 defect; `CalendarViews.tsx` at **640/650** |
 | — | **F1** | ✅ DONE `8035220`, on branch | — | tests 402 → **404**; per-cell matrix, 15 cells |
-| 1 | **Vision** | _running_ | — | first gate ever to see CD1 |
-| 1 | **Captain** | _running_ | — | parallel with Vision — read-only, creates no fixtures |
-| 1 | **Strange** | _queued_ | — | **serial after Vision** — both create DB fixtures |
+| 1 | **Vision** | ⛔ **BLOCKED** | **3** | wrong-day on any leftward pixel; midnight-crossing fragments; a stuck mouse gesture. Six legs re-run green; boundary audit clean; zero fixtures created |
+| 1 | **Captain** | ⛔ **BLOCKED** | **2** | a 5th `withTimeZone`; a 3rd copy of the gesture machine's shared elements. Six legs re-run green; boundary audit clean |
+| 1 | **Strange** | _deferred to the fixed tree_ | — | deliberately not run on a tree with 3 known correctness blockers — CV2's lesson: a PASS that predates a fix covers the old tree |
+| 2 | **F2 / F3 / F4** | _dispatched_ | — | parallel, disjoint boundaries (verified by command) |
 
 ## Handoff log
 - 2026-09-09 — **F1 dispatched and DONE (`8035220`), gates opened.** Preflight
@@ -531,4 +700,13 @@ they were surfaced and skimmed.
 
 ## Delivery
 
-**NOT DELIVERED — contracts written, nothing built.**
+**NOT DELIVERED.** All six contracts are built and on `claude/calendar-cd1`;
+**PR #26 is open as a draft**, nothing merged, nothing live. Gate pass 1:
+**Vision BLOCKED (3), Captain BLOCKED (2), Strange not yet run.** Fix contracts
+F2–F4 dispatched; Captain's second blocker is held pending Bryce's decision.
+
+*(This section previously read "contracts written, nothing built" while line 4
+said all contracts were built — **Captain caught it as a live self-contradiction
+in one file**, the exact class mission-19 recorded costing two days and a
+near-duplicate build. Fury's error: the status header was updated and this line
+was not.)*
