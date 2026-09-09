@@ -200,6 +200,28 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
   one; red-then-green evidence; gauntlet green.
 
 ### C2 — the pure drag math
+- **Status:** ✅ **DONE, merged.** Tests **350 → 378** (+28); combined with C1 the
+  suite is now **382**. Import surface verified by Fury as exactly
+  `./timelineLayout` and `./mealPlanDates` — no boundary reach.
+- **⭐ It proved the WRONG approach produces a WRONG answer, rather than only
+  asserting the right one works.** Concrete divergences, cited in the module's
+  own comments: **Nov 1 2026** minute 1380 (intending 23:00) → calendar-component
+  build gives `23:00 MST`, millisecond arithmetic gives **`22:00` — an hour
+  early**; **Mar 8 2026** minute 1380 → calendar-component gives
+  `Mar 08 23:00`, millisecond arithmetic gives **`Mar 09 00:00` — a full
+  calendar day late.** That is the seam that has bitten this project roughly a
+  dozen times, demonstrated rather than reasoned about.
+- **Non-vacuity proven under UTC, not assumed.** Under UTC 25 of its 28 cases
+  run and 3 skip — the 3 are the *ambient* DST cases, which cannot fire in a
+  zone with no transition, while the **TZ-pinned divergence test still runs and
+  passes**. Verified independently by Fury. The suite's UTC skip count moves
+  7 → 10 for exactly that reason.
+- **Two disclosed judgement calls, both defensible:** it did **not** import
+  `calendarViewConfig.ts` (the caller already holds `columnDays`, so
+  `columnDateForIndex` takes it as a parameter — keeping the import surface
+  minimal), and it did **not** add a monolithic "resolve the whole drag"
+  helper, leaving composition to C5 and matching how `timelineLayout.ts` itself
+  is organised as many small pure functions.
 - **Objective:** New `src/lib/timelineDrag.ts` — the inverse `blockGeometry`
   never had, plus snapping and column mapping. Pure, no React, no DOM.
 - **Surface:** pixels → minutes; **snap to 15**; clamp so a block cannot leave
@@ -339,7 +361,8 @@ they were surfaced and skimmed.
 |---|---|---|---|---|
 | — | **C1** | ✅ DONE `abbd61c`, merged | — | tests 350 → 354 |
 | — | **C3** | ✅ DONE `8526245`, merged | — | no live verification — see its entry |
-| — | — | no gate has run yet | — | — |
+| — | **C2** | ✅ DONE, merged | — | tests 350 → 378; suite now **382** |
+| — | — | no gate has run yet — C4 dispatched | — | — |
 
 ## Handoff log
 - 2026-09-09 — **Mission opened.** Banner assembled and reported first; its
