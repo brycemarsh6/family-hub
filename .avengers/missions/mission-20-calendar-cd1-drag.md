@@ -133,6 +133,25 @@ project, always from a false premise about what already exists.**
     `usePageSwipe.ts` 294, `PantryList.tsx` 379. *(Totals. Contracts must report
     BOTH counts per STRUCTURE.md, using `preflight.mjs`'s canonical counter.)*
 
+## ⚠️ A NEW environment trap, found by C3 (2026-09-09)
+
+**An agent worktree has no `.env`, and therefore no `DATABASE_URL`.** `.gitignore`
+line 34 is `.env*`, so a fresh `git worktree` gets none — confirmed by direct
+`ls` on a live worktree while another builder held it. **Any contract whose
+verification needs the database cannot be verified in a worktree**, no matter how
+it is written.
+
+Independently, **`src/lib/dal.ts` carries `import "server-only"`**, which throws
+at module load outside Next's request lifecycle — so a Server Action that imports
+it is unreachable from a plain `tsx` script *even in the main tree*. The two
+blocks compound: worktree builders cannot reach data at all, and nobody can reach
+a guarded action from Node.
+
+**Consequence for dispatching:** a contract that must touch data belongs in the
+**main tree**, or its verification belongs to a gate. Recording it here because
+it is structural, not a one-off, and it will bite every future data-touching
+contract on this project.
+
 ## Known risk, named before a gate finds it
 
 - **`calendar.ts` is at exactly 350** and C3 adds an action to it. Per the
@@ -204,6 +223,39 @@ C2's math. C5 needs C3 and C4. Sized so one dispatch survives a rate limit.
   green under all three timezone legs.
 
 ### C3 — `moveCalendarEvent`
+- **Status:** ✅ **DONE (`8526245`), merged.** Guard order verified by Fury:
+  session → role → validity → row read → all-day refusal → rrule refusal →
+  duration recompute → validate → update → refresh. Gauntlet green, tests
+  unchanged at 350 (this contract added none — see the gap below).
+- **`endAt` provably cannot come from a client:** the signature is
+  `(id, newStartAt)` — **there is no end parameter at all**, so a `curl`'d POST
+  supplying one would simply be ignored. Duration is read fresh from the stored
+  row immediately before use.
+- **It used the house helper rather than Fury's literal instruction, and was
+  right to.** The contract said `revalidatePath("/calendar")`; the builder used
+  `refreshCalendarViews()` (`calendar.ts:28`), which is what the three existing
+  write actions use (`:165`, `:229`, `:252`). Verified by Fury.
+- **⚠️ NO LIVE VERIFICATION EXISTS FOR THIS ACTION — named, not fabricated.**
+  Two independent structural blocks, both disclosed: **(a) an agent worktree has
+  no `.env` and therefore no `DATABASE_URL`** (see the new trap below), and
+  **(b) `dal.ts` carries `import "server-only"`, which throws the instant the
+  module loads outside Next's request lifecycle** — so the action is
+  unreachable from any plain Node script regardless of credentials. The builder
+  tried the one non-forging probe, hit the `server-only` throw, and stopped.
+  **No database read or write occurred — not even a count**, so the baseline
+  could be neither confirmed nor disturbed. **Closing this is a gate's job in
+  the main tree, which does have `.env`.**
+- **⚠️ FURY'S CONTRACT ERROR — the ninth of this shape.** The contract asked for
+  a unit test of the `rrule` guard but listed **only `calendar.ts`** in
+  may-touch, with no test file. The builder **flagged it rather than silently
+  writing an out-of-boundary file** — correct behaviour, and the gap is mine.
+  Note the guard may not be unit-testable in place at all: a `"use server"` file
+  may export only async functions, so testing it needs the policy split to
+  `src/lib/` that `loginRateLimitPolicy.ts` established. **Routed to the gates
+  to rule on rather than patched blind.**
+- **Size, canonical counter, reported as required:** `calendar.ts` is now
+  **461 total / ~220 code** — over the 350 soft cap, as this mission predicted.
+  The builder correctly did **not** pre-emptively split. **Captain's call.**
 - **Objective:** A guarded Server Action `moveCalendarEvent(id, newStartAt)` in
   `src/app/actions/calendar.ts`.
 - **It must recompute `endAt` from the STORED duration, server-side** — read the
@@ -286,6 +338,7 @@ they were surfaced and skimmed.
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | — | **C1** | ✅ DONE `abbd61c`, merged | — | tests 350 → 354 |
+| — | **C3** | ✅ DONE `8526245`, merged | — | no live verification — see its entry |
 | — | — | no gate has run yet | — | — |
 
 ## Handoff log
