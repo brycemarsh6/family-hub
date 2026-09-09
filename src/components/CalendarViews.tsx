@@ -3,7 +3,7 @@
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarHeader } from "./CalendarHeader";
-import { CalendarSheets } from "./CalendarSheets";
+import { CalendarSheetsHost, type CalendarSheetsHostHandle } from "./CalendarSheetsHost";
 import { DaySection } from "./DaySection";
 import { MonthChips } from "./MonthChips";
 import { MonthGrid } from "./MonthGrid";
@@ -218,13 +218,24 @@ export function CalendarViews({
       const snappedTopMinutes = snapMinutes(payload.topMinutes + deltaMinutes);
       const clampedTopMinutes = clampStartMinutes(snappedTopMinutes, payload.durationMinutes);
 
-      // Horizontal: the block's own starting column's left edge plus the
-      // raw drag distance, resolved into a column index (clamped to the
-      // real count) and then a real day — `days`, the SAME array
-      // TimelineGrid.tsx is rendering right now (fact 7, preflight).
-      const startColumnLeftPx = payload.columnIndex * payload.columnWidthPx;
+      // Horizontal: resolve from the block's own starting column's CENTRE,
+      // not its left edge — mission-20/F2(a), Vision's blocker. `columnIndex
+      // FromOffset` is a floor from offset 0, so resolving from the left
+      // edge made ANY leftward pixel (dx < 0) already read as "one day
+      // earlier," while a FULL column width was needed to cross right —
+      // asymmetric by a whole column. Starting the offset at the column's
+      // own centre (`+ columnWidthPx / 2`) makes the floor land on
+      // `columnIndex + Math.round(dx / columnWidthPx)`: symmetric, half a
+      // column either way. Verified at Week's real 47.28px column width —
+      // `dx=-23.63 -> +0 days`, `dx=-23.64 -> -1 day`, `dx=+23.63 -> +0`,
+      // `dx=+23.64 -> +1` — and clamping at the first/last column is
+      // `columnIndexFromOffset`'s own job (timelineDrag.ts), unchanged here.
+      // Then a real day — `days`, the SAME array TimelineGrid.tsx is
+      // rendering right now (fact 7, preflight).
+      const startColumnCenterPx =
+        payload.columnIndex * payload.columnWidthPx + payload.columnWidthPx / 2;
       const newColumnIndex =
-        columnIndexFromOffset(startColumnLeftPx + dx, payload.columnWidthPx, days.length) ??
+        columnIndexFromOffset(startColumnCenterPx + dx, payload.columnWidthPx, days.length) ??
         payload.columnIndex;
       const newDay = columnDateForIndex(days, newColumnIndex) ?? payload.day;
 
@@ -268,19 +279,13 @@ export function CalendarViews({
     isGestureClaimed: longPress.isGestureClaimed,
   });
 
-  const [pickingView, setPickingView] = useState(false);
-  const [addingEvent, setAddingEvent] = useState(false);
-  // mission-19/C3 — the month-jump sheet CalendarHeader's title control
-  // opens. A fifth independent boolean, same shape as `pickingView`/
-  // `addingEvent` above (CalendarHeader also flips this one — see the
-  // header's own `onOpenMonthJump` prop).
-  const [pickingMonth, setPickingMonth] = useState(false);
-  const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
-  // mission-14/C4 — the sheet TaskCard/DaySection's onOpenTask now opens
-  // for real. Just the task itself, no day: unlike an event, a task has
-  // exactly one due date, never a span, so there's no "which day was this
-  // card rendered for" ambiguity onOpenEvent's callback has to carry.
-  const [selectedTask, setSelectedTask] = useState<CalendarTaskView | null>(null);
+  // mission-20 (CD1)/F2(d) — the view-picker/Add/event-detail/task-detail/
+  // month-jump state (formerly five separate `useState`s here) now lives
+  // INSIDE `CalendarSheetsHost.tsx`, reached via an imperative handle — see
+  // that file's own header for why. `sheetsRef.current?.openX()` below
+  // replaces every direct `setX(true)`/`setSelected({...})` call this
+  // component used to make itself.
+  const sheetsRef = useRef<CalendarSheetsHostHandle>(null);
 
   // mission-15/C8 (B1) — Schedule's own live answer to "is the reader on
   // today right now," reported up by ScheduleView.tsx's own visibility
@@ -472,8 +477,8 @@ export function CalendarViews({
               now={now}
               windowStart={windowStart}
               windowEnd={windowEnd}
-              onOpenEvent={(event, day) => setSelected({ event, day })}
-              onOpenTask={(task) => setSelectedTask(task)}
+              onOpenEvent={(event, day) => sheetsRef.current?.openEvent(event, day)}
+              onOpenTask={(task) => sheetsRef.current?.openTask(task)}
               chromeOffsetPx={chromeOffsetPx}
               getHandlers={canManage ? longPress.getHandlers : undefined}
               activeDrag={longPress.activeDrag}
@@ -566,7 +571,7 @@ export function CalendarViews({
     <div>
       <CalendarHeader
         view={view}
-        onPickView={() => setPickingView(true)}
+        onPickView={() => sheetsRef.current?.openViewPicker()}
         todayResolved={today !== null}
         isCurrentPeriod={headerIsCurrentPeriod}
         onToday={handleToday}
@@ -578,8 +583,8 @@ export function CalendarViews({
         prevLabel={config.prevLabel}
         nextLabel={config.nextLabel}
         canManage={canManage}
-        onAdd={() => setAddingEvent(true)}
-        onOpenMonthJump={() => setPickingMonth(true)}
+        onAdd={() => sheetsRef.current?.openAdd()}
+        onOpenMonthJump={() => sheetsRef.current?.openMonthJump()}
       />
 
       {/* mission-20 (CD1)/C5 — the house `{ error }` pattern
@@ -589,48 +594,48 @@ export function CalendarViews({
           renderer branch. The snap-back needs no code: `useOptimistic`'s
           transition settles back onto the unchanged `events` prop the
           moment `moveCalendarEvent` returns without refreshing, so the
-          block is already back by the time this message appears. */}
+          block is already back by the time this message appears.
+
+          mission-20/F2(c) — unlike a form's inline error (cleared by the
+          NEXT submit) this banner sat outside any sheet, so nothing ever
+          cleared it: `setDragError(null)` used to run only at the top of
+          the next drag's `onDragEnd`, leaving a stale refusal on screen
+          across view switches and paging. The dismiss button below is the
+          ActionSheet.tsx "×" close-button convention (`h-11 w-11`,
+          `aria-label`) — the closest house shape, since this project has no
+          standalone toast component to borrow from instead. */}
       {dragError && (
-        <p role="alert" className="px-1 text-sm text-danger">
-          {dragError}
-        </p>
+        <div role="alert" className="flex items-center justify-between gap-2 px-1">
+          <p className="text-sm text-danger">{dragError}</p>
+          <button
+            type="button"
+            onClick={() => setDragError(null)}
+            aria-label="Dismiss"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-danger transition-colors hover:bg-surface-2"
+          >
+            ×
+          </button>
+        </div>
       )}
 
       {/* The render switch itself — which case runs for which view — lives
           in `renderPeriodContent`, above; see that function's own comment. */}
       <div className="flex flex-col gap-4">{renderPeriodContent()}</div>
 
-      {/* mission-19/C1 — the view picker, Add, event-detail, and
-          task-detail sheets were extracted verbatim into CalendarSheets
-          (see that file's own header comment for why and what's shared).
-          The four booleans/values below and their setters stay HERE,
-          unmoved: `pickingView`/`addingEvent` are also set from
-          CalendarHeader above, and `selected`/`selectedTask` are also set
-          from renderPeriodContent()'s onOpenEvent/onOpenTask callbacks —
-          so this component remains the one place all four are read from
-          and written to, exactly as before this extraction.
-
-          mission-19/C3 added a FIFTH: `pickingMonth`, also set from
-          CalendarHeader (its new `onOpenMonthJump`), plus the two
-          read-only values (`anchor`, `today`) and the one action
-          (`jumpToDay`) MonthJumpSheet needs — none of which are new state,
-          just values/functions this component already held. */}
-      <CalendarSheets
+      {/* mission-20 (CD1)/F2(d) — the view-picker/Add/event-detail/
+          task-detail/month-jump sheets now mount via `CalendarSheetsHost`
+          (see that file's own header for why); this component just hands
+          it the values it can't own itself (`view`/`onSelectView` — the
+          real view state lives in `useCalendarNavigation` — and the
+          read-only `anchor`/`today`/`onJumpToDay`/`people`/`canManage`/
+          `addSheetDateParam`) and reaches back in through `sheetsRef`. */}
+      <CalendarSheetsHost
+        ref={sheetsRef}
         view={view}
         onSelectView={setView}
-        pickingView={pickingView}
-        onClosePickingView={() => setPickingView(false)}
-        addingEvent={addingEvent}
-        onCloseAdding={() => setAddingEvent(false)}
         addSheetDateParam={addSheetDateParam}
-        selected={selected}
-        onCloseSelected={() => setSelected(null)}
-        selectedTask={selectedTask}
-        onCloseTask={() => setSelectedTask(null)}
         people={people}
         canManage={canManage}
-        pickingMonth={pickingMonth}
-        onClosePickingMonth={() => setPickingMonth(false)}
         anchor={anchor}
         today={today}
         onJumpToDay={jumpToDay}

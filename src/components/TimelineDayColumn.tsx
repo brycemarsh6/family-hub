@@ -34,7 +34,13 @@
 // copy of either is exactly the kind of drift this mission's own report
 // (`GUTTER_WIDTH_PX`, `BOTTOM_NAV_HEIGHT_PX`) keeps finding.
 
-import { minutesOfDay, MIN_BLOCK_MINUTES, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
+import {
+  minutesOfDay,
+  MIN_BLOCK_MINUTES,
+  blockGeometry,
+  type TimelineColumnSlot,
+  type TimelineBlock,
+} from "@/lib/timelineLayout";
 import { formatTimeRange, isPast } from "@/lib/calendarDates";
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
@@ -213,6 +219,37 @@ export function TimelineDayColumn({
           columnWidthPx,
         };
         const isDragging = activeDrag?.payload.eventId === event.id;
+        // mission-20 (CD1)/F2(b) — a midnight-crossing event's fragment,
+        // per `timelineLayout.ts`'s own `clippedStart`/`clippedEnd`: the
+        // mission Brief puts dragging multi-day blocks out of scope, but
+        // `belongsInAllDayRow` only routes an event out of `timed` if it's
+        // marked all-day OR covers a FULL calendar day — a Mon 23:00 ->
+        // Tue 02:00 event is neither, so it draws two clipped fragments
+        // right here, in `timed`. Neither `dragPayload` above nor
+        // CalendarViews.tsx's `onDragEnd` reads `clippedStart`/
+        // `clippedEnd` (that's out of scope too — it would need `onDragEnd`
+        // to work from the event's real `startAt`, not `topMinutes`, and
+        // `clampStartMinutes` to stop assuming one day), so a clipped
+        // fragment must simply never become draggable: withhold the
+        // handlers rather than attach ones that would compute a wrong
+        // time.
+        //
+        // `slot.block` does NOT carry `clippedStart`/`clippedEnd` — Vision's
+        // finding is right, its exact prescription (`slot.block.clippedStart`)
+        // was wrong: `TimelineGrid.tsx:390-397` drops those two fields when
+        // it builds the plain `TimelineBlock` (`id`/`topMinutes`/
+        // `heightMinutes` only) it hands to `assignColumns`, and
+        // `TimelineGrid.tsx` is outside this contract's boundary, so that
+        // drop can't be undone at the source. `blockGeometry` is pure and
+        // already imported one call site over (TimelineGrid.tsx:393) for the
+        // SAME `(day, event)` pair that produced this very slot — calling it
+        // again here, from data this component already has, reads the two
+        // flags without editing a must-not-touch file. `?? false` is
+        // defensive only: a slot that exists at all means `blockGeometry`
+        // already returned non-null for this exact pair once; it cannot
+        // rationally return null on an identical second call.
+        const geometry = blockGeometry(day, event);
+        const isClippedFragment = (geometry?.clippedStart || geometry?.clippedEnd) ?? false;
         return (
           <button
             key={slot.block.id}
@@ -225,7 +262,9 @@ export function TimelineDayColumn({
             // swallows the click a COMPLETED drag's release leaves behind,
             // so it never also fires `onOpenEvent` above
             // (useLongPressDrag.ts's own header explains the mechanism).
-            {...(getHandlers ? getHandlers(dragPayload) : {})}
+            // mission-20/F2(b) — also withheld for a clipped fragment
+            // (`isClippedFragment`, above), regardless of `getHandlers`.
+            {...(getHandlers && !isClippedFragment ? getHandlers(dragPayload) : {})}
             // D5 ("contrast by border, not alpha" — C7's Month-pill
             // ruling applies here too): the fill alone (0.05/0.10
             // alpha) measures under WCAG's 3:1 non-text floor by
