@@ -147,6 +147,61 @@ export function nextSwallowNextClick(current: boolean, event: SwallowEvent): boo
   return true; // "lockToSwiping" always arms it
 }
 
+/** A minimal shape of the two `PointerEvent` fields `handlePointerDown`
+ * actually reads — narrowed so `nextPointerDownDecision` below can be
+ * unit-tested with a plain object, no DOM. */
+export type PointerDownEventLike = {
+  pointerType: string;
+  button: number;
+};
+
+/**
+ * The whole of `handlePointerDown`'s decision-making, pulled out pure so
+ * mission-20 (CD1)/C1's fix has real automated coverage — same reasoning as
+ * `nextGestureMode`/`resolveSwipeDirection`/`nextSwallowNextClick` above:
+ * this project's toolchain has no jsdom/browser test runner (plain
+ * `node:test` only), so nothing that mounts `usePageSwipe` and dispatches a
+ * real PointerEvent sequence can be exercised in a test. The hook below
+ * calls this function directly, rather than reimplementing its logic
+ * inline — so a passing test here is a passing test of the real code path,
+ * not a parallel model that could drift from it.
+ *
+ * THE FIX THIS EXISTS TO PROVE: the swallow-clear (`nextSwallowNextClick`,
+ * `"pointerdown"`) must run for EVERY pointerdown, including one this
+ * function is about to reject (a non-primary mouse button, or — the whole
+ * reason this is mission-20/C1 — a pointer a long-press has already
+ * claimed). Before this fix the clear sat AFTER both early returns, so a
+ * claimed pointer skipped it entirely — reachable the moment CD1 passes a
+ * real `isGestureClaimed`: gesture 1 is a touch swipe that pages (arms the
+ * flag, and on touch no compatibility click is produced, so nothing clears
+ * it); gesture 2 is a long-press that claims the pointer, so the OLD
+ * `handlePointerDown` returned early at the `isGestureClaimed` check before
+ * ever reaching the clear, and the click ending that long-press was then
+ * eaten by a flag an entirely earlier gesture set. See
+ * `nextSwallowNextClick`'s own comment for the base case this builds on.
+ */
+export function nextPointerDownDecision(
+  event: PointerDownEventLike,
+  isGestureClaimed: boolean,
+  currentSwallowNextClick: boolean,
+): { swallowNextClick: boolean; shouldStartGesture: boolean } {
+  // The clear is the FIRST thing that happens — before either guard below
+  // gets a chance to return early and skip it.
+  const swallowNextClick = nextSwallowNextClick(currentSwallowNextClick, "pointerdown");
+
+  // Mouse right/middle click has no business starting a page-swipe — same
+  // guard as SwipeActions.tsx:93.
+  if (event.pointerType === "mouse" && event.button !== 0) {
+    return { swallowNextClick, shouldStartGesture: false };
+  }
+  // CD1 seam — a long-press (or whatever future gesture this becomes)
+  // already owns this pointer; never even enter "undecided".
+  if (isGestureClaimed) {
+    return { swallowNextClick, shouldStartGesture: false };
+  }
+  return { swallowNextClick, shouldStartGesture: true };
+}
+
 /** Past this much horizontal travel, a released swipe pages. Deliberately
  * a plain constant rather than something derived from screen width or
  * SwipeActions' own `openWidth` math: this gesture has no live visual
@@ -211,15 +266,18 @@ export function usePageSwipe({
   const swallowNextClick = useRef(false);
 
   function handlePointerDown(event: React.PointerEvent) {
-    // Mouse right/middle click has no business starting a page-swipe —
-    // same guard as SwipeActions.tsx:93.
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    if (isGestureClaimed?.()) return; // CD1 seam — never even enters "undecided"
-    // mission-19/F1: a NEW gesture starting always clears whatever the
-    // PREVIOUS gesture left behind — see nextSwallowNextClick's own
-    // comment for why a touch swipe can leave this flag stuck true with
-    // no compat click ever arriving to clear it.
-    swallowNextClick.current = nextSwallowNextClick(swallowNextClick.current, "pointerdown");
+    // mission-20 (CD1)/C1: the swallow-clear must run for EVERY
+    // pointerdown, even one `nextPointerDownDecision` is about to reject —
+    // see that function's own comment for the exact resurrection this
+    // fixes. Reading `decision.swallowNextClick` unconditionally, before
+    // checking `shouldStartGesture`, is what keeps the clear first.
+    const decision = nextPointerDownDecision(
+      event,
+      isGestureClaimed?.() ?? false,
+      swallowNextClick.current,
+    );
+    swallowNextClick.current = decision.swallowNextClick;
+    if (!decision.shouldStartGesture) return;
     mode.current = "undecided";
     start.current = { x: event.clientX, y: event.clientY };
     offsetRef.current = 0;
