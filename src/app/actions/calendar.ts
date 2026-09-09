@@ -282,6 +282,117 @@ function isValidDate(value: unknown): value is Date {
 }
 
 /**
+ * CD1/C3 — the write path a long-press drag on the hour timeline calls.
+ * Moves a timed event to a new start time, preserving its duration.
+ *
+ * **`endAt` is always recomputed from the STORED row, never trusted from a
+ * client-supplied value.** This is a public POST endpoint (every Server
+ * Action in this app is, per the standing DAL-pattern rule at the top of
+ * this file) — a client could otherwise post any `newStartAt`/`newEndAt`
+ * pair it liked and stretch or shrink an event that the drag gesture never
+ * touched. Reading the row's own `endAt - startAt` and applying that gap to
+ * the new start is what makes "duration is preserved" a server-enforced
+ * fact rather than a UI convention the client happens to follow.
+ *
+ * **Refuses an all-day row and a recurring row (`rrule != null`)** —
+ * defence in depth for the first, since CD1's gesture only ever attaches to
+ * blocks in `timelineLayout.ts`'s `timed` partition (all-day rows render in
+ * a different component entirely, `TimelineAllDayStrip.tsx`, with no drag
+ * handlers), and a real guard against a case that is **not reachable
+ * through the UI today** for the second: nothing hand-written in `src/`
+ * reads or writes `rrule` yet (recurrence expansion is K4 — see the
+ * column's own schema comment), so no event in this database can currently
+ * carry one. The guard is here anyway because this action reads the row
+ * regardless to recompute duration, so the check is free, and because a
+ * silent drag of a future recurring master — once K4 starts writing rrules
+ * — would move every occurrence with no this/all dialog, which is
+ * data-corruption-shaped. Its own unit test uses a synthetic row for
+ * exactly this reason; it is NOT exercised end to end by anything in this
+ * app right now.
+ */
+export async function moveCalendarEvent(
+  id: string,
+  newStartAt: Date,
+): Promise<CalendarEventActionResult> {
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
+
+  if (!isValidDate(newStartAt)) {
+    return { error: "That's not a valid time." };
+  }
+
+  const existing = await db.calendarEvent.findUnique({
+    where: { id },
+    select: {
+      title: true,
+      notes: true,
+      location: true,
+      startAt: true,
+      endAt: true,
+      allDay: true,
+      rrule: true,
+      people: { select: { userId: true } },
+    },
+  });
+  if (!existing) return { error: "That event no longer exists." };
+
+  if (existing.allDay) {
+    return { error: "All-day events can't be dragged here." };
+  }
+  if (existing.rrule !== null) {
+    return { error: "Recurring events can't be moved this way yet." };
+  }
+
+  // The stored gap, in milliseconds, is a plain DURATION comparison between
+  // two already-stored instants — not a calendar-meaningful Date
+  // construction — so plain arithmetic is fine here (see MS_PER_DAY's own
+  // comment above for the rule this isn't breaking). This is what makes
+  // "duration is preserved" a fact the server computed, not a value the
+  // client sent.
+  const durationMs = existing.endAt.getTime() - existing.startAt.getTime();
+  const newEndAt = new Date(newStartAt.getTime() + durationMs);
+
+  const userIds = existing.people.map((person) => person.userId);
+
+  // Every OTHER field is passed through unchanged from the row this action
+  // read — a move never touches title, notes, location, or people — so this
+  // calls the exact same validateEventInput updateCalendarEvent does, just
+  // against the dragged-to time. Passing `userIds` as its own
+  // `alreadyAssignedUserIds` means a person deactivated after being added to
+  // this event still passes (mission-16/C3b's carve-out), exactly as it
+  // would for any other edit that doesn't touch People.
+  const validationError = await validateEventInput(
+    {
+      title: existing.title,
+      notes: existing.notes,
+      location: existing.location,
+      startAt: newStartAt,
+      endAt: newEndAt,
+      allDay: false,
+      rrule: null,
+      userIds,
+    },
+    userIds,
+  );
+  if (validationError) return { error: validationError };
+
+  try {
+    await db.calendarEvent.update({
+      where: { id },
+      data: { startAt: newStartAt, endAt: newEndAt },
+    });
+  } catch (error) {
+    if (isMissingRowError(error)) return { error: "That event no longer exists." };
+    throw error;
+  }
+
+  refreshCalendarViews();
+  return {};
+}
+
+/**
  * The first DATA-RETURNING guarded action in this file — every other export
  * above returns `{ error? }` or void.
  *
