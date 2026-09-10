@@ -44,7 +44,7 @@ import { useEffect, useRef, useState } from "react";
 // the slop is exceeded (see `nextLongPressPhase`'s `pending` branch),
 // which is what stops the hold timer before it can ever fire.
 //
-// FIVE HOUSE GESTURE LAWS THIS FOLLOWS — same reasoning as
+// SIX HOUSE GESTURE LAWS THIS FOLLOWS — same reasoning as
 // SwipeActions.tsx / usePageSwipe.ts; see those files' own headers for the
 // fuller history behind each:
 //   1. The release decision reads a REF (`offsetRef`), never React state
@@ -90,6 +90,22 @@ import { useEffect, useRef, useState } from "react";
 //      about — see this contract's report for the headless-Chrome
 //      reproduction, before and after, including a realistic swipe that
 //      starts on a block and legitimately leaves its bounds.
+//   6. mission-20/F5 — a slop-exceeding move during "pending" RELEASES
+//      capture, right where it cancels the hold timer. Law 5's fix closed
+//      the stuck-gesture bug by capturing at pointerdown, but capturing
+//      also means every event for this pointer — including the
+//      compatibility `click` a later pointerup generates — targets THIS
+//      block regardless of where the cursor physically ends up. That's
+//      correct for a completed drag (see `nextLongPressSwallowNextClick`)
+//      and wrong for a gesture that was never a drag at all: an aborted
+//      press released outside the block was opening its detail sheet
+//      anyway, because the abandoned capture retargeted the click back
+//      onto it. `shouldReleaseCaptureOnPhaseChange` is the one place this
+//      is decided, and it decides it precisely: `release`/`cancel` already
+//      auto-release capture per spec the instant the pointer itself goes
+//      up (https://w3c.github.io/pointerevents/#implicit-release-of-pointer-capture),
+//      so only the slop-exceeding `move` needs an explicit release — see
+//      that function's own comment for why it's the one true leak.
 
 /** Hold this long, without exceeding the slop below, to claim the pointer
  * as a drag rather than a tap, a scroll, or CV6's page-swipe. */
@@ -172,6 +188,48 @@ export function nextLongPressPhase(
   // recur in practice since the timer only fires once) is a no-op.
   if (event.type === "release" || event.type === "cancel") return "idle";
   return "dragging";
+}
+
+/**
+ * True exactly when a phase transition needs THIS hook to explicitly
+ * release pointer capture — mission-20/F5. Pure and exported for the same
+ * reason `nextLongPressPhase` is: no DOM, so `node:test` can assert every
+ * cell directly, mirroring F1's own "assert every (phase, event) pair"
+ * lesson rather than re-deriving a narrower rule by hand at the one call
+ * site that needs it.
+ *
+ * THE BUG: `setPointerCapture` is taken at pointerdown (mission-20/F3) so
+ * this hook's own move/up handlers stay reachable no matter where the
+ * pointer travels — but capture ALSO retargets every subsequent event for
+ * this pointer, including the compatibility `click` a completed gesture's
+ * release generates, to the CAPTURING element. That's exactly the
+ * behaviour a genuine drag's release wants (`nextLongPressSwallowNextClick`
+ * arms the swallow for it). It's exactly the WRONG behaviour for a gesture
+ * that exceeded the slop and was never a drag at all: nothing here still
+ * wants this pointer, so releasing it outside the block must hand the
+ * click to whatever's actually under the cursor, not fabricate one on the
+ * abandoned block.
+ *
+ * WHY ONLY THIS ONE TRANSITION LEAKS. A gesture reaches `idle` three ways:
+ * `release`, `cancel`, or (only from `pending`) a slop-exceeding `move`.
+ * The first two both correspond to the POINTER ITSELF going up or being
+ * cancelled — and per the Pointer Events spec, capture is released
+ * IMPLICITLY the instant that happens
+ * (https://w3c.github.io/pointerevents/#implicit-release-of-pointer-capture),
+ * so an explicit release on those two paths would be harmless but
+ * pointless. A slop-exceeding `move` is the ONE way this hook decides the
+ * gesture is over while the pointer is still physically down — nothing
+ * about the browser's own capture bookkeeping has any reason to let go,
+ * only this hook's own state machine knows the gesture is finished. That
+ * asymmetry is exactly what this function encodes: `nextPhase === "idle"`
+ * is necessary but not sufficient — it's also true for `release`/`cancel`,
+ * which correctly return `false` below because nothing needs doing there.
+ */
+export function shouldReleaseCaptureOnPhaseChange(
+  nextPhase: LongPressDragPhase,
+  event: LongPressDragEvent,
+): boolean {
+  return nextPhase === "idle" && event.type !== "release" && event.type !== "cancel";
 }
 
 /** The two things that change this hook's OWN click-swallow flag — mirrors
@@ -405,8 +463,29 @@ export function useLongPressDrag<TPayload>(
       const dy = event.clientY - start.current.y;
 
       if (phase.current === "pending") {
-        phase.current = nextLongPressPhase(phase.current, { type: "move", dx, dy });
+        const moveEvent: LongPressDragEvent = { type: "move", dx, dy };
+        phase.current = nextLongPressPhase(phase.current, moveEvent);
         if (phase.current === "idle") clearTimer(); // slop exceeded — yield for good
+        // mission-20/F5 — the pointer is still physically down here (this
+        // is a slop-exceeding MOVE, not a release/cancel), so nothing else
+        // is going to release capture on our behalf. Left captured, this
+        // block would keep claiming every subsequent event for this
+        // pointer — including the compatibility `click` its eventual
+        // release generates, wherever the cursor actually ends up — which
+        // is exactly the spurious-open Vision measured. House law 2:
+        // try/caught, same reasoning as the `setPointerCapture` call
+        // above; `hasPointerCapture` is checked first so a pointer this
+        // hook never captured (or already released) is a true no-op, not
+        // a call that merely happens to be harmless.
+        if (shouldReleaseCaptureOnPhaseChange(phase.current, moveEvent)) {
+          try {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+          } catch {
+            // Not capturable, or already released — nothing to undo.
+          }
+        }
         return;
       }
 

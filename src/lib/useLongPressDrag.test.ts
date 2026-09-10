@@ -18,6 +18,7 @@ import {
   nextLongPressPhase,
   nextLongPressSwallowNextClick,
   nextLongPressPointerDownDecision,
+  shouldReleaseCaptureOnPhaseChange,
   LONG_PRESS_SLOP_PX,
 } from "./useLongPressDrag";
 import type { LongPressDragPhase, LongPressDragEvent } from "./useLongPressDrag";
@@ -234,4 +235,103 @@ test("nextLongPressPointerDownDecision: no-op clear when nothing needed clearing
 
 test("nextLongPressPhase: pending + release resolves to idle — an ordinary tap (pointerDown then release before the hold elapses)", () => {
   assert.equal(nextLongPressPhase("pending", { type: "release" }), "idle");
+});
+
+// ---------------------------------------------------------------------------
+// shouldReleaseCaptureOnPhaseChange — mission-20/F5. Vision measured that an
+// aborted gesture (press, move past the slop, release outside the block)
+// still opened the block's detail sheet: capture taken at pointerdown
+// (mission-20/F3) retargets the compatibility `click` a later pointerup
+// generates back onto the abandoned block, and nothing released it. Full
+// (nextPhase × event) matrix asserted, same discipline mission-20/F1
+// established for `nextLongPressPhase` itself — a state machine tested by
+// rows and columns is not tested; every cell below is asserted.
+//
+// THE RULE THE FUNCTION ENCODES is deliberately general, not "only a
+// `move` counts": release capture whenever the gesture just reached `idle`
+// by something OTHER than the pointer itself going up or being cancelled
+// (`release`/`cancel` already auto-release capture per spec the instant
+// that happens, so an explicit release there is harmless but pointless).
+// Today the ONLY event that can land on `idle` through `nextLongPressPhase`
+// without being `release`/`cancel` is a slop-exceeding `move` — so
+// `pointerDown`/`holdElapsed` reaching `idle` below are cells that cannot
+// currently occur (the phase machine's own matrix, above, proves that),
+// but the function is TOTAL and answers `true` for them too, on purpose:
+// if a future event type is ever added that also ends a gesture without
+// the pointer going up, the general rule already does the right thing for
+// it with no edit needed here — narrowing this to "only `move`" would trade
+// that safety margin for no real benefit, since the false-positive cost of
+// releasing capture on a genuinely unreachable cell is zero.
+
+const RELEASE_CAPTURE_PHASES: LongPressDragPhase[] = ["idle", "pending", "dragging"];
+const RELEASE_CAPTURE_EVENTS: LongPressDragEvent[] = [
+  { type: "pointerDown" },
+  { type: "move", dx: 0, dy: 0 },
+  { type: "holdElapsed" },
+  { type: "release" },
+  { type: "cancel" },
+];
+
+const EXPECTED_SHOULD_RELEASE_CAPTURE: Record<
+  LongPressDragPhase,
+  Record<LongPressDragEvent["type"], boolean>
+> = {
+  // nextPhase="idle": false ONLY for release/cancel — the pointer itself
+  // going up or being cancelled already auto-releases capture per spec.
+  // Every other event type is `true`, including the two (pointerDown,
+  // holdElapsed) that can never actually reach "idle" through
+  // `nextLongPressPhase` — see the general-rule comment above for why
+  // that's the right answer anyway, not an oversight.
+  idle: {
+    pointerDown: true, // unreachable in practice — true is still correct
+    move: true, // mission-20/F5's whole reason to exist
+    holdElapsed: true, // unreachable in practice — true is still correct
+    release: false, // pointerup already released capture — spec, not us
+    cancel: false, // pointercancel already released capture — spec, not us
+  },
+  // nextPhase="pending" or "dragging": the gesture hasn't ended, so nothing
+  // should ever release capture regardless of which event produced it.
+  pending: {
+    pointerDown: false,
+    move: false,
+    holdElapsed: false,
+    release: false,
+    cancel: false,
+  },
+  dragging: {
+    pointerDown: false,
+    move: false,
+    holdElapsed: false,
+    release: false,
+    cancel: false,
+  },
+};
+
+test("shouldReleaseCaptureOnPhaseChange: the full (nextPhase × event) matrix — every pair asserted, so a missing case cannot hide again", () => {
+  for (const phase of RELEASE_CAPTURE_PHASES) {
+    for (const event of RELEASE_CAPTURE_EVENTS) {
+      const expected = EXPECTED_SHOULD_RELEASE_CAPTURE[phase][event.type];
+      assert.equal(
+        shouldReleaseCaptureOnPhaseChange(phase, event),
+        expected,
+        `nextPhase=${phase} + event=${event.type} should resolve to ${expected}, got a different answer`,
+      );
+    }
+  }
+});
+
+test("shouldReleaseCaptureOnPhaseChange: the real call site's shape — pending + move exceeding the slop resolves nextPhase to idle, which must release capture", () => {
+  const phase: LongPressDragPhase = "pending";
+  const event: LongPressDragEvent = { type: "move", dx: LONG_PRESS_SLOP_PX + 1, dy: 0 };
+  const nextPhase = nextLongPressPhase(phase, event);
+  assert.equal(nextPhase, "idle");
+  assert.equal(shouldReleaseCaptureOnPhaseChange(nextPhase, event), true);
+});
+
+test("shouldReleaseCaptureOnPhaseChange: the real call site's shape — pending + move UNDER the slop resolves nextPhase to pending, which must NOT release capture", () => {
+  const phase: LongPressDragPhase = "pending";
+  const event: LongPressDragEvent = { type: "move", dx: 0, dy: 0 };
+  const nextPhase = nextLongPressPhase(phase, event);
+  assert.equal(nextPhase, "pending");
+  assert.equal(shouldReleaseCaptureOnPhaseChange(nextPhase, event), false);
 });
