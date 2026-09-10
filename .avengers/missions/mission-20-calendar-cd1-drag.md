@@ -796,6 +796,146 @@ F2's brief pointed it at "the sheets seam" as though it were untaken —
 extraction came out thin (23 net lines) and ref-shaped. One `git log` on the
 file would have settled it before dispatch.
 
+### ⛔ OPEN BLOCKER 1 (Vision pass 3) — the 8px boundary disagreement
+
+**`useLongPressDrag.ts:148` aborts at `|dx| > 8`; `usePageSwipe.ts:94` locks at
+`|dx| >= 8`. At exactly 8 pixels both are true.** `usePageSwipe` takes
+`setPointerCapture` **on the wrapper** while the long press is still `pending`;
+the block is a descendant, so it leaves the event path and its `pointerup`
+**never fires again**. Nothing clears the hold timer, which fires 400ms later
+into a still-`pending` phase and claims a drag that can never end.
+
+Measured on an **ordinary completed page-swipe that began on a block**:
+```
+release:      ["pageRight"]                   claimed=false
+700ms later:  ["pageRight","dragStart:A"]     claimed=TRUE   activeDrag {dx:0,dy:0}
+next swipe:   []            ← CV6 page-swipe dead for the rest of the page's life
+```
+**Then it writes.** From that stuck state a tap with a 12px slip clears both
+short-circuits (`CalendarViews.tsx:208`, `:245`) and becomes a snapped 15-minute
+reschedule — `moveCalendarEvent` **writing to the family's real calendar** — with
+the detail sheet opening on top. Control: the identical gesture on a healthy
+hook produces `[]`.
+
+**Mechanism pinned rather than inferred:** `dx=7` completes, `dx=8` sticks,
+`dx=9` aborts cleanly; with `usePageSwipe` unwired, `dx=8` resolves cleanly — so
+the capture steal is required.
+
+**Dated by measurement, not reasoning: F5 and F3 are both innocent.** Reproduced
+byte-for-byte on the pre-F5 (`908e9eb`) and **pre-F3** (`0bc8136`) bundles, on
+mouse and touch, with non-vacuity proven each time. It arrived with C4+C5 and
+survived Vision's own passes 1 and 2 — *"I own missing it twice."*
+
+**Not verifiable here:** on a trackpad `clientX` is an integer, so a swipe
+sampling exactly ±8 is ordinary and **desktop reachability is measured**.
+Whether a real finger at DPR 2/3 produces exactly `8.000` CSS px is
+**unmeasurable in this environment** (synthetic touch ignores `touch-action`,
+and there is no device). Bryce's laptop and the wall tablet both reach it.
+
+**Prescriptions, labelled and unverified** (a gate's prescription has been wrong
+four times on this arc, including one of Vision's this mission), in its order of
+confidence:
+1. **Guard the timer, don't align the thresholds** — refuse to claim unless this
+   hook still holds capture. Closes the **class** (anything that steals capture,
+   ever), not one pixel. *This is the guard F3 evaluated and set aside for the
+   structural fix — and the structural fix does not cover a capture steal.*
+2. Align the boundary (`>=` in `hasExceededLongPressSlop`). Cheapest, and
+   correct only while the block still holds capture — most fragile.
+3. `usePageSwipe` refuses to lock while a long press is pending — needs a second
+   seam beside `isGestureClaimed`, which C4's contract forbade.
+
+**⚠️ This IS Captain's held blocker 2.** Two machines disagreeing about a
+boundary is what "the same gesture machine copied three times" produces, and
+Captain explicitly asked whether `DIRECTION_LOCK_PX` and `LONG_PRESS_SLOP_PX`
+are one fact or two. **This defect is what "nobody decided" looks like in
+production.**
+
+### ⛔ OPEN BLOCKER 2 (Strange pass 1) — a refusal rendered in a reserved token
+
+`CalendarViews.tsx:607-618` renders the drag-rejection banner in `--danger`.
+DESIGN.md: *"warn for user mistakes, danger for destructive or urgent… Reserving
+red keeps red meaningful."* **All five strings this banner can show are refusals
+or invalid input** (`calendar.ts:323,327,343,346,349`) — none destructive, none
+urgent, and the first ("Only parents can do that.") is the rule's own worked
+example. Measured `rgb(166,58,42)` light / `rgb(232,144,120)` dark; **contrast is
+fine — the token is the defect.**
+
+**The decisive comparison, confirmed by Fury:** `EventDetailSheet.tsx:130` — the
+calendar's **own** error surface, same action family, **byte-identical** "Only
+parents can do that." — renders `bg-warn-soft` + `text-warn`. The house pattern
+appears in **25 files**; `text-danger` on a `role="alert"` in **2**. Side by side
+the house pattern reads as a contained notification and this one as a naked red
+sentence with a bare `×`, no container.
+
+**And the banner's comment cites a precedent that does not exist** — it claims
+`PutAwayButton.tsx`'s `{error && <p role="alert" …>}`; that file contains
+**zero** `role="alert"` (Fury verified: `grep -c` → 0). The third overclaiming
+comment found in this mission.
+
+It also puts a second `--danger` element on the same screen as the now-line,
+**whose DESIGN.md exception rests explicitly on `--danger` being reserved.**
+
+*Fix (prescription): the house pattern already used 25 times —
+`rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn` — keeping the
+44×44 dismiss button, retinted `text-warn`. A token/class change inside the
+existing 12 lines, so `CalendarViews.tsx` stays at 645/650.* **Do not cite
+`NutritionSection.tsx:252` as licence — it is the same drift, grandfathered.**
+
+### Strange pass 1 — what PASSED, and the notes
+
+**DESIGN.md's press-state rule, which names CD1 by name, PASSES structurally.**
+Title extent goes **1366.5 → 1506.57** and **1577.81 → 1739.54** — exactly ×1.05²
+in all four theme/view combinations — with colour, weight and `opacity: 1`
+byte-identical. The transform sits on the `<button>` itself, never an overlay,
+**so the label survives by construction rather than by luck.** The rule was
+written after mission-19's blanked label and the builder built to it; it worked.
+
+Also measured clean: the 44px timeline exception's boundary (b) holds during the
+lift (the 2px seam narrows to **1.45px** but never closes, every centre still
+resolves to itself); no `line-through`, no `opacity-*`, past blocks drain to
+`border-muted text-muted` at `opacity: 1`; `z-30` over the sticky header works as
+its comment claims; **`CalendarSheetsHost` is visually inert** and sits under no
+`backdrop-filter` ancestor, so mission-19's `position: fixed` trap is not
+reachable; and the optimistic move adds **no fourth confusable state**.
+
+**NOTES:**
+1. **The lift has effectively no elevation cue in dark mode.** `shadow-xl` is
+   `rgba(0,0,0,0.1)` — black on a `#1c1b16` ground. Light peaks at delta 99/765
+   (**1.368:1**); dark peaks at delta 10/765 (**1.033:1**) and is zero by 30px.
+   So in dark the entire confirmation the 400ms hold succeeded is `scale(1.05)` —
+   **+2.19px wide, +1.1px tall** on a Week-width 30-minute block. It
+   under-communicates; it does not lie, hence NOTE. **Strange drafted a DESIGN.md
+   amendment** (below) since no rule covers elevation and Month drag will hit it.
+2. **⚠️ ESCALATED TO BRYCE BY STRANGE — nothing says where the block will land.**
+   The block translates by the raw pixel delta while the commit snaps to 15
+   minutes and resolves the column at half-width. Measured: the block sits at
+   rail minute **835.6 = 13:56** while its own label still reads **"9 AM – 12
+   PM"** — five hours apart inside one control — and the true landing is a third
+   value (14:00, post-snap). Horizontally near the ±half-column threshold it
+   straddles two days with nothing saying which it lands on. Strange: *"the label
+   is stale rather than false… but a reasonable reading calls a five-hour
+   disagreement inside one control a semantic failure, and that call is Bryce's,
+   not mine."*
+3. **The banner leaves the hour rail 44px over-tall** until something re-measures
+   it — `TimelineGrid.tsx:288-331` re-runs only on `[columnDaysKey]` and window
+   resize, and pins the height imperatively. The banner is the first thing in the
+   app to change the height above the timeline **post-mount**. `overlapPx`
+   0 → 44 → 0 after a resize. **Strange had this filed as a BLOCKER until its own
+   reachability sweep overturned it** — 16 page-scroll positions still resolve
+   that block. Self-heals on any rotate, resize, or view switch.
+4. Rescheduling is **gesture-only** — nothing unreachable (tap → sheet → Edit),
+   but the fast path has no keyboard or assistive equivalent.
+5. **Horizontal travel in Day view does nothing but clip the block** — one
+   column, so the index clamps, yet the block still translates and the scroller
+   clips it: **28% of its width** lost at a realistic 80px thumb wander.
+
+**Strange caught its own instrument twice**: its first banner measurement
+**remounted** rather than live-toggling and produced a false clean reading; and
+NOTE 3 was a blocker until its own sweep overturned it. Zero fixtures created —
+two read-only counts only, all rendering from synthetic fixtures in a component
+harness, `prefers-color-scheme` forced **in both directions on every capture**
+and verified.
+
 ### HELD — the gesture de-duplication (Captain's blocker 2)
 
 **Not dispatched. Bryce's decision**, because Captain offered a legitimate
@@ -859,8 +999,12 @@ they were surfaced and skimmed.
 | 2 | **Fury verification** | ✅ clean tree | — | six legs green; **34 routes** (the 33 readings were dirty-tree noise); boundary audit 19 files, 0 forbidden |
 | 2 | **Captain** | ✅ **PASS** | 0 | blocker 1 closed outright; blocker 2 unchanged and correctly held. 11 notes |
 | 2 | **Vision** | ⛔ **BLOCKED** | **1** | all 3 pass-1 blockers genuinely closed; **one NEW blocker introduced by F3's own fix** |
-| 3 | **F5** | _dispatched_ | — | release capture on slop-cancel |
-| 3 | **Vision / Strange** | _next_ | — | ⚠️ **Vision's third and final pass under the budget** |
+| 3 | **F5** | ✅ DONE `1f6090b` | — | tests 403 → **406**; the capture-release decision made pure and matrix-tested |
+| 3 | **Vision** | ⛔ **BLOCKED** | **1** | ⚠️ **BUDGET EXHAUSTED — 3 of 3 passes.** Pass-2 blocker closed; blocked on a **pre-existing** defect it owns missing twice |
+| 1 | **Strange** | ⛔ **BLOCKED** | **1** | 2 passes remain. Press-state rule (which names CD1) **PASSES structurally**. 5 notes, 1 escalated to Bryce |
+
+**⛔ MISSION STOPPED AND SURFACED TO BRYCE**, per the doctrine's budget rule.
+Two blockers open. Captain PASS. Nothing merged.
 
 ## Handoff log
 - 2026-09-09 — **F1 dispatched and DONE (`8035220`), gates opened.** Preflight
@@ -885,7 +1029,8 @@ they were surfaced and skimmed.
 
 ## Delivery
 
-**NOT DELIVERED.** Nine contracts built and on `claude/calendar-cd1`
+**NOT DELIVERED — STOPPED AT THE BUDGET AND SURFACED.** Ten contracts built
+(C1–C5, F1–F5) and on `claude/calendar-cd1`
 (C1–C5, F1, F2–F4); **PR #26 is open as a draft**, nothing merged, nothing
 live. Gate pass 1: **Vision BLOCKED (3), Captain BLOCKED (2)**. All five
 blockers fixed in pass 2; **Vision and Captain are re-gating, Strange has not
