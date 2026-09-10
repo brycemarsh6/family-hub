@@ -34,6 +34,12 @@ import {
 } from "./timelineLayout";
 import { daysEventCovers } from "./calendarDates";
 import { addDays } from "./mealPlanDates";
+// Shared with scheduleWindow.test.ts / calendarDates.test.ts /
+// scheduleWindowStateRefresh.test.ts / timelineDrag.test.ts, migrated to one
+// definition in mission-20/F4 — see that file for what it does and why it's
+// safe. Safe here because timelineLayout.ts touches only Date getters — no
+// `Intl.DateTimeFormat`, which would freeze its zone at construction.
+import { withTimeZone } from "./testing/withTimeZone";
 
 function d(year: number, month: number, day: number, hour = 0, minute = 0): Date {
   return new Date(year, month, day, hour, minute);
@@ -42,22 +48,6 @@ function d(year: number, month: number, day: number, hour = 0, minute = 0): Date
 /** A timed event; `id` doubles as the deterministic tiebreak everywhere. */
 function ev(id: string, startAt: Date, endAt: Date, allDay = false): TimelineEvent {
   return { id, startAt, endAt, allDay };
-}
-
-/** Same trick calendarDates.test.ts uses: Node re-reads `process.env.TZ` for
- * every local Date getter/constructor, so one test can pin a simulated
- * browser zone regardless of how the suite was invoked. Safe here because
- * timelineLayout.ts touches only Date getters — no `Intl.DateTimeFormat`,
- * which would freeze its zone at construction. */
-function withTimeZone<T>(tz: string, run: () => T): T {
-  const previous = process.env.TZ;
-  process.env.TZ = tz;
-  try {
-    return run();
-  } finally {
-    if (previous === undefined) delete process.env.TZ;
-    else process.env.TZ = previous;
-  }
 }
 
 // Nov 1 2026 (US fall back) and Mar 8 2026 (US spring forward) — the real

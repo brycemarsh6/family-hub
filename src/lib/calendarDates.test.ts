@@ -6,8 +6,9 @@
 // in the sibling calendarDatesFormat.test.ts — split by concern (never by
 // number, per STRUCTURE.md), mission 10's C2, because this file was at 349
 // of the 350-line soft cap.
-// Run with `npm test` — this file must live directly in src/lib/, since
-// that's the only place (plus src/lib/voice/) the test glob reaches.
+// Run with `npm test` — this file must live directly in src/lib/, one of
+// the three places (plus src/lib/voice/ and, since mission-20/F4,
+// src/lib/testing/) the test glob reaches.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -19,6 +20,12 @@ import {
   formatTimeRange,
   formatAllDayLabel,
 } from "./calendarDates";
+// Shared with scheduleWindow.test.ts / timelineLayout.test.ts /
+// scheduleWindowStateRefresh.test.ts / timelineDrag.test.ts, migrated to one
+// definition in mission-20/F4 — see that file for what it does and why it's
+// safe in general. See the comment at its one call site below for a sharp
+// edge specific to this file.
+import { withTimeZone } from "./testing/withTimeZone";
 
 function d(year: number, month: number, day: number, hour = 0, minute = 0): Date {
   return new Date(year, month, day, hour, minute);
@@ -245,38 +252,21 @@ test("REGRESSION (C3): a single-day all-day event covers exactly its own day, no
 // ---------------------------------------------------------------------------
 // isOutsideWindow — mission-8 pass-2 blocker (Vision V4)
 
-/**
- * Temporarily forces `process.env.TZ` for the duration of `run`, then
- * restores whatever it was. Node/V8 re-reads `process.env.TZ` for every
- * local Date getter/constructor call (confirmed directly: this project's
- * own `test` script hardcodes `TZ=America/Denver` as a launch-time env var
- * for exactly this reason), so this is a reliable, zero-dependency way to
- * pin ONE test's simulated browser timezone regardless of which TZ the
- * whole suite happens to be invoked under. That matters specifically here:
- * `npm test` always forces America/Denver, but this project's own gauntlet
- * also re-runs this file directly under `TZ=UTC` to prove nothing else in
- * it silently depends on ambient TZ — and the V4 scenario below is
- * genuinely, deliberately about a Mountain browser watching a UTC-built
- * server window, so it needs a FIXED simulated browser timezone to mean
- * the same thing under either invocation. (The other three cases just
- * below don't need this — they build both the day and the window from the
- * same local calendar semantics, so they hold under any ambient TZ without
- * help.) One sharp edge (Vision pass-3, note 2): this only works for `Date`
- * getters — calendarDates.ts's module-level `Intl.DateTimeFormat`
- * instances freeze their zone at construction and never re-read `TZ`, so
- * `run` must call only isOutsideWindow here, never a formatter
- * (formatTimeRange, formatAllDayLabel — see calendarDatesFormat.test.ts).
- */
-function withTimeZone<T>(tz: string, run: () => T): T {
-  const previous = process.env.TZ;
-  process.env.TZ = tz;
-  try {
-    return run();
-  } finally {
-    if (previous === undefined) delete process.env.TZ;
-    else process.env.TZ = previous;
-  }
-}
+// `withTimeZone` (imported above) matters specifically here: `npm test`
+// always forces America/Denver, but this project's own gauntlet also
+// re-runs this file directly under `TZ=UTC` to prove nothing else in it
+// silently depends on ambient TZ — and the V4 scenario below is genuinely,
+// deliberately about a Mountain browser watching a UTC-built server window,
+// so it needs a FIXED simulated browser timezone to mean the same thing
+// under either invocation. (The other three cases just below don't need
+// this — they build both the day and the window from the same local
+// calendar semantics, so they hold under any ambient TZ without help.)
+// ⚠️ ONE SHARP EDGE SPECIFIC TO THIS FILE (Vision pass-3, note 2): the
+// helper only works for `Date` getters — calendarDates.ts's module-level
+// `Intl.DateTimeFormat` instances freeze their zone at construction and
+// never re-read `TZ`, so `run` must call only isOutsideWindow here, never a
+// formatter (formatTimeRange, formatAllDayLabel — see
+// calendarDatesFormat.test.ts).
 
 test("REGRESSION (V4): a day whose start is loaded but whose own local end lands past windowEnd is OUTSIDE — the boundary-day lie", () => {
   // page.tsx builds windowEnd from the SERVER's clock (UTC on Vercel);

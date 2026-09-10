@@ -115,7 +115,8 @@ import { isSameDay, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 import { isOutsideWindow } from "@/lib/calendarDates";
 import { BOTTOM_NAV_HEIGHT_PX } from "@/lib/appChrome";
 import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
-import { TimelineDayColumn } from "./TimelineDayColumn";
+import { TimelineDayColumn, type TimelineDragPayload } from "./TimelineDayColumn";
+import type { LongPressDragHandlers } from "@/lib/useLongPressDrag";
 import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
 
 /** The rail's own scale — CSS custom property `--hour-height`, per the
@@ -191,6 +192,22 @@ type TimelineGridProps = {
    * seed (a CSS `calc()` string, safe under SSR); a real measurement
    * refines it the instant this mounts. */
   chromeOffsetPx: number;
+  /** mission-20 (CD1)/C5 — binds ONE draggable block per call;
+   * `undefined` for a session that can't manage the calendar (a kid).
+   * CalendarViews.tsx's own comment explains why that client-side gate
+   * lives THERE (it's what decides whether to hand this in at all) rather
+   * than here — this file and `./TimelineDayColumn.tsx` just thread it
+   * through unconditionally, the same dependency-injection convention as
+   * `onOpenEvent` above. The SAME single `useLongPressDrag` instance
+   * `usePageSwipe`'s `isGestureClaimed` also consumes (CalendarViews.tsx)
+   * — never a second one per block. */
+  getHandlers?: (payload: TimelineDragPayload) => LongPressDragHandlers;
+  /** mission-20 (CD1)/C5 — which block (if any) is currently claimed as a
+   * drag, and its live pixel offset since pointerdown. The SAME value
+   * reaches every column (below); each one checks its own blocks against
+   * `activeDrag.payload.eventId` (./TimelineDayColumn.tsx) rather than
+   * this file filtering per column first. */
+  activeDrag: { payload: TimelineDragPayload; dx: number; dy: number } | null;
 };
 
 /** One event's shape as the pure layout library needs it — see
@@ -211,6 +228,8 @@ export function TimelineGrid({
   onOpenEvent,
   onOpenTask,
   chromeOffsetPx,
+  getHandlers,
+  activeDrag,
 }: TimelineGridProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   // mission-17/C7 (item 4) — a live DOM query, not React state, to avoid
@@ -254,6 +273,18 @@ export function TimelineGrid({
   // measurement and an imperative write in the same pass, so it keeps its
   // own query and only borrows the shared fallback constant.
   const [measuredHeightPx, setMeasuredHeightPx] = useState<number | null>(null);
+  // mission-20 (CD1)/C5 — one day-column's rendered width, in pixels.
+  // Every column is the SAME width (an equal-fraction CSS grid track,
+  // `gridTemplateColumns`'s own `repeat(columnDays.length, minmax(0,
+  // 1fr))`), so measuring the scroller's own content width once and
+  // dividing by the column count covers all of them — the identical
+  // "measure via a live ref, store in state" shape `measuredHeightPx`
+  // just above already uses, extended rather than duplicated. `0` before
+  // this first effect runs is a safe default: `columnIndexFromOffset`
+  // (timelineDrag.ts) treats a non-positive width as "no valid column,"
+  // which degrades a drag started before the very first paint to "stay
+  // on the day it started on" rather than dividing by zero.
+  const [columnWidthPx, setColumnWidthPx] = useState(0);
 
   useLayoutEffect(() => {
     const scroller = scrollerRef.current;
@@ -265,6 +296,14 @@ export function TimelineGrid({
       const navHeightPx = nav?.getBoundingClientRect().height ?? BOTTOM_NAV_HEIGHT_PX;
       const available = Math.max(window.innerHeight - top - navHeightPx, MIN_SCROLLER_HEIGHT_PX);
       setMeasuredHeightPx(available);
+      // mission-20 (CD1)/C5 — same live-DOM-query discipline as the height
+      // measurement above: `columnDays` is referenced directly here (not
+      // via `columnDaysKey`, which the deps array below already relies on
+      // for the identical reason the scroll-to-now effect further down
+      // does — see that effect's own eslint-disable comment for the
+      // precedent, mirrored at this effect's own closing deps array).
+      const widthPerColumn = (scroller!.clientWidth - GUTTER_WIDTH_PX) / Math.max(1, columnDays.length);
+      setColumnWidthPx(widthPerColumn);
       // Applied imperatively, in addition to the React state update above,
       // for a real reason and not a redundant belt-and-suspenders: the
       // scroll-to-now effect below runs in the SAME commit, immediately
@@ -287,6 +326,7 @@ export function TimelineGrid({
     // on mount: cheap, and correct if the chrome above this component ever
     // renders at a different height for a different view (it doesn't
     // today, but nothing here should assume that stays true forever).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnDaysKey]);
 
   const scrollerHeightStyle =
@@ -546,6 +586,10 @@ export function TimelineGrid({
               pxPerMinute={PX_PER_MINUTE}
               compact={compact}
               onOpenEvent={onOpenEvent}
+              columnIndex={columnIndex}
+              columnWidthPx={columnWidthPx}
+              getHandlers={getHandlers}
+              activeDrag={activeDrag}
             />
           ))}
         </div>

@@ -34,11 +34,50 @@
 // copy of either is exactly the kind of drift this mission's own report
 // (`GUTTER_WIDTH_PX`, `BOTTOM_NAV_HEIGHT_PX`) keeps finding.
 
-import { minutesOfDay, MIN_BLOCK_MINUTES, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
+import {
+  minutesOfDay,
+  MIN_BLOCK_MINUTES,
+  blockGeometry,
+  type TimelineColumnSlot,
+  type TimelineBlock,
+} from "@/lib/timelineLayout";
 import { formatTimeRange, isPast } from "@/lib/calendarDates";
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
+import type { LongPressDragHandlers } from "@/lib/useLongPressDrag";
 import type { CalendarEventView } from "@/lib/types";
+
+// mission-20 (CD1)/C5 — everything CalendarViews.tsx's own `onDragEnd` needs
+// to resolve a FINISHED drag into a new start time and day, built entirely
+// from data already known right here, per block, at the moment the drag
+// begins — no second lookup back into `timelineLayout.ts`'s slots or
+// `TimelineGrid.tsx`'s `columnDays` once the gesture is actually running.
+// `durationMinutes` is the event's REAL (unpadded) span —
+// `trueDurationMinutes` below, never the rendered box height — since it's
+// what both `timelineDrag.ts`'s `clampStartMinutes` and the final `endAt`
+// the SERVER recomputes (`moveCalendarEvent`) must agree with; the rendered
+// height is a pad for tappability, not a fact about the event (see this
+// file's own `trueDurationMinutes` comment below).
+export type TimelineDragPayload = {
+  eventId: string;
+  /** The column (day) this block STARTED in — not necessarily where it
+   * ends up; CalendarViews.tsx resolves the drop day from `columnIndex`
+   * plus the drag's horizontal travel, never from this alone. */
+  day: Date;
+  /** This day's own 0-based position within `columnDays` — the SAME index
+   * `TimelineGrid.tsx`'s own `.map()` already has for free (:537-550). */
+  columnIndex: number;
+  /** `slot.block.topMinutes` — start-of-day minutes when the drag began. */
+  topMinutes: number;
+  durationMinutes: number;
+  pxPerMinute: number;
+  /** One day-column's rendered width, in pixels — see
+   * TimelineGrid.tsx's own comment on where this is measured. `0` before
+   * that first measurement lands, which `columnIndexFromOffset`
+   * (timelineDrag.ts) treats as "no valid column" rather than something to
+   * divide by. */
+  columnWidthPx: number;
+};
 
 // `bandedBackground` (src/lib/color.ts, up to 3 diagonal bands — Month's
 // own cap, EventCard.tsx's own comment for why THIS pill is capped tighter
@@ -79,6 +118,35 @@ type TimelineDayColumnProps = {
    * per block (D5); see the block-rendering section below. */
   compact: boolean;
   onOpenEvent: (event: CalendarEventView, day: Date) => void;
+  /** mission-20 (CD1)/C5 — this day's own 0-based position within
+   * `columnDays`, needed to build a `TimelineDragPayload` that can resolve
+   * a horizontal drag into a DIFFERENT day. Not derivable from `day` alone
+   * (an `indexOf` would re-scan the array per block for no reason) — the
+   * caller already has this for free from its own `.map()`
+   * (TimelineGrid.tsx:537-550). */
+  columnIndex: number;
+  /** mission-20 (CD1)/C5 — one day-column's rendered width in pixels,
+   * measured once by the caller (the SAME live-measurement effect that
+   * already sizes the scroller's height — see TimelineGrid.tsx's own
+   * comment) and handed down as a plain number rather than re-measured
+   * here: every column is the SAME width (an equal-fraction CSS grid
+   * track), so one measurement covers all of them. */
+  columnWidthPx: number;
+  /** mission-20 (CD1)/C5 — binds ONE draggable block; `undefined` for a
+   * session that can't manage the calendar (a kid) — no handlers attached
+   * means a long-press can never even start. See CalendarViews.tsx's own
+   * comment for why that check lives there rather than here. The SAME
+   * single hook instance `usePageSwipe`'s `isGestureClaimed` also consumes
+   * (CalendarViews.tsx) — never a second one per block, which would make
+   * the "only one pointer claimed at a time" guarantee impossible to keep. */
+  getHandlers?: (payload: TimelineDragPayload) => LongPressDragHandlers;
+  /** mission-20 (CD1)/C5 — which block (if any) is currently claimed as a
+   * drag, and its live pixel offset since pointerdown. `null` whenever
+   * nothing is dragging. Every column receives the SAME value and checks
+   * its own blocks against `activeDrag.payload.eventId` — cheaper than the
+   * caller filtering per column, and there is at most one dragged block at
+   * a time regardless (`useLongPressDrag`'s own single-instance shape). */
+  activeDrag: { payload: TimelineDragPayload; dx: number; dy: number } | null;
 };
 
 export function TimelineDayColumn({
@@ -91,6 +159,10 @@ export function TimelineDayColumn({
   pxPerMinute,
   compact,
   onOpenEvent,
+  columnIndex,
+  columnWidthPx,
+  getHandlers,
+  activeDrag,
 }: TimelineDayColumnProps) {
   return (
     <div className="relative border-l border-line">
@@ -134,11 +206,65 @@ export function TimelineDayColumn({
         // (this box's height) must never stand in for a fact (how
         // long this really is) when the two disagree.
         const trueDurationMinutes = (event.endAt.getTime() - event.startAt.getTime()) / 60000;
+        // mission-20 (CD1)/C5 — everything CalendarViews.tsx's `onDragEnd`
+        // needs, built fresh per block on every render so it can never go
+        // stale mid-gesture (see TimelineDragPayload's own header comment).
+        const dragPayload: TimelineDragPayload = {
+          eventId: event.id,
+          day,
+          columnIndex,
+          topMinutes: slot.block.topMinutes,
+          durationMinutes: trueDurationMinutes,
+          pxPerMinute,
+          columnWidthPx,
+        };
+        const isDragging = activeDrag?.payload.eventId === event.id;
+        // mission-20 (CD1)/F2(b) — a midnight-crossing event's fragment,
+        // per `timelineLayout.ts`'s own `clippedStart`/`clippedEnd`: the
+        // mission Brief puts dragging multi-day blocks out of scope, but
+        // `belongsInAllDayRow` only routes an event out of `timed` if it's
+        // marked all-day OR covers a FULL calendar day — a Mon 23:00 ->
+        // Tue 02:00 event is neither, so it draws two clipped fragments
+        // right here, in `timed`. Neither `dragPayload` above nor
+        // CalendarViews.tsx's `onDragEnd` reads `clippedStart`/
+        // `clippedEnd` (that's out of scope too — it would need `onDragEnd`
+        // to work from the event's real `startAt`, not `topMinutes`, and
+        // `clampStartMinutes` to stop assuming one day), so a clipped
+        // fragment must simply never become draggable: withhold the
+        // handlers rather than attach ones that would compute a wrong
+        // time.
+        //
+        // `slot.block` does NOT carry `clippedStart`/`clippedEnd` — Vision's
+        // finding is right, its exact prescription (`slot.block.clippedStart`)
+        // was wrong: `TimelineGrid.tsx:390-397` drops those two fields when
+        // it builds the plain `TimelineBlock` (`id`/`topMinutes`/
+        // `heightMinutes` only) it hands to `assignColumns`, and
+        // `TimelineGrid.tsx` is outside this contract's boundary, so that
+        // drop can't be undone at the source. `blockGeometry` is pure and
+        // already imported one call site over (TimelineGrid.tsx:393) for the
+        // SAME `(day, event)` pair that produced this very slot — calling it
+        // again here, from data this component already has, reads the two
+        // flags without editing a must-not-touch file. `?? false` is
+        // defensive only: a slot that exists at all means `blockGeometry`
+        // already returned non-null for this exact pair once; it cannot
+        // rationally return null on an identical second call.
+        const geometry = blockGeometry(day, event);
+        const isClippedFragment = (geometry?.clippedStart || geometry?.clippedEnd) ?? false;
         return (
           <button
             key={slot.block.id}
             type="button"
             onClick={() => onOpenEvent(event, day)}
+            // mission-20 (CD1)/C5 — `getHandlers` is `undefined` for a kid
+            // session (CalendarViews.tsx's own client-side gate), so no
+            // pointer handlers attach at all and a long-press can never
+            // start; `onClickCapture` inside these handlers is what
+            // swallows the click a COMPLETED drag's release leaves behind,
+            // so it never also fires `onOpenEvent` above
+            // (useLongPressDrag.ts's own header explains the mechanism).
+            // mission-20/F2(b) — also withheld for a clipped fragment
+            // (`isClippedFragment`, above), regardless of `getHandlers`.
+            {...(getHandlers && !isClippedFragment ? getHandlers(dragPayload) : {})}
             // D5 ("contrast by border, not alpha" — C7's Month-pill
             // ruling applies here too): the fill alone (0.05/0.10
             // alpha) measures under WCAG's 3:1 non-text floor by
@@ -163,9 +289,21 @@ export function TimelineDayColumn({
             // route for anyone who wants one. What the ruling did
             // NOT accept is the abutment between two such
             // blocks — see `drawnHeightPx` above for that fix.
+            // mission-20 (CD1)/C5 — the lift is `shadow-xl` plus a live
+            // `transform` on THIS SAME button, never a separate overlay:
+            // DESIGN.md's press-state rule ("a press state must never
+            // reduce the legibility of a label inside its own target")
+            // binds a control whose target is an overlay painted ABOVE its
+            // own text — the exact shape a `-z-10`/absolutely-positioned
+            // lift layer would recreate. A `transform`/`box-shadow` on the
+            // button ITSELF carries every descendant (the title span
+            // below) along for the ride unchanged — same colour, same
+            // opacity, same DOM node — so the label's ink count and
+            // contrast survive the lift by construction, not by measurement
+            // after the fact.
             className={`absolute flex flex-col justify-start overflow-hidden rounded-md border px-1 text-left leading-tight ${
               past ? "border-muted text-muted" : "border-fg text-fg"
-            }`}
+            } ${isDragging ? "shadow-xl" : ""}`}
             style={{
               top: `${slot.block.topMinutes * pxPerMinute}px`,
               height: `${drawnHeightPx}px`,
@@ -176,6 +314,22 @@ export function TimelineDayColumn({
               // same overlap cluster, not just top-to-bottom ones.
               width: `calc(100% / ${slot.columnCount} - 2px)`,
               background: bandedBackground(colors, past ? 0.05 : 0.1),
+              // mission-20 (CD1)/C5 — `translate` follows the finger's raw
+              // pixel offset since pointerdown (useLongPressDrag.ts's own
+              // `activeDrag.dx/dy`); `scale(1.05)` is the lift itself. Both
+              // live in the SAME `transform` string on purpose — an inline
+              // style always wins specificity over a Tailwind utility
+              // class, so a separate `scale-105` class here would silently
+              // lose the translate the moment this object also sets
+              // `transform`. `zIndex: 30` clears the sticky header
+              // (`z-20`, TimelineGrid.tsx) so a block dragged toward the
+              // top of the rail draws above it rather than under it.
+              ...(activeDrag && isDragging
+                ? {
+                    transform: `translate(${activeDrag.dx}px, ${activeDrag.dy}px) scale(1.05)`,
+                    zIndex: 30,
+                  }
+                : {}),
             }}
           >
             {/* `<button>` elements are vertically centered by the

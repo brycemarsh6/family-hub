@@ -19,9 +19,10 @@
 // Run with `npm test`, which pins TZ=America/Denver; the gauntlet re-runs
 // this file directly under TZ=UTC and TZ=America/Los_Angeles to prove
 // nothing here silently depends on the ambient zone. This file lives
-// directly in src/lib/ — the only place (plus src/lib/voice/) the test
-// glob (`package.json` + two CI steps, all three hand-enumerated) reaches;
-// a new subdirectory would silently drop these tests from all three.
+// directly in src/lib/ — one of the three places (plus src/lib/voice/ and,
+// since mission-20/F4, src/lib/testing/) the test glob (`package.json` +
+// two CI steps, all three hand-enumerated) reaches; a new subdirectory
+// would silently drop these tests from all three.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -36,27 +37,16 @@ import {
 import { addDays } from "./mealPlanDates";
 import { calendarDayDiff, localDayToAllDayInstant } from "./calendarDates";
 import type { CalendarEventView, CalendarTaskView } from "./types";
+// Shared with scheduleWindow.test.ts / timelineLayout.test.ts /
+// calendarDates.test.ts / timelineDrag.test.ts, migrated to one definition
+// in mission-20/F4 — see that file for what it does and why it's safe. Safe
+// here because scheduleWindowState.ts touches only Date getters and
+// mealPlanDates/calendarDates/scheduleWindow's own local-getter helpers —
+// no `Intl.DateTimeFormat`, which would freeze its zone at construction.
+import { withTimeZone } from "./testing/withTimeZone";
 
 function d(year: number, month: number, day: number, hour = 0, minute = 0): Date {
   return new Date(year, month, day, hour, minute);
-}
-
-/** Same trick calendarDates.test.ts / scheduleWindow.test.ts use: Node
- * re-reads `process.env.TZ` for every local Date getter/constructor, so one
- * test can pin a simulated browser zone regardless of how the suite was
- * invoked. Safe here because scheduleWindowState.ts touches only Date
- * getters and mealPlanDates/calendarDates/scheduleWindow's own local-getter
- * helpers — no `Intl.DateTimeFormat`, which would freeze its zone at
- * construction. */
-function withTimeZone<T>(tz: string, run: () => T): T {
-  const previous = process.env.TZ;
-  process.env.TZ = tz;
-  try {
-    return run();
-  } finally {
-    if (previous === undefined) delete process.env.TZ;
-    else process.env.TZ = previous;
-  }
 }
 
 /** A minimal-but-complete CalendarEventView, every field a fixed

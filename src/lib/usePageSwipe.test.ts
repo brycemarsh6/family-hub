@@ -10,7 +10,13 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { nextGestureMode, resolveSwipeDirection, nextSwallowNextClick, DIRECTION_LOCK_PX } from "./usePageSwipe";
+import {
+  nextGestureMode,
+  resolveSwipeDirection,
+  nextSwallowNextClick,
+  nextPointerDownDecision,
+  DIRECTION_LOCK_PX,
+} from "./usePageSwipe";
 
 test("nextGestureMode: stays undecided while BOTH axes are still under the lock distance", () => {
   assert.equal(nextGestureMode("undecided", 3, 2), "undecided");
@@ -81,4 +87,64 @@ test("nextSwallowNextClick: pointerdown is a no-op when nothing needed clearing"
 test("nextSwallowNextClick: locking into a swipe arms the swallow regardless of its prior value", () => {
   assert.equal(nextSwallowNextClick(false, "lockToSwiping"), true);
   assert.equal(nextSwallowNextClick(true, "lockToSwiping"), true);
+});
+
+// ---------------------------------------------------------------------------
+// nextPointerDownDecision — mission-20 (CD1)/C1, the precondition Vision
+// named at mission-19 pass 2. `nextSwallowNextClick` itself is UNCHANGED by
+// this fix — its contract ("pointerdown" always returns false) already
+// holds and a test that only calls it directly cannot go red for this bug.
+// What changes is whether `handlePointerDown` ever REACHES that call on a
+// pointerdown it's about to reject — before this fix, the two early-return
+// guards (a non-primary mouse button; `isGestureClaimed()`) sat BEFORE the
+// clear, so a rejected pointerdown skipped it entirely. These tests call
+// `nextPointerDownDecision` — the exact function `handlePointerDown` calls,
+// not a parallel model of it — so they exercise the real ordering, not a
+// restatement of `nextSwallowNextClick`'s own already-true contract.
+
+test("nextPointerDownDecision: clears a stale swallow flag even on a pointerdown a long-press has ALREADY claimed", () => {
+  // This is the resurrection Vision named: gesture 1 (a touch swipe) arms
+  // the flag and releases with no compat click to clear it; gesture 2 is a
+  // long-press that claims the pointer BEFORE this decision is reached.
+  // The clear must still run, even though shouldStartGesture is false.
+  const decision = nextPointerDownDecision(
+    { pointerType: "touch", button: 0 },
+    /* isGestureClaimed */ true,
+    /* currentSwallowNextClick */ true,
+  );
+  assert.equal(decision.swallowNextClick, false);
+  assert.equal(decision.shouldStartGesture, false);
+});
+
+test("nextPointerDownDecision: clears a stale swallow flag even on a non-primary mouse button", () => {
+  // The other early return — same guard as SwipeActions.tsx:93 — is ahead
+  // of the clear too, for the same reason: "a new gesture always clears
+  // what the last one left" shouldn't have exceptions.
+  const decision = nextPointerDownDecision(
+    { pointerType: "mouse", button: 2 },
+    /* isGestureClaimed */ false,
+    /* currentSwallowNextClick */ true,
+  );
+  assert.equal(decision.swallowNextClick, false);
+  assert.equal(decision.shouldStartGesture, false);
+});
+
+test("nextPointerDownDecision: an ordinary pointerdown clears the flag AND starts the gesture", () => {
+  const decision = nextPointerDownDecision(
+    { pointerType: "touch", button: 0 },
+    /* isGestureClaimed */ false,
+    /* currentSwallowNextClick */ true,
+  );
+  assert.equal(decision.swallowNextClick, false);
+  assert.equal(decision.shouldStartGesture, true);
+});
+
+test("nextPointerDownDecision: no-op clear when nothing needed clearing, gesture still starts", () => {
+  const decision = nextPointerDownDecision(
+    { pointerType: "touch", button: 0 },
+    /* isGestureClaimed */ false,
+    /* currentSwallowNextClick */ false,
+  );
+  assert.equal(decision.swallowNextClick, false);
+  assert.equal(decision.shouldStartGesture, true);
 });
