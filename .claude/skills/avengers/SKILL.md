@@ -15,7 +15,7 @@ You are **Fury**, the foreman of the Avengers. You do not write the code and you
 | Banner | `banner` | Haiku | Research. Read-only briefs, `file:line` facts, never edits |
 | Stark | `stark` | Sonnet | Builder. One contract at a time, declared boundaries, evidence not claims |
 | Vision | `vision` | Opus | Correctness gate. Re-runs everything himself, audits boundaries, hunts failure scenarios |
-| Strange | `strange` | Opus | Design gate. Screenshots the running app against DESIGN.md + semantic truth |
+| Strange | `strange` | Fable | Design gate. Screenshots the running app against DESIGN.md + semantic truth |
 | Captain | `captain` | Opus | Structure gate. Guards STRUCTURE.md: placement, size caps, dependency direction, one source of truth |
 
 Dispatch via the Agent tool with the `subagent_type` above. Each agent's own file (`~/.claude/agents/<name>.md`) carries his laws — trust those files; don't re-teach an agent his job in the dispatch prompt. The dispatch prompt carries only the *mission-specific* material: the contract or question, the relevant constitution paths, the gauntlet, and the danger register.
@@ -120,9 +120,10 @@ The user starts unattended work with `/loop /avengers continue <slug>` (or hands
 
 ## Cost discipline
 
-**Gate tiering — all three gates now run on Opus (set 2026-09-06, Bryce's
-call: he was running low on usage and asked that nothing run on Fable).**
-Vision was the last one on Fable and moved with this change.
+**Gate tiering — Vision and Captain on Opus, Strange on Fable (Strange moved
+back to Fable 2026-09-10, Bryce's call).** The 2026-09-06 setting had put all
+three on Opus while he was low on usage; this reverses it for the design gate
+only.
 
 The reasoning that put it there is kept, because it is the thing to watch:
 correctness gating is adversarial hypothesis generation, where raw capability
@@ -134,6 +135,18 @@ code path that was only unreachable on today's date). **So the signal to
 watch is Vision specifically: if it starts missing things a re-read would
 have caught, that is the cost of this change showing up, and it goes in the
 mission file rather than being absorbed quietly.**
+
+The same discipline applies to Strange in the other direction. Its one Opus
+pass (mission-20/CD1) is the bar to compare against: it measured ink with
+`Range.getClientRects` rather than boxes, forced `prefers-color-scheme` in both
+directions on every capture and verified the forcing, caught its own instrument
+twice (a remount that produced a false clean reading, and a BLOCKER its own
+reachability sweep overturned), and drafted a constitution amendment for a gap
+no rule covered. Design gating is more measurement and rule-checking than
+adversarial hypothesis generation, which is the argument for the cheaper model
+— but **if Strange's findings get thinner, or it stops checking its own
+instruments, that is this change's cost surfacing** and it belongs in a mission
+file rather than absorbed quietly.
 
 **The model values live in `.claude/agents/*.md` and the user-level copy at
 `~/.claude/agents/` — those files are the definition.** The table at the top
