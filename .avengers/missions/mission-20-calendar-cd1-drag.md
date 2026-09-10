@@ -696,6 +696,106 @@ From Vision pass 1, all NOTES rather than blockers:
   needs a substantive update anyway — the debt it describes is closed** — so it
   goes to Bryce as an amendment rather than a silent edit.
 
+### Gate pass 2 — verdicts, and the one thing the fix itself broke
+
+**Captain: PASS**, 0 blockers. **Vision: BLOCKED**, 1 new blocker — introduced
+by F3 and invisible to all three builders. All three of Vision's pass-1
+blockers are **genuinely closed**, each with a positive control and a pre-fix
+run proving the instrument could go red.
+
+**The new blocker — `useLongPressDrag.ts:368-374`.** F3's fix (capture at
+`pointerdown`) was right and closed a severe bug, but capture **retargets the
+compatibility `click`** to the capturing element. So on a gesture that was never
+a drag — press, move ≥8px so the slop cancels the hold, release with the cursor
+**outside** the block — the click now lands on the block and **opens the event
+detail sheet, which carries Edit and Delete.** Reproduced in **4 of 8
+scenarios**, identically with a `<div>` and a real `<button>`. **Touch is
+unaffected** (measured pre vs post as byte-identical, with a passing tap
+control) because touch already had implicit capture. **Strictly better than
+pre-fix**, which left the gesture permanently stuck — so a residual, not a
+regression. F5 dispatched.
+
+**How Vision closed its own three, since "closed" is a claim like any other:**
+
+- **Asymmetric columns:** an unclamped sweep of **99,281 samples per variant** —
+  **old 100.0% asymmetric, new 0.0%**. Edge clamping intact; Day view immovable
+  at ±1000px. It also re-derived F2's four numbers exactly (threshold ±23.640).
+- **Clipped fragments:** F2's substituted fix **proven equivalent rather than
+  accepted on argument** — `blockGeometry` reads only `startAt`/`endAt`
+  (`Pick<TimelineEvent, "startAt"|"endAt">`) and `toTimelineEvent` copies both by
+  reference, so the second call is byte-identical to the grid's own in every
+  case run (5/5, same `day` object). Positive control: **3 ordinary blocks still
+  draggable**, including a 20:00→midnight event (correctly *not* clipped).
+- **Stuck gesture:** pre-fix reproduced, post-fix clean, with the positive
+  control and **both hand-offs** present in both runs; bundles verified
+  non-vacuous (`targetRef` present in pre only). The unmount cleanup was proven
+  with a **real `root.unmount()`**, not a simulation.
+- **`CalendarSheetsHost` exercised** through the exact `sheetsRef.current?.openX()`
+  shape the parent uses, against the real subtree: all five sheets open with real
+  content, close on Escape, **reopen with state reset**, and are independent.
+  Negative control: zero dialogs at rest. The ref is null during first render and
+  populated after commit — harmless, because every call site is an event handler
+  (grepped: none in render, none in an effect).
+
+**Vision cleared the CI merge risk independently rather than taking it from
+Fury** — it wrote both CI steps to a file and ran them under `bash -e` exactly
+as GitHub Actions invokes them (exit 0 with the non-matching glob passing as a
+literal), then in an isolated tree proved the new glob entry is **reachable**:
+empty dir → 2 tests, add one → 3, break it → **exit 1**.
+
+**Two self-corrections worth recording.** Vision's first route grep read **33**
+because it missed the `┌` prefix on `/`; it corrected to 34 by reading the raw
+table. And its first sheet run showed three sheets failing — **its own fixture**
+used `dueAt` and omitted `isMine` where `CalendarTaskView` has `dueDate`, which
+crashed React and unmounted the tree. **Caught by checking whether the tree was
+still alive rather than reporting the failure.** An instrument that has crashed
+the page reports "broken" for everything.
+
+### ⚠️ The coverage gap this mission is shipping, named rather than hidden
+
+Vision's NOTE, and it is the most important non-blocker here. F3's claim that
+the 15-cell matrix needed no change is **correct** — that file covers only pure
+decision functions, with no renderer and no DOM. Which means **the mission's
+highest-risk structural change ships with zero committed regression coverage**:
+the stuck-gesture class, capture timing and unmount cleanup are verified only by
+ephemeral harnesses (Vision pass 1's, F3's, Vision pass 2's), **none committed**.
+
+This is the same class as C4's `recipeFilters.test.ts`, which CLAUDE.md records
+as claimed-to-exist and never committed. It is **not** a defect and **not** F3's
+fault: the project has no DOM test harness at all, so closing it is an
+infrastructure decision, not a contract. **Recorded here so the next gesture bug
+is not a surprise.**
+
+### Captain's pass-2 notes — the two that change what happens next
+
+- **⚠️ Its own trip condition "fired, was honoured to the letter, and is NOT
+  discharged in effect."** F2 extracted exactly as required, and
+  `CalendarViews.tsx` still sits at **645 of 650 — five lines of headroom** —
+  after growing **+149 in this one mission**. Captain's diagnosis is that the
+  rule is at fault, not the builder: **a trip condition keyed to an *action*
+  ("extract first") is satisfiable by the smallest qualifying action** — the
+  same shape as STRUCTURE.md's retired `parseLocalDateString` rule, one level up.
+  It should be restated as an **outcome**, not an action. Operationally: **any
+  pass-3 fix needing six lines in that file breaches the hard cap.** F5 was
+  deliberately scoped away from it.
+- **The seam worth taking is `onDragEnd`'s drop-resolution composition, and the
+  argument is coverage, not size.** ~56 total / ~20 code, composing five
+  functions that already live in `timelineDrag.ts` (180/**41**, enormous
+  headroom), needing **no ref** because it moves logic rather than ownership.
+  **Vision's blocker 1 — the asymmetric column resolution — lived in exactly
+  this expression, and `npm test` structurally could not reach it**: `grep` for
+  `startColumnCenterPx` returns only `CalendarViews.tsx`, while the pure helpers
+  it calls carry 329 lines of tests. Third instance of the `VIEW_CONFIG` lesson
+  STRUCTURE.md already records twice. A pure `resolveDrop(payload, dx, dy, days)`
+  closes the coverage hole and takes the file to ~590 in one move.
+
+**Fury's third contract error of this mission, same class as the other two.**
+F2's brief pointed it at "the sheets seam" as though it were untaken —
+**mission-19/C1 had already extracted `CalendarSheets.tsx`**, confirmed by
+`git log --diff-filter=A`. So only residual state remained, which is why the
+extraction came out thin (23 net lines) and ref-shaped. One `git log` on the
+file would have settled it before dispatch.
+
 ### HELD — the gesture de-duplication (Captain's blocker 2)
 
 **Not dispatched. Bryce's decision**, because Captain offered a legitimate
@@ -757,7 +857,10 @@ they were surfaced and skimmed.
 | 2 | **F3** | ✅ DONE `3018dc1` | — | capture at pointerdown — the structural fix, not a guard; unmount cleanup; **found the bug is reachable by ordinary use, not just a mis-click** |
 | 2 | **F4** | ✅ DONE `0bc8136` | — | 5 `withTimeZone` copies → 1; all 3 glob sites; 2 false comments deleted. Tests 404 → **403** (predicted delta) |
 | 2 | **Fury verification** | ✅ clean tree | — | six legs green; **34 routes** (the 33 readings were dirty-tree noise); boundary audit 19 files, 0 forbidden |
-| 2 | **Vision / Captain** | _re-gating_ | — | Strange pass 1 follows on the fixed tree |
+| 2 | **Captain** | ✅ **PASS** | 0 | blocker 1 closed outright; blocker 2 unchanged and correctly held. 11 notes |
+| 2 | **Vision** | ⛔ **BLOCKED** | **1** | all 3 pass-1 blockers genuinely closed; **one NEW blocker introduced by F3's own fix** |
+| 3 | **F5** | _dispatched_ | — | release capture on slop-cancel |
+| 3 | **Vision / Strange** | _next_ | — | ⚠️ **Vision's third and final pass under the budget** |
 
 ## Handoff log
 - 2026-09-09 — **F1 dispatched and DONE (`8035220`), gates opened.** Preflight
