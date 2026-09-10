@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // mission-20 (CD1)/C4 — long-press-then-drag on a timed calendar block, so
 // it can be rescheduled by dragging it to a new time on the hour timeline.
@@ -33,18 +33,18 @@ import { useRef, useState } from "react";
 // WHY THIS NEEDS NO preventDefault/touch-action OF ITS OWN: a plain
 // vertical drag (scrolling) and a plain horizontal drag (CV6's
 // page-swipe) both keep working with ZERO special-casing here, simply
-// because this hook never calls preventDefault/stopPropagation on a
-// pointerdown/pointermove and never captures the pointer until AFTER it
-// has already committed to a drag. Before that moment ("pending"), every
-// pointer event this hook sees also reaches the browser's native scroll
-// handling and CV6's swipe hook (via normal DOM bubbling) completely
-// untouched — so if the finger moves enough to start a real scroll or a
-// real page-swipe before the hold elapses, that gesture simply wins,
-// usually via a `pointercancel` landing on this hook, which is handled
-// exactly like a deliberate release: nothing was ever claimed, so nothing
-// needs undoing.
+// because this hook never calls preventDefault/stopPropagation at all —
+// not on pointerdown, not on pointermove, not even once it has captured
+// the pointer (see law 5 below). Whether the finger stays under the slop
+// or not, every pointer event this hook sees also reaches the browser's
+// native scroll handling and CV6's swipe hook (via normal DOM bubbling)
+// completely untouched — so if the finger moves enough to start a real
+// scroll or a real page-swipe before the hold elapses, that gesture
+// simply wins: the move handler itself cancels back to "idle" the instant
+// the slop is exceeded (see `nextLongPressPhase`'s `pending` branch),
+// which is what stops the hold timer before it can ever fire.
 //
-// FOUR HOUSE GESTURE LAWS THIS FOLLOWS — same reasoning as
+// FIVE HOUSE GESTURE LAWS THIS FOLLOWS — same reasoning as
 // SwipeActions.tsx / usePageSwipe.ts; see those files' own headers for the
 // fuller history behind each:
 //   1. The release decision reads a REF (`offsetRef`), never React state
@@ -60,6 +60,36 @@ import { useRef, useState } from "react";
 //      discovered again later by a gate. See
 //      `nextLongPressPointerDownDecision`'s own comment below.
 //   4. The 400ms/8px thresholds are named constants, not inline numbers.
+//   5. mission-20/F3 — the pointer is captured at POINTERDOWN, not at
+//      `holdElapsed`. An earlier version captured only once the hold
+//      elapsed, which left a real gap: the hold timer checked the PHASE
+//      but never checked that the pointer was still down, so a pointer
+//      that left the block during "pending" (a mis-click yanked away, or
+//      an ordinary swipe that legitimately carries the finger off a
+//      narrow timed block) produced no `pointermove`/`pointerup` for this
+//      hook to see at all — nothing could cancel the timer, and nothing
+//      could end the gesture once it fired. 400ms later the timer claimed
+//      a drag with NO pointer down anywhere, `isGestureClaimed()` got
+//      stuck `true` (killing CV6's page-swipe for the rest of the page's
+//      life), and the NEXT press's delta was computed from the wrong
+//      `start` (the old gesture's early return skips resetting it),
+//      producing a fabricated move alongside an unswallowed click that
+//      opened the block's detail sheet on top of it. Capturing at
+//      pointerdown makes every subsequent `pointermove`/`pointerup` for
+//      this pointer reach the hook UNCONDITIONALLY — regardless of where
+//      the cursor physically travels — which removes the whole class:
+//      the slop check in "pending" can now always run, so a real scroll
+//      or swipe always gets to cancel the pending hold before it claims
+//      anything. Captured events still bubble normally from the block up
+//      through its ancestors (capture only changes the EVENT TARGET, not
+//      the DOM tree), so CV6's page-swipe — listening on the wrapper —
+//      is unaffected; and per the Pointer Events spec, capture alone
+//      never suppresses default browser behavior (only
+//      `preventDefault`/`touch-action` do, and this hook calls neither),
+//      so native scrolling is unaffected too. Verified, not just reasoned
+//      about — see this contract's report for the headless-Chrome
+//      reproduction, before and after, including a realistic swipe that
+//      starts on a block and legitimately leaves its bounds.
 
 /** Hold this long, without exceeding the slop below, to claim the pointer
  * as a drag rather than a tap, a scroll, or CV6's page-swipe. */
@@ -277,10 +307,6 @@ export function useLongPressDrag<TPayload>(
   const offsetRef = useRef({ dx: 0, dy: 0 });
   const swallowNextClick = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Captured at pointerdown so the setTimeout callback below — which has
-  // no event object of its own — can still try to capture the pointer
-  // once the hold elapses.
-  const targetRef = useRef<{ element: Element; pointerId: number } | null>(null);
 
   const [activeDrag, setActiveDrag] = useState<{
     payload: TPayload;
@@ -294,6 +320,23 @@ export function useLongPressDrag<TPayload>(
       timerRef.current = null;
     }
   }
+
+  // mission-20/F3 — a pending hold timer must not survive this hook
+  // unmounting (navigating away mid-press): without this, the timer fires
+  // into a dead instance, still calling `onDragStart` (a plain closure,
+  // unaffected by React's own bail-out on a stale `setState`) for a block
+  // that no longer exists on screen. Directly manipulates `timerRef`
+  // rather than calling the `clearTimer` function above so this effect
+  // has no dependency to get wrong — a ref's identity is stable across
+  // renders and exempt from exhaustive-deps.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
 
   function getHandlers(payload: TPayload): LongPressDragHandlers {
     function handlePointerDown(event: React.PointerEvent) {
@@ -312,7 +355,23 @@ export function useLongPressDrag<TPayload>(
       phase.current = nextLongPressPhase(phase.current, { type: "pointerDown" });
       start.current = { x: event.clientX, y: event.clientY };
       offsetRef.current = { dx: 0, dy: 0 };
-      targetRef.current = { element: event.currentTarget, pointerId: event.pointerId };
+
+      // mission-20/F3 (house law 5) — captured HERE, at pointerdown, not
+      // deferred until `holdElapsed` below. This is what makes the
+      // pointermove/pointerup handlers below unconditionally reachable
+      // for the rest of this gesture, regardless of where the pointer
+      // physically travels — see this file's header comment (law 5) for
+      // the full reasoning and the bug this closes. House law 2: try/
+      // caught, same reasoning as SwipeActions.tsx/usePageSwipe.ts — an
+      // unguarded call here could abandon this gesture with no way to
+      // settle.
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Not capturable — carry on uncaptured, same as before this fix;
+        // the stuck-gesture bug this contract closes was never about
+        // capture being available, only about WHEN it was requested.
+      }
 
       clearTimer();
       timerRef.current = setTimeout(() => {
@@ -321,7 +380,12 @@ export function useLongPressDrag<TPayload>(
         // released/cancelled, between this timer being scheduled and it
         // firing — only a still-"pending" phase actually claims the
         // drag; anything else means the gesture already resolved another
-        // way and this timer is simply late.
+        // way and this timer is simply late. With the pointer captured
+        // since pointerdown (above), "already moved past the slop" and
+        // "already released" are now BOTH guaranteed to have been
+        // observed by handlePointerMove/handlePointerUp before this timer
+        // can fire — there is no longer a way for the pointer to have
+        // left without this hook finding out.
         if (phase.current !== "pending") return;
 
         phase.current = nextLongPressPhase(phase.current, { type: "holdElapsed" });
@@ -329,15 +393,6 @@ export function useLongPressDrag<TPayload>(
           swallowNextClick.current,
           "holdElapsed",
         );
-        // House law 2: try/caught, same reasoning as
-        // SwipeActions.tsx/usePageSwipe.ts — an unguarded call here would
-        // abandon this gesture mid-drag, leaving the lift stuck to the
-        // finger with no way to settle.
-        try {
-          targetRef.current?.element.setPointerCapture(targetRef.current.pointerId);
-        } catch {
-          // Not capturable — carry on uncaptured.
-        }
         setActiveDrag({ payload, dx: 0, dy: 0 });
         onDragStart?.(payload);
       }, LONG_PRESS_HOLD_MS);
