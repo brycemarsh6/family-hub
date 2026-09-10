@@ -618,6 +618,84 @@ face, and this is now the fourth and fifth instance on this arc.
   you break one on purpose), the diff of both CI steps, six-leg gauntlet at an
   unchanged 404.
 
+### Pass 2 — what the fixes found that the gates had not
+
+**Verified by Fury on a clean tree**, not taken from the reports: six legs
+green, **34 routes** (baseline), 403 tests (the −1 is F4's predicted deletion),
+boundary audit 19 files with zero forbidden paths.
+
+- **⚠️ Two builders reported 33 routes and one reported 34 — and the 34 was
+  right.** F2 and F3 measured while other builders held uncommitted work in the
+  shared tree; the clean-tree count is 34, matching baseline. **A build measured
+  on a tree carrying other contracts' partial work is not a measurement.** What
+  makes this a good outcome rather than a near miss is that F2 *reported the
+  anomaly instead of explaining it away*, and separately **amended its own
+  commit message after catching itself claiming "34 routes" to match the stated
+  baseline without having measured it** — caught before it became a record
+  rather than after.
+- **F3 upgraded Vision's own severity.** Vision reproduced the stuck gesture via
+  a deliberate mis-click. F3, building the harness, found
+  `realisticSwipeThroughBlock`: a swipe that *starts* on a block and carries the
+  pointer outside its bounds — **completely ordinary CV6 usage** — hits the same
+  class. So the defect was reachable in normal use, not only by an odd gesture.
+  It adopted the **structural** fix (capture at `pointerdown`) rather than the
+  guard, which removes the class instead of patching one exit, and proved it
+  against the real hook with the positive control and the touch control present
+  in **both** the before and after runs.
+- **F2 corrected a gate prescription that named a field which does not exist.**
+  Vision said to read `slot.block.clippedStart`; `TimelineGrid.tsx` drops
+  `clippedStart`/`clippedEnd` when it builds the plain `TimelineBlock`, and that
+  file was outside F2's boundary. Found via a `tsc` failure, then traced.
+  **Fourth instance on this arc of a gate's finding standing while its
+  prescription was wrong** — the contract told it to verify rather than adopt,
+  and that instruction paid.
+- **F4 proved the glob entry reachable rather than assuming it.** It added a
+  temporary smoke test under `src/lib/testing/`, watched the count move
+  403 → 404, broke it to confirm it could go red, then deleted it — because the
+  recorded trap is a file silently dropping out of a hand-enumerated glob while
+  the suite still reports green at a lower count. It also **stated the −1 test
+  delta in advance** and matched it.
+- **⚠️ A CI-correctness trap, caught and then verified by Fury independently.**
+  Adding `src/lib/testing/*.test.ts` to the globs creates a glob that currently
+  matches **nothing**. Under this shell (`zsh`, `NOMATCH`) that is a hard error —
+  and it is what a maintainer running the leg by hand will see. Under `sh`
+  (which `npm` invokes) and `bash` (which GitHub Actions uses) a non-matching
+  glob passes through as a literal argument and Node's test runner resolves it
+  to zero files. **Confirmed by running both legs under `bash` at exit 0 with
+  403 tests** — so CI does not break on merge. Anyone re-running those legs from
+  a zsh prompt must wrap them in `bash -c`.
+
+### Open findings carried forward — NOT fixed, recorded deliberately
+
+From Vision pass 1, all NOTES rather than blockers:
+
+- `moveCalendarEvent` **re-validates people it is not changing** — it passes
+  `userIds` as both `input.userIds` and `alreadyAssignedUserIds`, so the
+  deactivation branch can never fire and `validatedPeople`'s `findMany` is a
+  round trip with a fixed outcome on **every drag**.
+- `isValidDate(newStartAt)` **does not bound the value** — a crafted POST near
+  the `Date` maximum makes `endAt` an Invalid Date, which `validateEventInput`
+  passes (NaN comparisons are false) and which reaches Prisma.
+  Manager-authenticated and self-inflicted, so low severity, but it is the only
+  path not bounded to a single day.
+- **Rescheduling has no keyboard or assistive path.** The detail sheet's edit
+  form remains an alternative so nothing is unreachable, but DESIGN.md is
+  explicit about not making a gesture the only route.
+- **The server guard could not be exercised live, and Vision named that rather
+  than substituting for it.** `moveCalendarEvent` imports `dal.ts`
+  (`server-only`), unreachable from a plain `tsx` script; minting a session JWT
+  is correctly blocked by the environment. Without a positive control a
+  no-cookie replay would prove nothing. What *was* verified by reading: all five
+  exports guard, `moveCalendarEvent`'s guard is byte-identical in shape to the
+  three shipped write actions, the signature carries **no end parameter** so a
+  client cannot supply a duration, and `durationMs` is read from the stored row.
+- From F4: **`STRUCTURE.md` names `scheduleWindowState.test.ts`** in the
+  test-helper clause; the file that actually held the helper is
+  `scheduleWindowStateRefresh.test.ts`. F4 migrated the right file and flagged
+  the constitution rather than editing outside its boundary. **That clause now
+  needs a substantive update anyway — the debt it describes is closed** — so it
+  goes to Bryce as an amendment rather than a silent edit.
+
 ### HELD — the gesture de-duplication (Captain's blocker 2)
 
 **Not dispatched. Bryce's decision**, because Captain offered a legitimate
@@ -675,7 +753,11 @@ they were surfaced and skimmed.
 | 1 | **Vision** | ⛔ **BLOCKED** | **3** | wrong-day on any leftward pixel; midnight-crossing fragments; a stuck mouse gesture. Six legs re-run green; boundary audit clean; zero fixtures created |
 | 1 | **Captain** | ⛔ **BLOCKED** | **2** | a 5th `withTimeZone`; a 3rd copy of the gesture machine's shared elements. Six legs re-run green; boundary audit clean |
 | 1 | **Strange** | _deferred to the fixed tree_ | — | deliberately not run on a tree with 3 known correctness blockers — CV2's lesson: a PASS that predates a fix covers the old tree |
-| 2 | **F2 / F3 / F4** | _dispatched_ | — | parallel, disjoint boundaries (verified by command) |
+| 2 | **F2** | ✅ DONE `b1de9c9` | — | symmetric columns; clipped fragments unliftable; dismissable error; **extracted `CalendarSheetsHost.tsx`** (640→668 would have breached the hard cap) → 645 |
+| 2 | **F3** | ✅ DONE `3018dc1` | — | capture at pointerdown — the structural fix, not a guard; unmount cleanup; **found the bug is reachable by ordinary use, not just a mis-click** |
+| 2 | **F4** | ✅ DONE `0bc8136` | — | 5 `withTimeZone` copies → 1; all 3 glob sites; 2 false comments deleted. Tests 404 → **403** (predicted delta) |
+| 2 | **Fury verification** | ✅ clean tree | — | six legs green; **34 routes** (the 33 readings were dirty-tree noise); boundary audit 19 files, 0 forbidden |
+| 2 | **Vision / Captain** | _re-gating_ | — | Strange pass 1 follows on the fixed tree |
 
 ## Handoff log
 - 2026-09-09 — **F1 dispatched and DONE (`8035220`), gates opened.** Preflight
@@ -700,10 +782,12 @@ they were surfaced and skimmed.
 
 ## Delivery
 
-**NOT DELIVERED.** All six contracts are built and on `claude/calendar-cd1`;
-**PR #26 is open as a draft**, nothing merged, nothing live. Gate pass 1:
-**Vision BLOCKED (3), Captain BLOCKED (2), Strange not yet run.** Fix contracts
-F2–F4 dispatched; Captain's second blocker is held pending Bryce's decision.
+**NOT DELIVERED.** Nine contracts built and on `claude/calendar-cd1`
+(C1–C5, F1, F2–F4); **PR #26 is open as a draft**, nothing merged, nothing
+live. Gate pass 1: **Vision BLOCKED (3), Captain BLOCKED (2)**. All five
+blockers fixed in pass 2; **Vision and Captain are re-gating, Strange has not
+yet run.** Captain's second blocker (gesture de-duplication) is **held pending
+Bryce's decision**, and the touch-vs-scroll question is held pending his phone.
 
 *(This section previously read "contracts written, nothing built" while line 4
 said all contracts were built — **Captain caught it as a live self-contradiction
