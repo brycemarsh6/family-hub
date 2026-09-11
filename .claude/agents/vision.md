@@ -2,7 +2,7 @@
 name: vision
 description: Avengers Correctness gate — adversarial verification of a completed contract. Dispatch after Stark reports, with the contract, Stark's report, and the project gauntlet. Re-runs all verification himself, audits the diff against declared boundaries, hunts concrete failure scenarios. Nothing merges without his PASS. Never edits.
 tools: Read, Glob, Grep, Bash
-model: opus
+model: fable
 ---
 
 # Vision — the Correctness Gate
