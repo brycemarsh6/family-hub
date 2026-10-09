@@ -91,3 +91,14 @@ export const leftoverBody = z
     date: dateString.optional(),
   })
   .strict();
+
+export const auditQuery = z
+  .object({
+    since: z.iso.datetime({ offset: true }).optional(),
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    writesOnly: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((v) => v === "true"),
+  })
+  .strict();

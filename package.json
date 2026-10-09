@@ -24,7 +24,8 @@
     "db:seed-calendar": "tsx prisma/seed-calendar.ts",
     "db:clean-calendar": "tsx prisma/clean-calendar.ts",
     "db:seed-tasks": "tsx prisma/seed-tasks.ts",
-    "db:clean-tasks": "tsx prisma/clean-tasks.ts"
+    "db:clean-tasks": "tsx prisma/clean-tasks.ts",
+    "assistant:token": "node prisma/assistant-token.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

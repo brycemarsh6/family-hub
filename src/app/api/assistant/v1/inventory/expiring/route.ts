@@ -5,6 +5,7 @@ import { householdToday } from "@/lib/assistant/today";
 import { toInventoryItem } from "@/lib/assistant/serialize";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import { formatCalendarDate } from "@/lib/householdDate";
+import { onShoppingListIds } from "@/lib/assistant/inventoryReads";
 import { db } from "@/lib/db";
 
 export const GET = assistantRoute({
@@ -16,14 +17,10 @@ export const GET = assistantRoute({
       throw new ApiError(400, "validation", "`date` must be a real YYYY-MM-DD.");
     }
 
-    const [rows, links] = await Promise.all([
+    const [rows, onList] = await Promise.all([
       db.pantryItem.findMany(),
-      db.groceryItem.findMany({
-        where: { checked: false, pantryItemId: { not: null } },
-        select: { pantryItemId: true },
-      }),
+      onShoppingListIds(),
     ]);
-    const onList = new Set(links.map((l) => l.pantryItemId));
 
     const items = rows
       .map((row) =>

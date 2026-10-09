@@ -5,7 +5,7 @@ import { householdToday } from "@/lib/assistant/today";
 import { toInventoryItem } from "@/lib/assistant/serialize";
 import { adjustPantryQuantity } from "@/lib/pantryWrites";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
-import { db } from "@/lib/db";
+import { isOnShoppingList } from "@/lib/assistant/inventoryReads";
 import type { z } from "zod";
 
 export const POST = assistantRoute<{ id: string }, z.output<typeof adjustBody>>({
@@ -22,14 +22,12 @@ export const POST = assistantRoute<{ id: string }, z.output<typeof adjustBody>>(
       summary: { delta: body.delta, before: result.before, after: result.after, reason: body.reason ?? null },
     });
 
-    const onList = await db.groceryItem.count({
-      where: { checked: false, pantryItemId: params.id },
-    });
+    const onList = await isOnShoppingList(params.id);
     const today = householdToday(now)!;
     return {
       data: {
         item: toInventoryItem(result.row, {
-          onList: onList > 0,
+          onList,
           today,
           timeZone: HOUSEHOLD_TIME_ZONE,
         }),

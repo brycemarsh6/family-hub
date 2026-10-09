@@ -7,6 +7,7 @@ import { createPantryItem, findDuplicateCandidates } from "@/lib/pantryWrites";
 import { searchItems } from "@/lib/match";
 import { DEFAULT_LOCATION, HOUSEHOLD_TIME_ZONE, toCategory, toLocation } from "@/lib/constants";
 import { formatCalendarDate, parseDateParam, zoneMidnightInstant } from "@/lib/householdDate";
+import { onShoppingListIds } from "@/lib/assistant/inventoryReads";
 import { db } from "@/lib/db";
 
 export const GET = assistantRoute({
@@ -18,7 +19,7 @@ export const GET = assistantRoute({
       throw new ApiError(400, "validation", "`date` must be a real YYYY-MM-DD.");
     }
 
-    const [rows, links] = await Promise.all([
+    const [rows, onList] = await Promise.all([
       db.pantryItem.findMany({
         where: {
           ...(query.location ? { location: query.location } : {}),
@@ -26,12 +27,8 @@ export const GET = assistantRoute({
         },
         orderBy: { name: "asc" },
       }),
-      db.groceryItem.findMany({
-        where: { checked: false, pantryItemId: { not: null } },
-        select: { pantryItemId: true },
-      }),
+      onShoppingListIds(),
     ]);
-    const onList = new Set(links.map((l) => l.pantryItemId));
 
     const ctx = (id: string) => ({ onList: onList.has(id), today, timeZone: HOUSEHOLD_TIME_ZONE });
     let items = rows.map((row) => toInventoryItem(row, ctx(row.id)));

@@ -6,6 +6,7 @@ import { toInventoryItem } from "@/lib/assistant/serialize";
 import { editPantryItem } from "@/lib/pantryWrites";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import { parseDateParam, zoneMidnightInstant } from "@/lib/householdDate";
+import { isOnShoppingList } from "@/lib/assistant/inventoryReads";
 import { db } from "@/lib/db";
 import type { z } from "zod";
 
@@ -16,13 +17,13 @@ export const GET = assistantRoute<{ id: string }>({
   handler: async ({ params, now }) => {
     const [row, onList] = await Promise.all([
       db.pantryItem.findUnique({ where: { id: params.id } }),
-      db.groceryItem.count({ where: { checked: false, pantryItemId: params.id } }),
+      isOnShoppingList(params.id),
     ]);
     if (!row) throw notFound();
     const today = householdToday(now)!;
     return {
       data: {
-        item: toInventoryItem(row, { onList: onList > 0, today, timeZone: HOUSEHOLD_TIME_ZONE }),
+        item: toInventoryItem(row, { onList, today, timeZone: HOUSEHOLD_TIME_ZONE }),
       },
     };
   },
@@ -46,13 +47,11 @@ export const PATCH = assistantRoute<{ id: string }, z.output<typeof inventoryPat
     if (!row) throw notFound();
     changes.push({ model: "PantryItem", recordId: row.id, action: "update", summary: body });
 
-    const onList = await db.groceryItem.count({
-      where: { checked: false, pantryItemId: row.id },
-    });
+    const onList = await isOnShoppingList(row.id);
     const today = householdToday(now)!;
     return {
       data: {
-        item: toInventoryItem(row, { onList: onList > 0, today, timeZone: HOUSEHOLD_TIME_ZONE }),
+        item: toInventoryItem(row, { onList, today, timeZone: HOUSEHOLD_TIME_ZONE }),
       },
     };
   },
