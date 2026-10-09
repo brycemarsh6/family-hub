@@ -6308,8 +6308,11 @@ is the only one built.
   rule is for browsers; the bot's device is a server.
 - **No bot account yet — an audit log instead.** Nothing in the app renders
   "added by", and a device-role User would appear as a pickable person in the
-  calendar/task rosters. Every write helper takes an `actorUserId` so a real
-  account later is a small change.
+  calendar/task rosters. The plan has the write helpers for rows that carry
+  an attribution column (`GroceryItem.addedById`, event/task `createdById`)
+  take an `actorUserId` — missions 22–24, not yet built; mission 21 writes
+  only `PantryItem`, which has no such column — so a real account later is a
+  small change.
 - **The bot may hard-delete only what it created** (checked against the
   audit log); inventory is never deleted, only zeroed.
 
