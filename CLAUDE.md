@@ -4306,8 +4306,8 @@ record that contradicts the code is worse than no record.
 `npm test` went 90 → 106 (16 new cases in `src/lib/dashboard.test.ts`,
 covering `todaysMeals` including the real Nov 1 2026 DST week,
 `storeBreakdown`, and `urgentLowItems`). The test file **must** live in
-`src/lib/` — the `npm test` glob only reaches `src/lib/*.test.ts` and
-`src/lib/voice/*.test.ts`, so a test placed elsewhere silently never runs.
+`src/lib/` — the `npm test` glob only reaches `src/lib/*.test.ts`,
+`src/lib/voice/*.test.ts` and `src/lib/assistant/*.test.ts`, so a test placed elsewhere silently never runs.
 
 ### The recording gap this entry closes
 

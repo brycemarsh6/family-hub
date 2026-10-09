@@ -632,3 +632,49 @@ model TaskPerson {
   @@unique([taskId, userId])
   @@index([userId])
 }
+
+/// One row per call to the private Assistant API (src/app/api/assistant/).
+/// The same table serves two jobs: the per-IP rate limit counts recent rows,
+/// and GET /audit reads them back — so every call, including refused ones,
+/// leaves a trace. `action` is a stable label from the route wrapper
+/// ("inventory.adjust"), not derived from the URL.
+/// No foreign key to `User`: the bot is deliberately not a user account, so
+/// there is nobody to point at.
+model AssistantRequest {
+  id         String   @id @default(cuid())
+  method     String
+  path       String
+  action     String
+  status     Int
+  durationMs Int
+  ip         String?
+  error      String?
+  createdAt  DateTime @default(now())
+
+  changes AssistantChange[]
+
+  @@index([createdAt])
+}
+
+/// One row per record the Assistant API created, updated or deleted.
+/// `model` + `recordId` are plain text rather than relations so a change
+/// survives the deletion of the record it describes (the bot may only delete
+/// what it created, and the log must still say so afterwards).
+/// `summary` is JSON stored as text — the schema avoids provider-specific
+/// column types, so no `Json`.
+model AssistantChange {
+  id        String           @id @default(cuid())
+  requestId String
+  request   AssistantRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  /// "PantryItem", "GroceryItem", ...
+  model     String
+  recordId  String
+  /// "create" | "update" | "delete"
+  action    String
+  /// JSON text describing what changed.
+  summary   String
+  createdAt DateTime         @default(now())
+
+  @@index([model, recordId])
+  @@index([requestId])
+}
