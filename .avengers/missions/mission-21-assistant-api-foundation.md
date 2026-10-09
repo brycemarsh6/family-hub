@@ -214,6 +214,8 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 |---|---|---|---|---|
 | 1 | Captain | BLOCKED (at `7a6abe4`) | 2 | 12 |
 | 1 | Vision | BLOCKED (at `7a6abe4`) | 1 | 10 |
+| 2 | Vision | dispatched | — | — |
+| 2 | Captain | dispatched | — | — |
 
 ### Captain pass 1 (at `7a6abe4`) — BLOCKED
 
@@ -229,7 +231,7 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 
 ### F1 — Concurrency-safe adjust; a rate limit that holds under bursts; truthful audit-failure advice; pantryWrites tightening
 
-- **Status:** DISPATCHED (2026-10-09)
+- **Status:** DONE (2026-10-09) — committed `64d77a9`
 - **Objective:** close Vision's BLOCKER and the three correctness NOTES that live in the same files.
 - **Boundaries:** may touch `src/lib/pantryWrites.ts`, `src/app/actions/pantry.ts`, `src/lib/assistant/route.ts`, `src/lib/assistant/rateLimit.ts`, `src/lib/assistant/rateLimitPolicy.ts` + `rateLimitPolicy.test.ts`, `src/lib/assistant/audit.ts`, `src/app/api/assistant/v1/inventory/[id]/adjust/route.ts`, `src/app/api/assistant/v1/inventory/bulk-adjust/route.ts`. Must not touch anything in F2's list (they run in parallel).
 - **Work:**
@@ -242,10 +244,11 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 - **Verification:** gauntlet (all three legs); dev-DB script: **10 parallel +1 adjusts give exactly +10** (and 10 truthful audit `before/after` chains are not required — only that every 200 corresponds to an applied increment); a bulk-adjust racing a single adjust on the same id ends at the sum; dev server with a throwaway token: **200 parallel authenticated GETs → at most 120 succeed**, the rest 429, and AssistantRequest grows by exactly the number of 2xx/4xx-recorded responses (no orphan status-0 rows after completion); the app's stepper/edit paths unchanged (re-run C4's parity script facts for set/edit/merge/create). Cleanup by id; counts before/after; token never in the report; responses with names never printed.
 - **Evidence required:** the parallel results (final quantities, counts of 200/409/429), counts before/after, gauntlet output.
 - **Done criteria:** Fury re-runs the 10-parallel check and the 200-burst check.
+- **Report:** DONE. CAS adjust with retry budget **10 + 0–25ms jitter** (deviation from "at most 5": at 5, ten simultaneous callers gave 5 ok / 5 conflict with no lost updates; at 10 all succeed — accepted, the contract's goal was +10). DB: 10 parallel +1 from 6 → 16, five reruns exact; bulk vs 5 singles → exact. HTTP: 10 parallel adjusts → all 200, exact; singles + bulk racing → exact; /audit shows one row per applied adjust. Rate limit: 200-burst → 45 ok / 155 × 429 (over-refuses, the safe direction); 125 sequential → exactly 120 ok. `startRequest`/`finishRequest`/`discardRequest`; `/audit` hides status-0 rows < 5 min old, shows older ones (process died mid-request). Counts 467/0/0 before and after; `.env` restored; dev server stopped. Adjust/bulk routes adopt F2's `notFound`/`requireHouseholdToday` at next touch.
 
 ### F2 — Captain's blockers, the tested gate condition, and route boilerplate hoisted
 
-- **Status:** DISPATCHED (2026-10-09)
+- **Status:** DONE (2026-10-09) — committed `1f5632c`
 - **Objective:** close Captain B1 and B2, make "every v1 route is built with `assistantRoute`" a failing test, and hoist the boilerplate missions 22–24 would otherwise copy ~20 times.
 - **Boundaries:** may touch `src/lib/assistant/openapi.ts`, `src/lib/assistant/openapiTypes.ts` (new), `src/lib/assistant/openapiInventoryPaths.ts`, `src/lib/assistant/openapi.test.ts`, `src/lib/expiring.ts` + `src/lib/expiring.test.ts`, `src/app/(app)/kitchen/expiring/page.tsx`, `src/app/api/assistant/v1/inventory/route.ts`, `src/app/api/assistant/v1/inventory/expiring/route.ts`, `src/app/api/assistant/v1/inventory/[id]/route.ts`, `src/app/api/assistant/v1/leftovers/route.ts`, `src/lib/assistant/today.ts` + `today.test.ts`, `src/lib/householdDate.ts` + `householdDate.test.ts`, `src/lib/assistant/errors.ts` + `errors.test.ts`, `src/lib/assistant/schemas.ts` + `schemas.test.ts`, `src/lib/assistant/serialize.ts` + `serialize.test.ts`, `src/app/api/assistant/v1/family/route.ts`, `AGENTS.md` (line 49's "two-directory" only). Must not touch F1's files (`pantryWrites.ts`, `actions/pantry.ts`, `lib/assistant/route.ts`, `rateLimit*.ts`, `audit.ts`, the adjust and bulk-adjust routes).
 - **Work:**
@@ -257,6 +260,7 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 - **Verification:** gauntlet (all three legs); the cycle script; red-then-green for the wrapper assertion. **No dev server and no `.env` edits** — F1 runs in parallel and owns live testing (two builders sharing one `.env` hash and one global rate limit would corrupt each other's evidence); Vision re-runs the live checks at the re-gate. Instead: a scratchpad script (server-only stub) that fetches the real pantry rows and computes per-urgency counts with the OLD inline logic and with `urgencyFor`/`expiresWithin` — counts must be identical; and unit tests for `calendarDateString` (impossible date → zod error), `requireHouseholdToday`, `notFound`.
 - **Evidence required:** cycle script output; red-then-green; old-vs-new per-urgency counts on the real rows (counts only); gauntlet.
 - **Done criteria:** Fury re-runs the cycle script and the openapi test.
+- **Report:** DONE. Cycle scan: 264 files, 1 cycle — inside generated Prisma code only (positive control: re-pointing the import back gives 2). Wrapper assertion red-then-green (also rejects `export function` / `export {}` forms) plus action-label-vs-registry test. Real rows: old vs new urgency/window counts identical (0 mismatches over 467). 427 tests all legs. Leftovers it couldn't reach — `ExpiringRow`/`ExpiringList`'s duplicate `Urgency` and CLAUDE.md's "two-directory" — Fury fixed in `0e98798` (type-only, no render change).
 
 ## Handoff log
 
@@ -266,3 +270,4 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 - 2026-10-09 — C2 committed `09c2fcf`, C5a committed `75ddab1`. Untracked `.agents/skills/avengers/` and `.codex/agents/*.toml` appeared in the worktree from outside this mission (a Codex mirror of the team) — left untouched, not committed, flagged to Bryce. C5b dispatched.
 - 2026-10-09 — C6 committed `e8144a3`. All seven contracts DONE. Gates dispatched: Vision (correctness, incl. browser-free parity audit of pantry.ts and an independent attack subset) and Captain (structure) in parallel — Captain is read-only and touches no data, so the serial-gates rule for credentialed test data doesn't apply.
 - 2026-10-09 — Gate pass 1: Captain BLOCKED (2), Vision BLOCKED (1 — lost updates under parallel adjusts, reproduced). Fix contracts F1 (concurrency, burst-safe rate limit, audit advice, pantryWrites tightening) and F2 (Captain B1/B2, the tested `assistantRoute` condition, boilerplate) dispatched in parallel on disjoint files; F1 owns all live dev-server testing. Constitution amendments A–E (Captain) go to Bryce for approval — not applied yet.
+- 2026-10-09 — F2 `1f5632c`, Urgency/CLAUDE.md follow-up `0e98798`, F1 `64d77a9`. Gate pass 2 dispatched (Vision + Captain) at the HEAD of the commit recording this line.
