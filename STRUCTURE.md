@@ -10,7 +10,7 @@ structural changes against it.
 |---|---|---|
 | `src/app/(app)/` | Authenticated routes — header + nav + session chrome. `/login` deliberately lives here too and suppresses its own nav bar in `HubNav.tsx`, rather than moving to a separate layout for one page | Pages needing a genuinely chrome-free root layout — those go in `src/app/share/` |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
-| `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`) | Logic that belongs in an action or lib |
+| `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`). A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
 | `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action |
 | `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice`, `/api/alexa` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
@@ -35,6 +35,21 @@ structural changes against it.
   (whose gate is the shared `assistantRoute` wrapper) are the three instances.
   The invariant is the same either way: the pure `server-only` call carries
   no auth, and exactly one guarded caller does.
+  **Domain write modules** (added 2026-10-09, mission-21; Bryce-approved). A
+  `server-only` lib module that owns a domain's database writes —
+  `pantryWrites.ts` is the first; the Assistant API plan adds
+  `groceryWrites.ts`, `putAway.ts`, `recipeWrites.ts`, `mealPlanWrites.ts`,
+  `calendarWrites.ts`, `taskWrites.ts` — may have **several guarded
+  callers** (a Server Action and an `/api/assistant/v1/` route); "exactly one
+  guarded caller" above governs AI/external calls. Each caller carries its
+  own gate; the module carries none, never receives a session or role for
+  gating, and never calls `revalidatePath` (that stays in the action, per the
+  revalidation rule). Once extracted, the module is the **only** home of its
+  domain's write rules — the same rule re-implemented in an action or a
+  route is a second definition and a BLOCKER. Name it `<domain>Writes.ts`
+  (or for its verb, like `putAway.ts`); where an action shares a function's
+  name, the action imports it under a `write…` alias
+  (`setPantryQuantity as writePantryQuantity` is the instance).
 - **Dependency direction:** `lib` imports from nothing above it (never `app/`
   or `components/`); `components` may import `lib` and `actions`; `actions`
   import `lib` and the db. No cycles, ever.
@@ -51,17 +66,27 @@ structural changes against it.
   is the real gate. Public routes are added to proxy.ts as exact matches
   (`PUBLIC_ROUTES`) or — only when a token rides in the path — as *narrow*
   prefixes (`/share/recipe/`, not `/share`); the proxy drills proved the
-  sloppy prefix opens real holes. **Amended 2026-10-09 (Bryce-approved, plan
-  approval, mission-21):** a narrow prefix is also permitted for a versioned
-  API subtree where every handler is built from one shared gate —
-  `/api/assistant/v1/`, whose handlers all come from `assistantRoute`. The
-  trailing slash and the version segment stay mandatory; a `/v2/` is a new,
-  deliberate entry.
+  sloppy prefix opens real holes. **Amended 2026-10-09 (Bryce-approved,
+  mission-21):** one further prefix is permitted **by name**:
+  `/api/assistant/v1/`. It is an instance, not a category — any other
+  subtree, including `/api/assistant/v2/`, needs its own amendment. What
+  justifies it is mechanical and tested: every route file serving under that
+  prefix exports only `export const <METHOD> = assistantRoute(...)`, and
+  `src/lib/assistant/openapi.test.ts` fails if any exported method there is
+  built another way. That test is regex-based and has **known evasions**
+  (a string containing `/*` fooling its comment stripper, annotated exports,
+  dynamic segments above `v1`) recorded in mission-21's Vision pass 3;
+  hardening it with the TypeScript compiler API is mission 22's first
+  contract. Until then the rule binds by review as well as by test. A route
+  under that prefix that bypasses the wrapper is a BLOCKER — proxy will not
+  stop it.
 - **No Prisma enums or provider-specific schema features.** TypeScript via
   `constants.ts` enforces vocabularies instead. This is what made the
   SQLite→Postgres move a provider swap, not a rewrite.
 - **Date math is calendar-component math, never milliseconds**, and "what day
-  is it" is decided on the client (`useToday.ts`) — Vercel runs UTC, the
+  is it" is decided on the client (`useToday.ts`) — or, for a server with no
+  browser behind it, zone-explicitly via `householdDate.ts` (see One source
+  of truth) — Vercel runs UTC, the
   household runs Mountain.
 - **AI picks from our data are grounded by index, never by name-matching** —
   numbered options out, an integer back (the steaks/"tea" lesson).
@@ -203,6 +228,13 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/nav.ts` — `HUB_NAV_ITEMS`, the only nav list
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
+- `src/lib/householdDate.ts` — calendar dates for **server** code,
+  zone-explicit (`CalendarDate`, never a process-local `Date`;
+  `HOUSEHOLD_TIME_ZONE` from constants). `mealPlanDates.ts` /
+  `calendarDates.ts` remain the browser-local homes. A server-side
+  calendar-day helper goes here; a process-local getter in a server path is
+  a bug, and a second zone-explicit helper elsewhere is a BLOCKER. (Added
+  2026-10-09, mission-21; Bryce-approved.)
 - `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it
@@ -552,12 +584,16 @@ Adding a second definition of any of these is a BLOCKER:
   constitution offered nowhere to put it. **A new copy of a test helper
   that already has a home is a BLOCKER**; the four existing copies are
   grandfathered debt to migrate in one contract.
-  ⚠️ **A new directory under `src/lib/` needs its test glob entry in the
-  SAME commit, in all three places** — `package.json`'s `test` script and
+  ⚠️ **A new directory under `src/lib/` needs its test glob entry in or
+  before the commit that adds its first test file, in all three places** — `package.json`'s `test` script and
   both timezone steps in `.github/workflows/ci.yml`. The glob is
   hand-enumerated, not recursive: a missed entry drops those tests from
   `npm test` *and* CI while the suite still reports green at a lower count.
-  (Added 2026-09-04, mission-15; Bryce approved.)
+  (Added 2026-09-04, mission-15; Bryce approved. "In or before" replaced
+  "in the SAME commit" 2026-10-09, mission-21, Bryce approved: mission-21
+  added `src/lib/assistant/*.test.ts` one commit ahead of its first test
+  file, which is the safe direction — Node treats an unmatched glob as zero
+  files.)
 
 ## Danger register (absolute, for every agent)
 
