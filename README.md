@@ -112,7 +112,9 @@ npm run db:reset    # wipe the database completely and reapply the schema
 
 A private, bearer-token API under `/api/assistant/v1/` that Bryce's Home Hub
 bot calls to read and update inventory, log leftovers and list the family.
-Every call is recorded: `GET /api/assistant/v1/audit` shows what it did.
+Every call the API accepts is recorded — `GET /api/assistant/v1/audit` shows
+what it did. Calls turned away at the door (wrong token, API switched off,
+rate-limited) are deliberately not logged.
 
 - **Make a token:** `npm run assistant:token` prints a fresh token and its
   hash once and writes nothing. Put the **hash** in Vercel as
