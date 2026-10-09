@@ -12,7 +12,7 @@ structural changes against it.
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`) | Logic that belongs in an action or lib |
 | `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action |
-| `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
+| `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice`, `/api/alexa` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
@@ -31,7 +31,8 @@ structural changes against it.
   For non-browser clients that cannot hold a session, the guard may instead
   be a Route Handler in `src/app/api/` whose own auth check (a shared token,
   or a platform signature plus skill ID) runs before the body is parsed and
-  before any lib call — `/api/voice` and `/api/alexa` are the two instances.
+  before any lib call — `/api/voice`, `/api/alexa` and `/api/assistant/v1/`
+  (whose gate is the shared `assistantRoute` wrapper) are the three instances.
   The invariant is the same either way: the pure `server-only` call carries
   no auth, and exactly one guarded caller does.
 - **Dependency direction:** `lib` imports from nothing above it (never `app/`
@@ -50,7 +51,12 @@ structural changes against it.
   is the real gate. Public routes are added to proxy.ts as exact matches
   (`PUBLIC_ROUTES`) or — only when a token rides in the path — as *narrow*
   prefixes (`/share/recipe/`, not `/share`); the proxy drills proved the
-  sloppy prefix opens real holes.
+  sloppy prefix opens real holes. **Amended 2026-10-09 (Bryce-approved, plan
+  approval, mission-21):** a narrow prefix is also permitted for a versioned
+  API subtree where every handler is built from one shared gate —
+  `/api/assistant/v1/`, whose handlers all come from `assistantRoute`. The
+  trailing slash and the version segment stay mandatory; a `/v2/` is a new,
+  deliberate entry.
 - **No Prisma enums or provider-specific schema features.** TypeScript via
   `constants.ts` enforces vocabularies instead. This is what made the
   SQLite→Postgres move a provider swap, not a rewrite.

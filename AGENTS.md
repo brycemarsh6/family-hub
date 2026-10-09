@@ -44,9 +44,9 @@ working in this repo:
 
 - **The test script pins `TZ=America/Denver` inside `package.json`**, so
   `TZ=UTC npm test` silently runs Denver twice. Only the direct
-  `TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts`
+  `TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts`
   proves both timezones.
-- **`package.json`'s test glob is a hand-enumerated two-directory list, not
+- **`package.json`'s test glob is a hand-enumerated three-directory list, not
   recursive.** Any new test directory must ship its glob entry in the same
   commit, or its tests silently vanish from `npm test` **and CI** while the
   suite still reports green at a lower count.

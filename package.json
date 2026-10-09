@@ -8,7 +8,7 @@
     "build:vercel": "node prisma/migrate-on-production.mjs && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "TZ=America/Denver node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts",
+    "test": "TZ=America/Denver node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts",
     "postinstall": "prisma generate",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
@@ -24,7 +24,8 @@
     "db:seed-calendar": "tsx prisma/seed-calendar.ts",
     "db:clean-calendar": "tsx prisma/clean-calendar.ts",
     "db:seed-tasks": "tsx prisma/seed-tasks.ts",
-    "db:clean-tasks": "tsx prisma/clean-tasks.ts"
+    "db:clean-tasks": "tsx prisma/clean-tasks.ts",
+    "assistant:token": "node prisma/assistant-token.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
@@ -39,7 +40,8 @@
     "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

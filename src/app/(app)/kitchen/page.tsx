@@ -2,7 +2,7 @@ import { Package, ShoppingCart, Hourglass, ChefHat } from "lucide-react";
 import BranchTile from "@/components/BranchTile";
 import PlanWeekTile from "@/components/PlanWeekTile";
 import { db } from "@/lib/db";
-import { effectiveExpiry, daysUntil } from "@/lib/expiring";
+import { isExpiringWithin } from "@/lib/expiring";
 import type { Category, Location } from "@/lib/constants";
 
 // Matches "now" on the Expiring page itself (today/tomorrow) plus one more
@@ -52,14 +52,17 @@ export default async function KitchenPage() {
 
   const today = new Date();
   const expiringSoonCount = pantryItems.filter((item) => {
-    const expiry = effectiveExpiry({
-      name: item.name,
-      category: item.category as Category,
-      location: item.location as Location,
-      expiresAt: item.expiresAt,
-      restockedAt: item.restockedAt,
-    });
-    return expiry !== null && daysUntil(expiry.date, today) <= TILE_BADGE_WINDOW_DAYS;
+    return isExpiringWithin(
+      {
+        name: item.name,
+        category: item.category as Category,
+        location: item.location as Location,
+        expiresAt: item.expiresAt,
+        restockedAt: item.restockedAt,
+      },
+      TILE_BADGE_WINDOW_DAYS,
+      today,
+    );
   }).length;
 
   return (

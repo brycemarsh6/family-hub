@@ -108,6 +108,26 @@ npm run db:studio   # opens a visual browser for the database in your browser
 npm run db:reset    # wipe the database completely and reapply the schema
 ```
 
+## Assistant API (the Home Hub bot)
+
+A private, bearer-token API under `/api/assistant/v1/` that Bryce's Home Hub
+bot calls to read and update inventory, log leftovers and list the family.
+Every call the API accepts is recorded — `GET /api/assistant/v1/audit` shows
+what it did. Calls turned away at the door (wrong token, API switched off,
+rate-limited) are deliberately not logged.
+
+- **Make a token:** `npm run assistant:token` prints a fresh token and its
+  hash once and writes nothing. Put the **hash** in Vercel as
+  `ASSISTANT_API_TOKEN_HASH` (Production); paste the **token** into Home
+  Hub's secure input. Never commit either.
+- **Turn it off:** remove `ASSISTANT_API_TOKEN_HASH`. With it unset every
+  assistant route answers 404, as if the API didn't exist.
+- **Rotate:** run the script again and swap both values.
+- **The spec:** `GET /api/assistant/v1/openapi.json` (needs the bearer too),
+  generated from the same schemas the routes validate with.
+- **What it can't touch:** accounts, passwords and settings. It has no
+  route for them, and it can delete only what it created itself.
+
 ## Why some files aren't saved to git
 
 Git (via `.gitignore`) is deliberately not tracking a few things:

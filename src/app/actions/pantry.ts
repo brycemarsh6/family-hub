@@ -8,13 +8,19 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import {
-  toCategory,
-  toLocation,
   toStore,
   MANAGER_ROLES,
   type Store,
 } from "@/lib/constants";
-import { findDuplicateMatches, type DuplicateMatch } from "@/lib/duplicates";
+import type { DuplicateMatch } from "@/lib/duplicates";
+import {
+  createPantryItem,
+  setPantryQuantity as writePantryQuantity,
+  editPantryItem as writePantryItemEdit,
+  mergeIntoPantryItem,
+  logLeftover as writeLeftover,
+  findDuplicateCandidates,
+} from "@/lib/pantryWrites";
 
 /**
  * Both pages can be affected by a pantry change: the pantry obviously, and the
@@ -38,14 +44,12 @@ export async function addPantryItem(formData: FormData) {
   const rawQuantity = Number(formData.get("quantity"));
   const quantity = Number.isFinite(rawQuantity) && rawQuantity >= 0 ? rawQuantity : 1;
 
-  await db.pantryItem.create({
-    data: {
-      name,
-      quantity,
-      unit: String(formData.get("unit") ?? "").trim() || null,
-      category: toCategory(formData.get("category")),
-      location: toLocation(formData.get("location")),
-    },
+  await createPantryItem({
+    name,
+    quantity,
+    unit: String(formData.get("unit") ?? ""),
+    category: String(formData.get("category") ?? ""),
+    location: String(formData.get("location") ?? ""),
   });
 
   refreshKitchenViews();
@@ -64,21 +68,7 @@ export async function checkForDuplicateOnAdd(
 ): Promise<DuplicateMatch[]> {
   if (!(await getVerifiedSession())) return [];
 
-  const trimmed = name.trim();
-  if (!trimmed) return [];
-
-  const existing = await db.pantryItem.findMany({
-    select: {
-      id: true,
-      name: true,
-      location: true,
-      category: true,
-      quantity: true,
-      unit: true,
-    },
-  });
-
-  return findDuplicateMatches(trimmed, toLocation(location), existing);
+  return findDuplicateCandidates(name, location);
 }
 
 /**
@@ -100,14 +90,14 @@ export async function createPantryItemReviewed(fields: {
   const name = fields.name.trim();
   if (!name) return;
 
-  await db.pantryItem.create({
-    data: {
-      name,
-      quantity: Math.max(0, fields.quantity),
-      unit: fields.unit?.trim() || null,
-      category: toCategory(fields.category),
-      location: toLocation(fields.location),
-    },
+  // Explicit field list: a crafted call can't smuggle extra keys (lowThreshold,
+  // expiresAt) past the helper's wider signature.
+  await createPantryItem({
+    name,
+    quantity: fields.quantity,
+    unit: fields.unit,
+    category: fields.category,
+    location: fields.location,
   });
 
   refreshKitchenViews();
@@ -128,13 +118,7 @@ export async function mergeIntoExistingPantryItem(
   if (!(await getVerifiedSession())) return;
   if (!(quantity > 0)) return;
 
-  await db.pantryItem.update({
-    where: { id: pantryItemId },
-    data: {
-      quantity: { increment: Math.round(quantity * 100) / 100 },
-      restockedAt: new Date(),
-    },
-  });
+  await mergeIntoPantryItem(pantryItemId, quantity);
 
   refreshKitchenViews();
 }
@@ -142,27 +126,8 @@ export async function mergeIntoExistingPantryItem(
 export async function setPantryQuantity(id: string, quantity: number) {
   if (!(await getVerifiedSession())) return;
 
-  // Zero is meaningful here ("we're out"), so unlike the grocery list we allow
-  // it — we just don't allow negatives.
-  const safeQuantity = Math.max(0, Math.round(quantity * 100) / 100);
-
-  const current = await db.pantryItem.findUnique({
-    where: { id },
-    select: { quantity: true },
-  });
-  if (!current) return;
-
-  await db.pantryItem.update({
-    where: { id },
-    data: {
-      quantity: safeQuantity,
-      // Tapping + is "I just got more of this" — the Expiring page's shelf-life
-      // clock (see src/lib/shelfLife.ts) counts from here, not from when the
-      // row was first created. Tapping − is using what's already there, so it
-      // doesn't reset anything.
-      ...(safeQuantity > current.quantity ? { restockedAt: new Date() } : {}),
-    },
-  });
+  // Clamping, rounding and the restockedAt rule live in pantryWrites.ts.
+  if (!(await writePantryQuantity(id, quantity))) return;
 
   refreshKitchenViews();
 }
@@ -192,28 +157,16 @@ export async function editPantryItem(
   const name = changes.name.trim();
   if (!name) return;
 
-  const current = await db.pantryItem.findUnique({
-    where: { id },
-    select: { quantity: true },
+  const edited = await writePantryItemEdit(id, {
+    name,
+    quantity: changes.quantity,
+    unit: changes.unit,
+    category: changes.category,
+    location: changes.location,
+    lowThreshold: changes.lowThreshold,
+    expiresAt: changes.expiresAt,
   });
-  if (!current) return;
-
-  const quantity = Math.max(0, Math.round(changes.quantity * 100) / 100);
-
-  await db.pantryItem.update({
-    where: { id },
-    data: {
-      name,
-      quantity,
-      unit: changes.unit?.trim() || null,
-      category: toCategory(changes.category),
-      location: toLocation(changes.location),
-      lowThreshold: Math.max(0, Math.round(changes.lowThreshold * 100) / 100),
-      expiresAt: changes.expiresAt,
-      // Same "went up = restocked" rule as the quantity stepper — see there.
-      ...(quantity > current.quantity ? { restockedAt: new Date() } : {}),
-    },
-  });
+  if (!edited) return;
 
   refreshKitchenViews();
 }
@@ -222,11 +175,10 @@ export async function editPantryItem(
  * Log a leftover: name, how many portions, how many days it's good for.
  *
  * Deliberately never asks for a date — see LogLeftoverSheet for why that's
- * the whole point. "Days good" converts to a real `expiresAt` right here,
- * at local midnight N days out, the same convention the edit sheet's date
- * field uses — so a logged leftover and a hand-typed date behave identically
- * everywhere downstream (the Expiring page has no idea which one it's
- * looking at, and doesn't need to).
+ * the whole point. "Days good" converts to a real `expiresAt` at local
+ * midnight N days out (in pantryWrites.ts), the same convention the edit
+ * sheet's date field uses — so a logged leftover and a hand-typed date
+ * behave identically everywhere downstream.
  */
 export async function logLeftover(input: {
   name: string;
@@ -238,25 +190,12 @@ export async function logLeftover(input: {
   const name = input.name.trim();
   if (!name) return;
 
-  const quantity = Math.max(0.5, Math.round(input.quantity * 100) / 100);
-  const days = Math.max(1, Math.round(input.daysGood));
-
-  const today = new Date();
-  const expiresAt = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate() + days,
-  );
-
-  await db.pantryItem.create({
-    data: {
-      name,
-      quantity,
-      category: "Leftovers",
-      location: "Fridge", // freezing a leftover is an edit away, via the same date field
-      expiresAt,
-      lowThreshold: 0, // "running low" isn't a meaningful state for a one-off leftover
-    },
+  // Quantity floor, days-good → expiresAt (server-local midnight) and the
+  // Leftovers/Fridge defaults live in pantryWrites.ts.
+  await writeLeftover({
+    name,
+    quantity: input.quantity,
+    daysGood: input.daysGood,
   });
 
   refreshKitchenViews();
