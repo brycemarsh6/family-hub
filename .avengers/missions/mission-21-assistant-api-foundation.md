@@ -1,7 +1,7 @@
 # Mission 21: Assistant API — foundation, inventory, leftovers, family, audit
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** AT-THE-GATES
 **Started:** 2026-10-09 · **Updated:** 2026-10-09
 **Branch:** `claude/assistant-api-m21` (worktree `.claude/worktrees/family-hub-grok-api-28090b`)
 **Plan:** `.avengers/plans/assistant-api-v1.md` — authoritative for the API surface and the four decisions Bryce settled (presence-only recipe↔inventory, Denver "today" with `?date=` override, audit log with no bot account, the bot deletes only what it created). Missions 22–24 follow it.
@@ -194,7 +194,7 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 
 ### C6 — OpenAPI spec, audit route, token script, README
 
-- **Status:** DISPATCHED (2026-10-09)
+- **Status:** DONE (2026-10-09) — committed `e8144a3`
 - **Objective:** `/openapi.json` generated from the same zod schemas, `/audit`, `npm run assistant:token`, and the human docs.
 - **Boundaries:** may touch `src/lib/assistant/inventoryReads.ts` (new — one `onShoppingListIds(ids)` / single-item helper replacing the repeated lookup in the five inventory routes, which may be modified ONLY to call it), the five inventory route files under `src/app/api/assistant/v1/inventory/`, `src/lib/assistant/openapi.ts` + `openapiInventoryPaths.ts` (or similar per-domain registry files, new) + `openapi.test.ts` (new), `src/lib/assistant/schemas.ts` (only to add the audit query schema and response schemas if needed), `src/app/api/assistant/v1/openapi.json/route.ts` (new), `src/app/api/assistant/v1/audit/route.ts` (new), `prisma/assistant-token.mjs` (new), `package.json` (scripts only), `README.md`. Must not touch other routes, other lib files, actions.
 - **Work:**
@@ -206,6 +206,7 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 - **Verification:** gauntlet; `openapi.test.ts` shown red by temporarily commenting one registry entry, then green; dev-server curl with a throwaway hash: `/openapi.json` 200 with the bearer and 401 without; `/audit` lists a write made in the same run; cleanup as in C5b.
 - **Evidence required:** red-then-green; curl results; README diff.
 - **Done criteria:** Fury runs the token script himself (output not recorded) and `GET /openapi.json` through the dev server.
+- **Report:** DONE. inventoryReads.ts (onShoppingListIds/isOnShoppingList) used by four inventory routes (bulk-adjust didn't need it). openapi.ts + openapiInventoryPaths.ts + openapi.test.ts (3 tests; red-then-green by removing the GET /family row). auditQuery added. /openapi.json and /audit routes. assistant-token.mjs (node:crypto only, no file writes). README section. 416 tests, all legs green; build lists 10 assistant routes; recordcheck 0 hard / 10 REVIEW (untriaged by builder). E2E with throwaway token: spec 200/401; audit lists the run's writes; onList proven non-vacuous with a linked test grocery row. Counts 467/0/0 before and after; dev server stopped. Fury scanned the staged diff for token-shaped strings (none) and confirmed `.env` carries no ASSISTANT hash.
 
 ## Gate ledger
 
@@ -218,3 +219,4 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 - 2026-10-09 — C1, C3, C4 dispatched in parallel (disjoint boundaries; C4's verification rewritten to a script-level parity check because agents must not use a family member's password or mint a session). C2 waits on C1's schema; C5/C6 details get written from C2–C4 reports.
 - 2026-10-09 — C1/C3/C4 DONE and committed (`97d2ced`, `edbe1f4`, `f7dbfa9`); Fury re-ran tsc, eslint ., npm test (364/0). C2 dispatched.
 - 2026-10-09 — C2 committed `09c2fcf`, C5a committed `75ddab1`. Untracked `.agents/skills/avengers/` and `.codex/agents/*.toml` appeared in the worktree from outside this mission (a Codex mirror of the team) — left untouched, not committed, flagged to Bryce. C5b dispatched.
+- 2026-10-09 — C6 committed `e8144a3`. All seven contracts DONE. Gates dispatched: Vision (correctness, incl. browser-free parity audit of pantry.ts and an independent attack subset) and Captain (structure) in parallel — Captain is read-only and touches no data, so the serial-gates rule for credentialed test data doesn't apply.
