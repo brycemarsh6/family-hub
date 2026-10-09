@@ -2,9 +2,9 @@
 
 import { QuantityStepper } from "./QuantityStepper";
 import type { PantryItemView } from "@/lib/types";
+import type { Urgency } from "@/lib/expiring";
 
 /** How urgently this needs eating — drives the badge's color, not its text. */
-export type Urgency = "now" | "week" | "later";
 
 const URGENCY_STYLE: Record<Urgency, string> = {
   now: "bg-danger-soft text-danger",

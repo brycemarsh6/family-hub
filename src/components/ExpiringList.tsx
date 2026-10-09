@@ -1,7 +1,8 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { ExpiringRow, type Urgency } from "./ExpiringRow";
+import { ExpiringRow } from "./ExpiringRow";
+import type { Urgency } from "@/lib/expiring";
 import { PantryItemEditSheet, type PantryItemEdits } from "./PantryItemEditSheet";
 import { StorePickerSheet } from "./StorePickerSheet";
 import { EmptyState } from "./EmptyState";
