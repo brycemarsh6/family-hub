@@ -1,7 +1,7 @@
 # Mission 21: Assistant API — foundation, inventory, leftovers, family, audit
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERED (PR open, not merged — merge deploys to production and applies the migration; Bryce's call)
+**Status:** DELIVERED — PR #28 merged 2026-10-09 (`198830d`)
 **Started:** 2026-10-09 · **Updated:** 2026-10-09
 **Branch:** `claude/assistant-api-m21` (worktree `.claude/worktrees/family-hub-grok-api-28090b`)
 **Plan:** `.avengers/plans/assistant-api-v1.md` — authoritative for the API surface and the four decisions Bryce settled (presence-only recipe↔inventory, Denver "today" with `?date=` override, audit log with no bot account, the bot deletes only what it created). Missions 22–24 follow it.
@@ -310,7 +310,8 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 - **Shipped:** `/api/assistant/v1/` — inventory (list, get, create with duplicate 409, patch, adjust, bulk-adjust, expiring, review), leftovers, family, audit, openapi.json; `npm run assistant:token`; README section. Tests 350 → 429.
 - **Production steps (Bryce):** merge the PR (the build hook applies `20261009203359_add_assistant_audit` — additive); read the Vercel build log for `migrate deploy` applying it; run `npm run assistant:token` in his own terminal; set `ASSISTANT_API_TOKEN_HASH` in Vercel (Production only); redeploy; paste the token into Home Hub; first call `GET /api/assistant/v1/openapi.json`.
 - **Mission 22's first contract, before any new route:** harden the N3 tripwire with the TypeScript compiler API (Vision pass 3 (a)–(e)); map P2028; hoist `isWriteConflictError` into `prismaErrors.ts`; resolve the 30-day prune vs `didAssistantCreate` before the first DELETE; split `pantryWrites.ts` and `schemas.ts`; adopt `requireHouseholdToday`/`notFound` everywhere; rename `lib/assistant/route.ts`.
-- **Deliberately not done:** Captain's STRUCTURE.md amendments A–E (awaiting Bryce); the in-app `logLeftover` server-midnight convention (production in-app leftovers read one day early via the API) — a small follow-up; `shelfLife.ts` estimate skew (pre-existing, app-wide).
+- **After delivery:** PR #28 merged 2026-10-09 (`198830d`); Bryce approved Captain's amendments A–E, applied in the follow-up PR.
+- **Deliberately not done:** the in-app `logLeftover` server-midnight convention (production in-app leftovers read one day early via the API) — a small follow-up; `shelfLife.ts` estimate skew (pre-existing, app-wide).
 
 ## Handoff log
 

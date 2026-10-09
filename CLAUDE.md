@@ -6364,7 +6364,12 @@ for the migration (`add_assistant_audit`, additive); run
 Home Hub. Then change your own Marshee password, since the bot had your
 login. **No agent ever sees the token.**
 
-**Open for Bryce:** Captain's STRUCTURE.md amendments A–E (written-down rules
-for the patterns this API introduced) await approval. Untracked
+**Bryce approved Captain's STRUCTURE.md amendments A–E** (domain write
+modules may have several guarded callers; `/api/assistant/v1/` is a named,
+tested prefix exception; routes may read but every write and shared rule is
+a lib call; `householdDate.ts` is the server-side date home; test globs land
+"in or before" their first test file) — applied in the follow-up PR after
+#28. PR #28 merged 2026-10-09. Untracked
 `.agents/skills/avengers/` and `.codex/` folders appeared in the worktree from
-outside the mission (a Codex mirror of the team) and were left alone.
+outside the mission — Bryce confirmed his Grok bot made them; deliberately
+left uncommitted for now.
