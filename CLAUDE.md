@@ -6283,3 +6283,85 @@ green, Vercel preview deployed, MERGEABLE — deliberately NOT merged.** Preview
 2. **Touch-vs-scroll arbitration for swipe inside the timeline's scroller** —
    the only part of the gesture no instrument here can reach.
 
+
+---
+
+## Session, 2026-10-09: the Assistant API (mission 21) — a private API for Bryce's bot
+
+**Bryce runs a Grok-based assistant ("Home Hub") on a separate server and
+wanted it to stop driving Marshee through his own login.** The bot poked
+around the app and wrote a wish-list (on Bryce's desktop,
+`claude-code-home-hub-api.md`). Bryce's instruction: don't take the bot's word
+for how to build it — build it the way that's right for this codebase. The
+plan, `.avengers/plans/assistant-api-v1.md`, is the authoritative record and
+spans **four missions / four PRs**; mission 21
+(`.avengers/missions/mission-21-assistant-api-foundation.md`) is the first and
+is the only one built.
+
+**Decisions Bryce settled — don't re-litigate:**
+- **Recipe ↔ inventory is presence-only.** The bot asked for quantity-level
+  "shortfall math with unit conversion". Pantry units are package counts
+  ("2 bags", "1 tub"), so that would be invented precision. Bryce: if it's in
+  the inventory, we have it. No ingredient quantity parsing, no auto-deduct.
+- **"Today" defaults to Denver** via `HOUSEHOLD_TIME_ZONE` (its first
+  consumer), overridable with `?date=YYYY-MM-DD`. The "device decides today"
+  rule is for browsers; the bot's device is a server.
+- **No bot account yet — an audit log instead.** Nothing in the app renders
+  "added by", and a device-role User would appear as a pickable person in the
+  calendar/task rosters. Every write helper takes an `actorUserId` so a real
+  account later is a small change.
+- **The bot may hard-delete only what it created** (checked against the
+  audit log); inventory is never deleted, only zeroed.
+
+**What shipped (mission 21):** `/api/assistant/v1/` — inventory (list, get,
+create with a 409 on likely duplicates, patch, adjust, bulk-adjust, expiring,
+review queue), leftovers, family (names/roles only — never a hash),
+`/audit`, `/openapi.json`. `npm run assistant:token` prints a token and its
+SHA-256 **hash** once; only the hash goes in Vercel as
+`ASSISTANT_API_TOKEN_HASH`; unset = the whole API answers 404. Tests 350 → 429.
+
+**The structural change that matters most:** the pantry's write logic moved
+out of the session-guarded Server Actions into `src/lib/pantryWrites.ts`, a
+`server-only` module called by both the actions and the API routes — one
+definition, two guarded callers (the `voice/apply.ts` precedent). Missions
+22–24 repeat this for groceries, put-away, recipes, meal plans, calendar and
+tasks. Every route is one `assistantRoute()` wrapper: off-switch 404 → bearer
+401 (terse, unlogged) → rate limit 429 → body cap / zod → handler → awaited
+audit write.
+
+**What the gates caught, worth keeping:**
+- **Lost updates under parallel adjusts.** Ten simultaneous "+1"s returned
+  ten 200s and applied two; the audit log recorded ten. Read-then-write, and
+  a `$transaction` at READ COMMITTED doesn't help. Fixed with compare-and-set
+  (`updateMany where quantity = before`, jittered retry, 409). The bot can
+  make parallel tool calls, so this would have been real.
+- **A COUNT-based rate limit doesn't hold under bursts** (200 parallel → 199
+  served), and the first fix over-corrected (a burst of 121+ refused
+  *everyone* — a livelock for a client that retries the batch). The shipped
+  version inserts the request's row first and counts only rows ranked at or
+  before it: exactly 120 of any burst, measured repeatedly.
+- **The deadlock code under `@prisma/adapter-pg` is P2039 with
+  originalCode 40P01, not the documented P2034** — measured live, not
+  assumed. Both map to 409.
+- **The proxy lets all of `/api/assistant/v1/` through without a session**,
+  so a route that forgot the wrapper would be fully public. `openapi.test.ts`
+  now fails if any route file under that prefix (anywhere in `src/app`, any
+  extension, route groups stripped) exports anything but
+  `export const <METHOD> = assistantRoute(...)`. Vision's last pass still
+  found regex-level ways to fool it (no current route affected) — hardening
+  it with the TypeScript compiler API is mission 22's first contract.
+- **Running a script that imports `server-only` modules:**
+  `--conditions=react-server` crashes here (lucide-react). Use
+  `node --require <stub making require('server-only') return {}> --import tsx --env-file=.env`.
+
+**Production steps — Bryce, after merging the PR:** read the Vercel build log
+for the migration (`add_assistant_audit`, additive); run
+`npm run assistant:token` in your own terminal; put the hash in Vercel as
+`ASSISTANT_API_TOKEN_HASH` (Production only), redeploy, paste the token into
+Home Hub. Then change your own Marshee password, since the bot had your
+login. **No agent ever sees the token.**
+
+**Open for Bryce:** Captain's STRUCTURE.md amendments A–E (written-down rules
+for the patterns this API introduced) await approval. Untracked
+`.agents/skills/avengers/` and `.codex/` folders appeared in the worktree from
+outside the mission (a Codex mirror of the team) and were left alone.

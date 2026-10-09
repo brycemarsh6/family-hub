@@ -1,7 +1,7 @@
 # Mission 21: Assistant API — foundation, inventory, leftovers, family, audit
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERED (PR open, not merged — merge deploys to production and applies the migration; Bryce's call)
 **Started:** 2026-10-09 · **Updated:** 2026-10-09
 **Branch:** `claude/assistant-api-m21` (worktree `.claude/worktrees/family-hub-grok-api-28090b`)
 **Plan:** `.avengers/plans/assistant-api-v1.md` — authoritative for the API surface and the four decisions Bryce settled (presence-only recipe↔inventory, Denver "today" with `?date=` override, audit log with no bot account, the bot deletes only what it created). Missions 22–24 follow it.
@@ -216,8 +216,8 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 | 1 | Vision | BLOCKED (at `7a6abe4`) | 1 | 10 |
 | 2 | Vision | **PASS** (at `60ec0af`) | 0 | 7 |
 | 2 | Captain | BLOCKED (at `60ec0af`) | 1 (comment-only) | 7 |
-| 3 | Vision | dispatched | — | — |
-| 3 | Captain | dispatched | — | — |
+| 3 | Vision | **PASS** (at `985aed1`) | 0 | 6 |
+| 3 | Captain | **PASS** (at `985aed1`) | 0 | 5 |
 
 ### Captain pass 1 (at `7a6abe4`) — BLOCKED
 
@@ -293,6 +293,25 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 - **Done criteria:** Fury re-runs the burst and bulk-race checks; reads the `audit.ts` comment.
 - **Report:** DONE. 200-burst → exactly 120 × 200 / 80 × 429, 0 orphan rows (3 identical runs). 20 opposite-order bulks → 20 × 200, finals exact, 60 change rows (3 runs). Deadlock code measured live: under `@prisma/adapter-pg` it arrives as **P2039 with originalCode 40P01**, not P2034 — wrapper maps P2034 and P2039/40P01/40001 to 409. Unmapped: P2028 (transaction-start timeout), seen only with sorting disabled. N3: 12 red cases + 4 route-discovery red cases shown, plus a permanent 14-snippet test. Spec shows the date pattern. 429 tests all legs. `isWriteConflictError` sits in `route.ts` (prismaErrors.ts was out of boundary) — hoist candidate. Rank-based limiter can in theory over-admit by in-flight count; measured 0.
 
+### Captain pass 3 (at `985aed1`) — PASS
+
+- Pass-2 BLOCKER closed (dormancy note names the reviving consumer, the fallback, the 30-day limit; header true; `IN_FLIGHT_STATUS` un-exported). NOTE 2 closed (HEAD/OPTIONS; pure checker kept inside the test file — no dormant export). All F3 files under the soft cap.
+- NOTES for mission 22: hoist `isWriteConflictError` into `prismaErrors.ts` beside `isMissingRowError` at next touch (proposed amendment: add `prismaErrors.ts` to One source of truth as "Prisma error-code classification"); `audit.ts:7` header says "ONE" reader then names two (cosmetic); `pantryWrites.ts` grew 229 → 307 — split quantity mutation (set/adjust CAS) from create/edit/merge/leftover before it reaches the cap; bulk-adjust's mid-transaction 404 lost its `{ missing }` detail when it adopted `notFound()` (response shape — Vision's domain); carried: rename `lib/assistant/route.ts`, review-queue third copy, `schemas.ts` split, `mealPlans.ts:204` adopting `expiresWithin`.
+
+### Vision pass 3 (at `985aed1`) — PASS
+
+- Measured: 200/400/300-request bursts → exactly 120 served each, 0 orphan rows, tie-break exercised (120 rows over 75–94 distinct ms). Bulk races: finals exact across 109 batches, no deadlocks (sort works). N4 closed (all five date fields carry the pattern in the served spec). Every v1 route answers 401/405/204 without a token.
+- F3's "20 × 200 every run" did not fully reproduce: back-to-back runs gave 2–3 × **500 P2028** (transaction-start timeout waiting for a connection) — data exact, nothing applied for those calls.
+- NOTES: P2028 should map to a retryable 409/503 (or raise `maxWait`); the rate-limit "insertion rank" uses Prisma's client-side `createdAt`, so across Vercel instances clock skew widens the visibility race (comment should say so, or use a DB default); **the N3 tripwire can still be fooled** — (a) the comment stripper isn't string-aware (`"image/*"` … `*/` hides an unwrapped export from both tests, silently), (b) `export const POST: T = …` annotated exports, (c) anything but a comma after the wrapper call, (d) dynamic segments like `api/assistant/[v]/x` that Next would likely serve under the public prefix (reasoning, not measured), (e) `@slot` folders, (f) `pages/api` — none affect current routes; fix with the TypeScript compiler API at mission 22; bulk mid-transaction 404 lost `{missing}`; only 2 of 5 date fields pinned by the test; `isWriteConflictError`'s "retrying is safe" holds only while handlers are single-statement or one transaction.
+
+## Delivery
+
+- **Verdicts:** Vision PASS (pass 3), Captain PASS (pass 3). Strange not assembled (no rendered change; `ExpiringRow`/`ExpiringList` edits are type-only/comments).
+- **Shipped:** `/api/assistant/v1/` — inventory (list, get, create with duplicate 409, patch, adjust, bulk-adjust, expiring, review), leftovers, family, audit, openapi.json; `npm run assistant:token`; README section. Tests 350 → 429.
+- **Production steps (Bryce):** merge the PR (the build hook applies `20261009203359_add_assistant_audit` — additive); read the Vercel build log for `migrate deploy` applying it; run `npm run assistant:token` in his own terminal; set `ASSISTANT_API_TOKEN_HASH` in Vercel (Production only); redeploy; paste the token into Home Hub; first call `GET /api/assistant/v1/openapi.json`.
+- **Mission 22's first contract, before any new route:** harden the N3 tripwire with the TypeScript compiler API (Vision pass 3 (a)–(e)); map P2028; hoist `isWriteConflictError` into `prismaErrors.ts`; resolve the 30-day prune vs `didAssistantCreate` before the first DELETE; split `pantryWrites.ts` and `schemas.ts`; adopt `requireHouseholdToday`/`notFound` everywhere; rename `lib/assistant/route.ts`.
+- **Deliberately not done:** Captain's STRUCTURE.md amendments A–E (awaiting Bryce); the in-app `logLeftover` server-midnight convention (production in-app leftovers read one day early via the API) — a small follow-up; `shelfLife.ts` estimate skew (pre-existing, app-wide).
+
 ## Handoff log
 
 - 2026-10-09 — Plan approved by Bryce; mission file written; branch renamed `claude/assistant-api-m21`; worktree `.env` copied from the main checkout (dev host verified) and `prisma generate` run. Baseline 350 tests at `167641f`. Dispatching C1 and C3 in parallel (disjoint boundaries).
@@ -304,3 +323,4 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 - 2026-10-09 — F2 `1f5632c`, Urgency/CLAUDE.md follow-up `0e98798`, F1 `64d77a9`. Gate pass 2 dispatched (Vision + Captain) at the HEAD of the commit recording this line.
 - 2026-10-09 — Gate pass 2: Vision PASS (7 notes), Captain BLOCKED (1, comment-only). F3 written to close Captain's blocker plus Vision N1–N4 and comment truth; then pass 3 (final) for both.
 - 2026-10-09 — F3 committed `a3121b0`. Gate pass 3 (final in budget) dispatched for both.
+- 2026-10-09 — Gate pass 3: Vision PASS, Captain PASS. Mission DELIVERED; PR opened, merge left to Bryce.
