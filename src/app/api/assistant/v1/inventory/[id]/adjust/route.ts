@@ -1,5 +1,5 @@
 import { assistantRoute } from "@/lib/assistant/route";
-import { ApiError } from "@/lib/assistant/errors";
+import { ApiError, notFound } from "@/lib/assistant/errors";
 import { adjustBody } from "@/lib/assistant/schemas";
 import { householdToday } from "@/lib/assistant/today";
 import { toInventoryItem } from "@/lib/assistant/serialize";
@@ -13,7 +13,7 @@ export const POST = assistantRoute<{ id: string }, z.output<typeof adjustBody>>(
   body: adjustBody,
   handler: async ({ params, body, now, changes }) => {
     const result = await adjustPantryQuantity(params.id, body.delta);
-    if (!result) throw new ApiError(404, "not_found", "That record doesn't exist.");
+    if (!result) throw notFound();
     if (result === "conflict") {
       throw new ApiError(409, "conflict", "That item changed while we were updating it; try again.");
     }

@@ -2,8 +2,13 @@ import "server-only";
 
 // The Assistant API's audit log. One AssistantRequest row per call that got
 // past authentication and the rate limit, with one AssistantChange row per
-// record the call created, updated or deleted. Two readers: GET /audit, and
-// didAssistantCreate — the rule that the bot may only delete what it made.
+// record the call created, updated or deleted.
+//
+// Readers today: ONE — GET /audit (listAudit), plus rateLimit.ts, which counts
+// the request rows. didAssistantCreate is a second, DORMANT reader: it has no
+// application caller yet, by design, and exists ahead of its consumer (see its
+// own note). The deletion clock starts with mission 21 — nothing before it is
+// recorded, so nothing before it can ever answer "the assistant made this".
 
 import { db } from "@/lib/db";
 
@@ -35,17 +40,22 @@ export type FinishRequestInput = {
  * request that is counted only after it finishes lets a parallel burst all
  * pass the check together. finishRequest fills in the real outcome.
  */
-export const IN_FLIGHT_STATUS = 0;
+const IN_FLIGHT_STATUS = 0;
 
 /** A status-0 row younger than this is a live request, not a dead one. */
 const IN_FLIGHT_GRACE_MS = 5 * 60 * 1000;
 
-export async function startRequest(input: StartRequestInput): Promise<string> {
-  const row = await db.assistantRequest.create({
+/**
+ * Returns the row's id AND createdAt: together they are the request's
+ * insertion rank, which the rate limiter orders a burst by (rateLimit.ts).
+ */
+export async function startRequest(
+  input: StartRequestInput,
+): Promise<{ id: string; createdAt: Date }> {
+  return db.assistantRequest.create({
     data: { ...input, status: IN_FLIGHT_STATUS, durationMs: 0 },
-    select: { id: true },
+    select: { id: true, createdAt: true },
   });
-  return row.id;
 }
 
 /** A refused (429) call leaves no trace: remove its placeholder. */
@@ -73,7 +83,22 @@ export async function finishRequest(id: string, input: FinishRequestInput): Prom
   });
 }
 
-/** Did the Assistant API itself create this record? Gates the bot's deletes. */
+/**
+ * Did the Assistant API itself create this record? Meant to gate the bot's
+ * deletes ("the bot deletes only what it created").
+ *
+ * DORMANT: nothing calls this yet. It becomes live with mission 22's first bot
+ * DELETE (`DELETE /shopping/{id}` in .avengers/plans/assistant-api-v1.md); it
+ * is written ahead of that route on purpose so the audit log's create rows
+ * start accumulating now. If that route never ships, delete this function.
+ *
+ * KNOWN LIMIT, mission 22 must resolve it before relying on this: pruneAudit
+ * removes requests (and their change rows) after 30 days, so for any record
+ * the bot created more than 30 days ago this answers false — "the assistant
+ * didn't make it" becomes false-by-age, and the bot could no longer delete its
+ * own old rows. Either exempt create rows from the prune, or record
+ * provenance on the record itself, before the first DELETE depends on this.
+ */
 export async function didAssistantCreate(model: string, recordId: string): Promise<boolean> {
   const hit = await db.assistantChange.findFirst({
     where: { model, recordId, action: "create" },

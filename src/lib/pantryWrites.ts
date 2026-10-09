@@ -17,7 +17,7 @@ import "server-only";
 // non-positive merge quantity) stays with the caller, as it always was.
 
 import { db } from "@/lib/db";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, PantryItem } from "@/generated/prisma/client";
 import { toCategory, toLocation } from "@/lib/constants";
 import { findDuplicateMatches, type DuplicateMatch } from "@/lib/duplicates";
 
@@ -118,7 +118,20 @@ const MAX_ADJUST_ATTEMPTS = 10;
 export async function adjustPantryQuantity(
   id: string,
   delta: number,
+  client?: Prisma.TransactionClient,
+): Promise<{ before: number; after: number; row: PantryItem } | null | "conflict">;
+/** `{ returnRow: false }` skips the post-write re-read: `before`/`after` only. */
+export async function adjustPantryQuantity(
+  id: string,
+  delta: number,
+  client: Prisma.TransactionClient,
+  options: { returnRow: false },
+): Promise<{ before: number; after: number } | null | "conflict">;
+export async function adjustPantryQuantity(
+  id: string,
+  delta: number,
   client: Prisma.TransactionClient = db,
+  options: { returnRow?: boolean } = {},
 ) {
   for (let attempt = 0; attempt < MAX_ADJUST_ATTEMPTS; attempt++) {
     const current = await client.pantryItem.findUnique({
@@ -140,6 +153,7 @@ export async function adjustPantryQuantity(
       continue;
     }
 
+    if (options.returnRow === false) return { before, after };
     const row = await client.pantryItem.findUnique({ where: { id } });
     if (!row) return null; // deleted between our write and this read
     return { before, after, row };

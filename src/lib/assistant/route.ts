@@ -3,9 +3,10 @@ import "server-only";
 import { after } from "next/server";
 import type { NextRequest } from "next/server";
 import type { ZodType } from "zod";
+import { Prisma } from "@/generated/prisma/client";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import { parseBearer, isTokenValid } from "./authPolicy";
-import { ApiError, errorResponse, fromZodError, unauthorisedResponse } from "./errors";
+import { ApiError, errorResponse, fromZodError, notFound, unauthorisedResponse } from "./errors";
 import { readJsonBody } from "./body";
 import { isRateLimited } from "./rateLimit";
 import {
@@ -74,6 +75,31 @@ type Options<P, B, Q> = {
   handler: (args: AssistantHandlerArgs<P, B, Q>) => Promise<AssistantHandlerResult>;
 };
 
+/**
+ * A transaction Postgres aborted because it collided with another one: a
+ * deadlock (40P01) or serialization failure (40001). Nothing it did was kept,
+ * so telling the caller to retry is safe.
+ *
+ * Two shapes, both looked up in node_modules/@prisma/client/runtime/client.js
+ * and the first seen live (the dev DB, driver adapter pg, two bulk-adjusts
+ * naming the same rows in opposite order):
+ *  - P2039, the generic driver-adapter error: this is what a deadlock arrives
+ *    as under `@prisma/adapter-pg`, with the Postgres SQLSTATE in
+ *    `meta.driverAdapterError.cause.originalCode`.
+ *  - P2034, Prisma's own TransactionWriteConflict ("write conflict or a
+ *    deadlock. Please retry your transaction"), for any path that maps it.
+ * Kept here, not in prismaErrors.ts, which this mission may not touch; this
+ * wrapper is the only caller.
+ */
+function isWriteConflictError(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (error.code === "P2034") return true;
+  if (error.code !== "P2039") return false;
+  const cause = (error.meta as { driverAdapterError?: { cause?: { originalCode?: unknown } } } | undefined)
+    ?.driverAdapterError?.cause;
+  return cause?.originalCode === "40P01" || cause?.originalCode === "40001";
+}
+
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH"]);
 
 /** ~2% of calls tidy up old audit rows; cheap, and no cron needed. */
@@ -96,9 +122,9 @@ export function assistantRoute<
     const now = new Date();
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || null;
 
-    let requestId: string;
+    let started: { id: string; createdAt: Date };
     try {
-      requestId = await startRequest({
+      started = await startRequest({
         method: request.method,
         path: request.nextUrl.pathname,
         action: options.action,
@@ -109,8 +135,10 @@ export function assistantRoute<
       return errorResponse(new ApiError(500, "internal", "Something went wrong."));
     }
 
+    const requestId = started.id;
+
     try {
-      const limit = await isRateLimited(now);
+      const limit = await isRateLimited(now, started);
       if (limit.limited) {
         await discardRequest(requestId).catch((error) =>
           console.error("[assistant] discarding refused request failed:", error),
@@ -160,7 +188,11 @@ export function assistantRoute<
       if (error instanceof ApiError) {
         failure = error;
       } else if (isMissingRowError(error)) {
-        failure = new ApiError(404, "not_found", "That record doesn't exist.");
+        failure = notFound();
+      } else if (isWriteConflictError(error)) {
+        // Postgres aborted one of two transactions that touched the same rows
+        // (a deadlock or write conflict). Nothing was applied; retrying is safe.
+        failure = new ApiError(409, "conflict", "That item changed while we were updating it; try again.");
       } else {
         console.error("[assistant] failed:", error);
         failure = new ApiError(500, "internal", "Something went wrong.");

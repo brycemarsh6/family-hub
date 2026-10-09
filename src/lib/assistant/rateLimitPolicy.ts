@@ -14,12 +14,13 @@ export type RateLimitStatus =
   | { limited: true; retryAfterSeconds: number };
 
 /**
- * `countInWindow` is how many requests fall inside the window NOT counting
- * the one being decided; `oldestInWindow` is the earliest of them. Once LIMIT
- * others are recorded this one is refused, until the oldest ages out. Accurate
- * for sequential callers; for a parallel burst, rateLimit.ts makes it hold by
- * inserting each request's row before counting (and over-refuses at the edge
- * rather than letting extras through).
+ * `countInWindow` is how many requests in the window are ranked BEFORE the
+ * one being decided (rateLimit.ts defines rank: insertion order, ties broken
+ * by id); `oldestInWindow` is the earliest of them. Once LIMIT are ranked
+ * ahead, this one is refused, until the oldest ages out. Because the count is
+ * by rank rather than "everything in the window", the first LIMIT requests of
+ * a parallel burst are served and only the rest refused; rateLimit.ts states
+ * the small race margin that remains.
  */
 export function evaluate(
   countInWindow: number,

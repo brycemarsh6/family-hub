@@ -1,5 +1,5 @@
 import { assistantRoute } from "@/lib/assistant/route";
-import { ApiError } from "@/lib/assistant/errors";
+import { ApiError, notFound } from "@/lib/assistant/errors";
 import { bulkAdjustBody } from "@/lib/assistant/schemas";
 import { adjustPantryQuantity } from "@/lib/pantryWrites";
 import { db } from "@/lib/db";
@@ -23,17 +23,24 @@ export const POST = assistantRoute({
       });
     }
 
-    // All adjustments commit or roll back together.
+    // All adjustments commit or roll back together. Applied in id order, not
+    // request order: two batches naming the same items in opposite orders
+    // would otherwise each hold one row while waiting on the other (a
+    // deadlock, seen as a 500). A consistent order makes them queue instead.
+    // Results are stored back at each adjustment's original index.
+    const order = body.adjustments.map((adj, index) => ({ adj, index }));
+    order.sort((a, b) => (a.adj.id < b.adj.id ? -1 : a.adj.id > b.adj.id ? 1 : 0));
     const results = await db.$transaction(async (tx) => {
-      const out: { id: string; before: number; after: number }[] = [];
-      for (const adj of body.adjustments) {
-        const r = await adjustPantryQuantity(adj.id, adj.delta, tx);
-        if (!r) throw new ApiError(404, "not_found", "An item vanished mid-request.", { missing: [adj.id] });
+      const out: { id: string; before: number; after: number }[] = new Array(order.length);
+      for (const { adj, index } of order) {
+        // No post-write re-read: the response needs only before/after.
+        const r = await adjustPantryQuantity(adj.id, adj.delta, tx, { returnRow: false });
+        if (!r) throw notFound();
         // Throwing inside $transaction rolls back every adjustment so far.
         if (r === "conflict") {
           throw new ApiError(409, "conflict", "An item changed while we were updating it; nothing was changed. Try again.", { id: adj.id });
         }
-        out.push({ id: adj.id, before: r.before, after: r.after });
+        out[index] = { id: adj.id, before: r.before, after: r.after };
       }
       return out;
     });

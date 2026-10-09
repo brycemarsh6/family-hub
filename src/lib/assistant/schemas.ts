@@ -12,6 +12,9 @@ const location = z.enum(LOCATION_NAMES as [string, ...string[]]);
 /** A real `YYYY-MM-DD`: impossible days (2026-02-30) fail here, as a zod 400. */
 export const calendarDateString = z
   .string()
+  // The regex is what the generated OpenAPI document shows (a refine alone
+  // leaves no trace in JSON Schema); the refine rejects impossible days.
+  .regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Use a real date as YYYY-MM-DD." })
   .refine((value) => parseDateParam(value) !== null, { message: "Use a real date as YYYY-MM-DD." });
 const name = z.string().trim().min(1).max(120);
 

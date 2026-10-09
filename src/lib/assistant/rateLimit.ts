@@ -5,13 +5,27 @@ import "server-only";
 // second store to keep in step.
 //
 // It must be called AFTER the caller's own row has been inserted
-// (audit.startRequest) and counts that row too. That ordering is the whole
-// point: counting first and recording last lets N parallel requests all read
-// the same stale count and all pass (200 parallel calls got 199 through a
-// limit of 120). Insert-then-count means each request sees every request that
-// inserted before its own count ran. Near the boundary two concurrent callers
-// can each see the other and both be refused when only one needed to be — it
-// over-refuses, never under-refuses, which is the safe direction for a limiter.
+// (audit.startRequest), and it decides by INSERTION RANK: a request counts
+// only the rows inserted at or before its own — createdAt earlier than its
+// own, or equal with an id that sorts at or before its own (the id breaks
+// millisecond ties) — itself included. Limited when that rank exceeds LIMIT.
+//
+// Why rank and not "count everything in the window": counting first and
+// recording last lets N parallel requests all read the same stale count and
+// pass (200 parallel calls got 199 through a limit of 120). Inserting first
+// and counting ALL rows fixes that but makes a burst larger than LIMIT refuse
+// everybody — every request inserts before any counts, so each sees >LIMIT
+// rows — and a client that retries the whole batch livelocks. Ranking fixes
+// both: the earliest LIMIT requests of a burst are served and the rest get 429,
+// whatever order their counts happen to run in.
+//
+// Not exact under a race: a row that is mid-insert when a later request
+// counts is not yet visible, so that later request can rank one lower than its
+// true place and slip through, and a refused request's row is deleted, which
+// can only lower later counts the same way. The error is bounded by the number
+// of requests in flight at that instant — a few over LIMIT at worst (none seen
+// in three 200-request bursts: exactly LIMIT served each time), never
+// unbounded as before.
 //
 // Refused (429) callers delete their placeholder and unauthorised (401) calls
 // never insert one, so a flood of either can neither fill the table nor extend
@@ -23,12 +37,23 @@ import "server-only";
 import { db } from "@/lib/db";
 import { evaluate, LIMIT, WINDOW_MS, type RateLimitStatus } from "./rateLimitPolicy";
 
-export async function isRateLimited(now: Date): Promise<RateLimitStatus> {
+export async function isRateLimited(
+  now: Date,
+  mine: { id: string; createdAt: Date },
+): Promise<RateLimitStatus> {
   const since = new Date(now.getTime() - WINDOW_MS);
-  // Includes the caller's own already-inserted row, hence the `- 1`: evaluate()
-  // wants "requests already recorded before this one".
+  // Counts the caller's own row too (its id equals mine.id), hence the `- 1`:
+  // evaluate() wants "requests ranked before this one".
   const count =
-    (await db.assistantRequest.count({ where: { createdAt: { gt: since } } })) - 1;
+    (await db.assistantRequest.count({
+      where: {
+        createdAt: { gt: since },
+        OR: [
+          { createdAt: { lt: mine.createdAt } },
+          { createdAt: mine.createdAt, id: { lte: mine.id } },
+        ],
+      },
+    })) - 1;
   if (count < LIMIT) return { limited: false };
   const oldest = await db.assistantRequest.findFirst({
     where: { createdAt: { gt: since } },

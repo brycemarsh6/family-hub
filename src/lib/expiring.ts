@@ -56,8 +56,9 @@ export function expiresWithin(daysLeft: number, withinDays: number): boolean {
 /**
  * Whether an item expires within `withinDays` of `today` (already-expired
  * items count). Items with no real date and no estimate never match. This is
- * the process-local form, for the dashboard and the Kitchen tile, which run
- * in the household's own clock. The Assistant API runs on a UTC server, so it
+ * the process-local form, for the dashboard and the Kitchen tile. They run on
+ * the SERVER's clock (UTC on Vercel), not the household's — a tolerated skew of
+ * a few hours each evening (see CLAUDE.md). The Assistant API is stricter: it
  * computes `daysLeft` zone-aware (assistant/today.ts) and shares only the
  * comparison, `expiresWithin`, and the buckets, `urgencyFor`.
  */

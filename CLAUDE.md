@@ -4651,8 +4651,8 @@ the fetch window follow the viewed period, Google-style.
 - **`package.json:11` pins `TZ` inside the test script, so `TZ=UTC npm test`
   silently runs Denver twice.** Only the direct
   `TZ=UTC node --import tsx --test …` invocation proves both timezones.
-- **The CI test glob is a hand-enumerated three-directory list, not
-  recursive.** A `src/lib/calendar/` subdirectory would silently drop its
+- **The CI test glob is a hand-enumerated two-directory list (three since
+  mission 21), not recursive.** A `src/lib/calendar/` subdirectory would silently drop its
   tests from `npm test` **and CI while the suite still reported green at a
   lower count.** If a test directory is ever added, its glob entry ships in
   the same commit.
