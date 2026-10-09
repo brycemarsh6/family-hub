@@ -8,7 +8,13 @@ import { parseBearer, isTokenValid } from "./authPolicy";
 import { ApiError, errorResponse, fromZodError, unauthorisedResponse } from "./errors";
 import { readJsonBody } from "./body";
 import { isRateLimited } from "./rateLimit";
-import { recordRequest, pruneAudit, type ChangeInput } from "./audit";
+import {
+  startRequest,
+  finishRequest,
+  discardRequest,
+  pruneAudit,
+  type ChangeInput,
+} from "./audit";
 
 // The wrapper every Assistant API route is built from, so a route file is
 // ~20 lines: declare an action label, optional zod schemas, and a handler.
@@ -24,11 +30,13 @@ import { recordRequest, pruneAudit, type ChangeInput } from "./audit";
 // below is deliberate and must not be rearranged:
 //   env hash missing -> 404 (the API doesn't exist)
 //   bearer wrong     -> 401 terse, nothing learned
-//   rate limit       -> 429 + Retry-After
+//   rate limit       -> 429 + Retry-After (the request's own audit row is
+//                       inserted first, then counted — see rateLimit.ts)
 //   body, zod        -> only now is untrusted input touched
 //   handler          -> then the audit row, awaited
-// 401, 404 and 429 are not recorded; everything from the body step onward is,
-// including 4xx and 5xx, so GET /audit shows what the bot attempted.
+// 401, 404 and 429 leave no row (a 429 deletes its placeholder); everything
+// from the body step onward is recorded, including 4xx and 5xx, so GET /audit
+// shows what the bot attempted.
 //
 // No `force-dynamic` export: route GET handlers are dynamic by default in
 // Next 15+, and a route.ts may export only HTTP methods anyway. Don't add it
@@ -38,10 +46,13 @@ import { recordRequest, pruneAudit, type ChangeInput } from "./audit";
 // request-time cookies, so nothing here is server-cached; and a Route Handler
 // can't purge a phone's client-side router cache regardless.
 //
-// The audit write is awaited, not put in after(): after() can't tell the
-// caller it failed, and a silent hole in the log defeats its purpose. A
-// failed write is a 500 `audit_failed` (the data change already happened —
-// the message says so). after() is used only for the opportunistic prune.
+// The audit row is written in two steps: inserted as status 0 ("in flight")
+// before anything else, then updated with the outcome and its changes. The
+// second step is awaited, not put in after(): after() can't tell the caller it
+// failed, and a silent hole in the log defeats its purpose. A failed finish is
+// a 500 `audit_failed` — the data change already happened, and the row exists
+// (from step one) but may lack its change entries or still read status 0.
+// after() is used only for the opportunistic prune.
 
 export type AssistantHandlerArgs<P, B, Q> = {
   request: NextRequest;
@@ -83,9 +94,27 @@ export function assistantRoute<
     if (token === null || !isTokenValid(token, expectedHash)) return unauthorisedResponse();
 
     const now = new Date();
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || null;
+
+    let requestId: string;
+    try {
+      requestId = await startRequest({
+        method: request.method,
+        path: request.nextUrl.pathname,
+        action: options.action,
+        ip,
+      });
+    } catch (error) {
+      console.error("[assistant] audit start failed:", error);
+      return errorResponse(new ApiError(500, "internal", "Something went wrong."));
+    }
+
     try {
       const limit = await isRateLimited(now);
       if (limit.limited) {
+        await discardRequest(requestId).catch((error) =>
+          console.error("[assistant] discarding refused request failed:", error),
+        );
         return errorResponse(
           new ApiError(429, "rate_limited", "Too many requests. Slow down."),
           { "retry-after": String(limit.retryAfterSeconds) },
@@ -93,6 +122,7 @@ export function assistantRoute<
       }
     } catch (error) {
       console.error("[assistant] rate limit check failed:", error);
+      await discardRequest(requestId).catch(() => {});
       return errorResponse(new ApiError(500, "internal", "Something went wrong."));
     }
 
@@ -139,15 +169,10 @@ export function assistantRoute<
       response = errorResponse(failure);
     }
 
-    let requestId: string;
     try {
-      requestId = await recordRequest({
-        method: request.method,
-        path: request.nextUrl.pathname,
-        action: options.action,
+      await finishRequest(requestId, {
         status,
         durationMs: Date.now() - startedAt,
-        ip: request.headers.get("x-forwarded-for")?.split(",")[0].trim() || null,
         error: failure ? `${failure.code}: ${failure.message}`.slice(0, 500) : null,
         changes,
       });
@@ -157,7 +182,7 @@ export function assistantRoute<
         new ApiError(
           500,
           "audit_failed",
-          "The request was handled but could not be logged. Check /audit before retrying.",
+          "The request was handled but couldn't be logged. Check the item's current state before retrying.",
         ),
       );
     }

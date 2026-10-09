@@ -14,9 +14,12 @@ export type RateLimitStatus =
   | { limited: true; retryAfterSeconds: number };
 
 /**
- * `countInWindow` is how many already-recorded requests fall inside the
- * window; `oldestInWindow` is the earliest of them. Once LIMIT are recorded
- * the next is refused, until the oldest one ages out of the window.
+ * `countInWindow` is how many requests fall inside the window NOT counting
+ * the one being decided; `oldestInWindow` is the earliest of them. Once LIMIT
+ * others are recorded this one is refused, until the oldest ages out. Accurate
+ * for sequential callers; for a parallel burst, rateLimit.ts makes it hold by
+ * inserting each request's row before counting (and over-refuses at the edge
+ * rather than letting extras through).
  */
 export function evaluate(
   countInWindow: number,

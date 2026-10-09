@@ -29,6 +29,10 @@ export const POST = assistantRoute({
       for (const adj of body.adjustments) {
         const r = await adjustPantryQuantity(adj.id, adj.delta, tx);
         if (!r) throw new ApiError(404, "not_found", "An item vanished mid-request.", { missing: [adj.id] });
+        // Throwing inside $transaction rolls back every adjustment so far.
+        if (r === "conflict") {
+          throw new ApiError(409, "conflict", "An item changed while we were updating it; nothing was changed. Try again.", { id: adj.id });
+        }
         out.push({ id: adj.id, before: r.before, after: r.after });
       }
       return out;

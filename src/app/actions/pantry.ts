@@ -90,7 +90,15 @@ export async function createPantryItemReviewed(fields: {
   const name = fields.name.trim();
   if (!name) return;
 
-  await createPantryItem({ ...fields, name });
+  // Explicit field list: a crafted call can't smuggle extra keys (lowThreshold,
+  // expiresAt) past the helper's wider signature.
+  await createPantryItem({
+    name,
+    quantity: fields.quantity,
+    unit: fields.unit,
+    category: fields.category,
+    location: fields.location,
+  });
 
   refreshKitchenViews();
 }
@@ -149,7 +157,16 @@ export async function editPantryItem(
   const name = changes.name.trim();
   if (!name) return;
 
-  if (!(await writePantryItemEdit(id, { ...changes, name }))) return;
+  const edited = await writePantryItemEdit(id, {
+    name,
+    quantity: changes.quantity,
+    unit: changes.unit,
+    category: changes.category,
+    location: changes.location,
+    lowThreshold: changes.lowThreshold,
+    expiresAt: changes.expiresAt,
+  });
+  if (!edited) return;
 
   refreshKitchenViews();
 }
@@ -175,7 +192,11 @@ export async function logLeftover(input: {
 
   // Quantity floor, days-good → expiresAt (server-local midnight) and the
   // Leftovers/Fridge defaults live in pantryWrites.ts.
-  await writeLeftover({ ...input, name });
+  await writeLeftover({
+    name,
+    quantity: input.quantity,
+    daysGood: input.daysGood,
+  });
 
   refreshKitchenViews();
 }

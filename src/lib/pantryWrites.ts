@@ -53,7 +53,9 @@ export async function createPantryItem(fields: {
         : {}),
       ...(fields.expiresAt ? { expiresAt: fields.expiresAt } : {}),
       name: fields.name.trim(),
-      quantity: Math.max(0, fields.quantity),
+      // 2dp like every other write path (the stepper never produces more, so
+      // only a hand-typed or API-supplied sub-0.005 amount ever changes).
+      quantity: Math.max(0, round2(fields.quantity)),
       unit: fields.unit?.trim() || null,
       category: toCategory(fields.category),
       location: toLocation(fields.location),
@@ -90,7 +92,26 @@ export async function setPantryQuantity(
 }
 
 /**
- * Relative change: floor 0, 2dp, restockedAt on increase. Null if missing.
+ * Retry budget for a contended adjust; see adjustPantryQuantity. Every lost
+ * round means some other writer won, so N simultaneous adjusters need at most
+ * N rounds; ten covers a burst of ten (measured: at five, half of ten
+ * parallel adjusts gave up) while still bounding a pathological loop.
+ */
+const MAX_ADJUST_ATTEMPTS = 10;
+
+/**
+ * Relative change: floor 0, 2dp, restockedAt on increase. Null if missing,
+ * the string "conflict" if the row kept changing underneath us.
+ *
+ * Compare-and-set, not read-then-write: a plain "read the quantity, add the
+ * delta, write the total" loses updates when two callers adjust the same row
+ * at once (ten parallel +1s ended at +2 in testing), and READ COMMITTED means
+ * wrapping it in a transaction doesn't help. So the write is conditional on
+ * the quantity still being what we read — `updateMany` with the old value in
+ * its WHERE — and when another writer got there first (count 0) we re-read and
+ * try again. Past the attempt budget the caller is told to retry rather than the
+ * loop spinning.
+ *
  * `client` defaults to `db`; a bulk caller passes its `$transaction` client so
  * every adjustment commits or rolls back together.
  */
@@ -99,12 +120,31 @@ export async function adjustPantryQuantity(
   delta: number,
   client: Prisma.TransactionClient = db,
 ) {
-  const current = await client.pantryItem.findUnique({
-    where: { id },
-    select: { quantity: true },
-  });
-  if (!current) return null;
-  return setPantryQuantity(id, current.quantity + delta, client);
+  for (let attempt = 0; attempt < MAX_ADJUST_ATTEMPTS; attempt++) {
+    const current = await client.pantryItem.findUnique({
+      where: { id },
+      select: { quantity: true },
+    });
+    if (!current) return null;
+
+    const before = current.quantity;
+    const after = Math.max(0, round2(before + delta));
+
+    const { count } = await client.pantryItem.updateMany({
+      where: { id, quantity: before },
+      data: { quantity: after, ...restockedIfRose(before, after) },
+    });
+    if (count === 0) {
+      // Lost the race. A little jitter keeps the losers from retrying in step.
+      await new Promise((resolve) => setTimeout(resolve, Math.random() * 25));
+      continue;
+    }
+
+    const row = await client.pantryItem.findUnique({ where: { id } });
+    if (!row) return null; // deleted between our write and this read
+    return { before, after, row };
+  }
+  return "conflict" as const;
 }
 
 /**

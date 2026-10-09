@@ -14,6 +14,9 @@ export const POST = assistantRoute<{ id: string }, z.output<typeof adjustBody>>(
   handler: async ({ params, body, now, changes }) => {
     const result = await adjustPantryQuantity(params.id, body.delta);
     if (!result) throw new ApiError(404, "not_found", "That record doesn't exist.");
+    if (result === "conflict") {
+      throw new ApiError(409, "conflict", "That item changed while we were updating it; try again.");
+    }
 
     changes.push({
       model: "PantryItem",
