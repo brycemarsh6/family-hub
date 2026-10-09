@@ -216,6 +216,8 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 | 1 | Vision | BLOCKED (at `7a6abe4`) | 1 | 10 |
 | 2 | Vision | **PASS** (at `60ec0af`) | 0 | 7 |
 | 2 | Captain | BLOCKED (at `60ec0af`) | 1 (comment-only) | 7 |
+| 3 | Vision | dispatched | — | — |
+| 3 | Captain | dispatched | — | — |
 
 ### Captain pass 1 (at `7a6abe4`) — BLOCKED
 
@@ -276,7 +278,7 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 
 ### F3 — Final fix batch: Captain's dormancy blocker + Vision N1–N4 + comment truth
 
-- **Status:** DISPATCHED (2026-10-09)
+- **Status:** DONE (2026-10-09) — committed `a3121b0`
 - **Objective:** close Captain pass 2's BLOCKER and Vision pass 2's four NOTES and comment fixes, so mission 22 starts on a skeleton with no known holes.
 - **Boundaries:** may touch `src/lib/assistant/audit.ts`, `src/lib/assistant/rateLimit.ts`, `src/lib/assistant/rateLimitPolicy.ts` + `rateLimitPolicy.test.ts`, `src/lib/assistant/route.ts`, `src/lib/assistant/errors.ts` (+ test), `src/app/api/assistant/v1/inventory/bulk-adjust/route.ts`, `src/app/api/assistant/v1/inventory/[id]/adjust/route.ts`, `src/lib/pantryWrites.ts` (only an option to skip the post-write re-read), `src/lib/assistant/openapi.test.ts`, `src/lib/assistant/schemas.ts` (+ test), `src/lib/expiring.ts` (comment only), `src/components/ExpiringRow.tsx` (comment placement only), `CLAUDE.md` (only the line Fury's `0e98798` changed). Must not touch anything else.
 - **Work:**
@@ -289,6 +291,7 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 - **Verification:** gauntlet (all three legs); every N3 red case shown; dev server on :3125 with a throwaway token (rules as before): a **200-burst now serves exactly 120** (or within a stated, explained margin) and 429s the rest, with no orphan rows; **20 opposite-order overlapping bulk-adjusts → no 500s** (each 200 or 409), final quantities exact vs the applied set; `/openapi.json` shows the date pattern. Cleanup by id; counts before/after; token never in the report; names never printed.
 - **Evidence required:** burst counts, bulk-race counts and finals, the N3 red-case list, gauntlet output, counts.
 - **Done criteria:** Fury re-runs the burst and bulk-race checks; reads the `audit.ts` comment.
+- **Report:** DONE. 200-burst → exactly 120 × 200 / 80 × 429, 0 orphan rows (3 identical runs). 20 opposite-order bulks → 20 × 200, finals exact, 60 change rows (3 runs). Deadlock code measured live: under `@prisma/adapter-pg` it arrives as **P2039 with originalCode 40P01**, not P2034 — wrapper maps P2034 and P2039/40P01/40001 to 409. Unmapped: P2028 (transaction-start timeout), seen only with sorting disabled. N3: 12 red cases + 4 route-discovery red cases shown, plus a permanent 14-snippet test. Spec shows the date pattern. 429 tests all legs. `isWriteConflictError` sits in `route.ts` (prismaErrors.ts was out of boundary) — hoist candidate. Rank-based limiter can in theory over-admit by in-flight count; measured 0.
 
 ## Handoff log
 
@@ -300,3 +303,4 @@ Baseline before mission: **350 tests**, all green, at `167641f`.
 - 2026-10-09 — Gate pass 1: Captain BLOCKED (2), Vision BLOCKED (1 — lost updates under parallel adjusts, reproduced). Fix contracts F1 (concurrency, burst-safe rate limit, audit advice, pantryWrites tightening) and F2 (Captain B1/B2, the tested `assistantRoute` condition, boilerplate) dispatched in parallel on disjoint files; F1 owns all live dev-server testing. Constitution amendments A–E (Captain) go to Bryce for approval — not applied yet.
 - 2026-10-09 — F2 `1f5632c`, Urgency/CLAUDE.md follow-up `0e98798`, F1 `64d77a9`. Gate pass 2 dispatched (Vision + Captain) at the HEAD of the commit recording this line.
 - 2026-10-09 — Gate pass 2: Vision PASS (7 notes), Captain BLOCKED (1, comment-only). F3 written to close Captain's blocker plus Vision N1–N4 and comment truth; then pass 3 (final) for both.
+- 2026-10-09 — F3 committed `a3121b0`. Gate pass 3 (final in budget) dispatched for both.
