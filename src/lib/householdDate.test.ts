@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   addCalendarDays,
+  calendarDaysBetween,
   calendarDateInZone,
   dayOfWeek,
   formatCalendarDate,
@@ -95,4 +96,11 @@ test("dayOfWeek: 0 = Sunday", () => {
 
 test("utcMidnightInstant is UTC midnight regardless of process TZ", () => {
   assert.equal(utcMidnightInstant({ year: 2026, month: 11, day: 1 }).toISOString(), "2026-11-01T00:00:00.000Z");
+});
+
+test("calendarDaysBetween: signed whole days, across a year end and a leap day", () => {
+  assert.equal(calendarDaysBetween({ year: 2026, month: 12, day: 31 }, { year: 2027, month: 1, day: 1 }), 1);
+  assert.equal(calendarDaysBetween({ year: 2027, month: 1, day: 1 }, { year: 2026, month: 12, day: 31 }), -1);
+  assert.equal(calendarDaysBetween({ year: 2028, month: 2, day: 28 }, { year: 2028, month: 3, day: 1 }), 2);
+  assert.equal(calendarDaysBetween({ year: 2026, month: 11, day: 1 }, { year: 2026, month: 11, day: 1 }), 0);
 });

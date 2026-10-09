@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   adjustBody,
   bulkAdjustBody,
+  calendarDateString,
   expiringQuery,
   inventoryCreateBody,
   inventoryListQuery,
@@ -100,4 +101,24 @@ test("leftoverBody: defaults and bounds", () => {
   assert.ok(!ok(leftoverBody.safeParse({ name: "x", location: "Pantry" })));
   assert.ok(!ok(leftoverBody.safeParse({ name: "x", date: "nope" })));
   assert.ok(!ok(leftoverBody.safeParse({ name: "x", extra: 1 })));
+});
+
+test("calendarDateString: real dates pass; impossible or malformed ones are zod errors", () => {
+  assert.equal(calendarDateString.safeParse("2026-02-28").success, true);
+  assert.equal(calendarDateString.safeParse("2028-02-29").success, true);
+  for (const bad of ["2026-02-30", "2026-13-01", "2026-1-5", "", "tomorrow"]) {
+    assert.equal(calendarDateString.safeParse(bad).success, false, bad);
+  }
+});
+
+test("date fields reject an impossible day at the schema, not later in the route", () => {
+  assert.equal(expiringQuery.safeParse({ date: "2026-02-30" }).success, false);
+  assert.equal(inventoryCreateBody.safeParse({ name: "x", expiresOn: "2026-02-30" }).success, false);
+  assert.equal(leftoverBody.safeParse({ name: "x", date: "2026-04-31" }).success, false);
+});
+
+test("lowThreshold is capped at 10000", () => {
+  assert.equal(inventoryCreateBody.safeParse({ name: "x", lowThreshold: 10000 }).success, true);
+  assert.equal(inventoryCreateBody.safeParse({ name: "x", lowThreshold: 10001 }).success, false);
+  assert.equal(inventoryPatchBody.safeParse({ lowThreshold: 10001 }).success, false);
 });

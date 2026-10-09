@@ -7,7 +7,7 @@ import {
   inventoryPatchBody,
   leftoverBody,
 } from "./schemas";
-import type { Operation } from "./openapi";
+import type { Operation } from "./openapiTypes";
 
 // The registry rows for the inventory, leftovers and family routes. Adding a
 // route means adding its row here — openapi.test.ts fails until you do.

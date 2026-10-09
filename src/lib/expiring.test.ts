@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isExpiringWithin } from "./expiring";
+import { expiresWithin, isExpiringWithin, urgencyFor } from "./expiring";
 
 const today = new Date(2026, 5, 10, 12); // local noon, Jun 10 2026
 const base = {
@@ -34,4 +34,19 @@ test("isExpiringWithin: falls back to the shelf-life estimate", () => {
   assert.equal(isExpiringWithin(produce, 3, today), true);
   const fresh = { ...produce, restockedAt: today };
   assert.equal(isExpiringWithin(fresh, 1, today), false);
+});
+
+test("urgencyFor: now through 1, week through 6, later after, overdue is now", () => {
+  assert.equal(urgencyFor(-3), "now");
+  assert.equal(urgencyFor(0), "now");
+  assert.equal(urgencyFor(1), "now");
+  assert.equal(urgencyFor(2), "week");
+  assert.equal(urgencyFor(6), "week");
+  assert.equal(urgencyFor(7), "later");
+});
+
+test("expiresWithin: inclusive at the window edge, overdue counts", () => {
+  assert.equal(expiresWithin(7, 7), true);
+  assert.equal(expiresWithin(8, 7), false);
+  assert.equal(expiresWithin(-1, 7), true);
 });

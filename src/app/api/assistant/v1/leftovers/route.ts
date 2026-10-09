@@ -1,7 +1,6 @@
 import { assistantRoute } from "@/lib/assistant/route";
-import { ApiError } from "@/lib/assistant/errors";
 import { leftoverBody } from "@/lib/assistant/schemas";
-import { householdToday } from "@/lib/assistant/today";
+import { requireHouseholdToday } from "@/lib/assistant/today";
 import { toInventoryItem } from "@/lib/assistant/serialize";
 import { logLeftover } from "@/lib/pantryWrites";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
@@ -11,10 +10,7 @@ export const POST = assistantRoute({
   action: "leftovers.create",
   body: leftoverBody,
   handler: async ({ body, now, changes }) => {
-    const today = householdToday(now, body.date);
-    if (!today) {
-      throw new ApiError(400, "validation", "`date` must be a real YYYY-MM-DD.");
-    }
+    const today = requireHouseholdToday(now, body.date);
 
     const row = await logLeftover({
       name: body.name,

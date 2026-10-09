@@ -87,6 +87,12 @@ export function addCalendarDays(date: CalendarDate, n: number): CalendarDate {
   };
 }
 
+/** Whole calendar days from `a` to `b` (negative when `b` is earlier). */
+export function calendarDaysBetween(a: CalendarDate, b: CalendarDate): number {
+  const dayNumber = (d: CalendarDate) => Date.UTC(d.year, d.month - 1, d.day) / MS_PER_DAY;
+  return Math.round(dayNumber(b) - dayNumber(a));
+}
+
 /** 0 = Sunday. */
 export function dayOfWeek(date: CalendarDate): number {
   return new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay();

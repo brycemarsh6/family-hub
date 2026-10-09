@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { toFamilyMember, toInventoryItem, toReviewQueue } from "./serialize";
+import { FAMILY_MEMBER_SELECT, toFamilyMember, toInventoryItem, toReviewQueue } from "./serialize";
 
 const DENVER = "America/Denver";
 const today = { year: 2026, month: 10, day: 9 };
@@ -100,4 +100,8 @@ test("toReviewQueue narrows items to the six wire fields", () => {
   assert.deepEqual(Object.keys(out.pairs[0].a).sort(), ["category", "id", "location", "name", "quantity", "unit"]);
   assert.deepEqual(Object.keys(out.parked[0].item).sort(), ["category", "id", "location", "name", "quantity", "unit"]);
   assert.equal(out.pairs[0].fingerprint, "f1");
+});
+
+test("FAMILY_MEMBER_SELECT selects exactly the columns toFamilyMember reads, no credentials", () => {
+  assert.deepEqual(Object.keys(FAMILY_MEMBER_SELECT).sort(), ["deactivatedAt", "displayName", "id", "role"]);
 });

@@ -1,4 +1,5 @@
 import { z, type ZodType } from "zod";
+import type { Operation } from "./openapiTypes";
 import { auditQuery } from "./schemas";
 import { inventoryOperations } from "./openapiInventoryPaths";
 
@@ -6,17 +7,6 @@ import { inventoryOperations } from "./openapiInventoryPaths";
 // schemas the routes validate with, so the spec can't describe a shape the
 // routes don't accept. Pure — no database. openapi.test.ts walks the route
 // files and fails when a route and a registry row disagree.
-
-export type Operation = {
-  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  /** Path below /api/assistant/v1, with `{id}`-style params. */
-  path: string;
-  action: string;
-  summary: string;
-  query?: ZodType;
-  body?: ZodType;
-  response: string;
-};
 
 const systemOperations: Operation[] = [
   {

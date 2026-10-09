@@ -63,6 +63,15 @@ export function toInventoryItem(
   };
 }
 
+/** The only columns the family route reads — never PERSON_SELECT, which
+ * includes passwordHash. toFamilyMember below also builds field by field. */
+export const FAMILY_MEMBER_SELECT = {
+  id: true,
+  displayName: true,
+  role: true,
+  deactivatedAt: true,
+} as const;
+
 export function toFamilyMember(row: {
   id: string;
   displayName: string;

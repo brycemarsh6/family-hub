@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CATEGORY_NAMES, LOCATION_NAMES } from "@/lib/constants";
+import { parseDateParam } from "@/lib/householdDate";
 
 // Request shapes for the Assistant API's inventory / leftovers / family
 // routes. Pure (zod only) so they are testable without a database. Every
@@ -8,7 +9,10 @@ import { CATEGORY_NAMES, LOCATION_NAMES } from "@/lib/constants";
 
 const category = z.enum(CATEGORY_NAMES as [string, ...string[]]);
 const location = z.enum(LOCATION_NAMES as [string, ...string[]]);
-const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD.");
+/** A real `YYYY-MM-DD`: impossible days (2026-02-30) fail here, as a zod 400. */
+export const calendarDateString = z
+  .string()
+  .refine((value) => parseDateParam(value) !== null, { message: "Use a real date as YYYY-MM-DD." });
 const name = z.string().trim().min(1).max(120);
 
 export const inventoryListQuery = z
@@ -18,7 +22,7 @@ export const inventoryListQuery = z
     status: z.enum(["low", "out", "expiring", "ok"]).optional(),
     q: z.string().max(100).optional(),
     withinDays: z.coerce.number().int().min(1).max(60).default(7),
-    date: dateString.optional(),
+    date: calendarDateString.optional(),
   })
   .strict();
 
@@ -29,8 +33,8 @@ export const inventoryCreateBody = z
     unit: z.string().max(30).nullable().optional(),
     category: category.optional(),
     location: location.optional(),
-    lowThreshold: z.number().min(0).optional(),
-    expiresOn: dateString.nullable().optional(),
+    lowThreshold: z.number().min(0).max(10000).optional(),
+    expiresOn: calendarDateString.nullable().optional(),
     allowDuplicate: z.boolean().default(false),
   })
   .strict();
@@ -42,8 +46,8 @@ export const inventoryPatchBody = z
     unit: z.string().max(30).nullable().optional(),
     category: category.optional(),
     location: location.optional(),
-    lowThreshold: z.number().min(0).optional(),
-    expiresOn: dateString.nullable().optional(),
+    lowThreshold: z.number().min(0).max(10000).optional(),
+    expiresOn: calendarDateString.nullable().optional(),
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0, {
@@ -78,7 +82,7 @@ export const bulkAdjustBody = z
 export const expiringQuery = z
   .object({
     withinDays: z.coerce.number().int().min(1).max(60).default(7),
-    date: dateString.optional(),
+    date: calendarDateString.optional(),
   })
   .strict();
 
@@ -88,7 +92,7 @@ export const leftoverBody = z
     portions: z.number().min(0.5).max(50).default(1),
     daysGood: z.number().int().min(1).max(14).default(3),
     location: z.enum(["Fridge", "Freezer"]).default("Fridge"),
-    date: dateString.optional(),
+    date: calendarDateString.optional(),
   })
   .strict();
 

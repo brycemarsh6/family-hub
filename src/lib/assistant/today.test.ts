@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { daysUntilInZone, householdToday } from "./today";
+import { ApiError } from "./errors";
+import { daysUntilInZone, householdToday, requireHouseholdToday } from "./today";
 
 const DENVER = "America/Denver";
 
@@ -46,4 +47,14 @@ test("daysUntilInZone: whole days across the Nov 1 fall-back (25-hour day)", () 
   const today = { year: 2026, month: 10, day: 31 };
   // Nov 2 Denver midnight is 07:00Z (MST) -> 2 days despite 49 elapsed hours
   assert.equal(daysUntilInZone(new Date("2026-11-02T07:00:00Z"), today, DENVER), 2);
+});
+
+test("requireHouseholdToday: a real override works, an impossible one is a 400 ApiError", () => {
+  const now = new Date("2026-06-10T12:00:00Z");
+  assert.deepEqual(requireHouseholdToday(now, "2026-07-04"), { year: 2026, month: 7, day: 4 });
+  assert.deepEqual(requireHouseholdToday(now), householdToday(now));
+  assert.throws(
+    () => requireHouseholdToday(now, "2026-02-30"),
+    (e) => e instanceof ApiError && e.status === 400 && e.code === "validation",
+  );
 });

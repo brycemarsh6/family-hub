@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
-import { ApiError, errorResponse, fromZodError, unauthorisedResponse } from "./errors";
+import { ApiError, errorResponse, fromZodError, notFound, unauthorisedResponse } from "./errors";
 
 test("errorResponse uses the envelope and status", async () => {
   const res = errorResponse(new ApiError(404, "not_found", "Nope.", { id: "x" }));
@@ -38,4 +38,11 @@ test("fromZodError is a 400 validation error with path details", () => {
   assert.equal(details.length, 1);
   assert.equal(details[0].path, "a.b");
   assert.ok(details[0].message.length > 0);
+});
+
+test("notFound is a 404 not_found ApiError", () => {
+  const err = notFound();
+  assert.ok(err instanceof ApiError);
+  assert.equal(err.status, 404);
+  assert.equal(err.code, "not_found");
 });

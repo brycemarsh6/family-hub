@@ -8,12 +8,24 @@
 
 import type { ZodError } from "zod";
 
+/** Every `code` the API can answer with. A new refusal adds its code here. */
+export type ApiErrorCode =
+  | "validation"
+  | "not_found"
+  | "conflict"
+  | "invalid_json"
+  | "payload_too_large"
+  | "unsupported_media_type"
+  | "rate_limited"
+  | "internal"
+  | "audit_failed";
+
 export class ApiError extends Error {
   readonly status: number;
-  readonly code: string;
+  readonly code: ApiErrorCode;
   readonly details?: unknown;
 
-  constructor(status: number, code: string, message: string, details?: unknown) {
+  constructor(status: number, code: ApiErrorCode, message: string, details?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -27,6 +39,11 @@ export function errorResponse(err: ApiError, headers?: HeadersInit): Response {
     { error: { code: err.code, message: err.message, details: err.details } },
     { status: err.status, headers },
   );
+}
+
+/** 404 `not_found` — the one wording every route shares. */
+export function notFound(): ApiError {
+  return new ApiError(404, "not_found", "That record doesn't exist.");
 }
 
 /** The terse 401 — British spelling kept, same as /api/voice. */

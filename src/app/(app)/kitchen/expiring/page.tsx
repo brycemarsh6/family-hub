@@ -1,8 +1,7 @@
 import { db } from "@/lib/db";
 import { BackLink } from "@/components/BackLink";
-import { effectiveExpiry, daysUntil } from "@/lib/expiring";
+import { effectiveExpiry, daysUntil, urgencyFor } from "@/lib/expiring";
 import { ExpiringList, type ExpiringEntry } from "@/components/ExpiringList";
-import type { Urgency } from "@/components/ExpiringRow";
 import { LogLeftoverButton } from "@/components/LogLeftoverButton";
 import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES, type Category, type Location } from "@/lib/constants";
@@ -23,14 +22,6 @@ function labelFor(daysLeft: number): string {
   if (daysLeft === 0) return "Today";
   if (daysLeft === 1) return "1 day left";
   return `${daysLeft} days left`;
-}
-
-/** "now" and "week" match the plan's red/amber sections; anything else inside
- * the window is "later" (muted) — see WINDOW_DAYS above for the outer edge. */
-function urgencyFor(daysLeft: number): Urgency {
-  if (daysLeft <= 1) return "now";
-  if (daysLeft <= 6) return "week";
-  return "later";
 }
 
 export default async function ExpiringPage() {

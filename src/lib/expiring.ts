@@ -34,11 +34,32 @@ export function effectiveExpiry(item: {
   return estimated ? { date: estimated, isEstimate: true } : null;
 }
 
+/** Which red/amber/muted section an expiry falls in. */
+export type Urgency = "now" | "week" | "later";
+
+/** "now" and "week" are the red and amber sections; anything else inside the
+ * caller's window is "later" (muted). One definition for the Expiring page and
+ * the Assistant API. */
+export function urgencyFor(daysLeft: number): Urgency {
+  if (daysLeft <= 1) return "now";
+  if (daysLeft <= 6) return "week";
+  return "later";
+}
+
+/** Whether an expiry `daysLeft` days away is inside a `withinDays` window.
+ * Inclusive, and already-expired (negative) counts — they're even more
+ * "within". Pure, so it doesn't care how `daysLeft` was computed. */
+export function expiresWithin(daysLeft: number, withinDays: number): boolean {
+  return daysLeft <= withinDays;
+}
+
 /**
  * Whether an item expires within `withinDays` of `today` (already-expired
- * items count — they're even more "within"). Items with no real date and no
- * estimate never match. One definition so the dashboard, the Kitchen tile and
- * the Assistant API can't drift on what "expiring soon" means.
+ * items count). Items with no real date and no estimate never match. This is
+ * the process-local form, for the dashboard and the Kitchen tile, which run
+ * in the household's own clock. The Assistant API runs on a UTC server, so it
+ * computes `daysLeft` zone-aware (assistant/today.ts) and shares only the
+ * comparison, `expiresWithin`, and the buckets, `urgencyFor`.
  */
 export function isExpiringWithin(
   item: Parameters<typeof effectiveExpiry>[0],
@@ -46,5 +67,5 @@ export function isExpiringWithin(
   today: Date,
 ): boolean {
   const expiry = effectiveExpiry(item);
-  return expiry !== null && daysUntil(expiry.date, today) <= withinDays;
+  return expiry !== null && expiresWithin(daysUntil(expiry.date, today), withinDays);
 }

@@ -1,10 +1,11 @@
 import { assistantRoute } from "@/lib/assistant/route";
 import { ApiError } from "@/lib/assistant/errors";
 import { inventoryCreateBody, inventoryListQuery } from "@/lib/assistant/schemas";
-import { householdToday } from "@/lib/assistant/today";
+import { requireHouseholdToday } from "@/lib/assistant/today";
 import { toInventoryItem } from "@/lib/assistant/serialize";
 import { createPantryItem, findDuplicateCandidates } from "@/lib/pantryWrites";
 import { searchItems } from "@/lib/match";
+import { expiresWithin } from "@/lib/expiring";
 import { DEFAULT_LOCATION, HOUSEHOLD_TIME_ZONE, toCategory, toLocation } from "@/lib/constants";
 import { formatCalendarDate, parseDateParam, zoneMidnightInstant } from "@/lib/householdDate";
 import { onShoppingListIds } from "@/lib/assistant/inventoryReads";
@@ -14,10 +15,7 @@ export const GET = assistantRoute({
   action: "inventory.list",
   query: inventoryListQuery,
   handler: async ({ query, now }) => {
-    const today = householdToday(now, query.date);
-    if (!today) {
-      throw new ApiError(400, "validation", "`date` must be a real YYYY-MM-DD.");
-    }
+    const today = requireHouseholdToday(now, query.date);
 
     const [rows, onList] = await Promise.all([
       db.pantryItem.findMany({
@@ -34,7 +32,7 @@ export const GET = assistantRoute({
     let items = rows.map((row) => toInventoryItem(row, ctx(row.id)));
 
     if (query.status === "expiring") {
-      items = items.filter((i) => i.expiry !== null && i.expiry.daysLeft <= query.withinDays);
+      items = items.filter((i) => i.expiry !== null && expiresWithin(i.expiry.daysLeft, query.withinDays));
     } else if (query.status) {
       items = items.filter((i) => i.status === query.status);
     }
@@ -74,10 +72,8 @@ export const POST = assistantRoute({
     }
 
     // The browser edit sheet's convention: Denver midnight of the typed day.
-    const expiresOn = body.expiresOn ? parseDateParam(body.expiresOn) : null;
-    if (body.expiresOn && !expiresOn) {
-      throw new ApiError(400, "validation", "`expiresOn` must be a real YYYY-MM-DD.");
-    }
+    // The schema already rejected impossible dates, so the parse can't be null.
+    const expiresOn = body.expiresOn ? parseDateParam(body.expiresOn)! : null;
 
     const row = await createPantryItem({
       name: body.name,
@@ -90,7 +86,7 @@ export const POST = assistantRoute({
     });
     changes.push({ model: "PantryItem", recordId: row.id, action: "create", summary: body });
 
-    const today = householdToday(now)!;
+    const today = requireHouseholdToday(now);
     return {
       status: 201,
       data: { item: toInventoryItem(row, { onList: false, today, timeZone: HOUSEHOLD_TIME_ZONE }) },
