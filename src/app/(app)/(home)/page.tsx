@@ -4,7 +4,7 @@ import TodayMealsTile from "@/components/TodayMealsTile";
 import { db } from "@/lib/db";
 import { isLow } from "@/lib/constants";
 import { addDays } from "@/lib/mealPlanDates";
-import { effectiveExpiry, daysUntil } from "@/lib/expiring";
+import { isExpiringWithin } from "@/lib/expiring";
 import { storeBreakdown, urgentLowItems } from "@/lib/dashboard";
 import type { Category, Location } from "@/lib/constants";
 import type { MealPlanView } from "@/lib/types";
@@ -88,14 +88,17 @@ export default async function DashboardPage() {
   const urgent = urgentLowItems(lowItems, MAX_URGENT_LOW_ITEMS);
 
   const expiringSoonCount = pantryItems.filter((item) => {
-    const expiry = effectiveExpiry({
-      name: item.name,
-      category: item.category as Category,
-      location: item.location as Location,
-      expiresAt: item.expiresAt,
-      restockedAt: item.restockedAt,
-    });
-    return expiry !== null && daysUntil(expiry.date, serverNow) <= EXPIRING_SOON_WINDOW_DAYS;
+    return isExpiringWithin(
+      {
+        name: item.name,
+        category: item.category as Category,
+        location: item.location as Location,
+        expiresAt: item.expiresAt,
+        restockedAt: item.restockedAt,
+      },
+      EXPIRING_SOON_WINDOW_DAYS,
+      serverNow,
+    );
   }).length;
 
   const toBuy = groceryItems.length;

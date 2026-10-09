@@ -33,3 +33,18 @@ export function effectiveExpiry(item: {
   const estimated = estimateExpiryDate(item);
   return estimated ? { date: estimated, isEstimate: true } : null;
 }
+
+/**
+ * Whether an item expires within `withinDays` of `today` (already-expired
+ * items count — they're even more "within"). Items with no real date and no
+ * estimate never match. One definition so the dashboard, the Kitchen tile and
+ * the Assistant API can't drift on what "expiring soon" means.
+ */
+export function isExpiringWithin(
+  item: Parameters<typeof effectiveExpiry>[0],
+  withinDays: number,
+  today: Date,
+): boolean {
+  const expiry = effectiveExpiry(item);
+  return expiry !== null && daysUntil(expiry.date, today) <= withinDays;
+}
