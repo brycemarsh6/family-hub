@@ -17,6 +17,7 @@ import "server-only";
 // non-positive merge quantity) stays with the caller, as it always was.
 
 import { db } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import { toCategory, toLocation } from "@/lib/constants";
 import { findDuplicateMatches, type DuplicateMatch } from "@/lib/duplicates";
 
@@ -40,9 +41,17 @@ export async function createPantryItem(fields: {
   unit: string | null;
   category: string;
   location: string;
+  /** Omitted = the column default (1), exactly as before. */
+  lowThreshold?: number;
+  /** Omitted = no real date, exactly as before. */
+  expiresAt?: Date | null;
 }) {
   return db.pantryItem.create({
     data: {
+      ...(fields.lowThreshold !== undefined
+        ? { lowThreshold: Math.max(0, round2(fields.lowThreshold)) }
+        : {}),
+      ...(fields.expiresAt ? { expiresAt: fields.expiresAt } : {}),
       name: fields.name.trim(),
       quantity: Math.max(0, fields.quantity),
       unit: fields.unit?.trim() || null,
@@ -57,16 +66,20 @@ export async function createPantryItem(fields: {
  * out"), so unlike the grocery list we allow it — we just don't allow
  * negatives. Null when the row doesn't exist.
  */
-export async function setPantryQuantity(id: string, quantity: number) {
+export async function setPantryQuantity(
+  id: string,
+  quantity: number,
+  client: Prisma.TransactionClient = db,
+) {
   const safeQuantity = Math.max(0, round2(quantity));
 
-  const current = await db.pantryItem.findUnique({
+  const current = await client.pantryItem.findUnique({
     where: { id },
     select: { quantity: true },
   });
   if (!current) return null;
 
-  const row = await db.pantryItem.update({
+  const row = await client.pantryItem.update({
     where: { id },
     data: {
       quantity: safeQuantity,
@@ -76,14 +89,22 @@ export async function setPantryQuantity(id: string, quantity: number) {
   return { before: current.quantity, after: row.quantity, row };
 }
 
-/** Relative change: floor 0, 2dp, restockedAt on increase. Null if missing. */
-export async function adjustPantryQuantity(id: string, delta: number) {
-  const current = await db.pantryItem.findUnique({
+/**
+ * Relative change: floor 0, 2dp, restockedAt on increase. Null if missing.
+ * `client` defaults to `db`; a bulk caller passes its `$transaction` client so
+ * every adjustment commits or rolls back together.
+ */
+export async function adjustPantryQuantity(
+  id: string,
+  delta: number,
+  client: Prisma.TransactionClient = db,
+) {
+  const current = await client.pantryItem.findUnique({
     where: { id },
     select: { quantity: true },
   });
   if (!current) return null;
-  return setPantryQuantity(id, current.quantity + delta);
+  return setPantryQuantity(id, current.quantity + delta, client);
 }
 
 /**
@@ -176,6 +197,8 @@ export async function logLeftover(input: {
   quantity: number;
   daysGood: number;
   expiresAt?: Date;
+  /** Defaults to "Fridge", as before. */
+  location?: string;
 }) {
   const quantity = Math.max(0.5, round2(input.quantity));
 
@@ -195,7 +218,8 @@ export async function logLeftover(input: {
       name: input.name.trim(),
       quantity,
       category: "Leftovers",
-      location: "Fridge", // freezing a leftover is an edit away, via the same date field
+      // Default Fridge; freezing is otherwise an edit away, via the same date field.
+      location: toLocation(input.location ?? "Fridge"),
       expiresAt,
       lowThreshold: 0, // "running low" isn't a meaningful state for a one-off leftover
     },
