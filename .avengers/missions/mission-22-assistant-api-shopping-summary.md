@@ -38,7 +38,7 @@ Baseline at `70b8eb7`: **429 tests**.
 
 ### H1 — Close the skeleton's holes before adding routes
 
-- **Status:** DISPATCHED (2026-10-10)
+- **Status:** DONE (2026-10-10) — committed `5d748ac` (the bare `git mv` was swept into `4be4368`; see the report)
 - **Objective:** make the gate condition compiler-checked, map the remaining retryable DB errors, keep the bot's create records forever, and do the renames Captain routed here — so missions 22–24 build on a skeleton with no known holes.
 - **Boundaries:** may touch `src/lib/assistant/route.ts` → renamed (git mv) to `src/lib/assistant/assistantRoute.ts`, every file importing `@/lib/assistant/route` (the 10 route files under `src/app/api/assistant/v1/`, plus any lib importer), `src/lib/prismaErrors.ts`, `src/lib/assistant/errors.ts` + `errors.test.ts`, `src/lib/assistant/audit.ts`, `src/lib/assistant/openapi.test.ts`, `STRUCTURE.md` (only the two sentences naming `src/lib/assistant/route.ts` / the wrapper's import path, if any — grep first). Must not touch: handler logic in any route file (import line only), `pantryWrites.ts`, actions, components, schemas, serializers.
 - **Work:**
@@ -55,10 +55,11 @@ Baseline at `70b8eb7`: **429 tests**.
 - **Verification:** gauntlet; the red-case list; `git grep -n "assistant/route\"" src` → 0; cycle check unchanged (no new cycle — report the command).
 - **Evidence required:** each red case and its message; classifier test names; the P2028 citation; gauntlet output; line counts (total/code) for touched lib files.
 - **Done criteria:** Fury re-runs the openapi test and a red case of his choosing.
+- **Report:** DONE. Rename + 10 import-only route edits; `isWriteConflictError` hoisted unchanged + `isTransactionStartTimeout` (P2028, cited `node_modules/@prisma/client/runtime/client.js:11`) → 503 `busy` with Retry-After 1; prune keeps any request with a create change. Compiler-based gate: discovery over all of `src/app` (groups, slots, all intercept forms, dynamic/catch-all/optional), a pages/root-app/ guard, 38 reject fixtures + accept, discovery fixtures (16 in / 5 out), red cases on real temp files incl. Vision's `/*` evasion, `[v]` and `@slot` routes. Fury verified: tsc, eslint ., openapi+errors tests 19/19, no importer of the old path. **Notes:** `openapi.test.ts` 405 total / ~366 code → over the soft cap → H2. `src/proxy.ts:57` stale comment → Fury fixed (`c954437`). **Fury's own slip, recorded:** a commit command named the deleted `route.ts`, aborting the whole `git add`; and because H1's `git mv` was already staged, Fury's earlier mission-file commit `4be4368` swept the bare rename in, so `4be4368..02c539d` don't build on their own (head does; not rewritten mid-mission). Lesson: a builder's staged index rides along with any commit — check `git diff --cached` before committing while builders run.
 
 ### G1 — Extract shopping-list writes into `src/lib/groceryWrites.ts`
 
-- **Status:** DISPATCHED (2026-10-10, in parallel with H1 — Fury verified the file sets are disjoint; the "after H1" ordering only mattered for R1's route imports)
+- **Status:** DONE (2026-10-10) — committed `02c539d`
 - **Objective:** one `server-only` definition of every shopping-list write, callable without a session, with the app's actions as thin guarded callers — behaviour byte-identical.
 - **Boundaries:** may touch `src/lib/groceryWrites.ts` (new), `src/app/actions/groceries.ts`, `src/app/actions/pantry.ts` (only `addPantryItemToGroceryList` and `addAllLowItemsToGroceryList`, and their imports). Must not touch `groceriesPutAway.ts` (P1), `pantryWrites.ts`, `src/lib/assistant/*`, routes, components.
 - **Work:** export, each taking `actorUserId: string | null` where the row has `addedById` (STRUCTURE.md amendment A applies — read it):
@@ -71,20 +72,22 @@ Baseline at `70b8eb7`: **429 tests**.
 - **Verification:** gauntlet; **script parity on the dev branch** with `ZZZ Assistant Test …` rows: every helper's behaviour (create defaults, merge on/off incl. null-store matching and checked rows NOT merged, quantity floor, edit partial + categoryEdited both ways, check/uncheck batch with checkedAt, delete, clear-checked restricted to test rows by first asserting no non-test checked rows exist, add-low skipping already-listed). Counts before/after. Plus an old-body → new-helper comparison table for Vision.
 - **Evidence required:** parity readbacks (test rows only), counts, the comparison table, gauntlet.
 - **Done criteria:** Fury diffs both action files: every export keeps its guard.
+- **Report:** DONE. `groceryWrites.ts` 270 lines; 6 grocery actions + 2 pantry list-adders thinned, guards/early returns/revalidation unchanged. Parity on dev: 28 PASS / 0 FAIL (defaults, merge on/off incl. null-store and checked-not-merged, batch check with checkedAt, toggle, quantity floor, partial edit + categoryEdited all ways, delete P2025, list-adders skip already-listed, clear-checked only after asserting zero foreign checked rows). `addLowItemsToList` necessarily acted on all 38 low real items on the dev copy; rows deleted by id, counts 467/6 restored, no names printed. Merge picks the earliest matching row.
 
 ### P1 — Extract put-away into `src/lib/putAway.ts`
 
-- **Status:** DISPATCHED (2026-10-10, in parallel with H1 — Fury verified the file sets are disjoint; the "after H1" ordering only mattered for R1's route imports)
+- **Status:** DONE (2026-10-10) — committed `5e43d70`
 - **Objective:** the classify → review → commit flow callable without a session, reporting exactly what it did, with the app's flow byte-identical.
 - **Boundaries:** may touch `src/lib/putAway.ts` (new), `src/app/actions/groceriesPutAway.ts`. Must not touch `PutAwayReviewSheet.tsx` / `PutAwayButton.tsx` (they import the types from the action — keep re-exporting them there with `export type { … } from "@/lib/putAway"`; a `"use server"` file may export types), G1's files, `src/lib/assistant/*`, routes.
 - **Work:** move `findExactMatch`, `MAX_SUGGESTIONS`, the types, `classifyForPutAway()` and `commitPutAway(decisions, options?)` into `putAway.ts` verbatim in logic. `commitPutAway` now **returns** a report `{ items: [{ groceryItemId, groceryName, action: "restocked" | "merged" | "created", pantryItemId, quantityAdded }] }` (built inside the transaction; the action ignores it and keeps returning `{}` / `{ error }` as today). New option `{ createUnreviewed: "defaults" | "refuse" }`, default `"defaults"` (today's behaviour: an unmatched item with no decision is created from the grocery row's own fields, location `DEFAULT_LOCATION`). `"refuse"` makes commit throw a typed `PutAwayNeedsReview` error listing the unreviewed grocery ids **before** writing anything — the API uses it so Winnie never silently files a new item it wasn't told about. Re-verify inside the transaction exactly as today.
 - **Verification:** gauntlet; script parity on dev with test rows only, **after asserting zero non-test checked grocery rows exist** (else BLOCKED): a fully-known batch (restock, `restockedAt` advances, location/category overrides applied only on auto-match), a merge decision (quantity only), a create decision (edited fields), an unreviewed item under `"defaults"` (created in Other) and under `"refuse"` (throws, **nothing written** — prove by readback), and the returned report for each. Counts before/after.
 - **Evidence required:** readbacks, report outputs, the refuse-writes-nothing proof, counts, gauntlet.
 - **Done criteria:** Fury diffs the action file; reads the transaction body against the old one.
+- **Report:** DONE. `putAway.ts` 312 lines; action 52. Report/options/`PutAwayNeedsReview` added; refuse check inside the transaction before the first write, and also treats a `merge` decision whose target vanished as unreviewed (accepted). Parity on dev: fully-known restock (overrides only on auto-match, category untouched when not edited), merge = quantity only, create = edited fields, refuse writes nothing (pantry Δ0, grocery rows remain), defaults creates in Other; counts 467/6/0 before = after. Note: the server-only stub must hook `Module._load` — an empty `--require` module alone doesn't intercept the real package.
 
 ### S1 — Shopping and summary schemas, serializers, and the Denver-week helper
 
-- **Status:** DISPATCHED (2026-10-10, in parallel with H1 — Fury verified the file sets are disjoint; the "after H1" ordering only mattered for R1's route imports)
+- **Status:** DONE (2026-10-10) — committed `e172646`
 - **Objective:** the pure pieces R1 and R2 need, tested, in new per-domain files (the `schemas.ts` split Captain asked for, done by adding files rather than moving the inventory ones).
 - **Boundaries:** may touch `src/lib/assistant/schemasShopping.ts` (new) + test, `src/lib/assistant/serializeShopping.ts` (new) + test, `src/lib/assistant/summary.ts` (new, pure) + test. Must not touch `schemas.ts`, `serialize.ts` (import from them only), G1/P1 files, routes.
 - **Work:**
@@ -95,11 +98,49 @@ Baseline at `70b8eb7`: **429 tests**.
 - **Verification:** gauntlet incl. both direct TZ legs; tsc; eslint.
 - **Evidence required:** test names and counts per leg; line counts.
 - **Done criteria:** Fury re-runs the three legs.
+- **Report:** DONE. 3 pure modules (107/107/130) + 19 tests; all three legs green. **R1 must reconcile:** `toPutAwayReport` expects a locally-defined `{entries:[{groceryItemId,name,action,pantryItemId,quantityAdded,location}]}` but P1's real `PutAwayReport` is `{items:[{groceryItemId,groceryName,action,pantryItemId,quantityAdded}]}`; the zod `putAwayDecision` mirrors the type by hand (no import) — R1 should type-check it against `PutAwayDecision`. Wire renames `pantryItemId` → `inventoryId` in put-away output (matches `fromInventoryId`; accepted). `out` (≤0) and `low` never overlap (matches the inventory serializer's status).
 
 ### R1 — Shopping routes
 
-- **Status:** PENDING (after G1, P1, S1)
-- **Details written by Fury before dispatch, from the G1/P1/S1 reports.**
+- **Status:** DISPATCHED (2026-10-10, parallel with H2)
+- **Objective:** the shopping endpoints from the plan's table, thin routes over G1/P1/S1, plus the OpenAPI registry rows, verified end to end.
+- **Boundaries:** may touch (new unless noted) `src/app/api/assistant/v1/shopping/route.ts` (GET, POST), `…/shopping/[id]/route.ts` (PATCH, DELETE), `…/shopping/check-off/route.ts` (POST), `…/shopping/put-away/route.ts` (POST), `…/shopping/from-low-inventory/route.ts` (POST); `src/lib/assistant/shoppingReads.ts` (new, `server-only`); `src/lib/assistant/openapiShoppingPaths.ts` (new); `src/lib/assistant/openapi.ts` (register the new paths module only); `src/lib/assistant/serializeShopping.ts` + test and `src/lib/assistant/schemasShopping.ts` + test (reconciliation only, below); `src/lib/groceryWrites.ts` (additive only: an optional `note` on `addGroceryItem` and `editGroceryItem`, defaults unchanged), `src/lib/assistant/errors.ts` + test (add `forbidden` to `ApiErrorCode` — Fury confirmed it is missing). Must not touch `openapi.test.ts` (H2 is splitting it in parallel), actions, components, `putAway.ts`, inventory routes, `assistantRoute.ts`, `audit.ts`.
+- **Reconcile S1 with P1 first:** `toPutAwayReport` must take P1's real `PutAwayReport` (`{ items: [{ groceryItemId, groceryName, action, pantryItemId, quantityAdded }] }`) — import the type from `@/lib/putAway` as `import type` (erased; keeps the serializer pure) — and emit `{ putAway: { items: [{ groceryItemId, name, action, inventoryId, quantityAdded }] } }`. Make the zod `putAwayDecision` provably match `PutAwayDecision` with a compile-time check in the test (e.g. a `satisfies`/assignability assertion both directions), so the two can't drift.
+- **Routes** (action labels `shopping.list|add|update|delete|checkOff|putAway|fromLowInventory`; every write pushes one `changes` entry per touched row):
+  - `GET /shopping?store=&checked=` → `{ items }`, each via `toShoppingItem`. `shoppingReads.ts` owns the query: unchecked first then checked, then by category order (`categoryOrder` from constants) then name; selects the `addedBy` relation's `displayName` only (never the user row); one extra query for the assistant-created set (`AssistantChange` where `model: "GroceryItem"`, `action: "create"`, `recordId in ids`). `store=none` means `store: null`.
+  - `POST /shopping` (one item or array) → each via `addGroceryItem(fields, { actorUserId: null, mergeIntoExisting: item.merge })`; change `create` or `update` (`merged: true`, with the added quantity in the summary) → 201 `{ items: [{ item, merged }] }`. Sequential writes; validation is all up front so a mid-array failure needs a DB error — say so in a comment.
+  - `PATCH /shopping/{id}` → field edits via `editGroceryItem` (partial; `note` supported), `checked` via `setGroceryChecked([id], …)`; null → 404 → `{ item }`.
+  - `DELETE /shopping/{id}` → only if `didAssistantCreate("GroceryItem", id)`; otherwise **403 `forbidden`** "Winnie can only delete items she added. Check it off instead, or ask a family member." (add `forbidden` to `ApiErrorCode` in `errors.ts`, which is in this boundary). Missing row → 404. → 204 or `{ deleted: id }` (pick one, document it in the registry).
+  - `POST /shopping/check-off` → confirm every id exists in one `findMany` (missing → 404 `details.missing`, nothing written) → `setGroceryChecked(ids, checked)` → `{ updated: n }`.
+  - `POST /shopping/put-away`:
+    - With no `decisions` and `acceptDefaults: false`: `classifyForPutAway()`; if `newItems` is empty, commit with `{ createUnreviewed: "refuse" }`; otherwise return **200 `{ needsReview: true, classification }` and write nothing** (no changes recorded).
+    - With `decisions` (and/or `acceptDefaults: true`): `commitPutAway(decisions, { createUnreviewed: acceptDefaults ? "defaults" : "refuse" })`; a `PutAwayNeedsReview` → **409 `conflict`** with `details.groceryItemIds` and a fresh classification, nothing written.
+    - Success → `{ putAway }` via `toPutAwayReport`; changes: one `update`/`create` on `PantryItem` per report item plus one `delete` on `GroceryItem` per put-away row. Zero checked rows → `{ putAway: { items: [] } }`.
+    - The registry summary must state plainly that put-away acts on **every** checked row, including ones a family member ticked.
+  - `POST /shopping/from-low-inventory` → `addLowItemsToList(store ?? null, null)` → 201 `{ items }`, one `create` change per row.
+- **OpenAPI:** `openapiShoppingPaths.ts` rows for every route above; the registry tests (route↔registry, action labels, compiler gate) must pass with the new files.
+- **Verification — local dev server, positive control first** (throwaway token per the Danger register; `npx next dev --port 3123`, stopped after):
+  1. Precondition, by script: zero non-test checked grocery rows (count only) — else BLOCKED.
+  2. Every new route with no token → 401 `{"error":"unauthorised"}`, no audit rows.
+  3. GET list (counts only); POST single, POST array, POST same name+store again (merged, quantity summed), POST with `merge: false` (separate row); PATCH name/note/checked; PATCH bogus id → 404.
+  4. DELETE a bot-created test row → success; DELETE a test row created **by script as if by the family** (not via the API) → 403 and the row survives.
+  5. check-off with a bogus id → 404, nothing changed; check-off two test rows → `updated: 2`.
+  6. put-away: with only known test rows checked → commits, report correct, pantry readback; with one unknown test row checked and no decisions → `needsReview`, **nothing written** (readback); with a `create` decision → created with the given fields; with `acceptDefaults: true` → created in Other; a decision set that leaves one unknown row undecided → 409, nothing written.
+  7. from-low-inventory → 201; the created rows (real item names on the dev copy — never print them) deleted by id afterwards.
+  8. `/audit` shows each write with the right model/recordId/action; `/openapi.json` lists the new paths.
+  Cleanup: every test pantry/grocery row and every created grocery row by id; every AssistantRequest by id; `.env` hash removed. Counts before/after.
+- **Evidence required:** status + body shape (counts only) for each numbered check; counts; gauntlet incl. the openapi tests.
+- **Done criteria:** Fury re-runs checks 4 and 6 (the delete rule and needsReview-writes-nothing).
+
+### H2 — Move the route-gate checker out of the over-cap test file
+
+- **Status:** DISPATCHED (2026-10-10, parallel with R1)
+- **Objective:** bring `openapi.test.ts` back under the 350 soft cap by moving the pure checker and discovery logic into a test-helper module, behaviour unchanged.
+- **Boundaries:** may touch `src/lib/testing/assistantRouteGate.ts` (new — STRUCTURE.md's home for shared test helpers, exempt from the dormant-export rule), `src/lib/assistant/routeGate.test.ts` (new — the fixture tests; must live in `src/lib/assistant/` because `src/lib/testing/*.test.ts` is NOT in the test glob), `src/lib/assistant/openapi.test.ts`. Must not touch R1's files (`openapi.ts`, `openapiShoppingPaths.ts`, `errors.ts`, routes, `shoppingReads.ts`, `serializeShopping*`, `schemasShopping*`, `groceryWrites.ts`).
+- **Work:** move the AST checker (wrapper-violations), the URL-pattern discovery, and the pages/root-app guard's pure parts into `assistantRouteGate.ts` (pure functions over source text and path lists; the filesystem walk may stay in the test or move — say which); move the fixture tests (38 reject + accept, discovery 16/5) into `routeGate.test.ts`; `openapi.test.ts` keeps the registry, action-label, live-route gate, document and date-format tests, importing the helpers. Test count must be **identical** before and after (report both), and each moved test body byte-identical apart from imports (show a diff).
+- **Verification:** gauntlet; `wc -l` + code-line counts for the three files (each under 350 total if possible; report both counts); one red case re-run against a real temp route file to prove the live gate still bites after the move.
+- **Evidence required:** before/after test counts, the moved-body diff, line counts, the red case.
+- **Done criteria:** Fury re-runs the assistant tests and compares counts.
 
 ### R2 — `/summary` route
 
@@ -115,3 +156,4 @@ Baseline at `70b8eb7`: **429 tests**.
 
 - 2026-10-10 — Bryce: "Let's continue building this out for Winnie." Mission 22 written from mission 21's routed notes and the plan's shopping/summary rows. Branch `claude/assistant-api-m22` from `70b8eb7`. H1 dispatched alone (it touches every existing route file's import); G1/P1/S1 follow in parallel.
 - 2026-10-10 — Preflight: every hard failure was a `(new)` file the tool doesn't recognise, an import specifier, or STRUCTURE.md (a document). G1/P1/S1 dispatched alongside H1 (disjoint files). `createManyAndReturn` confirmed present in the generated client.
+- 2026-10-10 — H1 committed after a Fury staging slip (recorded in H1's report). `forbidden` confirmed missing → `errors.ts` added to R1's boundary. H2 written for the over-cap test file. R1 and H2 dispatched in parallel (disjoint files).
