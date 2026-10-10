@@ -157,7 +157,12 @@ export type PutAwayReportItem = {
   quantityAdded: number;
 };
 
-export type PutAwayReport = { items: PutAwayReportItem[] };
+export type PutAwayReport = {
+  items: PutAwayReportItem[];
+  /** Decisions that named a grocery row which wasn't checked (or no longer
+   * exists), so they were not applied. Echoed so a caller can see it. */
+  ignoredDecisions: string[];
+};
 
 export type PutAwayOptions = {
   /** What to do with an unmatched item that has no decision. "defaults"
@@ -165,6 +170,18 @@ export type PutAwayOptions = {
    * "refuse" throws PutAwayNeedsReview before writing anything. */
   createUnreviewed?: "defaults" | "refuse";
 };
+
+/**
+ * Thrown by commitPutAway when the checked rows it read were already claimed
+ * (put away, unchecked or deleted) by someone else before this transaction got
+ * to them. The transaction rolls back, so nothing was changed.
+ */
+export class PutAwayConflict extends Error {
+  constructor() {
+    super("The checked items changed while putting them away.");
+    this.name = "PutAwayConflict";
+  }
+}
 
 /** Thrown by commitPutAway under `createUnreviewed: "refuse"`, before any write. */
 export class PutAwayNeedsReview extends Error {
@@ -204,13 +221,21 @@ export async function commitPutAway(
   const checkedItems = await db.groceryItem.findMany({
     where: { checked: true },
   });
-  if (checkedItems.length === 0) return { items: [] };
+  const checkedIds = new Set(checkedItems.map((item) => item.id));
+  const ignoredDecisions = [
+    ...new Set(
+      decisions
+        .map((decision) => decision.groceryItemId)
+        .filter((id) => !checkedIds.has(id)),
+    ),
+  ];
+  if (checkedItems.length === 0) return { items: [], ignoredDecisions };
 
   const decisionByGroceryId = new Map(
     decisions.map((decision) => [decision.groceryItemId, decision]),
   );
 
-  const report: PutAwayReport = { items: [] };
+  const report: PutAwayReport = { items: [], ignoredDecisions };
 
   await db.$transaction(async (tx) => {
     const pantryItems = await tx.pantryItem.findMany();
@@ -235,6 +260,17 @@ export async function commitPutAway(
       }
     }
 
+    // Claim the rows BEFORE any pantry write. The checked rows were read
+    // outside this transaction, so two put-aways at once (two phones, or the
+    // assistant retrying) would both see them and both restock. deleteMany
+    // takes row locks: the second transaction waits here, then finds the
+    // rows gone and its count falls short, so it rolls back instead of
+    // restocking a second time.
+    const claimed = await tx.groceryItem.deleteMany({
+      where: { id: { in: checkedItems.map((item) => item.id) }, checked: true },
+    });
+    if (claimed.count !== checkedItems.length) throw new PutAwayConflict();
+
     for (const boughtItem of checkedItems) {
       const decision = decisionByGroceryId.get(boughtItem.id);
       const autoMatch = findExactMatch(boughtItem, byId, byName);
@@ -254,7 +290,7 @@ export async function commitPutAway(
             quantity: { increment: incrementQuantity },
             // This IS the restock, definitionally — groceries just came home
             // and went in the fridge/pantry. See setPantryQuantity's comment
-            // in pantry.ts for what restockedAt drives.
+            // in pantryWrites.ts for what restockedAt drives.
             restockedAt: new Date(),
             // Only for a genuine automatic match — an already-known item
             // this row's own overrides (P2) describe. A merge the human
@@ -302,10 +338,6 @@ export async function commitPutAway(
         });
       }
     }
-
-    await tx.groceryItem.deleteMany({
-      where: { id: { in: checkedItems.map((item) => item.id) } },
-    });
   });
 
   return report;

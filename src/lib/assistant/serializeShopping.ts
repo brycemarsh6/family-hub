@@ -94,6 +94,7 @@ export function toPutAwayReport(report: PutAwayReport) {
         inventoryId: e.pantryItemId,
         quantityAdded: e.quantityAdded,
       })),
+      ignoredDecisions: report.ignoredDecisions,
     },
   };
 }

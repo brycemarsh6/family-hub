@@ -88,6 +88,11 @@ test("every route file that could answer under /api/assistant/v1/ is built only 
   }
 });
 
+test("next.config defines no rewrites (a rewrite from the public prefix could bypass the route gate)", () => {
+  const source = readFileSync(join(process.cwd(), "next.config.ts"), "utf8");
+  assert.doesNotMatch(source, /\brewrites\b/);
+});
+
 test("no pages router (or root app/) exists to serve a route this test cannot see", () => {
   for (const dir of ["pages", "src/pages", "app"]) {
     assert.equal(existsSync(join(process.cwd(), dir)), false, `${dir}/ exists: its routes are outside src/app`);

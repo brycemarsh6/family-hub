@@ -16,8 +16,9 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import type { GroceryItem } from "@/generated/prisma/client";
-import { toCategory, toLocation, toStore } from "@/lib/constants";
+import { isLow, toCategory, toLocation, toStore } from "@/lib/constants";
 import { tokens } from "@/lib/match";
+import { isMissingRowError } from "@/lib/prismaErrors";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -59,11 +60,24 @@ export async function addGroceryItem(
       });
       const existing = candidates.find((row) => nameKey(row.name) === key);
       if (existing) {
-        const row = await db.groceryItem.update({
-          where: { id: existing.id },
-          data: { quantity: round2(existing.quantity + quantity) },
-        });
-        return { row, merged: true };
+        // `increment` lets the database do the addition (one atomic UPDATE),
+        // so parallel adds onto the same row can't overwrite each other's
+        // total the way read-then-write did. Only the incoming amount is
+        // rounded; the stored value is never re-rounded by a round trip.
+        // update() returns the row as written, i.e. read back after the add.
+        // Not covered: parallel adds of a NEW name each find no row and each
+        // create one (no quantity is lost, but duplicates are possible).
+        try {
+          const row = await db.groceryItem.update({
+            where: { id: existing.id },
+            data: { quantity: { increment: round2(quantity) } },
+          });
+          return { row, merged: true };
+        } catch (error) {
+          // The row was deleted between the lookup and the add: fall through
+          // and create a fresh line instead.
+          if (!isMissingRowError(error)) throw error;
+        }
       }
     }
   }
@@ -241,8 +255,8 @@ export async function addLowItemsToList(
 
   // The "is it low?" test happens here rather than in the query — a `where`
   // can't compare two columns.
-  const lowItems = pantryItems.filter(
-    (item) => item.quantity <= item.lowThreshold,
+  const lowItems = pantryItems.filter((item) =>
+    isLow(item.quantity, item.lowThreshold),
   );
   if (lowItems.length === 0) return [];
 

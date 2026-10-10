@@ -8,8 +8,9 @@
 import { revalidatePath } from "next/cache";
 import { getVerifiedSession } from "@/lib/dal";
 import {
-  classifyForPutAway as classify,
-  commitPutAway as commit,
+  classifyForPutAway as readPutAwayClassification,
+  commitPutAway as writePutAway,
+  PutAwayConflict,
   type PutAwayClassification,
   type PutAwayDecision,
 } from "@/lib/putAway";
@@ -38,7 +39,7 @@ export type PutAwayResult = { error?: string };
  */
 export async function classifyForPutAway(): Promise<PutAwayClassification> {
   if (!(await getVerifiedSession())) return { knownCount: 0, newItems: [] };
-  return classify();
+  return readPutAwayClassification();
 }
 
 /** The actual put-away transaction — see lib/putAway.ts commitPutAway. */
@@ -46,7 +47,18 @@ export async function commitPutAway(
   decisions: PutAwayDecision[],
 ): Promise<PutAwayResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
-  await commit(decisions);
+  try {
+    await writePutAway(decisions);
+  } catch (error) {
+    // Rolled back: nothing was changed. The review UI shows `error` as-is.
+    if (error instanceof PutAwayConflict) {
+      return {
+        error:
+          "Someone else put the shopping away at the same moment — nothing was changed. Check the list and try again.",
+      };
+    }
+    throw error;
+  }
   refreshPutAwayViews();
   return {};
 }

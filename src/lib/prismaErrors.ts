@@ -51,7 +51,9 @@ export function isWriteConflictError(error: unknown): boolean {
 
 /**
  * P2028, "Transaction API error": Prisma could not start (or find) a
- * transaction, most often because no connection became free within `maxWait`.
+ * transaction, most often because no connection became free within `maxWait`;
+ * it also covers a transaction already closed or timed out. Either way the
+ * transaction rolled back, so a 503 "try again" stays safe.
  * Looked up in node_modules/@prisma/client/runtime/client.js (line 11, the
  * minified bundle): `TransactionManagerError` is constructed with the code
  * "P2028" and message prefix "Transaction API error: ". Under a burst this

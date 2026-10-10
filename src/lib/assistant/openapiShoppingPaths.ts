@@ -62,7 +62,9 @@ export const shoppingOperations: Operation[] = [
     body: putAwayBody,
     response:
       "{ putAway: { items: [{ groceryItemId, name, action, inventoryId, quantityAdded }] } } or 200 { needsReview, classification }. " +
-      "409 conflict (details.groceryItemIds, classification) when decisions leave a new item undecided; nothing is written.",
+      "ignoredDecisions lists decisions that named a row which was not checked (not applied). " +
+      "409 conflict (details.groceryItemIds, classification) when decisions leave a new item undecided, " +
+      "or 409 when another put-away claimed the same rows first; nothing is written either way.",
   },
   {
     method: "POST",

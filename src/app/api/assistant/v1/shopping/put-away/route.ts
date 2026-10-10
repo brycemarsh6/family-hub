@@ -2,7 +2,7 @@ import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { ApiError } from "@/lib/assistant/errors";
 import { putAwayBody } from "@/lib/assistant/schemasShopping";
 import { toPutAwayClassification, toPutAwayReport } from "@/lib/assistant/serializeShopping";
-import { classifyForPutAway, commitPutAway, PutAwayNeedsReview } from "@/lib/putAway";
+import { classifyForPutAway, commitPutAway, PutAwayConflict, PutAwayNeedsReview } from "@/lib/putAway";
 import type { z } from "zod";
 
 export const POST = assistantRoute<Record<string, never>, z.output<typeof putAwayBody>>({
@@ -36,6 +36,13 @@ export const POST = assistantRoute<Record<string, never>, z.output<typeof putAwa
             groceryItemIds: error.groceryItemIds,
             classification: toPutAwayClassification(classification),
           },
+        );
+      }
+      if (error instanceof PutAwayConflict) {
+        throw new ApiError(
+          409,
+          "conflict",
+          "Someone else put the shopping away at the same moment — nothing was changed; check the list and try again.",
         );
       }
       throw error;
