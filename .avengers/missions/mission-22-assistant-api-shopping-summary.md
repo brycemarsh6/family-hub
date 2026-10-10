@@ -1,7 +1,7 @@
 # Mission 22: Assistant API — shopping list, put-away, and /summary
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** FIXING (gate pass 1: Vision 2, Captain 4)
 **Started:** 2026-10-10 · **Updated:** 2026-10-10
 **Branch:** `claude/assistant-api-m22` from `origin/main` at `70b8eb7` (worktree `.claude/worktrees/family-hub-grok-api-28090b`)
 **Plan:** `.avengers/plans/assistant-api-v1.md` (authoritative: API surface table, Bryce's four settled decisions). **Predecessor:** `.avengers/missions/mission-21-assistant-api-foundation.md` — read its Delivery section and the Vision/Captain pass-3 notes; H1 below closes the ones it routed here.
@@ -166,8 +166,48 @@ Baseline at `70b8eb7`: **429 tests**.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | dispatched | — | — |
-| 1 | Captain | dispatched | — | — |
+| 1 | Vision | BLOCKED (at `cb4a834`) | 2 | 8 |
+| 1 | Captain | BLOCKED (at `cb4a834`) | 4 | 11 |
+
+### Captain pass 1 (at `cb4a834`) — BLOCKED
+
+- **B1** server-side date helpers outside `householdDate.ts` (amendment D): `summary.ts` `utcDate` + `serializeCalendar.ts` `utcDateString` (two copies of UTC-instant→CalendarDate) and `sundayOfCalendarDate`. Fix: `utcCalendarDate` + moved `sundayOfCalendarDate` in `householdDate.ts`, tests moved, local copies deleted.
+- **B2** `/summary` route inlines the four-`MEAL_SLOTS` projection that `dashboard.ts`'s `todaysMeals` owns (amendment C). Fix: pure `slotsForDay(entries, dayOffset)` in `dashboard.ts`, used by both; `dashboard.test.ts` unchanged as parity.
+- **B3** `groceriesPutAway.ts` imports `commitPutAway as commit` — amendment A requires a `write…` alias → `writePutAway`. (`classify` read alias awaits proposed amendment 1.)
+- **B4** `prismaErrors.ts`'s classifier tests adopted into `errors.test.ts` without the adoption clause's conditions → new `src/lib/prismaErrors.test.ts`.
+- NOTES: `groceryWrites.ts` inlines `quantity <= lowThreshold` (use `isLow` at next touch); out/low/ok status defined twice (`serialize.ts`, `summary.ts`) and `PantryRow` uses `=== 0`; `PLAN_WINDOW_MS` vs `PLAN_TOLERANCE_MS` must agree — export one; `*Reads.ts` pattern consistent; `toShoppingItems` naming; STRUCTURE.md amendment B text now false (says regex, known evasions, hardening pending); `routeGate.test.ts` should be `assistantRouteGate.test.ts`; `round2` twice; stale comments in `audit.ts:8-9` and `putAway.ts` (~235, names `pantry.ts`); carried mission-21 notes. Process slip: nothing structural; merge commits will put non-building commits on `main` (bisect) — squash-merge if Bryce cares.
+- Proposed amendments for Bryce: (1) `read…` alias for read-only shared functions; (2) layout-map row for `<domain>Reads.ts`; (3) `prismaErrors.ts` and `isLow`/stock status onto the one-source list; (4) rewrite amendment B's text to describe the compiler-based gate. Captain accepts a Fury delta enumeration instead of pass 2 if the fix touches only the named files and adds no export beyond `utcCalendarDate`, `sundayOfCalendarDate` (moved), `slotsForDay`, and the plan-tolerance constant.
+
+### Vision pass 1 (at `cb4a834`) — BLOCKED
+
+- **B1** merge-on-add lost updates (`groceryWrites.ts:56-65`): 10 parallel adds of qty 1 onto a qty-1 row → all 201 `merged:true`, row ends at **3 not 11**, audit says 10 updates. Fix: atomic `increment` (or CAS).
+- **B2** concurrent put-aways double-restock (`putAway.ts:204-308`): checked rows read outside the transaction; 6 parallel put-aways of one qty-1 row → pantry **5 → 11**. Pre-existing (two phones could do it); the API made it likely. Fix: inside the transaction, claim the rows first with `deleteMany({ id in checkedIds, checked: true })`; if `count !== checkedItems.length` throw a typed conflict (rolls back) → 409 / action `{ error }`.
+- NOTES: parallel adds of a NEW name create N rows (no quantity lost); gate held against `%31`/`%61` encoded-path evasions (Next doesn't serve them); a `next.config` `rewrites()` could bypass the gate — assert none; P2028 also covers "transaction already closed" — comment too narrow, never seen live; PATCH edit-then-check race can write without audit; check-off check-then-update race; put-away silently ignores decisions for unchecked rows (echo them); ±14h plan tolerance misses UTC+8 and east (travel edge); app parity otherwise exact (put-away/add-low now revalidate even on no-op); data exposure clean. Intermediate commits `4be4368..02c539d` don't build → squash-merge recommended.
+
+### F1 — Concurrency: atomic merge-on-add, claim-then-restock put-away
+
+- **Status:** DISPATCHED (2026-10-10, parallel with F2)
+- **Objective:** close Vision B1 and B2 and the notes that live in the same files.
+- **Boundaries:** may touch `src/lib/groceryWrites.ts`, `src/lib/putAway.ts`, `src/app/actions/groceriesPutAway.ts`, `src/app/api/assistant/v1/shopping/put-away/route.ts`, `src/app/api/assistant/v1/shopping/route.ts` (only if the add response needs it), `src/lib/prismaErrors.ts` (comment only), `src/lib/assistant/openapi.test.ts` (one added test), `src/lib/assistant/openapiShoppingPaths.ts` (descriptions only). Must not touch F2's files (`householdDate*`, `summary*`, `serializeCalendar*`, `summaryReads.ts`, `dashboard.ts`, the summary route, `errors.test.ts`, `prismaErrors.test.ts`, `audit.ts`).
+- **Work:**
+  1. **Merge-on-add atomic:** the merge path writes `quantity: { increment: round2(quantity) }` (round the incoming value; the stored value never gets re-rounded by a read-modify-write). Return the row as read back after the write. Optionally (only if cheap and race-free with plain Prisma) reduce the parallel-new-name duplicate case; otherwise leave it as a recorded note.
+  2. **Put-away claim-then-restock:** inside the `$transaction`, **before any pantry write**, `tx.groceryItem.deleteMany({ where: { id: { in: checkedIds }, checked: true } })`; if `count !== checkedItems.length`, throw a typed `PutAwayConflict` (exported from `putAway.ts`) → rollback. The existing trailing `deleteMany` goes away (the rows are already claimed). The `refuse` check stays before the claim. Route maps `PutAwayConflict` → 409 `conflict` "Someone else put the shopping away at the same moment — nothing was changed; check the list and try again." The action returns `{ error: "…" }` with a plain-English message (the review sheet already renders `{ error }` — confirm by reading `PutAwayButton.tsx`/`PutAwayReviewSheet.tsx`, do not edit them).
+  3. **Echo ignored decisions:** the report gains `ignoredDecisions: groceryItemId[]` for decisions naming a row that isn't checked; the serializer is S1/F2-owned (`serializeShopping.ts` is NOT in F2's list — it is in yours: add `src/lib/assistant/serializeShopping.ts` + test, additive field only).
+  4. Notes in your files: `commitPutAway as commit` → `writePutAway` and `classifyForPutAway as classify` → `readPutAwayClassification` in the action (Captain B3; the read alias follows Captain's proposed amendment 1, pending Bryce — harmless either way); `groceryWrites.ts` uses `isLow` from constants for the low filter; `putAway.ts`'s stale "setPantryQuantity's comment in pantry.ts" → `pantryWrites.ts`; `prismaErrors.ts` P2028 comment broadened (also "transaction already closed"/timeout — both roll back, so 503 stays safe).
+  5. Gate: `openapi.test.ts` gains one test asserting `next.config.ts` defines no `rewrites` (Vision note — a rewrite from the public prefix to an unwrapped handler would bypass the gate).
+- **Verification:** gauntlet; dev server :3123 + throwaway token: **10 parallel adds onto a qty-1 row → exactly 11**, audit updates = 10; **6 parallel put-aways of one checked qty-1 row → pantry +1 exactly**, one 200 restock + five 409s (or 200 with an empty report — say which and why), audit shows exactly one restock + one grocery delete; the single-request put-away paths from R1 still pass (known-only, needsReview writes nothing, create/merge decisions, acceptDefaults); a decision naming an unchecked row appears in `ignoredDecisions`. Precondition before every put-away: zero foreign checked rows. App parity for put-away by script (one batch through `commitPutAway` exactly as the action calls it). Cleanup by id; counts before/after; token never in the report.
+- **Evidence required:** the parallel counts and finals, audit counts, the parity readback, gauntlet.
+- **Done criteria:** Fury re-runs both parallel checks.
+
+### F2 — Captain's structural fixes
+
+- **Status:** DISPATCHED (2026-10-10, parallel with F1)
+- **Objective:** close Captain B1, B2 and B4 exactly as Captain specified, so a Fury delta enumeration can stand in for Captain pass 2.
+- **Boundaries:** may touch `src/lib/householdDate.ts` + `householdDate.test.ts`, `src/lib/assistant/summary.ts` + `summary.test.ts`, `src/lib/assistant/serializeCalendar.ts` (+ test if it references the helper), `src/lib/assistant/summaryReads.ts`, `src/lib/dashboard.ts`, `src/app/api/assistant/v1/summary/route.ts`, `src/lib/assistant/errors.test.ts`, `src/lib/prismaErrors.test.ts` (new), `src/lib/assistant/audit.ts` (stale comment only). Must not touch F1's files. **No new export beyond:** `utcCalendarDate` (householdDate), `sundayOfCalendarDate` (moved to householdDate), `slotsForDay` (dashboard), and the exported plan-tolerance constant (summary.ts).
+- **Work:** per Captain pass 1 B1/B2/B4 above: (1) `utcCalendarDate(instant)` beside `utcMidnightInstant` (`calendarDateInZone(instant, "UTC")`), `sundayOfCalendarDate` moved beside `dayOfWeek`, both imported in `summary.ts`, `serializeCalendar.ts`, the summary route; local copies deleted; tests moved + one `utcCalendarDate` round-trip; `grep -rn "getUTCFullYear" src/lib/assistant` → empty. (2) pure `slotsForDay(entries, dayOffset)` in `dashboard.ts`; `todaysMeals` calls it; the summary route calls it with `plan?.entries ?? []`; `dashboard.test.ts` unchanged and green. (3) `prismaErrors.ts`'s three classifier tests + helpers move from `errors.test.ts` to new `src/lib/prismaErrors.test.ts` (header naming the module). (4) `summaryReads.ts` imports the exported tolerance from `summary.ts` instead of its own 14 h constant. (5) `audit.ts:8-9` comment: the first caller is `shopping/[id]/route.ts` (past tense).
+- **Verification:** test counts before/after (identical except the added `utcCalendarDate` case — report both, by name for moved tests); the three TZ legs; tsc; eslint on touched files; the grep above.
+- **Evidence required:** counts, grep output, gauntlet, export list diff (`git diff` of `^export` lines).
+- **Done criteria:** Fury enumerates the delta for Captain.
 
 ## Handoff log
 
@@ -175,3 +215,4 @@ Baseline at `70b8eb7`: **429 tests**.
 - 2026-10-10 — Preflight: every hard failure was a `(new)` file the tool doesn't recognise, an import specifier, or STRUCTURE.md (a document). G1/P1/S1 dispatched alongside H1 (disjoint files). `createManyAndReturn` confirmed present in the generated client.
 - 2026-10-10 — H1 committed after a Fury staging slip (recorded in H1's report). `forbidden` confirmed missing → `errors.ts` added to R1's boundary. H2 written for the over-cap test file. R1 and H2 dispatched in parallel (disjoint files).
 - 2026-10-10 — R2 committed `7e0b4f3`. All six build contracts DONE. recordcheck: 0 hard, 7 REVIEW (renamed path, shortened `…/` paths that exist, a URL) — triaged. Gate pass 1 dispatched: Vision + Captain in parallel (Captain read-only).
+- 2026-10-10 — Gate pass 1: Vision BLOCKED (2 concurrency bugs, reproduced), Captain BLOCKED (4 structural). F1 (concurrency + notes in its files) and F2 (Captain's list exactly) dispatched in parallel, disjoint files. Bryce asked (pending): Captain's amendments 1–4, and squash-merge.
