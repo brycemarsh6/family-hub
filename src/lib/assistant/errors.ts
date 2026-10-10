@@ -12,6 +12,7 @@ import type { ZodError } from "zod";
 export type ApiErrorCode =
   | "validation"
   | "not_found"
+  | "forbidden"
   | "conflict"
   | "invalid_json"
   | "payload_too_large"

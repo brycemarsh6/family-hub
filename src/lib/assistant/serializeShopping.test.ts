@@ -52,10 +52,12 @@ test("toPutAwayClassification: field-by-field, suggestions renamed", () => {
   assert.deepEqual(Object.keys(out.newItems[0].suggestions[0]).sort(), ["inventoryId", "location", "name", "quantity", "unit"]);
 });
 
-test("toPutAwayReport: counts and key set", () => {
+test("toPutAwayReport: takes P1's real report, renames fields for the wire", () => {
   const out = toPutAwayReport({
-    entries: [{ groceryItemId: "g", name: "Peas", action: "created", pantryItemId: "p", quantityAdded: 1, location: "Other" }],
+    items: [{ groceryItemId: "g", groceryName: "Peas", action: "created", pantryItemId: "p", quantityAdded: 1 }],
   });
-  assert.equal(out.putAway, 1);
-  assert.deepEqual(Object.keys(out.items[0]).sort(), ["action", "groceryItemId", "inventoryId", "location", "name", "quantityAdded"]);
+  assert.deepEqual(Object.keys(out), ["putAway"]);
+  assert.deepEqual(Object.keys(out.putAway.items[0]).sort(), ["action", "groceryItemId", "inventoryId", "name", "quantityAdded"]);
+  assert.equal(out.putAway.items[0].inventoryId, "p");
+  assert.deepEqual(toPutAwayReport({ items: [] }), { putAway: { items: [] } });
 });

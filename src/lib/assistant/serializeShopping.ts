@@ -1,3 +1,5 @@
+import type { PutAwayReport } from "@/lib/putAway"; // type only: erased, keeps this module pure
+
 // DB row -> wire format for the Assistant API's shopping routes. Pure, and
 // every output is built field by field: never a spread of a row, so a column
 // added later (or the raw `addedById`) can't leak onto the wire by default.
@@ -81,27 +83,17 @@ export function toPutAwayClassification(c: { knownCount: number; newItems: NewIt
   };
 }
 
-/** What a committed put-away did, per item. Fury reconciles this shape with
- * P1's real report type in R1. */
-export type PutAwayReportEntry = {
-  groceryItemId: string;
-  name: string;
-  action: "restocked" | "merged" | "created";
-  pantryItemId: string;
-  quantityAdded: number;
-  location: string | null;
-};
-
-export function toPutAwayReport(report: { entries: PutAwayReportEntry[] }) {
+/** What a committed put-away did, per item — P1's real report, renamed for the wire. */
+export function toPutAwayReport(report: PutAwayReport) {
   return {
-    putAway: report.entries.length,
-    items: report.entries.map((e) => ({
-      groceryItemId: e.groceryItemId,
-      name: e.name,
-      action: e.action,
-      inventoryId: e.pantryItemId,
-      quantityAdded: e.quantityAdded,
-      location: e.location,
-    })),
+    putAway: {
+      items: report.items.map((e) => ({
+        groceryItemId: e.groceryItemId,
+        name: e.groceryName,
+        action: e.action,
+        inventoryId: e.pantryItemId,
+        quantityAdded: e.quantityAdded,
+      })),
+    },
   };
 }

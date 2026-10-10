@@ -34,6 +34,8 @@ export async function addGroceryItem(
     unit: string | null;
     category: unknown;
     store: unknown;
+    /** Optional free-text note; absent keeps today's behaviour (no note). */
+    note?: string | null;
   },
   options: { actorUserId: string | null; mergeIntoExisting?: boolean },
 ): Promise<{ row: GroceryItem; merged: boolean }> {
@@ -75,6 +77,7 @@ export async function addGroceryItem(
       // so a tampered-with request can't put junk in the database.
       category: toCategory(fields.category),
       store,
+      note: fields.note?.trim() || null,
       addedById: options.actorUserId,
     },
   });
@@ -138,6 +141,8 @@ export async function editGroceryItem(
     store?: string | null;
     /** Null = no opinion; see GroceryItem.location's schema comment. */
     location?: string | null;
+    /** Null or blank clears the note; undefined leaves it alone. */
+    note?: string | null;
   },
 ): Promise<GroceryItem | null> {
   const current = await db.groceryItem.findUnique({
@@ -159,6 +164,7 @@ export async function editGroceryItem(
         edits.unit === undefined ? undefined : edits.unit?.trim() || null,
       category,
       store: edits.store === undefined ? undefined : toStore(edits.store),
+      note: edits.note === undefined ? undefined : edits.note?.trim() || null,
       location:
         edits.location === undefined
           ? undefined

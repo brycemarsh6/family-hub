@@ -2,6 +2,7 @@ import { z, type ZodType } from "zod";
 import type { Operation } from "./openapiTypes";
 import { auditQuery } from "./schemas";
 import { inventoryOperations } from "./openapiInventoryPaths";
+import { shoppingOperations } from "./openapiShoppingPaths";
 
 // The Assistant API's OpenAPI 3.1 document, generated from the same zod
 // schemas the routes validate with, so the spec can't describe a shape the
@@ -26,7 +27,7 @@ const systemOperations: Operation[] = [
   },
 ];
 
-export const operations: Operation[] = [...inventoryOperations, ...systemOperations];
+export const operations: Operation[] = [...inventoryOperations, ...shoppingOperations, ...systemOperations];
 
 type JsonSchema = Record<string, unknown>;
 

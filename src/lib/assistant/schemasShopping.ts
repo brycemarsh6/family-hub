@@ -70,8 +70,9 @@ export const checkOffBody = z
     message: "ids must be unique.",
   });
 
-// Mirrors PutAwayDecision (src/app/actions/groceriesPutAway.ts, moving to
-// src/lib/putAway.ts) without importing it; Fury reconciles the two.
+// Mirrors PutAwayDecision (src/lib/putAway.ts) without importing it, so this
+// file stays pure; schemasShopping.test.ts asserts the two types are
+// assignable in both directions, so they can't drift.
 const mergeDecision = z
   .object({
     groceryItemId: z.string().min(1),

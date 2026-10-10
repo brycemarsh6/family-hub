@@ -1,13 +1,24 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import type { z } from "zod";
+import type { PutAwayDecision } from "@/lib/putAway";
 import {
   checkOffBody,
+  putAwayDecision,
   fromLowInventoryBody,
   putAwayBody,
   shoppingAddBody,
   shoppingListQuery,
   shoppingPatchBody,
 } from "./schemasShopping";
+
+// Compile-time drift guard: the zod decision and P1's PutAwayDecision must be
+// assignable to each other. If either gains/loses a field, tsc fails here.
+type ZodDecision = z.output<typeof putAwayDecision>;
+const zodToLib = (d: ZodDecision): PutAwayDecision => d;
+const libToZod = (d: PutAwayDecision): ZodDecision => d;
+void zodToLib;
+void libToZod;
 
 const ok = (r: { success: boolean }) => r.success;
 
