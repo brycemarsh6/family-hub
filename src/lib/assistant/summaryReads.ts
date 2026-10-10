@@ -6,9 +6,8 @@ import "server-only";
 import { db } from "@/lib/db";
 import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
+import { PLAN_TOLERANCE_MS } from "@/lib/assistant/summary";
 import { addCalendarDays, zoneMidnightInstant, type CalendarDate } from "@/lib/householdDate";
-
-const PLAN_WINDOW_MS = 14 * 60 * 60 * 1000;
 
 export async function readSummaryData(today: CalendarDate, sunday: CalendarDate) {
   const sundayInstant = zoneMidnightInstant(sunday, HOUSEHOLD_TIME_ZONE).getTime();
@@ -29,8 +28,8 @@ export async function readSummaryData(today: CalendarDate, sunday: CalendarDate)
     db.mealPlan.findMany({
       where: {
         weekStart: {
-          gte: new Date(sundayInstant - PLAN_WINDOW_MS),
-          lte: new Date(sundayInstant + PLAN_WINDOW_MS),
+          gte: new Date(sundayInstant - PLAN_TOLERANCE_MS),
+          lte: new Date(sundayInstant + PLAN_TOLERANCE_MS),
         },
       },
       select: {

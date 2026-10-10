@@ -1,16 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bucketEventsByDay, findPlanForWeek, sundayOfCalendarDate, summarizeInventory } from "./summary";
+import { bucketEventsByDay, findPlanForWeek, summarizeInventory } from "./summary";
 import { addCalendarDays, formatCalendarDate, utcMidnightInstant, zoneMidnightInstant } from "@/lib/householdDate";
 
 const DENVER = "America/Denver";
 const sun = (y: number, m: number, d: number) => ({ year: y, month: m, day: d });
-
-test("sundayOfCalendarDate", () => {
-  assert.deepEqual(sundayOfCalendarDate(sun(2026, 10, 10)), sun(2026, 10, 4)); // Saturday
-  assert.deepEqual(sundayOfCalendarDate(sun(2026, 10, 4)), sun(2026, 10, 4));
-  assert.deepEqual(sundayOfCalendarDate(sun(2026, 11, 3)), sun(2026, 11, 1));
-});
 
 test("findPlanForWeek: plans stored at any US zone's midnight match, across the Nov 1 week", () => {
   for (const sunday of [sun(2026, 10, 25), sun(2026, 11, 1), sun(2026, 11, 8)]) {

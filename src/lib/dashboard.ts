@@ -46,8 +46,20 @@ export function todaysMeals(plans: MealPlanView[], today: Date): TodaySlot[] | n
     }
   }
 
+  return slotsForDay(plan.entries, dayOffset);
+}
+
+/**
+ * The four meal slots (one per MEAL_SLOTS, in that order) for one day of a
+ * plan; an unfilled slot is `{ title: null, recipeId: null }`. Pure and
+ * clock-free, so the dashboard and the Assistant API's /summary share it.
+ */
+export function slotsForDay(
+  entries: { dayOffset: number; slot: string; title: string; recipeId: string | null }[],
+  dayOffset: number,
+): TodaySlot[] {
   return MEAL_SLOTS.map((slot) => {
-    const entry = plan.entries.find((e) => e.dayOffset === dayOffset && e.slot === slot);
+    const entry = entries.find((e) => e.dayOffset === dayOffset && e.slot === slot);
     return {
       slot,
       title: entry ? entry.title : null,

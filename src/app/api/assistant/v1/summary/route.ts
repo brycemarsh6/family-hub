@@ -6,12 +6,16 @@ import { toAssistantEvent } from "@/lib/assistant/serializeCalendar";
 import {
   bucketEventsByDay,
   findPlanForWeek,
-  sundayOfCalendarDate,
   summarizeInventory,
 } from "@/lib/assistant/summary";
-import { storeBreakdown } from "@/lib/dashboard";
-import { HOUSEHOLD_TIME_ZONE, MEAL_SLOTS } from "@/lib/constants";
-import { addCalendarDays, calendarDaysBetween, formatCalendarDate } from "@/lib/householdDate";
+import { slotsForDay, storeBreakdown } from "@/lib/dashboard";
+import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
+import {
+  addCalendarDays,
+  calendarDaysBetween,
+  formatCalendarDate,
+  sundayOfCalendarDate,
+} from "@/lib/householdDate";
 
 // Not dashboard.ts's `todaysMeals`: that compares process-local dates, which
 // on Vercel's UTC runtime is the wrong day every Denver evening.
@@ -26,11 +30,7 @@ export const GET = assistantRoute({
     const { pantry, groceries, recipeCount, plans, events } = await readSummaryData(today, sunday);
 
     const plan = findPlanForWeek(plans, sunday, HOUSEHOLD_TIME_ZONE);
-    const dayOffset = calendarDaysBetween(sunday, today);
-    const meals = MEAL_SLOTS.map((slot) => {
-      const entry = plan?.entries.find((e) => e.dayOffset === dayOffset && e.slot === slot);
-      return { slot, title: entry?.title ?? null, recipeId: entry?.recipeId ?? null };
-    });
+    const meals = slotsForDay(plan?.entries ?? [], calendarDaysBetween(sunday, today));
 
     const buckets = bucketEventsByDay(events, [today, tomorrow], HOUSEHOLD_TIME_ZONE);
     const day = (date: typeof today) => ({

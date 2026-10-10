@@ -6,7 +6,7 @@ import "server-only";
 //
 // Readers: GET /audit (listAudit) shows the log; rateLimit.ts counts the
 // request rows; didAssistantCreate answers "did the bot create this record?"
-// for the bot's deletes (its first caller lands in mission 22's R1). The
+// for the bot's deletes (its first caller is shopping/[id]/route.ts). The
 // deletion clock starts with mission 21 — nothing before it is recorded, so
 // nothing before it can ever answer "the assistant made this".
 

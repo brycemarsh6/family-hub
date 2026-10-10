@@ -4,8 +4,8 @@ import {
   addCalendarDays,
   calendarDateInZone,
   calendarDaysBetween,
-  dayOfWeek,
   formatCalendarDate,
+  utcCalendarDate,
   zoneMidnightInstant,
   type CalendarDate,
 } from "@/lib/householdDate";
@@ -14,12 +14,8 @@ import { daysUntilInZone } from "@/lib/assistant/today";
 // Pure pieces of the Assistant API's /summary route: which meal plan is a
 // week's, which events land on which day, and the inventory headline counts.
 
-const PLAN_TOLERANCE_MS = 14 * 60 * 60 * 1000;
-
-/** The Sunday on or before `date`. */
-export function sundayOfCalendarDate(date: CalendarDate): CalendarDate {
-  return addCalendarDays(date, -dayOfWeek(date));
-}
+/** How far a plan's stored `weekStart` may sit from the household zone's midnight. */
+export const PLAN_TOLERANCE_MS = 14 * 60 * 60 * 1000;
 
 /**
  * The plan for the week starting `sunday`. Plans are stored as the creating
@@ -47,20 +43,14 @@ export function findPlanForWeek<P extends { weekStart: Date }>(
 
 type BucketEvent = { startAt: Date; endAt: Date; allDay: boolean };
 
-const utcDate = (instant: Date): CalendarDate => ({
-  year: instant.getUTCFullYear(),
-  month: instant.getUTCMonth() + 1,
-  day: instant.getUTCDate(),
-});
-
 /** First and last calendar dates an event covers. */
 function coveredRange(event: BucketEvent, timeZone: string): [CalendarDate, CalendarDate] {
   if (event.allDay) {
     // CT1 convention: UTC midnights, endAt exclusive.
-    const first = utcDate(event.startAt);
+    const first = utcCalendarDate(event.startAt);
     const last =
       event.endAt.getTime() > event.startAt.getTime()
-        ? addCalendarDays(utcDate(event.endAt), -1)
+        ? addCalendarDays(utcCalendarDate(event.endAt), -1)
         : first;
     return [first, last];
   }
