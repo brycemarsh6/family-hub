@@ -1,7 +1,7 @@
 # Mission 22: Assistant API — shopping list, put-away, and /summary
 
 **Project:** family-hub (Marshee)
-**Status:** FIXING (gate pass 1: Vision 2, Captain 4)
+**Status:** AT-THE-GATES (pass 2)
 **Started:** 2026-10-10 · **Updated:** 2026-10-10
 **Branch:** `claude/assistant-api-m22` from `origin/main` at `70b8eb7` (worktree `.claude/worktrees/family-hub-grok-api-28090b`)
 **Plan:** `.avengers/plans/assistant-api-v1.md` (authoritative: API surface table, Bryce's four settled decisions). **Predecessor:** `.avengers/missions/mission-21-assistant-api-foundation.md` — read its Delivery section and the Vision/Captain pass-3 notes; H1 below closes the ones it routed here.
@@ -168,6 +168,8 @@ Baseline at `70b8eb7`: **429 tests**.
 |---|---|---|---|---|
 | 1 | Vision | BLOCKED (at `cb4a834`) | 2 | 8 |
 | 1 | Captain | BLOCKED (at `cb4a834`) | 4 | 11 |
+| 2 | Captain | closed by Fury delta enumeration (Captain's offer) | 0 | 1 (putAway.ts near cap) |
+| 2 | Vision | dispatched | — | — |
 
 ### Captain pass 1 (at `cb4a834`) — BLOCKED
 
@@ -186,7 +188,7 @@ Baseline at `70b8eb7`: **429 tests**.
 
 ### F1 — Concurrency: atomic merge-on-add, claim-then-restock put-away
 
-- **Status:** DISPATCHED (2026-10-10, parallel with F2)
+- **Status:** DONE (2026-10-10) — committed `ffabc24`
 - **Objective:** close Vision B1 and B2 and the notes that live in the same files.
 - **Boundaries:** may touch `src/lib/groceryWrites.ts`, `src/lib/putAway.ts`, `src/app/actions/groceriesPutAway.ts`, `src/app/api/assistant/v1/shopping/put-away/route.ts`, `src/app/api/assistant/v1/shopping/route.ts` (only if the add response needs it), `src/lib/prismaErrors.ts` (comment only), `src/lib/assistant/openapi.test.ts` (one added test), `src/lib/assistant/openapiShoppingPaths.ts` (descriptions only). Must not touch F2's files (`householdDate*`, `summary*`, `serializeCalendar*`, `summaryReads.ts`, `dashboard.ts`, the summary route, `errors.test.ts`, `prismaErrors.test.ts`, `audit.ts`).
 - **Work:**
@@ -198,16 +200,24 @@ Baseline at `70b8eb7`: **429 tests**.
 - **Verification:** gauntlet; dev server :3123 + throwaway token: **10 parallel adds onto a qty-1 row → exactly 11**, audit updates = 10; **6 parallel put-aways of one checked qty-1 row → pantry +1 exactly**, one 200 restock + five 409s (or 200 with an empty report — say which and why), audit shows exactly one restock + one grocery delete; the single-request put-away paths from R1 still pass (known-only, needsReview writes nothing, create/merge decisions, acceptDefaults); a decision naming an unchecked row appears in `ignoredDecisions`. Precondition before every put-away: zero foreign checked rows. App parity for put-away by script (one batch through `commitPutAway` exactly as the action calls it). Cleanup by id; counts before/after; token never in the report.
 - **Evidence required:** the parallel counts and finals, audit counts, the parity readback, gauntlet.
 - **Done criteria:** Fury re-runs both parallel checks.
+- **Report:** DONE. 10 parallel adds onto qty 1 → 11, 10 audit updates. 6 parallel put-aways of one checked row → [409×5, 200×1], pantry +1 exactly, audit 1 restock + 1 delete; a late arrival gets 200 with an empty report. R1 single paths all still pass; `ignoredDecisions` echoes decisions naming unchecked rows; app-path parity by script. `PutAwayButton` renders `{ error }` (not verified whether the open review sheet covers that line on a race — NOTE for the UI). 459 tests all legs, build green. Unfixed by design: parallel adds of a NEW name can still create duplicate rows (no quantity lost).
 
 ### F2 — Captain's structural fixes
 
-- **Status:** DISPATCHED (2026-10-10, parallel with F1)
+- **Status:** DONE (2026-10-10) — committed `a8e8e51`
 - **Objective:** close Captain B1, B2 and B4 exactly as Captain specified, so a Fury delta enumeration can stand in for Captain pass 2.
 - **Boundaries:** may touch `src/lib/householdDate.ts` + `householdDate.test.ts`, `src/lib/assistant/summary.ts` + `summary.test.ts`, `src/lib/assistant/serializeCalendar.ts` (+ test if it references the helper), `src/lib/assistant/summaryReads.ts`, `src/lib/dashboard.ts`, `src/app/api/assistant/v1/summary/route.ts`, `src/lib/assistant/errors.test.ts`, `src/lib/prismaErrors.test.ts` (new), `src/lib/assistant/audit.ts` (stale comment only). Must not touch F1's files. **No new export beyond:** `utcCalendarDate` (householdDate), `sundayOfCalendarDate` (moved to householdDate), `slotsForDay` (dashboard), and the exported plan-tolerance constant (summary.ts).
 - **Work:** per Captain pass 1 B1/B2/B4 above: (1) `utcCalendarDate(instant)` beside `utcMidnightInstant` (`calendarDateInZone(instant, "UTC")`), `sundayOfCalendarDate` moved beside `dayOfWeek`, both imported in `summary.ts`, `serializeCalendar.ts`, the summary route; local copies deleted; tests moved + one `utcCalendarDate` round-trip; `grep -rn "getUTCFullYear" src/lib/assistant` → empty. (2) pure `slotsForDay(entries, dayOffset)` in `dashboard.ts`; `todaysMeals` calls it; the summary route calls it with `plan?.entries ?? []`; `dashboard.test.ts` unchanged and green. (3) `prismaErrors.ts`'s three classifier tests + helpers move from `errors.test.ts` to new `src/lib/prismaErrors.test.ts` (header naming the module). (4) `summaryReads.ts` imports the exported tolerance from `summary.ts` instead of its own 14 h constant. (5) `audit.ts:8-9` comment: the first caller is `shopping/[id]/route.ts` (past tense).
 - **Verification:** test counts before/after (identical except the added `utcCalendarDate` case — report both, by name for moved tests); the three TZ legs; tsc; eslint on touched files; the grep above.
 - **Evidence required:** counts, grep output, gauntlet, export list diff (`git diff` of `^export` lines).
 - **Done criteria:** Fury enumerates the delta for Captain.
+- **Report:** DONE. Exactly the allowed exports (`utcCalendarDate`, `sundayOfCalendarDate` moved, `slotsForDay`, `PLAN_TOLERANCE_MS`); `grep getUTCFullYear src/lib/assistant` empty; moved tests identical by name plus one `utcCalendarDate` case; `dashboard.test.ts` untouched and green.
+
+### Captain pass 2 — Fury's delta enumeration (Captain's offer, pass 1)
+
+- **F2 (`a8e8e51`)**: touched only Captain's named files; export diff = exactly `utcCalendarDate`, `sundayOfCalendarDate` (moved, not duplicated), `slotsForDay`, `PLAN_TOLERANCE_MS`; `audit.ts` diff is comment-only; no UTC getter or day-ms copy left in `src/lib/assistant`. → B1, B2, B4 closed.
+- **F1 (`ffabc24`)**: B3 closed (`writePutAway`; read alias `readPutAwayClassification` follows proposed amendment 1, pending Bryce). Its other structural delta: one new export `PutAwayConflict` in `putAway.ts`, beside the existing `PutAwayNeedsReview` (same module, same pattern); one field added to `PutAwayReport`; `groceryWrites.ts` now uses `isLow` (closes Captain's NOTE). Sizes total/code: `putAway.ts` 344/217 (**7 lines from the soft cap — split candidate at mission 23's first touch**), `groceryWrites.ts` 290/201, action 64/45, `openapi.test.ts` 144/124, `serializeShopping.ts` 100/89. No new file, no new dependency arrow.
+- **Verdict on the enumeration:** Captain's four blockers closed; nothing in F1 reaches a written structural rule. No Captain pass 2 dispatched (proportional gating; Captain's own offer).
 
 ## Handoff log
 
@@ -216,3 +226,4 @@ Baseline at `70b8eb7`: **429 tests**.
 - 2026-10-10 — H1 committed after a Fury staging slip (recorded in H1's report). `forbidden` confirmed missing → `errors.ts` added to R1's boundary. H2 written for the over-cap test file. R1 and H2 dispatched in parallel (disjoint files).
 - 2026-10-10 — R2 committed `7e0b4f3`. All six build contracts DONE. recordcheck: 0 hard, 7 REVIEW (renamed path, shortened `…/` paths that exist, a URL) — triaged. Gate pass 1 dispatched: Vision + Captain in parallel (Captain read-only).
 - 2026-10-10 — Gate pass 1: Vision BLOCKED (2 concurrency bugs, reproduced), Captain BLOCKED (4 structural). F1 (concurrency + notes in its files) and F2 (Captain's list exactly) dispatched in parallel, disjoint files. Bryce asked (pending): Captain's amendments 1–4, and squash-merge.
+- 2026-10-10 — F2 `a8e8e51`, F1 `ffabc24`. Captain's blockers closed by delta enumeration. Vision pass 2 dispatched.
