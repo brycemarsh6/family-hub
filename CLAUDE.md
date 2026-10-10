@@ -6387,7 +6387,7 @@ answers `{"error":"unauthorised"}` instead of the off-switch `{}`. Winnie
 receives the raw token in her own secure storage, never as a chat message.
 ⚠️ Bryce's main checkout (`~/Developer/family-hub`) was on the unmerged CD1
 branch at the time, so `npm run assistant:token` wasn't there; he ran the
-script from the worktree path. After step 3 he was to change his Marshee
+script from the worktree path. Once Winnie had the token, he was to change his Marshee
 password, since Winnie previously held his login.
 
 **Mission 22** (`.avengers/missions/mission-22-assistant-api-shopping-summary.md`)
