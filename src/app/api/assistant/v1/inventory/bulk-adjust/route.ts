@@ -1,4 +1,4 @@
-import { assistantRoute } from "@/lib/assistant/route";
+import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { ApiError, notFound } from "@/lib/assistant/errors";
 import { bulkAdjustBody } from "@/lib/assistant/schemas";
 import { adjustPantryQuantity } from "@/lib/pantryWrites";

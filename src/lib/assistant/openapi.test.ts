@@ -1,13 +1,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import ts from "typescript";
+import {
+  HTTP_METHODS,
+  V1_PREFIX,
+  couldAnswerUnderV1,
+  hasModifier,
+  isLiteralV1,
+  parse,
+  routePattern,
+  wrapperViolations,
+  type Segment,
+} from "../testing/assistantRouteGate";
 import { buildOpenApiDocument, operations } from "./openapi";
 
 const APP = join(process.cwd(), "src/app");
-const HTTP = "GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS";
-const ROUTE_FILE = /^route\.(ts|tsx|js|jsx|mjs)$/;
-const V1_PREFIX = ["api", "assistant", "v1"];
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -16,103 +25,48 @@ function walk(dir: string): string[] {
   });
 }
 
-type RouteFile = { file: string; urlSegments: string[] };
+type RouteFile = { file: string; pattern: Segment[] };
 
-/**
- * Every route file under all of src/app (any of route.ts/tsx/js/jsx/mjs) that
- * would be served at /api/assistant/v1/…, with route-group segments `(x)`
- * stripped from its URL. A catch-all at or above `v1` could also answer under
- * that prefix, so one anywhere in the first three segments is returned too
- * (and then fails the shape check below, since nothing may hide there).
- */
 function v1RouteFiles(): RouteFile[] {
   const out: RouteFile[] = [];
   for (const file of walk(APP)) {
-    if (!ROUTE_FILE.test(file.split("/").pop()!)) continue;
-    const segments = relative(APP, join(file, ".."))
-      .split("/")
-      .filter((s) => s !== "" && !/^\(.*\)$/.test(s));
-    const catchAllAbove = segments.slice(0, 3).some((s) => /^\[\[?\.\.\./.test(s));
-    const underV1 = V1_PREFIX.every((s, i) => segments[i] === s);
-    if (underV1 || catchAllAbove) out.push({ file, urlSegments: segments });
+    const pattern = routePattern(relative(APP, file));
+    if (pattern && couldAnswerUnderV1(pattern)) out.push({ file, pattern });
   }
   return out;
 }
 
-/** Comments removed, so a commented-out `export const` can't hide or fake a match. */
-function stripComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-}
-
-/** Index just past the `)` matching the `(` at `open`, or -1. Strings are skipped. */
-function closeParen(source: string, open: number): number {
-  let depth = 0;
-  for (let i = open; i < source.length; i++) {
-    const ch = source[i];
-    if (ch === '"' || ch === "'" || ch === "`") {
-      for (i++; i < source.length && source[i] !== ch; i++) if (source[i] === "\\") i++;
-    } else if (ch === "(") depth++;
-    else if (ch === ")" && --depth === 0) return i + 1;
-  }
-  return -1;
-}
-
-/**
- * Why a v1 route file is not safely "every export is
- * `export const <METHOD> = assistantRoute(...)`". Empty means it is.
- */
-function wrapperViolations(raw: string): string[] {
-  const source = stripComments(raw);
-  const bad: string[] = [];
-  if (/^\s*export\s+(let|var)\b/m.test(source)) bad.push("`export let/var`");
-  if (/\bexport\s*\*/.test(source)) bad.push("`export *`");
-  if (/\bexport\s+default\b/.test(source)) bad.push("`export default`");
-  if (/\bexport\s*\{/.test(source)) bad.push("`export { … }`");
-  if (/\bexport\s+(async\s+)?function\b/.test(source)) bad.push("`export function`");
-  if (/\b(const|let|var|function|class)\s+assistantRoute\b/.test(source) || /\bas\s+assistantRoute\b/.test(source)) {
-    bad.push("a local declaration or alias named assistantRoute");
-  }
-  if (!/import\s*\{[^}]*\bassistantRoute\b[^}]*\}\s*from\s*"@\/lib\/assistant\/route"/.test(source)) {
-    bad.push('no `import { assistantRoute } from "@/lib/assistant/route"`');
-  }
-  for (const m of source.matchAll(/\bexport\s+const\s+(\w+)\s*=/g)) {
-    const name = m[1];
-    const rest = source.slice(m.index + m[0].length);
-    if (!new RegExp(`^(${HTTP})$`).test(name)) {
-      bad.push(`\`export const ${name}\` is not an HTTP method`);
-      continue;
-    }
-    const call = /^\s*assistantRoute\s*(?:<[^(]*>)?\s*\(/.exec(rest);
-    if (!call) {
-      bad.push(`${name} is not assigned \`assistantRoute(…)\` directly`);
-      continue;
-    }
-    const end = closeParen(rest, call[0].length - 1);
-    if (end === -1) bad.push(`${name}'s assistantRoute( call never closes`);
-    else if (/^\s*,/.test(rest.slice(end))) bad.push(`${name} is followed by a comma (multi-declarator)`);
-  }
-  return bad;
-}
-
 type RouteExport = { key: string; action: string | null; file: string };
 
-/** Every HTTP export in every v1 route file, e.g. key "GET /inventory/{id}". */
+/** Every wrapped HTTP export in every in-scope route file, e.g. "GET /inventory/{id}". */
 function actualExports(): RouteExport[] {
   const out: RouteExport[] = [];
-  for (const { file, urlSegments } of v1RouteFiles()) {
-    const path = "/" + urlSegments.slice(V1_PREFIX.length).map((s) => s.replace(/^\[(\w+)\]$/, "{$1}")).join("/");
-    const source = stripComments(readFileSync(file, "utf8"));
-    // Each export owns the text up to the next export, so its `action:` label
-    // is the first one inside that slice.
-    const starts = [...source.matchAll(new RegExp(`export\\s+const\\s+(${HTTP})\\b`, "g"))];
-    starts.forEach((m, i) => {
-      const slice = source.slice(m.index, starts[i + 1]?.index ?? source.length);
-      out.push({
-        key: `${m[1]} ${path}`,
-        action: /action:\s*"([^"]+)"/.exec(slice)?.[1] ?? null,
-        file: relative(process.cwd(), file),
-      });
-    });
+  for (const { file, pattern } of v1RouteFiles()) {
+    // The registry spells dynamic segments by name: [id] -> {id}.
+    const dirs = relative(APP, join(file, ".."))
+      .split("/")
+      .filter((d) => d !== "" && !/^(\(.*\)|@.*)$/.test(d));
+    const shown = (isLiteralV1(pattern) ? dirs.slice(V1_PREFIX.length) : dirs).map((d) =>
+      /^\[.*\]$/.test(d) ? `{${d.replace(/[[\].]/g, "")}}` : d,
+    );
+    const path = "/" + shown.join("/");
+    const sf = parse(readFileSync(file, "utf8"), file);
+    for (const st of sf.statements) {
+      if (!ts.isVariableStatement(st) || !hasModifier(st, ts.SyntaxKind.ExportKeyword)) continue;
+      for (const d of st.declarationList.declarations) {
+        if (!ts.isIdentifier(d.name) || !HTTP_METHODS.has(d.name.text)) continue;
+        const arg = d.initializer && ts.isCallExpression(d.initializer) ? d.initializer.arguments[0] : undefined;
+        const action = arg && ts.isObjectLiteralExpression(arg)
+          ? arg.properties.flatMap((p) =>
+              ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === "action" &&
+              (ts.isStringLiteral(p.initializer) || ts.isNoSubstitutionTemplateLiteral(p.initializer))
+                ? [p.initializer.text]
+                : [],
+            )[0] ?? null
+          : null;
+        out.push({ key: `${d.name.text} ${path}`, action, file: relative(process.cwd(), file) });
+      }
+    }
   }
   return out.sort((a, b) => a.key.localeCompare(b.key));
 }
@@ -125,45 +79,26 @@ test("every route has a registry entry, and every entry has a route", () => {
 // The public-prefix amendment in proxy.ts and STRUCTURE.md is only safe while
 // this holds: a v1 route not built with assistantRoute would be reachable with
 // no bearer check at all.
-test("every v1 route file under src/app is built only from `export const <METHOD> = assistantRoute(...)`", () => {
+test("every route file that could answer under /api/assistant/v1/ is built only from `export const <METHOD> = assistantRoute(...)`", () => {
   const files = v1RouteFiles();
   assert.ok(files.length > 0);
-  for (const { file, urlSegments } of files) {
+  for (const { file } of files) {
     const where = relative(process.cwd(), file);
-    assert.equal(
-      urlSegments.slice(0, 3).some((s) => /^\[\[?\.\.\./.test(s)),
-      false,
-      `${where}: a catch-all at or above api/assistant/v1 could answer without the wrapper`,
-    );
-    assert.deepEqual(wrapperViolations(readFileSync(file, "utf8")), [], where);
+    assert.deepEqual(wrapperViolations(readFileSync(file, "utf8"), file), [], where);
   }
 });
 
-test("the wrapper check rejects every way of escaping assistantRoute", () => {
-  const ok = 'import { assistantRoute } from "@/lib/assistant/route";\nexport const GET = assistantRoute({ action: "x", handler: async () => ({ data: 1 }) });\n';
-  assert.deepEqual(wrapperViolations(ok), []);
-  const cases: [string, string][] = [
-    ["export let", ok + "export let POST = () => new Response();"],
-    ["export var", ok + "export var POST = () => new Response();"],
-    ["export *", ok + 'export * from "./other";'],
-    ["export default", ok + "export default function () {}"],
-    ["export { }", ok + "const P = 1; export { P as POST };"],
-    ["export function", ok + "export async function POST() { return new Response(); }"],
-    ["HEAD unwrapped", ok + "export const HEAD = () => new Response();"],
-    ["OPTIONS unwrapped", ok + "export const OPTIONS = async () => new Response();"],
-    ["multi-declarator", ok.replace("});\n", "}), POST = () => new Response();\n")],
-    ["multi-declarator, first bare", 'import { assistantRoute } from "@/lib/assistant/route";\nexport const x = 1, GET = assistantRoute({});'],
-    ["local shadow", ok + "function assistantRoute(o: unknown) { return o; }"],
-    ["alias import", 'import { other as assistantRoute } from "./elsewhere";\nexport const GET = assistantRoute({});'],
-    ["wrong import source", 'import { assistantRoute } from "./mine";\nexport const GET = assistantRoute({});'],
-    ["non-method const", ok + "export const dynamic = 'force-dynamic';"],
-  ];
-  for (const [name, source] of cases) {
-    assert.notDeepEqual(wrapperViolations(source), [], `should reject: ${name}`);
-  }
-  // Commented-out code neither fakes nor hides a match.
-  assert.deepEqual(wrapperViolations(ok + "// export default 1;\n/* export let x = 1 */"), []);
+test("next.config defines no rewrites (a rewrite from the public prefix could bypass the route gate)", () => {
+  const source = readFileSync(join(process.cwd(), "next.config.ts"), "utf8");
+  assert.doesNotMatch(source, /\brewrites\b/);
 });
+
+test("no pages router (or root app/) exists to serve a route this test cannot see", () => {
+  for (const dir of ["pages", "src/pages", "app"]) {
+    assert.equal(existsSync(join(process.cwd(), dir)), false, `${dir}/ exists: its routes are outside src/app`);
+  }
+});
+
 
 test("each route's action label equals its registry row's label", () => {
   const byKey = new Map(operations.map((o) => [`${o.method} ${o.path}`, o.action]));

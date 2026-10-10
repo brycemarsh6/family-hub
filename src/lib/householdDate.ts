@@ -98,7 +98,17 @@ export function dayOfWeek(date: CalendarDate): number {
   return new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay();
 }
 
+/** The Sunday on or before `date`. */
+export function sundayOfCalendarDate(date: CalendarDate): CalendarDate {
+  return addCalendarDays(date, -dayOfWeek(date));
+}
+
 /** UTC midnight of `date` — the stored shape of all-day events and tasks. */
 export function utcMidnightInstant(date: CalendarDate): Date {
   return new Date(Date.UTC(date.year, date.month - 1, date.day));
+}
+
+/** The UTC calendar date of `instant` — the inverse of `utcMidnightInstant`. */
+export function utcCalendarDate(instant: Date): CalendarDate {
+  return calendarDateInZone(instant, "UTC");
 }

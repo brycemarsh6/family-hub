@@ -7,6 +7,8 @@ import {
   dayOfWeek,
   formatCalendarDate,
   parseDateParam,
+  sundayOfCalendarDate,
+  utcCalendarDate,
   utcMidnightInstant,
   zoneMidnightInstant,
 } from "./householdDate";
@@ -103,4 +105,18 @@ test("calendarDaysBetween: signed whole days, across a year end and a leap day",
   assert.equal(calendarDaysBetween({ year: 2027, month: 1, day: 1 }, { year: 2026, month: 12, day: 31 }), -1);
   assert.equal(calendarDaysBetween({ year: 2028, month: 2, day: 28 }, { year: 2028, month: 3, day: 1 }), 2);
   assert.equal(calendarDaysBetween({ year: 2026, month: 11, day: 1 }, { year: 2026, month: 11, day: 1 }), 0);
+});
+
+test("sundayOfCalendarDate", () => {
+  const d = (year: number, month: number, day: number) => ({ year, month, day });
+  assert.deepEqual(sundayOfCalendarDate(d(2026, 10, 10)), d(2026, 10, 4)); // Saturday
+  assert.deepEqual(sundayOfCalendarDate(d(2026, 10, 4)), d(2026, 10, 4));
+  assert.deepEqual(sundayOfCalendarDate(d(2026, 11, 3)), d(2026, 11, 1));
+});
+
+test("utcCalendarDate: round-trips utcMidnightInstant and reads the UTC day, not the local one", () => {
+  const d = { year: 2026, month: 11, day: 1 };
+  assert.deepEqual(utcCalendarDate(utcMidnightInstant(d)), d);
+  assert.deepEqual(utcCalendarDate(new Date("2026-11-01T23:59:59.999Z")), d);
+  assert.deepEqual(utcCalendarDate(new Date("2026-12-31T23:30:00.000Z")), { year: 2026, month: 12, day: 31 });
 });

@@ -16,9 +16,16 @@
 // what actually protects the data.
 
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
-import { toCategory, toStore, toLocation, MANAGER_ROLES } from "@/lib/constants";
+import { MANAGER_ROLES } from "@/lib/constants";
+import {
+  addGroceryItem as writeGroceryItem,
+  toggleGroceryChecked,
+  setGroceryQuantity as writeGroceryQuantity,
+  editGroceryItem as writeGroceryEdit,
+  deleteGroceryItem as writeGroceryDelete,
+  clearCheckedGroceryItems as writeClearChecked,
+} from "@/lib/groceryWrites";
 
 /**
  * Re-render the pages whose contents just changed.
@@ -42,26 +49,18 @@ export async function addGroceryItem(formData: FormData) {
   // Ignore empty submissions (e.g. someone taps Add with nothing typed).
   if (!name) return;
 
-  const rawQuantity = Number(formData.get("quantity"));
-  const quantity = Number.isFinite(rawQuantity) && rawQuantity > 0 ? rawQuantity : 1;
-  const unit = String(formData.get("unit") ?? "").trim() || null;
-
-  await db.groceryItem.create({
-    data: {
+  await writeGroceryItem(
+    {
       name,
-      quantity,
-      unit,
-      // toCategory() rejects anything that isn't one of our real categories,
-      // so a tampered-with form can't put junk in the database.
-      category: toCategory(formData.get("category")),
-      // toStore() returns null rather than a default — leaving the store
-      // blank on the add bar is a normal, valid choice, not a mistake.
-      store: toStore(formData.get("store")),
-      // Family Accounts v1: who added this. Any signed-in user (kids
-      // included — adding to the list is participation, not management).
-      addedById: user.userId,
+      quantity: Number(formData.get("quantity")),
+      unit: String(formData.get("unit") ?? ""),
+      category: formData.get("category"),
+      store: formData.get("store"),
     },
-  });
+    // Family Accounts v1: who added this. Any signed-in user (kids
+    // included — adding to the list is participation, not management).
+    { actorUserId: user.userId },
+  );
 
   refreshGroceryViews();
 }
@@ -69,18 +68,8 @@ export async function addGroceryItem(formData: FormData) {
 export async function toggleGroceryItem(id: string) {
   if (!(await getVerifiedSession())) return;
 
-  const item = await db.groceryItem.findUnique({ where: { id } });
+  const item = await toggleGroceryChecked(id);
   if (!item) return;
-
-  await db.groceryItem.update({
-    where: { id },
-    data: {
-      checked: !item.checked,
-      // Record when it was ticked off, so checked items can be listed
-      // most-recent-first.
-      checkedAt: item.checked ? null : new Date(),
-    },
-  });
 
   refreshGroceryViews();
 }
@@ -88,13 +77,7 @@ export async function toggleGroceryItem(id: string) {
 export async function setGroceryQuantity(id: string, quantity: number) {
   if (!(await getVerifiedSession())) return;
 
-  // Never let quantity drop below 1 — removing an item is what delete is for.
-  const safeQuantity = Math.max(1, Math.round(quantity * 100) / 100);
-
-  await db.groceryItem.update({
-    where: { id },
-    data: { quantity: safeQuantity },
-  });
+  await writeGroceryQuantity(id, quantity);
 
   refreshGroceryViews();
 }
@@ -126,36 +109,8 @@ export async function editGroceryItem(
   // so treat it the same as the add bar does: ignore the edit entirely.
   if (!name) return;
 
-  const current = await db.groceryItem.findUnique({
-    where: { id },
-    select: { category: true },
-  });
-  if (!current) return;
-
-  const category = toCategory(edits.category);
-
-  await db.groceryItem.update({
-    where: { id },
-    data: {
-      name,
-      // Same floor as setGroceryQuantity — removing an item is what delete
-      // is for, not counting it down to zero.
-      quantity: Math.max(1, Math.round(edits.quantity * 100) / 100),
-      unit: edits.unit?.trim() || null,
-      // Both of these reject anything outside the real vocabulary, so a
-      // tampered-with request can't write junk (see addGroceryItem).
-      category,
-      store: toStore(edits.store),
-      location: edits.location ? toLocation(edits.location) : null,
-      // Compared against what was actually stored before this save, not
-      // against a value handed in by the client — a tampered-with request
-      // can claim any "previous" category it likes, but it can't fake what
-      // the database already had. Only a genuine change flips this; saving
-      // with the category untouched leaves a prior edit's flag alone
-      // rather than ever clearing it back to false.
-      categoryEdited: category !== current.category ? true : undefined,
-    },
-  });
+  const row = await writeGroceryEdit(id, { ...edits, name });
+  if (!row) return;
 
   refreshGroceryViews();
 }
@@ -163,7 +118,7 @@ export async function editGroceryItem(
 export async function deleteGroceryItem(id: string) {
   if (!(await getVerifiedSession())) return;
 
-  await db.groceryItem.delete({ where: { id } });
+  await writeGroceryDelete(id);
   refreshGroceryViews();
 }
 
@@ -178,6 +133,6 @@ export async function clearCheckedGroceryItems() {
   const user = await getVerifiedUser();
   if (!user || !MANAGER_ROLES.includes(user.role)) return;
 
-  await db.groceryItem.deleteMany({ where: { checked: true } });
+  await writeClearChecked();
   refreshGroceryViews();
 }

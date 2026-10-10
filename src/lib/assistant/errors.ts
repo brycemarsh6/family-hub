@@ -12,11 +12,13 @@ import type { ZodError } from "zod";
 export type ApiErrorCode =
   | "validation"
   | "not_found"
+  | "forbidden"
   | "conflict"
   | "invalid_json"
   | "payload_too_large"
   | "unsupported_media_type"
   | "rate_limited"
+  | "busy"
   | "internal"
   | "audit_failed";
 
