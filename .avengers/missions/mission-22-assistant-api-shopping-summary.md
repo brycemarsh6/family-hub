@@ -1,7 +1,7 @@
 # Mission 22: Assistant API — shopping list, put-away, and /summary
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** AT-THE-GATES
 **Started:** 2026-10-10 · **Updated:** 2026-10-10
 **Branch:** `claude/assistant-api-m22` from `origin/main` at `70b8eb7` (worktree `.claude/worktrees/family-hub-grok-api-28090b`)
 **Plan:** `.avengers/plans/assistant-api-v1.md` (authoritative: API surface table, Bryce's four settled decisions). **Predecessor:** `.avengers/missions/mission-21-assistant-api-foundation.md` — read its Delivery section and the Vision/Captain pass-3 notes; H1 below closes the ones it routed here.
@@ -146,7 +146,7 @@ Baseline at `70b8eb7`: **429 tests**.
 
 ### R2 — `GET /summary`
 
-- **Status:** DISPATCHED (2026-10-10)
+- **Status:** DONE (2026-10-10) — committed `7e0b4f3`
 - **Objective:** one call that tells Winnie the state of the house today: today's meals, inventory health, what's on the list by store, recipe count, and today's and tomorrow's calendar.
 - **Boundaries:** may touch (new unless noted) `src/app/api/assistant/v1/summary/route.ts` (GET), `src/lib/assistant/summaryReads.ts` (`server-only`), `src/lib/assistant/serializeCalendar.ts` + test (pure; mission 24 reuses it), `src/lib/assistant/openapiSummaryPaths.ts`, `src/lib/assistant/openapi.ts` (register only), `src/lib/assistant/schemas.ts` (only a `summaryQuery` with `date: calendarDateString.optional()`, `.strict()`). Must not touch S1's `summary.ts` logic (import only), `dashboard.ts`, pages, actions.
 - **Behaviour:**
@@ -160,14 +160,18 @@ Baseline at `70b8eb7`: **429 tests**.
 - **Verification:** gauntlet; dev server + throwaway token: the default call (counts only), `?date=` on a day with a known meal-plan entry (cross-checked by script against the DB, titles not printed — compare ids/counts), `?date=2026-11-01` and `?date=2026-11-02` (the DST week), an invalid `?date=` → 400. Calendar bucketing proven live: by script create two `ZZZ Assistant Test` CalendarEvents attached to an **existing** person (narrow `select`, never a User write) — one timed at 6:30 pm Denver on the target day, one all-day on day+2 — and confirm the first lands in that day and the second in neither; delete both by id. Cleanup: every AssistantRequest by id, `.env` hash removed; also delete the one leftover unchecked GroceryItem named exactly `ZZZ Assistant Test Grocery` created 2026-10-09 (a mission-21 leftover — confirm by name AND createdAt date before deleting, by id); counts before/after.
 - **Evidence required:** response key sets, the bucketing proof, counts, gauntlet.
 - **Done criteria:** Fury re-runs the DST-week calls and the bucketing proof.
+- **Report:** DONE. Route 53, `summaryReads.ts` 47, `serializeCalendar.ts` 35 (+3 tests), registry row, `summaryQuery`. Live: default call key set and counts; meals cross-checked against the DB for two past dates (full day; Dinner-only with recipeId); DST-week dates; bad dates → 400. Bucketing proven with real rows: a 6:30 pm Denver event (already the next day in UTC) lands on its Denver day and never the UTC day; an all-day event on day+2 lands in neither today nor tomorrow, and in its own day only. Leftover mission-21 grocery row removed (name + createdAt matched). Counts 467 pantry, grocery 6→5 (the leftover), 0/0 audit, CalendarEvent 4 restored. 457 tests all legs; build green.
 
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | dispatched | — | — |
+| 1 | Captain | dispatched | — | — |
 
 ## Handoff log
 
 - 2026-10-10 — Bryce: "Let's continue building this out for Winnie." Mission 22 written from mission 21's routed notes and the plan's shopping/summary rows. Branch `claude/assistant-api-m22` from `70b8eb7`. H1 dispatched alone (it touches every existing route file's import); G1/P1/S1 follow in parallel.
 - 2026-10-10 — Preflight: every hard failure was a `(new)` file the tool doesn't recognise, an import specifier, or STRUCTURE.md (a document). G1/P1/S1 dispatched alongside H1 (disjoint files). `createManyAndReturn` confirmed present in the generated client.
 - 2026-10-10 — H1 committed after a Fury staging slip (recorded in H1's report). `forbidden` confirmed missing → `errors.ts` added to R1's boundary. H2 written for the over-cap test file. R1 and H2 dispatched in parallel (disjoint files).
+- 2026-10-10 — R2 committed `7e0b4f3`. All six build contracts DONE. recordcheck: 0 hard, 7 REVIEW (renamed path, shortened `…/` paths that exist, a URL) — triaged. Gate pass 1 dispatched: Vision + Captain in parallel (Captain read-only).
