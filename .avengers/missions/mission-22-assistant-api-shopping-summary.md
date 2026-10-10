@@ -38,7 +38,7 @@ Baseline at `70b8eb7`: **429 tests**.
 
 ### H1 — Close the skeleton's holes before adding routes
 
-- **Status:** PENDING
+- **Status:** DISPATCHED (2026-10-10)
 - **Objective:** make the gate condition compiler-checked, map the remaining retryable DB errors, keep the bot's create records forever, and do the renames Captain routed here — so missions 22–24 build on a skeleton with no known holes.
 - **Boundaries:** may touch `src/lib/assistant/route.ts` → renamed (git mv) to `src/lib/assistant/assistantRoute.ts`, every file importing `@/lib/assistant/route` (the 10 route files under `src/app/api/assistant/v1/`, plus any lib importer), `src/lib/prismaErrors.ts`, `src/lib/assistant/errors.ts` + `errors.test.ts`, `src/lib/assistant/audit.ts`, `src/lib/assistant/openapi.test.ts`, `STRUCTURE.md` (only the two sentences naming `src/lib/assistant/route.ts` / the wrapper's import path, if any — grep first). Must not touch: handler logic in any route file (import line only), `pantryWrites.ts`, actions, components, schemas, serializers.
 - **Work:**
@@ -58,7 +58,7 @@ Baseline at `70b8eb7`: **429 tests**.
 
 ### G1 — Extract shopping-list writes into `src/lib/groceryWrites.ts`
 
-- **Status:** PENDING (after H1; parallel with P1 and S1)
+- **Status:** DISPATCHED (2026-10-10, in parallel with H1 — Fury verified the file sets are disjoint; the "after H1" ordering only mattered for R1's route imports)
 - **Objective:** one `server-only` definition of every shopping-list write, callable without a session, with the app's actions as thin guarded callers — behaviour byte-identical.
 - **Boundaries:** may touch `src/lib/groceryWrites.ts` (new), `src/app/actions/groceries.ts`, `src/app/actions/pantry.ts` (only `addPantryItemToGroceryList` and `addAllLowItemsToGroceryList`, and their imports). Must not touch `groceriesPutAway.ts` (P1), `pantryWrites.ts`, `src/lib/assistant/*`, routes, components.
 - **Work:** export, each taking `actorUserId: string | null` where the row has `addedById` (STRUCTURE.md amendment A applies — read it):
@@ -74,7 +74,7 @@ Baseline at `70b8eb7`: **429 tests**.
 
 ### P1 — Extract put-away into `src/lib/putAway.ts`
 
-- **Status:** PENDING (after H1; parallel with G1 and S1)
+- **Status:** DISPATCHED (2026-10-10, in parallel with H1 — Fury verified the file sets are disjoint; the "after H1" ordering only mattered for R1's route imports)
 - **Objective:** the classify → review → commit flow callable without a session, reporting exactly what it did, with the app's flow byte-identical.
 - **Boundaries:** may touch `src/lib/putAway.ts` (new), `src/app/actions/groceriesPutAway.ts`. Must not touch `PutAwayReviewSheet.tsx` / `PutAwayButton.tsx` (they import the types from the action — keep re-exporting them there with `export type { … } from "@/lib/putAway"`; a `"use server"` file may export types), G1's files, `src/lib/assistant/*`, routes.
 - **Work:** move `findExactMatch`, `MAX_SUGGESTIONS`, the types, `classifyForPutAway()` and `commitPutAway(decisions, options?)` into `putAway.ts` verbatim in logic. `commitPutAway` now **returns** a report `{ items: [{ groceryItemId, groceryName, action: "restocked" | "merged" | "created", pantryItemId, quantityAdded }] }` (built inside the transaction; the action ignores it and keeps returning `{}` / `{ error }` as today). New option `{ createUnreviewed: "defaults" | "refuse" }`, default `"defaults"` (today's behaviour: an unmatched item with no decision is created from the grocery row's own fields, location `DEFAULT_LOCATION`). `"refuse"` makes commit throw a typed `PutAwayNeedsReview` error listing the unreviewed grocery ids **before** writing anything — the API uses it so Winnie never silently files a new item it wasn't told about. Re-verify inside the transaction exactly as today.
@@ -84,7 +84,7 @@ Baseline at `70b8eb7`: **429 tests**.
 
 ### S1 — Shopping and summary schemas, serializers, and the Denver-week helper
 
-- **Status:** PENDING (after H1; parallel with G1 and P1)
+- **Status:** DISPATCHED (2026-10-10, in parallel with H1 — Fury verified the file sets are disjoint; the "after H1" ordering only mattered for R1's route imports)
 - **Objective:** the pure pieces R1 and R2 need, tested, in new per-domain files (the `schemas.ts` split Captain asked for, done by adding files rather than moving the inventory ones).
 - **Boundaries:** may touch `src/lib/assistant/schemasShopping.ts` (new) + test, `src/lib/assistant/serializeShopping.ts` (new) + test, `src/lib/assistant/summary.ts` (new, pure) + test. Must not touch `schemas.ts`, `serialize.ts` (import from them only), G1/P1 files, routes.
 - **Work:**
@@ -114,3 +114,4 @@ Baseline at `70b8eb7`: **429 tests**.
 ## Handoff log
 
 - 2026-10-10 — Bryce: "Let's continue building this out for Winnie." Mission 22 written from mission 21's routed notes and the plan's shopping/summary rows. Branch `claude/assistant-api-m22` from `70b8eb7`. H1 dispatched alone (it touches every existing route file's import); G1/P1/S1 follow in parallel.
+- 2026-10-10 — Preflight: every hard failure was a `(new)` file the tool doesn't recognise, an import specifier, or STRUCTURE.md (a document). G1/P1/S1 dispatched alongside H1 (disjoint files). `createManyAndReturn` confirmed present in the generated client.
