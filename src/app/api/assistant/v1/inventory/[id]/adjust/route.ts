@@ -1,4 +1,4 @@
-import { assistantRoute } from "@/lib/assistant/route";
+import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { ApiError, notFound } from "@/lib/assistant/errors";
 import { adjustBody } from "@/lib/assistant/schemas";
 import { householdToday } from "@/lib/assistant/today";

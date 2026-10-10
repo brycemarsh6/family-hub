@@ -1,4 +1,4 @@
-import { assistantRoute } from "@/lib/assistant/route";
+import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { notFound } from "@/lib/assistant/errors";
 import { inventoryPatchBody } from "@/lib/assistant/schemas";
 import { requireHouseholdToday } from "@/lib/assistant/today";

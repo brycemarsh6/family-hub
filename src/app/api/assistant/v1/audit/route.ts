@@ -1,4 +1,4 @@
-import { assistantRoute } from "@/lib/assistant/route";
+import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { auditQuery } from "@/lib/assistant/schemas";
 import { listAudit } from "@/lib/assistant/audit";
 

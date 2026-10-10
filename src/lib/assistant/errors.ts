@@ -17,6 +17,7 @@ export type ApiErrorCode =
   | "payload_too_large"
   | "unsupported_media_type"
   | "rate_limited"
+  | "busy"
   | "internal"
   | "audit_failed";
 

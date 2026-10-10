@@ -1,4 +1,4 @@
-import { assistantRoute } from "@/lib/assistant/route";
+import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { FAMILY_MEMBER_SELECT, toFamilyMember } from "@/lib/assistant/serialize";
 import { db } from "@/lib/db";
 

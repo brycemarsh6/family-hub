@@ -1,13 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import ts from "typescript";
 import { buildOpenApiDocument, operations } from "./openapi";
 
 const APP = join(process.cwd(), "src/app");
-const HTTP = "GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS";
-const ROUTE_FILE = /^route\.(ts|tsx|js|jsx|mjs)$/;
+const HTTP_METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);
+const ROUTE_FILE = /^route\.(ts|tsx|js|jsx|mjs|cjs)$/;
 const V1_PREFIX = ["api", "assistant", "v1"];
+const WRAPPER_MODULE = "@/lib/assistant/assistantRoute";
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -16,103 +18,223 @@ function walk(dir: string): string[] {
   });
 }
 
-type RouteFile = { file: string; urlSegments: string[] };
+// ---- Discovery: which route files could answer under /api/assistant/v1/ ----
+
+type Segment = { kind: "literal"; text: string } | { kind: "one" } | { kind: "rest" };
 
 /**
- * Every route file under all of src/app (any of route.ts/tsx/js/jsx/mjs) that
- * would be served at /api/assistant/v1/…, with route-group segments `(x)`
- * stripped from its URL. A catch-all at or above `v1` could also answer under
- * that prefix, so one anywhere in the first three segments is returned too
- * (and then fails the shape check below, since nothing may hide there).
+ * The URL pattern of a route file given its path relative to src/app, or null
+ * when it isn't a route file. Route groups `(x)` and parallel slots `@x` leave
+ * no URL segment; intercepting segments `(.)x` / `(..)x` / `(...)x` are their
+ * bare name; `[x]` matches one segment and `[...x]` / `[[...x]]` the rest.
  */
-function v1RouteFiles(): RouteFile[] {
-  const out: RouteFile[] = [];
-  for (const file of walk(APP)) {
-    if (!ROUTE_FILE.test(file.split("/").pop()!)) continue;
-    const segments = relative(APP, join(file, ".."))
-      .split("/")
-      .filter((s) => s !== "" && !/^\(.*\)$/.test(s));
-    const catchAllAbove = segments.slice(0, 3).some((s) => /^\[\[?\.\.\./.test(s));
-    const underV1 = V1_PREFIX.every((s, i) => segments[i] === s);
-    if (underV1 || catchAllAbove) out.push({ file, urlSegments: segments });
+function routePattern(relPath: string): Segment[] | null {
+  const parts = relPath.split("/");
+  if (!ROUTE_FILE.test(parts[parts.length - 1])) return null;
+  const out: Segment[] = [];
+  for (const raw of parts.slice(0, -1)) {
+    if (raw === "" || raw.startsWith("@")) continue;
+    const bare = raw.replace(/^(\(\.{1,3}\))+/, "");
+    if (bare === "") continue;
+    if (bare !== raw) {
+      out.push({ kind: "literal", text: bare });
+    } else if (/^\(.*\)$/.test(raw)) {
+      continue;
+    } else if (/^\[\[?\.\.\./.test(raw)) {
+      out.push({ kind: "rest" });
+    } else if (/^\[.*\]$/.test(raw)) {
+      out.push({ kind: "one" });
+    } else {
+      out.push({ kind: "literal", text: raw });
+    }
   }
   return out;
 }
 
-/** Comments removed, so a commented-out `export const` can't hide or fake a match. */
-function stripComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+/** Could this pattern match a URL that starts with /api/assistant/v1/ ? */
+function couldAnswerUnderV1(pattern: Segment[]): boolean {
+  for (let i = 0; i < V1_PREFIX.length; i++) {
+    const seg = pattern[i];
+    if (!seg) return false;
+    if (seg.kind === "rest") return true;
+    if (seg.kind === "literal" && seg.text !== V1_PREFIX[i]) return false;
+  }
+  return true;
 }
 
-/** Index just past the `)` matching the `(` at `open`, or -1. Strings are skipped. */
-function closeParen(source: string, open: number): number {
-  let depth = 0;
-  for (let i = open; i < source.length; i++) {
-    const ch = source[i];
-    if (ch === '"' || ch === "'" || ch === "`") {
-      for (i++; i < source.length && source[i] !== ch; i++) if (source[i] === "\\") i++;
-    } else if (ch === "(") depth++;
-    else if (ch === ")" && --depth === 0) return i + 1;
-  }
-  return -1;
+function isLiteralV1(pattern: Segment[]): boolean {
+  return V1_PREFIX.every((p, i) => pattern[i]?.kind === "literal" && (pattern[i] as { text: string }).text === p);
 }
+
+type RouteFile = { file: string; pattern: Segment[] };
+
+function v1RouteFiles(): RouteFile[] {
+  const out: RouteFile[] = [];
+  for (const file of walk(APP)) {
+    const pattern = routePattern(relative(APP, file));
+    if (pattern && couldAnswerUnderV1(pattern)) out.push({ file, pattern });
+  }
+  return out;
+}
+
+// ---- The rule, checked on the TypeScript syntax tree (never on text) -------
+
+function hasModifier(node: ts.Node, kind: ts.SyntaxKind): boolean {
+  return ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((m) => m.kind === kind);
+}
+
+function parse(source: string, fileName: string): ts.SourceFile {
+  const kind = /\.(js|mjs|cjs)$/.test(fileName) ? ts.ScriptKind.JS : /\.(tsx|jsx)$/.test(fileName) ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  return ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, kind);
+}
+
+const DECLARATION_KINDS = new Set([
+  ts.SyntaxKind.VariableDeclaration,
+  ts.SyntaxKind.FunctionDeclaration,
+  ts.SyntaxKind.ClassDeclaration,
+  ts.SyntaxKind.Parameter,
+  ts.SyntaxKind.BindingElement,
+  ts.SyntaxKind.ImportClause,
+  ts.SyntaxKind.NamespaceImport,
+  ts.SyntaxKind.ImportEqualsDeclaration,
+  ts.SyntaxKind.EnumDeclaration,
+  ts.SyntaxKind.ModuleDeclaration,
+  ts.SyntaxKind.FunctionExpression,
+  ts.SyntaxKind.ClassExpression,
+]);
 
 /**
- * Why a v1 route file is not safely "every export is
+ * Why a route file is not safely "every export is
  * `export const <METHOD> = assistantRoute(...)`". Empty means it is.
  */
-function wrapperViolations(raw: string): string[] {
-  const source = stripComments(raw);
+function wrapperViolations(source: string, fileName = "route.ts"): string[] {
+  const sf = parse(source, fileName);
   const bad: string[] = [];
-  if (/^\s*export\s+(let|var)\b/m.test(source)) bad.push("`export let/var`");
-  if (/\bexport\s*\*/.test(source)) bad.push("`export *`");
-  if (/\bexport\s+default\b/.test(source)) bad.push("`export default`");
-  if (/\bexport\s*\{/.test(source)) bad.push("`export { … }`");
-  if (/\bexport\s+(async\s+)?function\b/.test(source)) bad.push("`export function`");
-  if (/\b(const|let|var|function|class)\s+assistantRoute\b/.test(source) || /\bas\s+assistantRoute\b/.test(source)) {
-    bad.push("a local declaration or alias named assistantRoute");
-  }
-  if (!/import\s*\{[^}]*\bassistantRoute\b[^}]*\}\s*from\s*"@\/lib\/assistant\/route"/.test(source)) {
-    bad.push('no `import { assistantRoute } from "@/lib/assistant/route"`');
-  }
-  for (const m of source.matchAll(/\bexport\s+const\s+(\w+)\s*=/g)) {
-    const name = m[1];
-    const rest = source.slice(m.index + m[0].length);
-    if (!new RegExp(`^(${HTTP})$`).test(name)) {
+  let boundImport: ts.ImportSpecifier | null = null;
+  let validExports = 0;
+
+  for (const st of sf.statements) {
+    if (ts.isImportDeclaration(st)) {
+      const named = st.importClause?.namedBindings;
+      if (named && ts.isNamedImports(named)) {
+        for (const el of named.elements) {
+          if (el.name.text !== "assistantRoute") continue;
+          const fromWrapper =
+            ts.isStringLiteral(st.moduleSpecifier) && st.moduleSpecifier.text === WRAPPER_MODULE;
+          const aliased = el.propertyName !== undefined && el.propertyName.text !== "assistantRoute";
+          if (fromWrapper && !aliased && !el.isTypeOnly && !st.importClause?.isTypeOnly) boundImport = el;
+          else bad.push(`\`assistantRoute\` is imported from somewhere other than ${WRAPPER_MODULE}, aliased, or type-only`);
+        }
+      }
+      continue;
+    }
+    if (ts.isExportDeclaration(st)) {
+      if (!st.isTypeOnly) bad.push(st.exportClause ? "`export { … }` / re-export" : "`export *`");
+      continue;
+    }
+    if (ts.isExportAssignment(st)) {
+      bad.push("`export default` / `export =`");
+      continue;
+    }
+    if (!hasModifier(st, ts.SyntaxKind.ExportKeyword)) continue;
+    if (ts.isInterfaceDeclaration(st) || ts.isTypeAliasDeclaration(st)) continue;
+    if (!ts.isVariableStatement(st)) {
+      bad.push(`an export that is not a plain \`export const <METHOD>\` (${ts.SyntaxKind[st.kind]})`);
+      continue;
+    }
+    if (hasModifier(st, ts.SyntaxKind.DeclareKeyword)) bad.push("`export declare const`");
+    const list = st.declarationList;
+    if ((list.flags & ts.NodeFlags.BlockScoped) !== ts.NodeFlags.Const) {
+      bad.push("`export let/var` (or `using`)");
+      continue;
+    }
+    if (list.declarations.length !== 1) {
+      bad.push("a multi-declarator `export const a = …, b = …`");
+      continue;
+    }
+    const decl = list.declarations[0];
+    if (!ts.isIdentifier(decl.name)) {
+      bad.push("a destructured `export const { … } = …`");
+      continue;
+    }
+    const name = decl.name.text;
+    if (!HTTP_METHODS.has(name)) {
       bad.push(`\`export const ${name}\` is not an HTTP method`);
       continue;
     }
-    const call = /^\s*assistantRoute\s*(?:<[^(]*>)?\s*\(/.exec(rest);
-    if (!call) {
+    const init = decl.initializer;
+    if (decl.type || decl.exclamationToken) {
+      bad.push(`${name} carries a type annotation`);
+    } else if (
+      !init ||
+      !ts.isCallExpression(init) ||
+      init.questionDotToken ||
+      !ts.isIdentifier(init.expression) ||
+      init.expression.text !== "assistantRoute"
+    ) {
       bad.push(`${name} is not assigned \`assistantRoute(…)\` directly`);
-      continue;
+    } else {
+      validExports++;
     }
-    const end = closeParen(rest, call[0].length - 1);
-    if (end === -1) bad.push(`${name}'s assistantRoute( call never closes`);
-    else if (/^\s*,/.test(rest.slice(end))) bad.push(`${name} is followed by a comma (multi-declarator)`);
   }
-  return bad;
+
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isIdentifier(node) &&
+      (node.text === "module" || node.text === "exports") &&
+      !(ts.isPropertyAccessExpression(node.parent) && node.parent.name === node)
+    ) {
+      bad.push("a CommonJS `module` / `exports` reference");
+    }
+    const named = node as ts.Node & { name?: ts.Node };
+    if (
+      DECLARATION_KINDS.has(node.kind) &&
+      named.name &&
+      ts.isIdentifier(named.name) &&
+      named.name.text === "assistantRoute"
+    ) {
+      bad.push("a local declaration named assistantRoute");
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+
+  if (validExports > 0 && !boundImport) bad.push(`no \`import { assistantRoute } from "${WRAPPER_MODULE}"\``);
+  if (validExports === 0 && bad.length === 0) bad.push("exports no HTTP method at all");
+  return [...new Set(bad)];
 }
 
 type RouteExport = { key: string; action: string | null; file: string };
 
-/** Every HTTP export in every v1 route file, e.g. key "GET /inventory/{id}". */
+/** Every wrapped HTTP export in every in-scope route file, e.g. "GET /inventory/{id}". */
 function actualExports(): RouteExport[] {
   const out: RouteExport[] = [];
-  for (const { file, urlSegments } of v1RouteFiles()) {
-    const path = "/" + urlSegments.slice(V1_PREFIX.length).map((s) => s.replace(/^\[(\w+)\]$/, "{$1}")).join("/");
-    const source = stripComments(readFileSync(file, "utf8"));
-    // Each export owns the text up to the next export, so its `action:` label
-    // is the first one inside that slice.
-    const starts = [...source.matchAll(new RegExp(`export\\s+const\\s+(${HTTP})\\b`, "g"))];
-    starts.forEach((m, i) => {
-      const slice = source.slice(m.index, starts[i + 1]?.index ?? source.length);
-      out.push({
-        key: `${m[1]} ${path}`,
-        action: /action:\s*"([^"]+)"/.exec(slice)?.[1] ?? null,
-        file: relative(process.cwd(), file),
-      });
-    });
+  for (const { file, pattern } of v1RouteFiles()) {
+    // The registry spells dynamic segments by name: [id] -> {id}.
+    const dirs = relative(APP, join(file, ".."))
+      .split("/")
+      .filter((d) => d !== "" && !/^(\(.*\)|@.*)$/.test(d));
+    const shown = (isLiteralV1(pattern) ? dirs.slice(V1_PREFIX.length) : dirs).map((d) =>
+      /^\[.*\]$/.test(d) ? `{${d.replace(/[[\].]/g, "")}}` : d,
+    );
+    const path = "/" + shown.join("/");
+    const sf = parse(readFileSync(file, "utf8"), file);
+    for (const st of sf.statements) {
+      if (!ts.isVariableStatement(st) || !hasModifier(st, ts.SyntaxKind.ExportKeyword)) continue;
+      for (const d of st.declarationList.declarations) {
+        if (!ts.isIdentifier(d.name) || !HTTP_METHODS.has(d.name.text)) continue;
+        const arg = d.initializer && ts.isCallExpression(d.initializer) ? d.initializer.arguments[0] : undefined;
+        const action = arg && ts.isObjectLiteralExpression(arg)
+          ? arg.properties.flatMap((p) =>
+              ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === "action" &&
+              (ts.isStringLiteral(p.initializer) || ts.isNoSubstitutionTemplateLiteral(p.initializer))
+                ? [p.initializer.text]
+                : [],
+            )[0] ?? null
+          : null;
+        out.push({ key: `${d.name.text} ${path}`, action, file: relative(process.cwd(), file) });
+      }
+    }
   }
   return out.sort((a, b) => a.key.localeCompare(b.key));
 }
@@ -125,44 +247,118 @@ test("every route has a registry entry, and every entry has a route", () => {
 // The public-prefix amendment in proxy.ts and STRUCTURE.md is only safe while
 // this holds: a v1 route not built with assistantRoute would be reachable with
 // no bearer check at all.
-test("every v1 route file under src/app is built only from `export const <METHOD> = assistantRoute(...)`", () => {
+test("every route file that could answer under /api/assistant/v1/ is built only from `export const <METHOD> = assistantRoute(...)`", () => {
   const files = v1RouteFiles();
   assert.ok(files.length > 0);
-  for (const { file, urlSegments } of files) {
+  for (const { file } of files) {
     const where = relative(process.cwd(), file);
-    assert.equal(
-      urlSegments.slice(0, 3).some((s) => /^\[\[?\.\.\./.test(s)),
-      false,
-      `${where}: a catch-all at or above api/assistant/v1 could answer without the wrapper`,
-    );
-    assert.deepEqual(wrapperViolations(readFileSync(file, "utf8")), [], where);
+    assert.deepEqual(wrapperViolations(readFileSync(file, "utf8"), file), [], where);
   }
 });
 
+test("no pages router (or root app/) exists to serve a route this test cannot see", () => {
+  for (const dir of ["pages", "src/pages", "app"]) {
+    assert.equal(existsSync(join(process.cwd(), dir)), false, `${dir}/ exists: its routes are outside src/app`);
+  }
+});
+
+const OK =
+  'import { assistantRoute } from "@/lib/assistant/assistantRoute";\n' +
+  'export const GET = assistantRoute({ action: "x", handler: async () => ({ data: 1 }) });\n';
+
+test("the wrapper check accepts a correct file (including look-alike text and type exports)", () => {
+  assert.deepEqual(wrapperViolations(OK), []);
+  assert.deepEqual(wrapperViolations(OK + "export type T = 1;\nexport interface I { a: 1 }\n"), []);
+  assert.deepEqual(wrapperViolations(OK + 'const s = "export default function () {}";\nconst t = `export let x = 1`;\n'), []);
+  assert.deepEqual(wrapperViolations(OK + "// export default 1;\n/* export let x = 1 */"), []);
+  assert.deepEqual(
+    wrapperViolations(OK.replace("assistantRoute({", "assistantRoute<string, undefined, undefined>({")),
+    [],
+  );
+});
+
 test("the wrapper check rejects every way of escaping assistantRoute", () => {
-  const ok = 'import { assistantRoute } from "@/lib/assistant/route";\nexport const GET = assistantRoute({ action: "x", handler: async () => ({ data: 1 }) });\n';
-  assert.deepEqual(wrapperViolations(ok), []);
   const cases: [string, string][] = [
-    ["export let", ok + "export let POST = () => new Response();"],
-    ["export var", ok + "export var POST = () => new Response();"],
-    ["export *", ok + 'export * from "./other";'],
-    ["export default", ok + "export default function () {}"],
-    ["export { }", ok + "const P = 1; export { P as POST };"],
-    ["export function", ok + "export async function POST() { return new Response(); }"],
-    ["HEAD unwrapped", ok + "export const HEAD = () => new Response();"],
-    ["OPTIONS unwrapped", ok + "export const OPTIONS = async () => new Response();"],
-    ["multi-declarator", ok.replace("});\n", "}), POST = () => new Response();\n")],
-    ["multi-declarator, first bare", 'import { assistantRoute } from "@/lib/assistant/route";\nexport const x = 1, GET = assistantRoute({});'],
-    ["local shadow", ok + "function assistantRoute(o: unknown) { return o; }"],
-    ["alias import", 'import { other as assistantRoute } from "./elsewhere";\nexport const GET = assistantRoute({});'],
+    ["export let", OK + "export let POST = () => new Response();"],
+    ["export var", OK + "export var POST = () => new Response();"],
+    ["export *", OK + 'export * from "./other";'],
+    ["export { }", OK + "const P = 1; export { P as POST };"],
+    ["re-export", OK + 'export { POST } from "./other";'],
+    ["export default function", OK + "export default function () {}"],
+    ["export default expression", OK + "export default 1;"],
+    ["export function", OK + "export async function POST() { return new Response(); }"],
+    ["export class", OK + "export class X {}"],
+    ["export enum", OK + "export enum E { A }"],
+    ["export declare const", OK + "export declare const POST: () => Response;"],
+    ["HEAD unwrapped", OK + "export const HEAD = () => new Response();"],
+    ["OPTIONS unwrapped", OK + "export const OPTIONS = async () => new Response();"],
+    ["annotated method const", OK + "export const POST: T = assistantRoute({});"],
+    ["parenthesised callee", OK + "export const POST = (assistantRoute)({});"],
+    ["member callee", OK + "export const POST = x.assistantRoute({});"],
+    ["optional call", OK + "export const POST = assistantRoute?.({});"],
+    ["binary wrapping", OK + "export const POST = assistantRoute({}) && h;"],
+    ["conditional wrapping", OK + "export const POST = c ? assistantRoute({}) : h;"],
+    ["call result called again", OK + "export const POST = assistantRoute({})(x);"],
+    ["multi-declarator", OK.replace("});\n", "}), POST = () => new Response();\n")],
+    ["multi-declarator, first bare", 'import { assistantRoute } from "@/lib/assistant/assistantRoute";\nexport const x = 1, GET = assistantRoute({});'],
+    ["destructured export", OK + "export const { POST } = x;"],
+    ["non-method const", OK + "export const dynamic = 'force-dynamic';"],
+    ["local function shadow", OK + "function assistantRoute(o: unknown) { return o; }"],
+    ["local const shadow", OK + "const assistantRoute = (o: unknown) => o;"],
+    ["parameter shadow", OK + "function h(assistantRoute: unknown) { return assistantRoute; }"],
+    ["alias import", 'import { other as assistantRoute } from "@/lib/assistant/assistantRoute";\nexport const GET = assistantRoute({});'],
     ["wrong import source", 'import { assistantRoute } from "./mine";\nexport const GET = assistantRoute({});'],
-    ["non-method const", ok + "export const dynamic = 'force-dynamic';"],
+    ["old import path", 'import { assistantRoute } from "@/lib/assistant/route";\nexport const GET = assistantRoute({});'],
+    ["type-only import", 'import type { assistantRoute } from "@/lib/assistant/assistantRoute";\nexport const GET = assistantRoute({});'],
+    ["no import", "export const GET = assistantRoute({});"],
+    // Vision's comment-stripper evasion: a string holding `/*` and a later one
+    // holding `*/` made a regex stripper delete the unwrapped export between.
+    ["comment-stripper evasion", OK + 'const a = "/*";\nexport const POST = () => new Response();\nconst b = "*/";\n'],
+    ["decoy export in a template literal", OK + "const t = `export const POST = assistantRoute({})`;\nexport const PUT = () => new Response();\n"],
+    ["only a template literal mentions export", 'import { assistantRoute } from "@/lib/assistant/assistantRoute";\nconst t = `export const GET = assistantRoute({})`;\n'],
+    ["commonjs", 'module.exports = { GET: () => new Response() };\n'],
+    ["commonjs exports.GET", OK + "exports.POST = () => new Response();\n"],
   ];
   for (const [name, source] of cases) {
     assert.notDeepEqual(wrapperViolations(source), [], `should reject: ${name}`);
   }
-  // Commented-out code neither fakes nor hides a match.
-  assert.deepEqual(wrapperViolations(ok + "// export default 1;\n/* export let x = 1 */"), []);
+});
+
+test("discovery: which route paths could answer under /api/assistant/v1/", () => {
+  const inScope = [
+    "api/assistant/v1/inventory/route.ts",
+    "api/assistant/v1/inventory/[id]/route.ts",
+    "api/assistant/v1/route.mjs",
+    "api/assistant/v1/x/route.cjs",
+    "(group)/api/assistant/v1/x/route.ts",
+    "api/(group)/assistant/v1/x/route.tsx",
+    "api/assistant/[v]/x/route.ts",
+    "[a]/assistant/v1/x/route.ts",
+    "api/[...rest]/route.ts",
+    "api/[[...rest]]/route.ts",
+    "[...all]/route.ts",
+    "api/assistant/@slot/v1/x/route.ts",
+    "api/assistant/(.)v1/x/route.ts",
+    "api/assistant/(..)v1/x/route.js",
+    "api/assistant/(...)v1/x/route.jsx",
+    "api/assistant/(..)(..)v1/x/route.ts",
+  ];
+  for (const p of inScope) {
+    const pattern = routePattern(p);
+    assert.ok(pattern && couldAnswerUnderV1(pattern), `should be in scope: ${p}`);
+  }
+  const outOfScope = [
+    "api/voice/route.ts",
+    "api/assistant/v2/x/route.ts",
+    "api/assistant/route.ts",
+    "kitchen/inventory/route.ts",
+    "api/alexa/[id]/route.ts",
+  ];
+  for (const p of outOfScope) {
+    const pattern = routePattern(p);
+    assert.ok(pattern && !couldAnswerUnderV1(pattern), `should be out of scope: ${p}`);
+  }
+  assert.equal(routePattern("api/assistant/v1/x/page.tsx"), null);
 });
 
 test("each route's action label equals its registry row's label", () => {

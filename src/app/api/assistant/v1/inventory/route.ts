@@ -1,4 +1,4 @@
-import { assistantRoute } from "@/lib/assistant/route";
+import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { ApiError } from "@/lib/assistant/errors";
 import { inventoryCreateBody, inventoryListQuery } from "@/lib/assistant/schemas";
 import { requireHouseholdToday } from "@/lib/assistant/today";
