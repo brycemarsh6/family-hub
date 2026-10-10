@@ -7,11 +7,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
-import {
-  toStore,
-  MANAGER_ROLES,
-  type Store,
-} from "@/lib/constants";
+import { MANAGER_ROLES, type Store } from "@/lib/constants";
 import type { DuplicateMatch } from "@/lib/duplicates";
 import {
   createPantryItem,
@@ -21,6 +17,7 @@ import {
   logLeftover as writeLeftover,
   findDuplicateCandidates,
 } from "@/lib/pantryWrites";
+import { addPantryItemToList, addLowItemsToList } from "@/lib/groceryWrites";
 
 /**
  * Both pages can be affected by a pantry change: the pantry obviously, and the
@@ -234,26 +231,9 @@ export async function addPantryItemToGroceryList(
   const user = await getVerifiedUser();
   if (!user) return;
 
-  const pantryItem = await db.pantryItem.findUnique({ where: { id } });
-  if (!pantryItem) return;
-
-  const alreadyOnList = await db.groceryItem.findFirst({
-    where: { pantryItemId: id, checked: false },
-  });
-  if (alreadyOnList) return;
-
-  await db.groceryItem.create({
-    data: {
-      name: pantryItem.name,
-      quantity: 1,
-      unit: pantryItem.unit,
-      category: pantryItem.category,
-      pantryItemId: pantryItem.id,
-      store: toStore(store),
-      // Family Accounts v1: who pushed this onto the list.
-      addedById: user.userId,
-    },
-  });
+  // Family Accounts v1: who pushed this onto the list.
+  const row = await addPantryItemToList(id, store, user.userId);
+  if (!row) return;
 
   refreshKitchenViews();
 }
@@ -269,43 +249,9 @@ export async function addAllLowItemsToGroceryList(store: Store | null) {
   const user = await getVerifiedUser();
   if (!user) return;
 
-  const pantryItems = await db.pantryItem.findMany();
-
-  // SQLite can't compare two columns inside a `where`, so the "is it low?"
-  // test happens here rather than in the query.
-  const lowItems = pantryItems.filter(
-    (item) => item.quantity <= item.lowThreshold,
-  );
-  if (lowItems.length === 0) return;
-
-  const alreadyListed = await db.groceryItem.findMany({
-    where: {
-      checked: false,
-      pantryItemId: { in: lowItems.map((item) => item.id) },
-    },
-    select: { pantryItemId: true },
-  });
-  const alreadyListedIds = new Set(
-    alreadyListed.map((entry) => entry.pantryItemId),
-  );
-
-  const toAdd = lowItems.filter((item) => !alreadyListedIds.has(item.id));
-  if (toAdd.length === 0) return;
-
-  const validStore = toStore(store);
-
-  await db.groceryItem.createMany({
-    data: toAdd.map((item) => ({
-      name: item.name,
-      quantity: 1,
-      unit: item.unit,
-      category: item.category,
-      pantryItemId: item.id,
-      store: validStore,
-      // Family Accounts v1: who triggered this batch add.
-      addedById: user.userId,
-    })),
-  });
+  // Family Accounts v1: who triggered this batch add.
+  const added = await addLowItemsToList(store, user.userId);
+  if (added.length === 0) return;
 
   refreshKitchenViews();
 }
