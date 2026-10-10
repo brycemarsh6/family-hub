@@ -6373,3 +6373,56 @@ a lib call; `householdDate.ts` is the server-side date home; test globs land
 `.agents/skills/avengers/` and `.codex/` folders appeared in the worktree from
 outside the mission — Bryce confirmed his Grok bot made them; deliberately
 left uncommitted for now.
+
+---
+
+## Session, 2026-10-10: Winnie goes live, and mission 22 (shopping + /summary)
+
+**The Assistant API is live and switched on.** Bryce's Grok bot is named
+**Winnie** (the plan's "Home Hub" — same bot). PR #28 (mission 21) and #29
+(STRUCTURE.md amendments A–E, Bryce-approved) merged 2026-10-09. Bryce then
+generated the token in his own terminal and set `ASSISTANT_API_TOKEN_HASH` in
+Vercel (Production); verified from outside without the token — every v1 route
+answers `{"error":"unauthorised"}` instead of the off-switch `{}`. Winnie
+receives the raw token in her own secure storage, never as a chat message.
+⚠️ Bryce's main checkout (`~/Developer/family-hub`) was on the unmerged CD1
+branch at the time, so `npm run assistant:token` wasn't there; he ran the
+script from the worktree path. After step 3 he was to change his Marshee
+password, since Winnie previously held his login.
+
+**Mission 22** (`.avengers/missions/mission-22-assistant-api-shopping-summary.md`)
+gives Winnie the shopping list and a one-call summary: `GET/POST /shopping`
+(merges a same-name + same-store add), `PATCH/DELETE /shopping/{id}` (she may
+delete only rows she created), `check-off`, `put-away`, `from-low-inventory`,
+and `GET /summary`. Two more write modules followed amendment A:
+`src/lib/groceryWrites.ts` and `src/lib/putAway.ts`.
+
+**Things worth keeping:**
+- **Put-away acts on every checked row, including ones the family ticked.**
+  Winnie never silently files a new item: with no instructions it answers
+  `needsReview` and writes nothing; with instructions that miss a row, 409.
+- **The gates found two real lost-update bugs, both reproduced live.** Ten
+  parallel "+1" merge-adds applied two; six parallel put-aways restocked one
+  carton six times. Fixed with an atomic `increment` and by having put-away
+  *claim* its rows (`deleteMany` inside the transaction, count must match)
+  before touching the pantry — which also fixed a pre-existing race between
+  two family phones tapping Put away together.
+- **Meal plans are stored at the creating phone's local midnight**, so a week
+  made in California isn't at Denver midnight. `/summary` matches the week
+  within ±14 h (`findPlanForWeek`). All-day events use UTC dates, timed events
+  Denver dates (`bucketEventsByDay`).
+- **The route gate is now compiler-based** (`src/lib/testing/assistantRouteGate.ts`,
+  TypeScript AST over every route file that could answer under
+  `/api/assistant/v1/`, dynamic/group/slot/intercept segments included).
+  STRUCTURE.md's amendment-B paragraph still describes the old regex version
+  until Captain's proposed amendment 4 is approved.
+- **A staged index rides along with any commit.** A builder's `git mv` was
+  swept into Fury's mission-file commit, so commits `4be4368..02c539d` don't
+  build alone (the head does) — hence the squash-merge recommendation. Check
+  `git diff --cached` before committing while builders run. And in zsh, a
+  `$VAR` holding several paths is ONE path — use an array.
+
+**Open for Bryce:** Captain's amendments 1–4 (a `read…` alias, a layout row
+for `<domain>Reads.ts`, `prismaErrors.ts` and stock status on the
+one-source list, amendment B's text rewritten); squash-merge of the PR.
+Mission 23 (recipes + meal plan) opens with Vision's pass-2 notes.

@@ -1,7 +1,7 @@
 # Mission 22: Assistant API — shopping list, put-away, and /summary
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (pass 2)
+**Status:** DELIVERED (PR open; merge is Bryce's call — recommended squash)
 **Started:** 2026-10-10 · **Updated:** 2026-10-10
 **Branch:** `claude/assistant-api-m22` from `origin/main` at `70b8eb7` (worktree `.claude/worktrees/family-hub-grok-api-28090b`)
 **Plan:** `.avengers/plans/assistant-api-v1.md` (authoritative: API surface table, Bryce's four settled decisions). **Predecessor:** `.avengers/missions/mission-21-assistant-api-foundation.md` — read its Delivery section and the Vision/Captain pass-3 notes; H1 below closes the ones it routed here.
@@ -169,7 +169,7 @@ Baseline at `70b8eb7`: **429 tests**.
 | 1 | Vision | BLOCKED (at `cb4a834`) | 2 | 8 |
 | 1 | Captain | BLOCKED (at `cb4a834`) | 4 | 11 |
 | 2 | Captain | closed by Fury delta enumeration (Captain's offer) | 0 | 1 (putAway.ts near cap) |
-| 2 | Vision | dispatched | — | — |
+| 2 | Vision | **PASS** (at `aceccb1`) | 0 | 9 |
 
 ### Captain pass 1 (at `cb4a834`) — BLOCKED
 
@@ -219,6 +219,18 @@ Baseline at `70b8eb7`: **429 tests**.
 - **F1 (`ffabc24`)**: B3 closed (`writePutAway`; read alias `readPutAwayClassification` follows proposed amendment 1, pending Bryce). Its other structural delta: one new export `PutAwayConflict` in `putAway.ts`, beside the existing `PutAwayNeedsReview` (same module, same pattern); one field added to `PutAwayReport`; `groceryWrites.ts` now uses `isLow` (closes Captain's NOTE). Sizes total/code: `putAway.ts` 344/217 (**7 lines from the soft cap — split candidate at mission 23's first touch**), `groceryWrites.ts` 290/201, action 64/45, `openapi.test.ts` 144/124, `serializeShopping.ts` 100/89. No new file, no new dependency arrow.
 - **Verdict on the enumeration:** Captain's four blockers closed; nothing in F1 reaches a written structural rule. No Captain pass 2 dispatched (proportional gating; Captain's own offer).
 
+### Vision pass 2 (at `aceccb1`) — PASS
+
+- Both blockers closed, reproduced live: merge-adds 3×(10 parallel) → 11 every round, audit 1 create + 10 updates; put-aways 3×(6 parallel) → 1×200 + 5×409, pantry +1 each; 10 parallel on qty 2 → +2 (late arrivals 200 empty); API racing the app's `commitPutAway` → exact every round; refuse writes nothing; `ignoredDecisions` exact; `/summary` meal shape unchanged after `slotsForDay`.
+- NOTES (routed to mission 23's first contract): merge increments by id without re-checking `checked: false` — a tick landing mid-add can lose Winnie's quantity through a following put-away (use `updateMany where { id, checked: false }`, fall through to create); put-away restocks the quantity read outside the transaction (pre-existing; lock-read inside); the conflict message is wrong when a family member un-ticks mid-put-away ("The shopping list changed…"); the rewrites guard reads only `next.config.ts` and the word `rewrites` (redirects, `.mjs`, proxy rewrites unseen); `authPolicy.ts:2` names `route.ts`; open sheet may cover the put-away `{ error }` line (UI, unverified); carried: new-name parallel duplicates, PATCH and check-off races, ±14h tolerance east of UTC+8, squash-merge.
+
+## Delivery
+
+- **Verdicts:** Vision PASS (pass 2); Captain closed by Fury delta enumeration (pass 2, on Captain's offer). Strange not assembled (no rendered change).
+- **Shipped for Winnie:** `GET/POST /shopping` (merge same name+store), `PATCH/DELETE /shopping/{id}` (delete only rows she created), `/shopping/check-off`, `/shopping/put-away` (needsReview / 409 / acceptDefaults / claim-conflict 409), `/shopping/from-low-inventory`, `GET /summary`. Skeleton: compiler-based route gate, P2028 → 503, prune keeps create records. App: put-away's two-phones double-restock race fixed for the family too. Tests 429 → 459.
+- **Mission 23's first contract:** Vision pass-2 notes above; `putAway.ts` at 344/350 split; `pantryWrites.ts` split; `routeGate.test.ts` → `assistantRouteGate.test.ts`; `round2` twice; out/low status twice; Captain's proposed amendments 1–4 if Bryce approves.
+- **Pending with Bryce:** Captain's amendments 1–4; squash-merge.
+
 ## Handoff log
 
 - 2026-10-10 — Bryce: "Let's continue building this out for Winnie." Mission 22 written from mission 21's routed notes and the plan's shopping/summary rows. Branch `claude/assistant-api-m22` from `70b8eb7`. H1 dispatched alone (it touches every existing route file's import); G1/P1/S1 follow in parallel.
@@ -227,3 +239,4 @@ Baseline at `70b8eb7`: **429 tests**.
 - 2026-10-10 — R2 committed `7e0b4f3`. All six build contracts DONE. recordcheck: 0 hard, 7 REVIEW (renamed path, shortened `…/` paths that exist, a URL) — triaged. Gate pass 1 dispatched: Vision + Captain in parallel (Captain read-only).
 - 2026-10-10 — Gate pass 1: Vision BLOCKED (2 concurrency bugs, reproduced), Captain BLOCKED (4 structural). F1 (concurrency + notes in its files) and F2 (Captain's list exactly) dispatched in parallel, disjoint files. Bryce asked (pending): Captain's amendments 1–4, and squash-merge.
 - 2026-10-10 — F2 `a8e8e51`, F1 `ffabc24`. Captain's blockers closed by delta enumeration. Vision pass 2 dispatched.
+- 2026-10-10 — Vision pass 2 PASS. DELIVERED: CLAUDE.md entry, PR opened. Merge left to Bryce (squash recommended).
