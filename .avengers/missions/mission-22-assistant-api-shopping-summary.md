@@ -142,10 +142,22 @@ Baseline at `70b8eb7`: **429 tests**.
 - **Evidence required:** before/after test counts, the moved-body diff, line counts, the red case.
 - **Done criteria:** Fury re-runs the assistant tests and compares counts.
 
-### R2 — `/summary` route
+### R2 — `GET /summary`
 
-- **Status:** PENDING (after R1)
-- **Details written by Fury before dispatch.**
+- **Status:** PENDING (after R1 — both register OpenAPI rows in `openapi.ts`)
+- **Objective:** one call that tells Winnie the state of the house today: today's meals, inventory health, what's on the list by store, recipe count, and today's and tomorrow's calendar.
+- **Boundaries:** may touch (new unless noted) `src/app/api/assistant/v1/summary/route.ts` (GET), `src/lib/assistant/summaryReads.ts` (`server-only`), `src/lib/assistant/serializeCalendar.ts` + test (pure; mission 24 reuses it), `src/lib/assistant/openapiSummaryPaths.ts`, `src/lib/assistant/openapi.ts` (register only), `src/lib/assistant/schemas.ts` (only a `summaryQuery` with `date: calendarDateString.optional()`, `.strict()`). Must not touch S1's `summary.ts` logic (import only), `dashboard.ts`, pages, actions.
+- **Behaviour:**
+  - `today = requireHouseholdToday(now, query.date)`; `sunday = sundayOfCalendarDate(today)`.
+  - One `Promise.all` in `summaryReads.ts`: pantry rows (the fields `summarizeInventory` needs), unchecked grocery `store`s, `recipe.count()`, meal plans with `weekStart` within ±14 h of `zoneMidnightInstant(sunday)` (with entries), and calendar events via `getCalendarEventsInRange(zoneMidnightInstant(today), zoneMidnightInstant(addCalendarDays(today, 2)))` — reuse, don't re-query.
+  - **Meals:** `findPlanForWeek`, then the entries whose `dayOffset === calendarDaysBetween(sunday, today)`, shaped as all four `MEAL_SLOTS` in order (`title`/`recipeId` null when empty). **Do not reuse `dashboard.ts`'s `todaysMeals`** — it compares process-local dates, which on Vercel's UTC runtime is the wrong day every Denver evening; say so in a comment.
+  - **Inventory:** `summarizeInventory(items, today, HOUSEHOLD_TIME_ZONE, 3)` (the dashboard's 3-day "expiring soon" window).
+  - **Shopping:** `{ toBuy, byStore }` with `byStore` from `storeBreakdown` in `dashboard.ts` (pure, process-independent — reuse it).
+  - **Calendar:** `bucketEventsByDay(events, [today, tomorrow], tz)` → `{ today: { date, events }, tomorrow: { date, events } }`, each event via `toAssistantEvent` in `serializeCalendar.ts`: `{ id, title, start (ISO), end (ISO), allDay, startDate/endDate (YYYY-MM-DD, end exclusive) for all-day only, location, notes, people: [{ id, name }] }` — field by field, no avatar colours, no createdBy ids. Tasks join in mission 24 (say so in the registry description).
+  - Response: `{ date, meals, inventory, shopping, recipes: { count }, calendar }`. Action label `summary.get`.
+- **Verification:** gauntlet; dev server + throwaway token: the default call (counts only), `?date=` on a day with a known meal-plan entry (cross-checked by script against the DB, titles not printed — compare ids/counts), `?date=2026-11-01` and `?date=2026-11-02` (the DST week), an invalid `?date=` → 400. Calendar bucketing proven live: by script create two `ZZZ Assistant Test` CalendarEvents attached to an **existing** person (narrow `select`, never a User write) — one timed at 6:30 pm Denver on the target day, one all-day on day+2 — and confirm the first lands in that day and the second in neither; delete both by id. Cleanup: every AssistantRequest by id, `.env` hash removed; counts before/after.
+- **Evidence required:** response key sets, the bucketing proof, counts, gauntlet.
+- **Done criteria:** Fury re-runs the DST-week calls and the bucketing proof.
 
 ## Gate ledger
 
