@@ -51,7 +51,7 @@ working in this repo:
   commit, or its tests silently vanish from `npm test` **and CI** while the
   suite still reports green at a lower count.
 
-Full context and history: CLAUDE.md. Design rules: DESIGN.md. Structure
+Context: CLAUDE.md. History: docs/history/. Design rules: DESIGN.md. Structure
 rules: STRUCTURE.md. **Calendar work: read
 `.avengers/plans/calendar-v2.md` first** — it supersedes the K3–K7 ordering
 in `calendar-v1.md`.

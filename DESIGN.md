@@ -1,7 +1,7 @@
 # DESIGN.md — Marshee
 
 Strange's constitution for this app. These rules codify decisions the project
-already made deliberately (full reasoning in CLAUDE.md's history); Strange
+already made deliberately (full reasoning in docs/history/claude-md-archive-2026-10-31.md); Strange
 gates new UI against them. Each rule carries its why, so a future change can
 tell when a rule's reason has expired.
 

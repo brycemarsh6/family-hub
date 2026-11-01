@@ -1,7 +1,7 @@
 # STRUCTURE.md — Marshee
 
 Captain's constitution for this repo. It codifies the layout and boundaries
-the project already holds (full reasoning in CLAUDE.md); Captain gates
+the project already holds (full reasoning in docs/history/claude-md-archive-2026-10-31.md); Captain gates
 structural changes against it.
 
 ## Layout map
