@@ -37,14 +37,15 @@ export const SCHEDULE_TITLE_SLOT_ID = "calendar-header-schedule-title-slot";
  * content starts being visible, so its "which month is topmost" label
  * flips the moment a new month clears the bottom of this bar.
  *
- * 170 = 8 (`pt-2` equivalent, the hamburger's top offset) + 66 (action row:
- * 44px circle + 6px `gap-1.5` + 16px `leading-4` label) + 8 (`mb-2`) + 32
- * (the h1, held at `leading-8` so its box is 32px at EVERY breakpoint:
- * without it `md:text-3xl` brings a 36px line-height and this number is
- * 4px short at 768px and up) + 8 (`mb-2`) + 28 (title row: Schedule has no arrows,
- * so just the `h-7` span) + 16 (`mb-4`) + 4 (`pb-1`).
+ * 130 = 8 (`pt-2` equivalent, the hamburger's top offset) + 66 (action row:
+ * 44px circle + 6px `gap-1.5` + 16px `leading-4` label) + 8 (`mb-2`) + 28
+ * (title row: Schedule has no arrows, so just the `h-7` span) + 16 (`mb-4`)
+ * + 4 (`pb-1`). The visible "Calendar" h1 (32px + 8px `mb-2` = 40) is gone
+ * (Bryce, 2026-11-02), which took the old 170 to 130. The 170 was measured
+ * live at 375 and 1024 on 2026-11-02 (Vision C4 notes); 130 is that minus
+ * the 40, to be re-measured live.
  */
-export const SCHEDULE_HEADER_BAR_HEIGHT_PX = 170;
+export const SCHEDULE_HEADER_BAR_HEIGHT_PX = 130;
 
 /**
  * The Calendar branch's header row: the Today/view-switcher/Add circles,
@@ -166,6 +167,9 @@ export function CalendarHeader({
 
   return (
     <div className={pinned ? "sticky z-20 -mx-4 bg-bg px-4 pb-1" : undefined} style={liftStyle}>
+      {/* No visible title (Bryce's call); `sr-only` is absolutely positioned,
+          so it takes no layout and the page still has its heading. */}
+      <h1 className="sr-only">Calendar</h1>
       <div className="mb-2 flex items-center justify-end gap-3 pl-14">
         <ActionCircle
           icon={<CalendarCheck aria-hidden="true" size={20} />}
@@ -198,8 +202,6 @@ export function CalendarHeader({
           />
         )}
       </div>
-
-      <h1 className="mb-2 text-2xl leading-8 font-bold tracking-tight md:text-3xl">Calendar</h1>
 
       <div className="mb-4 flex items-center justify-between gap-2">
         {showArrows && (

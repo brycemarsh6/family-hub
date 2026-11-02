@@ -185,10 +185,11 @@ export default async function CalendarPage({
   }));
 
   // This `py-2` is load-bearing: CalendarHeader's lift/pinned margin and
-  // loading.tsx's 183px skeleton offset both depend on it. Change it and
-  // both must be re-derived.
+  // loading.tsx's 143px skeleton offset both depend on it. Change it and
+  // both must be re-derived. The bottom half is dropped on the hour
+  // timeline views (they fill the viewport; see AppChrome's `<main>`).
   return (
-    <div className="py-2">
+    <div className="py-2 has-[[data-fills-viewport]]:pb-0">
       <CalendarViews
         events={eventViews}
         tasks={taskViews}

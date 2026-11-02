@@ -35,8 +35,10 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 // is ONLY ever rendered as part of a route-level Suspense fallback to
 // begin with.
 //
-// Every height below is MEASURED against the real signed-in page at 375px
-// (getBoundingClientRect in the browser), not guessed — the dashboard's own
+// Every height below was MEASURED against the real signed-in page at 375px
+// (getBoundingClientRect in the browser), not guessed; the 2026-11-02 live
+// measurement (Vision C4 notes) confirmed the header rows, and the removal
+// of the visible title since then is arithmetic pending a re-measure — the dashboard's own
 // h-56-for-a-164px-tile bug is exactly the failure mode this avoids. They
 // also happen to equal Tailwind utilities CalendarHeader.tsx already uses
 // for the same rows (h-11 circles, h-11 buttons, gap-3/mb-2/mb-4/gap-4),
@@ -46,7 +48,7 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 //   action-circles row (Today + view switcher), sm circles
 //     (44 + 6 gap + 16 label), lifted onto the hamburger
 //     row with -mt-14:                                      66px  -> h-[66px], mb-2 below (8px)
-//   h1 "Calendar" again, now below that row:                32px  -> h-8, mb-2 below (8px)
+//   (the "Calendar" h1 is gone: sr-only in CalendarHeader, no layout)
 //   prev/next + title row:                                  44px  -> h-11, mb-4 below (16px)
 //   one day row (gutter placeholder + a 46px grey body block —
 //     the SAME two pieces DaySection's own `loading` state
@@ -126,12 +128,13 @@ const SKELETON_SHAPE: Record<CalendarPeriodView, CalendarSkeletonShape> = {
  * `overflow-hidden rounded-xl border border-line` wrapper shape rather than
  * this file's day-row shape. Sized with the SAME formula that component
  * itself falls back on before its own runtime measurement lands (see its
- * own `scrollerHeightStyle` and `MIN_SCROLLER_HEIGHT_PX`) — `183` is the
+ * own `scrollerHeightStyle` and `MIN_SCROLLER_HEIGHT_PX`) — `143` is the
  * scroller's top edge at 375px with no safe-area inset, from the classes
- * rather than a measurement (to be browser-checked): 56 (`<main>`'s
+ * (the earlier 183, with the h1, was measured live on 2026-11-02; this
+ * figure is that minus the removed title, to be re-measured): 56 (`<main>`'s
  * hamburger-row padding) + 8 (this page's `py-2`) - 56 (the header's lift
- * onto that row) + 66 (action row) + 8 + 32 (h1) + 8 + 44 (prev/next row)
- * + 16 (`mb-4`) + 1 (the box's own border) = 183. The bottom nav is gone, so
+ * onto that row) + 66 (action row) + 8 + 44 (prev/next row) + 16 (`mb-4`)
+ * + 1 (the box's own border) = 143 (183 - 32 h1 - 8 `mb-2`). The bottom nav is gone, so
  * nothing is reserved below. An inline `style`, not a Tailwind arbitrary
  * class, to match `TimelineGrid.tsx`'s own technique for the identical
  * `calc()` — `min-h` is `MIN_SCROLLER_HEIGHT_PX` (320) as a real Tailwind
@@ -144,8 +147,9 @@ function TimelineGridSkeleton() {
   return (
     <div
       aria-hidden="true"
+      data-fills-viewport
       className="min-h-80 w-full animate-pulse rounded-lg bg-surface-2"
-      style={{ height: "calc(100dvh - 183px)" }}
+      style={{ height: "calc(100dvh - 143px)" }}
     />
   );
 }
@@ -231,13 +235,11 @@ export default function Loading() {
   const searchParams = useSearchParams();
   const shape = SKELETON_SHAPE[parseViewParam(searchParams.get("view"))];
   return (
-    <div className="py-2" role="status" aria-label="Loading Calendar">
+    <div className="py-2 has-[[data-fills-viewport]]:pb-0" role="status" aria-label="Loading Calendar">
       <div className="-mt-14 mb-2 flex h-[66px] items-start justify-end gap-3 pl-14">
         <SkeletonBlock className="h-11 w-11 rounded-full" />
         <SkeletonBlock className="h-11 w-11 rounded-full" />
       </div>
-
-      <SkeletonBlock className="mb-2 h-8 w-32" />
 
       <div>
         <div className="mb-4 flex h-11 items-center gap-2">

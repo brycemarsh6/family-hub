@@ -57,9 +57,12 @@ export function AppChrome({
       {/* The bottom padding keeps the last row of a page clear of the home
           indicator and any fixed bottom control. The top padding on
           non-wordmark pages is the hamburger row: the safe-area inset (a
-          device fact the constant can't know) plus the button and its gap. */}
+          device fact the constant can't know) plus the button and its gap. A page
+          holding a `data-fills-viewport` element (the calendar's hour
+          timeline, which already ends at the viewport bottom) drops the
+          bottom padding so the document doesn't scroll past it. */}
       <main
-        className={`mx-auto w-full max-w-3xl flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] print:pb-0 ${
+        className={`mx-auto w-full max-w-3xl flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] has-[[data-fills-viewport]]:pb-0 print:pb-0 ${
           wordmark ? "pt-4" : ""
         }`}
         style={

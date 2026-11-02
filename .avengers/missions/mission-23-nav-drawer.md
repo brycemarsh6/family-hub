@@ -245,6 +245,75 @@ Old exports are removed only in the contract that removes their last user.
   the arithmetic for both measured numbers.
 - **Done criteria:** Vision re-runs; Strange measures in the browser.
 
+### F1 — (fix for C4) Fix Vision's C4 blocker: make the pinned h1 breakpoint-invariant
+- **Status:** DONE (Stark); awaiting browser measurement, then batched Vision re-gate
+- **Report:** `leading-8` added; the built CSS shows `--tw-leading` overrides
+  the md:text-3xl line-height, so the box is 32px everywhere and 170 holds.
+  Comment beside page.tsx `py-2` added. loading.tsx unchanged. Gauntlet and
+  build pass (the build exit code was not captured in zsh, but the output
+  completed with no error).
+- **Boundaries:**
+  - may touch: `src/components/CalendarHeader.tsx`,
+    `src/app/(app)/calendar/page.tsx` (comment beside `py-2` only),
+    `src/app/(app)/calendar/loading.tsx` (h1 skeleton only if needed to match)
+  - must not touch: everything else.
+- **Spec:** Add `leading-8` to the Calendar h1 inside CalendarHeader (keeps
+  `md:text-3xl` font size; in Tailwind v4 `--tw-leading` overrides the
+  text-3xl line-height, so the box is 32px at every breakpoint). Add a clause
+  to `SCHEDULE_HEADER_BAR_HEIGHT_PX`'s comment saying the h1 is held at
+  `leading-8` for exactly this reason. Add a short comment next to
+  calendar/page.tsx's `py-2` naming CalendarHeader's lift/pinned margin and
+  loading.tsx's 183 as dependents (Vision C4 note 2).
+- **Verification:** full gauntlet incl. build → pass. Prove the h1 box from
+  the BUILT CSS: show the generated rules for `leading-8` and
+  `md:text-3xl` and why the computed line-height is 32px at ≥768px.
+- **Evidence required:** gauntlet tails; the CSS excerpt; the diff.
+- **Done criteria:** Vision re-gate (batched with any measurement fixes);
+  Strange measures the pinned bar at 375 and 1024.
+
+### F2 — (fix for C4) Remove the visible Calendar title (Bryce, 2026-11-02), plus Strange's pass-1 fixes
+- **Status:** DISPATCHED
+- **Bryce's decision (verbatim):** "Just get rid of the calendar label."
+- **Boundaries:**
+  - may touch: `src/components/CalendarHeader.tsx`,
+    `src/app/(app)/calendar/loading.tsx`,
+    `src/app/(app)/calendar/page.tsx`,
+    `src/components/NavDrawer.tsx` (lit-row class only),
+    `src/components/AppChrome.tsx`, `src/components/TimelineGrid.tsx`,
+    `src/components/CalendarViews.tsx` (part C only)
+  - must not touch: everything else. TimelineGrid.tsx and CalendarViews.tsx
+    must not grow.
+- **Spec, part A (Strange BLOCKER, lit row):** `src/components/NavDrawer.tsx`
+  active row: `text-accent` becomes `bg-accent-soft text-accent font-semibold`.
+  Keep `ROW_CLASS`'s `active:bg-surface-2`. Do NOT use
+  `bg-accent text-accent-fg` (it breaks press-state legibility; see
+  Strange's finding).
+- **Spec, part C (Strange NOTE, Fury's call to fix now):** On the Week, Day
+  and 3-Day timeline views the document must not scroll
+  (`document.documentElement.scrollHeight === innerHeight` at 375 and 1024).
+  The extra 105px is `<main>`'s bottom padding (6rem + inset), the page's
+  `py-2` and a 1px border, under a scroller that already fills to the
+  viewport bottom. Choose the smallest correct fix and say why.
+  Constraints:
+  - Month, Schedule and every other page keep their current bottom space.
+  - No second hardcoded copy of the padding value.
+  - If AppChrome gains a per-page switch, it must not be a pathname string
+    list duplicated outside `src/lib/`.
+- **Spec, part B (Bryce's decision):**
+  - Remove the visible "Calendar" h1 from CalendarHeader. Keep a
+    `sr-only` `<h1>Calendar</h1>` (absolutely positioned, zero layout) so
+    the page still has a heading for screen readers; the `leading-8`
+    rationale goes with the visible h1.
+  - Recompute `SCHEDULE_HEADER_BAR_HEIGHT_PX` (expected 170 − 32 − 8 = 130)
+    with the arithmetic in its comment.
+  - loading.tsx: drop the h1 skeleton block and recompute the timeline
+    offset (expected 183 − 40 = 143). Reword the header's "MEASURED" claim
+    to cite the 2026-11-02 live measurement (Vision C4 notes).
+  - The `py-2` dependents comment in page.tsx: update the 183 it names.
+- **Verification:** full gauntlet incl. build; Fury re-measures the pinned
+  bar at 375 and 1024 and the timeline scroller top.
+- **Done criteria:** Vision pass 3 (budget's last) + Strange pass 2.
+
 ### C5 — Constitutions, CLAUDE.md and leftover comments
 - **Status:** PENDING
 - **Boundaries:**
@@ -276,6 +345,111 @@ Old exports are removed only in the contract that removes their last user.
 | C1-1 | Vision (Opus) | **PASS** | 0 | 5 |
 | C2-1 | Vision (Opus) | **PASS** | 0 | 6 |
 | C3-1 | Vision (Opus) | **PASS** | 0 | 7 |
+| C4-1 | Vision (Opus) | **BLOCKED** | 1 | 9 |
+| C4-2 | Vision (Opus) | **PASS** (C4 + F1) | 0 | 4 |
+| S-1 | Strange (Opus) | **BLOCKED** | 1 | 9 |
+| C4-3 | Vision (Opus) | **PASS** (F2) | 0 | 5 |
+| S-2 | Strange (Opus) | **PASS** (F2) | 0 | 5 |
+
+**F2 Strange (pass 2):** the S-1 lit-row blocker is closed. Dark: 7.08:1,
+weight 600, reads as "selected". Light: 4.65:1. Calendar has no visible
+title (the h1 is sr-only), and circles at top 8. The pinned Schedule bar is
+130 at both 375 and 1024. Week, Day and 3-Day have no document scroll at 375
+or 1024. Month, Schedule and Year keep 96px. No regressions on Dashboard,
+Inventory, Recipes or Settings.
+- NOTE: the home-indicator overlap (same as Vision's). Fix:
+  `pb-[env(safe-area-inset-bottom)]` on the TimelineGrid scroller div.
+  **Folded into C5.**
+- NOTE: the lit row carries both `font-medium` and `font-semibold`; it
+  wins on emit order only. **Folded into C5.**
+- NOTE, pre-existing: in dark mode at desktop the scrollbar track is white,
+  because `:root` has no `color-scheme`. Follow-up, not this mission.
+- NOTE, pre-existing: on a schedule deep link, Today is disabled while
+  today is on screen. On record only.
+
+**F2 Vision (C4 pass 3):**
+- Parts A, B and C are all verified in the built CSS. The `has-`
+  override wins on specificity and source order. The `data-fills-viewport`
+  marker exists only on TimelineGrid and its skeleton (Day, 3-Day, Week).
+  The swap is stable. The 130 holds at every width (ActionCircle has no `md:`
+  classes). sr-only takes zero layout. The press fill still shows on the lit
+  row. LA timezone run also passes.
+- NOTE: on Face ID iPhones the last 34px of the day (about 11:18 PM to
+  midnight) can't be scrolled clear of the home indicator. Visible and
+  tappable, cosmetic. Follow-up: `pb-[env(safe-area-inset-bottom)]` on the
+  hours body.
+- NOTE: a landscape phone hits the 320px minimum and ends on an open
+  bottom edge.
+- NOTE: the attribute shares a line with the class.
+- NOTE: the "to be re-measured" comments in loading.tsx and CalendarHeader
+  should cite Fury's 130/143 measurements (C5).
+- NOTE: the 143 comment counts a border the skeleton doesn't have.
+
+**Strange pass 1:**
+- **BLOCKER:** in dark mode the drawer's lit row (`text-accent`,
+  sage #b7c3a6) is the DIMMEST row next to the cream `text-fg` rows. It reads
+  as disabled, the opposite of "you are here". In light mode it differs by
+  hue alone (1.37:1). Fix: `bg-accent-soft text-accent font-semibold`
+  (4.65:1 light, 7.08:1 dark; press state stays legible). → F2 part A.
+- **Verified:** Bryce's decisions are all built as decided. The floating
+  hamburger occludes no interactive element on 15 routes. There are no
+  BackLinks on drawer destinations; recipe detail → "Recipes" and
+  /settings/family → "Settings". The lit row is correct on every route
+  tested. Drawer rows are all 48px. Sign out is reachable on a 560px-tall
+  screen. The redirects work. Calendar circles are 44px and right-aligned;
+  Today is disabled only on the current period. The pinned bar is 170 at
+  375. Recipes letters pin at 56, and the rail and "+" don't collide.
+  AddItemBar sits 12px off the bottom and the last row is reachable.
+  Placeholders match /lists.
+- **Notes:**
+  1. On Week/Day the document scrolls 105px (circles leave the screen,
+     hamburger over "Previous week"). Mostly pre-existing but twice as
+     big and visible now → F2 part C.
+  2. In the Recipes list, rows show through the transparent 0–56px band
+     above the pinned letter (polish).
+  3. Drawer: no focus move into the dialog, no scroll lock, no slide, no
+     visible close control. Consistent with the house sheets. Recommended
+     as a later polish pass.
+  4. The identity circle looks like the old tappable avatar, but reads as
+     non-interactive. For Bryce to glance at.
+  5. Calendar circle labels are 11px, the smallest text in the app.
+  6. The loading skeleton shows "Week" and an enabled Today before load.
+     Pre-existing; follow-up.
+  7. The hamburger is at top 12 on `/` and top 8 elsewhere, a 4px jump.
+  8. Inventory shows about 138px of empty space at the bottom (could trim).
+  9. Recipes has no `<h1>` (pre-existing).
+  The month-title flip could not be exercised with live data (the window
+  ends Nov 2). Re-check it when there is future data.
+
+**C4 pass-2 Vision:** The blocker is closed, by the built CSS (`--tw-leading`
+beats the text-3xl fallback) and by Fury's 170-at-375-and-1024
+measurement. The unpinned h1 is now 32px at md+ too, so the skeleton's 183
+holds on tablet/laptop. Build exit 0 captured. F1 stayed in bounds (mtimes
+plus content). Notes: the two old-name comments are queued for C5; one long
+comment line; the page.tsx comment sits above the `return`, which is
+findable; reword loading.tsx's "MEASURED" header to cite the 2026-11-02
+measurement (C5).
+
+**C4 Vision BLOCKER:** `SCHEDULE_HEADER_BAR_HEIGHT_PX = 170` is right only
+below 768px. The pinned h1 keeps `md:text-3xl`, whose v4 line-height makes
+the box 36px at md and up (174 + inset). On the wall tablet or a laptop, in
+Schedule view, Today or a deep link lands the day 4px behind the pinned bar
+and the month title flips 4px early (the same class of bug as mission-16/C7).
+Fix: `leading-8` (contract F1). **C4 Vision notes:** (1) the geometry
+checks out by arithmetic: the pinned and unpinned rows both land at
+inset + 8, and the hamburger clears `pl-14` with 8px spare. (2) The
+`py-2` coupling is documented only in CalendarHeader and loading.tsx, not
+at the `py-2` itself (in F1). (3) The month-jump overlay overlaps 1px of the
+h1, which is harmless. (4) ActionCircle `md` is identical for existing
+callers. (5) Strange should check dashboard → Schedule and dashboard →
+Recipes via the drawer, to confirm the hook finds the floating button on
+mount (otherwise RecipeList's sticky offset reads 0). (6) `rootMargin: 0px`
+is correct. (7) The TimelineGrid seed overestimates, but this is not a
+regression. (8) AddItemBar and FloatingAddButton clear `<main>`'s bottom
+padding, and the Recipes "+" and rail don't collide. (9) The loading.tsx
+header says "MEASURED" but the new rows are computed: reword after Strange
+measures. C5 leftovers: TimelineDayColumn.tsx:35,
+useScheduleMonthTitle.ts:12.
 
 **C3 Vision notes:** (1) Settled: a rename on /profile refreshes the drawer identity without reload. Next 16 re-renders from the root on any Server Action that revalidates (revalidate.js, server-action-reducer.js), same as UserMenu before. (2) Every action still revalidates every page it changes, and the three redirects are in routes-manifest.json as 307, anchored. (3) A stale `.next/types` breaks only local tsc before a build; CI has no `.next/`, proven with a no-.next tsconfig. (4) A device session now sees "Nothing to set up yet." on /settings (only /profile redirects devices); whether the drawer hides Profile/Settings for devices is for P4. (5) The empty `chores/` dir was removed by Fury. (6) Comment leftovers for C5: `ProfileForm.tsx` doc ("Everyone's own settings"), `(app)/layout.tsx` viewport comment ("bottom tab bar (like Kitchen)"). (7) Predates this mission: mealPlans.ts and recipes.ts never revalidate `/`, and users*.ts revalidate only `/settings/family`. Hidden today by root re-render; worth a line when next touched.
 
@@ -327,6 +501,56 @@ Assembled).
   from the layout)? Stark also noted that mealPlans.ts never revalidated `/`
   (this predates the mission). C3 sent to Vision (Opus).
 - 2026-11-02 — Vision PASS on C3 (7 notes). Fury removed the empty `chores/` dir, added two comment leftovers to C5, and committed C3. C4 preflight: 0 failures; soft-cap warnings on the four calendar files are known (they must not grow, except CalendarHeader may take the h1). Line counts at dispatch: CalendarHeader 381, ScheduleView 532, TimelineGrid 555, CalendarViews 496, RecipeList 339. C4 dispatched to Stark.
+- 2026-11-02 — Stark reported C4 DONE: gauntlet + build exit 0. The
+  `aria-label="Sections"` grep finds only NavDrawer.tsx (gate condition met).
+  Old chrome exports deleted; the remaining name hits are two comments in C5
+  files. Line counts: ScheduleView 532→512, TimelineGrid 555→510,
+  CalendarViews 496→496, CalendarHeader 381→388 (took the h1),
+  RecipeList 339→322. Class-derived numbers, not yet measured:
+  `SCHEDULE_HEADER_BAR_HEIGHT_PX` 154→170 (h1 now inside the pinned bar);
+  skeleton 369→183. Deviation: the lift sits on the CalendarHeader wrapper,
+  not the row, so the pinned and unpinned rows land at the same spot; the
+  pinned margin is coupled to calendar/page.tsx's `py-2`. C4 sent to Vision
+  (Opus); browser measurement and Strange follow.
+- 2026-11-02 — Vision BLOCKED C4 (1 blocker: the pinned h1 is 36px at md+).
+  F1 dispatched and DONE (`leading-8`). Port 3000 is held by Bryce's
+  Forthright website dev server (another session), so Fury added a
+  `family-hub-3001` config to `.claude/launch.json` (local only: **do not
+  commit; revert at delivery**) and ran `next dev -p 3001`. Bryce signed in
+  in the browser pane. **Fury's measurements (live, dev server):**
+  - At 375: hamburger at top 8, 48×48, left 16. The Today/Week/Add circles
+    are at top 8, 44 wide, row 66. The h1 is at top 82, 32 tall. The week
+    timeline scroller top is 183 (it matches the skeleton's 183) and it
+    fills to 812.
+  - The pinned Schedule bar is 170 at 375 AND at 1024 (h1 30px font, 32px
+    line). This proves F1.
+  - Dashboard → Calendar and dashboard → Recipes via the drawer both work.
+    The floating button exists on mount.
+  - The Recipes "+" is at 740–796 (1rem above the bottom).
+  - For Strange: on the week timeline the document still scrolls 105px past
+    the scroller (`<main>`'s 6rem bottom padding plus `py-2`), so the page
+    scrolls under an inner scroller.
+  - The calendar loading skeleton shows a "Week" circle while the URL says
+    schedule (a skeleton label; it likely predates this mission).
+  C4+F1 sent to Vision (pass 2) and Strange (pass 1) in parallel.
+- 2026-11-02 — Vision PASS on C4+F1 (pass 2). Strange BLOCKED (pass 1: the dark-mode lit row looks disabled). Bryce: "Just get rid of the calendar label." Fury committed C4+F1 as `81125e2` (no gate was running; Strange's blocker is outside C4's files). Renamed the fix contracts C4-F1/C4-F2 to F1/F2 because preflight's id pattern read "C4-" as C4. F2 batches: A the lit row (Strange BLOCKER), B removing the calendar title (Bryce), C the 105px timeline document scroll (Strange note, Fury's call). F2 preflight: 0 failures. Dispatched to Stark. Vision is on its last C4 pass (3 of 3).
+- 2026-11-02 — Stark reported F2 DONE: gauntlet + build pass. Part C is
+  CSS-only: `data-fills-viewport` on the TimelineGrid root (and the
+  skeleton), plus `has-[[data-fills-viewport]]:pb-0` on `<main>` and the
+  page div. No pathname list, no VIEW_CONFIG change. Grid becomes
+  `rounded-t-xl border-b-0`. Trade-off Stark flagged: on notched phones the
+  timeline's last rows sit under the home indicator (the inner scroller
+  still scrolls). **Fury's live measurements:**
+  - Week at 375 and Day at 1024: document height = viewport height (no
+    page scroll).
+  - Week scroller top 143 at 375; it fills to 812.
+  - Month and Schedule keep `<main>` pb 96px.
+  - Pinned Schedule bar 130 at 375. The 1024 read timed out; Strange
+    re-measures.
+  - The sr-only h1 is present (0 height).
+  - The dark-mode drawer lit row now shows the accent-soft pill (screenshot
+    sent to Bryce).
+  F2 sent to Vision (pass 3, C4's last) and Strange (pass 2) in parallel.
 
 ## Delivery
 

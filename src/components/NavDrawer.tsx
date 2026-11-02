@@ -123,7 +123,7 @@ export function NavDrawer({
           onClose();
         }}
         aria-current={active ? "page" : undefined}
-        className={`${ROW_CLASS} ${active ? "text-accent" : "text-fg"}`}
+        className={`${ROW_CLASS} ${active ? "bg-accent-soft font-semibold text-accent" : "text-fg"}`}
       >
         <item.icon aria-hidden="true" size={22} />
         {item.label}

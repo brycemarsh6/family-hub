@@ -318,7 +318,7 @@ export function TimelineGrid({
 
   return (
     <div
-      className="overflow-hidden rounded-xl border border-line"
+      data-fills-viewport className="overflow-hidden rounded-t-xl border border-b-0 border-line"
       style={{ ["--hour-height" as string]: `${HOUR_HEIGHT_PX}px` }}
     >
       <div ref={scrollerRef} className="overflow-y-auto" style={{ height: scrollerHeightStyle }}>
