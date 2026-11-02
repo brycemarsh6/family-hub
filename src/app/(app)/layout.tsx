@@ -3,6 +3,7 @@ import { Inter, Manrope, Cormorant_Garamond } from "next/font/google";
 import "../globals.css";
 import { AppChrome } from "@/components/AppChrome";
 import { getVerifiedUser } from "@/lib/dal";
+import { DEFAULT_NAV_MODE } from "@/lib/navMode";
 
 // Marshee's three brand faces. Named --font-inter/--font-manrope/
 // --font-accent-serif (not --font-sans etc.) so they don't collide with the
@@ -81,6 +82,7 @@ export default async function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-bg text-fg">
         <AppChrome
+          navMode={user?.navMode ?? DEFAULT_NAV_MODE}
           user={
             user && {
               displayName: user.displayName,

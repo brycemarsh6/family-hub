@@ -250,6 +250,31 @@ Same as mission 24 (read it there); the key points:
   calendar/Recipes/Shopping/dashboard alignment, and the setting surviving
   a reload.
 
+### F1: close the drawer when the menu pins (Strange C3-1 blocker)
+- **Status:** BUILT (Stark; gauntlet exit 0). Stark had no browser tools, so the browser checks move to Strange C3-2. DONE (Strange C3-2 PASS).
+- **Objective:** when `pinned` is true and the window starts matching
+  `(min-width: 1024px)` while the drawer is open, the drawer closes, so a
+  modal drawer never sits over the pinned menu (DESIGN.md "exactly one
+  navigation surface"; Brief: "crossing 1024 flips cleanly").
+- **Boundaries:** may touch `src/components/HamburgerButton.tsx` only. Must
+  not touch NavDrawer, AppChrome, `appChrome.ts` or anything else. The
+  breakpoint must not become a second literal home if one already exists;
+  if Tailwind's `lg` has no JS constant, a local `"(min-width: 1024px)"` with
+  a comment naming Tailwind's `lg` is fine.
+- **Approach:** an effect, active only when `pinned`, that subscribes to
+  `window.matchMedia("(min-width: 1024px)")` and calls `setOpen(false)` from
+  the change listener when it starts matching. No `setState` directly in the
+  effect body (the drawer is closed on mount anyway, and the lint rule
+  forbids it). Clean up the listener. Hamburger mode behaves exactly as now.
+- **Verification:** gauntlet exit 0. In the browser (port 3001, tab-1, dev
+  DB): rail mode at 1023, open the drawer, resize to 1024 → drawer gone, no
+  scroll lock left on `body`; resize back to 1023 → hamburger visible, drawer
+  closed, opens again normally. Hamburger mode at 1280 → drawer still opens.
+  Reset Bryce's menu style to "Menu button" and the viewport to desktop after.
+- **Evidence required:** the diff, gauntlet exit codes, and the measured
+  browser results above.
+- **Done criteria:** Strange C3-2 PASS.
+
 ### C4 — Constitutions and CLAUDE.md
 - **Status:** PENDING
 - **Boundaries:** `DESIGN.md` (the drawer rule: on screens ≥ `lg` a
@@ -274,6 +299,9 @@ Same as mission 24 (read it there); the key points:
 |---|---|---|---|---|
 | C1-1 | Vision (Opus) | **PASS** | 0 | 3 |
 | C2-1 | Vision (Opus) | **PASS** | 0 | 4 |
+| C3-1 | Vision (Opus) | **PASS** | 0 | 6 |
+| C3-1 | Strange (Opus) | **BLOCKED** | 1 | 6 |
+| C3-2 | Strange (Opus) | **PASS** | 0 | 1 |
 
 **C1 Vision:** gauntlet all exit 0 (466). The labels and help text match the
 Brief exactly. `toNavMode` uses strict equality and passed every hostile
@@ -295,6 +323,41 @@ touch `dashboardLayout` or another person's row. Notes:
 - A Vercel preview against the live DB will error everywhere until merge
   (the column doesn't exist there yet). Known; Bryce told.
 
+**C3 Vision:** gauntlet all exit 0 (466; UTC 459 + 7 skips; build ok).
+Boundary clean (10 declared files). No server file imports `appChrome.ts` or
+`PinnedNav`. The `lg:invisible` hamburger keeps its box for
+`useHamburgerRowHeight` but takes no focus or clicks. `--app-nav-width` is
+unset below lg and in hamburger mode. An offline save shows an inline alert,
+not the error boundary. Notes (follow-ups, not this mission's job):
+- Switching hamburger to pinned changes AppChrome's root, so the page
+  remounts. Only happens on /settings after a save; harmless today.
+- A drawer left open while the window widens past 1024 in a pinned mode
+  stays open with its button invisible (Escape and backdrop still close it).
+- Type-only NavList/NavDrawer cycle (accepted).
+- No left safe-area padding on PinnedNav (accepted; no real device hits it).
+- The rail's avatar has no visible name for sighted users. Design question
+  for Bryce at delivery.
+
+**C3 Strange:** every mode checked at 1280, 1024 and 375, light and dark;
+fixed bars, Schedule bar, Recipes letters and A to Z rail all sit in the
+content column; the choice survives reloads; Bryce reset to "Menu button".
+- BLOCKER: drawer opened below 1024, window widened past 1024 in a pinned
+  mode → the modal drawer stays open over the pinned menu, its button now
+  invisible. Fix contract F1.
+- Notes (follow-ups): N1 pinned mode keeps an empty 56px band at the top of
+  non-dashboard pages; N2 the pinned menu overflows 1280x800 and 1024x768 by
+  15 to 20px (Sign out scrolls), and a classic scrollbar shifts rail icons;
+  N3 light scrollbar in dark mode (`color-scheme` on `:root`); N4 no tooltips
+  on rail icons; N5 the settings row icon is the same glyph as the hamburger
+  (Bryce's choice); N6 dev badge covers AddItemBar's Add (dev only).
+
+**C3-2 Strange (F1):** rail and sidebar, drawer open at 1023, widened to
+1024 → 0 dialogs, only the pinned menu; back to 1023 the button works.
+Hamburger mode at 1280 and 375 unchanged. Note: the drawer never locked
+scroll, so "no lock left" passed trivially. F1's 12-line diff had no
+separate Vision pass; Stark's gauntlet was green and Captain's whole-mission
+pass plus the delivery gauntlet cover it.
+
 ## Handoff log
 
 - 2026-11-02: mission opened. Bryce chose the "Menu style" row and sheet,
@@ -303,6 +366,7 @@ touch `dashboardLayout` or another person's row. Notes:
 - 2026-11-02: C1 PASS and committed. Stark building C2.
 - 2026-11-02: C2 built; migration applied to dev. Vision gating C2 while Stark builds C3.
 - 2026-11-02: C2 PASS and committed. C3 built; Vision and Strange gating.
+- 2026-11-02: C3 Vision PASS, Strange blocked (drawer over pinned menu); F1 fixed it, Strange C3-2 PASS. C3 + F1 committed. Stark on C4.
 
 ## Delivery
 
