@@ -200,7 +200,7 @@ Old exports are removed only in the contract that removes their last user.
   revalidation still covers its page.
 
 ### C4 — Retune every chrome-height dependent to "no header, no bottom nav"
-- **Status:** PENDING
+- **Status:** DISPATCHED
 - **Boundaries:**
   - may touch: `src/lib/appChrome.ts` (delete the four old exports + their
     comments), `src/components/CalendarHeader.tsx`,
@@ -326,6 +326,7 @@ Assembled).
   `/profile`, so does a rename refresh the drawer's identity row (rendered
   from the layout)? Stark also noted that mealPlans.ts never revalidated `/`
   (this predates the mission). C3 sent to Vision (Opus).
+- 2026-11-02 — Vision PASS on C3 (7 notes). Fury removed the empty `chores/` dir, added two comment leftovers to C5, and committed C3. C4 preflight: 0 failures; soft-cap warnings on the four calendar files are known (they must not grow, except CalendarHeader may take the h1). Line counts at dispatch: CalendarHeader 381, ScheduleView 532, TimelineGrid 555, CalendarViews 496, RecipeList 339. C4 dispatched to Stark.
 
 ## Delivery
 
