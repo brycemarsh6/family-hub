@@ -2,7 +2,7 @@
 
 **Project:** family-hub (Marshee)
 **Branch:** `claude/nav-drawer` (from `origin/main` at `ee45851`)
-**Status:** BUILDING
+**Status:** GATES PASSED, awaiting Bryce's go-ahead to push and open the PR (2026-11-02)
 **Started:** 2026-11-02 · **Updated:** 2026-11-02
 
 Numbered 23 because 20 (`claude/calendar-cd1`) and 22
@@ -200,7 +200,7 @@ Old exports are removed only in the contract that removes their last user.
   revalidation still covers its page.
 
 ### C4 — Retune every chrome-height dependent to "no header, no bottom nav"
-- **Status:** DISPATCHED
+- **Status:** DONE (Vision C4-2 PASS with F1; Strange blocker fixed in F2)
 - **Boundaries:**
   - may touch: `src/lib/appChrome.ts` (delete the four old exports + their
     comments), `src/components/CalendarHeader.tsx`,
@@ -246,7 +246,7 @@ Old exports are removed only in the contract that removes their last user.
 - **Done criteria:** Vision re-runs; Strange measures in the browser.
 
 ### F1 — (fix for C4) Fix Vision's C4 blocker: make the pinned h1 breakpoint-invariant
-- **Status:** DONE (Stark); awaiting browser measurement, then batched Vision re-gate
+- **Status:** DONE (Vision C4-2 PASS)
 - **Report:** `leading-8` added; the built CSS shows `--tw-leading` overrides
   the md:text-3xl line-height, so the box is 32px everywhere and 170 holds.
   Comment beside page.tsx `py-2` added. loading.tsx unchanged. Gauntlet and
@@ -272,7 +272,7 @@ Old exports are removed only in the contract that removes their last user.
   Strange measures the pinned bar at 375 and 1024.
 
 ### F2 — (fix for C4) Remove the visible Calendar title (Bryce, 2026-11-02), plus Strange's pass-1 fixes
-- **Status:** DISPATCHED
+- **Status:** DONE (Vision C4-3 PASS, Strange S-2 PASS)
 - **Bryce's decision (verbatim):** "Just get rid of the calendar label."
 - **Boundaries:**
   - may touch: `src/components/CalendarHeader.tsx`,
@@ -315,7 +315,7 @@ Old exports are removed only in the contract that removes their last user.
 - **Done criteria:** Vision pass 3 (budget's last) + Strange pass 2.
 
 ### C5 — Constitutions, CLAUDE.md and leftover comments
-- **Status:** BUILT (Stark, 2026-11-02). Gauntlet all exit 0; STRUCTURE.md 699 → 692. Fury replaced 7 dashes Stark added (Bryce's no-dash rule). Stark flagged 4 stale bottom-nav comments outside the boundary: recipes print page:19, share/layout.tsx:9, PantryItemEditSheet.tsx:81, GroceryItemEditSheet.tsx:87. Strange not re-run for C5: no visual change on desktop, and the safe-area padding can't be emulated.
+- **Status:** DONE (Vision C5-1 PASS; Captain blockers fixed in F3). Built by Stark, 2026-11-02. Gauntlet all exit 0; STRUCTURE.md 699 → 692. Fury replaced 7 dashes Stark added (Bryce's no-dash rule). Stark flagged 4 stale bottom-nav comments outside the boundary: recipes print page:19, share/layout.tsx:9, PantryItemEditSheet.tsx:81, GroceryItemEditSheet.tsx:87. Strange not re-run for C5: no visual change on desktop, and the safe-area padding can't be emulated.
 - **Boundaries:**
   - may touch: `DESIGN.md`, `STRUCTURE.md`, `CLAUDE.md` ("What's built"
     only; Current status is Fury's at delivery), `src/components/BackLink.tsx`
@@ -364,6 +364,74 @@ Old exports are removed only in the contract that removes their last user.
   `node ~/.claude/skills/avengers/recordcheck.mjs origin/main..HEAD` read in full.
 - **Evidence required:** the grep; recordcheck output.
 - **Done criteria:** Captain reviews the constitution text.
+
+### F3 — (fix for C5) Captain K-1 blockers plus the gates' cleanup notes
+- **Status:** DONE (Vision F3-1 PASS, Captain K-2 PASS)
+- **Objective:** close Captain's two chrome-dimension blockers and fold in the cheap comment/doc notes from Vision C5-1 and Captain K-1.
+- **Boundaries:**
+  - may touch: `src/app/(app)/calendar/loading.tsx`,
+    `src/components/HamburgerButton.tsx` (comment only),
+    `src/components/CalendarHeader.tsx` (comment only),
+    `src/components/Skeleton.tsx`,
+    `src/components/ReviewQueueButton.tsx` (comment only),
+    `src/components/PantryItemEditSheet.tsx` (comment only),
+    `src/components/GroceryItemEditSheet.tsx` (comment only),
+    `src/app/(app)/kitchen/cooking/recipes/[id]/print/page.tsx` (comment only),
+    `src/app/share/layout.tsx` (comment only),
+    `src/app/(app)/(home)/loading.tsx` (comment only),
+    `src/lib/useScheduleMonthTitle.ts` (comment only),
+    `README.md`, `DESIGN.md`, `STRUCTURE.md`, `CLAUDE.md` ("What's built" only).
+  - must not touch: everything else. No behaviour change anywhere except
+    loading.tsx's margin, which must compute the same 56px.
+- **Spec:**
+  1. BLOCKER: `calendar/loading.tsx` ~242: replace `-mt-14` with
+     `style={{ marginTop: -HAMBURGER_ROW_HEIGHT_PX }}`, importing the
+     constant from `@/lib/appChrome`. Net growth: the import line at most.
+  2. BLOCKER: `HamburgerButton.tsx`: add a 2 to 3 line comment at the floating
+     wrapper. It says `h-12` plus the `0.5rem` top offset make up
+     `HAMBURGER_ROW_HEIGHT_PX` in `src/lib/appChrome.ts`, and that a change
+     here means updating that constant and checking the dependents listed
+     there.
+  3. `calendar/loading.tsx` comments: cite the 143 as "Fury's live
+     measurement (F2)" and keep "Strange S-2" for the 130. Rewrite the
+     ~127-129 header to say the skeleton is a borderless block approximating
+     the real bordered wrapper, and drop the class quote.
+  4. `CalendarHeader.tsx` ~68: update the quoted DESIGN.md sentence to the
+     current wording ("Its list never changes as you move").
+  5. Delete the dormant `SkeletonTiles` export and its doc from
+     `Skeleton.tsx`. First prove it has zero importers with grep.
+  6. Stale nav comments: each must describe the drawer world (or past
+     tense) truthfully.
+     - `ReviewQueueButton.tsx:21`
+     - `PantryItemEditSheet.tsx:81`
+     - `GroceryItemEditSheet.tsx:87`
+     - print `page.tsx:19`
+     - `share/layout.tsx:9`
+     - `(home)/loading.tsx:7`: the placeholders are routines, plans and
+       lists; settings is real, and calendar has its own loading.tsx
+     - `README.md:38`
+     - `useScheduleMonthTitle.ts:13`: fix the comma splice
+  7. `STRUCTURE.md` ~228: replace with Captain's text: "`src/lib/nav.ts`:
+     `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`), the only nav list.
+     `src/lib/routeRedirects.ts`: `LEGACY_ROUTE_REDIRECTS`, the only redirect
+     map; it has **no imports at all**, because `next.config.ts` imports it by
+     relative path". The file must stay ≤699 lines; the C5 preflight
+     exception applies.
+  8. `DESIGN.md`:
+     - fold the duplicated BackLink rule (~126-130) into one bullet
+     - word the nav-list line the same as STRUCTURE.md
+       (`NAV_SECTIONS` + `NAV_FOOTER_ITEMS`)
+  9. `CLAUDE.md` "What's built": list Recipes and Meal Plan flat in the
+     Kitchen group, with no "Cooking" sub-bullet. Keep their descriptions.
+  - No em or en dashes in any new text.
+- **Verification:**
+  - gauntlet → pass
+  - `grep -rn "SkeletonTiles" src` → nothing
+  - `grep -rn "\-mt-14" "src/app/(app)/calendar/loading.tsx"` → nothing
+  - `wc -l STRUCTURE.md` ≤ 699
+  - `git diff -U0 | grep '^+.*[—–]'` → nothing
+- **Evidence required:** each command with its exit code and output; `git diff --stat`.
+- **Done criteria:** Captain pass 2 and Vision gate F3 PASS.
 
 ## Gate ledger
 
@@ -428,6 +496,28 @@ Design rules word, the CalendarHeader:26 comment). Notes, all folded into F3:
 - NOTE: the `AppChrome.tsx` / `appChrome.ts` names differ only by case.
 - NOTE: DESIGN.md:126-130 states the BackLink rule twice.
 - Dependency direction, naming and new-file sizes all pass.
+| K-2 | Captain (Opus) | **PASS** (F3) | 0 | 5 |
+
+**Captain pass 2:** both K-1 blockers are closed. loading.tsx imports the
+constant. HamburgerButton names it. STRUCTURE.md's "Closed in mission-23" is
+true (no other hardcoded 56 or 3.5rem). STRUCTURE.md is 695 lines.
+SkeletonTiles is gone. Open notes carried forward:
+- `HAMBURGER_TOP_OFFSET_PX` amendment
+- CalendarHeader split seam for CD1
+- the .md cap clause
+- AppChrome/appChrome case
+- the (home)/loading.tsx:8 long line
+| F3-1 | Vision (Opus) | **PASS** | 0 | 4 |
+
+**F3 Vision:** gauntlet all exit 0 on the final tree (build included).
+Boundary clean. The comment-only files have zero code change. The margin is
+-56px, as before. Every new claim was checked. Notes for a later docs pass:
+- the CalendarHeader:67-68 quote is now off-topic, with an orphan dash
+- README.md:36 implies /login has the drawer
+- README.md:39 "the nav bar"
+- the (home)/loading.tsx:8 long line
+
+**All assembled gates PASS: Vision, Strange, Captain.**
 
 **F2 Vision (C4 pass 3):**
 - Parts A, B and C are all verified in the built CSS. The `has-`
@@ -616,8 +706,21 @@ Assembled).
 
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
+- **Shipped:** not yet. Branch `claude/nav-drawer` is committed locally and
+  waiting on Bryce's go-ahead to push and open the PR.
+- **Shipped check:** see the Handoff log once pushed.
+- **Follow-ups (notes, not blockers):**
+  - Strange pass-1 polish: drawer slide, focus trap, scroll lock, a visible
+    close control, the Recipes band above the pinned letter, 11px circle
+    labels, the skeleton's "Week"/enabled Today, the 4px hamburger jump,
+    Inventory bottom space, Recipes h1, and /settings for device sessions.
+  - Dark-mode white scrollbar on desktop (`color-scheme` on `:root`).
+  - Captain amendments: `HAMBURGER_TOP_OFFSET_PX`; whether the .md cap
+    applies; trim STRUCTURE.md under 650; give CalendarHeader a split seam
+    before CD1.
+  - Docs pass: the CalendarHeader:67-68 quote, README.md:36 and :39, and
+    the (home)/loading.tsx:8 wrap.
+  - Confirm the timeline's home-indicator padding on a real iPhone.
 - **Deliberate leftovers:** Kitchen landing badges ("12 low", "Plan this
   week") go away with the landing pages (plan Risks); dashboard tiles still
   carry counts.

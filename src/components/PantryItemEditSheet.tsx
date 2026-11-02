@@ -78,7 +78,7 @@ export function PantryItemEditSheet({
   }
 
   return (
-    // z-[60] clears both the sticky header and the bottom tab bar (both z-40/50),
+    // z-[60] clears the sticky header and the floating hamburger (z-40/50),
     // so the sheet is always on top regardless of scroll position.
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
       {/* Backdrop — tapping it discards any unsaved changes, same as the ×. */}

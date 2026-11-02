@@ -4,8 +4,8 @@ import { SkeletonHeader, SkeletonBlock } from "@/components/Skeleton";
 // why these exist at all. This can't just be app/(app)/loading.tsx's own
 // SkeletonPage (a header + a list of rows): the dashboard is a 4-tile grid,
 // not a list, and app/(app)/loading.tsx has to stay the generic catch-all
-// for the other still-placeholder routes (calendar, routines, lists,
-// settings) — reshaping it for the dashboard would mis-shape those. That's
+// for the other still-placeholder routes (routines, plans, lists; settings
+// is real, and calendar has its own loading.tsx): reshaping it for the dashboard would mis-shape those. That's
 // the whole reason this route lives in its own (home) route group: two
 // loading.tsx files can't share one URL segment.
 //

@@ -126,8 +126,8 @@ tell when a rule's reason has expired.
 - **The drawer reaches every destination directly; there are no landing
   pages.** `BackLink` is the one edge back up from a page below a drawer
   destination (recipe detail to Recipes), never on a destination itself.
-- **Every page below a drawer destination carries a `BackLink`**: explicit
-  `href` (never `router.back()`), label naming the destination ("Recipes"),
+  Every page below a drawer destination carries one: explicit `href` (never
+  `router.back()`), label naming the destination ("Recipes"),
   not the action ("Back").
 - **Sheets are the house dialog**: bottom sheet on phones, centered dialog on
   wider screens. Multi-step flows live in *one* sheet with an internal view
@@ -250,7 +250,7 @@ A new one-off that duplicates one of these jobs is a design violation:
 - `SwipeActions` — row-level secondary actions
 - `BackLink` — the upward edge from every sub-page
 - `NavDrawer` / `HamburgerButton`: the only navigation surface;
-  `NAV_SECTIONS` in `nav.ts` the only nav list
+  `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`) in `nav.ts` the only nav list
 - `EmptyState`, `Skeleton` (+ per-branch `loading.tsx`)
 - The sheet family: `RadioSheet` (pick one), `ActionSheet` (⋯ menus),
   `ConfirmSheet` (the two count-confirm deletes), `TitleSheet` (name a thing)

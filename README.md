@@ -33,7 +33,7 @@ needs its own copy — copying the example is that copy.
 
 | Folder | What it is |
 |---|---|
-| `src/app/` | Every page you can visit. `layout.tsx` at the root wraps the whole app (just the logo bar); each branch folder (e.g. `kitchen/`) has its own `layout.tsx` for that branch's own nav |
+| `src/app/` | Every page you can visit. `layout.tsx` at the root wraps the whole app (the app chrome: the side-drawer menu, plus the logo bar on the dashboard and login) |
 | `src/app/actions/` | The functions that change the database (add an item, check something off, etc.) |
 | `src/components/` | Reusable pieces of screen — a row, a stepper, the nav bar |
 | `src/lib/` | Shared plumbing: the database connection, and the list of categories/locations |

@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { SkeletonBlock } from "@/components/Skeleton";
 import { MonthGridSkeletonRows } from "@/components/MonthGridSkeletonRows";
 import { parseViewParam } from "@/lib/calendarPaging";
+import { HAMBURGER_ROW_HEIGHT_PX } from "@/lib/appChrome";
 import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 
 // Calendar's own loading.tsx (Next's route-level Suspense fallback, shown
@@ -39,7 +40,8 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 // (getBoundingClientRect in the browser), not guessed; the 2026-11-02 live
 // measurements (Vision C4 notes, Strange S-2) confirmed the header rows
 // and, after the visible title's removal, the pinned Schedule bar (130 at
-// 375 and 1024) and the timeline scroller top (143); the dashboard's own
+// 375 and 1024, Strange S-2) and the timeline scroller top (143, Fury's
+// live measurement, F2); the dashboard's own
 // h-56-for-a-164px-tile bug is exactly the failure mode this avoids. They
 // also happen to equal Tailwind utilities CalendarHeader.tsx already uses
 // for the same rows (h-11 circles, h-11 buttons, gap-3/mb-2/mb-4/gap-4),
@@ -48,7 +50,7 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 // drift apart the way two independently-eyeballed pixel counts could.
 //   action-circles row (Today + view switcher), sm circles
 //     (44 + 6 gap + 16 label), lifted onto the hamburger
-//     row with -mt-14:                                      66px  -> h-[66px], mb-2 below (8px)
+//     row with a negative margin:                           66px  -> h-[66px], mb-2 below (8px)
 //   (the "Calendar" h1 is gone: sr-only in CalendarHeader, no layout)
 //   prev/next + title row:                                  44px  -> h-11, mb-4 below (16px)
 //   one day row (gutter placeholder + a 46px grey body block —
@@ -124,15 +126,14 @@ const SKELETON_SHAPE: Record<CalendarPeriodView, CalendarSkeletonShape> = {
 };
 
 /**
- * The hour timeline's own box (mission-17/C4) — a single bordered block
- * rather than stacked rows, matching `TimelineGrid.tsx`'s real
- * `overflow-hidden rounded-xl border border-line` wrapper shape rather than
- * this file's day-row shape. Sized with the SAME formula that component
- * itself falls back on before its own runtime measurement lands (see its
+ * The hour timeline's own box (mission-17/C4): a single borderless block
+ * approximating `TimelineGrid.tsx`'s real bordered wrapper, rather than
+ * stacked rows like this file's day-row shape. Sized with the SAME formula
+ * that component itself falls back on before its own runtime measurement lands (see its
  * own `scrollerHeightStyle` and `MIN_SCROLLER_HEIGHT_PX`) — `143` is the
  * scroller's top edge at 375px with no safe-area inset, from the classes
  * (the earlier 183, with the h1, was measured live on 2026-11-02; with the
- * title removed it measures 143 live, Strange S-2): 56 (`<main>`'s
+ * title removed it measures 143 live, Fury's measurement, F2): 56 (`<main>`'s
  * hamburger-row padding) + 8 (this page's `py-2`) - 56 (the header's lift
  * onto that row) + 66 (action row) + 8 + 44 (prev/next row) + 16 (`mb-4`)
  * + 1 (the REAL box's border, which this borderless skeleton does not draw, so
@@ -239,7 +240,10 @@ export default function Loading() {
   const shape = SKELETON_SHAPE[parseViewParam(searchParams.get("view"))];
   return (
     <div className="py-2 has-[[data-fills-viewport]]:pb-0" role="status" aria-label="Loading Calendar">
-      <div className="-mt-14 mb-2 flex h-[66px] items-start justify-end gap-3 pl-14">
+      <div
+        className="mb-2 flex h-[66px] items-start justify-end gap-3 pl-14"
+        style={{ marginTop: -HAMBURGER_ROW_HEIGHT_PX }}
+      >
         <SkeletonBlock className="h-11 w-11 rounded-full" />
         <SkeletonBlock className="h-11 w-11 rounded-full" />
       </div>

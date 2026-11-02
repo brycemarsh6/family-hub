@@ -65,7 +65,7 @@ export const SCHEDULE_HEADER_BAR_HEIGHT_PX = 130;
  * placement escapes it, and a fixed-position overlay can't be moved by
  * document padding either (both were measured and both failed). Removing
  * it here rather than per-view keeps the switcher's own DESIGN.md rule —
- * "its tabs never change as you move" — from being violated by an Add
+ * "Its list never changes as you move" from being violated by an Add
  * button that would otherwise jump from a floating bottom-left position on
  * Week/Day to a header circle on Month alone.
  */

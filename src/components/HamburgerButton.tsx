@@ -52,6 +52,9 @@ export function HamburgerButton({
         // sits in a centered max-w-3xl column and a viewport-edge button
         // would strand out in the margin. The wrapper ignores pointer events
         // so only the button itself catches taps.
+        // The button's h-12 plus the 0.5rem top offset below make up
+        // HAMBURGER_ROW_HEIGHT_PX in src/lib/appChrome.ts: change either here
+        // and update that constant, then check the dependents listed there.
         <div
           className="print:hidden pointer-events-none fixed inset-x-0 z-50 flex justify-center"
           style={{ top: "calc(env(safe-area-inset-top) + 0.5rem)" }}

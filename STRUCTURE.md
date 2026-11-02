@@ -225,7 +225,10 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/constants.ts` — categories, locations, meal slots, stores,
   **roles with their display labels and assignability, avatar colors**,
   their icons and order
-- `src/lib/nav.ts`: `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`), the only nav list
+- `src/lib/nav.ts`: `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`), the only nav list.
+  `src/lib/routeRedirects.ts`: `LEGACY_ROUTE_REDIRECTS`, the only redirect
+  map; it has **no imports at all**, because `next.config.ts` imports it by
+  relative path
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,

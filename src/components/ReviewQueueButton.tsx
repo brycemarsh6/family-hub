@@ -18,9 +18,9 @@ import type { ReviewQueue } from "@/lib/duplicates";
  * The pulsing "needs a look" button in the Inventory header, and the
  * review sheet behind it.
  *
- * Deliberately not a nav tab: the nav bar reaches branch roots only,
- * which is a settled rule, and this is inventory hygiene so it belongs
- * on Inventory. It renders nothing at all when the queue is empty —
+ * Deliberately not a drawer destination: the drawer lists pages, which is
+ * a settled rule, and this is inventory hygiene so it belongs on
+ * Inventory. It renders nothing at all when the queue is empty,
  * an always-present icon showing zero is exactly the kind of permanent
  * low-grade noise that gets tuned out.
  *
