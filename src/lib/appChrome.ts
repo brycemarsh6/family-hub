@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useState } from "react";
+import type { NavMode } from "./navMode";
 
 /**
  * mission-23 — the height of the row the floating hamburger button sits in
@@ -58,4 +59,25 @@ export function useHamburgerRowHeight(): number {
 /** True on the pages that show the Marshee wordmark header: `/` and `/login`. */
 export function showsWordmarkHeader(pathname: string): boolean {
   return pathname === "/" || pathname === "/login";
+}
+
+/**
+ * The icons-only pinned menu's width. Dependents (check each when this
+ * changes): `AppChrome.tsx`'s `--app-nav-width` variable, which the fixed
+ * bars use as their left edge, and the pinned `<aside>` in `PinnedNav.tsx`.
+ */
+export const NAV_RAIL_WIDTH_PX = 72;
+
+/**
+ * The icons + names pinned menu's width, the same as the drawer's rows.
+ * Dependents (check each when this changes): `AppChrome.tsx`'s
+ * `--app-nav-width` variable and the pinned `<aside>` in `PinnedNav.tsx`.
+ */
+export const NAV_SIDEBAR_WIDTH_PX = 256;
+
+/** How wide the pinned menu is at `lg` and up: 0 when the mode is the menu button. */
+export function pinnedNavWidthPx(mode: NavMode): number {
+  if (mode === "rail") return NAV_RAIL_WIDTH_PX;
+  if (mode === "sidebar") return NAV_SIDEBAR_WIDTH_PX;
+  return 0;
 }
