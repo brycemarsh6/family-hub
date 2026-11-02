@@ -1,7 +1,7 @@
 # Mission: Dashboard widgets + Customize (navigation redesign PR 2 of 3)
 
 **Project:** family-hub (Marshee)
-**Status:** GATES PASSED, awaiting Bryce's go-ahead to push and open the PR (2026-11-02)
+**Status:** DELIVERED as PR #33 (pushed 2026-11-02 on Bryce's go-ahead); merge is Bryce's call
 **Started:** 2026-11-02 · **Updated:** 2026-11-02
 
 ## Brief
@@ -455,8 +455,11 @@ expects; the colon in STRUCTURE.md:244 is deliberate.
 
 ## Delivery
 
-- **Shipped:** not yet. Branch `claude/dashboard-widgets` is committed
-  locally, waiting on Bryce's go-ahead to push and open the PR. **Merging
+- **Shipped:** pushed `claude/dashboard-widgets` and opened
+  https://github.com/brycemarsh6/family-hub/pull/33 (2026-11-02). Not
+  merged.
+- **Shipped check:** `git status -sb` showed the branch even with origin
+  after the push. **Merging
   applies the `add_user_preferences` migration to production** (additive:
   one new table).
 - **Follow-ups (notes, not blockers):**

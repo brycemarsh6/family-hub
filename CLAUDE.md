@@ -137,8 +137,8 @@ Replace this section at the end of each session. Don't append.
 
 **In progress:**
 - **Navigation redesign, PR 2 of 3** (dashboard widgets + Customize):
-  mission 24 on branch `claude/dashboard-widgets`. All gates passed; waiting
-  on Bryce to push and open the PR. Merging adds the `UserPreferences` table
+  mission 24 on branch `claude/dashboard-widgets`. All gates passed; open as
+  PR #33, waiting on Bryce to merge. Merging adds the `UserPreferences` table
   to production (additive; already applied to the dev branch). PR 1 (side
   drawer, mission 23) is live as PR #32. Next: PR 3 (nav mode setting for
   wide screens). Follow-ups are in each mission file's Delivery section.
