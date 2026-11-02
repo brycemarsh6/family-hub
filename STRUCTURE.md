@@ -241,6 +241,10 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it
+- `src/lib/dashboardWidgets.ts`: `DASHBOARD_WIDGETS`, the only widget
+  registry; `DASHBOARD_WIDGET_IDS` there is the one id list and the default
+  order (a test pins the record to it). `parseDashboardLayout` in
+  `dashboardLayout.ts` is the only reader of the stored layout JSON
 - `brand/` — the logo artwork. The two `Marshee*.tsx` components and the
   `src/app/` icon files are all **generated from** these masters; a
   hand-drawn or re-traced second version of the mark or wordmark is a

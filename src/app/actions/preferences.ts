@@ -14,7 +14,7 @@ import {
   serializeDashboardLayout,
 } from "@/lib/dashboardLayout";
 
-export type PreferencesResult = { ok: true } | { ok: false; error: string };
+export type PreferencesResult = { error?: string };
 
 /**
  * Save the signed-in person's dashboard layout. The input is a claim from a
@@ -25,9 +25,9 @@ export async function saveDashboardLayout(
   input: unknown,
 ): Promise<PreferencesResult> {
   const user = await getVerifiedUser();
-  if (!user) return { ok: false, error: "Not signed in." };
+  if (!user) return { error: "Not signed in." };
   if (user.isDevice) {
-    return { ok: false, error: "A shared device can't customize the dashboard." };
+    return { error: "A shared device can't customize the dashboard." };
   }
 
   const dashboardLayout = serializeDashboardLayout(parseDashboardLayout(input));
@@ -38,10 +38,11 @@ export async function saveDashboardLayout(
       create: { userId: user.userId, dashboardLayout },
       update: { dashboardLayout },
     });
-  } catch {
-    return { ok: false, error: "Couldn't save your dashboard. Try again." };
+  } catch (err) {
+    console.error("saveDashboardLayout failed", err);
+    return { error: "Couldn't save your dashboard. Try again." };
   }
 
   revalidatePath("/");
-  return { ok: true };
+  return {};
 }

@@ -1,7 +1,7 @@
 # Mission: Dashboard widgets + Customize (navigation redesign PR 2 of 3)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** GATES PASSED, awaiting Bryce's go-ahead to push and open the PR (2026-11-02)
 **Started:** 2026-11-02 · **Updated:** 2026-11-02
 
 ## Brief
@@ -235,7 +235,7 @@ New tests live directly in `src/lib/` so the existing glob reaches them.
   needed in the dev server, using the existing session in the browser pane.
 
 ### C4 — Constitutions and CLAUDE.md
-- **Status:** PENDING
+- **Status:** DONE (Stark; Captain K-2 PASS, Vision F2-1 verified the claims)
 - **Boundaries:**
   - may touch: `DESIGN.md` (component vocabulary: `DashboardWidgetList`,
     `DashboardCustomizeSheet`), `STRUCTURE.md` (one-source list:
@@ -276,6 +276,45 @@ New tests live directly in `src/lib/` so the existing glob reaches them.
   - No em or en dashes in new text.
 - **Verification:** gauntlet → pass.
 - **Done criteria:** Vision and Strange pass 2.
+
+### F2 — (fix for Captain K-1) Read layout inside Promise.all, plus three notes
+- **Status:** DONE (Vision F2-1 PASS, Captain K-2 PASS)
+- **Boundaries:**
+  - may touch: `src/app/(app)/(home)/page.tsx`, `src/lib/dashboardWidgets.ts`
+    (comment and the `export` keyword on `DashboardWidgetDef` only),
+    `src/app/actions/preferences.ts`, `src/components/DashboardWidgetList.tsx`,
+    `STRUCTURE.md` (the C4 one-source bullet only; it must stay ≤699 lines).
+  - **Preflight exception:** STRUCTURE.md's over-cap FAIL is the one
+    recorded in mission 23's C5 (the overage predates both missions). This is
+    a same-length replacement.
+  - must not touch: everything else.
+- **Spec:**
+  1. BLOCKER: in `page.tsx`, keep `const user = await getVerifiedUser();`.
+     Move the preferences read into the existing `Promise.all` as one more
+     element: `user && !user.isDevice ? db.userPreferences.findUnique({ where: { userId: user.userId }, select: { dashboardLayout: true } }) : null`.
+     Parse the result exactly as today. Behaviour is unchanged.
+  2. `dashboardWidgets.ts`:
+     - Change the header comment's last sentence to say
+       `DASHBOARD_WIDGET_IDS` is the default order, and that a test pins the
+       record's key order to it.
+     - Drop `export` from `DashboardWidgetDef` (check it has no importer
+       first).
+  3. `preferences.ts`: return the house shape. `Promise<{ error?: string }>`:
+     `{}` on success, `{ error: "..." }` on failure, with the same messages.
+     Rename the result type to match the house naming in sibling action
+     files. Add `console.error` in the catch (Vision C2 note). Update the
+     caller in `DashboardWidgetList.tsx`: an error is shown when
+     `result.error` is set and cleared otherwise.
+  4. `STRUCTURE.md`: replace the C4 one-source bullet with Captain's
+     4-line text, which names `DASHBOARD_WIDGET_IDS` as the id list and
+     default order.
+  - No em or en dashes in new text.
+- **Verification:**
+  - gauntlet → pass
+  - `wc -l STRUCTURE.md` ≤ 699
+  - `grep -rn "DashboardWidgetDef" src` (only its own file)
+  - `grep -n "ok:" src/app/actions/preferences.ts` (nothing)
+- **Done criteria:** Vision F2 and Captain K-2 PASS.
 
 ## Gate ledger
 
@@ -375,6 +414,36 @@ Notes:
   later).
 - The knob's size snaps.
 - Carried: focus, and the dev badge.
+| K-1 | Captain (Opus) | **BLOCKED** | 1 | 6 |
+
+**Captain pass 1 (whole mission + C4).** BLOCKER: `(home)/page.tsx:60-66`.
+The preferences read is a second sequential DB trip before `Promise.all`;
+STRUCTURE.md allows only the DAL's `loadSessionUser()` there. Notes:
+- C4 text: `DASHBOARD_WIDGET_IDS` (not the record's key order) defines the
+  default order. Fix STRUCTURE.md and the `dashboardWidgets.ts` comment.
+- `DashboardWidgetDef` is exported with no importer.
+- `{ ok }` is a fourth action result shape; convert to the house
+  `{ error?: string }`.
+- `loading.tsx` inlines `SkeletonHeader` (deliberate, pixel-matched).
+- Placement, size, direction, naming and one source of truth all pass.
+  STRUCTURE.md is exactly 699 lines.
+| K-2 | Captain (Opus) | **PASS** (F2) | 0 | 1 |
+
+**Captain pass 2:** the blocker is closed. The only awaits are the DAL guard
+and `Promise.all`. All notes resolved: the default-order wording is backed by
+`dashboardLayout.test.ts:38`; `DashboardWidgetDef` is unexported;
+`PreferencesResult = { error?: string }` matches the house pattern.
+STRUCTURE.md is 699 lines. No regressions.
+| F2-1 | Vision (Opus) | **PASS** | 0 | 3 |
+
+**F2 Vision:** gauntlet all exit 0; boundary clean; behaviour unchanged.
+Devices and null users skip the read; the parse is byte-identical; the error
+path shows and clears. Every C4/F2 doc claim was verified, including the test
+pin at `dashboardLayout.test.ts:38`. `console.error` logs only the Prisma
+error. Notes: contract headings keep the dash the preflight id format
+expects; the colon in STRUCTURE.md:244 is deliberate.
+
+**All assembled gates PASS: Vision, Strange, Captain.**
 
 ## Handoff log
 
@@ -386,5 +455,18 @@ Notes:
 
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
+- **Shipped:** not yet. Branch `claude/dashboard-widgets` is committed
+  locally, waiting on Bryce's go-ahead to push and open the PR. **Merging
+  applies the `add_user_preferences` migration to production** (additive:
+  one new table).
+- **Follow-ups (notes, not blockers):**
+  - When a save fails with the sheet closed, the error shows nowhere until
+    the sheet reopens.
+  - The empty-state hint wraps "on." alone at 375 (`text-balance` in
+    `EmptyState`).
+  - The switch knob's size change snaps instead of animating.
+  - Focus doesn't move into sheets (house-wide).
+  - Rejected Server Actions escape to the error boundary on other screens
+    (PantryList and others; house-wide).
+  - `loading.tsx` inlines `SkeletonHeader`; an `action` slot would fix it.
+  - Check on a real phone after merge: Customize, toggle, reorder, reload.

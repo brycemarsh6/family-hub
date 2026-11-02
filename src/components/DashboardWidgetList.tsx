@@ -44,7 +44,7 @@ export default function DashboardWidgetList({
       setOptimisticLayout(next);
       try {
         const result = await saveDashboardLayout(next);
-        setError(result.ok ? null : result.error);
+        setError(result.error ?? null);
       } catch {
         setError("Couldn't save your dashboard. Check your connection and try again.");
       }

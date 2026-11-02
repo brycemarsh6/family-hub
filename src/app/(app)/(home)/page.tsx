@@ -57,19 +57,14 @@ export default async function DashboardPage() {
 
   const user = await getVerifiedUser();
   const isDevice = user?.isDevice ?? true;
-  const stored =
+
+  const [stored, pantryItems, groceryItems, recipeCount, newestRecipe, mealPlans] = await Promise.all([
     user && !user.isDevice
-      ? await db.userPreferences.findUnique({
+      ? db.userPreferences.findUnique({
           where: { userId: user.userId },
           select: { dashboardLayout: true },
         })
-      : null;
-  // Whatever is stored is a claim, never a type: parse, don't cast.
-  const layout = stored?.dashboardLayout
-    ? parseDashboardLayout(stored.dashboardLayout)
-    : DEFAULT_DASHBOARD_LAYOUT;
-
-  const [pantryItems, groceryItems, recipeCount, newestRecipe, mealPlans] = await Promise.all([
+      : null,
     db.pantryItem.findMany({
       select: {
         name: true,
@@ -99,6 +94,11 @@ export default async function DashboardPage() {
       },
     }),
   ]);
+
+  // Whatever is stored is a claim, never a type: parse, don't cast.
+  const layout = stored?.dashboardLayout
+    ? parseDashboardLayout(stored.dashboardLayout)
+    : DEFAULT_DASHBOARD_LAYOUT;
 
   // Same reasoning as kitchen/page.tsx's own lowCount: Postgres (like
   // SQLite before it) can't compare two columns of the same row to each

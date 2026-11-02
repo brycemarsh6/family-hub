@@ -52,7 +52,10 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
 
 ## What's built
 
-- **Dashboard** (`/`): four live tiles: Today's meals, Inventory, Grocery, Recipes.
+- **Dashboard** (`/`): the tiles (Today's meals, Inventory, Grocery, Recipes) are
+  widgets. Each person can show, hide and reorder them from a Customize sheet,
+  saved per person. Device logins (the wall tablet) see the default layout and
+  get no Customize button.
 - **One side drawer** for the whole app, opened by a hamburger button at the
   top left (the wordmark header shows only on the dashboard and login). It lists
   Dashboard, Calendar, Routines, Plans & Goals, Lists, a Kitchen group
@@ -133,12 +136,12 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Navigation redesign, PR 1 of 3** (side drawer replaces the bottom nav):
-  mission 23 on branch `claude/nav-drawer`. All gates passed; waiting on
-  Bryce to push and open the PR. Next: PR 2 (dashboard widgets + Customize),
-  then PR 3 (nav mode setting). Plan, polish follow-ups and notes in
-  `mission-23-nav-drawer.md`. CD1 will conflict with this branch in
-  `CalendarHeader.tsx`, so land this one first.
+- **Navigation redesign, PR 2 of 3** (dashboard widgets + Customize):
+  mission 24 on branch `claude/dashboard-widgets`. All gates passed; waiting
+  on Bryce to push and open the PR. Merging adds the `UserPreferences` table
+  to production (additive; already applied to the dev branch). PR 1 (side
+  drawer, mission 23) is live as PR #32. Next: PR 3 (nav mode setting for
+  wide screens). Follow-ups are in each mission file's Delivery section.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
   for the swipe `pointerdown` issue and `CalendarViews.tsx` growth that CV6's
   gates flagged (details in `mission-19-calendar-cv6-dropdown-swipe.md`).
@@ -155,8 +158,6 @@ Replace this section at the end of each session. Don't append.
   as `ASSISTANT_API_TOKEN_HASH`, paste the token into Home Hub, then change
   Bryce's own Marshee password.
 - **Do not create a kid login until P3 role gates are deployed.**
-- **iPhone check after PR 1 ships:** on Week view, scroll to 11 PM. Does
-  the last hour clear the home bar?
 
 **Open, not scheduled:**
 - Inventory collapse state doesn't persist across reloads; Shopping has no
