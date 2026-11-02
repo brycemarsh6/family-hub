@@ -43,9 +43,10 @@ export type VerifiedUser = {
  * cleanly, which is what makes deactivation take effect on the very next
  * Server Action rather than waiting for the cookie to expire.
  *
- * One indexed primary-key lookup, `cache()`-wrapped so a page reading this
- * in several places (header + page body, say) still only hits the database
- * once per render pass.
+ * Two queries: an indexed primary-key lookup of the `User`, plus Prisma's
+ * separate read of its one-to-one preferences row (for the menu style).
+ * `cache()`-wrapped so a page reading this in several places (header + page
+ * body, say) still runs this lookup only once per render pass.
  */
 const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
   const session = await getSession();

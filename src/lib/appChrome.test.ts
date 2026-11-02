@@ -1,5 +1,5 @@
-// Pins which pages show the Marshee wordmark header and the pinned menu widths. The hooks and constants
-// in appChrome.ts need a real DOM and are verified in the running app.
+// Pins which pages show the Marshee wordmark header and the pinned menu widths.
+// The hooks in appChrome.ts need a real DOM and are verified in the running app.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,7 +1,7 @@
 # Mission: Menu style setting (navigation redesign PR 3 of 3)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** DELIVERED (all gates PASS; awaiting Bryce's go to push)
 **Started:** 2026-11-02 · **Updated:** 2026-11-02
 
 ## Brief
@@ -103,8 +103,8 @@ Same as mission 24 (read it there); the key points:
 
 ## Contracts
 
-### C1 — Menu-style vocabulary and pinned widths, with tests
-- **Status:** DONE (Stark; Vision C1-1 PASS). Tests 461 → 466.
+### C1: Menu-style vocabulary and pinned widths, with tests
+- **Status:** DONE (Stark; Vision C1-1 PASS). Tests 461 to 466.
 - **Boundaries:**
   - may touch: new `src/lib/navMode.ts`, new `src/lib/navMode.test.ts`,
     `src/lib/appChrome.ts` (add constants and a pure helper only),
@@ -135,7 +135,7 @@ Same as mission 24 (read it there); the key points:
 - **Verification:** gauntlet → pass.
 - **Done criteria:** Vision PASS.
 
-### C2 — navMode column, DAL read, save action
+### C2: navMode column, DAL read, save action
 - **Status:** BUILT (Stark). The SQL is exactly `ALTER TABLE "UserPreferences" ADD COLUMN "navMode" TEXT;`. Fury confirmed the dev host and that only this migration was pending, then ran `migrate deploy`: applied, up to date. DONE (Vision C2-1 PASS).
 - **Boundaries:**
   - may touch: `prisma/schema.prisma` (add `navMode String?` to
@@ -172,8 +172,8 @@ Same as mission 24 (read it there); the key points:
 - **Done criteria:** Fury reviews the SQL and runs `migrate deploy` on dev;
   Vision PASS.
 
-### C3 — NavList, pinned menu, alignment variable, Settings row
-- **Status:** BUILT (Stark). Gauntlet all exit 0. Deviations, accepted: the wrapper is `flex flex-col lg:flex-row`; there are two CSS vars (`--app-nav-width-lg` inline, copied into `--app-nav-width` by an `lg:` class); HamburgerButton gained a `pinned` prop; there's a type-only NavList/NavDrawer cycle; no left safe-area padding on PinnedNav. Vision and Strange gating.
+### C3: NavList, pinned menu, alignment variable, Settings row
+- **Status:** BUILT (Stark). Gauntlet all exit 0. Deviations, accepted: the wrapper is `flex flex-col lg:flex-row`; there are two CSS vars (`--app-nav-width-lg` inline, copied into `--app-nav-width` by an `lg:` class); HamburgerButton gained a `pinned` prop; there was a type-only NavList/NavDrawer cycle (wrongly accepted; Captain blocked it, F2 removed it); no left safe-area padding on PinnedNav. DONE (Vision C3-1 PASS, Strange C3-2 PASS after F1).
 - **Boundaries:**
   - may touch:
     - `src/components/NavDrawer.tsx`
@@ -275,8 +275,8 @@ Same as mission 24 (read it there); the key points:
   browser results above.
 - **Done criteria:** Strange C3-2 PASS.
 
-### C4 — Constitutions and CLAUDE.md
-- **Status:** PENDING
+### C4: Constitutions and CLAUDE.md
+- **Status:** DONE (Stark; STRUCTURE.md held at 699; Captain pass 2 PASS).
 - **Boundaries:** `DESIGN.md` (the drawer rule: on screens ≥ `lg` a
   per-login setting may pin the drawer as a rail or sidebar, and phones
   never pin; vocabulary: `NavList`, `PinnedNav`, `NavModeSetting`),
@@ -293,6 +293,34 @@ Same as mission 24 (read it there); the key points:
   added.
 - **Done criteria:** Captain PASS over the whole mission.
 
+### F2: break the NavList/NavDrawer cycle, plus C4 wording (Captain K-1)
+- **Status:** BUILT (Stark; gauntlet exit 0, cycle scan 0 of 287). DONE (Captain pass 2 PASS).
+- **Objective:** no import cycle in `src/` (STRUCTURE.md "No cycles, ever";
+  the C3 acceptance of a type-only cycle was wrong, mission-21 B1 precedent),
+  and the C4 wording Captain flagged is accurate.
+- **Boundaries:** may touch `src/components/NavList.tsx`, `NavDrawer.tsx`,
+  `PinnedNav.tsx`, `AppChrome.tsx`, `HamburgerButton.tsx` (imports only,
+  plus PinnedNav's width), `DESIGN.md` (the two sentences below),
+  `src/lib/dal.ts` (the `loadSessionUser` comment only), `CLAUDE.md` (rewrap
+  the drawer bullet's last line only). Nothing else.
+- **Work:**
+  1. Move `DrawerUser` (and its `Role` import) from NavDrawer into NavList,
+     the leaf. Point NavDrawer, PinnedNav, AppChrome and HamburgerButton at
+     NavList. No re-export from NavDrawer. Keep the name (no rename).
+  2. PinnedNav's width uses `pinnedNavWidthPx(mode)` from `appChrome.ts`
+     instead of its own ternary, so mode to width is mapped once.
+  3. DESIGN.md: "all three render `NavList`" becomes "`NavDrawer` and
+     `PinnedNav` both render `NavList`"; "Pinned bars that span the screen
+     (`AddItemBar`, `FloatingAddButton`)" becomes "Fixed bars that span the
+     screen (`AddItemBar`, `FloatingAddButton`, the floating hamburger's
+     row)".
+  4. dal.ts: "still only hits the database once per render pass" becomes
+     "still runs this lookup only once per render pass".
+  5. CLAUDE.md: rewrap the drawer bullet's new last line to about 80 columns.
+- **Verification:** gauntlet exit 0 (tsc, eslint, npm test); Captain's cycle
+  scan `node <scratchpad>/cycles.mjs` reports 0 cycles; no dashes added.
+- **Done criteria:** Captain pass 2 PASS.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -302,6 +330,8 @@ Same as mission 24 (read it there); the key points:
 | C3-1 | Vision (Opus) | **PASS** | 0 | 6 |
 | C3-1 | Strange (Opus) | **BLOCKED** | 1 | 6 |
 | C3-2 | Strange (Opus) | **PASS** | 0 | 1 |
+| M-1 | Captain (Opus) | **BLOCKED** | 1 | 7 |
+| M-2 | Captain (Opus) | **PASS** | 0 | 4 |
 
 **C1 Vision:** gauntlet all exit 0 (466). The labels and help text match the
 Brief exactly. `toNavMode` uses strict equality and passed every hostile
@@ -358,6 +388,19 @@ scroll, so "no lock left" passed trivially. F1's 12-line diff had no
 separate Vision pass; Stark's gauntlet was green and Captain's whole-mission
 pass plus the delivery gauntlet cover it.
 
+**Mission Captain pass 1:** gauntlet all exit 0 including build; recordcheck
+0 hard fails, 2 REVIEW lines settled (the `<timestamp>` placeholder; countable
+claims spot-checked). F1 read as correct. STRUCTURE.md attribution trim ruled
+acceptable.
+- BLOCKER K-1: type-only cycle NavDrawer → NavList → NavDrawer, the only cycle
+  in `src/`. Fix contract F2.
+- Notes: PinnedNav maps mode to width separately from `pinnedNavWidthPx`
+  (folded into F2); DESIGN.md wording (folded into F2); dal.ts comment says
+  "once" (folded into F2); the dashboard reads the `UserPreferences` row twice
+  on `/` (follow-up: take `dashboardLayout` from the DAL select); STRUCTURE.md
+  sequential-read clause could mention the second query (next touch with room);
+  `MediaQueryList.addEventListener` needs Safari 14+ (fine for our devices).
+
 ## Handoff log
 
 - 2026-11-02: mission opened. Bryce chose the "Menu style" row and sheet,
@@ -367,8 +410,29 @@ pass plus the delivery gauntlet cover it.
 - 2026-11-02: C2 built; migration applied to dev. Vision gating C2 while Stark builds C3.
 - 2026-11-02: C2 PASS and committed. C3 built; Vision and Strange gating.
 - 2026-11-02: C3 Vision PASS, Strange blocked (drawer over pinned menu); F1 fixed it, Strange C3-2 PASS. C3 + F1 committed. Stark on C4.
+- 2026-11-02: C4 built. Captain blocked on the NavList/NavDrawer cycle; F2 removed it and fixed wording; Captain pass 2 PASS. C4 + F2 committed. Dev server stopped, launch.json reverted.
 
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
+- **Shipped:** branch `claude/nav-mode`, 4 commits (C1; C2; C3+F1; C4+F2).
+  Not pushed yet: waiting on Bryce. Merging applies the additive
+  `add_nav_mode` migration to production in the Vercel build.
+- **Shipped check:** run `git log origin/main..HEAD` after push.
+- **Preview warning:** a Vercel preview uses the live DB, which has no
+  `navMode` column until merge, and the DAL selects it on every page, so the
+  PR preview will error everywhere. Skip the preview; the dev branch was
+  tested.
+- **Follow-ups (not this mission):**
+  - Pinned mode keeps an empty 56px band at the top of non-dashboard pages
+    (Strange N1).
+  - The pinned menu overflows 1280x800 and 1024x768 by 15 to 20px; tighten
+    spacing or move identity and Sign out into a footer (Strange N2).
+  - `color-scheme: light dark` on `:root` for dark scrollbars (Strange N3,
+    also a mission 23 follow-up).
+  - Rail icons have no tooltip, and the rail's avatar shows no name
+    (Strange N4, Vision). A design question for Bryce.
+  - The dashboard reads the `UserPreferences` row twice on `/`; take
+    `dashboardLayout` from the DAL select (Captain).
+  - Switching hamburger to pinned remounts the page (AppChrome root changes
+    shape); always render the wrapper (Vision).
+  - STRUCTURE.md is at its 699 limit; the next amendment needs a trim.

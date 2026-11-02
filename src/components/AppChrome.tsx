@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HamburgerButton } from "@/components/HamburgerButton";
-import type { DrawerUser } from "@/components/NavDrawer";
+import type { DrawerUser } from "@/components/NavList";
 import { MarsheeWordmark } from "@/components/MarsheeWordmark";
 import { PinnedNav } from "@/components/PinnedNav";
 import {

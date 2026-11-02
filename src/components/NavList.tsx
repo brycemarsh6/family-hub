@@ -4,15 +4,20 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { AvatarBadge } from "@/components/AvatarBadge";
-import type { DrawerUser } from "@/components/NavDrawer";
 import { logout } from "@/app/actions/auth";
-import { ROLE_LABELS } from "@/lib/constants";
+import { ROLE_LABELS, type Role } from "@/lib/constants";
 import {
   NAV_FOOTER_ITEMS,
   NAV_SECTIONS,
   activeNavHref,
   type NavItem,
 } from "@/lib/nav";
+
+export type DrawerUser = {
+  displayName: string;
+  avatarColor: string;
+  role: Role;
+};
 
 /** A click the browser should keep handling itself — a new tab, a new
  * window, a download. Covers the same modifier-key and middle-click cases

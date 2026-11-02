@@ -1,10 +1,12 @@
 "use server";
 
-// Per-person settings. Today that is one thing: the dashboard widget layout.
-// Any signed-in ACCOUNT may save its own; a device-mode session (the wall
-// tablet) is refused, because it always shows the default layout and has no
-// Customize button. The row is keyed by the session's userId, never by
-// anything the caller sends.
+// Per-person settings. Today that is two things: the dashboard widget layout
+// and the menu style. Any signed-in ACCOUNT may save its own dashboard layout;
+// a device-mode session (the wall tablet) is refused there, because it always
+// shows the default layout and has no Customize button. The menu style is
+// different: devices may save it too, since the wall tablet has its own
+// Settings row. Every row is keyed by the session's userId, never by anything
+// the caller sends.
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";

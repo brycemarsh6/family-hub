@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
-import { NavDrawer, type DrawerUser } from "@/components/NavDrawer";
+import { NavDrawer } from "@/components/NavDrawer";
+import type { DrawerUser } from "@/components/NavList";
 
 // Tailwind's `lg` breakpoint, the width where the pinned menu appears. Tailwind
 // has no JS constant for it, so it is written out here.

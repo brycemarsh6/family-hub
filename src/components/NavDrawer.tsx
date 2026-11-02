@@ -2,14 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { NavList } from "@/components/NavList";
-import type { Role } from "@/lib/constants";
-
-export type DrawerUser = {
-  displayName: string;
-  avatarColor: string;
-  role: Role;
-};
+import { NavList, type DrawerUser } from "@/components/NavList";
 
 /**
  * The app's one navigation surface on phones: a left-hand drawer around
