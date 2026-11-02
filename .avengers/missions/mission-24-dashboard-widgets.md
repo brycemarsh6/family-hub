@@ -179,7 +179,11 @@ New tests live directly in `src/lib/` so the existing glob reaches them.
   `npx prisma migrate deploy`; Vision PASS.
 
 ### C3 — Dashboard widget list and the Customize sheet
-- **Status:** PENDING
+- **Status:** BUILT (Stark). Gauntlet all exit 0. Deviation (accepted by
+  Fury): `wide` was removed from DashboardTile; the span now lives on a
+  wrapper div in the list, and the tile Link is `h-full`. The page doc
+  comment was rewritten (it now reads the session). The skeleton was not
+  re-measured. **DONE: Vision C3-1 PASS, Strange S-2 PASS (after F1).**
 - **Objective:** render the dashboard from each person's layout and let them change it instantly.
 - **Boundaries:**
   - may touch: `src/app/(app)/(home)/page.tsx`, `src/app/(app)/(home)/loading.tsx`,
@@ -244,6 +248,35 @@ New tests live directly in `src/lib/` so the existing glob reaches them.
   dashes in added lines.
 - **Done criteria:** Captain PASS over the whole mission.
 
+### F1 — (fix for C3) Strange S-1 blockers plus two notes
+- **Status:** DONE (Vision F1-1 PASS, Strange S-2 PASS)
+- **Boundaries:**
+  - may touch: `src/components/DashboardCustomizeSheet.tsx`,
+    `src/components/DashboardWidgetList.tsx`, `src/app/(app)/(home)/loading.tsx`.
+  - must not touch: everything else (including `src/components/EmptyState.tsx`).
+- **Spec:**
+  1. Switch off state (CustomizeSheet). The track always carries
+     `border-2`: `border-transparent` when on, `border-muted bg-surface-2`
+     when off. The knob is `bg-muted` and smaller (`h-4 w-4`) when off,
+     inset so it sits inside the border, and keeps `bg-surface` `h-6 w-6`
+     when on. The on state must look the same as today, so adjust the
+     knob offsets for the border. The off track edge and knob must reach
+     ≥3:1 against the sheet in both themes (`--muted` is 5.38 light and
+     6.12 dark).
+  2. Rejected save (WidgetList `change()`): wrap the await in `try/catch`.
+     The catch calls `setError("Couldn't save your dashboard. Check your
+     connection and try again.")`. Also clear `error` when a save
+     succeeds (Vision C3 note), not only when a change starts.
+  3. Empty state: render the existing `EmptyState` component
+     (`src/components/EmptyState.tsx`) in a `mt-6` wrapper, with emoji 🧩,
+     title "Your dashboard is empty." and hint "Tap Customize to turn
+     widgets back on." Remove the in-card Customize button.
+  4. Skeleton (loading.tsx): subtitle block `mt-2 h-6 w-56`, button block
+     `w-[123px]`.
+  - No em or en dashes in new text.
+- **Verification:** gauntlet → pass.
+- **Done criteria:** Vision and Strange pass 2.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -276,6 +309,72 @@ message is generic. Notes:
 - The bare `catch` doesn't log; add `console.error` later.
 - The success path is not live-tested; C3's Strange pass should toggle,
   reload and check a second person on dev.
+| C3-1 | Vision (Opus) | **PASS** | 0 | 4 |
+
+**C3 Vision:** gauntlet all exit 0. Boundary exact, and the tile JSX is
+byte-identical apart from `wide`. A failed save reverts. Rapid taps compute
+from the optimistic base; saves dispatch sequentially, and the last one wins.
+Devices are gated three ways and skip the read. The default grid is
+unchanged. No `wide` callers remain. Notes:
+- A *rejected* action (network drop, or a stale action ID after a deploy)
+  escapes to the error boundary. That's the house pattern; a try/catch fix
+  comes later.
+- The error clears on the next change, not on success.
+- The preferences read is outside the `Promise.all` (one extra round trip).
+- `min-w-0` on the grid cells: Strange to check the Recipes truncation.
+| S-1 | Strange (Opus) | **BLOCKED** | 3 | 4 |
+
+**C3 Strange pass 1.** Passed:
+- toggles in 3ms
+- order and on/off persist across reload
+- lone halves go full with no holes
+- Escape, backdrop and ✕ all close the sheet
+- every control ≥44px and unoccluded
+- disabled arrows read as disabled
+- Reset works live
+
+Blockers, all fixed in F1:
+- The off switch is nearly invisible: track 1.13:1 dark and 1.24:1 light,
+  and the knob is the sheet colour (DESIGN.md checklist item 5; WCAG 1.4.11).
+- A *rejected* save (offline) replaces the dashboard with the error boundary.
+  The contract promised inline errors.
+- The empty state is a one-off card, where DESIGN.md says to use
+  `EmptyState`, and it duplicates the Customize button.
+
+Notes:
+- The skeleton's subtitle block is 8px short (use `mt-2 h-6 w-56`, button
+  `w-[123px]`).
+- `text-warn` is the right error colour.
+- Focus doesn't move into the sheet (house pattern).
+- The dev "N" badge overlaps Reset (dev only).
+- Bryce's dev layout was reset to the default.
+| F1-1 | Vision (Opus) | **PASS** | 0 | 3 |
+
+**F1 Vision:** gauntlet all exit 0. Boundary clean. On-knob geometry is
+unchanged (the border replaces the padding). The catch path reverts and keeps
+the error. No unmount hazard. Rapid-tap cases are correct. Notes:
+- An error from a save made while the sheet is closed shows up on the next
+  open.
+- The knob's size change snaps rather than animates.
+- The skeleton title block height doesn't matter (the button sets the row).
+| S-2 | Strange (Opus) | **PASS** | 0 | 4 |
+
+**C3 Strange pass 2:** all three S-1 blockers are closed. Measured:
+- Off switch: border and knob 5.38:1 light, 6.12:1 dark.
+- On switch: unchanged.
+- Offline save: the switch reverts and the error shows inline.
+- Empty state: `EmptyState` with no duplicate button.
+- Skeleton: matches the live page to the pixel.
+- No regressions.
+- Bryce's dev layout was reset to the default and reload-verified.
+
+Notes:
+- With the sheet closed, an error shows nowhere (the layout still reverts
+  truthfully).
+- The empty hint wraps "on." alone at 375 (`text-balance` in `EmptyState`,
+  later).
+- The knob's size snaps.
+- Carried: focus, and the dev badge.
 
 ## Handoff log
 

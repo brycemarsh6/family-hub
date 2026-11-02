@@ -56,7 +56,7 @@ export default function TodayMealsTile({
   const slots = today === null ? null : todaysMeals(plans, today);
 
   return (
-    <DashboardTile href={href} icon={icon} title={title} wide>
+    <DashboardTile href={href} icon={icon} title={title}>
       {/*
         Always four rows — loading, empty, and filled alike. That's what
         keeps the tile from shifting the page as `today` resolves, and it's

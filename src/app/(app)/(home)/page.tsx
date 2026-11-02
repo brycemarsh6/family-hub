@@ -1,7 +1,12 @@
+import type { ReactNode } from "react";
 import { Package, ShoppingCart, BookOpen, CalendarDays } from "lucide-react";
 import DashboardTile from "@/components/DashboardTile";
 import TodayMealsTile from "@/components/TodayMealsTile";
+import DashboardWidgetList from "@/components/DashboardWidgetList";
 import { db } from "@/lib/db";
+import { getVerifiedUser } from "@/lib/dal";
+import { DEFAULT_DASHBOARD_LAYOUT, parseDashboardLayout } from "@/lib/dashboardLayout";
+import type { DashboardWidgetId } from "@/lib/dashboardWidgets";
 import { isLow } from "@/lib/constants";
 import { addDays } from "@/lib/mealPlanDates";
 import { isExpiringWithin } from "@/lib/expiring";
@@ -33,9 +38,10 @@ export const dynamic = "force-dynamic";
 /**
  * The family's front door: four tiles summarizing the whole Kitchen branch
  * (today's meals, inventory, the grocery list, recipes) with a tap straight
- * into each one. No DAL/session call here — this page shows nothing
- * role-gated, and the real login gate already lives in proxy.ts plus the
- * shared (app) layout above this page.
+ * into each one. Nothing here is role-gated (the real login gate lives in
+ * proxy.ts plus the shared (app) layout), but the session is read to find
+ * this person's saved widget layout. Device logins (the wall tablet) always
+ * get the default layout and no Customize button.
  */
 export default async function DashboardPage() {
   // Used only to bound the meal-plan query below (a wide tolerance window,
@@ -48,6 +54,20 @@ export default async function DashboardPage() {
   const serverNow = new Date();
   const windowStart = addDays(serverNow, -8);
   const windowEnd = addDays(serverNow, 8);
+
+  const user = await getVerifiedUser();
+  const isDevice = user?.isDevice ?? true;
+  const stored =
+    user && !user.isDevice
+      ? await db.userPreferences.findUnique({
+          where: { userId: user.userId },
+          select: { dashboardLayout: true },
+        })
+      : null;
+  // Whatever is stored is a claim, never a type: parse, don't cast.
+  const layout = stored?.dashboardLayout
+    ? parseDashboardLayout(stored.dashboardLayout)
+    : DEFAULT_DASHBOARD_LAYOUT;
 
   const [pantryItems, groceryItems, recipeCount, newestRecipe, mealPlans] = await Promise.all([
     db.pantryItem.findMany({
@@ -119,77 +139,74 @@ export default async function DashboardPage() {
     })),
   }));
 
-  return (
-    <div className="py-4">
-      {/* Not "Marshee" — the wordmark is already in the header directly
-          above this, and repeating it reads as a stutter. */}
-      <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Dashboard</h1>
-      <p className="mt-2 text-base text-muted">What&apos;s going on around the house.</p>
-
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        <TodayMealsTile
-          href="/kitchen/cooking/meal-plan"
-          icon={<CalendarDays size={20} className="text-muted" />}
-          title="Today's meals"
-          plans={mealPlanViews}
-        />
-
-        <DashboardTile
-          href="/kitchen/inventory"
-          icon={<Package size={20} className="text-muted" />}
-          title="Inventory"
-          badge={lowItems.length > 0 ? `${lowItems.length} low` : undefined}
-        >
-          <p className="text-lg font-semibold tabular-nums">
-            {pantryItems.length} stocked
+  const tiles: Record<DashboardWidgetId, ReactNode> = {
+    todayMeals: (
+      <TodayMealsTile
+        href="/kitchen/cooking/meal-plan"
+        icon={<CalendarDays size={20} className="text-muted" />}
+        title="Today's meals"
+        plans={mealPlanViews}
+      />
+    ),
+    inventory: (
+      <DashboardTile
+        href="/kitchen/inventory"
+        icon={<Package size={20} className="text-muted" />}
+        title="Inventory"
+        badge={lowItems.length > 0 ? `${lowItems.length} low` : undefined}
+      >
+        <p className="text-lg font-semibold tabular-nums">
+          {pantryItems.length} stocked
+        </p>
+        {expiringSoonCount > 0 && (
+          <p className="text-sm text-muted">{expiringSoonCount} expiring</p>
+        )}
+        {urgent.names.length > 0 && (
+          <p className="mt-1 line-clamp-2 text-sm text-muted">
+            {urgent.names.join(", ")}
+            {urgent.more > 0 && ` +${urgent.more} more`}
           </p>
-          {expiringSoonCount > 0 && (
-            <p className="text-sm text-muted">{expiringSoonCount} expiring</p>
-          )}
-          {urgent.names.length > 0 && (
-            <p className="mt-1 line-clamp-2 text-sm text-muted">
-              {urgent.names.join(", ")}
-              {urgent.more > 0 && ` +${urgent.more} more`}
-            </p>
-          )}
-        </DashboardTile>
-
-        <DashboardTile
-          href="/kitchen/shopping"
-          icon={<ShoppingCart size={20} className="text-muted" />}
-          title="Grocery"
-          badge={toBuy > 0 ? `${toBuy} to buy` : undefined}
-        >
-          {toBuy === 0 ? (
-            <p className="text-sm text-muted">Nothing to buy</p>
-          ) : (
-            <p className="line-clamp-2 text-sm text-muted">
-              {/* Non-breaking space: a plain one let "Amazon 2" wrap between the
-                  store and its count, orphaning a bare "2" on the next line. */}
-              {breakdown.map((store) => `${store.label}\u00A0${store.count}`).join(" · ")}
-            </p>
-          )}
-        </DashboardTile>
-
-        <DashboardTile
-          href="/kitchen/cooking/recipes"
-          icon={<BookOpen size={20} className="text-muted" />}
-          title="Recipes"
-          wide
-        >
-          <p className="text-sm text-muted">
-            {recipeCount} {recipeCount === 1 ? "recipe" : "recipes"}
+        )}
+      </DashboardTile>
+    ),
+    grocery: (
+      <DashboardTile
+        href="/kitchen/shopping"
+        icon={<ShoppingCart size={20} className="text-muted" />}
+        title="Grocery"
+        badge={toBuy > 0 ? `${toBuy} to buy` : undefined}
+      >
+        {toBuy === 0 ? (
+          <p className="text-sm text-muted">Nothing to buy</p>
+        ) : (
+          <p className="line-clamp-2 text-sm text-muted">
+            {/* Non-breaking space: a plain one let "Amazon 2" wrap between the
+                store and its count, orphaning a bare "2" on the next line. */}
+            {breakdown.map((store) => `${store.label}\u00A0${store.count}`).join(" · ")}
           </p>
-          {newestRecipe && (
-            // Its own line rather than appended after the count: real recipe
-            // titles ("Copycat Cracker Barrel Meatloaf") ran past the tile
-            // and truncated mid-word when the two shared one.
-            <p className="mt-0.5 truncate text-sm text-muted">
-              Newest: {newestRecipe.title}
-            </p>
-          )}
-        </DashboardTile>
-      </div>
-    </div>
-  );
+        )}
+      </DashboardTile>
+    ),
+    recipes: (
+      <DashboardTile
+        href="/kitchen/cooking/recipes"
+        icon={<BookOpen size={20} className="text-muted" />}
+        title="Recipes"
+      >
+        <p className="text-sm text-muted">
+          {recipeCount} {recipeCount === 1 ? "recipe" : "recipes"}
+        </p>
+        {newestRecipe && (
+          // Its own line rather than appended after the count: real recipe
+          // titles ("Copycat Cracker Barrel Meatloaf") ran past the tile
+          // and truncated mid-word when the two shared one.
+          <p className="mt-0.5 truncate text-sm text-muted">
+            Newest: {newestRecipe.title}
+          </p>
+        )}
+      </DashboardTile>
+    ),
+  };
+
+  return <DashboardWidgetList layout={layout} tiles={tiles} canCustomize={!isDevice} />;
 }
