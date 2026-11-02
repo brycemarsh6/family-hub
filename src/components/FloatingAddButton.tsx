@@ -17,7 +17,7 @@ export function FloatingAddButton({ onClick }: { onClick: () => void }) {
   return (
     <div
       className="pointer-events-none fixed inset-x-0 z-40 flex justify-center"
-      style={{ bottom: "calc(4.5rem + env(safe-area-inset-bottom))" }}
+      style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
     >
       <div className="w-full max-w-3xl px-4">
         <button

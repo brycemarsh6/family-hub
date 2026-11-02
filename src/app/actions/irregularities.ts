@@ -21,7 +21,6 @@ import {
 function refreshInventoryViews() {
   revalidatePath("/kitchen/inventory");
   revalidatePath("/kitchen/shopping");
-  revalidatePath("/kitchen");
   revalidatePath("/");
 }
 

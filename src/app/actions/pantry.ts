@@ -24,13 +24,11 @@ import {
 
 /**
  * Both pages can be affected by a pantry change: the pantry obviously, and the
- * grocery list when an item is sent to it. The kitchen home page shows counts
- * for both.
+ * grocery list when an item is sent to it.
  */
 function refreshKitchenViews() {
   revalidatePath("/kitchen/inventory");
   revalidatePath("/kitchen/shopping");
-  revalidatePath("/kitchen");
   // The dashboard's Kitchen widget shows these counts too.
   revalidatePath("/");
 }

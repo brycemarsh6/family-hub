@@ -1,36 +1,36 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ChevronRight, Users } from "lucide-react";
 import { requireVerifiedUser } from "@/lib/dal";
-import { BackLink } from "@/components/BackLink";
-import { SettingsForm } from "@/components/SettingsForm";
 
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
 
 /**
- * Everyone's own settings — display name, avatar colour, password. Any
- * signed-in ACCOUNT reaches this page; a `device` session (the wall
- * tablet, once P4 exists) is bounced home rather than shown a page whose
- * every action refuses it anyway (account.ts's DEVICE_REFUSED_ERROR) — see
- * mission-6's C3 contract.
+ * App-wide settings. Today that is one admin-only door, "Manage family";
+ * everyone else sees a placeholder. Your own name, colour and password
+ * live on /profile.
  */
 export default async function SettingsPage() {
   const user = await requireVerifiedUser();
-  if (user.isDevice) redirect("/");
 
   return (
     <div className="py-2">
-      <BackLink href="/" label="Home" />
-
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
-      <p className="mb-4 mt-1 text-sm text-muted">
-        Your name, avatar colour, and password.
-      </p>
 
-      <SettingsForm
-        displayName={user.displayName}
-        avatarColor={user.avatarColor}
-        role={user.role}
-      />
+      {user.role === "admin" ? (
+        <Link
+          href="/settings/family"
+          className="mt-4 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
+        >
+          <span className="flex items-center gap-3">
+            <Users aria-hidden="true" size={22} className="shrink-0 text-muted" />
+            Manage family
+          </span>
+          <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+        </Link>
+      ) : (
+        <p className="mt-2 text-sm text-muted">Nothing to set up yet.</p>
+      )}
     </div>
   );
 }

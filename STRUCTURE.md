@@ -8,7 +8,7 @@ structural changes against it.
 
 | Path | What lives here | What never lives here |
 |---|---|---|
-| `src/app/(app)/` | Authenticated routes — header + nav + session chrome. `/login` deliberately lives here too and suppresses its own nav bar in `HubNav.tsx`, rather than moving to a separate layout for one page | Pages needing a genuinely chrome-free root layout — those go in `src/app/share/` |
+| `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout for one page | Pages needing a genuinely chrome-free root layout; those go in `src/app/share/` |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`). A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
 | `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action |
@@ -225,7 +225,10 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/constants.ts` — categories, locations, meal slots, stores,
   **roles with their display labels and assignability, avatar colors**,
   their icons and order
-- `src/lib/nav.ts` — `HUB_NAV_ITEMS`, the only nav list
+- `src/lib/nav.ts`: `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`), the only nav list.
+  `src/lib/routeRedirects.ts`: `LEGACY_ROUTE_REDIRECTS`, the only redirect
+  map; it has **no imports at all**, because `next.config.ts` imports it by
+  relative path
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,
@@ -342,14 +345,13 @@ Adding a second definition of any of these is a BLOCKER:
   and one still said 64 — so "go to today" scrolled the reader to a spot
   hidden behind the header, and the same stale 64 sat in a second file one
   directory away. One fact, three encodings, two agreeing by import and one
-  silently stale. **`APP_HEADER_HEIGHT_PX` is the open instance** — it is a
-  fact about `(app)/layout.tsx` currently living in `CalendarHeader.tsx`,
-  which `RecipeList.tsx` explicitly declines to import and re-derives at
-  runtime instead; its home is a new `src/lib/appChrome.ts` exporting
-  **both** the constant and the measuring hook, with
-  `SCHEDULE_HEADER_BAR_HEIGHT_PX` and `SCHEDULE_TITLE_SLOT_ID` correctly
-  staying in `CalendarHeader.tsx` as facts about that component. CV4's
-  first contract. (Added 2026-09-05, mission-16, on Captain's ruling;
+  silently stale. **Closed in mission-23:** the header
+  now exists only on `/` and `/login`, and the dimension pages position
+  against is the floating hamburger's row, `HAMBURGER_ROW_HEIGHT_PX` (plus
+  `useHamburgerRowHeight`) in `src/lib/appChrome.ts`, which lists its
+  dependents. `SCHEDULE_HEADER_BAR_HEIGHT_PX` and `SCHEDULE_TITLE_SLOT_ID`
+  correctly stay in `CalendarHeader.tsx`, facts about that component.
+  (Added 2026-09-05, mission-16, on Captain's ruling;
   Bryce approved.)
 - `src/lib/personInfo.ts` — `PERSON_SELECT` / `toPersonInfo`, the single
   place a `User` row becomes something a client may see. **This is the
@@ -563,15 +565,9 @@ Adding a second definition of any of these is a BLOCKER:
   that touches the file. (Added 2026-09-03, mission-11. First instance:
   `MonthLoadingSkeleton.tsx`, which exported only `MonthGridSkeletonRows`
   after mission-11/C1 deleted the wrapper, was renamed to
-  `MonthGridSkeletonRows.tsx` in mission-15/C5. **One live instance remains,
-  found 2026-09-06: `HubNav.tsx` exports only `HubBottomNav`** — the earlier
-  text claimed none remained, which was checked against the calendar
-  components only. It is deliberately left rather than renamed: the filename
-  is cited by five other files' comments and by `nav.ts`'s own vocabulary, so
-  the cheaper repair is renaming the *export* to `HubNav` at the next touch of
-  that file — one importer, `(app)/layout.tsx`. Either direction closes it;
-  what is not allowed is leaving the rule asserting a clean sweep it does not
-  have.)
+  `MonthGridSkeletonRows.tsx` in mission-15/C5. **No live instance remains:** `HubNav.tsx`
+  (found 2026-09-06 exporting only `HubBottomNav`) was deleted in mission-23
+  when the side drawer replaced the bottom nav.)
 
 - **Shared *test* helpers live in `src/lib/testing/`, and that directory is
   exempt from the dormant-export rule** — its tests are its callers, so an

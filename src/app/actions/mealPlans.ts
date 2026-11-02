@@ -20,8 +20,6 @@ import { suggestMeals, type MealSuggestion } from "@/lib/mealSuggest";
 
 function refreshMealPlanViews() {
   revalidatePath("/kitchen/cooking/meal-plan");
-  revalidatePath("/kitchen/cooking");
-  revalidatePath("/kitchen");
 }
 
 export type MealPlanActionResult = { error?: string };

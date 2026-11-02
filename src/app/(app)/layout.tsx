@@ -1,18 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Manrope, Cormorant_Garamond } from "next/font/google";
-import Link from "next/link";
 import "../globals.css";
-import { HubBottomNav } from "@/components/HubNav";
-import { UserMenu } from "@/components/UserMenu";
+import { AppChrome } from "@/components/AppChrome";
 import { getVerifiedUser } from "@/lib/dal";
-// The header renders the brand lockup as vector components, not a PNG. The
-// master artwork Bryce traced lives in brand/ (never imported by app code —
-// see STRUCTURE.md); src/app/icon.png, apple-icon.png, and favicon.ico are
-// all generated from those same masters, for the browser tab/home-screen
-// icon. Rendering vectors here instead of an <Image> of a generated PNG
-// means the header logo stays crisp at any screen density, and there's
-// still only one place (brand/) to ever edit the artwork.
-import { MarsheeWordmark } from "@/components/MarsheeWordmark";
 
 // Marshee's three brand faces. Named --font-inter/--font-manrope/
 // --font-accent-serif (not --font-sans etc.) so they don't collide with the
@@ -46,8 +36,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   // `viewportFit: "cover"` lets us paint into the rounded corners on modern
-  // phones; branches with their own bottom tab bar (like Kitchen) add
-  // safe-area padding themselves to stay clear of the home indicator.
+  // phones; `AppChrome`'s `<main>` and the fixed bottom controls (AddItemBar,
+  // FloatingAddButton) add safe-area padding themselves to stay clear of the
+  // home indicator.
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f6f0e8" },
@@ -55,13 +46,12 @@ export const viewport: Viewport = {
   ],
 };
 
-// This layout wraps every page in the authenticated app: the logo bar up
-// top, the fixed tab bar along the bottom, and the page itself in between.
-// One nav for the whole app — it doesn't change contents as you move between
-// the dashboard and a branch like Kitchen, only which tab is lit up. Getting
-// from a branch's own tab (e.g. Kitchen) into its sub-pages (Inventory,
-// Shopping...) is the job of that branch's own landing page now, not a
-// second nav bar.
+// This layout wraps every page in the authenticated app. The chrome around
+// the page (the wordmark header on the dashboard and /login, the floating
+// hamburger and its side drawer everywhere else, and <main>) lives in
+// AppChrome, a client component, because which of those it shows depends on
+// the current path. One drawer for the whole app: it doesn't change contents
+// as you move around, only which row is lit.
 //
 // Lives inside the (app) route group rather than directly under app/ because
 // this is one of two root layouts in the project (see src/app/share/layout.tsx
@@ -74,8 +64,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Only to decide whether/what to show in the header (the identity button,
-  // with the right name/color/role) — this is not a security check itself.
+  // Only to decide whether/what to show in the chrome (the hamburger, and the
+  // drawer's identity row with the right name/color/role) — this is not a
+  // security check itself.
   // The real protection lives in the DAL's per-action guard, next to the
   // data (see src/lib/dal.ts). getVerifiedUser() is the same cached lookup
   // a page calling requireVerifiedUser()/getVerifiedSession() elsewhere in
@@ -89,71 +80,17 @@ export default async function RootLayout({
       className={`${inter.variable} ${manrope.variable} ${cormorantGaramond.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-bg text-fg">
-        {/*
-          mission-17/C1 — this header's real rendered height is a measured
-          fact other files position against, per STRUCTURE.md's rule that a
-          measured chrome dimension two-or-more surfaces depend on gets ONE
-          home in src/lib/, not a hardcoded copy per consumer. That home is
-          `src/lib/appChrome.ts` (`APP_HEADER_HEIGHT_PX` /
-          `useAppHeaderHeight`) — this comment is the other half of the
-          rule: naming every dependent here so a future edit to this
-          header (a taller logo, a second row, a bigger touch target) has
-          a list to re-check instead of a silent re-break. As of this
-          writing:
-            - `CalendarHeader.tsx` — pins its own Schedule-view bar directly
-              below this header (`style={{ top: APP_HEADER_HEIGHT_PX }}`).
-            - `ScheduleView.tsx` — adds this header's height to
-              CalendarHeader's own pinned-bar height to compute where its
-              content starts being visible on screen (its scroll-anchor
-              margin and its month-title reveal boundary).
-            - `RecipeList.tsx` — offsets its sticky A-Z letter headings by
-              this same height so the app header doesn't clip them.
-          mission-17/C5 adds two more dependents Fury's original list missed:
-            - `CalendarViews.tsx` — reads `useAppHeaderHeight()` and hands the
-              result to `TimelineGrid.tsx` as a `chromeOffsetPx` prop (that
-              component can't import appChrome.ts itself — see its own file
-              header for why: mission-17/C1 was moving this constant into
-              existence in a PARALLEL worktree while it was being written).
-            - `(app)/calendar/loading.tsx`'s `TimelineGridSkeleton` — its
-              `calc(100dvh - 369px)` is a COMPOSITE that folds this header's
-              height in alongside the page's own title/action-circle rows and
-              the bottom nav, so `369` does NOT contain this constant's name
-              and no grep will ever find the dependency. Named here instead,
-              since that is the only place a future header-height change can
-              learn this number needs re-measuring too.
-          If this header's real height ever changes, update
-          `APP_HEADER_HEIGHT_PX` in `src/lib/appChrome.ts` (or switch a
-          dependent to the runtime-measuring `useAppHeaderHeight` hook the
-          same module exports) — never add a second hardcoded number here
-          or in a dependent file.
-        */}
-        <header className="print:hidden sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-3xl items-center gap-4 px-4 py-3">
-            {/* The wordmark alone, in brand Sage — no icon tile beside it.
-                The mark and the word say the same thing, so showing both in
-                a 48px-tall bar just crowds it; the tile still carries the
-                brand on the home screen and the browser tab, where there's
-                no room for a word. */}
-            <Link href="/" className="flex min-h-12 items-center">
-              <MarsheeWordmark className="h-10 w-auto text-brand-sage" />
-            </Link>
-            {user && (
-              <UserMenu
-                displayName={user.displayName}
-                avatarColor={user.avatarColor}
-                role={user.role}
-              />
-            )}
-          </div>
-        </header>
-
-        {/* pb-28 leaves room for the fixed bottom tab bar so the last row of
-            a page is never trapped underneath it. */}
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-4 print:pb-0">
+        <AppChrome
+          user={
+            user && {
+              displayName: user.displayName,
+              avatarColor: user.avatarColor,
+              role: user.role,
+            }
+          }
+        >
           {children}
-        </main>
-
-        <HubBottomNav />
+        </AppChrome>
       </body>
     </html>
   );

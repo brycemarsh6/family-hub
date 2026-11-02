@@ -1,11 +1,23 @@
 import type { NextConfig } from "next";
+import { LEGACY_ROUTE_REDIRECTS } from "./src/lib/routeRedirects";
 
 const nextConfig: NextConfig = {
   devIndicators: {
-    // The little Next.js dev badge defaults to the bottom-left, where it sits
-    // directly on top of our phone tab bar. Top-right is empty on every screen
-    // size we have. (Development only — it never ships to a real device.)
-    position: "top-right",
+    // The little Next.js dev badge defaults to the bottom-left, where it can
+    // sit on top of page content. Top-right now hosts the calendar's buttons,
+    // so bottom-right it is. (Development only — it never ships to a real
+    // device.)
+    position: "bottom-right",
+  },
+  // Old URLs forward to their drawer destination before any page renders (no
+  // session lookup). The list lives in src/lib/routeRedirects.ts so a test
+  // can check it against the nav. Temporary (307), so browsers don't cache it.
+  async redirects() {
+    return LEGACY_ROUTE_REDIRECTS.map(({ source, destination }) => ({
+      source,
+      destination,
+      permanent: false,
+    }));
   },
   // In dev mode, Next.js refuses requests for its own JS/CSS files that come
   // from any address other than localhost — a safety default that would

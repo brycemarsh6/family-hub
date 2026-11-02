@@ -52,9 +52,8 @@ export function AddItemBar({
 
   return (
     <div
-      // 4rem clears the fixed tab bar, which now sits along the bottom at every
-      // screen size — so this offset applies at every size too.
-      className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 px-4"
+      // Sits just above the bottom edge (and the home indicator).
+      className="fixed inset-x-0 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 px-4"
     >
       <form
         ref={formRef}

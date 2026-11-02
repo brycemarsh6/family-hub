@@ -53,10 +53,14 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
 ## What's built
 
 - **Dashboard** (`/`): four live tiles: Today's meals, Inventory, Grocery, Recipes.
-- **One bottom nav bar** for the whole app: Kitchen, Calendar, Home, Chores, Lists.
-  A branch reaches its sub-pages through its own tile landing page, never a
-  second nav bar.
-- **Kitchen** (`/kitchen`), four tiles:
+- **One side drawer** for the whole app, opened by a hamburger button at the
+  top left (the wordmark header shows only on the dashboard and login). It lists
+  Dashboard, Calendar, Routines, Plans & Goals, Lists, a Kitchen group
+  (Recipes, Meal Plan, Shopping, Inventory, Expiring), then Profile, Settings
+  and Sign out. There are no landing pages. Old `/kitchen`, `/kitchen/cooking`
+  and `/chores` forward to Inventory, Recipes and Routines. Routines and
+  Plans & Goals are "Coming soon" placeholders.
+- **Kitchen** (the Kitchen group in the drawer):
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
     tap-to-edit sheet.
@@ -64,10 +68,11 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
     straight into the pantry. Low pantry items push onto the list in one tap.
   - **Expiring**: sorted by urgency, automatic shelf-life guesses (marked `~`),
     "Log leftovers".
-  - **Cooking**: **Recipes** (cookbooks with share links, four import paths
-    including photo and link, tags, ratings, filters, AI nutrition estimates,
-    add-to-meal-plan, add-ingredients-to-groceries) and **Meal Plan** (week view,
-    four slots a day, AI suggestions grounded in real inventory).
+  - **Recipes**: cookbooks with share links, four import paths including photo
+    and link, tags, ratings, filters, AI nutrition estimates,
+    add-to-meal-plan, add-ingredients-to-groceries.
+  - **Meal Plan**: week view, four slots a day, AI suggestions grounded in real
+    inventory.
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
   Read `.avengers/plans/calendar-v2.md` before calendar work.
@@ -120,14 +125,20 @@ Reasons for each are in the archive and the mission files.
 All in [DESIGN.md](DESIGN.md), each with its reason. The headlines: touch-first
 (48px+ targets), instant optimistic updates, colors named by job not appearance,
 Lucide outline icons only, secondary row actions behind a right-to-left swipe
-(destructive last), every page below a nav destination has a `BackLink`, and
+(destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-10-31)
+## Current status (updated 2026-11-02)
 
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
+- **Navigation redesign, PR 1 of 3** (side drawer replaces the bottom nav):
+  mission 23 on branch `claude/nav-drawer`. All gates passed; waiting on
+  Bryce to push and open the PR. Next: PR 2 (dashboard widgets + Customize),
+  then PR 3 (nav mode setting). Plan, polish follow-ups and notes in
+  `mission-23-nav-drawer.md`. CD1 will conflict with this branch in
+  `CalendarHeader.tsx`, so land this one first.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
   for the swipe `pointerdown` issue and `CalendarViews.tsx` growth that CV6's
   gates flagged (details in `mission-19-calendar-cv6-dropdown-swipe.md`).
@@ -144,6 +155,8 @@ Replace this section at the end of each session. Don't append.
   as `ASSISTANT_API_TOKEN_HASH`, paste the token into Home Hub, then change
   Bryce's own Marshee password.
 - **Do not create a kid login until P3 role gates are deployed.**
+- **iPhone check after PR 1 ships:** on Week view, scroll to 11 PM. Does
+  the last hour clear the home bar?
 
 **Open, not scheduled:**
 - Inventory collapse state doesn't persist across reloads; Shopping has no

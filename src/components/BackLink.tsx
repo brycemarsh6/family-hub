@@ -4,11 +4,10 @@ import { ArrowLeft } from "lucide-react";
 /**
  * "Back to wherever you came from" — the one way up a level in this app.
  *
- * The global nav bar only reaches branch roots (Kitchen, Calendar, Home,
- * Chores, Lists), and a branch landing page only reaches *down* into its own
- * sub-pages. So without this, anything deeper than a landing page was a
- * dead end: getting from a recipe back to the recipe list meant tapping
- * Kitchen, then Cooking, then Recipes. This is that missing edge.
+ * The side drawer reaches every destination directly (Recipes, Shopping,
+ * Inventory and so on), but it only goes *across*, never up from a page
+ * below a destination. So without this, a recipe's detail page had no way
+ * back to the recipe list except reopening the drawer. This is that edge.
  *
  * It points at an explicit `href` rather than calling `router.back()`, so the
  * destination is the page's real parent no matter how you arrived — following

@@ -16,8 +16,8 @@ export const dynamic = "force-dynamic";
  * that shouldn't end up on paper.
  *
  * `print:hidden` on the back link and the print button keeps them out of
- * the actual printout; the shared header/bottom nav hide themselves the
- * same way from the root (app) layout.
+ * the actual printout; the shared header, floating hamburger and drawer
+ * hide themselves the same way from the root (app) layout.
  */
 export default async function RecipePrintPage({
   params,

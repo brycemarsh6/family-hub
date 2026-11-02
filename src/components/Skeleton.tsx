@@ -40,17 +40,6 @@ export function SkeletonList({ rows = 6 }: { rows?: number }) {
   );
 }
 
-/** A stand-in for a branch landing page's 2-column tile grid. */
-export function SkeletonTiles({ tiles = 4 }: { tiles?: number }) {
-  return (
-    <div className="mt-6 grid grid-cols-2 gap-4">
-      {Array.from({ length: tiles }, (_, i) => (
-        <SkeletonBlock key={i} className="min-h-36" />
-      ))}
-    </div>
-  );
-}
-
 /**
  * The whole screen, for routes with no more specific skeleton. Announced
  * politely to screen readers so the wait isn't silent for anyone using one.

@@ -4,16 +4,16 @@ import Link from "next/link";
  * The shared shell behind all four dashboard tiles: a header row (icon,
  * title, an optional "go look at this" badge) and a body of whatever
  * content that tile wants to show. The whole tile is the tap target, same
- * rule as BranchTile — no smaller link or button living inside it, so a
- * tap anywhere on the card always does the one obvious thing.
+ * rule as the old landing-page tiles: no smaller link or button living
+ * inside it, so a tap anywhere on the card always does the one obvious thing.
  *
  * `wide` spans both grid columns — Today's meals and Recipes use it,
  * Inventory and Grocery sit side by side without it. Same prop, same
- * meaning, as BranchTile's own `wide`.
+ * meaning, as the old landing-page tiles' own `wide`.
  *
  * `icon` takes an already-rendered element (`<Package size={20} .../>`),
- * never a bare component reference. This is the BranchTile/PlanWeekTile
- * lesson again: TodayMealsTile is a Client Component, and a function
+ * never a bare component reference. This is the landing-page tile
+ * (PlanWeekTile) lesson again: TodayMealsTile is a Client Component, and a function
  * (a bare component reference) can't cross the Server-to-Client boundary
  * as a prop — only an already-rendered element can. Every caller on the
  * dashboard page renders its icon the same way, so nobody "fixes" one

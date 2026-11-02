@@ -26,7 +26,6 @@ import { parseIngredientNames } from "@/lib/ingredientParse";
  */
 function refreshGroceryViews() {
   revalidatePath("/kitchen/shopping");
-  revalidatePath("/kitchen");
   // The dashboard's Kitchen widget shows these counts too.
   revalidatePath("/");
 }

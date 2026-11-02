@@ -6,8 +6,8 @@ import "../globals.css";
 //
 // A shared recipe is read by someone outside the household — no session, no
 // account, often on a phone, possibly printed. So this deliberately has
-// none of the app's chrome: no header, no sign-out button, no bottom tab
-// bar, and critically no getSession() call, since there's no session to
+// none of the app's chrome: no header, no sign-out button, no hamburger or
+// drawer, and critically no getSession() call, since there's no session to
 // read and nothing here should behave differently based on whether the
 // reader happens to also be a family member.
 //

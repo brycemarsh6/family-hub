@@ -22,27 +22,12 @@
 //     ...>"). `now` follows the identical shape via the new useNowMinute.ts
 //     hook (this contract also ships), which this component deliberately
 //     does NOT call itself — see that file's own header for why.
-//   - `chromeOffsetPx`: mission-17/C1 is relocating APP_HEADER_HEIGHT_PX
-//     into src/lib/appChrome.ts AT THE SAME TIME this file is being
-//     written, in a separate worktree — importing it here would be
-//     importing a file mid-edit by a parallel builder. This component
-//     therefore takes the app header's height as a prop instead, exactly
-//     the shape RecipeList.tsx already uses for the same constant (that
-//     file "explicitly refuses to import a calendar component" for it).
-//     It's used ONLY as the first-paint seed for the scroller's height (see
-//     the sizing effect below) — the same "seed value now, refine with a
-//     real measurement after mount" split C1's own contract documents for
-//     APP_HEADER_HEIGHT_PX itself.
-//   - The bottom nav's height is measured live at runtime, never hardcoded —
-//     see the sizing effect's own comment for why a live DOM measurement is
-//     kept here rather than switching to appChrome.ts's `useBottomNavHeight`
-//     hook. Its FALLBACK value (for the rare case the nav element isn't
-//     found at all) is `BOTTOM_NAV_HEIGHT_PX` (appChrome.ts, mission-17/C5)
-//     rather than a private guess — this file used to carry its own `64`,
-//     which Captain found was WRONG (65 is the real number: HubNav.tsx's
-//     `min-h-16` row PLUS its own `border-t`), the exact "must-not-touch
-//     boundary satisfied by copying" failure this mission's own report
-//     names, one level down from `hexToRgba`'s original hoist.
+//   - `chromeOffsetPx`: the hamburger row's height, taken as a prop (the
+//     shape RecipeList.tsx also uses for chrome) rather than imported. It is
+//     used ONLY as the first-paint seed for the scroller's height (see the
+//     sizing effect below); a real measurement refines it after mount.
+//   - Nothing sits below the scroller any more (no bottom tab bar), so its
+//     height is just the viewport's remaining height under its own top edge.
 //
 // CONSUMES timelineLayout.ts's `partitionForTimeline`/`blockGeometry`/
 // `assignColumns` UNCHANGED. `partitionForTimeline` splits `events` into the
@@ -113,7 +98,6 @@ import {
 } from "@/lib/timelineLayout";
 import { isSameDay, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 import { isOutsideWindow } from "@/lib/calendarDates";
-import { BOTTOM_NAV_HEIGHT_PX } from "@/lib/appChrome";
 import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
 import { TimelineDayColumn } from "./TimelineDayColumn";
 import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
@@ -185,11 +169,10 @@ type TimelineGridProps = {
    * handler ignores it), so the same closure the daySection branch already
    * passes for `year` can be reused here unchanged. */
   onOpenTask: (task: CalendarTaskView, day: Date) => void;
-  /** The app's global sticky header's rendered height — see this file's own
-   * header for why this is a prop rather than an import of
-   * APP_HEADER_HEIGHT_PX. Used only as the scroller's first-paint height
-   * seed (a CSS `calc()` string, safe under SSR); a real measurement
-   * refines it the instant this mounts. */
+  /** The hamburger row's height — see this file's own header for why this
+   * is a prop. Used only as the scroller's first-paint height seed (a CSS
+   * `calc()` string, safe under SSR); a real measurement refines it the
+   * instant this mounts. */
   chromeOffsetPx: number;
 };
 
@@ -220,39 +203,13 @@ export function TimelineGrid({
   const columnDaysKey = columnDays.map((day) => day.getTime()).join(",");
 
   // --- Sizing: this component's own overflow-y-auto scroller, sized from
-  // the measured header + nav (the contract's own words), not a computed
-  // guess. `chromeOffsetPx` seeds the CSS `calc()` used for the very first
-  // paint (and SSR, since a client component still renders once on the
-  // server for its initial HTML) — cheap and correct because a `height`
-  // isn't a pinned `style={{ top }}`; a one-paint-late refinement here reads
-  // as the box settling, not as content jumping under a fixed point (see
-  // mission-16/C1's own rider comment for the general "fine for scroll-mt,
-  // not fine for a pinned top" distinction this borrows).
-  //
-  // The bottom nav's real height is MEASURED live at runtime, deliberately
-  // not read from a hook (`useBottomNavHeight`, appChrome.ts) — see below
-  // for why. STRUCTURE.md's chrome-dimension rule treats a runtime
-  // measurement as an equal-standing alternative to a shared constant, and
-  // this effect's own live DOM query IS that measurement; only its
-  // FALLBACK value (`BOTTOM_NAV_HEIGHT_PX`, for the rare case the nav
-  // element isn't found at all) now comes from appChrome.ts rather than a
-  // private guess — mission-17/C5, after Captain found this file's own
-  // previous fallback (`64`) was wrong (the real number is 65: HubNav.tsx's
-  // `min-h-16` row plus its own `border-t`). `aria-label` selector, not a
-  // class, because HubNav.tsx's own `aria-label="Sections"` is already the
-  // one stable, accessibility-driven hook on that element; nothing here
-  // depends on its CSS classes.
-  //
-  // Why not just call `useBottomNavHeight()` here instead of this inline
-  // query: that hook's return value is REACT STATE, one render/commit
-  // behind the live DOM at the instant this effect runs — and the
-  // scroll-to-now effect right below this one reads `scroller.clientHeight`
-  // in the SAME synchronous commit as the imperative `style.height` write
-  // below, which a hook's state value can't feed (see that write's own
-  // comment for why the imperative step exists at all). A hook is the right
-  // shape for a consumer that only needs the NUMBER; this effect needs the
-  // measurement and an imperative write in the same pass, so it keeps its
-  // own query and only borrows the shared fallback constant.
+  // its measured top edge to the bottom of the viewport. `chromeOffsetPx`
+  // seeds the CSS `calc()` used for the very first paint (and SSR) — cheap
+  // and correct because a `height` isn't a pinned `style={{ top }}`; a
+  // one-paint-late refinement here reads as the box settling, not as
+  // content jumping under a fixed point (see mission-16/C1's own rider
+  // comment for the "fine for scroll-mt, not fine for a pinned top"
+  // distinction this borrows).
   const [measuredHeightPx, setMeasuredHeightPx] = useState<number | null>(null);
 
   useLayoutEffect(() => {
@@ -261,9 +218,7 @@ export function TimelineGrid({
 
     function measure() {
       const top = scroller!.getBoundingClientRect().top;
-      const nav = document.querySelector('nav[aria-label="Sections"]');
-      const navHeightPx = nav?.getBoundingClientRect().height ?? BOTTOM_NAV_HEIGHT_PX;
-      const available = Math.max(window.innerHeight - top - navHeightPx, MIN_SCROLLER_HEIGHT_PX);
+      const available = Math.max(window.innerHeight - top, MIN_SCROLLER_HEIGHT_PX);
       setMeasuredHeightPx(available);
       // Applied imperatively, in addition to the React state update above,
       // for a real reason and not a redundant belt-and-suspenders: the
@@ -292,7 +247,7 @@ export function TimelineGrid({
   const scrollerHeightStyle =
     measuredHeightPx !== null
       ? `${measuredHeightPx}px`
-      : `calc(100dvh - ${chromeOffsetPx + BOTTOM_NAV_HEIGHT_PX}px)`;
+      : `calc(100dvh - ${chromeOffsetPx}px)`;
 
   // --- Scroll-to-now on open (or 7 AM when today isn't one of the columns).
   // Keyed ONLY on the column set, deliberately excluding `today`/`now` from
@@ -363,10 +318,10 @@ export function TimelineGrid({
 
   return (
     <div
-      className="overflow-hidden rounded-xl border border-line"
+      data-fills-viewport className="overflow-hidden rounded-t-xl border border-b-0 border-line"
       style={{ ["--hour-height" as string]: `${HOUR_HEIGHT_PX}px` }}
     >
-      <div ref={scrollerRef} className="overflow-y-auto" style={{ height: scrollerHeightStyle }}>
+      <div ref={scrollerRef} className="overflow-y-auto pb-[env(safe-area-inset-bottom)]" style={{ height: scrollerHeightStyle }}>
         {/* Sticky as ONE unit — the weekday header and the all-day strip
             stack inside it via ordinary flow, so there's no second `top`
             offset to compute or keep in sync with the first (a smaller,

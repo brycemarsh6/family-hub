@@ -38,7 +38,7 @@ test("canonicalSearchFor: a URL already naming a built view is left completely a
 });
 
 test("canonicalSearchFor: THE BLOCKER — a bare '/calendar' is rewritten to the view it resolved to", () => {
-  // The URL HUB_NAV_ITEMS links to. Its meaning came from the stored
+  // The URL NAV_SECTIONS links to. Its meaning came from the stored
   // preference; writing that meaning down is what stops a later picker tap
   // from changing what the entry means when Back returns to it.
   assert.equal(canonicalSearchFor(null, MONTH), "date=2026-09-03&view=month");

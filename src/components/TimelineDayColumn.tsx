@@ -32,7 +32,7 @@
 // re-imported so this file never risks disagreeing with the caller's own
 // `HOUR_HEIGHT_PX`/`MINUTES_PER_DAY`-derived constants — a second private
 // copy of either is exactly the kind of drift this mission's own report
-// (`GUTTER_WIDTH_PX`, `BOTTOM_NAV_HEIGHT_PX`) keeps finding.
+// (`GUTTER_WIDTH_PX`, and the old bottom-nav height) keeps finding.
 
 import { minutesOfDay, MIN_BLOCK_MINUTES, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
 import { formatTimeRange, isPast } from "@/lib/calendarDates";

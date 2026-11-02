@@ -9,8 +9,8 @@
 // for why a portal, not a prop.
 //
 // `revealLineY`/`titleSlotId` are taken as PARAMETERS rather than this file
-// importing CalendarHeader's own constants (APP_HEADER_HEIGHT_PX,
-// SCHEDULE_HEADER_BAR_HEIGHT_PX, SCHEDULE_TITLE_SLOT_ID) itself — a
+// importing CalendarHeader's own constants (SCHEDULE_HEADER_BAR_HEIGHT_PX,
+// SCHEDULE_TITLE_SLOT_ID) itself: a
 // src/lib/ module reaching into src/components/ is the exact STRUCTURE.md
 // violation useScheduleWindow.ts's own C5 header already fixed once (that
 // file no longer imports the Server Actions it needs either, for the same

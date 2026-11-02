@@ -26,14 +26,15 @@ function capitalize(word: string): string {
 }
 
 /**
- * Everyone's own settings: rename, pick an avatar colour, change password.
+ * Everyone's own profile (the `/profile` page; `/settings` is the separate
+ * Settings page): rename, pick an avatar colour, change password.
  * The first two are the house "tap a row, get a sheet" pattern (TitleSheet,
  * RadioSheet); password is a plain form per the C3 contract — it's
  * keyboard entry, not a count, so the QuantityStepper rule doesn't apply,
  * and a form with three real fields doesn't fit the single-field TitleSheet
  * shape anyway.
  */
-export function SettingsForm({
+export function ProfileForm({
   displayName: initialDisplayName,
   avatarColor: initialAvatarColor,
   role,

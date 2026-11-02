@@ -17,7 +17,7 @@ import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { toLocalDateString } from "@/lib/mealPlanDates";
 import { useNowMinute } from "@/lib/useNowMinute";
-import { useAppHeaderHeight } from "@/lib/appChrome";
+import { useHamburgerRowHeight } from "@/lib/appChrome";
 import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
@@ -129,13 +129,13 @@ export function CalendarViews({
   // own "timeline" branch guards it on its own rather than assuming
   // `today !== null` covers it too.
   const now = useNowMinute();
-  const chromeOffsetPx = useAppHeaderHeight();
+  const chromeOffsetPx = useHamburgerRowHeight();
 
   // mission-19/C4 — swipe-to-page, via a hook rather than folded in here
   // (see usePageSwipe.ts's own header for why it's a sibling of
   // SwipeActions.tsx's gesture machine rather than a shared import from
   // it). Called unconditionally, the same convention as useNowMinute/
-  // useAppHeaderHeight just above — only renderPeriodContent's "month",
+  // useHamburgerRowHeight just above — only renderPeriodContent's "month",
   // "timeline" and "year" branches actually spread these handlers onto
   // anything; Schedule manages its own scrolling and is never wrapped.
   // `step` is the SAME call the header's Prev/Next arrows make (below) —

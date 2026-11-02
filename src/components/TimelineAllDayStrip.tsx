@@ -36,8 +36,8 @@
 // sit in the same CSS grid columns — and Captain's OWN finding earlier in
 // this same mission's gate round was that a forbidden-to-touch boundary is
 // exactly what turns a shared magic number into two independently-editable
-// copies that can silently drift (HubNav.tsx's real bottom-nav height, `65`,
-// against a stale private copy that said `64`). Passing the one string
+// copies that can silently drift (the old bottom nav's real height, `65`,
+// against a stale private copy that said `64`; that nav is gone now). Passing the one string
 // TimelineGrid.tsx already computes is the same fix applied here, instead
 // of repeated.
 //

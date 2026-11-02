@@ -25,8 +25,6 @@ import { isMissingRowError } from "@/lib/prismaErrors";
 
 function refreshRecipeViews() {
   revalidatePath("/kitchen/cooking/recipes");
-  revalidatePath("/kitchen/cooking");
-  revalidatePath("/kitchen");
 }
 
 /** Trimmed to null rather than "", so an empty optional field reads as
