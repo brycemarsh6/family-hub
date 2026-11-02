@@ -24,12 +24,10 @@ import { toCategory, toStore, toLocation, MANAGER_ROLES } from "@/lib/constants"
  * Re-render the pages whose contents just changed.
  *
  * Next.js caches rendered pages. After we change data we have to say "that page
- * is out of date", or the browser would keep showing the old list. The kitchen
- * home page is included because it displays the item counts.
+ * is out of date", or the browser would keep showing the old list.
  */
 function refreshGroceryViews() {
   revalidatePath("/kitchen/shopping");
-  revalidatePath("/kitchen");
   // The dashboard's Kitchen widget shows these counts too.
   revalidatePath("/");
 }

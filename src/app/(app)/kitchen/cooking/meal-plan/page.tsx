@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { BackLink } from "@/components/BackLink";
 import { MealPlanList } from "@/components/MealPlanList";
 import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
@@ -42,8 +41,6 @@ export default async function MealPlanPage() {
 
   return (
     <div className="py-2">
-      <BackLink href="/kitchen/cooking" label="Cooking" />
-
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
         Meal Plan
       </h1>

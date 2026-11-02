@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { BackLink } from "@/components/BackLink";
 import { RecipesBrowser } from "@/components/RecipesBrowser";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +48,6 @@ export default async function RecipesPage() {
 
   return (
     <div className="py-2">
-      <BackLink href="/kitchen/cooking" label="Cooking" />
       <RecipesBrowser recipes={recipes} cookbooks={cookbooks} tags={tags} />
     </div>
   );

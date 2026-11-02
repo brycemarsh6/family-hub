@@ -33,7 +33,7 @@ function capitalize(word: string): string {
  * and a form with three real fields doesn't fit the single-field TitleSheet
  * shape anyway.
  */
-export function SettingsForm({
+export function ProfileForm({
   displayName: initialDisplayName,
   avatarColor: initialAvatarColor,
   role,

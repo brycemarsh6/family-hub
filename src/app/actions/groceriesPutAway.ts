@@ -14,7 +14,6 @@ import { matchItem } from "@/lib/match";
 function refreshPutAwayViews() {
   revalidatePath("/kitchen/shopping");
   revalidatePath("/kitchen/inventory");
-  revalidatePath("/kitchen");
   revalidatePath("/");
 }
 

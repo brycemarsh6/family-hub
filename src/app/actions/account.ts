@@ -29,7 +29,7 @@ export type AccountResult = { error?: string };
 const DEVICE_REFUSED_ERROR = "A shared device can't edit an account.";
 
 function refreshAccountViews() {
-  revalidatePath("/settings");
+  revalidatePath("/profile");
 }
 
 /**

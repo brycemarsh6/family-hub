@@ -1,0 +1,33 @@
+import { redirect } from "next/navigation";
+import { requireVerifiedUser } from "@/lib/dal";
+import { ProfileForm } from "@/components/ProfileForm";
+
+// Reads the session, so it can never be cached.
+export const dynamic = "force-dynamic";
+
+/**
+ * Everyone's own profile — display name, avatar colour, password. Any
+ * signed-in ACCOUNT reaches this page; a `device` session (the wall
+ * tablet, once P4 exists) is bounced home rather than shown a page whose
+ * every action refuses it anyway (account.ts's DEVICE_REFUSED_ERROR) — see
+ * mission-6's C3 contract.
+ */
+export default async function ProfilePage() {
+  const user = await requireVerifiedUser();
+  if (user.isDevice) redirect("/");
+
+  return (
+    <div className="py-2">
+      <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Profile</h1>
+      <p className="mb-4 mt-1 text-sm text-muted">
+        Your name, avatar colour, and password.
+      </p>
+
+      <ProfileForm
+        displayName={user.displayName}
+        avatarColor={user.avatarColor}
+        role={user.role}
+      />
+    </div>
+  );
+}

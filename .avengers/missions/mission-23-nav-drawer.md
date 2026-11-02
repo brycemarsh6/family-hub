@@ -156,7 +156,7 @@ Old exports are removed only in the contract that removes their last user.
   calendar is expected to look wrong until C4).
 
 ### C3 — Routes: profile, settings, routines, plans, redirects, retire landing pages
-- **Status:** PENDING
+- **Status:** DONE — Vision PASS (C3-1)
 - **Boundaries:**
   - may touch: new `src/app/(app)/profile/page.tsx`,
     `src/app/(app)/settings/page.tsx`, `src/components/SettingsForm.tsx`
@@ -256,7 +256,9 @@ Old exports are removed only in the contract that removes their last user.
     `src/lib/useScheduleMonthTitle.ts` (comment),
     `src/lib/useCanonicalCalendarUrl.ts` (comment),
     `src/lib/useCanonicalCalendarUrl.test.ts` (comment),
-    `src/app/(app)/(home)/loading.tsx` (comment).
+    `src/app/(app)/(home)/loading.tsx` (comment),
+    `src/app/(app)/layout.tsx` (viewport comment only, Vision C3 note 6),
+    `src/components/ProfileForm.tsx` (doc comment only, Vision C3 note 6).
   - must not touch: code (comments only in the .ts/.tsx files above).
 - **Spec:** the plan's "Doc amendments" replacement text. Name items, never
   count into lists. Every claim about a file names a file that exists after
@@ -273,6 +275,9 @@ Old exports are removed only in the contract that removes their last user.
 |---|---|---|---|---|
 | C1-1 | Vision (Opus) | **PASS** | 0 | 5 |
 | C2-1 | Vision (Opus) | **PASS** | 0 | 6 |
+| C3-1 | Vision (Opus) | **PASS** | 0 | 7 |
+
+**C3 Vision notes:** (1) Settled: a rename on /profile refreshes the drawer identity without reload. Next 16 re-renders from the root on any Server Action that revalidates (revalidate.js, server-action-reducer.js), same as UserMenu before. (2) Every action still revalidates every page it changes, and the three redirects are in routes-manifest.json as 307, anchored. (3) A stale `.next/types` breaks only local tsc before a build; CI has no `.next/`, proven with a no-.next tsconfig. (4) A device session now sees "Nothing to set up yet." on /settings (only /profile redirects devices); whether the drawer hides Profile/Settings for devices is for P4. (5) The empty `chores/` dir was removed by Fury. (6) Comment leftovers for C5: `ProfileForm.tsx` doc ("Everyone's own settings"), `(app)/layout.tsx` viewport comment ("bottom tab bar (like Kitchen)"). (7) Predates this mission: mealPlans.ts and recipes.ts never revalidate `/`, and users*.ts revalidate only `/settings/family`. Hidden today by root re-render; worth a line when next touched.
 
 **C2 Vision notes:** (1) the drawer's `<nav aria-label="Sections">` collides with TimelineGrid's inline query and `useBottomNavHeight` (open drawer + resize on a timeline view shrinks the scroller until the next resize); C4 removes both, made a C4 gate condition. (2) `useAppHeaderHeight` returns the seed or a page `<header>` on non-wordmark pages, as expected until C4. (3) The 8px gap is above the hamburger, not below as the constant's comment says; fix in C4, and Strange checks the spacing. (4) Cmd-click on a drawer row also closes the drawer, which is harmless. (5) No focus move into the dialog, no focus return, no scroll lock (same as UserMenu); for Strange. (6) `useCanonicalCalendarUrl.ts:26` still names HUB_NAV_ITEMS; C5.
 
@@ -312,6 +317,15 @@ Assembled).
   `nav[aria-label="Sections"]`, which the open drawer now also carries (C4
   removes both). There is no focus return or slide animation on the drawer
   (Strange may want them). C2 sent to Vision (Opus).
+- 2026-11-02 — Vision PASS on C2 (6 notes; two carried into C4 as conditions). First commit attempt aborted: `git add` named the two already-`git rm`ed paths, so nothing was recorded; caught by `git show --stat`, re-staged by explicit path. C2 committed. C3 preflight 0 failures; C3 dispatched to Stark.
+- 2026-11-02 — Stark reported C3 DONE: gauntlet + build exit 0. The route
+  table has /profile, /settings, /routines, /plans and no /kitchen,
+  /kitchen/cooking or /chores page. Deviations: `git mv` chores→routines and
+  settings→profile (history kept), two false comments fixed in pantry.ts and
+  groceries.ts. Open question for Vision: account.ts revalidates only
+  `/profile`, so does a rename refresh the drawer's identity row (rendered
+  from the layout)? Stark also noted that mealPlans.ts never revalidated `/`
+  (this predates the mission). C3 sent to Vision (Opus).
 
 ## Delivery
 
