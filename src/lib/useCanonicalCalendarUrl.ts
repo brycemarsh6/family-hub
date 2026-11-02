@@ -23,7 +23,7 @@ import { toBuiltCalendarView, type CalendarPeriodView } from "./calendarViewVoca
  * or `today` hasn't resolved so there is no answer yet.
  *
  * WHY THE URL IS REWRITTEN AT ALL (mission-11/C4, Vision's pass-2 blocker).
- * `HUB_NAV_ITEMS` links to a bare `/calendar` (nav.ts), so a URL naming no
+ * `NAV_SECTIONS` links to a bare `/calendar` (nav.ts), so a URL naming no
  * view is the first thing a family member lands on — and what it MEANS is
  * read from this device's stored preference, which the user's own picker tap
  * then changes. One history entry therefore meant Week when it was pushed and

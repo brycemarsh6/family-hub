@@ -38,7 +38,7 @@ function isModifiedClick(event: React.MouseEvent<HTMLAnchorElement>) {
 }
 
 const ROW_CLASS =
-  "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-base font-medium transition-colors active:bg-surface-2";
+  "flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-base transition-colors active:bg-surface-2";
 
 /**
  * The app's one navigation surface: a left-hand drawer listing every
@@ -123,7 +123,7 @@ export function NavDrawer({
           onClose();
         }}
         aria-current={active ? "page" : undefined}
-        className={`${ROW_CLASS} ${active ? "bg-accent-soft font-semibold text-accent" : "text-fg"}`}
+        className={`${ROW_CLASS} ${active ? "bg-accent-soft font-semibold text-accent" : "font-medium text-fg"}`}
       >
         <item.icon aria-hidden="true" size={22} />
         {item.label}
@@ -186,7 +186,7 @@ export function NavDrawer({
               account sheet — no client JavaScript required for this to work,
               the browser just submits it. */}
           <form action={logout}>
-            <button type="submit" className={`${ROW_CLASS} text-fg`}>
+            <button type="submit" className={`${ROW_CLASS} font-medium text-fg`}>
               <LogOut aria-hidden="true" size={22} />
               Sign out
             </button>

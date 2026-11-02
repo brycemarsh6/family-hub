@@ -36,8 +36,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   // `viewportFit: "cover"` lets us paint into the rounded corners on modern
-  // phones; branches with their own bottom tab bar (like Kitchen) add
-  // safe-area padding themselves to stay clear of the home indicator.
+  // phones; `AppChrome`'s `<main>` and the fixed bottom controls (AddItemBar,
+  // FloatingAddButton) add safe-area padding themselves to stay clear of the
+  // home indicator.
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f6f0e8" },

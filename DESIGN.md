@@ -32,9 +32,8 @@ tell when a rule's reason has expired.
   `elementFromPoint` at the control's centre returns that control. A fixed
   overlay the page reserves no room for — a floating action button, a toast,
   a sticky banner — fails this even at 44px, because no amount of scrolling
-  moves what sits at a fixed viewport y. The bottom nav passes because the
-  page reserves bottom padding for it (measured: 55px clearance at 375 and
-  320). **Size and reachability are different properties.** (Added 2026-09-03
+  moves what sits at a fixed viewport y. The floating hamburger passes because
+  `<main>` reserves its row (`HAMBURGER_ROW_HEIGHT_PX`) above the content. **Size and reachability are different properties.** (Added 2026-09-03
   on Strange's ruling, mission 9: Month's grid passed every size check while
   one of its day numbers opened the Add sheet instead of Day view, and the
   first measurement — taken scrolled to the bottom — reported zero failures
@@ -115,17 +114,19 @@ tell when a rule's reason has expired.
   **brand artwork**, not members of the icon system, so they aren't Lucide
   outlines either. (Decorative one-off emoji in empty states are outside the
   icon system and tolerated.)
-- **Exactly one nav bar**, rendered once from the root layout, fixed to the
-  bottom at every screen size. Its tabs never change as you move — only
-  which tab is lit. No top-bar desktop layout; confirmed deliberately, twice.
-  Deliberate exceptions with no nav bar at all: `/login` (there's no session
-  yet to navigate with), and the public `/share/*` pages — their own root
-  layout renders no app chrome by design, so a shared link can't leak the
-  app's navigation to someone with no session.
-- **A branch with sub-pages gets a landing page of tiles** (`BranchTile`),
-  never a second nav bar. The nav reaches branch roots; landing pages reach
-  down; `BackLink` is the one edge back up.
-- **Every page below a nav destination carries a `BackLink`** — explicit
+- **Exactly one navigation surface: the side drawer** (`NavDrawer`), opened
+  by the one hamburger button (`HamburgerButton`) and rendered once from the
+  root layout via `AppChrome`. Its list never changes as you move, only which
+  row is lit. The wordmark header appears only on the dashboard and `/login`;
+  every other page shows the floating hamburger and reserves
+  `HAMBURGER_ROW_HEIGHT_PX` above its content, so the button is never an
+  unreserved overlay. `/login` and `/share/*` render no drawer: there is no
+  session yet to navigate with, and a shared link must not leak the app's
+  navigation to someone with no session.
+- **The drawer reaches every destination directly; there are no landing
+  pages.** `BackLink` is the one edge back up from a page below a drawer
+  destination (recipe detail to Recipes), never on a destination itself.
+- **Every page below a drawer destination carries a `BackLink`**: explicit
   `href` (never `router.back()`), label naming the destination ("Recipes"),
   not the action ("Back").
 - **Sheets are the house dialog**: bottom sheet on phones, centered dialog on
@@ -248,9 +249,8 @@ A new one-off that duplicates one of these jobs is a design violation:
 - `QuantityStepper` — every count, everywhere
 - `SwipeActions` — row-level secondary actions
 - `BackLink` — the upward edge from every sub-page
-- `BranchTile` — landing-page tiles (icon as rendered `ReactNode`, not a
-  component reference — RSC serialization)
-- `HubNav` — the only nav bar; `HUB_NAV_ITEMS` in `nav.ts` the only nav list
+- `NavDrawer` / `HamburgerButton`: the only navigation surface;
+  `NAV_SECTIONS` in `nav.ts` the only nav list
 - `EmptyState`, `Skeleton` (+ per-branch `loading.tsx`)
 - The sheet family: `RadioSheet` (pick one), `ActionSheet` (⋯ menus),
   `ConfirmSheet` (the two count-confirm deletes), `TitleSheet` (name a thing)
@@ -282,8 +282,9 @@ A new one-off that duplicates one of these jobs is a design violation:
 
 ## Settled decisions — don't relitigate
 
-- **One bottom nav bar at every size** — revisited twice, kept both times.
-  A desktop layout is "someday if actually needed," not a default.
+- **The side drawer replaced the bottom nav** (2026-11, Bryce's call); the
+  earlier no-top-bar decision is superseded. A later mission may add an
+  optional pinned sidebar on wide screens.
 - **Inventory taps edit; Shopping taps check off (edit is behind swipe).**
   The asymmetry is the point: check-off must stay the fastest action on
   Shopping.

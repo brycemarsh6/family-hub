@@ -23,7 +23,7 @@ import { HAMBURGER_ROW_HEIGHT_PX } from "@/lib/appChrome";
  * contract's boundary (it already owns the identical, working pattern for
  * "is today visible", `scheduleTodayVisible`/`onTodayVisibleChange`; this
  * is the same problem with no legal way to reuse that wiring). Same
- * precedent as `UserMenu`'s own `document.body` portal, for the same root
+ * precedent as `NavDrawer`'s own `document.body` portal, for the same root
  * reason: a value the natural parent can't hand down as a prop. Exported
  * so the contract between the two files is a named constant, not a magic
  * string duplicated in each.
@@ -43,7 +43,7 @@ export const SCHEDULE_TITLE_SLOT_ID = "calendar-header-schedule-title-slot";
  * + 4 (`pb-1`). The visible "Calendar" h1 (32px + 8px `mb-2` = 40) is gone
  * (Bryce, 2026-11-02), which took the old 170 to 130. The 170 was measured
  * live at 375 and 1024 on 2026-11-02 (Vision C4 notes); 130 is that minus
- * the 40, to be re-measured live.
+ * the 40, and was then measured live at 375 and 1024 (Strange S-2).
  */
 export const SCHEDULE_HEADER_BAR_HEIGHT_PX = 130;
 

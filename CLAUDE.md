@@ -53,10 +53,14 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
 ## What's built
 
 - **Dashboard** (`/`): four live tiles: Today's meals, Inventory, Grocery, Recipes.
-- **One bottom nav bar** for the whole app: Kitchen, Calendar, Home, Chores, Lists.
-  A branch reaches its sub-pages through its own tile landing page, never a
-  second nav bar.
-- **Kitchen** (`/kitchen`), four tiles:
+- **One side drawer** for the whole app, opened by a hamburger button at the
+  top left (the wordmark header shows only on the dashboard and login). It lists
+  Dashboard, Calendar, Routines, Plans & Goals, Lists, a Kitchen group
+  (Recipes, Meal Plan, Shopping, Inventory, Expiring), then Profile, Settings
+  and Sign out. There are no landing pages. Old `/kitchen`, `/kitchen/cooking`
+  and `/chores` forward to Inventory, Recipes and Routines. Routines and
+  Plans & Goals are "Coming soon" placeholders.
+- **Kitchen** (the Kitchen group in the drawer):
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
     tap-to-edit sheet.
@@ -120,7 +124,7 @@ Reasons for each are in the archive and the mission files.
 All in [DESIGN.md](DESIGN.md), each with its reason. The headlines: touch-first
 (48px+ targets), instant optimistic updates, colors named by job not appearance,
 Lucide outline icons only, secondary row actions behind a right-to-left swipe
-(destructive last), every page below a nav destination has a `BackLink`, and
+(destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
 ## Current status (updated 2026-10-31)

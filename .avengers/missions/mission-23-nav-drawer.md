@@ -315,7 +315,7 @@ Old exports are removed only in the contract that removes their last user.
 - **Done criteria:** Vision pass 3 (budget's last) + Strange pass 2.
 
 ### C5 — Constitutions, CLAUDE.md and leftover comments
-- **Status:** PENDING
+- **Status:** BUILT (Stark, 2026-11-02). Gauntlet all exit 0; STRUCTURE.md 699 → 692. Fury replaced 7 dashes Stark added (Bryce's no-dash rule). Stark flagged 4 stale bottom-nav comments outside the boundary: recipes print page:19, share/layout.tsx:9, PantryItemEditSheet.tsx:81, GroceryItemEditSheet.tsx:87. Strange not re-run for C5: no visual change on desktop, and the safe-area padding can't be emulated.
 - **Boundaries:**
   - may touch: `DESIGN.md`, `STRUCTURE.md`, `CLAUDE.md` ("What's built"
     only; Current status is Fury's at delivery), `src/components/BackLink.tsx`
@@ -327,12 +327,39 @@ Old exports are removed only in the contract that removes their last user.
     `src/lib/useCanonicalCalendarUrl.test.ts` (comment),
     `src/app/(app)/(home)/loading.tsx` (comment),
     `src/app/(app)/layout.tsx` (viewport comment only, Vision C3 note 6),
-    `src/components/ProfileForm.tsx` (doc comment only, Vision C3 note 6).
-  - must not touch: code (comments only in the .ts/.tsx files above).
+    `src/components/ProfileForm.tsx` (doc comment only, Vision C3 note 6),
+    `src/components/CalendarHeader.tsx` (comment, lines ~44-46),
+    `src/app/(app)/calendar/loading.tsx` (comments, ~38-41 and ~137).
+  - may touch (code, folded in from the F2 gates, Fury 2026-11-02):
+    `src/components/TimelineGrid.tsx`: the scroller div's
+    `className="overflow-y-auto"` becomes
+    `className="overflow-y-auto pb-[env(safe-area-inset-bottom)]"` (Vision
+    C4-3 and Strange S-2 NOTE: the last hour can't scroll clear of the iPhone
+    home indicator). No other change; the file must not grow.
+    `src/components/NavDrawer.tsx`: move the font weight out of the shared
+    row class so the active row carries only `font-semibold` and inactive
+    rows only `font-medium` (Strange S-2 NOTE). No visual change.
+  - must not touch: any other code (comments only in the other .ts/.tsx
+    files above). `STRUCTURE.md` is at 699 lines, over its 650 cap: edits
+    there must leave it at 699 or fewer.
+  - **Preflight exception (Fury, 2026-11-02):** preflight hard-fails
+    STRUCTURE.md for being over the cap *before* this contract.
+    `git show origin/main:STRUCTURE.md | wc -l` = 699, so the overage
+    predates mission 23. The edits here are replacements of stale nav lines
+    (Layout map `(app)/` row, the `nav.ts` one-source line, the
+    `APP_HEADER_HEIGHT_PX` open instance, the HubNav naming instance), net
+    ≤0 lines. Trimming the file under the cap is a separate job, not this
+    mission's. Captain judges the edits.
+- **Comment rewording:** CalendarHeader ~44-46 and loading.tsx ~38-41 say
+  "to be re-measured". Replace them with the measured facts: the pinned
+  Schedule bar is 130 at 375 and 1024 (Strange S-2), and the timeline
+  scroller top is 143. loading.tsx ~137 counts a border the skeleton doesn't
+  have; correct it.
 - **Spec:** the plan's "Doc amendments" replacement text. Name items, never
   count into lists. Every claim about a file names a file that exists after
   C1-C4.
-- **Verification:** gauntlet → pass; `grep -rn "HubNav\|HUB_NAV_ITEMS\|BranchTile\|bottom nav\|bottom tab\|UserMenu" src *.md`
+- **Verification:** gauntlet → pass; `wc -l STRUCTURE.md` ≤ 699;
+  `git diff --stat src/components/TimelineGrid.tsx` shows 1 line changed; `grep -rn "HubNav\|HUB_NAV_ITEMS\|BranchTile\|bottom nav\|bottom tab\|UserMenu" src *.md`
   → hits only where the text says they were replaced/removed;
   `node ~/.claude/skills/avengers/recordcheck.mjs origin/main..HEAD` read in full.
 - **Evidence required:** the grep; recordcheck output.
@@ -366,6 +393,41 @@ Inventory, Recipes or Settings.
   because `:root` has no `color-scheme`. Follow-up, not this mission.
 - NOTE, pre-existing: on a schedule deep link, Today is disabled while
   today is on screen. On record only.
+| C5-1 | Vision (Opus) | **PASS** | 0 | 12 |
+
+**C5 Vision pass 1:** gauntlet all exit 0; boundary exact; every doc claim
+checked against code. Fury ratifies the two inert overreaches (the CLAUDE.md
+Design rules word, the CalendarHeader:26 comment). Notes, all folded into F3:
+- loading.tsx:42 and :135 cite Strange for the 143; it was Fury's
+  measurement.
+- loading.tsx:127-129 still calls the skeleton bordered.
+- CalendarHeader:68 quotes a DESIGN.md sentence that C5 reworded.
+- More stale nav comments: ReviewQueueButton.tsx:21, README.md:38,
+  Skeleton.tsx:43 (the dormant `SkeletonTiles`), and (home)/loading.tsx:7.
+- DESIGN.md and STRUCTURE.md word the nav-list line differently.
+- CLAUDE.md still nests Recipes and Meal Plan under "Cooking".
+- A comma splice at useScheduleMonthTitle.ts:13.
+
+| K-1 | Captain (Opus) | **BLOCKED** | 2 | 10 |
+
+**Captain pass 1 (whole mission + C5):**
+- BLOCKER: `calendar/loading.tsx:242` `-mt-14` is a second hardcoded copy of
+  `HAMBURGER_ROW_HEIGHT_PX` (CalendarHeader imports it). Fix: import the
+  constant and use `style={{ marginTop: -HAMBURGER_ROW_HEIGHT_PX }}`.
+- BLOCKER: `HamburgerButton.tsx:37-59` produces the 56 (`h-12` + the 0.5rem
+  top offset) but never names `HAMBURGER_ROW_HEIGHT_PX` or its dependents.
+  Fix: a comment only.
+- NOTE: the 0.5rem offset is also encoded at CalendarHeader:163-164 and in
+  the page's `py-2`. Proposed amendment: export `HAMBURGER_TOP_OFFSET_PX`.
+- NOTE: CalendarHeader grew 381 → 392 (in scope; CD1 will touch it).
+  STRUCTURE.md is still over its cap, and the cap clause doesn't say whether
+  it covers .md files.
+- NOTE: add `routeRedirects.ts` (import-free) to the one-source list.
+- NOTE: `SkeletonTiles` (Skeleton.tsx:43-52) now has zero callers; delete it.
+- NOTE: 4 stale bottom-nav comments outside C5 (same as Stark's list).
+- NOTE: the `AppChrome.tsx` / `appChrome.ts` names differ only by case.
+- NOTE: DESIGN.md:126-130 states the BackLink rule twice.
+- Dependency direction, naming and new-file sizes all pass.
 
 **F2 Vision (C4 pass 3):**
 - Parts A, B and C are all verified in the built CSS. The `has-`

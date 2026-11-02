@@ -321,7 +321,7 @@ export function TimelineGrid({
       data-fills-viewport className="overflow-hidden rounded-t-xl border border-b-0 border-line"
       style={{ ["--hour-height" as string]: `${HOUR_HEIGHT_PX}px` }}
     >
-      <div ref={scrollerRef} className="overflow-y-auto" style={{ height: scrollerHeightStyle }}>
+      <div ref={scrollerRef} className="overflow-y-auto pb-[env(safe-area-inset-bottom)]" style={{ height: scrollerHeightStyle }}>
         {/* Sticky as ONE unit — the weekday header and the all-day strip
             stack inside it via ordinary flow, so there's no second `top`
             offset to compute or keep in sync with the first (a smaller,

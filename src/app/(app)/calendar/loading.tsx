@@ -37,8 +37,9 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 //
 // Every height below was MEASURED against the real signed-in page at 375px
 // (getBoundingClientRect in the browser), not guessed; the 2026-11-02 live
-// measurement (Vision C4 notes) confirmed the header rows, and the removal
-// of the visible title since then is arithmetic pending a re-measure — the dashboard's own
+// measurements (Vision C4 notes, Strange S-2) confirmed the header rows
+// and, after the visible title's removal, the pinned Schedule bar (130 at
+// 375 and 1024) and the timeline scroller top (143); the dashboard's own
 // h-56-for-a-164px-tile bug is exactly the failure mode this avoids. They
 // also happen to equal Tailwind utilities CalendarHeader.tsx already uses
 // for the same rows (h-11 circles, h-11 buttons, gap-3/mb-2/mb-4/gap-4),
@@ -130,12 +131,14 @@ const SKELETON_SHAPE: Record<CalendarPeriodView, CalendarSkeletonShape> = {
  * itself falls back on before its own runtime measurement lands (see its
  * own `scrollerHeightStyle` and `MIN_SCROLLER_HEIGHT_PX`) — `143` is the
  * scroller's top edge at 375px with no safe-area inset, from the classes
- * (the earlier 183, with the h1, was measured live on 2026-11-02; this
- * figure is that minus the removed title, to be re-measured): 56 (`<main>`'s
+ * (the earlier 183, with the h1, was measured live on 2026-11-02; with the
+ * title removed it measures 143 live, Strange S-2): 56 (`<main>`'s
  * hamburger-row padding) + 8 (this page's `py-2`) - 56 (the header's lift
  * onto that row) + 66 (action row) + 8 + 44 (prev/next row) + 16 (`mb-4`)
- * + 1 (the box's own border) = 143 (183 - 32 h1 - 8 `mb-2`). The bottom nav is gone, so
- * nothing is reserved below. An inline `style`, not a Tailwind arbitrary
+ * + 1 (the REAL box's border, which this borderless skeleton does not draw, so
+ * its own top edge sits 1px higher and it ends 1px short of the viewport
+ * bottom, harmless) = 143 (183 - 32 h1 - 8 `mb-2`). The bottom nav is gone,
+ * so nothing is reserved below. An inline `style`, not a Tailwind arbitrary
  * class, to match `TimelineGrid.tsx`'s own technique for the identical
  * `calc()` — `min-h` is `MIN_SCROLLER_HEIGHT_PX` (320) as a real Tailwind
  * utility
