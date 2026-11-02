@@ -2,7 +2,7 @@
 
 **Project:** family-hub (Marshee)
 **Branch:** `claude/nav-drawer` (from `origin/main` at `ee45851`)
-**Status:** GATES PASSED, awaiting Bryce's go-ahead to push and open the PR (2026-11-02)
+**Status:** DELIVERED as PR #32 (pushed 2026-11-02 on Bryce's go-ahead); merge is Bryce's call after the Gauntlet check
 **Started:** 2026-11-02 · **Updated:** 2026-11-02
 
 Numbered 23 because 20 (`claude/calendar-cd1`) and 22
@@ -706,9 +706,11 @@ Assembled).
 
 ## Delivery
 
-- **Shipped:** not yet. Branch `claude/nav-drawer` is committed locally and
-  waiting on Bryce's go-ahead to push and open the PR.
-- **Shipped check:** see the Handoff log once pushed.
+- **Shipped:** pushed `claude/nav-drawer` and opened
+  https://github.com/brycemarsh6/family-hub/pull/32 (2026-11-02). Not
+  merged; it reaches the family only when Bryce merges it.
+- **Shipped check:** after the push, `git status -sb` showed the branch even
+  with `origin/claude/nav-drawer`.
 - **Follow-ups (notes, not blockers):**
   - Strange pass-1 polish: drawer slide, focus trap, scroll lock, a visible
     close control, the Recipes band above the pinned letter, 11px circle
