@@ -696,6 +696,10 @@ model UserPreferences {
 
   dashboardLayout String?
 
+  /// "Menu style" (mission 25): one of NAV_MODES in src/lib/navMode.ts, as
+  /// text. Null = the default (menu button); `toNavMode` repairs anything odd.
+  navMode String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

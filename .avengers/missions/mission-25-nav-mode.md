@@ -136,7 +136,7 @@ Same as mission 24 (read it there); the key points:
 - **Done criteria:** Vision PASS.
 
 ### C2 — navMode column, DAL read, save action
-- **Status:** DISPATCHED (Stark, in parallel with C1's gate)
+- **Status:** BUILT (Stark). The SQL is exactly `ALTER TABLE "UserPreferences" ADD COLUMN "navMode" TEXT;`. Fury confirmed the dev host and that only this migration was pending, then ran `migrate deploy`: applied, up to date. DONE (Vision C2-1 PASS).
 - **Boundaries:**
   - may touch: `prisma/schema.prisma` (add `navMode String?` to
     `UserPreferences` with a `///` doc, nothing else), new
@@ -173,7 +173,7 @@ Same as mission 24 (read it there); the key points:
   Vision PASS.
 
 ### C3 — NavList, pinned menu, alignment variable, Settings row
-- **Status:** PENDING
+- **Status:** BUILT (Stark). Gauntlet all exit 0. Deviations, accepted: the wrapper is `flex flex-col lg:flex-row`; there are two CSS vars (`--app-nav-width-lg` inline, copied into `--app-nav-width` by an `lg:` class); HamburgerButton gained a `pinned` prop; there's a type-only NavList/NavDrawer cycle; no left safe-area padding on PinnedNav. Vision and Strange gating.
 - **Boundaries:**
   - may touch:
     - `src/components/NavDrawer.tsx`
@@ -258,7 +258,12 @@ Same as mission 24 (read it there); the key points:
   `STRUCTURE.md` (`src/lib/navMode.ts`, created by C1, in the one-source list; the chrome-dimension
   instance adds `NAV_RAIL_WIDTH_PX`, `NAV_SIDEBAR_WIDTH_PX` and
   `--app-nav-width`; must stay ≤699 lines, with the mission 23 C5 exception),
-  `CLAUDE.md` ("What's built" drawer bullet only).
+  `CLAUDE.md` ("What's built" drawer bullet only),
+  `src/app/actions/preferences.ts` (header comment only: it now holds two
+  settings and devices may save the menu style; Stark and Vision C2 notes),
+  `src/lib/dal.ts` (the `loadSessionUser` doc comment only: two queries now;
+  Vision C2 note), `src/lib/appChrome.test.ts` (header comment only;
+  Vision C1 note).
 - **Verification:** gauntlet → pass; `wc -l STRUCTURE.md` ≤ 699; no dashes
   added.
 - **Done criteria:** Captain PASS over the whole mission.
@@ -268,6 +273,7 @@ Same as mission 24 (read it there); the key points:
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | C1-1 | Vision (Opus) | **PASS** | 0 | 3 |
+| C2-1 | Vision (Opus) | **PASS** | 0 | 4 |
 
 **C1 Vision:** gauntlet all exit 0 (466). The labels and help text match the
 Brief exactly. `toNavMode` uses strict equality and passed every hostile
@@ -277,12 +283,26 @@ input. `navMode.ts` is importable server and client side. Notes:
 - The `appChrome.test.ts` header comment is now slightly inaccurate
   (cosmetic, docs pass).
 
+**C2 Vision:** gauntlet all exit 0 (466; UTC 459 + 7 DST skips). A fresh
+`migrate diff` matches the migration byte for byte; `migrate status` on the
+dev host says up to date. `saveNavMode` refused every hostile input and can't
+touch `dashboardLayout` or another person's row. Notes:
+- The DAL now makes two queries per request for a signed-in person (Prisma
+  loads the preferences relation separately). Accepted: one primary-key
+  lookup, cached per render. Not turning on `relationJoins`.
+- `dal.ts`'s `loadSessionUser` comment still says "one lookup". Fixed in C4.
+- `preferences.ts`'s header still says devices are refused. Fixed in C4.
+- A Vercel preview against the live DB will error everywhere until merge
+  (the column doesn't exist there yet). Known; Bryce told.
+
 ## Handoff log
 
 - 2026-11-02: mission opened. Bryce chose the "Menu style" row and sheet,
   the 1024 breakpoint, and a per-login choice for the wall tablet. Fury
   mapped the chrome dependents and the fixed bars, and wrote C1 to C4.
 - 2026-11-02: C1 PASS and committed. Stark building C2.
+- 2026-11-02: C2 built; migration applied to dev. Vision gating C2 while Stark builds C3.
+- 2026-11-02: C2 PASS and committed. C3 built; Vision and Strange gating.
 
 ## Delivery
 

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "./session";
 import { db } from "./db";
 import { toRole, type Role } from "./constants";
+import { toNavMode, type NavMode } from "./navMode";
 
 // The Data Access Layer: the single place the rest of the app asks "is this
 // request allowed?".
@@ -30,6 +31,7 @@ export type VerifiedUser = {
   displayName: string;
   avatarColor: string;
   isDevice: boolean;
+  navMode: NavMode;
 };
 
 /**
@@ -57,6 +59,7 @@ const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
       displayName: true,
       avatarColor: true,
       deactivatedAt: true,
+      preferences: { select: { navMode: true } },
     },
   });
 
@@ -68,6 +71,7 @@ const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
     displayName: user.displayName,
     avatarColor: user.avatarColor,
     isDevice: user.role === "device",
+    navMode: toNavMode(user.preferences?.navMode),
   };
 });
 

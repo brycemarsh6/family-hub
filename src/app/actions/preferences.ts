@@ -13,6 +13,7 @@ import {
   parseDashboardLayout,
   serializeDashboardLayout,
 } from "@/lib/dashboardLayout";
+import { NAV_MODES } from "@/lib/navMode";
 
 export type PreferencesResult = { error?: string };
 
@@ -44,5 +45,32 @@ export async function saveDashboardLayout(
   }
 
   revalidatePath("/");
+  return {};
+}
+
+/**
+ * Save the signed-in login's "Menu style". Devices may save their own (the
+ * wall tablet picks its own). The value must be exactly one of NAV_MODES: an
+ * unknown value is an error, not a silent default.
+ */
+export async function saveNavMode(input: unknown): Promise<PreferencesResult> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
+
+  const navMode = NAV_MODES.find((mode) => mode === input);
+  if (!navMode) return { error: "That isn't a menu style." };
+
+  try {
+    await db.userPreferences.upsert({
+      where: { userId: user.userId },
+      create: { userId: user.userId, navMode },
+      update: { navMode },
+    });
+  } catch (err) {
+    console.error("saveNavMode failed", err);
+    return { error: "Couldn't save your menu style. Try again." };
+  }
+
+  revalidatePath("/", "layout");
   return {};
 }
