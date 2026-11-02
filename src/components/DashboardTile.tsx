@@ -7,9 +7,10 @@ import Link from "next/link";
  * rule as the old landing-page tiles: no smaller link or button living
  * inside it, so a tap anywhere on the card always does the one obvious thing.
  *
- * `wide` spans both grid columns — Today's meals and Recipes use it,
- * Inventory and Grocery sit side by side without it. Same prop, same
- * meaning, as the old landing-page tiles' own `wide`.
+ * How wide a tile is no longer its own business: DashboardWidgetList wraps
+ * each tile in a grid cell and picks full or half width from the person's
+ * layout, so the tile just fills its cell (`h-full`, which also keeps two
+ * side-by-side tiles the same height).
  *
  * `icon` takes an already-rendered element (`<Package size={20} .../>`),
  * never a bare component reference. This is the landing-page tile
@@ -24,22 +25,18 @@ export default function DashboardTile({
   icon,
   title,
   badge,
-  wide = false,
   children,
 }: {
   href: string;
   icon: React.ReactNode;
   title: string;
   badge?: string;
-  wide?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <Link
       href={href}
-      className={`flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-accent active:bg-surface-2 ${
-        wide ? "col-span-2" : ""
-      }`}
+      className="flex h-full flex-col gap-2 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-accent active:bg-surface-2"
     >
       {/*
         `flex-wrap` and the `shrink-0` icon slot together are load-bearing at

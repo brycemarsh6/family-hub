@@ -1,4 +1,4 @@
-import { SkeletonHeader, SkeletonBlock } from "@/components/Skeleton";
+import { SkeletonBlock } from "@/components/Skeleton";
 
 // The dashboard's own loading state — see src/components/Skeleton.tsx for
 // why these exist at all. This can't just be app/(app)/loading.tsx's own
@@ -18,7 +18,14 @@ import { SkeletonHeader, SkeletonBlock } from "@/components/Skeleton";
 export default function Loading() {
   return (
     <div className="py-4" role="status" aria-label="Loading Dashboard">
-      <SkeletonHeader />
+      {/* Same shape as SkeletonHeader, plus the Customize button's block right of the title. */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between gap-3">
+          <SkeletonBlock className="h-8 w-40" />
+          <SkeletonBlock className="h-11 w-[123px] rounded-xl" />
+        </div>
+        <SkeletonBlock className="mt-2 h-6 w-56" />
+      </div>
       <div className="mt-6 grid grid-cols-2 gap-4">
         <SkeletonBlock className="col-span-2 h-[164px]" /> {/* Today's meals */}
         <SkeletonBlock className="h-[182px]" /> {/* Inventory */}

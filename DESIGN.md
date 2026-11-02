@@ -252,6 +252,10 @@ A new one-off that duplicates one of these jobs is a design violation:
 - `NavDrawer` / `HamburgerButton`: the only navigation surface;
   `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`) in `nav.ts` the only nav list
 - `EmptyState`, `Skeleton` (+ per-branch `loading.tsx`)
+- `DashboardWidgetList` (the dashboard's heading row, widget grid and
+  Customize button) / `DashboardCustomizeSheet` (on/off switch and up/down
+  arrows per widget, Reset to default): the only way to show, hide or
+  reorder dashboard widgets
 - The sheet family: `RadioSheet` (pick one), `ActionSheet` (⋯ menus),
   `ConfirmSheet` (the two count-confirm deletes), `TitleSheet` (name a thing)
 
