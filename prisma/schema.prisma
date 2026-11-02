@@ -537,6 +537,10 @@ model User {
   tasksCreated Task[]
   taskPeople   TaskPerson[]
 
+  /// Dashboard widgets (mission 24): this person's saved preferences, if
+  /// they have ever changed anything. Absent = everything at its default.
+  preferences UserPreferences?
+
   // No relation to LoginAttempt here — see that model's own doc comment for
   // why userId there is deliberately not a foreign key.
 
@@ -677,4 +681,21 @@ model AssistantChange {
 
   @@index([model, recordId])
   @@index([requestId])
+}
+
+/// One row per person who has saved a personal setting. Absent row = all
+/// defaults, so nothing needs backfilling. Today it holds only the dashboard
+/// layout; later settings add columns here.
+/// `dashboardLayout` is JSON stored as text (the `AssistantChange.summary`
+/// precedent: no provider-specific `Json` column). It is parsed only by
+/// `parseDashboardLayout` in src/lib/dashboardLayout.ts, which turns a missing
+/// or corrupt value into the default layout.
+model UserPreferences {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dashboardLayout String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

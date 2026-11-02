@@ -136,7 +136,7 @@ New tests live directly in `src/lib/` so the existing glob reaches them.
 - **Done criteria:** Vision PASS.
 
 ### C2 — Table, migration SQL and the save action
-- **Status:** BUILT (Stark). The SQL is exactly `prisma migrate diff --from-schema --to-schema` output: one CREATE TABLE plus one FK with ON DELETE CASCADE, nothing dropped or altered. Fury reviewed it and confirmed the dev host (`ep-hidden-pine`, migrate status listed only this migration as pending), then ran `npx prisma migrate deploy`: applied, exit 0, "Database schema is up to date!". Vision gating.
+- **Status:** BUILT (Stark). The SQL is exactly `prisma migrate diff --from-schema --to-schema` output: one CREATE TABLE plus one FK with ON DELETE CASCADE, nothing dropped or altered. Fury reviewed it and confirmed the dev host (`ep-hidden-pine`, migrate status listed only this migration as pending), then ran `npx prisma migrate deploy`: applied, exit 0, "Database schema is up to date!". **DONE, Vision C2-1 PASS.**
 - **Objective:** store one layout per person and save it through a session-checked Server Action.
 - **Boundaries:**
   - may touch: `prisma/schema.prisma` (add `UserPreferences`; add the
@@ -263,6 +263,19 @@ Notes:
 - `widgetSpans` and the other helpers assume a *parsed* layout; C2/C3 must
   always parse, never cast.
 - An optional early `break` in the parse loop.
+| C2-1 | Vision (Opus) | **PASS** | 0 | 3 |
+
+**C2 Vision:** gauntlet all exit 0. A fresh schema-to-schema diff is
+byte-identical to migration.sql. The `User` change is a back-relation only.
+`migrate status` on dev is up to date. Action probes: unauthenticated, device,
+forged userId, `__proto__`, and 100k entries are all refused or normalised
+(the stored value is always 158-159 bytes, the four ids only). The error
+message is generic. Notes:
+- The `{ok}` result shape differs from the house `{error?}`; it's
+  spec-dictated, so C3 must check `result.ok`.
+- The bare `catch` doesn't log; add `console.error` later.
+- The success path is not live-tested; C3's Strange pass should toggle,
+  reload and check a second person on dev.
 
 ## Handoff log
 
