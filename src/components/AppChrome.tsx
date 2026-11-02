@@ -32,17 +32,10 @@ export function AppChrome({
     <>
       {wordmark ? (
         /*
-          This header only exists on the dashboard and /login now. Its
-          height is no longer a measured fact anything positions against
-          (the old `APP_HEADER_HEIGHT_PX` and the bottom tab bar's constant
-          are gone). What other files position against is the floating
-          hamburger's row, `HAMBURGER_ROW_HEIGHT_PX` /
-          `useHamburgerRowHeight` in `src/lib/appChrome.ts`, which carries
-          the dependents list. Still on the OLD constants until mission-23/C4
-          moves them: `CalendarHeader.tsx`, `ScheduleView.tsx`,
-          `TimelineGrid.tsx`, `CalendarViews.tsx`, `RecipeList.tsx`,
-          `AddItemBar.tsx`, `FloatingAddButton.tsx` and
-          `(app)/calendar/loading.tsx`.
+          This header only exists on the dashboard and /login. What other
+          files position against is the floating hamburger's row,
+          `HAMBURGER_ROW_HEIGHT_PX` / `useHamburgerRowHeight` in
+          `src/lib/appChrome.ts`, which carries the dependents list.
         */
         <header className="print:hidden sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
           <div className="mx-auto flex w-full max-w-3xl items-center gap-2 px-4 py-3">

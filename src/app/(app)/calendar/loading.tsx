@@ -9,9 +9,9 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 // Calendar's own loading.tsx (Next's route-level Suspense fallback, shown
 // while page.tsx's server-side query is still running) — can't be the
 // generic app/(app)/loading.tsx SkeletonPage, same reasoning as the
-// dashboard's own (home)/loading.tsx: this page's shape (two action
-// circles, a prev/next+title row, seven day rows) is nothing like a plain
-// list of rows.
+// dashboard's own (home)/loading.tsx: this page's shape (action circles
+// beside the hamburger, a title, a prev/next+title row, seven day rows) is
+// nothing like a plain list of rows.
 //
 // mission-9/C8 correction: an earlier version of this comment claimed this
 // file "now ALSO fires on every real navigation CalendarViews.tsx's paging
@@ -38,13 +38,15 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 // Every height below is MEASURED against the real signed-in page at 375px
 // (getBoundingClientRect in the browser), not guessed — the dashboard's own
 // h-56-for-a-164px-tile bug is exactly the failure mode this avoids. They
-// also happen to equal Tailwind utilities CalendarViews.tsx already uses
-// for the same rows (h-14 circles, h-11 buttons, gap-10/mb-5/mb-4/gap-4),
+// also happen to equal Tailwind utilities CalendarHeader.tsx already uses
+// for the same rows (h-11 circles, h-11 buttons, gap-3/mb-2/mb-4/gap-4),
 // which is reassuring rather than coincidental: both this file and the real
 // component are built from the same design tokens, so they can't quietly
 // drift apart the way two independently-eyeballed pixel counts could.
-//   h1 "Calendar" (text-2xl font-bold):                     32px  -> h-8
-//   action-circles row (Today + view switcher), no margin:  78px  -> h-[78px], mb-5 below (20px)
+//   action-circles row (Today + view switcher), sm circles
+//     (44 + 6 gap + 16 label), lifted onto the hamburger
+//     row with -mt-14:                                      66px  -> h-[66px], mb-2 below (8px)
+//   h1 "Calendar" again, now below that row:                32px  -> h-8, mb-2 below (8px)
 //   prev/next + title row:                                  44px  -> h-11, mb-4 below (16px)
 //   one day row (gutter placeholder + a 46px grey body block —
 //     the SAME two pieces DaySection's own `loading` state
@@ -124,15 +126,16 @@ const SKELETON_SHAPE: Record<CalendarPeriodView, CalendarSkeletonShape> = {
  * `overflow-hidden rounded-xl border border-line` wrapper shape rather than
  * this file's day-row shape. Sized with the SAME formula that component
  * itself falls back on before its own runtime measurement lands (see its
- * own `scrollerHeightStyle` and `MIN_SCROLLER_HEIGHT_PX`) — `369` is
- * `top + navHeight` MEASURED against the real running page at 375px
- * (`getBoundingClientRect`, the same technique every other number in this
- * file was measured with): the app header, this page's own title/action-
- * circles/prev-next rows (all reproduced above, unchanged), and the bottom
- * nav together reserve that much of the viewport before the timeline box
- * itself starts. An inline `style`, not a Tailwind arbitrary class, to
- * match `TimelineGrid.tsx`'s own technique for the identical `calc()` —
- * `min-h` is `MIN_SCROLLER_HEIGHT_PX` (320) as a real Tailwind utility
+ * own `scrollerHeightStyle` and `MIN_SCROLLER_HEIGHT_PX`) — `183` is the
+ * scroller's top edge at 375px with no safe-area inset, from the classes
+ * rather than a measurement (to be browser-checked): 56 (`<main>`'s
+ * hamburger-row padding) + 8 (this page's `py-2`) - 56 (the header's lift
+ * onto that row) + 66 (action row) + 8 + 32 (h1) + 8 + 44 (prev/next row)
+ * + 16 (`mb-4`) + 1 (the box's own border) = 183. The bottom nav is gone, so
+ * nothing is reserved below. An inline `style`, not a Tailwind arbitrary
+ * class, to match `TimelineGrid.tsx`'s own technique for the identical
+ * `calc()` — `min-h` is `MIN_SCROLLER_HEIGHT_PX` (320) as a real Tailwind
+ * utility
  * rather than folded into the `calc()`, since CSS `calc()` can't express a
  * clamp on its own and `max()` nested inside a template string is harder to
  * read than the same floor `min-h-80` already states plainly.
@@ -142,7 +145,7 @@ function TimelineGridSkeleton() {
     <div
       aria-hidden="true"
       className="min-h-80 w-full animate-pulse rounded-lg bg-surface-2"
-      style={{ height: "calc(100dvh - 369px)" }}
+      style={{ height: "calc(100dvh - 183px)" }}
     />
   );
 }
@@ -229,14 +232,14 @@ export default function Loading() {
   const shape = SKELETON_SHAPE[parseViewParam(searchParams.get("view"))];
   return (
     <div className="py-2" role="status" aria-label="Loading Calendar">
-      <SkeletonBlock className="h-8 w-32" />
+      <div className="-mt-14 mb-2 flex h-[66px] items-start justify-end gap-3 pl-14">
+        <SkeletonBlock className="h-11 w-11 rounded-full" />
+        <SkeletonBlock className="h-11 w-11 rounded-full" />
+      </div>
 
-      <div className="mt-4">
-        <div className="mb-5 flex h-[78px] items-center justify-center gap-10">
-          <SkeletonBlock className="h-14 w-14 rounded-full" />
-          <SkeletonBlock className="h-14 w-14 rounded-full" />
-        </div>
+      <SkeletonBlock className="mb-2 h-8 w-32" />
 
+      <div>
         <div className="mb-4 flex h-11 items-center gap-2">
           <SkeletonBlock className="h-11 w-11" />
           <SkeletonBlock className="h-11 flex-1" />

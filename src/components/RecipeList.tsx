@@ -6,7 +6,7 @@ import { Search, X, BookX } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { SwipeActions } from "./SwipeActions";
 import { searchRecipes } from "@/lib/match";
-import { useAppHeaderHeight } from "@/lib/appChrome";
+import { useHamburgerRowHeight } from "@/lib/appChrome";
 
 export type RecipeListItem = {
   id: string;
@@ -83,31 +83,14 @@ export function RecipeList({
     };
   }, []);
 
-  // mission-16/C6: the app's one global header (src/app/(app)/layout.tsx)
-  // is `position: sticky`, sits above this list in the DOM, and — since
-  // mission-16/C4 replaced the `overflow-x: hidden` guard that silently
-  // defeated every `position: sticky` in the app — actually pins now. The
-  // letter headings below are sticky too, so they need to sit exactly this
-  // far below the viewport's top edge, or the header clips their top edge.
-  // This file used to hardcode that gap as `top-16` (64px), a guess from
-  // before the header ever genuinely stuck; C4 measured the real header at
-  // 73px and found the stuck letter's top ~9px clipped behind it, then
-  // re-derived that number here with this file's own `ResizeObserver`
-  // rather than importing a calendar component for it (this is a
-  // Kitchen-branch page).
-  //
-  // mission-17/C1 — that private measurement is gone now that
-  // `APP_HEADER_HEIGHT_PX`/`useAppHeaderHeight` moved to `src/lib/
-  // appChrome.ts`: a fact about `(app)/layout.tsx`, not a calendar
-  // component, so importing it here no longer means reaching into Calendar
-  // at all — this was never a Kitchen/Calendar boundary issue, only a
-  // "the header height lived in the wrong file" one. The old private
-  // effect was a byte-for-byte duplicate of what the shared hook does, so
-  // this is a genuine simplification, not a forced fit: the rail's OWN
-  // `railTop` measurement just above is a different job (it positions the
-  // A-Z rail against this page's search box, not against the app header)
-  // and correctly keeps its own separate `ResizeObserver`.
-  const stickyOffset = useAppHeaderHeight();
+  // mission-16/C6: the letter headings below are `position: sticky`, so
+  // they need to sit exactly this far below the viewport's top edge or the
+  // floating hamburger button (mission-23) covers their top. The hook
+  // reads that button's real bottom edge, safe-area inset included. The
+  // rail's OWN `railTop` measurement just above is a different job (it
+  // positions the A-Z rail against this page's search box) and correctly
+  // keeps its own separate `ResizeObserver`.
+  const stickyOffset = useHamburgerRowHeight();
 
   const sorted = useMemo(
     () => [...recipes].sort((a, b) => a.title.localeCompare(b.title)),
@@ -261,7 +244,7 @@ export function RecipeList({
             }}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            style={{ top: railTop ?? 140, bottom: "4.5rem" }}
+            style={{ top: railTop ?? 140, bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
             className="fixed right-0 z-30 flex w-7 touch-none select-none flex-col items-center justify-between py-1"
           >
             {ALPHABET.map((letter) => {

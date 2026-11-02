@@ -11,7 +11,7 @@ import {
 import { ActionCircle } from "./ActionCircle";
 import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
-import { APP_HEADER_HEIGHT_PX } from "@/lib/appChrome";
+import { HAMBURGER_ROW_HEIGHT_PX } from "@/lib/appChrome";
 
 /**
  * mission-16/C4 — the DOM id ScheduleView.tsx portals its own scroll-driven
@@ -31,26 +31,20 @@ import { APP_HEADER_HEIGHT_PX } from "@/lib/appChrome";
 export const SCHEDULE_TITLE_SLOT_ID = "calendar-header-schedule-title-slot";
 
 /**
- * mission-17/C1 — `APP_HEADER_HEIGHT_PX` moved to `src/lib/appChrome.ts`
- * (re-exported into this file's own imports above, not re-declared here):
- * it's a fact about `(app)/layout.tsx`'s `<header>`, not about this
- * component, and a second file (`RecipeList.tsx`) needed the identical
- * number without importing a calendar component to get it. See that
- * module's own comment for the full reasoning and the "one hardcoded copy
- * went stale" history that made this a written STRUCTURE.md rule.
+ * This component's OWN rendered height while pinned for Schedule, NOT
+ * counting the device's top safe-area inset. ScheduleView.tsx adds the
+ * inset back (via `useHamburgerRowHeight()`) to know exactly where its own
+ * content starts being visible, so its "which month is topmost" label
+ * flips the moment a new month clears the bottom of this bar.
+ *
+ * 170 = 8 (`pt-2` equivalent, the hamburger's top offset) + 66 (action row:
+ * 44px circle + 6px `gap-1.5` + 16px `leading-4` label) + 8 (`mb-2`) + 32
+ * (the h1, held at `leading-8` so its box is 32px at EVERY breakpoint:
+ * without it `md:text-3xl` brings a 36px line-height and this number is
+ * 4px short at 768px and up) + 8 (`mb-2`) + 28 (title row: Schedule has no arrows,
+ * so just the `h-7` span) + 16 (`mb-4`) + 4 (`pb-1`).
  */
-
-/**
- * mission-16/C4 — this component's OWN rendered height while pinned for
- * Schedule (both rows: the Today/view/Add circles, then the title row),
- * measured the same way and for the same reason as APP_HEADER_HEIGHT_PX
- * above. ScheduleView.tsx adds this to that value to know exactly where
- * its own content starts being visible on screen — the offset its
- * "which month is topmost" observer needs, so the label flips the moment
- * a new month's content actually clears the bottom of this pinned bar,
- * not some other guessed point.
- */
-export const SCHEDULE_HEADER_BAR_HEIGHT_PX = 154;
+export const SCHEDULE_HEADER_BAR_HEIGHT_PX = 170;
 
 /**
  * The Calendar branch's header row: the Today/view-switcher/Add circles,
@@ -115,7 +109,7 @@ export function CalendarHeader({
   prevLabel: string;
   nextLabel: string;
   /** True for admin/parent sessions only — a kid session renders two
-   * circles, not three, and `justify-center` re-centers them automatically
+   * circles, not three, and `justify-end` keeps them right-aligned
    * (no separate layout branch needed). This is UI-only convenience: the
    * real gate is the MANAGER_ROLES check inside the write actions
    * themselves (actions/calendar.ts), same as every other manage-only
@@ -157,20 +151,31 @@ export function CalendarHeader({
   // last chance for that pattern to hide a per-member difference.
   const showArrows = VIEW_CONFIG[view].showArrows;
 
+  // mission-23 — the action row shares the floating hamburger's row (top
+  // left), so the wrapper is lifted by that row's height. The page's own
+  // `py-2` supplies the button's 0.5rem top offset. Pinned, the wrapper
+  // starts at the very top and carries the safe-area inset (and the
+  // offset) as padding, so its row lands where the unpinned one does.
+  const liftStyle: React.CSSProperties = pinned
+    ? {
+        top: 0,
+        paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)",
+        marginTop: `calc(-1 * (${HAMBURGER_ROW_HEIGHT_PX}px + 0.5rem + env(safe-area-inset-top)))`,
+      }
+    : { marginTop: -HAMBURGER_ROW_HEIGHT_PX };
+
   return (
-    <div
-      className={pinned ? "sticky z-20 -mx-4 bg-bg px-4 pb-1 pt-2" : undefined}
-      style={pinned ? { top: APP_HEADER_HEIGHT_PX } : undefined}
-    >
-      <div className="mb-5 flex items-center justify-center gap-10">
+    <div className={pinned ? "sticky z-20 -mx-4 bg-bg px-4 pb-1" : undefined} style={liftStyle}>
+      <div className="mb-2 flex items-center justify-end gap-3 pl-14">
         <ActionCircle
-          icon={<CalendarCheck aria-hidden="true" size={22} />}
+          icon={<CalendarCheck aria-hidden="true" size={20} />}
           label="Today"
           onClick={onToday}
           disabled={!todayResolved || isCurrentPeriod}
+          size="sm"
         />
         <ActionCircle
-          icon={<CalendarRange aria-hidden="true" size={22} />}
+          icon={<CalendarRange aria-hidden="true" size={20} />}
           // The label comes from the one total `Record<CalendarPeriodView,
           // string>` the picker also reads (mission-11/C2), never a ternary
           // chain. The chain this replaced ended in a catch-all `: "Month"`,
@@ -182,15 +187,19 @@ export function CalendarHeader({
           // per-view difference instead.
           label={VIEW_LABELS[view]}
           onClick={onPickView}
+          size="sm"
         />
         {canManage && (
           <ActionCircle
-            icon={<Plus aria-hidden="true" size={22} />}
+            icon={<Plus aria-hidden="true" size={20} />}
             label="Add"
             onClick={onAdd}
+            size="sm"
           />
         )}
       </div>
+
+      <h1 className="mb-2 text-2xl leading-8 font-bold tracking-tight md:text-3xl">Calendar</h1>
 
       <div className="mb-4 flex items-center justify-between gap-2">
         {showArrows && (

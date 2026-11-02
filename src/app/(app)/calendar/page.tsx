@@ -184,19 +184,19 @@ export default async function CalendarPage({
     deactivated: person.deactivatedAt !== null,
   }));
 
+  // This `py-2` is load-bearing: CalendarHeader's lift/pinned margin and
+  // loading.tsx's 183px skeleton offset both depend on it. Change it and
+  // both must be re-derived.
   return (
     <div className="py-2">
-      <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Calendar</h1>
-      <div className="mt-4">
-        <CalendarViews
-          events={eventViews}
-          tasks={taskViews}
-          people={people}
-          canManage={canManage}
-          windowStart={windowStart}
-          windowEnd={windowEnd}
-        />
-      </div>
+      <CalendarViews
+        events={eventViews}
+        tasks={taskViews}
+        people={people}
+        canManage={canManage}
+        windowStart={windowStart}
+        windowEnd={windowEnd}
+      />
     </div>
   );
 }
