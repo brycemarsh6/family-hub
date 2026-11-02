@@ -124,7 +124,7 @@ Old exports are removed only in the contract that removes their last user.
   `HUB_NAV_ITEMS` and the four old appChrome exports still exist.
 
 ### C2 — Build the drawer, hamburger and AppChrome; wire the layout; retire HubNav and UserMenu
-- **Status:** PENDING
+- **Status:** DONE — Vision PASS (C2-1)
 - **Boundaries:**
   - may touch: new `src/components/NavDrawer.tsx`,
     new `src/components/HamburgerButton.tsx`,
@@ -215,6 +215,13 @@ Old exports are removed only in the contract that removes their last user.
 - **Spec:** the plan's "Files to modify" bullets for these files. Load-bearing:
   - Never call `useHamburgerRowHeight` from a component that lives in the
     layout and survives navigation (Vision C1 note 2): page-level only.
+  - **Gate condition (Vision C2 note 1):** `grep -rn 'aria-label="Sections"' src`
+    must return only NavDrawer.tsx. The old TimelineGrid query and
+    `useBottomNavHeight` now match the open drawer's nav; if this slips,
+    it is a BLOCKER.
+  - Fix the `HAMBURGER_ROW_HEIGHT_PX` comment: the 8px gap is ABOVE the
+    button (top offset), and the button's bottom edge is exactly where
+    `<main>` content starts (Vision C2 note 3).
   - CalendarHeader action row: `justify-end gap-3 pl-14` on the hamburger
     row, lifted onto it with a negative top margin of
     `HAMBURGER_ROW_HEIGHT_PX` when not pinned; when pinned, `top: 0` with
@@ -265,6 +272,9 @@ Old exports are removed only in the contract that removes their last user.
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | C1-1 | Vision (Opus) | **PASS** | 0 | 5 |
+| C2-1 | Vision (Opus) | **PASS** | 0 | 6 |
+
+**C2 Vision notes:** (1) the drawer's `<nav aria-label="Sections">` collides with TimelineGrid's inline query and `useBottomNavHeight` (open drawer + resize on a timeline view shrinks the scroller until the next resize); C4 removes both, made a C4 gate condition. (2) `useAppHeaderHeight` returns the seed or a page `<header>` on non-wordmark pages, as expected until C4. (3) The 8px gap is above the hamburger, not below as the constant's comment says; fix in C4, and Strange checks the spacing. (4) Cmd-click on a drawer row also closes the drawer, which is harmless. (5) No focus move into the dialog, no focus return, no scroll lock (same as UserMenu); for Strange. (6) `useCanonicalCalendarUrl.ts:26` still names HUB_NAV_ITEMS; C5.
 
 **C1 Vision notes:** (1) hook selects `[data-floating-menu-button]`, per the
 contract (it deliberately revised the plan's aria-label selector): C2 must put
@@ -292,6 +302,16 @@ Assembled).
   `src/generated` was absent in this fresh worktree; Fury ran
   `npx prisma generate` (writes code only, no DB) and symlinked `.env` to
   the main checkout's file. tsc then exit 0. C1 sent to Vision (Opus).
+- 2026-11-02 — Vision PASS on C1 (5 notes). Committed as `8ae0d52`. C2
+  preflight: 0 failures (warnings are prose names). C2 dispatched to Stark.
+- 2026-11-02 — Stark reported C2 DONE: lint/tsc/test (440)/build all exit
+  0. New files: NavDrawer 209, HamburgerButton 67, AppChrome 84 lines.
+  HubNav.tsx and UserMenu.tsx removed with `git rm`. Remaining name hits are
+  comments in C4/C5 files. Stark's notes for later contracts: the old
+  `useBottomNavHeight` and TimelineGrid's inline query select
+  `nav[aria-label="Sections"]`, which the open drawer now also carries (C4
+  removes both). There is no focus return or slide animation on the drawer
+  (Strange may want them). C2 sent to Vision (Opus).
 
 ## Delivery
 
