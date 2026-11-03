@@ -106,6 +106,7 @@ export function NavList({
         }}
         aria-current={active ? "page" : undefined}
         aria-label={compact ? item.label : undefined}
+        title={compact ? item.label : undefined}
         className={`${compact ? COMPACT_ROW_CLASS : ROW_CLASS} ${active ? "bg-accent-soft font-semibold text-accent" : "font-medium text-fg"}`}
       >
         <item.icon aria-hidden="true" size={22} />
@@ -116,15 +117,15 @@ export function NavList({
 
   return (
     <>
-      <nav aria-label="Sections" className={`flex flex-col ${compact ? "gap-2" : "gap-4"}`}>
+      <nav aria-label="Sections" className={`flex flex-col ${compact ? "gap-1" : "gap-4"}`}>
         {NAV_SECTIONS.map((section) => (
           <div
             key={section.heading ?? "main"}
-            className={`flex flex-col gap-1 ${compact ? "items-center" : ""}`}
+            className={compact ? "flex flex-col items-center gap-0.5" : "flex flex-col gap-1 "}
           >
             {section.heading &&
               (compact ? (
-                <div aria-hidden="true" className="mb-1 w-8 border-t border-line" />
+                <div aria-hidden="true" className="w-8 border-t border-line" />
               ) : (
                 <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted">
                   {section.heading}
@@ -135,22 +136,18 @@ export function NavList({
         ))}
       </nav>
 
-      <div className="mt-auto flex flex-col gap-1 pt-4">
+      <div className={`mt-auto flex flex-col ${compact ? "gap-0.5 pt-1" : "gap-1 pt-4"}`}>
         <div
-          className={`flex flex-col gap-1 border-t border-line pt-2 ${compact ? "items-center" : ""}`}
+          className={
+            compact
+              ? "flex flex-col items-center gap-0.5 border-t border-line pt-1"
+              : "flex flex-col gap-1 border-t border-line pt-2 "
+          }
         >
           {NAV_FOOTER_ITEMS.map(renderRow)}
         </div>
 
-        {compact ? (
-          <div
-            role="img"
-            aria-label={user.displayName}
-            className="flex justify-center border-t border-line pt-3"
-          >
-            <AvatarBadge displayName={user.displayName} avatarColor={user.avatarColor} size={40} />
-          </div>
-        ) : (
+        {!compact && (
           <div className="flex items-center gap-3 border-t border-line px-3 pt-3">
             <AvatarBadge
               displayName={user.displayName}
@@ -169,7 +166,12 @@ export function NavList({
             the browser just submits it. */}
         <form action={logout} className={compact ? "flex justify-center" : undefined}>
           {compact ? (
-            <button type="submit" aria-label="Sign out" className={`${COMPACT_ROW_CLASS} text-fg`}>
+            <button
+              type="submit"
+              aria-label="Sign out"
+              title={`Sign out (${user.displayName})`}
+              className={`${COMPACT_ROW_CLASS} shrink-0 text-fg`}
+            >
               <LogOut aria-hidden="true" size={22} />
             </button>
           ) : (

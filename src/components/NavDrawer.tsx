@@ -14,10 +14,15 @@ export function NavDrawer({
   open,
   onClose,
   user,
+  id = "app-nav-drawer",
 }: {
   open: boolean;
   onClose: () => void;
   user: DrawerUser;
+  /** The drawer's DOM id, which its opener's `aria-controls` points at. Two
+   * openers exist (HamburgerButton, PinnedNav's rail button), so each passes
+   * its own and two mounted drawers never share one. */
+  id?: string;
 }) {
   // The overlay below is portaled to document.body, and a portal target only
   // exists in the browser — so this needs to know once hydration is past.
@@ -51,7 +56,7 @@ export function NavDrawer({
       />
 
       <aside
-        id="app-nav-drawer"
+        id={id}
         role="dialog"
         aria-modal="true"
         aria-label="Main menu"

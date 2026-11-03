@@ -138,13 +138,13 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Navigation redesign, PR 3 of 3** (Menu style setting: pin the menu as
-  an icon rail or sidebar at 1024px and up): mission 25 on branch
-  `claude/nav-mode`. All gates passed; waiting on Bryce to push and merge.
-  Merging adds the `navMode` column to production (additive; already on the
-  dev branch). Its PR preview will error until merge (live DB lacks the
-  column). PR 1 (#32) and PR 2 (#33) are live. Follow-ups are in missions
-  23 to 25's Delivery sections.
+- **Rail names** (mission 26, branch `claude/nav-rail-expand`): a menu
+  button at the top of the icons-only rail opens the full menu with names;
+  the rail drops its avatar so it fits a sideways iPad. All gates passed;
+  waiting on Bryce to push and merge. The navigation redesign (PRs #32 to
+  #34) is live. Follow-ups are in missions 23 to 26's Delivery sections.
+- **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
+  desktop mouse. Hover is a bonus, never the only way to learn something.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
   for the swipe `pointerdown` issue and `CalendarViews.tsx` growth that CV6's
   gates flagged (details in `mission-19-calendar-cv6-dropdown-swipe.md`).
