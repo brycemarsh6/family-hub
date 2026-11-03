@@ -106,6 +106,7 @@ export function NavList({
         }}
         aria-current={active ? "page" : undefined}
         aria-label={compact ? item.label : undefined}
+        title={compact ? item.label : undefined}
         className={`${compact ? COMPACT_ROW_CLASS : ROW_CLASS} ${active ? "bg-accent-soft font-semibold text-accent" : "font-medium text-fg"}`}
       >
         <item.icon aria-hidden="true" size={22} />
@@ -146,6 +147,7 @@ export function NavList({
           <div
             role="img"
             aria-label={user.displayName}
+            title={user.displayName}
             className="flex justify-center border-t border-line pt-3"
           >
             <AvatarBadge displayName={user.displayName} avatarColor={user.avatarColor} size={40} />
@@ -169,7 +171,12 @@ export function NavList({
             the browser just submits it. */}
         <form action={logout} className={compact ? "flex justify-center" : undefined}>
           {compact ? (
-            <button type="submit" aria-label="Sign out" className={`${COMPACT_ROW_CLASS} text-fg`}>
+            <button
+              type="submit"
+              aria-label="Sign out"
+              title="Sign out"
+              className={`${COMPACT_ROW_CLASS} text-fg`}
+            >
               <LogOut aria-hidden="true" size={22} />
             </button>
           ) : (
