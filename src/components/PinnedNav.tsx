@@ -17,7 +17,7 @@ const RAIL_DRAWER_ID = "app-nav-rail-drawer";
 
 // Same look as a rail row (NavList's COMPACT_ROW_CLASS).
 const RAIL_BUTTON_CLASS =
-  "flex h-12 w-12 items-center justify-center rounded-xl transition-colors active:bg-surface-2";
+  "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors active:bg-surface-2";
 
 /**
  * The side menu pinned open on wide screens (`lg` and up), for people whose
@@ -82,7 +82,7 @@ export function PinnedNav({
               <Menu aria-hidden="true" size={22} />
             </button>
           </div>
-          <div aria-hidden="true" className="mx-auto my-2 w-8 border-t border-line" />
+          <div aria-hidden="true" className="mx-auto my-0.5 w-8 border-t border-line" />
           <NavDrawer
             open={open}
             onClose={() => setOpen(false)}

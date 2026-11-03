@@ -85,12 +85,37 @@ print `.env`. No push or merge without Bryce.
 - **Evidence required:** diff, exit codes.
 - **Done criteria:** Vision PASS and Strange PASS.
 
+### R2: make the rail fit (Bryce chose option A, 2026-11-03)
+- **Status:** BUILT (Stark; tsc, eslint, tests exit 0). Computed height 741px at 768 (27 spare). DONE (Vision and Strange PASS; Fury's 4px trim below).
+- **Objective:** the icons-only rail fits 1024x768 and 1280x800 with no
+  scrolling (scrollHeight ≤ clientHeight), every button still 48x48.
+- **Bryce's decision:** in the rail only, drop the avatar circle and tighten
+  the spacing. The sidebar and the drawer keep their avatar and identity row.
+- **Boundaries:** may touch `src/components/NavList.tsx` (compact branch
+  only: remove the compact avatar block; compact-only gaps, divider margins
+  and footer padding; `shrink-0` on the compact Sign out button) and
+  `src/components/PinnedNav.tsx` (the rail button gets `shrink-0`; rail-only
+  padding or divider spacing if needed). Nothing else; the non-compact
+  rendering must be byte-for-byte unchanged in output.
+- **Height budget at 768:** 14 squares (menu button, 10 destinations,
+  Profile, Settings, Sign out) x 48 = 672, plus the aside's top and bottom
+  padding, leaves under 72px for every gap and the 3 dividers. Show the sum
+  in the report.
+- **Hover name:** with the avatar gone, the compact Sign out `title` becomes
+  "Sign out (<displayName>)" so the signed-in name is still discoverable;
+  `aria-label` stays "Sign out".
+- **Verification:** gauntlet exit 0; Strange measures scrollHeight vs
+  clientHeight at 1024x768 and 1280x800, all rail buttons 48x48.
+- **Done criteria:** Vision and Strange PASS.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | R1-1 | Vision (Opus) | **PASS** | 0 | 5 |
 | R1-1 | Strange (Opus) | **PASS** | 0 | 3 |
+| R2-1 | Vision (Opus) | **PASS** | 0 | 5 |
+| R2-1 | Strange (Opus) | **PASS** | 0 | 5 |
 
 **R1 Vision:** tsc, eslint, tests (466; UTC 459 + 7 skips) exit 0; build
 not re-run (dev server), Stark's exit 0 stands. Boundary clean. Two drawers
@@ -111,15 +136,43 @@ button". Notes: the rail now overflows 84px at 1024x768 and 52px at 1280x800
 (new; Sign out below the fold); rail button and Sign out are 47px wide
 (`shrink-0` fixes it); semantics hold.
 
+**R2 Vision:** tsc, eslint, tests (466; UTC 459 + 7) exit 0. Non-compact
+class strings evaluated before and after: character-identical. Independent
+height sum 741px, matching Stark. Notes: the rail no longer shows who is
+signed in except via Sign out's title (Bryce's trade-off); trailing spaces
+kept for byte-identity; the sum assumes safe-area insets of 0.
+
+**Bryce, 2026-11-03:** the app is used only on phones and iPads (touch),
+never a desktop mouse. Strange's R2 pass was extended to realistic iPad
+landscape viewports (Safari and home-screen heights).
+
+**R2 Strange:** fits 1024x768 (27 spare), 1280x800 and 1180x800 (59),
+1366x960 (219); all 14 rail buttons 48x48; groups still read; sidebar and
+drawer unchanged; 375 unchanged. iPad scope findings: 1180x740 (iPad Air in
+Safari) overflowed 1px; 1133x700 (iPad mini in Safari) overflows 41px, which
+can't be fixed without losing the grouping (Strange recommends accepting a
+scroll there). Notes: divider widths differ (32 vs 47px); the drawer and
+sidebar overflow 46px at 768 and 74px at 740 (pre-existing); no focus move
+into the drawer (pre-existing).
+
+**Fury trim:** the divider under the rail's menu button `my-1` to
+`my-0.5` (4px saved, one class, tsc and eslint clean). Measured by Fury at
+1180x740: aside 740 / 740, all 14 buttons 48x48. Bryce reset to "Menu
+button" after.
+
 ## Handoff log
 
 - 2026-11-03: mission opened from Bryce's approval of the menu button and
   hover names. Stark building R1.
 - 2026-11-03: R1 Vision and Strange PASS; committed locally. Waiting on Bryce's call on the rail height.
+- 2026-11-03: Bryce chose option A; R2 built, Vision and Strange PASS, 4px trim fits iPad Air Safari. Committed.
 
 ## Delivery
 
 - **Shipped:** not yet
-- **Known cost (measured):** the rail overflows 84px at 1024x768 and 52px at
-  1280x800, which used to fit. Sign out sits below the fold. Asked Bryce
-  how to make it fit before pushing.
+- **Rail height after R2:** fits every measured size except iPad mini in
+  Safari (1133x700, scrolls about 37px).
+- **Follow-ups:** the drawer and sidebar are 814px tall, so Sign out needs a
+  scroll on a sideways iPad; move focus into the drawer on open; matching
+  divider widths; DESIGN.md could record "touch only, never desktop" (Bryce,
+  2026-11-03).
