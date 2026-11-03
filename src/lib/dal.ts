@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "./session";
 import { db } from "./db";
 import { toRole, type Role } from "./constants";
+import { toNavMode, type NavMode } from "./navMode";
 
 // The Data Access Layer: the single place the rest of the app asks "is this
 // request allowed?".
@@ -30,6 +31,7 @@ export type VerifiedUser = {
   displayName: string;
   avatarColor: string;
   isDevice: boolean;
+  navMode: NavMode;
 };
 
 /**
@@ -41,9 +43,10 @@ export type VerifiedUser = {
  * cleanly, which is what makes deactivation take effect on the very next
  * Server Action rather than waiting for the cookie to expire.
  *
- * One indexed primary-key lookup, `cache()`-wrapped so a page reading this
- * in several places (header + page body, say) still only hits the database
- * once per render pass.
+ * Two queries: an indexed primary-key lookup of the `User`, plus Prisma's
+ * separate read of its one-to-one preferences row (for the menu style).
+ * `cache()`-wrapped so a page reading this in several places (header + page
+ * body, say) still runs this lookup only once per render pass.
  */
 const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
   const session = await getSession();
@@ -57,6 +60,7 @@ const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
       displayName: true,
       avatarColor: true,
       deactivatedAt: true,
+      preferences: { select: { navMode: true } },
     },
   });
 
@@ -68,6 +72,7 @@ const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
     displayName: user.displayName,
     avatarColor: user.avatarColor,
     isDevice: user.role === "device",
+    navMode: toNavMode(user.preferences?.navMode),
   };
 });
 

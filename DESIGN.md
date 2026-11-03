@@ -123,6 +123,15 @@ tell when a rule's reason has expired.
   unreserved overlay. `/login` and `/share/*` render no drawer: there is no
   session yet to navigate with, and a shared link must not leak the app's
   navigation to someone with no session.
+- **On wide screens a per-login setting may pin that same list.** At `lg`
+  (1024px) and up, "Menu style" in Settings can show the drawer's list always
+  open, as an icons-only rail or a full sidebar (`PinnedNav`, built from
+  `NavList`, the list `NavDrawer` also uses; the choice is edited in
+  `NavModeSetting`). It is still one surface: the pinned menu and the drawer
+  are never both open, and below `lg` the menu button is used. Phones never
+  pin. Fixed bars that span the screen (`AddItemBar`, `FloatingAddButton`, the
+  floating hamburger's row) use `--app-nav-width` as their left edge so they
+  line up with the content.
 - **The drawer reaches every destination directly; there are no landing
   pages.** `BackLink` is the one edge back up from a page below a drawer
   destination (recipe detail to Recipes), never on a destination itself.
@@ -249,7 +258,8 @@ A new one-off that duplicates one of these jobs is a design violation:
 - `QuantityStepper` — every count, everywhere
 - `SwipeActions` — row-level secondary actions
 - `BackLink` — the upward edge from every sub-page
-- `NavDrawer` / `HamburgerButton`: the only navigation surface;
+- `NavDrawer` / `HamburgerButton` / `PinnedNav` (`NavDrawer` and `PinnedNav` both render `NavList`;
+  `NavModeSetting` is the Menu style row): the only navigation surface;
   `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`) in `nav.ts` the only nav list
 - `EmptyState`, `Skeleton` (+ per-branch `loading.tsx`)
 - `DashboardWidgetList` (the dashboard's heading row, widget grid and

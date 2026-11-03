@@ -52,8 +52,10 @@ export function AddItemBar({
 
   return (
     <div
-      // Sits just above the bottom edge (and the home indicator).
-      className="fixed inset-x-0 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 px-4"
+      // Sits just above the bottom edge (and the home indicator). Its left
+      // edge is the pinned menu's right edge (`--app-nav-width`, set by
+      // AppChrome; unset it is 0) so it lines up with the content column.
+      className="fixed right-0 left-[var(--app-nav-width,0px)] bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 px-4"
     >
       <form
         ref={formRef}

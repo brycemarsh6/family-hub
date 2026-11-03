@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HamburgerButton } from "@/components/HamburgerButton";
-import type { DrawerUser } from "@/components/NavDrawer";
+import type { DrawerUser } from "@/components/NavList";
 import { MarsheeWordmark } from "@/components/MarsheeWordmark";
-import { HAMBURGER_ROW_HEIGHT_PX, showsWordmarkHeader } from "@/lib/appChrome";
+import { PinnedNav } from "@/components/PinnedNav";
+import {
+  HAMBURGER_ROW_HEIGHT_PX,
+  pinnedNavWidthPx,
+  showsWordmarkHeader,
+} from "@/lib/appChrome";
+import type { NavMode } from "@/lib/navMode";
 
 /**
  * Everything around a page: the chrome the root layout used to inline. The
@@ -17,18 +23,30 @@ import { HAMBURGER_ROW_HEIGHT_PX, showsWordmarkHeader } from "@/lib/appChrome";
  *
  * `user` is null on /login (nobody to open a menu for), so no drawer exists
  * there.
+ *
+ * `navMode` is the person's Menu style. When it is "rail" or "sidebar" the
+ * whole page sits beside a `PinnedNav` at `lg` and up, and `--app-nav-width`
+ * (that menu's width, from `pinnedNavWidthPx`) is set at `lg` only, for the
+ * fixed bars to use as their left edge: HamburgerButton's floating wrapper,
+ * AddItemBar and FloatingAddButton. Below `lg` the variable is unset (their
+ * fallback is 0), so phones and upright tablets are unchanged. The floating
+ * hamburger stays rendered when pinned (`lg:invisible`) so its reserved row
+ * and `useHamburgerRowHeight` keep working.
  */
 export function AppChrome({
   user,
+  navMode,
   children,
 }: {
   user: DrawerUser | null;
+  navMode: NavMode;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const wordmark = showsWordmarkHeader(pathname);
+  const pinnedMode = user && navMode !== "hamburger" ? navMode : null;
 
-  return (
+  const page = (
     <>
       {wordmark ? (
         /*
@@ -39,7 +57,7 @@ export function AppChrome({
         */
         <header className="print:hidden sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
           <div className="mx-auto flex w-full max-w-3xl items-center gap-2 px-4 py-3">
-            {user && <HamburgerButton user={user} />}
+            {user && <HamburgerButton user={user} pinned={pinnedMode !== null} />}
             {/* The wordmark alone, in brand Sage — no icon tile beside it.
                 The mark and the word say the same thing, so showing both in
                 a 48px-tall bar just crowds it; the tile still carries the
@@ -51,7 +69,7 @@ export function AppChrome({
           </div>
         </header>
       ) : (
-        user && <HamburgerButton user={user} floating />
+        user && <HamburgerButton user={user} floating pinned={pinnedMode !== null} />
       )}
 
       {/* The bottom padding keeps the last row of a page clear of the home
@@ -76,5 +94,20 @@ export function AppChrome({
         {children}
       </main>
     </>
+  );
+
+  if (!user || !pinnedMode) return page;
+
+  return (
+    // `--app-nav-width-lg` carries the number; the `lg:` class turns it into
+    // `--app-nav-width` only at 1024px and up. Below that the variable stays
+    // unset and the fixed bars fall back to 0.
+    <div
+      className="flex flex-1 flex-col lg:flex-row lg:[--app-nav-width:var(--app-nav-width-lg)]"
+      style={{ "--app-nav-width-lg": `${pinnedNavWidthPx(pinnedMode)}px` } as React.CSSProperties}
+    >
+      <PinnedNav mode={pinnedMode} user={user} />
+      <div className="flex min-w-0 flex-1 flex-col">{page}</div>
+    </div>
   );
 }

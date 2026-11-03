@@ -60,9 +60,11 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   top left (the wordmark header shows only on the dashboard and login). It lists
   Dashboard, Calendar, Routines, Plans & Goals, Lists, a Kitchen group
   (Recipes, Meal Plan, Shopping, Inventory, Expiring), then Profile, Settings
-  and Sign out. There are no landing pages. Old `/kitchen`, `/kitchen/cooking`
-  and `/chores` forward to Inventory, Recipes and Routines. Routines and
-  Plans & Goals are "Coming soon" placeholders.
+  and Sign out. On wide screens (1024px and up) a per-login "Menu style"
+  setting in Settings can pin it open as an icon rail or a full sidebar.
+  Phones always use the menu button. There are no landing pages. Old
+  `/kitchen`, `/kitchen/cooking` and `/chores` forward to Inventory, Recipes
+  and Routines. Routines and Plans & Goals are "Coming soon" placeholders.
 - **Kitchen** (the Kitchen group in the drawer):
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
@@ -136,12 +138,13 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Navigation redesign, PR 2 of 3** (dashboard widgets + Customize):
-  mission 24 on branch `claude/dashboard-widgets`. All gates passed; open as
-  PR #33, waiting on Bryce to merge. Merging adds the `UserPreferences` table
-  to production (additive; already applied to the dev branch). PR 1 (side
-  drawer, mission 23) is live as PR #32. Next: PR 3 (nav mode setting for
-  wide screens). Follow-ups are in each mission file's Delivery section.
+- **Navigation redesign, PR 3 of 3** (Menu style setting: pin the menu as
+  an icon rail or sidebar at 1024px and up): mission 25 on branch
+  `claude/nav-mode`. All gates passed; waiting on Bryce to push and merge.
+  Merging adds the `navMode` column to production (additive; already on the
+  dev branch). Its PR preview will error until merge (live DB lacks the
+  column). PR 1 (#32) and PR 2 (#33) are live. Follow-ups are in missions
+  23 to 25's Delivery sections.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
   for the swipe `pointerdown` issue and `CalendarViews.tsx` growth that CV6's
   gates flagged (details in `mission-19-calendar-cv6-dropdown-swipe.md`).

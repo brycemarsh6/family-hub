@@ -1,10 +1,12 @@
 "use server";
 
-// Per-person settings. Today that is one thing: the dashboard widget layout.
-// Any signed-in ACCOUNT may save its own; a device-mode session (the wall
-// tablet) is refused, because it always shows the default layout and has no
-// Customize button. The row is keyed by the session's userId, never by
-// anything the caller sends.
+// Per-person settings. Today that is two things: the dashboard widget layout
+// and the menu style. Any signed-in ACCOUNT may save its own dashboard layout;
+// a device-mode session (the wall tablet) is refused there, because it always
+// shows the default layout and has no Customize button. The menu style is
+// different: devices may save it too, since the wall tablet has its own
+// Settings row. Every row is keyed by the session's userId, never by anything
+// the caller sends.
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -13,6 +15,7 @@ import {
   parseDashboardLayout,
   serializeDashboardLayout,
 } from "@/lib/dashboardLayout";
+import { NAV_MODES } from "@/lib/navMode";
 
 export type PreferencesResult = { error?: string };
 
@@ -44,5 +47,32 @@ export async function saveDashboardLayout(
   }
 
   revalidatePath("/");
+  return {};
+}
+
+/**
+ * Save the signed-in login's "Menu style". Devices may save their own (the
+ * wall tablet picks its own). The value must be exactly one of NAV_MODES: an
+ * unknown value is an error, not a silent default.
+ */
+export async function saveNavMode(input: unknown): Promise<PreferencesResult> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
+
+  const navMode = NAV_MODES.find((mode) => mode === input);
+  if (!navMode) return { error: "That isn't a menu style." };
+
+  try {
+    await db.userPreferences.upsert({
+      where: { userId: user.userId },
+      create: { userId: user.userId, navMode },
+      update: { navMode },
+    });
+  } catch (err) {
+    console.error("saveNavMode failed", err);
+    return { error: "Couldn't save your menu style. Try again." };
+  }
+
+  revalidatePath("/", "layout");
   return {};
 }

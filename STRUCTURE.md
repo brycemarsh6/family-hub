@@ -228,7 +228,7 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/nav.ts`: `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`), the only nav list.
   `src/lib/routeRedirects.ts`: `LEGACY_ROUTE_REDIRECTS`, the only redirect
   map; it has **no imports at all**, because `next.config.ts` imports it by
-  relative path
+  relative path. `src/lib/navMode.ts`: the only menu-style list
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,
@@ -349,14 +349,14 @@ Adding a second definition of any of these is a BLOCKER:
   and one still said 64 — so "go to today" scrolled the reader to a spot
   hidden behind the header, and the same stale 64 sat in a second file one
   directory away. One fact, three encodings, two agreeing by import and one
-  silently stale. **Closed in mission-23:** the header
-  now exists only on `/` and `/login`, and the dimension pages position
-  against is the floating hamburger's row, `HAMBURGER_ROW_HEIGHT_PX` (plus
-  `useHamburgerRowHeight`) in `src/lib/appChrome.ts`, which lists its
-  dependents. `SCHEDULE_HEADER_BAR_HEIGHT_PX` and `SCHEDULE_TITLE_SLOT_ID`
-  correctly stay in `CalendarHeader.tsx`, facts about that component.
-  (Added 2026-09-05, mission-16, on Captain's ruling;
-  Bryce approved.)
+  silently stale. **Closed in mission-23:** the header now exists only on `/`
+  and `/login`, and the dimension pages position against is the floating
+  hamburger's row, `HAMBURGER_ROW_HEIGHT_PX` (plus `useHamburgerRowHeight`) in
+  `src/lib/appChrome.ts`, which lists its dependents. Mission 25 adds
+  `NAV_RAIL_WIDTH_PX` and `NAV_SIDEBAR_WIDTH_PX` there, feeding the
+  `--app-nav-width` CSS variable that the fixed bars use as their left edge.
+  `SCHEDULE_HEADER_BAR_HEIGHT_PX` and `SCHEDULE_TITLE_SLOT_ID` stay in
+  `CalendarHeader.tsx`. (Added 2026-09-05, mission-16; Bryce approved.)
 - `src/lib/personInfo.ts` — `PERSON_SELECT` / `toPersonInfo`, the single
   place a `User` row becomes something a client may see. **This is the
   security-relevant one**: it builds the public shape field by field so a
