@@ -11,6 +11,7 @@ export function QuantityStepper({
   unit,
   onChange,
   min = 0,
+  step = 1,
   label,
   size = "md",
 }: {
@@ -18,6 +19,8 @@ export function QuantityStepper({
   unit?: string | null;
   onChange: (next: number) => void;
   min?: number;
+  /** How much one tap adds or takes away. */
+  step?: number;
   /** Describes the item, for screen readers: "Bananas". */
   label: string;
   size?: "sm" | "md";
@@ -29,7 +32,7 @@ export function QuantityStepper({
     <div className="flex shrink-0 items-center gap-0.5">
       <button
         type="button"
-        onClick={() => onChange(value - 1)}
+        onClick={() => onChange(value - step)}
         disabled={value <= min}
         aria-label={`Decrease ${label}`}
         className={`${buttonSize} flex items-center justify-center rounded-lg text-xl font-medium text-fg transition-colors hover:bg-surface-2 active:bg-line disabled:opacity-30`}
@@ -47,7 +50,7 @@ export function QuantityStepper({
 
       <button
         type="button"
-        onClick={() => onChange(value + 1)}
+        onClick={() => onChange(value + step)}
         aria-label={`Increase ${label}`}
         className={`${buttonSize} flex items-center justify-center rounded-lg text-xl font-medium text-fg transition-colors hover:bg-surface-2 active:bg-line`}
       >
