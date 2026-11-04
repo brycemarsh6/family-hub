@@ -478,6 +478,50 @@ parallel after C2. C5 last.
   browser check shows the darker outline in light and dark.
 - **Report:** all four items as specified; 5 files, +12/-6; no deviations.
 
+### F4 — Bryce's pass-2 decisions
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/lib/goalPrompts.ts`,
+  `src/lib/goalPrompts.test.ts`, `src/lib/visions.ts`,
+  `src/lib/visions.test.ts`, `src/components/VisionBoard.tsx`,
+  `src/app/(app)/plans/goals/[id]/page.tsx`,
+  `.avengers/plans/plans-goals-prompts.md` (draft markers only)
+  · must not touch: `prisma/`, `src/app/actions/`, `src/lib/visionsRead.ts`,
+  `src/app/globals.css`, `DESIGN.md`, `STRUCTURE.md`, every other file.
+- **Spec:**
+  1. Decision 1. Remove the DRAFT comment line in `goalPrompts.ts`. In the
+     prompts md, change the title to "(approved by Bryce, 2026-11-04,
+     including the six-area revision)" and replace the last sentence of the
+     intro paragraph ("Those changes are a DRAFT until Bryce approves
+     them.") with "Bryce approved those changes as written the same day."
+     No prompt, goal idea or plan idea text changes; the parity test must
+     still pass.
+  2. Decision 3. In `goalPrompts.ts`, add `promptHorizon(prompt): VisionHorizon | null`
+     (whole-word, case-insensitive match on "five years" → 5, "ten years"
+     → 10, "fifteen years" → 15, else null) and
+     `promptsFor(area, horizon)`: the area's prompts whose horizon is null
+     or equals `horizon`, in their original order. `promptAt` gains a
+     `horizon` parameter and indexes into `promptsFor` with the same true
+     modulo. `VisionBoard` passes its `horizon`. Tests: each horizon list
+     is non-empty for every area; no prompt naming another horizon appears;
+     original order kept; the 10-year Spiritual list excludes the
+     fifteen-year prompt and includes the ten-year ones; "at 60" and "by
+     then" prompts count as null. Update the docstring above
+     `VISION_PROMPTS`.
+  3. Decision 2. `goalVisionLabel(viewerId, goal, row)` where `goal` is
+     `{ ownerId, owner: { displayName } | null }`: Together row on an owned
+     goal → "your family's"; Together row on a Together goal → "your";
+     owner's row and the viewer is the owner → "your"; owner's row and the
+     viewer is anyone else (another person or a device) → "{displayName}'s"
+     (if the owner is somehow null, "their"). Tests for all four, plus the
+     device case. The goal page passes `user.userId`.
+- **Verification:** tsc, `npx eslint .`, `npm test`, the UTC run, the
+  cycle script (pass `"$PWD"`).
+- **Evidence required:** a line per item with file:line; outputs; line
+  counts; the per-area, per-horizon prompt counts printed once.
+- **Done criteria:** Vision pass 3; Fury's browser check of the goal page
+  as owner and as the other login, and each horizon's prompts.
+- **Report:** —
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -580,6 +624,16 @@ before push.
 - **Report:** —
 
 Budget: 3 passes per gate, then STOP and surface.
+
+## Bryce's pass-2 decisions (2026-11-04)
+
+Bryce answered "Yes to all three":
+1. The Work & Money and Fun & Adventure wording is approved as written.
+2. When someone other than the goal's owner reads a Mine goal whose vision
+   line comes from the owner's own board, the line names the owner:
+   "Part of Bryce's 10-year vision". The owner still reads "your".
+3. A prompt that names a horizon ("in five years", "in ten years", "in
+   fifteen years") shows only on that horizon's board. Wording unchanged.
 
 ## Handoff log
 
