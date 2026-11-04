@@ -375,11 +375,86 @@ parallel after C2. C5 last.
 - **Done criteria:** Fury reads each edit.
 - **Report:** —
 
+### F1 — Pass-1 fixes that need no decision from Bryce
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/lib/goalVocabulary.ts`, `src/lib/goals.ts`,
+  `src/lib/goals.test.ts`, `src/lib/visions.ts`, `src/lib/visions.test.ts`,
+  `src/lib/visionsRead.ts`, `src/lib/goalsRead.ts`,
+  `src/app/actions/visions.ts`, `src/components/VisionBoard.tsx`,
+  `src/components/VisionCard.tsx`, `src/components/VisionSheet.tsx`,
+  `src/components/IdeaChips.tsx`, `src/app/(app)/plans/goals/[id]/page.tsx`,
+  `src/app/(app)/plans/page.tsx` · must not touch: `prisma/`,
+  `src/lib/goalPrompts.ts`, `.avengers/plans/`, `src/components/GoalForm.tsx`,
+  `src/components/PlanItemSheet.tsx`, `src/components/PlansTabs.tsx`.
+- **Spec (each item names the gate finding it closes):**
+  1. Vision BLOCKER, prompt order restarts after a save: `VisionBoard` locks
+     the seed once, `const [seed] = useState(promptSeed)`, with a one-line
+     comment why.
+  2. Captain BLOCKER, import cycle: move `VisionBoardKey` to
+     `goalVocabulary.ts` beside the horizons, add `TOGETHER_BOARD =
+     "together"` there; `goals.ts`, `visions.ts`, `goalsRead.ts`,
+     `visionsRead.ts` import from there. `visions.ts` gains
+     `boardOwnerId(key)` beside `visionBoardKey`. Every `"together"` board
+     literal goes through `TOGETHER_BOARD`. Verify with Captain's script
+     `node /private/tmp/claude-501/-Users-brycemarsh-Developer-family-hub--claude-worktrees-github-pull-source-check-f0f1a7/53a6940d-06dc-4a80-849b-ac656ea01738/scratchpad/cycles.mjs`
+     (must print no cycle).
+  3. Captain BLOCKER, duplicated wording: `visionsRead.ts` labels come from
+     `GOAL_OWNERSHIP_LABELS`; `VisionSheet` uses
+     `GOAL_OWNERSHIP_LABELS.together` ("Yours" stays a literal).
+     `validateVisionInput`'s board is `GoalOwnership`, narrowed through
+     `GOAL_OWNERSHIPS`.
+  4. Captain NOTE, components deciding board identity: `VisionBoardChoice`
+     gains `param` ("together", "mine" or the user id) and
+     `VisionBoardData` gains `saveAs: GoalOwnership | null` (null when the
+     viewer can't edit), both filled in by `visionsRead.ts`; `VisionBoard`
+     drops its `viewerId` prop and never compares a key with a user id.
+  5. Captain NOTE, action not using the policy: `saveVision` works out
+     `ownerId` once and gates with `canEditVision(ownerId, user)` (device
+     refusal message unchanged); a P2002 unique clash from a simultaneous
+     first save retries once as an update (Vision NOTE) instead of
+     throwing.
+  6. Vision and Captain NOTE, owner-deleted rows passing as Together:
+     `loadGoalVision` filters by `boardKey in [TOGETHER_BOARD,
+     visionBoardKey(goal.ownerId)]` and `visionForGoal` matches rows by
+     board key, not `ownerId === null`. Tests updated. Drop the unused
+     `today` parameter; add `GOAL_PAGE_VISION_HORIZON = 10` to
+     `goalVocabulary.ts` and use it in `visionsRead.ts`, `visions.ts`'s
+     default, and the goal page copy (built from the constant).
+  7. Captain NOTE: rename the exported type `VisionCard` in
+     `visionsRead.ts` to `VisionCardData`.
+  8. Strange BLOCKER 1, press-state contrast: `VisionCard` area label and
+     goal-count spans, and `IdeaChips` chip text, go from `text-muted` to
+     `text-muted-strong`.
+  9. Strange BLOCKER 2, optimistic clear and lost drafts: in
+     `VisionBoard.save`, clearing is not optimistic (the sheet stays open,
+     Clear shows "Clearing…", the card clears after success). A failed
+     non-empty save keeps the sheet open with the draft and shows the error
+     inside the sheet. A successful save may stay optimistic.
+  10. Strange NOTE, a11y: drop the card button's `aria-label` so its visible
+      text is its name (or keep a short label plus `aria-describedby` on
+      the statement and count). Sheet: focus the dialog container
+      (`tabIndex={-1}`) on open, restore focus to the card on close. Wrap
+      the two chip groups in `role="group"` with `aria-label` "Whose
+      board" and "How far ahead".
+  11. Strange NOTE: the goal-page vision line uses curly quotes.
+- **Verification:** the Gauntlet minus the build (Fury builds), plus the
+  cycle script.
+- **Evidence required:** a line per item with file:line, test count, the
+  cycle script's output, line counts.
+- **Done criteria:** Fury re-runs the gauntlet, the cycle script and the
+  browser flow.
+- **Report:** —
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
+| 1 | Vision (Opus) | BLOCKED | prompt order restarts after a save | owner-deleted rows pass as Together; device sees a person's vision on a Mine goal page; P2002 on a simultaneous first save; lost draft; aria-label hides text |
+| 1 | Captain (Opus) | BLOCKED | type-only import cycle goals.ts and visions.ts; "Mine"/"Together" typed twice | board identity decided in VisionBoard; action skips `canEditVision`; "together" literal spread; horizon 10 in three places; unused `today`; `VisionCard` type name clash; chip classes and sheet shell copied (future contract); prompts file is load-bearing for `npm test` (record in C5) |
+| 1 | Strange (Opus) | BLOCKED | pressed-state contrast 4.33:1 on VisionCard and IdeaChips (light); Clear is optimistic; read-only empty cards invite a prompt answer; heading asks for Cormorant against DESIGN.md and renders faked-italic Manrope | idea chips push Life area down 140px (mis-tap reproduced); three chip rows and two lookalike groups; empty card band vs canvas; prompts that contradict the horizon; vision line wording on fallback; focus handling |
+
+Strange's read-only card, heading font and the two layout recommendations
+need Bryce (wording and layout are his). They go in F2 after he answers.
 
 Budget: 3 passes per gate, then STOP and surface.
 
