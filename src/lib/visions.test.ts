@@ -118,8 +118,14 @@ test("boardHint: edit hint, owner's name on someone else's board, hidden on read
   assert.equal(boardHint(false, null), null);
 });
 
-test("goalVisionLabel: your family's only when an owned goal shows the Together statement", () => {
-  assert.equal(goalVisionLabel("me", row({ boardKey: "together" })), "your family's");
-  assert.equal(goalVisionLabel("me", row({ boardKey: "me" })), "your");
-  assert.equal(goalVisionLabel(null, row({ boardKey: "together" })), "your");
+test("goalVisionLabel: your family's, your, or the owner's name", () => {
+  const owned = { ownerId: "me", owner: { displayName: "Bryce" } };
+  const together = { ownerId: null, owner: null };
+  assert.equal(goalVisionLabel("me", owned, row({ boardKey: "together" })), "your family's");
+  assert.equal(goalVisionLabel("you", owned, row({ boardKey: "together" })), "your family's");
+  assert.equal(goalVisionLabel("me", together, row({ boardKey: "together" })), "your");
+  assert.equal(goalVisionLabel("me", owned, row({ boardKey: "me" })), "your");
+  assert.equal(goalVisionLabel("you", owned, row({ boardKey: "me" })), "Bryce's");
+  assert.equal(goalVisionLabel("device", owned, row({ boardKey: "me" })), "Bryce's");
+  assert.equal(goalVisionLabel("you", { ownerId: "me", owner: null }, row({ boardKey: "me" })), "their");
 });

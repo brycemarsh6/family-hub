@@ -1,4 +1,4 @@
-# Plans & Goals prompts (approved by Bryce, 2026-11-04; six-area revision DRAFT)
+# Plans & Goals prompts (approved by Bryce, 2026-11-04, including the six-area revision)
 
 Three kinds of wording, per life area. Once approved, this file is the
 source for `src/lib/goalPrompts.ts` (PR 2) and nothing is reworded in code
@@ -16,8 +16,7 @@ Vision prompts regenerated 2026-11-04 at Bryce's request (he asked for a
 Fable pass; the session cannot see its own model picker, so which model
 wrote them is not recorded here). Bryce approved them as written. On 2026-11-04 Bryce moved to six areas:
 Financial became Work & Money (three prompts and one plan idea changed to
-cover work) and Fun & Adventure was added. Those changes are a DRAFT until
-Bryce approves them.
+cover work) and Fun & Adventure was added. Bryce approved those changes as written the same day.
 
 ## Spiritual
 

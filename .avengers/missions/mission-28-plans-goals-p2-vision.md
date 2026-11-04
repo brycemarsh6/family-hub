@@ -479,7 +479,7 @@ parallel after C2. C5 last.
 - **Report:** all four items as specified; 5 files, +12/-6; no deviations.
 
 ### F4 — Bryce's pass-2 decisions
-- **Status:** PENDING
+- **Status:** DONE (Stark, verified by Fury: tsc, eslint, npm test 536/536)
 - **Boundaries:** may touch: `src/lib/goalPrompts.ts`,
   `src/lib/goalPrompts.test.ts`, `src/lib/visions.ts`,
   `src/lib/visions.test.ts`, `src/components/VisionBoard.tsx`,
@@ -520,7 +520,7 @@ parallel after C2. C5 last.
   counts; the per-area, per-horizon prompt counts printed once.
 - **Done criteria:** Vision pass 3; Fury's browser check of the goal page
   as owner and as the other login, and each horizon's prompts.
-- **Report:** —
+- **Report:** all three items as specified; 7 files, +99/-27. Prompt counts per horizon 7 to 10 per area. Note: the Another prompt step count is not reset on a horizon switch (harmless, wraps).
 
 ## Gate ledger
 

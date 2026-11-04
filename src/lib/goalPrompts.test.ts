@@ -7,8 +7,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { LIFE_AREAS, type LifeArea } from "./goalVocabulary";
-import { GOAL_IDEAS, PLAN_IDEAS, VISION_PROMPTS, nextPromptIndex, promptAt } from "./goalPrompts";
+import { LIFE_AREAS, type LifeArea, type VisionHorizon } from "./goalVocabulary";
+import { GOAL_IDEAS, PLAN_IDEAS, VISION_PROMPTS, nextPromptIndex, promptAt, promptHorizon, promptsFor } from "./goalPrompts";
 
 const AREA_KEYS = LIFE_AREAS.map((area) => area.key);
 const EM_DASH = String.fromCharCode(0x2014);
@@ -67,13 +67,48 @@ test("goalPrompts: the code matches the approved wording file word for word", ()
   assert.deepEqual(PLAN_IDEAS, parsed.plan);
 });
 
-test("promptAt: wraps with a true modulo at 10, -1 and 23", () => {
-  const list = VISION_PROMPTS.health;
-  assert.equal(promptAt("health", 0), list[0]);
-  assert.equal(promptAt("health", 9), list[9]);
-  assert.equal(promptAt("health", 10), list[0]);
-  assert.equal(promptAt("health", -1), list[9]);
-  assert.equal(promptAt("health", 23), list[3]);
+const HORIZONS: VisionHorizon[] = [5, 10, 15];
+
+test("promptHorizon: names a horizon by whole words, case-insensitive, else null", () => {
+  assert.equal(promptHorizon("What does dinner look like in five years?"), 5);
+  assert.equal(promptHorizon("In TEN YEARS, what is true?"), 10);
+  assert.equal(promptHorizon("Gathered for a milestone in fifteen years?"), 15);
+  assert.equal(promptHorizon("What do you want to feel at 60?"), null);
+  assert.equal(promptHorizon("What will you be known for by then?"), null);
+  assert.equal(promptHorizon("A tenyears blur"), null);
+});
+
+test("promptsFor: never empty, never another horizon's prompt, original order kept", () => {
+  for (const area of AREA_KEYS) {
+    for (const horizon of HORIZONS) {
+      const list = promptsFor(area, horizon);
+      assert.ok(list.length > 0, `${area} ${horizon}`);
+      for (const prompt of list) {
+        const named = promptHorizon(prompt);
+        assert.ok(named === null || named === horizon, `${area} ${horizon}: ${prompt}`);
+      }
+      const positions = list.map((prompt) => VISION_PROMPTS[area].indexOf(prompt));
+      assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
+    }
+  }
+});
+
+test("promptsFor: the 10-year Spiritual list drops the fifteen-year prompt and keeps the ten-year ones", () => {
+  const list = promptsFor("spiritual", 10);
+  assert.ok(!list.includes("What milestone do you want the whole family gathered for in fifteen years?"));
+  assert.ok(list.includes("What do you want to be true about your prayers in ten years that is not true today?"));
+  assert.ok(list.includes("What does a Sabbath feel like in our home in ten years?"));
+  assert.ok(list.includes("What do you want to feel when you sit down in the chapel at 45?"));
+});
+
+test("promptAt: wraps with a true modulo over the horizon's list", () => {
+  const list = promptsFor("health", 5);
+  const n = list.length;
+  assert.equal(promptAt("health", 5, 0), list[0]);
+  assert.equal(promptAt("health", 5, n - 1), list[n - 1]);
+  assert.equal(promptAt("health", 5, n), list[0]);
+  assert.equal(promptAt("health", 5, -1), list[n - 1]);
+  assert.equal(promptAt("health", 5, n + 3), list[3]);
 });
 
 test("nextPromptIndex: steps by one and wraps, so no prompt repeats until all are seen", () => {

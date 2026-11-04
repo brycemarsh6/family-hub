@@ -93,7 +93,16 @@ export function boardHint(canEdit: boolean, ownerName: string | null): string | 
   return ownerName === null ? null : `Only ${ownerName} can change this board`;
 }
 
-/** "your" or, when a goal with an owner shows the Together statement, "your family's". */
-export function goalVisionLabel(goalOwnerId: string | null, row: VisionRow): "your" | "your family's" {
-  return goalOwnerId !== null && row.boardKey === TOGETHER_BOARD ? "your family's" : "your";
+/**
+ * Who a goal page says its vision line belongs to: "your family's" when an owned goal shows the Together
+ * statement, "your" on a Together goal or the owner's own line, else the owner's name ("their" if unknown).
+ */
+export function goalVisionLabel(
+  viewerId: string,
+  goal: { ownerId: string | null; owner: { displayName: string } | null },
+  row: VisionRow,
+): string {
+  if (row.boardKey === TOGETHER_BOARD) return goal.ownerId !== null ? "your family's" : "your";
+  if (viewerId === goal.ownerId) return "your";
+  return goal.owner ? `${goal.owner.displayName}'s` : "their";
 }

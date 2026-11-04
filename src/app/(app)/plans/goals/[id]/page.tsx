@@ -50,7 +50,7 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
 
       {vision && (
         <p className="mt-4 text-sm text-muted">
-          Part of {goalVisionLabel(goal.ownerId, vision)} {GOAL_PAGE_VISION_HORIZON}-year vision: <span className="text-fg">&ldquo;{vision.text}&rdquo;</span>
+          Part of {goalVisionLabel(user.userId, goal, vision)} {GOAL_PAGE_VISION_HORIZON}-year vision: <span className="text-fg">&ldquo;{vision.text}&rdquo;</span>
         </p>
       )}
     </div>

@@ -53,7 +53,7 @@ export function VisionBoard({
   const href = (board: string, years: number) => `/plans?view=vision&board=${board}&years=${years}`;
 
   function promptFor(area: LifeArea, index: number) {
-    return promptAt(area, promptSeed + index + (steps[area] ?? 0));
+    return promptAt(area, horizon, promptSeed + index + (steps[area] ?? 0));
   }
 
   function anotherPrompt(area: LifeArea) {

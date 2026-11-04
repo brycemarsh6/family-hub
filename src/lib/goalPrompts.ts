@@ -1,13 +1,16 @@
-import type { LifeArea } from "./goalVocabulary";
+import type { LifeArea, VisionHorizon } from "./goalVocabulary";
 
 // Plans & Goals' approved wording: the vision prompts, goal ideas and plan
 // ideas per life area. The wording is Bryce's, approved in
 // .avengers/plans/plans-goals-prompts.md, and changes there first. A test
 // (goalPrompts.test.ts) reads that file and fails if this one drifts from it.
-// The Work & Money and Fun & Adventure wording is a DRAFT until Bryce approves it.
 // No React, no db.
 
-/** Ten per area, written for a 5, 10 or 15 year horizon. One shows at a time. */
+/**
+ * Ten per area. A prompt that names a horizon ("five years", "ten years",
+ * "fifteen years") shows only on that horizon's board (see `promptsFor`); the
+ * rest suit any horizon. One shows at a time.
+ */
 export const VISION_PROMPTS: Record<LifeArea, readonly string[]> = {
   spiritual: [
     "When the kids are grown, what will they say faith looked like in our home?",
@@ -157,9 +160,29 @@ export const PLAN_IDEAS: Record<LifeArea, readonly string[]> = {
   ],
 };
 
-/** The prompt at `index`, wrapping with a true modulo so any whole number lands on one. */
-export function promptAt(area: LifeArea, index: number): string {
-  const list = VISION_PROMPTS[area];
+const HORIZON_WORDS: readonly (readonly [RegExp, VisionHorizon])[] = [
+  [/\bfive years\b/i, 5],
+  [/\bten years\b/i, 10],
+  [/\bfifteen years\b/i, 15],
+];
+
+/** The horizon a prompt names ("five years" is 5, and so on), or null when it suits any horizon. */
+export function promptHorizon(prompt: string): VisionHorizon | null {
+  for (const [pattern, horizon] of HORIZON_WORDS) if (pattern.test(prompt)) return horizon;
+  return null;
+}
+
+/** The area's prompts that suit `horizon`: those naming no horizon or this one, in their original order. */
+export function promptsFor(area: LifeArea, horizon: VisionHorizon): string[] {
+  return VISION_PROMPTS[area].filter((prompt) => {
+    const named = promptHorizon(prompt);
+    return named === null || named === horizon;
+  });
+}
+
+/** The prompt at `index` among those for `horizon`, wrapping with a true modulo so any whole number lands on one. */
+export function promptAt(area: LifeArea, horizon: VisionHorizon, index: number): string {
+  const list = promptsFor(area, horizon);
   return list[((index % list.length) + list.length) % list.length];
 }
 
