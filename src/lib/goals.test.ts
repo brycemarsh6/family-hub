@@ -16,6 +16,7 @@ import {
   canLog,
   canSee,
   earlierDate,
+  goalOnBoard,
   goalOwnership,
   isPrivateGoal,
   nextStep,
@@ -78,6 +79,14 @@ test("goalOwnership, whoseGoal, isPrivateGoal: no owner is Together, the viewer'
   assert.equal(whoseGoal(goal({ ownerId: null }), "tablet"), "together");
   assert.equal(isPrivateGoal(goal({ visibility: "private" })), true);
   assert.equal(isPrivateGoal(goal({ visibility: "shared" })), false);
+});
+
+test("goalOnBoard: the Together board holds Together goals, a person's board holds theirs", () => {
+  assert.equal(goalOnBoard(goal({ ownerId: null }), "together"), true);
+  assert.equal(goalOnBoard(goal({ ownerId: "me" }), "together"), false);
+  assert.equal(goalOnBoard(goal({ ownerId: "me" }), "me"), true);
+  assert.equal(goalOnBoard(goal({ ownerId: "spouse" }), "me"), false);
+  assert.equal(goalOnBoard(goal({ ownerId: null }), "me"), false);
 });
 
 test("canSee: private is the owner's alone, and private with no owner is nobody's", () => {

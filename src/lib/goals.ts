@@ -21,6 +21,7 @@ import {
   type PlanLogRow,
 } from "./goalsProgress";
 import { calendarDaysBetween, parseDateParam, type CalendarDate } from "./householdDate";
+import type { VisionBoardKey } from "./visions";
 
 // Plans & Goals' pure rules: who a goal belongs to and who may see, change or
 // log it, what the goal and plan forms may submit, and how a goal is built
@@ -78,6 +79,11 @@ export function whoseGoal(goal: Pick<GoalRow, "ownerId">, viewerId: string): "mi
 
 export function isPrivateGoal(goal: Pick<GoalRow, "visibility">): boolean {
   return goal.visibility === "private";
+}
+
+/** Whether a goal sits on a vision board: the Together board holds Together goals, a person's holds theirs. */
+export function goalOnBoard(goal: Pick<GoalRow, "ownerId">, board: VisionBoardKey): boolean {
+  return board === "together" ? goal.ownerId === null : goal.ownerId === board;
 }
 
 /** A private goal is seen by its owner only (a private goal with no owner by nobody). */

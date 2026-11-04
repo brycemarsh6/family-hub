@@ -72,3 +72,16 @@ export const GOAL_OWNERSHIP_LABELS: Record<GoalOwnership, string> = {
   mine: "Mine",
   together: "Together",
 };
+
+/** How far ahead a vision statement looks, in years. */
+export const VISION_HORIZONS = [5, 10, 15] as const;
+
+export type VisionHorizon = (typeof VISION_HORIZONS)[number];
+
+export const DEFAULT_VISION_HORIZON: VisionHorizon = 10;
+
+/** Narrows a number or its string ("5", "10", "15") to a VisionHorizon; null for anything else. */
+export function toVisionHorizon(raw: unknown): VisionHorizon | null {
+  if (typeof raw === "string") return VISION_HORIZONS.find((years) => String(years) === raw) ?? null;
+  return VISION_HORIZONS.find((years) => years === raw) ?? null;
+}

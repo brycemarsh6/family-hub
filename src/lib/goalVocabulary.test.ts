@@ -8,6 +8,8 @@ import assert from "node:assert/strict";
 import {
   GOAL_OWNERSHIPS,
   GOAL_OWNERSHIP_LABELS,
+  DEFAULT_VISION_HORIZON,
+  VISION_HORIZONS,
   LIFE_AREAS,
   PLAN_KIND_LABELS,
   lifeAreaInfo,
@@ -15,6 +17,7 @@ import {
   toHabitPeriod,
   toLifeArea,
   toPlanKind,
+  toVisionHorizon,
 } from "./goalVocabulary";
 
 test("vocabulary: five life areas in order, narrowers repair unknowns", () => {
@@ -39,4 +42,17 @@ test("vocabulary: five life areas in order, narrowers repair unknowns", () => {
 test("ownership: Mine and Together, each with its label", () => {
   assert.deepEqual([...GOAL_OWNERSHIPS], ["mine", "together"]);
   assert.deepEqual(GOAL_OWNERSHIP_LABELS, { mine: "Mine", together: "Together" });
+});
+
+test("vision horizons: 5, 10 and 15 years, numbers or their strings, 10 by default", () => {
+  assert.deepEqual([...VISION_HORIZONS], [5, 10, 15]);
+  assert.equal(DEFAULT_VISION_HORIZON, 10);
+  assert.equal(toVisionHorizon(5), 5);
+  assert.equal(toVisionHorizon("10"), 10);
+  assert.equal(toVisionHorizon("15"), 15);
+  assert.equal(toVisionHorizon(7), null);
+  assert.equal(toVisionHorizon("7"), null);
+  assert.equal(toVisionHorizon("10 "), null);
+  assert.equal(toVisionHorizon(null), null);
+  assert.equal(toVisionHorizon(undefined), null);
 });
