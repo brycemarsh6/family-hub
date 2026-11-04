@@ -12,9 +12,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import { canEdit, canSee, validateGoalInput, type GoalInput } from "@/lib/goals";
+import { canEdit, canSee, earlierDate, validateGoalInput, type GoalInput } from "@/lib/goals";
 import { toGoalVisibility } from "@/lib/goalVocabulary";
-import { utcMidnightInstant } from "@/lib/householdDate";
+import { calendarDateInZone, utcMidnightInstant } from "@/lib/householdDate";
 import { isMissingRowError } from "@/lib/prismaErrors";
 
 export type GoalActionResult = { error?: string };
@@ -49,6 +49,7 @@ function findGoalForWrite(id: string) {
     select: {
       ownerId: true,
       visibility: true,
+      targetDate: true,
       measureUnit: true,
       startValue: true,
       targetValue: true,
@@ -111,7 +112,11 @@ export async function updateGoal(id: string, raw: unknown): Promise<GoalActionRe
   if ("error" in loaded) return { error: loaded.error };
   const { user, goal } = loaded;
 
-  const checked = validateGoalInput(raw, householdToday(new Date())!);
+  // The date may stay, move later, or move to any day not earlier than the stored one (or today, if sooner).
+  const today = householdToday(new Date())!;
+  const checked = validateGoalInput(raw, today, {
+    earliest: earlierDate(today, calendarDateInZone(goal.targetDate, "UTC")),
+  });
   if ("error" in checked) return { error: checked.error };
   const input = checked.ok;
 

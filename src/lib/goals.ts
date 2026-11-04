@@ -22,12 +22,8 @@ import {
   type CalendarDate,
 } from "./householdDate";
 
-// Plans & Goals' pure logic: who may see, change or log a goal, the week and
-// month windows a habit counts in, progress and pace for a goal with a
-// number, and validation of what the forms submit. No db, no React: the
-// reader (goalsRead.ts) and the actions call into this, so the rules live
-// here once. Dates are CalendarDate math; a PlanLog `day` and a goal's
-// `targetDate` are stored as UTC midnight (the Task.dueDate convention).
+// Plans & Goals' pure logic: policy, habit windows, progress, validation.
+// No db, no React. `PlanLog.day` and `targetDate` are UTC midnight.
 
 export type Viewer = { userId: string; isDevice: boolean };
 
@@ -119,6 +115,7 @@ export type PlanItemInput = { title: string; kind: PlanKind; timesPerPeriod: num
 const TITLE_MAX = 120;
 const WHY_MAX = 500;
 const UNIT_MAX = 12;
+const PAST_DATE = "Pick a target date that isn't in the past.";
 
 function isRecord(raw: unknown): raw is Record<string, unknown> {
   return typeof raw === "object" && raw !== null && !Array.isArray(raw);
@@ -143,7 +140,15 @@ function validTitle(raw: unknown, what: string): { title: string } | { error: st
   return { title };
 }
 
-export function validateGoalInput(raw: unknown, today: CalendarDate): { ok: GoalInput } | { error: string } {
+/** The earlier of two days (ties give the first). */
+export function earlierDate(a: CalendarDate, b: CalendarDate) {
+  return calendarDaysBetween(a, b) >= 0 ? a : b;
+}
+
+/** `options.earliest` (default today) is the earliest date allowed, so an overdue goal can keep its own. */
+export function validateGoalInput(
+  raw: unknown, today: CalendarDate, options?: { earliest?: CalendarDate },
+): { ok: GoalInput } | { error: string } {
   if (!isRecord(raw)) return { error: "That goal didn't come through. Try again." };
   const named = validTitle(raw.title, "goal");
   if ("error" in named) return named;
@@ -158,7 +163,7 @@ export function validateGoalInput(raw: unknown, today: CalendarDate): { ok: Goal
   if (why.length > WHY_MAX) return { error: `Keep the why to ${WHY_MAX} characters or fewer.` };
   const targetDate = typeof raw.targetDate === "string" ? parseDateParam(raw.targetDate) : null;
   if (!targetDate) return { error: "Pick a target date." };
-  if (calendarDaysBetween(today, targetDate) < 0) return { error: "Pick a target date that isn't in the past." };
+  if (calendarDaysBetween(options?.earliest ?? today, targetDate) < 0) return { error: PAST_DATE };
   const measure = validateMeasure(raw.measure);
   if ("error" in measure) return measure;
   return { ok: { title: named.title, area, why: why || null, targetDate, ownership, visibility, measure: measure.ok } };
@@ -289,8 +294,6 @@ export function formatMeasure(value: number, unit: string): string {
   const decimal = tenths % 10 === 0 ? "" : `.${tenths % 10}`;
   return `${sign}$${Math.floor(tenths / 10)}${decimal}${suffix}`;
 }
-
-// ---- Small summaries ----
 
 /** The first step not yet done, by sortOrder (ties keep the given order). */
 export function nextStep(items: PlanItemRow[]): PlanItemRow | null {

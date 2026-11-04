@@ -20,6 +20,7 @@ import {
   canEdit,
   canLog,
   canSee,
+  earlierDate,
   nextStep,
   validateGoalInput,
   validatePlanItemInput,
@@ -232,6 +233,34 @@ test("validateGoalInput: rejects a past date, private + together, and half a num
   assert.deepEqual(validateGoalInput({ ...GOOD, measure: { unit: "lb", target: 165 } }, TODAY), {
     error: "Enter a starting number.",
   });
+});
+
+test("validateGoalInput: an overdue goal may keep its date, but no other past date", () => {
+  const overdue = { year: 2026, month: 11, day: 1 };
+  const keep = { ...GOOD, targetDate: "2026-11-01" };
+  assert.ok("ok" in validateGoalInput(keep, TODAY, { earliest: overdue }));
+  assert.ok("ok" in validateGoalInput({ ...GOOD, targetDate: "2026-12-31" }, TODAY, { earliest: overdue }));
+  const message = { error: "Pick a target date that isn't in the past." };
+  assert.deepEqual(validateGoalInput({ ...GOOD, targetDate: "2026-10-30" }, TODAY, { earliest: overdue }), message);
+  assert.deepEqual(validateGoalInput(keep, TODAY), message);
+  assert.deepEqual(validateGoalInput(keep, TODAY, {}), message);
+});
+
+test("earlierDate: picks the earlier day, ties give the first", () => {
+  const a = { year: 2026, month: 11, day: 1 };
+  const b = { year: 2026, month: 12, day: 1 };
+  assert.equal(earlierDate(a, b), a);
+  assert.equal(earlierDate(b, a), a);
+  assert.equal(earlierDate(a, { ...a }), a);
+});
+
+test("earlierDate: a month start before the week start wins, and the other way round", () => {
+  const nov1 = d(2026, 11, 1);
+  const nov2 = d(2026, 11, 2);
+  assert.equal(earlierDate(nov2, nov1), nov1);
+  const nov29 = d(2026, 11, 29);
+  const dec1 = d(2026, 12, 1);
+  assert.equal(earlierDate(nov29, dec1), nov29);
 });
 
 test("validateGoalInput: rejects a bad number, a bad unit and equal start and target", () => {

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import {
   buildGoalView,
   canSee,
+  earlierDate,
   type GoalRow,
   type GoalView,
   type PlanItemRow,
@@ -18,7 +19,6 @@ import {
   toPlanKind,
 } from "@/lib/goalVocabulary";
 import {
-  calendarDaysBetween,
   startOfMonth,
   startOfWeek,
   utcMidnightInstant,
@@ -35,9 +35,7 @@ const OWNER_SELECT = { id: true, displayName: true, avatarColor: true } as const
 
 /** The earliest log any habit's window can reach: the week or the month start, whichever is earlier. */
 function earliestWindowStart(today: CalendarDate): CalendarDate {
-  const week = startOfWeek(today);
-  const month = startOfMonth(today);
-  return calendarDaysBetween(week, month) < 0 ? week : month;
+  return earlierDate(startOfWeek(today), startOfMonth(today));
 }
 
 function goalInclude(today: CalendarDate) {
