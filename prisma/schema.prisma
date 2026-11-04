@@ -541,6 +541,13 @@ model User {
   /// they have ever changed anything. Absent = everything at its default.
   preferences UserPreferences?
 
+  /// Plans & Goals (mission 27): goals this person owns and goals they
+  /// created (both SetNull: a goal outlives a deactivated person's row), and
+  /// the habit taps they logged (SetNull: the tap still counts).
+  goalsOwned   Goal[]    @relation("goalsOwned")
+  goalsCreated Goal[]    @relation("goalsCreated")
+  planLogs     PlanLog[]
+
   // No relation to LoginAttempt here — see that model's own doc comment for
   // why userId there is deliberately not a foreign key.
 
@@ -702,4 +709,109 @@ model UserPreferences {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// A goal in Plans & Goals (mission 27, .avengers/plans/plans-goals-v1.md): a
+/// result the household wants by a date, in one of five life areas.
+/// `ownerId` null means "Together" (the whole household); set means it is that
+/// person's. `area` and `visibility` are plain text, not Prisma enums: the
+/// vocabulary lives in src/lib/goalVocabulary.ts and its `to*` narrowers
+/// repair anything odd. Who may see or change a goal is decided in
+/// src/lib/goals.ts (`canSee` / `canEdit` / `canLog`), never in a query.
+/// The four measure fields are all null (no number to track) or all set.
+/// `targetDate` is stored at UTC midnight, the Task.dueDate convention.
+model Goal {
+  id String @id @default(cuid())
+
+  title String
+
+  /// LIFE_AREAS key: "spiritual" | "health" | "growth" | "financial" | "relationships"
+  area String
+
+  why String?
+
+  /// The day the goal is due, UTC midnight (same convention as Task.dueDate).
+  targetDate DateTime
+
+  /// Who it's for. null = Together (the whole household).
+  ownerId String?
+  owner   User?   @relation("goalsOwned", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  /// "shared" | "private". Private is only valid with an owner; a private goal
+  /// is visible to its owner alone. ownerId null + private = visible to nobody.
+  visibility String @default("shared")
+
+  /// Optional number to track: all four null, or all four set.
+  measureUnit  String?
+  startValue   Float?
+  targetValue  Float?
+  currentValue Float?
+  checkedInAt  DateTime?
+
+  completedAt DateTime?
+
+  createdById String?
+  createdBy   User?   @relation("goalsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+
+  planItems PlanItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([targetDate])
+}
+
+/// One thing under a goal: a habit (repeats N times a day, week or month), a
+/// step (done once) or a reminder (just kept in view). The kind is plain text
+/// (PLAN_KINDS in src/lib/goalVocabulary.ts). Deleting the goal deletes its
+/// items, and their logs, with it.
+model PlanItem {
+  id String @id @default(cuid())
+
+  goalId String
+  goal   Goal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  title String
+
+  /// "habit" | "step" | "reminder"
+  kind String
+
+  /// Habit only: N times per period. "day" | "week" | "month".
+  timesPerPeriod Int?
+  period         String?
+
+  /// Step only.
+  doneAt DateTime?
+
+  sortOrder Int @default(0)
+
+  logs PlanLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([goalId])
+}
+
+/// One tap on a habit: "done once, on this day". A habit's count in its week
+/// or month is the number of these rows in that window, so undoing a tap is
+/// deleting the newest row. `day` is the household (Denver) day the tap counts
+/// toward, at UTC midnight. `loggedById` is SetNull: the tap still counts
+/// after the person who made it is gone.
+model PlanLog {
+  id String @id @default(cuid())
+
+  planItemId String
+  planItem   PlanItem @relation(fields: [planItemId], references: [id], onDelete: Cascade)
+
+  /// The household (Denver) day the tap counts toward, UTC midnight.
+  day DateTime
+
+  loggedById String?
+  loggedBy   User?   @relation(fields: [loggedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([planItemId, day])
 }
