@@ -148,10 +148,9 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Plans & Goals PR 2, the Vision board** (mission 28, branch
-  `claude/plans-goals-p2`): built, and all three gates PASS (Vision, Strange,
-  Captain). **Not pushed yet**, so the family does not have it. PR 1 (#36)
-  is merged and live. PR 3 (dashboard tile, Sunday recap, Routines switch) is
+- **Plans & Goals PR 2, the Vision board** (mission 28): merged as PR #37
+  and live in production since 2026-11-04 (the build applied the
+  VisionStatement migration). PR 1 (#36) is also live. PR 3 (dashboard tile, Sunday recap, Routines switch) is
   queued in `.avengers/plans/plans-goals-v1.md`. The navigation redesign,
   including rail names, is live (PRs #32 to #35).
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a

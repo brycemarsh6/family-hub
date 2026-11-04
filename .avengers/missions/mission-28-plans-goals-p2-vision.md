@@ -1,7 +1,7 @@
 # Mission 28: Plans & Goals PR 2 (Vision board, prompts, idea chips)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILT, all gates PASS (Vision pass 3, Strange pass 2, Captain pass 2); not pushed
+**Status:** DELIVERED, merged as PR #37 and live 2026-11-04 (gates: Vision pass 3, Strange pass 2, Captain pass 2)
 **Started:** 2026-11-04 · **Updated:** 2026-11-04
 **Branch:** `claude/plans-goals-p2` from `origin/main` at `2a9f8a7` (PR #36 merged)
 **Direction:** `.avengers/plans/plans-goals-v1.md` (read first)
@@ -670,7 +670,8 @@ Bryce answered "Yes to all three":
 ## Delivery
 
 - Fury's browser check 2026-11-04: phone dark and iPad light; every prompt on the 5, 10 and 15 year boards cycled, none names another horizon (50 / 46 / 51 shown, matching the tests); goal page reads "your" for the owner; the other-login view is covered by tests only (Fury never types family passwords). Test goal and the test Together Health vision deleted through the UI.
-- Not pushed. Push and PR wait on Bryce.
+- Pushed and opened as PR #37 on Bryce's go-ahead. The Gauntlet, the Vercel build and Vercel Preview Comments all passed. Merged 2026-11-04 as commit 447ea38. The production deployment reached READY, which means the build hook applied the VisionStatement migration.
+- "Allow auto-merge" was turned on for the repository the same day, at Bryce's request, so later PRs can be set to merge when green.
 
 
 - **Shipped:** —
