@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { DASHBOARD_WIDGETS } from "@/lib/dashboardWidgets";
 import type { DashboardWidgetId } from "@/lib/dashboardWidgets";
 import type { DashboardLayout } from "@/lib/dashboardLayout";
+import { ToggleSwitch } from "./ToggleSwitch";
 
 /**
  * The Customize sheet: one row per widget with an on/off switch and up and
@@ -78,29 +79,11 @@ export default function DashboardCustomizeSheet({
                 <span className="min-w-0 flex-1 truncate text-base font-medium text-fg">
                   {label}
                 </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={widget.enabled}
-                  aria-label={`Show ${label}`}
-                  onClick={() => onToggle(widget.id)}
-                  className="flex h-11 w-14 shrink-0 items-center justify-center"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`flex h-7 w-12 items-center rounded-full border-2 transition-colors ${
-                      widget.enabled ? "border-transparent bg-accent" : "border-muted bg-surface-2"
-                    }`}
-                  >
-                    <span
-                      className={`rounded-full transition-transform ${
-                        widget.enabled
-                          ? "h-6 w-6 translate-x-5 bg-surface shadow"
-                          : "h-4 w-4 translate-x-1 bg-muted"
-                      }`}
-                    />
-                  </span>
-                </button>
+                <ToggleSwitch
+                  checked={widget.enabled}
+                  onChange={() => onToggle(widget.id)}
+                  label={`Show ${label}`}
+                />
                 <button
                   type="button"
                   aria-label={`Move ${label} up`}
