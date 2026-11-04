@@ -12,7 +12,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import { canEdit, canSee, earlierDate, validateGoalInput, type GoalInput } from "@/lib/goals";
+import { canEdit, canSee, earlierDate, goalOwnership, validateGoalInput, type GoalInput } from "@/lib/goals";
 import { toGoalVisibility } from "@/lib/goalVocabulary";
 import { calendarDateInZone, utcMidnightInstant } from "@/lib/householdDate";
 import { isMissingRowError } from "@/lib/prismaErrors";
@@ -114,7 +114,7 @@ export async function updateGoal(id: string, raw: unknown): Promise<GoalActionRe
 
   // Whose a goal is can't change by editing: the stored row decides, never the client.
   // A Together goal therefore can't be made private, and a Mine goal can't be handed to everyone.
-  const ownership = goal.ownerId === null ? "together" : "mine";
+  const ownership = goalOwnership(goal);
   const submitted = typeof raw === "object" && raw !== null ? { ...raw, ownership } : raw;
 
   // The date may stay, move later, or move to any day not earlier than the stored one (or today, if sooner).

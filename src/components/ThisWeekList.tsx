@@ -6,17 +6,20 @@ import { Undo2 } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { PlanItemRow } from "./PlanItemRow";
 import type { SwipeAction } from "./SwipeActions";
+import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import {
+  goalOwnership,
   nextStep,
-  weekSummary,
+  whoseGoal,
   type GoalView,
-  type PlanItemView,
   type PlansPageData,
   type Viewer,
 } from "@/lib/goals";
-import { lifeAreaInfo } from "@/lib/goalVocabulary";
-import { utcMidnightInstant } from "@/lib/householdDate";
+import { weekSummary, type PlanItemView } from "@/lib/goalsProgress";
+import { GOAL_OWNERSHIP_LABELS, lifeAreaInfo } from "@/lib/goalVocabulary";
+import { zoneMidnightInstant } from "@/lib/householdDate";
 import { formatWeekRange } from "@/lib/mealPlanDates";
+import { applyPlanItemChange, type PlanItemChange } from "@/lib/planItemChanges";
 import {
   completeStep,
   logHabit,
@@ -26,36 +29,10 @@ import {
 } from "@/app/actions/planItems";
 
 // Every way a plan item can change on screen before the server has caught up.
-type Change =
-  | { type: "log"; itemId: string }
-  | { type: "undo"; itemId: string }
-  | { type: "stepDone"; itemId: string; at: Date }
-  | { type: "stepUndone"; itemId: string };
-
-function changeItem(item: PlanItemView, change: Change): PlanItemView {
-  switch (change.type) {
-    case "log": {
-      const count = item.count + 1;
-      return { ...item, count, done: count >= item.target };
-    }
-    case "undo":
-      return { ...item, count: Math.max(0, item.count - 1), done: false };
-    case "stepDone":
-      return { ...item, count: 1, done: true, doneAt: change.at };
-    case "stepUndone":
-      return { ...item, count: 0, done: false, doneAt: null };
-  }
-}
-
-function applyChange(goals: GoalView[], change: Change): GoalView[] {
+function applyChange(goals: GoalView[], change: PlanItemChange): GoalView[] {
   return goals.map((goal) =>
     goal.items.some((item) => item.id === change.itemId)
-      ? {
-          ...goal,
-          items: goal.items.map((item) =>
-            item.id === change.itemId ? changeItem(item, change) : item,
-          ),
-        }
+      ? { ...goal, items: applyPlanItemChange(goal.items, change) }
       : goal,
   );
 }
@@ -63,7 +40,7 @@ function applyChange(goals: GoalView[], change: Change): GoalView[] {
 type Filter = "mine" | "everyone";
 
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: "mine", label: "Mine and Together" },
+  { key: "mine", label: `${GOAL_OWNERSHIP_LABELS.mine} and ${GOAL_OWNERSHIP_LABELS.together}` },
   { key: "everyone", label: "Everyone" },
 ];
 
@@ -75,7 +52,7 @@ export function ThisWeekList({ data, viewer }: { data: PlansPageData; viewer: Vi
   const [filter, setFilter] = useState<Filter>("mine");
   const [error, setError] = useState<string | null>(null);
 
-  function run(change: Change, action: () => Promise<PlanItemActionResult>) {
+  function run(change: PlanItemChange, action: () => Promise<PlanItemActionResult>) {
     setError(null);
     startTransition(async () => {
       applyOptimistic(change);
@@ -94,25 +71,25 @@ export function ThisWeekList({ data, viewer }: { data: PlansPageData; viewer: Vi
   const shown = goals.filter(
     (goal) =>
       goal.completedAt === null &&
-      (!showFilter ||
-        filter === "everyone" ||
-        goal.ownerId === viewer.userId ||
-        goal.ownerId === null),
+      (!showFilter || filter === "everyone" || whoseGoal(goal, viewer.userId) !== "theirs"),
   );
   const { done, total } = weekSummary(shown);
 
   // Each goal with what it contributes to this week; a goal with nothing is skipped.
   // A step checked off this week stays put, struck through, so a second tap can undo it;
-  // the next undone step sits below it rather than sliding into its place.
-  const weekStartMs = utcMidnightInstant(ws).getTime();
+  // the next undone step sits below it rather than sliding into its place. `doneAt` is a real
+  // instant and the week starts at household midnight, so the cut-off is that midnight, not UTC's.
+  // Done steps run oldest first, which leaves the one just ticked directly above the next step.
+  const weekStartMs = zoneMidnightInstant(ws, HOUSEHOLD_TIME_ZONE).getTime();
+  const doneAtMs = (item: PlanItemView) => item.doneAt?.getTime() ?? 0;
   const cards = shown.flatMap((goal) => {
     const step = nextStep(goal.items);
     const stepView = step ? goal.items.find((item) => item.id === step.id) : undefined;
     const rows = [
       ...goal.items.filter((item) => item.kind === "habit"),
-      ...goal.items.filter(
-        (item) => item.kind === "step" && item.doneAt !== null && item.doneAt.getTime() >= weekStartMs,
-      ),
+      ...goal.items
+        .filter((item) => item.kind === "step" && item.doneAt !== null && doneAtMs(item) >= weekStartMs)
+        .sort((a, b) => doneAtMs(a) - doneAtMs(b)),
       ...(stepView ? [stepView] : []),
       ...goal.items.filter((item) => item.kind === "reminder"),
     ];
@@ -175,7 +152,7 @@ export function ThisWeekList({ data, viewer }: { data: PlansPageData; viewer: Vi
                 href={`/plans/goals/${goal.id}`}
                 className="flex min-h-11 items-center px-3 text-xs font-semibold uppercase tracking-wide text-muted active:bg-surface-2"
               >
-                {goal.title} · {goal.ownerId === null ? "Together" : lifeAreaInfo(goal.area).short}
+                {goal.title} · {goalOwnership(goal) === "together" ? GOAL_OWNERSHIP_LABELS.together : lifeAreaInfo(goal.area).short}
               </Link>
               <ul className="divide-y divide-line">
                 {rows.map((item) => (

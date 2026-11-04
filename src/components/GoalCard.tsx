@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
-import { formatMeasure, PACE_LABELS, weekSummary, type GoalView } from "@/lib/goals";
+import { isPrivateGoal, whoseGoal, type GoalView } from "@/lib/goals";
+import { formatMeasure, PACE_LABELS, weekSummary } from "@/lib/goalsProgress";
+import { GOAL_OWNERSHIP_LABELS } from "@/lib/goalVocabulary";
 
 /**
  * One goal on the Goals list: title, who it belongs to, the number being
@@ -10,6 +12,7 @@ import { formatMeasure, PACE_LABELS, weekSummary, type GoalView } from "@/lib/go
  */
 export function GoalCard({ goal, viewerId }: { goal: GoalView; viewerId: string }) {
   const { done, total } = weekSummary([goal]);
+  const whose = whoseGoal(goal, viewerId);
   const plans = `${goal.items.length} ${goal.items.length === 1 ? "plan" : "plans"}`;
   // A goal's number is all or nothing: unit, target and current are set together.
   const { measureUnit: unit, targetValue: target, currentValue: current } = goal;
@@ -23,17 +26,17 @@ export function GoalCard({ goal, viewerId }: { goal: GoalView; viewerId: string 
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-1.5">
           <h3 className="min-w-0 text-base font-semibold">{goal.title}</h3>
-          {goal.visibility === "private" && (
+          {isPrivateGoal(goal) && (
             <Lock aria-label="Private" className="shrink-0 text-muted" size={14} />
           )}
         </div>
-        {goal.ownerId === null ? (
+        {whose === "together" ? (
           <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
-            Together
+            {GOAL_OWNERSHIP_LABELS.together}
           </span>
         ) : (
           <span className="shrink-0 text-xs text-muted">
-            {goal.ownerId === viewerId ? "Mine" : goal.owner?.displayName}
+            {whose === "mine" ? GOAL_OWNERSHIP_LABELS.mine : goal.owner?.displayName}
           </span>
         )}
       </div>

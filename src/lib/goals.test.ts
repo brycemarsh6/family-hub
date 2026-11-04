@@ -1,32 +1,29 @@
-// Pins Plans & Goals' pure rules: who can see / change / log a goal, how a
-// plan item and a goal are built into views, and what the goal and plan
-// forms may submit. Windows, progress, pace and formatting are in
-// goalsProgress.test.ts.
+// Pins goals.ts: whose a goal is and who can see / change / log it, how a
+// goal is built into a view, and what the goal and plan forms may submit.
+// Windows, counts, progress, pace and formatting are in goalsProgress.test.ts,
+// the vocabulary in goalVocabulary.test.ts, tap-time changes in
+// planItemChanges.test.ts.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  LIFE_AREAS,
-  PLAN_KIND_LABELS,
-  lifeAreaInfo,
-  toGoalVisibility,
-  toHabitPeriod,
-  toLifeArea,
-  toPlanKind,
-} from "./goalVocabulary";
-import {
+  GOAL_TITLE_MAX,
+  GOAL_WHY_MAX,
+  HABIT_TIMES_MAX,
+  MEASURE_UNIT_MAX,
   buildGoalView,
-  buildPlanItemView,
   canEdit,
   canLog,
   canSee,
   earlierDate,
+  goalOwnership,
+  isPrivateGoal,
   nextStep,
   validateGoalInput,
   validatePlanItemInput,
+  whoseGoal,
   type GoalRow,
   type PlanItemRow,
-  type PlanLogRow,
   type Viewer,
 } from "./goals";
 import { utcMidnightInstant, type CalendarDate } from "./householdDate";
@@ -72,32 +69,15 @@ function item(over: Partial<PlanItemRow> = {}): PlanItemRow {
   };
 }
 
-function logsOn(planItemId: string, days: CalendarDate[]): PlanLogRow[] {
-  return days.map((day, n) => ({
-    id: `l${n}`,
-    planItemId,
-    day: utcMidnightInstant(day),
-    createdAt: new Date("2026-11-04T12:00:00Z"),
-  }));
-}
-
-test("vocabulary: five life areas in order, narrowers repair unknowns", () => {
-  assert.deepEqual(
-    LIFE_AREAS.map((a) => a.key),
-    ["spiritual", "health", "growth", "financial", "relationships"],
-  );
-  assert.equal(toLifeArea("health"), "health");
-  assert.equal(toLifeArea("Health"), null);
-  assert.equal(lifeAreaInfo("relationships").short, "Relationships");
-  assert.equal(toPlanKind("step"), "step");
-  assert.equal(toPlanKind("chore"), null);
-  assert.equal(toHabitPeriod("month"), "month");
-  assert.equal(toHabitPeriod("year"), null);
-  assert.equal(toGoalVisibility("private"), "private");
-  assert.equal(toGoalVisibility("shared"), "shared");
-  assert.equal(toGoalVisibility("secret"), "private");
-  assert.equal(toGoalVisibility(undefined), "private");
-  assert.deepEqual(PLAN_KIND_LABELS.habit, { label: "Habit", hint: "repeats" });
+test("goalOwnership, whoseGoal, isPrivateGoal: no owner is Together, the viewer's own is Mine", () => {
+  assert.equal(goalOwnership(goal()), "mine");
+  assert.equal(goalOwnership(goal({ ownerId: null })), "together");
+  assert.equal(whoseGoal(goal(), "me"), "mine");
+  assert.equal(whoseGoal(goal(), "spouse"), "theirs");
+  assert.equal(whoseGoal(goal({ ownerId: null }), "me"), "together");
+  assert.equal(whoseGoal(goal({ ownerId: null }), "tablet"), "together");
+  assert.equal(isPrivateGoal(goal({ visibility: "private" })), true);
+  assert.equal(isPrivateGoal(goal({ visibility: "shared" })), false);
 });
 
 test("canSee: private is the owner's alone, and private with no owner is nobody's", () => {
@@ -121,41 +101,6 @@ test("canLog: a device can log a Together goal; only the owner logs a Mine goal"
   assert.equal(canLog(goal(), ME), true);
   assert.equal(canLog(goal(), SPOUSE), false);
   assert.equal(canLog(goal(), TABLET), false);
-});
-
-test("buildPlanItemView: 4 of 4 is done, and 5 logs still report count 5", () => {
-  const four = buildPlanItemView(item(), logsOn("i1", [d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]), TODAY);
-  assert.equal(four.count, 4);
-  assert.equal(four.done, true);
-  assert.equal(four.windowLabel, "this week");
-  const five = buildPlanItemView(
-    item(),
-    logsOn("i1", [d(2026, 11, 1), d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]),
-    TODAY,
-  );
-  assert.equal(five.count, 5);
-  assert.equal(five.target, 4);
-});
-
-test("buildPlanItemView: ignores another item's logs; 3 of 4 is not done", () => {
-  const logs = [...logsOn("i1", [d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]), ...logsOn("other", [d(2026, 11, 4)])];
-  const view = buildPlanItemView(item(), logs, TODAY);
-  assert.equal(view.count, 3);
-  assert.equal(view.done, false);
-});
-
-test("buildPlanItemView: steps follow doneAt, reminders have no target", () => {
-  const step = item({ kind: "step", timesPerPeriod: null, period: null });
-  assert.deepEqual(
-    (({ count, target, done, windowLabel }) => ({ count, target, done, windowLabel }))(buildPlanItemView(step, [], TODAY)),
-    { count: 0, target: 1, done: false, windowLabel: null },
-  );
-  const doneStep = buildPlanItemView({ ...step, doneAt: new Date() }, [], TODAY);
-  assert.equal(doneStep.done, true);
-  assert.equal(doneStep.count, 1);
-  const reminder = buildPlanItemView(item({ kind: "reminder", timesPerPeriod: null, period: null }), [], TODAY);
-  assert.equal(reminder.target, 0);
-  assert.equal(reminder.done, false);
 });
 
 test("nextStep: the first undone step by sortOrder; reminders and habits never qualify", () => {
@@ -255,7 +200,8 @@ test("validateGoalInput: a Together goal sent as private is refused, and a missi
   });
   const mine = { ...GOOD, ownership: "mine", visibility: "weird" };
   const result = validateGoalInput(mine, TODAY);
-  assert.ok("ok" in result && result.ok.visibility === "private");
+  assert.ok("ok" in result);
+  assert.equal("ok" in result && result.ok.visibility, "private");
 });
 
 test("validateGoalInput: an overdue goal may keep its date, but no other past date", () => {
@@ -328,6 +274,20 @@ test("validatePlanItemInput: habits need times and a period, steps and reminders
   });
   assert.ok("error" in validatePlanItemInput({ title: "Pray", kind: "reminder", timesPerPeriod: 1, period: null }));
   assert.ok("ok" in validatePlanItemInput({ title: "Pray", kind: "reminder" }));
+});
+
+test("the form limits are the ones the checks enforce", () => {
+  assert.deepEqual([GOAL_TITLE_MAX, GOAL_WHY_MAX, MEASURE_UNIT_MAX, HABIT_TIMES_MAX], [120, 500, 12, 20]);
+  const goalWith = (over: object) => validateGoalInput({ ...GOOD, ...over }, TODAY);
+  assert.ok("ok" in goalWith({ title: "x".repeat(GOAL_TITLE_MAX) }));
+  assert.ok("error" in goalWith({ title: "x".repeat(GOAL_TITLE_MAX + 1) }));
+  assert.ok("ok" in goalWith({ why: "x".repeat(GOAL_WHY_MAX) }));
+  assert.ok("error" in goalWith({ why: "x".repeat(GOAL_WHY_MAX + 1) }));
+  assert.ok("ok" in goalWith({ measure: { unit: "x".repeat(MEASURE_UNIT_MAX), start: 1, target: 2 } }));
+  assert.ok("error" in goalWith({ measure: { unit: "x".repeat(MEASURE_UNIT_MAX + 1), start: 1, target: 2 } }));
+  const habit = (times: number) => validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: times, period: "week" });
+  assert.ok("ok" in habit(HABIT_TIMES_MAX));
+  assert.deepEqual(habit(HABIT_TIMES_MAX + 1), { error: "Pick how many times, from 1 to 20." });
 });
 
 test("validatePlanItemInput: title and kind rules", () => {

@@ -11,15 +11,16 @@ import { PlanItemSheet } from "./PlanItemSheet";
 import { ProgressBar } from "./ProgressBar";
 import type { SwipeAction } from "./SwipeActions";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
+import type { GoalView } from "@/lib/goals";
 import {
   formatMeasure,
   PACE_LABELS,
   paceStatus,
   progressFraction,
-  type GoalView,
   type PlanItemView,
-} from "@/lib/goals";
-import { calendarDateInZone, utcMidnightInstant, type CalendarDate } from "@/lib/householdDate";
+} from "@/lib/goalsProgress";
+import { calendarDateInZone, formatShortCalendarDate, type CalendarDate } from "@/lib/householdDate";
+import { applyPlanItemChange, type PlanItemChange } from "@/lib/planItemChanges";
 import { completeGoal, deleteGoal, uncompleteGoal, type GoalActionResult } from "@/app/actions/goals";
 import {
   completeStep,
@@ -33,37 +34,13 @@ import {
 // Every way this goal can change on screen before the server has caught up.
 // An optimistic value falls back to the server's own the moment the call
 // finishes, so a refused call snaps back by itself; `run` then says why.
+// The plan item changes are shared with This week (planItemChanges.ts); the
+// three that change the goal itself live here.
 type Change =
-  | { type: "log"; itemId: string }
-  | { type: "undo"; itemId: string }
-  | { type: "stepDone"; itemId: string; at: Date }
-  | { type: "stepUndone"; itemId: string }
+  | PlanItemChange
   | { type: "checkIn"; value: number; at: Date }
   | { type: "complete"; at: Date }
   | { type: "reopen" };
-
-function changeItem(item: PlanItemView, change: Change): PlanItemView {
-  if (!("itemId" in change) || change.itemId !== item.id) return item;
-  switch (change.type) {
-    case "log": {
-      const count = item.count + 1;
-      return { ...item, count, done: count >= item.target };
-    }
-    case "undo":
-      return { ...item, count: Math.max(0, item.count - 1), done: false };
-    case "stepDone":
-      return { ...item, count: 1, done: true, doneAt: change.at };
-    case "stepUndone":
-      return { ...item, count: 0, done: false, doneAt: null };
-  }
-}
-
-/** A day as "Nov 3". Built from UTC parts, so the viewer's time zone can't shift it. */
-function shortDate(date: CalendarDate): string {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(
-    utcMidnightInstant(date),
-  );
-}
 
 const SAVE_FAILED = "Couldn't save that. Check your connection and try again.";
 
@@ -84,7 +61,7 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
       case "reopen":
         return { ...current, completedAt: null };
       default:
-        return { ...current, items: current.items.map((item) => changeItem(item, change)) };
+        return { ...current, items: applyPlanItemChange(current.items, change) };
     }
   });
   const [, startTransition] = useTransition();
@@ -165,7 +142,7 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
   const { measureUnit: unit, startValue: start, targetValue: target, currentValue: current } = goal;
   const measured = unit !== null && start !== null && target !== null && current !== null;
   const lastCheckIn = goal.checkedInAt
-    ? `Last check-in ${shortDate(calendarDateInZone(goal.checkedInAt, HOUSEHOLD_TIME_ZONE))}`
+    ? `Last check-in ${formatShortCalendarDate(calendarDateInZone(goal.checkedInAt, HOUSEHOLD_TIME_ZONE))}`
     : "No check-in yet";
 
   const menuItems = [

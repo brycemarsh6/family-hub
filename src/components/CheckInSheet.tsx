@@ -1,16 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { formatMeasure, measureStep, type GoalView } from "@/lib/goals";
+import type { GoalView } from "@/lib/goals";
+import { formatMeasure, measureStep, parseTypedNumber } from "@/lib/goalsProgress";
 import { checkInGoal } from "@/app/actions/goals";
-
-/** What was typed, as a number; null for blank or anything that isn't one ("1,200" counts). */
-function parseTyped(text: string): number | null {
-  const cleaned = text.replace(/,/g, "").trim();
-  if (cleaned === "") return null;
-  const value = Number(cleaned);
-  return Number.isFinite(value) ? value : null;
-}
 
 /** A number as it should sit in the box: at most 2 decimals, no trailing zeroes. */
 function toText(value: number): string {
@@ -42,7 +35,7 @@ export function CheckInSheet({
   const [text, setText] = useState(toText(goal.currentValue ?? start));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const parsed = parseTyped(text);
+  const parsed = parseTypedNumber(text);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {

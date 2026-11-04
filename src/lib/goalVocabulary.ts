@@ -61,9 +61,14 @@ export type GoalVisibility = (typeof GOAL_VISIBILITIES)[number];
 
 /** Anything unknown is "private": a goal fails closed, hidden from everyone but its owner. */
 export function toGoalVisibility(raw: unknown): GoalVisibility {
-  return GOAL_VISIBILITIES.find((visibility) => visibility === raw) ?? "private";
+  return GOAL_VISIBILITIES.find((option) => option === raw) ?? "private";
 }
 
 export const GOAL_OWNERSHIPS = ["mine", "together"] as const;
 
 export type GoalOwnership = (typeof GOAL_OWNERSHIPS)[number];
+
+export const GOAL_OWNERSHIP_LABELS: Record<GoalOwnership, string> = {
+  mine: "Mine",
+  together: "Together",
+};

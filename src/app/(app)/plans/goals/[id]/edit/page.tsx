@@ -3,6 +3,7 @@ import { BackLink } from "@/components/BackLink";
 import { GoalForm, type GoalFormValues } from "@/components/GoalForm";
 import { requireVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
+import { goalOwnership } from "@/lib/goals";
 import { loadGoal } from "@/lib/goalsRead";
 import { calendarDateInZone, formatCalendarDate } from "@/lib/householdDate";
 
@@ -23,7 +24,7 @@ export default async function EditGoalPage({ params }: { params: Promise<{ id: s
   const initial: GoalFormValues = {
     title: goal.title,
     area: goal.area,
-    ownership: goal.ownerId === null ? "together" : "mine",
+    ownership: goalOwnership(goal),
     visibility: goal.visibility,
     why: goal.why ?? "",
     targetDate: formatCalendarDate(calendarDateInZone(goal.targetDate, "UTC")),

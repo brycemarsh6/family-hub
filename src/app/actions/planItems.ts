@@ -13,15 +13,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import {
-  canEdit,
-  canLog,
-  canSee,
-  countInWindow,
-  logWindow,
-  validatePlanItemInput,
-  type PlanItemRow,
-} from "@/lib/goals";
+import { canEdit, canLog, canSee, validatePlanItemInput } from "@/lib/goals";
+import { countInWindow, logWindow, type PlanItemRow } from "@/lib/goalsProgress";
 import { toGoalVisibility, toHabitPeriod, toPlanKind } from "@/lib/goalVocabulary";
 import { utcMidnightInstant } from "@/lib/householdDate";
 import { Prisma } from "@/generated/prisma/client";

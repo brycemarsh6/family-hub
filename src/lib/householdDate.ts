@@ -10,6 +10,8 @@
 // Building either with a process-local `new Date(y, m, d)` on a UTC server
 // would be off by the zone offset — e.g. a second MealPlan for the same week.
 
+import { MONTH_NAMES } from "./mealPlanDates";
+
 export type CalendarDate = { year: number; month: number; day: number };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -76,6 +78,11 @@ export function parseDateParam(text: string): CalendarDate | null {
 export function formatCalendarDate(date: CalendarDate): string {
   const pad = (n: number, width: number) => String(n).padStart(width, "0");
   return `${pad(date.year, 4)}-${pad(date.month, 2)}-${pad(date.day, 2)}`;
+}
+
+/** "Nov 3": the short month name and the day, no year. */
+export function formatShortCalendarDate(date: CalendarDate): string {
+  return `${MONTH_NAMES[date.month - 1]} ${date.day}`;
 }
 
 export function addCalendarDays(date: CalendarDate, n: number): CalendarDate {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { QuantityStepper } from "./QuantityStepper";
-import type { PlanItemView } from "@/lib/goals";
+import { GOAL_TITLE_MAX, HABIT_TIMES_MAX, type PlanItemView } from "@/lib/goals";
 import {
   HABIT_PERIODS,
   PLAN_KINDS,
@@ -124,7 +124,7 @@ export function PlanItemSheet({
               onKeyDown={(event) => {
                 if (event.key === "Enter") handleSubmit();
               }}
-              maxLength={120}
+              maxLength={GOAL_TITLE_MAX}
               autoComplete="off"
               autoFocus
               className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base text-fg outline-none placeholder:text-muted"
@@ -157,7 +157,7 @@ export function PlanItemSheet({
             <div role="group" aria-label="How often">
               <span className="mb-2 block text-sm text-muted">How often</span>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <QuantityStepper value={times} onChange={setTimes} min={1} max={20} label="Times" />
+                <QuantityStepper value={times} onChange={setTimes} min={1} max={HABIT_TIMES_MAX} label="Times" />
                 <span className="text-sm text-muted">times a</span>
                 <div className="flex rounded-xl bg-surface-2 p-1">
                   {HABIT_PERIODS.map((option) => (

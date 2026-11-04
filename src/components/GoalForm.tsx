@@ -3,8 +3,17 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ToggleSwitch } from "./ToggleSwitch";
-import { earlierDate, targetDateChips } from "@/lib/goals";
 import {
+  GOAL_TITLE_MAX,
+  GOAL_WHY_MAX,
+  MEASURE_UNIT_MAX,
+  earlierDate,
+  isPrivateGoal,
+} from "@/lib/goals";
+import { parseTypedNumber, targetDateChips } from "@/lib/goalsProgress";
+import {
+  GOAL_OWNERSHIPS,
+  GOAL_OWNERSHIP_LABELS,
   LIFE_AREAS,
   type GoalOwnership,
   type GoalVisibility,
@@ -39,14 +48,6 @@ const CHIP_CLASSES = "flex min-h-11 items-center gap-1.5 rounded-full border px-
 const CHIP_ON = "border-accent bg-accent text-accent-fg";
 const CHIP_OFF = "border-line bg-surface text-muted";
 const INPUT_CLASSES = "min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base text-fg outline-none placeholder:text-muted";
-
-/** What was typed, as a number; null for blank or anything that isn't one (the server then names the problem). */
-function typedNumber(text: string): number | null {
-  const cleaned = text.replace(/,/g, "").trim();
-  if (cleaned === "") return null;
-  const value = Number(cleaned);
-  return Number.isFinite(value) ? value : null;
-}
 
 /**
  * One form for both New and Edit goal. Sends the server a plain object (with
@@ -97,7 +98,7 @@ export function GoalForm(
       why: values.why,
       targetDate: values.targetDate,
       measure: measure
-        ? { unit: measure.unit, start: typedNumber(measure.start), target: typedNumber(measure.target) }
+        ? { unit: measure.unit, start: parseTypedNumber(measure.start), target: parseTypedNumber(measure.target) }
         : null,
     };
     setError(null);
@@ -126,7 +127,7 @@ export function GoalForm(
           type="text"
           value={values.title}
           onChange={(event) => set("title", event.target.value)}
-          maxLength={120}
+          maxLength={GOAL_TITLE_MAX}
           autoComplete="off"
           autoFocus={!isEdit}
           className={INPUT_CLASSES}
@@ -152,10 +153,10 @@ export function GoalForm(
 
       <Field label="For" group>
         {isEdit ? (
-          <p className="text-base text-fg">{values.ownership === "mine" ? "Mine" : "Together"}</p>
+          <p className="text-base text-fg">{GOAL_OWNERSHIP_LABELS[values.ownership]}</p>
         ) : (
           <div className="flex gap-2">
-            {(["mine", "together"] as const).map((option) => (
+            {GOAL_OWNERSHIPS.map((option) => (
               <button
                 key={option}
                 type="button"
@@ -163,7 +164,7 @@ export function GoalForm(
                 aria-pressed={values.ownership === option}
                 className={`${CHIP_CLASSES} ${values.ownership === option ? CHIP_ON : CHIP_OFF}`}
               >
-                {option === "mine" ? "Mine" : "Together"}
+                {GOAL_OWNERSHIP_LABELS[option]}
               </button>
             ))}
           </div>
@@ -177,7 +178,7 @@ export function GoalForm(
             <p className="text-sm text-muted-strong">Only you can see this goal</p>
           </div>
           <ToggleSwitch
-            checked={values.visibility === "private"}
+            checked={isPrivateGoal(values)}
             onChange={(next) => set("visibility", next ? "private" : "shared")}
             label="Keep private"
           />
@@ -215,7 +216,7 @@ export function GoalForm(
         <textarea
           value={values.why}
           onChange={(event) => set("why", event.target.value)}
-          maxLength={500}
+          maxLength={GOAL_WHY_MAX}
           placeholder="Why does this matter to you?"
           className="min-h-24 w-full resize-y rounded-xl bg-surface-2 px-4 py-3 text-base text-fg outline-none placeholder:text-muted"
         />
@@ -237,7 +238,7 @@ export function GoalForm(
               type="text"
               value={values.measure.unit}
               onChange={(event) => setMeasureField("unit", event.target.value)}
-              maxLength={12}
+              maxLength={MEASURE_UNIT_MAX}
               placeholder="lb, $, pages"
               autoComplete="off"
               className={INPUT_CLASSES}

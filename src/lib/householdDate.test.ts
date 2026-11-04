@@ -6,6 +6,7 @@ import {
   calendarDateInZone,
   dayOfWeek,
   formatCalendarDate,
+  formatShortCalendarDate,
   parseDateParam,
   startOfMonth,
   startOfWeek,
@@ -120,4 +121,10 @@ test("startOfMonth: first of the same month, any day", () => {
   assert.deepEqual(startOfMonth({ year: 2026, month: 11, day: 4 }), { year: 2026, month: 11, day: 1 });
   assert.deepEqual(startOfMonth({ year: 2028, month: 2, day: 29 }), { year: 2028, month: 2, day: 1 });
   assert.deepEqual(startOfMonth({ year: 2026, month: 12, day: 1 }), { year: 2026, month: 12, day: 1 });
+});
+
+test("formatShortCalendarDate: short month name and day, no year, no padding", () => {
+  assert.equal(formatShortCalendarDate({ year: 2026, month: 11, day: 3 }), "Nov 3");
+  assert.equal(formatShortCalendarDate({ year: 2026, month: 1, day: 1 }), "Jan 1");
+  assert.equal(formatShortCalendarDate({ year: 2026, month: 12, day: 31 }), "Dec 31");
 });

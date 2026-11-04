@@ -1,46 +1,38 @@
-// Pins Plans & Goals' habit windows, counts, progress, pace and number
-// formatting (the pure rules behind This week and the Goals list).
+// Pins goalsProgress.ts: habit windows and counts, plan item views, progress,
+// pace and number formatting (the pure rules behind This week and the Goals
+// list). Who may see a goal, validation and goal views are in goals.test.ts,
+// the vocabulary in goalVocabulary.test.ts, tap-time changes in
+// planItemChanges.test.ts.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   PACE_LABELS,
-  buildGoalView,
+  buildPlanItemView,
   countInWindow,
   formatMeasure,
   logWindow,
   measureStep,
   paceStatus,
+  parseTypedNumber,
   progressFraction,
   targetDateChips,
   weekSummary,
-  type GoalRow,
+  type GoalMeasure,
   type PlanItemRow,
   type PlanLogRow,
-  type Viewer,
-} from "./goals";
+} from "./goalsProgress";
 import { utcMidnightInstant, type CalendarDate } from "./householdDate";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
-const ME: Viewer = { userId: "me", isDevice: false };
 const TODAY = d(2026, 11, 4); // a Wednesday
 
-function goal(over: Partial<GoalRow> = {}): GoalRow {
+function goal(over: Partial<GoalMeasure> = {}): GoalMeasure {
   return {
-    id: "g1",
-    title: "Weigh 165",
-    area: "health",
-    why: null,
     targetDate: utcMidnightInstant(d(2026, 12, 31)),
-    ownerId: "me",
-    owner: { id: "me", displayName: "Me", avatarColor: "sky" },
-    visibility: "shared",
-    measureUnit: "lb",
     startValue: 189,
     targetValue: 165,
     currentValue: 189,
-    checkedInAt: null,
-    completedAt: null,
     createdAt: new Date("2026-01-01T19:00:00Z"), // Jan 1 in Denver
     ...over,
   };
@@ -68,6 +60,41 @@ function logsOn(planItemId: string, days: CalendarDate[]): PlanLogRow[] {
     createdAt: new Date("2026-11-04T12:00:00Z"),
   }));
 }
+
+test("buildPlanItemView: 4 of 4 is done, and 5 logs still report count 5", () => {
+  const four = buildPlanItemView(item(), logsOn("i1", [d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]), TODAY);
+  assert.equal(four.count, 4);
+  assert.equal(four.done, true);
+  assert.equal(four.windowLabel, "this week");
+  const five = buildPlanItemView(
+    item(),
+    logsOn("i1", [d(2026, 11, 1), d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]),
+    TODAY,
+  );
+  assert.equal(five.count, 5);
+  assert.equal(five.target, 4);
+});
+
+test("buildPlanItemView: ignores another item's logs; 3 of 4 is not done", () => {
+  const logs = [...logsOn("i1", [d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]), ...logsOn("other", [d(2026, 11, 4)])];
+  const view = buildPlanItemView(item(), logs, TODAY);
+  assert.equal(view.count, 3);
+  assert.equal(view.done, false);
+});
+
+test("buildPlanItemView: steps follow doneAt, reminders have no target", () => {
+  const step = item({ kind: "step", timesPerPeriod: null, period: null });
+  assert.deepEqual(
+    (({ count, target, done, windowLabel }) => ({ count, target, done, windowLabel }))(buildPlanItemView(step, [], TODAY)),
+    { count: 0, target: 1, done: false, windowLabel: null },
+  );
+  const doneStep = buildPlanItemView({ ...step, doneAt: new Date() }, [], TODAY);
+  assert.equal(doneStep.done, true);
+  assert.equal(doneStep.count, 1);
+  const reminder = buildPlanItemView(item({ kind: "reminder", timesPerPeriod: null, period: null }), [], TODAY);
+  assert.equal(reminder.target, 0);
+  assert.equal(reminder.done, false);
+});
 
 test("logWindow: a day habit counts across the week, times x 7", () => {
   const daily = item({ timesPerPeriod: 1, period: "day" });
@@ -113,12 +140,12 @@ test("progressFraction: a decreasing number (189 to 165) and an increasing one",
   assert.equal(progressFraction(goal({ currentValue: 189 })), 0);
   assert.equal(progressFraction(goal({ currentValue: 160 })), 1);
   assert.equal(progressFraction(goal({ currentValue: 195 })), 0);
-  const income = goal({ measureUnit: "$", startValue: 0, targetValue: 500000, currentValue: 125000 });
+  const income = goal({ startValue: 0, targetValue: 500000, currentValue: 125000 });
   assert.equal(progressFraction(income), 0.25);
 });
 
 test("progressFraction: 0 with no number to track", () => {
-  const none = goal({ measureUnit: null, startValue: null, targetValue: null, currentValue: null });
+  const none = goal({ startValue: null, targetValue: null, currentValue: null });
   assert.equal(progressFraction(none), 0);
   assert.equal(paceStatus(none, TODAY), null);
 });
@@ -175,6 +202,10 @@ test("formatMeasure: dollars abbreviate, other units trail", () => {
   assert.equal(formatMeasure(12.46, "pages"), "12.5 pages");
 });
 
+function viewOf(items: PlanItemRow[], logs: PlanLogRow[]) {
+  return { items: items.map((row) => buildPlanItemView(row, logs, TODAY)) };
+}
+
 test("weekSummary: day and week habits only, and a habit over its target counts as exactly its target", () => {
   const over = [d(2026, 11, 1), d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)];
   const short = [d(2026, 11, 2)];
@@ -183,7 +214,7 @@ test("weekSummary: day and week habits only, and a habit over its target counts 
     item({ id: "i2", timesPerPeriod: 3 }),
     item({ id: "i3", kind: "step", timesPerPeriod: null, period: null }),
   ];
-  const view = buildGoalView(goal(), items, [...logsOn("i1", over), ...logsOn("i2", short)], ME, TODAY);
+  const view = viewOf(items, [...logsOn("i1", over), ...logsOn("i2", short)]);
   assert.equal(view.items[0].count, 5);
   assert.deepEqual(weekSummary([view]), { done: 4 + 1, total: 4 + 3 });
   assert.deepEqual(weekSummary([]), { done: 0, total: 0 });
@@ -192,10 +223,21 @@ test("weekSummary: day and week habits only, and a habit over its target counts 
 test("weekSummary: a monthly habit with target 1 does not change the summary", () => {
   const items = [item({ id: "i1" }), item({ id: "i2", timesPerPeriod: 1, period: "month" })];
   const logs = [...logsOn("i1", [d(2026, 11, 2)]), ...logsOn("i2", [d(2026, 11, 2)])];
-  const view = buildGoalView(goal(), items, logs, ME, TODAY);
+  const view = viewOf(items, logs);
   assert.equal(view.items[1].windowLabel, "this month");
   assert.deepEqual(weekSummary([view]), { done: 1, total: 4 });
-  assert.deepEqual(weekSummary([buildGoalView(goal(), [items[0]], logs, ME, TODAY)]), weekSummary([view]));
+  assert.deepEqual(weekSummary([viewOf([items[0]], logs)]), weekSummary([view]));
+});
+
+test("parseTypedNumber: commas and spaces are fine, blanks and words are not", () => {
+  assert.equal(parseTypedNumber("178"), 178);
+  assert.equal(parseTypedNumber(" 1,200.5 "), 1200.5);
+  assert.equal(parseTypedNumber("-3"), -3);
+  assert.equal(parseTypedNumber("0"), 0);
+  assert.equal(parseTypedNumber(""), null);
+  assert.equal(parseTypedNumber("   "), null);
+  assert.equal(parseTypedNumber("abc"), null);
+  assert.equal(parseTypedNumber("1e999"), null);
 });
 
 test("targetDateChips: end of this year, and next year's on Dec 31", () => {
