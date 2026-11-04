@@ -6,7 +6,7 @@ import { VisionCard } from "./VisionCard";
 import { VisionSheet } from "./VisionSheet";
 import { TOGETHER_BOARD, VISION_HORIZONS, type LifeArea, type VisionHorizon } from "@/lib/goalVocabulary";
 import { promptAt } from "@/lib/goalPrompts";
-import { boardHeading } from "@/lib/visions";
+import { boardHeading, boardHint } from "@/lib/visions";
 import type { VisionBoardData } from "@/lib/visionsRead";
 import { saveVision } from "@/app/actions/visions";
 
@@ -24,7 +24,7 @@ function applyChange(cards: VisionBoardData["cards"], change: Change): VisionBoa
 
 /**
  * Plans & Goals' Vision tab: which board and horizon (links, so each is a real
- * URL), the board's five cards, and the edit sheet. Which prompt an empty card
+ * URL), the board's cards, and the edit sheet. Which prompt an empty card
  * shows is `promptSeed` (made on the server, so server and client agree) plus
  * the card's place plus the taps on "Another prompt".
  */
@@ -47,6 +47,7 @@ export function VisionBoard({
   const [steps, setSteps] = useState<Partial<Record<LifeArea, number>>>({});
   const [open, setOpen] = useState<LifeArea | null>(null);
 
+  const hint = boardHint(data.canEdit, data.ownerName);
   const together = data.saveAs === "together";
   const currentParam = data.boards.find((board) => board.key === data.board)?.param ?? TOGETHER_BOARD;
   const href = (board: string, years: number) => `/plans?view=vision&board=${board}&years=${years}`;
@@ -89,23 +90,28 @@ export function VisionBoard({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <div role="group" aria-label="Whose board" className="flex flex-wrap gap-2">
-          {data.boards.map((board) => {
-            const current = board.key === data.board;
-            return (
-              <Link
-                key={board.key}
-                href={href(board.param, horizon)}
-                aria-current={current ? "page" : undefined}
-                className={`${CHIP} ${current ? CHIP_ON : CHIP_OFF}`}
-              >
-                {board.label}
-              </Link>
-            );
-          })}
-        </div>
-        <div role="group" aria-label="How far ahead" className="flex flex-wrap gap-2">
+      <div role="group" aria-label="Whose board" className="mb-4 flex flex-wrap gap-2">
+        {data.boards.map((board) => {
+          const current = board.key === data.board;
+          return (
+            <Link
+              key={board.key}
+              href={href(board.param, horizon)}
+              aria-current={current ? "page" : undefined}
+              className={`${CHIP} ${current ? CHIP_ON : CHIP_OFF}`}
+            >
+              {board.label}
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="mb-3 flex items-center justify-between gap-3">
+        {/* The span carries the font: globals.css sets h2's face outside Tailwind's layers, so a class on the h2 loses. */}
+        <h2 className="text-2xl font-medium">
+          <span className="font-accent italic">{boardHeading(data.ownerName, todayYear, horizon)}</span>
+        </h2>
+        <div role="group" aria-label="How far ahead" className="flex shrink-0 rounded-xl bg-surface-2 p-1">
           {VISION_HORIZONS.map((years) => {
             const current = years === horizon;
             return (
@@ -113,7 +119,9 @@ export function VisionBoard({
                 key={years}
                 href={href(currentParam, years)}
                 aria-current={current ? "page" : undefined}
-                className={`${CHIP} ${current ? CHIP_ON : CHIP_OFF}`}
+                className={`flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2 text-sm font-semibold ${
+                  current ? "bg-surface text-fg" : "text-muted-strong"
+                }`}
               >
                 {years} yr
               </Link>
@@ -121,8 +129,6 @@ export function VisionBoard({
           })}
         </div>
       </div>
-
-      <h2 className="mb-3 font-accent text-xl italic">{boardHeading(data.ownerName, todayYear, horizon)}</h2>
 
       {error && !openCard && (
         <p role="alert" className="mb-3 text-sm text-warn">
@@ -138,6 +144,7 @@ export function VisionBoard({
             text={card.text}
             goalCount={card.goalCount}
             prompt={promptFor(card.area, index)}
+            ownerName={data.ownerName}
             canEdit={data.canEdit}
             wide={index === cards.length - 1 && cards.length % 2 === 1}
             onOpen={() => {
@@ -149,7 +156,7 @@ export function VisionBoard({
         ))}
       </div>
 
-      {data.canEdit && <p className="mt-3 text-center text-sm text-muted">Tap a card to edit it</p>}
+      {hint && <p className="mt-3 text-center text-sm text-muted">{hint}</p>}
 
       {openCard && (
         <VisionSheet

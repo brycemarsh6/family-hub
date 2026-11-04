@@ -7,6 +7,7 @@ import { householdToday } from "@/lib/assistant/today";
 import { isPrivateGoal, whoseGoal } from "@/lib/goals";
 import { loadGoal } from "@/lib/goalsRead";
 import { loadGoalVision } from "@/lib/visionsRead";
+import { goalVisionLabel } from "@/lib/visions";
 import { GOAL_OWNERSHIP_LABELS, GOAL_PAGE_VISION_HORIZON, lifeAreaInfo } from "@/lib/goalVocabulary";
 import { calendarDateInZone, formatShortCalendarDate } from "@/lib/householdDate";
 
@@ -49,7 +50,7 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
 
       {vision && (
         <p className="mt-4 text-sm text-muted">
-          Part of your {GOAL_PAGE_VISION_HORIZON}-year vision: <span className="text-fg">&ldquo;{vision.text}&rdquo;</span>
+          Part of {goalVisionLabel(goal.ownerId, vision)} {GOAL_PAGE_VISION_HORIZON}-year vision: <span className="text-fg">&ldquo;{vision.text}&rdquo;</span>
         </p>
       )}
     </div>

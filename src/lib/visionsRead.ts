@@ -18,7 +18,7 @@ import type { CalendarDate } from "@/lib/householdDate";
 import { boardOwnerId, canEditVision, visionBoardKey, visionForGoal, type VisionRow } from "@/lib/visions";
 
 // Plans & Goals' vision reader: the boards a viewer may look at, one board's
-// five cards, and the vision a goal's page shows. No auth and no revalidation
+// cards, and the vision a goal's page shows. No auth and no revalidation
 // here: the page that calls it guards. Everyone signed in may read every
 // board, so nothing is hidden by owner; `canEditVision` only decides the edit
 // button. Who a board belongs to is read from its key, never compared here.
@@ -55,7 +55,7 @@ async function loadBoards(viewer: Viewer): Promise<{ boards: VisionBoardChoice[]
   return { boards, names };
 }
 
-/** One board at one horizon: its five cards, with each area's active goal count. */
+/** One board at one horizon: its cards, with each area's active goal count. */
 export async function loadVisionBoard(
   viewer: Viewer,
   boardParam: string | undefined,

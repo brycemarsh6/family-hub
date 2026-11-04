@@ -1,4 +1,4 @@
-// Pins Plans & Goals' vocabulary (goalVocabulary.ts): the five life areas,
+// Pins Plans & Goals' vocabulary (goalVocabulary.ts): the six life areas,
 // the plan kinds, habit periods, visibility and ownership, and the narrowers
 // that repair unknown stored values. The rules that use them are in
 // goals.test.ts and goalsProgress.test.ts.
@@ -20,14 +20,18 @@ import {
   toVisionHorizon,
 } from "./goalVocabulary";
 
-test("vocabulary: five life areas in order, narrowers repair unknowns", () => {
+test("vocabulary: six life areas in order, narrowers repair unknowns", () => {
   assert.deepEqual(
     LIFE_AREAS.map((a) => a.key),
-    ["spiritual", "health", "growth", "financial", "relationships"],
+    ["spiritual", "health", "growth", "relationships", "financial", "fun"],
   );
   assert.equal(toLifeArea("health"), "health");
   assert.equal(toLifeArea("Health"), null);
   assert.equal(lifeAreaInfo("relationships").short, "Relationships");
+  assert.equal(lifeAreaInfo("financial").label, "Work & Money");
+  assert.equal(lifeAreaInfo("financial").short, "Work & Money");
+  assert.equal(lifeAreaInfo("fun").label, "Fun & Adventure");
+  assert.equal(toLifeArea("fun"), "fun");
   assert.equal(toPlanKind("step"), "step");
   assert.equal(toPlanKind("chore"), null);
   assert.equal(toHabitPeriod("month"), "month");

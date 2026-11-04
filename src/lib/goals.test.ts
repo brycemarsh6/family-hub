@@ -257,7 +257,7 @@ test("validateGoalInput: title and area and date rules", () => {
   assert.deepEqual(validateGoalInput({ ...GOOD, title: undefined }, TODAY), { error: "Give the goal a name." });
   assert.ok("error" in validateGoalInput({ ...GOOD, title: "x".repeat(121) }, TODAY));
   assert.ok("ok" in validateGoalInput({ ...GOOD, title: "x".repeat(120) }, TODAY));
-  assert.deepEqual(validateGoalInput({ ...GOOD, area: "fun" }, TODAY), { error: "Pick a life area." });
+  assert.deepEqual(validateGoalInput({ ...GOOD, area: "play" }, TODAY), { error: "Pick a life area." });
   assert.ok("error" in validateGoalInput({ ...GOOD, why: "x".repeat(501) }, TODAY));
   assert.deepEqual(validateGoalInput({ ...GOOD, targetDate: "2026-02-30" }, TODAY), { error: "Pick a target date." });
   assert.deepEqual(validateGoalInput({ ...GOOD, targetDate: "12/31/2026" }, TODAY), { error: "Pick a target date." });

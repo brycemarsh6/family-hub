@@ -81,3 +81,19 @@ export function boardHeading(name: string | null, todayYear: number, horizon: Vi
   const year = todayYear + horizon;
   return name === null ? `Our family in ${year}` : `${name} in ${year}`;
 }
+
+/** The line on an empty card the viewer can't edit: "Not written yet" on Together (no owner), else names the owner. */
+export function readOnlyEmptyText(ownerName: string | null): string {
+  return ownerName === null ? "Not written yet" : `${ownerName} hasn't written this yet`;
+}
+
+/** The hint under the board; null (hidden) on a Together board the viewer can't edit. */
+export function boardHint(canEdit: boolean, ownerName: string | null): string | null {
+  if (canEdit) return "Tap a card to edit it";
+  return ownerName === null ? null : `Only ${ownerName} can change this board`;
+}
+
+/** "your" or, when a goal with an owner shows the Together statement, "your family's". */
+export function goalVisionLabel(goalOwnerId: string | null, row: VisionRow): "your" | "your family's" {
+  return goalOwnerId !== null && row.boardKey === TOGETHER_BOARD ? "your family's" : "your";
+}

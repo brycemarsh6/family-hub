@@ -7,8 +7,11 @@ import type { Viewer } from "./goals";
 import {
   VISION_TEXT_MAX,
   boardHeading,
+  boardHint,
   boardOwnerId,
   canEditVision,
+  goalVisionLabel,
+  readOnlyEmptyText,
   validateVisionInput,
   visionBoardKey,
   visionForGoal,
@@ -59,7 +62,7 @@ test("validateVisionInput: the 500 limit, and unknown area, horizon, board or sh
   const base = { board: "mine", area: "health", horizon: 10, text: "ok" };
   assert.ok("ok" in validateVisionInput({ ...base, text: "a".repeat(VISION_TEXT_MAX) }));
   assert.deepEqual(validateVisionInput({ ...base, text: "a".repeat(VISION_TEXT_MAX + 1) }), { error: "Keep it under 500 characters." });
-  assert.ok("error" in validateVisionInput({ ...base, area: "fun" }));
+  assert.ok("error" in validateVisionInput({ ...base, area: "play" }));
   assert.ok("error" in validateVisionInput({ ...base, horizon: 7 }));
   assert.ok("error" in validateVisionInput({ ...base, board: "private" }));
   assert.ok("error" in validateVisionInput({ ...base, board: "someone-else" }));
@@ -101,4 +104,22 @@ test("boardHeading: the family, or a name, in the year the horizon reaches", () 
   assert.equal(boardHeading("Bryce", 2026, 10), "Bryce in 2036");
   assert.equal(boardHeading("Bryce", 2026, 5), "Bryce in 2031");
   assert.equal(boardHeading(null, 2026, 15), "Our family in 2041");
+});
+
+test("readOnlyEmptyText: names the owner, or says Not written yet on Together", () => {
+  assert.equal(readOnlyEmptyText("Bryce"), "Bryce hasn't written this yet");
+  assert.equal(readOnlyEmptyText(null), "Not written yet");
+});
+
+test("boardHint: edit hint, owner's name on someone else's board, hidden on read-only Together", () => {
+  assert.equal(boardHint(true, "Bryce"), "Tap a card to edit it");
+  assert.equal(boardHint(true, null), "Tap a card to edit it");
+  assert.equal(boardHint(false, "Bryce"), "Only Bryce can change this board");
+  assert.equal(boardHint(false, null), null);
+});
+
+test("goalVisionLabel: your family's only when an owned goal shows the Together statement", () => {
+  assert.equal(goalVisionLabel("me", row({ boardKey: "together" })), "your family's");
+  assert.equal(goalVisionLabel("me", row({ boardKey: "me" })), "your");
+  assert.equal(goalVisionLabel(null, row({ boardKey: "together" })), "your");
 });

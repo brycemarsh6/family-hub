@@ -4,6 +4,7 @@ import type { LifeArea } from "./goalVocabulary";
 // ideas per life area. The wording is Bryce's, approved in
 // .avengers/plans/plans-goals-prompts.md, and changes there first. A test
 // (goalPrompts.test.ts) reads that file and fails if this one drifts from it.
+// The Work & Money and Fun & Adventure wording is a DRAFT until Bryce approves it.
 // No React, no db.
 
 /** Ten per area, written for a 5, 10 or 15 year horizon. One shows at a time. */
@@ -44,18 +45,6 @@ export const VISION_PROMPTS: Record<LifeArea, readonly string[]> = {
     "What do you want to still be curious about at 50?",
     "What would the person you admire most notice about you in ten years?",
   ],
-  financial: [
-    "What does a normal month feel like when money is not a worry?",
-    "What will we own, and what will we owe, in ten years?",
-    "What will money let us say yes to that we say no to today?",
-    "What do you want the kids to know about money before they leave home?",
-    "How much do you want to be giving each year, and to whom?",
-    "What does your work look like in five years, and who do you work with?",
-    "If $10,000 showed up tomorrow, where would it go without a discussion?",
-    "What money decision do you want to never have to make again?",
-    "When does retirement start, and what does the first year of it look like?",
-    "What will our family do together that only money made possible?",
-  ],
   relationships: [
     "What do you want your marriage to feel like once the kids have moved out?",
     "What will the kids remember most about growing up in our home?",
@@ -67,6 +56,30 @@ export const VISION_PROMPTS: Record<LifeArea, readonly string[]> = {
     "What do you want extended family to feel when they walk in our door?",
     "What hard conversation do you want to be good at having by then?",
     "What does our table look like at Thanksgiving in fifteen years?",
+  ],
+  financial: [
+    "What does a normal month feel like when money is not a worry?",
+    "What will we own, and what will we owe, in ten years?",
+    "What will money let us say yes to that we say no to today?",
+    "What do you want the kids to know about money and work before they leave home?",
+    "How much do you want to be giving each year, and to whom?",
+    "What does your work look like in five years, and who do you work with?",
+    "If $10,000 showed up tomorrow, where would it go without a discussion?",
+    "What do you want your work to give you besides a paycheck?",
+    "When does retirement start, and what does the first year of it look like?",
+    "How many hours a week do you want to be working in ten years?",
+  ],
+  fun: [
+    "Where in the world do you want to have taken the kids by then?",
+    "What adventure would you be sad to never have had?",
+    "What does a perfect Saturday look like for our family?",
+    "What hobby do you want to still be making time for in ten years?",
+    "What trip do you want to take, just the two of you?",
+    "What tradition of fun do you want the kids to carry into their own families?",
+    "What have you always wanted to try but kept putting off?",
+    "Where do you want to spend our summers?",
+    "What will the kids say was the best thing we ever did together?",
+    "What do you want to be doing for fun at 60?",
   ],
 };
 
@@ -87,15 +100,20 @@ export const GOAL_IDEAS: Record<LifeArea, readonly string[]> = {
     "Finish a watercolor course",
     "Learn to cook five new dishes",
   ],
+  relationships: [
+    "A strong marriage",
+    "One-on-one time with each kid",
+    "Stay close to family far away",
+  ],
   financial: [
     "Earn $500K this year",
     "Buy an investment property",
     "Pay off the car",
   ],
-  relationships: [
-    "A strong marriage",
-    "One-on-one time with each kid",
-    "Stay close to family far away",
+  fun: [
+    "Take a family trip this summer",
+    "Go camping four times this year",
+    "Visit a new national park",
   ],
 };
 
@@ -119,17 +137,23 @@ export const PLAN_IDEAS: Record<LifeArea, readonly string[]> = {
     "Practice for 15 minutes",
     "Journal on Sunday night",
   ],
-  financial: [
-    "Budget together on Sunday",
-    "Review spending every Friday",
-    "List one thing on Marketplace",
-    "Move money to savings on payday",
-  ],
   relationships: [
     "Date night every week",
     "Kids date once a month",
     "Call family on Sunday",
     "Ten minutes of real talk after the kids are down",
+  ],
+  financial: [
+    "Budget together on Sunday",
+    "Review spending every Friday",
+    "Move money to savings on payday",
+    "Home by 6 four nights a week",
+  ],
+  fun: [
+    "Family fun night every Friday",
+    "One new hike a month",
+    "Plan the next trip on Sunday night",
+    "Try something new once a month",
   ],
 };
 

@@ -1,4 +1,4 @@
-import { Church, HeartHandshake, HeartPulse, PiggyBank, Sprout } from "lucide-react";
+import { BriefcaseBusiness, Church, HeartHandshake, HeartPulse, Sprout, Tent } from "lucide-react";
 
 // Plans & Goals' one vocabulary: life areas, plan item kinds, habit periods,
 // who can see a goal and whose it is. Lives beside navMode.ts rather than in
@@ -8,18 +8,20 @@ import { Church, HeartHandshake, HeartPulse, PiggyBank, Sprout } from "lucide-re
 // No Prisma enums: the database stores these as plain strings and the
 // `to*` narrowers below repair anything unexpected.
 
-/** The five life areas, in the order the Goals list groups them. */
+/** The six life areas, in the order the Goals list groups them. */
 export const LIFE_AREAS = [
   { key: "spiritual", label: "Spiritual", short: "Spiritual", icon: Church },
   { key: "health", label: "Health & Wellness", short: "Health", icon: HeartPulse },
   { key: "growth", label: "Personal Growth", short: "Growth", icon: Sprout },
-  { key: "financial", label: "Financial", short: "Financial", icon: PiggyBank },
   {
     key: "relationships",
     label: "Relationships & Connections",
     short: "Relationships",
     icon: HeartHandshake,
   },
+  // `financial` is Work & Money now; the key stays so saved goals keep their area.
+  { key: "financial", label: "Work & Money", short: "Work & Money", icon: BriefcaseBusiness },
+  { key: "fun", label: "Fun & Adventure", short: "Fun", icon: Tent },
 ] as const;
 
 export type LifeArea = (typeof LIFE_AREAS)[number]["key"];

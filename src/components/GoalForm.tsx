@@ -125,6 +125,23 @@ export function GoalForm(
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <Field label="Life area" group>
+        <div className="flex flex-wrap gap-2">
+          {LIFE_AREAS.map(({ key, short, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => set("area", key)}
+              aria-pressed={values.area === key}
+              className={`${CHIP_CLASSES} ${values.area === key ? CHIP_ON : CHIP_OFF}`}
+            >
+              <Icon aria-hidden="true" size={16} />
+              {short}
+            </button>
+          ))}
+        </div>
+      </Field>
+
       <Field label="Name">
         <input
           type="text"
@@ -144,23 +161,6 @@ export function GoalForm(
           onPick={(idea) => set("title", idea)}
         />
       )}
-
-      <Field label="Life area" group>
-        <div className="flex flex-wrap gap-2">
-          {LIFE_AREAS.map(({ key, short, icon: Icon }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => set("area", key)}
-              aria-pressed={values.area === key}
-              className={`${CHIP_CLASSES} ${values.area === key ? CHIP_ON : CHIP_OFF}`}
-            >
-              <Icon aria-hidden="true" size={16} />
-              {short}
-            </button>
-          ))}
-        </div>
-      </Field>
 
       <Field label="For" group>
         {isEdit ? (
