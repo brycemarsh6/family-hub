@@ -1,7 +1,7 @@
 # Mission 28: Plans & Goals PR 2 (Vision board, prompts, idea chips)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** BUILT, all gates PASS (Vision pass 3, Strange pass 2, Captain pass 2); not pushed
 **Started:** 2026-11-04 · **Updated:** 2026-11-04
 **Branch:** `claude/plans-goals-p2` from `origin/main` at `2a9f8a7` (PR #36 merged)
 **Direction:** `.avengers/plans/plans-goals-v1.md` (read first)
@@ -356,7 +356,7 @@ parallel after C2. C5 last.
 - **Report:** —
 
 ### C5 — Records: DESIGN.md, STRUCTURE.md, CLAUDE.md, the direction file
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury read each edit)
 - **Boundaries:** may touch: `DESIGN.md`, `STRUCTURE.md`, `CLAUDE.md`,
   `.avengers/plans/plans-goals-v1.md`, this mission file · must not touch:
   source files.
@@ -388,7 +388,7 @@ parallel after C2. C5 last.
   the mission range; CLAUDE.md under 250 lines.
 - **Evidence required:** recordcheck output with every REVIEW line read.
 - **Done criteria:** Fury reads each edit.
-- **Report:** —
+- **Report:** four files edited, CLAUDE.md 186 lines, recordcheck 0 hard failures. Correction to this contract: the real direction is `visions.ts` imports the `Viewer` type from `goals.ts`, and `goals.ts` never imports `visions.ts`; STRUCTURE.md records that.
 
 ### F1 — Pass-1 fixes that need no decision from Bryce
 - **Status:** PENDING
@@ -668,6 +668,10 @@ Bryce answered "Yes to all three":
   pass 2 of all three gates.
 
 ## Delivery
+
+- Fury's browser check 2026-11-04: phone dark and iPad light; every prompt on the 5, 10 and 15 year boards cycled, none names another horizon (50 / 46 / 51 shown, matching the tests); goal page reads "your" for the owner; the other-login view is covered by tests only (Fury never types family passwords). Test goal and the test Together Health vision deleted through the UI.
+- Not pushed. Push and PR wait on Bryce.
+
 
 - **Shipped:** —
 - **Shipped check:** —
