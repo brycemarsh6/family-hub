@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { IdeaChips } from "./IdeaChips";
 import { QuantityStepper } from "./QuantityStepper";
+import { PLAN_IDEAS } from "@/lib/goalPrompts";
 import { GOAL_TITLE_MAX, HABIT_TIMES_MAX, type PlanItemView } from "@/lib/goals";
 import {
   HABIT_PERIODS,
   PLAN_KINDS,
   PLAN_KIND_LABELS,
+  lifeAreaInfo,
   type HabitPeriod,
+  type LifeArea,
   type PlanKind,
 } from "@/lib/goalVocabulary";
 import { createPlanItem, deletePlanItem, updatePlanItem } from "@/app/actions/planItems";
@@ -20,12 +24,14 @@ import { createPlanItem, deletePlanItem, updatePlanItem } from "@/app/actions/pl
 export function PlanItemSheet({
   goalId,
   goalTitle,
+  goalArea,
   initial,
   onClose,
   onSaved,
 }: {
   goalId: string;
   goalTitle: string;
+  goalArea: LifeArea;
   initial?: PlanItemView;
   onClose: () => void;
   onSaved: () => void;
@@ -176,6 +182,14 @@ export function PlanItemSheet({
                 </div>
               </div>
             </div>
+          )}
+
+          {!initial && (
+            <IdeaChips
+              label={`Ideas for ${lifeAreaInfo(goalArea).short}`}
+              ideas={PLAN_IDEAS[goalArea]}
+              onPick={setTitle}
+            />
           )}
         </div>
 

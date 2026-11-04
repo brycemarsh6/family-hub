@@ -297,6 +297,7 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
         <PlanItemSheet
           goalId={goal.id}
           goalTitle={goal.title}
+          goalArea={goal.area}
           initial={sheet.item}
           onClose={() => setSheet(null)}
           onSaved={() => router.refresh()}

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { IdeaChips } from "./IdeaChips";
 import { ToggleSwitch } from "./ToggleSwitch";
 import {
   GOAL_TITLE_MAX,
@@ -11,10 +12,12 @@ import {
   isPrivateGoal,
 } from "@/lib/goals";
 import { parseTypedNumber, targetDateChips } from "@/lib/goalsProgress";
+import { GOAL_IDEAS } from "@/lib/goalPrompts";
 import {
   GOAL_OWNERSHIPS,
   GOAL_OWNERSHIP_LABELS,
   LIFE_AREAS,
+  lifeAreaInfo,
   type GoalOwnership,
   type GoalVisibility,
   type LifeArea,
@@ -133,6 +136,14 @@ export function GoalForm(
           className={INPUT_CLASSES}
         />
       </Field>
+
+      {!isEdit && values.area && (
+        <IdeaChips
+          label={`Ideas for ${lifeAreaInfo(values.area).short}`}
+          ideas={GOAL_IDEAS[values.area]}
+          onPick={(idea) => set("title", idea)}
+        />
+      )}
 
       <Field label="Life area" group>
         <div className="flex flex-wrap gap-2">
