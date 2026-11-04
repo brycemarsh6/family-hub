@@ -152,7 +152,7 @@ C1 then C2 run in order. C3 and C4 have disjoint boundaries and run in
 parallel after C2. C5 last.
 
 ### C1 — Prompt wording, vision vocabulary and the pure vision logic, with tests
-- **Status:** PENDING
+- **Status:** DONE (see the gate ledger and handoff log)
 - **Boundaries:** may touch: new `src/lib/goalPrompts.ts`, new
   `src/lib/goalPrompts.test.ts`, new `src/lib/visions.ts`, new
   `src/lib/visions.test.ts`, `src/lib/goalVocabulary.ts`,
@@ -217,7 +217,7 @@ parallel after C2. C5 last.
 - **Report:** —
 
 ### C2 — The VisionStatement table, the migration, the reader and the save action
-- **Status:** PENDING
+- **Status:** DONE (see the gate ledger and handoff log)
 - **Boundaries:** may touch: `prisma/schema.prisma` (exempt from caps),
   `prisma/migrations/` (one new folder ending `_add_vision_statements`),
   new `src/lib/visionsRead.ts`, `src/lib/goalsRead.ts`, new
@@ -276,7 +276,7 @@ parallel after C2. C5 last.
 - **Report:** —
 
 ### C3 — The Vision tab: third tab, board and horizon chips, cards, the edit sheet
-- **Status:** PENDING
+- **Status:** DONE (see the gate ledger and handoff log)
 - **Boundaries:** may touch: `src/components/PlansTabs.tsx`,
   `src/app/(app)/plans/page.tsx`, `src/app/(app)/plans/loading.tsx`, new
   `src/components/VisionBoard.tsx`, new `src/components/VisionCard.tsx`,
@@ -327,7 +327,7 @@ parallel after C2. C5 last.
 - **Report:** —
 
 ### C4 — Idea chips on New goal and Add to the plan, and the vision line on the goal page
-- **Status:** PENDING
+- **Status:** DONE (see the gate ledger and handoff log)
 - **Boundaries:** may touch: new `src/components/IdeaChips.tsx`,
   `src/components/GoalForm.tsx`, `src/components/PlanItemSheet.tsx`,
   `src/components/GoalDetail.tsx` (only to pass the goal's area to
@@ -391,7 +391,7 @@ parallel after C2. C5 last.
 - **Report:** four files edited, CLAUDE.md 186 lines, recordcheck 0 hard failures. Correction to this contract: the real direction is `visions.ts` imports the `Viewer` type from `goals.ts`, and `goals.ts` never imports `visions.ts`; STRUCTURE.md records that.
 
 ### F1 — Pass-1 fixes that need no decision from Bryce
-- **Status:** PENDING
+- **Status:** DONE (see the gate ledger and handoff log)
 - **Boundaries:** may touch: `src/lib/goalVocabulary.ts`, `src/lib/goals.ts`,
   `src/lib/goals.test.ts`, `src/lib/visions.ts`, `src/lib/visions.test.ts`,
   `src/lib/visionsRead.ts`, `src/lib/goalsRead.ts`,
@@ -581,7 +581,7 @@ changed areas is drafted in the prompts file and needs Bryce's approval
 before push.
 
 ### F2 — Bryce's pass-1 decisions and the six life areas
-- **Status:** PENDING
+- **Status:** DONE (see the gate ledger and handoff log)
 - **Boundaries:** may touch: `src/lib/goalVocabulary.ts`,
   `src/lib/goalVocabulary.test.ts`, `src/lib/goalPrompts.ts`,
   `src/lib/goalPrompts.test.ts`, `src/lib/visions.ts`,
