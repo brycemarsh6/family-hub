@@ -4,6 +4,7 @@ import {
   buildGoalView,
   canSee,
   earlierDate,
+  goalOnBoard,
   type GoalRow,
   type GoalView,
   type PlanItemRow,
@@ -17,6 +18,7 @@ import {
   toHabitPeriod,
   toLifeArea,
   toPlanKind,
+  type LifeArea,
 } from "@/lib/goalVocabulary";
 import {
   startOfMonth,
@@ -24,6 +26,7 @@ import {
   utcMidnightInstant,
   type CalendarDate,
 } from "@/lib/householdDate";
+import type { VisionBoardKey } from "@/lib/visions";
 
 // Plans & Goals' reader: one query shape for the Goals list, This week and a
 // single goal's detail page. No auth and no revalidation here: the page that
@@ -108,4 +111,18 @@ export async function loadPlansPage(viewer: Viewer, today: CalendarDate): Promis
 export async function loadGoal(id: string, viewer: Viewer, today: CalendarDate): Promise<GoalView | null> {
   const row = await db.goal.findUnique({ where: { id }, include: goalInclude(today) });
   return row ? toView(row, viewer, today) : null;
+}
+
+/** How many active goals each life area has on a board, among the goals the viewer may see. */
+export async function loadGoalAreaCounts(
+  viewer: Viewer,
+  board: VisionBoardKey,
+  today: CalendarDate,
+): Promise<Record<LifeArea, number>> {
+  const { goals } = await loadPlansPage(viewer, today);
+  const counts = Object.fromEntries(LIFE_AREAS.map((area) => [area.key, 0])) as Record<LifeArea, number>;
+  for (const goal of goals) {
+    if (goal.completedAt === null && goalOnBoard(goal, board)) counts[goal.area] += 1;
+  }
+  return counts;
 }

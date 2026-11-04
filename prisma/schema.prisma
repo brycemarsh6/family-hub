@@ -548,6 +548,11 @@ model User {
   goalsCreated Goal[]    @relation("goalsCreated")
   planLogs     PlanLog[]
 
+  /// Plans & Goals PR 2: vision statements on this person's board, and ones
+  /// this person last saved. Both SetNull: a statement outlives its editor.
+  visionsOwned   VisionStatement[] @relation("visionsOwned")
+  visionsUpdated VisionStatement[] @relation("visionsUpdated")
+
   // No relation to LoginAttempt here — see that model's own doc comment for
   // why userId there is deliberately not a foreign key.
 
@@ -814,4 +819,36 @@ model PlanLog {
   createdAt DateTime @default(now())
 
   @@index([planItemId, day])
+}
+
+/// One vision statement: what a life area looks like in 5, 10 or 15 years, on
+/// one board. A board is Mine (an owner) or Together (no owner). There is no
+/// private option: a vision board is meant to be seen. `area` is a LIFE_AREAS
+/// key and `horizon` a VISION_HORIZONS value (src/lib/goalVocabulary.ts). Who
+/// may edit is decided in src/lib/visions.ts (`canEditVision`). Saving an empty
+/// statement deletes the row, so a row always has words.
+model VisionStatement {
+  id String @id @default(cuid())
+
+  area    String
+  horizon Int
+
+  /// Whose board. null = Together.
+  ownerId String?
+  owner   User?   @relation("visionsOwned", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  /// `visionBoardKey(ownerId)`: "together" or the owner's id. Written only by
+  /// `saveVision`. It exists because Postgres lets a unique index hold many
+  /// NULL `ownerId`s, so the unique below could not stop two Together rows.
+  boardKey String
+
+  text String
+
+  updatedById String?
+  updatedBy   User?   @relation("visionsUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([boardKey, area, horizon])
 }
