@@ -16,6 +16,7 @@ import {
   canLog,
   canSee,
   earlierDate,
+  goalOnBoard,
   goalOwnership,
   isPrivateGoal,
   nextStep,
@@ -78,6 +79,14 @@ test("goalOwnership, whoseGoal, isPrivateGoal: no owner is Together, the viewer'
   assert.equal(whoseGoal(goal({ ownerId: null }), "tablet"), "together");
   assert.equal(isPrivateGoal(goal({ visibility: "private" })), true);
   assert.equal(isPrivateGoal(goal({ visibility: "shared" })), false);
+});
+
+test("goalOnBoard: the Together board holds Together goals, a person's board holds theirs", () => {
+  assert.equal(goalOnBoard(goal({ ownerId: null }), "together"), true);
+  assert.equal(goalOnBoard(goal({ ownerId: "me" }), "together"), false);
+  assert.equal(goalOnBoard(goal({ ownerId: "me" }), "me"), true);
+  assert.equal(goalOnBoard(goal({ ownerId: "spouse" }), "me"), false);
+  assert.equal(goalOnBoard(goal({ ownerId: null }), "me"), false);
 });
 
 test("canSee: private is the owner's alone, and private with no owner is nobody's", () => {
@@ -248,7 +257,7 @@ test("validateGoalInput: title and area and date rules", () => {
   assert.deepEqual(validateGoalInput({ ...GOOD, title: undefined }, TODAY), { error: "Give the goal a name." });
   assert.ok("error" in validateGoalInput({ ...GOOD, title: "x".repeat(121) }, TODAY));
   assert.ok("ok" in validateGoalInput({ ...GOOD, title: "x".repeat(120) }, TODAY));
-  assert.deepEqual(validateGoalInput({ ...GOOD, area: "fun" }, TODAY), { error: "Pick a life area." });
+  assert.deepEqual(validateGoalInput({ ...GOOD, area: "play" }, TODAY), { error: "Pick a life area." });
   assert.ok("error" in validateGoalInput({ ...GOOD, why: "x".repeat(501) }, TODAY));
   assert.deepEqual(validateGoalInput({ ...GOOD, targetDate: "2026-02-30" }, TODAY), { error: "Pick a target date." });
   assert.deepEqual(validateGoalInput({ ...GOOD, targetDate: "12/31/2026" }, TODAY), { error: "Pick a target date." });

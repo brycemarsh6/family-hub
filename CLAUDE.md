@@ -78,11 +78,16 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
     add-to-meal-plan, add-ingredients-to-groceries.
   - **Meal Plan**: week view, four slots a day, AI suggestions grounded in real
     inventory.
-- **Plans & Goals** (`/plans`): two tabs, This week and Goals. A goal has a
-  life area, a target date, Mine or Together, optionally private, and
-  optionally a number to track with check-ins. Plan items under a goal are
-  habits, steps or reminders, logged with one tap. Goal detail is at
-  `/plans/goals/[id]`. Direction in `.avengers/plans/plans-goals-v1.md`.
+- **Plans & Goals** (`/plans`): three tabs, This week, Goals and Vision. A goal
+  has one of six life areas (Spiritual, Health & Wellness, Personal Growth,
+  Relationships & Connections, Work & Money, Fun & Adventure), a target date,
+  Mine or Together, optionally private, and optionally a number to track
+  with check-ins. Plan items under a goal are habits, steps or reminders,
+  logged with one tap. Goal detail is at `/plans/goals/[id]`. The Vision tab
+  holds one statement per life area at 5, 10 or 15 years, on a Mine or
+  Together board, with writing prompts on empty cards; idea chips fill the
+  New goal form and the Add-to-plan sheet. Direction in
+  `.avengers/plans/plans-goals-v1.md`.
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
   Read `.avengers/plans/calendar-v2.md` before calendar work.
@@ -143,12 +148,12 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Plans & Goals PR 1** (mission 27, branch `claude/plans-goals-p1`): built
-  through all three gates (Vision PASS on pass 3, Strange PASS on pass 2,
-  Captain PASS on pass 2), pushed as PR #36, waiting on Bryce to merge. PR 2 (Vision tab, prompts, idea chips)
-  and PR 3 (dashboard tile, Sunday recap, Routines switch) are queued in
-  `.avengers/plans/plans-goals-v1.md`. The navigation redesign, including rail
-  names, is live (PRs #32 to #35).
+- **Plans & Goals PR 2, the Vision board** (mission 28, branch
+  `claude/plans-goals-p2`): built, and all three gates PASS (Vision, Strange,
+  Captain). **Not pushed yet**, so the family does not have it. PR 1 (#36)
+  is merged and live. PR 3 (dashboard tile, Sunday recap, Routines switch) is
+  queued in `.avengers/plans/plans-goals-v1.md`. The navigation redesign,
+  including rail names, is live (PRs #32 to #35).
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
   desktop mouse. Hover is a bonus, never the only way to learn something.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch

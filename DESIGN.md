@@ -191,9 +191,17 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
 - **Typography has three faces, each with one job.** Manrope (`--font-display`)
   for headings, applied globally to `h1`–`h3` rather than per-component.
   Inter (`--font-sans`) for body. Cormorant Garamond italic (`--font-accent`)
-  is used in exactly **one** place — the login page's tagline. That
-  restraint is the design decision; a serif italic used widely would fight
-  the app's plain, quick-scanning voice.
+  is used in exactly **two** places: the login page's tagline and the
+  Vision board heading in `VisionBoard` (Bryce's call, 2026-11-04: a vision
+  is the one reflective page in the app). The heading uses the browser's
+  slanted italic of the regular face, the same as the tagline; loading the
+  true italic was declined because it would also change the login tagline.
+  That restraint is the design decision; a serif italic used widely would
+  fight the app's plain, quick-scanning voice.
+- **`--line-strong` is decorative only.** It is the dashed outline of an
+  empty vision card (a slightly darker twin of `--line`, with a dark-mode
+  twin). It is too faint to carry text or to mark an interactive edge on its
+  own, so never use it for either.
 - **Semantic truth:** red means urgent/destructive, never decoration; before
   coloring anything "good," confirm more/higher is actually good in context.
 - Fixed data-category palettes (e.g. the nutrition donut's three macro
@@ -273,6 +281,21 @@ A new one-off that duplicates one of these jobs is a design violation:
   segmented strip inside a form (the day / week / month picker in
   `PlanItemSheet`) is a form field, not navigation, and is not a second
   `PlansTabs`
+  The Vision board's 5 / 10 / 15 yr switch in `VisionBoard` (a `role="group"`
+  strip of links, each at least 44px, the current one `aria-current`) is a
+  second allowed carve-out: it picks a time range inside one page, so it is
+  a form-style field like the day / week / month picker, not a new tab
+- `IdeaChips`: the one row of tappable idea chips ("Ideas for Health"). A
+  tap hands the words to the form, never submits, and no chip is ever shown
+  as selected. `GoalForm` and `PlanItemSheet` use it; a new idea row reuses
+  it rather than copying the chip classes
+- `VisionCard` / `VisionSheet`: one life-area card on the Vision board and
+  the sheet that edits it. A filled card keeps the icon band; an empty card
+  has a dashed `border-line-strong` outline, the page-colored fill and no
+  band, so an unwritten area reads as an invitation and not as a broken
+  card. On a board the viewer can't edit, an empty card shows the area and
+  one muted line ("{Name} hasn't written this yet"), no prompt and no
+  buttons
 - `ProgressBar` — the only way to show a fraction
 - `ToggleSwitch` — the only on/off switch (`DashboardCustomizeSheet` uses it)
 - `LogButton` — the 44px round log/undo control for habits
@@ -290,7 +313,10 @@ A new one-off that duplicates one of these jobs is a design violation:
   A wrong password or invalid input ("you made a typo") renders `--warn` —
   the login error is amber, not red. `--danger` is reserved for destructive
   actions and urgent states (delete, expired food). Reserving red keeps red
-  meaningful.
+  meaningful. A "can't reach the server" failure (a save that never landed)
+  is also `text-warn`: the person did nothing wrong, but nothing is
+  destroyed either, and they can try again. The Vision board and
+  `VisionSheet` errors follow this.
 
 ## Strange's checklist
 

@@ -1,4 +1,4 @@
-import { Church, HeartHandshake, HeartPulse, PiggyBank, Sprout } from "lucide-react";
+import { BriefcaseBusiness, Church, HeartHandshake, HeartPulse, Sprout, Tent } from "lucide-react";
 
 // Plans & Goals' one vocabulary: life areas, plan item kinds, habit periods,
 // who can see a goal and whose it is. Lives beside navMode.ts rather than in
@@ -8,18 +8,20 @@ import { Church, HeartHandshake, HeartPulse, PiggyBank, Sprout } from "lucide-re
 // No Prisma enums: the database stores these as plain strings and the
 // `to*` narrowers below repair anything unexpected.
 
-/** The five life areas, in the order the Goals list groups them. */
+/** The six life areas, in the order the Goals list groups them. */
 export const LIFE_AREAS = [
   { key: "spiritual", label: "Spiritual", short: "Spiritual", icon: Church },
   { key: "health", label: "Health & Wellness", short: "Health", icon: HeartPulse },
   { key: "growth", label: "Personal Growth", short: "Growth", icon: Sprout },
-  { key: "financial", label: "Financial", short: "Financial", icon: PiggyBank },
   {
     key: "relationships",
     label: "Relationships & Connections",
     short: "Relationships",
     icon: HeartHandshake,
   },
+  // `financial` is Work & Money now; the key stays so saved goals keep their area.
+  { key: "financial", label: "Work & Money", short: "Work & Money", icon: BriefcaseBusiness },
+  { key: "fun", label: "Fun & Adventure", short: "Fun", icon: Tent },
 ] as const;
 
 export type LifeArea = (typeof LIFE_AREAS)[number]["key"];
@@ -72,3 +74,25 @@ export const GOAL_OWNERSHIP_LABELS: Record<GoalOwnership, string> = {
   mine: "Mine",
   together: "Together",
 };
+
+/** How far ahead a vision statement looks, in years. */
+export const VISION_HORIZONS = [5, 10, 15] as const;
+
+export type VisionHorizon = (typeof VISION_HORIZONS)[number];
+
+export const DEFAULT_VISION_HORIZON: VisionHorizon = 10;
+
+/** The horizon a goal's page quotes its area's vision at. */
+export const GOAL_PAGE_VISION_HORIZON: VisionHorizon = 10;
+
+/** The Together vision board's key; a person's board is keyed by their user id. */
+export const TOGETHER_BOARD = "together";
+
+/** `TOGETHER_BOARD`, or a user id for a person's board. */
+export type VisionBoardKey = string;
+
+/** Narrows a number or its string ("5", "10", "15") to a VisionHorizon; null for anything else. */
+export function toVisionHorizon(raw: unknown): VisionHorizon | null {
+  if (typeof raw === "string") return VISION_HORIZONS.find((years) => String(years) === raw) ?? null;
+  return VISION_HORIZONS.find((years) => years === raw) ?? null;
+}

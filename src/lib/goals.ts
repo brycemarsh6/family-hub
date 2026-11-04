@@ -1,6 +1,7 @@
 import {
   GOAL_OWNERSHIPS,
   GOAL_OWNERSHIP_LABELS,
+  TOGETHER_BOARD,
   toGoalVisibility,
   toHabitPeriod,
   toLifeArea,
@@ -10,6 +11,7 @@ import {
   type HabitPeriod,
   type LifeArea,
   type PlanKind,
+  type VisionBoardKey,
 } from "./goalVocabulary";
 import {
   buildPlanItemView,
@@ -78,6 +80,11 @@ export function whoseGoal(goal: Pick<GoalRow, "ownerId">, viewerId: string): "mi
 
 export function isPrivateGoal(goal: Pick<GoalRow, "visibility">): boolean {
   return goal.visibility === "private";
+}
+
+/** Whether a goal sits on a vision board: the Together board holds Together goals, a person's holds theirs. */
+export function goalOnBoard(goal: Pick<GoalRow, "ownerId">, board: VisionBoardKey): boolean {
+  return board === TOGETHER_BOARD ? goal.ownerId === null : goal.ownerId === board;
 }
 
 /** A private goal is seen by its owner only (a private goal with no owner by nobody). */

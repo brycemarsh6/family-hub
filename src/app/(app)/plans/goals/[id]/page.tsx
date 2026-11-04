@@ -6,7 +6,9 @@ import { requireVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { isPrivateGoal, whoseGoal } from "@/lib/goals";
 import { loadGoal } from "@/lib/goalsRead";
-import { GOAL_OWNERSHIP_LABELS, lifeAreaInfo } from "@/lib/goalVocabulary";
+import { loadGoalVision } from "@/lib/visionsRead";
+import { goalVisionLabel } from "@/lib/visions";
+import { GOAL_OWNERSHIP_LABELS, GOAL_PAGE_VISION_HORIZON, lifeAreaInfo } from "@/lib/goalVocabulary";
 import { calendarDateInZone, formatShortCalendarDate } from "@/lib/householdDate";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +22,7 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
   if (!goal) notFound();
 
   // The date is stored as UTC midnight; read it back as UTC so it can't slip a day.
+  const vision = await loadGoalVision(goal);
   const by = formatShortCalendarDate(calendarDateInZone(goal.targetDate, "UTC"));
   const owner = whoseGoal(goal, user.userId);
   const whose =
@@ -44,6 +47,12 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
       <div className="mt-4">
         <GoalDetail goal={goal} today={today} />
       </div>
+
+      {vision && (
+        <p className="mt-4 text-sm text-muted">
+          Part of {goalVisionLabel(user.userId, goal, vision)} {GOAL_PAGE_VISION_HORIZON}-year vision: <span className="text-fg">&ldquo;{vision.text}&rdquo;</span>
+        </p>
+      )}
     </div>
   );
 }

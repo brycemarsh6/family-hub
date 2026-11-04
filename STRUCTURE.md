@@ -230,7 +230,13 @@ Adding a second definition of any of these is a BLOCKER:
   map; it has **no imports at all**, because `next.config.ts` imports it by
   relative path. `src/lib/navMode.ts`: the only menu-style list
 - `src/lib/goalVocabulary.ts` — Plans & Goals' vocabulary: `LIFE_AREAS`,
-  `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`. It
+  `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`, and
+  the vision words (`VISION_HORIZONS`, `TOGETHER_BOARD`, `VisionBoardKey`,
+  `GOAL_PAGE_VISION_HORIZON`). `LIFE_AREAS` has six areas, in order:
+  Spiritual, Health & Wellness, Personal Growth, Relationships & Connections,
+  Work & Money, Fun & Adventure. **The `financial` key is permanent even
+  though its label is now Work & Money**, because saved goals and visions
+  store the key. It
   lives beside `constants.ts`, not in it, because `constants.ts` sits at the
   soft cap (same precedent as `navMode.ts`). `GOAL_OWNERSHIP_LABELS` there is
   the only "Mine" / "Together" wording. (Added 2026-11-04, mission-27; Bryce
@@ -242,7 +248,30 @@ Adding a second definition of any of these is a BLOCKER:
   `src/lib/goalsRead.ts` is the only page reader of goal rows. The form
   limits `GOAL_TITLE_MAX` / `GOAL_WHY_MAX` / `MEASURE_UNIT_MAX` /
   `HABIT_TIMES_MAX` are exported from `goals.ts` (the `MIN_PASSWORD_LENGTH`
-  precedent). (Added 2026-11-04, mission-27; Bryce approved the plan.)
+  precedent). `goalOnBoard(goal, board)` there is how a goal is matched to a
+  vision board, so nothing outside `goals.ts` compares a goal's `ownerId`
+  for that. (Added 2026-11-04, mission-27; Bryce approved the plan. The
+  `goalOnBoard` line was added by mission-28.)
+- `src/lib/visions.ts`: the only vision policy. `canEditVision`,
+  `visionBoardKey` / `boardOwnerId`, `validateVisionInput`, `visionForGoal`,
+  `goalVisionLabel`, `boardHeading`, `boardHint` and `readOnlyEmptyText` live
+  there. **A board key compared with a user id or with `TOGETHER_BOARD`
+  anywhere outside `visions.ts` is a BLOCKER**; components receive
+  `VisionBoardChoice.param` and `VisionBoardData.saveAs` already decided.
+  `src/lib/visionsRead.ts` is the only reader of vision rows.
+  **Dependency direction:** `visions.ts` takes only the `Viewer` type from
+  `goals.ts` (type-only), and `goals.ts` never imports `visions.ts`; both
+  take shared words from `goalVocabulary.ts`. That keeps the pair free of an
+  import cycle (Captain's pass-1 BLOCKER). (Added 2026-11-04, mission-28;
+  Bryce approved the plan.)
+- `src/lib/goalPrompts.ts`: the only home of prompt and idea wording
+  (`VISION_PROMPTS`, `GOAL_IDEAS`, `PLAN_IDEAS`), mirrored word for word from
+  `.avengers/plans/plans-goals-prompts.md`; `goalPrompts.test.ts` reads that
+  md file, so **the md is load-bearing for `npm test`** and an edit to either
+  side without the other fails `npm test`. `promptsFor(area, horizon)` is the
+  only filter: a prompt that names a horizon ("in ten years") shows only on
+  that horizon's board. Bryce approves every line of wording before it
+  ships. (Added 2026-11-04, mission-28; Bryce approved the plan.)
 - `src/lib/goalsProgress.ts`: windows, counts, progress, pace, `formatMeasure`,
   `parseTypedNumber`; split from `goals.ts` at the test seam. (Added
   2026-11-04, mission-27; Bryce approved the plan.)

@@ -1,0 +1,131 @@
+// Pins the vision rules (visions.ts): board keys, who may edit a board, what a
+// save may submit, which statement a goal shows, and the board heading.
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import type { Viewer } from "./goals";
+import {
+  VISION_TEXT_MAX,
+  boardHeading,
+  boardHint,
+  boardOwnerId,
+  canEditVision,
+  goalVisionLabel,
+  readOnlyEmptyText,
+  validateVisionInput,
+  visionBoardKey,
+  visionForGoal,
+  type VisionRow,
+} from "./visions";
+
+const ME: Viewer = { userId: "me", isDevice: false };
+const TABLET: Viewer = { userId: "tablet", isDevice: true };
+
+function row(over: Partial<VisionRow> = {}): VisionRow {
+  return { area: "health", horizon: 10, boardKey: "together", text: "Strong and rested", updatedAt: new Date("2026-11-04T19:00:00Z"), ...over };
+}
+
+test("visionBoardKey: no owner is the Together board, an owner is their id", () => {
+  assert.equal(visionBoardKey(null), "together");
+  assert.equal(visionBoardKey("me"), "me");
+  assert.equal(boardOwnerId("together"), null);
+  assert.equal(boardOwnerId("me"), "me");
+});
+
+test("canEditVision: a device never edits; Together is any login's; a person's board is theirs alone", () => {
+  assert.equal(canEditVision(null, ME), true);
+  assert.equal(canEditVision("me", ME), true);
+  assert.equal(canEditVision("spouse", ME), false);
+  assert.equal(canEditVision(null, TABLET), false);
+  assert.equal(canEditVision("tablet", TABLET), false);
+});
+
+test("validateVisionInput: accepts a statement, trims it, takes a string horizon", () => {
+  assert.deepEqual(validateVisionInput({ board: "together", area: "health", horizon: 10, text: "  Fit  " }), {
+    ok: { board: "together", area: "health", horizon: 10, text: "Fit" },
+  });
+  assert.deepEqual(validateVisionInput({ board: "mine", area: "growth", horizon: "15", text: "x" }), {
+    ok: { board: "mine", area: "growth", horizon: 15, text: "x" },
+  });
+});
+
+test("validateVisionInput: empty or missing text is allowed and means clear", () => {
+  assert.deepEqual(validateVisionInput({ board: "mine", area: "health", horizon: 5, text: "   " }), {
+    ok: { board: "mine", area: "health", horizon: 5, text: "" },
+  });
+  assert.deepEqual(validateVisionInput({ board: "mine", area: "health", horizon: 5 }), {
+    ok: { board: "mine", area: "health", horizon: 5, text: "" },
+  });
+});
+
+test("validateVisionInput: the 500 limit, and unknown area, horizon, board or shape", () => {
+  const base = { board: "mine", area: "health", horizon: 10, text: "ok" };
+  assert.ok("ok" in validateVisionInput({ ...base, text: "a".repeat(VISION_TEXT_MAX) }));
+  assert.deepEqual(validateVisionInput({ ...base, text: "a".repeat(VISION_TEXT_MAX + 1) }), { error: "Keep it under 500 characters." });
+  assert.ok("error" in validateVisionInput({ ...base, area: "play" }));
+  assert.ok("error" in validateVisionInput({ ...base, horizon: 7 }));
+  assert.ok("error" in validateVisionInput({ ...base, board: "private" }));
+  assert.ok("error" in validateVisionInput({ ...base, board: "someone-else" }));
+  assert.ok("error" in validateVisionInput({ ...base, text: 12 }));
+  assert.ok("error" in validateVisionInput(null));
+  assert.ok("error" in validateVisionInput([base]));
+});
+
+test("visionForGoal: the owner's statement wins, then Together, then null", () => {
+  const together = row({ text: "Together text" });
+  const mine = row({ boardKey: "me", text: "My text" });
+  assert.equal(visionForGoal("me", "health", [together, mine]), mine);
+  assert.equal(visionForGoal(null, "health", [together, mine]), together);
+  assert.equal(visionForGoal("me", "health", [together]), together);
+  assert.equal(visionForGoal("spouse", "health", [together, mine]), together);
+  assert.equal(visionForGoal("me", "health", []), null);
+  assert.equal(visionForGoal("me", "health", [mine]), mine);
+  assert.equal(visionForGoal(null, "health", [mine]), null);
+});
+
+test("visionForGoal: a row whose owner was deleted keeps its user-id board and is not Together", () => {
+  const orphan = row({ boardKey: "gone", text: "Orphan" });
+  assert.equal(visionForGoal(null, "health", [orphan]), null);
+  assert.equal(visionForGoal("me", "health", [orphan]), null);
+});
+
+test("visionForGoal: matches area and horizon, and an empty row never matches", () => {
+  const together = row({ text: "Together text" });
+  assert.equal(visionForGoal("me", "growth", [together]), null);
+  assert.equal(visionForGoal("me", "health", [together], 5), null);
+  assert.equal(visionForGoal("me", "health", [row({ horizon: 5, text: "Five" })], 5)?.text, "Five");
+  assert.equal(visionForGoal("me", "health", [row({ boardKey: "me", text: "" }), together]), together);
+  assert.equal(visionForGoal("me", "health", [row({ boardKey: "me", text: "  " })]), null);
+  assert.equal(visionForGoal("me", "health", [row({ text: "" })]), null);
+});
+
+test("boardHeading: the family, or a name, in the year the horizon reaches", () => {
+  assert.equal(boardHeading(null, 2026, 10), "Our family in 2036");
+  assert.equal(boardHeading("Bryce", 2026, 10), "Bryce in 2036");
+  assert.equal(boardHeading("Bryce", 2026, 5), "Bryce in 2031");
+  assert.equal(boardHeading(null, 2026, 15), "Our family in 2041");
+});
+
+test("readOnlyEmptyText: names the owner, or says Not written yet on Together", () => {
+  assert.equal(readOnlyEmptyText("Bryce"), "Bryce hasn't written this yet");
+  assert.equal(readOnlyEmptyText(null), "Not written yet");
+});
+
+test("boardHint: edit hint, owner's name on someone else's board, hidden on read-only Together", () => {
+  assert.equal(boardHint(true, "Bryce"), "Tap a card to edit it");
+  assert.equal(boardHint(true, null), "Tap a card to edit it");
+  assert.equal(boardHint(false, "Bryce"), "Only Bryce can change this board");
+  assert.equal(boardHint(false, null), null);
+});
+
+test("goalVisionLabel: your family's, your, or the owner's name", () => {
+  const owned = { ownerId: "me", owner: { displayName: "Bryce" } };
+  const together = { ownerId: null, owner: null };
+  assert.equal(goalVisionLabel("me", owned, row({ boardKey: "together" })), "your family's");
+  assert.equal(goalVisionLabel("you", owned, row({ boardKey: "together" })), "your family's");
+  assert.equal(goalVisionLabel("me", together, row({ boardKey: "together" })), "your");
+  assert.equal(goalVisionLabel("me", owned, row({ boardKey: "me" })), "your");
+  assert.equal(goalVisionLabel("you", owned, row({ boardKey: "me" })), "Bryce's");
+  assert.equal(goalVisionLabel("device", owned, row({ boardKey: "me" })), "Bryce's");
+  assert.equal(goalVisionLabel("you", { ownerId: "me", owner: null }, row({ boardKey: "me" })), "their");
+});
