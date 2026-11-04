@@ -268,8 +268,11 @@ A new one-off that duplicates one of these jobs is a design violation:
   Customize button) / `DashboardCustomizeSheet` (on/off switch and up/down
   arrows per widget, Reset to default): the only way to show, hide or
   reorder dashboard widgets
-- `PlansTabs` — the one segmented control: a `nav` of links lit by
-  `aria-current`; a new tab is a column in it, never a second control
+- `PlansTabs` — the one tab control for switching views: a `nav` of links lit
+  by `aria-current`; a new tab is a column in it, never a second control. A
+  segmented strip inside a form (the day / week / month picker in
+  `PlanItemSheet`) is a form field, not navigation, and is not a second
+  `PlansTabs`
 - `ProgressBar` — the only way to show a fraction
 - `ToggleSwitch` — the only on/off switch (`DashboardCustomizeSheet` uses it)
 - `LogButton` — the 44px round log/undo control for habits

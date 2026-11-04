@@ -144,8 +144,9 @@ Replace this section at the end of each session. Don't append.
 
 **In progress:**
 - **Plans & Goals PR 1** (mission 27, branch `claude/plans-goals-p1`): built
-  and at the gates, not pushed. PR 2 (Vision tab, prompts, idea chips) and
-  PR 3 (dashboard tile, Sunday recap, Routines switch) are queued in
+  and at the gates (Vision 2 passes, a third pending; Strange PASS; Captain 1
+  pass, a second pending), not pushed. PR 2 (Vision tab, prompts, idea chips)
+  and PR 3 (dashboard tile, Sunday recap, Routines switch) are queued in
   `.avengers/plans/plans-goals-v1.md`. The navigation redesign, including rail
   names, is live (PRs #32 to #35).
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
@@ -158,8 +159,9 @@ Replace this section at the end of each session. Don't append.
   the TypeScript compiler API.
 
 **Waiting on Bryce:**
-- **Possible eaten tap on Inventory/Shopping rows**: swipe a row a little, let go,
-  tap it. Does the tap work? (Sixty seconds on a phone.)
+- **Eaten tap after a swipe**: the fix landed in mission 27 (F3). Sixty seconds
+  on a phone: swipe a Shopping row a little, let go, tap it; then swipe one
+  open, tap an action, tap the row. Both taps should work.
 - **Touch vs. scroll** for swipe inside the calendar's timeline scroller: only
   testable on a real device.
 - **Assistant API production setup** (after PR #28): put the token hash in Vercel
@@ -175,5 +177,5 @@ Replace this section at the end of each session. Don't append.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
   by Bryce's Grok bot. Left uncommitted on purpose.
 
-**Not built yet:** family profiles, chore charts, to-dos, habit trackers, photo
-gallery, barcode scanning.
+**Not built yet:** family profiles, chore charts, to-dos, stand-alone habit
+trackers (habits live inside Plans & Goals now), photo gallery, barcode scanning.
