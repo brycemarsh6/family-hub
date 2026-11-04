@@ -369,6 +369,21 @@ parallel after C2. C5 last.
   CLAUDE.md: Plans & Goals bullet says three tabs; Current status replaced
   (PR #36 merged and live; mission 28 state). Direction file: PR 2 marked
   built, Bryce's decisions above added.
+  **Added after the gates (Captain's pass-2 record list and later
+  decisions):** STRUCTURE.md also records (a) a BLOCKER-level rule that
+  board keys are compared with user ids or `TOGETHER_BOARD` only inside
+  `visions.ts`; (b) the dependency direction `goals.ts` → `visions.ts`,
+  never back; (c) the `goalVocabulary.ts` entry widened to six areas, with
+  the `financial` key permanent even though its label is Work & Money;
+  (d) the prompts md is load-bearing for `npm test` and prompts that name a
+  horizon show only on that board (`promptsFor`). DESIGN.md also records
+  Cormorant's second use (the Vision heading, faux italic accepted), the
+  horizon switch as a carve-out beside `PlansTabs`, the `--line-strong`
+  token (decorative, empty vision cards only), and `text-warn` for "can't
+  reach the server" errors. The direction file records the six areas
+  (2026-11-04) and Bryce's pass-1 and pass-2 decisions. CLAUDE.md Current
+  status: PR #36 merged and live; mission 28 built and all three gates
+  PASS, not pushed yet.
 - **Verification:** `node ~/.claude/skills/avengers/recordcheck.mjs` over
   the mission range; CLAUDE.md under 250 lines.
 - **Evidence required:** recordcheck output with every REVIEW line read.
@@ -532,6 +547,7 @@ parallel after C2. C5 last.
 | 2 | Vision (Opus) | BLOCKED | an in-flight save closes a different sheet and drops its draft, or shows its error there (F1 regression) | viewer-blind "your" on the goal page; focus restore no-op on iOS; brief disabled Clear on first save; board error survives navigation; P2002 duck-typed |
 | 2 | Captain (Opus) | PASS | none | horizon switch needs a DESIGN.md carve-out beside PlansTabs; chip classes in five places (future contract); docstring "10-year" by hand; long comment line; DRAFT comment in goalPrompts.ts must go with Bryce's approval |
 | 2 | Strange (Opus) | PASS | none | heading is faux italic and faux 500 (accepted); 14 of 60 prompts name a different horizon; disabled "Clearing…" at 2.33:1 (app-wide pattern); warn color for network errors unrecorded; dashed outline fainter than the canvas; dark selected segment darker than its strip; textarea has no focus ring; "your family's" and device views unverified in pixels |
+| 3 | Vision (Opus) | PASS | none | pass-2 blocker closed; promptAt would divide by zero if a future edit empties a horizon list (test guards it); a hung save keeps the sheet open by design; iOS back-swipe during a save may flicker; step count carries across horizons |
 
 Strange's read-only card, heading font and the two layout recommendations
 need Bryce (wording and layout are his). They go in F2 after he answers.
