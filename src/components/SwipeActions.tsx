@@ -22,7 +22,10 @@ import { useRef, useState } from "react";
 //    stepper, a cart button, and a tap-to-edit surface — without
 //    suppression, ending a swipe on top of "+" would also increment the
 //    quantity. Once a gesture locks into a swipe, the next click is
-//    swallowed in the capture phase, before it reaches any child.
+//    swallowed in the capture phase, before it reaches any child. The flag
+//    only lives for ONE gesture: a touch that moved produces no click at all,
+//    so the next pointer-down clears it, otherwise it would eat a later,
+//    unrelated tap.
 //
 // 3. The Delete button is always in the DOM, not conditionally rendered.
 //    It's only hidden *visually*, behind the row. That keeps it reachable
@@ -84,8 +87,11 @@ export function SwipeActions({
   // a swipe that clearly should have opened it. State drives rendering,
   // this drives the decision.
   const offsetRef = useRef(0);
-  // Set the moment a gesture becomes a swipe; read by the capture-phase
-  // click handler to decide whether to swallow the click that follows.
+  // Set the moment a gesture becomes a swipe (or a tap lands on an open
+  // row); read by the capture-phase click handler to decide whether to
+  // swallow the click that follows. A touch that moved produces no click,
+  // so nothing may rely on the click to clear it: every pointer-down
+  // resets it (see handleRowPointerDownCapture).
   const swallowNextClick = useRef(false);
 
   function handlePointerDown(event: React.PointerEvent) {
@@ -153,7 +159,13 @@ export function SwipeActions({
 
   // While open, a tap anywhere on the row closes it rather than doing what
   // the row normally does — same as iOS.
+  //
+  // This is also where the swallow flag is reset. A new touch always starts
+  // here, and a touch that moved produces no click, so a flag left over
+  // from an earlier swipe would otherwise survive and eat the next real tap.
+  // Clear it first, then raise it only for the tap that closes an open row.
   function handleRowPointerDownCapture(event: React.PointerEvent) {
+    swallowNextClick.current = false;
     if (open && mode.current === "idle") {
       setOpen(false);
       swallowNextClick.current = true;
@@ -166,8 +178,19 @@ export function SwipeActions({
   return (
     <div className="relative overflow-hidden rounded-xl">
       {/* Sits behind the row; revealed as the row slides left. Always
-          rendered so it stays keyboard- and screen-reader-reachable. */}
-      <div className="absolute inset-y-0 right-0 flex">
+          rendered so it stays keyboard- and screen-reader-reachable.
+          Invisible while the row is fully closed, otherwise its colour
+          shows through the rounded corners at row dividers; focus-within
+          brings it back for keyboard users. The hidden state's 180ms delay
+          matches the row's snap-shut animation, so the strip doesn't
+          vanish before the row has slid back over it. */}
+      <div
+        className={`absolute inset-y-0 right-0 flex focus-within:opacity-100 ${
+          offset === 0 && !open
+            ? "opacity-0 transition-opacity delay-[180ms] duration-0"
+            : ""
+        }`}
+      >
         {actions.map((action) => (
           <button
             key={action.label}
