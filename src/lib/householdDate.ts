@@ -102,3 +102,13 @@ export function dayOfWeek(date: CalendarDate): number {
 export function utcMidnightInstant(date: CalendarDate): Date {
   return new Date(Date.UTC(date.year, date.month - 1, date.day));
 }
+
+/** The Sunday that starts the week `date` falls in (a Sunday is its own week start). */
+export function startOfWeek(date: CalendarDate): CalendarDate {
+  return addCalendarDays(date, -dayOfWeek(date));
+}
+
+/** The first of the month `date` falls in. */
+export function startOfMonth(date: CalendarDate): CalendarDate {
+  return { year: date.year, month: date.month, day: 1 };
+}

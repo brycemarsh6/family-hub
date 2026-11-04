@@ -7,6 +7,8 @@ import {
   dayOfWeek,
   formatCalendarDate,
   parseDateParam,
+  startOfMonth,
+  startOfWeek,
   utcMidnightInstant,
   zoneMidnightInstant,
 } from "./householdDate";
@@ -103,4 +105,19 @@ test("calendarDaysBetween: signed whole days, across a year end and a leap day",
   assert.equal(calendarDaysBetween({ year: 2027, month: 1, day: 1 }, { year: 2026, month: 12, day: 31 }), -1);
   assert.equal(calendarDaysBetween({ year: 2028, month: 2, day: 28 }, { year: 2028, month: 3, day: 1 }), 2);
   assert.equal(calendarDaysBetween({ year: 2026, month: 11, day: 1 }, { year: 2026, month: 11, day: 1 }), 0);
+});
+
+test("startOfWeek: a Sunday is unchanged, a Saturday goes back six days", () => {
+  assert.deepEqual(startOfWeek({ year: 2026, month: 11, day: 1 }), { year: 2026, month: 11, day: 1 });
+  assert.deepEqual(startOfWeek({ year: 2026, month: 11, day: 7 }), { year: 2026, month: 11, day: 1 });
+});
+
+test("startOfWeek: crosses a year boundary (Fri Jan 1 2027 is in the week of Dec 27)", () => {
+  assert.deepEqual(startOfWeek({ year: 2027, month: 1, day: 1 }), { year: 2026, month: 12, day: 27 });
+});
+
+test("startOfMonth: first of the same month, any day", () => {
+  assert.deepEqual(startOfMonth({ year: 2026, month: 11, day: 4 }), { year: 2026, month: 11, day: 1 });
+  assert.deepEqual(startOfMonth({ year: 2028, month: 2, day: 29 }), { year: 2028, month: 2, day: 1 });
+  assert.deepEqual(startOfMonth({ year: 2026, month: 12, day: 1 }), { year: 2026, month: 12, day: 1 });
 });
