@@ -3,9 +3,10 @@
 // Server Action for Plans & Goals' vision statements (mission 28). Like every
 // action file, the export is a real public POST endpoint, so it opens with its
 // own guard: signed in, then the board policy (`canEditVision`: a shared
-// device never edits). Validation and the board rules live in src/lib/visions.ts. A client names only "mine" or "together":
-// "mine" always means the signed-in person, so nobody can name another
-// person's board. Empty text clears the vision.
+// device never edits). Validation and the board rules live in
+// src/lib/visions.ts. A client names only "mine" or "together": "mine" always
+// means the signed-in person, so nobody can name another person's board. Empty
+// text clears the vision.
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";

@@ -446,7 +446,7 @@ parallel after C2. C5 last.
 - **Report:** —
 
 ### F3 — Pass-2 fixes that need no decision from Bryce
-- **Status:** PENDING
+- **Status:** DONE (Stark, verified by Fury: tsc, eslint, npm test 533/533)
 - **Boundaries:** may touch: `src/components/VisionBoard.tsx`,
   `src/components/VisionCard.tsx`, `src/app/globals.css`,
   `src/lib/visionsRead.ts`, `src/app/actions/visions.ts`
@@ -476,7 +476,7 @@ parallel after C2. C5 last.
   counts of the touched files.
 - **Done criteria:** Vision pass 3 re-runs the in-flight scenario; Fury's
   browser check shows the darker outline in light and dark.
-- **Report:** —
+- **Report:** all four items as specified; 5 files, +12/-6; no deviations.
 
 ## Gate ledger
 

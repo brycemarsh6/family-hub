@@ -69,7 +69,7 @@ export function VisionCard({
   return (
     <div
       className={`flex flex-col overflow-hidden rounded-2xl ${
-        text === null ? "border-2 border-dashed border-line bg-bg" : "border border-line bg-surface"
+        text === null ? "border-2 border-dashed border-line-strong bg-bg" : "border border-line bg-surface"
       } ${wide ? "col-span-2" : ""}`}
     >
       {canEdit ? (

@@ -62,6 +62,7 @@ export function VisionBoard({
 
   // Clearing waits for the server (the sheet stays open and says "Clearing…"); a save shows at once,
   // but the sheet stays open until it lands, so a failed save keeps the draft and shows the error there.
+  // A save in flight can't be abandoned (close waits), and a landed save closes only its own sheet.
   function save(area: LifeArea, text: string) {
     const trimmed = text.trim();
     if (data.saveAs === null) return;
@@ -72,7 +73,7 @@ export function VisionBoard({
       try {
         const result = await saveVision({ board, area, horizon, text: trimmed });
         if (result.error) setError(result.error);
-        else setOpen(null);
+        else setOpen((current) => (current === area ? null : current));
       } catch {
         // The call never reached the server (network down): say so here instead of the error page.
         setError("Couldn't save that. Check your connection and try again.");
@@ -81,6 +82,7 @@ export function VisionBoard({
   }
 
   function close() {
+    if (pending) return;
     setOpen(null);
     setError(null);
   }

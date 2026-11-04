@@ -91,7 +91,7 @@ export async function loadVisionBoard(
   };
 }
 
-/** The 10-year vision a goal's page shows: its owner's, else Together's, else none. */
+/** The `GOAL_PAGE_VISION_HORIZON` vision a goal's page shows: its owner's, else Together's, else none. */
 export async function loadGoalVision(goal: GoalView): Promise<VisionRow | null> {
   const horizon = GOAL_PAGE_VISION_HORIZON;
   const found = await db.visionStatement.findMany({
