@@ -1,6 +1,6 @@
-// Pins the tap-time (optimistic) changes to a plan item, shared by This week
-// and the goal page. The rules for building the real views are in
-// goalsProgress.test.ts and goals.test.ts.
+// Tests for planItemChanges.ts: the tap-time (optimistic) changes to a plan
+// item, shared by This week and the goal page. Siblings: goals.test.ts,
+// goalsProgress.test.ts, goalVocabulary.test.ts.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

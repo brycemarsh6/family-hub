@@ -1,5 +1,6 @@
 import {
   GOAL_OWNERSHIPS,
+  GOAL_OWNERSHIP_LABELS,
   toGoalVisibility,
   toHabitPeriod,
   toLifeArea,
@@ -155,7 +156,9 @@ export function validateGoalInput(
   const area = toLifeArea(raw.area);
   if (!area) return { error: "Pick a life area." };
   const ownership = GOAL_OWNERSHIPS.find((o) => o === raw.ownership);
-  if (!ownership) return { error: "Pick whether the goal is Mine or Together." };
+  if (!ownership) {
+    return { error: `Pick whether the goal is ${GOAL_OWNERSHIP_LABELS.mine} or ${GOAL_OWNERSHIP_LABELS.together}.` };
+  }
   const visibility = toGoalVisibility(raw.visibility);
   if (visibility === "private" && ownership !== "mine") return { error: "Only a goal that's yours can be private." };
   if (raw.why != null && typeof raw.why !== "string") return { error: "The why needs to be words." };

@@ -337,11 +337,11 @@ Adding a second definition of any of these is a BLOCKER:
   **The migration is one contract, and it carries three obligations**: extract
   the shared machine (mode transitions, lock distance, capture guard, swallow
   decision) into `src/lib/`, keeping each caller's own release math
-  (`openWidth / 2` vs `SWIPE_PAGE_THRESHOLD_PX`) at the call site; **carry
-  F1's `pointerdown` clear into `SwipeActions.tsx`, verified on a real
-  device** — this repo has twice recorded that synthetic PointerEvents cannot
+  (`openWidth / 2` vs `SWIPE_PAGE_THRESHOLD_PX`) at the call site; **verify
+  F3's `pointerdown` clear in `SwipeActions.tsx` on a real device** (the
+  clear itself landed in mission-27/F3; this repo has twice recorded that synthetic PointerEvents cannot
   settle this gesture, so a real-hardware pass by Bryce is the evidence, not a
-  harness; and collapse `DIRECTION_LOCK_PX` to one definition. **A third copy
+  harness); and collapse `DIRECTION_LOCK_PX` to one definition. **A third copy
   of the machine is a BLOCKER.**
   (Added 2026-09-09, mission-19, on Captain's ruling across two gate passes;
   the shipped-defect evidence is Vision's, the mechanism Captain's. Bryce
