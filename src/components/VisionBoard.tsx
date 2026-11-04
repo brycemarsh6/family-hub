@@ -4,7 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { VisionCard } from "./VisionCard";
 import { VisionSheet } from "./VisionSheet";
-import { VISION_HORIZONS, type LifeArea, type VisionHorizon } from "@/lib/goalVocabulary";
+import { TOGETHER_BOARD, VISION_HORIZONS, type LifeArea, type VisionHorizon } from "@/lib/goalVocabulary";
 import { promptAt } from "@/lib/goalPrompts";
 import { boardHeading } from "@/lib/visions";
 import type { VisionBoardData } from "@/lib/visionsRead";
@@ -30,25 +30,25 @@ function applyChange(cards: VisionBoardData["cards"], change: Change): VisionBoa
  */
 export function VisionBoard({
   data,
-  viewerId,
   horizon,
   todayYear,
-  promptSeed,
+  promptSeed: initialSeed,
 }: {
   data: VisionBoardData;
-  viewerId: string;
   horizon: VisionHorizon;
   todayYear: number;
   promptSeed: number;
 }) {
+  // Locked once: the server makes a new seed on every re-render (after a save), which would restart the order.
+  const [promptSeed] = useState(initialSeed);
   const [cards, applyOptimistic] = useOptimistic(data.cards, applyChange);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [steps, setSteps] = useState<Partial<Record<LifeArea, number>>>({});
   const [open, setOpen] = useState<LifeArea | null>(null);
 
-  const together = data.board === "together";
-  const boardParam = (key: string) => (key === viewerId ? "mine" : key);
+  const together = data.saveAs === "together";
+  const currentParam = data.boards.find((board) => board.key === data.board)?.param ?? TOGETHER_BOARD;
   const href = (board: string, years: number) => `/plans?view=vision&board=${board}&years=${years}`;
 
   function promptFor(area: LifeArea, index: number) {
@@ -59,20 +59,29 @@ export function VisionBoard({
     setSteps((current) => ({ ...current, [area]: (current[area] ?? 0) + 1 }));
   }
 
+  // Clearing waits for the server (the sheet stays open and says "Clearing…"); a save shows at once,
+  // but the sheet stays open until it lands, so a failed save keeps the draft and shows the error there.
   function save(area: LifeArea, text: string) {
     const trimmed = text.trim();
+    if (data.saveAs === null) return;
+    const board = data.saveAs;
     setError(null);
-    setOpen(null);
     startTransition(async () => {
-      applyOptimistic({ area, text: trimmed });
+      if (trimmed !== "") applyOptimistic({ area, text: trimmed });
       try {
-        const result = await saveVision({ board: together ? "together" : "mine", area, horizon, text: trimmed });
+        const result = await saveVision({ board, area, horizon, text: trimmed });
         if (result.error) setError(result.error);
+        else setOpen(null);
       } catch {
         // The call never reached the server (network down): say so here instead of the error page.
         setError("Couldn't save that. Check your connection and try again.");
       }
     });
+  }
+
+  function close() {
+    setOpen(null);
+    setError(null);
   }
 
   const openIndex = open === null ? -1 : cards.findIndex((card) => card.area === open);
@@ -81,37 +90,41 @@ export function VisionBoard({
   return (
     <div>
       <div className="mb-4 flex flex-wrap gap-2">
-        {data.boards.map((board) => {
-          const current = board.key === data.board;
-          return (
-            <Link
-              key={board.key}
-              href={href(boardParam(board.key), horizon)}
-              aria-current={current ? "page" : undefined}
-              className={`${CHIP} ${current ? CHIP_ON : CHIP_OFF}`}
-            >
-              {board.label}
-            </Link>
-          );
-        })}
-        {VISION_HORIZONS.map((years) => {
-          const current = years === horizon;
-          return (
-            <Link
-              key={years}
-              href={href(boardParam(data.board), years)}
-              aria-current={current ? "page" : undefined}
-              className={`${CHIP} ${current ? CHIP_ON : CHIP_OFF}`}
-            >
-              {years} yr
-            </Link>
-          );
-        })}
+        <div role="group" aria-label="Whose board" className="flex flex-wrap gap-2">
+          {data.boards.map((board) => {
+            const current = board.key === data.board;
+            return (
+              <Link
+                key={board.key}
+                href={href(board.param, horizon)}
+                aria-current={current ? "page" : undefined}
+                className={`${CHIP} ${current ? CHIP_ON : CHIP_OFF}`}
+              >
+                {board.label}
+              </Link>
+            );
+          })}
+        </div>
+        <div role="group" aria-label="How far ahead" className="flex flex-wrap gap-2">
+          {VISION_HORIZONS.map((years) => {
+            const current = years === horizon;
+            return (
+              <Link
+                key={years}
+                href={href(currentParam, years)}
+                aria-current={current ? "page" : undefined}
+                className={`${CHIP} ${current ? CHIP_ON : CHIP_OFF}`}
+              >
+                {years} yr
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       <h2 className="mb-3 font-accent text-xl italic">{boardHeading(data.ownerName, todayYear, horizon)}</h2>
 
-      {error && (
+      {error && !openCard && (
         <p role="alert" className="mb-3 text-sm text-warn">
           {error}
         </p>
@@ -127,7 +140,10 @@ export function VisionBoard({
             prompt={promptFor(card.area, index)}
             canEdit={data.canEdit}
             wide={index === cards.length - 1 && cards.length % 2 === 1}
-            onOpen={() => setOpen(card.area)}
+            onOpen={() => {
+              setError(null);
+              setOpen(card.area);
+            }}
             onAnotherPrompt={() => anotherPrompt(card.area)}
           />
         ))}
@@ -144,9 +160,10 @@ export function VisionBoard({
           initialText={openCard.text ?? ""}
           prompt={promptFor(openCard.area, openIndex)}
           pending={pending}
+          error={error}
           onAnotherPrompt={() => anotherPrompt(openCard.area)}
           onSave={(text) => save(openCard.area, text)}
-          onClose={() => setOpen(null)}
+          onClose={close}
         />
       )}
     </div>

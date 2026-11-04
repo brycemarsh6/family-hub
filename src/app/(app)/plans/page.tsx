@@ -38,7 +38,6 @@ export default async function PlansPage({
         <PlansTabs view={view} />
         <VisionBoard
           data={board}
-          viewerId={user.userId}
           horizon={horizon}
           todayYear={today.year}
           // Made here, once per request, so the server and the browser pick the same first prompt.

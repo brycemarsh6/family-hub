@@ -36,12 +36,12 @@ export function VisionCard({
         <Icon size={28} />
       </span>
       <span className="flex flex-col gap-2 p-3 text-left">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted">{info.label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-strong">{info.label}</span>
         {text !== null ? (
           <>
             <span className="whitespace-pre-wrap break-words text-base text-fg">{text}</span>
             {goalCount > 0 && (
-              <span className="text-sm text-muted">{goalCount === 1 ? "1 goal" : `${goalCount} goals`}</span>
+              <span className="text-sm text-muted-strong">{goalCount === 1 ? "1 goal" : `${goalCount} goals`}</span>
             )}
           </>
         ) : (
@@ -65,7 +65,6 @@ export function VisionCard({
         <button
           type="button"
           onClick={onOpen}
-          aria-label={`${info.label}: ${text !== null ? "edit your vision" : "write your vision"}`}
           className="flex min-h-12 flex-1 flex-col items-stretch text-left active:bg-surface-2"
         >
           {body}

@@ -21,7 +21,7 @@ export function IdeaChips({
             key={idea}
             type="button"
             onClick={() => onPick(idea)}
-            className="min-h-11 rounded-full border border-line bg-surface px-4 py-2 text-left text-sm font-medium text-muted transition-colors active:bg-surface-2"
+            className="min-h-11 rounded-full border border-line bg-surface px-4 py-2 text-left text-sm font-medium text-muted-strong transition-colors active:bg-surface-2"
           >
             {idea}
           </button>

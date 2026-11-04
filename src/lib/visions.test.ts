@@ -7,6 +7,7 @@ import type { Viewer } from "./goals";
 import {
   VISION_TEXT_MAX,
   boardHeading,
+  boardOwnerId,
   canEditVision,
   validateVisionInput,
   visionBoardKey,
@@ -18,12 +19,14 @@ const ME: Viewer = { userId: "me", isDevice: false };
 const TABLET: Viewer = { userId: "tablet", isDevice: true };
 
 function row(over: Partial<VisionRow> = {}): VisionRow {
-  return { area: "health", horizon: 10, ownerId: null, text: "Strong and rested", updatedAt: new Date("2026-11-04T19:00:00Z"), ...over };
+  return { area: "health", horizon: 10, boardKey: "together", text: "Strong and rested", updatedAt: new Date("2026-11-04T19:00:00Z"), ...over };
 }
 
 test("visionBoardKey: no owner is the Together board, an owner is their id", () => {
   assert.equal(visionBoardKey(null), "together");
   assert.equal(visionBoardKey("me"), "me");
+  assert.equal(boardOwnerId("together"), null);
+  assert.equal(boardOwnerId("me"), "me");
 });
 
 test("canEditVision: a device never edits; Together is any login's; a person's board is theirs alone", () => {
@@ -67,7 +70,7 @@ test("validateVisionInput: the 500 limit, and unknown area, horizon, board or sh
 
 test("visionForGoal: the owner's statement wins, then Together, then null", () => {
   const together = row({ text: "Together text" });
-  const mine = row({ ownerId: "me", text: "My text" });
+  const mine = row({ boardKey: "me", text: "My text" });
   assert.equal(visionForGoal("me", "health", [together, mine]), mine);
   assert.equal(visionForGoal(null, "health", [together, mine]), together);
   assert.equal(visionForGoal("me", "health", [together]), together);
@@ -77,13 +80,19 @@ test("visionForGoal: the owner's statement wins, then Together, then null", () =
   assert.equal(visionForGoal(null, "health", [mine]), null);
 });
 
+test("visionForGoal: a row whose owner was deleted keeps its user-id board and is not Together", () => {
+  const orphan = row({ boardKey: "gone", text: "Orphan" });
+  assert.equal(visionForGoal(null, "health", [orphan]), null);
+  assert.equal(visionForGoal("me", "health", [orphan]), null);
+});
+
 test("visionForGoal: matches area and horizon, and an empty row never matches", () => {
   const together = row({ text: "Together text" });
   assert.equal(visionForGoal("me", "growth", [together]), null);
   assert.equal(visionForGoal("me", "health", [together], 5), null);
   assert.equal(visionForGoal("me", "health", [row({ horizon: 5, text: "Five" })], 5)?.text, "Five");
-  assert.equal(visionForGoal("me", "health", [row({ ownerId: "me", text: "" }), together]), together);
-  assert.equal(visionForGoal("me", "health", [row({ ownerId: "me", text: "  " })]), null);
+  assert.equal(visionForGoal("me", "health", [row({ boardKey: "me", text: "" }), together]), together);
+  assert.equal(visionForGoal("me", "health", [row({ boardKey: "me", text: "  " })]), null);
   assert.equal(visionForGoal("me", "health", [row({ text: "" })]), null);
 });
 

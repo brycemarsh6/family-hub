@@ -80,6 +80,15 @@ export type VisionHorizon = (typeof VISION_HORIZONS)[number];
 
 export const DEFAULT_VISION_HORIZON: VisionHorizon = 10;
 
+/** The horizon a goal's page quotes its area's vision at. */
+export const GOAL_PAGE_VISION_HORIZON: VisionHorizon = 10;
+
+/** The Together vision board's key; a person's board is keyed by their user id. */
+export const TOGETHER_BOARD = "together";
+
+/** `TOGETHER_BOARD`, or a user id for a person's board. */
+export type VisionBoardKey = string;
+
 /** Narrows a number or its string ("5", "10", "15") to a VisionHorizon; null for anything else. */
 export function toVisionHorizon(raw: unknown): VisionHorizon | null {
   if (typeof raw === "string") return VISION_HORIZONS.find((years) => String(years) === raw) ?? null;

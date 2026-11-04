@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { lifeAreaInfo, type LifeArea, type VisionHorizon } from "@/lib/goalVocabulary";
+import { GOAL_OWNERSHIP_LABELS, lifeAreaInfo, type LifeArea, type VisionHorizon } from "@/lib/goalVocabulary";
 import { VISION_TEXT_MAX } from "@/lib/visions";
 
 /**
  * Write, change or clear one vision statement. Save and Clear both hand the
- * new text up (empty means clear) and the board closes the sheet; the board
- * owns the optimistic update and the error line.
+ * new text up (empty means clear); the board owns the optimistic update and
+ * closes the sheet once the server says yes. If it says no, the sheet stays
+ * open with the draft and shows `error` here.
  */
 export function VisionSheet({
   area,
@@ -16,6 +17,7 @@ export function VisionSheet({
   initialText,
   prompt,
   pending,
+  error,
   onAnotherPrompt,
   onSave,
   onClose,
@@ -26,12 +28,15 @@ export function VisionSheet({
   initialText: string;
   prompt: string;
   pending: boolean;
+  error: string | null;
   onAnotherPrompt: () => void;
   onSave: (text: string) => void;
   onClose: () => void;
 }) {
   const [text, setText] = useState(initialText);
+  const [clearing, setClearing] = useState(false);
   const field = useRef<HTMLTextAreaElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -41,9 +46,15 @@ export function VisionSheet({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  // A touch screen would throw its keyboard over the prompt, so only focus with a mouse or pen.
+  // Focus goes into the sheet and comes back to the card that opened it. A touch screen would throw its
+  // keyboard over the prompt, so the field only takes focus with a mouse or pen; otherwise the dialog does.
   useEffect(() => {
-    if (!window.matchMedia("(pointer: coarse)").matches) field.current?.focus();
+    const opener = document.activeElement;
+    if (window.matchMedia("(pointer: coarse)").matches) dialog.current?.focus();
+    else field.current?.focus();
+    return () => {
+      if (opener instanceof HTMLElement) opener.focus();
+    };
   }, []);
 
   const heading = `${lifeAreaInfo(area).label} in ${horizon} years`;
@@ -53,17 +64,19 @@ export function VisionSheet({
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/40" />
 
       <div
+        ref={dialog}
         role="dialog"
         aria-modal="true"
         aria-label={heading}
-        className="relative flex max-h-[90vh] w-full flex-col overflow-y-auto rounded-t-2xl bg-surface p-4 shadow-lg md:max-w-md md:rounded-2xl"
+        tabIndex={-1}
+        className="relative flex max-h-[90vh] w-full flex-col overflow-y-auto rounded-t-2xl outline-none bg-surface p-4 shadow-lg md:max-w-md md:rounded-2xl"
         style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       >
         <div className="mb-2 flex items-center justify-between">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold">{heading}</h2>
             <p className="text-sm text-muted">
-              {together ? "Together" : "Yours"} · everyone can see this
+              {together ? GOAL_OWNERSHIP_LABELS.together : "Yours"} · everyone can see this
             </p>
           </div>
           <button
@@ -90,14 +103,23 @@ export function VisionSheet({
           />
         </label>
 
+        {error && (
+          <p role="alert" className="mt-3 text-sm text-warn">
+            {error}
+          </p>
+        )}
+
         <div className="mt-6 flex flex-col gap-2 border-t border-line pt-4">
           <button
             type="button"
-            onClick={() => onSave(text)}
+            onClick={() => {
+              setClearing(false);
+              onSave(text);
+            }}
             disabled={pending}
             className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
           >
-            {pending ? "Saving…" : "Save"}
+            {pending && !clearing ? "Saving…" : "Save"}
           </button>
           <button
             type="button"
@@ -109,11 +131,14 @@ export function VisionSheet({
           {initialText !== "" && (
             <button
               type="button"
-              onClick={() => onSave("")}
+              onClick={() => {
+                setClearing(true);
+                onSave("");
+              }}
               disabled={pending}
               className="min-h-12 w-full rounded-xl text-base font-semibold text-danger transition-colors active:bg-surface-2 disabled:opacity-50"
             >
-              Clear this vision
+              {pending && clearing ? "Clearing…" : "Clear this vision"}
             </button>
           )}
         </div>

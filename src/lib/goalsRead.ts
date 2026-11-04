@@ -19,6 +19,7 @@ import {
   toLifeArea,
   toPlanKind,
   type LifeArea,
+  type VisionBoardKey,
 } from "@/lib/goalVocabulary";
 import {
   startOfMonth,
@@ -26,7 +27,6 @@ import {
   utcMidnightInstant,
   type CalendarDate,
 } from "@/lib/householdDate";
-import type { VisionBoardKey } from "@/lib/visions";
 
 // Plans & Goals' reader: one query shape for the Goals list, This week and a
 // single goal's detail page. No auth and no revalidation here: the page that
