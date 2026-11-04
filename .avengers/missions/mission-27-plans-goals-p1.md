@@ -1,7 +1,7 @@
 # Mission 27: Plans & Goals PR 1 (goals, plans, This week)
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERED (all gates PASS; not pushed, waiting on Bryce)
+**Status:** DELIVERED (all gates PASS; PR #36 open, merge is Bryce's)
 **Started:** 2026-11-04 · **Updated:** 2026-11-04
 **Branch:** `claude/plans-goals-p1` from `origin/main` at `4b76a6d`
 **Direction:** `.avengers/plans/plans-goals-v1.md` (read first)
@@ -749,9 +749,12 @@ See the template; applied per contract below. Preflight command:
 - **Migration:** `20261104171731_add_goals` applied to the Neon dev branch
   by Fury (`migrate deploy`). Production gets it from the Vercel build hook
   when the PR merges.
-- **PR:** not opened yet (Bryce's call).
-- **Shipped check (`git log origin/main..HEAD`):** 12 commits local, 0 pushed,
-  at the time of writing. Nothing is on GitHub until Bryce says push.
+- **PR:** https://github.com/brycemarsh6/family-hub/pull/36 (opened
+  2026-11-04 on Bryce's "Yes, push and open PR"; Gauntlet checks 2 of 2
+  passing at open).
+- **Shipped check (`git log origin/main..HEAD`):** 13 commits pushed to
+  `origin/claude/plans-goals-p1`; `git log origin/main..origin/claude/plans-goals-p1`
+  counts 13. Merge is Bryce's.
 - **Deliberate leftovers:** the "Deferred on purpose" list in
   `.avengers/plans/plans-goals-v1.md`; the gate NOTES above (none blocks);
   Bryce's sixty-second phone check of the swipe fix; the STRUCTURE.md

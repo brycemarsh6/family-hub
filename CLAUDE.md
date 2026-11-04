@@ -145,7 +145,7 @@ Replace this section at the end of each session. Don't append.
 **In progress:**
 - **Plans & Goals PR 1** (mission 27, branch `claude/plans-goals-p1`): built
   through all three gates (Vision PASS on pass 3, Strange PASS on pass 2,
-  Captain PASS on pass 2), not pushed. PR 2 (Vision tab, prompts, idea chips)
+  Captain PASS on pass 2), pushed as PR #36, waiting on Bryce to merge. PR 2 (Vision tab, prompts, idea chips)
   and PR 3 (dashboard tile, Sunday recap, Routines switch) are queued in
   `.avengers/plans/plans-goals-v1.md`. The navigation redesign, including rail
   names, is live (PRs #32 to #35).
