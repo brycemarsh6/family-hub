@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Lock } from "lucide-react";
 import { BackLink } from "@/components/BackLink";
 import { GoalDetail } from "@/components/GoalDetail";
 import { requireVerifiedUser } from "@/lib/dal";
@@ -31,6 +32,12 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{goal.title}</h1>
       <p className="mt-1 text-sm text-muted">
         {lifeAreaInfo(goal.area).short} · {whose} · by {by}
+        {goal.visibility === "private" && (
+          <>
+            {" · "}
+            <Lock aria-hidden="true" className="inline-block align-[-2px]" size={14} /> Private
+          </>
+        )}
       </p>
       {goal.why && <p className="mt-2 text-sm italic text-muted">Why: {goal.why}</p>}
 

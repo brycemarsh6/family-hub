@@ -15,6 +15,7 @@ import {
   type Viewer,
 } from "@/lib/goals";
 import { lifeAreaInfo } from "@/lib/goalVocabulary";
+import { utcMidnightInstant } from "@/lib/householdDate";
 import { formatWeekRange } from "@/lib/mealPlanDates";
 import {
   completeStep,
@@ -78,8 +79,13 @@ export function ThisWeekList({ data, viewer }: { data: PlansPageData; viewer: Vi
     setError(null);
     startTransition(async () => {
       applyOptimistic(change);
-      const result = await action();
-      if (result.error) setError(result.error);
+      try {
+        const result = await action();
+        if (result.error) setError(result.error);
+      } catch {
+        // The call never reached the server (network down): say so here instead of the error page.
+        setError("Couldn't save that. Check your connection and try again.");
+      }
     });
   }
 
@@ -96,11 +102,17 @@ export function ThisWeekList({ data, viewer }: { data: PlansPageData; viewer: Vi
   const { done, total } = weekSummary(shown);
 
   // Each goal with what it contributes to this week; a goal with nothing is skipped.
+  // A step checked off this week stays put, struck through, so a second tap can undo it;
+  // the next undone step sits below it rather than sliding into its place.
+  const weekStartMs = utcMidnightInstant(ws).getTime();
   const cards = shown.flatMap((goal) => {
     const step = nextStep(goal.items);
     const stepView = step ? goal.items.find((item) => item.id === step.id) : undefined;
     const rows = [
       ...goal.items.filter((item) => item.kind === "habit"),
+      ...goal.items.filter(
+        (item) => item.kind === "step" && item.doneAt !== null && item.doneAt.getTime() >= weekStartMs,
+      ),
       ...(stepView ? [stepView] : []),
       ...goal.items.filter((item) => item.kind === "reminder"),
     ];

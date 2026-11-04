@@ -8,7 +8,7 @@ import { formatMeasure, PACE_LABELS, weekSummary, type GoalView } from "@/lib/go
  * tracked with its pace, and a one-line count of the plan under it. The whole
  * card is the tap target; it opens the goal.
  */
-export function GoalCard({ goal }: { goal: GoalView }) {
+export function GoalCard({ goal, viewerId }: { goal: GoalView; viewerId: string }) {
   const { done, total } = weekSummary([goal]);
   const plans = `${goal.items.length} ${goal.items.length === 1 ? "plan" : "plans"}`;
   // A goal's number is all or nothing: unit, target and current are set together.
@@ -32,7 +32,9 @@ export function GoalCard({ goal }: { goal: GoalView }) {
             Together
           </span>
         ) : (
-          <span className="shrink-0 text-xs text-muted">{goal.owner?.displayName}</span>
+          <span className="shrink-0 text-xs text-muted">
+            {goal.ownerId === viewerId ? "Mine" : goal.owner?.displayName}
+          </span>
         )}
       </div>
 

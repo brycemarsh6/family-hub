@@ -53,7 +53,7 @@ function goalInclude(today: CalendarDate) {
 type LoadedGoal = Awaited<ReturnType<typeof findGoals>>[number];
 
 function findGoals(today: CalendarDate) {
-  return db.goal.findMany({ include: goalInclude(today), orderBy: { targetDate: "asc" } });
+  return db.goal.findMany({ include: goalInclude(today), orderBy: [{ targetDate: "asc" }, { createdAt: "asc" }] });
 }
 
 function toView(row: LoadedGoal, viewer: Viewer, today: CalendarDate): GoalView | null {

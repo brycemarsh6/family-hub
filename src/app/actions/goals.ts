@@ -110,11 +110,16 @@ export async function createGoal(raw: unknown): Promise<CreateGoalResult> {
 export async function updateGoal(id: string, raw: unknown): Promise<GoalActionResult> {
   const loaded = await loadEditable(id);
   if ("error" in loaded) return { error: loaded.error };
-  const { user, goal } = loaded;
+  const { goal } = loaded;
+
+  // Whose a goal is can't change by editing: the stored row decides, never the client.
+  // A Together goal therefore can't be made private, and a Mine goal can't be handed to everyone.
+  const ownership = goal.ownerId === null ? "together" : "mine";
+  const submitted = typeof raw === "object" && raw !== null ? { ...raw, ownership } : raw;
 
   // The date may stay, move later, or move to any day not earlier than the stored one (or today, if sooner).
   const today = householdToday(new Date())!;
-  const checked = validateGoalInput(raw, today, {
+  const checked = validateGoalInput(submitted, today, {
     earliest: earlierDate(today, calendarDateInZone(goal.targetDate, "UTC")),
   });
   if ("error" in checked) return { error: checked.error };
@@ -140,7 +145,6 @@ export async function updateGoal(id: string, raw: unknown): Promise<GoalActionRe
         area: input.area,
         why: input.why,
         targetDate: utcMidnightInstant(input.targetDate),
-        ownerId: input.ownership === "mine" ? user.userId : null,
         visibility: input.visibility,
         ...measureData,
       },

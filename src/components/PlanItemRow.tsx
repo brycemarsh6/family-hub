@@ -62,7 +62,7 @@ export function PlanItemRow({
             aria-pressed={item.done}
             aria-label={`Check off ${item.title}`}
             className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 transition-colors disabled:opacity-40 ${
-              item.done ? "border-accent bg-accent text-accent-fg" : "border-line"
+              item.done ? "border-accent bg-accent text-accent-fg" : "border-muted"
             }`}
           >
             {item.done && <Check aria-hidden="true" size={22} />}

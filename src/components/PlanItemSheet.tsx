@@ -36,6 +36,8 @@ export function PlanItemSheet({
   const [period, setPeriod] = useState<HabitPeriod>(initial?.period ?? "week");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Which button was tapped, so only that one changes its words while the call runs.
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -67,9 +69,13 @@ export function PlanItemSheet({
   function handleDelete() {
     if (!initial) return;
     setError(null);
+    setDeleting(true);
     startTransition(async () => {
       const result = await deletePlanItem(initial.id);
-      if (result.error) return setError(result.error);
+      if (result.error) {
+        setDeleting(false);
+        return setError(result.error);
+      }
       onSaved();
       onClose();
     });
@@ -151,7 +157,7 @@ export function PlanItemSheet({
             <div role="group" aria-label="How often">
               <span className="mb-2 block text-sm text-muted">How often</span>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <QuantityStepper value={times} onChange={setTimes} min={1} label="Times" />
+                <QuantityStepper value={times} onChange={setTimes} min={1} max={20} label="Times" />
                 <span className="text-sm text-muted">times a</span>
                 <div className="flex rounded-xl bg-surface-2 p-1">
                   {HABIT_PERIODS.map((option) => (
@@ -161,7 +167,7 @@ export function PlanItemSheet({
                       onClick={() => setPeriod(option)}
                       aria-pressed={period === option}
                       className={`min-h-11 flex-1 rounded-lg px-3 text-sm font-medium transition-colors ${
-                        period === option ? "bg-surface text-fg" : "text-muted"
+                        period === option ? "bg-surface text-fg" : "text-muted-strong"
                       }`}
                     >
                       {option}
@@ -189,7 +195,7 @@ export function PlanItemSheet({
             disabled={pending || !title.trim()}
             className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
           >
-            {pending ? "Saving…" : initial ? "Save" : "Add"}
+            {pending && !deleting ? "Saving…" : initial ? "Save" : "Add"}
           </button>
           {initial && (
             <button
@@ -198,7 +204,7 @@ export function PlanItemSheet({
               disabled={pending}
               className="min-h-12 w-full rounded-xl text-base font-semibold text-danger transition-colors active:bg-surface-2 disabled:opacity-50"
             >
-              Delete
+              {deleting ? "Deleting…" : "Delete"}
             </button>
           )}
         </div>

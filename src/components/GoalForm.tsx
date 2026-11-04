@@ -105,7 +105,7 @@ export function GoalForm(
       if (props.mode === "edit") {
         const result = await updateGoal(props.goalId, raw);
         if (result.error) return setError(result.error);
-        router.push("/plans/goals/" + props.goalId);
+        router.replace("/plans/goals/" + props.goalId);
         return;
       }
       const result = await createGoal(raw);
@@ -170,11 +170,11 @@ export function GoalForm(
         )}
       </Field>
 
-      {values.ownership === "mine" && (
+      {values.ownership === "mine" && (!isEdit || props.initial.ownership === "mine") && (
         <div className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-surface-2 pl-4 pr-1">
           <div>
             <p className="text-base font-medium text-fg">Keep private</p>
-            <p className="text-sm text-muted">Only you can see this goal</p>
+            <p className="text-sm text-muted-strong">Only you can see this goal</p>
           </div>
           <ToggleSwitch
             checked={values.visibility === "private"}

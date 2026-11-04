@@ -15,7 +15,15 @@ const STATUSES: { key: Status; label: string }[] = [
   { key: "done", label: "Done" },
 ];
 
-export function GoalsList({ data, canManage }: { data: PlansPageData; canManage: boolean }) {
+export function GoalsList({
+  data,
+  canManage,
+  viewerId,
+}: {
+  data: PlansPageData;
+  canManage: boolean;
+  viewerId: string;
+}) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("active");
 
@@ -47,11 +55,20 @@ export function GoalsList({ data, canManage }: { data: PlansPageData; canManage:
       </div>
 
       {groups.length === 0 ? (
-        <EmptyState
-          emoji="🎯"
-          title="No goals yet"
-          hint={canManage ? "Tap + to add your first one" : "Nothing here yet"}
-        />
+        data.goals.length > 0 ? (
+          // Goals exist, just not under this tab: say where they are rather than "none yet".
+          <EmptyState
+            emoji="🎯"
+            title={status === "active" ? "No active goals" : "No finished goals yet"}
+            hint={status === "active" ? "Finished goals are under Done" : "Goals you mark done show up here"}
+          />
+        ) : (
+          <EmptyState
+            emoji="🎯"
+            title="No goals yet"
+            hint={canManage ? "Tap + to add your first one" : "Nothing here yet"}
+          />
+        )
       ) : (
         <div className="flex flex-col gap-5">
           {groups.map(({ area, goals }) => (
@@ -61,7 +78,7 @@ export function GoalsList({ data, canManage }: { data: PlansPageData; canManage:
               </h2>
               <div className="flex flex-col gap-3">
                 {goals.map((goal) => (
-                  <GoalCard key={goal.id} goal={goal} />
+                  <GoalCard key={goal.id} goal={goal} viewerId={viewerId} />
                 ))}
               </div>
             </section>

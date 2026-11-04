@@ -59,9 +59,9 @@ export const GOAL_VISIBILITIES = ["shared", "private"] as const;
 
 export type GoalVisibility = (typeof GOAL_VISIBILITIES)[number];
 
-/** Anything unknown is "shared": the safe default is the one the family sees. */
+/** Anything unknown is "private": a goal fails closed, hidden from everyone but its owner. */
 export function toGoalVisibility(raw: unknown): GoalVisibility {
-  return GOAL_VISIBILITIES.find((visibility) => visibility === raw) ?? "shared";
+  return GOAL_VISIBILITIES.find((visibility) => visibility === raw) ?? "private";
 }
 
 export const GOAL_OWNERSHIPS = ["mine", "together"] as const;

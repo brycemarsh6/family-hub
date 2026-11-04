@@ -26,7 +26,7 @@ export default async function PlansPage({
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">Plans &amp; Goals</h1>
       <PlansTabs view={view} />
       {view === "goals" ? (
-        <GoalsList data={data} canManage={!user.isDevice} />
+        <GoalsList data={data} canManage={!user.isDevice} viewerId={user.userId} />
       ) : (
         <ThisWeekList data={data} viewer={viewer} />
       )}

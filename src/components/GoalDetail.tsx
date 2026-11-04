@@ -65,6 +65,8 @@ function shortDate(date: CalendarDate): string {
   );
 }
 
+const SAVE_FAILED = "Couldn't save that. Check your connection and try again.";
+
 type Sheet = { kind: "menu" } | { kind: "checkIn" } | { kind: "item"; item?: PlanItemView };
 
 export function GoalDetail({ goal: served, today }: { goal: GoalView; today: CalendarDate }) {
@@ -97,9 +99,14 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
     setError(null);
     startTransition(async () => {
       applyOptimistic(change);
-      const result = await action();
-      if (result.error) setError(result.error);
-      else if (refresh) router.refresh();
+      try {
+        const result = await action();
+        if (result.error) setError(result.error);
+        else if (refresh) router.refresh();
+      } catch {
+        // The call never reached the server (network down): say so here instead of the error page.
+        setError(SAVE_FAILED);
+      }
     });
   }
 
@@ -124,9 +131,8 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
   }
 
   function itemActions(item: PlanItemView): SwipeAction[] {
-    if (!goal.canEdit) return [];
     const actions: SwipeAction[] = [];
-    if (item.kind === "habit" && item.count > 0) {
+    if (item.kind === "habit" && item.count > 0 && goal.canLog) {
       actions.push({
         label: "Undo last",
         accessibleLabel: `Undo last ${item.title}`,
@@ -135,6 +141,7 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
         tone: "neutral",
       });
     }
+    if (!goal.canEdit) return actions;
     actions.push(
       {
         label: "Edit",
@@ -253,7 +260,9 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
 
       <h2 className="mb-2 mt-5 px-1 text-xs font-semibold uppercase tracking-wide text-muted">The plan</h2>
       {goal.items.length === 0 ? (
-        <p className="px-1 text-sm text-muted">No plan yet. What will you do to get there?</p>
+        <p className="px-1 text-sm text-muted">
+          {goal.canEdit ? "No plan yet. What will you do to get there?" : "No plan yet."}
+        </p>
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
           {goal.items.map((item) => (

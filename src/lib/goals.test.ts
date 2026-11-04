@@ -94,8 +94,9 @@ test("vocabulary: five life areas in order, narrowers repair unknowns", () => {
   assert.equal(toHabitPeriod("month"), "month");
   assert.equal(toHabitPeriod("year"), null);
   assert.equal(toGoalVisibility("private"), "private");
-  assert.equal(toGoalVisibility("secret"), "shared");
-  assert.equal(toGoalVisibility(undefined), "shared");
+  assert.equal(toGoalVisibility("shared"), "shared");
+  assert.equal(toGoalVisibility("secret"), "private");
+  assert.equal(toGoalVisibility(undefined), "private");
   assert.deepEqual(PLAN_KIND_LABELS.habit, { label: "Habit", hint: "repeats" });
 });
 
@@ -202,9 +203,16 @@ test("validateGoalInput: accepts a complete goal and trims it", () => {
   });
 });
 
-test("validateGoalInput: the minimum goal needs no why, no number, and defaults to shared", () => {
+test("validateGoalInput: the minimum goal needs no why, no number", () => {
   const result = validateGoalInput(
-    { title: "Date night", area: "relationships", targetDate: "2026-11-04", ownership: "together", why: "   " },
+    {
+      title: "Date night",
+      area: "relationships",
+      targetDate: "2026-11-04",
+      ownership: "together",
+      visibility: "shared",
+      why: "   ",
+    },
     TODAY,
   );
   assert.deepEqual(result, {
@@ -233,6 +241,21 @@ test("validateGoalInput: rejects a past date, private + together, and half a num
   assert.deepEqual(validateGoalInput({ ...GOOD, measure: { unit: "lb", target: 165 } }, TODAY), {
     error: "Enter a starting number.",
   });
+});
+
+test("validateGoalInput: a Together goal sent as private is refused, and a missing visibility fails closed", () => {
+  const together = { ...GOOD, ownership: "together", visibility: "shared" };
+  assert.ok("ok" in validateGoalInput(together, TODAY));
+  assert.deepEqual(validateGoalInput({ ...together, visibility: "private" }, TODAY), {
+    error: "Only a goal that's yours can be private.",
+  });
+  // An unknown or missing visibility reads as private, so it can't quietly make a Together goal shared.
+  assert.deepEqual(validateGoalInput({ ...together, visibility: undefined }, TODAY), {
+    error: "Only a goal that's yours can be private.",
+  });
+  const mine = { ...GOOD, ownership: "mine", visibility: "weird" };
+  const result = validateGoalInput(mine, TODAY);
+  assert.ok("ok" in result && result.ok.visibility === "private");
 });
 
 test("validateGoalInput: an overdue goal may keep its date, but no other past date", () => {

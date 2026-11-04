@@ -11,6 +11,7 @@ export function QuantityStepper({
   unit,
   onChange,
   min = 0,
+  max,
   step = 1,
   label,
   size = "md",
@@ -19,6 +20,8 @@ export function QuantityStepper({
   unit?: string | null;
   onChange: (next: number) => void;
   min?: number;
+  /** When set, the + button stops at this number. */
+  max?: number;
   /** How much one tap adds or takes away. */
   step?: number;
   /** Describes the item, for screen readers: "Bananas". */
@@ -51,8 +54,9 @@ export function QuantityStepper({
       <button
         type="button"
         onClick={() => onChange(value + step)}
+        disabled={max !== undefined && value >= max}
         aria-label={`Increase ${label}`}
-        className={`${buttonSize} flex items-center justify-center rounded-lg text-xl font-medium text-fg transition-colors hover:bg-surface-2 active:bg-line`}
+        className={`${buttonSize} flex items-center justify-center rounded-lg text-xl font-medium text-fg transition-colors hover:bg-surface-2 active:bg-line disabled:opacity-30`}
       >
         +
       </button>

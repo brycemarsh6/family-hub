@@ -20,7 +20,7 @@ export function PlansTabs({ view }: { view: "week" | "goals" }) {
             href={`/plans?view=${tab.view}`}
             aria-current={current ? "page" : undefined}
             className={`flex min-h-11 items-center justify-center rounded-xl text-sm font-semibold ${
-              current ? "bg-surface text-fg" : "text-muted"
+              current ? "bg-surface text-fg" : "text-muted-strong"
             }`}
           >
             {tab.label}
