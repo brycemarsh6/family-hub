@@ -52,7 +52,7 @@ export function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-const MONTH_NAMES = [
+export const MONTH_NAMES = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ] as const;

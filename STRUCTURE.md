@@ -229,6 +229,29 @@ Adding a second definition of any of these is a BLOCKER:
   `src/lib/routeRedirects.ts`: `LEGACY_ROUTE_REDIRECTS`, the only redirect
   map; it has **no imports at all**, because `next.config.ts` imports it by
   relative path. `src/lib/navMode.ts`: the only menu-style list
+- `src/lib/goalVocabulary.ts` — Plans & Goals' vocabulary: `LIFE_AREAS`,
+  `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`. It
+  lives beside `constants.ts`, not in it, because `constants.ts` sits at the
+  soft cap (same precedent as `navMode.ts`). `GOAL_OWNERSHIP_LABELS` there is
+  the only "Mine" / "Together" wording. (Added 2026-11-04, mission-27; Bryce
+  approved the plan.)
+- `src/lib/goals.ts`: `canSee` / `canEdit` / `canLog` are the only goal
+  policy. An action, page **or component** comparing a goal's `ownerId` or
+  `visibility` itself is a BLOCKER; the display helpers `goalOwnership` /
+  `whoseGoal` / `isPrivateGoal` live beside the policy in `goals.ts`.
+  `src/lib/goalsRead.ts` is the only page reader of goal rows. The form
+  limits `GOAL_TITLE_MAX` / `GOAL_WHY_MAX` / `MEASURE_UNIT_MAX` /
+  `HABIT_TIMES_MAX` are exported from `goals.ts` (the `MIN_PASSWORD_LENGTH`
+  precedent). (Added 2026-11-04, mission-27; Bryce approved the plan.)
+- `src/lib/goalsProgress.ts`: windows, counts, progress, pace, `formatMeasure`,
+  `parseTypedNumber`; split from `goals.ts` at the test seam. (Added
+  2026-11-04, mission-27; Bryce approved the plan.)
+- `src/lib/planItemChanges.ts`: `applyPlanItemChange`, the only optimistic
+  reducer for plan items. (Added 2026-11-04, mission-27; Bryce approved the
+  plan.)
+- `formatShortCalendarDate` in `householdDate.ts`: the shared "Nov 3"
+  formatter (`MONTH_NAMES` is now exported from `mealPlanDates.ts` for it).
+  (Added 2026-11-04, mission-27; Bryce approved the plan.)
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,
@@ -237,7 +260,8 @@ Adding a second definition of any of these is a BLOCKER:
   `calendarDates.ts` remain the browser-local homes. A server-side
   calendar-day helper goes here; a process-local getter in a server path is
   a bug, and a second zone-explicit helper elsewhere is a BLOCKER. (Added
-  2026-10-09, mission-21; Bryce-approved.)
+  2026-10-09, mission-21; Bryce-approved.) `startOfWeek` (Sunday) and
+  `startOfMonth` live here too.
 - `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it
@@ -303,20 +327,21 @@ Adding a second definition of any of these is a BLOCKER:
   **What makes it debt with a deadline:** mission-19/F1 fixed a stuck
   click-swallow flag in `usePageSwipe.ts` (a touch drag past tap slop produces
   no compatibility click, so the flag survived into the next gesture and ate
-  its tap). `SwipeActions.tsx` was outside that contract's boundary and
-  **still carries the same shape** — its `handlePointerDown` does not clear the
-  flag, and `handleRowPointerDownCapture` only *sets* it, and only on an
-  already-open row. One machine, one bug, fixed in one copy. This is the
-  `validatedPeople` failure exactly: a correctness-shaped edit that had to be
-  made by hand in both copies, and was made in one.
+  its tap). `SwipeActions.tsx` was outside that contract's boundary and carried
+  the same shape until **mission-27/F3 (commit `23b1faa`)**: its capture-phase
+  `handleRowPointerDownCapture` now resets `swallowNextClick` on every
+  pointer-down and raises it only for the tap that closes an open row. Bryce's
+  real-device check is **still owed**; the extraction and a single
+  `DIRECTION_LOCK_PX` remain open. One machine, one bug, fixed by hand in each
+  copy a mission apart: the `validatedPeople` failure, caught late.
   **The migration is one contract, and it carries three obligations**: extract
   the shared machine (mode transitions, lock distance, capture guard, swallow
   decision) into `src/lib/`, keeping each caller's own release math
-  (`openWidth / 2` vs `SWIPE_PAGE_THRESHOLD_PX`) at the call site; **carry
-  F1's `pointerdown` clear into `SwipeActions.tsx`, verified on a real
-  device** — this repo has twice recorded that synthetic PointerEvents cannot
+  (`openWidth / 2` vs `SWIPE_PAGE_THRESHOLD_PX`) at the call site; **verify
+  F3's `pointerdown` clear in `SwipeActions.tsx` on a real device** (the
+  clear itself landed in mission-27/F3; this repo has twice recorded that synthetic PointerEvents cannot
   settle this gesture, so a real-hardware pass by Bryce is the evidence, not a
-  harness; and collapse `DIRECTION_LOCK_PX` to one definition. **A third copy
+  harness); and collapse `DIRECTION_LOCK_PX` to one definition. **A third copy
   of the machine is a BLOCKER.**
   (Added 2026-09-09, mission-19, on Captain's ruling across two gate passes;
   the shipped-defect evidence is Vision's, the mechanism Captain's. Bryce
@@ -400,7 +425,10 @@ Adding a second definition of any of these is a BLOCKER:
   `YearView.tsx` with the same identifier and different behaviour — `short` vs
   `long` — so a `grep` for it returns two things that are not the same thing.
   The migration closes that too; short of it, rename to
-  `SHORT_`/`LONG_MONTH_FORMATTER` at the next touch.)
+  `SHORT_`/`LONG_MONTH_FORMATTER` at the next touch.) **Update 2026-11-04,
+  mission-27:** `MONTH_NAMES` is now exported, and the two mission-27 sites
+  (`GoalDetail.tsx` and the goal page) use `formatShortCalendarDate` instead
+  of a local formatter; the grandfathered copies count is unchanged.
 - Shared UI jobs — see DESIGN.md's component vocabulary
 
 - **Trip conditions are keyed to DEFINITIONS, never to importer counts.**
@@ -487,6 +515,16 @@ Adding a second definition of any of these is a BLOCKER:
   forcing a whole extra contract, added **82 lines of which 8 were code**.
   A seam named on total lines alone can cost a mission for prose.
   (Added 2026-09-05, mission-16, on Captain's ruling; Bryce approved.)
+- **The caps govern source files, not documents.** They apply to hand-written
+  code under `src/`, `prisma/` (the schema stays exempt) and repo tooling
+  scripts. Markdown (`STRUCTURE.md`, `DESIGN.md`, `README.md`, `.avengers/`,
+  `docs/`) is outside them: a code-line count of prose measures nothing.
+  `CLAUDE.md` keeps the 250-line cap in its own header because it loads on
+  every turn. This file's growth is a trend to watch, never a BLOCKER: past
+  650 lines it is due a housekeeping pass that moves provenance narratives
+  ("Added …", "Instance: …") into `docs/history/structure-rationale.md`,
+  leaving each rule's binding text and a one-line pointer. (Added 2026-11-04,
+  mission-27, on Captain's ruling; Bryce approved.)
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (actions/groceries.ts
   was split three ways at ~624 before hitting the hard cap; current largest
   hand-written files sit in the ~350–420 range.)
