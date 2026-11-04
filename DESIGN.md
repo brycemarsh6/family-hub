@@ -86,7 +86,9 @@ tell when a rule's reason has expired.
 - **Quantities change only by tapping** — the shared `QuantityStepper` (+/−),
   never a typed number. Typing numbers is fiddly on a phone and worse on a
   wall tablet. (Prose is different: recipes and notes are keyboard entry —
-  the stepper rule is about *counts*.)
+  the stepper rule is about *counts*.) Typed numbers are allowed for
+  *measurements* (a goal's starting and target numbers, or a check-in such
+  as a weigh-in or a dollar figure), never for counts.
 - **Instant feedback on every tap** — optimistic updates (`useOptimistic` +
   `startTransition`), never a wait on the server round trip.
   **One carve-out (added 2026-09-05, Bryce-approved): a one-shot
@@ -266,6 +268,11 @@ A new one-off that duplicates one of these jobs is a design violation:
   Customize button) / `DashboardCustomizeSheet` (on/off switch and up/down
   arrows per widget, Reset to default): the only way to show, hide or
   reorder dashboard widgets
+- `PlansTabs` — the one segmented control: a `nav` of links lit by
+  `aria-current`; a new tab is a column in it, never a second control
+- `ProgressBar` — the only way to show a fraction
+- `ToggleSwitch` — the only on/off switch (`DashboardCustomizeSheet` uses it)
+- `LogButton` — the 44px round log/undo control for habits
 - The sheet family: `RadioSheet` (pick one), `ActionSheet` (⋯ menus),
   `ConfirmSheet` (the two count-confirm deletes), `TitleSheet` (name a thing)
 

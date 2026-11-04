@@ -229,6 +229,14 @@ Adding a second definition of any of these is a BLOCKER:
   `src/lib/routeRedirects.ts`: `LEGACY_ROUTE_REDIRECTS`, the only redirect
   map; it has **no imports at all**, because `next.config.ts` imports it by
   relative path. `src/lib/navMode.ts`: the only menu-style list
+- `src/lib/goalVocabulary.ts` — Plans & Goals' vocabulary: `LIFE_AREAS`,
+  `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`. It
+  lives beside `constants.ts`, not in it, because `constants.ts` sits at the
+  soft cap (same precedent as `navMode.ts`)
+- `src/lib/goals.ts`: `canSee` / `canEdit` / `canLog` are the only goal
+  policy. An action or page comparing a goal's `ownerId` or `visibility`
+  itself is a BLOCKER. `src/lib/goalsRead.ts` is the only page reader of
+  goal rows
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,
@@ -237,7 +245,8 @@ Adding a second definition of any of these is a BLOCKER:
   `calendarDates.ts` remain the browser-local homes. A server-side
   calendar-day helper goes here; a process-local getter in a server path is
   a bug, and a second zone-explicit helper elsewhere is a BLOCKER. (Added
-  2026-10-09, mission-21; Bryce-approved.)
+  2026-10-09, mission-21; Bryce-approved.) `startOfWeek` (Sunday) and
+  `startOfMonth` live here too.
 - `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it

@@ -64,7 +64,7 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   setting in Settings can pin it open as an icon rail or a full sidebar.
   Phones always use the menu button. There are no landing pages. Old
   `/kitchen`, `/kitchen/cooking` and `/chores` forward to Inventory, Recipes
-  and Routines. Routines and Plans & Goals are "Coming soon" placeholders.
+  and Routines. Routines is a "Coming soon" placeholder.
 - **Kitchen** (the Kitchen group in the drawer):
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
@@ -78,6 +78,11 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
     add-to-meal-plan, add-ingredients-to-groceries.
   - **Meal Plan**: week view, four slots a day, AI suggestions grounded in real
     inventory.
+- **Plans & Goals** (`/plans`): two tabs, This week and Goals. A goal has a
+  life area, a target date, Mine or Together, optionally private, and
+  optionally a number to track with check-ins. Plan items under a goal are
+  habits, steps or reminders, logged with one tap. Goal detail is at
+  `/plans/goals/[id]`. Direction in `.avengers/plans/plans-goals-v1.md`.
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
   Read `.avengers/plans/calendar-v2.md` before calendar work.
@@ -133,16 +138,16 @@ Lucide outline icons only, secondary row actions behind a right-to-left swipe
 (destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-11-02)
+## Current status (updated 2026-11-04)
 
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Rail names** (mission 26, branch `claude/nav-rail-expand`): a menu
-  button at the top of the icons-only rail opens the full menu with names;
-  the rail drops its avatar so it fits a sideways iPad. All gates passed;
-  waiting on Bryce to push and merge. The navigation redesign (PRs #32 to
-  #34) is live. Follow-ups are in missions 23 to 26's Delivery sections.
+- **Plans & Goals PR 1** (mission 27, branch `claude/plans-goals-p1`): built
+  and at the gates, not pushed. PR 2 (Vision tab, prompts, idea chips) and
+  PR 3 (dashboard tile, Sunday recap, Routines switch) are queued in
+  `.avengers/plans/plans-goals-v1.md`. The navigation redesign, including rail
+  names, is live (PRs #32 to #35).
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
   desktop mouse. Hover is a bonus, never the only way to learn something.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
