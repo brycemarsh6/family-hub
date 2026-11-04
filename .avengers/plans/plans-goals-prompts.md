@@ -1,4 +1,4 @@
-# Plans & Goals prompts (approved by Bryce, 2026-11-04)
+# Plans & Goals prompts (approved by Bryce, 2026-11-04; six-area revision DRAFT)
 
 Three kinds of wording, per life area. Once approved, this file is the
 source for `src/lib/goalPrompts.ts` (PR 2) and nothing is reworded in code
@@ -14,7 +14,10 @@ without changing it here first.
 
 Vision prompts regenerated 2026-11-04 at Bryce's request (he asked for a
 Fable pass; the session cannot see its own model picker, so which model
-wrote them is not recorded here). Bryce approved them as written.
+wrote them is not recorded here). Bryce approved them as written. On 2026-11-04 Bryce moved to six areas:
+Financial became Work & Money (three prompts and one plan idea changed to
+cover work) and Fun & Adventure was added. Those changes are a DRAFT until
+Bryce approves them.
 
 ## Spiritual
 
@@ -91,31 +94,6 @@ Plan ideas
 - Practice for 15 minutes
 - Journal on Sunday night
 
-## Financial
-
-Vision prompts
-1. What does a normal month feel like when money is not a worry?
-2. What will we own, and what will we owe, in ten years?
-3. What will money let us say yes to that we say no to today?
-4. What do you want the kids to know about money before they leave home?
-5. How much do you want to be giving each year, and to whom?
-6. What does your work look like in five years, and who do you work with?
-7. If $10,000 showed up tomorrow, where would it go without a discussion?
-8. What money decision do you want to never have to make again?
-9. When does retirement start, and what does the first year of it look like?
-10. What will our family do together that only money made possible?
-
-Goal ideas
-- Earn $500K this year
-- Buy an investment property
-- Pay off the car
-
-Plan ideas
-- Budget together on Sunday
-- Review spending every Friday
-- List one thing on Marketplace
-- Move money to savings on payday
-
 ## Relationships & Connections
 
 Vision prompts
@@ -140,3 +118,53 @@ Plan ideas
 - Kids date once a month
 - Call family on Sunday
 - Ten minutes of real talk after the kids are down
+
+## Work & Money
+
+Vision prompts
+1. What does a normal month feel like when money is not a worry?
+2. What will we own, and what will we owe, in ten years?
+3. What will money let us say yes to that we say no to today?
+4. What do you want the kids to know about money and work before they leave home?
+5. How much do you want to be giving each year, and to whom?
+6. What does your work look like in five years, and who do you work with?
+7. If $10,000 showed up tomorrow, where would it go without a discussion?
+8. What do you want your work to give you besides a paycheck?
+9. When does retirement start, and what does the first year of it look like?
+10. How many hours a week do you want to be working in ten years?
+
+Goal ideas
+- Earn $500K this year
+- Buy an investment property
+- Pay off the car
+
+Plan ideas
+- Budget together on Sunday
+- Review spending every Friday
+- Move money to savings on payday
+- Home by 6 four nights a week
+
+## Fun & Adventure
+
+Vision prompts
+1. Where in the world do you want to have taken the kids by then?
+2. What adventure would you be sad to never have had?
+3. What does a perfect Saturday look like for our family?
+4. What hobby do you want to still be making time for in ten years?
+5. What trip do you want to take, just the two of you?
+6. What tradition of fun do you want the kids to carry into their own families?
+7. What have you always wanted to try but kept putting off?
+8. Where do you want to spend our summers?
+9. What will the kids say was the best thing we ever did together?
+10. What do you want to be doing for fun at 60?
+
+Goal ideas
+- Take a family trip this summer
+- Go camping four times this year
+- Visit a new national park
+
+Plan ideas
+- Family fun night every Friday
+- One new hike a month
+- Plan the next trip on Sunday night
+- Try something new once a month

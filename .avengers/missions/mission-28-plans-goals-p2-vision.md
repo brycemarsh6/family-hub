@@ -456,6 +456,93 @@ parallel after C2. C5 last.
 Strange's read-only card, heading font and the two layout recommendations
 need Bryce (wording and layout are his). They go in F2 after he answers.
 
+## Bryce's pass-1 decisions (2026-11-04)
+
+Drawn as screens A, B and C on the canvas (row "PR 2 proposals") and
+approved: "those Canvas proposals all look good, so let's start building it."
+
+1. The board heading stays in Cormorant Garamond italic. DESIGN.md gains
+   the Vision board heading as its second allowed use (C5).
+2. An empty card on a board the viewer can't edit says "{Name} hasn't
+   written this yet" (no prompt, no buttons). On the Together board seen
+   by a device it says "Not written yet". The hint line on someone else's
+   board reads "Only {Name} can change this board" instead of "Tap a card
+   to edit it"; on a read-only Together board the hint is hidden.
+3. New goal: Life area first, then Name, then the idea chips.
+4. Board chips on their own row; the 5 / 10 / 15 yr choice is a small
+   three-part switch on the heading line.
+5. Empty cards: dashed outline, no icon band, page-colored fill. Filled
+   cards keep the band.
+6. When a Mine goal shows the Together vision because the owner's is
+   empty, the goal page says "Part of your family's 10-year vision".
+
+**Six life areas** (Bryce, 2026-11-04): Spiritual, Health & Wellness,
+Personal Growth, Relationships & Connections, **Work & Money** (Financial
+renamed; key stays `financial` so saved goals keep their area), **Fun &
+Adventure** (new, key `fun`). In that order. Six cards make three even rows
+on the Vision board, so no card spans both columns. Wording for the two
+changed areas is drafted in the prompts file and needs Bryce's approval
+before push.
+
+### F2 — Bryce's pass-1 decisions and the six life areas
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/lib/goalVocabulary.ts`,
+  `src/lib/goalVocabulary.test.ts`, `src/lib/goalPrompts.ts`,
+  `src/lib/goalPrompts.test.ts`, `src/lib/visions.ts`,
+  `src/lib/visions.test.ts`, `src/lib/visionsRead.ts`,
+  `src/components/VisionBoard.tsx`, `src/components/VisionCard.tsx`,
+  `src/components/GoalForm.tsx`, `src/app/(app)/plans/goals/[id]/page.tsx`
+  · must not touch: `prisma/`, `.avengers/plans/`, `src/app/actions/`,
+  `src/components/PlanItemSheet.tsx`, `src/components/PlansTabs.tsx`,
+  `src/app/globals.css`, `DESIGN.md`.
+- **Spec:**
+  1. `LIFE_AREAS` in the new order. `financial` keeps its key; label and
+     short both "Work & Money"; icon `PiggyBank` → `BriefcaseBusiness`
+     (check the installed lucide-react exports it; else `Briefcase`). New
+     `{ key: "fun", label: "Fun & Adventure", short: "Fun", icon: Tent }`
+     (check the export; else `Compass`). Update the vocabulary test.
+  2. `goalPrompts.ts`: regenerate all three records from the current
+     `.avengers/plans/plans-goals-prompts.md` (word for word; the parity
+     test must pass with six sections). Header comment notes the Work &
+     Money and Fun & Adventure wording is a draft until Bryce approves.
+  3. Decision 4: `VisionBoard` renders the board chips in their own
+     wrapping row (role group "Whose board"), then a heading line with the
+     heading on the left and the horizon switch on the right: a
+     `role="group" aria-label="How far ahead"` strip (`bg-surface-2
+     rounded-xl p-1`) of three `Link`s, each at least 44px tall and 44px
+     wide, the current one `bg-surface text-fg aria-current`, others
+     `text-muted-strong`. Same look as `PlansTabs` at a smaller size.
+  4. Decision 1: the heading actually renders in Cormorant italic. The
+     global `h2` rule in `globals.css` sets the display font, so beat it on
+     the element (for example `[font-family:var(--font-accent)]` plus
+     `italic`), and confirm the font variable is loaded on `/plans` (it is
+     set in `src/app/(app)/layout.tsx`; check). `text-2xl`, weight 500.
+  5. Decision 5: `VisionCard` empty state: `border-2 border-dashed
+     border-line bg-bg`, no icon band. Filled cards keep the band. The grid
+     no longer spans the last card (six areas, even rows); if the count is
+     ever odd the last one spans, computed, not hard-coded.
+  6. Decision 2: `VisionCard` read-only empty state shows the area label
+     and one `text-muted-strong` line: "{ownerName} hasn't written this
+     yet", or "Not written yet" when the board is Together. No prompt, no
+     buttons. `VisionBoard` hint line: editable → "Tap a card to edit it";
+     someone else's board → "Only {ownerName} can change this board";
+     read-only Together → hidden. Add `readOnlyEmptyText(ownerName)` and
+     `boardHint(canEdit, ownerName)` to `visions.ts` with tests, so the
+     wording lives in one place.
+  7. Decision 6: add `goalVisionLabel(goalOwnerId, row)` to `visions.ts`
+     returning "your" or "your family's" (the latter when the goal has an
+     owner and the row is the Together board's). Tests. The goal page
+     builds "Part of {label} {N}-year vision" from it and
+     `GOAL_PAGE_VISION_HORIZON`.
+  8. Decision 3: `GoalForm` field order is Life area, Name, ideas (create
+     mode), For, Target date, the rest unchanged. Stays under 350 lines.
+- **Verification:** tsc, `npx eslint .`, `npm test`, the UTC run, the
+  cycle script.
+- **Evidence required:** a line per item with file:line; outputs; line
+  counts; the lucide export names checked.
+- **Done criteria:** Fury's browser check at 375 and 820, light and dark.
+- **Report:** —
+
 Budget: 3 passes per gate, then STOP and surface.
 
 ## Handoff log
