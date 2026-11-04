@@ -549,6 +549,17 @@ Budget: 3 passes per gate, then STOP and surface.
 
 - 2026-11-04 — Prompts approved by Bryce and committed (`ee90d52`). Layout
   decisions approved ("Yes, as mocked"). Mission written; C1 next.
+- 2026-11-04 — C1 to C4 built and committed; migration applied on the dev
+  host. Pass 1: all three gates BLOCKED (ledger above). F1 fixed the
+  decision-free findings. Bryce approved canvas screens A, B, C and six life
+  areas; F2 built them. Stark reported BLOCKED-ON-CONTRACT on one line
+  outside F2's boundary (`goals.test.ts` used "fun" as an unknown area);
+  Fury changed it to "play". Gauntlet green: 533 tests, UTC 526 pass + 7
+  DST skips, build clean. Fury browser-checked screens A and B and the New
+  goal order at 375px. Not done on purpose: loading Cormorant's true italic
+  (it would also change the login tagline, which Bryce didn't ask for); the
+  heading uses the same browser-slanted italic as the login tagline. Next:
+  pass 2 of all three gates.
 
 ## Delivery
 
