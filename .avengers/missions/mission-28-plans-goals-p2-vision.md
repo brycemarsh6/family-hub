@@ -445,6 +445,39 @@ parallel after C2. C5 last.
   browser flow.
 - **Report:** —
 
+### F3 — Pass-2 fixes that need no decision from Bryce
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/components/VisionBoard.tsx`,
+  `src/components/VisionCard.tsx`, `src/app/globals.css`,
+  `src/lib/visionsRead.ts`, `src/app/actions/visions.ts`
+  · must not touch: `prisma/`, `.avengers/`, `src/lib/goalPrompts.ts`,
+  `src/lib/visions.ts`, `src/lib/goalVocabulary.ts`, `DESIGN.md`,
+  `STRUCTURE.md`, every other file.
+- **Spec:**
+  1. Vision's pass-2 blocker. In `VisionBoard`, (a) `close()` returns
+     early while `pending` is true, so a save in flight cannot be
+     abandoned for another card; (b) the success path becomes
+     `setOpen((current) => (current === area ? null : current))`, so a
+     save that lands only ever closes its own sheet. Keep the comment above
+     `save()` accurate.
+  2. Dashed outline one step darker, to match the approved canvas
+     (#c9bfae). Add a decorative token `--line-strong` in `globals.css`:
+     light `#c9bfae`, dark `#57514a`, each with a one-line comment in the
+     file's style (decorative only, never carries text), plus
+     `--color-line-strong` in the `@theme inline` block. The empty
+     `VisionCard` uses `border-line-strong` instead of `border-line`.
+  3. `visionsRead.ts` docstring on `loadGoalVision` names
+     `GOAL_PAGE_VISION_HORIZON` instead of "10-year".
+  4. Reflow the header comment in `src/app/actions/visions.ts` so no line
+     runs past the file's usual width. Wording unchanged.
+- **Verification:** tsc, `npx eslint .`, `npm test`, the UTC run, the
+  cycle script (pass `"$PWD"`).
+- **Evidence required:** a line per item with file:line; outputs; line
+  counts of the touched files.
+- **Done criteria:** Vision pass 3 re-runs the in-flight scenario; Fury's
+  browser check shows the darker outline in light and dark.
+- **Report:** —
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -452,6 +485,9 @@ parallel after C2. C5 last.
 | 1 | Vision (Opus) | BLOCKED | prompt order restarts after a save | owner-deleted rows pass as Together; device sees a person's vision on a Mine goal page; P2002 on a simultaneous first save; lost draft; aria-label hides text |
 | 1 | Captain (Opus) | BLOCKED | type-only import cycle goals.ts and visions.ts; "Mine"/"Together" typed twice | board identity decided in VisionBoard; action skips `canEditVision`; "together" literal spread; horizon 10 in three places; unused `today`; `VisionCard` type name clash; chip classes and sheet shell copied (future contract); prompts file is load-bearing for `npm test` (record in C5) |
 | 1 | Strange (Opus) | BLOCKED | pressed-state contrast 4.33:1 on VisionCard and IdeaChips (light); Clear is optimistic; read-only empty cards invite a prompt answer; heading asks for Cormorant against DESIGN.md and renders faked-italic Manrope | idea chips push Life area down 140px (mis-tap reproduced); three chip rows and two lookalike groups; empty card band vs canvas; prompts that contradict the horizon; vision line wording on fallback; focus handling |
+| 2 | Vision (Opus) | BLOCKED | an in-flight save closes a different sheet and drops its draft, or shows its error there (F1 regression) | viewer-blind "your" on the goal page; focus restore no-op on iOS; brief disabled Clear on first save; board error survives navigation; P2002 duck-typed |
+| 2 | Captain (Opus) | PASS | none | horizon switch needs a DESIGN.md carve-out beside PlansTabs; chip classes in five places (future contract); docstring "10-year" by hand; long comment line; DRAFT comment in goalPrompts.ts must go with Bryce's approval |
+| 2 | Strange (Opus) | PASS | none | heading is faux italic and faux 500 (accepted); 14 of 60 prompts name a different horizon; disabled "Clearing…" at 2.33:1 (app-wide pattern); warn color for network errors unrecorded; dashed outline fainter than the canvas; dark selected segment darker than its strip; textarea has no focus ring; "your family's" and device views unverified in pixels |
 
 Strange's read-only card, heading font and the two layout recommendations
 need Bryce (wording and layout are his). They go in F2 after he answers.
