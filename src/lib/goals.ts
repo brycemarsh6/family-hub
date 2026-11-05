@@ -1,3 +1,4 @@
+import { HABIT_TIMES_LIMITS } from "./habitVocabulary";
 import {
   GOAL_OWNERSHIPS,
   GOAL_OWNERSHIP_LABELS,
@@ -19,9 +20,10 @@ import {
   progressFraction,
   type PaceStatus,
   type PlanItemRow,
+  type PlanHabit,
   type PlanItemView,
-  type PlanLogRow,
 } from "./goalsProgress";
+import type { HabitFields } from "./habits/habitRows";
 import { calendarDaysBetween, parseDateParam, type CalendarDate } from "./householdDate";
 
 // Plans & Goals' pure rules: who a goal belongs to and who may see, change or
@@ -30,7 +32,7 @@ import { calendarDaysBetween, parseDateParam, type CalendarDate } from "./househ
 // formatting) is in goalsProgress.ts, whose row and view types are
 // re-exported here so callers keep one import path.
 
-export type { LogWindow, PaceStatus, PlanItemRow, PlanItemView, PlanLogRow } from "./goalsProgress";
+export type { PaceStatus, PlanHabit, PlanItemRow, PlanItemView } from "./goalsProgress";
 
 export type Viewer = { userId: string; isDevice: boolean };
 
@@ -142,7 +144,8 @@ export type PlanItemInput = { title: string; kind: PlanKind; timesPerPeriod: num
 export const GOAL_TITLE_MAX = 120;
 export const GOAL_WHY_MAX = 500;
 export const MEASURE_UNIT_MAX = 12;
-export const HABIT_TIMES_MAX = 20;
+/** The most checks a period holds with one check a day: a day has one, a week seven, a month 31. */
+export const HABIT_TIMES_MAX: Record<HabitPeriod, number> = { day: 1, week: HABIT_TIMES_LIMITS.weekly, month: HABIT_TIMES_LIMITS.monthly };
 const PAST_DATE = "Pick a target date that isn't in the past.";
 
 function isRecord(raw: unknown): raw is Record<string, unknown> {
@@ -212,12 +215,54 @@ export function validatePlanItemInput(raw: unknown): { ok: PlanItemInput } | { e
     if (times !== null || period !== null) return { error: "Only a habit repeats." };
     return { ok: { title, kind, timesPerPeriod: null, period: null } };
   }
-  if (typeof times !== "number" || !Number.isInteger(times) || times < 1 || times > HABIT_TIMES_MAX) {
-    return { error: `Pick how many times, from 1 to ${HABIT_TIMES_MAX}.` };
-  }
   const habitPeriod = toHabitPeriod(period);
-  if (!habitPeriod) return { error: "Pick a day, week, or month." };
+  if (!habitPeriod) return { error: "Pick every day, a week, or a month." };
+  const max = HABIT_TIMES_MAX[habitPeriod];
+  if (typeof times !== "number" || !Number.isInteger(times) || times < 1 || times > max) {
+    return { error: habitPeriod === "day" ? "A habit gets one check a day." : `Pick how many times, from 1 to ${max}.` };
+  }
   return { ok: { title, kind, timesPerPeriod: times, period: habitPeriod } };
+}
+
+/**
+ * The Habit fields a habit plan item stands for: every day, N a week or N a
+ * month; "build" mode, the goal's life area, one shared check for a Together
+ * goal and one each for a Mine goal (private when the goal is).
+ */
+export function habitInputFromPlan(
+  input: PlanItemInput,
+  goal: { ownerId: string | null; visibility: string; area: string },
+): HabitFields & { title: string; schedule: string } {
+  const schedule = input.period === "day" ? "daily" : input.period === "month" ? "monthly" : "weekly";
+  return {
+    title: input.title,
+    kind: "habit",
+    mode: "build",
+    schedule,
+    times: schedule === "daily" ? null : input.timesPerPeriod,
+    lifeArea: goal.area,
+    sharing: goal.ownerId === null ? "together" : "each",
+    isPrivate: toGoalVisibility(goal.visibility) === "private",
+  };
+}
+
+/**
+ * Whose row a tap writes. A Mine goal's habit is its owner's. A Together
+ * habit checks for everyone, so any participant will do: the tapper when they
+ * are one, otherwise (the wall tablet, someone who joined later) the first.
+ */
+export function habitCheckTarget(
+  goal: { ownerId: string | null },
+  viewerId: string,
+  participantIds: readonly string[],
+): string {
+  if (goal.ownerId !== null) return goal.ownerId;
+  return participantIds.includes(viewerId) ? viewerId : (participantIds[0] ?? viewerId);
+}
+
+/** Who a new habit is for: the owner of a Mine goal, the whole household for a Together one. */
+export function habitParticipantsFor(goal: { ownerId: string | null }): string[] | "household" {
+  return goal.ownerId !== null ? [goal.ownerId] : "household";
 }
 
 /** The first step not yet done, by sortOrder (ties keep the given order). */
@@ -233,13 +278,13 @@ export function nextStep(items: PlanItemRow[]): PlanItemRow | null {
 export function buildGoalView(
   goal: GoalRow,
   items: PlanItemRow[],
-  logs: PlanLogRow[],
+  habits: ReadonlyMap<string, PlanHabit>,
   viewer: Viewer,
   today: CalendarDate,
 ): GoalView {
   return {
     ...goal,
-    items: items.map((item) => buildPlanItemView(item, logs, today)),
+    items: items.map((item) => buildPlanItemView(item, item.habitId ? (habits.get(item.habitId) ?? null) : null, today)),
     checkIns: [],
     progress: progressFraction(goal),
     pace: paceStatus(goal, today),

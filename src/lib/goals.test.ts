@@ -2,7 +2,7 @@
 // goal is built into a view, and what the goal and plan forms may submit.
 // Windows, counts, progress, pace and formatting are in goalsProgress.test.ts,
 // the vocabulary in goalVocabulary.test.ts, tap-time changes in
-// planItemChanges.test.ts.
+// planItemChanges.test.ts, the habit glue in goalsHabitInput.test.ts.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -66,6 +66,7 @@ function item(over: Partial<PlanItemRow> = {}): PlanItemRow {
     kind: "habit",
     timesPerPeriod: 4,
     period: "week",
+    habitId: "h1",
     doneAt: null,
     sortOrder: 0,
     createdAt: new Date("2026-01-01T19:00:00Z"),
@@ -117,21 +118,32 @@ test("canLog: a device can log a Together goal; only the owner logs a Mine goal"
 
 test("nextStep: the first undone step by sortOrder; reminders and habits never qualify", () => {
   const step = (id: string, sortOrder: number, doneAt: Date | null = null): PlanItemRow =>
-    item({ id, kind: "step", timesPerPeriod: null, period: null, sortOrder, doneAt });
+    item({ id, kind: "step", timesPerPeriod: null, period: null, habitId: null, sortOrder, doneAt });
   assert.equal(nextStep([step("b", 2), step("a", 1), step("c", 1)])?.id, "a");
   assert.equal(nextStep([step("a", 1, new Date()), step("b", 2)])?.id, "b");
-  assert.equal(nextStep([item(), item({ kind: "reminder", timesPerPeriod: null, period: null })]), null);
+  assert.equal(nextStep([item(), item({ kind: "reminder", timesPerPeriod: null, period: null, habitId: null })]), null);
   assert.equal(nextStep([]), null);
 });
 
+test("buildGoalView: reads each habit item from its own Habit, and an unlinked one shows 0", () => {
+  const habit = {
+    spec: { schedule: "weekly", times: 3 } as const,
+    schedule: { schedule: "weekly", times: 3 },
+    logs: [{ day: d(2026, 11, 3), status: "done" as const, userId: "me" }],
+  };
+  const items = [item({ habitId: "h1" }), item({ id: "i2", habitId: null }), item({ id: "i3", habitId: "gone" })];
+  const view = buildGoalView(goal(), items, new Map([["h1", habit]]), ME, TODAY);
+  assert.deepEqual(view.items.map((i) => [i.count, i.target]), [[1, 3], [0, 4], [0, 4]]);
+});
+
 test("buildGoalView: carries the progress, pace and the viewer's rights", () => {
-  const view = buildGoalView(goal({ currentValue: 178 }), [item()], [], SPOUSE, d(2026, 7, 2));
+  const view = buildGoalView(goal({ currentValue: 178 }), [item()], new Map(), SPOUSE, d(2026, 7, 2));
   assert.equal(view.items.length, 1);
   assert.ok(Math.abs(view.progress - 11 / 24) < 1e-9);
   assert.equal(view.pace, "onPace");
   assert.equal(view.canEdit, false);
   assert.equal(view.canLog, false);
-  const together = buildGoalView(goal({ ownerId: null, owner: null }), [], [], TABLET, TODAY);
+  const together = buildGoalView(goal({ ownerId: null, owner: null }), [], new Map(), TABLET, TODAY);
   assert.equal(together.canEdit, false);
   assert.equal(together.canLog, true);
 });
@@ -161,17 +173,8 @@ test("validateGoalInput: accepts a complete goal and trims it", () => {
 });
 
 test("validateGoalInput: the minimum goal needs no why, no number", () => {
-  const result = validateGoalInput(
-    {
-      title: "Date night",
-      area: "relationships",
-      targetDate: "2026-11-04",
-      ownership: "together",
-      visibility: "shared",
-      why: "   ",
-    },
-    TODAY,
-  );
+  const raw = { title: "Date night", area: "relationships", targetDate: "2026-11-04", ownership: "together", visibility: "shared", why: "   " };
+  const result = validateGoalInput(raw, TODAY);
   assert.deepEqual(result, {
     ok: {
       title: "Date night",
@@ -275,9 +278,12 @@ test("validatePlanItemInput: habits need times and a period, steps and reminders
   assert.ok("error" in validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 3 }));
   assert.ok("error" in validatePlanItemInput({ title: "Run", kind: "habit", period: "week" }));
   assert.ok("error" in validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 0, period: "week" }));
-  assert.ok("error" in validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 21, period: "week" }));
+  assert.ok("error" in validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 8, period: "week" }));
   assert.ok("error" in validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 1.5, period: "week" }));
-  assert.ok("ok" in validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 20, period: "month" }));
+  assert.ok("ok" in validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 7, period: "week" }));
+  assert.ok("ok" in validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 31, period: "month" }));
+  assert.ok("error" in validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 32, period: "month" }));
+  assert.ok("ok" in validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 1, period: "day" }));
   assert.deepEqual(validatePlanItemInput({ title: "Buy land", kind: "step", timesPerPeriod: null, period: null }), {
     ok: { title: "Buy land", kind: "step", timesPerPeriod: null, period: null },
   });
@@ -289,7 +295,8 @@ test("validatePlanItemInput: habits need times and a period, steps and reminders
 });
 
 test("the form limits are the ones the checks enforce", () => {
-  assert.deepEqual([GOAL_TITLE_MAX, GOAL_WHY_MAX, MEASURE_UNIT_MAX, HABIT_TIMES_MAX], [120, 500, 12, 20]);
+  assert.deepEqual([GOAL_TITLE_MAX, GOAL_WHY_MAX, MEASURE_UNIT_MAX], [120, 500, 12]);
+  assert.deepEqual(HABIT_TIMES_MAX, { day: 1, week: 7, month: 31 });
   const goalWith = (over: object) => validateGoalInput({ ...GOOD, ...over }, TODAY);
   assert.ok("ok" in goalWith({ title: "x".repeat(GOAL_TITLE_MAX) }));
   assert.ok("error" in goalWith({ title: "x".repeat(GOAL_TITLE_MAX + 1) }));
@@ -297,9 +304,11 @@ test("the form limits are the ones the checks enforce", () => {
   assert.ok("error" in goalWith({ why: "x".repeat(GOAL_WHY_MAX + 1) }));
   assert.ok("ok" in goalWith({ measure: { unit: "x".repeat(MEASURE_UNIT_MAX), start: 1, target: 2 } }));
   assert.ok("error" in goalWith({ measure: { unit: "x".repeat(MEASURE_UNIT_MAX + 1), start: 1, target: 2 } }));
-  const habit = (times: number) => validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: times, period: "week" });
-  assert.ok("ok" in habit(HABIT_TIMES_MAX));
-  assert.deepEqual(habit(HABIT_TIMES_MAX + 1), { error: "Pick how many times, from 1 to 20." });
+  const habit = (times: number, period: string) => validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: times, period });
+  assert.ok("ok" in habit(HABIT_TIMES_MAX.week, "week"));
+  assert.deepEqual(habit(HABIT_TIMES_MAX.week + 1, "week"), { error: "Pick how many times, from 1 to 7." });
+  assert.deepEqual(habit(HABIT_TIMES_MAX.month + 1, "month"), { error: "Pick how many times, from 1 to 31." });
+  assert.deepEqual(habit(2, "day"), { error: "A habit gets one check a day." });
 });
 
 test("validatePlanItemInput: title and kind rules", () => {

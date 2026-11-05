@@ -1,7 +1,7 @@
 "use server";
 
-// Per-person settings. Today that is two things: the dashboard widget layout
-// and the menu style. Any signed-in ACCOUNT may save its own dashboard layout;
+// Per-person settings. Today that is three things: the dashboard widget layout,
+// the menu style and the "Show streaks" switch. Any signed-in ACCOUNT may save its own dashboard layout;
 // a device-mode session (the wall tablet) is refused there, because it always
 // shows the default layout and has no Customize button. The menu style is
 // different: devices may save it too, since the wall tablet has its own
@@ -71,6 +71,35 @@ export async function saveNavMode(input: unknown): Promise<PreferencesResult> {
   } catch (err) {
     console.error("saveNavMode failed", err);
     return { error: "Couldn't save your menu style. Try again." };
+  }
+
+  revalidatePath("/", "layout");
+  return {};
+}
+
+/**
+ * Save the signed-in person's "Show streaks" switch. Like the dashboard
+ * layout, a device-mode session is refused: the wall tablet is not a person
+ * and its Settings page doesn't show the switch. Anything but a real boolean
+ * is an error, not a silent default.
+ */
+export async function saveShowStreaks(input: unknown): Promise<PreferencesResult> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
+  if (user.isDevice) {
+    return { error: "A shared device can't change streak settings." };
+  }
+  if (typeof input !== "boolean") return { error: "That isn't a valid choice." };
+
+  try {
+    await db.userPreferences.upsert({
+      where: { userId: user.userId },
+      create: { userId: user.userId, showStreaks: input },
+      update: { showStreaks: input },
+    });
+  } catch (err) {
+    console.error("saveShowStreaks failed", err);
+    return { error: "Couldn't save your streak setting. Try again." };
   }
 
   revalidatePath("/", "layout");

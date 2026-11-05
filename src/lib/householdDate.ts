@@ -110,6 +110,11 @@ export function utcMidnightInstant(date: CalendarDate): Date {
   return new Date(Date.UTC(date.year, date.month - 1, date.day));
 }
 
+/** The calendar day a stored UTC-midnight column holds (the inverse of `utcMidnightInstant`). */
+export function calendarDateFromUtcMidnight(stored: Date): CalendarDate {
+  return calendarDateInZone(stored, "UTC");
+}
+
 /** The Sunday that starts the week `date` falls in (a Sunday is its own week start). */
 export function startOfWeek(date: CalendarDate): CalendarDate {
   return addCalendarDays(date, -dayOfWeek(date));

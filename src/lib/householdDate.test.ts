@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   addCalendarDays,
   calendarDaysBetween,
+  calendarDateFromUtcMidnight,
   calendarDateInZone,
   dayOfWeek,
   formatCalendarDate,
@@ -99,6 +100,12 @@ test("dayOfWeek: 0 = Sunday", () => {
 
 test("utcMidnightInstant is UTC midnight regardless of process TZ", () => {
   assert.equal(utcMidnightInstant({ year: 2026, month: 11, day: 1 }).toISOString(), "2026-11-01T00:00:00.000Z");
+});
+
+test("calendarDateFromUtcMidnight reads a stored day back as the same calendar day", () => {
+  const day = { year: 2027, month: 3, day: 14 };
+  assert.deepEqual(calendarDateFromUtcMidnight(utcMidnightInstant(day)), day);
+  assert.deepEqual(calendarDateFromUtcMidnight(new Date("2026-11-01T00:00:00.000Z")), { year: 2026, month: 11, day: 1 });
 });
 
 test("calendarDaysBetween: signed whole days, across a year end and a leap day", () => {

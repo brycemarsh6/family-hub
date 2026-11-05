@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, Users } from "lucide-react";
+import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { NavModeSetting } from "@/components/NavModeSetting";
 import { requireVerifiedUser } from "@/lib/dal";
 
@@ -7,8 +8,9 @@ import { requireVerifiedUser } from "@/lib/dal";
 export const dynamic = "force-dynamic";
 
 /**
- * App-wide settings: "Menu style" for everyone (devices too), and the
- * admin-only door "Manage family" below it. Your own name, colour and
+ * App-wide settings: "Menu style" for everyone (devices too), the
+ * admin-only door "Manage family", and last the "Habits & Chores" section
+ * (accounts only: a device login never sees it). Your own name, colour and
  * password live on /profile.
  */
 export default async function SettingsPage() {
@@ -23,7 +25,7 @@ export default async function SettingsPage() {
       {user.role === "admin" && (
         <Link
           href="/settings/family"
-          className="mt-4 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
+          className="mt-6 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
         >
           <span className="flex items-center gap-3">
             <Users aria-hidden="true" size={22} className="shrink-0 text-muted" />
@@ -31,6 +33,10 @@ export default async function SettingsPage() {
           </span>
           <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
         </Link>
+      )}
+
+      {!user.isDevice && (
+        <HabitsChoresSettings showStreaks={user.showStreaks} isAdmin={user.role === "admin"} />
       )}
     </div>
   );

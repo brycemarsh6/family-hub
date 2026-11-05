@@ -9,9 +9,7 @@ import assert from "node:assert/strict";
 import {
   PACE_LABELS,
   buildPlanItemView,
-  countInWindow,
   formatMeasure,
-  logWindow,
   measureStep,
   numberAfterCheckIns,
   paceStatus,
@@ -21,9 +19,10 @@ import {
   weekSummary,
   weekTodo,
   type GoalMeasure,
+  type PlanHabit,
   type PlanItemRow,
-  type PlanLogRow,
 } from "./goalsProgress";
+import type { ScheduleSpec } from "./habits/types";
 import { utcMidnightInstant, type CalendarDate } from "./householdDate";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -48,6 +47,7 @@ function item(over: Partial<PlanItemRow> = {}): PlanItemRow {
     kind: "habit",
     timesPerPeriod: 4,
     period: "week",
+    habitId: "h1",
     doneAt: null,
     sortOrder: 0,
     createdAt: new Date("2026-01-01T19:00:00Z"),
@@ -55,87 +55,101 @@ function item(over: Partial<PlanItemRow> = {}): PlanItemRow {
   };
 }
 
-function logsOn(planItemId: string, days: CalendarDate[]): PlanLogRow[] {
-  return days.map((day, n) => ({
-    id: `l${n}`,
-    planItemId,
-    day: utcMidnightInstant(day),
-    createdAt: new Date("2026-11-04T12:00:00Z"),
-  }));
+const WEEKLY_4: ScheduleSpec = { schedule: "weekly", times: 4 };
+
+/** One habit as the reader hands it over: its schedule and a "done" check on each day. */
+function habitOn(days: CalendarDate[], spec: ScheduleSpec = WEEKLY_4, userId = "u1"): PlanHabit {
+  return {
+    spec,
+    schedule: { schedule: spec.schedule, times: "times" in spec ? spec.times : null },
+    logs: days.map((day) => ({ day, status: "done", userId })),
+  };
 }
 
-test("buildPlanItemView: 4 of 4 is done, and 5 logs still report count 5", () => {
-  const four = buildPlanItemView(item(), logsOn("i1", [d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]), TODAY);
+test("buildPlanItemView: 4 of 4 is done, and a repeat check on one day still counts once", () => {
+  const four = buildPlanItemView(item(), habitOn([d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]), TODAY);
   assert.equal(four.count, 4);
   assert.equal(four.done, true);
   assert.equal(four.windowLabel, "this week");
-  const five = buildPlanItemView(
+  const dup = buildPlanItemView(
     item(),
-    logsOn("i1", [d(2026, 11, 1), d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]),
+    habitOn([d(2026, 11, 1), d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]),
     TODAY,
   );
-  assert.equal(five.count, 5);
-  assert.equal(five.target, 4);
+  assert.equal(dup.count, 4);
+  assert.equal(dup.target, 4);
 });
 
-test("buildPlanItemView: ignores another item's logs; 3 of 4 is not done", () => {
-  const logs = [...logsOn("i1", [d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]), ...logsOn("other", [d(2026, 11, 4)])];
-  const view = buildPlanItemView(item(), logs, TODAY);
-  assert.equal(view.count, 3);
+test("buildPlanItemView: three taps on one day are one check (one row per person per day)", () => {
+  const view = buildPlanItemView(item(), habitOn([TODAY, TODAY, TODAY]), TODAY);
+  assert.equal(view.count, 1);
+  assert.equal(view.doneToday, true);
   assert.equal(view.done, false);
 });
 
+test("buildPlanItemView: a Together habit's checks from every participant count once per day", () => {
+  const habit: PlanHabit = {
+    ...habitOn([]),
+    logs: ["a", "b", "c"].flatMap((userId) => [d(2026, 11, 2), d(2026, 11, 3)].map((day) => ({ day, status: "done" as const, userId }))),
+  };
+  assert.equal(buildPlanItemView(item(), habit, TODAY).count, 2);
+});
+
+test("buildPlanItemView: 3 of 4 is not done, and doneToday follows today's check", () => {
+  const view = buildPlanItemView(item(), habitOn([d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)]), TODAY);
+  assert.equal(view.count, 3);
+  assert.equal(view.done, false);
+  assert.equal(view.doneToday, true);
+  assert.equal(buildPlanItemView(item(), habitOn([d(2026, 11, 2), d(2026, 11, 3)]), TODAY).doneToday, false);
+});
+
+test("buildPlanItemView: a skipped day is not a check", () => {
+  const habit = habitOn([]);
+  habit.logs = [{ day: TODAY, status: "skipped", userId: "u1" }];
+  const view = buildPlanItemView(item(), habit, TODAY);
+  assert.equal(view.count, 0);
+  assert.equal(view.doneToday, false);
+});
+
+test("buildPlanItemView: a daily habit counts across the week against 7 and reads as 'every day' to the edit sheet", () => {
+  const daily = habitOn([d(2026, 11, 1), d(2026, 11, 2)], { schedule: "daily" });
+  const view = buildPlanItemView(item({ timesPerPeriod: 3, period: "week" }), daily, d(2026, 11, 7));
+  assert.deepEqual([view.target, view.count, view.windowLabel, view.timesPerPeriod, view.period], [7, 2, "this week", 1, "day"]);
+  // Sunday starts a new week
+  assert.equal(buildPlanItemView(item(), daily, d(2026, 11, 8)).count, 0);
+});
+
+test("buildPlanItemView: week target is times; a month habit spans the whole month", () => {
+  assert.equal(buildPlanItemView(item(), habitOn([]), TODAY).target, 4);
+  const monthly: ScheduleSpec = { schedule: "monthly", times: 2 };
+  const view = buildPlanItemView(item(), habitOn([d(2027, 1, 3), d(2027, 1, 30)], monthly), d(2027, 1, 31));
+  assert.deepEqual([view.count, view.target, view.windowLabel, view.timesPerPeriod, view.period], [2, 2, "this month", 2, "month"]);
+  // The day before the month and the day after are outside it.
+  assert.equal(buildPlanItemView(item(), habitOn([d(2026, 12, 31), d(2027, 2, 1)], monthly), d(2027, 1, 31)).count, 0);
+  assert.equal(buildPlanItemView(item(), habitOn([d(2027, 2, 27)], monthly), d(2027, 2, 28)).count, 1);
+});
+
+test("buildPlanItemView: a habit item with no Habit shows 0 of its own target and is never done", () => {
+  const view = buildPlanItemView(item({ habitId: null }), null, TODAY);
+  assert.deepEqual([view.count, view.target, view.done, view.doneToday, view.windowLabel], [0, 4, false, false, "this week"]);
+  const monthly = buildPlanItemView(item({ habitId: "gone", timesPerPeriod: 2, period: "month" }), null, TODAY);
+  assert.deepEqual([monthly.count, monthly.target, monthly.windowLabel], [0, 2, "this month"]);
+  const daily = buildPlanItemView(item({ timesPerPeriod: 1, period: "day" }), null, TODAY);
+  assert.equal(daily.target, 7);
+});
+
 test("buildPlanItemView: steps follow doneAt, reminders have no target", () => {
-  const step = item({ kind: "step", timesPerPeriod: null, period: null });
+  const step = item({ kind: "step", timesPerPeriod: null, period: null, habitId: null });
   assert.deepEqual(
-    (({ count, target, done, windowLabel }) => ({ count, target, done, windowLabel }))(buildPlanItemView(step, [], TODAY)),
+    (({ count, target, done, windowLabel }) => ({ count, target, done, windowLabel }))(buildPlanItemView(step, null, TODAY)),
     { count: 0, target: 1, done: false, windowLabel: null },
   );
-  const doneStep = buildPlanItemView({ ...step, doneAt: new Date() }, [], TODAY);
+  const doneStep = buildPlanItemView({ ...step, doneAt: new Date() }, null, TODAY);
   assert.equal(doneStep.done, true);
   assert.equal(doneStep.count, 1);
-  const reminder = buildPlanItemView(item({ kind: "reminder", timesPerPeriod: null, period: null }), [], TODAY);
+  const reminder = buildPlanItemView(item({ kind: "reminder", timesPerPeriod: null, period: null, habitId: null }), null, TODAY);
   assert.equal(reminder.target, 0);
   assert.equal(reminder.done, false);
-});
-
-test("logWindow: a day habit counts across the week, times x 7", () => {
-  const daily = item({ timesPerPeriod: 1, period: "day" });
-  assert.deepEqual(logWindow(daily, d(2026, 11, 7)), {
-    start: d(2026, 11, 1),
-    end: d(2026, 11, 7),
-    target: 7,
-    label: "this week",
-  }); // Saturday
-  assert.deepEqual(logWindow(daily, d(2026, 11, 8)), {
-    start: d(2026, 11, 8),
-    end: d(2026, 11, 14),
-    target: 7,
-    label: "this week",
-  }); // Sunday starts a new week
-});
-
-test("logWindow: week habit target is times; month habit spans the whole month", () => {
-  assert.equal(logWindow(item(), TODAY)?.target, 4);
-  assert.deepEqual(logWindow(item({ timesPerPeriod: 2, period: "month" }), d(2027, 1, 31)), {
-    start: d(2027, 1, 1),
-    end: d(2027, 1, 31),
-    target: 2,
-    label: "this month",
-  });
-  assert.deepEqual(logWindow(item({ timesPerPeriod: 2, period: "month" }), d(2027, 2, 1))?.end, d(2027, 2, 28));
-  assert.deepEqual(logWindow(item({ period: "month" }), d(2026, 12, 15))?.end, d(2026, 12, 31));
-});
-
-test("logWindow: null for steps and reminders", () => {
-  assert.equal(logWindow(item({ kind: "step", timesPerPeriod: null, period: null }), TODAY), null);
-  assert.equal(logWindow(item({ kind: "reminder", timesPerPeriod: null, period: null }), TODAY), null);
-});
-
-test("countInWindow: both ends included, the day before and after are not", () => {
-  const window = { start: d(2026, 11, 1), end: d(2026, 11, 7) };
-  const logs = logsOn("i1", [d(2026, 10, 31), d(2026, 11, 1), d(2026, 11, 7), d(2026, 11, 8)]);
-  assert.equal(countInWindow(logs, window), 2);
 });
 
 test("progressFraction: a decreasing number (189 to 165) and an increasing one", () => {
@@ -205,27 +219,27 @@ test("formatMeasure: dollars abbreviate, other units trail", () => {
   assert.equal(formatMeasure(12.46, "pages"), "12.5 pages");
 });
 
-function viewOf(items: PlanItemRow[], logs: PlanLogRow[]) {
-  return { items: items.map((row) => buildPlanItemView(row, logs, TODAY)) };
+function viewOf(items: PlanItemRow[], habits: Record<string, PlanHabit>) {
+  return { items: items.map((row) => buildPlanItemView(row, row.habitId ? (habits[row.habitId] ?? null) : null, TODAY)) };
 }
 
 test("weekSummary: day and week habits only, and a habit over its target counts as exactly its target", () => {
-  const over = [d(2026, 11, 1), d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4)];
+  const over = [d(2026, 11, 1), d(2026, 11, 2), d(2026, 11, 3), d(2026, 11, 4), d(2026, 11, 5)];
   const short = [d(2026, 11, 2)];
   const items = [
     item({ id: "i1" }),
-    item({ id: "i2", timesPerPeriod: 3 }),
-    item({ id: "i3", kind: "step", timesPerPeriod: null, period: null }),
+    item({ id: "i2", habitId: "h2" }),
+    item({ id: "i3", kind: "step", timesPerPeriod: null, period: null, habitId: null }),
   ];
-  const view = viewOf(items, [...logsOn("i1", over), ...logsOn("i2", short)]);
+  const view = viewOf(items, { h1: habitOn(over), h2: habitOn(short, { schedule: "weekly", times: 3 }) });
   assert.equal(view.items[0].count, 5);
   assert.deepEqual(weekSummary([view]), { done: 4 + 1, total: 4 + 3 });
   assert.deepEqual(weekSummary([]), { done: 0, total: 0 });
 });
 
 test("weekSummary: a monthly habit with target 1 does not change the summary", () => {
-  const items = [item({ id: "i1" }), item({ id: "i2", timesPerPeriod: 1, period: "month" })];
-  const logs = [...logsOn("i1", [d(2026, 11, 2)]), ...logsOn("i2", [d(2026, 11, 2)])];
+  const items = [item({ id: "i1" }), item({ id: "i2", habitId: "h2" })];
+  const logs = { h1: habitOn([d(2026, 11, 2)]), h2: habitOn([d(2026, 11, 2)], { schedule: "monthly", times: 1 }) };
   const view = viewOf(items, logs);
   assert.equal(view.items[1].windowLabel, "this month");
   assert.deepEqual(weekSummary([view]), { done: 1, total: 4 });
@@ -235,12 +249,17 @@ test("weekSummary: a monthly habit with target 1 does not change the summary", (
 test("weekTodo: undone day and week habits in order, with taps left, capped at the limit", () => {
   const items = [
     item({ id: "i1", title: "Exercise" }),
-    item({ id: "i2", title: "Read", timesPerPeriod: 2 }),
-    item({ id: "i3", title: "Stretch", timesPerPeriod: 1 }),
-    item({ id: "i4", title: "Monthly", timesPerPeriod: 1, period: "month" }),
-    item({ id: "i5", title: "Plan", kind: "step", timesPerPeriod: null, period: null }),
+    item({ id: "i2", title: "Read", habitId: "h2" }),
+    item({ id: "i3", title: "Stretch", habitId: "h3" }),
+    item({ id: "i4", title: "Monthly", habitId: "h4" }),
+    item({ id: "i5", title: "Plan", kind: "step", timesPerPeriod: null, period: null, habitId: null }),
   ];
-  const logs = [...logsOn("i1", [d(2026, 11, 2)]), ...logsOn("i2", [d(2026, 11, 2), d(2026, 11, 3)])];
+  const logs = {
+    h1: habitOn([d(2026, 11, 2)]),
+    h2: habitOn([d(2026, 11, 2), d(2026, 11, 3)], { schedule: "weekly", times: 2 }),
+    h3: habitOn([], { schedule: "weekly", times: 1 }),
+    h4: habitOn([], { schedule: "monthly", times: 1 }),
+  };
   const view = viewOf(items, logs);
   assert.deepEqual(weekTodo([view], 5), [
     { id: "i1", title: "Exercise", left: 3 },

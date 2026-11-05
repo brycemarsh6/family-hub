@@ -58,13 +58,14 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   get no Customize button.
 - **One side drawer** for the whole app, opened by a hamburger button at the
   top left (the wordmark header shows only on the dashboard and login). It lists
-  Dashboard, Calendar, Routines, Plans & Goals, Lists, a Kitchen group
+  Dashboard, Calendar, Habits & Chores, Plans & Goals, Lists, a Kitchen group
   (Recipes, Meal Plan, Shopping, Inventory, Expiring), then Profile, Settings
   and Sign out. On wide screens (1024px and up) a per-login "Menu style"
   setting in Settings can pin it open as an icon rail or a full sidebar.
   Phones always use the menu button. There are no landing pages. Old
   `/kitchen`, `/kitchen/cooking` and `/chores` forward to Inventory, Recipes
-  and Routines. Routines is a "Coming soon" placeholder.
+  and Habits & Chores. Habits & Chores (`/habits`) is a "Coming soon"
+  placeholder; the old `/routines` forwards to it too.
 - **Kitchen** (the Kitchen group in the drawer):
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
@@ -90,12 +91,22 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   "Goals this week" dashboard tile (second in the default order), a Sunday
   recap card at the top of This week, and a check-in history list on the
   goal page. Direction in `.avengers/plans/plans-goals-v1.md`.
+- **Habits engine** (mission 30, built, not live): Plans & Goals habits now
+  live in their own `Habit` tables, with one check per person per day (no
+  "times a day"). The rules (schedules, streaks, carry-over, who can see or
+  log) are pure code in `src/lib/habits/`, with words in
+  `src/lib/habitVocabulary.ts`. Settings has a "Habits & Chores" section: a
+  Show streaks switch (saved per login) and, for admins only, a Recompute
+  streaks button. The real Today list, manager and streak display come in
+  later PRs (plan: `.avengers/plans/habits-chores-v1.md`).
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
   Read `.avengers/plans/calendar-v2.md` before calendar work.
 - **Family accounts**: per-person logins (P1 + P2 shipped). P3 (role gates,
-  account management) was delivered but **not deployed**, by Bryce's call. See
-  `mission-6-accounts-p3-roles-and-settings.md`.
+  account management, kid profiles without a password) **is live**: its
+  commit `42bb676` has been on `main` since 2026-08-31 (this file said "not
+  deployed" until 2026-11-05; `git merge-base --is-ancestor` settled it).
+  See `mission-6-accounts-p3-roles-and-settings.md`.
 - **Voice**: Siri shortcut over `/api/voice` is the working path, used daily.
   `/api/alexa` is live but dormant; Alexa+ (V3b) is blocked on Amazon
   (`.avengers/plans/v3b-alexa-plus-addon.md`).
@@ -145,16 +156,17 @@ Lucide outline icons only, secondary row actions behind a right-to-left swipe
 (destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-11-04)
+## Current status (updated 2026-11-05)
 
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Plans & Goals is live through PR 3** (#36, #37, #39, merged
-  2026-11-04). PR 3 added the "Goals this week" tile, the Sunday recap and
-  check-in history (the `GoalCheckIn` table, now on production). The "Show
-  in Routines" switch waits for Routines. The navigation redesign, including
-  rail names, is live (PRs #32 to #35).
+- **Habits & Chores PR A (mission 30)** is on branch
+  `claude/habits-a-engine`, pushed with a PR open, **not merged**. All
+  gates passed. Vercel Preview's `DATABASE_URL` points at the Neon dev
+  branch (Bryce, 2026-11-05). Record:
+  `.avengers/missions/mission-30-habits-a-engine.md`. PRs B to F are not
+  started.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
   desktop mouse. Hover is a bonus, never the only way to learn something.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
@@ -165,6 +177,9 @@ Replace this section at the end of each session. Don't append.
   the TypeScript compiler API.
 
 **Waiting on Bryce:**
+- **After PR A deploys:** press Recompute streaks once (Settings), then recheck
+  the three migration counts on production (habits, participants, logs; the
+  dev numbers are in the mission file).
 - **Look at the Sunday recap** on the first Sunday after 2026-11-04. It has
   only been tested, never seen on a real Sunday.
 - **Eaten tap after a swipe**: the fix landed in mission 27 (F3). Sixty seconds
@@ -175,7 +190,9 @@ Replace this section at the end of each session. Don't append.
 - **Assistant API production setup** (after PR #28): put the token hash in Vercel
   as `ASSISTANT_API_TOKEN_HASH`, paste the token into Home Hub, then change
   Bryce's own Marshee password.
-- **Do not create a kid login until P3 role gates are deployed.**
+- **Kid logins are Bryce's call.** P3's role gates are live (above), so a
+  kid profile (no password) is safe to create from Settings, Manage family.
+  Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
 - Inventory collapse state doesn't persist across reloads; Shopping has no
@@ -185,5 +202,5 @@ Replace this section at the end of each session. Don't append.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
   by Bryce's Grok bot. Left uncommitted on purpose.
 
-**Not built yet:** family profiles, chore charts, to-dos, stand-alone habit
-trackers (habits live inside Plans & Goals now), photo gallery, barcode scanning.
+**Not built yet:** family profiles, the Habits & Chores Today list and chore
+chart (PRs B to F), to-dos, photo gallery, barcode scanning.

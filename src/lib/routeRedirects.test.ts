@@ -24,3 +24,9 @@ test("LEGACY_ROUTE_REDIRECTS: sources are unique", () => {
   const sources = LEGACY_ROUTE_REDIRECTS.map((r) => r.source);
   assert.equal(new Set(sources).size, sources.length);
 });
+
+test("LEGACY_ROUTE_REDIRECTS: /routines and /chores both forward to /habits", () => {
+  const bySource = Object.fromEntries(LEGACY_ROUTE_REDIRECTS.map((r) => [r.source, r.destination]));
+  assert.equal(bySource["/routines"], "/habits");
+  assert.equal(bySource["/chores"], "/habits");
+});

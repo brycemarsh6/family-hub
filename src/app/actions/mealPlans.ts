@@ -11,7 +11,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { Prisma } from "@/generated/prisma/client";
+import { isUniqueViolationError } from "@/lib/prismaErrors";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import { toMealSlot, MANAGER_ROLES } from "@/lib/constants";
 import type { Category, Location } from "@/lib/constants";
@@ -51,9 +51,7 @@ export async function createMealPlan(
     const created = await db.mealPlan.create({ data: { weekStart } });
     mealPlanId = created.id;
   } catch (error) {
-    const isDuplicateWeek =
-      error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
-    if (!isDuplicateWeek) throw error;
+    if (!isUniqueViolationError(error)) throw error;
 
     const existing = await db.mealPlan.findUnique({
       where: { weekStart },

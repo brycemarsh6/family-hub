@@ -18,13 +18,15 @@ function reached(count: number, target: number): boolean {
 function changeItem(item: PlanItemView, change: PlanItemChange): PlanItemView {
   switch (change.type) {
     case "log": {
+      // One check a day: a second tap on a day already checked changes nothing.
+      if (item.doneToday) return item;
       const count = item.count + 1;
-      return { ...item, count, done: reached(count, item.target) };
+      return { ...item, count, done: reached(count, item.target), doneToday: true };
     }
     case "undo": {
       // A habit logged past its target stays done while the count is still at or over it.
       const count = Math.max(0, item.count - 1);
-      return { ...item, count, done: reached(count, item.target) };
+      return { ...item, count, done: reached(count, item.target), doneToday: false };
     }
     case "stepDone":
       return { ...item, count: 1, done: true, doneAt: change.at };

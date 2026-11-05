@@ -32,6 +32,7 @@ export type VerifiedUser = {
   avatarColor: string;
   isDevice: boolean;
   navMode: NavMode;
+  showStreaks: boolean;
 };
 
 /**
@@ -60,7 +61,7 @@ const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
       displayName: true,
       avatarColor: true,
       deactivatedAt: true,
-      preferences: { select: { navMode: true } },
+      preferences: { select: { navMode: true, showStreaks: true } },
     },
   });
 
@@ -73,6 +74,7 @@ const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
     avatarColor: user.avatarColor,
     isDevice: user.role === "device",
     navMode: toNavMode(user.preferences?.navMode),
+    showStreaks: user.preferences?.showStreaks ?? true,
   };
 });
 

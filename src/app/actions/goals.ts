@@ -165,7 +165,7 @@ export async function updateGoal(id: string, raw: unknown): Promise<GoalActionRe
   return {};
 }
 
-/** One tap, no confirmation. Its plan items and their logs cascade. A goal already gone is a success. */
+/** One tap, no confirmation. Its plan items go with it; their habits stay, unlinked. A goal already gone is a success. */
 export async function deleteGoal(id: string): Promise<GoalActionResult> {
   const loaded = await loadEditable(id);
   if ("error" in loaded) return "missing" in loaded && loaded.missing ? {} : { error: loaded.error };
