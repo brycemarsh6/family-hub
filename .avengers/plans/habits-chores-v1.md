@@ -1,10 +1,12 @@
 # Habits & Chores v1: direction
 
 Status: **direction only, nothing built.** The first PR's three features are
-approved. The mock still shows the older "routines" idea and needs redrawing
-before Bryce reviews it (open question 5).
+approved. The mock was redrawn for Habits & Chores on 2026-11-05 and waits
+for Bryce's review.
 
-Old mock (four screens, drawn for the routines idea):
+Mock (eight screens: Today, Habit manager, New habit or chore, one habit's
+stats, Chore chart, Settings section, Dashboard tiles for the second PR, and
+the wall tablet):
 https://claude.ai/artifact/WsWHY1oDmGhofjCFoaBXdu
 
 This file was `routines-v1.md` until 2026-11-05, when Bryce clarified the
@@ -268,11 +270,12 @@ One-off jobs (returns, errands) belong in Lists, not here.
     and adding items happen in a separate Habit manager, the way Habit
     tracker has one.
 
-### Settings ideas, open
-
-- Where the Habit manager and the per-person switches (streaks, vacation
-  mode, Winnie texts) live: inside the Habits & Chores tab, or in Marshee's
-  Settings. Asked 2026-11-05.
+67. **Where things live (split).** The Habit manager is inside the Habits &
+    Chores tab: a "Manage" button at the top of the list opens it, and it
+    is where items are added, edited, reordered, archived and deleted, and
+    where the chore chart is set up. The per-person switches (streaks,
+    vacation mode, Winnie texts) live in Marshee's Settings, in a Habits &
+    Chores section, and the manager links there.
 62. **Each habit row shows its current streak** (a small flame and number),
     hidden when the person's streak switch is off.
 63. **Fixed times of day:** Morning until noon, Afternoon until 6 pm,
@@ -289,8 +292,7 @@ One-off jobs (returns, errands) belong in Lists, not here.
 
 ## Open questions
 
-1. **Review the redrawn mock** once it shows Habits and Chores, streaks,
-   stats, carry-over, the chore chart and "plan the day."
+1. **Review the redrawn mock** (link at the top).
 
 ## Not in the first PR
 
