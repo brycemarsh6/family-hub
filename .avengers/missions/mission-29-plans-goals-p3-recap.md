@@ -330,6 +330,8 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 | 1 | Captain (Opus) | BLOCKED | `goalsRecap.ts` re-derives the habit window and target (second definition of `goalsProgress.ts`' rule) | inline "mine" scope in `loadWeekRecap` would make C4's record false; delete fallback rule in two places; GoalDetail 335 lines; check-ins loaded on every read; `householdToday` lives in `assistant/`; tile key by title; unused `measures[].unit`; migration passes additive rule |
 | 1 | Vision (Opus) | BLOCKED | (1) a habit created after the recap week counts against it ("Walk 0 of 7"); (2) removing a goal's number leaves history that returns under a new unit (needs Bryce) | `deleteCheckIn` race under read-committed; `deleteCheckIn` does not refuse an unmeasured goal; tile key by title; recap uses today's habit settings |
 | 1 | Strange (Opus) | BLOCKED | (1) history delete is optimistic (DESIGN.md: destructive verbs wait for the server; Fury's contract error); (2) recap label `text-muted` on `bg-accent-soft` is 4.35:1 | same-date history rows share one Delete label; no "Show fewer"; tile "STILL TO DO:" drawn as caps label with a colon (Brief says a plain line); "All done this week" muted; recap not seen in pixels (Wednesday) |
+| 2 | Captain (Opus) | PASS | none | `goalInclude` and `toView` check-in flags must agree; two `PlanItemRow` builders (`actions/planItems.ts`, `goalsRead.ts`); `householdToday` still in `assistant/` |
+| 2 | Strange (Opus) | PASS | none | delete waits for the server (timed); recap label 4.76:1 light, 6.20:1 dark; no pending cue on a row during delete (app-wide); no "Show fewer"; "All done this week" muted; recap still unseen in pixels, look on a Sunday |
 
 ## Handoff log
 
