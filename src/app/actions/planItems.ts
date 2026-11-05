@@ -73,6 +73,7 @@ async function loadItem(id: string, access: Access): Promise<LoadedItem> {
     period: toHabitPeriod(row.period),
     doneAt: row.doneAt,
     sortOrder: row.sortOrder,
+    createdAt: row.createdAt,
   };
   return { user, item };
 }

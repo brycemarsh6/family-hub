@@ -54,6 +54,8 @@ export type GoalRow = {
 
 export type GoalView = GoalRow & {
   items: PlanItemView[];
+  /** Newest first. Empty unless the reader loaded them (only a single goal's page does). */
+  checkIns: { id: string; value: number; at: Date }[];
   progress: number;
   pace: PaceStatus;
   canEdit: boolean;
@@ -102,6 +104,24 @@ export function canEdit(goal: Owned, viewer: Viewer): boolean {
 /** Like canEdit, except a shared device may log on a Together goal. */
 export function canLog(goal: Owned, viewer: Viewer): boolean {
   return goal.ownerId === null || goal.ownerId === viewer.userId;
+}
+
+/**
+ * Whether a viewer counts a goal in a scope. A shared device, or the
+ * "everyone" scope, keeps all of them; otherwise the viewer's own and Together
+ * ones (not someone else's). Completed or not is a separate question.
+ */
+export function countsInScope(goal: Pick<GoalRow, "ownerId">, viewer: Viewer, scope: "mine" | "everyone"): boolean {
+  return viewer.isDevice || scope === "everyone" || whoseGoal(goal, viewer.userId) !== "theirs";
+}
+
+/** The active goals (not completed) a viewer counts on This week and the dashboard tile. */
+export function goalsInScope<G extends Pick<GoalRow, "ownerId" | "completedAt">>(
+  goals: G[],
+  viewer: Viewer,
+  scope: "mine" | "everyone",
+): G[] {
+  return goals.filter((goal) => goal.completedAt === null && countsInScope(goal, viewer, scope));
 }
 
 // ---- Validation ----
@@ -220,6 +240,7 @@ export function buildGoalView(
   return {
     ...goal,
     items: items.map((item) => buildPlanItemView(item, logs, today)),
+    checkIns: [],
     progress: progressFraction(goal),
     pace: paceStatus(goal, today),
     canEdit: canEdit(goal, viewer),

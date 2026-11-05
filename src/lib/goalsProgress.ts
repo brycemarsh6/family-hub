@@ -36,6 +36,7 @@ export type PlanItemRow = {
   period: HabitPeriod | null;
   doneAt: Date | null;
   sortOrder: number;
+  createdAt: Date;
 };
 
 export type PlanLogRow = { id: string; planItemId: string; day: Date; createdAt: Date };
@@ -109,6 +110,38 @@ export function weekSummary(goals: { items: PlanItemView[] }[]): { done: number;
     }
   }
   return { done, total };
+}
+
+/**
+ * The habits `weekSummary` counts that are not yet done, in goal order then
+ * item order, as how many taps each still needs. At most `limit`.
+ */
+export function weekTodo(
+  goals: { items: PlanItemView[] }[],
+  limit: number,
+): { id: string; title: string; left: number }[] {
+  const todo: { id: string; title: string; left: number }[] = [];
+  for (const goal of goals) {
+    for (const item of goal.items) {
+      if (item.kind !== "habit" || item.windowLabel !== "this week" || item.count >= item.target) continue;
+      todo.push({ id: item.id, title: item.title, left: item.target - item.count });
+    }
+  }
+  return todo.slice(0, Math.max(0, limit));
+}
+
+/**
+ * Where a goal's number stands once a check-in is removed: the newest of the
+ * ones left (given in any order), or the start value with no check-in date
+ * when none remain.
+ */
+export function numberAfterCheckIns(
+  startValue: number | null,
+  remaining: { value: number; at: Date }[],
+): { currentValue: number | null; checkedInAt: Date | null } {
+  if (remaining.length === 0) return { currentValue: startValue, checkedInAt: null };
+  const newest = remaining.reduce((a, b) => (b.at.getTime() > a.at.getTime() ? b : a));
+  return { currentValue: newest.value, checkedInAt: newest.at };
 }
 
 // ---- Progress and pace (a goal with a number) ----

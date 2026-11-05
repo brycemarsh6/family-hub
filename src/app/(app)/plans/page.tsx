@@ -3,7 +3,7 @@ import { ThisWeekList } from "@/components/ThisWeekList";
 import { GoalsList } from "@/components/GoalsList";
 import { requireVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import { loadPlansPage } from "@/lib/goalsRead";
+import { loadPlansPage, loadWeekRecap } from "@/lib/goalsRead";
 import { VisionBoard } from "@/components/VisionBoard";
 import { DEFAULT_VISION_HORIZON, toVisionHorizon } from "@/lib/goalVocabulary";
 import { loadVisionBoard } from "@/lib/visionsRead";
@@ -48,6 +48,8 @@ export default async function PlansPage({
   }
 
   const data = await loadPlansPage(viewer, today);
+  // Sundays only; null every other day, and only This week shows it.
+  const recap = view === "week" ? await loadWeekRecap(viewer, today) : null;
 
   return (
     <div className="py-2">
@@ -56,7 +58,7 @@ export default async function PlansPage({
       {view === "goals" ? (
         <GoalsList data={data} canManage={!user.isDevice} viewerId={user.userId} />
       ) : (
-        <ThisWeekList data={data} viewer={viewer} />
+        <ThisWeekList data={data} viewer={viewer} recap={recap} />
       )}
     </div>
   );

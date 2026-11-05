@@ -1,12 +1,15 @@
 import type { ReactNode } from "react";
 import { Package, ShoppingCart, BookOpen, CalendarDays } from "lucide-react";
 import DashboardTile from "@/components/DashboardTile";
+import GoalsTile from "@/components/GoalsTile";
 import TodayMealsTile from "@/components/TodayMealsTile";
 import DashboardWidgetList from "@/components/DashboardWidgetList";
 import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
 import { DEFAULT_DASHBOARD_LAYOUT, parseDashboardLayout } from "@/lib/dashboardLayout";
 import type { DashboardWidgetId } from "@/lib/dashboardWidgets";
+import { householdToday } from "@/lib/assistant/today";
+import { loadGoalsTile } from "@/lib/goalsRead";
 import { isLow } from "@/lib/constants";
 import { addDays } from "@/lib/mealPlanDates";
 import { isExpiringWithin } from "@/lib/expiring";
@@ -58,7 +61,12 @@ export default async function DashboardPage() {
   const user = await getVerifiedUser();
   const isDevice = user?.isDevice ?? true;
 
-  const [stored, pantryItems, groceryItems, recipeCount, newestRecipe, mealPlans] = await Promise.all([
+  // The Goals tile is the one server-side "what day is it" decision on this
+  // page, so it uses the household (Denver) date, the same helper the Plans
+  // pages use, never serverNow.
+  const goalsToday = householdToday(new Date())!;
+
+  const [stored, pantryItems, groceryItems, recipeCount, newestRecipe, mealPlans, goalsTile] = await Promise.all([
     user && !user.isDevice
       ? db.userPreferences.findUnique({
           where: { userId: user.userId },
@@ -93,6 +101,9 @@ export default async function DashboardPage() {
         },
       },
     }),
+    user
+      ? loadGoalsTile({ userId: user.userId, isDevice: user.isDevice }, goalsToday)
+      : { done: 0, total: 0, todo: [] },
   ]);
 
   // Whatever is stored is a claim, never a type: parse, don't cast.
@@ -148,6 +159,7 @@ export default async function DashboardPage() {
         plans={mealPlanViews}
       />
     ),
+    goals: <GoalsTile done={goalsTile.done} total={goalsTile.total} todo={goalsTile.todo} />,
     inventory: (
       <DashboardTile
         href="/kitchen/inventory"

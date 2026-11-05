@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, MoreHorizontal, Pencil, Plus, RotateCcw, Trash2, Undo2 } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
 import { ActionSheet } from "./ActionSheet";
+import { CheckInHistory } from "./CheckInHistory";
 import { CheckInSheet } from "./CheckInSheet";
 import { PlanItemRow } from "./PlanItemRow";
 import { PlanItemSheet } from "./PlanItemSheet";
@@ -21,7 +22,7 @@ import {
 } from "@/lib/goalsProgress";
 import { calendarDateInZone, formatShortCalendarDate, type CalendarDate } from "@/lib/householdDate";
 import { applyPlanItemChange, type PlanItemChange } from "@/lib/planItemChanges";
-import { completeGoal, deleteGoal, uncompleteGoal, type GoalActionResult } from "@/app/actions/goals";
+import { completeGoal, deleteCheckIn, deleteGoal, uncompleteGoal, type GoalActionResult } from "@/app/actions/goals";
 import {
   completeStep,
   deletePlanItem,
@@ -102,6 +103,15 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
     setError(null);
     startTransition(async () => {
       const result = await deletePlanItem(itemId);
+      if (result.error) setError(result.error);
+      else router.refresh();
+    });
+  }
+
+  function handleDeleteCheckIn(checkInId: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteCheckIn(checkInId);
       if (result.error) setError(result.error);
       else router.refresh();
     });
@@ -226,6 +236,12 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
                 </>
               )}
             </p>
+            <CheckInHistory
+              checkIns={goal.checkIns}
+              unit={unit}
+              canEdit={goal.canEdit}
+              onDelete={handleDeleteCheckIn}
+            />
           </>
         ) : (
           <div className="flex items-center justify-between gap-3">

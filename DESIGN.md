@@ -296,6 +296,21 @@ A new one-off that duplicates one of these jobs is a design violation:
   card. On a board the viewer can't edit, an empty card shows the area and
   one muted line ("{Name} hasn't written this yet"), no prompt and no
   buttons
+- `GoalsTile`: the body of the "Goals this week" widget, rendered inside
+  `DashboardTile` so the whole tile stays the one tap target (no inner links
+  or buttons). It reuses `ProgressBar`; a new dashboard summary is another
+  widget body in a `DashboardTile`, not a second tile shell
+- `WeekRecapCard`: the Sunday recap at the top of This week, a
+  `bg-accent-soft` card with a small uppercase label. The label uses
+  `text-muted-strong`, because `text-muted` on `bg-accent-soft` is 4.35:1,
+  under the 4.5:1 floor. It has no dismiss button by Bryce's call, so it
+  must not grow one
+- `CheckInHistory`: the list of a goal's check-ins inside The result card,
+  newest first, three shown and "Show all {n}" to expand in place. Each row
+  swipes (via `SwipeActions`) to Delete, and the delete **waits for the
+  server** instead of being optimistic, like the other destructive verbs.
+  The Delete label names the value ("Delete 183 lb check-in from Nov 4"),
+  because two rows can share a date
 - `ProgressBar` — the only way to show a fraction
 - `ToggleSwitch` — the only on/off switch (`DashboardCustomizeSheet` uses it)
 - `LogButton` — the 44px round log/undo control for habits
