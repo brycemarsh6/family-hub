@@ -17,6 +17,7 @@ function view(over: Partial<PlanItemView> = {}): PlanItemView {
     period: "week",
     doneAt: null,
     sortOrder: 0,
+    createdAt: new Date("2026-01-01T19:00:00Z"),
     count: 3,
     target: 4,
     windowLabel: "this week",

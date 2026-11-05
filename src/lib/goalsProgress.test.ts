@@ -13,6 +13,7 @@ import {
   formatMeasure,
   logWindow,
   measureStep,
+  numberAfterCheckIns,
   paceStatus,
   parseTypedNumber,
   progressFraction,
@@ -49,6 +50,7 @@ function item(over: Partial<PlanItemRow> = {}): PlanItemRow {
     period: "week",
     doneAt: null,
     sortOrder: 0,
+    createdAt: new Date("2026-01-01T19:00:00Z"),
     ...over,
   };
 }
@@ -241,10 +243,10 @@ test("weekTodo: undone day and week habits in order, with taps left, capped at t
   const logs = [...logsOn("i1", [d(2026, 11, 2)]), ...logsOn("i2", [d(2026, 11, 2), d(2026, 11, 3)])];
   const view = viewOf(items, logs);
   assert.deepEqual(weekTodo([view], 5), [
-    { title: "Exercise", left: 3 },
-    { title: "Stretch", left: 1 },
+    { id: "i1", title: "Exercise", left: 3 },
+    { id: "i3", title: "Stretch", left: 1 },
   ]);
-  assert.deepEqual(weekTodo([view], 1), [{ title: "Exercise", left: 3 }]);
+  assert.deepEqual(weekTodo([view], 1), [{ id: "i1", title: "Exercise", left: 3 }]);
   assert.deepEqual(weekTodo([], 3), []);
 });
 
@@ -265,4 +267,13 @@ test("targetDateChips: end of this year, and next year's on Dec 31", () => {
     { label: "In 90 days", date: d(2027, 2, 2) },
   ]);
   assert.deepEqual(targetDateChips(d(2026, 12, 31))[0].date, d(2027, 12, 31));
+});
+
+test("numberAfterCheckIns: the newest remaining check-in, or the start value with no date when none remain", () => {
+  const old = { value: 185, at: new Date("2026-10-01T18:00:00Z") };
+  const recent = { value: 180, at: new Date("2026-10-20T18:00:00Z") };
+  assert.deepEqual(numberAfterCheckIns(189, [old, recent]), { currentValue: 180, checkedInAt: recent.at });
+  assert.deepEqual(numberAfterCheckIns(189, [recent, old]), { currentValue: 180, checkedInAt: recent.at });
+  assert.deepEqual(numberAfterCheckIns(189, []), { currentValue: 189, checkedInAt: null });
+  assert.deepEqual(numberAfterCheckIns(null, []), { currentValue: null, checkedInAt: null });
 });

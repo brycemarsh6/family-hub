@@ -40,7 +40,6 @@ import {
 type Change =
   | PlanItemChange
   | { type: "checkIn"; value: number; at: Date }
-  | { type: "deleteCheckIn"; id: string }
   | { type: "complete"; at: Date }
   | { type: "reopen" };
 
@@ -56,17 +55,6 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
     switch (change.type) {
       case "checkIn": {
         const next = { ...current, currentValue: change.value, checkedInAt: change.at };
-        return { ...next, progress: progressFraction(next), pace: paceStatus(next, today) };
-      }
-      case "deleteCheckIn": {
-        // The number falls back to the newest check-in left, or the start value when none remain.
-        const checkIns = current.checkIns.filter((checkIn) => checkIn.id !== change.id);
-        const next = {
-          ...current,
-          checkIns,
-          currentValue: checkIns[0]?.value ?? current.startValue,
-          checkedInAt: checkIns[0]?.at ?? null,
-        };
         return { ...next, progress: progressFraction(next), pace: paceStatus(next, today) };
       }
       case "complete":
@@ -115,6 +103,15 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
     setError(null);
     startTransition(async () => {
       const result = await deletePlanItem(itemId);
+      if (result.error) setError(result.error);
+      else router.refresh();
+    });
+  }
+
+  function handleDeleteCheckIn(checkInId: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteCheckIn(checkInId);
       if (result.error) setError(result.error);
       else router.refresh();
     });
@@ -243,7 +240,7 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
               checkIns={goal.checkIns}
               unit={unit}
               canEdit={goal.canEdit}
-              onDelete={(id) => run({ type: "deleteCheckIn", id }, () => deleteCheckIn(id), true)}
+              onDelete={handleDeleteCheckIn}
             />
           </>
         ) : (

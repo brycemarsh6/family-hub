@@ -43,6 +43,7 @@ function item(over: Partial<PlanItemRow> = {}): PlanItemRow {
     period: "week",
     doneAt: null,
     sortOrder: 0,
+    createdAt: new Date("2026-01-01T19:00:00Z"),
     ...over,
   };
 }
@@ -112,14 +113,14 @@ test("weekRecap: a number moves from the check-in before the week to the newest 
   ];
   const out = weekRecap([input({ goal: goal(), checkIns })], WEEK);
   assert.ok(out);
-  assert.deepEqual(out.measures, [{ goalTitle: "Weigh 165", from: "183 lb", to: "180.5 lb", unit: "lb" }]);
+  assert.deepEqual(out.measures, [{ goalTitle: "Weigh 165", from: "183 lb", to: "180.5 lb" }]);
   assert.deepEqual(out.habits, []);
 });
 
 test("weekRecap: with no earlier check-in, from is the goal's start value", () => {
   const out = weekRecap([input({ goal: goal(), checkIns: [{ value: 187, at: new Date("2026-10-28T18:00:00Z") }] })], WEEK);
   assert.ok(out);
-  assert.deepEqual(out.measures, [{ goalTitle: "Weigh 165", from: "189 lb", to: "187 lb", unit: "lb" }]);
+  assert.deepEqual(out.measures, [{ goalTitle: "Weigh 165", from: "189 lb", to: "187 lb" }]);
 });
 
 test("weekRecap: a check-in at 11:30 pm Denver Saturday is in the week, one at 12:30 am Sunday is not", () => {
@@ -168,4 +169,14 @@ test("weekRecap: a goal completed mid-week is included, one completed before the
 test("weekRecap: a goal created after the week ended is left out", () => {
   const later = input({ goal: goal({ createdAt: new Date("2026-11-02T18:00:00Z") }), items: [item()] });
   assert.equal(weekRecap([later], WEEK), null);
+});
+
+test("weekRecap: a habit or step created after the week ended is left out; null when it was the only thing", () => {
+  const lateHabit = item({ id: "late", title: "Walk", createdAt: new Date("2026-11-01T18:00:00Z") });
+  assert.equal(weekRecap([input({ items: [lateHabit] })], WEEK), null);
+  const lateStep = item({ id: "s", kind: "step", timesPerPeriod: null, period: null, doneAt: new Date("2026-10-28T18:00:00Z"), createdAt: new Date("2026-11-01T18:00:00Z") });
+  assert.equal(weekRecap([input({ items: [lateStep] })], WEEK), null);
+  const recap = weekRecap([input({ items: [item(), lateHabit] })], WEEK);
+  assert.deepEqual(recap?.habits.map((h) => h.title), ["Exercise"]);
+  assert.equal(recap?.total, 4);
 });

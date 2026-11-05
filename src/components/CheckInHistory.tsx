@@ -35,10 +35,11 @@ export function CheckInHistory({
       <ul className="mt-1 divide-y divide-line">
         {shown.map((checkIn) => {
           const date = formatShortCalendarDate(calendarDateInZone(checkIn.at, HOUSEHOLD_TIME_ZONE));
+          const value = formatMeasure(checkIn.value, unit);
           const row = (
             <div className="flex min-h-12 items-center justify-between gap-3 bg-surface">
               <span className="text-sm text-muted">{date}</span>
-              <span className="text-sm font-medium tabular-nums">{formatMeasure(checkIn.value, unit)}</span>
+              <span className="text-sm font-medium tabular-nums">{value}</span>
             </div>
           );
           return (
@@ -48,7 +49,7 @@ export function CheckInHistory({
                   actions={[
                     {
                       label: "Delete",
-                      accessibleLabel: `Delete check-in from ${date}`,
+                      accessibleLabel: `Delete ${value} check-in from ${date}`,
                       icon: <Trash2 aria-hidden="true" size={18} />,
                       onAction: () => onDelete(checkIn.id),
                       tone: "danger",

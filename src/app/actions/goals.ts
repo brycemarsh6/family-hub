@@ -13,6 +13,7 @@ import { db } from "@/lib/db";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { canEdit, canSee, earlierDate, goalOwnership, validateGoalInput, type GoalInput } from "@/lib/goals";
+import { numberAfterCheckIns } from "@/lib/goalsProgress";
 import { toGoalVisibility } from "@/lib/goalVocabulary";
 import { calendarDateInZone, utcMidnightInstant } from "@/lib/householdDate";
 import { isMissingRowError } from "@/lib/prismaErrors";
@@ -231,20 +232,20 @@ export async function deleteCheckIn(id: string): Promise<GoalActionResult> {
   if (!checkIn) return {};
   const loaded = await loadEditable(checkIn.goalId);
   if ("error" in loaded) return loaded.missing ? {} : { error: loaded.error };
+  if (loaded.goal.measureUnit === null) return { error: "This goal has no number to track." };
 
   try {
     await db.$transaction(async (tx) => {
       await tx.goalCheckIn.deleteMany({ where: { id } });
-      const newest = await tx.goalCheckIn.findFirst({
+      const remaining = await tx.goalCheckIn.findMany({
         where: { goalId: checkIn.goalId },
         orderBy: { at: "desc" },
+        take: 1,
         select: { value: true, at: true },
       });
       await tx.goal.update({
         where: { id: checkIn.goalId },
-        data: newest
-          ? { currentValue: newest.value, checkedInAt: newest.at }
-          : { currentValue: loaded.goal.startValue, checkedInAt: null },
+        data: numberAfterCheckIns(loaded.goal.startValue, remaining),
       });
     });
   } catch (error) {

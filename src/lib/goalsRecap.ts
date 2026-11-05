@@ -1,6 +1,6 @@
 import { HOUSEHOLD_TIME_ZONE } from "./constants";
 import type { GoalRow } from "./goals";
-import { countInWindow, formatMeasure, type PlanItemRow, type PlanLogRow } from "./goalsProgress";
+import { buildPlanItemView, formatMeasure, weekSummary, type PlanItemRow, type PlanItemView, type PlanLogRow } from "./goalsProgress";
 import {
   addCalendarDays,
   dayOfWeek,
@@ -28,7 +28,7 @@ export type WeekRecap = {
   done: number;
   total: number;
   habits: { title: string; count: number; target: number; met: boolean }[];
-  measures: { goalTitle: string; from: string; to: string; unit: string }[];
+  measures: { goalTitle: string; from: string; to: string }[];
   stepsDone: string[];
 };
 
@@ -53,7 +53,6 @@ export function weekRecap(input: RecapGoalInput[], weekStart: CalendarDate): Wee
   const end = addCalendarDays(weekStart, 6);
   const from = zoneMidnightInstant(weekStart, HOUSEHOLD_TIME_ZONE).getTime();
   const until = zoneMidnightInstant(addCalendarDays(weekStart, 7), HOUSEHOLD_TIME_ZONE).getTime();
-  const window = { start: weekStart, end };
 
   let done = 0;
   let total = 0;
@@ -65,20 +64,26 @@ export function weekRecap(input: RecapGoalInput[], weekStart: CalendarDate): Wee
     if (goal.createdAt.getTime() >= until) continue;
     if (goal.completedAt !== null && goal.completedAt.getTime() < from) continue;
 
+    const habitViews: PlanItemView[] = [];
     for (const item of items) {
+      if (item.createdAt.getTime() >= until) continue;
       if (item.kind === "step") {
         if (item.doneAt !== null && item.doneAt.getTime() >= from && item.doneAt.getTime() < until) {
           stepsDone.push(item.title);
         }
         continue;
       }
-      if (item.kind !== "habit" || item.timesPerPeriod === null || item.period === null) continue;
-      if (item.period === "month") continue;
-      const target = item.period === "day" ? item.timesPerPeriod * 7 : item.timesPerPeriod;
-      const count = Math.min(countInWindow(logs.filter((log) => log.planItemId === item.id), window), target);
-      done += count;
-      total += target;
-      habits.push({ title: item.title, count, target, met: count >= target });
+      if (item.kind !== "habit") continue;
+      const view = buildPlanItemView(item, logs, weekStart);
+      if (view.windowLabel === "this week") habitViews.push(view);
+    }
+    // Same read as the This week header: day and week habits, capped at target.
+    const sum = weekSummary([{ items: habitViews }]);
+    done += sum.done;
+    total += sum.total;
+    for (const view of habitViews) {
+      const count = Math.min(view.count, view.target);
+      habits.push({ title: view.title, count, target: view.target, met: view.done });
     }
 
     const { measureUnit: unit, startValue, targetValue } = goal;
@@ -93,7 +98,6 @@ export function weekRecap(input: RecapGoalInput[], weekStart: CalendarDate): Wee
       goalTitle: goal.title,
       from: formatMeasure(startOfWeekValue, unit),
       to: formatMeasure(newest(inWeek).value, unit),
-      unit,
     });
   }
 

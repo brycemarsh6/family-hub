@@ -272,13 +272,16 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 - **Report:** (pending)
 
 ### F1: Pass-1 fixes that need no decision from Bryce
-- **Status:** PENDING
+- **Status:** DONE (Stark, verified by Fury: tsc, eslint, npm test 559/559, build exit 0)
 - **Boundaries:** may touch: `src/lib/goals.ts`, `src/lib/goals.test.ts`,
   `src/lib/goalsProgress.ts`, `src/lib/goalsProgress.test.ts`,
   `src/lib/goalsRecap.ts`, `src/lib/goalsRecap.test.ts`,
   `src/lib/goalsRead.ts`, `src/app/actions/goals.ts`,
   `src/components/GoalDetail.tsx`, `src/components/CheckInHistory.tsx`,
-  `src/components/GoalsTile.tsx`, `src/components/WeekRecapCard.tsx`
+  `src/components/GoalsTile.tsx`, `src/components/WeekRecapCard.tsx`,
+  and (widened by Fury after Stark's BLOCKED-ON-CONTRACT) the one-line
+  `createdAt` additions in `src/app/actions/planItems.ts` and
+  `src/lib/planItemChanges.test.ts`
   · must not touch: `prisma/`, `.avengers/`, docs, every other file.
 - **Spec:**
   1. Captain's BLOCKER. `weekRecap` builds each habit's view with
@@ -318,7 +321,7 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 - **Evidence required:** a line per item with file:line; outputs; test
   counts; line counts (`GoalDetail.tsx` must not grow).
 - **Done criteria:** each gate re-checks its own blockers in pass 2.
-- **Report:** (pending)
+- **Report:** all nine items; first run BLOCKED-ON-CONTRACT because `PlanItemRow.createdAt` reached two files outside the boundary (Fury's contract error again), widened and finished. GoalDetail 332 lines (shrank). Vision's `deleteCheckIn` race note left open.
 
 ## Gate ledger
 

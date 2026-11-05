@@ -14,7 +14,7 @@ export default function GoalsTile({
 }: {
   done: number;
   total: number;
-  todo: { title: string; left: number }[];
+  todo: { id: string; title: string; left: number }[];
 }) {
   return (
     <DashboardTile
@@ -36,10 +36,10 @@ export default function GoalsTile({
             <p className="mt-3 text-sm text-muted">All done this week</p>
           ) : (
             <>
-              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted">Still to do:</p>
+              <p className="mt-3 text-sm text-muted">Still to do:</p>
               <ul className="mt-1 text-sm">
                 {todo.map((habit) => (
-                  <li key={habit.title} className="truncate">
+                  <li key={habit.id} className="truncate">
                     {habit.title} · {habit.left} left
                   </li>
                 ))}

@@ -5,7 +5,7 @@ import { recapRangeLabel, type WeekRecap } from "@/lib/goalsRecap";
 export function WeekRecapCard({ recap }: { recap: WeekRecap }) {
   return (
     <section className="mb-4 rounded-2xl bg-accent-soft p-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-strong">
         Last week · {recapRangeLabel(recap.start, recap.end)}
       </h2>
       {recap.total > 0 && <p className="mt-1 text-lg font-bold tabular-nums">{recap.done} of {recap.total} done</p>}

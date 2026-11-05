@@ -3,10 +3,10 @@ import { db } from "@/lib/db";
 import {
   buildGoalView,
   canSee,
+  countsInScope,
   earlierDate,
   goalOnBoard,
   goalsInScope,
-  whoseGoal,
   type GoalRow,
   type GoalView,
   type PlanItemRow,
@@ -51,9 +51,10 @@ function logsFrom(today: CalendarDate): Date {
   return utcMidnightInstant(addCalendarDays(earliestWindowStart(today), -7));
 }
 
-function goalInclude(today: CalendarDate) {
+function goalInclude(today: CalendarDate, { checkIns = false }: { checkIns?: boolean } = {}) {
   return {
-    checkIns: { orderBy: { at: "desc" as const }, select: { id: true, value: true, at: true } },
+    // Check-in rows load only for the pages that show or sum them.
+    checkIns: checkIns ? { orderBy: { at: "desc" as const }, select: { id: true, value: true, at: true } } : false,
     owner: { select: OWNER_SELECT },
     planItems: {
       orderBy: [{ sortOrder: "asc" as const }, { createdAt: "asc" as const }],
@@ -66,8 +67,8 @@ function goalInclude(today: CalendarDate) {
 
 type LoadedGoal = Awaited<ReturnType<typeof findGoals>>[number];
 
-function findGoals(today: CalendarDate) {
-  return db.goal.findMany({ include: goalInclude(today), orderBy: [{ targetDate: "asc" }, { createdAt: "asc" }] });
+function findGoals(today: CalendarDate, options?: { checkIns?: boolean }) {
+  return db.goal.findMany({ include: goalInclude(today, options), orderBy: [{ targetDate: "asc" }, { createdAt: "asc" }] });
 }
 
 type GoalParts = { goal: GoalRow; items: PlanItemRow[]; logs: PlanLogRow[] };
@@ -102,6 +103,7 @@ function toParts(row: LoadedGoal, viewer: Viewer): GoalParts | null {
     period: toHabitPeriod(item.period),
     doneAt: item.doneAt,
     sortOrder: item.sortOrder,
+    createdAt: item.createdAt,
   }));
   const logs: PlanLogRow[] = row.planItems.flatMap((item) =>
     item.logs.map((log) => ({
@@ -130,7 +132,7 @@ export async function loadPlansPage(viewer: Viewer, today: CalendarDate): Promis
 
 /** One goal as the viewer sees it; null when it is missing or hidden from them. */
 export async function loadGoal(id: string, viewer: Viewer, today: CalendarDate): Promise<GoalView | null> {
-  const row = await db.goal.findUnique({ where: { id }, include: goalInclude(today) });
+  const row = await db.goal.findUnique({ where: { id }, include: goalInclude(today, { checkIns: true }) });
   return row ? toView(row, viewer, today, true) : null;
 }
 
@@ -152,7 +154,7 @@ export async function loadGoalAreaCounts(
 export async function loadGoalsTile(
   viewer: Viewer,
   today: CalendarDate,
-): Promise<{ done: number; total: number; todo: { title: string; left: number }[] }> {
+): Promise<{ done: number; total: number; todo: { id: string; title: string; left: number }[] }> {
   const { goals } = await loadPlansPage(viewer, today);
   const inScope = goalsInScope(goals, viewer, "mine");
   return { ...weekSummary(inScope), todo: weekTodo(inScope, 3) };
@@ -163,19 +165,19 @@ export async function loadGoalsTile(
  * (the chips switch between them on the client), or null when today is not
  * Sunday. Only what the viewer may see goes into either. Unlike the tile, a
  * goal completed during or after that week still counts, so the scope rule is
- * applied here with `whoseGoal` rather than through `goalsInScope`.
+ * applied here with `countsInScope` rather than through `goalsInScope`.
  */
 export async function loadWeekRecap(
   viewer: Viewer,
   today: CalendarDate,
 ): Promise<{ mine: WeekRecap | null; everyone: WeekRecap | null } | null> {
   if (!isRecapDay(today)) return null;
-  const rows = await findGoals(today);
+  const rows = await findGoals(today, { checkIns: true });
   const inputs: RecapGoalInput[] = rows.flatMap((row) => {
     const parts = toParts(row, viewer);
     return parts ? [{ ...parts, checkIns: row.checkIns.map(({ value, at }) => ({ value, at })) }] : [];
   });
   const lastWeek = addCalendarDays(startOfWeek(today), -7);
-  const mine = inputs.filter((input) => viewer.isDevice || whoseGoal(input.goal, viewer.userId) !== "theirs");
+  const mine = inputs.filter((input) => countsInScope(input.goal, viewer, "mine"));
   return { mine: weekRecap(mine, lastWeek), everyone: weekRecap(inputs, lastWeek) };
 }
