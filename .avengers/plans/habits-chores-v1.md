@@ -96,17 +96,24 @@ One-off jobs (returns, errands) belong in Lists, not here.
 
 ### Chores only
 
-22. **Chores get no streaks and do not count toward perfect days.** A chore
-    is a job to finish, not a habit to keep up.
+22. **Chores do not count toward perfect days**, but they get **their own
+    chore streak**, separate from habit streaks, so keeping up with chores
+    is something to be proud of (Bryce, 2026-11-05, replacing "chores get no
+    streaks").
+23. **Shout-outs for chores.** A shout-out when a person finishes their
+    chores on time, and a bigger one on Sunday when they finished all of
+    that week's chores. Bryce approves the wording.
+24. **Rewards come later**, building on the chore streak and the Sunday
+    shout-out.
 
 ### Other
 
-23. No points or rewards in the first version.
-24. Kids check off on the wall tablet for now (kid logins wait on the P3 role
+25. No points or rewards in the first version ("Rewards come later," above).
+26. Kids check off on the wall tablet for now (kid logins wait on the P3 role
     gates).
-25. No Apple Health sync (Marshee is a website; HealthKit needs an App Store
+27. No Apple Health sync (Marshee is a website; HealthKit needs an App Store
     app).
-26. No phone reminders for now. Web push on an iPhone home-screen app is
+28. No phone reminders for now. Web push on an iPhone home-screen app is
     possible but is its own project.
 
 ## First PR (approved)
@@ -128,7 +135,17 @@ One-off jobs (returns, errands) belong in Lists, not here.
 4. **Once a month: a set date, or any day that month?** Recommendation: any
    day that month, the same idea as "once a week, any day." A set date can
    be added later.
-5. **Review the redrawn mock** once it shows Habits and Chores, streaks,
+5. **Hard to undo. What does the chore streak count?** Recommendation:
+   days in a row on which every chore due that day was done on time. Days
+   with no chores due don't break it, a skipped chore is excused, and a
+   chore done late (carried over) breaks it, matching "done late" for
+   habits.
+6. **Who sees the shout-outs?** Recommendation: the daily one only on the
+   person's own screen; the Sunday one also on the family view and
+   dashboard, so the family sees it.
+7. **Does the streak switch in Settings also turn off the chore streak?**
+   Recommendation: yes, one switch for both, to keep Settings simple.
+8. **Review the redrawn mock** once it shows Habits and Chores, streaks,
    stats, carry-over and the chore chart.
 
 ## Not in the first PR
