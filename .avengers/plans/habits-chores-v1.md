@@ -350,3 +350,10 @@ button, the "Show in Routines" switch (may fold into the one habit system
 instead), one-step-at-a-time mode, the idea library, stars or rewards,
 parent approval of kids' check-offs (needs P3), amounts, importing Habit
 tracker history.
+
+## Build note (2026-11-05)
+
+PR A (mission 30, the engine and the move) is built on branch
+`claude/habits-a-engine`; it is not pushed or merged. Record:
+`.avengers/missions/mission-30-habits-a-engine.md`. PRs B to F are not
+started.

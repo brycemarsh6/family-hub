@@ -1,7 +1,7 @@
 # Mission 30: Habits & Chores PR A, the engine and the move
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** AT-THE-GATES (Captain pass 3 pending)
 **Started:** 2026-11-05 · **Updated:** 2026-11-05
 **Branch:** `claude/habits-a-engine` from `origin/main` at `361e7e9` (PR #40 merged)
 **Direction:** `.avengers/plans/habits-chores-v1.md` (decisions 68 to 83),
@@ -394,7 +394,7 @@ contract below is silent, the plan's words bind.
   F2 diff.
 
 ### F3 - Fix from Captain pass 2
-- **Status:** DISPATCHED
+- **Status:** DONE (Stark; Fury re-ran LA, 654 tests). Commit eaa80b5.
 - **Objective:** Move the Mine-or-Together participant choice out of the
   action into the goal policy file.
 - **Boundaries:** may touch: `src/lib/goals.ts`,
@@ -408,12 +408,11 @@ contract below is silent, the plan's words bind.
 - **Done criteria:** Captain pass 3.
 
 ### C6 - Records
-- **Status:** PENDING
+- **Status:** BUILT (Stark, 2026-11-05; A1 to A6 pasted into STRUCTURE.md with the A6 callers corrected; gates pending)
 - **Objective:** Bring the records up to date: CLAUDE.md "What's built" and
   "Current status"; STRUCTURE.md one-source list (`habitVocabulary.ts`,
   `src/lib/habits/`, `habitsRead.ts` as the only reader of habit rows for
   pages); `habits-chores-v1.md` noting PR A built; this mission file.
-- **Status:** DISPATCHED (with F3)
 - **Boundaries:** may touch: `CLAUDE.md`, `STRUCTURE.md`, `AGENTS.md`
   (the direct-timezone test command only: add `src/lib/habits/*.test.ts`),
   `.avengers/plans/habits-chores-v1.md`, this file · must not touch: code.
@@ -474,7 +473,7 @@ connection string lives only in Vercel).
 - **A3.** `calendarDateFromUtcMidnight` in `householdDate.ts`, defined right under `utcMidnightInstant`, is the only way to read a stored UTC-midnight day column (`HabitLog.day`, vacation days, `anchorWeek`, `streakAsOf`, all-day dates) back as a `CalendarDate`. `utcMidnightInstant` is the only way to write one. New code that inlines `calendarDateInZone(x, "UTC")` for a stored day is a BLOCKER. Four older `goal.targetDate` sites are grandfathered and move to the helper in the next mission that touches each one: `plans/goals/[id]/page.tsx`, `plans/goals/[id]/edit/page.tsx`, `actions/goals.ts` and `goalsProgress.ts`. (Added mission-30.)
 - **A4.** `householdParticipantIds(client)` in `habits/habitWrites.ts` is the one rule for who holds a Together habit: every active person who is not a shared device login. Callers ask for it with `createHabit`'s `participantIds: "household"`. They never query `User` for participants themselves, and an action that filters on `deactivatedAt` or `role` to pick habit participants is a BLOCKER. (Added mission-30.)
 - **A5.** `habits/access.ts` is the only habit policy: `canSeeHabit`, `canEditHabit` and `canLogFor`. They carry the `Habit` suffix so they never collide with `goals.ts`'s `canSee` / `canEdit` in a search or an import. An action, page or component that checks a habit's `isPrivate` or participant list itself is a BLOCKER. The plan-to-habit glue lives in `goals.ts` beside the goal policy: `habitInputFromPlan` (a plan item's fields become a Habit's), `habitParticipantsFor` (a Mine goal's owner, or the household) and `habitCheckTarget` (whose row a tap writes). It is pinned by `goalsHabitInput.test.ts`, and nothing outside `goals.ts` maps a goal to a habit. (Added mission-30.)
-- **A6.** The "Recompute streaks" door is the admin-only action `recomputeAllStreaks` in `src/app/actions/habits.ts`. It wraps the lib function of the same name in `habitWrites.ts`, imported as `rebuildAllStreaks`; that alias is deliberate, and new action files that wrap a same-named lib function do the same. Only `recomputeStreaks` / `recomputeAllStreaks` in `habitWrites.ts` write `currentStreak`, `bestStreak` and `streakAsOf`. `isUniqueViolationError` in `src/lib/prismaErrors.ts` is the only Prisma P2002 check (callers: `actions/mealPlans.ts`, `actions/visions.ts` and the habit writes); an inline `code === "P2002"` is a BLOCKER. (Added mission-30.)
+- **A6.** The "Recompute streaks" door is the admin-only action `recomputeAllStreaks` in `src/app/actions/habits.ts`. It wraps the lib function of the same name in `habitWrites.ts`, imported as `rebuildAllStreaks`; that alias is deliberate, and new action files that wrap a same-named lib function do the same. Only `recomputeStreaks` / `recomputeAllStreaks` in `habitWrites.ts` write `currentStreak`, `bestStreak` and `streakAsOf`. `isUniqueViolationError` in `src/lib/prismaErrors.ts` is the only Prisma P2002 check (callers: `actions/mealPlans.ts` and `actions/visions.ts`; corrected by C6, the habit writes have no P2002 check); an inline `code === "P2002"` is a BLOCKER. (Added mission-30.)
 - **A7 (needs Bryce's approval, not pasted).** Built-ahead engines: an export dormant by a written multi-PR plan may wait for the PR its "Dormant until PR X (mission N)" comment names; if mission N ships without calling it, the normal rule resumes. (Without it, `isPerfectDay` and `isPromptDay` would have to be deleted at mission 32.)
 - **A8 (needs Bryce's approval, not pasted).** One "household people" rule (active, not a device) in `src/lib/householdPeople.ts`, used by `householdParticipantIds` and `visionsRead.ts`; the two copies today are named debt.
 
@@ -535,6 +534,15 @@ connection string lives only in Vercel).
   warning. **The test goal is left on dev for the gates; Fury deletes its
   plan item, then the goal, after them.** Device refusal: not walked (no
   device login available to Fury); code at `preferences.ts:89`.
+
+- 2026-11-05: F3 committed eaa80b5. C6 built; Fury added the P3 correction
+  to CLAUDE.md (decision 83: commit 42bb676 is an ancestor of origin/main,
+  checked with `git merge-base --is-ancestor`; the same wording as branch
+  `claude/routines-plan`), fixed the stale `goals.test.ts` size line in
+  STRUCTURE.md, and corrected A6's caller list. Test goal deleted on dev via
+  the UI (row swipe Delete, then Delete goal); read-only count: 0 zz goals,
+  0 Habit, 0 HabitParticipant, 0 HabitLog, 0 zz plan items. Dev server
+  stopped. Next: Captain pass 3.
 
 ## Delivery
 

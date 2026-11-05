@@ -296,10 +296,76 @@ Adding a second definition of any of these is a BLOCKER:
   and `goalsRead.ts`), and the two check-in flags in `goalsRead.ts`
   (`goalInclude` and `toView`). **Size watch:** `GoalDetail.tsx` is 332
   lines (soft cap 350), so extract before the next feature; `goals.test.ts`
-  is 335, so split it by concern before it crosses the cap.
+  is 344 after mission 30 split its habit tests into `goalsHabitInput.test.ts`;
+  the next goal test goes in a new file by concern.
 - `src/lib/planItemChanges.ts`: `applyPlanItemChange`, the only optimistic
   reducer for plan items. (Added 2026-11-04, mission-27; Bryce approved the
   plan.)
+- `src/lib/habitVocabulary.ts` holds Habits & Chores' vocabulary:
+  `HABIT_KINDS`, `HABIT_MODES`, `HABIT_SCHEDULES` with
+  `HABIT_SCHEDULE_LABELS` (the habit editor's words), `HABIT_SHARING`,
+  `HABIT_LOG_STATUSES`, `TIMES_OF_DAY`, `HABIT_ICONS`, the weekday mask
+  (`parseWeekdayMask` / `printWeekdayMask`) and the `to*` repairers.
+  `HABIT_TIMES_LIMITS` (weekly 7, monthly 31) is the one answer to "how many
+  times can a period ask for". `schedule.ts` clamps with it and `goals.ts`'s
+  `HABIT_TIMES_MAX` derives from it, so a literal 7 or 31 for a habit limit
+  anywhere else is a BLOCKER. The file has **no imports**, so any lib file
+  may take words from it without risking a cycle. Plan-item period wording
+  ("Every day", "a week", "a month") is `PERIOD_LABELS` in
+  `goalVocabulary.ts`, beside `HABIT_PERIODS`. These are two different
+  vocabularies (`HabitPeriod` on a goal's plan, `HabitSchedule` on a habit)
+  and stay apart on purpose. (Added mission-30.)
+- `src/lib/habits/` is the habit engine, a domain subdirectory under the
+  `src/lib/voice/` precedent. `schedule.ts`, `carryOver.ts`, `streaks.ts`,
+  `progress.ts`, `perfectDays.ts`, `planPrompts.ts`, `access.ts`,
+  `habitRows.ts` and `types.ts` are pure: no Prisma client, no `db`, and
+  callers pass `today`. `habitWrites.ts` (`server-only`) is the only writer
+  of the `Habit`, `HabitParticipant` and `HabitLog` tables, and of the
+  cached streak columns. `src/lib/habitsRead.ts` is the only page reader of
+  habit rows. **Dependency direction:** `src/lib/habits/` may import
+  `habitVocabulary.ts`, `householdDate.ts`, `constants.ts`, `db.ts` and the
+  generated client (types). It never imports `goals*.ts`,
+  `goalVocabulary.ts` or `visions*.ts`. The goals side may import the engine
+  (`goalsProgress.ts` takes `habits/progress`, and `goals.ts` takes the
+  `HabitFields` type only). `src/lib/habits/*.test.ts` is in
+  `package.json`'s test script and both CI timezone steps. (Added
+  mission-30.)
+- `calendarDateFromUtcMidnight` in `householdDate.ts`, defined right under
+  `utcMidnightInstant`, is the only way to read a stored UTC-midnight day
+  column (`HabitLog.day`, vacation days, `anchorWeek`, `streakAsOf`, all-day
+  dates) back as a `CalendarDate`. `utcMidnightInstant` is the only way to
+  write one. New code that inlines `calendarDateInZone(x, "UTC")` for a
+  stored day is a BLOCKER. Four older `goal.targetDate` sites are
+  grandfathered and move to the helper in the next mission that touches each
+  one: `plans/goals/[id]/page.tsx`, `plans/goals/[id]/edit/page.tsx`,
+  `actions/goals.ts` and `goalsProgress.ts`. (Added mission-30.)
+- `householdParticipantIds(client)` in `habits/habitWrites.ts` is the one
+  rule for who holds a Together habit: every active person who is not a
+  shared device login. Callers ask for it with `createHabit`'s
+  `participantIds: "household"`. They never query `User` for participants
+  themselves, and an action that filters on `deactivatedAt` or `role` to
+  pick habit participants is a BLOCKER. (Added mission-30.)
+- `habits/access.ts` is the only habit policy: `canSeeHabit`, `canEditHabit`
+  and `canLogFor`. They carry the `Habit` suffix so they never collide with
+  `goals.ts`'s `canSee` / `canEdit` in a search or an import. An action,
+  page or component that checks a habit's `isPrivate` or participant list
+  itself is a BLOCKER. The plan-to-habit glue lives in `goals.ts` beside the
+  goal policy: `habitInputFromPlan` (a plan item's fields become a Habit's),
+  `habitParticipantsFor` (a Mine goal's owner, or the household) and
+  `habitCheckTarget` (whose row a tap writes). It is pinned by
+  `goalsHabitInput.test.ts`, and nothing outside `goals.ts` maps a goal to a
+  habit. (Added mission-30.)
+- The "Recompute streaks" door is the admin-only action
+  `recomputeAllStreaks` in `src/app/actions/habits.ts`. It wraps the lib
+  function of the same name in `habitWrites.ts`, imported as
+  `rebuildAllStreaks`; that alias is deliberate, and new action files that
+  wrap a same-named lib function do the same. Only `recomputeStreaks` /
+  `recomputeAllStreaks` in `habitWrites.ts` write `currentStreak`,
+  `bestStreak` and `streakAsOf`. `isUniqueViolationError` in
+  `src/lib/prismaErrors.ts` is the only Prisma P2002 check (callers:
+  `actions/mealPlans.ts` and `actions/visions.ts`; the habit writes have no
+  P2002 check of their own); an inline `code === "P2002"` is a BLOCKER.
+  (Added mission-30.)
 - `formatShortCalendarDate` in `householdDate.ts`: the shared "Nov 3"
   formatter (`MONTH_NAMES` is now exported from `mealPlanDates.ts` for it).
   (Added 2026-11-04, mission-27; Bryce approved the plan.)
