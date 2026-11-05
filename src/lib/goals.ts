@@ -54,6 +54,8 @@ export type GoalRow = {
 
 export type GoalView = GoalRow & {
   items: PlanItemView[];
+  /** Newest first. Empty unless the reader loaded them (only a single goal's page does). */
+  checkIns: { id: string; value: number; at: Date }[];
   progress: number;
   pace: PaceStatus;
   canEdit: boolean;
@@ -236,6 +238,7 @@ export function buildGoalView(
   return {
     ...goal,
     items: items.map((item) => buildPlanItemView(item, logs, today)),
+    checkIns: [],
     progress: progressFraction(goal),
     pace: paceStatus(goal, today),
     canEdit: canEdit(goal, viewer),

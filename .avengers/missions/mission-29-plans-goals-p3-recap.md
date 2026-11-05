@@ -189,7 +189,7 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 - **Report:** all five items as specified; 20 new tests. One expected break, accepted by Fury: `tsc` fails only in `src/app/(app)/(home)/page.tsx` because the registry gained `goals` and the page's tile record (C3's file) does not have it yet. That was Fury's contract error (the registry and the page cannot change apart). C3 must leave tsc at zero errors. Stark also skips goals created after the recap week ended (tested, beyond the Brief, accepted: a new goal should not add to a week it did not exist in) and caps recap counts at the target like `weekSummary`.
 
 ### C2: Data: the GoalCheckIn table, backfill, reader and actions
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury reviewed the SQL and applied it on dev with `prisma migrate deploy` after confirming the `ep-hidden-pine` host)
 - **Boundaries:** may touch: `prisma/schema.prisma`, new
   `prisma/migrations/20261105000000_add_goal_check_ins/migration.sql`,
   `src/lib/goalsRead.ts`, `src/lib/goals.ts` (view types only),
@@ -232,7 +232,7 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 - **Evidence required:** the SQL; a line per item; outputs.
 - **Done criteria:** Fury reviews and applies the SQL on dev, then
   counts rows (`GoalCheckIn` rows equals goals with a check-in).
-- **Report:** (pending)
+- **Report:** all four items. `loadWeekRecap(viewer, today)` returns `{ mine, everyone }` (both scopes, so the client chips need no second call; only the summary reaches the browser), null off Sundays; "mine" keeps goals completed mid-week, so it does not use `goalsInScope`. `buildGoalView` gained `checkIns: []` (needed by the type). Check-ins load with every goal read (small rows). Row count on dev after the migration: 0 history rows for 0 goals with a check-in (matches, but vacuously: the dev copy has no checked-in goals). Open question for Bryce: removing a goal's number to track leaves its old history rows behind.
 
 ### C3: Screens: the tile, the recap card, check-in history
 - **Status:** PENDING

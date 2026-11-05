@@ -548,6 +548,10 @@ model User {
   goalsCreated Goal[]    @relation("goalsCreated")
   planLogs     PlanLog[]
 
+  /// Plans & Goals PR 3: check-ins this person recorded (SetNull: the reading
+  /// still counts in the goal's history).
+  goalCheckIns GoalCheckIn[]
+
   /// Plans & Goals PR 2: vision statements on this person's board, and ones
   /// this person last saved. Both SetNull: a statement outlives its editor.
   visionsOwned   VisionStatement[] @relation("visionsOwned")
@@ -760,11 +764,34 @@ model Goal {
 
   planItems PlanItem[]
 
+  /// Every check-in ever recorded; currentValue / checkedInAt above mirror the newest.
+  checkIns GoalCheckIn[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([ownerId])
   @@index([targetDate])
+}
+
+/// One check-in on a goal's number: "it stood at this value, at this moment".
+/// The goal's own currentValue / checkedInAt always mirror the newest row (the
+/// actions keep them in step). `at` is a real instant, not a day. `createdById`
+/// is SetNull: the reading still counts after the person who made it is gone.
+/// Deleting the goal deletes its check-ins with it.
+model GoalCheckIn {
+  id String @id @default(cuid())
+
+  goalId String
+  goal   Goal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  value Float
+  at    DateTime @default(now())
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([goalId, at])
 }
 
 /// One thing under a goal: a habit (repeats N times a day, week or month), a

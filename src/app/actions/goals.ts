@@ -203,10 +203,52 @@ export async function checkInGoal(id: string, value: unknown): Promise<GoalActio
   if (loaded.goal.measureUnit === null) return { error: "This goal has no number to track." };
   if (typeof value !== "number" || !Number.isFinite(value)) return { error: "Enter a number." };
 
+  const at = new Date();
   try {
-    await db.goal.update({ where: { id }, data: { currentValue: value, checkedInAt: new Date() } });
+    await db.$transaction([
+      db.goal.update({ where: { id }, data: { currentValue: value, checkedInAt: at } }),
+      db.goalCheckIn.create({ data: { goalId: id, value, at, createdById: loaded.user.userId } }),
+    ]);
   } catch (error) {
     if (isMissingRowError(error)) return { error: GONE };
+    throw error;
+  }
+
+  refreshPlansViews();
+  return {};
+}
+
+/**
+ * Remove one check-in (already gone is success), then point the goal's current
+ * number back at the newest check-in left, or at its start value when none remain.
+ */
+export async function deleteCheckIn(id: string): Promise<GoalActionResult> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: NOT_SIGNED_IN };
+  if (user.isDevice) return { error: DEVICE_REFUSED };
+
+  const checkIn = await db.goalCheckIn.findUnique({ where: { id }, select: { goalId: true } });
+  if (!checkIn) return {};
+  const loaded = await loadEditable(checkIn.goalId);
+  if ("error" in loaded) return loaded.missing ? {} : { error: loaded.error };
+
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.goalCheckIn.deleteMany({ where: { id } });
+      const newest = await tx.goalCheckIn.findFirst({
+        where: { goalId: checkIn.goalId },
+        orderBy: { at: "desc" },
+        select: { value: true, at: true },
+      });
+      await tx.goal.update({
+        where: { id: checkIn.goalId },
+        data: newest
+          ? { currentValue: newest.value, checkedInAt: newest.at }
+          : { currentValue: loaded.goal.startValue, checkedInAt: null },
+      });
+    });
+  } catch (error) {
+    if (isMissingRowError(error)) return {};
     throw error;
   }
 
