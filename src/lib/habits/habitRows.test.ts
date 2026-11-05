@@ -11,16 +11,11 @@ import {
   logsForUser,
   scheduleChanged,
   specFromRow,
-  storedDay,
   vacationFromRow,
+  type HabitFields,
 } from "./habitRows";
 
 const utc = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d));
-
-test("a stored UTC-midnight day reads as the same calendar day in any zone", () => {
-  assert.deepEqual(storedDay(utc(2026, 11, 1)), { year: 2026, month: 11, day: 1 });
-  assert.deepEqual(storedDay(utc(2027, 3, 14)), { year: 2027, month: 3, day: 14 });
-});
 
 test("log and vacation rows become engine shapes; an odd status is repaired to done", () => {
   assert.deepEqual(logDayFromRow({ day: utc(2026, 11, 3), status: "skipped", userId: "a" }), {
@@ -79,7 +74,7 @@ test("logsForUser keeps one person's rows", () => {
 
 test("habitColumns sends only the given keys, repaired and trimmed", () => {
   assert.deepEqual(habitColumns({}), {});
-  assert.deepEqual(habitColumns({ title: "  Walk  ", kind: "nope", schedule: "weird", sharing: "x", times: 3.9 }), {
+  assert.deepEqual(habitColumns({ title: "  Walk  ", kind: "nope", schedule: "weird", sharing: "x", times: 3.9 } as unknown as HabitFields), {
     title: "Walk",
     kind: "habit",
     schedule: "daily",

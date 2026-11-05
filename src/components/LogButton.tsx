@@ -1,8 +1,8 @@
 import { Check, Plus } from "lucide-react";
 
 /**
- * The 44px round tap that logs a habit: an outlined "+" until the habit's
- * count for the window is met, then a filled check that taps back to undo.
+ * The 44px round tap that logs a habit: an outlined "+" until today has its
+ * check, then a filled check that taps back to undo.
  * `label` names the habit ("Run"), so the button reads "Log Run" / "Undo Run".
  */
 export function LogButton({

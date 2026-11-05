@@ -75,6 +75,8 @@ export const GOAL_OWNERSHIP_LABELS: Record<GoalOwnership, string> = {
   together: "Together",
 };
 
+export const PERIOD_LABELS: Record<HabitPeriod, string> = { day: "Every day", week: "a week", month: "a month" };
+
 /** How far ahead a vision statement looks, in years. */
 export const VISION_HORIZONS = [5, 10, 15] as const;
 

@@ -25,6 +25,10 @@ export function toHabitMode(raw: unknown): HabitMode {
 export const HABIT_SCHEDULES = ["daily", "weekdays", "weekly", "biweekly", "monthly"] as const;
 export type HabitSchedule = (typeof HABIT_SCHEDULES)[number];
 
+/**
+ * The schedule names, as the editor shows them.
+ * Dormant until PR B (mission 31): the habit editor's schedule picker.
+ */
 export const HABIT_SCHEDULE_LABELS: Record<HabitSchedule, string> = {
   daily: "Every day",
   weekdays: "Certain days",
@@ -32,6 +36,9 @@ export const HABIT_SCHEDULE_LABELS: Record<HabitSchedule, string> = {
   biweekly: "Every other week",
   monthly: "Monthly",
 };
+
+/** The most a weekly or monthly habit can ask for (a week has 7 days, a month at most 31). */
+export const HABIT_TIMES_LIMITS = { weekly: 7, monthly: 31 } as const;
 
 /** Anything unknown is "daily": a habit with a broken schedule still shows up. */
 export function toHabitSchedule(raw: unknown): HabitSchedule {
@@ -109,7 +116,10 @@ export function parseWeekdayMask(raw: unknown): Weekday[] | null {
   return days;
 }
 
-/** The mask for a set of weekdays; order and repeats in `days` do not matter. */
+/**
+ * The mask for a set of weekdays; order and repeats in `days` do not matter.
+ * Dormant until PR B (mission 31): the habit editor saves chosen weekdays.
+ */
 export function printWeekdayMask(days: readonly Weekday[]): string {
   return Array.from({ length: 7 }, (_, i) => (days.includes(i as Weekday) ? "1" : "0")).join("");
 }

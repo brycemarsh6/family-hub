@@ -4,7 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import { Flame, RefreshCw } from "lucide-react";
 import { ToggleSwitch } from "@/components/ToggleSwitch";
 import { saveShowStreaks } from "@/app/actions/preferences";
-import { recomputeStreaks } from "@/app/actions/habits";
+import { recomputeAllStreaks } from "@/app/actions/habits";
 
 /**
  * The "Habits & Chores" section on /settings: a "Show streaks" switch for
@@ -44,9 +44,12 @@ export function HabitsChoresSettings({
     setRecomputeMessage(null);
     setRecomputeError(null);
     try {
-      const result = await recomputeStreaks();
+      const result = await recomputeAllStreaks();
       if (result.error) setRecomputeError(result.error);
-      else setRecomputeMessage(`Updated ${result.updated ?? 0} streaks`);
+      else {
+        const count = result.updated ?? 0;
+        setRecomputeMessage(`Updated ${count} ${count === 1 ? "streak" : "streaks"}`);
+      }
     } catch {
       setRecomputeError("Couldn't recompute streaks. Check your connection and try again.");
     } finally {

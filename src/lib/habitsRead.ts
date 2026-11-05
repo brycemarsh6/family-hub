@@ -1,8 +1,8 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { calendarDateInZone, utcMidnightInstant, type CalendarDate } from "./householdDate";
-import { logDayFromRow, specFromRow, storedDay } from "./habits/habitRows";
+import { calendarDateFromUtcMidnight, utcMidnightInstant, type CalendarDate } from "./householdDate";
+import { logDayFromRow, specFromRow } from "./habits/habitRows";
 import type { HabitLogDay, ScheduleSpec } from "./habits/types";
 
 // The reader for habit rows, so pages never query the habit tables directly.
@@ -75,14 +75,14 @@ export async function loadHabitsForPlan(
         schedule: habit.schedule,
         weekdays: habit.weekdays,
         times: habit.times,
-        anchorWeek: habit.anchorWeek ? storedDay(habit.anchorWeek) : null,
+        anchorWeek: habit.anchorWeek ? calendarDateFromUtcMidnight(habit.anchorWeek) : null,
       },
       participantIds: habit.participants.map((p) => p.userId),
       participants: habit.participants.map((p) => ({
         userId: p.userId,
         currentStreak: p.currentStreak,
         bestStreak: p.bestStreak,
-        streakAsOf: p.streakAsOf ? calendarDateInZone(p.streakAsOf, "UTC") : null,
+        streakAsOf: p.streakAsOf ? calendarDateFromUtcMidnight(p.streakAsOf) : null,
       })),
       logs: logsByHabit.get(habit.id) ?? [],
     });

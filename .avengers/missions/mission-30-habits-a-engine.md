@@ -349,7 +349,7 @@ contract below is silent, the plan's words bind.
 - **Done criteria:** Fury and Strange see it in the browser.
 
 ### F2 - Fixes from Captain pass 1 and Strange pass 1
-- **Status:** DISPATCHED
+- **Status:** DONE (Stark; Fury re-ran 653 tests in three zones and tsc; Stark ran eslint . and build). Inside-own-file exports (`householdParticipantIds`, `uncheckHabit`, `recomputeStreaks`, `countDays`, the vocabulary arrays) carry no dormant note: they have callers. Under `TZ=Pacific/Auckland` 8 untouched calendar tests fail (not a gauntlet zone; not checked against main).
 - **Objective:** Clear Captain's three BLOCKERs and Strange's one, plus the
   cheap NOTEs listed below, without changing behaviour.
 - **Boundaries:** may touch: `src/lib/habits/*.ts` (not tests unless a

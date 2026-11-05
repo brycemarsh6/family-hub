@@ -1,3 +1,4 @@
+import { HABIT_TIMES_LIMITS } from "./habitVocabulary";
 import {
   GOAL_OWNERSHIPS,
   GOAL_OWNERSHIP_LABELS,
@@ -144,7 +145,7 @@ export const GOAL_TITLE_MAX = 120;
 export const GOAL_WHY_MAX = 500;
 export const MEASURE_UNIT_MAX = 12;
 /** The most checks a period holds with one check a day: a day has one, a week seven, a month 31. */
-export const HABIT_TIMES_MAX: Record<HabitPeriod, number> = { day: 1, week: 7, month: 31 };
+export const HABIT_TIMES_MAX: Record<HabitPeriod, number> = { day: 1, week: HABIT_TIMES_LIMITS.weekly, month: HABIT_TIMES_LIMITS.monthly };
 const PAST_DATE = "Pick a target date that isn't in the past.";
 
 function isRecord(raw: unknown): raw is Record<string, unknown> {

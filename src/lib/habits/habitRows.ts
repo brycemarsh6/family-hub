@@ -6,8 +6,12 @@ import {
   toHabitSharing,
   toHabitIcon,
   toTimeOfDay,
+  type HabitKind,
+  type HabitMode,
+  type HabitSchedule,
+  type HabitSharing,
 } from "../habitVocabulary";
-import { calendarDateInZone, utcMidnightInstant, type CalendarDate } from "../householdDate";
+import { calendarDateFromUtcMidnight, utcMidnightInstant, type CalendarDate } from "../householdDate";
 import { scheduleFromRow } from "./schedule";
 import type { HabitLogDay, ScheduleSpec, Vacation } from "./types";
 
@@ -15,7 +19,7 @@ import type { HabitLogDay, ScheduleSpec, Vacation } from "./types";
 // out of the server modules so it can be tested without a database. Nothing
 // here imports Prisma: the shapes below are just the columns the engine needs.
 // Stored days are UTC midnight, so they are read once with
-// `calendarDateInZone(d, "UTC")` and written with `utcMidnightInstant`.
+// `calendarDateFromUtcMidnight` and written with `utcMidnightInstant`.
 
 /** The stored columns that decide a habit's schedule. */
 export type StoredScheduleFields = {
@@ -28,17 +32,12 @@ export type StoredScheduleFields = {
 export type StoredLog = { day: Date; status: string; userId: string };
 export type StoredVacation = { startDay: Date; endDay: Date };
 
-/** A stored day column as the household day it holds. */
-export function storedDay(stored: Date): CalendarDate {
-  return calendarDateInZone(stored, "UTC");
-}
-
 export function logDayFromRow(row: StoredLog): HabitLogDay {
-  return { day: storedDay(row.day), status: toHabitLogStatus(row.status), userId: row.userId };
+  return { day: calendarDateFromUtcMidnight(row.day), status: toHabitLogStatus(row.status), userId: row.userId };
 }
 
 export function vacationFromRow(row: StoredVacation): Vacation {
-  return { start: storedDay(row.startDay), end: storedDay(row.endDay) };
+  return { start: calendarDateFromUtcMidnight(row.startDay), end: calendarDateFromUtcMidnight(row.endDay) };
 }
 
 /** The engine's reading of a stored habit; null when it cannot be scheduled (see `scheduleFromRow`). */
@@ -47,7 +46,7 @@ export function specFromRow(row: StoredScheduleFields): ScheduleSpec | null {
     schedule: row.schedule,
     weekdays: row.weekdays,
     times: row.times,
-    anchorWeek: row.anchorWeek ? storedDay(row.anchorWeek) : null,
+    anchorWeek: row.anchorWeek ? calendarDateFromUtcMidnight(row.anchorWeek) : null,
   });
 }
 
@@ -83,17 +82,17 @@ export function logsForUser(logs: readonly HabitLogDay[], userId: string): Habit
 /** The editable columns of a habit. `undefined` means "leave as is"; `null` clears. */
 export type HabitFields = {
   title?: string;
-  kind?: string;
-  mode?: string;
+  kind?: HabitKind;
+  mode?: HabitMode;
   icon?: string | null;
   lifeArea?: string | null;
   timeOfDay?: string | null;
-  schedule?: string;
+  schedule?: HabitSchedule;
   weekdays?: string | null;
   times?: number | null;
   anchorWeek?: CalendarDate | null;
   carryOver?: boolean;
-  sharing?: string;
+  sharing?: HabitSharing;
   isPrivate?: boolean;
   createdById?: string | null;
 };

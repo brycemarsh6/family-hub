@@ -3,7 +3,7 @@ import type { CalendarDate } from "../householdDate";
 import type { HabitLogStatus, Weekday } from "../habitVocabulary";
 
 // The pure engine's own types. Nothing here comes from the Prisma client:
-// callers convert stored rows once (days with `calendarDateInZone(d, "UTC")`)
+// callers convert stored rows once (days with `calendarDateFromUtcMidnight`)
 // and pass these in, so the engine never touches the database.
 
 export type { Weekday };

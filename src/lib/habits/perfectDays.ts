@@ -13,6 +13,7 @@ export type DayEntry = { kind: HabitKind; state: DueState; status: HabitLogStatu
 /**
  * True when every required habit was done or skipped (a "late" row keeps the
  * day missed), false when one was not, null when no habit was required.
+ * Dormant until PR C (mission 32): streaks and the family view count perfect days.
  */
 export function isPerfectDay(entries: readonly DayEntry[]): boolean | null {
   const required = entries.filter((entry) => entry.kind === "habit" && entry.state === "required");
@@ -20,7 +21,10 @@ export function isPerfectDay(entries: readonly DayEntry[]): boolean | null {
   return required.every((entry) => entry.status === "done" || entry.status === "skipped");
 }
 
-/** The perfect days from `from` to `to`, oldest first; `entriesFor` supplies each day's entries. */
+/**
+ * The perfect days from `from` to `to`, oldest first; `entriesFor` supplies each day's entries.
+ * Dormant until PR C (mission 32): streaks and the family view count perfect days.
+ */
 export function perfectDaysInRange(
   from: CalendarDate,
   to: CalendarDate,

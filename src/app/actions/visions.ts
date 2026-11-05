@@ -11,6 +11,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
+import { isUniqueViolationError } from "@/lib/prismaErrors";
 import { canEditVision, validateVisionInput, visionBoardKey } from "@/lib/visions";
 
 export type VisionActionResult = { error?: string };
@@ -37,7 +38,7 @@ export async function saveVision(raw: unknown): Promise<VisionActionResult> {
       await db.visionStatement.upsert({ where: key, create, update });
     } catch (error) {
       // Two first saves at once: the other one created the row between our look and our write. Update it.
-      if ((error as { code?: string }).code !== "P2002") throw error;
+      if (!isUniqueViolationError(error)) throw error;
       await db.visionStatement.upsert({ where: key, create, update });
     }
   }

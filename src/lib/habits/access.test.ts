@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canEdit, canLogFor, canSee } from "./access";
+import { canEditHabit, canLogFor, canSeeHabit } from "./access";
 import type { HabitAccess, HabitActor } from "./types";
 
 const admin: HabitActor = { userId: "admin", role: "admin" };
@@ -14,26 +14,26 @@ const device: HabitActor = { userId: "tablet", role: "device" };
 const shared: HabitAccess = { isPrivate: false, participantIds: ["kid", "parent"] };
 const hidden: HabitAccess = { isPrivate: true, participantIds: ["kid"] };
 
-test("canSee: a shared habit is seen by everyone, the tablet included", () => {
-  for (const actor of [admin, parent, kid, other, device]) assert.equal(canSee(actor, shared), true, actor.role);
+test("canSeeHabit: a shared habit is seen by everyone, the tablet included", () => {
+  for (const actor of [admin, parent, kid, other, device]) assert.equal(canSeeHabit(actor, shared), true, actor.role);
 });
 
-test("canSee: a private habit only by its participants, never by the tablet", () => {
-  assert.equal(canSee(kid, hidden), true);
-  assert.equal(canSee(other, hidden), false);
-  assert.equal(canSee(admin, hidden), false);
-  assert.equal(canSee(device, hidden), false);
-  assert.equal(canSee({ userId: "kid", role: "device" }, hidden), false);
+test("canSeeHabit: a private habit only by its participants, never by the tablet", () => {
+  assert.equal(canSeeHabit(kid, hidden), true);
+  assert.equal(canSeeHabit(other, hidden), false);
+  assert.equal(canSeeHabit(admin, hidden), false);
+  assert.equal(canSeeHabit(device, hidden), false);
+  assert.equal(canSeeHabit({ userId: "kid", role: "device" }, hidden), false);
 });
 
-test("canEdit: never the tablet; a participant or a manager", () => {
-  assert.equal(canEdit(device, shared), false);
-  assert.equal(canEdit(kid, shared), true); // participant
-  assert.equal(canEdit(other, shared), false); // neither
-  assert.equal(canEdit(parent, shared), true);
-  assert.equal(canEdit(admin, shared), true); // manager, not a participant
-  assert.equal(canEdit(admin, hidden), false); // private stays private
-  assert.equal(canEdit(kid, hidden), true);
+test("canEditHabit: never the tablet; a participant or a manager", () => {
+  assert.equal(canEditHabit(device, shared), false);
+  assert.equal(canEditHabit(kid, shared), true); // participant
+  assert.equal(canEditHabit(other, shared), false); // neither
+  assert.equal(canEditHabit(parent, shared), true);
+  assert.equal(canEditHabit(admin, shared), true); // manager, not a participant
+  assert.equal(canEditHabit(admin, hidden), false); // private stays private
+  assert.equal(canEditHabit(kid, hidden), true);
 });
 
 test("canLogFor: yourself, when you are a participant", () => {

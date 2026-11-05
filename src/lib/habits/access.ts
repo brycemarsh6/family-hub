@@ -12,15 +12,21 @@ function isManager(actor: HabitActor): boolean {
   return MANAGER_ROLES.includes(actor.role);
 }
 
-/** Private habits are seen only by their participants; the tablet never sees one. */
-export function canSee(actor: HabitActor, habit: HabitAccess): boolean {
+/**
+ * Private habits are seen only by their participants; the tablet never sees one.
+ * Dormant until PR B (mission 31): the habit actions gate on who may see a habit.
+ */
+export function canSeeHabit(actor: HabitActor, habit: HabitAccess): boolean {
   if (!habit.isPrivate) return true;
   return actor.role !== "device" && isParticipant(habit, actor.userId);
 }
 
-/** Never the tablet; a participant or a manager who can see the habit. */
-export function canEdit(actor: HabitActor, habit: HabitAccess): boolean {
-  if (actor.role === "device" || !canSee(actor, habit)) return false;
+/**
+ * Never the tablet; a participant or a manager who can see the habit.
+ * Dormant until PR B (mission 31): the habit editor actions gate on who may edit.
+ */
+export function canEditHabit(actor: HabitActor, habit: HabitAccess): boolean {
+  if (actor.role === "device" || !canSeeHabit(actor, habit)) return false;
   return isParticipant(habit, actor.userId) || isManager(actor);
 }
 
@@ -30,6 +36,6 @@ export function canEdit(actor: HabitActor, habit: HabitAccess): boolean {
  * actor must also be able to see the habit.
  */
 export function canLogFor(actor: HabitActor, forUserId: string, habit: HabitAccess): boolean {
-  if (!isParticipant(habit, forUserId) || !canSee(actor, habit)) return false;
+  if (!isParticipant(habit, forUserId) || !canSeeHabit(actor, habit)) return false;
   return actor.userId === forUserId || actor.role === "device" || isManager(actor);
 }

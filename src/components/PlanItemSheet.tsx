@@ -8,6 +8,7 @@ import { GOAL_TITLE_MAX, HABIT_TIMES_MAX, type PlanItemView } from "@/lib/goals"
 import {
   HABIT_PERIODS,
   PLAN_KINDS,
+  PERIOD_LABELS,
   PLAN_KIND_LABELS,
   lifeAreaInfo,
   type HabitPeriod,
@@ -15,8 +16,6 @@ import {
   type PlanKind,
 } from "@/lib/goalVocabulary";
 import { createPlanItem, deletePlanItem, updatePlanItem } from "@/app/actions/planItems";
-
-const PERIOD_LABELS: Record<HabitPeriod, string> = { day: "Every day", week: "a week", month: "a month" };
 
 /**
  * Add one thing to a goal's plan, or edit one that is already there. A habit
@@ -180,7 +179,7 @@ export function PlanItemSheet({
                       type="button"
                       onClick={() => setPeriod(option)}
                       aria-pressed={period === option}
-                      className={`min-h-11 flex-1 rounded-lg px-3 text-sm font-medium transition-colors ${
+                      className={`min-h-11 flex-1 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors ${
                         period === option ? "bg-surface text-fg" : "text-muted-strong"
                       }`}
                     >

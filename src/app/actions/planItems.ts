@@ -137,14 +137,11 @@ export async function createPlanItem(goalId: string, raw: unknown): Promise<Crea
 
 /** The Habit behind a new habit item: the goal's owner for a Mine goal, every active person for a Together one. */
 async function newHabit(tx: Prisma.TransactionClient, input: PlanItemInput, goal: GoalPolicyRow, user: VerifiedUser) {
-  const people =
-    goal.ownerId !== null
-      ? [goal.ownerId]
-      : (await tx.user.findMany({ where: { deactivatedAt: null, role: { not: "device" } }, select: { id: true } })).map(
-          (person) => person.id,
-        );
   return createHabit(
-    { fields: { ...habitInputFromPlan(input, goal), createdById: user.userId }, participantIds: people },
+    {
+      fields: { ...habitInputFromPlan(input, goal), createdById: user.userId },
+      participantIds: goal.ownerId !== null ? [goal.ownerId] : "household",
+    },
     tx,
   );
 }
@@ -261,7 +258,9 @@ export async function undoHabitLog(id: string): Promise<PlanItemActionResult> {
   if ("error" in target) return { error: target.error };
   if ("unlinked" in target) return {};
 
-  const window = periodWindow(target.spec ?? { schedule: "weekly", times: 1 }, today);
+  if (!target.spec) return {};
+
+  const window = periodWindow(target.spec, today);
   const { removed } = await uncheckNewest(target.habitId, target.forUserId, window, today);
   if (removed === 0) return {};
 

@@ -14,11 +14,11 @@ import "server-only";
 // `db.$transaction`. Either way it commits or rolls back as one.
 //
 // Every day goes in through `utcMidnightInstant` and comes out through
-// `calendarDateInZone(d, "UTC")` (see habitRows.ts).
+// `calendarDateFromUtcMidnight` (see habitRows.ts).
 
 import { db } from "@/lib/db";
 import type { Habit, Prisma } from "@/generated/prisma/client";
-import { utcMidnightInstant, type CalendarDate } from "../householdDate";
+import { calendarDateFromUtcMidnight, utcMidnightInstant, type CalendarDate } from "../householdDate";
 import { toHabitLogStatus, toHabitSchedule, type HabitLogStatus } from "../habitVocabulary";
 import {
   checkTargetUserIds,
@@ -27,7 +27,6 @@ import {
   logsForUser,
   scheduleChanged,
   specFromRow,
-  storedDay,
   vacationFromRow,
   type HabitFields,
 } from "./habitRows";
@@ -47,12 +46,23 @@ const SCHEDULE_SELECT = { schedule: true, weekdays: true, times: true, anchorWee
 /** Fields for a new habit; title and schedule are required, the rest take the column defaults. */
 export type NewHabit = HabitFields & { title: string; schedule: string };
 
-/** Creates a habit and its participants (one nested write, so it is atomic by itself). */
+/** Every active person who can hold a habit: not deactivated, not a shared device login. */
+export async function householdParticipantIds(client: Prisma.TransactionClient = db): Promise<string[]> {
+  const people = await client.user.findMany({ where: { deactivatedAt: null, role: { not: "device" } }, select: { id: true } });
+  return people.map((person) => person.id);
+}
+
+/**
+ * Creates a habit and its participants (one nested write, so it is atomic by
+ * itself). `participantIds` is a list of people, or "household" for everyone
+ * active (a Together goal's habit).
+ */
 export async function createHabit(
-  input: { fields: NewHabit; participantIds: readonly string[] },
+  input: { fields: NewHabit; participantIds: readonly string[] | "household" },
   client: Prisma.TransactionClient = db,
 ): Promise<Habit> {
-  const userIds = [...new Set(input.participantIds)];
+  const ids = input.participantIds === "household" ? await householdParticipantIds(client) : input.participantIds;
+  const userIds = [...new Set(ids)];
   return client.habit.create({
     data: {
       ...habitColumns(input.fields),
@@ -98,13 +108,19 @@ export async function deleteHabit(
   });
 }
 
-/** Sets `archivedAt` to `at`; false when the habit is missing. */
+/**
+ * Sets `archivedAt` to `at`; false when the habit is missing.
+ * Dormant until PR B (mission 31): the habit editor's Archive.
+ */
 export async function archiveHabit(habitId: string, at: Date, client: Prisma.TransactionClient = db): Promise<boolean> {
   const result = await client.habit.updateMany({ where: { id: habitId }, data: { archivedAt: at } });
   return result.count > 0;
 }
 
-/** Clears `archivedAt`; false when the habit is missing. */
+/**
+ * Clears `archivedAt`; false when the habit is missing.
+ * Dormant until PR B (mission 31): the Archived list's Restore.
+ */
 export async function restoreHabit(habitId: string, client: Prisma.TransactionClient = db): Promise<boolean> {
   const result = await client.habit.updateMany({ where: { id: habitId }, data: { archivedAt: null } });
   return result.count > 0;
@@ -152,7 +168,10 @@ export async function checkHabit(
   });
 }
 
-/** Writes a "skipped" row for the day (the same fan-out and no-op rules as `checkHabit`). */
+/**
+ * Writes a "skipped" row for the day (the same fan-out and no-op rules as `checkHabit`).
+ * Dormant until PR B (mission 31): the Today list's Skip.
+ */
 export function skipHabit(
   input: { habitId: string; forUserId: string; day: CalendarDate; loggedById: string | null },
   today: CalendarDate,
@@ -210,7 +229,7 @@ export async function uncheckNewest(
       select: { day: true },
     });
     if (!newest) return { removed: 0, day: null, userIds: [] };
-    const day = storedDay(newest.day);
+    const day = calendarDateFromUtcMidnight(newest.day);
     return uncheckHabit({ habitId, forUserId: userId, day }, today, tx);
   });
 }

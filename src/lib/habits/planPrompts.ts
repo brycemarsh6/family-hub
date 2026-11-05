@@ -15,6 +15,7 @@ const FRIDAY = 5;
  * a prompt day. Weekly (and a due biweekly week): Friday. Monthly: Sundays on
  * days 1 to 14, Sundays and Thursdays from day 15. A planned day that has
  * passed undone does not hold the prompt back.
+ * Dormant until PR E (mission 34): the dashboard prompts on open habits.
  */
 export function isPromptDay(
   spec: ScheduleSpec,

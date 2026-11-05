@@ -1,4 +1,5 @@
 import {
+  HABIT_TIMES_LIMITS,
   parseWeekdayMask,
   type Weekday,
 } from "../habitVocabulary";
@@ -56,13 +57,13 @@ export function scheduleFromRow(row: ScheduleRow): ScheduleSpec | null {
     case "weekdays":
       return days && days.length > 0 ? { schedule: "weekdays", days } : null;
     case "weekly":
-      return { schedule: "weekly", times: clampTimes(row.times, 7) };
+      return { schedule: "weekly", times: clampTimes(row.times, HABIT_TIMES_LIMITS.weekly) };
     case "biweekly":
       return days && row.anchorWeek
         ? { schedule: "biweekly", days, anchorWeek: startOfWeek(row.anchorWeek) }
         : null;
     case "monthly":
-      return { schedule: "monthly", times: clampTimes(row.times, 31) };
+      return { schedule: "monthly", times: clampTimes(row.times, HABIT_TIMES_LIMITS.monthly) };
     default:
       return null;
   }
@@ -129,6 +130,7 @@ export function periodTarget(spec: ScheduleSpec, day: CalendarDate): number {
  * an open kind is open until `doneInPeriod` (checks so far this period)
  * reaches the target, then none; a planned day makes any kind required,
  * unless an open kind's target is already met.
+ * Dormant until PR B (mission 31): the Today list sorts required from open.
  */
 export function dueState(
   spec: ScheduleSpec,
@@ -143,6 +145,10 @@ export function dueState(
   return planned || isScheduledDay(spec, day) ? "required" : "none";
 }
 
+/**
+ * Every scheduled day from `from` to `to`, oldest first.
+ * Dormant until PR B (mission 31): the Today list and its history read scheduled days.
+ */
 export function scheduledDaysInRange(spec: ScheduleSpec, from: CalendarDate, to: CalendarDate): CalendarDate[] {
   const days: CalendarDate[] = [];
   for (let day = from; compareDays(day, to) <= 0; day = addCalendarDays(day, 1)) {

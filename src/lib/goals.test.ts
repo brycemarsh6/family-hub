@@ -2,7 +2,7 @@
 // goal is built into a view, and what the goal and plan forms may submit.
 // Windows, counts, progress, pace and formatting are in goalsProgress.test.ts,
 // the vocabulary in goalVocabulary.test.ts, tap-time changes in
-// planItemChanges.test.ts.
+// planItemChanges.test.ts, the habit glue in goalsHabitInput.test.ts.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -20,8 +20,6 @@ import {
   goalOwnership,
   countsInScope,
   goalsInScope,
-  habitCheckTarget,
-  habitInputFromPlan,
   isPrivateGoal,
   nextStep,
   validateGoalInput,
@@ -175,17 +173,8 @@ test("validateGoalInput: accepts a complete goal and trims it", () => {
 });
 
 test("validateGoalInput: the minimum goal needs no why, no number", () => {
-  const result = validateGoalInput(
-    {
-      title: "Date night",
-      area: "relationships",
-      targetDate: "2026-11-04",
-      ownership: "together",
-      visibility: "shared",
-      why: "   ",
-    },
-    TODAY,
-  );
+  const raw = { title: "Date night", area: "relationships", targetDate: "2026-11-04", ownership: "together", visibility: "shared", why: "   " };
+  const result = validateGoalInput(raw, TODAY);
   assert.deepEqual(result, {
     ok: {
       title: "Date night",
@@ -352,28 +341,4 @@ test("countsInScope: completed goals still count; only someone else's goals drop
   assert.equal(countsInScope(theirs, ME, "mine"), false);
   assert.equal(countsInScope(theirs, ME, "everyone"), true);
   assert.equal(countsInScope(theirs, TABLET, "mine"), true);
-});
-
-test("habitInputFromPlan: every day, N a week and N a month become a daily, weekly or monthly Habit", () => {
-  const mine = { ownerId: "me", visibility: "shared", area: "health" };
-  const input = (timesPerPeriod: number, period: "day" | "week" | "month") => ({ title: "Run", kind: "habit" as const, timesPerPeriod, period });
-  const daily = habitInputFromPlan(input(1, "day"), mine);
-  assert.deepEqual([daily.schedule, daily.times, daily.sharing, daily.isPrivate, daily.lifeArea], ["daily", null, "each", false, "health"]);
-  const weekly = habitInputFromPlan(input(3, "week"), mine);
-  assert.deepEqual([weekly.schedule, weekly.times], ["weekly", 3]);
-  const monthly = habitInputFromPlan(input(2, "month"), mine);
-  assert.deepEqual([monthly.schedule, monthly.times], ["monthly", 2]);
-});
-
-test("habitInputFromPlan: a Together goal's habit is shared, a private Mine goal's is private", () => {
-  const input = { title: "Walk", kind: "habit" as const, timesPerPeriod: 1, period: "day" as const };
-  assert.equal(habitInputFromPlan(input, { ownerId: null, visibility: "shared", area: "health" }).sharing, "together");
-  assert.equal(habitInputFromPlan(input, { ownerId: "me", visibility: "private", area: "health" }).isPrivate, true);
-});
-
-test("habitCheckTarget: a Mine goal checks for its owner; Together for the tapper, else the first participant", () => {
-  assert.equal(habitCheckTarget({ ownerId: "me" }, "me", ["me"]), "me");
-  assert.equal(habitCheckTarget({ ownerId: null }, "spouse", ["me", "spouse"]), "spouse");
-  assert.equal(habitCheckTarget({ ownerId: null }, "tablet", ["me", "spouse"]), "me");
-  assert.equal(habitCheckTarget({ ownerId: null }, "tablet", []), "tablet");
 });
