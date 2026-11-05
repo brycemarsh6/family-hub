@@ -261,7 +261,18 @@ One-off jobs (returns, errands) belong in Lists, not here.
     down arrows). Each row has a grip handle on the right; press and drag
     the handle to move the row. Dragging only starts on the handle, so
     swiping the list still scrolls and swiping a row still opens its
-    actions.
+    actions. **The dashboard's Customize sheet switches to drag and drop
+    too**, in the dashboard PR, so reordering works one way everywhere.
+66. **A Habit manager, apart from the main list.** The main Habits & Chores
+    list is only for checking things off. Reordering, editing, archiving
+    and adding items happen in a separate Habit manager, the way Habit
+    tracker has one.
+
+### Settings ideas, open
+
+- Where the Habit manager and the per-person switches (streaks, vacation
+  mode, Winnie texts) live: inside the Habits & Chores tab, or in Marshee's
+  Settings. Asked 2026-11-05.
 62. **Each habit row shows its current streak** (a small flame and number),
     hidden when the person's streak switch is off.
 63. **Fixed times of day:** Morning until noon, Afternoon until 6 pm,
