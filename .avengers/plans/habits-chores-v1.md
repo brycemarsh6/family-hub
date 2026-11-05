@@ -122,7 +122,9 @@ One-off jobs (returns, errands) belong in Lists, not here.
 - An icon on each item.
 - Skip today.
 
-### Accepted recommendations (Bryce, 2026-11-05)
+## More decisions (Bryce, 2026-11-05)
+
+### Accepted recommendations
 
 29. **A this-week change** can move a chore to another day this week or skip
     it this week. The default chart stays as it is, and next week starts
@@ -147,39 +149,80 @@ One-off jobs (returns, errands) belong in Lists, not here.
     "Any time this month" quietly becomes "never" unless it is planned in.
     - When creating a once-a-month item, choose a planned day now, or leave
       it as any time.
-    - Until it is planned, Marshee asks **every Sunday and every Thursday**:
-      "You want to do this once a month. What day will you do it?"
+    - Until it is planned, Marshee asks what day you will do it, on the
+      schedule in "When the plan-the-day prompt goes out" below.
     - A planned day is a plan, not a deadline. Missing it is no penalty;
       the item is still due any day that month.
 37. **The dashboard matters most for this.** It should stay clean, not
     cluttered, and show the few things most likely to slip through the
     cracks: what is planned today, and what still needs a day picked.
 
+### Plan the day, round two (Bryce, 2026-11-05)
+
+38. **When the plan-the-day prompt goes out.** A prompt only goes out for
+    an item that is not done and has no planned day still ahead.
+    - **Once a week, any day:** one prompt on **Friday** (the week runs
+      Sunday to Saturday). An item already planned for Friday, Saturday or
+      Sunday gets no prompt.
+    - **Once a month** (calendar month, resets each month): in the first
+      two weeks, **Sundays only**; in the last two weeks, **Sundays and
+      Thursdays**. Fewer prompts early, more as the month runs out, so they
+      don't get ignored.
+    - A planned day that passes undone asks again at the next prompt, and
+      the item stays due for the rest of its week or month.
+39. **The prompt appears** as a card on the dashboard and at the top of
+    Habits & Chores, with one-tap day choices.
+40. **A planned day shows on the Calendar** as a task, in the second PR.
+41. **The dashboard work** (chore chart, planning prompts, shout-outs) is
+    the second PR. The first PR builds the tab, items, schedules,
+    carry-over, streaks and the family tablet view.
+
+### Reminders by text, through Winnie
+
+42. **No phone notifications from Marshee.** Instead, **Winnie** (Bryce's
+    Grok bot, the client of `/api/assistant/v1/`) texts Bryce and Emily
+    the reminders and prompts. Texts are harder to ignore than
+    notifications.
+    - Marshee tells Winnie when a reminder is due (a webhook: Marshee calls
+      a web address Winnie listens on), and Winnie sends the text.
+    - Later, Winnie can act in Marshee on a text reply ("I'll do the temple
+      on the 14th"), using the Assistant API.
+    - This is its own project, after the Habits & Chores PRs. It touches
+      the Assistant API plan (`assistant-api-v1.md`).
+43. **An assistant button inside Marshee** (a small sparkles-style icon)
+    opens a chat that goes to Winnie. Its own project, after the texts.
+
+### The dashboard, Bryce's vision
+
+44. **The dashboard is extremely customizable, down to single items.**
+    Today each person can show, hide and reorder tiles. Next, inside the
+    Customize sheet, a tile like Habits or Goals opens a list of that
+    person's habits or goals, and they pick which ones the tile shows.
+    Example: hide "Brush teeth" (always done), show the one or two habits
+    they struggle with. The same for goals and the vision board. Limited
+    space, chosen on purpose, nothing cluttered.
+
 ## Open questions
 
-1. **Does "plan the day" also apply to once-a-week, any-day items** (the
-   family-member example) and to every-other-week items? Recommendation:
-   yes, with the prompt on Sunday only for weekly items, since Sunday is
-   already the planning day. Monthly items get Sunday and Thursday.
-2. **When a planned day passes and the item isn't done, what happens?**
-   Recommendation: it asks again for a new day at the next prompt, and
-   the item stays due for the rest of its month or week.
-3. **Where does the prompt appear?** Marshee can't send phone
-   notifications yet (that is its own project). Recommendation: a card on
-   the dashboard and at the top of Habits & Chores on Sundays and
-   Thursdays, with one-tap day choices for the rest of the week or month.
-4. **Does a planned day show on the Calendar?** Recommendation: yes, as a
-   task on that day, in the second PR.
-5. **Is the dashboard work (chore chart, planning prompts, shout-outs) all
-   in the second PR?** Recommendation: yes. The first PR builds the tab,
-   items, schedules, carry-over, streaks and the family tablet view; the
-   second makes the dashboard the place nothing slips.
+1. **Who gets Winnie's texts?** Recommendation: each person turns texts on
+   or off for themselves in Settings, so Emily chooses her own.
+2. **What time do prompts go out?** Recommendation: 8:00 am Denver time,
+   one bundled text per person per day, not one text per item.
+3. **"First two weeks" of a month: days 1 to 14?** Recommendation: yes,
+   days 1 to 14 get Sunday prompts; day 15 to the end of the month get
+   Sunday and Thursday.
+4. **If someone picks no habits for their Habits tile, what does it show?**
+   Recommendation: up to three habits due today and not done yet.
+5. **Does the live "Goals this week" tile get the item picker too?**
+   Recommendation: yes, in the same dashboard PR, so every tile works the
+   same way.
 6. **Review the redrawn mock** once it shows Habits and Chores, streaks,
    stats, carry-over, the chore chart and "plan the day."
 
 ## Not in the first PR
 
-Dashboard tile, the "Show in Routines" switch (may fold into the one habit
-system instead), one-step-at-a-time mode, the idea library, stars or
-rewards, parent approval of kids' check-offs (needs P3), amounts, reminders,
-importing Habit tracker history.
+Dashboard tiles and the item picker, Winnie texts, the in-app assistant
+button, the "Show in Routines" switch (may fold into the one habit system
+instead), one-step-at-a-time mode, the idea library, stars or rewards,
+parent approval of kids' check-offs (needs P3), amounts, importing Habit
+tracker history.
