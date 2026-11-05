@@ -437,6 +437,24 @@ connection string lives only in Vercel).
   C5 then committed as a36c5b3. Rule from here: `git diff --cached
   --name-only` before every commit, and builders never stage.
 
+- 2026-11-05: C4 committed. `npm run build` passes (route list shows
+  `/habits`). **Fury's browser walk** (dev server :3000 on the worktree,
+  signed in as Bryce, 800px dark): `/routines` and `/chores` both land on
+  `/habits` ("Habits & Chores"); Settings shows "Habits & Chores" with Show
+  streaks and (admin) Recompute streaks; switch off → reload → off; on →
+  reload → on (left on); Recompute → "Updated 0 streaks" (dev has no
+  habits). Test goal "zz mission30 test" (Health, Together, Dec 31) with a
+  daily habit "zz walk": sheet shows Every day / a week / a month, stepper
+  hidden for Every day; row "0 of 7"; tap → "1 of 7"; tap again → "0 of 7"
+  (undo, the same toggle `main` had when a habit was done); tap → reload →
+  "1 of 7", filled check. DB (read-only): daily, together, 5 participants,
+  5 logs, 1 distinct day stored `2026-11-05 00:00` UTC, streak 1, 1 linked
+  plan item. This week "Nov 1-7 · 1 of 7 done"; dashboard tile "1 of 7
+  done · Still to do: zz walk · 6 left". Console: only the known `pg` SSL
+  warning. **The test goal is left on dev for the gates; Fury deletes its
+  plan item, then the goal, after them.** Device refusal: not walked (no
+  device login available to Fury); code at `preferences.ts:89`.
+
 ## Delivery
 
 - **Shipped:** —
