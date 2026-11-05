@@ -1,7 +1,7 @@
 # Routines v1: direction
 
-Status: **direction only, nothing built.** Bryce has not yet approved the
-mock or the first PR's contents (see "Waiting on Bryce" below).
+Status: **direction only, nothing built.** The first PR's three features are
+approved; the full mock is not reviewed yet (open question 4).
 
 Mock (Claude Design canvas, four screens):
 https://claude.ai/artifact/WsWHY1oDmGhofjCFoaBXdu
@@ -59,39 +59,54 @@ From the Habit tracker review:
     send screenshots of Habit tracker's Inspiration section. Every line of
     wording needs his approval, as with the Plans & Goals prompts.
 
-## Proposed for the first PR (not approved yet)
+From the voice review (Bryce, 2026-11-05):
 
-Kept on the list for Bryce's review:
-
-- The whole-family view on the wall tablet.
-- An icon on each step.
-- Skip today.
+18. **Back-filling goes up to 7 days.**
+19. **Checking off a Quit habit means "I avoided it today,"** the same tap as
+    a Build habit.
+20. **The streak switch is one per person**, in Settings under a new
+    Routines section.
+21. **A perfect day** means every habit due that day is done or skipped.
+    Hiding does not excuse a habit. Hide only clears it from today's list so
+    the list shows what is left; completion and streaks are untouched.
+22. **Streaks for habits that aren't daily** count in periods: a daily habit
+    counts days, a weekly habit counts weeks in a row where it hit its
+    number (monthly the same, in months).
+23. **Every routine step is a habit** in the one habit system, grouped into
+    a routine, so a kid's "Brush teeth" gets streaks and stats.
+24. **First PR includes** the whole-family view on the wall tablet, an icon
+    on each step, and Skip today.
+25. **The tab stays "Routines," with two sections inside it: Habits and
+    Chores.** Bryce weighed naming the tab Habits or Chores.
+    - **Habits** are things to keep up with. They reset each day (or each
+      period).
+    - **Chores** are scheduled household jobs, for example Emily's Monday
+      vacuuming and Tuesday laundry. They show as a short list of what is
+      due today, so they don't get buried in a long to-do list.
+    - **One-off jobs** (returns, errands) belong in Lists, not Routines.
+26. **"Carry over if unfinished"** is a setting chosen when creating any
+    habit, chore or routine item. With it on, an unfinished item appears
+    once on the next day's list, even if it is also due that day (missed
+    Wednesday laundry shows once on Thursday). With it off, the item just
+    follows its schedule. Example: the nightly kitchen and living room reset
+    starts fresh; laundry carries.
 
 ## Open questions
 
-1. **How far back can a missed check-off be added?** Recommendation: up to
-   7 days. It covers "forgot yesterday" and a busy weekend, and keeps a
-   streak from being rebuilt months later.
-2. **Hard to undo. What does checking off a Quit habit mean?**
-   Recommendation: the check means "I avoided it today," the same tap as a
-   Build habit, so streaks and perfect days work one way for both. The
-   alternative (tap only when you slip, otherwise the day counts) would
-   count days nobody opened the app.
-3. **Where does the streak setting live?** Recommendation: one switch per
-   person in Settings, so Emily can turn streaks off for herself without
-   changing Bryce's.
-4. **What makes a perfect day?** Recommendation: every habit due that day is
-   done or skipped. Hiding a habit does not excuse it, since Hide changes
-   nothing about done.
-5. **Hard to undo. How do streaks count for a habit that isn't daily?**
-   Plans & Goals habits can be "3 times a week." Recommendation: a daily
-   habit's streak counts days; a weekly or monthly habit's streak counts
-   weeks or months in which it hit its number.
-6. **Hard to undo. Are a routine's steps habits?** Recommendation: yes,
-   every step is a habit in the one habit system, grouped into a routine.
-   Then a kid's "Brush teeth" gets streaks and stats like any other habit,
-   and there is nothing separate to keep in sync.
-7. Approve the mock and the first-PR list above, or send changes.
+1. **Do chores get streaks and count toward perfect days?** Recommendation:
+   no to both. A chore is a job to get done, not a habit to keep up, and a
+   carried chore would otherwise break a streak twice.
+2. **Hard to undo. When a carried item is finished the next day, which day
+   gets the credit?** Recommendation: it is recorded as finished late on
+   its original day. Thursday's list clears, the original day shows "done
+   late," and it does not count toward that day's perfect day or streak.
+3. **Does a half-finished routine carry over whole, or only its unfinished
+   steps?** Recommendation: only the unfinished steps, and only those with
+   carry-over on.
+4. **Review the full mock.** It shows the four screens from before
+   (today on a phone, one step at a time, New routine, the family tablet
+   view). It needs updating for Habits and Chores sections, streaks, stats
+   and carry-over before Bryce approves it.
 
 ## Not in the first PR
 
