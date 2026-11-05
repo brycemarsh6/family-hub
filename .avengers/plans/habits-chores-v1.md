@@ -292,9 +292,56 @@ One-off jobs (returns, errands) belong in Lists, not here.
     vacation mode, Winnie texts) live in Marshee's Settings, in a Habits &
     Chores section, and the manager links there.
 
+### Audit decisions (Bryce, 2026-11-05: "I agree with all of your recommendations")
+
+The sixteen questions in `habits-chores-audit.md`, Part 5, all accepted.
+The audit holds the reasoning; these lines are the record.
+
+68. **New `Habit` tables.** Plans & Goals habits move onto them in the
+    first PR; a goal's plan links to a habit. "Show in Routines" is gone:
+    every habit is in Habits & Chores.
+69. **One check per person per day, everywhere**, enforced by a unique
+    key. "N times a day" leaves Plans & Goals.
+70. **Five schedules:** Every day, Certain days, Weekly N times (1 to 7),
+    Every other week (optional days, anchored to its first Sunday),
+    Monthly N times. This replaces the six in "Each item has a schedule".
+71. **Required versus open.** Scheduled-day items are required on their
+    days; weekly and monthly items are open until N is reached and are
+    required only on a planned day. A perfect day counts required items.
+72. **Carry-over** only on scheduled-day items; absorbed when the item is
+    also due today (no "done late" row then); carries until done or
+    absorbed.
+73. **No Hide.** Rows are done, skipped or waiting.
+74. **Done rows drop to the bottom on the next load**, never while you
+    are tapping.
+75. **Manager rows: tap to edit, handle to drag, no swipe.** The editor
+    ends with Archive, then Delete. Today rows: tap the check, swipe for
+    Skip today.
+76. **One celebration:** confetti when everything required today is done
+    or skipped. The Sunday chores shout-out stays its own thing.
+77. **The streak switch is a viewing preference:** off hides streaks on
+    that person's own screens; the family tablet shows everyone's.
+    Default on.
+78. **Private habits:** a switch on single-person habits; hidden from the
+    family view, other people's screens, nudges and texts. A habit on a
+    private goal is private.
+79. **Who may check for whom:** yourself; the tablet for any participant;
+    parents and admins for anyone. One policy function.
+80. **Streaks are cached on the participant row** and recomputed in the
+    same transaction as any write that can change them; an admin-only
+    "Recompute streaks" button in Settings.
+81. **Drag and drop with dnd-kit**, pinned, handle only, proved on
+    Bryce's iPad in a one-screen spike before anything is built on it;
+    hand-written sortable is the fallback.
+82. **Six PRs, A to F** (audit, Part 4), replacing "First PR (approved)"
+    above.
+83. **P3 is live** (CLAUDE.md corrected). Kid profiles without a password
+    may be created from Settings when Bryce is ready.
+
 ## Open questions
 
-1. **Review the redrawn mock** (link at the top).
+1. **Review the redrawn mock** (link at the top), after it is updated for
+   the audit decisions (audit, Part 6).
 
 ## Not in the first PR
 
