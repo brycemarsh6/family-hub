@@ -324,7 +324,7 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 - **Report:** all nine items; first run BLOCKED-ON-CONTRACT because `PlanItemRow.createdAt` reached two files outside the boundary (Fury's contract error again), widened and finished. GoalDetail 332 lines (shrank). Vision's `deleteCheckIn` race note left open.
 
 ### F2: Bryce's pass-1 decision on history
-- **Status:** PENDING
+- **Status:** DONE (Stark; tsc, eslint, npm test 559/559, build exit 0)
 - **Boundaries:** may touch: `src/app/actions/goals.ts` only
   · must not touch: every other file.
 - **Spec:** in `updateGoal`, when the submitted goal has no number and
@@ -336,7 +336,7 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 - **Evidence required:** the diff; outputs.
 - **Done criteria:** Vision pass 2; Fury removes the number on the test
   goal in the browser and sees the history gone after adding a new one.
-- **Report:** (pending)
+- **Report:** `updateGoal` deletes the goal's `GoalCheckIn` rows and updates it in one `$transaction` when the number is removed; +8/-2. No automated test (one-file boundary); proven in Fury's browser check.
 
 ## Gate ledger
 

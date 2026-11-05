@@ -105,7 +105,8 @@ export async function createGoal(raw: unknown): Promise<CreateGoalResult> {
 
 /**
  * Edit a goal. The number to track is the delicate part: adding one starts it
- * at its starting value, taking it away also forgets the last check-in, and
+ * at its starting value, taking it away also forgets the last check-in and deletes
+ * the goal's whole check-in history (old readings never return under a new number), and
  * changing its unit, start or target keeps the current reading.
  */
 export async function updateGoal(id: string, raw: unknown): Promise<GoalActionResult> {
@@ -139,7 +140,7 @@ export async function updateGoal(id: string, raw: unknown): Promise<GoalActionRe
       : newMeasureData(input.measure);
 
   try {
-    await db.goal.update({
+    const update = db.goal.update({
       where: { id },
       data: {
         title: input.title,
@@ -150,6 +151,11 @@ export async function updateGoal(id: string, raw: unknown): Promise<GoalActionRe
         ...measureData,
       },
     });
+    if (hadMeasure && !input.measure) {
+      await db.$transaction([db.goalCheckIn.deleteMany({ where: { goalId: id } }), update]);
+    } else {
+      await update;
+    }
   } catch (error) {
     if (isMissingRowError(error)) return { error: GONE };
     throw error;
