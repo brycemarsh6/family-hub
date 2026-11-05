@@ -264,8 +264,32 @@ contract below is silent, the plan's words bind.
 - **Done criteria:** both start with `server-only`; no auth or revalidation
   inside; every write takes `client`; under 350 lines each.
 
+### F1 - Engine fixes from Vision pass 1
+- **Status:** DISPATCHED
+- **Objective:** Fix Vision pass 1's two BLOCKERs and the anchor NOTE in the
+  pure engine, with tests that would have caught each.
+- **Boundaries:** may touch: `src/lib/habits/streaks.ts`,
+  `src/lib/habits/streaks.test.ts`, `src/lib/habits/carryOver.ts`,
+  `src/lib/habits/carryOver.test.ts`, `src/lib/habits/schedule.ts`,
+  `src/lib/habits/schedule.test.ts` · must not touch: every other file
+  (C4 and C5 run in parallel on their own files).
+- **Fixes:** (1) `computeStreaks`, scheduled kinds: `asOf` is the day before
+  today when today is scheduled, not on vacation, and has no done or
+  skipped row; else today. (2) `carriedFrom`: walking back from yesterday,
+  stop at the first scheduled day (still inside `since` and the lookback);
+  return it if it has no row, else null. Flip the test that pins the old
+  behaviour; add the Mon/Wed case. (3) `scheduleFromRow` reads
+  `startOfWeek(anchorWeek)` so a non-Sunday anchor still works.
+- **Verification:** three-zone test runs, tsc, eslint; new tests: a cache
+  written on an undone due day, aged one day, breaks; the "streakAfter
+  agrees with computeStreaks" test seeds the cache on several days
+  including an undone due day; Mon missed, Wed done, Thu → null; biweekly
+  with a Wednesday anchor has due days.
+- **Done criteria:** Fury re-runs; Vision pass 2.
+
 ### C4 - Rewire Plans & Goals
-- **Status:** PENDING
+- **Status:** DISPATCHED
+- **From Vision pass 1:** handle a habit plan item with `habitId` null (an item created by the old deployment during the build window) without crashing: show it as 0 progress and refuse logging with a clear message, or similar.
 - **Objective:** Make Plans & Goals read and write habits through the new
   tables exactly as the plan's "Rewiring Plans & Goals" paragraph says,
   with one check per day and no "times a day", keeping every page and
@@ -292,7 +316,7 @@ contract below is silent, the plan's words bind.
   page and the tile on dev.
 
 ### C5 - Route, menu and Settings
-- **Status:** PENDING
+- **Status:** DISPATCHED
 - **Objective:** Add `/habits` (Coming soon, `requireVerifiedUser`), remove
   `/routines`, redirect `/routines` and `/chores` to `/habits`, rename the
   menu item, and add the Streaks switch and admin-only "Recompute streaks"
@@ -370,7 +394,7 @@ connection string lives only in Vercel).
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
+| 1 | Vision (C1 to C3) | BLOCKED | 2: `computeStreaks` asOf on an undone due day; `carriedFrom` walks past an absorbing day | anchor not snapped to Sunday; manual backfill re-run needs bare ON CONFLICT; C4 must handle null `habitId`; concurrent recompute staleness; uncheckNewest removes skips; monthly N above days in month; future skips; zone tests are pure UTC math |
 
 ## Handoff log
 
@@ -388,6 +412,20 @@ connection string lives only in Vercel).
   merge.
 - 2026-11-05: C2 done, applied on dev (counts above), committed. C1 done,
   verified, committed. Next: C3.
+- 2026-11-05: C3 done, committed 39633b6. Vision pass 1 dispatched on
+  94e2161..39633b6 (model opus). While it ran, Fury ran a **rolled-back
+  smoke test of habitWrites on dev** (one `db.$transaction` that throws at
+  the end; host checked; script `writes-smoke.mts` in the scratchpad):
+  a Together daily habit for 2 people, checked on Nov 3, 4, 5 → created 2
+  each; a second check on Nov 5 → created 0; 6 logs; both streaks 3, best 3,
+  asOf 2026-11-05 UTC midnight; `uncheckNewest` removed 2 (Nov 5) and
+  streaks fell to 2; skip on Nov 5 created 2; `deleteHabit` removed the
+  linked plan item (0 left on the goal). After rollback: 0 fixture habits,
+  0 fixture goals.
+
+- 2026-11-05: Vision pass 1 BLOCKED (two engine bugs, both reproduced by
+  Vision's probe). F1 written; F1, C4 and C5 dispatched in parallel
+  (disjoint files; C4 and C5 do not depend on the fixed functions).
 
 ## Delivery
 
