@@ -1,7 +1,7 @@
 # Mission 29: Plans & Goals PR 3 (dashboard tile, Sunday recap, check-in history)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILT, all gates PASS (Vision pass 2, Strange pass 2, Captain pass 2); not pushed
+**Status:** DELIVERED, merged as PR #39 (d1f1aca) and live on 2026-11-04; all gates PASS (Vision pass 2, Strange pass 2, Captain pass 2)
 **Started:** 2026-11-04 · **Updated:** 2026-11-04
 **Branch:** `claude/plans-goals-p3` from `origin/main` at `bd8d4d1` (PR #38 merged)
 **Direction:** `.avengers/plans/plans-goals-v1.md` (read first)
@@ -398,4 +398,4 @@ history, the same way it already keeps the current number.
   must agree by hand, two `PlanItemRow` builders, `householdToday` lives in
   `assistant/`, millisecond races, no "Show fewer"). STRUCTURE.md is about
   794 lines, past its 650 line housekeeping mark.
-- **Shipped check:** not pushed yet; waiting on Bryce.
+- **Shipped check:** PR #39 merged as d1f1aca; the Vercel production deploy for that commit is READY, which means the `GoalCheckIn` migration ran.

@@ -86,7 +86,7 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   logged with one tap. Goal detail is at `/plans/goals/[id]`. The Vision tab
   holds one statement per life area at 5, 10 or 15 years, on a Mine or
   Together board, with writing prompts on empty cards; idea chips fill the
-  New goal form and the Add-to-plan sheet. PR 3 is built but not merged: a
+  New goal form and the Add-to-plan sheet. PR 3 (#39) added a
   "Goals this week" dashboard tile (second in the default order), a Sunday
   recap card at the top of This week, and a check-in history list on the
   goal page. Direction in `.avengers/plans/plans-goals-v1.md`.
@@ -150,13 +150,10 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Plans & Goals PR 3** (mission 29, branch `claude/plans-goals-p3`): built
-  and through all three gates (Captain, Vision, Strange), **not pushed**. It
-  adds the "Goals this week" tile, the Sunday recap and check-in history
-  (a new `GoalCheckIn` table; its migration is applied on dev only). The
-  recap has not been seen on a real Sunday yet, so look on the next Sunday.
-  PR 1 (#36) and PR 2, the Vision board (#37), are live. The "Show in
-  Routines" switch waits for Routines. The navigation redesign, including
+- **Plans & Goals is live through PR 3** (#36, #37, #39, merged
+  2026-11-04). PR 3 added the "Goals this week" tile, the Sunday recap and
+  check-in history (the `GoalCheckIn` table, now on production). The "Show
+  in Routines" switch waits for Routines. The navigation redesign, including
   rail names, is live (PRs #32 to #35).
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
   desktop mouse. Hover is a bonus, never the only way to learn something.
@@ -168,8 +165,8 @@ Replace this section at the end of each session. Don't append.
   the TypeScript compiler API.
 
 **Waiting on Bryce:**
-- **Push and merge PR 3** when he says go. The merge runs the check-in
-  history migration (with its backfill of existing check-ins) on production.
+- **Look at the Sunday recap** on the first Sunday after 2026-11-04. It has
+  only been tested, never seen on a real Sunday.
 - **Eaten tap after a swipe**: the fix landed in mission 27 (F3). Sixty seconds
   on a phone: swipe a Shopping row a little, let go, tap it; then swipe one
   open, tap an action, tap the row. Both taps should work.
