@@ -1,7 +1,7 @@
 # Mission 30: Habits & Chores PR A, the engine and the move
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (Captain pass 3 pending)
+**Status:** BUILT, all gates PASS (Vision pass 3, Strange pass 2, Captain pass 3). Local only: not pushed, no PR, waiting on Bryce's go.
 **Started:** 2026-11-05 · **Updated:** 2026-11-05
 **Branch:** `claude/habits-a-engine` from `origin/main` at `361e7e9` (PR #40 merged)
 **Direction:** `.avengers/plans/habits-chores-v1.md` (decisions 68 to 83),
@@ -466,6 +466,8 @@ connection string lives only in Vercel).
 | 2 | Strange | PASS | none | Settings top group has no heading; dark period strip selection faint (as main); one missed first tap on "Every day" in the test browser, not reproduced (check on a phone) |
 | 2 | Captain | BLOCKED | 1: `planItems.ts:143` compares `goal.ownerId` to pick participants (goal policy rule) | two household-people filters remain (A8); action/lib share the name `recomputeAllStreaks` via an alias (A6); `goals.test.ts` 344/350; four older inline UTC reads grandfathered (A3); AGENTS.md glob stale |
 
+| 3 | Captain | PASS | none | `goals.test.ts` 344/350 (next goal test in a new file); A7 and A8 wait for Bryce; four grandfathered inline UTC reads |
+
 ### Captain amendments (pass 2 text; C6 pastes A1 to A6 into STRUCTURE.md "One source of truth")
 
 - **A1.** `src/lib/habitVocabulary.ts` holds Habits & Chores' vocabulary: `HABIT_KINDS`, `HABIT_MODES`, `HABIT_SCHEDULES` with `HABIT_SCHEDULE_LABELS` (the habit editor's words), `HABIT_SHARING`, `HABIT_LOG_STATUSES`, `TIMES_OF_DAY`, `HABIT_ICONS`, the weekday mask (`parseWeekdayMask` / `printWeekdayMask`) and the `to*` repairers. `HABIT_TIMES_LIMITS` (weekly 7, monthly 31) is the one answer to "how many times can a period ask for". `schedule.ts` clamps with it and `goals.ts`'s `HABIT_TIMES_MAX` derives from it, so a literal 7 or 31 for a habit limit anywhere else is a BLOCKER. The file has **no imports**, so any lib file may take words from it without risking a cycle. Plan-item period wording ("Every day", "a week", "a month") is `PERIOD_LABELS` in `goalVocabulary.ts`, beside `HABIT_PERIODS`. These are two different vocabularies (`HabitPeriod` on a goal's plan, `HabitSchedule` on a habit) and stay apart on purpose. (Added mission-30.)
@@ -546,6 +548,35 @@ connection string lives only in Vercel).
 
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
-- **Deliberate leftovers:** —
+- **Shipped (local branch `claude/habits-a-engine`):** C1 2b014e9, C2
+  f43043e, C3 39633b6, F1 6dc0c74, C5 a36c5b3, C4 4d626f7, F2 47705df, F3
+  eaa80b5, C6 4cbb7d9, plus record commits.
+- **Final Gauntlet (Fury, HEAD 4cbb7d9):** `tsc` ok; `eslint .` ok; `npm
+  test` 654/654; `TZ=UTC` 654 (647 pass, 7 skipped, same 7 as main);
+  `TZ=America/Los_Angeles` 654/654; `npm run build` ok; `grep -rn
+  "db.planLog\|PlanLogRow" src/` empty; recordcheck 0 hard failures, REVIEW
+  lines read (C6 report plus Fury's check of the P3 claim: 42bb676 dated
+  2026-08-31, an ancestor of origin/main).
+- **Done means, item by item:** (1) Gauntlet green, above. (2) grep empty.
+  (3) Plans & Goals as before with one check a day: tests plus Fury's walk
+  plus Vision pass 2. (4) `/routines` and `/chores` redirect: browser walk
+  and Vision's curl (307 to `/habits`). (5) Streaks switch saves and
+  survives reload: Fury's walk and Strange. **The tablet refusal is proven
+  by code and gates only** (`preferences.ts:89` reads the session; Settings
+  hides the section from devices); no device login was available to walk
+  it. (6) Migration counts: 0 = 0 = 0 on dev, plus the rolled-back positive
+  control.
+- **Shipped check:** `git log origin/main..HEAD` lists every mission 30 commit (15, from 94e2161 to this delivery commit): all local, none pushed. Untracked `.agents/` and `.codex/` (Grok bot copies) are not committed.
+- **Deliberate leftovers (for PR B and later):** a Together habit's
+  participants are fixed at creation, so a person added later cannot check
+  it unless they are a manager or the tablet; goal privacy or life-area
+  edits do not sync to the Habit; a stale page's undo can remove
+  yesterday's check (as on main); editing from the Plans sheet does not
+  clear `weekdays`/`anchorWeek`; `uncheckNewest` also removes skips; PlanLog
+  taps written by the old deployment during the Vercel build window are not
+  migrated (re-run the backfill by hand with a bare `ON CONFLICT DO
+  NOTHING` if any appear); no action-level tests; "6 left" can exceed the
+  days left in a week; dark-mode period strip selection is faint (as main);
+  a missed first tap on "Every day" in the test browser, not reproduced.
+- **Decisions for Bryce:** STRUCTURE.md A7 and A8; Recompute wording;
+  whether a monthly target above the days in a month is allowed.
