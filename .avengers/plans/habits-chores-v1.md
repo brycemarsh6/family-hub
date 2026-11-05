@@ -202,21 +202,22 @@ One-off jobs (returns, errands) belong in Lists, not here.
     they struggle with. The same for goals and the vision board. Limited
     space, chosen on purpose, nothing cluttered.
 
+### Accepted recommendations, round two
+
+45. **Winnie's texts are opt-in per person**, switched on or off in each
+    person's own Settings, so Emily chooses her own.
+46. **Texts go out at 8:00 am Denver time**, one bundled text per person per
+    day, not one text per item.
+47. **"First two weeks" of a month means days 1 to 14** (Sunday prompts);
+    day 15 to the end of the month gets Sunday and Thursday prompts.
+48. **A Habits tile with nothing picked** shows up to three habits due today
+    and not done yet.
+49. **The "Goals this week" tile gets the same item picker**, in the same
+    dashboard PR, so every tile works the same way.
+
 ## Open questions
 
-1. **Who gets Winnie's texts?** Recommendation: each person turns texts on
-   or off for themselves in Settings, so Emily chooses her own.
-2. **What time do prompts go out?** Recommendation: 8:00 am Denver time,
-   one bundled text per person per day, not one text per item.
-3. **"First two weeks" of a month: days 1 to 14?** Recommendation: yes,
-   days 1 to 14 get Sunday prompts; day 15 to the end of the month get
-   Sunday and Thursday.
-4. **If someone picks no habits for their Habits tile, what does it show?**
-   Recommendation: up to three habits due today and not done yet.
-5. **Does the live "Goals this week" tile get the item picker too?**
-   Recommendation: yes, in the same dashboard PR, so every tile works the
-   same way.
-6. **Review the redrawn mock** once it shows Habits and Chores, streaks,
+1. **Review the redrawn mock** once it shows Habits and Chores, streaks,
    stats, carry-over, the chore chart and "plan the day."
 
 ## Not in the first PR
