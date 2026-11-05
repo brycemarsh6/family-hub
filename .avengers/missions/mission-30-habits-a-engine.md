@@ -186,7 +186,7 @@ contract below is silent, the plan's words bind.
   places.
 
 ### C2 - Schema and migration
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury read every SQL line, applied on dev, counts and rolled-back positive control below)
 - **Objective:** Add the plan's models (`Habit`, `HabitParticipant`,
   `HabitLog`, `HabitPlannedDay`, `ChoreWeekOverride`, `VacationPeriod`,
   `Nudge`), `PlanItem.habitId` (SetNull, indexed), `UserPreferences.
@@ -334,12 +334,35 @@ contract below is silent, the plan's words bind.
 
 ## Migration counts (dev, Fury)
 
-| Count | Expected (from old tables) | Actual after migrate |
-|---|---|---|
-| Habit plan items = `Habit` rows | — | — |
-| Participant rows | — | — |
-| Log rows (distinct item+day × participants) | — | — |
+Host confirmed `ep-hidden-pine-…-pooler` before `npx prisma migrate deploy`
+(2026-11-05); `migrate status` afterwards: "Database schema is up to date!"
+(21 migrations). Counts by `counts.sql` inside a READ ONLY transaction.
 
+| Count | Before (old tables) | Expected | Actual after migrate |
+|---|---|---|---|
+| Habit plan items = `Habit` rows | 0 | 0 | 0 |
+| Participant rows | 0 | 0 | 0 |
+| Log rows (distinct item+day × participants) | 0 PlanLog rows | 0 | 0 |
+
+The dev snapshot holds no habits yet, so these zeros prove only that the
+migration applied. **Positive control (rolled back, nothing persisted):**
+inside one `BEGIN … ROLLBACK` on dev, Fury inserted fixture rows (a
+Together goal with a 3-a-day habit tapped three times on Tue 2026-11-03 and
+once on Wed; a private Mine goal with a 9-a-week habit tapped twice on one
+day, a 40-a-month habit, and a step), ran the backfill, counted, ran the
+backfill again, counted again:
+
+- After the first run and after the re-run, identical: 3 habit items = 3
+  habits; 7 expected participants = 7; 11 expected logs = 11.
+- Together daily habit: 5 participants (every active non-device user), 10
+  logs (2 days × 5: **three taps on one Tuesday became one check each**).
+  Weekly 9 became 7; monthly 40 became 31; both `each` and private; the step
+  was not migrated; every habit item linked (`PlanItem.habitId` set).
+- After rollback: 0 fixture goals and 0 `Habit` rows on dev.
+
+Production's real counts get checked after merge (Bryce's Neon console or
+Fury's read-only script against production is **not** available: its
+connection string lives only in Vercel).
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -352,6 +375,14 @@ contract below is silent, the plan's words bind.
   `origin/main` 361e7e9; plan files copied in; dev host confirmed;
   `npm ci` and `prisma generate` in the worktree; baseline 559 tests. Next:
   dispatch C1 and C2 in parallel.
+- 2026-11-05: C1 and C2 dispatched in parallel at 94e2161. Fury's read-only
+  baseline on dev (READ ONLY transaction, host checked by the script): 0
+  habit plan items, 0 PlanLog rows, 0 distinct item-days, 5 active
+  non-device users, 20 migrations applied. **The dev snapshot predates any
+  real habit, so the dev counts will be 0 = 0 = 0.** Plan: after applying,
+  prove the backfill with fixture rows inside a transaction that is rolled
+  back (nothing persists), and recheck the real counts on production after
+  merge.
 
 ## Delivery
 

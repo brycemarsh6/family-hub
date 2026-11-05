@@ -557,6 +557,20 @@ model User {
   visionsOwned   VisionStatement[] @relation("visionsOwned")
   visionsUpdated VisionStatement[] @relation("visionsUpdated")
 
+  /// Habits & Chores (mission 30): habits this person created (SetNull), the
+  /// habits they take part in, their own checks, and the checks they tapped
+  /// for someone else (SetNull: the check still counts). Planned days and
+  /// vacations are theirs and go with them (Cascade). Nudges cascade on both
+  /// ends: a nudge to or from a deleted person means nothing.
+  habitsCreated      Habit[]            @relation("habitsCreated")
+  habitParticipants  HabitParticipant[]
+  habitLogs          HabitLog[]         @relation("habitLogs")
+  habitLogsLogged    HabitLog[]         @relation("habitLogsLogged")
+  habitPlannedDays   HabitPlannedDay[]
+  vacationPeriods    VacationPeriod[]
+  nudgesSent         Nudge[]            @relation("nudgesSent")
+  nudgesReceived     Nudge[]            @relation("nudgesReceived")
+
   // No relation to LoginAttempt here — see that model's own doc comment for
   // why userId there is deliberately not a foreign key.
 
@@ -716,6 +730,10 @@ model UserPreferences {
   /// text. Null = the default (menu button); `toNavMode` repairs anything odd.
   navMode String?
 
+  /// "Show streaks" (mission 30): off hides streak numbers for this person.
+  /// Streaks are still counted either way.
+  showStreaks Boolean @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -798,6 +816,10 @@ model GoalCheckIn {
 /// step (done once) or a reminder (just kept in view). The kind is plain text
 /// (PLAN_KINDS in src/lib/goalVocabulary.ts). Deleting the goal deletes its
 /// items, and their logs, with it.
+/// Since mission 30 a habit item points at a `Habit` (`habitId`), which owns
+/// the schedule and the checks. `timesPerPeriod`, `period` and `PlanLog` are
+/// unread after the move; they stay so the previous deployment keeps serving
+/// while the build applies the migration.
 model PlanItem {
   id String @id @default(cuid())
 
@@ -820,10 +842,17 @@ model PlanItem {
 
   logs PlanLog[]
 
+  /// The Habit behind a habit item (null for steps and reminders). SetNull:
+  /// deleting a habit must also delete its plan items (done by `deleteHabit`
+  /// in one transaction); deleting a goal only unlinks.
+  habitId String?
+  habit   Habit?  @relation(fields: [habitId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([goalId])
+  @@index([habitId])
 }
 
 /// One tap on a habit: "done once, on this day". A habit's count in its week
@@ -878,4 +907,207 @@ model VisionStatement {
   updatedAt DateTime @updatedAt
 
   @@unique([boardKey, area, horizon])
+}
+
+/// A habit or a chore (mission 30, .avengers/plans/habits-chores-build.md): a
+/// thing the household repeats on a schedule. Every vocabulary here is plain
+/// text, not a Prisma enum; src/lib/habitVocabulary.ts holds the lists and its
+/// `to*` narrowers repair anything odd. `schedule` decides what is due and
+/// when; `weekdays` is a 7-character mask of 0/1, Sunday first. `times` is the
+/// target for weekly (1..7) and monthly (1..31) and stays null for daily.
+/// `anchorWeek` is the Sunday of a biweekly habit's first due week, at UTC
+/// midnight. Every day column in the habit tables is a household (Denver) day
+/// stored at UTC midnight, the Task.dueDate convention. Who may see, edit or
+/// check a habit is decided in src/lib/habits/access.ts, never in a query.
+model Habit {
+  id String @id @default(cuid())
+
+  title String
+
+  /// "habit" | "chore"
+  kind String @default("habit")
+
+  /// "build" | "quit"
+  mode String @default("build")
+
+  /// A Lucide name from HABIT_ICONS; null = the kind's default icon.
+  icon String?
+
+  /// LIFE_AREAS key, or null.
+  lifeArea String?
+
+  /// "morning" | "afternoon" | "evening"; null = anytime. Grouping only.
+  timeOfDay String?
+
+  /// "daily" | "weekdays" | "weekly" | "biweekly" | "monthly"
+  schedule String
+
+  /// 7 characters of 0/1, Sunday first. Used by weekdays and biweekly.
+  weekdays String?
+
+  /// Weekly 1..7, monthly 1..31. Null for daily.
+  times Int?
+
+  /// Biweekly only: the Sunday of the first due week, UTC midnight.
+  anchorWeek DateTime?
+
+  carryOver Boolean @default(false)
+
+  /// "together" (one shared check fans out to everyone) | "each" (everyone checks their own)
+  sharing String @default("each")
+
+  /// Private is visible to its participants alone.
+  isPrivate Boolean @default(false)
+
+  archivedAt DateTime?
+
+  createdById String?
+  createdBy   User?   @relation("habitsCreated", fields: [createdById], references: [id], onDelete: SetNull)
+
+  participants  HabitParticipant[]
+  logs          HabitLog[]
+  plannedDays   HabitPlannedDay[]
+  weekOverrides ChoreWeekOverride[]
+  nudges        Nudge[]
+  planItems     PlanItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([archivedAt])
+}
+
+/// One person taking part in one habit. Both sides cascade: a row for a deleted
+/// habit or person is meaningless. The streak numbers are a cache of what
+/// `computeStreaks` (src/lib/habits/streaks.ts) works out from the logs;
+/// `streakAsOf` is the household day it was last computed for.
+model HabitParticipant {
+  id String @id @default(cuid())
+
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Order in this person's own list.
+  sortOrder Int @default(0)
+
+  currentStreak Int       @default(0)
+  bestStreak    Int       @default(0)
+  streakAsOf    DateTime?
+
+  joinedAt DateTime @default(now())
+
+  @@unique([habitId, userId])
+  @@index([userId])
+}
+
+/// One person's check on one habit for one day. The unique makes a second tap
+/// on the same day a no-op. `userId` is whose check it is; `loggedById` is who
+/// tapped (the tablet or a parent can tap for someone) and is SetNull: the
+/// check still counts after the tapper is gone. A Together habit writes one row
+/// per participant.
+model HabitLog {
+  id String @id @default(cuid())
+
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation("habitLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The household (Denver) day this check counts toward, UTC midnight.
+  day DateTime
+
+  /// "done" | "late" | "skipped"
+  status String @default("done")
+
+  loggedById String?
+  loggedBy   User?   @relation("habitLogsLogged", fields: [loggedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([habitId, userId, day])
+  @@index([userId, day])
+}
+
+/// A day one person chose to do a weekly or monthly habit on ("plan my week").
+/// A planned day makes the habit required that day for that person.
+model HabitPlannedDay {
+  id String @id @default(cuid())
+
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The household day, UTC midnight.
+  day DateTime
+
+  @@unique([habitId, userId, day])
+}
+
+/// A one-week change to a chore's schedule: move one weekday's turn to another
+/// weekday, or skip it. `weekStart` is that week's Sunday at UTC midnight;
+/// `fromWeekday` (and `toWeekday`) are 0 = Sunday to 6 = Saturday.
+model ChoreWeekOverride {
+  id String @id @default(cuid())
+
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  weekStart   DateTime
+  fromWeekday Int
+
+  /// "moved" | "skipped"
+  action String
+
+  /// Set when action is "moved".
+  toWeekday Int?
+
+  @@unique([habitId, weekStart, fromWeekday])
+}
+
+/// Days off for one person. Inclusive at both ends, UTC midnight. A day inside
+/// a vacation is excused: it neither grows nor breaks a streak.
+model VacationPeriod {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  startDay DateTime
+  endDay   DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, startDay])
+}
+
+/// A nudge from one person to another about a habit, for one day. The unique
+/// stops the same nudge being sent twice. `seenAt` is set when the receiver
+/// has seen it.
+model Nudge {
+  id String @id @default(cuid())
+
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  fromUserId String
+  fromUser   User   @relation("nudgesSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+
+  toUserId String
+  toUser   User   @relation("nudgesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  /// The household day, UTC midnight.
+  day DateTime
+
+  seenAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([habitId, fromUserId, toUserId, day])
+  @@index([toUserId, day])
 }
