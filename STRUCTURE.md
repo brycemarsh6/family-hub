@@ -275,6 +275,28 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/goalsProgress.ts`: windows, counts, progress, pace, `formatMeasure`,
   `parseTypedNumber`; split from `goals.ts` at the test seam. (Added
   2026-11-04, mission-27; Bryce approved the plan.)
+- **Plans & Goals scope, recap and check-in history (mission-29).**
+  `countsInScope(goal, viewer, scope)` in `goals.ts` is the one scope rule
+  (a device or "everyone" keeps all, otherwise a goal that is not "theirs");
+  `goalsInScope` is its active-only wrapper, the only This week / tile
+  filter, and `loadWeekRecap` calls `countsInScope` for "mine" because a goal
+  completed mid-week still counts. An inline copy of the rule is a BLOCKER.
+  `src/lib/goalsRecap.ts` is the only recap logic: pure, with habit windows
+  and counts taken from `goalsProgress.ts` (`buildPlanItemView`,
+  `weekSummary`) and no target math of its own. **Dependency direction:**
+  `goalsRecap.ts` takes only types from `goals.ts`, and `goals.ts` and
+  `goalsProgress.ts` never import `goalsRecap.ts`. The `GoalCheckIn` table
+  is the only check-in history; `Goal.currentValue` / `checkedInAt` mirror
+  its newest row and are written only by `src/app/actions/goals.ts` (check
+  in, `deleteCheckIn`, and removing the number in `updateGoal`, each in one
+  transaction), and read for pages only by `goalsRead.ts`.
+  `numberAfterCheckIns` in `goalsProgress.ts` is the one fallback rule (the
+  newest remaining check-in, else the start value). **Two places must
+  change together:** the two `PlanItemRow` builders (`actions/planItems.ts`
+  and `goalsRead.ts`), and the two check-in flags in `goalsRead.ts`
+  (`goalInclude` and `toView`). **Size watch:** `GoalDetail.tsx` is 332
+  lines (soft cap 350), so extract before the next feature; `goals.test.ts`
+  is 335, so split it by concern before it crosses the cap.
 - `src/lib/planItemChanges.ts`: `applyPlanItemChange`, the only optimistic
   reducer for plan items. (Added 2026-11-04, mission-27; Bryce approved the
   plan.)
@@ -297,7 +319,12 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/dashboardWidgets.ts`: `DASHBOARD_WIDGETS`, the only widget
   registry; `DASHBOARD_WIDGET_IDS` there is the one id list and the default
   order (a test pins the record to it). `parseDashboardLayout` in
-  `dashboardLayout.ts` is the only reader of the stored layout JSON
+  `dashboardLayout.ts` is the only reader of the stored layout JSON.
+  **Insertion rule, at the `parseDashboardLayout` entry:** a registry id
+  missing from a saved layout is inserted directly after the nearest
+  earlier registry id that the saved list has (at the start if none), not
+  appended at the end; that is how the `goals` widget lands second for
+  people who already saved a layout. (Added 2026-11-04, mission-29.)
 - `brand/` — the logo artwork. The two `Marshee*.tsx` components and the
   `src/app/` icon files are all **generated from** these masters; a
   hand-drawn or re-traced second version of the mark or wordmark is a

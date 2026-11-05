@@ -258,7 +258,7 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 - **Report:** GoalsTile (53 lines), WeekRecapCard (38), CheckInHistory (78), GoalDetail 335 lines; home page uses `householdToday`. Deviation accepted pending Bryce: the recap hides its big "{done} of {total}" line when total is 0. Note: an optimistic check-in shows in History only after the refresh.
 
 ### C4: Records
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury checked: CLAUDE.md 192 lines, no dashes in added lines, named code all exists)
 - **Boundaries:** `DESIGN.md`, `STRUCTURE.md`, `CLAUDE.md`,
   `.avengers/plans/plans-goals-v1.md` only.
 - **Spec:** DESIGN.md vocabulary gains `WeekRecapCard` and
@@ -387,3 +387,15 @@ history, the same way it already keeps the current number.
   wrote this file. Next: C1 to Stark.
 
 ## Delivery
+
+- **Browser checks (dev, 2026-11-04):** the goals tile renders second on
+  the dashboard; check-in history shows three rows plus Show all; swipe
+  Delete works and waits for the server; removing a number and adding a new
+  unit leaves no old history. The test goal was deleted through the app.
+- **Not seen yet:** the Sunday recap card on a real Sunday (built and tested
+  on a Wednesday). Bryce looks at it on the first Sunday after merge.
+- **Left open on purpose:** the NOTEs in the gate ledger (check-in flags
+  must agree by hand, two `PlanItemRow` builders, `householdToday` lives in
+  `assistant/`, millisecond races, no "Show fewer"). STRUCTURE.md is about
+  794 lines, past its 650 line housekeeping mark.
+- **Shipped check:** not pushed yet; waiting on Bryce.

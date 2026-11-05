@@ -78,8 +78,11 @@ Three layers, one menu item (`/plans`) with a segmented toggle.
    vision" line on the goal detail. Wording approved by Bryce first
    (`.avengers/plans/plans-goals-prompts.md`). Mission file:
    `.avengers/missions/mission-28-plans-goals-p2-vision.md`.
-3. **PR 3:** dashboard tile ("Goals this week"), a Sunday recap, the "Show in
-   Routines" switch (once Routines exists), check-in history.
+3. **PR 3 (mission 29): built and gated, not pushed.** Dashboard tile
+   ("Goals this week", second in the default order), a Sunday recap card on
+   This week, check-in history on the goal page (the `GoalCheckIn` table).
+   The "Show in Routines" switch is still waiting for Routines to exist.
+   Mission file: `.avengers/missions/mission-29-plans-goals-p3-recap.md`.
 4. **Later:** photos on vision cards (Vercel Blob, after Bryce adds GitHub
    sign-in to his paid Google-based Vercel account and moves Marshee there),
    voice "log my exercise" via the assistant API.
@@ -113,9 +116,30 @@ Pass 2 ("Yes to all three"):
 - A prompt that names a horizon ("in five years", "in ten years", "in
   fifteen years") shows only on that horizon's board. Wording unchanged.
 
+## Bryce's PR 3 decisions (2026-11-04)
+
+Approved from the mock ("Yes, as recommended"):
+
+- The tile "Goals this week" is full width, second in the default order,
+  and one tap opens This week. It counts the viewer's own goals plus
+  Together goals; a device login counts every goal it may see.
+- The Sunday recap shows on Sundays only (Denver), all day, at the top of
+  This week. No dismiss button, no notification. It follows the Mine and
+  Together / Everyone chips.
+- Every check-in is kept. The goal page lists the newest three, "Show all"
+  for the rest, and a swipe-to-Delete on each row. Existing check-ins carry
+  over as each goal's first history entry.
+
+Pass 1 of the gates ("those recs sound good"):
+
+- **Removing a goal's number to track deletes its check-in history**, in
+  the same step, so old readings never return under a new number. Editing
+  only the unit keeps the history, as it already keeps the current number.
+- The recap hides "{done} of {total} done" when the week had no habits, and
+  shows only the number changes and finished steps.
+
 ## Deferred on purpose (don't build by accident)
 
 - Start / end dates on a habit ("Jan to Mar" in the mock).
-- A check-in history table (PR 1 stores `currentValue` + `checkedInAt` only).
 - Assigning a goal to another person; Mine always means the creator.
 - Over-logging past the week's target (the filled button becomes the undo).
