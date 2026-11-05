@@ -1,7 +1,7 @@
 # Mission 30: Habits & Chores PR A, the engine and the move
 
 **Project:** family-hub (Marshee)
-**Status:** BUILT, all gates PASS (Vision pass 3, Strange pass 2, Captain pass 3). Local only: not pushed, no PR, waiting on Bryce's go.
+**Status:** DELIVERED to a PR (Bryce: "1. Yes"); all gates PASS (Vision pass 3, Strange pass 2, Captain pass 3). Not merged.
 **Started:** 2026-11-05 · **Updated:** 2026-11-05
 **Branch:** `claude/habits-a-engine` from `origin/main` at `361e7e9` (PR #40 merged)
 **Direction:** `.avengers/plans/habits-chores-v1.md` (decisions 68 to 83),
@@ -578,5 +578,5 @@ connection string lives only in Vercel).
   NOTHING` if any appear); no action-level tests; "6 left" can exceed the
   days left in a week; dark-mode period strip selection is faint (as main);
   a missed first tap on "Every day" in the test browser, not reproduced.
-- **Decisions for Bryce:** STRUCTURE.md A7 and A8; Recompute wording;
+- **Decisions:** Bryce approved A7 and A8 on 2026-11-05 ("4. Yes"); Fury added both to STRUCTURE.md. Bryce set Vercel Preview's `DATABASE_URL` to the Neon dev branch ("Neon preview is done"). Still open: Recompute wording;
   whether a monthly target above the days in a month is allowed.

@@ -161,9 +161,10 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Habits & Chores PR A (mission 30)** is built on branch
-  `claude/habits-a-engine`, **not pushed, not merged**. It is at the final
-  review gates (Captain pass 3 pending). Record:
+- **Habits & Chores PR A (mission 30)** is on branch
+  `claude/habits-a-engine`, pushed with a PR open, **not merged**. All
+  gates passed. Vercel Preview's `DATABASE_URL` points at the Neon dev
+  branch (Bryce, 2026-11-05). Record:
   `.avengers/missions/mission-30-habits-a-engine.md`. PRs B to F are not
   started.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
@@ -176,14 +177,9 @@ Replace this section at the end of each session. Don't append.
   the TypeScript compiler API.
 
 **Waiting on Bryce:**
-- **Before PR A's preview is used:** set Vercel Preview's `DATABASE_URL` to the
-  Neon dev branch, so a preview never touches production data.
 - **After PR A deploys:** press Recompute streaks once (Settings), then recheck
   the three migration counts on production (habits, participants, logs; the
   dev numbers are in the mission file).
-- **Approve two STRUCTURE.md rules** (Captain's A7 and A8, in the mission
-  file): built-ahead engine code may wait for its named PR, and one shared
-  "household people" rule.
 - **Look at the Sunday recap** on the first Sunday after 2026-11-04. It has
   only been tested, never seen on a real Sunday.
 - **Eaten tap after a swipe**: the fix landed in mission 27 (F3). Sixty seconds

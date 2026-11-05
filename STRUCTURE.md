@@ -366,6 +366,14 @@ Adding a second definition of any of these is a BLOCKER:
   `actions/mealPlans.ts` and `actions/visions.ts`; the habit writes have no
   P2002 check of their own); an inline `code === "P2002"` is a BLOCKER.
   (Added mission-30.)
+- **One "household people" rule.** "Every active person who is not a device
+  login" (`deactivatedAt: null`, `role` not `"device"`) is defined once, in a
+  small server-only home, `src/lib/householdPeople.ts`, and both
+  `householdParticipantIds` (habits) and `visionsRead.ts`'s board list call
+  it. A third inline copy of that filter for "the family" is a BLOCKER. Until
+  a mission makes that file, the two existing copies (`habitWrites.ts` and
+  `visionsRead.ts`) are named debt; the first mission that touches either one
+  moves both. (Approved by Bryce 2026-11-05, mission-30, Captain's A8.)
 - `formatShortCalendarDate` in `householdDate.ts`: the shared "Nov 3"
   formatter (`MONTH_NAMES` is now exported from `mealPlanDates.ts` for it).
   (Added 2026-11-04, mission-27; Bryce approved the plan.)
@@ -713,6 +721,14 @@ Adding a second definition of any of these is a BLOCKER:
   overclaiming-comment failure this repo tracks. `periodWindowEdges` was the
   retired navigation wall; deleting it removed both the code and that future
   wrong answer.
+- **Built-ahead engines.** When a Bryce-approved multi-PR plan builds a
+  pure engine ahead of its screens, its exports may stay dormant until the PR
+  the plan names. Each one carries "Dormant until PR X (mission N): <its
+  consumer>", and the two-mission clock above starts at mission N, not at
+  the mission that wrote it. If mission N ships without calling it, the
+  normal rule applies from then on. First instance: `src/lib/habits/`
+  (mission 30; consumers in missions 31, 32 and 34). (Approved by Bryce
+  2026-11-05, mission-30, Captain's A7.)
 
 ## Naming
 
