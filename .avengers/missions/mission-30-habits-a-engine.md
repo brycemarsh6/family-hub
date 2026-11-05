@@ -566,7 +566,8 @@ connection string lives only in Vercel).
   hides the section from devices); no device login was available to walk
   it. (6) Migration counts: 0 = 0 = 0 on dev, plus the rolled-back positive
   control.
-- **Shipped check:** `git log origin/main..HEAD` lists every mission 30 commit (15, from 94e2161 to this delivery commit): all local, none pushed. Untracked `.agents/` and `.codex/` (Grok bot copies) are not committed.
+- **Shipped check:** `git log origin/main..HEAD` lists every mission 30 commit (15, from 94e2161 to this delivery commit): all local, none pushed.
+- **Merged and live (2026-11-05):** Bryce approved push and PR, then "Yes to all. Merge". PR #41 merged as 48245e0 with Gauntlet, Vercel and Vercel Preview Comments green. Production deployment `dpl_37unxrMgKVjUCTnZqvEe3tucQCV2` is READY on commit 48245e0fd09b43e70fd050e968cc1279d6fe9e3c, so the migration ran on the production database in that build. Untracked `.agents/` and `.codex/` (Grok bot copies) are not committed.
 - **Deliberate leftovers (for PR B and later):** a Together habit's
   participants are fixed at creation, so a person added later cannot check
   it unless they are a manager or the tablet; goal privacy or life-area
@@ -578,5 +579,4 @@ connection string lives only in Vercel).
   NOTHING` if any appear); no action-level tests; "6 left" can exceed the
   days left in a week; dark-mode period strip selection is faint (as main);
   a missed first tap on "Every day" in the test browser, not reproduced.
-- **Decisions:** Bryce approved A7 and A8 on 2026-11-05 ("4. Yes"); Fury added both to STRUCTURE.md. Bryce set Vercel Preview's `DATABASE_URL` to the Neon dev branch ("Neon preview is done"). Still open: Recompute wording;
-  whether a monthly target above the days in a month is allowed.
+- **Decisions:** Bryce approved A7 and A8 on 2026-11-05 ("4. Yes"); Fury added both to STRUCTURE.md. Bryce set Vercel Preview's `DATABASE_URL` to the Neon dev branch ("Neon preview is done"). Bryce settled three more for PR B on 2026-11-05 ("Yes to all"): decisions 84 to 86 in `habits-chores-v1.md` (Recompute wording, first-week counting, later family members joining Together habits). Still open: whether a monthly target above the days in a month is allowed.
