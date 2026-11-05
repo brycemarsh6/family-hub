@@ -271,10 +271,62 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 - **Verification:** recordcheck, CLAUDE.md under 250 lines.
 - **Report:** (pending)
 
+### F1: Pass-1 fixes that need no decision from Bryce
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/lib/goals.ts`, `src/lib/goals.test.ts`,
+  `src/lib/goalsProgress.ts`, `src/lib/goalsProgress.test.ts`,
+  `src/lib/goalsRecap.ts`, `src/lib/goalsRecap.test.ts`,
+  `src/lib/goalsRead.ts`, `src/app/actions/goals.ts`,
+  `src/components/GoalDetail.tsx`, `src/components/CheckInHistory.tsx`,
+  `src/components/GoalsTile.tsx`, `src/components/WeekRecapCard.tsx`
+  · must not touch: `prisma/`, `.avengers/`, docs, every other file.
+- **Spec:**
+  1. Captain's BLOCKER. `weekRecap` builds each habit's view with
+     `buildPlanItemView(item, logs, weekStart)`, keeps views whose
+     `windowLabel === "this week"`, and takes counts, targets, `met`, and
+     `done`/`total` from the views (via `weekSummary` or the same capped
+     read). No target arithmetic or month check left in `goalsRecap.ts`.
+     Existing recap tests pass unchanged.
+  2. Vision's BLOCKER 1. `PlanItemRow` gains `createdAt: Date` (filled in
+     `goalsRead.ts` from the loaded row; fixtures updated). `weekRecap`
+     skips a habit, and a step, created at or after the end of the week.
+     Tests: a habit created on the recap Sunday is left out; the recap is
+     null when it was the only thing.
+  3. Captain's scope NOTE. Export `countsInScope(goal, viewer, scope)` from
+     `goals.ts` (device or "everyone" keeps all, otherwise not "theirs");
+     `goalsInScope` becomes active-only plus `countsInScope`;
+     `loadWeekRecap` uses `countsInScope(..., "mine")`. Tests.
+  4. Strange's BLOCKER 1. History delete waits for the server, shaped
+     like `handleDeleteItem` in `GoalDetail.tsx`; remove the
+     `"deleteCheckIn"` optimistic case.
+  5. Captain's fallback NOTE. Pure `numberAfterCheckIns(startValue,
+     remaining)` in `goalsProgress.ts` returning `{ currentValue,
+     checkedInAt }`, tested, used by `deleteCheckIn`.
+  6. Vision's NOTE. `deleteCheckIn` refuses a goal with no number ("This
+     goal has no number to track.").
+  7. Strange's BLOCKER 2. Recap label `text-muted` becomes
+     `text-muted-strong`.
+  8. Captain's query NOTE. Check-ins load only when asked:
+     `goalInclude(today, { checkIns: true })` for `loadGoal` and
+     `loadWeekRecap`; `loadPlansPage` and `loadGoalsTile` leave it off.
+  9. Small notes: the tile keys rows by habit id (`weekTodo` carries
+     `id`); drop the unused `measures[].unit`; the history Delete label
+     names the value ("Delete 183 lb check-in from Nov 4"); the tile's
+     "Still to do:" becomes a plain `text-sm text-muted` line, as the
+     Brief says.
+- **Verification:** the full gauntlet including build.
+- **Evidence required:** a line per item with file:line; outputs; test
+  counts; line counts (`GoalDetail.tsx` must not grow).
+- **Done criteria:** each gate re-checks its own blockers in pass 2.
+- **Report:** (pending)
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Captain (Opus) | BLOCKED | `goalsRecap.ts` re-derives the habit window and target (second definition of `goalsProgress.ts`' rule) | inline "mine" scope in `loadWeekRecap` would make C4's record false; delete fallback rule in two places; GoalDetail 335 lines; check-ins loaded on every read; `householdToday` lives in `assistant/`; tile key by title; unused `measures[].unit`; migration passes additive rule |
+| 1 | Vision (Opus) | BLOCKED | (1) a habit created after the recap week counts against it ("Walk 0 of 7"); (2) removing a goal's number leaves history that returns under a new unit (needs Bryce) | `deleteCheckIn` race under read-committed; `deleteCheckIn` does not refuse an unmeasured goal; tile key by title; recap uses today's habit settings |
+| 1 | Strange (Opus) | BLOCKED | (1) history delete is optimistic (DESIGN.md: destructive verbs wait for the server; Fury's contract error); (2) recap label `text-muted` on `bg-accent-soft` is 4.35:1 | same-date history rows share one Delete label; no "Show fewer"; tile "STILL TO DO:" drawn as caps label with a colon (Brief says a plain line); "All done this week" muted; recap not seen in pixels (Wednesday) |
 
 ## Handoff log
 
