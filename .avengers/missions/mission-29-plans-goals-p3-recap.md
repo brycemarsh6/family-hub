@@ -1,7 +1,7 @@
 # Mission 29: Plans & Goals PR 3 (dashboard tile, Sunday recap, check-in history)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** BUILT, all gates PASS (Vision pass 2, Strange pass 2, Captain pass 2); not pushed
 **Started:** 2026-11-04 · **Updated:** 2026-11-04
 **Branch:** `claude/plans-goals-p3` from `origin/main` at `bd8d4d1` (PR #38 merged)
 **Direction:** `.avengers/plans/plans-goals-v1.md` (read first)
@@ -268,6 +268,27 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
   history, and the layout insertion rule; CLAUDE.md "What's built" and
   Current status; the direction file marks PR 3 and moves "A check-in
   history table" out of "Deferred on purpose".
+  **Added after the gates (Captain's C4 list, pass 1 and 2):**
+  STRUCTURE.md records `countsInScope` as the one scope rule (device or
+  "everyone" keeps all, otherwise not "theirs") and `goalsInScope` as its
+  active-only wrapper; `goalsRecap.ts` as the only recap logic, pure, with
+  habit windows and counts taken from `goalsProgress.ts` (no target math
+  of its own); `goalsRecap.ts` takes only types from `goals.ts`, and
+  `goals.ts` / `goalsProgress.ts` never import it; the `GoalCheckIn` table
+  as the only check-in history, with `Goal.currentValue` / `checkedInAt`
+  mirroring its newest row, written only by `actions/goals.ts` (check in,
+  delete, and removing the number, each in one transaction) and read for
+  pages only by `goalsRead.ts`; `numberAfterCheckIns` as the one fallback
+  rule; the dashboard insertion rule at the `parseDashboardLayout` entry;
+  the two `PlanItemRow` builders (`actions/planItems.ts` and
+  `goalsRead.ts`) that must change together; the two check-in flags in
+  `goalsRead.ts` that must agree; size watch lines for `GoalDetail.tsx`
+  (332, extract before the next feature) and `goals.test.ts`. DESIGN.md
+  vocabulary gains `GoalsTile` (a widget body inside `DashboardTile`),
+  `WeekRecapCard` and `CheckInHistory` (delete waits for the server, the
+  label names the value). The direction file records Bryce's pass-1
+  decisions. CLAUDE.md Current status says mission 29 is built and gated,
+  not pushed, and that the recap has not been seen on a real Sunday yet.
 - **Verification:** recordcheck, CLAUDE.md under 250 lines.
 - **Report:** (pending)
 
@@ -347,6 +368,7 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 | 1 | Strange (Opus) | BLOCKED | (1) history delete is optimistic (DESIGN.md: destructive verbs wait for the server; Fury's contract error); (2) recap label `text-muted` on `bg-accent-soft` is 4.35:1 | same-date history rows share one Delete label; no "Show fewer"; tile "STILL TO DO:" drawn as caps label with a colon (Brief says a plain line); "All done this week" muted; recap not seen in pixels (Wednesday) |
 | 2 | Captain (Opus) | PASS | none | `goalInclude` and `toView` check-in flags must agree; two `PlanItemRow` builders (`actions/planItems.ts`, `goalsRead.ts`); `householdToday` still in `assistant/` |
 | 2 | Strange (Opus) | PASS | none | delete waits for the server (timed); recap label 4.76:1 light, 6.20:1 dark; no pending cue on a row during delete (app-wide); no "Show fewer"; "All done this week" muted; recap still unseen in pixels, look on a Sunday |
+| 2 | Vision (Opus) | PASS | none | both pass-1 blockers closed; check-in flags in `goalsRead.ts` must agree by hand; a millisecond race between removing a number and a check-in could leave one stray row; `handleDeleteCheckIn` has no network catch (same as `handleDeleteItem`); a habit created mid-week counts its full target |
 
 ## Bryce's pass-1 decisions (2026-11-04, "those recs sound good")
 
