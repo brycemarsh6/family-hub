@@ -94,8 +94,10 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
   Read `.avengers/plans/calendar-v2.md` before calendar work.
 - **Family accounts**: per-person logins (P1 + P2 shipped). P3 (role gates,
-  account management) was delivered but **not deployed**, by Bryce's call. See
-  `mission-6-accounts-p3-roles-and-settings.md`.
+  account management, kid profiles without a password) **is live**: its
+  commit `42bb676` has been on `main` since 2026-08-31 (this file said "not
+  deployed" until 2026-11-05; `git merge-base --is-ancestor` settled it).
+  See `mission-6-accounts-p3-roles-and-settings.md`.
 - **Voice**: Siri shortcut over `/api/voice` is the working path, used daily.
   `/api/alexa` is live but dormant; Alexa+ (V3b) is blocked on Amazon
   (`.avengers/plans/v3b-alexa-plus-addon.md`).
@@ -175,7 +177,9 @@ Replace this section at the end of each session. Don't append.
 - **Assistant API production setup** (after PR #28): put the token hash in Vercel
   as `ASSISTANT_API_TOKEN_HASH`, paste the token into Home Hub, then change
   Bryce's own Marshee password.
-- **Do not create a kid login until P3 role gates are deployed.**
+- **Kid logins are Bryce's call.** P3's role gates are live (above), so a
+  kid profile (no password) is safe to create from Settings, Manage family.
+  Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
 - Inventory collapse state doesn't persist across reloads; Shopping has no

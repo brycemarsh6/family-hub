@@ -1,8 +1,9 @@
 # Habits & Chores v1: direction
 
-Status: **direction only, nothing built.** The first PR's three features are
-approved. The mock was redrawn for Habits & Chores on 2026-11-05 and waits
-for Bryce's review.
+Status: **direction only, nothing built.** Audited on 2026-11-05
+(`habits-chores-audit.md`): sixteen questions wait on Bryce, several of
+them hard to reverse; the build plan follows his answers. The mock was
+redrawn for Habits & Chores the same day and waits for review.
 
 Mock (eight screens: Today, Habit manager, New habit or chore, one habit's
 stats, Chore chart, Settings section, Dashboard tiles for the second PR, and
@@ -265,17 +266,6 @@ One-off jobs (returns, errands) belong in Lists, not here.
     swiping the list still scrolls and swiping a row still opens its
     actions. **The dashboard's Customize sheet switches to drag and drop
     too**, in the dashboard PR, so reordering works one way everywhere.
-66. **A Habit manager, apart from the main list.** The main Habits & Chores
-    list is only for checking things off. Reordering, editing, archiving
-    and adding items happen in a separate Habit manager, the way Habit
-    tracker has one.
-
-67. **Where things live (split).** The Habit manager is inside the Habits &
-    Chores tab: a "Manage" button at the top of the list opens it, and it
-    is where items are added, edited, reordered, archived and deleted, and
-    where the chore chart is set up. The per-person switches (streaks,
-    vacation mode, Winnie texts) live in Marshee's Settings, in a Habits &
-    Chores section, and the manager links there.
 62. **Each habit row shows its current streak** (a small flame and number),
     hidden when the person's streak switch is off.
 63. **Fixed times of day:** Morning until noon, Afternoon until 6 pm,
@@ -289,6 +279,18 @@ One-off jobs (returns, errands) belong in Lists, not here.
     daily notification (Winnie's texts cover it), iCloud sync, export,
     backup, safety lock, Reset app, Fix stats, Moods, Stress meter, Daily
     quote.
+
+66. **A Habit manager, apart from the main list.** The main Habits & Chores
+    list is only for checking things off. Reordering, editing, archiving
+    and adding items happen in a separate Habit manager, the way Habit
+    tracker has one.
+
+67. **Where things live (split).** The Habit manager is inside the Habits &
+    Chores tab: a "Manage" button at the top of the list opens it, and it
+    is where items are added, edited, reordered, archived and deleted, and
+    where the chore chart is set up. The per-person switches (streaks,
+    vacation mode, Winnie texts) live in Marshee's Settings, in a Habits &
+    Chores section, and the manager links there.
 
 ## Open questions
 
