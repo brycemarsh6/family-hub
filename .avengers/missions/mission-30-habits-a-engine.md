@@ -140,7 +140,8 @@ parallel**, then **C6**. Each is one Stark dispatch. The build plan
 contract below is silent, the plan's words bind.
 
 ### C1 - Vocabulary and the pure engine
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran: 628 tests in Denver, UTC (621 pass + 7 skipped, the same 7 skipped on origin/main's glob) and LA; tsc and eslint clean)
+- **Report notes for C3/C4:** `dueState(spec, day, planned, doneInPeriod = 0)`; `carriedFrom(spec, carryOver, logs, today, since?)` with a 14-day lookback; `computeStreaks` returns `asOf` = today except an open kind's unmet current period (then the day before it starts), and C3 caches it unchanged; `streakAfter` is display only. `canEdit`/`canLogFor` also require `canSee`, so a non-participant manager cannot act on a private habit (decision 78). `late` counts toward progress, not streaks. `scheduleFromRow` returns null for an empty weekdays mask or a biweekly with no anchor.
 - **Objective:** Write `src/lib/habitVocabulary.ts` and the pure modules of
   `src/lib/habits/` (`types.ts`, `schedule.ts`, `progress.ts`,
   `carryOver.ts`, `streaks.ts`, `perfectDays.ts`, `planPrompts.ts`,
@@ -383,6 +384,8 @@ connection string lives only in Vercel).
   prove the backfill with fixture rows inside a transaction that is rolled
   back (nothing persists), and recheck the real counts on production after
   merge.
+- 2026-11-05: C2 done, applied on dev (counts above), committed. C1 done,
+  verified, committed. Next: C3.
 
 ## Delivery
 
