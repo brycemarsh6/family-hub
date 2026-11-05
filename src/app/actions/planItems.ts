@@ -19,6 +19,7 @@ import {
   canSee,
   habitCheckTarget,
   habitInputFromPlan,
+  habitParticipantsFor,
   validatePlanItemInput,
   type PlanItemInput,
 } from "@/lib/goals";
@@ -140,7 +141,7 @@ async function newHabit(tx: Prisma.TransactionClient, input: PlanItemInput, goal
   return createHabit(
     {
       fields: { ...habitInputFromPlan(input, goal), createdById: user.userId },
-      participantIds: goal.ownerId !== null ? [goal.ownerId] : "household",
+      participantIds: habitParticipantsFor(goal),
     },
     tx,
   );

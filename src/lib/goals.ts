@@ -260,6 +260,11 @@ export function habitCheckTarget(
   return participantIds.includes(viewerId) ? viewerId : (participantIds[0] ?? viewerId);
 }
 
+/** Who a new habit is for: the owner of a Mine goal, the whole household for a Together one. */
+export function habitParticipantsFor(goal: { ownerId: string | null }): string[] | "household" {
+  return goal.ownerId !== null ? [goal.ownerId] : "household";
+}
+
 /** The first step not yet done, by sortOrder (ties keep the given order). */
 export function nextStep(items: PlanItemRow[]): PlanItemRow | null {
   let next: PlanItemRow | null = null;

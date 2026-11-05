@@ -3,7 +3,12 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { habitCheckTarget, habitInputFromPlan } from "./goals";
+import { habitCheckTarget, habitInputFromPlan, habitParticipantsFor } from "./goals";
+
+test("habitParticipantsFor: a Mine goal's habit is for its owner, a Together goal's for the household", () => {
+  assert.deepEqual(habitParticipantsFor({ ownerId: "me" }), ["me"]);
+  assert.equal(habitParticipantsFor({ ownerId: null }), "household");
+});
 
 test("habitInputFromPlan: every day, N a week and N a month become a daily, weekly or monthly Habit", () => {
   const mine = { ownerId: "me", visibility: "shared", area: "health" };
