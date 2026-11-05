@@ -67,7 +67,7 @@ Three layers, one menu item (`/plans`) with a segmented toggle.
 - Routines must not get cluttered: a habit will be able to opt in to showing
   there ("Show in Routines"), stored once. That switch waits until Routines
   exists. Routines and Plans & Goals will share one habit system
-  (`habits-chores-v1.md`, decision 9).
+  (`habits-chores-v1.md`, "One habit system").
 - Prompts for each life area (empty vision cards, add-goal ideas): Bryce
   approves every line of wording before it ships.
 
