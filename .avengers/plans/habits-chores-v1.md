@@ -215,6 +215,31 @@ One-off jobs (returns, errands) belong in Lists, not here.
 49. **The "Goals this week" tile gets the same item picker**, in the same
     dashboard PR, so every tile works the same way.
 
+### Shared habits and the report (Habit tracker Group and Report screens)
+
+50. **Two kinds of shared habit.**
+    - **Together:** one check by either person counts for both (Couples
+      Prayers).
+    - **Side by side:** each person checks their own and sees the others'
+      progress (Morning Prayers, Workout).
+    This refines "Each item belongs to one person, or to Everyone" above.
+51. **Nudge.** On a side-by-side habit, a person can nudge someone who
+    hasn't done theirs. The nudge shows as a note at the top of that
+    person's Habits & Chores and dashboard; later it also goes out as a
+    Winnie text.
+52. **A side-by-side stats table** on a shared habit's page: total done,
+    completion rate and current streak for each person, plus a chart with
+    one color per person.
+53. **Kids can join side-by-side habits** (a family scripture study
+    streak), checked off on the wall tablet.
+54. **No owners, invites or scan-to-join.** Everyone in Marshee is family;
+    the people in a habit are picked when it is created.
+55. **A Report view** in Habits & Chores, after the first PR: a weekly grid
+    (every item by day), a small calendar per item for the month, and a
+    year grid per item, with a filter for which items to show.
+56. **Not borrowed:** the daily Mood row, "BestDay," and sharing a report
+    as a picture.
+
 ## Open questions
 
 1. **Review the redrawn mock** once it shows Habits and Chores, streaks,
