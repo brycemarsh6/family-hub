@@ -72,7 +72,7 @@ Three layers, one menu item (`/plans`) with a segmented toggle.
 
 1. **PR 1 (mission 27):** goals, plan items, This week, Goals list, goal
    detail with check-ins, add/edit sheets and forms. Two tabs.
-2. **PR 2 (mission 28): built, all three gates PASS, not pushed yet.** Vision
+2. **PR 2 (mission 28): merged as PR #37, live 2026-11-04.** Vision
    tab (5 / 10 / 15 yr, per-area cards), life-area prompts, idea chips in
    the Add-to-plan sheet and the New goal form, "Part of your 10-year
    vision" line on the goal detail. Wording approved by Bryce first
