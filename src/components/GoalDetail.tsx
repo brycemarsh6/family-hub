@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, MoreHorizontal, Pencil, Plus, RotateCcw, Trash2, Undo2 } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
 import { ActionSheet } from "./ActionSheet";
+import { CheckInHistory } from "./CheckInHistory";
 import { CheckInSheet } from "./CheckInSheet";
 import { PlanItemRow } from "./PlanItemRow";
 import { PlanItemSheet } from "./PlanItemSheet";
@@ -21,7 +22,7 @@ import {
 } from "@/lib/goalsProgress";
 import { calendarDateInZone, formatShortCalendarDate, type CalendarDate } from "@/lib/householdDate";
 import { applyPlanItemChange, type PlanItemChange } from "@/lib/planItemChanges";
-import { completeGoal, deleteGoal, uncompleteGoal, type GoalActionResult } from "@/app/actions/goals";
+import { completeGoal, deleteCheckIn, deleteGoal, uncompleteGoal, type GoalActionResult } from "@/app/actions/goals";
 import {
   completeStep,
   deletePlanItem,
@@ -39,6 +40,7 @@ import {
 type Change =
   | PlanItemChange
   | { type: "checkIn"; value: number; at: Date }
+  | { type: "deleteCheckIn"; id: string }
   | { type: "complete"; at: Date }
   | { type: "reopen" };
 
@@ -54,6 +56,17 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
     switch (change.type) {
       case "checkIn": {
         const next = { ...current, currentValue: change.value, checkedInAt: change.at };
+        return { ...next, progress: progressFraction(next), pace: paceStatus(next, today) };
+      }
+      case "deleteCheckIn": {
+        // The number falls back to the newest check-in left, or the start value when none remain.
+        const checkIns = current.checkIns.filter((checkIn) => checkIn.id !== change.id);
+        const next = {
+          ...current,
+          checkIns,
+          currentValue: checkIns[0]?.value ?? current.startValue,
+          checkedInAt: checkIns[0]?.at ?? null,
+        };
         return { ...next, progress: progressFraction(next), pace: paceStatus(next, today) };
       }
       case "complete":
@@ -226,6 +239,12 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
                 </>
               )}
             </p>
+            <CheckInHistory
+              checkIns={goal.checkIns}
+              unit={unit}
+              canEdit={goal.canEdit}
+              onDelete={(id) => run({ type: "deleteCheckIn", id }, () => deleteCheckIn(id), true)}
+            />
           </>
         ) : (
           <div className="flex items-center justify-between gap-3">

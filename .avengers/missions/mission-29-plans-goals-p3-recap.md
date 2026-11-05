@@ -235,7 +235,7 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 - **Report:** all four items. `loadWeekRecap(viewer, today)` returns `{ mine, everyone }` (both scopes, so the client chips need no second call; only the summary reaches the browser), null off Sundays; "mine" keeps goals completed mid-week, so it does not use `goalsInScope`. `buildGoalView` gained `checkIns: []` (needed by the type). Check-ins load with every goal read (small rows). Row count on dev after the migration: 0 history rows for 0 goals with a check-in (matches, but vacuously: the dev copy has no checked-in goals). Open question for Bryce: removing a goal's number to track leaves its old history rows behind.
 
 ### C3: Screens: the tile, the recap card, check-in history
-- **Status:** PENDING
+- **Status:** DONE (Stark, verified by Fury: tsc 0 errors, eslint, npm test 556/556)
 - **Boundaries:** may touch: `src/app/(app)/(home)/page.tsx`, new
   `src/components/GoalsTile.tsx` (only if the tile body is more than a few
   lines), new `src/components/WeekRecapCard.tsx`, new
@@ -255,7 +255,7 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
   counts.
 - **Done criteria:** Fury's browser check at 375 and 820, light and dark,
   on a Sunday clock and a weekday clock.
-- **Report:** (pending)
+- **Report:** GoalsTile (53 lines), WeekRecapCard (38), CheckInHistory (78), GoalDetail 335 lines; home page uses `householdToday`. Deviation accepted pending Bryce: the recap hides its big "{done} of {total}" line when total is 0. Note: an optimistic check-in shows in History only after the refresh.
 
 ### C4: Records
 - **Status:** PENDING

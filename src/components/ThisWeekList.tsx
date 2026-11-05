@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Undo2 } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { PlanItemRow } from "./PlanItemRow";
+import { WeekRecapCard } from "./WeekRecapCard";
 import type { SwipeAction } from "./SwipeActions";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import {
@@ -15,6 +16,7 @@ import {
   type PlansPageData,
   type Viewer,
 } from "@/lib/goals";
+import type { WeekRecap } from "@/lib/goalsRecap";
 import { weekSummary, type PlanItemView } from "@/lib/goalsProgress";
 import { GOAL_OWNERSHIP_LABELS, lifeAreaInfo } from "@/lib/goalVocabulary";
 import { zoneMidnightInstant } from "@/lib/householdDate";
@@ -44,7 +46,16 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "everyone", label: "Everyone" },
 ];
 
-export function ThisWeekList({ data, viewer }: { data: PlansPageData; viewer: Viewer }) {
+export function ThisWeekList({
+  data,
+  viewer,
+  recap,
+}: {
+  data: PlansPageData;
+  viewer: Viewer;
+  // Sundays only: the week that just ended, for each chip. Null on other days.
+  recap: { mine: WeekRecap | null; everyone: WeekRecap | null } | null;
+}) {
   // Same trick as GroceryList: a copy of the goals we may fib about, updated
   // the instant a button is tapped, then replaced by the server's real answer.
   const [goals, applyOptimistic] = useOptimistic(data.goals, applyChange);
@@ -105,8 +116,11 @@ export function ThisWeekList({ data, viewer }: { data: PlansPageData; viewer: Vi
     ];
   }
 
+  const shownRecap = recap?.[filter] ?? null;
+
   return (
     <div>
+      {shownRecap && <WeekRecapCard recap={shownRecap} />}
       <p className="mb-3 text-sm text-muted">
         {formatWeekRange(new Date(ws.year, ws.month - 1, ws.day))}
         {total > 0 && ` · ${done} of ${total} done`}
