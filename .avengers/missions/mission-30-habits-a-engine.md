@@ -393,14 +393,33 @@ contract below is silent, the plan's words bind.
 - **Done criteria:** Captain pass 2, Strange pass 2, Vision pass 3 on the
   F2 diff.
 
+### F3 - Fix from Captain pass 2
+- **Status:** DISPATCHED
+- **Objective:** Move the Mine-or-Together participant choice out of the
+  action into the goal policy file.
+- **Boundaries:** may touch: `src/lib/goals.ts`,
+  `src/lib/goalsHabitInput.test.ts`, `src/app/actions/planItems.ts` ·
+  must not touch: everything else (C6 runs in parallel on records).
+- **Fix:** add `habitParticipantsFor(goal: { ownerId: string | null }):
+  string[] | "household"` beside `habitCheckTarget` in `goals.ts` (no
+  import of `habitWrites`); call it at `planItems.ts:143`; one test.
+- **Verification:** three-zone tests, tsc, `eslint .`; `grep -n "ownerId"
+  src/app/actions/planItems.ts` shows no Mine/Together comparison.
+- **Done criteria:** Captain pass 3.
+
 ### C6 - Records
 - **Status:** PENDING
 - **Objective:** Bring the records up to date: CLAUDE.md "What's built" and
   "Current status"; STRUCTURE.md one-source list (`habitVocabulary.ts`,
   `src/lib/habits/`, `habitsRead.ts` as the only reader of habit rows for
   pages); `habits-chores-v1.md` noting PR A built; this mission file.
-- **Boundaries:** may touch: `CLAUDE.md`, `STRUCTURE.md`,
+- **Status:** DISPATCHED (with F3)
+- **Boundaries:** may touch: `CLAUDE.md`, `STRUCTURE.md`, `AGENTS.md`
+  (the direct-timezone test command only: add `src/lib/habits/*.test.ts`),
   `.avengers/plans/habits-chores-v1.md`, this file · must not touch: code.
+- **STRUCTURE.md text:** Captain pass 2's A1 to A6 (in the gate ledger
+  section below, "Captain amendments"). A7 and A8 need Bryce's approval and
+  are **not** pasted; they are listed under Delivery as decisions.
 - **Verification:** `node ~/.claude/skills/avengers/recordcheck.mjs` →
   0 hard failures, every REVIEW line read; CLAUDE.md under ~250 lines.
 - **Done criteria:** every claim names its file and is checked by command.
@@ -444,6 +463,20 @@ connection string lives only in Vercel).
 | 2 | Vision (whole mission) | PASS | none | later-joining non-manager can't log a Together habit (participants frozen at creation); goal visibility/area edits don't sync to Habit; stale-page undo removes yesterday's check (as main); outer tx 5s timeout; no action-level tests; build-window PlanLogs not migrated |
 | 1 | Captain | BLOCKED | 3: dormant exports unmarked; `storedDay` outside `householdDate.ts`; Together-participant rule in an action | two household-people filters; limits defined twice; plan↔habit mapping split; labels in a component; name collisions; `HabitFields` loosely typed; invented fallback in `undoHabitLog`; `goals.test.ts` over soft cap; AGENTS.md glob stale; amendments A1 to A8 drafted |
 | 1 | Strange | BLOCKED | 1: Manage family reads as part of Habits & Chores | "Updated 5 streaks" counts records, no singular; "6 left" can exceed days left (Bryce); filled check = checked today; "Every day" wraps; mixed-case strip; dark segment contrast (as main); sheet jumps when stepper hides; device Settings not walked |
+| 3 | Vision (F2) | PASS | none | `visions.ts` P2002 check now also requires the Prisma error class (no real input differs); test-only cast in `habitRows.test.ts`; `icon`/`lifeArea`/`timeOfDay` still plain strings |
+| 2 | Strange | PASS | none | Settings top group has no heading; dark period strip selection faint (as main); one missed first tap on "Every day" in the test browser, not reproduced (check on a phone) |
+| 2 | Captain | BLOCKED | 1: `planItems.ts:143` compares `goal.ownerId` to pick participants (goal policy rule) | two household-people filters remain (A8); action/lib share the name `recomputeAllStreaks` via an alias (A6); `goals.test.ts` 344/350; four older inline UTC reads grandfathered (A3); AGENTS.md glob stale |
+
+### Captain amendments (pass 2 text; C6 pastes A1 to A6 into STRUCTURE.md "One source of truth")
+
+- **A1.** `src/lib/habitVocabulary.ts` holds Habits & Chores' vocabulary: `HABIT_KINDS`, `HABIT_MODES`, `HABIT_SCHEDULES` with `HABIT_SCHEDULE_LABELS` (the habit editor's words), `HABIT_SHARING`, `HABIT_LOG_STATUSES`, `TIMES_OF_DAY`, `HABIT_ICONS`, the weekday mask (`parseWeekdayMask` / `printWeekdayMask`) and the `to*` repairers. `HABIT_TIMES_LIMITS` (weekly 7, monthly 31) is the one answer to "how many times can a period ask for". `schedule.ts` clamps with it and `goals.ts`'s `HABIT_TIMES_MAX` derives from it, so a literal 7 or 31 for a habit limit anywhere else is a BLOCKER. The file has **no imports**, so any lib file may take words from it without risking a cycle. Plan-item period wording ("Every day", "a week", "a month") is `PERIOD_LABELS` in `goalVocabulary.ts`, beside `HABIT_PERIODS`. These are two different vocabularies (`HabitPeriod` on a goal's plan, `HabitSchedule` on a habit) and stay apart on purpose. (Added mission-30.)
+- **A2.** `src/lib/habits/` is the habit engine, a domain subdirectory under the `src/lib/voice/` precedent. `schedule.ts`, `carryOver.ts`, `streaks.ts`, `progress.ts`, `perfectDays.ts`, `planPrompts.ts`, `access.ts`, `habitRows.ts` and `types.ts` are pure: no Prisma client, no `db`, and callers pass `today`. `habitWrites.ts` (`server-only`) is the only writer of the `Habit`, `HabitParticipant` and `HabitLog` tables, and of the cached streak columns. `src/lib/habitsRead.ts` is the only page reader of habit rows. **Dependency direction:** `src/lib/habits/` may import `habitVocabulary.ts`, `householdDate.ts`, `constants.ts`, `db.ts` and the generated client (types). It never imports `goals*.ts`, `goalVocabulary.ts` or `visions*.ts`. The goals side may import the engine (`goalsProgress.ts` takes `habits/progress`, and `goals.ts` takes the `HabitFields` type only). `src/lib/habits/*.test.ts` is in `package.json`'s test script and both CI timezone steps. (Added mission-30.)
+- **A3.** `calendarDateFromUtcMidnight` in `householdDate.ts`, defined right under `utcMidnightInstant`, is the only way to read a stored UTC-midnight day column (`HabitLog.day`, vacation days, `anchorWeek`, `streakAsOf`, all-day dates) back as a `CalendarDate`. `utcMidnightInstant` is the only way to write one. New code that inlines `calendarDateInZone(x, "UTC")` for a stored day is a BLOCKER. Four older `goal.targetDate` sites are grandfathered and move to the helper in the next mission that touches each one: `plans/goals/[id]/page.tsx`, `plans/goals/[id]/edit/page.tsx`, `actions/goals.ts` and `goalsProgress.ts`. (Added mission-30.)
+- **A4.** `householdParticipantIds(client)` in `habits/habitWrites.ts` is the one rule for who holds a Together habit: every active person who is not a shared device login. Callers ask for it with `createHabit`'s `participantIds: "household"`. They never query `User` for participants themselves, and an action that filters on `deactivatedAt` or `role` to pick habit participants is a BLOCKER. (Added mission-30.)
+- **A5.** `habits/access.ts` is the only habit policy: `canSeeHabit`, `canEditHabit` and `canLogFor`. They carry the `Habit` suffix so they never collide with `goals.ts`'s `canSee` / `canEdit` in a search or an import. An action, page or component that checks a habit's `isPrivate` or participant list itself is a BLOCKER. The plan-to-habit glue lives in `goals.ts` beside the goal policy: `habitInputFromPlan` (a plan item's fields become a Habit's), `habitParticipantsFor` (a Mine goal's owner, or the household) and `habitCheckTarget` (whose row a tap writes). It is pinned by `goalsHabitInput.test.ts`, and nothing outside `goals.ts` maps a goal to a habit. (Added mission-30.)
+- **A6.** The "Recompute streaks" door is the admin-only action `recomputeAllStreaks` in `src/app/actions/habits.ts`. It wraps the lib function of the same name in `habitWrites.ts`, imported as `rebuildAllStreaks`; that alias is deliberate, and new action files that wrap a same-named lib function do the same. Only `recomputeStreaks` / `recomputeAllStreaks` in `habitWrites.ts` write `currentStreak`, `bestStreak` and `streakAsOf`. `isUniqueViolationError` in `src/lib/prismaErrors.ts` is the only Prisma P2002 check (callers: `actions/mealPlans.ts`, `actions/visions.ts` and the habit writes); an inline `code === "P2002"` is a BLOCKER. (Added mission-30.)
+- **A7 (needs Bryce's approval, not pasted).** Built-ahead engines: an export dormant by a written multi-PR plan may wait for the PR its "Dormant until PR X (mission N)" comment names; if mission N ships without calling it, the normal rule resumes. (Without it, `isPerfectDay` and `isPromptDay` would have to be deleted at mission 32.)
+- **A8 (needs Bryce's approval, not pasted).** One "household people" rule (active, not a device) in `src/lib/householdPeople.ts`, used by `householdParticipantIds` and `visionsRead.ts`; the two copies today are named debt.
 
 ## Handoff log
 
