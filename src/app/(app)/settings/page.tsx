@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, Users } from "lucide-react";
+import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { NavModeSetting } from "@/components/NavModeSetting";
 import { requireVerifiedUser } from "@/lib/dal";
 
@@ -7,8 +8,9 @@ import { requireVerifiedUser } from "@/lib/dal";
 export const dynamic = "force-dynamic";
 
 /**
- * App-wide settings: "Menu style" for everyone (devices too), and the
- * admin-only door "Manage family" below it. Your own name, colour and
+ * App-wide settings: "Menu style" for everyone (devices too), the
+ * "Habits & Chores" section (accounts only: a device login never sees it),
+ * and the admin-only door "Manage family" below it. Your own name, colour and
  * password live on /profile.
  */
 export default async function SettingsPage() {
@@ -19,6 +21,10 @@ export default async function SettingsPage() {
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
 
       <NavModeSetting navMode={user.navMode} />
+
+      {!user.isDevice && (
+        <HabitsChoresSettings showStreaks={user.showStreaks} isAdmin={user.role === "admin"} />
+      )}
 
       {user.role === "admin" && (
         <Link

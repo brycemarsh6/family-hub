@@ -27,7 +27,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
       { href: "/calendar", label: "Calendar", icon: CalendarDays },
-      { href: "/routines", label: "Routines", icon: ListChecks },
+      { href: "/habits", label: "Habits & Chores", icon: ListChecks },
       { href: "/plans", label: "Plans & Goals", icon: Target },
       { href: "/lists", label: "Lists", icon: ClipboardList },
     ],

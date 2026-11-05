@@ -5,5 +5,6 @@
 export const LEGACY_ROUTE_REDIRECTS = [
   { source: "/kitchen", destination: "/kitchen/inventory" },
   { source: "/kitchen/cooking", destination: "/kitchen/cooking/recipes" },
-  { source: "/chores", destination: "/routines" },
+  { source: "/routines", destination: "/habits" },
+  { source: "/chores", destination: "/habits" },
 ] as const;
