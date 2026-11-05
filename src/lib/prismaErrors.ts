@@ -21,3 +21,15 @@ export function isMissingRowError(error: unknown): boolean {
     error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025"
   );
 }
+
+/**
+ * True when a create failed because a unique constraint already holds that
+ * row (Prisma's P2002), for example two phones adding the same thing at once.
+ * Same reasoning as `isMissingRowError`: let the write fail and read the code
+ * rather than looking first.
+ */
+export function isUniqueViolationError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
+  );
+}

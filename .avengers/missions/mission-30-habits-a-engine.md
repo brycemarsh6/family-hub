@@ -231,14 +231,16 @@ contract below is silent, the plan's words bind.
   after-counts, runs `npx prisma migrate status`. (Fury-only steps.)
 
 ### C3 - Server modules
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran: 637 tests in three zones, tsc and eslint clean, both server files open with server-only). Signatures: every write takes `today` before `client`; `checkHabit` returns `{ created, userIds }`; a private `atomically` opens `db.$transaction` when no client is passed. `updateHabit` does not change participants. Write paths have no db test (no harness); Fury runs a rolled-back smoke test on dev.
 - **Objective:** Write `src/lib/habits/habitWrites.ts` (every write the
   plan's engine section lists) and `src/lib/habitsRead.ts`
   (`loadHabitsForPlan(habitIds, from)`), and add `isUniqueViolationError`
   (P2002) to `src/lib/prismaErrors.ts`.
 - **Boundaries:** may touch: new `src/lib/habits/habitWrites.ts`,
   new `src/lib/habitsRead.ts`, `src/lib/prismaErrors.ts`, new
-  `src/lib/prismaErrors.test.ts` (optional) · must not touch:
+  `src/lib/prismaErrors.test.ts` (optional), new
+  `src/lib/habits/habitRows.ts` and new `src/lib/habits/habitRows.test.ts`
+  (pure row-to-engine helpers; added at dispatch) · must not touch:
   `prisma/`, `src/app/`, `src/components/`, every other existing lib file,
   C1's files (read them; report a needed change as BLOCKED-ON-CONTRACT).
 - **Rules:** both files open with `import "server-only"`; no
