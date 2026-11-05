@@ -104,6 +104,22 @@ export function canLog(goal: Owned, viewer: Viewer): boolean {
   return goal.ownerId === null || goal.ownerId === viewer.userId;
 }
 
+/**
+ * The active goals (not completed) a viewer counts on This week and the
+ * dashboard tile. A shared device, or the "everyone" scope, keeps all of
+ * them; otherwise the viewer's own and Together ones (not someone else's).
+ */
+export function goalsInScope<G extends Pick<GoalRow, "ownerId" | "completedAt">>(
+  goals: G[],
+  viewer: Viewer,
+  scope: "mine" | "everyone",
+): G[] {
+  const everyone = viewer.isDevice || scope === "everyone";
+  return goals.filter(
+    (goal) => goal.completedAt === null && (everyone || whoseGoal(goal, viewer.userId) !== "theirs"),
+  );
+}
+
 // ---- Validation ----
 
 export type GoalInput = {

@@ -18,6 +18,7 @@ import {
   earlierDate,
   goalOnBoard,
   goalOwnership,
+  goalsInScope,
   isPrivateGoal,
   nextStep,
   validateGoalInput,
@@ -306,3 +307,18 @@ test("validatePlanItemInput: title and kind rules", () => {
   assert.ok("error" in validatePlanItemInput(null));
 });
 
+
+test("goalsInScope: Mine and Together drops someone else's goals and completed ones", () => {
+  const mine = goal({ id: "a" });
+  const together = goal({ id: "b", ownerId: null });
+  const theirs = goal({ id: "c", ownerId: "spouse" });
+  const done = goal({ id: "d", completedAt: new Date("2026-10-01T00:00:00Z") });
+  const ids = (goals: GoalRow[]) => goals.map((g) => g.id);
+  assert.deepEqual(ids(goalsInScope([mine, together, theirs, done], ME, "mine")), ["a", "b"]);
+  assert.deepEqual(ids(goalsInScope([mine, together, theirs, done], ME, "everyone")), ["a", "b", "c"]);
+});
+
+test("goalsInScope: a shared device counts every active goal whatever the scope", () => {
+  const goals = [goal({ id: "a" }), goal({ id: "c", ownerId: "spouse" }), goal({ id: "d", completedAt: new Date() })];
+  assert.deepEqual(goalsInScope(goals, TABLET, "mine").map((g) => g.id), ["a", "c"]);
+});

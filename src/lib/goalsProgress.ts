@@ -111,6 +111,21 @@ export function weekSummary(goals: { items: PlanItemView[] }[]): { done: number;
   return { done, total };
 }
 
+/**
+ * The habits `weekSummary` counts that are not yet done, in goal order then
+ * item order, as how many taps each still needs. At most `limit`.
+ */
+export function weekTodo(goals: { items: PlanItemView[] }[], limit: number): { title: string; left: number }[] {
+  const todo: { title: string; left: number }[] = [];
+  for (const goal of goals) {
+    for (const item of goal.items) {
+      if (item.kind !== "habit" || item.windowLabel !== "this week" || item.count >= item.target) continue;
+      todo.push({ title: item.title, left: item.target - item.count });
+    }
+  }
+  return todo.slice(0, Math.max(0, limit));
+}
+
 // ---- Progress and pace (a goal with a number) ----
 
 /** 0..1 of the way from start to target, whichever direction the number moves. */

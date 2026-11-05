@@ -24,7 +24,7 @@ function layoutOf(order: DashboardLayout["widgets"]): DashboardLayout {
 // --- the default -------------------------------------------------------
 
 test("default layout: registry order, everything on", () => {
-  assert.deepEqual(ids(DEFAULT_DASHBOARD_LAYOUT), ["todayMeals", "inventory", "grocery", "recipes"]);
+  assert.deepEqual(ids(DEFAULT_DASHBOARD_LAYOUT), ["todayMeals", "goals", "inventory", "grocery", "recipes"]);
   assert.ok(DEFAULT_DASHBOARD_LAYOUT.widgets.every((w) => w.enabled));
   assert.equal(DEFAULT_DASHBOARD_LAYOUT.version, 1);
 });
@@ -32,6 +32,8 @@ test("default layout: registry order, everything on", () => {
 test("registry: labels and widths", () => {
   assert.equal(DASHBOARD_WIDGETS.todayMeals.label, "Today's meals");
   assert.equal(DASHBOARD_WIDGETS.todayMeals.width, "full");
+  assert.equal(DASHBOARD_WIDGETS.goals.label, "Goals this week");
+  assert.equal(DASHBOARD_WIDGETS.goals.width, "full");
   assert.equal(DASHBOARD_WIDGETS.inventory.width, "half");
   assert.equal(DASHBOARD_WIDGETS.grocery.width, "half");
   assert.equal(DASHBOARD_WIDGETS.recipes.width, "full");
@@ -72,13 +74,13 @@ test("parse: junk entries inside widgets are skipped", () => {
     version: 1,
     widgets: [null, 7, "grocery", { id: 5 }, { id: "recipes", enabled: false }],
   });
-  assert.deepEqual(out.widgets[0], { id: "recipes", enabled: false });
-  assert.equal(out.widgets.length, 4);
+  assert.deepEqual(out.widgets.find((w) => w.id === "recipes"), { id: "recipes", enabled: false });
+  assert.equal(out.widgets.length, 5);
 });
 
 test("parse: a non-boolean enabled falls back to the widget's default", () => {
   const out = parseDashboardLayout({ version: 1, widgets: [{ id: "grocery", enabled: "no" }] });
-  assert.deepEqual(out.widgets[0], { id: "grocery", enabled: true });
+  assert.deepEqual(out.widgets.find((w) => w.id === "grocery"), { id: "grocery", enabled: true });
 });
 
 // --- parseDashboardLayout: shape repair -------------------------------
@@ -92,8 +94,9 @@ test("parse: unknown ids are dropped", () => {
     ],
   });
   assert.ok(!ids(out).includes("weather" as never));
-  assert.equal(ids(out)[0], "grocery");
-  assert.equal(out.widgets.length, 4);
+  assert.deepEqual(ids(out), ["todayMeals", "goals", "inventory", "grocery", "recipes"]);
+  assert.equal(out.widgets.find((w) => w.id === "grocery")?.enabled, false);
+  assert.equal(out.widgets.length, 5);
 });
 
 test("parse: duplicates are removed, first one wins", () => {
@@ -105,7 +108,7 @@ test("parse: duplicates are removed, first one wins", () => {
     ],
   });
   assert.equal(ids(out).filter((id) => id === "grocery").length, 1);
-  assert.deepEqual(out.widgets[0], { id: "grocery", enabled: false });
+  assert.deepEqual(out.widgets.find((w) => w.id === "grocery"), { id: "grocery", enabled: false });
 });
 
 test("parse: an id added later shows up for an old stored row", () => {
@@ -117,10 +120,48 @@ test("parse: an id added later shows up for an old stored row", () => {
     ],
   };
   const out = parseDashboardLayout(old);
-  assert.deepEqual(ids(out), ["recipes", "todayMeals", "inventory", "grocery"]);
+  assert.deepEqual(ids(out), ["recipes", "todayMeals", "goals", "inventory", "grocery"]);
   assert.deepEqual(out.widgets[0], { id: "recipes", enabled: false });
-  assert.equal(out.widgets[2].enabled, DASHBOARD_WIDGETS.inventory.defaultEnabled);
-  assert.equal(out.widgets[3].enabled, DASHBOARD_WIDGETS.grocery.defaultEnabled);
+  assert.equal(out.widgets[3].enabled, DASHBOARD_WIDGETS.inventory.defaultEnabled);
+  assert.equal(out.widgets[4].enabled, DASHBOARD_WIDGETS.grocery.defaultEnabled);
+});
+
+test("parse: a saved four-widget layout gains goals second", () => {
+  const out = parseDashboardLayout(
+    layoutOf([
+      { id: "todayMeals", enabled: true },
+      { id: "inventory", enabled: false },
+      { id: "grocery", enabled: true },
+      { id: "recipes", enabled: true },
+    ]),
+  );
+  assert.deepEqual(ids(out), ["todayMeals", "goals", "inventory", "grocery", "recipes"]);
+  assert.deepEqual(out.widgets[1], { id: "goals", enabled: true });
+  assert.equal(out.widgets[2].enabled, false);
+});
+
+test("parse: goals lands right after todayMeals even when todayMeals was moved last", () => {
+  const out = parseDashboardLayout(
+    layoutOf([
+      { id: "inventory", enabled: true },
+      { id: "grocery", enabled: true },
+      { id: "recipes", enabled: true },
+      { id: "todayMeals", enabled: true },
+    ]),
+  );
+  assert.deepEqual(ids(out), ["inventory", "grocery", "recipes", "todayMeals", "goals"]);
+});
+
+test("parse: with todayMeals and goals both missing they come back in registry order", () => {
+  const out = parseDashboardLayout(
+    layoutOf([
+      { id: "inventory", enabled: true },
+      { id: "grocery", enabled: false },
+      { id: "recipes", enabled: true },
+    ]),
+  );
+  assert.deepEqual(ids(out), ["todayMeals", "goals", "inventory", "grocery", "recipes"]);
+  assert.equal(out.widgets[3].enabled, false);
 });
 
 test("parse: accepts a JSON string as well as an object", () => {
@@ -129,6 +170,7 @@ test("parse: accepts a JSON string as well as an object", () => {
     { id: "grocery", enabled: false },
     { id: "inventory", enabled: true },
     { id: "todayMeals", enabled: true },
+    { id: "goals", enabled: true },
   ]);
   assert.deepEqual(parseDashboardLayout(JSON.stringify(stored)), stored);
   assert.deepEqual(parseDashboardLayout(stored), stored);
@@ -149,7 +191,7 @@ test("toggle: flips one widget, leaves the rest, does not mutate", () => {
   const before = JSON.stringify(DEFAULT_DASHBOARD_LAYOUT);
   const off = toggleWidget(DEFAULT_DASHBOARD_LAYOUT, "grocery");
   assert.equal(off.widgets.find((w) => w.id === "grocery")?.enabled, false);
-  assert.equal(off.widgets.filter((w) => w.enabled).length, 3);
+  assert.equal(off.widgets.filter((w) => w.enabled).length, 4);
   assert.equal(JSON.stringify(DEFAULT_DASHBOARD_LAYOUT), before);
   assert.deepEqual(toggleWidget(off, "grocery"), DEFAULT_DASHBOARD_LAYOUT);
 });
@@ -158,7 +200,7 @@ test("toggle: flips one widget, leaves the rest, does not mutate", () => {
 
 test("move: down and up swap neighbours", () => {
   const down = moveWidget(DEFAULT_DASHBOARD_LAYOUT, "todayMeals", 1);
-  assert.deepEqual(ids(down), ["inventory", "todayMeals", "grocery", "recipes"]);
+  assert.deepEqual(ids(down), ["goals", "todayMeals", "inventory", "grocery", "recipes"]);
   assert.deepEqual(moveWidget(down, "todayMeals", -1), DEFAULT_DASHBOARD_LAYOUT);
 });
 
@@ -174,7 +216,7 @@ test("move: clamped at both ends, returns an equal but new layout", () => {
 test("move: keeps each widget's own switch", () => {
   const start = toggleWidget(DEFAULT_DASHBOARD_LAYOUT, "inventory");
   const moved = moveWidget(start, "inventory", 1);
-  assert.deepEqual(moved.widgets[2], { id: "inventory", enabled: false });
+  assert.deepEqual(moved.widgets[3], { id: "inventory", enabled: false });
 });
 
 // --- widgetSpans ------------------------------------------------------
@@ -182,6 +224,7 @@ test("move: keeps each widget's own switch", () => {
 test("spans: all on, the two halves pair", () => {
   assert.deepEqual(widgetSpans(DEFAULT_DASHBOARD_LAYOUT), [
     { id: "todayMeals", span: "full" },
+    { id: "goals", span: "full" },
     { id: "inventory", span: "half" },
     { id: "grocery", span: "half" },
     { id: "recipes", span: "full" },
@@ -192,6 +235,7 @@ test("spans: Inventory off, Grocery goes full", () => {
   const spans = widgetSpans(toggleWidget(DEFAULT_DASHBOARD_LAYOUT, "inventory"));
   assert.deepEqual(spans, [
     { id: "todayMeals", span: "full" },
+    { id: "goals", span: "full" },
     { id: "grocery", span: "full" },
     { id: "recipes", span: "full" },
   ]);
@@ -201,6 +245,7 @@ test("spans: Grocery off, Inventory goes full", () => {
   const spans = widgetSpans(toggleWidget(DEFAULT_DASHBOARD_LAYOUT, "grocery"));
   assert.deepEqual(spans, [
     { id: "todayMeals", span: "full" },
+    { id: "goals", span: "full" },
     { id: "inventory", span: "full" },
     { id: "recipes", span: "full" },
   ]);

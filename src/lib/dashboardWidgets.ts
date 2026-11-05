@@ -4,7 +4,7 @@
 // from a client component alike. DASHBOARD_WIDGET_IDS is the default order of
 // the dashboard, and a test pins the record's key order to it.
 
-export const DASHBOARD_WIDGET_IDS = ["todayMeals", "inventory", "grocery", "recipes"] as const;
+export const DASHBOARD_WIDGET_IDS = ["todayMeals", "goals", "inventory", "grocery", "recipes"] as const;
 
 export type DashboardWidgetId = (typeof DASHBOARD_WIDGET_IDS)[number];
 
@@ -17,6 +17,7 @@ type DashboardWidgetDef = {
 
 export const DASHBOARD_WIDGETS: Record<DashboardWidgetId, DashboardWidgetDef> = {
   todayMeals: { label: "Today's meals", width: "full", defaultEnabled: true },
+  goals: { label: "Goals this week", width: "full", defaultEnabled: true },
   inventory: { label: "Inventory", width: "half", defaultEnabled: true },
   grocery: { label: "Grocery", width: "half", defaultEnabled: true },
   recipes: { label: "Recipes", width: "full", defaultEnabled: true },

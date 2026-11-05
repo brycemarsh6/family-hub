@@ -18,6 +18,7 @@ import {
   progressFraction,
   targetDateChips,
   weekSummary,
+  weekTodo,
   type GoalMeasure,
   type PlanItemRow,
   type PlanLogRow,
@@ -227,6 +228,24 @@ test("weekSummary: a monthly habit with target 1 does not change the summary", (
   assert.equal(view.items[1].windowLabel, "this month");
   assert.deepEqual(weekSummary([view]), { done: 1, total: 4 });
   assert.deepEqual(weekSummary([viewOf([items[0]], logs)]), weekSummary([view]));
+});
+
+test("weekTodo: undone day and week habits in order, with taps left, capped at the limit", () => {
+  const items = [
+    item({ id: "i1", title: "Exercise" }),
+    item({ id: "i2", title: "Read", timesPerPeriod: 2 }),
+    item({ id: "i3", title: "Stretch", timesPerPeriod: 1 }),
+    item({ id: "i4", title: "Monthly", timesPerPeriod: 1, period: "month" }),
+    item({ id: "i5", title: "Plan", kind: "step", timesPerPeriod: null, period: null }),
+  ];
+  const logs = [...logsOn("i1", [d(2026, 11, 2)]), ...logsOn("i2", [d(2026, 11, 2), d(2026, 11, 3)])];
+  const view = viewOf(items, logs);
+  assert.deepEqual(weekTodo([view], 5), [
+    { title: "Exercise", left: 3 },
+    { title: "Stretch", left: 1 },
+  ]);
+  assert.deepEqual(weekTodo([view], 1), [{ title: "Exercise", left: 3 }]);
+  assert.deepEqual(weekTodo([], 3), []);
 });
 
 test("parseTypedNumber: commas and spaces are fine, blanks and words are not", () => {

@@ -137,7 +137,7 @@ on Opus 5.5 (Bryce's standing rule). Budget 3 passes per gate.
 C1, then C2, then C3, then C4. Each is one Stark dispatch.
 
 ### C1: Pure logic: tile summary, weekly recap, the shared goal filter, layout insertion
-- **Status:** PENDING
+- **Status:** DONE (Stark, verified by Fury: npm test 556/556, eslint clean)
 - **Boundaries:** may touch: `src/lib/dashboardWidgets.ts`,
   `src/lib/dashboardLayout.ts`, `src/lib/dashboardLayout.test.ts`, the
   registry test if it is a separate file, `src/lib/goals.ts`,
@@ -186,7 +186,7 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
   count before and after; line counts of touched files.
 - **Done criteria:** Vision re-runs the tests; `ThisWeekList` diff is the
   filter swap only.
-- **Report:** (pending)
+- **Report:** all five items as specified; 20 new tests. One expected break, accepted by Fury: `tsc` fails only in `src/app/(app)/(home)/page.tsx` because the registry gained `goals` and the page's tile record (C3's file) does not have it yet. That was Fury's contract error (the registry and the page cannot change apart). C3 must leave tsc at zero errors. Stark also skips goals created after the recap week ended (tested, beyond the Brief, accepted: a new goal should not add to a week it did not exist in) and caps recap counts at the target like `weekSummary`.
 
 ### C2: Data: the GoalCheckIn table, backfill, reader and actions
 - **Status:** PENDING

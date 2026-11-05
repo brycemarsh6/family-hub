@@ -36,9 +36,11 @@ function defaultLayout(): DashboardLayout {
  * Any stored value to a safe layout. Never throws. Accepts a JSON string or
  * an already-parsed object; anything unusable gives the default. Unknown ids
  * are dropped, duplicates removed (first wins), and registry ids missing
- * from the stored row are appended with their `defaultEnabled`, so a widget
+ * from the stored row are added with their `defaultEnabled`, so a widget
  * added in a later release shows up for people who saved a layout before it
- * existed.
+ * existed. A missing id goes directly after the nearest id before it in
+ * DASHBOARD_WIDGET_IDS that is already in the list (at the start if none is),
+ * so a new widget lands where the default order puts it, not at the end.
  */
 export function parseDashboardLayout(raw: unknown): DashboardLayout {
   let value: unknown = raw;
@@ -62,9 +64,13 @@ export function parseDashboardLayout(raw: unknown): DashboardLayout {
     seen.add(id);
     widgets.push({ id, enabled: typeof enabled === "boolean" ? enabled : DASHBOARD_WIDGETS[id].defaultEnabled });
   }
-  for (const id of DASHBOARD_WIDGET_IDS) {
-    if (!seen.has(id)) widgets.push({ id, enabled: DASHBOARD_WIDGETS[id].defaultEnabled });
-  }
+  DASHBOARD_WIDGET_IDS.forEach((id, index) => {
+    if (seen.has(id)) return;
+    const before = DASHBOARD_WIDGET_IDS.slice(0, index).reverse().find((other) => seen.has(other));
+    const at = before === undefined ? 0 : widgets.findIndex((w) => w.id === before) + 1;
+    widgets.splice(at, 0, { id, enabled: DASHBOARD_WIDGETS[id].defaultEnabled });
+    seen.add(id);
+  });
   return { version: 1, widgets };
 }
 

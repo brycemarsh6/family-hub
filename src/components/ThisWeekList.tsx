@@ -9,8 +9,8 @@ import type { SwipeAction } from "./SwipeActions";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import {
   goalOwnership,
+  goalsInScope,
   nextStep,
-  whoseGoal,
   type GoalView,
   type PlansPageData,
   type Viewer,
@@ -68,11 +68,7 @@ export function ThisWeekList({ data, viewer }: { data: PlansPageData; viewer: Vi
 
   const ws = data.weekStart;
   const showFilter = !viewer.isDevice;
-  const shown = goals.filter(
-    (goal) =>
-      goal.completedAt === null &&
-      (!showFilter || filter === "everyone" || whoseGoal(goal, viewer.userId) !== "theirs"),
-  );
+  const shown = goalsInScope(goals, viewer, filter);
   const { done, total } = weekSummary(shown);
 
   // Each goal with what it contributes to this week; a goal with nothing is skipped.
