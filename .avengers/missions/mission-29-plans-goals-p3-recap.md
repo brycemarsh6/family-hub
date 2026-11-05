@@ -323,6 +323,21 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 - **Done criteria:** each gate re-checks its own blockers in pass 2.
 - **Report:** all nine items; first run BLOCKED-ON-CONTRACT because `PlanItemRow.createdAt` reached two files outside the boundary (Fury's contract error again), widened and finished. GoalDetail 332 lines (shrank). Vision's `deleteCheckIn` race note left open.
 
+### F2: Bryce's pass-1 decision on history
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/app/actions/goals.ts` only
+  · must not touch: every other file.
+- **Spec:** in `updateGoal`, when the submitted goal has no number and
+  the stored goal had one, delete the goal's `GoalCheckIn` rows and update
+  the goal in one `db.$transaction`. Every other path is unchanged. Update
+  `updateGoal`'s doc comment to say taking the number away also deletes
+  its history. Keep the existing missing-row handling.
+- **Verification:** the full gauntlet including build.
+- **Evidence required:** the diff; outputs.
+- **Done criteria:** Vision pass 2; Fury removes the number on the test
+  goal in the browser and sees the history gone after adding a new one.
+- **Report:** (pending)
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -332,6 +347,17 @@ C1, then C2, then C3, then C4. Each is one Stark dispatch.
 | 1 | Strange (Opus) | BLOCKED | (1) history delete is optimistic (DESIGN.md: destructive verbs wait for the server; Fury's contract error); (2) recap label `text-muted` on `bg-accent-soft` is 4.35:1 | same-date history rows share one Delete label; no "Show fewer"; tile "STILL TO DO:" drawn as caps label with a colon (Brief says a plain line); "All done this week" muted; recap not seen in pixels (Wednesday) |
 | 2 | Captain (Opus) | PASS | none | `goalInclude` and `toView` check-in flags must agree; two `PlanItemRow` builders (`actions/planItems.ts`, `goalsRead.ts`); `householdToday` still in `assistant/` |
 | 2 | Strange (Opus) | PASS | none | delete waits for the server (timed); recap label 4.76:1 light, 6.20:1 dark; no pending cue on a row during delete (app-wide); no "Show fewer"; "All done this week" muted; recap still unseen in pixels, look on a Sunday |
+
+## Bryce's pass-1 decisions (2026-11-04, "those recs sound good")
+
+1. **Removing a goal's number to track deletes its check-in history**, in
+   the same step. Old readings never come back under a new number.
+2. **The recap hides "{done} of {total} done" when the week had no
+   habits**, and shows only the number changes and finished steps (C3's
+   deviation, now approved).
+
+Not changed: editing only the unit (for example "lbs" to "lb") keeps the
+history, the same way it already keeps the current number.
 
 ## Handoff log
 
