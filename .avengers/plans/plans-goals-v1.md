@@ -63,11 +63,11 @@ Three layers, one menu item (`/plans`) with a segmented toggle.
 - Habits don't carry streaks. Reaching the week's count fills the button;
   missing it carries nothing forward. **Reversed by Bryce on 2026-11-05:**
   streaks are coming, with a setting to turn them off. See
-  `.avengers/plans/routines-v1.md`.
+  `.avengers/plans/habits-chores-v1.md`.
 - Routines must not get cluttered: a habit will be able to opt in to showing
   there ("Show in Routines"), stored once. That switch waits until Routines
   exists. Routines and Plans & Goals will share one habit system
-  (`routines-v1.md`, decision 9).
+  (`habits-chores-v1.md`, decision 9).
 - Prompts for each life area (empty vision cards, add-goal ideas): Bryce
   approves every line of wording before it ships.
 
