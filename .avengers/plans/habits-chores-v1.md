@@ -240,6 +240,38 @@ One-off jobs (returns, errands) belong in Lists, not here.
 56. **Not borrowed:** the daily Mood row, "BestDay," and sharing a report
     as a picture.
 
+### Settings ideas (Habit tracker Settings screens)
+
+57. **Vacation mode** in each person's Settings: a start and end date, and
+    every habit and chore of theirs counts as skipped on those days, so
+    streaks are safe and chores are excused. Built right after the first PR.
+58. **Archive, as well as Delete.** Archive takes an item off the lists but
+    keeps its history and stats, and it can be brought back. Delete stays
+    one tap with no confirmation; Archive is listed before it. (A year of
+    streaks should not be one mistaken tap from gone.)
+59. **No custom groups.** Each habit has an optional life area, the same
+    six as Plans & Goals, plus its time of day. Filter chips at the top of
+    the tab sort by either. Habit tracker's groups map onto these: Morning,
+    Night and Midday are times of day; Spiritual, Physical Health,
+    Emotional Health, Personal Development and Relationships are life
+    areas.
+60. **Done items drop to the bottom** of the list. No setting.
+61. **Items can be reordered**, the same way as the dashboard's Customize
+    sheet.
+62. **Each habit row shows its current streak** (a small flame and number),
+    hidden when the person's streak switch is off.
+63. **Fixed times of day:** Morning until noon, Afternoon until 6 pm,
+    Evening after that. No setting.
+64. **A small, quiet confetti burst** when a person finishes everything due
+    today. No sound (the wall tablet is in the kitchen).
+65. **Not borrowed from Settings:** a Monday week start (Marshee weeks start
+    Sunday), a daily reset time (midnight Denver; the 7-day back-fill covers
+    late check-offs), swipe to check in (swipe opens a row's other actions,
+    so checking in stays a tap), themes, widget styles, app icon and badge,
+    daily notification (Winnie's texts cover it), iCloud sync, export,
+    backup, safety lock, Reset app, Fix stats, Moods, Stress meter, Daily
+    quote.
+
 ## Open questions
 
 1. **Review the redrawn mock** once it shows Habits and Chores, streaks,
