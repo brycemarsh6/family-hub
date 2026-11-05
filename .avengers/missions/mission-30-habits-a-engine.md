@@ -451,9 +451,14 @@ backfill again, counted again:
   was not migrated; every habit item linked (`PlanItem.habitId` set).
 - After rollback: 0 fixture goals and 0 `Habit` rows on dev.
 
-Production's real counts get checked after merge (Bryce's Neon console or
-Fury's read-only script against production is **not** available: its
-connection string lives only in Vercel).
+Production's real counts, checked after merge by Bryce in the Neon console
+(production branch, SQL Editor, `counts.sql`) on 2026-11-05: habit plan
+items 0 = habits 0; expected participants 0 = participants 0; expected logs
+0 = logs 0. Production held no Plans & Goals habits yet, so nothing needed
+moving and nothing was lost. The same run also executed Neon's sample
+script left in the editor, which made a `playing_with_neon` table with 10
+rows on production; Marshee never reads it and it was left in place
+(Bryce's call pending).
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |

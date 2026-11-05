@@ -178,9 +178,8 @@ Replace this section at the end of each session. Don't append.
   the TypeScript compiler API.
 
 **Waiting on Bryce:**
-- **PR A is live:** press Recompute streaks once (Settings), then recheck
-  the three migration counts on production (habits, participants, logs; the
-  dev numbers are in the mission file).
+- **PR A is live:** press Recompute streaks once (Settings). The production
+  counts are checked (all 0: no habits existed yet; mission 30 file).
 - **Look at the Sunday recap** on the first Sunday after 2026-11-04. It has
   only been tested, never seen on a real Sunday.
 - **Eaten tap after a swipe**: the fix landed in mission 27 (F3). Sixty seconds
