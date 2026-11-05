@@ -256,8 +256,12 @@ One-off jobs (returns, errands) belong in Lists, not here.
     Emotional Health, Personal Development and Relationships are life
     areas.
 60. **Done items drop to the bottom** of the list. No setting.
-61. **Items can be reordered**, the same way as the dashboard's Customize
-    sheet.
+61. **Items are reordered by drag and drop** (Bryce, 2026-11-05, replacing
+    "the same way as the dashboard's Customize sheet," which uses up and
+    down arrows). Each row has a grip handle on the right; press and drag
+    the handle to move the row. Dragging only starts on the handle, so
+    swiping the list still scrolls and swiping a row still opens its
+    actions.
 62. **Each habit row shows its current streak** (a small flame and number),
     hidden when the person's streak switch is off.
 63. **Fixed times of day:** Morning until noon, Afternoon until 6 pm,
