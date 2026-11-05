@@ -78,7 +78,7 @@ Three layers, one menu item (`/plans`) with a segmented toggle.
    vision" line on the goal detail. Wording approved by Bryce first
    (`.avengers/plans/plans-goals-prompts.md`). Mission file:
    `.avengers/missions/mission-28-plans-goals-p2-vision.md`.
-3. **PR 3 (mission 29): built and gated, not pushed.** Dashboard tile
+3. **PR 3 (mission 29): live, merged as PR #39 on 2026-11-04.** Dashboard tile
    ("Goals this week", second in the default order), a Sunday recap card on
    This week, check-in history on the goal page (the `GoalCheckIn` table).
    The "Show in Routines" switch is still waiting for Routines to exist.
