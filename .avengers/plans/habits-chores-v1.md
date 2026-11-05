@@ -122,31 +122,60 @@ One-off jobs (returns, errands) belong in Lists, not here.
 - An icon on each item.
 - Skip today.
 
+### Accepted recommendations (Bryce, 2026-11-05)
+
+29. **A this-week change** can move a chore to another day this week or skip
+    it this week. The default chart stays as it is, and next week starts
+    from the default again.
+30. **The dashboard chore chart is the second PR**, with the other dashboard
+    work.
+31. **Every other week** starts this week or next week, chosen when the item
+    is created.
+32. **Once a month means any day that month.**
+33. **The chore streak** counts days in a row on which every chore due that
+    day was done on time. Days with no chores due don't break it, a skipped
+    chore is excused, and a chore done late breaks it.
+34. **The daily shout-out** shows only on the person's own screen; **the
+    Sunday shout-out** also shows on the family view and dashboard.
+35. **One streak switch** in Settings turns off both habit and chore
+    streaks.
+
+### Plan the day
+
+36. **"Plan the day" for flexible items.** Bryce's example: going to the
+    temple once a month, or reaching out to a family member once a week.
+    "Any time this month" quietly becomes "never" unless it is planned in.
+    - When creating a once-a-month item, choose a planned day now, or leave
+      it as any time.
+    - Until it is planned, Marshee asks **every Sunday and every Thursday**:
+      "You want to do this once a month. What day will you do it?"
+    - A planned day is a plan, not a deadline. Missing it is no penalty;
+      the item is still due any day that month.
+37. **The dashboard matters most for this.** It should stay clean, not
+    cluttered, and show the few things most likely to slip through the
+    cracks: what is planned today, and what still needs a day picked.
+
 ## Open questions
 
-1. **What can a this-week change do?** Recommendation: move a chore to
-   another day this week, or skip it this week. The default chart stays as
-   it is, and next week starts from the default again.
-2. **Is the dashboard chore chart the first PR or the second?**
-   Recommendation: second, with the other dashboard tile work, so the first
-   PR stays small enough to build and check in one go.
-3. **Every other week: which week does it start?** Recommendation: the week
-   the item is created, with a choice of "this week" or "next week."
-4. **Once a month: a set date, or any day that month?** Recommendation: any
-   day that month, the same idea as "once a week, any day." A set date can
-   be added later.
-5. **Hard to undo. What does the chore streak count?** Recommendation:
-   days in a row on which every chore due that day was done on time. Days
-   with no chores due don't break it, a skipped chore is excused, and a
-   chore done late (carried over) breaks it, matching "done late" for
-   habits.
-6. **Who sees the shout-outs?** Recommendation: the daily one only on the
-   person's own screen; the Sunday one also on the family view and
-   dashboard, so the family sees it.
-7. **Does the streak switch in Settings also turn off the chore streak?**
-   Recommendation: yes, one switch for both, to keep Settings simple.
-8. **Review the redrawn mock** once it shows Habits and Chores, streaks,
-   stats, carry-over and the chore chart.
+1. **Does "plan the day" also apply to once-a-week, any-day items** (the
+   family-member example) and to every-other-week items? Recommendation:
+   yes, with the prompt on Sunday only for weekly items, since Sunday is
+   already the planning day. Monthly items get Sunday and Thursday.
+2. **When a planned day passes and the item isn't done, what happens?**
+   Recommendation: it asks again for a new day at the next prompt, and
+   the item stays due for the rest of its month or week.
+3. **Where does the prompt appear?** Marshee can't send phone
+   notifications yet (that is its own project). Recommendation: a card on
+   the dashboard and at the top of Habits & Chores on Sundays and
+   Thursdays, with one-tap day choices for the rest of the week or month.
+4. **Does a planned day show on the Calendar?** Recommendation: yes, as a
+   task on that day, in the second PR.
+5. **Is the dashboard work (chore chart, planning prompts, shout-outs) all
+   in the second PR?** Recommendation: yes. The first PR builds the tab,
+   items, schedules, carry-over, streaks and the family tablet view; the
+   second makes the dashboard the place nothing slips.
+6. **Review the redrawn mock** once it shows Habits and Chores, streaks,
+   stats, carry-over, the chore chart and "plan the day."
 
 ## Not in the first PR
 
