@@ -348,6 +348,51 @@ contract below is silent, the plan's words bind.
   drawer; the refusal evidence.
 - **Done criteria:** Fury and Strange see it in the browser.
 
+### F2 - Fixes from Captain pass 1 and Strange pass 1
+- **Status:** DISPATCHED
+- **Objective:** Clear Captain's three BLOCKERs and Strange's one, plus the
+  cheap NOTEs listed below, without changing behaviour.
+- **Boundaries:** may touch: `src/lib/habits/*.ts` (not tests unless a
+  rename needs it; tests may be updated for renames and moved helpers),
+  `src/lib/habitVocabulary.ts`, `src/lib/habitsRead.ts`,
+  `src/lib/householdDate.ts`, `src/lib/householdDate.test.ts`,
+  `src/lib/prismaErrors.ts`, `src/lib/goals.ts`, `src/lib/goals.test.ts`,
+  new `src/lib/goalsHabitInput.test.ts`, `src/lib/goalsProgress.ts`,
+  `src/lib/goalVocabulary.ts`, `src/app/actions/planItems.ts`,
+  `src/app/actions/habits.ts`, `src/app/actions/mealPlans.ts`,
+  `src/app/actions/visions.ts`, `src/components/HabitsChoresSettings.tsx`,
+  `src/components/PlanItemSheet.tsx`, `src/components/LogButton.tsx`,
+  `src/app/(app)/settings/page.tsx` · must not touch: `prisma/`, records,
+  everything else.
+- **Captain BLOCKERs:** (1) every dormant export carries a one-line
+  dormant comment naming its consuming PR and mission (PR B / mission 31
+  for most; `perfectDays.ts` PR C / mission 32; `isPromptDay` PR E /
+  mission 34). (2) `storedDay` moves to `householdDate.ts` as
+  `calendarDateFromUtcMidnight` under `utcMidnightInstant`, with a test;
+  every inline `calendarDateInZone(x, "UTC")` for a stored day in the new
+  code uses it. (3) The Together-participant query moves out of
+  `planItems.ts` into `habitWrites.ts` (`householdParticipantIds(client)`).
+- **Strange BLOCKER:** Settings order: Manage family back right after Menu
+  style (`mt-6`), the Habits & Chores section last; update the file's top
+  comment.
+- **NOTEs taken now:** `isUniqueViolationError` made live by replacing the
+  inline P2002 checks in `actions/mealPlans.ts` and `actions/visions.ts`;
+  `HABIT_TIMES_LIMITS` (weekly 7, monthly 31) in `habitVocabulary.ts`, used
+  by `schedule.ts` and `goals.ts`; `PERIOD_LABELS` moves to
+  `goalVocabulary.ts`; rename `access.ts` to `canSeeHabit`/`canEditHabit`
+  and the action to `recomputeAllStreaks`; type `HabitFields` with the
+  vocabulary types; `undoHabitLog`'s invented fallback schedule goes (use
+  the item's own window); `whitespace-nowrap` on the period buttons;
+  `LogButton.tsx` top comment says "until today has its check"; the
+  recompute result says "1 streak" for one (still "N streaks" otherwise);
+  split `goals.test.ts` so it is under 350 (new `goalsHabitInput.test.ts`).
+- **Verification:** three-zone tests (count unchanged or higher), tsc,
+  `eslint .`, `npm run build`; `grep -rn 'calendarDateInZone([^,]*, "UTC")'
+  src/lib/habits src/lib/habitsRead.ts` → empty; `grep -n "deactivatedAt"
+  src/app/actions/planItems.ts` → empty.
+- **Done criteria:** Captain pass 2, Strange pass 2, Vision pass 3 on the
+  F2 diff.
+
 ### C6 - Records
 - **Status:** PENDING
 - **Objective:** Bring the records up to date: CLAUDE.md "What's built" and
@@ -396,6 +441,9 @@ connection string lives only in Vercel).
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Vision (C1 to C3) | BLOCKED | 2: `computeStreaks` asOf on an undone due day; `carriedFrom` walks past an absorbing day | anchor not snapped to Sunday; manual backfill re-run needs bare ON CONFLICT; C4 must handle null `habitId`; concurrent recompute staleness; uncheckNewest removes skips; monthly N above days in month; future skips; zone tests are pure UTC math |
+| 2 | Vision (whole mission) | PASS | none | later-joining non-manager can't log a Together habit (participants frozen at creation); goal visibility/area edits don't sync to Habit; stale-page undo removes yesterday's check (as main); outer tx 5s timeout; no action-level tests; build-window PlanLogs not migrated |
+| 1 | Captain | BLOCKED | 3: dormant exports unmarked; `storedDay` outside `householdDate.ts`; Together-participant rule in an action | two household-people filters; limits defined twice; plan↔habit mapping split; labels in a component; name collisions; `HabitFields` loosely typed; invented fallback in `undoHabitLog`; `goals.test.ts` over soft cap; AGENTS.md glob stale; amendments A1 to A8 drafted |
+| 1 | Strange | BLOCKED | 1: Manage family reads as part of Habits & Chores | "Updated 5 streaks" counts records, no singular; "6 left" can exceed days left (Bryce); filled check = checked today; "Every day" wraps; mixed-case strip; dark segment contrast (as main); sheet jumps when stepper hides; device Settings not walked |
 
 ## Handoff log
 
