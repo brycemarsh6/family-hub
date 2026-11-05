@@ -338,6 +338,21 @@ The audit holds the reasoning; these lines are the record.
 83. **P3 is live** (CLAUDE.md corrected). Kid profiles without a password
     may be created from Settings when Bryce is ready.
 
+### After PR A (Bryce, 2026-11-05: "Yes to all")
+
+Three recommendations from mission 30's gates, all accepted. They are built
+in PR B (mission 31).
+
+84. **The Recompute streaks result counts habits**, for example "Rechecked
+    1 habit", not the per-person streak records behind it ("Updated 5
+    streaks" for one habit shared by five people).
+85. **A new Every day habit's first week counts only the days it existed.**
+    Made on a Thursday, it shows "1 of 3", not "1 of 7". From its next week
+    on, the target is 7 as usual.
+86. **A person added to the family later joins every Together habit
+    automatically**, when their profile is created or turned back on.
+    Together means the whole household.
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for

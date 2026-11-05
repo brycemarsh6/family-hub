@@ -91,8 +91,8 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   "Goals this week" dashboard tile (second in the default order), a Sunday
   recap card at the top of This week, and a check-in history list on the
   goal page. Direction in `.avengers/plans/plans-goals-v1.md`.
-- **Habits engine** (mission 30, built, not live): Plans & Goals habits now
-  live in their own `Habit` tables, with one check per person per day (no
+- **Habits engine** (mission 30, live since 2026-11-05, PR #41): Plans &
+  Goals habits now live in their own `Habit` tables, with one check per person per day (no
   "times a day"). The rules (schedules, streaks, carry-over, who can see or
   log) are pure code in `src/lib/habits/`, with words in
   `src/lib/habitVocabulary.ts`. Settings has a "Habits & Chores" section: a
@@ -161,12 +161,13 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Habits & Chores PR A (mission 30)** is on branch
-  `claude/habits-a-engine`, pushed with a PR open, **not merged**. All
-  gates passed. Vercel Preview's `DATABASE_URL` points at the Neon dev
-  branch (Bryce, 2026-11-05). Record:
-  `.avengers/missions/mission-30-habits-a-engine.md`. PRs B to F are not
-  started.
+- **Habits & Chores PR A (mission 30)** merged as PR #41 (48245e0) and
+  live on production since 2026-11-05. Vercel Preview's `DATABASE_URL`
+  points at the Neon dev branch (Bryce, 2026-11-05). Record:
+  `.avengers/missions/mission-30-habits-a-engine.md`. PR B (mission 31)
+  is next and starts with decisions 84 to 86 in
+  `.avengers/plans/habits-chores-v1.md`; it needs Bryce's mock first.
+  PRs C to F are not started.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
   desktop mouse. Hover is a bonus, never the only way to learn something.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
@@ -177,9 +178,8 @@ Replace this section at the end of each session. Don't append.
   the TypeScript compiler API.
 
 **Waiting on Bryce:**
-- **After PR A deploys:** press Recompute streaks once (Settings), then recheck
-  the three migration counts on production (habits, participants, logs; the
-  dev numbers are in the mission file).
+- **PR A is live:** press Recompute streaks once (Settings). The production
+  counts are checked (all 0: no habits existed yet; mission 30 file).
 - **Look at the Sunday recap** on the first Sunday after 2026-11-04. It has
   only been tested, never seen on a real Sunday.
 - **Eaten tap after a swipe**: the fix landed in mission 27 (F3). Sixty seconds
