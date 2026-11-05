@@ -10,12 +10,13 @@ import {
   type GoalRow,
   type GoalView,
   type PlanItemRow,
-  type PlanLogRow,
+  type PlanHabit,
   type PlansPageData,
   type Viewer,
 } from "@/lib/goals";
 import { isRecapDay, weekRecap, type RecapGoalInput, type WeekRecap } from "@/lib/goalsRecap";
 import { weekSummary, weekTodo } from "@/lib/goalsProgress";
+import { loadHabitsForPlan } from "@/lib/habitsRead";
 import {
   LIFE_AREAS,
   toGoalVisibility,
@@ -25,13 +26,7 @@ import {
   type LifeArea,
   type VisionBoardKey,
 } from "@/lib/goalVocabulary";
-import {
-  startOfMonth,
-  addCalendarDays,
-  startOfWeek,
-  utcMidnightInstant,
-  type CalendarDate,
-} from "@/lib/householdDate";
+import { startOfMonth, addCalendarDays, startOfWeek, type CalendarDate } from "@/lib/householdDate";
 
 // Plans & Goals' reader: one query shape for the Goals list, This week and a
 // single goal's detail page. No auth and no revalidation here: the page that
@@ -47,34 +42,31 @@ function earliestWindowStart(today: CalendarDate): CalendarDate {
 }
 
 /** Habit logs reach back one more week than the windows need, so the Sunday recap can sum the week just ended. */
-function logsFrom(today: CalendarDate): Date {
-  return utcMidnightInstant(addCalendarDays(earliestWindowStart(today), -7));
+function logsFrom(today: CalendarDate): CalendarDate {
+  return addCalendarDays(earliestWindowStart(today), -7);
 }
 
-function goalInclude(today: CalendarDate, { checkIns = false }: { checkIns?: boolean } = {}) {
+function goalInclude({ checkIns = false }: { checkIns?: boolean } = {}) {
   return {
     // Check-in rows load only for the pages that show or sum them.
     checkIns: checkIns ? { orderBy: { at: "desc" as const }, select: { id: true, value: true, at: true } } : false,
     owner: { select: OWNER_SELECT },
     planItems: {
       orderBy: [{ sortOrder: "asc" as const }, { createdAt: "asc" as const }],
-      include: {
-        logs: { where: { day: { gte: logsFrom(today) } } },
-      },
     },
   };
 }
 
 type LoadedGoal = Awaited<ReturnType<typeof findGoals>>[number];
 
-function findGoals(today: CalendarDate, options?: { checkIns?: boolean }) {
-  return db.goal.findMany({ include: goalInclude(today, options), orderBy: [{ targetDate: "asc" }, { createdAt: "asc" }] });
+function findGoals(options?: { checkIns?: boolean }) {
+  return db.goal.findMany({ include: goalInclude(options), orderBy: [{ targetDate: "asc" }, { createdAt: "asc" }] });
 }
 
-type GoalParts = { goal: GoalRow; items: PlanItemRow[]; logs: PlanLogRow[] };
+type GoalParts = { goal: GoalRow; items: PlanItemRow[]; habits: ReadonlyMap<string, PlanHabit> };
 
 /** The plain rows behind a loaded goal; null when the viewer may not see it. */
-function toParts(row: LoadedGoal, viewer: Viewer): GoalParts | null {
+function toParts(row: LoadedGoal, viewer: Viewer, habits: ReadonlyMap<string, PlanHabit>): GoalParts | null {
   const goal: GoalRow = {
     id: row.id,
     title: row.title,
@@ -101,39 +93,48 @@ function toParts(row: LoadedGoal, viewer: Viewer): GoalParts | null {
     kind: toPlanKind(item.kind) ?? "reminder",
     timesPerPeriod: item.timesPerPeriod,
     period: toHabitPeriod(item.period),
+    habitId: item.habitId,
     doneAt: item.doneAt,
     sortOrder: item.sortOrder,
     createdAt: item.createdAt,
   }));
-  const logs: PlanLogRow[] = row.planItems.flatMap((item) =>
-    item.logs.map((log) => ({
-      id: log.id,
-      planItemId: log.planItemId,
-      day: log.day,
-      createdAt: log.createdAt,
-    })),
-  );
-  return { goal, items, logs };
+  return { goal, items, habits };
 }
 
-function toView(row: LoadedGoal, viewer: Viewer, today: CalendarDate, withCheckIns = false): GoalView | null {
-  const parts = toParts(row, viewer);
+/** The habits behind the visible goals' habit items: one loader call, with the reach-back the windows and recap need. */
+function habitsOf(rows: LoadedGoal[], viewer: Viewer, today: CalendarDate) {
+  const ids = rows
+    .filter((row) => canSee({ ownerId: row.ownerId, visibility: toGoalVisibility(row.visibility) }, viewer))
+    .flatMap((row) => row.planItems.flatMap((item) => (item.habitId ? [item.habitId] : [])));
+  return loadHabitsForPlan(ids, logsFrom(today));
+}
+
+function toView(
+  row: LoadedGoal,
+  viewer: Viewer,
+  today: CalendarDate,
+  habits: ReadonlyMap<string, PlanHabit>,
+  withCheckIns = false,
+): GoalView | null {
+  const parts = toParts(row, viewer, habits);
   if (!parts) return null;
-  const view = buildGoalView(parts.goal, parts.items, parts.logs, viewer, today);
+  const view = buildGoalView(parts.goal, parts.items, parts.habits, viewer, today);
   return withCheckIns ? { ...view, checkIns: row.checkIns } : view;
 }
 
 /** Every goal the viewer may see, soonest target date first, with this week's and month's habit counts. */
 export async function loadPlansPage(viewer: Viewer, today: CalendarDate): Promise<PlansPageData> {
-  const rows = await findGoals(today);
-  const goals = rows.flatMap((row) => toView(row, viewer, today) ?? []);
+  const rows = await findGoals();
+  const habits = await habitsOf(rows, viewer, today);
+  const goals = rows.flatMap((row) => toView(row, viewer, today, habits) ?? []);
   return { today, weekStart: startOfWeek(today), goals };
 }
 
 /** One goal as the viewer sees it; null when it is missing or hidden from them. */
 export async function loadGoal(id: string, viewer: Viewer, today: CalendarDate): Promise<GoalView | null> {
-  const row = await db.goal.findUnique({ where: { id }, include: goalInclude(today, { checkIns: true }) });
-  return row ? toView(row, viewer, today, true) : null;
+  const row = await db.goal.findUnique({ where: { id }, include: goalInclude({ checkIns: true }) });
+  if (!row) return null;
+  return toView(row, viewer, today, await habitsOf([row], viewer, today), true);
 }
 
 /** How many active goals each life area has on a board, among the goals the viewer may see. */
@@ -172,9 +173,10 @@ export async function loadWeekRecap(
   today: CalendarDate,
 ): Promise<{ mine: WeekRecap | null; everyone: WeekRecap | null } | null> {
   if (!isRecapDay(today)) return null;
-  const rows = await findGoals(today, { checkIns: true });
+  const rows = await findGoals({ checkIns: true });
+  const habits = await habitsOf(rows, viewer, today);
   const inputs: RecapGoalInput[] = rows.flatMap((row) => {
-    const parts = toParts(row, viewer);
+    const parts = toParts(row, viewer, habits);
     return parts ? [{ ...parts, checkIns: row.checkIns.map(({ value, at }) => ({ value, at })) }] : [];
   });
   const lastWeek = addCalendarDays(startOfWeek(today), -7);

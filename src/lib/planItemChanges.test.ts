@@ -15,6 +15,7 @@ function view(over: Partial<PlanItemView> = {}): PlanItemView {
     kind: "habit",
     timesPerPeriod: 4,
     period: "week",
+    habitId: "h1",
     doneAt: null,
     sortOrder: 0,
     createdAt: new Date("2026-01-01T19:00:00Z"),
@@ -22,6 +23,7 @@ function view(over: Partial<PlanItemView> = {}): PlanItemView {
     target: 4,
     windowLabel: "this week",
     done: false,
+    doneToday: false,
     ...over,
   };
 }
@@ -33,6 +35,18 @@ test("log: the count goes up and the habit is done when it reaches its target", 
   const [short] = applyPlanItemChange([view({ count: 1 })], { type: "log", itemId: "i1" });
   assert.equal(short.count, 2);
   assert.equal(short.done, false);
+});
+
+test("log: sets doneToday, and a second tap on the same day changes nothing (one check a day)", () => {
+  const [first] = applyPlanItemChange([view()], { type: "log", itemId: "i1" });
+  assert.equal(first.doneToday, true);
+  const [again] = applyPlanItemChange([first], { type: "log", itemId: "i1" });
+  assert.deepEqual(again, first);
+});
+
+test("undo: clears doneToday", () => {
+  const [undone] = applyPlanItemChange([view({ count: 4, done: true, doneToday: true })], { type: "undo", itemId: "i1" });
+  assert.equal(undone.doneToday, false);
 });
 
 test("undo: a habit at its target is no longer done, but one over its target stays done", () => {
@@ -48,13 +62,13 @@ test("undo: the count never goes below zero, and a reminder is never done", () =
   const [zero] = applyPlanItemChange([view({ count: 0 })], { type: "undo", itemId: "i1" });
   assert.equal(zero.count, 0);
   assert.equal(zero.done, false);
-  const reminder = view({ kind: "reminder", timesPerPeriod: null, period: null, count: 0, target: 0, windowLabel: null });
+  const reminder = view({ kind: "reminder", timesPerPeriod: null, period: null, habitId: null, count: 0, target: 0, windowLabel: null });
   const [still] = applyPlanItemChange([reminder], { type: "undo", itemId: "i1" });
   assert.equal(still.done, false);
 });
 
 test("stepDone and stepUndone: a step flips between done now and not done", () => {
-  const step = view({ kind: "step", timesPerPeriod: null, period: null, count: 0, target: 1, windowLabel: null });
+  const step = view({ kind: "step", timesPerPeriod: null, period: null, habitId: null, count: 0, target: 1, windowLabel: null });
   const at = new Date("2026-11-04T18:00:00Z");
   const [done] = applyPlanItemChange([step], { type: "stepDone", itemId: "i1", at });
   assert.equal(done.done, true);

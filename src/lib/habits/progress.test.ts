@@ -50,6 +50,26 @@ test("windowProgress: the week of the March clock change counts all seven days",
   assert.equal(progress.target, 7);
 });
 
+test("windowProgress: a daily habit's week turns over on Sunday (moved from logWindow)", () => {
+  const sat = windowProgress({ schedule: "daily" }, [], d(2026, 11, 7));
+  assert.deepEqual([sat.start, sat.end, sat.target], [d(2026, 11, 1), d(2026, 11, 7), 7]);
+  const sun = windowProgress({ schedule: "daily" }, [], d(2026, 11, 8));
+  assert.deepEqual([sun.start, sun.end, sun.target], [d(2026, 11, 8), d(2026, 11, 14), 7]);
+});
+
+test("windowProgress: a month window ends on the month's last day, leap years and all (moved from logWindow)", () => {
+  const monthly = { schedule: "monthly", times: 2 } as const;
+  assert.deepEqual(windowProgress(monthly, [], d(2027, 1, 31)).end, d(2027, 1, 31));
+  assert.deepEqual(windowProgress(monthly, [], d(2027, 2, 1)).end, d(2027, 2, 28));
+  assert.deepEqual(windowProgress(monthly, [], d(2028, 2, 10)).end, d(2028, 2, 29));
+});
+
+test("countDays: both ends count, the day before and the day after do not (moved from countInWindow)", () => {
+  const range = { start: d(2026, 11, 1), end: d(2026, 11, 7) };
+  const logs = [d(2026, 10, 31), d(2026, 11, 1), d(2026, 11, 7), d(2026, 11, 8)].map((day) => done(day));
+  assert.equal(countDays(logs, range), 2);
+});
+
 test("countDays: ends included, repeats on one day count once, a skip does not count, a late row does", () => {
   const range = { start: d(2026, 11, 1), end: d(2026, 11, 7) };
   const logs: HabitLogDay[] = [

@@ -265,7 +265,7 @@ contract below is silent, the plan's words bind.
   inside; every write takes `client`; under 350 lines each.
 
 ### F1 - Engine fixes from Vision pass 1
-- **Status:** DISPATCHED
+- **Status:** DONE (Stark; Fury re-ran Vision's probe: Sat streak 0 = truth, carriedFrom null, biweekly Wed anchor 2 due days; 641 tests). Commit 6dc0c74.
 - **Objective:** Fix Vision pass 1's two BLOCKERs and the anchor NOTE in the
   pure engine, with tests that would have caught each.
 - **Boundaries:** may touch: `src/lib/habits/streaks.ts`,
@@ -288,7 +288,8 @@ contract below is silent, the plan's words bind.
 - **Done criteria:** Fury re-runs; Vision pass 2.
 
 ### C4 - Rewire Plans & Goals
-- **Status:** DISPATCHED
+- **Status:** BUILT (Stark; Fury re-ran: 653 tests in three zones, tsc and `eslint .` clean, the planLog grep empty). Browser checks pending.
+- **Report notes:** a device (or a later-joining person) logging a Together habit is routed by `habitCheckTarget` in `goals.ts` (Mine → owner; Together → the tapper if a participant, else the first participant; the fan-out writes everyone anyway). Legacy `timesPerPeriod`/`period` are still written on save so an older deployment and the unlinked-item fallback can read them. Editing from the Plans sheet sets only schedule, times and title: it does not clear `weekdays`/`anchorWeek` (harmless in PR A; PR B must handle it). `goals.test.ts` is 379 lines (soft cap 350, was 335).
 - **From Vision pass 1:** handle a habit plan item with `habitId` null (an item created by the old deployment during the build window) without crashing: show it as 0 progress and refuse logging with a clear message, or similar.
 - **Objective:** Make Plans & Goals read and write habits through the new
   tables exactly as the plan's "Rewiring Plans & Goals" paragraph says,
@@ -316,7 +317,7 @@ contract below is silent, the plan's words bind.
   page and the tile on dev.
 
 ### C5 - Route, menu and Settings
-- **Status:** DISPATCHED
+- **Status:** BUILT, committed a36c5b3; browser checks pending (after C4). Device refusal at `src/app/actions/preferences.ts:89` (session, not input); Settings hides the section from devices. No automated test of the refusal (no action harness).
 - **Objective:** Add `/habits` (Coming soon, `requireVerifiedUser`), remove
   `/routines`, redirect `/routines` and `/chores` to `/habits`, rename the
   menu item, and add the Streaks switch and admin-only "Recompute streaks"
@@ -426,6 +427,15 @@ connection string lives only in Vercel).
 - 2026-11-05: Vision pass 1 BLOCKED (two engine bugs, both reproduced by
   Vision's probe). F1 written; F1, C4 and C5 dispatched in parallel
   (disjoint files; C4 and C5 do not depend on the fixed functions).
+
+- 2026-11-05: **Incident, caught and fixed before anything left the
+  machine.** C5 ran `git rm` on the routines page (staging it), and Fury's
+  by-path F1 commit swept that staged deletion in (7 files, not 6): the
+  AGENTS.md staging hazard in a new form, since `git commit` takes the
+  whole index, not just the paths Fury named. Fury soft-reset the local
+  commit, unstaged the deletion and recommitted F1 as 6dc0c74 (6 files);
+  C5 then committed as a36c5b3. Rule from here: `git diff --cached
+  --name-only` before every commit, and builders never stage.
 
 ## Delivery
 

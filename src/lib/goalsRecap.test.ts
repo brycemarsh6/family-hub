@@ -6,7 +6,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { GoalRow } from "./goals";
 import { isRecapDay, recapRangeLabel, weekRecap, type RecapGoalInput } from "./goalsRecap";
-import type { PlanItemRow, PlanLogRow } from "./goalsProgress";
+import type { PlanHabit, PlanItemRow } from "./goalsProgress";
+import type { ScheduleSpec } from "./habits/types";
 import { utcMidnightInstant, type CalendarDate } from "./householdDate";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -41,6 +42,7 @@ function item(over: Partial<PlanItemRow> = {}): PlanItemRow {
     kind: "habit",
     timesPerPeriod: 4,
     period: "week",
+    habitId: "h1",
     doneAt: null,
     sortOrder: 0,
     createdAt: new Date("2026-01-01T19:00:00Z"),
@@ -48,12 +50,23 @@ function item(over: Partial<PlanItemRow> = {}): PlanItemRow {
   };
 }
 
-function logsOn(planItemId: string, days: CalendarDate[]): PlanLogRow[] {
-  return days.map((day, i) => ({ id: `${planItemId}-${i}`, planItemId, day: utcMidnightInstant(day), createdAt: new Date() }));
+const WEEKLY_4: ScheduleSpec = { schedule: "weekly", times: 4 };
+
+/** One habit as the reader hands it over: its schedule and a "done" check on each day. */
+function habitOn(days: CalendarDate[], spec: ScheduleSpec = WEEKLY_4): PlanHabit {
+  return {
+    spec,
+    schedule: { schedule: spec.schedule, times: "times" in spec ? spec.times : null },
+    logs: days.map((day) => ({ day, status: "done", userId: "me" })),
+  };
+}
+
+function habitMap(entries: Record<string, PlanHabit>): Map<string, PlanHabit> {
+  return new Map(Object.entries(entries));
 }
 
 function input(over: Partial<RecapGoalInput> = {}): RecapGoalInput {
-  return { goal: goal({ measureUnit: null, startValue: null, targetValue: null }), items: [], logs: [], checkIns: [], ...over };
+  return { goal: goal({ measureUnit: null, startValue: null, targetValue: null }), items: [], habits: new Map(), checkIns: [], ...over };
 }
 
 test("isRecapDay: Sunday only", () => {
@@ -69,7 +82,7 @@ test("recapRangeLabel: the month repeats only when it changes", () => {
 
 test("weekRecap: a week habit counts its logs against its target, with the end date set", () => {
   const out = weekRecap(
-    [input({ items: [item()], logs: logsOn("i1", [d(2026, 10, 26), d(2026, 10, 28), d(2026, 10, 31)]) })],
+    [input({ items: [item()], habits: habitMap({ h1: habitOn([d(2026, 10, 26), d(2026, 10, 28), d(2026, 10, 31)]) }) })],
     WEEK,
   );
   assert.ok(out);
@@ -79,10 +92,10 @@ test("weekRecap: a week habit counts its logs against its target, with the end d
   assert.deepEqual([out.done, out.total], [3, 4]);
 });
 
-test("weekRecap: a day habit's target is times x 7, and a habit over target counts as its target", () => {
+test("weekRecap: an every-day habit's target is 7, and a second check on one day adds nothing", () => {
   const days = [25, 26, 27, 28, 29, 30, 31].map((n) => d(2026, 10, n));
   const out = weekRecap(
-    [input({ items: [item({ timesPerPeriod: 1, period: "day" })], logs: [...logsOn("i1", days), ...logsOn("i1", [d(2026, 10, 31)])] })],
+    [input({ items: [item()], habits: habitMap({ h1: habitOn([...days, d(2026, 10, 31)], { schedule: "daily" }) }) })],
     WEEK,
   );
   assert.ok(out);
@@ -90,16 +103,30 @@ test("weekRecap: a day habit's target is times x 7, and a habit over target coun
   assert.deepEqual([out.done, out.total], [7, 7]);
 });
 
+test("weekRecap: a Together habit's checks from three people count once per day", () => {
+  const days = [d(2026, 10, 26), d(2026, 10, 28), d(2026, 10, 31)];
+  const together: PlanHabit = {
+    ...habitOn([]),
+    logs: ["a", "b", "c"].flatMap((userId) => days.map((day) => ({ day, status: "done" as const, userId }))),
+  };
+  const out = weekRecap([input({ items: [item()], habits: habitMap({ h1: together }) })], WEEK);
+  assert.deepEqual(out?.habits, [{ title: "Exercise", count: 3, target: 4, met: false }]);
+});
+
 test("weekRecap: monthly habits are left out", () => {
-  const items = [item(), item({ id: "i2", title: "Call mom", timesPerPeriod: 1, period: "month" })];
-  const out = weekRecap([input({ items, logs: [...logsOn("i1", [d(2026, 10, 26)]), ...logsOn("i2", [d(2026, 10, 26)])] })], WEEK);
+  const items = [item(), item({ id: "i2", title: "Call mom", timesPerPeriod: 1, period: "month", habitId: "h2" })];
+  const habits = habitMap({
+    h1: habitOn([d(2026, 10, 26)]),
+    h2: habitOn([d(2026, 10, 26)], { schedule: "monthly", times: 1 }),
+  });
+  const out = weekRecap([input({ items, habits })], WEEK);
   assert.ok(out);
   assert.deepEqual(out.habits.map((h) => h.title), ["Exercise"]);
   assert.equal(out.total, 4);
 });
 
 test("weekRecap: a log on Saturday counts, one on the next Sunday does not", () => {
-  const out = weekRecap([input({ items: [item()], logs: logsOn("i1", [d(2026, 10, 31), d(2026, 11, 1), d(2026, 10, 24)]) })], WEEK);
+  const out = weekRecap([input({ items: [item()], habits: habitMap({ h1: habitOn([d(2026, 10, 31), d(2026, 11, 1), d(2026, 10, 24)]) }) })], WEEK);
   assert.ok(out);
   assert.equal(out.habits[0].count, 1);
 });
@@ -140,9 +167,9 @@ test("weekRecap: a goal with a number but no check-in that week adds no measure 
 
 test("weekRecap: steps finished in the week are listed", () => {
   const items = [
-    item({ id: "s1", title: "Book the trip", kind: "step", timesPerPeriod: null, period: null, doneAt: new Date("2026-10-29T18:00:00Z") }),
-    item({ id: "s2", title: "Pack", kind: "step", timesPerPeriod: null, period: null, doneAt: new Date("2026-11-03T18:00:00Z") }),
-    item({ id: "s3", title: "Plan", kind: "step", timesPerPeriod: null, period: null, doneAt: null }),
+    item({ id: "s1", title: "Book the trip", kind: "step", timesPerPeriod: null, period: null, habitId: null, doneAt: new Date("2026-10-29T18:00:00Z") }),
+    item({ id: "s2", title: "Pack", kind: "step", timesPerPeriod: null, period: null, habitId: null, doneAt: new Date("2026-11-03T18:00:00Z") }),
+    item({ id: "s3", title: "Plan", kind: "step", timesPerPeriod: null, period: null, habitId: null, doneAt: null }),
   ];
   const out = weekRecap([input({ items })], WEEK);
   assert.ok(out);
@@ -151,18 +178,18 @@ test("weekRecap: steps finished in the week are listed", () => {
 
 test("weekRecap: nothing to show is null", () => {
   assert.equal(weekRecap([], WEEK), null);
-  assert.equal(weekRecap([input({ items: [item({ id: "s", kind: "step", timesPerPeriod: null, period: null })] })], WEEK), null);
-  assert.equal(weekRecap([input({ items: [item({ timesPerPeriod: 1, period: "month" })] })], WEEK), null);
+  assert.equal(weekRecap([input({ items: [item({ id: "s", kind: "step", timesPerPeriod: null, period: null, habitId: null })] })], WEEK), null);
+  assert.equal(weekRecap([input({ items: [item({ timesPerPeriod: 1, period: "month" })], habits: habitMap({ h1: habitOn([], { schedule: "monthly", times: 1 }) }) })], WEEK), null);
 });
 
 test("weekRecap: a goal completed mid-week is included, one completed before the week is not", () => {
   const items = [item()];
-  const logs = logsOn("i1", [d(2026, 10, 26)]);
-  const mid = input({ goal: goal({ completedAt: new Date("2026-10-28T18:00:00Z") }), items, logs });
+  const habits = habitMap({ h1: habitOn([d(2026, 10, 26)]) });
+  const mid = input({ goal: goal({ completedAt: new Date("2026-10-28T18:00:00Z") }), items, habits });
   assert.equal(weekRecap([mid], WEEK)?.habits.length, 1);
-  const earlier = input({ goal: goal({ completedAt: new Date("2026-10-20T18:00:00Z") }), items, logs });
+  const earlier = input({ goal: goal({ completedAt: new Date("2026-10-20T18:00:00Z") }), items, habits });
   assert.equal(weekRecap([earlier], WEEK), null);
-  const after = input({ goal: goal({ completedAt: new Date("2026-11-03T18:00:00Z") }), items, logs });
+  const after = input({ goal: goal({ completedAt: new Date("2026-11-03T18:00:00Z") }), items, habits });
   assert.equal(weekRecap([after], WEEK)?.habits.length, 1);
 });
 
@@ -174,7 +201,7 @@ test("weekRecap: a goal created after the week ended is left out", () => {
 test("weekRecap: a habit or step created after the week ended is left out; null when it was the only thing", () => {
   const lateHabit = item({ id: "late", title: "Walk", createdAt: new Date("2026-11-01T18:00:00Z") });
   assert.equal(weekRecap([input({ items: [lateHabit] })], WEEK), null);
-  const lateStep = item({ id: "s", kind: "step", timesPerPeriod: null, period: null, doneAt: new Date("2026-10-28T18:00:00Z"), createdAt: new Date("2026-11-01T18:00:00Z") });
+  const lateStep = item({ id: "s", kind: "step", timesPerPeriod: null, period: null, habitId: null, doneAt: new Date("2026-10-28T18:00:00Z"), createdAt: new Date("2026-11-01T18:00:00Z") });
   assert.equal(weekRecap([input({ items: [lateStep] })], WEEK), null);
   const recap = weekRecap([input({ items: [item(), lateHabit] })], WEEK);
   assert.deepEqual(recap?.habits.map((h) => h.title), ["Exercise"]);

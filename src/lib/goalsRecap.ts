@@ -1,6 +1,6 @@
 import { HOUSEHOLD_TIME_ZONE } from "./constants";
 import type { GoalRow } from "./goals";
-import { buildPlanItemView, formatMeasure, weekSummary, type PlanItemRow, type PlanItemView, type PlanLogRow } from "./goalsProgress";
+import { buildPlanItemView, formatMeasure, weekSummary, type PlanHabit, type PlanItemRow, type PlanItemView } from "./goalsProgress";
 import {
   addCalendarDays,
   dayOfWeek,
@@ -10,15 +10,15 @@ import {
 } from "./householdDate";
 
 // The Sunday recap's pure logic: whether today is recap day, and how the week
-// that just ended (Sunday to Saturday) sums up. No db, no React. Habit logs
-// are matched by their `day` (UTC midnight); check-ins and finished steps are
+// that just ended (Sunday to Saturday) sums up. No db, no React. Habit checks
+// are counted by the habit engine, one per day; check-ins and finished steps are
 // real instants, compared against household midnights. Monthly habits are
 // left out, the same as the This week header (`weekSummary`).
 
 export type RecapGoalInput = {
   goal: GoalRow;
   items: PlanItemRow[];
-  logs: PlanLogRow[];
+  habits: ReadonlyMap<string, PlanHabit>;
   checkIns: { value: number; at: Date }[];
 };
 
@@ -60,7 +60,7 @@ export function weekRecap(input: RecapGoalInput[], weekStart: CalendarDate): Wee
   const measures: WeekRecap["measures"] = [];
   const stepsDone: string[] = [];
 
-  for (const { goal, items, logs, checkIns } of input) {
+  for (const { goal, items, habits: habitMap, checkIns } of input) {
     if (goal.createdAt.getTime() >= until) continue;
     if (goal.completedAt !== null && goal.completedAt.getTime() < from) continue;
 
@@ -74,7 +74,7 @@ export function weekRecap(input: RecapGoalInput[], weekStart: CalendarDate): Wee
         continue;
       }
       if (item.kind !== "habit") continue;
-      const view = buildPlanItemView(item, logs, weekStart);
+      const view = buildPlanItemView(item, item.habitId ? (habitMap.get(item.habitId) ?? null) : null, weekStart);
       if (view.windowLabel === "this week") habitViews.push(view);
     }
     // Same read as the This week header: day and week habits, capped at target.

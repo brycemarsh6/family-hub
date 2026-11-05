@@ -6,8 +6,8 @@ import { SwipeActions, type SwipeAction } from "./SwipeActions";
 import type { PlanItemView } from "@/lib/goals";
 
 /**
- * One plan item as a row: a habit gets a round log button and a "2 of 4"
- * count, a step a square check box, a reminder plain text. It holds no state;
+ * One plan item as a row: a habit gets a round log button (checked once
+ * today has its check) and a "2 of 4" count, a step a square check box, a reminder plain text. It holds no state;
  * the list around it owns the optimistic counts. Swipe actions wrap the row
  * only when the caller passes some.
  */
@@ -43,10 +43,10 @@ export function PlanItemRow({
             )}
           </div>
           <LogButton
-            done={item.done}
+            done={item.doneToday}
             label={item.title}
             disabled={!canLog}
-            onClick={item.done ? onUndo : onLog}
+            onClick={item.doneToday ? onUndo : onLog}
           />
         </>
       )}

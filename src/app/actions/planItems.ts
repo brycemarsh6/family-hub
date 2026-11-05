@@ -13,10 +13,23 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import { canEdit, canLog, canSee, validatePlanItemInput } from "@/lib/goals";
-import { countInWindow, logWindow, type PlanItemRow } from "@/lib/goalsProgress";
+import {
+  canEdit,
+  canLog,
+  canSee,
+  habitCheckTarget,
+  habitInputFromPlan,
+  validatePlanItemInput,
+  type PlanItemInput,
+} from "@/lib/goals";
+import { type PlanItemRow } from "@/lib/goalsProgress";
+import type { CalendarDate } from "@/lib/householdDate";
 import { toGoalVisibility, toHabitPeriod, toPlanKind } from "@/lib/goalVocabulary";
-import { utcMidnightInstant } from "@/lib/householdDate";
+import { canLogFor } from "@/lib/habits/access";
+import { checkHabit, createHabit, deleteHabit, uncheckNewest, updateHabit } from "@/lib/habits/habitWrites";
+import { periodWindow } from "@/lib/habits/schedule";
+import type { ScheduleSpec } from "@/lib/habits/types";
+import { loadHabitsForPlan } from "@/lib/habitsRead";
 import { Prisma } from "@/generated/prisma/client";
 import { isMissingRowError } from "@/lib/prismaErrors";
 
@@ -27,6 +40,7 @@ const NOT_SIGNED_IN = "Not signed in.";
 const DEVICE_REFUSED = "A shared device can't change goals.";
 const NOT_ALLOWED = "You can't change that goal.";
 const GONE = "That plan no longer exists.";
+const NOT_LINKED = "This habit needs to be saved once more before it can be checked. Tap Edit, then Save.";
 
 /** P2003: the goal or item was deleted on another phone between the check and the write. */
 function isMissingParentError(error: unknown): boolean {
@@ -39,7 +53,7 @@ function refreshPlansViews() {
 
 type Access = "edit" | "log";
 
-type GoalPolicyRow = { ownerId: string | null; visibility: string };
+type GoalPolicyRow = { ownerId: string | null; visibility: string; area: string };
 
 /** The one place a goal row is judged: edit refuses devices (canEdit), log lets a device on Together goals (canLog). */
 function allowed(goal: GoalPolicyRow, user: VerifiedUser, access: Access): boolean {
@@ -48,7 +62,7 @@ function allowed(goal: GoalPolicyRow, user: VerifiedUser, access: Access): boole
 }
 
 type LoadedItem =
-  | { user: VerifiedUser; item: PlanItemRow }
+  | { user: VerifiedUser; item: PlanItemRow; goal: GoalPolicyRow }
   | { error: string; missing?: boolean };
 
 /** Signed in, device rule for edits, then the item and its parent goal judged by `access`. */
@@ -59,7 +73,7 @@ async function loadItem(id: string, access: Access): Promise<LoadedItem> {
 
   const row = await db.planItem.findUnique({
     where: { id },
-    include: { goal: { select: { ownerId: true, visibility: true } } },
+    include: { goal: { select: { ownerId: true, visibility: true, area: true } } },
   });
   if (!row) return { error: GONE, missing: true };
   if (!allowed(row.goal, user, access)) return { error: NOT_ALLOWED };
@@ -71,11 +85,12 @@ async function loadItem(id: string, access: Access): Promise<LoadedItem> {
     kind: toPlanKind(row.kind) ?? "reminder",
     timesPerPeriod: row.timesPerPeriod,
     period: toHabitPeriod(row.period),
+    habitId: row.habitId,
     doneAt: row.doneAt,
     sortOrder: row.sortOrder,
     createdAt: row.createdAt,
   };
-  return { user, item };
+  return { user, item, goal: row.goal };
 }
 
 export async function createPlanItem(goalId: string, raw: unknown): Promise<CreatePlanItemResult> {
@@ -85,7 +100,7 @@ export async function createPlanItem(goalId: string, raw: unknown): Promise<Crea
 
   const goal = await db.goal.findUnique({
     where: { id: goalId },
-    select: { ownerId: true, visibility: true },
+    select: { ownerId: true, visibility: true, area: true },
   });
   if (!goal) return { error: "That goal no longer exists." };
   if (!allowed(goal, user, "edit")) return { error: NOT_ALLOWED };
@@ -97,16 +112,20 @@ export async function createPlanItem(goalId: string, raw: unknown): Promise<Crea
   const { _max } = await db.planItem.aggregate({ where: { goalId }, _max: { sortOrder: true } });
 
   try {
-    const created = await db.planItem.create({
-      data: {
-        goalId,
-        title: input.title,
-        kind: input.kind,
-        timesPerPeriod: input.timesPerPeriod,
-        period: input.period,
-        sortOrder: (_max.sortOrder ?? -1) + 1,
-      },
-      select: { id: true },
+    const created = await db.$transaction(async (tx) => {
+      const habit = input.kind === "habit" ? await newHabit(tx, input, goal, user) : null;
+      return tx.planItem.create({
+        data: {
+          goalId,
+          title: input.title,
+          kind: input.kind,
+          timesPerPeriod: input.timesPerPeriod,
+          period: input.period,
+          habitId: habit?.id ?? null,
+          sortOrder: (_max.sortOrder ?? -1) + 1,
+        },
+        select: { id: true },
+      });
     });
     refreshPlansViews();
     return { id: created.id };
@@ -114,6 +133,20 @@ export async function createPlanItem(goalId: string, raw: unknown): Promise<Crea
     if (isMissingParentError(error)) return { error: "That goal no longer exists." };
     throw error;
   }
+}
+
+/** The Habit behind a new habit item: the goal's owner for a Mine goal, every active person for a Together one. */
+async function newHabit(tx: Prisma.TransactionClient, input: PlanItemInput, goal: GoalPolicyRow, user: VerifiedUser) {
+  const people =
+    goal.ownerId !== null
+      ? [goal.ownerId]
+      : (await tx.user.findMany({ where: { deactivatedAt: null, role: { not: "device" } }, select: { id: true } })).map(
+          (person) => person.id,
+        );
+  return createHabit(
+    { fields: { ...habitInputFromPlan(input, goal), createdById: user.userId }, participantIds: people },
+    tx,
+  );
 }
 
 /** Rewrites title, kind and repeat. Turning a step into anything else forgets that it was done. */
@@ -125,16 +158,30 @@ export async function updatePlanItem(id: string, raw: unknown): Promise<PlanItem
   if ("error" in checked) return { error: checked.error };
   const input = checked.ok;
 
+  const { user, item, goal } = loaded;
+  const today = householdToday(new Date())!;
+
   try {
-    await db.planItem.update({
-      where: { id },
-      data: {
-        title: input.title,
-        kind: input.kind,
-        timesPerPeriod: input.timesPerPeriod,
-        period: input.period,
-        ...(input.kind === "step" ? {} : { doneAt: null }),
-      },
+    await db.$transaction(async (tx) => {
+      // A habit keeps its Habit in step with the item; anything else lets the Habit go.
+      let habitId: string | null = null;
+      if (input.kind === "habit") {
+        const { title, schedule, times } = habitInputFromPlan(input, goal);
+        const updated = item.habitId ? await updateHabit(item.habitId, { title, schedule, times }, today, tx) : null;
+        habitId = updated ? updated.id : (await newHabit(tx, input, goal, user)).id;
+      }
+      await tx.planItem.update({
+        where: { id },
+        data: {
+          title: input.title,
+          kind: input.kind,
+          timesPerPeriod: input.timesPerPeriod,
+          period: input.period,
+          habitId,
+          ...(input.kind === "step" ? {} : { doneAt: null }),
+        },
+      });
+      if (habitId === null && item.habitId) await deleteHabit(item.habitId, tx);
     });
   } catch (error) {
     if (isMissingRowError(error)) return { error: GONE };
@@ -145,53 +192,56 @@ export async function updatePlanItem(id: string, raw: unknown): Promise<PlanItem
   return {};
 }
 
-/** One tap, no confirmation. Its logs cascade. An item already gone is a success. */
+/** One tap, no confirmation. A habit's Habit and its checks go with it. An item already gone is a success. */
 export async function deletePlanItem(id: string): Promise<PlanItemActionResult> {
   const loaded = await loadItem(id, "edit");
   if ("error" in loaded) return "missing" in loaded && loaded.missing ? {} : { error: loaded.error };
 
-  try {
-    await db.planItem.delete({ where: { id } });
-  } catch (error) {
-    if (!isMissingRowError(error)) throw error;
-  }
+  if (loaded.item.habitId) await deleteHabit(loaded.item.habitId);
+  await db.planItem.deleteMany({ where: { id } });
 
   refreshPlansViews();
   return {};
 }
 
-/** The habit's logs inside its current window, newest first. Null window = not a habit. */
-async function habitWindowLogs(item: PlanItemRow) {
-  const window = logWindow(item, householdToday(new Date())!);
-  if (!window) return null;
-  const logs = await db.planLog.findMany({
-    where: { planItemId: item.id, day: { gte: utcMidnightInstant(window.start) } },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    select: { id: true, planItemId: true, day: true, createdAt: true },
-  });
-  return { window, logs };
+type HabitTarget = { habitId: string; forUserId: string; spec: ScheduleSpec | null };
+
+/**
+ * The habit behind a tapped item and whose row the tap is for, once the
+ * viewer may check it (decision 78: see the goal, then `canLogFor`). A habit
+ * item with no Habit yet comes back as `unlinked`.
+ */
+async function habitTarget(
+  loaded: { user: VerifiedUser; item: PlanItemRow; goal: GoalPolicyRow },
+  today: CalendarDate,
+): Promise<HabitTarget | { error: string } | { unlinked: true }> {
+  const { user, item, goal } = loaded;
+  if (item.kind !== "habit") return { error: "Only a habit can be logged." };
+  if (!item.habitId) return { unlinked: true };
+  const habit = (await loadHabitsForPlan([item.habitId], today)).get(item.habitId);
+  if (!habit) return { error: GONE };
+  const forUserId = habitCheckTarget(goal, user.userId, habit.participantIds);
+  const access = { isPrivate: habit.isPrivate, participantIds: habit.participantIds };
+  if (!canLogFor({ userId: user.userId, role: user.role }, forUserId, access)) return { error: NOT_ALLOWED };
+  return { habitId: habit.id, forUserId, spec: habit.spec };
 }
 
-/** One tap on a habit, counted toward today (the household's, not the server's). Refused once the target is met. */
+/** One tap on a habit, counted toward today (the household's, not the server's). One check a day: a repeat tap changes nothing. */
 export async function logHabit(id: string): Promise<PlanItemActionResult> {
   const loaded = await loadItem(id, "log");
   if ("error" in loaded) return { error: loaded.error };
-  const { user, item } = loaded;
 
-  const found = await habitWindowLogs(item);
-  if (!found) return { error: "Only a habit can be logged." };
-  if (countInWindow(found.logs, found.window) >= found.window.target) {
-    return { error: `Already done for ${found.window.label}.` };
-  }
+  const today = householdToday(new Date())!;
+  const target = await habitTarget(loaded, today);
+  if ("error" in target) return { error: target.error };
+  if ("unlinked" in target) return { error: NOT_LINKED };
 
   try {
-    await db.planLog.create({
-      data: {
-        planItemId: id,
-        day: utcMidnightInstant(householdToday(new Date())!),
-        loggedById: user.userId,
-      },
-    });
+    const { created } = await checkHabit(
+      { habitId: target.habitId, forUserId: target.forUserId, day: today, loggedById: loaded.user.userId },
+      today,
+    );
+    if (created === 0) return {};
   } catch (error) {
     if (isMissingParentError(error)) return { error: GONE };
     throw error;
@@ -201,22 +251,19 @@ export async function logHabit(id: string): Promise<PlanItemActionResult> {
   return {};
 }
 
-/** Takes back the newest tap in the habit's current window. Nothing to take back is fine. */
+/** Takes back the newest check in the habit's current window. Nothing to take back is fine. */
 export async function undoHabitLog(id: string): Promise<PlanItemActionResult> {
   const loaded = await loadItem(id, "log");
   if ("error" in loaded) return { error: loaded.error };
 
-  const found = await habitWindowLogs(loaded.item);
-  if (!found) return { error: "Only a habit can be logged." };
-  // Newest first, and a tap's day is never after today, so the first is the newest in the window.
-  const newest = found.logs[0];
-  if (!newest) return {};
+  const today = householdToday(new Date())!;
+  const target = await habitTarget(loaded, today);
+  if ("error" in target) return { error: target.error };
+  if ("unlinked" in target) return {};
 
-  try {
-    await db.planLog.delete({ where: { id: newest.id } });
-  } catch (error) {
-    if (!isMissingRowError(error)) throw error;
-  }
+  const window = periodWindow(target.spec ?? { schedule: "weekly", times: 1 }, today);
+  const { removed } = await uncheckNewest(target.habitId, target.forUserId, window, today);
+  if (removed === 0) return {};
 
   refreshPlansViews();
   return {};

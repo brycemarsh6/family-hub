@@ -1,18 +1,17 @@
 import { HOUSEHOLD_TIME_ZONE } from "./constants";
 import type { HabitPeriod, PlanKind } from "./goalVocabulary";
+import { distinctDays, windowProgress } from "./habits/progress";
+import type { HabitLogDay, ScheduleSpec } from "./habits/types";
 import {
   addCalendarDays,
   calendarDateInZone,
   calendarDaysBetween,
-  startOfMonth,
-  startOfWeek,
-  utcMidnightInstant,
   type CalendarDate,
 } from "./householdDate";
 
-// Plans & Goals' progress math: habit windows and counts, how far a number has
-// moved, pace, and number formatting. No db, no React. `PlanLog.day` and
-// `targetDate` are UTC midnight. The row and view types the math needs live
+// Plans & Goals' progress math: habit counts (read from the habit engine), how
+// far a number has moved, pace, and number formatting. No db, no React.
+// `targetDate` is UTC midnight. The row and view types the math needs live
 // here, and goals.ts re-exports them, so this file never imports goals.ts.
 // Who may see or change a goal, and what the forms may submit, are in goals.ts.
 
@@ -32,67 +31,80 @@ export type PlanItemRow = {
   goalId: string;
   title: string;
   kind: PlanKind;
+  /** For a habit with a Habit row, `buildPlanItemView` re-derives these two from its schedule. */
   timesPerPeriod: number | null;
   period: HabitPeriod | null;
+  /** The Habit behind a habit item; null for steps, reminders and a habit item not yet linked. */
+  habitId: string | null;
   doneAt: Date | null;
   sortOrder: number;
   createdAt: Date;
 };
 
-export type PlanLogRow = { id: string; planItemId: string; day: Date; createdAt: Date };
+/** What the views read of a habit: its schedule and every participant's checks (`HabitForPlan` fits). */
+export type PlanHabit = {
+  spec: ScheduleSpec | null;
+  schedule: { schedule: string; times: number | null };
+  logs: HabitLogDay[];
+};
 
 export type PlanItemView = PlanItemRow & {
   count: number;
   target: number;
   windowLabel: "this week" | "this month" | null;
   done: boolean;
+  /** Whether today has a check; one tap a day, so this is what the round button shows. */
+  doneToday: boolean;
 };
 
-// ---- Habit windows and counts ----
+// ---- Habit counts ----
 
-export type LogWindow = { start: CalendarDate; end: CalendarDate; target: number; label: "this week" | "this month" };
-
-/** Where a habit's logs count: a day habit counts across the week. Null for non-habits. */
-export function logWindow(item: PlanItemRow, today: CalendarDate): LogWindow | null {
-  if (item.kind !== "habit" || item.timesPerPeriod === null || item.period === null) return null;
-  const times = item.timesPerPeriod;
-  if (item.period === "month") {
-    const start = startOfMonth(today);
-    // Month 13 rolls into next January inside addCalendarDays' Date.UTC.
-    const end = addCalendarDays({ ...start, month: start.month + 1 }, -1);
-    return { start, end, target: times, label: "this month" };
+/** The "times a day / week / month" a schedule reads as in the edit sheet. */
+function planShape(spec: ScheduleSpec): { timesPerPeriod: number; period: HabitPeriod } {
+  switch (spec.schedule) {
+    case "daily":
+      return { timesPerPeriod: 1, period: "day" };
+    case "monthly":
+      return { timesPerPeriod: spec.times, period: "month" };
+    case "weekly":
+      return { timesPerPeriod: spec.times, period: "week" };
+    default:
+      return { timesPerPeriod: Math.max(spec.days.length, 1), period: "week" };
   }
-  const start = startOfWeek(today);
+}
+
+/** A habit item with no readable Habit: 0 progress against the target its own columns give, never done. */
+function unlinkedHabitView(item: PlanItemRow): PlanItemView {
+  const times = item.timesPerPeriod ?? 0;
   const target = item.period === "day" ? times * 7 : times;
-  return { start, end: addCalendarDays(start, 6), target, label: "this week" };
+  const windowLabel = item.period === null ? null : item.period === "month" ? "this month" : "this week";
+  return { ...item, count: 0, target, windowLabel, done: false, doneToday: false };
 }
 
-/** Logs whose day falls in the window, ends included. */
-export function countInWindow(
-  logs: PlanLogRow[],
-  window: Pick<LogWindow, "start" | "end">,
-): number {
-  const from = utcMidnightInstant(window.start).getTime();
-  const before = utcMidnightInstant(addCalendarDays(window.end, 1)).getTime();
-  return logs.filter((log) => log.day.getTime() >= from && log.day.getTime() < before).length;
-}
-
+/** One plan item as a view. Counts are days with a check (a Together habit's participants collapse into one). */
 export function buildPlanItemView(
   item: PlanItemRow,
-  logs: PlanLogRow[],
+  habit: PlanHabit | null,
   today: CalendarDate,
 ): PlanItemView {
   if (item.kind === "step") {
     const done = item.doneAt !== null;
-    return { ...item, count: done ? 1 : 0, target: 1, windowLabel: null, done };
+    return { ...item, count: done ? 1 : 0, target: 1, windowLabel: null, done, doneToday: false };
   }
-  const window = logWindow(item, today);
-  if (!window) return { ...item, count: 0, target: 0, windowLabel: null, done: false };
-  const count = countInWindow(
-    logs.filter((log) => log.planItemId === item.id),
-    window,
-  );
-  return { ...item, count, target: window.target, windowLabel: window.label, done: count >= window.target };
+  if (item.kind !== "habit") {
+    return { ...item, count: 0, target: 0, windowLabel: null, done: false, doneToday: false };
+  }
+  if (!habit || !habit.spec) return unlinkedHabitView(item);
+  const progress = windowProgress(habit.spec, distinctDays(habit.logs), today);
+  return {
+    ...item,
+    ...planShape(habit.spec),
+    count: progress.count,
+    target: progress.target,
+    windowLabel: progress.label,
+    done: progress.count >= progress.target,
+    doneToday: progress.doneToday,
+  };
 }
 
 /**

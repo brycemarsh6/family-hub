@@ -16,9 +16,12 @@ import {
 } from "@/lib/goalVocabulary";
 import { createPlanItem, deletePlanItem, updatePlanItem } from "@/app/actions/planItems";
 
+const PERIOD_LABELS: Record<HabitPeriod, string> = { day: "Every day", week: "a week", month: "a month" };
+
 /**
  * Add one thing to a goal's plan, or edit one that is already there. A habit
- * repeats ("3 times a week"), a step is done once, a reminder is just text.
+ * repeats ("Every day", or "3 times a week"; one check a day at most), a step
+ * is done once, a reminder is just text.
  * Edit mode adds a one-tap Delete (house rule: no confirmation).
  */
 export function PlanItemSheet({
@@ -40,6 +43,7 @@ export function PlanItemSheet({
   const [kind, setKind] = useState<PlanKind>(initial?.kind ?? "habit");
   const [times, setTimes] = useState(initial?.timesPerPeriod ?? 3);
   const [period, setPeriod] = useState<HabitPeriod>(initial?.period ?? "week");
+  const maxTimes = HABIT_TIMES_MAX[period];
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   // Which button was tapped, so only that one changes its words while the call runs.
@@ -58,7 +62,7 @@ export function PlanItemSheet({
     const raw = {
       title: title.trim(),
       kind,
-      timesPerPeriod: kind === "habit" ? times : null,
+      timesPerPeriod: kind === "habit" ? Math.min(times, maxTimes) : null,
       period: kind === "habit" ? period : null,
     };
     setError(null);
@@ -163,8 +167,12 @@ export function PlanItemSheet({
             <div role="group" aria-label="How often">
               <span className="mb-2 block text-sm text-muted">How often</span>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <QuantityStepper value={times} onChange={setTimes} min={1} max={HABIT_TIMES_MAX} label="Times" />
-                <span className="text-sm text-muted">times a</span>
+                {period !== "day" && (
+                  <>
+                    <QuantityStepper value={Math.min(times, maxTimes)} onChange={setTimes} min={1} max={maxTimes} label="Times" />
+                    <span className="text-sm text-muted">times</span>
+                  </>
+                )}
                 <div className="flex rounded-xl bg-surface-2 p-1">
                   {HABIT_PERIODS.map((option) => (
                     <button
@@ -176,7 +184,7 @@ export function PlanItemSheet({
                         period === option ? "bg-surface text-fg" : "text-muted-strong"
                       }`}
                     >
-                      {option}
+                      {PERIOD_LABELS[option]}
                     </button>
                   ))}
                 </div>
