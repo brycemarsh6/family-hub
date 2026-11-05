@@ -50,10 +50,17 @@ test("carriedFrom: biweekly with days carries from its due week only", () => {
   assert.equal(carriedFrom(tuesdays, true, [row(d(2026, 10, 27))], d(2026, 11, 5)), null);
 });
 
-test("carriedFrom: an older missed day carries when the newest scheduled day has a row", () => {
+test("carriedFrom: an older missed day is absorbed when the newest scheduled day has a row", () => {
   const logs = [row(d(2026, 11, 4))];
   // Saturday Oct 31 was missed, Wednesday Nov 4 was done; today Thursday Nov 5.
-  assert.deepEqual(carriedFrom(wedSat, true, logs, d(2026, 11, 5)), d(2026, 10, 31));
+  assert.equal(carriedFrom(wedSat, true, logs, d(2026, 11, 5)), null);
+});
+
+test("carriedFrom: Mon+Wed habit, Mon missed, Wed done, Thursday carries nothing", () => {
+  const monWed: ScheduleSpec = { schedule: "weekdays", days: [1, 3] };
+  assert.equal(carriedFrom(monWed, true, [row(d(2026, 11, 4))], d(2026, 11, 5)), null);
+  // Wed not done either: the newest miss (Wed) is the one carried.
+  assert.deepEqual(carriedFrom(monWed, true, [], d(2026, 11, 5)), d(2026, 11, 4));
 });
 
 test("carriedFrom: not before `since`, and not past the lookback", () => {

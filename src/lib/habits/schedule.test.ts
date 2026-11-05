@@ -49,6 +49,19 @@ test("scheduleFromRow: reads each schedule, clamps times, rejects the unschedula
   assert.equal(scheduleFromRow({ ...row, schedule: "hourly" }), null);
 });
 
+test("scheduleFromRow snaps a non-Sunday anchor to its Sunday, so biweekly still has due days", () => {
+  const spec = scheduleFromRow({
+    schedule: "biweekly",
+    weekdays: "0010000",
+    times: null,
+    anchorWeek: d(2026, 11, 4), // a Wednesday
+  } as Parameters<typeof scheduleFromRow>[0]);
+  assert.deepEqual(spec && spec.schedule === "biweekly" ? spec.anchorWeek : null, d(2026, 11, 1));
+  let due = 0;
+  for (let day = 1; day <= 30; day++) if (spec && isScheduledDay(spec, d(2026, 11, day))) due++;
+  assert.ok(due > 0, "biweekly Tuesday has due days in November");
+});
+
 test("isOpenKind: weekly, monthly and biweekly with no days are open", () => {
   const anchorWeek = d(2026, 11, 1);
   assert.equal(isOpenKind({ schedule: "daily" }), false);

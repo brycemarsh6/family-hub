@@ -59,7 +59,7 @@ export function scheduleFromRow(row: ScheduleRow): ScheduleSpec | null {
       return { schedule: "weekly", times: clampTimes(row.times, 7) };
     case "biweekly":
       return days && row.anchorWeek
-        ? { schedule: "biweekly", days, anchorWeek: row.anchorWeek }
+        ? { schedule: "biweekly", days, anchorWeek: startOfWeek(row.anchorWeek) }
         : null;
     case "monthly":
       return { schedule: "monthly", times: clampTimes(row.times, 31) };

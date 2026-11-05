@@ -12,8 +12,8 @@ export const CARRY_LOOKBACK_DAYS = 14;
 /**
  * The day a carried row is "from", or null. Only scheduled kinds with
  * carry-over on; null when today is itself scheduled (the carry is absorbed,
- * decision 72). Otherwise the latest scheduled day before today with no row
- * of any status, no earlier than `since` (the day the habit or person
+ * decision 72). Otherwise the latest scheduled day before today, if it has no
+ * row of any status (if it has one, any older miss is absorbed: null), no earlier than `since` (the day the habit or person
  * started) and no more than CARRY_LOOKBACK_DAYS back.
  */
 export function carriedFrom(
@@ -27,7 +27,8 @@ export function carriedFrom(
   for (let back = 1; back <= CARRY_LOOKBACK_DAYS; back++) {
     const day = addCalendarDays(today, -back);
     if (since && compareDays(day, since) < 0) return null;
-    if (isScheduledDay(spec, day) && !logs.some((log) => isSameDay(log.day, day))) return day;
+    // The newest scheduled day decides: a row on it absorbs any older miss.
+    if (isScheduledDay(spec, day)) return logs.some((log) => isSameDay(log.day, day)) ? null : day;
   }
   return null;
 }

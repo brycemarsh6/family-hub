@@ -77,7 +77,13 @@ export function computeStreaks(
       if (done.has(dayKey(day))) grow();
       else if (present.has(dayKey(day)) || compareDays(day, today) < 0) run = 0; // late, or nothing
     }
-    return { current: run, best, asOf: today };
+    // Cache note (scheduled): a due day left unchecked today is not counted
+    // yet, so the cache holds from yesterday and `streakAfter` examines today.
+    const pending =
+      isScheduledDay(spec, today) &&
+      !inVacation(vacations, today) &&
+      !present.has(dayKey(today));
+    return { current: run, best, asOf: pending ? addCalendarDays(today, -1) : today };
   }
 
   // Cache note: when the current period is due and still short of N, `asOf`

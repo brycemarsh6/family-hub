@@ -123,9 +123,10 @@ test("a vacation excuses a weekly period that cannot reach N, and no row means n
   assert.deepEqual(summary(daily, [], d(2026, 11, 9)), { current: 0, best: 0 });
 });
 
-test("asOf: today, or the day before an unmet current period starts", () => {
+test("asOf: the day before an undone due today or an unmet current period, else today", () => {
   const weekly: ScheduleSpec = { schedule: "weekly", times: 2 };
-  assert.deepEqual(computeStreaks(daily, done(d(2026, 11, 3)), none, d(2026, 11, 5)).asOf, d(2026, 11, 5));
+  assert.deepEqual(computeStreaks(daily, done(d(2026, 11, 3)), none, d(2026, 11, 5)).asOf, d(2026, 11, 4));
+  assert.deepEqual(computeStreaks(daily, done(d(2026, 11, 3), d(2026, 11, 5)), none, d(2026, 11, 5)).asOf, d(2026, 11, 5));
   const unmet = computeStreaks(weekly, done(d(2026, 11, 3)), none, d(2026, 11, 5));
   assert.deepEqual(unmet.asOf, d(2026, 10, 31));
   const met = computeStreaks(weekly, done(d(2026, 11, 3), d(2026, 11, 4)), none, d(2026, 11, 5));
@@ -145,6 +146,18 @@ test("streakAfter: certain days ignore non-due gaps", () => {
   const cache = { current: 3, best: 3, asOf: d(2026, 11, 2) }; // Monday
   assert.equal(streakAfter(mondayThursday, cache, none, d(2026, 11, 5)).current, 3); // Thu is today
   assert.equal(streakAfter(mondayThursday, cache, none, d(2026, 11, 6)).current, 0); // Thu passed
+});
+
+test("a cache written on an undone due day, aged one day, breaks", () => {
+  const logs = run(d(2026, 11, 1), 5); // Sun Nov 1 to Thu Nov 5, Friday not yet done
+  const cached = computeStreaks(daily, logs, none, d(2026, 11, 6));
+  assert.equal(cached.current, 5);
+  assert.deepEqual(cached.asOf, d(2026, 11, 5));
+  assert.equal(streakAfter(daily, cached, none, d(2026, 11, 7)).current, 0);
+  // Done Friday instead: holds from today and survives.
+  const doneToo = computeStreaks(daily, [...logs, ...done(d(2026, 11, 6))], none, d(2026, 11, 6));
+  assert.deepEqual(doneToo.asOf, d(2026, 11, 6));
+  assert.equal(streakAfter(daily, doneToo, none, d(2026, 11, 7)).current, 6);
 });
 
 test("streakAfter: weekly holds through the met week, breaks after an unlogged due week", () => {
@@ -175,16 +188,18 @@ test("streakAfter agrees with computeStreaks on the same logs, at every later da
     { schedule: "monthly", times: 2 },
   ];
   const logs = done(d(2026, 10, 26), d(2026, 10, 29), d(2026, 11, 2), d(2026, 11, 3));
-  const at = d(2026, 11, 3);
-  for (const spec of specs) {
-    const cached = computeStreaks(spec, logs, none, at);
-    for (let n = 0; n <= 70; n++) {
-      const later = addCalendarDays(at, n);
-      assert.equal(
-        streakAfter(spec, cached, none, later).current,
-        computeStreaks(spec, logs, none, later).current,
-        `${spec.schedule} on day +${n}`,
-      );
+  // Includes Nov 5 and 6, due days with no row (the cache must not skip them).
+  for (const at of [d(2026, 11, 3), d(2026, 11, 4), d(2026, 11, 5), d(2026, 11, 6)]) {
+    for (const spec of specs) {
+      const cached = computeStreaks(spec, logs, none, at);
+      for (let n = 0; n <= 70; n++) {
+        const later = addCalendarDays(at, n);
+        assert.equal(
+          streakAfter(spec, cached, none, later).current,
+          computeStreaks(spec, logs, none, later).current,
+          `${spec.schedule} cached ${at.month}/${at.day}, day +${n}`,
+        );
+      }
     }
   }
 });
