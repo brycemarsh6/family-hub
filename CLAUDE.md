@@ -64,8 +64,8 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   setting in Settings can pin it open as an icon rail or a full sidebar.
   Phones always use the menu button. There are no landing pages. Old
   `/kitchen`, `/kitchen/cooking` and `/chores` forward to Inventory, Recipes
-  and Habits & Chores. Habits & Chores (`/habits`) is a "Coming soon"
-  placeholder; the old `/routines` forwards to it too.
+  and Habits & Chores. Habits & Chores (`/habits`) is live (PR B); the old
+  `/routines` forwards to it too.
 - **Kitchen** (the Kitchen group in the drawer):
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
@@ -97,8 +97,10 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   log) are pure code in `src/lib/habits/`, with words in
   `src/lib/habitVocabulary.ts`. Settings has a "Habits & Chores" section: a
   Show streaks switch (saved per login) and, for admins only, a Recompute
-  streaks button. The real Today list, manager and streak display come in
-  later PRs (plan: `.avengers/plans/habits-chores-v1.md`).
+  streaks button. PR B (#43) added the tab: Today (tap to check, swipe to
+  skip), Manage (drag to reorder), New and Edit. Streak display, the family
+  view and chores come in PRs C to F (plan:
+  `.avengers/plans/habits-chores-v1.md`).
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
   Read `.avengers/plans/calendar-v2.md` before calendar work.
@@ -161,14 +163,14 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Habits & Chores PR B (mission 31)** on branch `claude/habits-b-tab`:
-  Today list, Manage with drag to reorder, New and Edit forms, the
-  Everyone flag (one additive migration, applied to dev only). All gates
-  passed 2026-11-05; **not pushed yet**. Decisions 87 to 93 in
+- **Habits & Chores PR B (mission 31)** merged as PR #43 (9f4b2d5) and
+  live since 2026-11-05: Today list, Manage with drag to reorder, New and
+  Edit forms, the Everyone flag. Decisions 87 to 93 in
   `.avengers/plans/habits-chores-v1.md`. Record:
-  `.avengers/missions/mission-31-habits-b-tab.md`. PR A (#41) is live.
-  PRs C to F are not started. The spike branch `claude/habits-b-spike` is
-  never merged; delete it after PR B merges.
+  `.avengers/missions/mission-31-habits-b-tab.md` (its Delivery section
+  lists leftovers for later PRs). PR C (mission 32, streaks and the family
+  view) is next; Bryce creates the kids' profiles before its testing.
+  The spike branch `claude/habits-b-spike` can be deleted (ask first).
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
   desktop mouse. Hover is a bonus, never the only way to learn something.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
@@ -203,5 +205,5 @@ Replace this section at the end of each session. Don't append.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
   by Bryce's Grok bot. Left uncommitted on purpose.
 
-**Not built yet:** family profiles, the Habits & Chores Today list and chore
-chart (PRs B to F), to-dos, photo gallery, barcode scanning.
+**Not built yet:** family profiles, the Habits & Chores family view and chore
+chart (PRs C to F), to-dos, photo gallery, barcode scanning.
