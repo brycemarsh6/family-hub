@@ -1,7 +1,7 @@
 # Mission: Send feedback (mission 38)
 
 **Project:** family-hub (Marshee)
-**Status:** STOPPED (Strange budget spent after pass 3; asking Bryce for a fourth pass)
+**Status:** AT-THE-GATES (Bryce allowed a fourth Strange pass, 2026-11-06)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/marshee-send-feedback-d53a21` (from origin/main af1708c)
 
@@ -419,3 +419,10 @@ scroll points, light and dark), longest task on open 321 to 479 ms in a
 production build, valve never fired. Next if allowed: F4 with those two
 lines, then Strange pass 4 only. Follow-up note from Vision: Calendar
 timeline screenshots show the top hours, not the scrolled ones.
+
+### F4 - Strange pass 3's two lines (Bryce: "Yes, one more")
+- **Status:** DONE, by Fury (two lines Strange wrote out exactly)
+- **Boundaries:** may touch: `src/components/FeedbackSheet.tsx`,
+  `src/lib/captureScreenshot.ts` · must not touch: everything else.
+- **Work:** fallback label `text-sm whitespace-nowrap`; `isKept` drops
+  `position: fixed` elements. Gauntlet re-run below; Strange pass 4 only.

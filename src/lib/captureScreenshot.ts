@@ -65,6 +65,10 @@ function containsMargins(element: Element): boolean {
 function isKept(node: Node, root: Element): boolean {
   const parent = node.parentElement;
   if (!parent || node === root) return true;
+  // A fixed bar floats over the window, not the page. In the clone the
+  // translated <main> becomes its containing block, so it would be drawn
+  // shifted by main's left offset. Leave every fixed overlay out instead.
+  if (node instanceof Element && getComputedStyle(node).position === "fixed") return false;
   if (!isWhollyOutside(parent)) return true;
   if (getComputedStyle(parent).display.startsWith("inline")) return true;
   if (node.nodeType !== 1) return false;

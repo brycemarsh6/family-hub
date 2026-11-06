@@ -189,8 +189,9 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
           {sent ? (
             <div
               role="status"
-              className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent-soft text-base font-semibold ${
-                sentWithoutShot ? "text-muted" : "text-fg"
+              className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent-soft whitespace-nowrap font-semibold ${
+                // The longer label only fits the half-width button at 375px in text-sm.
+                sentWithoutShot ? "text-sm text-muted" : "text-base text-fg"
               }`}
             >
               <Check size={18} aria-hidden="true" />
