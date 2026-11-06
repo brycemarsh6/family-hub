@@ -178,7 +178,8 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Done:** guards in order session, row, policy, then fields.
 
 ### C3 - The stats page
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc, eslint, 756 tests; build passed with a fake database URL; not seen in a browser yet, Strange will)
+- **Notes for C4+:** `canNudge` in `access.ts` is the one nudge rule (now refuses Together on the action path too). `HabitStatsData.subjectName` added without a test (C5 adds one). Stark's wording, sent to Hill: "Emily hasn't done theirs today" (Hill's 97 said "hers"), "None yet" for an empty rate or streak. Skipped days are read-only on the stats calendar; only the current month shows (no month paging).
 - **Objective:** `/habits/[id]` from the Stats board with decisions 94, 97,
   102 to 105.
 - **First:** one `canNudge(actor, habit, toUserId)` in `src/lib/habits/access.ts`
@@ -231,6 +232,12 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
   new `src/components/HabitFamilyView.tsx`, new
   `src/components/HabitFamilyColumn.tsx`, `DESIGN.md` (vocabulary entries
   for the new components) · must not touch: anything else.
+- **First (decision 109):** move Today's `countLabel` rule into one pure
+  helper in `src/lib/habitsToday.ts` (or `habitsFamily.ts` if
+  `habitsToday.ts` would grow), used by `HabitTodayList` and by
+  `buildFamilyPage`'s column counts, so skipped habits leave both numbers;
+  update `habitsFamily.test.ts`, and add a test for `subjectName`.
+  Boundary adds `src/lib/habitsFamily.ts`, `src/lib/habitsFamily.test.ts`.
 - **Rules:** `/habits?view=family` shows it; the tablet always gets it (no
   chips); people see "Mine" / "Whole family" chips on both views. Together
   strip first, then a card per person (avatar, name, "x of y done"),

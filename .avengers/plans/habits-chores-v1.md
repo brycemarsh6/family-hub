@@ -422,6 +422,15 @@ in PR B (mission 31).
 105. **Opening stats:** tapping a row's title area on Today or the family view
      opens `/habits/[id]`; the check keeps its own tap, swipe keeps Skip. The
      Edit page gets a "See stats" link under its BackLink.
+106. **No nudging someone who skipped today** (a skip is finished, 19, 76).
+     Decided by Hill, 2026-11-05, high.
+107. **Archived habits refuse nudges** (58). Decided by Hill, high.
+108. **The Nudge row is on Side by side habits only** (51, 93). Decided by
+     Hill, high.
+109. **A person's "x of y done" leaves skipped habits out of both numbers**,
+     on the family view the same as on Today, from one counting rule.
+     Decided by Hill, high. Bryce's tiebreaker for Hill (2026-11-05): "the
+     most user-friendly".
 
 ## Open questions
 

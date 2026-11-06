@@ -46,3 +46,24 @@ export function canSeeHabitStats(actor: HabitActor, habit: HabitAccess): boolean
   if (!canSeeHabit(actor, habit)) return false;
   return isParticipant(habit, actor.userId) || actor.role === "device" || isManager(actor);
 }
+
+/** What the nudge rule needs beyond `HabitAccess`: how the habit is shared and whether it is archived. */
+export type NudgeHabit = HabitAccess & { sharing: string; archived: boolean };
+
+/**
+ * Whether `actor` may nudge `toUserId` about a habit (decision 97): never the
+ * tablet, never yourself, only on a Side by side habit that is not private or
+ * archived, and only between two of its participants. Whether the recipient
+ * has finished today is a fact about the day, so the caller checks it.
+ */
+export function canNudge(actor: HabitActor, habit: NudgeHabit, toUserId: string): boolean {
+  return (
+    actor.role !== "device" &&
+    habit.sharing === "each" &&
+    !habit.isPrivate &&
+    !habit.archived &&
+    toUserId !== actor.userId &&
+    isParticipant(habit, actor.userId) &&
+    isParticipant(habit, toUserId)
+  );
+}

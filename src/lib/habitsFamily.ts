@@ -1,5 +1,5 @@
 import { calendarDateFromUtcMidnight, formatCalendarDate, startOfMonth, type CalendarDate } from "./householdDate";
-import { canLogFor, canSeeHabitStats } from "./habits/access";
+import { canLogFor, canNudge, canSeeHabitStats } from "./habits/access";
 import { specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import type { DayEntry } from "./habits/perfectDays";
 import { compareDays, dueState as dueStateOf, isDayInRange, isSameDay } from "./habits/schedule";
@@ -164,6 +164,8 @@ export type HabitStatsData = {
   viewerId: string;
   /** Whose numbers the tiles and the month calendar show. */
   subjectId: string;
+  /** The subject's display name, for "Emily's numbers" when a parent opens a kid's habit. */
+  subjectName: string;
   tiles: PersonTotals;
   calendar: { first: string; leading: number; cells: { day: string; state: MonthCellState; tappable: boolean }[] };
   /** Whether the viewer may tap the calendar's days (`canLogFor` the subject). */
@@ -238,11 +240,11 @@ export function buildStatsData(input: StatsBuildInput): HabitStatsData | null {
           return { rows: sideBySideRows(stats), weekly: { ...weekly, weeks: weekly.weeks.map(formatCalendarDate) } };
         })()
       : null;
-  const mayNudge = sharing === "each" && viewer.role !== "device" && !habit.isPrivate && !habit.archivedAt && access.participantIds.includes(viewer.userId);
+  const nudgeHabit = { ...access, sharing, archived: habit.archivedAt !== null };
   const doneByToday = new Set(input.logs.filter((log) => isSameDay(log.day, today)).map((log) => log.userId));
-  const nudgeable = mayNudge
-    ? active.filter((p) => p.userId !== viewer.userId && !doneByToday.has(p.userId)).map((p) => ({ userId: p.userId, displayName: p.displayName, nudged: input.nudgedToday.includes(p.userId) }))
-    : [];
+  const nudgeable = active
+    .filter((p) => canNudge(viewer, nudgeHabit, p.userId) && !doneByToday.has(p.userId))
+    .map((p) => ({ userId: p.userId, displayName: p.displayName, nudged: input.nudgedToday.includes(p.userId) }));
   return {
     habit: {
       id: habit.id,
@@ -260,6 +262,7 @@ export function buildStatsData(input: StatsBuildInput): HabitStatsData | null {
     month: formatCalendarDate(startOfMonth(input.month)),
     viewerId: viewer.userId,
     subjectId,
+    subjectName: members.find((m) => m.userId === subjectId)?.displayName ?? "",
     tiles,
     calendar: {
       first: formatCalendarDate(calendar.first),
