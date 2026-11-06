@@ -1,9 +1,9 @@
 # Habits & Chores v1: direction
 
-Status: **direction only, nothing built.** Audited on 2026-11-05
-(`habits-chores-audit.md`): sixteen questions wait on Bryce, several of
-them hard to reverse; the build plan follows his answers. The mock was
-redrawn for Habits & Chores the same day and waits for review.
+Status: **built.** PRs A to F (missions 30 to 36) shipped between
+2026-11-05 and 2026-11-06; PR F (mission 36) finished the plan. Each
+mission file in `.avengers/missions/` holds its gates and leftovers.
+Below is the direction as it was decided, kept for the reasons.
 
 Mock (eight screens: Today, Habit manager, New habit or chore, one habit's
 stats, Chore chart, Settings section, Dashboard tiles for the second PR, and
@@ -727,9 +727,8 @@ instead), one-step-at-a-time mode, the idea library, stars or rewards,
 parent approval of kids' check-offs (needs P3), amounts, importing Habit
 tracker history.
 
-## Build note (2026-11-05)
+## Build note (updated 2026-11-06)
 
-PR A (mission 30, the engine and the move) is built on branch
-`claude/habits-a-engine`; it is not pushed or merged. Record:
-`.avengers/missions/mission-30-habits-a-engine.md`. PRs B to F are not
-started.
+All seven PRs are built: A (mission 30), B (31), C (32), D (33), E1 (34), E2
+(35) and F (36, the Report and idea library). The records live in each
+mission file; leftovers are in their Delivery sections.

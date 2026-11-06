@@ -290,6 +290,20 @@ Adding a second definition of any of these is a BLOCKER:
   only filter: a prompt that names a horizon ("in ten years") shows only on
   that horizon's board. Bryce approves every line of wording before it
   ships. (Added 2026-11-04, mission-28; Bryce approved the plan.)
+- `src/lib/habitIdeas.ts`: the only home of Habits & Chores idea wording:
+  `HABIT_IDEAS` (per life area) and `CHORE_IDEAS`, each a whole idea (title,
+  icon, schedule, days, times, time of day, mode), with `habitIdeasLabel`,
+  `CHORE_IDEAS_LABEL`, `LIFE_AREA_HINT`, `LIFE_AREA_HINT_PICK` and
+  `findHabitIdea`. It mirrors `.avengers/plans/habits-ideas.md` word for
+  word; `habitIdeas.test.ts` reads that md file, so **the md is load-bearing
+  for `npm test`** and an edit to either side without the other fails
+  `npm test`. Goal and plan ideas stay in `goalPrompts.ts`; a habit or chore
+  idea typed anywhere else is a BLOCKER. It sits at the top level of
+  `src/lib/`, not in `src/lib/habits/`, because it takes `lifeAreaInfo` from
+  `goalVocabulary.ts`, which the engine may not import. **Dependency
+  direction:** it imports only `goalVocabulary.ts` and types from
+  `habitVocabulary.ts`, and nothing in `src/lib/habits/` imports it. Every
+  line of wording is approved before it ships. (Added mission-36.)
 - `src/lib/goalsProgress.ts`: windows, counts, progress, pace, `formatMeasure`,
   `parseTypedNumber`; split from `goals.ts` at the test seam. (Added
   2026-11-04, mission-27; Bryce approved the plan.)
@@ -351,7 +365,7 @@ Adding a second definition of any of these is a BLOCKER:
   mission-35.) `src/lib/habitsRead.ts` (Today, Manage,
   the editor, the action loaders and `loadHabitsForPlan`) and
   `src/lib/habitsStatsRead.ts` (the stats page and the family view,
-  mission-32) are the only readers of the `Habit`, `HabitParticipant`,
+  mission-32; the Report's `loadHabitReport`, mission-36) are the only readers of the `Habit`, `HabitParticipant`,
   `HabitLog` and `Nudge` tables for pages and actions. Both are
   `server-only`, and each hands its rows to a pure builder. A third reader
   is a BLOCKER. **Dependency direction:** `src/lib/habits/` may import
@@ -395,8 +409,11 @@ Adding a second definition of any of these is a BLOCKER:
 - `habits/access.ts` is the only habit policy: `canSeeHabit`, `canEditHabit`
   and `canLogFor`. They carry the `Habit` suffix so they never collide with
   `goals.ts`'s `canSee` / `canEdit` in a search or an import. An action,
-  page or component that checks a habit's `isPrivate` or participant list
-  itself is a BLOCKER. The plan-to-habit glue lives in `goals.ts` beside the
+  page, component or lib module outside `src/lib/habits/` that checks a
+  habit's `isPrivate` or participant list itself is a BLOCKER (widened
+  mission-36; the existing lib sites, `habitsReportScope.ts`,
+  `habitsStatsRead.ts` and `habitsFamily.ts`, move into `access.ts` at their
+  next touch). The plan-to-habit glue lives in `goals.ts` beside the
   goal policy: `habitInputFromPlan` (a plan item's fields become a Habit's),
   `habitParticipantsFor` (a Mine goal's owner, or the household) and
   `habitCheckTarget` (whose row a tap writes). It is pinned by
@@ -456,7 +473,10 @@ Adding a second definition of any of these is a BLOCKER:
   calendar-day helper goes here; a process-local getter in a server path is
   a bug, and a second zone-explicit helper elsewhere is a BLOCKER. (Added
   2026-10-09, mission-21; Bryce-approved.) `startOfWeek` (Sunday) and
-  `startOfMonth` live here too.
+  `startOfMonth` live here too. `formatWeekTitle(weekStart, currentYear)` is
+  the dash-free week title ("Nov 1 to 7"), beside `formatShortCalendarDate`;
+  `formatWeekRange` in `mealPlanDates.ts` keeps its dash for Meal Plan only,
+  and a third week-range formatter is a BLOCKER. (Added mission-36.)
 - `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it
@@ -503,8 +523,15 @@ Adding a second definition of any of these is a BLOCKER:
 - **Habits & Chores PR C homes (mission-32).** `src/lib/habitsStats.ts` is
   the only home of the stats page's rules: per-person totals, the month
   calendar cells and their `tappable` window, completion rate, the side by
-  side rows, the weekly series, perfect days in a month and
-  `statsMonthTitle`. `src/lib/habitsFamily.ts` builds the family view and
+  side rows, the weekly series, perfect days in a month,
+  `statsMonthTitle`, `effectiveState` / `dayCellLabel` (the one rule for how
+  a calendar cell reads and is spoken, with its words `DAY_CELL_WORDS` and
+  `DAY_CELL_REASON_WORDS` in `habitVocabulary.ts`), `nothingDueText` (shared
+  with the Report, mission-36), the open-kind count (`openCountOf`,
+  `openCountText`) and whether an open kind's unchecked today still draws as
+  "today" (`openTodayDoable`, the period's target not yet met). Cell drawing
+  is `HabitDayCell.tsx`, and `HabitDayLegend` there is the only month-calendar
+  legend (stats page and Report). `src/lib/habitsFamily.ts` builds the family view and
   the stats page data (`buildFamilyPage`, `buildStatsData`,
   `statsSubject`), and holds `doneCounts` / `doneCountLabel`, the one
   "x of y done" rule for Today and the family view. Both files are pure:
@@ -553,8 +580,9 @@ Adding a second definition of any of these is a BLOCKER:
   and the flag leave the server. **Dependency direction:**
   `choreChart.ts` imports only `habits/`, `habitVocabulary.ts`,
   `householdDate.ts` and `mealPlanDates.ts`. `habitsToday.ts`,
-  `habitsFamily.ts`, `habitsRead.ts` and `habitsStatsRead.ts` may import
-  it, and it never imports any of them. Among the write files,
+  `habitsFamily.ts`, `habitsRead.ts`, `habitsStatsRead.ts`, `habitsReport.ts`
+  and `habitsReportScope.ts` may import it (the two Report files take
+  `firstNameOf` and the chip types), and it never imports any of them. Among the write files,
   `vacationWrites.ts` and `habitWrites.ts` may import `streakWrites.ts`;
   `streakWrites.ts` may import `choreWrites.ts`; `habitWrites.ts`,
   `streakWrites.ts`, `choreWrites.ts` and `vacationWrites.ts` may import
@@ -598,6 +626,61 @@ Adding a second definition of any of these is a BLOCKER:
   `scheduleHabitDays.ts` imports only `calendarDates.ts`,
   `scheduleWindowState.ts` (types) and `types.ts`; `habitsStatsRead.ts`
   may import `habitsCalendar.ts`, never the reverse.
+- **Habits & Chores PR F homes (mission-36).** `src/lib/habitsReport.ts` is
+  the only home of the Report's own rules: the pager (bounds, and the "This
+  week" / "This month" pill on a past period), each item's cells by range,
+  sections, the year totals, and `countText`, which composes a row's count
+  from `openCountOf` / `openCountText` (open kinds) and `nothingDueText`
+  (both in `habitsStats.ts`, which the stats page header uses too, so neither
+  says "0 of 0", decisions 177 and 181). A second copy of either count rule,
+  in a component or a lib file, is a BLOCKER. `habitsReport.ts` and
+  `habitsFamily.ts` (`buildStatsData`, `calendar.nothingDue`,
+  `calendar.openCount`) call them; the words are in `habitVocabulary.ts`
+  (`REPORT_LABELS`, `reportCountOf`, `reportCountThis`, `reportYearTotals`,
+  `reportDueLabel`, `REPORT_DUE_TODAY`, `reportNotThis`). Every Report cell
+  comes from `monthCalendar` in `habitsStats.ts`, so the Report and the stats
+  page draw a day by one rule; a second cell-state rule is a BLOCKER.
+  `src/lib/habitsReportScope.ts` is the only home of the Report's address and
+  scope: `parseReportParams`, `reportHref`, `weekParam` / `monthParam`, who
+  is shown (`reportPersonId`), the person chips, the shown items (Habits then
+  Chores, each in Manage order), the filter and the range the loader reads.
+  `reportFilterOptions` and `matchesReportFilter` there are the one habit
+  filter rule; Today's `HabitTodayList` migrates to them at its next touch.
+  `TIME_ICONS`, exported from `HabitFilterChips.tsx`, is the only
+  time-of-day icon map. Both Report files are pure: no `db`, and callers pass
+  `today`. `canSeeHabitReport(actor, personId)` in `habits/access.ts` is the
+  only "whose Report may this viewer open" rule (it matches `canEditChart` on
+  purpose; they come from separate decisions, 164 and 119/125); a
+  `MANAGER_ROLES` or role test for the Report anywhere else is a BLOCKER.
+  `loadHabitReport` in `habitsStatsRead.ts` is the Report's only reader: it
+  asks `reportPersonId` who is shown before it queries, and reads checks,
+  vacations and `ChoreWeekOverride` rows for the range shown only, never all
+  time. `sharedNeedsMorePeople` in `habitsToday.ts`, beside
+  `participantsAllowed`, is the one "Together or Side by side needs two
+  people" rule (decision 175) and `SHARED_NEEDS_TWO_MESSAGE` in
+  `habitVocabulary.ts` its only wording; `HabitForm` and `actions/habits.ts`
+  both call them. `src/components/HabitDayCell.tsx` is the only drawing of
+  one habit day, for the stats calendar and every Report grid;
+  `HabitMonthCalendar`'s `compact` read-only mode is the Report's month grid,
+  and a copy of either inside a Report component is a BLOCKER.
+  **Dependency direction:** `habitsReport.ts` imports only
+  `habitsReportScope.ts`, `habitsStats.ts`, `habits/schedule.ts`,
+  `habits/types.ts`, `householdDate.ts`, `mealPlanDates.ts` (month names),
+  `habitVocabulary.ts` and `choreChart.ts`. `habitsReportScope.ts` imports
+  only `householdDate.ts`, `habits/` (`access.ts`, `carryOver.ts`,
+  `habitRows.ts`, `schedule.ts`, `types.ts`), `goalVocabulary.ts`,
+  `habitsToday.ts`, `habitVocabulary.ts` and `choreChart.ts`, and never
+  `habitsReport.ts`. `habitsStats.ts`, `habitsToday.ts`, `habitsFamily.ts`,
+  `choreChart.ts` and `src/lib/habits/` never import either Report file;
+  `habitsStatsRead.ts` may import both. **Next touch:** an
+  `isDayExcused(spec, overrides, vacations, day)` in `weekOverrides.ts`
+  should become the one per-day "excused" rule; `monthCalendar` and
+  `nothingDueText` each decide it today (not yet built). **Size watch:**
+  `habitVocabulary.ts` is 380 lines, `habitsStats.ts` 387, `habitsToday.ts`
+  343, and the tests `habitsStats.test.ts` 426, `habitsReport.test.ts` 373
+  and `habitsToday.test.ts` 383; the next habit rule or test goes in a new
+  file by concern (a `habitReportVocabulary.ts` and a sibling stats-calendar
+  test are the natural seams).
 - **The `validatedPeople` decision** — which `User` ids may be **written**
   onto an item. `personInfo.ts` below is the read-side twin of this rule;
   this is the write side, and it is security-relevant for the same reason.

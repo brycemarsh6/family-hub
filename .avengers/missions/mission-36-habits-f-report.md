@@ -1,16 +1,12 @@
 # Mission: Habits & Chores PR F, the Report and idea library (mission 36)
 
 **Project:** family-hub (Marshee)
-**Status:** GATED, waiting on Bryce (Strange's 3-pass budget used; one fix F4 built after pass 3)
+**Status:** DONE (all three gates PASS; Strange on a fourth pass Bryce allowed; merging)
 **Branch:** `claude/habits-f-report` (from origin/main c17ae67, after PR E2 went live)
 
 ## Where it stands
 
-- Built C0 to C3; fixes F1 to F4 committed (F4 = 32f104e). Gauntlet at 32f104e: 974 tests; UTC 967 + 7 DST skips; LA 974; build 0.
-- Pass 3 (b4f3e4f): Vision PASS, Captain PASS, Strange BLOCKED (stats page month header for open kinds read "0 of 0 so far" / "1 of 1 so far" while the Report said "0 of 1" and today was ringed "not done yet").
-- F4 fixed it (the open-kind count rule moved to `habitsStats.ts`, shared by the Report and the stats header). Not yet re-checked by Strange: that would be a fourth pass, so Fury asked Bryce (2026-11-06) before running it. Nothing pushed.
-- Next if Bryce says yes: Strange re-checks three stats pages (zz m31 monthly, zz m31 weekly, zz m35 bike ride), then C4 records and ship.
-- Gate notes and Captain's p3 amendment text: Fury's scratchpad `captain-f-p3.md` (fold into C4).
+- Built and gated. See Gate ledger and Delivery at the end.
 
 ## Facts that shape the contracts (from Banner)
 
@@ -153,3 +149,46 @@ Banner's brief is the facts above. 3 passes per gate.
   STRUCTURE.md homes (`habitsReport.ts`, `HabitDayCell.tsx`, the tabs,
   `habitIdeas.ts` and its md), DESIGN.md (the Report, the tabs, the idea
   chips, Skipped for vacation).
+
+## Contract status
+
+- C0, C1, C3: DONE (1080cb6). C2: DONE (aff43ac). C1 boundary amended after Vision pass 1 (`habitsReportScope.ts`).
+- Fix batches: F1 (3169971) pass-1 blockers; F2 (221fc72) Hill 176 to 180; F3 (b4f3e4f) pass-2 blockers and 181; F4 (32f104e) Strange pass-3 blocker.
+- F1 boundaries: `habits/access.ts` (+test), `householdDate.ts` (+test), `mealPlanDates.ts`, `habitsReport*.ts`, `habitsStats.ts` (+test), `habitsStatsRead.ts`, `habitVocabulary.ts`, `choreChart.ts`, `HabitDayCell.tsx`, `HabitMonthCalendar.tsx`, `HabitFilterChips.tsx`, Report components.
+- F2 boundaries: `HabitForm.tsx`, `HabitFormFields.tsx`, `HabitIcon.tsx`, `habitVocabulary.ts`, `habitsReport.ts` (+test), `habitsStatsRead.ts`.
+- F3 boundaries: `habitsStats.ts` (+test), `habitsReport.ts` (+test), `habitsFamily.ts`, `HabitDayCell.tsx`, `HabitStats.tsx`, `habitVocabulary.ts`.
+- F4 boundaries: `habitsStats.ts`, `habitsReport.ts` (+test), `habitsFamily.ts`, `HabitStats.tsx`.
+- C4: records (this file, the plan, STRUCTURE.md, DESIGN.md, CLAUDE.md).
+
+## Gate ledger
+
+**Pass 1 (aff43ac).**
+- Vision: BLOCKED. `habitsReportScope.ts` outside the C1 boundary (Fury amended C1); New and Edit forms put fields in different orders (Hill 176).
+- Captain: BLOCKED. `formatWeekTitle` was a browser-local formatter on a server path (moved to `householdDate.ts`); the Report's "whose Report" rule was inline twice (`canSeeHabitReport` in `access.ts`, `reportPersonId`).
+- Strange: BLOCKED. Future days and a not-due today drawn as due; 40px title links (now 44px).
+- Hill: 176 to 180 on the gates' questions.
+
+**Pass 2 (221fc72).**
+- Captain: PASS.
+- Vision: BLOCKED. `nothingDueText` counted a tap-skipped day as still due ("Due today" beside a Skipped cell). Hill 181 ("N skipped").
+- Strange: BLOCKED. The today outline on every today cell, due or not; open kinds' undone today drawn as not due.
+
+**Pass 3 (b4f3e4f).**
+- Vision: PASS. Captain: PASS (size and drift notes below).
+- Strange: BLOCKED. Stats page month header for open kinds read "0 of 0 so far" / "1 of 1 so far" while the Report said "0 of 1" and today was ringed "not done yet". Fixed in F4.
+
+**Pass 4 (32f104e), Strange only.** Bryce allowed one extra design pass for that blocker (2026-11-06, "Yes"). Strange: PASS (stats header equals the Report Month card on zz m31 monthly "0 of 1", zz m31 weekly "1 this month", zz m35 bike ride "0 this month"; a tap and undo update it at once).
+
+## Delivery
+
+- Commits: e4ed99e, e7e6429, 58ffa55 (brief, decisions, contracts), 1080cb6 (C0, C1, C3), aff43ac (C2), 3169971 (F1), 221fc72 (F2), b4f3e4f (F3), 32f104e (F4), then the records commits. Gauntlet at 32f104e: 974 tests; UTC 967 + 7 DST skips; LA 974; build 0.
+- Records: plan decisions 163 to 181 (decided by Hill); STRUCTURE.md (PR F homes, `habitIdeas.ts` and its load-bearing md, `formatWeekTitle`, `canSeeHabitReport`, the shared count rules in `habitsStats.ts`, the one habit filter rule, the widened privacy rule); DESIGN.md (`PageTabs`, the Report, `HabitFormFields`, idea chips on the New habit form).
+- Deliberate leftovers:
+  - Sizes past the 350 soft cap: `habitsStats.ts`, `habitsStats.test.ts` (split the nothing-due and open-today tests into a sibling before more tests land), `habitsReport.test.ts`, `habitVocabulary.ts` (`habitReportVocabulary.ts` is the seam), `habitsToday.test.ts`.
+  - The `report*` word names are used by the stats page too; a neutral prefix fits better at the next rename.
+  - `isDayExcused` in `weekOverrides.ts` as the one per-day excused rule (Captain p2); `monthCalendar` and `nothingDueText` move to it at the next touch.
+  - Today's filter (`HabitTodayList.tsx`) migrates to `reportFilterOptions` / `matchesReportFilter`; the three lib `isPrivate` checks move into `access.ts`.
+  - A tap-skip on a vacation day loses its "on vacation" reason in the cell (needs a field on every cell).
+  - Brief flickers that heal on the server refresh: the stats header's nothing-due words after an undo; an open-kind past-day undo shows "0 of 1"; the streak tiles after an undo.
+  - "Edit habit" heading on a chore and the house icon not lit (older than PR F; in CLAUDE.md Open).
+- Bryce's checks: the PR F phone check in CLAUDE.md; Hill's medium calls 163, 167, 170, 172, 179 and 181.
