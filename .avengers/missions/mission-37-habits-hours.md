@@ -736,3 +736,14 @@ and reader sentences, `loadTimeEntryForAction`, the goals-side imports,
 `othersPrivateHidden` / `showsOnFamilyView` in `access.ts`, `hoursSubject`,
 the two hours components on `useOptimisticRun`, and the size-watch
 figures).
+
+#### Captain, pass 2 on `origin/main..064560e`: PASS
+
+All five blockers fixed, the pass-1 notes hold, the amendment's counts and
+names checked one by one. One wording slip fixed by Fury (`HoursLogSheet`
+takes its caller's `run`, it doesn't call `useOptimisticRun`), plus
+"(whose row, not permission)" on the `goals.ts` glue. NOTES for later:
+export the `run` type so `RunChange` aliases it; split `habitsFamily.ts`
+(360) at its stats-page data; the next goal-progress test goes in a new
+file; `habitsRead.ts` and `habitsToday.ts` sit at exactly 350, so the next
+addition splits them; make `HoursRowView.today` / `.lastWeek` required.

@@ -233,8 +233,9 @@ Adding a second definition of any of these is a BLOCKER:
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
   `VacationCard`, `HabitTileRows` (in `HabitsTile.tsx`, used by both dashboard habit
   tiles) `DashboardWidgetList` (moved over in mission-34), `PlanDayCard` and
-  `PlannedTodayCard` (mission-35), `HoursLogSheet` and `HoursEntryList`
-  (mission-37))
+  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37);
+  `HoursLogSheet` takes its caller's `run` (typed `RunChange`) and never
+  wraps a save itself)
   calls it with the action as a closure, so lib never imports `app/`. A second
   copy of that shape, or the message typed again, is a BLOCKER. Left out on
   purpose, to move over later: the differently worded saves in `HabitsChoresSettings`,
@@ -436,7 +437,7 @@ Adding a second definition of any of these is a BLOCKER:
   `showsOnFamilyView`; `habitsReportScope.ts` moves at its next touch). The plan-to-habit glue lives in `goals.ts` beside the
   goal policy: `habitInputFromPlan` (a plan item's fields become a Habit's),
   `habitParticipantsFor` (a Mine goal's owner, or the household) and
-  `habitCheckTarget` (whose row a tap writes; `hoursSubject` wraps it for
+  `habitCheckTarget` (whose row a tap writes, not permission; `hoursSubject` wraps it for
   an hours plan, so the goal screens log time for the same person a check
   would, never the viewer by default). It is pinned by
   `goalsHabitInput.test.ts`, and nothing outside `goals.ts` maps a goal to a
