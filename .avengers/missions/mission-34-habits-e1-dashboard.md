@@ -1,7 +1,7 @@
 # Mission: Habits & Chores PR E1, the dashboard tiles (mission 34)
 
 **Project:** family-hub (Marshee)
-**Status:** INTERROGATING (Banner done; Hill deciding 131 onward)
+**Status:** GATING (C1 to C3 built; Hill decided 131 to 146)
 **Started:** 2026-11-05 · **Updated:** 2026-11-05
 **Branch:** `claude/habits-e-dashboard` (from origin/main b2654b4)
 
@@ -164,7 +164,7 @@ Fury added the DashboardTile second-shape line to DESIGN.md (132).
   `habits/access.ts`.
 
 ### C3 - Customize: drag to reorder and the picker
-- **Status:** OPEN (after C2).
+- **Status:** DONE (Stark; Fury re-ran tsc, eslint ., 875 tests, build EXIT=0). New `dashboardPicker.ts` (+8 tests), `DashboardItemPicker.tsx`. Stark's own words: "No habits yet.", "No goals yet.", "Back to Customize" (screen reader). A failed layout save now shows the shared `SAVE_FAILED` message.
 - **Objective:** Customize reorders with `SortableList` (140) and the
   Habits and Goals rows open the picker view (137).
 - **Boundaries:** `src/components/DashboardCustomizeSheet.tsx` (may split

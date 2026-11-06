@@ -309,9 +309,12 @@ A new one-off that duplicates one of these jobs is a design violation:
   From and Through date inputs, "Turn on vacation mode", and a list with a
   one-tap Delete
 - `DashboardWidgetList` (the dashboard's heading row, widget grid and
-  Customize button) / `DashboardCustomizeSheet` (on/off switch and up/down
-  arrows per widget, Reset to default): the only way to show, hide or
-  reorder dashboard widgets
+  Customize button, and the nudge and Sunday cards above the grid) /
+  `DashboardCustomizeSheet` (on/off switch and a drag grip per widget,
+  decision 140; a "Pick" button on the Habits and Goals rows that opens
+  `DashboardItemPicker` as a second view inside the same sheet, decision
+  137; Reset to default): the only way to show, hide, reorder or pick
+  what dashboard widgets show
 - `PlansTabs` — the one tab control for switching views: a `nav` of links lit
   by `aria-current`; a new tab is a column in it, never a second control. A
   segmented strip inside a form (the day / week / month picker in

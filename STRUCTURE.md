@@ -230,10 +230,11 @@ Adding a second definition of any of these is a BLOCKER:
   `SAVE_FAILED` message). Every component that taps and saves
   (`HabitTodayList`, `HabitFamilyView`, `HabitStats`, `NudgeCard`,
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
-  `VacationCard`)
+  `VacationCard`, `HabitsTile` / `ChoresTile` and `DashboardWidgetList`
+  (moved over in mission-34))
   calls it with the action as a closure, so lib never imports `app/`. A second
   copy of that shape, or the message typed again, is a BLOCKER. Left out on
-  purpose, to move over later: the differently worded saves in `DashboardWidgetList`, `HabitsChoresSettings`,
+  purpose, to move over later: the differently worded saves in `HabitsChoresSettings`,
   `NavModeSetting` and `NudgeButton`.
 
 - `src/lib/constants.ts` — categories, locations, meal slots, stores,
@@ -451,6 +452,19 @@ Adding a second definition of any of these is a BLOCKER:
   earlier registry id that the saved list has (at the start if none), not
   appended at the end; that is how the `goals` widget lands second for
   people who already saved a layout. (Added 2026-11-04, mission-29.)
+  **Picks (mission-34):** a widget's optional `items` (only `habits` and
+  `goals`, `PICKABLE_WIDGET_IDS`) is checked for shape in the parser and
+  for ownership in the loaders, through `keepOwnPicks` in
+  `src/lib/dashboardPicks.ts`, which also holds `layoutForViewer` (the
+  tablet's layout leaves out `habits` and `chores`, decision 138).
+  `src/lib/dashboardPicker.ts` holds the picker's pure rules (`splitPicks`,
+  `togglePick`, `reorderWidgets`); `src/lib/habitsDashboard.ts` the tile
+  row rules (`habitsTileRows`, `choresTileRows`, `pickableHabits`); the
+  Goals tile's picked list is `weekTodoForGoals` beside `weekTodo` in
+  `goalsProgress.ts`. The tiles' data comes from `loadDashboardHabits` in
+  `habitsRead.ts` and `loadGoalsTile` in `goalsRead.ts`; no third habit
+  reader. A tile with controls inside uses `DashboardTile shape="panel"`
+  (DESIGN.md).
 - `brand/` — the logo artwork. The two `Marshee*.tsx` components and the
   `src/app/` icon files are all **generated from** these masters; a
   hand-drawn or re-traced second version of the mark or wordmark is a
