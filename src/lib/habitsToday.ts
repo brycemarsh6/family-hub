@@ -6,15 +6,16 @@ import {
 } from "./householdDate";
 import { canSeeHabit } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartDay } from "./habits/carryOver";
-import { logsForUser, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
+import { logsForUser, specFromRow, type StoredHoursFields, type StoredScheduleFields } from "./habits/habitRows";
 import { windowProgress, type WindowProgress } from "./habits/progress";
 import { isPlannedToday, plannedLaterLabel } from "./habits/planPrompts";
 import { compareDays, dayInVacation, dueState as dueStateOf, isSameDay } from "./habits/schedule";
 import { displayStreak, streakUnitOf, type StreakCache } from "./habits/streaks";
-import type { DueState, HabitActor, HabitLogDay, Vacation } from "./habits/types";
+import type { DueState, HabitActor, HabitLogDay, TimeEntry, Vacation } from "./habits/types";
 import { isExcusedAllDay, weekChange, type ExcusableRow, type StoredWeekOverride } from "./habits/weekOverrides";
 import { choreHeader } from "./choreChart";
 import { buildTodayPrompts, type TodayPrompt } from "./habitsPrompts";
+import { hoursRowFields, hoursSpecOf, managerHours, type HoursRowView, type ManagerHours } from "./habitsHours";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
 import type { HabitRowState, HabitMemberState } from "./habitChanges";
 import {
@@ -84,6 +85,7 @@ export type HabitRowView = Omit<HabitRowState, "participants"> & {
   streak: number;
   streakLabel: string | null;
   participants: HabitMemberView[];
+  hours: HoursRowView | null; // an hours habit's week (decisions 187 to 189): open, never required, `doneToday` means met
 };
 
 /** One habit in the manager (active or archived), with every field the edit form pre-fills. */
@@ -106,6 +108,7 @@ export type HabitManagerItem = {
   everyone: boolean;
   archived: boolean;
   participantIds: string[];
+  hours: ManagerHours | null; // the weekly goal of an hours habit (decision 199)
 };
 
 /** An unseen nudge for today (decision 96): "Emily nudged you about Morning Prayers". */
@@ -131,7 +134,7 @@ export type TodayPage = {
 };
 
 /** A habit as the reader fetches it: the columns below plus its participants (a Prisma row fits). */
-export type TodayHabitInput = StoredScheduleFields & {
+export type TodayHabitInput = StoredScheduleFields & Partial<StoredHoursFields> & {
   id: string;
   title: string;
   icon: string | null;
@@ -214,6 +217,7 @@ export function buildTodayRows(
   today: CalendarDate,
   vacationsByUser: ReadonlyMap<string, readonly Vacation[]> = new Map(),
   plannedByHabit: ReadonlyMap<string, readonly CalendarDate[]> = new Map(),
+  timeByHabit: ReadonlyMap<string, readonly TimeEntry[]> = new Map(),
 ): HabitRowView[] {
   const rows: HabitRowView[] = [];
   for (const habit of live) {
@@ -225,7 +229,7 @@ export function buildTodayRows(
     const progress = spec ? windowProgress(spec, mine, today, startDay) : null;
     const change = weekChange(spec, habit.weekOverrides, today);
     const plannedToday = isPlannedToday(plannedByHabit.get(habit.id) ?? [], today);
-    const dueState: DueState = change.state ? (change.state === "none" ? "none" : "required") : spec ? dueStateOf(spec, today, plannedToday, progress?.count ?? 0) : "required";
+    const dueState: DueState = hoursSpecOf(habit) ? "open" : change.state ? (change.state === "none" ? "none" : "required") : spec ? dueStateOf(spec, today, plannedToday, progress?.count ?? 0) : "required";
     const onVacation = dueState === "required" && dayInVacation(today, vacationsByUser.get(viewer.userId) ?? []);
     const chore = toHabitKind(habit.kind) === "chore";
     const carried = spec ? carriedDay(spec, habit.carryOver, mine, today, since) : null;
@@ -287,6 +291,7 @@ export function buildTodayRows(
       streakUnit: unit,
       streak: viewerStreak,
       streakLabel: labelOf(viewerStreak),
+      ...hoursRowFields(hoursSpecOf(habit), viewer.userId, timeByHabit.get(habit.id) ?? [], today, (id) => vacationsByUser.get(id) ?? [], members),
     });
   }
   return rows;
@@ -311,6 +316,7 @@ export function managerItem(habit: TodayHabitInput): HabitManagerItem {
     everyone: habit.everyone,
     archived: habit.archivedAt !== null,
     participantIds: habit.participants.map((p) => p.userId),
+    hours: managerHours(habit),
   };
 }
 
@@ -324,10 +330,11 @@ export function buildTodayPage(
   nudges: readonly TodayNudge[] = [],
   choreCache: StreakCache = { current: 0, best: 0, asOf: null },
   plannedByHabit: ReadonlyMap<string, readonly CalendarDate[]> = new Map(),
+  timeByHabit: ReadonlyMap<string, readonly TimeEntry[]> = new Map(),
 ): TodayPage {
   const visible = visibleInViewerOrder(viewer, habits);
   const live = visible.filter((habit) => !habit.archivedAt);
-  const rows = buildTodayRows(viewer, live, logsByHabit, today, vacationsByUser, plannedByHabit);
+  const rows = buildTodayRows(viewer, live, logsByHabit, today, vacationsByUser, plannedByHabit, timeByHabit);
   return {
     rows,
     prompts: buildTodayPrompts(viewer, live, logsByHabit, plannedByHabit, today, vacationsByUser.get(viewer.userId) ?? []),

@@ -79,11 +79,11 @@ export function canSeeHabitStats(actor: HabitActor, habit: HabitAccess): boolean
  * whether it is archived, and which participants are deactivated (a caller that
  * leaves it out is saying none are).
  */
-export type NudgeHabit = HabitAccess & { sharing: string; archived: boolean; deactivatedIds?: readonly string[] };
+export type NudgeHabit = HabitAccess & { sharing: string; archived: boolean; deactivatedIds?: readonly string[]; track?: string };
 
 /**
  * Whether `actor` may nudge `toUserId` about a habit (decision 97): never the
- * tablet, never yourself, only on a Side by side habit that is not private or
+ * tablet, never yourself, never an hours habit (decision 197), only on a Side by side habit that is not private or
  * archived, and only between two of its participants, the recipient still
  * active. Whether the recipient
  * has finished today is a fact about the day, so the caller checks it.
@@ -91,6 +91,7 @@ export type NudgeHabit = HabitAccess & { sharing: string; archived: boolean; dea
 export function canNudge(actor: HabitActor, habit: NudgeHabit, toUserId: string): boolean {
   return (
     actor.role !== "device" &&
+    habit.track !== "hours" &&
     habit.sharing === "each" &&
     !habit.isPrivate &&
     !habit.archived &&

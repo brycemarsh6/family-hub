@@ -12,14 +12,16 @@ import {
 import { buildChoreChart, choreCacheFromRow, orderVacations, overrideWindowStart, type ChoreChartData, type VacationItem } from "./choreChart";
 import { canEditChart } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartDay } from "./habits/carryOver";
-import { logDayFromRow, specFromRow, vacationFromRow } from "./habits/habitRows";
-import type { HabitAccess, HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
+import { logDayFromRow, specFromRow, timeEntryFromRow, vacationFromRow } from "./habits/habitRows";
+import type { HabitAccess, HabitActor, HabitLogDay, ScheduleSpec, TimeEntry, Vacation } from "./habits/types";
 import { keepOwnPicks } from "./dashboardPicks";
 import { choresTileRows, habitsTileRows, pickableHabits, plannedTodayRows, type TileRows } from "./habitsDashboard";
+import { hoursSpecOf, type PlanHours } from "./habitsHours";
 import type { TodayPrompt } from "./habitsPrompts";
 import { buildTodayPage, todayLogsFrom, type HabitRowView, type TodayNudge, type TodayPage } from "./habitsToday";
 import { loadHouseholdPeople, type HouseholdPerson } from "./householdPeople";
 import { toHabitSharing, type HabitSharing } from "./habitVocabulary";
+import { toHabitTrack, type HabitTrack } from "./habitHoursVocabulary";
 
 // The reader for habit rows, so pages never query the habit tables directly.
 // It holds the Plans & Goals, Today, roster and tap loaders; a new reader goes
@@ -45,21 +47,26 @@ export type HabitForPlan = {
   participants: { userId: string; currentStreak: number; bestStreak: number; streakAsOf: CalendarDate | null }[];
   /** Checks on or after `from`, from every participant (each tagged with its `userId`). */
   logs: HabitLogDay[];
+  /** An hours habit's goal and one person's entries on or after `from`; null for a checks habit. */
+  hours: PlanHours | null;
 };
 
 /**
- * Loads the given habits and their checks since `from` (inclusive) in two
+ * Loads the given habits and their checks since `from` (inclusive) in three
  * queries however many habits there are. Habits that do not exist are simply
- * absent from the map.
+ * absent from the map. An hours habit's entries are `viewerId`'s when they are
+ * on the habit, else the first participant's (so a partner's goal still shows
+ * a real week).
  */
 export async function loadHabitsForPlan(
   habitIds: readonly string[],
   from: CalendarDate,
+  viewerId?: string,
 ): Promise<Map<string, HabitForPlan>> {
   const result = new Map<string, HabitForPlan>();
   const ids = [...new Set(habitIds)];
   if (ids.length === 0) return result;
-  const [habits, logs] = await Promise.all([
+  const [habits, logs, timeRows] = await Promise.all([
     db.habit.findMany({
       where: { id: { in: ids } },
       include: {
@@ -73,6 +80,10 @@ export async function loadHabitsForPlan(
       where: { habitId: { in: ids }, day: { gte: utcMidnightInstant(from) } },
       select: { habitId: true, userId: true, day: true, status: true },
     }),
+    db.habitTimeEntry.findMany({
+      where: { habitId: { in: ids }, habit: { track: "hours" }, day: { gte: utcMidnightInstant(from) } },
+      select: { habitId: true, userId: true, day: true, minutes: true },
+    }),
   ]);
   const logsByHabit = new Map<string, HabitLogDay[]>();
   for (const row of logs) {
@@ -81,6 +92,8 @@ export async function loadHabitsForPlan(
     logsByHabit.set(row.habitId, list);
   }
   for (const habit of habits) {
+    const hoursSpec = hoursSpecOf(habit);
+    const subject = habit.participants.some((p) => p.userId === viewerId) ? viewerId : habit.participants[0]?.userId;
     result.set(habit.id, {
       id: habit.id,
       title: habit.title,
@@ -104,6 +117,7 @@ export async function loadHabitsForPlan(
         streakAsOf: p.streakAsOf ? calendarDateFromUtcMidnight(p.streakAsOf) : null,
       })),
       logs: logsByHabit.get(habit.id) ?? [],
+      hours: hoursSpec ? { targetMinutes: hoursSpec.targetMinutes, paceDays: hoursSpec.paceDays, entries: timeRows.filter((row) => row.habitId === habit.id && row.userId === subject).map(timeEntryFromRow) } : null,
     });
   }
   return result;
@@ -146,7 +160,7 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
   });
   const liveIds = habits.filter((habit) => !habit.archivedAt).map((habit) => habit.id);
   const peopleIds = [...new Set(habits.flatMap((habit) => habit.participants.map((p) => p.userId)))];
-  const [logRows, vacationRows, nudgeRows, plannedRows] = await Promise.all([
+  const [logRows, vacationRows, nudgeRows, plannedRows, timeRows] = await Promise.all([
     liveIds.length === 0
       ? []
       : db.habitLog.findMany({
@@ -166,7 +180,16 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
           where: { userId: viewer.userId, habitId: { in: liveIds }, day: { gte: utcMidnightInstant(today) } },
           select: { habitId: true, day: true },
         }),
+    // Everyone's hours entries this week (Sunday to Saturday) on the viewer's live hours habits: the bar and each member's goal.
+    liveIds.length === 0
+      ? []
+      : db.habitTimeEntry.findMany({
+          where: { habitId: { in: liveIds }, habit: { track: "hours" }, day: { gte: utcMidnightInstant(startOfWeek(today)) } },
+          select: { habitId: true, userId: true, day: true, minutes: true },
+        }),
   ]);
+  const timeByHabit = new Map<string, TimeEntry[]>();
+  for (const row of timeRows) timeByHabit.set(row.habitId, [...(timeByHabit.get(row.habitId) ?? []), timeEntryFromRow(row)]);
   const plannedByHabit = new Map<string, CalendarDate[]>();
   for (const row of plannedRows) plannedByHabit.set(row.habitId, [...(plannedByHabit.get(row.habitId) ?? []), calendarDateFromUtcMidnight(row.day)]);
   const vacationsByUser = new Map<string, Vacation[]>();
@@ -178,7 +201,7 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
     logsByHabit.set(row.habitId, list);
   }
   const nudges = nudgeRows.map((row) => ({ id: row.id, fromName: row.fromUser.displayName, habitTitle: row.habit.title }));
-  return buildTodayPage(viewer, habits, logsByHabit, today, vacationsByUser, nudges, choreCache, plannedByHabit);
+  return buildTodayPage(viewer, habits, logsByHabit, today, vacationsByUser, nudges, choreCache, plannedByHabit, timeByHabit);
 }
 
 /** What the dashboard shows from Habits & Chores: the two tiles, the cards above them and the habits the picker lists. */
@@ -268,6 +291,8 @@ export type HabitForAction = HabitAccess & {
   sharing: HabitSharing;
   archived: boolean;
   carryOver: boolean;
+  /** "hours" habits take time, not checks. */
+  track: HabitTrack;
   spec: ScheduleSpec | null;
   startDay: CalendarDate;
 };
@@ -286,6 +311,7 @@ export async function loadHabitForAction(habitId: string): Promise<HabitForActio
     sharing: toHabitSharing(habit.sharing),
     archived: habit.archivedAt !== null,
     carryOver: habit.carryOver,
+    track: toHabitTrack(habit.track),
     spec: specFromRow(habit),
     startDay: habitStartDay(habit.createdAt),
   };

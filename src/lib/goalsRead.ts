@@ -15,7 +15,7 @@ import {
   type Viewer,
 } from "@/lib/goals";
 import { isRecapDay, weekRecap, type RecapGoalInput, type WeekRecap } from "@/lib/goalsRecap";
-import { weekSummary, weekTodo, weekTodoForGoals } from "@/lib/goalsProgress";
+import { weekSummary, weekTodo, weekTodoForGoals, type WeekTodoItem } from "@/lib/goalsProgress";
 import { keepOwnPicks } from "@/lib/dashboardPicks";
 import { loadHabitsForPlan } from "@/lib/habitsRead";
 import {
@@ -107,7 +107,7 @@ function habitsOf(rows: LoadedGoal[], viewer: Viewer, today: CalendarDate) {
   const ids = rows
     .filter((row) => canSee({ ownerId: row.ownerId, visibility: toGoalVisibility(row.visibility) }, viewer))
     .flatMap((row) => row.planItems.flatMap((item) => (item.habitId ? [item.habitId] : [])));
-  return loadHabitsForPlan(ids, logsFrom(today));
+  return loadHabitsForPlan(ids, logsFrom(today), viewer.userId);
 }
 
 function toView(
@@ -165,7 +165,7 @@ export async function loadGoalsTile(
 ): Promise<{
   done: number;
   total: number;
-  todo: { id: string; title: string; left: number }[];
+  todo: WeekTodoItem[];
   picked: boolean;
   pickable: { id: string; title: string }[];
 }> {

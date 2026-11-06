@@ -149,3 +149,8 @@ test("canChangeChore: a chore shared by more than one person is a parent's or ad
   assert.equal(canChangeChore(admin, shared, "kid"), true);
   assert.equal(canChangeChore(device, shared, "kid"), false);
 });
+
+test("canNudge: never about an hours habit (decision 197)", () => {
+  assert.equal(canNudge(kid, { ...eachHabit, track: "hours" }, "parent"), false);
+  assert.equal(canNudge(kid, { ...eachHabit, track: "checks" }, "parent"), true);
+});

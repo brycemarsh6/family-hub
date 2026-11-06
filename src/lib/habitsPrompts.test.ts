@@ -55,3 +55,9 @@ test("prompts: none while the viewer is on vacation, back the day after it ends"
   assert.deepEqual(buildTodayPrompts(me, habits, noLogs, noPlans, friday, [{ start: d(2026, 11, 3), end: d(2026, 11, 6) }]), []);
   assert.equal(buildTodayPrompts(me, habits, noLogs, noPlans, friday, [{ start: d(2026, 11, 1), end: d(2026, 11, 5) }]).length, 1);
 });
+
+test("prompts: an hours habit never asks for a day (decision 197), even one that would otherwise prompt", () => {
+  const hours = habit({ id: "calls", schedule: "weekly", times: 1, track: "hours" });
+  assert.deepEqual(buildTodayPrompts(me, [hours], noLogs, noPlans, friday), []);
+  assert.equal(buildTodayPrompts(me, [{ ...hours, track: "checks" }], noLogs, noPlans, friday).length, 1, "the same habit as a checks habit does");
+});

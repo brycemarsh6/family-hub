@@ -6,6 +6,7 @@ import { addCalendarDays, calendarDateFromUtcMidnight, formatCalendarDate, utcMi
 import type { CalendarHabitDayView } from "./types";
 import type { HabitActor } from "./habits/types";
 import { isCheckStatus } from "./habitVocabulary";
+import { toHabitTrack } from "./habitHoursVocabulary";
 
 // Which planned habit days the Calendar shows the viewer, and which are done
 // (decision 146). Pure: the reader hands in the viewer's own planned rows and
@@ -20,6 +21,8 @@ export type PlannedDayRow = StoredScheduleFields & {
   kind: string;
   isPrivate: boolean;
   participantIds: readonly string[];
+  /** "hours" habits are never planned onto the Calendar (decision 197). */
+  track?: string;
   /** The planned household day at UTC midnight. */
   day: Date;
 };
@@ -75,7 +78,7 @@ export function buildCalendarHabitDays(
   };
   const items = new Map<string, CalendarHabitDayView>();
   for (const row of rows) {
-    if (row.userId !== viewer.userId || !row.participantIds.includes(viewer.userId) || !canSeeHabit(viewer, row)) continue;
+    if (toHabitTrack(row.track) === "hours" || row.userId !== viewer.userId || !row.participantIds.includes(viewer.userId) || !canSeeHabit(viewer, row)) continue;
     const id = `${row.habitId}:${dayKey(row.day)}`;
     items.set(id, {
       id,

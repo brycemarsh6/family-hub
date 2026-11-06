@@ -426,3 +426,19 @@ the soft cap: NOTE, split candidate for Captain). Carried into C4:
   (the existing plan rule), not decision 186's default, so a shared goal's
   partner still sees its progress. Bryce's commissions goal is private
   anyway.
+
+#### C2 report (2026-11-06)
+
+Stark: DONE. Gauntlet green with C3 present (1048; UTC 1041 + 7; LA 1048;
+build 0). New `src/lib/habitsHours.ts` (256) and its test (282, 22
+tests). `habitsToday.ts` 350 (at the cap), `habitsFamily.ts` 360 (past the
+soft cap: NOTE, split candidate), `habitsRead.ts` 347. The Report is
+filtered in its loader (`track: "checks"`). Carried into C4:
+- `managerItem` now carries `hours` (`weeklyMinutes`, `paceDays`, `text`,
+  `since`): C4 wires it into Edit's `initial` and the plan sheet (C3's
+  ship blocker).
+- `HabitStatsData.calendar` is an empty calendar for hours; C4 renders
+  `data.hours` and skips the calendar.
+- `addHoursMinutes` repeats the engine's round-up formula (a test pins it
+  equal); the shown hours streak is the cache aged by `streakAfter`.
+- "½ hour" is singular like "1 hour" (Hill's 187 extended).
