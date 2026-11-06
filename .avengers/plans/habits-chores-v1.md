@@ -590,6 +590,21 @@ plan-the-day and the Calendar. PR F becomes mission 36.
      private habit's only to its person; none on the tablet), all-day,
      the habit's icon, opens `/habits/[id]`; done is struck through with
      a check; undone stays plain. (high)
+147. **A tapped tile row stays until the next real load:** the rows a tile
+     showed at load stay until the next page load; a checked or skipped row
+     stays in place, undoable; the "/" refresh never drops it or slides a
+     fourth in (three checked rows, not "All done for today"). Decided by
+     Hill, high.
+148. **Panel tile header chevron:** keep the full-width header link and add
+     a Lucide `ChevronRight` (18, muted, `aria-hidden`, `ml-auto`) at its
+     right end, like Settings' "Manage family" row. Panel shape only.
+     Decided by Hill, high.
+149. **Goals tile with picks:** the list heading reads "Still to do in the
+     goals you picked:"; the empty line stays "Nothing left in the goals
+     you picked"; whole-week numbers stay. Decided by Hill, medium.
+150. **A chore done today always stays on Chores today,** vacation or
+     week-skipped; only undone excused rows leave (133 read with 127 and
+     130). Decided by Hill, high.
 
 ## Open questions
 

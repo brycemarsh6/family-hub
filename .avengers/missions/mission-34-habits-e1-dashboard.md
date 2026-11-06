@@ -178,3 +178,86 @@ Fury added the DashboardTile second-shape line to DESIGN.md (132).
 - Mission ledger, plan, CLAUDE.md status and Bryce's checklist, STRUCTURE.md
   homes (`habitsDashboard.ts`, the new tiles, the picker, the
   `DashboardWidgetList` leftover closed).
+
+## Gate ledger
+
+### Pass 1 (at 4c0caca): all three BLOCKED
+- **Vision (Fable): 1 blocker.** With picks, `habitsTileRows` drops
+  `dueState === "open"` rows that Today shows (132 says open rows show);
+  the test pins the wrong behaviour. Notes: a toggle and a drag in one
+  frame would last-write-win (unproven); a drag in the picker drops stale
+  picks; a chore done on a vacation day leaves the Chores tile (to Hill).
+- **Captain (Opus): 2 blockers.** (1) `(home)/page.tsx` awaits the layout
+  read before its `Promise.all` (the DAL session read is the only
+  sanctioned sequential read); chain the two pick loaders onto one layout
+  promise inside the `Promise.all`. (2) `DashboardCustomizeSheet` repeats
+  the pickable list (`=== "habits" || === "goals"` and a cast); use one
+  `isPickableWidget` guard and `PickableWidgetId` from
+  `dashboardWidgets.ts`. Notes: fold `splitPicks`/`togglePick` into
+  `dashboardPicks.ts` and `reorderWidgets` into `dashboardLayout.ts`,
+  delete `moveWidget` and its tests; `dashboardLayout.test.ts` 373 lines;
+  a third chore-flame copy (use `streakLabel`/`STREAK_MIN_SHOWN`, with an
+  amendment); `HabitsTile` copies Today's tap routing (one `habitRowTaps`);
+  three STRUCTURE.md text corrections; `HabitsTile` type name clash;
+  `DASHBOARD_PICKER_LABELS` belongs beside the registry.
+- **Strange (Opus): 2 blockers.** (1) A chore skipped from the tile
+  vanishes in about 3s (the "/" refresh is not "the next load", 133); same
+  for a no-picks habit checked from the tile. Keep tapped rows in place
+  until a real load. (2) "Reset to default" shows inside the picker views
+  and resets everything. Notes: an empty 16px strip under the last tile
+  row; a switch jumps sideways between Showing and Not showing (spacer);
+  the panel header gives no sign it is a link (to Hill); Goals tile with
+  picks has no "picked" label (to Hill); the dialog's name stays
+  "Customize dashboard" in the picker. Not covered: nudge card, Sunday
+  card, chore flame at 2+, tablet, real touch drag in the sheet.
+- **Danger register (Strange, outside scope):** `.env` holds a
+  commented-out production `DATABASE_URL` line (host `ep-hidden-surf-`).
+  Not active, but AGENTS.md says no dev environment holds it. Surfaced to
+  Bryce; no agent edits `.env`.
+
+Hill decided 147 to 150 on the pass 1 notes (plan, "Before PR E").
+
+### F1 - Every pass 1 blocker, Hill's 147 to 150, the cheap notes
+- **Status:** OPEN.
+- **Vision:** `habitsTileRows` with picks keeps every row Today produced
+  (open rows included); fix the test that pinned the wrong behaviour.
+- **Captain 1:** `(home)/page.tsx` starts the layout read as a promise
+  inside the one `Promise.all`; only the Goals and Habits loaders chain on
+  it; nothing else waits.
+- **Captain 2:** `dashboardWidgets.ts` exports `PickableWidgetId` and
+  `isPickableWidget`; `dashboardLayout.ts`, `DashboardCustomizeSheet.tsx`
+  (no cast, `PICKERS` typed by it) and `DashboardWidgetList.tsx` use them.
+- **Strange 1 / 147:** `HabitTileRows` keeps the rows shown at load until
+  a real page load: a tapped row stays in place with its optimistic change
+  when a refresh drops it, and no new row slides in. Put the pure part
+  (merge of shown rows with fresh rows) in `src/lib/` with tests.
+- **Strange 2:** "Reset to default" renders only on the main Customize
+  view, never inside a picker.
+- **148:** panel header gets the `ChevronRight` (18, `text-muted`,
+  `aria-hidden`, `ml-auto`, `shrink-0`).
+- **149:** Goals tile heading "Still to do in the goals you picked:" when
+  goal picks exist (word in the goals vocabulary).
+- **150:** `choresTileRows` keeps any chore done today; only undone
+  excused rows leave; test.
+- **Cheap notes:** fold `splitPicks`/`togglePick` into `dashboardPicks.ts`
+  (delete `dashboardPicker.ts`, merge tests) and `reorderWidgets` into
+  `dashboardLayout.ts`; delete `moveWidget` and its tests; if
+  `dashboardLayout.test.ts` is still over 350, move the `items` cases to
+  `dashboardLayoutItems.test.ts` with a header naming its sibling. Use
+  `streakLabel`/`STREAK_MIN_SHOWN` in the three chore-flame copies
+  (`HabitTodayList`, `HabitFamilyColumn`, `ChoresTile`). One
+  `habitRowTaps(row, run)` used by both `HabitTodayList` and
+  `HabitTileRows`. Rename the lib type `HabitsTile<T>` to `TileRows<T>`.
+  Move `DASHBOARD_PICKER_LABELS` beside the registry in
+  `dashboardWidgets.ts`. Tile lists: no empty strip under the last row
+  (`-mb-4 border-t` and `overflow-hidden` on the panel). Picker: a
+  `w-11 shrink-0` spacer on Not showing rows so switches don't jump; the
+  dialog's accessible name follows the picker title.
+- **Boundaries (may touch):** every file in the pass 1 diff
+  (`git diff --name-only origin/main...HEAD -- src`), plus
+  `src/components/HabitFamilyColumn.tsx`, new tests in `src/lib/`.
+  Must not touch: `prisma/`, `.env*`, `package.json`, records
+  (STRUCTURE.md, DESIGN.md, plan, mission, CLAUDE.md).
+- **Verification:** full gauntlet in three zones, `npx eslint .`, build
+  EXIT=0; `git grep -n 'moveWidget' src` empty; `git grep -n
+  '"habits" ||' src/components` empty.
