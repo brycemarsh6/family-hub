@@ -12,7 +12,7 @@
   delete. Decisions 84 to 86 in `.avengers/plans/habits-chores-v1.md` are
   part of it.
 - **Done means:** on the preview link, a signed-in person opens Habits &
-  Chores and sees their Today list (rows by time of day, filter chips, a 44px
+  Chores and sees their Today list (rows in their own order with the time of day on each row, as on the mock's Main board, filter chips, a 44px
   check, swipe left for Skip today); Manage lists their habits, tap to edit,
   drag the grip to reorder (order survives reload), with an Archived list;
   New and Edit are full pages matching the approved mock (five schedules,
@@ -209,7 +209,9 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
 - **Done:** every action guards session, policy and row, in that order.
 
 ### C3 - The Today screen
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc; build passed in Stark's run)
+- **Notes:** rows follow the Main board (own order, time of day on each row), not grouped; skipped rows count on neither side of "x of y done"; a skipped row's check is a disabled dashed marker; Manage and New are hidden for a device.
+- **Open for the fix batch:** (c) rows have no `everyone` flag, so the mock's "Everyone" label reads "Together": add `everyone` to `HabitRowView` and draw it.
 - **Objective:** Replace the `/habits` placeholder with the Today list from
   the Main board of the mock.
 - **Boundaries:** may touch: `src/app/(app)/habits/page.tsx`, new
