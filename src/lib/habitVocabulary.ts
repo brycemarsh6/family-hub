@@ -143,6 +143,9 @@ export const NUDGE_STATUS_LABEL = "Not done yet today";
 /** The meta line of a row skipped today (decision 101). */
 export const SKIPPED_TODAY_LABEL = "Skipped today";
 
+/** What the dashed marker says to a screen reader on a chore skipped for the whole week (decision 117). */
+export const SKIPPED_THIS_WEEK_LABEL = "Skipped this week";
+
 /** Only a habit for one person can be private. */
 export function canBePrivate(peopleCount: number): boolean {
   return peopleCount === 1;

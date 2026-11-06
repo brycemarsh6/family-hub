@@ -107,7 +107,7 @@ test("isExcused: skipped, on vacation and undone, or skipped this week; a plain 
   assert.equal(isExcused({ doneToday: false, skippedToday: false }), false);
 });
 
-test("isExcusedAllDay: a vacation row is excused only while undone (decision 127); a week skip always", () => {
+test("isExcusedAllDay: a vacation row is excused only while undone (decision 127)", () => {
   assert.equal(isExcusedAllDay({ doneToday: false, onVacation: true }), true);
   assert.equal(isExcusedAllDay({ doneToday: true, onVacation: true }), false);
   assert.equal(isExcusedAllDay({ doneToday: false, skippedThisWeek: true }), true);
@@ -118,14 +118,27 @@ test("isExcusedAllDay: a vacation row is excused only while undone (decision 127
   assert.equal(isExcused({ doneToday: true, skippedToday: false, onVacation: true }), false);
 });
 
-test("changeAllowed (decision 126): a past day's turn may be moved on or skipped only if already changed, and never cleared", () => {
-  // Today or later: any change, including clearing.
-  assert.equal(changeAllowed({ fromPast: false, hasChange: false, clearing: false }), true);
-  assert.equal(changeAllowed({ fromPast: false, hasChange: true, clearing: true }), true);
-  // Past and already moved or skipped: change again, but not back to the default.
-  assert.equal(changeAllowed({ fromPast: true, hasChange: true, clearing: false }), true);
-  assert.equal(changeAllowed({ fromPast: true, hasChange: true, clearing: true }), false);
-  // Past and untouched: a miss cannot be moved or skipped away.
-  assert.equal(changeAllowed({ fromPast: true, hasChange: false, clearing: false }), false);
-  assert.equal(changeAllowed({ fromPast: true, hasChange: false, clearing: true }), false);
+test("changeAllowed (decisions 126, 129): a turn changes only while it sits on today or later, or is skipped; clearing also needs its own day not past", () => {
+  const input = (fromPast: boolean, sitsPast: boolean, skipped: boolean, clearing: boolean) => changeAllowed({ fromPast, sitsPast, skipped, clearing });
+  // Untouched, today or later: any change, including the no-op clear.
+  assert.equal(input(false, false, false, false), true);
+  assert.equal(input(false, false, false, true), true);
+  // Untouched and past: a miss cannot be moved or skipped away or cleared.
+  assert.equal(input(true, true, false, false), false);
+  assert.equal(input(true, true, false, true), false);
+  // Moved Mon to Wed, Wed passed undone: locked, skip and move refused (129).
+  assert.equal(input(true, true, false, false), false);
+  // Moved Mon to Fri, Thu: still changeable, but not back to the past Monday.
+  assert.equal(input(true, false, false, false), true);
+  assert.equal(input(true, false, false, true), false);
+  // Skipped Mon, Thu: may move on to Fri, but not be cleared.
+  assert.equal(input(true, true, true, false), true);
+  assert.equal(input(true, true, true, true), false);
+  // Moved Fri to Wed (Wed passed), Thu: locked, even to clear.
+  assert.equal(input(false, true, false, true), false);
+});
+
+test("isExcusedAllDay: a week-skipped row is excused only while undone (decision 130)", () => {
+  assert.equal(isExcusedAllDay({ doneToday: true, skippedThisWeek: true }), false);
+  assert.equal(isExcused({ doneToday: true, skippedToday: false, skippedThisWeek: true }), false);
 });

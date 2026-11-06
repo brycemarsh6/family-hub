@@ -30,7 +30,7 @@ import {
   vacationFromRow,
   type HabitFields,
 } from "./habitRows";
-import { choreOwnersOf, recomputeAllChoreStreaks, recomputeChoreStreak, recomputeChoreStreaks } from "./choreWrites";
+import { choreOwnersOf, clearChoreChanges, recomputeAllChoreStreaks, recomputeChoreStreak, recomputeChoreStreaks } from "./choreWrites";
 import { atomically, householdParticipantIds, joinHouseholdToHabit, nextSortOrders, replaceParticipants } from "./participantWrites";
 import { computeStreaks, type StreakResult } from "./streaks";
 import type { DayRange } from "./types";
@@ -101,7 +101,7 @@ export async function updateHabit(
       data: { ...habitColumns(fields), ...(people.everyone !== undefined ? { everyone: people.everyone } : {}) },
     });
     if (people.participantIds) await replaceParticipants(tx, habitId, people.participantIds);
-    if (before.schedule === "weekdays" && updated.schedule !== "weekdays") await tx.choreWeekOverride.deleteMany({ where: { habitId } });
+    if (before.schedule === "weekdays" && updated.schedule !== "weekdays") await clearChoreChanges(habitId, tx);
     if (scheduleChanged(before, updated)) await recomputeHabit(tx, habitId, today);
     for (const userId of await choreOwnersOf(tx, habitId)) owners.add(userId);
     await recomputeChoreStreaks([...owners], today, tx);

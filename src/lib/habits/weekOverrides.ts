@@ -85,15 +85,18 @@ export function weekChange(spec: ScheduleSpec | null, rows: readonly StoredWeekO
 }
 
 /**
- * Decision 126: whether a this-week change may be written. A change to a day
- * that is today or later is always fine. On a day already past it may only be
- * changed again (moved on, or skipped) when it already carries a change, and
- * never cleared: clearing would make a past day required again, and an
- * unchanged past day cannot be moved or skipped, because that would erase a
- * miss. The rule is that no past day becomes required or un-excused.
+ * Decisions 126 and 129: whether a this-week change may be written. The turn
+ * sits on its moved-to day, or on its own day when unchanged (`sitsPast`: that
+ * day is before today). It may change only while it sits on today or later, or
+ * while it is skipped this week (a skipped turn may still be moved to a day
+ * ahead). A moved turn whose moved-to day has passed is locked. Clearing, going
+ * back to the default, also needs the original day not to be past, because that
+ * would make a past day required again. The rule: no past day becomes required,
+ * un-excused or un-required, so a miss cannot be erased (decisions 6 and 33).
  */
-export function changeAllowed(input: { fromPast: boolean; hasChange: boolean; clearing: boolean }): boolean {
-  return !input.fromPast || (input.hasChange && !input.clearing);
+export function changeAllowed(input: { fromPast: boolean; sitsPast: boolean; skipped: boolean; clearing: boolean }): boolean {
+  if (input.sitsPast && !input.skipped) return false;
+  return !(input.clearing && input.fromPast);
 }
 
 /** The row fields the "x of y" and confetti rules read; the two excuses may be left off. */
@@ -101,11 +104,11 @@ export type ExcusableRow = { doneToday: boolean; skippedToday: boolean; onVacati
 
 /**
  * Excused for the whole day by the calendar rather than a tap: skipped for the
- * week, or on vacation and not done (decision 127: a check actually made on a
- * vacation day counts, so only an undone vacation row is excused).
+ * week or on vacation, and not done (decisions 127, 130: a check actually made
+ * on such a day counts, so only an undone row is excused).
  */
 export function isExcusedAllDay(row: Pick<ExcusableRow, "doneToday" | "onVacation" | "skippedThisWeek">): boolean {
-  return !!row.skippedThisWeek || (!!row.onVacation && !row.doneToday);
+  return (!!row.skippedThisWeek || !!row.onVacation) && !row.doneToday;
 }
 
 /** Excused today: skipped by a tap, or excused all day. Excused rows leave "x of y" and the confetti (decisions 109, 115, 127). */

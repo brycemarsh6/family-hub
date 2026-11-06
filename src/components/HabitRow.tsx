@@ -6,7 +6,7 @@ import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { LogButton } from "./LogButton";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
-import { ANYTIME_LABEL, ON_VACATION_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
+import { ANYTIME_LABEL, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
 import type { HabitRowView } from "@/lib/habitsRead";
 import { dayOfWeek } from "@/lib/householdDate";
@@ -139,7 +139,7 @@ export function HabitRow({
           </div>
         </div>
       </Link>
-      <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={skippedMark} onClick={onToggle} />
+      <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={skippedMark} skippedLabel={row.skippedToday ? SKIPPED_TODAY_LABEL : SKIPPED_THIS_WEEK_LABEL} onClick={onToggle} />
     </div>
   );
 

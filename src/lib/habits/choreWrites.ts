@@ -20,6 +20,11 @@ import { changeAllowed, overrideFromRow } from "./weekOverrides";
 
 type Client = Prisma.TransactionClient;
 
+/** Drops every this-week change of a chore; used when its schedule leaves weekdays, as the changes then mean nothing. */
+export async function clearChoreChanges(habitId: string, client: Client): Promise<void> {
+  await client.choreWeekOverride.deleteMany({ where: { habitId } });
+}
+
 /** The people who hold `habitId` when it is a chore, else none. Read before and after a write that moves them. */
 export async function choreOwnersOf(tx: Client, habitId: string): Promise<string[]> {
   const habit = await tx.habit.findUnique({ where: { id: habitId }, select: { kind: true, participants: { select: { userId: true } } } });
@@ -89,9 +94,8 @@ const CANNOT_CHANGE = "That chore can't change this week.";
 /**
  * `change` null clears. The shared checks: a live weekdays chore that really
  * falls on `fromWeekday`; a move's target of today or later; and the day being
- * changed either today or later, or (decision 126) a past day whose turn was
- * already moved or skipped, which may be moved on or skipped but never cleared
- * (`changeAllowed`: a past day's miss cannot be erased, decisions 6 and 33).
+ * changed sitting on today or later, or skipped this week (decisions 126, 129:
+ * `changeAllowed`; a past day's miss cannot be erased, decisions 6 and 33).
  */
 async function writeChange(
   habitId: string,
@@ -119,8 +123,11 @@ async function writeChange(
       return { ok: false, error: CANNOT_CHANGE };
     }
     const key = { habitId, weekStart: utcMidnightInstant(weekStart), fromWeekday };
-    const existing = await tx.choreWeekOverride.findUnique({ where: { habitId_weekStart_fromWeekday: key }, select: { id: true } });
-    if (!changeAllowed({ fromPast, hasChange: existing !== null, clearing: change === null })) return { ok: false, error: CANNOT_CHANGE };
+    const existing = await tx.choreWeekOverride.findUnique({ where: { habitId_weekStart_fromWeekday: key }, select: { action: true, toWeekday: true } });
+    // The day the turn sits on now: its moved-to day, else its own.
+    const sitsOn = existing?.action === "moved" && isWeekday(existing.toWeekday) ? existing.toWeekday : fromWeekday;
+    const sitsPast = compareDays(addCalendarDays(weekStart, sitsOn), today) < 0;
+    if (!changeAllowed({ fromPast, sitsPast, skipped: existing?.action === "skipped", clearing: change === null })) return { ok: false, error: CANNOT_CHANGE };
     if (change === null) {
       await tx.choreWeekOverride.deleteMany({ where: key });
     } else {

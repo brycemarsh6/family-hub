@@ -129,9 +129,9 @@ export type ChartWeekChore = ChartChore & {
   /** A change exists, so the sheet offers "Back to the default". */
   changed: boolean;
   /**
-   * The row opens the sheet: its normal day is today or later, or a past day's
-   * turn that already carries a change (decision 126; an untouched past day's
-   * miss stays a miss).
+   * The row opens the sheet: the day the turn now sits on is today or later, or
+   * the turn is skipped this week (decisions 126, 129; a past miss stays a miss,
+   * and a moved turn whose moved-to day has passed is locked).
    */
   canChange: boolean;
   /** The viewer may not change this chore (a kid on a shared chore, decision 125): the sheet says "Ask a parent" and offers nothing. */
@@ -210,7 +210,13 @@ export function buildChoreChart(
         state: state === "excused" ? "skipped" : state === "none" ? "moved-away" : "required",
         tag: tag ? choreTagLabel(tag, SHORT_DAY_NAMES) : null,
         changed: tag !== null,
-        canChange: changeAllowed({ fromPast: originalDayPast, hasChange: tag !== null, clearing: false }),
+        canChange: changeAllowed({
+          fromPast: originalDayPast,
+          // The day the turn sits on: its moved-to day while moved, else this column's own day.
+          sitsPast: compareDays(addCalendarDays(weekStart, tag?.kind === "moved-away" ? tag.toWeekday : weekday), today) < 0,
+          skipped: tag?.kind === "skipped",
+          clearing: false,
+        }),
         askParent: c.askParent,
         originalDayPast,
         moveTargets: weekdays.filter((w) => w !== fromWeekday && compareDays(addCalendarDays(weekStart, w), today) >= 0),

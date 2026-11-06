@@ -273,6 +273,11 @@ test("allRequiredDoneToday: vacation and skipped-this-week rows leave the confet
   assert.equal(allRequiredDoneToday([{ ...flags("required", true, false), onVacation: true }, row({})]), false);
 });
 
+test("allRequiredDoneToday: a week-skipped row done anyway counts as a required, done row (decision 130)", () => {
+  assert.equal(allRequiredDoneToday([{ ...flags("required", true, false), skippedThisWeek: true }]), true);
+  assert.equal(allRequiredDoneToday([{ ...flags("required", true, false), skippedThisWeek: true }, flags("required", false, false)]), false);
+});
+
 test("buildTodayRows: a chore moved to today is required today with the 'This week only' tag", () => {
   const chore = habit({ id: "bins", kind: "chore", schedule: "weekdays", weekdays: MONDAYS_ONLY, weekOverrides: [{ weekStart: thisWeek, fromWeekday: 1, action: "moved", toWeekday: 4 }] });
   const [row] = buildTodayRows(me, [chore], noLogs, today);

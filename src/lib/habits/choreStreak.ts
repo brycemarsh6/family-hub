@@ -10,7 +10,8 @@ import { choreDayState } from "./weekOverrides";
 //   - a day with no chore required never breaks or grows it
 //   - a skipped chore (a log, or "skip this week") and an undone vacation day
 //     are excused: the streak survives and that chore adds nothing; a chore
-//     done on a vacation day still counts (decision 127)
+//     done on a vacation day or a week-skipped day still counts (decisions
+//     127, 130)
 //   - a chore done late, or not done at all, breaks the day
 //   - today counts only once every chore required today is done; until then
 //     the streak stands from yesterday (`asOf` says so)
@@ -28,8 +29,12 @@ export type ChoreInput = {
 type Verdict = "none" | "done" | "pending" | "broken";
 
 function choreVerdict(chore: ChoreInput, day: CalendarDate, today: CalendarDate): Verdict {
-  if (compareDays(day, chore.since) < 0 || choreDayState(chore.spec, chore.overrides, day) !== "required") return "none";
+  if (compareDays(day, chore.since) < 0) return "none";
+  const state = choreDayState(chore.spec, chore.overrides, day);
   const log = chore.logs.find((entry) => isSameDay(entry.day, day));
+  // Skipped for the week: excused, but a check actually made counts as done (decision 130).
+  if (state === "excused") return log?.status === "done" ? "done" : "none";
+  if (state !== "required") return "none";
   if (!log) return compareDays(day, today) < 0 ? "broken" : "pending";
   if (log.status === "skipped") return "none";
   return log.status === "late" ? "broken" : "done";

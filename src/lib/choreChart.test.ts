@@ -180,6 +180,20 @@ test("buildChoreChart: a past day's turn that was moved or skipped stays changea
   assert.deepEqual([plain.canChange, plain.originalDayPast], [false, true]);
 });
 
+test("buildChoreChart: a moved turn is locked once its moved-to day has passed; a still-ahead move and a skip stay changeable (decision 129)", () => {
+  const flagsFor = (action: string, to: number | null) => {
+    const sheets = chore("sheets", TUE_THU, { weekOverrides: [override(d(2026, 11, 1), 2, action, to)] });
+    const days = buildChoreChart(amy, "ben", people, [sheets], today)!.thisWeek.days;
+    return days.flatMap((day) => day.chores.map((c) => [day.weekday, c.canChange]));
+  };
+  // Tuesday moved to Wednesday, Thursday today: both rows locked.
+  assert.deepEqual(flagsFor("moved", 3).filter(([w]) => w === 2 || w === 3), [[2, false], [3, false]]);
+  // Tuesday moved to Friday: both rows still open.
+  assert.deepEqual(flagsFor("moved", 5).filter(([w]) => w === 2 || w === 5), [[2, true], [5, true]]);
+  // Tuesday skipped, now Thursday: the skipped row stays open (it may move to a day ahead).
+  assert.deepEqual(flagsFor("skipped", null).filter(([w]) => w === 2), [[2, true]]);
+});
+
 test("buildChoreChart: a kid on a shared chore is told to ask a parent; a parent, and a kid on their own chore, are not (decision 125)", () => {
   const shared = chore("shared", TUE_THU, { who: ["ben", "cat"] });
   const solo = chore("solo", TUE_THU, { who: ["ben"] });

@@ -7,7 +7,7 @@ import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { LogButton } from "./LogButton";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
-import { CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, SKIPPED_TODAY_LABEL } from "@/lib/habitVocabulary";
+import { CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL } from "@/lib/habitVocabulary";
 import { countedRows, doneCountLabel, type FamilyColumn, type FamilyRow } from "@/lib/habitsFamily";
 
 const TITLE_CLASS = "flex min-h-11 min-w-0 flex-1 items-center gap-2.5 self-stretch";
@@ -79,7 +79,7 @@ export function FamilyHabitRow({
         )}
       </TitleArea>
       {skippedMark ? (
-        <LogButton done={false} label={row.title} idle="empty" skipped onClick={onToggle} />
+        <LogButton done={false} label={row.title} idle="empty" skipped skippedLabel={row.skippedToday ? SKIPPED_TODAY_LABEL : SKIPPED_THIS_WEEK_LABEL} onClick={onToggle} />
       ) : row.canLog ? (
         <LogButton done={row.doneToday} label={row.title} forName={together ? undefined : who} idle="empty" onClick={onToggle} />
       ) : (
@@ -100,7 +100,7 @@ export function FamilyHabitRow({
  * One person's card on the family view: avatar, name, "x of y done" (their own rows and the
  * Together ones they are on; excused rows are in neither number, 109, 115), then Habits and Chores. The
  * chore streak is a flame after the "Chores" title (120); a person on vacation reads "On vacation" under
- * their name; on a Sunday after a clean week the card says so (122).
+ * their name (after the count when something still counts, "5 of 5 done · On vacation"); on a Sunday after a clean week the card says so (122).
  */
 export function HabitFamilyColumn({
   column,
@@ -126,7 +126,11 @@ export function HabitFamilyColumn({
         <div className="flex min-w-0 flex-col">
           <h2 className="truncate text-lg font-bold leading-tight">{column.displayName}</h2>
           <span className="text-sm text-muted">
-            {column.onVacation && column.totalCount === 0 ? ON_VACATION_LABEL : doneCountLabel(countedRows(column, together))}
+            {column.onVacation && column.totalCount === 0
+              ? ON_VACATION_LABEL
+              : column.onVacation
+                ? `${doneCountLabel(countedRows(column, together))} · ${ON_VACATION_LABEL}`
+                : doneCountLabel(countedRows(column, together))}
           </span>
         </div>
         {column.onVacation && <Plane aria-hidden="true" size={18} className="ml-auto shrink-0 text-muted" />}

@@ -103,6 +103,14 @@ test("a skip this week is excused whatever the log says", () => {
   assert.deepEqual(sum([chore], d(2026, 11, 5)), { current: 1, best: 1 });
 });
 
+test("a week-skipped chore that was checked done anyway counts and grows the streak (decision 130); a late one stays excused", () => {
+  const skip: WeekOverride = { weekStart: d(2026, 11, 1), fromWeekday: 1, action: "skipped", toWeekday: null };
+  const chore = onDays([1], [log(d(2026, 10, 26)), log(d(2026, 11, 2))], d(2026, 10, 25), [skip]);
+  assert.deepEqual(sum([chore], d(2026, 11, 5)), { current: 2, best: 2 });
+  const late = onDays([1], [log(d(2026, 10, 26)), log(d(2026, 11, 2), "late")], d(2026, 10, 25), [skip]);
+  assert.deepEqual(sum([late], d(2026, 11, 5)), { current: 1, best: 1 });
+});
+
 test("chores with no set days (weekly, monthly) are left out", () => {
   const weekly: ChoreInput = { spec: { schedule: "weekly", times: 2 }, logs: [], overrides: [], since: d(2026, 10, 1) };
   assert.deepEqual(sum([weekly], d(2026, 11, 5)), { current: 0, best: 0 });
