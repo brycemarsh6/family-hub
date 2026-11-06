@@ -1,19 +1,17 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import {
   addCalendarDays,
   calendarDateFromUtcMidnight,
-  calendarDateInZone,
   utcMidnightInstant,
   type CalendarDate,
 } from "./householdDate";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay } from "./habits/carryOver";
 import { logDayFromRow, specFromRow } from "./habits/habitRows";
-import { compareDays } from "./habits/schedule";
 import type { HabitAccess, HabitActor, HabitLogDay, ScheduleSpec } from "./habits/types";
-import { buildTodayPage, todayLogsFrom, type TodayPage } from "./habitsToday";
+import { buildTodayPage, carrySince, habitStartDay, todayLogsFrom, type TodayPage } from "./habitsToday";
+import { loadHouseholdPeople, type HouseholdPerson } from "./householdPeople";
 import { toHabitSharing, type HabitSharing } from "./habitVocabulary";
 
 // The reader for habit rows, so pages never query the habit tables directly.
@@ -83,7 +81,7 @@ export async function loadHabitsForPlan(
       isPrivate: habit.isPrivate,
       carryOver: habit.carryOver,
       archivedAt: habit.archivedAt,
-      startDay: calendarDateInZone(habit.createdAt, HOUSEHOLD_TIME_ZONE),
+      startDay: habitStartDay(habit.createdAt),
       spec: specFromRow(habit),
       schedule: {
         schedule: habit.schedule,
@@ -145,6 +143,11 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
   return buildTodayPage(viewer, habits, logsByHabit, today);
 }
 
+/** Everyone the habit editor's people picker can offer: the household, oldest profile first (`householdPeople.ts`). */
+export function loadHabitRoster(): Promise<HouseholdPerson[]> {
+  return loadHouseholdPeople();
+}
+
 /** What an action needs to know about one habit before it lets anyone touch it. */
 export type HabitForAction = HabitAccess & {
   sharing: HabitSharing;
@@ -168,7 +171,7 @@ export async function loadHabitForAction(habitId: string): Promise<HabitForActio
     archived: habit.archivedAt !== null,
     carryOver: habit.carryOver,
     spec: specFromRow(habit),
-    startDay: calendarDateInZone(habit.createdAt, HOUSEHOLD_TIME_ZONE),
+    startDay: habitStartDay(habit.createdAt),
   };
 }
 
@@ -198,7 +201,5 @@ export async function loadCarriedDay(habit: HabitForAction, habitId: string, use
     }),
     db.habitParticipant.findUnique({ where: { habitId_userId: { habitId, userId } }, select: { joinedAt: true } }),
   ]);
-  const joinedDay = member ? calendarDateInZone(member.joinedAt, HOUSEHOLD_TIME_ZONE) : habit.startDay;
-  const since = compareDays(joinedDay, habit.startDay) > 0 ? joinedDay : habit.startDay;
-  return carriedDay(habit.spec, true, logs.map(logDayFromRow), today, since);
+  return carriedDay(habit.spec, true, logs.map(logDayFromRow), today, carrySince(member?.joinedAt, habit.startDay));
 }

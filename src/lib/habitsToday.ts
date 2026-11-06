@@ -15,6 +15,7 @@ import { compareDays, dueState as dueStateOf, isSameDay } from "./habits/schedul
 import type { DueState, HabitActor, HabitLogDay } from "./habits/types";
 import type { HabitRowState, HabitMemberState } from "./habitChanges";
 import {
+  isCheckStatus,
   toHabitKind,
   toHabitMode,
   toHabitSharing,
@@ -118,8 +119,19 @@ export function todayLogsFrom(today: CalendarDate): CalendarDate {
   return compareDays(monthStart, lookback) < 0 ? monthStart : lookback;
 }
 
-function isCheckStatus(status: string): boolean {
-  return status === "done" || status === "late";
+/** The household day a habit was made: decision 85's first-week start, and the earliest day it can carry over from. */
+export function habitStartDay(createdAt: Date): CalendarDate {
+  return calendarDateInZone(createdAt, HOUSEHOLD_TIME_ZONE);
+}
+
+/**
+ * The first day a person can have missed on a habit: the later of the day the
+ * habit was made and the day they joined it (`joinedAt` unknown means the
+ * habit's own start). The one `since` for carry-over.
+ */
+export function carrySince(joinedAt: Date | null | undefined, startDay: CalendarDate): CalendarDate {
+  const joinedDay = joinedAt ? calendarDateInZone(joinedAt, HOUSEHOLD_TIME_ZONE) : startDay;
+  return compareDays(joinedDay, startDay) > 0 ? joinedDay : startDay;
 }
 
 /** The habits the viewer takes part in and may see (`canSeeHabit`), in the viewer's own order, oldest first on a tie. */
@@ -143,10 +155,8 @@ export function buildTodayRows(
     const logs = logsByHabit.get(habit.id) ?? [];
     const mine = logsForUser(logs, viewer.userId);
     const spec = specFromRow(habit);
-    const startDay = calendarDateInZone(habit.createdAt, HOUSEHOLD_TIME_ZONE);
-    const joined = habit.participants.find((p) => p.userId === viewer.userId)?.joinedAt;
-    const joinedDay = joined ? calendarDateInZone(joined, HOUSEHOLD_TIME_ZONE) : startDay;
-    const since = compareDays(joinedDay, startDay) > 0 ? joinedDay : startDay;
+    const startDay = habitStartDay(habit.createdAt);
+    const since = carrySince(habit.participants.find((p) => p.userId === viewer.userId)?.joinedAt, startDay);
     const progress = spec ? windowProgress(spec, mine, today, startDay) : null;
     const carriedFrom = spec ? carriedDay(spec, habit.carryOver, mine, today, since) : null;
     const dueState: DueState = spec ? dueStateOf(spec, today, false, progress?.count ?? 0) : "required";

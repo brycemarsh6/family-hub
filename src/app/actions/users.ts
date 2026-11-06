@@ -24,7 +24,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
-import { joinEveryoneHabits } from "@/lib/habits/habitWrites";
+import { joinEveryoneHabits } from "@/lib/habits/participantWrites";
 import { hashPassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import { PERSON_SELECT, toPersonInfo, type PersonInfo, type PersonRow } from "@/lib/personInfo";

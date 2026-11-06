@@ -21,18 +21,20 @@ import {
   archiveHabit as archiveHabitRow,
   createHabit as createHabitRow,
   deleteHabit as deleteHabitRow,
-  householdParticipantIds,
   recomputeAllStreaks as rebuildAllStreaks,
-  reorderHabits as reorderHabitRows,
   restoreHabit as restoreHabitRow,
   updateHabit as updateHabitRow,
 } from "@/lib/habits/habitWrites";
+import { householdParticipantIds, reorderHabits as reorderHabitRows } from "@/lib/habits/participantWrites";
 import { dayOfWeek, parseDateParam } from "@/lib/householdDate";
 import { toLifeArea } from "@/lib/goalVocabulary";
 import {
   HABIT_ICONS,
   HABIT_TIMES_LIMITS,
+  HABIT_TITLE_MAX,
   TIMES_OF_DAY,
+  canBePrivate,
+  canCarryOver,
   parseWeekdayMask,
   toHabitKind,
   toHabitMode,
@@ -66,7 +68,6 @@ export type HabitInput = {
   everyone: boolean;
 };
 
-const TITLE_MAX = 80;
 const MAX_REORDER_IDS = 500;
 const NOT_FOUND = "That habit isn't available.";
 const NOT_SIGNED_IN = "Not signed in.";
@@ -98,7 +99,7 @@ type Checked = { fields: HabitFields & { title: string; schedule: string }; part
 async function checkInput(input: HabitInput): Promise<Checked> {
   const title = typeof input.title === "string" ? input.title.trim() : "";
   if (!title) return { error: "Give it a name." };
-  if (title.length > TITLE_MAX) return { error: `Keep the name under ${TITLE_MAX} letters.` };
+  if (title.length > HABIT_TITLE_MAX) return { error: `Keep the name under ${HABIT_TITLE_MAX} letters.` };
   if (toHabitKind(input.kind) !== input.kind) return { error: "Pick habit or chore." };
   if (toHabitMode(input.mode) !== input.mode) return { error: "Pick build or quit." };
   if (toHabitSharing(input.sharing) !== input.sharing) return { error: "Pick who it is for." };
@@ -135,10 +136,9 @@ async function checkInput(input: HabitInput): Promise<Checked> {
   const everyone = input.everyone === true;
   const participantIds = everyone ? household : [...new Set(input.participantIds)];
   if (participantIds.length === 0 || participantIds.some((id) => !household.includes(id))) return { error: "Pick who it is for." };
-  if (input.isPrivate && participantIds.length !== 1) return { error: "Only a habit for one person can be private." };
+  if (input.isPrivate && !canBePrivate(participantIds.length)) return { error: "Only a habit for one person can be private." };
 
   // Carry-over only means something for a habit with set days.
-  const scheduled = schedule === "daily" || schedule === "weekdays" || (schedule === "biweekly" && weekdays !== null);
   return {
     fields: {
       title,
@@ -151,7 +151,7 @@ async function checkInput(input: HabitInput): Promise<Checked> {
       weekdays,
       times,
       anchorWeek,
-      carryOver: scheduled && input.carryOver === true,
+      carryOver: canCarryOver(schedule, days ?? []) && input.carryOver === true,
       sharing: toHabitSharing(input.sharing),
       isPrivate: input.isPrivate === true,
     },

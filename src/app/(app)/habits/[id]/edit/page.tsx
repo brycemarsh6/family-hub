@@ -2,9 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/components/BackLink";
 import { HabitForm } from "@/components/HabitForm";
 import { requireVerifiedUser } from "@/lib/dal";
-import { db } from "@/lib/db";
 import { householdToday } from "@/lib/assistant/today";
-import { loadTodayPage } from "@/lib/habitsRead";
+import { loadHabitRoster, loadTodayPage } from "@/lib/habitsRead";
 import { addCalendarDays, formatCalendarDate, startOfWeek } from "@/lib/householdDate";
 
 // Reads the session, so it can never be cached.
@@ -21,11 +20,7 @@ export default async function EditHabitPage({ params }: { params: Promise<{ id: 
   if (!habit) notFound();
 
   const thisSunday = startOfWeek(today);
-  const people = await db.user.findMany({
-    where: { deactivatedAt: null, role: { not: "device" } },
-    select: { id: true, displayName: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const people = await loadHabitRoster();
 
   return (
     <div className="py-2">

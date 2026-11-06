@@ -6,7 +6,16 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "./householdDate";
 import type { HabitActor, HabitLogDay } from "./habits/types";
-import { buildTodayPage, buildTodayRows, isTapDayAllowed, todayLogsFrom, visibleInViewerOrder, type TodayHabitInput } from "./habitsToday";
+import {
+  buildTodayPage,
+  buildTodayRows,
+  carrySince,
+  habitStartDay,
+  isTapDayAllowed,
+  todayLogsFrom,
+  visibleInViewerOrder,
+  type TodayHabitInput,
+} from "./habitsToday";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
 const today = d(2026, 11, 5);
@@ -140,4 +149,18 @@ test("isTapDayAllowed: a day 8 to 14 back is allowed only when it is the carried
 test("isTapDayAllowed: nothing older than the 14-day lookback, even if carried", () => {
   const tooOld = d(2026, 10, 21); // 15 days back
   assert.equal(isTapDayAllowed(tooOld, today, tooOld), false);
+});
+
+test("habitStartDay: the household (Denver) day a habit was made, not the UTC day", () => {
+  assert.deepEqual(habitStartDay(new Date("2026-11-05T15:00:00Z")), d(2026, 11, 5)); // 8:00 in Denver
+  assert.deepEqual(habitStartDay(new Date("2026-11-06T04:00:00Z")), d(2026, 11, 5)); // 9pm in Denver, already the 6th in UTC
+});
+
+test("carrySince: the later of the day the habit was made and the day the person joined", () => {
+  const start = d(2026, 11, 2);
+  assert.deepEqual(carrySince(new Date("2026-11-04T15:00:00Z"), start), d(2026, 11, 4)); // joined later
+  assert.deepEqual(carrySince(new Date("2026-10-30T15:00:00Z"), start), start); // joined before it was made
+  assert.deepEqual(carrySince(new Date("2026-11-02T15:00:00Z"), start), start); // same day
+  assert.deepEqual(carrySince(undefined, start), start);
+  assert.deepEqual(carrySince(null, start), start);
 });

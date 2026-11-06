@@ -18,30 +18,28 @@ import {
 } from "@/app/actions/habits";
 import { LIFE_AREAS, toLifeArea } from "@/lib/goalVocabulary";
 import {
+  ANYTIME_LABEL,
+  HABIT_TITLE_MAX,
+  HABIT_WHO_CHOICES,
+  TIMES_OF_DAY,
+  TIME_OF_DAY_LABELS,
+  canBePrivate as canBePrivateWith,
+  canCarryOver,
   parseWeekdayMask,
   printWeekdayMask,
   toHabitSchedule,
   type HabitKind,
   type HabitMode,
+  type HabitWho,
   type TimeOfDay,
 } from "@/lib/habitVocabulary";
 import type { HabitManagerItem } from "@/lib/habitsRead";
 import { formatCalendarDate } from "@/lib/householdDate";
 
 const TIME_CHOICES: { key: TimeOfDay | null; label: string }[] = [
-  { key: null, label: "Anytime" },
-  { key: "morning", label: "Morning" },
-  { key: "afternoon", label: "Afternoon" },
-  { key: "evening", label: "Evening" },
+  { key: null, label: ANYTIME_LABEL },
+  ...TIMES_OF_DAY.map((key) => ({ key, label: TIME_OF_DAY_LABELS[key] })),
 ];
-
-type Who = "me" | "together" | "each";
-
-const WHO_HINTS: Record<Who, string> = {
-  me: "One person: you",
-  together: "Together: one check counts for both",
-  each: "Side by side: everyone checks their own",
-};
 
 const BUTTON_PRIMARY =
   "flex min-h-12 items-center justify-center gap-1.5 rounded-full bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-40";
@@ -91,7 +89,7 @@ function Segmented<T extends string>({
   );
 }
 
-function initialWho(initial: HabitManagerItem | undefined): Who {
+function initialWho(initial: HabitManagerItem | undefined): HabitWho {
   if (!initial || initial.participantIds.length <= 1) return "me";
   return initial.sharing === "together" ? "together" : "each";
 }
@@ -124,7 +122,7 @@ export function HabitForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [icon, setIcon] = useState<string | null>(initial?.icon ?? null);
   const [mode, setMode] = useState<HabitMode>(initial?.mode ?? "build");
-  const [who, setWho] = useState<Who>(initialWho(initial));
+  const [who, setWho] = useState<HabitWho>(initialWho(initial));
   const [selectedIds, setSelectedIds] = useState<string[]>(initial?.participantIds ?? [viewerId]);
   const [everyone, setEveryone] = useState(initial?.everyone ?? false);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay | null>(initial?.timeOfDay ?? null);
@@ -139,13 +137,10 @@ export function HabitForm({
   });
 
   const peopleCount = who === "me" ? 1 : selectedIds.length;
-  const canCarry =
-    schedule.schedule === "daily" ||
-    schedule.schedule === "weekdays" ||
-    (schedule.schedule === "biweekly" && schedule.days.length > 0);
-  const canBePrivate = peopleCount === 1;
+  const canCarry = canCarryOver(schedule.schedule, schedule.days);
+  const canBePrivate = canBePrivateWith(peopleCount);
 
-  function pickWho(next: Who) {
+  function pickWho(next: HabitWho) {
     setWho(next);
     if (next !== "me" && selectedIds.length === 0) setSelectedIds([viewerId]);
   }
@@ -212,7 +207,7 @@ export function HabitForm({
         <input
           type="text"
           value={title}
-          maxLength={80}
+          maxLength={HABIT_TITLE_MAX}
           onChange={(event) => setTitle(event.target.value)}
           className="min-h-12 rounded-xl border border-line bg-surface px-3.5 text-base text-fg"
         />
@@ -234,15 +229,11 @@ export function HabitForm({
         />
       </Field>
 
-      <Field label="Who" hint={WHO_HINTS[who]}>
+      <Field label="Who" hint={HABIT_WHO_CHOICES.find((choice) => choice.key === who)?.hint}>
         <Segmented
           label="Who it is for"
           value={who}
-          options={[
-            { key: "me", label: "Just me" },
-            { key: "together", label: "Together" },
-            { key: "each", label: "Side by side" },
-          ]}
+          options={HABIT_WHO_CHOICES.map(({ key, label }) => ({ key, label }))}
           onChange={pickWho}
         />
       </Field>

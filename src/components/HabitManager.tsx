@@ -8,12 +8,16 @@ import { HabitIcon } from "./HabitIcon";
 import { SortableList } from "./SortableList";
 import { reorderHabits, restoreHabit, type HabitActionResult } from "@/app/actions/habits";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
-import { HABIT_SCHEDULE_LABELS, parseWeekdayMask, toHabitSchedule } from "@/lib/habitVocabulary";
+import {
+  HABIT_SCHEDULE_SHORT_LABELS,
+  TIME_OF_DAY_LABELS,
+  habitWhoLabel,
+  parseWeekdayMask,
+  toHabitSchedule,
+} from "@/lib/habitVocabulary";
 import type { HabitManagerItem } from "@/lib/habitsRead";
-import { SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
+import { FULL_DAY_NAMES, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 
-const TIME_LABELS = { morning: "Morning", afternoon: "Afternoon", evening: "Evening" } as const;
-const DAY_NAMES = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"] as const;
 
 const CARD = "rounded-2xl border border-line bg-surface px-3";
 const SECTION_HEADING = "mt-5 mb-1.5 flex items-baseline justify-between text-sm font-semibold uppercase tracking-wide text-muted";
@@ -41,21 +45,20 @@ function scheduleText(item: HabitManagerItem): string {
   const schedule = toHabitSchedule(item.schedule);
   if (schedule === "weekdays") {
     const days = parseWeekdayMask(item.weekdays) ?? [];
-    if (days.length === 1) return DAY_NAMES[days[0]];
+    if (days.length === 1) return `${FULL_DAY_NAMES[days[0]]}s`;
     if (days.length > 1) return days.map((day) => SHORT_DAY_NAMES[day]).join(", ");
   }
   if (schedule === "weekly" && item.times) return `${item.times} ${item.times === 1 ? "time" : "times"} a week`;
   if (schedule === "monthly" && item.times) return `${item.times} ${item.times === 1 ? "time" : "times"} a month`;
-  return HABIT_SCHEDULE_LABELS[schedule];
+  return HABIT_SCHEDULE_SHORT_LABELS[schedule];
 }
 
 /** The small grey line under a title: schedule, who, time of day, life area, carry-over. */
 function detailLine(item: HabitManagerItem): string {
   const parts = [scheduleText(item)];
-  if (item.participantIds.length > 1) {
-    parts.push(item.everyone ? "Everyone" : item.sharing === "together" ? "Together" : "Side by side");
-  }
-  if (item.timeOfDay) parts.push(TIME_LABELS[item.timeOfDay]);
+  const people = item.participantIds.length;
+  if (people > 1) parts.push(habitWhoLabel({ people, everyone: item.everyone, sharing: item.sharing }));
+  if (item.timeOfDay) parts.push(TIME_OF_DAY_LABELS[item.timeOfDay]);
   const area = toLifeArea(item.lifeArea);
   if (area) parts.push(lifeAreaInfo(area).short);
   if (item.carryOver) parts.push("Carries over");

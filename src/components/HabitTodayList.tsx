@@ -12,13 +12,9 @@ import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView } from "@/lib/habitsRead";
 import { formatCalendarDate } from "@/lib/householdDate";
-import { TIMES_OF_DAY } from "@/lib/habitVocabulary";
+import { TIMES_OF_DAY, TIME_OF_DAY_LABELS } from "@/lib/habitVocabulary";
 
-const TIME_CHIPS = {
-  morning: { label: "Morning", icon: Sun },
-  afternoon: { label: "Afternoon", icon: Sunset },
-  evening: { label: "Evening", icon: Moon },
-} as const;
+const TIME_ICONS = { morning: Sun, afternoon: Sunset, evening: Moon } as const;
 
 const ALL = "all";
 
@@ -78,7 +74,7 @@ export function HabitTodayList({
   const options: HabitFilterOption[] = [{ key: ALL, label: "All" }];
   for (const time of TIMES_OF_DAY) {
     if (live.some((row) => row.timeOfDay === time)) {
-      options.push({ key: `time:${time}`, label: TIME_CHIPS[time].label, icon: TIME_CHIPS[time].icon });
+      options.push({ key: `time:${time}`, label: TIME_OF_DAY_LABELS[time], icon: TIME_ICONS[time] });
     }
   }
   const areas = new Set<string>();

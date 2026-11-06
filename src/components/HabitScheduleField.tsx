@@ -4,23 +4,12 @@ import { QuantityStepper } from "./QuantityStepper";
 import { chipClass } from "./ParticipantPicker";
 import {
   HABIT_SCHEDULES,
+  HABIT_SCHEDULE_LABELS,
   HABIT_TIMES_LIMITS,
   type HabitSchedule,
   type Weekday,
 } from "@/lib/habitVocabulary";
-import { SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
-
-/** The schedule names as the approved mock words them (the vocabulary's shorter labels are the manager's). */
-const SCHEDULE_CHOICES: Record<HabitSchedule, string> = {
-  daily: "Every day",
-  weekdays: "Certain days of the week",
-  weekly: "A number of times a week",
-  biweekly: "Every other week",
-  monthly: "A number of times a month",
-};
-
-const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"] as const;
-const FULL_DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+import { FULL_DAY_NAMES, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 
 export type ScheduleValue = {
   schedule: HabitSchedule;
@@ -84,7 +73,7 @@ export function HabitScheduleField({
               <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-accent">
                 {selected && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
               </span>
-              <span className="flex-1">{SCHEDULE_CHOICES[option]}</span>
+              <span className="flex-1">{HABIT_SCHEDULE_LABELS[option]}</span>
             </button>
 
             {selected && (option === "weekly" || option === "monthly") && (
@@ -104,22 +93,22 @@ export function HabitScheduleField({
               <div className="pb-2 pl-9">
                 {option === "biweekly" && <p className="mb-1 text-sm text-muted">Pick days (optional)</p>}
                 <div role="group" aria-label="Days" className="flex gap-1">
-                  {DAY_LETTERS.map((letter, index) => {
+                  {FULL_DAY_NAMES.map((name, index) => {
                     const day = index as Weekday;
                     const on = value.days.includes(day);
                     return (
                       <button
-                        key={FULL_DAY_NAMES[index]}
+                        key={name}
                         type="button"
                         aria-pressed={on}
-                        aria-label={FULL_DAY_NAMES[index]}
+                        aria-label={name}
                         title={SHORT_DAY_NAMES[index]}
                         onClick={() => toggleDay(day)}
                         className={`flex h-11 w-11 items-center justify-center rounded-full border text-sm font-semibold transition-colors ${
                           on ? "border-accent bg-accent text-accent-fg" : "border-line bg-surface text-fg"
                         }`}
                       >
-                        {letter}
+                        {name[0]}
                       </button>
                     );
                   })}

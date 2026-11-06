@@ -15,6 +15,7 @@ import {
   type VisionHorizon,
 } from "@/lib/goalVocabulary";
 import type { CalendarDate } from "@/lib/householdDate";
+import { loadHouseholdPeople } from "@/lib/householdPeople";
 import { boardOwnerId, canEditVision, visionBoardKey, visionForGoal, type VisionRow } from "@/lib/visions";
 
 // Plans & Goals' vision reader: the boards a viewer may look at, one board's
@@ -42,11 +43,7 @@ async function loadBoards(viewer: Viewer): Promise<{ boards: VisionBoardChoice[]
   const boards: VisionBoardChoice[] = [{ key: TOGETHER_BOARD, label: GOAL_OWNERSHIP_LABELS.together, param: TOGETHER_BOARD }];
   const names = new Map<string, string>();
   if (viewer.isDevice) return { boards, names };
-  const people = await db.user.findMany({
-    where: { deactivatedAt: null, role: { not: "device" } },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, displayName: true },
-  });
+  const people = await loadHouseholdPeople();
   for (const person of people) names.set(person.id, person.displayName);
   boards.push({ key: viewer.userId, label: GOAL_OWNERSHIP_LABELS.mine, param: "mine" });
   for (const person of people) {

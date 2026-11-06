@@ -30,27 +30,16 @@ import {
   vacationFromRow,
   type HabitFields,
 } from "./habitRows";
+import { atomically, householdParticipantIds, replaceParticipants } from "./participantWrites";
 import { computeStreaks, type StreakResult } from "./streaks";
 import type { DayRange } from "./types";
 
 type Client = Prisma.TransactionClient;
 
-/** Runs `work` in the caller's transaction, or in a fresh one when the caller gave only `db`. */
-function atomically<T>(client: Prisma.TransactionClient, work: (tx: Client) => Promise<T>): Promise<T> {
-  if (client === (db as unknown)) return db.$transaction((tx) => work(tx), { timeout: 15000 });
-  return work(client);
-}
-
 const SCHEDULE_SELECT = { schedule: true, weekdays: true, times: true, anchorWeek: true } as const;
 
 /** Fields for a new habit; title and schedule are required, the rest take the column defaults. */
 export type NewHabit = HabitFields & { title: string; schedule: string };
-
-/** Every active person who can hold a habit: not deactivated, not a shared device login. */
-export async function householdParticipantIds(client: Prisma.TransactionClient = db): Promise<string[]> {
-  const people = await client.user.findMany({ where: { deactivatedAt: null, role: { not: "device" } }, select: { id: true } });
-  return people.map((person) => person.id);
-}
 
 /**
  * Creates a habit and its participants (one nested write, so it is atomic by
@@ -107,63 +96,6 @@ export async function updateHabit(
   });
 }
 
-/** Makes the habit's participants exactly `participantIds`: new people go to the end, dropped people lose only their row. */
-async function replaceParticipants(tx: Client, habitId: string, participantIds: readonly string[]): Promise<void> {
-  const wanted = [...new Set(participantIds)];
-  const current = await tx.habitParticipant.findMany({ where: { habitId }, select: { userId: true, sortOrder: true } });
-  const have = new Set(current.map((p) => p.userId));
-  await tx.habitParticipant.deleteMany({ where: { habitId, userId: { notIn: wanted } } });
-  const added = wanted.filter((userId) => !have.has(userId));
-  if (added.length === 0) return;
-  const next = current.reduce((max, p) => Math.max(max, p.sortOrder), -1) + 1;
-  await tx.habitParticipant.createMany({
-    data: added.map((userId, i) => ({ habitId, userId, sortOrder: next + i })),
-    skipDuplicates: true,
-  });
-}
-
-/**
- * Adds the person to every non-archived habit made with Everyone that they
- * are not already in (decision 87), at the end of their own list. Called when
- * a profile is created or turned back on. Returns how many habits they joined.
- */
-export async function joinEveryoneHabits(userId: string, client: Prisma.TransactionClient = db): Promise<number> {
-  return atomically(client, async (tx) => {
-    const [habits, mine] = await Promise.all([
-      tx.habit.findMany({ where: { everyone: true, archivedAt: null }, select: { id: true }, orderBy: { createdAt: "asc" } }),
-      tx.habitParticipant.findMany({ where: { userId }, select: { habitId: true, sortOrder: true } }),
-    ]);
-    const inHabit = new Set(mine.map((p) => p.habitId));
-    const joining = habits.filter((habit) => !inHabit.has(habit.id));
-    if (joining.length === 0) return 0;
-    const next = mine.reduce((max, p) => Math.max(max, p.sortOrder), -1) + 1;
-    const { count } = await tx.habitParticipant.createMany({
-      data: joining.map((habit, i) => ({ habitId: habit.id, userId, sortOrder: next + i })),
-      skipDuplicates: true,
-    });
-    return count;
-  });
-}
-
-/**
- * Writes `ids` as this person's order (0, 1, 2...) in their own list only.
- * Ids they do not take part in are ignored, repeats count once.
- */
-export async function reorderHabits(userId: string, ids: readonly string[], client: Prisma.TransactionClient = db): Promise<void> {
-  const wanted = [...new Set(ids)];
-  if (wanted.length === 0) return;
-  await atomically(client, async (tx) => {
-    const mine = await tx.habitParticipant.findMany({ where: { userId, habitId: { in: wanted } }, select: { habitId: true } });
-    const valid = new Set(mine.map((p) => p.habitId));
-    let sortOrder = 0;
-    for (const habitId of wanted) {
-      if (!valid.has(habitId)) continue;
-      await tx.habitParticipant.updateMany({ where: { userId, habitId }, data: { sortOrder } });
-      sortOrder += 1;
-    }
-  });
-}
-
 /**
  * Deletes the plan items pointing at the habit, then the habit (its
  * participants, logs and the rest cascade), as one unit.
@@ -179,19 +111,13 @@ export async function deleteHabit(
   });
 }
 
-/**
- * Sets `archivedAt` to `at`; false when the habit is missing.
- * Dormant until PR B (mission 31): the habit editor's Archive.
- */
+/** Sets `archivedAt` to `at`; false when the habit is missing. */
 export async function archiveHabit(habitId: string, at: Date, client: Prisma.TransactionClient = db): Promise<boolean> {
   const result = await client.habit.updateMany({ where: { id: habitId }, data: { archivedAt: at } });
   return result.count > 0;
 }
 
-/**
- * Clears `archivedAt`; false when the habit is missing.
- * Dormant until PR B (mission 31): the Archived list's Restore.
- */
+/** Clears `archivedAt`; false when the habit is missing. */
 export async function restoreHabit(habitId: string, client: Prisma.TransactionClient = db): Promise<boolean> {
   const result = await client.habit.updateMany({ where: { id: habitId }, data: { archivedAt: null } });
   return result.count > 0;
@@ -239,10 +165,7 @@ export async function checkHabit(
   });
 }
 
-/**
- * Writes a "skipped" row for the day (the same fan-out and no-op rules as `checkHabit`).
- * Dormant until PR B (mission 31): the Today list's Skip.
- */
+/** Writes a "skipped" row for the day (the same fan-out and no-op rules as `checkHabit`). */
 export function skipHabit(
   input: { habitId: string; forUserId: string; day: CalendarDate; loggedById: string | null },
   today: CalendarDate,

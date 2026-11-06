@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { BackLink } from "@/components/BackLink";
 import { HabitForm } from "@/components/HabitForm";
 import { requireVerifiedUser } from "@/lib/dal";
-import { db } from "@/lib/db";
 import { householdToday } from "@/lib/assistant/today";
+import { loadHabitRoster } from "@/lib/habitsRead";
 import { addCalendarDays, formatCalendarDate, startOfWeek } from "@/lib/householdDate";
 
 // Reads the session, so it can never be cached.
@@ -15,11 +15,7 @@ export default async function NewHabitPage() {
   if (user.isDevice) redirect("/habits");
   const thisSunday = startOfWeek(householdToday(new Date())!);
   // Everyone the picker can offer: active people, not the shared tablet login.
-  const people = await db.user.findMany({
-    where: { deactivatedAt: null, role: { not: "device" } },
-    select: { id: true, displayName: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const people = await loadHabitRoster();
 
   return (
     <div className="py-2">

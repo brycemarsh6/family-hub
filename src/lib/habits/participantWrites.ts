@@ -1,0 +1,82 @@
+import "server-only";
+
+// Who takes part in a habit and in what order: the household list a Together
+// habit is made with, joining Everyone habits, one person's order, and
+// replacing a participant set. Split from habitWrites.ts (the only other
+// writer of these tables) to keep both under the line cap. Same rules: no
+// auth, no `revalidatePath`; a transaction client joins the caller's
+// transaction, the default `db` opens its own.
+
+import { db } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
+import { loadHouseholdPeople } from "../householdPeople";
+
+type Client = Prisma.TransactionClient;
+
+/** Runs `work` in the caller's transaction, or in a fresh one when the caller gave only `db`. */
+export function atomically<T>(client: Prisma.TransactionClient, work: (tx: Client) => Promise<T>): Promise<T> {
+  if (client === (db as unknown)) return db.$transaction((tx) => work(tx), { timeout: 15000 });
+  return work(client);
+}
+
+/** Every active person who can hold a habit: not deactivated, not a shared device login (`householdPeople.ts`). */
+export async function householdParticipantIds(client: Prisma.TransactionClient = db): Promise<string[]> {
+  return (await loadHouseholdPeople(client)).map((person) => person.id);
+}
+
+/** Makes the habit's participants exactly `participantIds`: new people go to the end, dropped people lose only their row. */
+export async function replaceParticipants(tx: Client, habitId: string, participantIds: readonly string[]): Promise<void> {
+  const wanted = [...new Set(participantIds)];
+  const current = await tx.habitParticipant.findMany({ where: { habitId }, select: { userId: true, sortOrder: true } });
+  const have = new Set(current.map((p) => p.userId));
+  await tx.habitParticipant.deleteMany({ where: { habitId, userId: { notIn: wanted } } });
+  const added = wanted.filter((userId) => !have.has(userId));
+  if (added.length === 0) return;
+  const next = current.reduce((max, p) => Math.max(max, p.sortOrder), -1) + 1;
+  await tx.habitParticipant.createMany({
+    data: added.map((userId, i) => ({ habitId, userId, sortOrder: next + i })),
+    skipDuplicates: true,
+  });
+}
+
+/**
+ * Adds the person to every non-archived habit made with Everyone that they
+ * are not already in (decision 87), at the end of their own list. Called when
+ * a profile is created or turned back on. Returns how many habits they joined.
+ */
+export async function joinEveryoneHabits(userId: string, client: Prisma.TransactionClient = db): Promise<number> {
+  return atomically(client, async (tx) => {
+    const [habits, mine] = await Promise.all([
+      tx.habit.findMany({ where: { everyone: true, archivedAt: null }, select: { id: true }, orderBy: { createdAt: "asc" } }),
+      tx.habitParticipant.findMany({ where: { userId }, select: { habitId: true, sortOrder: true } }),
+    ]);
+    const inHabit = new Set(mine.map((p) => p.habitId));
+    const joining = habits.filter((habit) => !inHabit.has(habit.id));
+    if (joining.length === 0) return 0;
+    const next = mine.reduce((max, p) => Math.max(max, p.sortOrder), -1) + 1;
+    const { count } = await tx.habitParticipant.createMany({
+      data: joining.map((habit, i) => ({ habitId: habit.id, userId, sortOrder: next + i })),
+      skipDuplicates: true,
+    });
+    return count;
+  });
+}
+
+/**
+ * Writes `ids` as this person's order (0, 1, 2...) in their own list only.
+ * Ids they do not take part in are ignored, repeats count once.
+ */
+export async function reorderHabits(userId: string, ids: readonly string[], client: Prisma.TransactionClient = db): Promise<void> {
+  const wanted = [...new Set(ids)];
+  if (wanted.length === 0) return;
+  await atomically(client, async (tx) => {
+    const mine = await tx.habitParticipant.findMany({ where: { userId, habitId: { in: wanted } }, select: { habitId: true } });
+    const valid = new Set(mine.map((p) => p.habitId));
+    let sortOrder = 0;
+    for (const habitId of wanted) {
+      if (!valid.has(habitId)) continue;
+      await tx.habitParticipant.updateMany({ where: { userId, habitId }, data: { sortOrder } });
+      sortOrder += 1;
+    }
+  });
+}

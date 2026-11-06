@@ -4,19 +4,11 @@ import { Check, SkipForward, Undo2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
+import { ANYTIME_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
 import type { HabitRowView } from "@/lib/habitsRead";
 import { formatDayLabel } from "@/lib/mealPlanDates";
 
-const TIME_LABELS = { morning: "Morning", afternoon: "Afternoon", evening: "Evening" } as const;
-
 const TAG_CLASS = "rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn whitespace-nowrap";
-
-/** "Mine", "Everyone", "Together" or "Side by side": who the habit belongs to, from the viewer's side. */
-function whoLabel(row: HabitRowView): string {
-  if (row.participants.length <= 1) return "Mine";
-  if (row.everyone) return "Everyone";
-  return row.sharing === "together" ? "Together" : "Side by side";
-}
 
 /**
  * One Today row: an icon tile, the title (with Carried over / Quit tags), a
@@ -95,10 +87,10 @@ export function HabitRow({
               <span>
                 {row.sharing === "each" && othersDone.length > 0
                   ? `${othersDone.map((p) => p.displayName).join(", ")} done`
-                  : whoLabel(row)}
+                  : habitWhoLabel({ people: row.participants.length, everyone: row.everyone, sharing: row.sharing })}
               </span>
               <span aria-hidden="true">·</span>
-              <span>{row.timeOfDay ? TIME_LABELS[row.timeOfDay] : "Anytime"}</span>
+              <span>{row.timeOfDay ? TIME_OF_DAY_LABELS[row.timeOfDay] : ANYTIME_LABEL}</span>
               {row.dueState === "open" && row.progress && row.progress.target > 1 && (
                 <>
                   <span aria-hidden="true">·</span>

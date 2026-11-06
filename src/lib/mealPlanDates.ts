@@ -57,12 +57,12 @@ export const MONTH_NAMES = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ] as const;
 
-const DAY_NAMES = [
+export const FULL_DAY_NAMES = [
   "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 ] as const;
 
-/** "Sun", "Mon", ... — the short weekday vocabulary, exported (unlike
- * DAY_NAMES above) because the Calendar branch's day gutter needs it too;
+/** "Sun", "Mon", ... — the short weekday vocabulary, exported (like
+ * FULL_DAY_NAMES above) because the Calendar branch's day gutter needs it too;
  * see mission-8's Captain finding that DaySection.tsx had started a second,
  * private copy of this exact list, which K2's Month header would otherwise
  * have copied a third time. */
@@ -81,7 +81,7 @@ export function formatWeekRange(weekStart: Date): string {
 
 /** "Sunday, Aug 9" — a day card's header. */
 export function formatDayLabel(date: Date): string {
-  return `${DAY_NAMES[date.getDay()]}, ${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
+  return `${FULL_DAY_NAMES[date.getDay()]}, ${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
 }
 
 /** Local "YYYY-MM-DD" — the one shared answer to a job that had grown
