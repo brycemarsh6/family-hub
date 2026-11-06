@@ -72,23 +72,26 @@ export default async function DashboardPage() {
   // pages use, never serverNow.
   const goalsToday = householdToday(new Date())!;
 
-  // The layout comes first: the picked habits and goals in it decide what the
-  // Habits and Goals loaders return. Whatever is stored is a claim, never a
-  // type: parse, don't cast. The tablet always gets the default layout, minus
-  // the Habits and Chores tiles (decision 138).
-  const stored =
+  // The layout read starts now but nothing waits on it except the two loaders
+  // that need the picked habits and goals in it. Whatever is stored is a
+  // claim, never a type: parse, don't cast. The tablet always gets the default
+  // layout, minus the Habits and Chores tiles (decision 138).
+  const layoutPromise = (
     user && !user.isDevice
-      ? await db.userPreferences.findUnique({
+      ? db.userPreferences.findUnique({
           where: { userId: user.userId },
           select: { dashboardLayout: true },
         })
-      : null;
-  const layout = layoutForViewer(
-    stored?.dashboardLayout ? parseDashboardLayout(stored.dashboardLayout) : DEFAULT_DASHBOARD_LAYOUT,
-    isDevice,
+      : Promise.resolve(null)
+  ).then((stored) =>
+    layoutForViewer(
+      stored?.dashboardLayout ? parseDashboardLayout(stored.dashboardLayout) : DEFAULT_DASHBOARD_LAYOUT,
+      isDevice,
+    ),
   );
 
-  const [pantryItems, groceryItems, recipeCount, newestRecipe, mealPlans, goalsTile, habitsData] = await Promise.all([
+  const [layout, pantryItems, groceryItems, recipeCount, newestRecipe, mealPlans, goalsTile, habitsData] = await Promise.all([
+    layoutPromise,
     db.pantryItem.findMany({
       select: {
         name: true,
@@ -118,11 +121,15 @@ export default async function DashboardPage() {
       },
     }),
     user
-      ? loadGoalsTile({ userId: user.userId, isDevice: user.isDevice }, goalsToday, picksOf(layout, "goals"))
+      ? layoutPromise.then((layout) =>
+          loadGoalsTile({ userId: user.userId, isDevice: user.isDevice }, goalsToday, picksOf(layout, "goals")),
+        )
       : { done: 0, total: 0, todo: [], picked: false, pickable: [] },
     // Habits & Chores read the same rows Today does; the tablet has no tile for them.
     user && !user.isDevice
-      ? loadDashboardHabits({ userId: user.userId, role: user.role }, goalsToday, picksOf(layout, "habits"))
+      ? layoutPromise.then((layout) =>
+          loadDashboardHabits({ userId: user.userId, role: user.role }, goalsToday, picksOf(layout, "habits")),
+        )
       : null,
   ]);
 
@@ -169,6 +176,7 @@ export default async function DashboardPage() {
     habits:
       habitsData && user ? (
         <HabitsTile
+          key={picksOf(layout, "habits").join(",")}
           rows={habitsData.habits.rows}
           label={habitsData.habits.label}
           empty={habitsData.habits.empty}

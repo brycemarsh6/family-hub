@@ -6,10 +6,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_DASHBOARD_LAYOUT,
-  moveWidget,
   parseDashboardLayout,
+  reorderWidgets,
   serializeDashboardLayout,
-  setWidgetItems,
   toggleWidget,
   widgetSpans,
   type DashboardLayout,
@@ -189,7 +188,7 @@ test("parse: accepts a JSON string as well as an object", () => {
 // --- serialize --------------------------------------------------------
 
 test("serialize/parse round trip keeps order and switches", () => {
-  const layout = moveWidget(toggleWidget(DEFAULT_DASHBOARD_LAYOUT, "inventory"), "recipes", -1);
+  const layout = reorderWidgets(toggleWidget(DEFAULT_DASHBOARD_LAYOUT, "inventory"), ["recipes", "todayMeals"]);
   const text = serializeDashboardLayout(layout);
   assert.equal(typeof text, "string");
   assert.deepEqual(parseDashboardLayout(text), layout);
@@ -206,27 +205,31 @@ test("toggle: flips one widget, leaves the rest, does not mutate", () => {
   assert.deepEqual(toggleWidget(off, "grocery"), DEFAULT_DASHBOARD_LAYOUT);
 });
 
-// --- move -------------------------------------------------------------
+// --- reorder ----------------------------------------------------------
 
-test("move: down and up swap neighbours", () => {
-  const down = moveWidget(DEFAULT_DASHBOARD_LAYOUT, "todayMeals", 1);
-  assert.deepEqual(ids(down), ["habits", "todayMeals", "chores", "goals", "inventory", "grocery", "recipes"]);
-  assert.deepEqual(moveWidget(down, "todayMeals", -1), DEFAULT_DASHBOARD_LAYOUT);
+test("reorderWidgets follows the given ids and keeps each widget's settings", () => {
+  const order = ids(DEFAULT_DASHBOARD_LAYOUT);
+  const reversed = [...order].reverse();
+  const layout = reorderWidgets(DEFAULT_DASHBOARD_LAYOUT, reversed);
+  assert.deepEqual(layout.widgets.map((w) => w.id), reversed);
+  assert.deepEqual(
+    layout.widgets.map((w) => w.enabled),
+    DEFAULT_DASHBOARD_LAYOUT.widgets.map((w) => w.enabled).reverse(),
+  );
 });
 
-test("move: clamped at both ends, returns an equal but new layout", () => {
-  const top = moveWidget(DEFAULT_DASHBOARD_LAYOUT, "todayMeals", -1);
-  assert.deepEqual(top, DEFAULT_DASHBOARD_LAYOUT);
-  assert.notEqual(top, DEFAULT_DASHBOARD_LAYOUT);
-  const bottom = moveWidget(DEFAULT_DASHBOARD_LAYOUT, "recipes", 1);
-  assert.deepEqual(bottom, DEFAULT_DASHBOARD_LAYOUT);
-  assert.notEqual(bottom, DEFAULT_DASHBOARD_LAYOUT);
+test("reorderWidgets ignores unknown ids and keeps widgets the list forgot", () => {
+  const order = ids(DEFAULT_DASHBOARD_LAYOUT);
+  const layout = reorderWidgets(DEFAULT_DASHBOARD_LAYOUT, ["nope", order[2]]);
+  assert.equal(layout.widgets.length, order.length);
+  assert.equal(layout.widgets[0].id, order[2]);
+  assert.deepEqual(layout.widgets.slice(1).map((w) => w.id), order.filter((id) => id !== order[2]));
 });
 
-test("move: keeps each widget's own switch", () => {
+test("reorder: keeps each widget's own switch", () => {
   const start = toggleWidget(DEFAULT_DASHBOARD_LAYOUT, "inventory");
-  const moved = moveWidget(start, "inventory", 1);
-  assert.deepEqual(moved.widgets[5], { id: "inventory", enabled: false });
+  const moved = reorderWidgets(start, ["inventory", ...ids(start).filter((id) => id !== "inventory")]);
+  assert.deepEqual(moved.widgets[0], { id: "inventory", enabled: false });
 });
 
 // --- widgetSpans ------------------------------------------------------
@@ -297,77 +300,4 @@ test("spans: a disabled full widget between two halves lets them pair", () => {
 test("spans: everything off gives an empty list", () => {
   const off = layoutOf(DEFAULT_DASHBOARD_LAYOUT.widgets.map((w) => ({ ...w, enabled: false })));
   assert.deepEqual(widgetSpans(off), []);
-});
-
-// --- picked items (decisions 44, 49) ----------------------------------
-
-const withItems = (id: "habits" | "goals", items: unknown): unknown => ({
-  version: 1,
-  widgets: [{ id, enabled: true, items }],
-});
-const itemsOf = (layout: DashboardLayout, id: string) => layout.widgets.find((w) => w.id === id)?.items;
-
-test("items: survive a round trip on habits and goals, in picked order", () => {
-  const stored = layoutOf([
-    { id: "todayMeals", enabled: true },
-    { id: "habits", enabled: true, items: ["h3", "h1", "h2"] },
-    { id: "chores", enabled: true },
-    { id: "goals", enabled: false, items: ["g2", "g1"] },
-    { id: "inventory", enabled: true },
-    { id: "grocery", enabled: true },
-    { id: "recipes", enabled: true },
-  ]);
-  const back = parseDashboardLayout(serializeDashboardLayout(stored));
-  assert.deepEqual(back, stored);
-  assert.deepEqual(itemsOf(back, "habits"), ["h3", "h1", "h2"]);
-});
-
-test("items: dropped on every other widget", () => {
-  const out = parseDashboardLayout({
-    version: 1,
-    widgets: [
-      { id: "chores", enabled: true, items: ["a"] },
-      { id: "recipes", enabled: true, items: ["a"] },
-      { id: "habits", enabled: true, items: ["a"] },
-    ],
-  });
-  assert.equal(itemsOf(out, "chores"), undefined);
-  assert.equal(itemsOf(out, "recipes"), undefined);
-  assert.deepEqual(itemsOf(out, "habits"), ["a"]);
-  assert.ok(!("items" in out.widgets.find((w) => w.id === "chores")!));
-});
-
-test("items: bad shapes are dropped, and the default layout has none", () => {
-  for (const bad of ["h1", 7, { 0: "h1" }, null, [], [1, null, "", {}]]) {
-    const out = parseDashboardLayout(withItems("habits", bad));
-    assert.ok(!("items" in out.widgets.find((w) => w.id === "habits")!), JSON.stringify(bad));
-  }
-  assert.ok(DEFAULT_DASHBOARD_LAYOUT.widgets.every((w) => !("items" in w)));
-});
-
-test("items: duplicates and empties go, valid strings stay, capped at 50", () => {
-  const mixed = parseDashboardLayout(withItems("goals", ["a", "a", "", 3, "b"]));
-  assert.deepEqual(itemsOf(mixed, "goals"), ["a", "b"]);
-  const many = Array.from({ length: 80 }, (_, i) => `id${i}`);
-  const capped = parseDashboardLayout(withItems("habits", many));
-  assert.deepEqual(itemsOf(capped, "habits"), many.slice(0, 50));
-});
-
-test("toggle and move keep a widget's items", () => {
-  const picked = setWidgetItems(DEFAULT_DASHBOARD_LAYOUT, "habits", ["h1"]);
-  assert.deepEqual(itemsOf(toggleWidget(picked, "habits"), "habits"), ["h1"]);
-  assert.deepEqual(itemsOf(moveWidget(picked, "habits", 1), "habits"), ["h1"]);
-});
-
-test("setWidgetItems: sets, replaces, clears, ignores other widgets, never mutates", () => {
-  const before = JSON.stringify(DEFAULT_DASHBOARD_LAYOUT);
-  const one = setWidgetItems(DEFAULT_DASHBOARD_LAYOUT, "goals", ["g1", "g1", "g2"]);
-  assert.equal(JSON.stringify(DEFAULT_DASHBOARD_LAYOUT), before);
-  assert.deepEqual(itemsOf(one, "goals"), ["g1", "g2"]);
-  assert.deepEqual(itemsOf(setWidgetItems(one, "goals", ["g9"]), "goals"), ["g9"]);
-  const cleared = setWidgetItems(one, "goals", []);
-  assert.deepEqual(cleared, DEFAULT_DASHBOARD_LAYOUT);
-  assert.ok(!("items" in cleared.widgets.find((w) => w.id === "goals")!));
-  assert.deepEqual(setWidgetItems(DEFAULT_DASHBOARD_LAYOUT, "recipes", ["x"]), DEFAULT_DASHBOARD_LAYOUT);
-  assert.deepEqual(setWidgetItems(one, "habits", ["h1"]).widgets.find((w) => w.id === "goals")?.items, ["g1", "g2"]);
 });

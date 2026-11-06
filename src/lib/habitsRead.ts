@@ -15,7 +15,7 @@ import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartD
 import { logDayFromRow, specFromRow, vacationFromRow } from "./habits/habitRows";
 import type { HabitAccess, HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
 import { keepOwnPicks } from "./dashboardPicks";
-import { choresTileRows, habitsTileRows, pickableHabits, type HabitsTile } from "./habitsDashboard";
+import { choresTileRows, habitsTileRows, pickableHabits, type TileRows } from "./habitsDashboard";
 import { buildTodayPage, todayLogsFrom, type HabitRowView, type TodayNudge, type TodayPage } from "./habitsToday";
 import { loadHouseholdPeople, type HouseholdPerson } from "./householdPeople";
 import { toHabitSharing, type HabitSharing } from "./habitVocabulary";
@@ -172,8 +172,8 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
 
 /** What the dashboard shows from Habits & Chores: the two tiles, the cards above them and the habits the picker lists. */
 export type DashboardHabits = {
-  habits: HabitsTile<HabitRowView>;
-  chores: HabitsTile<HabitRowView>;
+  habits: TileRows<HabitRowView>;
+  chores: TileRows<HabitRowView>;
   choreStreak: number;
   nudges: TodayNudge[];
   shoutOut: boolean;

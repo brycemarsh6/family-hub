@@ -284,15 +284,6 @@ export const HABITS_TILE_DEFAULT_LIMIT = 3;
 
 // ---- Dashboard picker (decision 137) ----
 
-/** The words both pickers (Habits and Goals) share, inside the Customize sheet. */
-export const DASHBOARD_PICKER_LABELS = {
-  /** The button on the Habits and Goals rows. */
-  pick: "Pick",
-  showing: "Showing",
-  notShowing: "Not showing",
-  back: "Back to Customize",
-} as const;
-
 export const HABITS_PICKER_TITLE = "Habits on your dashboard";
 /** Shown when nothing is picked. */
 export const HABITS_PICKER_NOTHING_PICKED = "Nothing picked yet. The tile shows up to three habits due today.";

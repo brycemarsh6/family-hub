@@ -4,6 +4,7 @@ import { Flame, House } from "lucide-react";
 import DashboardTile from "./DashboardTile";
 import { HabitTileRows } from "./HabitsTile";
 import type { HabitRowView } from "@/lib/habitsRead";
+import { streakLabel } from "@/lib/habitVocabulary";
 
 /**
  * The dashboard's "Chores today" tile (decision 133): chores due or done today,
@@ -28,10 +29,10 @@ export default function ChoresTile({
       icon={<House aria-hidden="true" size={20} className="text-muted" />}
       title="Chores today"
       aside={
-        showStreaks && choreStreak >= 2 ? (
+        showStreaks && streakLabel(choreStreak, "days") ? (
           <span className="inline-flex items-center gap-0.5 text-sm font-semibold text-streak">
             <Flame aria-hidden="true" size={14} />
-            {choreStreak} days
+            {streakLabel(choreStreak, "days")}
           </span>
         ) : undefined
       }

@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { choresTileRows, habitsTileRows, pickableHabits } from "./habitsDashboard";
+import { choresTileRows, habitsTileRows, keepShownRows, pickableHabits } from "./habitsDashboard";
 import {
   CHORES_TILE_EMPTY,
   HABITS_TILE_ALL_DONE,
@@ -45,10 +45,10 @@ test("habits: picked ones that are done or skipped still show", () => {
   assert.deepEqual(ids(habitsTileRows(rows, ["a", "b", "c"]).rows), ["a", "b", "c"]);
 });
 
-test("habits: a picked habit with nothing due is left out", () => {
+test("habits: picks keep every row Today shows, open ones included (decision 132)", () => {
   const rows = [row("a", { dueState: "none" }), row("b"), row("c", { dueState: "open" })];
   const tile = habitsTileRows(rows, ["a", "b", "c", "gone"]);
-  assert.deepEqual(ids(tile.rows), ["b"]);
+  assert.deepEqual(ids(tile.rows), ["b", "c"]);
 });
 
 test("habits: a picked habit that is carried shows, a repeated or chore pick does not duplicate or leak", () => {
@@ -108,20 +108,58 @@ test("chores: due, carried and done chores show; habits do not", () => {
   assert.equal(tile.label, null);
 });
 
-test("chores: skipped, week-skipped and vacation rows stay out; done ones stay in", () => {
+test("chores: undone skipped, week-skipped and vacation rows stay out", () => {
   const rows = [
     row("skipped", { kind: "chore", skippedToday: true }),
     row("week", { kind: "chore", skippedThisWeek: true }),
     row("vacation", { kind: "chore", onVacation: true }),
-    row("doneOnVacation", { kind: "chore", doneToday: true }),
     row("open", { kind: "chore", dueState: "open" }),
   ];
-  assert.deepEqual(ids(choresTileRows(rows).rows), ["doneOnVacation"]);
+  assert.deepEqual(ids(choresTileRows(rows).rows), []);
+});
+
+test("chores: a chore done today stays, vacation or week-skipped (decision 150)", () => {
+  const rows = [
+    row("doneOnVacation", { kind: "chore", doneToday: true, onVacation: true }),
+    row("doneWeekSkipped", { kind: "chore", doneToday: true, skippedThisWeek: true }),
+    row("doneAndSkipped", { kind: "chore", dueState: "none", doneToday: true, skippedToday: true }),
+  ];
+  assert.deepEqual(ids(choresTileRows(rows).rows), ["doneOnVacation", "doneWeekSkipped", "doneAndSkipped"]);
 });
 
 test("chores: empty says No chores today", () => {
   assert.equal(choresTileRows([]).empty, CHORES_TILE_EMPTY);
   assert.equal(choresTileRows([row("skipped", { kind: "chore", skippedToday: true })]).empty, CHORES_TILE_EMPTY);
+});
+
+// --- kept rows (decision 147) ------------------------------------------
+
+test("keepShownRows: a row the server dropped stays as the last tap left it", () => {
+  const held = row("a", { doneToday: true });
+  const fresh = row("b");
+  const out = keepShownRows(["a", "b"], [fresh], [held, row("b", { skippedToday: true })]);
+  assert.deepEqual(out, [held, fresh]);
+});
+
+test("keepShownRows: the fresh row wins when the server still sends it", () => {
+  const fresh = row("a", { skippedToday: true });
+  assert.equal(keepShownRows(["a"], [fresh], [row("a")])[0], fresh);
+});
+
+test("keepShownRows: a new row never slides in, and shown order is kept", () => {
+  const out = keepShownRows(["b", "a"], [row("a"), row("z"), row("b")], []);
+  assert.deepEqual(ids(out), ["b", "a"]);
+});
+
+test("keepShownRows: three checked rows stay three, not All done", () => {
+  const held = ["a", "b", "c"].map((id) => row(id, { doneToday: true }));
+  const out = keepShownRows(["a", "b", "c"], [row("d")], held);
+  assert.deepEqual(ids(out), ["a", "b", "c"]);
+  assert.ok(out.every((r) => r.doneToday));
+});
+
+test("keepShownRows: an id with no fresh and no held row is gone", () => {
+  assert.deepEqual(keepShownRows(["a", "x"], [], [row("a")]).map((r) => r.id), ["a"]);
 });
 
 // --- picker -------------------------------------------------------------

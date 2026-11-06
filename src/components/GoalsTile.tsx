@@ -1,6 +1,6 @@
 import { Target } from "lucide-react";
 import DashboardTile from "./DashboardTile";
-import { GOALS_TILE_PICKED_EMPTY } from "@/lib/goalVocabulary";
+import { GOALS_TILE_PICKED_EMPTY, GOALS_TILE_PICKED_HEADING } from "@/lib/goalVocabulary";
 import { ProgressBar } from "./ProgressBar";
 
 /**
@@ -40,7 +40,7 @@ export default function GoalsTile({
             <p className="mt-3 text-sm text-muted">{picked ? GOALS_TILE_PICKED_EMPTY : "All done this week"}</p>
           ) : (
             <>
-              <p className="mt-3 text-sm text-muted">Still to do:</p>
+              <p className="mt-3 text-sm text-muted">{picked ? GOALS_TILE_PICKED_HEADING : "Still to do:"}</p>
               <ul className="mt-1 text-sm">
                 {todo.map((habit) => (
                   <li key={habit.id} className="truncate">

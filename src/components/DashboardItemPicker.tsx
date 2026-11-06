@@ -4,8 +4,8 @@ import { ChevronLeft } from "lucide-react";
 import { HabitIcon } from "./HabitIcon";
 import { SortableList } from "./SortableList";
 import { ToggleSwitch } from "./ToggleSwitch";
-import { splitPicks, togglePick } from "@/lib/dashboardPicker";
-import { DASHBOARD_PICKER_LABELS } from "@/lib/habitVocabulary";
+import { splitPicks, togglePick } from "@/lib/dashboardPicks";
+import { DASHBOARD_PICKER_LABELS } from "@/lib/dashboardWidgets";
 
 /** One thing the person can pick. `icon` is set (null for the kind's default) for habits and left out for goals. */
 export type PickItem = { id: string; title: string; icon?: string | null };
@@ -119,6 +119,8 @@ export default function DashboardItemPicker({
                       onChange={() => onChange(togglePick(items, picks, item.id))}
                       label={`Show ${item.title}`}
                     />
+                    {/* Same width as the grip above, so the switch stays put when a row moves between the lists. */}
+                    <span aria-hidden="true" className="w-11 shrink-0" />
                   </li>
                 ))}
               </ul>

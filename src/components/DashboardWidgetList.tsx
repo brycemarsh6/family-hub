@@ -8,11 +8,11 @@ import { EmptyState } from "./EmptyState";
 import { saveDashboardLayout } from "@/app/actions/preferences";
 import {
   DEFAULT_DASHBOARD_LAYOUT,
+  reorderWidgets,
   setWidgetItems,
   toggleWidget,
   widgetSpans,
 } from "@/lib/dashboardLayout";
-import { reorderWidgets } from "@/lib/dashboardPicker";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import type { DashboardLayout } from "@/lib/dashboardLayout";
 import type { DashboardWidgetId } from "@/lib/dashboardWidgets";

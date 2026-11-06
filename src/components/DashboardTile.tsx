@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 /**
  * The shared shell behind all four dashboard tiles: a header row (icon,
@@ -16,6 +17,7 @@ import Link from "next/link";
  * Habits and Chores today tiles, decision 132): the card is a plain div, only
  * its header row (icon, title) is the link to `href`, and the children keep
  * their own taps. Same shell and header, one prop; never a link around a button.
+ * The panel header ends in a chevron so it reads as a link (decision 148).
  *
  * `icon` takes an already-rendered element (`<Package size={20} .../>`),
  * never a bare component reference. This is the landing-page tile
@@ -48,7 +50,7 @@ export default function DashboardTile({
   if (shape === "panel") {
     // Only the header row links; the rows below keep their own taps.
     return (
-      <div className={cardClass}>
+      <div className={`${cardClass} overflow-hidden`}>
         <Link
           href={href}
           className="-m-1 flex min-h-11 flex-wrap items-center gap-x-2 gap-y-1 rounded-xl p-1 transition-colors active:bg-surface-2"
@@ -61,6 +63,7 @@ export default function DashboardTile({
               {badge}
             </span>
           )}
+          <ChevronRight aria-hidden="true" size={18} className="ml-auto shrink-0 text-muted" />
         </Link>
         <div className="min-w-0">{children}</div>
       </div>

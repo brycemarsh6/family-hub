@@ -5,28 +5,27 @@ import DashboardItemPicker from "./DashboardItemPicker";
 import type { PickItem } from "./DashboardItemPicker";
 import { SortableList } from "./SortableList";
 import { ToggleSwitch } from "./ToggleSwitch";
-import { DASHBOARD_WIDGETS } from "@/lib/dashboardWidgets";
-import type { DashboardWidgetId } from "@/lib/dashboardWidgets";
+import { DASHBOARD_PICKER_LABELS, DASHBOARD_WIDGETS, isPickableWidget } from "@/lib/dashboardWidgets";
+import type { DashboardWidgetId, PickableWidgetId } from "@/lib/dashboardWidgets";
 import type { DashboardLayout } from "@/lib/dashboardLayout";
 import { picksOf } from "@/lib/dashboardPicks";
 import { GOALS_PICKER_NONE, GOALS_PICKER_NOTHING_PICKED, GOALS_PICKER_TITLE } from "@/lib/goalVocabulary";
 import {
-  DASHBOARD_PICKER_LABELS,
   HABITS_PICKER_NONE,
   HABITS_PICKER_NOTHING_PICKED,
   HABITS_PICKER_TITLE,
 } from "@/lib/habitVocabulary";
 
 /** The widgets whose rows have a "Pick" button, with the picker's words (decision 137). */
-const PICKERS = {
+const PICKERS: Record<PickableWidgetId, { title: string; nothingPicked: string; none: string }> = {
   habits: { title: HABITS_PICKER_TITLE, nothingPicked: HABITS_PICKER_NOTHING_PICKED, none: HABITS_PICKER_NONE },
   goals: { title: GOALS_PICKER_TITLE, nothingPicked: GOALS_PICKER_NOTHING_PICKED, none: GOALS_PICKER_NONE },
-} as const;
-type PickerId = keyof typeof PICKERS;
+};
+type PickerId = PickableWidgetId;
 
 /**
  * The Customize sheet: one row per widget with an on/off switch and a grip to
- * drag it into place (decision 140), plus "Reset to default". The Habits and
+ * drag it into place (decision 140), plus "Reset to default" (main view only). The Habits and
  * Goals rows also have a "Pick" button that swaps this sheet's body for the
  * picker (decision 137): one sheet with a back control, never a second sheet.
  * Same chrome as RadioSheet (backdrop, dialog, Escape, z-index). Apart from
@@ -63,7 +62,7 @@ export default function DashboardCustomizeSheet({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  const title = "Customize dashboard";
+  const title = picker ? PICKERS[picker].title : "Customize dashboard";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
@@ -111,14 +110,15 @@ export default function DashboardCustomizeSheet({
               className="flex flex-col gap-1"
               itemClassName="flex min-h-14 items-center gap-2 rounded-xl px-3"
               renderItem={(widget, { grip }) => {
-                const { label } = DASHBOARD_WIDGETS[widget.id];
+                const { id } = widget;
+                const { label } = DASHBOARD_WIDGETS[id];
                 return (
                   <>
                     <span className="min-w-0 flex-1 truncate text-base font-medium text-fg">{label}</span>
-                    {(widget.id === "habits" || widget.id === "goals") && (
+                    {isPickableWidget(id) && (
                       <button
                         type="button"
-                        onClick={() => setPicker(widget.id as PickerId)}
+                        onClick={() => setPicker(id)}
                         aria-label={`${DASHBOARD_PICKER_LABELS.pick} ${label}`}
                         className="flex min-h-11 shrink-0 items-center rounded-xl border border-line px-3 text-sm font-medium text-fg transition-colors active:bg-surface-2"
                       >
@@ -127,7 +127,7 @@ export default function DashboardCustomizeSheet({
                     )}
                     <ToggleSwitch
                       checked={widget.enabled}
-                      onChange={() => onToggle(widget.id)}
+                      onChange={() => onToggle(id)}
                       label={`Show ${label}`}
                     />
                     {grip}
@@ -144,13 +144,15 @@ export default function DashboardCustomizeSheet({
           </p>
         )}
 
-        <button
-          type="button"
-          onClick={onReset}
-          className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-line text-base font-medium text-fg transition-colors active:bg-surface-2"
-        >
-          Reset to default
-        </button>
+        {!picker && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-line text-base font-medium text-fg transition-colors active:bg-surface-2"
+          >
+            Reset to default
+          </button>
+        )}
       </div>
     </div>
   );

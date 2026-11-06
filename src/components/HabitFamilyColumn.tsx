@@ -7,7 +7,7 @@ import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { LogButton } from "./LogButton";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
-import { CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL } from "@/lib/habitVocabulary";
+import { CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, streakLabel } from "@/lib/habitVocabulary";
 import { countedRows, doneCountLabel, type FamilyColumn, type FamilyRow } from "@/lib/habitsFamily";
 
 const TITLE_CLASS = "flex min-h-11 min-w-0 flex-1 items-center gap-2.5 self-stretch";
@@ -146,10 +146,10 @@ export function HabitFamilyColumn({
         <div key={section.key}>
           <h3 className="flex items-center gap-2 pt-1 text-xs font-semibold uppercase tracking-wide text-muted">
             {section.title}
-            {section.key === "chore" && showStreaks && column.choreStreak >= 2 && (
+            {section.key === "chore" && showStreaks && streakLabel(column.choreStreak, "days") && (
               <span className="inline-flex items-center gap-0.5 text-sm font-semibold normal-case tracking-normal text-streak">
                 <Flame aria-hidden="true" size={14} />
-                {column.choreStreak} days
+                {streakLabel(column.choreStreak, "days")}
               </span>
             )}
           </h3>

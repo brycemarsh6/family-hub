@@ -35,6 +35,20 @@ export const DASHBOARD_WIDGETS: Record<DashboardWidgetId, DashboardWidgetDef> = 
 
 /** The widgets whose rows can be picked in Customize (decisions 44, 49): the layout keeps an `items` list for these only. */
 export const PICKABLE_WIDGET_IDS = ["habits", "goals"] as const satisfies readonly DashboardWidgetId[];
+export type PickableWidgetId = (typeof PICKABLE_WIDGET_IDS)[number];
+
+export function isPickableWidget(id: DashboardWidgetId): id is PickableWidgetId {
+  return (PICKABLE_WIDGET_IDS as readonly string[]).includes(id);
+}
+
+/** The words both pickers (Habits and Goals) share, inside the Customize sheet (decision 137). */
+export const DASHBOARD_PICKER_LABELS = {
+  /** The button on the Habits and Goals rows. */
+  pick: "Pick",
+  showing: "Showing",
+  notShowing: "Not showing",
+  back: "Back to Customize",
+} as const;
 
 /** Most items a widget keeps picked; the parser cuts anything past it. */
 export const MAX_WIDGET_ITEMS = 50;

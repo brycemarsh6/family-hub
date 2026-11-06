@@ -1,20 +1,44 @@
 "use client";
 
-import { useOptimistic } from "react";
+import { useOptimistic, useState } from "react";
 import { ListChecks } from "lucide-react";
 import DashboardTile from "./DashboardTile";
 import { HabitRow } from "./HabitRow";
 import { checkHabit, skipHabit, uncheckHabit, unskipHabit } from "@/app/actions/habitChecks";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView } from "@/lib/habitsRead";
+import { keepShownRows } from "@/lib/habitsDashboard";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 /**
+ * The three taps of one Today row, shared by Today's list and the dashboard
+ * tiles: check or uncheck, skip (the missed day for a carried row, decision 89)
+ * and undo a skip. A carried row's tap is for the missed day, not today.
+ */
+export function habitRowTaps(
+  row: HabitRowView,
+  run: (change: HabitChange, action: () => Promise<{ error?: string }>) => void,
+) {
+  const day = row.carriedFrom ? formatCalendarDate(row.carriedFrom) : undefined;
+  return {
+    onToggle: () =>
+      row.doneToday
+        ? run({ type: "uncheck", habitId: row.id }, () => uncheckHabit(row.id, undefined, day))
+        : run({ type: "check", habitId: row.id }, () => checkHabit(row.id, undefined, day)),
+    onSkip: () =>
+      run({ type: row.carriedFrom ? "skipCarried" : "skip", habitId: row.id }, () => skipHabit(row.id, undefined, day)),
+    onUnskip: () => run({ type: "unskip", habitId: row.id }, () => unskipHabit(row.id)),
+  };
+}
+
+/**
  * The live Today rows inside a dashboard tile (decisions 132, 133, 134): the
- * same `HabitRow`, the same check actions and the same optimistic wrapper as
- * `HabitTodayList`. The rows are the server's pick for the tile; a tap shows at
- * once and the page refreshes behind it. `empty` is the server's line for no rows.
+ * same `HabitRow`, the same taps and the same optimistic wrapper as
+ * `HabitTodayList`. The rows shown at load stay until the next real page load
+ * (decision 147): a tapped row keeps its place with its change even when the
+ * refresh behind the tap no longer lists it, and no new row slides in.
+ * `empty` is the server's line for no rows.
  */
 export function HabitTileRows({
   rows,
@@ -25,31 +49,28 @@ export function HabitTileRows({
   empty: string | null;
   showStreaks: boolean;
 }) {
-  const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(rows, applyHabitChange);
-  const { run, error } = useOptimisticRun(applyOptimistic);
-  // A carried row's tap is for the missed day, not today.
-  const dayOf = (row: HabitRowView) => (row.carriedFrom ? formatCalendarDate(row.carriedFrom) : undefined);
+  // Fixed at load: which rows this tile shows, the rows as the last tap left
+  // them (for a row the server stops sending), and the empty line to fall back on.
+  const [shownIds] = useState(() => rows.map((row) => row.id));
+  const [held, setHeld] = useState(rows);
+  const [firstEmpty] = useState(empty);
+  const kept = keepShownRows(shownIds, rows, held);
+  const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(kept, applyHabitChange);
+  const { run, error } = useOptimisticRun<HabitChange>((change) => {
+    applyOptimistic(change);
+    setHeld((prev) => applyHabitChange(prev, change));
+  });
+  const emptyLine = empty ?? firstEmpty;
 
   return (
     <>
-      {live.length === 0 && empty && <p className="text-sm text-muted">{empty}</p>}
+      {live.length === 0 && emptyLine && <p className="text-sm text-muted">{emptyLine}</p>}
       {live.length > 0 && (
-        <ul className="-mx-4 divide-y divide-line border-y border-line">
+        // The list runs to the card's edge when nothing sits under it, so there is no empty strip below the last row.
+        <ul className={`-mx-4 divide-y divide-line border-t border-line ${error ? "border-b" : "-mb-4"}`}>
           {live.map((row) => (
             <li key={row.id}>
-              <HabitRow
-                row={row}
-                showStreaks={showStreaks}
-                onToggle={() =>
-                  row.doneToday
-                    ? run({ type: "uncheck", habitId: row.id }, () => uncheckHabit(row.id, undefined, dayOf(row)))
-                    : run({ type: "check", habitId: row.id }, () => checkHabit(row.id, undefined, dayOf(row)))
-                }
-                onSkip={() =>
-                  run({ type: row.carriedFrom ? "skipCarried" : "skip", habitId: row.id }, () => skipHabit(row.id, undefined, dayOf(row)))
-                }
-                onUnskip={() => run({ type: "unskip", habitId: row.id }, () => unskipHabit(row.id))}
-              />
+              <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, run)} />
             </li>
           ))}
         </ul>
