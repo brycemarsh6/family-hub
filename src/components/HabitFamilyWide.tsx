@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { BarChart3, ListFilter } from "lucide-react";
-import { ALL_FILTER, HabitFilterChips, activeFilter, buildFilterOptions, matchesFilter } from "./HabitFilterChips";
+import { HabitFilterChips, withTimeIcons } from "./HabitFilterChips";
 import { HabitFamilyWideColumn } from "./HabitFamilyWideColumn";
 import { REPORT_LABELS } from "@/lib/habitVocabulary";
+import { REPORT_FILTER_ALL, activeReportFilter, matchesReportFilter, reportFilterOptions } from "@/lib/habitsReportScope";
 import type { FamilyPage, FamilyRow } from "@/lib/habitsFamily";
 
 /**
@@ -27,18 +28,23 @@ export function HabitFamilyWide({
   onToggle: (row: FamilyRow) => void;
 }) {
   const [filtering, setFiltering] = useState(false);
-  const [filter, setFilter] = useState(ALL_FILTER);
+  const [filter, setFilter] = useState(REPORT_FILTER_ALL);
   // One chip for every column; its options come from every row on the page, Together included.
   const everyRow = [...page.columns.flatMap((column) => column.rows), ...page.together];
-  const options = buildFilterOptions(everyRow);
-  const active = activeFilter(options, filter);
+  const filterOptions = reportFilterOptions(everyRow, { kinds: false });
+  const options = withTimeIcons(filterOptions);
+  const active = activeReportFilter(filterOptions, filter);
 
   return (
     <div data-fills-width className="hidden min-h-0 flex-1 flex-col md:flex">
       <div className="mb-3 flex shrink-0 items-center gap-2">
         <button
           type="button"
-          onClick={() => setFiltering((on) => !on)}
+          onClick={() => {
+            // Hiding the chips must not leave an invisible chip filtering the columns.
+            if (filtering) setFilter(REPORT_FILTER_ALL);
+            setFiltering((on) => !on);
+          }}
           aria-pressed={filtering}
           className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-colors ${
             filtering ? "border-accent bg-accent text-accent-fg" : "border-line bg-surface"
@@ -65,7 +71,7 @@ export function HabitFamilyWide({
               column={column}
               together={page.together}
               showStreaks={showStreaks}
-              keep={(row) => matchesFilter(row, active)}
+              keep={(row) => matchesReportFilter(row, active)}
               onToggle={onToggle}
             />
           ))}

@@ -16,6 +16,9 @@ export type OrderResult = { ok: true } | { error: string };
 export async function setFamilyOrder(ids: string[]): Promise<OrderResult> {
   await requireRole("admin");
 
+  // A Server Action is a public POST: the argument is whatever the caller sent.
+  if (!Array.isArray(ids) || !ids.every((id) => typeof id === "string")) return { error: "The family changed. Reload and try again." };
+
   const people = await db.user.findMany({ where: HOUSEHOLD_PERSON_WHERE, select: { id: true } });
   if (!isExactHouseholdOrder(ids, people.map((person) => person.id))) {
     return { error: "The family changed. Reload and try again." };

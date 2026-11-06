@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Flame, Plane } from "lucide-react";
 import { ChoreShoutOutCard } from "./ChoreShoutOutCard";
 import { EmptyState } from "./EmptyState";
-import { ALL_FILTER, HabitFilterChips, activeFilter, buildFilterOptions, matchesFilter } from "./HabitFilterChips";
+import { HabitFilterChips, withTimeIcons } from "./HabitFilterChips";
 import { HabitConfetti } from "./HabitConfetti";
 import { HabitRow } from "./HabitRow";
 import { HoursLogSheet } from "./HoursLogSheet";
@@ -15,11 +15,12 @@ import { PlanDayCard } from "./PlanDayCard";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView, TodayNudge, TodayPrompt } from "@/lib/habitsRead";
 import { doneCountLabel } from "@/lib/habitsFamily";
+import { REPORT_FILTER_ALL, activeReportFilter, matchesReportFilter, reportFilterOptions } from "@/lib/habitsReportScope";
 import { allRequiredDoneToday } from "@/lib/habitsToday";
 import { formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { isExcused } from "@/lib/habits/weekOverrides";
-import { VACATION_TODAY_LABEL, streakLabel, vacationThroughLabel } from "@/lib/habitVocabulary";
+import { NOTHING_HERE_TODAY, VACATION_TODAY_LABEL, streakLabel, vacationThroughLabel } from "@/lib/habitVocabulary";
 
 /** Finished means checked or excused (skipped, on vacation, skipped this week): those sink to the bottom when the page loads. */
 function isFinished(row: HabitRowView) {
@@ -68,7 +69,7 @@ export function HabitTodayList({
   // The hours row whose log sheet is open, by id, so the sheet reads the row's live week.
   const [loggingId, setLoggingId] = useState<string | null>(null);
   const logging = live.find((row) => row.id === loggingId && row.hours);
-  const [filter, setFilter] = useState(ALL_FILTER);
+  const [filter, setFilter] = useState(REPORT_FILTER_ALL);
   // Done rows move to the bottom once, when the page loads. A tap must not
   // make a row jump away from under the finger, so the order is fixed here
   // and later rows (none expected) simply go last.
@@ -79,10 +80,11 @@ export function HabitTodayList({
   };
   const ordered = [...live].sort((a, b) => rank(a) - rank(b));
 
-  const options = buildFilterOptions(live);
-  const active = activeFilter(options, filter);
+  const filterOptions = reportFilterOptions(live, { kinds: false });
+  const options = withTimeIcons(filterOptions);
+  const active = activeReportFilter(filterOptions, filter);
 
-  const shown = ordered.filter((row) => matchesFilter(row, active));
+  const shown = ordered.filter((row) => matchesReportFilter(row, active));
   const sections = [
     { key: "habit", title: "Habits", rows: shown.filter((row) => row.kind === "habit") },
     { key: "chore", title: "Chores", rows: shown.filter((row) => row.kind === "chore") },
@@ -138,7 +140,7 @@ export function HabitTodayList({
           )}
         </div>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-muted">Nothing here today.</p>
+        <p className="text-sm text-muted">{NOTHING_HERE_TODAY}</p>
       ) : (
         <div className="flex flex-col gap-4">
           {sections.map((section) => (

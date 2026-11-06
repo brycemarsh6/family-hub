@@ -1,17 +1,27 @@
-import { TIMES_OF_DAY, type TimeOfDay } from "./habitVocabulary";
-import type { FamilyColumn, FamilyRow } from "./habitsFamily";
+import { NOTHING_DUE_TODAY, NOTHING_HERE_TODAY, ON_VACATION_LABEL, TIMES_OF_DAY, familyRowTag, type TimeOfDay } from "./habitVocabulary";
+import { countedRows, doneCountLabel, type FamilyColumn, type FamilyRow } from "./habitsFamily";
 
 // The wide (iPad) Whole family column: one person's rows grouped by time of
 // day. Pure, so the order and the merge are pinned by tests.
 
-export const TOGETHER_TAG = "Together";
-export const CHORE_TAG = "Chore";
+type ColumnInput = Pick<FamilyColumn, "rows" | "togetherIds" | "onVacation">;
 
-/** A row in a column, with the small tag the wide layout shows beside its title (null for a plain habit). */
-export type ColumnItem = { row: FamilyRow; tag: string | null };
+/** A row in a column, with the small tag the wide layout shows beside its title (null for a plain habit) and whether it is a Together row. */
+export type ColumnItem = { row: FamilyRow; tag: string | null; together: boolean };
 
 /** `key` is a time of day, or "anytime" for rows with none. */
 export type ColumnGroup = { key: TimeOfDay | "anytime"; items: ColumnItem[] };
+
+/** The person's rows once each (`countedRows`: their own, then the Together ones they are on), as column items. */
+function columnItems(column: ColumnInput, together: readonly FamilyRow[]): ColumnItem[] {
+  const seen = new Set<string>();
+  return countedRows(column, together)
+    .filter((row) => !seen.has(row.id) && seen.add(row.id))
+    .map((row) => {
+      const isTogether = column.togetherIds.includes(row.id);
+      return { row, tag: familyRowTag(isTogether, row.kind === "chore"), together: isTogether };
+    });
+}
 
 /**
  * A person's rows in Morning, Afternoon, Evening, then Anytime order, empty
@@ -19,18 +29,22 @@ export type ColumnGroup = { key: TimeOfDay | "anytime"; items: ColumnItem[] };
  * part in (`togetherIds`) follow, each once, marked with the person's vacation
  * the same way `countedRows` does. `keep` is the filter chip.
  */
-export function groupColumnRows(column: Pick<FamilyColumn, "rows" | "togetherIds" | "onVacation">, together: readonly FamilyRow[], keep: (row: FamilyRow) => boolean = () => true): ColumnGroup[] {
-  const own = column.rows.map((row): ColumnItem => ({ row, tag: row.kind === "chore" ? CHORE_TAG : null }));
-  const seen = new Set<string>();
-  const shared: ColumnItem[] = [];
-  for (const row of together) {
-    if (!column.togetherIds.includes(row.id) || seen.has(row.id)) continue;
-    seen.add(row.id);
-    shared.push({ row: column.onVacation ? { ...row, onVacation: true } : row, tag: row.kind === "chore" ? `${TOGETHER_TAG} · ${CHORE_TAG}` : TOGETHER_TAG });
-  }
-  const items = [...own, ...shared].filter((item) => keep(item.row));
+export function groupColumnRows(column: ColumnInput, together: readonly FamilyRow[], keep: (row: FamilyRow) => boolean = () => true): ColumnGroup[] {
+  const items = columnItems(column, together).filter((item) => keep(item.row));
   const keys: ColumnGroup["key"][] = [...TIMES_OF_DAY, "anytime"];
   return keys
     .map((key) => ({ key, items: items.filter((item) => (item.row.timeOfDay ?? "anytime") === key) }))
     .filter((group) => group.items.length > 0);
+}
+
+/** What an empty column says: nothing due at all, or (the filter chip hid every row) Today's "Nothing here today.". */
+export function emptyColumnText(column: ColumnInput, together: readonly FamilyRow[]): string {
+  return columnItems(column, together).length === 0 ? NOTHING_DUE_TODAY : NOTHING_HERE_TODAY;
+}
+
+/** The line under a person's name: "3 of 7 done", with "On vacation" after it (alone when nothing counts). */
+export function familyCountText(column: ColumnInput & Pick<FamilyColumn, "totalCount">, together: readonly FamilyRow[]): string {
+  if (column.onVacation && column.totalCount === 0) return ON_VACATION_LABEL;
+  const count = doneCountLabel(countedRows(column, together));
+  return column.onVacation ? `${count} · ${ON_VACATION_LABEL}` : count;
 }

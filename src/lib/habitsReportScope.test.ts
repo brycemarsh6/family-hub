@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "./householdDate";
 import type { HabitActor } from "./habits/types";
-import { matchesReportFilter, parseReportParams, reportFilterOptions, reportHref, reportPersonId, reportScope, type ReportParams } from "./habitsReportScope";
+import { activeReportFilter, matchesReportFilter, parseReportParams, reportFilterOptions, reportHref, reportPersonId, reportScope, type ReportParams } from "./habitsReportScope";
 import type { TodayHabitInput } from "./habitsToday";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -85,6 +85,25 @@ test("filter: All, Habits and Chores only when both, times of day, then life are
   assert.deepEqual(reportFilterOptions(items).map((option) => option.label), ["All", "Habits", "Chores", "Morning", "Evening", "Fun", "Health"]);
   assert.deepEqual(reportFilterOptions([items[0], items[1]]).map((option) => option.key), ["all", "time:morning", "time:evening", "area:fun", "area:health"]);
   assert.deepEqual(reportFilterOptions([]).map((option) => option.key), ["all"]);
+});
+
+test("filter: kinds false gives Today's chips (no Habits / Chores), with the same keys, labels and order", () => {
+  const rows = [
+    { kind: "habit" as const, timeOfDay: "evening", lifeArea: "fun" },
+    { kind: "chore" as const, timeOfDay: "morning", lifeArea: "health" },
+    { kind: "habit" as const, timeOfDay: null, lifeArea: "fun" },
+  ];
+  const chips = reportFilterOptions(rows, { kinds: false });
+  assert.deepEqual(chips, [
+    { key: "all", label: "All" },
+    { key: "time:morning", label: "Morning" },
+    { key: "time:evening", label: "Evening" },
+    { key: "area:fun", label: "Fun" },
+    { key: "area:health", label: "Health" },
+  ]);
+  assert.deepEqual(reportFilterOptions([], { kinds: false }), [{ key: "all", label: "All" }]);
+  assert.equal(activeReportFilter(chips, "time:morning"), "time:morning");
+  assert.equal(activeReportFilter(chips, "time:afternoon"), "all");
 });
 
 test("filter: matching, and a filter that matches nothing falls back to All", () => {

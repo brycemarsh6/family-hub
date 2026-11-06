@@ -87,7 +87,7 @@ export function HamburgerButton({
           className="print:hidden pointer-events-none fixed right-0 left-[var(--app-nav-width,0px)] z-50 flex justify-center"
           style={{ top: "calc(env(safe-area-inset-top) + 0.5rem)" }}
         >
-          <div className="w-full max-w-3xl px-4">{button}</div>
+          <div className="w-full max-w-3xl px-4 md:[body:has([data-fills-width])_&]:max-w-none">{button}</div>
         </div>
       ) : (
         button

@@ -4,9 +4,9 @@ import { Flame, Plane, Trophy } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { FamilyHabitRow } from "./HabitFamilyColumn";
 import { TIME_ICONS } from "./HabitFilterChips";
-import { ANYTIME_LABEL, CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, TIME_OF_DAY_LABELS, streakLabel } from "@/lib/habitVocabulary";
-import { countedRows, doneCountLabel, type FamilyColumn, type FamilyRow } from "@/lib/habitsFamily";
-import { groupColumnRows } from "@/lib/habitsFamilyColumns";
+import { ANYTIME_LABEL, CHORES_LAST_WEEK_FAMILY, TIME_OF_DAY_LABELS, streakLabel } from "@/lib/habitVocabulary";
+import type { FamilyColumn, FamilyRow } from "@/lib/habitsFamily";
+import { emptyColumnText, familyCountText, groupColumnRows } from "@/lib/habitsFamilyColumns";
 
 /**
  * One person's column on the iPad: 330px wide, scrolling on its own. The header
@@ -46,11 +46,7 @@ export function HabitFamilyWideColumn({
           <div className="flex min-w-0 flex-1 flex-col">
             <h2 className="truncate text-lg font-bold leading-tight">{column.displayName}</h2>
             <span className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
-              {column.onVacation && column.totalCount === 0
-                ? ON_VACATION_LABEL
-                : column.onVacation
-                  ? `${doneCountLabel(countedRows(column, together))} · ${ON_VACATION_LABEL}`
-                  : doneCountLabel(countedRows(column, together))}
+              {familyCountText(column, together)}
               {streak && (
                 <span className="inline-flex items-center gap-0.5 font-semibold text-streak">
                   <Flame aria-hidden="true" size={14} />
@@ -69,7 +65,7 @@ export function HabitFamilyWideColumn({
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-3.5">
-        {groups.length === 0 && <p className="py-3 text-sm text-muted">Nothing due today.</p>}
+        {groups.length === 0 && <p className="py-3 text-sm text-muted">{emptyColumnText(column, together)}</p>}
         {groups.map((group) => {
           const Icon = group.key === "anytime" ? null : TIME_ICONS[group.key];
           return (
@@ -79,9 +75,9 @@ export function HabitFamilyWideColumn({
                 {group.key === "anytime" ? ANYTIME_LABEL : TIME_OF_DAY_LABELS[group.key]}
               </h3>
               <ul className="divide-y divide-line">
-                {group.items.map(({ row, tag }) => (
+                {group.items.map(({ row, tag, together: isTogether }) => (
                   <li key={row.id}>
-                    <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => onToggle(row)} together={tag?.startsWith("Together")} tag={tag} />
+                    <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => onToggle(row)} together={isTogether} tag={tag} />
                   </li>
                 ))}
               </ul>

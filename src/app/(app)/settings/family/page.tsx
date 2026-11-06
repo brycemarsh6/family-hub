@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { BackLink } from "@/components/BackLink";
 import { FamilyList } from "@/components/FamilyList";
 import { FamilyOrderList } from "@/components/FamilyOrderList";
-import { HOUSEHOLD_ORDER_BY, HOUSEHOLD_PERSON_WHERE } from "@/lib/householdPeople";
+import { loadHouseholdPeople } from "@/lib/householdPeople";
 import { PERSON_SELECT, toPersonInfo, type PersonInfo } from "@/lib/personInfo";
 
 // Reads the session, so it can never be cached.
@@ -31,11 +31,7 @@ export default async function FamilyPage() {
   const people: PersonInfo[] = rows.map(toPersonInfo);
 
   // Active household people (no devices, no deactivated), in the saved order.
-  const orderPeople = await db.user.findMany({
-    where: HOUSEHOLD_PERSON_WHERE,
-    orderBy: HOUSEHOLD_ORDER_BY,
-    select: { id: true, displayName: true, avatarColor: true },
-  });
+  const orderPeople = await loadHouseholdPeople();
 
   return (
     <div className="py-2">
@@ -50,9 +46,9 @@ export default async function FamilyPage() {
 
       <h2 className="mb-1 mt-8 text-lg font-semibold">Family order</h2>
       <p className="mb-3 text-sm text-muted">
-        Drag to set the order people appear in across Marshee, like Whole family.
+        Drag to set the order people appear in on Whole family, the habit pickers and the vision boards.
       </p>
-      <FamilyOrderList people={orderPeople} />
+      <FamilyOrderList key={orderPeople.map((p) => `${p.id}:${p.displayName}:${p.avatarColor}`).join("|")} people={orderPeople} />
     </div>
   );
 }

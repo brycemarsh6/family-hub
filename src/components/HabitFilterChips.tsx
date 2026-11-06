@@ -1,41 +1,17 @@
 import { createElement } from "react";
 import { Moon, Sun, Sunset, type LucideIcon } from "lucide-react";
-import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
-import { TIMES_OF_DAY, TIME_OF_DAY_LABELS } from "@/lib/habitVocabulary";
 
 export type HabitFilterOption = { key: string; label: string; icon?: LucideIcon };
 
 /** The icon for each time of day, wherever a filter offers one. */
 export const TIME_ICONS = { morning: Sun, afternoon: Sunset, evening: Moon } as const;
 
-export const ALL_FILTER = "all";
-
-/** Which chips to offer: only the times of day and life areas that rows actually use (Today and the wide family view share this). */
-export function buildFilterOptions(rows: readonly { timeOfDay: string | null; lifeArea: string | null }[]): HabitFilterOption[] {
-  const options: HabitFilterOption[] = [{ key: ALL_FILTER, label: "All" }];
-  for (const time of TIMES_OF_DAY) {
-    if (rows.some((row) => row.timeOfDay === time)) {
-      options.push({ key: `time:${time}`, label: TIME_OF_DAY_LABELS[time], icon: TIME_ICONS[time] });
-    }
-  }
-  const areas = new Set<string>();
-  for (const row of rows) {
-    const area = toLifeArea(row.lifeArea);
-    if (area) areas.add(area);
-  }
-  for (const area of areas) options.push({ key: `area:${area}`, label: lifeAreaInfo(toLifeArea(area)!).short });
-  return options;
-}
-
-/** If the chosen chip's last row went away (the server refreshed), show everything again. */
-export function activeFilter(options: readonly HabitFilterOption[], filter: string): string {
-  return options.some((option) => option.key === filter) ? filter : ALL_FILTER;
-}
-
-/** Whether a row passes the lit chip. */
-export function matchesFilter(row: { timeOfDay: string | null; lifeArea: string | null }, active: string): boolean {
-  if (active === ALL_FILTER) return true;
-  return active.startsWith("time:") ? `time:${row.timeOfDay}` === active : `area:${row.lifeArea}` === active;
+/** The shared filter options (`reportFilterOptions`, `kinds: false`) with the time-of-day icons attached. */
+export function withTimeIcons(options: readonly { key: string; label: string }[]): HabitFilterOption[] {
+  return options.map(({ key, label }) => {
+    const time = key.startsWith("time:") ? (key.slice(5) as keyof typeof TIME_ICONS) : null;
+    return { key, label, icon: time ? TIME_ICONS[time] : undefined };
+  });
 }
 
 /**

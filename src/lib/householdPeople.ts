@@ -12,10 +12,10 @@ import type { Prisma } from "@/generated/prisma/client";
 export const HOUSEHOLD_PERSON_WHERE = { deactivatedAt: null, role: { not: "device" } } satisfies Prisma.UserWhereInput;
 
 /** A household person, as a list needs them. */
-export type HouseholdPerson = { id: string; displayName: string };
+export type HouseholdPerson = { id: string; displayName: string; avatarColor: string };
 
 /** The household order: placed people by `familyOrder`, then the unplaced by oldest profile. */
-export const HOUSEHOLD_ORDER_BY = [
+const HOUSEHOLD_ORDER_BY = [
   { familyOrder: { sort: "asc", nulls: "last" } },
   { createdAt: "asc" },
 ] satisfies Prisma.UserOrderByWithRelationInput[];
@@ -25,6 +25,6 @@ export async function loadHouseholdPeople(client: Prisma.TransactionClient = db)
   return client.user.findMany({
     where: HOUSEHOLD_PERSON_WHERE,
     orderBy: HOUSEHOLD_ORDER_BY,
-    select: { id: true, displayName: true },
+    select: { id: true, displayName: true, avatarColor: true },
   });
 }
