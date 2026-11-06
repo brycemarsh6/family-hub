@@ -445,6 +445,51 @@ in PR B (mission 31).
      open that page (102); otherwise it is plain text, so no tap leads to
      Not found. Decided by Hill, high.
 
+### Before PR D (decided by Hill, 2026-11-05; Bryce may overturn)
+
+115. **Vacation days on Today:** the person's rows show excused (muted, at
+     the bottom, meta "On vacation"); the check still works; excused rows
+     leave "x of y done" and the confetti rule. A card at the top: "You're
+     on vacation through Nov 12" ("You're on vacation today" on the last
+     day) with a "Change" link to Settings. The family view shows "On
+     vacation" under the name and the rows excused. (high)
+116. **Default week Add:** an inline name field with Save in that day card;
+     saving makes a Certain days chore on that weekday for the selected
+     person (Anytime, carry over off, default icon, Side by side, not
+     private). Tapping a chore opens its Edit page. A chore on several days
+     shows under each. (high)
+117. **This week changes:** tapping a chore opens a sheet titled with its
+     name (plus its who label when shared): "Move to" chips for today and
+     later days this week except its own day, "Skip this week", and "Back
+     to the default" when a change exists. No Add on This week (the board's
+     Add is removed there). Tags "Moved to Thu", "This week only",
+     "Skipped this week". (medium)
+118. **Who edits a chart:** yourself; parents and admins anyone; a kid only
+     their own. The tablet is sent to `/habits`, like Manage. (high)
+119. **Chart chips:** one per active non-tablet person by first name, the
+     viewer first and selected, then family order. No "Kids" chip. (high)
+120. **The chore streak** shows as a flame and "N days" after the "Chores"
+     title on Today and on each person's family card; 2 or more, the Show
+     streaks switch, always on the tablet. Chore rows lose their own flame;
+     a chore's stats page keeps its tiles. Lifts 95's "no header flame".
+     (high)
+121. **No daily chore shout-out line:** confetti stays the one daily
+     celebration (76). (medium)
+122. **Sunday shout-out:** all Sunday, a card at the top of Today "You
+     finished every chore last week. Way to go!", and on the person's
+     family card "Finished every chore last week". Shown only when at least
+     one chore was due last week and no day broke the chore streak. (medium;
+     the plan said Bryce approves this wording)
+123. **Vacation card:** each login sets only their own; no card on the
+     tablet; current, then upcoming, then past (newest first), each with a
+     one-tap Delete. From may be past; Through on or after From; overlap
+     refused with "These days overlap a vacation you already have." Saving
+     or deleting recomputes that person's streaks. Kids' vacations wait for
+     kid profiles. (medium)
+124. **The chart is reached** from Manage's row "Chore chart · Each
+     person's default week" (above Archived), `/habits/chart`, BackLink
+     "Manage", subtitle "Emily's week". (high)
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for
