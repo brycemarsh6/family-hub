@@ -323,9 +323,12 @@ Fury's recommendations, recorded; Bryce can overturn any:
 +------------------------+  +------------------------+
 ```
 
-  The circle is the person's avatar colour and initial. "3 left today" is a
-  Fury suggestion for Hill or Bryce to confirm at build time (the tile can be
-  a plain link if the count costs too much).
+  The circle is the person's avatar colour and initial. **The count is
+  decided by Bryce (2026-11-06): show it.** "N left today" counts that
+  person's habits and chores due today and not yet checked; "All done" when
+  none are left. It must use the same "due today" rule as the Today list and
+  the Habits today tile (one source of truth, `src/lib/habits/`), never a
+  second count. A private habit never counts on someone else's view.
 - Where it leads: on someone's own phone, their own tile opens their Today;
   anyone else's opens Whole family with that person's chip picked (the chips
   exist, decision 95; `habits/page.tsx:23` forces Whole family on the tablet).
