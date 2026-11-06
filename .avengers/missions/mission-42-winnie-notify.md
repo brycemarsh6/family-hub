@@ -1,7 +1,7 @@
 # Mission 42: Marshee → Winnie notification sender
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** AT-THE-GATES
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/winnie-notify-ed0df7` (from `origin/main` at `a1f9b6e`)
 
@@ -145,6 +145,8 @@ Stark + Vision + Strange (visible Settings change). Captain only if the diff pas
 
 ### C3 — Records (Fury)
 
+- **Status:** DONE (commit "Mission 42 C3"). recordcheck: 0 hard failures; its REVIEW lines were contract prose, and `WINNIE_WEBHOOK_URL` / `_KEY` appear in exactly one source file (`winnieNotify.ts`).
+
 Mission file, a short STRUCTURE.md entry, the CLAUDE.md lines (Assistant API neighbour bullet and the Current status line replacing the stale mission 40 line).
 
 ## Gate ledger
@@ -153,6 +155,18 @@ Mission file, a short STRUCTURE.md entry, the CLAUDE.md lines (Assistant API nei
 |---|---|---|---|---|
 
 Budget: 3 passes per gate, then STOP.
+
+## Fury's live check (2026-11-06, before the gates)
+
+The real `winnieNotify.ts` was driven with the real `fetch` against a fake webhook on `127.0.0.1:8787` (scratchpad `mock-winnie.mjs`). The fake URL and key were set only in each command's own environment. `server-only` was stubbed with a CommonJS resolve shim, because `--conditions=react-server` breaks lucide in `constants.ts`.
+- **ok:** one POST with `Authorization: Bearer test-key` and `Content-Type: application/json`. Body `{eventId, type, occurredAt: "2026-11-06T15:18:00-07:00", title, body}`. Result `ok, status 200, attempts 1`.
+- **401:** one attempt, then `rejected`.
+- **flaky (500, 500, 200):** three POSTs with byte-identical bodies and one eventId, at 22:18:00.62, :01.62 and :04.63 (1 s, then 3 s). Result `ok, attempts 3`.
+- **always503:** three attempts, then `unreachable, status 503`.
+- **hang:** three timeouts about 10 s apart, `unreachable`, 34.0 s in total.
+- **Both env vars unset:** `not-configured`; the mock logged no POST.
+- **Log lines:** stdout carried no `test-key` and no `127.0.0.1`.
+- **Dev server:** the worktree's `.env` is a symlink to the shared one (`../../../.env`), as in other worktrees. No agent reads it.
 
 ## Handoff log
 
