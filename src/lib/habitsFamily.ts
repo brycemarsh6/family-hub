@@ -49,10 +49,22 @@ export type FamilyRow = HabitRowView & { canLog: boolean; logForId: string };
 
 export type FamilyColumn = FamilyPerson & {
   rows: FamilyRow[];
-  /** Rows the person has checked today (a skip is not counted as done). */
+  /** Rows the person has checked today, out of the rows they owe (skipped rows are in neither number, decision 109). */
   doneCount: number;
   totalCount: number;
 };
+
+/** "Done of owed" over rows that are still in play: a skipped row is neither done nor owed (decision 109). One rule for Today and the family view. */
+export function doneCounts(rows: readonly Pick<HabitRowView, "doneToday" | "skippedToday">[]): { done: number; total: number } {
+  const owed = rows.filter((row) => !row.skippedToday);
+  return { done: owed.filter((row) => row.doneToday).length, total: owed.length };
+}
+
+/** "3 of 7 done". */
+export function doneCountLabel(rows: readonly Pick<HabitRowView, "doneToday" | "skippedToday">[]): string {
+  const { done, total } = doneCounts(rows);
+  return `${done} of ${total} done`;
+}
 
 export type FamilyPage = {
   today: string;
@@ -103,7 +115,8 @@ export function buildFamilyPage(
       const row = rowFor(person.id, habit, viewer, logsByHabit, today, vacationsByUser);
       return row ? [familyRow(row, viewer, person.id)] : [];
     });
-    return { ...person, rows, doneCount: rows.filter((row) => row.doneToday).length, totalCount: rows.length };
+    const { done, total } = doneCounts(rows);
+    return { ...person, rows, doneCount: done, totalCount: total };
   });
   return { today: formatCalendarDate(today), together, columns };
 }

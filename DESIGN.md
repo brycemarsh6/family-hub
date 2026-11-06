@@ -279,6 +279,18 @@ A new one-off that duplicates one of these jobs is a design violation:
   tags, swipe left for Skip today). `HabitForm` is the one New and Edit form for
   a habit or chore, built from `ParticipantPicker`, `HabitIconPicker` and
   `HabitScheduleField`; a new habit field goes in it, never in a second form
+- `HabitFamilyView` / `HabitFamilyColumn` / `HabitViewChips`: the Whole
+  family view of Habits & Chores. `HabitFamilyView` is the Together strip plus
+  a grid of person cards (`auto-fit` columns of at least 340px: stacked on a
+  phone, two across on an 820px iPad); `HabitFamilyColumn` is one card (avatar,
+  name, "x of y done" with skipped rows in neither number, then Habits and
+  Chores) and holds `FamilyHabitRow`, the compact line: icon and title linking
+  to the stats page, streak label, 44px check. A row the viewer may not tick for
+  shows its state in a plain marker that is not a button. `HabitViewChips` is
+  the "Mine" / "Whole family" pair of link pills above both views, the choice
+  kept in the URL (`?view=family`); it is a view switch, not a second
+  `PlansTabs`, and the wall tablet never shows it. A column header has no
+  flame until the chore streak exists
 - `DashboardWidgetList` (the dashboard's heading row, widget grid and
   Customize button) / `DashboardCustomizeSheet` (on/off switch and up/down
   arrows per widget, Reset to default): the only way to show, hide or

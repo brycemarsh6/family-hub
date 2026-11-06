@@ -226,7 +226,8 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Verification:** full gauntlet.
 
 ### C5 - The family view
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc, eslint, 759 tests; build EXIT=0 with a fake database URL)
+- **Notes:** `doneCounts` / `doneCountLabel` in `habitsFamily.ts` are the one count rule (109). Chips (`HabitViewChips`) live in `HabitFamilyView.tsx`, rendered by the page. The family view has its own compact row (`FamilyHabitRow`), no swipe to skip. Its optimistic `run()` wrapper repeats about 12 lines of `HabitTodayList`: Captain to judge. A tablet always gets the family view, even with `?view=mine`.
 - **Objective:** the family view from the Family board (95).
 - **Boundaries:** may touch: `src/app/(app)/habits/page.tsx`,
   `src/components/HabitTodayList.tsx` (the Mine / Whole family chips only),
@@ -248,3 +249,12 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
   otherwise, title tap to stats. Phone: cards stack; iPad 820: two columns
   if they fit. Private habits never appear.
 - **Verification:** full gauntlet.
+
+### F0 - Hill's stats wording (decisions 110 to 112)
+- **Status:** PENDING (after C5; batched with gate fixes)
+- **Objective:** apply 110 (nudge row "Name · Not done yet today"), 111
+  (table streak "0 days" / "1 day" / "N days" with its own label helper in
+  `habitVocabulary.ts`, rate "None yet" when null), 112 (month name only).
+- **Boundaries:** `HabitStats.tsx`, `HabitSideBySide.tsx`,
+  `HabitMonthCalendar.tsx`, `NudgeButton.tsx`, `habitVocabulary.ts` and its
+  test.

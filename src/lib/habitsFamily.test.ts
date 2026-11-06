@@ -11,6 +11,8 @@ import type { HabitActor, HabitLogDay, ScheduleSpec } from "./habits/types";
 import {
   buildFamilyPage,
   buildStatsData,
+  doneCountLabel,
+  doneCounts,
   perfectDayEntries,
   statsSubject,
   type StatsBuildInput,
@@ -125,6 +127,29 @@ test("buildFamilyPage: each column follows that person's own order, and the coun
   assert.deepEqual(c.rows, [], "a person with no habits still gets a column");
 });
 
+test("doneCounts: a skipped row leaves both numbers (decision 109), and the label reads from them", () => {
+  const rows = [
+    { doneToday: true, skippedToday: false },
+    { doneToday: false, skippedToday: false },
+    { doneToday: false, skippedToday: true },
+  ];
+  assert.deepEqual(doneCounts(rows), { done: 1, total: 2 });
+  assert.equal(doneCountLabel(rows), "1 of 2 done");
+  assert.equal(doneCountLabel([]), "0 of 0 done");
+  assert.equal(doneCountLabel([{ doneToday: false, skippedToday: true }]), "0 of 0 done");
+});
+
+test("buildFamilyPage: a skipped habit leaves both of a person's column numbers, the same as on Today", () => {
+  const a = habit({ id: "a" });
+  const b = habit({ id: "b" });
+  const c = habit({ id: "c" });
+  const page = buildFamilyPage(amy, [a, b, c], people, logs([["a", [log("ben", today)]], ["b", [log("ben", today, "skipped")]]]), today);
+  const benColumn = page.columns[1];
+  assert.equal(benColumn.doneCount, 1);
+  assert.equal(benColumn.totalCount, 2);
+  assert.equal(benColumn.rows.length, 3, "the skipped row still shows");
+});
+
 test("buildFamilyPage: canLog is the policy per column (self, the tablet, a parent; not a sibling)", () => {
   const h = habit({ id: "h" });
   const rowFor = (viewer: HabitActor, col: number) => buildFamilyPage(viewer, [h], people, logs([]), today).columns[col].rows[0].canLog;
@@ -219,6 +244,13 @@ test("buildStatsData: the tiles are the viewer's, or the first person's when a p
   assert.equal(parent.subjectId, "ben");
   assert.equal(parent.canTap, true);
   assert.equal(buildStatsData(statsInput({ viewer: tablet, members }))!.canTap, true);
+});
+
+test("buildStatsData: subjectName is the subject's display name (the viewer's own, else the kid a parent is looking at)", () => {
+  const members = [joined("ben"), joined("cat", { joinedAt: new Date("2025-01-01") })];
+  assert.equal(buildStatsData(statsInput({ viewer: ben, members }))!.subjectName, "BEN", "the viewer when they are on the habit");
+  assert.equal(buildStatsData(statsInput({ viewer: amy, members }))!.subjectName, "CAT", "the longest-joined person for a parent");
+  assert.equal(buildStatsData(statsInput({ viewer: amy, members: [joined("ben")] }))!.subjectName, "BEN");
 });
 
 test("buildStatsData: dates leave as YYYY-MM-DD strings and the calendar is the month shown", () => {

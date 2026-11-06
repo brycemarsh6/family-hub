@@ -13,6 +13,7 @@ import type { HabitActionResult } from "@/app/actions/habits";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView, TodayNudge } from "@/lib/habitsRead";
+import { doneCountLabel } from "@/lib/habitsFamily";
 import { allRequiredDoneToday } from "@/lib/habitsToday";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { TIMES_OF_DAY, TIME_OF_DAY_LABELS } from "@/lib/habitVocabulary";
@@ -24,12 +25,6 @@ const ALL = "all";
 /** Finished means checked or skipped: those sink to the bottom when the page loads. */
 function isFinished(row: HabitRowView) {
   return row.doneToday || row.skippedToday;
-}
-
-/** "3 of 7 done" over rows that are still in play: a skipped row is neither done nor owed. */
-function countLabel(rows: HabitRowView[]) {
-  const owed = rows.filter((row) => !row.skippedToday);
-  return `${owed.filter((row) => row.doneToday).length} of ${owed.length} done`;
 }
 
 export function HabitTodayList({
@@ -120,7 +115,7 @@ export function HabitTodayList({
       <NudgeCards nudges={nudges} />
       <p className="mb-3 text-sm text-muted">
         {todayLabel}
-        {live.length > 0 && ` · ${countLabel(live)}`}
+        {live.length > 0 && ` · ${doneCountLabel(live)}`}
       </p>
 
       {live.length > 0 && options.length > 1 && <HabitFilterChips options={options} value={active} onChange={setFilter} />}
@@ -155,7 +150,7 @@ export function HabitTodayList({
             <section key={section.key}>
               <div className="mb-1.5 flex items-baseline justify-between">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{section.title}</h2>
-                <span className="text-sm text-muted">{countLabel(section.rows)}</span>
+                <span className="text-sm text-muted">{doneCountLabel(section.rows)}</span>
               </div>
               <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
                 {section.rows.map((row) => (
