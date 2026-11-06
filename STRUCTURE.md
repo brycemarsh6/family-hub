@@ -239,7 +239,8 @@ Adding a second definition of any of these is a BLOCKER:
   store the key. It
   lives beside `constants.ts`, not in it, because `constants.ts` sits at the
   soft cap (same precedent as `navMode.ts`). `GOAL_OWNERSHIP_LABELS` there is
-  the only "Mine" / "Together" wording. (Added 2026-11-04, mission-27; Bryce
+  the only "Mine" / "Together" wording for a goal's ownership; a habit's
+  who-words live in `habitVocabulary.ts` (mission-31). (Added 2026-11-04, mission-27; Bryce
   approved the plan.)
 - `src/lib/goals.ts`: `canSee` / `canEdit` / `canLog` are the only goal
   policy. An action, page **or component** comparing a goal's `ownerId` or
@@ -319,9 +320,11 @@ Adding a second definition of any of these is a BLOCKER:
   `src/lib/voice/` precedent. `schedule.ts`, `carryOver.ts`, `streaks.ts`,
   `progress.ts`, `perfectDays.ts`, `planPrompts.ts`, `access.ts`,
   `habitRows.ts` and `types.ts` are pure: no Prisma client, no `db`, and
-  callers pass `today`. `habitWrites.ts` (`server-only`) is the only writer
-  of the `Habit`, `HabitParticipant` and `HabitLog` tables, and of the
-  cached streak columns. `src/lib/habitsRead.ts` is the only page reader of
+  callers pass `today`. `habitWrites.ts` and `participantWrites.ts` (both
+  `server-only`) are the only writers of the `Habit`, `HabitParticipant` and
+  `HabitLog` tables; `habitWrites.ts` alone writes the cached streak columns,
+  and `participantWrites.ts` holds the participant writes (join, reorder,
+  replace) and `atomically`. (Second file added mission-31.) `src/lib/habitsRead.ts` is the only page reader of
   habit rows. **Dependency direction:** `src/lib/habits/` may import
   `habitVocabulary.ts`, `householdDate.ts`, `constants.ts`, `db.ts` and the
   generated client (types). It never imports `goals*.ts`,
@@ -339,10 +342,11 @@ Adding a second definition of any of these is a BLOCKER:
   grandfathered and move to the helper in the next mission that touches each
   one: `plans/goals/[id]/page.tsx`, `plans/goals/[id]/edit/page.tsx`,
   `actions/goals.ts` and `goalsProgress.ts`. (Added mission-30.)
-- `householdParticipantIds(client)` in `habits/habitWrites.ts` is the one
-  rule for who holds a Together habit: every active person who is not a
+- `householdParticipantIds(client)` in `habits/participantWrites.ts` is the
+  one rule for who holds an Everyone habit: every active person who is not a
   shared device login. Callers ask for it with `createHabit`'s
-  `participantIds: "household"`. They never query `User` for participants
+  `participantIds: "household"`, or call it directly to resolve Everyone or
+  validate a picked list (mission-31). They never query `User` for participants
   themselves, and an action that filters on `deactivatedAt` or `role` to
   pick habit participants is a BLOCKER. (Added mission-30.)
 - `habits/access.ts` is the only habit policy: `canSeeHabit`, `canEditHabit`
@@ -370,10 +374,26 @@ Adding a second definition of any of these is a BLOCKER:
   login" (`deactivatedAt: null`, `role` not `"device"`) is defined once, in a
   small server-only home, `src/lib/householdPeople.ts`, and both
   `householdParticipantIds` (habits) and `visionsRead.ts`'s board list call
-  it. A third inline copy of that filter for "the family" is a BLOCKER. Until
-  a mission makes that file, the two existing copies (`habitWrites.ts` and
-  `visionsRead.ts`) are named debt; the first mission that touches either one
-  moves both. (Approved by Bryce 2026-11-05, mission-30, Captain's A8.)
+  it. A third inline copy of that filter for "the family" is a BLOCKER. The
+  file exists since mission-31 (`HOUSEHOLD_PERSON_WHERE`,
+  `loadHouseholdPeople`); pages reach it through a reader such as
+  `habitsRead.ts`'s `loadHabitRoster`. (Approved by Bryce 2026-11-05,
+  mission-30, Captain's A8; debt closed mission-31.)
+- **Habits & Chores PR B homes (mission-31).** `src/lib/habitsToday.ts` is
+  the only home of the Today page's rules (row building, viewer order,
+  `carrySince`, `habitStartDay`, the tap-day window `isTapDayAllowed` /
+  `TAP_DAYS_BACK`); it is pure, and `habitsRead.ts` fetches and calls it.
+  `src/lib/habitChanges.ts`'s `applyHabitChange` is the only optimistic
+  reducer for Today rows (the `planItemChanges.ts` precedent).
+  `src/components/HabitIcon.tsx`'s record is the only habit icon-name to
+  Lucide map, total over `HABIT_ICONS`. `src/components/SortableList.tsx` is
+  the only file that imports `@dnd-kit`. Tap actions live in
+  `actions/habitChecks.ts`, editor actions in `actions/habits.ts`. Habit
+  words (schedule labels long and short, time of day, who-labels, the title
+  limit, `canCarryOver`, `canBePrivate`, `isCheckStatus`) live in
+  `habitVocabulary.ts`; "Mine" / "Together" for a habit's people is
+  `habitWhoLabel` there, and `GOAL_OWNERSHIP_LABELS` stays the words for a
+  goal's ownership.
 - `formatShortCalendarDate` in `householdDate.ts`: the shared "Nov 3"
   formatter (`MONTH_NAMES` is now exported from `mealPlanDates.ts` for it).
   (Added 2026-11-04, mission-27; Bryce approved the plan.)
