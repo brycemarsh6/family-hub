@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, SlidersHorizontal } from "lucide-react";
+import { BarChart3, ChevronRight, Plus, SlidersHorizontal } from "lucide-react";
 import { HabitFamilyView } from "@/components/HabitFamilyView";
 import { HabitTodayList } from "@/components/HabitTodayList";
 import { HabitViewChips } from "@/components/HabitViewChips";
@@ -9,6 +9,7 @@ import { loadTodayPage } from "@/lib/habitsRead";
 import { loadFamilyPage } from "@/lib/habitsStatsRead";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { formatDayLabel } from "@/lib/mealPlanDates";
+import { REPORT_LABELS } from "@/lib/habitVocabulary";
 
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
@@ -72,6 +73,19 @@ export default async function HabitsPage({ searchParams }: { searchParams: Promi
             todayKey={formatCalendarDate(today)}
           />
         )
+      )}
+      {/* The one way in to the Report (decision 163); the tablet never sees it. */}
+      {canManage && (
+        <Link href="/habits/report" className="mt-5 flex min-h-15 items-center gap-3 rounded-2xl border border-line bg-surface px-3 py-1.5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
+            <BarChart3 aria-hidden="true" size={20} />
+          </div>
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-base font-semibold">{REPORT_LABELS.title}</span>
+            <span className="text-sm text-muted">{REPORT_LABELS.linkHint}</span>
+          </span>
+          <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+        </Link>
       )}
     </div>
   );

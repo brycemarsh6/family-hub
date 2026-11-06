@@ -9,16 +9,12 @@ import type { CalendarDate } from "./householdDate";
 import type { HabitActor, HabitLogDay, Vacation, WeekOverride } from "./habits/types";
 import {
   buildHabitReport,
-  matchesReportFilter,
-  parseReportParams,
-  reportFilterOptions,
-  reportScope,
   type HabitReport,
   type ReportData,
   type ReportMonthCard,
-  type ReportParams,
   type ReportWeekRow,
 } from "./habitsReport";
+import { reportScope, type ReportParams } from "./habitsReportScope";
 import type { TodayHabitInput } from "./habitsToday";
 import { formatWeekTitle } from "./mealPlanDates";
 
@@ -75,24 +71,6 @@ function report(viewer: HabitActor, habits: TodayHabitInput[], p: Partial<Report
 
 const rowsOf = (r: HabitReport) => r.sections.flatMap((section) => section.rows);
 const ids = (r: HabitReport) => rowsOf(r).map((row) => row.id);
-
-// ---- Params ----
-
-test("parseReportParams: defaults, valid values, week and month snapped, arrays take the first", () => {
-  const empty = parseReportParams({}, today);
-  assert.deepEqual(empty, { view: "week", week: d(2026, 11, 1), month: d(2026, 11, 1), year: 2026, person: null, filter: "all", item: null });
-  const full = parseReportParams({ view: "month", week: "2026-10-14", month: "2025-12", year: "2024", person: "bob", filter: "kind:chore", item: "h1" }, today);
-  assert.deepEqual(full, { view: "month", week: d(2026, 10, 11), month: d(2025, 12, 1), year: 2024, person: "bob", filter: "kind:chore", item: "h1" });
-  assert.equal(parseReportParams({ view: ["year", "week"] }, today).view, "year");
-});
-
-test("parseReportParams: garbage falls back to today's period", () => {
-  const bad = parseReportParams({ view: "decade", week: "soon", month: "2026-13", year: "26" }, today);
-  assert.equal(bad.view, "week");
-  assert.deepEqual(bad.week, d(2026, 11, 1));
-  assert.deepEqual(bad.month, d(2026, 11, 1));
-  assert.equal(bad.year, 2026);
-});
 
 // ---- The week title ----
 
@@ -199,37 +177,6 @@ test("items: an unreadable schedule is left out; no items gives the empty states
   assert.equal(report(parent, [], { view: "year" }).empty!.title, "Nothing to report yet");
 });
 
-// ---- The filter ----
-
-test("filter: All, Habits and Chores only when both, times of day, then life areas in the order met (decision 169)", () => {
-  const items = [
-    { kind: "habit" as const, timeOfDay: "evening", lifeArea: "fun" },
-    { kind: "habit" as const, timeOfDay: "morning", lifeArea: "health" },
-    { kind: "chore" as const, timeOfDay: null, lifeArea: "fun" },
-  ];
-  assert.deepEqual(reportFilterOptions(items).map((option) => option.key), ["all", "kind:habit", "kind:chore", "time:morning", "time:evening", "area:fun", "area:health"]);
-  assert.deepEqual(reportFilterOptions(items).map((option) => option.label), ["All", "Habits", "Chores", "Morning", "Evening", "Fun", "Health"]);
-  assert.deepEqual(reportFilterOptions([items[0], items[1]]).map((option) => option.key), ["all", "time:morning", "time:evening", "area:fun", "area:health"]);
-  assert.deepEqual(reportFilterOptions([]).map((option) => option.key), ["all"]);
-});
-
-test("filter: matching, and a filter that matches nothing falls back to All", () => {
-  const item = { kind: "chore" as const, timeOfDay: "morning", lifeArea: "health" };
-  assert.equal(matchesReportFilter(item, "all"), true);
-  assert.equal(matchesReportFilter(item, "kind:chore"), true);
-  assert.equal(matchesReportFilter(item, "kind:habit"), false);
-  assert.equal(matchesReportFilter(item, "time:morning"), true);
-  assert.equal(matchesReportFilter(item, "time:evening"), false);
-  assert.equal(matchesReportFilter(item, "area:health"), true);
-  assert.equal(matchesReportFilter(item, "area:fun"), false);
-  const habits = [habit("a", { timeOfDay: "morning" }), habit("b", { kind: "chore" })];
-  const lit = report(parent, habits, { filter: "time:morning" });
-  assert.deepEqual([lit.filter.value, ids(lit)], ["time:morning", ["a"]]);
-  const gone = report(parent, habits, { filter: "time:evening" });
-  assert.deepEqual([gone.filter.value, ids(gone)], ["all", ["a", "b"]]);
-  assert.equal(report(parent, habits, { filter: "area:bogus" }).filter.value, "all");
-});
-
 // ---- The pager ----
 
 test("pager: next is disabled on the current period, previous before the earliest start", () => {
@@ -259,16 +206,6 @@ test("pager: the earliest start is among the shown items (the filter moves it), 
   const year = report(parent, [early], { view: "year", year: 2025 }).pager;
   assert.deepEqual([year.title, year.prev, year.next, year.pill], ["2025", null, "2026", null]);
   assert.equal(report(parent, [early], { view: "year", year: 2030 }).pager.next, null);
-});
-
-test("scope: reads only the range shown, for the items drawn", () => {
-  const habits = [habit("a"), habit("b", { kind: "chore" })];
-  const week = reportScope(parent, params({ week: d(2026, 10, 25) }), habits, people, today);
-  assert.deepEqual([week.from, week.to, week.items.map((item) => item.id)], [d(2026, 10, 25), d(2026, 10, 31), ["a", "b"]]);
-  const month = reportScope(parent, params({ view: "month", month: d(2026, 10, 1) }), habits, people, today);
-  assert.deepEqual([month.from, month.to], [d(2026, 10, 1), d(2026, 10, 31)]);
-  const year = reportScope(parent, params({ view: "year", item: "b" }), habits, people, today);
-  assert.deepEqual([year.from, year.to, year.items.map((item) => item.id)], [d(2026, 1, 1), d(2026, 12, 31), ["b"]]);
 });
 
 // ---- Week view ----

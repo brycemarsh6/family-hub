@@ -337,6 +337,13 @@ export const REPORT_LABELS = {
   emptyTitle: "Nothing to report yet",
   emptyHint: "Add a habit or chore in Manage and it shows up here.",
   emptyHintFor: (name: string) => `${name} has no habits or chores yet.`,
+  /** Screen-reader names for the Report's controls. */
+  viewsAria: "Report views",
+  personAria: "Whose report",
+  previous: { week: "Previous week", month: "Previous month", year: "Previous year" },
+  next: { week: "Next week", month: "Next month", year: "Next year" },
+  /** The legend under the pager on Month and Year (decision 167). */
+  legend: { done: "Done", skipped: "Skipped", missed: "Missed" },
 } as const;
 
 /** "5 of 6": done of due so far, or done of a target (decisions 166, 167). */

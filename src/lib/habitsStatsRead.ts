@@ -12,7 +12,8 @@ import { buildFamilyPage, buildStatsData, statsSubject, type FamilyPage, type Ha
 import { todayLogsFrom } from "./habitsToday";
 import { HOUSEHOLD_PERSON_WHERE, loadHouseholdPeople } from "./householdPeople";
 import { toHabitKind } from "./habitVocabulary";
-import { buildHabitReport, reportScope, type HabitReport, type ReportParams } from "./habitsReport";
+import { buildHabitReport, type HabitReport } from "./habitsReport";
+import { reportScope, type ReportParams } from "./habitsReportScope";
 import { buildCalendarHabitDays, plannedPeriodsRange, type PlannedDayRow } from "./habitsCalendar";
 import type { CalendarHabitDayView } from "./types";
 
@@ -206,7 +207,7 @@ export async function loadPlannedHabitDays(viewer: HabitActor, from: Date, to: D
 
 /**
  * The Report (decisions 163 to 171) as plain data, or null on the tablet. The
- * rules are `habitsReport.ts`'s. Queries: the household people and the shown
+ * rules are `habitsReport.ts`'s and `habitsReportScope.ts`'s. Queries: the household people and the shown
  * person's live habits with their people; then, for the range shown only and
  * only the items drawn, that person's checks, their vacations and the
  * this-week changes to those items. Another person is shown only to a parent
