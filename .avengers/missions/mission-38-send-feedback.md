@@ -1,0 +1,452 @@
+# Mission: Send feedback (mission 38)
+
+**Project:** family-hub (Marshee)
+**Status:** DELIVERING (all gates PASS; merging)
+**Started:** 2026-11-06 · **Updated:** 2026-11-06
+**Branch:** `claude/marshee-send-feedback-d53a21` (from origin/main af1708c)
+
+## Brief
+
+- **Goal:** anyone signed in can open a short form, report a bug or give
+  feedback, and submit it. Admins read the submissions.
+- **Done means:** (final wording after Bryce answers the questions below)
+  a signed-in person taps "Send feedback" in the drawer, picks a type,
+  writes a message, submits, and sees a thank-you; the page they came from
+  is saved with it. An admin sees the list in Settings. Gauntlet green;
+  Vision, Strange and Captain PASS.
+- **Out of scope (proposed):** email or push notifications, screenshots or
+  file uploads, replies back to the sender, Winnie access.
+
+## Collision rules (from Bryce, 2026-11-06)
+
+Two agents run in parallel: Habits & Chores hours (`claude/habits-hours`,
+mission 37, migration 20261109000000) and the Winnie m22 sync.
+
+- New model at the END of `prisma/schema.prisma`, own block, no existing
+  model touched. That means **no Prisma relation to `User`** (a relation
+  needs a back-field on `User`): store the author id plus a name snapshot.
+- Migration folder dated after 20261110. Additive only. Show Bryce the SQL
+  before applying to the dev branch.
+- Do not edit `src/lib/habits*`, `src/lib/goals*`, `src/components/Habit*`,
+  `Goal*`, `Plan*`, `src/app/api/assistant/`.
+- The drawer link last, as one small change. **Correction:** the brief
+  named `src/components/HubNav.tsx`, which does not exist. The drawer rows
+  come from `src/lib/nav.ts` (`NAV_FOOTER_ITEMS`), drawn by
+  `src/components/NavList.tsx`.
+- STRUCTURE.md edited only right before merging, after syncing with main.
+  CLAUDE.md: one "What's built" bullet and one Current status line.
+- Every Server Action checks the session itself (`src/lib/dal.ts`).
+- New test folder means its glob goes into package.json in the same commit.
+- Stage by path. Merge after the habits-hours and Winnie PRs if still open:
+  sync with main, rerun the gauntlet, then merge.
+
+## Danger register
+
+As mission 36: forbidden `db:seed`, `db:reset`, `migrate reset`,
+`db push`, `migrate dev`; no script touches `User` rows; no `.env` edits;
+stage by path. The migration is applied to dev only after Bryce sees the SQL.
+
+## Gauntlet
+
+tsc, `eslint .`, `npm test`, the direct UTC run from AGENTS.md, build,
+recordcheck.
+
+## Assembled
+
+Stark + Vision; Strange (new screens); Captain (new model, page, action,
+files). No Banner: the area is small and Fury read it inline.
+
+## Open questions for Bryce
+
+Mock shown 2026-11-06: drawer footer row, `/feedback` form (Bug / Idea /
+Other chips, message box, removable "From: <page>" line, Send), a thank-you
+screen ("Back to <page>", "Send another"), and an admin list at
+`/settings/feedback` (New / Done chips, swipe to Mark done or Delete).
+Fury's recommendations, waiting on Bryce:
+
+1. Link spot: drawer footer under Settings (needs `nav.ts` plus a small
+   `NavList.tsx` change to pass the current page as `?from=`).
+2. Auto fields: who, when, device (phone or iPad, screen size).
+3. Admin list: New/Done status plus one-tap delete; "N new" on the
+   Settings row.
+4. Wall tablet can send, labeled as the device.
+
+**Bryce's own mock (2026-11-06) supersedes Fury's form:** a sheet titled
+"Send feedback" over the current page; "Share bugs, ideas, or feedback.";
+one message box, placeholder "What's on your mind?", counter "0 / 2000";
+"Sent to admin only"; checkbox "Include screenshot of this page" (on by
+default) with "Helps admin see what you're seeing. Shared with admin only.";
+Cancel and Send (paper-plane icon). No type chips. Page comes from the
+current path, since the sheet opens over it.
+
+Fury's structural call: the screenshot is taken in the browser (DOM
+redraw), shrunk to a JPEG of about 100 to 300 KB, and stored in the
+Feedback row itself (no Blob storage, which costs money). Device and
+screen size saved silently with each report.
+
+**Bryce's answers (2026-11-06):**
+- Link: drawer footer, but the drawer is crowded. Bryce open to moving
+  Sign out, the name/role card and Profile into Settings. Fury's
+  proposal (mock shown, waiting on yes): footer becomes Settings + Send
+  feedback; Settings gets a "you" card at the top (tap for /profile) and
+  Sign out at the bottom. No parallel branch touches `nav.ts`,
+  `NavList.tsx`, `/settings` or `/profile` (checked by diff).
+- After Send: the sheet closes and a short "Feedback sent" note shows.
+- Admin list: Fury's recommendation (Settings row "Feedback (N new)",
+  detail with message, page, device, screenshot; swipe Mark done / Delete).
+  **Plus Bryce wants Winnie told about new feedback so she can text him.**
+  That needs an Assistant API route, which this mission must not touch
+  and m22 is editing: follow-up mission after m22 merges.
+- Tablet: yes, it can send. **Bryce also wants the tablet to be its own
+  limited login.** Today the tablet is signed in as Emily. The app already
+  has a `device` role that hides things, but the "set up a tablet login"
+  flow (Phase 4) was never built. Separate mission; logins are Bryce's
+  call, not Hill's.
+
+Smaller wording calls (thank-you text, placeholder, message length cap)
+go to Hill unless Bryce wants them.
+
+## Facts that shape the contracts (Banner, 2026-11-06)
+
+- No shared Sheet wrapper: each sheet copies the chrome (`ActionSheet.tsx`
+  37-49). Textarea sheet to copy: `VisionSheet.tsx`; Cancel + primary:
+  `ConfirmSheet.tsx`.
+- **No toast exists, and DESIGN.md 31-35 fails any fixed overlay with no
+  reserved room.** So "sheet closes, Sent note" is built as: Send turns
+  into a "Sent" confirmation inside the sheet, and the sheet closes itself
+  about 1.2 seconds later (Fury's reading of Bryce's answer; Bryce can
+  overturn).
+- `SwipeActions` + `PantryRow` one-tap delete; `useOptimisticRun`. Delete
+  waits for the server (DESIGN.md 95-101); Mark done is optimistic.
+- Guard forms: submit (any signed-in login, devices too) uses
+  `getVerifiedUser()` (STRUCTURE.md 98-113). Admin actions go in their own
+  file with `requireRole("admin")`, allowed because their only UI sits
+  behind a `requireRole("admin")` page (STRUCTURE.md 132-139).
+- Homes: page `src/app/(app)/settings/feedback/page.tsx`; actions
+  `src/app/actions/feedback.ts` + `feedbackAdmin.ts`; pure logic
+  `src/lib/feedback.ts` + `feedback.test.ts` (already in the test glob);
+  reader `src/lib/feedbackRead.ts` (`server-only`, the only Feedback reader).
+  Caps: soft 350, hard 650 code lines.
+- Name card and Sign out exist only in `NavList.tsx` (150-185). `logout`
+  is `src/app/actions/auth.ts:91`. `nav.test.ts` asserts nothing about
+  footer contents. `DrawerUser` has role, no `isDevice`.
+- `next.config.ts:34` already allows 8mb action bodies. No screenshot
+  library installed; add `html-to-image` (pinned, old version).
+- The worktree has no `node_modules`: run `npm ci` once first.
+
+## Contracts
+
+Order: C1, then C2 and C3 in parallel (disjoint files), then C4 last.
+
+### C1 - data layer (model already written by Fury)
+- **Status:** PENDING
+- **Objective:** pure feedback rules, the one reader, and the two action
+  files, with tests.
+- **Boundaries:** may touch: new `src/lib/feedback.ts`, new `src/lib/feedback.test.ts`,
+  new `src/lib/feedbackRead.ts`, new `src/app/actions/feedback.ts`,
+  new `src/app/actions/feedbackAdmin.ts` · must not touch: `prisma/schema.prisma`
+  (read only: the Feedback model is final unless BLOCKED-ON-CONTRACT),
+  `prisma/migrations/`, every existing model, habits/goals/plans/assistant
+  files, the .env file, everything else.
+- **Rules:** `feedback.ts` is import-free: `MESSAGE_MAX = 2000`;
+  `normalizeMessage` (trim; empty is an error "Write a message first.";
+  over 2000 is an error); `normalizePagePath` (must start with "/", no
+  query string kept, max 200 chars, else "/"); `describeDevice(userAgent,
+  viewport)` returning "iPhone", "iPad", "Android phone", "Computer" or
+  "Unknown device" plus the viewport (iPadOS reports a Mac user agent:
+  treat Macintosh with touch, sent as a flag, as iPad);
+  `decodeScreenshot(dataUrl)` accepting only `data:image/jpeg;base64,`
+  up to 400 KB decoded, else null (a bad screenshot never blocks the
+  message). `sendFeedback(input)` in `feedback.ts` action: guard
+  `getVerifiedUser()`, null means `{ ok: false, error }`; writes
+  authorId, authorName (device logins keep their own display name),
+  message, pagePath, userAgent (max 300), viewport, screenshot. Exact signature (C2 calls it): `sendFeedback(input: { message: string;
+  pagePath: string; userAgent: string; viewport: string; touch: boolean;
+  screenshot: string | null }): Promise<{ ok: true } | { ok: false;
+  error: string }>`. `feedbackAdmin.ts`: `markFeedbackDone(id, done)`,
+  `deleteFeedback(id)`, each `requireRole("admin")`, `revalidatePath`
+  of `/settings/feedback` and `/settings`. `feedbackRead.ts`:
+  `loadFeedbackList(status: "new" | "done")` (no screenshot bytes, a
+  `hasScreenshot` boolean instead), `countNewFeedback()`,
+  `loadFeedbackScreenshot(id)`.
+- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`, the
+  UTC direct run from AGENTS.md: all green; new tests cover every rule above.
+- **Evidence:** command output; test names; line counts.
+- **Done criteria:** Vision re-runs; `grep -n "getVerifiedUser\|requireRole"`
+  shows a guard at the top of every exported action.
+
+### C2 - the Send feedback sheet (not wired to the drawer yet)
+- **Status:** PENDING
+- **Objective:** `FeedbackSheet` matching Bryce's mock, plus the screenshot capture.
+- **Boundaries:** may touch: new `src/components/FeedbackSheet.tsx`,
+  new `src/lib/captureScreenshot.ts` (client-only, no `db`), `package.json`
+  and the lockfile via npm install (add `html-to-image`, exact version,
+  nothing else) · must not touch: C1, C3 and C4 files.
+- **Words (Bryce's mock, exact):** title "Send feedback"; "Share bugs,
+  ideas, or feedback."; placeholder "What's on your mind?"; counter
+  "N / 2000" (typing past 2000 is stopped by `maxLength`); "Sent to admin
+  only" with a check-circle icon; checkbox "Include screenshot of this
+  page" (camera icon, on by default) with "Helps admin see what you're
+  seeing. Shared with admin only."; Cancel and Send (paper-plane icon).
+  Empty Send shows the inline error, never a disabled button. Success:
+  Send area shows "Sent" with a check, sheet closes itself after ~1.2 s.
+  Failure: inline error naming a next step, message kept.
+- **Screenshot:** taken when the sheet opens, of the page content
+  element only (the app's `<main>`), cropped to what was on screen,
+  longest side at most 1000 px, JPEG about quality 0.7. If capture fails
+  or is slow (over 4 s), send without it, silently. Props:
+  `open`, `pagePath`, `onClose`. Touch-first per DESIGN.md (48px targets,
+  bottom sheet on phones, centered dialog wide, Escape and backdrop close).
+- **Verification:** tsc, eslint, `npm test`, `npm run build` green.
+- **Evidence:** output, the dependency line, line counts.
+
+### C3 - admin Feedback list
+- **Status:** PENDING
+- **Objective:** `/settings/feedback` for admins plus the Settings row.
+- **Boundaries:** may touch: new `src/app/(app)/settings/feedback/page.tsx`,
+  new `src/components/FeedbackList.tsx`, new `src/components/FeedbackRow.tsx`,
+  new `src/components/FeedbackDetailSheet.tsx`,
+  new `src/app/api/feedback/[id]/screenshot/route.ts`,
+  `src/app/(app)/settings/page.tsx` (only: an admin-only "Feedback" row
+  under Manage family, same style, showing "N new" when N > 0) · must
+  not touch: C1, C2 and C4 files.
+- **Behaviour:** page `requireRole("admin")`, `BackLink` to Settings,
+  heading "Feedback", `PageTabs` or chips New / Done; rows newest first:
+  who, page, time ago, first two lines of the message, a small image icon
+  if there's a screenshot. Tap opens the detail sheet (full message, page,
+  device, time, screenshot image). Swipe: "Mark done" (or "Mark new" on
+  Done) then "Delete" last. Empty states: "No new feedback" / "Nothing
+  marked done yet". Screenshot route: admin session only, else 404;
+  `Cache-Control: private, no-store`.
+- **Verification:** tsc, eslint, `npm test`, build.
+
+### C4 - (last) slim the drawer and wire the sheet
+- **Status:** PENDING
+- **Objective:** drawer footer becomes Settings + Send feedback; the
+  name card and Sign out move to Settings; the sheet opens from the drawer.
+- **Boundaries:** may touch: `src/lib/nav.ts`, `src/lib/nav.test.ts`,
+  `src/components/NavList.tsx`, `src/components/NavDrawer.tsx`,
+  `src/components/PinnedNav.tsx`, `src/components/AppChrome.tsx`,
+  `src/app/(app)/settings/page.tsx`, `src/app/(app)/profile/page.tsx`,
+  new `src/components/SettingsAccountCard.tsx`, and (added after the build,
+  see note) `src/components/HamburgerButton.tsx` · must not touch: C1, C2
+  and C3 files except as named.
+- **Behaviour:** remove Profile from `NAV_FOOTER_ITEMS`; `/profile`
+  lights Settings (`activeNavHref`, with a test). A "Send feedback" row
+  (MessageCircle icon) is a button, not a link, in full drawer and
+  compact rail; it closes the drawer and opens `FeedbackSheet` held in
+  `AppChrome` with the current pathname. Settings top: a card with
+  avatar, name and role; for accounts it links to `/profile` (chevron),
+  for device logins it is plain. Sign out (the same `logout` form) at
+  the bottom of Settings for everyone. `/profile` gets a `BackLink` to
+  Settings.
+- **Verification:** tsc, eslint, `npm test`, build.
+
+**C4 boundary note (Fury):** Stark also edited `HamburgerButton.tsx`, which
+the contract did not list. It passes `onSendFeedback` through to the rail's
+inner drawer, so the prop chain needs it. Fury added it to the boundary
+after the fact; Vision to judge.
+
+**Status after build (2026-11-06):** C1 to C4 DONE. C1 255160c, C2 and
+C3 committed, C4 below. Gauntlet per Stark: tsc, eslint, 990 tests, build
+all green.
+
+## Gate plan
+
+After C4: Vision (all four), then Captain and Strange. Strange needs the
+dev table, so the migration must be applied to dev (Bryce's yes) first.
+
+## Handoff log
+
+- 2026-11-06: mission opened as 38 (37 is habits hours). Mock and
+  questions sent to Bryce. Next: record answers, write contracts.
+- 2026-11-06: C1 to C4 built; Vision pass 1 PASS.
+- 2026-11-06: Bryce said yes; `prisma migrate deploy` applied
+  20261111000000_add_feedback to the dev branch (host ep-hidden-pine).
+  Before: dev had habit hours 20261109000000 and 20261109000001 (not yet
+  on this branch) and ours pending. After: "Database schema is up to
+  date!". **Any branch without the 20261111 folder will see a "not found
+  locally" line in `migrate status`: expected, harmless, never "fix" it
+  with reset or db push.** The tablet-login session was told.
+
+## Gate ledger
+
+| Pass | Gate | Verdict | Blockers | Notes |
+|---|---|---|---|---|
+| 1 | Vision | PASS (a123a3d) | none | 6 notes, below |
+| 1 | Strange | BLOCKED (5932ab0) | 3 (dark screenshot, stale error, long-page screenshot dropped) | 6 notes |
+| 2 | Vision | BLOCKED (fe9dc6f) | 1 (screenshot shifted by main's margin on wide screens) | 6 notes |
+| 2 | Captain | PASS (fe9dc6f) | none | 5 notes; final amendment text |
+| 2 | Strange | BLOCKED (fe9dc6f) | 2 (scrolled long page: no picture and a 5 s freeze; iPad shift) | 7 notes |
+| 3 | Vision | PASS (835925f) | none | 4 notes (Calendar timeline scroll box shows wrong hours, older than F3) |
+| 3 | Strange | BLOCKED (835925f) | 2 (fallback label wraps at 375; fixed Add bar shifted in iPad pictures) | placement and timing pass in all 18 cases |
+| 4 | Strange | PASS (e7e5746) | none | 4 notes (menu button left out of pictures; 503 ms task on a 33,000 px page) |
+| 1 | Captain | BLOCKED (9303f2b) | 2 (date formatting) | 9 notes; STRUCTURE.md amendment drafted, applied pre-merge |
+
+Vision pass 1 notes (to batch into the fix contract with any later gate
+findings):
+- `FeedbackList.tsx:34`, `FeedbackRow.tsx:8-16`: "time ago" and dates are
+  computed on server and client, no `timeZone`, so a hydration mismatch
+  can log and re-render. Fix: household time zone, or render after mount.
+- `settings/page.tsx:29`: `countNewFeedback()` throws for admins until the
+  dev database has the Feedback table. Strange waits for Bryce's yes.
+- `captureScreenshot.ts:31`: a very long page on an iPad may exceed the
+  iOS canvas limit (blank or no screenshot; the message still sends).
+  Real-iPad check on Inventory.
+- `captureScreenshot.ts`: no `import "client-only"`.
+- `actions/feedback.ts:21`: a hand-made POST with null input gives a 500.
+- Branch is behind main by PR #51 (habits hours merged). Dry-run merge
+  is clean; sync and rerun the gauntlet before merging.
+
+Captain pass 1 blockers: `FeedbackRow.tsx:16` `timeAgo` is a second "Nov 3"
+formatter with no time zone and millisecond day math; `FeedbackDetailSheet.tsx:51-57`
+spells month and weekday names inline (STRUCTURE.md: a sixth definition is
+a BLOCKER). Captain's drafted STRUCTURE.md amendment is in his report; Fury
+applies it right before merge, after syncing with main. Kept: the
+`TOUCH_STAMP` encoding (the migration is already on dev, so a `touch`
+column would need a second migration for little gain; Fury's call).
+Deferred notes: narrow `DrawerUser`; extract `SettingsLinkRow` at a third
+door row; iPad canvas limit on long pages (device check).
+
+### F1 - date labels through household helpers, plus cheap notes
+- **Status:** PENDING
+- **Objective:** clear both Captain blockers and Vision's hydration note,
+  and batch the cheap notes.
+- **Boundaries:** may touch: new `src/lib/feedbackTime.ts`, new
+  `src/lib/feedbackTime.test.ts`, `src/components/FeedbackRow.tsx`,
+  `src/components/FeedbackDetailSheet.tsx`, `src/components/FeedbackList.tsx`,
+  `src/app/(app)/settings/feedback/page.tsx`, `src/components/FeedbackSheet.tsx`,
+  `src/lib/captureScreenshot.ts`, `src/lib/feedback.ts` (header comment
+  only), `src/app/actions/feedback.ts` · must not touch: everything else.
+- **Work:** `feedbackTime.ts` (imports only `householdDate.ts`,
+  `mealPlanDates.ts`, `constants.ts`): `feedbackTimeAgo(createdAt, now)`
+  (under 1 min "Just now", minutes and hours as elapsed time, then whole
+  household calendar days via `calendarDateInZone` + `calendarDaysBetween`,
+  after 14 days `formatShortCalendarDate`) and `feedbackTimeLabel(createdAt)`
+  (`SHORT_DAY_NAMES[dayOfWeek(d)]`, `formatShortCalendarDate(d)`, and a
+  clock time from `Intl.DateTimeFormat` with only hour and minute and
+  `timeZone: HOUSEHOLD_TIME_ZONE`). Tests include a near-midnight Denver
+  report, passing in both TZ legs. `now` is computed once on the server page
+  and passed down as a prop, so server and client render the same text.
+  Remove the component-level formatters. Also: `import "client-only"` in
+  `captureScreenshot.ts`; the sheet uses `normalizeMessage` for its empty and
+  too-long error instead of retyping the words; `feedback.ts` header says
+  `decodeScreenshot` is server-only (uses `Buffer`); `sendFeedback`
+  returns `{ ok: false }` instead of throwing on a malformed input; the two
+  empty states use `EmptyState` if it fits (else note why).
+- **Verification:** tsc, `npx eslint .`, `npm test`, the UTC direct run,
+  `npm run build`, all green.
+
+Strange pass 1 (5932ab0, dev server on port 3038, 3 "zz m38" rows sent and
+deleted, Bryce's dev Menu style restored): BLOCKED.
+1. Screenshot paints a white background (`<main>` is transparent), so a
+   dark-mode page arrives with near-invisible text.
+2. "Write a message first." stays after the person types.
+3. On the expanded Inventory page the screenshot silently fails (the whole
+   `<main>` redraw passes the 4 s limit) while the sheet said it would be
+   included.
+Notes taken into F2: neutral Done emoji, accent "N new" badge, page shown by
+its drawer name. Deferred: Mark done button inside the detail sheet
+(for Bryce), emoji dropped from screenshots (library limit), Delete has
+no pending state (existing SwipeActions), device-login card and real iPad
+user agent (Bryce's device checklist).
+
+### F2 - screenshot truth and the stale error
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/lib/captureScreenshot.ts`,
+  `src/components/FeedbackSheet.tsx`, `src/components/FeedbackList.tsx`,
+  `src/components/FeedbackRow.tsx`, `src/components/FeedbackDetailSheet.tsx`,
+  `src/app/(app)/settings/page.tsx` (badge classes only), `src/lib/nav.ts`,
+  `src/lib/nav.test.ts` · must not touch: everything else.
+- **Work:**
+  1. Capture paints the page's real background: read
+     `getComputedStyle(document.body).backgroundColor`, pass it as
+     `backgroundColor` to html-to-image and use it as the canvas fill (no
+     hard-coded colour).
+  2. Typing clears the error.
+  3. Capture renders only the visible window of `<main>` (width and height
+     of the visible rect plus a translate, and skip nodes far outside the
+     viewport), so expanded Inventory finishes inside 4 s. And if the person
+     wanted a screenshot and none was attached, the success state reads
+     "Sent without a screenshot" (muted), auto-close unchanged. (Wording by
+     Fury from Strange's suggestion; Bryce can overturn.)
+  4. Done empty-state emoji becomes a neutral one (📭).
+  5. Settings "N new" badge uses the accent soft style, not warn.
+  6. `nav.ts` gets `navLabelForPath(path)` (label of `activeNavHref`'s row,
+     else the raw path), with a test; list row and detail show it.
+- **Verification:** tsc, `npx eslint .`, `npm test`, the UTC direct run,
+  `npm run build`. Item 3 is proven by Strange on expanded Inventory.
+
+Pass 2 (fe9dc6f): Captain PASS. Vision and Strange BLOCKED on the screenshot:
+`<main>`'s auto margin is copied into the picture (shifted right on screens
+over about 800px), and on a scrolled long page every node above the window
+is still cloned (4,358 of 11,055 at 12000 px, 9,779 at 28000), so capture
+freezes the page about 5 s and then gives up. Fixed in pass 2 (Strange):
+dark background, typing clears the error, fallback label, polish items,
+F1 labels. **Pass 3 is the last pass for Vision and Strange** (budget).
+Deferred (Bryce, 2026-11-06): a Mark done button in the admin detail sheet.
+
+### F3 - cheap, correctly placed screenshot (last pass)
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/lib/captureScreenshot.ts`,
+  `src/components/FeedbackSheet.tsx` · must not touch: everything else.
+- **Work:**
+  1. Root style override adds `margin: "0"` (comment: `<main>` is centred
+     with auto margins, which the library would copy onto the picture).
+  2. Keep layout, drop cost: html-to-image copies every computed style,
+     including the resolved px `width`/`height`, onto each clone. So an
+     element wholly outside the window (plus a 200 px margin, any side)
+     keeps its own shell at full size, and the filter drops **its
+     children** (a node is dropped when its parent element is wholly
+     outside). Layout above the window is unchanged, so `translate(-left,
+     -top)` stays correct. Verify the computed-size assumption in
+     `node_modules/html-to-image/es/clone-node.js` (`cloneCSSStyle`).
+  3. Safety valve: if the kept-node count would still exceed about 3,000,
+     skip the capture at once (null), so the page never freezes.
+  4. Fallback label shortened to "Sent, no screenshot" (fits on one line
+     at 375 px; Strange's wording).
+- **Verification:** tsc, `npx eslint .`, `npm test`, `npm run build`; plus
+  a headless-Chrome probe like Vision's pass 2 one (scratchpad `probe/`):
+  a tall page scrolled to 1500 and far down, at 390 and 1200 wide, picture
+  matches the screen with no left stripe, and capture time is reported.
+
+Pass 3 (835925f): Vision PASS. Strange BLOCKED, budget spent, so Fury
+stopped and asked Bryce. Strange's two one-line fixes: the fallback label
+uses `text-sm whitespace-nowrap` (it needs 180.5 px at `text-base`, the
+half button is 167.5 px); `isKept` drops `position: fixed` elements, since
+the floating Add bar is drawn from the shifted `<main>` on iPad widths.
+Core F3 goals met: placement right in all 18 Inventory cases (3 sizes, 3
+scroll points, light and dark), longest task on open 321 to 479 ms in a
+production build, valve never fired. Next if allowed: F4 with those two
+lines, then Strange pass 4 only. Follow-up note from Vision: Calendar
+timeline screenshots show the top hours, not the scrolled ones.
+
+### F4 - Strange pass 3's two lines (Bryce: "Yes, one more")
+- **Status:** DONE, by Fury (two lines Strange wrote out exactly)
+- **Boundaries:** may touch: `src/components/FeedbackSheet.tsx`,
+  `src/lib/captureScreenshot.ts` · must not touch: everything else.
+- **Work:** fallback label `text-sm whitespace-nowrap`; `isKept` drops
+  `position: fixed` elements. Gauntlet re-run below; Strange pass 4 only.
+
+## Delivery
+
+- **Shipped:** Send feedback sheet (Bryce's mock), in-browser screenshot of
+  the visible page, admin list at `/settings/feedback`, drawer footer
+  Settings + Send feedback, account card and Sign out in Settings,
+  Feedback table (migration 20261111000000, applied to dev 2026-11-06;
+  production applies it in the build).
+- **Gates:** Vision PASS (pass 3), Captain PASS (pass 2), Strange PASS
+  (pass 4, allowed by Bryce).
+- **Synced with main** (merge 521bcb1, includes PR #51 habits hours and
+  20261110000000 goal target date) before the final gauntlet. STRUCTURE.md
+  amendment (Captain's text) and CLAUDE.md applied after the sync.
+- **Deliberate leftovers:** Winnie notification (needs an Assistant API
+  route); Calendar timeline screenshots show the top hours (inner scroll
+  boxes); margin-collapse edge cases in `isKept` (none found in Marshee);
+  Mark done button in the detail sheet (Bryce: later); narrow `DrawerUser`;
+  `SettingsLinkRow` at a third door row; `client-only` as a direct
+  dependency; emoji dropped from screenshots (library limit); the "One side
+  drawer" bullet in CLAUDE.md still lists Profile and Sign out.
+- **Bryce's device checklist:** on the iPad, Send feedback from expanded
+  Inventory scrolled far down (no freeze, picture right); a device login's
+  Settings card is plain (after mission 39); the iPad shows as "iPad".

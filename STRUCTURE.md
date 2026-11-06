@@ -10,7 +10,7 @@ structural changes against it.
 |---|---|---|
 | `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout for one page | Pages needing a genuinely chrome-free root layout; those go in `src/app/share/` |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
-| `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`). A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
+| `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`), plus **session-gated GET routes for bytes a page cannot inline** (an `<img src>`), where a Server Action cannot serve the response: `/api/feedback/[id]/screenshot` is the one instance (mission-38). Such a route calls `getVerifiedUser()` itself, answers 404 to anyone not allowed (the same answer as an unknown id), reads through the domain's one reader, sends `Cache-Control: private, no-store`, never writes, and is never added to proxy.ts's public lists. A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
 | `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action |
 | `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice`, `/api/alexa` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
@@ -233,7 +233,7 @@ Adding a second definition of any of these is a BLOCKER:
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
   `VacationCard`, `HabitTileRows` (in `HabitsTile.tsx`, used by both dashboard habit
   tiles) `DashboardWidgetList` (moved over in mission-34), `PlanDayCard` and
-  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37);
+  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37), `FeedbackList` (mission-38);
   `HoursLogSheet` takes its caller's `run` (typed `RunChange`) and never
   wraps a save itself)
   calls it with the action as a closure, so lib never imports `app/`. A second
@@ -245,6 +245,15 @@ Adding a second definition of any of these is a BLOCKER:
   **roles with their display labels and assignability, avatar colors**,
   their icons and order
 - `src/lib/nav.ts`: `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`), the only nav list.
+  Since mission-38 `NAV_FOOTER_ITEMS` is Settings alone: Profile has no row,
+  `activeNavHref` lights Settings for `/profile`, and Settings' top card
+  (`SettingsAccountCard`) links to it. **Send feedback is the drawer's one
+  non-destination row**: a button drawn by `NavList` (full and compact),
+  never an entry in `nav.ts`; the sheet it opens is held once, in
+  `AppChrome`. Sign out lives only at the bottom of `/settings`.
+  `navLabelForPath(path)` is the only way to turn a saved page path into
+  words (the label of the row `activeNavHref` lights, else the raw path); a
+  screen that maps paths to page names by itself is a BLOCKER.
   `src/lib/routeRedirects.ts`: `LEGACY_ROUTE_REDIRECTS`, the only redirect
   map; it has **no imports at all**, because `next.config.ts` imports it by
   relative path. `src/lib/navMode.ts`: the only menu-style list
@@ -499,6 +508,38 @@ Adding a second definition of any of these is a BLOCKER:
 - `formatShortCalendarDate` in `householdDate.ts`: the shared "Nov 3"
   formatter (`MONTH_NAMES` is now exported from `mealPlanDates.ts` for it).
   (Added 2026-11-04, mission-27; Bryce approved the plan.)
+- **Send feedback (mission-38).** `src/lib/feedback.ts` has no imports, on
+  purpose, and holds the rules: `MESSAGE_MAX`, `SCREENSHOT_MAX_BYTES`,
+  `USER_AGENT_MAX`, `SCREENSHOT_TYPE`, `TOUCH_STAMP` (the one encoding of "a
+  Mac that had touch", appended to the user agent), `normalizeMessage` (the
+  only empty or too-long wording, used by both the sheet and the action),
+  `normalizePagePath`, `normalizeViewport`, `describeDevice` and
+  `decodeScreenshot` (uses `Buffer`, so server code only).
+  `src/lib/feedbackRead.ts` (`server-only`, no auth; callers check the admin
+  role) is the only reader of the `Feedback` table, and its list never
+  carries screenshot bytes; a second reader is a BLOCKER. `sendFeedback`
+  (`actions/feedback.ts`, guard form a, devices too) and `markFeedbackDone` /
+  `deleteFeedback` (`actions/feedbackAdmin.ts`, form b, behind the
+  `requireRole("admin")` page `/settings/feedback`) are the only writers; if
+  a second caller appears (a Winnie route), the writes move into
+  `src/lib/feedbackWrites.ts` first. The bytes go out through
+  `src/app/api/feedback/[id]/screenshot/route.ts` alone. **`Feedback` has no
+  Prisma relation to `User` on purpose** (mission-38's collision rule
+  forbade a `User` back-field): `authorId` is a plain id and `authorName` a
+  snapshot; adding the relation later is a separate additive migration that
+  first confirms no `authorId` lacks a `User` row.
+  `src/lib/captureScreenshot.ts` carries `import "client-only"`, is the only
+  in-browser page capture and the only importer of `html-to-image`.
+- **Feedback time labels: `src/lib/feedbackTime.ts`** is the only home of
+  `feedbackTimeAgo(createdAt, now)` and `feedbackTimeLabel(createdAt)`
+  ("Tue, Nov 3, 11:30 PM"). It imports only `constants.ts`,
+  `householdDate.ts` and `mealPlanDates.ts`; day, month and weekday words
+  come from those helpers, never from `toLocale*` options. Its private
+  `CLOCK` is the repo's only household-zone clock formatter: a second screen
+  that needs one moves it into `householdDate.ts` as an export, and a copy
+  elsewhere is a BLOCKER. A list that shows "time ago" takes one `now` from
+  its server page as a prop, so server and browser print the same words.
+  (Added mission-38, on Captain's ruling.)
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,

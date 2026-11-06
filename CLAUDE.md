@@ -83,6 +83,13 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   `/kitchen`, `/kitchen/cooking` and `/chores` forward to Inventory, Recipes
   and Habits & Chores. Habits & Chores (`/habits`) is live (PR B); the old
   `/routines` forwards to it too.
+- **Send feedback** (mission 38): a drawer row opens a sheet over the
+  current page (message up to 2000 characters, optional screenshot of the
+  visible page, stored in the row). Admins read reports at
+  `/settings/feedback` (New / Done, swipe Mark done or Delete). This
+  changed the drawer footer: it is now Settings + Send feedback only;
+  Profile, the name card and Sign out moved into Settings (the drawer
+  bullet above predates this).
 - **Kitchen** (the Kitchen group in the drawer):
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
@@ -195,6 +202,12 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
+- **Send feedback (mission 38)** passed its gates on 2026-11-06 (Strange
+  on a fourth pass Bryce allowed) and merges from
+  `claude/marshee-send-feedback-d53a21`. Follow-ups: Winnie told about new
+  feedback (after an Assistant API route), Calendar timeline screenshots
+  show the top hours, a Mark done button in the detail sheet. Phone check:
+  send one from a long Inventory page on the iPad and read it in Settings.
 - **Weekly hours habits (mission 37)** passed its gates on 2026-11-06 and
   merges from branch `claude/habits-hours`: a habit can track hours toward
   a weekly target (a bar, "N hours left, about M a day", a log sheet,

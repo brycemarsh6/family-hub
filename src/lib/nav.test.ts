@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NAV_ITEMS, activeNavHref } from "./nav";
+import { NAV_ITEMS, activeNavHref, navLabelForPath } from "./nav";
 
 test("NAV_ITEMS: hrefs are unique and absolute", () => {
   const hrefs = NAV_ITEMS.map((item) => item.href);
@@ -29,4 +29,24 @@ test("activeNavHref: / matches only exactly", () => {
 
 test("activeNavHref: /login matches nothing", () => {
   assert.equal(activeNavHref("/login"), null);
+});
+
+test("activeNavHref: /profile lights Settings", () => {
+  assert.equal(activeNavHref("/profile"), "/settings");
+});
+
+test("NAV_ITEMS: Profile has no row of its own", () => {
+  assert.ok(!NAV_ITEMS.some((item) => item.href === "/profile"));
+});
+
+test("navLabelForPath: a deep recipe URL reads Recipes", () => {
+  assert.equal(navLabelForPath("/kitchen/cooking/recipes/abc"), "Recipes");
+});
+
+test("navLabelForPath: / reads Dashboard", () => {
+  assert.equal(navLabelForPath("/"), "Dashboard");
+});
+
+test("navLabelForPath: an unknown path comes back unchanged", () => {
+  assert.equal(navLabelForPath("/login"), "/login");
 });
