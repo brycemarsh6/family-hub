@@ -1,7 +1,7 @@
 # Mission: Habits & Chores PR B, the tab (mission 31)
 
 **Project:** family-hub (Marshee)
-**Status:** GATES PASSED (Vision pass 3, Captain pass 2, Strange pass 2). Not pushed; waiting on Bryce's go-ahead to push and open the PR.
+**Status:** DELIVERED. Merged as PR #43 (9f4b2d5), live on production since 2026-11-05 (deploy dpl_DWxS5M6qanf767QLwpzCXDwymHWi READY; CI on main green).
 **Started:** 2026-11-05 · **Updated:** 2026-11-05
 
 ## Brief
@@ -347,4 +347,8 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
   C); schedule words in HabitManager.tsx; chipClass home; edit page loads
   the whole Today page; STRUCTURE.md housekeeping (895 lines); Plans &
   Goals empty-circle check (decision 91); skipped rows have no visible word.
+- 2026-11-05: Bryce's phone test on the preview: "Everything worked". PR
+  #43 merged as 9f4b2d5; production deploy READY on that sha; the
+  `everyone` migration ran in the Vercel build. Delete the spike branch
+  `claude/habits-b-spike` when convenient (Bryce's OK first).
 
