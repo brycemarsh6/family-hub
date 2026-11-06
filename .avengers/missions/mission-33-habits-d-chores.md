@@ -282,7 +282,7 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
   the Sunday card, kid and tablet logins, real touch.
 
 ### F3 - Every pass 1 blocker, in one batch
-- **Status:** OPEN.
+- **Status:** DONE (Stark; Fury re-ran tsc, 838 tests Denver/LA, 838 with 7 DST skips UTC, build EXIT=0). Deviations: path is `src/lib/habits/habitWrites.ts`; its writers now take a required `today` (callers in `actions/habits.ts`, `actions/planItems.ts`); file is 364 lines, over the 350 soft cap; family card header reads "On vacation" only when nothing counts; `completionRate` follows 127.
 - **Objective:** clear all 13 pass 1 blockers plus decisions 125, 126 and
   Hill's vacation rulings (127, 128), with tests, without changing anything
   else.
