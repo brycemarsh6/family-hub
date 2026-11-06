@@ -43,8 +43,9 @@ function applyManagerChange(state: ManagerState, change: ManagerChange): Manager
   };
 }
 
-/** "Every day", "Wednesdays", "Mon, Wed, Fri", "3 times a week": the schedule in words. */
+/** "Every day", "Wednesdays", "Mon, Wed, Fri", "3 times a week", "6 hours a week": the schedule in words. */
 function scheduleText(item: HabitManagerItem): string {
+  if (item.hours) return item.hours.text; // "6 hours a week" (decision 199)
   const schedule = toHabitSchedule(item.schedule);
   if (schedule === "weekdays") {
     const days = parseWeekdayMask(item.weekdays) ?? [];

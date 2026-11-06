@@ -24,6 +24,7 @@ import { loadCarriedDay, loadHabitForAction, loadLogStatus, type HabitForAction 
 import type { HabitActionResult } from "./habits";
 
 const NOT_FOUND = "That habit isn't available.";
+const TRACKS_HOURS = "That habit tracks hours.";
 
 type Target = { userId: string; habit: HabitForAction; forUserId: string; day: CalendarDate; today: CalendarDate };
 
@@ -61,6 +62,7 @@ function done(): HabitActionResult {
 export async function checkHabit(habitId: string, forUserId?: string, day?: string): Promise<HabitActionResult> {
   const t = await guardedTap(habitId, forUserId, day);
   if ("error" in t) return t;
+  if (t.habit.track === "hours") return { error: TRACKS_HOURS };
   if (t.habit.archived) return { error: "That habit is archived." };
   try {
     const carried = await loadCarriedDay(t.habit, habitId, t.forUserId, t.today);
@@ -79,6 +81,7 @@ export async function checkHabit(habitId: string, forUserId?: string, day?: stri
 export async function skipHabit(habitId: string, forUserId?: string, day?: string): Promise<HabitActionResult> {
   const t = await guardedTap(habitId, forUserId, day);
   if ("error" in t) return t;
+  if (t.habit.track === "hours") return { error: TRACKS_HOURS };
   if (t.habit.archived) return { error: "That habit is archived." };
   try {
     await skipHabitRow({ habitId, forUserId: t.forUserId, day: t.day, loggedById: t.userId }, t.today);
@@ -93,6 +96,7 @@ export async function skipHabit(habitId: string, forUserId?: string, day?: strin
 async function removeRow(kind: "check" | "skip", habitId: string, forUserId?: string, day?: string): Promise<HabitActionResult> {
   const t = await guardedTap(habitId, forUserId, day);
   if ("error" in t) return t;
+  if (t.habit.track === "hours") return { error: TRACKS_HOURS };
   try {
     const status = await loadLogStatus(habitId, t.forUserId, t.day);
     if (status === null || (status === "skipped") !== (kind === "skip")) return done();

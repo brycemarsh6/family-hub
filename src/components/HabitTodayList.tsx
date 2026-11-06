@@ -8,6 +8,7 @@ import { EmptyState } from "./EmptyState";
 import { HabitFilterChips, TIME_ICONS, type HabitFilterOption } from "./HabitFilterChips";
 import { HabitConfetti } from "./HabitConfetti";
 import { HabitRow } from "./HabitRow";
+import { HoursLogSheet } from "./HoursLogSheet";
 import { habitRowTaps } from "./HabitsTile";
 import { NudgeCards } from "./NudgeCard";
 import { PlanDayCard } from "./PlanDayCard";
@@ -66,7 +67,10 @@ export function HabitTodayList({
   // A copy of the rows that is updated the instant a button is tapped, then
   // replaced by the server's real answer (the same idea as ThisWeekList).
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(rows, applyHabitChange);
-  const { run, error } = useOptimisticRun(applyOptimistic);
+  const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
+  // The hours row whose log sheet is open, by id, so the sheet reads the row's live week.
+  const [loggingId, setLoggingId] = useState<string | null>(null);
+  const logging = live.find((row) => row.id === loggingId && row.hours);
   const [filter, setFilter] = useState(ALL);
   // Done rows move to the bottom once, when the page loads. A tap must not
   // make a row jump away from under the finger, so the order is fixed here
@@ -130,7 +134,7 @@ export function HabitTodayList({
 
       {live.length > 0 && options.length > 1 && <HabitFilterChips options={options} value={active} onChange={setFilter} />}
 
-      {error && (
+      {error && !logging && (
         <p role="alert" className="mb-3 text-sm text-warn">
           {error}
         </p>
@@ -173,7 +177,10 @@ export function HabitTodayList({
               <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
                 {section.rows.map((row) => (
                   <li key={row.id}>
-                    <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, run)} />
+                    <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, run, (hoursRow) => {
+                      setError(null);
+                      setLoggingId(hoursRow.id);
+                    })} />
                   </li>
                 ))}
               </ul>
@@ -183,6 +190,20 @@ export function HabitTodayList({
       )}
 
       {live.length > 0 && <p className="mt-4 text-center text-sm text-muted">Swipe a row left to skip it for today.</p>}
+
+      {logging?.hours && (
+        <HoursLogSheet
+          habitId={logging.id}
+          title={logging.title}
+          hours={logging.hours}
+          forUserId={logging.viewerId}
+          run={run}
+          pending={pending}
+          error={error}
+          onEdit={() => setError(null)}
+          onClose={() => setLoggingId(null)}
+        />
+      )}
     </div>
   );
 }

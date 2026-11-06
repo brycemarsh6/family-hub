@@ -50,3 +50,6 @@ export type WeekOverride = {
 
 /** What a chore asks of a person on one day: `excused` is a skip (a chore skipped for the week). */
 export type ChoreDayState = "required" | "excused" | "none";
+
+/** One block of time on an hours habit: the day it counts toward, whole minutes, and whose it is. */
+export type TimeEntry = { day: CalendarDate; minutes: number; userId: string };

@@ -1,5 +1,6 @@
 import { HOUSEHOLD_TIME_ZONE } from "./constants";
 import type { GoalRow } from "./goals";
+import { hoursDoneText } from "./habitsHours";
 import { buildPlanItemView, formatMeasure, weekSummary, type PlanHabit, type PlanItemRow, type PlanItemView } from "./goalsProgress";
 import {
   addCalendarDays,
@@ -27,7 +28,8 @@ export type WeekRecap = {
   end: CalendarDate;
   done: number;
   total: number;
-  habits: { title: string; count: number; target: number; met: boolean }[];
+  /** `hoursText` is set for an hours habit: "6½ of 10 hours last week" (decision 198). */
+  habits: { title: string; count: number; target: number; met: boolean; hoursText?: string }[];
   measures: { goalTitle: string; from: string; to: string }[];
   stepsDone: string[];
 };
@@ -83,7 +85,7 @@ export function weekRecap(input: RecapGoalInput[], weekStart: CalendarDate): Wee
     total += sum.total;
     for (const view of habitViews) {
       const count = Math.min(view.count, view.target);
-      habits.push({ title: view.title, count, target: view.target, met: view.done });
+      habits.push({ title: view.title, count, target: view.target, met: view.done, ...(view.hours ? { hoursText: hoursDoneText(view.hours.done, view.hours.target, "last week") } : {}) });
     }
 
     const { measureUnit: unit, startValue, targetValue } = goal;
