@@ -109,8 +109,9 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   streaks button. PR B (#43) added the tab: Today (tap to check, swipe to
   skip), Manage (drag to reorder), New and Edit. PR C added streaks, nudges,
   confetti, a stats page per habit (`/habits/[id]`) and the Whole family
-  view. PR D added the chore chart, chore streak and vacation mode; PRs E
-  and F follow (plan:
+  view. PR D added the chore chart, chore streak and vacation mode; PR E1
+  added the Habits and Chores today dashboard tiles and the Pick view;
+  E2 and F follow (plan:
   `.avengers/plans/habits-chores-v1.md`).
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
