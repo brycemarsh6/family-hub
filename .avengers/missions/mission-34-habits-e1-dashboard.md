@@ -218,7 +218,7 @@ Fury added the DashboardTile second-shape line to DESIGN.md (132).
 Hill decided 147 to 150 on the pass 1 notes (plan, "Before PR E").
 
 ### F1 - Every pass 1 blocker, Hill's 147 to 150, the cheap notes
-- **Status:** OPEN.
+- **Status:** DONE (Stark; Fury re-ran tsc, eslint ., 879 tests Denver, 879 with 7 DST skips UTC, build EXIT=0). `keepShownRows` in `habitsDashboard.ts` (+5 tests); `habitRowTaps` lives in `HabitsTile.tsx`; a `key` from the picks on `HabitsTile` in page.tsx (not asked: remounts the tile when picks change); `dashboardPicker.ts` folded away; items tests in `dashboardLayoutItems.test.ts`. Fury wrote Captain's STRUCTURE.md corrections and the streak-label rule.
 - **Vision:** `habitsTileRows` with picks keeps every row Today produced
   (open rows included); fix the test that pinned the wrong behaviour.
 - **Captain 1:** `(home)/page.tsx` starts the layout read as a promise

@@ -230,8 +230,8 @@ Adding a second definition of any of these is a BLOCKER:
   `SAVE_FAILED` message). Every component that taps and saves
   (`HabitTodayList`, `HabitFamilyView`, `HabitStats`, `NudgeCard`,
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
-  `VacationCard`, `HabitsTile` / `ChoresTile` and `DashboardWidgetList`
-  (moved over in mission-34))
+  `VacationCard`, `HabitTileRows` (in `HabitsTile.tsx`, used by both dashboard habit
+  tiles) and `DashboardWidgetList` (moved over in mission-34))
   calls it with the action as a closure, so lib never imports `app/`. A second
   copy of that shape, or the message typed again, is a BLOCKER. Left out on
   purpose, to move over later: the differently worded saves in `HabitsChoresSettings`,
@@ -426,7 +426,11 @@ Adding a second definition of any of these is a BLOCKER:
   limit, `canCarryOver`, `canBePrivate`, `isCheckStatus`) live in
   `habitVocabulary.ts`; "Mine" / "Together" for a habit's people is
   `habitWhoLabel` there, and `GOAL_OWNERSHIP_LABELS` stays the words for a
-  goal's ownership.
+  goal's ownership. `STREAK_MIN_SHOWN` and `streakLabel` there are the only
+  "does a streak show, and what does it say" rule, for row streaks and the
+  chore streak alike; a component that compares a streak to a number or
+  types `days` after a count is a BLOCKER (added mission-34, on Captain's
+  ruling; the three chore-flame copies moved over in F1).
 - `formatShortCalendarDate` in `householdDate.ts`: the shared "Nov 3"
   formatter (`MONTH_NAMES` is now exported from `mealPlanDates.ts` for it).
   (Added 2026-11-04, mission-27; Bryce approved the plan.)
@@ -454,17 +458,25 @@ Adding a second definition of any of these is a BLOCKER:
   people who already saved a layout. (Added 2026-11-04, mission-29.)
   **Picks (mission-34):** a widget's optional `items` (only `habits` and
   `goals`, `PICKABLE_WIDGET_IDS`) is checked for shape in the parser and
-  for ownership in the loaders, through `keepOwnPicks` in
-  `src/lib/dashboardPicks.ts`, which also holds `layoutForViewer` (the
+  for ownership in the loaders, through `keepOwnPicks` in `src/lib/dashboardPicks.ts`, which also holds
+  `picksOf` (the only way to read a widget's picks), `layoutForViewer` (the
   tablet's layout leaves out `habits` and `chores`, decision 138).
-  `src/lib/dashboardPicker.ts` holds the picker's pure rules (`splitPicks`,
-  `togglePick`, `reorderWidgets`); `src/lib/habitsDashboard.ts` the tile
-  row rules (`habitsTileRows`, `choresTileRows`, `pickableHabits`); the
+  and the picker's pure rules (`splitPicks`, `togglePick`);
+  `reorderWidgets` sits in `dashboardLayout.ts` beside `toggleWidget` and
+  `setWidgetItems`; `isPickableWidget` / `PickableWidgetId` in
+  `dashboardWidgets.ts` are the only "which widgets take picks" test; `src/lib/habitsDashboard.ts` the tile row rules (`habitsTileRows`, `choresTileRows`, `pickableHabits`,
+  and `keepShownRows`, decision 147); the
   Goals tile's picked list is `weekTodoForGoals` beside `weekTodo` in
   `goalsProgress.ts`. The tiles' data comes from `loadDashboardHabits` in
   `habitsRead.ts` and `loadGoalsTile` in `goalsRead.ts`; no third habit
   reader. A tile with controls inside uses `DashboardTile shape="panel"`
-  (DESIGN.md).
+  (DESIGN.md). `habitRowTaps` (in `HabitsTile.tsx`) is the only mapping
+  from a Today row's tap to a check action, used by `HabitTodayList` and
+  `HabitTileRows`; a second copy of the carried-day routing is a BLOCKER.
+  **Dependency direction:** `habitsDashboard.ts` imports only
+  `habitVocabulary.ts` and types from `habitsToday.ts`; `dashboardPicks.ts`
+  imports only `dashboardLayout.ts` / `dashboardWidgets.ts`; `habitsRead.ts`
+  and `goalsRead.ts` may import them, never the reverse.
 - `brand/` — the logo artwork. The two `Marshee*.tsx` components and the
   `src/app/` icon files are all **generated from** these masters; a
   hand-drawn or re-traced second version of the mark or wordmark is a
