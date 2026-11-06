@@ -275,6 +275,9 @@ dev table, so the migration must be applied to dev (Bryce's yes) first.
 |---|---|---|---|---|
 | 1 | Vision | PASS (a123a3d) | none | 6 notes, below |
 | 1 | Strange | BLOCKED (5932ab0) | 3 (dark screenshot, stale error, long-page screenshot dropped) | 6 notes |
+| 2 | Vision | BLOCKED (fe9dc6f) | 1 (screenshot shifted by main's margin on wide screens) | 6 notes |
+| 2 | Captain | PASS (fe9dc6f) | none | 5 notes; final amendment text |
+| 2 | Strange | BLOCKED (fe9dc6f) | 2 (scrolled long page: no picture and a 5 s freeze; iPad shift) | 7 notes |
 | 1 | Captain | BLOCKED (9303f2b) | 2 (date formatting) | 9 notes; STRUCTURE.md amendment drafted, applied pre-merge |
 
 Vision pass 1 notes (to batch into the fix contract with any later gate
@@ -370,3 +373,36 @@ user agent (Bryce's device checklist).
      else the raw path), with a test; list row and detail show it.
 - **Verification:** tsc, `npx eslint .`, `npm test`, the UTC direct run,
   `npm run build`. Item 3 is proven by Strange on expanded Inventory.
+
+Pass 2 (fe9dc6f): Captain PASS. Vision and Strange BLOCKED on the screenshot:
+`<main>`'s auto margin is copied into the picture (shifted right on screens
+over about 800px), and on a scrolled long page every node above the window
+is still cloned (4,358 of 11,055 at 12000 px, 9,779 at 28000), so capture
+freezes the page about 5 s and then gives up. Fixed in pass 2 (Strange):
+dark background, typing clears the error, fallback label, polish items,
+F1 labels. **Pass 3 is the last pass for Vision and Strange** (budget).
+Deferred (Bryce, 2026-11-06): a Mark done button in the admin detail sheet.
+
+### F3 - cheap, correctly placed screenshot (last pass)
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/lib/captureScreenshot.ts`,
+  `src/components/FeedbackSheet.tsx` · must not touch: everything else.
+- **Work:**
+  1. Root style override adds `margin: "0"` (comment: `<main>` is centred
+     with auto margins, which the library would copy onto the picture).
+  2. Keep layout, drop cost: html-to-image copies every computed style,
+     including the resolved px `width`/`height`, onto each clone. So an
+     element wholly outside the window (plus a 200 px margin, any side)
+     keeps its own shell at full size, and the filter drops **its
+     children** (a node is dropped when its parent element is wholly
+     outside). Layout above the window is unchanged, so `translate(-left,
+     -top)` stays correct. Verify the computed-size assumption in
+     `node_modules/html-to-image/es/clone-node.js` (`cloneCSSStyle`).
+  3. Safety valve: if the kept-node count would still exceed about 3,000,
+     skip the capture at once (null), so the page never freezes.
+  4. Fallback label shortened to "Sent, no screenshot" (fits on one line
+     at 375 px; Strange's wording).
+- **Verification:** tsc, `npx eslint .`, `npm test`, `npm run build`; plus
+  a headless-Chrome probe like Vision's pass 2 one (scratchpad `probe/`):
+  a tall page scrolled to 1500 and far down, at 390 and 1200 wide, picture
+  matches the screen with no left stripe, and capture time is reported.
