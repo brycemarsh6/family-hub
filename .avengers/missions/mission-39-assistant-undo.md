@@ -507,3 +507,10 @@
   settled by hand. Vision pass 2 dispatched.
 - 2026-11-06: Bryce: ask him before merging mission 39 too (another agent
   is merging to main right now). Do not merge on gate PASS alone.
+- 2026-11-06: F2 DONE (3 files, +24 −2). `assistantCreatedWhere` in
+  `audit.ts` is the one filter, used by `didAssistantCreate` and
+  `toShoppingItems`; removed pantry rows locked FOR UPDATE before the
+  `in_use` count (lock race not exercised live). Live run 0 FAIL lines
+  (two earlier runs failed W1b on a script comparison bug, said in the
+  report). Family row in the B2 check had null `addedBy`, so a named-person
+  family row was not exercised. Gauntlet green. Vision pass 3 (last) dispatched.
