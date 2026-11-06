@@ -179,7 +179,8 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
   printed in the report.
 
 ### C3 - Readers
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc, eslint, 823 tests)
+- **Notes for C4+:** `loadChoreChart(viewer, personId, today): ChoreChartData | null` and `loadVacations(userId, today)` in `habitsRead.ts`; pure builders in `src/lib/choreChart.ts` (chart, chore header, vacation order). `TodayPage` gains `choreStreak`, `shoutOut`, `vacationThrough`; `FamilyColumn` gains `choreStreak`, `shoutOut`, `onVacation`. Week chores carry `fromWeekday`, `state`, `tag`, `changed`, `canChange`, `moveTargets`; always send `fromWeekday`'s value, never the column's. `carrySince`/`habitStartDay` now in `habits/carryOver.ts`; past-day changes refused. **Gap for C5:** the family loader reads only non-private habits, so a private chore is left out of a person's family-card chore streak and Sunday line, which can then say something untrue.
 - **First (from C2's notes):** (a) `choreWrites.ts` imports `carrySince` and `habitStartDay` from `../habitsToday`, which is upward (STRUCTURE.md: `habits/` never imports `habitsToday.ts`); move both into a new `src/lib/habits/carryOver.ts` (with their tests) and point every importer at it. (b) A this-week skip or clear on a day already past would erase a missed chore and save the streak, against 6 and 33 ("late breaks it"); the writer refuses changes to a day before today, the same rule as moves (117). Boundary adds `src/lib/habits/carryOver.ts` and test, `src/lib/habits/choreWrites.ts`, and every file that imports the two moved functions (imports only).
 - **Objective:** what the pages need, through the two existing readers.
 - **Boundaries:** may touch: `src/lib/habitsRead.ts`,
@@ -206,6 +207,7 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
 
 ### C5 - Today, family view and Settings
 - **Status:** PENDING
+- **First:** `loadFamilyPage` computes each person's chore streak and Sunday flag from all their chores, private included; only the number and the flag leave the server, never a private chore's row (78). Boundary adds `src/lib/habitsStatsRead.ts` and `src/lib/habitsFamily.ts` and test for this.
 - **Boundaries:** `HabitTodayList.tsx`, `HabitRow.tsx`,
   `HabitFamilyColumn.tsx`, `HabitFamilyView.tsx`, `NudgeCard.tsx` (only if
   the cards share a stack), `src/app/(app)/habits/page.tsx`,

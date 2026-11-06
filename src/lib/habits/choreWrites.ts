@@ -11,8 +11,8 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { HOUSEHOLD_TIME_ZONE } from "../constants";
 import { addCalendarDays, calendarDateInZone, startOfWeek, utcMidnightInstant, type CalendarDate } from "../householdDate";
-import { carrySince, habitStartDay } from "../habitsToday";
 import type { Weekday } from "../habitVocabulary";
+import { carrySince, habitStartDay } from "./carryOver";
 import { computeChoreStreak, type ChoreInput } from "./choreStreak";
 import { logDayFromRow, specFromRow, vacationFromRow } from "./habitRows";
 import { atomically } from "./participantWrites";
@@ -93,7 +93,11 @@ export type ChoreChangeResult = { ok: true } | { ok: false; error: string };
 const CANNOT_CHANGE = "That chore can't change this week.";
 const isWeekday = (value: unknown): value is Weekday => Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 6;
 
-/** `change` null clears. The shared checks: a live weekdays chore that really falls on `fromWeekday`, and (for a move) a target of today or later. */
+/**
+ * `change` null clears. The shared checks: a live weekdays chore that really
+ * falls on `fromWeekday`, a day of today or later (a past day's miss, skip or
+ * move cannot be erased, decisions 6 and 33), and for a move a target of today or later.
+ */
 async function writeChange(
   habitId: string,
   fromWeekday: number,
@@ -103,6 +107,7 @@ async function writeChange(
 ): Promise<ChoreChangeResult> {
   if (!isWeekday(fromWeekday)) return { ok: false, error: CANNOT_CHANGE };
   const weekStart = startOfWeek(today);
+  if (compareDays(addCalendarDays(weekStart, fromWeekday), today) < 0) return { ok: false, error: CANNOT_CHANGE };
   if (change?.action === "moved") {
     const target = change.toWeekday;
     if (!isWeekday(target) || target === fromWeekday || compareDays(addCalendarDays(weekStart, target), today) < 0) {

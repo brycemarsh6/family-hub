@@ -1,20 +1,19 @@
-import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import {
   addCalendarDays,
   calendarDateFromUtcMidnight,
   calendarDaysBetween,
-  calendarDateInZone,
   startOfMonth,
   type CalendarDate,
 } from "./householdDate";
 import { canSeeHabit } from "./habits/access";
-import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay } from "./habits/carryOver";
+import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartDay } from "./habits/carryOver";
 import { logsForUser, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import { windowProgress, type WindowProgress } from "./habits/progress";
 import { compareDays, dueState as dueStateOf, isDayInRange, isSameDay } from "./habits/schedule";
-import { displayStreak, streakUnitOf } from "./habits/streaks";
+import { displayStreak, streakUnitOf, type StreakCache } from "./habits/streaks";
 import type { DueState, HabitActor, HabitLogDay, Vacation } from "./habits/types";
 import { weekChange, type ExcusableRow, type StoredWeekOverride } from "./habits/weekOverrides";
+import { choreHeader } from "./choreChart";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
 import type { HabitRowState, HabitMemberState } from "./habitChanges";
 import {
@@ -118,6 +117,10 @@ export type TodayPage = {
   nudges: TodayNudge[];
   /** True when every required row is done or skipped (decision 76); the page fires the confetti once a day. */
   confetti: boolean;
+  /** The viewer's chore streak, the Sunday shout-out and the end of their current vacation ("YYYY-MM-DD"): `ChoreHeader` in choreChart.ts. */
+  choreStreak: number;
+  shoutOut: boolean;
+  vacationThrough: string | null;
 };
 
 /** A habit as the reader fetches it: the columns below plus its participants (a Prisma row fits). */
@@ -165,21 +168,6 @@ export function todayLogsFrom(today: CalendarDate): CalendarDate {
   const lookback = addCalendarDays(today, -CARRY_LOOKBACK_DAYS);
   const monthStart = startOfMonth(today);
   return compareDays(monthStart, lookback) < 0 ? monthStart : lookback;
-}
-
-/** The household day a habit was made: decision 85's first-week start, and the earliest day it can carry over from. */
-export function habitStartDay(createdAt: Date): CalendarDate {
-  return calendarDateInZone(createdAt, HOUSEHOLD_TIME_ZONE);
-}
-
-/**
- * The first day a person can have missed on a habit: the later of the day the
- * habit was made and the day they joined it (`joinedAt` unknown means the
- * habit's own start). The one `since` for carry-over.
- */
-export function carrySince(joinedAt: Date | null | undefined, startDay: CalendarDate): CalendarDate {
-  const joinedDay = joinedAt ? calendarDateInZone(joinedAt, HOUSEHOLD_TIME_ZONE) : startDay;
-  return compareDays(joinedDay, startDay) > 0 ? joinedDay : startDay;
 }
 
 /**
@@ -318,6 +306,7 @@ export function buildTodayPage(
   today: CalendarDate,
   vacationsByUser: ReadonlyMap<string, readonly Vacation[]> = new Map(),
   nudges: readonly TodayNudge[] = [],
+  choreCache: StreakCache = { current: 0, best: 0, asOf: null },
 ): TodayPage {
   const visible = visibleInViewerOrder(viewer, habits);
   const live = visible.filter((habit) => !habit.archivedAt);
@@ -326,6 +315,7 @@ export function buildTodayPage(
     rows,
     nudges: [...nudges],
     confetti: allRequiredDoneToday(rows),
+    ...choreHeader(viewer.userId, visible, logsByHabit, today, vacationsByUser.get(viewer.userId) ?? [], choreCache),
     manage: live.map(managerItem),
     archived: visible
       .filter((habit) => habit.archivedAt)

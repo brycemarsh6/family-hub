@@ -2,11 +2,13 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { AVATAR_COLORS } from "@/lib/constants";
-import { addCalendarDays, utcMidnightInstant, startOfMonth, type CalendarDate } from "./householdDate";
+import { addCalendarDays, utcMidnightInstant, startOfMonth, startOfWeek, type CalendarDate } from "./householdDate";
+import { CARRY_LOOKBACK_DAYS, carrySince, habitStartDay } from "./habits/carryOver";
+import { choreCacheFromRow } from "./choreChart";
 import { logDayFromRow, specFromRow, vacationFromRow } from "./habits/habitRows";
 import type { HabitActor, HabitLogDay, Vacation } from "./habits/types";
 import { buildFamilyPage, buildStatsData, statsSubject, type FamilyPage, type HabitStatsData, type PerfectDayHabit } from "./habitsFamily";
-import { carrySince, habitStartDay, todayLogsFrom } from "./habitsToday";
+import { todayLogsFrom } from "./habitsToday";
 import { loadHouseholdPeople } from "./householdPeople";
 import { toHabitKind } from "./habitVocabulary";
 
@@ -104,7 +106,7 @@ export async function loadHabitStats(
  * person (`householdPeople.ts` decides who). Private and archived habits are
  * never fetched. Queries: the household people and the habits with their
  * participants; then the checks (fourteen days back, as Today), the people's
- * vacations and their avatar colors.
+ * vacations, avatar colors and chore streaks.
  */
 export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): Promise<FamilyPage> {
   const [household, habits] = await Promise.all([
@@ -112,6 +114,8 @@ export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): P
     db.habit.findMany({
       where: { isPrivate: false, archivedAt: null },
       include: {
+        // The last two weeks of this-week changes, as on Today.
+        weekOverrides: { where: { weekStart: { gte: utcMidnightInstant(startOfWeek(addCalendarDays(today, -CARRY_LOOKBACK_DAYS))) } } },
         participants: {
           orderBy: { joinedAt: "asc" },
           select: {
@@ -129,7 +133,7 @@ export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): P
   ]);
   const ids = household.map((person) => person.id);
   const habitIds = habits.map((habit) => habit.id);
-  const [logRows, vacationRows, colorRows] = await Promise.all([
+  const [logRows, vacationRows, colorRows, prefsRows] = await Promise.all([
     habitIds.length === 0
       ? []
       : db.habitLog.findMany({
@@ -138,10 +142,12 @@ export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): P
         }),
     db.vacationPeriod.findMany({ where: { userId: { in: ids } }, select: { userId: true, startDay: true, endDay: true } }),
     db.user.findMany({ where: { id: { in: ids } }, select: { id: true, avatarColor: true } }),
+    db.userPreferences.findMany({ where: { userId: { in: ids } }, select: { userId: true, choreStreakCurrent: true, choreStreakBest: true, choreStreakAsOf: true } }),
   ]);
   const logsByHabit = new Map<string, HabitLogDay[]>();
   for (const row of logRows) logsByHabit.set(row.habitId, [...(logsByHabit.get(row.habitId) ?? []), logDayFromRow(row)]);
   const colors = new Map(colorRows.map((row) => [row.id, row.avatarColor]));
   const people = household.map((person) => ({ id: person.id, displayName: person.displayName, avatarColor: colors.get(person.id) ?? AVATAR_COLORS[0].name }));
-  return buildFamilyPage(viewer, habits, people, logsByHabit, today, vacationMap(vacationRows));
+  const choreCaches = new Map(prefsRows.map((row) => [row.userId, choreCacheFromRow(row)]));
+  return buildFamilyPage(viewer, habits, people, logsByHabit, today, vacationMap(vacationRows), choreCaches);
 }

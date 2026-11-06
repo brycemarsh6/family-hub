@@ -1,14 +1,15 @@
 import { calendarDateFromUtcMidnight, formatCalendarDate, startOfMonth, type CalendarDate } from "./householdDate";
+import { choreHeader } from "./choreChart";
+import { carrySince, habitStartDay } from "./habits/carryOver";
 import { canLogFor, canNudge, canSeeHabitStats } from "./habits/access";
 import { specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import type { DayEntry } from "./habits/perfectDays";
 import { compareDays, dueState as dueStateOf, isDayInRange, isSameDay } from "./habits/schedule";
 import type { HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
+import type { StreakCache } from "./habits/streaks";
 import { isExcused, type ExcusableRow } from "./habits/weekOverrides";
 import {
-  carrySince,
   buildTodayRows,
-  habitStartDay,
   visibleInViewerOrder,
   type HabitRowView,
   type TodayHabitInput,
@@ -60,6 +61,10 @@ export type FamilyColumn = FamilyPerson & {
   /** Rows the person has checked today, out of the rows they owe, their own and the Together ones they are on (skipped rows are in neither number, decision 109). */
   doneCount: number;
   totalCount: number;
+  /** The person's chore streak (aged to today), Sunday shout-out and whether today is a vacation day (decisions 33, 115, 122). */
+  choreStreak: number;
+  shoutOut: boolean;
+  onVacation: boolean;
 };
 
 /** "Done of owed" over rows that are still in play: a skipped, vacation or skipped-this-week row is neither done nor owed (decisions 109, 115). One rule for Today and the family view. */
@@ -111,6 +116,7 @@ export function buildFamilyPage(
   logsByHabit: ReadonlyMap<string, HabitLogDay[]>,
   today: CalendarDate,
   vacationsByUser: ReadonlyMap<string, readonly Vacation[]> = new Map(),
+  choreCaches: ReadonlyMap<string, StreakCache> = new Map(),
 ): FamilyPage {
   const shown = habits.filter((habit) => !habit.isPrivate && !habit.archivedAt);
   const together: FamilyRow[] = [];
@@ -132,7 +138,8 @@ export function buildFamilyPage(
       .filter((row) => row.participants.some((p) => p.userId === person.id))
       .map((row) => row.id);
     const { done, total } = doneCounts(countedRows({ rows, togetherIds }, together));
-    return { ...person, rows, togetherIds, doneCount: done, totalCount: total };
+    const header = choreHeader(person.id, shown, logsByHabit, today, vacationsByUser.get(person.id) ?? [], choreCaches.get(person.id) ?? { current: 0, best: 0, asOf: null });
+    return { ...person, rows, togetherIds, doneCount: done, totalCount: total, choreStreak: header.choreStreak, shoutOut: header.shoutOut, onVacation: header.vacationThrough !== null };
   });
   return { today: formatCalendarDate(today), together, columns };
 }
