@@ -206,15 +206,113 @@
   commit with `git commit -m "<msg>" -- <your paths>` so only your paths
   are recorded whatever else is staged.
 
-### Later contracts (outline, full text before each dispatch)
+### Copy-taking rule (U2, U3a, U3b)
 
-- **U2, inventory and leftovers capture copies:** `pantryWrites.ts` returns
-  before/after from inside its writes; the five inventory/leftover routes
-  pass them on.
-- **U3, shopping captures copies:** `groceryWrites.ts`, `putAway.ts`, the
-  six shopping routes (split if over six files of real change).
-- **U4, undo:** `undoPlan.ts` (+ test), `undoWrites.ts`, the undo route,
-  OpenAPI entry and schema. Positive control, then refusals, live.
+- A `before` copy must be exactly the row the write replaced, and `after`
+  exactly what it left, even under parallel writes. Allowed ways:
+  an optimistic write keyed on the full read (`updateMany where { id,
+  updatedAt: read.updatedAt }` for PantryItem, retry on count 0, the
+  existing `adjustPantryQuantity` loop pattern), or a transaction that locks
+  the row first (`SELECT … FOR UPDATE` via `tx.$queryRaw`) for GroceryItem,
+  which has no `updatedAt`. Say which you used and why.
+- Copies are whole rows (every column) as returned by Prisma.
+- The family's own Server Actions call the same helpers: their results and
+  database effects must stay identical (prove by script, one call each).
+- Every write route passes `before` / `after` on each change it records.
+  Create: `before: null`. Delete: `after: null`.
+
+### U2, inventory and leftovers take copies
+
+- **Objective:** every inventory and leftover write Winnie makes records
+  exact before/after copies.
+- **Boundaries.** May touch: `src/lib/pantryWrites.ts`, and the five routes
+  `src/app/api/assistant/v1/inventory/route.ts`, `inventory/[id]/route.ts`,
+  `inventory/[id]/adjust/route.ts`, `inventory/bulk-adjust/route.ts`,
+  `leftovers/route.ts`; tests beside them. Must not touch `audit.ts`
+  (U1 owns it), grocery/put-away files, or anything outside.
+- **Work:** helpers return `{ before, after }` rows (keep existing return
+  fields so the actions compile unchanged, or update the action call sites
+  only if unavoidable and say so); routes record them. Bulk-adjust records
+  one change per row, copies taken inside its transaction.
+- **Verification:** gauntlet. Live: positive control (create, edit, adjust,
+  bulk-adjust, leftover on `ZZZ Assistant Test` rows; read each change back
+  by script and decode: copies match the DB before and after); 10 parallel
+  `adjust +1` on one row: the ten `before.quantity` values are 1..10 with no
+  repeat and each `after` = its `before` + 1; app parity by script for
+  `setPantryQuantity`, `adjustPantryQuantity`, `editPantryItem`,
+  `logLeftover` as the actions call them.
+- **Evidence / done:** as L1 (outputs, counts before/after, sizes,
+  `git diff --stat` inside the boundary).
+
+### U3a, shopping list writes take copies
+
+- **Objective:** same as U2 for shopping add/merge, edit, delete, check-off
+  and from-low-inventory.
+- **Boundaries.** May touch: `src/lib/groceryWrites.ts`,
+  `src/app/api/assistant/v1/shopping/route.ts`, `shopping/[id]/route.ts`,
+  `shopping/check-off/route.ts`, `shopping/from-low-inventory/route.ts`;
+  tests beside them. Must not touch `putAway*.ts`, the put-away route,
+  `audit.ts`, pantry files.
+- **Verification:** gauntlet. Live: positive control for each route on test
+  rows (copies decoded and matched against the DB); 10 parallel merge-adds
+  onto one row: befores 1..10, no repeat; parallel check-off of one row from
+  the API and a script: copies consistent; app parity for each helper the
+  actions use.
+
+### U3b, put-away takes copies
+
+- **Objective:** a put-away records copies of every grocery row it removes
+  and every pantry row it creates or tops up.
+- **Boundaries.** May touch: `src/lib/putAway.ts`,
+  `src/app/api/assistant/v1/shopping/put-away/route.ts`; tests beside
+  them. Must not touch `putAwayClassify.ts` beyond imports, anything else.
+- **Work:** the copies come from inside `commitPutAway`'s transaction (the
+  rows L1's claim returns, and each pantry row read before/after its write
+  in the same transaction). A pantry row touched twice in one put-away
+  (two "Milk" lines) records the first `before` and the last `after`.
+- **Verification:** gauntlet. Live: a put-away of three test rows (one
+  restock, one merge, one create) with copies matched; two lines into one
+  pantry row; app parity through `commitPutAway` as the action calls it.
+
+### U4, undo
+
+- **Objective:** `POST /api/assistant/v1/audit/{requestId}/undo` reverses
+  one whole request in one transaction, or refuses and changes nothing.
+- **Boundaries.** May touch: new `src/lib/assistant/undoPlan.ts` (pure) and
+  `undoPlan.test.ts`, new `src/lib/assistant/undoWrites.ts` (`server-only`),
+  new `src/app/api/assistant/v1/audit/[requestId]/undo/route.ts`,
+  `src/lib/assistant/schemas.ts` (params/body), `src/lib/assistant/openapi.ts`
+  (registry entry; new `openapiAuditPaths.ts` if the cap bites),
+  `src/app/api/assistant/v1/audit/route.ts` (adds `undone: boolean` per
+  request). Nothing else.
+- **Rules:**
+  1. Only models `PantryItem` and `GroceryItem` (an allowlist with each
+     model's restorable columns and which are dates). Anything else, or any
+     change without copies, makes the request `not_undoable`.
+  2. Refuse with 409 `conflict` and `details.reason` = `not_undoable`,
+     `too_old` (request older than 30 days), `failed_request` (status not
+     2xx), `already_undone` (a 2xx request exists whose path is this undo's
+     path), or `changed_since` with `details.records` naming every row
+     that no longer matches its last `after`. Unknown request id: 404.
+  3. Per record, collapse the request's changes: earliest `before`, latest
+     `after`. Then: updated row → restore `before` with a compare-and-swap
+     on `after` (PantryItem: `updatedAt`; GroceryItem: every column);
+     created row → delete it if it still equals `after`; deleted row →
+     re-create from `before` with the same id (its `pantryItemId` set to
+     null if that pantry row no longer exists). Restores first, then
+     deletes, then re-creates. Any miss rolls the whole transaction back.
+  4. The undo records its own changes with copies, so undoing an undo is a
+     redo.
+  5. Response: `{ undone: requestId, restored, removed, recreated }`.
+- **Verification:** gauntlet; `undoPlan.test.ts` covers collapse, ordering,
+  every refusal, old-format rows. Live, positive control first: undo a
+  create, an edit, an adjust, a bulk-adjust, a shopping merge, a delete and
+  a three-line put-away; each time the DB matches the pre-request state by
+  script. Then: undo twice → `already_undone`; edit the row by script then
+  undo → `changed_since`, nothing changed; 2 parallel undos of one request
+  → exactly one 200; redo (undo the undo) restores the post-request state;
+  a mission-22-era request → `not_undoable`; a request with createdAt moved
+  back 31 days by script (on a test request only) → `too_old`.
 
 ## Gate ledger
 
