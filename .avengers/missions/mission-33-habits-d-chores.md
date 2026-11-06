@@ -1,7 +1,7 @@
 # Mission: Habits & Chores PR D, chores (mission 33)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (Hill decided 115 to 124)
+**Status:** GATES PASSED, shipping (Hill decided 115 to 130)
 **Started:** 2026-11-05 · **Updated:** 2026-11-05
 **Branch:** `claude/habits-d-chores` (from origin/main 82d94e8)
 
@@ -408,3 +408,54 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
   `package.json`, records. No database commands. No commit.
 - **Verification:** full gauntlet in three zones, build EXIT=0, `git grep
   -n choreWeekOverride src/lib/habits/habitWrites.ts` empty.
+
+### Pass 3 (at b4f36fe): all three PASS
+- **Vision (Fable): PASS.** Gauntlet 842 / 835+7 skips / 842, build EXIT=0;
+  walked every 129 case by hand (writer, engine and chart agree). Notes:
+  the chore streak counts a week-skipped day done only for `done`, Today
+  for `done` or `late` (no screen shows it); an undone week-skipped row has
+  no tap, so 130 applies only to a check made before the skip or a
+  back-fill; `moveTargets` still offers a moved-here row's own day.
+- **Captain (Opus): PASS.** Blocker fixed; every name in the amendments
+  exists. Notes: "Skipped this week" defined twice in `habitVocabulary.ts`
+  (fixed by Fury before shipping: the tag points at
+  `SKIPPED_THIS_WEEK_LABEL`); "where a moved turn sits" is worked out in
+  both `choreChart.ts` and `choreWrites.ts` (a `turnSitsOn` helper for PR
+  E); `skippedMark` repeated in two components; `habitWrites.ts` 364 lines
+  (split the streak cache block in PR E); `habitsToday.ts` 339 and its test
+  331 lines.
+- **Strange (Opus): PASS.** F4 seen at 375 light and dark: family header
+  "6 of 6 done · On vacation", screen-reader "Skipped this week", a
+  week-skipped chore checked done joins the counts and grows the streak,
+  Settings button wording, chart unchanged. Notes: a locked moved turn (129)
+  was verified in code only (no such data on dev); the "Skipped this week"
+  chip stays beside a done check (accurate); the stats calendar does not
+  show a skipped week.
+
+## Delivery
+- **Shipped:** the chore chart (`/habits/chart`, Default week and This
+  week with move, skip and back to the default), the chore streak flame
+  after the Chores title, the Sunday "finished every chore" card and
+  family line, vacation mode in Settings (vacation days excuse what you
+  don't do; done still counts), plus F1's one optimistic tap hook.
+  Migration `20261108000000_add_chore_streak` (three additive columns on
+  `UserPreferences`), applied to dev in C2; the Vercel build applies it to
+  production on merge.
+- **Hill decisions for Bryce to review (medium):** 117 (This week sheet),
+  121 (no daily shout-out), 122 (Sunday card wording), 123 (vacation card
+  rules), 127 (a check on a vacation day counts; 130 rides on it).
+- **Leftovers for PR E:** split `habitWrites.ts` streak cache block into
+  `habits/streakWrites.ts`; a `turnSitsOn` helper and one `skippedMark`
+  helper; `toWeekday` into the vocabulary; `householdToday` into
+  `householdDate.ts`; 48px chart rows and chips that scroll sideways at
+  375; past-day rows that look tappable; the Add field's placeholder and
+  cancel; seven "Nothing this day." lines on an empty week; the chart does
+  not show vacation days; the stats page ignores moves and skipped weeks;
+  carry-over does not follow a move; `participantIds` includes deactivated
+  people; the N+1 chore owner reads; STRUCTURE.md (about 990 lines) needs
+  its housekeeping pass.
+- **Not covered by any gate:** kid and tablet logins (decision 125's "Ask a
+  parent" sheet), a locked moved turn on screen, the flame at 2+, the
+  Sunday card on a real Sunday, real touch. All on Bryce's checklist.
+- **Test data on dev:** "zz m33 fri", "zz m33 sat", "zz m33 thu" (Bryce's)
+  with this week's changes; delete whenever.
