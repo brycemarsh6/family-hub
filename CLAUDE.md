@@ -161,13 +161,14 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Habits & Chores PR A (mission 30)** merged as PR #41 (48245e0) and
-  live on production since 2026-11-05. Vercel Preview's `DATABASE_URL`
-  points at the Neon dev branch (Bryce, 2026-11-05). Record:
-  `.avengers/missions/mission-30-habits-a-engine.md`. PR B (mission 31)
-  is next and starts with decisions 84 to 86 in
-  `.avengers/plans/habits-chores-v1.md`; it needs Bryce's mock first.
-  PRs C to F are not started.
+- **Habits & Chores PR B (mission 31)** on branch `claude/habits-b-tab`:
+  Today list, Manage with drag to reorder, New and Edit forms, the
+  Everyone flag (one additive migration, applied to dev only). All gates
+  passed 2026-11-05; **not pushed yet**. Decisions 87 to 93 in
+  `.avengers/plans/habits-chores-v1.md`. Record:
+  `.avengers/missions/mission-31-habits-b-tab.md`. PR A (#41) is live.
+  PRs C to F are not started. The spike branch `claude/habits-b-spike` is
+  never merged; delete it after PR B merges.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
   desktop mouse. Hover is a bonus, never the only way to learn something.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch

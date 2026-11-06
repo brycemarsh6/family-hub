@@ -1,7 +1,7 @@
 # Mission: Habits & Chores PR B, the tab (mission 31)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTS (mock approved; contracts being written)
+**Status:** GATES PASSED (Vision pass 3, Captain pass 2, Strange pass 2). Not pushed; waiting on Bryce's go-ahead to push and open the PR.
 **Started:** 2026-11-05 · **Updated:** 2026-11-05
 
 ## Brief
@@ -306,6 +306,7 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
 | 2 | Captain | PASS | none | HabitForm 351 (split before PR C); STRUCTURE.md habits import list misses householdPeople; habitsToday homes list incomplete; participantsAllowed vs validatedPeople naming; **new-habit sortOrder computed four ways (a new habit lands near the top for someone who reordered): one `nextSortOrders` helper** (for F3); schedule words in HabitManager.tsx; chipClass home; edit page loads whole Today page; stale comments; STRUCTURE.md 895 lines needs housekeeping |
 | 2 | Vision | BLOCKED | 2, both open work from decisions 89 and 93 (no regression): Skip on a carried row must skip the carried day (pass `dayOf(row)`, optimistic change drops the row, test); Together hint must read "counts for everyone" | F1 and F2 clean, gauntlet green (694), both pass-1 blockers closed; a parent can save a habit with only turned-off people; Everyone save drops turned-off people (by design); "under 120 letters" off by one; Captain's sortOrder note stands |
 | 2 | Strange | PASS | none | all 7 re-measured fixed at 390/820 light/dark; Plans & Goals log button unchanged; hydration warning gone; Restore fill faint in dark (taste); Manage shows "(quit)" in the title vs Today's Quit tag; skipped row has no visible word; mouse-only text selection on drag |
+| 3 | Vision | PASS | none | gauntlet green (697 all zones, build, migrate status dev); New-habit sort read and create not in one transaction (ties harmless); nextSortOrders untested (needs db); a skipped carried day cannot be undone from Today; "Skip Thursday" ambiguous for Every other week 8 to 13 days back; checking a carried row also drops it after reload (confirm with Bryce) |
 
 **Test data on dev (Strange, pass 1):** zz m31 daily, zz m31 days, zz m31 weekly (Everyone), zz m31 monthly (Private), zz m31 together. zz m31 biweekly already deleted. Fury removes the rest through the app after the gates. Pass 2 added: habit "zz m31 quit", goal "zz m31 goal" with plan habit "zz m31 plan habit".
 
@@ -332,4 +333,18 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
 - **Rules:** (89) on a carried row the swipe action reads "Skip {weekday of the carried day}" (for example "Skip Thursday"; wording pending Bryce, recommended) and calls `skipHabit(row.id, undefined, dayOf(row))`; the optimistic change for a carried skip removes the row's carry and drops it from Today's open rows (a `habitChanges` change type with a test); normal rows keep "Skip today". (93) Together hint "Together: one check counts for everyone", test updated. Sort order: one `nextSortOrders(tx, userIds)` in `participantWrites.ts` (each person's own max + 1, or 0), used by `createHabit`, `replaceParticipants`, `joinEveryoneHabits` and `joinHouseholdToHabit`. Manage shows the neutral Quit tag (Today's class, moved to one shared export) instead of "(quit)" in the title. Title message "Keep the name to 120 letters or fewer." (pending Bryce, recommended). Fix the stale comments Captain named (`habitsRead.ts:18`, `participantWrites.ts:3`).
 - **Verification:** full gauntlet; tests rise.
 - **Done:** Vision pass 3 PASS.
+
+## Delivery
+
+- 2026-11-05: all gates PASS. 697 tests (654 at start). One additive
+  migration (`Habit.everyone`), applied to dev by Fury. Test data on dev
+  (zz m31 habits, goal "zz m31 goal") left on purpose so Bryce's preview
+  test has rows; delete it with one tap each afterwards.
+- Bryce's steps: approve push and PR; on the preview link (Preview's
+  `DATABASE_URL` is the dev branch) sixty seconds on a phone: tap a check,
+  swipe for Skip, drag in Manage.
+- Deliberate leftovers for later PRs: HabitForm 351 lines (split before PR
+  C); schedule words in HabitManager.tsx; chipClass home; edit page loads
+  the whole Today page; STRUCTURE.md housekeeping (895 lines); Plans &
+  Goals empty-circle check (decision 91); skipped rows have no visible word.
 
