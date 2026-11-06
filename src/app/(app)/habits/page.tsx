@@ -4,6 +4,7 @@ import { HabitTodayList } from "@/components/HabitTodayList";
 import { requireVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { loadTodayPage } from "@/lib/habitsRead";
+import { formatCalendarDate } from "@/lib/householdDate";
 import { formatDayLabel } from "@/lib/mealPlanDates";
 
 // Reads the session, so it can never be cached.
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function HabitsPage() {
   const user = await requireVerifiedUser();
   const today = householdToday(new Date())!;
-  const { rows } = await loadTodayPage({ userId: user.userId, role: user.role }, today);
+  const { rows, nudges, confetti } = await loadTodayPage({ userId: user.userId, role: user.role }, today);
   // A shared device (the wall tablet) can tick things off but never edit.
   const canManage = !user.isDevice;
 
@@ -43,6 +44,11 @@ export default async function HabitsPage() {
         rows={rows}
         todayLabel={formatDayLabel(new Date(today.year, today.month - 1, today.day))}
         canManage={canManage}
+        nudges={nudges}
+        confetti={confetti}
+        // The tablet shows everyone's streaks; a person's switch hides theirs (decision 98).
+        showStreaks={user.isDevice || user.showStreaks}
+        todayKey={formatCalendarDate(today)}
       />
     </div>
   );

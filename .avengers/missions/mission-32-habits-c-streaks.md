@@ -207,7 +207,8 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Verification:** full gauntlet.
 
 ### C4 - Today additions and confetti
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury moved `@types/canvas-confetti` to devDependencies, re-ran tsc, eslint, 756 tests; build EXIT=0 with a fake database URL)
+- **Notes for C5+:** `HabitRow` takes `showStreaks` (page passes `user.isDevice || user.showStreaks`) and its icon and title are a Link to `/habits/[id]`; "Skipped today" replaces the meta line. `HabitTodayList` takes `nudges`, `confetti`, `showStreaks`, `todayKey`; confetti fires on `confetti || allRequiredDoneToday(live)`, once a day per device (`confettiSeen.ts`, read inside the effect, no hook). Link taps after a swipe rely on SwipeActions' capture-phase click swallow: Strange checks it. No new tests (client components only).
 - **Objective:** streaks, "Skipped today", nudge cards, title tap to stats,
   and confetti on Today.
 - **Boundaries:** may touch: `src/components/HabitTodayList.tsx`,
