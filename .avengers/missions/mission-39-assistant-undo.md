@@ -374,3 +374,15 @@
   3-row put-away copies exact; 12-trial race stress, 0 bad copies; app
   parity. Full gauntlet incl. build green; recordcheck 0 hard, 13 REVIEW.
   U4 dispatched (port 3143).
+- 2026-11-06: U4 DONE (7 files: `undoPlan.ts` 221 + 13 tests,
+  `undoWrites.ts` 216, undo route, `undoBody`, OpenAPI entry, `undone` on
+  `GET /audit`). Live: undo of create, edit, adjust, bulk-adjust, leftover,
+  merge, create+merge, delete (same id back), 3-line put-away; every refusal;
+  all-or-nothing on a partly changed bulk-adjust; parallel undos → one 200;
+  redo of an edit and a create. Tests 1023; full gauntlet incl. build green;
+  recordcheck 0 hard, 10 REVIEW. For the gates: restores write the old
+  `updatedAt` back (an A-B-A value reappears; judge against U2's
+  compare-and-set); parallel-undo loser says `changed_since` not
+  `already_undone`; redo not exercised live for put-away or delete; nulls
+  `addedById` on re-create if that user is gone (read-only User lookup).
+  Gate pass 1: Vision + Captain dispatched in parallel.
