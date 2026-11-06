@@ -57,6 +57,14 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
 - **After claiming something is done, run `git log origin/main..HEAD`.** This
   project has three times had "finished" work that was never pushed. "Works
   locally" and "the family has it" are different claims.
+- **One chat per PR** (Bryce, 2026-11-06). After a PR merges, if the plan
+  has a next PR, offer it as a New task card (`start_session`, fresh, own
+  worktree) with a handoff: what just merged, what's next, which plan and
+  mission files to read. Don't start the next PR in the same chat. Chats
+  auto-archive when their PR merges.
+- **Parallel chats each get their own worktree.** Shared files
+  (`prisma/schema.prisma`, `CLAUDE.md`, `STRUCTURE.md`, `HubNav.tsx`,
+  `package.json`) get small edits only; sync with `main` right before merging.
 - **Run commands, practical setup and file layout:** [README.md](README.md).
 
 ## What's built
