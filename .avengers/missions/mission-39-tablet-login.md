@@ -186,13 +186,54 @@ Admin password    [ ••••••••                ]
    admin's hash (`verifyPassword`, `src/lib/password.ts`), count attempts in
    the login rate limit (`loginRateLimit.ts`), then `logout`.
 
+### Round 2 (2026-11-06, Bryce widened the tablet: "pretty much fully capable")
+
+Bryce's default for the tablet: **everything except seeing private goals and
+deleting calendar events.** One rule protects the parents' own things.
+
+5. **Own dashboard.** The tablet gets the Customize button like everyone
+   else and its layout is saved on the Tablet login. Habits and Chores tiles
+   become available on it. **Overturns decision 138** (`dashboardPicks.ts:26-29`
+   and `preferences.ts:32` refuse the device today).
+6. **Calendar: create and edit any event, delete none.** Today all three
+   calendar writes are manager-only (`calendar.ts:144,184,245`). Tasks follow
+   the same rule (create, edit, complete; no delete) unless a build-time
+   question says otherwise.
+7. **Habits, chores, routines and goals: the tablet may create them for
+   anyone and check off anyone's.** Today the tablet is refused every create
+   and edit (see "What it is refused today").
+8. **The parent rule, judged by who made it.** The tablet may edit and delete
+   anything a parent did not create (`createdById` is not an admin or parent:
+   made on the tablet, by a kid, or by nobody). Anything a parent created,
+   even for a kid, the tablet may only check off: no edit, no delete. Every
+   model already records its creator (`Habit.createdById`, `Goal.createdById`,
+   `CalendarEvent.createdById`, `Task.createdById`), so **no migration.**
+   Bryce's example: Emily makes a chore for Ledger, the tablet can check it
+   off but not delete it.
+9. **Private goals and private habits stay hidden from the tablet** (already
+   true: `goals.ts:102`, `habits/access.ts` `canSeeHabit`).
+10. **A per-login permissions page is a later mission**, after Calendar is
+   finished: switches such as "the Tablet may delete Emily's events but not
+   Bryce's". Mission 39 ships the defaults above as fixed rules, each written
+   as one named check (a single `tabletMay...` helper per rule, in one file)
+   so the later page can turn each into a switch without hunting.
+
+**Decision 3 is narrowed by 8:** "check habits for anyone" stays; the tablet
+also may now create, edit and delete within the parent rule.
+
 Fury's recommendations, recorded; Bryce can overturn any:
 
 - The Tablet row in Manage family offers Rename, Reset password and
   Deactivate, never Change role or Upgrade profile.
 - At most one active device login (the create button hides once one exists);
   a second tablet is a later decision.
-- The tablet's dashboard keeps decision 138 (no Habits or Chores tiles).
+- "Parent" in decision 8 means role admin or parent at the time of the check,
+  read fresh from the creator's row (a deactivated parent still counts as a
+  parent, so their things stay protected).
+- Round 2 is too big for one PR. Split: **PR A** = C1 to C4 (the login
+  itself, so Emily's account comes off the tablet quickly); **PR B** = the
+  wider rights (C5 to C7). PR B waits for missions 37 and 38 to merge and
+  must re-read the habits and calendar files then.
 
 ## Contracts (sketch; written in full when the build starts)
 
@@ -232,6 +273,26 @@ Fury's recommendations, recorded; Bryce can overturn any:
 - **Verification:** wrong password refused and counted by the rate limit;
   right password signs out; a person login still signs out with one tap.
 
+### C5 — The tablet's own dashboard (PR B)
+- `preferences.ts` (`saveDashboardLayout` allows device; Show streaks stays
+  refused), `dashboardPicks.ts` (drop the device filter), `(home)/page.tsx`
+  (read the tablet's saved layout, show Customize). Decision 138 retired in
+  DESIGN.md/STRUCTURE.md wherever it is named.
+
+### C6 — Calendar and tasks: create and edit, no delete (PR B)
+- `calendar.ts` and `tasks.ts`: create and update let `device` through;
+  delete stays manager-only. Read `.avengers/plans/calendar-v2.md` first.
+
+### C7 — Habits, chores and goals for the tablet, with the parent rule (PR B)
+- One new home for the rule (for example `src/lib/tabletRules.ts`:
+  `tabletMayChange(createdByRole)`), called by `habits/access.ts`,
+  `goals.ts`, `actions/habits.ts`, `actions/goals.ts`, `actions/planItems.ts`,
+  `choreChart.ts`; the page redirects in `habits/new`, `habits/[id]/edit`,
+  `habits/manage`, `habits/chart`, `plans/goals/new` lifted for the tablet.
+  Tests: a tablet edit and delete of a kid-made habit pass; of a parent-made
+  habit are refused; a private goal stays invisible.
+- Captain decides whether the rule file sits beside `habits/access.ts`.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -246,6 +307,10 @@ Fury's recommendations, recorded; Bryce can overturn any:
   Bryce; answers recorded above. No code changed. Next: a build session
   starts from main after missions 37 and 38 merge, opens its own branch,
   writes C1 to C3 in full, dispatches Stark.
+- 2026-11-06 — Round 2: Bryce widened the tablet (own dashboard, calendar
+  create and edit, habits/chores/goals for anyone, the parent rule by
+  creator, permissions page later). Decisions 5 to 10 recorded; C5 to C7
+  sketched for a second PR.
 
 ## Delivery
 
