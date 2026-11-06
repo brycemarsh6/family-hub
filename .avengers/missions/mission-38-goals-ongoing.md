@@ -142,3 +142,19 @@ for a change; tell Bryce, and it is one line if he wants the chip pre-lit.
 Fury reviewed the SQL (the one `ALTER ... DROP NOT NULL`), checked the
 host prefix (`ep-hidden-pine-`, dev) without printing `.env`, and ran
 `npx prisma migrate deploy` on dev: applied.
+
+## Gate ledger
+
+#### Captain, pass 1: BLOCKED (1)
+
+BLOCKER: the four grandfathered `calendarDateInZone(goal.targetDate,
+"UTC")` sites (`plans/goals/[id]/page.tsx`, its `edit/page.tsx`,
+`actions/goals.ts`, `goalsProgress.ts`) were touched and must move to
+`calendarDateFromUtcMidnight` (STRUCTURE.md's stored-day rule); drop the
+unused `calendarDateInZone` imports, keep it in `goalsProgress.ts` for
+`createdAt`. NOTES: retire the grandfather sentence; add an "Ongoing
+goals" paragraph to the goals entry and `ONGOING_LABEL` to the
+vocabulary list; size watch `goals.ts` 338, `GoalForm.tsx` 331 (split the
+target-date field next); a fifth null check should become
+`isOngoingGoal`. Placement, migration, one source of truth and dependency
+direction pass.
