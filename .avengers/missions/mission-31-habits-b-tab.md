@@ -178,7 +178,9 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
 - **Done:** all of the above green and the SQL is a single ADD COLUMN.
 
 ### C2 - The Today reader and the server actions
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc and eslint)
+- **Report notes for C3 to C5:** types `TodayPage { rows, manage, archived }`, `HabitRowView` (assignable to `HabitRowState`), `HabitManagerItem`, from `src/lib/habitsRead.ts`. Editor actions in `src/app/actions/habits.ts` take `HabitInput` (anchorWeek as "YYYY-MM-DD", weekdays as a 7-character mask, `participantIds`, `everyone`). Taps in new `src/app/actions/habitChecks.ts`: `(habitId, forUserId?, day?)`; a carried row passes `formatCalendarDate(row.carriedFrom)`. `rows` leaves out habits with dueState "none" unless carried or done or skipped today. Manager lists only habits the viewer takes part in. Logs are read from the earlier of today minus 14 and the 1st of the month (monthly counts).
+- **Open for the fix batch:** (a) a carried row from 8 to 14 days ago is shown but its tap is refused (lookback 14, tap window 7): accept a day equal to the server's carried day. (b) Move row building into a pure `src/lib/habitsToday.ts` with tests (habitsRead.ts is 360 lines and the Today rules are untested).
 - **Objective:** `loadTodayPage(viewer, today)` in `src/lib/habitsRead.ts`
   and every PR B server action in `src/app/actions/habits.ts`.
 - **Boundaries:** may touch: `src/lib/habitsRead.ts` (and a new
