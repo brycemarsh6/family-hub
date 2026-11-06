@@ -3,8 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { addHabitDaysToSchedule } from "./scheduleHabitDays";
-import type { ScheduleRenderMonth } from "../scheduleWindowState";
-import type { CalendarHabitDayView } from "../types";
+import type { ScheduleRenderMonth } from "./scheduleWindowState";
+import type { CalendarHabitDayView } from "./types";
 
 function item(y: number, m: number, d: number, id = "h"): CalendarHabitDayView {
   return { id: `${id}:${y}-${m + 1}-${d}`, habitId: id, title: "Run", icon: null, kind: "habit", dayInstant: new Date(Date.UTC(y, m, d)), done: false };

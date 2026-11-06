@@ -50,8 +50,7 @@
 // with no conversion step.
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { HabitIcon } from "./HabitIcon";
+import { HabitDayPill } from "./HabitDayPill";
 import { assignLanes, type MonthLayoutEvent } from "@/lib/monthLayout";
 import { addDays } from "@/lib/mealPlanDates";
 import {
@@ -218,23 +217,12 @@ export function TimelineAllDayStrip({
         const habitDay = habitDayById.get(span.event.id);
         if (habitDay) {
           return (
-            <Link
+            <HabitDayPill
               key={span.event.id}
-              href={`/habits/${habitDay.habitId}`}
-              aria-label={habitDay.done ? `${habitDay.title}, done` : habitDay.title}
-              className={`flex items-center gap-0.5 truncate rounded border px-1 text-left text-[9px] font-semibold leading-[24px] ${
-                habitDay.done ? "border-muted text-muted" : "border-fg text-fg"
-              }`}
-              style={{
-                gridColumn: `${span.startCol + 2} / ${span.endCol + 3}`,
-                gridRow: span.lane + 1,
-                background: "var(--surface-2)",
-              }}
-            >
-              <HabitIcon name={habitDay.icon} kind={habitDay.kind} size={10} />
-              {habitDay.done && <span aria-hidden="true">✓</span>}
-              <span className={`truncate ${habitDay.done ? "line-through" : ""}`}>{habitDay.title}</span>
-            </Link>
+              habitDay={habitDay}
+              gridColumn={`${span.startCol + 2} / ${span.endCol + 3}`}
+              gridRow={span.lane + 1}
+            />
           );
         }
         const task = taskById.get(span.event.id);

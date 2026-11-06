@@ -1,5 +1,6 @@
-import type { CalendarHabitDayView } from "../types";
-import type { ScheduleRenderDay, ScheduleRenderMonth } from "../scheduleWindowState";
+import { allDayInstantToLocalDay } from "./calendarDates";
+import type { CalendarHabitDayView } from "./types";
+import type { ScheduleRenderDay, ScheduleRenderMonth } from "./scheduleWindowState";
 
 // Folds planned habit days into the Schedule view's rendered months (decision
 // 146) without touching the paging state machine. A planned day with no event
@@ -7,10 +8,6 @@ import type { ScheduleRenderDay, ScheduleRenderMonth } from "../scheduleWindowSt
 
 export type ScheduleRenderDayWithHabits = ScheduleRenderDay & { habitDays: CalendarHabitDayView[] };
 export type ScheduleRenderMonthWithHabits = { monthStart: Date; days: ScheduleRenderDayWithHabits[] };
-
-function localDay(instant: Date): Date {
-  return new Date(instant.getUTCFullYear(), instant.getUTCMonth(), instant.getUTCDate());
-}
 
 /**
  * Every day of `months` gains its `habitDays`; a habit day inside
@@ -25,7 +22,7 @@ export function addHabitDaysToSchedule(
 ): ScheduleRenderMonthWithHabits[] {
   const byDay = new Map<number, CalendarHabitDayView[]>();
   for (const item of habitDays) {
-    const day = localDay(item.dayInstant);
+    const day = allDayInstantToLocalDay(item.dayInstant);
     if (day.getTime() < windowStart.getTime() || day.getTime() >= windowEnd.getTime()) continue;
     byDay.set(day.getTime(), [...(byDay.get(day.getTime()) ?? []), item]);
   }

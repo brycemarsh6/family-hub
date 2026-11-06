@@ -11,7 +11,7 @@ import { buildFamilyPage, buildStatsData, statsSubject, type FamilyPage, type Ha
 import { todayLogsFrom } from "./habitsToday";
 import { loadHouseholdPeople } from "./householdPeople";
 import { toHabitKind } from "./habitVocabulary";
-import { buildCalendarHabitDays, type PlannedDayRow } from "./habits/calendarHabitDays";
+import { buildCalendarHabitDays, type PlannedDayRow } from "./habitsCalendar";
 import type { CalendarHabitDayView } from "./types";
 
 // The readers for the stats page and the family view, in a sibling of

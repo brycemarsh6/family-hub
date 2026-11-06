@@ -9,7 +9,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays } from "./mealPlanDates";
-import { addHabitDaysToSchedule, type ScheduleRenderMonthWithHabits } from "./habits/scheduleHabitDays";
+import { addHabitDaysToSchedule, type ScheduleRenderMonthWithHabits } from "./scheduleHabitDays";
 import type { ScheduleRenderMonth } from "./scheduleWindowState";
 import type { CalendarHabitDayView } from "./types";
 
@@ -20,13 +20,24 @@ export type FetchHabitDays = (windowStart: Date, windowEnd: Date) => Promise<Cal
 
 type Covered = { start: number; end: number };
 
+export type ScheduleHabitDays = {
+  months: ScheduleRenderMonthWithHabits[];
+  /** True once the habit days for (the part of) the loaded window the reader is on have arrived. */
+  habitDaysLoaded: boolean;
+  /** True when the last fetch failed; the habit days are then missing from the rows. */
+  habitDaysFailed: boolean;
+};
+
 export function useScheduleHabitDays(
   months: ScheduleRenderMonth[],
   windowStart: Date,
   windowEnd: Date,
   fetchHabitDays: FetchHabitDays,
-): ScheduleRenderMonthWithHabits[] {
+): ScheduleHabitDays {
   const [items, setItems] = useState<Map<string, CalendarHabitDayView>>(() => new Map());
+  // The ref drives the fetching; the state mirrors it so the view can say "loaded".
+  const [coverage, setCoverage] = useState<Covered | null>(null);
+  const [habitDaysFailed, setHabitDaysFailed] = useState(false);
   const covered = useRef<Covered | null>(null);
   const fetcherRef = useRef(fetchHabitDays);
   useEffect(() => {
@@ -61,10 +72,13 @@ export function useScheduleHabitDays(
           else found.push(...chunk);
         }
       }
-      if (cancelled || !ok) return;
+      if (cancelled) return;
+      setHabitDaysFailed(!ok);
+      if (!ok) return;
       covered.current = fresh || !have
         ? { start: startTime, end: endTime }
         : { start: Math.min(have.start, startTime), end: Math.max(have.end, endTime) };
+      setCoverage(covered.current);
       setItems((prev) => {
         const merged = fresh ? new Map<string, CalendarHabitDayView>() : new Map(prev);
         for (const item of found) merged.set(item.id, item);
@@ -77,8 +91,11 @@ export function useScheduleHabitDays(
     };
   }, [startTime, endTime]);
 
-  return useMemo(
+  const withHabits = useMemo(
     () => addHabitDaysToSchedule(months, [...items.values()], new Date(startTime), new Date(endTime)),
     [months, items, startTime, endTime],
   );
+  // Loaded while what we hold still overlaps the window; a jump elsewhere is "not loaded" until its fetch lands.
+  const habitDaysLoaded = coverage !== null && startTime <= coverage.end && endTime >= coverage.start;
+  return { months: withHabits, habitDaysLoaded, habitDaysFailed };
 }

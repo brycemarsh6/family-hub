@@ -136,7 +136,7 @@ export function HabitRow({
                     <span>{row.plannedToday ? PLANNED_FOR_TODAY_LABEL : ANYTIME_LABEL}</span>
                   </>
                 )}
-                {row.dueState === "open" && row.progress && row.progress.target > 1 && (
+                {(row.dueState === "open" || row.plannedToday) && row.progress && row.progress.target > 1 && (
                   <>
                     <span aria-hidden="true">·</span>
                     <span>

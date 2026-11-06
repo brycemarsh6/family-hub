@@ -172,6 +172,9 @@ export function MonthGrid({
     tasks.filter((task) => task.completedAt !== null).map((task) => task.id),
   );
 
+  // A planned habit day reads like a task (decision 157): the open box until
+  // it is done, then the completed pill.
+  const habitDayIds = new Set(habitDays.map((item) => item.id));
   const doneHabitDayIds = new Set(habitDays.filter((item) => item.done).map((item) => item.id));
 
   return (
@@ -213,7 +216,7 @@ export function MonthGrid({
             // through to `null`.
             const taskStatus: "open" | "completed" | null = completedTaskIds.has(event.id) || doneHabitDayIds.has(event.id)
               ? "completed"
-              : taskIds.has(event.id)
+              : taskIds.has(event.id) || habitDayIds.has(event.id)
                 ? "open"
                 : null;
             for (let col = span.startCol; col <= span.endCol; col++) {

@@ -1,6 +1,7 @@
-import { canSeeHabit } from "./access";
-import type { CalendarHabitDayView } from "../types";
-import type { HabitActor } from "./types";
+import { canSeeHabit } from "./habits/access";
+import type { CalendarHabitDayView } from "./types";
+import type { HabitActor } from "./habits/types";
+import { isCheckStatus } from "./habitVocabulary";
 
 // Which planned habit days the Calendar shows the viewer, and which are done
 // (decision 146). Pure: the reader hands in the viewer's own planned rows and
@@ -29,25 +30,23 @@ function dayKey(day: Date): string {
 /**
  * The viewer's planned days, in day then title order. Only the viewer's own
  * rows count (so a Together habit shows once, from their row), and only for a
- * habit they are on and may see: a private habit only to its person, and the
- * tablet (a device login) sees none. A day is done when the viewer has a
- * "done" or "late" check on it; a skip is not done.
+ * habit they may see (`canSeeHabit`). The tablet (a device login) sees none:
+ * the reader returns early for it. A day is done when the viewer has a done or
+ * late check on it (`isCheckStatus`); a skip is not done.
  */
 export function buildCalendarHabitDays(
   viewer: HabitActor,
   rows: readonly PlannedDayRow[],
   checks: readonly PlannedDayCheck[],
 ): CalendarHabitDayView[] {
-  if (viewer.role === "device") return [];
   const doneKeys = new Set(
     checks
-      .filter((check) => check.userId === viewer.userId && (check.status === "done" || check.status === "late"))
+      .filter((check) => check.userId === viewer.userId && isCheckStatus(check.status))
       .map((check) => `${check.habitId}:${dayKey(check.day)}`),
   );
   const items = new Map<string, CalendarHabitDayView>();
   for (const row of rows) {
-    if (row.userId !== viewer.userId || !row.participantIds.includes(viewer.userId)) continue;
-    if (!canSeeHabit(viewer, row)) continue;
+    if (row.userId !== viewer.userId || !canSeeHabit(viewer, row)) continue;
     const id = `${row.habitId}:${dayKey(row.day)}`;
     items.set(id, {
       id,

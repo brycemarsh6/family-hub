@@ -25,11 +25,10 @@ import { allDayInstantToLocalDay } from "@/lib/calendarDates";
 // which Server Actions back the Schedule view — useScheduleWindow.ts no
 // longer imports either of these itself (see that file's own header for
 // why: a lib module reaching into app/ was a real STRUCTURE.md violation).
-import { fetchCalendarEvents } from "@/app/actions/calendar";
+import { fetchCalendarEvents, fetchHabitDays } from "@/app/actions/calendar";
 import { fetchTasks } from "@/app/actions/tasks";
-import { fetchHabitDays } from "@/app/actions/calendar";
 import { useScheduleHabitDays } from "@/lib/useScheduleHabitDays";
-import type { ScheduleRenderDayWithHabits, ScheduleRenderMonthWithHabits } from "@/lib/habits/scheduleHabitDays";
+import type { ScheduleRenderDayWithHabits, ScheduleRenderMonthWithHabits } from "@/lib/scheduleHabitDays";
 import {
   SHORT_DAY_NAMES,
   formatMonthTitle,
@@ -167,7 +166,17 @@ export function ScheduleView({
     refreshDay,
   } = useScheduleWindow(initialDay, today, fetchers);
   // Planned habit days (decision 146), folded into the loaded months.
-  const months = useScheduleHabitDays(loadedMonths, windowStart, windowEnd, fetchHabitDays);
+  const { months, habitDaysLoaded, habitDaysFailed } = useScheduleHabitDays(loadedMonths, windowStart, windowEnd, fetchHabitDays);
+
+  // Until the habit days load (or fail, which shows its own line), today's
+  // row cannot be called empty.
+  const habitDaysPending = !habitDaysLoaded && !habitDaysFailed;
+  const isEmptyToday = (row: ScheduleRenderDayWithHabits) =>
+    today !== null &&
+    isSameDay(row.day, today) &&
+    row.events.length === 0 &&
+    row.tasks.length === 0 &&
+    row.habitDays.length === 0;
 
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
   const [selectedTask, setSelectedTask] = useState<CalendarTaskView | null>(null);
@@ -371,12 +380,10 @@ export function ScheduleView({
                     // that number always describes the real chrome.
                     style={{ scrollMarginTop: scheduleChromeHeight }}
                   >
-                    {today !== null &&
-                    isSameDay(row.day, today) &&
-                    row.events.length === 0 &&
-                    row.tasks.length === 0 &&
-                    row.habitDays.length === 0 ? (
-                      <TodayEmptyRow day={row.day} />
+                    {isEmptyToday(row) ? (
+                      // Holds off until the habit days arrive: an empty today row
+                      // may only be empty because they have not loaded yet.
+                      habitDaysPending ? <DaySection loading /> : <TodayEmptyRow day={row.day} />
                     ) : today === null ? (
                       <DaySection loading />
                     ) : (
@@ -427,6 +434,12 @@ export function ScheduleView({
               already covers separately. */}
           {!hasMoreBackward && !loadingBackward && (
             <p className="pb-2 text-center text-xs text-muted">That&apos;s as far back as this loads.</p>
+          )}
+
+          {habitDaysFailed && (
+            <p role="alert" className="px-1 pb-2 text-sm text-warn">
+              Couldn&apos;t load your planned habit days.
+            </p>
           )}
 
           {months.map(renderMonth)}

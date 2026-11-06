@@ -111,7 +111,6 @@ export function HabitTodayList({
     <div>
       {/* The flag is the server's on load; after a tap it is worked out again from the tapped rows, by the same rule. */}
       <HabitConfetti fire={confetti || allRequiredDoneToday(live)} today={todayKey} />
-      <PlanDayCards prompts={prompts} />
       <NudgeCards nudges={nudges} />
       {throughDay && (
         <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-line bg-surface py-2 pl-3 pr-1">
@@ -125,6 +124,7 @@ export function HabitTodayList({
         </div>
       )}
       {shoutOut && <ChoreShoutOutCard />}
+      <PlanDayCards prompts={prompts} />
       <p className="mb-3 text-sm text-muted">
         {todayLabel}
         {live.length > 0 && ` · ${doneCountLabel(live)}`}

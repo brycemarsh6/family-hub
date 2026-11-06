@@ -1,14 +1,13 @@
-// Pins calendarHabitDays.ts (decision 146): who sees a planned habit day on the
+// Pins habitsCalendar.ts (decision 146): who sees a planned habit day on the
 // Calendar, and when it reads as done.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCalendarHabitDays, type PlannedDayRow } from "./calendarHabitDays";
-import type { HabitActor } from "./types";
+import { buildCalendarHabitDays, type PlannedDayRow } from "./habitsCalendar";
+import type { HabitActor } from "./habits/types";
 
 const emily: HabitActor = { userId: "emily", role: "parent" };
 const bryce: HabitActor = { userId: "bryce", role: "admin" };
-const tablet: HabitActor = { userId: "tablet", role: "device" };
 const MON = new Date(Date.UTC(2026, 10, 9));
 const TUE = new Date(Date.UTC(2026, 10, 10));
 
@@ -38,10 +37,6 @@ test("a private habit shows only to its person", () => {
   const mine = row({ isPrivate: true, participantIds: ["emily"] });
   assert.equal(buildCalendarHabitDays(emily, [mine], []).length, 1);
   assert.equal(buildCalendarHabitDays(bryce, [mine], []).length, 0);
-});
-
-test("the tablet sees none", () => {
-  assert.deepEqual(buildCalendarHabitDays(tablet, [row({ userId: "tablet", participantIds: ["tablet"] })], []), []);
 });
 
 test("done or late for the viewer on that day is done; skipped, another day or another person is not", () => {

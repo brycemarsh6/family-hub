@@ -163,7 +163,7 @@ export type CalendarTaskView = {
  * its own item type, not a task. `dayInstant` is the planned household day at
  * UTC midnight, the same all-day instant `CalendarTaskView.dueDate` is, so the
  * calendar's all-day helpers read it the same way. Built server-side for the
- * signed-in viewer only (src/lib/habits/calendarHabitDays.ts decides who sees
+ * signed-in viewer only (src/lib/habitsCalendar.ts decides who sees
  * it and whether it is done), so a component never needs a role to draw it.
  */
 export type CalendarHabitDayView = {

@@ -1,5 +1,5 @@
 import { dayOfWeek, formatCalendarDate, addCalendarDays, type CalendarDate } from "./householdDate";
-import { logsForUser, specFromRow } from "./habits/habitRows";
+import { logsForUser, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import { isPromptDay, promptChips } from "./habits/planPrompts";
 import { dayInVacation } from "./habits/schedule";
 import { windowProgress } from "./habits/progress";
@@ -7,11 +7,19 @@ import { habitStartDay } from "./habits/carryOver";
 import type { HabitActor, HabitLogDay, Vacation } from "./habits/types";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
 import { planChipLabel } from "./habitVocabulary";
-import type { TodayHabitInput } from "./habitsToday";
 
 // The "Pick a day" cards (decisions 38, 39, 142, 143): which of the viewer's
 // open habits ask for a day today, and the chips each offers. Plain data (days
 // as "YYYY-MM-DD") so it crosses into the browser. No db, no React.
+
+/** What a prompt reads of a habit (a `TodayHabitInput` or a Prisma row fits). */
+export type PromptHabitInput = StoredScheduleFields & {
+  id: string;
+  title: string;
+  icon: string | null;
+  kind: string;
+  createdAt: Date;
+};
 
 /** One chip: the day to plan and the words on the button. */
 export type PromptChipView = { day: string; label: string };
@@ -41,7 +49,7 @@ const OTHER_DAY_OFFSET = 3;
  */
 export function buildTodayPrompts(
   viewer: HabitActor,
-  live: readonly TodayHabitInput[],
+  live: readonly PromptHabitInput[],
   logsByHabit: ReadonlyMap<string, HabitLogDay[]>,
   plannedByHabit: ReadonlyMap<string, readonly CalendarDate[]>,
   today: CalendarDate,

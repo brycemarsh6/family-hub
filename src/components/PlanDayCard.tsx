@@ -8,7 +8,7 @@ import type { TodayPrompt } from "@/lib/habitsRead";
 import { PLAN_OTHER_DAY_LABEL, PLAN_PROMPT_QUESTION, PLAN_PROMPT_TITLE } from "@/lib/habitVocabulary";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
-const CHIP_CLASSES = "flex min-h-12 items-center rounded-full border border-line bg-surface px-5 text-base font-semibold";
+const CHIP_CLASSES = "flex min-h-12 items-center rounded-full border border-line bg-surface px-5 text-base font-semibold active:bg-surface-2";
 
 /**
  * The "Pick a day" cards (decisions 39, 142): one per habit that asks for a
@@ -37,11 +37,11 @@ export function PlanDayCards({ prompts }: { prompts: TodayPrompt[] }) {
               <HabitIcon name={prompt.icon} kind={prompt.kind} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                <CalendarPlus aria-hidden="true" size={14} />
+              <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
+                <CalendarPlus aria-hidden="true" size={18} />
                 {PLAN_PROMPT_TITLE}
               </p>
-              <p className="truncate text-base font-semibold">{prompt.title}</p>
+              <p className="line-clamp-2 text-base font-semibold">{prompt.title}</p>
               <p className="text-sm text-muted">{PLAN_PROMPT_QUESTION}</p>
             </div>
           </div>
