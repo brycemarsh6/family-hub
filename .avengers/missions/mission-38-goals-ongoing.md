@@ -1,7 +1,7 @@
 # Mission 38: Plans & Goals, ongoing goals and the + clearance fix
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (C1)
+**Status:** DONE. Vision PASS (pass 2), Captain PASS (pass 2), Strange PASS (pass 1)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/goals-ongoing` (from `origin/main` at `c086abc`)
 
@@ -229,3 +229,36 @@ Fury wrote Captain's STRUCTURE.md amendment (grandfather sentence closed,
 the "Ongoing goals" paragraph, `ONGOING_LABEL` in the vocabulary list, the
 size watch). Strange is not re-run for F1: its only visible change is the
 pre-lit chip, which Strange's pass 1 asked for; Vision checks it in code.
+
+#### Captain, pass 2: PASS
+
+Blocker fixed; every name and count in the amendment checked. NOTES:
+Stark's reason for not importing `QUIT_TAG_CLASS` is wrong (`GoalCard` is
+only imported by the client `GoalsList`), but the classes match, so a
+shared non-client tag-class file is a later tidy-up; the `isOngoingGoal`
+trigger now reads "a fourth place compares `targetDate === null`" (Fury
+fixed); `goals.ts` 338 and `GoalForm.tsx` 334 sit near the cap; the goal
+page's "read it back as UTC" comment is now redundant.
+
+#### Vision, pass 2 (F1): PASS
+
+Gauntlet green (1102; UTC 1095 + 7; LA 1102; build 0; recordcheck 0
+hard). The helper is the same call, so all four reads give identical
+results; null never reaches it. The pre-lit chip is checked in code (it
+is never a past date; no hydration mismatch). NOTES: the copied tag class
+and the redundant goal page comment.
+
+## Delivery
+
+- Migration `20261110000000_goal_target_date_optional` (one `DROP NOT
+  NULL`, no data lost) is applied on dev; the Vercel build applies it to
+  production on merge.
+- Decided by Fury, for Bryce: new goals open with "End of this year" lit,
+  as the approved mock said (the form used to open with no chip lit).
+- Leftovers (NOTES): one shared tag-class file instead of the copy in
+  `GoalCard.tsx`; split `GoalForm.tsx`'s target-date field next time;
+  error wording "Pick a target date, or choose Ongoing." (Hill's call if
+  wanted); the menu button covering the Active chip while scrolled.
+- The + clearance measured 144px both before and after; Bryce's phone
+  check should look for where he saw the overlap.
+- Dev test data: four "zz m38" goals.

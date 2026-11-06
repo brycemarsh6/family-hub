@@ -276,7 +276,7 @@ Adding a second definition of any of these is a BLOCKER:
   or null). `findGoals` in `goalsRead.ts` orders ongoing goals last
   (`nulls: "last"`). `ONGOING_LABEL` in `goalVocabulary.ts` is the only
   "Ongoing" wording; a component or page that types the word itself is a
-  BLOCKER. If a fifth place asks whether `targetDate` is null, add an
+  BLOCKER. If a fourth place compares `targetDate === null`, add an
   `isOngoingGoal(goal)` helper in `goals.ts` beside `isPrivateGoal`. The form
   limits `GOAL_TITLE_MAX` / `GOAL_WHY_MAX` / `MEASURE_UNIT_MAX` /
   `HABIT_TIMES_MAX` are exported from `goals.ts` (the `MIN_PASSWORD_LENGTH`

@@ -90,7 +90,8 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
     inventory.
 - **Plans & Goals** (`/plans`): three tabs, This week, Goals and Vision. A goal
   has one of six life areas (Spiritual, Health & Wellness, Personal Growth,
-  Relationships & Connections, Work & Money, Fun & Adventure), a target date,
+  Relationships & Connections, Work & Money, Fun & Adventure), a target date
+  or "Ongoing" (mission 38),
   Mine or Together, optionally private, and optionally a number to track
   with check-ins. Plan items under a goal are habits, steps or reminders,
   logged with one tap. Goal detail is at `/plans/goals/[id]`. The Vision tab
@@ -192,9 +193,11 @@ Replace this section at the end of each session. Don't append.
   weeks streak, stats page, goal plans). Decisions 182 to 199. Vision
   needed a fourth pass, which Bryce allowed. Leftovers:
   `.avengers/missions/mission-37-habits-hours.md` (Delivery).
-- **Next: Ongoing goals + the + clearance fix (mission 38).** Bryce
-  approved the mock on 2026-11-06 ("Yes to all of those"); the five points
-  are in `.avengers/plans/plans-goals-v1.md`.
+- **Ongoing goals (mission 38)** passed its gates on 2026-11-06 and merges
+  from branch `claude/goals-ongoing`: a goal's target date is optional
+  ("Ongoing" chip, tag and goal page; no pace line), and new goals open on
+  "End of this year". Leftovers in
+  `.avengers/missions/mission-38-goals-ongoing.md` (Delivery).
 - **Hill decides for Bryce** (`.claude/agents/hill.md`); merges don't wait
   for him. Phone tests go on Bryce's checklist below and never block.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
@@ -236,6 +239,10 @@ Replace this section at the end of each session. Don't append.
   "9 hours left, about N a day". Open its stats page and delete that
   entry. Under a goal, add an hours plan and log from This week. On the
   iPad, look at Whole family.
+- **Ongoing goals phone check** (about 3 minutes): New goal, tap Ongoing
+  and see the date box grey out; save and see the "Ongoing" tag on the
+  card and "Ongoing" on its page. Scroll the Goals list to the very
+  bottom: if the + still covers a card, screenshot it where it happens.
 - **Delete the commented production `DATABASE_URL` line in `.env`**
   (host `ep-hidden-surf-`). It isn't used, but AGENTS.md says no dev
   machine should hold it. No agent edits `.env`.
@@ -249,7 +256,8 @@ Replace this section at the end of each session. Don't append.
 - **Optional:** confirm the family-hub origin in the desktop app (Help,
   Troubleshooting, Review Pinned Git Origins) so the app's merge button
   works. Delete the "zz m31" to "zz m35" test habits, the four
-  "zz m37" habits and the "zz m37 Commissions" goal on dev whenever.
+  "zz m37" habits, the "zz m37 Commissions" goal and the four "zz m38"
+  goals on dev whenever.
 
 **Waiting on Bryce:**
 - **PR A is live:** press Recompute streaks once (Settings). The production
