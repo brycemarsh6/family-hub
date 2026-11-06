@@ -336,6 +336,11 @@ A new one-off that duplicates one of these jobs is a design violation:
   `DashboardTile` so the whole tile stays the one tap target (no inner links
   or buttons). It reuses `ProgressBar`; a new dashboard summary is another
   widget body in a `DashboardTile`, not a second tile shell
+- `DashboardTile`'s second shape, for a tile with controls inside (the
+  Habits and Chores today tiles, decision 132): the card is not a link;
+  only its header row (icon and title) links to the page, and each row
+  keeps its own tap (the live `HabitRow`). One shell, one prop that says
+  which shape, never a nested link or a button inside a link
 - `WeekRecapCard`: the Sunday recap at the top of This week, a
   `bg-accent-soft` card with a small uppercase label. The label uses
   `text-muted-strong`, because `text-muted` on `bg-accent-soft` is 4.35:1,

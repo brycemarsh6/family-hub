@@ -521,6 +521,76 @@ in PR B (mission 31).
      undone skipped-this-week turn is excused. Stands or falls with 127.
      Decided by Hill, high.
 
+### Before PR E (decided by Hill, 2026-11-05; Bryce may overturn)
+
+PR E ships as two PRs (Fury's structure call): E1 (mission 34) tiles,
+picker, drag to reorder, nudge and Sunday cards; E2 (mission 35)
+plan-the-day and the Calendar. PR F becomes mission 36.
+
+131. **New tiles:** "Habits" and "Chores today" (ids `habits`, `chores`),
+     full width, on by default, right after "Today's meals", Habits first.
+     (high)
+132. **Habits tile:** with picks, the picked habits in picked order, only
+     those Today would show (required, open, carried, or done or skipped
+     today); each row is the live HabitRow. Nothing picked: up to three
+     due today and not done or skipped (carried counts as due). Empty:
+     "All done for today" only when something was due and all is done or
+     skipped, else "Nothing due today". Header label "The ones you picked"
+     when picks exist. The header is the tap into Habits & Chores; rows
+     keep their own taps (DESIGN.md's DashboardTile rule gains a second
+     tile shape for tiles with controls). (high)
+133. **Chores today tile:** chores required or carried today plus those
+     done today, live HabitRow, the chore flame after the title. Skipped,
+     week-skipped and vacation rows stay out (a row skipped from the tile
+     shows "Skipped today" until the next load). Empty: "No chores today".
+     (high)
+134. **Row wording:** the live Today wording everywhere, not the mock's.
+     (high)
+135. **Greeting:** keep "Dashboard" and "What's going on around the
+     house." The mock's "Good morning, Bryce" is an idea for Bryce (it
+     would need the browser's clock and 63's times). (medium)
+136. **Goals picker picks goals,** not plan items: Mine and Together, not
+     completed. With picks the tile's "Still to do" lists this week's
+     habits with taps left from the picked goals only (picked-goal order,
+     then item order, no cap of three); "x of y done" keeps the whole-week
+     numbers. Empty with picks: "Nothing left in the goals you picked".
+     (medium)
+137. **The picker** is a second view inside the Customize sheet (a back
+     control returns), never a second sheet. Button "Pick". Titles
+     "Habits on your dashboard" and "Goals on your dashboard". A
+     ToggleSwitch per item; picked items under "Showing" in picked order
+     with a grip, the rest under "Not showing" (Manage order; goals by
+     target date). Note when nothing is picked: "Nothing picked yet. The
+     tile shows up to three habits due today." (Goals: "... up to three
+     habits left this week."). No limit. Habits picker lists kind habit
+     only, not archived, private included. (medium)
+138. **Wall tablet:** no Habits or Chores today tile. (high)
+139. **Nudge and Sunday cards** on the dashboard: the same cards and words
+     as Today, under the heading row, above the tiles, nudges first; not
+     widgets; none on the tablet. (high)
+140. **Drag to reorder in Customize:** SortableList, grip on the right,
+     arrows removed. (high)
+141. (E2) **Weekly prompt day is Friday** (38); the mock's Thursday was
+     illustrative. (high)
+142. (E2) **Prompt chips:** up to three days left in the period from
+     today: "Today", then short weekday names; "Other day" (date input
+     limited to the period) only when more days remain. A tap plans it and
+     the card leaves. (medium)
+143. (E2) **Only a planned day inside the current week or month** (today or
+     later) silences the prompt. (high)
+144. (E2) **Together planning** writes one planned day per participant;
+     Side by side plans only for yourself. (high)
+145. (E2) **Planned today:** a "Planned today" card on the dashboard above
+     the tiles (live HabitRows; the Habits tile leaves those out). On
+     Today no card: the row's meta reads "Planned for today" after the who
+     label, replacing "Anytime" ("Mine · Planned for today · 1 of 4 this
+     month"). A planned row is required that day (counts and confetti).
+     (high)
+146. (E2) **Calendar:** planned days only to the habit's participants (a
+     private habit's only to its person; none on the tablet), all-day,
+     the habit's icon, opens `/habits/[id]`; done is struck through with
+     a check; undone stays plain. (high)
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for
