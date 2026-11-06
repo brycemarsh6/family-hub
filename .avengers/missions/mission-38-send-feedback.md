@@ -138,16 +138,16 @@ go to Hill unless Bryce wants them.
 
 Order: C1, then C2 and C3 in parallel (disjoint files), then C4 last.
 
-### C1: data layer (model already written by Fury)
+### C1 - data layer (model already written by Fury)
 - **Status:** PENDING
 - **Objective:** pure feedback rules, the one reader, and the two action
   files, with tests.
-- **Boundaries:** may touch: `src/lib/feedback.ts`, `src/lib/feedback.test.ts`,
-  `src/lib/feedbackRead.ts`, `src/app/actions/feedback.ts`,
-  `src/app/actions/feedbackAdmin.ts`. Read-only: `prisma/schema.prisma`
-  (Feedback model is final unless BLOCKED-ON-CONTRACT),
-  the migration folder. Must not touch: everything else, above all
-  existing models, habits/goals/plans/assistant files, `.env`.
+- **Boundaries:** may touch: new `src/lib/feedback.ts`, new `src/lib/feedback.test.ts`,
+  new `src/lib/feedbackRead.ts`, new `src/app/actions/feedback.ts`,
+  new `src/app/actions/feedbackAdmin.ts` · must not touch: `prisma/schema.prisma`
+  (read only: the Feedback model is final unless BLOCKED-ON-CONTRACT),
+  `prisma/migrations/`, every existing model, habits/goals/plans/assistant
+  files, the .env file, everything else.
 - **Rules:** `feedback.ts` is import-free: `MESSAGE_MAX = 2000`;
   `normalizeMessage` (trim; empty is an error "Write a message first.";
   over 2000 is an error); `normalizePagePath` (must start with "/", no
@@ -160,8 +160,10 @@ Order: C1, then C2 and C3 in parallel (disjoint files), then C4 last.
   message). `sendFeedback(input)` in `feedback.ts` action: guard
   `getVerifiedUser()`, null means `{ ok: false, error }`; writes
   authorId, authorName (device logins keep their own display name),
-  message, pagePath, userAgent (max 300), viewport, screenshot. Returns
-  `{ ok: true }`. `feedbackAdmin.ts`: `markFeedbackDone(id, done)`,
+  message, pagePath, userAgent (max 300), viewport, screenshot. Exact signature (C2 calls it): `sendFeedback(input: { message: string;
+  pagePath: string; userAgent: string; viewport: string; touch: boolean;
+  screenshot: string | null }): Promise<{ ok: true } | { ok: false;
+  error: string }>`. `feedbackAdmin.ts`: `markFeedbackDone(id, done)`,
   `deleteFeedback(id)`, each `requireRole("admin")`, `revalidatePath`
   of `/settings/feedback` and `/settings`. `feedbackRead.ts`:
   `loadFeedbackList(status: "new" | "done")` (no screenshot bytes, a
@@ -173,13 +175,13 @@ Order: C1, then C2 and C3 in parallel (disjoint files), then C4 last.
 - **Done criteria:** Vision re-runs; `grep -n "getVerifiedUser\|requireRole"`
   shows a guard at the top of every exported action.
 
-### C2: the Send feedback sheet (not wired to the drawer yet)
+### C2 - the Send feedback sheet (not wired to the drawer yet)
 - **Status:** PENDING
 - **Objective:** `FeedbackSheet` matching Bryce's mock, plus the screenshot capture.
-- **Boundaries:** may touch: `src/components/FeedbackSheet.tsx`,
-  `src/lib/captureScreenshot.ts` (client-only, no `db`), `package.json`
-  and `package-lock.json` (add `html-to-image`, exact version, nothing
-  else). Must not touch: C1/C3/C4 files.
+- **Boundaries:** may touch: new `src/components/FeedbackSheet.tsx`,
+  new `src/lib/captureScreenshot.ts` (client-only, no `db`), `package.json`
+  and the lockfile via npm install (add `html-to-image`, exact version,
+  nothing else) · must not touch: C1, C3 and C4 files.
 - **Words (Bryce's mock, exact):** title "Send feedback"; "Share bugs,
   ideas, or feedback."; placeholder "What's on your mind?"; counter
   "N / 2000" (typing past 2000 is stopped by `maxLength`); "Sent to admin
@@ -198,16 +200,16 @@ Order: C1, then C2 and C3 in parallel (disjoint files), then C4 last.
 - **Verification:** tsc, eslint, `npm test`, `npm run build` green.
 - **Evidence:** output, the dependency line, line counts.
 
-### C3: admin Feedback list
+### C3 - admin Feedback list
 - **Status:** PENDING
 - **Objective:** `/settings/feedback` for admins plus the Settings row.
-- **Boundaries:** may touch: `src/app/(app)/settings/feedback/page.tsx`,
-  `src/components/FeedbackList.tsx`, `src/components/FeedbackRow.tsx`,
-  `src/components/FeedbackDetailSheet.tsx`,
-  `src/app/api/feedback/[id]/screenshot/route.ts`,
+- **Boundaries:** may touch: new `src/app/(app)/settings/feedback/page.tsx`,
+  new `src/components/FeedbackList.tsx`, new `src/components/FeedbackRow.tsx`,
+  new `src/components/FeedbackDetailSheet.tsx`,
+  new `src/app/api/feedback/[id]/screenshot/route.ts`,
   `src/app/(app)/settings/page.tsx` (only: an admin-only "Feedback" row
-  under Manage family, same style, showing "N new" when N > 0). Must not
-  touch: C1/C2/C4 files.
+  under Manage family, same style, showing "N new" when N > 0) · must
+  not touch: C1, C2 and C4 files.
 - **Behaviour:** page `requireRole("admin")`, `BackLink` to Settings,
   heading "Feedback", `PageTabs` or chips New / Done; rows newest first:
   who, page, time ago, first two lines of the message, a small image icon
@@ -218,7 +220,7 @@ Order: C1, then C2 and C3 in parallel (disjoint files), then C4 last.
   `Cache-Control: private, no-store`.
 - **Verification:** tsc, eslint, `npm test`, build.
 
-### C4 (last): slim the drawer and wire the sheet
+### C4 - (last) slim the drawer and wire the sheet
 - **Status:** PENDING
 - **Objective:** drawer footer becomes Settings + Send feedback; the
   name card and Sign out move to Settings; the sheet opens from the drawer.
@@ -226,7 +228,8 @@ Order: C1, then C2 and C3 in parallel (disjoint files), then C4 last.
   `src/components/NavList.tsx`, `src/components/NavDrawer.tsx`,
   `src/components/PinnedNav.tsx`, `src/components/AppChrome.tsx`,
   `src/app/(app)/settings/page.tsx`, `src/app/(app)/profile/page.tsx`,
-  new `src/components/SettingsAccountCard.tsx`.
+  new `src/components/SettingsAccountCard.tsx` · must not touch: C1, C2
+  and C3 files except as named.
 - **Behaviour:** remove Profile from `NAV_FOOTER_ITEMS`; `/profile`
   lights Settings (`activeNavHref`, with a test). A "Send feedback" row
   (MessageCircle icon) is a button, not a link, in full drawer and
