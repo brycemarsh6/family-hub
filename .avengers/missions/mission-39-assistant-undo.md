@@ -366,3 +366,11 @@
   for every helper the actions use; from-low-inventory created 39 rows from
   real low dev items, deleted by id. Counts 467/5/0/0 checked restored.
   Build deferred (shared `.next`). U3b dispatched (port 3142).
+- 2026-11-06: U3b DONE (2 files: `putAway.ts` 317, put-away route). Grocery
+  copies are the claim's DELETE … RETURNING rows; pantry copies by
+  compare-and-set on `updatedAt` inside the transaction (FOR UPDATE rejected:
+  could deadlock against bulk-adjust's request-order updates). One change
+  per pantry row (two lines into one row → one change, `lines: 2`). Live:
+  3-row put-away copies exact; 12-trial race stress, 0 bad copies; app
+  parity. Full gauntlet incl. build green; recordcheck 0 hard, 13 REVIEW.
+  U4 dispatched (port 3143).
