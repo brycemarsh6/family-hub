@@ -23,6 +23,7 @@ import {
   type PlanHabit,
   type PlanItemRow,
 } from "./goalsProgress";
+import { goalHoursLine } from "./habitsHours";
 import type { ScheduleSpec } from "./habits/types";
 import { utcMidnightInstant, type CalendarDate } from "./householdDate";
 
@@ -318,4 +319,49 @@ test("numberAfterCheckIns: the newest remaining check-in, or the start value wit
   assert.deepEqual(numberAfterCheckIns(189, [recent, old]), { currentValue: 180, checkedInAt: recent.at });
   assert.deepEqual(numberAfterCheckIns(189, []), { currentValue: 189, checkedInAt: null });
   assert.deepEqual(numberAfterCheckIns(null, []), { currentValue: null, checkedInAt: null });
+});
+
+// --- Hours habits (decision 198) ---
+
+const hoursHabit = (minutes: number, over: Partial<NonNullable<PlanHabit["hours"]>> = {}): PlanHabit => ({
+  spec: { schedule: "weekly", times: 1 },
+  schedule: { schedule: "weekly", times: 1 },
+  logs: [],
+  hours: { targetMinutes: 600, paceDays: "monsat", forUserId: "u1", entries: [{ day: d(2026, 11, 2), minutes, userId: "u1" }], ...over },
+});
+
+test("buildPlanItemView: an hours habit shows 'Calling · 6½ of 10 hours this week' with its bar, 0 of 1 until met", () => {
+  const view = buildPlanItemView(item({ title: "Calling" }), hoursHabit(390), TODAY);
+  assert.equal(view.hours?.doneText, "6½ of 10 hours this week");
+  assert.equal(view.hours?.fraction, 0.65);
+  assert.equal(goalHoursLine(view.title, view.hours!), "Calling · 6½ of 10 hours this week");
+  assert.deepEqual([view.count, view.target, view.windowLabel, view.done, view.doneToday], [0, 1, "this week", false, false]);
+  assert.equal(buildPlanItemView(item(), habitOn([]), TODAY).hours, undefined, "a checks habit has none");
+});
+
+test("buildPlanItemView: an hours habit counts done for the goal's week only once the target is met", () => {
+  const met = buildPlanItemView(item(), hoursHabit(600), TODAY);
+  assert.deepEqual([met.count, met.target, met.done], [1, 1, true]);
+  assert.deepEqual(weekSummary([{ items: [met, buildPlanItemView(item({ id: "i2" }), hoursHabit(120), TODAY)] }]), { done: 1, total: 2 });
+});
+
+test("weekTodo: an unmet hours habit lists with its Goals tile line 'Calling · 3½ hours left'; a met one is left out", () => {
+  const unmet = buildPlanItemView(item({ id: "i1", title: "Calling" }), hoursHabit(390), d(2026, 11, 6));
+  const met = buildPlanItemView(item({ id: "i2", title: "Follow-up" }), hoursHabit(600), d(2026, 11, 6));
+  assert.deepEqual(weekTodo([{ items: [unmet, met] }], 5), [{ id: "i1", title: "Calling", left: 1, hoursLine: "Calling · 3½ hours left" }]);
+});
+
+test("buildPlanItemView: last week's hours for the Sunday recap are counted from that week's entries", () => {
+  const view = buildPlanItemView(item(), hoursHabit(600), d(2026, 11, 1));
+  assert.equal(view.done, true);
+  assert.equal(buildPlanItemView(item(), hoursHabit(600), d(2026, 11, 8)).done, false, "the next week starts empty");
+});
+
+test("buildPlanItemView: an hours item with nobody to show reads as nothing this week (no bar, not counted)", () => {
+  const view = buildPlanItemView(item({ title: "Calling" }), hoursHabit(390, { forUserId: null }), TODAY);
+  assert.equal(view.hours?.forUserId, null);
+  assert.equal(view.hours?.done, 0);
+  assert.equal(view.windowLabel, null);
+  assert.deepEqual(weekSummary([{ items: [view] }]), { done: 0, total: 0 });
+  assert.deepEqual(weekTodo([{ items: [view] }], 5), []);
 });

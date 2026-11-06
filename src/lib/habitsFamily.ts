@@ -1,11 +1,11 @@
 import { calendarDateFromUtcMidnight, formatCalendarDate, startOfMonth, type CalendarDate } from "./householdDate";
 import { choreHeader } from "./choreChart";
 import { carrySince, habitStartDay } from "./habits/carryOver";
-import { canLogFor, canNudge, canSeeHabitStats } from "./habits/access";
-import { specFromRow, type StoredScheduleFields } from "./habits/habitRows";
+import { canLogFor, canNudge, canSeeHabitStats, showsOnFamilyView } from "./habits/access";
+import { specFromRow, type StoredHoursFields, type StoredScheduleFields } from "./habits/habitRows";
 import type { DayEntry } from "./habits/perfectDays";
 import { compareDays, dayInVacation, dueState as dueStateOf, isOpenKind, isSameDay } from "./habits/schedule";
-import type { HabitActor, HabitLogDay, ScheduleSpec, Vacation, WeekOverride } from "./habits/types";
+import type { HabitActor, HabitLogDay, ScheduleSpec, TimeEntry, Vacation, WeekOverride } from "./habits/types";
 import type { StreakCache } from "./habits/streaks";
 import { isExcused, type ExcusableRow } from "./habits/weekOverrides";
 import {
@@ -29,6 +29,8 @@ import {
   type SideBySideRow,
   type StatsInput,
 } from "./habitsStats";
+import { buildHoursStats, hoursAWeek, hoursSpecOf, hoursStreakOf, type HoursStatsData, type StatsTimeEntry } from "./habitsHours";
+import type { HabitTrack } from "./habitHoursVocabulary";
 import {
   HABIT_SCHEDULE_LABELS,
   habitWhoLabel,
@@ -72,8 +74,8 @@ export type FamilyColumn = FamilyPerson & {
 };
 
 /** "Done of owed" over rows that are still in play: a skipped row, a skipped-this-week row and an undone vacation row are neither done nor owed; a vacation row that was done counts in both (decisions 109, 115, 127). One rule for Today and the family view. */
-export function doneCounts(rows: readonly ExcusableRow[]): { done: number; total: number } {
-  const owed = rows.filter((row) => !isExcused(row));
+export function doneCounts(rows: readonly (ExcusableRow & { hours?: unknown })[]): { done: number; total: number } {
+  const owed = rows.filter((row) => !row.hours && !isExcused(row)); // an hours habit is never owed on a day (decision 197)
   return { done: owed.filter((row) => row.doneToday).length, total: owed.length };
 }
 
@@ -103,8 +105,8 @@ export type FamilyPage = {
 };
 
 /** The row for one participant of a habit, or undefined when the habit is not on that person's Today. */
-function rowFor(userId: string, habit: TodayHabitInput, viewer: HabitActor, logs: ReadonlyMap<string, HabitLogDay[]>, today: CalendarDate, vacations: ReadonlyMap<string, readonly Vacation[]>) {
-  return buildTodayRows({ userId, role: viewer.role }, [habit], logs, today, vacations)[0];
+function rowFor(userId: string, habit: TodayHabitInput, viewer: HabitActor, logs: ReadonlyMap<string, HabitLogDay[]>, today: CalendarDate, vacations: ReadonlyMap<string, readonly Vacation[]>, time: ReadonlyMap<string, readonly TimeEntry[]>) {
+  return buildTodayRows({ userId, role: viewer.role }, [habit], logs, today, vacations, undefined, time)[0];
 }
 
 function familyRow(row: HabitRowView, viewer: HabitActor, logForId: string): FamilyRow {
@@ -119,7 +121,8 @@ function familyRow(row: HabitRowView, viewer: HabitActor, logForId: string): Fam
  * Together habits go in the strip (one row each, ticked for the viewer when
  * they are on it, else for the first member); every other habit goes in each
  * participant's column, in that person's own order. `people` are the active
- * non-device people, already ordered.
+ * non-device people, already ordered. `timeByHabit` holds hours entries (everyone's)
+ * from last week's Sunday on: an hours habit's row carries each person's own week.
  */
 export function buildFamilyPage(
   viewer: HabitActor,
@@ -129,13 +132,14 @@ export function buildFamilyPage(
   today: CalendarDate,
   vacationsByUser: ReadonlyMap<string, readonly Vacation[]> = new Map(),
   choreCaches: ReadonlyMap<string, StreakCache> = new Map(),
+  timeByHabit: ReadonlyMap<string, readonly TimeEntry[]> = new Map(),
 ): FamilyPage {
-  const shown = habits.filter((habit) => !habit.isPrivate && !habit.archivedAt);
+  const shown = habits.filter((habit) => showsOnFamilyView(habit) && !habit.archivedAt);
   const together: FamilyRow[] = [];
   for (const habit of [...shown].filter((h) => toHabitSharing(h.sharing) === "together").sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || (a.id < b.id ? -1 : 1))) {
     const members = habit.participants.filter((p) => !p.user.deactivatedAt);
     const logForId = members.some((p) => p.userId === viewer.userId) ? viewer.userId : members[0]?.userId;
-    const row = logForId ? rowFor(logForId, habit, viewer, logsByHabit, today, vacationsByUser) : undefined;
+    const row = logForId ? rowFor(logForId, habit, viewer, logsByHabit, today, vacationsByUser, timeByHabit) : undefined;
     // One person's vacation must not excuse a Together habit for everyone: the strip row never carries onVacation (`countedRows` leaves it out of the vacationing person's own count).
     if (row && logForId) together.push({ ...familyRow(row, viewer, logForId), onVacation: false });
   }
@@ -144,7 +148,7 @@ export function buildFamilyPage(
     // Role is unused for habits that are not private (the only kind in `each`).
     const mine = visibleInViewerOrder({ userId: person.id, role: "kid" }, each);
     const rows = mine.flatMap((habit) => {
-      const row = rowFor(person.id, habit, viewer, logsByHabit, today, vacationsByUser);
+      const row = rowFor(person.id, habit, viewer, logsByHabit, today, vacationsByUser, timeByHabit);
       return row ? [familyRow(row, viewer, person.id)] : [];
     });
     const togetherIds = together
@@ -174,7 +178,7 @@ export type StatsMemberInput = {
 };
 
 /** One of the subject's habits, for perfect days: its schedule, the day they started it, and their own checks on it. */
-export type PerfectDayHabit = { kind: HabitKind; spec: ScheduleSpec; since: CalendarDate; logs: readonly HabitLogDay[] };
+export type PerfectDayHabit = { kind: HabitKind; spec: ScheduleSpec; since: CalendarDate; logs: readonly HabitLogDay[]; /** "hours" habits never make or break a perfect day (decision 197). */ track?: string };
 
 /**
  * Whose numbers the tiles show (decision 94): the viewer when they are an
@@ -197,7 +201,7 @@ export function perfectDayEntries(habits: readonly PerfectDayHabit[], vacations:
   return (day) => {
     if (dayInVacation(day, vacations)) return [];
     return habits.flatMap((habit) => {
-      if (compareDays(day, habit.since) < 0) return [];
+      if (habit.track === "hours" || compareDays(day, habit.since) < 0) return [];
       const state = dueStateOf(habit.spec, day, false);
       if (state === "none") return [];
       const log = habit.logs.find((entry) => isSameDay(entry.day, day));
@@ -208,7 +212,7 @@ export function perfectDayEntries(habits: readonly PerfectDayHabit[], vacations:
 
 /** Stats-page data for C3: plain values, days as "YYYY-MM-DD". */
 export type HabitStatsData = {
-  habit: { id: string; title: string; icon: string | null; kind: HabitKind; mode: HabitMode; sharing: HabitSharing; isPrivate: boolean; archived: boolean; scheduleLabel: string; whoLabel: string };
+  habit: { id: string; title: string; icon: string | null; kind: HabitKind; mode: HabitMode; track: HabitTrack; sharing: HabitSharing; isPrivate: boolean; archived: boolean; scheduleLabel: string; whoLabel: string };
   today: string;
   /** The 1st of the month the calendar shows. */
   month: string;
@@ -226,11 +230,13 @@ export type HabitStatsData = {
   sideBySide: { rows: SideBySideRow[]; weekly: { weeks: string[]; axisMax: number; people: { userId: string; displayName: string; avatarColor: string; counts: number[] }[] } } | null;
   /** Who the viewer can nudge today (decision 97), with whether they already did. Empty on the tablet and for private, archived or non-Side-by-side habits. */
   nudgeable: { userId: string; displayName: string; nudged: boolean }[];
+  /** An hours habit's week, chart, entries and streak (decisions 195, 196, 198); null for a checks habit. For hours, `calendar.cells` is empty (no month calendar), `sideBySide` is null and `perfectDays` is 0. */
+  hours: HoursStatsData | null;
 };
 
 export type StatsBuildInput = {
   viewer: HabitActor;
-  habit: StoredScheduleFields & {
+  habit: StoredScheduleFields & Partial<StoredHoursFields> & {
     id: string;
     title: string;
     icon: string | null;
@@ -245,6 +251,8 @@ export type StatsBuildInput = {
   members: readonly StatsMemberInput[];
   /** Every check on this habit, all participants, all time. */
   logs: readonly HabitLogDay[];
+  /** Every hours entry on this habit, all participants, all time; none for a checks habit. */
+  entries?: readonly StatsTimeEntry[];
   vacationsByUser: ReadonlyMap<string, readonly Vacation[]>;
   /** This chore's this-week changes, all of them (decision 170); none for a habit. */
   overrides?: readonly WeekOverride[];
@@ -287,14 +295,15 @@ export function buildStatsData(input: StatsBuildInput): HabitStatsData | null {
   const perfect = perfectDaysInMonth(input.month, today, perfectDayEntries(input.subjectHabits, input.vacationsByUser.get(subjectId) ?? []));
   const sharing = toHabitSharing(habit.sharing);
   const active = stats.people.filter((p) => !p.deactivated);
+  const hoursSpec = hoursSpecOf(habit);
   const sideBySide =
-    sharing === "each" && active.length > 1
+    sharing === "each" && active.length > 1 && !hoursSpec
       ? (() => {
           const weekly = weeklySeries(stats);
           return { rows: sideBySideRows(stats), weekly: { ...weekly, weeks: weekly.weeks.map(formatCalendarDate) } };
         })()
       : null;
-  const nudgeHabit = { ...access, sharing, archived: habit.archivedAt !== null, deactivatedIds: members.filter((m) => m.deactivatedAt).map((m) => m.userId) };
+  const nudgeHabit = { ...access, sharing, track: hoursSpec ? "hours" : "checks", archived: habit.archivedAt !== null, deactivatedIds: members.filter((m) => m.deactivatedAt).map((m) => m.userId) };
   const doneByToday = new Set(input.logs.filter((log) => isSameDay(log.day, today)).map((log) => log.userId));
   const nudgeable = active
     .filter((p) => canNudge(viewer, nudgeHabit, p.userId) && !doneByToday.has(p.userId))
@@ -306,10 +315,11 @@ export function buildStatsData(input: StatsBuildInput): HabitStatsData | null {
       icon: habit.icon,
       kind: toHabitKind(habit.kind),
       mode: toHabitMode(habit.mode),
+      track: hoursSpec ? "hours" : "checks",
       sharing,
       isPrivate: habit.isPrivate,
       archived: habit.archivedAt !== null,
-      scheduleLabel: HABIT_SCHEDULE_LABELS[toHabitSchedule(habit.schedule)],
+      scheduleLabel: hoursSpec ? hoursAWeek(hoursSpec.targetMinutes) : HABIT_SCHEDULE_LABELS[toHabitSchedule(habit.schedule)],
       whoLabel: habitWhoLabel({ people: members.length, everyone: habit.everyone, sharing: habit.sharing }),
     },
     today: formatCalendarDate(today),
@@ -318,16 +328,33 @@ export function buildStatsData(input: StatsBuildInput): HabitStatsData | null {
     subjectId,
     subjectName: members.find((m) => m.userId === subjectId)?.displayName ?? "",
     tiles,
-    calendar: {
-      first: formatCalendarDate(calendar.first),
-      leading: calendar.leading,
-      openCount: openCountOf(spec, "month", calendar.first),
-      nothingDue: isOpenKind(spec) ? null : nothingDueText(stats, subjectId, calendar.first, calendar.cells[calendar.cells.length - 1].day, "month"),
-      cells: calendar.cells.map((cell) => ({ day: formatCalendarDate(cell.day), state: cell.state, reason: cell.reason, tappable: cell.tappable })),
-    },
+    calendar: hoursSpec
+      ? { first: formatCalendarDate(calendar.first), leading: 0, nothingDue: null, openCount: null, cells: [] }
+      : {
+          first: formatCalendarDate(calendar.first),
+          leading: calendar.leading,
+          openCount: openCountOf(spec, "month", calendar.first),
+          nothingDue: isOpenKind(spec) ? null : nothingDueText(stats, subjectId, calendar.first, calendar.cells[calendar.cells.length - 1].day, "month"),
+          cells: calendar.cells.map((cell) => ({ day: formatCalendarDate(cell.day), state: cell.state, reason: cell.reason, tappable: cell.tappable })),
+        },
     canTap: canLogFor(viewer, subjectId, access),
-    perfectDays: perfect.length,
+    perfectDays: hoursSpec ? 0 : perfect.length,
     sideBySide,
     nudgeable,
+    hours: hoursSpec
+      ? buildHoursStats({
+          spec: hoursSpec,
+          viewer,
+          access,
+          subjectId,
+          entries: input.entries ?? [],
+          people: stats.people,
+          vacationsByUser: input.vacationsByUser,
+          today,
+          startDay,
+          streak: { current: hoursStreakOf(habit, stats.people.find((p) => p.userId === subjectId)!.cache, input.vacationsByUser.get(subjectId) ?? [], today) ?? tiles.current, best: tiles.best },
+          sideBySide: sharing === "each" && active.length > 1,
+        })
+      : null,
   };
 }

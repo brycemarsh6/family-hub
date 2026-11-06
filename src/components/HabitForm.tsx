@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Archive, RotateCcw, Trash2 } from "lucide-react";
 import { Field, LifeAreaField, Segmented, TimeOfDayField } from "./HabitFormFields";
 import { HabitIconPicker } from "./HabitIconPicker";
+import { HoursFields, TrackField, initialWeeklyHours, initialWho, type HoursInitial } from "./HabitHoursFields";
 import { IdeaChips } from "./IdeaChips";
 import { HabitScheduleField, type ScheduleValue } from "./HabitScheduleField";
 import { ParticipantPicker, type Person } from "./ParticipantPicker";
@@ -19,6 +20,7 @@ import {
   type HabitInput,
 } from "@/app/actions/habits";
 import { toLifeArea } from "@/lib/goalVocabulary";
+import { toHabitTrack, toPaceDays, type HabitTrack, type PaceDays } from "@/lib/habitHoursVocabulary";
 import {
   HABIT_TITLE_MAX,
   HABIT_WHO_CHOICES,
@@ -51,10 +53,8 @@ const BUTTON_PRIMARY =
 const BUTTON_PLAIN =
   "flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-fg disabled:opacity-40";
 
-function initialWho(initial: HabitManagerItem | undefined): HabitWho {
-  if (!initial || initial.participantIds.length <= 1) return "me";
-  return initial.sharing === "together" ? "together" : "each";
-}
+/** The habit being edited; its Track fields come from the loader and are left out for a habit that never had them. */
+type FormInitial = HabitManagerItem & HoursInitial;
 
 /**
  * The New and Edit form for a habit or chore (one component, so the two pages
@@ -76,7 +76,7 @@ export function HabitForm({
   /** The Sunday that starts this household week, "YYYY-MM-DD". */
   thisSunday: string;
   nextSunday: string;
-  initial?: HabitManagerItem;
+  initial?: FormInitial;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -93,6 +93,9 @@ export function HabitForm({
   const [lifeArea, setLifeArea] = useState<string | null>(initial ? toLifeArea(initial.lifeArea) : null);
   const [carryOver, setCarryOver] = useState(initial?.carryOver ?? false);
   const [isPrivate, setIsPrivate] = useState(initial?.isPrivate ?? false);
+  const [track, setTrack] = useState<HabitTrack>(toHabitTrack(initial?.track));
+  const [weeklyHours, setWeeklyHours] = useState(initialWeeklyHours(initial));
+  const [paceDays, setPaceDays] = useState<PaceDays>(toPaceDays(initial?.paceDays));
   const [schedule, setSchedule] = useState<ScheduleValue>({
     schedule: toHabitSchedule(initial?.schedule),
     days: parseWeekdayMask(initial?.weekdays) ?? [],
@@ -102,12 +105,28 @@ export function HabitForm({
 
   const ideaArea = lifeArea ? toLifeArea(lifeArea) : null;
   const peopleCount = who === "me" ? 1 : selectedIds.length;
-  const canCarry = canCarryOver(schedule.schedule, schedule.days);
+  const hours = track === "hours";
+  const canCarry = !hours && canCarryOver(schedule.schedule, schedule.days);
   const canBePrivate = canBePrivateWith(peopleCount);
 
   function pickWho(next: HabitWho) {
     setWho(next);
     if (next !== "me" && selectedIds.length === 0) setSelectedIds([viewerId]);
+    if (hours) setIsPrivate(next === "me"); // decision 194: Just me is private, Side by side is not
+  }
+
+  /** Hours is for habits, one person each (decisions 193, 194): Together becomes Side by side, and Just me turns Private on. */
+  function pickTrack(next: HabitTrack) {
+    setTrack(next);
+    if (next !== "hours") return;
+    if (who === "together") setWho("each");
+    if (who === "me") setIsPrivate(true);
+    if (who === "each") setIsPrivate(false);
+  }
+
+  function pickKind(next: HabitKind) {
+    setKind(next);
+    if (next === "chore") setTrack("checks");
   }
 
   function toInput(): HabitInput {
@@ -116,7 +135,7 @@ export function HabitForm({
     return {
       title,
       kind,
-      mode,
+      mode: hours ? "build" : mode,
       icon,
       lifeArea,
       timeOfDay,
@@ -125,10 +144,13 @@ export function HabitForm({
       times: s === "weekly" || s === "monthly" ? schedule.times : null,
       anchorWeek: s === "biweekly" ? schedule.anchorWeek : null,
       carryOver: canCarry && carryOver,
-      sharing: who === "together" ? "together" : "each",
+      sharing: who === "together" && !hours ? "together" : "each",
       isPrivate: canBePrivate && isPrivate,
       participantIds: who === "me" ? [viewerId] : selectedIds,
       everyone: who !== "me" && everyone,
+      track,
+      weeklyHours: hours ? weeklyHours : null,
+      paceDays: hours ? paceDays : null,
     };
   }
 
@@ -180,8 +202,10 @@ export function HabitForm({
           { key: "habit", label: "Habit" },
           { key: "chore", label: "Chore" },
         ]}
-        onChange={setKind}
+        onChange={pickKind}
       />
+
+      {kind === "habit" && <TrackField value={track} onChange={pickTrack} />}
 
       <label className="flex flex-col gap-2">
         <span className="text-sm font-semibold">Name</span>
@@ -216,23 +240,25 @@ export function HabitForm({
         <HabitIconPicker value={icon} kind={kind} onChange={setIcon} />
       </Field>
 
-      <Field label="Kind" hint="Quit means a check is “I avoided it today”">
-        <Segmented
-          label="Build or quit"
-          value={mode}
-          options={[
-            { key: "build", label: "Build" },
-            { key: "quit", label: "Quit" },
-          ]}
-          onChange={setMode}
-        />
-      </Field>
+      {!hours && (
+        <Field label="Kind" hint="Quit means a check is “I avoided it today”">
+          <Segmented
+            label="Build or quit"
+            value={mode}
+            options={[
+              { key: "build", label: "Build" },
+              { key: "quit", label: "Quit" },
+            ]}
+            onChange={setMode}
+          />
+        </Field>
+      )}
 
       <Field label="Who" hint={HABIT_WHO_CHOICES.find((choice) => choice.key === who)?.hint}>
         <Segmented
           label="Who it is for"
           value={who}
-          options={HABIT_WHO_CHOICES.map(({ key, label }) => ({ key, label }))}
+          options={HABIT_WHO_CHOICES.filter(({ key }) => !hours || key !== "together").map(({ key, label }) => ({ key, label }))}
           onChange={pickWho}
         />
       </Field>
@@ -249,9 +275,13 @@ export function HabitForm({
         />
       )}
 
-      <Field label="How often">
-        <HabitScheduleField value={schedule} onChange={setSchedule} thisSunday={thisSunday} nextSunday={nextSunday} />
-      </Field>
+      {hours ? (
+        <HoursFields hours={weeklyHours} paceDays={paceDays} onHours={setWeeklyHours} onPaceDays={setPaceDays} />
+      ) : (
+        <Field label="How often">
+          <HabitScheduleField value={schedule} onChange={setSchedule} thisSunday={thisSunday} nextSunday={nextSunday} />
+        </Field>
+      )}
 
       <TimeOfDayField value={timeOfDay} onChange={setTimeOfDay} />
 

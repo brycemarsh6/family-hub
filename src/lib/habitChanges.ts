@@ -1,3 +1,5 @@
+import { addHoursMinutes, type HoursRowView } from "./habitsHours";
+
 // How a Today row looks the instant it is tapped, before the server has
 // caught up. One reducer for the Today list, the same idea as
 // `planItemChanges.ts`. Pure: no db, no React.
@@ -18,11 +20,15 @@ export type HabitRowState = {
   /** "required", "open" or "none" today: a "none" row is on Today only because it is carried or finished. */
   dueState: string;
   participants: HabitMemberState[];
+  /** An hours habit's week; a log of time redraws it (`addTime`). Left off or null for a checks habit. */
+  hours?: HoursRowView | null;
 };
 
 export type HabitChange = {
   /** "skipCarried" skips the missed day a carried row stands for (decision 89), not today. */
-  type: "check" | "uncheck" | "skip" | "unskip" | "skipCarried";
+  type: "check" | "uncheck" | "skip" | "unskip" | "skipCarried" | "addTime";
+  /** `addTime` only: the minutes just logged toward this week (none for another week). */
+  minutes?: number;
   habitId: string;
   /** Whose row, for an Each habit; defaults to the viewer. Ignored for Together. */
   userId?: string;
@@ -42,11 +48,19 @@ function applyToFlags(flags: Flags, type: HabitChange["type"]): Flags {
     case "unskip":
       return flags.skipped ? { done: flags.done, skipped: false } : flags;
     case "skipCarried":
+    case "addTime":
       return flags;
   }
 }
 
 function changeRow<T extends HabitRowState>(row: T, change: HabitChange): T | null {
+  // Time logged on this week's hours habit redraws the bar; only the viewer's own row has one.
+  if (change.type === "addTime") {
+    if (!row.hours || (change.userId ?? row.viewerId) !== row.viewerId) return row;
+    const hours = addHoursMinutes(row.hours, change.minutes ?? 0);
+    const participants = row.participants.map((member) => (member.userId === row.viewerId ? { ...member, done: hours.met } : member));
+    return { ...row, hours, doneToday: hours.met, participants };
+  }
   // Skipping the missed day ends the carry. A row only on Today because of it (not due today) leaves; a row due today stays, unchecked.
   if (change.type === "skipCarried") {
     if (row.carriedFrom === null) return row;

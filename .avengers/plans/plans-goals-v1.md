@@ -138,6 +138,32 @@ Pass 1 of the gates ("those recs sound good"):
 - The recap hides "{done} of {total} done" when the week had no habits, and
   shows only the number changes and finished steps.
 
+## Bryce's request: ongoing goals (2026-11-06, not built yet)
+
+Bryce, while typing in his 2026 goals: "I don't like the target date having
+to be required. I think it's fine, but there should be a tab that says
+'Ongoing' or something like that." This overturns "Every goal has a target
+date" above: a goal may have no end date and read as Ongoing (his example:
+tracking food with no end). Not scheduled. Before building: a mock of
+where "Ongoing" sits (a chip beside "End of this year" in the date field,
+and how the Goals list sorts and filters ongoing goals), and Bryce's OK.
+Storage note: `Goal.targetDate` is required today, so this needs a
+migration that makes it nullable (`DROP NOT NULL`, which loses no data).
+
+Bryce approved the mock (https://claude.ai/artifact/3b3ZvgKZaYzdYDvqET23FF)
+with "Yes to all of those" (2026-11-06):
+1. "Ongoing" is a third chip on the Target date field, beside "End of this
+   year" and "In 90 days"; picking it greys out the date box. No third tab
+   on the Goals list (Active and Done stay). New goals still start on "End
+   of this year".
+2. The word is "Ongoing" on the chip, a tag on the goal card, and the goal
+   page (in place of "By Dec 31").
+3. Ongoing goals sort after the dated ones within each life area.
+4. An ongoing goal with a number shows the number and bar but no pace
+   ("on track" / "behind") line.
+5. Same PR: the round + button must never cover the last goal card; the
+   list gets enough space at the bottom to scroll clear of it.
+
 ## Deferred on purpose (don't build by accident)
 
 - Start / end dates on a habit ("Jan to Mar" in the mock).

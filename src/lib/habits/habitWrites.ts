@@ -17,8 +17,9 @@ import "server-only";
 // `calendarDateFromUtcMidnight` (see habitRows.ts).
 
 import { db } from "@/lib/db";
-import type { Habit, Prisma } from "@/generated/prisma/client";
+import type { Habit, HabitTimeEntry, Prisma } from "@/generated/prisma/client";
 import { calendarDateFromUtcMidnight, utcMidnightInstant, type CalendarDate } from "../householdDate";
+import { HOURS_LIMITS, toHabitTrack } from "../habitHoursVocabulary";
 import { toHabitLogStatus, toHabitSchedule, type HabitLogStatus } from "../habitVocabulary";
 import { checkTargetUserIds, habitColumns, scheduleChanged, type HabitFields } from "./habitRows";
 import { choreOwnersOf, clearChoreChanges, recomputeChoreStreaks } from "./choreWrites";
@@ -50,10 +51,12 @@ export async function createHabit(
     const next = await nextSortOrders(tx, userIds);
     const habit = await tx.habit.create({
       data: {
+        // The caller's schedule goes first, so an hours habit's forced weekly shape from `habitColumns` wins.
+        schedule: toHabitSchedule(input.fields.schedule),
         ...habitColumns(input.fields),
         everyone,
+        ...(toHabitTrack(input.fields.track) === "hours" ? { hoursSince: utcMidnightInstant(input.today) } : {}),
         title: input.fields.title.trim(),
-        schedule: toHabitSchedule(input.fields.schedule),
         participants: { create: userIds.map((userId) => ({ userId, sortOrder: next.get(userId) ?? 0 })) },
       },
     });
@@ -87,7 +90,11 @@ export async function updateHabit(
     const owners = new Set(await choreOwnersOf(tx, habitId));
     const updated = await tx.habit.update({
       where: { id: habitId },
-      data: { ...habitColumns(fields), ...(people.everyone !== undefined ? { everyone: people.everyone } : {}) },
+      data: {
+        ...habitColumns(fields),
+        ...hoursSinceChange(before.track, fields.track, today),
+        ...(people.everyone !== undefined ? { everyone: people.everyone } : {}),
+      },
     });
     if (people.participantIds) await replaceParticipants(tx, habitId, people.participantIds);
     if (before.schedule === "weekdays" && updated.schedule !== "weekdays") await clearChoreChanges(habitId, tx);
@@ -96,6 +103,12 @@ export async function updateHabit(
     await recomputeChoreStreaks([...owners], today, tx);
     return updated;
   });
+}
+
+/** `hoursSince` follows the track: today when a habit becomes hours, cleared when it goes back to checks, untouched otherwise. */
+function hoursSinceChange(beforeTrack: string, track: string | undefined, today: CalendarDate): { hoursSince?: Date | null } {
+  if (track === undefined || toHabitTrack(track) === toHabitTrack(beforeTrack)) return {};
+  return { hoursSince: toHabitTrack(track) === "hours" ? utcMidnightInstant(today) : null };
 }
 
 /**
@@ -250,4 +263,52 @@ async function targetUserIds(tx: Client, habitId: string, forUserId: string): Pr
   });
   if (!habit) return [];
   return checkTargetUserIds(habit.sharing, habit.participants.map((p) => p.userId), forUserId);
+}
+
+/**
+ * Adds a block of time to an hours habit for one person and rebuilds their
+ * weeks-hit streak. Minutes are repaired to a whole number within the entry
+ * limits. Null when the habit is not an hours habit or the person is not on it,
+ * so a stray id never creates a row. Several entries may share a day.
+ */
+export async function addHabitTime(
+  input: { habitId: string; userId: string; day: CalendarDate; minutes: number; loggedById: string | null },
+  today: CalendarDate,
+  client: Prisma.TransactionClient = db,
+): Promise<HabitTimeEntry | null> {
+  return atomically(client, async (tx) => {
+    const habit = await tx.habit.findUnique({
+      where: { id: input.habitId },
+      select: { track: true, participants: { where: { userId: input.userId }, select: { userId: true } } },
+    });
+    if (!habit || toHabitTrack(habit.track) !== "hours" || habit.participants.length === 0) return null;
+    const whole = Number.isFinite(input.minutes) ? Math.trunc(input.minutes) : HOURS_LIMITS.entryDefault;
+    const entry = await tx.habitTimeEntry.create({
+      data: {
+        habitId: input.habitId,
+        userId: input.userId,
+        day: utcMidnightInstant(input.day),
+        minutes: Math.min(Math.max(whole, HOURS_LIMITS.entryMin), HOURS_LIMITS.entryMax),
+        loggedById: input.loggedById,
+      },
+    });
+    await recomputeStreaks(input.habitId, [input.userId], today, tx);
+    return entry;
+  });
+}
+
+/** Removes one entry and rebuilds that person's streak; the habit and person it belonged to, or null when it was already gone. */
+export async function removeHabitTime(
+  entryId: string,
+  today: CalendarDate,
+  client: Prisma.TransactionClient = db,
+): Promise<{ habitId: string; userId: string } | null> {
+  return atomically(client, async (tx) => {
+    const entry = await tx.habitTimeEntry.findUnique({ where: { id: entryId }, select: { habitId: true, userId: true } });
+    if (!entry) return null;
+    const { count } = await tx.habitTimeEntry.deleteMany({ where: { id: entryId } });
+    if (count === 0) return null;
+    await recomputeStreaks(entry.habitId, [entry.userId], today, tx);
+    return entry;
+  });
 }

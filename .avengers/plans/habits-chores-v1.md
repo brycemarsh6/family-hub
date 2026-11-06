@@ -712,6 +712,71 @@ fix. Decided by Hill, low risk. Goes into PR F's C3.
      "Skipped this week", "On vacation", "Not this week / month". Decided
      by Hill, medium (wording).
 
+### The weekly hours tracker (mission 37, 2026-11-06)
+
+Bryce asked for it ("I would love to see my progress bar... 'Oh dang, I've
+only had 2 hours of focused follow-up. I need to do 2 hours today.'") and
+approved the mock with "Yes, build it". 182 to 186 are his own answers;
+187 to 199 were decided by Hill (Bryce may overturn).
+
+182. **Steps of 30 minutes** on the log sheet's −/+, plus 30 min / 1 hour /
+     2 hours chips. (Bryce)
+183. **"About N a day" skips Sundays by default** (Mon to Sat); Every day is
+     the other choice, per habit. (Bryce)
+184. **Hours only, weekly only** for now: no minutes-per-day goals, no
+     monthly totals. (Bryce)
+185. **The dashboard Habits tile** shows an hours habit's bar and "N hours
+     left". (Bryce)
+186. **Hours habits are private by default.** (Bryce)
+187. **Words.** Whole hours plus ¼ ½ ¾ ("6½ of 10 hours this week", "about
+     1¾ a day"), "1 hour" singular, "30 min" only as an amount to add; under
+     an hour a total reads "½ of 10 hours".
+188. **Pace.** Hours left divided by the counted days left in the Sun to Sat
+     week, today included, rounded up to the next 15 minutes; none once
+     met; Sunday with Mon to Sat counts 6 days. On the last counted day the
+     line reads "4 hours left · today". (medium)
+189. **Once met** the row stays on Today, sorted with finished rows; the +
+     becomes a filled check that still opens the sheet; "10 of 10 hours this
+     week · done" (or "11½ of 10"). Resets Sunday.
+190. **No amber** for hours habits: "N hours left" is plain text, semibold
+     (decision 90).
+191. **The log sheet.** "Add time to {title}", default 1 hour, 30 min to 12
+     hours, the value written out ("1½ hours"), a chip lit only when it
+     equals the amount, Today / Yesterday / Other day (the last 7 days,
+     decision 8), "After this: 3½ of 6 hours this week" (or "... last
+     week"), button "Add 1½ hours", errors inline. (wording medium)
+192. **Removing an entry** happens on the stats page: "This week" and "Last
+     week" lists, newest first ("Thu · 1½ hours"), swipe to Delete like
+     CheckInHistory, no confirmation, no undo toast. (medium)
+193. **The form.** A "Track" choice right under Kind: "Checks / Tap once when
+     done" and "Hours / Log time toward a weekly goal". Chores never show it.
+     Hours hides How often, Carry over, Build or quit and Together, and shows
+     "Hours a week" (whole hours, 1 to 80, default 5) and "Count days left
+     as" (Mon to Sat / Skip Sundays, Every day / Sun to Sat). Idea chips
+     never set Track.
+194. **Who.** Just me or Side by side only. Private turns on when Hours is
+     picked with Just me; Side by side turns it off (decision 78).
+195. **Streak** = weeks in a row the target was hit; this week never breaks
+     it until it ends; flame from 2 weeks; stats tiles "Current streak",
+     "Best streak", "Total hours".
+196. **Stats page.** Tiles, then "This week" with "2 of 6 hours", the bar
+     and a Sun to Sat chart of hours per day, then "Last 4 weeks: 6 · 7 · 6½
+     · 2 so far", then the entries (192). No month calendar. Side by side
+     shows one bar per person.
+197. **Other screens.** The Report leaves hours habits out (medium). Whole
+     family shows each person's bar and "X of Y hours". Never on Pick a day
+     or the Calendar; never counted for perfect days or confetti; no nudges.
+     Dashboard tile: picked hours habits show whenever Today shows them;
+     unpicked, only unmet ones take a slot.
+198. **Under a goal.** The Add-to-plan sheet's Habit kind gets the same
+     Track choice and fields. Editing a plan item keeps its Track. A weekly
+     check habit can switch to Hours in Edit (and back); old checks stay as
+     history, the weeks streak starts from the switch, and the stats page
+     says "Switched to hours on Nov 6" (medium). Goal page and This week:
+     "Calling · 6½ of 10 hours this week" with the bar; Goals tile:
+     "Calling · 3½ hours left".
+199. **Manage** says "6 hours a week" ("1 hour a week" at 1).
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for

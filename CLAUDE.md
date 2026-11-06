@@ -57,6 +57,14 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
 - **After claiming something is done, run `git log origin/main..HEAD`.** This
   project has three times had "finished" work that was never pushed. "Works
   locally" and "the family has it" are different claims.
+- **One chat per PR** (Bryce, 2026-11-06). After a PR merges, if the plan
+  has a next PR, offer it as a New task card (`start_session`, fresh, own
+  worktree) with a handoff: what just merged, what's next, which plan and
+  mission files to read. Don't start the next PR in the same chat. Chats
+  auto-archive when their PR merges.
+- **Parallel chats each get their own worktree.** Shared files
+  (`prisma/schema.prisma`, `CLAUDE.md`, `STRUCTURE.md`, `HubNav.tsx`,
+  `package.json`) get small edits only; sync with `main` right before merging.
 - **Run commands, practical setup and file layout:** [README.md](README.md).
 
 ## What's built
@@ -90,7 +98,8 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
     inventory.
 - **Plans & Goals** (`/plans`): three tabs, This week, Goals and Vision. A goal
   has one of six life areas (Spiritual, Health & Wellness, Personal Growth,
-  Relationships & Connections, Work & Money, Fun & Adventure), a target date,
+  Relationships & Connections, Work & Money, Fun & Adventure), a target date
+  or "Ongoing" (mission 38),
   Mine or Together, optionally private, and optionally a number to track
   with check-ins. Plan items under a goal are habits, steps or reminders,
   logged with one tap. Goal detail is at `/plans/goals/[id]`. The Vision tab
@@ -117,7 +126,9 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   pick a person) and idea chips on the New habit form (six per life area,
   eight chores, words in `src/lib/habitIdeas.ts`, mirrored from
   `.avengers/plans/habits-ideas.md`). That finishes the plan
-  (`.avengers/plans/habits-chores-v1.md`).
+  (`.avengers/plans/habits-chores-v1.md`). Mission 37 added hours habits:
+  Track: Hours logs time toward a weekly target (`HabitTimeEntry`, rules in
+  `src/lib/habits/hours.ts`, words in `src/lib/habitHoursVocabulary.ts`).
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
   Read `.avengers/plans/calendar-v2.md` before calendar work.
@@ -184,13 +195,17 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Habits & Chores PR F (mission 36)** passed its gates on 2026-11-06 and
-  merges from branch `claude/habits-f-report`: the Report, idea chips,
-  "Together needs two people", the stats calendar showing vacations and
-  moved chores. Decisions 163 to 181, decided by Hill. Strange needed a
-  fourth pass, which Bryce allowed. Leftovers:
-  `.avengers/missions/mission-36-habits-f-report.md` (Delivery). This
-  finishes the Habits & Chores plan.
+- **Weekly hours habits (mission 37)** passed its gates on 2026-11-06 and
+  merges from branch `claude/habits-hours`: a habit can track hours toward
+  a weekly target (a bar, "N hours left, about M a day", a log sheet,
+  weeks streak, stats page, goal plans). Decisions 182 to 199. Vision
+  needed a fourth pass, which Bryce allowed. Leftovers:
+  `.avengers/missions/mission-37-habits-hours.md` (Delivery).
+- **Ongoing goals (mission 38)** passed its gates on 2026-11-06 and merges
+  from branch `claude/goals-ongoing`: a goal's target date is optional
+  ("Ongoing" chip, tag and goal page; no pace line), and new goals open on
+  "End of this year". Leftovers in
+  `.avengers/missions/mission-38-goals-ongoing.md` (Delivery).
 - **Hill decides for Bryce** (`.claude/agents/hill.md`); merges don't wait
   for him. Phone tests go on Bryce's checklist below and never block.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
@@ -198,9 +213,8 @@ Replace this section at the end of each session. Don't append.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
   for the swipe `pointerdown` issue and `CalendarViews.tsx` growth that CV6's
   gates flagged (details in `mission-19-calendar-cv6-dropdown-swipe.md`).
-- **Assistant API mission 22** (PR #30, branch `claude/assistant-api-m22`)
-  was synced with main on 2026-11-06 and merges next; then missions 23 and 24
-  get planned. Details in
+- **Assistant API mission 22** merged (PR #30) on 2026-11-06; missions 23
+  and 24 get planned next. Details in
   `.avengers/missions/mission-22-assistant-api-shopping-summary.md`.
 
 **Bryce's checklist (never blocks work):**
@@ -228,6 +242,15 @@ Replace this section at the end of each session. Don't append.
   chore, the Chore ideas under Name. Look for the new "No phone in bed"
   icon. Try Together with only yourself and see "Pick at least two
   people, or choose Just me."
+- **Hours tracker phone check** (about 5 minutes): New habit, Track:
+  Hours, 10 hours a week. On Today tap + and add 1 hour; see the bar and
+  "9 hours left, about N a day". Open its stats page and delete that
+  entry. Under a goal, add an hours plan and log from This week. On the
+  iPad, look at Whole family.
+- **Ongoing goals phone check** (about 3 minutes): New goal, tap Ongoing
+  and see the date box grey out; save and see the "Ongoing" tag on the
+  card and "Ongoing" on its page. Scroll the Goals list to the very
+  bottom: if the + still covers a card, screenshot it where it happens.
 - **Delete the commented production `DATABASE_URL` line in `.env`**
   (host `ep-hidden-surf-`). It isn't used, but AGENTS.md says no dev
   machine should hold it. No agent edits `.env`.
@@ -236,12 +259,13 @@ Replace this section at the end of each session. Don't append.
 - **Review Hill's medium calls:** 94, 95, 104, 110, 111 (PR C); 117, 121,
   122, 123 and 127 (PR D; 130 goes with 127); 135, 136, 137 and 149
   (PR E1); 156, 159, 160 and 161 (PR E2); 163, 167, 170, 172, 179 and 181
-  (PR F). Plan:
+  (PR F); 188, 191, 192, 197 and 198 (hours tracker). Plan:
   `.avengers/plans/habits-chores-v1.md`.
 - **Optional:** confirm the family-hub origin in the desktop app (Help,
   Troubleshooting, Review Pinned Git Origins) so the app's merge button
-  works. Delete the "zz m31" to "zz m35" test habits on dev
-  whenever.
+  works. Delete the "zz m31" to "zz m35" test habits, the four
+  "zz m37" habits, the "zz m37 Commissions" goal and the four "zz m38"
+  goals on dev whenever.
 
 **Waiting on Bryce:**
 - **PR A is live:** press Recompute streaks once (Settings). The production
@@ -261,6 +285,9 @@ Replace this section at the end of each session. Don't append.
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- Hours tracker follow-ups (mission 37 Delivery): a page left open over
+  Saturday night shows last week's total in the sheet until reloaded; the
+  Who hint says "checks" on an hours habit.
 - The Edit screen says "Edit habit" for a chore and doesn't light the
   house icon (found by Strange in PR F, older than it).
 - Inventory collapse state doesn't persist across reloads; Shopping has no

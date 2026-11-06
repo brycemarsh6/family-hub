@@ -233,7 +233,9 @@ Adding a second definition of any of these is a BLOCKER:
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
   `VacationCard`, `HabitTileRows` (in `HabitsTile.tsx`, used by both dashboard habit
   tiles) `DashboardWidgetList` (moved over in mission-34), `PlanDayCard` and
-  `PlannedTodayCard` (mission-35))
+  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37);
+  `HoursLogSheet` takes its caller's `run` (typed `RunChange`) and never
+  wraps a save itself)
   calls it with the action as a closure, so lib never imports `app/`. A second
   copy of that shape, or the message typed again, is a BLOCKER. Left out on
   purpose, to move over later: the differently worded saves in `HabitsChoresSettings`,
@@ -247,7 +249,8 @@ Adding a second definition of any of these is a BLOCKER:
   map; it has **no imports at all**, because `next.config.ts` imports it by
   relative path. `src/lib/navMode.ts`: the only menu-style list
 - `src/lib/goalVocabulary.ts` — Plans & Goals' vocabulary: `LIFE_AREAS`,
-  `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`, and
+  `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`,
+  `ONGOING_LABEL` (mission-38), and
   the vision words (`VISION_HORIZONS`, `TOGETHER_BOARD`, `VisionBoardKey`,
   `GOAL_PAGE_VISION_HORIZON`). `LIFE_AREAS` has six areas, in order:
   Spiritual, Health & Wellness, Personal Growth, Relationships & Connections,
@@ -263,7 +266,18 @@ Adding a second definition of any of these is a BLOCKER:
   policy. An action, page **or component** comparing a goal's `ownerId` or
   `visibility` itself is a BLOCKER; the display helpers `goalOwnership` /
   `whoseGoal` / `isPrivateGoal` live beside the policy in `goals.ts`.
-  `src/lib/goalsRead.ts` is the only page reader of goal rows. The form
+  `src/lib/goalsRead.ts` is the only page reader of goal rows.
+  **Ongoing goals (mission-38):** `Goal.targetDate` is nullable; null means
+  Ongoing. `validateGoalInput` in `goals.ts` is the only place that decides
+  whether a goal is ongoing or dated: only an explicit `ongoing: true` lets
+  a blank date through, and the past-date check applies only to a date.
+  Actions save its result as is, with no second check. `paceStatus` in
+  `goalsProgress.ts` is the only pace rule for an ongoing goal ("reached"
+  or null). `findGoals` in `goalsRead.ts` orders ongoing goals last
+  (`nulls: "last"`). `ONGOING_LABEL` in `goalVocabulary.ts` is the only
+  "Ongoing" wording; a component or page that types the word itself is a
+  BLOCKER. If a fourth place compares `targetDate === null`, add an
+  `isOngoingGoal(goal)` helper in `goals.ts` beside `isPrivateGoal`. The form
   limits `GOAL_TITLE_MAX` / `GOAL_WHY_MAX` / `MEASURE_UNIT_MAX` /
   `HABIT_TIMES_MAX` are exported from `goals.ts` (the `MIN_PASSWORD_LENGTH`
   precedent). `goalOnBoard(goal, board)` there is how a goal is matched to a
@@ -326,9 +340,10 @@ Adding a second definition of any of these is a BLOCKER:
   newest remaining check-in, else the start value). **Two places must
   change together:** the two `PlanItemRow` builders (`actions/planItems.ts`
   and `goalsRead.ts`), and the two check-in flags in `goalsRead.ts`
-  (`goalInclude` and `toView`). **Size watch:** `GoalDetail.tsx` is 320
-  lines (soft cap 350) after mission 33 moved its saves onto
-  `useOptimisticRun`, so extract before the next feature; `goals.test.ts`
+  (`goalInclude` and `toView`). **Size watch:** `GoalDetail.tsx` is 277
+  lines (soft cap 350) after mission 37 moved "The result" card into
+  `GoalResultCard.tsx`; `goals.ts` is 338 and `GoalForm.tsx` 334 (its target-date field, with the
+  chips and Ongoing, is the split seam); `goals.test.ts`
   is 344 after mission 30 split its habit tests into `goalsHabitInput.test.ts`;
   the next goal test goes in a new file by concern.
 - `src/lib/planItemChanges.ts`: `applyPlanItemChange`, the only optimistic
@@ -349,14 +364,31 @@ Adding a second definition of any of these is a BLOCKER:
   `goalVocabulary.ts`, beside `HABIT_PERIODS`. These are two different
   vocabularies (`HabitPeriod` on a goal's plan, `HabitSchedule` on a habit)
   and stay apart on purpose. (Added mission-30.)
+- `src/lib/habitHoursVocabulary.ts` holds the hours habit's vocabulary:
+  `HABIT_TRACKS`, `PACE_DAYS`, `HOURS_LIMITS` (with `paceStep` and the
+  sheet's `chips`), the `toHabitTrack` / `toPaceDays` repairers, the
+  hour/hours rule `unitFor`, `HOURS_PHRASES` and `checkHoursTarget`, the one
+  check of a typed weekly target (used by `actions/habits.ts` and
+  `goals.ts`). It has **no imports**, and sits beside
+  `habitVocabulary.ts` (past its soft cap) because new habit words go in a
+  new file by concern. Entries live in `HabitTimeEntry`, written only by
+  `addHabitTime` / `removeHabitTime` in `habits/habitWrites.ts`. An hours
+  habit is stored in one forced shape (weekly, once, `build`, `each`, no
+  carry-over), set only by `habitColumns` in `habits/habitRows.ts`. The one
+  pace formula is `paceMinutesPerDay` in `habits/hours.ts` (hours left over
+  counted days left, rounded up to `paceStep`); the weeks streak lives in
+  the `HabitParticipant` cache and is aged by `hoursStreakAfter`. Screens
+  shape hours answers in `src/lib/habitsHours.ts`. (Added mission-37.)
 - `src/lib/habits/` is the habit engine, a domain subdirectory under the
   `src/lib/voice/` precedent. `schedule.ts`, `carryOver.ts`, `streaks.ts`,
   `progress.ts`, `perfectDays.ts`, `planPrompts.ts`, `access.ts`,
-  `habitRows.ts`, `weekOverrides.ts`, `choreStreak.ts` and `types.ts` are
+  `habitRows.ts`, `weekOverrides.ts`, `choreStreak.ts`, `hours.ts` (the
+  weekly-hours rules, mission-37) and `types.ts` are
   pure: no Prisma client, no `db`, and
   callers pass `today`. `habitWrites.ts`, `participantWrites.ts`, `streakWrites.ts` and
   `planWrites.ts` (all `server-only`) are the only writers of the `Habit`,
-  `HabitParticipant`, `HabitLog` and `HabitPlannedDay` tables.
+  `HabitParticipant`, `HabitLog`, `HabitPlannedDay` and `HabitTimeEntry`
+  tables.
   `streakWrites.ts` alone writes the cached streak columns (`currentStreak`,
   `bestStreak`, `streakAsOf`; split out of `habitWrites.ts` in mission-35),
   `participantWrites.ts` holds the participant writes (join, reorder,
@@ -366,11 +398,12 @@ Adding a second definition of any of these is a BLOCKER:
   the editor, the action loaders and `loadHabitsForPlan`) and
   `src/lib/habitsStatsRead.ts` (the stats page and the family view,
   mission-32; the Report's `loadHabitReport`, mission-36) are the only readers of the `Habit`, `HabitParticipant`,
-  `HabitLog` and `Nudge` tables for pages and actions. Both are
+  `HabitLog`, `HabitTimeEntry` and `Nudge` tables for pages and actions
+  (an action that needs one entry uses `loadTimeEntryForAction`). Both are
   `server-only`, and each hands its rows to a pure builder. A third reader
   is a BLOCKER. **Dependency direction:** `src/lib/habits/` may import
-  `habitVocabulary.ts`, `householdDate.ts`, `constants.ts`,
-  `householdPeople.ts` (the write files only), `db.ts` and the generated
+  `habitVocabulary.ts`, `habitHoursVocabulary.ts`, `householdDate.ts`,
+  `constants.ts`, `householdPeople.ts` (the write files only), `db.ts` and the generated
   client (types). Its writers take `today` from their caller and never
   compute it. It never imports `goals*.ts`,
   `goalVocabulary.ts` or `visions*.ts`, nor any other top-level `src/lib/`
@@ -379,7 +412,8 @@ Adding a second definition of any of these is a BLOCKER:
   Code that shapes engine answers for a screen lives one level up, in
   `src/lib/` (mission-35 moved the Calendar builder and
   `scheduleHabitDays.ts` out for this reason). The goals side may import the engine
-  (`goalsProgress.ts` takes `habits/progress`, and `goals.ts` takes the
+  (`goalsProgress.ts` takes `habits/progress`, the `habits/types` types
+  and `habitsHours.ts`'s plan builders, and `goals.ts` takes the
   `HabitFields` type only). `src/lib/habits/*.test.ts` is in
   `package.json`'s test script and both CI timezone steps. (Added
   mission-30.)
@@ -395,10 +429,9 @@ Adding a second definition of any of these is a BLOCKER:
   column (`HabitLog.day`, vacation days, `anchorWeek`, `streakAsOf`, all-day
   dates) back as a `CalendarDate`. `utcMidnightInstant` is the only way to
   write one. New code that inlines `calendarDateInZone(x, "UTC")` for a
-  stored day is a BLOCKER. Four older `goal.targetDate` sites are
-  grandfathered and move to the helper in the next mission that touches each
-  one: `plans/goals/[id]/page.tsx`, `plans/goals/[id]/edit/page.tsx`,
-  `actions/goals.ts` and `goalsProgress.ts`. (Added mission-30.)
+  stored day is a BLOCKER. The four older `goal.targetDate` sites
+  grandfathered by mission-30 moved to the helper in mission-38; none
+  remain. (Added mission-30; closed mission-38.)
 - `householdParticipantIds(client)` in `habits/participantWrites.ts` is the
   one rule for who holds an Everyone habit: every active person who is not a
   shared device login. Callers ask for it with `createHabit`'s
@@ -411,12 +444,14 @@ Adding a second definition of any of these is a BLOCKER:
   `goals.ts`'s `canSee` / `canEdit` in a search or an import. An action,
   page, component or lib module outside `src/lib/habits/` that checks a
   habit's `isPrivate` or participant list itself is a BLOCKER (widened
-  mission-36; the existing lib sites, `habitsReportScope.ts`,
-  `habitsStatsRead.ts` and `habitsFamily.ts`, move into `access.ts` at their
-  next touch). The plan-to-habit glue lives in `goals.ts` beside the
+  mission-36; mission-37 moved the `habitsStatsRead.ts` and
+  `habitsFamily.ts` sites into `access.ts` as `othersPrivateHidden` and
+  `showsOnFamilyView`; `habitsReportScope.ts` moves at its next touch). The plan-to-habit glue lives in `goals.ts` beside the
   goal policy: `habitInputFromPlan` (a plan item's fields become a Habit's),
   `habitParticipantsFor` (a Mine goal's owner, or the household) and
-  `habitCheckTarget` (whose row a tap writes). It is pinned by
+  `habitCheckTarget` (whose row a tap writes, not permission; `hoursSubject` wraps it for
+  an hours plan, so the goal screens log time for the same person a check
+  would, never the viewer by default). It is pinned by
   `goalsHabitInput.test.ts`, and nothing outside `goals.ts` maps a goal to a
   habit. (Added mission-30.)
 - The "Recompute streaks" door is the admin-only action
@@ -677,8 +712,11 @@ Adding a second definition of any of these is a BLOCKER:
   should become the one per-day "excused" rule; `monthCalendar` and
   `nothingDueText` each decide it today (not yet built). **Size watch:**
   `habitVocabulary.ts` is 380 lines, `habitsStats.ts` 387, `habitsToday.ts`
-  343, and the tests `habitsStats.test.ts` 426, `habitsReport.test.ts` 373
-  and `habitsToday.test.ts` 383; the next habit rule or test goes in a new
+  350, `habitsRead.ts` 350, `habitsFamily.ts` 360 (its stats-page data is
+  the split seam), and the tests `habitsStats.test.ts` 426,
+  `habitsReport.test.ts` 373, `habitsToday.test.ts` 383 (hours tests live in
+  `habitsTodayHours.test.ts`), `goalsProgress.test.ts` 367 and
+  `habitsHours.test.ts` 298; the next habit rule or test goes in a new
   file by concern (a `habitReportVocabulary.ts` and a sibling stats-calendar
   test are the natural seams).
 - **The `validatedPeople` decision** — which `User` ids may be **written**
