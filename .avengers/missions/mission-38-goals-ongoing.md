@@ -118,3 +118,27 @@ and a nullable column that ripples through the goal types). No Banner: the
    SQL in full, `wc -l` of touched files, and a list of every `targetDate`
    read site and what it does with null (`git grep -n targetDate -- src`).
 6. **Done criteria:** Vision, Strange and Captain pass.
+
+## Reports
+
+#### C1 report (Stark): DONE
+
+Ongoing is `ongoing: true` with `targetDate: ""` from the form; the check
+refuses a blank date without it. `paceStatus` gives "reached" or null for
+an ongoing goal. Sorting uses `nulls: "last"`. `ONGOING_LABEL` lives in
+`goalVocabulary.ts`. The card's tag is a `surface-2` pill; the goal page
+reads "· Ongoing"; the list spacer is `calc(7rem +
+env(safe-area-inset-bottom))`. `GoalResultCard` and `GoalDetail` needed no
+change (a null pace is already hidden). New `goalsOngoing.test.ts` (7
+tests). Gauntlet: tsc 0, eslint 0, `npm test` 1102, build 0. Stark saw 0
+DST skips in the UTC run (mission 37 saw 7): Vision to re-check.
+
+Deviation: new goals open with no date chip lit (the form has always
+started blank), so the mock's "New goals still start on End of this year"
+described the old form wrongly. Fury's call: leave the form as it is,
+since that sentence described the existing behaviour rather than asking
+for a change; tell Bryce, and it is one line if he wants the chip pre-lit.
+
+Fury reviewed the SQL (the one `ALTER ... DROP NOT NULL`), checked the
+host prefix (`ep-hidden-pine-`, dev) without printing `.env`, and ran
+`npx prisma migrate deploy` on dev: applied.

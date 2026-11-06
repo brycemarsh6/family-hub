@@ -27,7 +27,8 @@ export default async function EditGoalPage({ params }: { params: Promise<{ id: s
     ownership: goalOwnership(goal),
     visibility: goal.visibility,
     why: goal.why ?? "",
-    targetDate: formatCalendarDate(calendarDateInZone(goal.targetDate, "UTC")),
+    targetDate: goal.targetDate ? formatCalendarDate(calendarDateInZone(goal.targetDate, "UTC")) : "",
+    ongoing: goal.targetDate === null,
     measure:
       unit !== null && start !== null && target !== null
         ? { unit, start: String(start), target: String(target) }

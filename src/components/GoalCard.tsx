@@ -3,7 +3,7 @@ import { Lock } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
 import { isPrivateGoal, whoseGoal, type GoalView } from "@/lib/goals";
 import { formatMeasure, PACE_LABELS, weekSummary } from "@/lib/goalsProgress";
-import { GOAL_OWNERSHIP_LABELS } from "@/lib/goalVocabulary";
+import { GOAL_OWNERSHIP_LABELS, ONGOING_LABEL } from "@/lib/goalVocabulary";
 
 /**
  * One goal on the Goals list: title, who it belongs to, the number being
@@ -28,6 +28,11 @@ export function GoalCard({ goal, viewerId }: { goal: GoalView; viewerId: string 
           <h3 className="min-w-0 text-base font-semibold">{goal.title}</h3>
           {isPrivateGoal(goal) && (
             <Lock aria-label="Private" className="shrink-0 text-muted" size={14} />
+          )}
+          {goal.targetDate === null && (
+            <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted-strong">
+              {ONGOING_LABEL}
+            </span>
           )}
         </div>
         {whose === "together" ? (

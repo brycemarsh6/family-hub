@@ -20,7 +20,8 @@ export type PaceStatus = "reached" | "onPace" | "behind" | null;
 
 /** The part of a goal the progress and pace math reads (a `GoalRow` fits). */
 export type GoalMeasure = {
-  targetDate: Date;
+  /** null = an ongoing goal: no pace, only "reached". */
+  targetDate: Date | null;
   startValue: number | null;
   targetValue: number | null;
   currentValue: number | null;
@@ -204,6 +205,7 @@ const BEHIND_MARGIN = 0.1;
 export function paceStatus(goal: GoalMeasure, today: CalendarDate): PaceStatus {
   if (goal.startValue === null || goal.targetValue === null || goal.currentValue === null) return null;
   const progress = progressFraction(goal);
+  if (goal.targetDate === null) return progress >= 1 ? "reached" : null;
   const created = calendarDateInZone(goal.createdAt, HOUSEHOLD_TIME_ZONE);
   const total = calendarDaysBetween(created, calendarDateInZone(goal.targetDate, "UTC"));
   if (total <= 0) return progress >= 1 ? "reached" : "behind";

@@ -89,7 +89,7 @@ export function GoalsList({
       {canManage && (
         <>
           {/* Keeps the last card clear of the floating add button. */}
-          <div aria-hidden="true" className="h-28" />
+          <div aria-hidden="true" style={{ height: "calc(7rem + env(safe-area-inset-bottom))" }} />
           <FloatingAddButton onClick={() => router.push("/plans/goals/new")} />
         </>
       )}
