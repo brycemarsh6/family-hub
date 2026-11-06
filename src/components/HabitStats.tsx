@@ -11,7 +11,7 @@ import { NudgeButton } from "./NudgeButton";
 import { checkHabit, uncheckHabit } from "@/app/actions/habitChecks";
 import type { HabitStatsData } from "@/lib/habitsFamily";
 import { parseDateParam } from "@/lib/householdDate";
-import { formatMonthTitle } from "@/lib/mealPlanDates";
+import { NUDGE_STATUS_LABEL, statsMonthTitle } from "@/lib/habitVocabulary";
 
 const SECTION_TITLE = "text-sm font-semibold uppercase tracking-wide text-muted";
 
@@ -94,7 +94,9 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
       {data.nudgeable.map((person) => (
         <div key={person.userId} className="flex items-center gap-2.5 rounded-2xl border border-line bg-surface p-3">
           <AvatarBadge displayName={person.displayName} avatarColor={colors.get(person.userId) ?? ""} size={28} />
-          <span className="flex-1 text-sm">{person.displayName} hasn’t done theirs today</span>
+          <span className="flex-1 text-sm">
+            {person.displayName} · <span className="text-muted">{NUDGE_STATUS_LABEL}</span>
+          </span>
           <NudgeButton habitId={data.habit.id} toUserId={person.userId} toName={person.displayName} alreadyNudged={person.nudged} />
         </div>
       ))}
@@ -107,7 +109,7 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
       </div>
 
       <div className="mt-1 flex items-baseline justify-between">
-        <h2 className={SECTION_TITLE}>{formatMonthTitle(new Date(first.year, first.month - 1, 1))}</h2>
+        <h2 className={SECTION_TITLE}>{statsMonthTitle(first.year, first.month, parseDateParam(data.today)!.year)}</h2>
         <span className="text-sm text-muted">
           {checkedNow} of {dueSoFar} so far
         </span>
@@ -125,7 +127,7 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
       {data.sideBySide && (
         <>
           <h2 className={`mt-1 ${SECTION_TITLE}`}>Side by side</h2>
-          <HabitSideBySide rows={data.sideBySide.rows} />
+          <HabitSideBySide rows={data.sideBySide.rows} unit={unit} />
           <HabitWeekStrips weeks={data.sideBySide.weekly.weeks} people={data.sideBySide.weekly.people} />
         </>
       )}

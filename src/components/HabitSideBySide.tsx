@@ -1,5 +1,6 @@
 import { AvatarBadge } from "./AvatarBadge";
 import type { SideBySideRow } from "@/lib/habitsStats";
+import { RATE_NONE_LABEL, streakCountLabel, type StreakUnit } from "@/lib/habitVocabulary";
 
 /**
  * The Side by side table (decision 97's companion): total done, rate and
@@ -7,7 +8,7 @@ import type { SideBySideRow } from "@/lib/habitsStats";
  * below it, so it always stays on the page. A real table, so a screen reader
  * announces each number with its column.
  */
-export function HabitSideBySide({ rows }: { rows: SideBySideRow[] }) {
+export function HabitSideBySide({ rows, unit }: { rows: SideBySideRow[]; unit: StreakUnit }) {
   return (
     <div className="rounded-2xl border border-line bg-surface p-3">
       <table className="w-full text-sm">
@@ -32,8 +33,8 @@ export function HabitSideBySide({ rows }: { rows: SideBySideRow[] }) {
                 </span>
               </th>
               <td className="py-2">{row.total}</td>
-              <td className="py-2">{row.rate === null ? "None yet" : `${row.rate}%`}</td>
-              <td className="py-2">{row.streakLabel ?? "None yet"}</td>
+              <td className="py-2">{row.rate === null ? RATE_NONE_LABEL : `${row.rate}%`}</td>
+              <td className="py-2">{streakCountLabel(row.streak, unit)}</td>
             </tr>
           ))}
         </tbody>

@@ -251,7 +251,7 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Verification:** full gauntlet.
 
 ### F0 - Hill's stats wording (decisions 110 to 112)
-- **Status:** PENDING (after C5; batched with gate fixes)
+- **Status:** DONE (Stark; Fury re-ran tsc, eslint, 762 tests). Note: `statsMonthTitle` keeps its own month-name list because `mealPlanDates.ts` does not export one; Captain to judge.
 - **Objective:** apply 110 (nudge row "Name · Not done yet today"), 111
   (table streak "0 days" / "1 day" / "N days" with its own label helper in
   `habitVocabulary.ts`, rate "None yet" when null), 112 (month name only).

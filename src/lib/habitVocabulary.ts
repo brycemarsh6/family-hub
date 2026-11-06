@@ -129,6 +129,25 @@ export function streakLabel(count: number, unit: StreakUnit): string | null {
   return count >= STREAK_MIN_SHOWN ? `${count} ${unit}` : null;
 }
 
+/** The side-by-side table's streak cell: always a count, singular at 1 ("0 days", "1 day", "3 weeks"; decision 111). */
+export function streakCountLabel(count: number, unit: StreakUnit): string {
+  return `${count} ${count === 1 ? unit.slice(0, -1) : unit}`;
+}
+
+/** The stats page's rate cell when no day has been due yet (decision 111). */
+export const RATE_NONE_LABEL = "None yet";
+
+/** The status in a nudge row, after the person's name (decision 110). */
+export const NUDGE_STATUS_LABEL = "Not done yet today";
+
+const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** The stats calendar title: the month name, plus the year only outside the current year (decision 112). */
+export function statsMonthTitle(year: number, month: number, todayYear: number): string {
+  const name = FULL_MONTHS[month - 1];
+  return year === todayYear ? name : `${name} ${year}`;
+}
+
 /** The meta line of a row skipped today (decision 101). */
 export const SKIPPED_TODAY_LABEL = "Skipped today";
 
