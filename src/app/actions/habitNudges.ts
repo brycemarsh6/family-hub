@@ -2,7 +2,7 @@
 
 // The nudge actions (decisions 96 and 97). Same guard order as the taps:
 // session, the habit's row, the policy (`canNudge`: never the tablet; sender
-// and recipient both on a Side by side habit that is not private or archived),
+// and recipient both on a Side by side habit that is not private or archived, the recipient not deactivated),
 // then the fields (the recipient has not finished today). A missing habit and a refused one answer the same words.
 // "Today" is the server's (Denver). A nudge that already exists answers success.
 

@@ -280,7 +280,7 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Verification:** full gauntlet plus TZ=UTC and LA runs.
 
 ### F2 - F1 leftovers
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran the full gauntlet: 767 tests, build EXIT=0)
 - **Fixes:** (1) `LogButton` gains an optional `forName` so its label reads "Mark X done for Emily" / "Undo X for Emily"; the family view's inline copy of the button goes back to `LogButton`, so there is one check button. (2) The `nudge` action refuses a deactivated recipient: `loadHabitForAction` (or the action) supplies the participants' deactivated state and the action passes `deactivatedIds` to `canNudge`.
 - **Boundaries:** `src/components/LogButton.tsx`, `HabitFamilyColumn.tsx`, `src/lib/habitsRead.ts` (the action loader's select only), `src/app/actions/habitNudges.ts`.
 - **Verification:** full gauntlet.

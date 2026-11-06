@@ -165,6 +165,8 @@ export function loadHabitRoster(): Promise<HouseholdPerson[]> {
 
 /** What an action needs to know about one habit before it lets anyone touch it. */
 export type HabitForAction = HabitAccess & {
+  /** Participants who have been deactivated (the nudge refuses them). */
+  deactivatedIds: string[];
   sharing: HabitSharing;
   archived: boolean;
   carryOver: boolean;
@@ -176,12 +178,13 @@ export type HabitForAction = HabitAccess & {
 export async function loadHabitForAction(habitId: string): Promise<HabitForAction | null> {
   const habit = await db.habit.findUnique({
     where: { id: habitId },
-    include: { participants: { select: { userId: true } } },
+    include: { participants: { select: { userId: true, user: { select: { deactivatedAt: true } } } } },
   });
   if (!habit) return null;
   return {
     isPrivate: habit.isPrivate,
     participantIds: habit.participants.map((p) => p.userId),
+    deactivatedIds: habit.participants.filter((p) => p.user.deactivatedAt !== null).map((p) => p.userId),
     sharing: toHabitSharing(habit.sharing),
     archived: habit.archivedAt !== null,
     carryOver: habit.carryOver,

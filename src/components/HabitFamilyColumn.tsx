@@ -72,17 +72,7 @@ export function FamilyHabitRow({
       {row.skippedToday ? (
         <LogButton done={false} label={row.title} idle="empty" skipped onClick={onToggle} />
       ) : row.canLog ? (
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-pressed={row.doneToday}
-          aria-label={row.doneToday ? `Undo ${row.title} for ${who}` : `Mark ${row.title} done for ${who}`}
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
-            row.doneToday ? "bg-accent text-accent-fg" : "border-2 border-accent bg-surface text-accent"
-          }`}
-        >
-          {row.doneToday && <Check aria-hidden="true" size={22} />}
-        </button>
+        <LogButton done={row.doneToday} label={row.title} forName={who} idle="empty" onClick={onToggle} />
       ) : (
         <span
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
