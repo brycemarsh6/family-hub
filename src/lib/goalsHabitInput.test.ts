@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { habitCheckTarget, habitInputFromPlan, habitParticipantsFor } from "./goals";
+import { habitCheckTarget, habitInputFromPlan, habitParticipantsFor, validatePlanItemInput } from "./goals";
 
 test("habitParticipantsFor: a Mine goal's habit is for its owner, a Together goal's for the household", () => {
   assert.deepEqual(habitParticipantsFor({ ownerId: "me" }), ["me"]);
@@ -32,4 +32,39 @@ test("habitCheckTarget: a Mine goal checks for its owner; Together for the tappe
   assert.equal(habitCheckTarget({ ownerId: null }, "spouse", ["me", "spouse"]), "spouse");
   assert.equal(habitCheckTarget({ ownerId: null }, "tablet", ["me", "spouse"]), "me");
   assert.equal(habitCheckTarget({ ownerId: null }, "tablet", []), "tablet");
+});
+
+test("habitInputFromPlan: an hours item carries the whole hours shape, each person's own even under a Together goal", () => {
+  const input = { title: "Calling", kind: "habit" as const, timesPerPeriod: 1, period: "week" as const, track: "hours" as const, weeklyMinutes: 600, paceDays: "every" as const };
+  const mine = habitInputFromPlan(input, { ownerId: "me", visibility: "shared", area: "work" });
+  assert.deepEqual(
+    [mine.track, mine.weeklyMinutes, mine.paceDays, mine.schedule, mine.times, mine.sharing],
+    ["hours", 600, "every", "weekly", 1, "each"],
+  );
+  assert.equal(habitInputFromPlan(input, { ownerId: null, visibility: "shared", area: "work" }).sharing, "each");
+});
+
+test("habitInputFromPlan: an item with no Track says nothing about it; checks says checks", () => {
+  const goal = { ownerId: "me", visibility: "shared", area: "health" };
+  const base = { title: "Run", kind: "habit" as const, timesPerPeriod: 3, period: "week" as const };
+  assert.equal("track" in habitInputFromPlan(base, goal), false);
+  assert.equal(habitInputFromPlan({ ...base, track: "checks" }, goal).track, "checks");
+});
+
+test("validatePlanItemInput: hours reads whole hours, forces one time a week, and refuses bad numbers", () => {
+  const hours = { title: "Calling", kind: "habit", track: "hours", weeklyHours: 10, paceDays: "monsat", timesPerPeriod: 5, period: "day" };
+  assert.deepEqual(validatePlanItemInput(hours), {
+    ok: { title: "Calling", kind: "habit", timesPerPeriod: 1, period: "week", track: "hours", weeklyMinutes: 600, paceDays: "monsat" },
+  });
+  for (const weeklyHours of [0, 81, 2.5, "5", null]) assert.ok("error" in validatePlanItemInput({ ...hours, weeklyHours }));
+  assert.ok("error" in validatePlanItemInput({ ...hours, paceDays: "never" }));
+  assert.ok("error" in validatePlanItemInput({ ...hours, track: "minutes" }));
+});
+
+test("validatePlanItemInput: no track stays out of the result; only a habit may name a Track", () => {
+  const habit = validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 3, period: "week" });
+  assert.equal("ok" in habit && "track" in habit.ok, false);
+  const checks = validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 3, period: "week", track: "checks" });
+  assert.equal("ok" in checks && checks.ok.track, "checks");
+  assert.ok("error" in validatePlanItemInput({ title: "Call", kind: "step", track: "hours", weeklyHours: 5, paceDays: "monsat" }));
 });

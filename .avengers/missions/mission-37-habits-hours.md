@@ -226,7 +226,15 @@ From AGENTS.md, absolute for every agent:
 
 ## Gate ledger
 
-None yet.
+- **C1, Vision pass 1: PASS** (on `f7714cd`). Re-ran the Gauntlet (998;
+  UTC 991 + 7 skips; LA 998; build 0), regenerated the SQL offline with
+  `prisma migrate diff` and it matched both migrations exactly. Notes:
+  `createHabit` lets the caller's `schedule` override the forced "weekly"
+  (C3 told to send it; hardening goes in a later fix contract); a partial
+  update with `weeklyMinutes` but no `track` isn't clamped (C3 sends the
+  whole shape); the streak cache now holds weeks for hours habits, so
+  every reader of it must branch on track (C2/C4); two cosmetic test-name
+  slips in `hours.test.ts`.
 
 #### C1 Amendment 1 (sent to Stark mid-build, 2026-11-06, for decision 198)
 
@@ -398,3 +406,23 @@ extra inputs; `habitColumns` with track "hours" clamps the target to 60
 to 4800 minutes and defaults 300, so editors must send the whole hours
 shape; `addHabitTime` returns null for a non-hours habit or a
 non-participant and clamps minutes 30 to 720.
+
+#### C3 report (2026-11-06)
+
+Stark: DONE. Gauntlet green with C2 in flight (1002; UTC 995 + 7; LA
+1002; build 0). New `src/app/actions/habitHours.ts` (77),
+`src/components/HabitHoursFields.tsx` (80). `HabitForm.tsx` is 356 (past
+the soft cap: NOTE, split candidate for Captain). Carried into C4:
+- `HabitManagerItem` (C2's `habitsToday.ts`) lacks `track`,
+  `weeklyMinutes`, `paceDays`, so Edit on an hours habit would open as
+  Checks and saving would convert it. C4 must feed them through
+  `managerItem()` and the plan sheet's `initial`. **Ship blocker until
+  then.**
+- The Track and pace words are constants in `HabitHoursFields.tsx`; they
+  move to `habitHoursVocabulary.ts` in C4.
+- No `checkInput` test (it lives in a `"use server"` file with a db read);
+  plan-side rules are tested.
+- Fury's call: under a goal, an hours habit follows the goal's privacy
+  (the existing plan rule), not decision 186's default, so a shared goal's
+  partner still sees its progress. Bryce's commissions goal is private
+  anyway.

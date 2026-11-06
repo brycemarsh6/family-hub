@@ -28,6 +28,7 @@ import { recomputeAllStreaks as rebuildAllStreaks } from "@/lib/habits/streakWri
 import { householdParticipantIds, reorderHabits as reorderHabitRows } from "@/lib/habits/participantWrites";
 import { dayOfWeek, parseDateParam } from "@/lib/householdDate";
 import { toLifeArea } from "@/lib/goalVocabulary";
+import { HABIT_TRACKS, HOURS_LIMITS, toHabitTrack, toPaceDays } from "@/lib/habitHoursVocabulary";
 import {
   HABIT_ICONS,
   HABIT_TIMES_LIMITS,
@@ -68,6 +69,12 @@ export type HabitInput = {
   participantIds: string[];
   /** The Everyone button was used: the habit follows the whole family (decision 87). */
   everyone: boolean;
+  /** "checks" or "hours". An hours habit ignores the schedule fields and is stored as one weekly habit (decisions 193, 194). */
+  track: string;
+  /** Hours only: the week's goal in whole hours. */
+  weeklyHours: number | null;
+  /** Hours only: "monsat" or "every". */
+  paceDays: string | null;
 };
 
 const MAX_REORDER_IDS = 500;
@@ -110,18 +117,36 @@ async function checkInput(input: HabitInput, alreadyOnHabit: readonly string[] =
   if (toHabitKind(input.kind) !== input.kind) return { error: "Pick habit or chore." };
   if (toHabitMode(input.mode) !== input.mode) return { error: "Pick build or quit." };
   if (toHabitSharing(input.sharing) !== input.sharing) return { error: "Pick who it is for." };
-  if (toHabitSchedule(input.schedule) !== input.schedule) return { error: "Pick a schedule." };
+  if (!(HABIT_TRACKS as readonly unknown[]).includes(input.track)) return { error: "Pick checks or hours." };
+  const hours = toHabitTrack(input.track) === "hours";
+  if (!hours && toHabitSchedule(input.schedule) !== input.schedule) return { error: "Pick a schedule." };
   if (input.icon !== null && !(HABIT_ICONS as readonly unknown[]).includes(input.icon)) return { error: "Pick an icon from the list." };
   if (input.lifeArea !== null && toLifeArea(input.lifeArea) === null) return { error: "Pick a life area from the list." };
   if (input.timeOfDay !== null && !(TIMES_OF_DAY as readonly unknown[]).includes(input.timeOfDay)) return { error: "Pick a time of day from the list." };
-  const schedule = toHabitSchedule(input.schedule);
+  const schedule = hours ? "weekly" : toHabitSchedule(input.schedule);
+
+  let weeklyMinutes: number | undefined;
+  if (hours) {
+    const { targetMinHours, targetMaxHours } = HOURS_LIMITS;
+    if (input.kind !== "habit") return { error: "Hours are for habits, not chores." };
+    if (input.sharing === "together") return { error: "Hours habits are for one person each, not Together." };
+    if (input.carryOver === true) return { error: "Hours habits don't carry over." };
+    const hoursPerWeek = input.weeklyHours;
+    if (typeof hoursPerWeek !== "number" || !Number.isInteger(hoursPerWeek) || hoursPerWeek < targetMinHours || hoursPerWeek > targetMaxHours) {
+      return { error: `Pick ${targetMinHours} to ${targetMaxHours} hours a week.` };
+    }
+    if (toPaceDays(input.paceDays) !== input.paceDays) return { error: "Pick which days to count." };
+    weeklyMinutes = hoursPerWeek * 60;
+  }
 
   let weekdays: string | null = null;
   let times: number | null = null;
   let anchorWeek: ReturnType<typeof parseDateParam> = null;
-  const days = input.weekdays === null ? null : parseWeekdayMask(input.weekdays);
-  if (input.weekdays !== null && !days) return { error: "Pick the days again." };
-  if (schedule === "weekdays") {
+  const days = input.weekdays === null || hours ? null : parseWeekdayMask(input.weekdays);
+  if (input.weekdays !== null && !hours && !days) return { error: "Pick the days again." };
+  if (hours) {
+    times = 1;
+  } else if (schedule === "weekdays") {
     if (!days || days.length === 0) return { error: "Pick at least one day." };
     weekdays = input.weekdays;
   } else if (schedule === "weekly" || schedule === "monthly") {
@@ -159,9 +184,11 @@ async function checkInput(input: HabitInput, alreadyOnHabit: readonly string[] =
       weekdays,
       times,
       anchorWeek,
-      carryOver: canCarryOver(schedule, days ?? []) && input.carryOver === true,
+      carryOver: !hours && canCarryOver(schedule, days ?? []) && input.carryOver === true,
       sharing: toHabitSharing(input.sharing),
       isPrivate: input.isPrivate === true,
+      track: toHabitTrack(input.track),
+      ...(hours ? { weeklyMinutes, paceDays: toPaceDays(input.paceDays) } : {}),
     },
     participantIds,
     everyone,

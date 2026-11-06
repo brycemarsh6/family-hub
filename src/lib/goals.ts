@@ -1,4 +1,5 @@
 import { HABIT_TIMES_LIMITS } from "./habitVocabulary";
+import { HABIT_TRACKS, HOURS_LIMITS, toPaceDays, type HabitTrack, type PaceDays } from "./habitHoursVocabulary";
 import {
   GOAL_OWNERSHIPS,
   GOAL_OWNERSHIP_LABELS,
@@ -138,7 +139,20 @@ export type GoalInput = {
   measure: { unit: string; start: number; target: number } | null;
 };
 
-export type PlanItemInput = { title: string; kind: PlanKind; timesPerPeriod: number | null; period: HabitPeriod | null };
+/**
+ * `track` is left out when the form was not asked about it (an edit keeps the
+ * habit's Track). "hours" carries the whole hours shape and is always stored as
+ * one time a week.
+ */
+export type PlanItemInput = {
+  title: string;
+  kind: PlanKind;
+  timesPerPeriod: number | null;
+  period: HabitPeriod | null;
+  track?: HabitTrack;
+  weeklyMinutes?: number;
+  paceDays?: PaceDays;
+};
 
 // The form limits, shared by these checks and the inputs' maxLength.
 export const GOAL_TITLE_MAX = 120;
@@ -211,9 +225,20 @@ export function validatePlanItemInput(raw: unknown): { ok: PlanItemInput } | { e
   if (!kind) return { error: "Pick habit, step, or reminder." };
   const times = raw.timesPerPeriod ?? null;
   const period = raw.period ?? null;
+  const track = raw.track ?? undefined;
   if (kind !== "habit") {
-    if (times !== null || period !== null) return { error: "Only a habit repeats." };
+    if (times !== null || period !== null || track !== undefined) return { error: "Only a habit repeats." };
     return { ok: { title, kind, timesPerPeriod: null, period: null } };
+  }
+  if (track !== undefined && !(HABIT_TRACKS as readonly unknown[]).includes(track)) return { error: "Pick checks or hours." };
+  if (track === "hours") {
+    const { targetMinHours, targetMaxHours } = HOURS_LIMITS;
+    const hours = raw.weeklyHours;
+    if (typeof hours !== "number" || !Number.isInteger(hours) || hours < targetMinHours || hours > targetMaxHours) {
+      return { error: `Pick ${targetMinHours} to ${targetMaxHours} hours a week.` };
+    }
+    if (toPaceDays(raw.paceDays) !== raw.paceDays) return { error: "Pick which days to count." };
+    return { ok: { title, kind, timesPerPeriod: 1, period: "week", track, weeklyMinutes: hours * 60, paceDays: toPaceDays(raw.paceDays) } };
   }
   const habitPeriod = toHabitPeriod(period);
   if (!habitPeriod) return { error: "Pick every day, a week, or a month." };
@@ -221,28 +246,33 @@ export function validatePlanItemInput(raw: unknown): { ok: PlanItemInput } | { e
   if (typeof times !== "number" || !Number.isInteger(times) || times < 1 || times > max) {
     return { error: habitPeriod === "day" ? "A habit gets one check a day." : `Pick how many times, from 1 to ${max}.` };
   }
-  return { ok: { title, kind, timesPerPeriod: times, period: habitPeriod } };
+  return { ok: { title, kind, timesPerPeriod: times, period: habitPeriod, ...(track === "checks" ? { track } : {}) } };
 }
 
 /**
  * The Habit fields a habit plan item stands for: every day, N a week or N a
  * month; "build" mode, the goal's life area, one shared check for a Together
- * goal and one each for a Mine goal (private when the goal is).
+ * goal and one each for a Mine goal (private when the goal is). An hours item
+ * carries its Track and the whole hours shape (one time a week, each person's
+ * own, even under a Together goal); an item with no Track says nothing about it.
  */
 export function habitInputFromPlan(
   input: PlanItemInput,
   goal: { ownerId: string | null; visibility: string; area: string },
 ): HabitFields & { title: string; schedule: string } {
-  const schedule = input.period === "day" ? "daily" : input.period === "month" ? "monthly" : "weekly";
+  const hours = input.track === "hours";
+  const schedule = hours ? "weekly" : input.period === "day" ? "daily" : input.period === "month" ? "monthly" : "weekly";
   return {
     title: input.title,
     kind: "habit",
     mode: "build",
     schedule,
-    times: schedule === "daily" ? null : input.timesPerPeriod,
+    times: hours ? 1 : schedule === "daily" ? null : input.timesPerPeriod,
     lifeArea: goal.area,
-    sharing: goal.ownerId === null ? "together" : "each",
+    sharing: goal.ownerId === null && !hours ? "together" : "each",
     isPrivate: toGoalVisibility(goal.visibility) === "private",
+    ...(input.track === undefined ? {} : { track: input.track }),
+    ...(hours ? { weeklyMinutes: input.weeklyMinutes, paceDays: input.paceDays } : {}),
   };
 }
 
