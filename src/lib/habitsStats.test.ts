@@ -271,6 +271,20 @@ test("monthCalendar: an undone due vacation day is skipped (on vacation); a chec
   assert.equal(novCell(cal, 4).state, "missed");
 });
 
+test("monthCalendar: on a shared habit a vacation is read per person (decision 180)", () => {
+  // Bob was away on Nov 3 and Amy was not: Amy's calendar shows an ordinary missed day, Bob's shows skipped (on vacation).
+  const shared = input({ people: [person("amy"), person("bob")], vacationsByUser: new Map([["bob", [{ start: d(2026, 11, 3), end: d(2026, 11, 3) }]]]) });
+  assert.equal(novCell(monthCalendar(shared, "amy", today), 3).state, "missed");
+  assert.equal(novCell(monthCalendar(shared, "amy", today), 3).reason, null);
+  assert.equal(novCell(monthCalendar(shared, "bob", today), 3).state, "skipped");
+  assert.deepEqual(novCell(monthCalendar(shared, "bob", today), 3).reason, { kind: "vacation" });
+  assert.equal(dayCellLabel({ ...novCell(monthCalendar(shared, "bob", today), 3), day: "2026-11-03" }), "Nov 3, skipped (on vacation)");
+  // A together check writes a log for every person, so it reads Done on both calendars.
+  const checked = { ...shared, logs: [log("amy", d(2026, 11, 3)), log("bob", d(2026, 11, 3))] };
+  assert.equal(novCell(monthCalendar(checked, "amy", today), 3).state, "done");
+  assert.equal(novCell(monthCalendar(checked, "bob", today), 3).state, "done");
+});
+
 test("monthCalendar: a vacation day the habit never asked for stays not due, and so does one before joining", () => {
   const mondays: ScheduleSpec = { schedule: "weekdays", days: [1] };
   const cal = monthCalendar(input({ spec: mondays, vacationsByUser: away }), "amy", today);

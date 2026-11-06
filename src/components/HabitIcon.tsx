@@ -2,7 +2,7 @@ import { createElement } from "react";
 import {
   AlarmClock, Apple, Bed, Bike, BookOpen, Brain, Briefcase, Brush, Car, Church, CigaretteOff,
   Coffee, CookingPot, Droplets, Dumbbell, Flower2, Footprints, GlassWater, GraduationCap,
-  HandHeart, Heart, House, Leaf, Moon, Music, PawPrint, PenLine, Phone, Pill, PiggyBank,
+  HandHeart, Heart, House, Leaf, Moon, Music, PawPrint, PenLine, Phone, PhoneOff, Pill, PiggyBank,
   Salad, ShoppingCart, Shirt, Smile, Sparkles, SprayCan, Sun, Target, Timer, Trash2, Utensils,
   WashingMachine,
   type LucideIcon,
@@ -15,7 +15,7 @@ import type { HabitIcon as HabitIconName, HabitKind } from "@/lib/habitVocabular
 // without drawing it here fails the type check.
 const ICONS: Record<HabitIconName, LucideIcon> = {
   Dumbbell, Bike, Footprints, Droplets, Apple, Pill, Bed, Sun, Moon, BookOpen, PenLine, Brain,
-  Music, Heart, Smile, Phone, Leaf, Flower2, PawPrint, Brush, SprayCan, Shirt, WashingMachine,
+  Music, Heart, Smile, Phone, PhoneOff, Leaf, Flower2, PawPrint, Brush, SprayCan, Shirt, WashingMachine,
   Trash2, CookingPot, Car, Salad, Coffee, GlassWater, Utensils, CigaretteOff, AlarmClock, Timer,
   Church, HandHeart, Sparkles, PiggyBank, Briefcase, GraduationCap, ShoppingCart,
 };

@@ -242,11 +242,60 @@ test("week: a vacation day and a week-skipped chore draw Skipped, a moved chore 
   assert.equal(row.cells[3].state, "notDue"); // Wed, moved away
   assert.deepEqual(row.cells[3].reason, { kind: "movedAway", toWeekday: 5 });
   assert.equal(row.cells[5].state, "future"); // Fri, moved here
-  assert.equal(row.count, "0 of 0");
+  assert.equal(row.count, "Due Fri", "never 0 of 0; the moved-here Friday is the next due day (decision 177)");
   const daily = rowsOf(report(parent, [habit("a")], {}, { ...noData, vacations: [vacation] }))[0] as ReportWeekRow;
   assert.deepEqual([daily.cells[2].state, daily.cells[2].reason], ["skipped", { kind: "vacation" }]);
   const checked = rowsOf(report(parent, [habit("a")], {}, { ...noData, vacations: [vacation], logsByHabit: new Map([["a", [log(d(2026, 11, 3))]]]) }))[0] as ReportWeekRow;
   assert.deepEqual([checked.cells[2].state, checked.cells[2].reason], ["done", { kind: "vacation" }]); // the check wins; the reason waits for an undo
+});
+
+test("a scheduled item with nothing due so far says why, never 0 of 0 (decision 177)", () => {
+  const count = (h: TodayHabitInput, p: Partial<ReportParams> = {}, data: ReportData = noData) => (rowsOf(report(parent, [h], p, data))[0] as ReportWeekRow).count;
+  const sat = habit("s", { schedule: "weekdays", weekdays: "0000001" });
+  const thu = habit("t", { schedule: "weekdays", weekdays: "0000100" });
+  assert.equal(count(sat), "Due Sat");
+  assert.equal(count(thu), "Due today");
+  assert.equal(count(sat, { view: "month" }), "Due Nov 7");
+  assert.equal(count(thu, { view: "month" }), "Due today");
+  // Nothing ahead: the week's skip, then a vacation, then plain words.
+  const mon = habit("m", { kind: "chore", schedule: "weekdays", weekdays: "0100000" });
+  const skipMon: WeekOverride = { weekStart: d(2026, 11, 1), fromWeekday: 1, action: "skipped", toWeekday: null };
+  assert.equal(count(mon, {}, { ...noData, overridesByHabit: new Map([["m", [skipMon]]]) }), "Skipped this week");
+  assert.equal(count(mon, {}, { ...noData, vacations: [{ start: d(2026, 11, 2), end: d(2026, 11, 2) }] }), "On vacation");
+  const joinedNov3 = new Date("2026-11-03T18:00:00Z");
+  const late = habit("l", { schedule: "weekdays", weekdays: "0100000", createdAt: joinedNov3, participants: [member("amy", 0, joinedNov3)] });
+  assert.equal(count(late), "Not this week", "Monday came before they joined; the next one is next week");
+  assert.equal(count(late, { view: "month" }), "Due Nov 9");
+  // A due day behind a vacation or a skip is not "ahead": the next real one is named.
+  const everyDay = habit("e", { schedule: "weekdays", weekdays: "0000010", createdAt: joinedNov3, participants: [member("amy", 0, joinedNov3)] }); // Fridays
+  assert.equal(count(everyDay, {}, { ...noData, vacations: [{ start: d(2026, 11, 6), end: d(2026, 11, 6) }] }), "On vacation");
+  assert.equal(count(everyDay, { view: "month" }, { ...noData, vacations: [{ start: d(2026, 11, 6), end: d(2026, 11, 6) }] }), "Due Nov 13");
+  // The month with nothing left: a Sunday-only habit joined on the last day.
+  const lastDay = new Date("2026-11-30T18:00:00Z");
+  const sun = habit("u", { schedule: "weekdays", weekdays: "1000000", createdAt: lastDay, participants: [member("amy", 0, lastDay)] });
+  const nov30 = reportScope(parent, params({ view: "month" }), [sun], people, d(2026, 11, 30));
+  assert.equal((buildHabitReport(nov30, noData, d(2026, 11, 30)).sections[0].rows[0] as ReportMonthCard).count, "Not this month");
+  // Open kinds keep their counts.
+  assert.equal(count(habit("w", { schedule: "weekly", times: 3 })), "0 of 3");
+});
+
+// ---- Together and vacation (decision 180) ----
+
+test("a Together habit on a day Bryce was away: ordinary for Emily, skipped (on vacation) for Bryce, Done when anyone checked", () => {
+  const together = habit("t", { sharing: "together", participants: [member("amy"), member("bob")] });
+  const away: Vacation = { start: d(2026, 11, 3), end: d(2026, 11, 3) };
+  const cell = (viewer: HabitActor, person: string, data: ReportData) => {
+    const row = rowsOf(buildHabitReport(reportScope(viewer, params({ person }), [together], people, today), data, today))[0] as ReportWeekRow;
+    return row.cells[2]; // Tue Nov 3
+  };
+  const bobsVacation: ReportData = { ...noData, vacations: [away] };
+  // The loader hands each screen only the shown person's vacations: Emily's screen has none.
+  assert.equal(cell(parent, "amy", noData).state, "missed");
+  assert.equal(cell(parent, "amy", noData).reason, null);
+  assert.equal(cell(parent, "bob", bobsVacation).state, "skipped");
+  assert.deepEqual(cell(parent, "bob", bobsVacation).reason, { kind: "vacation" });
+  const checked: ReportData = { ...noData, logsByHabit: new Map([["t", [log(d(2026, 11, 3))]]]) };
+  assert.equal(cell(parent, "amy", checked).state, "done");
 });
 
 // ---- Month view ----

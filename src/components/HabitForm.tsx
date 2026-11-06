@@ -59,7 +59,9 @@ function initialWho(initial: HabitManagerItem | undefined): HabitWho {
 /**
  * The New and Edit form for a habit or chore (one component, so the two pages
  * cannot drift). `initial` is the habit being edited; without it the form is
- * blank. Saving, archiving and deleting go through the habit actions and then
+ * blank. The order is the same on both (decisions 176, 178): kind, name, chore
+ * ideas (New only), life area, habit ideas (New only), icon, then the rest.
+ * Saving, archiving and deleting go through the habit actions and then
  * return to /habits/manage.
  */
 export function HabitForm({
@@ -192,6 +194,10 @@ export function HabitForm({
         />
       </label>
 
+      {!initial && kind === "chore" && (
+        <IdeaChips label={CHORE_IDEAS_LABEL} ideas={CHORE_IDEAS.map((idea) => idea.title)} onPick={pickIdea} />
+      )}
+
       <LifeAreaField
         value={lifeArea}
         hint={initial || kind === "chore" || lifeArea ? LIFE_AREA_HINT : LIFE_AREA_HINT_PICK}
@@ -204,10 +210,6 @@ export function HabitForm({
           ideas={HABIT_IDEAS[ideaArea].map((idea) => idea.title)}
           onPick={pickIdea}
         />
-      )}
-
-      {!initial && kind === "chore" && (
-        <IdeaChips label={CHORE_IDEAS_LABEL} ideas={CHORE_IDEAS.map((idea) => idea.title)} onPick={pickIdea} />
       )}
 
       <Field label="Icon">

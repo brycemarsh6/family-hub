@@ -1,11 +1,23 @@
-import { addCalendarDays, formatCalendarDate, formatWeekTitle, startOfMonth, type CalendarDate } from "./householdDate";
-import { compareDays, isOpenKind, periodTarget } from "./habits/schedule";
+import { addCalendarDays, dayOfWeek, formatCalendarDate, formatShortCalendarDate, formatWeekTitle, startOfMonth, type CalendarDate } from "./householdDate";
+import { compareDays, dayInVacation, isOpenKind, isSameDay, periodTarget } from "./habits/schedule";
+import { choreDayState } from "./habits/weekOverrides";
 import type { HabitLogDay, Vacation, WeekOverride } from "./habits/types";
 import { monthCalendar, statsMonthTitle, type CellReason, type MonthCellState, type StatsInput } from "./habitsStats";
 import { monthParam, weekParam, type ReportFilterOption, type ReportItem, type ReportScope, type ReportView, type ScopedItem } from "./habitsReportScope";
 import { firstNameOf, type ChartChip } from "./choreChart";
-import { FULL_MONTH_NAMES } from "./mealPlanDates";
-import { REPORT_LABELS, reportCountOf, reportCountThis, reportYearTotals, type HabitKind } from "./habitVocabulary";
+import { FULL_MONTH_NAMES, SHORT_DAY_NAMES } from "./mealPlanDates";
+import {
+  ON_VACATION_LABEL,
+  REPORT_DUE_TODAY,
+  REPORT_LABELS,
+  SKIPPED_THIS_WEEK_LABEL,
+  reportCountOf,
+  reportCountThis,
+  reportDueLabel,
+  reportNotThis,
+  reportYearTotals,
+  type HabitKind,
+} from "./habitVocabulary";
 
 // The Report's rules (decisions 163 to 171), with no database:
 // `habitsStatsRead.ts` (`loadHabitReport`) fetches the shown person's habits
@@ -69,10 +81,39 @@ function toCell(cell: { day: CalendarDate; state: MonthCellState; reason: CellRe
 
 const isChecked = (cell: ReportCell) => cell.state === "done" || cell.state === "late";
 
-/** The count text for the cells shown (decisions 166, 167): "5 of 6" for scheduled items (done of due so far, like the stats page), done of the target for the open kind that has a target in the period, otherwise "N this week" or "N this month". */
-function countText(item: ScopedItem, cells: readonly ReportCell[], period: "week" | "month", periodStart: CalendarDate): string {
+/**
+ * What a scheduled item says when nothing has been due so far in the period
+ * (decision 177): the next due day still ahead ("Due today", "Due Sat" in Week,
+ * "Due Nov 7" in Month), read from the schedule and this week's changes and not
+ * from the future cells; else "Skipped this week" if a week-skipped due day is in
+ * the period; else "On vacation" if a due day on vacation is; else "Not this week" or
+ * "Not this month".
+ */
+function nothingDueText(item: ScopedItem, input: StatsInput, period: "week" | "month", scope: ReportScope, today: CalendarDate): string {
+  const vacations = input.vacationsByUser.get(scope.personId) ?? [];
+  let ahead: CalendarDate | null = null;
+  let weekSkipped = false;
+  let onVacation = false;
+  for (let day = scope.from; compareDays(day, scope.to) <= 0; day = addCalendarDays(day, 1)) {
+    if (compareDays(day, item.since) < 0) continue;
+    const state = choreDayState(item.spec, input.overrides ?? [], day);
+    if (state === "excused") weekSkipped = true;
+    else if (state === "required" && dayInVacation(day, vacations)) onVacation = true;
+    else if (state === "required" && !ahead && compareDays(day, today) >= 0) ahead = day;
+  }
+  if (ahead) return isSameDay(ahead, today) ? REPORT_DUE_TODAY : reportDueLabel(period === "week" ? SHORT_DAY_NAMES[dayOfWeek(ahead)] : formatShortCalendarDate(ahead));
+  if (weekSkipped) return SKIPPED_THIS_WEEK_LABEL;
+  return onVacation ? ON_VACATION_LABEL : reportNotThis(period);
+}
+
+/** The count text for the cells shown (decisions 166, 167, 177): "5 of 6" for scheduled items (done of due so far, like the stats page; words instead of "0 of 0"), done of the target for the open kind that has a target in the period, otherwise "N this week" or "N this month". */
+function countText(item: ScopedItem, input: StatsInput, cells: readonly ReportCell[], period: "week" | "month", scope: ReportScope, today: CalendarDate): string {
   const done = cells.filter(isChecked).length;
-  if (!isOpenKind(item.spec)) return reportCountOf(done, done + cells.filter((cell) => cell.state === "missed").length);
+  const periodStart = scope.period;
+  if (!isOpenKind(item.spec)) {
+    const due = done + cells.filter((cell) => cell.state === "missed").length;
+    return due === 0 ? nothingDueText(item, input, period, scope, today) : reportCountOf(done, due);
+  }
   const targeted = item.spec.schedule === "monthly" ? period === "month" : period === "week";
   if (!targeted) return reportCountThis(done, period);
   return reportCountOf(Math.min(done, periodTarget(item.spec, periodStart)), periodTarget(item.spec, periodStart));
@@ -144,18 +185,20 @@ export function buildHabitReport(scope: ReportScope, data: ReportData, today: Ca
   };
   if (scope.view === "week") {
     const rows = scope.items.map((item): ReportWeekRow => {
-      const cells = cellsInRange(statsInputFor(scope, item, data, today), scope.personId, scope.from, scope.to);
+      const input = statsInputFor(scope, item, data, today);
+      const cells = cellsInRange(input, scope.personId, scope.from, scope.to);
       const { id, title, icon, kind, canOpenStats } = item;
-      return { id, title, icon, kind, canOpenStats, count: countText(item, cells, "week", scope.period), cells };
+      return { id, title, icon, kind, canOpenStats, count: countText(item, input, cells, "week", scope, today), cells };
     });
     return { ...base, sections: sectionsOf(rows), year: null };
   }
   if (scope.view === "month") {
     const rows = scope.items.map((item): ReportMonthCard => {
-      const calendar = monthCalendar(statsInputFor(scope, item, data, today), scope.personId, scope.period)!;
+      const input = statsInputFor(scope, item, data, today);
+      const calendar = monthCalendar(input, scope.personId, scope.period)!;
       const cells = calendar.cells.map(toCell);
       const { id, title, icon, kind, canOpenStats } = item;
-      return { id, title, icon, kind, canOpenStats, count: countText(item, cells, "month", scope.period), leading: calendar.leading, cells };
+      return { id, title, icon, kind, canOpenStats, count: countText(item, input, cells, "month", scope, today), leading: calendar.leading, cells };
     });
     return { ...base, sections: sectionsOf(rows), year: null };
   }

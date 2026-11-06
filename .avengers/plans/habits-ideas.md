@@ -24,7 +24,7 @@ chore ideas are one list (decision 172).
 3. Drink enough water | GlassWater | Every day | Anytime
 4. Take my vitamins | Pill | Every day | Morning
 5. In bed by 10 | Bed | Every day | Evening
-6. No phone in bed | Phone | Every day | Evening | quit
+6. No phone in bed | PhoneOff | Every day | Evening | quit
 
 ## Personal Growth
 1. Read for 20 minutes | BookOpen | Every day | Anytime

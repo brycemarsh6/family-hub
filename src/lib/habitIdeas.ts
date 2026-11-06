@@ -61,7 +61,7 @@ export const HABIT_IDEAS: Record<LifeArea, readonly HabitIdea[]> = {
     every("Drink enough water", "GlassWater", null),
     every("Take my vitamins", "Pill", "morning"),
     every("In bed by 10", "Bed", "evening"),
-    every("No phone in bed", "Phone", "evening", "quit"),
+    every("No phone in bed", "PhoneOff", "evening", "quit"),
   ],
   growth: [
     every("Read for 20 minutes", "BookOpen", null),
