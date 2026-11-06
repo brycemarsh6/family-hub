@@ -109,7 +109,8 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   streaks button. PR B (#43) added the tab: Today (tap to check, swipe to
   skip), Manage (drag to reorder), New and Edit. PR C added streaks, nudges,
   confetti, a stats page per habit (`/habits/[id]`) and the Whole family
-  view. Chores come in PRs D to F (plan:
+  view. PR D added the chore chart, chore streak and vacation mode; PRs E
+  and F follow (plan:
   `.avengers/plans/habits-chores-v1.md`).
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
@@ -173,13 +174,13 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Habits & Chores PR C (mission 32)** passed all three gates on
-  2026-11-05 and merges from branch `claude/habits-c-streaks`: streak
-  flames, "Skipped today", nudges, confetti, the stats page
-  (`/habits/[id]`) and the Whole family view (the tablet always lands
-  there). Decisions 94 to 114, most decided by Hill. Record and PR D
-  leftovers: `.avengers/missions/mission-32-habits-c-streaks.md`. PR D
-  (chores) is next.
+- **Habits & Chores PR D (mission 33)** passed all three gates on
+  2026-11-05 and merges from branch `claude/habits-d-chores`: the chore
+  chart (`/habits/chart`, from Manage), the chore streak, the Sunday
+  "finished every chore" card, and vacation mode in Settings. Decisions
+  115 to 130, decided by Hill. Record and PR E leftovers:
+  `.avengers/missions/mission-33-habits-d-chores.md`. PR E (dashboard) is
+  next.
 - **Hill decides for Bryce** (`.claude/agents/hill.md`); merges don't wait
   for him. Phone tests go on Bryce's checklist below and never block.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
@@ -196,12 +197,19 @@ Replace this section at the end of each session. Don't append.
   habit done 2+ days running; tap a habit name to open its stats; check
   the last habit of the day and see confetti once. On the iPad, open
   Whole family. Have Emily nudge you on a shared habit, then tap "Got it".
-- **Review Hill's medium calls:** 94 (stats page extras), 95 (family view
-  stacking), 104 (weekly bars), 110 (nudge line "Not done yet today"),
-  111 (empty table values). Plan: `.avengers/plans/habits-chores-v1.md`.
+- **PR D phone check** (about 5 minutes): Manage, Chore chart; add a chore
+  to a day, then on This week move one and skip one. In Settings add a
+  short vacation and see Today say "You're on vacation", then delete it.
+  On a Sunday, look for "You finished every chore last week" if you did.
+- **Kids and chores:** once a kid profile exists, a kid tapping a shared
+  chore on the chart should see "Ask a parent to change a shared chore."
+- **Review Hill's medium calls:** 94, 95, 104, 110, 111 (PR C); 117, 121,
+  122, 123 and 127 (PR D; 130 goes with 127). Plan:
+  `.avengers/plans/habits-chores-v1.md`.
 - **Optional:** confirm the family-hub origin in the desktop app (Help,
   Troubleshooting, Review Pinned Git Origins) so the app's merge button
-  works. Delete the "zz m31" / "zz m32" test habits on dev whenever.
+  works. Delete the "zz m31" / "zz m32" / "zz m33" test habits on dev
+  whenever.
 
 **Waiting on Bryce:**
 - **PR A is live:** press Recompute streaks once (Settings). The production
@@ -228,5 +236,5 @@ Replace this section at the end of each session. Don't append.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
   by Bryce's Grok bot. Left uncommitted on purpose.
 
-**Not built yet:** family profiles, Habits & Chores chores and the chore
-chart (PRs D to F), to-dos, photo gallery, barcode scanning.
+**Not built yet:** family profiles, the Habits & Chores dashboard tile and
+PR F, to-dos, photo gallery, barcode scanning.

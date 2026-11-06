@@ -186,6 +186,7 @@ export async function createHabit(input: HabitInput): Promise<HabitActionResult>
       fields: { ...checked.fields, createdById: user.userId },
       participantIds: checked.participantIds,
       everyone: checked.everyone,
+      today: householdToday(new Date())!,
     });
     revalidateHabits();
     return { id: habit.id };
@@ -234,7 +235,7 @@ export async function archiveHabit(habitId: string): Promise<HabitActionResult> 
   const refused = await guardedEdit(habitId);
   if (refused) return refused;
   try {
-    if (!(await archiveHabitRow(habitId, new Date()))) return { error: NOT_FOUND };
+    if (!(await archiveHabitRow(habitId, new Date(), householdToday(new Date())!))) return { error: NOT_FOUND };
     revalidateHabits();
     return { id: habitId };
   } catch (err) {
@@ -248,7 +249,7 @@ export async function restoreHabit(habitId: string): Promise<HabitActionResult> 
   const refused = await guardedEdit(habitId);
   if (refused) return refused;
   try {
-    if (!(await restoreHabitRow(habitId))) return { error: NOT_FOUND };
+    if (!(await restoreHabitRow(habitId, householdToday(new Date())!))) return { error: NOT_FOUND };
     revalidateHabits();
     return { id: habitId };
   } catch (err) {
@@ -262,7 +263,7 @@ export async function deleteHabit(habitId: string): Promise<HabitActionResult> {
   const refused = await guardedEdit(habitId);
   if (refused) return refused;
   try {
-    const { deleted } = await deleteHabitRow(habitId);
+    const { deleted } = await deleteHabitRow(habitId, householdToday(new Date())!);
     if (!deleted) return { error: NOT_FOUND };
     revalidateHabits();
     return { id: habitId };

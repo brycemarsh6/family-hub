@@ -143,6 +143,9 @@ export const NUDGE_STATUS_LABEL = "Not done yet today";
 /** The meta line of a row skipped today (decision 101). */
 export const SKIPPED_TODAY_LABEL = "Skipped today";
 
+/** What the dashed marker says to a screen reader on a chore skipped for the whole week (decision 117). */
+export const SKIPPED_THIS_WEEK_LABEL = "Skipped this week";
+
 /** Only a habit for one person can be private. */
 export function canBePrivate(peopleCount: number): boolean {
   return peopleCount === 1;
@@ -202,6 +205,11 @@ export function toHabitIcon(raw: unknown): HabitIcon | null {
 /** 0 = Sunday, the same as `dayOfWeek` in householdDate.ts. */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+/** Whether `value` is a weekday number, 0 (Sunday) to 6 (Saturday). The one copy of this check. */
+export function isWeekday(value: unknown): value is Weekday {
+  return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 6;
+}
+
 /** "0100100" (Sunday first) to the weekdays it names; null unless exactly seven 0/1 characters. */
 export function parseWeekdayMask(raw: unknown): Weekday[] | null {
   if (typeof raw !== "string" || !/^[01]{7}$/.test(raw)) return null;
@@ -214,3 +222,51 @@ export function parseWeekdayMask(raw: unknown): Weekday[] | null {
 export function printWeekdayMask(days: readonly Weekday[]): string {
   return Array.from({ length: 7 }, (_, i) => (days.includes(i as Weekday) ? "1" : "0")).join("");
 }
+
+// ---- Chores PR D (decisions 115 to 124) ----
+
+/** A row due on a vacation day, and the family view's line under the name (decision 115). */
+export const ON_VACATION_LABEL = "On vacation";
+
+/** The vacation card's first line on Today (decision 115); `through` is the last day, already written ("Nov 12"). */
+export function vacationThroughLabel(through: string): string {
+  return `You're on vacation through ${through}`;
+}
+
+/** The same card on the vacation's last day. */
+export const VACATION_TODAY_LABEL = "You're on vacation today";
+
+/** Saving a vacation that overlaps one the person already has (decision 123). */
+export const VACATION_OVERLAP_MESSAGE = "These days overlap a vacation you already have.";
+
+/** The Sunday shout-out: on Today, and on the person's family card (decision 122). */
+export const CHORES_LAST_WEEK_CARD = "You finished every chore last week. Way to go!";
+export const CHORES_LAST_WEEK_FAMILY = "Finished every chore last week";
+
+/** The chart's tags (decision 117); `dayName` is the short weekday ("Thu"). */
+export const CHORE_TAG_LABELS = {
+  movedTo: (dayName: string) => `Moved to ${dayName}`,
+  thisWeekOnly: "This week only",
+  skipped: SKIPPED_THIS_WEEK_LABEL,
+} as const;
+
+/** The words for a chart tag (decision 117); `dayNames` are the short weekday names, Sunday first. */
+export function choreTagLabel(tag: { kind: "moved-away"; toWeekday: Weekday } | { kind: "moved-here" } | { kind: "skipped" }, dayNames: readonly string[]): string {
+  if (tag.kind === "moved-away") return CHORE_TAG_LABELS.movedTo(dayNames[tag.toWeekday]);
+  return tag.kind === "moved-here" ? CHORE_TAG_LABELS.thisWeekOnly : CHORE_TAG_LABELS.skipped;
+}
+
+/** The chart's page words (decisions 116, 117, 124). */
+export const CHORE_CHART_LABELS = {
+  title: "Chore chart",
+  manageHint: "Each person's default week",
+  defaultWeek: "Default week",
+  thisWeek: "This week",
+  moveTo: "Move to",
+  skipThisWeek: "Skip this week",
+  backToDefault: "Back to the default",
+  /** A kid's sheet on a chore shared with someone else (decision 125). */
+  askParent: "Ask a parent to change a shared chore.",
+  /** The page subtitle: "Emily's week". */
+  personWeek: (name: string) => `${name}'s week`,
+} as const;

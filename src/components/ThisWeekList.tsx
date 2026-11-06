@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
 import Link from "next/link";
 import { Undo2 } from "lucide-react";
 import { EmptyState } from "./EmptyState";
@@ -21,13 +21,13 @@ import { weekSummary, type PlanItemView } from "@/lib/goalsProgress";
 import { GOAL_OWNERSHIP_LABELS, lifeAreaInfo } from "@/lib/goalVocabulary";
 import { zoneMidnightInstant } from "@/lib/householdDate";
 import { formatWeekRange } from "@/lib/mealPlanDates";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { applyPlanItemChange, type PlanItemChange } from "@/lib/planItemChanges";
 import {
   completeStep,
   logHabit,
   uncompleteStep,
   undoHabitLog,
-  type PlanItemActionResult,
 } from "@/app/actions/planItems";
 
 // Every way a plan item can change on screen before the server has caught up.
@@ -59,23 +59,8 @@ export function ThisWeekList({
   // Same trick as GroceryList: a copy of the goals we may fib about, updated
   // the instant a button is tapped, then replaced by the server's real answer.
   const [goals, applyOptimistic] = useOptimistic(data.goals, applyChange);
-  const [, startTransition] = useTransition();
+  const { run, error } = useOptimisticRun(applyOptimistic);
   const [filter, setFilter] = useState<Filter>("mine");
-  const [error, setError] = useState<string | null>(null);
-
-  function run(change: PlanItemChange, action: () => Promise<PlanItemActionResult>) {
-    setError(null);
-    startTransition(async () => {
-      applyOptimistic(change);
-      try {
-        const result = await action();
-        if (result.error) setError(result.error);
-      } catch {
-        // The call never reached the server (network down): say so here instead of the error page.
-        setError("Couldn't save that. Check your connection and try again.");
-      }
-    });
-  }
 
   const ws = data.weekStart;
   const showFilter = !viewer.isDevice;

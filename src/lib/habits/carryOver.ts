@@ -1,4 +1,5 @@
-import { addCalendarDays, type CalendarDate } from "../householdDate";
+import { HOUSEHOLD_TIME_ZONE } from "../constants";
+import { addCalendarDays, calendarDateInZone, type CalendarDate } from "../householdDate";
 import type { HabitLogStatus } from "../habitVocabulary";
 import { compareDays, isOpenKind, isSameDay, isScheduledDay } from "./schedule";
 import type { HabitLogDay, ScheduleSpec } from "./types";
@@ -42,4 +43,19 @@ export function carriedFrom(
  */
 export function statusForTap(tapDay: CalendarDate, carried: CalendarDate | null): HabitLogStatus {
   return carried && isSameDay(tapDay, carried) ? "late" : "done";
+}
+
+/** The household day a habit was made: decision 85's first-week start, and the earliest day it can carry over from. */
+export function habitStartDay(createdAt: Date): CalendarDate {
+  return calendarDateInZone(createdAt, HOUSEHOLD_TIME_ZONE);
+}
+
+/**
+ * The first day a person can have missed on a habit: the later of the day the
+ * habit was made and the day they joined it (`joinedAt` unknown means the
+ * habit's own start). The one `since` for carry-over.
+ */
+export function carrySince(joinedAt: Date | null | undefined, startDay: CalendarDate): CalendarDate {
+  const joinedDay = joinedAt ? calendarDateInZone(joinedAt, HOUSEHOLD_TIME_ZONE) : startDay;
+  return compareDays(joinedDay, startDay) > 0 ? joinedDay : startDay;
 }

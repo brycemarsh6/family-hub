@@ -158,6 +158,15 @@ test("completionRate: rounds, ignores skipped and vacation days, null before any
   assert.equal(completionRate(input({ people: [justJoined] }), "amy"), null);
 });
 
+test("completionRate: a vacation day that was done counts as due and done; only an undone one is skipped (decision 127)", () => {
+  const amy = person("amy", { since: d(2026, 11, 1) });
+  const away = new Map([["amy", [{ start: d(2026, 11, 3), end: d(2026, 11, 4) }]]]);
+  // Nov 1 and 2 missed, Nov 3 done on vacation, Nov 4 undone on vacation (skipped): 1 of 3.
+  assert.equal(completionRate(input({ people: [amy], logs: [log("amy", d(2026, 11, 3))], vacationsByUser: away }), "amy"), 33);
+  // The same days with no check on vacation: 0 of 2 due, so nothing but the missed days count.
+  assert.equal(completionRate(input({ people: [amy], logs: [], vacationsByUser: away }), "amy"), 0);
+});
+
 test("completionRate: due days start the day the person joined, not the habit", () => {
   const late = person("amy", { since: d(2026, 11, 4) });
   assert.equal(completionRate(input({ people: [late], logs: [log("amy", d(2026, 11, 4))] }), "amy"), 100);

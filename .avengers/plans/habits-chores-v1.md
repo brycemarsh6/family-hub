@@ -445,6 +445,82 @@ in PR B (mission 31).
      open that page (102); otherwise it is plain text, so no tap leads to
      Not found. Decided by Hill, high.
 
+### Before PR D (decided by Hill, 2026-11-05; Bryce may overturn)
+
+115. **Vacation days on Today:** the person's rows show excused (muted, at
+     the bottom, meta "On vacation"); the check still works; excused rows
+     leave "x of y done" and the confetti rule. A card at the top: "You're
+     on vacation through Nov 12" ("You're on vacation today" on the last
+     day) with a "Change" link to Settings. The family view shows "On
+     vacation" under the name and the rows excused. (high)
+116. **Default week Add:** an inline name field with Save in that day card;
+     saving makes a Certain days chore on that weekday for the selected
+     person (Anytime, carry over off, default icon, Side by side, not
+     private). Tapping a chore opens its Edit page. A chore on several days
+     shows under each. (high)
+117. **This week changes:** tapping a chore opens a sheet titled with its
+     name (plus its who label when shared): "Move to" chips for today and
+     later days this week except its own day, "Skip this week", and "Back
+     to the default" when a change exists. No Add on This week (the board's
+     Add is removed there). Tags "Moved to Thu", "This week only",
+     "Skipped this week". (medium)
+118. **Who edits a chart:** yourself; parents and admins anyone; a kid only
+     their own. The tablet is sent to `/habits`, like Manage. (high)
+119. **Chart chips:** one per active non-tablet person by first name, the
+     viewer first and selected, then family order. No "Kids" chip. (high)
+120. **The chore streak** shows as a flame and "N days" after the "Chores"
+     title on Today and on each person's family card; 2 or more, the Show
+     streaks switch, always on the tablet. Chore rows lose their own flame;
+     a chore's stats page keeps its tiles. Lifts 95's "no header flame".
+     (high)
+121. **No daily chore shout-out line:** confetti stays the one daily
+     celebration (76). (medium)
+122. **Sunday shout-out:** all Sunday, a card at the top of Today "You
+     finished every chore last week. Way to go!", and on the person's
+     family card "Finished every chore last week". Shown only when at least
+     one chore was due last week and no day broke the chore streak. (medium;
+     the plan said Bryce approves this wording)
+123. **Vacation card:** each login sets only their own; no card on the
+     tablet; current, then upcoming, then past (newest first), each with a
+     one-tap Delete. From may be past; Through on or after From; overlap
+     refused with "These days overlap a vacation you already have." Saving
+     or deleting recomputes that person's streaks. Kids' vacations wait for
+     kid profiles. (medium)
+124. **The chart is reached** from Manage's row "Chore chart · Each
+     person's default week" (above Archived), `/habits/chart`, BackLink
+     "Manage", subtitle "Emily's week". (high)
+125. **A shared chore's this-week change is a parent's:** on a chore with
+     more than one person only a parent or admin may move or skip it this
+     week; a kid's sheet shows "Ask a parent to change a shared chore."
+     with no actions. Decided by Hill, high.
+126. **A moved turn can change again:** once the original day has passed, a
+     moved or skipped turn may still be moved to today or later, or
+     skipped; "Back to the default" is hidden then. The rule: a change may
+     be changed again as long as no past day becomes required or
+     un-excused. Decided by Hill, medium.
+127. **Done on a vacation day counts:** a habit or chore checked done on a
+     vacation day grows the streak and counts in both numbers of "x of y
+     done". Only undone rows on a vacation day are excused (left out of
+     "x of y", muted, never breaking anything). Amends 115 ("excused rows
+     leave x of y" becomes "undone vacation rows leave") and the reading of
+     57. Card line: "Anything you don't do counts as skipped. Streaks are
+     safe and chores are excused." Decided by Hill, medium.
+128. **The vacation button:** "Turn on vacation mode" when the person has
+     no current or upcoming vacation; "Add a vacation" when at least one
+     exists. Decided by Hill, high.
+129. **126 tightened: a passed moved-to day locks the turn.** A moved or
+     skipped turn may change again only while the day it now sits on is
+     today or later, or while it is already skipped this week. Once the
+     moved-to day has passed (done or undone) the row is locked: tapping
+     opens nothing, the same quiet look as other past rows. 126's rule
+     becomes "no past day becomes required, un-excused, or un-required."
+     Fix a miss with a back-filled check (8), which saves as late. Decided
+     by Hill, high.
+130. **A week-skipped chore done anyway counts:** it joins both numbers of
+     "x of y done", grows the chore streak and reads as done. Only an
+     undone skipped-this-week turn is excused. Stands or falls with 127.
+     Decided by Hill, high.
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for

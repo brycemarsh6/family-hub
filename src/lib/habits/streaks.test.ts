@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { addCalendarDays, type CalendarDate } from "../householdDate";
-import { computeStreaks, streakAfter } from "./streaks";
+import { computeStreaks, displayStreak, streakAfter, streakUnitOf } from "./streaks";
 import type { HabitLogDay, ScheduleSpec, Vacation } from "./types";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -47,11 +47,16 @@ test("a skipped day is excused: the streak survives and does not grow", () => {
   assert.deepEqual(summary(daily, logs, d(2026, 11, 3)), { current: 2, best: 2 });
 });
 
-test("a vacation day is excused, with or without a row, and a done row on it does not grow", () => {
+test("an undone vacation day is excused, and a done row on one grows the streak (decision 127)", () => {
   const vacation: Vacation[] = [{ start: d(2026, 11, 2), end: d(2026, 11, 3) }];
   const logs = done(d(2026, 11, 1), d(2026, 11, 4));
   assert.deepEqual(summary(daily, logs, d(2026, 11, 4), vacation), { current: 2, best: 2 });
   assert.deepEqual(summary(daily, [...logs, ...done(d(2026, 11, 3))], d(2026, 11, 4), vacation), {
+    current: 3,
+    best: 3,
+  });
+  // A late row on a vacation day is still excused, not a break.
+  assert.deepEqual(summary(daily, [...logs, { day: d(2026, 11, 3), status: "late" }], d(2026, 11, 4), vacation), {
     current: 2,
     best: 2,
   });
@@ -202,4 +207,15 @@ test("streakAfter agrees with computeStreaks on the same logs, at every later da
       }
     }
   }
+});
+
+test("streakUnitOf: days, weeks and months by schedule; days when unreadable", () => {
+  assert.equal(streakUnitOf(null), "days");
+  assert.equal(streakUnitOf({ schedule: "daily" }), "days");
+  assert.equal(streakUnitOf({ schedule: "weekly", times: 2 }), "weeks");
+  assert.equal(streakUnitOf({ schedule: "monthly", times: 2 }), "months");
+});
+
+test("displayStreak: zero for an unreadable schedule", () => {
+  assert.equal(displayStreak(null, { current: 4, best: 4, asOf: d(2026, 11, 5) }, [], d(2026, 11, 5)), 0);
 });

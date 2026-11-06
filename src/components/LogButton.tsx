@@ -1,4 +1,5 @@
 import { Check, Plus, SkipForward } from "lucide-react";
+import { SKIPPED_TODAY_LABEL } from "@/lib/habitVocabulary";
 
 /**
  * The 44px round tap that logs a habit: an outlined "+" until today has its
@@ -8,6 +9,7 @@ import { Check, Plus, SkipForward } from "lucide-react";
  * reads "Mark Run done". `forName` names whose check it is on a shared screen
  * ("Mark Run done for Emily"). `skipped` swaps the tap for a dashed, switched-off
  * marker: a skipped day is left alone until the skip is undone.
+ * `skippedLabel` is what that marker says to a screen reader (default "Skipped today").
  */
 export function LogButton({
   done,
@@ -16,6 +18,7 @@ export function LogButton({
   disabled = false,
   idle = "plus",
   skipped = false,
+  skippedLabel = SKIPPED_TODAY_LABEL,
   onClick,
 }: {
   done: boolean;
@@ -24,13 +27,14 @@ export function LogButton({
   disabled?: boolean;
   idle?: "plus" | "empty";
   skipped?: boolean;
+  skippedLabel?: string;
   onClick: () => void;
 }) {
   if (skipped) {
     return (
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-line-strong text-muted">
         <SkipForward aria-hidden="true" size={18} />
-        <span className="sr-only">Skipped today</span>
+        <span className="sr-only">{skippedLabel}</span>
       </span>
     );
   }

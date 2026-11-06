@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "../householdDate";
-import { CARRY_LOOKBACK_DAYS, carriedFrom, statusForTap } from "./carryOver";
+import { CARRY_LOOKBACK_DAYS, carriedFrom, carrySince, habitStartDay, statusForTap } from "./carryOver";
 import type { HabitLogDay, ScheduleSpec } from "./types";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -83,4 +83,18 @@ test("statusForTap: late only for the carried day, done for today and back-fills
   assert.equal(statusForTap(d(2026, 11, 5), carried), "done"); // today's own tap
   assert.equal(statusForTap(d(2026, 11, 2), carried), "done"); // back-fill of another day
   assert.equal(statusForTap(d(2026, 11, 5), null), "done");
+});
+
+test("habitStartDay: the household (Denver) day a habit was made, not the UTC day", () => {
+  assert.deepEqual(habitStartDay(new Date("2026-11-05T15:00:00Z")), d(2026, 11, 5)); // 8:00 in Denver
+  assert.deepEqual(habitStartDay(new Date("2026-11-06T04:00:00Z")), d(2026, 11, 5)); // 9pm in Denver, already the 6th in UTC
+});
+
+test("carrySince: the later of the day the habit was made and the day the person joined", () => {
+  const start = d(2026, 11, 2);
+  assert.deepEqual(carrySince(new Date("2026-11-04T15:00:00Z"), start), d(2026, 11, 4)); // joined later
+  assert.deepEqual(carrySince(new Date("2026-10-30T15:00:00Z"), start), start); // joined before it was made
+  assert.deepEqual(carrySince(new Date("2026-11-02T15:00:00Z"), start), start); // same day
+  assert.deepEqual(carrySince(undefined, start), start);
+  assert.deepEqual(carrySince(null, start), start);
 });

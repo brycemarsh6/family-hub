@@ -1,6 +1,8 @@
+import type { StreakUnit } from "../habitVocabulary";
 import { addCalendarDays, type CalendarDate } from "../householdDate";
 import {
   compareDays,
+  dayInVacation,
   isDayInRange,
   isOpenKind,
   isScheduledDay,
@@ -17,8 +19,9 @@ import type { DayRange, HabitLogDay, ScheduleSpec, Vacation } from "./types";
 //   - weekly, monthly and biweekly-without-days count periods; the current
 //     period counts once its N is reached, and an unmet period that has not
 //     ended is neutral
-//   - a skipped day, a vacation day and a period that cannot reach N for lack
-//     of non-excused days are excused: the streak survives and does not grow
+//   - a skipped day, an undone vacation day and a period that cannot reach N for lack
+//     of non-excused days are excused: the streak survives and does not grow;
+//     a check actually made on a vacation day still counts (decision 127)
 //   - "late" keeps its day missed; a day with no row breaks, except today,
 //     which never breaks until it is over
 // Pure: no db, no React; callers pass `today`.
@@ -32,15 +35,11 @@ function dayKey(day: CalendarDate): number {
   return Date.UTC(day.year, day.month - 1, day.day);
 }
 
-function inVacation(vacations: readonly Vacation[], day: CalendarDate): boolean {
-  return vacations.some((vacation) => isDayInRange(day, vacation));
-}
-
 /** Days of `period` that are not excused by a vacation or a skip. */
 function availableDays(period: DayRange, vacations: readonly Vacation[], skipped: ReadonlySet<number>): number {
   let available = 0;
   for (let day = period.start; compareDays(day, period.end) <= 0; day = addCalendarDays(day, 1)) {
-    if (!inVacation(vacations, day) && !skipped.has(dayKey(day))) available++;
+    if (!dayInVacation(day, vacations) && !skipped.has(dayKey(day))) available++;
   }
   return available;
 }
@@ -73,15 +72,16 @@ export function computeStreaks(
 
   if (!isOpenKind(spec)) {
     for (let day = first; compareDays(day, today) <= 0; day = addCalendarDays(day, 1)) {
-      if (!isScheduledDay(spec, day) || inVacation(vacations, day) || skipped.has(dayKey(day))) continue;
-      if (done.has(dayKey(day))) grow();
+      if (!isScheduledDay(spec, day) || skipped.has(dayKey(day))) continue;
+      if (done.has(dayKey(day))) grow(); // a check made on a vacation day counts (decision 127)
+      else if (dayInVacation(day, vacations)) continue;
       else if (present.has(dayKey(day)) || compareDays(day, today) < 0) run = 0; // late, or nothing
     }
     // Cache note (scheduled): a due day left unchecked today is not counted
     // yet, so the cache holds from yesterday and `streakAfter` examines today.
     const pending =
       isScheduledDay(spec, today) &&
-      !inVacation(vacations, today) &&
+      !dayInVacation(today, vacations) &&
       !present.has(dayKey(today));
     return { current: run, best, asOf: pending ? addCalendarDays(today, -1) : today };
   }
@@ -129,7 +129,7 @@ export function streakAfter(
   let broken = false;
   if (!isOpenKind(spec)) {
     for (let day = from; compareDays(day, yesterday) <= 0 && !broken; day = addCalendarDays(day, 1)) {
-      broken = isScheduledDay(spec, day) && !inVacation(vacations, day);
+      broken = isScheduledDay(spec, day) && !dayInVacation(day, vacations);
     }
   } else {
     for (const period of periodsInRange(spec, from, yesterday)) {
@@ -138,4 +138,24 @@ export function streakAfter(
     }
   }
   return { current: broken ? 0 : cached.current, best: cached.best, asOf: today };
+}
+
+/** What a habit's streak counts: months for monthly, weeks for the other open kinds, else days. */
+export function streakUnitOf(spec: ScheduleSpec | null): StreakUnit {
+  if (!spec || !isOpenKind(spec)) return "days";
+  return spec.schedule === "monthly" ? "months" : "weeks";
+}
+
+/**
+ * The streak to show today: the cached number aged forward by `streakAfter`
+ * (display only; the cache itself is written by `habitWrites.ts`). Zero when
+ * the schedule cannot be read.
+ */
+export function displayStreak(
+  spec: ScheduleSpec | null,
+  cache: StreakCache,
+  vacations: readonly Vacation[],
+  today: CalendarDate,
+): number {
+  return spec ? streakAfter(spec, cache, vacations, today).current : 0;
 }

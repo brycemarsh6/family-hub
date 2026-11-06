@@ -1,9 +1,10 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic } from "react";
 import { Bell } from "lucide-react";
 import { markNudgeSeen } from "@/app/actions/habitNudges";
 import type { TodayNudge } from "@/lib/habitsRead";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 /**
  * One card per unseen nudge (decision 96): "Emily nudged you about Morning
@@ -13,20 +14,10 @@ import type { TodayNudge } from "@/lib/habitsRead";
  */
 export function NudgeCards({ nudges }: { nudges: TodayNudge[] }) {
   const [live, hide] = useOptimistic<TodayNudge[], string>(nudges, (list, id) => list.filter((n) => n.id !== id));
-  const [, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const { run, error } = useOptimisticRun(hide);
 
   function gotIt(id: string) {
-    setError(null);
-    startTransition(async () => {
-      hide(id);
-      try {
-        const result = await markNudgeSeen(id);
-        if (result.error) setError(result.error);
-      } catch {
-        setError("Couldn't save that. Check your connection and try again.");
-      }
-    });
+    run(id, () => markNudgeSeen(id));
   }
 
   if (live.length === 0 && !error) return null;

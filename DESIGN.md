@@ -296,11 +296,18 @@ A new one-off that duplicates one of these jobs is a design violation:
   name, "x of y done" with skipped rows in neither number, then Habits and
   Chores) and holds `FamilyHabitRow`, the compact line: icon and title linking
   to the stats page, streak label, 44px check. A row the viewer may not tick for
-  shows its state in a plain marker that is not a button. `HabitViewChips` is
+  shows its state in a plain marker that is not a button; a Together row's
+  check does not name one person. `HabitViewChips` (its own file) is
   the "Mine" / "Whole family" pair of link pills above both views, the choice
   kept in the URL (`?view=family`); it is a view switch, not a second
-  `PlansTabs`, and the wall tablet never shows it. A column header has no
-  flame until the chore streak exists
+  `PlansTabs`, and the wall tablet never shows it. The chore streak is a
+  `--streak` flame and "N days" after the "Chores" title on Today and on each
+  card (2 or more, the Show streaks switch, always on the tablet); a person
+  on vacation reads "On vacation" under their name and their rows are
+  excused (sorted with finished rows); on a Sunday after a clean chore week
+  Today and the card carry a `--streak-soft` line. `VacationCard` (Settings):
+  From and Through date inputs, "Turn on vacation mode", and a list with a
+  one-tap Delete
 - `DashboardWidgetList` (the dashboard's heading row, widget grid and
   Customize button) / `DashboardCustomizeSheet` (on/off switch and up/down
   arrows per widget, Reset to default): the only way to show, hide or

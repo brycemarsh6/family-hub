@@ -114,7 +114,7 @@ export async function createPlanItem(goalId: string, raw: unknown): Promise<Crea
 
   try {
     const created = await db.$transaction(async (tx) => {
-      const habit = input.kind === "habit" ? await newHabit(tx, input, goal, user) : null;
+      const habit = input.kind === "habit" ? await newHabit(tx, input, goal, user, householdToday(new Date())!) : null;
       return tx.planItem.create({
         data: {
           goalId,
@@ -137,11 +137,12 @@ export async function createPlanItem(goalId: string, raw: unknown): Promise<Crea
 }
 
 /** The Habit behind a new habit item: the goal's owner for a Mine goal, every active person for a Together one. */
-async function newHabit(tx: Prisma.TransactionClient, input: PlanItemInput, goal: GoalPolicyRow, user: VerifiedUser) {
+async function newHabit(tx: Prisma.TransactionClient, input: PlanItemInput, goal: GoalPolicyRow, user: VerifiedUser, today: CalendarDate) {
   return createHabit(
     {
       fields: { ...habitInputFromPlan(input, goal), createdById: user.userId },
       participantIds: habitParticipantsFor(goal),
+      today,
     },
     tx,
   );
@@ -166,7 +167,7 @@ export async function updatePlanItem(id: string, raw: unknown): Promise<PlanItem
       if (input.kind === "habit") {
         const { title, schedule, times } = habitInputFromPlan(input, goal);
         const updated = item.habitId ? await updateHabit(item.habitId, { title, schedule, times }, today, tx) : null;
-        habitId = updated ? updated.id : (await newHabit(tx, input, goal, user)).id;
+        habitId = updated ? updated.id : (await newHabit(tx, input, goal, user, today)).id;
       }
       await tx.planItem.update({
         where: { id },
@@ -179,7 +180,7 @@ export async function updatePlanItem(id: string, raw: unknown): Promise<PlanItem
           ...(input.kind === "step" ? {} : { doneAt: null }),
         },
       });
-      if (habitId === null && item.habitId) await deleteHabit(item.habitId, tx);
+      if (habitId === null && item.habitId) await deleteHabit(item.habitId, today, tx);
     });
   } catch (error) {
     if (isMissingRowError(error)) return { error: GONE };
@@ -195,7 +196,7 @@ export async function deletePlanItem(id: string): Promise<PlanItemActionResult> 
   const loaded = await loadItem(id, "edit");
   if ("error" in loaded) return "missing" in loaded && loaded.missing ? {} : { error: loaded.error };
 
-  if (loaded.item.habitId) await deleteHabit(loaded.item.habitId);
+  if (loaded.item.habitId) await deleteHabit(loaded.item.habitId, householdToday(new Date())!);
   await db.planItem.deleteMany({ where: { id } });
 
   refreshPlansViews();

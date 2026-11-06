@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Plus, SlidersHorizontal } from "lucide-react";
-import { HabitFamilyView, HabitViewChips } from "@/components/HabitFamilyView";
+import { HabitFamilyView } from "@/components/HabitFamilyView";
 import { HabitTodayList } from "@/components/HabitTodayList";
+import { HabitViewChips } from "@/components/HabitViewChips";
 import { requireVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { loadTodayPage } from "@/lib/habitsRead";
@@ -62,6 +63,9 @@ export default async function HabitsPage({ searchParams }: { searchParams: Promi
             canManage={canManage}
             nudges={todayPage.nudges}
             confetti={todayPage.confetti}
+            choreStreak={todayPage.choreStreak}
+            shoutOut={todayPage.shoutOut}
+            vacationThrough={todayPage.vacationThrough}
             // The tablet shows everyone's streaks; a person's switch hides theirs (decision 98).
             showStreaks={user.isDevice || user.showStreaks}
             todayKey={formatCalendarDate(today)}

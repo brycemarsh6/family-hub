@@ -2,7 +2,11 @@ import Link from "next/link";
 import { ChevronRight, Users } from "lucide-react";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { NavModeSetting } from "@/components/NavModeSetting";
+import { VacationCard } from "@/components/VacationCard";
+import { householdToday } from "@/lib/assistant/today";
 import { requireVerifiedUser } from "@/lib/dal";
+import { loadVacations } from "@/lib/habitsRead";
+import { formatCalendarDate } from "@/lib/householdDate";
 
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
@@ -10,11 +14,13 @@ export const dynamic = "force-dynamic";
 /**
  * App-wide settings: "Menu style" for everyone (devices too), the
  * admin-only door "Manage family", and last the "Habits & Chores" section
- * (accounts only: a device login never sees it). Your own name, colour and
+ * and the Vacation mode card (accounts only: a device login never sees them). Your own name, colour and
  * password live on /profile.
  */
 export default async function SettingsPage() {
   const user = await requireVerifiedUser();
+  const today = householdToday(new Date())!;
+  const vacations = user.isDevice ? [] : await loadVacations(user.userId, today);
 
   return (
     <div className="py-2">
@@ -36,7 +42,10 @@ export default async function SettingsPage() {
       )}
 
       {!user.isDevice && (
-        <HabitsChoresSettings showStreaks={user.showStreaks} isAdmin={user.role === "admin"} />
+        <>
+          <HabitsChoresSettings showStreaks={user.showStreaks} isAdmin={user.role === "admin"} />
+          <VacationCard vacations={vacations} today={formatCalendarDate(today)} />
+        </>
       )}
     </div>
   );

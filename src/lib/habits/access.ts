@@ -29,6 +29,25 @@ export function canEditHabit(actor: HabitActor, habit: HabitAccess): boolean {
 }
 
 /**
+ * Who edits a person's chore chart (decision 118): yourself; a parent or
+ * admin for anyone. A kid only their own. Never the tablet.
+ */
+export function canEditChart(actor: HabitActor, personId: string): boolean {
+  return actor.role !== "device" && (actor.userId === personId || isManager(actor));
+}
+
+/**
+ * Who changes a chore for one week (decisions 117, 118, 125): `personId` must
+ * hold the chore and the actor must see it and edit that person's chart; and
+ * a chore shared by more than one person is a parent's or admin's to change,
+ * so a kid can change only a chore that is theirs alone. Never the tablet.
+ */
+export function canChangeChore(actor: HabitActor, habit: HabitAccess, personId: string): boolean {
+  if (!isParticipant(habit, personId) || !canSeeHabit(actor, habit) || !canEditChart(actor, personId)) return false;
+  return habit.participantIds.length <= 1 || isManager(actor);
+}
+
+/**
  * Whether `actor` may write a check for `forUserId`, who must be a
  * participant: yourself, the tablet for anyone, a manager for anyone. The
  * actor must also be able to see the habit.

@@ -2,6 +2,7 @@ import { addCalendarDays, calendarDaysBetween, dayOfWeek, startOfMonth, startOfW
 import { perfectDaysInRange, type DayEntry } from "./habits/perfectDays";
 import {
   compareDays,
+  dayInVacation,
   isDayInRange,
   isOpenKind,
   isSameDay,
@@ -10,10 +11,10 @@ import {
   periodsInRange,
   scheduledDaysInRange,
 } from "./habits/schedule";
-import type { StreakCache } from "./habits/streaks";
+import { displayStreak, streakUnitOf, type StreakCache } from "./habits/streaks";
 import type { HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
 import { FULL_MONTH_NAMES } from "./mealPlanDates";
-import { displayStreak, isTapDayAllowed, streakUnitOf } from "./habitsToday";
+import { isTapDayAllowed } from "./habitsToday";
 import { isCheckStatus, streakLabel, type StreakUnit } from "./habitVocabulary";
 
 // The stats page's rules, with no database: `habitsRead.ts` (or a stats
@@ -57,10 +58,6 @@ function logsOf(input: StatsInput, userId: string): HabitLogDay[] {
 
 function vacationsOf(input: StatsInput, userId: string): readonly Vacation[] {
   return input.vacationsByUser.get(userId) ?? [];
-}
-
-function onVacation(vacations: readonly Vacation[], day: CalendarDate): boolean {
-  return vacations.some((vacation) => isDayInRange(day, vacation));
 }
 
 /** The streak tile's unit follows the habit (decision 94). */
@@ -132,7 +129,7 @@ export function monthCalendar(input: StatsInput, userId: string, inMonth: Calend
     else if (ahead) state = "future";
     else if (isSameDay(day, input.today)) state = "today";
     else {
-      const meant = isScheduledDay(input.spec, day) && compareDays(day, person.since) >= 0 && !onVacation(vacations, day);
+      const meant = isScheduledDay(input.spec, day) && compareDays(day, person.since) >= 0 && !dayInVacation(day, vacations);
       state = meant ? "missed" : "notDue";
     }
     // A day before the person joined the habit was never theirs to log.
@@ -154,7 +151,7 @@ function wholePercent(done: number, due: number): number | null {
 
 /**
  * The share of due days (or due periods' checks, for open kinds) a person
- * completed since they joined. Skipped and vacation days are not due. Today
+ * completed since they joined. Skipped days and undone vacation days are not due. Today
  * (or the current period) counts only once it is done, because it is not over.
  */
 export function completionRate(input: StatsInput, userId: string): number | null {
@@ -169,8 +166,9 @@ export function completionRate(input: StatsInput, userId: string): number | null
   let due = 0;
   if (!isOpenKind(spec)) {
     for (const day of scheduledDaysInRange(spec, person.since, today)) {
-      if (onVacation(vacations, day) || skippedOn(day)) continue;
       const finished = doneOn(day);
+      // A day done on vacation counts as due and done (decision 127); only an undone vacation day is skipped.
+      if (skippedOn(day) || (dayInVacation(day, vacations) && !finished)) continue;
       if (isSameDay(day, today) && !finished) continue;
       due++;
       if (finished) done++;

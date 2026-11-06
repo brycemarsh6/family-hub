@@ -1,30 +1,31 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
 import Link from "next/link";
-import { Moon, Sun, Sunset } from "lucide-react";
+import { Flame, Moon, Plane, Sun, Sunset, Trophy } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { HabitFilterChips, type HabitFilterOption } from "./HabitFilterChips";
 import { HabitConfetti } from "./HabitConfetti";
 import { HabitRow } from "./HabitRow";
 import { NudgeCards } from "./NudgeCard";
 import { checkHabit, skipHabit, uncheckHabit, unskipHabit } from "@/app/actions/habitChecks";
-import type { HabitActionResult } from "@/app/actions/habits";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView, TodayNudge } from "@/lib/habitsRead";
 import { doneCountLabel } from "@/lib/habitsFamily";
 import { allRequiredDoneToday } from "@/lib/habitsToday";
-import { formatCalendarDate } from "@/lib/householdDate";
-import { TIMES_OF_DAY, TIME_OF_DAY_LABELS } from "@/lib/habitVocabulary";
+import { formatCalendarDate, formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
+import { isExcused } from "@/lib/habits/weekOverrides";
+import { CHORES_LAST_WEEK_CARD, TIMES_OF_DAY, TIME_OF_DAY_LABELS, VACATION_TODAY_LABEL, vacationThroughLabel } from "@/lib/habitVocabulary";
 
 const TIME_ICONS = { morning: Sun, afternoon: Sunset, evening: Moon } as const;
 
 const ALL = "all";
 
-/** Finished means checked or skipped: those sink to the bottom when the page loads. */
+/** Finished means checked or excused (skipped, on vacation, skipped this week): those sink to the bottom when the page loads. */
 function isFinished(row: HabitRowView) {
-  return row.doneToday || row.skippedToday;
+  return row.doneToday || isExcused(row);
 }
 
 export function HabitTodayList({
@@ -35,6 +36,9 @@ export function HabitTodayList({
   confetti,
   showStreaks,
   todayKey,
+  choreStreak,
+  shoutOut,
+  vacationThrough,
 }: {
   rows: HabitRowView[];
   /** "Thursday, Nov 5", made on the server so the browser agrees with it. */
@@ -49,13 +53,18 @@ export function HabitTodayList({
   showStreaks: boolean;
   /** Today as "YYYY-MM-DD": the key for the once-a-day confetti marker. */
   todayKey: string;
+  /** The viewer's chore streak, shown after the "Chores" title from 2 days (decision 120). */
+  choreStreak: number;
+  /** Sunday after a clean chore week (decision 122). */
+  shoutOut: boolean;
+  /** The last day of the vacation covering today, "YYYY-MM-DD", else null (decision 115). */
+  vacationThrough: string | null;
 }) {
   // A copy of the rows that is updated the instant a button is tapped, then
   // replaced by the server's real answer (the same idea as ThisWeekList).
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(rows, applyHabitChange);
-  const [, startTransition] = useTransition();
+  const { run, error } = useOptimisticRun(applyOptimistic);
   const [filter, setFilter] = useState(ALL);
-  const [error, setError] = useState<string | null>(null);
   // Done rows move to the bottom once, when the page loads. A tap must not
   // make a row jump away from under the finger, so the order is fixed here
   // and later rows (none expected) simply go last.
@@ -65,20 +74,6 @@ export function HabitTodayList({
     return at === -1 ? order.length : at;
   };
   const ordered = [...live].sort((a, b) => rank(a) - rank(b));
-
-  function run(change: HabitChange, action: () => Promise<HabitActionResult>) {
-    setError(null);
-    startTransition(async () => {
-      applyOptimistic(change);
-      try {
-        const result = await action();
-        if (result.error) setError(result.error);
-      } catch {
-        // The call never reached the server (network down): say so here instead of the error page.
-        setError("Couldn't save that. Check your connection and try again.");
-      }
-    });
-  }
 
   // Which chips to offer: only the times of day and life areas that rows actually use.
   const options: HabitFilterOption[] = [{ key: ALL, label: "All" }];
@@ -106,6 +101,8 @@ export function HabitTodayList({
   ].filter((section) => section.rows.length > 0);
 
   // A carried row's tap is for the missed day, not today.
+  const throughDay = vacationThrough ? parseDateParam(vacationThrough) : null;
+
   const dayOf = (row: HabitRowView) => (row.carriedFrom ? formatCalendarDate(row.carriedFrom) : undefined);
 
   return (
@@ -113,6 +110,23 @@ export function HabitTodayList({
       {/* The flag is the server's on load; after a tap it is worked out again from the tapped rows, by the same rule. */}
       <HabitConfetti fire={confetti || allRequiredDoneToday(live)} today={todayKey} />
       <NudgeCards nudges={nudges} />
+      {throughDay && (
+        <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-line bg-surface py-2 pl-3 pr-1">
+          <Plane aria-hidden="true" size={20} className="shrink-0 text-muted" />
+          <p className="min-w-0 flex-1 text-sm font-semibold">
+            {vacationThrough === todayKey ? VACATION_TODAY_LABEL : vacationThroughLabel(formatShortCalendarDate(throughDay))}
+          </p>
+          <Link href="/settings" className="flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-semibold text-accent">
+            Change
+          </Link>
+        </div>
+      )}
+      {shoutOut && (
+        <div className="mb-3 flex items-center gap-2.5 rounded-2xl bg-streak-soft px-3 py-3">
+          <Trophy aria-hidden="true" size={20} className="shrink-0 text-streak" />
+          <p className="min-w-0 flex-1 text-sm font-semibold">{CHORES_LAST_WEEK_CARD}</p>
+        </div>
+      )}
       <p className="mb-3 text-sm text-muted">
         {todayLabel}
         {live.length > 0 && ` · ${doneCountLabel(live)}`}
@@ -149,7 +163,15 @@ export function HabitTodayList({
           {sections.map((section) => (
             <section key={section.key}>
               <div className="mb-1.5 flex items-baseline justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{section.title}</h2>
+                <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
+                  {section.title}
+                  {section.key === "chore" && showStreaks && choreStreak >= 2 && (
+                    <span className="inline-flex items-center gap-0.5 text-sm font-semibold normal-case tracking-normal text-streak">
+                      <Flame aria-hidden="true" size={14} />
+                      {choreStreak} days
+                    </span>
+                  )}
+                </h2>
                 <span className="text-sm text-muted">{doneCountLabel(section.rows)}</span>
               </div>
               <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
