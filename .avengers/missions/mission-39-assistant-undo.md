@@ -390,6 +390,44 @@
   link intact; positive controls from U4 still pass. Counts before/after.
 - **Evidence / done:** as before; only boundary files in `git diff --stat`.
 
+### Vision pass 2 (at `b0c9ad2`): BLOCKED
+
+- B1 closed live; every F1 item verified (tsc red cases rerun by Vision on
+  scratch copies). "3 parallel put-aways" settled by hand over 8 trials:
+  exactly one restock by exactly the bought quantity, others 409 or an empty
+  200 that writes nothing; the failing check was the script reading
+  `r.j.items` instead of `r.j.putAway.items`. Check-off chain failure was
+  the greedy checker, not the code.
+- **BLOCKER B2:** `shoppingReads.ts:26-29` also counts undo re-creates as
+  Winnie's, so after put-away + undo `GET /shopping` shows a family line as
+  `addedBy: assistant` (hiding the family name) while DELETE says 403.
+- NOTEs: `in_use` count takes no lock (a family add-to-list in that
+  millisecond window still gets SetNull); the column pin can't catch a date
+  column mis-marked `"value"`; Stark's own `f1-live.out` showed the
+  create/undo/redo DELETE check failing (`del: 404`) while the report said
+  it passed (Vision's rerun passes); `checkedAt` re-stamped on re-tick
+  (pre-existing).
+
+### F2, one rule for "Winnie created this"
+
+- **Objective:** close B2 and the `in_use` lock gap.
+- **Boundaries.** May touch: `src/lib/assistant/audit.ts`,
+  `src/lib/assistant/shoppingReads.ts`, `src/lib/assistant/undoWrites.ts`.
+  Nothing else.
+- **Work:** export from `audit.ts` one where-clause builder (or a batched
+  `assistantCreatedIds(model, ids)`) that excludes `audit.undo` requests,
+  used by BOTH `didAssistantCreate` and `toShoppingItems`; no second copy of
+  the filter anywhere. In `undoWrites.ts`, lock each pantry row being
+  removed (`SELECT … FOR UPDATE`, sorted ids) before the `in_use` count, so
+  a family add-to-list waits and is then seen.
+- **Verification:** gauntlet in full. Live (port 3153; use Vision's fixed
+  checker `scratchpad/p2-chk.mts` patterns, `r.j.putAway.items`): B1/B2
+  sequence → `GET /shopping` shows the line's `addedBy` exactly as before the
+  put-away, and DELETE 403; a Winnie-created line shows `assistant` after
+  undo and redo and her DELETE is 200; `in_use` still refuses with the link
+  kept. Counts before/after. **Report every check's actual output line;
+  a check whose output says FAIL is reported as FAIL.**
+
 ## Delivery
 
 (not yet)
