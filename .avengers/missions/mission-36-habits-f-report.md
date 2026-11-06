@@ -1,17 +1,16 @@
 # Mission: Habits & Chores PR F, the Report and idea library (mission 36)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (resumed 2026-11-06 on Bryce's "Yes, resume PR F")
+**Status:** GATED, waiting on Bryce (Strange's 3-pass budget used; one fix F4 built after pass 3)
 **Branch:** `claude/habits-f-report` (from origin/main c17ae67, after PR E2 went live)
 
 ## Where it stands
 
-- Banner's brief is done (in the session transcript). Its key facts are summed up below.
-- Hill decided 163 to 174 and wrote the idea wording, all saved word for word in
-  `.avengers/plans/habits-f-decisions-hill.md`. They are not yet folded into
-  `habits-chores-v1.md` or a wording file.
-- Hill decided 175 (at least two people for Together or Side by side), recorded in the same file.
-- Nothing is built.
+- Built C0 to C3; fixes F1 to F4 committed (F4 = 32f104e). Gauntlet at 32f104e: 974 tests; UTC 967 + 7 DST skips; LA 974; build 0.
+- Pass 3 (b4f3e4f): Vision PASS, Captain PASS, Strange BLOCKED (stats page month header for open kinds read "0 of 0 so far" / "1 of 1 so far" while the Report said "0 of 1" and today was ringed "not done yet").
+- F4 fixed it (the open-kind count rule moved to `habitsStats.ts`, shared by the Report and the stats header). Not yet re-checked by Strange: that would be a fourth pass, so Fury asked Bryce (2026-11-06) before running it. Nothing pushed.
+- Next if Bryce says yes: Strange re-checks three stats pages (zz m31 monthly, zz m31 weekly, zz m35 bike ride), then C4 records and ship.
+- Gate notes and Captain's p3 amendment text: Fury's scratchpad `captain-f-p3.md` (fold into C4).
 
 ## Facts that shape the contracts (from Banner)
 
