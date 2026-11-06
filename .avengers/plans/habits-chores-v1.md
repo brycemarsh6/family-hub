@@ -383,6 +383,46 @@ in PR B (mission 31).
     days (optional)", "This week", "Next week", "Keep its weeks") and the
     settings row's "Show streaks and more" stay as built.
 
+### Before PR C (decided by Hill, 2026-11-05; Bryce may overturn)
+
+94. **Stats page approved** as the Stats board, plus: a perfect-days line
+    under the month grid ("3 perfect days this month"); the calendar shows
+    Done, Skipped (dashed ring) and Missed differently from future or not-due
+    days, with a short legend; the streak tile's unit follows the habit
+    ("days", "weeks", "months"); the tiles show the viewer's own numbers, or
+    the kid's when a parent opens a kid's habit. (Hill: medium)
+95. **Family view approved** as the Family board, plus: the "Mine" / "Whole
+    family" chips show on it too (not on the tablet); on a phone the person
+    cards stack under the Together strip; no flame in a person's column
+    header until PR D's chore streak. (Hill: medium)
+96. **Nudge card:** "Emily nudged you about Morning Prayers" with a "Got it"
+    button that marks it seen. One card per unseen nudge.
+97. **Stats nudge row:** "Emily hasn’t done hers today" + "Nudge"; after a
+    tap, "Nudged" with a check, disabled until Denver midnight; the row goes
+    once she is done; one nudge per person, habit and day (server enforced);
+    hidden on the tablet.
+98. **Streaks on rows:** flame plus number with its unit ("12 days", "3
+    weeks"), only at 2 or more, hidden by the person's Show streaks switch,
+    always shown on the tablet.
+99. **Confetti has no words.**
+100. **Checking a carried-over row** writes done late on the missed day; the
+     row shows done until the next load, then leaves Today (matches 89).
+101. **A skipped row's meta line reads "Skipped today".**
+102. **Who opens a stats page:** participants; parents and admins for any
+     non-private habit; the tablet for any habit on the family view (Nudge
+     hidden there). A private habit's stats open only for its participant.
+103. **Stats BackLink:** "Habits & Chores", to `/habits`.
+104. **The weekly chart is one small strip per person** (Side by side habits
+     only), all bars in the accent color, each headed by the person's avatar
+     badge and name, sharing one axis and the same weeks. A tap on a week
+     column (44px or wider) writes "Bryce, week of Oct 4: 6 of 7" under that
+     strip. No hover-only tooltip. Avatar colors failed the chart color
+     check, so identity comes from the name and badge (carries out 52 a
+     different way). (Hill: medium)
+105. **Opening stats:** tapping a row's title area on Today or the family view
+     opens `/habits/[id]`; the check keeps its own tap, swipe keeps Skip. The
+     Edit page gets a "See stats" link under its BackLink.
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for

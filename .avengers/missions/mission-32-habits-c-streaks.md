@@ -1,0 +1,233 @@
+# Mission: Habits & Chores PR C, streaks and the family (mission 32)
+
+**Project:** family-hub (Marshee)
+**Status:** CONTRACTED (Hill decided 94 to 105)
+**Started:** 2026-11-05 · **Updated:** 2026-11-05
+
+## Brief
+
+- **Goal:** the "PR C, mission 32: streaks and the family" section of
+  `.avengers/plans/habits-chores-build.md`, with decisions 94 to 103 (decided
+  by Hill) in `.avengers/plans/habits-chores-v1.md`.
+- **Done means:** on production, a person sees streaks on their Today rows
+  (decision 98), "Skipped today" on skipped rows (101), a nudge card they can
+  dismiss (96); tapping a row title opens `/habits/[id]` with current, best
+  and total, a month calendar (tap one of the last 7 days to mark done or
+  skipped, never a future day), perfect days, and for Side by side habits a
+  per-person table, a weekly chart and a Nudge button (94, 97); the tablet
+  lands on the family view and anyone reaches it with a "Whole family" chip
+  (95); confetti fires once a day per device when everything required is done
+  or skipped (76, 99). Gauntlet green; Vision, Strange and Captain PASS.
+- **Out of scope:** chores chart, chore streak, vacation mode (PR D);
+  dashboard tiles and plan-a-day (PR E); report and idea library (PR F).
+- **Never blocks on Bryce** (Bryce, 2026-11-05). Kids have no profiles yet:
+  build and gate with the adults who exist. Bryce's phone check and creating
+  the kids' profiles go on "Bryce's checklist" in CLAUDE.md after merge.
+
+## Danger register
+
+- Local dev runs against the Neon `dev` branch. **Before any Prisma command
+  that reaches a database, Fury confirms `DATABASE_URL`'s hostname starts
+  `ep-hidden-pine-`** (hostname only, never print `.env`).
+- Forbidden for every agent: `npm run db:seed`, `npm run db:reset`, `prisma
+  migrate reset`, `prisma db push`, `prisma migrate dev`. Stark never touches
+  the database. `npx prisma generate` / `validate` are fine.
+- No migration is expected (the `Nudge` table exists since PR A). If one
+  turns out to be needed it is additive only and Fury applies it.
+- The dev branch holds real family data. Count rows, never quote them.
+- **No script creates, changes or deletes `User` rows.** Kids' profiles are
+  Bryce's (Settings, Manage family).
+- Stage by explicit path, never `git add -A` / `git add .`; `git show --stat
+  HEAD` after every commit. Merging to `main` is delegated to Fury once every
+  gate passes and the Gauntlet is green (Bryce, 2026-11-05); Fury then checks
+  the production deploy.
+- `npm test` pins Denver; the direct `TZ=UTC` and `TZ=America/Los_Angeles`
+  runs prove the other zones.
+
+## Gauntlet
+
+- `npx tsc --noEmit`
+- `npx eslint .`
+- `npm test` (697 at origin/main 1fb7dcb; must rise)
+- `TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts`
+- the same with `TZ=America/Los_Angeles`
+- `npm run build`
+- `node ~/.claude/skills/avengers/recordcheck.mjs` over the mission range
+
+## Assembled
+
+Stark; Vision (Fable, per `.claude/agents/vision.md`; this session passes
+`model: "fable"` explicitly because agent files load at start); Strange and
+Captain (Opus 5.5). Hill (Fable, xhigh) for every would-be Bryce decision.
+Banner ran once (facts below). Budget 3 passes per gate.
+
+## Facts the contracts hang on (Banner, 2026-11-05, at origin/main)
+
+- Streaks: `computeStreaks(spec, logs, vacations, today)` and
+  `streakAfter(spec, cached, vacations, today)` in
+  `src/lib/habits/streaks.ts` (`streakAfter` is display only). Cached on
+  `HabitParticipant.currentStreak/bestStreak/streakAsOf`, written only by
+  `habitWrites.ts` (`recomputeStreaks`). `showStreaks` is on `VerifiedUser`
+  (`src/lib/dal.ts`); no habit page reads it yet.
+- Readers: `src/lib/habitsRead.ts` (205 lines: `loadTodayPage`,
+  `loadHabitRoster`, `loadHabitForAction`, `loadLogStatus`,
+  `loadCarriedDay`, `loadHabitsForPlan`); pure rules in
+  `src/lib/habitsToday.ts` (273 lines: `buildTodayRows`, `managerItem`,
+  `isTapDayAllowed`, `TAP_DAYS_BACK = 7`, lookback 14). `loadTodayPage`
+  lists only habits the viewer takes part in, so the tablet's Today is empty.
+- `perfectDaysInRange(from, to, entriesFor)` (`perfectDays.ts`),
+  `scheduledDaysInRange(spec, from, to)` and `periodsInRange`
+  (`schedule.ts`).
+- Taps: `checkHabit`, `skipHabit`, `uncheckHabit`, `unskipHabit(habitId,
+  forUserId?, day?)` in `src/app/actions/habitChecks.ts`; `day` is
+  "YYYY-MM-DD", future refused, older than 7 days only for the carried day.
+- `Nudge` model exists (habitId, fromUserId, toUserId, day, seenAt; unique
+  on all four ids plus day; index on toUserId, day). No code uses it.
+- Access: `canSeeHabit` (private only to participants, never the device),
+  `canEditHabit`, `canLogFor` (self, device, or manager for a participant)
+  in `src/lib/habits/access.ts`.
+- Components: `HabitTodayList` (props rows, todayLabel, canManage),
+  `HabitRow` (row, onToggle, onSkip, onUnskip), `HabitFilterChips`,
+  `LogButton` (done, label, disabled, idle, skipped, onClick), `AvatarBadge`.
+- No `canvas-confetti`, no chart library, no data chart anywhere. Reduced
+  motion is handled in CSS only (`globals.css`). Per-device markers use
+  `useSyncExternalStore` plus localStorage (`src/lib/lastStore.ts`).
+- Avatar colors (`AVATAR_COLORS`, `constants.ts`) FAIL the dataviz palette
+  validator as chart series colors (low chroma, deutan ΔE 3.0, teal vs blue
+  ΔE 6.3 normal vision): see Q11.
+- `src/app/(app)/habits/[id]/` holds only `edit/`. Sizes: habitsRead 205,
+  habitsToday 273, habitChecks 115, actions/habits 296, HabitTodayList 168,
+  HabitRow 118, HabitForm 351 (soft cap 350, split before adding a field).
+
+## Contracts
+
+Order: C1, C2, C3, C4, C5, one at a time (they share the habits folder).
+The build plan's PR C section and decisions 94 to 105 bind where a contract
+is silent. Mock boards (data): `Stats.dc.html`, `Family.dc.html` in
+`/private/tmp/claude-501/-Users-brycemarsh-Developer-family-hub--claude-worktrees-habits-a-engine-00bccf/823148c4-c30a-4fc7-b187-45ba819246cf/scratchpad/artifact-files/f1e641d8-aa97-4e65-9258-10fb934262f4/project/`,
+and `Main.dc.html` in `.../scratchpad/mock/project/`.
+
+### C1 - The pure rules, with tests
+- **Status:** PENDING
+- **Objective:** every PR C rule that needs no database, in pure lib files
+  with tests.
+- **Boundaries:** may touch: new `src/lib/habitsStats.ts` and
+  `src/lib/habitsStats.test.ts`, `src/lib/habitsToday.ts` and its test,
+  `src/lib/habitChanges.ts` and its test (only if a row type gains fields),
+  `src/lib/habits/access.ts` and its test, `src/lib/habitVocabulary.ts` and
+  its test (words only) · must not touch: anything else.
+- **Rules:**
+  - Streak on rows (98): `HabitMemberView` and the row gain a display streak
+    from the cached columns aged by `streakAfter`; a helper gives the label
+    with its unit ("12 days", "3 weeks", "2 months"), null below 2. Words
+    live in `habitVocabulary.ts`.
+  - "Skipped today" (101) as a vocabulary word.
+  - `allRequiredDoneToday(rows)` for the confetti flag (76): true when at
+    least one required row exists today and every required row is done or
+    skipped.
+  - `habitsStats.ts`: from one habit, its participants' logs, vacations and
+    today, build: per person current, best, total done; the month calendar
+    cells for a person (done, late, skipped, missed, today, future, not due;
+    `tappable` only within `TAP_DAYS_BACK` and never future); the side by
+    side table rows (total, rate as a whole percent of due days since the
+    person joined, streak label; deactivated people left out); the weekly
+    series for the last 6 Sunday-to-Saturday weeks (days done per person
+    per week); perfect days this month for a person from their entries
+    (`perfectDaysInRange`). Today comes from the caller.
+  - Access (102): `canSeeHabitStats(actor, habit)`: a participant; a
+    manager for a non-private habit; the device for a non-private habit;
+    nobody else.
+- **Verification:** gauntlet minus build; tests rise; each rule above has a
+  named test, including a week boundary, a month boundary, and TZ=UTC/LA.
+- **Done:** tests in all three zones green.
+
+### C2 - Readers, nudges and actions
+- **Status:** PENDING
+- **Objective:** the stats and family readers, the nudge writes and the
+  server actions.
+- **Boundaries:** may touch: `src/lib/habitsRead.ts` (if it passes 350
+  lines, put the new loaders in new `src/lib/habitsStatsRead.ts`), new
+  `src/lib/habits/nudgeWrites.ts`, new `src/app/actions/habitNudges.ts`,
+  `src/lib/habitsToday.ts` (the family page builder, pure) and its test ·
+  must not touch: anything else.
+- **Rules:**
+  - `loadTodayPage` also returns each row's display streak, the viewer's
+    unseen nudges for today (from name, habit title, nudge id) and the
+    confetti flag.
+  - `loadHabitStats(viewer, habitId, today)`: null unless
+    `canSeeHabitStats`; logs for the month shown and the last 6 weeks, and
+    the viewer's other habits only as needed for perfect days; returns plain
+    data (dates as "YYYY-MM-DD" strings) for C3, including who can be
+    nudged today and whether the viewer already nudged them.
+  - `loadFamilyPage(viewer, today)`: the Together strip, then one column
+    per active non-device person in that person's own order; private habits
+    never appear; for the tablet and for a person who chose the chip.
+  - `nudgeWrites.ts`: `createNudge({ habitId, fromUserId, toUserId, day })`
+    idempotent on the unique key; `markNudgeSeen(id, userId)` only for its
+    recipient.
+  - `habitNudges.ts` ("use server"): `nudge(habitId, toUserId)`: session,
+    never a device, the sender and recipient both participants, habit not
+    private, recipient not already done today, one per day;
+    `markNudgeSeen(nudgeId)`. Revalidate `/habits` layout.
+  - Stats taps reuse `habitChecks.ts` as is (day within 7 days).
+- **Verification:** gauntlet minus build.
+- **Done:** guards in order session, row, policy, then fields.
+
+### C3 - The stats page
+- **Status:** PENDING
+- **Objective:** `/habits/[id]` from the Stats board with decisions 94, 97,
+  102 to 105.
+- **Boundaries:** may touch: new `src/app/(app)/habits/[id]/page.tsx`, new
+  components `HabitStats.tsx`, `HabitMonthCalendar.tsx`,
+  `HabitSideBySide.tsx`, `HabitWeekStrips.tsx`, `NudgeButton.tsx`;
+  `src/app/(app)/habits/[id]/edit/page.tsx` (the "See stats" link only) ·
+  must not touch: anything else.
+- **Rules:** BackLink "Habits & Chores" to `/habits`; header icon, title,
+  meta line; tiles (current with flame and unit, best, total); month
+  calendar with Done / Skipped / Missed legend and "N perfect days this
+  month" line; tapping a tappable day toggles done (and a long press or a
+  second control is NOT used: a tap on a done day undoes, on an empty day
+  checks; Skip on a day is out of scope unless the board shows it), via
+  `habitChecks.ts` with `day`; optimistic. Side by side habits: the table
+  and the week strips (104: accent bars, 4px rounded tops on one baseline,
+  2px gaps, one shared axis, badge plus name per strip, 44px tap columns,
+  caption text in text tokens, a visible text alternative is the table);
+  the Nudge row per person not done today (97), hidden on the tablet.
+  Not found or not allowed: `notFound()`.
+- **Verification:** full gauntlet.
+
+### C4 - Today additions and confetti
+- **Status:** PENDING
+- **Objective:** streaks, "Skipped today", nudge cards, title tap to stats,
+  and confetti on Today.
+- **Boundaries:** may touch: `src/components/HabitTodayList.tsx`,
+  `HabitRow.tsx`, new `NudgeCard.tsx`, new `src/components/HabitConfetti.tsx`,
+  new `src/lib/confettiSeen.ts` (the per-device day marker, the
+  `lastStore.ts` pattern), `src/app/(app)/habits/page.tsx`, `package.json`
+  and `package-lock.json` (`canvas-confetti` and its types, pinned exact) ·
+  must not touch: anything else.
+- **Rules:** decisions 96, 98, 99, 101, 105. Confetti fires once per day
+  per device when the server flag is true, only after a tap makes it true
+  or on load if not yet shown today; skipped entirely under
+  `prefers-reduced-motion`; no sound, no words. Streak label hidden when the
+  viewer's `showStreaks` is off. The row's title area is a link to
+  `/habits/[id]`; the check and swipe are unchanged.
+- **Verification:** full gauntlet.
+
+### C5 - The family view
+- **Status:** PENDING
+- **Objective:** the family view from the Family board (95).
+- **Boundaries:** may touch: `src/app/(app)/habits/page.tsx`,
+  `src/components/HabitTodayList.tsx` (the Mine / Whole family chips only),
+  new `src/components/HabitFamilyView.tsx`, new
+  `src/components/HabitFamilyColumn.tsx`, `DESIGN.md` (vocabulary entries
+  for the new components) · must not touch: anything else.
+- **Rules:** `/habits?view=family` shows it; the tablet always gets it (no
+  chips); people see "Mine" / "Whole family" chips on both views. Together
+  strip first, then a card per person (avatar, name, "x of y done"),
+  Habits then Chores, each row with the check (`canLogFor` decides who can
+  tap: the tablet for anyone, a manager for anyone, a person only their
+  own), streak labels always shown on the tablet and by the viewer's switch
+  otherwise, title tap to stats. Phone: cards stack; iPad 820: two columns
+  if they fit. Private habits never appear.
+- **Verification:** full gauntlet.
