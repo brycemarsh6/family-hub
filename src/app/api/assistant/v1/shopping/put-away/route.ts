@@ -2,7 +2,8 @@ import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { ApiError } from "@/lib/assistant/errors";
 import { putAwayBody } from "@/lib/assistant/schemasShopping";
 import { toPutAwayClassification, toPutAwayReport } from "@/lib/assistant/serializeShopping";
-import { classifyForPutAway, commitPutAway, PutAwayConflict, PutAwayNeedsReview } from "@/lib/putAway";
+import { commitPutAway, PutAwayConflict, PutAwayNeedsReview } from "@/lib/putAway";
+import { classifyForPutAway } from "@/lib/putAwayClassify";
 import type { z } from "zod";
 
 export const POST = assistantRoute<Record<string, never>, z.output<typeof putAwayBody>>({
@@ -42,7 +43,7 @@ export const POST = assistantRoute<Record<string, never>, z.output<typeof putAwa
         throw new ApiError(
           409,
           "conflict",
-          "Someone else put the shopping away at the same moment — nothing was changed; check the list and try again.",
+          "The shopping list changed while putting it away (an item was put away or un-ticked somewhere else). Nothing was changed; check the list and try again.",
         );
       }
       throw error;

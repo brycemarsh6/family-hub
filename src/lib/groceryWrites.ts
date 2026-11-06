@@ -18,7 +18,6 @@ import { db } from "@/lib/db";
 import type { GroceryItem } from "@/generated/prisma/client";
 import { isLow, toCategory, toLocation, toStore } from "@/lib/constants";
 import { tokens } from "@/lib/match";
-import { isMissingRowError } from "@/lib/prismaErrors";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -64,19 +63,21 @@ export async function addGroceryItem(
         // so parallel adds onto the same row can't overwrite each other's
         // total the way read-then-write did. Only the incoming amount is
         // rounded; the stored value is never re-rounded by a round trip.
-        // update() returns the row as written, i.e. read back after the add.
+        // `checked: false` in the where makes the add land only on a row that
+        // is still unchecked: if it was ticked or deleted since the lookup,
+        // the count is 0 and we fall through to a fresh line (otherwise the
+        // added quantity would ride along into the next put-away).
         // Not covered: parallel adds of a NEW name each find no row and each
         // create one (no quantity is lost, but duplicates are possible).
-        try {
-          const row = await db.groceryItem.update({
+        const updated = await db.groceryItem.updateMany({
+          where: { id: existing.id, checked: false },
+          data: { quantity: { increment: round2(quantity) } },
+        });
+        if (updated.count > 0) {
+          const row = await db.groceryItem.findUnique({
             where: { id: existing.id },
-            data: { quantity: { increment: round2(quantity) } },
           });
-          return { row, merged: true };
-        } catch (error) {
-          // The row was deleted between the lookup and the add: fall through
-          // and create a fresh line instead.
-          if (!isMissingRowError(error)) throw error;
+          if (row) return { row, merged: true };
         }
       }
     }
