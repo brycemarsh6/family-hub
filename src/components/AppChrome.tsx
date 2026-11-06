@@ -78,9 +78,11 @@ export function AppChrome({
           device fact the constant can't know) plus the button and its gap. A page
           holding a `data-fills-viewport` element (the calendar's hour
           timeline, which already ends at the viewport bottom) drops the
-          bottom padding so the document doesn't scroll past it. */}
+          bottom padding so the document doesn't scroll past it. A page holding
+          a `data-fills-width` element (Whole family's columns on an iPad) lifts
+          the width cap and fills exactly one screen from `md` up. */}
       <main
-        className={`mx-auto w-full max-w-3xl flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] has-[[data-fills-viewport]]:pb-0 print:pb-0 ${
+        className={`mx-auto w-full max-w-3xl flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] has-[[data-fills-viewport]]:pb-0 has-[[data-fills-width]]:md:h-dvh has-[[data-fills-width]]:md:max-w-none has-[[data-fills-width]]:md:flex-none has-[[data-fills-width]]:md:flex-col has-[[data-fills-width]]:md:pb-3 has-[[data-fills-width]]:md:flex print:pb-0 ${
           wordmark ? "pt-4" : ""
         }`}
         style={

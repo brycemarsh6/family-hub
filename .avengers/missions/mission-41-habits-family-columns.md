@@ -120,7 +120,7 @@ AGENTS.md applies in full. For this mission:
 C1 and C2 have disjoint boundaries and run in parallel.
 
 ### C1 — Household person order, saved on `User` and set by dragging on Manage family
-- **Status:** DISPATCHED
+- **Status:** DONE (report: passes lint and tests, 1108/1108; tsc and build first failed only on missing node_modules, fixed by Fury with `npm ci`)
 - **Objective:** an admin can drag household people into order on Manage
   family, it saves to `User.familyOrder`, and `loadHouseholdPeople` returns
   people in that order (unset last, then by `createdAt`).
@@ -154,7 +154,7 @@ C1 and C2 have disjoint boundaries and run in parallel.
   Whole family follows.
 
 ### C2 — Wide (768px+) Whole family layout: columns by time of day, Filter, `person` parameter
-- **Status:** DISPATCHED
+- **Status:** DONE (report: tsc, eslint, 1113/1113 tests, build all pass; adds h-dvh flex chain in AppChrome for the no-page-scroll rule, Strange to confirm)
 - **Objective:** at `md` (768px) and up, Whole family renders side-by-side
   330px columns per Bryce's decisions 1, 3, 4 and Fury's calls 41a to 41c;
   below `md` it renders exactly today's stacked view.
@@ -217,6 +217,8 @@ C1 and C2 have disjoint boundaries and run in parallel.
 - 2026-11-06 — Planned with Bryce (mock inline, four answers). Mission number
   41 (40 is promised to Winnie notifications). C1 and C2 dispatched in
   parallel.
+- 2026-11-06 — C1 reported DONE. This worktree had no node_modules; Fury ran `npm ci` (tsc now clean). Fury applied `20261111000000_user_family_order` to dev (host checked `ep-hidden-pine-`, SQL is the one ADD COLUMN) with `npx prisma migrate deploy`. Waiting on C2.
+- 2026-11-06 — C2 reported DONE. C1 and C2 committed. Vision, Strange, Captain dispatched in parallel (read-only gates).
 
 ## Delivery
 

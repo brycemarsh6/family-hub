@@ -14,9 +14,9 @@ import { REPORT_LABELS } from "@/lib/habitVocabulary";
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
 
-export default async function HabitsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+export default async function HabitsPage({ searchParams }: { searchParams: Promise<{ view?: string; person?: string }> }) {
   const user = await requireVerifiedUser();
-  const { view } = await searchParams;
+  const { view, person } = await searchParams;
   const today = householdToday(new Date())!;
   const viewer = { userId: user.userId, role: user.role };
   // The wall tablet always shows the whole family (it has no Today of its own); a person picks with the chips (decision 95).
@@ -27,7 +27,7 @@ export default async function HabitsPage({ searchParams }: { searchParams: Promi
   const canManage = !user.isDevice;
 
   return (
-    <div className="py-2">
+    <div className={`py-2 ${familyPage ? "md:flex md:min-h-0 md:flex-1 md:flex-col" : ""}`}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Habits &amp; Chores</h1>
         {canManage && (
@@ -54,7 +54,7 @@ export default async function HabitsPage({ searchParams }: { searchParams: Promi
         <>
           <p className="mb-3 text-sm text-muted">{formatDayLabel(new Date(today.year, today.month - 1, today.day))} · the whole family</p>
           {/* The tablet shows everyone's streaks; a person's switch hides theirs (decision 98). */}
-          <HabitFamilyView page={familyPage} showStreaks={user.isDevice || user.showStreaks} />
+          <HabitFamilyView page={familyPage} showStreaks={user.isDevice || user.showStreaks} canManage={canManage} focusPersonId={person} />
         </>
       ) : (
         todayPage && (
@@ -76,7 +76,7 @@ export default async function HabitsPage({ searchParams }: { searchParams: Promi
       )}
       {/* The one way in to the Report (decision 163); the tablet never sees it. */}
       {canManage && (
-        <Link href="/habits/report" className="mt-5 flex min-h-15 items-center gap-3 rounded-2xl border border-line bg-surface px-3 py-1.5">
+        <Link href="/habits/report" className={`mt-5 flex min-h-15 items-center gap-3 rounded-2xl border border-line bg-surface px-3 py-1.5 ${familyPage ? "md:hidden" : ""}`}>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
             <BarChart3 aria-hidden="true" size={20} />
           </div>

@@ -41,12 +41,15 @@ export function FamilyHabitRow({
   showStreaks,
   onToggle,
   together = false,
+  tag = null,
 }: {
   row: FamilyRow;
   showStreaks: boolean;
   onToggle: () => void;
   /** True in the Together strip: the check's name leaves out the person. */
   together?: boolean;
+  /** A small label under the title ("Together", "Chore"): the wide layout, where rows of every kind share a group. */
+  tag?: string | null;
 }) {
   const finished = row.doneToday || isExcused(row);
   const excusedByCalendar = isExcusedAllDay(row);
@@ -81,6 +84,7 @@ export function FamilyHabitRow({
           ) : (
             meta && <span className={`text-xs ${excusedByCalendar ? "text-muted-strong" : "text-muted"}`}>{meta}</span>
           )}
+          {tag && <span className="mt-1 self-start rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-muted">{tag}</span>}
         </span>
         {streak && (
           <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-streak">
@@ -133,7 +137,7 @@ export function HabitFamilyColumn({
   ].filter((section) => section.rows.length > 0);
 
   return (
-    <section aria-label={column.displayName} className="flex min-w-0 flex-col gap-1 rounded-2xl border border-line bg-surface p-3.5">
+    <section aria-label={column.displayName} data-family-person={column.id} data-layout="stacked" className="flex min-w-0 flex-col gap-1 rounded-2xl border border-line bg-surface p-3.5">
       <div className="flex items-center gap-2.5 pb-1.5">
         <AvatarBadge displayName={column.displayName} avatarColor={column.avatarColor} size={40} />
         <div className="flex min-w-0 flex-col">
