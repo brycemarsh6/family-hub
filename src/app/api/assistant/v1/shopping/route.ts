@@ -20,7 +20,7 @@ export const POST = assistantRoute<Record<string, never>, z.output<typeof shoppi
     // written — and stay in the audit log, because `changes` is pushed as we go.
     const results: { row: Awaited<ReturnType<typeof addGroceryItem>>["row"]; merged: boolean }[] = [];
     for (const item of items) {
-      const { row, merged } = await addGroceryItem(
+      const { row, merged, before } = await addGroceryItem(
         {
           name: item.name,
           quantity: item.quantity,
@@ -36,6 +36,8 @@ export const POST = assistantRoute<Record<string, never>, z.output<typeof shoppi
         recordId: row.id,
         action: merged ? "update" : "create",
         summary: merged ? { mergedQuantityAdded: item.quantity, quantity: row.quantity } : item,
+        before,
+        after: row,
       });
       results.push({ row, merged });
     }

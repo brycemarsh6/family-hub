@@ -15,6 +15,8 @@ export const POST = assistantRoute<Record<string, never>, z.output<typeof fromLo
         recordId: row.id,
         action: "create",
         summary: { via: "fromLowInventory", fromInventoryId: row.pantryItemId },
+        before: null,
+        after: row,
       });
     }
     return { status: 201, data: { items: await toShoppingItems(rows, rows.map((r) => r.id)) } };

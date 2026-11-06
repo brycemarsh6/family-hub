@@ -15,7 +15,7 @@ import "server-only";
 // take an `actorUserId` — null when the caller has no person to attribute.
 
 import { db } from "@/lib/db";
-import type { GroceryItem } from "@/generated/prisma/client";
+import type { GroceryItem, Prisma } from "@/generated/prisma/client";
 import { isLow, toCategory, toLocation, toStore } from "@/lib/constants";
 import { tokens } from "@/lib/match";
 
@@ -26,6 +26,22 @@ const floorQuantity = (n: number) => Math.max(1, round2(n));
 
 /** The comparison key for "is this the same thing already on the list". */
 const nameKey = (name: string) => tokens(name).join(" ");
+
+/**
+ * Copy-taking (the audit log's undo copies): GroceryItem has no `updatedAt`,
+ * so a write can't be keyed on "the row is still what I read". Instead the
+ * write runs in a transaction that first locks the rows (`SELECT ... FOR
+ * UPDATE`, in id order so two lockers can't deadlock); every other writer
+ * waits, so the `before` read after the lock is exactly what the write then
+ * replaces, and the row the write returns is exactly what it left.
+ */
+async function lockGroceryRows(tx: Prisma.TransactionClient, ids: string[]) {
+  if (ids.length === 0) return;
+  await tx.$queryRaw`SELECT "id" FROM "GroceryItem" WHERE "id" = ANY(${ids}) ORDER BY "id" FOR UPDATE`;
+}
+
+/** A row as one write replaced it (`before`) and left it (`after`). */
+export type GroceryCopies = { before: GroceryItem; after: GroceryItem };
 
 export async function addGroceryItem(
   fields: {
@@ -38,7 +54,7 @@ export async function addGroceryItem(
     note?: string | null;
   },
   options: { actorUserId: string | null; mergeIntoExisting?: boolean },
-): Promise<{ row: GroceryItem; merged: boolean }> {
+): Promise<{ row: GroceryItem; merged: boolean; before: GroceryItem | null }> {
   const name = fields.name.trim();
   const quantity =
     Number.isFinite(fields.quantity) && fields.quantity > 0
@@ -63,21 +79,27 @@ export async function addGroceryItem(
         // so parallel adds onto the same row can't overwrite each other's
         // total the way read-then-write did. Only the incoming amount is
         // rounded; the stored value is never re-rounded by a round trip.
-        // `checked: false` in the where makes the add land only on a row that
-        // is still unchecked: if it was ticked or deleted since the lookup,
-        // the count is 0 and we fall through to a fresh line (otherwise the
-        // added quantity would ride along into the next put-away).
+        // The row is locked first (see lockGroceryRows) so `before` is exactly
+        // what this add replaced, and the add lands only on a row that is
+        // still unchecked: if it was ticked or deleted since the lookup we
+        // fall through to a fresh line (otherwise the added quantity would
+        // ride along into the next put-away).
         // Not covered: parallel adds of a NEW name each find no row and each
         // create one (no quantity is lost, but duplicates are possible).
-        const updated = await db.groceryItem.updateMany({
-          where: { id: existing.id, checked: false },
-          data: { quantity: { increment: round2(quantity) } },
-        });
-        if (updated.count > 0) {
-          const row = await db.groceryItem.findUnique({
+        const copies = await db.$transaction(async (tx) => {
+          await lockGroceryRows(tx, [existing.id]);
+          const before = await tx.groceryItem.findUnique({
             where: { id: existing.id },
           });
-          if (row) return { row, merged: true };
+          if (!before || before.checked) return null;
+          const after = await tx.groceryItem.update({
+            where: { id: existing.id },
+            data: { quantity: { increment: round2(quantity) } },
+          });
+          return { before, after };
+        });
+        if (copies) {
+          return { row: copies.after, merged: true, before: copies.before };
         }
       }
     }
@@ -96,21 +118,45 @@ export async function addGroceryItem(
       addedById: options.actorUserId,
     },
   });
-  return { row, merged: false };
+  return { row, merged: false, before: null };
 }
 
-/** Tick or untick several rows at once; returns how many rows matched. */
-export async function setGroceryChecked(
+/** Tick or untick rows inside an open transaction; the rows must be locked. */
+async function setCheckedIn(
+  tx: Prisma.TransactionClient,
   ids: string[],
   checked: boolean,
-): Promise<number> {
-  const result = await db.groceryItem.updateMany({
+) {
+  await tx.groceryItem.updateMany({
     where: { id: { in: ids } },
     // Record when it was ticked off, so checked items can be listed
     // most-recent-first.
     data: { checked, checkedAt: checked ? new Date() : null },
   });
-  return result.count;
+}
+
+/**
+ * Tick or untick several rows at once, with a before/after copy of every row
+ * that exists (a missing id simply has no entry). Locked first, see
+ * lockGroceryRows.
+ */
+export async function setGroceryCheckedWithCopies(
+  ids: string[],
+  checked: boolean,
+): Promise<Map<string, GroceryCopies>> {
+  return db.$transaction(async (tx) => {
+    await lockGroceryRows(tx, ids);
+    const before = await tx.groceryItem.findMany({ where: { id: { in: ids } } });
+    await setCheckedIn(tx, ids, checked);
+    const after = await tx.groceryItem.findMany({ where: { id: { in: ids } } });
+    const afterById = new Map(after.map((row) => [row.id, row]));
+    const copies = new Map<string, GroceryCopies>();
+    for (const row of before) {
+      const next = afterById.get(row.id);
+      if (next) copies.set(row.id, { before: row, after: next });
+    }
+    return copies;
+  });
 }
 
 /** Flip one row's checked state; null when the row is missing. */
@@ -148,7 +194,13 @@ export async function setGroceryQuantity(
  */
 export async function editGroceryItem(
   id: string,
-  edits: {
+  edits: GroceryEdits,
+): Promise<GroceryItem | null> {
+  const copies = await patchGroceryItemWithCopies(id, edits, undefined);
+  return copies ? copies.after : null;
+}
+
+type GroceryEdits = {
     name?: string;
     quantity?: number;
     unit?: string | null;
@@ -158,18 +210,42 @@ export async function editGroceryItem(
     location?: string | null;
     /** Null or blank clears the note; undefined leaves it alone. */
     note?: string | null;
-  },
-): Promise<GroceryItem | null> {
-  const current = await db.groceryItem.findUnique({
-    where: { id },
-    select: { category: true },
-  });
-  if (!current) return null;
+};
 
+/**
+ * editGroceryItem plus an optional tick/untick, as ONE locked transaction,
+ * returning the row before and after the whole patch (the audit log's undo
+ * copies). Null when the row is missing.
+ */
+export async function patchGroceryItemWithCopies(
+  id: string,
+  edits: GroceryEdits,
+  checked: boolean | undefined,
+): Promise<GroceryCopies | null> {
+  return db.$transaction(async (tx) => {
+    await lockGroceryRows(tx, [id]);
+    const current = await tx.groceryItem.findUnique({ where: { id } });
+    if (!current) return null;
+    let after = current;
+    if (Object.keys(edits).length > 0) after = await editIn(tx, id, edits, current);
+    if (checked !== undefined) {
+      await setCheckedIn(tx, [id], checked);
+      after = (await tx.groceryItem.findUnique({ where: { id } })) ?? after;
+    }
+    return { before: current, after };
+  });
+}
+
+async function editIn(
+  tx: Prisma.TransactionClient,
+  id: string,
+  edits: GroceryEdits,
+  current: GroceryItem,
+): Promise<GroceryItem> {
   const category =
     edits.category === undefined ? undefined : toCategory(edits.category);
 
-  return db.groceryItem.update({
+  return tx.groceryItem.update({
     where: { id },
     data: {
       name: edits.name === undefined ? undefined : edits.name.trim(),

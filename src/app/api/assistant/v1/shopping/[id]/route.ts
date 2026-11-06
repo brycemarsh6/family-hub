@@ -3,7 +3,7 @@ import { ApiError, notFound } from "@/lib/assistant/errors";
 import { shoppingPatchBody } from "@/lib/assistant/schemasShopping";
 import { getShoppingItem } from "@/lib/assistant/shoppingReads";
 import { didAssistantCreate } from "@/lib/assistant/audit";
-import { deleteGroceryItem, editGroceryItem, setGroceryChecked } from "@/lib/groceryWrites";
+import { deleteGroceryItem, patchGroceryItemWithCopies } from "@/lib/groceryWrites";
 import type { z } from "zod";
 
 export const PATCH = assistantRoute<{ id: string }, z.output<typeof shoppingPatchBody>>({
@@ -11,13 +11,18 @@ export const PATCH = assistantRoute<{ id: string }, z.output<typeof shoppingPatc
   body: shoppingPatchBody,
   handler: async ({ params, body, changes }) => {
     const { checked, ...edits } = body;
-    if (Object.keys(edits).length > 0) {
-      if (!(await editGroceryItem(params.id, edits))) throw notFound();
-    }
-    if (checked !== undefined) {
-      if ((await setGroceryChecked([params.id], checked)) === 0) throw notFound();
-    }
-    changes.push({ model: "GroceryItem", recordId: params.id, action: "update", summary: body });
+    // One locked transaction for the edit and the tick, so the copies are
+    // exactly what this request replaced and left.
+    const copies = await patchGroceryItemWithCopies(params.id, edits, checked);
+    if (!copies) throw notFound();
+    changes.push({
+      model: "GroceryItem",
+      recordId: params.id,
+      action: "update",
+      summary: body,
+      before: copies.before,
+      after: copies.after,
+    });
     const item = await getShoppingItem(params.id);
     if (!item) throw notFound();
     return { data: { item } };
@@ -39,8 +44,16 @@ export const DELETE = assistantRoute<{ id: string }>({
         "Winnie can only delete items she added. Check it off instead, or ask a family member.",
       );
     }
-    await deleteGroceryItem(params.id); // P2025 on a missing row -> 404 via the wrapper
-    changes.push({ model: "GroceryItem", recordId: params.id, action: "delete", summary: null });
+    // The delete returns the row it removed: that is the `before` copy.
+    const removed = await deleteGroceryItem(params.id); // P2025 on a missing row -> 404 via the wrapper
+    changes.push({
+      model: "GroceryItem",
+      recordId: params.id,
+      action: "delete",
+      summary: null,
+      before: removed,
+      after: null,
+    });
     return { data: { deleted: params.id } };
   },
 });
