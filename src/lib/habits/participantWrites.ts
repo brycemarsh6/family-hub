@@ -1,9 +1,9 @@
 import "server-only";
 
 // Who takes part in a habit and in what order: the household list a Together
-// habit is made with, joining Everyone habits, one person's order, and
-// replacing a participant set. Split from habitWrites.ts (the only other
-// writer of these tables) to keep both under the line cap. Same rules: no
+// habit is made with, where a new habit lands in each person's list, joining
+// Everyone habits, one person's order, and replacing a participant set. Split
+// from habitWrites.ts to keep both under the line cap. Same rules: no
 // auth, no `revalidatePath`; a transaction client joins the caller's
 // transaction, the default `db` opens its own.
 
@@ -24,17 +24,30 @@ export async function householdParticipantIds(client: Prisma.TransactionClient =
   return (await loadHouseholdPeople(client)).map((person) => person.id);
 }
 
-/** Makes the habit's participants exactly `participantIds`: new people go to the end, dropped people lose only their row. */
+/**
+ * Where a new habit goes in each person's own list: one past that person's
+ * highest order, or 0 for someone with no habits yet. The one rule behind
+ * creating a habit, replacing participants, and both joins.
+ */
+export async function nextSortOrders(client: Prisma.TransactionClient, userIds: readonly string[]): Promise<Map<string, number>> {
+  const next = new Map<string, number>(userIds.map((userId) => [userId, 0]));
+  if (userIds.length === 0) return next;
+  const theirs = await client.habitParticipant.findMany({ where: { userId: { in: [...userIds] } }, select: { userId: true, sortOrder: true } });
+  for (const row of theirs) next.set(row.userId, Math.max(next.get(row.userId) ?? 0, row.sortOrder + 1));
+  return next;
+}
+
+/** Makes the habit's participants exactly `participantIds`: new people go to the end of their own list, dropped people lose only their row. */
 export async function replaceParticipants(tx: Client, habitId: string, participantIds: readonly string[]): Promise<void> {
   const wanted = [...new Set(participantIds)];
-  const current = await tx.habitParticipant.findMany({ where: { habitId }, select: { userId: true, sortOrder: true } });
+  const current = await tx.habitParticipant.findMany({ where: { habitId }, select: { userId: true } });
   const have = new Set(current.map((p) => p.userId));
   await tx.habitParticipant.deleteMany({ where: { habitId, userId: { notIn: wanted } } });
   const added = wanted.filter((userId) => !have.has(userId));
   if (added.length === 0) return;
-  const next = current.reduce((max, p) => Math.max(max, p.sortOrder), -1) + 1;
+  const next = await nextSortOrders(tx, added);
   await tx.habitParticipant.createMany({
-    data: added.map((userId, i) => ({ habitId, userId, sortOrder: next + i })),
+    data: added.map((userId) => ({ habitId, userId, sortOrder: next.get(userId) ?? 0 })),
     skipDuplicates: true,
   });
 }
@@ -48,12 +61,12 @@ export async function joinEveryoneHabits(userId: string, client: Prisma.Transact
   return atomically(client, async (tx) => {
     const [habits, mine] = await Promise.all([
       tx.habit.findMany({ where: { everyone: true, archivedAt: null }, select: { id: true }, orderBy: { createdAt: "asc" } }),
-      tx.habitParticipant.findMany({ where: { userId }, select: { habitId: true, sortOrder: true } }),
+      tx.habitParticipant.findMany({ where: { userId }, select: { habitId: true } }),
     ]);
     const inHabit = new Set(mine.map((p) => p.habitId));
     const joining = habits.filter((habit) => !inHabit.has(habit.id));
     if (joining.length === 0) return 0;
-    const next = mine.reduce((max, p) => Math.max(max, p.sortOrder), -1) + 1;
+    const next = (await nextSortOrders(tx, [userId])).get(userId) ?? 0;
     const { count } = await tx.habitParticipant.createMany({
       data: joining.map((habit, i) => ({ habitId: habit.id, userId, sortOrder: next + i })),
       skipDuplicates: true,
@@ -77,9 +90,7 @@ export async function joinHouseholdToHabit(habitId: string, client: Prisma.Trans
     const have = new Set(inHabit.map((p) => p.userId));
     const joining = household.filter((userId) => !have.has(userId));
     if (joining.length === 0) return 0;
-    const theirs = await tx.habitParticipant.findMany({ where: { userId: { in: joining } }, select: { userId: true, sortOrder: true } });
-    const next = new Map<string, number>();
-    for (const row of theirs) next.set(row.userId, Math.max(next.get(row.userId) ?? 0, row.sortOrder + 1));
+    const next = await nextSortOrders(tx, joining);
     const { count } = await tx.habitParticipant.createMany({
       data: joining.map((userId) => ({ habitId, userId, sortOrder: next.get(userId) ?? 0 })),
       skipDuplicates: true,

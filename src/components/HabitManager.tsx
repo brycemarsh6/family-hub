@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Archive, ChevronRight, Plus, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { HabitIcon } from "./HabitIcon";
+import { QUIT_TAG_CLASS } from "./HabitRow";
 import { SortableList } from "./SortableList";
 import { reorderHabits, restoreHabit, type HabitActionResult } from "@/app/actions/habits";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
@@ -72,10 +73,10 @@ function RowBody({ item }: { item: HabitManagerItem }) {
         <HabitIcon name={item.icon} kind={item.kind} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-base font-semibold">
-          {item.title}
-          {item.mode === "quit" && " (quit)"}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-base font-semibold">{item.title}</span>
+          {item.mode === "quit" && <span className={QUIT_TAG_CLASS}>Quit</span>}
+        </div>
         <span className="text-sm text-muted">{detailLine(item)}</span>
       </div>
     </>

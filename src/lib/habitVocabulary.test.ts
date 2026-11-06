@@ -127,7 +127,7 @@ test("the editor's Who strip: three choices with the approved words and hints", 
     HABIT_WHO_CHOICES.map((choice) => [choice.key, choice.label, choice.hint]),
     [
       ["me", "Just me", "One person: you"],
-      ["together", "Together", "Together: one check counts for both"],
+      ["together", "Together", "Together: one check counts for everyone"],
       ["each", "Side by side", "Side by side: everyone checks their own"],
     ],
   );

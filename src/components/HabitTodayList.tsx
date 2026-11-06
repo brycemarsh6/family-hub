@@ -149,7 +149,9 @@ export function HabitTodayList({
                           ? run({ type: "uncheck", habitId: row.id }, () => uncheckHabit(row.id, undefined, dayOf(row)))
                           : run({ type: "check", habitId: row.id }, () => checkHabit(row.id, undefined, dayOf(row)))
                       }
-                      onSkip={() => run({ type: "skip", habitId: row.id }, () => skipHabit(row.id))}
+                      onSkip={() =>
+                        run({ type: row.carriedFrom ? "skipCarried" : "skip", habitId: row.id }, () => skipHabit(row.id, undefined, dayOf(row)))
+                      }
                       onUnskip={() => run({ type: "unskip", habitId: row.id }, () => unskipHabit(row.id))}
                     />
                   </li>

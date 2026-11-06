@@ -30,7 +30,7 @@ import {
   vacationFromRow,
   type HabitFields,
 } from "./habitRows";
-import { atomically, householdParticipantIds, joinHouseholdToHabit, replaceParticipants } from "./participantWrites";
+import { atomically, householdParticipantIds, joinHouseholdToHabit, nextSortOrders, replaceParticipants } from "./participantWrites";
 import { computeStreaks, type StreakResult } from "./streaks";
 import type { DayRange } from "./types";
 
@@ -55,13 +55,14 @@ export async function createHabit(
   const everyone = input.participantIds === "household" || input.everyone === true;
   const ids = input.participantIds === "household" ? await householdParticipantIds(client) : input.participantIds;
   const userIds = [...new Set(ids)];
+  const next = await nextSortOrders(client, userIds);
   return client.habit.create({
     data: {
       ...habitColumns(input.fields),
       everyone,
       title: input.fields.title.trim(),
       schedule: toHabitSchedule(input.fields.schedule),
-      participants: { create: userIds.map((userId, sortOrder) => ({ userId, sortOrder })) },
+      participants: { create: userIds.map((userId) => ({ userId, sortOrder: next.get(userId) ?? 0 })) },
     },
   });
 }

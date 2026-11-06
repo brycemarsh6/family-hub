@@ -103,7 +103,7 @@ export function habitWhoLabel(habit: { people: number; everyone: boolean; sharin
 /** The editor's Who strip: its button words and the line under it. */
 export const HABIT_WHO_CHOICES: readonly { key: HabitWho; label: string; hint: string }[] = [
   { key: "me", label: "Just me", hint: "One person: you" },
-  { key: "together", label: HABIT_WHO_LABELS.together, hint: "Together: one check counts for both" },
+  { key: "together", label: HABIT_WHO_LABELS.together, hint: "Together: one check counts for everyone" },
   { key: "each", label: HABIT_WHO_LABELS.each, hint: "Side by side: everyone checks their own" },
 ];
 

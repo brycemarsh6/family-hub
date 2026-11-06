@@ -15,8 +15,8 @@ import { loadHouseholdPeople, type HouseholdPerson } from "./householdPeople";
 import { toHabitSharing, type HabitSharing } from "./habitVocabulary";
 
 // The reader for habit rows, so pages never query the habit tables directly.
-// PR A has one loader; later PRs add theirs here (or in a sibling file when
-// this passes 350 lines). No auth: the caller (a page or action) has already
+// It holds the Plans & Goals, Today, roster and tap loaders; a new reader goes
+// in a sibling file when this passes 350 lines. No auth: the caller (a page or action) has already
 // checked the session and decides what the viewer may see via `access.ts`.
 
 /** Everything the Plans & Goals views need to know about one habit. */

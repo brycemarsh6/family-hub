@@ -8,6 +8,8 @@ const row = (over: Partial<HabitRowState> = {}): HabitRowState => ({
   viewerId: "me",
   doneToday: false,
   skippedToday: false,
+  carriedFrom: null,
+  dueState: "open",
   participants: [
     { userId: "me", done: false, skipped: false },
     { userId: "kid", done: false, skipped: false },
@@ -71,4 +73,23 @@ test("other rows and an unknown habit id come back unchanged", () => {
   assert.equal(out[0], rows[0]);
   assert.equal(out[1].doneToday, true);
   assert.deepEqual(applyHabitChange(rows, { type: "check", habitId: "nope" }), rows);
+});
+
+test("skipCarried drops a carried row that is not due today", () => {
+  const carried = row({ carriedFrom: { year: 2026, month: 11, day: 3 }, dueState: "none" });
+  const out = applyHabitChange([carried, row({ id: "h2" })], { type: "skipCarried", habitId: "h1" });
+  assert.deepEqual(out.map((r) => r.id), ["h2"]);
+});
+
+test("skipCarried on a carried row that is also due today ends the carry and keeps today's row open", () => {
+  const carried = row({ carriedFrom: { year: 2026, month: 11, day: 3 }, dueState: "required" });
+  const [out] = applyHabitChange([carried], { type: "skipCarried", habitId: "h1" });
+  assert.equal(out.carriedFrom, null);
+  assert.equal(out.skippedToday, false);
+  assert.equal(out.doneToday, false);
+});
+
+test("skipCarried on a row that is not carried changes nothing", () => {
+  const plain = row();
+  assert.deepEqual(applyHabitChange([plain], { type: "skipCarried", habitId: "h1" }), [plain]);
 });

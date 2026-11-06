@@ -13,11 +13,16 @@ export type HabitRowState = {
   viewerId: string;
   doneToday: boolean;
   skippedToday: boolean;
+  /** The missed day a carried row stands for, else null. Only its presence matters here. */
+  carriedFrom: unknown | null;
+  /** "required", "open" or "none" today: a "none" row is on Today only because it is carried or finished. */
+  dueState: string;
   participants: HabitMemberState[];
 };
 
 export type HabitChange = {
-  type: "check" | "uncheck" | "skip" | "unskip";
+  /** "skipCarried" skips the missed day a carried row stands for (decision 89), not today. */
+  type: "check" | "uncheck" | "skip" | "unskip" | "skipCarried";
   habitId: string;
   /** Whose row, for an Each habit; defaults to the viewer. Ignored for Together. */
   userId?: string;
@@ -36,10 +41,17 @@ function applyToFlags(flags: Flags, type: HabitChange["type"]): Flags {
       return flags.done ? { done: false, skipped: flags.skipped } : flags;
     case "unskip":
       return flags.skipped ? { done: flags.done, skipped: false } : flags;
+    case "skipCarried":
+      return flags;
   }
 }
 
-function changeRow<T extends HabitRowState>(row: T, change: HabitChange): T {
+function changeRow<T extends HabitRowState>(row: T, change: HabitChange): T | null {
+  // Skipping the missed day ends the carry. A row only on Today because of it (not due today) leaves; a row due today stays, unchecked.
+  if (change.type === "skipCarried") {
+    if (row.carriedFrom === null) return row;
+    return row.dueState === "none" ? null : { ...row, carriedFrom: null };
+  }
   const together = row.sharing === "together";
   const target = together ? null : (change.userId ?? row.viewerId);
   const participants = row.participants.map((member) => {
@@ -57,5 +69,5 @@ function changeRow<T extends HabitRowState>(row: T, change: HabitChange): T {
 
 /** The rows with `change` applied to the one it names; everything else is returned as is. */
 export function applyHabitChange<T extends HabitRowState>(rows: T[], change: HabitChange): T[] {
-  return rows.map((row) => (row.id === change.habitId ? changeRow(row, change) : row));
+  return rows.flatMap((row) => (row.id === change.habitId ? (changeRow(row, change) ?? []) : [row]));
 }

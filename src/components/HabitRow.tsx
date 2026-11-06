@@ -7,16 +7,18 @@ import { LogButton } from "./LogButton";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
 import { ANYTIME_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
 import type { HabitRowView } from "@/lib/habitsRead";
-import { formatDayLabel } from "@/lib/mealPlanDates";
+import { dayOfWeek } from "@/lib/householdDate";
+import { FULL_DAY_NAMES, formatDayLabel } from "@/lib/mealPlanDates";
 
+/** The neutral "Quit" tag, shared with Manage (decision 90: amber is only for warnings). */
+export const QUIT_TAG_CLASS = "rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted-strong whitespace-nowrap";
 const TAG_CLASS = "rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn whitespace-nowrap";
-const QUIT_TAG_CLASS = "rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted-strong whitespace-nowrap";
 
 /**
  * One Today row: an icon tile, the title (with Carried over / Quit tags), a
  * line of who and when, and the round 44px check. It holds no state; the list
  * owns the optimistic flags. A row that is not yet checked or skipped swipes
- * left for "Skip today"; a skipped row swipes for "Undo skip" (its check is
+ * left for "Skip today" (on a carried row, "Skip Thursday": the missed day, decision 89); a skipped row swipes for "Undo skip" (its check is
  * switched off, because a skipped day is left alone until the skip is undone).
  */
 export function HabitRow({
@@ -28,6 +30,7 @@ export function HabitRow({
   row: HabitRowView;
   /** Check it, or undo the check when it is already done. */
   onToggle: () => void;
+  /** Skip today, or the carried day when the row is carried over. */
   onSkip: () => void;
   onUnskip: () => void;
 }) {
@@ -48,10 +51,12 @@ export function HabitRow({
       },
     ];
   } else if (!row.doneToday) {
+    // A carried row stands for a missed day: its skip is for that day, not today.
+    const when = row.carriedFrom ? FULL_DAY_NAMES[dayOfWeek(row.carriedFrom)] : "today";
     actions = [
       {
-        label: "Skip today",
-        accessibleLabel: `Skip ${row.title} today`,
+        label: `Skip ${when}`,
+        accessibleLabel: `Skip ${row.title} ${row.carriedFrom ? `for ${when}` : "today"}`,
         icon: <SkipForward aria-hidden="true" size={18} />,
         onAction: onSkip,
         tone: "neutral",

@@ -105,7 +105,7 @@ async function checkInput(input: HabitInput, alreadyOnHabit: readonly string[] =
   if (typeof input !== "object" || input === null) return { error: "Couldn't save it. Try again." };
   const title = typeof input.title === "string" ? input.title.trim() : "";
   if (!title) return { error: "Give it a name." };
-  if (title.length > HABIT_TITLE_MAX) return { error: `Keep the name under ${HABIT_TITLE_MAX} letters.` };
+  if (title.length > HABIT_TITLE_MAX) return { error: `Keep the name to ${HABIT_TITLE_MAX} letters or fewer.` };
   if (toHabitKind(input.kind) !== input.kind) return { error: "Pick habit or chore." };
   if (toHabitMode(input.mode) !== input.mode) return { error: "Pick build or quit." };
   if (toHabitSharing(input.sharing) !== input.sharing) return { error: "Pick who it is for." };
