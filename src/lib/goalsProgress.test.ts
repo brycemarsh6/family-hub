@@ -327,7 +327,7 @@ const hoursHabit = (minutes: number, over: Partial<NonNullable<PlanHabit["hours"
   spec: { schedule: "weekly", times: 1 },
   schedule: { schedule: "weekly", times: 1 },
   logs: [],
-  hours: { targetMinutes: 600, paceDays: "monsat", entries: [{ day: d(2026, 11, 2), minutes, userId: "u1" }], ...over },
+  hours: { targetMinutes: 600, paceDays: "monsat", forUserId: "u1", entries: [{ day: d(2026, 11, 2), minutes, userId: "u1" }], ...over },
 });
 
 test("buildPlanItemView: an hours habit shows 'Calling · 6½ of 10 hours this week' with its bar, 0 of 1 until met", () => {
@@ -355,4 +355,13 @@ test("buildPlanItemView: last week's hours for the Sunday recap are counted from
   const view = buildPlanItemView(item(), hoursHabit(600), d(2026, 11, 1));
   assert.equal(view.done, true);
   assert.equal(buildPlanItemView(item(), hoursHabit(600), d(2026, 11, 8)).done, false, "the next week starts empty");
+});
+
+test("buildPlanItemView: an hours item with nobody to show reads as nothing this week (no bar, not counted)", () => {
+  const view = buildPlanItemView(item({ title: "Calling" }), hoursHabit(390, { forUserId: null }), TODAY);
+  assert.equal(view.hours?.forUserId, null);
+  assert.equal(view.hours?.done, 0);
+  assert.equal(view.windowLabel, null);
+  assert.deepEqual(weekSummary([{ items: [view] }]), { done: 0, total: 0 });
+  assert.deepEqual(weekTodo([{ items: [view] }], 5), []);
 });

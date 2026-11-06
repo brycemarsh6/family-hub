@@ -1,6 +1,6 @@
 import { HOUSEHOLD_TIME_ZONE } from "./constants";
 import type { HabitPeriod, PlanKind } from "./goalVocabulary";
-import { goalLeftLine, planHoursView, type HoursRowView, type PlanHours } from "./habitsHours";
+import { goalLeftLine, planHoursView, type PlanHours, type PlanHoursView } from "./habitsHours";
 import { distinctDays, windowProgress } from "./habits/progress";
 import type { HabitLogDay, ScheduleSpec } from "./habits/types";
 import {
@@ -49,7 +49,7 @@ export type PlanHabit = {
   /** The day the habit was made, for a daily habit's first-week target. */
   startDay?: CalendarDate | null;
   logs: HabitLogDay[];
-  /** An hours habit's goal and the shown person's entries (decision 198), else null or left off. */
+  /** An hours habit's goal, everyone's entries and whose week is shown (decision 198), else null or left off. */
   hours?: PlanHours | null;
 };
 
@@ -60,8 +60,8 @@ export type PlanItemView = PlanItemRow & {
   done: boolean;
   /** Whether today has a check; one tap a day, so this is what the round button shows. */
   doneToday: boolean;
-  /** An hours habit's week, else null or left off. Such an item counts as 1 of 1 this week once the goal is met, so the week totals and "done" read it right. */
-  hours?: HoursRowView | null;
+  /** An hours habit's week, else null or left off. Such an item counts as 1 of 1 this week once the goal is met, so the week totals and "done" read it right. With `forUserId` null nobody's week is shown: it counts for nothing. */
+  hours?: PlanHoursView | null;
 };
 
 // ---- Habit counts ----
@@ -104,6 +104,7 @@ export function buildPlanItemView(
   if (!habit || !habit.spec) return unlinkedHabitView(item);
   if (habit.hours) {
     const hours = planHoursView(habit.hours, today);
+    if (hours.forUserId === null) return { ...item, timesPerPeriod: 1, period: "week", count: 0, target: 0, windowLabel: null, done: false, doneToday: false, hours };
     return { ...item, timesPerPeriod: 1, period: "week", count: hours.met ? 1 : 0, target: 1, windowLabel: "this week", done: hours.met, doneToday: false, hours };
   }
   const progress = windowProgress(habit.spec, distinctDays(habit.logs), today, habit.startDay);

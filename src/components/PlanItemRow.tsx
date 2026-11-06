@@ -14,7 +14,7 @@ import { goalHoursLine } from "@/lib/habitsHours";
  * the list around it owns the optimistic counts. Swipe actions wrap the row
  * only when the caller passes some. An hours habit (`item.hours`) shows its bar
  * and "Calling · 6½ of 10 hours this week" and a + that opens the log sheet
- * (`onLogTime`), never the round check (decision 198).
+ * (`onLogTime`), never the round check (decision 198). When no one's week can be shown (`hours.forUserId` null) it is the title alone.
  */
 export function PlanItemRow({
   item,
@@ -37,7 +37,13 @@ export function PlanItemRow({
 }) {
   const row = (
     <div className="flex min-h-14 items-center justify-between gap-3 px-3">
-      {item.kind === "habit" && item.hours && (
+      {item.kind === "habit" && item.hours && item.hours.forUserId === null && (
+        <div className="min-w-0 py-2">
+          <p className="text-base font-medium">{item.title}</p>
+          <p className="text-sm text-muted">Hours habit</p>
+        </div>
+      )}
+      {item.kind === "habit" && item.hours && item.hours.forUserId !== null && (
         <>
           <div className="flex min-w-0 flex-1 flex-col gap-1 py-2">
             <p className="text-base font-medium">{goalHoursLine(item.title, item.hours)}</p>

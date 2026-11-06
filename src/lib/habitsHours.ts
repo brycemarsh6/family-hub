@@ -1,7 +1,7 @@
-import type { PaceDays } from "./habitHoursVocabulary";
+import { HOURS_LIMITS, HOURS_PHRASES, unitFor, type PaceDays } from "./habitHoursVocabulary";
 import { canLogFor } from "./habits/access";
 import { hoursFromRow, type StoredHoursFields } from "./habits/habitRows";
-import { countedDaysLeft, hoursStreakAfter, hoursWeek, weekTotals, type HoursWeek } from "./habits/hours";
+import { countedDaysLeft, hoursStreakAfter, hoursWeek, paceMinutesPerDay, weekTotals, type HoursWeek } from "./habits/hours";
 import { compareDays } from "./habits/schedule";
 import type { StreakCache } from "./habits/streaks";
 import type { DueState, HabitAccess, HabitActor, TimeEntry, Vacation } from "./habits/types";
@@ -20,22 +20,14 @@ import { SHORT_DAY_NAMES } from "./mealPlanDates";
 // goal-plan view and the stats page's hours data. The rules (week totals, the
 // pace, the weeks streak) are in `habits/hours.ts`; callers pass `today`.
 
-/** The pace rounds up to the next 15 minutes (the same step `habits/hours.ts` uses). */
-const PACE_ROUND_MINUTES = 15;
-
 const QUARTERS = ["", "¼", "½", "¾"] as const;
 
 /** Hours as a number of quarters: 90 is "1½", 30 is "½", 600 is "10", 0 is "0" (decision 187). */
 export function formatHours(minutes: number): string {
-  const quarters = Math.round(Math.max(0, minutes) / PACE_ROUND_MINUTES);
+  const quarters = Math.round(Math.max(0, minutes) / HOURS_LIMITS.paceStep);
   const whole = Math.floor(quarters / 4);
   const part = QUARTERS[quarters % 4];
   return whole === 0 ? part || "0" : `${whole}${part}`;
-}
-
-/** "hour" up to and including one hour ("1 hour", "½ hour"), else "hours". */
-function unitFor(minutes: number): "hour" | "hours" {
-  return minutes > 0 && minutes <= 60 ? "hour" : "hours";
 }
 
 /** An amount to add or list: "30 min", "1 hour", "1½ hours", "2 hours". */
@@ -65,19 +57,26 @@ export type HoursRowView = {
   paceDays: PaceDays;
   /** The counted days left this week, today included (what the pace divided by). */
   daysLeft: number;
+  /** Minutes logged last week, so the log sheet can say what a last-week entry adds up to (decision 191). Every builder sets it; a hand-made view may leave it off (read as 0). */
+  lastWeek?: number;
+  /** The household's today as "YYYY-MM-DD", from the server: the log sheet's Today chip and the last day it accepts. Every builder sets it; the sheet falls back to the browser's clock without it. */
+  today?: string;
 };
+
+/** What a row view needs beyond the week itself. */
+type RowContext = { lastWeek?: number; today?: string };
 
 /** "6½ of 10 hours this week" for the week now, or "... last week" for the recap. */
 export function hoursDoneText(done: number, target: number, when: "this week" | "last week" = "this week"): string {
-  return `${formatHours(done)} of ${formatHours(target)} ${unitFor(target)} ${when}${done >= target ? " · done" : ""}`;
+  return `${formatHours(done)} of ${formatHours(target)} ${unitFor(target)} ${when}${done >= target ? HOURS_PHRASES.done : ""}`;
 }
 
-function viewOf(done: number, target: number, paceDays: PaceDays, daysLeft: number): HoursRowView {
+function viewOf(done: number, target: number, paceDays: PaceDays, daysLeft: number, context: RowContext): HoursRowView {
   const left = Math.max(0, target - done);
   const met = done >= target;
-  const perDay = met || daysLeft === 0 ? null : Math.ceil(left / daysLeft / PACE_ROUND_MINUTES) * PACE_ROUND_MINUTES;
-  const leftShort = met ? null : `${formatHours(left)} ${unitFor(left)} left`;
-  const pace = perDay === null ? "" : daysLeft === 1 ? " · today" : ` · about ${formatHours(perDay)} a day`;
+  const perDay = met ? null : paceMinutesPerDay(left, daysLeft);
+  const leftShort = met ? null : `${formatHours(left)} ${unitFor(left)} ${HOURS_PHRASES.left}`;
+  const pace = perDay === null ? "" : daysLeft === 1 ? HOURS_PHRASES.today : HOURS_PHRASES.aboutADay(formatHours(perDay));
   return {
     done,
     target,
@@ -88,17 +87,29 @@ function viewOf(done: number, target: number, paceDays: PaceDays, daysLeft: numb
     fraction: target > 0 ? Math.min(1, done / target) : 0,
     paceDays,
     daysLeft,
+    lastWeek: context.lastWeek,
+    today: context.today,
   };
 }
 
 /** A week's result as a row view; `daysLeft` is `countedDaysLeft` for the same day. */
-export function hoursRowView(week: Pick<HoursWeek, "doneMinutes" | "targetMinutes">, paceDays: PaceDays, daysLeft: number): HoursRowView {
-  return viewOf(week.doneMinutes, week.targetMinutes, paceDays, daysLeft);
+export function hoursRowView(week: Pick<HoursWeek, "doneMinutes" | "targetMinutes">, paceDays: PaceDays, daysLeft: number, context: RowContext): HoursRowView {
+  return viewOf(week.doneMinutes, week.targetMinutes, paceDays, daysLeft, context);
+}
+
+/** What `hoursRowView` needs of the days: last week's minutes from `entries` (one person's), and `today` written as "YYYY-MM-DD". */
+function contextFor(entries: readonly TimeEntry[], today: CalendarDate): RowContext {
+  return { lastWeek: weekTotals(entries, today, 2)[0], today: formatCalendarDate(today) };
 }
 
 /** The view after `minutes` more are logged this week (the optimistic tap); the same words the server would send. */
 export function addHoursMinutes(view: HoursRowView, minutes: number): HoursRowView {
-  return viewOf(view.done + Math.max(0, minutes), view.target, view.paceDays, view.daysLeft);
+  return viewOf(view.done + Math.max(0, minutes), view.target, view.paceDays, view.daysLeft, view);
+}
+
+/** Decision 191's line for a day in last week: "7 of 6 hours last week", once `minutes` more are counted. */
+export function lastWeekAfterText(view: HoursRowView, minutes: number): string {
+  return `${formatHours((view.lastWeek ?? 0) + minutes)} of ${formatHours(view.target)} ${unitFor(view.target)} last week`;
 }
 
 /** "Calling · 6½ of 10 hours this week" (the goal page and This week, decision 198). */
@@ -133,8 +144,9 @@ export function hoursStreakOf(habit: Partial<StoredHoursFields>, cache: StreakCa
 
 /** One person's view for this week; `entries` may hold other people's too. */
 export function hoursViewFor(spec: HoursSpec, userId: string, entries: readonly TimeEntry[], today: CalendarDate, vacations: readonly Vacation[]): HoursRowView {
-  const week = hoursWeek({ entries: entries.filter((entry) => entry.userId === userId), targetMinutes: spec.targetMinutes, paceDays: spec.paceDays, today, vacations });
-  return hoursRowView(week, spec.paceDays, countedDaysLeft(today, spec.paceDays, vacations));
+  const own = entries.filter((entry) => entry.userId === userId);
+  const week = hoursWeek({ entries: own, targetMinutes: spec.targetMinutes, paceDays: spec.paceDays, today, vacations });
+  return hoursRowView(week, spec.paceDays, countedDaysLeft(today, spec.paceDays, vacations), contextFor(own, today));
 }
 
 /**
@@ -180,13 +192,21 @@ export function managerHours(habit: Partial<StoredHoursFields>): ManagerHours | 
 
 // ---- Goal plans ----
 
-/** What a goal's habit item reads of an hours habit: the goal and the one person's entries (the viewer's, else the first participant's). */
-export type PlanHours = { targetMinutes: number; paceDays: PaceDays; entries: TimeEntry[] };
+/**
+ * What a goal's habit item reads of an hours habit: the goal, everyone's
+ * entries, and `forUserId`, the one person the screen shows and logs for
+ * (`habitCheckTarget`, when they are on the habit; null shows nobody's week).
+ */
+export type PlanHours = { targetMinutes: number; paceDays: PaceDays; entries: TimeEntry[]; forUserId: string | null };
 
-/** The week holding `today` for a goal's habit item (no vacations are read there). */
-export function planHoursView(hours: PlanHours, today: CalendarDate): HoursRowView {
-  const week = hoursWeek({ entries: hours.entries, targetMinutes: hours.targetMinutes, paceDays: hours.paceDays, today, vacations: [] });
-  return hoursRowView(week, hours.paceDays, countedDaysLeft(today, hours.paceDays));
+/** An hours item's view: the week, and whose it is (null: no bar and no +). */
+export type PlanHoursView = HoursRowView & { forUserId: string | null };
+
+/** `forUserId`'s week holding `today` for a goal's habit item (no vacations are read there). */
+export function planHoursView(hours: PlanHours, today: CalendarDate): PlanHoursView {
+  const own = hours.entries.filter((entry) => entry.userId === hours.forUserId);
+  const week = hoursWeek({ entries: own, targetMinutes: hours.targetMinutes, paceDays: hours.paceDays, today, vacations: [] });
+  return { ...hoursRowView(week, hours.paceDays, countedDaysLeft(today, hours.paceDays), contextFor(own, today)), forUserId: hours.forUserId };
 }
 
 // ---- The stats page ----
@@ -249,7 +269,7 @@ export function buildHoursStats(input: HoursStatsInput): HoursStatsData {
   const recent = weekTotals(mine, today, 4).map(formatHours);
   const since = spec.since;
   return {
-    view: hoursRowView(week, spec.paceDays, countedDaysLeft(today, spec.paceDays, vacations)),
+    view: hoursRowView(week, spec.paceDays, countedDaysLeft(today, spec.paceDays, vacations), contextFor(mine, today)),
     week,
     tiles: { current: input.streak.current, best: input.streak.best, totalText: formatHours(mine.reduce((sum, entry) => sum + entry.minutes, 0)) },
     chartDays: week.byDay.map((minutes, index) => ({ day: formatCalendarDate(addCalendarDays(week.weekStart, index)), label: SHORT_DAY_NAMES[index], minutes })),

@@ -21,6 +21,23 @@ export function canSeeHabit(actor: HabitActor, habit: HabitAccess): boolean {
 }
 
 /**
+ * The query filter for another person's habits (their Report, their stats
+ * tiles): yours show in full, theirs only when not private. Spread it into a
+ * `where`.
+ */
+export function othersPrivateHidden(actor: HabitActor, subjectId: string): { isPrivate?: false } {
+  return subjectId === actor.userId ? {} : { isPrivate: false };
+}
+
+/**
+ * Whether a habit appears on the Whole family view at all: a private habit
+ * never does, for anyone (decision 102's family-wide cousin).
+ */
+export function showsOnFamilyView(habit: { isPrivate: boolean }): boolean {
+  return !habit.isPrivate;
+}
+
+/**
  * Never the tablet; a participant or a manager who can see the habit.
  */
 export function canEditHabit(actor: HabitActor, habit: HabitAccess): boolean {

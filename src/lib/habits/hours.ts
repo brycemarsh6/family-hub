@@ -1,4 +1,4 @@
-import type { PaceDays } from "../habitHoursVocabulary";
+import { HOURS_LIMITS, type PaceDays } from "../habitHoursVocabulary";
 import { addCalendarDays, calendarDaysBetween, dayOfWeek, startOfWeek, type CalendarDate } from "../householdDate";
 import { compareDays, dayInVacation } from "./schedule";
 import type { StreakCache, StreakResult } from "./streaks";
@@ -8,8 +8,6 @@ import type { TimeEntry, Vacation } from "./types";
 // Sunday to Saturday. Missing a day never counts against anyone; only the
 // week's total matters. Pure: no db, callers pass `today` and one person's
 // entries. Streaks here count weeks, not days.
-
-const PACE_ROUND_MINUTES = 15;
 
 export type HoursWeek = {
   weekStart: CalendarDate;
@@ -22,6 +20,12 @@ export type HoursWeek = {
   /** Minutes per weekday, Sunday first. */
   byDay: number[];
 };
+
+/** Minutes a day still needed: what is `left` over the `daysLeft` counted days, rounded up to the next pace step. Null when nothing is left or no counted day is. */
+export function paceMinutesPerDay(left: number, daysLeft: number): number | null {
+  if (left <= 0 || daysLeft <= 0) return null;
+  return Math.ceil(left / daysLeft / HOURS_LIMITS.paceStep) * HOURS_LIMITS.paceStep;
+}
 
 /** Days from `today` to Saturday inclusive that the pace counts; "monsat" leaves out Sundays, vacation days are left out too. */
 export function countedDaysLeft(today: CalendarDate, paceDays: PaceDays, vacations: readonly Vacation[] = []): number {
@@ -51,8 +55,7 @@ export function hoursWeek(input: {
   const leftMinutes = Math.max(0, input.targetMinutes - doneMinutes);
   const met = doneMinutes >= input.targetMinutes;
   const days = countedDaysLeft(input.today, input.paceDays, input.vacations);
-  const perDayMinutes =
-    met || days === 0 ? null : Math.ceil(leftMinutes / days / PACE_ROUND_MINUTES) * PACE_ROUND_MINUTES;
+  const perDayMinutes = met ? null : paceMinutesPerDay(leftMinutes, days);
   return { weekStart, doneMinutes, targetMinutes: input.targetMinutes, leftMinutes, perDayMinutes, met, byDay };
 }
 

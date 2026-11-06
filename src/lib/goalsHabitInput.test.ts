@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { habitCheckTarget, habitInputFromPlan, habitParticipantsFor, validatePlanItemInput } from "./goals";
+import { habitCheckTarget, habitInputFromPlan, habitParticipantsFor, hoursSubject, planHabitFor, validatePlanItemInput } from "./goals";
 
 test("habitParticipantsFor: a Mine goal's habit is for its owner, a Together goal's for the household", () => {
   assert.deepEqual(habitParticipantsFor({ ownerId: "me" }), ["me"]);
@@ -67,4 +67,24 @@ test("validatePlanItemInput: no track stays out of the result; only a habit may 
   const checks = validatePlanItemInput({ title: "Run", kind: "habit", timesPerPeriod: 3, period: "week", track: "checks" });
   assert.equal("ok" in checks && checks.ok.track, "checks");
   assert.ok("error" in validatePlanItemInput({ title: "Call", kind: "step", track: "hours", weeklyHours: 5, paceDays: "monsat" }));
+});
+
+test("hoursSubject: a Mine goal names its owner, a Together goal the tapper or else the first person on the habit", () => {
+  const mine = { ownerId: "me" };
+  const together = { ownerId: null };
+  assert.equal(hoursSubject(mine, "me", ["me"]), "me");
+  assert.equal(hoursSubject(together, "b", ["a", "b"]), "b");
+  assert.equal(hoursSubject(together, "tablet", ["a", "b"]), "a", "the tablet logs for the first person, as a check does");
+});
+
+test("hoursSubject: nobody when the one named is not on the habit (someone added later, nobody on it)", () => {
+  assert.equal(hoursSubject({ ownerId: "me" }, "me", ["you"]), null);
+  assert.equal(hoursSubject({ ownerId: null }, "tablet", []), null, "a device on a Together item with no one to name gets no logging target");
+});
+
+test("planHabitFor: an hours habit gets its subject; a checks habit is returned as it was", () => {
+  const checks = { spec: null, schedule: { schedule: "weekly", times: 1 }, logs: [], participantIds: ["a"] };
+  assert.equal(planHabitFor(checks, { ownerId: null }, "a"), checks);
+  const hours = { ...checks, hours: { targetMinutes: 600, paceDays: "monsat" as const, entries: [], forUserId: null } };
+  assert.equal(planHabitFor(hours, { ownerId: null }, "a").hours?.forUserId, "a");
 });

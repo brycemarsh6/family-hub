@@ -45,7 +45,7 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
       {goal.why && <p className="mt-2 text-sm italic text-muted">Why: {goal.why}</p>}
 
       <div className="mt-4">
-        <GoalDetail goal={goal} today={today} viewerId={user.userId} />
+        <GoalDetail goal={goal} today={today} />
       </div>
 
       {vision && (

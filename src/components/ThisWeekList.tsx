@@ -60,7 +60,7 @@ export function ThisWeekList({
   // Same trick as GroceryList: a copy of the goals we may fib about, updated
   // the instant a button is tapped, then replaced by the server's real answer.
   const [goals, applyOptimistic] = useOptimistic(data.goals, applyChange);
-  const { run, error, pending } = useOptimisticRun(applyOptimistic);
+  const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
   const [filter, setFilter] = useState<Filter>("mine");
   // The hours habit whose log sheet is open. Time isn't drawn early here: the sheet waits for the server, and the page's numbers follow.
   const [loggingId, setLoggingId] = useState<string | null>(null);
@@ -136,7 +136,7 @@ export function ThisWeekList({
         </div>
       )}
 
-      {error && (
+      {error && !logging && (
         <p role="alert" className="mb-3 text-sm text-warn">
           {error}
         </p>
@@ -167,7 +167,10 @@ export function ThisWeekList({
                           ? run({ type: "stepUndone", itemId: item.id }, () => uncompleteStep(item.id))
                           : run({ type: "stepDone", itemId: item.id, at: new Date() }, () => completeStep(item.id))
                       }
-                      onLogTime={() => setLoggingId(item.id)}
+                      onLogTime={() => {
+                        setError(null);
+                        setLoggingId(item.id);
+                      }}
                       actions={swipeActions(item, goal.canLog)}
                     />
                   </li>
@@ -178,15 +181,16 @@ export function ThisWeekList({
         </div>
       )}
 
-      {logging?.hours && logging.habitId && (
+      {logging?.hours?.forUserId && logging.habitId && (
         <HoursLogSheet
           habitId={logging.habitId}
           title={logging.title}
           hours={logging.hours}
-          forUserId={viewer.userId}
+          forUserId={logging.hours.forUserId}
           run={runTime}
           pending={pending}
           error={error}
+          onEdit={() => setError(null)}
           onClose={() => setLoggingId(null)}
         />
       )}

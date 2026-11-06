@@ -4,7 +4,6 @@ import { Flame } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HoursEntryList } from "./HoursEntryList";
 import { ProgressBar } from "./ProgressBar";
-import { streakCountLabel } from "@/lib/habitVocabulary";
 import { formatHours, type HoursStatsData } from "@/lib/habitsHours";
 
 const SECTION_TITLE = "text-sm font-semibold uppercase tracking-wide text-muted";
@@ -39,8 +38,8 @@ export function HabitHoursStats({ hours }: { hours: HoursStatsData }) {
   return (
     <>
       <div className="flex gap-2">
-        <Tile value={streakCountLabel(hours.tiles.current, "weeks")} label="Current streak" flame />
-        <Tile value={streakCountLabel(hours.tiles.best, "weeks")} label="Best streak" />
+        <Tile value={String(hours.tiles.current)} label="Current streak, weeks" flame />
+        <Tile value={String(hours.tiles.best)} label="Best streak, weeks" />
         <Tile value={hours.tiles.totalText} label="Total hours" />
       </div>
 

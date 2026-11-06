@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "../householdDate";
-import { countedDaysLeft, hoursStreakAfter, hoursStreaks, hoursWeek, weekTotals } from "./hours";
+import { countedDaysLeft, hoursStreakAfter, hoursStreaks, hoursWeek, paceMinutesPerDay, weekTotals } from "./hours";
 import type { TimeEntry, Vacation } from "./types";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -30,6 +30,14 @@ test("countedDaysLeft: Saturday leaves 1 day, Monday leaves 6 (monsat) or 6 (eve
 test("countedDaysLeft: vacation days today or later are not counted", () => {
   const away: Vacation[] = [{ start: d(2026, 11, 4), end: d(2026, 11, 5) }];
   assert.equal(countedDaysLeft(MONDAY, "monsat", away), 4);
+});
+
+test("paceMinutesPerDay: rounds up to the next 15 minutes; nothing left or no day left is null", () => {
+  assert.equal(paceMinutesPerDay(4 * H, 3), 90);
+  assert.equal(paceMinutesPerDay(4 * H, 4), 60);
+  assert.equal(paceMinutesPerDay(1, 6), 15);
+  assert.equal(paceMinutesPerDay(0, 3), null);
+  assert.equal(paceMinutesPerDay(H, 0), null);
 });
 
 test("hoursWeek: 4 hours left over 3 days rounds the pace up to 1 h 30 min", () => {

@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canChangeChore, canEditChart, canEditHabit, canLogFor, canNudge, canSeeHabit, canSeeHabitReport, canSeeHabitStats, type NudgeHabit } from "./access";
+import { canChangeChore, canEditChart, canEditHabit, canLogFor, canNudge, canSeeHabit, canSeeHabitReport, canSeeHabitStats, othersPrivateHidden, showsOnFamilyView, type NudgeHabit } from "./access";
 import type { HabitAccess, HabitActor } from "./types";
 
 const admin: HabitActor = { userId: "admin", role: "admin" };
@@ -153,4 +153,15 @@ test("canChangeChore: a chore shared by more than one person is a parent's or ad
 test("canNudge: never about an hours habit (decision 197)", () => {
   assert.equal(canNudge(kid, { ...eachHabit, track: "hours" }, "parent"), false);
   assert.equal(canNudge(kid, { ...eachHabit, track: "checks" }, "parent"), true);
+});
+
+test("othersPrivateHidden: your own habits show in full, another person's only when not private", () => {
+  assert.deepEqual(othersPrivateHidden(kid, "kid"), {});
+  assert.deepEqual(othersPrivateHidden(kid, "other"), { isPrivate: false });
+  assert.deepEqual(othersPrivateHidden(parent, "kid"), { isPrivate: false });
+});
+
+test("showsOnFamilyView: a private habit never shows, whoever looks", () => {
+  assert.equal(showsOnFamilyView({ isPrivate: false }), true);
+  assert.equal(showsOnFamilyView({ isPrivate: true }), false);
 });

@@ -28,7 +28,7 @@ import { recomputeAllStreaks as rebuildAllStreaks } from "@/lib/habits/streakWri
 import { householdParticipantIds, reorderHabits as reorderHabitRows } from "@/lib/habits/participantWrites";
 import { dayOfWeek, parseDateParam } from "@/lib/householdDate";
 import { toLifeArea } from "@/lib/goalVocabulary";
-import { HABIT_TRACKS, HOURS_LIMITS, toHabitTrack, toPaceDays } from "@/lib/habitHoursVocabulary";
+import { HABIT_TRACKS, checkHoursTarget, toHabitTrack, toPaceDays } from "@/lib/habitHoursVocabulary";
 import {
   HABIT_ICONS,
   HABIT_TIMES_LIMITS,
@@ -127,16 +127,12 @@ async function checkInput(input: HabitInput, alreadyOnHabit: readonly string[] =
 
   let weeklyMinutes: number | undefined;
   if (hours) {
-    const { targetMinHours, targetMaxHours } = HOURS_LIMITS;
     if (input.kind !== "habit") return { error: "Hours are for habits, not chores." };
     if (input.sharing === "together") return { error: "Hours habits are for one person each, not Together." };
     if (input.carryOver === true) return { error: "Hours habits don't carry over." };
-    const hoursPerWeek = input.weeklyHours;
-    if (typeof hoursPerWeek !== "number" || !Number.isInteger(hoursPerWeek) || hoursPerWeek < targetMinHours || hoursPerWeek > targetMaxHours) {
-      return { error: `Pick ${targetMinHours} to ${targetMaxHours} hours a week.` };
-    }
-    if (toPaceDays(input.paceDays) !== input.paceDays) return { error: "Pick which days to count." };
-    weeklyMinutes = hoursPerWeek * 60;
+    const target = checkHoursTarget(input.weeklyHours, input.paceDays);
+    if ("error" in target) return { error: target.error };
+    weeklyMinutes = target.weeklyMinutes;
   }
 
   let weekdays: string | null = null;

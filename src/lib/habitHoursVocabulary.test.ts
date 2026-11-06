@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { HABIT_TRACKS, HOURS_LIMITS, LOG_SHEET_WORDS, PACE_DAYS, PACE_LABELS, TRACK_LABELS, hoursInitialOf, toHabitTrack, toPaceDays } from "./habitHoursVocabulary";
+import { HABIT_TRACKS, HOURS_LIMITS, LOG_SHEET_WORDS, PACE_DAYS, PACE_LABELS, TRACK_LABELS, checkHoursTarget, hoursInitialOf, toHabitTrack, toPaceDays, unitFor } from "./habitHoursVocabulary";
 
 test("the track and pace lists are pinned", () => {
   assert.deepEqual([...HABIT_TRACKS], ["checks", "hours"]);
@@ -25,8 +25,25 @@ test("toPaceDays repairs anything unknown to monsat", () => {
 test("the limits are pinned", () => {
   assert.deepEqual(
     { ...HOURS_LIMITS },
-    { entryStep: 30, entryMin: 30, entryMax: 720, entryDefault: 60, targetMinHours: 1, targetMaxHours: 80, targetDefaultHours: 5 },
+    { entryStep: 30, entryMin: 30, entryMax: 720, entryDefault: 60, targetMinHours: 1, targetMaxHours: 80, targetDefaultHours: 5, paceStep: 15, chips: [30, 60, 120] },
   );
+});
+
+test("unitFor: hour up to and including one hour, else hours", () => {
+  assert.equal(unitFor(30), "hour");
+  assert.equal(unitFor(60), "hour");
+  assert.equal(unitFor(90), "hours");
+  assert.equal(unitFor(0), "hours");
+});
+
+test("checkHoursTarget: whole hours from 1 to 80 and a known pace, answered in minutes", () => {
+  assert.deepEqual(checkHoursTarget(6, "every"), { weeklyMinutes: 360, paceDays: "every" });
+  assert.deepEqual(checkHoursTarget(80, "monsat"), { weeklyMinutes: 4800, paceDays: "monsat" });
+  assert.deepEqual(checkHoursTarget(0, "monsat"), { error: "Pick 1 to 80 hours a week." });
+  assert.deepEqual(checkHoursTarget(81, "monsat"), { error: "Pick 1 to 80 hours a week." });
+  assert.deepEqual(checkHoursTarget(2.5, "monsat"), { error: "Pick 1 to 80 hours a week." });
+  assert.deepEqual(checkHoursTarget("6", "monsat"), { error: "Pick 1 to 80 hours a week." });
+  assert.deepEqual(checkHoursTarget(6, "daily"), { error: "Pick which days to count." });
 });
 
 test("every track and pace has its words", () => {

@@ -42,26 +42,25 @@ export type HabitForPlan = {
   spec: ScheduleSpec | null;
   /** The stored schedule columns, for forms. `anchorWeek` is already a calendar day. */
   schedule: { schedule: string; weekdays: string | null; times: number | null; anchorWeek: CalendarDate | null };
+  track: HabitTrack;
   participantIds: string[];
   /** Each participant's cached streak (`streakAsOf` as a calendar day, null if never computed). */
   participants: { userId: string; currentStreak: number; bestStreak: number; streakAsOf: CalendarDate | null }[];
   /** Checks on or after `from`, from every participant (each tagged with its `userId`). */
   logs: HabitLogDay[];
-  /** An hours habit's goal and one person's entries on or after `from`; null for a checks habit. */
+  /** An hours habit's goal and everyone's entries on or after `from`; null for a checks habit. */
   hours: PlanHours | null;
 };
 
 /**
  * Loads the given habits and their checks since `from` (inclusive) in three
  * queries however many habits there are. Habits that do not exist are simply
- * absent from the map. An hours habit's entries are `viewerId`'s when they are
- * on the habit, else the first participant's (so a partner's goal still shows
- * a real week).
+ * absent from the map. An hours habit carries everyone's entries; the plan
+ * views pick the one person `habitCheckTarget` names.
  */
 export async function loadHabitsForPlan(
   habitIds: readonly string[],
   from: CalendarDate,
-  viewerId?: string,
 ): Promise<Map<string, HabitForPlan>> {
   const result = new Map<string, HabitForPlan>();
   const ids = [...new Set(habitIds)];
@@ -93,7 +92,6 @@ export async function loadHabitsForPlan(
   }
   for (const habit of habits) {
     const hoursSpec = hoursSpecOf(habit);
-    const subject = habit.participants.some((p) => p.userId === viewerId) ? viewerId : habit.participants[0]?.userId;
     result.set(habit.id, {
       id: habit.id,
       title: habit.title,
@@ -109,6 +107,7 @@ export async function loadHabitsForPlan(
         times: habit.times,
         anchorWeek: habit.anchorWeek ? calendarDateFromUtcMidnight(habit.anchorWeek) : null,
       },
+      track: toHabitTrack(habit.track),
       participantIds: habit.participants.map((p) => p.userId),
       participants: habit.participants.map((p) => ({
         userId: p.userId,
@@ -117,7 +116,7 @@ export async function loadHabitsForPlan(
         streakAsOf: p.streakAsOf ? calendarDateFromUtcMidnight(p.streakAsOf) : null,
       })),
       logs: logsByHabit.get(habit.id) ?? [],
-      hours: hoursSpec ? { targetMinutes: hoursSpec.targetMinutes, paceDays: hoursSpec.paceDays, entries: timeRows.filter((row) => row.habitId === habit.id && row.userId === subject).map(timeEntryFromRow) } : null,
+      hours: hoursSpec ? { targetMinutes: hoursSpec.targetMinutes, paceDays: hoursSpec.paceDays, forUserId: null, entries: timeRows.filter((row) => row.habitId === habit.id).map(timeEntryFromRow) } : null,
     });
   }
   return result;
@@ -180,11 +179,11 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
           where: { userId: viewer.userId, habitId: { in: liveIds }, day: { gte: utcMidnightInstant(today) } },
           select: { habitId: true, day: true },
         }),
-    // Everyone's hours entries this week (Sunday to Saturday) on the viewer's live hours habits: the bar and each member's goal.
+    // Everyone's hours entries since last week's Sunday (this week's bar, last week's total for the log sheet) on the viewer's live hours habits.
     liveIds.length === 0
       ? []
       : db.habitTimeEntry.findMany({
-          where: { habitId: { in: liveIds }, habit: { track: "hours" }, day: { gte: utcMidnightInstant(startOfWeek(today)) } },
+          where: { habitId: { in: liveIds }, habit: { track: "hours" }, day: { gte: utcMidnightInstant(addCalendarDays(startOfWeek(today), -7)) } },
           select: { habitId: true, userId: true, day: true, minutes: true },
         }),
   ]);
@@ -291,7 +290,6 @@ export type HabitForAction = HabitAccess & {
   sharing: HabitSharing;
   archived: boolean;
   carryOver: boolean;
-  /** "hours" habits take time, not checks. */
   track: HabitTrack;
   spec: ScheduleSpec | null;
   startDay: CalendarDate;
@@ -315,6 +313,11 @@ export async function loadHabitForAction(habitId: string): Promise<HabitForActio
     spec: specFromRow(habit),
     startDay: habitStartDay(habit.createdAt),
   };
+}
+
+/** One time entry's habit and person (one query), or null when it is gone; the remove action judges it against the habit. */
+export function loadTimeEntryForAction(entryId: string) {
+  return db.habitTimeEntry.findUnique({ where: { id: entryId }, select: { habitId: true, userId: true } });
 }
 
 /**

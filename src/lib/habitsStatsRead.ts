@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { AVATAR_COLORS } from "@/lib/constants";
 import { addCalendarDays, utcMidnightInstant, startOfMonth, startOfWeek, type CalendarDate } from "./householdDate";
 import { carrySince, habitStartDay } from "./habits/carryOver";
+import { othersPrivateHidden } from "./habits/access";
 import { choreCacheFromRow, overrideWindowStart } from "./choreChart";
 import { logDayFromRow, specFromRow, timeEntryFromRow, vacationFromRow } from "./habits/habitRows";
 import { overrideFromRow } from "./habits/weekOverrides";
@@ -82,7 +83,7 @@ export async function loadHabitStats(
     db.nudge.findMany({ where: { habitId, fromUserId: viewer.userId, day: utcMidnightInstant(today) }, select: { toUserId: true } }),
     // Their live habits; another person's private ones are not ours to count.
     db.habit.findMany({
-      where: { participants: { some: { userId: subjectId } }, archivedAt: null, track: "checks", ...(subjectId === viewer.userId ? {} : { isPrivate: false }) },
+      where: { participants: { some: { userId: subjectId } }, archivedAt: null, track: "checks", ...othersPrivateHidden(viewer, subjectId) },
       include: { participants: { where: { userId: subjectId }, select: { joinedAt: true } } },
     }),
     db.habitLog.findMany({
@@ -164,7 +165,7 @@ export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): P
     habitIds.length === 0
       ? []
       : db.habitTimeEntry.findMany({
-          where: { habitId: { in: habitIds }, habit: { track: "hours" }, day: { gte: utcMidnightInstant(startOfWeek(today)) } },
+          where: { habitId: { in: habitIds }, habit: { track: "hours" }, day: { gte: utcMidnightInstant(addCalendarDays(startOfWeek(today), -7)) } },
           select: { habitId: true, userId: true, day: true, minutes: true },
         }),
   ]);
@@ -239,7 +240,7 @@ export async function loadHabitReport(viewer: HabitActor, params: ReportParams, 
   // Who is shown is decided before the habits are read, by `reportPersonId`, the rule `reportScope` applies too.
   const shownId = reportPersonId(viewer, params.person, people);
   const habits = await db.habit.findMany({
-    where: { archivedAt: null, track: "checks", participants: { some: { userId: shownId } }, ...(shownId === viewer.userId ? {} : { isPrivate: false }) },
+    where: { archivedAt: null, track: "checks", participants: { some: { userId: shownId } }, ...othersPrivateHidden(viewer, shownId) },
     include: {
       participants: {
         orderBy: { joinedAt: "asc" },

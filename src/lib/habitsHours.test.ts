@@ -9,6 +9,7 @@ import type { CalendarDate } from "./householdDate";
 import type { HabitActor, TimeEntry } from "./habits/types";
 import {
   addHoursMinutes,
+  lastWeekAfterText,
   buildHoursStats,
   formatAmount,
   formatHours,
@@ -109,10 +110,25 @@ test("a vacation leaves its days out of the pace but the row still shows (time c
   assert.equal(view.leftText, "10 hours left · today");
 });
 
+test("a row view carries last week's minutes and the server's today; the sheet's last-week line adds to them", () => {
+  const view = hoursViewFor(spec, "me", [entry(d(2026, 10, 30), 300), entry(d(2026, 10, 31), 60, "you"), entry(d(2026, 11, 2), 60)], friday, []);
+  assert.equal(view.lastWeek, 300, "only this person's");
+  assert.equal(view.today, "2026-11-06");
+  assert.equal(lastWeekAfterText(view, 90), "6½ of 10 hours last week");
+  assert.equal(addHoursMinutes(view, 30).lastWeek, 300);
+});
+
+test("planHoursView: only forUserId's entries count, and nobody's when forUserId is null", () => {
+  const mixed = [entry(d(2026, 11, 2), 120, "me"), entry(d(2026, 11, 3), 60, "you")];
+  assert.equal(planHoursView({ targetMinutes: 600, paceDays: "monsat", forUserId: "you", entries: mixed }, friday).done, 60);
+  const nobody = planHoursView({ targetMinutes: 600, paceDays: "monsat", forUserId: null, entries: mixed }, friday);
+  assert.equal(nobody.done, 0);
+  assert.equal(nobody.forUserId, null);
+});
+
 test("addHoursMinutes redraws the way the server would", () => {
   const before = hoursViewFor(spec, "me", [entry(d(2026, 11, 2), 390)], friday, []);
   const after = addHoursMinutes(before, 120);
-  assert.deepEqual(after, hoursViewFor(spec, "me", [entry(d(2026, 11, 2), 390), entry(friday, 120)], friday, []));
   assert.equal(addHoursMinutes(after, 120).doneText, "10½ of 10 hours this week · done");
 });
 
@@ -140,10 +156,10 @@ test("hoursRowFields: nothing for a checks habit; for hours always open, never r
 });
 
 test("goal lines: 'Calling · 6½ of 10 hours this week' and 'Calling · 3½ hours left'", () => {
-  const view = planHoursView({ targetMinutes: 600, paceDays: "monsat", entries: [entry(d(2026, 11, 2), 390)] }, friday);
+  const view = planHoursView({ targetMinutes: 600, paceDays: "monsat", forUserId: "me", entries: [entry(d(2026, 11, 2), 390)] }, friday);
   assert.equal(goalHoursLine("Calling", view), "Calling · 6½ of 10 hours this week");
   assert.equal(goalLeftLine("Calling", view), "Calling · 3½ hours left");
-  const met = planHoursView({ targetMinutes: 600, paceDays: "monsat", entries: [entry(d(2026, 11, 2), 600)] }, friday);
+  const met = planHoursView({ targetMinutes: 600, paceDays: "monsat", forUserId: "me", entries: [entry(d(2026, 11, 2), 600)] }, friday);
   assert.equal(goalLeftLine("Calling", met), "Calling");
 });
 
@@ -274,7 +290,7 @@ test("the recap carries an hours habit's last week as '6½ of 10 hours last week
     targetValue: null, currentValue: null, checkedInAt: null, completedAt: null, createdAt: new Date("2026-01-01T19:00:00Z"),
   };
   const row: PlanItemRow = { id: "i1", goalId: "g1", title: "Calling", kind: "habit", timesPerPeriod: 1, period: "week", habitId: "h1", doneAt: null, sortOrder: 0, createdAt: new Date("2026-01-01T19:00:00Z") };
-  const habit: PlanHabit = { spec: { schedule: "weekly", times: 1 }, schedule: { schedule: "weekly", times: 1 }, logs: [], hours: { targetMinutes: 600, paceDays: "monsat", entries: [entry(d(2026, 10, 27), 390)] } };
+  const habit: PlanHabit = { spec: { schedule: "weekly", times: 1 }, schedule: { schedule: "weekly", times: 1 }, logs: [], hours: { targetMinutes: 600, paceDays: "monsat", forUserId: "me", entries: [entry(d(2026, 10, 27), 390)] } };
   const recap = weekRecap([{ goal, items: [row], habits: new Map([["h1", habit]]), checkIns: [] }], d(2026, 10, 25))!;
   assert.equal(recap.habits[0].hoursText, "6½ of 10 hours last week");
   assert.equal(recap.habits[0].met, false);

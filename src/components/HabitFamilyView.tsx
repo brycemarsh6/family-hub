@@ -30,13 +30,16 @@ const dayOf = (row: FamilyRow) => (row.carriedFrom ? formatCalendarDate(row.carr
  */
 export function HabitFamilyView({ page, showStreaks }: { page: FamilyPage; showStreaks: boolean }) {
   const [live, applyOptimistic] = useOptimistic<FamilyPage, HabitChange>(page, applyToPage);
-  const { run, error, pending } = useOptimisticRun(applyOptimistic);
+  const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
   // The hours row whose log sheet is open: the habit and the person, read live so bars move as soon as Add is tapped.
   const [logging, setLogging] = useState<{ habitId: string; userId: string } | null>(null);
   const loggingRow = logging ? live.columns.flatMap((column) => column.rows).find((row) => row.id === logging.habitId && row.logForId === logging.userId && row.hours) : undefined;
 
   function toggle(row: FamilyRow) {
-    if (row.hours) return setLogging({ habitId: row.id, userId: row.logForId });
+    if (row.hours) {
+      setError(null);
+      return setLogging({ habitId: row.id, userId: row.logForId });
+    }
     const change = { habitId: row.id, userId: row.logForId };
     if (row.doneToday) run({ ...change, type: "uncheck" }, () => uncheckHabit(row.id, row.logForId, dayOf(row)));
     else run({ ...change, type: "check" }, () => checkHabit(row.id, row.logForId, dayOf(row)));
@@ -83,6 +86,7 @@ export function HabitFamilyView({ page, showStreaks }: { page: FamilyPage; showS
           run={run}
           pending={pending}
           error={error}
+          onEdit={() => setError(null)}
           onClose={() => setLogging(null)}
         />
       )}

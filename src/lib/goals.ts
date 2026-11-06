@@ -1,5 +1,5 @@
 import { HABIT_TIMES_LIMITS } from "./habitVocabulary";
-import { HABIT_TRACKS, HOURS_LIMITS, toPaceDays, type HabitTrack, type PaceDays } from "./habitHoursVocabulary";
+import { HABIT_TRACKS, checkHoursTarget, type HabitTrack, type PaceDays } from "./habitHoursVocabulary";
 import {
   GOAL_OWNERSHIPS,
   GOAL_OWNERSHIP_LABELS,
@@ -232,13 +232,9 @@ export function validatePlanItemInput(raw: unknown): { ok: PlanItemInput } | { e
   }
   if (track !== undefined && !(HABIT_TRACKS as readonly unknown[]).includes(track)) return { error: "Pick checks or hours." };
   if (track === "hours") {
-    const { targetMinHours, targetMaxHours } = HOURS_LIMITS;
-    const hours = raw.weeklyHours;
-    if (typeof hours !== "number" || !Number.isInteger(hours) || hours < targetMinHours || hours > targetMaxHours) {
-      return { error: `Pick ${targetMinHours} to ${targetMaxHours} hours a week.` };
-    }
-    if (toPaceDays(raw.paceDays) !== raw.paceDays) return { error: "Pick which days to count." };
-    return { ok: { title, kind, timesPerPeriod: 1, period: "week", track, weeklyMinutes: hours * 60, paceDays: toPaceDays(raw.paceDays) } };
+    const target = checkHoursTarget(raw.weeklyHours, raw.paceDays);
+    if ("error" in target) return target;
+    return { ok: { title, kind, timesPerPeriod: 1, period: "week", track, weeklyMinutes: target.weeklyMinutes, paceDays: target.paceDays } };
   }
   const habitPeriod = toHabitPeriod(period);
   if (!habitPeriod) return { error: "Pick every day, a week, or a month." };
@@ -288,6 +284,20 @@ export function habitCheckTarget(
 ): string {
   if (goal.ownerId !== null) return goal.ownerId;
   return participantIds.includes(viewerId) ? viewerId : (participantIds[0] ?? viewerId);
+}
+
+/**
+ * Whose hours a goal screen shows and logs for (decision 198): the person
+ * `habitCheckTarget` names, when they are on the habit; otherwise nobody.
+ */
+export function hoursSubject(goal: { ownerId: string | null }, viewerId: string, participantIds: readonly string[]): string | null {
+  const target = habitCheckTarget(goal, viewerId, participantIds);
+  return participantIds.includes(target) ? target : null;
+}
+
+/** The habit as a goal's plan reads it: an hours habit gets its subject (`hoursSubject`) written on; anything else comes back as it was. */
+export function planHabitFor<H extends PlanHabit & { participantIds: readonly string[] }>(habit: H, goal: { ownerId: string | null }, viewerId: string): H {
+  return habit.hours ? { ...habit, hours: { ...habit.hours, forUserId: hoursSubject(goal, viewerId, habit.participantIds) } } : habit;
 }
 
 /** Who a new habit is for: the owner of a Mine goal, the whole household for a Together one. */

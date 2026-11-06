@@ -1,7 +1,7 @@
 import { calendarDateFromUtcMidnight, formatCalendarDate, startOfMonth, type CalendarDate } from "./householdDate";
 import { choreHeader } from "./choreChart";
 import { carrySince, habitStartDay } from "./habits/carryOver";
-import { canLogFor, canNudge, canSeeHabitStats } from "./habits/access";
+import { canLogFor, canNudge, canSeeHabitStats, showsOnFamilyView } from "./habits/access";
 import { specFromRow, type StoredHoursFields, type StoredScheduleFields } from "./habits/habitRows";
 import type { DayEntry } from "./habits/perfectDays";
 import { compareDays, dayInVacation, dueState as dueStateOf, isOpenKind, isSameDay } from "./habits/schedule";
@@ -134,7 +134,7 @@ export function buildFamilyPage(
   choreCaches: ReadonlyMap<string, StreakCache> = new Map(),
   timeByHabit: ReadonlyMap<string, readonly TimeEntry[]> = new Map(),
 ): FamilyPage {
-  const shown = habits.filter((habit) => !habit.isPrivate && !habit.archivedAt);
+  const shown = habits.filter((habit) => showsOnFamilyView(habit) && !habit.archivedAt);
   const together: FamilyRow[] = [];
   for (const habit of [...shown].filter((h) => toHabitSharing(h.sharing) === "together").sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || (a.id < b.id ? -1 : 1))) {
     const members = habit.participants.filter((p) => !p.user.deactivatedAt);

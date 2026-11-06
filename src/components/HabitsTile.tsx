@@ -64,7 +64,7 @@ export function HabitTileRows({
   const [firstEmpty] = useState(empty);
   const kept = keepShownRows(shownIds, rows, todayRows, held);
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(kept, applyHabitChange);
-  const { run, error, pending } = useOptimisticRun<HabitChange>(applyOptimistic);
+  const { run, error, setError, pending } = useOptimisticRun<HabitChange>(applyOptimistic);
   // The hours row whose log sheet is open, by id, so the sheet reads the row's live week.
   const [loggingId, setLoggingId] = useState<string | null>(null);
   const logging = live.find((row) => row.id === loggingId && row.hours);
@@ -83,7 +83,10 @@ export function HabitTileRows({
         <ul className={`-mx-4 divide-y divide-line border-t border-line ${error ? "border-b" : "-mb-4"}`}>
           {live.map((row) => (
             <li key={row.id}>
-              <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, (change, action) => keep(change, action), (hoursRow) => setLoggingId(hoursRow.id))} />
+              <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, (change, action) => keep(change, action), (hoursRow) => {
+                setError(null);
+                setLoggingId(hoursRow.id);
+              })} />
             </li>
           ))}
         </ul>
@@ -102,6 +105,7 @@ export function HabitTileRows({
           run={keep}
           pending={pending}
           error={error}
+          onEdit={() => setError(null)}
           onClose={() => setLoggingId(null)}
         />
       )}

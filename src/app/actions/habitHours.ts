@@ -9,7 +9,6 @@
 // endpoints: nothing here trusts the page that rendered the sheet.
 
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { canLogFor } from "@/lib/habits/access";
@@ -17,7 +16,7 @@ import { isTapDayAllowed } from "@/lib/habits/carryOver";
 import { addHabitTime as addHabitTimeRow, removeHabitTime as removeHabitTimeRow } from "@/lib/habits/habitWrites";
 import { HOURS_LIMITS } from "@/lib/habitHoursVocabulary";
 import { parseDateParam } from "@/lib/householdDate";
-import { loadHabitForAction } from "@/lib/habitsRead";
+import { loadHabitForAction, loadTimeEntryForAction } from "@/lib/habitsRead";
 import type { HabitActionResult } from "./habits";
 
 const NOT_FOUND = "That habit isn't available.";
@@ -64,7 +63,7 @@ export async function removeHabitTime(entryId: string): Promise<HabitActionResul
   if (!user) return { error: NOT_SIGNED_IN };
   if (typeof entryId !== "string") return { error: NOT_FOUND };
   try {
-    const entry = await db.habitTimeEntry.findUnique({ where: { id: entryId }, select: { habitId: true, userId: true } });
+    const entry = await loadTimeEntryForAction(entryId);
     if (!entry) return {};
     const habit = await loadHabitForAction(entry.habitId);
     if (!habit || !canLogFor({ userId: user.userId, role: user.role }, entry.userId, habit)) return { error: NOT_FOUND };

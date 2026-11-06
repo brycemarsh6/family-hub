@@ -67,7 +67,7 @@ export function HabitTodayList({
   // A copy of the rows that is updated the instant a button is tapped, then
   // replaced by the server's real answer (the same idea as ThisWeekList).
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(rows, applyHabitChange);
-  const { run, error, pending } = useOptimisticRun(applyOptimistic);
+  const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
   // The hours row whose log sheet is open, by id, so the sheet reads the row's live week.
   const [loggingId, setLoggingId] = useState<string | null>(null);
   const logging = live.find((row) => row.id === loggingId && row.hours);
@@ -177,7 +177,10 @@ export function HabitTodayList({
               <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
                 {section.rows.map((row) => (
                   <li key={row.id}>
-                    <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, run, (hoursRow) => setLoggingId(hoursRow.id))} />
+                    <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, run, (hoursRow) => {
+                      setError(null);
+                      setLoggingId(hoursRow.id);
+                    })} />
                   </li>
                 ))}
               </ul>
@@ -197,6 +200,7 @@ export function HabitTodayList({
           run={run}
           pending={pending}
           error={error}
+          onEdit={() => setError(null)}
           onClose={() => setLoggingId(null)}
         />
       )}

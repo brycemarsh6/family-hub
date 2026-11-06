@@ -29,6 +29,37 @@ export const HOURS_LIMITS = {
   targetMinHours: 1,
   targetMaxHours: 80,
   targetDefaultHours: 5,
+  /** The pace ("about N a day") rounds up to the next multiple of this many minutes. */
+  paceStep: 15,
+  /** The amounts the log sheet's chips jump to (decision 182). */
+  chips: [30, 60, 120],
+} as const;
+
+/** "hour" up to and including one hour ("1 hour", "½ hour"), else "hours". */
+export function unitFor(minutes: number): "hour" | "hours" {
+  return minutes > 0 && minutes <= 60 ? "hour" : "hours";
+}
+
+/**
+ * The one check of a weekly goal and pace choice, for the habit form and the
+ * plan sheet alike: whole hours from the smallest to the largest target, and a
+ * known pace. Answers the stored minutes, or the words to show.
+ */
+export function checkHoursTarget(hoursRaw: unknown, paceRaw: unknown): { weeklyMinutes: number; paceDays: PaceDays } | { error: string } {
+  const { targetMinHours, targetMaxHours } = HOURS_LIMITS;
+  if (typeof hoursRaw !== "number" || !Number.isInteger(hoursRaw) || hoursRaw < targetMinHours || hoursRaw > targetMaxHours) {
+    return { error: `Pick ${targetMinHours} to ${targetMaxHours} hours a week.` };
+  }
+  if (toPaceDays(paceRaw) !== paceRaw) return { error: "Pick which days to count." };
+  return { weeklyMinutes: hoursRaw * 60, paceDays: toPaceDays(paceRaw) };
+}
+
+/** The phrases that join the numbers on a row (decisions 187 to 190), with their separators. */
+export const HOURS_PHRASES = {
+  left: "left",
+  done: " · done",
+  today: " · today",
+  aboutADay: (amount: string) => ` · about ${amount} a day`,
 } as const;
 
 /** The words on the form's Track choice (decision 193): the label and the line under "Track" for the lit one. */
@@ -58,7 +89,5 @@ export const LOG_SHEET_WORDS = {
   day: { today: "Today", yesterday: "Yesterday", other: "Other day" },
   button: (amount: string) => `Add ${amount}`,
   saving: "Saving…",
-  /** A day in last week: the sheet knows only this week's total. */
-  lastWeek: (amount: string) => `This adds ${amount} to last week.`,
   afterThis: (text: string) => `After this: ${text}`,
 } as const;
