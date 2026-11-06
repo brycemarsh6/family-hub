@@ -1,7 +1,7 @@
 # Mission: Habits & Chores PR E2, plan the day (mission 35)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (C0 to C2 committed; C3+C4 and C5 dispatched in parallel)
+**Status:** DONE (all three gates PASS on pass 3; merging)
 **Started:** 2026-11-05 · **Updated:** 2026-11-06
 **Branch:** `claude/habits-e2-plan-day` (from origin/main 192a4db, after PR E1)
 
@@ -71,7 +71,7 @@ to C4, C14 to C17). 3 passes per gate.
 - **Boundaries:** `src/lib/habits/habitWrites.ts`, new
   `src/lib/habits/streakWrites.ts`, their importers (imports only).
 - **Verification:** full gauntlet; both files under 350.
-- **Status:** DONE (commit after 9a0028a; habitWrites 253, streakWrites 119; Fury re-ran: 889 tests, UTC 882+7 skips, LA 889, build 0).
+- **Status:** DONE (2eeddb0; habitWrites 253, streakWrites 119; Fury re-ran: 889 tests, UTC 882+7 skips, LA 889, build 0).
 
 ### C1 - Prompt rules, pure, with tests
 - **Objective:** `isPromptDay` counts only planned days inside the
@@ -112,6 +112,8 @@ to C4, C14 to C17). 3 passes per gate.
   (+test; split a sibling if it passes 350), `src/components/HabitTodayList.tsx`,
   new `src/components/PlanDayCard.tsx`.
 
+- **Status:** DONE (b74fefd; contract missed `HabitRow.tsx` and `habits/page.tsx`, Fury extended the boundaries; prompts hidden on vacation, later decision 155).
+
 ### C4 - Dashboard cards
 - **Objective:** on the dashboard, after the nudge and Sunday cards: the
   "Planned today" card (live HabitRows, 145) and the Pick a day cards
@@ -120,6 +122,8 @@ to C4, C14 to C17). 3 passes per gate.
 - **Boundaries:** `src/app/(app)/(home)/page.tsx`, `HabitsTile.tsx`,
   `src/lib/habitsDashboard.ts` (+test), `PlanDayCard.tsx`, a new
   `PlannedTodayCard.tsx`.
+
+- **Status:** DONE (b74fefd).
 
 ### C5 - Calendar
 - **Objective:** planned days on the Calendar (146): only to the habit's
@@ -132,7 +136,45 @@ to C4, C14 to C17). 3 passes per gate.
   draw all-day items; Stark lists them before editing and keeps files over
   the soft cap from growing more than needed.
 
+- **Status:** DONE (b74fefd; built in parallel with C3+C4, disjoint files).
+
 ### C6 - Records
 - Mission ledger, plan, CLAUDE.md status and checklist, STRUCTURE.md homes
   (`streakWrites.ts`, `planWrites.ts`, `habitPlans.ts`, the calendar item
   type, the new cards), DESIGN.md (the cards, the calendar item).
+
+## Gate ledger
+
+**Pass 1 (b74fefd).**
+- Vision: PASS, 7 notes (planned-and-done row drops from counts on reload; chips use render-time today; iPhone date picker may plan on close; plan after target met allowed; size watch; stale STRUCTURE.md line; Together plan rows for deactivated people).
+- Captain: BLOCKED. Engine directory imported `../types` and `../scheduleWindowState`; `habitsPrompts` and `habitsToday` import cycle; inline done-or-late test duplicated `isCheckStatus`.
+- Strange: BLOCKED. Week-strip icon squashed to a sliver; Schedule said "Nothing planned" on today while habit days loaded; a planned day drew open after the week's target was met.
+- Hill: decisions 151 to 159, then 160 to 162 on Strange's questions.
+- Fixes: F1 (Captain, Strange 1 and 2, Hill 151, 157, 159, polish), F2 (Hill 160, 161, 162; `isTapDayAllowed` moved to `habits/carryOver.ts`).
+
+**Pass 2 (3305b7b).**
+- Vision: BLOCKED. F1 removed the participant check from the Calendar builder; a person taken off a habit keeps `HabitPlannedDay` rows, so they would still see its planned days. The existing test was vacuous.
+- Captain: BLOCKED. Millisecond day math in `plannedPeriodsRange`.
+- Strange: BLOCKED. Schedule's loaded test checked overlap, not containment, so the false "Nothing planned" still showed on a cold open.
+- Fixes: F3 (participant and device checks back with real tests; `addCalendarDays`; `coversWindow`; try/catch on the fetch; no "Planned for Sat" once the period target is met; `PlanDayCard` rename; one `plannedForLabel`).
+
+**Pass 3 (b1473d2).**
+- Vision: PASS. Captain: PASS (note: second hand-written membership check in a builder; a third means `access.ts` exports `isParticipant`). Strange: PASS (5 timed cold opens went skeleton to content, never the false empty line).
+
+## Outside this diff (found by Strange, briefed by Banner)
+
+"Together saves as Just me" is not data loss: the form saves exactly the people selected (the viewer starts selected; a second tap deselects). The gap is that a Together habit with one person is accepted, then shown as "Mine" and reopened as "Just me". Goes to Hill with PR F (a "needs at least two people" rule and message).
+
+## Delivery
+
+- Commits: 9a0028a (contracts), 2eeddb0 (C0 to C2), b74fefd (C3 to C5), F1, 3305b7b (F2), b1473d2 (F3), then this records commit. Gauntlet at b1473d2: 922 tests; UTC 915 + 7 DST skips; LA 922; build 0.
+- Records: plan decisions 151 to 162 (decided by Hill); STRUCTURE.md (writers, engine import rule, recompute door, tap-day window home, write-file order, PR E2 homes, fetcher instances, words, useOptimisticRun list); DESIGN.md (PlanDayCard, PlannedTodayCard, the Calendar's planned-day item).
+- Deliberate leftovers:
+  - Schedule: an empty today row flashes the skeleton while the window grows (Strange: honest, rare). Fix: base today's pending on covering today only. The hook also re-fetches ranges already in flight on growth.
+  - `ScheduleView.tsx` 532 lines: next mission that touches it moves the habit-day loading and error lines into the hook.
+  - `habitsToday.test.ts` 374 lines: split the planned-day cases into a sibling test.
+  - Chips use the render-time today: a card tapped after midnight answers "That day can't be planned".
+  - No un-plan. A planned-and-done once-a-week row drops out of the "x of y" count on reload (decision 145 record).
+  - Old "Dormant until PR C" comments in `perfectDays.ts`, `streaks.ts`, `schedule.ts` now say too much.
+  - Together with one person (above), for Hill with PR F.
+- Bryce's checks: "Other day" on the iPhone (one tap plans; browsing the picker plans nothing); a Saturday check on the Calendar can mean "this week's goal is done" (160).
