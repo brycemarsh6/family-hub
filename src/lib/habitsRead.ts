@@ -15,7 +15,8 @@ import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartD
 import { logDayFromRow, specFromRow, vacationFromRow } from "./habits/habitRows";
 import type { HabitAccess, HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
 import { keepOwnPicks } from "./dashboardPicks";
-import { choresTileRows, habitsTileRows, pickableHabits, type TileRows } from "./habitsDashboard";
+import { choresTileRows, habitsTileRows, pickableHabits, plannedTodayRows, type TileRows } from "./habitsDashboard";
+import type { TodayPrompt } from "./habitsPrompts";
 import { buildTodayPage, todayLogsFrom, type HabitRowView, type TodayNudge, type TodayPage } from "./habitsToday";
 import { loadHouseholdPeople, type HouseholdPerson } from "./householdPeople";
 import { toHabitSharing, type HabitSharing } from "./habitVocabulary";
@@ -109,6 +110,7 @@ export async function loadHabitsForPlan(
 }
 
 export type { HabitMemberView, HabitRowView, HabitManagerItem, TodayNudge, TodayPage } from "./habitsToday";
+export type { TodayPrompt } from "./habitsPrompts";
 
 /**
  * The Today page and the manager: first the habits the viewer takes part in
@@ -144,7 +146,7 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
   });
   const liveIds = habits.filter((habit) => !habit.archivedAt).map((habit) => habit.id);
   const peopleIds = [...new Set(habits.flatMap((habit) => habit.participants.map((p) => p.userId)))];
-  const [logRows, vacationRows, nudgeRows] = await Promise.all([
+  const [logRows, vacationRows, nudgeRows, plannedRows] = await Promise.all([
     liveIds.length === 0
       ? []
       : db.habitLog.findMany({
@@ -157,7 +159,16 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
       orderBy: { createdAt: "asc" },
       select: { id: true, fromUser: { select: { displayName: true } }, habit: { select: { title: true } } },
     }),
+    // The viewer's own planned days from today on: all the prompt and the planned-today row need (decisions 143, 145).
+    liveIds.length === 0
+      ? []
+      : db.habitPlannedDay.findMany({
+          where: { userId: viewer.userId, habitId: { in: liveIds }, day: { gte: utcMidnightInstant(today) } },
+          select: { habitId: true, day: true },
+        }),
   ]);
+  const plannedByHabit = new Map<string, CalendarDate[]>();
+  for (const row of plannedRows) plannedByHabit.set(row.habitId, [...(plannedByHabit.get(row.habitId) ?? []), calendarDateFromUtcMidnight(row.day)]);
   const vacationsByUser = new Map<string, Vacation[]>();
   for (const row of vacationRows) vacationsByUser.set(row.userId, [...(vacationsByUser.get(row.userId) ?? []), vacationFromRow(row)]);
   const logsByHabit = new Map<string, HabitLogDay[]>();
@@ -167,7 +178,7 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
     logsByHabit.set(row.habitId, list);
   }
   const nudges = nudgeRows.map((row) => ({ id: row.id, fromName: row.fromUser.displayName, habitTitle: row.habit.title }));
-  return buildTodayPage(viewer, habits, logsByHabit, today, vacationsByUser, nudges, choreCache);
+  return buildTodayPage(viewer, habits, logsByHabit, today, vacationsByUser, nudges, choreCache, plannedByHabit);
 }
 
 /** What the dashboard shows from Habits & Chores: the two tiles, the cards above them and the habits the picker lists. */
@@ -181,6 +192,10 @@ export type DashboardHabits = {
   choreStreak: number;
   nudges: TodayNudge[];
   shoutOut: boolean;
+  /** The viewer's habits planned for today, for the "Planned today" card (decision 145); the Habits tile leaves them out. */
+  plannedToday: HabitRowView[];
+  /** The "Pick a day" cards (decisions 39, 142). */
+  prompts: TodayPrompt[];
   /** The habits the picker lists (kind habit, not archived, private ones the viewer takes part in), in Manage order. */
   pickable: { id: string; title: string; icon: string | null }[];
 };
@@ -203,6 +218,8 @@ export async function loadDashboardHabits(viewer: HabitActor, today: CalendarDat
     choreStreak: page.choreStreak,
     nudges: page.nudges,
     shoutOut: page.shoutOut,
+    plannedToday: plannedTodayRows(page.rows),
+    prompts: page.prompts,
     pickable,
   };
 }

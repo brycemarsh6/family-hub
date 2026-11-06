@@ -15,7 +15,7 @@ import type { HabitManagerItem, HabitRowView } from "./habitsToday";
 
 type TileRow = Pick<
   HabitRowView,
-  "id" | "kind" | "dueState" | "carriedFrom" | "doneToday" | "skippedToday" | "onVacation" | "skippedThisWeek"
+  "id" | "kind" | "dueState" | "carriedFrom" | "doneToday" | "skippedToday" | "onVacation" | "skippedThisWeek" | "plannedToday"
 >;
 
 export type TileRows<T extends TileRow> = {
@@ -42,13 +42,22 @@ function isOnToday(row: TileRow): boolean {
 }
 
 /**
- * The Habits tile (decision 132). With picks: the picked habits in picked
+ * The rows of the dashboard's "Planned today" card (decision 145): the habits
+ * the viewer planned for today, in Today's order. Chores stay in the Chores tile.
+ */
+export function plannedTodayRows<T extends TileRow>(rows: T[]): T[] {
+  return rows.filter((row) => row.kind === "habit" && row.plannedToday);
+}
+
+/**
+ * The Habits tile (decision 132). Rows already in Planned today are left out
+ * (decision 145), picked or not. With picks: the picked habits in picked
  * order, every one Today shows (open, done and skipped ones included). Without:
  * up to three due today and not done or skipped. The empty line says "All
  * done" only when something was due and all of it is done or skipped.
  */
 export function habitsTileRows<T extends TileRow>(rows: T[], picks: string[]): TileRows<T> {
-  const habits = rows.filter((row) => row.kind === "habit");
+  const habits = rows.filter((row) => row.kind === "habit" && !row.plannedToday);
   const picked = picks.length > 0;
   const shown = picked
     ? [...new Set(picks)].flatMap((id) => habits.filter((row) => row.id === id && isOnToday(row)))

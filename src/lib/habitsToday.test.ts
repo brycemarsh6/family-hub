@@ -329,3 +329,79 @@ test("buildTodayPage: an all-vacation day with nothing done has no confetti; a r
   const page = buildTodayPage(me, [habit({ id: "a" })], logsFor("a", [{ day: today, status: "done", userId: "me" }]), today, vacationToday);
   assert.equal(page.confetti, true);
 });
+
+// --- Planned days (decisions 143, 145) -------------------------------------
+
+const weeklyTwice = (id: string) => habit({ id, schedule: "weekly", times: 2 });
+const plannedOn = (id: string, ...days: CalendarDate[]) => new Map([[id, days]]);
+
+test("buildTodayRows: a weekly habit is open until planned for today, then a required row that says so", () => {
+  const [open] = buildTodayRows(me, [weeklyTwice("w")], noLogs, today);
+  assert.equal(open.dueState, "open");
+  assert.equal(open.plannedToday, false);
+  const [planned] = buildTodayRows(me, [weeklyTwice("w")], noLogs, today, new Map(), plannedOn("w", today));
+  assert.equal(planned.dueState, "required");
+  assert.equal(planned.plannedToday, true);
+});
+
+test("buildTodayRows: a day planned for later is not planned today", () => {
+  const [row] = buildTodayRows(me, [weeklyTwice("w")], noLogs, today, new Map(), plannedOn("w", d(2026, 11, 7)));
+  assert.equal(row.dueState, "open");
+  assert.equal(row.plannedToday, false);
+});
+
+test("buildTodayPage: a planned row is required (so it holds the confetti back), an unplanned open one is not", () => {
+  const unplanned = buildTodayPage(me, [weeklyTwice("w")], noLogs, today);
+  assert.equal(unplanned.confetti, false);
+  const done = logsFor("w", [{ userId: "me", day: today, status: "done" }]);
+  const planned = buildTodayPage(me, [weeklyTwice("w")], noLogs, today, new Map(), [], undefined, plannedOn("w", today));
+  assert.equal(planned.rows[0].dueState, "required");
+  assert.equal(planned.confetti, false); // required and not yet done
+  const finished = buildTodayPage(me, [weeklyTwice("w")], done, today, new Map(), [], undefined, plannedOn("w", today));
+  assert.equal(finished.rows[0].doneToday, true);
+  assert.equal(finished.rows[0].plannedToday, true);
+});
+
+// --- Pick a day prompts (decisions 39, 142, 143) ---------------------------
+
+const friday = d(2026, 11, 6);
+
+test("prompts: a weekly habit with no plan prompts on Friday with Today and Sat, no Other day", () => {
+  const page = buildTodayPage(me, [weeklyTwice("w")], noLogs, friday);
+  assert.equal(page.prompts.length, 1);
+  assert.equal(page.prompts[0].habitId, "w");
+  assert.deepEqual(page.prompts[0].chips, [{ day: "2026-11-06", label: "Today" }, { day: "2026-11-07", label: "Sat" }]);
+  assert.equal(page.prompts[0].showOther, false);
+});
+
+test("prompts: none on a Thursday, none once planned this week, none for scheduled habits, none once the target is met", () => {
+  assert.deepEqual(buildTodayPage(me, [weeklyTwice("w")], noLogs, today).prompts, []);
+  assert.deepEqual(buildTodayPage(me, [weeklyTwice("w")], noLogs, friday, new Map(), [], undefined, plannedOn("w", d(2026, 11, 7))).prompts, []);
+  assert.deepEqual(buildTodayPage(me, [habit({ id: "daily" })], noLogs, friday).prompts, []);
+  const twice = logsFor("w", [{ userId: "me", day: d(2026, 11, 2), status: "done" }, { userId: "me", day: d(2026, 11, 4), status: "done" }]);
+  assert.deepEqual(buildTodayPage(me, [weeklyTwice("w")], twice, friday).prompts, []);
+});
+
+test("prompts: a monthly habit on a Sunday offers three chips and Other day limited to the rest of the month", () => {
+  const monthly = habit({ id: "m", schedule: "monthly", times: 1 });
+  const sunday = d(2026, 11, 8);
+  const [prompt] = buildTodayPage(me, [monthly], noLogs, sunday).prompts;
+  assert.deepEqual(prompt.chips.map((chip) => chip.label), ["Today", "Mon", "Tue"]);
+  assert.equal(prompt.showOther, true);
+  assert.equal(prompt.otherFrom, "2026-11-11");
+  assert.equal(prompt.otherTo, "2026-11-30");
+});
+
+test("prompts: an archived habit and someone else's habit never prompt", () => {
+  assert.deepEqual(buildTodayPage(me, [{ ...weeklyTwice("w"), archivedAt: old }], noLogs, friday).prompts, []);
+  assert.deepEqual(buildTodayPage(stranger, [weeklyTwice("w")], noLogs, friday).prompts, []);
+});
+
+test("prompts: none while the viewer is on vacation, back the day after it ends", () => {
+  const away = new Map([["me", [{ start: d(2026, 11, 3), end: d(2026, 11, 6) }]]]);
+  assert.deepEqual(buildTodayPage(me, [weeklyTwice("w")], noLogs, friday, away).prompts, []);
+  const over = new Map([["me", [{ start: d(2026, 11, 1), end: d(2026, 11, 5) }]]]);
+  assert.equal(buildTodayPage(me, [weeklyTwice("w")], noLogs, friday, over).prompts.length, 1);
+  const someoneElse = new Map([["stranger", [{ start: d(2026, 11, 3), end: d(2026, 11, 6) }]]]);
+  assert.equal(buildTodayPage(me, [weeklyTwice("w")], noLogs, friday, someoneElse).prompts.length, 1);
+});

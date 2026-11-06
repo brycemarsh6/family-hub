@@ -23,7 +23,10 @@ import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
-import type { CalendarEventView } from "@/lib/types";
+import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
+import { localDayToAllDayInstant } from "@/lib/calendarDates";
+import { startOfDay } from "@/lib/mealPlanDates";
+import type { CalendarEventView, CalendarHabitDayView } from "@/lib/types";
 
 function refreshCalendarViews() {
   revalidatePath("/calendar");
@@ -347,4 +350,27 @@ export async function fetchCalendarEvents(
   // Whatever this returns — including a genuinely empty array — is a real
   // answer about the requested range, not a refusal.
   return getCalendarEventsInRange(windowStart, windowEnd);
+}
+
+/**
+ * The Schedule view's planned habit days (decision 146), a sibling of
+ * `fetchCalendarEvents`/`fetchTasks` with the same guards and the same
+ * `null`-means-refused shape. Unlike them it reads the signed-in viewer's
+ * OWN planned days only (a private habit's only to its person, none on the
+ * tablet), so it needs the user's id and role, not just a session.
+ */
+export async function fetchHabitDays(
+  windowStart: Date,
+  windowEnd: Date,
+): Promise<CalendarHabitDayView[] | null> {
+  const user = await getVerifiedUser();
+  if (!user) return null;
+  if (!isValidDate(windowStart) || !isValidDate(windowEnd)) return null;
+  if (windowEnd.getTime() <= windowStart.getTime()) return null;
+  if (windowEnd.getTime() - windowStart.getTime() > MAX_FETCH_SPAN_DAYS * MS_PER_DAY) return null;
+  return loadPlannedHabitDays(
+    { userId: user.userId, role: user.role },
+    localDayToAllDayInstant(startOfDay(windowStart)),
+    localDayToAllDayInstant(startOfDay(windowEnd)),
+  );
 }

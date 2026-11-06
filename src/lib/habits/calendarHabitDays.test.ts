@@ -1,0 +1,61 @@
+// Pins calendarHabitDays.ts (decision 146): who sees a planned habit day on the
+// Calendar, and when it reads as done.
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { buildCalendarHabitDays, type PlannedDayRow } from "./calendarHabitDays";
+import type { HabitActor } from "./types";
+
+const emily: HabitActor = { userId: "emily", role: "parent" };
+const bryce: HabitActor = { userId: "bryce", role: "admin" };
+const tablet: HabitActor = { userId: "tablet", role: "device" };
+const MON = new Date(Date.UTC(2026, 10, 9));
+const TUE = new Date(Date.UTC(2026, 10, 10));
+
+function row(over: Partial<PlannedDayRow> = {}): PlannedDayRow {
+  return { habitId: "h1", userId: "emily", title: "Run", icon: "Bike", kind: "habit", isPrivate: false, participantIds: ["emily", "bryce"], day: MON, ...over };
+}
+
+test("a participant sees their own planned day, undone and plain", () => {
+  const items = buildCalendarHabitDays(emily, [row()], []);
+  assert.equal(items.length, 1);
+  assert.deepEqual({ id: items[0].id, habitId: items[0].habitId, icon: items[0].icon, done: items[0].done }, { id: "h1:2026-11-09", habitId: "h1", icon: "Bike", done: false });
+});
+
+test("a Together habit shows once, from the viewer's own row only", () => {
+  const rows = [row(), row({ userId: "bryce" })];
+  assert.equal(buildCalendarHabitDays(emily, rows, []).length, 1);
+  assert.equal(buildCalendarHabitDays(bryce, rows, []).length, 1);
+});
+
+test("someone not on the habit never sees it, even a manager", () => {
+  assert.deepEqual(buildCalendarHabitDays(bryce, [row({ participantIds: ["emily"] })], []), []);
+  // Another person's row (even on a habit the viewer is on) is not the viewer's day.
+  assert.deepEqual(buildCalendarHabitDays(bryce, [row()], []), []);
+});
+
+test("a private habit shows only to its person", () => {
+  const mine = row({ isPrivate: true, participantIds: ["emily"] });
+  assert.equal(buildCalendarHabitDays(emily, [mine], []).length, 1);
+  assert.equal(buildCalendarHabitDays(bryce, [mine], []).length, 0);
+});
+
+test("the tablet sees none", () => {
+  assert.deepEqual(buildCalendarHabitDays(tablet, [row({ userId: "tablet", participantIds: ["tablet"] })], []), []);
+});
+
+test("done or late for the viewer on that day is done; skipped, another day or another person is not", () => {
+  const rows = [row(), row({ day: TUE })];
+  assert.equal(buildCalendarHabitDays(emily, rows, [{ habitId: "h1", userId: "emily", day: MON, status: "done" }])[0].done, true);
+  assert.equal(buildCalendarHabitDays(emily, rows, [{ habitId: "h1", userId: "emily", day: MON, status: "late" }])[0].done, true);
+  assert.equal(buildCalendarHabitDays(emily, rows, [{ habitId: "h1", userId: "emily", day: MON, status: "skipped" }])[0].done, false);
+  assert.equal(buildCalendarHabitDays(emily, rows, [{ habitId: "h1", userId: "bryce", day: MON, status: "done" }])[0].done, false);
+  const tue = buildCalendarHabitDays(emily, rows, [{ habitId: "h1", userId: "emily", day: MON, status: "done" }]);
+  assert.deepEqual(tue.map((i) => i.done), [true, false]);
+});
+
+test("items come out in day then title order, a chore keeps its kind", () => {
+  const items = buildCalendarHabitDays(emily, [row({ habitId: "b", title: "Zed", day: MON }), row({ habitId: "a", title: "Ann", kind: "chore", day: MON }), row({ habitId: "c", title: "Aaa", day: TUE })], []);
+  assert.deepEqual(items.map((i) => i.title), ["Ann", "Zed", "Aaa"]);
+  assert.equal(items[0].kind, "chore");
+});

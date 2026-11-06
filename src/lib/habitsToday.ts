@@ -9,11 +9,13 @@ import { canSeeHabit } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartDay } from "./habits/carryOver";
 import { logsForUser, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import { windowProgress, type WindowProgress } from "./habits/progress";
+import { isPlannedToday } from "./habits/planPrompts";
 import { compareDays, dayInVacation, dueState as dueStateOf, isSameDay } from "./habits/schedule";
 import { displayStreak, streakUnitOf, type StreakCache } from "./habits/streaks";
 import type { DueState, HabitActor, HabitLogDay, Vacation } from "./habits/types";
 import { isExcusedAllDay, weekChange, type ExcusableRow, type StoredWeekOverride } from "./habits/weekOverrides";
 import { choreHeader } from "./choreChart";
+import { buildTodayPrompts, type TodayPrompt } from "./habitsPrompts";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
 import type { HabitRowState, HabitMemberState } from "./habitChanges";
 import {
@@ -69,6 +71,8 @@ export type HabitRowView = Omit<HabitRowState, "participants"> & {
   progress: WindowProgress | null;
   /** What the streak counts: days, weeks or months. */
   streakUnit: StreakUnit;
+  /** The viewer planned this habit for today (decision 145): the row is required and its meta says so. */
+  plannedToday: boolean;
   /** Due today but the viewer is on vacation (decision 115): excused, muted, the check still works. */
   onVacation: boolean;
   /** A chore skipped for this week only (decision 117): excused like a vacation row. */
@@ -115,6 +119,8 @@ export type TodayPage = {
   archived: HabitManagerItem[];
   /** The viewer's unseen nudges for today, oldest first. */
   nudges: TodayNudge[];
+  /** The habits asking "what day will you do it?" today, with their chips (decisions 39, 142); empty off a prompt day. */
+  prompts: TodayPrompt[];
   /** True when every required row is done or skipped (decision 76); the page fires the confetti once a day. */
   confetti: boolean;
   /** The viewer's chore streak, the Sunday shout-out and the end of their current vacation ("YYYY-MM-DD"): `ChoreHeader` in choreChart.ts. */
@@ -201,6 +207,7 @@ export function buildTodayRows(
   logsByHabit: ReadonlyMap<string, HabitLogDay[]>,
   today: CalendarDate,
   vacationsByUser: ReadonlyMap<string, readonly Vacation[]> = new Map(),
+  plannedByHabit: ReadonlyMap<string, readonly CalendarDate[]> = new Map(),
 ): HabitRowView[] {
   const rows: HabitRowView[] = [];
   for (const habit of live) {
@@ -211,7 +218,8 @@ export function buildTodayRows(
     const since = carrySince(habit.participants.find((p) => p.userId === viewer.userId)?.joinedAt, startDay);
     const progress = spec ? windowProgress(spec, mine, today, startDay) : null;
     const change = weekChange(spec, habit.weekOverrides, today);
-    const dueState: DueState = change.state ? (change.state === "none" ? "none" : "required") : spec ? dueStateOf(spec, today, false, progress?.count ?? 0) : "required";
+    const plannedToday = isPlannedToday(plannedByHabit.get(habit.id) ?? [], today);
+    const dueState: DueState = change.state ? (change.state === "none" ? "none" : "required") : spec ? dueStateOf(spec, today, plannedToday, progress?.count ?? 0) : "required";
     const onVacation = dueState === "required" && dayInVacation(today, vacationsByUser.get(viewer.userId) ?? []);
     const chore = toHabitKind(habit.kind) === "chore";
     const carried = spec ? carriedDay(spec, habit.carryOver, mine, today, since) : null;
@@ -265,6 +273,7 @@ export function buildTodayRows(
       dueState,
       carriedFrom,
       progress,
+      plannedToday,
       onVacation,
       skippedThisWeek: change.state === "excused",
       weekTag: change.tag ? choreTagLabel(change.tag, SHORT_DAY_NAMES) : null,
@@ -307,12 +316,14 @@ export function buildTodayPage(
   vacationsByUser: ReadonlyMap<string, readonly Vacation[]> = new Map(),
   nudges: readonly TodayNudge[] = [],
   choreCache: StreakCache = { current: 0, best: 0, asOf: null },
+  plannedByHabit: ReadonlyMap<string, readonly CalendarDate[]> = new Map(),
 ): TodayPage {
   const visible = visibleInViewerOrder(viewer, habits);
   const live = visible.filter((habit) => !habit.archivedAt);
-  const rows = buildTodayRows(viewer, live, logsByHabit, today, vacationsByUser);
+  const rows = buildTodayRows(viewer, live, logsByHabit, today, vacationsByUser, plannedByHabit);
   return {
     rows,
+    prompts: buildTodayPrompts(viewer, live, logsByHabit, plannedByHabit, today, vacationsByUser.get(viewer.userId) ?? []),
     nudges: [...nudges],
     confetti: allRequiredDoneToday(rows),
     ...choreHeader(viewer.userId, visible, logsByHabit, today, vacationsByUser.get(viewer.userId) ?? [], choreCache),

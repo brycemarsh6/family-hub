@@ -6,7 +6,7 @@ import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { LogButton } from "./LogButton";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
-import { ANYTIME_LABEL, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
+import { ANYTIME_LABEL, ON_VACATION_LABEL, PLANNED_FOR_TODAY_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
 import type { HabitRowView } from "@/lib/habitsRead";
 import { dayOfWeek } from "@/lib/householdDate";
@@ -123,8 +123,19 @@ export function HabitRow({
                     ? `${othersDone.map((p) => p.displayName).join(", ")} done`
                     : habitWhoLabel({ people: row.participants.length, everyone: row.everyone, sharing: row.sharing })}
                 </span>
-                <span aria-hidden="true">·</span>
-                <span>{row.timeOfDay ? TIME_OF_DAY_LABELS[row.timeOfDay] : ANYTIME_LABEL}</span>
+                {row.timeOfDay && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>{TIME_OF_DAY_LABELS[row.timeOfDay]}</span>
+                  </>
+                )}
+                {/* A day planned for today says so, replacing "Anytime" (decision 145). */}
+                {(row.plannedToday || !row.timeOfDay) && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>{row.plannedToday ? PLANNED_FOR_TODAY_LABEL : ANYTIME_LABEL}</span>
+                  </>
+                )}
                 {row.dueState === "open" && row.progress && row.progress.target > 1 && (
                   <>
                     <span aria-hidden="true">·</span>

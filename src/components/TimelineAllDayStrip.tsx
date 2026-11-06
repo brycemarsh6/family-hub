@@ -50,6 +50,8 @@
 // with no conversion step.
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import { HabitIcon } from "./HabitIcon";
 import { assignLanes, type MonthLayoutEvent } from "@/lib/monthLayout";
 import { addDays } from "@/lib/mealPlanDates";
 import {
@@ -60,7 +62,7 @@ import {
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
 import type { TimelineEvent } from "@/lib/timelineLayout";
-import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
+import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
 type TimelineAllDayStripProps = {
   columnDays: Date[];
@@ -74,6 +76,8 @@ type TimelineAllDayStripProps = {
    * component decides which touch `columnDays` itself, via `assignLanes`,
    * exactly like MonthGrid.tsx's own row already does for Month. */
   tasks: CalendarTaskView[];
+  /** The viewer's planned habit days (decision 146): all-day items that open the habit's page. */
+  habitDays: CalendarHabitDayView[];
   /** Looked up by id for every non-task span. Kept in the CALLER
    * (TimelineGrid.tsx) rather than built here, because that file's own hour
    * rail needs the identical map for its timed blocks — one map, two
@@ -91,6 +95,7 @@ export function TimelineAllDayStrip({
   columnDays,
   allDayRow,
   tasks,
+  habitDays,
   eventById,
   onOpenEvent,
   onOpenTask,
@@ -122,9 +127,21 @@ export function TimelineAllDayStrip({
       })),
     [tasks],
   );
+  // Planned habit days (decision 146) pack the same way, as single-day spans.
+  const habitDayById = useMemo(() => new Map(habitDays.map((item) => [item.id, item])), [habitDays]);
+  const habitLayoutEvents: MonthLayoutEvent[] = useMemo(
+    () =>
+      habitDays.map((item) => ({
+        id: item.id,
+        startAt: item.dayInstant,
+        endAt: localDayToAllDayInstant(addDays(allDayInstantToLocalDay(item.dayInstant), 1)),
+        allDay: true,
+      })),
+    [habitDays],
+  );
   const allDayItems = useMemo(
-    () => [...allDayRow, ...taskLayoutEvents],
-    [allDayRow, taskLayoutEvents],
+    () => [...allDayRow, ...taskLayoutEvents, ...habitLayoutEvents],
+    [allDayRow, taskLayoutEvents, habitLayoutEvents],
   );
 
   // "+N more" used to be a dead end (see TimelineGrid.tsx's own header for
@@ -198,6 +215,28 @@ export function TimelineAllDayStrip({
         // mission-17/C5 — tasks first, and ONLY against `taskById`: see
         // this file's own header for why a task id is never even looked up
         // against `eventById`.
+        const habitDay = habitDayById.get(span.event.id);
+        if (habitDay) {
+          return (
+            <Link
+              key={span.event.id}
+              href={`/habits/${habitDay.habitId}`}
+              aria-label={habitDay.done ? `${habitDay.title}, done` : habitDay.title}
+              className={`flex items-center gap-0.5 truncate rounded border px-1 text-left text-[9px] font-semibold leading-[24px] ${
+                habitDay.done ? "border-muted text-muted" : "border-fg text-fg"
+              }`}
+              style={{
+                gridColumn: `${span.startCol + 2} / ${span.endCol + 3}`,
+                gridRow: span.lane + 1,
+                background: "var(--surface-2)",
+              }}
+            >
+              <HabitIcon name={habitDay.icon} kind={habitDay.kind} size={10} />
+              {habitDay.done && <span aria-hidden="true">✓</span>}
+              <span className={`truncate ${habitDay.done ? "line-through" : ""}`}>{habitDay.title}</span>
+            </Link>
+          );
+        }
         const task = taskById.get(span.event.id);
         if (task) {
           const completed = task.completedAt !== null;

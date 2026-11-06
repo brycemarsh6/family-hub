@@ -9,7 +9,7 @@ import {
 } from "@/lib/calendarDates";
 import { addDays, isSameMonth, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 import { MonthCell, type MonthCellSlot } from "./MonthCell";
-import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
+import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
 /**
  * A task, reshaped into the exact CalendarEventView shape MonthCell.tsx
@@ -35,6 +35,27 @@ function taskAsMonthEvent(task: CalendarTaskView): CalendarEventView {
     endAt: localDayToAllDayInstant(addDays(localDay, 1)),
     allDay: true,
     people: task.people,
+    createdByName: null,
+  };
+}
+
+/**
+ * A planned habit day, reshaped the same way as a task (decision 146): a
+ * single all-day span with no people. It reads as a "completed" pill when done
+ * (check and strike-through) and as a plain pill otherwise; the pill has no
+ * room for the icon, the day tap and the Day view carry that.
+ */
+function habitDayAsMonthEvent(item: CalendarHabitDayView): CalendarEventView {
+  const localDay = allDayInstantToLocalDay(item.dayInstant);
+  return {
+    id: item.id,
+    title: item.title,
+    notes: null,
+    location: null,
+    startAt: item.dayInstant,
+    endAt: localDayToAllDayInstant(addDays(localDay, 1)),
+    allDay: true,
+    people: [],
     createdByName: null,
   };
 }
@@ -92,6 +113,7 @@ export function MonthGrid({
   today,
   events,
   tasks,
+  habitDays,
   windowStart,
   windowEnd,
   onOpenDay,
@@ -103,6 +125,8 @@ export function MonthGrid({
    * `taskAsMonthEvent` and this component's own doc comment for how these
    * become pills. */
   tasks: CalendarTaskView[];
+  /** The viewer's planned habit days within the fetched window. */
+  habitDays: CalendarHabitDayView[];
   /** page.tsx's fetch bounds — passed straight to `isOutsideWindow` per
    * cell, exactly as Week/Day already do (see CalendarViews.tsx). */
   windowStart: Date;
@@ -127,6 +151,7 @@ export function MonthGrid({
   const eventById = new Map<string, CalendarEventView>([
     ...events.map((event) => [event.id, event] as const),
     ...tasks.map((task) => [task.id, taskAsMonthEvent(task)] as const),
+    ...habitDays.map((item) => [item.id, habitDayAsMonthEvent(item)] as const),
   ]);
   const layoutEvents: MonthLayoutEvent[] = Array.from(eventById.values()).map((event) => ({
     id: event.id,
@@ -146,6 +171,8 @@ export function MonthGrid({
   const completedTaskIds = new Set(
     tasks.filter((task) => task.completedAt !== null).map((task) => task.id),
   );
+
+  const doneHabitDayIds = new Set(habitDays.filter((item) => item.done).map((item) => item.id));
 
   return (
     <div>
@@ -184,7 +211,7 @@ export function MonthGrid({
             // (completion doesn't remove a task from the "is a task at
             // all" set), and a real event id is in neither set, falling
             // through to `null`.
-            const taskStatus: "open" | "completed" | null = completedTaskIds.has(event.id)
+            const taskStatus: "open" | "completed" | null = completedTaskIds.has(event.id) || doneHabitDayIds.has(event.id)
               ? "completed"
               : taskIds.has(event.id)
                 ? "open"

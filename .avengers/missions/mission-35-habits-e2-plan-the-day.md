@@ -1,8 +1,8 @@
 # Mission: Habits & Chores PR E2, plan the day (mission 35)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (Hill decided 141 to 146 before PR E)
-**Started:** 2026-11-05 · **Updated:** 2026-11-05
+**Status:** BUILDING (C0 to C2 committed; C3+C4 and C5 dispatched in parallel)
+**Started:** 2026-11-05 · **Updated:** 2026-11-06
 **Branch:** `claude/habits-e2-plan-day` (from origin/main 192a4db, after PR E1)
 
 ## Brief
@@ -71,6 +71,7 @@ to C4, C14 to C17). 3 passes per gate.
 - **Boundaries:** `src/lib/habits/habitWrites.ts`, new
   `src/lib/habits/streakWrites.ts`, their importers (imports only).
 - **Verification:** full gauntlet; both files under 350.
+- **Status:** DONE (commit after 9a0028a; habitWrites 253, streakWrites 119; Fury re-ran: 889 tests, UTC 882+7 skips, LA 889, build 0).
 
 ### C1 - Prompt rules, pure, with tests
 - **Objective:** `isPromptDay` counts only planned days inside the
@@ -85,6 +86,7 @@ to C4, C14 to C17). 3 passes per gate.
 - **Verification:** tests for: a weekly item planned next week no longer
   silences this week's Friday prompt; Friday chips are Today and Sat with
   no Other day; monthly day 15 Thursday chips; monthly last day.
+- **Status:** DONE (same commit; `isPlannableDay`, `isPlannedToday` added).
 
 ### C2 - Writer and action
 - **Objective:** `planHabitDay(habitId, day)` saves a planned day; Together
@@ -96,6 +98,7 @@ to C4, C14 to C17). 3 passes per gate.
   `src/app/actions/habitPlans.ts`, `src/lib/habits/access.ts` only if a
   rule is missing (with test).
 - **Verification:** pure validation in a tested helper; tsc; build.
+- **Status:** DONE (same commit; no access.ts change; un-planning stays out of scope).
 
 ### C3 - Readers and Today
 - **Objective:** `loadTodayPage` loads the viewer's planned days in the

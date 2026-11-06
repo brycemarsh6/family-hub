@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { choresTileRows, habitsTileRows, keepShownRows, pickableHabits } from "./habitsDashboard";
+import { choresTileRows, habitsTileRows, keepShownRows, pickableHabits, plannedTodayRows } from "./habitsDashboard";
 import {
   CHORES_TILE_EMPTY,
   HABITS_TILE_ALL_DONE,
@@ -23,6 +23,7 @@ function row(id: string, overrides: Partial<Row> = {}): Row {
     skippedToday: false,
     onVacation: false,
     skippedThisWeek: false,
+    plannedToday: false,
     ...overrides,
   };
 }
@@ -184,4 +185,24 @@ test("pickableHabits: kind habit, not archived, in the given order", () => {
     { id: "d", kind: "habit" as const, archived: false },
   ];
   assert.deepEqual(pickableHabits(items).map((i) => i.id), ["a", "d"]);
+});
+
+// --- Planned today (decision 145) ----------------------------------------
+
+test("planned today: only habits planned for today, in Today's order; chores stay in their tile", () => {
+  const rows = [row("a"), row("p1", { plannedToday: true }), row("c", { kind: "chore", plannedToday: true }), row("p2", { plannedToday: true, doneToday: true })];
+  assert.deepEqual(ids(plannedTodayRows(rows)), ["p1", "p2"]);
+  assert.deepEqual(plannedTodayRows([row("a")]), []);
+});
+
+test("habits: rows already in Planned today stay out of the tile, picked or not", () => {
+  const rows = [row("a"), row("p", { plannedToday: true }), row("b")];
+  assert.deepEqual(ids(habitsTileRows(rows, []).rows), ["a", "b"]);
+  assert.deepEqual(ids(habitsTileRows(rows, ["p", "b"]).rows), ["b"]);
+});
+
+test("habits: a tile whose only due habit is planned says nothing is due, not all done", () => {
+  const tile = habitsTileRows([row("p", { plannedToday: true })], []);
+  assert.deepEqual(tile.rows, []);
+  assert.equal(tile.empty, HABITS_TILE_NOTHING_DUE);
 });

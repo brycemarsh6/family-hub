@@ -3,6 +3,9 @@ import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { resolveServerFetchWindow } from "@/lib/calendarPaging";
 import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
+import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
+import { localDayToAllDayInstant } from "@/lib/calendarDates";
+import { startOfDay } from "@/lib/mealPlanDates";
 import { CalendarViews } from "@/components/CalendarViews";
 import type { CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
@@ -71,7 +74,7 @@ export default async function CalendarPage({
   // cross-country round trip (CLAUDE.md's performance section, from the
   // Inventory fix this mirrors) — batching keeps this page at ONE round
   // trip's worth of latency for three queries, not three.
-  const [eventViews, tasks, roster] = await Promise.all([
+  const [eventViews, tasks, roster, habitDays] = await Promise.all([
     // Events joined with their people in the same round trip (Prisma's
     // nested `select`, not a second query) — the select and the
     // row→CalendarEventView mapping both moved to calendarEventQuery.ts in
@@ -143,6 +146,16 @@ export default async function CalendarPage({
       select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
       orderBy: { createdAt: "asc" },
     }),
+    // Planned habit days (Habits & Chores E2, decision 146): the viewer's own
+    // only, so the tablet and anyone not on a habit get none. In the same
+    // round trip as the rest.
+    user
+      ? loadPlannedHabitDays(
+          { userId: user.userId, role: user.role },
+          localDayToAllDayInstant(startOfDay(windowStart)),
+          localDayToAllDayInstant(startOfDay(windowEnd)),
+        )
+      : Promise.resolve([]),
   ]);
 
   const taskViews: CalendarTaskView[] = tasks.map((task) => ({
@@ -193,6 +206,7 @@ export default async function CalendarPage({
       <CalendarViews
         events={eventViews}
         tasks={taskViews}
+        habitDays={habitDays}
         people={people}
         canManage={canManage}
         windowStart={windowStart}
