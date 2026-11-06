@@ -135,7 +135,8 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
 31: the tab" and decisions 84 to 88 bind where a contract is silent.
 
 ### C1 - Data, engine and the three decisions
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc and 665 tests; migration applied to dev, status clean)
+- **Report notes for C2+:** `updateHabit(id, fields, today, client, people)` takes `{ participantIds?, everyone? }` fifth; `createHabit({ fields, participantIds, everyone? })`; `reorderHabits(userId, ids)`; `joinEveryoneHabits(userId)`; `HabitForPlan.startDay`; `windowProgress(spec, logs, today, startDay?)`; `applyHabitChange(rows, { type, habitId, userId? })` where uncheck clears only a check and unskip only a skip. `habitWrites.ts` is 400 lines (over the 350 soft cap: a note for Captain). `everyone` is not in `HabitFields`; it travels beside the fields.
 - **Objective:** Add the `everyone` flag, the reorder and join writers, the
   `habitChanges` reducer, the 14 icons, and decisions 84, 85 and 87 in the
   engine, with tests.
