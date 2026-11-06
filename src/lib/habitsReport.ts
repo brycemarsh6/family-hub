@@ -1,11 +1,11 @@
 import { addCalendarDays, formatCalendarDate, formatWeekTitle, startOfMonth, type CalendarDate } from "./householdDate";
-import { compareDays, isOpenKind, periodTarget } from "./habits/schedule";
+import { compareDays } from "./habits/schedule";
 import type { HabitLogDay, Vacation, WeekOverride } from "./habits/types";
-import { monthCalendar, nothingDueText, statsMonthTitle, type CellReason, type MonthCellState, type StatsInput } from "./habitsStats";
+import { monthCalendar, nothingDueText, openCountOf, openCountText, statsMonthTitle, type CellReason, type MonthCellState, type StatsInput } from "./habitsStats";
 import { monthParam, weekParam, type ReportFilterOption, type ReportItem, type ReportScope, type ReportView, type ScopedItem } from "./habitsReportScope";
 import { firstNameOf, type ChartChip } from "./choreChart";
 import { FULL_MONTH_NAMES } from "./mealPlanDates";
-import { REPORT_LABELS, reportCountOf, reportCountThis, reportYearTotals, type HabitKind } from "./habitVocabulary";
+import { REPORT_LABELS, reportCountOf, reportYearTotals, type HabitKind } from "./habitVocabulary";
 
 // The Report's rules (decisions 163 to 171), with no database:
 // `habitsStatsRead.ts` (`loadHabitReport`) fetches the shown person's habits
@@ -72,14 +72,10 @@ const isChecked = (cell: ReportCell) => cell.state === "done" || cell.state === 
 /** The count text for the cells shown (decisions 166, 167, 177): "5 of 6" for scheduled items (done of due so far, like the stats page; words instead of "0 of 0"), done of the target for the open kind that has a target in the period, otherwise "N this week" or "N this month". */
 function countText(item: ScopedItem, input: StatsInput, cells: readonly ReportCell[], period: "week" | "month", scope: ReportScope): string {
   const done = cells.filter(isChecked).length;
-  const periodStart = scope.period;
-  if (!isOpenKind(item.spec)) {
-    const due = done + cells.filter((cell) => cell.state === "missed").length;
-    return due === 0 ? nothingDueText(input, scope.personId, scope.from, scope.to, period) : reportCountOf(done, due);
-  }
-  const targeted = item.spec.schedule === "monthly" ? period === "month" : period === "week";
-  if (!targeted) return reportCountThis(done, period);
-  return reportCountOf(Math.min(done, periodTarget(item.spec, periodStart)), periodTarget(item.spec, periodStart));
+  const open = openCountOf(item.spec, period, scope.period);
+  if (open) return openCountText(open, done, period);
+  const due = done + cells.filter((cell) => cell.state === "missed").length;
+  return due === 0 ? nothingDueText(input, scope.personId, scope.from, scope.to, period) : reportCountOf(done, due);
 }
 
 function sectionsOf<Row extends ReportItem>(rows: Row[]): ReportSection<Row>[] {

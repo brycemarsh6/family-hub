@@ -15,6 +15,7 @@ import {
   type ReportWeekRow,
 } from "./habitsReport";
 import { reportScope, type ReportParams } from "./habitsReportScope";
+import { monthCalendar, openCountOf, openCountText } from "./habitsStats";
 import type { TodayHabitInput } from "./habitsToday";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -286,6 +287,26 @@ test("a scheduled item with nothing due so far says why, never 0 of 0 (decision 
   assert.equal(at(habit("m2", { schedule: "weekdays", weekdays: "0100000" }), d(2026, 11, 5), [skipLog(d(2026, 11, 2))]), "1 skipped");
   // Open kinds keep their counts.
   assert.equal(count(habit("w", { schedule: "weekly", times: 3 })), "0 of 3");
+});
+
+test("the stats page header says what the Report's Month card says for an open kind (decision 167)", () => {
+  const cases: [string, TodayHabitInput, CalendarDate[], string][] = [
+    ["weekly 3 a week, 1 done", habit("w", { schedule: "weekly", times: 3 }), [d(2026, 11, 2)], "1 this month"],
+    ["monthly once, 0 done", habit("m", { schedule: "monthly", times: 1 }), [], "0 of 1"],
+    ["monthly twice, 1 done", habit("m2", { schedule: "monthly", times: 2 }), [d(2026, 11, 2)], "1 of 2"],
+  ];
+  for (const [name, h, days, expected] of cases) {
+    const data: ReportData = { ...noData, logsByHabit: new Map([[h.id, days.map((day) => log(day))]]) };
+    const card = rowsOf(report(parent, [h], { view: "month" }, data))[0] as ReportMonthCard;
+    assert.equal(card.count, expected, name);
+    // The page's header: the same rule, counted from the month's checked cells.
+    const scope = reportScope(parent, params({ view: "month" }), [h], people, today);
+    const input = { spec: scope.items[0].spec, people: [{ userId: "amy", displayName: "Amy", avatarColor: "", since: scope.items[0].since, deactivated: false, cache: { current: 0, best: 0, asOf: null } }], logs: days.map((day) => ({ ...log(day), userId: "amy" })), vacationsByUser: new Map(), today };
+    const cells = monthCalendar(input, "amy", today)!.cells;
+    const rule = openCountOf(input.spec, "month", d(2026, 11, 1))!;
+    assert.equal(openCountText(rule, cells.filter((cell) => cell.state === "done" || cell.state === "late").length, "month"), expected, name);
+  }
+  assert.equal(openCountOf({ schedule: "daily" }, "month", d(2026, 11, 1)), null, "a scheduled kind has none");
 });
 
 // ---- Together and vacation (decision 180) ----

@@ -3,6 +3,7 @@ import { perfectDaysInRange, type DayEntry } from "./habits/perfectDays";
 import {
   compareDays,
   dayInVacation,
+  dueState,
   isDayInRange,
   isOpenKind,
   isSameDay,
@@ -21,6 +22,8 @@ import {
   REPORT_DUE_TODAY,
   SKIPPED_THIS_WEEK_LABEL,
   isCheckStatus,
+  reportCountOf,
+  reportCountThis,
   reportDueLabel,
   reportNotThis,
   reportSkippedCount,
@@ -151,7 +154,7 @@ function openTodayDoable(input: StatsInput, logs: readonly HabitLogDay[], since:
   if (!isOpenKind(spec) || compareDays(today, since) < 0) return false;
   const period = periodsInRange(spec, today, today).find((range) => isDayInRange(today, range));
   if (!period) return false;
-  return logs.filter((log) => isCheckStatus(log.status) && isDayInRange(log.day, period)).length < periodTarget(spec, period.start);
+  return dueState(spec, today, false, logs.filter((log) => isCheckStatus(log.status) && isDayInRange(log.day, period)).length) !== "none";
 }
 
 /**
@@ -186,6 +189,21 @@ export function nothingDueText(input: StatsInput, userId: string, from: Calendar
   if (skipped > 0) return reportSkippedCount(skipped);
   if (weekSkipped) return SKIPPED_THIS_WEEK_LABEL;
   return onVacation ? ON_VACATION_LABEL : reportNotThis(period);
+}
+
+/** How an open kind counts a period: "of" a target (weekly in a week, monthly in a month) or just "this" week or month (decisions 166, 167). */
+export type OpenCount = { mode: "of" | "this"; target: number };
+
+/** The open kind's count rule for `period`, or null for a scheduled kind. `periodStart` is the week's Sunday or the 1st. */
+export function openCountOf(spec: ScheduleSpec, period: "week" | "month", periodStart: CalendarDate): OpenCount | null {
+  if (!isOpenKind(spec)) return null;
+  const targeted = spec.schedule === "monthly" ? period === "month" : period === "week";
+  return targeted ? { mode: "of", target: periodTarget(spec, periodStart) } : { mode: "this", target: 0 };
+}
+
+/** "1 of 3" or "2 this month": the one text the Report's cards and the stats page's header share. */
+export function openCountText(count: OpenCount, done: number, period: "week" | "month"): string {
+  return count.mode === "of" ? reportCountOf(Math.min(done, count.target), count.target) : reportCountThis(done, period);
 }
 
 /**

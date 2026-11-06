@@ -17,6 +17,8 @@ import {
 import {
   monthCalendar,
   nothingDueText,
+  openCountOf,
+  type OpenCount,
   perfectDaysInMonth,
   personTotals,
   sideBySideRows,
@@ -216,7 +218,7 @@ export type HabitStatsData = {
   /** The subject's display name, for "Emily's numbers" when a parent opens a kid's habit. */
   subjectName: string;
   tiles: PersonTotals;
-  calendar: { first: string; leading: number; /** What the header says in place of "0 of 0 so far" (decision 177); null for an open kind. */ nothingDue: string | null; cells: { day: string; state: MonthCellState; reason: CellReason | null; tappable: boolean }[] };
+  calendar: { first: string; leading: number; /** What the header says in place of "0 of 0 so far" (decision 177); null for an open kind. */ nothingDue: string | null; /** An open kind's header rule (the Report Month card's, decision 167); null for a scheduled kind. */ openCount: OpenCount | null; cells: { day: string; state: MonthCellState; reason: CellReason | null; tappable: boolean }[] };
   /** Whether the viewer may tap the calendar's days (`canLogFor` the subject). */
   canTap: boolean;
   perfectDays: number;
@@ -319,6 +321,7 @@ export function buildStatsData(input: StatsBuildInput): HabitStatsData | null {
     calendar: {
       first: formatCalendarDate(calendar.first),
       leading: calendar.leading,
+      openCount: openCountOf(spec, "month", calendar.first),
       nothingDue: isOpenKind(spec) ? null : nothingDueText(stats, subjectId, calendar.first, calendar.cells[calendar.cells.length - 1].day, "month"),
       cells: calendar.cells.map((cell) => ({ day: formatCalendarDate(cell.day), state: cell.state, reason: cell.reason, tappable: cell.tappable })),
     },

@@ -12,7 +12,7 @@ import { checkHabit, uncheckHabit } from "@/app/actions/habitChecks";
 import type { HabitStatsData } from "@/lib/habitsFamily";
 import { parseDateParam } from "@/lib/householdDate";
 import { NUDGE_STATUS_LABEL } from "@/lib/habitVocabulary";
-import { effectiveState, statsMonthTitle } from "@/lib/habitsStats";
+import { effectiveState, openCountText, statsMonthTitle } from "@/lib/habitsStats";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 const SECTION_TITLE = "text-sm font-semibold uppercase tracking-wide text-muted";
@@ -65,6 +65,8 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
   const checkedOnServer = data.calendar.cells.filter(isChecked).length;
   const total = data.tiles.total + (checkedNow - checkedOnServer);
   const dueSoFar = checkedNow + cells.filter((cell) => effectiveState(cell) === "missed").length;
+  const { openCount, nothingDue } = data.calendar;
+  const headerText = openCount ? openCountText(openCount, checkedNow, "month") : dueSoFar === 0 && nothingDue ? nothingDue : `${checkedNow} of ${dueSoFar} so far`;
   const first = parseDateParam(data.calendar.first)!;
   const colors = new Map(data.sideBySide?.rows.map((row) => [row.userId, row.avatarColor]));
   const meta = [data.habit.whoLabel, data.habit.scheduleLabel, data.habit.archived ? "Archived" : null].filter(Boolean).join(" · ");
@@ -102,7 +104,7 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
       <div className="mt-1 flex items-baseline justify-between">
         <h2 className={SECTION_TITLE}>{statsMonthTitle(first.year, first.month, parseDateParam(data.today)!.year)}</h2>
         <span className="text-sm text-muted">
-          {dueSoFar === 0 && data.calendar.nothingDue ? data.calendar.nothingDue : `${checkedNow} of ${dueSoFar} so far`}
+          {headerText}
         </span>
       </div>
       <HabitMonthCalendar cells={cells} leading={data.calendar.leading} today={data.today} onToggle={toggle} />
