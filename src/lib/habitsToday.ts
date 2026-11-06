@@ -192,6 +192,11 @@ export function participantsAllowed(
   return requested.every((id) => allowed.has(id));
 }
 
+/** Together and Side by side are for two or more people; fewer means the person meant "Just me" (decision 175). */
+export function sharedNeedsMorePeople(shared: boolean, peopleCount: number): boolean {
+  return shared && peopleCount < 2;
+}
+
 /** The habits the viewer takes part in and may see (`canSeeHabit`), in the viewer's own order, oldest first on a tie. */
 export function visibleInViewerOrder(viewer: HabitActor, habits: readonly TodayHabitInput[]): TodayHabitInput[] {
   const sortOrderOf = (habit: TodayHabitInput) => habit.participants.find((p) => p.userId === viewer.userId)?.sortOrder ?? 0;

@@ -7,7 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "./householdDate";
 import type { DayEntry } from "./habits/perfectDays";
-import type { HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
+import type { HabitLogDay, ScheduleSpec, Vacation, WeekOverride } from "./habits/types";
 import {
   completionRate,
   monthCalendar,
@@ -87,11 +87,11 @@ test("monthCalendar: a checked today shows its check, not 'today'", () => {
   assert.equal(cal.cells[4].state, "done");
 });
 
-test("monthCalendar: days not due, on vacation or before joining are not missed", () => {
+test("monthCalendar: days not due or before joining are not missed, and an undone vacation day is skipped (decision 170)", () => {
   const mondays: ScheduleSpec = { schedule: "weekdays", days: [1] };
   const away = new Map([["amy", [{ start: d(2026, 11, 2), end: d(2026, 11, 2) }]]]);
   const cal = monthCalendar(input({ spec: mondays, vacationsByUser: away }), "amy", today)!;
-  assert.equal(cal.cells[1].state, "notDue"); // Monday 2nd, on vacation
+  assert.equal(cal.cells[1].state, "skipped"); // Monday 2nd, on vacation
   assert.equal(cal.cells[2].state, "notDue"); // Tuesday 3rd, not a scheduled day
   const joined = person("amy", { since: d(2026, 11, 10) });
   assert.equal(monthCalendar(input({ people: [joined] }), "amy", d(2026, 10, 20))!.cells[4].state, "notDue"); // Oct 5, before joining
@@ -246,4 +246,94 @@ test("statsMonthTitle: month name, with the year only outside the current year (
   assert.equal(statsMonthTitle(2026, 1, 2026), "January");
   assert.equal(statsMonthTitle(2025, 12, 2026), "December 2025");
   assert.equal(statsMonthTitle(2027, 2, 2026), "February 2027");
+});
+
+// ---- Decision 170: vacations and this-week changes in the stats calendar ----
+
+const chore: ScheduleSpec = { schedule: "weekdays", days: [1, 3] }; // Mon and Wed
+const week = d(2026, 11, 1); // the Sunday of today's week
+const skipMon: WeekOverride = { weekStart: week, fromWeekday: 1, action: "skipped", toWeekday: null };
+const moveMonToTue: WeekOverride = { weekStart: week, fromWeekday: 1, action: "moved", toWeekday: 2 };
+const moveWedToFri: WeekOverride = { weekStart: week, fromWeekday: 3, action: "moved", toWeekday: 5 };
+const away = new Map([["amy", [{ start: d(2026, 11, 2), end: d(2026, 11, 3) } as Vacation]]]);
+const novCell = (cal: ReturnType<typeof monthCalendar>, day: number) => cal!.cells[day - 1];
+
+test("monthCalendar: an undone due vacation day is skipped (on vacation); a check on it wins", () => {
+  const cal = monthCalendar(input({ vacationsByUser: away, logs: [log("amy", d(2026, 11, 3))] }), "amy", today);
+  assert.equal(novCell(cal, 2).state, "skipped");
+  assert.deepEqual(novCell(cal, 2).reason, { kind: "vacation" });
+  assert.equal(novCell(cal, 3).state, "done");
+  assert.equal(novCell(cal, 3).reason, null);
+  assert.equal(novCell(cal, 4).state, "missed");
+});
+
+test("monthCalendar: a vacation day the habit never asked for stays not due, and so does one before joining", () => {
+  const mondays: ScheduleSpec = { schedule: "weekdays", days: [1] };
+  const cal = monthCalendar(input({ spec: mondays, vacationsByUser: away }), "amy", today);
+  assert.equal(novCell(cal, 2).state, "skipped"); // Monday Nov 2
+  assert.equal(novCell(cal, 3).state, "notDue"); // Tuesday
+  assert.equal(novCell(cal, 3).reason, null);
+  const joined = person("amy", { since: d(2026, 11, 3) });
+  assert.equal(novCell(monthCalendar(input({ people: [joined], vacationsByUser: away }), "amy", today), 2).state, "notDue");
+});
+
+test("monthCalendar: today on vacation and undone is skipped; a future vacation day stays future", () => {
+  const vacation = new Map([["amy", [{ start: d(2026, 11, 5), end: d(2026, 11, 6) } as Vacation]]]);
+  const cal = monthCalendar(input({ vacationsByUser: vacation }), "amy", today);
+  assert.equal(novCell(cal, 5).state, "skipped");
+  assert.equal(novCell(cal, 6).state, "future");
+});
+
+test("monthCalendar: a chore's week-skipped day is skipped this week; a check wins; the other week is untouched", () => {
+  const cal = monthCalendar(input({ spec: chore, overrides: [skipMon] }), "amy", today);
+  assert.equal(novCell(cal, 2).state, "skipped");
+  assert.deepEqual(novCell(cal, 2).reason, { kind: "weekSkip" });
+  assert.equal(novCell(cal, 4).state, "missed");
+  const done = monthCalendar(input({ spec: chore, overrides: [skipMon], logs: [log("amy", d(2026, 11, 2))] }), "amy", today);
+  assert.equal(novCell(done, 2).state, "done");
+  assert.equal(novCell(done, 2).reason, null);
+  const lastWeek: WeekOverride = { ...skipMon, weekStart: d(2026, 10, 25) };
+  assert.equal(novCell(monthCalendar(input({ spec: chore, overrides: [lastWeek] }), "amy", today), 2).state, "missed");
+});
+
+test("monthCalendar: a moved-away day is not due (moved to Thu), the moved-to day is due", () => {
+  const cal = monthCalendar(input({ spec: chore, overrides: [moveMonToTue] }), "amy", today);
+  assert.equal(novCell(cal, 2).state, "notDue");
+  assert.deepEqual(novCell(cal, 2).reason, { kind: "movedAway", toWeekday: 2 });
+  assert.equal(novCell(cal, 3).state, "missed");
+  assert.equal(novCell(cal, 3).reason, null);
+  assert.equal(novCell(monthCalendar(input({ spec: chore, overrides: [moveMonToTue], logs: [log("amy", d(2026, 11, 3))] }), "amy", today), 3).state, "done");
+  // A move to a day still ahead leaves the old day not due and the new day future.
+  const ahead = monthCalendar(input({ spec: chore, overrides: [moveWedToFri] }), "amy", today);
+  assert.equal(novCell(ahead, 4).state, "notDue");
+  assert.equal(novCell(ahead, 6).state, "future");
+});
+
+test("monthCalendar: a check on a moved-away day wins and carries no reason", () => {
+  const cal = monthCalendar(input({ spec: chore, overrides: [moveMonToTue], logs: [log("amy", d(2026, 11, 2))] }), "amy", today);
+  assert.equal(novCell(cal, 2).state, "done");
+  assert.equal(novCell(cal, 2).reason, null);
+});
+
+test("completionRate: a week-skipped chore day is not due, and counts when done anyway (decisions 130, 170)", () => {
+  const amy = person("amy", { since: d(2026, 11, 1) });
+  const base = { spec: chore, people: [amy] };
+  assert.equal(completionRate(input({ ...base }), "amy"), 0);
+  assert.equal(completionRate(input({ ...base, overrides: [skipMon] }), "amy"), 0); // Wed is due and missed
+  assert.equal(completionRate(input({ ...base, overrides: [skipMon], logs: [log("amy", d(2026, 11, 4))] }), "amy"), 100);
+  assert.equal(completionRate(input({ ...base, overrides: [skipMon], logs: [log("amy", d(2026, 11, 2))] }), "amy"), 50);
+  assert.equal(completionRate(input({ ...base, overrides: [skipMon], logs: [log("amy", d(2026, 11, 2)), log("amy", d(2026, 11, 4))] }), "amy"), 100);
+});
+
+test("completionRate: a moved chore is due on its new day, not its old one", () => {
+  const amy = person("amy", { since: d(2026, 11, 1) });
+  const base = { spec: chore, people: [amy], overrides: [moveMonToTue] };
+  assert.equal(completionRate(input({ ...base, logs: [log("amy", d(2026, 11, 3))] }), "amy"), 50); // Tue and Wed due
+  assert.equal(completionRate(input({ ...base, logs: [log("amy", d(2026, 11, 3)), log("amy", d(2026, 11, 4))] }), "amy"), 100);
+  assert.equal(completionRate(input({ ...base, logs: [log("amy", d(2026, 11, 2))] }), "amy"), 0); // a check on the old day is not a due day
+});
+
+test("completionRate: vacation days still leave the rate as before (no change from decision 170)", () => {
+  const amy = person("amy", { since: d(2026, 11, 2) });
+  assert.equal(completionRate(input({ people: [amy], vacationsByUser: away, logs: [log("amy", d(2026, 11, 4))] }), "amy"), 100);
 });
