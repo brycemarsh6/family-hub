@@ -55,6 +55,8 @@ test("narrowers keep good values and repair odd ones", () => {
 test("icons: every allow-listed name is a real Lucide icon, no repeats", () => {
   assert.equal(new Set(HABIT_ICONS).size, HABIT_ICONS.length);
   for (const name of HABIT_ICONS) assert.ok(name in lucide, `${name} is not a Lucide icon`);
+  assert.equal(HABIT_ICONS.length, 40);
+  for (const name of ["Salad", "ShoppingCart", "GraduationCap"]) assert.equal(toHabitIcon(name), name);
   assert.equal(toHabitIcon("Dumbbell"), "Dumbbell");
   assert.equal(toHabitIcon("NotAnIcon"), null);
   assert.equal(toHabitIcon(null), null);

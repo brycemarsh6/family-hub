@@ -47,8 +47,8 @@ export function HabitsChoresSettings({
       const result = await recomputeAllStreaks();
       if (result.error) setRecomputeError(result.error);
       else {
-        const count = result.updated ?? 0;
-        setRecomputeMessage(`Updated ${count} ${count === 1 ? "streak" : "streaks"}`);
+        const count = result.habits ?? 0;
+        setRecomputeMessage(`Rechecked ${count} ${count === 1 ? "habit" : "habits"}`);
       }
     } catch {
       setRecomputeError("Couldn't recompute streaks. Check your connection and try again.");

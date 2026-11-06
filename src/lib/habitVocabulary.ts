@@ -96,6 +96,20 @@ export const HABIT_ICONS = [
   "Trash2",
   "CookingPot",
   "Car",
+  "Salad",
+  "Coffee",
+  "GlassWater",
+  "Utensils",
+  "CigaretteOff",
+  "AlarmClock",
+  "Timer",
+  "Church",
+  "HandHeart",
+  "Sparkles",
+  "PiggyBank",
+  "Briefcase",
+  "GraduationCap",
+  "ShoppingCart",
 ] as const;
 
 export type HabitIcon = (typeof HABIT_ICONS)[number];

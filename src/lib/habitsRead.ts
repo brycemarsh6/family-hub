@@ -1,7 +1,8 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { calendarDateFromUtcMidnight, utcMidnightInstant, type CalendarDate } from "./householdDate";
+import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
+import { calendarDateFromUtcMidnight, calendarDateInZone, utcMidnightInstant, type CalendarDate } from "./householdDate";
 import { logDayFromRow, specFromRow } from "./habits/habitRows";
 import type { HabitLogDay, ScheduleSpec } from "./habits/types";
 
@@ -18,6 +19,8 @@ export type HabitForPlan = {
   isPrivate: boolean;
   carryOver: boolean;
   archivedAt: Date | null;
+  /** The household day the habit was made (decision 85: its first week's target). */
+  startDay: CalendarDate;
   /** The engine's reading of the schedule; null if the stored row cannot be scheduled. */
   spec: ScheduleSpec | null;
   /** The stored schedule columns, for forms. `anchorWeek` is already a calendar day. */
@@ -70,6 +73,7 @@ export async function loadHabitsForPlan(
       isPrivate: habit.isPrivate,
       carryOver: habit.carryOver,
       archivedAt: habit.archivedAt,
+      startDay: calendarDateInZone(habit.createdAt, HOUSEHOLD_TIME_ZONE),
       spec: specFromRow(habit),
       schedule: {
         schedule: habit.schedule,

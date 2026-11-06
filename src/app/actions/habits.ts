@@ -11,7 +11,7 @@ import { getVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { recomputeAllStreaks as rebuildAllStreaks } from "@/lib/habits/habitWrites";
 
-export type RecomputeResult = { error?: string; updated?: number };
+export type RecomputeResult = { error?: string; habits?: number };
 
 /** Rebuild every cached streak from the check history. Admins only. */
 export async function recomputeAllStreaks(): Promise<RecomputeResult> {
@@ -20,8 +20,8 @@ export async function recomputeAllStreaks(): Promise<RecomputeResult> {
   if (user.role !== "admin") return { error: "Only an admin can recompute streaks." };
 
   try {
-    const { updated } = await rebuildAllStreaks(householdToday(new Date())!);
-    return { updated };
+    const { habits } = await rebuildAllStreaks(householdToday(new Date())!);
+    return { habits };
   } catch (err) {
     console.error("recomputeAllStreaks failed", err);
     return { error: "Couldn't recompute streaks. Try again." };

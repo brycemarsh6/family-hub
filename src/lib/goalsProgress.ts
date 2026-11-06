@@ -45,6 +45,8 @@ export type PlanItemRow = {
 export type PlanHabit = {
   spec: ScheduleSpec | null;
   schedule: { schedule: string; times: number | null };
+  /** The day the habit was made, for a daily habit's first-week target. */
+  startDay?: CalendarDate | null;
   logs: HabitLogDay[];
 };
 
@@ -95,7 +97,7 @@ export function buildPlanItemView(
     return { ...item, count: 0, target: 0, windowLabel: null, done: false, doneToday: false };
   }
   if (!habit || !habit.spec) return unlinkedHabitView(item);
-  const progress = windowProgress(habit.spec, distinctDays(habit.logs), today);
+  const progress = windowProgress(habit.spec, distinctDays(habit.logs), today, habit.startDay);
   return {
     ...item,
     ...planShape(habit.spec),

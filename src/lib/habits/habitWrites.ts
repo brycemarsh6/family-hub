@@ -55,17 +55,21 @@ export async function householdParticipantIds(client: Prisma.TransactionClient =
 /**
  * Creates a habit and its participants (one nested write, so it is atomic by
  * itself). `participantIds` is a list of people, or "household" for everyone
- * active (a Together goal's habit).
+ * active (a Together goal's habit). "household", or `everyone: true`, also
+ * flags the habit so a person added or turned back on later joins it
+ * (decision 87); with `everyone` the caller still passes the list it picked.
  */
 export async function createHabit(
-  input: { fields: NewHabit; participantIds: readonly string[] | "household" },
+  input: { fields: NewHabit; participantIds: readonly string[] | "household"; everyone?: boolean },
   client: Prisma.TransactionClient = db,
 ): Promise<Habit> {
+  const everyone = input.participantIds === "household" || input.everyone === true;
   const ids = input.participantIds === "household" ? await householdParticipantIds(client) : input.participantIds;
   const userIds = [...new Set(ids)];
   return client.habit.create({
     data: {
       ...habitColumns(input.fields),
+      everyone,
       title: input.fields.title.trim(),
       schedule: toHabitSchedule(input.fields.schedule),
       participants: { create: userIds.map((userId, sortOrder) => ({ userId, sortOrder })) },
@@ -73,23 +77,90 @@ export async function createHabit(
   });
 }
 
+/** Who takes part in a habit and whether it follows the whole family; either may be left out to keep it as is. */
+export type HabitPeople = { participantIds?: readonly string[]; everyone?: boolean };
+
 /**
- * Updates the given fields (participants are not touched). When a schedule
- * column actually changed, every participant's streak is rebuilt for `today`.
- * Null when the habit is missing.
+ * Updates the given fields. When a schedule column actually changed, every
+ * participant's streak is rebuilt for `today`. `people` may replace the
+ * participant set (people dropped lose only their participant row: their
+ * logs stay, so adding them back restores their history) and the `everyone`
+ * flag; without it participants are not touched. Null when the habit is missing.
  */
 export async function updateHabit(
   habitId: string,
   fields: HabitFields,
   today: CalendarDate,
   client: Prisma.TransactionClient = db,
+  people: HabitPeople = {},
 ): Promise<Habit | null> {
   return atomically(client, async (tx) => {
     const before = await tx.habit.findUnique({ where: { id: habitId }, select: SCHEDULE_SELECT });
     if (!before) return null;
-    const updated = await tx.habit.update({ where: { id: habitId }, data: habitColumns(fields) });
+    const updated = await tx.habit.update({
+      where: { id: habitId },
+      data: { ...habitColumns(fields), ...(people.everyone !== undefined ? { everyone: people.everyone } : {}) },
+    });
+    if (people.participantIds) await replaceParticipants(tx, habitId, people.participantIds);
     if (scheduleChanged(before, updated)) await recomputeHabit(tx, habitId, today);
     return updated;
+  });
+}
+
+/** Makes the habit's participants exactly `participantIds`: new people go to the end, dropped people lose only their row. */
+async function replaceParticipants(tx: Client, habitId: string, participantIds: readonly string[]): Promise<void> {
+  const wanted = [...new Set(participantIds)];
+  const current = await tx.habitParticipant.findMany({ where: { habitId }, select: { userId: true, sortOrder: true } });
+  const have = new Set(current.map((p) => p.userId));
+  await tx.habitParticipant.deleteMany({ where: { habitId, userId: { notIn: wanted } } });
+  const added = wanted.filter((userId) => !have.has(userId));
+  if (added.length === 0) return;
+  const next = current.reduce((max, p) => Math.max(max, p.sortOrder), -1) + 1;
+  await tx.habitParticipant.createMany({
+    data: added.map((userId, i) => ({ habitId, userId, sortOrder: next + i })),
+    skipDuplicates: true,
+  });
+}
+
+/**
+ * Adds the person to every non-archived habit made with Everyone that they
+ * are not already in (decision 87), at the end of their own list. Called when
+ * a profile is created or turned back on. Returns how many habits they joined.
+ */
+export async function joinEveryoneHabits(userId: string, client: Prisma.TransactionClient = db): Promise<number> {
+  return atomically(client, async (tx) => {
+    const [habits, mine] = await Promise.all([
+      tx.habit.findMany({ where: { everyone: true, archivedAt: null }, select: { id: true }, orderBy: { createdAt: "asc" } }),
+      tx.habitParticipant.findMany({ where: { userId }, select: { habitId: true, sortOrder: true } }),
+    ]);
+    const inHabit = new Set(mine.map((p) => p.habitId));
+    const joining = habits.filter((habit) => !inHabit.has(habit.id));
+    if (joining.length === 0) return 0;
+    const next = mine.reduce((max, p) => Math.max(max, p.sortOrder), -1) + 1;
+    const { count } = await tx.habitParticipant.createMany({
+      data: joining.map((habit, i) => ({ habitId: habit.id, userId, sortOrder: next + i })),
+      skipDuplicates: true,
+    });
+    return count;
+  });
+}
+
+/**
+ * Writes `ids` as this person's order (0, 1, 2...) in their own list only.
+ * Ids they do not take part in are ignored, repeats count once.
+ */
+export async function reorderHabits(userId: string, ids: readonly string[], client: Prisma.TransactionClient = db): Promise<void> {
+  const wanted = [...new Set(ids)];
+  if (wanted.length === 0) return;
+  await atomically(client, async (tx) => {
+    const mine = await tx.habitParticipant.findMany({ where: { userId, habitId: { in: wanted } }, select: { habitId: true } });
+    const valid = new Set(mine.map((p) => p.habitId));
+    let sortOrder = 0;
+    for (const habitId of wanted) {
+      if (!valid.has(habitId)) continue;
+      await tx.habitParticipant.updateMany({ where: { userId, habitId }, data: { sortOrder } });
+      sortOrder += 1;
+    }
   });
 }
 
@@ -264,8 +335,12 @@ export async function recomputeStreaks(
   });
 }
 
-/** Rebuilds every participant of every non-archived habit: three reads in all, then one update per person. */
-export async function recomputeAllStreaks(today: CalendarDate, client: Prisma.TransactionClient = db): Promise<{ updated: number }> {
+/**
+ * Rebuilds every participant of every non-archived habit: three reads in all,
+ * then one update per person. `habits` counts distinct habits rebuilt, not the
+ * per-person records behind them (decision 84).
+ */
+export async function recomputeAllStreaks(today: CalendarDate, client: Prisma.TransactionClient = db): Promise<{ habits: number }> {
   return atomically(client, async (tx) => {
     const habits = await tx.habit.findMany({
       where: { archivedAt: null },
@@ -276,7 +351,7 @@ export async function recomputeAllStreaks(today: CalendarDate, client: Prisma.Tr
       habits.map((habit) => ({ habitId: habit.id, userIds: habit.participants.map((p) => p.userId), habit })),
       today,
     );
-    return { updated: Object.keys(results).length };
+    return { habits: new Set(Object.keys(results).map((key) => key.split(":")[0])).size };
   });
 }
 

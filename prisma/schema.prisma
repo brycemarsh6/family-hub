@@ -959,6 +959,10 @@ model Habit {
   /// Private is visible to its participants alone.
   isPrivate Boolean @default(false)
 
+  /// Made with the people picker's "Everyone" button: a person added or turned
+  /// back on later joins this habit automatically (decision 87).
+  everyone Boolean @default(false)
+
   archivedAt DateTime?
 
   createdById String?
