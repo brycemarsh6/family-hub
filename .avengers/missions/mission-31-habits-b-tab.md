@@ -251,7 +251,8 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
 - **Done:** builds; dnd-kit versions exact in `package.json`.
 
 ### C5 - New and Edit forms
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc; build passed in Stark's run)
+- **Notes:** `HabitForm.tsx` is 360 lines (soft cap note). Pages query the roster inline like `calendar/new`. An archived habit's editor shows Restore in place of Archive. Wording not on the mock, for Bryce: Who hints "Together: one check counts for both" / "Side by side: everyone checks their own"; Every other week shows "Pick days (optional)" and start chips "This week" / "Next week" (plus "Keep its weeks" on edit).
 - **Objective:** `/habits/new` and `/habits/[id]/edit` from the NewItem and
   EditItem boards.
 - **Boundaries:** may touch: new `src/app/(app)/habits/new/page.tsx`,
@@ -273,4 +274,24 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
   `BackLink` on both. No plan-a-day block.
 - **Verification:** gauntlet including build.
 - **Done:** builds; both forms round-trip through C2's actions.
+
+### C6 - The fix batch
+- **Status:** PENDING
+- **Objective:** close open items (a) to (d) from C2 to C4 before the gates.
+- **Boundaries:** may touch: `src/app/actions/habitChecks.ts`,
+  `src/lib/habitsRead.ts`, new `src/lib/habitsToday.ts` and
+  `src/lib/habitsToday.test.ts`, `src/components/HabitRow.tsx`,
+  `src/components/HabitManager.tsx` · must not touch: anything else.
+- **Rules:** (a) a tap whose day equals the server's carried day for that
+  person is accepted even when older than 7 days (still never future, never
+  older than the 14-day lookback). (b) Move the pure row building out of
+  `loadTodayPage` into `habitsToday.ts` (no db, no `server-only`), with
+  tests for: dueState "none" rows left out unless carried, done or skipped;
+  decision 85's start day in progress; private rows hidden from a
+  non-participant; the viewer's sort order. (c) `HabitRowView` gains
+  `everyone`; the row meta reads "Everyone" for those. (d) a "My Habits &
+  Chores settings" row linking to `/settings` at the bottom of Manage, as
+  on the Manager board.
+- **Verification:** full gauntlet; test count rises.
+- **Done:** all four closed; `habitsRead.ts` back under 350 lines.
 
