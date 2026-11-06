@@ -316,7 +316,21 @@
 
 ## Gate ledger
 
-(empty)
+### Captain pass 1 (at `c510efd`): PASS
+
+- No rule broken. NOTEs, to batch into F1 with Vision's findings:
+  N1 `pantryWrites.ts` `isNoMatch` duplicates `isMissingRowError`;
+  N2 `undoPlan.ts` column lists not pinned to the generated Prisma types
+  (a new column would silently escape undo); N3 `undoWrites.ts` as the one
+  sanctioned cross-domain writer, unwritten; N4 three copies of the pantry
+  compare-and-set loop (next touch); N5 stale headers `pantryWrites.ts:13-14`,
+  `putAway.ts:3`; N6 sizes (groceryWrites 367/252, putAway 317/209), a second
+  `"/api/assistant/v1"` string in `undoWrites.ts:30`, `undoneRequestIds` a
+  read in a writes module, `WithCopies` naming.
+- Proposed STRUCTURE.md amendments (for Bryce; STRUCTURE.md is owned by
+  another agent right now): P2025 single home; Prisma column lists as
+  `Record<keyof Model, …>`; `undoWrites.ts` restores from copies only and
+  applies no domain rule.
 
 ## Delivery
 
