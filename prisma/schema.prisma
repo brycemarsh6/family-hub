@@ -521,6 +521,11 @@ model User {
   /// underneath them. Set = can no longer sign in or act; null = active.
   deactivatedAt DateTime?
 
+  /// Where this person sits in the household order (0 first), set by an
+  /// admin dragging on Manage family. Null = never placed: sorts after
+  /// everyone placed, then by createdAt. See src/lib/householdPeople.ts.
+  familyOrder Int?
+
   groceryItemsAdded GroceryItem[]
   voiceChanges      VoiceChange[]
 

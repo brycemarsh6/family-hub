@@ -278,7 +278,7 @@ export async function loadVacations(userId: string, today: CalendarDate): Promis
   return orderVacations(rows, today);
 }
 
-/** Everyone the habit editor's people picker can offer: the household, oldest profile first (`householdPeople.ts`). */
+/** Everyone the habit editor's people picker can offer: the household, in the household order (`householdPeople.ts`). */
 export function loadHabitRoster(): Promise<HouseholdPerson[]> {
   return loadHouseholdPeople();
 }

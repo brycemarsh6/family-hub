@@ -5,24 +5,22 @@ import Link from "next/link";
 import { Flame, Plane } from "lucide-react";
 import { ChoreShoutOutCard } from "./ChoreShoutOutCard";
 import { EmptyState } from "./EmptyState";
-import { HabitFilterChips, TIME_ICONS, type HabitFilterOption } from "./HabitFilterChips";
+import { HabitFilterChips, withTimeIcons } from "./HabitFilterChips";
 import { HabitConfetti } from "./HabitConfetti";
 import { HabitRow } from "./HabitRow";
 import { HoursLogSheet } from "./HoursLogSheet";
 import { habitRowTaps } from "./HabitsTile";
 import { NudgeCards } from "./NudgeCard";
 import { PlanDayCard } from "./PlanDayCard";
-import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView, TodayNudge, TodayPrompt } from "@/lib/habitsRead";
 import { doneCountLabel } from "@/lib/habitsFamily";
+import { REPORT_FILTER_ALL, activeReportFilter, matchesReportFilter, reportFilterOptions } from "@/lib/habitsReportScope";
 import { allRequiredDoneToday } from "@/lib/habitsToday";
 import { formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { isExcused } from "@/lib/habits/weekOverrides";
-import { TIMES_OF_DAY, TIME_OF_DAY_LABELS, VACATION_TODAY_LABEL, streakLabel, vacationThroughLabel } from "@/lib/habitVocabulary";
-
-const ALL = "all";
+import { NOTHING_HERE_TODAY, VACATION_TODAY_LABEL, streakLabel, vacationThroughLabel } from "@/lib/habitVocabulary";
 
 /** Finished means checked or excused (skipped, on vacation, skipped this week): those sink to the bottom when the page loads. */
 function isFinished(row: HabitRowView) {
@@ -71,7 +69,7 @@ export function HabitTodayList({
   // The hours row whose log sheet is open, by id, so the sheet reads the row's live week.
   const [loggingId, setLoggingId] = useState<string | null>(null);
   const logging = live.find((row) => row.id === loggingId && row.hours);
-  const [filter, setFilter] = useState(ALL);
+  const [filter, setFilter] = useState(REPORT_FILTER_ALL);
   // Done rows move to the bottom once, when the page loads. A tap must not
   // make a row jump away from under the finger, so the order is fixed here
   // and later rows (none expected) simply go last.
@@ -82,26 +80,11 @@ export function HabitTodayList({
   };
   const ordered = [...live].sort((a, b) => rank(a) - rank(b));
 
-  // Which chips to offer: only the times of day and life areas that rows actually use.
-  const options: HabitFilterOption[] = [{ key: ALL, label: "All" }];
-  for (const time of TIMES_OF_DAY) {
-    if (live.some((row) => row.timeOfDay === time)) {
-      options.push({ key: `time:${time}`, label: TIME_OF_DAY_LABELS[time], icon: TIME_ICONS[time] });
-    }
-  }
-  const areas = new Set<string>();
-  for (const row of live) {
-    const area = toLifeArea(row.lifeArea);
-    if (area) areas.add(area);
-  }
-  for (const area of areas) options.push({ key: `area:${area}`, label: lifeAreaInfo(toLifeArea(area)!).short });
-  // If the chosen chip's last row went away (the server refreshed), show everything again.
-  const active = options.some((option) => option.key === filter) ? filter : ALL;
+  const filterOptions = reportFilterOptions(live, { kinds: false });
+  const options = withTimeIcons(filterOptions);
+  const active = activeReportFilter(filterOptions, filter);
 
-  const shown = ordered.filter((row) => {
-    if (active === ALL) return true;
-    return active.startsWith("time:") ? `time:${row.timeOfDay}` === active : `area:${row.lifeArea}` === active;
-  });
+  const shown = ordered.filter((row) => matchesReportFilter(row, active));
   const sections = [
     { key: "habit", title: "Habits", rows: shown.filter((row) => row.kind === "habit") },
     { key: "chore", title: "Chores", rows: shown.filter((row) => row.kind === "chore") },
@@ -157,7 +140,7 @@ export function HabitTodayList({
           )}
         </div>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-muted">Nothing here today.</p>
+        <p className="text-sm text-muted">{NOTHING_HERE_TODAY}</p>
       ) : (
         <div className="flex flex-col gap-4">
           {sections.map((section) => (

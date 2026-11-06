@@ -127,10 +127,10 @@ function personChips(viewer: HabitActor, people: readonly ChartPerson[], personI
 
 export type ReportFilterOption = { key: string; label: string };
 
-/** All, then Habits and Chores (only when both are shown), the times of day present, then the life areas present in the order Today meets them (decision 169). Icons are the page's, by key prefix: `kind:`, `time:`, `area:`. */
-export function reportFilterOptions(items: readonly Pick<ScopedItem, "kind" | "timeOfDay" | "lifeArea">[]): ReportFilterOption[] {
+/** All, then Habits and Chores (only when both are shown, and `kinds` is not false: Today and Whole family already split them), the times of day present, then the life areas present in the order Today meets them (decision 169). Icons are the page's, by key prefix: `kind:`, `time:`, `area:`. */
+export function reportFilterOptions(items: readonly Pick<ScopedItem, "kind" | "timeOfDay" | "lifeArea">[], { kinds = true }: { kinds?: boolean } = {}): ReportFilterOption[] {
   const options: ReportFilterOption[] = [{ key: REPORT_FILTER_ALL, label: REPORT_LABELS.filterAll }];
-  if (items.some((item) => item.kind === "habit") && items.some((item) => item.kind === "chore")) {
+  if (kinds && items.some((item) => item.kind === "habit") && items.some((item) => item.kind === "chore")) {
     options.push({ key: "kind:habit", label: REPORT_LABELS.filterHabits }, { key: "kind:chore", label: REPORT_LABELS.filterChores });
   }
   for (const time of TIMES_OF_DAY) {
@@ -143,6 +143,11 @@ export function reportFilterOptions(items: readonly Pick<ScopedItem, "kind" | "t
   }
   for (const area of areas) options.push({ key: `area:${area}`, label: lifeAreaInfo(toLifeArea(area)!).short });
   return options;
+}
+
+/** If the chosen chip no longer matches anything (the server refreshed), show everything again. The one fallback for the Report, Today and Whole family. */
+export function activeReportFilter(options: readonly ReportFilterOption[], key: string): string {
+  return options.some((option) => option.key === key) ? key : REPORT_FILTER_ALL;
 }
 
 /** Whether an item shows under the filter key. */
@@ -204,7 +209,7 @@ export function reportScope(
   const personId = reportPersonId(viewer, params.person, people);
   const all = scopedItems(viewer, personId, habits);
   const options = reportFilterOptions(all);
-  const value = options.some((option) => option.key === params.filter) ? params.filter : REPORT_FILTER_ALL;
+  const value = activeReportFilter(options, params.filter);
   const filtered = all.filter((item) => matchesReportFilter(item, value));
   const chosen = params.view === "year" ? (filtered.find((item) => item.id === params.item) ?? filtered[0]) : undefined;
   const drawn = params.view === "year" ? (chosen ? [chosen] : []) : filtered;

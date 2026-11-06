@@ -2,6 +2,8 @@ import { requireRole } from "@/lib/dal";
 import { db } from "@/lib/db";
 import { BackLink } from "@/components/BackLink";
 import { FamilyList } from "@/components/FamilyList";
+import { FamilyOrderList } from "@/components/FamilyOrderList";
+import { loadHouseholdPeople } from "@/lib/householdPeople";
 import { PERSON_SELECT, toPersonInfo, type PersonInfo } from "@/lib/personInfo";
 
 // Reads the session, so it can never be cached.
@@ -28,6 +30,9 @@ export default async function FamilyPage() {
 
   const people: PersonInfo[] = rows.map(toPersonInfo);
 
+  // Active household people (no devices, no deactivated), in the saved order.
+  const orderPeople = await loadHouseholdPeople();
+
   return (
     <div className="py-2">
       <BackLink href="/settings" label="Settings" />
@@ -38,6 +43,12 @@ export default async function FamilyPage() {
       </p>
 
       <FamilyList people={people} currentUserId={admin.userId} />
+
+      <h2 className="mb-1 mt-8 text-lg font-semibold">Family order</h2>
+      <p className="mb-3 text-sm text-muted">
+        Drag to set the order people appear in on Whole family, the habit pickers and the vision boards.
+      </p>
+      <FamilyOrderList key={orderPeople.map((p) => `${p.id}:${p.displayName}:${p.avatarColor}`).join("|")} people={orderPeople} />
     </div>
   );
 }

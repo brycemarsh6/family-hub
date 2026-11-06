@@ -6,11 +6,13 @@ import { Check, Flame, Plane, Trophy } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { HoursLeftLine, HoursLogButton } from "./HoursHabitRow";
+import { QUIT_TAG_CLASS } from "./HabitRow";
 import { LogButton } from "./LogButton";
 import { ProgressBar } from "./ProgressBar";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
-import { CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, streakLabel } from "@/lib/habitVocabulary";
-import { countedRows, doneCountLabel, type FamilyColumn, type FamilyRow } from "@/lib/habitsFamily";
+import { CHORES_LAST_WEEK_FAMILY, NOTHING_DUE_TODAY, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, streakLabel } from "@/lib/habitVocabulary";
+import type { FamilyColumn, FamilyRow } from "@/lib/habitsFamily";
+import { familyCountText } from "@/lib/habitsFamilyColumns";
 
 const TITLE_CLASS = "flex min-h-11 min-w-0 flex-1 items-center gap-2.5 self-stretch";
 
@@ -41,12 +43,15 @@ export function FamilyHabitRow({
   showStreaks,
   onToggle,
   together = false,
+  tag = null,
 }: {
   row: FamilyRow;
   showStreaks: boolean;
   onToggle: () => void;
   /** True in the Together strip: the check's name leaves out the person. */
   together?: boolean;
+  /** A small label under the title ("Together", "Chore"): the wide layout, where rows of every kind share a group. */
+  tag?: string | null;
 }) {
   const finished = row.doneToday || isExcused(row);
   const excusedByCalendar = isExcusedAllDay(row);
@@ -81,6 +86,7 @@ export function FamilyHabitRow({
           ) : (
             meta && <span className={`text-xs ${excusedByCalendar ? "text-muted-strong" : "text-muted"}`}>{meta}</span>
           )}
+          {tag && <span className={`mt-1 self-start ${QUIT_TAG_CLASS}`}>{tag}</span>}
         </span>
         {streak && (
           <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-streak">
@@ -133,17 +139,13 @@ export function HabitFamilyColumn({
   ].filter((section) => section.rows.length > 0);
 
   return (
-    <section aria-label={column.displayName} className="flex min-w-0 flex-col gap-1 rounded-2xl border border-line bg-surface p-3.5">
+    <section aria-label={column.displayName} data-family-person={column.id} data-layout="stacked" className="flex min-w-0 flex-col gap-1 rounded-2xl border border-line bg-surface p-3.5">
       <div className="flex items-center gap-2.5 pb-1.5">
         <AvatarBadge displayName={column.displayName} avatarColor={column.avatarColor} size={40} />
         <div className="flex min-w-0 flex-col">
           <h2 className="truncate text-lg font-bold leading-tight">{column.displayName}</h2>
           <span className="text-sm text-muted">
-            {column.onVacation && column.totalCount === 0
-              ? ON_VACATION_LABEL
-              : column.onVacation
-                ? `${doneCountLabel(countedRows(column, together))} · ${ON_VACATION_LABEL}`
-                : doneCountLabel(countedRows(column, together))}
+            {familyCountText(column, together)}
           </span>
         </div>
         {column.onVacation && <Plane aria-hidden="true" size={18} className="ml-auto shrink-0 text-muted" />}
@@ -154,7 +156,7 @@ export function HabitFamilyColumn({
           {CHORES_LAST_WEEK_FAMILY}
         </p>
       )}
-      {sections.length === 0 && <p className="py-2 text-sm text-muted">Nothing due today.</p>}
+      {sections.length === 0 && <p className="py-2 text-sm text-muted">{NOTHING_DUE_TODAY}</p>}
       {sections.map((section) => (
         <div key={section.key}>
           <h3 className="flex items-center gap-2 pt-1 text-xs font-semibold uppercase tracking-wide text-muted">
