@@ -369,6 +369,20 @@ in PR B (mission 31).
     banner, plan-a-day card and streak numbers drawn on Today are PRs C
     and E.
 
+### During PR B's gates (Bryce, 2026-11-05: "I agree with all of the recs")
+
+89. **Skip on a carried-over row skips the missed day**, not today; the row
+    then leaves Today.
+90. **The Quit tag is neutral gray**, not amber (amber means a warning).
+91. **Plans & Goals moves to the empty-circle check later**, in its own small
+    change; PR B keeps its "+".
+92. **Manage lists only your own habits in PR B**; other people's habits
+    arrive with the family view in PR C.
+93. **Wording:** the Together hint is "Together: one check counts for
+    everyone"; the Side by side hint, the Every other week controls ("Pick
+    days (optional)", "This week", "Next week", "Keep its weeks") and the
+    settings row's "Show streaks and more" stay as built.
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for
