@@ -127,7 +127,7 @@ Stark + Vision + Strange (visible Settings change). Captain only if the diff pas
 
 ### C2 — The button: Server Action, Settings section, one line on the Settings page
 
-- **Status:** DISPATCHED
+- **Status:** DONE
 - **Objective:** an admin sees a "Winnie" section in Settings whose button sends a `connection.test` event through `sendWinnieEvent` and shows Hill's wording for each outcome.
 - **Boundaries:** may touch: new `src/app/actions/winnie.ts`, new `src/components/WinnieSettings.tsx`, `src/app/(app)/settings/page.tsx` (only: one import and one admin-gated render line). Must not touch: `src/lib/winnieEvents.ts`, `src/lib/winnieNotify.ts` (C1's, done), `src/components/HabitsChoresSettings.tsx`, `src/app/actions/habits.ts`, `package.json`, `prisma/`, `src/app/api/`, `src/lib/assistant/`, and any env file holding secrets.
 - **Spec:**
@@ -141,7 +141,7 @@ Stark + Vision + Strange (visible Settings change). Captain only if the diff pas
   - `git diff --stat` → only the three may-touch paths.
 - **Evidence required:** each command with its output tail; `wc -l` of the two new files; the settings page diff.
 - **Done criteria:** Fury re-runs tsc and the bundle grep; the diff touches only the three paths.
-- **Report:** (pending)
+- **Report:** Stark, 2026-11-06: `actions/winnie.ts` 57 lines, `WinnieSettings.tsx` 69, one import and one render line in the Settings page. tsc 0, eslint 0, `npm test` 1176 pass, `npm run build` 0, `.next/static` grep empty. The button is right-aligned (not full width) with FeedbackSheet's accent classes plus `disabled:opacity-40`.
 
 ### C3 — Records (Fury)
 
