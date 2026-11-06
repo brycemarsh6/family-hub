@@ -10,8 +10,7 @@
 - Hill decided 163 to 174 and wrote the idea wording, all saved word for word in
   `.avengers/plans/habits-f-decisions-hill.md`. They are not yet folded into
   `habits-chores-v1.md` or a wording file.
-- Hill was asked decision 175 (Together or Side by side with only one person).
-  Her answer was not recorded before the pause. Ask again.
+- Hill decided 175 (at least two people for Together or Side by side), recorded in the same file.
 - Nothing is built.
 
 ## Facts that shape the contracts (from Banner)

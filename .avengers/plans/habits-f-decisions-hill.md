@@ -96,3 +96,11 @@ Format: Title | icon (HABIT_ICONS) | How often | Time of day | mode (build unles
 - **170** (vacation days and week-skipped chores draw as Skipped in the stats calendar too).
 - **172** (Life area moves under Name on the New form; ideas hang off it).
 
+
+**175. Together or Side by side needs at least two people.** The form and
+the server both refuse to save with fewer than two people. They show the
+same words, "Pick at least two people, or choose Just me.", in the amber
+alert line above Save in `HabitForm.tsx`, the same place as "Give it a
+name.". The server check sits next to `participantsAllowed` in
+`actions/habits.ts`. Save never grays out, and existing rows get no data
+fix. Decided by Hill, low risk. Goes into PR F's C3.
