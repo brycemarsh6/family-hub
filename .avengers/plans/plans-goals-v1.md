@@ -150,6 +150,20 @@ and how the Goals list sorts and filters ongoing goals), and Bryce's OK.
 Storage note: `Goal.targetDate` is required today, so this needs a
 migration that makes it nullable (`DROP NOT NULL`, which loses no data).
 
+Bryce approved the mock (https://claude.ai/artifact/3b3ZvgKZaYzdYDvqET23FF)
+with "Yes to all of those" (2026-11-06):
+1. "Ongoing" is a third chip on the Target date field, beside "End of this
+   year" and "In 90 days"; picking it greys out the date box. No third tab
+   on the Goals list (Active and Done stay). New goals still start on "End
+   of this year".
+2. The word is "Ongoing" on the chip, a tag on the goal card, and the goal
+   page (in place of "By Dec 31").
+3. Ongoing goals sort after the dated ones within each life area.
+4. An ongoing goal with a number shows the number and bar but no pace
+   ("on track" / "behind") line.
+5. Same PR: the round + button must never cover the last goal card; the
+   list gets enough space at the bottom to scroll clear of it.
+
 ## Deferred on purpose (don't build by accident)
 
 - Start / end dates on a habit ("Jan to Mar" in the mock).
