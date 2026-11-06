@@ -276,7 +276,7 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
 - **Done:** builds; both forms round-trip through C2's actions.
 
 ### C6 - The fix batch
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc and 679 tests; commit 254fa19)
 - **Objective:** close open items (a) to (d) from C2 to C4 before the gates.
 - **Boundaries:** may touch: `src/app/actions/habitChecks.ts`,
   `src/lib/habitsRead.ts`, new `src/lib/habitsToday.ts` and
@@ -295,3 +295,29 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
 - **Verification:** full gauntlet; test count rises.
 - **Done:** all four closed; `habitsRead.ts` back under 350 lines.
 
+## Gate ledger
+
+| Pass | Gate | Verdict | Blockers | Notes (short) |
+|---|---|---|---|---|
+| 1 | Captain | BLOCKED | 4: (1) roster filter copied inline in new/edit pages (third and fourth copies; move habitWrites and visionsRead debt to `src/lib/householdPeople.ts`); (2) `SCHEDULE_CHOICES` second set of schedule words; (3) weekday names redefined in HabitScheduleField and HabitManager (export from `mealPlanDates.ts`); (4) time-of-day and who-words in four components (add to `habitVocabulary.ts`) | title max 80 vs plan titles 120 (likely defect); carry-over and Private rules written twice; carrySince twice; isCheckStatus twice; chipClass home; pure logic in HabitManager.tsx; stale "Dormant until PR B" markers; habitWrites 400 lines; edit page loads the whole Today page; A4 and STRUCTURE.md amendments for new homes |
+
+| 1 | Vision | BLOCKED | 2: (1) the same roster filter blocker as Captain's (1); (2) a habit with a deactivated participant cannot be saved from Edit ("Pick who it is for."): accept ids already on the habit in `updateHabit`, with a test | Skip on a carried row skips today, not the missed day (Bryce's call); archived Everyone habit misses people added meanwhile (join on restore); joinEveryoneHabits outside the create transaction; tablet's Today is empty until PR C; checkInput with null input 500s; restored row's optimistic position; gauntlet re-run green (679) |
+| 1 | Strange | BLOCKED | 7: (1) weekday buttons 40x44 (shrink-0, no pl-9 at 390); (2) Manage row link 46px inside a 60px row; (3) save-failure banner red, must be warn; (4) Restore button edge is line-strong only; (5) unselected segment labels text-muted on surface-2 (4.33:1), use muted-strong; (6) Quit tag uses warn amber (false caution), make it neutral; (7) HabitRow hand-builds a second round log button: extend `LogButton` with `idle="empty"` | stepper "1time" gap; Together hint count; Every other week days hidden in Manage; skipped row has no visible words; avatar order flips; no habits loading.tsx; dnd-kit hydration id mismatch (stable id on DndContext); no-icon item shows no icon picked; mock gaps listed for Bryce |
+
+**Test data on dev (Strange, pass 1):** zz m31 daily, zz m31 days, zz m31 weekly (Everyone), zz m31 monthly (Private), zz m31 together. zz m31 biweekly already deleted. Fury removes the rest through the app after the gates.
+
+### F1 - Structure fixes (Captain 1 to 4, Vision 1)
+- **Status:** PENDING
+- **Objective:** one home for the household roster, the habit words and the weekday names, plus the shared title limit and editor rules.
+- **Boundaries:** may touch: new `src/lib/householdPeople.ts`, `src/lib/habits/habitWrites.ts`, new `src/lib/habits/participantWrites.ts`, `src/lib/visionsRead.ts`, `src/app/(app)/habits/new/page.tsx`, `src/app/(app)/habits/[id]/edit/page.tsx`, `src/lib/habitsRead.ts`, `src/lib/habitsToday.ts` and its test, `src/lib/habitVocabulary.ts` and its test, `src/lib/mealPlanDates.ts` (export `FULL_DAY_NAMES` only), `src/components/HabitScheduleField.tsx`, `HabitManager.tsx`, `HabitRow.tsx`, `HabitTodayList.tsx`, `HabitForm.tsx`, `src/app/actions/habits.ts`, `src/app/actions/habitChecks.ts`, `src/app/actions/users.ts` (call site only), any file that imports a moved export · must not touch: anything else.
+- **Rules:** `householdPeople.ts` (`server-only`) exports the one "active, non-device person" filter and `loadHouseholdPeople(client?)` (`{ id, displayName }`, oldest first); `householdParticipantIds` and `visionsRead.ts` use it; the habit pages get their roster through `habitsRead.ts` (`loadHabitRoster`), no inline `User` query. Move `householdParticipantIds`, `joinEveryoneHabits`, `reorderHabits` and the participant replace into `habits/participantWrites.ts`. `habitVocabulary.ts` gains: `HABIT_SCHEDULE_LABELS` = the editor's approved words (and `HABIT_SCHEDULE_SHORT_LABELS` for Manage if needed), `TIME_OF_DAY_LABELS`, one who-label function (Mine / Together / Side by side / Everyone), `HABIT_TITLE_MAX` = 120 (matching `GOAL_TITLE_MAX`), `canCarryOver(schedule, days)`, `canBePrivate(count)`, `isCheckStatus(status)`, each tested; every component and the action import them, no local copies. Weekday names come from `mealPlanDates.ts` (`FULL_DAY_NAMES`; letters are `name[0]`). One `carrySince` and one start-day helper in `habitsToday.ts`, used by `habitsRead.ts`. Remove stale "Dormant until PR B" markers on exports now called; re-mark `streakAfter` and `scheduledDaysInRange` with their real consumer (PR C stats page, PR C calendar).
+- **Verification:** full gauntlet; tests rise.
+- **Done:** `grep -rn "role: { not: \"device\" }" src` shows only `householdPeople.ts`; no habit word list outside `habitVocabulary.ts`.
+
+### F2 - Design and behaviour fixes (Strange 1 to 7, Vision 2, cheap notes)
+- **Status:** PENDING (after F1)
+- **Objective:** clear Strange's seven blockers and Vision's deactivated-participant bug.
+- **Boundaries:** may touch: `src/components/HabitScheduleField.tsx`, `HabitManager.tsx`, `HabitRow.tsx`, `HabitForm.tsx`, `LogButton.tsx`, `SortableList.tsx`, `src/app/actions/habits.ts`, `src/lib/habitsToday.ts` and its test, `src/lib/habits/participantWrites.ts`, `src/lib/habits/habitWrites.ts` (restore only) · must not touch: anything else.
+- **Rules:** each Strange blocker fixed as its pass-1 finding says. `LogButton` gains `idle?: "plus" | "empty"` (default "plus", so Plans & Goals look the same as today); `HabitRow` uses it with `idle="empty"`. Quit tag neutral (`bg-surface-2 text-muted-strong`); Carried over keeps warn. `updateHabit` accepts participant ids already on the habit even if no longer in the household (test it through a pure helper). Also: stable `id` on `DndContext` (`useId`); participants sorted by a stable key in `buildTodayRows`; `restoreHabit` on an Everyone habit joins the current household; `checkInput` returns `{ error }` for a non-object input.
+- **Verification:** full gauntlet; tests rise.
+- **Done:** all of the above.
