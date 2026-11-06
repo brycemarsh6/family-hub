@@ -32,6 +32,7 @@ import {
   HABIT_ICONS,
   HABIT_TIMES_LIMITS,
   HABIT_TITLE_MAX,
+  SHARED_NEEDS_TWO_MESSAGE,
   TIMES_OF_DAY,
   canBePrivate,
   canCarryOver,
@@ -42,7 +43,7 @@ import {
   toHabitSharing,
 } from "@/lib/habitVocabulary";
 import { loadHabitForAction } from "@/lib/habitsRead";
-import { participantsAllowed } from "@/lib/habitsToday";
+import { participantsAllowed, sharedNeedsMorePeople } from "@/lib/habitsToday";
 
 export type RecomputeResult = { error?: string; habits?: number };
 
@@ -142,6 +143,7 @@ async function checkInput(input: HabitInput, alreadyOnHabit: readonly string[] =
   const everyone = input.everyone === true;
   const participantIds = everyone ? household : [...new Set(input.participantIds)];
   if (!participantsAllowed(participantIds, household, alreadyOnHabit)) return { error: "Pick who it is for." };
+  if (sharedNeedsMorePeople(input.sharing === "together", participantIds.length)) return { error: SHARED_NEEDS_TWO_MESSAGE };
   if (input.isPrivate && !canBePrivate(participantIds.length)) return { error: "Only a habit for one person can be private." };
 
   // Carry-over only means something for a habit with set days.

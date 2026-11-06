@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, RotateCcw, Trash2 } from "lucide-react";
+import { Field, LifeAreaField, Segmented, TimeOfDayField } from "./HabitFormFields";
 import { HabitIconPicker } from "./HabitIconPicker";
+import { IdeaChips } from "./IdeaChips";
 import { HabitScheduleField, type ScheduleValue } from "./HabitScheduleField";
-import { ParticipantPicker, chipClass, type Person } from "./ParticipantPicker";
+import { ParticipantPicker, type Person } from "./ParticipantPicker";
 import { ToggleSwitch } from "./ToggleSwitch";
 import {
   archiveHabit,
@@ -16,13 +18,11 @@ import {
   type HabitActionResult,
   type HabitInput,
 } from "@/app/actions/habits";
-import { LIFE_AREAS, toLifeArea } from "@/lib/goalVocabulary";
+import { toLifeArea } from "@/lib/goalVocabulary";
 import {
-  ANYTIME_LABEL,
   HABIT_TITLE_MAX,
   HABIT_WHO_CHOICES,
-  TIMES_OF_DAY,
-  TIME_OF_DAY_LABELS,
+  SHARED_NEEDS_TWO_MESSAGE,
   canBePrivate as canBePrivateWith,
   canCarryOver,
   parseWeekdayMask,
@@ -33,61 +33,23 @@ import {
   type HabitWho,
   type TimeOfDay,
 } from "@/lib/habitVocabulary";
+import {
+  CHORE_IDEAS,
+  CHORE_IDEAS_LABEL,
+  HABIT_IDEAS,
+  LIFE_AREA_HINT,
+  LIFE_AREA_HINT_PICK,
+  findHabitIdea,
+  habitIdeasLabel,
+} from "@/lib/habitIdeas";
 import type { HabitManagerItem } from "@/lib/habitsRead";
+import { sharedNeedsMorePeople } from "@/lib/habitsToday";
 import { formatCalendarDate } from "@/lib/householdDate";
-
-const TIME_CHOICES: { key: TimeOfDay | null; label: string }[] = [
-  { key: null, label: ANYTIME_LABEL },
-  ...TIMES_OF_DAY.map((key) => ({ key, label: TIME_OF_DAY_LABELS[key] })),
-];
 
 const BUTTON_PRIMARY =
   "flex min-h-12 items-center justify-center gap-1.5 rounded-full bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-40";
 const BUTTON_PLAIN =
   "flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-fg disabled:opacity-40";
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-sm font-semibold">{label}</span>
-        {hint && <span className="text-[13px] text-muted">{hint}</span>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-/** A two-or-three way strip inside a form (a form field, not navigation). */
-function Segmented<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: { key: T; label: string }[];
-  onChange: (next: T) => void;
-}) {
-  return (
-    <div role="group" aria-label={label} className="flex gap-1 rounded-2xl bg-surface-2 p-1">
-      {options.map((option) => (
-        <button
-          key={option.key}
-          type="button"
-          aria-pressed={value === option.key}
-          onClick={() => onChange(option.key)}
-          className={`min-h-11 flex-1 rounded-xl text-sm font-semibold transition-colors ${
-            value === option.key ? "bg-surface text-fg shadow-sm" : "text-muted-strong"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function initialWho(initial: HabitManagerItem | undefined): HabitWho {
   if (!initial || initial.participantIds.length <= 1) return "me";
@@ -97,7 +59,9 @@ function initialWho(initial: HabitManagerItem | undefined): HabitWho {
 /**
  * The New and Edit form for a habit or chore (one component, so the two pages
  * cannot drift). `initial` is the habit being edited; without it the form is
- * blank. Saving, archiving and deleting go through the habit actions and then
+ * blank. The order is the same on both (decisions 176, 178): kind, name, chore
+ * ideas (New only), life area, habit ideas (New only), icon, then the rest.
+ * Saving, archiving and deleting go through the habit actions and then
  * return to /habits/manage.
  */
 export function HabitForm({
@@ -136,6 +100,7 @@ export function HabitForm({
     anchorWeek: initial?.anchorWeek ? formatCalendarDate(initial.anchorWeek) : thisSunday,
   });
 
+  const ideaArea = lifeArea ? toLifeArea(lifeArea) : null;
   const peopleCount = who === "me" ? 1 : selectedIds.length;
   const canCarry = canCarryOver(schedule.schedule, schedule.days);
   const canBePrivate = canBePrivateWith(peopleCount);
@@ -180,7 +145,23 @@ export function HabitForm({
     });
   }
 
+  /** One tap fills a whole idea: name, icon, how often, time of day, build or quit (decision 173). */
+  function pickIdea(ideaTitle: string) {
+    const idea = findHabitIdea(ideaTitle);
+    if (!idea) return;
+    setTitle(idea.title);
+    setIcon(idea.icon);
+    setMode(idea.mode);
+    setTimeOfDay(idea.timeOfDay);
+    setSchedule({ ...schedule, schedule: idea.schedule, days: [...idea.days], times: idea.times ?? schedule.times });
+  }
+
   function save() {
+    if (sharedNeedsMorePeople(who !== "me", peopleCount)) {
+      setError(SHARED_NEEDS_TWO_MESSAGE);
+      return;
+    }
+    setError(null);
     run(() => (initial ? updateHabit(initial.id, toInput()) : createHabit(toInput())));
   }
 
@@ -212,6 +193,24 @@ export function HabitForm({
           className="min-h-12 rounded-xl border border-line bg-surface px-3.5 text-base text-fg"
         />
       </label>
+
+      {!initial && kind === "chore" && (
+        <IdeaChips label={CHORE_IDEAS_LABEL} ideas={CHORE_IDEAS.map((idea) => idea.title)} onPick={pickIdea} />
+      )}
+
+      <LifeAreaField
+        value={lifeArea}
+        hint={initial || kind === "chore" || lifeArea ? LIFE_AREA_HINT : LIFE_AREA_HINT_PICK}
+        onChange={setLifeArea}
+      />
+
+      {!initial && kind === "habit" && ideaArea && (
+        <IdeaChips
+          label={habitIdeasLabel(ideaArea)}
+          ideas={HABIT_IDEAS[ideaArea].map((idea) => idea.title)}
+          onPick={pickIdea}
+        />
+      )}
 
       <Field label="Icon">
         <HabitIconPicker value={icon} kind={kind} onChange={setIcon} />
@@ -254,37 +253,7 @@ export function HabitForm({
         <HabitScheduleField value={schedule} onChange={setSchedule} thisSunday={thisSunday} nextSunday={nextSunday} />
       </Field>
 
-      <Field label="Time of day">
-        <div role="group" aria-label="Time of day" className="flex flex-wrap gap-2">
-          {TIME_CHOICES.map((choice) => (
-            <button
-              key={choice.label}
-              type="button"
-              aria-pressed={timeOfDay === choice.key}
-              onClick={() => setTimeOfDay(choice.key)}
-              className={chipClass(timeOfDay === choice.key)}
-            >
-              {choice.label}
-            </button>
-          ))}
-        </div>
-      </Field>
-
-      <Field label="Life area" hint="Optional">
-        <div role="group" aria-label="Life area" className="flex flex-wrap gap-2">
-          {LIFE_AREAS.map((area) => (
-            <button
-              key={area.key}
-              type="button"
-              aria-pressed={lifeArea === area.key}
-              onClick={() => setLifeArea(lifeArea === area.key ? null : area.key)}
-              className={chipClass(lifeArea === area.key)}
-            >
-              {area.short}
-            </button>
-          ))}
-        </div>
-      </Field>
+      <TimeOfDayField value={timeOfDay} onChange={setTimeOfDay} />
 
       {canCarry && (
         <div className="flex items-center gap-3">

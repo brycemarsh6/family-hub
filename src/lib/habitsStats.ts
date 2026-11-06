@@ -1,21 +1,33 @@
-import { addCalendarDays, calendarDaysBetween, dayOfWeek, startOfMonth, startOfWeek, type CalendarDate } from "./householdDate";
+import { addCalendarDays, calendarDaysBetween, dayOfWeek, formatShortCalendarDate, parseDateParam, startOfMonth, startOfWeek, type CalendarDate } from "./householdDate";
 import { perfectDaysInRange, type DayEntry } from "./habits/perfectDays";
 import {
   compareDays,
   dayInVacation,
+  dueState,
   isDayInRange,
   isOpenKind,
   isSameDay,
-  isScheduledDay,
   periodTarget,
   periodsInRange,
-  scheduledDaysInRange,
 } from "./habits/schedule";
 import { displayStreak, streakUnitOf, type StreakCache } from "./habits/streaks";
-import type { HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
-import { FULL_MONTH_NAMES } from "./mealPlanDates";
+import type { HabitLogDay, ScheduleSpec, Vacation, WeekOverride } from "./habits/types";
+import { choreDayState, choreTag } from "./habits/weekOverrides";
+import { FULL_MONTH_NAMES, SHORT_DAY_NAMES } from "./mealPlanDates";
 import { isTapDayAllowed } from "./habits/carryOver";
-import { isCheckStatus, streakLabel, type StreakUnit } from "./habitVocabulary";
+import {
+  DAY_CELL_REASON_WORDS,
+  DAY_CELL_WORDS,
+  ON_VACATION_LABEL,
+  REPORT_DUE_TODAY,
+  SKIPPED_THIS_WEEK_LABEL,
+  isCheckStatus,
+  reportCountOf,
+  reportCountThis,
+  reportDueLabel,
+  reportNotThis,
+  reportSkippedCount,
+  streakLabel, type StreakUnit, type Weekday } from "./habitVocabulary";
 
 // The stats page's rules, with no database: `habitsRead.ts` (or a stats
 // reader) fetches the habit, its logs and vacations, and this file works out
@@ -45,6 +57,8 @@ export type StatsInput = {
   people: readonly StatsPerson[];
   logs: readonly HabitLogDay[];
   vacationsByUser: ReadonlyMap<string, readonly Vacation[]>;
+  /** The chore's "this week only" changes (decision 117), all people; none for a habit. */
+  overrides?: readonly WeekOverride[];
   today: CalendarDate;
 };
 
@@ -91,9 +105,14 @@ export function personTotals(input: StatsInput, userId: string): PersonTotals | 
 
 export type MonthCellState = "done" | "late" | "skipped" | "missed" | "today" | "future" | "notDue";
 
+/** Why a day without a check reads as it does (decision 170): it feeds the spoken label. */
+export type CellReason = { kind: "vacation" } | { kind: "weekSkip" } | { kind: "movedAway"; toWeekday: Weekday };
+
 export type MonthCell = {
   day: CalendarDate;
   state: MonthCellState;
+  /** Set on a vacation or week-skipped day ("skipped") and on a moved-away day ("notDue"), checked or not; null on a day skipped by a tap and on every other day. */
+  reason: CellReason | null;
   /** A tap may write this day: within `TAP_DAYS_BACK` and never in the future. */
   tappable: boolean;
 };
@@ -107,12 +126,97 @@ export type MonthCalendar = {
 };
 
 /**
+ * What a cell draws. A check wins; without one a vacation or week-skipped
+ * reason reads as Skipped and a moved-away reason as not due, so an optimistic
+ * undo (which resets `state` to "missed" or "today") still draws right until
+ * the server answers.
+ */
+export function effectiveState(cell: { state: MonthCellState; reason?: CellReason | null }): MonthCellState {
+  if (cell.state === "done" || cell.state === "late") return cell.state;
+  if (cell.reason?.kind === "vacation" || cell.reason?.kind === "weekSkip") return "skipped";
+  if (cell.reason?.kind === "movedAway" && cell.state !== "future") return "notDue";
+  return cell.state;
+}
+
+/** "Nov 8, skipped (on vacation)", "Nov 8, skipped this week", "Nov 9, not due (moved to Thu)" (decision 170). `day` is "YYYY-MM-DD". */
+export function dayCellLabel(cell: { day: string; state: MonthCellState; reason?: CellReason | null }): string {
+  const date = formatShortCalendarDate(parseDateParam(cell.day)!);
+  const state = effectiveState(cell);
+  if (state === "skipped" && cell.reason?.kind === "vacation") return `${date}, ${DAY_CELL_REASON_WORDS.vacation}`;
+  if (state === "skipped" && cell.reason?.kind === "weekSkip") return `${date}, ${DAY_CELL_REASON_WORDS.weekSkip}`;
+  if (state === "notDue" && cell.reason?.kind === "movedAway") return `${date}, ${DAY_CELL_REASON_WORDS.movedAway(SHORT_DAY_NAMES[cell.reason.toWeekday])}`;
+  return `${date}, ${DAY_CELL_WORDS[state]}`;
+}
+
+/** An open kind (weekly, monthly, a biweekly week with no days) can be done any day of its period: today is doable while the person has joined and the period's target is not met yet. */
+function openTodayDoable(input: StatsInput, logs: readonly HabitLogDay[], since: CalendarDate): boolean {
+  const { spec, today } = input;
+  if (!isOpenKind(spec) || compareDays(today, since) < 0) return false;
+  const period = periodsInRange(spec, today, today).find((range) => isDayInRange(today, range));
+  if (!period) return false;
+  return dueState(spec, today, false, logs.filter((log) => isCheckStatus(log.status) && isDayInRange(log.day, period)).length) !== "none";
+}
+
+/**
+ * What a scheduled item says in place of "0 of 0" when nothing has been due so
+ * far in `from` to `to` (decisions 177, 181), for the Report and the stats
+ * page: the next due day still ahead ("Due today", "Due Sat" in a week, "Due
+ * Nov 7" in a month; a day the person already has a check or skip on is never
+ * ahead), else "1 skipped" / "N skipped" for due days skipped by a tap, else
+ * "Skipped this week" if a week-skipped due day is in the range, else "On
+ * vacation" if a due day on vacation is, else "Not this week" or "Not this
+ * month". Read from the schedule and the week's changes, not from future cells.
+ */
+export function nothingDueText(input: StatsInput, userId: string, from: CalendarDate, to: CalendarDate, period: "week" | "month"): string {
+  const person = personOf(input, userId);
+  const vacations = vacationsOf(input, userId);
+  const logs = logsOf(input, userId);
+  let ahead: CalendarDate | null = null;
+  let skipped = 0;
+  let weekSkipped = false;
+  let onVacation = false;
+  for (let day = from; person && compareDays(day, to) <= 0; day = addCalendarDays(day, 1)) {
+    if (compareDays(day, person.since) < 0) continue;
+    const state = choreDayState(input.spec, input.overrides ?? [], day);
+    const log = logs.find((entry) => isSameDay(entry.day, day));
+    if (state === "excused") weekSkipped = true;
+    else if (state !== "required") continue;
+    else if (log) skipped += log.status === "skipped" ? 1 : 0;
+    else if (dayInVacation(day, vacations)) onVacation = true;
+    else if (!ahead && compareDays(day, input.today) >= 0) ahead = day;
+  }
+  if (ahead) return isSameDay(ahead, input.today) ? REPORT_DUE_TODAY : reportDueLabel(period === "week" ? SHORT_DAY_NAMES[dayOfWeek(ahead)] : formatShortCalendarDate(ahead));
+  if (skipped > 0) return reportSkippedCount(skipped);
+  if (weekSkipped) return SKIPPED_THIS_WEEK_LABEL;
+  return onVacation ? ON_VACATION_LABEL : reportNotThis(period);
+}
+
+/** How an open kind counts a period: "of" a target (weekly in a week, monthly in a month) or just "this" week or month (decisions 166, 167). */
+export type OpenCount = { mode: "of" | "this"; target: number };
+
+/** The open kind's count rule for `period`, or null for a scheduled kind. `periodStart` is the week's Sunday or the 1st. */
+export function openCountOf(spec: ScheduleSpec, period: "week" | "month", periodStart: CalendarDate): OpenCount | null {
+  if (!isOpenKind(spec)) return null;
+  const targeted = spec.schedule === "monthly" ? period === "month" : period === "week";
+  return targeted ? { mode: "of", target: periodTarget(spec, periodStart) } : { mode: "this", target: 0 };
+}
+
+/** "1 of 3" or "2 this month": the one text the Report's cards and the stats page's header share. */
+export function openCountText(count: OpenCount, done: number, period: "week" | "month"): string {
+  return count.mode === "of" ? reportCountOf(Math.min(done, count.target), count.target) : reportCountThis(done, period);
+}
+
+/**
  * The month containing `inMonth`, one cell per day. A check wins over
  * everything (done, late or skipped, today included). With no check: after
- * today is "future", today is "today", and an earlier day is "missed" when the
- * person was meant to do it (a scheduled day on or after `since`, not on
- * vacation) and "notDue" otherwise. Open kinds (weekly, monthly) have no
- * scheduled day, so an unchecked past day is "notDue".
+ * today is "future" and an earlier day is "missed" when the person was meant
+ * to do it (a due day on or after `since`) and "notDue" otherwise (today
+ * too, when it is not a due day). A due day
+ * that is undone and on vacation or skipped for the week is "skipped" (today
+ * too, since it is excused all day; decision 170), and a chore's moved-away
+ * day is "notDue" while its moved-to day is due. Open kinds (weekly, monthly)
+ * have no scheduled day, so an unchecked past day is "notDue", but an
+ * unchecked today is "today" while the period's target is unmet.
  */
 export function monthCalendar(input: StatsInput, userId: string, inMonth: CalendarDate): MonthCalendar | null {
   const person = personOf(input, userId);
@@ -120,20 +224,29 @@ export function monthCalendar(input: StatsInput, userId: string, inMonth: Calend
   const first = startOfMonth(inMonth);
   const logs = logsOf(input, userId);
   const vacations = vacationsOf(input, userId);
+  const overrides = input.overrides ?? [];
   const cells: MonthCell[] = [];
   for (let day = first; day.month === first.month; day = addCalendarDays(day, 1)) {
     const log = logs.find((entry) => isSameDay(entry.day, day));
     const ahead = compareDays(day, input.today) > 0;
+    const tag = choreTag(input.spec, overrides, day);
+    const dueDay = choreDayState(input.spec, overrides, day);
+    // A day before the person joined the habit was never theirs.
+    const meant = dueDay !== "none" && compareDays(day, person.since) >= 0;
+    const excused = meant && (dueDay === "excused" || dayInVacation(day, vacations));
+    // The reason is kept under a check too (a check wins in `effectiveState`), so an undo redraws the day right at once; a day skipped by a tap carries none.
+    let reason: CellReason | null = null;
+    if (log?.status !== "skipped") {
+      if (excused) reason = dayInVacation(day, vacations) ? { kind: "vacation" } : { kind: "weekSkip" };
+      else if (!meant && tag?.kind === "moved-away") reason = { kind: "movedAway", toWeekday: tag.toWeekday };
+    }
     let state: MonthCellState;
     if (log) state = log.status;
     else if (ahead) state = "future";
-    else if (isSameDay(day, input.today)) state = "today";
-    else {
-      const meant = isScheduledDay(input.spec, day) && compareDays(day, person.since) >= 0 && !dayInVacation(day, vacations);
-      state = meant ? "missed" : "notDue";
-    }
-    // A day before the person joined the habit was never theirs to log.
-    cells.push({ day, state, tappable: isTapDayAllowed(day, input.today, null) && compareDays(day, person.since) >= 0 });
+    else if (excused) state = "skipped";
+    else if (!meant) state = isSameDay(day, input.today) && openTodayDoable(input, logs, person.since) ? "today" : "notDue";
+    else state = isSameDay(day, input.today) ? "today" : "missed";
+    cells.push({ day, state, reason, tappable: isTapDayAllowed(day, input.today, null) && compareDays(day, person.since) >= 0 });
   }
   return { first, leading: dayOfWeek(first), cells };
 }
@@ -151,7 +264,9 @@ function wholePercent(done: number, due: number): number | null {
 
 /**
  * The share of due days (or due periods' checks, for open kinds) a person
- * completed since they joined. Skipped days and undone vacation days are not due. Today
+ * completed since they joined. Skipped days, undone vacation days and a chore's
+ * undone week-skipped days are not due; its moved-away day is not due and its
+ * moved-to day is (decision 170). Today
  * (or the current period) counts only once it is done, because it is not over.
  */
 export function completionRate(input: StatsInput, userId: string): number | null {
@@ -165,10 +280,13 @@ export function completionRate(input: StatsInput, userId: string): number | null
   let done = 0;
   let due = 0;
   if (!isOpenKind(spec)) {
-    for (const day of scheduledDaysInRange(spec, person.since, today)) {
+    const overrides = input.overrides ?? [];
+    for (let day = person.since; compareDays(day, today) <= 0; day = addCalendarDays(day, 1)) {
+      const dueDay = choreDayState(spec, overrides, day);
+      if (dueDay === "none") continue;
       const finished = doneOn(day);
-      // A day done on vacation counts as due and done (decision 127); only an undone vacation day is skipped.
-      if (skippedOn(day) || (dayInVacation(day, vacations) && !finished)) continue;
+      // A day done on vacation or skipped for the week counts as due and done (decisions 127, 130); only an undone one is skipped.
+      if (skippedOn(day) || ((dueDay === "excused" || dayInVacation(day, vacations)) && !finished)) continue;
       if (isSameDay(day, today) && !finished) continue;
       due++;
       if (finished) done++;

@@ -37,6 +37,14 @@ export function canEditChart(actor: HabitActor, personId: string): boolean {
 }
 
 /**
+ * Whose Report a person may open (decision 164): yourself; a parent or admin
+ * for anyone. Never the tablet.
+ */
+export function canSeeHabitReport(actor: HabitActor, personId: string): boolean {
+  return actor.role !== "device" && (actor.userId === personId || isManager(actor));
+}
+
+/**
  * Who changes a chore for one week (decisions 117, 118, 125): `personId` must
  * hold the chore and the actor must see it and edit that person's chart; and
  * a chore shared by more than one person is a parent's or admin's to change,

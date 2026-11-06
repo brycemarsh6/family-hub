@@ -109,7 +109,7 @@ export function choreHeader(
 
 // ---- The chart page ----
 
-const firstNameOf = (displayName: string) => displayName.trim().split(/\s+/)[0] || displayName;
+export const firstNameOf = (displayName: string) => displayName.trim().split(/\s+/)[0] || displayName;
 
 export type ChartChip = { id: string; name: string; avatarColor: string; selected: boolean };
 

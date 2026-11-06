@@ -1,9 +1,9 @@
 # Habits & Chores v1: direction
 
-Status: **direction only, nothing built.** Audited on 2026-11-05
-(`habits-chores-audit.md`): sixteen questions wait on Bryce, several of
-them hard to reverse; the build plan follows his answers. The mock was
-redrawn for Habits & Chores the same day and waits for review.
+Status: **built.** PRs A to F (missions 30 to 36) shipped between
+2026-11-05 and 2026-11-06; PR F (mission 36) finished the plan. Each
+mission file in `.avengers/missions/` holds its gates and leftovers.
+Below is the direction as it was decided, kept for the reasons.
 
 Mock (eight screens: Today, Habit manager, New habit or chore, one habit's
 stats, Chore chart, Settings section, Dashboard tiles for the second PR, and
@@ -652,6 +652,66 @@ plan-the-day and the Calendar. PR F becomes mission 36.
 
 Wording: all six E2 strings stay as written.
 
+### Before PR F (decided by Hill, 2026-11-06; Bryce may overturn)
+
+The idea wording itself lives in `habits-ideas.md` (decision 174).
+
+**163. Where the Report lives and how it is reached.** `/habits/report`, h1 "Report", BackLink "Habits & Chores" to `/habits` (103's pattern). One entry: a link card at the bottom of `/habits`, under whichever view is showing (Mine or Whole family), in Manage's card style: `BarChart3` icon box, "Report", hint "Every item by week, month and year", chevron. Not a header pill (at 375px the h1 plus Manage and New already fill the row), not a third chip (HabitViewChips is a view switch of today's list, not tabs, DESIGN.md), not a drawer item (the drawer reaches destinations; the Report is a page under Habits & Chores like the chart), not inside Manage (Manage is for editing, 66 and 67; the chart is there because it is setup, 124). The tablet never sees the card and `/habits/report` sends it to `/habits` (118's pattern): it is on no items, kids have no logins yet, and the family view is its one screen. Risk: medium.
+
+**164. Three views, one page order.** The Report is three views, Week, Month and Year, switched by the one tab control (PlansTabs, generalized however Fury decides), choice in the URL (`?view=month`), default Week. Page order: BackLink, h1, tabs, person chips (165, parents only), filter chips (169), the pager, the legend (Month and Year only), then the content. Why: one pager and one job per view beats one long page with three pagers to scroll past. Risk: low.
+
+**165. Whose items.** The shown person's active items (every habit and chore they are on, Together and Side by side included; archived items stay on their stats page via Edit). A row is that person's own checks; a Together item shows its shared check; a Side by side item shows only the shown person's checks (other people's live on the stats page, 52 and 104). Parents and admins get the chart's person chips above the filter (119: first names, viewer first and selected, then family order, no "Kids" chip); a kid login and a plain member see only their own, no chips. Another person's private habits never appear (78, 102). Risk: low.
+
+**166. Week view.** Rows under "Habits" then "Chores" in Manage order. Each item is one card of two lines: line 1 the icon box, the title (a link to `/habits/[id]` only when the viewer may open it, 114; plain text otherwise) and, muted at the right, a count: scheduled items "5 of 6" (done of due so far, today only once done, the stats page's rule); weekly items "2 of 3" (done of the week's target); monthly items "1 this week". Line 2 a full-width 7-column strip, Sunday first (49px cells at 375), drawn with the same cells as the stats month calendar, extracted into one shared cell component: done or late a filled accent disc with the day number, skipped a dashed ring with the skip glyph, missed amber, today an outline, future and not due plain. One header row S M T W T F S above the first card, not sticky. Cells are read-only spans with the calendar's spoken labels, never buttons: back-filling stays on the stats page one tap away (8, 94), and a parent reading a kid's week must not tick for them by accident. Pager: 44px ChevronLeft and ChevronRight (CalendarHeader's look) around "Nov 1 to 7"; across a month "Oct 26 to Nov 1"; a date outside the current year carries its year, "Dec 28, 2025 to Jan 3" (112's rule). Next is disabled on the current week; previous is disabled before the week holding the earliest start among the shown items. A "This week" pill shows beside the title only on a past week. No swipe to page in PR F. (The Meal Plan's `formatWeekRange` writes an en dash; the Report's title is dash-free; amend or add is Fury's call.) Risk: low.
+
+**167. Month view.** HabitMonthCalendar reused read-only in a compact size (cells about 22px, numbers 10px, no per-grid legend), one card per shown item, cards auto-fit at a 160px minimum (two across on a phone, four or five on an iPad), Habits then Chores. Card: icon, title (same link rule), count "12 of 14" for scheduled items, "3 of 4" for monthly items, "9 this month" for weekly items, then the mini grid. One legend (Done, Skipped, Missed) under the pager. Title "November", year only outside the current year (112); next disabled on the current month, previous disabled before the earliest start month; "This month" pill on a past month. 113 was PR C's scope and month paging sits under "Not in the first PR", so this is the planned follow-up, not a reversal. Risk: medium (22px legibility; Strange measures, Bryce's iPad confirms).
+
+**168. Year view.** One item at a time: twelve compact month grids (the same compact calendar as 167), two across on a phone (YearView's layout), each headed by its month name, January to December of the shown year; months before the item's start or after today draw plain. Same four marks; today's outline only in the current month's grid (the compact grid holds in-month days only, so DESIGN.md's today rule holds by construction). Choosing the item: a 48px button under the pager showing the current item (icon, title, ChevronDown) that opens a `RadioSheet` titled "Which item?" listing the shown items (after the filter), Habits then Chores in Manage order; default the first shown item; the choice kept in the URL. Under the grids one muted line: "84 done · 6 missed · 3 skipped". Pager title "2026"; next disabled on the current year, previous disabled before the item's start year. Not a 53 by 7 strip: at 375px its cells would be 6px wide and need sideways scrolling. Risk: low.
+
+**169. The filter.** HabitFilterChips reused (one lit, scrolls sideways): "All", then "Habits" and "Chores" (only when both kinds are shown), then the times of day present (Today's sun, sunset and moon icons), then the life areas present, built from the shown person's items the way Today builds its row. The chip holds while switching Week, Month and Year and across a refresh (in the URL) and falls back to All when it no longer matches anything. Person is its own row (165), not a chip here. Why: decision 59 names time of day and life area as the two sorts; Habits and Chores are added because the Month view can be long. Risk: low.
+
+**170. Vacation and chore week changes in every grid.** No new state and no fourth legend mark. An undone vacation day and a chore's week-skipped day draw as Skipped (dashed ring, skip glyph) in every grid, the stats page included, from the one `monthCalendar` rule; a chore's moved-away day is not due (plain) and its moved-to day is a due day; a check done on any of these days draws Done (127, 130). Legend stays "Done, Skipped, Missed". Spoken labels: "Nov 8, skipped (on vacation)", "Nov 8, skipped this week", "Nov 9, not due (moved to Thu)". Why: 57 and 127 say vacation days "count as skipped" and 117 tags the chore "Skipped this week"; a plain cell in the middle of a daily habit's month reads as a schedule gap, and "excused" is a word the app shows nowhere. Risk: medium (changes how the live stats calendar draws vacation days; the completion rate already treats them as skipped, so the numbers do not move).
+
+**171. Empty states.** No active items for the shown person, any view: EmptyState, emoji "📊", title "Nothing to report yet", hint "Add a habit or chore in Manage and it shows up here."; when a parent is looking at someone else: hint "{Name} has no habits or chores yet." Nothing else can be empty: the pagers stop at the earliest start, the filter falls back to All, and the Year chooser lists what the filter shows. Risk: low.
+
+**172. Idea library placement (New form only, not Edit).** The Life area field moves up to directly under Name. For a Habit its hint reads "Optional. Pick one to see ideas." until an area is lit, then "Optional"; with an area lit, an IdeaChips row "Ideas for {short}" (GoalForm's label: "Ideas for Health") shows under it with that area's six ideas. For a Chore, an IdeaChips row "Chore ideas" shows under Name with the eight chore ideas, whatever the area, and the Life area hint is "Optional". The rest of the order stays: Icon, Kind (Build or quit), Who, How often, Time of day, the switches. Why: one row of six chips does two jobs, the field and the idea browser, so the form grows by one chip row and never shows the same six words twice; a separate area row would duplicate the field, and a disclosure button hides the library from the people it is for (21: small, optional). Edit gets no ideas because one tap overwrites several fields. Risk: medium (field order changes; 88 approved the PR B mock's wording, not its order).
+
+**173. A tap fills a whole idea.** Tapping an idea sets Name, Icon, How often (schedule, days, times), Time of day and Build or quit; the Life area is already the lit chip (chore ideas leave Life area alone). It never touches Kind of item, Who, Carry over or Private. A typed Name is replaced. IdeaChips keeps taking strings: the title is the key into `habitIdeas.ts`, where each idea's fields sit beside its words, with a test against this plan the way `goalPrompts.test.ts` guards the prompts file. Why: one tap gives a complete, sensible item and teaches the form by example, and everything it sets can be changed before Save. Risk: low.
+
+**174. The idea wording is approved as written below** (Hill, under "Hill decides for Bryce"; Bryce may overturn any line). Chores are one list, not by life area: the six areas do not sort household jobs, and eight chips fit in three lines at 375px. Risk: low.
+
+**175. Together or Side by side needs at least two people.** The form and
+the server both refuse to save with fewer than two people. They show the
+same words, "Pick at least two people, or choose Just me.", in the amber
+alert line above Save in `HabitForm.tsx`, the same place as "Give it a
+name.". The server check sits next to `participantsAllowed` in
+`actions/habits.ts`. Save never grays out, and existing rows get no data
+fix. Decided by Hill, low risk. Goes into PR F's C3.
+
+176. **One field order for New and Edit:** Kind of item, Name, Life area,
+     Icon, Build or quit, Who, How often, Time of day, the switches. Only
+     the ideas row is New only (amends 172's scope). Decided by Hill, low.
+177. **No "0 of 0"** on scheduled items. When nothing is due so far: "Due
+     today", "Due Sat" (Week) or "Due Nov 7" (Month) if a due day is still
+     ahead; else "Skipped this week" if a week-skipped day is in the
+     period; else "On vacation" if a vacation day is; else "Not this week"
+     / "Not this month". Open kinds keep "0 of 3" and "0 this week".
+     Decided by Hill, low.
+178. **"Chore ideas" sits directly under Name,** above Life area. Habit
+     order stays Name, Life area, Ideas for {short}. Decided by Hill, low.
+179. **"No phone in bed" uses `PhoneOff`** (added to `HABIT_ICONS` after
+     Phone); "Take out the trash" keeps `Trash2`. Decided by Hill, medium.
+180. **A Together day on vacation reads per person:** "skipped (on
+     vacation)" only on screens showing the person who was away; for
+     everyone else it is an ordinary due day. A check by anyone is Done for
+     all. Decided by Hill, low.
+181. **Tap-skipped days in the Report count:** a day the person skipped is
+     never "ahead". When no due day is ahead and the period's due days so
+     far were skipped, the count reads "1 skipped", "2 skipped" (Week and
+     Month). Order: Due today / Due Sat / Due Nov 7, then "N skipped", then
+     "Skipped this week", "On vacation", "Not this week / month". Decided
+     by Hill, medium (wording).
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for
@@ -667,9 +727,8 @@ instead), one-step-at-a-time mode, the idea library, stars or rewards,
 parent approval of kids' check-offs (needs P3), amounts, importing Habit
 tracker history.
 
-## Build note (2026-11-05)
+## Build note (updated 2026-11-06)
 
-PR A (mission 30, the engine and the move) is built on branch
-`claude/habits-a-engine`; it is not pushed or merged. Record:
-`.avengers/missions/mission-30-habits-a-engine.md`. PRs B to F are not
-started.
+All seven PRs are built: A (mission 30), B (31), C (32), D (33), E1 (34), E2
+(35) and F (36, the Report and idea library). The records live in each
+mission file; leftovers are in their Delivery sections.

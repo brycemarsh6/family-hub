@@ -4,8 +4,8 @@ import { carrySince, habitStartDay } from "./habits/carryOver";
 import { canLogFor, canNudge, canSeeHabitStats } from "./habits/access";
 import { specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import type { DayEntry } from "./habits/perfectDays";
-import { compareDays, dayInVacation, dueState as dueStateOf, isSameDay } from "./habits/schedule";
-import type { HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
+import { compareDays, dayInVacation, dueState as dueStateOf, isOpenKind, isSameDay } from "./habits/schedule";
+import type { HabitActor, HabitLogDay, ScheduleSpec, Vacation, WeekOverride } from "./habits/types";
 import type { StreakCache } from "./habits/streaks";
 import { isExcused, type ExcusableRow } from "./habits/weekOverrides";
 import {
@@ -16,10 +16,14 @@ import {
 } from "./habitsToday";
 import {
   monthCalendar,
+  nothingDueText,
+  openCountOf,
+  type OpenCount,
   perfectDaysInMonth,
   personTotals,
   sideBySideRows,
   weeklySeries,
+  type CellReason,
   type MonthCellState,
   type PersonTotals,
   type SideBySideRow,
@@ -214,7 +218,7 @@ export type HabitStatsData = {
   /** The subject's display name, for "Emily's numbers" when a parent opens a kid's habit. */
   subjectName: string;
   tiles: PersonTotals;
-  calendar: { first: string; leading: number; cells: { day: string; state: MonthCellState; tappable: boolean }[] };
+  calendar: { first: string; leading: number; /** What the header says in place of "0 of 0 so far" (decision 177); null for an open kind. */ nothingDue: string | null; /** An open kind's header rule (the Report Month card's, decision 167); null for a scheduled kind. */ openCount: OpenCount | null; cells: { day: string; state: MonthCellState; reason: CellReason | null; tappable: boolean }[] };
   /** Whether the viewer may tap the calendar's days (`canLogFor` the subject). */
   canTap: boolean;
   perfectDays: number;
@@ -242,6 +246,8 @@ export type StatsBuildInput = {
   /** Every check on this habit, all participants, all time. */
   logs: readonly HabitLogDay[];
   vacationsByUser: ReadonlyMap<string, readonly Vacation[]>;
+  /** This chore's this-week changes, all of them (decision 170); none for a habit. */
+  overrides?: readonly WeekOverride[];
   /** The subject's habits for perfect days (this one included), their own checks for the month shown. */
   subjectHabits: readonly PerfectDayHabit[];
   /** The people the viewer already nudged about this habit today. */
@@ -264,6 +270,7 @@ export function buildStatsData(input: StatsBuildInput): HabitStatsData | null {
     today,
     logs: input.logs,
     vacationsByUser: input.vacationsByUser,
+    overrides: input.overrides,
     people: [...members]
       .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime() || (a.userId < b.userId ? -1 : 1))
       .map((m) => ({
@@ -314,7 +321,9 @@ export function buildStatsData(input: StatsBuildInput): HabitStatsData | null {
     calendar: {
       first: formatCalendarDate(calendar.first),
       leading: calendar.leading,
-      cells: calendar.cells.map((cell) => ({ day: formatCalendarDate(cell.day), state: cell.state, tappable: cell.tappable })),
+      openCount: openCountOf(spec, "month", calendar.first),
+      nothingDue: isOpenKind(spec) ? null : nothingDueText(stats, subjectId, calendar.first, calendar.cells[calendar.cells.length - 1].day, "month"),
+      cells: calendar.cells.map((cell) => ({ day: formatCalendarDate(cell.day), state: cell.state, reason: cell.reason, tappable: cell.tappable })),
     },
     canTap: canLogFor(viewer, subjectId, access),
     perfectDays: perfect.length,

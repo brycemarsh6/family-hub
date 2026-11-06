@@ -2,10 +2,10 @@
 
 import { useOptimistic, useState } from "react";
 import Link from "next/link";
-import { Flame, Moon, Plane, Sun, Sunset } from "lucide-react";
+import { Flame, Plane } from "lucide-react";
 import { ChoreShoutOutCard } from "./ChoreShoutOutCard";
 import { EmptyState } from "./EmptyState";
-import { HabitFilterChips, type HabitFilterOption } from "./HabitFilterChips";
+import { HabitFilterChips, TIME_ICONS, type HabitFilterOption } from "./HabitFilterChips";
 import { HabitConfetti } from "./HabitConfetti";
 import { HabitRow } from "./HabitRow";
 import { habitRowTaps } from "./HabitsTile";
@@ -20,8 +20,6 @@ import { formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { isExcused } from "@/lib/habits/weekOverrides";
 import { TIMES_OF_DAY, TIME_OF_DAY_LABELS, VACATION_TODAY_LABEL, streakLabel, vacationThroughLabel } from "@/lib/habitVocabulary";
-
-const TIME_ICONS = { morning: Sun, afternoon: Sunset, evening: Moon } as const;
 
 const ALL = "all";
 

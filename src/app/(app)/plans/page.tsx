@@ -1,4 +1,4 @@
-import { PlansTabs } from "@/components/PlansTabs";
+import { PageTabs } from "@/components/PageTabs";
 import { ThisWeekList } from "@/components/ThisWeekList";
 import { GoalsList } from "@/components/GoalsList";
 import { requireVerifiedUser } from "@/lib/dal";
@@ -9,6 +9,12 @@ import { DEFAULT_VISION_HORIZON, toVisionHorizon } from "@/lib/goalVocabulary";
 import { loadVisionBoard } from "@/lib/visionsRead";
 
 export const dynamic = "force-dynamic";
+
+const PLANS_TABS = [
+  { key: "week", label: "This week", href: "/plans?view=week" },
+  { key: "goals", label: "Goals", href: "/plans?view=goals" },
+  { key: "vision", label: "Vision", href: "/plans?view=vision" },
+] as const;
 
 function newPromptSeed() {
   return Math.floor(Math.random() * 1000);
@@ -35,7 +41,7 @@ export default async function PlansPage({
     return (
       <div className="py-2">
         <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">Plans &amp; Goals</h1>
-        <PlansTabs view={view} />
+        <PageTabs label="Plans views" tabs={PLANS_TABS} value={view} />
         <VisionBoard
           data={board}
           horizon={horizon}
@@ -54,7 +60,7 @@ export default async function PlansPage({
   return (
     <div className="py-2">
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">Plans &amp; Goals</h1>
-      <PlansTabs view={view} />
+      <PageTabs label="Plans views" tabs={PLANS_TABS} value={view} />
       {view === "goals" ? (
         <GoalsList data={data} canManage={!user.isDevice} viewerId={user.userId} />
       ) : (

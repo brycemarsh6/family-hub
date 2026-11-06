@@ -112,8 +112,12 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   view. PR D added the chore chart, chore streak and vacation mode; PR E1 added
   the Habits and Chores today dashboard tiles and the Pick view; PR E2 added
   plan the day (a "Pick a day" card on prompt days, "Planned today" on the
-  dashboard, planned days on the Calendar). PR F follows (plan:
-  `.avengers/plans/habits-chores-v1.md`).
+  dashboard, planned days on the Calendar). PR F added the Report
+  (`/habits/report`: Week, Month and Year for one person, parents can
+  pick a person) and idea chips on the New habit form (six per life area,
+  eight chores, words in `src/lib/habitIdeas.ts`, mirrored from
+  `.avengers/plans/habits-ideas.md`). That finishes the plan
+  (`.avengers/plans/habits-chores-v1.md`).
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
   Read `.avengers/plans/calendar-v2.md` before calendar work.
@@ -176,14 +180,13 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Habits & Chores PR E2 (mission 35)** passed all three gates on
-  2026-11-06 and merges from branch `claude/habits-e2-plan-day`: the "Pick
-  a day" card (Today and the dashboard), "Planned today" on the dashboard,
-  "Planned for today / Sat" on rows, planned days on the Calendar.
-  Decisions 151 to 162, decided by Hill. Leftovers:
-  `.avengers/missions/mission-35-habits-e2-plan-the-day.md` (Delivery).
-  **PR F (mission 36, the Report and idea library)** is next. Bryce said
-  to run it to the end without asking.
+- **Habits & Chores PR F (mission 36)** passed its gates on 2026-11-06 and
+  merges from branch `claude/habits-f-report`: the Report, idea chips,
+  "Together needs two people", the stats calendar showing vacations and
+  moved chores. Decisions 163 to 181, decided by Hill. Strange needed a
+  fourth pass, which Bryce allowed. Leftovers:
+  `.avengers/missions/mission-36-habits-f-report.md` (Delivery). This
+  finishes the Habits & Chores plan.
 - **Hill decides for Bryce** (`.claude/agents/hill.md`); merges don't wait
   for him. Phone tests go on Bryce's checklist below and never block.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
@@ -213,6 +216,13 @@ Replace this section at the end of each session. Don't append.
   planned day, the habit sits in "Planned today" on the dashboard. On the
   Calendar, Week and Schedule show it with its icon; a check on a later
   planned day can mean "this week's goal is done" (decision 160).
+- **PR F phone check** (about 5 minutes): Habits & Chores, the Report
+  card at the bottom; flip Week, Month and Year, and the arrows. On the
+  iPad, check the small Month squares are easy to read. As a parent, tap
+  Emily's chip. New habit: pick a life area and tap an idea chip; for a
+  chore, the Chore ideas under Name. Look for the new "No phone in bed"
+  icon. Try Together with only yourself and see "Pick at least two
+  people, or choose Just me."
 - **Delete the commented production `DATABASE_URL` line in `.env`**
   (host `ep-hidden-surf-`). It isn't used, but AGENTS.md says no dev
   machine should hold it. No agent edits `.env`.
@@ -220,7 +230,8 @@ Replace this section at the end of each session. Don't append.
   chore on the chart should see "Ask a parent to change a shared chore."
 - **Review Hill's medium calls:** 94, 95, 104, 110, 111 (PR C); 117, 121,
   122, 123 and 127 (PR D; 130 goes with 127); 135, 136, 137 and 149
-  (PR E1); 156, 159, 160 and 161 (PR E2). Plan:
+  (PR E1); 156, 159, 160 and 161 (PR E2); 163, 167, 170, 172, 179 and 181
+  (PR F). Plan:
   `.avengers/plans/habits-chores-v1.md`.
 - **Optional:** confirm the family-hub origin in the desktop app (Help,
   Troubleshooting, Review Pinned Git Origins) so the app's merge button
@@ -245,6 +256,8 @@ Replace this section at the end of each session. Don't append.
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- The Edit screen says "Edit habit" for a chore and doesn't light the
+  house icon (found by Strange in PR F, older than it).
 - Inventory collapse state doesn't persist across reloads; Shopping has no
   collapsible groups; no per-item "usual store".
 - **Structured ingredients tripwire is at 3 of 4.** If a fourth feature needs
@@ -252,4 +265,4 @@ Replace this section at the end of each session. Don't append.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
   by Bryce's Grok bot. Left uncommitted on purpose.
 
-**Not built yet:** family profiles, the Report and idea library (PR F), to-dos, photo gallery, barcode scanning.
+**Not built yet:** family profiles, to-dos, photo gallery, barcode scanning.

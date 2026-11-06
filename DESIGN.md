@@ -288,7 +288,9 @@ A new one-off that duplicates one of these jobs is a design violation:
 - `HabitRow`: one line of the Habits & Chores Today list (44px check, title,
   tags, swipe left for Skip today). `HabitForm` is the one New and Edit form for
   a habit or chore, built from `ParticipantPicker`, `HabitIconPicker` and
-  `HabitScheduleField`; a new habit field goes in it, never in a second form
+  `HabitScheduleField` and the small fields in `HabitFormFields` (`Field`,
+  `Segmented`, `TimeOfDayField`, `LifeAreaField`); a new habit field goes in
+  it, never in a second form
 - `HabitFamilyView` / `HabitFamilyColumn` / `HabitViewChips`: the Whole
   family view of Habits & Chores. `HabitFamilyView` is the Together strip plus
   a grid of person cards (`auto-fit` columns of at least 340px: stacked on a
@@ -300,7 +302,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   check does not name one person. `HabitViewChips` (its own file) is
   the "Mine" / "Whole family" pair of link pills above both views, the choice
   kept in the URL (`?view=family`); it is a view switch, not a second
-  `PlansTabs`, and the wall tablet never shows it. The chore streak is a
+  `PageTabs`, and the wall tablet never shows it. The chore streak is a
   `--streak` flame and "N days" after the "Chores" title on Today and on each
   card (2 or more, the Show streaks switch, always on the tablet); a person
   on vacation reads "On vacation" under their name and their rows are
@@ -308,6 +310,22 @@ A new one-off that duplicates one of these jobs is a design violation:
   Today and the card carry a `--streak-soft` line. `VacationCard` (Settings):
   From and Through date inputs, "Turn on vacation mode", and a list with a
   one-tap Delete
+- The Habits Report (`/habits/report`; `HabitReportView` and the `Report*`
+  components): Week, Month and Year tabs (`PageTabs`), `ReportPager` (44px
+  arrows around the title, and a "This week" / "This month" pill back to now
+  when a past period is shown), person chips (parents and admins only, so a
+  kid never sees them), the filter (`HabitFilterChips`, as on Today), then the
+  view. Every day is one `HabitDayCell`, the same cell the stats calendar
+  draws, and `HabitDayLegend` is the only legend (once under the pager on
+  Month and Year, never per card). Month and Year use the compact month grid
+  (about 22px cells, read-only), because a Report is for reading, not
+  ticking, and back-filling stays on the stats page. The count beside each
+  item says "x of y", or, when nothing is due, why: "Due Sat", "N skipped",
+  "Skipped this week", "On vacation", "Not this week" / "Not this month",
+  never "0 of 0" (decisions 177 and 181). Today's outline shows only when the
+  day is due or still doable; a not-due today stays plain with a bold number,
+  so an outline always means "this is something to do". Vacation days are
+  drawn as Skipped. Archived items are not in the Report.
 - `DashboardWidgetList` (the dashboard's heading row, widget grid and
   Customize button, and the nudge and Sunday cards above the grid) /
   `DashboardCustomizeSheet` (on/off switch and a drag grip per widget,
@@ -315,19 +333,20 @@ A new one-off that duplicates one of these jobs is a design violation:
   `DashboardItemPicker` as a second view inside the same sheet, decision
   137; Reset to default): the only way to show, hide, reorder or pick
   what dashboard widgets show
-- `PlansTabs` — the one tab control for switching views: a `nav` of links lit
-  by `aria-current`; a new tab is a column in it, never a second control. A
-  segmented strip inside a form (the day / week / month picker in
+- `PageTabs`: the one tab control for switching views of a page (Plans &
+  Goals, the Habits Report): a `nav` of links lit by `aria-current`, its tabs
+  passed in by the page; a new tab is a column in it, never a second control.
+  A segmented strip inside a form (the day / week / month picker in
   `PlanItemSheet`) is a form field, not navigation, and is not a second
-  `PlansTabs`
+  `PageTabs`
   The Vision board's 5 / 10 / 15 yr switch in `VisionBoard` (a `role="group"`
   strip of links, each at least 44px, the current one `aria-current`) is a
   second allowed carve-out: it picks a time range inside one page, so it is
   a form-style field like the day / week / month picker, not a new tab
 - `IdeaChips`: the one row of tappable idea chips ("Ideas for Health"). A
   tap hands the words to the form, never submits, and no chip is ever shown
-  as selected. `GoalForm` and `PlanItemSheet` use it; a new idea row reuses
-  it rather than copying the chip classes
+  as selected. `GoalForm`, `PlanItemSheet` and the New habit form use it; a new
+  idea row reuses it rather than copying the chip classes
 - `VisionCard` / `VisionSheet`: one life-area card on the Vision board and
   the sheet that edits it. A filled card keeps the icon band; an empty card
   has a dashed `border-line-strong` outline, the page-colored fill and no

@@ -12,6 +12,7 @@ import {
   buildTodayPage,
   buildTodayRows,
   participantsAllowed,
+  sharedNeedsMorePeople,
   todayLogsFrom,
   visibleInViewerOrder,
   type TodayHabitInput,
@@ -371,4 +372,12 @@ test("prompts: only the viewer's own vacation silences them", () => {
   assert.deepEqual(buildTodayPage(me, [weeklyTwice("w")], noLogs, friday, mine).prompts, []);
   const someoneElse = new Map([["stranger", [{ start: d(2026, 11, 3), end: d(2026, 11, 6) }]]]);
   assert.equal(buildTodayPage(me, [weeklyTwice("w")], noLogs, friday, someoneElse).prompts.length, 1);
+});
+
+test("sharedNeedsMorePeople: Together or Side by side with fewer than two people is refused, Just me never is", () => {
+  assert.equal(sharedNeedsMorePeople(true, 0), true);
+  assert.equal(sharedNeedsMorePeople(true, 1), true);
+  assert.equal(sharedNeedsMorePeople(true, 2), false);
+  assert.equal(sharedNeedsMorePeople(true, 5), false);
+  assert.equal(sharedNeedsMorePeople(false, 1), false);
 });

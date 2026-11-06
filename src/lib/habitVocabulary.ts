@@ -100,6 +100,9 @@ export function habitWhoLabel(habit: { people: number; everyone: boolean; sharin
   return HABIT_WHO_LABELS[toHabitSharing(habit.sharing)];
 }
 
+/** The refusal when Together or Side by side has fewer than two people (the form and the server say the same words). */
+export const SHARED_NEEDS_TWO_MESSAGE = "Pick at least two people, or choose Just me.";
+
 /** The editor's Who strip: its button words and the line under it. */
 export const HABIT_WHO_CHOICES: readonly { key: HabitWho; label: string; hint: string }[] = [
   { key: "me", label: "Just me", hint: "One person: you" },
@@ -169,6 +172,7 @@ export const HABIT_ICONS = [
   "Heart",
   "Smile",
   "Phone",
+  "PhoneOff",
   "Leaf",
   "Flower2",
   "PawPrint",
@@ -311,4 +315,66 @@ export const PLAN_OTHER_DAY_LABEL = "Other day";
 /** A chip: "Today" for the first, else the short weekday name (`dayNames` Sunday first). */
 export function planChipLabel(chip: { isToday: boolean; weekday: number }, dayNames: readonly string[]): string {
   return chip.isToday ? "Today" : dayNames[chip.weekday];
+}
+
+// ---- The Report (decisions 163 to 171) ----
+
+/** The Report's page words. The tab names double as the three views. */
+export const REPORT_LABELS = {
+  title: "Report",
+  linkHint: "Every item by week, month and year",
+  tabs: { week: "Week", month: "Month", year: "Year" },
+  /** The filter's first chip, and the two kinds when both are shown (decision 169). */
+  filterAll: "All",
+  filterHabits: "Habits",
+  filterChores: "Chores",
+  /** The pager's pill on a past period (decisions 166, 167). */
+  thisWeek: "This week",
+  thisMonth: "This month",
+  /** The Year view's chooser (decision 168). */
+  whichItem: "Which item?",
+  /** Empty state (decision 171). */
+  emptyEmoji: "📊",
+  emptyTitle: "Nothing to report yet",
+  emptyHint: "Add a habit or chore in Manage and it shows up here.",
+  emptyHintFor: (name: string) => `${name} has no habits or chores yet.`,
+  /** Screen-reader names for the Report's controls. */
+  viewsAria: "Report views",
+  personAria: "Whose report",
+  previous: { week: "Previous week", month: "Previous month", year: "Previous year" },
+  next: { week: "Next week", month: "Next month", year: "Next year" },
+  /** The legend under a month calendar: the stats page's and, once, under the Report's pager on Month and Year (decision 167). */
+  legend: { done: "Done", skipped: "Skipped", missed: "Missed" },
+} as const;
+
+/** What a day of a habit's calendar says aloud, by how it is drawn (decisions 94, 170). */
+export const DAY_CELL_WORDS = { done: "done", late: "done late", skipped: "skipped", missed: "missed", today: "not done yet", future: "not yet", notDue: "not due" } as const;
+
+/** Why a day reads as it does when nothing was checked (decision 170); `dayName` is the short weekday ("Thu"). */
+export const DAY_CELL_REASON_WORDS = {
+  vacation: "skipped (on vacation)",
+  weekSkip: "skipped this week",
+  movedAway: (dayName: string) => `not due (moved to ${dayName})`,
+} as const;
+
+/** "5 of 6": done of due so far, or done of a target (decisions 166, 167). */
+export function reportCountOf(done: number, of: number): string {
+  return `${done} of ${of}`;
+}
+
+/** What a scheduled item says when nothing is due so far (decision 177); `when` is "Sat" (Week) or "Nov 7" (Month). */
+export const reportDueLabel = (when: string): string => `Due ${when}`;
+export const REPORT_DUE_TODAY = "Due today";
+/** "1 skipped", "2 skipped": the due days so far were all skipped by a tap (decision 181). */
+export const reportSkippedCount = (count: number): string => `${count} skipped`;
+export const reportNotThis = (period: "week" | "month"): string => `Not this ${period}`;
+
+/** "1 this week", "9 this month": the count for an item with no daily target (decisions 166, 167). */
+export function reportCountThis(done: number, period: "week" | "month"): string {
+  return `${done} this ${period}`;
+}
+
+/** The Year view's line under the grids: "84 done · 6 missed · 3 skipped" (decision 168). */
+export function reportYearTotals(totals: { done: number; missed: number; skipped: number }): string {
+  return `${totals.done} done · ${totals.missed} missed · ${totals.skipped} skipped`;
 }
