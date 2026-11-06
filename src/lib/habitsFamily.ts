@@ -45,11 +45,18 @@ import {
 export type FamilyPerson = { id: string; displayName: string; avatarColor: string };
 
 /** A Today row plus what the family view needs to tick it: `logForId` is whose check a tap writes, `canLog` whether the viewer may. */
-export type FamilyRow = HabitRowView & { canLog: boolean; logForId: string };
+export type FamilyRow = HabitRowView & {
+  canLog: boolean;
+  logForId: string;
+  /** Whether the viewer may open the habit's stats page (`canSeeHabitStats`, decision 114); if not the title is plain text. */
+  canOpenStats: boolean;
+};
 
 export type FamilyColumn = FamilyPerson & {
   rows: FamilyRow[];
-  /** Rows the person has checked today, out of the rows they owe (skipped rows are in neither number, decision 109). */
+  /** The ids of the Together habits (the strip above) this person takes part in; they count in the card's numbers. */
+  togetherIds: string[];
+  /** Rows the person has checked today, out of the rows they owe, their own and the Together ones they are on (skipped rows are in neither number, decision 109). */
   doneCount: number;
   totalCount: number;
 };
@@ -64,6 +71,11 @@ export function doneCounts(rows: readonly Pick<HabitRowView, "doneToday" | "skip
 export function doneCountLabel(rows: readonly Pick<HabitRowView, "doneToday" | "skippedToday">[]): string {
   const { done, total } = doneCounts(rows);
   return `${done} of ${total} done`;
+}
+
+/** The rows a person's card counts: their own, plus the Together rows they take part in. One rule for the page builder and the card. */
+export function countedRows(column: Pick<FamilyColumn, "rows" | "togetherIds">, together: readonly FamilyRow[]): FamilyRow[] {
+  return [...column.rows, ...together.filter((row) => column.togetherIds.includes(row.id))];
 }
 
 export type FamilyPage = {
@@ -81,7 +93,7 @@ function rowFor(userId: string, habit: TodayHabitInput, viewer: HabitActor, logs
 
 function familyRow(row: HabitRowView, viewer: HabitActor, logForId: string): FamilyRow {
   const access = { isPrivate: row.isPrivate, participantIds: row.participants.map((p) => p.userId) };
-  return { ...row, logForId, canLog: canLogFor(viewer, logForId, access) };
+  return { ...row, logForId, canLog: canLogFor(viewer, logForId, access), canOpenStats: canSeeHabitStats(viewer, access) };
 }
 
 /**
@@ -115,8 +127,11 @@ export function buildFamilyPage(
       const row = rowFor(person.id, habit, viewer, logsByHabit, today, vacationsByUser);
       return row ? [familyRow(row, viewer, person.id)] : [];
     });
-    const { done, total } = doneCounts(rows);
-    return { ...person, rows, doneCount: done, totalCount: total };
+    const togetherIds = together
+      .filter((row) => row.participants.some((p) => p.userId === person.id))
+      .map((row) => row.id);
+    const { done, total } = doneCounts(countedRows({ rows, togetherIds }, together));
+    return { ...person, rows, togetherIds, doneCount: done, totalCount: total };
   });
   return { today: formatCalendarDate(today), together, columns };
 }
@@ -253,7 +268,7 @@ export function buildStatsData(input: StatsBuildInput): HabitStatsData | null {
           return { rows: sideBySideRows(stats), weekly: { ...weekly, weeks: weekly.weeks.map(formatCalendarDate) } };
         })()
       : null;
-  const nudgeHabit = { ...access, sharing, archived: habit.archivedAt !== null };
+  const nudgeHabit = { ...access, sharing, archived: habit.archivedAt !== null, deactivatedIds: members.filter((m) => m.deactivatedAt).map((m) => m.userId) };
   const doneByToday = new Set(input.logs.filter((log) => isSameDay(log.day, today)).map((log) => log.userId));
   const nudgeable = active
     .filter((p) => canNudge(viewer, nudgeHabit, p.userId) && !doneByToday.has(p.userId))

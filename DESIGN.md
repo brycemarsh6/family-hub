@@ -202,6 +202,15 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   empty vision card (a slightly darker twin of `--line`, with a dark-mode
   twin). It is too faint to carry text or to mark an interactive edge on its
   own, so never use it for either.
+- **`--streak` / `--streak-soft` are the streak's own colour** (mission-32/F1):
+  a burnt peach for the flame and its count on Today rows, family rows and the
+  stats tile, and the soft fill behind the nudge card. Amber (`--warn`) means
+  a warning or a Missed day; a streak is good news, so it must not share it.
+  Light `#8a4b1f` is 6.76:1 on `--surface`, 5.97:1 on `--bg`, 5.42:1 on
+  `--streak-soft`; dark `#e8a77f` is 7.57:1 on `--surface`, 8.43:1 on `--bg`,
+  6.63:1 on `--streak-soft` (measured). Not yet re-measured against
+  `--muted-strong`'s "clears every soft token" claim: that sentence in
+  `globals.css` predates this token.
 - **Semantic truth:** red means urgent/destructive, never decoration; before
   coloring anything "good," confirm more/higher is actually good in context.
 - Fixed data-category palettes (e.g. the nutrition donut's three macro

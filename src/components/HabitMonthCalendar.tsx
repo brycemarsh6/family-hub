@@ -9,7 +9,8 @@ export type CalendarCell = { day: string; state: MonthCellState; tappable: boole
 
 const WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
-const BASE = "flex min-h-11 items-center justify-center rounded-full text-sm";
+/** 44px tall; at least 44px wide at 375 (the card and grid gaps are tight on purpose), and no wider than 48px, centred, on an iPad. */
+const BASE = "flex min-h-11 w-full max-w-12 items-center justify-center justify-self-center rounded-full text-sm";
 
 /** Look by state. Done and Skipped differ by shape as well as color (a filled disc, a dashed ring), Missed by its amber fill. */
 function cellClass(state: MonthCellState): string {
@@ -79,8 +80,8 @@ export function HabitMonthCalendar({
   onToggle: (cell: CalendarCell) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-3">
-      <div className="grid grid-cols-7 gap-1.5">
+    <div className="rounded-2xl border border-line bg-surface p-2">
+      <div className="grid grid-cols-7 gap-0.5">
         {WEEKDAY_LETTERS.map((letter, index) => (
           <span key={index} aria-hidden="true" className="text-center text-xs font-semibold text-muted">
             {letter}

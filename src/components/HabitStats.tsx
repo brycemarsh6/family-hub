@@ -11,7 +11,8 @@ import { NudgeButton } from "./NudgeButton";
 import { checkHabit, uncheckHabit } from "@/app/actions/habitChecks";
 import type { HabitStatsData } from "@/lib/habitsFamily";
 import { parseDateParam } from "@/lib/householdDate";
-import { NUDGE_STATUS_LABEL, statsMonthTitle } from "@/lib/habitVocabulary";
+import { NUDGE_STATUS_LABEL } from "@/lib/habitVocabulary";
+import { statsMonthTitle } from "@/lib/habitsStats";
 
 const SECTION_TITLE = "text-sm font-semibold uppercase tracking-wide text-muted";
 
@@ -32,7 +33,7 @@ function Tile({ value, label, flame = false }: { value: number; label: string; f
   return (
     <div className="flex flex-1 flex-col gap-0.5 rounded-2xl border border-line bg-surface p-2.5">
       <span className="flex items-center gap-1 text-[22px] font-bold">
-        {flame && <Flame aria-hidden="true" size={16} className="text-warn" />}
+        {flame && <Flame aria-hidden="true" size={16} className="text-streak" />}
         {value}
       </span>
       <span className="text-xs text-muted">{label}</span>

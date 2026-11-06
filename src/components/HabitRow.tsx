@@ -45,7 +45,7 @@ export function HabitRow({
   // Side by side: show the other people who have already done theirs.
   const othersDone = row.sharing === "each" ? row.participants.filter((p) => p.userId !== row.viewerId && p.done) : [];
   const streak = showStreaks && row.streakLabel ? (
-    <span className="inline-flex items-center gap-0.5 text-sm font-semibold text-warn">
+    <span className="inline-flex items-center gap-0.5 text-sm font-semibold text-streak">
       <Flame aria-hidden="true" size={14} />
       {row.streakLabel}
     </span>

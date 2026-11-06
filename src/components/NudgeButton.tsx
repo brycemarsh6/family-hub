@@ -9,6 +9,7 @@ import { nudge } from "@/app/actions/habitNudges";
  * habit and day is enforced on the server; after a tap, or when the page loads
  * with the nudge already sent, it reads "Nudged" with a check and stays off
  * (the server's day ends at Denver midnight, when the page reads it fresh).
+ * The "Nudged" state keeps full opacity in `text-muted-strong`, so it stays readable.
  */
 export function NudgeButton({
   habitId,
@@ -46,7 +47,9 @@ export function NudgeButton({
         onClick={send}
         disabled={nudged || pending}
         aria-label={nudged ? `Nudged ${toName}` : `Nudge ${toName}`}
-        className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-semibold transition-colors disabled:opacity-60"
+        className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-semibold transition-colors ${
+          nudged ? "text-muted-strong" : "disabled:opacity-60"
+        }`}
       >
         {nudged ? <Check aria-hidden="true" size={18} /> : <Bell aria-hidden="true" size={18} />}
         {nudged ? "Nudged" : "Nudge"}

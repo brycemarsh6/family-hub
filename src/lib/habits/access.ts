@@ -47,13 +47,18 @@ export function canSeeHabitStats(actor: HabitActor, habit: HabitAccess): boolean
   return isParticipant(habit, actor.userId) || actor.role === "device" || isManager(actor);
 }
 
-/** What the nudge rule needs beyond `HabitAccess`: how the habit is shared and whether it is archived. */
-export type NudgeHabit = HabitAccess & { sharing: string; archived: boolean };
+/**
+ * What the nudge rule needs beyond `HabitAccess`: how the habit is shared,
+ * whether it is archived, and which participants are deactivated (a caller that
+ * leaves it out is saying none are).
+ */
+export type NudgeHabit = HabitAccess & { sharing: string; archived: boolean; deactivatedIds?: readonly string[] };
 
 /**
  * Whether `actor` may nudge `toUserId` about a habit (decision 97): never the
  * tablet, never yourself, only on a Side by side habit that is not private or
- * archived, and only between two of its participants. Whether the recipient
+ * archived, and only between two of its participants, the recipient still
+ * active. Whether the recipient
  * has finished today is a fact about the day, so the caller checks it.
  */
 export function canNudge(actor: HabitActor, habit: NudgeHabit, toUserId: string): boolean {
@@ -64,6 +69,7 @@ export function canNudge(actor: HabitActor, habit: NudgeHabit, toUserId: string)
     !habit.archived &&
     toUserId !== actor.userId &&
     isParticipant(habit, actor.userId) &&
-    isParticipant(habit, toUserId)
+    isParticipant(habit, toUserId) &&
+    !habit.deactivatedIds?.includes(toUserId)
   );
 }

@@ -14,6 +14,7 @@ import {
   perfectDaysInMonth,
   personTotals,
   sideBySideRows,
+  statsMonthTitle,
   statsStreakUnit,
   weeklySeries,
   type StatsInput,
@@ -111,6 +112,12 @@ test("monthCalendar: tappable only within the last 7 days and never in the futur
   const oct = monthCalendar(input(), "amy", d(2026, 10, 15))!;
   assert.deepEqual(oct.cells.filter((cell) => cell.tappable).map((cell) => cell.day.day), [29, 30, 31]); // 8 days back is not tappable
   assert.equal(oct.cells[27].tappable, false);
+});
+
+test("monthCalendar: days before the person joined are not tappable, the join day is", () => {
+  const joined = person("amy", { since: d(2026, 11, 3) });
+  const cal = monthCalendar(input({ people: [joined] }), "amy", today)!;
+  assert.deepEqual(cal.cells.filter((cell) => cell.tappable).map((cell) => cell.day.day), [3, 4, 5]);
 });
 
 test("monthCalendar: month boundaries, 30 and 31 days, a leap February and the leading blanks", () => {
@@ -223,4 +230,11 @@ test("perfectDaysInMonth: a past month runs to its last day, month boundary incl
   assert.equal(perfectDaysInMonth(d(2026, 10, 12), today, entries).length, 31);
   assert.equal(perfectDaysInMonth(d(2026, 12, 12), today, entries).length, 0);
   assert.equal(perfectDaysInMonth(d(2026, 12, 12), d(2026, 12, 31), entries).length, 31);
+});
+
+test("statsMonthTitle: month name, with the year only outside the current year (decision 112)", () => {
+  assert.equal(statsMonthTitle(2026, 11, 2026), "November");
+  assert.equal(statsMonthTitle(2026, 1, 2026), "January");
+  assert.equal(statsMonthTitle(2025, 12, 2026), "December 2025");
+  assert.equal(statsMonthTitle(2027, 2, 2026), "February 2027");
 });

@@ -33,8 +33,8 @@ export function NudgeCards({ nudges }: { nudges: TodayNudge[] }) {
   return (
     <div className="mb-3 flex flex-col gap-2">
       {live.map((nudge) => (
-        <div key={nudge.id} className="flex items-center gap-2.5 rounded-2xl bg-warn-soft py-2 pl-3 pr-1">
-          <Bell aria-hidden="true" size={20} className="shrink-0 text-warn" />
+        <div key={nudge.id} className="flex items-center gap-2.5 rounded-2xl bg-streak-soft py-2 pl-3 pr-1">
+          <Bell aria-hidden="true" size={20} className="shrink-0 text-streak" />
           <p className="min-w-0 flex-1 text-sm">
             <b>{nudge.fromName} nudged you</b> about {nudge.habitTitle}
           </p>

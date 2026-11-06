@@ -111,7 +111,7 @@ export function HabitFamilyView({ page, showStreaks }: { page: FamilyPage; showS
       ) : (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-start gap-3.5">
           {live.columns.map((column) => (
-            <HabitFamilyColumn key={column.id} column={column} showStreaks={showStreaks} onToggle={toggle} />
+            <HabitFamilyColumn key={column.id} column={column} together={live.together} showStreaks={showStreaks} onToggle={toggle} />
           ))}
         </div>
       )}

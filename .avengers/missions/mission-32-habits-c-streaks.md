@@ -265,7 +265,7 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Strange pass 1 (Opus): BLOCKED, 4.** (1) streaks drawn in warn amber, same as Missed; (2) family card count leaves out Together habits; (3) stats calendar day buttons 42px at 390; (4) "Nudged" text 2.93:1. Not covered: nudge card from a second login, read-only checks, tablet login, a Missed day, Show streaks off, real touch. Test data: "zz m32 side", "zz m32 together", one nudge.
 
 ### F1 - Gate pass 1 fixes
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc and 767 tests). Tokens `--streak` (#8a4b1f / #e8a77f) and `--streak-soft` (#f6e3d3 / #3d2a1e), all text pairs 5.4:1 or better. Two gaps closed in F2.
 - **Fixes:**
   1. Captain 1: export `FULL_MONTH_NAMES` from `mealPlanDates.ts`; move `statsMonthTitle` and its tests to `habitsStats.ts` / `habitsStats.test.ts`; update `HabitStats.tsx`.
   2. Decision 114: a row title links to stats only when the viewer may open it (`canSeeHabitStats`); else plain text. Family rows carry the flag from `buildFamilyPage`; test it.
@@ -278,4 +278,10 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
   9. Strange note: family view checks name the person for screen readers ("Mark X done for Emily").
 - **Boundaries:** `src/lib/mealPlanDates.ts` (the export and its comment only), `habitVocabulary.ts` and test, `habitsStats.ts` and test, `habitsFamily.ts` and test, `habits/access.ts` and test, `src/app/globals.css`, `DESIGN.md`, `HabitStats.tsx`, `HabitMonthCalendar.tsx`, `NudgeButton.tsx`, `NudgeCard.tsx`, `HabitRow.tsx`, `HabitFamilyColumn.tsx`, `HabitFamilyView.tsx`, `HabitTodayList.tsx` (only if a prop is needed for 2).
 - **Verification:** full gauntlet plus TZ=UTC and LA runs.
+
+### F2 - F1 leftovers
+- **Status:** PENDING
+- **Fixes:** (1) `LogButton` gains an optional `forName` so its label reads "Mark X done for Emily" / "Undo X for Emily"; the family view's inline copy of the button goes back to `LogButton`, so there is one check button. (2) The `nudge` action refuses a deactivated recipient: `loadHabitForAction` (or the action) supplies the participants' deactivated state and the action passes `deactivatedIds` to `canNudge`.
+- **Boundaries:** `src/components/LogButton.tsx`, `HabitFamilyColumn.tsx`, `src/lib/habitsRead.ts` (the action loader's select only), `src/app/actions/habitNudges.ts`.
+- **Verification:** full gauntlet.
 

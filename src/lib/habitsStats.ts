@@ -12,6 +12,7 @@ import {
 } from "./habits/schedule";
 import type { StreakCache } from "./habits/streaks";
 import type { HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
+import { FULL_MONTH_NAMES } from "./mealPlanDates";
 import { displayStreak, isTapDayAllowed, streakUnitOf } from "./habitsToday";
 import { isCheckStatus, streakLabel, type StreakUnit } from "./habitVocabulary";
 
@@ -134,9 +135,16 @@ export function monthCalendar(input: StatsInput, userId: string, inMonth: Calend
       const meant = isScheduledDay(input.spec, day) && compareDays(day, person.since) >= 0 && !onVacation(vacations, day);
       state = meant ? "missed" : "notDue";
     }
-    cells.push({ day, state, tappable: isTapDayAllowed(day, input.today, null) });
+    // A day before the person joined the habit was never theirs to log.
+    cells.push({ day, state, tappable: isTapDayAllowed(day, input.today, null) && compareDays(day, person.since) >= 0 });
   }
   return { first, leading: dayOfWeek(first), cells };
+}
+
+/** The stats calendar title: the month name, plus the year only outside the current year (decision 112). */
+export function statsMonthTitle(year: number, month: number, todayYear: number): string {
+  const name = FULL_MONTH_NAMES[month - 1];
+  return year === todayYear ? name : `${name} ${year}`;
 }
 
 /** Whole percent, or null when nothing has been due yet. */

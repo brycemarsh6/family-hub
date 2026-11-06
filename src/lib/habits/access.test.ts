@@ -93,6 +93,12 @@ test("canNudge: never yourself, never a non-participant on either end", () => {
   assert.equal(canNudge(admin, eachHabit, "kid"), false); // a manager who is not a participant
 });
 
+test("canNudge: refuses a deactivated recipient but not an active one beside them", () => {
+  const withInactive: NudgeHabit = { ...eachHabit, participantIds: ["kid", "parent", "gone"], deactivatedIds: ["gone"] };
+  assert.equal(canNudge(kid, withInactive, "gone"), false);
+  assert.equal(canNudge(kid, withInactive, "parent"), true);
+});
+
 test("canNudge: never the tablet, even as a participant's login", () => {
   assert.equal(canNudge(device, eachHabit, "kid"), false);
   assert.equal(canNudge({ userId: "kid", role: "device" }, eachHabit, "parent"), false);

@@ -140,14 +140,6 @@ export const RATE_NONE_LABEL = "None yet";
 /** The status in a nudge row, after the person's name (decision 110). */
 export const NUDGE_STATUS_LABEL = "Not done yet today";
 
-const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-/** The stats calendar title: the month name, plus the year only outside the current year (decision 112). */
-export function statsMonthTitle(year: number, month: number, todayYear: number): string {
-  const name = FULL_MONTHS[month - 1];
-  return year === todayYear ? name : `${name} ${year}`;
-}
-
 /** The meta line of a row skipped today (decision 101). */
 export const SKIPPED_TODAY_LABEL = "Skipped today";
 

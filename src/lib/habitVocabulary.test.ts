@@ -25,7 +25,6 @@ import {
   STREAK_UNITS,
   streakLabel,
   streakCountLabel,
-  statsMonthTitle,
   NUDGE_STATUS_LABEL,
   RATE_NONE_LABEL,
   TIMES_OF_DAY,
@@ -193,13 +192,6 @@ test("streakCountLabel: always a count, singular at 1 (decision 111)", () => {
   assert.equal(streakCountLabel(3, "weeks"), "3 weeks");
   assert.equal(streakCountLabel(1, "months"), "1 month");
   assert.equal(streakCountLabel(2, "months"), "2 months");
-});
-
-test("statsMonthTitle: month name, with the year only outside the current year (decision 112)", () => {
-  assert.equal(statsMonthTitle(2026, 11, 2026), "November");
-  assert.equal(statsMonthTitle(2026, 1, 2026), "January");
-  assert.equal(statsMonthTitle(2025, 12, 2026), "December 2025");
-  assert.equal(statsMonthTitle(2027, 2, 2026), "February 2027");
 });
 
 test("nudge and rate words (decisions 110, 111)", () => {

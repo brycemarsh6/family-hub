@@ -11,6 +11,7 @@ import type { HabitActor, HabitLogDay, ScheduleSpec } from "./habits/types";
 import {
   buildFamilyPage,
   buildStatsData,
+  countedRows,
   doneCountLabel,
   doneCounts,
   perfectDayEntries,
@@ -148,6 +149,41 @@ test("buildFamilyPage: a skipped habit leaves both of a person's column numbers,
   assert.equal(benColumn.doneCount, 1);
   assert.equal(benColumn.totalCount, 2);
   assert.equal(benColumn.rows.length, 3, "the skipped row still shows");
+});
+
+test("buildFamilyPage: a card's count includes the Together rows the person is on, and only those", () => {
+  const together = habit({ id: "tog", sharing: "together", participants: [member("amy"), member("ben")] });
+  const mine = habit({ id: "mine", participants: [member("amy"), member("ben"), member("cat")] });
+  const page = buildFamilyPage(amy, [together, mine], people, logs([["tog", [log("amy", today)]]]), today);
+  const [a, b, c] = page.columns;
+  assert.deepEqual(a.togetherIds, ["tog"]);
+  assert.deepEqual(c.togetherIds, []);
+  assert.equal(a.rows.length, 1, "the Together row is in the strip, not the column's rows");
+  assert.deepEqual([a.doneCount, a.totalCount], [1, 2], "the one Together check counts for everyone on it");
+  assert.deepEqual([b.doneCount, b.totalCount], [1, 2]);
+  assert.deepEqual([c.doneCount, c.totalCount], [0, 1], "Cat is not on the Together habit");
+  const done = buildFamilyPage(amy, [together, mine], people, logs([["tog", [log("amy", today)]], ["mine", [log("amy", today)]]]), today);
+  assert.equal(doneCountLabel(countedRows(done.columns[0], done.together)), "2 of 2 done");
+  assert.deepEqual([done.columns[0].doneCount, done.columns[0].totalCount], [2, 2]);
+});
+
+test("buildFamilyPage: a skipped Together row leaves the card's numbers like any skipped row", () => {
+  const together = habit({ id: "tog", sharing: "together", participants: [member("amy"), member("ben")] });
+  const page = buildFamilyPage(amy, [together], people, logs([["tog", [log("amy", today, "skipped")]]]), today);
+  assert.deepEqual([page.columns[0].doneCount, page.columns[0].totalCount], [0, 0]);
+});
+
+test("buildFamilyPage: canOpenStats follows canSeeHabitStats (a non-participant kid cannot, a parent and the tablet can)", () => {
+  const h = habit({ id: "h", participants: [member("amy"), member("cat")] });
+  const together = habit({ id: "tog", sharing: "together", participants: [member("amy"), member("cat")] });
+  const opens = (viewer: HabitActor) => {
+    const page = buildFamilyPage(viewer, [h, together], people, logs([]), today);
+    return [page.columns[0].rows[0].canOpenStats, page.together[0].canOpenStats];
+  };
+  assert.deepEqual(opens(ben), [false, false]);
+  assert.deepEqual(opens(amy), [true, true]);
+  assert.deepEqual(opens(tablet), [true, true]);
+  assert.deepEqual(opens({ userId: "cat", role: "kid" }), [true, true]);
 });
 
 test("buildFamilyPage: canLog is the policy per column (self, the tablet, a parent; not a sibling)", () => {
