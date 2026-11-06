@@ -230,7 +230,9 @@ Order: **C1**, then **C2**, then **C3**, **C4** and **C5** one after another
 - **Done:** builds, and the page matches the Main board's PR B parts.
 
 ### C4 - The manager and SortableList
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc; dnd-kit pinned exact)
+- **Notes:** `SortableList<T extends {id}>({ items, label, onReorder(ids), renderItem(item, { grip, dragging }) })`. Habits and Chores are two lists sharing one saved order. `scheduleText` and `detailLine` live in `HabitManager.tsx` (Captain may want them in lib for C5 to share).
+- **Open for the fix batch:** (d) the board's "My Habits & Chores settings" row (link to `/settings`) is missing; the "Chore chart" row waits for PR D.
 - **Objective:** `/habits/manage` from the Manager board, with dnd-kit.
 - **Boundaries:** may touch: `package.json` and `package-lock.json` (add
   `@dnd-kit/core` 6.3.1, `@dnd-kit/sortable` 10.0.0, `@dnd-kit/utilities`
