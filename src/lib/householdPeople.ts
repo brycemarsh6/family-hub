@@ -14,11 +14,17 @@ export const HOUSEHOLD_PERSON_WHERE = { deactivatedAt: null, role: { not: "devic
 /** A household person, as a list needs them. */
 export type HouseholdPerson = { id: string; displayName: string };
 
-/** Every household person, the oldest profile first. */
+/** The household order: placed people by `familyOrder`, then the unplaced by oldest profile. */
+export const HOUSEHOLD_ORDER_BY = [
+  { familyOrder: { sort: "asc", nulls: "last" } },
+  { createdAt: "asc" },
+] satisfies Prisma.UserOrderByWithRelationInput[];
+
+/** Every household person, in the household order (an admin sets it on Manage family). */
 export async function loadHouseholdPeople(client: Prisma.TransactionClient = db): Promise<HouseholdPerson[]> {
   return client.user.findMany({
     where: HOUSEHOLD_PERSON_WHERE,
-    orderBy: { createdAt: "asc" },
+    orderBy: HOUSEHOLD_ORDER_BY,
     select: { id: true, displayName: true },
   });
 }
