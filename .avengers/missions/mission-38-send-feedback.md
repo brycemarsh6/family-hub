@@ -1,7 +1,7 @@
 # Mission: Send feedback (mission 38)
 
 **Project:** family-hub (Marshee)
-**Status:** INTERROGATING (mock and questions with Bryce)
+**Status:** STOPPED (Strange budget spent after pass 3; asking Bryce for a fourth pass)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/marshee-send-feedback-d53a21` (from origin/main af1708c)
 
@@ -278,6 +278,8 @@ dev table, so the migration must be applied to dev (Bryce's yes) first.
 | 2 | Vision | BLOCKED (fe9dc6f) | 1 (screenshot shifted by main's margin on wide screens) | 6 notes |
 | 2 | Captain | PASS (fe9dc6f) | none | 5 notes; final amendment text |
 | 2 | Strange | BLOCKED (fe9dc6f) | 2 (scrolled long page: no picture and a 5 s freeze; iPad shift) | 7 notes |
+| 3 | Vision | PASS (835925f) | none | 4 notes (Calendar timeline scroll box shows wrong hours, older than F3) |
+| 3 | Strange | BLOCKED (835925f) | 2 (fallback label wraps at 375; fixed Add bar shifted in iPad pictures) | placement and timing pass in all 18 cases |
 | 1 | Captain | BLOCKED (9303f2b) | 2 (date formatting) | 9 notes; STRUCTURE.md amendment drafted, applied pre-merge |
 
 Vision pass 1 notes (to batch into the fix contract with any later gate
@@ -406,3 +408,14 @@ Deferred (Bryce, 2026-11-06): a Mark done button in the admin detail sheet.
   a headless-Chrome probe like Vision's pass 2 one (scratchpad `probe/`):
   a tall page scrolled to 1500 and far down, at 390 and 1200 wide, picture
   matches the screen with no left stripe, and capture time is reported.
+
+Pass 3 (835925f): Vision PASS. Strange BLOCKED, budget spent, so Fury
+stopped and asked Bryce. Strange's two one-line fixes: the fallback label
+uses `text-sm whitespace-nowrap` (it needs 180.5 px at `text-base`, the
+half button is 167.5 px); `isKept` drops `position: fixed` elements, since
+the floating Add bar is drawn from the shifted `<main>` on iPad widths.
+Core F3 goals met: placement right in all 18 Inventory cases (3 sizes, 3
+scroll points, light and dark), longest task on open 321 to 479 ms in a
+production build, valve never fired. Next if allowed: F4 with those two
+lines, then Strange pass 4 only. Follow-up note from Vision: Calendar
+timeline screenshots show the top hours, not the scrolled ones.
