@@ -1,7 +1,7 @@
-# Mission: Winnie's undo (the 30-day safety net)
+# Mission 40: Winnie's undo (the 30-day safety net)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (L1 dispatched)
+**Status:** DELIVERED (gates PASS; PR open; merge waits for Bryce's go)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 
 ## Brief
@@ -428,9 +428,47 @@
   kept. Counts before/after. **Report every check's actual output line;
   a check whose output says FAIL is reported as FAIL.**
 
+### Vision pass 3 (at `9bf7a8f`): PASS
+
+- B2 closed live with a named family adder and a null adder (addedBy
+  deep-equal before/after put-away + undo + redo; DELETE 403). Winnie's own
+  line stays assistant, her DELETE 200. One copy of the filter. Lock race
+  made deterministic (held family insert → undo waits → 409 `in_use`, link
+  kept); 24 timed races, no silent nulls.
+- NOTEs: undo of a put-away racing a bulk-adjust on the same rows can now
+  deadlock (Postgres aborts the undo, retryable 409, nothing written); fix
+  later by locking every pantry row the plan touches in one sorted
+  FOR UPDATE. Family add-to-list losing to an undo gets a P2003 error
+  instead of the null path (pre-existing). `pruneAudit` now also keeps undo
+  requests that re-created rows (harmless). Stark's F2 B1b check was
+  vacuous; Vision's run covers it.
+
 ## Delivery
 
-(not yet)
+- **Verdicts:** Vision PASS (pass 3 of 3), Captain PASS (pass 1). Strange
+  not assembled (nothing a person sees changed).
+- **Shipped for Winnie:** every inventory, leftover and shopping write
+  (create, edit, adjust, bulk-adjust, merge, delete, check-off, put-away,
+  from-low-inventory) saves exact before/after copies;
+  `POST /api/assistant/v1/audit/{requestId}/undo` reverses the whole request
+  in one transaction or refuses (`changed_since` incl. `in_use`, `too_old`,
+  `failed_request`, `already_undone`, `not_undoable`); undo of an undo is a
+  redo; `GET /audit` gains `undoable` per change and `undone` per request.
+- **For the family's app:** merge-add no longer lands on a ticked row;
+  put-away restocks the quantities at claim time; behaviour otherwise
+  identical (parity proven by script for every helper).
+- **No schema change.** Copies live in `AssistantChange.summary` as v2 JSON.
+- **Renumbered:** this was mission 39 until 2026-11-06; another agent's
+  tablet-login mission merged to main as 39 first. Commits before the rename
+  say `mission-39/…`.
+- **Leftovers (next touch):** one sorted pantry lock for the whole undo plan
+  (deadlock NOTE); three copies of the pantry compare-and-set loop (Captain
+  N4); `groceryWrites.ts` 367/252 seam; `WithCopies` naming; one
+  `ASSISTANT_API_BASE` string; `editPantryItem` `"conflict"` reaching a
+  truthiness check in `actions/pantry.ts`; parallel-undo loser wording.
+- **For Bryce:** Captain's three proposed STRUCTURE.md amendments (Gate
+  ledger, Captain pass 1), to apply once the other agent releases
+  STRUCTURE.md.
 
 ## Handoff log
 
@@ -505,7 +543,7 @@
   FAILs in both Vision's and Stark's runs (statuses `[200,409,409]` and
   `[200,200,200]`); may be the script's response-shape filter, must be
   settled by hand. Vision pass 2 dispatched.
-- 2026-11-06: Bryce: ask him before merging mission 39 too (another agent
+- 2026-11-06: Bryce: ask him before merging this mission too (another agent
   is merging to main right now). Do not merge on gate PASS alone.
 - 2026-11-06: F2 DONE (3 files, +24 −2). `assistantCreatedWhere` in
   `audit.ts` is the one filter, used by `didAssistantCreate` and

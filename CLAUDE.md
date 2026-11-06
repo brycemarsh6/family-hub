@@ -153,8 +153,14 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   (PR #30) added the shopping list (`/shopping`, check-off, put-away,
   from-low-inventory) and one-call `GET /summary`, with the writes in
   `src/lib/groceryWrites.ts` and `src/lib/putAway.ts`; Winnie may delete
-  only shopping rows she created. Missions 23 and 24 are planned in
-  `.avengers/plans/assistant-api-v1.md`.
+  only shopping rows she created. Mission 40 added **undo**: every write
+  saves before/after copies in the audit log, and
+  `POST /audit/{requestId}/undo` reverses a whole request for 30 days
+  (refuses if anyone changed the row since). Bryce's 2026-11-06 scope for
+  Winnie (whole app except logins, no per-person permissions, never deletes
+  goals/vision/plan items/habits) is in
+  `.avengers/missions/mission-40-assistant-undo.md`; it supersedes the
+  mission 23/24 list in `.avengers/plans/assistant-api-v1.md`.
 
 ## Tech stack, and why
 
@@ -226,9 +232,10 @@ Replace this section at the end of each session. Don't append.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
   for the swipe `pointerdown` issue and `CalendarViews.tsx` growth that CV6's
   gates flagged (details in `mission-19-calendar-cv6-dropdown-swipe.md`).
-- **Assistant API mission 22** merged (PR #30) on 2026-11-06; missions 23
-  and 24 get planned next. Details in
-  `.avengers/missions/mission-22-assistant-api-shopping-summary.md`.
+- **Assistant API mission 40 (Winnie's undo)** passed its gates on
+  2026-11-06 on branch `claude/assistant-undo`; the merge waits for Bryce's
+  go. Next: mission 42, Marshee → Winnie notification webhook (ask Bryce
+  before merging it too).
 
 **Bryce's checklist (never blocks work):**
 - **PR C phone check** (about 5 minutes): on Today, a streak flame on a
