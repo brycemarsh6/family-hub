@@ -263,5 +263,13 @@ export default async function DashboardPage() {
       </>
     ) : null;
 
-  return <DashboardWidgetList layout={layout} tiles={tiles} notes={notes} canCustomize={!isDevice} />;
+  return (
+    <DashboardWidgetList
+      layout={layout}
+      tiles={tiles}
+      notes={notes}
+      pickable={{ habits: habitsData?.pickable ?? [], goals: goalsTile.pickable }}
+      canCustomize={!isDevice}
+    />
+  );
 }
