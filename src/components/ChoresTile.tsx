@@ -13,11 +13,13 @@ import { streakLabel } from "@/lib/habitVocabulary";
  */
 export default function ChoresTile({
   rows,
+  todayRows,
   empty,
   choreStreak,
   showStreaks,
 }: {
   rows: HabitRowView[];
+  todayRows: HabitRowView[];
   empty: string | null;
   choreStreak: number;
   showStreaks: boolean;
@@ -37,7 +39,7 @@ export default function ChoresTile({
         ) : undefined
       }
     >
-      <HabitTileRows rows={rows} empty={empty} showStreaks={showStreaks} />
+      <HabitTileRows rows={rows} todayRows={todayRows} empty={empty} showStreaks={showStreaks} />
     </DashboardTile>
   );
 }

@@ -84,13 +84,14 @@ export function pickableHabits<T extends Pick<HabitManagerItem, "kind" | "archiv
 /**
  * The rows a tile keeps on screen until the next real page load (decision
  * 147). `shownIds` is what the tile showed at load, in that order. Each id
- * takes the fresh row when the server still sends it, else `held` (the row as
- * the last tap left it); an id with neither is gone. A row the server sends
- * that was not shown at load never slides in.
+ * takes the fresh tile row when the tile filter still lists it, else the
+ * server's own Today row (`today`, so a streak stays current), else `held`
+ * (the row as the last successful tap left it); an id with none is gone. A
+ * row the server sends that was not shown at load never slides in.
  */
-export function keepShownRows<T extends { id: string }>(shownIds: string[], fresh: T[], held: T[]): T[] {
+export function keepShownRows<T extends { id: string }>(shownIds: string[], fresh: T[], today: T[], held: T[]): T[] {
   return shownIds.flatMap((id) => {
-    const row = fresh.find((r) => r.id === id) ?? held.find((r) => r.id === id);
+    const row = fresh.find((r) => r.id === id) ?? today.find((r) => r.id === id) ?? held.find((r) => r.id === id);
     return row ? [row] : [];
   });
 }

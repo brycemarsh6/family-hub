@@ -174,6 +174,10 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
 export type DashboardHabits = {
   habits: TileRows<HabitRowView>;
   chores: TileRows<HabitRowView>;
+  /** The viewer's full Today rows for the Habits tile's ids (the picks, or every habit), so a kept row stays current (decision 147). */
+  habitsToday: HabitRowView[];
+  /** The viewer's full Today chore rows, for the same reason. */
+  choresToday: HabitRowView[];
   choreStreak: number;
   nudges: TodayNudge[];
   shoutOut: boolean;
@@ -190,9 +194,12 @@ export type DashboardHabits = {
 export async function loadDashboardHabits(viewer: HabitActor, today: CalendarDate, picks: string[]): Promise<DashboardHabits> {
   const page = await loadTodayPage(viewer, today);
   const pickable = pickableHabits(page.manage).map((item) => ({ id: item.id, title: item.title, icon: item.icon }));
+  const ownPicks = keepOwnPicks(picks, pickable.map((item) => item.id));
   return {
-    habits: habitsTileRows(page.rows, keepOwnPicks(picks, pickable.map((item) => item.id))),
+    habits: habitsTileRows(page.rows, ownPicks),
     chores: choresTileRows(page.rows),
+    habitsToday: page.rows.filter((row) => row.kind === "habit" && (ownPicks.length === 0 || ownPicks.includes(row.id))),
+    choresToday: page.rows.filter((row) => row.kind === "chore"),
     choreStreak: page.choreStreak,
     nudges: page.nudges,
     shoutOut: page.shoutOut,

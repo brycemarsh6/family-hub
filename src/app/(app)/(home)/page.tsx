@@ -178,6 +178,7 @@ export default async function DashboardPage() {
         <HabitsTile
           key={picksOf(layout, "habits").join(",")}
           rows={habitsData.habits.rows}
+          todayRows={habitsData.habitsToday}
           label={habitsData.habits.label}
           empty={habitsData.habits.empty}
           showStreaks={user.showStreaks}
@@ -187,6 +188,7 @@ export default async function DashboardPage() {
       habitsData && user ? (
         <ChoresTile
           rows={habitsData.chores.rows}
+          todayRows={habitsData.choresToday}
           empty={habitsData.chores.empty}
           choreStreak={habitsData.choreStreak}
           showStreaks={user.showStreaks}

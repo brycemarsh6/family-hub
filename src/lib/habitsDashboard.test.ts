@@ -137,29 +137,41 @@ test("chores: empty says No chores today", () => {
 test("keepShownRows: a row the server dropped stays as the last tap left it", () => {
   const held = row("a", { doneToday: true });
   const fresh = row("b");
-  const out = keepShownRows(["a", "b"], [fresh], [held, row("b", { skippedToday: true })]);
+  const out = keepShownRows(["a", "b"], [fresh], [], [held, row("b", { skippedToday: true })]);
   assert.deepEqual(out, [held, fresh]);
 });
 
 test("keepShownRows: the fresh row wins when the server still sends it", () => {
   const fresh = row("a", { skippedToday: true });
-  assert.equal(keepShownRows(["a"], [fresh], [row("a")])[0], fresh);
+  assert.equal(keepShownRows(["a"], [fresh], [row("a")], [row("a")])[0], fresh);
 });
 
 test("keepShownRows: a new row never slides in, and shown order is kept", () => {
-  const out = keepShownRows(["b", "a"], [row("a"), row("z"), row("b")], []);
+  const out = keepShownRows(["b", "a"], [row("a"), row("z"), row("b")], [], []);
   assert.deepEqual(ids(out), ["b", "a"]);
 });
 
 test("keepShownRows: three checked rows stay three, not All done", () => {
   const held = ["a", "b", "c"].map((id) => row(id, { doneToday: true }));
-  const out = keepShownRows(["a", "b", "c"], [row("d")], held);
+  const out = keepShownRows(["a", "b", "c"], [row("d")], [], held);
   assert.deepEqual(ids(out), ["a", "b", "c"]);
   assert.ok(out.every((r) => r.doneToday));
 });
 
 test("keepShownRows: an id with no fresh and no held row is gone", () => {
-  assert.deepEqual(keepShownRows(["a", "x"], [], [row("a")]).map((r) => r.id), ["a"]);
+  assert.deepEqual(keepShownRows(["a", "x"], [], [], [row("a")]).map((r) => r.id), ["a"]);
+});
+
+test("keepShownRows: the server's Today row beats held (a fresher streak) for a row the tile filter dropped", () => {
+  const today = row("a", { doneToday: true, skippedThisWeek: false });
+  const held = row("a", { doneToday: true, skippedThisWeek: true });
+  assert.equal(keepShownRows(["a"], [], [today], [held])[0], today);
+});
+
+test("keepShownRows: held is the fallback only when the server no longer has the row", () => {
+  const held = row("a", { doneToday: true });
+  assert.equal(keepShownRows(["a", "b"], [], [row("b")], [held])[0], held);
+  assert.deepEqual(ids(keepShownRows(["a", "b"], [], [row("b")], [held])), ["a", "b"]);
 });
 
 // --- picker -------------------------------------------------------------

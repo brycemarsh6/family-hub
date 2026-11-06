@@ -42,24 +42,24 @@ export function habitRowTaps(
  */
 export function HabitTileRows({
   rows,
+  todayRows,
   empty,
   showStreaks,
 }: {
   rows: HabitRowView[];
+  /** The server's full Today rows for this tile's kind, for a shown row the tile filter drops. */
+  todayRows: HabitRowView[];
   empty: string | null;
   showStreaks: boolean;
 }) {
-  // Fixed at load: which rows this tile shows, the rows as the last tap left
-  // them (for a row the server stops sending), and the empty line to fall back on.
+  // Fixed at load: which rows this tile shows, the rows as the last saved tap
+  // left them (for a row the server stops sending), and the empty line to fall back on.
   const [shownIds] = useState(() => rows.map((row) => row.id));
   const [held, setHeld] = useState(rows);
   const [firstEmpty] = useState(empty);
-  const kept = keepShownRows(shownIds, rows, held);
+  const kept = keepShownRows(shownIds, rows, todayRows, held);
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(kept, applyHabitChange);
-  const { run, error } = useOptimisticRun<HabitChange>((change) => {
-    applyOptimistic(change);
-    setHeld((prev) => applyHabitChange(prev, change));
-  });
+  const { run, error } = useOptimisticRun<HabitChange>(applyOptimistic);
   const emptyLine = empty ?? firstEmpty;
 
   return (
@@ -70,7 +70,9 @@ export function HabitTileRows({
         <ul className={`-mx-4 divide-y divide-line border-t border-line ${error ? "border-b" : "-mb-4"}`}>
           {live.map((row) => (
             <li key={row.id}>
-              <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, run)} />
+              <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, (change, action) =>
+                  run(change, action, () => setHeld((prev) => applyHabitChange(prev, change))),
+                )} />
             </li>
           ))}
         </ul>
@@ -91,11 +93,13 @@ export function HabitTileRows({
  */
 export default function HabitsTile({
   rows,
+  todayRows,
   label,
   empty,
   showStreaks,
 }: {
   rows: HabitRowView[];
+  todayRows: HabitRowView[];
   label: string | null;
   empty: string | null;
   showStreaks: boolean;
@@ -108,7 +112,7 @@ export default function HabitsTile({
       title="Habits"
     >
       {label && <p className="mb-1 text-sm text-muted">{label}</p>}
-      <HabitTileRows rows={rows} empty={empty} showStreaks={showStreaks} />
+      <HabitTileRows rows={rows} todayRows={todayRows} empty={empty} showStreaks={showStreaks} />
     </DashboardTile>
   );
 }
