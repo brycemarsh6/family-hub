@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { HoursFields, TrackField, initialWeeklyHours, type HoursInitial } from "./HabitHoursFields";
 import { IdeaChips } from "./IdeaChips";
 import { QuantityStepper } from "./QuantityStepper";
-import { toHabitTrack, toPaceDays, type HabitTrack, type PaceDays } from "@/lib/habitHoursVocabulary";
+import { hoursInitialOf, toHabitTrack, toPaceDays, type HabitTrack, type PaceDays } from "@/lib/habitHoursVocabulary";
 import { PLAN_IDEAS } from "@/lib/goalPrompts";
 import { GOAL_TITLE_MAX, HABIT_TIMES_MAX, type PlanItemView } from "@/lib/goals";
 import {
@@ -25,7 +25,7 @@ import { createPlanItem, deletePlanItem, updatePlanItem } from "@/app/actions/pl
  * is done once, a reminder is just text.
  * Edit mode adds a one-tap Delete (house rule: no confirmation). A habit can
  * also be tracked in hours toward a weekly goal; an edit sends no Track unless
- * the item arrived with one or the person touched it, so it never changes a
+ * the item is an hours item or the person touched it, so it never changes a
  * habit's Track by accident (decision 198).
  */
 export function PlanItemSheet({
@@ -39,19 +39,21 @@ export function PlanItemSheet({
   goalId: string;
   goalTitle: string;
   goalArea: LifeArea;
-  initial?: PlanItemView & HoursInitial;
+  initial?: PlanItemView;
   onClose: () => void;
   onSaved: () => void;
 }) {
+  // An hours item opens as Hours with its own goal and pace; anything else opens as Checks (decision 198).
+  const start: HoursInitial | undefined = initial && hoursInitialOf(initial.hours ? { weeklyMinutes: initial.hours.target, paceDays: initial.hours.paceDays } : null);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [kind, setKind] = useState<PlanKind>(initial?.kind ?? "habit");
   const [times, setTimes] = useState(initial?.timesPerPeriod ?? 3);
   const [period, setPeriod] = useState<HabitPeriod>(initial?.period ?? "week");
   const maxTimes = HABIT_TIMES_MAX[period];
-  const [track, setTrack] = useState<HabitTrack>(toHabitTrack(initial?.track));
+  const [track, setTrack] = useState<HabitTrack>(toHabitTrack(start?.track));
   const [trackTouched, setTrackTouched] = useState(false);
-  const [weeklyHours, setWeeklyHours] = useState(initialWeeklyHours(initial));
-  const [paceDays, setPaceDays] = useState<PaceDays>(toPaceDays(initial?.paceDays));
+  const [weeklyHours, setWeeklyHours] = useState(initialWeeklyHours(start));
+  const [paceDays, setPaceDays] = useState<PaceDays>(toPaceDays(start?.paceDays));
   const hours = kind === "habit" && track === "hours";
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -68,7 +70,7 @@ export function PlanItemSheet({
 
   function handleSubmit() {
     if (!title.trim()) return;
-    const sendsTrack = kind === "habit" && (!initial || trackTouched || initial.track !== undefined);
+    const sendsTrack = kind === "habit" && (!initial || trackTouched || initial.hours);
     const raw = {
       title: title.trim(),
       kind,

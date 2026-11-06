@@ -16,7 +16,7 @@ export default function GoalsTile({
 }: {
   done: number;
   total: number;
-  todo: { id: string; title: string; left: number }[];
+  todo: { id: string; title: string; left: number; hoursLine?: string }[];
   /** The person picked goals (decision 136): "Still to do" lists those goals' habits only. */
   picked?: boolean;
 }) {
@@ -44,7 +44,7 @@ export default function GoalsTile({
               <ul className="mt-1 text-sm">
                 {todo.map((habit) => (
                   <li key={habit.id} className="truncate">
-                    {habit.title} · {habit.left} left
+                    {habit.hoursLine ?? `${habit.title} · ${habit.left} left`}
                   </li>
                 ))}
               </ul>

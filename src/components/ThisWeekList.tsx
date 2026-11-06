@@ -4,6 +4,7 @@ import { useOptimistic, useState } from "react";
 import Link from "next/link";
 import { Undo2 } from "lucide-react";
 import { EmptyState } from "./EmptyState";
+import { HoursLogSheet, type RunChange } from "./HoursLogSheet";
 import { PlanItemRow } from "./PlanItemRow";
 import { WeekRecapCard } from "./WeekRecapCard";
 import type { SwipeAction } from "./SwipeActions";
@@ -59,8 +60,12 @@ export function ThisWeekList({
   // Same trick as GroceryList: a copy of the goals we may fib about, updated
   // the instant a button is tapped, then replaced by the server's real answer.
   const [goals, applyOptimistic] = useOptimistic(data.goals, applyChange);
-  const { run, error } = useOptimisticRun(applyOptimistic);
+  const { run, error, pending } = useOptimisticRun(applyOptimistic);
   const [filter, setFilter] = useState<Filter>("mine");
+  // The hours habit whose log sheet is open. Time isn't drawn early here: the sheet waits for the server, and the page's numbers follow.
+  const [loggingId, setLoggingId] = useState<string | null>(null);
+  const logging = goals.flatMap((goal) => goal.items).find((item) => item.id === loggingId);
+  const runTime: RunChange = (_change, action, onSuccess) => run(null, action, onSuccess);
 
   const ws = data.weekStart;
   const showFilter = !viewer.isDevice;
@@ -89,7 +94,7 @@ export function ThisWeekList({
   });
 
   function swipeActions(item: PlanItemView, canLog: boolean): SwipeAction[] {
-    if (item.kind !== "habit" || item.count <= 0 || !canLog) return [];
+    if (item.kind !== "habit" || item.hours || item.count <= 0 || !canLog) return [];
     return [
       {
         label: "Undo last",
@@ -162,6 +167,7 @@ export function ThisWeekList({
                           ? run({ type: "stepUndone", itemId: item.id }, () => uncompleteStep(item.id))
                           : run({ type: "stepDone", itemId: item.id, at: new Date() }, () => completeStep(item.id))
                       }
+                      onLogTime={() => setLoggingId(item.id)}
                       actions={swipeActions(item, goal.canLog)}
                     />
                   </li>
@@ -170,6 +176,19 @@ export function ThisWeekList({
             </section>
           ))}
         </div>
+      )}
+
+      {logging?.hours && logging.habitId && (
+        <HoursLogSheet
+          habitId={logging.habitId}
+          title={logging.title}
+          hours={logging.hours}
+          forUserId={viewer.userId}
+          run={runTime}
+          pending={pending}
+          error={error}
+          onClose={() => setLoggingId(null)}
+        />
       )}
     </div>
   );

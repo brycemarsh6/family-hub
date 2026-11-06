@@ -546,8 +546,10 @@ split candidates.
      stats streak is computed there), `src/app/actions/habitChecks.ts`
      (a track guard on check, skip and uncheck: "That habit tracks
      hours."), `src/lib/habitsRead.ts` only if `HabitForAction` lacks
-     `track` where the guard needs it.
-   - Must not touch: `src/components/` (C4b is building there now),
+     `track` where the guard needs it, and
+     `src/app/(app)/plans/goals/[id]/page.tsx` (one line: pass
+     `viewerId={user.userId}` to `GoalDetail`, C4b's follow-up).
+   - Must not touch: `src/components/`,
      `src/lib/goalsProgress.ts`, `prisma/`.
 3. **Spec:** in `hoursStreaks`, `asOf` = the Saturday before this week
    when this week is unmet, today when met (mirrors `computeStreaks`'
@@ -565,3 +567,14 @@ split candidates.
    a met-this-week case, and the guard (if testable; else say why).
 5. **Evidence / done:** Gauntlet tails, `wc -l`, `git diff --stat`;
    Vision re-runs green and his two scenarios pass.
+
+#### C4b report (2026-11-06)
+
+Stark: DONE. Gauntlet green (1051; UTC 1044 + 7; LA 1051; build 0). New
+`HabitHoursStats.tsx` (100), `HoursEntryList.tsx` (89). `GoalDetail.tsx`
+347. The plan sheet derives Track and the hours fields from
+`initial.hours`, closing Vision's plan-sheet note. Time logged from a
+goal page or This week waits for the server (no optimistic bar; the
+plan-item reducer has no `addTime`). Follow-up, added to F1: the goal
+page must pass `viewerId` or the + is missing there. Nothing rendered
+yet; Strange screenshots.

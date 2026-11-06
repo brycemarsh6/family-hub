@@ -7,6 +7,7 @@ import { ActionCircle } from "./ActionCircle";
 import { ActionSheet } from "./ActionSheet";
 import { CheckInHistory } from "./CheckInHistory";
 import { CheckInSheet } from "./CheckInSheet";
+import { HoursLogSheet, type RunChange } from "./HoursLogSheet";
 import { PlanItemRow } from "./PlanItemRow";
 import { PlanItemSheet } from "./PlanItemSheet";
 import { ProgressBar } from "./ProgressBar";
@@ -47,7 +48,16 @@ type Change =
 
 type Sheet = { kind: "menu" } | { kind: "checkIn" } | { kind: "item"; item?: PlanItemView };
 
-export function GoalDetail({ goal: served, today }: { goal: GoalView; today: CalendarDate }) {
+export function GoalDetail({
+  goal: served,
+  today,
+  viewerId,
+}: {
+  goal: GoalView;
+  today: CalendarDate;
+  /** Whose time the + logs on an hours habit; without it the + is left off. */
+  viewerId?: string;
+}) {
   const router = useRouter();
   // Same trick as ThisWeekList: a copy of the goal we may fib about, updated
   // the instant something is tapped, then replaced by the server's real answer.
@@ -65,8 +75,12 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
         return { ...current, items: applyPlanItemChange(current.items, change) };
     }
   });
-  const { run: runChange, error, setError, startTransition } = useOptimisticRun(applyOptimistic);
+  const { run: runChange, error, setError, pending, startTransition } = useOptimisticRun(applyOptimistic);
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  // The hours habit whose log sheet is open; the sheet waits for the server, then the page's numbers follow.
+  const [loggingId, setLoggingId] = useState<string | null>(null);
+  const logging = goal.items.find((item) => item.id === loggingId);
+  const runTime: RunChange = (_change, action, onSuccess) => runChange(null, action, onSuccess);
 
   function run(
     change: Change,
@@ -107,7 +121,7 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
 
   function itemActions(item: PlanItemView): SwipeAction[] {
     const actions: SwipeAction[] = [];
-    if (item.kind === "habit" && item.count > 0 && goal.canLog) {
+    if (item.kind === "habit" && !item.hours && item.count > 0 && goal.canLog) {
       actions.push({
         label: "Undo last",
         accessibleLabel: `Undo last ${item.title}`,
@@ -258,6 +272,7 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
                     ? run({ type: "stepUndone", itemId: item.id }, () => uncompleteStep(item.id))
                     : run({ type: "stepDone", itemId: item.id, at: new Date() }, () => completeStep(item.id))
                 }
+                onLogTime={viewerId ? () => setLoggingId(item.id) : undefined}
                 actions={itemActions(item)}
               />
             </li>
@@ -282,6 +297,18 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
         </button>
       )}
 
+      {logging?.hours && logging.habitId && viewerId && (
+        <HoursLogSheet
+          habitId={logging.habitId}
+          title={logging.title}
+          hours={logging.hours}
+          forUserId={viewerId}
+          run={runTime}
+          pending={pending}
+          error={error}
+          onClose={() => setLoggingId(null)}
+        />
+      )}
       {sheet?.kind === "menu" && (
         <ActionSheet title="This goal" items={menuItems} onClose={() => setSheet(null)} />
       )}

@@ -1,15 +1,20 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { HoursLeftLine, HoursLogButton } from "./HoursHabitRow";
 import { LogButton } from "./LogButton";
+import { ProgressBar } from "./ProgressBar";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
 import type { PlanItemView } from "@/lib/goals";
+import { goalHoursLine } from "@/lib/habitsHours";
 
 /**
  * One plan item as a row: a habit gets a round log button (checked once
  * today has its check) and a "2 of 4" count, a step a square check box, a reminder plain text. It holds no state;
  * the list around it owns the optimistic counts. Swipe actions wrap the row
- * only when the caller passes some.
+ * only when the caller passes some. An hours habit (`item.hours`) shows its bar
+ * and "Calling · 6½ of 10 hours this week" and a + that opens the log sheet
+ * (`onLogTime`), never the round check (decision 198).
  */
 export function PlanItemRow({
   item,
@@ -17,6 +22,7 @@ export function PlanItemRow({
   onLog,
   onUndo,
   onStepToggle,
+  onLogTime,
   actions,
 }: {
   item: PlanItemView;
@@ -25,11 +31,23 @@ export function PlanItemRow({
   onLog: () => void;
   onUndo: () => void;
   onStepToggle: () => void;
+  /** Opens the log sheet for an hours habit; left off where time can't be logged. */
+  onLogTime?: () => void;
   actions?: SwipeAction[];
 }) {
   const row = (
     <div className="flex min-h-14 items-center justify-between gap-3 px-3">
-      {item.kind === "habit" && (
+      {item.kind === "habit" && item.hours && (
+        <>
+          <div className="flex min-w-0 flex-1 flex-col gap-1 py-2">
+            <p className="text-base font-medium">{goalHoursLine(item.title, item.hours)}</p>
+            <ProgressBar fraction={item.hours.fraction} label={`${item.title}: ${item.hours.doneText}`} />
+            <HoursLeftLine hours={item.hours} />
+          </div>
+          {canLog && onLogTime && <HoursLogButton hours={item.hours} title={item.title} onClick={onLogTime} />}
+        </>
+      )}
+      {item.kind === "habit" && !item.hours && (
         <>
           <div className="min-w-0">
             <p className="text-base font-medium">{item.title}</p>
