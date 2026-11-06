@@ -513,3 +513,55 @@ the forced shape wins. Notes:
   C4 contracts between every character of this file (99 MB) in an
   unpushed commit. That commit was dropped with `git reset --soft` and
   the file rebuilt from the C2 commit; no code was in it.
+
+#### Vision, C2 and C3 pass 1: BLOCKED (one blocker, in C2's area)
+
+Gauntlet green (1048; UTC 1041 + 7; LA 1048), boundaries clean, C3 clean.
+**BLOCKER:** the hours streak shown on Today (`habitsToday.ts` `streakOf`
+→ `displayStreak`) and on the stats tile (`habitsStats.ts:96`) ages the
+weeks cache with the checks rule `streakAfter`, but `hoursStreaks` stores
+`asOf = today` even when this week is unmet, so a missed week never breaks
+the shown streak (reproduced: met Oct 18 and Oct 25 weeks, logged 2 h on
+Nov 2, then nothing; Nov 9 and 12 show "2 weeks", engine says 0). A
+narrower case: a Mon to Sat vacation week reads 0 instead of 3 because
+`streakAfter` treats the Sunday as open. NOTES: `habitChecks.ts` actions
+don't refuse an hours habit (harmless, harden); the plan sheet opens an
+hours item as Checks (C4b covers it); `removeHabitTime` has no day window
+(matches `canDelete`, a policy choice); old bundles get "Pick checks or
+hours." after deploy; totals count entries from before a re-switch;
+`habitsFamily.ts` 360, `habitsToday.ts` 350, `habitsRead.ts` 347 are
+split candidates.
+
+### F1 - The shown hours streak, and checks refused on hours habits
+
+1. **Objective:** the hours streak on Today and the stats page equals
+   what `hoursStreaks` would compute today, in both of Vision's
+   scenarios; check actions refuse an hours habit.
+2. **Boundaries:**
+   - May touch: `src/lib/habits/hours.ts`, `src/lib/habits/hours.test.ts`,
+     `src/lib/habitsHours.ts`, `src/lib/habitsHours.test.ts`,
+     `src/lib/habitsToday.ts` (one-line swap; stay at or under 350),
+     `src/lib/habitsStats.ts` (one-line swap, or route hours habits
+     around `personTotals`), `src/lib/habitsFamily.ts` (only if the
+     stats streak is computed there), `src/app/actions/habitChecks.ts`
+     (a track guard on check, skip and uncheck: "That habit tracks
+     hours."), `src/lib/habitsRead.ts` only if `HabitForAction` lacks
+     `track` where the guard needs it.
+   - Must not touch: `src/components/` (C4b is building there now),
+     `src/lib/goalsProgress.ts`, `prisma/`.
+3. **Spec:** in `hoursStreaks`, `asOf` = the Saturday before this week
+   when this week is unmet, today when met (mirrors `computeStreaks`'
+   cache note). Add `hoursStreakAfter(cache, vacations, paceDays, today)`
+   in `hours.ts`: each whole week strictly after the week holding `asOf`
+   and before today's week breaks the run unless that week is on vacation
+   by the hours rule (`weekOnVacation`); this week adds nothing until met
+   (the cache already counted it if met). Today and the stats tiles call
+   it for hours habits instead of `displayStreak`. Existing caches stored
+   with `asOf = today` on dev are rebuilt by the next entry or by
+   Recompute streaks; the reader must still be right for them (a cache
+   whose `asOf` is inside an unmet week must not count that week).
+4. **Verification:** the full Gauntlet; tests for both of Vision's
+   scenarios (`scratchpad/probe/probe.ts` and `probe2.ts` describe them),
+   a met-this-week case, and the guard (if testable; else say why).
+5. **Evidence / done:** Gauntlet tails, `wc -l`, `git diff --stat`;
+   Vision re-runs green and his two scenarios pass.
