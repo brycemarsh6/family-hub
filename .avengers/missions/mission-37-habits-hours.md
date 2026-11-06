@@ -419,7 +419,31 @@ medium calls: 188 ("· today"), 191 (wording), 192 (swipe to Delete), 197
    weeks, entries with swipe to Delete, the switched line) and the goal
    page, This week and Goals tile lines for hours plans, plus the plan
    sheet opening an hours item as Hours.
-2. **Boundaries:** written from C4a's real exports when it lands.
+2. **Boundaries:**
+   - May touch: `src/components/HabitStats.tsx`, new
+     `src/components/HabitHoursStats.tsx` (the hours body: tiles, This
+     week card with ProgressBar and the Sun to Sat chart, the Last 4 weeks
+     line, the switched line, Side by side bars), new
+     `src/components/HoursEntryList.tsx` (This week / Last week entries,
+     swipe to Delete like `CheckInHistory`, calls `removeHabitTime`,
+     waits for the server, no confirmation), `src/components/GoalDetail.tsx`,
+     `src/components/ThisWeekList.tsx`, `src/components/GoalsTile.tsx`,
+     `src/components/PlanItemRow.tsx` (an hours plan item shows its bar
+     and "Calling · 6½ of 10 hours this week" and a + that opens
+     `HoursLogSheet`, never the round check), `src/components/PlanItemSheet.tsx`
+     (Edit opens an hours item as Hours: initial track, weeklyMinutes and
+     paceDays from the item's `hours` view), and
+     `src/lib/goalsProgress.ts` only if a field is missing for that.
+   - Must not touch: `prisma/`, every other `src/lib/` file,
+     `src/app/actions/`, C4a's components (import them as they are).
+3. **Spec:** decisions 192, 195, 196, 198; `data.hours` from
+   `buildStatsData` (`HoursStatsData` in `src/lib/habitsHours.ts`): when
+   set, render the hours body and no month calendar, perfect-days line or
+   check toggle. The chart is drawn to scale with the value above each
+   bar (blank over an empty day), text in text tokens, bars in the accent.
+4. **Verification / evidence:** the full Gauntlet, `wc -l`, `git diff
+   --stat`, and the screen states for Strange.
+5. **Done criteria:** Vision re-runs green; Strange screenshots it.
 
 #### C1 report and Fury's fix (2026-11-06)
 
