@@ -62,10 +62,8 @@ and a nullable column that ripples through the goal types). No Banner: the
 1. **Objective:** `Goal.targetDate` is optional end to end, and every screen
    that shows a goal reads "Ongoing" when it has none, per the five points.
 2. **Boundaries:**
-   - May touch: `prisma/schema.prisma` (the `Goal.targetDate` line and its
-     doc comment only), a new migration
-     `prisma/migrations/20261110000000_goal_target_date_optional/migration.sql`
-     (new), `src/lib/goals.ts`, `src/lib/goalsProgress.ts`,
+   - May touch: `prisma/schema.prisma` (the Goal model's targetDate line and
+     its doc comment only), `prisma/migrations/20261110000000_goal_target_date_optional/migration.sql` (new), `src/lib/goals.ts`, `src/lib/goalsProgress.ts`,
      `src/lib/goalsRead.ts`, `src/lib/goalVocabulary.ts`,
      `src/app/actions/goals.ts`, `src/components/GoalForm.tsx`,
      `src/components/GoalCard.tsx`, `src/components/GoalResultCard.tsx`,
@@ -76,6 +74,8 @@ and a nullable column that ripples through the goal types). No Banner: the
      `src/lib/goalsRecap.test.ts`, plus a new
      `src/lib/goalsOngoing.test.ts` (new; `goalsProgress.test.ts` is past
      its size watch, so new goal-progress tests go here).
+   - Preflight note: `prisma/schema.prisma` trips the size cap check, but
+     STRUCTURE.md exempts the schema (as recorded in mission 37).
    - Must not touch: `.env`, any other migration, `src/lib/habits/`,
      `src/components/FloatingAddButton.tsx` (shared with Recipes and
      Family), anything else.
