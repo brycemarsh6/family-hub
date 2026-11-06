@@ -336,3 +336,13 @@
   used `git add -N` on its two new files so a pathspec commit could take
   them; no other index entries touched. U2 dispatched alongside L1 (disjoint
   files), on port 3140.
+- 2026-11-06: L1 DONE `c93220e` (5 files). Live: merge 10 parallel → 11;
+  ticked target → new line, ticked row unchanged; 6 parallel put-aways →
+  +1, one 200 and five 409 with the new message; qty changed 1→3 before
+  put-away → +3; app parity via `commitPutAway([])`. Counts 467/5/0 restored.
+  `putAway.ts` 236/151, `putAwayClassify.ts` 129/80. Gauntlet incl. build
+  green; recordcheck 0 hard, 12 REVIEW (Fury triages at delivery). Notes for
+  the gates: the refuse check still reads names from the pre-transaction
+  rows (a rename in that window can slip a `refuse`); one delete per
+  claimed row instead of one deleteMany. U3a dispatched (port 3141); U3b
+  waits for U3a (check-off tests create checked rows a put-away would take).
