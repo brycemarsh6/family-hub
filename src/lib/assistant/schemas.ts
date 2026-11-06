@@ -109,3 +109,9 @@ export const auditQuery = z
       .transform((v) => v === "true"),
   })
   .strict();
+
+export const summaryQuery = z
+  .object({
+    date: calendarDateString.optional(),
+  })
+  .strict();

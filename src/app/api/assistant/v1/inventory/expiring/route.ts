@@ -1,4 +1,4 @@
-import { assistantRoute } from "@/lib/assistant/route";
+import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { expiringQuery } from "@/lib/assistant/schemas";
 import { requireHouseholdToday } from "@/lib/assistant/today";
 import { toInventoryItem } from "@/lib/assistant/serialize";
