@@ -467,3 +467,5 @@
   FAILs in both Vision's and Stark's runs (statuses `[200,409,409]` and
   `[200,200,200]`); may be the script's response-shape filter, must be
   settled by hand. Vision pass 2 dispatched.
+- 2026-11-06: Bryce: ask him before merging mission 39 too (another agent
+  is merging to main right now). Do not merge on gate PASS alone.
