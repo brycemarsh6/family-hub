@@ -1,7 +1,7 @@
 # Mission: Send feedback (mission 38)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (Bryce allowed a fourth Strange pass, 2026-11-06)
+**Status:** DELIVERING (all gates PASS; merging)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/marshee-send-feedback-d53a21` (from origin/main af1708c)
 
@@ -280,6 +280,7 @@ dev table, so the migration must be applied to dev (Bryce's yes) first.
 | 2 | Strange | BLOCKED (fe9dc6f) | 2 (scrolled long page: no picture and a 5 s freeze; iPad shift) | 7 notes |
 | 3 | Vision | PASS (835925f) | none | 4 notes (Calendar timeline scroll box shows wrong hours, older than F3) |
 | 3 | Strange | BLOCKED (835925f) | 2 (fallback label wraps at 375; fixed Add bar shifted in iPad pictures) | placement and timing pass in all 18 cases |
+| 4 | Strange | PASS (e7e5746) | none | 4 notes (menu button left out of pictures; 503 ms task on a 33,000 px page) |
 | 1 | Captain | BLOCKED (9303f2b) | 2 (date formatting) | 9 notes; STRUCTURE.md amendment drafted, applied pre-merge |
 
 Vision pass 1 notes (to batch into the fix contract with any later gate
@@ -426,3 +427,26 @@ timeline screenshots show the top hours, not the scrolled ones.
   `src/lib/captureScreenshot.ts` · must not touch: everything else.
 - **Work:** fallback label `text-sm whitespace-nowrap`; `isKept` drops
   `position: fixed` elements. Gauntlet re-run below; Strange pass 4 only.
+
+## Delivery
+
+- **Shipped:** Send feedback sheet (Bryce's mock), in-browser screenshot of
+  the visible page, admin list at `/settings/feedback`, drawer footer
+  Settings + Send feedback, account card and Sign out in Settings,
+  Feedback table (migration 20261111000000, applied to dev 2026-11-06;
+  production applies it in the build).
+- **Gates:** Vision PASS (pass 3), Captain PASS (pass 2), Strange PASS
+  (pass 4, allowed by Bryce).
+- **Synced with main** (merge 521bcb1, includes PR #51 habits hours and
+  20261110000000 goal target date) before the final gauntlet. STRUCTURE.md
+  amendment (Captain's text) and CLAUDE.md applied after the sync.
+- **Deliberate leftovers:** Winnie notification (needs an Assistant API
+  route); Calendar timeline screenshots show the top hours (inner scroll
+  boxes); margin-collapse edge cases in `isKept` (none found in Marshee);
+  Mark done button in the detail sheet (Bryce: later); narrow `DrawerUser`;
+  `SettingsLinkRow` at a third door row; `client-only` as a direct
+  dependency; emoji dropped from screenshots (library limit); the "One side
+  drawer" bullet in CLAUDE.md still lists Profile and Sign out.
+- **Bryce's device checklist:** on the iPad, Send feedback from expanded
+  Inventory scrolled far down (no freeze, picture right); a device login's
+  Settings card is plain (after mission 39); the iPad shows as "iPad".
