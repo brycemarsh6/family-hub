@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canEditHabit, canLogFor, canNudge, canSeeHabit, canSeeHabitStats, type NudgeHabit } from "./access";
+import { canEditChart, canEditHabit, canLogFor, canNudge, canSeeHabit, canSeeHabitStats, type NudgeHabit } from "./access";
 import type { HabitAccess, HabitActor } from "./types";
 
 const admin: HabitActor = { userId: "admin", role: "admin" };
@@ -108,4 +108,14 @@ test("canNudge: refuses a private, archived or Together habit", () => {
   assert.equal(canNudge(kid, { ...eachHabit, isPrivate: true }, "parent"), false);
   assert.equal(canNudge(kid, { ...eachHabit, archived: true }, "parent"), false);
   assert.equal(canNudge(kid, { ...eachHabit, sharing: "together" }, "parent"), false);
+});
+
+test("canEditChart: yourself; a parent or admin for anyone; a kid only their own; never the tablet", () => {
+  assert.equal(canEditChart(kid, "kid"), true);
+  assert.equal(canEditChart(kid, "other"), false);
+  assert.equal(canEditChart(other, "kid"), false);
+  assert.equal(canEditChart(parent, "kid"), true);
+  assert.equal(canEditChart(admin, "kid"), true);
+  assert.equal(canEditChart(device, "kid"), false);
+  assert.equal(canEditChart({ userId: "kid", role: "device" }, "kid"), false);
 });

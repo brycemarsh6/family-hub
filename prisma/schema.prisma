@@ -734,6 +734,13 @@ model UserPreferences {
   /// Streaks are still counted either way.
   showStreaks Boolean @default(true)
 
+  /// The chore streak (mission 33, decision 33): one count over all of this
+  /// person's chores, cached like HabitParticipant's streak and rebuilt by
+  /// src/lib/habits/choreWrites.ts. `choreStreakAsOf` is a UTC-midnight day.
+  choreStreakCurrent Int       @default(0)
+  choreStreakBest    Int       @default(0)
+  choreStreakAsOf    DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

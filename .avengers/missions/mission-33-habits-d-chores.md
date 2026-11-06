@@ -142,7 +142,8 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
   yet done, the week boundary, and all three zones.
 
 ### C2 - Migration, writes and actions
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury read the SQL: three `ADD COLUMN`, defaults 0 or null; host checked `ep-hidden-pine-`; `migrate deploy` applied `20261108000000_add_chore_streak` to dev; 808 tests)
+- **Notes for C3+:** `choreWrites.ts` (`recomputeChoreStreak(s)`, `recomputeAllChoreStreaks`, the three week changes), `vacationWrites.ts` (`saveVacation`, `deleteVacation`), `canEditChart` in `access.ts`; actions `choreChart.ts` and `vacations.ts`. Writers default `today` to `householdNow()` where callers could not pass it. No DB tests for writers.
 - **Objective:** the chore streak cache, override and vacation writes, the
   chart and vacation actions.
 - **Boundaries:** may touch: `prisma/schema.prisma` (three
@@ -179,6 +180,7 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
 
 ### C3 - Readers
 - **Status:** PENDING
+- **First (from C2's notes):** (a) `choreWrites.ts` imports `carrySince` and `habitStartDay` from `../habitsToday`, which is upward (STRUCTURE.md: `habits/` never imports `habitsToday.ts`); move both into a new `src/lib/habits/carryOver.ts` (with their tests) and point every importer at it. (b) A this-week skip or clear on a day already past would erase a missed chore and save the streak, against 6 and 33 ("late breaks it"); the writer refuses changes to a day before today, the same rule as moves (117). Boundary adds `src/lib/habits/carryOver.ts` and test, `src/lib/habits/choreWrites.ts`, and every file that imports the two moved functions (imports only).
 - **Objective:** what the pages need, through the two existing readers.
 - **Boundaries:** may touch: `src/lib/habitsRead.ts`,
   `src/lib/habitsStatsRead.ts` (no third reader, STRUCTURE.md),
