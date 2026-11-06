@@ -1,7 +1,7 @@
 # Mission: Habits & Chores PR E1, the dashboard tiles (mission 34)
 
 **Project:** family-hub (Marshee)
-**Status:** GATING (C1 to C3 built; Hill decided 131 to 146)
+**Status:** GATES PASSED, shipping (Hill decided 131 to 150)
 **Started:** 2026-11-05 · **Updated:** 2026-11-05
 **Branch:** `claude/habits-e-dashboard` (from origin/main b2654b4)
 
@@ -303,3 +303,35 @@ Hill decided 147 to 150 on the pass 1 notes (plan, "Before PR E").
   `src/app/(app)/(home)/page.tsx` (passing the extra rows only). Must not
   touch: `prisma/`, `.env*`, records.
 - **Verification:** full gauntlet in three zones, build EXIT=0.
+
+### Pass 3 (at 1c6b5f5)
+- **Vision (Fable): PASS.** Gauntlet 881 / 874+7 / 881, build EXIT=0;
+  traced the failed-save and mirror cases (now snap back to the saved
+  state); `habitsToday`/`choresToday` leak nothing. Notes: default-mode
+  `habitsToday` sends every habit row (harmless); a held-only row's flame
+  can still lag in the rare fallback.
+- **Captain (Opus): PASS.** Header and wording fixes verified; F2 adds no
+  copies or wrong imports; all files under 350. Notes: the picks filter in
+  `habitsRead.ts:201-202` could be a pure `tileTodayRows` in
+  `habitsDashboard.ts`; the field name `habitsToday` shadows the module
+  name; `habitsRead.ts` is 304 (move the dashboard loader to its own file
+  if it grows, keeping "no third habit reader").
+- **Strange:** PASS at pass 2; F2 changed only what a row remembers after
+  a save (no visual change), so it was not re-run.
+
+## Delivery
+- **Shipped:** the Habits and Chores today tiles (131 to 134, 147, 150),
+  the Pick view for Habits and Goals in Customize (136, 137, 149), drag to
+  reorder tiles (140), the nudge and Sunday cards on the dashboard (139),
+  the panel tile header chevron (148), no new tiles on the tablet (138).
+  No migration.
+- **Hill decisions for Bryce to review (medium):** 135 (greeting stays
+  out), 136 (the Goals picker picks goals), 137 (picker words), 149 (Goals
+  heading with picks). E2's 142 is medium too.
+- **Leftovers:** a pure `tileTodayRows`; rename the `habitsToday` field;
+  `habitRowTaps` to its own file if a third user appears; the dialog height
+  jump at 820; Today's dashed skip marker looks tappable; a toggle and a
+  drag in one frame last-write-win (unproven).
+- **Not covered by any gate:** real finger drag in the sheet, nudge and
+  Sunday cards on the dashboard, chore flame at 2+, the tablet layout, a
+  done chore on a vacation day. On Bryce's checklist.
