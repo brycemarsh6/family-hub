@@ -590,3 +590,29 @@ goal page passes `viewerId`. Fury's ruling on legacy caches: only dev
 holds hours caches written under the old `asOf` (production has no hours
 habits until this merges), so they correct themselves on the next entry
 or Recompute streaks; no migration needed.
+
+#### Captain, pass 1 on `origin/main..35a1fd6`: BLOCKED (5)
+
+1. `actions/planItems.ts` `isHoursHabit` reads `Habit` directly: a third
+   reader. Use `loadHabitForAction(...).track`.
+2. Privacy checks outside `access.ts` on touched lines:
+   `habitsStatsRead.ts:85,242`, `habitsFamily.ts:137` (mission 36 said
+   these move at their next touch). Add `othersPrivateHidden` and
+   `showsOnFamilyView` to `access.ts` with tests and use them.
+3. Goal screens log time for the viewer instead of `habitCheckTarget`'s
+   answer (`ThisWeekList`, `GoalDetail`'s `viewerId`, `habitsRead.ts:96`
+   re-typing half the rule). On the wall tablet a Together goal's + would
+   be refused. Compute `forUserId` with `habitCheckTarget` where plan
+   views are built (`goalsRead.ts` and `actions/planItems.ts`), carry it on
+   the view, filter entries to that person; drop `viewerId` (F1's page
+   change becomes unnecessary).
+4. `habitsToday.test.ts` passed its size watch (383 → 449): move the seven
+   `hours:` tests to new `src/lib/habitsTodayHours.test.ts`.
+5. `GoalDetail.tsx` grew past its "extract before the next feature" watch:
+   extract the result card to `src/components/GoalResultCard.tsx`.
+NOTES taken into the fix: the entry read in `habitHours.ts` moves to a
+`loadTimeEntryForAction` in `habitsRead.ts`; one pace formula
+(`paceMinutesPerDay` in `hours.ts`, `HOURS_LIMITS.paceStep`); hours
+phrases, `unitFor`, the chips and one `checkHoursTarget` in the vocabulary
+file. Fury writes Captain's STRUCTURE.md amendment (8 parts) after the
+fixes land. `habitsFamily.ts` 360 split (stats-page data) is a NOTE.
