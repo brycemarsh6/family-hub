@@ -1,6 +1,6 @@
 import { z, type ZodType } from "zod";
 import type { Operation } from "./openapiTypes";
-import { auditQuery } from "./schemas";
+import { auditQuery, undoBody } from "./schemas";
 import { inventoryOperations } from "./openapiInventoryPaths";
 import { shoppingOperations } from "./openapiShoppingPaths";
 import { summaryOperations } from "./openapiSummaryPaths";
@@ -18,6 +18,17 @@ const systemOperations: Operation[] = [
     summary: "What the Assistant API has done: requests newest first, with the records each changed.",
     query: auditQuery,
     response: "{ requests: [...] }",
+  },
+  {
+    method: "POST",
+    path: "/audit/{requestId}/undo",
+    action: "audit.undo",
+    summary:
+      "Undo one whole request from the audit log (an edit is put back, something she added is removed, something she deleted comes back), all or nothing, for up to 30 days. Send {}. Undoing an undo is a redo.",
+    body: undoBody,
+    response:
+      "{ undone, restored, removed, recreated }. 409 conflict with details.reason: not_undoable, too_old, failed_request, already_undone, " +
+      "or changed_since (details.records names each row that was changed by someone else since; nothing is changed). 404 for an unknown request id.",
   },
   {
     method: "GET",

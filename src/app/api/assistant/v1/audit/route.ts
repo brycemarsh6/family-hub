@@ -2,6 +2,7 @@ import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { auditQuery } from "@/lib/assistant/schemas";
 import { listAudit } from "@/lib/assistant/audit";
 import { decodeChangeSummary } from "@/lib/assistant/changeCopy";
+import { undoneRequestIds } from "@/lib/assistant/undoWrites";
 
 export const GET = assistantRoute({
   action: "audit.list",
@@ -12,6 +13,7 @@ export const GET = assistantRoute({
       limit: query.limit,
       writesOnly: query.writesOnly,
     });
+    const undone = await undoneRequestIds(rows.map((r) => r.id));
     return {
       data: {
         requests: rows.map((r) => ({
@@ -23,6 +25,7 @@ export const GET = assistantRoute({
           status: r.status,
           durationMs: r.durationMs,
           error: r.error,
+          undone: undone.has(r.id),
           changes: r.changes.map((c) => {
             const decoded = decodeChangeSummary(c.summary);
             return {

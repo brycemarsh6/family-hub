@@ -115,3 +115,6 @@ export const summaryQuery = z
     date: calendarDateString.optional(),
   })
   .strict();
+
+/** Undo needs no input; an empty body or `{}` is fine. */
+export const undoBody = z.object({}).strict().optional();
