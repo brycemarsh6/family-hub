@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { NavDrawer } from "@/components/NavDrawer";
-import { NavList, type DrawerUser } from "@/components/NavList";
+import { NavList } from "@/components/NavList";
 import { pinnedNavWidthPx } from "@/lib/appChrome";
 import type { NavMode } from "@/lib/navMode";
 
@@ -38,10 +38,10 @@ const RAIL_BUTTON_CLASS =
  */
 export function PinnedNav({
   mode,
-  user,
+  onSendFeedback,
 }: {
   mode: Exclude<NavMode, "hamburger">;
-  user: DrawerUser;
+  onSendFeedback: () => void;
 }) {
   const rail = mode === "rail";
   const [open, setOpen] = useState(false);
@@ -86,12 +86,12 @@ export function PinnedNav({
           <NavDrawer
             open={open}
             onClose={() => setOpen(false)}
-            user={user}
+            onSendFeedback={onSendFeedback}
             id={RAIL_DRAWER_ID}
           />
         </>
       )}
-      <NavList user={user} compact={rail} onNavigate={() => {}} />
+      <NavList compact={rail} onNavigate={() => {}} onSendFeedback={onSendFeedback} />
     </aside>
   );
 }

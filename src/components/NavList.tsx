@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
-import { AvatarBadge } from "@/components/AvatarBadge";
-import { logout } from "@/app/actions/auth";
-import { ROLE_LABELS, type Role } from "@/lib/constants";
+import { MessageCircle } from "lucide-react";
+import type { Role } from "@/lib/constants";
 import {
   NAV_FOOTER_ITEMS,
   NAV_SECTIONS,
@@ -44,19 +42,22 @@ const COMPACT_ROW_CLASS =
 
 /**
  * The navigation list itself: every destination from `src/lib/nav.ts`, with
- * Profile, Settings, who you are and Sign out at the bottom. Shared by
+ * Settings and a Send feedback button at the bottom (who you are and Sign out
+ * live at the top and bottom of Settings). Shared by
  * `NavDrawer` (which closes itself through `onNavigate`) and `PinnedNav` (which
  * has nothing to close). `compact` is the icons-only rail. Renders a fragment
  * so the parent `<aside>` keeps its own flex column and `mt-auto` footer.
  */
 export function NavList({
-  user,
   compact = false,
   onNavigate,
+  onSendFeedback,
 }: {
-  user: DrawerUser;
   compact?: boolean;
   onNavigate: () => void;
+  /** Opens the Send feedback sheet (held in AppChrome). Called right after
+   * `onNavigate`, so the drawer closes in the same update. */
+  onSendFeedback: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -145,42 +146,22 @@ export function NavList({
           }
         >
           {NAV_FOOTER_ITEMS.map(renderRow)}
+          {/* A button, not a link: it opens the Send feedback sheet over the
+              current page instead of going anywhere. */}
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate();
+              onSendFeedback();
+            }}
+            aria-label={compact ? "Send feedback" : undefined}
+            title={compact ? "Send feedback" : undefined}
+            className={`${compact ? COMPACT_ROW_CLASS : ROW_CLASS} font-medium text-fg`}
+          >
+            <MessageCircle aria-hidden="true" size={22} />
+            {!compact && "Send feedback"}
+          </button>
         </div>
-
-        {!compact && (
-          <div className="flex items-center gap-3 border-t border-line px-3 pt-3">
-            <AvatarBadge
-              displayName={user.displayName}
-              avatarColor={user.avatarColor}
-              size={40}
-            />
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold">{user.displayName}</p>
-              <p className="text-sm text-muted">{ROLE_LABELS[user.role]}</p>
-            </div>
-          </div>
-        )}
-
-        {/* A plain form pointed at the Server Action, same as the old
-            account sheet: no client JavaScript required for this to work,
-            the browser just submits it. */}
-        <form action={logout} className={compact ? "flex justify-center" : undefined}>
-          {compact ? (
-            <button
-              type="submit"
-              aria-label="Sign out"
-              title={`Sign out (${user.displayName})`}
-              className={`${COMPACT_ROW_CLASS} shrink-0 text-fg`}
-            >
-              <LogOut aria-hidden="true" size={22} />
-            </button>
-          ) : (
-            <button type="submit" className={`${ROW_CLASS} font-medium text-fg`}>
-              <LogOut aria-hidden="true" size={22} />
-              Sign out
-            </button>
-          )}
-        </form>
       </div>
     </>
   );
