@@ -35,6 +35,9 @@ export function lifeAreaInfo(key: LifeArea) {
   return LIFE_AREAS.find((area) => area.key === key) ?? LIFE_AREAS[0];
 }
 
+/** What a goal with no end date is called, on the form chip, the card tag and the goal page. */
+export const ONGOING_LABEL = "Ongoing";
+
 export const PLAN_KINDS = ["habit", "step", "reminder"] as const;
 
 export type PlanKind = (typeof PLAN_KINDS)[number];
