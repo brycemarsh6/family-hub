@@ -260,3 +260,24 @@ dev table, so the migration must be applied to dev (Bryce's yes) first.
 
 - 2026-11-06: mission opened as 38 (37 is habits hours). Mock and
   questions sent to Bryce. Next: record answers, write contracts.
+
+## Gate ledger
+
+| Pass | Gate | Verdict | Blockers | Notes |
+|---|---|---|---|---|
+| 1 | Vision | PASS (a123a3d) | none | 6 notes, below |
+
+Vision pass 1 notes (to batch into the fix contract with any later gate
+findings):
+- `FeedbackList.tsx:34`, `FeedbackRow.tsx:8-16`: "time ago" and dates are
+  computed on server and client, no `timeZone`, so a hydration mismatch
+  can log and re-render. Fix: household time zone, or render after mount.
+- `settings/page.tsx:29`: `countNewFeedback()` throws for admins until the
+  dev database has the Feedback table. Strange waits for Bryce's yes.
+- `captureScreenshot.ts:31`: a very long page on an iPad may exceed the
+  iOS canvas limit (blank or no screenshot; the message still sends).
+  Real-iPad check on Inventory.
+- `captureScreenshot.ts`: no `import "client-only"`.
+- `actions/feedback.ts:21`: a hand-made POST with null input gives a 500.
+- Branch is behind main by PR #51 (habits hours merged). Dry-run merge
+  is clean; sync and rerun the gauntlet before merging.
