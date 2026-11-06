@@ -481,8 +481,21 @@ Adding a second definition of any of these is a BLOCKER:
   it. A third inline copy of that filter for "the family" is a BLOCKER. The
   file exists since mission-31 (`HOUSEHOLD_PERSON_WHERE`,
   `loadHouseholdPeople`); pages reach it through a reader such as
-  `habitsRead.ts`'s `loadHabitRoster`. (Approved by Bryce 2026-11-05,
-  mission-30, Captain's A8; debt closed mission-31.)
+  `habitsRead.ts`'s `loadHabitRoster`, or `loadHouseholdPeople` itself, never
+  by composing their own `db.user` query from its constants. An action may
+  read ids with `HOUSEHOLD_PERSON_WHERE` to validate a request (the
+  `validatedPeople` split). **The household order** (mission-41, Bryce's
+  decision 2) is one rule in the same file: placed people by
+  `User.familyOrder`, then the unplaced by `createdAt`. `loadHouseholdPeople`
+  applies it (the order itself is not exported), so every household list
+  (Whole family, habit pickers, vision boards) follows the order an admin
+  sets on Manage family; it is never restated as a second `orderBy`.
+  `src/lib/householdOrder.ts`'s `isExactHouseholdOrder` (pure) is the only
+  "is this a complete household order" check, and
+  `src/app/actions/usersOrder.ts`'s `setFamilyOrder` is the only writer of
+  `familyOrder`, writing no other `User` column. (Approved by Bryce
+  2026-11-05, mission-30, Captain's A8; debt closed mission-31; order added
+  mission-41, Captain's A1.)
 - **Habits & Chores PR B homes (mission-31).** `src/lib/habitsToday.ts` is
   the only home of the Today page's rules (row building and viewer order; `carrySince` and `habitStartDay` moved to
   `habits/carryOver.ts` in mission-33, and the tap-day window
@@ -623,6 +636,18 @@ Adding a second definition of any of these is a BLOCKER:
   `revalidatePath`. `src/lib/confettiSeen.ts` is the only home of the
   once-a-day confetti marker on each device (the `lastStore.ts` pattern),
   and `HabitConfetti.tsx` is the only importer of `canvas-confetti`.
+  `src/lib/habitsFamilyColumns.ts` (pure, mission-41, Captain's A3) is the
+  only home of the wide Whole family column: rows grouped by time of day then
+  Anytime, the Together rows a person is on (built from `countedRows`, never
+  a second merge), the row tags (words in `habitVocabulary.ts`:
+  `FAMILY_ROW_TAGS`, `familyRowTag`), the empty-column line and the header
+  count (`familyCountText`, used by both layouts). `HabitFamilyView` holds
+  the one optimistic state for both layouts; the stacked view is
+  `HabitFamilyColumn`, the wide one `HabitFamilyWide` /
+  `HabitFamilyWideColumn`, and `FamilyHabitRow` is the only family row.
+  **Dependency direction:** `habitsFamilyColumns.ts` imports only
+  `habitVocabulary.ts` and `habitsFamily.ts`; `habitsFamily.ts` never
+  imports it.
 - **Habits & Chores PR D homes (mission-33).** `habits/weekOverrides.ts`
   is the only home of the this-week chore rules (`choreDayState`,
   `choreTag`, `weekChange`) and of `isExcused`, the one "excused row" rule
@@ -720,8 +745,13 @@ Adding a second definition of any of these is a BLOCKER:
   scope: `parseReportParams`, `reportHref`, `weekParam` / `monthParam`, who
   is shown (`reportPersonId`), the person chips, the shown items (Habits then
   Chores, each in Manage order), the filter and the range the loader reads.
-  `reportFilterOptions` and `matchesReportFilter` there are the one habit
-  filter rule; Today's `HabitTodayList` migrates to them at its next touch.
+  `reportFilterOptions` (with `{ kinds: false }` for lists already split by
+  kind), `activeReportFilter` and `matchesReportFilter` there are the one
+  habit filter rule; the Report, Today's `HabitTodayList` and the wide Whole
+  family (`HabitFamilyWide`) all call them (mission-41, Captain's A2). A
+  filter option builder or matcher anywhere else, a component file included,
+  is a BLOCKER; `HabitFilterChips.tsx` only draws chips and attaches
+  `TIME_ICONS`.
   `TIME_ICONS`, exported from `HabitFilterChips.tsx`, is the only
   time-of-day icon map. Both Report files are pure: no `db`, and callers pass
   `today`. `canSeeHabitReport(actor, personId)` in `habits/access.ts` is the
@@ -849,6 +879,15 @@ Adding a second definition of any of these is a BLOCKER:
   caller would reintroduce this with no compile error"* — and `MonthJumpSheet`
   was that third caller, one mission later, wrong on arrival: **282 of 730
   days** across 2026–27 painted a today marker on a foreign month's cell.)
+- **Page opt-outs from the app frame are data attributes that the chrome
+  reads with `has-[[…]]:`**, never a page reaching into the chrome. Two
+  exist: `data-fills-viewport` (the calendar's hour timeline: `<main>` drops
+  its bottom padding) and `data-fills-width` (Whole family's columns,
+  mission-41: from `md` up, `<main>` lifts the 768px cap, shrinks the
+  bottom padding to `pb-3` and is exactly one screen tall so only the columns scroll; the
+  floating hamburger's row lifts its cap too, so the button lines up). The
+  `AppChrome.tsx` comment above `<main>` lists every attribute and its one
+  user; a new opt-out adds itself there and here. (Mission-41, Captain's A4.)
 - **A measured dimension of app chrome** that two or more surfaces position
   against **has one home in `src/lib/`**, and the markup that produces it
   carries a comment naming its dependents. A **runtime measurement** is an

@@ -378,3 +378,18 @@ export function reportCountThis(done: number, period: "week" | "month"): string 
 export function reportYearTotals(totals: { done: number; missed: number; skipped: number }): string {
   return `${totals.done} done · ${totals.missed} missed · ${totals.skipped} skipped`;
 }
+
+// ---- Whole family on the iPad (mission 41) ----
+
+/** A column or card with no habits due at all, and the same list emptied by a filter chip (Today's words). */
+export const NOTHING_DUE_TODAY = "Nothing due today.";
+export const NOTHING_HERE_TODAY = "Nothing here today.";
+
+/** The small tags on a row in a person's wide column (not `CHORE_TAG_LABELS`, the chart's week tags). */
+export const FAMILY_ROW_TAGS = { together: HABIT_WHO_LABELS.together, chore: "Chore" } as const;
+
+/** The tag for a row in a person's wide column: "Together", "Chore", "Together · Chore", or null for a plain habit. */
+export function familyRowTag(together: boolean, chore: boolean): string | null {
+  const tags = [together ? FAMILY_ROW_TAGS.together : null, chore ? FAMILY_ROW_TAGS.chore : null].filter((tag) => tag !== null);
+  return tags.length > 0 ? tags.join(" · ") : null;
+}
