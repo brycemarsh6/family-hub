@@ -207,6 +207,71 @@ C1 and C2 have disjoint boundaries and run in parallel.
 - **Done criteria:** Strange's screenshots at 390, 820x1180 and 1180x820
   (hamburger and rail), light and dark, show the rules above.
 
+### F1 — Pass-1 blockers from Vision, Captain and Strange, in one batch
+- **Status:** DISPATCHED
+- **Objective:** fix the seven pass-1 blockers (two shared by Vision and
+  Strange) and the cheap structure notes, with no change to Today or to the
+  phone layout.
+- **Boundaries:** may touch: `src/components/HabitFamilyWide.tsx`,
+  `src/components/HabitFamilyWideColumn.tsx`,
+  `src/components/HabitFamilyColumn.tsx`, `src/components/HabitFilterChips.tsx`,
+  `src/components/HabitTodayList.tsx`, `src/components/HabitFamilyView.tsx`,
+  `src/components/HamburgerButton.tsx` (only the inner wrapper's className),
+  `src/lib/habitsReportScope.ts`, `src/lib/habitsReportScope.test.ts`,
+  `src/lib/habitVocabulary.ts` (new words only),
+  `src/lib/habitsFamilyColumns.ts`, `src/lib/habitsFamilyColumns.test.ts`,
+  `src/components/FamilyOrderList.tsx`, `src/app/(app)/settings/family/page.tsx`,
+  `src/lib/householdPeople.ts`, `src/app/actions/usersOrder.ts`,
+  `src/lib/habitsRead.ts` (only the `loadHabitRoster` doc comment).
+  Must not touch: `src/lib/habitsFamily.ts`, `src/lib/habitsStatsRead.ts`,
+  `src/components/FamilyList.tsx`, `src/components/SortableList.tsx`,
+  `src/components/AppChrome.tsx`, `prisma/`, .env.
+- **Fixes:**
+  1. (Vision, Strange) `HabitFamilyWide.tsx`: hiding the chip row with the
+     Filter toggle also resets the chip to All.
+  2. (Vision, Strange) `HabitFamilyWideColumn.tsx`: "Nothing due today." only
+     when the unfiltered column has no rows; when the filter emptied it, show
+     Today's existing words "Nothing here today." Both strings move to
+     `habitVocabulary.ts` (one constant each; Today's `HabitTodayList.tsx:141`
+     and the stacked "Nothing due today." use them too, same text).
+  3. (Vision) Manage family: the order list remounts when the household
+     changes (key from id, name, colour), so add / deactivate / rename on the
+     same page show up without a reload.
+  4. (Captain) One habit filter rule: `reportFilterOptions(rows, { kinds:
+     false })` and `matchesReportFilter` / `REPORT_FILTER_ALL` in
+     `habitsReportScope.ts` (export the stale-chip fallback beside them and
+     have `reportScope` use it). Delete `ALL_FILTER`, `buildFilterOptions`,
+     `activeFilter`, `matchesFilter` from `HabitFilterChips.tsx`; it keeps only
+     drawing and a small mapper that attaches `TIME_ICONS` to `time:` keys.
+     Today and the wide view call the shared rule. Output with `kinds: false`
+     must equal today's chips (same keys, labels, order): pin it with a test in
+     `habitsReportScope.test.ts`.
+  5. (Captain) Tag words live in `habitVocabulary.ts`: e.g.
+     `FAMILY_ROW_TAGS = { together: HABIT_WHO_LABELS.together, chore: "Chore" }`
+     and a `familyRowTag(together, chore)` helper (not to be confused with
+     `CHORE_TAG_LABELS`). `ColumnItem` carries `together: boolean`;
+     `HabitFamilyWideColumn` passes it instead of reading the display text.
+  6. (Strange) Tag pill text uses `text-muted-strong` (reuse `QUIT_TAG_CLASS`
+     from `HabitRow.tsx` if it fits, by import).
+  7. (Strange) `HamburgerButton.tsx`: the inner wrapper lifts `max-w-3xl` at
+     md+ when the page holds `[data-fills-width]`, so the button lines up with
+     the page's left edge (x=16 at 820 and 1180 in Menu button style).
+  8. (Captain notes, cheap) `groupColumnRows` builds from `countedRows(column,
+     together)` and tags Together by `column.togetherIds`; one pure
+     `familyCountText(column, together)` in `habitsFamilyColumns.ts` (tested)
+     used by both column components; the settings page calls
+     `loadHouseholdPeople()` (add `avatarColor` to `HouseholdPerson` and its
+     select) and `HOUSEHOLD_ORDER_BY` is no longer exported.
+  9. (Vision notes, cheap) `setFamilyOrder` guards `Array.isArray(ids) &&
+     every string`; `habitsRead.ts:281` comment says "in the household order"
+     instead of "oldest profile first".
+  10. (Strange note) 41d hint becomes "Drag to set the order people appear in
+     on Whole family, the habit pickers and the vision boards."
+- **Verification:** the Gauntlet; new/updated tests for 2 (the two empty
+  cases, via a pure helper if needed), 4, 5 and 8.
+- **Evidence required:** gauntlet tails, diff stat, test names, line counts.
+- **Done criteria:** Vision, Captain and Strange pass 2.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
