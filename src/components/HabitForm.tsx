@@ -79,7 +79,7 @@ function Segmented<T extends string>({
           aria-pressed={value === option.key}
           onClick={() => onChange(option.key)}
           className={`min-h-11 flex-1 rounded-xl text-sm font-semibold transition-colors ${
-            value === option.key ? "bg-surface text-fg shadow-sm" : "text-muted"
+            value === option.key ? "bg-surface text-fg shadow-sm" : "text-muted-strong"
           }`}
         >
           {option.label}

@@ -90,7 +90,7 @@ export function HabitScheduleField({
             )}
 
             {selected && (option === "weekdays" || option === "biweekly") && (
-              <div className="pb-2 pl-9">
+              <div className="pb-2 pl-0 sm:pl-9">
                 {option === "biweekly" && <p className="mb-1 text-sm text-muted">Pick days (optional)</p>}
                 <div role="group" aria-label="Days" className="flex gap-1">
                   {FULL_DAY_NAMES.map((name, index) => {
@@ -104,7 +104,7 @@ export function HabitScheduleField({
                         aria-label={name}
                         title={SHORT_DAY_NAMES[index]}
                         onClick={() => toggleDay(day)}
-                        className={`flex h-11 w-11 items-center justify-center rounded-full border text-sm font-semibold transition-colors ${
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-sm font-semibold transition-colors ${
                           on ? "border-accent bg-accent text-accent-fg" : "border-line bg-surface text-fg"
                         }`}
                       >

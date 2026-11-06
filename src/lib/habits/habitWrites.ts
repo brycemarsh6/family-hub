@@ -30,7 +30,7 @@ import {
   vacationFromRow,
   type HabitFields,
 } from "./habitRows";
-import { atomically, householdParticipantIds, replaceParticipants } from "./participantWrites";
+import { atomically, householdParticipantIds, joinHouseholdToHabit, replaceParticipants } from "./participantWrites";
 import { computeStreaks, type StreakResult } from "./streaks";
 import type { DayRange } from "./types";
 
@@ -117,10 +117,15 @@ export async function archiveHabit(habitId: string, at: Date, client: Prisma.Tra
   return result.count > 0;
 }
 
-/** Clears `archivedAt`; false when the habit is missing. */
+/** Clears `archivedAt`; false when the habit is missing. An Everyone habit also takes in the people who joined the household while it was archived. */
 export async function restoreHabit(habitId: string, client: Prisma.TransactionClient = db): Promise<boolean> {
-  const result = await client.habit.updateMany({ where: { id: habitId }, data: { archivedAt: null } });
-  return result.count > 0;
+  return atomically(client, async (tx) => {
+    const result = await tx.habit.updateMany({ where: { id: habitId }, data: { archivedAt: null } });
+    if (result.count === 0) return false;
+    const habit = await tx.habit.findUnique({ where: { id: habitId }, select: { everyone: true } });
+    if (habit?.everyone) await joinHouseholdToHabit(habitId, tx);
+    return true;
+  });
 }
 
 export type CheckResult = {

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -55,6 +55,8 @@ export function SortableList<T extends { id: string }>({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const ids = items.map((item) => item.id);
+  // A fixed id: without it dnd-kit numbers its contexts itself and the server and browser disagree (hydration warning).
+  const dndId = useId();
 
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -66,7 +68,7 @@ export function SortableList<T extends { id: string }>({
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} autoScroll onDragEnd={onDragEnd}>
+    <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} autoScroll onDragEnd={onDragEnd}>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <ul className={className}>
           {items.map((item) => (

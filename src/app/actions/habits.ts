@@ -42,6 +42,7 @@ import {
   toHabitSharing,
 } from "@/lib/habitVocabulary";
 import { loadHabitForAction } from "@/lib/habitsRead";
+import { participantsAllowed } from "@/lib/habitsToday";
 
 export type RecomputeResult = { error?: string; habits?: number };
 
@@ -95,8 +96,13 @@ export async function recomputeAllStreaks(): Promise<RecomputeResult> {
 
 type Checked = { fields: HabitFields & { title: string; schedule: string }; participantIds: string[]; everyone: boolean } | { error: string };
 
-/** Turns the form into columns, refusing anything the form could not have sent. Pure apart from the household read. */
-async function checkInput(input: HabitInput): Promise<Checked> {
+/**
+ * Turns the form into columns, refusing anything the form could not have sent.
+ * Pure apart from the household read. `alreadyOnHabit` is who the habit holds
+ * today (an edit): they stay allowed even if no longer in the household.
+ */
+async function checkInput(input: HabitInput, alreadyOnHabit: readonly string[] = []): Promise<Checked> {
+  if (typeof input !== "object" || input === null) return { error: "Couldn't save it. Try again." };
   const title = typeof input.title === "string" ? input.title.trim() : "";
   if (!title) return { error: "Give it a name." };
   if (title.length > HABIT_TITLE_MAX) return { error: `Keep the name under ${HABIT_TITLE_MAX} letters.` };
@@ -135,7 +141,7 @@ async function checkInput(input: HabitInput): Promise<Checked> {
   const household = await householdParticipantIds();
   const everyone = input.everyone === true;
   const participantIds = everyone ? household : [...new Set(input.participantIds)];
-  if (participantIds.length === 0 || participantIds.some((id) => !household.includes(id))) return { error: "Pick who it is for." };
+  if (!participantsAllowed(participantIds, household, alreadyOnHabit)) return { error: "Pick who it is for." };
   if (input.isPrivate && !canBePrivate(participantIds.length)) return { error: "Only a habit for one person can be private." };
 
   // Carry-over only means something for a habit with set days.
@@ -196,7 +202,7 @@ export async function updateHabit(habitId: string, input: HabitInput): Promise<H
   if (typeof habitId !== "string") return { error: NOT_FOUND };
   const habit = await loadHabitForAction(habitId);
   if (!habit || !mayEditResult(user, habit.isPrivate, habit.participantIds)) return { error: NOT_FOUND };
-  const checked = await checkInput(input);
+  const checked = await checkInput(input, habit.participantIds);
   if ("error" in checked) return checked;
   if (!mayEditResult(user, checked.fields.isPrivate ?? false, checked.participantIds)) {
     return { error: "Include yourself, or ask a parent." };

@@ -14,7 +14,6 @@ function isManager(actor: HabitActor): boolean {
 
 /**
  * Private habits are seen only by their participants; the tablet never sees one.
- * Dormant until PR B (mission 31): the habit actions gate on who may see a habit.
  */
 export function canSeeHabit(actor: HabitActor, habit: HabitAccess): boolean {
   if (!habit.isPrivate) return true;
@@ -23,7 +22,6 @@ export function canSeeHabit(actor: HabitActor, habit: HabitAccess): boolean {
 
 /**
  * Never the tablet; a participant or a manager who can see the habit.
- * Dormant until PR B (mission 31): the habit editor actions gate on who may edit.
  */
 export function canEditHabit(actor: HabitActor, habit: HabitAccess): boolean {
   if (actor.role === "device" || !canSeeHabit(actor, habit)) return false;

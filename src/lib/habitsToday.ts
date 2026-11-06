@@ -134,6 +134,21 @@ export function carrySince(joinedAt: Date | null | undefined, startDay: Calendar
   return compareDays(joinedDay, startDay) > 0 ? joinedDay : startDay;
 }
 
+/**
+ * Whether every requested participant may be saved: an active household person,
+ * or someone already on the habit (a person turned off since keeps their place
+ * until someone removes them, so saving the habit never fails over them).
+ */
+export function participantsAllowed(
+  requested: readonly string[],
+  household: readonly string[],
+  alreadyOnHabit: readonly string[] = [],
+): boolean {
+  if (requested.length === 0) return false;
+  const allowed = new Set([...household, ...alreadyOnHabit]);
+  return requested.every((id) => allowed.has(id));
+}
+
 /** The habits the viewer takes part in and may see (`canSeeHabit`), in the viewer's own order, oldest first on a tie. */
 export function visibleInViewerOrder(viewer: HabitActor, habits: readonly TodayHabitInput[]): TodayHabitInput[] {
   const sortOrderOf = (habit: TodayHabitInput) => habit.participants.find((p) => p.userId === viewer.userId)?.sortOrder ?? 0;
@@ -161,8 +176,10 @@ export function buildTodayRows(
     const carriedFrom = spec ? carriedDay(spec, habit.carryOver, mine, today, since) : null;
     const dueState: DueState = spec ? dueStateOf(spec, today, false, progress?.count ?? 0) : "required";
     const todayOf = (userId: string) => logs.find((log) => log.userId === userId && isSameDay(log.day, today));
-    const members: HabitMemberView[] = habit.participants
+    // Oldest member first, then by id: the same order for every viewer and every load.
+    const members: HabitMemberView[] = [...habit.participants]
       .filter((p) => !p.user.deactivatedAt)
+      .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime() || (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0))
       .map((p) => {
         const log = todayOf(p.userId);
         return {

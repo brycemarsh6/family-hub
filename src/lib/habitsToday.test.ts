@@ -11,6 +11,7 @@ import {
   buildTodayRows,
   carrySince,
   habitStartDay,
+  participantsAllowed,
   isTapDayAllowed,
   todayLogsFrom,
   visibleInViewerOrder,
@@ -163,4 +164,33 @@ test("carrySince: the later of the day the habit was made and the day the person
   assert.deepEqual(carrySince(new Date("2026-11-02T15:00:00Z"), start), start); // same day
   assert.deepEqual(carrySince(undefined, start), start);
   assert.deepEqual(carrySince(null, start), start);
+});
+
+test("buildTodayRows: the people on a row come in the same order for every viewer", () => {
+  const later = new Date("2026-02-01T12:00:00Z");
+  const people = [
+    { ...member("zed"), joinedAt: old },
+    { ...member("amy"), joinedAt: later },
+    { ...member("bob"), joinedAt: old },
+    member("me"),
+  ];
+  const shared = habit({ id: "shared", sharing: "together", participants: people });
+  const reversed = habit({ id: "shared", sharing: "together", participants: [...people].reverse() });
+  const order = (h: TodayHabitInput) => buildTodayRows(me, [h], noLogs, today)[0].participants.map((p) => p.userId);
+  assert.deepEqual(order(shared), ["bob", "me", "zed", "amy"]);
+  assert.deepEqual(order(reversed), order(shared));
+});
+
+test("participantsAllowed: household people pass, a stranger does not", () => {
+  assert.equal(participantsAllowed(["a", "b"], ["a", "b", "c"]), true);
+  assert.equal(participantsAllowed(["a", "x"], ["a", "b", "c"]), false);
+});
+
+test("participantsAllowed: someone already on the habit passes even if no longer in the household", () => {
+  assert.equal(participantsAllowed(["a", "gone"], ["a", "b"], ["gone"]), true);
+  assert.equal(participantsAllowed(["a", "gone"], ["a", "b"], []), false);
+});
+
+test("participantsAllowed: an empty pick is never allowed", () => {
+  assert.equal(participantsAllowed([], ["a"], ["a"]), false);
 });

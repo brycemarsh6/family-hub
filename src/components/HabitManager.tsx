@@ -131,7 +131,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
       </Link>
 
       {error && (
-        <p role="alert" className="mt-3 rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">
+        <p role="alert" className="mt-3 rounded-xl bg-warn-soft px-3 py-2 text-sm text-warn">
           {error}
         </p>
       )}
@@ -156,12 +156,12 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
                   label={(item) => item.title}
                   onReorder={(ids) => reorderWithin(group.kind, ids)}
                   className="divide-y divide-line"
-                  itemClassName="flex min-h-15 items-center gap-3 py-1.5"
+                  itemClassName="flex min-h-15 items-center gap-3"
                   renderItem={(item, { grip }) => (
                     <>
                       <Link
                         href={`/habits/${item.id}/edit`}
-                        className="flex min-h-11 min-w-0 flex-1 items-center gap-3"
+                        className="flex min-h-15 min-w-0 flex-1 items-center gap-3 self-stretch"
                         aria-label={`Edit ${item.title}`}
                       >
                         <RowBody item={item} />
@@ -187,10 +187,10 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
           <p className="mb-1.5 text-sm text-muted">Stats kept, can be brought back.</p>
           <ul className={`${CARD} divide-y divide-line`}>
             {state.archived.map((item) => (
-              <li key={item.id} className="flex min-h-15 items-center gap-3 py-1.5">
+              <li key={item.id} className="flex min-h-15 items-center gap-3">
                 <Link
                   href={`/habits/${item.id}/edit`}
-                  className="flex min-h-11 min-w-0 flex-1 items-center gap-3"
+                  className="flex min-h-15 min-w-0 flex-1 items-center gap-3 self-stretch"
                   aria-label={`Edit ${item.title}`}
                 >
                   <RowBody item={item} />
@@ -200,7 +200,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
                   type="button"
                   onClick={() => run({ type: "restore", id: item.id }, () => restoreHabit(item.id))}
                   aria-label={`Restore ${item.title}`}
-                  className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line-strong px-3 text-sm font-semibold"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-3 text-sm font-semibold"
                 >
                   <RotateCcw aria-hidden="true" size={16} />
                   Restore

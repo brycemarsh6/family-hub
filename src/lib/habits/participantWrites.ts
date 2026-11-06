@@ -63,6 +63,32 @@ export async function joinEveryoneHabits(userId: string, client: Prisma.Transact
 }
 
 /**
+ * Adds every current household person who is not yet on the habit, each at the
+ * end of their own list. Used when an Everyone habit is brought back from the
+ * archive, so people added while it was away are in it. Nobody is removed.
+ * Returns how many people joined.
+ */
+export async function joinHouseholdToHabit(habitId: string, client: Prisma.TransactionClient = db): Promise<number> {
+  return atomically(client, async (tx) => {
+    const [household, inHabit] = await Promise.all([
+      householdParticipantIds(tx),
+      tx.habitParticipant.findMany({ where: { habitId }, select: { userId: true } }),
+    ]);
+    const have = new Set(inHabit.map((p) => p.userId));
+    const joining = household.filter((userId) => !have.has(userId));
+    if (joining.length === 0) return 0;
+    const theirs = await tx.habitParticipant.findMany({ where: { userId: { in: joining } }, select: { userId: true, sortOrder: true } });
+    const next = new Map<string, number>();
+    for (const row of theirs) next.set(row.userId, Math.max(next.get(row.userId) ?? 0, row.sortOrder + 1));
+    const { count } = await tx.habitParticipant.createMany({
+      data: joining.map((userId) => ({ habitId, userId, sortOrder: next.get(userId) ?? 0 })),
+      skipDuplicates: true,
+    });
+    return count;
+  });
+}
+
+/**
  * Writes `ids` as this person's order (0, 1, 2...) in their own list only.
  * Ids they do not take part in are ignored, repeats count once.
  */

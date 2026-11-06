@@ -1,5 +1,6 @@
 import { calendarDaysBetween, type CalendarDate } from "../householdDate";
 import { compareDays, isDayInRange, isSameDay, periodTarget, periodWindow } from "./schedule";
+import { isCheckStatus } from "../habitVocabulary";
 import type { DayRange, HabitLogDay, ScheduleSpec } from "./types";
 
 // How many checks a habit has in its period, for the "3 of 7 this week" line
@@ -12,16 +13,11 @@ export type WindowProgress = DayRange & {
   doneToday: boolean;
 };
 
-/** A check counts toward progress when the thing was done, on time or late; a skip does not. */
-function isCheck(log: HabitLogDay): boolean {
-  return log.status === "done" || log.status === "late";
-}
-
 /** Distinct days with a check inside `range` (ends included). */
 export function countDays(logs: readonly HabitLogDay[], range: DayRange): number {
   const days = new Set<number>();
   for (const log of logs) {
-    if (isCheck(log) && isDayInRange(log.day, range)) {
+    if (isCheckStatus(log.status) && isDayInRange(log.day, range)) {
       days.add(Date.UTC(log.day.year, log.day.month - 1, log.day.day));
     }
   }
@@ -70,6 +66,6 @@ export function windowProgress(
     count: countDays(logs, window),
     target,
     label: spec.schedule === "monthly" ? "this month" : "this week",
-    doneToday: logs.some((log) => isCheck(log) && isSameDay(log.day, today)),
+    doneToday: logs.some((log) => isCheckStatus(log.status) && isSameDay(log.day, today)),
   };
 }

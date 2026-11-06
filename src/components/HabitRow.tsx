@@ -1,14 +1,16 @@
 "use client";
 
-import { Check, SkipForward, Undo2 } from "lucide-react";
+import { SkipForward, Undo2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
+import { LogButton } from "./LogButton";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
 import { ANYTIME_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
 import type { HabitRowView } from "@/lib/habitsRead";
 import { formatDayLabel } from "@/lib/mealPlanDates";
 
 const TAG_CLASS = "rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn whitespace-nowrap";
+const QUIT_TAG_CLASS = "rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted-strong whitespace-nowrap";
 
 /**
  * One Today row: an icon tile, the title (with Carried over / Quit tags), a
@@ -69,7 +71,7 @@ export function HabitRow({
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className={`text-base font-semibold ${finished ? "text-muted" : ""}`}>{row.title}</span>
-          {row.mode === "quit" && <span className={TAG_CLASS}>Quit</span>}
+          {row.mode === "quit" && <span className={QUIT_TAG_CLASS}>Quit</span>}
           {row.carriedFrom && !row.doneToday && <span className={TAG_CLASS}>Carried over</span>}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted">
@@ -103,24 +105,7 @@ export function HabitRow({
           )}
         </div>
       </div>
-      {row.skippedToday ? (
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-line-strong text-muted">
-          <SkipForward aria-hidden="true" size={18} />
-          <span className="sr-only">Skipped today</span>
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-pressed={row.doneToday}
-          aria-label={row.doneToday ? `Undo ${row.title}` : `Mark ${row.title} done`}
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
-            row.doneToday ? "bg-accent text-accent-fg" : "border-2 border-accent bg-surface text-accent"
-          }`}
-        >
-          {row.doneToday && <Check aria-hidden="true" size={22} strokeWidth={2.5} />}
-        </button>
-      )}
+      <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={row.skippedToday} onClick={onToggle} />
     </div>
   );
 
