@@ -33,7 +33,12 @@ As mission 36. No migration: the `device` role and the 365-day session are
 already in the schema and `session.ts`. Forbidden: `db:seed`, `db:reset`,
 `migrate reset`, `db push`, `migrate dev`; no script touches `User` rows
 (this mission creates one User row through a Server Action, from the UI, on
-the dev branch first); no `.env` edits; stage by path. The real tablet's
+the dev branch first); no `.env` edits; stage by path. Mission 38 added the
+`Feedback` table to the shared dev database (migration
+`20261111000000_add_feedback`); `prisma migrate status` on a branch without
+that folder says a migration is "not found locally", which is expected and
+is never fixed with `migrate reset`, `db push` or `migrate dev`. If this
+mission ever needs a migration (none planned), date it after 20261111000000. The real tablet's
 sign-in and its password are Bryce's, never an agent's.
 
 **Collision rules while missions 37 and 38 are open:** do not edit
@@ -219,9 +224,11 @@ Fury's recommendations, recorded; Bryce can overturn any:
 - **Verification:** new test; the gauntlet count rises by it.
 
 ### C4 — Sign out asks for an admin password on the tablet
-- **Waits for mission 38 to merge.** Boundaries named then: `auth.ts` (new
-  `logoutWithAdminPassword`), a new `src/components/AdminPasswordSheet.tsx`,
-  and whichever file owns the Sign out row after mission 38.
+- **Waits for mission 38 to merge.** Mission 38 moved Sign out and the name
+  card from the drawer into Settings (`src/app/(app)/settings/page.tsx`), so
+  that is the file C4 will touch, after the merge. Other boundaries:
+  `auth.ts` (new `logoutWithAdminPassword`) and a new
+  `src/components/AdminPasswordSheet.tsx`.
 - **Verification:** wrong password refused and counted by the rate limit;
   right password signs out; a person login still signs out with one tap.
 
