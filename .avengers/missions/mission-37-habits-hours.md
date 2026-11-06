@@ -1,7 +1,7 @@
 # Mission 37: Habits & Chores, the weekly hours tracker
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (C4), C1 PASS, C2 and C3 at the gate
+**Status:** DONE. Vision PASS (pass 4, allowed by Bryce), Captain PASS (pass 2), Strange PASS (pass 1)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/habits-hours` (from `origin/main` at `af1708c`)
 
@@ -792,3 +792,32 @@ server day gives the browser day. "Hours habit" moved to
 LA 1067, build 0. Waiting on Bryce's OK for Vision pass 4.
 
 Bryce allowed Vision a fourth pass (2026-11-06, "Yes, allow it").
+
+#### Vision, pass 4 (F3): PASS
+
+Gauntlet green (1067; UTC 1060 + 7; LA 1067; build 0; recordcheck 0 hard).
+Boundaries clean. NOTES: on a page left open across Saturday night, the
+sheet's "After this" line and the optimistic bar still count the old week
+(display only; the saved day is right); the `HoursLogSheet.tsx` comments
+at lines 29 to 30 and 61 describe the old "server day" rule; no test for
+an unreadable server day string.
+
+## Delivery
+
+- Merged `origin/main` (mission 22, #30) with the app's sync (206f6ed);
+  after it: tsc 0, eslint 0, `npm test` 1095, UTC 1095 with 7 skips, LA
+  1095, build 0. No migrations came in from main.
+- Migrations shipped: `20261109000000_add_habit_hours`,
+  `20261109000001_add_habit_hours_since` (additive; already on dev).
+- Hill's medium calls for Bryce: 188, 191, 192, 197, 198.
+- Leftovers (NOTES, not this mission's job): make `HoursRowView.today` and
+  `.lastWeek` required; export `useOptimisticRun`'s `run` type so
+  `RunChange` aliases it; split `habitsFamily.ts` (360); `habitsRead.ts`
+  and `habitsToday.ts` at exactly 350; the next goal-progress test goes in
+  a new file; the stale-page week totals and the two old comments in
+  `HoursLogSheet.tsx`; Strange's notes (the Who hint says "checks" on an
+  hours habit; the dashboard picker hint doesn't mention hours; "Switched
+  to hours on" not yet seen on screen; the form stepper shifts 10px between
+  9 and 10).
+- Dev test data to delete whenever: four "zz m37" habits and the
+  "zz m37 Commissions" goal.
