@@ -247,7 +247,7 @@ export const CHORES_LAST_WEEK_FAMILY = "Finished every chore last week";
 export const CHORE_TAG_LABELS = {
   movedTo: (dayName: string) => `Moved to ${dayName}`,
   thisWeekOnly: "This week only",
-  skipped: "Skipped this week",
+  skipped: SKIPPED_THIS_WEEK_LABEL,
 } as const;
 
 /** The words for a chart tag (decision 117); `dayNames` are the short weekday names, Sunday first. */
