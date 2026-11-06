@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ChevronRight, Users } from "lucide-react";
+import { ChevronRight, MessageSquare, Users } from "lucide-react";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { NavModeSetting } from "@/components/NavModeSetting";
 import { VacationCard } from "@/components/VacationCard";
 import { householdToday } from "@/lib/assistant/today";
 import { requireVerifiedUser } from "@/lib/dal";
+import { countNewFeedback } from "@/lib/feedbackRead";
 import { loadVacations } from "@/lib/habitsRead";
 import { formatCalendarDate } from "@/lib/householdDate";
 
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * App-wide settings: "Menu style" for everyone (devices too), the
- * admin-only door "Manage family", and last the "Habits & Chores" section
+ * admin-only doors "Manage family" and "Feedback", and last the "Habits & Chores" section
  * and the Vacation mode card (accounts only: a device login never sees them). Your own name, colour and
  * password live on /profile.
  */
@@ -21,6 +22,7 @@ export default async function SettingsPage() {
   const user = await requireVerifiedUser();
   const today = householdToday(new Date())!;
   const vacations = user.isDevice ? [] : await loadVacations(user.userId, today);
+  const newFeedback = user.role === "admin" ? await countNewFeedback() : 0;
 
   return (
     <div className="py-2">
@@ -38,6 +40,26 @@ export default async function SettingsPage() {
             Manage family
           </span>
           <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+        </Link>
+      )}
+
+      {user.role === "admin" && (
+        <Link
+          href="/settings/feedback"
+          className="mt-3 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
+        >
+          <span className="flex items-center gap-3">
+            <MessageSquare aria-hidden="true" size={22} className="shrink-0 text-muted" />
+            Feedback
+          </span>
+          <span className="flex items-center gap-2">
+            {newFeedback > 0 && (
+              <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn">
+                {newFeedback} new
+              </span>
+            )}
+            <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+          </span>
         </Link>
       )}
 
