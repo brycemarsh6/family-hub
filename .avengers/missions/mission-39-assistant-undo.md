@@ -331,3 +331,8 @@
   meal-plan weeks are stored at the creating phone's midnight; CD1 still
   unmerged and conflicts on the test glob. Plan drafted on branch
   `claude/assistant-undo` (local, not pushed); waiting on Bryce.
+- 2026-11-06: U1 DONE `b7f1aa2` (4 files, tests 1002 → 1010, tsc/eslint
+  scoped clean, both TZ legs green; build deferred to the gates). Note: it
+  used `git add -N` on its two new files so a pathspec commit could take
+  them; no other index entries touched. U2 dispatched alongside L1 (disjoint
+  files), on port 3140.
