@@ -332,6 +332,64 @@
   `Record<keyof Model, …>`; `undoWrites.ts` restores from copies only and
   applies no domain rule.
 
+### Vision pass 1 (at `dfdf497`): BLOCKED
+
+- **BLOCKER B1:** a re-create by undo is logged `create`, and
+  `didAssistantCreate` counts any create, so undoing a put-away makes the
+  family's claimed rows look Winnie-made: family line ticked → put-away →
+  undo → `DELETE /shopping/{id}` 200 (was 403). Reproduced live.
+- NOTEs: undo-remove of a pantry row the family has since linked a grocery
+  line or VoiceChange to nulls those links silently; `editPantryItem`
+  `"conflict"` reaches a truthiness check (never reproduced); A-B-A on
+  `updatedAt` harmless (full-row restore); parallel-undo loser wording;
+  pre-transaction names in the refuse check; N deletes per put-away;
+  percent-encoded undo path dodges `already_undone` bookkeeping (CAS still
+  stops double-apply); column allowlist not tied to the schema; 5 s
+  transaction limit fails safe; stale `pantryWrites.ts` header.
+- Everything else passed live: every undo/redo/refusal, copy chains under
+  parallel writes, undo racing family writes with the family value
+  surviving every trial. Counts 467/5/0/0 restored.
+
+### F1, fix batch for pass 2
+
+- **Objective:** close B1 and the cheap NOTEs from both gates.
+- **Boundaries.** May touch: `src/lib/assistant/audit.ts`,
+  `src/lib/assistant/undoWrites.ts`, `src/lib/assistant/undoPlan.ts`,
+  `src/lib/assistant/undoPlan.test.ts`,
+  `src/app/api/assistant/v1/audit/[requestId]/undo/route.ts`,
+  `src/app/api/assistant/v1/audit/route.ts` (import move only),
+  `src/lib/pantryWrites.ts`, `src/lib/putAway.ts` (header comment only).
+  Nothing else.
+- **Work:**
+  1. B1: `didAssistantCreate` counts only create records whose request is
+     not an undo (`request: { action: { not: "audit.undo" } }`), with a
+     comment saying why (undo re-creates family rows; a row Winnie really
+     made keeps its original create record forever).
+  2. Undo route: refuse 400 `validation` when `request.nextUrl.pathname !==
+     undoPathFor(params.requestId)` (an encoded path would dodge the
+     already-undone bookkeeping).
+  3. Removing a pantry row on undo: if any GroceryItem or VoiceChange now
+     references it, refuse 409 `changed_since` with that record and
+     `problem: "in_use"`, nothing changed.
+  4. `undoPlan.ts` column lists become `Record<keyof PantryItem, "date" |
+     "value">` and `Record<keyof GroceryItem, …>` over a type-only import
+     of the generated Prisma types; `columns` and `dates` derived from
+     them. Prove: temporarily add a fake key and show `tsc` fails, then
+     remove it.
+  5. `pantryWrites.ts`: delete `isNoMatch`, use `isMissingRowError`; fix the
+     header (lines 13-14) to say writes return the row or `{ before, after }`
+     copies, null when missing, `"conflict"` after losing every retry.
+     `putAway.ts:3` header: the commit half; classify lives in
+     `putAwayClassify.ts`.
+  6. Move `undoneRequestIds` from `undoWrites.ts` to `audit.ts` (a read).
+- **Verification:** gauntlet in full (build after stopping the server,
+  recordcheck). Live (port 3151, the usual setup): B1's exact sequence →
+  final DELETE 403 and the family row survives; a real Winnie create,
+  undo, redo → her DELETE still 200; encoded undo path → 400; pantry create
+  by Winnie, family-linked grocery line by script, undo → 409 `in_use`,
+  link intact; positive controls from U4 still pass. Counts before/after.
+- **Evidence / done:** as before; only boundary files in `git diff --stat`.
+
 ## Delivery
 
 (not yet)
