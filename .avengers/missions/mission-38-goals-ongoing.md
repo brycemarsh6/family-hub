@@ -170,3 +170,47 @@ turns Ongoing off before a date is picked, so cancelling the picker leaves
 neither (Save then says "Pick a target date."); the contract says
 `checkGoalInput` where the function is `validateGoalInput`; the
 new-goal default is Fury's recorded deviation.
+
+#### Strange, pass 1: PASS (no blockers)
+
+All five points render as approved at 375 and 820, light and dark. The +
+clearance measures 144px at every inset, and it was already 144px before
+this change (`<main>` carries bottom padding), so Bryce's overlap was
+likely mid-scroll: his phone check should look again. NOTES: drop
+`aria-disabled` on the still-tappable date box (`aria-pressed` on the
+chip carries the state); a set-aside date stays visible in the greyed box
+(honest); error wording could be "Pick a target date, or choose Ongoing."
+(Hill's call, not taken); "Ongoing" wraps to its own row at 375 (fine);
+the tag centers on a three-line title (older row behavior); the tag
+repeats `QUIT_TAG_CLASS` from `HabitRow.tsx`; new goals open with no chip
+lit while the approved mock says "End of this year". A dev server started
+before `prisma generate` crashes on `nulls: "last"` until restarted.
+Test goals: four "zz m38" goals on dev.
+
+Fury's ruling on the default: the approved mock says new goals start on
+"End of this year", so building that is following Bryce's approval, not a
+new design call. It goes in F1.
+
+### F1 - Gate fixes
+
+1. **Objective:** Captain's blocker plus three small notes.
+2. **Boundaries:** may touch `src/app/(app)/plans/goals/[id]/page.tsx`,
+   `src/app/(app)/plans/goals/[id]/edit/page.tsx`, `src/app/actions/goals.ts`,
+   `src/lib/goalsProgress.ts`, `src/components/GoalForm.tsx`,
+   `src/components/GoalCard.tsx`, `src/components/HabitRow.tsx` (only to
+   export `QUIT_TAG_CLASS` if reused). Nothing else.
+3. **Specifics:**
+   - Captain BLOCKER: the four `calendarDateInZone(goal.targetDate, "UTC")`
+     reads become `calendarDateFromUtcMidnight(goal.targetDate)` from
+     `householdDate.ts`; remove `calendarDateInZone` imports that become
+     unused (keep it in `goalsProgress.ts` for `createdAt`).
+   - Drop `aria-disabled` from the greyed date input; keep the 0.45 opacity.
+   - New goals open with "End of this year" lit (the date from
+     `targetDateChips(today)[0]`). Edit is unchanged.
+   - The card tag reuses one tag class: either export `QUIT_TAG_CLASS` and
+     use it (adding `whitespace-nowrap` there is fine), or leave the tag's
+     classes as they are and say why.
+4. **Verification:** the Gauntlet; paste the `ℹ skipped` line from the
+   direct `TZ=UTC node ...` run (it must show 7).
+5. **Evidence required:** exit codes, `git grep -n 'calendarDateInZone(goal.targetDate' -- src` (empty), `wc -l` of touched files.
+6. **Done criteria:** Captain pass 2 passes; Vision re-runs the Gauntlet.
