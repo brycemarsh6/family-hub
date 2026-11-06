@@ -256,6 +256,9 @@ Replace this section at the end of each session. Don't append.
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- **Ongoing goals** (Bryce, 2026-11-06): a goal's target date should be
+  optional, with an "Ongoing" choice. Request and notes in
+  `.avengers/plans/plans-goals-v1.md`; needs a mock first.
 - The Edit screen says "Edit habit" for a chore and doesn't light the
   house icon (found by Strange in PR F, older than it).
 - Inventory collapse state doesn't persist across reloads; Shopping has no
