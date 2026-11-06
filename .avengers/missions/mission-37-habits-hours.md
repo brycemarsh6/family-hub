@@ -616,3 +616,83 @@ NOTES taken into the fix: the entry read in `habitHours.ts` moves to a
 phrases, `unitFor`, the chips and one `checkHoursTarget` in the vocabulary
 file. Fury writes Captain's STRUCTURE.md amendment (8 parts) after the
 fixes land. `habitsFamily.ts` 360 split (stats-page data) is a NOTE.
+
+#### Vision pass 2 (C2 via F1) and pass 1 (C4a, C4b): BLOCKED (1)
+
+Gauntlet green (1055; UTC 1048 + 7; LA 1055; build 0); F1's streak fix
+confirmed through the real `buildTodayRows`; boundaries clean; Fury's
+legacy-cache ruling upheld (one stale week on dev only). **BLOCKER**, the
+same root as Captain's 3: the goal screens' + logs for the viewer while
+the bar shows `participants[0]`'s week; on the tablet or for someone not
+on the habit every save fails. NOTES taken into F2: `planItems.ts`
+`logHabit` / `undoHabitLog` lack the track guard; the sheet's "today"
+should come from the server; a future typed date moves the bar until
+refused; a stale shared error shows in a fresh sheet (and behind it on
+GoalDetail); decision 191's last-week line is still the stand-in.
+
+### F2 - Gate fixes: Captain 1 to 5, Vision's goal-screen blocker, notes
+
+1. **Objective:** every open BLOCKER from Captain pass 1 and Vision pass
+   2 is fixed, plus the listed notes, with no behaviour change elsewhere.
+2. **Boundaries:**
+   - May touch:
+     - `src/app/actions/planItems.ts`, `src/app/actions/habitHours.ts`
+     - `src/lib/habitsRead.ts`, `src/lib/habitsStatsRead.ts`,
+       `src/lib/habitsFamily.ts`, `src/lib/goalsRead.ts`,
+       `src/lib/goalsProgress.ts`, `src/lib/goalsProgress.test.ts`,
+       `src/lib/goals.ts`, `src/lib/goalsHabitInput.test.ts`,
+       `src/lib/habitsHours.ts`, `src/lib/habitsHours.test.ts`,
+       `src/lib/habitsToday.test.ts`, new `src/lib/habitsTodayHours.test.ts`,
+       `src/lib/habits/access.ts`, `src/lib/habits/access.test.ts`,
+       `src/lib/habits/hours.ts`, `src/lib/habits/hours.test.ts`,
+       `src/lib/habitHoursVocabulary.ts` and its test,
+       `src/app/actions/habits.ts` (only to call `checkHoursTarget`)
+     - `src/components/GoalDetail.tsx`, new
+       `src/components/GoalResultCard.tsx`, `src/components/ThisWeekList.tsx`,
+       `src/components/PlanItemRow.tsx`, `src/components/HoursLogSheet.tsx`,
+       `src/components/HabitTodayList.tsx`, `src/components/HabitsTile.tsx`,
+       `src/components/HabitFamilyView.tsx`,
+       `src/components/HabitHoursFields.tsx`,
+       `src/components/HabitHoursStats.tsx`, `src/components/HoursEntryList.tsx`
+     - `src/app/(app)/plans/goals/[id]/page.tsx` (undo F1's `viewerId`)
+   - Must not touch: `prisma/`, `habitsToday.ts` (it stays at 350),
+     `STRUCTURE.md` (Fury writes the amendment), `.env`.
+3. **Spec:**
+   - Captain 1: `isHoursHabit` goes; `updatePlanItem` asks
+     `loadHabitForAction(item.habitId)` for `track` before the
+     transaction. Captain note 1: add `loadTimeEntryForAction(entryId)` to
+     `habitsRead.ts`; `removeHabitTime` uses it.
+   - Captain 2: `othersPrivateHidden(actor, subjectId)` and
+     `showsOnFamilyView(habit)` in `access.ts`, tested, used at
+     `habitsStatsRead.ts` (both copies) and `habitsFamily.ts`.
+   - Captain 3 + Vision: `loadHabitsForPlan` drops `viewerId` and its
+     subject guess and returns everyone's entries; where plan item views
+     are built (`goalsRead.ts` and `actions/planItems.ts`, together)
+     compute `forUserId = habitCheckTarget(goal, viewer, participantIds)`,
+     filter entries to that person, and carry `forUserId` on the hours
+     view. When the target is not a participant of the habit (a device,
+     someone added later) there is no + on the goal screens
+     (`PlanItemRow` gets no `onLogTime`) and the bar shows nobody's
+     invented week: show the first participant's week only if
+     `habitCheckTarget` names them, else no bar. Test: a device viewer
+     on a Together hours item gets no logging target.
+   - Captain 4: move the seven `hours:` tests to the new test file.
+   - Captain 5: extract "The result" card to `GoalResultCard.tsx`.
+   - Captain note 2: one pace formula, `paceMinutesPerDay(left,
+     daysLeft)` in `hours.ts` with `HOURS_LIMITS.paceStep`, used by the
+     engine and `habitsHours.ts`; delete the pin test.
+   - Captain note 3: the hour/hours unit rule (`unitFor`), the chip
+     amounts (`HOURS_LIMITS.chips`) and one `checkHoursTarget(raw)` live
+     in the vocabulary file and are used by `actions/habits.ts`,
+     `goals.ts` and the components; no second copy.
+   - Vision notes: `logHabit` / `undoHabitLog` refuse an hours habit
+     ("That habit tracks hours."); the sheet takes today's day from the
+     server (a prop), caps typed dates to today, clears any earlier error
+     when it opens, and GoalDetail hides its error line while the sheet
+     is open; decision 191's last-week line: the row view carries last
+     week's minutes so the sheet says "After this: 7 of 6 hours last
+     week".
+4. **Verification / evidence:** the full Gauntlet, `wc -l` (every touched
+   file under 350 except those already past it, which must not grow),
+   `git diff --stat`.
+5. **Done criteria:** Vision and Captain re-run and pass.
