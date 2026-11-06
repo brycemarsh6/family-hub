@@ -508,6 +508,18 @@ in PR B (mission 31).
 128. **The vacation button:** "Turn on vacation mode" when the person has
      no current or upcoming vacation; "Add a vacation" when at least one
      exists. Decided by Hill, high.
+129. **126 tightened: a passed moved-to day locks the turn.** A moved or
+     skipped turn may change again only while the day it now sits on is
+     today or later, or while it is already skipped this week. Once the
+     moved-to day has passed (done or undone) the row is locked: tapping
+     opens nothing, the same quiet look as other past rows. 126's rule
+     becomes "no past day becomes required, un-excused, or un-required."
+     Fix a miss with a back-filled check (8), which saves as late. Decided
+     by Hill, high.
+130. **A week-skipped chore done anyway counts:** it joins both numbers of
+     "x of y done", grows the chore streak and reads as done. Only an
+     undone skipped-this-week turn is excused. Stands or falls with 127.
+     Decided by Hill, high.
 
 ## Open questions
 

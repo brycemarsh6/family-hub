@@ -351,3 +351,60 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
   empty; `git grep -n "householdNow"` empty.
 - **Evidence:** each blocker mapped to file:line and the test that proves it;
   test counts for all three zones.
+
+### Pass 2 (at eb58a6f): Vision PASS, Strange PASS, Captain BLOCKED (1)
+- **Vision (Fable): PASS.** Re-ran the gauntlet (838 / 831+7 skips / 838,
+  build EXIT=0). Notes: 126 lets a missed moved day be erased (to Hill as
+  Q1 of the pass 2 batch); a week-skipped chore checked done stays excused
+  (to Hill as Q2); actions/habits.ts and planItems.ts touched outside the
+  list (forced, declared); `participantIds` includes deactivated people;
+  `userPreferences.findMany` without an id filter only widens the fetch;
+  carry-over still does not follow a move.
+- **Strange (Opus): PASS.** All 7 pass 1 blockers verified at 375 and 820,
+  light and dark; 127, 128 and the card line seen on screen. Notes: a
+  vacationing family card with counts shows only an unlabeled plane; the
+  week-skip marker's screen-reader text says "Skipped today"; the family
+  view hides "This week only" on a vacation day; the chart does not show
+  vacation days; 44px chart rows; chips scroll sideways at 375. Not
+  covered: kid and tablet logins, the hidden "Back to the default" on
+  screen, real touch.
+- **Captain (Opus): BLOCKED, 1.** `updateHabit` deletes `ChoreWeekOverride`
+  rows itself; `choreWrites.ts` is the only writer. Fix: `clearChoreChanges`
+  in `choreWrites.ts`. All pass 1 blockers and Amendment C verified.
+  STRUCTURE.md text A to H written by Fury (this commit range). Notes:
+  `habitWrites.ts` 364 lines, split the streak cache block into
+  `habits/streakWrites.ts` in PR E; components repeat "on vacation and not
+  done" for labels; `toWeekday` could move to the vocabulary;
+  `householdToday` lives in `assistant/today.ts`.
+
+### F4 - Captain's pass 2 blocker, decisions 129 and 130, two polish notes
+- **Status:** OPEN.
+- **Captain blocker:** `choreWrites.ts` exports
+  `clearChoreChanges(habitId, client: Prisma.TransactionClient)` running the
+  `deleteMany`; `updateHabit` keeps its condition and calls it. No
+  `choreWeekOverride` write left in `habitWrites.ts`.
+- **129:** `changeAllowed` (`weekOverrides.ts`) allows a change only when
+  the day the turn now sits on (its moved-to day, or its own day if
+  unchanged) is today or later, or the turn is skipped this week; a new
+  target is still today or later. A moved turn whose moved-to day has
+  passed is locked. The chart loader's `canChange` follows it; a locked row
+  is not tappable and looks like other past rows. Tests for: moved Mon to
+  Wed, Wed passed undone, Thu: skip and move both refused; moved Mon to
+  Fri, Thu: still changeable; skipped Mon, Thu: may move to Fri.
+- **130:** `isExcusedAllDay` becomes `(skippedThisWeek || onVacation) &&
+  !doneToday`; `choreDayState` / chore streak count a done week-skipped
+  day as done. Tests in `weekOverrides`, `choreStreak`, `habitsToday`.
+- **Polish (Strange notes):** `HabitFamilyColumn.tsx` header with counts on
+  vacation reads "5 of 5 done · On vacation" (words, not only the plane);
+  the dashed marker's screen-reader text reads "Skipped this week" for a
+  week-skipped row in `HabitRow.tsx` and `FamilyHabitRow` (pass the label
+  in; `LogButton.tsx` may take an optional label prop). Labels from
+  `habitVocabulary.ts`.
+- **Boundaries (may touch):** `src/lib/habits/{choreWrites,habitWrites,
+  weekOverrides,choreStreak}.ts` and tests, `src/lib/choreChart.ts` and
+  test, `src/lib/habitsToday.ts` and test, `src/lib/habitVocabulary.ts`,
+  `src/components/{HabitFamilyColumn,HabitRow,LogButton,ChoreChart,
+  ChoreChartSheet}.tsx`. Must not touch: `prisma/`, `.env*`,
+  `package.json`, records. No database commands. No commit.
+- **Verification:** full gauntlet in three zones, build EXIT=0, `git grep
+  -n choreWeekOverride src/lib/habits/habitWrites.ts` empty.
