@@ -346,3 +346,14 @@
   rows (a rename in that window can slip a `refuse`); one delete per
   claimed row instead of one deleteMany. U3a dispatched (port 3141); U3b
   waits for U3a (check-off tests create checked rows a put-away would take).
+- 2026-11-06: U2 DONE `3011aad` (6 files). Copies by compare-and-set on
+  `updatedAt` (+ quantity for adjust), retried on P2025. Live: 10 parallel
+  adjust +1 → befores 1..10, final 11; opposite-order bulk-adjusts in
+  parallel exact; 8 parallel edits form one unbroken updatedAt chain; parity
+  for set/adjust/edit/logLeftover. Counts 467/5/0 restored. tsc failed only
+  on U3a's in-flight shopping files at that moment; build deferred. For the
+  gates: (1) `editPantryItem` now returns `"conflict"` after 10 lost races;
+  the app's edit action tests truthiness, so it would refresh as if saved
+  while nothing was written (before U2 the family's edit always won). Rare;
+  Vision to judge. (2) `pantryWrites.ts` header still says every function
+  returns the row it wrote; stale for edit and adjust.
