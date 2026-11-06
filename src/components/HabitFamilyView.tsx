@@ -1,7 +1,8 @@
 "use client";
 
-import { useOptimistic } from "react";
+import { useOptimistic, useState } from "react";
 import { Users } from "lucide-react";
+import { HoursLogSheet } from "./HoursLogSheet";
 import { FamilyHabitRow, HabitFamilyColumn } from "./HabitFamilyColumn";
 import { checkHabit, uncheckHabit } from "@/app/actions/habitChecks";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
@@ -29,9 +30,13 @@ const dayOf = (row: FamilyRow) => (row.carriedFrom ? formatCalendarDate(row.carr
  */
 export function HabitFamilyView({ page, showStreaks }: { page: FamilyPage; showStreaks: boolean }) {
   const [live, applyOptimistic] = useOptimistic<FamilyPage, HabitChange>(page, applyToPage);
-  const { run, error } = useOptimisticRun(applyOptimistic);
+  const { run, error, pending } = useOptimisticRun(applyOptimistic);
+  // The hours row whose log sheet is open: the habit and the person, read live so bars move as soon as Add is tapped.
+  const [logging, setLogging] = useState<{ habitId: string; userId: string } | null>(null);
+  const loggingRow = logging ? live.columns.flatMap((column) => column.rows).find((row) => row.id === logging.habitId && row.logForId === logging.userId && row.hours) : undefined;
 
   function toggle(row: FamilyRow) {
+    if (row.hours) return setLogging({ habitId: row.id, userId: row.logForId });
     const change = { habitId: row.id, userId: row.logForId };
     if (row.doneToday) run({ ...change, type: "uncheck" }, () => uncheckHabit(row.id, row.logForId, dayOf(row)));
     else run({ ...change, type: "check" }, () => checkHabit(row.id, row.logForId, dayOf(row)));
@@ -39,7 +44,7 @@ export function HabitFamilyView({ page, showStreaks }: { page: FamilyPage; showS
 
   return (
     <div className="flex flex-col gap-3.5">
-      {error && (
+      {error && !loggingRow && (
         <p role="alert" className="text-sm text-warn">
           {error}
         </p>
@@ -67,6 +72,19 @@ export function HabitFamilyView({ page, showStreaks }: { page: FamilyPage; showS
             <HabitFamilyColumn key={column.id} column={column} together={live.together} showStreaks={showStreaks} onToggle={toggle} />
           ))}
         </div>
+      )}
+      {loggingRow?.hours && (
+        <HoursLogSheet
+          habitId={loggingRow.id}
+          title={loggingRow.title}
+          hours={loggingRow.hours}
+          forUserId={loggingRow.logForId}
+          forName={loggingRow.participants.find((p) => p.userId === loggingRow.logForId)?.displayName}
+          run={run}
+          pending={pending}
+          error={error}
+          onClose={() => setLogging(null)}
+        />
       )}
     </div>
   );

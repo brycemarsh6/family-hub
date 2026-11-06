@@ -30,3 +30,35 @@ export const HOURS_LIMITS = {
   targetMaxHours: 80,
   targetDefaultHours: 5,
 } as const;
+
+/** The words on the form's Track choice (decision 193): the label and the line under "Track" for the lit one. */
+export const TRACK_LABELS: Record<HabitTrack, { label: string; hint: string }> = {
+  checks: { label: "Checks", hint: "Tap once when done" },
+  hours: { label: "Hours", hint: "Log time toward a weekly goal" },
+};
+
+/** The words on "Count days left as" (decisions 183, 193). */
+export const PACE_LABELS: Record<PaceDays, { label: string; hint: string }> = {
+  monsat: { label: "Mon to Sat", hint: "Skip Sundays" },
+  every: { label: "Every day", hint: "Sun to Sat" },
+};
+
+/**
+ * What the editor starts from for a habit's Manage item: an hours habit opens
+ * as Hours with its own goal and pace, anything else as Checks. Takes the
+ * item's `hours` as it is (null for a checks habit).
+ */
+export function hoursInitialOf(hours: { weeklyMinutes: number; paceDays: string } | null): { track: HabitTrack; weeklyMinutes: number | null; paceDays: string | null } {
+  return hours ? { track: "hours", weeklyMinutes: hours.weeklyMinutes, paceDays: hours.paceDays } : { track: "checks", weeklyMinutes: null, paceDays: null };
+}
+
+/** The words of the log sheet (decision 191). */
+export const LOG_SHEET_WORDS = {
+  title: (habitTitle: string) => `Add time to ${habitTitle}`,
+  day: { today: "Today", yesterday: "Yesterday", other: "Other day" },
+  button: (amount: string) => `Add ${amount}`,
+  saving: "Saving…",
+  /** A day in last week: the sheet knows only this week's total. */
+  lastWeek: (amount: string) => `This adds ${amount} to last week.`,
+  afterThis: (text: string) => `After this: ${text}`,
+} as const;

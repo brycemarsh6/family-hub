@@ -51,11 +51,12 @@ export async function createHabit(
     const next = await nextSortOrders(tx, userIds);
     const habit = await tx.habit.create({
       data: {
+        // The caller's schedule goes first, so an hours habit's forced weekly shape from `habitColumns` wins.
+        schedule: toHabitSchedule(input.fields.schedule),
         ...habitColumns(input.fields),
         everyone,
         ...(toHabitTrack(input.fields.track) === "hours" ? { hoursSince: utcMidnightInstant(input.today) } : {}),
         title: input.fields.title.trim(),
-        schedule: toHabitSchedule(input.fields.schedule),
         participants: { create: userIds.map((userId) => ({ userId, sortOrder: next.get(userId) ?? 0 })) },
       },
     });

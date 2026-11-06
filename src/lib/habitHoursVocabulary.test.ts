@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { HABIT_TRACKS, HOURS_LIMITS, PACE_DAYS, toHabitTrack, toPaceDays } from "./habitHoursVocabulary";
+import { HABIT_TRACKS, HOURS_LIMITS, LOG_SHEET_WORDS, PACE_DAYS, PACE_LABELS, TRACK_LABELS, hoursInitialOf, toHabitTrack, toPaceDays } from "./habitHoursVocabulary";
 
 test("the track and pace lists are pinned", () => {
   assert.deepEqual([...HABIT_TRACKS], ["checks", "hours"]);
@@ -27,4 +27,22 @@ test("the limits are pinned", () => {
     { ...HOURS_LIMITS },
     { entryStep: 30, entryMin: 30, entryMax: 720, entryDefault: 60, targetMinHours: 1, targetMaxHours: 80, targetDefaultHours: 5 },
   );
+});
+
+test("every track and pace has its words", () => {
+  for (const track of HABIT_TRACKS) assert.ok(TRACK_LABELS[track].label && TRACK_LABELS[track].hint);
+  for (const days of PACE_DAYS) assert.ok(PACE_LABELS[days].label && PACE_LABELS[days].hint);
+  assert.equal(TRACK_LABELS.hours.hint, "Log time toward a weekly goal");
+  assert.equal(PACE_LABELS.monsat.hint, "Skip Sundays");
+});
+
+test("Edit opens an hours habit as Hours with its own goal and pace, anything else as Checks", () => {
+  assert.deepEqual(hoursInitialOf({ weeklyMinutes: 360, paceDays: "every" }), { track: "hours", weeklyMinutes: 360, paceDays: "every" });
+  assert.deepEqual(hoursInitialOf(null), { track: "checks", weeklyMinutes: null, paceDays: null });
+});
+
+test("the log sheet words", () => {
+  assert.equal(LOG_SHEET_WORDS.title("Calling"), "Add time to Calling");
+  assert.equal(LOG_SHEET_WORDS.button("1½ hours"), "Add 1½ hours");
+  assert.equal(LOG_SHEET_WORDS.afterThis("3½ of 6 hours this week"), "After this: 3½ of 6 hours this week");
 });

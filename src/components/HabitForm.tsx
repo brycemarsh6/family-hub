@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Archive, RotateCcw, Trash2 } from "lucide-react";
 import { Field, LifeAreaField, Segmented, TimeOfDayField } from "./HabitFormFields";
 import { HabitIconPicker } from "./HabitIconPicker";
-import { HoursFields, TrackField, initialWeeklyHours, type HoursInitial } from "./HabitHoursFields";
+import { HoursFields, TrackField, initialWeeklyHours, initialWho, type HoursInitial } from "./HabitHoursFields";
 import { IdeaChips } from "./IdeaChips";
 import { HabitScheduleField, type ScheduleValue } from "./HabitScheduleField";
 import { ParticipantPicker, type Person } from "./ParticipantPicker";
@@ -55,12 +55,6 @@ const BUTTON_PLAIN =
 
 /** The habit being edited; its Track fields come from the loader and are left out for a habit that never had them. */
 type FormInitial = HabitManagerItem & HoursInitial;
-
-function initialWho(initial: FormInitial | undefined): HabitWho {
-  if (!initial || initial.participantIds.length <= 1) return "me";
-  // Together has no hours form, so a habit switched to Hours starts side by side.
-  return initial.sharing === "together" && toHabitTrack(initial.track) !== "hours" ? "together" : "each";
-}
 
 /**
  * The New and Edit form for a habit or chore (one component, so the two pages

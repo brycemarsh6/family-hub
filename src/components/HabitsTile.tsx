@@ -4,6 +4,7 @@ import { useOptimistic, useState } from "react";
 import { ListChecks } from "lucide-react";
 import DashboardTile from "./DashboardTile";
 import { HabitRow } from "./HabitRow";
+import { HoursLogSheet, type RunChange } from "./HoursLogSheet";
 import { checkHabit, skipHabit, uncheckHabit, unskipHabit } from "@/app/actions/habitChecks";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView } from "@/lib/habitsRead";
@@ -14,18 +15,22 @@ import { useOptimisticRun } from "@/lib/useOptimisticRun";
 /**
  * The three taps of one Today row, shared by Today's list and the dashboard
  * tiles: check or uncheck, skip (the missed day for a carried row, decision 89)
- * and undo a skip. A carried row's tap is for the missed day, not today.
+ * and undo a skip. A carried row's tap is for the missed day, not today. An
+ * hours row has no check: its tap calls `openLog` for the log sheet (decision
+ * 189) and never writes one.
  */
 export function habitRowTaps(
   row: HabitRowView,
   run: (change: HabitChange, action: () => Promise<{ error?: string }>) => void,
+  openLog?: (row: HabitRowView) => void,
 ) {
   const day = row.carriedFrom ? formatCalendarDate(row.carriedFrom) : undefined;
   return {
-    onToggle: () =>
-      row.doneToday
-        ? run({ type: "uncheck", habitId: row.id }, () => uncheckHabit(row.id, undefined, day))
-        : run({ type: "check", habitId: row.id }, () => checkHabit(row.id, undefined, day)),
+    onToggle: () => {
+      if (row.hours) return openLog?.(row);
+      if (row.doneToday) return run({ type: "uncheck", habitId: row.id }, () => uncheckHabit(row.id, undefined, day));
+      run({ type: "check", habitId: row.id }, () => checkHabit(row.id, undefined, day));
+    },
     onSkip: () =>
       run({ type: row.carriedFrom ? "skipCarried" : "skip", habitId: row.id }, () => skipHabit(row.id, undefined, day)),
     onUnskip: () => run({ type: "unskip", habitId: row.id }, () => unskipHabit(row.id)),
@@ -59,7 +64,15 @@ export function HabitTileRows({
   const [firstEmpty] = useState(empty);
   const kept = keepShownRows(shownIds, rows, todayRows, held);
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(kept, applyHabitChange);
-  const { run, error } = useOptimisticRun<HabitChange>(applyOptimistic);
+  const { run, error, pending } = useOptimisticRun<HabitChange>(applyOptimistic);
+  // The hours row whose log sheet is open, by id, so the sheet reads the row's live week.
+  const [loggingId, setLoggingId] = useState<string | null>(null);
+  const logging = live.find((row) => row.id === loggingId && row.hours);
+  const keep: RunChange = (change, action, onSuccess) =>
+    run(change, action, () => {
+      setHeld((prev) => applyHabitChange(prev, change));
+      onSuccess?.();
+    });
   const emptyLine = empty ?? firstEmpty;
 
   return (
@@ -70,17 +83,27 @@ export function HabitTileRows({
         <ul className={`-mx-4 divide-y divide-line border-t border-line ${error ? "border-b" : "-mb-4"}`}>
           {live.map((row) => (
             <li key={row.id}>
-              <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, (change, action) =>
-                  run(change, action, () => setHeld((prev) => applyHabitChange(prev, change))),
-                )} />
+              <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, (change, action) => keep(change, action), (hoursRow) => setLoggingId(hoursRow.id))} />
             </li>
           ))}
         </ul>
       )}
-      {error && (
+      {error && !logging && (
         <p role="alert" className="mt-2 text-sm text-warn">
           {error}
         </p>
+      )}
+      {logging?.hours && (
+        <HoursLogSheet
+          habitId={logging.id}
+          title={logging.title}
+          hours={logging.hours}
+          forUserId={logging.viewerId}
+          run={keep}
+          pending={pending}
+          error={error}
+          onClose={() => setLoggingId(null)}
+        />
       )}
     </>
   );

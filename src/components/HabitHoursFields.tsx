@@ -2,7 +2,8 @@
 
 import { Field, Segmented } from "./HabitFormFields";
 import { QuantityStepper } from "./QuantityStepper";
-import { HABIT_TRACKS, HOURS_LIMITS, PACE_DAYS, type HabitTrack, type PaceDays } from "@/lib/habitHoursVocabulary";
+import { HABIT_TRACKS, HOURS_LIMITS, PACE_DAYS, PACE_LABELS, TRACK_LABELS, toHabitTrack, type HabitTrack, type PaceDays } from "@/lib/habitHoursVocabulary";
+import type { HabitWho } from "@/lib/habitVocabulary";
 
 /**
  * What an editor needs to know about a habit's Track to start from it. A
@@ -10,15 +11,11 @@ import { HABIT_TRACKS, HOURS_LIMITS, PACE_DAYS, type HabitTrack, type PaceDays }
  */
 export type HoursInitial = { track?: string; weeklyMinutes?: number | null; paceDays?: string | null };
 
-const TRACK_LABELS: Record<HabitTrack, { label: string; hint: string }> = {
-  checks: { label: "Checks", hint: "Tap once when done" },
-  hours: { label: "Hours", hint: "Log time toward a weekly goal" },
-};
-
-const PACE_LABELS: Record<PaceDays, { label: string; hint: string }> = {
-  monsat: { label: "Mon to Sat", hint: "Skip Sundays" },
-  every: { label: "Every day", hint: "Sun to Sat" },
-};
+/** Who the form starts on for a habit: Together has no hours form, so a habit switched to Hours starts side by side. */
+export function initialWho(initial: { participantIds: string[]; sharing: string; track?: string } | undefined): HabitWho {
+  if (!initial || initial.participantIds.length <= 1) return "me";
+  return initial.sharing === "together" && toHabitTrack(initial.track) !== "hours" ? "together" : "each";
+}
 
 /** The starting whole hours for the stepper: the habit's own goal, else the default. */
 export function initialWeeklyHours(initial: HoursInitial | undefined): number {

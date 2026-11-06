@@ -1,7 +1,7 @@
 # Mission 37: Habits & Chores, the weekly hours tracker
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (C1)
+**Status:** BUILDING (C4), C1 PASS, C2 and C3 at the gate
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/habits-hours` (from `origin/main` at `af1708c`)
 
@@ -384,13 +384,42 @@ medium calls: 188 ("· today"), 191 (wording), 192 (swipe to Delete), 197
 6. **Done criteria:** Vision re-runs green; Strange sees the form in C4's
    gate.
 
-### C4 - The screens: Today row, log sheet, tile, stats, goals
+### C4a - Today, the log sheet, dashboard, Whole family, Manage and Edit
 
-1. **Objective:** everything a person sees: the hours row with bar and +,
-   the log sheet, the dashboard tile row, the stats page for hours, the
-   Whole family column, and the goal page, This week and Goals tile
-   lines.
-2. **Boundaries:** written after C2 and C3 land, from their real exports.
+1. **Objective:** an hours habit looks and works right on Today, the
+   dashboard tile, Whole family, Manage and Edit: the bar, the + and the
+   log sheet, and Edit opens it as Hours (closes C3's ship blocker).
+2. **Boundaries:**
+   - May touch: new `src/components/HoursLogSheet.tsx`, new
+     `src/components/HoursHabitRow.tsx` (sibling of HabitRow),
+     `src/components/HabitRow.tsx`, `src/components/HabitTodayList.tsx`,
+     `src/components/HabitsTile.tsx`, `src/components/HabitFamilyColumn.tsx`,
+     `src/components/HabitFamilyView.tsx`, `src/components/HabitManager.tsx`,
+     `src/app/(app)/habits/[id]/edit/page.tsx`,
+     `src/components/HabitForm.tsx` (back to 350 or under),
+     `src/components/HabitHoursFields.tsx`,
+     `src/lib/habitHoursVocabulary.ts` and its test (the words move
+     there), `src/lib/habits/habitWrites.ts` (only `createHabit`'s
+     schedule order, Vision's C1 note).
+   - Must not touch: `prisma/`, every `src/lib/habits*.ts` builder and
+     reader, `src/app/actions/`, the stats page and goal screens (C4b).
+3. **Spec:** decisions 187 to 191, 194, 197, 199 and the approved mock
+   with Hill's changes; existing `ProgressBar`, the `CheckInSheet` sheet
+   shape, 48px targets, tokens, Lucide only; −/+ in
+   `HOURS_LIMITS` entry steps, never typed; "Other day" is the native
+   date input over the last 7 days; errors inline; optimistic bar rolls
+   back on failure.
+4. **Verification / evidence:** the full Gauntlet, `wc -l`, `git diff
+   --stat`, and the screen states for Strange.
+5. **Done criteria:** Vision re-runs green; Strange screenshots it.
+
+### C4b - The stats page and the goal screens
+
+1. **Objective:** the hours stats page (tiles, this week chart, last 4
+   weeks, entries with swipe to Delete, the switched line) and the goal
+   page, This week and Goals tile lines for hours plans, plus the plan
+   sheet opening an hours item as Hours.
+2. **Boundaries:** written from C4a's real exports when it lands.
 
 #### C1 report and Fury's fix (2026-11-06)
 
@@ -442,3 +471,21 @@ filtered in its loader (`track: "checks"`). Carried into C4:
 - `addHoursMinutes` repeats the engine's round-up formula (a test pins it
   equal); the shown hours streak is the cache aged by `streakAfter`.
 - "½ hour" is singular like "1 hour" (Hill's 187 extended).
+
+#### C4a report (2026-11-06)
+
+Stark: DONE. Gauntlet green (1051; UTC 1044 + 7; LA 1051; build 0). New
+`HoursLogSheet.tsx` (174), `HoursHabitRow.tsx` (86); HabitForm back to
+350. Edit now opens an hours habit as Hours (`hoursInitialOf`), closing
+C3's ship blocker. `createHabit` puts `schedule` before `habitColumns`, so
+the forced shape wins. Notes:
+- A last-week day in the sheet reads "This adds 1½ hours to last week."
+  instead of decision 191's "After this: 7 of 6 hours last week": no row
+  view carries last week's total. Goes in the fix batch if a gate asks.
+- The sheet sits inside the dashboard tile with `fixed inset-0`; Strange
+  should check nothing clips it.
+- Fury's slip, recorded so it isn't repeated: a Python `str.replace` with
+  an empty search string (a slice taken in the wrong order) wrote the
+  C4 contracts between every character of this file (99 MB) in an
+  unpushed commit. That commit was dropped with `git reset --soft` and
+  the file rebuilt from the C2 commit; no code was in it.
