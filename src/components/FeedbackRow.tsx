@@ -2,19 +2,8 @@
 
 import { Check, Image as ImageIcon, RotateCcw, Trash2 } from "lucide-react";
 import { SwipeActions } from "./SwipeActions";
+import { feedbackTimeAgo } from "@/lib/feedbackTime";
 import type { FeedbackListItem } from "@/lib/feedbackRead";
-
-/** "just now", "5 min ago", "3 h ago", "2 d ago", then the date. */
-export function timeAgo(date: Date, now: Date): string {
-  const minutes = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 60000));
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 14) return `${days} d ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 export function FeedbackRow({
   item,
@@ -64,7 +53,7 @@ export function FeedbackRow({
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
               {item.hasScreenshot && <ImageIcon aria-label="Has a screenshot" size={16} />}
-              {timeAgo(item.createdAt, now)}
+              {feedbackTimeAgo(item.createdAt, now)}
             </span>
           </span>
           <span className="mt-1 line-clamp-2 block whitespace-pre-line text-base">{item.message}</span>

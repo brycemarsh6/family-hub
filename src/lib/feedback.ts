@@ -1,6 +1,7 @@
 // The rules for "Send feedback", with no imports on purpose: importable from
 // a Server Action, a server page and a client sheet alike, and testable
-// without a database (feedback.test.ts). The writing lives in
+// without a database (feedback.test.ts). decodeScreenshot uses Buffer, so it
+// is server-only; the rest runs anywhere. The writing lives in
 // src/app/actions/feedback.ts, the reading in src/lib/feedbackRead.ts.
 
 export const MESSAGE_MAX = 2000;

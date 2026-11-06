@@ -36,7 +36,7 @@ export default async function FeedbackPage({
 
       <PageTabs label="Feedback views" tabs={TABS} value={status} />
 
-      <FeedbackList items={items} status={status} />
+      <FeedbackList items={items} status={status} now={new Date()} />
     </div>
   );
 }

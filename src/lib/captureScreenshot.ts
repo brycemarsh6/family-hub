@@ -2,6 +2,7 @@
 // data URL for the Send feedback sheet. Never throws and never blocks the
 // message: any failure or a slow capture resolves to null.
 
+import "client-only";
 import { toCanvas } from "html-to-image";
 
 /** The longest side of the picture we keep, in pixels. */

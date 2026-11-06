@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useState } from "react";
+import { EmptyState } from "./EmptyState";
 import { FeedbackDetailSheet } from "./FeedbackDetailSheet";
 import { FeedbackRow } from "./FeedbackRow";
 import { deleteFeedback, markFeedbackDone } from "@/app/actions/feedbackAdmin";
@@ -23,15 +24,16 @@ function applyChange(items: FeedbackListItem[], change: Change): FeedbackListIte
 export function FeedbackList({
   items,
   status,
+  now,
 }: {
   items: FeedbackListItem[];
   status: "new" | "done";
+  /** One clock from the server page, so server and browser print the same words. */
+  now: Date;
 }) {
   const [optimisticItems, applyOptimistic] = useOptimistic(items, applyChange);
   const { run, error } = useOptimisticRun<Change>(applyOptimistic);
   const [openId, setOpenId] = useState<string | null>(null);
-  // One clock per render so every row's "time ago" agrees.
-  const [now] = useState(() => new Date());
 
   const opened = items.find((item) => item.id === openId) ?? null;
 
@@ -50,9 +52,11 @@ export function FeedbackList({
       )}
 
       {optimisticItems.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-line px-4 py-10 text-center text-muted">
-          {status === "new" ? "No new feedback" : "Nothing marked done yet"}
-        </p>
+        <EmptyState
+          emoji={status === "new" ? "💬" : "✅"}
+          title={status === "new" ? "No new feedback" : "Nothing marked done yet"}
+          hint={status === "new" ? "Reports from Send feedback show up here." : "Reports you mark done move here."}
+        />
       ) : (
         <ul className="space-y-2">
           {optimisticItems.map((item) => (

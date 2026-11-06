@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { describeDevice } from "@/lib/feedback";
+import { feedbackTimeLabel } from "@/lib/feedbackTime";
 import type { FeedbackListItem } from "@/lib/feedbackRead";
 
 /** One report in full: message, page, device, time and the screenshot. */
@@ -50,13 +51,7 @@ export function FeedbackDetailSheet({
           <div className="min-w-0">
             <h2 className="text-lg font-semibold">{item.authorName}</h2>
             <p className="text-sm text-muted">
-              {item.createdAt.toLocaleString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
+              {feedbackTimeLabel(item.createdAt)}
             </p>
           </div>
           <button

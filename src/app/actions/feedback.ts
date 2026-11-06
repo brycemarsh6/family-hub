@@ -28,6 +28,10 @@ export async function sendFeedback(input: {
 }): Promise<SendFeedbackResult> {
   const user = await getVerifiedUser();
   if (!user) return { ok: false, error: "Please sign in again, then send your feedback." };
+  // A hand-made POST can send anything; a malformed body is a plain failure.
+  if (input === null || typeof input !== "object") {
+    return { ok: false, error: "That didn't send. Check your connection and tap Send again." };
+  }
 
   const message = normalizeMessage(input.message);
   if (!message.ok) return message;

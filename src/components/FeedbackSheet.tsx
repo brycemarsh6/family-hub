@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, CheckCircle2, Check, Send } from "lucide-react";
 import { sendFeedback } from "@/app/actions/feedback";
 import { captureScreenshot } from "@/lib/captureScreenshot";
-import { MESSAGE_MAX } from "@/lib/feedback";
+import { MESSAGE_MAX, normalizeMessage } from "@/lib/feedback";
 
 const CLOSE_AFTER_SENT_MS = 1200;
 
@@ -71,8 +71,9 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
 
   async function send() {
     if (pending || sent) return;
-    if (message.trim() === "") {
-      setError("Write a message first.");
+    const checked = normalizeMessage(message);
+    if (!checked.ok) {
+      setError(checked.error);
       return;
     }
     setError(null);
