@@ -2,7 +2,8 @@
 
 import { useOptimistic, useState } from "react";
 import Link from "next/link";
-import { Flame, Moon, Plane, Sun, Sunset, Trophy } from "lucide-react";
+import { Flame, Moon, Plane, Sun, Sunset } from "lucide-react";
+import { ChoreShoutOutCard } from "./ChoreShoutOutCard";
 import { EmptyState } from "./EmptyState";
 import { HabitFilterChips, type HabitFilterOption } from "./HabitFilterChips";
 import { HabitConfetti } from "./HabitConfetti";
@@ -17,7 +18,7 @@ import { allRequiredDoneToday } from "@/lib/habitsToday";
 import { formatCalendarDate, formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { isExcused } from "@/lib/habits/weekOverrides";
-import { CHORES_LAST_WEEK_CARD, TIMES_OF_DAY, TIME_OF_DAY_LABELS, VACATION_TODAY_LABEL, vacationThroughLabel } from "@/lib/habitVocabulary";
+import { TIMES_OF_DAY, TIME_OF_DAY_LABELS, VACATION_TODAY_LABEL, vacationThroughLabel } from "@/lib/habitVocabulary";
 
 const TIME_ICONS = { morning: Sun, afternoon: Sunset, evening: Moon } as const;
 
@@ -121,12 +122,7 @@ export function HabitTodayList({
           </Link>
         </div>
       )}
-      {shoutOut && (
-        <div className="mb-3 flex items-center gap-2.5 rounded-2xl bg-streak-soft px-3 py-3">
-          <Trophy aria-hidden="true" size={20} className="shrink-0 text-streak" />
-          <p className="min-w-0 flex-1 text-sm font-semibold">{CHORES_LAST_WEEK_CARD}</p>
-        </div>
-      )}
+      {shoutOut && <ChoreShoutOutCard />}
       <p className="mb-3 text-sm text-muted">
         {todayLabel}
         {live.length > 0 && ` · ${doneCountLabel(live)}`}

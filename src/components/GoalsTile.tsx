@@ -1,5 +1,6 @@
 import { Target } from "lucide-react";
 import DashboardTile from "./DashboardTile";
+import { GOALS_TILE_PICKED_EMPTY } from "@/lib/goalVocabulary";
 import { ProgressBar } from "./ProgressBar";
 
 /**
@@ -11,10 +12,13 @@ export default function GoalsTile({
   done,
   total,
   todo,
+  picked = false,
 }: {
   done: number;
   total: number;
   todo: { id: string; title: string; left: number }[];
+  /** The person picked goals (decision 136): "Still to do" lists those goals' habits only. */
+  picked?: boolean;
 }) {
   return (
     <DashboardTile
@@ -33,7 +37,7 @@ export default function GoalsTile({
             <ProgressBar fraction={done / total} label="Goals this week progress" />
           </div>
           {todo.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">All done this week</p>
+            <p className="mt-3 text-sm text-muted">{picked ? GOALS_TILE_PICKED_EMPTY : "All done this week"}</p>
           ) : (
             <>
               <p className="mt-3 text-sm text-muted">Still to do:</p>

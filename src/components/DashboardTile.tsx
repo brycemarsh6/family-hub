@@ -12,6 +12,11 @@ import Link from "next/link";
  * layout, so the tile just fills its cell (`h-full`, which also keeps two
  * side-by-side tiles the same height).
  *
+ * The second shape, `shape="panel"`, is for a tile with controls inside (the
+ * Habits and Chores today tiles, decision 132): the card is a plain div, only
+ * its header row (icon, title) is the link to `href`, and the children keep
+ * their own taps. Same shell and header, one prop; never a link around a button.
+ *
  * `icon` takes an already-rendered element (`<Package size={20} .../>`),
  * never a bare component reference. This is the landing-page tile
  * (PlanWeekTile) lesson again: TodayMealsTile is a Client Component, and a function
@@ -25,18 +30,46 @@ export default function DashboardTile({
   icon,
   title,
   badge,
+  aside,
+  shape = "link",
   children,
 }: {
   href: string;
   icon: React.ReactNode;
   title: string;
   badge?: string;
+  /** Extra header content after the title (the chores flame). */
+  aside?: React.ReactNode;
+  /** "link": the whole card is the link. "panel": only the header row is. */
+  shape?: "link" | "panel";
   children: React.ReactNode;
 }) {
+  const cardClass = "flex h-full flex-col gap-2 rounded-2xl border border-line bg-surface p-4";
+  if (shape === "panel") {
+    // Only the header row links; the rows below keep their own taps.
+    return (
+      <div className={cardClass}>
+        <Link
+          href={href}
+          className="-m-1 flex min-h-11 flex-wrap items-center gap-x-2 gap-y-1 rounded-xl p-1 transition-colors active:bg-surface-2"
+        >
+          <span className="flex shrink-0 items-center">{icon}</span>
+          <span className="text-base font-semibold">{title}</span>
+          {aside}
+          {badge && (
+            <span className="inline-block shrink-0 rounded-full bg-warn-soft px-2.5 py-0.5 text-xs font-medium text-warn">
+              {badge}
+            </span>
+          )}
+        </Link>
+        <div className="min-w-0">{children}</div>
+      </div>
+    );
+  }
   return (
     <Link
       href={href}
-      className="flex h-full flex-col gap-2 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-accent active:bg-surface-2"
+      className={`${cardClass} transition-colors hover:border-accent active:bg-surface-2`}
     >
       {/*
         `flex-wrap` and the `shrink-0` icon slot together are load-bearing at
@@ -58,6 +91,7 @@ export default function DashboardTile({
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="flex shrink-0 items-center">{icon}</span>
         <span className="text-base font-semibold">{title}</span>
+        {aside}
         {badge && (
           <span className="inline-block shrink-0 rounded-full bg-warn-soft px-2.5 py-0.5 text-xs font-medium text-warn">
             {badge}

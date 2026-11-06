@@ -27,10 +27,14 @@ import type { DashboardWidgetId } from "@/lib/dashboardWidgets";
 export default function DashboardWidgetList({
   layout,
   tiles,
+  notes = null,
   canCustomize,
 }: {
   layout: DashboardLayout;
+  /** A tile that is null leaves no grid cell (the tablet has no Habits or Chores tile). */
   tiles: Record<DashboardWidgetId, React.ReactNode>;
+  /** Cards between the heading row and the grid (the nudge and Sunday cards, decision 139). */
+  notes?: React.ReactNode;
   canCustomize: boolean;
 }) {
   const [optimisticLayout, setOptimisticLayout] = useOptimistic(layout);
@@ -73,6 +77,7 @@ export default function DashboardWidgetList({
         {canCustomize && customizeButton}
       </div>
       <p className="mt-2 text-base text-muted">What&apos;s going on around the house.</p>
+      {notes && <div className="mt-4">{notes}</div>}
 
       {spans.length === 0 ? (
         <div className="mt-6">
@@ -84,11 +89,13 @@ export default function DashboardWidgetList({
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-4">
-          {spans.map(({ id, span }) => (
-            <div key={id} className={`min-w-0 ${span === "full" ? "col-span-2" : ""}`}>
-              {tiles[id]}
-            </div>
-          ))}
+          {spans.map(({ id, span }) =>
+            tiles[id] == null ? null : (
+              <div key={id} className={`min-w-0 ${span === "full" ? "col-span-2" : ""}`}>
+                {tiles[id]}
+              </div>
+            ),
+          )}
         </div>
       )}
 

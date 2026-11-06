@@ -117,7 +117,7 @@ Fury added the DashboardTile second-shape line to DESIGN.md (132).
 ## Contracts
 
 ### C1 - Layout items and tile builders, pure, with tests
-- **Status:** OPEN.
+- **Status:** DONE (Stark; Fury re-ran tsc, 862 tests Denver, 862 with 7 DST skips UTC). With picks the tile never says "All done for today" (done picked rows stay visible); a null tile still leaves an empty grid cell until C2.
 - **Objective:** the registry gains `habits` ("Habits") and `chores`
   ("Chores today"), full, on by default, after `todayMeals` (131); the
   layout keeps an optional `items: string[]` per widget; pure builders for
@@ -141,7 +141,7 @@ Fury added the DashboardTile second-shape line to DESIGN.md (132).
   and vacation rows and keep done ones; goals with picks.
 
 ### C2 - Reader, page, cards, revalidation
-- **Status:** OPEN (after C1).
+- **Status:** DONE (Stark; Fury re-ran tsc, 867 tests, build EXIT=0). Added `src/lib/dashboardPicks.ts` (+test: `keepOwnPicks`, `layoutForViewer`), `HabitsTile.tsx` (exports `HabitTileRows`), `ChoresTile.tsx`, `ChoreShoutOutCard.tsx`, `DashboardTile` `shape="panel"`, a `notes` slot on `DashboardWidgetList`. The layout is read before the other loaders. `pickable` lists returned for C3, not yet wired.
 - **Objective:** the dashboard renders the two tiles, the Goals tile with
   picks, and the nudge and Sunday cards (139); the tablet gets neither
   tile (138); a check on the dashboard updates it.

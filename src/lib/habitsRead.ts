@@ -14,7 +14,9 @@ import { canEditChart } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartDay } from "./habits/carryOver";
 import { logDayFromRow, specFromRow, vacationFromRow } from "./habits/habitRows";
 import type { HabitAccess, HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
-import { buildTodayPage, todayLogsFrom, type TodayPage } from "./habitsToday";
+import { keepOwnPicks } from "./dashboardPicks";
+import { choresTileRows, habitsTileRows, pickableHabits, type HabitsTile } from "./habitsDashboard";
+import { buildTodayPage, todayLogsFrom, type HabitRowView, type TodayNudge, type TodayPage } from "./habitsToday";
 import { loadHouseholdPeople, type HouseholdPerson } from "./householdPeople";
 import { toHabitSharing, type HabitSharing } from "./habitVocabulary";
 
@@ -166,6 +168,36 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
   }
   const nudges = nudgeRows.map((row) => ({ id: row.id, fromName: row.fromUser.displayName, habitTitle: row.habit.title }));
   return buildTodayPage(viewer, habits, logsByHabit, today, vacationsByUser, nudges, choreCache);
+}
+
+/** What the dashboard shows from Habits & Chores: the two tiles, the cards above them and the habits the picker lists. */
+export type DashboardHabits = {
+  habits: HabitsTile<HabitRowView>;
+  chores: HabitsTile<HabitRowView>;
+  choreStreak: number;
+  nudges: TodayNudge[];
+  shoutOut: boolean;
+  /** The habits the picker lists (kind habit, not archived, private ones the viewer takes part in), in Manage order. */
+  pickable: { id: string; title: string; icon: string | null }[];
+};
+
+/**
+ * The dashboard's habit data, built on the Today loader so it reads exactly
+ * what Today reads (private habits already follow `canSeeHabit` there).
+ * `picks` is the layout's claim: ids that are not among the viewer's pickable
+ * habits are dropped here (decision 137), so a stale or foreign id never reaches a tile.
+ */
+export async function loadDashboardHabits(viewer: HabitActor, today: CalendarDate, picks: string[]): Promise<DashboardHabits> {
+  const page = await loadTodayPage(viewer, today);
+  const pickable = pickableHabits(page.manage).map((item) => ({ id: item.id, title: item.title, icon: item.icon }));
+  return {
+    habits: habitsTileRows(page.rows, keepOwnPicks(picks, pickable.map((item) => item.id))),
+    chores: choresTileRows(page.rows),
+    choreStreak: page.choreStreak,
+    nudges: page.nudges,
+    shoutOut: page.shoutOut,
+    pickable,
+  };
 }
 
 /**
