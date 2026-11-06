@@ -458,3 +458,12 @@
   `already_undone`; redo not exercised live for put-away or delete; nulls
   `addedById` on re-create if that user is gone (read-only User lookup).
   Gate pass 1: Vision + Captain dispatched in parallel.
+- 2026-11-06: F1 DONE (8 files). B1 closed live (family line → put-away →
+  undo → DELETE 403, row survives); Winnie's own create/undo/redo → her
+  DELETE 200; encoded path 400; family-linked pantry row → 409 `in_use`,
+  link kept; column lists pinned (fake key and missing key both fail tsc);
+  U4 controls all pass. Tests 1025, full gauntlet green. Open for Vision
+  pass 2: the inherited "3 parallel put-aways, one does it" script check
+  FAILs in both Vision's and Stark's runs (statuses `[200,409,409]` and
+  `[200,200,200]`); may be the script's response-shape filter, must be
+  settled by hand. Vision pass 2 dispatched.
