@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, MoreHorizontal, Pencil, Plus, RotateCcw, Trash2, Undo2 } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
@@ -20,6 +20,7 @@ import {
   progressFraction,
   type PlanItemView,
 } from "@/lib/goalsProgress";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { calendarDateInZone, formatShortCalendarDate, type CalendarDate } from "@/lib/householdDate";
 import { applyPlanItemChange, type PlanItemChange } from "@/lib/planItemChanges";
 import { completeGoal, deleteCheckIn, deleteGoal, uncompleteGoal, type GoalActionResult } from "@/app/actions/goals";
@@ -43,7 +44,6 @@ type Change =
   | { type: "complete"; at: Date }
   | { type: "reopen" };
 
-const SAVE_FAILED = "Couldn't save that. Check your connection and try again.";
 
 type Sheet = { kind: "menu" } | { kind: "checkIn" } | { kind: "item"; item?: PlanItemView };
 
@@ -65,27 +65,15 @@ export function GoalDetail({ goal: served, today }: { goal: GoalView; today: Cal
         return { ...current, items: applyPlanItemChange(current.items, change) };
     }
   });
-  const [, startTransition] = useTransition();
+  const { run: runChange, error, setError, startTransition } = useOptimisticRun(applyOptimistic);
   const [sheet, setSheet] = useState<Sheet | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   function run(
     change: Change,
     action: () => Promise<PlanItemActionResult | GoalActionResult>,
     refresh = false,
   ) {
-    setError(null);
-    startTransition(async () => {
-      applyOptimistic(change);
-      try {
-        const result = await action();
-        if (result.error) setError(result.error);
-        else if (refresh) router.refresh();
-      } catch {
-        // The call never reached the server (network down): say so here instead of the error page.
-        setError(SAVE_FAILED);
-      }
-    });
+    runChange(change, action, refresh ? () => router.refresh() : undefined);
   }
 
   function handleDeleteGoal() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useOptimistic, useState } from "react";
+import { useOptimistic, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ChoreChartSheet } from "./ChoreChartSheet";
@@ -9,6 +9,7 @@ import { addChartChore, clearChoreChange, moveChoreThisWeek, skipChoreThisWeek }
 import type { ChartChore, ChartWeekChore, ChartWeekDay, ChoreChartData } from "@/lib/choreChart";
 import { CHORE_CHART_LABELS, CHORE_TAG_LABELS, HABIT_TITLE_MAX, type Weekday } from "@/lib/habitVocabulary";
 import { SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 const CARD = "flex flex-col gap-1.5 rounded-2xl border bg-surface px-3 py-2.5";
 const ROW = "flex min-h-11 w-full items-center gap-2 rounded-xl bg-accent-soft px-2.5 text-left text-fg";
@@ -91,34 +92,29 @@ function WeekRow({ chore, onOpen }: { chore: ChartWeekChore; onOpen: () => void 
  * opens a sheet to move or skip it for this week only. The person and the
  * tab are in the URL (`?person=`, `?view=`), so each is a real page.
  *
- * Every tap goes through one `useActionState` reducer that shows the change at
- * once and puts the server's error underneath; the page's server refresh then
- * replaces the guess with the truth. (It is not another copy of the `run()`
- * wrapper STRUCTURE.md lists as debt: there is no closure argument, only a
- * typed change that this file turns into one of its four actions.)
+ * Every tap goes through `useOptimisticRun`: the change shows at once and the
+ * server's error goes underneath; the page's server refresh then replaces the
+ * guess with the truth. This file turns each typed change into one of its four
+ * actions, and keeps the dimmed "new-" rows (a chore not yet saved) to itself.
  */
 export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "default" | "week" }) {
   const [live, applyOptimistic] = useOptimistic<ChoreChartData, ChartChange>(chart, applyChartChange);
   const [adding, setAdding] = useState<Weekday | null>(null);
   const [name, setName] = useState("");
   const [open, setOpen] = useState<{ chore: ChartWeekChore; column: Weekday } | null>(null);
-  const [error, send] = useActionState(async (_previous: string | null, change: ChartChange): Promise<string | null> => {
-    applyOptimistic(change);
-    try {
-      const result =
-        change.type === "add"
-          ? await addChartChore(chart.personId, change.weekday, change.name)
-          : change.type === "move"
-            ? await moveChoreThisWeek(chart.personId, change.habitId, change.from, change.to)
-            : change.type === "skip"
-              ? await skipChoreThisWeek(chart.personId, change.habitId, change.from)
-              : await clearChoreChange(chart.personId, change.habitId, change.from);
-      return result.error ?? null;
-    } catch {
-      // The call never reached the server (network down): say so here instead of the error page.
-      return "Couldn't reach the server. Check your connection and try again.";
-    }
-  }, null);
+  const { run, error } = useOptimisticRun(applyOptimistic);
+
+  function send(change: ChartChange) {
+    run(change, () =>
+      change.type === "add"
+        ? addChartChore(chart.personId, change.weekday, change.name)
+        : change.type === "move"
+          ? moveChoreThisWeek(chart.personId, change.habitId, change.from, change.to)
+          : change.type === "skip"
+            ? skipChoreThisWeek(chart.personId, change.habitId, change.from)
+            : clearChoreChange(chart.personId, change.habitId, change.from),
+    );
+  }
 
   const href = (person: string, next: "default" | "week") => `/habits/chart?person=${person}&view=${next}`;
   const tabs = [

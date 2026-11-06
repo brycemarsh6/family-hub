@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
 import Link from "next/link";
 import { VisionCard } from "./VisionCard";
 import { VisionSheet } from "./VisionSheet";
@@ -9,6 +9,7 @@ import { promptAt } from "@/lib/goalPrompts";
 import { boardHeading, boardHint } from "@/lib/visions";
 import type { VisionBoardData } from "@/lib/visionsRead";
 import { saveVision } from "@/app/actions/visions";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 const CHIP = "flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors";
 const CHIP_ON = "border-accent bg-accent text-accent-fg";
@@ -42,8 +43,7 @@ export function VisionBoard({
   // Locked once: the server makes a new seed on every re-render (after a save), which would restart the order.
   const [promptSeed] = useState(initialSeed);
   const [cards, applyOptimistic] = useOptimistic(data.cards, applyChange);
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
   const [steps, setSteps] = useState<Partial<Record<LifeArea, number>>>({});
   const [open, setOpen] = useState<LifeArea | null>(null);
 
@@ -67,18 +67,11 @@ export function VisionBoard({
     const trimmed = text.trim();
     if (data.saveAs === null) return;
     const board = data.saveAs;
-    setError(null);
-    startTransition(async () => {
-      if (trimmed !== "") applyOptimistic({ area, text: trimmed });
-      try {
-        const result = await saveVision({ board, area, horizon, text: trimmed });
-        if (result.error) setError(result.error);
-        else setOpen((current) => (current === area ? null : current));
-      } catch {
-        // The call never reached the server (network down): say so here instead of the error page.
-        setError("Couldn't save that. Check your connection and try again.");
-      }
-    });
+    run(
+      trimmed !== "" ? { area, text: trimmed } : null,
+      () => saveVision({ board, area, horizon, text: trimmed }),
+      () => setOpen((current) => (current === area ? null : current)),
+    );
   }
 
   function close() {

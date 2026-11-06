@@ -224,18 +224,17 @@ structural changes against it.
 
 Adding a second definition of any of these is a BLOCKER:
 
-- **The optimistic tap wrapper is debt with a deadline (mission-32).** The
-  `run(change, action)` shape (clear the error, start a transition, apply
-  the change, await the action, show `result.error`, catch a network
-  failure with "Couldn't save that. Check your connection and try
-  again.") is copied in `HabitTodayList`, `HabitFamilyView`, `HabitStats`,
-  `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail` and
-  `NudgeCard`. One
-  contract moves it into a client hook in `src/lib/` that takes the action
-  as a closure argument (so lib never imports `app/`), with the message as
-  one exported constant. The eight copies (counted with `git grep` on the
-  message, mission-32) are grandfathered debt, not a pattern to cite; a
-  ninth is a BLOCKER.
+- **`src/lib/useOptimisticRun.ts` is the only home of the optimistic tap
+  wrapper** (clear the error, start a transition, show the change, await the
+  action, show `result.error`, catch a network failure with the one exported
+  `SAVE_FAILED` message). Every component that taps and saves
+  (`HabitTodayList`, `HabitFamilyView`, `HabitStats`, `NudgeCard`,
+  `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`)
+  calls it with the action as a closure, so lib never imports `app/`. A second
+  copy of that shape, or the message typed again, is a BLOCKER. Left out on
+  purpose, to move over later: `VacationCard` (two inline copies) and the
+  differently worded saves in `DashboardWidgetList`, `HabitsChoresSettings`,
+  `NavModeSetting` and `NudgeButton`.
 
 - `src/lib/constants.ts` — categories, locations, meal slots, stores,
   **roles with their display labels and assignability, avatar colors**,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic } from "react";
 import { Flame } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
@@ -13,6 +13,7 @@ import type { HabitStatsData } from "@/lib/habitsFamily";
 import { parseDateParam } from "@/lib/householdDate";
 import { NUDGE_STATUS_LABEL } from "@/lib/habitVocabulary";
 import { statsMonthTitle } from "@/lib/habitsStats";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 const SECTION_TITLE = "text-sm font-semibold uppercase tracking-wide text-muted";
 
@@ -52,23 +53,12 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
   const [cells, applyOptimistic] = useOptimistic<CalendarCell[], CellChange>(data.calendar.cells, (current, change) =>
     applyCellChange(current, change, data.today),
   );
-  const [, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const { run, error } = useOptimisticRun(applyOptimistic);
 
   function toggle(cell: CalendarCell) {
     if (!data.canTap) return;
     const undo = isChecked(cell);
-    setError(null);
-    startTransition(async () => {
-      applyOptimistic({ day: cell.day, checked: !undo });
-      try {
-        const result = await (undo ? uncheckHabit : checkHabit)(data.habit.id, data.subjectId, cell.day);
-        if (result.error) setError(result.error);
-      } catch {
-        // The call never reached the server (network down): say so here instead of the error page.
-        setError("Couldn't save that. Check your connection and try again.");
-      }
-    });
+    run({ day: cell.day, checked: !undo }, () => (undo ? uncheckHabit : checkHabit)(data.habit.id, data.subjectId, cell.day));
   }
 
   const checkedNow = cells.filter(isChecked).length;

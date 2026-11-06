@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
 import Link from "next/link";
 import { Flame, Moon, Plane, Sun, Sunset, Trophy } from "lucide-react";
 import { EmptyState } from "./EmptyState";
@@ -9,13 +9,13 @@ import { HabitConfetti } from "./HabitConfetti";
 import { HabitRow } from "./HabitRow";
 import { NudgeCards } from "./NudgeCard";
 import { checkHabit, skipHabit, uncheckHabit, unskipHabit } from "@/app/actions/habitChecks";
-import type { HabitActionResult } from "@/app/actions/habits";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView, TodayNudge } from "@/lib/habitsRead";
 import { doneCountLabel } from "@/lib/habitsFamily";
 import { allRequiredDoneToday } from "@/lib/habitsToday";
 import { formatCalendarDate, formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { isExcused } from "@/lib/habits/weekOverrides";
 import { CHORES_LAST_WEEK_CARD, TIMES_OF_DAY, TIME_OF_DAY_LABELS, VACATION_TODAY_LABEL, vacationThroughLabel } from "@/lib/habitVocabulary";
 
@@ -63,9 +63,8 @@ export function HabitTodayList({
   // A copy of the rows that is updated the instant a button is tapped, then
   // replaced by the server's real answer (the same idea as ThisWeekList).
   const [live, applyOptimistic] = useOptimistic<HabitRowView[], HabitChange>(rows, applyHabitChange);
-  const [, startTransition] = useTransition();
+  const { run, error } = useOptimisticRun(applyOptimistic);
   const [filter, setFilter] = useState(ALL);
-  const [error, setError] = useState<string | null>(null);
   // Done rows move to the bottom once, when the page loads. A tap must not
   // make a row jump away from under the finger, so the order is fixed here
   // and later rows (none expected) simply go last.
@@ -75,20 +74,6 @@ export function HabitTodayList({
     return at === -1 ? order.length : at;
   };
   const ordered = [...live].sort((a, b) => rank(a) - rank(b));
-
-  function run(change: HabitChange, action: () => Promise<HabitActionResult>) {
-    setError(null);
-    startTransition(async () => {
-      applyOptimistic(change);
-      try {
-        const result = await action();
-        if (result.error) setError(result.error);
-      } catch {
-        // The call never reached the server (network down): say so here instead of the error page.
-        setError("Couldn't save that. Check your connection and try again.");
-      }
-    });
-  }
 
   // Which chips to offer: only the times of day and life areas that rows actually use.
   const options: HabitFilterOption[] = [{ key: ALL, label: "All" }];

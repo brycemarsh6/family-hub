@@ -1,13 +1,13 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic } from "react";
 import { Users } from "lucide-react";
 import { FamilyHabitRow, HabitFamilyColumn } from "./HabitFamilyColumn";
 import { checkHabit, uncheckHabit } from "@/app/actions/habitChecks";
-import type { HabitActionResult } from "@/app/actions/habits";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { FamilyPage, FamilyRow } from "@/lib/habitsFamily";
 import { formatCalendarDate } from "@/lib/householdDate";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 /** A tap applied to every place the habit shows: the strip and each column (an Each habit's `userId` keeps it to one person's own flags). */
 function applyToPage(page: FamilyPage, change: HabitChange): FamilyPage {
@@ -29,22 +29,7 @@ const dayOf = (row: FamilyRow) => (row.carriedFrom ? formatCalendarDate(row.carr
  */
 export function HabitFamilyView({ page, showStreaks }: { page: FamilyPage; showStreaks: boolean }) {
   const [live, applyOptimistic] = useOptimistic<FamilyPage, HabitChange>(page, applyToPage);
-  const [, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  function run(change: HabitChange, action: () => Promise<HabitActionResult>) {
-    setError(null);
-    startTransition(async () => {
-      applyOptimistic(change);
-      try {
-        const result = await action();
-        if (result.error) setError(result.error);
-      } catch {
-        // The call never reached the server (network down): say so here instead of the error page.
-        setError("Couldn't save that. Check your connection and try again.");
-      }
-    });
-  }
+  const { run, error } = useOptimisticRun(applyOptimistic);
 
   function toggle(row: FamilyRow) {
     const change = { habitId: row.id, userId: row.logForId };

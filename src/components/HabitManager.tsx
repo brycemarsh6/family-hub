@@ -1,13 +1,13 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic } from "react";
 import Link from "next/link";
 import { Archive, CalendarDays, ChevronRight, Plus, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { HabitIcon } from "./HabitIcon";
 import { QUIT_TAG_CLASS } from "./HabitRow";
 import { SortableList } from "./SortableList";
-import { reorderHabits, restoreHabit, type HabitActionResult } from "@/app/actions/habits";
+import { reorderHabits, restoreHabit } from "@/app/actions/habits";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import {
   CHORE_CHART_LABELS,
@@ -19,6 +19,7 @@ import {
 } from "@/lib/habitVocabulary";
 import type { HabitManagerItem } from "@/lib/habitsRead";
 import { FULL_DAY_NAMES, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 
 const CARD = "rounded-2xl border border-line bg-surface px-3";
@@ -93,22 +94,7 @@ function RowBody({ item }: { item: HabitManagerItem }) {
  */
 export function HabitManager({ active, archived }: { active: HabitManagerItem[]; archived: HabitManagerItem[] }) {
   const [state, applyOptimistic] = useOptimistic<ManagerState, ManagerChange>({ active, archived }, applyManagerChange);
-  const [, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  function run(change: ManagerChange, action: () => Promise<HabitActionResult>) {
-    setError(null);
-    startTransition(async () => {
-      applyOptimistic(change);
-      try {
-        const result = await action();
-        if (result.error) setError(result.error);
-      } catch {
-        // The call never reached the server (network down): say so here instead of the error page.
-        setError("Couldn't save that. Check your connection and try again.");
-      }
-    });
-  }
+  const { run, error } = useOptimisticRun(applyOptimistic);
 
   function reorderWithin(kind: HabitManagerItem["kind"], groupIds: string[]) {
     // Put the group's new order into the slots the group held in the full list.

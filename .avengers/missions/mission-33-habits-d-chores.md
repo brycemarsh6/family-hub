@@ -223,7 +223,7 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
   `vacationWrites.ts`, `choreChart.ts`, the new actions and components.
 
 ### F1 - One optimistic tap hook (PR C debt, before the gates)
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc, 824 tests). `src/lib/useOptimisticRun.ts` with `SAVE_FAILED`; nine callers moved; `habitsFamily.test.ts` split (256 + `habitsStatsPage.test.ts` 181). Left: `VacationCard.tsx` has two inline copies of the message, fixed in F2.
 - **Objective:** STRUCTURE.md's "optimistic tap wrapper" debt entry: one
   client hook in `src/lib/` that takes the action as a closure, with the
   failure message as one exported constant, used by every copy, so no copy
@@ -243,3 +243,7 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
 - **Verification:** full gauntlet; `git grep` shows the message in one
   place.
 
+### F2 - VacationCard uses the hook
+- **Status:** PENDING
+- **Boundaries:** `src/components/VacationCard.tsx`, `STRUCTURE.md` (remove VacationCard from the leftover note).
+- **Rules:** save and delete go through `useOptimisticRun` (save with a null change, since the server may refuse), message from `SAVE_FAILED`; behaviour unchanged.
