@@ -1,10 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Moon, Sun, Sunset } from "lucide-react";
-import { HabitFilterChips, type HabitFilterOption } from "./HabitFilterChips";
-
-const TIME_ICONS = { morning: Sun, afternoon: Sunset, evening: Moon } as const;
+import { HabitFilterChips, TIME_ICONS, type HabitFilterOption } from "./HabitFilterChips";
 
 /**
  * The Report's filter row (decision 169): `HabitFilterChips` as Today shows it,

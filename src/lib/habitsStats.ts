@@ -1,4 +1,4 @@
-import { addCalendarDays, calendarDaysBetween, dayOfWeek, startOfMonth, startOfWeek, type CalendarDate } from "./householdDate";
+import { addCalendarDays, calendarDaysBetween, dayOfWeek, formatShortCalendarDate, parseDateParam, startOfMonth, startOfWeek, type CalendarDate } from "./householdDate";
 import { perfectDaysInRange, type DayEntry } from "./habits/perfectDays";
 import {
   compareDays,
@@ -12,9 +12,9 @@ import {
 import { displayStreak, streakUnitOf, type StreakCache } from "./habits/streaks";
 import type { HabitLogDay, ScheduleSpec, Vacation, WeekOverride } from "./habits/types";
 import { choreDayState, choreTag } from "./habits/weekOverrides";
-import { FULL_MONTH_NAMES } from "./mealPlanDates";
+import { FULL_MONTH_NAMES, SHORT_DAY_NAMES } from "./mealPlanDates";
 import { isTapDayAllowed } from "./habits/carryOver";
-import { isCheckStatus, streakLabel, type StreakUnit, type Weekday } from "./habitVocabulary";
+import { DAY_CELL_REASON_WORDS, DAY_CELL_WORDS, isCheckStatus, streakLabel, type StreakUnit, type Weekday } from "./habitVocabulary";
 
 // The stats page's rules, with no database: `habitsRead.ts` (or a stats
 // reader) fetches the habit, its logs and vacations, and this file works out
@@ -98,7 +98,7 @@ export type CellReason = { kind: "vacation" } | { kind: "weekSkip" } | { kind: "
 export type MonthCell = {
   day: CalendarDate;
   state: MonthCellState;
-  /** Set on an undone vacation or week-skipped day ("skipped") and on a moved-away day ("notDue"); else null. */
+  /** Set on a vacation or week-skipped day ("skipped") and on a moved-away day ("notDue"), checked or not; null on a day skipped by a tap and on every other day. */
   reason: CellReason | null;
   /** A tap may write this day: within `TAP_DAYS_BACK` and never in the future. */
   tappable: boolean;
@@ -113,10 +113,34 @@ export type MonthCalendar = {
 };
 
 /**
+ * What a cell draws. A check wins; without one a vacation or week-skipped
+ * reason reads as Skipped and a moved-away reason as not due, so an optimistic
+ * undo (which resets `state` to "missed" or "today") still draws right until
+ * the server answers.
+ */
+export function effectiveState(cell: { state: MonthCellState; reason?: CellReason | null }): MonthCellState {
+  if (cell.state === "done" || cell.state === "late") return cell.state;
+  if (cell.reason?.kind === "vacation" || cell.reason?.kind === "weekSkip") return "skipped";
+  if (cell.reason?.kind === "movedAway" && cell.state !== "future") return "notDue";
+  return cell.state;
+}
+
+/** "Nov 8, skipped (on vacation)", "Nov 8, skipped this week", "Nov 9, not due (moved to Thu)" (decision 170). `day` is "YYYY-MM-DD". */
+export function dayCellLabel(cell: { day: string; state: MonthCellState; reason?: CellReason | null }): string {
+  const date = formatShortCalendarDate(parseDateParam(cell.day)!);
+  const state = effectiveState(cell);
+  if (state === "skipped" && cell.reason?.kind === "vacation") return `${date}, ${DAY_CELL_REASON_WORDS.vacation}`;
+  if (state === "skipped" && cell.reason?.kind === "weekSkip") return `${date}, ${DAY_CELL_REASON_WORDS.weekSkip}`;
+  if (state === "notDue" && cell.reason?.kind === "movedAway") return `${date}, ${DAY_CELL_REASON_WORDS.movedAway(SHORT_DAY_NAMES[cell.reason.toWeekday])}`;
+  return `${date}, ${DAY_CELL_WORDS[state]}`;
+}
+
+/**
  * The month containing `inMonth`, one cell per day. A check wins over
  * everything (done, late or skipped, today included). With no check: after
  * today is "future" and an earlier day is "missed" when the person was meant
- * to do it (a due day on or after `since`) and "notDue" otherwise. A due day
+ * to do it (a due day on or after `since`) and "notDue" otherwise (today
+ * too, when it is not a due day). A due day
  * that is undone and on vacation or skipped for the week is "skipped" (today
  * too, since it is excused all day; decision 170), and a chore's moved-away
  * day is "notDue" while its moved-to day is due. Open kinds (weekly, monthly)
@@ -137,16 +161,19 @@ export function monthCalendar(input: StatsInput, userId: string, inMonth: Calend
     const dueDay = choreDayState(input.spec, overrides, day);
     // A day before the person joined the habit was never theirs.
     const meant = dueDay !== "none" && compareDays(day, person.since) >= 0;
-    let state: MonthCellState;
+    const excused = meant && (dueDay === "excused" || dayInVacation(day, vacations));
+    // The reason is kept under a check too (a check wins in `effectiveState`), so an undo redraws the day right at once; a day skipped by a tap carries none.
     let reason: CellReason | null = null;
+    if (log?.status !== "skipped") {
+      if (excused) reason = dayInVacation(day, vacations) ? { kind: "vacation" } : { kind: "weekSkip" };
+      else if (!meant && tag?.kind === "moved-away") reason = { kind: "movedAway", toWeekday: tag.toWeekday };
+    }
+    let state: MonthCellState;
     if (log) state = log.status;
     else if (ahead) state = "future";
-    else if (meant && (dueDay === "excused" || dayInVacation(day, vacations))) {
-      state = "skipped";
-      reason = dayInVacation(day, vacations) ? { kind: "vacation" } : { kind: "weekSkip" };
-    } else if (isSameDay(day, input.today)) state = "today";
-    else state = meant ? "missed" : "notDue";
-    if (!log && !meant && tag?.kind === "moved-away") reason = { kind: "movedAway", toWeekday: tag.toWeekday };
+    else if (excused) state = "skipped";
+    else if (!meant) state = "notDue";
+    else state = isSameDay(day, input.today) ? "today" : "missed";
     cells.push({ day, state, reason, tappable: isTapDayAllowed(day, input.today, null) && compareDays(day, person.since) >= 0 });
   }
   return { first, leading: dayOfWeek(first), cells };

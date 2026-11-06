@@ -79,20 +79,6 @@ export function formatWeekRange(weekStart: Date): string {
     : `${startMonth} ${weekStart.getDate()} – ${endMonth} ${end.getDate()}`;
 }
 
-/** The Habits Report's week title, with no dash: "Nov 1 to 7", "Oct 26 to Nov 1".
- * A year other than `currentYear` is written, once at the end when the week stays
- * in one year ("Nov 1 to 7, 2025") and on each end when it crosses New Year
- * ("Dec 28, 2025 to Jan 3"). */
-export function formatWeekTitle(weekStart: Date, currentYear: number): string {
-  const end = addDays(weekStart, 6);
-  const startMonth = MONTH_NAMES[weekStart.getMonth()];
-  const endMonth = MONTH_NAMES[end.getMonth()];
-  const withYear = (text: string, year: number) => (year === currentYear ? text : `${text}, ${year}`);
-  const endText = startMonth === endMonth && weekStart.getFullYear() === end.getFullYear() ? `${end.getDate()}` : `${endMonth} ${end.getDate()}`;
-  if (weekStart.getFullYear() === end.getFullYear()) return withYear(`${startMonth} ${weekStart.getDate()} to ${endText}`, end.getFullYear());
-  return `${withYear(`${startMonth} ${weekStart.getDate()}`, weekStart.getFullYear())} to ${withYear(endText, end.getFullYear())}`;
-}
-
 /** "Sunday, Aug 9" — a day card's header. */
 export function formatDayLabel(date: Date): string {
   return `${FULL_DAY_NAMES[date.getDay()]}, ${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;

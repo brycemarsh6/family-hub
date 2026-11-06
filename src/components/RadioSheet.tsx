@@ -80,7 +80,7 @@ export function RadioSheet<T extends string>({
                 <span className="min-w-0 truncate">{option.label}</span>
               </span>
               {selected === option.value && (
-                <Check aria-hidden="true" size={18} className="text-accent" />
+                <Check aria-hidden="true" size={18} className="shrink-0 text-accent" />
               )}
             </button>
           ))}

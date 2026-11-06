@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { AVATAR_COLORS, MANAGER_ROLES } from "@/lib/constants";
+import { AVATAR_COLORS } from "@/lib/constants";
 import { addCalendarDays, utcMidnightInstant, startOfMonth, startOfWeek, type CalendarDate } from "./householdDate";
 import { carrySince, habitStartDay } from "./habits/carryOver";
 import { choreCacheFromRow, overrideWindowStart } from "./choreChart";
@@ -13,7 +13,7 @@ import { todayLogsFrom } from "./habitsToday";
 import { HOUSEHOLD_PERSON_WHERE, loadHouseholdPeople } from "./householdPeople";
 import { toHabitKind } from "./habitVocabulary";
 import { buildHabitReport, type HabitReport } from "./habitsReport";
-import { reportScope, type ReportParams } from "./habitsReportScope";
+import { reportPersonId, reportScope, type ReportParams } from "./habitsReportScope";
 import { buildCalendarHabitDays, plannedPeriodsRange, type PlannedDayRow } from "./habitsCalendar";
 import type { CalendarHabitDayView } from "./types";
 
@@ -209,7 +209,7 @@ export async function loadPlannedHabitDays(viewer: HabitActor, from: Date, to: D
  * The Report (decisions 163 to 171) as plain data, or null on the tablet. The
  * rules are `habitsReport.ts`'s and `habitsReportScope.ts`'s. Queries: the household people and the shown
  * person's live habits with their people; then, for the range shown only and
- * only the items drawn, that person's checks, their vacations and the
+ * only the items drawn, that person's checks, the vacations touching it and the
  * this-week changes to those items. Another person is shown only to a parent
  * or admin (`reportScope` falls back to the viewer), and another person's
  * private habits are never fetched into a row.
@@ -219,9 +219,8 @@ export async function loadHabitReport(viewer: HabitActor, params: ReportParams, 
   const [household, colorRows] = await Promise.all([loadHouseholdPeople(), db.user.findMany({ where: HOUSEHOLD_PERSON_WHERE, select: { id: true, avatarColor: true } })]);
   const colors = new Map(colorRows.map((row) => [row.id, row.avatarColor]));
   const people = household.map((person) => ({ id: person.id, displayName: person.displayName, avatarColor: colors.get(person.id) ?? AVATAR_COLORS[0].name }));
-  // Who is shown is decided before the habits are read, by the same rule `reportScope` applies below.
-  const asked = people.find((person) => person.id === params.person);
-  const shownId = asked && MANAGER_ROLES.includes(viewer.role) ? asked.id : viewer.userId;
+  // Who is shown is decided before the habits are read, by `reportPersonId`, the rule `reportScope` applies too.
+  const shownId = reportPersonId(viewer, params.person, people);
   const habits = await db.habit.findMany({
     where: { archivedAt: null, participants: { some: { userId: shownId } }, ...(shownId === viewer.userId ? {} : { isPrivate: false }) },
     include: {
@@ -245,7 +244,7 @@ export async function loadHabitReport(viewer: HabitActor, params: ReportParams, 
             where: { habitId: { in: ids }, weekStart: { gte: utcMidnightInstant(startOfWeek(scope.from)), lte: utcMidnightInstant(scope.to) } },
             select: { habitId: true, weekStart: true, fromWeekday: true, action: true, toWeekday: true },
           }),
-          db.vacationPeriod.findMany({ where: { userId: scope.personId }, select: { userId: true, startDay: true, endDay: true } }),
+          db.vacationPeriod.findMany({ where: { userId: scope.personId, startDay: { lte: utcMidnightInstant(scope.to) }, endDay: { gte: utcMidnightInstant(scope.from) } }, select: { userId: true, startDay: true, endDay: true } }),
         ]);
   const logsByHabit = new Map<string, HabitLogDay[]>();
   for (const row of logRows) logsByHabit.set(row.habitId, [...(logsByHabit.get(row.habitId) ?? []), logDayFromRow(row)]);

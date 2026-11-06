@@ -10,8 +10,8 @@ import type { ReportItem } from "@/lib/habitsReportScope";
  */
 export function ReportItemHead({ item, count, stacked = false }: { item: ReportItem; count: string; stacked?: boolean }) {
   const title = item.canOpenStats ? (
-    <Link href={`/habits/${item.id}`} className="-my-2 block truncate py-2 font-semibold">
-      {item.title}
+    <Link href={`/habits/${item.id}`} className="flex min-h-11 min-w-0 items-center font-semibold">
+      <span className="truncate">{item.title}</span>
     </Link>
   ) : (
     <span className="block truncate font-semibold">{item.title}</span>

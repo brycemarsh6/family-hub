@@ -1,10 +1,10 @@
-import { addCalendarDays, formatCalendarDate, startOfMonth, type CalendarDate } from "./householdDate";
+import { addCalendarDays, formatCalendarDate, formatWeekTitle, startOfMonth, type CalendarDate } from "./householdDate";
 import { compareDays, isOpenKind, periodTarget } from "./habits/schedule";
 import type { HabitLogDay, Vacation, WeekOverride } from "./habits/types";
 import { monthCalendar, statsMonthTitle, type CellReason, type MonthCellState, type StatsInput } from "./habitsStats";
-import { firstNameOf, monthParam, weekParam, type ReportFilterOption, type ReportItem, type ReportScope, type ReportView, type ScopedItem } from "./habitsReportScope";
-import type { ChartChip } from "./choreChart";
-import { FULL_MONTH_NAMES, formatWeekTitle } from "./mealPlanDates";
+import { monthParam, weekParam, type ReportFilterOption, type ReportItem, type ReportScope, type ReportView, type ScopedItem } from "./habitsReportScope";
+import { firstNameOf, type ChartChip } from "./choreChart";
+import { FULL_MONTH_NAMES } from "./mealPlanDates";
 import { REPORT_LABELS, reportCountOf, reportCountThis, reportYearTotals, type HabitKind } from "./habitVocabulary";
 
 // The Report's rules (decisions 163 to 171), with no database:
@@ -92,7 +92,7 @@ function pagerFor(scope: ReportScope, today: CalendarDate): ReportPager {
   if (view === "week") {
     const step = (n: number) => weekParam(addCalendarDays(period, 7 * n));
     return {
-      title: formatWeekTitle(new Date(period.year, period.month - 1, period.day), today.year),
+      title: formatWeekTitle(period, today.year),
       current: weekParam(period),
       prev: atFirst ? null : step(-1),
       next: atLast ? null : step(1),

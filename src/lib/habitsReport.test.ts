@@ -1,5 +1,5 @@
 // Pins habitsReport.ts: whose items show, the filter, the pager bounds, the
-// URL params, the week, month and year data, and the dash-free week title
+// URL params, the week, month and year data, and the pager titles
 // (decisions 163 to 171). Plain calendar days, so the results are the same in
 // every time zone. "Today" is Thursday 2026-11-05 unless a test says otherwise.
 
@@ -16,7 +16,6 @@ import {
 } from "./habitsReport";
 import { reportScope, type ReportParams } from "./habitsReportScope";
 import type { TodayHabitInput } from "./habitsToday";
-import { formatWeekTitle } from "./mealPlanDates";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
 const today = d(2026, 11, 5);
@@ -72,19 +71,7 @@ function report(viewer: HabitActor, habits: TodayHabitInput[], p: Partial<Report
 const rowsOf = (r: HabitReport) => r.sections.flatMap((section) => section.rows);
 const ids = (r: HabitReport) => rowsOf(r).map((row) => row.id);
 
-// ---- The week title ----
-
-test("formatWeekTitle: no dash; the year only outside the current year (decisions 112, 166)", () => {
-  const title = (y: number, m: number, day: number, current = 2026) => formatWeekTitle(new Date(y, m - 1, day), current);
-  assert.equal(title(2026, 11, 1), "Nov 1 to 7");
-  assert.equal(title(2026, 10, 26), "Oct 26 to Nov 1");
-  assert.equal(title(2025, 12, 28), "Dec 28, 2025 to Jan 3");
-  assert.equal(title(2025, 11, 2), "Nov 2 to 8, 2025");
-  assert.equal(title(2025, 10, 26), "Oct 26 to Nov 1, 2025");
-  assert.equal(title(2026, 12, 27, 2026), "Dec 27 to Jan 2, 2027");
-  assert.equal(title(2024, 12, 29), "Dec 29, 2024 to Jan 4, 2025");
-  for (const text of [title(2026, 11, 1), title(2025, 12, 28), title(2026, 10, 26), title(2024, 12, 29)]) assert.doesNotMatch(text, /[-\u2013\u2014]/);
-});
+// ---- The pager titles ----
 
 test("pager titles: week, month and year, across years", () => {
   assert.equal(report(parent, [habit("a")]).pager.title, "Nov 1 to 7");
@@ -259,7 +246,7 @@ test("week: a vacation day and a week-skipped chore draw Skipped, a moved chore 
   const daily = rowsOf(report(parent, [habit("a")], {}, { ...noData, vacations: [vacation] }))[0] as ReportWeekRow;
   assert.deepEqual([daily.cells[2].state, daily.cells[2].reason], ["skipped", { kind: "vacation" }]);
   const checked = rowsOf(report(parent, [habit("a")], {}, { ...noData, vacations: [vacation], logsByHabit: new Map([["a", [log(d(2026, 11, 3))]]]) }))[0] as ReportWeekRow;
-  assert.deepEqual([checked.cells[2].state, checked.cells[2].reason], ["done", null]);
+  assert.deepEqual([checked.cells[2].state, checked.cells[2].reason], ["done", { kind: "vacation" }]); // the check wins; the reason waits for an undo
 });
 
 // ---- Month view ----

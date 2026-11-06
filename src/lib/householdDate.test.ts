@@ -8,6 +8,7 @@ import {
   dayOfWeek,
   formatCalendarDate,
   formatShortCalendarDate,
+  formatWeekTitle,
   parseDateParam,
   startOfMonth,
   startOfWeek,
@@ -134,4 +135,16 @@ test("formatShortCalendarDate: short month name and day, no year, no padding", (
   assert.equal(formatShortCalendarDate({ year: 2026, month: 11, day: 3 }), "Nov 3");
   assert.equal(formatShortCalendarDate({ year: 2026, month: 1, day: 1 }), "Jan 1");
   assert.equal(formatShortCalendarDate({ year: 2026, month: 12, day: 31 }), "Dec 31");
+});
+
+test("formatWeekTitle: no dash; the year only outside the current year (decisions 112, 166)", () => {
+  const title = (y: number, m: number, day: number, current = 2026) => formatWeekTitle({ year: y, month: m, day }, current);
+  assert.equal(title(2026, 11, 1), "Nov 1 to 7");
+  assert.equal(title(2026, 10, 26), "Oct 26 to Nov 1");
+  assert.equal(title(2025, 12, 28), "Dec 28, 2025 to Jan 3");
+  assert.equal(title(2025, 11, 2), "Nov 2 to 8, 2025");
+  assert.equal(title(2025, 10, 26), "Oct 26 to Nov 1, 2025");
+  assert.equal(title(2026, 12, 27, 2026), "Dec 27 to Jan 2, 2027");
+  assert.equal(title(2024, 12, 29), "Dec 29, 2024 to Jan 4, 2025");
+  for (const text of [title(2026, 11, 1), title(2025, 12, 28), title(2026, 10, 26), title(2024, 12, 29)]) assert.doesNotMatch(text, /[-\u2013\u2014]/);
 });

@@ -12,7 +12,7 @@ import { checkHabit, uncheckHabit } from "@/app/actions/habitChecks";
 import type { HabitStatsData } from "@/lib/habitsFamily";
 import { parseDateParam } from "@/lib/householdDate";
 import { NUDGE_STATUS_LABEL } from "@/lib/habitVocabulary";
-import { statsMonthTitle } from "@/lib/habitsStats";
+import { effectiveState, statsMonthTitle } from "@/lib/habitsStats";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 const SECTION_TITLE = "text-sm font-semibold uppercase tracking-wide text-muted";
@@ -64,7 +64,7 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
   const checkedNow = cells.filter(isChecked).length;
   const checkedOnServer = data.calendar.cells.filter(isChecked).length;
   const total = data.tiles.total + (checkedNow - checkedOnServer);
-  const dueSoFar = checkedNow + cells.filter((cell) => cell.state === "missed").length;
+  const dueSoFar = checkedNow + cells.filter((cell) => effectiveState(cell) === "missed").length;
   const first = parseDateParam(data.calendar.first)!;
   const colors = new Map(data.sideBySide?.rows.map((row) => [row.userId, row.avatarColor]));
   const meta = [data.habit.whoLabel, data.habit.scheduleLabel, data.habit.archived ? "Archived" : null].filter(Boolean).join(" · ");

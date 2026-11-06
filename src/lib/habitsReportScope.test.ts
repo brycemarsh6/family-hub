@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "./householdDate";
 import type { HabitActor } from "./habits/types";
-import { matchesReportFilter, parseReportParams, reportFilterOptions, reportHref, reportScope, type ReportParams } from "./habitsReportScope";
+import { matchesReportFilter, parseReportParams, reportFilterOptions, reportHref, reportPersonId, reportScope, type ReportParams } from "./habitsReportScope";
 import type { TodayHabitInput } from "./habitsToday";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -123,4 +123,13 @@ test("reportHref: leaves out the defaults, keeps the rest, and reads back throug
   const query = Object.fromEntries(new URL(href, "http://x").searchParams);
   assert.deepEqual(parseReportParams(query, today), { view: "month", week: d(2026, 11, 1), month: d(2026, 10, 1), year: 2026, person: "bob", filter: "kind:chore", item: "h1" });
   assert.equal(reportHref({ view: "year", year: "2025" }), "/habits/report?view=year&year=2025");
+});
+
+test("reportPersonId: a parent or admin may ask for a household person; everyone else gets themselves", () => {
+  assert.equal(reportPersonId(parent, "bob", people), "bob");
+  assert.equal(reportPersonId({ userId: "amy", role: "admin" }, "cy", people), "cy");
+  assert.equal(reportPersonId(parent, "stranger", people), "amy", "not a household person");
+  assert.equal(reportPersonId(parent, null, people), "amy");
+  assert.equal(reportPersonId({ userId: "cy", role: "kid" }, "amy", people), "cy");
+  assert.equal(reportPersonId({ userId: "tablet", role: "device" }, "amy", people), "tablet");
 });

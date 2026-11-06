@@ -1,7 +1,10 @@
 import { createElement } from "react";
-import type { LucideIcon } from "lucide-react";
+import { Moon, Sun, Sunset, type LucideIcon } from "lucide-react";
 
 export type HabitFilterOption = { key: string; label: string; icon?: LucideIcon };
+
+/** The icon for each time of day, wherever a filter offers one. */
+export const TIME_ICONS = { morning: Sun, afternoon: Sunset, evening: Moon } as const;
 
 /**
  * The Today list's filter row: one chip lit at a time, the same markup as

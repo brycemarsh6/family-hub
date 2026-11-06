@@ -1,9 +1,9 @@
 import { SkipForward } from "lucide-react";
 import { parseDateParam } from "@/lib/householdDate";
-import { MONTH_NAMES, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
-import type { CellReason, MonthCellState } from "@/lib/habitsStats";
+import { dayCellLabel, effectiveState, type CellReason, type MonthCellState } from "@/lib/habitsStats";
+import { REPORT_LABELS } from "@/lib/habitVocabulary";
 
-/** One day of a habit's calendar as plain data (days as "YYYY-MM-DD"); `reason` explains an undone vacation, week-skipped or moved-away day (decision 170). */
+/** One day of a habit's calendar as plain data (days as "YYYY-MM-DD"); `reason` explains a vacation, week-skipped or moved-away day, checked or not (decision 170). */
 export type CalendarCell = { day: string; state: MonthCellState; reason?: CellReason | null; tappable: boolean };
 
 /** 44px tall; at least 44px wide at 375 (the card and grid gaps are tight on purpose), and no wider than 48px, centred, on an iPad. */
@@ -12,20 +12,7 @@ const FULL = "flex min-h-11 w-full max-w-12 items-center justify-center justify-
 /** The Report's small grids: about 22px cells, 10px numbers (decision 167). Read-only, so no tap target to protect. */
 const COMPACT = "flex h-[22px] w-full max-w-[22px] items-center justify-center justify-self-center rounded-full text-[10px]";
 
-/**
- * What the cell draws. A check wins; without one a vacation or week-skipped
- * reason reads as Skipped and a moved-away reason as not due, so an optimistic
- * undo (which resets `state` to "missed" or "today") still draws right until
- * the server answers.
- */
-export function effectiveState(cell: Pick<CalendarCell, "state" | "reason">): MonthCellState {
-  if (cell.state === "done" || cell.state === "late") return cell.state;
-  if (cell.reason?.kind === "vacation" || cell.reason?.kind === "weekSkip") return "skipped";
-  if (cell.reason?.kind === "movedAway" && cell.state !== "future") return "notDue";
-  return cell.state;
-}
-
-/** Look by state. Done and Skipped differ by shape as well as color (a filled disc, a dashed ring), Missed by its amber fill. */
+/** Look by state. Done and Skipped differ by shape as well as color (a filled disc, a dashed ring), Missed by its amber fill. Future and not-due days are plain (no ring), so only a due day looks like something to do. */
 function cellClass(state: MonthCellState): string {
   switch (state) {
     case "done":
@@ -36,32 +23,11 @@ function cellClass(state: MonthCellState): string {
     case "missed":
       return "bg-warn-soft font-semibold text-warn";
     case "today":
-    case "future":
       return "border border-line text-muted";
+    case "future":
     case "notDue":
       return "text-muted";
   }
-}
-
-const STATE_WORDS: Record<MonthCellState, string> = {
-  done: "done",
-  late: "done late",
-  skipped: "skipped",
-  missed: "missed",
-  today: "not done yet",
-  future: "not yet",
-  notDue: "not due",
-};
-
-/** "Nov 8, skipped (on vacation)", "Nov 8, skipped this week", "Nov 9, not due (moved to Thu)" (decision 170). */
-export function dayCellLabel(cell: Pick<CalendarCell, "day" | "state" | "reason">): string {
-  const parsed = parseDateParam(cell.day)!;
-  const date = `${MONTH_NAMES[parsed.month - 1]} ${parsed.day}`;
-  const state = effectiveState(cell);
-  if (state === "skipped" && cell.reason?.kind === "vacation") return `${date}, skipped (on vacation)`;
-  if (state === "skipped" && cell.reason?.kind === "weekSkip") return `${date}, skipped this week`;
-  if (state === "notDue" && cell.reason?.kind === "movedAway") return `${date}, not due (moved to ${SHORT_DAY_NAMES[cell.reason.toWeekday]})`;
-  return `${date}, ${STATE_WORDS[state]}`;
 }
 
 /**
@@ -101,5 +67,25 @@ export function HabitDayCell({
     <button type="button" aria-pressed={state === "done" || state === "late"} aria-label={label} onClick={() => onToggle(cell)} className={className}>
       {body}
     </button>
+  );
+}
+
+/** The three marks in words, under a month calendar (decision 94). The swatches are the real cells' looks: a filled disc, a dashed ring, an amber disc. */
+export function HabitDayLegend({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted ${className}`}>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="h-3 w-3 rounded-full bg-accent" />
+        {REPORT_LABELS.legend.done}
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="h-3 w-3 rounded-full border-2 border-dashed border-muted" />
+        {REPORT_LABELS.legend.skipped}
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden="true" className="h-3 w-3 rounded-full bg-warn-soft" />
+        {REPORT_LABELS.legend.missed}
+      </span>
+    </div>
   );
 }

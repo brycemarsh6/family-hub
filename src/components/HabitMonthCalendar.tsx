@@ -1,29 +1,10 @@
 "use client";
 
-import { HabitDayCell, type CalendarCell } from "./HabitDayCell";
+import { HabitDayCell, HabitDayLegend, type CalendarCell } from "./HabitDayCell";
 
 export type { CalendarCell };
 
 const WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
-
-function Legend() {
-  return (
-    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-      <span className="flex items-center gap-1.5">
-        <span aria-hidden="true" className="h-3 w-3 rounded-full bg-accent" />
-        Done
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span aria-hidden="true" className="h-3 w-3 rounded-full border-2 border-dashed border-muted" />
-        Skipped
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span aria-hidden="true" className="h-3 w-3 rounded-full bg-warn-soft ring-1 ring-warn" />
-        Missed
-      </span>
-    </div>
-  );
-}
 
 /**
  * One person's month (decision 94): Done is a filled disc, Skipped a dashed
@@ -64,7 +45,7 @@ export function HabitMonthCalendar({
           <HabitDayCell key={cell.day} cell={cell} today={today} compact={compact} onToggle={compact ? undefined : onToggle} />
         ))}
       </div>
-      {!compact && <Legend />}
+      {!compact && <HabitDayLegend className="mt-2" />}
     </div>
   );
 }

@@ -85,6 +85,20 @@ export function formatShortCalendarDate(date: CalendarDate): string {
   return `${MONTH_NAMES[date.month - 1]} ${date.day}`;
 }
 
+/** The Habits Report's week title, with no dash: "Nov 1 to 7", "Oct 26 to Nov 1".
+ * A year other than `currentYear` is written, once at the end when the week stays
+ * in one year ("Nov 1 to 7, 2025") and on each end when it crosses New Year
+ * ("Dec 28, 2025 to Jan 3"). */
+export function formatWeekTitle(weekStart: CalendarDate, currentYear: number): string {
+  const end = addCalendarDays(weekStart, 6);
+  const startMonth = MONTH_NAMES[weekStart.month - 1];
+  const endMonth = MONTH_NAMES[end.month - 1];
+  const withYear = (text: string, year: number) => (year === currentYear ? text : `${text}, ${year}`);
+  const endText = startMonth === endMonth && weekStart.year === end.year ? `${end.day}` : `${endMonth} ${end.day}`;
+  if (weekStart.year === end.year) return withYear(`${startMonth} ${weekStart.day} to ${endText}`, end.year);
+  return `${withYear(`${startMonth} ${weekStart.day}`, weekStart.year)} to ${withYear(endText, end.year)}`;
+}
+
 export function addCalendarDays(date: CalendarDate, n: number): CalendarDate {
   const moved = new Date(Date.UTC(date.year, date.month - 1, date.day) + n * MS_PER_DAY);
   return {

@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canChangeChore, canEditChart, canEditHabit, canLogFor, canNudge, canSeeHabit, canSeeHabitStats, type NudgeHabit } from "./access";
+import { canChangeChore, canEditChart, canEditHabit, canLogFor, canNudge, canSeeHabit, canSeeHabitReport, canSeeHabitStats, type NudgeHabit } from "./access";
 import type { HabitAccess, HabitActor } from "./types";
 
 const admin: HabitActor = { userId: "admin", role: "admin" };
@@ -118,6 +118,16 @@ test("canEditChart: yourself; a parent or admin for anyone; a kid only their own
   assert.equal(canEditChart(admin, "kid"), true);
   assert.equal(canEditChart(device, "kid"), false);
   assert.equal(canEditChart({ userId: "kid", role: "device" }, "kid"), false);
+});
+
+test("canSeeHabitReport: yourself; a parent or admin for anyone; a kid only their own; never the tablet", () => {
+  assert.equal(canSeeHabitReport(kid, "kid"), true);
+  assert.equal(canSeeHabitReport(kid, "other"), false);
+  assert.equal(canSeeHabitReport(other, "kid"), false);
+  assert.equal(canSeeHabitReport(parent, "kid"), true);
+  assert.equal(canSeeHabitReport(admin, "kid"), true);
+  assert.equal(canSeeHabitReport(device, "kid"), false);
+  assert.equal(canSeeHabitReport({ userId: "kid", role: "device" }, "kid"), false);
 });
 
 test("canChangeChore: the person must hold the chore, see it and be editable by the actor", () => {

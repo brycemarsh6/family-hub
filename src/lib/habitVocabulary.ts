@@ -342,8 +342,18 @@ export const REPORT_LABELS = {
   personAria: "Whose report",
   previous: { week: "Previous week", month: "Previous month", year: "Previous year" },
   next: { week: "Next week", month: "Next month", year: "Next year" },
-  /** The legend under the pager on Month and Year (decision 167). */
+  /** The legend under a month calendar: the stats page's and, once, under the Report's pager on Month and Year (decision 167). */
   legend: { done: "Done", skipped: "Skipped", missed: "Missed" },
+} as const;
+
+/** What a day of a habit's calendar says aloud, by how it is drawn (decisions 94, 170). */
+export const DAY_CELL_WORDS = { done: "done", late: "done late", skipped: "skipped", missed: "missed", today: "not done yet", future: "not yet", notDue: "not due" } as const;
+
+/** Why a day reads as it does when nothing was checked (decision 170); `dayName` is the short weekday ("Thu"). */
+export const DAY_CELL_REASON_WORDS = {
+  vacation: "skipped (on vacation)",
+  weekSkip: "skipped this week",
+  movedAway: (dayName: string) => `not due (moved to ${dayName})`,
 } as const;
 
 /** "5 of 6": done of due so far, or done of a target (decisions 166, 167). */

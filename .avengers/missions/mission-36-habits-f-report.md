@@ -109,7 +109,11 @@ Banner's brief is the facts above. 3 passes per gate.
   week title (166, beside `formatWeekRange`). Words in `habitVocabulary.ts`.
   `loadHabitReport(viewer, params, today)` in `habitsStatsRead.ts` reads by
   the range shown only.
-- **Boundaries:** new `src/lib/habitsReport.ts` (+test),
+- **Boundaries:** new `src/lib/habitsReport.ts` (+test) and its sibling
+  split `src/lib/habitsReportScope.ts` (+test: params, person and privacy
+  scope, filter, period clamp, `reportHref`; amended by Fury after Vision
+  pass 1, since `habitsReport.ts` reached 405 lines; `habitsReport.ts`
+  imports it, never the reverse),
   `src/lib/habitsStatsRead.ts`, `src/lib/habitVocabulary.ts`,
   `src/lib/mealPlanDates.ts` (one new function), `src/lib/habits/access.ts`
   only if a rule is missing (with test).

@@ -1,6 +1,6 @@
 import { PageTabs } from "./PageTabs";
+import { HabitDayLegend } from "./HabitDayCell";
 import { ReportFilter } from "./ReportFilter";
-import { ReportLegend } from "./ReportLegend";
 import { ReportMonth } from "./ReportMonth";
 import { ReportPager } from "./ReportPager";
 import { ReportPersonChips } from "./ReportPersonChips";
@@ -58,7 +58,7 @@ export function HabitReportView({ report }: { report: HabitReport }) {
             nextHref={at(pager.next)}
             pill={pager.pill ? { label: pager.pill, href: reportHref({ view, ...keep }) } : null}
           />
-          {view !== "week" && <ReportLegend />}
+          {view !== "week" && <HabitDayLegend className="mb-3" />}
           {view === "week" && <ReportWeek sections={report.sections} today={report.today} />}
           {view === "month" && <ReportMonth sections={report.sections} today={report.today} />}
           {view === "year" && report.year && (
