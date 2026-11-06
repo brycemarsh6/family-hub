@@ -1,6 +1,7 @@
 import "server-only";
 
-// The put-away flow (classify -> review -> commit), pulled out of
+// The commit half of the put-away flow (classify -> review -> commit; classify
+// lives in putAwayClassify.ts), pulled out of
 // `actions/groceriesPutAway.ts` (mission-22/P1) because the Assistant API is a
 // SECOND caller. Same shape as `pantryWrites.ts`: a `server-only` lib module
 // with NO auth check of its own and no `revalidatePath` — each caller carries
@@ -8,128 +9,10 @@ import "server-only";
 // routes carry the bearer token) and the actions keep the route strings.
 
 import { db } from "@/lib/db";
+import type { GroceryItem, PantryItem, Prisma } from "@/generated/prisma/client";
 import { toCategory, toLocation, DEFAULT_LOCATION } from "@/lib/constants";
-import { matchItem } from "@/lib/match";
-
-/**
- * Is this bought item already something the household tracks? Two ways to
- * know for certain — linked by id, or an exact (case-insensitive) name
- * match. Anything looser than exact is a *suggestion*, never a match: see
- * matchItem's own module comment for what plain substring matching cost
- * this app before (steaks filed under a rule meant for "tea").
- */
-function findExactMatch(
-  boughtItem: { pantryItemId: string | null; name: string },
-  byId: Map<string, { id: string }>,
-  byName: Map<string, { id: string }>,
-) {
-  const linked = boughtItem.pantryItemId
-    ? byId.get(boughtItem.pantryItemId)
-    : undefined;
-  return linked ?? byName.get(boughtItem.name.trim().toLowerCase());
-}
-
-export type PutAwayMergeSuggestion = {
-  pantryItemId: string;
-  name: string;
-  quantity: number;
-  unit: string | null;
-  location: string;
-};
-
-/** One checked item with no exact match in the inventory — genuinely new,
- * or possibly a duplicate under a different name (see `suggestions`). */
-export type PutAwayNewItem = {
-  groceryItemId: string;
-  name: string;
-  quantity: number;
-  unit: string | null;
-  category: string;
-  /** Pre-filled starting point for the review sheet: this row's own
-   * location override if one was set (see editGroceryItem), else
-   * DEFAULT_LOCATION. Editable from there — see PutAwayDecision. */
-  location: string;
-  /** Ranked, best first. Never more than a handful — see the cap in
-   * classifyForPutAway. Advisory only; nothing here is ever applied
-   * without a human tapping it in the review sheet. */
-  suggestions: PutAwayMergeSuggestion[];
-};
-
-export type PutAwayClassification = {
-  /** How many checked items will be put away with no review at all —
-   * shown once, is why the review sheet never renders for a fully-known
-   * shop. */
-  knownCount: number;
-  newItems: PutAwayNewItem[];
-};
-
-/** At most this many merge suggestions per new item — matchItem can return
- * up to four ranked candidates (best + 3 alternatives), but the review
- * sheet is meant to be a quick glance, not another list to read. */
-const MAX_SUGGESTIONS = 2;
-
-/**
- * Read-only preview of what "Put away" is about to do. Never writes
- * anything — see commitPutAway for the actual transaction, which
- * re-checks all of this itself rather than trusting what was classified
- * a moment ago (another phone may have put groceries away in between).
- */
-export async function classifyForPutAway(): Promise<PutAwayClassification> {
-  const checkedItems = await db.groceryItem.findMany({
-    where: { checked: true },
-  });
-  if (checkedItems.length === 0) return { knownCount: 0, newItems: [] };
-
-  const pantryItems = await db.pantryItem.findMany({
-    select: { id: true, name: true, quantity: true, unit: true, location: true },
-  });
-  const byId = new Map(pantryItems.map((item) => [item.id, item]));
-  const byName = new Map(
-    pantryItems.map((item) => [item.name.trim().toLowerCase(), item]),
-  );
-
-  let knownCount = 0;
-  const newItems: PutAwayNewItem[] = [];
-
-  for (const boughtItem of checkedItems) {
-    if (findExactMatch(boughtItem, byId, byName)) {
-      knownCount++;
-      continue;
-    }
-
-    // matchItem is built for "does this phrase refer to an existing row" —
-    // exactly this question — and unlike the Inventory search box's
-    // searchItems(), it doesn't require every word of the bought item's
-    // name to appear in the candidate (or vice versa), so "Ground beef
-    // 80/20" still surfaces a plain "Ground Beef" already in the pantry.
-    const { match, alternatives } = matchItem(boughtItem.name, pantryItems);
-    const suggestions = [match, ...alternatives]
-      .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null)
-      .slice(0, MAX_SUGGESTIONS)
-      .map((candidate) => {
-        const full = byId.get(candidate.id)!;
-        return {
-          pantryItemId: full.id,
-          name: full.name,
-          quantity: full.quantity,
-          unit: full.unit,
-          location: full.location,
-        };
-      });
-
-    newItems.push({
-      groceryItemId: boughtItem.id,
-      name: boughtItem.name,
-      quantity: boughtItem.quantity,
-      unit: boughtItem.unit,
-      category: boughtItem.category,
-      location: boughtItem.location ?? DEFAULT_LOCATION,
-      suggestions,
-    });
-  }
-
-  return { knownCount, newItems };
-}
+import { isMissingRowError } from "@/lib/prismaErrors";
+import { findExactMatch } from "@/lib/putAwayClassify";
 
 /** What the review sheet decided for one new item — either fold it into an
  * existing pantry row the human confirmed is the same thing, or create a
@@ -157,11 +40,30 @@ export type PutAwayReportItem = {
   quantityAdded: number;
 };
 
+/** A pantry row as the whole put-away replaced it and left it (the audit
+ * log's undo copies). `before` is null when this put-away created the row; a
+ * row touched by two lines carries the first `before` and the last `after`. */
+export type PutAwayPantryCopy = {
+  pantryItemId: string;
+  before: PantryItem | null;
+  after: PantryItem;
+  /** The grocery rows folded into this pantry row, in order. */
+  lines: PutAwayReportItem[];
+};
+
 export type PutAwayReport = {
   items: PutAwayReportItem[];
   /** Decisions that named a grocery row which wasn't checked (or no longer
    * exists), so they were not applied. Echoed so a caller can see it. */
   ignoredDecisions: string[];
+};
+
+/** What commitPutAway returns: the report plus the copies the audit log keeps. */
+export type PutAwayCommit = PutAwayReport & {
+  /** One entry per pantry row touched, in first-touch order. */
+  pantryCopies: PutAwayPantryCopy[];
+  /** The grocery rows as the claim removed them, in claim order. */
+  groceryCopies: GroceryItem[];
 };
 
 export type PutAwayOptions = {
@@ -193,6 +95,32 @@ export class PutAwayNeedsReview extends Error {
   }
 }
 
+const MAX_TOP_UP_ATTEMPTS = 20;
+
+/** Adds to one pantry row, returning the row as it was just before the write
+ * and as the write left it. See the copy-taking note in commitPutAway. */
+async function topUpPantryRow(
+  tx: Prisma.TransactionClient,
+  id: string,
+  data: Prisma.PantryItemUpdateInput,
+): Promise<{ beforeRow: PantryItem; row: PantryItem }> {
+  for (let attempt = 0; attempt < MAX_TOP_UP_ATTEMPTS; attempt++) {
+    const beforeRow = await tx.pantryItem.findUnique({ where: { id } });
+    if (!beforeRow) throw new Error("A pantry row vanished during put-away.");
+    try {
+      const row = await tx.pantryItem.update({
+        where: { id, updatedAt: beforeRow.updatedAt },
+        data,
+      });
+      return { beforeRow, row };
+    } catch (error) {
+      // Lost the race to a parallel edit: re-read and try again.
+      if (!isMissingRowError(error)) throw error;
+    }
+  }
+  throw new Error("A pantry row kept changing during put-away.");
+}
+
 /**
  * Unpacking the shopping: everything ticked off gets added into the pantry,
  * then cleared off the list. `decisions` covers only the items the review
@@ -216,7 +144,7 @@ export class PutAwayNeedsReview extends Error {
 export async function commitPutAway(
   decisions: PutAwayDecision[],
   options: PutAwayOptions = {},
-): Promise<PutAwayReport> {
+): Promise<PutAwayCommit> {
   const createUnreviewed = options.createUnreviewed ?? "defaults";
   const checkedItems = await db.groceryItem.findMany({
     where: { checked: true },
@@ -229,13 +157,20 @@ export async function commitPutAway(
         .filter((id) => !checkedIds.has(id)),
     ),
   ];
-  if (checkedItems.length === 0) return { items: [], ignoredDecisions };
+  if (checkedItems.length === 0) {
+    return { items: [], pantryCopies: [], groceryCopies: [], ignoredDecisions };
+  }
 
   const decisionByGroceryId = new Map(
     decisions.map((decision) => [decision.groceryItemId, decision]),
   );
 
-  const report: PutAwayReport = { items: [], ignoredDecisions };
+  const report: PutAwayCommit = {
+    items: [],
+    pantryCopies: [],
+    groceryCopies: [],
+    ignoredDecisions,
+  };
 
   await db.$transaction(async (tx) => {
     const pantryItems = await tx.pantryItem.findMany();
@@ -262,16 +197,53 @@ export async function commitPutAway(
 
     // Claim the rows BEFORE any pantry write. The checked rows were read
     // outside this transaction, so two put-aways at once (two phones, or the
-    // assistant retrying) would both see them and both restock. deleteMany
-    // takes row locks: the second transaction waits here, then finds the
-    // rows gone and its count falls short, so it rolls back instead of
-    // restocking a second time.
-    const claimed = await tx.groceryItem.deleteMany({
-      where: { id: { in: checkedItems.map((item) => item.id) }, checked: true },
-    });
-    if (claimed.count !== checkedItems.length) throw new PutAwayConflict();
+    // assistant retrying) would both see them and both restock. Each delete
+    // takes a row lock and returns the row as it was at that moment: the
+    // second transaction waits here, then finds the row gone (or un-ticked)
+    // and rolls back instead of restocking a second time. Restocking from the
+    // returned rows, not the earlier read, means a quantity edited in between
+    // is the quantity that lands in the pantry.
+    const claimedItems: typeof checkedItems = [];
+    for (const checkedItem of checkedItems) {
+      try {
+        claimedItems.push(
+          await tx.groceryItem.delete({
+            where: { id: checkedItem.id, checked: true },
+          }),
+        );
+      } catch (error) {
+        if (isMissingRowError(error)) throw new PutAwayConflict();
+        throw error;
+      }
+    }
 
-    for (const boughtItem of checkedItems) {
+    report.groceryCopies = claimedItems;
+
+    // Copy-taking for the pantry (the audit log's undo copies): PantryItem has
+    // `updatedAt`, so each top-up is keyed on the row exactly as it was read
+    // (`where { id, updatedAt }`, retried on a miss, the same pattern as
+    // adjustPantryQuantity). A parallel app edit that lands between the read
+    // and the write makes the write miss, and the retry re-reads it, so every
+    // `before` is exactly what the update replaced and every `after` is the
+    // row the update returned. No lock is held beyond the write itself.
+    const copyByPantryId = new Map<string, PutAwayPantryCopy>();
+    const record = (
+      before: PantryItem | null,
+      after: PantryItem,
+      line: PutAwayReportItem,
+    ) => {
+      const existing = copyByPantryId.get(after.id);
+      if (existing) {
+        existing.after = after;
+        existing.lines.push(line);
+        return;
+      }
+      const copy = { pantryItemId: after.id, before, after, lines: [line] };
+      copyByPantryId.set(after.id, copy);
+      report.pantryCopies.push(copy);
+    };
+
+    for (const boughtItem of claimedItems) {
       const decision = decisionByGroceryId.get(boughtItem.id);
       const autoMatch = findExactMatch(boughtItem, byId, byName);
       const mergeTarget =
@@ -284,34 +256,34 @@ export async function commitPutAway(
         const incrementQuantity =
           decision?.type === "merge" ? decision.quantity : boughtItem.quantity;
 
-        await tx.pantryItem.update({
-          where: { id: target.id },
-          data: {
-            quantity: { increment: incrementQuantity },
-            // This IS the restock, definitionally — groceries just came home
-            // and went in the fridge/pantry. See setPantryQuantity's comment
-            // in pantryWrites.ts for what restockedAt drives.
-            restockedAt: new Date(),
-            // Only for a genuine automatic match — an already-known item
-            // this row's own overrides (P2) describe. A merge the human
-            // just chose in the review sheet only means "don't duplicate
-            // this," not "also move or re-file the thing I merged into";
-            // that's what Inventory's own edit sheet is for.
-            ...(autoMatch && boughtItem.location
-              ? { location: toLocation(boughtItem.location) }
-              : {}),
-            ...(autoMatch && boughtItem.categoryEdited
-              ? { category: toCategory(boughtItem.category) }
-              : {}),
-          },
-        });
-        report.items.push({
+        const data: Prisma.PantryItemUpdateInput = {
+          quantity: { increment: incrementQuantity },
+          // This IS the restock, definitionally — groceries just came home
+          // and went in the fridge/pantry. See setPantryQuantity's comment
+          // in pantryWrites.ts for what restockedAt drives.
+          restockedAt: new Date(),
+          // Only for a genuine automatic match — an already-known item
+          // this row's own overrides (P2) describe. A merge the human
+          // just chose in the review sheet only means "don't duplicate
+          // this," not "also move or re-file the thing I merged into";
+          // that's what Inventory's own edit sheet is for.
+          ...(autoMatch && boughtItem.location
+            ? { location: toLocation(boughtItem.location) }
+            : {}),
+          ...(autoMatch && boughtItem.categoryEdited
+            ? { category: toCategory(boughtItem.category) }
+            : {}),
+        };
+        const { beforeRow, row } = await topUpPantryRow(tx, target.id, data);
+        const line: PutAwayReportItem = {
           groceryItemId: boughtItem.id,
           groceryName: boughtItem.name,
           action: autoMatch ? "restocked" : "merged",
           pantryItemId: target.id,
           quantityAdded: incrementQuantity,
-        });
+        };
+        report.items.push(line);
+        record(beforeRow, row, line);
       } else {
         const useDecision = decision?.type === "create";
         const created = await tx.pantryItem.create({
@@ -329,13 +301,15 @@ export async function commitPutAway(
         // entry instead of creating a duplicate.
         byId.set(created.id, created);
         byName.set(created.name.trim().toLowerCase(), created);
-        report.items.push({
+        const line: PutAwayReportItem = {
           groceryItemId: boughtItem.id,
           groceryName: boughtItem.name,
           action: "created",
           pantryItemId: created.id,
           quantityAdded: created.quantity,
-        });
+        };
+        report.items.push(line);
+        record(null, created, line);
       }
     }
   });

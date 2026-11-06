@@ -11,6 +11,8 @@ import "server-only";
 // nothing before it can ever answer "the assistant made this".
 
 import { db } from "@/lib/db";
+import { encodeChangeSummary, type RowCopy } from "@/lib/assistant/changeCopy";
+import { undoPathFor } from "@/lib/assistant/undoPlan";
 
 export type ChangeInput = {
   model: string;
@@ -18,6 +20,13 @@ export type ChangeInput = {
   action: "create" | "update" | "delete";
   /** Plain object; stored as JSON text (the schema avoids provider JSON types). */
   summary: unknown;
+  /**
+   * Full copies of the row before and after the write (null = the row did not
+   * exist). Supplying either one stores the change as version 2, which is what
+   * makes it undoable (see changeCopy.ts).
+   */
+  before?: RowCopy;
+  after?: RowCopy;
 };
 
 export type StartRequestInput = {
@@ -75,12 +84,25 @@ export async function finishRequest(id: string, input: FinishRequestInput): Prom
           model: c.model,
           recordId: c.recordId,
           action: c.action,
-          summary: JSON.stringify(c.summary ?? null),
+          summary:
+            c.before !== undefined || c.after !== undefined
+              ? encodeChangeSummary({ detail: c.summary, before: c.before, after: c.after })
+              : JSON.stringify(c.summary ?? null),
         })),
       },
     },
     select: { id: true },
   });
+}
+
+/**
+ * The ONE definition of "the bot created this record": a create change whose
+ * request is not an undo (see didAssistantCreate). Every reader of the audit
+ * log for attribution (the delete gate, the shopping list's addedBy) builds
+ * its query from this, so the rule cannot drift between them.
+ */
+export function assistantCreatedWhere(model: string, recordId: string | { in: string[] }) {
+  return { model, recordId, action: "create", request: { action: { not: "audit.undo" } } };
 }
 
 /**
@@ -90,10 +112,14 @@ export async function finishRequest(id: string, input: FinishRequestInput): Prom
  *
  * Stays true for the life of the record: pruneAudit never removes a request
  * that recorded a create (see below), so age cannot turn this false.
+ *
+ * Creates made by an undo do not count: undoing a put-away or a delete
+ * re-creates a row the FAMILY made, and counting that would let the bot delete
+ * it. A row the bot really made keeps its original create record forever.
  */
 export async function didAssistantCreate(model: string, recordId: string): Promise<boolean> {
   const hit = await db.assistantChange.findFirst({
-    where: { model, recordId, action: "create" },
+    where: assistantCreatedWhere(model, recordId),
     select: { id: true },
   });
   return hit !== null;
@@ -134,4 +160,16 @@ export async function pruneAudit(now: Date = new Date()): Promise<number> {
     },
   });
   return count;
+}
+
+/** Which of these requests have been undone (a 2xx undo request exists)? */
+export async function undoneRequestIds(requestIds: string[]): Promise<Set<string>> {
+  if (requestIds.length === 0) return new Set();
+  const rows = await db.assistantRequest.findMany({
+    where: { path: { in: requestIds.map(undoPathFor) }, status: { gte: 200, lt: 300 } },
+    select: { path: true },
+    distinct: ["path"],
+  });
+  const paths = new Set(rows.map((r) => r.path));
+  return new Set(requestIds.filter((id) => paths.has(undoPathFor(id))));
 }

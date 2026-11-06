@@ -23,6 +23,8 @@ export const POST = assistantRoute<{ id: string }, z.output<typeof adjustBody>>(
       recordId: params.id,
       action: "update",
       summary: { delta: body.delta, before: result.before, after: result.after, reason: body.reason ?? null },
+      before: result.beforeRow,
+      after: result.row,
     });
 
     const onList = await isOnShoppingList(params.id);

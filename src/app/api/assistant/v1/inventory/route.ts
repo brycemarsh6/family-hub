@@ -84,7 +84,7 @@ export const POST = assistantRoute({
       lowThreshold: body.lowThreshold,
       expiresAt: expiresOn ? zoneMidnightInstant(expiresOn, HOUSEHOLD_TIME_ZONE) : null,
     });
-    changes.push({ model: "PantryItem", recordId: row.id, action: "create", summary: body });
+    changes.push({ model: "PantryItem", recordId: row.id, action: "create", summary: body, before: null, after: row });
 
     const today = requireHouseholdToday(now);
     return {

@@ -1,5 +1,5 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
-import { notFound } from "@/lib/assistant/errors";
+import { ApiError, notFound } from "@/lib/assistant/errors";
 import { inventoryPatchBody } from "@/lib/assistant/schemas";
 import { requireHouseholdToday } from "@/lib/assistant/today";
 import { toInventoryItem } from "@/lib/assistant/serialize";
@@ -40,9 +40,20 @@ export const PATCH = assistantRoute<{ id: string }, z.output<typeof inventoryPat
       expiresAt = zoneMidnightInstant(parseDateParam(expiresOn)!, HOUSEHOLD_TIME_ZONE);
     }
 
-    const row = await editPantryItem(params.id, { ...rest, expiresAt });
-    if (!row) throw notFound();
-    changes.push({ model: "PantryItem", recordId: row.id, action: "update", summary: body });
+    const result = await editPantryItem(params.id, { ...rest, expiresAt });
+    if (!result) throw notFound();
+    if (result === "conflict") {
+      throw new ApiError(409, "conflict", "That item changed while we were updating it; try again.");
+    }
+    const row = result.after;
+    changes.push({
+      model: "PantryItem",
+      recordId: row.id,
+      action: "update",
+      summary: body,
+      before: result.before,
+      after: row,
+    });
 
     const onList = await isOnShoppingList(row.id);
     const today = requireHouseholdToday(now);

@@ -8,12 +8,14 @@
 import { revalidatePath } from "next/cache";
 import { getVerifiedSession } from "@/lib/dal";
 import {
-  classifyForPutAway as readPutAwayClassification,
   commitPutAway as writePutAway,
   PutAwayConflict,
-  type PutAwayClassification,
   type PutAwayDecision,
 } from "@/lib/putAway";
+import {
+  classifyForPutAway as readPutAwayClassification,
+  type PutAwayClassification,
+} from "@/lib/putAwayClassify";
 
 function refreshPutAwayViews() {
   revalidatePath("/kitchen/shopping");
@@ -21,14 +23,14 @@ function refreshPutAwayViews() {
   revalidatePath("/");
 }
 
-// The types moved to lib/putAway.ts with the logic; re-exported so the two
+// The types moved to lib/putAway.ts and lib/putAwayClassify.ts with the logic; re-exported so the two
 // components that import them from this file keep working unchanged.
 export type {
   PutAwayMergeSuggestion,
   PutAwayNewItem,
   PutAwayClassification,
-  PutAwayDecision,
-} from "@/lib/putAway";
+} from "@/lib/putAwayClassify";
+export type { PutAwayDecision } from "@/lib/putAway";
 
 export type PutAwayResult = { error?: string };
 
