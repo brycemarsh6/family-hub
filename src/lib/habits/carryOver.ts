@@ -1,5 +1,5 @@
 import { HOUSEHOLD_TIME_ZONE } from "../constants";
-import { addCalendarDays, calendarDateInZone, type CalendarDate } from "../householdDate";
+import { addCalendarDays, calendarDateInZone, calendarDaysBetween, type CalendarDate } from "../householdDate";
 import type { HabitLogStatus } from "../habitVocabulary";
 import { compareDays, isOpenKind, isSameDay, isScheduledDay } from "./schedule";
 import type { HabitLogDay, ScheduleSpec } from "./types";
@@ -58,4 +58,18 @@ export function habitStartDay(createdAt: Date): CalendarDate {
 export function carrySince(joinedAt: Date | null | undefined, startDay: CalendarDate): CalendarDate {
   const joinedDay = joinedAt ? calendarDateInZone(joinedAt, HOUSEHOLD_TIME_ZONE) : startDay;
   return compareDays(joinedDay, startDay) > 0 ? joinedDay : startDay;
+}
+
+/** How far back any tap may reach on its own; a carried day may be older (up to the carry-over lookback). */
+export const TAP_DAYS_BACK = 7;
+
+/**
+ * Whether a tap for `day` is allowed: never in the future, never past the
+ * carry-over lookback, and older than a week only when it is exactly the
+ * carried day the Today row stands for (`carried`, the server's own answer).
+ */
+export function isTapDayAllowed(day: CalendarDate, today: CalendarDate, carried: CalendarDate | null): boolean {
+  const ago = calendarDaysBetween(day, today);
+  if (ago < 0 || ago > CARRY_LOOKBACK_DAYS) return false;
+  return ago <= TAP_DAYS_BACK || (carried !== null && isSameDay(day, carried));
 }

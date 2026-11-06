@@ -12,7 +12,6 @@ import {
   buildTodayPage,
   buildTodayRows,
   participantsAllowed,
-  isTapDayAllowed,
   todayLogsFrom,
   visibleInViewerOrder,
   type TodayHabitInput,
@@ -131,25 +130,6 @@ test("buildTodayPage: rows follow the viewer's order and archived habits go to t
 test("todayLogsFrom: fourteen days back or the 1st of the month, whichever is earlier", () => {
   assert.deepEqual(todayLogsFrom(d(2026, 11, 5)), d(2026, 10, 22));
   assert.deepEqual(todayLogsFrom(d(2026, 11, 20)), d(2026, 11, 1));
-});
-
-test("isTapDayAllowed: today and the last week are fine, the future is not", () => {
-  assert.equal(isTapDayAllowed(today, today, null), true);
-  assert.equal(isTapDayAllowed(d(2026, 10, 29), today, null), true); // 7 days back
-  assert.equal(isTapDayAllowed(d(2026, 11, 6), today, null), false);
-});
-
-test("isTapDayAllowed: a day 8 to 14 back is allowed only when it is the carried day", () => {
-  const carried = d(2026, 10, 25); // 11 days back
-  assert.equal(isTapDayAllowed(carried, today, carried), true);
-  assert.equal(isTapDayAllowed(carried, today, null), false);
-  assert.equal(isTapDayAllowed(carried, today, d(2026, 10, 26)), false);
-  assert.equal(isTapDayAllowed(d(2026, 10, 22), today, d(2026, 10, 22)), true); // 14 days back
-});
-
-test("isTapDayAllowed: nothing older than the 14-day lookback, even if carried", () => {
-  const tooOld = d(2026, 10, 21); // 15 days back
-  assert.equal(isTapDayAllowed(tooOld, today, tooOld), false);
 });
 
 test("buildTodayRows: the people on a row come in the same order for every viewer", () => {
@@ -342,6 +322,13 @@ test("buildTodayRows: a weekly habit is open until planned for today, then a req
   const [planned] = buildTodayRows(me, [weeklyTwice("w")], noLogs, today, new Map(), plannedOn("w", today));
   assert.equal(planned.dueState, "required");
   assert.equal(planned.plannedToday, true);
+});
+
+test("buildTodayRows: a day planned for later carries its label (decision 162)", () => {
+  const [row] = buildTodayRows(me, [weeklyTwice("w")], noLogs, today, new Map(), plannedOn("w", d(2026, 11, 7)));
+  assert.equal(row.plannedLater, "Planned for Sat");
+  const [none] = buildTodayRows(me, [weeklyTwice("w")], noLogs, today);
+  assert.equal(none.plannedLater, null);
 });
 
 test("buildTodayRows: a day planned for later is not planned today", () => {

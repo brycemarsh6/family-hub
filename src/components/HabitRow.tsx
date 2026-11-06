@@ -129,11 +129,11 @@ export function HabitRow({
                     <span>{TIME_OF_DAY_LABELS[row.timeOfDay]}</span>
                   </>
                 )}
-                {/* A day planned for today says so, replacing "Anytime" (decision 145). */}
-                {(row.plannedToday || !row.timeOfDay) && (
+                {/* A day planned for today, or a later day this period, says so, replacing "Anytime" (decisions 145, 162). */}
+                {(row.plannedToday || row.plannedLater || !row.timeOfDay) && (
                   <>
                     <span aria-hidden="true">·</span>
-                    <span>{row.plannedToday ? PLANNED_FOR_TODAY_LABEL : ANYTIME_LABEL}</span>
+                    <span>{row.plannedToday ? PLANNED_FOR_TODAY_LABEL : (row.plannedLater ?? ANYTIME_LABEL)}</span>
                   </>
                 )}
                 {(row.dueState === "open" || row.plannedToday) && row.progress && row.progress.target > 1 && (

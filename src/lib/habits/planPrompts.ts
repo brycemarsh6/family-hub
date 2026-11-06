@@ -1,4 +1,5 @@
-import { addCalendarDays, calendarDaysBetween, dayOfWeek, type CalendarDate } from "../householdDate";
+import { addCalendarDays, calendarDaysBetween, dayOfWeek, formatShortCalendarDate, type CalendarDate } from "../householdDate";
+import { planChipLabel, plannedForLabel } from "../habitVocabulary";
 import { compareDays, isDayInRange, isDueWeek, isOpenKind, isSameDay, periodWindow } from "./schedule";
 import type { ScheduleSpec } from "./types";
 
@@ -58,4 +59,27 @@ export function isPlannableDay(spec: ScheduleSpec, today: CalendarDate, day: Cal
 /** Whether one of the planned days is today: the `planned` input of `dueState` (decision 145). */
 export function isPlannedToday(plannedDays: readonly CalendarDate[], today: CalendarDate): boolean {
   return plannedDays.some((planned) => isSameDay(planned, today));
+}
+
+/** The nearest planned day after today inside today's period, or null (decision 162). */
+export function laterPlannedDay(spec: ScheduleSpec, today: CalendarDate, plannedDays: readonly CalendarDate[]): CalendarDate | null {
+  const period = periodWindow(spec, today);
+  const later = plannedDays.filter((planned) => compareDays(planned, today) > 0 && isDayInRange(planned, period));
+  return later.sort(compareDays)[0] ?? null;
+}
+
+/**
+ * "Planned for Sat" for a row planned for a later day this period: the short
+ * weekday within six days, else the date ("Planned for Nov 21"); null with
+ * no such day (decision 162). `dayNames` is Sunday first.
+ */
+export function plannedLaterLabel(
+  spec: ScheduleSpec,
+  today: CalendarDate,
+  plannedDays: readonly CalendarDate[],
+  dayNames: readonly string[],
+): string | null {
+  const day = laterPlannedDay(spec, today, plannedDays);
+  if (!day) return null;
+  return plannedForLabel(calendarDaysBetween(today, day) <= 6 ? planChipLabel({ isToday: false, weekday: dayOfWeek(day) }, dayNames) : formatShortCalendarDate(day));
 }

@@ -1,7 +1,6 @@
 import {
   addCalendarDays,
   calendarDateFromUtcMidnight,
-  calendarDaysBetween,
   startOfMonth,
   type CalendarDate,
 } from "./householdDate";
@@ -9,7 +8,7 @@ import { canSeeHabit } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartDay } from "./habits/carryOver";
 import { logsForUser, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import { windowProgress, type WindowProgress } from "./habits/progress";
-import { isPlannedToday } from "./habits/planPrompts";
+import { isPlannedToday, plannedLaterLabel } from "./habits/planPrompts";
 import { compareDays, dayInVacation, dueState as dueStateOf, isSameDay } from "./habits/schedule";
 import { displayStreak, streakUnitOf, type StreakCache } from "./habits/streaks";
 import type { DueState, HabitActor, HabitLogDay, Vacation } from "./habits/types";
@@ -73,6 +72,8 @@ export type HabitRowView = Omit<HabitRowState, "participants"> & {
   streakUnit: StreakUnit;
   /** The viewer planned this habit for today (decision 145): the row is required and its meta says so. */
   plannedToday: boolean;
+  /** "Planned for Sat" when the viewer planned a later day this period (decision 162), else null. */
+  plannedLater: string | null;
   /** Due today but the viewer is on vacation (decision 115): excused, muted, the check still works. */
   onVacation: boolean;
   /** A chore skipped for this week only (decision 117): excused like a vacation row. */
@@ -274,6 +275,7 @@ export function buildTodayRows(
       carriedFrom,
       progress,
       plannedToday,
+      plannedLater: spec ? plannedLaterLabel(spec, today, plannedByHabit.get(habit.id) ?? [], SHORT_DAY_NAMES) : null,
       onVacation,
       skippedThisWeek: change.state === "excused",
       weekTag: change.tag ? choreTagLabel(change.tag, SHORT_DAY_NAMES) : null,
@@ -333,18 +335,4 @@ export function buildTodayPage(
       .sort((a, b) => b.archivedAt!.getTime() - a.archivedAt!.getTime())
       .map(managerItem),
   };
-}
-
-/** How far back any tap may reach on its own; a carried day may be older (up to the carry-over lookback). */
-export const TAP_DAYS_BACK = 7;
-
-/**
- * Whether a tap for `day` is allowed: never in the future, never past the
- * carry-over lookback, and older than a week only when it is exactly the
- * carried day the Today row stands for (`carried`, the server's own answer).
- */
-export function isTapDayAllowed(day: CalendarDate, today: CalendarDate, carried: CalendarDate | null): boolean {
-  const ago = calendarDaysBetween(day, today);
-  if (ago < 0 || ago > CARRY_LOOKBACK_DAYS) return false;
-  return ago <= TAP_DAYS_BACK || (carried !== null && isSameDay(day, carried));
 }

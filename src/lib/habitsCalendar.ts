@@ -1,4 +1,8 @@
 import { canSeeHabit } from "./habits/access";
+import { logDayFromRow, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
+import { countDays } from "./habits/progress";
+import { periodTarget, periodWindow } from "./habits/schedule";
+import { calendarDateFromUtcMidnight, utcMidnightInstant } from "./householdDate";
 import type { CalendarHabitDayView } from "./types";
 import type { HabitActor } from "./habits/types";
 import { isCheckStatus } from "./habitVocabulary";
@@ -8,7 +12,7 @@ import { isCheckStatus } from "./habitVocabulary";
 // checks; this applies the access rule and shapes the items.
 
 /** One planned-day row with the facts of its habit. `userId` is whose row it is. */
-export type PlannedDayRow = {
+export type PlannedDayRow = StoredScheduleFields & {
   habitId: string;
   userId: string;
   title: string;
@@ -23,6 +27,22 @@ export type PlannedDayRow = {
 /** One check: a habit's day for a person, with its status. */
 export type PlannedDayCheck = { habitId: string; userId: string; day: Date; status: string };
 
+/** The whole period (week or month) containing each planned day, as the one range of checks to read: `[from, to)`, or null with no rows. */
+export function plannedPeriodsRange(rows: readonly PlannedDayRow[]): { from: Date; to: Date } | null {
+  let from: Date | null = null;
+  let to: Date | null = null;
+  for (const row of rows) {
+    const spec = specFromRow(row);
+    if (!spec) continue;
+    const window = periodWindow(spec, calendarDateFromUtcMidnight(row.day));
+    const start = utcMidnightInstant(window.start);
+    const end = new Date(utcMidnightInstant(window.end).getTime() + 86_400_000);
+    if (!from || start < from) from = start;
+    if (!to || end > to) to = end;
+  }
+  return from && to ? { from, to } : null;
+}
+
 function dayKey(day: Date): string {
   return day.toISOString().slice(0, 10);
 }
@@ -32,7 +52,9 @@ function dayKey(day: Date): string {
  * rows count (so a Together habit shows once, from their row), and only for a
  * habit they may see (`canSeeHabit`). The tablet (a device login) sees none:
  * the reader returns early for it. A day is done when the viewer has a done or
- * late check on it (`isCheckStatus`); a skip is not done.
+ * late check on it (`isCheckStatus`), or when the habit's period containing it
+ * (`periodWindow`) has met its target from the viewer's done or late checks
+ * (decision 160). A skip never counts.
  */
 export function buildCalendarHabitDays(
   viewer: HabitActor,
@@ -44,6 +66,16 @@ export function buildCalendarHabitDays(
       .filter((check) => check.userId === viewer.userId && isCheckStatus(check.status))
       .map((check) => `${check.habitId}:${dayKey(check.day)}`),
   );
+  const mine = checks.filter((check) => check.userId === viewer.userId && isCheckStatus(check.status));
+  const logsByHabit = new Map<string, ReturnType<typeof logDayFromRow>[]>();
+  for (const check of mine) logsByHabit.set(check.habitId, [...(logsByHabit.get(check.habitId) ?? []), logDayFromRow(check)]);
+  const periodMet = (row: PlannedDayRow): boolean => {
+    const spec = specFromRow(row);
+    if (!spec) return false;
+    const day = calendarDateFromUtcMidnight(row.day);
+    const target = periodTarget(spec, day);
+    return target > 0 && countDays(logsByHabit.get(row.habitId) ?? [], periodWindow(spec, day)) >= target;
+  };
   const items = new Map<string, CalendarHabitDayView>();
   for (const row of rows) {
     if (row.userId !== viewer.userId || !canSeeHabit(viewer, row)) continue;
@@ -55,7 +87,7 @@ export function buildCalendarHabitDays(
       icon: row.icon,
       kind: row.kind === "chore" ? "chore" : "habit",
       dayInstant: row.day,
-      done: doneKeys.has(id),
+      done: doneKeys.has(id) || periodMet(row),
     });
   }
   return [...items.values()].sort(

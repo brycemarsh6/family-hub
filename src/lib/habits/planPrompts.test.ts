@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dayOfWeek, type CalendarDate } from "../householdDate";
-import { isPlannableDay, isPlannedToday, isPromptDay, promptChips } from "./planPrompts";
+import { isPlannableDay, isPlannedToday, isPromptDay, laterPlannedDay, plannedLaterLabel, promptChips } from "./planPrompts";
 import type { ScheduleSpec } from "./types";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -120,4 +120,25 @@ test("isPlannedToday matches only today's date", () => {
   assert.equal(isPlannedToday([d(2026, 11, 7), d(2026, 11, 6)], d(2026, 11, 6)), true);
   assert.equal(isPlannedToday([d(2026, 11, 7)], d(2026, 11, 6)), false);
   assert.equal(isPlannedToday([], d(2026, 11, 6)), false);
+});
+
+// --- "Planned for Sat" (decision 162) ---------------------------------------
+
+const NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+test("plannedLaterLabel: a later day this week reads as its short weekday", () => {
+  assert.equal(plannedLaterLabel(weekly, d(2026, 11, 5), [d(2026, 11, 7)], NAMES), "Planned for Sat");
+});
+
+test("plannedLaterLabel: a monthly day more than six days away reads as a date", () => {
+  assert.equal(plannedLaterLabel(monthly, d(2026, 11, 5), [d(2026, 11, 21)], NAMES), "Planned for Nov 21");
+  assert.equal(plannedLaterLabel(monthly, d(2026, 11, 5), [d(2026, 11, 11)], NAMES), "Planned for Wed");
+});
+
+test("plannedLaterLabel: the nearest later day wins; today, past days and other periods give nothing", () => {
+  assert.deepEqual(laterPlannedDay(weekly, d(2026, 11, 5), [d(2026, 11, 7), d(2026, 11, 6)]), d(2026, 11, 6));
+  assert.equal(plannedLaterLabel(weekly, d(2026, 11, 5), [d(2026, 11, 7), d(2026, 11, 6)], NAMES), "Planned for Fri");
+  assert.equal(plannedLaterLabel(weekly, d(2026, 11, 5), [d(2026, 11, 5), d(2026, 11, 3)], NAMES), null);
+  assert.equal(plannedLaterLabel(weekly, d(2026, 11, 5), [d(2026, 11, 8)], NAMES), null); // next week
+  assert.equal(plannedLaterLabel(weekly, d(2026, 11, 5), [], NAMES), null);
 });
