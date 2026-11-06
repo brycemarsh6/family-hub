@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireVerifiedUser } from "@/lib/dal";
+import { BackLink } from "@/components/BackLink";
 import { ProfileForm } from "@/components/ProfileForm";
 
 // Reads the session, so it can never be cached.
@@ -18,6 +19,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="py-2">
+      <BackLink href="/settings" label="Settings" />
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Profile</h1>
       <p className="mb-4 mt-1 text-sm text-muted">
         Your name, avatar colour, and password.

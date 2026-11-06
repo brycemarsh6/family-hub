@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { NavDrawer } from "@/components/NavDrawer";
-import type { DrawerUser } from "@/components/NavList";
 
 // Tailwind's `lg` breakpoint, the width where the pinned menu appears. Tailwind
 // has no JS constant for it, so it is written out here.
@@ -31,11 +30,11 @@ const PINNED_MEDIA_QUERY = "(min-width: 1024px)";
  * drawer on screen: AppChrome renders one or the other button, never both.
  */
 export function HamburgerButton({
-  user,
+  onSendFeedback,
   floating = false,
   pinned = false,
 }: {
-  user: DrawerUser;
+  onSendFeedback: () => void;
   floating?: boolean;
   pinned?: boolean;
 }) {
@@ -93,7 +92,11 @@ export function HamburgerButton({
       ) : (
         button
       )}
-      <NavDrawer open={open} onClose={() => setOpen(false)} user={user} />
+      <NavDrawer
+        open={open}
+        onClose={() => setOpen(false)}
+        onSendFeedback={onSendFeedback}
+      />
     </>
   );
 }

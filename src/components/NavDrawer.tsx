@@ -2,23 +2,24 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { NavList, type DrawerUser } from "@/components/NavList";
+import { NavList } from "@/components/NavList";
 
 /**
  * The app's one navigation surface on phones: a left-hand drawer around
- * `NavList` (every destination from `src/lib/nav.ts`, plus Profile, Settings,
- * who you are and Sign out). Opened by `HamburgerButton`, which owns `open`.
+ * `NavList` (every destination from `src/lib/nav.ts`, plus Settings and
+ * Send feedback). Opened by `HamburgerButton`, which owns `open`.
  * Its list never changes as you move around, only which row is lit.
  */
 export function NavDrawer({
   open,
   onClose,
-  user,
+  onSendFeedback,
   id = "app-nav-drawer",
 }: {
   open: boolean;
   onClose: () => void;
-  user: DrawerUser;
+  /** Opens the Send feedback sheet; the drawer closes itself first. */
+  onSendFeedback: () => void;
   /** The drawer's DOM id, which its opener's `aria-controls` points at. Two
    * openers exist (HamburgerButton, PinnedNav's rail button), so each passes
    * its own and two mounted drawers never share one. */
@@ -67,7 +68,7 @@ export function NavDrawer({
           paddingLeft: "calc(0.75rem + env(safe-area-inset-left))",
         }}
       >
-        <NavList user={user} onNavigate={onClose} />
+        <NavList onNavigate={onClose} onSendFeedback={onSendFeedback} />
       </aside>
     </div>
   );

@@ -9,15 +9,14 @@ import {
   Settings,
   ShoppingCart,
   Target,
-  UserRound,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 
 // The drawer's one destination list: every page the side drawer links to,
 // in the order it shows them. Sections carry an optional heading (Kitchen);
-// the footer items (Profile, Settings) sit below them, above the identity
-// row and Sign out.
+// the footer item (Settings) sits below them, above the Send feedback button
+// (a button, not a destination, so it is not in this list).
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 export type NavSection = { heading: string | null; items: readonly NavItem[] };
 
@@ -45,7 +44,6 @@ export const NAV_SECTIONS: readonly NavSection[] = [
 ];
 
 export const NAV_FOOTER_ITEMS: readonly NavItem[] = [
-  { href: "/profile", label: "Profile", icon: UserRound },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -57,10 +55,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
 /**
  * The href of the drawer row to light for `pathname`: the longest matching
  * href wins (a match is equal, or `pathname` starts with `href + "/"`), so
- * `/settings/family` lights Settings. "/" matches only exactly, otherwise it
+ * `/settings/family` and `/profile` light Settings. "/" matches only exactly, otherwise it
  * would match everything. Null when nothing matches (for example `/login`).
  */
 export function activeNavHref(pathname: string): string | null {
+  // Profile lives behind the account card at the top of Settings, so it has
+  // no row of its own and lights Settings instead.
+  if (pathname === "/profile" || pathname.startsWith("/profile/")) return "/settings";
   let best: string | null = null;
   for (const { href } of NAV_ITEMS) {
     const matches =

@@ -228,7 +228,8 @@ Order: C1, then C2 and C3 in parallel (disjoint files), then C4 last.
   `src/components/NavList.tsx`, `src/components/NavDrawer.tsx`,
   `src/components/PinnedNav.tsx`, `src/components/AppChrome.tsx`,
   `src/app/(app)/settings/page.tsx`, `src/app/(app)/profile/page.tsx`,
-  new `src/components/SettingsAccountCard.tsx` · must not touch: C1, C2
+  new `src/components/SettingsAccountCard.tsx`, and (added after the build,
+  see note) `src/components/HamburgerButton.tsx` · must not touch: C1, C2
   and C3 files except as named.
 - **Behaviour:** remove Profile from `NAV_FOOTER_ITEMS`; `/profile`
   lights Settings (`activeNavHref`, with a test). A "Send feedback" row
@@ -240,6 +241,15 @@ Order: C1, then C2 and C3 in parallel (disjoint files), then C4 last.
   the bottom of Settings for everyone. `/profile` gets a `BackLink` to
   Settings.
 - **Verification:** tsc, eslint, `npm test`, build.
+
+**C4 boundary note (Fury):** Stark also edited `HamburgerButton.tsx`, which
+the contract did not list. It passes `onSendFeedback` through to the rail's
+inner drawer, so the prop chain needs it. Fury added it to the boundary
+after the fact; Vision to judge.
+
+**Status after build (2026-11-06):** C1 to C4 DONE. C1 255160c, C2 and
+C3 committed, C4 below. Gauntlet per Stark: tsc, eslint, 990 tests, build
+all green.
 
 ## Gate plan
 

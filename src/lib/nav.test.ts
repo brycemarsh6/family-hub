@@ -30,3 +30,11 @@ test("activeNavHref: / matches only exactly", () => {
 test("activeNavHref: /login matches nothing", () => {
   assert.equal(activeNavHref("/login"), null);
 });
+
+test("activeNavHref: /profile lights Settings", () => {
+  assert.equal(activeNavHref("/profile"), "/settings");
+});
+
+test("NAV_ITEMS: Profile has no row of its own", () => {
+  assert.ok(!NAV_ITEMS.some((item) => item.href === "/profile"));
+});
