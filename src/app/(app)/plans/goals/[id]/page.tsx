@@ -9,7 +9,7 @@ import { loadGoal } from "@/lib/goalsRead";
 import { loadGoalVision } from "@/lib/visionsRead";
 import { goalVisionLabel } from "@/lib/visions";
 import { GOAL_OWNERSHIP_LABELS, GOAL_PAGE_VISION_HORIZON, ONGOING_LABEL, lifeAreaInfo } from "@/lib/goalVocabulary";
-import { calendarDateInZone, formatShortCalendarDate } from "@/lib/householdDate";
+import { calendarDateFromUtcMidnight, formatShortCalendarDate } from "@/lib/householdDate";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
 
   // The date is stored as UTC midnight; read it back as UTC so it can't slip a day.
   const vision = await loadGoalVision(goal);
-  const by = goal.targetDate ? `by ${formatShortCalendarDate(calendarDateInZone(goal.targetDate, "UTC"))}` : ONGOING_LABEL;
+  const by = goal.targetDate ? `by ${formatShortCalendarDate(calendarDateFromUtcMidnight(goal.targetDate))}` : ONGOING_LABEL;
   const owner = whoseGoal(goal, user.userId);
   const whose =
     owner === "theirs" ? (goal.owner?.displayName ?? GOAL_OWNERSHIP_LABELS.together) : GOAL_OWNERSHIP_LABELS[owner];

@@ -70,7 +70,11 @@ export function GoalForm(
   const router = useRouter();
   const { today } = props;
   const isEdit = props.mode === "edit";
-  const [values, setValues] = useState<GoalFormValues>(props.mode === "edit" ? props.initial : EMPTY_VALUES);
+  const [values, setValues] = useState<GoalFormValues>(
+    props.mode === "edit"
+      ? props.initial
+      : { ...EMPTY_VALUES, targetDate: formatCalendarDate(targetDateChips(props.today)[0].date) },
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -233,7 +237,6 @@ export function GoalForm(
           onChange={(event) => setValues((current) => ({ ...current, targetDate: event.target.value, ongoing: false }))}
           onClick={() => values.ongoing && set("ongoing", false)}
           aria-label="Target date"
-          aria-disabled={values.ongoing}
           className={`${INPUT_CLASSES} ${values.ongoing ? "opacity-45" : ""}`}
         />
       </Field>

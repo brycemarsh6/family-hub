@@ -214,3 +214,18 @@ new design call. It goes in F1.
    direct `TZ=UTC node ...` run (it must show 7).
 5. **Evidence required:** exit codes, `git grep -n 'calendarDateInZone(goal.targetDate' -- src` (empty), `wc -l` of touched files.
 6. **Done criteria:** Captain pass 2 passes; Vision re-runs the Gauntlet.
+
+#### F1 report (Stark): DONE
+
+The four stored-day reads use `calendarDateFromUtcMidnight` (grep for the
+old call is empty). `aria-disabled` dropped. New goals open with "End of
+this year" lit. The tag's classes now match `QUIT_TAG_CLASS` exactly but
+aren't imported: `HabitRow.tsx` is a client module and `GoalCard.tsx` a
+server component (reasoned, not tested); moving the constant to a shared
+non-client module is a later tidy-up. Gauntlet: tsc 0, eslint 0, `npm test`
+1102, UTC 1095 + 7 skipped, LA 1102, build 0. `GoalForm.tsx` 334.
+
+Fury wrote Captain's STRUCTURE.md amendment (grandfather sentence closed,
+the "Ongoing goals" paragraph, `ONGOING_LABEL` in the vocabulary list, the
+size watch). Strange is not re-run for F1: its only visible change is the
+pre-lit chip, which Strange's pass 1 asked for; Vision checks it in code.

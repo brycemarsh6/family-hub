@@ -5,6 +5,7 @@ import { distinctDays, windowProgress } from "./habits/progress";
 import type { HabitLogDay, ScheduleSpec } from "./habits/types";
 import {
   addCalendarDays,
+  calendarDateFromUtcMidnight,
   calendarDateInZone,
   calendarDaysBetween,
   type CalendarDate,
@@ -207,7 +208,7 @@ export function paceStatus(goal: GoalMeasure, today: CalendarDate): PaceStatus {
   const progress = progressFraction(goal);
   if (goal.targetDate === null) return progress >= 1 ? "reached" : null;
   const created = calendarDateInZone(goal.createdAt, HOUSEHOLD_TIME_ZONE);
-  const total = calendarDaysBetween(created, calendarDateInZone(goal.targetDate, "UTC"));
+  const total = calendarDaysBetween(created, calendarDateFromUtcMidnight(goal.targetDate));
   if (total <= 0) return progress >= 1 ? "reached" : "behind";
   if (progress >= 1) return "reached";
   const expected = Math.min(1, Math.max(0, calendarDaysBetween(created, today) / total));

@@ -249,7 +249,8 @@ Adding a second definition of any of these is a BLOCKER:
   map; it has **no imports at all**, because `next.config.ts` imports it by
   relative path. `src/lib/navMode.ts`: the only menu-style list
 - `src/lib/goalVocabulary.ts` — Plans & Goals' vocabulary: `LIFE_AREAS`,
-  `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`, and
+  `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`,
+  `ONGOING_LABEL` (mission-38), and
   the vision words (`VISION_HORIZONS`, `TOGETHER_BOARD`, `VisionBoardKey`,
   `GOAL_PAGE_VISION_HORIZON`). `LIFE_AREAS` has six areas, in order:
   Spiritual, Health & Wellness, Personal Growth, Relationships & Connections,
@@ -265,7 +266,18 @@ Adding a second definition of any of these is a BLOCKER:
   policy. An action, page **or component** comparing a goal's `ownerId` or
   `visibility` itself is a BLOCKER; the display helpers `goalOwnership` /
   `whoseGoal` / `isPrivateGoal` live beside the policy in `goals.ts`.
-  `src/lib/goalsRead.ts` is the only page reader of goal rows. The form
+  `src/lib/goalsRead.ts` is the only page reader of goal rows.
+  **Ongoing goals (mission-38):** `Goal.targetDate` is nullable; null means
+  Ongoing. `validateGoalInput` in `goals.ts` is the only place that decides
+  whether a goal is ongoing or dated: only an explicit `ongoing: true` lets
+  a blank date through, and the past-date check applies only to a date.
+  Actions save its result as is, with no second check. `paceStatus` in
+  `goalsProgress.ts` is the only pace rule for an ongoing goal ("reached"
+  or null). `findGoals` in `goalsRead.ts` orders ongoing goals last
+  (`nulls: "last"`). `ONGOING_LABEL` in `goalVocabulary.ts` is the only
+  "Ongoing" wording; a component or page that types the word itself is a
+  BLOCKER. If a fifth place asks whether `targetDate` is null, add an
+  `isOngoingGoal(goal)` helper in `goals.ts` beside `isPrivateGoal`. The form
   limits `GOAL_TITLE_MAX` / `GOAL_WHY_MAX` / `MEASURE_UNIT_MAX` /
   `HABIT_TIMES_MAX` are exported from `goals.ts` (the `MIN_PASSWORD_LENGTH`
   precedent). `goalOnBoard(goal, board)` there is how a goal is matched to a
@@ -330,7 +342,8 @@ Adding a second definition of any of these is a BLOCKER:
   and `goalsRead.ts`), and the two check-in flags in `goalsRead.ts`
   (`goalInclude` and `toView`). **Size watch:** `GoalDetail.tsx` is 277
   lines (soft cap 350) after mission 37 moved "The result" card into
-  `GoalResultCard.tsx`; `goals.ts` is 334; `goals.test.ts`
+  `GoalResultCard.tsx`; `goals.ts` is 338 and `GoalForm.tsx` 334 (its target-date field, with the
+  chips and Ongoing, is the split seam); `goals.test.ts`
   is 344 after mission 30 split its habit tests into `goalsHabitInput.test.ts`;
   the next goal test goes in a new file by concern.
 - `src/lib/planItemChanges.ts`: `applyPlanItemChange`, the only optimistic
@@ -416,10 +429,9 @@ Adding a second definition of any of these is a BLOCKER:
   column (`HabitLog.day`, vacation days, `anchorWeek`, `streakAsOf`, all-day
   dates) back as a `CalendarDate`. `utcMidnightInstant` is the only way to
   write one. New code that inlines `calendarDateInZone(x, "UTC")` for a
-  stored day is a BLOCKER. Four older `goal.targetDate` sites are
-  grandfathered and move to the helper in the next mission that touches each
-  one: `plans/goals/[id]/page.tsx`, `plans/goals/[id]/edit/page.tsx`,
-  `actions/goals.ts` and `goalsProgress.ts`. (Added mission-30.)
+  stored day is a BLOCKER. The four older `goal.targetDate` sites
+  grandfathered by mission-30 moved to the helper in mission-38; none
+  remain. (Added mission-30; closed mission-38.)
 - `householdParticipantIds(client)` in `habits/participantWrites.ts` is the
   one rule for who holds an Everyone habit: every active person who is not a
   shared device login. Callers ask for it with `createHabit`'s

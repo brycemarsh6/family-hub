@@ -30,7 +30,7 @@ export function GoalCard({ goal, viewerId }: { goal: GoalView; viewerId: string 
             <Lock aria-label="Private" className="shrink-0 text-muted" size={14} />
           )}
           {goal.targetDate === null && (
-            <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted-strong">
+            <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted-strong whitespace-nowrap">
               {ONGOING_LABEL}
             </span>
           )}

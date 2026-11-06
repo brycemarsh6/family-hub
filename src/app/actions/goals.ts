@@ -15,7 +15,7 @@ import { householdToday } from "@/lib/assistant/today";
 import { canEdit, canSee, earlierDate, goalOwnership, validateGoalInput, type GoalInput } from "@/lib/goals";
 import { numberAfterCheckIns } from "@/lib/goalsProgress";
 import { toGoalVisibility } from "@/lib/goalVocabulary";
-import { calendarDateInZone, utcMidnightInstant } from "@/lib/householdDate";
+import { calendarDateFromUtcMidnight, utcMidnightInstant } from "@/lib/householdDate";
 import { isMissingRowError } from "@/lib/prismaErrors";
 
 export type GoalActionResult = { error?: string };
@@ -122,7 +122,7 @@ export async function updateGoal(id: string, raw: unknown): Promise<GoalActionRe
   // The date may stay, move later, or move to any day not earlier than the stored one (or today, if sooner).
   const today = householdToday(new Date())!;
   const checked = validateGoalInput(submitted, today, {
-    earliest: goal.targetDate ? earlierDate(today, calendarDateInZone(goal.targetDate, "UTC")) : today,
+    earliest: goal.targetDate ? earlierDate(today, calendarDateFromUtcMidnight(goal.targetDate)) : today,
   });
   if ("error" in checked) return { error: checked.error };
   const input = checked.ok;
