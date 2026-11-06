@@ -258,3 +258,24 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Boundaries:** `HabitStats.tsx`, `HabitSideBySide.tsx`,
   `HabitMonthCalendar.tsx`, `NudgeButton.tsx`, `habitVocabulary.ts` and its
   test.
+
+## Gate ledger
+- **Vision pass 1 (Fable): PASS.** Notes: kid dead link (became decision 114), `canNudge` ignores a deactivated recipient, optimistic undo shows missed for not-due days, confetti fires from optimistic rows, `loadHabitStats` reads all logs for all time, `monthLogRows` reads more than it uses.
+- **Captain pass 1 (Opus): BLOCKED, 2.** (1) `FULL_MONTHS` in `habitVocabulary.ts` is a sixth month-name list; (2) `habitsStatsRead.ts` is a second habit reader not in STRUCTURE.md. (2) fixed by Fury writing amendments A, B, C into STRUCTURE.md. PR D notes: split `displayStreak`/`streakUnitOf` into `habits/streaks.ts`; one `useOptimisticRun` hook; `HabitViewChips` own file; `showsOnFamilyView` in `access.ts`; STRUCTURE.md housekeeping (now ~935 lines).
+- **Strange pass 1 (Opus): BLOCKED, 4.** (1) streaks drawn in warn amber, same as Missed; (2) family card count leaves out Together habits; (3) stats calendar day buttons 42px at 390; (4) "Nudged" text 2.93:1. Not covered: nudge card from a second login, read-only checks, tablet login, a Missed day, Show streaks off, real touch. Test data: "zz m32 side", "zz m32 together", one nudge.
+
+### F1 - Gate pass 1 fixes
+- **Status:** PENDING
+- **Fixes:**
+  1. Captain 1: export `FULL_MONTH_NAMES` from `mealPlanDates.ts`; move `statsMonthTitle` and its tests to `habitsStats.ts` / `habitsStats.test.ts`; update `HabitStats.tsx`.
+  2. Decision 114: a row title links to stats only when the viewer may open it (`canSeeHabitStats`); else plain text. Family rows carry the flag from `buildFamilyPage`; test it.
+  3. Strange 1: a `--streak` color token (light #8a4b1f as on the mock; dark a peach at 4.5:1 or better on `--surface`, measured) plus a soft fill if needed, in `globals.css`, used for the streak flame and label on HabitRow, HabitFamilyColumn and the HabitStats tile; the nudge card uses the same peach family as the mock, not warn. DESIGN.md token entry.
+  4. Strange 2: a person's family card count includes the Together rows they take part in (one rule, `doneCounts`); test it.
+  5. Strange 3: stats calendar day buttons at least 44px wide at 375 (grid `gap-0.5`, card `p-2`), and capped at about 48px wide and centred at 820.
+  6. Strange 4: "Nudged" state uses `text-muted-strong` with no opacity, still disabled.
+  7. Vision note: `canNudge` refuses a deactivated recipient; test it.
+  8. Strange note: stats calendar days before the person joined the habit are not tappable; test it.
+  9. Strange note: family view checks name the person for screen readers ("Mark X done for Emily").
+- **Boundaries:** `src/lib/mealPlanDates.ts` (the export and its comment only), `habitVocabulary.ts` and test, `habitsStats.ts` and test, `habitsFamily.ts` and test, `habits/access.ts` and test, `src/app/globals.css`, `DESIGN.md`, `HabitStats.tsx`, `HabitMonthCalendar.tsx`, `NudgeButton.tsx`, `NudgeCard.tsx`, `HabitRow.tsx`, `HabitFamilyColumn.tsx`, `HabitFamilyView.tsx`, `HabitTodayList.tsx` (only if a prop is needed for 2).
+- **Verification:** full gauntlet plus TZ=UTC and LA runs.
+

@@ -441,6 +441,9 @@ in PR B (mission 31).
      only when it is not the current year. Decided by Hill, high.
 113. **Stats calendar shows the current month only** in PR C. Decided by
      Hill, high.
+114. **Amends 105:** a row title links to stats only when the viewer may
+     open that page (102); otherwise it is plain text, so no tap leads to
+     Not found. Decided by Hill, high.
 
 ## Open questions
 

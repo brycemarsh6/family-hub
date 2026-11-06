@@ -48,8 +48,10 @@ structural changes against it.
   domain's write rules — the same rule re-implemented in an action or a
   route is a second definition and a BLOCKER. Name it `<domain>Writes.ts`
   (or for its verb, like `putAway.ts`); where an action shares a function's
-  name, the action imports it under a `write…` alias
-  (`setPantryQuantity as writePantryQuantity` is the instance).
+  name, the action imports it under an alias that names the lower layer:
+  `write…` or `…Row(s)` (`setPantryQuantity as writePantryQuantity`,
+  `reorderHabits as reorderHabitRows`, `markNudgeSeen as markNudgeSeenRow`
+  are the instances).
 - **Dependency direction:** `lib` imports from nothing above it (never `app/`
   or `components/`); `components` may import `lib` and `actions`; `actions`
   import `lib` and the db. No cycles, ever.
@@ -222,6 +224,17 @@ structural changes against it.
 
 Adding a second definition of any of these is a BLOCKER:
 
+- **The optimistic tap wrapper is debt with a deadline (mission-32).** The
+  `run(change, action)` shape (clear the error, start a transition, apply
+  the change, await the action, show `result.error`, catch a network
+  failure with "Couldn't save that. Check your connection and try
+  again.") is copied in `HabitTodayList`, `HabitFamilyView`, `HabitStats`,
+  `ThisWeekList`, `VisionBoard`, `HabitManager` and `GoalDetail`. One
+  contract moves it into a client hook in `src/lib/` that takes the action
+  as a closure argument (so lib never imports `app/`), with the message as
+  one exported constant. The seven copies are grandfathered debt, not a
+  pattern to cite; an eighth is a BLOCKER.
+
 - `src/lib/constants.ts` — categories, locations, meal slots, stores,
   **roles with their display labels and assignability, avatar colors**,
   their icons and order
@@ -324,8 +337,13 @@ Adding a second definition of any of these is a BLOCKER:
   `server-only`) are the only writers of the `Habit`, `HabitParticipant` and
   `HabitLog` tables; `habitWrites.ts` alone writes the cached streak columns,
   and `participantWrites.ts` holds the participant writes (join, reorder,
-  replace) and `atomically`. (Second file added mission-31.) `src/lib/habitsRead.ts` is the only page reader of
-  habit rows. **Dependency direction:** `src/lib/habits/` may import
+  replace) and `atomically`. (Second file added mission-31.) `src/lib/habitsRead.ts` (Today, Manage,
+  the editor, the action loaders and `loadHabitsForPlan`) and
+  `src/lib/habitsStatsRead.ts` (the stats page and the family view,
+  mission-32) are the only readers of the `Habit`, `HabitParticipant`,
+  `HabitLog` and `Nudge` tables for pages and actions. Both are
+  `server-only`, and each hands its rows to a pure builder. A third reader
+  is a BLOCKER. **Dependency direction:** `src/lib/habits/` may import
   `habitVocabulary.ts`, `householdDate.ts`, `constants.ts`, `db.ts` and the
   generated client (types). It never imports `goals*.ts`,
   `goalVocabulary.ts` or `visions*.ts`. The goals side may import the engine
@@ -426,6 +444,26 @@ Adding a second definition of any of these is a BLOCKER:
   `~/Desktop/marshee_brand_assets/` and is explicitly not a source — its
   mark is missing the M's centre descender despite its README claiming to
   be authoritative.)
+- **Habits & Chores PR C homes (mission-32).** `src/lib/habitsStats.ts` is
+  the only home of the stats page's rules: per-person totals, the month
+  calendar cells and their `tappable` window, completion rate, the side by
+  side rows, the weekly series, perfect days in a month and
+  `statsMonthTitle`. `src/lib/habitsFamily.ts` builds the family view and
+  the stats page data (`buildFamilyPage`, `buildStatsData`,
+  `statsSubject`), and holds `doneCounts` / `doneCountLabel`, the one
+  "x of y done" rule for Today and the family view. Both files are pure:
+  no `db`, and callers pass `today`. `habitsToday.ts` keeps the row streak
+  (`displayStreak`, `streakUnitOf`) and the confetti rule
+  `allRequiredDoneToday`. **Dependency direction:** `habitsFamily.ts` may
+  import `habitsStats.ts` and `habitsToday.ts`, and `habitsStats.ts` may
+  import `habitsToday.ts`; never the reverse. `canNudge` and
+  `canSeeHabitStats` in `habits/access.ts` are the only nudge and stats
+  policy. `src/lib/habits/nudgeWrites.ts` (`server-only`, no auth) is the
+  only writer of the `Nudge` table; its only caller is
+  `src/app/actions/habitNudges.ts`, which owns the session, the guards and
+  `revalidatePath`. `src/lib/confettiSeen.ts` is the only home of the
+  once-a-day confetti marker on each device (the `lastStore.ts` pattern),
+  and `HabitConfetti.tsx` is the only importer of `canvas-confetti`.
 - **The `validatedPeople` decision** — which `User` ids may be **written**
   onto an item. `personInfo.ts` below is the read-side twin of this rule;
   this is the write side, and it is security-relevant for the same reason.
