@@ -1,6 +1,7 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { auditQuery } from "@/lib/assistant/schemas";
 import { listAudit } from "@/lib/assistant/audit";
+import { decodeChangeSummary } from "@/lib/assistant/changeCopy";
 
 export const GET = assistantRoute({
   action: "audit.list",
@@ -22,12 +23,16 @@ export const GET = assistantRoute({
           status: r.status,
           durationMs: r.durationMs,
           error: r.error,
-          changes: r.changes.map((c) => ({
-            model: c.model,
-            recordId: c.recordId,
-            action: c.action,
-            summary: JSON.parse(c.summary) as unknown,
-          })),
+          changes: r.changes.map((c) => {
+            const decoded = decodeChangeSummary(c.summary);
+            return {
+              model: c.model,
+              recordId: c.recordId,
+              action: c.action,
+              summary: decoded.detail,
+              undoable: decoded.version === 2,
+            };
+          }),
         })),
       },
     };

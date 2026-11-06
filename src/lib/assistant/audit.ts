@@ -11,6 +11,7 @@ import "server-only";
 // nothing before it can ever answer "the assistant made this".
 
 import { db } from "@/lib/db";
+import { encodeChangeSummary, type RowCopy } from "@/lib/assistant/changeCopy";
 
 export type ChangeInput = {
   model: string;
@@ -18,6 +19,13 @@ export type ChangeInput = {
   action: "create" | "update" | "delete";
   /** Plain object; stored as JSON text (the schema avoids provider JSON types). */
   summary: unknown;
+  /**
+   * Full copies of the row before and after the write (null = the row did not
+   * exist). Supplying either one stores the change as version 2, which is what
+   * makes it undoable (see changeCopy.ts).
+   */
+  before?: RowCopy;
+  after?: RowCopy;
 };
 
 export type StartRequestInput = {
@@ -75,7 +83,10 @@ export async function finishRequest(id: string, input: FinishRequestInput): Prom
           model: c.model,
           recordId: c.recordId,
           action: c.action,
-          summary: JSON.stringify(c.summary ?? null),
+          summary:
+            c.before !== undefined || c.after !== undefined
+              ? encodeChangeSummary({ detail: c.summary, before: c.before, after: c.after })
+              : JSON.stringify(c.summary ?? null),
         })),
       },
     },
