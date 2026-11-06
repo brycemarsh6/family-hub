@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canEditHabit, canLogFor, canSeeHabit } from "./access";
+import { canEditHabit, canLogFor, canSeeHabit, canSeeHabitStats } from "./access";
 import type { HabitAccess, HabitActor } from "./types";
 
 const admin: HabitActor = { userId: "admin", role: "admin" };
@@ -58,4 +58,23 @@ test("canLogFor: the tablet cannot check a private habit", () => {
   assert.equal(canLogFor(device, "kid", hidden), false);
   assert.equal(canLogFor(kid, "kid", hidden), true);
   assert.equal(canLogFor(admin, "kid", hidden), false);
+});
+
+test("canSeeHabitStats: a participant opens it, private or not", () => {
+  assert.equal(canSeeHabitStats(kid, shared), true);
+  assert.equal(canSeeHabitStats(kid, hidden), true);
+});
+
+test("canSeeHabitStats: a manager or the tablet opens a shared habit they are not on", () => {
+  for (const actor of [admin, parent, device]) assert.equal(canSeeHabitStats(actor, shared), true, actor.role);
+  assert.equal(canSeeHabitStats(parent, { isPrivate: false, participantIds: ["kid"] }), true);
+});
+
+test("canSeeHabitStats: a private habit's stats open only for its participant", () => {
+  for (const actor of [admin, parent, other, device]) assert.equal(canSeeHabitStats(actor, hidden), false, actor.role);
+  assert.equal(canSeeHabitStats({ userId: "kid", role: "device" }, hidden), false);
+});
+
+test("canSeeHabitStats: another kid who is not on a shared habit gets nothing", () => {
+  assert.equal(canSeeHabitStats(other, shared), false);
 });

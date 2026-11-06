@@ -37,3 +37,12 @@ export function canLogFor(actor: HabitActor, forUserId: string, habit: HabitAcce
   if (!isParticipant(habit, forUserId) || !canSeeHabit(actor, habit)) return false;
   return actor.userId === forUserId || actor.role === "device" || isManager(actor);
 }
+
+/**
+ * Who opens a habit's stats page (decision 102): a participant; a manager or
+ * the tablet, but only for a habit that is not private. Nobody else.
+ */
+export function canSeeHabitStats(actor: HabitActor, habit: HabitAccess): boolean {
+  if (!canSeeHabit(actor, habit)) return false;
+  return isParticipant(habit, actor.userId) || actor.role === "device" || isManager(actor);
+}

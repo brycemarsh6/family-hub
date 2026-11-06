@@ -7,12 +7,15 @@ import assert from "node:assert/strict";
 import type { CalendarDate } from "./householdDate";
 import type { HabitActor, HabitLogDay } from "./habits/types";
 import {
+  allRequiredDoneToday,
   buildTodayPage,
   buildTodayRows,
   carrySince,
+  displayStreak,
   habitStartDay,
   participantsAllowed,
   isTapDayAllowed,
+  streakUnitOf,
   todayLogsFrom,
   visibleInViewerOrder,
   type TodayHabitInput,
@@ -193,4 +196,61 @@ test("participantsAllowed: someone already on the habit passes even if no longer
 
 test("participantsAllowed: an empty pick is never allowed", () => {
   assert.equal(participantsAllowed([], ["a"], ["a"]), false);
+});
+
+const withStreak = (userId: string, currentStreak: number, streakAsOf: Date | null) => ({ ...member(userId), currentStreak, bestStreak: currentStreak, streakAsOf });
+
+test("buildTodayRows: the row carries the viewer's streak aged from the cache, with its label (decision 98)", () => {
+  const h = habit({ id: "run", participants: [withStreak("me", 12, new Date("2026-11-04T00:00:00Z")), withStreak("sib", 1, new Date("2026-11-04T00:00:00Z"))] });
+  const [row] = buildTodayRows(me, [h], noLogs, today);
+  assert.equal(row.streak, 12);
+  assert.equal(row.streakLabel, "12 days");
+  assert.equal(row.streakUnit, "days");
+  assert.deepEqual(row.participants.map((p) => [p.userId, p.streak, p.streakLabel]), [["me", 12, "12 days"], ["sib", 1, null]]);
+});
+
+test("buildTodayRows: a streak that went stale shows nothing; a vacation keeps it", () => {
+  const h = habit({ id: "run", participants: [withStreak("me", 6, new Date("2026-11-01T00:00:00Z"))] });
+  const [stale] = buildTodayRows(me, [h], noLogs, today);
+  assert.equal(stale.streak, 0);
+  assert.equal(stale.streakLabel, null);
+  const away = new Map([["me", [{ start: d(2026, 11, 2), end: d(2026, 11, 4) }]]]);
+  const [kept] = buildTodayRows(me, [h], noLogs, today, away);
+  assert.equal(kept.streak, 6);
+});
+
+test("buildTodayRows: no cached streak means no label, and a weekly habit counts weeks", () => {
+  const [none] = buildTodayRows(me, [habit({ id: "plain" })], noLogs, today);
+  assert.equal(none.streak, 0);
+  assert.equal(none.streakLabel, null);
+  const weekly = habit({ id: "weekly", schedule: "weekly", times: 3, participants: [withStreak("me", 3, new Date("2026-11-05T00:00:00Z"))] });
+  const [row] = buildTodayRows(me, [weekly], noLogs, today);
+  assert.equal(row.streakLabel, "3 weeks");
+});
+
+test("streakUnitOf: days, weeks and months by schedule; days when unreadable", () => {
+  assert.equal(streakUnitOf(null), "days");
+  assert.equal(streakUnitOf({ schedule: "daily" }), "days");
+  assert.equal(streakUnitOf({ schedule: "weekly", times: 2 }), "weeks");
+  assert.equal(streakUnitOf({ schedule: "monthly", times: 2 }), "months");
+});
+
+test("displayStreak: zero for an unreadable schedule", () => {
+  assert.equal(displayStreak(null, { current: 4, best: 4, asOf: today }, [], today), 0);
+});
+
+const flags = (dueState: string, doneToday: boolean, skippedToday: boolean) => ({ dueState: dueState as "required", doneToday, skippedToday });
+
+test("allRequiredDoneToday: true when at least one is required and every required row is done or skipped", () => {
+  assert.equal(allRequiredDoneToday([flags("required", true, false), flags("required", false, true)]), true);
+});
+
+test("allRequiredDoneToday: false while a required row is open, and false with nothing required", () => {
+  assert.equal(allRequiredDoneToday([flags("required", true, false), flags("required", false, false)]), false);
+  assert.equal(allRequiredDoneToday([]), false);
+  assert.equal(allRequiredDoneToday([flags("open", false, false), flags("none", true, false)]), false);
+});
+
+test("allRequiredDoneToday: open and carried rows do not hold it back", () => {
+  assert.equal(allRequiredDoneToday([flags("required", true, false), flags("open", false, false), flags("none", false, false)]), true);
 });

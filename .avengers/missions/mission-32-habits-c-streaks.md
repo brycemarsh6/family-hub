@@ -108,7 +108,8 @@ is silent. Mock boards (data): `Stats.dc.html`, `Family.dc.html` in
 and `Main.dc.html` in `.../scratchpad/mock/project/`.
 
 ### C1 - The pure rules, with tests
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc; 733 tests in all three zones)
+- **Notes for C2+:** `displayStreak`, `streakUnitOf`, `allRequiredDoneToday` and row fields `streak`, `streakLabel`, `streakUnit` in `habitsToday.ts` (now 344 lines); `buildTodayRows/Page` take `vacationsByUser`; `TodayHabitInput.participants` takes optional `currentStreak/bestStreak/streakAsOf` (C2 passes them). `habitsStats.ts`: `personTotals`, `monthCalendar`, `completionRate`, `sideBySideRows`, `weeklySeries`, `perfectDaysInMonth`, `STATS_WEEKS = 6`. `canSeeHabitStats` in `access.ts`. Words: `streakLabel`, `SKIPPED_TODAY_LABEL` in `habitVocabulary.ts`.
 - **Objective:** every PR C rule that needs no database, in pure lib files
   with tests.
 - **Boundaries:** may touch: new `src/lib/habitsStats.ts` and
@@ -148,7 +149,9 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Boundaries:** may touch: `src/lib/habitsRead.ts` (if it passes 350
   lines, put the new loaders in new `src/lib/habitsStatsRead.ts`), new
   `src/lib/habits/nudgeWrites.ts`, new `src/app/actions/habitNudges.ts`,
-  `src/lib/habitsToday.ts` (the family page builder, pure) and its test ·
+  new `src/lib/habitsFamily.ts` and `src/lib/habitsFamily.test.ts` (the
+  family page builder, pure; `habitsToday.ts` is at 344 lines), `src/lib/habitsToday.ts`
+  (imports and the today page's nudge and confetti fields only) ·
   must not touch: anything else.
 - **Rules:**
   - `loadTodayPage` also returns each row's display streak, the viewer's
