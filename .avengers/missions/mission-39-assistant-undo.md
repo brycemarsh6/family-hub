@@ -357,3 +357,12 @@
   while nothing was written (before U2 the family's edit always won). Rare;
   Vision to judge. (2) `pantryWrites.ts` header still says every function
   returns the row it wrote; stale for edit and adjust.
+- 2026-11-06: U3a DONE `e56ef73` (5 files). Copies by `SELECT … FOR UPDATE`
+  (ids locked in sorted order) inside a transaction; `setGroceryChecked`
+  replaced by `setGroceryCheckedWithCopies` (API-only caller);
+  `editGroceryItem` keeps its signature over `patchGroceryItemWithCopies`
+  (edit + tick in one locked transaction). Live: 10 parallel merges → befores
+  1..10, final 11; API vs script check-off races consistent 10/10; parity
+  for every helper the actions use; from-low-inventory created 39 rows from
+  real low dev items, deleted by id. Counts 467/5/0/0 checked restored.
+  Build deferred (shared `.next`). U3b dispatched (port 3142).
