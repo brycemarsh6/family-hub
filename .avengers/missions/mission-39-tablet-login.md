@@ -211,7 +211,19 @@ deleting calendar events.** One rule protects the parents' own things.
    Bryce's example: Emily makes a chore for Ledger, the tablet can check it
    off but not delete it.
 9. **Private goals and private habits stay hidden from the tablet** (already
-   true: `goals.ts:102`, `habits/access.ts` `canSeeHabit`).
+   true: `goals.ts:95-98` `canSee`, `habits/access.ts` `canSeeHabit`).
+11. **Only Together goals show on the tablet** (Bryce, 2026-11-06, round 3).
+   Mine goals (any goal with an owner, private or not) are hidden from it on
+   every surface: This week, Goals, the dashboard Goals tile, goal pages and
+   Sunday recap. Together = `ownerId === null` (`goals.ts:74-82`). Today the
+   tablet sees every non-private goal (`canSee` returns true for it,
+   `countsInScope` keeps all for a device, `goals.ts:116-118`), so this
+   narrows what is live now. Consequence, recorded: **goals created on the
+   tablet are always Together** (the New goal form hides Mine/Together for
+   it), or a goal would vanish from the tablet as it saved. Decision 7's
+   "goals for anyone" therefore means Together goals; habits and chores are
+   unaffected. Open: whether Mine vision boards follow the same rule (Fury
+   recommends yes; `visionsRead.ts:45` shows the tablet every board today).
 10. **A per-login permissions page is a later mission**, after Calendar is
    finished: switches such as "the Tablet may delete Emily's events but not
    Bryce's". Mission 39 ships the defaults above as fixed rules, each written
@@ -311,6 +323,8 @@ Fury's recommendations, recorded; Bryce can overturn any:
   create and edit, habits/chores/goals for anyone, the parent rule by
   creator, permissions page later). Decisions 5 to 10 recorded; C5 to C7
   sketched for a second PR.
+- 2026-11-06 — Round 3: Bryce limits goals on the tablet to Together only
+  (decision 11); tablet-made goals are Together. Mine vision boards open.
 
 ## Delivery
 
