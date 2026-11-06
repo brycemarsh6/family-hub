@@ -54,7 +54,7 @@ const PUBLIC_ROUTES = ["/login", "/api/voice", "/api/alexa"];
 // "/api/assistant/v1/" is the one prefix that isn't a token-in-the-path case:
 // it is a versioned API subtree for Bryce's bot, which has no session cookie.
 // A prefix is right here because every handler under it is built from the same
-// assistantRoute wrapper (src/lib/assistant/route.ts), whose first steps are
+// assistantRoute wrapper (src/lib/assistant/assistantRoute.ts), whose first steps are
 // the env-hash switch and the bearer check — that wrapper is the gate, proxy
 // is only UX. The trailing slash matters for the same R4 reason: without it,
 // "/api/assistantX/..." would bypass the login gate. A /v2/ subtree must be

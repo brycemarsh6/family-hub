@@ -130,8 +130,12 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   `/api/alexa` is live but dormant; Alexa+ (V3b) is blocked on Amazon
   (`.avengers/plans/v3b-alexa-plus-addon.md`).
 - **Assistant API** (`/api/assistant/v1/`): a private, token-protected API for
-  Bryce's Grok bot ("Home Hub"). Mission 21 (inventory, leftovers, family, audit
-  log) shipped in PR #28. Missions 22 to 24 are planned in
+  Bryce's Grok bot, Winnie (the plan calls it "Home Hub"). Mission 21
+  (inventory, leftovers, family, audit log) shipped in PR #28. Mission 22
+  (PR #30) added the shopping list (`/shopping`, check-off, put-away,
+  from-low-inventory) and one-call `GET /summary`, with the writes in
+  `src/lib/groceryWrites.ts` and `src/lib/putAway.ts`; Winnie may delete
+  only shopping rows she created. Missions 23 and 24 are planned in
   `.avengers/plans/assistant-api-v1.md`.
 
 ## Tech stack, and why
@@ -194,9 +198,10 @@ Replace this section at the end of each session. Don't append.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
   for the swipe `pointerdown` issue and `CalendarViews.tsx` growth that CV6's
   gates flagged (details in `mission-19-calendar-cv6-dropdown-swipe.md`).
-- **Assistant API mission 22** in worktree branch `claude/assistant-api-m22`.
-  Its first contract: harden the "every route uses `assistantRoute()`" test with
-  the TypeScript compiler API.
+- **Assistant API mission 22** (PR #30, branch `claude/assistant-api-m22`)
+  was synced with main on 2026-11-06 and merges next; then missions 23 and 24
+  get planned. Details in
+  `.avengers/missions/mission-22-assistant-api-shopping-summary.md`.
 
 **Bryce's checklist (never blocks work):**
 - **PR C phone check** (about 5 minutes): on Today, a streak flame on a
