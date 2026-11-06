@@ -713,3 +713,26 @@ three habits due today") doesn't mention unmet hours habits; Today's
 hours on …" not seen (needs an older habit); the form stepper's + shifts
 10px from 9 to 10; This week's "1 of 4 done" mixes an hours item with
 check counts.
+
+#### F2 report (Stark): DONE
+
+All five Captain blockers and Vision's goal-screen blocker fixed, plus the
+notes and Strange's Amendment 1. Gauntlet: tsc 0, eslint 0, `npm test`
+1066/1066, UTC 1059 + 7 skips, LA 1066, build printed its route table.
+Deviations, for the gates to judge: (1) on the wall tablet
+`habitCheckTarget` names the habit's first participant, so the tablet logs
+time for that person, the same rule checks use; (2) `HoursRowView.today`
+and `.lastWeek` are optional because `habitChanges.test.ts` was outside the
+boundary (follow-up: make them required); (3) `GoalResultCard` also takes
+`onDeleteCheckIn`; (4) "Hours habit" is the muted line when no one's week
+can be shown; (5) no unit test for the `planItems.ts` track guard (a
+`"use server"` file). `goalsProgress.test.ts` grew 358 to 367 and
+`habitsHours.test.ts` 282 to 298 while past their watch: NOTE.
+Full text: `git show 1325fa2 --stat`, and the session scratchpad.
+
+Fury wrote Captain's STRUCTURE.md amendment (vocabulary file contents, the
+forced hours shape and the one pace formula, `HabitTimeEntry` in the writer
+and reader sentences, `loadTimeEntryForAction`, the goals-side imports,
+`othersPrivateHidden` / `showsOnFamilyView` in `access.ts`, `hoursSubject`,
+the two hours components on `useOptimisticRun`, and the size-watch
+figures).
