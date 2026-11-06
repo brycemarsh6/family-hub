@@ -229,11 +229,13 @@ Adding a second definition of any of these is a BLOCKER:
   the change, await the action, show `result.error`, catch a network
   failure with "Couldn't save that. Check your connection and try
   again.") is copied in `HabitTodayList`, `HabitFamilyView`, `HabitStats`,
-  `ThisWeekList`, `VisionBoard`, `HabitManager` and `GoalDetail`. One
+  `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail` and
+  `NudgeCard`. One
   contract moves it into a client hook in `src/lib/` that takes the action
   as a closure argument (so lib never imports `app/`), with the message as
-  one exported constant. The seven copies are grandfathered debt, not a
-  pattern to cite; an eighth is a BLOCKER.
+  one exported constant. The eight copies (counted with `git grep` on the
+  message, mission-32) are grandfathered debt, not a pattern to cite; a
+  ninth is a BLOCKER.
 
 - `src/lib/constants.ts` — categories, locations, meal slots, stores,
   **roles with their display labels and assignability, avatar colors**,
