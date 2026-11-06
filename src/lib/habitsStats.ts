@@ -10,10 +10,10 @@ import {
   periodsInRange,
   scheduledDaysInRange,
 } from "./habits/schedule";
-import type { StreakCache } from "./habits/streaks";
+import { displayStreak, streakUnitOf, type StreakCache } from "./habits/streaks";
 import type { HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
 import { FULL_MONTH_NAMES } from "./mealPlanDates";
-import { displayStreak, isTapDayAllowed, streakUnitOf } from "./habitsToday";
+import { isTapDayAllowed } from "./habitsToday";
 import { isCheckStatus, streakLabel, type StreakUnit } from "./habitVocabulary";
 
 // The stats page's rules, with no database: `habitsRead.ts` (or a stats

@@ -11,11 +11,9 @@ import {
   buildTodayPage,
   buildTodayRows,
   carrySince,
-  displayStreak,
   habitStartDay,
   participantsAllowed,
   isTapDayAllowed,
-  streakUnitOf,
   todayLogsFrom,
   visibleInViewerOrder,
   type TodayHabitInput,
@@ -228,17 +226,6 @@ test("buildTodayRows: no cached streak means no label, and a weekly habit counts
   assert.equal(row.streakLabel, "3 weeks");
 });
 
-test("streakUnitOf: days, weeks and months by schedule; days when unreadable", () => {
-  assert.equal(streakUnitOf(null), "days");
-  assert.equal(streakUnitOf({ schedule: "daily" }), "days");
-  assert.equal(streakUnitOf({ schedule: "weekly", times: 2 }), "weeks");
-  assert.equal(streakUnitOf({ schedule: "monthly", times: 2 }), "months");
-});
-
-test("displayStreak: zero for an unreadable schedule", () => {
-  assert.equal(displayStreak(null, { current: 4, best: 4, asOf: today }, [], today), 0);
-});
-
 const flags = (dueState: string, doneToday: boolean, skippedToday: boolean) => ({ dueState: dueState as "required", doneToday, skippedToday });
 
 test("allRequiredDoneToday: true when at least one is required and every required row is done or skipped", () => {
@@ -253,4 +240,87 @@ test("allRequiredDoneToday: false while a required row is open, and false with n
 
 test("allRequiredDoneToday: open and carried rows do not hold it back", () => {
   assert.equal(allRequiredDoneToday([flags("required", true, false), flags("open", false, false), flags("none", false, false)]), true);
+});
+
+// ---- Chores PR D: vacation, this week's changes, no flame on a chore ----
+
+const THURSDAY_ONLY = "0000100";
+const thisWeek = new Date("2026-11-01T00:00:00Z"); // the Sunday of today's week
+const vacationToday = new Map([["me", [{ start: d(2026, 11, 3), end: d(2026, 11, 12) }]]]);
+
+test("buildTodayRows: a row due on a vacation day is marked, an off-day row stays out, and a normal day is unmarked (decision 115)", () => {
+  const due = habit({ id: "due" });
+  const [row] = buildTodayRows(me, [due], noLogs, today, vacationToday);
+  assert.equal(row.onVacation, true);
+  assert.equal(row.dueState, "required", "the check still works");
+  assert.equal(buildTodayRows(me, [habit({ id: "mondays", schedule: "weekdays", weekdays: MONDAYS_ONLY })], noLogs, today, vacationToday).length, 0);
+  assert.equal(buildTodayRows(me, [due], noLogs, today)[0].onVacation, false);
+  const other = new Map([["sib", [{ start: d(2026, 11, 3), end: d(2026, 11, 12) }]]]);
+  assert.equal(buildTodayRows(me, [due], noLogs, today, other)[0].onVacation, false, "only the viewer's own vacation counts");
+});
+
+test("buildTodayRows: the vacation window is inclusive on its last day and over the day after", () => {
+  const due = habit({ id: "due" });
+  const lastDay = new Map([["me", [{ start: d(2026, 11, 1), end: d(2026, 11, 5) }]]]);
+  const over = new Map([["me", [{ start: d(2026, 11, 1), end: d(2026, 11, 4) }]]]);
+  assert.equal(buildTodayRows(me, [due], noLogs, today, lastDay)[0].onVacation, true);
+  assert.equal(buildTodayRows(me, [due], noLogs, today, over)[0].onVacation, false);
+});
+
+test("allRequiredDoneToday: vacation and skipped-this-week rows leave the confetti rule, so an all-excused day has none", () => {
+  const row = (extra: object) => ({ ...flags("required", false, false), ...extra });
+  assert.equal(allRequiredDoneToday([row({ onVacation: true })]), false);
+  assert.equal(allRequiredDoneToday([row({ skippedThisWeek: true })]), false);
+  assert.equal(allRequiredDoneToday([row({ onVacation: true }), flags("required", true, false)]), true);
+  assert.equal(allRequiredDoneToday([row({ skippedThisWeek: true }), flags("required", false, false)]), false);
+});
+
+test("buildTodayRows: a chore moved to today is required today with the 'This week only' tag", () => {
+  const chore = habit({ id: "bins", kind: "chore", schedule: "weekdays", weekdays: MONDAYS_ONLY, weekOverrides: [{ weekStart: thisWeek, fromWeekday: 1, action: "moved", toWeekday: 4 }] });
+  const [row] = buildTodayRows(me, [chore], noLogs, today);
+  assert.equal(row.dueState, "required");
+  assert.equal(row.weekTag, "This week only");
+  assert.equal(row.skippedThisWeek, false);
+});
+
+test("buildTodayRows: a chore moved off today stays out, unless it was already checked", () => {
+  const chore = habit({ id: "bins", kind: "chore", schedule: "weekdays", weekdays: THURSDAY_ONLY, weekOverrides: [{ weekStart: thisWeek, fromWeekday: 4, action: "moved", toWeekday: 6 }] });
+  assert.equal(buildTodayRows(me, [chore], noLogs, today).length, 0);
+  const [row] = buildTodayRows(me, [chore], logsFor("bins", [{ day: today, status: "done", userId: "me" }]), today);
+  assert.equal(row.weekTag, "Moved to Sat");
+});
+
+test("buildTodayRows: a chore skipped this week is excused, tagged, and still shows", () => {
+  const chore = habit({ id: "bins", kind: "chore", schedule: "weekdays", weekdays: THURSDAY_ONLY, weekOverrides: [{ weekStart: thisWeek, fromWeekday: 4, action: "skipped", toWeekday: null }] });
+  const [row] = buildTodayRows(me, [chore], noLogs, today);
+  assert.equal(row.skippedThisWeek, true);
+  assert.equal(row.weekTag, "Skipped this week");
+  assert.equal(row.dueState, "required");
+  const nextWeek = new Date("2026-11-08T00:00:00Z");
+  const later = habit({ id: "bins", kind: "chore", schedule: "weekdays", weekdays: THURSDAY_ONLY, weekOverrides: [{ weekStart: nextWeek, fromWeekday: 4, action: "skipped", toWeekday: null }] });
+  assert.equal(buildTodayRows(me, [later], noLogs, today)[0].skippedThisWeek, false, "another week's change does not apply");
+});
+
+test("buildTodayRows: a carried-over chore day that this week's change took away is not carried", () => {
+  // Carry-over on, due Mondays, Monday Nov 2 skipped this week and unchecked: not a missed day.
+  const monday = new Date("2026-11-01T00:00:00Z");
+  const base = { id: "bins", kind: "chore", schedule: "weekdays", weekdays: MONDAYS_ONLY, carryOver: true, createdAt: new Date("2026-10-01T12:00:00Z") };
+  assert.notEqual(buildTodayRows(me, [habit(base)], noLogs, today)[0]?.carriedFrom ?? null, null, "baseline: Monday is carried");
+  const skipped = habit({ ...base, weekOverrides: [{ weekStart: monday, fromWeekday: 1, action: "skipped", toWeekday: null }] });
+  assert.equal(buildTodayRows(me, [skipped], noLogs, today).length, 0);
+});
+
+test("buildTodayRows: a chore row has no streak label of its own, though the number stays (decision 120)", () => {
+  const chore = habit({ id: "dishes", kind: "chore", participants: [withStreak("me", 12, new Date("2026-11-04T00:00:00Z")), withStreak("sib", 5, new Date("2026-11-04T00:00:00Z"))] });
+  const [row] = buildTodayRows(me, [chore], noLogs, today);
+  assert.equal(row.streak, 12);
+  assert.equal(row.streakLabel, null);
+  assert.deepEqual(row.participants.map((p) => p.streakLabel), [null, null]);
+  const [habitRow] = buildTodayRows(me, [{ ...chore, kind: "habit" }], noLogs, today);
+  assert.equal(habitRow.streakLabel, "12 days");
+});
+
+test("buildTodayPage: an all-vacation day has no confetti", () => {
+  const page = buildTodayPage(me, [habit({ id: "a" })], logsFor("a", [{ day: today, status: "done", userId: "me" }]), today, vacationToday);
+  assert.equal(page.confetti, false);
 });

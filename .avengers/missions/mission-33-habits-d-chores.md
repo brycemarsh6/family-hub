@@ -101,7 +101,8 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
 ## Contracts
 
 ### C1 - Engine rules, pure, with tests
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc, eslint, 807 tests)
+- **Notes for C2+:** `weekOverrides.ts` (`choreDayState`, `choreTag`, `overrideFromRow`, `weekChange`, `isExcused`), `choreStreak.ts` (`computeChoreStreak(chores, vacations, today)`, `choreStreakAfter`, `finishedAllChoresLastWeek`, `ChoreInput = { spec, logs, overrides, since }`), `streakUnitOf`/`displayStreak` now in `habits/streaks.ts`; `habitsToday.ts` 349 lines (extract before adding). Rows gain `onVacation`, `skippedThisWeek`, `weekTag`; chore rows' `streakLabel` is null. Stark's calls: chores with no set days stay out of the chore streak; a week of only skips or vacation is not "finished every chore"; overrides apply only to weekdays chores. C2 stores `computeChoreStreak`'s result (its `asOf` is yesterday while today is undone) and ages it with `choreStreakAfter`. C3 needs a column-level `onVacation` on `FamilyColumn`.
 - **Objective:** every PR D rule that needs no database.
 - **Boundaries:** may touch: new `src/lib/habits/weekOverrides.ts` and test,
   new `src/lib/habits/choreStreak.ts` and test, `src/lib/habits/streaks.ts`

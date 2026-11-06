@@ -4,6 +4,7 @@ import { specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import type { DayEntry } from "./habits/perfectDays";
 import { compareDays, dueState as dueStateOf, isDayInRange, isSameDay } from "./habits/schedule";
 import type { HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
+import { isExcused, type ExcusableRow } from "./habits/weekOverrides";
 import {
   carrySince,
   buildTodayRows,
@@ -61,14 +62,14 @@ export type FamilyColumn = FamilyPerson & {
   totalCount: number;
 };
 
-/** "Done of owed" over rows that are still in play: a skipped row is neither done nor owed (decision 109). One rule for Today and the family view. */
-export function doneCounts(rows: readonly Pick<HabitRowView, "doneToday" | "skippedToday">[]): { done: number; total: number } {
-  const owed = rows.filter((row) => !row.skippedToday);
+/** "Done of owed" over rows that are still in play: a skipped, vacation or skipped-this-week row is neither done nor owed (decisions 109, 115). One rule for Today and the family view. */
+export function doneCounts(rows: readonly ExcusableRow[]): { done: number; total: number } {
+  const owed = rows.filter((row) => !isExcused(row));
   return { done: owed.filter((row) => row.doneToday).length, total: owed.length };
 }
 
 /** "3 of 7 done". */
-export function doneCountLabel(rows: readonly Pick<HabitRowView, "doneToday" | "skippedToday">[]): string {
+export function doneCountLabel(rows: readonly ExcusableRow[]): string {
   const { done, total } = doneCounts(rows);
   return `${done} of ${total} done`;
 }

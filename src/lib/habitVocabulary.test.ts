@@ -20,6 +20,14 @@ import {
   HABIT_WHO_CHOICES,
   HABIT_WHO_LABELS,
   ANYTIME_LABEL,
+  CHORES_LAST_WEEK_CARD,
+  CHORES_LAST_WEEK_FAMILY,
+  CHORE_CHART_LABELS,
+  ON_VACATION_LABEL,
+  VACATION_OVERLAP_MESSAGE,
+  VACATION_TODAY_LABEL,
+  choreTagLabel,
+  vacationThroughLabel,
   SKIPPED_TODAY_LABEL,
   STREAK_MIN_SHOWN,
   STREAK_UNITS,
@@ -201,4 +209,23 @@ test("nudge and rate words (decisions 110, 111)", () => {
 
 test("SKIPPED_TODAY_LABEL is the words decision 101 names", () => {
   assert.equal(SKIPPED_TODAY_LABEL, "Skipped today");
+});
+
+test("chore and vacation words (decisions 115, 117, 122, 123, 124)", () => {
+  assert.equal(ON_VACATION_LABEL, "On vacation");
+  assert.equal(vacationThroughLabel("Nov 12"), "You're on vacation through Nov 12");
+  assert.equal(VACATION_TODAY_LABEL, "You're on vacation today");
+  assert.equal(VACATION_OVERLAP_MESSAGE, "These days overlap a vacation you already have.");
+  assert.equal(CHORES_LAST_WEEK_CARD, "You finished every chore last week. Way to go!");
+  assert.equal(CHORES_LAST_WEEK_FAMILY, "Finished every chore last week");
+  assert.equal(CHORE_CHART_LABELS.title, "Chore chart");
+  assert.equal(CHORE_CHART_LABELS.manageHint, "Each person's default week");
+  assert.equal(CHORE_CHART_LABELS.personWeek("Emily"), "Emily's week");
+});
+
+test("choreTagLabel: the three chart tags, with the weekday from the one short-name list", () => {
+  assert.equal(choreTagLabel({ kind: "moved-away", toWeekday: 4 }, SHORT_DAY_NAMES), "Moved to Thu");
+  assert.equal(choreTagLabel({ kind: "moved-away", toWeekday: 0 }, SHORT_DAY_NAMES), "Moved to Sun");
+  assert.equal(choreTagLabel({ kind: "moved-here" }, SHORT_DAY_NAMES), "This week only");
+  assert.equal(choreTagLabel({ kind: "skipped" }, SHORT_DAY_NAMES), "Skipped this week");
 });

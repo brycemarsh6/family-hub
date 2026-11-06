@@ -11,11 +11,14 @@ import { canSeeHabit } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay } from "./habits/carryOver";
 import { logsForUser, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import { windowProgress, type WindowProgress } from "./habits/progress";
-import { compareDays, dueState as dueStateOf, isOpenKind, isSameDay } from "./habits/schedule";
-import { streakAfter } from "./habits/streaks";
-import type { DueState, HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
+import { compareDays, dueState as dueStateOf, isDayInRange, isSameDay } from "./habits/schedule";
+import { displayStreak, streakUnitOf } from "./habits/streaks";
+import type { DueState, HabitActor, HabitLogDay, Vacation } from "./habits/types";
+import { weekChange, type ExcusableRow, type StoredWeekOverride } from "./habits/weekOverrides";
+import { SHORT_DAY_NAMES } from "./mealPlanDates";
 import type { HabitRowState, HabitMemberState } from "./habitChanges";
 import {
+  choreTagLabel,
   isCheckStatus,
   streakLabel,
   toHabitKind,
@@ -67,7 +70,13 @@ export type HabitRowView = Omit<HabitRowState, "participants"> & {
   progress: WindowProgress | null;
   /** What the streak counts: days, weeks or months. */
   streakUnit: StreakUnit;
-  /** The viewer's own streak and its label (decision 98). */
+  /** Due today but the viewer is on vacation (decision 115): excused, muted, the check still works. */
+  onVacation: boolean;
+  /** A chore skipped for this week only (decision 117): excused like a vacation row. */
+  skippedThisWeek: boolean;
+  /** The chart's tag for today ("Moved to Thu", "This week only", "Skipped this week"), else null. */
+  weekTag: string | null;
+  /** The viewer's own streak and its label (decision 98); a chore's label is always null (decision 120). */
   streak: number;
   streakLabel: string | null;
   participants: HabitMemberView[];
@@ -124,6 +133,8 @@ export type TodayHabitInput = StoredScheduleFields & {
   isPrivate: boolean;
   everyone: boolean;
   carryOver: boolean;
+  /** This week's changes to a weekdays chore (`ChoreWeekOverride` rows fit); left off means none. */
+  weekOverrides?: StoredWeekOverride[];
   createdAt: Date;
   archivedAt: Date | null;
   participants: {
@@ -138,33 +149,14 @@ export type TodayHabitInput = StoredScheduleFields & {
   }[];
 };
 
-/** What a habit's streak counts: months for monthly, weeks for the other open kinds, else days. */
-export function streakUnitOf(spec: ScheduleSpec | null): StreakUnit {
-  if (!spec || !isOpenKind(spec)) return "days";
-  return spec.schedule === "monthly" ? "months" : "weeks";
-}
-
-/**
- * The streak to show today: the cached number aged forward by `streakAfter`
- * (display only; the cache itself is written by `habitWrites.ts`). Zero when
- * the schedule cannot be read.
- */
-export function displayStreak(
-  spec: ScheduleSpec | null,
-  cache: { current: number; best: number; asOf: CalendarDate | null },
-  vacations: readonly Vacation[],
-  today: CalendarDate,
-): number {
-  return spec ? streakAfter(spec, cache, vacations, today).current : 0;
-}
-
 /**
  * True when the day is finished for the confetti (decision 76): at least one
  * row is required today and every required row is done or skipped. A row that
- * is only open, or only carried, does not count either way.
+ * is only open, only carried, or excused by a vacation or a week skip does not
+ * count either way.
  */
-export function allRequiredDoneToday(rows: readonly Pick<HabitRowView, "dueState" | "doneToday" | "skippedToday">[]): boolean {
-  const required = rows.filter((row) => row.dueState === "required");
+export function allRequiredDoneToday(rows: readonly (ExcusableRow & Pick<HabitRowView, "dueState">)[]): boolean {
+  const required = rows.filter((row) => row.dueState === "required" && !row.onVacation && !row.skippedThisWeek);
   return required.length > 0 && required.every((row) => row.doneToday || row.skippedToday);
 }
 
@@ -230,22 +222,21 @@ export function buildTodayRows(
     const startDay = habitStartDay(habit.createdAt);
     const since = carrySince(habit.participants.find((p) => p.userId === viewer.userId)?.joinedAt, startDay);
     const progress = spec ? windowProgress(spec, mine, today, startDay) : null;
-    const carriedFrom = spec ? carriedDay(spec, habit.carryOver, mine, today, since) : null;
-    const dueState: DueState = spec ? dueStateOf(spec, today, false, progress?.count ?? 0) : "required";
+    const change = weekChange(spec, habit.weekOverrides, today);
+    const dueState: DueState = change.state ? (change.state === "none" ? "none" : "required") : spec ? dueStateOf(spec, today, false, progress?.count ?? 0) : "required";
+    const onVacation = dueState === "required" && (vacationsByUser.get(viewer.userId) ?? []).some((v) => isDayInRange(today, v));
+    const chore = toHabitKind(habit.kind) === "chore";
+    const carried = spec ? carriedDay(spec, habit.carryOver, mine, today, since) : null;
+    const carriedFrom = carried && change.stateOn(carried) !== "required" ? null : carried; // a day this week's changes took away is not carried
     const todayOf = (userId: string) => logs.find((log) => log.userId === userId && isSameDay(log.day, today));
-    // Oldest member first, then by id: the same order for every viewer and every load.
     const unit = streakUnitOf(spec);
-    const streakOf = (p: TodayHabitInput["participants"][number]) =>
-      displayStreak(
-        spec,
-        {
-          current: p.currentStreak ?? 0,
-          best: p.bestStreak ?? 0,
-          asOf: p.streakAsOf ? calendarDateFromUtcMidnight(p.streakAsOf) : null,
-        },
-        vacationsByUser.get(p.userId) ?? [],
-        today,
-      );
+    const streakOf = (p: TodayHabitInput["participants"][number]) => {
+      const cache = { current: p.currentStreak ?? 0, best: p.bestStreak ?? 0, asOf: p.streakAsOf ? calendarDateFromUtcMidnight(p.streakAsOf) : null };
+      return displayStreak(spec, cache, vacationsByUser.get(p.userId) ?? [], today);
+    };
+    // A chore shows no flame of its own (decision 120); the header carries the chore streak.
+    const labelOf = (n: number) => (chore ? null : streakLabel(n, unit));
+    // Oldest member first, then by id: the same order for every viewer and every load.
     const members: HabitMemberView[] = [...habit.participants]
       .filter((p) => !p.user.deactivatedAt)
       .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime() || (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0))
@@ -259,7 +250,7 @@ export function buildTodayRows(
           done: log ? isCheckStatus(log.status) : false,
           skipped: log?.status === "skipped",
           streak,
-          streakLabel: streakLabel(streak, unit),
+          streakLabel: labelOf(streak),
         };
       });
     const viewerPart = habit.participants.find((p) => p.userId === viewer.userId);
@@ -286,9 +277,12 @@ export function buildTodayRows(
       dueState,
       carriedFrom,
       progress,
+      onVacation,
+      skippedThisWeek: change.state === "excused",
+      weekTag: change.tag ? choreTagLabel(change.tag, SHORT_DAY_NAMES) : null,
       streakUnit: unit,
       streak: viewerStreak,
-      streakLabel: streakLabel(viewerStreak, unit),
+      streakLabel: labelOf(viewerStreak),
     });
   }
   return rows;

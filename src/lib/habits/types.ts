@@ -35,3 +35,18 @@ export type HabitAccess = { isPrivate: boolean; participantIds: readonly string[
 export type DueState = "required" | "open" | "none";
 
 export type DayRange = { start: CalendarDate; end: CalendarDate };
+
+/**
+ * One change to a weekdays chore for one week (decisions 117, 33): the week's
+ * Sunday, the weekday it normally falls on, and what happened to it. `toWeekday`
+ * is set only for "moved".
+ */
+export type WeekOverride = {
+  weekStart: CalendarDate;
+  fromWeekday: Weekday;
+  action: "moved" | "skipped";
+  toWeekday: Weekday | null;
+};
+
+/** What a chore asks of a person on one day: `excused` is a skip (a chore skipped for the week). */
+export type ChoreDayState = "required" | "excused" | "none";

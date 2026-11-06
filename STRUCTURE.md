@@ -454,9 +454,9 @@ Adding a second definition of any of these is a BLOCKER:
   the stats page data (`buildFamilyPage`, `buildStatsData`,
   `statsSubject`), and holds `doneCounts` / `doneCountLabel`, the one
   "x of y done" rule for Today and the family view. Both files are pure:
-  no `db`, and callers pass `today`. `habitsToday.ts` keeps the row streak
-  (`displayStreak`, `streakUnitOf`) and the confetti rule
-  `allRequiredDoneToday`. **Dependency direction:** `habitsFamily.ts` may
+  no `db`, and callers pass `today`. The row streak (`displayStreak`,
+  `streakUnitOf`) lives in `habits/streaks.ts`; `habitsToday.ts` keeps the
+  confetti rule `allRequiredDoneToday`. **Dependency direction:** `habitsFamily.ts` may
   import `habitsStats.ts` and `habitsToday.ts`, and `habitsStats.ts` may
   import `habitsToday.ts`; never the reverse. `canNudge` and
   `canSeeHabitStats` in `habits/access.ts` are the only nudge and stats

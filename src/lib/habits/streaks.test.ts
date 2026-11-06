@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { addCalendarDays, type CalendarDate } from "../householdDate";
-import { computeStreaks, streakAfter } from "./streaks";
+import { computeStreaks, displayStreak, streakAfter, streakUnitOf } from "./streaks";
 import type { HabitLogDay, ScheduleSpec, Vacation } from "./types";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -202,4 +202,15 @@ test("streakAfter agrees with computeStreaks on the same logs, at every later da
       }
     }
   }
+});
+
+test("streakUnitOf: days, weeks and months by schedule; days when unreadable", () => {
+  assert.equal(streakUnitOf(null), "days");
+  assert.equal(streakUnitOf({ schedule: "daily" }), "days");
+  assert.equal(streakUnitOf({ schedule: "weekly", times: 2 }), "weeks");
+  assert.equal(streakUnitOf({ schedule: "monthly", times: 2 }), "months");
+});
+
+test("displayStreak: zero for an unreadable schedule", () => {
+  assert.equal(displayStreak(null, { current: 4, best: 4, asOf: d(2026, 11, 5) }, [], d(2026, 11, 5)), 0);
 });

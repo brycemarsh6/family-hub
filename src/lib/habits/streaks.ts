@@ -1,3 +1,4 @@
+import type { StreakUnit } from "../habitVocabulary";
 import { addCalendarDays, type CalendarDate } from "../householdDate";
 import {
   compareDays,
@@ -138,4 +139,24 @@ export function streakAfter(
     }
   }
   return { current: broken ? 0 : cached.current, best: cached.best, asOf: today };
+}
+
+/** What a habit's streak counts: months for monthly, weeks for the other open kinds, else days. */
+export function streakUnitOf(spec: ScheduleSpec | null): StreakUnit {
+  if (!spec || !isOpenKind(spec)) return "days";
+  return spec.schedule === "monthly" ? "months" : "weeks";
+}
+
+/**
+ * The streak to show today: the cached number aged forward by `streakAfter`
+ * (display only; the cache itself is written by `habitWrites.ts`). Zero when
+ * the schedule cannot be read.
+ */
+export function displayStreak(
+  spec: ScheduleSpec | null,
+  cache: StreakCache,
+  vacations: readonly Vacation[],
+  today: CalendarDate,
+): number {
+  return spec ? streakAfter(spec, cache, vacations, today).current : 0;
 }

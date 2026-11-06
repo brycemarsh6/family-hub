@@ -363,3 +363,34 @@ test("buildStatsData: perfect days this month count days where every required ha
   const data = buildStatsData(statsInput({ subjectHabits }))!;
   assert.equal(data.perfectDays, 2, "Nov 1 and Nov 2 are perfect; Nov 3 is late, Nov 4 and Nov 5 each miss one");
 });
+
+test("doneCounts: vacation rows and rows skipped this week leave both numbers, like a skipped row (decisions 109, 115)", () => {
+  const rows = [
+    { doneToday: true, skippedToday: false },
+    { doneToday: false, skippedToday: false },
+    { doneToday: false, skippedToday: false, onVacation: true },
+    { doneToday: true, skippedToday: false, onVacation: true },
+    { doneToday: false, skippedToday: false, skippedThisWeek: true },
+  ];
+  assert.deepEqual(doneCounts(rows), { done: 1, total: 2 });
+  assert.equal(doneCountLabel(rows), "1 of 2 done");
+  assert.equal(doneCountLabel(rows.slice(2)), "0 of 0 done");
+});
+
+test("buildFamilyPage: a person on vacation has excused rows and their card counts nothing; the others are untouched", () => {
+  const h = habit({ id: "h" });
+  const away = new Map([["amy", [{ start: d(2026, 11, 3), end: d(2026, 11, 12) }]]]);
+  const page = buildFamilyPage(amy, [h], people, logs([]), today, away);
+  const [a, b] = page.columns;
+  assert.equal(a.rows[0].onVacation, true);
+  assert.equal(a.totalCount, 0);
+  assert.equal(b.rows[0].onVacation, false);
+  assert.equal(b.totalCount, 1);
+});
+
+test("buildFamilyPage: a chore row carries no streak label (decision 120)", () => {
+  const chore = habit({ id: "c", kind: "chore", participants: [{ ...member("amy"), currentStreak: 9, bestStreak: 9, streakAsOf: new Date("2026-11-04T00:00:00Z") }] });
+  const page = buildFamilyPage(amy, [chore], people, logs([]), today);
+  assert.equal(page.columns[0].rows[0].streak, 9);
+  assert.equal(page.columns[0].rows[0].streakLabel, null);
+});
