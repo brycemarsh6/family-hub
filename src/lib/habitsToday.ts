@@ -9,10 +9,10 @@ import { canSeeHabit } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartDay } from "./habits/carryOver";
 import { logsForUser, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import { windowProgress, type WindowProgress } from "./habits/progress";
-import { compareDays, dueState as dueStateOf, isDayInRange, isSameDay } from "./habits/schedule";
+import { compareDays, dayInVacation, dueState as dueStateOf, isSameDay } from "./habits/schedule";
 import { displayStreak, streakUnitOf, type StreakCache } from "./habits/streaks";
 import type { DueState, HabitActor, HabitLogDay, Vacation } from "./habits/types";
-import { weekChange, type ExcusableRow, type StoredWeekOverride } from "./habits/weekOverrides";
+import { isExcusedAllDay, weekChange, type ExcusableRow, type StoredWeekOverride } from "./habits/weekOverrides";
 import { choreHeader } from "./choreChart";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
 import type { HabitRowState, HabitMemberState } from "./habitChanges";
@@ -159,7 +159,7 @@ export type TodayHabitInput = StoredScheduleFields & {
  * count either way.
  */
 export function allRequiredDoneToday(rows: readonly (ExcusableRow & Pick<HabitRowView, "dueState">)[]): boolean {
-  const required = rows.filter((row) => row.dueState === "required" && !row.onVacation && !row.skippedThisWeek);
+  const required = rows.filter((row) => row.dueState === "required" && !isExcusedAllDay(row));
   return required.length > 0 && required.every((row) => row.doneToday || row.skippedToday);
 }
 
@@ -212,7 +212,7 @@ export function buildTodayRows(
     const progress = spec ? windowProgress(spec, mine, today, startDay) : null;
     const change = weekChange(spec, habit.weekOverrides, today);
     const dueState: DueState = change.state ? (change.state === "none" ? "none" : "required") : spec ? dueStateOf(spec, today, false, progress?.count ?? 0) : "required";
-    const onVacation = dueState === "required" && (vacationsByUser.get(viewer.userId) ?? []).some((v) => isDayInRange(today, v));
+    const onVacation = dueState === "required" && dayInVacation(today, vacationsByUser.get(viewer.userId) ?? []);
     const chore = toHabitKind(habit.kind) === "chore";
     const carried = spec ? carriedDay(spec, habit.carryOver, mine, today, since) : null;
     const carriedFrom = carried && change.stateOn(carried) !== "required" ? null : carried; // a day this week's changes took away is not carried

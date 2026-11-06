@@ -1,5 +1,5 @@
 import { addCalendarDays, startOfWeek, type CalendarDate } from "../householdDate";
-import { compareDays, isDayInRange, isOpenKind, isSameDay } from "./schedule";
+import { compareDays, dayInVacation, isOpenKind, isSameDay } from "./schedule";
 import type { StreakCache, StreakResult } from "./streaks";
 import type { HabitLogDay, ScheduleSpec, Vacation, WeekOverride } from "./types";
 import { choreDayState } from "./weekOverrides";
@@ -8,8 +8,9 @@ import { choreDayState } from "./weekOverrides";
 // of one person that day was done on time. One streak for all of a person's
 // chores, unlike a habit's own. Rules:
 //   - a day with no chore required never breaks or grows it
-//   - a skipped chore (a log, or "skip this week") and a vacation day are
-//     excused: the streak survives and that chore adds nothing
+//   - a skipped chore (a log, or "skip this week") and an undone vacation day
+//     are excused: the streak survives and that chore adds nothing; a chore
+//     done on a vacation day still counts (decision 127)
 //   - a chore done late, or not done at all, breaks the day
 //   - today counts only once every chore required today is done; until then
 //     the streak stands from yesterday (`asOf` says so)
@@ -36,8 +37,9 @@ function choreVerdict(chore: ChoreInput, day: CalendarDate, today: CalendarDate)
 
 /** One day over every chore: any broken chore breaks it, else any pending holds it, else any done grows it. */
 function dayVerdict(chores: readonly ChoreInput[], vacations: readonly Vacation[], day: CalendarDate, today: CalendarDate): Verdict {
-  if (vacations.some((vacation) => isDayInRange(day, vacation))) return "none";
   const verdicts = chores.map((chore) => choreVerdict(chore, day, today));
+  // A chore actually done on a vacation day counts; anything else due that day is excused (decision 127).
+  if (dayInVacation(day, vacations)) return verdicts.includes("done") ? "done" : "none";
   for (const verdict of ["broken", "pending", "done"] as const) if (verdicts.includes(verdict)) return verdict;
   return "none";
 }

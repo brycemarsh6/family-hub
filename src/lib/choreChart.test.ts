@@ -8,7 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "./householdDate";
 import type { HabitActor, HabitLogDay } from "./habits/types";
-import { buildChoreChart, choreCacheFromRow, choreHeader, orderVacations } from "./choreChart";
+import { buildChoreChart, choreCacheFromRow, choreHeader, orderVacations, overrideWindowStart } from "./choreChart";
 import { buildFamilyPage } from "./habitsFamily";
 import { buildTodayPage, type TodayHabitInput } from "./habitsToday";
 
@@ -148,7 +148,7 @@ test("buildChoreChart: This week runs Sunday to Saturday with no changes, and a 
   assert.equal(tuesday.chores[0].canChange, false); // Nov 3 is past
   const thursday = chart.thisWeek.days[4];
   assert.equal(thursday.isToday, true);
-  assert.deepEqual(thursday.chores[0], { id: "sheets", title: "sheets", icon: null, who: null, fromWeekday: 4, state: "required", tag: null, changed: false, canChange: true, moveTargets: [5, 6] });
+  assert.deepEqual(thursday.chores[0], { id: "sheets", title: "sheets", icon: null, who: null, fromWeekday: 4, state: "required", tag: null, changed: false, canChange: true, askParent: false, originalDayPast: false, moveTargets: [5, 6] });
 });
 
 test("buildChoreChart: a move shows on both days, a skip on its own, with the tags", () => {
@@ -165,6 +165,33 @@ test("buildChoreChart: an override from an earlier week changes nothing", () => 
   const sheets = chore("sheets", TUE_THU, { weekOverrides: [override(d(2026, 10, 25), 4, "skipped")] });
   const thursday = buildChoreChart(amy, "ben", people, [sheets], today)!.thisWeek.days[4];
   assert.deepEqual(thursday.chores.map((c) => [c.state, c.tag]), [["required", null]]);
+});
+
+test("buildChoreChart: a past day's turn that was moved or skipped stays changeable, without a way back (decision 126)", () => {
+  const sheets = chore("sheets", TUE_THU, { weekOverrides: [override(d(2026, 11, 1), 2, "moved", 4)] }); // Tuesday moved to today
+  const chart = buildChoreChart(amy, "ben", people, [sheets], today)!;
+  const [tuesday, thursday] = [chart.thisWeek.days[2], chart.thisWeek.days[4]];
+  assert.deepEqual(tuesday.chores.map((c) => [c.state, c.canChange, c.originalDayPast]), [["moved-away", true, true]]);
+  const moved = thursday.chores.find((c) => c.fromWeekday === 2)!;
+  assert.deepEqual([moved.canChange, moved.originalDayPast, moved.changed], [true, true, true]);
+  assert.deepEqual(moved.moveTargets, [4, 5, 6], "only today and later days, never its original day (the sheet drops the column it was opened from)");
+  // The untouched Tuesday chore of another chore stays locked.
+  const plain = buildChoreChart(amy, "ben", people, [chore("plain", TUE_THU)], today)!.thisWeek.days[2].chores[0];
+  assert.deepEqual([plain.canChange, plain.originalDayPast], [false, true]);
+});
+
+test("buildChoreChart: a kid on a shared chore is told to ask a parent; a parent, and a kid on their own chore, are not (decision 125)", () => {
+  const shared = chore("shared", TUE_THU, { who: ["ben", "cat"] });
+  const solo = chore("solo", TUE_THU, { who: ["ben"] });
+  const flagsFor = (viewer: HabitActor) => buildChoreChart(viewer, "ben", people, [shared, solo], today)!.thisWeek.days[4].chores.map((c) => [c.id, c.askParent]);
+  assert.deepEqual(flagsFor(ben), [["shared", true], ["solo", false]]);
+  assert.deepEqual(flagsFor(amy), [["shared", false], ["solo", false]]);
+});
+
+test("overrideWindowStart: two weeks back, or the Sunday of the oldest cache's day when that is earlier", () => {
+  assert.deepEqual(overrideWindowStart(today, []), d(2026, 10, 18)); // Oct 22 is a Thursday: its Sunday
+  assert.deepEqual(overrideWindowStart(today, [null, d(2026, 11, 3)]), d(2026, 10, 18));
+  assert.deepEqual(overrideWindowStart(today, [d(2026, 10, 1), null]), d(2026, 9, 27)); // Oct 1 is a Thursday
 });
 
 // ---- the vacation list ----

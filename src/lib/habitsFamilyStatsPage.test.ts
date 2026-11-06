@@ -1,4 +1,5 @@
-// Pins the stats page builder in habitsFamily.ts: who opens it, whose numbers
+// Pins the stats page builder in habitsFamily.ts (the family page builder
+// and the done counts are in its sibling, habitsFamily.test.ts): who opens it, whose numbers
 // it shows, the nudge list and perfect days. "Today" is Thursday 2026-11-05;
 // the checks are plain calendar days, so the results are the same in every
 // time zone.

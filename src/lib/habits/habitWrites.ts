@@ -30,7 +30,7 @@ import {
   vacationFromRow,
   type HabitFields,
 } from "./habitRows";
-import { choreOwnersOf, householdNow, recomputeAllChoreStreaks, recomputeChoreStreaks } from "./choreWrites";
+import { choreOwnersOf, recomputeAllChoreStreaks, recomputeChoreStreak, recomputeChoreStreaks } from "./choreWrites";
 import { atomically, householdParticipantIds, joinHouseholdToHabit, nextSortOrders, replaceParticipants } from "./participantWrites";
 import { computeStreaks, type StreakResult } from "./streaks";
 import type { DayRange } from "./types";
@@ -48,11 +48,10 @@ export type NewHabit = HabitFields & { title: string; schedule: string };
  * active (a Together goal's habit). "household", or `everyone: true`, also
  * flags the habit so a person added or turned back on later joins it
  * (decision 87); with `everyone` the caller still passes the list it picked.
- * A new chore rebuilds its people's chore streak for `today` (the household's
- * today when left out), in the same transaction.
+ * A new chore rebuilds its people's chore streak for `today`, in the same transaction.
  */
 export async function createHabit(
-  input: { fields: NewHabit; participantIds: readonly string[] | "household"; everyone?: boolean; today?: CalendarDate },
+  input: { fields: NewHabit; participantIds: readonly string[] | "household"; everyone?: boolean; today: CalendarDate },
   client: Prisma.TransactionClient = db,
 ): Promise<Habit> {
   return atomically(client, async (tx) => {
@@ -69,7 +68,7 @@ export async function createHabit(
         participants: { create: userIds.map((userId) => ({ userId, sortOrder: next.get(userId) ?? 0 })) },
       },
     });
-    if (habit.kind === "chore") await recomputeChoreStreaks(userIds, input.today ?? householdNow(), tx);
+    if (habit.kind === "chore") await recomputeChoreStreaks(userIds, input.today, tx);
     return habit;
   });
 }
@@ -82,7 +81,9 @@ export type HabitPeople = { participantIds?: readonly string[]; everyone?: boole
  * participant's streak is rebuilt for `today`. `people` may replace the
  * participant set (people dropped lose only their participant row: their
  * logs stay, so adding them back restores their history) and the `everyone`
- * flag; without it participants are not touched. Null when the habit is missing.
+ * flag; without it participants are not touched. A habit whose schedule leaves
+ * "weekdays" loses its this-week-only changes, which only a weekdays chore can
+ * hold. Null when the habit is missing.
  */
 export async function updateHabit(
   habitId: string,
@@ -100,6 +101,7 @@ export async function updateHabit(
       data: { ...habitColumns(fields), ...(people.everyone !== undefined ? { everyone: people.everyone } : {}) },
     });
     if (people.participantIds) await replaceParticipants(tx, habitId, people.participantIds);
+    if (before.schedule === "weekdays" && updated.schedule !== "weekdays") await tx.choreWeekOverride.deleteMany({ where: { habitId } });
     if (scheduleChanged(before, updated)) await recomputeHabit(tx, habitId, today);
     for (const userId of await choreOwnersOf(tx, habitId)) owners.add(userId);
     await recomputeChoreStreaks([...owners], today, tx);
@@ -113,8 +115,8 @@ export async function updateHabit(
  */
 export async function deleteHabit(
   habitId: string,
+  today: CalendarDate,
   client: Prisma.TransactionClient = db,
-  today: CalendarDate = householdNow(),
 ): Promise<{ deleted: boolean; planItemsDeleted: number }> {
   return atomically(client, async (tx) => {
     const owners = await choreOwnersOf(tx, habitId);
@@ -126,7 +128,7 @@ export async function deleteHabit(
 }
 
 /** Sets `archivedAt` to `at`; false when the habit is missing. */
-export async function archiveHabit(habitId: string, at: Date, client: Prisma.TransactionClient = db, today: CalendarDate = householdNow()): Promise<boolean> {
+export async function archiveHabit(habitId: string, at: Date, today: CalendarDate, client: Prisma.TransactionClient = db): Promise<boolean> {
   return atomically(client, async (tx) => {
     const result = await tx.habit.updateMany({ where: { id: habitId }, data: { archivedAt: at } });
     await recomputeChoreStreaks(await choreOwnersOf(tx, habitId), today, tx);
@@ -135,7 +137,7 @@ export async function archiveHabit(habitId: string, at: Date, client: Prisma.Tra
 }
 
 /** Clears `archivedAt`; false when the habit is missing. An Everyone habit also takes in the people who joined the household while it was archived. */
-export async function restoreHabit(habitId: string, client: Prisma.TransactionClient = db, today: CalendarDate = householdNow()): Promise<boolean> {
+export async function restoreHabit(habitId: string, today: CalendarDate, client: Prisma.TransactionClient = db): Promise<boolean> {
   return atomically(client, async (tx) => {
     const result = await tx.habit.updateMany({ where: { id: habitId }, data: { archivedAt: null } });
     if (result.count === 0) return false;
@@ -280,6 +282,19 @@ export async function recomputeStreaks(
     const stored = await storeStreaks(tx, [{ habitId, userIds, habit }], today);
     if (habit.kind === "chore") await recomputeChoreStreaks(userIds, today, tx);
     return stored;
+  });
+}
+
+/**
+ * Rebuilds one person's cached streak on every live habit they hold, then their
+ * chore streak once (a vacation changes all of them): the habits in one read,
+ * their checks and vacations in one more, one update per habit.
+ */
+export async function recomputePersonStreaks(userId: string, today: CalendarDate, client: Prisma.TransactionClient = db): Promise<void> {
+  return atomically(client, async (tx) => {
+    const habits = await tx.habit.findMany({ where: { archivedAt: null, participants: { some: { userId } } }, select: { id: true, ...SCHEDULE_SELECT } });
+    await storeStreaks(tx, habits.map((habit) => ({ habitId: habit.id, userIds: [userId], habit })), today);
+    await recomputeChoreStreak(userId, today, tx);
   });
 }
 

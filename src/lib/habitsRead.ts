@@ -9,7 +9,7 @@ import {
   utcMidnightInstant,
   type CalendarDate,
 } from "./householdDate";
-import { buildChoreChart, choreCacheFromRow, orderVacations, type ChoreChartData, type VacationItem } from "./choreChart";
+import { buildChoreChart, choreCacheFromRow, orderVacations, overrideWindowStart, type ChoreChartData, type VacationItem } from "./choreChart";
 import { canEditChart } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay, carrySince, habitStartDay } from "./habits/carryOver";
 import { logDayFromRow, specFromRow, vacationFromRow } from "./habits/habitRows";
@@ -114,14 +114,18 @@ export type { HabitMemberView, HabitRowView, HabitManagerItem, TodayNudge, Today
  * checks from fourteen days back (or the first of the month when that is
  * earlier so a monthly count is whole), those people's vacations and the
  * viewer's unseen nudges for today. The rules live in `habitsToday.ts`. No
- * auth: the page has already resolved the viewer.
+ * auth: the page has already resolved the viewer. The viewer's chore streak
+ * cache is read first, because the this-week changes fetched must reach back
+ * to the day it was last counted (`overrideWindowStart`).
  */
 export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Promise<TodayPage> {
+  const prefsRow = await db.userPreferences.findUnique({ where: { userId: viewer.userId }, select: { choreStreakCurrent: true, choreStreakBest: true, choreStreakAsOf: true } });
+  const choreCache = choreCacheFromRow(prefsRow);
   const habits = await db.habit.findMany({
     where: { participants: { some: { userId: viewer.userId } } },
     include: {
-      // The last two weeks of this-week changes: today, last week's shout-out and the streak's aging all read them.
-      weekOverrides: { where: { weekStart: { gte: utcMidnightInstant(startOfWeek(addCalendarDays(today, -CARRY_LOOKBACK_DAYS))) } } },
+      // Today, last week's shout-out and the streak's aging all read these.
+      weekOverrides: { where: { weekStart: { gte: utcMidnightInstant(overrideWindowStart(today, [choreCache.asOf])) } } },
       participants: {
         orderBy: { joinedAt: "asc" },
         select: {
@@ -138,7 +142,7 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
   });
   const liveIds = habits.filter((habit) => !habit.archivedAt).map((habit) => habit.id);
   const peopleIds = [...new Set(habits.flatMap((habit) => habit.participants.map((p) => p.userId)))];
-  const [logRows, vacationRows, nudgeRows, prefsRow] = await Promise.all([
+  const [logRows, vacationRows, nudgeRows] = await Promise.all([
     liveIds.length === 0
       ? []
       : db.habitLog.findMany({
@@ -151,7 +155,6 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
       orderBy: { createdAt: "asc" },
       select: { id: true, fromUser: { select: { displayName: true } }, habit: { select: { title: true } } },
     }),
-    db.userPreferences.findUnique({ where: { userId: viewer.userId }, select: { choreStreakCurrent: true, choreStreakBest: true, choreStreakAsOf: true } }),
   ]);
   const vacationsByUser = new Map<string, Vacation[]>();
   for (const row of vacationRows) vacationsByUser.set(row.userId, [...(vacationsByUser.get(row.userId) ?? []), vacationFromRow(row)]);
@@ -162,7 +165,7 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
     logsByHabit.set(row.habitId, list);
   }
   const nudges = nudgeRows.map((row) => ({ id: row.id, fromName: row.fromUser.displayName, habitTitle: row.habit.title }));
-  return buildTodayPage(viewer, habits, logsByHabit, today, vacationsByUser, nudges, choreCacheFromRow(prefsRow));
+  return buildTodayPage(viewer, habits, logsByHabit, today, vacationsByUser, nudges, choreCache);
 }
 
 /**

@@ -4,28 +4,18 @@ import "server-only";
 // `VacationPeriod` table. Same rules as habitWrites.ts: no auth, no
 // `revalidatePath`; a transaction client joins the caller's transaction, the
 // default `db` opens its own. A vacation excuses its days, so saving or
-// deleting one rebuilds that person's habit streaks and chore streak in the
-// same transaction. Days go in through `utcMidnightInstant`.
+// deleting one rebuilds that person's habit streaks and chore streak (once
+// each, `recomputePersonStreaks`) in the same transaction. Days go in through `utcMidnightInstant`.
 
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { VACATION_OVERLAP_MESSAGE } from "../habitVocabulary";
 import { utcMidnightInstant, type CalendarDate } from "../householdDate";
-import { recomputeChoreStreak } from "./choreWrites";
-import { recomputeStreaks } from "./habitWrites";
+import { recomputePersonStreaks } from "./habitWrites";
 import { atomically } from "./participantWrites";
 import { compareDays } from "./schedule";
 
-type Client = Prisma.TransactionClient;
-
 export type SaveVacationResult = { ok: true; id: string } | { ok: false; error: string };
-
-/** Every live habit and chore of one person, then their chore streak, rebuilt for `today`. */
-async function recomputePerson(tx: Client, userId: string, today: CalendarDate): Promise<void> {
-  const mine = await tx.habitParticipant.findMany({ where: { userId, habit: { archivedAt: null } }, select: { habitId: true } });
-  for (const { habitId } of mine) await recomputeStreaks(habitId, [userId], today, tx);
-  await recomputeChoreStreak(userId, today, tx);
-}
 
 /**
  * Saves a vacation for `userId`, both ends inclusive. `from` may be in the
@@ -46,7 +36,7 @@ export async function saveVacation(
     const clash = await tx.vacationPeriod.findFirst({ where: { userId, startDay: { lte: end }, endDay: { gte: start } }, select: { id: true } });
     if (clash) return { ok: false, error: VACATION_OVERLAP_MESSAGE };
     const row = await tx.vacationPeriod.create({ data: { userId, startDay: start, endDay: end }, select: { id: true } });
-    await recomputePerson(tx, userId, today);
+    await recomputePersonStreaks(userId, today, tx);
     return { ok: true, id: row.id };
   });
 }
@@ -55,7 +45,7 @@ export async function saveVacation(
 export async function deleteVacation(id: string, userId: string, today: CalendarDate, client: Prisma.TransactionClient = db): Promise<boolean> {
   return atomically(client, async (tx) => {
     const { count } = await tx.vacationPeriod.deleteMany({ where: { id, userId } });
-    if (count > 0) await recomputePerson(tx, userId, today);
+    if (count > 0) await recomputePersonStreaks(userId, today, tx);
     return count > 0;
   });
 }

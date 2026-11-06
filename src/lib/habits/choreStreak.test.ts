@@ -76,6 +76,15 @@ test("vacation days are excused even with nothing done", () => {
   assert.deepEqual(sum([chore], d(2026, 11, 5)), { current: 1, best: 2 });
 });
 
+test("a chore done on a vacation day grows the streak; an undone one is still excused (decision 127)", () => {
+  const vacation: Vacation[] = [{ start: d(2026, 11, 3), end: d(2026, 11, 4) }];
+  const chore = daily([...range(d(2026, 11, 1), 2), ...range(d(2026, 11, 3), 1), ...range(d(2026, 11, 5), 1)]);
+  assert.deepEqual(sum([chore], d(2026, 11, 5), vacation), { current: 4, best: 4 });
+  // Two chores on a vacation day, one done: the day counts and the undone one adds nothing.
+  const two = [daily(range(d(2026, 11, 1), 5)), onDays([3], [])];
+  assert.deepEqual(sum(two, d(2026, 11, 5), [{ start: d(2026, 11, 4), end: d(2026, 11, 4) }]), { current: 5, best: 5 });
+});
+
 test("a move across the week: the new day is required, the old day is not", () => {
   const moved: WeekOverride = { weekStart: d(2026, 11, 1), fromWeekday: 1, action: "moved", toWeekday: 4 };
   // Mondays only, Monday Nov 2 moved to Thursday Nov 5: Monday needs nothing, Thursday needs a check.

@@ -4,7 +4,7 @@ import { carrySince, habitStartDay } from "./habits/carryOver";
 import { canLogFor, canNudge, canSeeHabitStats } from "./habits/access";
 import { specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import type { DayEntry } from "./habits/perfectDays";
-import { compareDays, dueState as dueStateOf, isDayInRange, isSameDay } from "./habits/schedule";
+import { compareDays, dayInVacation, dueState as dueStateOf, isSameDay } from "./habits/schedule";
 import type { HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
 import type { StreakCache } from "./habits/streaks";
 import { isExcused, type ExcusableRow } from "./habits/weekOverrides";
@@ -67,7 +67,7 @@ export type FamilyColumn = FamilyPerson & {
   onVacation: boolean;
 };
 
-/** "Done of owed" over rows that are still in play: a skipped, vacation or skipped-this-week row is neither done nor owed (decisions 109, 115). One rule for Today and the family view. */
+/** "Done of owed" over rows that are still in play: a skipped row, a skipped-this-week row and an undone vacation row are neither done nor owed; a vacation row that was done counts in both (decisions 109, 115, 127). One rule for Today and the family view. */
 export function doneCounts(rows: readonly ExcusableRow[]): { done: number; total: number } {
   const owed = rows.filter((row) => !isExcused(row));
   return { done: owed.filter((row) => row.doneToday).length, total: owed.length };
@@ -79,9 +79,15 @@ export function doneCountLabel(rows: readonly ExcusableRow[]): string {
   return `${done} of ${total} done`;
 }
 
-/** The rows a person's card counts: their own, plus the Together rows they take part in. One rule for the page builder and the card. */
-export function countedRows(column: Pick<FamilyColumn, "rows" | "togetherIds">, together: readonly FamilyRow[]): FamilyRow[] {
-  return [...column.rows, ...together.filter((row) => column.togetherIds.includes(row.id))];
+/**
+ * The rows a person's card counts: their own, plus the Together rows they take
+ * part in. A Together row is built without anyone's vacation (it belongs to
+ * the whole strip), so when this person is on vacation it is marked here, for
+ * their count alone. One rule for the page builder and the card.
+ */
+export function countedRows(column: Pick<FamilyColumn, "rows" | "togetherIds" | "onVacation">, together: readonly FamilyRow[]): FamilyRow[] {
+  const shared = together.filter((row) => column.togetherIds.includes(row.id)).map((row) => (column.onVacation ? { ...row, onVacation: true } : row));
+  return [...column.rows, ...shared];
 }
 
 export type FamilyPage = {
@@ -126,7 +132,8 @@ export function buildFamilyPage(
     const members = habit.participants.filter((p) => !p.user.deactivatedAt);
     const logForId = members.some((p) => p.userId === viewer.userId) ? viewer.userId : members[0]?.userId;
     const row = logForId ? rowFor(logForId, habit, viewer, logsByHabit, today, vacationsByUser) : undefined;
-    if (row && logForId) together.push(familyRow(row, viewer, logForId));
+    // One person's vacation must not excuse a Together habit for everyone: the strip row never carries onVacation (`countedRows` leaves it out of the vacationing person's own count).
+    if (row && logForId) together.push({ ...familyRow(row, viewer, logForId), onVacation: false });
   }
   const each = shown.filter((h) => toHabitSharing(h.sharing) === "each");
   const columns = people.map((person): FamilyColumn => {
@@ -139,10 +146,11 @@ export function buildFamilyPage(
     const togetherIds = together
       .filter((row) => row.participants.some((p) => p.userId === person.id))
       .map((row) => row.id);
-    const { done, total } = doneCounts(countedRows({ rows, togetherIds }, together));
     // The chore streak and the Sunday line read every one of the person's chores, private ones included; only the number and the flag leave (decision 78).
     const header = choreHeader(person.id, habits, logsByHabit, today, vacationsByUser.get(person.id) ?? [], choreCaches.get(person.id) ?? { current: 0, best: 0, asOf: null });
-    return { ...person, rows, togetherIds, doneCount: done, totalCount: total, choreStreak: header.choreStreak, shoutOut: header.shoutOut, onVacation: header.vacationThrough !== null };
+    const onVacation = header.vacationThrough !== null;
+    const { done, total } = doneCounts(countedRows({ rows, togetherIds, onVacation }, together));
+    return { ...person, rows, togetherIds, doneCount: done, totalCount: total, choreStreak: header.choreStreak, shoutOut: header.shoutOut, onVacation };
   });
   return { today: formatCalendarDate(today), together, columns };
 }
@@ -183,7 +191,7 @@ export function statsSubject(viewerId: string, members: readonly Pick<StatsMembe
  */
 export function perfectDayEntries(habits: readonly PerfectDayHabit[], vacations: readonly Vacation[]): (day: CalendarDate) => DayEntry[] {
   return (day) => {
-    if (vacations.some((vacation) => isDayInRange(day, vacation))) return [];
+    if (dayInVacation(day, vacations)) return [];
     return habits.flatMap((habit) => {
       if (compareDays(day, habit.since) < 0) return [];
       const state = dueStateOf(habit.spec, day, false);

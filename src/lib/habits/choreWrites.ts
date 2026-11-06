@@ -9,22 +9,16 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { HOUSEHOLD_TIME_ZONE } from "../constants";
-import { addCalendarDays, calendarDateInZone, startOfWeek, utcMidnightInstant, type CalendarDate } from "../householdDate";
-import type { Weekday } from "../habitVocabulary";
+import { addCalendarDays, startOfWeek, utcMidnightInstant, type CalendarDate } from "../householdDate";
+import { isWeekday } from "../habitVocabulary";
 import { carrySince, habitStartDay } from "./carryOver";
 import { computeChoreStreak, type ChoreInput } from "./choreStreak";
 import { logDayFromRow, specFromRow, vacationFromRow } from "./habitRows";
 import { atomically } from "./participantWrites";
 import { compareDays } from "./schedule";
-import { overrideFromRow } from "./weekOverrides";
+import { changeAllowed, overrideFromRow } from "./weekOverrides";
 
 type Client = Prisma.TransactionClient;
-
-/** The household's today, for a writer whose caller did not pass one. */
-export function householdNow(): CalendarDate {
-  return calendarDateInZone(new Date(), HOUSEHOLD_TIME_ZONE);
-}
 
 /** The people who hold `habitId` when it is a chore, else none. Read before and after a write that moves them. */
 export async function choreOwnersOf(tx: Client, habitId: string): Promise<string[]> {
@@ -91,12 +85,13 @@ export async function recomputeAllChoreStreaks(today: CalendarDate, client: Pris
 export type ChoreChangeResult = { ok: true } | { ok: false; error: string };
 
 const CANNOT_CHANGE = "That chore can't change this week.";
-const isWeekday = (value: unknown): value is Weekday => Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 6;
 
 /**
  * `change` null clears. The shared checks: a live weekdays chore that really
- * falls on `fromWeekday`, a day of today or later (a past day's miss, skip or
- * move cannot be erased, decisions 6 and 33), and for a move a target of today or later.
+ * falls on `fromWeekday`; a move's target of today or later; and the day being
+ * changed either today or later, or (decision 126) a past day whose turn was
+ * already moved or skipped, which may be moved on or skipped but never cleared
+ * (`changeAllowed`: a past day's miss cannot be erased, decisions 6 and 33).
  */
 async function writeChange(
   habitId: string,
@@ -107,7 +102,7 @@ async function writeChange(
 ): Promise<ChoreChangeResult> {
   if (!isWeekday(fromWeekday)) return { ok: false, error: CANNOT_CHANGE };
   const weekStart = startOfWeek(today);
-  if (compareDays(addCalendarDays(weekStart, fromWeekday), today) < 0) return { ok: false, error: CANNOT_CHANGE };
+  const fromPast = compareDays(addCalendarDays(weekStart, fromWeekday), today) < 0;
   if (change?.action === "moved") {
     const target = change.toWeekday;
     if (!isWeekday(target) || target === fromWeekday || compareDays(addCalendarDays(weekStart, target), today) < 0) {
@@ -124,6 +119,8 @@ async function writeChange(
       return { ok: false, error: CANNOT_CHANGE };
     }
     const key = { habitId, weekStart: utcMidnightInstant(weekStart), fromWeekday };
+    const existing = await tx.choreWeekOverride.findUnique({ where: { habitId_weekStart_fromWeekday: key }, select: { id: true } });
+    if (!changeAllowed({ fromPast, hasChange: existing !== null, clearing: change === null })) return { ok: false, error: CANNOT_CHANGE };
     if (change === null) {
       await tx.choreWeekOverride.deleteMany({ where: key });
     } else {

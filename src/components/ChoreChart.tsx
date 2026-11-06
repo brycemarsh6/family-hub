@@ -4,6 +4,7 @@ import { useOptimistic, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ChoreChartSheet } from "./ChoreChartSheet";
+import { QUIT_TAG_CLASS } from "./HabitRow";
 import { HabitIcon } from "./HabitIcon";
 import { addChartChore, clearChoreChange, moveChoreThisWeek, skipChoreThisWeek } from "@/app/actions/choreChart";
 import type { ChartChore, ChartWeekChore, ChartWeekDay, ChoreChartData } from "@/lib/choreChart";
@@ -13,7 +14,6 @@ import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 const CARD = "flex flex-col gap-1.5 rounded-2xl border bg-surface px-3 py-2.5";
 const ROW = "flex min-h-11 w-full items-center gap-2 rounded-xl bg-accent-soft px-2.5 text-left text-fg";
-const TAG = "shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn";
 const TAB_BASE = "flex min-h-11 flex-1 items-center justify-center rounded-xl text-sm font-semibold";
 
 /** What a tap does to the chart before the server has answered. */
@@ -72,9 +72,9 @@ function WeekRow({ chore, onOpen }: { chore: ChartWeekChore; onOpen: () => void 
       <span className="flex shrink-0 text-accent">
         <HabitIcon name={chore.icon} kind="chore" size={18} />
       </span>
-      <span className={`min-w-0 flex-1 truncate font-medium ${faded ? "text-muted line-through" : ""}`}>{chore.title}</span>
+      <span className={`min-w-0 flex-1 truncate font-medium ${faded ? "text-muted-strong" : ""}`}>{chore.title}</span>
       {chore.who && <span className="shrink-0 text-xs text-muted">{chore.who}</span>}
-      {chore.tag && <span className={TAG}>{chore.tag}</span>}
+      {chore.tag && <span className={`shrink-0 ${QUIT_TAG_CLASS}`}>{chore.tag}</span>}
     </>
   );
   return chore.canChange ? (

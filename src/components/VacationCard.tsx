@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState } from "react";
+import { useState } from "react";
 import { Plane, Trash2 } from "lucide-react";
 import { deleteVacation, saveVacation } from "@/app/actions/vacations";
 import type { VacationItem } from "@/lib/choreChart";
@@ -23,19 +23,21 @@ const STATUS_LABELS = { current: "Now", upcoming: "Coming up", past: "Past" } as
 
 /**
  * The Vacation mode card on /settings (decision 123): two date inputs and
- * "Turn on vacation mode", then the person's vacations (current, upcoming,
- * past) each with a one-tap Delete. A delete leaves the list at once and
- * comes back with a line if the save fails; a save waits for the server,
- * because it can be refused (Through before From, overlap). Accounts only.
+ * "Turn on vacation mode" ("Add a vacation" when one is now or coming up,
+ * decision 128), then the person's vacations (current, upcoming, past) each
+ * with a one-tap Delete. Neither write is optimistic: a save can be refused
+ * (Through before From, overlap) and a delete changes every streak, so both
+ * wait for the server, share one pending flag and disable the buttons while it
+ * works. Accounts only.
  */
 export function VacationCard({ vacations, today }: { vacations: VacationItem[]; today: string }) {
-  const [live, removeOne] = useOptimistic<VacationItem[], string>(vacations, (list, id) => list.filter((item) => item.id !== id));
-  const { run, error, pending } = useOptimisticRun(removeOne);
+  const { run, error, pending } = useOptimisticRun<string>(() => {});
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
   const thisYear = parseDateParam(today)?.year ?? new Date().getFullYear();
 
-  // No optimistic change: the server may refuse (Through before From, overlap), so wait for its answer.
+  const hasOneAhead = vacations.some((item) => item.status !== "past");
+
   function turnOn() {
     run(null, () => saveVacation(from, through), () => {
       setFrom("");
@@ -44,7 +46,7 @@ export function VacationCard({ vacations, today }: { vacations: VacationItem[]; 
   }
 
   function remove(id: string) {
-    run(id, () => deleteVacation(id));
+    run(null, () => deleteVacation(id));
   }
 
   return (
@@ -55,7 +57,7 @@ export function VacationCard({ vacations, today }: { vacations: VacationItem[]; 
         </span>
         <div className="flex flex-col gap-0.5">
           <h3 className="text-base font-semibold">Vacation mode</h3>
-          <p className="text-sm text-muted">Everything of yours counts as skipped. Streaks are safe and chores are excused.</p>
+          <p className="text-sm text-muted">Anything you don&apos;t do counts as skipped. Streaks are safe and chores are excused.</p>
         </div>
       </div>
 
@@ -75,7 +77,7 @@ export function VacationCard({ vacations, today }: { vacations: VacationItem[]; 
         disabled={pending}
         className="mt-3 inline-flex min-h-12 items-center justify-center rounded-full bg-accent px-5 text-base font-semibold text-accent-fg disabled:opacity-40"
       >
-        Turn on vacation mode
+        {hasOneAhead ? "Add a vacation" : "Turn on vacation mode"}
       </button>
       {error && (
         <p role="alert" className="mt-2 text-sm text-warn">
@@ -83,19 +85,20 @@ export function VacationCard({ vacations, today }: { vacations: VacationItem[]; 
         </p>
       )}
 
-      {live.length > 0 && (
+      {vacations.length > 0 && (
         <ul className="mt-3 divide-y divide-line">
-          {live.map((item) => (
+          {vacations.map((item) => (
             <li key={item.id} className="flex min-h-14 items-center gap-3">
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className={`text-base font-semibold ${item.status === "past" ? "text-muted" : ""}`}>{rangeLabel(item, thisYear)}</span>
+                <span className={`whitespace-nowrap text-base font-semibold ${item.status === "past" ? "text-muted" : ""}`}>{rangeLabel(item, thisYear)}</span>
                 <span className="text-sm text-muted">{STATUS_LABELS[item.status]}</span>
               </div>
               <button
                 type="button"
                 onClick={() => remove(item.id)}
+                disabled={pending}
                 aria-label={`Delete vacation ${rangeLabel(item, thisYear)}`}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted active:bg-surface-2"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted active:bg-surface-2 disabled:opacity-40"
               >
                 <Trash2 aria-hidden="true" size={20} />
               </button>

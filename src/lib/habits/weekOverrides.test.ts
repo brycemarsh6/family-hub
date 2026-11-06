@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "../householdDate";
-import { choreDayState, choreTag, isExcused, overrideFromRow, weekChange } from "./weekOverrides";
+import { changeAllowed, choreDayState, choreTag, isExcused, isExcusedAllDay, overrideFromRow, weekChange } from "./weekOverrides";
 import type { ScheduleSpec, WeekOverride } from "./types";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -87,9 +87,45 @@ test("weekChange: today's state and tag, and any other day's state", () => {
   assert.equal(weekChange(null, rows, d(2026, 11, 5)).state, null);
 });
 
-test("isExcused: skipped, on vacation or skipped this week; a plain row is not", () => {
-  assert.equal(isExcused({ skippedToday: true }), true);
-  assert.equal(isExcused({ skippedToday: false, onVacation: true }), true);
-  assert.equal(isExcused({ skippedToday: false, skippedThisWeek: true }), true);
-  assert.equal(isExcused({ skippedToday: false }), false);
+test("weekChange: a stale override on a weekly or monthly habit changes neither its state nor its tag", () => {
+  // The Monday-to-Thursday move was saved while the chore was on certain days; the schedule has since changed.
+  const rows = [{ weekStart: new Date("2026-11-01T00:00:00Z"), fromWeekday: 1, action: "moved", toWeekday: 4 }];
+  for (const spec of [{ schedule: "weekly", times: 2 }, { schedule: "monthly", times: 3 }, { schedule: "daily" }] as ScheduleSpec[]) {
+    for (const day of [d(2026, 11, 2), d(2026, 11, 5)]) {
+      const change = weekChange(spec, rows, day);
+      assert.equal(change.state, null);
+      assert.equal(change.tag, null);
+      assert.equal(change.stateOn(day), "required");
+    }
+  }
+});
+
+test("isExcused: skipped, on vacation and undone, or skipped this week; a plain row is not", () => {
+  assert.equal(isExcused({ doneToday: false, skippedToday: true }), true);
+  assert.equal(isExcused({ doneToday: false, skippedToday: false, onVacation: true }), true);
+  assert.equal(isExcused({ doneToday: false, skippedToday: false, skippedThisWeek: true }), true);
+  assert.equal(isExcused({ doneToday: false, skippedToday: false }), false);
+});
+
+test("isExcusedAllDay: a vacation row is excused only while undone (decision 127); a week skip always", () => {
+  assert.equal(isExcusedAllDay({ doneToday: false, onVacation: true }), true);
+  assert.equal(isExcusedAllDay({ doneToday: true, onVacation: true }), false);
+  assert.equal(isExcusedAllDay({ doneToday: false, skippedThisWeek: true }), true);
+  assert.equal(isExcusedAllDay({ doneToday: false }), false);
+  // A tap-skip is not an all-day excuse; isExcused adds it.
+  assert.equal(isExcused({ doneToday: false, skippedToday: true }), true);
+  assert.equal(isExcusedAllDay({ doneToday: false }), false);
+  assert.equal(isExcused({ doneToday: true, skippedToday: false, onVacation: true }), false);
+});
+
+test("changeAllowed (decision 126): a past day's turn may be moved on or skipped only if already changed, and never cleared", () => {
+  // Today or later: any change, including clearing.
+  assert.equal(changeAllowed({ fromPast: false, hasChange: false, clearing: false }), true);
+  assert.equal(changeAllowed({ fromPast: false, hasChange: true, clearing: true }), true);
+  // Past and already moved or skipped: change again, but not back to the default.
+  assert.equal(changeAllowed({ fromPast: true, hasChange: true, clearing: false }), true);
+  assert.equal(changeAllowed({ fromPast: true, hasChange: true, clearing: true }), false);
+  // Past and untouched: a miss cannot be moved or skipped away.
+  assert.equal(changeAllowed({ fromPast: true, hasChange: false, clearing: false }), false);
+  assert.equal(changeAllowed({ fromPast: true, hasChange: false, clearing: true }), false);
 });

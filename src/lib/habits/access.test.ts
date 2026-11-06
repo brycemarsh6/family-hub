@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canEditChart, canEditHabit, canLogFor, canNudge, canSeeHabit, canSeeHabitStats, type NudgeHabit } from "./access";
+import { canChangeChore, canEditChart, canEditHabit, canLogFor, canNudge, canSeeHabit, canSeeHabitStats, type NudgeHabit } from "./access";
 import type { HabitAccess, HabitActor } from "./types";
 
 const admin: HabitActor = { userId: "admin", role: "admin" };
@@ -118,4 +118,24 @@ test("canEditChart: yourself; a parent or admin for anyone; a kid only their own
   assert.equal(canEditChart(admin, "kid"), true);
   assert.equal(canEditChart(device, "kid"), false);
   assert.equal(canEditChart({ userId: "kid", role: "device" }, "kid"), false);
+});
+
+test("canChangeChore: the person must hold the chore, see it and be editable by the actor", () => {
+  const solo: HabitAccess = { isPrivate: false, participantIds: ["kid"] };
+  assert.equal(canChangeChore(kid, solo, "kid"), true);
+  assert.equal(canChangeChore(parent, solo, "kid"), true);
+  assert.equal(canChangeChore(admin, solo, "kid"), true);
+  assert.equal(canChangeChore(parent, solo, "other"), false, "not a participant");
+  assert.equal(canChangeChore(other, solo, "kid"), false, "a kid cannot edit another's chart");
+  assert.equal(canChangeChore(device, solo, "kid"), false);
+  assert.equal(canChangeChore(parent, hidden, "kid"), false, "a private chore is invisible to a parent");
+  assert.equal(canChangeChore(kid, hidden, "kid"), true);
+});
+
+test("canChangeChore: a chore shared by more than one person is a parent's or admin's to change (decision 125)", () => {
+  assert.equal(canChangeChore(kid, shared, "kid"), false);
+  assert.equal(canChangeChore(parent, shared, "kid"), true);
+  assert.equal(canChangeChore(parent, shared, "parent"), true);
+  assert.equal(canChangeChore(admin, shared, "kid"), true);
+  assert.equal(canChangeChore(device, shared, "kid"), false);
 });

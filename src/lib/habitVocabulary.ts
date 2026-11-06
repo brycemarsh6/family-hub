@@ -202,6 +202,11 @@ export function toHabitIcon(raw: unknown): HabitIcon | null {
 /** 0 = Sunday, the same as `dayOfWeek` in householdDate.ts. */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+/** Whether `value` is a weekday number, 0 (Sunday) to 6 (Saturday). The one copy of this check. */
+export function isWeekday(value: unknown): value is Weekday {
+  return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 6;
+}
+
 /** "0100100" (Sunday first) to the weekdays it names; null unless exactly seven 0/1 characters. */
 export function parseWeekdayMask(raw: unknown): Weekday[] | null {
   if (typeof raw !== "string" || !/^[01]{7}$/.test(raw)) return null;
@@ -257,6 +262,8 @@ export const CHORE_CHART_LABELS = {
   moveTo: "Move to",
   skipThisWeek: "Skip this week",
   backToDefault: "Back to the default",
+  /** A kid's sheet on a chore shared with someone else (decision 125). */
+  askParent: "Ask a parent to change a shared chore.",
   /** The page subtitle: "Emily's week". */
   personWeek: (name: string) => `${name}'s week`,
 } as const;

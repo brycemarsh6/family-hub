@@ -11,7 +11,7 @@ import {
   startOfWeek,
   type CalendarDate,
 } from "../householdDate";
-import type { DayRange, DueState, ScheduleSpec } from "./types";
+import type { DayRange, DueState, ScheduleSpec, Vacation } from "./types";
 
 // What a schedule means: which days it is scheduled on, which kinds are
 // "open" (weekly, monthly, biweekly with no days) and which are "scheduled"
@@ -37,6 +37,11 @@ export function compareDays(a: CalendarDate, b: CalendarDate): number {
 
 export function isDayInRange(day: CalendarDate, range: DayRange): boolean {
   return compareDays(day, range.start) >= 0 && compareDays(day, range.end) <= 0;
+}
+
+/** Whether `day` falls inside any of the person's vacations (both ends inclusive). The one copy of this check. */
+export function dayInVacation(day: CalendarDate, vacations: readonly Vacation[]): boolean {
+  return vacations.some((vacation) => isDayInRange(day, vacation));
 }
 
 function clampTimes(times: number | null, max: number): number {

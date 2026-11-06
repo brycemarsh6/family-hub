@@ -41,6 +41,7 @@ import {
   canCarryOver,
   habitWhoLabel,
   isCheckStatus,
+  isWeekday,
   parseWeekdayMask,
   printWeekdayMask,
   toHabitIcon,
@@ -221,6 +222,7 @@ test("chore and vacation words (decisions 115, 117, 122, 123, 124)", () => {
   assert.equal(CHORE_CHART_LABELS.title, "Chore chart");
   assert.equal(CHORE_CHART_LABELS.manageHint, "Each person's default week");
   assert.equal(CHORE_CHART_LABELS.personWeek("Emily"), "Emily's week");
+  assert.equal(CHORE_CHART_LABELS.askParent, "Ask a parent to change a shared chore.");
 });
 
 test("choreTagLabel: the three chart tags, with the weekday from the one short-name list", () => {
@@ -228,4 +230,9 @@ test("choreTagLabel: the three chart tags, with the weekday from the one short-n
   assert.equal(choreTagLabel({ kind: "moved-away", toWeekday: 0 }, SHORT_DAY_NAMES), "Moved to Sun");
   assert.equal(choreTagLabel({ kind: "moved-here" }, SHORT_DAY_NAMES), "This week only");
   assert.equal(choreTagLabel({ kind: "skipped" }, SHORT_DAY_NAMES), "Skipped this week");
+});
+
+test("isWeekday: whole numbers 0 to 6 only", () => {
+  for (const ok of [0, 1, 6]) assert.equal(isWeekday(ok), true);
+  for (const bad of [-1, 7, 1.5, NaN, "1", null, undefined]) assert.equal(isWeekday(bad), false);
 });

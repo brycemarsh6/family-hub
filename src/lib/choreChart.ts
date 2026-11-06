@@ -6,15 +6,15 @@ import {
   startOfWeek,
   type CalendarDate,
 } from "./householdDate";
-import { canEditChart, canSeeHabit } from "./habits/access";
-import { carrySince, habitStartDay } from "./habits/carryOver";
+import { canChangeChore, canEditChart, canSeeHabit } from "./habits/access";
+import { CARRY_LOOKBACK_DAYS, carrySince, habitStartDay } from "./habits/carryOver";
 import { choreStreakAfter, finishedAllChoresLastWeek, type ChoreInput } from "./habits/choreStreak";
 import { logsForUser, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import { compareDays, isDayInRange, isSameDay } from "./habits/schedule";
 import type { StreakCache } from "./habits/streaks";
-import type { HabitActor, HabitLogDay, Vacation, Weekday } from "./habits/types";
-import { choreDayState, choreTag, overrideFromRow, type StoredWeekOverride } from "./habits/weekOverrides";
-import { CHORE_CHART_LABELS, choreTagLabel, habitWhoLabel, toHabitKind } from "./habitVocabulary";
+import type { HabitActor, HabitLogDay, Vacation } from "./habits/types";
+import { changeAllowed, choreDayState, choreTag, overrideFromRow, type StoredWeekOverride } from "./habits/weekOverrides";
+import { CHORE_CHART_LABELS, choreTagLabel, habitWhoLabel, toHabitKind, type Weekday } from "./habitVocabulary";
 import { FULL_DAY_NAMES, SHORT_DAY_NAMES } from "./mealPlanDates";
 
 // The chore pages' pure builders, with no database: `habitsRead.ts` and
@@ -68,6 +68,18 @@ export function choreCacheFromRow(row: { choreStreakCurrent: number; choreStreak
   };
 }
 
+/**
+ * The Sunday that starts the window of this-week changes a page fetches. Today's
+ * rows and the Sunday line read two weeks back, but aging a cached chore streak
+ * (`choreStreakAfter`) reads every day after its `asOf`, so the window reaches
+ * back to the oldest cache too.
+ */
+export function overrideWindowStart(today: CalendarDate, cacheAsOfs: readonly (CalendarDate | null)[]): CalendarDate {
+  let earliest = addCalendarDays(today, -CARRY_LOOKBACK_DAYS);
+  for (const asOf of cacheAsOfs) if (asOf && compareDays(asOf, earliest) < 0) earliest = asOf;
+  return startOfWeek(earliest);
+}
+
 /** What Today's and a family card's Chores header need about one person. */
 export type ChoreHeader = {
   /** The chore streak aged to today (decision 33); the page decides whether to show it (decision 120). */
@@ -116,8 +128,16 @@ export type ChartWeekChore = ChartChore & {
   tag: string | null;
   /** A change exists, so the sheet offers "Back to the default". */
   changed: boolean;
-  /** The sheet may change it: its normal day is today or later (a past day's miss stays a miss). */
+  /**
+   * The row opens the sheet: its normal day is today or later, or a past day's
+   * turn that already carries a change (decision 126; an untouched past day's
+   * miss stays a miss).
+   */
   canChange: boolean;
+  /** The viewer may not change this chore (a kid on a shared chore, decision 125): the sheet says "Ask a parent" and offers nothing. */
+  askParent: boolean;
+  /** Its normal day is already past: "Back to the default" is hidden, as it would make a past day required again (decision 126). */
+  originalDayPast: boolean;
   /** "Move to" chips: today and later days this week except its own day. */
   moveTargets: Weekday[];
 };
@@ -164,7 +184,7 @@ export function buildChoreChart(
     if (!access.participantIds.includes(personId) || !canSeeHabit(viewer, access)) return [];
     const who = habit.participants.length > 1 ? habitWhoLabel({ people: habit.participants.length, everyone: habit.everyone, sharing: habit.sharing }) : null;
     const overrides = (habit.weekOverrides ?? []).flatMap((row) => overrideFromRow(row) ?? []);
-    return [{ habit, spec, overrides, base: { id: habit.id, title: habit.title, icon: habit.icon, who } }];
+    return [{ habit, spec, overrides, askParent: !canChangeChore(viewer, access, personId), base: { id: habit.id, title: habit.title, icon: habit.icon, who } }];
   });
   const weekStart = startOfWeek(today);
   const weekdays = Array.from({ length: 7 }, (_, i) => i as Weekday);
@@ -183,13 +203,16 @@ export function buildChoreChart(
       const mover = tag?.kind === "moved-here" ? c.overrides.find((o) => o.action === "moved" && o.toWeekday === weekday && isSameDay(o.weekStart, weekStart)) : undefined;
       const fromWeekday = mover?.fromWeekday ?? weekday;
       const fromDay = addCalendarDays(weekStart, fromWeekday);
+      const originalDayPast = compareDays(fromDay, today) < 0;
       return [{
         ...c.base,
         fromWeekday,
         state: state === "excused" ? "skipped" : state === "none" ? "moved-away" : "required",
         tag: tag ? choreTagLabel(tag, SHORT_DAY_NAMES) : null,
         changed: tag !== null,
-        canChange: compareDays(fromDay, today) >= 0,
+        canChange: changeAllowed({ fromPast: originalDayPast, hasChange: tag !== null, clearing: false }),
+        askParent: c.askParent,
+        originalDayPast,
         moveTargets: weekdays.filter((w) => w !== fromWeekday && compareDays(addCalendarDays(weekStart, w), today) >= 0),
       }];
     });

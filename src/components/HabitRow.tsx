@@ -7,7 +7,7 @@ import { HabitIcon } from "./HabitIcon";
 import { LogButton } from "./LogButton";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
 import { ANYTIME_LABEL, ON_VACATION_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
-import { isExcused } from "@/lib/habits/weekOverrides";
+import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
 import type { HabitRowView } from "@/lib/habitsRead";
 import { dayOfWeek } from "@/lib/householdDate";
 import { FULL_DAY_NAMES, formatDayLabel } from "@/lib/mealPlanDates";
@@ -42,8 +42,11 @@ export function HabitRow({
   /** The viewer's "Show streaks" switch; the family tablet always passes true (decision 98). */
   showStreaks: boolean;
 }) {
-  // Excused rows (skipped, on vacation, skipped this week) look finished too (decision 115).
+  // Excused rows (skipped, undone on vacation, skipped this week) look finished too (decisions 115, 127).
   const finished = row.doneToday || isExcused(row);
+  // Skipped for the week, or on vacation and undone: muted in the stronger grey (it must stay readable), and a skipped-this-week row shows the dashed marker and has no swipe (nothing to skip twice).
+  const excusedByCalendar = isExcusedAllDay(row);
+  const skippedMark = row.skippedToday || (row.skippedThisWeek && !row.doneToday);
   // Side by side: show the other people who have already done theirs.
   const othersDone = row.sharing === "each" ? row.participants.filter((p) => p.userId !== row.viewerId && p.done) : [];
   const streak = showStreaks && row.streakLabel ? (
@@ -65,7 +68,7 @@ export function HabitRow({
         tone: "neutral",
       },
     ];
-  } else if (!row.doneToday) {
+  } else if (!row.doneToday && !row.skippedThisWeek) {
     // A carried row stands for a missed day: its skip is for that day, not today.
     const when = row.carriedFrom ? FULL_DAY_NAMES[dayOfWeek(row.carriedFrom)] : "today";
     actions = [
@@ -91,7 +94,7 @@ export function HabitRow({
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className={`text-base font-semibold ${finished ? "text-muted" : ""}`}>{row.title}</span>
+            <span className={`text-base font-semibold ${excusedByCalendar ? "text-muted-strong" : finished ? "text-muted" : ""}`}>{row.title}</span>
             {row.mode === "quit" && <span className={QUIT_TAG_CLASS}>Quit</span>}
             {row.carriedFrom && !row.doneToday && <span className={TAG_CLASS}>Carried over</span>}
             {row.weekTag && <span className={QUIT_TAG_CLASS}>{row.weekTag}</span>}
@@ -109,7 +112,7 @@ export function HabitRow({
                 {streak}
               </>
             ) : row.onVacation && !row.doneToday ? (
-              <span>{ON_VACATION_LABEL}</span>
+              <span className="text-muted-strong">{ON_VACATION_LABEL}</span>
             ) : (
               <>
                 {shownPeople.map((p) => (
@@ -136,7 +139,7 @@ export function HabitRow({
           </div>
         </div>
       </Link>
-      <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={row.skippedToday} onClick={onToggle} />
+      <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={skippedMark} onClick={onToggle} />
     </div>
   );
 

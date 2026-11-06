@@ -11,7 +11,10 @@ const ROW = "flex min-h-12 items-center gap-3 rounded-xl px-3 text-left text-bas
 /**
  * The bottom sheet for a chore on the chart's This week (decision 117): its
  * name (and who label when shared), "Move to" day chips, "Skip this week" and,
- * when a change exists, "Back to the default". The same frame as `RadioSheet`.
+ * when a change exists whose original day has not passed, "Back to the default".
+ * A kid on a shared chore gets "Ask a parent..." and no actions (decision 125).
+ * The row's flags (`askParent`, `originalDayPast`) come from the loader, so no
+ * rule lives here. The same frame as `RadioSheet`.
  * `column` is the weekday of the card that was tapped; a moved chore is not
  * offered its own column again.
  */
@@ -38,7 +41,7 @@ export function ChoreChartSheet({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  const targets = chore.moveTargets.filter((weekday) => weekday !== column);
+  const targets = chore.askParent ? [] : chore.moveTargets.filter((weekday) => weekday !== column);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
@@ -84,14 +87,16 @@ export function ChoreChartSheet({
           </div>
         )}
 
+        {chore.askParent && <p className="px-1 pb-2 text-base text-muted-strong">{CHORE_CHART_LABELS.askParent}</p>}
+
         <div className="flex flex-col gap-1">
-          {chore.state !== "skipped" && (
+          {!chore.askParent && chore.state !== "skipped" && (
             <button type="button" onClick={onSkip} className={ROW}>
               <SkipForward aria-hidden="true" size={18} className="text-muted" />
               {CHORE_CHART_LABELS.skipThisWeek}
             </button>
           )}
-          {chore.changed && (
+          {!chore.askParent && chore.changed && !chore.originalDayPast && (
             <button type="button" onClick={onClear} className={ROW}>
               <RotateCcw aria-hidden="true" size={18} className="text-muted" />
               {CHORE_CHART_LABELS.backToDefault}

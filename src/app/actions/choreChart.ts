@@ -3,15 +3,16 @@
 // The Chore chart's writes (decisions 116, 117, 118): adding a chore under a
 // day of someone's Default week, and this week's move, skip and undo. Guard
 // order in every action: session, the tablet refused, the row (the person for
-// Add, the chore for the three changes), then the policy (`canEditChart`: you,
-// a parent or admin for anyone, a kid only themselves), then the fields. A
+// Add, the chore for the three changes), then the policy (`canEditChart` for
+// Add, `canChangeChore` for the three changes: you, a parent or admin for
+// anyone, a kid only themselves and not on a shared chore), then the fields. A
 // missing row and a refused one answer the same words. Server Actions are
 // public POST endpoints: nothing here trusts the page that rendered them.
 
 import { revalidatePath } from "next/cache";
 import { getVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import { canEditChart, canSeeHabit } from "@/lib/habits/access";
+import { canChangeChore, canEditChart } from "@/lib/habits/access";
 import {
   clearChoreChange as clearChoreChangeRow,
   moveChoreThisWeek as moveChoreRow,
@@ -20,7 +21,7 @@ import {
 } from "@/lib/habits/choreWrites";
 import { createHabit as createHabitRow } from "@/lib/habits/habitWrites";
 import { householdParticipantIds } from "@/lib/habits/participantWrites";
-import { HABIT_TITLE_MAX, printWeekdayMask, type Weekday } from "@/lib/habitVocabulary";
+import { HABIT_TITLE_MAX, isWeekday, printWeekdayMask } from "@/lib/habitVocabulary";
 import { loadHabitForAction } from "@/lib/habitsRead";
 import type { HabitActionResult } from "./habits";
 
@@ -32,8 +33,6 @@ function revalidateChart() {
   revalidatePath("/habits", "layout");
   revalidatePath("/settings");
 }
-
-const isWeekday = (value: unknown): value is Weekday => Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 6;
 
 /** Add a chore on one weekday of `personId`'s Default week (decision 116): Certain days, Anytime, carry over off, default icon, Side by side, not private. */
 export async function addChartChore(personId: string, weekday: number, name: string): Promise<HabitActionResult> {
@@ -75,7 +74,7 @@ export async function addChartChore(personId: string, weekday: number, name: str
   }
 }
 
-/** Session, device, the chore's row (`personId` must hold it and the viewer must see it), then `canEditChart`; the fields are the writer's. */
+/** Session, device, the chore's row, then `canChangeChore` (the person holds it, the viewer sees it and may edit their chart, and a shared chore is a parent's, decision 125); the fields are the writer's. */
 async function guardedChange(personId: string, habitId: string, change: () => Promise<ChoreChangeResult>): Promise<HabitActionResult> {
   const user = await getVerifiedUser();
   if (!user) return { error: NOT_SIGNED_IN };
@@ -83,9 +82,7 @@ async function guardedChange(personId: string, habitId: string, change: () => Pr
   if (typeof personId !== "string" || typeof habitId !== "string") return { error: NOT_FOUND };
   const habit = await loadHabitForAction(habitId);
   const actor = { userId: user.userId, role: user.role };
-  if (!habit || !habit.participantIds.includes(personId) || !canSeeHabit(actor, habit) || !canEditChart(actor, personId)) {
-    return { error: NOT_FOUND };
-  }
+  if (!habit || !canChangeChore(actor, habit, personId)) return { error: NOT_FOUND };
   try {
     const result = await change();
     if (!result.ok) return { error: result.error };

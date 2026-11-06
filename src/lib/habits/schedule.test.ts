@@ -7,6 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dayOfWeek, type CalendarDate } from "../householdDate";
 import {
+  dayInVacation,
   dueState,
   isDueWeek,
   isOpenKind,
@@ -17,7 +18,7 @@ import {
   scheduleFromRow,
   scheduledDaysInRange,
 } from "./schedule";
-import type { ScheduleSpec } from "./types";
+import type { ScheduleSpec, Vacation } from "./types";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
 
@@ -202,4 +203,14 @@ test("periodsInRange: open kinds list the due periods overlapping the range; sch
     { start: d(2027, 2, 28), end: d(2027, 3, 6) },
     { start: d(2027, 3, 14), end: d(2027, 3, 20) },
   ]);
+});
+
+test("dayInVacation: both ends inclusive, any of several vacations, none means never", () => {
+  const away: Vacation[] = [{ start: d(2026, 11, 3), end: d(2026, 11, 5) }, { start: d(2026, 11, 20), end: d(2026, 11, 20) }];
+  assert.equal(dayInVacation(d(2026, 11, 2), away), false);
+  assert.equal(dayInVacation(d(2026, 11, 3), away), true);
+  assert.equal(dayInVacation(d(2026, 11, 5), away), true);
+  assert.equal(dayInVacation(d(2026, 11, 6), away), false);
+  assert.equal(dayInVacation(d(2026, 11, 20), away), true);
+  assert.equal(dayInVacation(d(2026, 11, 3), []), false);
 });

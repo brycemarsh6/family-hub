@@ -1,6 +1,6 @@
 // Pins habitsFamily.ts: the family page (who appears, in whose order, who may
 // tick, vacation and chore rows) and the done counts. Also the Today page's
-// nudge and confetti fields. The stats page builder is in habitsStatsPage.test.ts.
+// nudge and confetti fields. The stats page builder is in habitsFamilyStatsPage.test.ts.
 // "Today" is Thursday 2026-11-05; the checks are plain calendar days, so the
 // results are the same in every time zone.
 
@@ -203,7 +203,7 @@ test("buildFamilyPage: a streak shows on the row (always computed; the page hide
   assert.equal(page.columns[0].rows[0].streakLabel, "4 days");
 });
 
-test("doneCounts: vacation rows and rows skipped this week leave both numbers, like a skipped row (decisions 109, 115)", () => {
+test("doneCounts: undone vacation rows and rows skipped this week leave both numbers; a done vacation row counts in both (decisions 109, 115, 127)", () => {
   const rows = [
     { doneToday: true, skippedToday: false },
     { doneToday: false, skippedToday: false },
@@ -211,9 +211,10 @@ test("doneCounts: vacation rows and rows skipped this week leave both numbers, l
     { doneToday: true, skippedToday: false, onVacation: true },
     { doneToday: false, skippedToday: false, skippedThisWeek: true },
   ];
-  assert.deepEqual(doneCounts(rows), { done: 1, total: 2 });
-  assert.equal(doneCountLabel(rows), "1 of 2 done");
-  assert.equal(doneCountLabel(rows.slice(2)), "0 of 0 done");
+  assert.deepEqual(doneCounts(rows), { done: 2, total: 3 });
+  assert.equal(doneCountLabel(rows), "2 of 3 done");
+  assert.equal(doneCountLabel(rows.slice(2)), "1 of 1 done");
+  assert.equal(doneCountLabel([rows[2], rows[4]]), "0 of 0 done");
 });
 
 test("buildFamilyPage: a person on vacation has excused rows and their card counts nothing; the others are untouched", () => {
@@ -225,6 +226,20 @@ test("buildFamilyPage: a person on vacation has excused rows and their card coun
   assert.equal(a.totalCount, 0);
   assert.equal(b.rows[0].onVacation, false);
   assert.equal(b.totalCount, 1);
+});
+
+test("buildFamilyPage: one person's vacation never marks the Together strip row; only their own count leaves it out", () => {
+  const together = habit({ id: "t", sharing: "together", participants: [member("amy"), member("ben")] });
+  const away = new Map([["amy", [{ start: d(2026, 11, 3), end: d(2026, 11, 12) }]]]);
+  const page = buildFamilyPage(amy, [together], people, logs([]), today, away);
+  assert.equal(page.together[0].onVacation, false, "the strip row is built for amy but is not on vacation");
+  const [a, b] = page.columns;
+  assert.equal(a.totalCount, 0, "amy is away: the undone Together row leaves her count");
+  assert.equal(b.totalCount, 1, "ben's count keeps it");
+  // Ben is the one who is away, amy is the row's subject: the strip row still carries no onVacation.
+  const benAway = buildFamilyPage(amy, [together], people, logs([]), today, new Map([["ben", [{ start: d(2026, 11, 3), end: d(2026, 11, 12) }]]]));
+  assert.equal(benAway.together[0].onVacation, false);
+  assert.deepEqual(benAway.columns.map((c) => c.totalCount), [1, 0, 0]);
 });
 
 test("buildFamilyPage: a chore row carries no streak label (decision 120)", () => {

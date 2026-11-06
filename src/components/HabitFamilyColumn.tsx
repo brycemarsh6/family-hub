@@ -6,7 +6,7 @@ import { Check, Flame, Plane, Trophy } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { LogButton } from "./LogButton";
-import { isExcused } from "@/lib/habits/weekOverrides";
+import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
 import { CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, SKIPPED_TODAY_LABEL } from "@/lib/habitVocabulary";
 import { countedRows, doneCountLabel, type FamilyColumn, type FamilyRow } from "@/lib/habitsFamily";
 
@@ -47,6 +47,8 @@ export function FamilyHabitRow({
   together?: boolean;
 }) {
   const finished = row.doneToday || isExcused(row);
+  const excusedByCalendar = isExcusedAllDay(row);
+  const skippedMark = row.skippedToday || (row.skippedThisWeek && !row.doneToday);
   const showProgress = row.dueState === "open" && row.progress && row.progress.target > 1 && !row.doneToday;
   const progressLabel = showProgress ? `${row.progress!.count} of ${row.progress!.target} ${row.progress!.label}` : null;
   const meta =
@@ -66,8 +68,8 @@ export function FamilyHabitRow({
           <HabitIcon name={row.icon} kind={row.kind} size={20} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className={`text-base font-semibold ${finished ? "text-muted" : ""}`}>{row.title}</span>
-          {meta && <span className="text-xs text-muted">{meta}</span>}
+          <span className={`text-base font-semibold ${excusedByCalendar ? "text-muted-strong" : finished ? "text-muted" : ""}`}>{row.title}</span>
+          {meta && <span className={`text-xs ${excusedByCalendar ? "text-muted-strong" : "text-muted"}`}>{meta}</span>}
         </span>
         {streak && (
           <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-streak">
@@ -76,7 +78,7 @@ export function FamilyHabitRow({
           </span>
         )}
       </TitleArea>
-      {row.skippedToday ? (
+      {skippedMark ? (
         <LogButton done={false} label={row.title} idle="empty" skipped onClick={onToggle} />
       ) : row.canLog ? (
         <LogButton done={row.doneToday} label={row.title} forName={together ? undefined : who} idle="empty" onClick={onToggle} />
@@ -124,7 +126,7 @@ export function HabitFamilyColumn({
         <div className="flex min-w-0 flex-col">
           <h2 className="truncate text-lg font-bold leading-tight">{column.displayName}</h2>
           <span className="text-sm text-muted">
-            {column.onVacation ? ON_VACATION_LABEL : doneCountLabel(countedRows(column, together))}
+            {column.onVacation && column.totalCount === 0 ? ON_VACATION_LABEL : doneCountLabel(countedRows(column, together))}
           </span>
         </div>
         {column.onVacation && <Plane aria-hidden="true" size={18} className="ml-auto shrink-0 text-muted" />}
