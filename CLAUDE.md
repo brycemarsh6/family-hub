@@ -107,8 +107,9 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   `src/lib/habitVocabulary.ts`. Settings has a "Habits & Chores" section: a
   Show streaks switch (saved per login) and, for admins only, a Recompute
   streaks button. PR B (#43) added the tab: Today (tap to check, swipe to
-  skip), Manage (drag to reorder), New and Edit. Streak display, the family
-  view and chores come in PRs C to F (plan:
+  skip), Manage (drag to reorder), New and Edit. PR C added streaks, nudges,
+  confetti, a stats page per habit (`/habits/[id]`) and the Whole family
+  view. Chores come in PRs D to F (plan:
   `.avengers/plans/habits-chores-v1.md`).
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
@@ -172,14 +173,15 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Habits & Chores PR B (mission 31)** merged as PR #43 (9f4b2d5) and
-  live since 2026-11-05: Today list, Manage with drag to reorder, New and
-  Edit forms, the Everyone flag. Decisions 87 to 93 in
-  `.avengers/plans/habits-chores-v1.md`. Record:
-  `.avengers/missions/mission-31-habits-b-tab.md` (its Delivery section
-  lists leftovers for later PRs). PR C (mission 32, streaks and the family
-  view) is next; Bryce creates the kids' profiles before its testing.
-  The spike branch `claude/habits-b-spike` can be deleted (ask first).
+- **Habits & Chores PR C (mission 32)** passed all three gates on
+  2026-11-05 and merges from branch `claude/habits-c-streaks`: streak
+  flames, "Skipped today", nudges, confetti, the stats page
+  (`/habits/[id]`) and the Whole family view (the tablet always lands
+  there). Decisions 94 to 114, most decided by Hill. Record and PR D
+  leftovers: `.avengers/missions/mission-32-habits-c-streaks.md`. PR D
+  (chores) is next.
+- **Hill decides for Bryce** (`.claude/agents/hill.md`); merges don't wait
+  for him. Phone tests go on Bryce's checklist below and never block.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
   desktop mouse. Hover is a bonus, never the only way to learn something.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
@@ -188,6 +190,18 @@ Replace this section at the end of each session. Don't append.
 - **Assistant API mission 22** in worktree branch `claude/assistant-api-m22`.
   Its first contract: harden the "every route uses `assistantRoute()`" test with
   the TypeScript compiler API.
+
+**Bryce's checklist (never blocks work):**
+- **PR C phone check** (about 5 minutes): on Today, a streak flame on a
+  habit done 2+ days running; tap a habit name to open its stats; check
+  the last habit of the day and see confetti once. On the iPad, open
+  Whole family. Have Emily nudge you on a shared habit, then tap "Got it".
+- **Review Hill's medium calls:** 94 (stats page extras), 95 (family view
+  stacking), 104 (weekly bars), 110 (nudge line "Not done yet today"),
+  111 (empty table values). Plan: `.avengers/plans/habits-chores-v1.md`.
+- **Optional:** confirm the family-hub origin in the desktop app (Help,
+  Troubleshooting, Review Pinned Git Origins) so the app's merge button
+  works. Delete the "zz m31" / "zz m32" test habits on dev whenever.
 
 **Waiting on Bryce:**
 - **PR A is live:** press Recompute streaks once (Settings). The production
@@ -214,5 +228,5 @@ Replace this section at the end of each session. Don't append.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
   by Bryce's Grok bot. Left uncommitted on purpose.
 
-**Not built yet:** family profiles, the Habits & Chores family view and chore
-chart (PRs C to F), to-dos, photo gallery, barcode scanning.
+**Not built yet:** family profiles, Habits & Chores chores and the chore
+chart (PRs D to F), to-dos, photo gallery, barcode scanning.

@@ -1,7 +1,7 @@
 # Mission: Habits & Chores PR C, streaks and the family (mission 32)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (Hill decided 94 to 105)
+**Status:** DELIVERED (all gates PASS on pass 2; merging to main)
 **Started:** 2026-11-05 · **Updated:** 2026-11-05
 
 ## Brief
@@ -262,6 +262,9 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 ## Gate ledger
 - **Vision pass 1 (Fable): PASS.** Notes: kid dead link (became decision 114), `canNudge` ignores a deactivated recipient, optimistic undo shows missed for not-due days, confetti fires from optimistic rows, `loadHabitStats` reads all logs for all time, `monthLogRows` reads more than it uses.
 - **Captain pass 1 (Opus): BLOCKED, 2.** (1) `FULL_MONTHS` in `habitVocabulary.ts` is a sixth month-name list; (2) `habitsStatsRead.ts` is a second habit reader not in STRUCTURE.md. (2) fixed by Fury writing amendments A, B, C into STRUCTURE.md. PR D notes: split `displayStreak`/`streakUnitOf` into `habits/streaks.ts`; one `useOptimisticRun` hook; `HabitViewChips` own file; `showsOnFamilyView` in `access.ts`; STRUCTURE.md housekeeping (now ~935 lines).
+- **Vision pass 2 (Fable): PASS.** Notes: a vacationing person still counts in a Together habit (undecided, for Hill when vacations matter); `deactivatedIds` optional on `NudgeHabit` (make it required); Together strip check says "for Bryce".
+- **Captain pass 2 (Opus): PASS.** Notes: `habitsFamily.test.ts` 365 lines (split), "them" fallback word inline in HabitFamilyColumn.
+- **Strange pass 2 (Opus): PASS.** All four blockers measured fixed. Notes below.
 - **Strange pass 1 (Opus): BLOCKED, 4.** (1) streaks drawn in warn amber, same as Missed; (2) family card count leaves out Together habits; (3) stats calendar day buttons 42px at 390; (4) "Nudged" text 2.93:1. Not covered: nudge card from a second login, read-only checks, tablet login, a Missed day, Show streaks off, real touch. Test data: "zz m32 side", "zz m32 together", one nudge.
 
 ### F1 - Gate pass 1 fixes
@@ -284,4 +287,14 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Fixes:** (1) `LogButton` gains an optional `forName` so its label reads "Mark X done for Emily" / "Undo X for Emily"; the family view's inline copy of the button goes back to `LogButton`, so there is one check button. (2) The `nudge` action refuses a deactivated recipient: `loadHabitForAction` (or the action) supplies the participants' deactivated state and the action passes `deactivatedIds` to `canNudge`.
 - **Boundaries:** `src/components/LogButton.tsx`, `HabitFamilyColumn.tsx`, `src/lib/habitsRead.ts` (the action loader's select only), `src/app/actions/habitNudges.ts`.
 - **Verification:** full gauntlet.
+
+## Delivery
+- Gauntlet at delivery: tsc 0, eslint 0, 767 tests (Denver, LA; UTC 760 plus the 7 old DST skips), build EXIT=0 with a fake database URL. No migration.
+- **Leftovers for PR D** (none blocks):
+  - Structure: split `displayStreak` / `streakUnitOf` out of `habitsToday.ts` (355 lines) into `habits/streaks.ts`; one `useOptimisticRun` hook for the seven `run()` copies (STRUCTURE.md debt entry); `HabitViewChips` to its own file; `showsOnFamilyView` in `access.ts`; split `habitsFamily.test.ts`; STRUCTURE.md housekeeping (933 lines); make `deactivatedIds` required.
+  - Design: the Together strip check should not say "for Bryce" (screen readers); stats calendar cells `max-w-11` so done discs are round at 820; the Together row's check sits mid-card at 820; read-only done marker may look tappable (needs a non-manager login to confirm).
+  - For Hill: "0 perfect days this month" under an all-green calendar; Together habits and vacations; week strips say "0 of 7" before the habit existed; "0 of 0 so far" header; skip icon replaces the date number; the family view hides skipped habits (no undo from the tablet).
+  - Behaviour: the streak number updates only after the server answers; optimistic undo shows Missed on not-due days; `loadHabitStats` reads all logs for all time (use a count); confetti can fire on a tap the server rejects.
+- **Not covered by any gate** (Bryce's checklist): the nudge card from Emily's login, the tablet login, read-only checks for a kid, Show streaks off, real finger touch.
+- **Test data left on dev:** habits "zz m31 *", "zz m32 side", "zz m32 together", one nudge Bryce to Emily.
 
