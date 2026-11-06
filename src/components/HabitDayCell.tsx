@@ -12,8 +12,8 @@ const FULL = "flex min-h-11 w-full max-w-12 items-center justify-center justify-
 /** The Report's small grids: about 22px cells, 10px numbers (decision 167). Read-only, so no tap target to protect. */
 const COMPACT = "flex h-[22px] w-full max-w-[22px] items-center justify-center justify-self-center rounded-full text-[10px]";
 
-/** Look by state. Done and Skipped differ by shape as well as color (a filled disc, a dashed ring), Missed by its amber fill. Future and not-due days are plain (no ring), so only a due day looks like something to do. */
-function cellClass(state: MonthCellState): string {
+/** Look by state. Done and Skipped differ by shape as well as color (a filled disc, a dashed ring), Missed by its amber fill. Future and not-due days are plain (no ring), so only a due day looks like something to do; a not-due today is plain too, its number bolder. */
+function cellClass(state: MonthCellState, isToday: boolean): string {
   switch (state) {
     case "done":
     case "late":
@@ -25,8 +25,9 @@ function cellClass(state: MonthCellState): string {
     case "today":
       return "border border-line text-muted";
     case "future":
-    case "notDue":
       return "text-muted";
+    case "notDue":
+      return isToday ? "font-semibold text-fg" : "text-muted";
   }
 }
 
@@ -52,8 +53,9 @@ export function HabitDayCell({
 }) {
   const parsed = parseDateParam(cell.day)!;
   const state = effectiveState(cell);
+  const isToday = cell.day === today;
   const label = dayCellLabel(cell);
-  const className = `${compact ? COMPACT : FULL} ${cellClass(state)} ${cell.day === today ? "outline-2 outline-offset-1 outline-fg" : ""}`;
+  const className = `${compact ? COMPACT : FULL} ${cellClass(state, isToday)} ${isToday && state !== "notDue" ? "outline-2 outline-offset-1 outline-fg" : ""}`;
   const body = state === "skipped" ? <SkipForward aria-hidden="true" size={compact ? 10 : 14} /> : parsed.day;
   const tapSkipped = cell.state === "skipped" && !cell.reason;
   if (!onToggle || !cell.tappable || tapSkipped) {

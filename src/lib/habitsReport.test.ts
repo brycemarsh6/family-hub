@@ -275,6 +275,15 @@ test("a scheduled item with nothing due so far says why, never 0 of 0 (decision 
   const sun = habit("u", { schedule: "weekdays", weekdays: "1000000", createdAt: lastDay, participants: [member("amy", 0, lastDay)] });
   const nov30 = reportScope(parent, params({ view: "month" }), [sun], people, d(2026, 11, 30));
   assert.equal((buildHabitReport(nov30, noData, d(2026, 11, 30)).sections[0].rows[0] as ReportMonthCard).count, "Not this month");
+  // Tap-skipped days are never ahead, and count when nothing else is due (decision 181).
+  const skipLog = (day: CalendarDate): HabitLogDay => ({ day, status: "skipped" });
+  const at = (h: TodayHabitInput, now: CalendarDate, logs: HabitLogDay[]) =>
+    (buildHabitReport(reportScope(parent, params({ week: d(2026, 11, 1) }), [h], people, now), { ...noData, logsByHabit: new Map([[h.id, logs]]) }, now).sections[0].rows[0] as ReportWeekRow).count;
+  const monSat = habit("ms", { schedule: "weekdays", weekdays: "0100001" });
+  assert.equal(at(habit("d"), d(2026, 11, 1), [skipLog(d(2026, 11, 1))]), "Due Mon");
+  assert.equal(at(monSat, d(2026, 11, 2), [skipLog(d(2026, 11, 2))]), "Due Sat");
+  assert.equal(at(habit("m1", { schedule: "weekdays", weekdays: "0100000" }), d(2026, 11, 2), [skipLog(d(2026, 11, 2))]), "1 skipped");
+  assert.equal(at(habit("m2", { schedule: "weekdays", weekdays: "0100000" }), d(2026, 11, 5), [skipLog(d(2026, 11, 2))]), "1 skipped");
   // Open kinds keep their counts.
   assert.equal(count(habit("w", { schedule: "weekly", times: 3 })), "0 of 3");
 });

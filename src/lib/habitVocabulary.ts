@@ -365,6 +365,8 @@ export function reportCountOf(done: number, of: number): string {
 /** What a scheduled item says when nothing is due so far (decision 177); `when` is "Sat" (Week) or "Nov 7" (Month). */
 export const reportDueLabel = (when: string): string => `Due ${when}`;
 export const REPORT_DUE_TODAY = "Due today";
+/** "1 skipped", "2 skipped": the due days so far were all skipped by a tap (decision 181). */
+export const reportSkippedCount = (count: number): string => `${count} skipped`;
 export const reportNotThis = (period: "week" | "month"): string => `Not this ${period}`;
 
 /** "1 this week", "9 this month": the count for an item with no daily target (decisions 166, 167). */

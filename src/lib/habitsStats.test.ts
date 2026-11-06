@@ -13,6 +13,7 @@ import {
   dayCellLabel,
   effectiveState,
   monthCalendar,
+  nothingDueText,
   perfectDaysInMonth,
   personTotals,
   sideBySideRows,
@@ -392,4 +393,34 @@ test("completionRate: a moved chore is due on its new day, not its old one", () 
 test("completionRate: vacation days still leave the rate as before (no change from decision 170)", () => {
   const amy = person("amy", { since: d(2026, 11, 2) });
   assert.equal(completionRate(input({ people: [amy], vacationsByUser: away, logs: [log("amy", d(2026, 11, 4))] }), "amy"), 100);
+});
+
+test("monthCalendar: an open kind's unchecked today is doable until the period's target is met; a scheduled non-due today stays not due", () => {
+  const weekly: ScheduleSpec = { schedule: "weekly", times: 1 };
+  assert.equal(novCell(monthCalendar(input({ spec: weekly }), "amy", today), 5).state, "today");
+  assert.equal(novCell(monthCalendar(input({ spec: weekly }), "amy", today), 4).state, "notDue", "past days of an open kind stay not due");
+  // The target met earlier this week: today is no longer something to do.
+  const met = monthCalendar(input({ spec: weekly, logs: [log("amy", d(2026, 11, 2))] }), "amy", today);
+  assert.equal(novCell(met, 5).state, "notDue");
+  const monthly: ScheduleSpec = { schedule: "monthly", times: 2 };
+  assert.equal(novCell(monthCalendar(input({ spec: monthly, logs: [log("amy", d(2026, 11, 2))] }), "amy", today), 5).state, "today");
+  assert.equal(novCell(monthCalendar(input({ spec: monthly, logs: [log("amy", d(2026, 11, 2)), log("amy", d(2026, 11, 3))] }), "amy", today), 5).state, "notDue");
+  // Before the person joined, and a scheduled item's non-due today.
+  assert.equal(novCell(monthCalendar(input({ spec: weekly, people: [person("amy", { since: d(2026, 11, 6) })] }), "amy", today), 5).state, "notDue");
+  assert.equal(novCell(monthCalendar(input({ spec: { schedule: "weekdays", days: [1] } }), "amy", today), 5).state, "notDue");
+});
+
+test("nothingDueText: a day with a skip is never ahead; skipped due days read 'N skipped' (decision 181)", () => {
+  const text = (spec: ScheduleSpec, now: CalendarDate, logs: HabitLogDay[], from: CalendarDate, to: CalendarDate, period: "week" | "month" = "week") =>
+    nothingDueText(input({ spec, today: now, logs }), "amy", from, to, period);
+  const skip = (day: CalendarDate) => log("amy", day, "skipped");
+  const week = [d(2026, 11, 1), d(2026, 11, 7)] as const;
+  assert.equal(text(daily, d(2026, 11, 1), [skip(d(2026, 11, 1))], ...week), "Due Mon");
+  const monSat: ScheduleSpec = { schedule: "weekdays", days: [1, 6] };
+  assert.equal(text(monSat, d(2026, 11, 2), [skip(d(2026, 11, 2))], d(2026, 11, 1), d(2026, 11, 7)), "Due Sat");
+  const mon: ScheduleSpec = { schedule: "weekdays", days: [1] };
+  assert.equal(text(mon, d(2026, 11, 2), [skip(d(2026, 11, 2))], d(2026, 11, 1), d(2026, 11, 7)), "1 skipped");
+  assert.equal(text(mon, d(2026, 11, 5), [skip(d(2026, 11, 2))], d(2026, 11, 1), d(2026, 11, 7)), "1 skipped", "viewed on Thursday");
+  assert.equal(text(mon, d(2026, 11, 5), [], d(2026, 11, 1), d(2026, 11, 30), "month"), "Due Nov 9");
+  assert.equal(text(daily, d(2026, 11, 3), [skip(d(2026, 11, 1)), skip(d(2026, 11, 2)), skip(d(2026, 11, 3))], d(2026, 11, 1), d(2026, 11, 3)), "3 skipped");
 });

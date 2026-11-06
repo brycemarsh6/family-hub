@@ -102,7 +102,7 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
       <div className="mt-1 flex items-baseline justify-between">
         <h2 className={SECTION_TITLE}>{statsMonthTitle(first.year, first.month, parseDateParam(data.today)!.year)}</h2>
         <span className="text-sm text-muted">
-          {checkedNow} of {dueSoFar} so far
+          {dueSoFar === 0 && data.calendar.nothingDue ? data.calendar.nothingDue : `${checkedNow} of ${dueSoFar} so far`}
         </span>
       </div>
       <HabitMonthCalendar cells={cells} leading={data.calendar.leading} today={data.today} onToggle={toggle} />
