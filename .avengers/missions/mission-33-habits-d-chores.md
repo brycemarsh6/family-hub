@@ -378,7 +378,7 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
   `householdToday` lives in `assistant/today.ts`.
 
 ### F4 - Captain's pass 2 blocker, decisions 129 and 130, two polish notes
-- **Status:** OPEN.
+- **Status:** DONE (Stark; Fury re-ran tsc, 842 tests Denver/LA, 842 with 7 DST skips UTC, build EXIT=0, no `choreWeekOverride` in habitWrites.ts). A turn whose moved-to day has passed is locked for all three actions, Back to the default included; a skipped past turn can move ahead but not go back to the default.
 - **Captain blocker:** `choreWrites.ts` exports
   `clearChoreChanges(habitId, client: Prisma.TransactionClient)` running the
   `deleteMany`; `updateHabit` keeps its condition and calls it. No

@@ -309,8 +309,9 @@ Adding a second definition of any of these is a BLOCKER:
   newest remaining check-in, else the start value). **Two places must
   change together:** the two `PlanItemRow` builders (`actions/planItems.ts`
   and `goalsRead.ts`), and the two check-in flags in `goalsRead.ts`
-  (`goalInclude` and `toView`). **Size watch:** `GoalDetail.tsx` is 332
-  lines (soft cap 350), so extract before the next feature; `goals.test.ts`
+  (`goalInclude` and `toView`). **Size watch:** `GoalDetail.tsx` is 320
+  lines (soft cap 350) after mission 33 moved its saves onto
+  `useOptimisticRun`, so extract before the next feature; `goals.test.ts`
   is 344 after mission 30 split its habit tests into `goalsHabitInput.test.ts`;
   the next goal test goes in a new file by concern.
 - `src/lib/planItemChanges.ts`: `applyPlanItemChange`, the only optimistic
@@ -320,7 +321,8 @@ Adding a second definition of any of these is a BLOCKER:
   `HABIT_KINDS`, `HABIT_MODES`, `HABIT_SCHEDULES` with
   `HABIT_SCHEDULE_LABELS` (the habit editor's words), `HABIT_SHARING`,
   `HABIT_LOG_STATUSES`, `TIMES_OF_DAY`, `HABIT_ICONS`, the weekday mask
-  (`parseWeekdayMask` / `printWeekdayMask`) and the `to*` repairers.
+  (`parseWeekdayMask` / `printWeekdayMask`), `isWeekday` (the one "whole
+  number 0 to 6" check), and the `to*` repairers.
   `HABIT_TIMES_LIMITS` (weekly 7, monthly 31) is the one answer to "how many
   times can a period ask for". `schedule.ts` clamps with it and `goals.ts`'s
   `HABIT_TIMES_MAX` derives from it, so a literal 7 or 31 for a habit limit
@@ -346,13 +348,22 @@ Adding a second definition of any of these is a BLOCKER:
   `HabitLog` and `Nudge` tables for pages and actions. Both are
   `server-only`, and each hands its rows to a pure builder. A third reader
   is a BLOCKER. **Dependency direction:** `src/lib/habits/` may import
-  `habitVocabulary.ts`, `householdDate.ts`, `constants.ts`, `db.ts` and the
-  generated client (types). It never imports `goals*.ts`,
+  `habitVocabulary.ts`, `householdDate.ts`, `constants.ts`,
+  `householdPeople.ts` (the write files only), `db.ts` and the generated
+  client (types). Its writers take `today` from their caller and never
+  compute it. It never imports `goals*.ts`,
   `goalVocabulary.ts` or `visions*.ts`. The goals side may import the engine
   (`goalsProgress.ts` takes `habits/progress`, and `goals.ts` takes the
   `HabitFields` type only). `src/lib/habits/*.test.ts` is in
   `package.json`'s test script and both CI timezone steps. (Added
   mission-30.)
+- `dayInVacation(day, vacations)` in `habits/schedule.ts`, beside
+  `isDayInRange`, is the only "is this day inside one of these vacations"
+  test. An inline `vacations.some(...)` or a loop over vacations asking the
+  same thing anywhere else is a BLOCKER. Finding *which* vacation holds a
+  day (`vacations.find(...)`) is a different question and is not a copy.
+  (Added mission-33, on Captain's ruling; the five copies were migrated in
+  F3.)
 - `calendarDateFromUtcMidnight` in `householdDate.ts`, defined right under
   `utcMidnightInstant`, is the only way to read a stored UTC-midnight day
   column (`HabitLog.day`, vacation days, `anchorWeek`, `streakAsOf`, all-day
@@ -401,8 +412,9 @@ Adding a second definition of any of these is a BLOCKER:
   mission-30, Captain's A8; debt closed mission-31.)
 - **Habits & Chores PR B homes (mission-31).** `src/lib/habitsToday.ts` is
   the only home of the Today page's rules (row building, viewer order,
-  `carrySince`, `habitStartDay`, the tap-day window `isTapDayAllowed` /
-  `TAP_DAYS_BACK`); it is pure, and `habitsRead.ts` fetches and calls it.
+  the tap-day window `isTapDayAllowed` / `TAP_DAYS_BACK`;
+  `carrySince` and `habitStartDay` moved to `habits/carryOver.ts` in
+  mission-33); it is pure, and `habitsRead.ts` fetches and calls it.
   `src/lib/habitChanges.ts`'s `applyHabitChange` is the only optimistic
   reducer for Today rows (the `planItemChanges.ts` precedent).
   `src/components/HabitIcon.tsx`'s record is the only habit icon-name to
@@ -469,25 +481,40 @@ Adding a second definition of any of these is a BLOCKER:
 - **Habits & Chores PR D homes (mission-33).** `habits/weekOverrides.ts`
   is the only home of the this-week chore rules (`choreDayState`,
   `choreTag`, `weekChange`) and of `isExcused`, the one "excused row" rule
-  (skipped, skipped this week, or on vacation) used by the counts, the
-  confetti rule and the sort. `habits/choreStreak.ts` is the only home of
+  (skipped today, or excused all day), built on `isExcusedAllDay`
+  (skipped this week or on vacation, and not done: a check done on such
+  a day counts, decisions 127 and 130). The counts and the sort call
+  `isExcused`; the confetti rule `allRequiredDoneToday` calls
+  `isExcusedAllDay`, because a skip today still counts as finishing a
+  required row. Deciding whether a row is excused anywhere outside
+  `weekOverrides.ts` is a BLOCKER; a component may read `onVacation` or
+  `skippedThisWeek` only to choose which label or marker to show. `habits/choreStreak.ts` is the only home of
   the chore streak (`computeChoreStreak`, `choreStreakAfter`,
   `finishedAllChoresLastWeek`). `habits/carryOver.ts` holds `carrySince`
   and `habitStartDay` (moved from `habitsToday.ts` so the engine never
-  imports upward). `habits/choreWrites.ts` (`server-only`) is the only
-  writer of `ChoreWeekOverride` and of the `UserPreferences` chore streak
+  imports upward). `habits/choreWrites.ts` (`server-only`) is the only writer of `ChoreWeekOverride` (`habitWrites.ts`'s
+  `updateHabit` clears a habit's rows through its `clearChoreChanges` when
+  the schedule leaves `weekdays`) and of the `UserPreferences` chore streak
   columns, through one `recomputeChoreStreak`, called in the same
   transaction by every write that can change it. `habits/vacationWrites.ts`
   (`server-only`) is the only writer of `VacationPeriod`. Their callers are
   `src/app/actions/choreChart.ts` and `src/app/actions/vacations.ts`, which
-  own the session, the tablet refusal and `canEditChart` (in
-  `habits/access.ts`, the only chart policy). `src/lib/choreChart.ts` holds
+  own the session and the tablet refusal, and call `canEditChart` and
+  `canChangeChore` (in `habits/access.ts`, the only chart and
+  chore-change policy: a shared chore is a parent's or admin's, decision
+  125). `src/lib/choreChart.ts` holds
   the chore pages' pure builders (the chart, the chore header with its
   streak and Sunday flag, the vacation list order); its loaders live in the
   two habit readers above, which now also read `ChoreWeekOverride`,
   `VacationPeriod` and the chore streak columns. On the family view the
   chore streak and Sunday flag count private chores, but only the number
-  and the flag leave the server.
+  and the flag leave the server. **Dependency direction:**
+  `choreChart.ts` imports only `habits/`, `habitVocabulary.ts`,
+  `householdDate.ts` and `mealPlanDates.ts`. `habitsToday.ts`,
+  `habitsFamily.ts`, `habitsRead.ts` and `habitsStatsRead.ts` may import
+  it, and it never imports any of them. Among the write files,
+  `vacationWrites.ts` may import `habitWrites.ts`, which may import
+  `choreWrites.ts`; never the reverse.
 - **The `validatedPeople` decision** — which `User` ids may be **written**
   onto an item. `personInfo.ts` below is the read-side twin of this rule;
   this is the write side, and it is security-relevant for the same reason.
