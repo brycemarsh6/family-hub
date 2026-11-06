@@ -489,6 +489,25 @@ in PR B (mission 31).
 124. **The chart is reached** from Manage's row "Chore chart · Each
      person's default week" (above Archived), `/habits/chart`, BackLink
      "Manage", subtitle "Emily's week". (high)
+125. **A shared chore's this-week change is a parent's:** on a chore with
+     more than one person only a parent or admin may move or skip it this
+     week; a kid's sheet shows "Ask a parent to change a shared chore."
+     with no actions. Decided by Hill, high.
+126. **A moved turn can change again:** once the original day has passed, a
+     moved or skipped turn may still be moved to today or later, or
+     skipped; "Back to the default" is hidden then. The rule: a change may
+     be changed again as long as no past day becomes required or
+     un-excused. Decided by Hill, medium.
+127. **Done on a vacation day counts:** a habit or chore checked done on a
+     vacation day grows the streak and counts in both numbers of "x of y
+     done". Only undone rows on a vacation day are excused (left out of
+     "x of y", muted, never breaking anything). Amends 115 ("excused rows
+     leave x of y" becomes "undone vacation rows leave") and the reading of
+     57. Card line: "Anything you don't do counts as skipped. Streaks are
+     safe and chores are excused." Decided by Hill, medium.
+128. **The vacation button:** "Turn on vacation mode" when the person has
+     no current or upcoming vacation; "Add a vacation" when at least one
+     exists. Decided by Hill, high.
 
 ## Open questions
 

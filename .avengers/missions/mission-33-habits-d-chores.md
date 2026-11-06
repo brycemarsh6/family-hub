@@ -247,3 +247,107 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
 - **Status:** DONE (Stark; 824 tests, build EXIT=0). Save and delete now share one pending flag and error line.
 - **Boundaries:** `src/components/VacationCard.tsx`, `STRUCTURE.md` (remove VacationCard from the leftover note).
 - **Rules:** save and delete go through `useOptimisticRun` (save with a null change, since the server may refuse), message from `SAVE_FAILED`; behaviour unchanged.
+
+## Gate ledger
+
+### Pass 1 (at 9557f6d): all three BLOCKED
+- **Vision (Fable): 1 blocker.** `weekChange` (`weekOverrides.ts`) treats an
+  override as active on a spec that is no longer `weekdays`; a stale row on a
+  weekly or monthly habit changes its state and tag. Notes: the override
+  window used when aging streaks is too narrow (`habitsRead.ts`,
+  `habitsStatsRead.ts`); kid and shared chore (now decision 125); the moved
+  chore lock after its day passes (now 126); carry-over does not follow a
+  moved chore; saving a vacation recomputes streaks once per habit (N+1).
+  Verified clean: the hook refactor, privacy of private chores.
+- **Captain (Opus): 5 blockers.** (1) `householdNow()` in `choreWrites.ts`
+  repeats the zone helper; (2) the participant check in
+  `actions/choreChart.ts` belongs in `access.ts` as `canChangeChore`;
+  (3) three weekday-repair copies; (4) `allRequiredDoneToday` writes the
+  excused rule inline; (5) `habitsStatsPage.test.ts` name does not follow
+  its sibling. Amendment C: one "day in a vacation" helper in
+  `habits/schedule.ts` replaces five copies (Fury: migrate now, not
+  grandfather). Note: STRUCTURE.md is 957 lines; housekeeping overdue.
+- **Strange (Opus): 7 blockers.** (1) moved or skipped This week rows are
+  struck through; (2) faded names 4.36:1; (3) chart tags use warn amber;
+  (4) a chore skipped this week looks due on Today and the family view;
+  (5) vacation counts and visuals disagree (done rows leave the count,
+  undone vacation rows not muted, turning vacation on lowered a live streak);
+  (6) one person's vacation excuses a Together habit for everyone;
+  (7) vacation Delete is optimistic. Notes: 44px rows (DESIGN asks 48),
+  chip row scrolls sideways at 375, past-day rows look tappable, current
+  move target unmarked, Edit BackLink context, Add field has no placeholder
+  or cancel, vacation date wraps, Settings button wording during a
+  vacation, stats page ignores moves, Restore jumps position, seven
+  "Nothing this day." lines on an empty week. Not covered: the flame at 2+,
+  the Sunday card, kid and tablet logins, real touch.
+
+### F3 - Every pass 1 blocker, in one batch
+- **Status:** OPEN.
+- **Objective:** clear all 13 pass 1 blockers plus decisions 125, 126 and
+  Hill's vacation rulings (127, 128), with tests, without changing anything
+  else.
+- **Engine (pure, tested):**
+  - `weekChange`: active only when `spec?.schedule === "weekdays"`; test that
+    an override on a weekly or monthly spec gives null state and null tag.
+    `updateHabit` deletes the habit's override rows when its schedule
+    leaves `weekdays`.
+  - `isWeekday` exported from `habitVocabulary.ts` with a test; the three
+    repair copies (`choreChart.ts`, `choreWrites.ts`, `weekOverrides.ts`)
+    use it.
+  - `isExcusedAllDay` in `weekOverrides.ts`; `allRequiredDoneToday` calls it.
+  - One `dayInVacation(day, vacations)` in `habits/schedule.ts` with a test;
+    the five copies (`streaks.ts`, `habitsStats.ts`, `choreStreak.ts`,
+    `habitsFamily.ts`, `habitsToday.ts`) call it.
+  - Decision 127 (vacation and streaks): a check actually done on a vacation
+    day counts as done (grows the streak, counts in "x of y"); only undone
+    vacation days are excused. Tests in `streaks`, `choreStreak`,
+    `habitsToday`.
+  - Counts: `doneCounts` leaves out only rows that are on vacation AND not
+    done.
+- **Access:** `canChangeChore(actor, habit, personId)` in `access.ts` with a
+  test: a participant check plus decision 125 (a shared chore needs a parent
+  or admin). `actions/choreChart.ts` calls it.
+- **Writes:** `householdNow()` removed; callers pass `today` from
+  `householdDate.ts`. Decision 126: the day being changed must be today or
+  later (a moved turn can be moved again or skipped after its original day
+  passed); tests. Saving or deleting a vacation recomputes streaks once per
+  person, not once per habit.
+- **Readers:** widen the override window used when aging streaks
+  (`habitsRead.ts`, `habitsStatsRead.ts`) to cover every day the streak
+  reads. The Together strip row never carries `onVacation`; only the
+  vacationing person's own count leaves it out.
+- **UI:**
+  - `ChoreChart.tsx` WeekRow: no `line-through`; faded names
+    `text-muted-strong`; tags use `QUIT_TAG_CLASS` from `HabitRow.tsx`
+    (export it, one home). Sheet: a kid on a shared chore sees "Ask a
+    parent to change a shared chore." and no actions (125); "Back to the
+    default" hidden once the original day is past (126).
+  - `HabitRow` and `FamilyHabitRow`: a `skippedThisWeek` row gets the dashed
+    skip marker and a muted title, and no Skip swipe. Undone vacation rows
+    use `text-muted-strong`.
+  - `VacationCard.tsx`: Delete is `run(null, () => deleteVacation(id))`, no
+    optimistic filter, disabled while pending; date gets `whitespace-nowrap`;
+    the button wording per decision 128 ("Add a vacation" when a current
+    or upcoming one exists, else "Turn on vacation mode"); the card line
+    becomes "Anything you don't do counts as skipped. Streaks are safe and
+    chores are excused." (127). The test at `streaks.test.ts` "a done row
+    on it does not grow" flips (127).
+- **Boundaries (may touch):** `src/lib/habits/{weekOverrides,schedule,
+  streaks,choreStreak,choreWrites,vacationWrites,access}.ts` and their
+  tests, `src/lib/habitVocabulary.ts` (+test), `src/lib/habitWrites.ts`,
+  `src/lib/choreChart.ts` (+test), `src/lib/habitsStats.ts`,
+  `src/lib/habitsFamily.ts`, `src/lib/habitsToday.ts`, `src/lib/habitsRead.ts`,
+  `src/lib/habitsStatsRead.ts` and their tests,
+  `src/app/actions/choreChart.ts`, `src/app/actions/vacations.ts`,
+  `src/components/{ChoreChart,ChoreChartSheet,HabitRow,HabitFamilyColumn,
+  HabitFamilyView,HabitTodayList,VacationCard}.tsx`, the rename
+  `src/lib/habitsStatsPage.test.ts` -> `src/lib/habitsFamilyStatsPage.test.ts`
+  (header naming its sibling).
+- **Must not touch:** `prisma/`, `.env*`, `package.json`, STRUCTURE.md,
+  DESIGN.md, plan and mission files, CLAUDE.md. No database commands.
+- **Verification:** `npx tsc --noEmit`; `npx eslint` on touched files;
+  `npm test`; `TZ=UTC` and `TZ=America/Los_Angeles` direct runs; build with
+  the invalid DATABASE_URL, EXIT=0; `git grep -n "line-through" src/components/ChoreChart.tsx`
+  empty; `git grep -n "householdNow"` empty.
+- **Evidence:** each blocker mapped to file:line and the test that proves it;
+  test counts for all three zones.
