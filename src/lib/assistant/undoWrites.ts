@@ -13,6 +13,7 @@ import "server-only";
 // copies too, which is what makes undoing an undo (a redo) work.
 
 import { db } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import { isUniqueViolationError } from "@/lib/prismaErrors";
 import { ApiError, notFound } from "./errors";
 import type { ChangeInput } from "./audit";
@@ -117,6 +118,16 @@ export async function undoRequest(
 
     // Removing a pantry row would silently null any link the family has made
     // to it since (a shopping line, a voice log), so refuse instead.
+    // The rows are locked first (sorted, so two undoes cannot deadlock): a
+    // family "add to list" inserts a link that needs a share lock on its
+    // pantry row, so it waits here and is then counted, not silently nulled.
+    const removing = plan.steps
+      .filter((s) => s.kind === "remove" && s.model === "PantryItem")
+      .map((s) => s.recordId)
+      .sort();
+    if (removing.length > 0) {
+      await tx.$queryRaw`SELECT id FROM "PantryItem" WHERE id IN (${Prisma.join(removing)}) ORDER BY id FOR UPDATE`;
+    }
     const inUse: StaleRecord[] = [];
     for (const step of plan.steps) {
       if (step.kind !== "remove" || step.model !== "PantryItem") continue;

@@ -96,6 +96,16 @@ export async function finishRequest(id: string, input: FinishRequestInput): Prom
 }
 
 /**
+ * The ONE definition of "the bot created this record": a create change whose
+ * request is not an undo (see didAssistantCreate). Every reader of the audit
+ * log for attribution (the delete gate, the shopping list's addedBy) builds
+ * its query from this, so the rule cannot drift between them.
+ */
+export function assistantCreatedWhere(model: string, recordId: string | { in: string[] }) {
+  return { model, recordId, action: "create", request: { action: { not: "audit.undo" } } };
+}
+
+/**
  * Did the Assistant API itself create this record? Gates the bot's deletes
  * ("the bot deletes only what it created"); first caller is mission 22's
  * `DELETE /shopping/{id}`.
@@ -109,7 +119,7 @@ export async function finishRequest(id: string, input: FinishRequestInput): Prom
  */
 export async function didAssistantCreate(model: string, recordId: string): Promise<boolean> {
   const hit = await db.assistantChange.findFirst({
-    where: { model, recordId, action: "create", request: { action: { not: "audit.undo" } } },
+    where: assistantCreatedWhere(model, recordId),
     select: { id: true },
   });
   return hit !== null;
