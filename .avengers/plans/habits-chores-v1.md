@@ -606,6 +606,52 @@ plan-the-day and the Calendar. PR F becomes mission 36.
      week-skipped; only undone excused rows leave (133 read with 127 and
      130). Decided by Hill, high.
 
+### Before PR E2 merges (decided by Hill, 2026-11-06; Bryce may overturn)
+
+151. **Planned row meta:** with a time of day, "Mine · Morning · Planned
+     for today"; with none, "Planned for today" takes "Anytime"'s place.
+     The period count ("1 of 4 this month") stays on a planned open row.
+     Decided by Hill, low.
+152. **Planned today lists habits only;** a planned chore stays on Chores
+     today as a required row with the "Planned for today" meta. Decided by
+     Hill, low.
+153. **After a chip plans Today on the dashboard,** the habit shows in
+     Planned today and stays in the Habits tile until the next page load
+     (147). Decided by Hill, low.
+154. **A planned row checked done stays in Planned today,** checked and
+     undoable. Decided by Hill, low.
+155. **No Pick a day cards on the viewer's own vacation day** (115).
+     Decided by Hill, low.
+156. **"Other day" is a native date input** from today plus three through
+     the period's last day; picking a date plans it at once. Decided by
+     Hill, medium (iPhone picker is on Bryce's checklist).
+157. **Month pills for planned habits:** no icon, not links (the cell is
+     the tap). Undone draws as an open task (the empty box), done as
+     completed (check, struck). Decided by Hill, low.
+158. **Calendar done state:** a skipped planned day stays plain-undone; a
+     late check reads done (`isCheckStatus`). Decided by Hill, low.
+159. **Card order, the same on both screens:** nudges, then the vacation
+     card (Today only) and the Sunday shout-out, then Planned today
+     (dashboard only), then Pick a day. Decided by Hill, medium.
+
+160. **A planned day on the Calendar draws done** when the viewer has a
+     done or late check that day, or when the habit's period (week or
+     month) containing it has already met its target from the viewer's
+     checks. A skip never counts. Refines 158. Decided by Hill, medium.
+161. **One combined "Pick a day" card** on both screens: the header once,
+     then one block per habit (32px icon box, title on up to two lines, its
+     own chips and "Other day"), thin dividers between. A planned block
+     leaves at once; the card leaves with the last. Question line: "What
+     day will you do it?" for one habit, "What day will you do each one?"
+     for two or more. No cap. Decided by Hill, medium.
+162. **"Planned for Sat"** in the meta of a row the viewer has planned for
+     a later day in its current period (weekday name within six days, else
+     "Planned for Nov 21"); the period count stays. Shows wherever a
+     HabitRow shows its meta, only for the viewer's own plan. Decided by
+     Hill, low.
+
+Wording: all six E2 strings stay as written.
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for

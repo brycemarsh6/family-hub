@@ -66,6 +66,7 @@ export default async function HabitsPage({ searchParams }: { searchParams: Promi
             choreStreak={todayPage.choreStreak}
             shoutOut={todayPage.shoutOut}
             vacationThrough={todayPage.vacationThrough}
+            prompts={todayPage.prompts}
             // The tablet shows everyone's streaks; a person's switch hides theirs (decision 98).
             showStreaks={user.isDevice || user.showStreaks}
             todayKey={formatCalendarDate(today)}

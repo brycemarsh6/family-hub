@@ -18,7 +18,7 @@ import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { toLocalDateString } from "@/lib/mealPlanDates";
 import { useNowMinute } from "@/lib/useNowMinute";
 import { useHamburgerRowHeight } from "@/lib/appChrome";
-import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
+import type { CalendarEventView, CalendarHabitDayView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
 // — this file, DaySection.tsx, and EventCard.tsx all import them from that
@@ -51,6 +51,8 @@ type CalendarViewsProps = {
    * other components for no benefit yet.
    */
   tasks: CalendarTaskView[];
+  /** The viewer's planned habit days in the fetched window (decision 146), page.tsx's fourth parallel read. Month and the timeline draw them; Schedule fetches its own. */
+  habitDays: CalendarHabitDayView[];
   /**
    * The full household roster — page.tsx's third parallel query
    * (mission-14/C5), threaded straight to TaskDetailSheet's edit view
@@ -103,6 +105,7 @@ type CalendarViewsProps = {
 export function CalendarViews({
   events,
   tasks,
+  habitDays,
   people,
   canManage,
   windowStart,
@@ -276,6 +279,7 @@ export function CalendarViews({
                 today={today}
                 events={events}
                 tasks={tasks}
+                habitDays={habitDays}
                 windowStart={windowStart}
                 windowEnd={windowEnd}
                 onOpenDay={openDay}
@@ -340,6 +344,7 @@ export function CalendarViews({
               columnDays={days}
               events={events}
               tasks={tasks}
+              habitDays={habitDays}
               today={today}
               now={now}
               windowStart={windowStart}

@@ -1,8 +1,9 @@
 import { CalendarOff } from "lucide-react";
 import { EventCard } from "./EventCard";
 import { TaskCard } from "./TaskCard";
+import { HabitDayCard } from "./HabitDayCard";
 import { SkeletonBlock } from "./Skeleton";
-import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
+import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 import { isSameDay, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 
 /** The compact "no events today" card — genuinely empty (no events AND no
@@ -112,6 +113,9 @@ export function DaySection(
          * Rendered before the event cards; see the render body below for
          * why. */
         tasks: CalendarTaskView[];
+        /** The viewer's planned habit days on THIS day (decision 146), drawn
+         * after the tasks. Optional so every other caller is unaffected. */
+        habitDays?: CalendarHabitDayView[];
         /** Day view has room to show a card's location; Week's cards stay
          * compact. Threaded straight through to EventCard. */
         showLocation?: boolean;
@@ -166,7 +170,7 @@ export function DaySection(
     );
   }
 
-  const { day, today, events, tasks, showLocation, compact, notLoaded, onOpenEvent, onOpenTask } =
+  const { day, today, events, tasks, habitDays = [], showLocation, compact, notLoaded, onOpenEvent, onOpenTask } =
     props;
   const isToday = isSameDay(day, today);
 
@@ -206,13 +210,16 @@ export function DaySection(
             real row we DID get for this day is still worth showing next to
             the caveat, not replaced by it. */}
         {notLoaded && <NotLoadedCard />}
-        {!notLoaded && events.length === 0 && tasks.length === 0 && <NoEventsCard />}
+        {!notLoaded && events.length === 0 && tasks.length === 0 && habitDays.length === 0 && <NoEventsCard />}
         {/* Tasks render before events — an all-day-style item (a task has
             no time of day, just a due DATE) reading above the timed agenda
             below it is the same convention Google/Apple use for all-day
             rows in a day view. */}
         {tasks.map((task) => (
           <TaskCard key={task.id} task={task} onOpen={() => onOpenTask(task, day)} />
+        ))}
+        {habitDays.map((item) => (
+          <HabitDayCard key={item.id} item={item} />
         ))}
         {events.map((event) => (
           <EventCard

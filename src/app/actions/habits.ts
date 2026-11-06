@@ -21,10 +21,10 @@ import {
   archiveHabit as archiveHabitRow,
   createHabit as createHabitRow,
   deleteHabit as deleteHabitRow,
-  recomputeAllStreaks as rebuildAllStreaks,
   restoreHabit as restoreHabitRow,
   updateHabit as updateHabitRow,
 } from "@/lib/habits/habitWrites";
+import { recomputeAllStreaks as rebuildAllStreaks } from "@/lib/habits/streakWrites";
 import { householdParticipantIds, reorderHabits as reorderHabitRows } from "@/lib/habits/participantWrites";
 import { dayOfWeek, parseDateParam } from "@/lib/householdDate";
 import { toLifeArea } from "@/lib/goalVocabulary";

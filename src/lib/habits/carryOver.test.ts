@@ -5,11 +5,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "../householdDate";
-import { CARRY_LOOKBACK_DAYS, carriedFrom, carrySince, habitStartDay, statusForTap } from "./carryOver";
+import { CARRY_LOOKBACK_DAYS, carriedFrom, carrySince, habitStartDay, statusForTap, isTapDayAllowed } from "./carryOver";
 import type { HabitLogDay, ScheduleSpec } from "./types";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
 const row = (day: CalendarDate, status: HabitLogDay["status"] = "done"): HabitLogDay => ({ day, status });
+
+const today = d(2026, 11, 5);
 
 const wedSat: ScheduleSpec = { schedule: "weekdays", days: [3, 6] };
 
@@ -97,4 +99,23 @@ test("carrySince: the later of the day the habit was made and the day the person
   assert.deepEqual(carrySince(new Date("2026-11-02T15:00:00Z"), start), start); // same day
   assert.deepEqual(carrySince(undefined, start), start);
   assert.deepEqual(carrySince(null, start), start);
+});
+
+test("isTapDayAllowed: today and the last week are fine, the future is not", () => {
+  assert.equal(isTapDayAllowed(today, today, null), true);
+  assert.equal(isTapDayAllowed(d(2026, 10, 29), today, null), true); // 7 days back
+  assert.equal(isTapDayAllowed(d(2026, 11, 6), today, null), false);
+});
+
+test("isTapDayAllowed: a day 8 to 14 back is allowed only when it is the carried day", () => {
+  const carried = d(2026, 10, 25); // 11 days back
+  assert.equal(isTapDayAllowed(carried, today, carried), true);
+  assert.equal(isTapDayAllowed(carried, today, null), false);
+  assert.equal(isTapDayAllowed(carried, today, d(2026, 10, 26)), false);
+  assert.equal(isTapDayAllowed(d(2026, 10, 22), today, d(2026, 10, 22)), true); // 14 days back
+});
+
+test("isTapDayAllowed: nothing older than the 14-day lookback, even if carried", () => {
+  const tooOld = d(2026, 10, 21); // 15 days back
+  assert.equal(isTapDayAllowed(tooOld, today, tooOld), false);
 });

@@ -289,3 +289,26 @@ export const HABITS_PICKER_TITLE = "Habits on your dashboard";
 export const HABITS_PICKER_NOTHING_PICKED = "Nothing picked yet. The tile shows up to three habits due today.";
 /** The person has no habits to pick from. */
 export const HABITS_PICKER_NONE = "No habits yet.";
+
+// ---- Plan the day (decisions 36 to 47, 141 to 146) ----
+
+/** A row planned for a later day this period: `when` is a short weekday ("Sat") or a date ("Nov 21"). */
+export function plannedForLabel(when: string): string {
+  return `Planned for ${when}`;
+}
+/** The Habits & Chores meta for a row planned for today, after the who label (decision 145). */
+export const PLANNED_FOR_TODAY_LABEL = plannedForLabel("today");
+/** The dashboard card of habits planned for today. */
+export const PLANNED_TODAY_TITLE = "Planned today";
+/** The prompt card's heading. */
+export const PLAN_PROMPT_TITLE = "Pick a day";
+/** The prompt card's question about one habit. */
+export const PLAN_PROMPT_QUESTION = "What day will you do it?";
+/** The prompt card's question when two or more habits ask. */
+export const PLAN_PROMPT_QUESTION_MANY = "What day will you do each one?";
+/** The chip that opens a date input limited to the rest of the period. */
+export const PLAN_OTHER_DAY_LABEL = "Other day";
+/** A chip: "Today" for the first, else the short weekday name (`dayNames` Sunday first). */
+export function planChipLabel(chip: { isToday: boolean; weekday: number }, dayNames: readonly string[]): string {
+  return chip.isToday ? "Today" : dayNames[chip.weekday];
+}

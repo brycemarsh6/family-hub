@@ -157,3 +157,24 @@ export type CalendarTaskView = {
    */
   isMine: boolean;
 };
+
+/**
+ * One planned habit day on the Calendar (Habits & Chores E2, decision 146):
+ * its own item type, not a task. `dayInstant` is the planned household day at
+ * UTC midnight, the same all-day instant `CalendarTaskView.dueDate` is, so the
+ * calendar's all-day helpers read it the same way. Built server-side for the
+ * signed-in viewer only (src/lib/habitsCalendar.ts decides who sees
+ * it and whether it is done), so a component never needs a role to draw it.
+ */
+export type CalendarHabitDayView = {
+  /** `habitId:YYYY-MM-DD`, unique per habit per day, never colliding with an event or task id. */
+  id: string;
+  habitId: string;
+  title: string;
+  /** A Lucide name from HABIT_ICONS, or null for the kind's default. */
+  icon: string | null;
+  kind: "habit" | "chore";
+  dayInstant: Date;
+  /** The viewer has a done or late check on that day. */
+  done: boolean;
+};

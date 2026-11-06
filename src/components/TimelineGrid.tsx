@@ -100,7 +100,7 @@ import { isSameDay, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 import { isOutsideWindow } from "@/lib/calendarDates";
 import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
 import { TimelineDayColumn } from "./TimelineDayColumn";
-import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
+import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
 /** The rail's own scale — CSS custom property `--hour-height`, per the
  * contract, so nothing else in this file's markup repeats the raw number.
@@ -150,6 +150,8 @@ type TimelineGridProps = {
    * decides which ones touch `columnDays` itself, via `assignLanes`, exactly
    * like Month already does for its own rows. */
   tasks: CalendarTaskView[];
+  /** The viewer's planned habit days (decision 146), threaded to the all-day strip. */
+  habitDays: CalendarHabitDayView[];
   /** Both real, resolved `Date`s — see this file's own header for why
    * neither is `| null` here, unlike the `useToday()`/`useNowMinute()`
    * hooks that produce them. */
@@ -187,6 +189,7 @@ export function TimelineGrid({
   columnDays,
   events,
   tasks,
+  habitDays,
   today,
   now,
   windowStart,
@@ -431,6 +434,7 @@ export function TimelineGrid({
             columnDays={columnDays}
             allDayRow={allDayRow}
             tasks={tasks}
+            habitDays={habitDays}
             eventById={eventById}
             onOpenEvent={onOpenEvent}
             onOpenTask={onOpenTask}

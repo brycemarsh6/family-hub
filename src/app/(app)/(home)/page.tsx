@@ -6,6 +6,8 @@ import { ChoreShoutOutCard } from "@/components/ChoreShoutOutCard";
 import GoalsTile from "@/components/GoalsTile";
 import HabitsTile from "@/components/HabitsTile";
 import { NudgeCards } from "@/components/NudgeCard";
+import { PlanDayCard } from "@/components/PlanDayCard";
+import { PlannedTodayCard } from "@/components/PlannedTodayCard";
 import TodayMealsTile from "@/components/TodayMealsTile";
 import DashboardWidgetList from "@/components/DashboardWidgetList";
 import { db } from "@/lib/db";
@@ -264,12 +266,18 @@ export default async function DashboardPage() {
   };
 
   // The nudge and Sunday cards sit under the heading row, above the tiles,
-  // nudges first (decision 139). They are not widgets and the tablet gets none.
+  // nudges first (decision 139), then Planned today and the Pick a day cards
+  // (decisions 141, 145). They are not widgets and the tablet gets none.
+  const hasNotes =
+    habitsData &&
+    (habitsData.nudges.length > 0 || habitsData.shoutOut || habitsData.plannedToday.length > 0 || habitsData.prompts.length > 0);
   const notes =
-    habitsData && (habitsData.nudges.length > 0 || habitsData.shoutOut) ? (
+    habitsData && user && hasNotes ? (
       <>
         <NudgeCards nudges={habitsData.nudges} />
         {habitsData.shoutOut && <ChoreShoutOutCard />}
+        <PlannedTodayCard rows={habitsData.plannedToday} showStreaks={user.showStreaks} />
+        <PlanDayCard prompts={habitsData.prompts} />
       </>
     ) : null;
 

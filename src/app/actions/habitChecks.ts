@@ -13,7 +13,7 @@ import { revalidatePath } from "next/cache";
 import { getVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { canLogFor } from "@/lib/habits/access";
-import { statusForTap } from "@/lib/habits/carryOver";
+import { isTapDayAllowed, statusForTap, TAP_DAYS_BACK } from "@/lib/habits/carryOver";
 import {
   checkHabit as checkHabitRow,
   skipHabit as skipHabitRow,
@@ -21,7 +21,6 @@ import {
 } from "@/lib/habits/habitWrites";
 import { calendarDaysBetween, parseDateParam, type CalendarDate } from "@/lib/householdDate";
 import { loadCarriedDay, loadHabitForAction, loadLogStatus, type HabitForAction } from "@/lib/habitsRead";
-import { isTapDayAllowed, TAP_DAYS_BACK } from "@/lib/habitsToday";
 import type { HabitActionResult } from "./habits";
 
 const NOT_FOUND = "That habit isn't available.";

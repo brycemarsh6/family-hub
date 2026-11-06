@@ -11,7 +11,7 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { VACATION_OVERLAP_MESSAGE } from "../habitVocabulary";
 import { utcMidnightInstant, type CalendarDate } from "../householdDate";
-import { recomputePersonStreaks } from "./habitWrites";
+import { recomputePersonStreaks } from "./streakWrites";
 import { atomically } from "./participantWrites";
 import { compareDays } from "./schedule";
 

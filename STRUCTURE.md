@@ -60,7 +60,8 @@ structural changes against it.
   (`type XFetchers = { … }`) describing only the signature — and the
   component that owns the view imports the action and injects it.
   `useScheduleWindow` / `ScheduleView.tsx` (`ScheduleFetchers`,
-  mission-15/C5) is the instance. A lib file importing from
+  mission-15/C5) and `useScheduleHabitDays` (`fetchHabitDays`, mission-35)
+  are the instances. A lib file importing from
   `@/app/actions/` is the same backward arrow as any other lib→app import
   and is a **BLOCKER**; `grep -rn "@/app" src/lib/` must stay empty.
 - **Server Actions are public POST endpoints.** Protecting pages (proxy.ts)
@@ -231,7 +232,8 @@ Adding a second definition of any of these is a BLOCKER:
   (`HabitTodayList`, `HabitFamilyView`, `HabitStats`, `NudgeCard`,
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
   `VacationCard`, `HabitTileRows` (in `HabitsTile.tsx`, used by both dashboard habit
-  tiles) and `DashboardWidgetList` (moved over in mission-34))
+  tiles) `DashboardWidgetList` (moved over in mission-34), `PlanDayCard` and
+  `PlannedTodayCard` (mission-35))
   calls it with the action as a closure, so lib never imports `app/`. A second
   copy of that shape, or the message typed again, is a BLOCKER. Left out on
   purpose, to move over later: the differently worded saves in `HabitsChoresSettings`,
@@ -338,11 +340,15 @@ Adding a second definition of any of these is a BLOCKER:
   `progress.ts`, `perfectDays.ts`, `planPrompts.ts`, `access.ts`,
   `habitRows.ts`, `weekOverrides.ts`, `choreStreak.ts` and `types.ts` are
   pure: no Prisma client, no `db`, and
-  callers pass `today`. `habitWrites.ts` and `participantWrites.ts` (both
-  `server-only`) are the only writers of the `Habit`, `HabitParticipant` and
-  `HabitLog` tables; `habitWrites.ts` alone writes the cached streak columns,
-  and `participantWrites.ts` holds the participant writes (join, reorder,
-  replace) and `atomically`. (Second file added mission-31.) `src/lib/habitsRead.ts` (Today, Manage,
+  callers pass `today`. `habitWrites.ts`, `participantWrites.ts`, `streakWrites.ts` and
+  `planWrites.ts` (all `server-only`) are the only writers of the `Habit`,
+  `HabitParticipant`, `HabitLog` and `HabitPlannedDay` tables.
+  `streakWrites.ts` alone writes the cached streak columns (`currentStreak`,
+  `bestStreak`, `streakAsOf`; split out of `habitWrites.ts` in mission-35),
+  `participantWrites.ts` holds the participant writes (join, reorder,
+  replace) and `atomically`, and `planWrites.ts` is the only writer of
+  `HabitPlannedDay`. (Second file added mission-31; third and fourth
+  mission-35.) `src/lib/habitsRead.ts` (Today, Manage,
   the editor, the action loaders and `loadHabitsForPlan`) and
   `src/lib/habitsStatsRead.ts` (the stats page and the family view,
   mission-32) are the only readers of the `Habit`, `HabitParticipant`,
@@ -353,7 +359,12 @@ Adding a second definition of any of these is a BLOCKER:
   `householdPeople.ts` (the write files only), `db.ts` and the generated
   client (types). Its writers take `today` from their caller and never
   compute it. It never imports `goals*.ts`,
-  `goalVocabulary.ts` or `visions*.ts`. The goals side may import the engine
+  `goalVocabulary.ts` or `visions*.ts`, nor any other top-level `src/lib/`
+  module outside that list: no `habits*.ts`, no calendar or Schedule module
+  (`scheduleWindowState.ts`, `calendarDates.ts`), no `types.ts` view type.
+  Code that shapes engine answers for a screen lives one level up, in
+  `src/lib/` (mission-35 moved the Calendar builder and
+  `scheduleHabitDays.ts` out for this reason). The goals side may import the engine
   (`goalsProgress.ts` takes `habits/progress`, and `goals.ts` takes the
   `HabitFields` type only). `src/lib/habits/*.test.ts` is in
   `package.json`'s test script and both CI timezone steps. (Added
@@ -393,10 +404,10 @@ Adding a second definition of any of these is a BLOCKER:
   habit. (Added mission-30.)
 - The "Recompute streaks" door is the admin-only action
   `recomputeAllStreaks` in `src/app/actions/habits.ts`. It wraps the lib
-  function of the same name in `habitWrites.ts`, imported as
+  function of the same name in `streakWrites.ts`, imported as
   `rebuildAllStreaks`; that alias is deliberate, and new action files that
-  wrap a same-named lib function do the same. Only `recomputeStreaks` /
-  `recomputeAllStreaks` in `habitWrites.ts` write `currentStreak`,
+  wrap a same-named lib function do the same. Only `recomputeStreaks`, `recomputePersonStreaks`, `recomputeAllStreaks`
+  and `recomputeHabit` in `streakWrites.ts` write `currentStreak`,
   `bestStreak` and `streakAsOf`. `isUniqueViolationError` in
   `src/lib/prismaErrors.ts` is the only Prisma P2002 check (callers:
   `actions/mealPlans.ts` and `actions/visions.ts`; the habit writes have no
@@ -412,10 +423,10 @@ Adding a second definition of any of these is a BLOCKER:
   `habitsRead.ts`'s `loadHabitRoster`. (Approved by Bryce 2026-11-05,
   mission-30, Captain's A8; debt closed mission-31.)
 - **Habits & Chores PR B homes (mission-31).** `src/lib/habitsToday.ts` is
-  the only home of the Today page's rules (row building, viewer order,
-  the tap-day window `isTapDayAllowed` / `TAP_DAYS_BACK`;
-  `carrySince` and `habitStartDay` moved to `habits/carryOver.ts` in
-  mission-33); it is pure, and `habitsRead.ts` fetches and calls it.
+  the only home of the Today page's rules (row building and viewer order; `carrySince` and `habitStartDay` moved to
+  `habits/carryOver.ts` in mission-33, and the tap-day window
+  `isTapDayAllowed` / `TAP_DAYS_BACK` followed in mission-35, so
+  `habitsStats.ts` and `actions/habitChecks.ts` take it from the engine); it is pure, and `habitsRead.ts` fetches and calls it.
   `src/lib/habitChanges.ts`'s `applyHabitChange` is the only optimistic
   reducer for Today rows (the `planItemChanges.ts` precedent).
   `src/components/HabitIcon.tsx`'s record is the only habit icon-name to
@@ -423,7 +434,9 @@ Adding a second definition of any of these is a BLOCKER:
   the only file that imports `@dnd-kit`. Tap actions live in
   `actions/habitChecks.ts`, editor actions in `actions/habits.ts`. Habit
   words (schedule labels long and short, time of day, who-labels, the title
-  limit, `canCarryOver`, `canBePrivate`, `isCheckStatus`) live in
+  limit, `canCarryOver`, `canBePrivate`, `isCheckStatus`, the plan-the-day words `PLAN_PROMPT_*`,
+  `PLAN_OTHER_DAY_LABEL`, `planChipLabel`, `PLANNED_TODAY_TITLE`,
+  `PLANNED_FOR_TODAY_LABEL`, `plannedForLabel`) live in
   `habitVocabulary.ts`; "Mine" / "Together" for a habit's people is
   `habitWhoLabel` there, and `GOAL_OWNERSHIP_LABELS` stays the words for a
   goal's ownership. `STREAK_MIN_SHOWN` and `streakLabel` there are the only
@@ -465,14 +478,15 @@ Adding a second definition of any of these is a BLOCKER:
   `reorderWidgets` sits in `dashboardLayout.ts` beside `toggleWidget` and
   `setWidgetItems`; `isPickableWidget` / `PickableWidgetId` in
   `dashboardWidgets.ts` are the only "which widgets take picks" test; `src/lib/habitsDashboard.ts` the tile row rules (`habitsTileRows`, `choresTileRows`, `pickableHabits`,
-  and `keepShownRows`, decision 147); the
+  `keepShownRows` (decision 147) and `plannedTodayRows`, the only "which
+  rows go on Planned today" rule, which `habitsTileRows` leaves out); the
   Goals tile's picked list is `weekTodoForGoals` beside `weekTodo` in
   `goalsProgress.ts`. The tiles' data comes from `loadDashboardHabits` in
   `habitsRead.ts` and `loadGoalsTile` in `goalsRead.ts`; no third habit
   reader. A tile with controls inside uses `DashboardTile shape="panel"`
   (DESIGN.md). `habitRowTaps` (in `HabitsTile.tsx`) is the only mapping
-  from a Today row's tap to a check action, used by `HabitTodayList` and
-  `HabitTileRows` for Today rows (`HabitRowView`); `HabitFamilyView`'s
+  from a Today row's tap to a check action, used by `HabitTodayList`,
+  `HabitTileRows` and `PlannedTodayCard` for Today rows (`HabitRowView`); `HabitFamilyView`'s
   `dayOf` is the family-row twin (it logs for another person through
   `logForId`); a third copy of the carried-day routing is a BLOCKER.
   **Dependency direction:** `habitsDashboard.ts` imports only
@@ -518,9 +532,9 @@ Adding a second definition of any of these is a BLOCKER:
   `weekOverrides.ts` is a BLOCKER; a component may read `onVacation` or
   `skippedThisWeek` only to choose which label or marker to show. `habits/choreStreak.ts` is the only home of
   the chore streak (`computeChoreStreak`, `choreStreakAfter`,
-  `finishedAllChoresLastWeek`). `habits/carryOver.ts` holds `carrySince`
-  and `habitStartDay` (moved from `habitsToday.ts` so the engine never
-  imports upward). `habits/choreWrites.ts` (`server-only`) is the only writer of `ChoreWeekOverride` (`habitWrites.ts`'s
+  `finishedAllChoresLastWeek`). `habits/carryOver.ts` holds `carrySince`, `habitStartDay` and the tap-day
+  window `isTapDayAllowed` / `TAP_DAYS_BACK` (all moved from `habitsToday.ts`
+  so the engine never imports upward). `habits/choreWrites.ts` (`server-only`) is the only writer of `ChoreWeekOverride` (`habitWrites.ts`'s
   `updateHabit` clears a habit's rows through its `clearChoreChanges` when
   the schedule leaves `weekdays`) and of the `UserPreferences` chore streak
   columns, through one `recomputeChoreStreak`, called in the same
@@ -541,8 +555,49 @@ Adding a second definition of any of these is a BLOCKER:
   `householdDate.ts` and `mealPlanDates.ts`. `habitsToday.ts`,
   `habitsFamily.ts`, `habitsRead.ts` and `habitsStatsRead.ts` may import
   it, and it never imports any of them. Among the write files,
-  `vacationWrites.ts` may import `habitWrites.ts`, which may import
-  `choreWrites.ts`; never the reverse.
+  `vacationWrites.ts` and `habitWrites.ts` may import `streakWrites.ts`;
+  `streakWrites.ts` may import `choreWrites.ts`; `habitWrites.ts`,
+  `streakWrites.ts`, `choreWrites.ts` and `vacationWrites.ts` may import
+  `participantWrites.ts`; `planWrites.ts` imports only `habitRows.ts` from
+  the engine. Never the reverse of any of these. (Updated mission-35.)
+- **Habits & Chores PR E2 homes (mission-35).** `habits/planPrompts.ts`
+  (pure, engine) is the only home of the plan-the-day rules: `isPromptDay`
+  (decision 143), `promptChips` (142), `isPlannableDay`, `isPlannedToday`
+  (the `planned` input to `dueState`, 145) and the "Planned for Sat" rule
+  (`laterPlannedDay`, `plannedLaterLabel`, 162). `src/lib/habitsPrompts.ts`
+  (pure) builds the Pick a day card's data (`buildTodayPrompts`,
+  `PromptHabitInput`, `TodayPrompt`); `habitsToday.ts` may import it, never
+  the reverse. `habits/planWrites.ts` (`server-only`, no auth, the
+  `nudgeWrites.ts` shape) has one caller, `src/app/actions/habitPlans.ts`,
+  which owns the session, `canLogFor`, `isPlannableDay` and
+  `revalidatePath`, and imports it as `planHabitDay as planHabitDayRow`. If
+  a second caller appears (a Winnie route), the day check moves into the
+  writer. Planned days are read only by `habitsRead.ts` (Today, dashboard)
+  and `habitsStatsRead.ts`'s `loadPlannedHabitDays` (the Calendar range,
+  reached from the Schedule through `fetchHabitDays` in
+  `actions/calendar.ts`). `src/lib/habitsCalendar.ts` (pure) is the only
+  home of which planned days the Calendar shows and when one reads as done:
+  `buildCalendarHabitDays` owns the view rule (the tablet sees none; only
+  the viewer's own rows on a habit they are still on and may see,
+  `canSeeHabit`, count; a removed participant keeps their rows, so the
+  participant check is a real rule; the reader's device early return only
+  skips the query) and done (`isCheckStatus` that day, or the period's
+  target met, decision 160); `plannedPeriodsRange` there is the only "which
+  checks the Calendar needs" range. `CalendarHabitDayView` in `types.ts` is
+  the Calendar's planned-day item, never a `CalendarTaskView` (a task's tap
+  opens the task editor and its `completedAt` means task completion).
+  `src/lib/scheduleHabitDays.ts` is pure: `addHabitDaysToSchedule` and
+  `coversWindow` (whether fetched coverage holds the whole window);
+  `useScheduleHabitDays.ts` owns only fetching and state, with
+  `fetchHabitDays` passed in. `PlanDayCard.tsx` (the one Pick a day card,
+  decision 161), `PlannedTodayCard.tsx`, `HabitDayCard.tsx` (the Schedule
+  row) and `HabitDayPill.tsx` (the all-day strip pill) are the only
+  components that draw these; a second copy inside a calendar component is a
+  BLOCKER. **Dependency direction:** `habitsCalendar.ts` imports only
+  `habits/`, `householdDate.ts`, `habitVocabulary.ts` and `types.ts`;
+  `scheduleHabitDays.ts` imports only `calendarDates.ts`,
+  `scheduleWindowState.ts` (types) and `types.ts`; `habitsStatsRead.ts`
+  may import `habitsCalendar.ts`, never the reverse.
 - **The `validatedPeople` decision** — which `User` ids may be **written**
   onto an item. `personInfo.ts` below is the read-side twin of this rule;
   this is the write side, and it is security-relevant for the same reason.

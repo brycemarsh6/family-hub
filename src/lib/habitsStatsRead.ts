@@ -11,6 +11,8 @@ import { buildFamilyPage, buildStatsData, statsSubject, type FamilyPage, type Ha
 import { todayLogsFrom } from "./habitsToday";
 import { loadHouseholdPeople } from "./householdPeople";
 import { toHabitKind } from "./habitVocabulary";
+import { buildCalendarHabitDays, plannedPeriodsRange, type PlannedDayRow } from "./habitsCalendar";
+import type { CalendarHabitDayView } from "./types";
 
 // The readers for the stats page and the family view, in a sibling of
 // `habitsRead.ts` (which would pass 350 lines). Queries plus calls into the
@@ -153,4 +155,47 @@ export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): P
   const colors = new Map(colorRows.map((row) => [row.id, row.avatarColor]));
   const people = household.map((person) => ({ id: person.id, displayName: person.displayName, avatarColor: colors.get(person.id) ?? AVATAR_COLORS[0].name }));
   return buildFamilyPage(viewer, habits, people, logsByHabit, today, vacationMap(vacationRows), choreCaches);
+}
+
+/**
+ * The viewer's planned habit days for the Calendar (decision 146) in
+ * `[from, to)`, both UTC-midnight all-day instants like `Task.dueDate`. Only
+ * the viewer's own rows are read (a Together habit has one per person) and the
+ * tablet reads nothing; `buildCalendarHabitDays` applies the access rule.
+ * Queries: the viewer's rows with their habit and its people; then the
+ * viewer's checks for those habits across each planned day's whole period.
+ */
+export async function loadPlannedHabitDays(viewer: HabitActor, from: Date, to: Date): Promise<CalendarHabitDayView[]> {
+  if (viewer.role === "device") return [];
+  const planned = await db.habitPlannedDay.findMany({
+    where: { userId: viewer.userId, day: { gte: from, lt: to }, habit: { archivedAt: null } },
+    select: {
+      habitId: true,
+      userId: true,
+      day: true,
+      habit: { select: { title: true, icon: true, kind: true, isPrivate: true, schedule: true, weekdays: true, times: true, anchorWeek: true, participants: { select: { userId: true } } } },
+    },
+  });
+  if (planned.length === 0) return [];
+  const rows: PlannedDayRow[] = planned.map((row) => ({
+    schedule: row.habit.schedule,
+    weekdays: row.habit.weekdays,
+    times: row.habit.times,
+    anchorWeek: row.habit.anchorWeek,
+    habitId: row.habitId,
+    userId: row.userId,
+    title: row.habit.title,
+    icon: row.habit.icon,
+    kind: row.habit.kind,
+    isPrivate: row.habit.isPrivate,
+    participantIds: row.habit.participants.map((p) => p.userId),
+    day: row.day,
+  }));
+  // Each planned day reads done from its whole period (decision 160), so the checks cover those periods, not just the range.
+  const periods = plannedPeriodsRange(rows);
+  const checks = await db.habitLog.findMany({
+    where: { userId: viewer.userId, habitId: { in: [...new Set(rows.map((row) => row.habitId))] }, day: periods ? { gte: periods.from, lt: periods.to } : { gte: from, lt: to } },
+    select: { habitId: true, userId: true, day: true, status: true },
+  });
+  return buildCalendarHabitDays(viewer, rows, checks);
 }

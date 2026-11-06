@@ -17,8 +17,6 @@ import { HAMBURGER_ROW_HEIGHT_PX, useHamburgerRowHeight } from "@/lib/appChrome"
 import {
   useScheduleWindow,
   type ScheduleFetchers,
-  type ScheduleRenderDay,
-  type ScheduleRenderMonth,
 } from "@/lib/useScheduleWindow";
 import { useScheduleMonthTitle } from "@/lib/useScheduleMonthTitle";
 import { useToday } from "@/lib/useToday";
@@ -27,8 +25,10 @@ import { allDayInstantToLocalDay } from "@/lib/calendarDates";
 // which Server Actions back the Schedule view — useScheduleWindow.ts no
 // longer imports either of these itself (see that file's own header for
 // why: a lib module reaching into app/ was a real STRUCTURE.md violation).
-import { fetchCalendarEvents } from "@/app/actions/calendar";
+import { fetchCalendarEvents, fetchHabitDays } from "@/app/actions/calendar";
 import { fetchTasks } from "@/app/actions/tasks";
+import { useScheduleHabitDays } from "@/lib/useScheduleHabitDays";
+import type { ScheduleRenderDayWithHabits, ScheduleRenderMonthWithHabits } from "@/lib/scheduleHabitDays";
 import {
   SHORT_DAY_NAMES,
   formatMonthTitle,
@@ -84,9 +84,9 @@ type ScheduleViewProps = {
  * layer, so it lives here rather than there. `days` arrives already in
  * chronological order (scheduleRows' own walk), so this is a single
  * linear pass, not a sort. */
-type ScheduleWeekGroup = { weekStart: Date; days: ScheduleRenderDay[] };
+type ScheduleWeekGroup = { weekStart: Date; days: ScheduleRenderDayWithHabits[] };
 
-function groupByWeek(days: ScheduleRenderDay[]): ScheduleWeekGroup[] {
+function groupByWeek(days: ScheduleRenderDayWithHabits[]): ScheduleWeekGroup[] {
   const weeks: ScheduleWeekGroup[] = [];
   for (const day of days) {
     const weekStart = sundayOf(day.day);
@@ -154,7 +154,9 @@ export function ScheduleView({
     [],
   );
   const {
-    months,
+    months: loadedMonths,
+    windowStart,
+    windowEnd,
     hasMoreBackward,
     hasMoreForward,
     loadingBackward,
@@ -163,6 +165,18 @@ export function ScheduleView({
     bottomSentinelRef,
     refreshDay,
   } = useScheduleWindow(initialDay, today, fetchers);
+  // Planned habit days (decision 146), folded into the loaded months.
+  const { months, habitDaysLoaded, habitDaysFailed } = useScheduleHabitDays(loadedMonths, windowStart, windowEnd, fetchHabitDays);
+
+  // Until the habit days load (or fail, which shows its own line), today's
+  // row cannot be called empty.
+  const habitDaysPending = !habitDaysLoaded && !habitDaysFailed;
+  const isEmptyToday = (row: ScheduleRenderDayWithHabits) =>
+    today !== null &&
+    isSameDay(row.day, today) &&
+    row.events.length === 0 &&
+    row.tasks.length === 0 &&
+    row.habitDays.length === 0;
 
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
   const [selectedTask, setSelectedTask] = useState<CalendarTaskView | null>(null);
@@ -312,7 +326,7 @@ export function ScheduleView({
     },
   }));
 
-  function renderMonth(month: ScheduleRenderMonth) {
+  function renderMonth(month: ScheduleRenderMonthWithHabits) {
     return (
       <section
         key={month.monthStart.getTime()}
@@ -366,11 +380,10 @@ export function ScheduleView({
                     // that number always describes the real chrome.
                     style={{ scrollMarginTop: scheduleChromeHeight }}
                   >
-                    {today !== null &&
-                    isSameDay(row.day, today) &&
-                    row.events.length === 0 &&
-                    row.tasks.length === 0 ? (
-                      <TodayEmptyRow day={row.day} />
+                    {isEmptyToday(row) ? (
+                      // Holds off until the habit days arrive: an empty today row
+                      // may only be empty because they have not loaded yet.
+                      habitDaysPending ? <DaySection loading /> : <TodayEmptyRow day={row.day} />
                     ) : today === null ? (
                       <DaySection loading />
                     ) : (
@@ -379,6 +392,7 @@ export function ScheduleView({
                         today={today}
                         events={row.events}
                         tasks={row.tasks}
+                        habitDays={row.habitDays}
                         onOpenEvent={(event, day) => setSelected({ event, day })}
                         onOpenTask={(task) => setSelectedTask(task)}
                       />
@@ -420,6 +434,12 @@ export function ScheduleView({
               already covers separately. */}
           {!hasMoreBackward && !loadingBackward && (
             <p className="pb-2 text-center text-xs text-muted">That&apos;s as far back as this loads.</p>
+          )}
+
+          {habitDaysFailed && (
+            <p role="alert" className="px-1 pb-2 text-sm text-warn">
+              Couldn&apos;t load your planned habit days.
+            </p>
           )}
 
           {months.map(renderMonth)}

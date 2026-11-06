@@ -10,9 +10,10 @@ import { HabitConfetti } from "./HabitConfetti";
 import { HabitRow } from "./HabitRow";
 import { habitRowTaps } from "./HabitsTile";
 import { NudgeCards } from "./NudgeCard";
+import { PlanDayCard } from "./PlanDayCard";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
-import type { HabitRowView, TodayNudge } from "@/lib/habitsRead";
+import type { HabitRowView, TodayNudge, TodayPrompt } from "@/lib/habitsRead";
 import { doneCountLabel } from "@/lib/habitsFamily";
 import { allRequiredDoneToday } from "@/lib/habitsToday";
 import { formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
@@ -40,6 +41,7 @@ export function HabitTodayList({
   choreStreak,
   shoutOut,
   vacationThrough,
+  prompts = [],
 }: {
   rows: HabitRowView[];
   /** "Thursday, Nov 5", made on the server so the browser agrees with it. */
@@ -60,6 +62,8 @@ export function HabitTodayList({
   shoutOut: boolean;
   /** The last day of the vacation covering today, "YYYY-MM-DD", else null (decision 115). */
   vacationThrough: string | null;
+  /** The "Pick a day" cards for habits asking for a day today (decision 39), at the top. */
+  prompts?: TodayPrompt[];
 }) {
   // A copy of the rows that is updated the instant a button is tapped, then
   // replaced by the server's real answer (the same idea as ThisWeekList).
@@ -120,6 +124,7 @@ export function HabitTodayList({
         </div>
       )}
       {shoutOut && <ChoreShoutOutCard />}
+      <PlanDayCard prompts={prompts} />
       <p className="mb-3 text-sm text-muted">
         {todayLabel}
         {live.length > 0 && ` · ${doneCountLabel(live)}`}

@@ -344,6 +344,22 @@ A new one-off that duplicates one of these jobs is a design violation:
   only its header row (icon and title) links to the page, and each row
   keeps its own tap (the live `HabitRow`). One shell, one prop that says
   which shape, never a nested link or a button inside a link
+- `PlanDayCard` (mission-35, decision 161): the one "Pick a day" card on
+  Today and the dashboard. The header shows once, then one block per habit
+  (its icon box, title on up to two lines, its own day chips and "Other
+  day"). Each chip plans at once and the block leaves; the card leaves with
+  the last. Never one card per habit. Order on both screens (159): nudges,
+  vacation and Sunday cards, Planned today (dashboard only), then Pick a day
+- `PlannedTodayCard` (decision 145): the dashboard's live habit rows planned
+  for today; those rows leave the Habits tile. Today shows no such card;
+  the row's meta says "Planned for today" (or "Planned for Sat" for a later
+  day, 162) in the slot "Anytime" takes
+- A planned habit day on the Calendar (146, 157, 160) is its own item, not
+  a task: the Month pill draws ☐ until done and ✓ struck when done (never a
+  bare pill that looks like an event); the all-day strip pill
+  (`HabitDayPill`) and the Schedule row (`HabitDayCard`) show the habit's
+  icon and link to `/habits/[id]`. Done means a check that day or the
+  period's target met. Shown only to the habit's own people
 - `WeekRecapCard`: the Sunday recap at the top of This week, a
   `bg-accent-soft` card with a small uppercase label. The label uses
   `text-muted-strong`, because `text-muted` on `bg-accent-soft` is 4.35:1,
