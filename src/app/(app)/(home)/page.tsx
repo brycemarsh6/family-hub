@@ -6,7 +6,7 @@ import { ChoreShoutOutCard } from "@/components/ChoreShoutOutCard";
 import GoalsTile from "@/components/GoalsTile";
 import HabitsTile from "@/components/HabitsTile";
 import { NudgeCards } from "@/components/NudgeCard";
-import { PlanDayCards } from "@/components/PlanDayCard";
+import { PlanDayCard } from "@/components/PlanDayCard";
 import { PlannedTodayCard } from "@/components/PlannedTodayCard";
 import TodayMealsTile from "@/components/TodayMealsTile";
 import DashboardWidgetList from "@/components/DashboardWidgetList";
@@ -277,7 +277,7 @@ export default async function DashboardPage() {
         <NudgeCards nudges={habitsData.nudges} />
         {habitsData.shoutOut && <ChoreShoutOutCard />}
         <PlannedTodayCard rows={habitsData.plannedToday} showStreaks={user.showStreaks} />
-        <PlanDayCards prompts={habitsData.prompts} />
+        <PlanDayCard prompts={habitsData.prompts} />
       </>
     ) : null;
 

@@ -2,7 +2,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addHabitDaysToSchedule } from "./scheduleHabitDays";
+import { addHabitDaysToSchedule, coversWindow } from "./scheduleHabitDays";
 import type { ScheduleRenderMonth } from "./scheduleWindowState";
 import type { CalendarHabitDayView } from "./types";
 
@@ -33,4 +33,17 @@ test("days outside the loaded window are ignored; no habit days changes nothing"
   assert.equal(out[0].days.length, 1);
   assert.equal(out.length, 1);
   assert.equal(addHabitDaysToSchedule(months, [], start, end)[0].days[0].habitDays.length, 0);
+});
+
+test("coversWindow: not loaded until the coverage holds the whole window, even after it grows", () => {
+  const first = { start: 100, end: 200 };
+  assert.equal(coversWindow(null, 100, 200), false);
+  assert.equal(coversWindow(first, 100, 200), true);
+  assert.equal(coversWindow(first, 120, 180), true);
+  // The window grew past the first coverage: false until a second fetch covers it.
+  assert.equal(coversWindow(first, 100, 260), false);
+  assert.equal(coversWindow(first, 40, 200), false);
+  assert.equal(coversWindow({ start: 40, end: 260 }, 40, 260), true);
+  // A jump elsewhere is not covered either.
+  assert.equal(coversWindow(first, 500, 600), false);
 });

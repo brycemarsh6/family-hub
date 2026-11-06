@@ -28,9 +28,16 @@ test("a Together habit shows once, from the viewer's own row only", () => {
 });
 
 test("someone not on the habit never sees it, even a manager", () => {
-  assert.deepEqual(buildCalendarHabitDays(bryce, [row({ participantIds: ["emily"] })], []), []);
+  // A person removed from a habit keeps their planned rows: this is the participant rule, not the owner rule.
+  assert.deepEqual(buildCalendarHabitDays(emily, [row({ userId: "emily", participantIds: ["bryce"] })], []), []);
+  assert.deepEqual(buildCalendarHabitDays(bryce, [row({ userId: "bryce", participantIds: ["emily"] })], []), []);
   // Another person's row (even on a habit the viewer is on) is not the viewer's day.
   assert.deepEqual(buildCalendarHabitDays(bryce, [row()], []), []);
+});
+
+test("the tablet sees none", () => {
+  const tablet: HabitActor = { userId: "tablet", role: "device" };
+  assert.deepEqual(buildCalendarHabitDays(tablet, [row({ userId: "tablet", participantIds: ["tablet"] })], []), []);
 });
 
 test("a private habit shows only to its person", () => {

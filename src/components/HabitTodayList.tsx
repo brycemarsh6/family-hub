@@ -10,7 +10,7 @@ import { HabitConfetti } from "./HabitConfetti";
 import { HabitRow } from "./HabitRow";
 import { habitRowTaps } from "./HabitsTile";
 import { NudgeCards } from "./NudgeCard";
-import { PlanDayCards } from "./PlanDayCard";
+import { PlanDayCard } from "./PlanDayCard";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView, TodayNudge, TodayPrompt } from "@/lib/habitsRead";
@@ -124,7 +124,7 @@ export function HabitTodayList({
         </div>
       )}
       {shoutOut && <ChoreShoutOutCard />}
-      <PlanDayCards prompts={prompts} />
+      <PlanDayCard prompts={prompts} />
       <p className="mb-3 text-sm text-muted">
         {todayLabel}
         {live.length > 0 && ` · ${doneCountLabel(live)}`}

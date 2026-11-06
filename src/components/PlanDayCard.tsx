@@ -17,7 +17,7 @@ const CHIP_CLASSES = "flex min-h-12 items-center rounded-full border border-line
  * last); if the save fails it comes back with the error under the blocks. "Other day" opens a date choice limited to the
  * days past the chips, up to the period's last day.
  */
-export function PlanDayCards({ prompts }: { prompts: TodayPrompt[] }) {
+export function PlanDayCard({ prompts }: { prompts: TodayPrompt[] }) {
   const [live, hide] = useOptimistic<TodayPrompt[], string>(prompts, (list, habitId) => list.filter((p) => p.habitId !== habitId));
   const { run, error } = useOptimisticRun(hide);
   const [otherOpen, setOtherOpen] = useState<string | null>(null);

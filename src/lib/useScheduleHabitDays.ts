@@ -9,7 +9,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addDays } from "./mealPlanDates";
-import { addHabitDaysToSchedule, type ScheduleRenderMonthWithHabits } from "./scheduleHabitDays";
+import { addHabitDaysToSchedule, coversWindow, type ScheduleRenderMonthWithHabits } from "./scheduleHabitDays";
 import type { ScheduleRenderMonth } from "./scheduleWindowState";
 import type { CalendarHabitDayView } from "./types";
 
@@ -22,7 +22,7 @@ type Covered = { start: number; end: number };
 
 export type ScheduleHabitDays = {
   months: ScheduleRenderMonthWithHabits[];
-  /** True once the habit days for (the part of) the loaded window the reader is on have arrived. */
+  /** True once the habit days for the whole loaded window have arrived. */
   habitDaysLoaded: boolean;
   /** True when the last fetch failed; the habit days are then missing from the rows. */
   habitDaysFailed: boolean;
@@ -64,13 +64,18 @@ export function useScheduleHabitDays(
     async function run() {
       const found: CalendarHabitDayView[] = [];
       let ok = true;
-      for (const [from, to] of gaps) {
-        for (let at = from; at.getTime() < to.getTime(); at = addDays(at, CHUNK_DAYS)) {
-          const next = addDays(at, CHUNK_DAYS);
-          const chunk = await fetcherRef.current(at, next.getTime() < to.getTime() ? next : to);
-          if (chunk === null) ok = false;
-          else found.push(...chunk);
+      try {
+        for (const [from, to] of gaps) {
+          for (let at = from; at.getTime() < to.getTime(); at = addDays(at, CHUNK_DAYS)) {
+            const next = addDays(at, CHUNK_DAYS);
+            const chunk = await fetcherRef.current(at, next.getTime() < to.getTime() ? next : to);
+            if (chunk === null) ok = false;
+            else found.push(...chunk);
+          }
         }
+      } catch {
+        // A thrown fetch is a failed one: show the error line rather than loading forever.
+        ok = false;
       }
       if (cancelled) return;
       setHabitDaysFailed(!ok);
@@ -95,7 +100,7 @@ export function useScheduleHabitDays(
     () => addHabitDaysToSchedule(months, [...items.values()], new Date(startTime), new Date(endTime)),
     [months, items, startTime, endTime],
   );
-  // Loaded while what we hold still overlaps the window; a jump elsewhere is "not loaded" until its fetch lands.
-  const habitDaysLoaded = coverage !== null && startTime <= coverage.end && endTime >= coverage.start;
+  // Loaded only once what we hold contains the whole window; growth or a jump is "not loaded" until its fetch lands.
+  const habitDaysLoaded = coversWindow(coverage, startTime, endTime);
   return { months: withHabits, habitDaysLoaded, habitDaysFailed };
 }

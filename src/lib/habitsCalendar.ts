@@ -2,7 +2,7 @@ import { canSeeHabit } from "./habits/access";
 import { logDayFromRow, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import { countDays } from "./habits/progress";
 import { periodTarget, periodWindow } from "./habits/schedule";
-import { calendarDateFromUtcMidnight, utcMidnightInstant } from "./householdDate";
+import { addCalendarDays, calendarDateFromUtcMidnight, formatCalendarDate, utcMidnightInstant } from "./householdDate";
 import type { CalendarHabitDayView } from "./types";
 import type { HabitActor } from "./habits/types";
 import { isCheckStatus } from "./habitVocabulary";
@@ -36,7 +36,7 @@ export function plannedPeriodsRange(rows: readonly PlannedDayRow[]): { from: Dat
     if (!spec) continue;
     const window = periodWindow(spec, calendarDateFromUtcMidnight(row.day));
     const start = utcMidnightInstant(window.start);
-    const end = new Date(utcMidnightInstant(window.end).getTime() + 86_400_000);
+    const end = utcMidnightInstant(addCalendarDays(window.end, 1));
     if (!from || start < from) from = start;
     if (!to || end > to) to = end;
   }
@@ -44,14 +44,14 @@ export function plannedPeriodsRange(rows: readonly PlannedDayRow[]): { from: Dat
 }
 
 function dayKey(day: Date): string {
-  return day.toISOString().slice(0, 10);
+  return formatCalendarDate(calendarDateFromUtcMidnight(day));
 }
 
 /**
  * The viewer's planned days, in day then title order. Only the viewer's own
  * rows count (so a Together habit shows once, from their row), and only for a
- * habit they may see (`canSeeHabit`). The tablet (a device login) sees none:
- * the reader returns early for it. A day is done when the viewer has a done or
+ * habit they are on (a person removed from a habit keeps their planned rows)
+ * and may see (`canSeeHabit`). The tablet (a device login) sees none. A day is done when the viewer has a done or
  * late check on it (`isCheckStatus`), or when the habit's period containing it
  * (`periodWindow`) has met its target from the viewer's done or late checks
  * (decision 160). A skip never counts.
@@ -61,12 +61,9 @@ export function buildCalendarHabitDays(
   rows: readonly PlannedDayRow[],
   checks: readonly PlannedDayCheck[],
 ): CalendarHabitDayView[] {
-  const doneKeys = new Set(
-    checks
-      .filter((check) => check.userId === viewer.userId && isCheckStatus(check.status))
-      .map((check) => `${check.habitId}:${dayKey(check.day)}`),
-  );
+  if (viewer.role === "device") return [];
   const mine = checks.filter((check) => check.userId === viewer.userId && isCheckStatus(check.status));
+  const doneKeys = new Set(mine.map((check) => `${check.habitId}:${dayKey(check.day)}`));
   const logsByHabit = new Map<string, ReturnType<typeof logDayFromRow>[]>();
   for (const check of mine) logsByHabit.set(check.habitId, [...(logsByHabit.get(check.habitId) ?? []), logDayFromRow(check)]);
   const periodMet = (row: PlannedDayRow): boolean => {
@@ -78,7 +75,7 @@ export function buildCalendarHabitDays(
   };
   const items = new Map<string, CalendarHabitDayView>();
   for (const row of rows) {
-    if (row.userId !== viewer.userId || !canSeeHabit(viewer, row)) continue;
+    if (row.userId !== viewer.userId || !row.participantIds.includes(viewer.userId) || !canSeeHabit(viewer, row)) continue;
     const id = `${row.habitId}:${dayKey(row.day)}`;
     items.set(id, {
       id,

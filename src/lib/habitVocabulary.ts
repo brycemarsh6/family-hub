@@ -292,12 +292,12 @@ export const HABITS_PICKER_NONE = "No habits yet.";
 
 // ---- Plan the day (decisions 36 to 47, 141 to 146) ----
 
-/** The Habits & Chores meta for a row planned for today, after the who label (decision 145). */
-export const PLANNED_FOR_TODAY_LABEL = "Planned for today";
 /** A row planned for a later day this period: `when` is a short weekday ("Sat") or a date ("Nov 21"). */
 export function plannedForLabel(when: string): string {
   return `Planned for ${when}`;
 }
+/** The Habits & Chores meta for a row planned for today, after the who label (decision 145). */
+export const PLANNED_FOR_TODAY_LABEL = plannedForLabel("today");
 /** The dashboard card of habits planned for today. */
 export const PLANNED_TODAY_TITLE = "Planned today";
 /** The prompt card's heading. */

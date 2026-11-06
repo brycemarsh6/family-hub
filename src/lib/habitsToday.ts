@@ -72,7 +72,7 @@ export type HabitRowView = Omit<HabitRowState, "participants"> & {
   streakUnit: StreakUnit;
   /** The viewer planned this habit for today (decision 145): the row is required and its meta says so. */
   plannedToday: boolean;
-  /** "Planned for Sat" when the viewer planned a later day this period (decision 162), else null. */
+  /** "Planned for Sat" when the viewer planned a later day this period (decision 162), else null; also null once the period target is met (decision 160). */
   plannedLater: string | null;
   /** Due today but the viewer is on vacation (decision 115): excused, muted, the check still works. */
   onVacation: boolean;
@@ -275,7 +275,7 @@ export function buildTodayRows(
       carriedFrom,
       progress,
       plannedToday,
-      plannedLater: spec ? plannedLaterLabel(spec, today, plannedByHabit.get(habit.id) ?? [], SHORT_DAY_NAMES) : null,
+      plannedLater: spec && dueState !== "none" ? plannedLaterLabel(spec, today, plannedByHabit.get(habit.id) ?? [], SHORT_DAY_NAMES) : null,
       onVacation,
       skippedThisWeek: change.state === "excused",
       weekTag: change.tag ? choreTagLabel(change.tag, SHORT_DAY_NAMES) : null,

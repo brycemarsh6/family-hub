@@ -9,6 +9,11 @@ import type { ScheduleRenderDay, ScheduleRenderMonth } from "./scheduleWindowSta
 export type ScheduleRenderDayWithHabits = ScheduleRenderDay & { habitDays: CalendarHabitDayView[] };
 export type ScheduleRenderMonthWithHabits = { monthStart: Date; days: ScheduleRenderDayWithHabits[] };
 
+/** True when the fetched `coverage` (ms) holds the whole window `[start, end)`; a window that grew past it is not loaded yet. */
+export function coversWindow(coverage: { start: number; end: number } | null, start: number, end: number): boolean {
+  return coverage !== null && coverage.start <= start && coverage.end >= end;
+}
+
 /**
  * Every day of `months` gains its `habitDays`; a habit day inside
  * `[windowStart, windowEnd)` (local midnights) with no row gets its own row,

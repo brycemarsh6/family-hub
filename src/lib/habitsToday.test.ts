@@ -331,6 +331,13 @@ test("buildTodayRows: a day planned for later carries its label (decision 162)",
   assert.equal(none.plannedLater, null);
 });
 
+test("buildTodayRows: no 'Planned for' once the period target is met", () => {
+  const once = habit({ id: "w", schedule: "weekly", times: 1 });
+  const [row] = buildTodayRows(me, [once], logsFor("w", [{ userId: "me", day: today, status: "done" }]), today, new Map(), plannedOn("w", d(2026, 11, 7)));
+  assert.equal(row.dueState, "none");
+  assert.equal(row.plannedLater, null);
+});
+
 test("buildTodayRows: a day planned for later is not planned today", () => {
   const [row] = buildTodayRows(me, [weeklyTwice("w")], noLogs, today, new Map(), plannedOn("w", d(2026, 11, 7)));
   assert.equal(row.dueState, "open");
