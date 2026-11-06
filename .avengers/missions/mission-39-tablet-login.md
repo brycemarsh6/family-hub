@@ -212,18 +212,24 @@ deleting calendar events.** One rule protects the parents' own things.
    off but not delete it.
 9. **Private goals and private habits stay hidden from the tablet** (already
    true: `goals.ts:95-98` `canSee`, `habits/access.ts` `canSeeHabit`).
-11. **Only Together goals show on the tablet** (Bryce, 2026-11-06, round 3).
-   Mine goals (any goal with an owner, private or not) are hidden from it on
-   every surface: This week, Goals, the dashboard Goals tile, goal pages and
-   Sunday recap. Together = `ownerId === null` (`goals.ts:74-82`). Today the
-   tablet sees every non-private goal (`canSee` returns true for it,
-   `countsInScope` keeps all for a device, `goals.ts:116-118`), so this
-   narrows what is live now. Consequence, recorded: **goals created on the
-   tablet are always Together** (the New goal form hides Mine/Together for
-   it), or a goal would vanish from the tablet as it saved. Decision 7's
-   "goals for anyone" therefore means Together goals; habits and chores are
-   unaffected. Open: whether Mine vision boards follow the same rule (Fury
-   recommends yes; `visionsRead.ts:45` shows the tablet every board today).
+11. **Everything shows on the tablet except what is marked private**
+   (Bryce, 2026-11-06, round 4; this **replaces** round 3's "only Together
+   goals", which Bryce withdrew because Emily will use the tablet to check
+   off her own habits, chores and goals). Mine and Together goals, every
+   person's habits and chores, and every vision board all show; a private
+   habit or goal never does. This is today's behaviour (`goals.ts:95-98`,
+   `countsInScope` keeps all for a device at `:116-118`, `visionsRead.ts:45`),
+   so no change is needed for it. The tablet may create Mine goals for anyone.
+12. **"Habits and chores" quick-link tiles on the dashboard** (Bryce, round 4).
+   One small tile per household person ("Emily's habits and chores",
+   "Bryce's ...", "Ledger's ...", "Eleanor's ...", "Lucy's ..."). In
+   Customize, each person's tile is its own entry that can be shown or hidden,
+   so a dashboard can carry none, one, two or all of them. Tapping one opens
+   Habits & Chores on that person's list, ready to check things off. Available
+   on everyone's dashboard, the tablet's included. Names come from the
+   household-people list (`householdPeople.ts`), never typed in, so a new kid
+   gets a tile automatically and the Tablet never gets one. See the mock in
+   C8.
 10. **A per-login permissions page is a later mission**, after Calendar is
    finished: switches such as "the Tablet may delete Emily's events but not
    Bryce's". Mission 39 ships the defaults above as fixed rules, each written
@@ -244,7 +250,7 @@ Fury's recommendations, recorded; Bryce can overturn any:
   parent, so their things stay protected).
 - Round 2 is too big for one PR. Split: **PR A** = C1 to C4 (the login
   itself, so Emily's account comes off the tablet quickly); **PR B** = the
-  wider rights (C5 to C7). PR B waits for missions 37 and 38 to merge and
+  wider rights (C5 to C7); **PR C** = the quick-link tiles (C8). PR B waits for missions 37 and 38 to merge and
   must re-read the habits and calendar files then.
 
 ## Contracts (sketch; written in full when the build starts)
@@ -305,6 +311,31 @@ Fury's recommendations, recorded; Bryce can overturn any:
   habit are refused; a private goal stays invisible.
 - Captain decides whether the rule file sits beside `habits/access.ts`.
 
+### C8 — Per-person "habits and chores" quick-link tiles (PR C, decision 12)
+- Mock (a small tile, half the height of the Inventory tile; two side by
+  side on a phone, more across on the iPad):
+
+```
++------------------------+  +------------------------+
+| (E) Emily's            |  | (L) Ledger's           |
+|     habits and chores >|  |     habits and chores >|
+|     3 left today       |  |     All done           |
++------------------------+  +------------------------+
+```
+
+  The circle is the person's avatar colour and initial. "3 left today" is a
+  Fury suggestion for Hill or Bryce to confirm at build time (the tile can be
+  a plain link if the count costs too much).
+- Where it leads: on someone's own phone, their own tile opens their Today;
+  anyone else's opens Whole family with that person's chip picked (the chips
+  exist, decision 95; `habits/page.tsx:23` forces Whole family on the tablet).
+  Needs a `person` link parameter the family view reads.
+- Likely files: the dashboard widget registry and layout parser
+  (`src/lib/dashboard*.ts`), `DashboardWidgetList.tsx` / Customize sheet, a new
+  tile component, `habits/page.tsx` and the family view (after mission 37
+  merges). Widget ids per person must survive a person being deactivated
+  (drop the tile silently, the `keepOwnPicks` precedent).
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -325,6 +356,9 @@ Fury's recommendations, recorded; Bryce can overturn any:
   sketched for a second PR.
 - 2026-11-06 — Round 3: Bryce limits goals on the tablet to Together only
   (decision 11); tablet-made goals are Together. Mine vision boards open.
+- 2026-11-06 — Round 4: Bryce withdrew round 3. Everything shows on the
+  tablet except private (decision 11 rewritten). New: per-person habits and
+  chores quick-link tiles on every dashboard (decision 12, C8, PR C).
 
 ## Delivery
 
