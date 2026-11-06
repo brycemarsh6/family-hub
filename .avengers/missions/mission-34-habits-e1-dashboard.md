@@ -288,7 +288,7 @@ Hill decided 147 to 150 on the pass 1 notes (plan, "Before PR E").
   excuse, nudge and Sunday cards, flame at 2+, the tablet.
 
 ### F2 - Held rows follow the server
-- **Status:** OPEN.
+- **Status:** DONE (Stark; Fury re-ran tsc, eslint ., 881 tests, build EXIT=0). `keepShownRows(shownIds, rows, todayRows, held)`: fresh tile row, then the server's Today row, then held. `habitsRead.ts` 304 lines.
 - **Vision blocker:** in `HabitTileRows` (`src/components/HabitsTile.tsx`)
   update `held` only on a successful save (`useOptimisticRun`'s third
   argument); the optimistic change stays eager. Fix the `held` comment.
