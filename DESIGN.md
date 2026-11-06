@@ -309,9 +309,12 @@ A new one-off that duplicates one of these jobs is a design violation:
   From and Through date inputs, "Turn on vacation mode", and a list with a
   one-tap Delete
 - `DashboardWidgetList` (the dashboard's heading row, widget grid and
-  Customize button) / `DashboardCustomizeSheet` (on/off switch and up/down
-  arrows per widget, Reset to default): the only way to show, hide or
-  reorder dashboard widgets
+  Customize button, and the nudge and Sunday cards above the grid) /
+  `DashboardCustomizeSheet` (on/off switch and a drag grip per widget,
+  decision 140; a "Pick" button on the Habits and Goals rows that opens
+  `DashboardItemPicker` as a second view inside the same sheet, decision
+  137; Reset to default): the only way to show, hide, reorder or pick
+  what dashboard widgets show
 - `PlansTabs` — the one tab control for switching views: a `nav` of links lit
   by `aria-current`; a new tab is a column in it, never a second control. A
   segmented strip inside a form (the day / week / month picker in
@@ -336,6 +339,11 @@ A new one-off that duplicates one of these jobs is a design violation:
   `DashboardTile` so the whole tile stays the one tap target (no inner links
   or buttons). It reuses `ProgressBar`; a new dashboard summary is another
   widget body in a `DashboardTile`, not a second tile shell
+- `DashboardTile`'s second shape, for a tile with controls inside (the
+  Habits and Chores today tiles, decision 132): the card is not a link;
+  only its header row (icon and title) links to the page, and each row
+  keeps its own tap (the live `HabitRow`). One shell, one prop that says
+  which shape, never a nested link or a button inside a link
 - `WeekRecapCard`: the Sunday recap at the top of This week, a
   `bg-accent-soft` card with a small uppercase label. The label uses
   `text-muted-strong`, because `text-muted` on `bg-accent-soft` is 4.35:1,

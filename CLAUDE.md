@@ -109,8 +109,9 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   streaks button. PR B (#43) added the tab: Today (tap to check, swipe to
   skip), Manage (drag to reorder), New and Edit. PR C added streaks, nudges,
   confetti, a stats page per habit (`/habits/[id]`) and the Whole family
-  view. PR D added the chore chart, chore streak and vacation mode; PRs E
-  and F follow (plan:
+  view. PR D added the chore chart, chore streak and vacation mode; PR E1
+  added the Habits and Chores today dashboard tiles and the Pick view;
+  E2 and F follow (plan:
   `.avengers/plans/habits-chores-v1.md`).
 - **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
   views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
@@ -174,13 +175,13 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section at the end of each session. Don't append.
 
 **In progress:**
-- **Habits & Chores PR D (mission 33)** passed all three gates on
-  2026-11-05 and merges from branch `claude/habits-d-chores`: the chore
-  chart (`/habits/chart`, from Manage), the chore streak, the Sunday
-  "finished every chore" card, and vacation mode in Settings. Decisions
-  115 to 130, decided by Hill. Record and PR E leftovers:
-  `.avengers/missions/mission-33-habits-d-chores.md`. PR E (dashboard) is
-  next.
+- **Habits & Chores PR E1 (mission 34)** passed all three gates on
+  2026-11-05 and merges from branch `claude/habits-e-dashboard`: the
+  Habits and Chores today tiles, the Pick view in Customize (habits and
+  goals), drag to reorder tiles, and the nudge and Sunday cards on the
+  dashboard. PR E was split: **E2 (mission 35, plan the day and the
+  Calendar)** is next, then PR F (mission 36, the Report and idea
+  library). Bryce said to run them to the end without asking.
 - **Hill decides for Bryce** (`.claude/agents/hill.md`); merges don't wait
   for him. Phone tests go on Bryce's checklist below and never block.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
@@ -201,10 +202,17 @@ Replace this section at the end of each session. Don't append.
   to a day, then on This week move one and skip one. In Settings add a
   short vacation and see Today say "You're on vacation", then delete it.
   On a Sunday, look for "You finished every chore last week" if you did.
+- **PR E1 phone check** (about 5 minutes): on the dashboard, check a
+  habit on the Habits tile and undo it; Customize, drag a tile by its grip
+  on the iPad; tap Pick on Habits, turn two on and drag them into order.
+- **Delete the commented production `DATABASE_URL` line in `.env`**
+  (host `ep-hidden-surf-`). It isn't used, but AGENTS.md says no dev
+  machine should hold it. No agent edits `.env`.
 - **Kids and chores:** once a kid profile exists, a kid tapping a shared
   chore on the chart should see "Ask a parent to change a shared chore."
 - **Review Hill's medium calls:** 94, 95, 104, 110, 111 (PR C); 117, 121,
-  122, 123 and 127 (PR D; 130 goes with 127). Plan:
+  122, 123 and 127 (PR D; 130 goes with 127); 135, 136, 137 and 149
+  (PR E1). Plan:
   `.avengers/plans/habits-chores-v1.md`.
 - **Optional:** confirm the family-hub origin in the desktop app (Help,
   Troubleshooting, Review Pinned Git Origins) so the app's merge button
@@ -236,5 +244,5 @@ Replace this section at the end of each session. Don't append.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
   by Bryce's Grok bot. Left uncommitted on purpose.
 
-**Not built yet:** family profiles, the Habits & Chores dashboard tile and
-PR F, to-dos, photo gallery, barcode scanning.
+**Not built yet:** family profiles, plan the day (E2) and the Report
+(PR F), to-dos, photo gallery, barcode scanning.

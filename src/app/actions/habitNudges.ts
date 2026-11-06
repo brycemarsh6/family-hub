@@ -18,6 +18,7 @@ const NOT_FOUND = "That habit isn't available.";
 
 function done(): HabitActionResult {
   revalidatePath("/habits", "layout");
+  revalidatePath("/");
   return {};
 }
 

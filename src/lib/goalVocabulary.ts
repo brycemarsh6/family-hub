@@ -98,3 +98,14 @@ export function toVisionHorizon(raw: unknown): VisionHorizon | null {
   if (typeof raw === "string") return VISION_HORIZONS.find((years) => String(years) === raw) ?? null;
   return VISION_HORIZONS.find((years) => years === raw) ?? null;
 }
+
+/** The Goals tile's list heading when goals are picked (decision 149). */
+export const GOALS_TILE_PICKED_HEADING = "Still to do in the goals you picked:";
+/** The Goals tile's "Still to do" line when goals are picked and none of their habits has taps left (decision 136). */
+export const GOALS_TILE_PICKED_EMPTY = "Nothing left in the goals you picked";
+
+export const GOALS_PICKER_TITLE = "Goals on your dashboard";
+/** Shown when nothing is picked (decision 137). */
+export const GOALS_PICKER_NOTHING_PICKED = "Nothing picked yet. The tile shows up to three habits left this week.";
+/** The person has no open goals to pick from. */
+export const GOALS_PICKER_NONE = "No goals yet.";

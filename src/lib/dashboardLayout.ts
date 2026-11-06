@@ -1,6 +1,8 @@
 import {
   DASHBOARD_WIDGETS,
   DASHBOARD_WIDGET_IDS,
+  MAX_WIDGET_ITEMS,
+  isPickableWidget,
   type DashboardWidgetId,
 } from "@/lib/dashboardWidgets";
 
@@ -13,7 +15,8 @@ import {
 
 export type DashboardLayout = {
   version: 1;
-  widgets: { id: DashboardWidgetId; enabled: boolean }[];
+  /** `items` is the ids the person picked, in picked order; only `habits` and `goals` carry it. Shape only: the page checks the ids are theirs. */
+  widgets: { id: DashboardWidgetId; enabled: boolean; items?: string[] }[];
 };
 
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = {
@@ -26,6 +29,13 @@ export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = {
 
 function isWidgetId(value: unknown): value is DashboardWidgetId {
   return typeof value === "string" && (DASHBOARD_WIDGET_IDS as readonly string[]).includes(value);
+}
+
+/** Unique non-empty strings, in order, at most MAX_WIDGET_ITEMS; null when the value is not a non-empty list of them. */
+function cleanItems(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const items = [...new Set(raw.filter((item): item is string => typeof item === "string" && item !== ""))];
+  return items.length === 0 ? null : items.slice(0, MAX_WIDGET_ITEMS);
 }
 
 function defaultLayout(): DashboardLayout {
@@ -59,10 +69,15 @@ export function parseDashboardLayout(raw: unknown): DashboardLayout {
   const widgets: DashboardLayout["widgets"] = [];
   for (const entry of obj.widgets) {
     if (typeof entry !== "object" || entry === null) continue;
-    const { id, enabled } = entry as { id?: unknown; enabled?: unknown };
+    const { id, enabled, items } = entry as { id?: unknown; enabled?: unknown; items?: unknown };
     if (!isWidgetId(id) || seen.has(id)) continue;
     seen.add(id);
-    widgets.push({ id, enabled: typeof enabled === "boolean" ? enabled : DASHBOARD_WIDGETS[id].defaultEnabled });
+    const picked = isPickableWidget(id) ? cleanItems(items) : null;
+    widgets.push({
+      id,
+      enabled: typeof enabled === "boolean" ? enabled : DASHBOARD_WIDGETS[id].defaultEnabled,
+      ...(picked ? { items: picked } : {}),
+    });
   }
   DASHBOARD_WIDGET_IDS.forEach((id, index) => {
     if (seen.has(id)) return;
@@ -87,15 +102,33 @@ export function toggleWidget(layout: DashboardLayout, id: DashboardWidgetId): Da
 }
 
 /**
- * Move one widget a step up (-1) or down (+1) in the full list. Clamped at
- * the ends: a move past either end returns an equal layout.
+ * Replace the picked items of `habits` or `goals` (cleaned the way the parser
+ * cleans them); an empty list removes the field, which means "nothing picked".
+ * Any other widget is left alone. Returns a new layout.
  */
-export function moveWidget(layout: DashboardLayout, id: DashboardWidgetId, direction: -1 | 1): DashboardLayout {
-  const widgets = layout.widgets.map((w) => ({ ...w }));
-  const from = widgets.findIndex((w) => w.id === id);
-  const to = from + direction;
-  if (from === -1 || to < 0 || to >= widgets.length) return { version: 1, widgets };
-  [widgets[from], widgets[to]] = [widgets[to], widgets[from]];
+export function setWidgetItems(layout: DashboardLayout, id: DashboardWidgetId, items: string[]): DashboardLayout {
+  const picked = isPickableWidget(id) ? cleanItems(items) : null;
+  return {
+    version: 1,
+    widgets: layout.widgets.map((w) => {
+      if (w.id !== id || !isPickableWidget(id)) return { ...w };
+      return { id: w.id, enabled: w.enabled, ...(picked ? { items: picked } : {}) };
+    }),
+  };
+}
+
+/**
+ * The layout with its widgets in the order `ids` gives (a drag in Customize,
+ * decision 140). Ids that are not in the layout are ignored and widgets the
+ * list forgot keep their relative order at the end, so a stale drop can never
+ * lose a widget.
+ */
+export function reorderWidgets(layout: DashboardLayout, ids: string[]): DashboardLayout {
+  const rank = (id: string) => {
+    const index = ids.indexOf(id);
+    return index === -1 ? ids.length : index;
+  };
+  const widgets = layout.widgets.map((w) => ({ ...w })).sort((a, b) => rank(a.id) - rank(b.id));
   return { version: 1, widgets };
 }
 

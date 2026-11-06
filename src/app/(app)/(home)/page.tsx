@@ -1,15 +1,21 @@
 import type { ReactNode } from "react";
 import { Package, ShoppingCart, BookOpen, CalendarDays } from "lucide-react";
 import DashboardTile from "@/components/DashboardTile";
+import ChoresTile from "@/components/ChoresTile";
+import { ChoreShoutOutCard } from "@/components/ChoreShoutOutCard";
 import GoalsTile from "@/components/GoalsTile";
+import HabitsTile from "@/components/HabitsTile";
+import { NudgeCards } from "@/components/NudgeCard";
 import TodayMealsTile from "@/components/TodayMealsTile";
 import DashboardWidgetList from "@/components/DashboardWidgetList";
 import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
 import { DEFAULT_DASHBOARD_LAYOUT, parseDashboardLayout } from "@/lib/dashboardLayout";
+import { layoutForViewer, picksOf } from "@/lib/dashboardPicks";
 import type { DashboardWidgetId } from "@/lib/dashboardWidgets";
 import { householdToday } from "@/lib/assistant/today";
 import { loadGoalsTile } from "@/lib/goalsRead";
+import { loadDashboardHabits } from "@/lib/habitsRead";
 import { isLow } from "@/lib/constants";
 import { addDays } from "@/lib/mealPlanDates";
 import { isExpiringWithin } from "@/lib/expiring";
@@ -66,13 +72,26 @@ export default async function DashboardPage() {
   // pages use, never serverNow.
   const goalsToday = householdToday(new Date())!;
 
-  const [stored, pantryItems, groceryItems, recipeCount, newestRecipe, mealPlans, goalsTile] = await Promise.all([
+  // The layout read starts now but nothing waits on it except the two loaders
+  // that need the picked habits and goals in it. Whatever is stored is a
+  // claim, never a type: parse, don't cast. The tablet always gets the default
+  // layout, minus the Habits and Chores tiles (decision 138).
+  const layoutPromise = (
     user && !user.isDevice
       ? db.userPreferences.findUnique({
           where: { userId: user.userId },
           select: { dashboardLayout: true },
         })
-      : null,
+      : Promise.resolve(null)
+  ).then((stored) =>
+    layoutForViewer(
+      stored?.dashboardLayout ? parseDashboardLayout(stored.dashboardLayout) : DEFAULT_DASHBOARD_LAYOUT,
+      isDevice,
+    ),
+  );
+
+  const [layout, pantryItems, groceryItems, recipeCount, newestRecipe, mealPlans, goalsTile, habitsData] = await Promise.all([
+    layoutPromise,
     db.pantryItem.findMany({
       select: {
         name: true,
@@ -102,14 +121,17 @@ export default async function DashboardPage() {
       },
     }),
     user
-      ? loadGoalsTile({ userId: user.userId, isDevice: user.isDevice }, goalsToday)
-      : { done: 0, total: 0, todo: [] },
+      ? layoutPromise.then((layout) =>
+          loadGoalsTile({ userId: user.userId, isDevice: user.isDevice }, goalsToday, picksOf(layout, "goals")),
+        )
+      : { done: 0, total: 0, todo: [], picked: false, pickable: [] },
+    // Habits & Chores read the same rows Today does; the tablet has no tile for them.
+    user && !user.isDevice
+      ? layoutPromise.then((layout) =>
+          loadDashboardHabits({ userId: user.userId, role: user.role }, goalsToday, picksOf(layout, "habits")),
+        )
+      : null,
   ]);
-
-  // Whatever is stored is a claim, never a type: parse, don't cast.
-  const layout = stored?.dashboardLayout
-    ? parseDashboardLayout(stored.dashboardLayout)
-    : DEFAULT_DASHBOARD_LAYOUT;
 
   // Same reasoning as kitchen/page.tsx's own lowCount: Postgres (like
   // SQLite before it) can't compare two columns of the same row to each
@@ -151,6 +173,27 @@ export default async function DashboardPage() {
   }));
 
   const tiles: Record<DashboardWidgetId, ReactNode> = {
+    habits:
+      habitsData && user ? (
+        <HabitsTile
+          key={picksOf(layout, "habits").join(",")}
+          rows={habitsData.habits.rows}
+          todayRows={habitsData.habitsToday}
+          label={habitsData.habits.label}
+          empty={habitsData.habits.empty}
+          showStreaks={user.showStreaks}
+        />
+      ) : null,
+    chores:
+      habitsData && user ? (
+        <ChoresTile
+          rows={habitsData.chores.rows}
+          todayRows={habitsData.choresToday}
+          empty={habitsData.chores.empty}
+          choreStreak={habitsData.choreStreak}
+          showStreaks={user.showStreaks}
+        />
+      ) : null,
     todayMeals: (
       <TodayMealsTile
         href="/kitchen/cooking/meal-plan"
@@ -159,7 +202,7 @@ export default async function DashboardPage() {
         plans={mealPlanViews}
       />
     ),
-    goals: <GoalsTile done={goalsTile.done} total={goalsTile.total} todo={goalsTile.todo} />,
+    goals: <GoalsTile done={goalsTile.done} total={goalsTile.total} todo={goalsTile.todo} picked={goalsTile.picked} />,
     inventory: (
       <DashboardTile
         href="/kitchen/inventory"
@@ -220,5 +263,23 @@ export default async function DashboardPage() {
     ),
   };
 
-  return <DashboardWidgetList layout={layout} tiles={tiles} canCustomize={!isDevice} />;
+  // The nudge and Sunday cards sit under the heading row, above the tiles,
+  // nudges first (decision 139). They are not widgets and the tablet gets none.
+  const notes =
+    habitsData && (habitsData.nudges.length > 0 || habitsData.shoutOut) ? (
+      <>
+        <NudgeCards nudges={habitsData.nudges} />
+        {habitsData.shoutOut && <ChoreShoutOutCard />}
+      </>
+    ) : null;
+
+  return (
+    <DashboardWidgetList
+      layout={layout}
+      tiles={tiles}
+      notes={notes}
+      pickable={{ habits: habitsData?.pickable ?? [], goals: goalsTile.pickable }}
+      canCustomize={!isDevice}
+    />
+  );
 }

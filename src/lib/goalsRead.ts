@@ -15,7 +15,8 @@ import {
   type Viewer,
 } from "@/lib/goals";
 import { isRecapDay, weekRecap, type RecapGoalInput, type WeekRecap } from "@/lib/goalsRecap";
-import { weekSummary, weekTodo } from "@/lib/goalsProgress";
+import { weekSummary, weekTodo, weekTodoForGoals } from "@/lib/goalsProgress";
+import { keepOwnPicks } from "@/lib/dashboardPicks";
 import { loadHabitsForPlan } from "@/lib/habitsRead";
 import {
   LIFE_AREAS,
@@ -151,14 +152,29 @@ export async function loadGoalAreaCounts(
   return counts;
 }
 
-/** What the dashboard tile shows: this week's habit taps for the viewer's own and Together goals, and what is left. */
+/**
+ * What the dashboard tile shows: this week's habit taps for the viewer's own and Together goals, and what is left.
+ * `picks` are goal ids from the layout (decision 136): ids that are not among the goals counted here are dropped,
+ * and with any left "Still to do" lists the picked goals' habits only (`picked` is true). `pickable` is the goal
+ * list for the picker: Mine and Together, not completed, soonest target date first.
+ */
 export async function loadGoalsTile(
   viewer: Viewer,
   today: CalendarDate,
-): Promise<{ done: number; total: number; todo: { id: string; title: string; left: number }[] }> {
+  picks: string[] = [],
+): Promise<{
+  done: number;
+  total: number;
+  todo: { id: string; title: string; left: number }[];
+  picked: boolean;
+  pickable: { id: string; title: string }[];
+}> {
   const { goals } = await loadPlansPage(viewer, today);
   const inScope = goalsInScope(goals, viewer, "mine");
-  return { ...weekSummary(inScope), todo: weekTodo(inScope, 3) };
+  const pickable = inScope.map((goal) => ({ id: goal.id, title: goal.title }));
+  const own = keepOwnPicks(picks, pickable.map((goal) => goal.id));
+  const todo = own.length > 0 ? weekTodoForGoals(inScope, own) : weekTodo(inScope, 3);
+  return { ...weekSummary(inScope), todo, picked: own.length > 0, pickable };
 }
 
 /**

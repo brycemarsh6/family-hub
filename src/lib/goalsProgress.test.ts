@@ -18,6 +18,7 @@ import {
   targetDateChips,
   weekSummary,
   weekTodo,
+  weekTodoForGoals,
   type GoalMeasure,
   type PlanHabit,
   type PlanItemRow,
@@ -267,6 +268,28 @@ test("weekTodo: undone day and week habits in order, with taps left, capped at t
   ]);
   assert.deepEqual(weekTodo([view], 1), [{ id: "i1", title: "Exercise", left: 3 }]);
   assert.deepEqual(weekTodo([], 3), []);
+});
+
+test("weekTodoForGoals: only the picked goals, in picked order, then item order, uncapped", () => {
+  const logs = {
+    h1: habitOn([], { schedule: "weekly", times: 2 }),
+    h2: habitOn([], { schedule: "weekly", times: 1 }),
+    h3: habitOn([d(2026, 11, 2)], { schedule: "weekly", times: 1 }),
+    h4: habitOn([], { schedule: "weekly", times: 1 }),
+    h5: habitOn([], { schedule: "weekly", times: 1 }),
+  };
+  const a = { id: "gA", ...viewOf([item({ id: "a1", title: "A1", habitId: "h1" }), item({ id: "a2", title: "A2", habitId: "h3" })], logs) };
+  const b = { id: "gB", ...viewOf([item({ id: "b1", title: "B1", habitId: "h2" }), item({ id: "b2", title: "B2", habitId: "h4" }), item({ id: "b3", title: "B3", habitId: "h5" })], logs) };
+  const c = { id: "gC", ...viewOf([item({ id: "c1", title: "C1", habitId: "h2" })], logs) };
+  assert.deepEqual(weekTodoForGoals([a, b, c], ["gB", "gA"]), [
+    { id: "b1", title: "B1", left: 1 },
+    { id: "b2", title: "B2", left: 1 },
+    { id: "b3", title: "B3", left: 1 },
+    { id: "a1", title: "A1", left: 2 },
+  ]);
+  assert.deepEqual(weekTodoForGoals([a, b, c], ["gC", "gC", "nope"]), [{ id: "c1", title: "C1", left: 1 }]);
+  assert.deepEqual(weekTodoForGoals([a, b, c], []), []);
+  assert.deepEqual(weekTodoForGoals([a], ["gX"]), []);
 });
 
 test("parseTypedNumber: commas and spaces are fine, blanks and words are not", () => {

@@ -2,22 +2,23 @@
 
 import { useOptimistic, useState } from "react";
 import Link from "next/link";
-import { Flame, Moon, Plane, Sun, Sunset, Trophy } from "lucide-react";
+import { Flame, Moon, Plane, Sun, Sunset } from "lucide-react";
+import { ChoreShoutOutCard } from "./ChoreShoutOutCard";
 import { EmptyState } from "./EmptyState";
 import { HabitFilterChips, type HabitFilterOption } from "./HabitFilterChips";
 import { HabitConfetti } from "./HabitConfetti";
 import { HabitRow } from "./HabitRow";
+import { habitRowTaps } from "./HabitsTile";
 import { NudgeCards } from "./NudgeCard";
-import { checkHabit, skipHabit, uncheckHabit, unskipHabit } from "@/app/actions/habitChecks";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView, TodayNudge } from "@/lib/habitsRead";
 import { doneCountLabel } from "@/lib/habitsFamily";
 import { allRequiredDoneToday } from "@/lib/habitsToday";
-import { formatCalendarDate, formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
+import { formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { isExcused } from "@/lib/habits/weekOverrides";
-import { CHORES_LAST_WEEK_CARD, TIMES_OF_DAY, TIME_OF_DAY_LABELS, VACATION_TODAY_LABEL, vacationThroughLabel } from "@/lib/habitVocabulary";
+import { TIMES_OF_DAY, TIME_OF_DAY_LABELS, VACATION_TODAY_LABEL, streakLabel, vacationThroughLabel } from "@/lib/habitVocabulary";
 
 const TIME_ICONS = { morning: Sun, afternoon: Sunset, evening: Moon } as const;
 
@@ -100,10 +101,7 @@ export function HabitTodayList({
     { key: "chore", title: "Chores", rows: shown.filter((row) => row.kind === "chore") },
   ].filter((section) => section.rows.length > 0);
 
-  // A carried row's tap is for the missed day, not today.
   const throughDay = vacationThrough ? parseDateParam(vacationThrough) : null;
-
-  const dayOf = (row: HabitRowView) => (row.carriedFrom ? formatCalendarDate(row.carriedFrom) : undefined);
 
   return (
     <div>
@@ -121,12 +119,7 @@ export function HabitTodayList({
           </Link>
         </div>
       )}
-      {shoutOut && (
-        <div className="mb-3 flex items-center gap-2.5 rounded-2xl bg-streak-soft px-3 py-3">
-          <Trophy aria-hidden="true" size={20} className="shrink-0 text-streak" />
-          <p className="min-w-0 flex-1 text-sm font-semibold">{CHORES_LAST_WEEK_CARD}</p>
-        </div>
-      )}
+      {shoutOut && <ChoreShoutOutCard />}
       <p className="mb-3 text-sm text-muted">
         {todayLabel}
         {live.length > 0 && ` · ${doneCountLabel(live)}`}
@@ -165,10 +158,10 @@ export function HabitTodayList({
               <div className="mb-1.5 flex items-baseline justify-between">
                 <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
                   {section.title}
-                  {section.key === "chore" && showStreaks && choreStreak >= 2 && (
+                  {section.key === "chore" && showStreaks && streakLabel(choreStreak, "days") && (
                     <span className="inline-flex items-center gap-0.5 text-sm font-semibold normal-case tracking-normal text-streak">
                       <Flame aria-hidden="true" size={14} />
-                      {choreStreak} days
+                      {streakLabel(choreStreak, "days")}
                     </span>
                   )}
                 </h2>
@@ -177,19 +170,7 @@ export function HabitTodayList({
               <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
                 {section.rows.map((row) => (
                   <li key={row.id}>
-                    <HabitRow
-                      row={row}
-                      showStreaks={showStreaks}
-                      onToggle={() =>
-                        row.doneToday
-                          ? run({ type: "uncheck", habitId: row.id }, () => uncheckHabit(row.id, undefined, dayOf(row)))
-                          : run({ type: "check", habitId: row.id }, () => checkHabit(row.id, undefined, dayOf(row)))
-                      }
-                      onSkip={() =>
-                        run({ type: row.carriedFrom ? "skipCarried" : "skip", habitId: row.id }, () => skipHabit(row.id, undefined, dayOf(row)))
-                      }
-                      onUnskip={() => run({ type: "unskip", habitId: row.id }, () => unskipHabit(row.id))}
-                    />
+                    <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, run)} />
                   </li>
                 ))}
               </ul>

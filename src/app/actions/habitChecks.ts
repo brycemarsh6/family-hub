@@ -53,6 +53,7 @@ async function guardedTap(habitId: string, forUserId: string | undefined, rawDay
 
 function done(): HabitActionResult {
   revalidatePath("/habits", "layout");
+  revalidatePath("/");
   revalidatePath("/plans", "layout");
   return {};
 }

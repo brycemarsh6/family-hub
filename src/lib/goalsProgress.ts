@@ -145,6 +145,19 @@ export function weekTodo(
 }
 
 /**
+ * `weekTodo` for a dashboard with picked goals (decision 136): only the picked
+ * goals' habits, in picked-goal order then item order, no cap. A picked id
+ * that is not in `goals` is skipped.
+ */
+export function weekTodoForGoals(
+  goals: { id: string; items: PlanItemView[] }[],
+  pickedGoalIds: string[],
+): { id: string; title: string; left: number }[] {
+  const picked = [...new Set(pickedGoalIds)].flatMap((id) => goals.filter((goal) => goal.id === id));
+  return weekTodo(picked, Number.POSITIVE_INFINITY);
+}
+
+/**
  * Where a goal's number stands once a check-in is removed: the newest of the
  * ones left (given in any order), or the start value with no check-in date
  * when none remain.
