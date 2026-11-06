@@ -95,6 +95,9 @@ export type HabitManagerItem = {
   participantIds: string[];
 };
 
+/** An unseen nudge for today (decision 96): "Emily nudged you about Morning Prayers". */
+export type TodayNudge = { id: string; fromName: string; habitTitle: string };
+
 export type TodayPage = {
   /** Today's rows in the viewer's own order (done rows are NOT moved: the list sorts on load). */
   rows: HabitRowView[];
@@ -102,6 +105,10 @@ export type TodayPage = {
   manage: HabitManagerItem[];
   /** Archived habits the viewer took part in, newest archived first. */
   archived: HabitManagerItem[];
+  /** The viewer's unseen nudges for today, oldest first. */
+  nudges: TodayNudge[];
+  /** True when every required row is done or skipped (decision 76); the page fires the confetti once a day. */
+  confetti: boolean;
 };
 
 /** A habit as the reader fetches it: the columns below plus its participants (a Prisma row fits). */
@@ -316,11 +323,15 @@ export function buildTodayPage(
   logsByHabit: ReadonlyMap<string, HabitLogDay[]>,
   today: CalendarDate,
   vacationsByUser: ReadonlyMap<string, readonly Vacation[]> = new Map(),
+  nudges: readonly TodayNudge[] = [],
 ): TodayPage {
   const visible = visibleInViewerOrder(viewer, habits);
   const live = visible.filter((habit) => !habit.archivedAt);
+  const rows = buildTodayRows(viewer, live, logsByHabit, today, vacationsByUser);
   return {
-    rows: buildTodayRows(viewer, live, logsByHabit, today, vacationsByUser),
+    rows,
+    nudges: [...nudges],
+    confetti: allRequiredDoneToday(rows),
     manage: live.map(managerItem),
     archived: visible
       .filter((habit) => habit.archivedAt)

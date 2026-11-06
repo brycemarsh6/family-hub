@@ -143,7 +143,8 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Done:** tests in all three zones green.
 
 ### C2 - Readers, nudges and actions
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc, eslint, 752 tests Denver, 752 UTC with 7 skipped as before)
+- **Notes for C3+:** loaders `loadHabitStats(viewer, habitId, today, month?)` and `loadFamilyPage(viewer, today)` in new `habitsStatsRead.ts`; pure builders `buildStatsData`, `buildFamilyPage`, `statsSubject`, `perfectDayEntries` in new `habitsFamily.ts` (types `HabitStatsData`, `FamilyPage`, `FamilyColumn`, `FamilyRow` with `canLog` and `logForId`). `TodayPage` gained `nudges` (`TodayNudge`) and `confetti`. Actions `nudge(habitId, toUserId)` and `markNudgeSeen(nudgeId)` in `actions/habitNudges.ts`; writes in `habits/nudgeWrites.ts`. Stark's calls, kept: a skip today counts as finished for nudging; archived habits refuse nudges; `nudgeable` only on Side by side habits; column counts are done only. **Debt for C3:** the nudge policy is written twice (inline in `habitNudges.ts`, and as `nudgeable` in `buildStatsData`); C3 moves it to one `canNudge` in `access.ts`. `habitsToday.ts` is 355 lines (over 350); Captain to judge.
 - **Objective:** the stats and family readers, the nudge writes and the
   server actions.
 - **Boundaries:** may touch: `src/lib/habitsRead.ts` (if it passes 350
@@ -180,7 +181,12 @@ and `Main.dc.html` in `.../scratchpad/mock/project/`.
 - **Status:** PENDING
 - **Objective:** `/habits/[id]` from the Stats board with decisions 94, 97,
   102 to 105.
-- **Boundaries:** may touch: new `src/app/(app)/habits/[id]/page.tsx`, new
+- **First:** one `canNudge(actor, habit, toUserId)` in `src/lib/habits/access.ts`
+  with tests, used by both `buildStatsData` (`habitsFamily.ts`) and
+  `nudge` (`actions/habitNudges.ts`), so the rule has one home.
+- **Boundaries:** may touch: `src/lib/habits/access.ts` and its test,
+  `src/lib/habitsFamily.ts`, `src/app/actions/habitNudges.ts` (the
+  `canNudge` move only), new `src/app/(app)/habits/[id]/page.tsx`, new
   components `HabitStats.tsx`, `HabitMonthCalendar.tsx`,
   `HabitSideBySide.tsx`, `HabitWeekStrips.tsx`, `NudgeButton.tsx`;
   `src/app/(app)/habits/[id]/edit/page.tsx` (the "See stats" link only) ·

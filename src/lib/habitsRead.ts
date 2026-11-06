@@ -8,8 +8,8 @@ import {
   type CalendarDate,
 } from "./householdDate";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay } from "./habits/carryOver";
-import { logDayFromRow, specFromRow } from "./habits/habitRows";
-import type { HabitAccess, HabitActor, HabitLogDay, ScheduleSpec } from "./habits/types";
+import { logDayFromRow, specFromRow, vacationFromRow } from "./habits/habitRows";
+import type { HabitAccess, HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
 import { buildTodayPage, carrySince, habitStartDay, todayLogsFrom, type TodayPage } from "./habitsToday";
 import { loadHouseholdPeople, type HouseholdPerson } from "./householdPeople";
 import { toHabitSharing, type HabitSharing } from "./habitVocabulary";
@@ -102,14 +102,15 @@ export async function loadHabitsForPlan(
   return result;
 }
 
-export type { HabitMemberView, HabitRowView, HabitManagerItem, TodayPage } from "./habitsToday";
+export type { HabitMemberView, HabitRowView, HabitManagerItem, TodayNudge, TodayPage } from "./habitsToday";
 
 /**
- * The Today page and the manager in two queries: the habits the viewer takes
- * part in (with participants and names), then their checks from fourteen days
- * back, or from the first of the month when that is earlier so a monthly
- * count is whole. The rules live in `habitsToday.ts`. No auth: the page has
- * already resolved the viewer.
+ * The Today page and the manager: first the habits the viewer takes part in
+ * (with participants, names and cached streaks), then in one round their
+ * checks from fourteen days back (or the first of the month when that is
+ * earlier so a monthly count is whole), those people's vacations and the
+ * viewer's unseen nudges for today. The rules live in `habitsToday.ts`. No
+ * auth: the page has already resolved the viewer.
  */
 export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Promise<TodayPage> {
   const habits = await db.habit.findMany({
@@ -121,26 +122,40 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
           userId: true,
           sortOrder: true,
           joinedAt: true,
+          currentStreak: true,
+          bestStreak: true,
+          streakAsOf: true,
           user: { select: { displayName: true, avatarColor: true, deactivatedAt: true } },
         },
       },
     },
   });
   const liveIds = habits.filter((habit) => !habit.archivedAt).map((habit) => habit.id);
-  const logRows =
+  const peopleIds = [...new Set(habits.flatMap((habit) => habit.participants.map((p) => p.userId)))];
+  const [logRows, vacationRows, nudgeRows] = await Promise.all([
     liveIds.length === 0
       ? []
-      : await db.habitLog.findMany({
+      : db.habitLog.findMany({
           where: { habitId: { in: liveIds }, day: { gte: utcMidnightInstant(todayLogsFrom(today)) } },
           select: { habitId: true, userId: true, day: true, status: true },
-        });
+        }),
+    db.vacationPeriod.findMany({ where: { userId: { in: peopleIds } }, select: { userId: true, startDay: true, endDay: true } }),
+    db.nudge.findMany({
+      where: { toUserId: viewer.userId, day: utcMidnightInstant(today), seenAt: null, habit: { archivedAt: null } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, fromUser: { select: { displayName: true } }, habit: { select: { title: true } } },
+    }),
+  ]);
+  const vacationsByUser = new Map<string, Vacation[]>();
+  for (const row of vacationRows) vacationsByUser.set(row.userId, [...(vacationsByUser.get(row.userId) ?? []), vacationFromRow(row)]);
   const logsByHabit = new Map<string, HabitLogDay[]>();
   for (const row of logRows) {
     const list = logsByHabit.get(row.habitId) ?? [];
     list.push(logDayFromRow(row));
     logsByHabit.set(row.habitId, list);
   }
-  return buildTodayPage(viewer, habits, logsByHabit, today);
+  const nudges = nudgeRows.map((row) => ({ id: row.id, fromName: row.fromUser.displayName, habitTitle: row.habit.title }));
+  return buildTodayPage(viewer, habits, logsByHabit, today, vacationsByUser, nudges);
 }
 
 /** Everyone the habit editor's people picker can offer: the household, oldest profile first (`householdPeople.ts`). */
