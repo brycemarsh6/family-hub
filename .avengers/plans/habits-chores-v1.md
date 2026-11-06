@@ -688,6 +688,24 @@ name.". The server check sits next to `participantsAllowed` in
 `actions/habits.ts`. Save never grays out, and existing rows get no data
 fix. Decided by Hill, low risk. Goes into PR F's C3.
 
+176. **One field order for New and Edit:** Kind of item, Name, Life area,
+     Icon, Build or quit, Who, How often, Time of day, the switches. Only
+     the ideas row is New only (amends 172's scope). Decided by Hill, low.
+177. **No "0 of 0"** on scheduled items. When nothing is due so far: "Due
+     today", "Due Sat" (Week) or "Due Nov 7" (Month) if a due day is still
+     ahead; else "Skipped this week" if a week-skipped day is in the
+     period; else "On vacation" if a vacation day is; else "Not this week"
+     / "Not this month". Open kinds keep "0 of 3" and "0 this week".
+     Decided by Hill, low.
+178. **"Chore ideas" sits directly under Name,** above Life area. Habit
+     order stays Name, Life area, Ideas for {short}. Decided by Hill, low.
+179. **"No phone in bed" uses `PhoneOff`** (added to `HABIT_ICONS` after
+     Phone); "Take out the trash" keeps `Trash2`. Decided by Hill, medium.
+180. **A Together day on vacation reads per person:** "skipped (on
+     vacation)" only on screens showing the person who was away; for
+     everyone else it is an ordinary due day. A check by anyone is Done for
+     all. Decided by Hill, low.
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for
