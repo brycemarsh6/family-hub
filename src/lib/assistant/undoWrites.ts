@@ -21,16 +21,12 @@ import {
   fromCopy,
   planUndo,
   toCopy,
+  undoPathFor,
   type StaleRecord,
   type UndoModel,
   type UndoRefusal,
   type UndoStep,
 } from "./undoPlan";
-
-const V1 = "/api/assistant/v1";
-
-/** The path a request to undo `requestId` is logged under. */
-export const undoPathFor = (requestId: string) => `${V1}/audit/${requestId}/undo`;
 
 export type UndoResult = { undone: string; restored: number; removed: number; recreated: number };
 
@@ -119,6 +115,19 @@ export async function undoRequest(
     const stale = findStale(plan.steps, current);
     if (stale.length > 0) throw changedSince(stale);
 
+    // Removing a pantry row would silently null any link the family has made
+    // to it since (a shopping line, a voice log), so refuse instead.
+    const inUse: StaleRecord[] = [];
+    for (const step of plan.steps) {
+      if (step.kind !== "remove" || step.model !== "PantryItem") continue;
+      const [grocery, voice] = await Promise.all([
+        tx.groceryItem.count({ where: { pantryItemId: step.recordId } }),
+        tx.voiceChange.count({ where: { pantryItemId: step.recordId } }),
+      ]);
+      if (grocery + voice > 0) inUse.push({ model: step.model, recordId: step.recordId, problem: "in_use" });
+    }
+    if (inUse.length > 0) throw changedSince(inUse);
+
     const logged: ChangeInput[] = [];
     const done = { restored: 0, removed: 0, recreated: 0 };
 
@@ -201,16 +210,4 @@ async function recreateData(tx: Tx, step: UndoStep): Promise<Record<string, unkn
     }
   }
   return data;
-}
-
-/** Which of these requests have been undone (a 2xx undo request exists)? */
-export async function undoneRequestIds(requestIds: string[]): Promise<Set<string>> {
-  if (requestIds.length === 0) return new Set();
-  const rows = await db.assistantRequest.findMany({
-    where: { path: { in: requestIds.map(undoPathFor) }, status: { gte: 200, lt: 300 } },
-    select: { path: true },
-    distinct: ["path"],
-  });
-  const paths = new Set(rows.map((r) => r.path));
-  return new Set(requestIds.filter((id) => paths.has(undoPathFor(id))));
 }

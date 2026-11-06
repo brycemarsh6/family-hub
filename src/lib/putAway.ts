@@ -1,6 +1,7 @@
 import "server-only";
 
-// The put-away flow (classify -> review -> commit), pulled out of
+// The commit half of the put-away flow (classify -> review -> commit; classify
+// lives in putAwayClassify.ts), pulled out of
 // `actions/groceriesPutAway.ts` (mission-22/P1) because the Assistant API is a
 // SECOND caller. Same shape as `pantryWrites.ts`: a `server-only` lib module
 // with NO auth check of its own and no `revalidatePath` — each caller carries

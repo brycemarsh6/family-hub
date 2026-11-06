@@ -10,8 +10,9 @@ import "server-only";
 // token — and `revalidatePath` stays in the actions (STRUCTURE.md: route
 // strings never live in lib).
 //
-// Every function returns the row it wrote (or null when the row is missing)
-// so a caller can serialize it or record it in an audit log. Input
+// Every write returns the row it wrote, or `{ before, after }` copies of it
+// (for the audit log and undo), or null when the row is missing, or
+// `"conflict"` after losing every retry. Input
 // *normalization* (trim, round to 2dp, clamp, vocabulary guards) lives here
 // so both callers get identical rows; *rejection* of bad input (empty name,
 // non-positive merge quantity) stays with the caller, as it always was.
@@ -19,6 +20,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import type { Prisma, PantryItem } from "@/generated/prisma/client";
 import { toCategory, toLocation } from "@/lib/constants";
+import { isMissingRowError } from "@/lib/prismaErrors";
 import { findDuplicateMatches, type DuplicateMatch } from "@/lib/duplicates";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -99,15 +101,6 @@ export async function setPantryQuantity(
  */
 const MAX_ADJUST_ATTEMPTS = 10;
 
-/** Prisma's "the row this write was keyed on is gone or moved on" error. */
-function isNoMatch(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    (error as { code?: unknown }).code === "P2025"
-  );
-}
-
 /** A little jitter keeps the losers of a race from retrying in step. */
 const lostRaceJitter = () =>
   new Promise((resolve) => setTimeout(resolve, Math.random() * 25));
@@ -152,7 +145,7 @@ export async function adjustPantryQuantity(
       });
       return { before, after, beforeRow, row };
     } catch (error) {
-      if (!isNoMatch(error)) throw error;
+      if (!isMissingRowError(error)) throw error;
       // Lost the race (or the row was deleted: the next read says null).
       await lostRaceJitter();
     }
@@ -221,7 +214,7 @@ export async function editPantryItem(
       });
       return { before, after };
     } catch (error) {
-      if (!isNoMatch(error)) throw error;
+      if (!isMissingRowError(error)) throw error;
       await lostRaceJitter();
     }
   }

@@ -5,8 +5,10 @@ import {
   UNDO_WINDOW_MS,
   findStale,
   fromCopy,
+  modelColumns,
   planUndo,
   toCopy,
+  undoPathFor,
   type UndoChangeInput,
   type UndoStep,
 } from "@/lib/assistant/undoPlan";
@@ -201,4 +203,16 @@ test("undoPlan: findStale names changed, missing and already-existing rows", () 
     { model: "GroceryItem", recordId: "gone", problem: "missing" },
     { model: "GroceryItem", recordId: "back", problem: "exists" },
   ]);
+});
+
+test("column lists come from the schema types, dates included", () => {
+  assert.equal(modelColumns("PantryItem").length, 11);
+  assert.equal(modelColumns("GroceryItem").length, 15);
+  const copy = fromCopy("GroceryItem", grocery("g"));
+  assert.ok(copy.createdAt instanceof Date);
+  assert.equal(copy.checkedAt, null);
+});
+
+test("undoPathFor is the path an undo request is logged under", () => {
+  assert.equal(undoPathFor("req1"), UNDO_PATH);
 });

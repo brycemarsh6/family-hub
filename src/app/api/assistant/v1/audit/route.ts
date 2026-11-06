@@ -1,8 +1,7 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { auditQuery } from "@/lib/assistant/schemas";
-import { listAudit } from "@/lib/assistant/audit";
+import { listAudit, undoneRequestIds } from "@/lib/assistant/audit";
 import { decodeChangeSummary } from "@/lib/assistant/changeCopy";
-import { undoneRequestIds } from "@/lib/assistant/undoWrites";
 
 export const GET = assistantRoute({
   action: "audit.list",

@@ -6,29 +6,45 @@
 // Several changes may touch the same row (two merge-adds onto one line), so
 // they are collapsed per row: the earliest `before` and the latest `after`.
 
+import type { GroceryItem, PantryItem } from "@/generated/prisma/client";
 import { decodeChangeSummary, type RowCopy } from "./changeCopy";
 
 export const UNDO_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 export type UndoModel = "PantryItem" | "GroceryItem";
 
-/** Every column of each model we may restore, and which of them are dates. */
-const MODELS: Record<UndoModel, { columns: readonly string[]; dates: readonly string[] }> = {
-  PantryItem: {
-    columns: [
-      "id", "name", "location", "quantity", "unit", "category", "lowThreshold",
-      "expiresAt", "restockedAt", "createdAt", "updatedAt",
-    ],
-    dates: ["expiresAt", "restockedAt", "createdAt", "updatedAt"],
-  },
-  GroceryItem: {
-    columns: [
-      "id", "name", "quantity", "unit", "category", "checked", "addedBy", "note", "store",
-      "addedById", "location", "categoryEdited", "pantryItemId", "createdAt", "checkedAt",
-    ],
-    dates: ["createdAt", "checkedAt"],
-  },
+type ColumnKind = "date" | "value";
+
+/**
+ * Every column of each model we may restore, and which of them are dates.
+ * Typed over the generated Prisma rows, so a column added to the schema stops
+ * `tsc` here until it is classified (otherwise undo would silently skip it).
+ */
+const PANTRY_COLUMNS: Record<keyof PantryItem, ColumnKind> = {
+  id: "value", name: "value", location: "value", quantity: "value", unit: "value",
+  category: "value", lowThreshold: "value", expiresAt: "date", restockedAt: "date",
+  createdAt: "date", updatedAt: "date",
 };
+
+const GROCERY_COLUMNS: Record<keyof GroceryItem, ColumnKind> = {
+  id: "value", name: "value", quantity: "value", unit: "value", category: "value",
+  checked: "value", addedBy: "value", note: "value", store: "value", addedById: "value",
+  location: "value", categoryEdited: "value", pantryItemId: "value", createdAt: "date",
+  checkedAt: "date",
+};
+
+function describe(kinds: Record<string, ColumnKind>) {
+  const columns = Object.keys(kinds);
+  return { columns, dates: columns.filter((c) => kinds[c] === "date") };
+}
+
+const MODELS: Record<UndoModel, { columns: readonly string[]; dates: readonly string[] }> = {
+  PantryItem: describe(PANTRY_COLUMNS),
+  GroceryItem: describe(GROCERY_COLUMNS),
+};
+
+/** The path a request to undo `requestId` is logged under. */
+export const undoPathFor = (requestId: string) => `/api/assistant/v1/audit/${requestId}/undo`;
 
 export function isUndoModel(model: string): model is UndoModel {
   return Object.hasOwn(MODELS, model);
@@ -58,7 +74,7 @@ export type UndoRefusal =
 export type StaleRecord = {
   model: string;
   recordId: string;
-  problem: "changed" | "missing" | "exists";
+  problem: "changed" | "missing" | "exists" | "in_use";
 };
 
 /** One row to put right. `before`/`after` are the request's own, as JSON. */
