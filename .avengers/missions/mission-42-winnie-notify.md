@@ -1,7 +1,7 @@
 # Mission 42: Marshee → Winnie notification sender
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERED (PR open; merge waits for Bryce's go)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/winnie-notify-ed0df7` (from `origin/main` at `a1f9b6e`)
 
@@ -153,8 +153,27 @@ Mission file, a short STRUCTURE.md entry, the CLAUDE.md lines (Assistant API nei
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | PASS | none | 7 notes, below |
+| 1 | Strange | PASS | none | 5 notes, below |
 
 Budget: 3 passes per gate, then STOP.
+
+**Vision pass 1 (PASS).** Vision re-ran all six gauntlet commands: Denver 1176 pass; UTC 1169 pass with 7 existing no-DST skips; LA 1176 pass; build 0. The `.next/static` grep for `WINNIE_WEBHOOK|winnieNotify|Bearer |test-key` and the wider internal names came back empty. The boundary audit found exactly the 11 declared files. On his own loopback mock: flaky gaps of 1009 ms and 3009 ms, the same eventId each try, 401 once, 429 retried, blank key treated as not-configured. He also checked: 302 and 308 are not followed, so the key never goes to a redirect target; streams that never end don't hang; no timers are left running; `occurredAt` is right across both 2026 DST changes in four process zones; the device role fails the admin check. Hill's wording matches the code character for character. Notes:
+1. `winnieNotify.ts` catch returns `attempts: 0` as "after 3 tries"; it can't be reached today (deliver catches everything).
+2. The action's catch logs no detail (on purpose, no leaks). Revisit when real alerts arrive.
+3. If `getVerifiedUser()` throws on a database error, the phone shows "check your connection". Harmless.
+4. The worst case is about 34 s and there is no `maxDuration` export. Fury checked the Vercel project (created 2026-08, so Fluid compute's 300 s default applies; the API doesn't report the limit). Left as is.
+5. A malformed URL reads as "Couldn't reach Winnie after 3 tries" (about 4 s).
+6. Double tap: React disables the button before a second tap. A second send would be a harmless separate test.
+7. Danger register clean.
+
+**Strange pass 1 (PASS).** Strange ran a dev server on port 3042 with the fake env set inline only, then again with both vars removed. He was already signed in as Bryce (Admin) in the browser pane and wrote no rows. He captured 18 shots in the scratchpad folder `strange/` at 375 px and 820x1180, light and dark, with `matchMedia` checked on each: idle, sending, accepted, refused 401, unreachable (503 and hang), not configured. Measurements: button 210x48 and unoccluded; `lucide-send` outline icon, 20 px; failures in `--warn` (5.37:1 in light), success in `--muted`; heading and card match the Habits & Chores and Vacation neighbours. Every string is exact. "Accepted" never claims delivered. Notes:
+1. "Sending…" at `opacity-40` is faint (about 1.7:1 in light) for up to 34 s on a hang. This is the sanctioned pattern (Hill 201, FeedbackSheet) and disabled controls are exempt. Possible later fix: a "can take up to half a minute" line, or `opacity-60`.
+2. At 375 px the subtitle breaks between "9" and "PM". Fix: non-breaking spaces.
+3. The button shrinks from 210 to 139 px while sending and its left edge jumps. Harmless while disabled. Fix: a minimum width.
+4. This accent button is rounded-xl; the Vacation button above it is rounded-full. DESIGN.md has no shape rule. Bryce's call if he wants one.
+5. The pane briefly measured 0x0 right after navigation. A tool artifact, not a design issue.
+The non-admin view was checked in source only: no non-admin dev login, and none created.
 
 ## Fury's live check (2026-11-06, before the gates)
 
@@ -170,8 +189,13 @@ The real `winnieNotify.ts` was driven with the real `fetch` against a fake webho
 
 ## Handoff log
 
+- 2026-11-06 Fury: C1, C2 and C3 done; Vision and Strange PASS on pass 1; PR opened; waiting on Bryce for the merge.
+
 - 2026-11-06 Fury: branch reset onto `origin/main` (`a1f9b6e`; it had no commits of its own). Mission number 42 checked free on `origin/main` and in every worktree. Plan confirmed by Bryce. `hill` is not registered as an agent type in this session, so Hill runs as a general agent on Fable with her `.claude/agents/hill.md` laws.
 
 ## Delivery
 
-(pending)
+- **Shipped (to the branch):** commits "Mission 42 C1" (sender), "C2" (button), "C3" (records), plus the mission-file commits. Pushed as `claude/winnie-notify-ed0df7` with a PR. **Not merged:** Bryce's go comes first (his rule for this mission).
+- **Gates:** Vision PASS and Strange PASS, both on pass 1. Captain was not assembled: about 230 code lines and five small new files, with Vision carrying the structure subset.
+- **Bryce after merge:** add `WINNIE_WEBHOOK_URL` and `WINNIE_WEBHOOK_KEY` in Vercel (Production, Sensitive) and redeploy. Then, between 9 AM and 9 PM Denver, sign in as admin and tap "Send test to Winnie" in Settings, then confirm the event appears in Winnie's chat.
+- **Deliberate leftovers (later phases or polish):** real alerts, alert types, recipients, quiet hours, texts, reply path, chat button, Siri shortcut. Strange's notes 1 to 4. Vision's notes 1, 2 and 4 (revisit the attempt-0 wording, error detail in logs, and `maxDuration` when real alerts arrive).
