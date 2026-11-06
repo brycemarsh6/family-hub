@@ -460,7 +460,7 @@ Adding a second definition of any of these is a BLOCKER:
   `goals`, `PICKABLE_WIDGET_IDS`) is checked for shape in the parser and
   for ownership in the loaders, through `keepOwnPicks` in `src/lib/dashboardPicks.ts`, which also holds
   `picksOf` (the only way to read a widget's picks), `layoutForViewer` (the
-  tablet's layout leaves out `habits` and `chores`, decision 138).
+  tablet's layout leaves out `habits` and `chores`, decision 138),
   and the picker's pure rules (`splitPicks`, `togglePick`);
   `reorderWidgets` sits in `dashboardLayout.ts` beside `toggleWidget` and
   `setWidgetItems`; `isPickableWidget` / `PickableWidgetId` in
@@ -472,7 +472,9 @@ Adding a second definition of any of these is a BLOCKER:
   reader. A tile with controls inside uses `DashboardTile shape="panel"`
   (DESIGN.md). `habitRowTaps` (in `HabitsTile.tsx`) is the only mapping
   from a Today row's tap to a check action, used by `HabitTodayList` and
-  `HabitTileRows`; a second copy of the carried-day routing is a BLOCKER.
+  `HabitTileRows` for Today rows (`HabitRowView`); `HabitFamilyView`'s
+  `dayOf` is the family-row twin (it logs for another person through
+  `logForId`); a third copy of the carried-day routing is a BLOCKER.
   **Dependency direction:** `habitsDashboard.ts` imports only
   `habitVocabulary.ts` and types from `habitsToday.ts`; `dashboardPicks.ts`
   imports only `dashboardLayout.ts` / `dashboardWidgets.ts`; `habitsRead.ts`

@@ -1,6 +1,7 @@
 // Real unit tests (node:test, zero new dependencies) for the dashboard
 // layout logic: parsing whatever is stored, the Customize sheet's edits, and
-// how widgets pair up into rows. Run with `npm test`.
+// how widgets pair up into rows. Run with `npm test`. The `items` (picked
+// ids) cases live in dashboardLayoutItems.test.ts.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -226,7 +226,7 @@ Hill decided 147 to 150 on the pass 1 notes (plan, "Before PR E").
   it; nothing else waits.
 - **Captain 2:** `dashboardWidgets.ts` exports `PickableWidgetId` and
   `isPickableWidget`; `dashboardLayout.ts`, `DashboardCustomizeSheet.tsx`
-  (no cast, `PICKERS` typed by it) and `DashboardWidgetList.tsx` use them.
+  (no cast, `PICKERS` typed by it) use them (`DashboardWidgetList.tsx` needs neither; Captain pass 2).
 - **Strange 1 / 147:** `HabitTileRows` keeps the rows shown at load until
   a real page load: a tapped row stays in place with its optimistic change
   when a refresh drops it, and no new row slides in. Put the pure part
@@ -261,3 +261,45 @@ Hill decided 147 to 150 on the pass 1 notes (plan, "Before PR E").
 - **Verification:** full gauntlet in three zones, `npx eslint .`, build
   EXIT=0; `git grep -n 'moveWidget' src` empty; `git grep -n
   '"habits" ||' src/components` empty.
+
+### Pass 2 (at 5d7bcfc)
+- **Captain (Opus): BLOCKED, 1.** `dashboardLayout.test.ts` header did not
+  name its new sibling; Fury added the line (comment only). Both pass 1
+  blockers and every note verified; STRUCTURE.md text matches the code.
+  Fury applied the two wording fixes (`habitRowTaps` scoped to Today rows
+  with `HabitFamilyView` named as the family-row twin; a stray full stop).
+  Notes: move `habitRowTaps` to its own file if a third user appears;
+  `habitsRead.ts`, `dashboardLayout.test.ts`, `habitVocabulary.ts` and
+  `(home)/page.tsx` are each 50 to 65 lines under the soft cap.
+- **Vision (Fable): BLOCKED, 1.** `HabitTileRows` updates `held` at tap
+  time, so a failed save leaves a held-only row in a state the server never
+  had (check succeeds, refresh drops it, offline undo fails: row shows
+  undone under the error). Fix: update `held` in `useOptimisticRun`'s
+  onSuccess. Notes: a held-only row freezes its streak label one behind;
+  an archived habit stays until reload; the chained layout promise is
+  sound; `key` uses raw picks (harmless).
+- **Strange (Opus): PASS.** Both blockers fixed and 148, 149, 150, the
+  strip, the switch spacer, the dialog name, picks updating the tile and
+  open-kind picks all seen at 375 and 820, light and dark. Notes: the kept
+  row's streak lags (same as Vision's); one full page reload after a chore
+  skip in dev (likely the dev server's live reload; watch on the phone);
+  the dialog's height changes at 820; Today's dashed skip marker looks
+  tappable (pre-existing). Not covered: real finger drag, 150 with an
+  excuse, nudge and Sunday cards, flame at 2+, the tablet.
+
+### F2 - Held rows follow the server
+- **Status:** OPEN.
+- **Vision blocker:** in `HabitTileRows` (`src/components/HabitsTile.tsx`)
+  update `held` only on a successful save (`useOptimisticRun`'s third
+  argument); the optimistic change stays eager. Fix the `held` comment.
+- **Streak lag (both gates' note):** `loadDashboardHabits`
+  (`src/lib/habitsRead.ts`) also returns the viewer's full Today rows for
+  the tile's shown ids (or all of them), and `keepShownRows`
+  (`src/lib/habitsDashboard.ts`) prefers that server row for a shown id
+  the tile filter dropped, falling back to `held` only when the server no
+  longer has the row. Tests for both paths.
+- **Boundaries:** `src/components/HabitsTile.tsx`, `src/components/ChoresTile.tsx`,
+  `src/lib/habitsDashboard.ts` (+test), `src/lib/habitsRead.ts`,
+  `src/app/(app)/(home)/page.tsx` (passing the extra rows only). Must not
+  touch: `prisma/`, `.env*`, records.
+- **Verification:** full gauntlet in three zones, build EXIT=0.
