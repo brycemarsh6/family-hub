@@ -351,7 +351,23 @@ in PR B (mission 31).
     on, the target is 7 as usual.
 86. **A person added to the family later joins every Together habit
     automatically**, when their profile is created or turned back on.
-    Together means the whole household.
+    Together means the whole household. (Refined by 87.)
+
+### After the PR B mock (Bryce, 2026-11-05: "I like those recommendations")
+
+87. **Together and Side by side let you pick people.** The people picker
+    has an "Everyone" button that picks every active person who isn't the
+    family tablet. Only habits made with Everyone are flagged to include
+    the whole family, and only those add a new or reactivated person
+    automatically (this narrows 86). A couple habit like the temple stays
+    two people.
+88. **The PR B mock is approved** with its wording as drawn: "Skip today",
+    "Swipe a row left to skip it for today.", "Tap a row to edit. Drag the
+    grip to reorder.", the Private hint ("Only you see it: not on the
+    family tablet, other screens or nudges") and the Archive hint
+    ("Archive keeps its history and can be brought back."). The nudge
+    banner, plan-a-day card and streak numbers drawn on Today are PRs C
+    and E.
 
 ## Open questions
 
