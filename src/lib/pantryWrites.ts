@@ -92,12 +92,25 @@ export async function setPantryQuantity(
 }
 
 /**
- * Retry budget for a contended adjust; see adjustPantryQuantity. Every lost
- * round means some other writer won, so N simultaneous adjusters need at most
+ * Retry budget for a contended write; see adjustPantryQuantity. Every lost
+ * round means some other writer won, so N simultaneous writers need at most
  * N rounds; ten covers a burst of ten (measured: at five, half of ten
  * parallel adjusts gave up) while still bounding a pathological loop.
  */
 const MAX_ADJUST_ATTEMPTS = 10;
+
+/** Prisma's "the row this write was keyed on is gone or moved on" error. */
+function isNoMatch(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: unknown }).code === "P2025"
+  );
+}
+
+/** A little jitter keeps the losers of a race from retrying in step. */
+const lostRaceJitter = () =>
+  new Promise((resolve) => setTimeout(resolve, Math.random() * 25));
 
 /**
  * Relative change: floor 0, 2dp, restockedAt on increase. Null if missing,
@@ -107,10 +120,13 @@ const MAX_ADJUST_ATTEMPTS = 10;
  * delta, write the total" loses updates when two callers adjust the same row
  * at once (ten parallel +1s ended at +2 in testing), and READ COMMITTED means
  * wrapping it in a transaction doesn't help. So the write is conditional on
- * the quantity still being what we read — `updateMany` with the old value in
- * its WHERE — and when another writer got there first (count 0) we re-read and
- * try again. Past the attempt budget the caller is told to retry rather than the
- * loop spinning.
+ * the row still being what we read (`updatedAt` and `quantity` in its WHERE),
+ * and when another writer got there first we re-read and try again. Past the
+ * attempt budget the caller is told to retry rather than the loop spinning.
+ *
+ * `beforeRow` / `row` are the whole row exactly as this write replaced it and
+ * left it: the `update` that wins returns its own row, so no later writer can
+ * slip in between the write and the copy (the audit log's undo copies).
  *
  * `client` defaults to `db`; a bulk caller passes its `$transaction` client so
  * every adjustment commits or rolls back together.
@@ -118,45 +134,28 @@ const MAX_ADJUST_ATTEMPTS = 10;
 export async function adjustPantryQuantity(
   id: string,
   delta: number,
-  client?: Prisma.TransactionClient,
-): Promise<{ before: number; after: number; row: PantryItem } | null | "conflict">;
-/** `{ returnRow: false }` skips the post-write re-read: `before`/`after` only. */
-export async function adjustPantryQuantity(
-  id: string,
-  delta: number,
-  client: Prisma.TransactionClient,
-  options: { returnRow: false },
-): Promise<{ before: number; after: number } | null | "conflict">;
-export async function adjustPantryQuantity(
-  id: string,
-  delta: number,
   client: Prisma.TransactionClient = db,
-  options: { returnRow?: boolean } = {},
-) {
+): Promise<
+  { before: number; after: number; beforeRow: PantryItem; row: PantryItem } | null | "conflict"
+> {
   for (let attempt = 0; attempt < MAX_ADJUST_ATTEMPTS; attempt++) {
-    const current = await client.pantryItem.findUnique({
-      where: { id },
-      select: { quantity: true },
-    });
-    if (!current) return null;
+    const beforeRow = await client.pantryItem.findUnique({ where: { id } });
+    if (!beforeRow) return null;
 
-    const before = current.quantity;
+    const before = beforeRow.quantity;
     const after = Math.max(0, round2(before + delta));
 
-    const { count } = await client.pantryItem.updateMany({
-      where: { id, quantity: before },
-      data: { quantity: after, ...restockedIfRose(before, after) },
-    });
-    if (count === 0) {
-      // Lost the race. A little jitter keeps the losers from retrying in step.
-      await new Promise((resolve) => setTimeout(resolve, Math.random() * 25));
-      continue;
+    try {
+      const row = await client.pantryItem.update({
+        where: { id, updatedAt: beforeRow.updatedAt, quantity: before },
+        data: { quantity: after, ...restockedIfRose(before, after) },
+      });
+      return { before, after, beforeRow, row };
+    } catch (error) {
+      if (!isNoMatch(error)) throw error;
+      // Lost the race (or the row was deleted: the next read says null).
+      await lostRaceJitter();
     }
-
-    if (options.returnRow === false) return { before, after };
-    const row = await client.pantryItem.findUnique({ where: { id } });
-    if (!row) return null; // deleted between our write and this read
-    return { before, after, row };
   }
   return "conflict" as const;
 }
@@ -166,7 +165,12 @@ export async function adjustPantryQuantity(
  * field (a full replace, so behaviour there is unchanged); the API may pass
  * a partial patch — an omitted field is left untouched. `expiresAt: null`
  * clears the date, `undefined` leaves it. A name that trims to empty is
- * ignored rather than written; callers reject it up front. Null if missing.
+ * ignored rather than written; callers reject it up front. Null if missing,
+ * "conflict" if the row kept changing underneath us.
+ *
+ * Returns the whole row before and after (the audit log's undo copies). Same
+ * compare-and-set as adjustPantryQuantity: the write is keyed on the `updatedAt`
+ * we read, so `before` is exactly what this edit replaced.
  */
 export async function editPantryItem(
   id: string,
@@ -180,42 +184,48 @@ export async function editPantryItem(
     expiresAt?: Date | null;
   },
 ) {
-  const current = await db.pantryItem.findUnique({
-    where: { id },
-    select: { quantity: true },
-  });
-  if (!current) return null;
-
   const name = changes.name?.trim();
   const quantity =
     changes.quantity === undefined
       ? undefined
       : Math.max(0, round2(changes.quantity));
 
-  return db.pantryItem.update({
-    where: { id },
-    data: {
-      ...(name ? { name } : {}),
-      ...(quantity !== undefined ? { quantity } : {}),
-      ...(changes.unit !== undefined
-        ? { unit: changes.unit?.trim() || null }
-        : {}),
-      ...(changes.category !== undefined
-        ? { category: toCategory(changes.category) }
-        : {}),
-      ...(changes.location !== undefined
-        ? { location: toLocation(changes.location) }
-        : {}),
-      ...(changes.lowThreshold !== undefined
-        ? { lowThreshold: Math.max(0, round2(changes.lowThreshold)) }
-        : {}),
-      ...(changes.expiresAt !== undefined
-        ? { expiresAt: changes.expiresAt }
-        : {}),
-      // Same "went up = restocked" rule as the quantity stepper.
-      ...(quantity !== undefined ? restockedIfRose(current.quantity, quantity) : {}),
-    },
-  });
+  for (let attempt = 0; attempt < MAX_ADJUST_ATTEMPTS; attempt++) {
+    const before = await db.pantryItem.findUnique({ where: { id } });
+    if (!before) return null;
+
+    try {
+      const after = await db.pantryItem.update({
+        where: { id, updatedAt: before.updatedAt },
+        data: {
+          ...(name ? { name } : {}),
+          ...(quantity !== undefined ? { quantity } : {}),
+          ...(changes.unit !== undefined
+            ? { unit: changes.unit?.trim() || null }
+            : {}),
+          ...(changes.category !== undefined
+            ? { category: toCategory(changes.category) }
+            : {}),
+          ...(changes.location !== undefined
+            ? { location: toLocation(changes.location) }
+            : {}),
+          ...(changes.lowThreshold !== undefined
+            ? { lowThreshold: Math.max(0, round2(changes.lowThreshold)) }
+            : {}),
+          ...(changes.expiresAt !== undefined
+            ? { expiresAt: changes.expiresAt }
+            : {}),
+          // Same "went up = restocked" rule as the quantity stepper.
+          ...(quantity !== undefined ? restockedIfRose(before.quantity, quantity) : {}),
+        },
+      });
+      return { before, after };
+    } catch (error) {
+      if (!isNoMatch(error)) throw error;
+      await lostRaceJitter();
+    }
+  }
+  return "conflict" as const;
 }
 
 /**

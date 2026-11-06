@@ -19,7 +19,7 @@ export const POST = assistantRoute({
       location: body.location,
       expiresAt: zoneMidnightInstant(addCalendarDays(today, body.daysGood), HOUSEHOLD_TIME_ZONE),
     });
-    changes.push({ model: "PantryItem", recordId: row.id, action: "create", summary: body });
+    changes.push({ model: "PantryItem", recordId: row.id, action: "create", summary: body, before: null, after: row });
 
     return {
       status: 201,

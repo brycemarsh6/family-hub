@@ -1,6 +1,7 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { ApiError, notFound } from "@/lib/assistant/errors";
 import { bulkAdjustBody } from "@/lib/assistant/schemas";
+import type { PantryItem } from "@/generated/prisma/client";
 import { adjustPantryQuantity } from "@/lib/pantryWrites";
 import { db } from "@/lib/db";
 
@@ -31,16 +32,16 @@ export const POST = assistantRoute({
     const order = body.adjustments.map((adj, index) => ({ adj, index }));
     order.sort((a, b) => (a.adj.id < b.adj.id ? -1 : a.adj.id > b.adj.id ? 1 : 0));
     const results = await db.$transaction(async (tx) => {
-      const out: { id: string; before: number; after: number }[] = new Array(order.length);
+      const out: { id: string; before: number; after: number; beforeRow: PantryItem; row: PantryItem }[] =
+        new Array(order.length);
       for (const { adj, index } of order) {
-        // No post-write re-read: the response needs only before/after.
-        const r = await adjustPantryQuantity(adj.id, adj.delta, tx, { returnRow: false });
+        const r = await adjustPantryQuantity(adj.id, adj.delta, tx);
         if (!r) throw notFound();
         // Throwing inside $transaction rolls back every adjustment so far.
         if (r === "conflict") {
           throw new ApiError(409, "conflict", "An item changed while we were updating it; nothing was changed. Try again.", { id: adj.id });
         }
-        out[index] = { id: adj.id, before: r.before, after: r.after };
+        out[index] = { id: adj.id, before: r.before, after: r.after, beforeRow: r.beforeRow, row: r.row };
       }
       return out;
     });
@@ -56,9 +57,11 @@ export const POST = assistantRoute({
           after: results[i].after,
           reason: adj.reason ?? null,
         },
+        before: results[i].beforeRow,
+        after: results[i].row,
       });
     });
 
-    return { data: { results } };
+    return { data: { results: results.map(({ id, before, after }) => ({ id, before, after })) } };
   },
 });
