@@ -168,10 +168,46 @@
 - **Done criteria:** gauntlet green; every live check matches; both files
   under 350 lines; no file outside the boundary in `git diff --stat`.
 
+### U1, the copy format
+
+- **Objective:** an `AssistantChange` can carry a full before and after copy
+  of the row, stored inside `summary` as version-2 JSON, without changing
+  what `GET /audit` shows.
+- **Boundaries.** May touch: `src/lib/assistant/audit.ts`,
+  `src/app/api/assistant/v1/audit/route.ts`, new
+  `src/lib/assistant/changeCopy.ts` (pure) and new
+  `src/lib/assistant/changeCopy.test.ts`. Must not touch anything else
+  (L1 is editing the grocery/put-away files at the same time; a type error
+  there is not yours, say so and move on). No live server, no `.env`.
+- **Work:**
+  1. `ChangeInput` gains optional `before` and `after`
+     (`Record<string, unknown> | null`). Existing callers compile unchanged.
+  2. `changeCopy.ts` (pure): `encodeChangeSummary({ detail, before, after })`
+     returns the stored text `{"v":2,"detail":…,"before":…,"after":…}`
+     (Dates as ISO strings); `decodeChangeSummary(text)` returns
+     `{ version: 1 | 2, detail, before, after }`, treating any text that is
+     not a v2 object as version 1 with `detail` = the parsed JSON and
+     `before`/`after` = undefined. Never throws on old rows.
+  3. `finishRequest` stores a change as v2 only when the caller supplied
+     `before` or `after`; otherwise it stores today's plain JSON. So
+     "undoable" means exactly "has copies".
+  4. `GET /audit` shows `summary` = `detail` (byte-identical response for
+     old rows and for v2 rows), plus `undoable: boolean` per change
+     (true only for v2). Copies are not exposed in `GET /audit`.
+- **Verification:** gauntlet (tsc, eslint, `npm test`, both TZ legs).
+  Tests: round trip with a Date field; an old plain-JSON summary decodes as
+  v1 with identical `detail`; `null` summary; a string that is valid JSON
+  but not an object; a v2 object missing keys decodes safely.
+- **Evidence required:** test names and counts before/after; `git diff
+  --stat`; the new `audit.ts` `finishRequest` body.
+- **Done criteria:** gauntlet green; only boundary files changed;
+  `GET /audit` handler change is additive (`undoable`) only.
+- **Commit rule (parallel builder in this worktree):** do NOT use `git add`;
+  commit with `git commit -m "<msg>" -- <your paths>` so only your paths
+  are recorded whatever else is staged.
+
 ### Later contracts (outline, full text before each dispatch)
 
-- **U1, the copy format:** `audit.ts` (`ChangeInput` gains `before`/`after`,
-  v2 JSON), `audit/route.ts` (reads `detail`), tests.
 - **U2, inventory and leftovers capture copies:** `pantryWrites.ts` returns
   before/after from inside its writes; the five inventory/leftover routes
   pass them on.
