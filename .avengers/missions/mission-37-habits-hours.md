@@ -696,3 +696,20 @@ GoalDetail); decision 191's last-week line is still the stand-in.
    file under 350 except those already past it, which must not grow),
    `git diff --stat`.
 5. **Done criteria:** Vision and Captain re-run and pass.
+
+#### Strange, pass 1 (at 35a1fd6): PASS, 13 notes
+
+Phone 390x844 and iPad 820x1180, light and dark (forcing verified). Every
+target 48px or more and unoccluded; the sheet escapes the dashboard tile;
+the chart is to scale. Test data on dev, all named "zz m37" (four habits,
+one goal "zz m37 Commissions", their entries; Emily is on "zz m37
+Follow-up"): Bryce's cleanup list. Notes sent to F2 as **F2 Amendment 1**:
+clamp the sheet's day to the last 7 days and drop the "After this" line
+outside it; clear the sheet error when amount or day changes; the streak
+tiles wrap at 390px (unit into the label). Notes left for later: the Who
+hint says "checks" on an hours habit; the dashboard picker hint ("up to
+three habits due today") doesn't mention unmet hours habits; Today's
+"2 of 9 done" leaves hours rows out by design (decision 197); "Switched to
+hours on …" not seen (needs an older habit); the form stepper's + shifts
+10px from 9 to 10; This week's "1 of 4 done" mixes an hours item with
+check counts.
