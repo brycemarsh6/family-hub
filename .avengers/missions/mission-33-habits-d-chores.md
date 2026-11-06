@@ -244,6 +244,6 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
   place.
 
 ### F2 - VacationCard uses the hook
-- **Status:** PENDING
+- **Status:** DONE (Stark; 824 tests, build EXIT=0). Save and delete now share one pending flag and error line.
 - **Boundaries:** `src/components/VacationCard.tsx`, `STRUCTURE.md` (remove VacationCard from the leftover note).
 - **Rules:** save and delete go through `useOptimisticRun` (save with a null change, since the server may refuse), message from `SAVE_FAILED`; behaviour unchanged.

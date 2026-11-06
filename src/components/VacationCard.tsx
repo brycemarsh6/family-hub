@@ -1,10 +1,11 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
 import { Plane, Trash2 } from "lucide-react";
 import { deleteVacation, saveVacation } from "@/app/actions/vacations";
 import type { VacationItem } from "@/lib/choreChart";
 import { formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 const INPUT_CLASS = "min-h-12 rounded-xl border border-line bg-surface px-3 text-base text-fg";
 
@@ -29,40 +30,21 @@ const STATUS_LABELS = { current: "Now", upcoming: "Coming up", past: "Past" } as
  */
 export function VacationCard({ vacations, today }: { vacations: VacationItem[]; today: string }) {
   const [live, removeOne] = useOptimistic<VacationItem[], string>(vacations, (list, id) => list.filter((item) => item.id !== id));
-  const [saving, startSave] = useTransition();
-  const [, startDelete] = useTransition();
+  const { run, error, pending } = useOptimisticRun(removeOne);
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const thisYear = parseDateParam(today)?.year ?? new Date().getFullYear();
 
+  // No optimistic change: the server may refuse (Through before From, overlap), so wait for its answer.
   function turnOn() {
-    setError(null);
-    startSave(async () => {
-      try {
-        const result = await saveVacation(from, through);
-        if (result.error) setError(result.error);
-        else {
-          setFrom("");
-          setThrough("");
-        }
-      } catch {
-        setError("Couldn't save that. Check your connection and try again.");
-      }
+    run(null, () => saveVacation(from, through), () => {
+      setFrom("");
+      setThrough("");
     });
   }
 
   function remove(id: string) {
-    setError(null);
-    startDelete(async () => {
-      removeOne(id);
-      try {
-        const result = await deleteVacation(id);
-        if (result.error) setError(result.error);
-      } catch {
-        setError("Couldn't save that. Check your connection and try again.");
-      }
-    });
+    run(id, () => deleteVacation(id));
   }
 
   return (
@@ -90,7 +72,7 @@ export function VacationCard({ vacations, today }: { vacations: VacationItem[]; 
       <button
         type="button"
         onClick={turnOn}
-        disabled={saving}
+        disabled={pending}
         className="mt-3 inline-flex min-h-12 items-center justify-center rounded-full bg-accent px-5 text-base font-semibold text-accent-fg disabled:opacity-40"
       >
         Turn on vacation mode

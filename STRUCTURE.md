@@ -229,11 +229,11 @@ Adding a second definition of any of these is a BLOCKER:
   action, show `result.error`, catch a network failure with the one exported
   `SAVE_FAILED` message). Every component that taps and saves
   (`HabitTodayList`, `HabitFamilyView`, `HabitStats`, `NudgeCard`,
-  `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`)
+  `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
+  `VacationCard`)
   calls it with the action as a closure, so lib never imports `app/`. A second
   copy of that shape, or the message typed again, is a BLOCKER. Left out on
-  purpose, to move over later: `VacationCard` (two inline copies) and the
-  differently worded saves in `DashboardWidgetList`, `HabitsChoresSettings`,
+  purpose, to move over later: the differently worded saves in `DashboardWidgetList`, `HabitsChoresSettings`,
   `NavModeSetting` and `NudgeButton`.
 
 - `src/lib/constants.ts` — categories, locations, meal slots, stores,
