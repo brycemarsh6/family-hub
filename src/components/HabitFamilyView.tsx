@@ -1,45 +1,13 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import Link from "next/link";
-import { User, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { FamilyHabitRow, HabitFamilyColumn } from "./HabitFamilyColumn";
 import { checkHabit, uncheckHabit } from "@/app/actions/habitChecks";
 import type { HabitActionResult } from "@/app/actions/habits";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { FamilyPage, FamilyRow } from "@/lib/habitsFamily";
 import { formatCalendarDate } from "@/lib/householdDate";
-
-/**
- * The "Mine" / "Whole family" switch (decision 95) above both views. The choice
- * is the URL (`/habits` or `/habits?view=family`), so a refresh or a shared link
- * lands on the same view. Same pill look as `HabitFilterChips`, but links.
- */
-export function HabitViewChips({ view }: { view: "mine" | "family" }) {
-  const chips = [
-    { key: "mine", label: "Mine", href: "/habits", icon: User },
-    { key: "family", label: "Whole family", href: "/habits?view=family", icon: Users },
-  ] as const;
-  return (
-    <div role="group" aria-label="Whose habits" className="mb-4 flex gap-2">
-      {chips.map(({ key, label, href, icon: Icon }) => (
-        <Link
-          key={key}
-          href={href}
-          replace
-          scroll={false}
-          aria-current={view === key ? "page" : undefined}
-          className={`flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors ${
-            view === key ? "border-accent bg-accent text-accent-fg" : "border-line bg-surface text-muted"
-          }`}
-        >
-          <Icon aria-hidden="true" size={16} />
-          {label}
-        </Link>
-      ))}
-    </div>
-  );
-}
 
 /** A tap applied to every place the habit shows: the strip and each column (an Each habit's `userId` keeps it to one person's own flags). */
 function applyToPage(page: FamilyPage, change: HabitChange): FamilyPage {
@@ -100,7 +68,7 @@ export function HabitFamilyView({ page, showStreaks }: { page: FamilyPage; showS
           <ul className="flex flex-col divide-y divide-line sm:flex-row sm:flex-wrap sm:divide-y-0 sm:gap-x-8">
             {live.together.map((row) => (
               <li key={row.id} className="sm:min-w-64">
-                <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => toggle(row)} />
+                <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => toggle(row)} together />
               </li>
             ))}
           </ul>

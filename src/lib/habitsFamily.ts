@@ -103,7 +103,9 @@ function familyRow(row: HabitRowView, viewer: HabitActor, logForId: string): Fam
 }
 
 /**
- * The family page (decision 95). Private and archived habits never appear.
+ * The family page (decision 95). Private and archived habits never appear as
+ * rows; a person's private chores still count toward the chore streak and the
+ * Sunday line, which leave as a number and a flag (decision 78).
  * Together habits go in the strip (one row each, ticked for the viewer when
  * they are on it, else for the first member); every other habit goes in each
  * participant's column, in that person's own order. `people` are the active
@@ -138,7 +140,8 @@ export function buildFamilyPage(
       .filter((row) => row.participants.some((p) => p.userId === person.id))
       .map((row) => row.id);
     const { done, total } = doneCounts(countedRows({ rows, togetherIds }, together));
-    const header = choreHeader(person.id, shown, logsByHabit, today, vacationsByUser.get(person.id) ?? [], choreCaches.get(person.id) ?? { current: 0, best: 0, asOf: null });
+    // The chore streak and the Sunday line read every one of the person's chores, private ones included; only the number and the flag leave (decision 78).
+    const header = choreHeader(person.id, habits, logsByHabit, today, vacationsByUser.get(person.id) ?? [], choreCaches.get(person.id) ?? { current: 0, best: 0, asOf: null });
     return { ...person, rows, togetherIds, doneCount: done, totalCount: total, choreStreak: header.choreStreak, shoutOut: header.shoutOut, onVacation: header.vacationThrough !== null };
   });
   return { today: formatCalendarDate(today), together, columns };

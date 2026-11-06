@@ -6,7 +6,8 @@ import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { LogButton } from "./LogButton";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
-import { ANYTIME_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
+import { ANYTIME_LABEL, ON_VACATION_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
+import { isExcused } from "@/lib/habits/weekOverrides";
 import type { HabitRowView } from "@/lib/habitsRead";
 import { dayOfWeek } from "@/lib/householdDate";
 import { FULL_DAY_NAMES, formatDayLabel } from "@/lib/mealPlanDates";
@@ -41,7 +42,8 @@ export function HabitRow({
   /** The viewer's "Show streaks" switch; the family tablet always passes true (decision 98). */
   showStreaks: boolean;
 }) {
-  const finished = row.doneToday || row.skippedToday;
+  // Excused rows (skipped, on vacation, skipped this week) look finished too (decision 115).
+  const finished = row.doneToday || isExcused(row);
   // Side by side: show the other people who have already done theirs.
   const othersDone = row.sharing === "each" ? row.participants.filter((p) => p.userId !== row.viewerId && p.done) : [];
   const streak = showStreaks && row.streakLabel ? (
@@ -92,6 +94,7 @@ export function HabitRow({
             <span className={`text-base font-semibold ${finished ? "text-muted" : ""}`}>{row.title}</span>
             {row.mode === "quit" && <span className={QUIT_TAG_CLASS}>Quit</span>}
             {row.carriedFrom && !row.doneToday && <span className={TAG_CLASS}>Carried over</span>}
+            {row.weekTag && <span className={QUIT_TAG_CLASS}>{row.weekTag}</span>}
           </div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted">
             {row.carriedFrom && !row.doneToday ? (
@@ -105,6 +108,8 @@ export function HabitRow({
                 <span>{SKIPPED_TODAY_LABEL}</span>
                 {streak}
               </>
+            ) : row.onVacation && !row.doneToday ? (
+              <span>{ON_VACATION_LABEL}</span>
             ) : (
               <>
                 {shownPeople.map((p) => (

@@ -103,8 +103,9 @@ export async function loadHabitStats(
 
 /**
  * The family view: the Together strip and one column per active non-device
- * person (`householdPeople.ts` decides who). Private and archived habits are
- * never fetched. Queries: the household people and the habits with their
+ * person (`householdPeople.ts` decides who). Archived habits are never
+ * fetched; private ones are, but only feed the chore streak numbers, never a
+ * row (decision 78). Queries: the household people and the habits with their
  * participants; then the checks (fourteen days back, as Today), the people's
  * vacations, avatar colors and chore streaks.
  */
@@ -112,7 +113,8 @@ export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): P
   const [household, habits] = await Promise.all([
     loadHouseholdPeople(),
     db.habit.findMany({
-      where: { isPrivate: false, archivedAt: null },
+      // Private chores are fetched too, only for the chore streak numbers: the builder never makes a row of a private habit (decision 78).
+      where: { archivedAt: null },
       include: {
         // The last two weeks of this-week changes, as on Today.
         weekOverrides: { where: { weekStart: { gte: utcMidnightInstant(startOfWeek(addCalendarDays(today, -CARRY_LOOKBACK_DAYS))) } } },

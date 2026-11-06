@@ -2,11 +2,12 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Check, Flame } from "lucide-react";
+import { Check, Flame, Plane, Trophy } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { LogButton } from "./LogButton";
-import { SKIPPED_TODAY_LABEL } from "@/lib/habitVocabulary";
+import { isExcused } from "@/lib/habits/weekOverrides";
+import { CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, SKIPPED_TODAY_LABEL } from "@/lib/habitVocabulary";
 import { countedRows, doneCountLabel, type FamilyColumn, type FamilyRow } from "@/lib/habitsFamily";
 
 const TITLE_CLASS = "flex min-h-11 min-w-0 flex-1 items-center gap-2.5 self-stretch";
@@ -28,26 +29,32 @@ function TitleArea({ row, children }: { row: FamilyRow; children: ReactNode }) {
  * viewer may tick for gets the same round check as Today, named for the person
  * whose it is ("Mark Run done for Emily"); a row they may not
  * shows its state in a plain marker that is not a button. A skipped row shows
- * the same dashed marker as Today and reads "Skipped today" (101).
+ * the same dashed marker as Today and reads "Skipped today" (101). A row on
+ * vacation reads "On vacation" (115), and a week skip or move carries its tag.
+ * A Together row's check does not name one person (`together`): it is the
+ * family's, ticked for whoever the tap lands on.
  */
 export function FamilyHabitRow({
   row,
   showStreaks,
   onToggle,
+  together = false,
 }: {
   row: FamilyRow;
   showStreaks: boolean;
   onToggle: () => void;
+  /** True in the Together strip: the check's name leaves out the person. */
+  together?: boolean;
 }) {
-  const finished = row.doneToday || row.skippedToday;
+  const finished = row.doneToday || isExcused(row);
   const showProgress = row.dueState === "open" && row.progress && row.progress.target > 1 && !row.doneToday;
-  const meta = row.skippedToday
-    ? SKIPPED_TODAY_LABEL
-    : row.carriedFrom && !row.doneToday
-      ? "Carried over"
-      : showProgress
-        ? `${row.progress!.count} of ${row.progress!.target} ${row.progress!.label}`
-        : null;
+  const progressLabel = showProgress ? `${row.progress!.count} of ${row.progress!.target} ${row.progress!.label}` : null;
+  const meta =
+    (row.skippedToday ? SKIPPED_TODAY_LABEL : null) ??
+    (row.onVacation && !row.doneToday ? ON_VACATION_LABEL : null) ??
+    row.weekTag ??
+    (row.carriedFrom && !row.doneToday ? "Carried over" : null) ??
+    progressLabel;
   const streak = showStreaks && row.streakLabel;
   // The check names whose it is, because a card holds several people's rows (and a parent or the tablet taps for others).
   const who = row.participants.find((p) => p.userId === row.logForId)?.displayName ?? "them";
@@ -72,7 +79,7 @@ export function FamilyHabitRow({
       {row.skippedToday ? (
         <LogButton done={false} label={row.title} idle="empty" skipped onClick={onToggle} />
       ) : row.canLog ? (
-        <LogButton done={row.doneToday} label={row.title} forName={who} idle="empty" onClick={onToggle} />
+        <LogButton done={row.doneToday} label={row.title} forName={together ? undefined : who} idle="empty" onClick={onToggle} />
       ) : (
         <span
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
@@ -89,8 +96,9 @@ export function FamilyHabitRow({
 
 /**
  * One person's card on the family view: avatar, name, "x of y done" (their own rows and the
- * Together ones they are on; skipped rows are in neither number, 109), then Habits and Chores. No flame in the
- * header until PR D's chore streak (95).
+ * Together ones they are on; excused rows are in neither number, 109, 115), then Habits and Chores. The
+ * chore streak is a flame after the "Chores" title (120); a person on vacation reads "On vacation" under
+ * their name; on a Sunday after a clean week the card says so (122).
  */
 export function HabitFamilyColumn({
   column,
@@ -115,13 +123,30 @@ export function HabitFamilyColumn({
         <AvatarBadge displayName={column.displayName} avatarColor={column.avatarColor} size={40} />
         <div className="flex min-w-0 flex-col">
           <h2 className="truncate text-lg font-bold leading-tight">{column.displayName}</h2>
-          <span className="text-sm text-muted">{doneCountLabel(countedRows(column, together))}</span>
+          <span className="text-sm text-muted">
+            {column.onVacation ? ON_VACATION_LABEL : doneCountLabel(countedRows(column, together))}
+          </span>
         </div>
+        {column.onVacation && <Plane aria-hidden="true" size={18} className="ml-auto shrink-0 text-muted" />}
       </div>
+      {column.shoutOut && (
+        <p className="mb-1 flex items-center gap-2 rounded-xl bg-streak-soft px-3 py-2 text-sm font-semibold">
+          <Trophy aria-hidden="true" size={16} className="shrink-0 text-streak" />
+          {CHORES_LAST_WEEK_FAMILY}
+        </p>
+      )}
       {sections.length === 0 && <p className="py-2 text-sm text-muted">Nothing due today.</p>}
       {sections.map((section) => (
         <div key={section.key}>
-          <h3 className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted">{section.title}</h3>
+          <h3 className="flex items-center gap-2 pt-1 text-xs font-semibold uppercase tracking-wide text-muted">
+            {section.title}
+            {section.key === "chore" && showStreaks && column.choreStreak >= 2 && (
+              <span className="inline-flex items-center gap-0.5 text-sm font-semibold normal-case tracking-normal text-streak">
+                <Flame aria-hidden="true" size={14} />
+                {column.choreStreak} days
+              </span>
+            )}
+          </h3>
           <ul className="divide-y divide-line">
             {section.rows.map((row) => (
               <li key={row.id}>

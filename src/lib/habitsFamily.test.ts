@@ -394,3 +394,24 @@ test("buildFamilyPage: a chore row carries no streak label (decision 120)", () =
   assert.equal(page.columns[0].rows[0].streak, 9);
   assert.equal(page.columns[0].rows[0].streakLabel, null);
 });
+
+test("buildFamilyPage: a private chore feeds the card's chore streak and Sunday flag but never makes a row (decision 78)", () => {
+  const sunday = d(2026, 11, 8);
+  const secret = habit({ id: "secret", kind: "chore", isPrivate: true, schedule: "weekdays", weekdays: "1000000", participants: [member("ben")] });
+  const shared = habit({ id: "shared", kind: "chore", schedule: "weekdays", weekdays: "1000000", participants: [member("ben")] });
+  const cache = { current: 3, best: 3, asOf: sunday };
+  const doneLast = (id: string) => [id, [log("ben", d(2026, 11, 1))]] as [string, HabitLogDay[]];
+
+  // Only the private chore was due and done last week: the flag still shows, with no row anywhere.
+  const only = buildFamilyPage(amy, [secret], people, logs([doneLast("secret")]), sunday, new Map(), new Map([["ben", cache]]));
+  const benOnly = only.columns.find((c) => c.id === "ben")!;
+  assert.deepEqual([benOnly.choreStreak, benOnly.shoutOut], [3, true]);
+  assert.equal(benOnly.rows.length, 0);
+  assert.equal(only.together.length, 0);
+
+  // The public chore was done but the private one was missed: the card must not claim a clean week.
+  const mixed = buildFamilyPage(amy, [shared, secret], people, logs([doneLast("shared")]), sunday, new Map(), new Map([["ben", cache]]));
+  const benMixed = mixed.columns.find((c) => c.id === "ben")!;
+  assert.equal(benMixed.shoutOut, false);
+  assert.deepEqual(benMixed.rows.map((row) => row.id), ["shared"]);
+});

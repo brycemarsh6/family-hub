@@ -197,7 +197,7 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
   A loader for the Settings vacation list (123 order).
 
 ### C4 - The chart page
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran tsc, eslint, 824 tests, build EXIT=0). `chart/page.tsx`, `ChoreChart.tsx` (277), `ChoreChartSheet.tsx`, the Manage row in `HabitManager.tsx`. **Debt:** its `useActionState` reducer repeats the `run()` shape with a reworded failure message, so it is a ninth copy in all but the grep; F1 replaces every copy with one hook.
 - **Boundaries:** new `src/app/(app)/habits/chart/page.tsx`, new
   `src/components/ChoreChart.tsx` (and a sheet component if needed),
   `src/app/(app)/habits/manage/page.tsx` or `HabitManager.tsx` (the Manage
@@ -206,7 +206,7 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
   `/habits`; optimistic updates; 44px targets.
 
 ### C5 - Today, family view and Settings
-- **Status:** PENDING
+- **Status:** DONE (Stark; same gauntlet). `VacationCard.tsx`, `HabitViewChips.tsx` (own file), chore flame, vacation and Sunday lines on Today and the family card; private chores count toward the family-card streak and Sunday flag without leaving the server. Notes: the flame sits after the title (120) where the Dashboard board right-aligns it; `habitsFamily.test.ts` is 396 lines; STRUCTURE.md still says a column header has no flame (C6).
 - **First:** `loadFamilyPage` computes each person's chore streak and Sunday flag from all their chores, private included; only the number and the flag leave the server, never a private chore's row (78). Boundary adds `src/lib/habitsStatsRead.ts` and `src/lib/habitsFamily.ts` and test for this.
 - **Boundaries:** `HabitTodayList.tsx`, `HabitRow.tsx`,
   `HabitFamilyColumn.tsx`, `HabitFamilyView.tsx`, `NudgeCard.tsx` (only if
@@ -221,3 +221,25 @@ for every would-be Bryce decision. Banner ran once. 3 passes per gate.
 - Mission file, plan, CLAUDE.md status and Bryce's checklist, STRUCTURE.md
   homes for `weekOverrides.ts`, `choreStreak.ts`, `choreWrites.ts`,
   `vacationWrites.ts`, `choreChart.ts`, the new actions and components.
+
+### F1 - One optimistic tap hook (PR C debt, before the gates)
+- **Status:** PENDING
+- **Objective:** STRUCTURE.md's "optimistic tap wrapper" debt entry: one
+  client hook in `src/lib/` that takes the action as a closure, with the
+  failure message as one exported constant, used by every copy, so no copy
+  is left.
+- **Boundaries:** new `src/lib/useOptimisticRun.ts` (or the name the debt
+  entry implies), `HabitTodayList.tsx`, `HabitFamilyView.tsx`,
+  `HabitStats.tsx`, `NudgeCard.tsx`, `ThisWeekList.tsx`, `VisionBoard.tsx`,
+  `HabitManager.tsx`, `GoalDetail.tsx`, `ChoreChart.tsx`, `STRUCTURE.md`
+  (turn the debt entry into the rule: the hook is the only home), plus a
+  split of `src/lib/habitsFamily.test.ts` into two files by subject (the
+  test glob already covers `src/lib/*.test.ts`).
+- **Rules:** behaviour unchanged for every caller (same optimistic change,
+  same error display, same message words: "Couldn't save that. Check your
+  connection and try again."). Other app files with a `run(` of a different
+  shape (MealPlanList, ExpiringList, PantryList, GroceryList) are out of
+  scope; note them.
+- **Verification:** full gauntlet; `git grep` shows the message in one
+  place.
+
