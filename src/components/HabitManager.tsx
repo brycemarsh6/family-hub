@@ -2,7 +2,7 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
-import { Archive, ChevronRight, Plus, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { Archive, CalendarDays, ChevronRight, Plus, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { HabitIcon } from "./HabitIcon";
 import { QUIT_TAG_CLASS } from "./HabitRow";
@@ -10,6 +10,7 @@ import { SortableList } from "./SortableList";
 import { reorderHabits, restoreHabit, type HabitActionResult } from "@/app/actions/habits";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import {
+  CHORE_CHART_LABELS,
   HABIT_SCHEDULE_SHORT_LABELS,
   TIME_OF_DAY_LABELS,
   habitWhoLabel,
@@ -175,6 +176,17 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
             </section>
           ),
       )}
+
+      <Link href="/habits/chart" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5`}>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
+          <CalendarDays aria-hidden="true" size={20} />
+        </div>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-base font-semibold">{CHORE_CHART_LABELS.title}</span>
+          <span className="text-sm text-muted">{CHORE_CHART_LABELS.manageHint}</span>
+        </span>
+        <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+      </Link>
 
       {state.archived.length > 0 && (
         <section>
