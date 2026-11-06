@@ -274,6 +274,7 @@ dev table, so the migration must be applied to dev (Bryce's yes) first.
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Vision | PASS (a123a3d) | none | 6 notes, below |
+| 1 | Strange | BLOCKED (5932ab0) | 3 (dark screenshot, stale error, long-page screenshot dropped) | 6 notes |
 | 1 | Captain | BLOCKED (9303f2b) | 2 (date formatting) | 9 notes; STRUCTURE.md amendment drafted, applied pre-merge |
 
 Vision pass 1 notes (to batch into the fix contract with any later gate
@@ -329,3 +330,43 @@ door row; iPad canvas limit on long pages (device check).
   empty states use `EmptyState` if it fits (else note why).
 - **Verification:** tsc, `npx eslint .`, `npm test`, the UTC direct run,
   `npm run build`, all green.
+
+Strange pass 1 (5932ab0, dev server on port 3038, 3 "zz m38" rows sent and
+deleted, Bryce's dev Menu style restored): BLOCKED.
+1. Screenshot paints a white background (`<main>` is transparent), so a
+   dark-mode page arrives with near-invisible text.
+2. "Write a message first." stays after the person types.
+3. On the expanded Inventory page the screenshot silently fails (the whole
+   `<main>` redraw passes the 4 s limit) while the sheet said it would be
+   included.
+Notes taken into F2: neutral Done emoji, accent "N new" badge, page shown by
+its drawer name. Deferred: Mark done button inside the detail sheet
+(for Bryce), emoji dropped from screenshots (library limit), Delete has
+no pending state (existing SwipeActions), device-login card and real iPad
+user agent (Bryce's device checklist).
+
+### F2 - screenshot truth and the stale error
+- **Status:** PENDING
+- **Boundaries:** may touch: `src/lib/captureScreenshot.ts`,
+  `src/components/FeedbackSheet.tsx`, `src/components/FeedbackList.tsx`,
+  `src/components/FeedbackRow.tsx`, `src/components/FeedbackDetailSheet.tsx`,
+  `src/app/(app)/settings/page.tsx` (badge classes only), `src/lib/nav.ts`,
+  `src/lib/nav.test.ts` · must not touch: everything else.
+- **Work:**
+  1. Capture paints the page's real background: read
+     `getComputedStyle(document.body).backgroundColor`, pass it as
+     `backgroundColor` to html-to-image and use it as the canvas fill (no
+     hard-coded colour).
+  2. Typing clears the error.
+  3. Capture renders only the visible window of `<main>` (width and height
+     of the visible rect plus a translate, and skip nodes far outside the
+     viewport), so expanded Inventory finishes inside 4 s. And if the person
+     wanted a screenshot and none was attached, the success state reads
+     "Sent without a screenshot" (muted), auto-close unchanged. (Wording by
+     Fury from Strange's suggestion; Bryce can overturn.)
+  4. Done empty-state emoji becomes a neutral one (📭).
+  5. Settings "N new" badge uses the accent soft style, not warn.
+  6. `nav.ts` gets `navLabelForPath(path)` (label of `activeNavHref`'s row,
+     else the raw path), with a test; list row and detail show it.
+- **Verification:** tsc, `npx eslint .`, `npm test`, the UTC direct run,
+  `npm run build`. Item 3 is proven by Strange on expanded Inventory.
