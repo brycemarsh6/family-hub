@@ -211,6 +211,9 @@ C1 and C2 have disjoint boundaries and run in parallel.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | BLOCKED | 3: hidden Filter keeps an invisible chip (HabitFamilyWide.tsx:39); filter-emptied column says "Nothing due today." (HabitFamilyWideColumn.tsx:71); FamilyOrderList ignores new props after add/deactivate (FamilyOrderList.tsx:16) | check+writes not one transaction (harmless); no runtime string[] guard; habitsRead.ts:281 comment still says "oldest profile first"; Together hours row cannot open its sheet (pre-existing); branch one commit behind main, sync before merge |
+| 1 | Captain | BLOCKED | 2: second habit filter rule in HabitFilterChips.tsx (STRUCTURE.md PR F: reportFilterOptions/matchesReportFilter are the one rule); tag words outside habitVocabulary.ts and `together` decided by display text (habitsFamilyColumns.ts:7-8, HabitFamilyWideColumn.tsx:84) | settings page should call loadHouseholdPeople (add avatarColor, un-export HOUSEHOLD_ORDER_BY); reuse countedRows in groupColumnRows; shared familyCountText; amendments A1 to A4 drafted |
+| 1 | Strange | BLOCKED | 4: hidden Filter keeps a chip (same as Vision); filter-emptied column says "Nothing due today." (same as Vision); tag text-muted on surface-2 is 4.33:1 light (HabitFamilyColumn.tsx:87); floating hamburger keeps max-w-3xl on the wide page, 206px off at 1180 (HamburgerButton.tsx:91) | chore flame unseen (no streak in dev data); Anytime has no icon; 80px FamilyList spacer gap; 41d hint over-claims; familyOrder now 0..4 on dev; dark scrollbars light (app-wide); layout, snap, column scroll, ?person, phone view, drag all verified |
 
 ## Handoff log
 
