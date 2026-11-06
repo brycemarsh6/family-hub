@@ -883,8 +883,8 @@ Adding a second definition of any of these is a BLOCKER:
   reads with `has-[[…]]:`**, never a page reaching into the chrome. Two
   exist: `data-fills-viewport` (the calendar's hour timeline: `<main>` drops
   its bottom padding) and `data-fills-width` (Whole family's columns,
-  mission-41: from `md` up, `<main>` lifts the 768px cap, drops the bottom
-  padding and is exactly one screen tall so only the columns scroll; the
+  mission-41: from `md` up, `<main>` lifts the 768px cap, shrinks the
+  bottom padding to `pb-3` and is exactly one screen tall so only the columns scroll; the
   floating hamburger's row lifts its cap too, so the button lines up). The
   `AppChrome.tsx` comment above `<main>` lists every attribute and its one
   user; a new opt-out adds itself there and here. (Mission-41, Captain's A4.)

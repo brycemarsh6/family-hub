@@ -219,6 +219,11 @@ Replace this section at the end of each session. Don't append.
   ("Ongoing" chip, tag and goal page; no pace line), and new goals open on
   "End of this year". Leftovers in
   `.avengers/missions/mission-38-goals-ongoing.md` (Delivery).
+- **Whole family columns (mission 41)** passed its gates on 2026-11-06 and
+  merges from branch `claude/habits-family-columns`: on the iPad, one 330px
+  column per person (swipe sideways), rows by time of day, Filter, and a
+  household order set by dragging on Manage family (`User.familyOrder`).
+  Leftovers in `.avengers/missions/mission-41-habits-family-columns.md`.
 - **Hill decides for Bryce** (`.claude/agents/hill.md`); merges don't wait
   for him. Phone tests go on Bryce's checklist below and never block.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
@@ -264,6 +269,10 @@ Replace this section at the end of each session. Don't append.
   and see the date box grey out; save and see the "Ongoing" tag on the
   card and "Ongoing" on its page. Scroll the Goals list to the very
   bottom: if the + still covers a card, screenshot it where it happens.
+- **Whole family iPad check** (about 5 minutes): Settings, Manage family,
+  drag the Family order into Bryce, Emily, Ledger, Eleanor, Lucy. Open
+  Habits & Chores, Whole family, in portrait and landscape: swipe sideways
+  with a finger, scroll one column, tap a check, try Filter.
 - **Delete the commented production `DATABASE_URL` line in `.env`**
   (host `ep-hidden-surf-`). It isn't used, but AGENTS.md says no dev
   machine should hold it. No agent edits `.env`.
@@ -277,8 +286,8 @@ Replace this section at the end of each session. Don't append.
 - **Optional:** confirm the family-hub origin in the desktop app (Help,
   Troubleshooting, Review Pinned Git Origins) so the app's merge button
   works. Delete the "zz m31" to "zz m35" test habits, the four
-  "zz m37" habits, the "zz m37 Commissions" goal and the four "zz m38"
-  goals on dev whenever.
+  "zz m37" habits, the "zz m37 Commissions" goal, the four "zz m38"
+  goals and the deactivated "zz m41 test renamed" profile on dev whenever.
 
 **Waiting on Bryce:**
 - **PR A is live:** press Recompute streaks once (Settings). The production

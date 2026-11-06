@@ -1,7 +1,7 @@
 # Mission 41: Habits & Chores, Whole family as side-by-side columns on the iPad
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** DONE. Vision PASS (pass 2), Captain PASS (pass 2), Strange PASS (pass 2)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/habits-family-columns` (from `origin/main` at `89f2b78`)
 
@@ -279,6 +279,9 @@ C1 and C2 have disjoint boundaries and run in parallel.
 | 1 | Vision | BLOCKED | 3: hidden Filter keeps an invisible chip (HabitFamilyWide.tsx:39); filter-emptied column says "Nothing due today." (HabitFamilyWideColumn.tsx:71); FamilyOrderList ignores new props after add/deactivate (FamilyOrderList.tsx:16) | check+writes not one transaction (harmless); no runtime string[] guard; habitsRead.ts:281 comment still says "oldest profile first"; Together hours row cannot open its sheet (pre-existing); branch one commit behind main, sync before merge |
 | 1 | Captain | BLOCKED | 2: second habit filter rule in HabitFilterChips.tsx (STRUCTURE.md PR F: reportFilterOptions/matchesReportFilter are the one rule); tag words outside habitVocabulary.ts and `together` decided by display text (habitsFamilyColumns.ts:7-8, HabitFamilyWideColumn.tsx:84) | settings page should call loadHouseholdPeople (add avatarColor, un-export HOUSEHOLD_ORDER_BY); reuse countedRows in groupColumnRows; shared familyCountText; amendments A1 to A4 drafted |
 | 1 | Strange | BLOCKED | 4: hidden Filter keeps a chip (same as Vision); filter-emptied column says "Nothing due today." (same as Vision); tag text-muted on surface-2 is 4.33:1 light (HabitFamilyColumn.tsx:87); floating hamburger keeps max-w-3xl on the wide page, 206px off at 1180 (HamburgerButton.tsx:91) | chore flame unseen (no streak in dev data); Anytime has no icon; 80px FamilyList spacer gap; 41d hint over-claims; familyOrder now 0..4 on dev; dark scrollbars light (app-wide); layout, snap, column scroll, ?person, phone view, drag all verified |
+| 2 | Captain | PASS | — | ReportFilter.tsx keeps its own TIME_ICONS mapper (use withTimeIcons at next touch); habitsStatsRead.ts:237 and habitsRead.ts:269 extra avatarColor queries now redundant; habitVocabulary.ts 395 lines, next family words go in a new file; NOTHING_DUE_TODAY vs HABITS_TILE_NOTHING_DUE differ by a period; dedupe in groupColumnRows may be redundant |
+| 2 | Vision | PASS | — | family order key includes order, so a quick double drag can flicker (key by sorted ids at next touch); habitsStatsRead.ts:237 redundant colour query; A4 said "drops" for pb-3 (fixed by Fury to "shrinks"); check and writes not one transaction; Together hours row sheet (pre-existing) |
+| 2 | Strange | PASS | — | unfiltered "Nothing due today." proven by tests only (no such person in dev data); "Profile — can't sign in" em dash is older; deactivated "zz m41 test renamed" profile left on dev; all four blockers and the order-list fix measured fixed |
 
 ## Handoff log
 
@@ -291,6 +294,28 @@ C1 and C2 have disjoint boundaries and run in parallel.
 
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
-- **Deliberate leftovers:** —
+- **Shipped:** C1 (household order, `User.familyOrder`, Manage family drag
+  list), C2 (wide Whole family columns, Filter, `?person`), F1 (pass-1
+  fixes), STRUCTURE.md amendments A1 to A4. Gauntlet green at every gate
+  pass (1142 tests). Migration applied to dev by Fury; production gets it
+  from the Vercel build on merge.
+- **Shipped check:** see the PR; `git log origin/main..HEAD` is empty after
+  the merge.
+- **Deliberate leftovers (gate notes):**
+  - `ReportFilter.tsx` keeps its own `TIME_ICONS` mapper (use `withTimeIcons`).
+  - `habitsStatsRead.ts:237` and `habitsRead.ts:269` run redundant colour
+    queries now that `HouseholdPerson` has `avatarColor`.
+  - `habitVocabulary.ts` is 395 lines: next Whole family words go in a new
+    file. `NOTHING_DUE_TODAY` and `HABITS_TILE_NOTHING_DUE` differ by a period.
+  - Family order list key includes the order: a fast double drag can
+    flicker; key by sorted ids at next touch.
+  - `setFamilyOrder` check and writes are not one transaction (harmless).
+  - A Together hours row cannot open its log sheet (older than this mission).
+  - Anytime has no time icon; dark mode native scrollbars draw light
+    (app-wide, `color-scheme`); FamilyList's 80px spacer leaves a gap above
+    Family order.
+  - Chore streak flame in the column header and the unfiltered empty line
+    were not seen in pixels (no dev data for them); tests cover the text.
+  - Dev: `User.familyOrder` is now 0 to 4 for the five people (same visible
+    order); deactivated "zz m41 test renamed" profile left for cleanup.
+  - Bryce's real-finger iPad check is on the CLAUDE.md checklist.
