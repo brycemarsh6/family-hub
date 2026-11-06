@@ -151,6 +151,9 @@ export default async function DashboardPage() {
   }));
 
   const tiles: Record<DashboardWidgetId, ReactNode> = {
+    // Placeholders until contract C2 builds the two tiles.
+    habits: null,
+    chores: null,
     todayMeals: (
       <TodayMealsTile
         href="/kitchen/cooking/meal-plan"

@@ -270,3 +270,14 @@ export const CHORE_CHART_LABELS = {
   /** The page subtitle: "Emily's week". */
   personWeek: (name: string) => `${name}'s week`,
 } as const;
+
+// ---- Dashboard tiles (decisions 132, 133) ----
+
+/** The Habits tile's header label when the person picked habits. */
+export const HABITS_TILE_PICKED_LABEL = "The ones you picked";
+/** Something was due today and everything is done or skipped. */
+export const HABITS_TILE_ALL_DONE = "All done for today";
+export const HABITS_TILE_NOTHING_DUE = "Nothing due today";
+export const CHORES_TILE_EMPTY = "No chores today";
+/** Most habits the Habits tile shows when nothing is picked. */
+export const HABITS_TILE_DEFAULT_LIMIT = 3;

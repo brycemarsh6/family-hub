@@ -1,6 +1,8 @@
 import {
   DASHBOARD_WIDGETS,
   DASHBOARD_WIDGET_IDS,
+  MAX_WIDGET_ITEMS,
+  PICKABLE_WIDGET_IDS,
   type DashboardWidgetId,
 } from "@/lib/dashboardWidgets";
 
@@ -13,7 +15,8 @@ import {
 
 export type DashboardLayout = {
   version: 1;
-  widgets: { id: DashboardWidgetId; enabled: boolean }[];
+  /** `items` is the ids the person picked, in picked order; only `habits` and `goals` carry it. Shape only: the page checks the ids are theirs. */
+  widgets: { id: DashboardWidgetId; enabled: boolean; items?: string[] }[];
 };
 
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = {
@@ -26,6 +29,17 @@ export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = {
 
 function isWidgetId(value: unknown): value is DashboardWidgetId {
   return typeof value === "string" && (DASHBOARD_WIDGET_IDS as readonly string[]).includes(value);
+}
+
+function isPickable(id: DashboardWidgetId): boolean {
+  return (PICKABLE_WIDGET_IDS as readonly string[]).includes(id);
+}
+
+/** Unique non-empty strings, in order, at most MAX_WIDGET_ITEMS; null when the value is not a non-empty list of them. */
+function cleanItems(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const items = [...new Set(raw.filter((item): item is string => typeof item === "string" && item !== ""))];
+  return items.length === 0 ? null : items.slice(0, MAX_WIDGET_ITEMS);
 }
 
 function defaultLayout(): DashboardLayout {
@@ -59,10 +73,15 @@ export function parseDashboardLayout(raw: unknown): DashboardLayout {
   const widgets: DashboardLayout["widgets"] = [];
   for (const entry of obj.widgets) {
     if (typeof entry !== "object" || entry === null) continue;
-    const { id, enabled } = entry as { id?: unknown; enabled?: unknown };
+    const { id, enabled, items } = entry as { id?: unknown; enabled?: unknown; items?: unknown };
     if (!isWidgetId(id) || seen.has(id)) continue;
     seen.add(id);
-    widgets.push({ id, enabled: typeof enabled === "boolean" ? enabled : DASHBOARD_WIDGETS[id].defaultEnabled });
+    const picked = isPickable(id) ? cleanItems(items) : null;
+    widgets.push({
+      id,
+      enabled: typeof enabled === "boolean" ? enabled : DASHBOARD_WIDGETS[id].defaultEnabled,
+      ...(picked ? { items: picked } : {}),
+    });
   }
   DASHBOARD_WIDGET_IDS.forEach((id, index) => {
     if (seen.has(id)) return;
@@ -83,6 +102,22 @@ export function toggleWidget(layout: DashboardLayout, id: DashboardWidgetId): Da
   return {
     version: 1,
     widgets: layout.widgets.map((w) => (w.id === id ? { ...w, enabled: !w.enabled } : { ...w })),
+  };
+}
+
+/**
+ * Replace the picked items of `habits` or `goals` (cleaned the way the parser
+ * cleans them); an empty list removes the field, which means "nothing picked".
+ * Any other widget is left alone. Returns a new layout.
+ */
+export function setWidgetItems(layout: DashboardLayout, id: DashboardWidgetId, items: string[]): DashboardLayout {
+  const picked = isPickable(id) ? cleanItems(items) : null;
+  return {
+    version: 1,
+    widgets: layout.widgets.map((w) => {
+      if (w.id !== id || !isPickable(id)) return { ...w };
+      return { id: w.id, enabled: w.enabled, ...(picked ? { items: picked } : {}) };
+    }),
   };
 }
 

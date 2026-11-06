@@ -98,3 +98,6 @@ export function toVisionHorizon(raw: unknown): VisionHorizon | null {
   if (typeof raw === "string") return VISION_HORIZONS.find((years) => String(years) === raw) ?? null;
   return VISION_HORIZONS.find((years) => years === raw) ?? null;
 }
+
+/** The Goals tile's "Still to do" line when goals are picked and none of their habits has taps left (decision 136). */
+export const GOALS_TILE_PICKED_EMPTY = "Nothing left in the goals you picked";
