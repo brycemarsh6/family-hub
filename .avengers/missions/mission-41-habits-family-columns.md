@@ -208,7 +208,7 @@ C1 and C2 have disjoint boundaries and run in parallel.
   (hamburger and rail), light and dark, show the rules above.
 
 ### F1 — Pass-1 blockers from Vision, Captain and Strange, in one batch
-- **Status:** DISPATCHED
+- **Status:** DONE (report: tsc, eslint, 1142/1142 tests, build pass; 15 files, +158 -99)
 - **Objective:** fix the seven pass-1 blockers (two shared by Vision and
   Strange) and the cheap structure notes, with no change to Today or to the
   phone layout.
@@ -287,6 +287,7 @@ C1 and C2 have disjoint boundaries and run in parallel.
   parallel.
 - 2026-11-06 — C1 reported DONE. This worktree had no node_modules; Fury ran `npm ci` (tsc now clean). Fury applied `20261111000000_user_family_order` to dev (host checked `ep-hidden-pine-`, SQL is the one ADD COLUMN) with `npx prisma migrate deploy`. Waiting on C2.
 - 2026-11-06 — C2 reported DONE. C1 and C2 committed. Vision, Strange, Captain dispatched in parallel (read-only gates).
+- 2026-11-06 — Pass 1: Vision, Captain, Strange all BLOCKED (ledger). Synced origin/main (merge 6d46e64). F1 written and built (DONE). Fury wrote Captain's STRUCTURE.md amendments A1 to A4. Pass 2 of all three gates dispatched.
 
 ## Delivery
 
