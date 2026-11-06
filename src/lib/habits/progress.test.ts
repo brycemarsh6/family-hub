@@ -25,6 +25,28 @@ test("windowProgress: a daily habit keeps the old '7 this week' target", () => {
   });
 });
 
+test("windowProgress: a daily habit made mid-week counts only the days it existed (decision 85)", () => {
+  const thursday = d(2026, 11, 5);
+  const made = windowProgress({ schedule: "daily" }, [done(thursday)], thursday, thursday);
+  assert.equal(made.target, 3); // Thu, Fri, Sat
+  assert.equal(made.count, 1);
+  assert.equal(windowProgress({ schedule: "daily" }, [], d(2026, 11, 7), thursday).target, 3);
+});
+
+test("windowProgress: a daily habit made on Sunday, or before this week, keeps 7; next week is 7 too", () => {
+  const sunday = d(2026, 11, 1);
+  assert.equal(windowProgress({ schedule: "daily" }, [], d(2026, 11, 5), sunday).target, 7);
+  assert.equal(windowProgress({ schedule: "daily" }, [], d(2026, 11, 5), d(2026, 10, 20)).target, 7);
+  assert.equal(windowProgress({ schedule: "daily" }, [], d(2026, 11, 9), d(2026, 11, 5)).target, 7);
+  assert.equal(windowProgress({ schedule: "daily" }, [], d(2026, 11, 5), null).target, 7);
+});
+
+test("windowProgress: the start day only touches daily habits", () => {
+  const thursday = d(2026, 11, 5);
+  assert.equal(windowProgress({ schedule: "weekly", times: 3 }, [], thursday, thursday).target, 3);
+  assert.equal(windowProgress({ schedule: "monthly", times: 4 }, [], thursday, thursday).target, 4);
+});
+
 test("windowProgress: weekly counts the week against N, doneToday false until today is checked", () => {
   const logs = [done(d(2026, 11, 2)), done(d(2026, 11, 4)), done(d(2026, 10, 31))];
   const progress = windowProgress({ schedule: "weekly", times: 3 }, logs, d(2026, 11, 5));

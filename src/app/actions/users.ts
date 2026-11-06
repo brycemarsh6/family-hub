@@ -24,6 +24,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { joinEveryoneHabits } from "@/lib/habits/participantWrites";
 import { hashPassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import { PERSON_SELECT, toPersonInfo, type PersonInfo, type PersonRow } from "@/lib/personInfo";
@@ -98,6 +99,7 @@ export async function createPerson(
     data: { displayName: trimmedName, role: nextRole, passwordHash, avatarColor },
     select: PERSON_SELECT,
   });
+  if (created.role !== "device") await joinEveryoneHabits(created.id);
 
   refreshFamilyViews();
   return { person: toPersonInfo(created) };
@@ -198,6 +200,7 @@ export async function reactivatePerson(userId: string): Promise<PersonResult> {
     if (isMissingRowError(error)) return { error: "That person no longer exists." };
     throw error;
   }
+  if (updated.role !== "device") await joinEveryoneHabits(updated.id);
 
   refreshFamilyViews();
   return { person: toPersonInfo(updated) };

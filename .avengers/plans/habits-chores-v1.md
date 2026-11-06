@@ -351,7 +351,37 @@ in PR B (mission 31).
     on, the target is 7 as usual.
 86. **A person added to the family later joins every Together habit
     automatically**, when their profile is created or turned back on.
-    Together means the whole household.
+    Together means the whole household. (Refined by 87.)
+
+### After the PR B mock (Bryce, 2026-11-05: "I like those recommendations")
+
+87. **Together and Side by side let you pick people.** The people picker
+    has an "Everyone" button that picks every active person who isn't the
+    family tablet. Only habits made with Everyone are flagged to include
+    the whole family, and only those add a new or reactivated person
+    automatically (this narrows 86). A couple habit like the temple stays
+    two people.
+88. **The PR B mock is approved** with its wording as drawn: "Skip today",
+    "Swipe a row left to skip it for today.", "Tap a row to edit. Drag the
+    grip to reorder.", the Private hint ("Only you see it: not on the
+    family tablet, other screens or nudges") and the Archive hint
+    ("Archive keeps its history and can be brought back."). The nudge
+    banner, plan-a-day card and streak numbers drawn on Today are PRs C
+    and E.
+
+### During PR B's gates (Bryce, 2026-11-05: "I agree with all of the recs")
+
+89. **Skip on a carried-over row skips the missed day**, not today; the row
+    then leaves Today.
+90. **The Quit tag is neutral gray**, not amber (amber means a warning).
+91. **Plans & Goals moves to the empty-circle check later**, in its own small
+    change; PR B keeps its "+".
+92. **Manage lists only your own habits in PR B**; other people's habits
+    arrive with the family view in PR C.
+93. **Wording:** the Together hint is "Together: one check counts for
+    everyone"; the Side by side hint, the Every other week controls ("Pick
+    days (optional)", "This week", "Next week", "Keep its weeks") and the
+    settings row's "Show streaks and more" stay as built.
 
 ## Open questions
 

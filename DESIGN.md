@@ -272,6 +272,13 @@ A new one-off that duplicates one of these jobs is a design violation:
   `NavModeSetting` is the Menu style row): the only navigation surface;
   `NAV_SECTIONS` (+ `NAV_FOOTER_ITEMS`) in `nav.ts` the only nav list
 - `EmptyState`, `Skeleton` (+ per-branch `loading.tsx`)
+- `SortableList`: the one drag-to-reorder list (dnd-kit; a grip handle only,
+  so finger scrolling anywhere else on a row still scrolls). A new reorderable
+  list wraps its rows in it rather than wiring dnd-kit again
+- `HabitRow`: one line of the Habits & Chores Today list (44px check, title,
+  tags, swipe left for Skip today). `HabitForm` is the one New and Edit form for
+  a habit or chore, built from `ParticipantPicker`, `HabitIconPicker` and
+  `HabitScheduleField`; a new habit field goes in it, never in a second form
 - `DashboardWidgetList` (the dashboard's heading row, widget grid and
   Customize button) / `DashboardCustomizeSheet` (on/off switch and up/down
   arrows per widget, Reset to default): the only way to show, hide or

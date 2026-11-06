@@ -8,7 +8,6 @@ import type { HabitLogDay, ScheduleSpec } from "./types";
 
 /**
  * How many days back a missed day can still be carried (the Today page loads 14 days of logs).
- * Dormant until PR B (mission 31): the Today list loads the carry-over window.
  */
 export const CARRY_LOOKBACK_DAYS = 14;
 
@@ -18,7 +17,6 @@ export const CARRY_LOOKBACK_DAYS = 14;
  * decision 72). Otherwise the latest scheduled day before today, if it has no
  * row of any status (if it has one, any older miss is absorbed: null), no earlier than `since` (the day the habit or person
  * started) and no more than CARRY_LOOKBACK_DAYS back.
- * Dormant until PR B (mission 31): the Today list shows a missed day again.
  */
 export function carriedFrom(
   spec: ScheduleSpec,
@@ -41,7 +39,6 @@ export function carriedFrom(
  * The status a tap writes: "late" only when the tap is for the carried day
  * (it was missed and is not otherwise due today); a tap for today, or a
  * back-filled day, is "done" on time.
- * Dormant until PR B (mission 31): the Today tap picks done or late.
  */
 export function statusForTap(tapDay: CalendarDate, carried: CalendarDate | null): HabitLogStatus {
   return carried && isSameDay(tapDay, carried) ? "late" : "done";

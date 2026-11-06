@@ -130,7 +130,6 @@ export function periodTarget(spec: ScheduleSpec, day: CalendarDate): number {
  * an open kind is open until `doneInPeriod` (checks so far this period)
  * reaches the target, then none; a planned day makes any kind required,
  * unless an open kind's target is already met.
- * Dormant until PR B (mission 31): the Today list sorts required from open.
  */
 export function dueState(
   spec: ScheduleSpec,
@@ -147,7 +146,7 @@ export function dueState(
 
 /**
  * Every scheduled day from `from` to `to`, oldest first.
- * Dormant until PR B (mission 31): the Today list and its history read scheduled days.
+ * Dormant until PR C (mission 32): the calendar and the stats page read scheduled days.
  */
 export function scheduledDaysInRange(spec: ScheduleSpec, from: CalendarDate, to: CalendarDate): CalendarDate[] {
   const days: CalendarDate[] = [];

@@ -30,64 +30,68 @@ import {
   vacationFromRow,
   type HabitFields,
 } from "./habitRows";
+import { atomically, householdParticipantIds, joinHouseholdToHabit, nextSortOrders, replaceParticipants } from "./participantWrites";
 import { computeStreaks, type StreakResult } from "./streaks";
 import type { DayRange } from "./types";
 
 type Client = Prisma.TransactionClient;
-
-/** Runs `work` in the caller's transaction, or in a fresh one when the caller gave only `db`. */
-function atomically<T>(client: Prisma.TransactionClient, work: (tx: Client) => Promise<T>): Promise<T> {
-  if (client === (db as unknown)) return db.$transaction((tx) => work(tx), { timeout: 15000 });
-  return work(client);
-}
 
 const SCHEDULE_SELECT = { schedule: true, weekdays: true, times: true, anchorWeek: true } as const;
 
 /** Fields for a new habit; title and schedule are required, the rest take the column defaults. */
 export type NewHabit = HabitFields & { title: string; schedule: string };
 
-/** Every active person who can hold a habit: not deactivated, not a shared device login. */
-export async function householdParticipantIds(client: Prisma.TransactionClient = db): Promise<string[]> {
-  const people = await client.user.findMany({ where: { deactivatedAt: null, role: { not: "device" } }, select: { id: true } });
-  return people.map((person) => person.id);
-}
-
 /**
  * Creates a habit and its participants (one nested write, so it is atomic by
  * itself). `participantIds` is a list of people, or "household" for everyone
- * active (a Together goal's habit).
+ * active (a Together goal's habit). "household", or `everyone: true`, also
+ * flags the habit so a person added or turned back on later joins it
+ * (decision 87); with `everyone` the caller still passes the list it picked.
  */
 export async function createHabit(
-  input: { fields: NewHabit; participantIds: readonly string[] | "household" },
+  input: { fields: NewHabit; participantIds: readonly string[] | "household"; everyone?: boolean },
   client: Prisma.TransactionClient = db,
 ): Promise<Habit> {
+  const everyone = input.participantIds === "household" || input.everyone === true;
   const ids = input.participantIds === "household" ? await householdParticipantIds(client) : input.participantIds;
   const userIds = [...new Set(ids)];
+  const next = await nextSortOrders(client, userIds);
   return client.habit.create({
     data: {
       ...habitColumns(input.fields),
+      everyone,
       title: input.fields.title.trim(),
       schedule: toHabitSchedule(input.fields.schedule),
-      participants: { create: userIds.map((userId, sortOrder) => ({ userId, sortOrder })) },
+      participants: { create: userIds.map((userId) => ({ userId, sortOrder: next.get(userId) ?? 0 })) },
     },
   });
 }
 
+/** Who takes part in a habit and whether it follows the whole family; either may be left out to keep it as is. */
+export type HabitPeople = { participantIds?: readonly string[]; everyone?: boolean };
+
 /**
- * Updates the given fields (participants are not touched). When a schedule
- * column actually changed, every participant's streak is rebuilt for `today`.
- * Null when the habit is missing.
+ * Updates the given fields. When a schedule column actually changed, every
+ * participant's streak is rebuilt for `today`. `people` may replace the
+ * participant set (people dropped lose only their participant row: their
+ * logs stay, so adding them back restores their history) and the `everyone`
+ * flag; without it participants are not touched. Null when the habit is missing.
  */
 export async function updateHabit(
   habitId: string,
   fields: HabitFields,
   today: CalendarDate,
   client: Prisma.TransactionClient = db,
+  people: HabitPeople = {},
 ): Promise<Habit | null> {
   return atomically(client, async (tx) => {
     const before = await tx.habit.findUnique({ where: { id: habitId }, select: SCHEDULE_SELECT });
     if (!before) return null;
-    const updated = await tx.habit.update({ where: { id: habitId }, data: habitColumns(fields) });
+    const updated = await tx.habit.update({
+      where: { id: habitId },
+      data: { ...habitColumns(fields), ...(people.everyone !== undefined ? { everyone: people.everyone } : {}) },
+    });
+    if (people.participantIds) await replaceParticipants(tx, habitId, people.participantIds);
     if (scheduleChanged(before, updated)) await recomputeHabit(tx, habitId, today);
     return updated;
   });
@@ -108,22 +112,21 @@ export async function deleteHabit(
   });
 }
 
-/**
- * Sets `archivedAt` to `at`; false when the habit is missing.
- * Dormant until PR B (mission 31): the habit editor's Archive.
- */
+/** Sets `archivedAt` to `at`; false when the habit is missing. */
 export async function archiveHabit(habitId: string, at: Date, client: Prisma.TransactionClient = db): Promise<boolean> {
   const result = await client.habit.updateMany({ where: { id: habitId }, data: { archivedAt: at } });
   return result.count > 0;
 }
 
-/**
- * Clears `archivedAt`; false when the habit is missing.
- * Dormant until PR B (mission 31): the Archived list's Restore.
- */
+/** Clears `archivedAt`; false when the habit is missing. An Everyone habit also takes in the people who joined the household while it was archived. */
 export async function restoreHabit(habitId: string, client: Prisma.TransactionClient = db): Promise<boolean> {
-  const result = await client.habit.updateMany({ where: { id: habitId }, data: { archivedAt: null } });
-  return result.count > 0;
+  return atomically(client, async (tx) => {
+    const result = await tx.habit.updateMany({ where: { id: habitId }, data: { archivedAt: null } });
+    if (result.count === 0) return false;
+    const habit = await tx.habit.findUnique({ where: { id: habitId }, select: { everyone: true } });
+    if (habit?.everyone) await joinHouseholdToHabit(habitId, tx);
+    return true;
+  });
 }
 
 export type CheckResult = {
@@ -168,10 +171,7 @@ export async function checkHabit(
   });
 }
 
-/**
- * Writes a "skipped" row for the day (the same fan-out and no-op rules as `checkHabit`).
- * Dormant until PR B (mission 31): the Today list's Skip.
- */
+/** Writes a "skipped" row for the day (the same fan-out and no-op rules as `checkHabit`). */
 export function skipHabit(
   input: { habitId: string; forUserId: string; day: CalendarDate; loggedById: string | null },
   today: CalendarDate,
@@ -264,8 +264,12 @@ export async function recomputeStreaks(
   });
 }
 
-/** Rebuilds every participant of every non-archived habit: three reads in all, then one update per person. */
-export async function recomputeAllStreaks(today: CalendarDate, client: Prisma.TransactionClient = db): Promise<{ updated: number }> {
+/**
+ * Rebuilds every participant of every non-archived habit: three reads in all,
+ * then one update per person. `habits` counts distinct habits rebuilt, not the
+ * per-person records behind them (decision 84).
+ */
+export async function recomputeAllStreaks(today: CalendarDate, client: Prisma.TransactionClient = db): Promise<{ habits: number }> {
   return atomically(client, async (tx) => {
     const habits = await tx.habit.findMany({
       where: { archivedAt: null },
@@ -276,7 +280,7 @@ export async function recomputeAllStreaks(today: CalendarDate, client: Prisma.Tr
       habits.map((habit) => ({ habitId: habit.id, userIds: habit.participants.map((p) => p.userId), habit })),
       today,
     );
-    return { updated: Object.keys(results).length };
+    return { habits: new Set(Object.keys(results).map((key) => key.split(":")[0])).size };
   });
 }
 

@@ -1,5 +1,6 @@
-import type { CalendarDate } from "../householdDate";
-import { isDayInRange, isSameDay, periodTarget, periodWindow } from "./schedule";
+import { calendarDaysBetween, type CalendarDate } from "../householdDate";
+import { compareDays, isDayInRange, isSameDay, periodTarget, periodWindow } from "./schedule";
+import { isCheckStatus } from "../habitVocabulary";
 import type { DayRange, HabitLogDay, ScheduleSpec } from "./types";
 
 // How many checks a habit has in its period, for the "3 of 7 this week" line
@@ -12,16 +13,11 @@ export type WindowProgress = DayRange & {
   doneToday: boolean;
 };
 
-/** A check counts toward progress when the thing was done, on time or late; a skip does not. */
-function isCheck(log: HabitLogDay): boolean {
-  return log.status === "done" || log.status === "late";
-}
-
 /** Distinct days with a check inside `range` (ends included). */
 export function countDays(logs: readonly HabitLogDay[], range: DayRange): number {
   const days = new Set<number>();
   for (const log of logs) {
-    if (isCheck(log) && isDayInRange(log.day, range)) {
+    if (isCheckStatus(log.status) && isDayInRange(log.day, range)) {
       days.add(Date.UTC(log.day.year, log.day.month - 1, log.day.day));
     }
   }
@@ -49,19 +45,27 @@ export function distinctDays(logs: readonly HabitLogDay[]): HabitLogDay[] {
 /**
  * Progress in the period containing `today`. A daily habit keeps the old
  * "7 this week" target so Plans & Goals reads the same; monthly counts the
- * month and everything else the week.
+ * month and everything else the week. `startDay` is the day the habit was
+ * made (decision 85): for a daily habit whose first week is this one, the
+ * target counts only the days from then to Saturday ("1 of 3" on a
+ * Thursday); an older habit, or any other schedule, is unchanged.
  */
 export function windowProgress(
   spec: ScheduleSpec,
   logs: readonly HabitLogDay[],
   today: CalendarDate,
+  startDay?: CalendarDate | null,
 ): WindowProgress {
   const window = periodWindow(spec, today);
+  let target = periodTarget(spec, today);
+  if (spec.schedule === "daily" && startDay && isDayInRange(startDay, window) && compareDays(startDay, window.start) > 0) {
+    target = calendarDaysBetween(startDay, window.end) + 1;
+  }
   return {
     ...window,
     count: countDays(logs, window),
-    target: periodTarget(spec, today),
+    target,
     label: spec.schedule === "monthly" ? "this month" : "this week",
-    doneToday: logs.some((log) => isCheck(log) && isSameDay(log.day, today)),
+    doneToday: logs.some((log) => isCheckStatus(log.status) && isSameDay(log.day, today)),
   };
 }

@@ -112,7 +112,7 @@ function keyToDay(key: number): CalendarDate {
  * Ages a cached streak to `today` with no logs: any due day (or due period)
  * after `cached.asOf` and before today passed unchecked, so it breaks the
  * streak unless a vacation excuses it. Never grows, never touches `best`.
- * Dormant until PR B (mission 31): the Today list ages a cached streak without logs.
+ * Dormant until PR C (mission 32): the stats page ages a cached streak without logs.
  */
 export function streakAfter(
   spec: ScheduleSpec,
