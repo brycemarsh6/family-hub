@@ -705,6 +705,12 @@ fix. Decided by Hill, low risk. Goes into PR F's C3.
      vacation)" only on screens showing the person who was away; for
      everyone else it is an ordinary due day. A check by anyone is Done for
      all. Decided by Hill, low.
+181. **Tap-skipped days in the Report count:** a day the person skipped is
+     never "ahead". When no due day is ahead and the period's due days so
+     far were skipped, the count reads "1 skipped", "2 skipped" (Week and
+     Month). Order: Due today / Due Sat / Due Nov 7, then "N skipped", then
+     "Skipped this week", "On vacation", "Not this week / month". Decided
+     by Hill, medium (wording).
 
 ## Open questions
 
