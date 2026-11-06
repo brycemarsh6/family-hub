@@ -42,7 +42,8 @@ export type GoalRow = {
   title: string;
   area: LifeArea;
   why: string | null;
-  targetDate: Date;
+  /** null = an ongoing goal, with no end date. */
+  targetDate: Date | null;
   ownerId: string | null;
   owner: { id: string; displayName: string; avatarColor: string } | null;
   visibility: GoalVisibility;
@@ -133,7 +134,8 @@ export type GoalInput = {
   title: string;
   area: LifeArea;
   why: string | null;
-  targetDate: CalendarDate;
+  /** null = Ongoing. */
+  targetDate: CalendarDate | null;
   ownership: GoalOwnership;
   visibility: GoalVisibility;
   measure: { unit: string; start: number; target: number } | null;
@@ -208,9 +210,11 @@ export function validateGoalInput(
   if (raw.why != null && typeof raw.why !== "string") return { error: "The why needs to be words." };
   const why = typeof raw.why === "string" ? raw.why.trim() : "";
   if (why.length > GOAL_WHY_MAX) return { error: `Keep the why to ${GOAL_WHY_MAX} characters or fewer.` };
-  const targetDate = typeof raw.targetDate === "string" ? parseDateParam(raw.targetDate) : null;
-  if (!targetDate) return { error: "Pick a target date." };
-  if (calendarDaysBetween(options?.earliest ?? today, targetDate) < 0) return { error: PAST_DATE };
+  // Ongoing is only ever the form's explicit `ongoing: true`; a blank date alone is still an error.
+  const ongoing = raw.ongoing === true;
+  const targetDate = ongoing ? null : typeof raw.targetDate === "string" ? parseDateParam(raw.targetDate) : null;
+  if (!ongoing && !targetDate) return { error: "Pick a target date." };
+  if (targetDate && calendarDaysBetween(options?.earliest ?? today, targetDate) < 0) return { error: PAST_DATE };
   const measure = validateMeasure(raw.measure);
   if ("error" in measure) return measure;
   return { ok: { title: named.title, area, why: why || null, targetDate, ownership, visibility, measure: measure.ok } };

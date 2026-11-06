@@ -62,7 +62,7 @@ function goalInclude({ checkIns = false }: { checkIns?: boolean } = {}) {
 type LoadedGoal = Awaited<ReturnType<typeof findGoals>>[number];
 
 function findGoals(options?: { checkIns?: boolean }) {
-  return db.goal.findMany({ include: goalInclude(options), orderBy: [{ targetDate: "asc" }, { createdAt: "asc" }] });
+  return db.goal.findMany({ include: goalInclude(options), orderBy: [{ targetDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }] });
 }
 
 type GoalParts = { goal: GoalRow; items: PlanItemRow[]; habits: ReadonlyMap<string, PlanHabit> };

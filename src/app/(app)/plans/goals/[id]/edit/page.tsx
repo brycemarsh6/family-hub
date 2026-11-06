@@ -5,7 +5,7 @@ import { requireVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { goalOwnership } from "@/lib/goals";
 import { loadGoal } from "@/lib/goalsRead";
-import { calendarDateInZone, formatCalendarDate } from "@/lib/householdDate";
+import { calendarDateFromUtcMidnight, formatCalendarDate } from "@/lib/householdDate";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,8 @@ export default async function EditGoalPage({ params }: { params: Promise<{ id: s
     ownership: goalOwnership(goal),
     visibility: goal.visibility,
     why: goal.why ?? "",
-    targetDate: formatCalendarDate(calendarDateInZone(goal.targetDate, "UTC")),
+    targetDate: goal.targetDate ? formatCalendarDate(calendarDateFromUtcMidnight(goal.targetDate)) : "",
+    ongoing: goal.targetDate === null,
     measure:
       unit !== null && start !== null && target !== null
         ? { unit, start: String(start), target: String(target) }

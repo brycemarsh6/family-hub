@@ -767,7 +767,8 @@ model Goal {
   why String?
 
   /// The day the goal is due, UTC midnight (same convention as Task.dueDate).
-  targetDate DateTime
+  /// null = an ongoing goal, with no end date.
+  targetDate DateTime?
 
   /// Who it's for. null = Together (the whole household).
   ownerId String?
