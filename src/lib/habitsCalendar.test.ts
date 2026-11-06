@@ -97,3 +97,8 @@ test("plannedPeriodsRange: the union of each planned day's whole period, end exc
   assert.equal(range?.from.toISOString(), "2026-11-08T00:00:00.000Z");
   assert.equal(range?.to.toISOString(), "2027-01-01T00:00:00.000Z");
 });
+
+test("an hours habit never shows as a planned day (decision 197), even from an old planned row", () => {
+  assert.deepEqual(buildCalendarHabitDays(emily, [row({ track: "hours" })], []), []);
+  assert.equal(buildCalendarHabitDays(emily, [row({ track: "checks" })], []).length, 1);
+});

@@ -13,6 +13,7 @@ import {
   countedRows,
   doneCountLabel,
   doneCounts,
+  perfectDayEntries,
 } from "./habitsFamily";
 import { buildTodayPage, type TodayHabitInput } from "./habitsToday";
 
@@ -268,4 +269,40 @@ test("buildFamilyPage: a private chore feeds the card's chore streak and Sunday 
   const benMixed = mixed.columns.find((c) => c.id === "ben")!;
   assert.equal(benMixed.shoutOut, false);
   assert.deepEqual(benMixed.rows.map((row) => row.id), ["shared"]);
+});
+
+// ---- Hours habits (decision 197) ----
+
+const hoursEntry = (userId: string, day: CalendarDate, minutes: number) => ({ userId, day, minutes });
+
+test("buildFamilyPage: an hours habit shows in each person's column with their own week, and is never counted in 'x of y done'", () => {
+  const calls = habit({ id: "calls", schedule: "weekly", times: 1, track: "hours", weeklyMinutes: 600, paceDays: "monsat" });
+  const time = new Map([["calls", [hoursEntry("amy", d(2026, 11, 2), 600), hoursEntry("ben", d(2026, 11, 2), 120)]]]);
+  const page = buildFamilyPage(amy, [calls, habit({ id: "daily" })], people, logs([]), today, new Map(), new Map(), time);
+  const [amyCol, benCol] = page.columns;
+  assert.deepEqual(amyCol.rows.map((r) => [r.id, r.hours?.doneText ?? null]), [["calls", "10 of 10 hours this week · done"], ["daily", null]]);
+  assert.equal(benCol.rows[0].hours?.doneText, "2 of 10 hours this week");
+  assert.equal(amyCol.totalCount, 1, "only the daily habit is owed");
+  assert.equal(amyCol.doneCount, 0);
+});
+
+test("doneCounts: an hours row is neither done nor owed", () => {
+  const rows = [
+    { doneToday: true, skippedToday: false, hours: { met: true } },
+    { doneToday: false, skippedToday: false, hours: { met: false } },
+    { doneToday: true, skippedToday: false, hours: null },
+  ];
+  assert.deepEqual(doneCounts(rows), { done: 1, total: 1 });
+});
+
+test("buildFamilyPage: a private hours habit (the default) never appears", () => {
+  const calls = habit({ id: "calls", schedule: "weekly", times: 1, track: "hours", weeklyMinutes: 600, isPrivate: true, participants: [member("amy")] });
+  assert.deepEqual(buildFamilyPage(amy, [calls], people, logs([]), today).columns.flatMap((c) => c.rows), []);
+});
+
+test("perfectDayEntries: an hours habit never adds an entry", () => {
+  const spec = { schedule: "daily" } as const;
+  const entries = perfectDayEntries([{ kind: "habit", spec, since: d(2026, 1, 1), logs: [], track: "hours" }], [])(today);
+  assert.deepEqual(entries, []);
+  assert.equal(perfectDayEntries([{ kind: "habit", spec, since: d(2026, 1, 1), logs: [] }], [])(today).length, 1);
 });

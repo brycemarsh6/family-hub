@@ -8,15 +8,28 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { utcMidnightInstant, type CalendarDate } from "../householdDate";
-import { logDayFromRow, logsForUser, specFromRow, vacationFromRow } from "./habitRows";
+import { HOUSEHOLD_TIME_ZONE } from "../constants";
+import { calendarDateInZone, startOfWeek, utcMidnightInstant, type CalendarDate } from "../householdDate";
+import { hoursFromRow, logDayFromRow, logsForUser, specFromRow, timeEntryFromRow, vacationFromRow } from "./habitRows";
 import { recomputeAllChoreStreaks, recomputeChoreStreak, recomputeChoreStreaks } from "./choreWrites";
 import { atomically } from "./participantWrites";
+import { hoursStreaks } from "./hours";
 import { computeStreaks, type StreakResult } from "./streaks";
 
 type Client = Prisma.TransactionClient;
 
-export const SCHEDULE_SELECT = { schedule: true, weekdays: true, times: true, anchorWeek: true, kind: true } as const;
+export const SCHEDULE_SELECT = {
+  schedule: true,
+  weekdays: true,
+  times: true,
+  anchorWeek: true,
+  kind: true,
+  track: true,
+  weeklyMinutes: true,
+  paceDays: true,
+  hoursSince: true,
+  createdAt: true,
+} as const;
 
 /**
  * Rebuilds the cached streak of `userIds` on one habit from its logs and
@@ -83,13 +96,30 @@ export async function recomputeHabit(tx: Client, habitId: string, today: Calenda
 type StreakJob = {
   habitId: string;
   userIds: readonly string[];
-  habit: { schedule: string; weekdays: string | null; times: number | null; anchorWeek: Date | null };
+  habit: {
+    schedule: string;
+    weekdays: string | null;
+    times: number | null;
+    anchorWeek: Date | null;
+    track: string;
+    weeklyMinutes: number | null;
+    paceDays: string | null;
+    hoursSince: Date | null;
+    createdAt: Date;
+  };
 };
 
-/** Loads logs and vacations for all jobs at once, runs the engine, writes the cache. Keys are `habitId:userId`. */
+/**
+ * Loads logs (or, for an hours habit, time entries) and vacations for all jobs
+ * at once, runs the engine, writes the cache. Keys are `habitId:userId`. An
+ * hours habit's streak counts weeks and starts at the week it became an hours
+ * habit (`hoursSince`, else the day it was made).
+ */
 async function storeStreaks(tx: Client, jobs: StreakJob[], today: CalendarDate): Promise<Record<string, StreakResult>> {
-  const live = jobs.filter((job) => job.userIds.length > 0 && specFromRow(job.habit) !== null);
-  if (live.length === 0) return {};
+  const hoursJobs = jobs.filter((job) => job.userIds.length > 0 && hoursFromRow(job.habit) !== null);
+  const live = jobs.filter((job) => job.userIds.length > 0 && !hoursJobs.includes(job) && specFromRow(job.habit) !== null);
+  const out: Record<string, StreakResult> = hoursJobs.length > 0 ? await storeHoursStreaks(tx, hoursJobs, today) : {};
+  if (live.length === 0) return out;
   const everyone = [...new Set(live.flatMap((job) => job.userIds))];
   const [logRows, vacationRows] = await Promise.all([
     tx.habitLog.findMany({
@@ -101,13 +131,43 @@ async function storeStreaks(tx: Client, jobs: StreakJob[], today: CalendarDate):
       select: { userId: true, startDay: true, endDay: true },
     }),
   ]);
-  const out: Record<string, StreakResult> = {};
   for (const job of live) {
     const spec = specFromRow(job.habit)!;
     const logs = logRows.filter((row) => row.habitId === job.habitId).map(logDayFromRow);
     for (const userId of job.userIds) {
       const vacations = vacationRows.filter((row) => row.userId === userId).map(vacationFromRow);
       const result = computeStreaks(spec, logsForUser(logs, userId), vacations, today);
+      await tx.habitParticipant.updateMany({
+        where: { habitId: job.habitId, userId },
+        data: { currentStreak: result.current, bestStreak: result.best, streakAsOf: utcMidnightInstant(result.asOf) },
+      });
+      out[`${job.habitId}:${userId}`] = result;
+    }
+  }
+  return out;
+}
+
+/** The hours habits' half of `storeStreaks`: weeks-hit streaks from each person's time entries. */
+async function storeHoursStreaks(tx: Client, jobs: StreakJob[], today: CalendarDate): Promise<Record<string, StreakResult>> {
+  const everyone = [...new Set(jobs.flatMap((job) => job.userIds))];
+  const [entryRows, vacationRows] = await Promise.all([
+    tx.habitTimeEntry.findMany({
+      where: { habitId: { in: jobs.map((job) => job.habitId) }, userId: { in: everyone } },
+      select: { habitId: true, userId: true, day: true, minutes: true },
+    }),
+    tx.vacationPeriod.findMany({
+      where: { userId: { in: everyone } },
+      select: { userId: true, startDay: true, endDay: true },
+    }),
+  ]);
+  const out: Record<string, StreakResult> = {};
+  for (const job of jobs) {
+    const hours = hoursFromRow(job.habit)!;
+    const startWeek = startOfWeek(hours.since ?? calendarDateInZone(job.habit.createdAt, HOUSEHOLD_TIME_ZONE));
+    for (const userId of job.userIds) {
+      const entries = entryRows.filter((row) => row.habitId === job.habitId && row.userId === userId).map(timeEntryFromRow);
+      const vacations = vacationRows.filter((row) => row.userId === userId).map(vacationFromRow);
+      const result = hoursStreaks({ entries, targetMinutes: hours.targetMinutes, startWeek, today, vacations, paceDays: hours.paceDays });
       await tx.habitParticipant.updateMany({
         where: { habitId: job.habitId, userId },
         data: { currentStreak: result.current, bestStreak: result.best, streakAsOf: utcMidnightInstant(result.asOf) },

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Check, Flame, Plane, Trophy } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
+import { HoursLeftLine, HoursLogButton } from "./HoursHabitRow";
 import { LogButton } from "./LogButton";
+import { ProgressBar } from "./ProgressBar";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
 import { CHORES_LAST_WEEK_FAMILY, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, streakLabel } from "@/lib/habitVocabulary";
 import { countedRows, doneCountLabel, type FamilyColumn, type FamilyRow } from "@/lib/habitsFamily";
@@ -69,7 +71,16 @@ export function FamilyHabitRow({
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
           <span className={`text-base font-semibold ${excusedByCalendar ? "text-muted-strong" : finished ? "text-muted" : ""}`}>{row.title}</span>
-          {meta && <span className={`text-xs ${excusedByCalendar ? "text-muted-strong" : "text-muted"}`}>{meta}</span>}
+          {row.hours ? (
+            // An hours habit shows the person's week: "6½ of 10 hours this week", the bar and the hours left (decision 197).
+            <span className="mt-0.5 flex flex-col gap-1">
+              <span className="text-xs text-muted">{row.hours.doneText}</span>
+              <ProgressBar fraction={row.hours.fraction} label={`${row.title} for ${who}: ${row.hours.doneText}`} />
+              <HoursLeftLine hours={row.hours} />
+            </span>
+          ) : (
+            meta && <span className={`text-xs ${excusedByCalendar ? "text-muted-strong" : "text-muted"}`}>{meta}</span>
+          )}
         </span>
         {streak && (
           <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-streak">
@@ -78,7 +89,9 @@ export function FamilyHabitRow({
           </span>
         )}
       </TitleArea>
-      {skippedMark ? (
+      {row.hours && row.canLog ? (
+        <HoursLogButton hours={row.hours} title={row.title} forName={who} onClick={onToggle} />
+      ) : skippedMark ? (
         <LogButton done={false} label={row.title} idle="empty" skipped skippedLabel={row.skippedToday ? SKIPPED_TODAY_LABEL : SKIPPED_THIS_WEEK_LABEL} onClick={onToggle} />
       ) : row.canLog ? (
         <LogButton done={row.doneToday} label={row.title} forName={together ? undefined : who} idle="empty" onClick={onToggle} />

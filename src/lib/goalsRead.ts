@@ -7,6 +7,7 @@ import {
   earlierDate,
   goalOnBoard,
   goalsInScope,
+  planHabitFor,
   type GoalRow,
   type GoalView,
   type PlanItemRow,
@@ -15,7 +16,7 @@ import {
   type Viewer,
 } from "@/lib/goals";
 import { isRecapDay, weekRecap, type RecapGoalInput, type WeekRecap } from "@/lib/goalsRecap";
-import { weekSummary, weekTodo, weekTodoForGoals } from "@/lib/goalsProgress";
+import { weekSummary, weekTodo, weekTodoForGoals, type WeekTodoItem } from "@/lib/goalsProgress";
 import { keepOwnPicks } from "@/lib/dashboardPicks";
 import { loadHabitsForPlan } from "@/lib/habitsRead";
 import {
@@ -61,7 +62,7 @@ function goalInclude({ checkIns = false }: { checkIns?: boolean } = {}) {
 type LoadedGoal = Awaited<ReturnType<typeof findGoals>>[number];
 
 function findGoals(options?: { checkIns?: boolean }) {
-  return db.goal.findMany({ include: goalInclude(options), orderBy: [{ targetDate: "asc" }, { createdAt: "asc" }] });
+  return db.goal.findMany({ include: goalInclude(options), orderBy: [{ targetDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }] });
 }
 
 type GoalParts = { goal: GoalRow; items: PlanItemRow[]; habits: ReadonlyMap<string, PlanHabit> };
@@ -102,12 +103,22 @@ function toParts(row: LoadedGoal, viewer: Viewer, habits: ReadonlyMap<string, Pl
   return { goal, items, habits };
 }
 
-/** The habits behind the visible goals' habit items: one loader call, with the reach-back the windows and recap need. */
-function habitsOf(rows: LoadedGoal[], viewer: Viewer, today: CalendarDate) {
-  const ids = rows
-    .filter((row) => canSee({ ownerId: row.ownerId, visibility: toGoalVisibility(row.visibility) }, viewer))
-    .flatMap((row) => row.planItems.flatMap((item) => (item.habitId ? [item.habitId] : [])));
-  return loadHabitsForPlan(ids, logsFrom(today));
+/**
+ * The habits behind the visible goals' habit items: one loader call, with the
+ * reach-back the windows and recap need. An hours habit is read for the one
+ * person its goal names for this viewer (`planHabitFor`).
+ */
+async function habitsOf(rows: LoadedGoal[], viewer: Viewer, today: CalendarDate): Promise<Map<string, PlanHabit>> {
+  const visible = rows.filter((row) => canSee({ ownerId: row.ownerId, visibility: toGoalVisibility(row.visibility) }, viewer));
+  const loaded = await loadHabitsForPlan(visible.flatMap((row) => row.planItems.flatMap((item) => (item.habitId ? [item.habitId] : []))), logsFrom(today));
+  const habits = new Map<string, PlanHabit>();
+  for (const row of visible) {
+    for (const item of row.planItems) {
+      const habit = item.habitId ? loaded.get(item.habitId) : undefined;
+      if (item.habitId && habit) habits.set(item.habitId, planHabitFor(habit, row, viewer.userId));
+    }
+  }
+  return habits;
 }
 
 function toView(
@@ -165,7 +176,7 @@ export async function loadGoalsTile(
 ): Promise<{
   done: number;
   total: number;
-  todo: { id: string; title: string; left: number }[];
+  todo: WeekTodoItem[];
   picked: boolean;
   pickable: { id: string; title: string }[];
 }> {

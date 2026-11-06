@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { applyHabitChange, type HabitRowState } from "./habitChanges";
+import { addHoursMinutes } from "./habitsHours";
 
 const row = (over: Partial<HabitRowState> = {}): HabitRowState => ({
   id: "h1",
@@ -92,4 +93,26 @@ test("skipCarried on a carried row that is also due today ends the carry and kee
 test("skipCarried on a row that is not carried changes nothing", () => {
   const plain = row();
   assert.deepEqual(applyHabitChange([plain], { type: "skipCarried", habitId: "h1" }), [plain]);
+});
+
+// --- Hours habits ---
+
+const hoursView = (done: number) => addHoursMinutes({ done, target: 600, doneText: "", leftText: null, leftShort: null, met: false, fraction: 0, paceDays: "monsat", daysLeft: 2 }, 0);
+
+test("addTime redraws the viewer's bar and marks the row done when the goal is reached", () => {
+  const hours = hoursView(540);
+  const [part] = applyHabitChange([row({ hours })], { type: "addTime", habitId: "h1", minutes: 30 });
+  assert.equal(part.hours?.doneText, "9½ of 10 hours this week");
+  assert.equal(part.doneToday, false);
+  const [met] = applyHabitChange([row({ hours })], { type: "addTime", habitId: "h1", minutes: 60 });
+  assert.equal(met.hours?.doneText, "10 of 10 hours this week · done");
+  assert.equal(met.doneToday, true);
+  assert.deepEqual(met.participants.map((p) => p.done), [true, false], "only the viewer's own entry");
+});
+
+test("addTime changes nothing on a checks row or for another person", () => {
+  const plain = row();
+  assert.deepEqual(applyHabitChange([plain], { type: "addTime", habitId: "h1", minutes: 60 }), [plain]);
+  const mine = row({ hours: hoursView(0) });
+  assert.deepEqual(applyHabitChange([mine], { type: "addTime", habitId: "h1", minutes: 60, userId: "kid" }), [mine]);
 });

@@ -4,11 +4,13 @@ import { db } from "@/lib/db";
 import { AVATAR_COLORS } from "@/lib/constants";
 import { addCalendarDays, utcMidnightInstant, startOfMonth, startOfWeek, type CalendarDate } from "./householdDate";
 import { carrySince, habitStartDay } from "./habits/carryOver";
+import { othersPrivateHidden } from "./habits/access";
 import { choreCacheFromRow, overrideWindowStart } from "./choreChart";
-import { logDayFromRow, specFromRow, vacationFromRow } from "./habits/habitRows";
+import { logDayFromRow, specFromRow, timeEntryFromRow, vacationFromRow } from "./habits/habitRows";
 import { overrideFromRow } from "./habits/weekOverrides";
-import type { HabitActor, HabitLogDay, Vacation, WeekOverride } from "./habits/types";
+import type { HabitActor, HabitLogDay, TimeEntry, Vacation, WeekOverride } from "./habits/types";
 import { buildFamilyPage, buildStatsData, statsSubject, type FamilyPage, type HabitStatsData, type PerfectDayHabit } from "./habitsFamily";
+import { hoursSpecOf, type StatsTimeEntry } from "./habitsHours";
 import { todayLogsFrom } from "./habitsToday";
 import { HOUSEHOLD_PERSON_WHERE, loadHouseholdPeople } from "./householdPeople";
 import { toHabitKind } from "./habitVocabulary";
@@ -34,7 +36,9 @@ function vacationMap(rows: { userId: string; startDay: Date; endDay: Date }[]): 
  * the same as a missing one). `month` is any day in the month the calendar
  * shows. Queries: the habit with its people; then in one round every check on
  * the habit, the people's vacations, its this-week changes, the nudges the viewer sent today, the
- * subject's habits and their checks that month (for perfect days).
+ * subject's habits and their checks that month (for perfect days), and, for an
+ * hours habit, every time entry on it. Hours habits are left out of the
+ * subject's perfect-day habits (decision 197).
  */
 export async function loadHabitStats(
   viewer: HabitActor,
@@ -72,21 +76,23 @@ export async function loadHabitStats(
   if (!subjectId) return null;
   const first = startOfMonth(month);
   const next = addCalendarDays({ ...first, month: first.month + 1 }, 0);
-  const [logRows, vacationRows, overrideRows, nudgeRows, subjectHabits, monthLogRows] = await Promise.all([
+  const [logRows, vacationRows, overrideRows, nudgeRows, subjectHabits, monthLogRows, timeRows] = await Promise.all([
     db.habitLog.findMany({ where: { habitId }, select: { habitId: true, userId: true, day: true, status: true } }),
     db.vacationPeriod.findMany({ where: { userId: { in: members.map((m) => m.userId) } }, select: { userId: true, startDay: true, endDay: true } }),
     db.choreWeekOverride.findMany({ where: { habitId }, select: { weekStart: true, fromWeekday: true, action: true, toWeekday: true } }),
     db.nudge.findMany({ where: { habitId, fromUserId: viewer.userId, day: utcMidnightInstant(today) }, select: { toUserId: true } }),
     // Their live habits; another person's private ones are not ours to count.
     db.habit.findMany({
-      where: { participants: { some: { userId: subjectId } }, archivedAt: null, ...(subjectId === viewer.userId ? {} : { isPrivate: false }) },
+      where: { participants: { some: { userId: subjectId } }, archivedAt: null, track: "checks", ...othersPrivateHidden(viewer, subjectId) },
       include: { participants: { where: { userId: subjectId }, select: { joinedAt: true } } },
     }),
     db.habitLog.findMany({
       where: { userId: subjectId, day: { gte: utcMidnightInstant(first), lt: utcMidnightInstant(next) } },
       select: { habitId: true, userId: true, day: true, status: true },
     }),
+    hoursSpecOf(habit) ? db.habitTimeEntry.findMany({ where: { habitId }, select: { id: true, userId: true, day: true, minutes: true } }) : [],
   ]);
+  const entries: StatsTimeEntry[] = timeRows.map((row) => ({ ...timeEntryFromRow(row), id: row.id }));
   const monthLogs = new Map<string, HabitLogDay[]>();
   for (const row of monthLogRows) monthLogs.set(row.habitId, [...(monthLogs.get(row.habitId) ?? []), logDayFromRow(row)]);
   const perfectHabits: PerfectDayHabit[] = subjectHabits.flatMap((other) => {
@@ -99,6 +105,7 @@ export async function loadHabitStats(
     habit,
     members,
     logs: logRows.map(logDayFromRow),
+    entries,
     vacationsByUser: vacationMap(vacationRows),
     overrides: overrideRows.flatMap((row) => overrideFromRow(row) ?? []),
     subjectHabits: perfectHabits,
@@ -145,7 +152,7 @@ export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): P
   });
   const ids = household.map((person) => person.id);
   const habitIds = habits.map((habit) => habit.id);
-  const [logRows, vacationRows, colorRows] = await Promise.all([
+  const [logRows, vacationRows, colorRows, timeRows] = await Promise.all([
     habitIds.length === 0
       ? []
       : db.habitLog.findMany({
@@ -154,12 +161,21 @@ export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): P
         }),
     db.vacationPeriod.findMany({ where: { userId: { in: ids } }, select: { userId: true, startDay: true, endDay: true } }),
     db.user.findMany({ where: { id: { in: ids } }, select: { id: true, avatarColor: true } }),
+    // This week's hours entries, everyone's, for the columns' bars.
+    habitIds.length === 0
+      ? []
+      : db.habitTimeEntry.findMany({
+          where: { habitId: { in: habitIds }, habit: { track: "hours" }, day: { gte: utcMidnightInstant(addCalendarDays(startOfWeek(today), -7)) } },
+          select: { habitId: true, userId: true, day: true, minutes: true },
+        }),
   ]);
+  const timeByHabit = new Map<string, TimeEntry[]>();
+  for (const row of timeRows) timeByHabit.set(row.habitId, [...(timeByHabit.get(row.habitId) ?? []), timeEntryFromRow(row)]);
   const logsByHabit = new Map<string, HabitLogDay[]>();
   for (const row of logRows) logsByHabit.set(row.habitId, [...(logsByHabit.get(row.habitId) ?? []), logDayFromRow(row)]);
   const colors = new Map(colorRows.map((row) => [row.id, row.avatarColor]));
   const people = household.map((person) => ({ id: person.id, displayName: person.displayName, avatarColor: colors.get(person.id) ?? AVATAR_COLORS[0].name }));
-  return buildFamilyPage(viewer, habits, people, logsByHabit, today, vacationMap(vacationRows), choreCaches);
+  return buildFamilyPage(viewer, habits, people, logsByHabit, today, vacationMap(vacationRows), choreCaches, timeByHabit);
 }
 
 /**
@@ -178,7 +194,7 @@ export async function loadPlannedHabitDays(viewer: HabitActor, from: Date, to: D
       habitId: true,
       userId: true,
       day: true,
-      habit: { select: { title: true, icon: true, kind: true, isPrivate: true, schedule: true, weekdays: true, times: true, anchorWeek: true, participants: { select: { userId: true } } } },
+      habit: { select: { title: true, icon: true, kind: true, track: true, isPrivate: true, schedule: true, weekdays: true, times: true, anchorWeek: true, participants: { select: { userId: true } } } },
     },
   });
   if (planned.length === 0) return [];
@@ -192,6 +208,7 @@ export async function loadPlannedHabitDays(viewer: HabitActor, from: Date, to: D
     title: row.habit.title,
     icon: row.habit.icon,
     kind: row.habit.kind,
+    track: row.habit.track,
     isPrivate: row.habit.isPrivate,
     participantIds: row.habit.participants.map((p) => p.userId),
     day: row.day,
@@ -212,7 +229,8 @@ export async function loadPlannedHabitDays(viewer: HabitActor, from: Date, to: D
  * only the items drawn, that person's checks, the vacations touching it and the
  * this-week changes to those items. Another person is shown only to a parent
  * or admin (`reportScope` falls back to the viewer), and another person's
- * private habits are never fetched into a row.
+ * private habits are never fetched into a row. Hours habits are left out
+ * entirely, with no note (decision 197).
  */
 export async function loadHabitReport(viewer: HabitActor, params: ReportParams, today: CalendarDate): Promise<HabitReport | null> {
   if (viewer.role === "device") return null;
@@ -222,7 +240,7 @@ export async function loadHabitReport(viewer: HabitActor, params: ReportParams, 
   // Who is shown is decided before the habits are read, by `reportPersonId`, the rule `reportScope` applies too.
   const shownId = reportPersonId(viewer, params.person, people);
   const habits = await db.habit.findMany({
-    where: { archivedAt: null, participants: { some: { userId: shownId } }, ...(shownId === viewer.userId ? {} : { isPrivate: false }) },
+    where: { archivedAt: null, track: "checks", participants: { some: { userId: shownId } }, ...othersPrivateHidden(viewer, shownId) },
     include: {
       participants: {
         orderBy: { joinedAt: "asc" },

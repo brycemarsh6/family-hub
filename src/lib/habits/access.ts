@@ -21,6 +21,23 @@ export function canSeeHabit(actor: HabitActor, habit: HabitAccess): boolean {
 }
 
 /**
+ * The query filter for another person's habits (their Report, their stats
+ * tiles): yours show in full, theirs only when not private. Spread it into a
+ * `where`.
+ */
+export function othersPrivateHidden(actor: HabitActor, subjectId: string): { isPrivate?: false } {
+  return subjectId === actor.userId ? {} : { isPrivate: false };
+}
+
+/**
+ * Whether a habit appears on the Whole family view at all: a private habit
+ * never does, for anyone (decision 102's family-wide cousin).
+ */
+export function showsOnFamilyView(habit: { isPrivate: boolean }): boolean {
+  return !habit.isPrivate;
+}
+
+/**
  * Never the tablet; a participant or a manager who can see the habit.
  */
 export function canEditHabit(actor: HabitActor, habit: HabitAccess): boolean {
@@ -79,11 +96,11 @@ export function canSeeHabitStats(actor: HabitActor, habit: HabitAccess): boolean
  * whether it is archived, and which participants are deactivated (a caller that
  * leaves it out is saying none are).
  */
-export type NudgeHabit = HabitAccess & { sharing: string; archived: boolean; deactivatedIds?: readonly string[] };
+export type NudgeHabit = HabitAccess & { sharing: string; archived: boolean; deactivatedIds?: readonly string[]; track?: string };
 
 /**
  * Whether `actor` may nudge `toUserId` about a habit (decision 97): never the
- * tablet, never yourself, only on a Side by side habit that is not private or
+ * tablet, never yourself, never an hours habit (decision 197), only on a Side by side habit that is not private or
  * archived, and only between two of its participants, the recipient still
  * active. Whether the recipient
  * has finished today is a fact about the day, so the caller checks it.
@@ -91,6 +108,7 @@ export type NudgeHabit = HabitAccess & { sharing: string; archived: boolean; dea
 export function canNudge(actor: HabitActor, habit: NudgeHabit, toUserId: string): boolean {
   return (
     actor.role !== "device" &&
+    habit.track !== "hours" &&
     habit.sharing === "each" &&
     !habit.isPrivate &&
     !habit.archived &&

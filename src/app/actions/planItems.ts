@@ -30,7 +30,7 @@ import { canLogFor } from "@/lib/habits/access";
 import { checkHabit, createHabit, deleteHabit, uncheckNewest, updateHabit } from "@/lib/habits/habitWrites";
 import { periodWindow } from "@/lib/habits/schedule";
 import type { ScheduleSpec } from "@/lib/habits/types";
-import { loadHabitsForPlan } from "@/lib/habitsRead";
+import { loadHabitForAction, loadHabitsForPlan } from "@/lib/habitsRead";
 import { Prisma } from "@/generated/prisma/client";
 import { isMissingRowError } from "@/lib/prismaErrors";
 
@@ -41,6 +41,7 @@ const NOT_SIGNED_IN = "Not signed in.";
 const DEVICE_REFUSED = "A shared device can't change goals.";
 const NOT_ALLOWED = "You can't change that goal.";
 const GONE = "That plan no longer exists.";
+const TRACKS_HOURS = "That habit tracks hours.";
 const NOT_LINKED = "This habit needs to be saved once more before it can be checked. Tap Edit, then Save.";
 
 /** P2003: the goal or item was deleted on another phone between the check and the write. */
@@ -148,6 +149,24 @@ async function newHabit(tx: Prisma.TransactionClient, input: PlanItemInput, goal
   );
 }
 
+/**
+ * Brings the linked Habit in step with an edited item. An edit that names no
+ * Track never changes it (decision 198): an hours habit (`keepsHours`) then
+ * only takes the new title, because the item's repeat fields stand for checks.
+ */
+async function updateLinkedHabit(
+  tx: Prisma.TransactionClient,
+  habitId: string,
+  input: PlanItemInput,
+  goal: GoalPolicyRow,
+  today: CalendarDate,
+  keepsHours: boolean,
+) {
+  const { title, schedule, times, track, weeklyMinutes, paceDays } = habitInputFromPlan(input, goal);
+  if (keepsHours) return updateHabit(habitId, { title }, today, tx);
+  return updateHabit(habitId, { title, schedule, times, track, weeklyMinutes, paceDays }, today, tx);
+}
+
 /** Rewrites title, kind and repeat. Turning a step into anything else forgets that it was done. */
 export async function updatePlanItem(id: string, raw: unknown): Promise<PlanItemActionResult> {
   const loaded = await loadItem(id, "edit");
@@ -161,12 +180,12 @@ export async function updatePlanItem(id: string, raw: unknown): Promise<PlanItem
   const today = householdToday(new Date())!;
 
   try {
+    const keepsHours = input.kind === "habit" && input.track === undefined && !!item.habitId && (await loadHabitForAction(item.habitId))?.track === "hours";
     await db.$transaction(async (tx) => {
       // A habit keeps its Habit in step with the item; anything else lets the Habit go.
       let habitId: string | null = null;
       if (input.kind === "habit") {
-        const { title, schedule, times } = habitInputFromPlan(input, goal);
-        const updated = item.habitId ? await updateHabit(item.habitId, { title, schedule, times }, today, tx) : null;
+        const updated = item.habitId ? await updateLinkedHabit(tx, item.habitId, input, goal, today, keepsHours) : null;
         habitId = updated ? updated.id : (await newHabit(tx, input, goal, user, today)).id;
       }
       await tx.planItem.update({
@@ -174,8 +193,8 @@ export async function updatePlanItem(id: string, raw: unknown): Promise<PlanItem
         data: {
           title: input.title,
           kind: input.kind,
-          timesPerPeriod: input.timesPerPeriod,
-          period: input.period,
+          timesPerPeriod: keepsHours ? item.timesPerPeriod : input.timesPerPeriod,
+          period: keepsHours ? item.period : input.period,
           habitId,
           ...(input.kind === "step" ? {} : { doneAt: null }),
         },
@@ -219,6 +238,7 @@ async function habitTarget(
   if (!item.habitId) return { unlinked: true };
   const habit = (await loadHabitsForPlan([item.habitId], today)).get(item.habitId);
   if (!habit) return { error: GONE };
+  if (habit.track === "hours") return { error: TRACKS_HOURS };
   const forUserId = habitCheckTarget(goal, user.userId, habit.participantIds);
   const access = { isPrivate: habit.isPrivate, participantIds: habit.participantIds };
   if (!canLogFor({ userId: user.userId, role: user.role }, forUserId, access)) return { error: NOT_ALLOWED };

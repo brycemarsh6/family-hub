@@ -16,7 +16,7 @@ import type { HabitManagerItem, HabitRowView } from "./habitsToday";
 type TileRow = Pick<
   HabitRowView,
   "id" | "kind" | "dueState" | "carriedFrom" | "doneToday" | "skippedToday" | "onVacation" | "skippedThisWeek" | "plannedToday"
->;
+> & { hours?: { met: boolean } | null };
 
 export type TileRows<T extends TileRow> = {
   rows: T[];
@@ -53,7 +53,8 @@ export function plannedTodayRows<T extends TileRow>(rows: T[]): T[] {
  * The Habits tile (decision 132). Rows already in Planned today are left out
  * (decision 145), picked or not. With picks: the picked habits in picked
  * order, every one Today shows (open, done and skipped ones included). Without:
- * up to three due today and not done or skipped. The empty line says "All
+ * up to three due today and not done or skipped, or an hours habit whose week
+ * is not met yet (decision 197: a met one drops off). The empty line says "All
  * done" only when something was due and all of it is done or skipped.
  */
 export function habitsTileRows<T extends TileRow>(rows: T[], picks: string[]): TileRows<T> {
@@ -61,7 +62,7 @@ export function habitsTileRows<T extends TileRow>(rows: T[], picks: string[]): T
   const picked = picks.length > 0;
   const shown = picked
     ? [...new Set(picks)].flatMap((id) => habits.filter((row) => row.id === id && isOnToday(row)))
-    : habits.filter((row) => isDue(row) && !row.doneToday && !row.skippedToday).slice(0, HABITS_TILE_DEFAULT_LIMIT);
+    : habits.filter((row) => (isDue(row) && !row.doneToday && !row.skippedToday) || (row.hours && !row.hours.met)).slice(0, HABITS_TILE_DEFAULT_LIMIT);
   const empty =
     shown.length > 0
       ? null

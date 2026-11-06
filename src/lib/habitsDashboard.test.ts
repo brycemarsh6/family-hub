@@ -206,3 +206,20 @@ test("habits: a tile whose only due habit is planned says nothing is due, not al
   assert.deepEqual(tile.rows, []);
   assert.equal(tile.empty, HABITS_TILE_NOTHING_DUE);
 });
+
+// --- Hours habits (decision 197) -----------------------------------------
+
+test("habits: an unmet hours habit takes a slot like a due one; a met one drops off", () => {
+  const rows = [row("a"), row("calls", { dueState: "open", hours: { met: false } }), row("done", { dueState: "open", doneToday: true, hours: { met: true } })];
+  assert.deepEqual(ids(habitsTileRows(rows, []).rows), ["a", "calls"]);
+});
+
+test("habits: picked hours habits show whenever Today shows them, met or not", () => {
+  const rows = [row("calls", { dueState: "open", hours: { met: false } }), row("done", { dueState: "open", doneToday: true, hours: { met: true } })];
+  assert.deepEqual(ids(habitsTileRows(rows, ["done", "calls"]).rows), ["done", "calls"]);
+});
+
+test("habits: with only a met hours habit the tile says all done, with only an open checks one it says nothing is due", () => {
+  assert.equal(habitsTileRows([row("done", { dueState: "open", doneToday: true, hours: { met: true } })], []).empty, HABITS_TILE_ALL_DONE);
+  assert.equal(habitsTileRows([row("c", { dueState: "open" })], []).empty, HABITS_TILE_NOTHING_DUE);
+});
