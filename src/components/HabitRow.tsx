@@ -11,9 +11,10 @@ const TIME_LABELS = { morning: "Morning", afternoon: "Afternoon", evening: "Even
 
 const TAG_CLASS = "rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn whitespace-nowrap";
 
-/** "Mine", "Together" or "Side by side": who the habit belongs to, from the viewer's side. */
+/** "Mine", "Everyone", "Together" or "Side by side": who the habit belongs to, from the viewer's side. */
 function whoLabel(row: HabitRowView): string {
   if (row.participants.length <= 1) return "Mine";
+  if (row.everyone) return "Everyone";
   return row.sharing === "together" ? "Together" : "Side by side";
 }
 

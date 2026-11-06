@@ -2,7 +2,7 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
-import { Archive, ChevronRight, Plus, RotateCcw } from "lucide-react";
+import { Archive, ChevronRight, Plus, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { HabitIcon } from "./HabitIcon";
 import { SortableList } from "./SortableList";
@@ -207,6 +207,17 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
           </ul>
         </section>
       )}
+
+      <Link href="/settings" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5`}>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
+          <SlidersHorizontal aria-hidden="true" size={20} />
+        </div>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-base font-semibold">My Habits &amp; Chores settings</span>
+          <span className="text-sm text-muted">Show streaks and more</span>
+        </span>
+        <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+      </Link>
     </div>
   );
 }

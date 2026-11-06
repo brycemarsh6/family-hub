@@ -6,7 +6,8 @@
 // the tablet for any participant, a parent or admin for anyone), then the
 // day. A missing habit and a refused one answer the same words. The tablet
 // may check but never edit. "Today" is the server's (Denver); a client `day`
-// is accepted only from the last seven days up to today, never the future.
+// is accepted only from the last seven days up to today, never the future,
+// plus the one older day a carried-over row stands for (up to 14 days back).
 
 import { revalidatePath } from "next/cache";
 import { getVerifiedUser } from "@/lib/dal";
@@ -20,20 +21,17 @@ import {
 } from "@/lib/habits/habitWrites";
 import { calendarDaysBetween, parseDateParam, type CalendarDate } from "@/lib/householdDate";
 import { loadCarriedDay, loadHabitForAction, loadLogStatus, type HabitForAction } from "@/lib/habitsRead";
+import { isTapDayAllowed, TAP_DAYS_BACK } from "@/lib/habitsToday";
 import type { HabitActionResult } from "./habits";
 
 const NOT_FOUND = "That habit isn't available.";
-const MAX_DAYS_BACK = 7;
 
 type Target = { userId: string; habit: HabitForAction; forUserId: string; day: CalendarDate; today: CalendarDate };
 
-/** The day a tap is for: today when none given, else a `YYYY-MM-DD` in the last seven days, never ahead of today. */
+/** The day a tap is for: today when none given, else a `YYYY-MM-DD` that is a real day (`isTapDayAllowed` judges it). */
 function tapDay(raw: string | undefined, today: CalendarDate): CalendarDate | null {
   if (raw === undefined) return today;
-  const day = typeof raw === "string" ? parseDateParam(raw) : null;
-  if (!day) return null;
-  const ago = calendarDaysBetween(day, today);
-  return ago >= 0 && ago <= MAX_DAYS_BACK ? day : null;
+  return typeof raw === "string" ? parseDateParam(raw) : null;
 }
 
 /** Session, row, `canLogFor`, then the day: the one guard behind all four taps. */
@@ -47,6 +45,9 @@ async function guardedTap(habitId: string, forUserId: string | undefined, rawDay
   const today = householdToday(new Date())!;
   const day = tapDay(rawDay, today);
   if (!day) return { error: "That day can't be changed." };
+  // Only a day older than a week needs the carried day (one more query); the server's answer decides, not the client's.
+  const carried = calendarDaysBetween(day, today) > TAP_DAYS_BACK ? await loadCarriedDay(habit, habitId, target, today) : null;
+  if (!isTapDayAllowed(day, today, carried)) return { error: "That day can't be changed." };
   return { userId: user.userId, habit, forUserId: target, day, today };
 }
 
