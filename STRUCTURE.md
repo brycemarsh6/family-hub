@@ -333,7 +333,8 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/habits/` is the habit engine, a domain subdirectory under the
   `src/lib/voice/` precedent. `schedule.ts`, `carryOver.ts`, `streaks.ts`,
   `progress.ts`, `perfectDays.ts`, `planPrompts.ts`, `access.ts`,
-  `habitRows.ts` and `types.ts` are pure: no Prisma client, no `db`, and
+  `habitRows.ts`, `weekOverrides.ts`, `choreStreak.ts` and `types.ts` are
+  pure: no Prisma client, no `db`, and
   callers pass `today`. `habitWrites.ts` and `participantWrites.ts` (both
   `server-only`) are the only writers of the `Habit`, `HabitParticipant` and
   `HabitLog` tables; `habitWrites.ts` alone writes the cached streak columns,
@@ -465,6 +466,28 @@ Adding a second definition of any of these is a BLOCKER:
   `revalidatePath`. `src/lib/confettiSeen.ts` is the only home of the
   once-a-day confetti marker on each device (the `lastStore.ts` pattern),
   and `HabitConfetti.tsx` is the only importer of `canvas-confetti`.
+- **Habits & Chores PR D homes (mission-33).** `habits/weekOverrides.ts`
+  is the only home of the this-week chore rules (`choreDayState`,
+  `choreTag`, `weekChange`) and of `isExcused`, the one "excused row" rule
+  (skipped, skipped this week, or on vacation) used by the counts, the
+  confetti rule and the sort. `habits/choreStreak.ts` is the only home of
+  the chore streak (`computeChoreStreak`, `choreStreakAfter`,
+  `finishedAllChoresLastWeek`). `habits/carryOver.ts` holds `carrySince`
+  and `habitStartDay` (moved from `habitsToday.ts` so the engine never
+  imports upward). `habits/choreWrites.ts` (`server-only`) is the only
+  writer of `ChoreWeekOverride` and of the `UserPreferences` chore streak
+  columns, through one `recomputeChoreStreak`, called in the same
+  transaction by every write that can change it. `habits/vacationWrites.ts`
+  (`server-only`) is the only writer of `VacationPeriod`. Their callers are
+  `src/app/actions/choreChart.ts` and `src/app/actions/vacations.ts`, which
+  own the session, the tablet refusal and `canEditChart` (in
+  `habits/access.ts`, the only chart policy). `src/lib/choreChart.ts` holds
+  the chore pages' pure builders (the chart, the chore header with its
+  streak and Sunday flag, the vacation list order); its loaders live in the
+  two habit readers above, which now also read `ChoreWeekOverride`,
+  `VacationPeriod` and the chore streak columns. On the family view the
+  chore streak and Sunday flag count private chores, but only the number
+  and the flag leave the server.
 - **The `validatedPeople` decision** — which `User` ids may be **written**
   onto an item. `personInfo.ts` below is the read-side twin of this rule;
   this is the write side, and it is security-relevant for the same reason.
