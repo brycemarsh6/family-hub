@@ -260,12 +260,21 @@ dev table, so the migration must be applied to dev (Bryce's yes) first.
 
 - 2026-11-06: mission opened as 38 (37 is habits hours). Mock and
   questions sent to Bryce. Next: record answers, write contracts.
+- 2026-11-06: C1 to C4 built; Vision pass 1 PASS.
+- 2026-11-06: Bryce said yes; `prisma migrate deploy` applied
+  20261111000000_add_feedback to the dev branch (host ep-hidden-pine).
+  Before: dev had habit hours 20261109000000 and 20261109000001 (not yet
+  on this branch) and ours pending. After: "Database schema is up to
+  date!". **Any branch without the 20261111 folder will see a "not found
+  locally" line in `migrate status`: expected, harmless, never "fix" it
+  with reset or db push.** The tablet-login session was told.
 
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Vision | PASS (a123a3d) | none | 6 notes, below |
+| 1 | Captain | BLOCKED (9303f2b) | 2 (date formatting) | 9 notes; STRUCTURE.md amendment drafted, applied pre-merge |
 
 Vision pass 1 notes (to batch into the fix contract with any later gate
 findings):
@@ -281,3 +290,42 @@ findings):
 - `actions/feedback.ts:21`: a hand-made POST with null input gives a 500.
 - Branch is behind main by PR #51 (habits hours merged). Dry-run merge
   is clean; sync and rerun the gauntlet before merging.
+
+Captain pass 1 blockers: `FeedbackRow.tsx:16` `timeAgo` is a second "Nov 3"
+formatter with no time zone and millisecond day math; `FeedbackDetailSheet.tsx:51-57`
+spells month and weekday names inline (STRUCTURE.md: a sixth definition is
+a BLOCKER). Captain's drafted STRUCTURE.md amendment is in his report; Fury
+applies it right before merge, after syncing with main. Kept: the
+`TOUCH_STAMP` encoding (the migration is already on dev, so a `touch`
+column would need a second migration for little gain; Fury's call).
+Deferred notes: narrow `DrawerUser`; extract `SettingsLinkRow` at a third
+door row; iPad canvas limit on long pages (device check).
+
+### F1 - date labels through household helpers, plus cheap notes
+- **Status:** PENDING
+- **Objective:** clear both Captain blockers and Vision's hydration note,
+  and batch the cheap notes.
+- **Boundaries:** may touch: new `src/lib/feedbackTime.ts`, new
+  `src/lib/feedbackTime.test.ts`, `src/components/FeedbackRow.tsx`,
+  `src/components/FeedbackDetailSheet.tsx`, `src/components/FeedbackList.tsx`,
+  `src/app/(app)/settings/feedback/page.tsx`, `src/components/FeedbackSheet.tsx`,
+  `src/lib/captureScreenshot.ts`, `src/lib/feedback.ts` (header comment
+  only), `src/app/actions/feedback.ts` · must not touch: everything else.
+- **Work:** `feedbackTime.ts` (imports only `householdDate.ts`,
+  `mealPlanDates.ts`, `constants.ts`): `feedbackTimeAgo(createdAt, now)`
+  (under 1 min "Just now", minutes and hours as elapsed time, then whole
+  household calendar days via `calendarDateInZone` + `calendarDaysBetween`,
+  after 14 days `formatShortCalendarDate`) and `feedbackTimeLabel(createdAt)`
+  (`SHORT_DAY_NAMES[dayOfWeek(d)]`, `formatShortCalendarDate(d)`, and a
+  clock time from `Intl.DateTimeFormat` with only hour and minute and
+  `timeZone: HOUSEHOLD_TIME_ZONE`). Tests include a near-midnight Denver
+  report, passing in both TZ legs. `now` is computed once on the server page
+  and passed down as a prop, so server and client render the same text.
+  Remove the component-level formatters. Also: `import "client-only"` in
+  `captureScreenshot.ts`; the sheet uses `normalizeMessage` for its empty and
+  too-long error instead of retyping the words; `feedback.ts` header says
+  `decodeScreenshot` is server-only (uses `Buffer`); `sendFeedback`
+  returns `{ ok: false }` instead of throwing on a malformed input; the two
+  empty states use `EmptyState` if it fits (else note why).
+- **Verification:** tsc, `npx eslint .`, `npm test`, the UTC direct run,
+  `npm run build`, all green.
