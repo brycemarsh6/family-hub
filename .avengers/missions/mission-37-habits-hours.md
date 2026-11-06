@@ -227,3 +227,174 @@ From AGENTS.md, absolute for every agent:
 ## Gate ledger
 
 None yet.
+
+#### C1 Amendment 1 (sent to Stark mid-build, 2026-11-06, for decision 198)
+
+Same migration and schema gain `Habit."hoursSince" TIMESTAMP(3)`
+(`hoursSince DateTime?`): the household day (UTC midnight) the habit became
+an hours habit. `createHabit` with track "hours" sets it to `today`;
+`updateHabit` sets it when track changes checks → hours and clears it when
+it changes to checks. `streakWrites.ts` passes `startWeek =
+startOfWeek(hoursSince ?? createdAt as a household day)` to `hoursStreaks`;
+`SCHEDULE_SELECT` gains `hoursSince`; `hoursFromRow` also returns
+`since: CalendarDate | null`. One more test: a switch mid-history ignores
+earlier weeks.
+
+## Decisions
+
+Bryce's answers are decisions 182 to 186 and Hill's are 187 to 199, in
+`.avengers/plans/habits-chores-v1.md` ("The weekly hours tracker"). Hill's
+medium calls: 188 ("· today"), 191 (wording), 192 (swipe to Delete), 197
+(Report leaves hours out), 198 (the switch line, and switching back).
+
+### C2 - Read side: rows, tiles, goals, stats data, exclusions
+
+1. **Objective:** every page loader and pure builder knows an hours habit:
+   Today and the dashboard get an hours view per row, goal plans show hours,
+   the stats page gets hours data, and every place in decisions 197 leaves
+   hours habits out on purpose. No UI in this contract.
+2. **Boundaries:**
+   - May touch:
+     - new `src/lib/habitsHours.ts` (the hours builder: row view, stats
+       view, the words that join numbers and `formatHours`)
+     - new `src/lib/habitsHours.test.ts`
+     - `src/lib/habitsToday.ts` (only: the `hours` field on `HabitRowView`
+       and the call into `habitsHours.ts`; hours rows never "required",
+       never in `allRequiredDoneToday`; it must stay at or under 350 lines)
+     - `src/lib/habitsToday.test.ts`
+     - `src/lib/habitsRead.ts`, `src/lib/habitsStatsRead.ts` (load
+       `HabitTimeEntry` rows and the new Habit columns where needed)
+     - `src/lib/habitsDashboard.ts`, `src/lib/habitsDashboard.test.ts`
+     - `src/lib/habitsPrompts.ts`, `src/lib/habitsPrompts.test.ts`
+     - `src/lib/habitsCalendar.ts`, `src/lib/habitsCalendar.test.ts`
+     - `src/lib/habitsReport.ts`, `src/lib/habitsReport.test.ts`
+     - `src/lib/habitsFamily.ts`, `src/lib/habitsFamily.test.ts`
+     - `src/lib/habitChanges.ts`, `src/lib/habitChanges.test.ts` (an
+       optimistic "addTime" change, if the builder needs it)
+     - `src/lib/goalsProgress.ts`, `src/lib/goalsProgress.test.ts`,
+       `src/lib/goalsRecap.ts`, `src/lib/goalsRead.ts`
+     - `src/lib/habits/access.ts`, `src/lib/habits/access.test.ts`
+       (`canNudge` false for hours habits)
+   - Must not touch: `prisma/`, `src/lib/habits/` files other than
+     `access.ts` and its test, `src/lib/goals.ts`, `src/app/`,
+     `src/components/`, `src/lib/habitVocabulary.ts`,
+     `src/lib/habitHoursVocabulary.ts` (read it, don't change it; ask if
+     a word or limit is missing).
+3. **Spec** (decisions 187 to 199):
+   - `formatHours(minutes)` in `habitsHours.ts`: whole hours plus ¼ ½ ¾,
+     "1 hour" singular, under an hour as "½" (totals) or "30 min"
+     (amounts, a separate `formatAmount`). The exact strings: "6½ of 10
+     hours this week", "10 of 10 hours this week · done", "11½ of 10 hours
+     this week · done", "3½ hours left · about 1¾ a day", "4 hours left ·
+     today" (last counted day, 188), "1 hour left", "6 hours a week" /
+     "1 hour a week" (Manage, 199), "Calling · 3½ hours left" (Goals tile).
+   - `HabitRowView.hours: HoursRowView | null` = { done, target,
+     doneText, leftText (null when met), met, fraction 0..1 for the bar,
+     paceDays }. Rows for hours habits: shown every day of the week
+     (never dropped as "none"), `doneToday` mirrors `met` so the existing
+     finished sort works (189), `dueState` "open", never carried, no
+     planned day, `progress` null, streak label in weeks (195). Vacation:
+     an hours row on a vacation day still shows (time can be logged); the
+     pace leaves vacation days out (C1 does).
+   - Dashboard (197): picked hours habits show whenever Today shows
+     them; with no picks, unmet hours habits are eligible like due ones
+     and met ones drop off.
+   - Never for hours habits: Pick a day prompts, Calendar planned days,
+     perfect days, confetti, the Report (left out entirely, no note),
+     nudges.
+   - Whole family: each person's `hours` view in their column data.
+   - Stats data: `buildStatsData` (or a sibling in `habitsHours.ts` it
+     calls) returns, for an hours habit, `hours: { week: hoursWeek result,
+     tiles: current, best, totalText, chartDays (Sun to Sat, minutes and
+     label each), lastWeeksText "Last 4 weeks: 6 · 7 · 6½ · 2 so far",
+     entries: { thisWeek, lastWeek } each newest first with { id, day,
+     label "Thu · 1½ hours", canDelete }, switchedText "Switched to hours
+     on Nov 6" when `hoursSince` is after the habit's first day,
+     perPerson for Side by side }` and no month calendar. The stats page
+     must not 404 for an hours habit.
+   - Goals: `buildPlanItemView` / week summary / recap show hours progress
+     for an item whose habit is hours ("Calling · 6½ of 10 hours this
+     week", fraction for its bar); a goal's "done this week" counts the
+     hours habit done when met.
+4. **Verification:** the full Gauntlet. New tests in `habitsHours.test.ts`
+   pin every string above; changed builders get a test showing an hours
+   habit handled (row present, excluded where 197 says).
+5. **Evidence required:** Gauntlet tails (both TZ runs and the build),
+   `wc -l` of every touched file (habitsToday.ts ≤ 350), `git diff --stat`,
+   and a list of each site Banner named in the brief (mission file
+   doesn't hold it; it is in the dispatch) with what it now does.
+6. **Done criteria:** Vision re-runs green and walks each site.
+
+### C3 - Write side: the form, the plan sheet, the actions
+
+1. **Objective:** people can create and edit hours habits (Habits & Chores
+   form and the goal's Add-to-plan sheet) and log or remove time, through
+   checked Server Actions.
+2. **Boundaries:**
+   - May touch:
+     - new `src/app/actions/habitHours.ts` (`addHabitTime`,
+       `removeHabitTime`)
+     - `src/app/actions/habits.ts` (`HabitInput` and `checkInput` gain
+       track, weekly hours, pace days; hours forces the storage shape and
+       refuses Together, chores and carry over)
+     - `src/app/actions/planItems.ts` (create and edit a plan item as
+       hours; editing never changes Track unless asked)
+     - `src/lib/goals.ts` (`habitInputFromPlan` carries Track and keeps an
+       hours habit hours)
+     - `src/lib/goalsHabitInput.test.ts`
+     - `src/components/HabitForm.tsx`, `src/components/HabitFormFields.tsx`
+     - new `src/components/HabitHoursFields.tsx` (the "Hours a week"
+       stepper and "Count days left as", shared by both forms)
+     - `src/components/PlanItemSheet.tsx`
+   - Must not touch: `prisma/`, `src/lib/habits/`, every `src/lib/habits*.ts`
+     builder (C2's), the Today row, sheets, Manage and stats components
+     (C4's). C2 and C3 run in parallel, so C3 imports nothing C2 adds.
+3. **Spec** (decisions 186, 191, 193, 194, 198):
+   - Actions check the session (`src/lib/dal.ts`) and `access.ts`
+     (`canLogFor` for time, like a check; delete only an entry of a habit
+     the viewer may log for). `addHabitTime(habitId, forUserId, dayIso,
+     minutes)`: the habit must be an hours habit; minutes a multiple of 30
+     from 30 to 720; the day within the 7-day window and never after today
+     (use the same rule a late check uses). `removeHabitTime(entryId)`.
+     Both `revalidatePath` the same pages a check does plus the stats page
+     and goal pages that a check revalidates.
+   - Form: Track Segmented under Kind (hidden for chores), Hours hides How
+     often, Carry over, Build or quit and Together in Who; shows the hours
+     fields; Private turns on when Hours is picked with Just me and off
+     with Side by side; idea chips never set Track. Edit of a check habit
+     can switch to Hours and back.
+   - Preflight notes: C2's REVIEW lines were read; the four `habitsHours`
+     hits on C2 are mentions of its own new file.
+   - Plan sheet: the Habit kind gets the same Track row; Hours swaps How
+     often for the hours fields. Saving creates or updates the linked
+     habit as hours.
+   - Limits come only from `HOURS_LIMITS` (no literal 30, 720 or 80 for
+     these rules anywhere else).
+4. **Verification:** the full Gauntlet; tests for `checkInput`'s hours
+   rules if it is testable where it lives, and for `habitInputFromPlan`.
+5. **Evidence required:** Gauntlet tails, `wc -l`, `git diff --stat`.
+6. **Done criteria:** Vision re-runs green; Strange sees the form in C4's
+   gate.
+
+### C4 - The screens: Today row, log sheet, tile, stats, goals
+
+1. **Objective:** everything a person sees: the hours row with bar and +,
+   the log sheet, the dashboard tile row, the stats page for hours, the
+   Whole family column, and the goal page, This week and Goals tile
+   lines.
+2. **Boundaries:** written after C2 and C3 land, from their real exports.
+
+#### C1 report and Fury's fix (2026-11-06)
+
+Stark: DONE, Gauntlet green (998 tests; UTC 991 + 7 skips; LA 998), build
+0. He had applied the first migration to dev before Amendment 1 arrived,
+so dev lacked `hoursSince`. Fury moved that column into its own additive
+migration, `20261109000001_add_habit_hours_since`, restored the first
+file to exactly what dev recorded, checked the host (`ep-hidden-pine-`)
+and ran `npx prisma migrate deploy`: "All migrations have been
+successfully applied", `migrate status` "up to date". Stark's notes:
+`hoursStreaks` and `countedDaysLeft` take `paceDays` / `vacations` as
+extra inputs; `habitColumns` with track "hours" clamps the target to 60
+to 4800 minutes and defaults 300, so editors must send the whole hours
+shape; `addHabitTime` returns null for a non-hours habit or a
+non-participant and clamps minutes 30 to 720.

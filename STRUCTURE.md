@@ -349,10 +349,18 @@ Adding a second definition of any of these is a BLOCKER:
   `goalVocabulary.ts`, beside `HABIT_PERIODS`. These are two different
   vocabularies (`HabitPeriod` on a goal's plan, `HabitSchedule` on a habit)
   and stay apart on purpose. (Added mission-30.)
+- `src/lib/habitHoursVocabulary.ts` holds the hours habit's vocabulary:
+  `HABIT_TRACKS`, `PACE_DAYS`, `HOURS_LIMITS` and the `toHabitTrack` /
+  `toPaceDays` repairers. It has **no imports**, and sits beside
+  `habitVocabulary.ts` (past its soft cap) because new habit words go in a
+  new file by concern. Entries live in `HabitTimeEntry`, written only by
+  `addHabitTime` / `removeHabitTime` in `habits/habitWrites.ts`. (Added
+  mission-37.)
 - `src/lib/habits/` is the habit engine, a domain subdirectory under the
   `src/lib/voice/` precedent. `schedule.ts`, `carryOver.ts`, `streaks.ts`,
   `progress.ts`, `perfectDays.ts`, `planPrompts.ts`, `access.ts`,
-  `habitRows.ts`, `weekOverrides.ts`, `choreStreak.ts` and `types.ts` are
+  `habitRows.ts`, `weekOverrides.ts`, `choreStreak.ts`, `hours.ts` (the
+  weekly-hours rules, mission-37) and `types.ts` are
   pure: no Prisma client, no `db`, and
   callers pass `today`. `habitWrites.ts`, `participantWrites.ts`, `streakWrites.ts` and
   `planWrites.ts` (all `server-only`) are the only writers of the `Habit`,
@@ -369,8 +377,8 @@ Adding a second definition of any of these is a BLOCKER:
   `HabitLog` and `Nudge` tables for pages and actions. Both are
   `server-only`, and each hands its rows to a pure builder. A third reader
   is a BLOCKER. **Dependency direction:** `src/lib/habits/` may import
-  `habitVocabulary.ts`, `householdDate.ts`, `constants.ts`,
-  `householdPeople.ts` (the write files only), `db.ts` and the generated
+  `habitVocabulary.ts`, `habitHoursVocabulary.ts`, `householdDate.ts`,
+  `constants.ts`, `householdPeople.ts` (the write files only), `db.ts` and the generated
   client (types). Its writers take `today` from their caller and never
   compute it. It never imports `goals*.ts`,
   `goalVocabulary.ts` or `visions*.ts`, nor any other top-level `src/lib/`
