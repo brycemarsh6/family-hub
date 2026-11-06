@@ -1,4 +1,4 @@
-import { assistantRoute } from "@/lib/assistant/route";
+import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { buildOpenApiDocument } from "@/lib/assistant/openapi";
 
 // Behind the bearer like everything else: the spec describes a private API.

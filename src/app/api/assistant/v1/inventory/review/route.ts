@@ -1,4 +1,4 @@
-import { assistantRoute } from "@/lib/assistant/route";
+import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { toReviewQueue } from "@/lib/assistant/serialize";
 import { buildReviewQueue, type DuplicateCandidate } from "@/lib/duplicates";
 import { db } from "@/lib/db";
