@@ -17,6 +17,7 @@ import {
   GOAL_OWNERSHIPS,
   GOAL_OWNERSHIP_LABELS,
   LIFE_AREAS,
+  ONGOING_LABEL,
   lifeAreaInfo,
   type GoalOwnership,
   type GoalVisibility,
@@ -34,6 +35,8 @@ export type GoalFormValues = {
   why: string;
   /** "YYYY-MM-DD", or "" when none is picked. */
   targetDate: string;
+  /** True when the goal has no end date; the date is then ignored. */
+  ongoing: boolean;
   measure: { unit: string; start: string; target: string } | null;
 };
 
@@ -44,6 +47,7 @@ const EMPTY_VALUES: GoalFormValues = {
   visibility: "shared",
   why: "",
   targetDate: "",
+  ongoing: false,
   measure: null,
 };
 
@@ -66,7 +70,11 @@ export function GoalForm(
   const router = useRouter();
   const { today } = props;
   const isEdit = props.mode === "edit";
-  const [values, setValues] = useState<GoalFormValues>(props.mode === "edit" ? props.initial : EMPTY_VALUES);
+  const [values, setValues] = useState<GoalFormValues>(
+    props.mode === "edit"
+      ? props.initial
+      : { ...EMPTY_VALUES, targetDate: formatCalendarDate(targetDateChips(props.today)[0].date) },
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -99,7 +107,8 @@ export function GoalForm(
       ownership: values.ownership,
       visibility: values.visibility,
       why: values.why,
-      targetDate: values.targetDate,
+      targetDate: values.ongoing ? "" : values.targetDate,
+      ongoing: values.ongoing,
       measure: measure
         ? { unit: measure.unit, start: parseTypedNumber(measure.start), target: parseTypedNumber(measure.target) }
         : null,
@@ -204,22 +213,31 @@ export function GoalForm(
               <button
                 key={label}
                 type="button"
-                onClick={() => set("targetDate", text)}
-                aria-pressed={values.targetDate === text}
-                className={`${CHIP_CLASSES} ${values.targetDate === text ? CHIP_ON : CHIP_OFF}`}
+                onClick={() => setValues((current) => ({ ...current, targetDate: text, ongoing: false }))}
+                aria-pressed={!values.ongoing && values.targetDate === text}
+                className={`${CHIP_CLASSES} ${!values.ongoing && values.targetDate === text ? CHIP_ON : CHIP_OFF}`}
               >
                 {label}
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={() => set("ongoing", true)}
+            aria-pressed={values.ongoing}
+            className={`${CHIP_CLASSES} ${values.ongoing ? CHIP_ON : CHIP_OFF}`}
+          >
+            {ONGOING_LABEL}
+          </button>
         </div>
         <input
           type="date"
           value={values.targetDate}
           min={formatCalendarDate(earliest)}
-          onChange={(event) => set("targetDate", event.target.value)}
+          onChange={(event) => setValues((current) => ({ ...current, targetDate: event.target.value, ongoing: false }))}
+          onClick={() => values.ongoing && set("ongoing", false)}
           aria-label="Target date"
-          className={INPUT_CLASSES}
+          className={`${INPUT_CLASSES} ${values.ongoing ? "opacity-45" : ""}`}
         />
       </Field>
 

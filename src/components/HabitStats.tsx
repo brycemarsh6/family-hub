@@ -3,6 +3,7 @@
 import { useOptimistic } from "react";
 import { Flame } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
+import { HabitHoursStats } from "./HabitHoursStats";
 import { HabitIcon } from "./HabitIcon";
 import { HabitMonthCalendar, type CalendarCell } from "./HabitMonthCalendar";
 import { HabitSideBySide } from "./HabitSideBySide";
@@ -45,7 +46,8 @@ function Tile({ value, label, flame = false }: { value: number; label: string; f
 /**
  * The stats page body (decisions 94, 97, 104): header, nudge rows, tiles, the
  * month with its perfect-days line, and for Side by side habits the table and
- * the week strips. The data is plain values from `loadHabitStats`. A tapped day
+ * the week strips. An hours habit (`data.hours`) swaps the tiles, month and
+ * table for `HabitHoursStats`. The data is plain values from `loadHabitStats`. A tapped day
  * changes at once (the same `useOptimistic` idiom as the Today list), and the
  * tile total follows; the streak numbers wait for the server.
  */
@@ -95,29 +97,35 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
       ))}
 
       {data.subjectId !== data.viewerId && <p className="text-sm text-muted">Showing {data.subjectName}’s numbers.</p>}
-      <div className="flex gap-2">
-        <Tile value={data.tiles.current} label={`Current streak, ${unit}`} flame />
-        <Tile value={data.tiles.best} label={`Best streak, ${unit}`} />
-        <Tile value={total} label="Total done" />
-      </div>
+      {data.hours ? (
+        <HabitHoursStats hours={data.hours} />
+      ) : (
+        <>
+          <div className="flex gap-2">
+            <Tile value={data.tiles.current} label={`Current streak, ${unit}`} flame />
+            <Tile value={data.tiles.best} label={`Best streak, ${unit}`} />
+            <Tile value={total} label="Total done" />
+          </div>
 
-      <div className="mt-1 flex items-baseline justify-between">
-        <h2 className={SECTION_TITLE}>{statsMonthTitle(first.year, first.month, parseDateParam(data.today)!.year)}</h2>
-        <span className="text-sm text-muted">
-          {headerText}
-        </span>
-      </div>
-      <HabitMonthCalendar cells={cells} leading={data.calendar.leading} today={data.today} onToggle={toggle} />
-      {error && (
-        <p role="alert" className="text-sm text-warn">
-          {error}
-        </p>
+          <div className="mt-1 flex items-baseline justify-between">
+            <h2 className={SECTION_TITLE}>{statsMonthTitle(first.year, first.month, parseDateParam(data.today)!.year)}</h2>
+            <span className="text-sm text-muted">
+              {headerText}
+            </span>
+          </div>
+          <HabitMonthCalendar cells={cells} leading={data.calendar.leading} today={data.today} onToggle={toggle} />
+          {error && (
+            <p role="alert" className="text-sm text-warn">
+              {error}
+            </p>
+          )}
+          <p className="text-sm text-muted">
+            {data.perfectDays} perfect {data.perfectDays === 1 ? "day" : "days"} this month
+          </p>
+        </>
       )}
-      <p className="text-sm text-muted">
-        {data.perfectDays} perfect {data.perfectDays === 1 ? "day" : "days"} this month
-      </p>
 
-      {data.sideBySide && (
+      {!data.hours && data.sideBySide && (
         <>
           <h2 className={`mt-1 ${SECTION_TITLE}`}>Side by side</h2>
           <HabitSideBySide rows={data.sideBySide.rows} unit={unit} />

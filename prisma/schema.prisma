@@ -566,6 +566,8 @@ model User {
   habitParticipants  HabitParticipant[]
   habitLogs          HabitLog[]         @relation("habitLogs")
   habitLogsLogged    HabitLog[]         @relation("habitLogsLogged")
+  habitTimeEntries   HabitTimeEntry[]   @relation("habitTimeEntries")
+  habitTimeEntriesLogged HabitTimeEntry[] @relation("habitTimeEntriesLogged")
   habitPlannedDays   HabitPlannedDay[]
   vacationPeriods    VacationPeriod[]
   nudgesSent         Nudge[]            @relation("nudgesSent")
@@ -765,7 +767,8 @@ model Goal {
   why String?
 
   /// The day the goal is due, UTC midnight (same convention as Task.dueDate).
-  targetDate DateTime
+  /// null = an ongoing goal, with no end date.
+  targetDate DateTime?
 
   /// Who it's for. null = Together (the whole household).
   ownerId String?
@@ -960,6 +963,21 @@ model Habit {
 
   carryOver Boolean @default(false)
 
+  /// "checks" | "hours". An hours habit logs minutes toward a weekly goal in
+  /// HabitTimeEntry; it is always stored as schedule "weekly", times 1, kind
+  /// "habit", mode "build", sharing "each" (habitColumns forces that shape).
+  track String @default("checks")
+
+  /// Hours habits only: the week's goal in minutes. Null for checks.
+  weeklyMinutes Int?
+
+  /// Hours habits only: "monsat" (the pace skips Sundays) | "every". Null for checks.
+  paceDays String?
+
+  /// Hours habits only: the household day it became an hours habit, UTC
+  /// midnight. Weeks before it never count toward the weeks-hit streak.
+  hoursSince DateTime?
+
   /// "together" (one shared check fans out to everyone) | "each" (everyone checks their own)
   sharing String @default("each")
 
@@ -977,6 +995,7 @@ model Habit {
 
   participants  HabitParticipant[]
   logs          HabitLog[]
+  timeEntries   HabitTimeEntry[]
   plannedDays   HabitPlannedDay[]
   weekOverrides ChoreWeekOverride[]
   nudges        Nudge[]
@@ -1040,6 +1059,33 @@ model HabitLog {
   createdAt DateTime @default(now())
 
   @@unique([habitId, userId, day])
+  @@index([userId, day])
+}
+
+/// One block of time one person logged on an hours habit for one day. Several
+/// entries may share a day (no unique); the week's total is their sum. `userId`
+/// is whose time it is; `loggedById` is who tapped and is SetNull: the time
+/// still counts after the tapper is gone. `minutes` is a whole number.
+model HabitTimeEntry {
+  id String @id @default(cuid())
+
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation("habitTimeEntries", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The household (Denver) day this time counts toward, UTC midnight.
+  day DateTime
+
+  minutes Int
+
+  loggedById String?
+  loggedBy   User?   @relation("habitTimeEntriesLogged", fields: [loggedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([habitId, userId, day])
   @@index([userId, day])
 }
 
@@ -1121,4 +1167,37 @@ model Nudge {
 
   @@unique([habitId, fromUserId, toUserId, day])
   @@index([toUserId, day])
+}
+
+/// One "Send feedback" report (mission 38): a bug, idea or note from anyone
+/// signed in, read only by admins in Settings, Feedback.
+///
+/// **No relation to `User` on purpose.** A Prisma relation needs a back-field
+/// on `User`, and mission 38 may not touch any existing model (a parallel
+/// branch was editing this file). So `authorId` is a plain id and
+/// `authorName` a snapshot of the display name at send time; a report
+/// outlives a renamed or deactivated person.
+///
+/// `screenshot` is a small JPEG taken in the browser (about 100 to 300 KB),
+/// stored in the row because the app has no file storage (Vercel Blob is
+/// paid). `doneAt` null means New; set means Done.
+model Feedback {
+  id String @id @default(cuid())
+
+  authorId   String
+  authorName String
+
+  message  String
+  pagePath String
+
+  userAgent String?
+  viewport  String?
+
+  screenshot     Bytes?
+  screenshotType String?
+
+  doneAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([doneAt, createdAt])
 }

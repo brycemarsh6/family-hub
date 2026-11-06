@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Flame, SkipForward, Undo2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
+import { HoursHabitRow } from "./HoursHabitRow";
 import { LogButton } from "./LogButton";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
 import { ANYTIME_LABEL, ON_VACATION_LABEL, PLANNED_FOR_TODAY_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
@@ -34,7 +35,7 @@ export function HabitRow({
   showStreaks,
 }: {
   row: HabitRowView;
-  /** Check it, or undo the check when it is already done. */
+  /** Check it, or undo the check when it is already done. An hours habit's row opens the log sheet instead; it has no check. */
   onToggle: () => void;
   /** Skip today, or the carried day when the row is carried over. */
   onSkip: () => void;
@@ -42,6 +43,8 @@ export function HabitRow({
   /** The viewer's "Show streaks" switch; the family tablet always passes true (decision 98). */
   showStreaks: boolean;
 }) {
+  if (row.hours) return <HoursHabitRow row={row} hours={row.hours} onLog={onToggle} showStreaks={showStreaks} />;
+
   // Excused rows (skipped, undone on vacation, skipped this week) look finished too (decisions 115, 127).
   const finished = row.doneToday || isExcused(row);
   // Skipped for the week, or on vacation and undone: muted in the stronger grey (it must stay readable), and a skipped-this-week row shows the dashed marker and has no swipe (nothing to skip twice).

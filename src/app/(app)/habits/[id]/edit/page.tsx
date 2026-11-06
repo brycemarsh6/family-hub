@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ChartNoAxesColumn } from "lucide-react";
 import { BackLink } from "@/components/BackLink";
 import { HabitForm } from "@/components/HabitForm";
+import { hoursInitialOf } from "@/lib/habitHoursVocabulary";
 import { requireVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { loadHabitRoster, loadTodayPage } from "@/lib/habitsRead";
@@ -40,7 +41,7 @@ export default async function EditHabitPage({ params }: { params: Promise<{ id: 
         viewerId={user.userId}
         thisSunday={formatCalendarDate(thisSunday)}
         nextSunday={formatCalendarDate(addCalendarDays(thisSunday, 7))}
-        initial={habit}
+        initial={{ ...habit, ...hoursInitialOf(habit.hours) }}
       />
     </div>
   );

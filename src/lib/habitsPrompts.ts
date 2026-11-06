@@ -7,6 +7,7 @@ import { habitStartDay } from "./habits/carryOver";
 import type { HabitActor, HabitLogDay, Vacation } from "./habits/types";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
 import { planChipLabel } from "./habitVocabulary";
+import { toHabitTrack } from "./habitHoursVocabulary";
 
 // The "Pick a day" cards (decisions 38, 39, 142, 143): which of the viewer's
 // open habits ask for a day today, and the chips each offers. Plain data (days
@@ -19,6 +20,8 @@ export type PromptHabitInput = StoredScheduleFields & {
   icon: string | null;
   kind: string;
   createdAt: Date;
+  /** "hours" habits never ask for a day (decision 197). */
+  track?: string;
 };
 
 /** One chip: the day to plan and the words on the button. */
@@ -59,6 +62,7 @@ export function buildTodayPrompts(
   if (dayInVacation(today, vacations)) return [];
   const prompts: TodayPrompt[] = [];
   for (const habit of live) {
+    if (toHabitTrack(habit.track) === "hours") continue;
     const spec = specFromRow(habit);
     if (!spec) continue;
     const progress = windowProgress(spec, logsForUser(logsByHabit.get(habit.id) ?? [], viewer.userId), today, habitStartDay(habit.createdAt));
