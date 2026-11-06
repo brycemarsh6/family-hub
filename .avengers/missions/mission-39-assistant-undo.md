@@ -1,7 +1,7 @@
 # Mission: Winnie's undo (the 30-day safety net)
 
 **Project:** family-hub (Marshee)
-**Status:** INTERROGATING (plan drafted, waiting on Bryce's answers below; nothing built)
+**Status:** BUILDING (L1 dispatched)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 
 ## Brief
@@ -42,6 +42,10 @@
   (applies when those domains are built, not in this mission).
 - Calendar, inventory, shopping keep the v1 rules: delete only what she
   created; inventory is zeroed, never deleted by an ordinary request.
+- **Undoing her own pantry add removes the row** (Bryce, 2026-11-06): the
+  "zero, never delete" rule protects real items, not her mistakes.
+- **Undo reverses her whole request** (a put-away of 8 puts all 8 back).
+- **Mission 22's leftovers go first** in this mission (L1).
 
 ## Design (Fury's structural calls)
 
@@ -90,14 +94,82 @@
 - **Strange: out.** Nothing a person sees changes.
 - **Banner: out.** Brief of 2026-11-06 plus Fury's own reads cover it.
 
-## Contracts (outline; full five-part text written after Bryce answers)
+## Contracts
 
-- **L1, mission 22 leftovers first** (same files undo will touch):
-  merge-add re-checks `checked: false` (`updateMany`, fall through to
-  create); put-away reads the pantry quantity inside its transaction; the
-  "list changed" message when a family member un-ticks mid-put-away;
-  split `putAway.ts` (344/350) before it grows.
-  Files: `groceryWrites.ts`, `putAway.ts` (+ its split), their tests.
+### Live-test setup (every contract that says "live")
+
+- This worktree has no `.env`. Run `ln -s ../../../.env .env` from the
+  worktree root (gitignored; the main checkout's file; its active
+  `DATABASE_URL` host is `ep-hidden-pine-`, the dev branch, checked
+  2026-11-06). Never open, print or edit it. Remove the link at the end.
+- Throwaway token: generate a random token and its SHA-256 hex hash with
+  `node:crypto` into a scratchpad file (never the repo). Start the server
+  with the hash in the process env only:
+  `ASSISTANT_API_TOKEN_HASH=<hash> npx next dev --port 3139` (in the
+  background); stop it after. Never touch production URLs.
+- Scripts that import `server-only` modules: `node --require <stub making
+  require('server-only') return {}> --import tsx --env-file=.env <script>`,
+  scripts in the scratchpad only.
+- Test rows are named `ZZZ Assistant Test …`; delete every one by id at the
+  end, plus every `AssistantRequest` you created by id. Report counts of
+  PantryItem / GroceryItem / AssistantRequest before and after. Never print
+  family item names; counts and ids only.
+
+### L1, mission 22's leftovers
+
+- **Objective:** close Vision's mission-22 pass-2 notes that live in the
+  shopping write files, and split `putAway.ts` before undo grows it.
+- **Boundaries.** May touch: `src/lib/groceryWrites.ts`, `src/lib/putAway.ts`,
+  new `src/lib/putAwayClassify.ts`, `src/app/actions/groceriesPutAway.ts`,
+  `src/app/api/assistant/v1/shopping/put-away/route.ts`,
+  `src/lib/assistant/serializeShopping.ts`,
+  `src/lib/assistant/schemasShopping.test.ts` (imports only for the last
+  three). Must not touch: anything else, and above all
+  `prisma/schema.prisma`, `STRUCTURE.md`, `CLAUDE.md`, goals/habits files,
+  `package.json`.
+- **Work:**
+  1. Merge-add (`addGroceryItem`, merge branch): the increment must only land
+     on a row that is still unchecked. Use `updateMany({ where: { id,
+     checked: false }, data: { quantity: { increment } } })`; count 0 means
+     the row was ticked or deleted meanwhile, so fall through to create a
+     fresh line. Re-read the row for the return value.
+  2. `commitPutAway`: the quantities restocked must be the rows' values at
+     claim time, not the read outside the transaction. Suggested: claim
+     each row inside the transaction with `tx.groceryItem.delete({ where:
+     { id, checked: true } })` (DELETE ... RETURNING, row-locked) and use
+     the returned row; a missing row (P2025) is `PutAwayConflict`. Keep
+     the all-or-nothing behaviour and the up-front refuse check.
+  3. `PutAwayConflict`'s API message covers both causes: replace the route's
+     "Someone else put the shopping away at the same moment" with "The
+     shopping list changed while putting it away (an item was put away or
+     un-ticked somewhere else). Nothing was changed; check the list and
+     try again."
+  4. Split: `putAwayClassify.ts` takes `findExactMatch` (exported),
+     `PutAwayMergeSuggestion`, `PutAwayNewItem`, `PutAwayClassification`,
+     `MAX_SUGGESTIONS` and `classifyForPutAway`; `putAway.ts` keeps the
+     decision/report/options types, both error classes and
+     `commitPutAway`, importing `findExactMatch`. Importers import from
+     the module that defines each name; no re-exports. Move code
+     byte-identical apart from `export`/imports (show the diff).
+- **Verification:** gauntlet. Live (setup above): (a) positive control: one
+  merge-add onto an unchecked qty-1 test row gives 2; (b) 10 parallel
+  merge-adds onto a qty-1 row give exactly 11; (c) tick the target row,
+  then merge-add: a NEW unchecked row is created, the ticked row's quantity
+  unchanged; (d) 6 parallel put-aways of one checked qty-1 row: pantry +1
+  exactly, one 200 and the rest 409 (or empty 200, say which); (e) change a
+  checked row's quantity from 1 to 3 by script, then put away: pantry +3;
+  (f) app parity: one put-away through `commitPutAway` exactly as the
+  action calls it. Precondition before every put-away: zero foreign checked
+  rows (if the family has checked rows on dev, stop and report, do not
+  touch them).
+- **Evidence required:** commands and outputs for every check, before/after
+  counts, `wc -l` plus code-line counts for `putAway.ts` and
+  `putAwayClassify.ts`, the split diff, test count before and after.
+- **Done criteria:** gauntlet green; every live check matches; both files
+  under 350 lines; no file outside the boundary in `git diff --stat`.
+
+### Later contracts (outline, full text before each dispatch)
+
 - **U1, the copy format:** `audit.ts` (`ChangeInput` gains `before`/`after`,
   v2 JSON), `audit/route.ts` (reads `detail`), tests.
 - **U2, inventory and leftovers capture copies:** `pantryWrites.ts` returns
