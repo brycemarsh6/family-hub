@@ -6,6 +6,7 @@ import { LogButton } from "./LogButton";
 import { ProgressBar } from "./ProgressBar";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
 import type { PlanItemView } from "@/lib/goals";
+import { HOURS_PHRASES } from "@/lib/habitHoursVocabulary";
 import { goalHoursLine } from "@/lib/habitsHours";
 
 /**
@@ -40,7 +41,7 @@ export function PlanItemRow({
       {item.kind === "habit" && item.hours && item.hours.forUserId === null && (
         <div className="min-w-0 py-2">
           <p className="text-base font-medium">{item.title}</p>
-          <p className="text-sm text-muted">Hours habit</p>
+          <p className="text-sm text-muted">{HOURS_PHRASES.hoursHabit}</p>
         </div>
       )}
       {item.kind === "habit" && item.hours && item.hours.forUserId !== null && (

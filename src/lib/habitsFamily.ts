@@ -121,8 +121,8 @@ function familyRow(row: HabitRowView, viewer: HabitActor, logForId: string): Fam
  * Together habits go in the strip (one row each, ticked for the viewer when
  * they are on it, else for the first member); every other habit goes in each
  * participant's column, in that person's own order. `people` are the active
- * non-device people, already ordered. `timeByHabit` holds this week's hours
- * entries (everyone's): an hours habit's row carries each person's own week.
+ * non-device people, already ordered. `timeByHabit` holds hours entries (everyone's)
+ * from last week's Sunday on: an hours habit's row carries each person's own week.
  */
 export function buildFamilyPage(
   viewer: HabitActor,

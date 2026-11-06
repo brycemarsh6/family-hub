@@ -22,6 +22,7 @@ import {
   hoursViewFor,
   managerHours,
   planHoursView,
+  sheetToday,
   type HoursSpec,
   type StatsTimeEntry,
 } from "./habitsHours";
@@ -295,4 +296,10 @@ test("the recap carries an hours habit's last week as '6½ of 10 hours last week
   assert.equal(recap.habits[0].hoursText, "6½ of 10 hours last week");
   assert.equal(recap.habits[0].met, false);
   assert.deepEqual([recap.done, recap.total], [0, 1]);
+});
+
+test("sheetToday: the later of the server day and the browser day", () => {
+  assert.deepEqual(sheetToday("2026-11-07", sunday), sunday);
+  assert.deepEqual(sheetToday("2026-11-08", saturday), sunday);
+  assert.deepEqual(sheetToday(undefined, saturday), saturday);
 });

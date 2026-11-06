@@ -59,6 +59,7 @@ export const HOURS_PHRASES = {
   left: "left",
   done: " · done",
   today: " · today",
+  hoursHabit: "Hours habit",
   aboutADay: (amount: string) => ` · about ${amount} a day`,
 } as const;
 

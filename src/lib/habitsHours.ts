@@ -10,6 +10,7 @@ import {
   calendarDaysBetween,
   formatCalendarDate,
   formatShortCalendarDate,
+  parseDateParam,
   startOfWeek,
   type CalendarDate,
 } from "./householdDate";
@@ -19,6 +20,12 @@ import { SHORT_DAY_NAMES } from "./mealPlanDates";
 // 199): the words that join the numbers, the Today and dashboard row view, the
 // goal-plan view and the stats page's hours data. The rules (week totals, the
 // pace, the weeks streak) are in `habits/hours.ts`; callers pass `today`.
+
+/** The log sheet's "today": the later of the server's render day and the browser's household day, so a page left open overnight logs on the real day. */
+export function sheetToday(serverDay: string | undefined, browserDay: CalendarDate): CalendarDate {
+  const server = serverDay ? parseDateParam(serverDay) : null;
+  return server && compareDays(server, browserDay) > 0 ? server : browserDay;
+}
 
 const QUARTERS = ["", "¼", "½", "¾"] as const;
 

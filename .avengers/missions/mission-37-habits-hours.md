@@ -780,3 +780,13 @@ Bryce allows the fourth pass.
    Sunday gives Sunday; browser behind gives the server's day), the
    Gauntlet output with exit codes, `wc -l` of touched files.
 5. **Done criteria:** Vision pass 4 (with Bryce's OK) passes.
+
+#### F3 report (Stark): DONE
+
+`sheetToday(serverDay, browserDay)` in `habitsHours.ts` returns the later
+day; the sheet uses it with the browser's household day. Test: server
+Saturday + browser Sunday gives Sunday, the reverse gives Sunday, no
+server day gives the browser day. "Hours habit" moved to
+`HOURS_PHRASES.hoursHabit`; the `habitsFamily.ts` comment fixed (still
+360). Gauntlet: tsc 0, eslint 0, `npm test` 1067/1067, UTC 1060 + 7 skips,
+LA 1067, build 0. Waiting on Bryce's OK for Vision pass 4.

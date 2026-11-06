@@ -5,9 +5,9 @@ import { Minus, Plus, X } from "lucide-react";
 import { addHabitTime } from "@/app/actions/habitHours";
 import { HOURS_LIMITS, LOG_SHEET_WORDS } from "@/lib/habitHoursVocabulary";
 import type { HabitChange } from "@/lib/habitChanges";
-import { addHoursMinutes, formatAmount, lastWeekAfterText, type HoursRowView } from "@/lib/habitsHours";
+import { addHoursMinutes, formatAmount, lastWeekAfterText, sheetToday, type HoursRowView } from "@/lib/habitsHours";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
-import { addCalendarDays, calendarDateInZone, calendarDaysBetween, formatCalendarDate, parseDateParam, startOfWeek, type CalendarDate } from "@/lib/householdDate";
+import { addCalendarDays, calendarDateInZone, calendarDaysBetween, formatCalendarDate, startOfWeek, type CalendarDate } from "@/lib/householdDate";
 
 /** The same shape as `useOptimisticRun`'s `run`: show the change now, await the save, call `onSuccess` only when it worked. */
 export type RunChange = (change: HabitChange, action: () => Promise<{ error?: string }>, onSuccess?: () => void) => void;
@@ -61,7 +61,7 @@ export function HoursLogSheet({
   // The sheet only mounts after a tap, so reading the clock here cannot disagree with the server render.
   // The week as it was when the sheet opened: the bar behind moves as soon as Add is tapped, and "after this" must not count the entry twice.
   const [before] = useState(hours);
-  const [today] = useState(() => (before.today ? parseDateParam(before.today) : null) ?? calendarDateInZone(new Date(), HOUSEHOLD_TIME_ZONE));
+  const [today] = useState(() => sheetToday(before.today, calendarDateInZone(new Date(), HOUSEHOLD_TIME_ZONE)));
   const [minutes, setMinutes] = useState<number>(HOURS_LIMITS.entryDefault);
   const [day, setDay] = useState(today);
   const [other, setOther] = useState(false);
