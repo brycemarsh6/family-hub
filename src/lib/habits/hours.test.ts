@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "../householdDate";
-import { countedDaysLeft, hoursStreaks, hoursWeek, weekTotals } from "./hours";
+import { countedDaysLeft, hoursStreakAfter, hoursStreaks, hoursWeek, weekTotals } from "./hours";
 import type { TimeEntry, Vacation } from "./types";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -102,7 +102,7 @@ test("hoursStreaks: weeks in a row, broken by a missed week", () => {
   ];
   const result = hoursStreaks({ entries, targetMinutes: 5 * H, startWeek: d(2026, 10, 4), today: d(2026, 11, 3), vacations: never });
   // Nov 1 week (this week) not yet met; the run through Oct 25 is 1.
-  assert.deepEqual(result, { current: 1, best: 2, asOf: d(2026, 11, 3) });
+  assert.deepEqual(result, { current: 1, best: 2, asOf: d(2026, 10, 31) });
 });
 
 test("hoursStreaks: this week counts once met and never breaks the run while unmet", () => {
@@ -117,6 +117,8 @@ test("hoursStreaks: this week counts once met and never breaks the run while unm
     vacations: never,
   });
   assert.deepEqual([met.current, met.best], [2, 2]);
+  assert.deepEqual(met.asOf, d(2026, 11, 3)); // met this week: the cache holds from today
+  assert.deepEqual(unmet.asOf, d(2026, 10, 31)); // unmet: the Saturday before this week
 });
 
 test("hoursStreaks: a week wholly on vacation neither counts nor breaks", () => {
@@ -157,4 +159,45 @@ test("weekTotals: the last n weeks oldest first, this week last", () => {
   assert.deepEqual(weekTotals(entries, d(2026, 11, 5), 3), [2 * H, 30, 2 * H]);
   assert.deepEqual(weekTotals(entries, d(2026, 11, 5), 1), [2 * H]);
   assert.deepEqual(weekTotals([], d(2026, 11, 5), 2), [0, 0]);
+});
+
+// hoursStreakAfter: Vision's two F1 scenarios (mission 37).
+const WEEK = 10 * H;
+const hit = (...days: CalendarDate[]) => days.map((day) => entry(day, WEEK));
+const cacheOf = (entries: TimeEntry[], today: CalendarDate, vacations: Vacation[] = []) =>
+  hoursStreaks({ entries, targetMinutes: WEEK, startWeek: d(2026, 10, 18), today, vacations, paceDays: "monsat" });
+
+test("hoursStreakAfter: a missed week breaks the shown streak (Oct 18 and 25 met, 2 h on Nov 2, then nothing)", () => {
+  const entries = [...hit(d(2026, 10, 19), d(2026, 10, 26)), entry(d(2026, 11, 2), 2 * H)];
+  const cache = cacheOf(entries, d(2026, 11, 2));
+  assert.deepEqual(cache, { current: 2, best: 2, asOf: d(2026, 10, 31) });
+  for (const today of [d(2026, 11, 2), d(2026, 11, 7)]) assert.equal(hoursStreakAfter(cache, never, "monsat", today).current, 2); // this week is still open
+  for (const today of [d(2026, 11, 9), d(2026, 11, 12), d(2026, 11, 15), d(2026, 11, 16)]) {
+    assert.equal(hoursStreakAfter(cache, never, "monsat", today).current, hoursStreaks({ entries, targetMinutes: WEEK, startWeek: d(2026, 10, 18), today, vacations: never }).current);
+    assert.equal(hoursStreakAfter(cache, never, "monsat", today).current, 0);
+  }
+});
+
+test("hoursStreakAfter: a Monday to Saturday vacation week keeps the run (3, not 0)", () => {
+  const away: Vacation[] = [{ start: d(2026, 11, 9), end: d(2026, 11, 14) }];
+  const entries = hit(d(2026, 10, 19), d(2026, 10, 26), d(2026, 11, 2));
+  const cache = cacheOf(entries, d(2026, 11, 2), away);
+  assert.deepEqual(cache, { current: 3, best: 3, asOf: d(2026, 11, 2) });
+  assert.equal(hoursStreakAfter(cache, away, "monsat", d(2026, 11, 15)).current, 3);
+  assert.equal(hoursStreakAfter(cache, never, "monsat", d(2026, 11, 15)).current, 0); // no vacation: the week broke it
+  assert.equal(hoursStreakAfter(cache, away, "every", d(2026, 11, 15)).current, 0); // "every" needs the Sunday covered too
+});
+
+test("hoursStreakAfter: a met week keeps counting through the week and the next one stays open", () => {
+  const cache = cacheOf(hit(d(2026, 10, 19), d(2026, 10, 26), d(2026, 11, 2)), d(2026, 11, 2));
+  assert.equal(hoursStreakAfter(cache, never, "monsat", d(2026, 11, 7)).current, 3);
+  assert.equal(hoursStreakAfter(cache, never, "monsat", d(2026, 11, 8)).current, 3); // next week just began
+  assert.equal(hoursStreakAfter(cache, never, "monsat", d(2026, 11, 15)).current, 0); // the Nov 8 week passed with nothing
+});
+
+test("hoursStreakAfter: never grows, keeps best, and passes a zero or uncached streak through", () => {
+  const aged = hoursStreakAfter({ current: 2, best: 5, asOf: d(2026, 10, 31) }, never, "monsat", d(2026, 11, 20));
+  assert.deepEqual([aged.current, aged.best], [0, 5]);
+  assert.equal(hoursStreakAfter({ current: 0, best: 4, asOf: d(2026, 10, 31) }, never, "monsat", d(2026, 11, 20)).current, 0);
+  assert.equal(hoursStreakAfter({ current: 3, best: 3, asOf: null }, never, "monsat", d(2026, 11, 20)).current, 3);
 });

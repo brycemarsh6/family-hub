@@ -15,7 +15,7 @@ import type { DueState, HabitActor, HabitLogDay, TimeEntry, Vacation } from "./h
 import { isExcusedAllDay, weekChange, type ExcusableRow, type StoredWeekOverride } from "./habits/weekOverrides";
 import { choreHeader } from "./choreChart";
 import { buildTodayPrompts, type TodayPrompt } from "./habitsPrompts";
-import { hoursRowFields, hoursSpecOf, managerHours, type HoursRowView, type ManagerHours } from "./habitsHours";
+import { hoursRowFields, hoursSpecOf, hoursStreakOf, managerHours, type HoursRowView, type ManagerHours } from "./habitsHours";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
 import type { HabitRowState, HabitMemberState } from "./habitChanges";
 import {
@@ -238,7 +238,7 @@ export function buildTodayRows(
     const unit = streakUnitOf(spec);
     const streakOf = (p: TodayHabitInput["participants"][number]) => {
       const cache = { current: p.currentStreak ?? 0, best: p.bestStreak ?? 0, asOf: p.streakAsOf ? calendarDateFromUtcMidnight(p.streakAsOf) : null };
-      return displayStreak(spec, cache, vacationsByUser.get(p.userId) ?? [], today);
+      return hoursStreakOf(habit, cache, vacationsByUser.get(p.userId) ?? [], today) ?? displayStreak(spec, cache, vacationsByUser.get(p.userId) ?? [], today);
     };
     // A chore shows no flame of its own (decision 120); the header carries the chore streak.
     const labelOf = (n: number) => (chore ? null : streakLabel(n, unit));

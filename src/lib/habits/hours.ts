@@ -1,7 +1,7 @@
 import type { PaceDays } from "../habitHoursVocabulary";
 import { addCalendarDays, calendarDaysBetween, dayOfWeek, startOfWeek, type CalendarDate } from "../householdDate";
 import { compareDays, dayInVacation } from "./schedule";
-import type { StreakResult } from "./streaks";
+import type { StreakCache, StreakResult } from "./streaks";
 import type { TimeEntry, Vacation } from "./types";
 
 // The hours habit's rules (mission 37): a weekly goal in minutes, counted
@@ -82,6 +82,8 @@ function weekOnVacation(weekStart: CalendarDate, paceDays: PaceDays, vacations: 
  * once met and never breaks the run while it is going. Weeks before
  * `startWeek` are ignored. `paceDays` only decides which days a vacation must
  * cover ("monsat" = Monday to Saturday); it defaults to "monsat".
+ * Cache note: `asOf` is today when this week is met (it is counted), else the
+ * Saturday before this week, so `hoursStreakAfter` examines this week once over.
  */
 export function hoursStreaks(input: {
   entries: readonly TimeEntry[];
@@ -97,16 +99,42 @@ export function hoursStreaks(input: {
   const thisWeek = startOfWeek(input.today);
   let current = 0;
   let best = 0;
+  let thisMet = false;
   for (let week = startOfWeek(input.startWeek); compareDays(week, thisWeek) <= 0; week = addCalendarDays(week, 7)) {
     const reached = (totals.get(calendarDaysBetween(epoch, week)) ?? 0) >= input.targetMinutes;
     if (reached) {
+      if (compareDays(week, thisWeek) === 0) thisMet = true;
       current += 1;
       best = Math.max(best, current);
     } else if (compareDays(week, thisWeek) < 0 && !weekOnVacation(week, paceDays, input.vacations)) {
       current = 0;
     }
   }
-  return { current, best, asOf: input.today };
+  return { current, best, asOf: thisMet ? input.today : addCalendarDays(thisWeek, -1) };
+}
+
+/**
+ * Ages a cached hours streak to `today` with no entries: each whole week after
+ * the one holding `cached.asOf` and before today's week missed the goal, so it
+ * breaks the run unless every counted day of it was on vacation. This week adds
+ * nothing and breaks nothing. Never grows, never touches `best`.
+ */
+export function hoursStreakAfter(
+  cached: StreakCache,
+  vacations: readonly Vacation[],
+  paceDays: PaceDays,
+  today: CalendarDate,
+): StreakResult {
+  const { asOf } = cached;
+  if (asOf === null || compareDays(asOf, today) >= 0 || cached.current === 0) {
+    return { current: cached.current, best: cached.best, asOf: asOf ?? today };
+  }
+  const thisWeek = startOfWeek(today);
+  let broken = false;
+  for (let week = addCalendarDays(startOfWeek(asOf), 7); compareDays(week, thisWeek) < 0 && !broken; week = addCalendarDays(week, 7)) {
+    broken = !weekOnVacation(week, paceDays, vacations);
+  }
+  return { current: broken ? 0 : cached.current, best: cached.best, asOf: today };
 }
 
 /** The last `n` weeks' totals in minutes, oldest first, this week last. */

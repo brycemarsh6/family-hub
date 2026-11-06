@@ -578,3 +578,15 @@ goal page or This week waits for the server (no optimistic bar; the
 plan-item reducer has no `addTime`). Follow-up, added to F1: the goal
 page must pass `viewerId` or the + is missing there. Nothing rendered
 yet; Strange screenshots.
+
+#### F1 report (2026-11-06)
+
+Stark: DONE. Gauntlet green (1055; UTC 1048 + 7; LA 1055; build 0).
+`hoursStreaks` stores `asOf` as the Saturday before an unmet week;
+`hoursStreakAfter` ages it by the hours rule; Today and the stats page
+call it through `hoursStreakOf` in `habitsHours.ts`. Vision's two probes
+now match the engine. Check, skip and uncheck refuse an hours habit. The
+goal page passes `viewerId`. Fury's ruling on legacy caches: only dev
+holds hours caches written under the old `asOf` (production has no hours
+habits until this merges), so they correct themselves on the next entry
+or Recompute streaks; no migration needed.

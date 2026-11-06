@@ -1,8 +1,9 @@
 import type { PaceDays } from "./habitHoursVocabulary";
 import { canLogFor } from "./habits/access";
 import { hoursFromRow, type StoredHoursFields } from "./habits/habitRows";
-import { countedDaysLeft, hoursWeek, weekTotals, type HoursWeek } from "./habits/hours";
+import { countedDaysLeft, hoursStreakAfter, hoursWeek, weekTotals, type HoursWeek } from "./habits/hours";
 import { compareDays } from "./habits/schedule";
+import type { StreakCache } from "./habits/streaks";
 import type { DueState, HabitAccess, HabitActor, TimeEntry, Vacation } from "./habits/types";
 import {
   addCalendarDays,
@@ -122,6 +123,12 @@ export function hoursSpecOf(habit: Partial<StoredHoursFields>): HoursSpec | null
     paceDays: habit.paceDays ?? null,
     hoursSince: habit.hoursSince ?? null,
   });
+}
+
+/** The weeks streak to show today for an hours habit (the cache aged by `hoursStreakAfter`), or null for a checks habit. */
+export function hoursStreakOf(habit: Partial<StoredHoursFields>, cache: StreakCache, vacations: readonly Vacation[], today: CalendarDate): number | null {
+  const spec = hoursSpecOf(habit);
+  return spec ? hoursStreakAfter(cache, vacations, spec.paceDays, today).current : null;
 }
 
 /** One person's view for this week; `entries` may hold other people's too. */

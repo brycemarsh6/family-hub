@@ -29,7 +29,7 @@ import {
   type SideBySideRow,
   type StatsInput,
 } from "./habitsStats";
-import { buildHoursStats, hoursAWeek, hoursSpecOf, type HoursStatsData, type StatsTimeEntry } from "./habitsHours";
+import { buildHoursStats, hoursAWeek, hoursSpecOf, hoursStreakOf, type HoursStatsData, type StatsTimeEntry } from "./habitsHours";
 import type { HabitTrack } from "./habitHoursVocabulary";
 import {
   HABIT_SCHEDULE_LABELS,
@@ -352,7 +352,7 @@ export function buildStatsData(input: StatsBuildInput): HabitStatsData | null {
           vacationsByUser: input.vacationsByUser,
           today,
           startDay,
-          streak: { current: tiles.current, best: tiles.best },
+          streak: { current: hoursStreakOf(habit, stats.people.find((p) => p.userId === subjectId)!.cache, input.vacationsByUser.get(subjectId) ?? [], today) ?? tiles.current, best: tiles.best },
           sideBySide: sharing === "each" && active.length > 1,
         })
       : null,
