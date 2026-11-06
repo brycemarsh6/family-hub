@@ -158,3 +158,15 @@ vocabulary list; size watch `goals.ts` 338, `GoalForm.tsx` 331 (split the
 target-date field next); a fifth null check should become
 `isOngoingGoal`. Placement, migration, one source of truth and dependency
 direction pass.
+
+#### Vision, pass 1: PASS
+
+Gauntlet green (1102; UTC 1095 + 7 DST skips; LA 1102; build 0;
+recordcheck 0 hard). Boundaries clean. Every `targetDate` read traced:
+none outside the goal files; the Assistant API, voice, recap and tile
+never read it. NOTES: Stark's "UTC" run wasn't really UTC (0 skips; the
+real run shows 7), wrong evidence, code fine; tapping the greyed date box
+turns Ongoing off before a date is picked, so cancelling the picker leaves
+neither (Save then says "Pick a target date."); the contract says
+`checkGoalInput` where the function is `validateGoalInput`; the
+new-goal default is Fury's recorded deviation.
