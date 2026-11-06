@@ -747,3 +747,36 @@ export the `run` type so `RunChange` aliases it; split `habitsFamily.ts`
 (360) at its stats-page data; the next goal-progress test goes in a new
 file; `habitsRead.ts` and `habitsToday.ts` sit at exactly 350, so the next
 addition splits them; make `HoursRowView.today` / `.lastWeek` required.
+
+#### Vision, pass 3 (C4a/C4b via F2): BLOCKED (1)
+
+Gauntlet green (1066; UTC 1059 + 7; LA 1066; build 0; recordcheck 0 hard).
+Pass-2 BLOCKER fixed; F2's regressions checked; Stark's deviations 1 to 5
+accepted (2 and 4 as NOTES). **New BLOCKER from F2:** `HoursLogSheet.tsx`
+takes "today" from the server's render, so a page left open past midnight
+logs time on yesterday (on a Sunday morning, into last week). NOTES: the
+`habitsFamily.ts:124` comment says "this week's hours"; "Hours habit" is a
+string in `PlanItemRow.tsx` instead of the vocabulary; `keepsHours` read
+outside the transaction (no realistic scenario); the last-week line is
+stale on a stale page (display only).
+
+**Budget:** this was Vision's third pass. A fourth needs Bryce's OK
+(doctrine). Fury writes F3 now so it is ready; it is not re-gated until
+Bryce allows the fourth pass.
+
+### F3 - The sheet's day on a stale page
+
+1. **Objective:** the log sheet's "today" is the later of the server's day
+   and the browser's household day, so a page left open overnight logs on
+   the real day.
+2. **Boundaries:** may touch `src/components/HoursLogSheet.tsx`,
+   `src/lib/habitsHours.ts`, `src/lib/habitsHours.test.ts`,
+   `src/lib/habitHoursVocabulary.ts`, `src/components/PlanItemRow.tsx`,
+   `src/lib/habitsFamily.ts` (the comment only). Everything else is
+   must-not-touch, including `prisma/` and `.env`.
+3. **Verification:** the full Gauntlet (tsc, eslint, `npm test`, UTC and
+   LA runs, the build with invalid database URLs).
+4. **Evidence required:** the new helper's test (server Saturday, browser
+   Sunday gives Sunday; browser behind gives the server's day), the
+   Gauntlet output with exit codes, `wc -l` of touched files.
+5. **Done criteria:** Vision pass 4 (with Bryce's OK) passes.
