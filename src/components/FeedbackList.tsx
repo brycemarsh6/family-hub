@@ -53,7 +53,7 @@ export function FeedbackList({
 
       {optimisticItems.length === 0 ? (
         <EmptyState
-          emoji={status === "new" ? "💬" : "✅"}
+          emoji={status === "new" ? "💬" : "📭"}
           title={status === "new" ? "No new feedback" : "Nothing marked done yet"}
           hint={status === "new" ? "Reports from Send feedback show up here." : "Reports you mark done move here."}
         />

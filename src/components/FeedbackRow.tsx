@@ -2,6 +2,7 @@
 
 import { Check, Image as ImageIcon, RotateCcw, Trash2 } from "lucide-react";
 import { SwipeActions } from "./SwipeActions";
+import { navLabelForPath } from "@/lib/nav";
 import { feedbackTimeAgo } from "@/lib/feedbackTime";
 import type { FeedbackListItem } from "@/lib/feedbackRead";
 
@@ -49,7 +50,7 @@ export function FeedbackRow({
         >
           <span className="flex items-center justify-between gap-3 text-sm text-muted">
             <span className="min-w-0 truncate">
-              <span className="font-semibold text-fg">{item.authorName}</span> · {item.pagePath}
+              <span className="font-semibold text-fg">{item.authorName}</span> · {navLabelForPath(item.pagePath)}
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
               {item.hasScreenshot && <ImageIcon aria-label="Has a screenshot" size={16} />}

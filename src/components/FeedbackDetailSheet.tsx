@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { describeDevice } from "@/lib/feedback";
 import { feedbackTimeLabel } from "@/lib/feedbackTime";
+import { navLabelForPath } from "@/lib/nav";
 import type { FeedbackListItem } from "@/lib/feedbackRead";
 
 /** One report in full: message, page, device, time and the screenshot. */
@@ -68,7 +69,7 @@ export function FeedbackDetailSheet({
 
         <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           <dt className="text-muted">Page</dt>
-          <dd className="min-w-0 break-words">{item.pagePath}</dd>
+          <dd className="min-w-0 break-words">{navLabelForPath(item.pagePath)}</dd>
           {device && (
             <>
               <dt className="text-muted">Device</dt>

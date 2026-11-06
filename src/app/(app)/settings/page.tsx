@@ -65,7 +65,7 @@ export default async function SettingsPage() {
           </span>
           <span className="flex items-center gap-2">
             {newFeedback > 0 && (
-              <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn">
+              <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-fg">
                 {newFeedback} new
               </span>
             )}

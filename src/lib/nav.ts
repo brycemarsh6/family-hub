@@ -71,3 +71,13 @@ export function activeNavHref(pathname: string): string | null {
   return best;
 }
 
+
+/**
+ * The drawer name of the page at `path` (the label of the row
+ * `activeNavHref` lights), or the raw path when no row matches.
+ */
+export function navLabelForPath(path: string): string {
+  const href = activeNavHref(path);
+  const item = NAV_ITEMS.find((candidate) => candidate.href === href);
+  return item ? item.label : path;
+}

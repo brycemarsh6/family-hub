@@ -12,7 +12,8 @@ const CLOSE_AFTER_SENT_MS = 1200;
  * "Send feedback": a sheet over whatever page the person is on. The picture
  * of the page is started the moment the sheet opens, so it shows the page and
  * not the sheet; Send waits for it (the capture gives up on its own after
- * 4 seconds) and a failed picture is dropped without a word. After a
+ * 4 seconds) and a failed picture is dropped; the success state then says
+ * "Sent without a screenshot". After a
  * successful send the button area says "Sent" and the sheet closes itself.
  */
 export function FeedbackSheet({
@@ -34,6 +35,7 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
   const [includeShot, setIncludeShot] = useState(true);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sentWithoutShot, setSentWithoutShot] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialog = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
@@ -88,7 +90,10 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
         touch: navigator.maxTouchPoints > 0,
         screenshot,
       });
-      if (result.ok) setSent(true);
+      if (result.ok) {
+        setSentWithoutShot(includeShot && !screenshot);
+        setSent(true);
+      }
       else setError(result.error);
     } catch {
       setError("Couldn't reach the server. Check your connection, then tap Send again.");
@@ -129,7 +134,10 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
           <textarea
             ref={field}
             value={message}
-            onChange={(event) => setMessage(event.target.value)}
+            onChange={(event) => {
+              setMessage(event.target.value);
+              setError(null);
+            }}
             maxLength={MESSAGE_MAX}
             rows={5}
             placeholder="What's on your mind?"
@@ -181,10 +189,12 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
           {sent ? (
             <div
               role="status"
-              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent-soft text-base font-semibold text-fg"
+              className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent-soft text-base font-semibold ${
+                sentWithoutShot ? "text-muted" : "text-fg"
+              }`}
             >
               <Check size={18} aria-hidden="true" />
-              Sent
+              {sentWithoutShot ? "Sent without a screenshot" : "Sent"}
             </div>
           ) : (
             <button
