@@ -13,7 +13,7 @@ const CLOSE_AFTER_SENT_MS = 1200;
  * of the page is started the moment the sheet opens, so it shows the page and
  * not the sheet; Send waits for it (the capture gives up on its own after
  * 4 seconds) and a failed picture is dropped; the success state then says
- * "Sent without a screenshot". After a
+ * "Sent, no screenshot". After a
  * successful send the button area says "Sent" and the sheet closes itself.
  */
 export function FeedbackSheet({
@@ -194,7 +194,7 @@ function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClose: () =
               }`}
             >
               <Check size={18} aria-hidden="true" />
-              {sentWithoutShot ? "Sent without a screenshot" : "Sent"}
+              {sentWithoutShot ? "Sent, no screenshot" : "Sent"}
             </div>
           ) : (
             <button
