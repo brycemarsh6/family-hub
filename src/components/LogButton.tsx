@@ -5,12 +5,14 @@ import { Check, Plus, SkipForward } from "lucide-react";
  * check, then a filled check that taps back to undo.
  * `label` names the habit ("Run"), so the button reads "Log Run" / "Undo Run".
  * `idle="empty"` draws the open state as an empty ring (the Today list) and
- * reads "Mark Run done". `skipped` swaps the tap for a dashed, switched-off
+ * reads "Mark Run done". `forName` names whose check it is on a shared screen
+ * ("Mark Run done for Emily"). `skipped` swaps the tap for a dashed, switched-off
  * marker: a skipped day is left alone until the skip is undone.
  */
 export function LogButton({
   done,
   label,
+  forName,
   disabled = false,
   idle = "plus",
   skipped = false,
@@ -18,6 +20,7 @@ export function LogButton({
 }: {
   done: boolean;
   label: string;
+  forName?: string;
   disabled?: boolean;
   idle?: "plus" | "empty";
   skipped?: boolean;
@@ -32,13 +35,14 @@ export function LogButton({
     );
   }
   const open = idle === "empty" ? `Mark ${label} done` : `Log ${label}`;
+  const suffix = forName ? ` for ${forName}` : "";
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       aria-pressed={done}
-      aria-label={done ? `Undo ${label}` : open}
+      aria-label={`${done ? `Undo ${label}` : open}${suffix}`}
       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
         done ? "bg-accent text-accent-fg" : "border-2 border-accent bg-surface text-accent"
       }`}

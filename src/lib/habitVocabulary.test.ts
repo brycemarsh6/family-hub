@@ -20,6 +20,13 @@ import {
   HABIT_WHO_CHOICES,
   HABIT_WHO_LABELS,
   ANYTIME_LABEL,
+  SKIPPED_TODAY_LABEL,
+  STREAK_MIN_SHOWN,
+  STREAK_UNITS,
+  streakLabel,
+  streakCountLabel,
+  NUDGE_STATUS_LABEL,
+  RATE_NONE_LABEL,
   TIMES_OF_DAY,
   TIME_OF_DAY_LABELS,
   canBePrivate,
@@ -165,4 +172,33 @@ test("weekday names: the one list the editor's day buttons are drawn from, Sunda
   assert.equal(FULL_DAY_NAMES[0], "Sunday");
   assert.equal(FULL_DAY_NAMES.map((name) => name[0]).join(""), "SMTWTFS");
   FULL_DAY_NAMES.forEach((name, i) => assert.ok(name.startsWith(SHORT_DAY_NAMES[i])));
+});
+
+test("streakLabel: the count with its unit, and nothing below 2 (decision 98)", () => {
+  assert.equal(STREAK_MIN_SHOWN, 2);
+  assert.deepEqual([...STREAK_UNITS], ["days", "weeks", "months"]);
+  assert.equal(streakLabel(12, "days"), "12 days");
+  assert.equal(streakLabel(3, "weeks"), "3 weeks");
+  assert.equal(streakLabel(2, "months"), "2 months");
+  assert.equal(streakLabel(1, "days"), null);
+  assert.equal(streakLabel(0, "weeks"), null);
+});
+
+test("streakCountLabel: always a count, singular at 1 (decision 111)", () => {
+  assert.equal(streakCountLabel(0, "days"), "0 days");
+  assert.equal(streakCountLabel(1, "days"), "1 day");
+  assert.equal(streakCountLabel(12, "days"), "12 days");
+  assert.equal(streakCountLabel(1, "weeks"), "1 week");
+  assert.equal(streakCountLabel(3, "weeks"), "3 weeks");
+  assert.equal(streakCountLabel(1, "months"), "1 month");
+  assert.equal(streakCountLabel(2, "months"), "2 months");
+});
+
+test("nudge and rate words (decisions 110, 111)", () => {
+  assert.equal(NUDGE_STATUS_LABEL, "Not done yet today");
+  assert.equal(RATE_NONE_LABEL, "None yet");
+});
+
+test("SKIPPED_TODAY_LABEL is the words decision 101 names", () => {
+  assert.equal(SKIPPED_TODAY_LABEL, "Skipped today");
 });

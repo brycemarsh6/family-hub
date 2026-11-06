@@ -11,11 +11,13 @@ import { canSeeHabit } from "./habits/access";
 import { CARRY_LOOKBACK_DAYS, carriedFrom as carriedDay } from "./habits/carryOver";
 import { logsForUser, specFromRow, type StoredScheduleFields } from "./habits/habitRows";
 import { windowProgress, type WindowProgress } from "./habits/progress";
-import { compareDays, dueState as dueStateOf, isSameDay } from "./habits/schedule";
-import type { DueState, HabitActor, HabitLogDay } from "./habits/types";
+import { compareDays, dueState as dueStateOf, isOpenKind, isSameDay } from "./habits/schedule";
+import { streakAfter } from "./habits/streaks";
+import type { DueState, HabitActor, HabitLogDay, ScheduleSpec, Vacation } from "./habits/types";
 import type { HabitRowState, HabitMemberState } from "./habitChanges";
 import {
   isCheckStatus,
+  streakLabel,
   toHabitKind,
   toHabitMode,
   toHabitSharing,
@@ -23,6 +25,7 @@ import {
   type HabitKind,
   type HabitMode,
   type HabitSharing,
+  type StreakUnit,
   type TimeOfDay,
 } from "./habitVocabulary";
 
@@ -31,7 +34,14 @@ import {
 // row says. Callers pass `today`, so every rule can be tested.
 
 /** One participant on a Today row: the reducer's state plus who they are. */
-export type HabitMemberView = HabitMemberState & { displayName: string; avatarColor: string };
+export type HabitMemberView = HabitMemberState & {
+  displayName: string;
+  avatarColor: string;
+  /** The person's streak today (decision 98): the cached number aged by `streakAfter`. */
+  streak: number;
+  /** "12 days", or null below 2 (the unit follows the habit's schedule). */
+  streakLabel: string | null;
+};
 
 /**
  * One Today row. Extends `HabitRowState` (habitChanges.ts) so the list can
@@ -55,6 +65,11 @@ export type HabitRowView = Omit<HabitRowState, "participants"> & {
   carriedFrom: CalendarDate | null;
   /** The viewer's count in this period (decision 85's start day included); null if the schedule cannot be read. */
   progress: WindowProgress | null;
+  /** What the streak counts: days, weeks or months. */
+  streakUnit: StreakUnit;
+  /** The viewer's own streak and its label (decision 98). */
+  streak: number;
+  streakLabel: string | null;
   participants: HabitMemberView[];
 };
 
@@ -80,6 +95,9 @@ export type HabitManagerItem = {
   participantIds: string[];
 };
 
+/** An unseen nudge for today (decision 96): "Emily nudged you about Morning Prayers". */
+export type TodayNudge = { id: string; fromName: string; habitTitle: string };
+
 export type TodayPage = {
   /** Today's rows in the viewer's own order (done rows are NOT moved: the list sorts on load). */
   rows: HabitRowView[];
@@ -87,6 +105,10 @@ export type TodayPage = {
   manage: HabitManagerItem[];
   /** Archived habits the viewer took part in, newest archived first. */
   archived: HabitManagerItem[];
+  /** The viewer's unseen nudges for today, oldest first. */
+  nudges: TodayNudge[];
+  /** True when every required row is done or skipped (decision 76); the page fires the confetti once a day. */
+  confetti: boolean;
 };
 
 /** A habit as the reader fetches it: the columns below plus its participants (a Prisma row fits). */
@@ -108,9 +130,43 @@ export type TodayHabitInput = StoredScheduleFields & {
     userId: string;
     sortOrder: number;
     joinedAt: Date;
+    /** The cached streak columns (a Prisma row fits); left off means no streak yet. */
+    currentStreak?: number;
+    bestStreak?: number;
+    streakAsOf?: Date | null;
     user: { displayName: string; avatarColor: string; deactivatedAt: Date | null };
   }[];
 };
+
+/** What a habit's streak counts: months for monthly, weeks for the other open kinds, else days. */
+export function streakUnitOf(spec: ScheduleSpec | null): StreakUnit {
+  if (!spec || !isOpenKind(spec)) return "days";
+  return spec.schedule === "monthly" ? "months" : "weeks";
+}
+
+/**
+ * The streak to show today: the cached number aged forward by `streakAfter`
+ * (display only; the cache itself is written by `habitWrites.ts`). Zero when
+ * the schedule cannot be read.
+ */
+export function displayStreak(
+  spec: ScheduleSpec | null,
+  cache: { current: number; best: number; asOf: CalendarDate | null },
+  vacations: readonly Vacation[],
+  today: CalendarDate,
+): number {
+  return spec ? streakAfter(spec, cache, vacations, today).current : 0;
+}
+
+/**
+ * True when the day is finished for the confetti (decision 76): at least one
+ * row is required today and every required row is done or skipped. A row that
+ * is only open, or only carried, does not count either way.
+ */
+export function allRequiredDoneToday(rows: readonly Pick<HabitRowView, "dueState" | "doneToday" | "skippedToday">[]): boolean {
+  const required = rows.filter((row) => row.dueState === "required");
+  return required.length > 0 && required.every((row) => row.doneToday || row.skippedToday);
+}
 
 /** The first day of checks the page needs: fourteen days back, or the 1st of the month when earlier so a monthly count is whole. */
 export function todayLogsFrom(today: CalendarDate): CalendarDate {
@@ -164,6 +220,7 @@ export function buildTodayRows(
   live: readonly TodayHabitInput[],
   logsByHabit: ReadonlyMap<string, HabitLogDay[]>,
   today: CalendarDate,
+  vacationsByUser: ReadonlyMap<string, readonly Vacation[]> = new Map(),
 ): HabitRowView[] {
   const rows: HabitRowView[] = [];
   for (const habit of live) {
@@ -177,19 +234,36 @@ export function buildTodayRows(
     const dueState: DueState = spec ? dueStateOf(spec, today, false, progress?.count ?? 0) : "required";
     const todayOf = (userId: string) => logs.find((log) => log.userId === userId && isSameDay(log.day, today));
     // Oldest member first, then by id: the same order for every viewer and every load.
+    const unit = streakUnitOf(spec);
+    const streakOf = (p: TodayHabitInput["participants"][number]) =>
+      displayStreak(
+        spec,
+        {
+          current: p.currentStreak ?? 0,
+          best: p.bestStreak ?? 0,
+          asOf: p.streakAsOf ? calendarDateFromUtcMidnight(p.streakAsOf) : null,
+        },
+        vacationsByUser.get(p.userId) ?? [],
+        today,
+      );
     const members: HabitMemberView[] = [...habit.participants]
       .filter((p) => !p.user.deactivatedAt)
       .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime() || (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0))
       .map((p) => {
         const log = todayOf(p.userId);
+        const streak = streakOf(p);
         return {
           userId: p.userId,
           displayName: p.user.displayName,
           avatarColor: p.user.avatarColor,
           done: log ? isCheckStatus(log.status) : false,
           skipped: log?.status === "skipped",
+          streak,
+          streakLabel: streakLabel(streak, unit),
         };
       });
+    const viewerPart = habit.participants.find((p) => p.userId === viewer.userId);
+    const viewerStreak = viewerPart ? streakOf(viewerPart) : 0;
     const me = todayOf(viewer.userId);
     const doneToday = me ? isCheckStatus(me.status) : false;
     const skippedToday = me?.status === "skipped";
@@ -212,6 +286,9 @@ export function buildTodayRows(
       dueState,
       carriedFrom,
       progress,
+      streakUnit: unit,
+      streak: viewerStreak,
+      streakLabel: streakLabel(viewerStreak, unit),
     });
   }
   return rows;
@@ -245,11 +322,16 @@ export function buildTodayPage(
   habits: readonly TodayHabitInput[],
   logsByHabit: ReadonlyMap<string, HabitLogDay[]>,
   today: CalendarDate,
+  vacationsByUser: ReadonlyMap<string, readonly Vacation[]> = new Map(),
+  nudges: readonly TodayNudge[] = [],
 ): TodayPage {
   const visible = visibleInViewerOrder(viewer, habits);
   const live = visible.filter((habit) => !habit.archivedAt);
+  const rows = buildTodayRows(viewer, live, logsByHabit, today, vacationsByUser);
   return {
-    rows: buildTodayRows(viewer, live, logsByHabit, today),
+    rows,
+    nudges: [...nudges],
+    confetti: allRequiredDoneToday(rows),
     manage: live.map(managerItem),
     archived: visible
       .filter((habit) => habit.archivedAt)

@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ChartNoAxesColumn } from "lucide-react";
 import { BackLink } from "@/components/BackLink";
 import { HabitForm } from "@/components/HabitForm";
 import { requireVerifiedUser } from "@/lib/dal";
@@ -25,6 +27,13 @@ export default async function EditHabitPage({ params }: { params: Promise<{ id: 
   return (
     <div className="py-2">
       <BackLink href="/habits/manage" label="Manage" />
+      <Link
+        href={`/habits/${habit.id}`}
+        className="mb-3 ml-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-accent"
+      >
+        <ChartNoAxesColumn aria-hidden="true" size={16} />
+        See stats
+      </Link>
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">Edit habit</h1>
       <HabitForm
         people={people}

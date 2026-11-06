@@ -112,8 +112,9 @@ export function isSameMonth(a: Date, b: Date): boolean {
  * list is abbreviated ("Sep") for the Week view's compact range label, and
  * Month's own title ("September 2026") needs the unabbreviated word. Added
  * for mission-9 Month view (K2/C2a); see that mission's Captain finding
- * that no full-month vocabulary existed anywhere in this repo before this. */
-const FULL_MONTH_NAMES = [
+ * that no full-month vocabulary existed anywhere in this repo before this.
+ * Exported (mission-32/F1) so no screen writes its own list of month names. */
+export const FULL_MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ] as const;

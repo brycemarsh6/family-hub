@@ -1,11 +1,12 @@
 "use client";
 
-import { SkipForward, Undo2 } from "lucide-react";
+import Link from "next/link";
+import { Flame, SkipForward, Undo2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { LogButton } from "./LogButton";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
-import { ANYTIME_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
+import { ANYTIME_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
 import type { HabitRowView } from "@/lib/habitsRead";
 import { dayOfWeek } from "@/lib/householdDate";
 import { FULL_DAY_NAMES, formatDayLabel } from "@/lib/mealPlanDates";
@@ -20,12 +21,16 @@ const TAG_CLASS = "rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold t
  * owns the optimistic flags. A row that is not yet checked or skipped swipes
  * left for "Skip today" (on a carried row, "Skip Thursday": the missed day, decision 89); a skipped row swipes for "Undo skip" (its check is
  * switched off, because a skipped day is left alone until the skip is undone).
+ * The icon and title are a link to the habit's stats page (105); the check and
+ * the swipe keep their own taps (SwipeActions swallows the click after a swipe).
+ * A skipped row's line reads "Skipped today" (101); a streak shows from 2 (98).
  */
 export function HabitRow({
   row,
   onToggle,
   onSkip,
   onUnskip,
+  showStreaks,
 }: {
   row: HabitRowView;
   /** Check it, or undo the check when it is already done. */
@@ -33,10 +38,18 @@ export function HabitRow({
   /** Skip today, or the carried day when the row is carried over. */
   onSkip: () => void;
   onUnskip: () => void;
+  /** The viewer's "Show streaks" switch; the family tablet always passes true (decision 98). */
+  showStreaks: boolean;
 }) {
   const finished = row.doneToday || row.skippedToday;
   // Side by side: show the other people who have already done theirs.
   const othersDone = row.sharing === "each" ? row.participants.filter((p) => p.userId !== row.viewerId && p.done) : [];
+  const streak = showStreaks && row.streakLabel ? (
+    <span className="inline-flex items-center gap-0.5 text-sm font-semibold text-streak">
+      <Flame aria-hidden="true" size={14} />
+      {row.streakLabel}
+    </span>
+  ) : null;
   const shownPeople = row.sharing === "together" ? row.participants : othersDone;
 
   let actions: SwipeAction[] = [];
@@ -66,50 +79,58 @@ export function HabitRow({
 
   const body = (
     <div className="flex min-h-15 items-center gap-3 px-3 py-1.5">
-      <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-          finished ? "bg-surface-2 text-muted" : "bg-accent-soft text-accent"
-        }`}
-      >
-        <HabitIcon name={row.icon} kind={row.kind} />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className={`text-base font-semibold ${finished ? "text-muted" : ""}`}>{row.title}</span>
-          {row.mode === "quit" && <span className={QUIT_TAG_CLASS}>Quit</span>}
-          {row.carriedFrom && !row.doneToday && <span className={TAG_CLASS}>Carried over</span>}
+      <Link href={`/habits/${row.id}`} draggable={false} className="flex min-w-0 flex-1 items-center gap-3 self-stretch">
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+            finished ? "bg-surface-2 text-muted" : "bg-accent-soft text-accent"
+          }`}
+        >
+          <HabitIcon name={row.icon} kind={row.kind} />
         </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted">
-          {row.carriedFrom && !row.doneToday ? (
-            <>
-              <span>From {formatDayLabel(new Date(row.carriedFrom.year, row.carriedFrom.month - 1, row.carriedFrom.day)).split(",")[0]}</span>
-              <span aria-hidden="true">·</span>
-              <span>counts as done late</span>
-            </>
-          ) : (
-            <>
-              {shownPeople.map((p) => (
-                <AvatarBadge key={p.userId} displayName={p.displayName} avatarColor={p.avatarColor} size={18} />
-              ))}
-              <span>
-                {row.sharing === "each" && othersDone.length > 0
-                  ? `${othersDone.map((p) => p.displayName).join(", ")} done`
-                  : habitWhoLabel({ people: row.participants.length, everyone: row.everyone, sharing: row.sharing })}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>{row.timeOfDay ? TIME_OF_DAY_LABELS[row.timeOfDay] : ANYTIME_LABEL}</span>
-              {row.dueState === "open" && row.progress && row.progress.target > 1 && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>
-                    {row.progress.count} of {row.progress.target} {row.progress.label}
-                  </span>
-                </>
-              )}
-            </>
-          )}
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={`text-base font-semibold ${finished ? "text-muted" : ""}`}>{row.title}</span>
+            {row.mode === "quit" && <span className={QUIT_TAG_CLASS}>Quit</span>}
+            {row.carriedFrom && !row.doneToday && <span className={TAG_CLASS}>Carried over</span>}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted">
+            {row.carriedFrom && !row.doneToday ? (
+              <>
+                <span>From {formatDayLabel(new Date(row.carriedFrom.year, row.carriedFrom.month - 1, row.carriedFrom.day)).split(",")[0]}</span>
+                <span aria-hidden="true">·</span>
+                <span>counts as done late</span>
+              </>
+            ) : row.skippedToday ? (
+              <>
+                <span>{SKIPPED_TODAY_LABEL}</span>
+                {streak}
+              </>
+            ) : (
+              <>
+                {shownPeople.map((p) => (
+                  <AvatarBadge key={p.userId} displayName={p.displayName} avatarColor={p.avatarColor} size={18} />
+                ))}
+                <span>
+                  {row.sharing === "each" && othersDone.length > 0
+                    ? `${othersDone.map((p) => p.displayName).join(", ")} done`
+                    : habitWhoLabel({ people: row.participants.length, everyone: row.everyone, sharing: row.sharing })}
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>{row.timeOfDay ? TIME_OF_DAY_LABELS[row.timeOfDay] : ANYTIME_LABEL}</span>
+                {row.dueState === "open" && row.progress && row.progress.target > 1 && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      {row.progress.count} of {row.progress.target} {row.progress.label}
+                    </span>
+                  </>
+                )}
+                {streak}
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      </Link>
       <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={row.skippedToday} onClick={onToggle} />
     </div>
   );

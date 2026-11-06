@@ -5,12 +5,16 @@ import Link from "next/link";
 import { Moon, Sun, Sunset } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { HabitFilterChips, type HabitFilterOption } from "./HabitFilterChips";
+import { HabitConfetti } from "./HabitConfetti";
 import { HabitRow } from "./HabitRow";
+import { NudgeCards } from "./NudgeCard";
 import { checkHabit, skipHabit, uncheckHabit, unskipHabit } from "@/app/actions/habitChecks";
 import type { HabitActionResult } from "@/app/actions/habits";
 import { lifeAreaInfo, toLifeArea } from "@/lib/goalVocabulary";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
-import type { HabitRowView } from "@/lib/habitsRead";
+import type { HabitRowView, TodayNudge } from "@/lib/habitsRead";
+import { doneCountLabel } from "@/lib/habitsFamily";
+import { allRequiredDoneToday } from "@/lib/habitsToday";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { TIMES_OF_DAY, TIME_OF_DAY_LABELS } from "@/lib/habitVocabulary";
 
@@ -23,22 +27,28 @@ function isFinished(row: HabitRowView) {
   return row.doneToday || row.skippedToday;
 }
 
-/** "3 of 7 done" over rows that are still in play: a skipped row is neither done nor owed. */
-function countLabel(rows: HabitRowView[]) {
-  const owed = rows.filter((row) => !row.skippedToday);
-  return `${owed.filter((row) => row.doneToday).length} of ${owed.length} done`;
-}
-
 export function HabitTodayList({
   rows,
   todayLabel,
   canManage,
+  nudges,
+  confetti,
+  showStreaks,
+  todayKey,
 }: {
   rows: HabitRowView[];
   /** "Thursday, Nov 5", made on the server so the browser agrees with it. */
   todayLabel: string;
   /** False on a shared device: it can tick things off but not add or edit. */
   canManage: boolean;
+  /** The viewer's unseen nudges (decision 96). */
+  nudges: TodayNudge[];
+  /** The server's answer to "is everything required done?" on load (decision 76). */
+  confetti: boolean;
+  /** The viewer's "Show streaks" switch; true on the shared tablet (decision 98). */
+  showStreaks: boolean;
+  /** Today as "YYYY-MM-DD": the key for the once-a-day confetti marker. */
+  todayKey: string;
 }) {
   // A copy of the rows that is updated the instant a button is tapped, then
   // replaced by the server's real answer (the same idea as ThisWeekList).
@@ -100,9 +110,12 @@ export function HabitTodayList({
 
   return (
     <div>
+      {/* The flag is the server's on load; after a tap it is worked out again from the tapped rows, by the same rule. */}
+      <HabitConfetti fire={confetti || allRequiredDoneToday(live)} today={todayKey} />
+      <NudgeCards nudges={nudges} />
       <p className="mb-3 text-sm text-muted">
         {todayLabel}
-        {live.length > 0 && ` · ${countLabel(live)}`}
+        {live.length > 0 && ` · ${doneCountLabel(live)}`}
       </p>
 
       {live.length > 0 && options.length > 1 && <HabitFilterChips options={options} value={active} onChange={setFilter} />}
@@ -137,13 +150,14 @@ export function HabitTodayList({
             <section key={section.key}>
               <div className="mb-1.5 flex items-baseline justify-between">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{section.title}</h2>
-                <span className="text-sm text-muted">{countLabel(section.rows)}</span>
+                <span className="text-sm text-muted">{doneCountLabel(section.rows)}</span>
               </div>
               <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
                 {section.rows.map((row) => (
                   <li key={row.id}>
                     <HabitRow
                       row={row}
+                      showStreaks={showStreaks}
                       onToggle={() =>
                         row.doneToday
                           ? run({ type: "uncheck", habitId: row.id }, () => uncheckHabit(row.id, undefined, dayOf(row)))

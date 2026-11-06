@@ -117,6 +117,32 @@ export function canCarryOver(schedule: HabitSchedule, days: readonly Weekday[]):
   return schedule === "daily" || schedule === "weekdays" || (schedule === "biweekly" && days.length > 0);
 }
 
+/** What a streak counts, by the habit's schedule (decision 94): days, weeks or months. */
+export const STREAK_UNITS = ["days", "weeks", "months"] as const;
+export type StreakUnit = (typeof STREAK_UNITS)[number];
+
+/** A streak shows only at this many or more (decision 98). */
+export const STREAK_MIN_SHOWN = 2;
+
+/** "12 days", "3 weeks", "2 months"; null below `STREAK_MIN_SHOWN` (decision 98). */
+export function streakLabel(count: number, unit: StreakUnit): string | null {
+  return count >= STREAK_MIN_SHOWN ? `${count} ${unit}` : null;
+}
+
+/** The side-by-side table's streak cell: always a count, singular at 1 ("0 days", "1 day", "3 weeks"; decision 111). */
+export function streakCountLabel(count: number, unit: StreakUnit): string {
+  return `${count} ${count === 1 ? unit.slice(0, -1) : unit}`;
+}
+
+/** The stats page's rate cell when no day has been due yet (decision 111). */
+export const RATE_NONE_LABEL = "None yet";
+
+/** The status in a nudge row, after the person's name (decision 110). */
+export const NUDGE_STATUS_LABEL = "Not done yet today";
+
+/** The meta line of a row skipped today (decision 101). */
+export const SKIPPED_TODAY_LABEL = "Skipped today";
+
 /** Only a habit for one person can be private. */
 export function canBePrivate(peopleCount: number): boolean {
   return peopleCount === 1;

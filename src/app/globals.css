@@ -36,6 +36,8 @@
   --warn-soft: #faebc3; /* Butter lightened — the "running low" badge background */
   --danger: #a63a2a; /* a brick red from the Peach family — red still reads as red, but Peach itself (#f3b99e) is too light for text; this is 6.44:1 on white / 5.14:1 on --danger-soft */
   --danger-soft: #f9e1d6; /* Peach lightened — the "eat now" badge on the Expiring page */
+  --streak: #8a4b1f; /* mission-32/F1 — a burnt Peach for the streak flame and its count, so a streak no longer shares amber with warnings (Missed days, errors). Derived from Peach (#f3b99e), which is far too light for text; 6.76:1 on white / 5.97:1 on cream / 5.42:1 on --streak-soft */
+  --streak-soft: #f6e3d3; /* Peach lightened, warmer than --danger-soft — the nudge card's background; --fg is 6.32:1 on it */
 
   /* --- brand artwork colour, NOT a job token -------------------------------
      Brand Sage exactly as the blueprint specifies it. This is deliberately
@@ -74,6 +76,8 @@
     --warn-soft: #3d3212;
     --danger: #e89078; /* a lighter Peach-family red for a dark background — 7.14:1 on --bg, 6.41:1 on --surface, 5.84:1 on --danger-soft */
     --danger-soft: #472018;
+    --streak: #e8a77f; /* a light Peach for dark surfaces — 7.57:1 on --surface, 8.43:1 on --bg, 6.63:1 on --streak-soft (measured) */
+    --streak-soft: #3d2a1e; /* --fg is 11.98:1 on it */
   }
 }
 
@@ -95,6 +99,8 @@
   --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-streak: var(--streak);
+  --color-streak-soft: var(--streak-soft);
   --color-brand-sage: var(--brand-sage);
 
   /* Named --font-inter/--font-manrope/--font-accent-serif (not --font-sans

@@ -202,6 +202,16 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   empty vision card (a slightly darker twin of `--line`, with a dark-mode
   twin). It is too faint to carry text or to mark an interactive edge on its
   own, so never use it for either.
+- **`--streak` / `--streak-soft` are the streak's own colour** (mission-32/F1):
+  a burnt peach for the flame and its count on Today rows, family rows and the
+  stats tile, and the soft fill behind the nudge card. Amber (`--warn`) means
+  a warning or a Missed day; a streak is good news, so it must not share it.
+  Light `#8a4b1f` is 6.76:1 on `--surface`, 5.97:1 on `--bg`, 5.42:1 on
+  `--streak-soft`; dark `#e8a77f` is 7.57:1 on `--surface`, 8.43:1 on `--bg`,
+  6.63:1 on `--streak-soft` (measured). `--muted-strong` on
+  `--streak-soft` is 4.72:1 light / 6.43:1 dark (measured, mission-32
+  Strange pass 2). Plain `--muted` fails on it in light (4.31:1); never
+  use it there.
 - **Semantic truth:** red means urgent/destructive, never decoration; before
   coloring anything "good," confirm more/higher is actually good in context.
 - Fixed data-category palettes (e.g. the nutrition donut's three macro
@@ -279,6 +289,18 @@ A new one-off that duplicates one of these jobs is a design violation:
   tags, swipe left for Skip today). `HabitForm` is the one New and Edit form for
   a habit or chore, built from `ParticipantPicker`, `HabitIconPicker` and
   `HabitScheduleField`; a new habit field goes in it, never in a second form
+- `HabitFamilyView` / `HabitFamilyColumn` / `HabitViewChips`: the Whole
+  family view of Habits & Chores. `HabitFamilyView` is the Together strip plus
+  a grid of person cards (`auto-fit` columns of at least 340px: stacked on a
+  phone, two across on an 820px iPad); `HabitFamilyColumn` is one card (avatar,
+  name, "x of y done" with skipped rows in neither number, then Habits and
+  Chores) and holds `FamilyHabitRow`, the compact line: icon and title linking
+  to the stats page, streak label, 44px check. A row the viewer may not tick for
+  shows its state in a plain marker that is not a button. `HabitViewChips` is
+  the "Mine" / "Whole family" pair of link pills above both views, the choice
+  kept in the URL (`?view=family`); it is a view switch, not a second
+  `PlansTabs`, and the wall tablet never shows it. A column header has no
+  flame until the chore streak exists
 - `DashboardWidgetList` (the dashboard's heading row, widget grid and
   Customize button) / `DashboardCustomizeSheet` (on/off switch and up/down
   arrows per widget, Reset to default): the only way to show, hide or

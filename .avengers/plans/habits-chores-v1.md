@@ -383,12 +383,76 @@ in PR B (mission 31).
     days (optional)", "This week", "Next week", "Keep its weeks") and the
     settings row's "Show streaks and more" stay as built.
 
+### Before PR C (decided by Hill, 2026-11-05; Bryce may overturn)
+
+94. **Stats page approved** as the Stats board, plus: a perfect-days line
+    under the month grid ("3 perfect days this month"); the calendar shows
+    Done, Skipped (dashed ring) and Missed differently from future or not-due
+    days, with a short legend; the streak tile's unit follows the habit
+    ("days", "weeks", "months"); the tiles show the viewer's own numbers, or
+    the kid's when a parent opens a kid's habit. (Hill: medium)
+95. **Family view approved** as the Family board, plus: the "Mine" / "Whole
+    family" chips show on it too (not on the tablet); on a phone the person
+    cards stack under the Together strip; no flame in a person's column
+    header until PR D's chore streak. (Hill: medium)
+96. **Nudge card:** "Emily nudged you about Morning Prayers" with a "Got it"
+    button that marks it seen. One card per unseen nudge.
+97. **Stats nudge row:** "Emily hasn’t done hers today" + "Nudge"; after a
+    tap, "Nudged" with a check, disabled until Denver midnight; the row goes
+    once she is done; one nudge per person, habit and day (server enforced);
+    hidden on the tablet.
+98. **Streaks on rows:** flame plus number with its unit ("12 days", "3
+    weeks"), only at 2 or more, hidden by the person's Show streaks switch,
+    always shown on the tablet.
+99. **Confetti has no words.**
+100. **Checking a carried-over row** writes done late on the missed day; the
+     row shows done until the next load, then leaves Today (matches 89).
+101. **A skipped row's meta line reads "Skipped today".**
+102. **Who opens a stats page:** participants; parents and admins for any
+     non-private habit; the tablet for any habit on the family view (Nudge
+     hidden there). A private habit's stats open only for its participant.
+103. **Stats BackLink:** "Habits & Chores", to `/habits`.
+104. **The weekly chart is one small strip per person** (Side by side habits
+     only), all bars in the accent color, each headed by the person's avatar
+     badge and name, sharing one axis and the same weeks. A tap on a week
+     column (44px or wider) writes "Bryce, week of Oct 4: 6 of 7" under that
+     strip. No hover-only tooltip. Avatar colors failed the chart color
+     check, so identity comes from the name and badge (carries out 52 a
+     different way). (Hill: medium)
+105. **Opening stats:** tapping a row's title area on Today or the family view
+     opens `/habits/[id]`; the check keeps its own tap, swipe keeps Skip. The
+     Edit page gets a "See stats" link under its BackLink.
+106. **No nudging someone who skipped today** (a skip is finished, 19, 76).
+     Decided by Hill, 2026-11-05, high.
+107. **Archived habits refuse nudges** (58). Decided by Hill, high.
+108. **The Nudge row is on Side by side habits only** (51, 93). Decided by
+     Hill, high.
+109. **A person's "x of y done" leaves skipped habits out of both numbers**,
+     on the family view the same as on Today, from one counting rule.
+     Decided by Hill, high. Bryce's tiebreaker for Hill (2026-11-05): "the
+     most user-friendly".
+110. **Nudge row wording** (amends 97): avatar, "Emily · Not done yet today"
+     (status muted), then Nudge. No pronoun, and no "check in", which is a
+     Plans & Goals word. Decided by Hill, medium.
+111. **Side by side table empty values:** streak always a count with its
+     unit ("0 days", "1 day", "12 days"); rate "None yet" until a day has
+     been due. Decided by Hill, medium.
+112. **Stats calendar title** is the month name ("November"), with the year
+     only when it is not the current year. Decided by Hill, high.
+113. **Stats calendar shows the current month only** in PR C. Decided by
+     Hill, high.
+114. **Amends 105:** a row title links to stats only when the viewer may
+     open that page (102); otherwise it is plain text, so no tap leads to
+     Not found. Decided by Hill, high.
+
 ## Open questions
 
 1. **Review the redrawn mock** (link at the top), after it is updated for
    the audit decisions (audit, Part 6).
 
 ## Not in the first PR
+
+- Month paging on the stats calendar (decision 113).
 
 Dashboard tiles and the item picker, Winnie texts, the in-app assistant
 button, the "Show in Routines" switch (may fold into the one habit system

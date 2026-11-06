@@ -1,18 +1,26 @@
 import Link from "next/link";
 import { Plus, SlidersHorizontal } from "lucide-react";
+import { HabitFamilyView, HabitViewChips } from "@/components/HabitFamilyView";
 import { HabitTodayList } from "@/components/HabitTodayList";
 import { requireVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { loadTodayPage } from "@/lib/habitsRead";
+import { loadFamilyPage } from "@/lib/habitsStatsRead";
+import { formatCalendarDate } from "@/lib/householdDate";
 import { formatDayLabel } from "@/lib/mealPlanDates";
 
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
 
-export default async function HabitsPage() {
+export default async function HabitsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const user = await requireVerifiedUser();
+  const { view } = await searchParams;
   const today = householdToday(new Date())!;
-  const { rows } = await loadTodayPage({ userId: user.userId, role: user.role }, today);
+  const viewer = { userId: user.userId, role: user.role };
+  // The wall tablet always shows the whole family (it has no Today of its own); a person picks with the chips (decision 95).
+  const family = user.isDevice || view === "family";
+  const familyPage = family ? await loadFamilyPage(viewer, today) : null;
+  const todayPage = family ? null : await loadTodayPage(viewer, today);
   // A shared device (the wall tablet) can tick things off but never edit.
   const canManage = !user.isDevice;
 
@@ -39,11 +47,27 @@ export default async function HabitsPage() {
           </div>
         )}
       </div>
-      <HabitTodayList
-        rows={rows}
-        todayLabel={formatDayLabel(new Date(today.year, today.month - 1, today.day))}
-        canManage={canManage}
-      />
+      {!user.isDevice && <HabitViewChips view={family ? "family" : "mine"} />}
+      {familyPage ? (
+        <>
+          <p className="mb-3 text-sm text-muted">{formatDayLabel(new Date(today.year, today.month - 1, today.day))} · the whole family</p>
+          {/* The tablet shows everyone's streaks; a person's switch hides theirs (decision 98). */}
+          <HabitFamilyView page={familyPage} showStreaks={user.isDevice || user.showStreaks} />
+        </>
+      ) : (
+        todayPage && (
+          <HabitTodayList
+            rows={todayPage.rows}
+            todayLabel={formatDayLabel(new Date(today.year, today.month - 1, today.day))}
+            canManage={canManage}
+            nudges={todayPage.nudges}
+            confetti={todayPage.confetti}
+            // The tablet shows everyone's streaks; a person's switch hides theirs (decision 98).
+            showStreaks={user.isDevice || user.showStreaks}
+            todayKey={formatCalendarDate(today)}
+          />
+        )
+      )}
     </div>
   );
 }
