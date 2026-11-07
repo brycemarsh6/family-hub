@@ -247,7 +247,7 @@ Replace this section at the end of each session. Don't append.
   L2 (mission 46) makes the Calendar wide on branch
   `claude/ipad-landscape-l2-calendar-46358d`: a sticky mini month beside
   Schedule, 4 readable chips a day on wide Month, readable wide Week
-  columns, Year 4 across (decisions 225 to 228). Plan:
+  columns, Year 4 across (decisions 225 to 232; 229 to 232 decided by Hill). Plan:
   `.avengers/plans/ipad-landscape-v1.md`. Next: W2, the Calendar widget
   (`.avengers/plans/dashboard-widgets-v2.md`), then L3 (Habits).
 - **Dashboard widgets W1 (mission 43)** passed its gates on 2026-11-06
@@ -340,8 +340,7 @@ Replace this section at the end of each session. Don't append.
   sideways, open Calendar, Schedule: a month card on the left; tap a day
   and the list jumps there; scroll and the ring follows. Month: 4 events
   a day you can read. Week: titles and times readable. Year: 4 across.
-  Upright, Schedule is the list alone as before. Keep or hide the
-  "Month YYYY" title above Schedule on wide screens (it repeats the card)?
+  Upright, Schedule is the list alone as before.
 - **Landscape dashboard check** (about 2 minutes): turn the kitchen iPad
   sideways and reload the dashboard: the tiles fill the screen in 4
   columns, there is no "Dashboard" title, and Customize sits in the top

@@ -246,6 +246,20 @@ the width rule; L2 and W2 share calendar code, so L2 goes first.
   now (the list loads about a month at a time, so far months would look
   empty).
 
+- **229 (decided by Hill, 2026-11-07, L2):** wide Schedule loses its
+  "Month YYYY" title row from a 50rem container (the mini month carries
+  the month), in a small follow-up PR with its own gate pass; phones and
+  820 upright keep the row and the month-jump sheet.
+- **230 (decided by Hill):** Captain's A-L2-3 (a container class string a
+  skeleton mirrors is exported once); the Dashboard and Year pairs come
+  into line in L3.
+- **231 (decided by Hill):** Captain's A-L2-4, one Calendar file-size
+  trend row in STRUCTURE.md.
+- **232 (decided by Hill):** a tapped empty day rings the next day the
+  list shows (the ring never marks a day the list is not showing). Idea
+  for later: a "Nothing planned" row for a tapped empty day, as the mock
+  draws for Mon 9.
+
 ## Open
 
 - None for the plan. Per-step design details go to Bryce with a mock, or

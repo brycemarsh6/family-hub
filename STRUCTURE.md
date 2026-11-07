@@ -1156,6 +1156,9 @@ Adding a second definition of any of these is a BLOCKER:
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (actions/groceries.ts
   was split three ways at ~624 before hitting the hard cap; current largest
   hand-written files sit in the ~350–420 range.)
+  Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 578 total /
+  about 361 code (89% of the hard cap; the next Schedule feature extracts
+  the two-panel wrapper), `CalendarViews.tsx` 502, `MonthCell.tsx` 367.
 - **Hard cap: 650 lines** — crossing it needs a written justification in the
   file header, or it's a BLOCKER. `src/generated/` is exempt, and so is
   `prisma/schema.prisma`: a Prisma schema is a single declarative file that

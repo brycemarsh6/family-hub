@@ -257,6 +257,9 @@ From AGENTS.md, absolute for every agent:
 
 ## Captain's amendments
 
+(A-L2-3 and A-L2-4 decided by Hill, decisions 230 and 231: A-L2-4 is
+written; A-L2-3 is done in L3.)
+
 - **A-L2-1** (Wide pages names its pages; the Calendar's containers) and
   **A-L2-2** (Month lane counts have one home) are written into
   STRUCTURE.md in this PR: they record what was built.
@@ -350,10 +353,10 @@ From AGENTS.md, absolute for every agent:
 - **Shipped:** C1 to C3 and F1, F2 (commits listed by `git log
   174f74d..HEAD`), STRUCTURE.md A-L2-1 and A-L2-2, CLAUDE.md status and
   Bryce's "Landscape Calendar check".
-- **Open for Bryce:** keep or hide the Schedule "Month YYYY" title on
-  wide screens (Fury recommends keeping it here, hiding it as a small
-  follow-up because three files measure the header's height); Captain's
-  A-L2-3 and A-L2-4.
+- **Decided by Hill** (Bryce called her back, 2026-11-07; none is a
+  medium call): 229 hide the wide Schedule title row in a follow-up PR;
+  230 A-L2-3 yes, done in L3; 231 A-L2-4 yes (written into STRUCTURE.md
+  here); 232 a tapped empty day rings the next day the list shows.
 - **Deliberate leftovers:** wide Week and 3 Day all-day chips are still
   9px (TimelineAllDayStrip, follow-up); AppChrome's comment above
   `<main>` should name the dashboard and Calendar as `data-page-width`
