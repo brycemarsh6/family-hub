@@ -1,4 +1,4 @@
-// The Assistant API's error vocabulary — pure, no imports beyond a zod type.
+// The Assistant API's error vocabulary — pure, no imports beyond two types.
 //
 // Every refusal after authentication uses one envelope:
 //   { error: { code, message, details? } }

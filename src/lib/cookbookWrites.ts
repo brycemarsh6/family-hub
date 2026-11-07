@@ -61,11 +61,19 @@ export async function findOrCreateCookbookRow(
   return db.$transaction(async (tx) => {
     // $executeRaw: the lock call returns void, which $queryRaw cannot read back.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(lower(${checked.title})))`;
-    const existing = await tx.cookbook.findFirst({
-      where: { title: { equals: checked.title, mode: "insensitive" } },
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      include: { _count: { select: { recipes: true } } },
-    });
+    // Raw SQL on purpose: Prisma's case-insensitive `equals` runs as ILIKE,
+    // where `%` and `_` in a title would act as wildcards.
+    const [match] = await tx.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "Cookbook"
+      WHERE lower("title") = lower(${checked.title})
+      ORDER BY "createdAt" ASC, "id" ASC
+      LIMIT 1`;
+    const existing = match
+      ? await tx.cookbook.findUnique({
+          where: { id: match.id },
+          include: { _count: { select: { recipes: true } } },
+        })
+      : null;
     if (existing) {
       const { _count, ...cookbook } = existing;
       return { cookbook, recipeCount: _count.recipes, created: null };

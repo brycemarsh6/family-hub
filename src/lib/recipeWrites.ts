@@ -30,7 +30,8 @@ import type {
   CookbookRecipe,
 } from "@/generated/prisma/client";
 import { applyRecipeTagDiff, TAG_MISSING, tagsExist } from "@/lib/tagWrites";
-import { invalid, missing } from "@/lib/writeError";
+import { COOKBOOK_MISSING } from "@/lib/cookbookWrites";
+import { invalid } from "@/lib/writeError";
 import type { WriteError } from "@/lib/writeError";
 
 type Tx = Prisma.TransactionClient;
@@ -110,7 +111,7 @@ export async function createRecipeRow(
         where: { id: cookbookId },
         select: { id: true },
       });
-      if (!cookbook) return missing("That cookbook no longer exists.");
+      if (!cookbook) return COOKBOOK_MISSING;
     }
     if (!(await tagsExist(tx, tagIds))) return TAG_MISSING;
 

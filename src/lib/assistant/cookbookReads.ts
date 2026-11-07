@@ -33,7 +33,6 @@ export async function getCookbook(id: string, origin: string) {
       ...LIST_SELECT,
       recipes: {
         select: { addedAt: true, recipe: { select: { id: true, title: true } } },
-        orderBy: { addedAt: "desc" },
       },
     },
   });

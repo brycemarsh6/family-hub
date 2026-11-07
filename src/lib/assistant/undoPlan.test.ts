@@ -1,3 +1,6 @@
+// Tests for undoPlan.ts (general undo rules). Cookbooks as undo parents are in
+// the sibling undoPlanCookbook.test.ts.
+
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { encodeChangeSummary } from "@/lib/assistant/changeCopy";

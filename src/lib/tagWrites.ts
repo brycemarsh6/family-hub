@@ -32,12 +32,21 @@ function checkTagName(name: string): { name: string } | WriteError {
 }
 
 /** The tag with this name, ignoring case, optionally excluding one id; with its recipe count. */
-function findTagByName(client: Tx | typeof db, name: string, exceptId?: string) {
-  return client.tag.findFirst({
-    where: {
-      name: { equals: name, mode: "insensitive" },
-      ...(exceptId ? { id: { not: exceptId } } : {}),
-    },
+async function findTagByName(client: Tx | typeof db, name: string, exceptId?: string) {
+  // Raw SQL on purpose: Prisma's case-insensitive `equals` runs as ILIKE,
+  // where `%` and `_` in a name would act as wildcards.
+  const [match] = exceptId
+    ? await client.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "Tag"
+        WHERE lower("name") = lower(${name}) AND "id" <> ${exceptId}
+        ORDER BY "id" ASC LIMIT 1`
+    : await client.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "Tag"
+        WHERE lower("name") = lower(${name})
+        ORDER BY "id" ASC LIMIT 1`;
+  if (!match) return null;
+  return client.tag.findUnique({
+    where: { id: match.id },
     include: { _count: { select: { recipes: true } } },
   });
 }
