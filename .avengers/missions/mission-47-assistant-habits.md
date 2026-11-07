@@ -1,7 +1,7 @@
 # Mission 47: Winnie's habits and chores (Assistant API)
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING
+**Status:** DELIVERED
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/assistant-habits` from `origin/main` 88d094b (holds
 174f74d, PR #65). Worktree `parallel-work-strategy-e056c5`.
@@ -699,6 +699,12 @@ STRUCTURE.md by Fury; A11 to A14 for Bryce with mission 44's A1 to A4 and
   1 at `4e36d89`: Vision BLOCKED (V1, V2), Captain BLOCKED (B1 to B5).
   A10 pasted into STRUCTURE.md (`9286f7f`). Hill H8 decided. F1 done
   `dfe563a`. Next: gate pass 2, both in parallel.
+- 2026-11-06 - Gate pass 2 at `b386408`: Vision PASS, Captain PASS.
+  Records `4cfdf62`. Synced with main twice (#68, then #67 landed while
+  the Gauntlet ran), gauntlet green each time (1301, then 1310 tests).
+  PR #69 merged as `587399b`; production READY, routes 401. `.env` symlink
+  removed from the worktree. This record PR is the last change; the next
+  mission for Winnie (plans and goals) starts in its own chat.
 
 ### Vision pass 2 (at `b386408`): PASS
 
@@ -837,7 +843,14 @@ copies, rule below, are the one exception)".
 - **Records:** STRUCTURE.md gained A10 (a small edit to a shared file).
   CLAUDE.md: mission 44 and 45 "next for Winnie" lines, the cookbook H1/H4
   review line removed, the mission 47 bullet, Bryce's checklist row.
-- **Shipped check:** filled at delivery (below the Handoff log).
+- **Shipped check:** merged as PR #69, merge commit `587399b` on `main`
+  (2026-11-06); `git log origin/main..HEAD` → 0 after the merge. Production:
+  Vercel status on `587399b` "Deployment has completed"; tokenless `curl`
+  to `/api/assistant/v1/habits`, `/habits/today`, `/habits/chart`,
+  `/habits/{id}`, `/openapi.json` and `POST /habits/{id}/check` → 401
+  (GET on the POST-only paths → 405). The old deployment had no
+  `/habits` route, so a 401 there proves the new code is live. Nothing was
+  written to production.
 - **Deliberate leftovers (next touch):** Vision's and Captain's NOTEs
   above; the chore week overrides a PATCH off "weekdays" drops cannot be
   restored by undo (`ChoreWeekOverride` is not an undo model; one week,

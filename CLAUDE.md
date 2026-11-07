@@ -293,16 +293,18 @@ Replace this section at the end of each session. Don't append.
   app's Claude features with her (needs a two-way link; Bryce parked it
   2026-11-06). Captain's STRUCTURE.md amendments A1 to A4 (mission 44) and
   A5 to A9 (mission 45) wait in the mission files.
-- **Winnie's habits and chores (mission 47)** is being built on branch
-  `claude/assistant-habits`: 12 routes under `/habits` (today's list, a
+- **Winnie's habits and chores (mission 47)** merged as PR #69
+  (`587399b`) on 2026-11-06 and is live (routes answer 401 without a
+  token): 12 routes under `/habits` (today's list, a
   person's habits, a habit's stats, the chore chart; check, skip, undo
   either, log and remove her own time; add and edit, never delete), every
   write undoable with the streaks rebuilt inside the undo. Shared rules in
   `src/lib/habitTapWrites.ts` and `src/lib/habitInput.ts`; the family's habit
   actions are thin wrappers now. Privacy preset for Bryce to review:
   Winnie is "Bryce" for private habits through `ASSISTANT_OWNER_USER_ID`.
-  Hill's H1 to H8 and Captain's A11 to A14 in
-  `.avengers/missions/mission-47-assistant-habits.md`.
+  Hill's H1 to H8, Captain's A11 to A14 and "What to tell Winnie" in
+  `.avengers/missions/mission-47-assistant-habits.md`. Next for Winnie:
+  plans and goals (its own mission and chat), then calendar/tasks.
 
 **Bryce's checklist (never blocks work):**
 - **Winnie and private habits (mission 47):** in Vercel add
