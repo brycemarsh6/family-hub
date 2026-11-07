@@ -438,7 +438,33 @@ through `goalsRead`-level code), no auth, no `revalidatePath`, refusals as
   commit hash.
 - **Done criteria:** gauntlet green; every live line PASS; `openapi.test.ts`
   green.
-- **Status:** not started.
+- **Status:** DONE at `8ad6a97` (19 files, +1473/-3).
+- **Report:** tsc 0, `eslint .` 0, `npm test` 1370 (29 new), UTC 1363 + 7
+  skips, LA 1370, `openapi.test.ts` 8/8, build compiled (its exit code was
+  not captured; the gates re-run it). Live on dev, port 3250
+  (`scratchpad/c3/live.ts`): run 1 had 2 FAILs from the script's own wrong
+  expectation (a date later than today but earlier than the stored date is
+  allowed by the app); run 2 125 PASS, 0 FAIL. Counts identical before and
+  after (Goal 8, GoalCheckIn 3, PlanItem 2, VisionStatement 0, Habit 18,
+  HabitParticipant 27, AssistantRequest 4). Headline: check-ins 80 then 78,
+  undo → 80 = fresh `numberAfterCheckIns`, redo → 78. Habit plan item
+  create, reminder → habit, PATCH, step done, vision create and overwrite
+  all undo and redo. H1, H2, H4, H5 words exact. Privacy: the non-admin's
+  private goal 404 on every verb; their non-private Mine goal readable,
+  every write 404 "You can't change that goal."; owner unset → Mine create
+  400, owner board 400, owner's private goal 404. Sizes: goalReads 115,
+  serializeGoals 269, schemasGoals 206, openapiGoalPaths 150, routes 9
+  files (largest 76), 11 operations. Deviations: (1) `GET /vision` uses
+  one vision query plus one `loadPlansPage` instead of `loadVisionBoard`
+  per board and horizon (up to 15 loads, and its "Mine" board key would be
+  "" with the owner unset); (2) **Stark's own words**: a board that is
+  neither Together nor the owner's → 403 "Winnie can only write the
+  Together board and the owner's board."; owner unset → 400 "Winnie can't
+  tell which board is the owner's, so she can only write the Together
+  board."; (3) PATCH removes a number with `removeNumber: true`; (4) the
+  Sunday recap with `personId` exists only for the owner (null for anyone
+  else; `loadWeekRecap` has two scopes); (5) PATCH routes roll back on a
+  no-op; (6) undo of a goal create not run live (unit-tested in C2).
 
 ### C4 - records (after the gates)
 
