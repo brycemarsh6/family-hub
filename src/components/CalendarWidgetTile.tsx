@@ -125,14 +125,17 @@ function DayColumn({
   );
 }
 
-/** The grey shape of each size before the browser knows the day, matching the real rows (h-12, gap-1) and day gaps (gap-3). */
+/** The grey shape of each size before the browser knows the day. It reserves the tallest real shape (two-line event cards at 96px, the day header, "+N more") so the tile can only shrink on load, never grow. */
 function CalendarSkeleton({ size, dayCount }: { size: WidgetSize; dayCount: number }) {
   const rows = (count: number) =>
-    Array.from({ length: count }, (_, row) => <SkeletonBlock key={row} className="h-12 w-full" />);
+    Array.from({ length: count }, (_, row) => <SkeletonBlock key={row} className="h-24 w-full" />);
   const dayBlock = (key: number, count: number) => (
     <div key={key} className="flex min-w-0 flex-col gap-1">
-      <SkeletonBlock className="h-7 w-16" />
-      {rows(count)}
+      <div>
+        <SkeletonBlock className="mb-2 h-7 w-16" />
+        <div className="flex flex-col gap-2">{rows(count)}</div>
+      </div>
+      <SkeletonBlock className="h-11 w-full" />
     </div>
   );
   const days = (count: number) => Array.from({ length: dayCount }, (_, day) => dayBlock(day, count));
@@ -145,13 +148,13 @@ function CalendarSkeleton({ size, dayCount }: { size: WidgetSize; dayCount: numb
   }
   return (
     <DashboardTile href="/calendar" icon={ICON} title={TITLE} shape="panel">
-      {size === "m" && <div className="flex flex-col gap-2">{rows(3)}</div>}
-      {size === "l" && (
+      {size === "m" && (
         <div className="flex flex-col gap-1">
-          <SkeletonBlock className="h-7 w-16" />
-          {rows(6)}
+          <div className="flex flex-col gap-2">{rows(3)}</div>
+          <SkeletonBlock className="h-11 w-full" />
         </div>
       )}
+      {size === "l" && dayBlock(0, 6)}
       {size === "xl" && (
         <div className="@container">
           <div className="flex flex-col gap-3 @min-[30rem]:hidden">{days(3)}</div>
