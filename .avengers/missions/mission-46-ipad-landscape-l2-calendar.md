@@ -253,10 +253,23 @@ From AGENTS.md, absolute for every agent:
 | 1 | Vision | BLOCKED | (1) MonthCell phone: lane-3-only day shows three blank 16px spacers above "+N more" (fixture: three bars Nov 2 to 4 plus a bar Nov 1 to 2); (2) ScheduleMiniMonth browse offset reapplies when the day in view returns to the month it was set in; (3) 22rem column gives 42px day buttons beside the Sidebar (gaps and border forgot) | Gauntlet green (1260 tests both zones). NOTES: Stark's test counts were 5 high (concurrent runs); assignLanes cap-independence and phoneOverflowByDay verified; stale comments; tapped empty day rings the next day with a row; rAF not cancelled on cleanup; em dash kept at loading.tsx:163 |
 | 1 | Strange | BLOCKED | (1) mini month day buttons 42px beside the Sidebar (same as Vision 3); (2) Schedule title row: the month-jump chevron sits 488px from its title at 1180 (`w-full` on the portaled slot), against "a row never stretches" and mission-19/F2's ruling | Measured clean: mini month 440x404 sticky at top 138, 48px days, arrows browse without scrolling, tap jumps, ring follows scroll, flips month, far day navigates; Month 4 chips 12px and right "+N more" at 1180/820/Sidebar/Rail, 375 same as main; Week 155px cols 12px with times (Rail 144 too; Sidebar 118 stays 10px); Year 4/3/3/2; every sheet full screen; no sideways scroll; dark OK. NOTES: the approved mock has no Schedule title bar on wide (month shows twice now: Bryce's call); dev data too sparse to scroll today to the top (bottom spacer idea); all-day chips stay 9px on wide timelines (follow-up); ring has no accessible state; wide Month leaves about 250px empty below; older: loading labels Year/Day/3 Day as Week, new event returns to Week |
 
+## Captain's amendments
+
+- **A-L2-1** (Wide pages names its pages; the Calendar's containers) and
+  **A-L2-2** (Month lane counts have one home) are written into
+  STRUCTURE.md in this PR: they record what was built.
+- **Waiting for Bryce:** A-L2-3 (a container class string a skeleton
+  mirrors is exported once from the component; bring the Dashboard 45rem
+  and Year 40/60rem pairs into line in L3) and A-L2-4 (a Calendar
+  file-size trend row: ScheduleView 578 total / about 361 code, 89% of
+  the hard cap, so the next Schedule feature extracts the two-panel
+  wrapper; CalendarViews 502; MonthCell 367). Full text in Captain's pass
+  1 report, summarized in the gate ledger.
+
 ## Fix batch 1 (after pass 1)
 
 ### F1 - Month phone spacers and record comments
-- **Status:** DISPATCHED (parallel with F2; boundaries disjoint)
+- **Status:** DONE (`laneVisibility` helper and test; MonthCell 367 lines; 1261 tests)
 - **Boundaries:** may touch: `src/components/MonthCell.tsx`,
   `src/components/MonthGrid.tsx`, `src/lib/monthLayout.ts`,
   `src/lib/monthLayout.test.ts`, `src/app/(app)/calendar/loading.tsx`
@@ -283,7 +296,7 @@ From AGENTS.md, absolute for every agent:
 - **Verification / evidence:** whole Gauntlet; new test name; line counts.
 
 ### F2 - Schedule mini month fixes and the title chevron
-- **Status:** DISPATCHED (parallel with F1)
+- **Status:** DONE (key remount resets browse; 24rem column; slot `flex min-w-0 items-center justify-center`; "(showing)" label; rAF cancelled; ScheduleView 578)
 - **Boundaries:** may touch: `src/components/ScheduleView.tsx`,
   `src/components/ScheduleMiniMonth.tsx`,
   `src/lib/useScheduleDayInView.ts`, `src/components/CalendarHeader.tsx`
@@ -325,3 +338,5 @@ From AGENTS.md, absolute for every agent:
   Strange, Captain (pass 1, in parallel: all read-only).
 - 2026-11-07: pass 1: Captain PASS, Vision BLOCKED (3), Strange BLOCKED
   (2, one shared with Vision). Fix batch 1 (F1, F2) dispatched.
+- 2026-11-07: F1 and F2 DONE and committed; A-L2-1 and A-L2-2 written.
+  Vision pass 2 and Strange pass 2 dispatched.
