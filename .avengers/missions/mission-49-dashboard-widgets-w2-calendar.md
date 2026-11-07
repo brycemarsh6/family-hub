@@ -1,7 +1,7 @@
 # Mission 49: Dashboard widgets v2, step W2 (the Calendar widget)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** GATES PASSED (delivering)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/dashboard-w2-calendar-widget-40bbe6` (from `origin/main` at `7d5ea69`)
 **Plan:** `.avengers/plans/dashboard-widgets-v2.md`, step W2
@@ -79,6 +79,29 @@ phone stacking cap and 238's "Nothing else today".
 Bryce (2026-11-07, after Fury explained the sizes, both options and the
 tablet default in chat): "All your recommendations look good". So 233 to
 239 are approved by Bryce, not only decided by Hill.
+
+### After Strange pass 1 (Hill, 2026-11-07, decided for Bryce)
+
+- **240 (medium):** Extra large "7 days" on a wide tile wraps:
+  `repeat(auto-fill, minmax(13rem, 1fr))`, date order left to right then
+  the next row (5+2 at 1180, 4+3 with Rail or Sidebar, 3+3+1 at 820
+  upright). Phone keeps stacking. "3 days" stays one column per day.
+  Caps unchanged (5, then "+N more"). Fallback if Bryce dislikes the half
+  row: cap the grid at 4 columns.
+- **241 (medium):** within each day's list (Medium, Large, every Extra
+  large column), still to do first in Schedule's order (open tasks,
+  planned habits not done, events; ended events kept in time order with
+  Whole day on), then done things last (completed tasks, then done
+  planned habits). The cap cuts from the end, so "+N more" hides done
+  items first.
+- **242 (high):** in the Calendar widget only, "+N more" is a tappable
+  row at least 44px tall, full width, muted, left aligned, opening that
+  day's Schedule via `buildCalendarSearch("schedule", day)`. Words
+  unchanged (`DASHBOARD_WIDGET_WORDS.moreRows`). Habits and Chores tiles
+  unchanged (decision 207; W3's call).
+- **243 (high):** TaskCard's checkbox stays display only.
+
+For Bryce first: 240 (the 3+3+1 upright look) and 241.
 
 ## Fury's structural calls
 
@@ -160,19 +183,120 @@ From AGENTS.md, absolute for every agent:
 
 ### C2 - the widget on the dashboard (loader, tile, previews)
 
-- **Status:** DISPATCHED (spec in the dispatch: loader with a padded
+- **Status:** DONE (`3de21e9`; spec in the dispatch: loader with a padded
   Denver range, `CalendarWidgetTile` deciding today and now in the browser,
   container-variant columns for Extra large, Today's meals icon swap).
 
 ### C3 - Customize options (editor section, row second line, wiring)
 
-- **Status:** DISPATCHED (parallel with C2: Options section with two
+- **Status:** DONE (`dc3a845`; parallel with C2: Options section with two
   ToggleSwitch rows and a Days Segmented while Extra large; row second line
   from `widgetRowDetail`).
 
+### C4 - fix batch after pass 1
+
+- **Status:** DONE (`ab035ff`, `b91e9e3`).
+- **Objective:** fix Strange's B1 (decision 240) and B2, apply 241 and
+  242, and the cheap Captain and Vision notes.
+- **Fury's reading of 241:** `DaySection` draws tasks, then habit days,
+  then events as groups, so 241 is applied to *which* items the cap keeps
+  (priority: open tasks, open habit days, events, done tasks, done habit
+  days) and, inside the tasks and habit groups, open before done. The
+  groups keep DaySection's order on screen. Recorded for Bryce.
+- **B2 approach:** Strange's cheaper version: the skeleton draws a day
+  header plus rows up to each size's cap (Medium 3, Large 6, Extra large
+  per column), so the tile never grows on load; it can only shrink on a
+  light day. The server-count version was not taken: the loader runs in
+  UTC on Vercel and the day matching uses local getters.
+- **Boundaries:** may touch `src/components/CalendarWidgetTile.tsx`,
+  `src/components/DaySection.tsx` (export the header only),
+  `src/lib/calendarWidget.ts`, `src/lib/calendarWidget.test.ts`,
+  `src/lib/dashboardLayout.ts` (comment and DEFAULT literal only),
+  `src/lib/dashboardLoaders.ts` (imports only),
+  `src/components/CalendarViews.tsx` (the stale comment only) · must not
+  touch anything else.
+
 ## Gate ledger
 
-(empty)
+Pass 1 (on `3de21e9`):
+- **Vision: PASS.** Full Gauntlet re-run green (1354 tests; UTC 1347 pass
+  plus 7 old skips; build OK; also run in 4 extra zones). Notes: Small
+  ignores tasks unless Tasks only (as planned); a multi-day timed event
+  reads "Today, All day" on Small; the ordering test uses `includes` and
+  should pin the id; stacked doc comment in `dashboardLayout.ts`; 7
+  columns at 820 are about 100px.
+- **Captain: PASS.** Notes: export `DaySectionHeader` from `DaySection`
+  instead of the drifted local copy; the "All day" word is defined twice;
+  stacked comment; DEFAULT literal back to the plain map; merge the two
+  constants imports in `dashboardLoaders.ts`; stale comment at
+  `CalendarViews.tsx:44`. Drafted STRUCTURE.md amendments A-49-1 to
+  A-49-4 (written at delivery).
+- **Strange: BLOCKED.** B1: Extra large at 7 days is unreadable on every
+  iPad width (147px columns at 1180, 95px at 820, titles break mid-word).
+  B2: the skeleton is one `h-24` block, so the dashboard jumps about
+  300px when Large loads (every wall tablet load). Notes: finished items
+  use the row limit before events still to come; "+N more" can't be
+  tapped; TaskCard's checkbox looks live; Whole day doesn't dim ended
+  events (older, Schedule does the same); `nextItemWhen` "All day" for a
+  timed event begun yesterday; older dev bug: Settings actions 500 with
+  "HabitInput is not defined" (`src/app/actions/habits.ts:36`, follow-up).
+  B1, and the order and "+N more" notes, go to Hill as design calls.
+
+Pass 2 (on C4, `ab035ff` and `b91e9e3`):
+- **Vision: BLOCKED** on B2 only (Gauntlet green, 1357 tests; boundaries
+  clean; sort reaches no other caller; `more` never negative; no nested
+  link; DEFAULT unchanged; skeleton hydration safe). The skeleton's 48px
+  rows and `gap-1` under-size the real 72px cards and `gap-2`.
+- **Strange: BLOCKED** on B2 only. B1 PASS (no column under 208px:
+  210 at 1180, 238 at 820, 248 Rail, 273 Sidebar), 241 PASS, 242 PASS
+  (44px link, not nested, lands on the day), headers PASS, 375 light and
+  dark PASS. Measured growth on load: Large +200, XL 3 days at 820 +240.
+  Note: with Sidebar at 1180 the 7 days are 3+3+1, not 4+3 as 240 says
+  (the rule is right, the wording was off).
+- Fury chose Strange's option (b): rows reserve the two-line event card
+  (96px), plus header and "+N more", so the tile only shrinks. C5.
+
+### C5 - skeleton reserves the tallest rows
+
+- **Status:** DONE (`d591902`). May touch only `CalendarSkeleton` in
+  `src/components/CalendarWidgetTile.tsx`.
+
+Pass 3 (on `d591902`):
+- **Vision: PASS.** Gauntlet green (1357). Boundary clean. Skeleton equals
+  the real tallest shape for Medium (352px) and Large; XL cells are the
+  maximum. Notes: task and planned-habit titles have no line clamp, so a
+  3+ line title can still grow a row a few px (follow-up: `line-clamp-2`
+  when `compact`); the Small skeleton is 48px against up to 60px real
+  (older than B2).
+
+- **Strange: PASS** (pass 3, `d591902`). The tile only shrinks on load
+  in every case measured (Medium 1180 430 to 318; Large 778 to 618; XL 3
+  days 820 674 to 606; XL 7 days 820 1890 to 1174). Note: for 7 days the
+  skeleton is 500 to 760px taller than the loaded tile (shown about 15ms);
+  reserving fewer rows per day for 7 days would shorten that.
+- Captain was not re-run: his pass 1 PASS stands, and C4/C5 applied his
+  notes. STRUCTURE.md amendments A-49-1 to A-49-4 written at delivery
+  (A-49-4 adopted, since `DaySectionHeader` now exists).
+
+## Delivery
+
+- Commits: `14560ae` C1, `dc3a845` C3, `3de21e9` C2, `ab035ff` and
+  `b91e9e3` C4, `d591902` C5, then the records commit.
+- Records: STRUCTURE.md A-49-1 to A-49-4; CLAUDE.md Current status and a
+  Calendar widget check on Bryce's checklist.
+- For Bryce to look at first: 240 (the wrapped 7 days, 3+3+1 upright),
+  241 (done items sink), then Fury's reading of 241 (groups keep
+  DaySection's order; done items lose their spot first).
+- Leftovers (not this mission):
+  - Task and planned-habit titles have no line clamp in `compact`, so a
+    long title can still grow a row a few px on load.
+  - The Small skeleton is 48px against up to 60px real.
+  - 7 days' skeleton is much taller than a light week.
+  - Small reads "Today, All day" for a timed event that began yesterday.
+  - Whole day does not dim ended events (Schedule does the same).
+  - Dev only: Settings actions fail with "HabitInput is not defined"
+    (`export type { HabitInput }` in the "use server" file
+    `src/app/actions/habits.ts`).
 
 ## Handoff log
 
@@ -181,3 +305,5 @@ From AGENTS.md, absolute for every agent:
 - 2026-11-07: Bryce approved 233 to 239. C1 DONE and committed. Fresh
   worktree needed `npx prisma generate` and `npm ci` (no file changes).
   C2 and C3 dispatched in parallel.
+- 2026-11-07: C4 and C5 fixed Strange's B1 and B2 and applied 240 to
+  242. All gates PASS. Records written.
