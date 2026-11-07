@@ -1,8 +1,8 @@
 # Mission 44: iPad landscape L1 (the width rule, the chrome, the dashboard)
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING
-**Started:** 2026-11-07 · **Updated:** 2026-11-07
+**Status:** DELIVERED (merged as PR #62, commit `9332c6d`, 2026-11-07; live)
+**Started:** 2026-11-07 · **Updated:** 2026-11-07 (marked delivered in mission 46, L2)
 **Branch:** `claude/ipad-landscape-plan` (from `origin/main` at `3aabe35`), PR #62
 **Plan:** `.avengers/plans/ipad-landscape-v1.md` (step L1 of L1 to L6), approved by Bryce 2026-11-07 (decisions 215 to 223)
 
@@ -200,3 +200,5 @@ re-check of the notes at 1180, Sidebar, Rail and 375.
 - 2026-11-07: Bryce chose to build L1 in the plan's chat. Mission opened;
   C1 written for Stark; branch `claude/ipad-landscape-plan` and PR #62
   (opened for the plan alone) carry L1.
+- 2026-11-07: merged as PR #62 (`9332c6d`). Marked DELIVERED from the
+  L2 chat (mission 46). Next step: L2, Calendar.

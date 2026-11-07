@@ -58,50 +58,56 @@ export function YearView({ anchor, today, onPickMonth }: YearViewProps) {
   const months = Array.from({ length: 12 }, (_, monthIndex) => new Date(year, monthIndex, 1));
 
   return (
-    <div className="grid grid-cols-2 gap-3">
-      {months.map((month) => (
-        <button
-          key={month.getMonth()}
-          type="button"
-          onClick={() => onPickMonth(month)}
-          aria-label={`Open ${MONTH_NAME_FORMATTER.format(month)} ${year}`}
-          className="flex min-h-11 flex-col gap-1 rounded-lg border border-line bg-surface p-2 text-left transition-colors active:bg-surface-2"
-        >
-          <span className="text-xs font-semibold text-fg">
-            {MONTH_NAME_FORMATTER.format(month)}
-          </span>
-          {/* Day numbers only, per the contract — no events/tasks, and no
-              per-day tap target (the whole tile above is the one target).
-              aria-hidden: see this component's own doc comment for why 42
-              separately-discoverable numbers per tile would be noise the
-              button's own aria-label already resolves. */}
-          <div className="grid grid-cols-7 gap-0.5" aria-hidden="true">
-            {monthGridDays(month).map((day) => {
-              const inMonth = isSameMonth(day, month);
-              // The 42-cell grid `monthGridDays` returns spills up to 12
-              // days into neighbouring months, so a bare isSameDay(day,
-              // today) can circle today's date on a month it doesn't
-              // belong to. isTodayCell (monthLayout.ts) is the one home
-              // for that guard now (mission-19/F1) — see its own comment.
-              const isToday = isTodayCell(day, month, today);
-              return (
-                <span
-                  key={day.getTime()}
-                  className={
-                    isToday
-                      ? "flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[7px] font-bold text-accent-fg"
-                      : `flex h-4 w-4 items-center justify-center text-[7px] ${
-                          inMonth ? "text-fg" : "text-muted"
-                        }`
-                  }
-                >
-                  {day.getDate()}
-                </span>
-              );
-            })}
-          </div>
-        </button>
-      ))}
+    // The grid follows its own container's width, not the screen's (mission-46):
+    // 2 across on a phone, 3 from 40rem (820 upright, or 1180 beside the
+    // Sidebar), 4 from 60rem (1180 landscape). YearGridSkeleton in
+    // calendar/loading.tsx repeats these exact classes.
+    <div className="@container">
+      <div className="grid grid-cols-2 gap-3 @min-[40rem]:grid-cols-3 @min-[60rem]:grid-cols-4">
+        {months.map((month) => (
+          <button
+            key={month.getMonth()}
+            type="button"
+            onClick={() => onPickMonth(month)}
+            aria-label={`Open ${MONTH_NAME_FORMATTER.format(month)} ${year}`}
+            className="flex min-h-11 flex-col gap-1 rounded-lg border border-line bg-surface p-2 text-left transition-colors active:bg-surface-2"
+          >
+            <span className="text-xs font-semibold text-fg">
+              {MONTH_NAME_FORMATTER.format(month)}
+            </span>
+            {/* Day numbers only, per the contract — no events/tasks, and no
+                per-day tap target (the whole tile above is the one target).
+                aria-hidden: see this component's own doc comment for why 42
+                separately-discoverable numbers per tile would be noise the
+                button's own aria-label already resolves. */}
+            <div className="grid grid-cols-7 gap-0.5" aria-hidden="true">
+              {monthGridDays(month).map((day) => {
+                const inMonth = isSameMonth(day, month);
+                // The 42-cell grid `monthGridDays` returns spills up to 12
+                // days into neighbouring months, so a bare isSameDay(day,
+                // today) can circle today's date on a month it doesn't
+                // belong to. isTodayCell (monthLayout.ts) is the one home
+                // for that guard now (mission-19/F1) — see its own comment.
+                const isToday = isTodayCell(day, month, today);
+                return (
+                  <span
+                    key={day.getTime()}
+                    className={
+                      isToday
+                        ? "flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[7px] font-bold text-accent-fg"
+                        : `flex h-4 w-4 items-center justify-center text-[7px] ${
+                            inMonth ? "text-fg" : "text-muted"
+                          }`
+                    }
+                  >
+                    {day.getDate()}
+                  </span>
+                );
+              })}
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

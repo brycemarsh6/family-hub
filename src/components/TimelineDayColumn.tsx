@@ -93,7 +93,7 @@ export function TimelineDayColumn({
   onOpenEvent,
 }: TimelineDayColumnProps) {
   return (
-    <div className="relative border-l border-line">
+    <div className="@container relative border-l border-line">
       {Array.from({ length: hoursPerDay }, (_, hour) => (
         <div
           key={hour}
@@ -192,14 +192,17 @@ export function TimelineDayColumn({
                 still works under it since column-direction
                 flex-shrink only touches the cross axis (height)
                 here, not the width truncation depends on. */}
-            <span className={`block truncate text-[10px] font-semibold ${compact ? "" : "text-xs"}`}>
+            <span className={`block truncate font-semibold ${compact ? "text-[10px] @min-[8rem]:text-xs" : "text-xs"}`}>
               {event.title}
             </span>
-            {/* Day view only (D5) — 3 Day/Week's ~44px columns get
-                a colour band with 2-3 characters, same as the
-                Month pill's own phone-width treatment; showing a
-                time/location line there would just overflow
-                illegibly. Gated on the block's own drawn height
+            {/* The rule is the column's own width (D5, mission-46): a
+                phone 3 Day or Week column (about 44 to 100px) keeps a
+                colour band with 2-3 characters, same as the Month
+                pill's own phone-width treatment, since a time line
+                there would just overflow illegibly. From 8rem (128px)
+                a compact column also gets the 12px title and the time
+                line, so a wide Week column (about 157px) reads like
+                Day. The location line stays Day only. Gated on the block's own drawn height
                 too, so a 30-min Day-view block (24px) doesn't try
                 to cram two more text lines into a box shorter than
                 one already is — UNLESS the event's real duration
@@ -207,8 +210,8 @@ export function TimelineDayColumn({
                 height is a pad, not a fact, and the time line is
                 the only place the truth (a genuine 15-minute
                 appointment, not 30) can still be told. */}
-            {!compact && (heightPx >= 40 || trueDurationMinutes < MIN_BLOCK_MINUTES) && (
-              <span className="block truncate text-[9px]">{formatTimeRange(event.startAt, event.endAt)}</span>
+            {(heightPx >= 40 || trueDurationMinutes < MIN_BLOCK_MINUTES) && (
+              <span className={`block truncate text-[9px] ${compact ? "hidden @min-[8rem]:block" : ""}`}>{formatTimeRange(event.startAt, event.endAt)}</span>
             )}
             {!compact && heightPx >= 72 && event.location && (
               <span className="block truncate text-[9px]">{event.location}</span>
