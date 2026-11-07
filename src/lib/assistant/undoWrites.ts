@@ -85,6 +85,10 @@ function delegate(tx: Tx, model: UndoModel): Delegate {
     HabitParticipant: tx.habitParticipant,
     HabitLog: tx.habitLog,
     HabitTimeEntry: tx.habitTimeEntry,
+    Goal: tx.goal,
+    GoalCheckIn: tx.goalCheckIn,
+    PlanItem: tx.planItem,
+    VisionStatement: tx.visionStatement,
   };
   return tables[model] as Delegate;
 }
@@ -105,6 +109,8 @@ function countReferences(tx: Tx, ref: Reference, parentId: string, exclude: stri
     ChoreWeekOverride: tx.choreWeekOverride,
     Nudge: tx.nudge,
     PlanItem: tx.planItem,
+    GoalCheckIn: tx.goalCheckIn,
+    PlanLog: tx.planLog,
   };
   return (tables[ref.child] as unknown as { count(args: { where: object }): Promise<number> }).count({ where });
 }
@@ -113,7 +119,7 @@ async function parentExists(tx: Tx, parent: string, id: string): Promise<boolean
   const where = { where: { id }, select: { id: true } };
   const tables = {
     PantryItem: tx.pantryItem, User: tx.user, Recipe: tx.recipe, Tag: tx.tag,
-    Cookbook: tx.cookbook, MealPlan: tx.mealPlan, Habit: tx.habit,
+    Cookbook: tx.cookbook, MealPlan: tx.mealPlan, Habit: tx.habit, Goal: tx.goal,
   } as Record<string, unknown>;
   const found = await (tables[parent] as { findUnique(args: object): Promise<unknown> }).findUnique(where);
   return found !== null;
