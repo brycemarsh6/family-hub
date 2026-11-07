@@ -1,6 +1,7 @@
 import { CalendarOff } from "lucide-react";
 import { avatarColorHex } from "@/lib/constants";
 import { isPast } from "@/lib/calendarDates";
+import { PHONE_LANES } from "@/lib/monthLayout";
 import { formatDayLabel } from "@/lib/mealPlanDates";
 import { bandedBackground } from "@/lib/color";
 import type { CalendarEventView } from "@/lib/types";
@@ -84,6 +85,7 @@ export function MonthCell({
   notLoaded,
   slots,
   overflow,
+  phoneOverflow,
   onOpen,
 }: {
   day: Date;
@@ -91,10 +93,13 @@ export function MonthCell({
   isCurrentMonth: boolean;
   isToday: boolean;
   notLoaded: boolean;
-  /** Always length 3 (`VISIBLE_LANES` in MonthGrid.tsx, which builds this
-   * per column from one row's `assignLanes` call). */
+  /** Always length `WIDE_LANES` (4, monthLayout.ts); the fourth lane shows
+   * only from 48rem wide. MonthGrid builds this per column. */
   slots: MonthCellSlot[];
+  /** "+N more" for the wide look (4 lanes). */
   overflow: number;
+  /** "+N more" for the phone look (3 lanes). */
+  phoneOverflow: number;
   onOpen: () => void;
 }) {
   // B4 (mission-9/C5, Strange's finding): only render lanes UP TO the last
@@ -155,7 +160,18 @@ export function MonthCell({
         <div className="-mx-1 flex flex-col gap-0.5">
           {Array.from({ length: lastFilledLane + 1 }, (_, lane) => {
             const slot = slots[lane];
-            if (!slot) return <span key={lane} aria-hidden="true" className="block h-4" />;
+            // The fourth lane exists only on wide (mission-46/C2); on a phone
+            // it is display:none, so it leaves no gap above "+N more".
+            const laneShow = lane >= PHONE_LANES ? "hidden @min-[48rem]:block" : "block";
+            if (!slot) {
+              return (
+                <span
+                  key={lane}
+                  aria-hidden="true"
+                  className={`${laneShow} h-4 @min-[48rem]:h-[18px]`}
+                />
+              );
+            }
             const past = isPast(slot.event.endAt, today);
             // C3b: a completed task is "done", which is a DIFFERENT claim
             // from a past event being merely over (see EventCard.tsx:63-73's
@@ -183,7 +199,7 @@ export function MonthCell({
             return (
               <span
                 key={lane}
-                className={`block h-4 truncate border-y px-1 text-[9px] leading-4 ${
+                className={`${laneShow} h-4 truncate border-y px-1 text-[9px] leading-4 @min-[48rem]:h-[18px] @min-[48rem]:text-xs @min-[48rem]:leading-[18px] ${
                   past || done ? "font-medium text-muted border-muted" : "font-semibold text-fg border-fg"
                 } ${slot.roundLeft ? "rounded-l border-l" : ""} ${slot.roundRight ? "rounded-r border-r" : ""}`}
                 style={{ background: bandedBackground(colors, past || done ? 0.05 : 0.1) }}
@@ -342,8 +358,15 @@ export function MonthCell({
         </div>
       )}
 
+      {phoneOverflow > 0 && (
+        <span className="text-[9px] leading-tight text-muted @min-[48rem]:hidden">
+          +{phoneOverflow} more
+        </span>
+      )}
       {overflow > 0 && (
-        <span className="text-[9px] leading-tight text-muted">+{overflow} more</span>
+        <span className="hidden text-xs leading-tight text-muted @min-[48rem]:inline">
+          +{overflow} more
+        </span>
       )}
     </button>
   );

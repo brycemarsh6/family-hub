@@ -34,7 +34,12 @@ import { daysEventCovers } from "./calendarDates";
 const GRID_ROWS = 6;
 const DAYS_PER_ROW = 7;
 const GRID_LENGTH = GRID_ROWS * DAYS_PER_ROW;
-const VISIBLE_LANES = 3;
+/** Lanes a Month cell shows on a phone (under 48rem), and on a wide screen.
+ * The one home for both numbers; MonthGrid lays the month out once with the
+ * wide cap and hides the extra lane on a phone with CSS. */
+export const PHONE_LANES = 3;
+export const WIDE_LANES = 4;
+const VISIBLE_LANES = PHONE_LANES;
 
 /** The Sunday-first 42-day grid (six rows of seven) for the month
  * containing `anchor`. Always six rows — a five-week month still fills a
@@ -131,6 +136,21 @@ function compareCandidates(a: Candidate, b: Candidate): number {
   if (a.event.id < b.event.id) return -1;
   if (a.event.id > b.event.id) return 1;
   return 0;
+}
+
+/** The phone's "+N more" counts, derived from a row laid out with
+ * `WIDE_LANES`. Lane numbers do not depend on the cap (occupancy of hidden
+ * lanes is tracked), so a span on the wide-only lane (3) is exactly what the
+ * phone would have folded into overflow: add 1 to every column it covers on
+ * top of the wide overflow. Equals `assignLanes(rowDays, events, PHONE_LANES)
+ * .overflowByDay`. */
+export function phoneOverflowByDay(wide: MonthLaneAssignment): number[] {
+  const counts = [...wide.overflowByDay];
+  for (const span of wide.spans) {
+    if (span.lane < PHONE_LANES) continue;
+    for (let col = span.startCol; col <= span.endCol; col++) counts[col] += 1;
+  }
+  return counts;
 }
 
 /** Given one row's seven Dates and the events that might touch it, packs

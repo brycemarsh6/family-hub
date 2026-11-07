@@ -14,7 +14,15 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { monthGridDays, assignLanes, isTodayCell, type MonthLayoutEvent } from "./monthLayout";
+import {
+  monthGridDays,
+  assignLanes,
+  isTodayCell,
+  phoneOverflowByDay,
+  PHONE_LANES,
+  WIDE_LANES,
+  type MonthLayoutEvent,
+} from "./monthLayout";
 import { toLocalDateString } from "./mealPlanDates";
 import { calendarDayDiff, isOutsideWindow } from "./calendarDates";
 
@@ -240,4 +248,59 @@ test("isTodayCell: a different day in the correct month is false", () => {
   const today = d(2026, 9, 1); // Oct 1 2026
   const otherDay = d(2026, 9, 15); // Oct 15 2026, same month, not today
   assert.equal(isTodayCell(otherDay, d(2026, 9, 20), today), false);
+});
+
+// ---------------------------------------------------------------------------
+// Wide Month (mission-46/C2): the grid is laid out once with WIDE_LANES and
+// the phone look is derived from it, so lane numbers must not depend on the cap.
+
+function busyRowFixture(): { rowDays: Date[]; events: MonthLayoutEvent[] } {
+  const rowDays = monthGridDays(d(2026, 10, 15)).slice(0, 7); // Nov 1..7
+  const one = (id: string, day: number, hour: number): MonthLayoutEvent => ({
+    id,
+    startAt: d(2026, 10, day, hour),
+    endAt: d(2026, 10, day, hour + 1),
+    allDay: false,
+  });
+  const events: MonthLayoutEvent[] = [
+    // five events on Nov 3
+    one("a", 3, 8),
+    one("b", 3, 9),
+    one("c", 3, 10),
+    one("d", 3, 11),
+    one("e", 3, 12),
+    // a three-day bar over Nov 4..6 and a couple of others around it
+    { id: "bar", startAt: d(2026, 10, 4), endAt: d(2026, 10, 6, 23), allDay: false },
+    one("f", 4, 9),
+    one("g", 5, 9),
+    one("h", 5, 10),
+    one("i", 6, 9),
+  ];
+  return { rowDays, events };
+}
+
+test("assignLanes: lanes 0 to 2 from a cap of 4 equal a cap of 3 for a busy month row", () => {
+  const { rowDays, events } = busyRowFixture();
+  const wide = assignLanes(rowDays, events, WIDE_LANES);
+  const phone = assignLanes(rowDays, events, PHONE_LANES);
+  const key = (s: { event: MonthLayoutEvent; lane: number }) => `${s.event.id}:${s.lane}`;
+  assert.deepEqual(
+    wide.spans.filter((s) => s.lane < PHONE_LANES).map(key).sort(),
+    phone.spans.map(key).sort(),
+  );
+});
+
+test("phoneOverflowByDay equals assignLanes with the phone cap for a busy month row", () => {
+  const { rowDays, events } = busyRowFixture();
+  const wide = assignLanes(rowDays, events, WIDE_LANES);
+  const phone = assignLanes(rowDays, events, PHONE_LANES);
+  assert.deepEqual(phoneOverflowByDay(wide), phone.overflowByDay);
+});
+
+test("a day with five events shows +1 more wide and +2 more on the phone", () => {
+  const { rowDays, events } = busyRowFixture();
+  const wide = assignLanes(rowDays, events, WIDE_LANES);
+  const nov3 = 2; // Sunday-first: Nov 1 is column 0
+  assert.equal(wide.overflowByDay[nov3], 1);
+  assert.equal(phoneOverflowByDay(wide)[nov3], 2);
 });
