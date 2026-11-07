@@ -576,15 +576,15 @@ Adding a second definition of any of these is a BLOCKER:
 - **Winnie's morning briefing (mission-48).** `src/lib/briefing.ts` is the
   pure builder (no `db`, env or clock read; callers pass `today` and `now`)
   and the only home of the briefing's words. `src/lib/briefingRead.ts`
-  (`server-only`, no auth) gathers one adult's input only through the
-  existing readers (`loadTodayPage` for habits, so `canSeeHabit` keeps
-  private habits private; `getCalendarEventsInRange`; `findPlanForWeek` and
-  `slotsForDay`), and runs the family-wide reads once per run
-  (`loadBriefingShared`). `src/lib/briefingSent.ts` (`server-only`, no auth)
+  (`server-only`, no auth): `loadBriefingShared` runs the family-wide reads
+  once per run (`getCalendarEventsInRange`, plus its own narrow task and
+  meal-plan queries matched by `findPlanForWeek` and `slotsForDay`);
+  `loadBriefingInput` adds one adult's habits only through `loadTodayPage`,
+  so `canSeeHabit` keeps private habits private. `src/lib/briefingSent.ts` (`server-only`, no auth)
   is the only writer of `WinnieBriefingSent`; the claim (insert before send,
   unique `(userId, day)`) is the once-a-day guard. `loadHouseholdAdults` in
   `householdPeople.ts` is the only "who gets a briefing" rule. Their one
-  caller is the `CRON_SECRET`-gated route. (Added mission-48, A-48-6, Hill
+  caller outside the briefing modules is the `CRON_SECRET`-gated route. (Added mission-48, A-48-6, Hill
   approved.)
 - **Which household days an event covers** is `eventDayRange` and
   `bucketEventsByDay` (all-day: UTC midnights, end exclusive; timed:
@@ -651,7 +651,9 @@ Adding a second definition of any of these is a BLOCKER:
   `feedbackTime.ts`'s private `CLOCK` in mission-48) is the repo's only
   household-zone clock formatter: a plain ASCII space before AM/PM and, on
   request, no `:00`. `hourInZone(instant, timeZone)` beside it is the only
-  wall-clock hour reader. A copy elsewhere is a BLOCKER. (A-48-3, Hill
+  zone-explicit wall-clock hour reader (server code; browser-local reads stay
+  in `calendarDates.ts` / `timelineLayout.ts`). A copy elsewhere is a
+  BLOCKER. (A-48-3, Hill
   approved.)
 - `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
   long must my password be", shared by the actions that enforce it and

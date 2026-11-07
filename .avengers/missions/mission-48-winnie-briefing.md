@@ -498,3 +498,10 @@ Preflight's one hard failure on C2 is the schema's length; STRUCTURE.md
   `householdEvents.ts` (medium, **Bryce to look at**); A-48-5 approve as a
   pending rule naming its two sites (high); A-48-6 approve (high). Fury
   wrote all six into STRUCTURE.md. Captain pass 2 dispatched.
+- 2026-11-07: **Captain pass 2: BLOCKED (1, Fury's amendment text).**
+  B1 to B3 cleared, F1 code clean. Blocker: "only wall-clock hour reader"
+  contradicted the browser-local homes (`timelineLayout.ts`, `EventForm.tsx`
+  read local hours on purpose). Fury reworded it to "only zone-explicit
+  wall-clock hour reader (server code...)" and took Captain's two wording
+  notes on A-48-6. Captain said the fix needs only a check of that
+  sentence, not a full pass.
