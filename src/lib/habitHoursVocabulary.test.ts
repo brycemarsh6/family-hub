@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { HABIT_TRACKS, HOURS_LIMITS, LOG_SHEET_WORDS, PACE_DAYS, PACE_LABELS, TRACK_LABELS, checkHoursTarget, hoursInitialOf, toHabitTrack, toPaceDays, unitFor } from "./habitHoursVocabulary";
+import { HABIT_TRACKS, HOURS_LIMITS, LOG_SHEET_WORDS, PACE_DAYS, PACE_LABELS, TRACK_LABELS, checkEntryMinutes, checkHoursTarget, hoursInitialOf, toHabitTrack, toPaceDays, unitFor } from "./habitHoursVocabulary";
 
 test("the track and pace lists are pinned", () => {
   assert.deepEqual([...HABIT_TRACKS], ["checks", "hours"]);
@@ -25,7 +25,7 @@ test("toPaceDays repairs anything unknown to monsat", () => {
 test("the limits are pinned", () => {
   assert.deepEqual(
     { ...HOURS_LIMITS },
-    { entryStep: 30, entryMin: 30, entryMax: 720, entryDefault: 60, targetMinHours: 1, targetMaxHours: 80, targetDefaultHours: 5, paceStep: 15, chips: [30, 60, 120] },
+    { entryStep: 30, entryGrain: 15, entryMin: 30, entryMax: 720, entryDefault: 60, targetMinHours: 1, targetMaxHours: 80, targetDefaultHours: 5, paceStep: 15, chips: [30, 60, 120] },
   );
 });
 
@@ -62,4 +62,9 @@ test("the log sheet words", () => {
   assert.equal(LOG_SHEET_WORDS.title("Calling"), "Add time to Calling");
   assert.equal(LOG_SHEET_WORDS.button("1½ hours"), "Add 1½ hours");
   assert.equal(LOG_SHEET_WORDS.afterThis("3½ of 6 hours this week"), "After this: 3½ of 6 hours this week");
+});
+
+test("checkEntryMinutes: half an hour to 12 hours in quarter hours", () => {
+  for (const ok of [30, 45, 60, 75, 720]) assert.equal(checkEntryMinutes(ok), true, String(ok));
+  for (const bad of [15, 0, 40, 735, 750, 60.5, "60", null, NaN]) assert.equal(checkEntryMinutes(bad), false, String(bad));
 });
