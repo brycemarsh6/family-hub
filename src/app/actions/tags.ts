@@ -9,6 +9,11 @@ import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { isMissingRowError } from "@/lib/prismaErrors";
+import {
+  findOrCreateTagRow,
+  addRecipeTagRow,
+  removeRecipeTagRow,
+} from "@/lib/recipeWrites";
 
 export type TagInfo = { id: string; name: string; recipeCount: number };
 export type TagResult = { tag?: TagInfo; error?: string };
@@ -34,20 +39,13 @@ export type TagResult = { tag?: TagInfo; error?: string };
 export async function findOrCreateTag(name: string): Promise<TagResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  const trimmed = name.trim();
-  if (!trimmed) return { error: "Give the tag a name." };
+  const result = await findOrCreateTagRow(name);
+  if ("error" in result) return { error: result.error };
 
-  const existing = await db.tag.findFirst({
-    where: { name: { equals: trimmed, mode: "insensitive" } },
-    select: { id: true, name: true, _count: { select: { recipes: true } } },
-  });
-  if (existing) {
-    return { tag: { id: existing.id, name: existing.name, recipeCount: existing._count.recipes } };
-  }
-
-  const created = await db.tag.create({ data: { name: trimmed } });
-  revalidatePath("/kitchen/cooking/recipes");
-  return { tag: { id: created.id, name: created.name, recipeCount: 0 } };
+  if (result.created) revalidatePath("/kitchen/cooking/recipes");
+  return {
+    tag: { id: result.tag.id, name: result.tag.name, recipeCount: result.recipeCount },
+  };
 }
 
 export async function renameTag(tagId: string, name: string): Promise<TagResult> {
@@ -119,11 +117,8 @@ export async function addTagToRecipe(
 ): Promise<TagActionResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  await db.recipeTag.upsert({
-    where: { recipeId_tagId: { recipeId, tagId } },
-    create: { recipeId, tagId },
-    update: {},
-  });
+  const result = await addRecipeTagRow(recipeId, tagId);
+  if ("error" in result) return { error: result.error };
   revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
   revalidatePath("/kitchen/cooking/recipes");
   return {};
@@ -135,7 +130,7 @@ export async function removeTagFromRecipe(
 ): Promise<TagActionResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  await db.recipeTag.deleteMany({ where: { recipeId, tagId } });
+  await removeRecipeTagRow(recipeId, tagId);
   revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
   revalidatePath("/kitchen/cooking/recipes");
   return {};
