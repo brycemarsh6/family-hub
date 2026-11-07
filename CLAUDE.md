@@ -301,14 +301,15 @@ Replace this section at the end of each session. Don't append.
   `src/lib/habitTapWrites.ts` and `src/lib/habitInput.ts`; the family's habit
   actions are thin wrappers now. Privacy preset for Bryce to review:
   Winnie is "Bryce" for private habits through `ASSISTANT_OWNER_USER_ID`.
-  Hill's H1 to H7 in `.avengers/missions/mission-47-assistant-habits.md`.
+  Hill's H1 to H8 and Captain's A11 to A14 in
+  `.avengers/missions/mission-47-assistant-habits.md`.
 
 **Bryce's checklist (never blocks work):**
 - **Winnie and private habits (mission 47):** in Vercel add
   `ASSISTANT_OWNER_USER_ID` = your own id (from `GET /family`) to
   Production and redeploy. Until then Winnie sees non-private habits
-  only. Then review Hill's H3 item 4 (a one-person hours habit she makes
-  is private, like the app's) and H6 (quarter-hour time entries).
+  only. Then review Hill's H8 (a one-person hours habit she makes is
+  private only when that person is you) and H6 (quarter-hour time entries).
 - **PR C phone check** (about 5 minutes): on Today, a streak flame on a
   habit done 2+ days running; tap a habit name to open its stats; check
   the last habit of the day and see confetti once. On the iPad, open

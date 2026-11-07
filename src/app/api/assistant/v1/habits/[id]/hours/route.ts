@@ -21,7 +21,7 @@ export const POST = assistantRoute<{ id: string }, z.output<typeof habitHoursBod
     const result = await logHours((h) => canLogFor(assistantHabitActor(), body.personId, h), { habitId: params.id, forUserId: body.personId, day, minutes: body.minutes, loggedById: null }, today);
     if ("error" in result) throw toWriteFailure(result);
     changes.push(timeEntryChange("create", result.entry));
-    // Not gated: she just logged it, even on an hours habit the rule keeps private from her.
+    // Not gated: she just logged it (and under H8 a habit she makes is never hidden from her).
     const habit = await getHabitDetail(params.id, today, false);
     if (!habit) throw notFound();
     const { entry } = result;

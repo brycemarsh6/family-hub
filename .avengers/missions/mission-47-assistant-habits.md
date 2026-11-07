@@ -1,7 +1,7 @@
 # Mission 47: Winnie's habits and chores (Assistant API)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERING
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/assistant-habits` from `origin/main` 88d094b (holds
 174f74d, PR #65). Worktree `parallel-work-strategy-e056c5`.
@@ -110,8 +110,10 @@ privacy preset itself (`ASSISTANT_OWNER_USER_ID`).
 
 ### Winnie's actor
 
-`src/lib/assistant/habitActor.ts` (pure): `assistantHabitActor()` returns
-`{ userId: process.env.ASSISTANT_OWNER_USER_ID ?? "", role: "admin" }`. Fed
+`src/lib/assistant/habitActor.ts` (pure): `habitActorFor(ownerId)` returns
+`{ userId: ownerId ?? "", role: "admin" }`; `habitActorEnv.ts`
+(`server-only`) is the one reader of `ASSISTANT_OWNER_USER_ID` and exports
+`assistantHabitActor()` (split by F1, Captain's B5). Fed
 unchanged to `access.ts`: a manager who is "Bryce" for the participant test,
 so she sees his private habits and nobody else's, and may check for anyone
 on a habit she can see. Unset, she sees non-private habits only. Bryce sets
@@ -147,7 +149,9 @@ participant like the app. Refusals come from the shared module as
 - **`src/lib/habitTapWrites.ts`** (new, `server-only`, top of `src/lib/`
   since it reads through `habitsRead.ts`; moved there by F1): the guard that
   today lives in `src/app/actions/habitChecks.ts` and `habitHours.ts`, as
-  functions taking `(actor: HabitActor, input, today, client = db)`:
+  functions taking `(guard: HabitGuard, input, today, client = db)` (F1:
+  the caller passes its `canLogFor` test as a callback, the module holds
+  no actor; `removeHours(guard, entryId, today, client)`):
   `tapCheck`, `tapSkip`, `tapUncheck(kind)`, `logHours`, `removeHours`.
   Each loads the habit (`loadHabitForAction`, `loadLogStatus`,
   `loadCarriedDay`, `loadTimeEntryForAction` from `src/lib/habitsRead.ts`),
@@ -166,7 +170,7 @@ participant like the app. Refusals come from the shared module as
   rows before and after inside it (`FOR UPDATE` on the habit for PATCH, as
   cookbooks do).
 - **Actions become thin:** `habitChecks.ts`, `habitHours.ts` call
-  `tapWrites` and return `{ error }` from the module's message;
+  `habitTapWrites` and return `{ error }` from the module's message;
   `habits.ts` imports `checkHabitInput`. No family-visible wording changes.
 
 ### Undo learns habits
@@ -677,10 +681,10 @@ disclosed harmless differences).
 
 No cycles, `@/app` grep empty, route gate holds, tests in covered globs,
 no file over 300 (largest undoWrites 286/229). Blockers B1 to B5 above.
-Amendment texts A10 to A14 in Captain's report (A10 pasted into
+Amendment texts: A10 is in STRUCTURE.md; A11 to A14 are below under
+"Captain pass 2" (A10 pasted into
 STRUCTURE.md by Fury; A11 to A14 for Bryce with mission 44's A1 to A4 and
 45's A5 to A9).
-| 1 | Captain | - | - | - |
 
 ## Handoff log
 
@@ -696,8 +700,197 @@ STRUCTURE.md by Fury; A11 to A14 for Bryce with mission 44's A1 to A4 and
   A10 pasted into STRUCTURE.md (`9286f7f`). Hill H8 decided. F1 done
   `dfe563a`. Next: gate pass 2, both in parallel.
 
+### Vision pass 2 (at `b386408`): PASS
+
+Gauntlet re-run green (1301; UTC 1294 + 7 skips; LA 1301; build;
+recordcheck 0 hard). F1 boundary clean. 16 of 16 live lines through the
+real routes and `/audit/{id}/undo`: V1 closed (chore-create undo and
+habit-to-chore PATCH undo both leave the chore streak equal to a fresh
+recompute, for both people; Together chore; plain habit create undone);
+V2 closed (private-habit move → 400, row byte-identical, 0 changes;
+positive controls 200); H8 both ways; `removeHours` 404 before 403.
+NOTEs: `HabitGuard` takes the person twice (closure plus `forUserId`),
+harden to `(habit, forUserId)` at the next touch; Winnie can never add a
+second person to the owner's private habit (the app's rule; tell her);
+stale Design lines (fixed in C4); stale comment in
+`habits/[id]/hours/route.ts:24` (fixed in C4); cleanup moved the
+non-admin's `choreStreakAsOf` date only.
+
+### Captain pass 2 (at `b386408`): PASS
+
+B1 to B5 closed against the written rules; 0 cycles; `@/app` grep empty;
+12 route exports; globs covered; no file over 300 (undoWrites 286,
+undoPlan 283, serializeHabits 261, undoModels 258). Open NOTEs
+(leftovers): `loadTimeEntryForAction` now has no callers (delete at the
+next touch of `habitsRead.ts`; STRUCTURE.md:418 mentions it); the raw
+`FOR UPDATE` and a redundant `findUniqueOrThrow` in
+`habits/[id]/route.ts:48-54` (A14 grandfathers it; next touch moves the
+lock into `habitWrites.ts` and uses `before.habit`); `actions/habits.ts:39`
+duplicate `NOT_FOUND`; OpenAPI minutes literals; `habitReads.ts:70,180`
+own `db.user` queries; `streakWork` in the generic planner; `undoModels`
+growth; the result-edit check in four callers (a helper at the fifth);
+CLAUDE.md 413 lines.
+
+#### Amendments A11 to A14 (Captain's final texts, for Bryce to approve with mission 44's A1 to A4 and mission 45's A5 to A9; not yet in STRUCTURE.md)
+
+**A11.** Add to Boundary rules after the Domain write modules paragraph.
+In the habit engine paragraph, replace "(an action that needs one entry
+uses `loadTimeEntryForAction`)" with "(the tap module's in-transaction
+copies, rule below, are the one exception)".
+
+> - **Habit taps and habit input (mission-47).** `src/lib/habitTapWrites.ts`
+>   (`server-only`, no auth, no `revalidatePath`) is the only home of the tap
+>   rules: check, skip, uncheck, unskip, add hours and remove hours, with the
+>   guard order (the habit's row, the caller's guard, then the day), the day
+>   window, the archived and track refusals and `statusForTap`. Its callers
+>   are `actions/habitChecks.ts`, `actions/habitHours.ts` and the
+>   `/api/assistant/v1/habits/` tap routes. Each caller passes its access
+>   test as a callback (`HabitGuard`; for `removeHours`, a guard on the
+>   entry and its habit that returns a `WriteError` or `null` and may
+>   throw), never an actor, session or role, and the module imports nothing
+>   from `habits/access.ts`. It writes only through `habits/habitWrites.ts`
+>   and reads through `habitsRead.ts`, except the whole-row copies it reads
+>   inside its own transaction (the day's `HabitLog` rows, the
+>   `HabitTimeEntry` being removed) to hand back to the caller. Refusals
+>   are `WriteError`s, and the tap messages are its exported constants: an
+>   action re-declaring one is a second definition. A refusal with no
+>   family counterpart (Winnie removing time the family logged) is thrown
+>   by the route's guard as `ApiError(403, "forbidden")`. If a second write
+>   module needs a 403, add a `forbidden` code to `writeError.ts` and map
+>   it in `toWriteFailure` instead of throwing again.
+>   `src/lib/habitInput.ts` (pure) is the only check of the habit editor's
+>   form (`checkHabitInput`, the `HabitInput` type, `INCLUDE_YOURSELF`),
+>   used by `actions/habits.ts` and the habit create and edit routes. The
+>   household list is passed in. Both files sit at the top of `src/lib/`
+>   because they import outside the engine's list, and nothing in
+>   `src/lib/habits/` imports either. Each caller still runs its own
+>   `canEditHabit` check on the result and answers `INCLUDE_YOURSELF`.
+
+**A12.** Add after A11.
+
+> - **Winnie's habit identity and reads (mission-47).**
+>   `src/lib/assistant/habitActor.ts` (pure) builds the one `HabitActor`
+>   the Assistant API uses for habits: `habitActorFor(ownerId)` is
+>   `{ userId: ownerId ?? "", role: "admin" }`.
+>   `src/lib/assistant/habitActorEnv.ts` (`server-only`) is the only reader
+>   of `ASSISTANT_OWNER_USER_ID`, through `assistantHabitActor()`. Routes
+>   and `assistant/habitReads.ts` take the actor from there and hand it to
+>   `habits/access.ts` unchanged; no route states its own visibility rule.
+>   `src/lib/assistant/habitReads.ts` (`server-only`) is the Assistant
+>   API's reader of the habit tables (lists, detail, chore chart, and
+>   `habitSnapshot` for audit copies). Only `/api/assistant/v1/habits/`
+>   routes import it; pages and actions never do. `assistant/serializeHabits.ts`
+>   (pure) is the only shape of habit JSON for Winnie, and
+>   `newHabitInput` in `assistant/schemasHabits.ts` is the only home of
+>   her create default (Hill's H8: a one-person hours habit is private only
+>   when that person is the owner). `isPrivate` is in no request body.
+
+**A13.** Append to the A10 sentence in the habit engine paragraph.
+
+> `VOLATILE` in `assistant/undoModels.ts` is the only list of cache columns
+> undo neither compares nor writes. `afterUndo` in `assistant/undoHooks.ts`
+> (`server-only`) is the only work undo does after its steps, in the same
+> transaction. It rebuilds the streaks the steps touched through
+> `streakWrites.ts`, and the chore streak of every person the steps name
+> plus the current participants of restored habits through
+> `choreWrites.ts`. A new cache column joins `VOLATILE` and its rebuild
+> joins `afterUndo`; no other undo file calls a habit writer. The pure
+> grouping `streakWork` lives in `assistant/undoPlan.ts` for now, and moves
+> to its own pure file next to `undoHooks.ts` when `undoPlan.ts` next
+> grows. `assistant` may import `habits`; `habits` never imports
+> `assistant`.
+
+**A14.** Add to Boundary rules after A12.
+
+> - **Audit copies inside a route's transaction (mission-47).** A route
+>   that records before and after copies reads them in one
+>   `db.$transaction` with the writer, after the parent row is locked with
+>   `SELECT ... FOR UPDATE`, and rolls back when nothing changed so nothing
+>   is recorded. The lock lives in the domain write module
+>   (`recipeWrites.ts`, `cookbookWrites.ts`, `mealPlanWrites.ts` and
+>   `groceryWrites.ts` are the instances). The habit edit route
+>   (`/api/assistant/v1/habits/[id]/route.ts`) is grandfathered: it holds a
+>   raw `FOR UPDATE` and its own `tx.habit` read because `habitWrites.ts`
+>   was off limits. At its next touch both move into a helper in
+>   `habits/habitWrites.ts` (for example `lockHabit(tx, id)`), and the
+>   route uses `habitSnapshot`'s `before.habit` instead of reading again.
+>   Any other route holding a raw lock is a BLOCKER.
+
 ## Delivery
 
-- **Shipped:** -
-- **Shipped check:** -
-- **Deliberate leftovers:** -
+- **Verdicts:** Vision PASS (pass 2 of 3), Captain PASS (pass 2 of 3).
+  Strange not assembled: the only family-visible string change is H6's
+  minutes sentence, which the app's half-hour stepper can never trigger.
+  Hill decided H1 to H8.
+- **Shipped for Winnie:** 12 habit routes (Design, Routes), every write
+  with copies and undoable, the streak caches (habit and chore) rebuilt
+  inside the undo transaction, proven live through the real routes by
+  the builder (82 lines) and by Vision (21 + 16 lines).
+- **For the family's app:** behaviour identical, proven by parity script
+  (31 MATCH) and Vision's comparison against 88d094b. Three disclosed
+  differences: a time entry of 45, 75, 105 ... minutes is now accepted
+  by the server (the sheet still steps by 30, so nothing visible); a
+  database failure in a guard read now answers "Couldn't ... Try again."
+  instead of an error page; removing an already-gone time entry now
+  refreshes the page.
+- **No schema change. No migration.**
+- **Records:** STRUCTURE.md gained A10 (a small edit to a shared file).
+  CLAUDE.md: mission 44 and 45 "next for Winnie" lines, the cookbook H1/H4
+  review line removed, the mission 47 bullet, Bryce's checklist row.
+- **Shipped check:** filled at delivery (below the Handoff log).
+- **Deliberate leftovers (next touch):** Vision's and Captain's NOTEs
+  above; the chore week overrides a PATCH off "weekdays" drops cannot be
+  restored by undo (`ChoreWeekOverride` is not an undo model; one week,
+  same as the app's Edit); C1's `parity.mts` points at the old module
+  path; CLAUDE.md at 413 lines against its ~250 rule (fold merged "passed
+  its gates" bullets into What's built); mission 44's A1 to A4 and 45's A5
+  to A9 still wait with A11 to A14.
+- **For Bryce (review first):** the privacy preset (`ASSISTANT_OWNER_USER_ID`,
+  his step in CLAUDE.md), H8 with H3 item 4, H3 items 1 to 3, H6, then
+  A11 to A14.
+
+### What to tell Winnie (plain English, for Bryce to paste or adapt)
+
+> New in Marshee: you can see and work the family's habits and chores.
+> Re-read `/api/assistant/v1/openapi.json` for the exact shapes. People
+> are always `personId`s from `GET /family`.
+>
+> - **Today:** `GET /habits/today` gives every person's day (what is
+>   due, done, skipped or left, plus hours progress and the chore
+>   streak). Add `?personId=` for one person.
+> - **The list:** `GET /habits` lists the habits and chores you may see,
+>   with who is on each and their streaks; `?personId=` for one person,
+>   `?includeArchived=true` to include archived ones. `GET /habits/{id}`
+>   shows one in detail: streaks, this week's hours with each entry's id,
+>   the last 14 days of checks, and `createdByAssistant`.
+> - **The chore chart:** `GET /habits/chart?personId=` is that person's
+>   week.
+> - **Check and skip:** `POST /habits/{id}/check` and `POST
+>   /habits/{id}/skip` with `{ "personId": "...", "day": "YYYY-MM-DD" }`
+>   (`day` optional, default today; today or up to 7 days back, never the
+>   future). A Together habit checks everyone on it at once. Undo a check
+>   with `DELETE /habits/{id}/check?personId=&day=`, a skip with `DELETE
+>   /habits/{id}/skip?...`. Checking an already-checked day changes
+>   nothing.
+> - **Hours:** `POST /habits/{id}/hours` with `{ "personId", "minutes",
+>   "day"? }`; minutes are 30 to 720 in steps of 15. `DELETE
+>   /habits/{id}/hours/{entryId}` removes an entry, but only one you
+>   logged yourself (403 otherwise): ask Bryce to remove the family's.
+> - **Add and edit:** `POST /habits` with at least `title` and either
+>   `participantIds` or `"everyone": true`; `kind` is "habit" or "chore";
+>   a chore needs `weekdays` (7 characters of 0/1, Sunday first); an hours
+>   habit needs `"track": "hours"` and `weeklyHours`. `PATCH /habits/{id}`
+>   changes any of those, or `"archived": true/false`. Never send
+>   `isPrivate`: you get 400. You cannot delete a habit; archive it
+>   instead.
+> - **Private habits:** you see Bryce's private habits and nobody else's.
+>   A habit for one person other than Bryce is never private when you
+>   make it (they can make it private in the app). You cannot add a
+>   second person to Bryce's private habit; he turns Private off first.
+>   If a habit answers 404, it may be private: ask, don't guess.
+> - **Undo:** every change above can be undone for 30 days with `POST
+>   /audit/{requestId}/undo`; streaks are recomputed with it. Undo refuses
+>   if a family member changed the same row since; tell Bryce instead of
+>   forcing it. One gap: if you change a chore's schedule off "weekdays",
+>   this week's moves and skips on it are dropped and undo cannot bring
+>   them back.
