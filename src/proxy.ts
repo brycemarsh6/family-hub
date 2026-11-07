@@ -32,7 +32,11 @@ import { decrypt, COOKIE_NAME } from "@/lib/session";
 // out of a screenshot the way that token once nearly was. It doesn't check
 // x-voice-token at all; the signature is the real gate, run before anything
 // is parsed or written.
-const PUBLIC_ROUTES = ["/login", "/api/voice", "/api/alexa"];
+//
+// /api/cron/briefing is Vercel's cron calling in with no session cookie. The
+// route's own CRON_SECRET bearer check, its very first step, is the gate;
+// proxy is only UX.
+const PUBLIC_ROUTES = ["/login", "/api/voice", "/api/alexa", "/api/cron/briefing"];
 
 // Shared recipes and cookbooks are the cases that can't be an exact match:
 // the URL carries a per-item token (/share/recipe/<token>,

@@ -7,8 +7,10 @@ import {
   calendarDateInZone,
   dayOfWeek,
   formatCalendarDate,
+  formatHouseholdClock,
   formatShortCalendarDate,
   formatWeekTitle,
+  hourInZone,
   parseDateParam,
   startOfMonth,
   startOfWeek,
@@ -147,4 +149,39 @@ test("formatWeekTitle: no dash; the year only outside the current year (decision
   assert.equal(title(2026, 12, 27, 2026), "Dec 27 to Jan 2, 2027");
   assert.equal(title(2024, 12, 29), "Dec 29, 2024 to Jan 4, 2025");
   for (const text of [title(2026, 11, 1), title(2025, 12, 28), title(2026, 10, 26), title(2024, 12, 29)]) assert.doesNotMatch(text, /[-\u2013\u2014]/);
+});
+
+// Nov 13 2026 is MST (UTC-7); Jul 10 2026 is MDT (UTC-6).
+const mst = (h: number, m = 0, s = 0) => new Date(Date.UTC(2026, 10, 13, h + 7, m, s));
+const mdt = (h: number, m = 0, s = 0) => new Date(Date.UTC(2026, 6, 10, h + 6, m, s));
+
+test("hourInZone reads the wall-clock hour in MST and MDT", () => {
+  assert.equal(hourInZone(mst(8, 59, 59), DENVER), 8);
+  assert.equal(hourInZone(mst(9), DENVER), 9);
+  assert.equal(hourInZone(mst(23, 59), DENVER), 23);
+  assert.equal(hourInZone(mst(0), DENVER), 0);
+  assert.equal(hourInZone(mdt(8, 59, 59), DENVER), 8);
+  assert.equal(hourInZone(mdt(9), DENVER), 9);
+  assert.equal(hourInZone(mdt(23, 59), DENVER), 23);
+  assert.equal(hourInZone(mdt(0), DENVER), 0);
+});
+
+test("formatHouseholdClock drops :00 only when asked", () => {
+  const drop = { dropZeroMinutes: true };
+  const keep = { dropZeroMinutes: false };
+  assert.equal(formatHouseholdClock(mst(10), DENVER, drop), "10 AM");
+  assert.equal(formatHouseholdClock(mst(18, 30), DENVER, drop), "6:30 PM");
+  assert.equal(formatHouseholdClock(mst(12), DENVER, drop), "12 PM");
+  assert.equal(formatHouseholdClock(mst(0), DENVER, drop), "12 AM");
+  assert.equal(formatHouseholdClock(mst(0, 15), DENVER, drop), "12:15 AM");
+  assert.equal(formatHouseholdClock(mst(10), DENVER, keep), "10:00 AM");
+  assert.equal(formatHouseholdClock(mdt(18, 30), DENVER, keep), "6:30 PM");
+  assert.equal(formatHouseholdClock(mdt(23, 30), DENVER, keep), "11:30 PM");
+});
+
+test("formatHouseholdClock uses a plain ASCII space, never U+202F", () => {
+  for (const options of [{ dropZeroMinutes: true }, { dropZeroMinutes: false }]) {
+    assert.doesNotMatch(formatHouseholdClock(mst(18, 30), DENVER, options), /\u202f/);
+    assert.match(formatHouseholdClock(mst(18, 30), DENVER, options), /^6:30 PM$/);
+  }
 });

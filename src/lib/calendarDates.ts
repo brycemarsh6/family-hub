@@ -200,6 +200,17 @@ function eventDaySpan(
 }
 
 /**
+ * The words of the badge, once: "All day" for a one-day all-day event, "Day N
+ * of M" for anything spanning more than one day (`dayIndex` counts from 1),
+ * `null` for a plain single-day timed event. Pure counting, no timezone, so
+ * the morning briefing reuses it with Denver day counts.
+ */
+export function spanBadgeLabel(dayIndex: number, totalDays: number, allDay: boolean): string | null {
+  if (totalDays <= 1) return allDay ? "All day" : null;
+  return `Day ${dayIndex} of ${totalDays}`;
+}
+
+/**
  * The badge shown in place of a time range for an all-day or multi-day
  * event, for the calendar day `day` it's being rendered on: a single-day
  * all-day event reads "All day"; any event spanning more than one calendar
@@ -214,9 +225,7 @@ export function formatAllDayLabel(
   day: Date,
 ): string | null {
   const { firstDay, totalDays } = eventDaySpan(start, end, allDay);
-  if (totalDays <= 1) return allDay ? "All day" : null;
-  const dayIndex = calendarDayDiff(firstDay, startOfDay(day)) + 1;
-  return `Day ${dayIndex} of ${totalDays}`;
+  return spanBadgeLabel(calendarDayDiff(firstDay, startOfDay(day)) + 1, totalDays, allDay);
 }
 
 /**

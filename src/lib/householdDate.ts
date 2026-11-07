@@ -46,6 +46,30 @@ export function zoneOffsetMs(instant: Date, timeZone: string): number {
   return asUtc - Math.floor(instant.getTime() / 1000) * 1000;
 }
 
+/** The hour (0 to 23) on the wall clock of `timeZone` at `instant`. */
+export function hourInZone(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", hour: "numeric" }).formatToParts(instant);
+  return Number(parts.find((p) => p.type === "hour")?.value);
+}
+
+/**
+ * The app's clock style in `timeZone`: "10:05 AM", or with `dropZeroMinutes`
+ * "10 AM" (minutes only when not on the hour). Always a plain ASCII space
+ * before AM/PM: Intl can emit a narrow no-break space (U+202F) there.
+ */
+export function formatHouseholdClock(instant: Date, timeZone: string, options: { dropZeroMinutes: boolean }): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(instant);
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const minute = part("minute");
+  const time = options.dropZeroMinutes && minute === "00" ? part("hour") : `${part("hour")}:${minute}`;
+  return `${time} ${part("dayPeriod")}`.replace(/\s/g, " ");
+}
+
 /** The UTC instant at which `date` begins in `timeZone`. */
 export function zoneMidnightInstant(date: CalendarDate, timeZone: string): Date {
   const wallAsUtc = Date.UTC(date.year, date.month - 1, date.day);
