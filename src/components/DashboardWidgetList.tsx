@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useState } from "react";
+import { createPortal } from "react-dom";
 import { SlidersHorizontal } from "lucide-react";
 import DashboardCustomizeSheet from "./DashboardCustomizeSheet";
 import type { PickItem } from "./DashboardItemPicker";
@@ -16,17 +17,25 @@ import {
   setWidgetItems,
 } from "@/lib/dashboardLayout";
 import { gridAreaVars } from "@/lib/dashboardGrid";
+import { useWordmarkHeaderActionsTarget } from "@/lib/appChrome";
 import { DASHBOARD_WIDGET_WORDS } from "@/lib/dashboardWidgets";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import type { DashboardLayout } from "@/lib/dashboardLayout";
 
 /**
- * The dashboard's heading row, widget grid and Customize sheet. The page
+ * The dashboard's widget grid and Customize sheet. The page
  * renders every tile on the server and hands them in as `tiles`, keyed by
  * widget uid; this decides which show, in what order and how big, from the
  * person's layout. `layout` must already have been through parseDashboardLayout.
  *
- * The grid is 2 columns on phones and 4 from md up. The DOM stays in the
+ * The page is wide (`data-page-width="wide"`, see AppChrome.tsx), with no
+ * title of its own (decision 221). The grid is 2 columns, and 4 from a 45rem
+ * container width, not a screen breakpoint, so the Sidebar menu or a
+ * different iPad shrinks it correctly. The `@container` element wraps only
+ * the grid: a container becomes the positioning parent of fixed descendants,
+ * so the Customize sheet stays outside it, as its sibling. The Customize
+ * button is portaled into the wordmark header's right end
+ * (WORDMARK_HEADER_ACTIONS_ID); with no slot it renders nowhere. The DOM stays in the
  * person's list order; each cell gets its row and column from the packer
  * (dashboardGrid.ts) through CSS custom properties, one pair per column count,
  * and rows are `auto` with a 9.5rem minimum per cell, so a tile is never cut and a lone Large fits its content (decision 209).
@@ -65,6 +74,8 @@ export default function DashboardWidgetList({
   const { widgets } = optimisticLayout;
   const areas = gridAreaVars(widgets.map((widget) => widget.size));
 
+  const headerSlot = useWordmarkHeaderActionsTarget();
+
   const customizeButton = (
     <button
       type="button"
@@ -77,37 +88,33 @@ export default function DashboardWidgetList({
   );
 
   return (
-    <div className="py-4">
-      {/* Not "Marshee": the wordmark is already in the header directly
-          above this, and repeating it reads as a stutter. */}
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Dashboard</h1>
-        {canCustomize && customizeButton}
-      </div>
-      <p className="mt-2 text-base text-muted">What&apos;s going on around the house.</p>
-      {notes && <div className="mt-4">{notes}</div>}
+    <div data-page-width="wide" className="py-4">
+      {canCustomize && headerSlot && createPortal(customizeButton, headerSlot)}
+      {notes && <div className="mb-4">{notes}</div>}
 
-      {widgets.length === 0 ? (
-        <div className="mt-6">
-          <EmptyState
-            emoji="🧩"
-            title={DASHBOARD_WIDGET_WORDS.emptyTitle}
-            hint={DASHBOARD_WIDGET_WORDS.emptyHint}
-          />
-        </div>
-      ) : (
-        <div className="mt-6 grid auto-rows-auto grid-cols-2 gap-4 md:grid-cols-4">
-          {widgets.map((widget, i) => (
-            <div
-              key={widget.uid}
-              style={areas[i] as React.CSSProperties}
-              className="min-h-[9.5rem] min-w-0 [grid-column:var(--dash-c2)] [grid-row:var(--dash-r2)] md:[grid-column:var(--dash-c4)] md:[grid-row:var(--dash-r4)]"
-            >
-              {tiles[widget.uid] ?? <SkeletonBlock className="h-full w-full" />}
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="@container">
+        {widgets.length === 0 ? (
+          <div className="mt-6">
+            <EmptyState
+              emoji="🧩"
+              title={DASHBOARD_WIDGET_WORDS.emptyTitle}
+              hint={DASHBOARD_WIDGET_WORDS.emptyHint}
+            />
+          </div>
+        ) : (
+          <div className="grid auto-rows-auto grid-cols-2 gap-4 @min-[45rem]:grid-cols-4">
+            {widgets.map((widget, i) => (
+              <div
+                key={widget.uid}
+                style={areas[i] as React.CSSProperties}
+                className="min-h-[9.5rem] min-w-0 [grid-column:var(--dash-c2)] [grid-row:var(--dash-r2)] @min-[45rem]:[grid-column:var(--dash-c4)] @min-[45rem]:[grid-row:var(--dash-r4)]"
+              >
+                {tiles[widget.uid] ?? <SkeletonBlock className="h-full w-full" />}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {open && canCustomize && (
         <DashboardCustomizeSheet

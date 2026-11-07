@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState, useSyncExternalStore } from "react";
 import type { NavMode } from "./navMode";
 
 /**
@@ -54,6 +54,36 @@ export function useHamburgerRowHeight(): number {
   }, []);
 
   return height;
+}
+
+/**
+ * The empty slot at the right end of the wordmark header row. Two users:
+ * `AppChrome.tsx` renders the `<div id=...>`, and `DashboardWidgetList.tsx`
+ * portals its Customize button into it (found with
+ * `useWordmarkHeaderActionsTarget` below). A named constant, not a string
+ * repeated in each file, same contract shape as `SCHEDULE_TITLE_SLOT_ID`.
+ */
+export const WORDMARK_HEADER_ACTIONS_ID = "wordmark-header-actions";
+
+function subscribeToNothing() {
+  return () => {};
+}
+
+/**
+ * The header slot's DOM node, or null when it is not on the page (/login
+ * renders it but nothing portals in) or on the server. A browser-only read,
+ * so `useSyncExternalStore` (DESIGN.md), not state set in an effect: the
+ * server snapshot is null and the client snapshot reads the DOM, which React
+ * reconciles after hydration without a cascading render. The header is
+ * committed before the page below it, so the node exists by the time a page
+ * asks.
+ */
+export function useWordmarkHeaderActionsTarget(): HTMLElement | null {
+  return useSyncExternalStore(
+    subscribeToNothing,
+    () => document.getElementById(WORDMARK_HEADER_ACTIONS_ID),
+    () => null,
+  );
 }
 
 /** True on the pages that show the Marshee wordmark header: `/` and `/login`. */

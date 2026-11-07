@@ -1,7 +1,7 @@
 # Mission 44: iPad landscape L1 (the width rule, the chrome, the dashboard)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** AT-THE-GATES
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/ipad-landscape-plan` (from `origin/main` at `3aabe35`), PR #62
 **Plan:** `.avengers/plans/ipad-landscape-v1.md` (step L1 of L1 to L6), approved by Bryce 2026-11-07 (decisions 215 to 223)
@@ -95,7 +95,7 @@ From AGENTS.md, absolute for every agent:
 ## Contracts
 
 ### C1 - the width rule, the header slot and the wide dashboard
-- **Status:** OPEN
+- **Status:** DONE (Gauntlet green per Stark: 1239 tests; the grid now has no top margin under the notes, for Strange)
 - **Boundaries:** may touch: `src/components/AppChrome.tsx`,
   `src/components/HamburgerButton.tsx`, `src/lib/appChrome.ts`,
   `src/components/DashboardWidgetList.tsx`,
