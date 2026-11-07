@@ -11,11 +11,12 @@ import {
   DASHBOARD_WIDGETS,
   DASHBOARD_WIDGET_WORDS,
   MAX_DASHBOARD_WIDGETS,
-  WIDGET_SIZE_LABELS,
   isPickableWidget,
 } from "@/lib/dashboardWidgets";
 import type { DashboardWidgetKind, PickableWidgetId, WidgetSize } from "@/lib/dashboardWidgets";
 import type { DashboardLayout } from "@/lib/dashboardLayout";
+import { widgetRowDetail } from "@/lib/dashboardWidgetOptions";
+import type { DashboardWidgetOptions } from "@/lib/dashboardWidgetOptions";
 import { picksOf } from "@/lib/dashboardPicks";
 import { GOALS_PICKER_NONE, GOALS_PICKER_NOTHING_PICKED, GOALS_PICKER_TITLE } from "@/lib/goalVocabulary";
 import {
@@ -39,7 +40,7 @@ type View =
   | { name: "addKind"; kind: DashboardWidgetKind };
 
 /**
- * The Customize sheet: a list of the dashboard's widgets (name, size under it,
+ * The Customize sheet: a list of the dashboard's widgets (name, size and any option under it,
  * a grip to drag, tap to edit), "Add widget" and "Reset to default". Edit,
  * Pick, Add and the Add kind view swap this sheet's body (decisions 137, 206,
  * 208): one sheet with a back control, never a second sheet. Same chrome as
@@ -57,6 +58,7 @@ export default function DashboardCustomizeSheet({
   onResize,
   onReorder,
   onPicks,
+  onOptions,
   onReset,
   onClose,
 }: {
@@ -69,6 +71,7 @@ export default function DashboardCustomizeSheet({
   onResize: (uid: string, size: WidgetSize) => void;
   onReorder: (uids: string[]) => void;
   onPicks: (uid: string, ids: string[]) => void;
+  onOptions: (uid: string, patch: DashboardWidgetOptions) => void;
   onReset: () => void;
   onClose: () => void;
 }) {
@@ -131,6 +134,7 @@ export default function DashboardCustomizeSheet({
           <DashboardWidgetEditor
             widget={target}
             onResize={(size) => onResize(target.uid, size)}
+            onOptions={(patch) => onOptions(target.uid, patch)}
             onPick={() => setView({ name: "pick", uid: target.uid })}
             onRemove={() => {
               onRemove(target.uid);
@@ -183,7 +187,7 @@ export default function DashboardCustomizeSheet({
                       <span className="block truncate text-base font-medium text-fg">
                         {DASHBOARD_WIDGETS[widget.kind].label}
                       </span>
-                      <span className="block text-sm text-muted">{WIDGET_SIZE_LABELS[widget.size]}</span>
+                      <span className="block text-sm text-muted">{widgetRowDetail(widget)}</span>
                     </span>
                     <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
                   </button>
