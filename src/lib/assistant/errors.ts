@@ -1,4 +1,4 @@
-// The Assistant API's error vocabulary — pure, no imports beyond a zod type.
+// The Assistant API's error vocabulary — pure, no imports beyond two types.
 //
 // Every refusal after authentication uses one envelope:
 //   { error: { code, message, details? } }
@@ -7,6 +7,7 @@
 // learns nothing, not even the shape of the envelope.
 
 import type { ZodError } from "zod";
+import type { WriteError } from "@/lib/writeError";
 
 /** Every `code` the API can answer with. A new refusal adds its code here. */
 export type ApiErrorCode =
@@ -77,4 +78,15 @@ export function fromZodError(error: ZodError): ApiError {
       message: issue.message,
     })),
   );
+}
+
+/**
+ * A write module's refusal as the API's: `missing` names something that
+ * doesn't exist (404); `invalid` is a bad request (400). Goes by the code,
+ * never the message text.
+ */
+export function toWriteFailure(failure: WriteError): ApiError {
+  return failure.code === "missing"
+    ? new ApiError(404, "not_found", failure.error)
+    : new ApiError(400, "validation", failure.error);
 }

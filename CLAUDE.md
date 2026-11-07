@@ -267,13 +267,20 @@ Replace this section at the end of each session. Don't append.
 - **Winnie notifications (mission 42)** merged as PR #58 on 2026-11-06.
   Bryce adds the two env vars in Vercel and taps "Send test to Winnie".
   Details: `.avengers/missions/mission-42-winnie-notify.md`.
-- **Winnie's recipes and meal plan (mission 44)** passed its gates on
-  2026-11-06 (Vision on pass 3, Captain pass 2) and merges from
-  `claude/assistant-recipes-meals`. What to tell Winnie is in the mission
-  file's Delivery. Next for Winnie: cookbook edits, then calendar/tasks
-  (after CD1), then replacing the app's Claude features with her (needs a
-  two-way link; Bryce parked it 2026-11-06). Captain's proposed
-  STRUCTURE.md amendments A1 to A4 wait in the mission file.
+- **Winnie's recipes and meal plan (mission 44)** merged as PR #61
+  (`634627a`) on 2026-11-06 and is live (production deploy READY, routes
+  answer 401 without a token). What to tell Winnie is in the mission
+  file's Delivery.
+- **Winnie's cookbooks (mission 45)** passed its gates on 2026-11-06
+  (Vision and Captain on pass 2) from `claude/assistant-cookbooks`:
+  create, rename, file/unfile, share, and delete only her own cookbooks
+  with no family filings (Hill's H1 to H4; review H1 and H4 first). Writes
+  in `src/lib/cookbookWrites.ts`; refusals in `src/lib/writeError.ts`.
+  What to tell Winnie is in the mission file's Delivery. Next for Winnie:
+  calendar/tasks (after CD1), then replacing the app's Claude features
+  with her (needs a two-way link; Bryce parked it 2026-11-06). Captain's
+  STRUCTURE.md amendments A1 to A4 (mission 44) and A5 to A9 (mission 45)
+  wait in the mission files.
 
 **Bryce's checklist (never blocks work):**
 - **PR C phone check** (about 5 minutes): on Today, a streak flame on a

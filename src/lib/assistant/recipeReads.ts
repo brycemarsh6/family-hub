@@ -1,12 +1,11 @@
 import "server-only";
 
-// The one place the recipe routes read recipes, cookbooks and tags: one
+// The one place the recipe routes read recipes and tags: one
 // narrow select each, shaped by serializeRecipes.ts.
 
 import { db } from "@/lib/db";
 import { searchRecipes } from "@/lib/match";
 import {
-  toCookbook,
   toRecipeDetail,
   toRecipeListItem,
   toTag,
@@ -71,14 +70,6 @@ export async function listRecipes(filter: {
 export async function getRecipe(id: string, origin: string) {
   const row = await db.recipe.findUnique({ where: { id }, select: DETAIL_SELECT });
   return row ? toRecipeDetail(row, origin) : null;
-}
-
-export async function listCookbooks() {
-  const rows = await db.cookbook.findMany({
-    select: { id: true, title: true, _count: { select: { recipes: true } } },
-    orderBy: { title: "asc" },
-  });
-  return rows.map(toCookbook);
 }
 
 export async function listTags() {

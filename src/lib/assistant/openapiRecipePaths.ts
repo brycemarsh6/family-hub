@@ -7,7 +7,7 @@ import {
 } from "./schemasRecipes";
 import type { Operation } from "./openapiTypes";
 
-// The registry rows for the recipe, cookbook and tag routes. Adding a route
+// The registry rows for the recipe and tag routes. Adding a route
 // means adding its row here; openapi.test.ts fails until you do.
 
 const LIST_ITEM =
@@ -84,13 +84,6 @@ export const recipeOperations: Operation[] = [
       "{ recipeId, readable, have: [{line,name,matchedName}], missing: [{line,name}], onList: [{line,name}] }. " +
       "readable is false (lists empty) when the recipe has no ingredient lines or none could be read. " +
       "503 ai_unavailable (Retry-After 5) when the AI can't be reached; nothing is guessed. 404 if missing.",
-  },
-  {
-    method: "GET",
-    path: "/cookbooks",
-    action: "cookbooks.list",
-    summary: "The cookbooks, A to Z. Read-only; file a recipe in one with cookbookId on POST /recipes.",
-    response: "{ cookbooks: [{ id, title, recipeCount }] }",
   },
   {
     method: "GET",

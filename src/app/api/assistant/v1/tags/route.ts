@@ -1,7 +1,8 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { listTags } from "@/lib/assistant/recipeReads";
 import { tagCreateBody } from "@/lib/assistant/schemasRecipes";
-import { toTag, toWriteFailure } from "@/lib/assistant/serializeRecipes";
+import { toWriteFailure } from "@/lib/assistant/errors";
+import { toTag } from "@/lib/assistant/serializeRecipes";
 import { findOrCreateTagRow } from "@/lib/tagWrites";
 import type { z } from "zod";
 

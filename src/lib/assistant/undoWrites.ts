@@ -76,6 +76,7 @@ function delegate(tx: Tx, model: UndoModel): Delegate {
     Recipe: tx.recipe,
     Tag: tx.tag,
     RecipeTag: tx.recipeTag,
+    Cookbook: tx.cookbook,
     CookbookRecipe: tx.cookbookRecipe,
     MealPlan: tx.mealPlan,
     MealPlanEntry: tx.mealPlanEntry,

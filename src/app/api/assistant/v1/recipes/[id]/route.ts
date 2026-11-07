@@ -1,8 +1,7 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
-import { notFound } from "@/lib/assistant/errors";
+import { notFound, toWriteFailure } from "@/lib/assistant/errors";
 import { recipePatchBody } from "@/lib/assistant/schemasRecipes";
 import { getRecipe } from "@/lib/assistant/recipeReads";
-import { toWriteFailure } from "@/lib/assistant/serializeRecipes";
 import { updateRecipeAndTagsRow } from "@/lib/recipeWrites";
 import type { z } from "zod";
 
