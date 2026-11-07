@@ -284,9 +284,11 @@ Replace this section at the end of each session. Don't append.
   is her own routine setting (not Marshee's); she offered to exempt
   `connection.test` events and keep it for ordinary alerts. The first real
   alert is the morning briefing (mission 48, below).
-- **Winnie's morning briefing (mission 48)** is built on branch
-  `claude/winnie-briefing` and merges after its gates. It sends nothing
-  until Bryce sets `CRON_SECRET` in Vercel (checklist). Hill's H2 and H10
+- **Winnie's morning briefing (mission 48)** merged as PR #71 (`ae8e0a4`)
+  on 2026-11-07 and is deployed (production READY, the
+  `WinnieBriefingSent` migration applied in the build, the route answers
+  401 without the secret). It sends nothing until Bryce sets `CRON_SECRET`
+  in Vercel (checklist). Hill's H2 and H10
   and amendments A-48-2 and A-48-4 are the calls for Bryce to look at:
   `.avengers/missions/mission-48-winnie-briefing.md`.
   Details: `.avengers/missions/mission-42-winnie-notify.md`.
