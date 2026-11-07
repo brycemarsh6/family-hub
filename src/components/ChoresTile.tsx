@@ -17,12 +17,14 @@ export default function ChoresTile({
   empty,
   choreStreak,
   showStreaks,
+  limit,
 }: {
   rows: HabitRowView[];
   todayRows: HabitRowView[];
   empty: string | null;
   choreStreak: number;
   showStreaks: boolean;
+  limit?: number;
 }) {
   return (
     <DashboardTile
@@ -39,7 +41,7 @@ export default function ChoresTile({
         ) : undefined
       }
     >
-      <HabitTileRows rows={rows} todayRows={todayRows} empty={empty} showStreaks={showStreaks} />
+      <HabitTileRows rows={rows} todayRows={todayRows} empty={empty} showStreaks={showStreaks} limit={limit} />
     </DashboardTile>
   );
 }

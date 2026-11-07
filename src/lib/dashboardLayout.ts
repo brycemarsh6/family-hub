@@ -1,9 +1,12 @@
 import {
   DASHBOARD_WIDGETS,
-  DASHBOARD_WIDGET_IDS,
+  DASHBOARD_WIDGET_KINDS,
+  MAX_DASHBOARD_WIDGETS,
   MAX_WIDGET_ITEMS,
+  WIDGET_SIZES,
   isPickableWidget,
-  type DashboardWidgetId,
+  type DashboardWidgetKind,
+  type WidgetSize,
 } from "@/lib/dashboardWidgets";
 
 // Pure logic for one person's dashboard layout: turning any stored value
@@ -12,23 +15,65 @@ import {
 // the save action and in the browser. parseDashboardLayout is the only
 // reader of the stored JSON: whatever is in the database (or arrives from a
 // client) is a claim, never trusted until it has been through here.
+//
+// Layout v2 is a list of widget instances: each has its own `uid`, a `kind`
+// (a kind may appear more than once) and a `size`. A saved v1 layout (an id
+// and an on/off switch per widget) is upgraded on read, so nothing is
+// migrated in the database. The upgrade cases are pinned in
+// dashboardLayoutUpgrade.test.ts.
+
+export type DashboardWidget = {
+  /** Names this one instance: unique inside a layout, `[A-Za-z0-9_-]`, at most 40 characters. */
+  uid: string;
+  kind: DashboardWidgetKind;
+  size: WidgetSize;
+  /** The ids the person picked, in picked order; only `habits` and `goals` carry it. Shape only: the page checks the ids are theirs. */
+  items?: string[];
+};
 
 export type DashboardLayout = {
-  version: 1;
-  /** `items` is the ids the person picked, in picked order; only `habits` and `goals` carry it. Shape only: the page checks the ids are theirs. */
-  widgets: { id: DashboardWidgetId; enabled: boolean; items?: string[] }[];
+  version: 2;
+  widgets: DashboardWidget[];
 };
 
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = {
-  version: 1,
-  widgets: DASHBOARD_WIDGET_IDS.map((id) => ({
-    id,
-    enabled: DASHBOARD_WIDGETS[id].defaultEnabled,
+  version: 2,
+  widgets: DASHBOARD_WIDGET_KINDS.map((kind) => ({
+    uid: kind,
+    kind,
+    size: DASHBOARD_WIDGETS[kind].defaultSize,
   })),
 };
 
-function isWidgetId(value: unknown): value is DashboardWidgetId {
-  return typeof value === "string" && (DASHBOARD_WIDGET_IDS as readonly string[]).includes(value);
+const UID_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
+
+function isWidgetKind(value: unknown): value is DashboardWidgetKind {
+  return typeof value === "string" && (DASHBOARD_WIDGET_KINDS as readonly string[]).includes(value);
+}
+
+function isWidgetSize(value: unknown): value is WidgetSize {
+  return typeof value === "string" && (WIDGET_SIZES as readonly string[]).includes(value);
+}
+
+/** The kind itself when free, else `kind-2`, `kind-3`, ...: the smallest free one. The one uid rule for the parser, the upgrade and Add. */
+export function nextWidgetUid(taken: Iterable<string>, kind: DashboardWidgetKind): string {
+  const used = new Set(taken);
+  if (!used.has(kind)) return kind;
+  let n = 2;
+  while (used.has(`${kind}-${n}`)) n++;
+  return `${kind}-${n}`;
+}
+
+/** `size` if the kind allows it, else the allowed size nearest to it in WIDGET_SIZES order (a tie goes to the smaller). */
+function snapSize(kind: DashboardWidgetKind, size: WidgetSize): WidgetSize {
+  const { sizes } = DASHBOARD_WIDGETS[kind];
+  if (sizes.includes(size)) return size;
+  const at = WIDGET_SIZES.indexOf(size);
+  let best = sizes[0];
+  for (const candidate of sizes) {
+    if (Math.abs(WIDGET_SIZES.indexOf(candidate) - at) < Math.abs(WIDGET_SIZES.indexOf(best) - at)) best = candidate;
+  }
+  return best;
 }
 
 /** Unique non-empty strings, in order, at most MAX_WIDGET_ITEMS; null when the value is not a non-empty list of them. */
@@ -39,18 +84,100 @@ function cleanItems(raw: unknown): string[] | null {
 }
 
 function defaultLayout(): DashboardLayout {
-  return { version: 1, widgets: DEFAULT_DASHBOARD_LAYOUT.widgets.map((w) => ({ ...w })) };
+  return { version: 2, widgets: DEFAULT_DASHBOARD_LAYOUT.widgets.map((w) => ({ ...w })) };
+}
+
+/** The kinds v1's registry rendered half width; every other kind rendered full. Frozen: v1 is history. */
+const V1_HALF_KINDS: readonly DashboardWidgetKind[] = ["inventory", "grocery"];
+
+/**
+ * A saved v1 layout to v2, with the repair v1's own parser did: unknown ids
+ * dropped, duplicates removed (first wins), and registry ids missing from the
+ * stored row added switched on, directly after the nearest id before it in
+ * DASHBOARD_WIDGET_KINDS that is already in the list (at the start if none
+ * is). Then the switched-off widgets go and the rest are sized by v1's
+ * pairing rule, so the dashboard looks as it did: two consecutive switched-on
+ * half widgets (inventory, grocery) become Small, a half widget with no half
+ * neighbour (which v1 drew full width) becomes Medium, and every other kind
+ * takes its default size.
+ */
+function upgradeV1(entries: unknown[]): DashboardLayout {
+  type V1 = { kind: DashboardWidgetKind; enabled: boolean; items: string[] | null };
+  const seen = new Set<DashboardWidgetKind>();
+  const old: V1[] = [];
+  for (const entry of entries) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const { id, enabled, items } = entry as { id?: unknown; enabled?: unknown; items?: unknown };
+    if (!isWidgetKind(id) || seen.has(id)) continue;
+    seen.add(id);
+    old.push({
+      kind: id,
+      enabled: typeof enabled === "boolean" ? enabled : true,
+      items: isPickableWidget(id) ? cleanItems(items) : null,
+    });
+  }
+  DASHBOARD_WIDGET_KINDS.forEach((kind, index) => {
+    if (seen.has(kind)) return;
+    const before = DASHBOARD_WIDGET_KINDS.slice(0, index).reverse().find((other) => seen.has(other));
+    const at = before === undefined ? 0 : old.findIndex((w) => w.kind === before) + 1;
+    old.splice(at, 0, { kind, enabled: true, items: null });
+    seen.add(kind);
+  });
+
+  const isHalf = (kind: DashboardWidgetKind) => V1_HALF_KINDS.includes(kind);
+  const on = old.filter((w) => w.enabled);
+  const widgets: DashboardWidget[] = [];
+  for (let i = 0; i < on.length; i++) {
+    const { kind, items } = on[i];
+    const carry = items ? { items } : {};
+    if (isHalf(kind)) {
+      const next = on[i + 1];
+      if (next && isHalf(next.kind)) {
+        widgets.push({ uid: kind, kind, size: "s", ...carry });
+        widgets.push({ uid: next.kind, kind: next.kind, size: "s", ...(next.items ? { items: next.items } : {}) });
+        i++;
+      } else {
+        widgets.push({ uid: kind, kind, size: "m", ...carry });
+      }
+      continue;
+    }
+    widgets.push({ uid: kind, kind, size: DASHBOARD_WIDGETS[kind].defaultSize, ...carry });
+  }
+  return { version: 2, widgets };
+}
+
+function parseV2(entries: unknown[]): DashboardLayout {
+  const taken = new Set<string>();
+  const widgets: DashboardWidget[] = [];
+  for (const entry of entries) {
+    if (widgets.length >= MAX_DASHBOARD_WIDGETS) break;
+    if (typeof entry !== "object" || entry === null) continue;
+    const { uid, kind, size, items } = entry as { uid?: unknown; kind?: unknown; size?: unknown; items?: unknown };
+    if (!isWidgetKind(kind)) continue;
+    const goodUid = typeof uid === "string" && UID_PATTERN.test(uid) && !taken.has(uid);
+    const finalUid = goodUid ? uid : nextWidgetUid(taken, kind);
+    taken.add(finalUid);
+    const picked = isPickableWidget(kind) ? cleanItems(items) : null;
+    widgets.push({
+      uid: finalUid,
+      kind,
+      size: isWidgetSize(size) ? snapSize(kind, size) : DASHBOARD_WIDGETS[kind].defaultSize,
+      ...(picked ? { items: picked } : {}),
+    });
+  }
+  return { version: 2, widgets };
 }
 
 /**
  * Any stored value to a safe layout. Never throws. Accepts a JSON string or
- * an already-parsed object; anything unusable gives the default. Unknown ids
- * are dropped, duplicates removed (first wins), and registry ids missing
- * from the stored row are added with their `defaultEnabled`, so a widget
- * added in a later release shows up for people who saved a layout before it
- * existed. A missing id goes directly after the nearest id before it in
- * DASHBOARD_WIDGET_IDS that is already in the list (at the start if none is),
- * so a new widget lands where the default order puts it, not at the end.
+ * an already-parsed object; anything unusable, and any version but 1 or 2,
+ * gives the default. Version 1 is upgraded (see upgradeV1). Version 2 keeps
+ * its entries in order: unknown kinds are dropped, a size the kind does not
+ * allow snaps to the nearest allowed one, a missing size gets the kind's
+ * default, a bad or repeated uid is replaced, and at most
+ * MAX_DASHBOARD_WIDGETS are kept. Kinds missing from a v2 layout are NOT
+ * added back, because removing a widget is deliberate; an empty list stays
+ * empty.
  */
 export function parseDashboardLayout(raw: unknown): DashboardLayout {
   let value: unknown = raw;
@@ -63,95 +190,63 @@ export function parseDashboardLayout(raw: unknown): DashboardLayout {
   }
   if (typeof value !== "object" || value === null) return defaultLayout();
   const obj = value as { version?: unknown; widgets?: unknown };
-  if (obj.version !== 1 || !Array.isArray(obj.widgets)) return defaultLayout();
-
-  const seen = new Set<DashboardWidgetId>();
-  const widgets: DashboardLayout["widgets"] = [];
-  for (const entry of obj.widgets) {
-    if (typeof entry !== "object" || entry === null) continue;
-    const { id, enabled, items } = entry as { id?: unknown; enabled?: unknown; items?: unknown };
-    if (!isWidgetId(id) || seen.has(id)) continue;
-    seen.add(id);
-    const picked = isPickableWidget(id) ? cleanItems(items) : null;
-    widgets.push({
-      id,
-      enabled: typeof enabled === "boolean" ? enabled : DASHBOARD_WIDGETS[id].defaultEnabled,
-      ...(picked ? { items: picked } : {}),
-    });
-  }
-  DASHBOARD_WIDGET_IDS.forEach((id, index) => {
-    if (seen.has(id)) return;
-    const before = DASHBOARD_WIDGET_IDS.slice(0, index).reverse().find((other) => seen.has(other));
-    const at = before === undefined ? 0 : widgets.findIndex((w) => w.id === before) + 1;
-    widgets.splice(at, 0, { id, enabled: DASHBOARD_WIDGETS[id].defaultEnabled });
-    seen.add(id);
-  });
-  return { version: 1, widgets };
+  if (!Array.isArray(obj.widgets)) return defaultLayout();
+  if (obj.version === 1) return upgradeV1(obj.widgets);
+  if (obj.version === 2) return parseV2(obj.widgets);
+  return defaultLayout();
 }
 
 export function serializeDashboardLayout(layout: DashboardLayout): string {
   return JSON.stringify(layout);
 }
 
-/** Flip one widget on or off. Returns a new layout. */
-export function toggleWidget(layout: DashboardLayout, id: DashboardWidgetId): DashboardLayout {
+/** A new widget of `kind` at the end, with the next free uid; the size snaps to one the kind allows. At the cap, the layout is returned unchanged. */
+export function addWidget(layout: DashboardLayout, kind: DashboardWidgetKind, size: WidgetSize): DashboardLayout {
+  if (layout.widgets.length >= MAX_DASHBOARD_WIDGETS) return layout;
+  const uid = nextWidgetUid(layout.widgets.map((w) => w.uid), kind);
+  return { version: 2, widgets: [...layout.widgets.map((w) => ({ ...w })), { uid, kind, size: snapSize(kind, size) }] };
+}
+
+/** The layout without the widget `uid`. An unknown uid changes nothing. Returns a new layout. */
+export function removeWidget(layout: DashboardLayout, uid: string): DashboardLayout {
+  return { version: 2, widgets: layout.widgets.filter((w) => w.uid !== uid).map((w) => ({ ...w })) };
+}
+
+/** One widget at a new size (snapped to a size its kind allows). Returns a new layout. */
+export function resizeWidget(layout: DashboardLayout, uid: string, size: WidgetSize): DashboardLayout {
   return {
-    version: 1,
-    widgets: layout.widgets.map((w) => (w.id === id ? { ...w, enabled: !w.enabled } : { ...w })),
+    version: 2,
+    widgets: layout.widgets.map((w) => (w.uid === uid ? { ...w, size: snapSize(w.kind, size) } : { ...w })),
   };
 }
 
 /**
- * Replace the picked items of `habits` or `goals` (cleaned the way the parser
- * cleans them); an empty list removes the field, which means "nothing picked".
- * Any other widget is left alone. Returns a new layout.
+ * Replace the picked items of one `habits` or `goals` widget (cleaned the way
+ * the parser cleans them); an empty list removes the field, which means
+ * "nothing picked". Any other widget is left alone. Returns a new layout.
  */
-export function setWidgetItems(layout: DashboardLayout, id: DashboardWidgetId, items: string[]): DashboardLayout {
-  const picked = isPickableWidget(id) ? cleanItems(items) : null;
+export function setWidgetItems(layout: DashboardLayout, uid: string, items: string[]): DashboardLayout {
+  const picked = cleanItems(items);
   return {
-    version: 1,
+    version: 2,
     widgets: layout.widgets.map((w) => {
-      if (w.id !== id || !isPickableWidget(id)) return { ...w };
-      return { id: w.id, enabled: w.enabled, ...(picked ? { items: picked } : {}) };
+      if (w.uid !== uid || !isPickableWidget(w.kind)) return { ...w };
+      return { uid: w.uid, kind: w.kind, size: w.size, ...(picked ? { items: picked } : {}) };
     }),
   };
 }
 
 /**
- * The layout with its widgets in the order `ids` gives (a drag in Customize,
- * decision 140). Ids that are not in the layout are ignored and widgets the
+ * The layout with its widgets in the order `uids` gives (a drag in Customize,
+ * decision 140). Uids that are not in the layout are ignored and widgets the
  * list forgot keep their relative order at the end, so a stale drop can never
  * lose a widget.
  */
-export function reorderWidgets(layout: DashboardLayout, ids: string[]): DashboardLayout {
-  const rank = (id: string) => {
-    const index = ids.indexOf(id);
-    return index === -1 ? ids.length : index;
+export function reorderWidgets(layout: DashboardLayout, uids: string[]): DashboardLayout {
+  const rank = (uid: string) => {
+    const index = uids.indexOf(uid);
+    return index === -1 ? uids.length : index;
   };
-  const widgets = layout.widgets.map((w) => ({ ...w })).sort((a, b) => rank(a.id) - rank(b.id));
-  return { version: 1, widgets };
-}
-
-/**
- * The enabled widgets in order, each with the width it should render at.
- * Pairing is greedy, left to right: two consecutive enabled half widgets
- * pair up and render half; a half widget with no half partner beside it
- * (so it would leave a hole) renders full.
- */
-export function widgetSpans(layout: DashboardLayout): { id: DashboardWidgetId; span: "full" | "half" }[] {
-  const enabled = layout.widgets.filter((w) => w.enabled);
-  const result: { id: DashboardWidgetId; span: "full" | "half" }[] = [];
-  for (let i = 0; i < enabled.length; i++) {
-    const { id } = enabled[i];
-    if (DASHBOARD_WIDGETS[id].width === "half") {
-      const next = enabled[i + 1];
-      if (next && DASHBOARD_WIDGETS[next.id].width === "half") {
-        result.push({ id, span: "half" }, { id: next.id, span: "half" });
-        i++;
-        continue;
-      }
-    }
-    result.push({ id, span: "full" });
-  }
-  return result;
+  const widgets = layout.widgets.map((w) => ({ ...w })).sort((a, b) => rank(a.uid) - rank(b.uid));
+  return { version: 2, widgets };
 }

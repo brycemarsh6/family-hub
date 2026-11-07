@@ -328,11 +328,22 @@ A new one-off that duplicates one of these jobs is a design violation:
   drawn as Skipped. Archived items are not in the Report.
 - `DashboardWidgetList` (the dashboard's heading row, widget grid and
   Customize button, and the nudge and Sunday cards above the grid) /
-  `DashboardCustomizeSheet` (on/off switch and a drag grip per widget,
-  decision 140; a "Pick" button on the Habits and Goals rows that opens
-  `DashboardItemPicker` as a second view inside the same sheet, decision
-  137; Reset to default): the only way to show, hide, reorder or pick
-  what dashboard widgets show
+  `DashboardCustomizeSheet`: the only way to add, size, reorder, pick or
+  remove dashboard widgets (mission-43). The grid is 2 columns on phones
+  and 4 from `md`; a widget is Small (1x1), Medium (2x1), Large (2x2) or
+  Extra large (full width, 2 tall; Large on a phone), from the sizes its
+  kind allows; rows are at least about 150px and grow to fit, so a tile is
+  never cut off (decision 201); a later Small fills an earlier hole
+  (decision 202). The sheet is one dialog with internal views: the list
+  (a row per widget that opens its edit view, with a chevron, and a drag
+  grip on the right, decisions 140 and 208; "Add widget"; Reset to
+  default), the edit view (`DashboardWidgetEditor`: the size strip, "Pick"
+  for Habits and Goals opening `DashboardItemPicker` in the same sheet,
+  decision 137, and a one-tap "Remove widget", decision 204), and "Add a
+  widget" (`DashboardAddWidget`). `DashboardWidgetGallery` is the one
+  swipeable size strip (scroll snap, dots, every preview a real button,
+  decision 206) and `DashboardWidgetPreview` its drawn miniature, never
+  live data. A kind may be on the dashboard more than once (decision 205)
 - `PageTabs`: the one tab control for switching views of a page (Plans &
   Goals, the Habits Report): a `nav` of links lit by `aria-current`, its tabs
   passed in by the page; a new tab is a column in it, never a second control.

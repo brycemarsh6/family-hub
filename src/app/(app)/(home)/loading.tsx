@@ -1,21 +1,24 @@
 import { SkeletonBlock } from "@/components/Skeleton";
+import { DEFAULT_DASHBOARD_LAYOUT } from "@/lib/dashboardLayout";
+import { gridAreaVars } from "@/lib/dashboardGrid";
 
-// The dashboard's own loading state — see src/components/Skeleton.tsx for
+// The dashboard's own loading state, see src/components/Skeleton.tsx for
 // why these exist at all. This can't just be app/(app)/loading.tsx's own
-// SkeletonPage (a header + a list of rows): the dashboard is a 4-tile grid,
-// not a list, and app/(app)/loading.tsx has to stay the generic catch-all
-// for the other still-placeholder routes (habits, plans, lists; settings
-// is real, and calendar has its own loading.tsx): reshaping it for the dashboard would mis-shape those. That's
-// the whole reason this route lives in its own (home) route group: two
-// loading.tsx files can't share one URL segment.
+// SkeletonPage (a header + a list of rows): the dashboard is a grid of
+// widgets, not a list, and app/(app)/loading.tsx has to stay the generic
+// catch-all for the other still-placeholder routes (habits, plans, lists;
+// settings is real, and calendar has its own loading.tsx): reshaping it for
+// the dashboard would mis-shape those. That's the whole reason this route
+// lives in its own (home) route group: two loading.tsx files can't share one
+// URL segment.
 //
-// Block heights are the tiles' real measured heights at 375px, not
-// eyeballed: a skeleton that's the wrong size doesn't just look off, it
-// makes the page jump when content lands, which is the exact problem
-// skeletons exist to prevent. The first version guessed h-56 (224px) for a
-// tile that renders at 164px and the whole page snapped up ~60px on every
-// load. Re-measure these if a tile's contents change shape.
+// The blocks follow the default layout through the same packer and the same
+// CSS variables as DashboardWidgetList, at both column counts, with the same
+// row height, so the page does not jump when the real tiles land. A person's
+// saved layout can differ from the default; the grid still has the right
+// shape. Re-check this if the grid's row height or gap changes.
 export default function Loading() {
+  const areas = gridAreaVars(DEFAULT_DASHBOARD_LAYOUT.widgets.map((widget) => widget.size));
   return (
     <div className="py-4" role="status" aria-label="Loading Dashboard">
       {/* Same shape as SkeletonHeader, plus the Customize button's block right of the title. */}
@@ -26,11 +29,16 @@ export default function Loading() {
         </div>
         <SkeletonBlock className="mt-2 h-6 w-56" />
       </div>
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        <SkeletonBlock className="col-span-2 h-[164px]" /> {/* Today's meals */}
-        <SkeletonBlock className="h-[182px]" /> {/* Inventory */}
-        <SkeletonBlock className="h-[182px]" /> {/* Grocery */}
-        <SkeletonBlock className="col-span-2 h-[108px]" /> {/* Recipes */}
+      <div className="mt-6 grid auto-rows-[minmax(9.5rem,auto)] grid-cols-2 gap-4 md:grid-cols-4">
+        {DEFAULT_DASHBOARD_LAYOUT.widgets.map((widget, i) => (
+          <div
+            key={widget.uid}
+            style={areas[i] as React.CSSProperties}
+            className="min-w-0 [grid-column:var(--dash-c2)] [grid-row:var(--dash-r2)] md:[grid-column:var(--dash-c4)] md:[grid-row:var(--dash-r4)]"
+          >
+            <SkeletonBlock className="h-full w-full" />
+          </div>
+        ))}
       </div>
     </div>
   );

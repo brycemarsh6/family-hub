@@ -1,10 +1,12 @@
-// The dashboard's one widget registry: which widgets exist, what they are
-// called, how wide they render and whether they start switched on. No React
-// imports on purpose, so this file is importable from a Server Action and
-// from a client component alike. DASHBOARD_WIDGET_IDS is the default order of
-// the dashboard, and a test pins the record's key order to it.
+// The dashboard's one widget registry: which kinds of widget exist, what they
+// are called, which sizes each can take and which size a new one starts at.
+// A person's dashboard is a list of widget instances (see dashboardLayout.ts),
+// and a kind may appear in it more than once. No React imports on purpose, so
+// this file is importable from a Server Action and from a client component
+// alike. DASHBOARD_WIDGET_KINDS is the default order of the dashboard, and a
+// test pins the record's key order to it.
 
-export const DASHBOARD_WIDGET_IDS = [
+export const DASHBOARD_WIDGET_KINDS = [
   "todayMeals",
   "habits",
   "chores",
@@ -14,31 +16,45 @@ export const DASHBOARD_WIDGET_IDS = [
   "recipes",
 ] as const;
 
-export type DashboardWidgetId = (typeof DASHBOARD_WIDGET_IDS)[number];
+export type DashboardWidgetKind = (typeof DASHBOARD_WIDGET_KINDS)[number];
+
+/** Smallest to largest. A size's position here is what "nearest size" means. */
+export const WIDGET_SIZES = ["s", "m", "l", "xl"] as const;
+export type WidgetSize = (typeof WIDGET_SIZES)[number];
+
+export const WIDGET_SIZE_LABELS: Record<WidgetSize, string> = {
+  s: "Small",
+  m: "Medium",
+  l: "Large",
+  xl: "Extra large",
+};
 
 type DashboardWidgetDef = {
   label: string;
-  /** "half" widgets sit two to a row; "full" widgets take the whole row. */
-  width: "full" | "half";
-  defaultEnabled: boolean;
+  /** The sizes this kind can take, never empty, in WIDGET_SIZES order (decision 200). */
+  sizes: readonly WidgetSize[];
+  /** The size a new widget of this kind starts at. Always one of `sizes`. */
+  defaultSize: WidgetSize;
+  /** False for the kinds the wall tablet does not show (decision 138). */
+  onTablet: boolean;
 };
 
-export const DASHBOARD_WIDGETS: Record<DashboardWidgetId, DashboardWidgetDef> = {
-  todayMeals: { label: "Today's meals", width: "full", defaultEnabled: true },
-  habits: { label: "Habits", width: "full", defaultEnabled: true },
-  chores: { label: "Chores today", width: "full", defaultEnabled: true },
-  goals: { label: "Goals this week", width: "full", defaultEnabled: true },
-  inventory: { label: "Inventory", width: "half", defaultEnabled: true },
-  grocery: { label: "Grocery", width: "half", defaultEnabled: true },
-  recipes: { label: "Recipes", width: "full", defaultEnabled: true },
+export const DASHBOARD_WIDGETS: Record<DashboardWidgetKind, DashboardWidgetDef> = {
+  todayMeals: { label: "Today's meals", sizes: ["m"], defaultSize: "m", onTablet: true },
+  habits: { label: "Habits", sizes: ["m", "l"], defaultSize: "l", onTablet: false },
+  chores: { label: "Chores today", sizes: ["m", "l"], defaultSize: "l", onTablet: false },
+  goals: { label: "Goals this week", sizes: ["m"], defaultSize: "m", onTablet: true },
+  inventory: { label: "Inventory", sizes: ["s", "m"], defaultSize: "s", onTablet: true },
+  grocery: { label: "Grocery", sizes: ["s", "m"], defaultSize: "s", onTablet: true },
+  recipes: { label: "Recipes", sizes: ["s", "m"], defaultSize: "m", onTablet: true },
 };
 
 /** The widgets whose rows can be picked in Customize (decisions 44, 49): the layout keeps an `items` list for these only. */
-export const PICKABLE_WIDGET_IDS = ["habits", "goals"] as const satisfies readonly DashboardWidgetId[];
+export const PICKABLE_WIDGET_IDS = ["habits", "goals"] as const satisfies readonly DashboardWidgetKind[];
 export type PickableWidgetId = (typeof PICKABLE_WIDGET_IDS)[number];
 
-export function isPickableWidget(id: DashboardWidgetId): id is PickableWidgetId {
-  return (PICKABLE_WIDGET_IDS as readonly string[]).includes(id);
+export function isPickableWidget(kind: DashboardWidgetKind): kind is PickableWidgetId {
+  return (PICKABLE_WIDGET_IDS as readonly string[]).includes(kind);
 }
 
 /** The words both pickers (Habits and Goals) share, inside the Customize sheet (decision 137). */
@@ -52,3 +68,19 @@ export const DASHBOARD_PICKER_LABELS = {
 
 /** Most items a widget keeps picked; the parser cuts anything past it. */
 export const MAX_WIDGET_ITEMS = 50;
+
+/** Most widgets one dashboard keeps; the parser cuts anything past it and Add stops here. */
+export const MAX_DASHBOARD_WIDGETS = 30;
+
+/** The words the Customize sheet and the grid add in W1 (decision 207); sizes and kind names live above. */
+export const DASHBOARD_WIDGET_WORDS = {
+  addWidget: "Add widget",
+  addTitle: "Add a widget",
+  removeWidget: "Remove widget",
+  size: "Size",
+  onDashboard: "On your dashboard",
+  emptyTitle: "Your dashboard is empty.",
+  emptyHint: "Tap Customize to add widgets.",
+  /** The muted line under a Medium Habits or Chores tile that has more rows than it shows. */
+  moreRows: (n: number) => `+${n} more`,
+} as const;
