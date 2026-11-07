@@ -31,8 +31,8 @@ export function findPlanForWeek<P extends { weekStart: Date }>(
 
 type BucketEvent = { startAt: Date; endAt: Date; allDay: boolean };
 
-/** First and last calendar dates an event covers. */
-function coveredRange(event: BucketEvent, timeZone: string): [CalendarDate, CalendarDate] {
+/** First and last calendar dates an event covers. Exported so the morning briefing reads the same rule. */
+export function eventDayRange(event: BucketEvent, timeZone: string): [CalendarDate, CalendarDate] {
   if (event.allDay) {
     // CT1 convention: UTC midnights, endAt exclusive.
     const first = calendarDateFromUtcMidnight(event.startAt);
@@ -60,7 +60,7 @@ export function bucketEventsByDay<E extends BucketEvent>(
   const out = new Map<string, E[]>();
   for (const day of days) out.set(formatCalendarDate(day), []);
   for (const event of events) {
-    const [first, last] = coveredRange(event, timeZone);
+    const [first, last] = eventDayRange(event, timeZone);
     for (const day of days) {
       if (calendarDaysBetween(first, day) >= 0 && calendarDaysBetween(day, last) >= 0) {
         out.get(formatCalendarDate(day))!.push(event);
