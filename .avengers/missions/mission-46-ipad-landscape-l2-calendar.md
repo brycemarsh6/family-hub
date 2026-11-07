@@ -125,7 +125,7 @@ From AGENTS.md, absolute for every agent:
   sizes above, skeleton wide.
 
 ### C2 - Month chips readable on wide (decision 225)
-- **Status:** DISPATCHED (parallel with C3; boundaries disjoint)
+- **Status:** DONE (Stark: Gauntlet green, 1260 tests; UTC 1253 pass, 7 skipped; MonthCell 373 lines. Stale doc comment at MonthCell.tsx:71 still says three slots)
 - **Boundaries:** may touch: `src/components/MonthGrid.tsx`,
   `src/components/MonthCell.tsx`, `src/lib/monthLayout.ts`,
   `src/lib/monthLayout.test.ts`, `src/components/MonthGridSkeletonRows.tsx`
@@ -172,7 +172,7 @@ From AGENTS.md, absolute for every agent:
   "+N more" at 1180, 820 and Sidebar; 375 identical to `main`.
 
 ### C3 - Schedule mini month (decisions 226 to 228, the "Calendar, Schedule" board)
-- **Status:** DISPATCHED (parallel with C2; boundaries disjoint)
+- **Status:** DONE (Stark: Gauntlet green, 1265 tests with C2's; ScheduleView 532 to 577. Fury then changed the 50rem column from 20rem to 22rem so day buttons stay 44px beside the Sidebar. Stark's notes: a tapped empty day rings the next day that has a row; below 50rem the mini month is `display:none`)
 - **Boundaries:** may touch: `src/components/ScheduleView.tsx`,
   new `src/components/ScheduleMiniMonth.tsx`,
   new `src/lib/useScheduleDayInView.ts`,
@@ -190,7 +190,8 @@ From AGENTS.md, absolute for every agent:
      sits inside a `@container` wrapper holding a grid: one column below
      50rem (exactly today: no mini month rendered or hidden by
      `hidden`, list unchanged); from 50rem a `20rem` mini-month column
-     plus the list; from 64rem the mini month is `27.5rem` (440px, the
+     (22rem since C3: 20rem left 38px day buttons, under the 44px floor)
+  plus the list; from 64rem the mini month is `27.5rem` (440px, the
      mock). Gap 20px. At 1180 (1148 container): 440 + list. Sidebar at
      1180 (about 892): 320 + list. 820 upright (788): list only, as
      today. The mini month is `sticky`, top aligned just under the
@@ -258,3 +259,5 @@ From AGENTS.md, absolute for every agent:
   canvas boards before C2 and C3.
 - 2026-11-07: Bryce: "Yes, as recommended" (decisions 225 to 228 in the
   plan). C2 and C3 dispatched in parallel.
+- 2026-11-07: C2 and C3 DONE and committed. Gates dispatched: Vision,
+  Strange, Captain (pass 1, in parallel: all read-only).

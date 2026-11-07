@@ -415,6 +415,7 @@ export function CalendarViews({
               people={people}
               canManage={canManage}
               onTodayVisibleChange={setScheduleTodayVisible}
+              onJumpToDay={jumpToDay}
             />
           )
         );
