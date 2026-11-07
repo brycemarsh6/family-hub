@@ -83,10 +83,9 @@ export type MonthLayoutEvent = {
 };
 
 /** One event's position within a single row: which columns (0 = Sunday..6 =
- * Saturday) it spans, and which lane (vertical slot, 0-indexed, always < 3
- * — anything that would need lane 3+ is dropped from `spans` and folded
- * into `overflowByDay` instead, since only three rows of pills are ever
- * shown per cell). */
+ * Saturday) it spans, and which lane (vertical slot, 0-indexed, always less
+ * than the cap passed to `assignLanes` — anything that would need a higher
+ * lane is dropped from `spans` and folded into `overflowByDay` instead). */
 export type MonthLaneSpan = {
   event: MonthLayoutEvent;
   startCol: number;
@@ -97,9 +96,9 @@ export type MonthLaneSpan = {
 export type MonthLaneAssignment = {
   spans: MonthLaneSpan[];
   /** Length === rowDays.length (7 for a real row). overflowByDay[col] is
-   * how many entries touching that column didn't fit in the three visible
-   * lanes — a multi-day overflow event that touches three columns adds 1
-   * to each of those three counts, not 1 to the total, so "+N more" reads
+   * how many entries touching that column didn't fit in the visible
+   * lanes (the cap passed to `assignLanes`) — a multi-day overflow event
+   * that touches three columns adds 1 to each of those three counts, not 1 to the total, so "+N more" reads
    * correctly on every cell it would have covered, not just its first. */
   overflowByDay: number[];
 };
@@ -153,17 +152,38 @@ export function phoneOverflowByDay(wide: MonthLaneAssignment): number[] {
   return counts;
 }
 
+/** Which of a Month cell's lane slots render, and at which width. `slots`
+ * is one column's lanes (length `WIDE_LANES`), any non-null entry meaning
+ * "filled". Per lane: "both" (phone and wide: at or above the phone's last
+ * filled lane), "wide" (only from 48rem: past the phone's last filled lane
+ * but not past the wide one), "none" (past the last filled lane at every
+ * width, so nothing renders). The result has one entry per lane up to the
+ * wide last filled lane, so a day whose only entry sits on the wide-only lane
+ * shows nothing on a phone except "+N more", never blank spacers. */
+export function laneVisibility(slots: readonly unknown[]): ("both" | "wide" | "none")[] {
+  let phoneLast = -1;
+  let wideLast = -1;
+  slots.forEach((slot, lane) => {
+    if (!slot) return;
+    wideLast = lane;
+    if (lane < PHONE_LANES) phoneLast = lane;
+  });
+  return slots.map((_, lane) =>
+    lane <= phoneLast ? "both" : lane <= wideLast ? "wide" : "none",
+  );
+}
+
 /** Given one row's seven Dates and the events that might touch it, packs
  * each event into the lowest free lane (greedy interval packing) and caps
- * visible lanes at three per cell. `events` may include events that don't
+ * visible lanes per cell (three by default). `events` may include events that don't
  * touch this row at all (e.g. the caller's whole fetched set) — anything
  * `daysEventCovers` returns no days for is silently skipped, so the caller
  * doesn't need to pre-filter per row.
  *
- * `visibleLanes` defaults to the module's own `VISIBLE_LANES` (3) — Month's
- * own call (MonthGrid.tsx) never passes a third argument, so its behavior
- * is byte-for-byte unchanged by this parameter's existence. It exists for a
- * SECOND caller (mission-17/C5): TimelineGrid.tsx's all-day strip caps at
+ * `visibleLanes` defaults to the module's own `VISIBLE_LANES` (3, the phone
+ * count). Month (MonthGrid.tsx) passes `WIDE_LANES` and derives the phone
+ * counts with `phoneOverflowByDay`. The parameter was added for a SECOND
+ * caller (mission-17/C5): TimelineGrid.tsx's all-day strip caps at
  * the same 3 lanes by default, but its "+N more" used to be a dead end — an
  * inert `<span>`, no route to the 4th+ item at all, and Month's own "+N
  * more" escalates INTO that exact dead end by navigating to Day. Passing a

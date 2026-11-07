@@ -160,8 +160,8 @@ function TimelineGridSkeleton() {
 
 /**
  * Year's own shape (mission-18/C4): twelve grey blocks in `YearView.tsx`'s
- * own `@container` wrapper and responsive grid (2, 3 or 4 across, mission-46) — the exact same wrapper classes, not a
- * lookalike, so a real device's column width can never drift from what
+ * own `@container` wrapper and responsive grid (2, 3 or 4 across,
+ * mission-46), the exact same wrapper classes, not a lookalike, so a real device's column width can never drift from what
  * this skeleton assumes. Unlike the timeline box above, this shape has a
  * FIXED height regardless of viewport (twelve fixed-size tiles, not
  * "however much of the screen is left"), matching `MonthGridSkeletonRows`'

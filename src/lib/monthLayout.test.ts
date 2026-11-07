@@ -19,6 +19,7 @@ import {
   assignLanes,
   isTodayCell,
   phoneOverflowByDay,
+  laneVisibility,
   PHONE_LANES,
   WIDE_LANES,
   type MonthLayoutEvent,
@@ -303,4 +304,30 @@ test("a day with five events shows +1 more wide and +2 more on the phone", () =>
   const nov3 = 2; // Sunday-first: Nov 1 is column 0
   assert.equal(wide.overflowByDay[nov3], 1);
   assert.equal(phoneOverflowByDay(wide)[nov3], 2);
+});
+
+test("laneVisibility: a day whose only entry is on lane 3 shows nothing on the phone but keeps its wide spacers", () => {
+  const rowDays = monthGridDays(d(2026, 10, 15)).slice(0, 7); // Nov 1..7
+  const bar = (id: string, from: number, to: number): MonthLayoutEvent => ({
+    id,
+    startAt: d(2026, 10, from, 9),
+    endAt: d(2026, 10, to, 10),
+    allDay: false,
+  });
+  const events = [bar("a", 2, 4), bar("b", 2, 4), bar("c", 2, 4), bar("x", 1, 2)];
+  const wide = assignLanes(rowDays, events, WIDE_LANES);
+  const slotsFor = (col: number) => {
+    const slots: (string | null)[] = new Array(WIDE_LANES).fill(null);
+    for (const s of wide.spans) if (col >= s.startCol && col <= s.endCol) slots[s.lane] = s.event.id;
+    return slots;
+  };
+  // Nov 1 (column 0): only "x" on lane 3; the phone counts it in "+1 more".
+  assert.deepEqual(laneVisibility(slotsFor(0)), ["wide", "wide", "wide", "wide"]);
+  assert.equal(phoneOverflowByDay(wide)[0], 1);
+  // Nov 3 (column 2): lanes 0 to 2 filled, no lane 3: nothing past the phone's last lane.
+  assert.deepEqual(laneVisibility(slotsFor(2)), ["both", "both", "both", "none"]);
+  // Nov 2 (column 1): three bars on lanes 0 to 2 and "x" ends here on lane 3.
+  assert.deepEqual(laneVisibility(slotsFor(1)), ["both", "both", "both", "wide"]);
+  // An interior gap below a phone-visible lane stays a phone spacer.
+  assert.deepEqual(laneVisibility([null, null, "z", null]), ["both", "both", "both", "none"]);
 });
