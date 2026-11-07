@@ -2,6 +2,7 @@ import { z, type ZodType } from "zod";
 import type { Operation } from "./openapiTypes";
 import { auditQuery, undoBody } from "./schemas";
 import { cookbookOperations } from "./openapiCookbookPaths";
+import { habitOperations } from "./openapiHabitPaths";
 import { inventoryOperations } from "./openapiInventoryPaths";
 import { mealPlanOperations } from "./openapiMealPlanPaths";
 import { recipeOperations } from "./openapiRecipePaths";
@@ -42,7 +43,7 @@ const systemOperations: Operation[] = [
   },
 ];
 
-export const operations: Operation[] = [...inventoryOperations, ...shoppingOperations, ...recipeOperations, ...cookbookOperations, ...mealPlanOperations, ...summaryOperations, ...systemOperations];
+export const operations: Operation[] = [...inventoryOperations, ...shoppingOperations, ...recipeOperations, ...cookbookOperations, ...habitOperations, ...mealPlanOperations, ...summaryOperations, ...systemOperations];
 
 type JsonSchema = Record<string, unknown>;
 
