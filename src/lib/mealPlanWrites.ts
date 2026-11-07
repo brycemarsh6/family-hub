@@ -22,7 +22,8 @@ import type { MealPlan, MealPlanEntry, Prisma } from "@/generated/prisma/client"
 import { toMealSlot } from "@/lib/constants";
 import { pickNearestPlan, planWindow } from "@/lib/mealPlanWeek";
 import { isUniqueViolationError } from "@/lib/prismaErrors";
-import type { WriteError } from "@/lib/tagWrites";
+import { RECIPE_MISSING } from "@/lib/writeError";
+import type { WriteError } from "@/lib/writeError";
 
 /**
  * Create a week's plan at `weekStart`. Two phones tapping the same week at
@@ -93,7 +94,7 @@ async function checkSlotInput(
       where: { id: recipeId },
       select: { id: true },
     });
-    if (!recipe) return { error: "That recipe no longer exists.", code: "missing" };
+    if (!recipe) return RECIPE_MISSING;
   }
   return { slot, dayOffset: input.dayOffset, title, recipeId };
 }

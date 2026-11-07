@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
-import { ApiError, aiUnavailable, errorResponse, fromZodError, notFound, unauthorisedResponse } from "./errors";
+import { ApiError, aiUnavailable, errorResponse, fromZodError, notFound, toWriteFailure, unauthorisedResponse } from "./errors";
 
 test("errorResponse uses the envelope and status", async () => {
   const res = errorResponse(new ApiError(404, "not_found", "Nope.", { id: "x" }));
@@ -52,4 +52,16 @@ test("aiUnavailable is a 503 that carries retry-after: 5", async () => {
   assert.equal(res.status, 503);
   assert.equal(res.headers.get("retry-after"), "5");
   assert.equal((await res.json()).error.code, "ai_unavailable");
+});
+
+test("toWriteFailure: code missing is 404, invalid is 400", () => {
+  const missing = toWriteFailure({ error: "That tag no longer exists.", code: "missing" });
+  assert.equal(missing.status, 404);
+  assert.equal(missing.code, "not_found");
+  assert.equal(missing.message, "That tag no longer exists.");
+  const invalid = toWriteFailure({ error: "Ratings run 1 to 5.", code: "invalid" });
+  assert.equal(invalid.status, 400);
+  assert.equal(invalid.code, "validation");
+  // The code decides, never the wording.
+  assert.equal(toWriteFailure({ error: "No longer exists.", code: "invalid" }).status, 400);
 });

@@ -17,28 +17,36 @@ import "server-only";
 import { db } from "@/lib/db";
 import type { Prisma, RecipeTag, Tag } from "@/generated/prisma/client";
 import { isMissingRowError, isUniqueViolationError } from "@/lib/prismaErrors";
+import { invalid, missing, RECIPE_MISSING } from "@/lib/writeError";
+import type { WriteError } from "@/lib/writeError";
 
 type Tx = Prisma.TransactionClient;
 
-/** `missing`: something named doesn't exist (404). `invalid`: bad input (400). */
-export type WriteError = { error: string; code: "missing" | "invalid" };
-
-export const TAG_MISSING: WriteError = { error: "That tag no longer exists.", code: "missing" };
+export const TAG_MISSING: WriteError = missing("That tag no longer exists.");
 
 /** The trimmed name, or the refusal when it trims to nothing. */
 function checkTagName(name: string): { name: string } | WriteError {
   const trimmed = name.trim();
-  if (!trimmed) return { error: "Give the tag a name.", code: "invalid" };
+  if (!trimmed) return invalid("Give the tag a name.");
   return { name: trimmed };
 }
 
 /** The tag with this name, ignoring case, optionally excluding one id; with its recipe count. */
-function findTagByName(client: Tx | typeof db, name: string, exceptId?: string) {
-  return client.tag.findFirst({
-    where: {
-      name: { equals: name, mode: "insensitive" },
-      ...(exceptId ? { id: { not: exceptId } } : {}),
-    },
+async function findTagByName(client: Tx | typeof db, name: string, exceptId?: string) {
+  // Raw SQL on purpose: Prisma's case-insensitive `equals` runs as ILIKE,
+  // where `%` and `_` in a name would act as wildcards.
+  const [match] = exceptId
+    ? await client.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "Tag"
+        WHERE lower("name") = lower(${name}) AND "id" <> ${exceptId}
+        ORDER BY "id" ASC LIMIT 1`
+    : await client.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "Tag"
+        WHERE lower("name") = lower(${name})
+        ORDER BY "id" ASC LIMIT 1`;
+  if (!match) return null;
+  return client.tag.findUnique({
+    where: { id: match.id },
     include: { _count: { select: { recipes: true } } },
   });
 }
@@ -94,7 +102,7 @@ export async function renameTagRow(
   if ("error" in checked) return checked;
 
   if (await findTagByName(db, checked.name, tagId)) {
-    return { error: "A tag with that name already exists.", code: "invalid" };
+    return invalid("A tag with that name already exists.");
   }
 
   try {
@@ -120,7 +128,7 @@ export async function addRecipeTagRow(
     db.recipe.findUnique({ where: { id: recipeId }, select: { id: true } }),
     db.tag.findUnique({ where: { id: tagId }, select: { id: true } }),
   ]);
-  if (!recipe) return { error: "That recipe no longer exists.", code: "missing" };
+  if (!recipe) return RECIPE_MISSING;
   if (!tag) return TAG_MISSING;
 
   try {

@@ -30,13 +30,11 @@ import type {
   CookbookRecipe,
 } from "@/generated/prisma/client";
 import { applyRecipeTagDiff, TAG_MISSING, tagsExist } from "@/lib/tagWrites";
-import type { WriteError } from "@/lib/tagWrites";
-
+import { COOKBOOK_MISSING } from "@/lib/cookbookWrites";
+import { invalid } from "@/lib/writeError";
+import type { WriteError } from "@/lib/writeError";
 
 type Tx = Prisma.TransactionClient;
-
-const INVALID = (error: string): WriteError => ({ error, code: "invalid" });
-const MISSING = (error: string): WriteError => ({ error, code: "missing" });
 
 /** The text fields a caller may set on a recipe. */
 export type RecipeFields = {
@@ -101,8 +99,8 @@ export async function createRecipeRow(
   | { recipe: Recipe; cookbookRecipe: CookbookRecipe | null; recipeTags: RecipeTag[] }
   | WriteError
 > {
-  const invalid = requiredFieldError(fields);
-  if (invalid) return INVALID(invalid);
+  const problem = requiredFieldError(fields);
+  if (problem) return invalid(problem);
 
   const cookbookId = options.cookbookId || null;
   const tagIds = [...new Set(options.tagIds ?? [])];
@@ -113,7 +111,7 @@ export async function createRecipeRow(
         where: { id: cookbookId },
         select: { id: true },
       });
-      if (!cookbook) return MISSING("That cookbook no longer exists.");
+      if (!cookbook) return COOKBOOK_MISSING;
     }
     if (!(await tagsExist(tx, tagIds))) return TAG_MISSING;
 
@@ -171,10 +169,10 @@ export async function updateRecipeAndTagsRow(
 ): Promise<
   { before: Recipe; after: Recipe; created: RecipeTag[]; deleted: RecipeTag[] } | WriteError | null
 > {
-  const invalid =
+  const problem =
     requiredFieldError(patch) ??
     (patch.rating !== undefined ? ratingError(patch.rating) : null);
-  if (invalid) return INVALID(invalid);
+  if (problem) return invalid(problem);
 
   return db.$transaction(async (tx) => {
     const before = await lockRecipe(tx, id);

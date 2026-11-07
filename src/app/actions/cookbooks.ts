@@ -5,10 +5,18 @@
 // every one of these opens with a getVerifiedSession() check.
 
 import { revalidatePath } from "next/cache";
-import { randomBytes } from "node:crypto";
-import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
+import {
+  COOKBOOK_MISSING,
+  createCookbookRow,
+  deleteCookbookRow,
+  fileRecipeRow,
+  renameCookbookRow,
+  shareCookbookRow,
+  stopSharingCookbookRow,
+  unfileRecipeRow,
+} from "@/lib/cookbookWrites";
 
 function refreshCookbookViews(cookbookId?: string) {
   revalidatePath("/kitchen/cooking/recipes");
@@ -23,12 +31,10 @@ export type CookbookResult = { id?: string; error?: string };
 export async function createCookbook(title: string): Promise<CookbookResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  const trimmed = title.trim();
-  if (!trimmed) return { error: "Give the cookbook a title." };
-
-  const cookbook = await db.cookbook.create({ data: { title: trimmed } });
+  const result = await createCookbookRow(title);
+  if ("error" in result) return { error: result.error };
   refreshCookbookViews();
-  return { id: cookbook.id };
+  return { id: result.cookbook.id };
 }
 
 export async function renameCookbook(
@@ -37,16 +43,8 @@ export async function renameCookbook(
 ): Promise<CookbookResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  const trimmed = title.trim();
-  if (!trimmed) return { error: "Give the cookbook a title." };
-
-  const existing = await db.cookbook.findUnique({
-    where: { id: cookbookId },
-    select: { id: true },
-  });
-  if (!existing) return { error: "That cookbook no longer exists." };
-
-  await db.cookbook.update({ where: { id: cookbookId }, data: { title: trimmed } });
+  const result = await renameCookbookRow(cookbookId, title);
+  if ("error" in result) return { error: result.error };
   refreshCookbookViews(cookbookId);
   return { id: cookbookId };
 }
@@ -72,7 +70,9 @@ export async function deleteCookbook(
     return { error: "Only parents can do that." };
   }
 
-  await db.cookbook.delete({ where: { id: cookbookId } });
+  const result = await deleteCookbookRow(cookbookId);
+  if (!result) return { error: COOKBOOK_MISSING.error };
+  if ("error" in result) return { error: result.error };
   refreshCookbookViews();
   return {};
 }
@@ -90,11 +90,8 @@ export async function addRecipeToCookbook(
 ): Promise<CookbookMembershipResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  await db.cookbookRecipe.upsert({
-    where: { cookbookId_recipeId: { cookbookId, recipeId } },
-    create: { cookbookId, recipeId },
-    update: {},
-  });
+  const result = await fileRecipeRow(cookbookId, recipeId);
+  if ("error" in result) return { error: result.error };
   refreshCookbookViews(cookbookId);
   return {};
 }
@@ -106,7 +103,7 @@ export async function removeRecipeFromCookbook(
 ): Promise<CookbookMembershipResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  await db.cookbookRecipe.deleteMany({ where: { cookbookId, recipeId } });
+  await unfileRecipeRow(cookbookId, recipeId);
   refreshCookbookViews(cookbookId);
   return {};
 }
@@ -134,18 +131,11 @@ export async function shareCookbook(cookbookId: string): Promise<CookbookShareRe
     return { error: "Only parents can do that." };
   }
 
-  const cookbook = await db.cookbook.findUnique({
-    where: { id: cookbookId },
-    select: { shareToken: true },
-  });
-  if (!cookbook) return { error: "That cookbook no longer exists." };
-  if (cookbook.shareToken) return { shareToken: cookbook.shareToken };
-
-  const shareToken = randomBytes(32).toString("base64url");
-  await db.cookbook.update({ where: { id: cookbookId }, data: { shareToken } });
-
-  refreshCookbookViews(cookbookId);
-  return { shareToken };
+  const result = await shareCookbookRow(cookbookId);
+  if (!result) return { error: COOKBOOK_MISSING.error };
+  // Already shared: the existing token comes back and nothing is written.
+  if (result.changed) refreshCookbookViews(cookbookId);
+  return { shareToken: result.after.shareToken };
 }
 
 /**
@@ -162,13 +152,8 @@ export async function stopSharingCookbook(
     return { error: "Only parents can do that." };
   }
 
-  const cookbook = await db.cookbook.findUnique({
-    where: { id: cookbookId },
-    select: { id: true },
-  });
-  if (!cookbook) return { error: "That cookbook no longer exists." };
-
-  await db.cookbook.update({ where: { id: cookbookId }, data: { shareToken: null } });
+  const result = await stopSharingCookbookRow(cookbookId);
+  if (!result) return { error: COOKBOOK_MISSING.error };
   refreshCookbookViews(cookbookId);
   return { shareToken: null };
 }
