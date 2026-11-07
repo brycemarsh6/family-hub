@@ -397,3 +397,21 @@ Preflight's one hard failure on C2 is the schema's length; STRUCTURE.md
   outside the hour, the unique claim happens before the send, shared reads
   happen once per run, and no secret or personal text can reach logs or
   the response.
+
+## Log
+
+- 2026-11-06: C1 DONE (Stark), committed. Fury re-ran: `npm ci`, `prisma
+  generate`, `tsc` clean; full suite in UTC 1327 tests, 1320 pass, 0 fail,
+  7 skipped (existing DST tests in `timelineLayout.test.ts` and kin that
+  skip in zones without a time change). Stark's choices: vacation line wins
+  over the chores list; overdue sorted fewest days late first. C2
+  dispatched. Vision gates C1 and C2 together.
+- 2026-11-07: C2 DONE (Stark): tsc, eslint, npm test (1327 pass), build
+  clean; `ƒ /api/cron/briefing` in the route list. Fury checked the SQL
+  against `prisma migrate diff` from the old schema (identical, one CREATE
+  TABLE, one unique index, one foreign key), linked the main checkout's
+  `.env` into the worktree (never opened), confirmed the host prefix
+  `ep-hidden-pine-` (dev), and ran `npx prisma migrate deploy` on dev:
+  applied. Stark's choices: Pick a day period from `page.manage` schedule;
+  kept `dynamic = "force-dynamic"` though Next 16 handlers are not cached
+  by default. Vision and Captain dispatched.

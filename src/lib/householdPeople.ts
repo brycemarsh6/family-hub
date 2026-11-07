@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { MANAGER_ROLES, toRole, type Role } from "@/lib/constants";
 import type { Prisma } from "@/generated/prisma/client";
 
 // The one rule for "the family": every active person who is not a shared
@@ -27,4 +28,17 @@ export async function loadHouseholdPeople(client: Prisma.TransactionClient = db)
     orderBy: HOUSEHOLD_ORDER_BY,
     select: { id: true, displayName: true, avatarColor: true },
   });
+}
+
+/** A household adult (admin or parent), as the morning briefing needs them. */
+export type HouseholdAdult = { id: string; displayName: string; role: Role };
+
+/** Every active adult (role admin or parent, never a kid or the device login), in the household order. */
+export async function loadHouseholdAdults(client: Prisma.TransactionClient = db): Promise<HouseholdAdult[]> {
+  const rows = await client.user.findMany({
+    where: { ...HOUSEHOLD_PERSON_WHERE, role: { in: [...MANAGER_ROLES] } },
+    orderBy: HOUSEHOLD_ORDER_BY,
+    select: { id: true, displayName: true, role: true },
+  });
+  return rows.map((row) => ({ ...row, role: toRole(row.role) }));
 }

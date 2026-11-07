@@ -578,6 +578,10 @@ model User {
   nudgesSent         Nudge[]            @relation("nudgesSent")
   nudgesReceived     Nudge[]            @relation("nudgesReceived")
 
+  /// Winnie's morning briefing (mission 48): the days this person's briefing
+  /// was claimed. Cascade: a deleted person's guard rows mean nothing.
+  winnieBriefingsSent WinnieBriefingSent[]
+
   // No relation to LoginAttempt here — see that model's own doc comment for
   // why userId there is deliberately not a foreign key.
 
@@ -1205,4 +1209,28 @@ model Feedback {
   createdAt DateTime  @default(now())
 
   @@index([doneAt, createdAt])
+}
+
+/// The once-a-day guard for Winnie's morning briefing (mission 48). The cron
+/// route inserts a row BEFORE it sends; the unique pair (userId, day) means a
+/// second run the same day hits a clash and sends nothing. `day` is the Denver
+/// date stored as a UTC midnight (`utcMidnightInstant`). `status` is plain
+/// text: "sending" | "accepted" | "rejected" | "unreachable".
+model WinnieBriefingSent {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  day DateTime
+
+  /// The eventId sent to Winnie, so one briefing can be traced in the logs.
+  eventId String
+
+  status String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, day])
 }
