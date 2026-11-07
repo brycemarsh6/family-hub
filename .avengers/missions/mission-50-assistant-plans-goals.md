@@ -560,6 +560,63 @@ through `goalsRead`-level code), no auth, no `revalidatePath`, refusals as
 | 1 | Vision | BLOCKED | V1 undo of a title-only goal edit rebuilds the number cache from check-ins, so a goal with no check-ins whose `currentValue` differs from its start drifts (80 → 82, live) | `PUT /vision/together/spiritual/abc` → 500 (horizon parsed before validation); `kindOrder` could in theory hit `exists` on a remove + re-create of the same unique key in one plan (no current write does); missing vs hidden goal wording differs on writes (app parity); "Ask Bryce" names Bryce in H2 and H4 (Hill's words); `keepsHours` copies the raw `period`; vision action validates twice. Gauntlet green, build exit 0, parity re-run 45/0, privacy and owner-unset clean |
 | 1 | Captain | BLOCKED | B1 `serializeGoals.ts` copies `goalOwnership` / `isPrivateGoal`; B2 vision PUT route compares a board with `TOGETHER_BOARD` (use `boardOwnerId`); B3 two new vision readers outside `visionsRead.ts` (`goalReads.readVision`, the PUT route's no-op read); B4 `undoHooks` writes the number cache itself (one writer in `goalWrites.ts` with a keep-`updatedAt` option); B5 Ongoing tripwire crossed (4th and 5th `targetDate === null`: add `isOngoingGoal`); B6 `toWeek` copies `ThisWeekList.tsx`'s row order (one pure `weekRows`) | `lockGoal` raw `FOR UPDATE` in `goalReads.ts` (move to `goalWrites.ts`, A14); plan-item PATCH H4 read outside the lock; `planItemWrites` computes today and imports `assistant/today`; `canSee && canEdit` in three places (A19); `atomically` homed in a habit writer; `habitActor*` naming; pre-existing P2003 and `DEVICE_REFUSED` duplicates; undoModels / undoWrites near 300; STRUCTURE.md 1433 and CLAUDE.md 439 lines; amendments A15 to A20 drafted |
 
+| 2 | Captain | PASS | none (B1 to B6 closed; no cycles by script; sizes under 300 except `goals.ts` 343 of soft cap 350) | Condition met: A15 and A16 pasted into STRUCTURE.md (they replace sentences this mission made stale). NOTEs: `goals.ts` at 343, next addition comes with a split; vision Mine/Together owner mapping in two places (A18); carried: A19 triple `canSee && canEdit`, `atomically` home, `habitActor*` naming, P2003 / `DEVICE_REFUSED` duplicates, undoModels / undoWrites near 300 |
+
+### Amendments A17 to A20 (Captain's final texts, for Bryce with A1 to A14; not yet in STRUCTURE.md). A15 and A16 are in STRUCTURE.md.
+
+**A17.** Add to the Domain write modules list in Boundary rules:
+
+> Plans & Goals instances (mission-50): `goalWrites.ts` (goals and
+> check-ins), `planItemWrites.ts` (add, edit and tick a plan item; a habit
+> item's Habit goes through `habits/habitWrites.ts`) and `visionWrites.ts`
+> (save a vision). Each takes a `guard` callback in place of an actor, so
+> its callers (the Server Actions and `/api/assistant/v1/` routes) pass
+> their own `canSee` + `canEdit` or `canLog` judgement. Each takes `today`
+> from its caller and never computes it. None of the three imports
+> anything from `src/lib/assistant/`. Deleting a plan item and the habit
+> taps stay in `actions/planItems.ts`.
+
+**A18.** Add to the `visions.ts` rule:
+
+> `visionsRead.ts`'s readers are `loadVisionBoard`, `loadGoalVision`,
+> `loadVisionRows({ boards, horizons })` (narrow columns, for the Assistant
+> API's Vision read) and `loadVisionStatement(boardKey, area, horizon)`
+> (one slot, typed area and horizon). A route checks the raw area and
+> horizon with `validateVisionInput` before any lookup.
+> `db.visionStatement` outside `visionsRead.ts` and `visionWrites.ts` is a
+> BLOCKER. Mapping an owner id to a vision's Mine/Together has two copies
+> today (`visionWrites.saveVision` and the Assistant vision PUT route). The
+> next contract that touches either moves it into `visions.ts` as one
+> helper, and a third copy is a BLOCKER.
+
+**A19.** Add to the `goals.ts` policy rule:
+
+> "May change this goal" is `canSee(goal, viewer) && canEdit(goal,
+> viewer)`. It is written out in three places today: `actions/goals.ts`
+> (`mayEdit`), `actions/planItems.ts` (`allowed`) and
+> `assistant/goalReads.ts` (`winnieMayChangeGoal`). The next contract that
+> touches any of them adds `canChange(goal, viewer)` (and a `canLog` twin if
+> needed) in `goals.ts` and points all three at it. A fourth inline copy is
+> a BLOCKER.
+
+**A20.** New bullet after the `goalsProgress.ts` rule:
+
+> `src/lib/goalsWeek.ts`: `weekRows(goal, weekStart)`, the only This week
+> row order for a goal (habits; then steps ticked since household midnight
+> on `weekStart`, oldest first; then the next step from `nextStep`; then
+> reminders). Pure, pinned by `goalsWeek.test.ts`. `ThisWeekList.tsx` and
+> `serializeGoals.toWeek` both call it; a second copy of the order is a
+> BLOCKER. It imports `goals.ts` (`nextStep`) and types from
+> `goalsProgress.ts`; neither imports it back. (Added mission-50.)
+
+Winnie-facing identity and reads (Captain's pass 1 A16 draft, for the
+same review): `goalViewerFor` / `assistantGoalViewer` / `assistantOwnerId`
+in `habitActor*.ts`; `assistant/goalReads.ts` reads only through
+`goalsRead.ts`, `visionsRead.ts` and `householdPeople.ts`;
+`serializeGoals.ts` is the only goal JSON shape for Winnie and uses
+`goals.ts`'s display helpers; `schemasGoals.ts` holds the bodies,
+`newGoalRaw` (her create default) and the Winnie-only refusal words.
+
 ## Handoff log
 
 - 2026-11-07 - Branch reset to `origin/main` `d0397e2`; number 50
