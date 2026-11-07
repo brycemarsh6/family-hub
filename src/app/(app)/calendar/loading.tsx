@@ -160,8 +160,8 @@ function TimelineGridSkeleton() {
 
 /**
  * Year's own shape (mission-18/C4): twelve grey blocks in `YearView.tsx`'s
- * own `grid grid-cols-2 gap-3` — the exact same wrapper class, not a
- * lookalike, so a real device's column width can never drift from what
+ * own `@container` wrapper and responsive grid (2, 3 or 4 across,
+ * mission-46), the exact same wrapper classes, not a lookalike, so a real device's column width can never drift from what
  * this skeleton assumes. Unlike the timeline box above, this shape has a
  * FIXED height regardless of viewport (twelve fixed-size tiles, not
  * "however much of the screen is left"), matching `MonthGridSkeletonRows`'
@@ -179,10 +179,12 @@ function TimelineGridSkeleton() {
  */
 function YearGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3">
-      {Array.from({ length: 12 }, (_, index) => (
-        <SkeletonBlock key={index} className="h-36 w-full" />
-      ))}
+    <div className="@container">
+      <div className="grid grid-cols-2 gap-3 @min-[40rem]:grid-cols-3 @min-[60rem]:grid-cols-4">
+        {Array.from({ length: 12 }, (_, index) => (
+          <SkeletonBlock key={index} className="h-36 w-full" />
+        ))}
+      </div>
     </div>
   );
 }
@@ -239,7 +241,7 @@ export default function Loading() {
   const searchParams = useSearchParams();
   const shape = SKELETON_SHAPE[parseViewParam(searchParams.get("view"))];
   return (
-    <div className="py-2 has-[[data-fills-viewport]]:pb-0" role="status" aria-label="Loading Calendar">
+    <div data-page-width="wide" className="py-2 has-[[data-fills-viewport]]:pb-0" role="status" aria-label="Loading Calendar">
       <div
         className="mb-2 flex h-[66px] items-start justify-end gap-3 pl-14"
         style={{ marginTop: -HAMBURGER_ROW_HEIGHT_PX }}

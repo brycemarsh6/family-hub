@@ -265,7 +265,10 @@ export function CalendarHeader({
             // producing exactly the double label D2 exists to prevent.
             // `title` (the anchor's static month) is intentionally unused
             // in this branch — ScheduleView's live answer is what's shown.
-            <span id={SCHEDULE_TITLE_SLOT_ID} className="flex w-full items-center justify-center" />
+            // mission-46/F2: no `w-full`. The slot is as wide as the title so
+            // the chevron sibling sits 4px after it (parent `gap-1`), as in
+            // Week and Month; `min-w-0` lets a long title truncate.
+            <span id={SCHEDULE_TITLE_SLOT_ID} className="flex min-w-0 items-center justify-center" />
           ) : (
             <h2 className="truncate text-lg font-semibold">{title}</h2>
           )}

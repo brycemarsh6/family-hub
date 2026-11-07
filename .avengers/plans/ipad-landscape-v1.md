@@ -233,6 +233,33 @@ the width rule; L2 and W2 share calendar code, so L2 goes first.
   today, Pick a day, nudges) sit two across on a wide page, one column on
   a phone, chosen from the "Top cards" mock boards.
 
+- **225 (Bryce, 2026-11-07, L2):** wide Month shows up to 4 event chips a
+  day with 12px titles, then "+N more"; phones keep 3 (canvas board "L2
+  Calendar: Month, wide").
+- **226 (Bryce, 2026-11-07, L2):** the Schedule mini month marks the day
+  at the top of the list with a ring that moves as the list scrolls;
+  today keeps its filled circle.
+- **227 (Bryce, 2026-11-07, L2):** the mini month flips to the list's
+  month by itself; its arrows browse months without moving the list; a
+  tapped day jumps the list. It stays in place while the list scrolls.
+- **228 (Bryce, 2026-11-07, L2):** no busy-day dots on the mini month for
+  now (the list loads about a month at a time, so far months would look
+  empty).
+
+- **229 (decided by Hill, 2026-11-07, L2):** wide Schedule loses its
+  "Month YYYY" title row from a 50rem container (the mini month carries
+  the month), in a small follow-up PR with its own gate pass; phones and
+  820 upright keep the row and the month-jump sheet.
+- **230 (decided by Hill):** Captain's A-L2-3 (a container class string a
+  skeleton mirrors is exported once); the Dashboard and Year pairs come
+  into line in L3.
+- **231 (decided by Hill):** Captain's A-L2-4, one Calendar file-size
+  trend row in STRUCTURE.md.
+- **232 (decided by Hill):** a tapped empty day rings the next day the
+  list shows (the ring never marks a day the list is not showing). Idea
+  for later: a "Nothing planned" row for a tapped empty day, as the mock
+  draws for Mon 9.
+
 ## Open
 
 - None for the plan. Per-step design details go to Bryce with a mock, or

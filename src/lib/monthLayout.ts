@@ -34,7 +34,12 @@ import { daysEventCovers } from "./calendarDates";
 const GRID_ROWS = 6;
 const DAYS_PER_ROW = 7;
 const GRID_LENGTH = GRID_ROWS * DAYS_PER_ROW;
-const VISIBLE_LANES = 3;
+/** Lanes a Month cell shows on a phone (under 48rem), and on a wide screen.
+ * The one home for both numbers; MonthGrid lays the month out once with the
+ * wide cap and hides the extra lane on a phone with CSS. */
+export const PHONE_LANES = 3;
+export const WIDE_LANES = 4;
+const VISIBLE_LANES = PHONE_LANES;
 
 /** The Sunday-first 42-day grid (six rows of seven) for the month
  * containing `anchor`. Always six rows — a five-week month still fills a
@@ -78,10 +83,9 @@ export type MonthLayoutEvent = {
 };
 
 /** One event's position within a single row: which columns (0 = Sunday..6 =
- * Saturday) it spans, and which lane (vertical slot, 0-indexed, always < 3
- * — anything that would need lane 3+ is dropped from `spans` and folded
- * into `overflowByDay` instead, since only three rows of pills are ever
- * shown per cell). */
+ * Saturday) it spans, and which lane (vertical slot, 0-indexed, always less
+ * than the cap passed to `assignLanes` — anything that would need a higher
+ * lane is dropped from `spans` and folded into `overflowByDay` instead). */
 export type MonthLaneSpan = {
   event: MonthLayoutEvent;
   startCol: number;
@@ -92,9 +96,9 @@ export type MonthLaneSpan = {
 export type MonthLaneAssignment = {
   spans: MonthLaneSpan[];
   /** Length === rowDays.length (7 for a real row). overflowByDay[col] is
-   * how many entries touching that column didn't fit in the three visible
-   * lanes — a multi-day overflow event that touches three columns adds 1
-   * to each of those three counts, not 1 to the total, so "+N more" reads
+   * how many entries touching that column didn't fit in the visible
+   * lanes (the cap passed to `assignLanes`) — a multi-day overflow event
+   * that touches three columns adds 1 to each of those three counts, not 1 to the total, so "+N more" reads
    * correctly on every cell it would have covered, not just its first. */
   overflowByDay: number[];
 };
@@ -133,17 +137,53 @@ function compareCandidates(a: Candidate, b: Candidate): number {
   return 0;
 }
 
+/** The phone's "+N more" counts, derived from a row laid out with
+ * `WIDE_LANES`. Lane numbers do not depend on the cap (occupancy of hidden
+ * lanes is tracked), so a span on the wide-only lane (3) is exactly what the
+ * phone would have folded into overflow: add 1 to every column it covers on
+ * top of the wide overflow. Equals `assignLanes(rowDays, events, PHONE_LANES)
+ * .overflowByDay`. */
+export function phoneOverflowByDay(wide: MonthLaneAssignment): number[] {
+  const counts = [...wide.overflowByDay];
+  for (const span of wide.spans) {
+    if (span.lane < PHONE_LANES) continue;
+    for (let col = span.startCol; col <= span.endCol; col++) counts[col] += 1;
+  }
+  return counts;
+}
+
+/** Which of a Month cell's lane slots render, and at which width. `slots`
+ * is one column's lanes (length `WIDE_LANES`), any non-null entry meaning
+ * "filled". Per lane: "both" (phone and wide: at or above the phone's last
+ * filled lane), "wide" (only from 48rem: past the phone's last filled lane
+ * but not past the wide one), "none" (past the last filled lane at every
+ * width, so nothing renders). The result has one entry per lane up to the
+ * wide last filled lane, so a day whose only entry sits on the wide-only lane
+ * shows nothing on a phone except "+N more", never blank spacers. */
+export function laneVisibility(slots: readonly unknown[]): ("both" | "wide" | "none")[] {
+  let phoneLast = -1;
+  let wideLast = -1;
+  slots.forEach((slot, lane) => {
+    if (!slot) return;
+    wideLast = lane;
+    if (lane < PHONE_LANES) phoneLast = lane;
+  });
+  return slots.map((_, lane) =>
+    lane <= phoneLast ? "both" : lane <= wideLast ? "wide" : "none",
+  );
+}
+
 /** Given one row's seven Dates and the events that might touch it, packs
  * each event into the lowest free lane (greedy interval packing) and caps
- * visible lanes at three per cell. `events` may include events that don't
+ * visible lanes per cell (three by default). `events` may include events that don't
  * touch this row at all (e.g. the caller's whole fetched set) — anything
  * `daysEventCovers` returns no days for is silently skipped, so the caller
  * doesn't need to pre-filter per row.
  *
- * `visibleLanes` defaults to the module's own `VISIBLE_LANES` (3) — Month's
- * own call (MonthGrid.tsx) never passes a third argument, so its behavior
- * is byte-for-byte unchanged by this parameter's existence. It exists for a
- * SECOND caller (mission-17/C5): TimelineGrid.tsx's all-day strip caps at
+ * `visibleLanes` defaults to the module's own `VISIBLE_LANES` (3, the phone
+ * count). Month (MonthGrid.tsx) passes `WIDE_LANES` and derives the phone
+ * counts with `phoneOverflowByDay`. The parameter was added for a SECOND
+ * caller (mission-17/C5): TimelineGrid.tsx's all-day strip caps at
  * the same 3 lanes by default, but its "+N more" used to be a dead end — an
  * inert `<span>`, no route to the 4th+ item at all, and Month's own "+N
  * more" escalates INTO that exact dead end by navigating to Day. Passing a

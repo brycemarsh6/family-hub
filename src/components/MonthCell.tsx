@@ -1,6 +1,7 @@
 import { CalendarOff } from "lucide-react";
 import { avatarColorHex } from "@/lib/constants";
 import { isPast } from "@/lib/calendarDates";
+import { laneVisibility } from "@/lib/monthLayout";
 import { formatDayLabel } from "@/lib/mealPlanDates";
 import { bandedBackground } from "@/lib/color";
 import type { CalendarEventView } from "@/lib/types";
@@ -67,7 +68,7 @@ export type MonthCellSlot = {
  * One day of the Month grid: the day number (adjacent-month muted, today
  * accent-circled — today wins even on an adjacent-month padding day, since
  * knowing "today" matters more than which month a filler day belongs to),
- * up to three pill/bar slots, an optional "+N more" line, and the smaller
+ * up to four pill/bar slots (three on a phone), an optional "+N more" line, and the smaller
  * not-loaded glyph (C4's `CalendarOff`, per the contract) when the fetch
  * window doesn't fully cover this day. The WHOLE cell is one `<button>` —
  * not just the day number — both because nothing else inside is
@@ -84,6 +85,7 @@ export function MonthCell({
   notLoaded,
   slots,
   overflow,
+  phoneOverflow,
   onOpen,
 }: {
   day: Date;
@@ -91,30 +93,26 @@ export function MonthCell({
   isCurrentMonth: boolean;
   isToday: boolean;
   notLoaded: boolean;
-  /** Always length 3 (`VISIBLE_LANES` in MonthGrid.tsx, which builds this
-   * per column from one row's `assignLanes` call). */
+  /** Always length `WIDE_LANES` (4, monthLayout.ts); the fourth lane shows
+   * only from 48rem wide. MonthGrid builds this per column. */
   slots: MonthCellSlot[];
+  /** "+N more" for the wide look (4 lanes). */
   overflow: number;
+  /** "+N more" for the phone look (3 lanes). */
+  phoneOverflow: number;
   onOpen: () => void;
 }) {
   // B4 (mission-9/C5, Strange's finding): only render lanes UP TO the last
   // genuinely filled one. A `null` slot BELOW that point is an interior gap
-  // — a hidden bar in a lane a DIFFERENT column occupies — and must still
+  // (a hidden bar in a lane a DIFFERENT column occupies) and must still
   // render as a blank spacer, or same-lane pills in neighbouring columns
   // would drift out of vertical alignment. A `null` slot AFTER the last
-  // filled one is pure reserved space nobody's using; rendering it left a
-  // visible 16px hole directly above "+N more" that read as a bug rather
-  // than as "this day only has two things." Dropping only the trailing
-  // slice keeps constraint 2 (2 pills + "+1 more" with a legitimately empty
-  // THIRD slot mid-column) intact — that empty slot is interior when a
-  // later column's bar still owns lane 2 in this row, so it's still drawn.
-  let lastFilledLane = -1;
-  for (let lane = slots.length - 1; lane >= 0; lane--) {
-    if (slots[lane]) {
-      lastFilledLane = lane;
-      break;
-    }
-  }
+  // filled one is reserved space nobody uses; rendering it left a 16px hole
+  // above "+N more". `laneVisibility` (monthLayout.ts) decides this once per
+  // width: the phone stops at its last filled lane of 0 to 2, wide at its
+  // last filled lane of 0 to 3 (mission-46/F1).
+  const visibility = laneVisibility(slots);
+  const phoneHasLanes = visibility.includes("both");
 
   return (
     <button
@@ -142,7 +140,7 @@ export function MonthCell({
         )}
       </div>
 
-      {lastFilledLane >= 0 && (
+      {visibility.length > 0 && visibility[0] !== "none" && (
         // B2 (mission-9/C5): `-mx-1` cancels this button's own `p-1`
         // padding for the pill track ONLY — the day number and "+N more"
         // above/below keep theirs. Combined with MonthGrid's ROW_CLASS
@@ -152,10 +150,22 @@ export function MonthCell({
         // between them — that gap (not the rounding logic, which was
         // already correct) is what made a 3-day bar read as three
         // unrelated chips.
-        <div className="-mx-1 flex flex-col gap-0.5">
-          {Array.from({ length: lastFilledLane + 1 }, (_, lane) => {
+        <div className={`-mx-1 flex-col gap-0.5 ${phoneHasLanes ? "flex" : "hidden @min-[48rem]:flex"}`}>
+          {visibility.map((show, lane) => {
+            if (show === "none") return null;
             const slot = slots[lane];
-            if (!slot) return <span key={lane} aria-hidden="true" className="block h-4" />;
+            // "wide" lanes are display:none on a phone, so they leave no gap
+            // above "+N more" (mission-46/C2, F1).
+            const laneShow = show === "wide" ? "hidden @min-[48rem]:block" : "block";
+            if (!slot) {
+              return (
+                <span
+                  key={lane}
+                  aria-hidden="true"
+                  className={`${laneShow} h-4 @min-[48rem]:h-[18px]`}
+                />
+              );
+            }
             const past = isPast(slot.event.endAt, today);
             // C3b: a completed task is "done", which is a DIFFERENT claim
             // from a past event being merely over (see EventCard.tsx:63-73's
@@ -183,7 +193,7 @@ export function MonthCell({
             return (
               <span
                 key={lane}
-                className={`block h-4 truncate border-y px-1 text-[9px] leading-4 ${
+                className={`${laneShow} h-4 truncate border-y px-1 text-[9px] leading-4 @min-[48rem]:h-[18px] @min-[48rem]:text-xs @min-[48rem]:leading-[18px] ${
                   past || done ? "font-medium text-muted border-muted" : "font-semibold text-fg border-fg"
                 } ${slot.roundLeft ? "rounded-l border-l" : ""} ${slot.roundRight ? "rounded-r border-r" : ""}`}
                 style={{ background: bandedBackground(colors, past || done ? 0.05 : 0.1) }}
@@ -342,8 +352,15 @@ export function MonthCell({
         </div>
       )}
 
+      {phoneOverflow > 0 && (
+        <span className="text-[9px] leading-tight text-muted @min-[48rem]:hidden">
+          +{phoneOverflow} more
+        </span>
+      )}
       {overflow > 0 && (
-        <span className="text-[9px] leading-tight text-muted">+{overflow} more</span>
+        <span className="hidden text-xs leading-tight text-muted @min-[48rem]:inline">
+          +{overflow} more
+        </span>
       )}
     </button>
   );

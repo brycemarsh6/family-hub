@@ -1,6 +1,13 @@
 "use client";
 
-import { monthGridDays, assignLanes, isTodayCell, type MonthLayoutEvent } from "@/lib/monthLayout";
+import {
+  monthGridDays,
+  assignLanes,
+  isTodayCell,
+  phoneOverflowByDay,
+  WIDE_LANES,
+  type MonthLayoutEvent,
+} from "@/lib/monthLayout";
 import {
   daysEventCovers,
   isOutsideWindow,
@@ -62,7 +69,6 @@ function habitDayAsMonthEvent(item: CalendarHabitDayView): CalendarEventView {
 
 const GRID_ROWS = 6;
 const ROW_LENGTH = 7;
-const VISIBLE_LANES = 3;
 
 // Same header-row-plus-rows wrapper classes on both the SHORT_DAY_NAMES
 // header and every day row below, so the two stay column-aligned by
@@ -178,7 +184,9 @@ export function MonthGrid({
   const doneHabitDayIds = new Set(habitDays.filter((item) => item.done).map((item) => item.id));
 
   return (
-    <div>
+    // One @container for the whole grid: MonthCell switches to 4 chips of
+    // 12px titles from 48rem wide (mission-46/C2), by CSS alone.
+    <div className="@container">
       <div className={`${ROW_CLASS} pb-1 text-center text-xs font-semibold uppercase tracking-wide text-muted`}>
         {SHORT_DAY_NAMES.map((name) => (
           <span key={name}>{name}</span>
@@ -188,7 +196,8 @@ export function MonthGrid({
       <div className="flex flex-col gap-1">
         {Array.from({ length: GRID_ROWS }, (_, rowIndex) => {
           const rowDays = gridDays.slice(rowIndex * ROW_LENGTH, (rowIndex + 1) * ROW_LENGTH);
-          const { spans, overflowByDay } = assignLanes(rowDays, layoutEvents);
+          const { spans, overflowByDay } = assignLanes(rowDays, layoutEvents, WIDE_LANES);
+          const phoneOverflow = phoneOverflowByDay({ spans, overflowByDay });
 
           // Constraint 1 (Vision, mission-9): a continuing bar may land on
           // a DIFFERENT lane in the row below, so continuity can only be
@@ -200,7 +209,7 @@ export function MonthGrid({
           const dayAfterRow = addDays(rowDays[ROW_LENGTH - 1], 1);
 
           const cellSlots: MonthCellSlot[][] = rowDays.map(() =>
-            new Array(VISIBLE_LANES).fill(null) as MonthCellSlot[],
+            new Array(WIDE_LANES).fill(null) as MonthCellSlot[],
           );
           for (const span of spans) {
             const event = eventById.get(span.event.id);
@@ -254,6 +263,7 @@ export function MonthGrid({
                   notLoaded={isOutsideWindow(day, windowStart, windowEnd)}
                   slots={cellSlots[col]}
                   overflow={overflowByDay[col]}
+                  phoneOverflow={phoneOverflow[col]}
                   onOpen={() => onOpenDay(day)}
                 />
               ))}
