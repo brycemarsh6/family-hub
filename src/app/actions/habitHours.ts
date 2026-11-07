@@ -12,14 +12,12 @@ import { revalidatePath } from "next/cache";
 import { getVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { canLogFor } from "@/lib/habits/access";
-import { isTapDayAllowed } from "@/lib/habits/carryOver";
-import { addHabitTime as addHabitTimeRow, removeHabitTime as removeHabitTimeRow } from "@/lib/habits/habitWrites";
-import { HOURS_LIMITS } from "@/lib/habitHoursVocabulary";
+import { HABIT_NOT_FOUND, logHours, removeHours } from "@/lib/habitTapWrites";
 import { parseDateParam } from "@/lib/householdDate";
-import { loadHabitForAction, loadTimeEntryForAction } from "@/lib/habitsRead";
+import { missing } from "@/lib/writeError";
 import type { HabitActionResult } from "./habits";
 
-const NOT_FOUND = "That habit isn't available.";
+const NOT_FOUND = HABIT_NOT_FOUND;
 const NOT_SIGNED_IN = "Not signed in.";
 
 function done(): HabitActionResult {
@@ -29,27 +27,18 @@ function done(): HabitActionResult {
   return {};
 }
 
-/** Minutes the sheet could have sent: a whole multiple of the step, from the smallest entry to the largest. */
-function validMinutes(minutes: unknown): minutes is number {
-  const { entryStep, entryMin, entryMax } = HOURS_LIMITS;
-  return typeof minutes === "number" && Number.isInteger(minutes) && minutes >= entryMin && minutes <= entryMax && minutes % entryStep === 0;
-}
-
 /** Log time for you (or `forUserId`) on a day in the last week up to today. Several entries may share a day. */
 export async function addHabitTime(habitId: string, forUserId: string, dayIso: string, minutes: number): Promise<HabitActionResult> {
   const user = await getVerifiedUser();
   if (!user) return { error: NOT_SIGNED_IN };
   if (typeof habitId !== "string" || typeof forUserId !== "string") return { error: NOT_FOUND };
-  const habit = await loadHabitForAction(habitId);
-  if (!habit || !canLogFor({ userId: user.userId, role: user.role }, forUserId, habit)) return { error: NOT_FOUND };
-  if (habit.archived) return { error: "That habit is archived." };
-  if (!validMinutes(minutes)) return { error: "Pick a time from half an hour to 12 hours." };
-  const today = householdToday(new Date())!;
-  const day = typeof dayIso === "string" ? parseDateParam(dayIso) : null;
-  if (!day || !isTapDayAllowed(day, today, null)) return { error: "Pick a day from the last week." };
   try {
-    const entry = await addHabitTimeRow({ habitId, userId: forUserId, day, minutes, loggedById: user.userId }, today);
-    if (!entry) return { error: "That habit doesn't track hours." };
+    const result = await logHours(
+      (h) => canLogFor({ userId: user.userId, role: user.role }, forUserId, h),
+      { habitId, forUserId, day: typeof dayIso === "string" ? parseDateParam(dayIso) : null, minutes, loggedById: user.userId },
+      householdToday(new Date())!,
+    );
+    if ("error" in result) return { error: result.error };
     return done();
   } catch (err) {
     console.error("addHabitTime failed", err);
@@ -63,11 +52,12 @@ export async function removeHabitTime(entryId: string): Promise<HabitActionResul
   if (!user) return { error: NOT_SIGNED_IN };
   if (typeof entryId !== "string") return { error: NOT_FOUND };
   try {
-    const entry = await loadTimeEntryForAction(entryId);
-    if (!entry) return {};
-    const habit = await loadHabitForAction(entry.habitId);
-    if (!habit || !canLogFor({ userId: user.userId, role: user.role }, entry.userId, habit)) return { error: NOT_FOUND };
-    await removeHabitTimeRow(entryId, householdToday(new Date())!);
+    const result = await removeHours(
+      (entry, habit) => (canLogFor({ userId: user.userId, role: user.role }, entry.userId, habit) ? null : missing(HABIT_NOT_FOUND)),
+      entryId,
+      householdToday(new Date())!,
+    );
+    if ("error" in result) return { error: result.error };
     return done();
   } catch (err) {
     console.error("removeHabitTime failed", err);

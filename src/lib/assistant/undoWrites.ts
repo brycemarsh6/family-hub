@@ -16,6 +16,7 @@ import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { isForeignKeyViolationError, isUniqueViolationError } from "@/lib/prismaErrors";
 import { ApiError, notFound } from "./errors";
+import { afterUndo } from "./undoHooks";
 import type { ChangeInput } from "./audit";
 import {
   FOREIGN_KEYS,
@@ -80,6 +81,10 @@ function delegate(tx: Tx, model: UndoModel): Delegate {
     CookbookRecipe: tx.cookbookRecipe,
     MealPlan: tx.mealPlan,
     MealPlanEntry: tx.mealPlanEntry,
+    Habit: tx.habit,
+    HabitParticipant: tx.habitParticipant,
+    HabitLog: tx.habitLog,
+    HabitTimeEntry: tx.habitTimeEntry,
   };
   return tables[model] as Delegate;
 }
@@ -93,6 +98,13 @@ function countReferences(tx: Tx, ref: Reference, parentId: string, exclude: stri
     RecipeTag: tx.recipeTag,
     CookbookRecipe: tx.cookbookRecipe,
     MealPlanEntry: tx.mealPlanEntry,
+    HabitParticipant: tx.habitParticipant,
+    HabitLog: tx.habitLog,
+    HabitTimeEntry: tx.habitTimeEntry,
+    HabitPlannedDay: tx.habitPlannedDay,
+    ChoreWeekOverride: tx.choreWeekOverride,
+    Nudge: tx.nudge,
+    PlanItem: tx.planItem,
   };
   return (tables[ref.child] as unknown as { count(args: { where: object }): Promise<number> }).count({ where });
 }
@@ -101,7 +113,7 @@ async function parentExists(tx: Tx, parent: string, id: string): Promise<boolean
   const where = { where: { id }, select: { id: true } };
   const tables = {
     PantryItem: tx.pantryItem, User: tx.user, Recipe: tx.recipe, Tag: tx.tag,
-    Cookbook: tx.cookbook, MealPlan: tx.mealPlan,
+    Cookbook: tx.cookbook, MealPlan: tx.mealPlan, Habit: tx.habit,
   } as Record<string, unknown>;
   const found = await (tables[parent] as { findUnique(args: object): Promise<unknown> }).findUnique(where);
   return found !== null;
@@ -248,6 +260,9 @@ export async function undoRequest(
         done.recreated++;
       }
     }
+
+    // Streak caches are not undone, they are rebuilt (same transaction).
+    await afterUndo(tx, plan.steps, now);
 
     return { result: { undone: requestId, ...done }, changes: logged };
   });

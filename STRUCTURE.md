@@ -397,7 +397,14 @@ Adding a second definition of any of these is a BLOCKER:
   callers pass `today`. `habitWrites.ts`, `participantWrites.ts`, `streakWrites.ts` and
   `planWrites.ts` (all `server-only`) are the only writers of the `Habit`,
   `HabitParticipant`, `HabitLog`, `HabitPlannedDay` and `HabitTimeEntry`
-  tables.
+  tables. One sanctioned exception (mission-47, amendment A10):
+  `src/lib/assistant/undoWrites.ts` restores, removes and re-creates
+  `Habit`, `HabitParticipant`, `HabitLog` and `HabitTimeEntry` rows from
+  audit copies only. It applies no habit rule and never writes the columns
+  that `VOLATILE` in `undoModels.ts` names (the streak caches). After its
+  steps it calls `afterUndo` (`assistant/undoHooks.ts`), which rebuilds the
+  touched streaks through `streakWrites.ts` in the same transaction. No
+  other module outside the four writer files writes these tables.
   `streakWrites.ts` alone writes the cached streak columns (`currentStreak`,
   `bestStreak`, `streakAsOf`; split out of `habitWrites.ts` in mission-35),
   `participantWrites.ts` holds the participant writes (join, reorder,

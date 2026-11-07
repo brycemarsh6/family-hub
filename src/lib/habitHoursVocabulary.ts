@@ -23,6 +23,8 @@ export function toPaceDays(raw: unknown): PaceDays {
 /** Entries are whole minutes; the target is whole hours. */
 export const HOURS_LIMITS = {
   entryStep: 30,
+  /** What the server accepts for an entry: any whole multiple of this, from `entryMin` to `entryMax` (mission 47). The sheet's stepper keeps `entryStep`. */
+  entryGrain: 15,
   entryMin: 30,
   entryMax: 720,
   entryDefault: 60,
@@ -34,6 +36,12 @@ export const HOURS_LIMITS = {
   /** The amounts the log sheet's chips jump to (decision 182). */
   chips: [30, 60, 120],
 } as const;
+
+/** Whether `minutes` is an entry the server accepts: a whole number from the smallest entry to the largest, in quarter hours. The one rule behind the log action and the Assistant API. */
+export function checkEntryMinutes(minutes: unknown): minutes is number {
+  const { entryGrain, entryMin, entryMax } = HOURS_LIMITS;
+  return typeof minutes === "number" && Number.isInteger(minutes) && minutes >= entryMin && minutes <= entryMax && minutes % entryGrain === 0;
+}
 
 /** "hour" up to and including one hour ("1 hour", "½ hour"), else "hours". */
 export function unitFor(minutes: number): "hour" | "hours" {
