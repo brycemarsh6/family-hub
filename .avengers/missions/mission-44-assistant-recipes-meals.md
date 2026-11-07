@@ -239,13 +239,139 @@
 - **Evidence / done:** test names and counts before/after; sizes;
   `git diff --stat`.
 
-### C4, recipe routes (after C1, C2, C3)
+### Route rules (C4, C5)
 
-To be written when C1-C3 report.
+- Every route file exports only `export const <METHOD> = assistantRoute(...)`
+  (`openapi.test.ts` enforces it). Thin routes: parse, call lib, shape.
+  Reads go through small `server-only` read modules in `src/lib/assistant/`
+  (one `Promise.all`, narrow `select`), shaped by pure serializers.
+- Every write pushes one `changes` entry per row with `before`/`after`
+  copies from the write module (model names exactly as the undo allowlist:
+  `Recipe`, `Tag`, `RecipeTag`, `CookbookRecipe`, `MealPlan`,
+  `MealPlanEntry`). A no-op write (re-share an already-shared recipe,
+  clear an empty slot) records nothing.
+- Ingredient and step lines travel as arrays of strings (`recipeLines`
+  when reading; joined with `\n` when writing).
+- Never print family data in evidence; ids and counts only.
 
-### C5, meal-plan routes (after C4)
+### C4, recipe routes
 
-To be written when C1-C3 report.
+- **Objective:** Winnie can list, read, create, edit, mark cooked, share
+  and stop sharing recipes, see what she's missing, and list/create tags
+  and list cookbooks; every write undoable.
+- **Boundaries.** May touch: new `src/lib/assistant/schemasRecipes.ts`
+  (+ test), new `src/lib/assistant/recipeReads.ts`, new
+  `src/lib/assistant/serializeRecipes.ts` (+ test), new
+  `src/lib/assistant/openapiRecipePaths.ts`, `src/lib/assistant/openapi.ts`
+  (import + spread only), `src/lib/assistant/errors.ts` (add
+  `ai_unavailable`), new route files under `src/app/api/assistant/v1/`:
+  `recipes/route.ts`, `recipes/[id]/route.ts`, `recipes/[id]/cooked/route.ts`,
+  `recipes/[id]/share/route.ts`, `recipes/[id]/shortfall/route.ts`,
+  `cookbooks/route.ts`, `tags/route.ts`. Must not touch the write modules
+  (`recipeWrites.ts`, `mealPlanWrites.ts`, `recipeIngredientMatch.ts`),
+  undo files, actions, or C5's files (`schemasMealPlan.ts`,
+  `mealPlanReads.ts`, `serializeMealPlan.ts`, `openapiMealPlanPaths.ts`,
+  `meal-plan/**`). If a write module lacks something, stop and report
+  BLOCKED-ON-CONTRACT.
+- **Shapes:**
+  - `GET /recipes?q&tagId&cookbookId&maxMinutes`: `q` via `searchRecipes`,
+    `maxMinutes` against prep + cook via `parseTimeToMinutes` (a recipe
+    with no parseable time is left out when `maxMinutes` is set). Items:
+    `{ id, title, rating, lastCookedAt, servings, prepTime, cookTime,
+    totalMinutes, tags: [{id,name}], cookbooks: [{id,title}], shared }`.
+  - `GET /recipes/{id}`: the list item plus `ingredients: string[]`,
+    `steps: string[]`, `notes`, `sourceUrl`, `shareUrl` (absolute, from
+    the request origin + `/share/recipe/{token}`, or null),
+    `nutrition: { calories, proteinG, carbsG, fatG, perServings,
+    isEstimate: true, outdated }` or null (`outdated` from
+    `nutritionFingerprint.ts`).
+  - `POST /recipes` `{ title, ingredients: string[] (≥1), steps: string[]
+    (≥1), servings?, prepTime?, cookTime?, sourceUrl?, notes?, cookbookId?,
+    tagIds? }` → 201 `{ recipe }` (detail shape). Unknown cookbook/tag →
+    404 `not_found` naming which.
+  - `PATCH /recipes/{id}`: any of the text fields, `rating` (1-5 or null),
+    `tagIds` (the full set) → `{ recipe }`. At least one key. Fields and
+    tags are two writes; say in a code comment that a failure between them
+    leaves the first recorded (and undoable).
+  - `POST /recipes/{id}/cooked` `{}` → `{ recipe: { id, lastCookedAt } }`.
+  - `POST /recipes/{id}/share` `{}` → `{ shareUrl }`;
+    `DELETE /recipes/{id}/share` → `{ shareUrl: null }`.
+  - `GET /recipes/{id}/shortfall` → `{ recipeId, readable, have:
+    [{line,name,matchedName}], missing: [{line,name}], onList:
+    [{line,name}] }`; `readable: false` with empty lists when the recipe
+    has no lines or nothing parseable; AI failure → 503 `ai_unavailable`,
+    "Couldn't reach the AI to read the ingredients just now. Try again in a
+    moment."; unknown recipe 404.
+  - `GET /cookbooks` → `{ cookbooks: [{id,title,recipeCount}] }`;
+    `GET /tags` → `{ tags: [{id,name,recipeCount}] }`;
+    `POST /tags` `{ name }` → `{ tag, created }` (201 when created).
+- **Verification:** tsc, eslint, `npm test`, both TZ legs. Live (port 3170,
+  setup above), positive control first (`GET /openapi.json` 200, then
+  `GET /recipes` count = DB count): each route once on `ZZZ Assistant Test`
+  rows; then undo (`POST /audit/{requestId}/undo`) for each write: create
+  with a tag and a cookbook (all three rows gone), edit + tags (row and
+  tag set back exactly), cooked, share (token gone, old link 404), stop
+  share, new tag; redo of one. Refusals: family-style edit of Winnie's
+  recipe by script, then undo → 409 `changed_since`; family adds a tag to
+  Winnie's new recipe by script, then undo the create → 409 `in_use`,
+  nothing changed. Shortfall once for real (1 Haiku call) and once with
+  `ANTHROPIC_API_KEY` blanked in a second server's process env → 503.
+  Counts before/after; all test rows and AssistantRequests deleted by id.
+- **Evidence / done:** outputs per check (a FAIL is reported as FAIL),
+  sizes, `git diff --stat` inside the boundary, commit hash.
+
+### C5, meal-plan routes (parallel with C4)
+
+- **Objective:** Winnie can read a week, fill or clear a meal, and see the
+  week's grocery needs, with one plan per week and every write undoable.
+- **Boundaries.** May touch: new `src/lib/assistant/schemasMealPlan.ts`
+  (+ test), new `src/lib/assistant/mealPlanReads.ts`, new
+  `src/lib/assistant/serializeMealPlan.ts` (+ test), new
+  `src/lib/assistant/openapiMealPlanPaths.ts`, new route files
+  `src/app/api/assistant/v1/meal-plan/route.ts`,
+  `meal-plan/days/[date]/[slot]/route.ts`,
+  `meal-plan/grocery-needs/route.ts`. Must NOT touch `openapi.ts` or
+  `errors.ts` (C4 owns them; Fury wires your registry file after both
+  commit, so `openapi.test.ts` failing only on your new routes is expected
+  until then: say so, show it is only those). Use the `ai_unavailable`
+  code once C4 has committed it; if it isn't there yet, use 503 `busy` and
+  say so. Must not touch write modules, undo files, actions, C4's files.
+- **Rules:**
+  - A date's week: `startOfWeek` of the `CalendarDate`; the plan is found
+    with `findPlanNear(zoneMidnightInstant(sunday, HOUSEHOLD_TIME_ZONE),
+    PLAN_TOLERANCE_MS)` and created with `getOrCreatePlanNear` at that
+    instant only by a PUT. `dayOffset = calendarDaysBetween(sunday, date)`.
+  - `GET /meal-plan?weekOf=YYYY-MM-DD` (default: today in Denver via
+    `requireHouseholdToday`) → `{ weekOf, planId | null, days: [{ date,
+    meals: { Breakfast, Lunch, Dinner, Snacks } }] }`, each meal
+    `{ title, recipeId, recipeTitle } | null`.
+  - `PUT /meal-plan/days/{date}/{slot}` `{ title?, recipeId? }` (at least
+    one; title defaults to the recipe's title) → `{ date, slot, meal }`.
+    Slot must be one of `MEAL_SLOTS` exactly (else 400). Records a
+    `MealPlan` create change when it made the plan, and the
+    `MealPlanEntry` create/update with copies. Recipe missing → 404.
+  - `DELETE /meal-plan/days/{date}/{slot}` → `{ cleared: boolean }`; a
+    `MealPlanEntry` delete change only when something was cleared.
+  - `GET /meal-plan/grocery-needs?weekOf=` → every distinct recipe linked
+    in that week, all their lines in ONE `classifyIngredientLines` call,
+    deduped by lower-cased name: `{ weekOf, recipes: [{id,title}], missing:
+    [{ name, from: [{recipeId, line}] }], onList: [name], have: [name] }`.
+    No linked recipes → empty lists, no AI call. AI failure → 503.
+- **Verification:** tsc, eslint, `npm test`, both TZ legs. Live (port
+  3175), weeks in 2030 only (check none exist first): positive control;
+  PUT into an empty 2030 week → one plan at Denver midnight; a second PUT
+  same week → same plan; pre-create a plan at Denver midnight + 1 h (a
+  Pacific phone) for another week, PUT there → no new plan; same across the
+  DST week of 2030-11-03 (Sunday) by script: the stored instant read with
+  `TZ=America/Denver` is local midnight of that Sunday. 5 parallel PUTs to
+  an empty week → one plan. Undo: PUT that created the plan (plan and
+  entry gone); overwrite (old meal back); clear (meal back, same id); redo.
+  Refusals: family fills another slot in Winnie's new plan by script, then
+  undo the creating PUT → 409 `in_use`, nothing changed; family edits the
+  entry → `changed_since`. grocery-needs once for real on a 2030 week with
+  two `ZZZ Assistant Test` recipes (1 Haiku call). Counts before/after; all
+  test rows and AssistantRequests deleted by id.
+- **Evidence / done:** as C4.
 
 ## Gate ledger
 
@@ -261,3 +387,31 @@ To be written when C1-C3 report.
   the `parallel-work-strategy` worktree). Branch cut from `5a3cdc0`. Bryce
   answered the four scope calls live (above). C1, C2, C3 dispatched in
   parallel (disjoint files).
+- 2026-11-06: C2 DONE `3a6267a` (4 files). Parity 21/21 on 2030 weeks:
+  parallel plan creates → 1 row; near lookup 3 h yes / 15 h no; 10
+  parallel slot sets → one chain of copies; recipe-missing message; classify
+  JSON-identical to the old path. Counts MealPlan 5 / Entry 14 / Recipe 146
+  restored. `mealPlanWrites.ts` 166, `recipeIngredientMatch.ts` 155 (grep
+  counter, not preflight). For the gates: two creators at different instants
+  inside ±14 h can still both create (no lock; phone in another zone vs
+  Winnie); recipe deleted between check and insert throws FK (as before).
+- 2026-11-06: C1 DONE `344e429` (3 files). Row lock (`FOR UPDATE`) for
+  every recipe update, so copies are exact with no retry. Parity 45/45
+  (create/update field by field, copies equal DB, messages, rating bounds,
+  10 parallel shares → one token, tag case-insensitive, set-tags diff).
+  Counts Recipe 146 / Tag 19 / RecipeTag 310 / CookbookRecipe 135 restored.
+  `recipeWrites.ts` 329/243 (awk counter). Behaviour notes for the gates:
+  `addTagToRecipe` on a deleted recipe/tag now returns the existing
+  "no longer exists" messages instead of a 500; `findOrCreateTagRow`
+  re-finds on an exact-name P2002 race. No new wording (both messages
+  already exist in the app).
+- 2026-11-06: C3 DONE `5c6b8b6` (5 files; new `undoModels.ts` 167). Eight
+  models pinned `Record<keyof Model, …>` (fake key fails tsc, shown).
+  Removes child-first, re-creates parent-first; `referenceChecks` excludes
+  rows the plan removes; parents locked FOR UPDATE sorted; FK miss → 409
+  `missing` unless the DB would SetNull. Tests 15 → 21 in `undoPlan.test.ts`;
+  1182 pass, both TZ legs (UTC 7 skipped, not C3's files). Two deliberate
+  changes to old models: re-create order now parent-first (a pantry row and
+  its linked line come back with the link kept), pantry `in_use` ignores
+  lines the plan removes. DB paths unproven until C4/C5 live. C4 and C5
+  written and dispatched in parallel (disjoint; Fury wires C5's registry).
