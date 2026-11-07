@@ -1,7 +1,7 @@
 # Mission 48: Winnie's daily morning briefing
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (C1)
+**Status:** DELIVERING (all gates PASS)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/winnie-briefing` (from `origin/main` at `fc9772b`)
 
@@ -547,3 +547,11 @@ Vercel's timer uses to call Marshee. Without it the briefing never runs.
   briefing is skipped, not sent later.
 - A-48-2 and A-48-4 (medium): STRUCTURE.md homes for event words and the
   meal-plan week rule.
+- 2026-11-07: **Vision pass 2: PASS** on F1 (hour sweep 2025 to 2027 again
+  clean; `hourInZone` matched the old method every minute of 2025 to 2027
+  in five zones; `formatHouseholdClock` matched every minute of 2026;
+  feedback labels unchanged). Notes: a failed status write after a refusal
+  leaves the row "sending" (still blocks a resend); the two new
+  householdDate helpers build an Intl formatter per call (fine at these
+  volumes). Fury removed the worktree's `.env` symlink. **Status: all gates
+  PASS; delivering.**
