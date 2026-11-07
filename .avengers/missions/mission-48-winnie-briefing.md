@@ -481,3 +481,11 @@ Preflight's one hard failure on C2 is the schema's length; STRUCTURE.md
   signatures; any feedback label change shown by its tests.
 - **Done criteria:** Captain and Vision re-pass; the approved six-line copy
   test is unchanged and green.
+- 2026-11-07: F1 DONE (Stark). `householdDate.ts` gains
+  `hourInZone(instant, timeZone)` and `formatHouseholdClock(instant,
+  timeZone, { dropZeroMinutes })`; `feedbackTime.ts` uses it (labels
+  unchanged by its tests); `formatBriefingClock` and
+  `isBriefingRecipientRole` deleted; `isUniqueViolationError` in
+  `briefingSent.ts`; `AND` filter in `loadHouseholdAdults`; `maxDuration =
+  60` and a `recordOutcome` helper in the route. 1329 tests pass (UTC 1322
+  + 7 DST skips). Vision pass 2 dispatched.

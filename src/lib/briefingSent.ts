@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import { Prisma } from "@/generated/prisma/client";
+import { isUniqueViolationError } from "@/lib/prismaErrors";
 import { utcMidnightInstant, type CalendarDate } from "@/lib/householdDate";
 
 // The once-a-day guard for Winnie's morning briefing (mission 48). The cron
@@ -20,7 +20,7 @@ export async function claimBriefing(userId: string, day: CalendarDate, eventId: 
     });
     return true;
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return false;
+    if (isUniqueViolationError(error)) return false;
     throw error;
   }
 }

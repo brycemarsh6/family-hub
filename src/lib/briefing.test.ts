@@ -7,19 +7,19 @@ import {
   briefingTasks,
   briefingTitle,
   buildBriefingMessage,
-  formatBriefingClock,
   isBriefingHour,
-  isBriefingRecipientRole,
   joinNames,
   type BriefingInput,
 } from "./briefing";
 import { formatAllDayLabel } from "./calendarDates";
+import { formatHouseholdClock } from "./householdDate";
 
 const FRI = { year: 2026, month: 11, day: 13 };
 
 // Denver wall clock to an instant. Nov 13 is MST (UTC-7); Jul 10 is MDT (UTC-6).
 const mst = (day: number, h: number, m = 0, s = 0) => new Date(Date.UTC(2026, 10, day, h + 7, m, s));
 const mdt = (day: number, h: number, m = 0, s = 0) => new Date(Date.UTC(2026, 6, day, h + 6, m, s));
+const clock = (instant: Date) => formatHouseholdClock(instant, "America/Denver", { dropZeroMinutes: true });
 const utcDay = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d));
 
 const base: BriefingInput = {
@@ -33,12 +33,8 @@ const base: BriefingInput = {
   picks: [],
 };
 
-test("event type and recipient roles", () => {
+test("event type", () => {
   assert.equal(BRIEFING_EVENT_TYPE, "briefing.daily");
-  assert.equal(isBriefingRecipientRole("admin"), true);
-  assert.equal(isBriefingRecipientRole("parent"), true);
-  assert.equal(isBriefingRecipientRole("kid"), false);
-  assert.equal(isBriefingRecipientRole("device"), false);
 });
 
 test("date label and title", () => {
@@ -55,14 +51,6 @@ test("the hour check in winter (MST) and summer (MDT)", () => {
   assert.equal(isBriefingHour(mdt(10, 9, 0, 0)), true);
   assert.equal(isBriefingHour(mdt(10, 9, 59, 59)), true);
   assert.equal(isBriefingHour(mdt(10, 10, 0, 0)), false);
-});
-
-test("the clock: on the hour, half past, noon, midnight, quarter past", () => {
-  assert.equal(formatBriefingClock(mst(13, 10)), "10 AM");
-  assert.equal(formatBriefingClock(mst(13, 18, 30)), "6:30 PM");
-  assert.equal(formatBriefingClock(mst(13, 12)), "12 PM");
-  assert.equal(formatBriefingClock(mst(13, 0)), "12 AM");
-  assert.equal(formatBriefingClock(mst(13, 0, 15)), "12:15 AM");
 });
 
 test("joinNames", () => {
@@ -194,8 +182,8 @@ test("no output holds an en dash, an em dash or a narrow no-break space", () => 
     buildBriefingMessage(FULL),
     buildBriefingMessage(base),
     briefingTitle(FRI),
-    formatBriefingClock(mst(13, 18, 30)),
-    formatBriefingClock(mst(13, 0, 15)),
+    clock(mst(13, 18, 30)),
+    clock(mst(13, 0, 15)),
     ...briefingEvents(
       [
         { title: "Dinner", startAt: mst(13, 19, 15), endAt: mst(13, 20), allDay: false, others: ["Emily"] },

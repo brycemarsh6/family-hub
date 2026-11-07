@@ -1,11 +1,11 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
-import { calendarDateInZone } from "@/lib/householdDate";
+import { calendarDateInZone, type CalendarDate } from "@/lib/householdDate";
 import { loadHouseholdAdults, loadHouseholdPeople } from "@/lib/householdPeople";
 import { BRIEFING_EVENT_TYPE, buildBriefingMessage, briefingTitle, isBriefingHour } from "@/lib/briefing";
 import { loadBriefingInput, loadBriefingShared } from "@/lib/briefingRead";
-import { claimBriefing, finishBriefing, releaseBriefing } from "@/lib/briefingSent";
+import { claimBriefing, finishBriefing, releaseBriefing, type BriefingStatus } from "@/lib/briefingSent";
 import { buildWinnieEvent } from "@/lib/winnieEvents";
 import { sendWinnieEvent } from "@/lib/winnieNotify";
 
@@ -16,6 +16,8 @@ import { sendWinnieEvent } from "@/lib/winnieNotify";
 // counts only: no names, message text, URL, key or secret, here or in logs.
 
 export const dynamic = "force-dynamic";
+// Winnie's webhook can be slow and each adult is sent in turn; ask for the full minute.
+export const maxDuration = 60;
 
 /** True only for `Authorization: Bearer <CRON_SECRET>`. Constant-time; a missing secret never matches. */
 function isAuthorized(request: NextRequest): boolean {
@@ -26,6 +28,16 @@ function isAuthorized(request: NextRequest): boolean {
   const a = createHash("sha256").update(provided).digest();
   const b = createHash("sha256").update(`Bearer ${secret}`).digest();
   return timingSafeEqual(a, b);
+}
+
+/** Marks how a send ended. A failure here never turns into a second outcome: the send already happened. */
+async function recordOutcome(userId: string, day: CalendarDate, status: Exclude<BriefingStatus, "sending">, eventId: string) {
+  try {
+    await finishBriefing(userId, day, status);
+  } catch {
+    // The row stays "sending"; still no second send today. Only the eventId is logged.
+    console.info(`briefing outcome not recorded eventId=${eventId}`);
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -62,15 +74,15 @@ export async function GET(request: NextRequest) {
       );
       const result = await sendWinnieEvent(event);
       if (result.ok) {
-        await finishBriefing(adult.id, today, "accepted");
         counts.sent += 1;
+        await recordOutcome(adult.id, today, "accepted", eventId);
       } else if (result.reason === "not-configured") {
         // H10: nothing was tried, so leave no row and let the other run try.
         await releaseBriefing(adult.id, today);
         counts.notConfigured += 1;
       } else {
-        await finishBriefing(adult.id, today, result.reason);
         counts.failed += 1;
+        await recordOutcome(adult.id, today, result.reason, eventId);
       }
     } catch {
       // Deliberately drops the error: it could quote a name or the message.

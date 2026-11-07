@@ -6,14 +6,15 @@
 // badge words (`spanBadgeLabel`), the summary's day-covering rule
 // (`bucketEventsByDay`, `eventDayRange`) and the Today card's vacation words.
 
-import { HOUSEHOLD_TIME_ZONE, MANAGER_ROLES } from "@/lib/constants";
+import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import { spanBadgeLabel } from "@/lib/calendarDates";
 import {
   calendarDateFromUtcMidnight,
   calendarDaysBetween,
   dayOfWeek,
+  formatHouseholdClock,
   formatShortCalendarDate,
-  zoneOffsetMs,
+  hourInZone,
   type CalendarDate,
 } from "@/lib/householdDate";
 import { VACATION_TODAY_LABEL, vacationThroughLabel } from "@/lib/habitVocabulary";
@@ -22,15 +23,9 @@ import { bucketEventsByDay, eventDayRange } from "@/lib/assistant/summary";
 
 export const BRIEFING_EVENT_TYPE = "briefing.daily";
 
-/** Adults only: admin and parent. Kids and the device login get no briefing. */
-export function isBriefingRecipientRole(role: string): boolean {
-  return (MANAGER_ROLES as readonly string[]).includes(role);
-}
-
 /** True from 9:00:00 to 9:59:59 on the household's wall clock (Winnie drops anything earlier). */
 export function isBriefingHour(now: Date): boolean {
-  const local = new Date(now.getTime() + zoneOffsetMs(now, HOUSEHOLD_TIME_ZONE));
-  return local.getUTCHours() === 9;
+  return hourInZone(now, HOUSEHOLD_TIME_ZONE) === 9;
 }
 
 /** "Friday, Nov 13". */
@@ -40,21 +35,6 @@ export function briefingDateLabel(today: CalendarDate): string {
 
 export function briefingTitle(today: CalendarDate): string {
   return `Marshee briefing: ${briefingDateLabel(today)}`;
-}
-
-/** The app's clock style in Denver: "10 AM", "6:30 PM"; minutes only when not on the hour. */
-export function formatBriefingClock(instant: Date): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: HOUSEHOLD_TIME_ZONE,
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).formatToParts(instant);
-  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  const minute = part("minute");
-  const time = minute === "00" ? part("hour") : `${part("hour")}:${minute}`;
-  // Intl can put a narrow no-break space before AM/PM; the message wants a plain space.
-  return `${time} ${part("dayPeriod")}`.replace(/\s/g, " ");
 }
 
 /** "Emily" / "Emily and Ledger" / "Emily, Ledger and Lucy". */
@@ -106,7 +86,7 @@ export function briefingEvents(events: BriefingEvent[], today: CalendarDate): st
       .map(({ event, badge }) => withOthers(`${badge} ${event.title}`, event.others)),
     ...[...timed]
       .sort((a, b) => byStart(a.startAt, b.startAt))
-      .map((event) => withOthers(`${formatBriefingClock(event.startAt)} ${event.title}`, event.others)),
+      .map((event) => withOthers(`${formatHouseholdClock(event.startAt, HOUSEHOLD_TIME_ZONE, { dropZeroMinutes: true })} ${event.title}`, event.others)),
   ];
 }
 

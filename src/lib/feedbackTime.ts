@@ -3,14 +3,8 @@
 // words in any time zone (STRUCTURE.md, one source of truth: dates).
 
 import { HOUSEHOLD_TIME_ZONE } from "./constants";
-import { calendarDateInZone, calendarDaysBetween, dayOfWeek, formatShortCalendarDate } from "./householdDate";
+import { calendarDateInZone, calendarDaysBetween, dayOfWeek, formatHouseholdClock, formatShortCalendarDate } from "./householdDate";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
-
-const CLOCK = new Intl.DateTimeFormat("en-US", {
-  timeZone: HOUSEHOLD_TIME_ZONE,
-  hour: "numeric",
-  minute: "2-digit",
-});
 
 /** "Just now", "5 min ago", "3 h ago", "2 d ago", then the date ("Nov 3"). */
 export function feedbackTimeAgo(createdAt: Date, now: Date): string {
@@ -28,5 +22,5 @@ export function feedbackTimeAgo(createdAt: Date, now: Date): string {
 /** The full stamp for the detail sheet: "Tue, Nov 3, 11:30 PM" (household time). */
 export function feedbackTimeLabel(createdAt: Date): string {
   const date = calendarDateInZone(createdAt, HOUSEHOLD_TIME_ZONE);
-  return `${SHORT_DAY_NAMES[dayOfWeek(date)]}, ${formatShortCalendarDate(date)}, ${CLOCK.format(createdAt)}`;
+  return `${SHORT_DAY_NAMES[dayOfWeek(date)]}, ${formatShortCalendarDate(date)}, ${formatHouseholdClock(createdAt, HOUSEHOLD_TIME_ZONE, { dropZeroMinutes: false })}`;
 }

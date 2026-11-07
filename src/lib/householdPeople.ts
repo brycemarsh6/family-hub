@@ -36,7 +36,7 @@ export type HouseholdAdult = { id: string; displayName: string; role: Role };
 /** Every active adult (role admin or parent, never a kid or the device login), in the household order. */
 export async function loadHouseholdAdults(client: Prisma.TransactionClient = db): Promise<HouseholdAdult[]> {
   const rows = await client.user.findMany({
-    where: { ...HOUSEHOLD_PERSON_WHERE, role: { in: [...MANAGER_ROLES] } },
+    where: { AND: [HOUSEHOLD_PERSON_WHERE, { role: { in: [...MANAGER_ROLES] } }] },
     orderBy: HOUSEHOLD_ORDER_BY,
     select: { id: true, displayName: true, role: true },
   });
