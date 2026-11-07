@@ -6,7 +6,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
-import { PLAN_TOLERANCE_MS } from "@/lib/assistant/summary";
+import { planWindow } from "@/lib/mealPlanWeek";
 import { addCalendarDays, zoneMidnightInstant, type CalendarDate } from "@/lib/householdDate";
 
 export async function readSummaryData(today: CalendarDate, sunday: CalendarDate) {
@@ -26,12 +26,7 @@ export async function readSummaryData(today: CalendarDate, sunday: CalendarDate)
     db.groceryItem.findMany({ where: { checked: false }, select: { store: true } }),
     db.recipe.count(),
     db.mealPlan.findMany({
-      where: {
-        weekStart: {
-          gte: new Date(sundayInstant - PLAN_TOLERANCE_MS),
-          lte: new Date(sundayInstant + PLAN_TOLERANCE_MS),
-        },
-      },
+      where: { weekStart: planWindow(sundayInstant) },
       select: {
         weekStart: true,
         entries: { select: { dayOffset: true, slot: true, title: true, recipeId: true } },

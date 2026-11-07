@@ -35,6 +35,17 @@ export function isUniqueViolationError(error: unknown): boolean {
 }
 
 /**
+ * True when a write failed because a row it points at doesn't exist (Prisma's
+ * P2003, a foreign key violation), for example re-creating a row whose parent
+ * was deleted a moment ago.
+ */
+export function isForeignKeyViolationError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003"
+  );
+}
+
+/**
  * A transaction Postgres aborted because it collided with another one: a
  * deadlock (40P01) or serialization failure (40001). Nothing it did was kept,
  * so telling the caller to retry is safe.

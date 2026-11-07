@@ -7,7 +7,6 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
@@ -21,7 +20,13 @@ import {
 import { importRecipeFromUrl } from "@/lib/recipeUrlImport";
 import { estimateNutrition } from "@/lib/nutritionEstimate";
 import { fingerprintIngredients } from "@/lib/nutritionFingerprint";
-import { isMissingRowError } from "@/lib/prismaErrors";
+import {
+  createRecipeRow,
+  updateRecipeRow,
+  markRecipeCookedRow,
+  shareRecipeRow,
+  stopSharingRecipeRow,
+} from "@/lib/recipeWrites";
 
 function refreshRecipeViews() {
   revalidatePath("/kitchen/cooking/recipes");
@@ -52,36 +57,23 @@ export async function createRecipe(
 ): Promise<RecipeFormState> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  const title = String(formData.get("title") ?? "").trim();
-  const ingredients = String(formData.get("ingredients") ?? "").trim();
-  const steps = String(formData.get("steps") ?? "").trim();
   const cookbookId = optionalField(formData, "cookbookId");
 
-  if (!title) return { error: "Give the recipe a title." };
-  if (!ingredients) return { error: "Add at least one ingredient." };
-  if (!steps) return { error: "Add at least one step." };
-
-  if (cookbookId) {
-    const cookbook = await db.cookbook.findUnique({
-      where: { id: cookbookId },
-      select: { id: true },
-    });
-    if (!cookbook) return { error: "That cookbook no longer exists." };
-  }
-
-  const recipe = await db.recipe.create({
-    data: {
-      title,
-      ingredients,
-      steps,
+  const result = await createRecipeRow(
+    {
+      title: String(formData.get("title") ?? ""),
+      ingredients: String(formData.get("ingredients") ?? ""),
+      steps: String(formData.get("steps") ?? ""),
       servings: optionalField(formData, "servings"),
       prepTime: optionalField(formData, "prepTime"),
       cookTime: optionalField(formData, "cookTime"),
       sourceUrl: optionalField(formData, "sourceUrl"),
       notes: optionalField(formData, "notes"),
-      ...(cookbookId ? { cookbooks: { create: { cookbookId } } } : {}),
     },
-  });
+    { cookbookId },
+  );
+  if ("error" in result) return { error: result.error };
+  const { recipe } = result;
 
   refreshRecipeViews();
   if (cookbookId) revalidatePath(`/kitchen/cooking/recipes/cookbooks/${cookbookId}`);
@@ -105,34 +97,20 @@ export async function updateRecipe(
   }
 
   const id = String(formData.get("id") ?? "");
-  const title = String(formData.get("title") ?? "").trim();
-  const ingredients = String(formData.get("ingredients") ?? "").trim();
-  const steps = String(formData.get("steps") ?? "").trim();
-
   if (!id) return { error: "Missing recipe." };
-  if (!title) return { error: "Give the recipe a title." };
-  if (!ingredients) return { error: "Add at least one ingredient." };
-  if (!steps) return { error: "Add at least one step." };
 
-  const existing = await db.recipe.findUnique({
-    where: { id },
-    select: { id: true },
+  const result = await updateRecipeRow(id, {
+    title: String(formData.get("title") ?? ""),
+    ingredients: String(formData.get("ingredients") ?? ""),
+    steps: String(formData.get("steps") ?? ""),
+    servings: optionalField(formData, "servings"),
+    prepTime: optionalField(formData, "prepTime"),
+    cookTime: optionalField(formData, "cookTime"),
+    sourceUrl: optionalField(formData, "sourceUrl"),
+    notes: optionalField(formData, "notes"),
   });
-  if (!existing) return { error: "That recipe no longer exists." };
-
-  await db.recipe.update({
-    where: { id },
-    data: {
-      title,
-      ingredients,
-      steps,
-      servings: optionalField(formData, "servings"),
-      prepTime: optionalField(formData, "prepTime"),
-      cookTime: optionalField(formData, "cookTime"),
-      sourceUrl: optionalField(formData, "sourceUrl"),
-      notes: optionalField(formData, "notes"),
-    },
-  });
+  if (!result) return { error: "That recipe no longer exists." };
+  if ("error" in result) return { error: result.error };
 
   refreshRecipeViews();
   revalidatePath(`/kitchen/cooking/recipes/${id}`);
@@ -251,15 +229,10 @@ export async function shareRecipe(recipeId: string): Promise<ShareResult> {
     return { error: "Only parents can do that." };
   }
 
-  const recipe = await db.recipe.findUnique({
-    where: { id: recipeId },
-    select: { shareToken: true },
-  });
-  if (!recipe) return { error: "That recipe no longer exists." };
-  if (recipe.shareToken) return { shareToken: recipe.shareToken };
-
-  const shareToken = randomBytes(32).toString("base64url");
-  await db.recipe.update({ where: { id: recipeId }, data: { shareToken } });
+  const result = await shareRecipeRow(recipeId);
+  if (!result) return { error: "That recipe no longer exists." };
+  if (!result.changed) return { shareToken: result.after.shareToken };
+  const shareToken = result.after.shareToken;
 
   revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
   return { shareToken };
@@ -279,16 +252,8 @@ export async function stopSharingRecipe(
     return { error: "Only parents can do that." };
   }
 
-  const recipe = await db.recipe.findUnique({
-    where: { id: recipeId },
-    select: { id: true },
-  });
-  if (!recipe) return { error: "That recipe no longer exists." };
-
-  await db.recipe.update({
-    where: { id: recipeId },
-    data: { shareToken: null },
-  });
+  const result = await stopSharingRecipeRow(recipeId);
+  if (!result) return { error: "That recipe no longer exists." };
 
   revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
   return { shareToken: null };
@@ -327,17 +292,10 @@ export async function setRecipeRating(
 ): Promise<RecipeRatingResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  if (rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
-    return { error: "Ratings run 1 to 5." };
-  }
-
-  try {
-    await db.recipe.update({ where: { id: recipeId }, data: { rating } });
-  } catch (error) {
-    // Deleted on another phone while this one still had it open.
-    if (isMissingRowError(error)) return { error: "That recipe no longer exists." };
-    throw error;
-  }
+  const result = await updateRecipeRow(recipeId, { rating });
+  // Deleted on another phone while this one still had it open.
+  if (!result) return { error: "That recipe no longer exists." };
+  if ("error" in result) return { error: result.error };
 
   revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
   return { rating };
@@ -353,21 +311,12 @@ export type MarkCookedResult = { lastCookedAt?: Date; error?: string };
 export async function markRecipeCooked(recipeId: string): Promise<MarkCookedResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  let recipe;
-  try {
-    recipe = await db.recipe.update({
-      where: { id: recipeId },
-      data: { lastCookedAt: new Date() },
-      select: { lastCookedAt: true },
-    });
-  } catch (error) {
-    // Deleted on another phone while this one still had it open.
-    if (isMissingRowError(error)) return { error: "That recipe no longer exists." };
-    throw error;
-  }
+  const result = await markRecipeCookedRow(recipeId, new Date());
+  // Deleted on another phone while this one still had it open.
+  if (!result) return { error: "That recipe no longer exists." };
 
   revalidatePath(`/kitchen/cooking/recipes/${recipeId}`);
-  return { lastCookedAt: recipe.lastCookedAt ?? undefined };
+  return { lastCookedAt: result.after.lastCookedAt ?? undefined };
 }
 
 export type NutritionResult = {

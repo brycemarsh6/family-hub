@@ -43,20 +43,32 @@ export function parseTimeToMinutes(text: string): number | null {
 }
 
 /**
- * The Total Time filter's bucket for a recipe: prep + cook, summed from
- * whichever of the two fields parse. Null when *neither* field parses —
- * the recipe just doesn't show up under any Total Time chip, which is the
- * accepted fuzziness rather than a guess dressed up as a fact.
+ * A recipe's total time: prep + cook, summed from whichever of the two
+ * fields parse. Null when *neither* field parses (the accepted fuzziness
+ * rather than a guess dressed up as a fact). The one definition of the rule;
+ * the Total Time filter and the Assistant API both use it.
+ */
+export function totalRecipeMinutes(
+  prepTime: string | null,
+  cookTime: string | null,
+): number | null {
+  const prepMinutes = prepTime ? parseTimeToMinutes(prepTime) : null;
+  const cookMinutes = cookTime ? parseTimeToMinutes(cookTime) : null;
+  if (prepMinutes === null && cookMinutes === null) return null;
+  return (prepMinutes ?? 0) + (cookMinutes ?? 0);
+}
+
+/**
+ * The Total Time filter's bucket for a recipe, from `totalRecipeMinutes`.
+ * Null when the total is unknown: the recipe just doesn't show up under any
+ * Total Time chip.
  */
 export function totalTimeBucket(
   prepTime: string | null,
   cookTime: string | null,
 ): TimeBucket | null {
-  const prepMinutes = prepTime ? parseTimeToMinutes(prepTime) : null;
-  const cookMinutes = cookTime ? parseTimeToMinutes(cookTime) : null;
-  if (prepMinutes === null && cookMinutes === null) return null;
-
-  const total = (prepMinutes ?? 0) + (cookMinutes ?? 0);
+  const total = totalRecipeMinutes(prepTime, cookTime);
+  if (total === null) return null;
   if (total < 30) return "under30";
   if (total <= 60) return "30to60";
   return "over60";

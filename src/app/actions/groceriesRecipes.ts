@@ -8,10 +8,12 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
-import { toCategory, DEFAULT_CATEGORY } from "@/lib/constants";
-import { matchItem } from "@/lib/match";
-import { recipeLines } from "@/lib/recipeText";
-import { parseIngredientNames } from "@/lib/ingredientParse";
+import { toCategory } from "@/lib/constants";
+import {
+  classifyRecipe,
+  IngredientAiError,
+  type RecipeIngredientSuggestion,
+} from "@/lib/recipeIngredientMatch";
 
 /**
  * Re-render the pages whose contents just changed.
@@ -30,36 +32,7 @@ function refreshGroceryViews() {
   revalidatePath("/");
 }
 
-/**
- * What the review sheet knows about one of a recipe's ingredients.
- *
- * `status` drives both the label and whether the row starts checked — the
- * house already having something, or already having written it down, is a
- * reason to *not* buy it again, but never a reason to decide that silently
- * (see the Recipes v2 plan: suggest, never auto-add).
- */
-export type RecipeIngredientSuggestion = {
-  /** The recipe's own line, shown so a wrong parse is visible. */
-  line: string;
-  /** The shoppable name the parse produced — what actually gets added. */
-  name: string;
-  status: "missing" | "in-pantry" | "on-list";
-  /** The inventory row this matched, for display. Null unless status is
-   * "in-pantry". */
-  matchedName: string | null;
-  /**
-   * Set only for an UNAMBIGUOUS inventory match. A linked grocery row is
-   * what makes "put away" top up the right inventory item instead of
-   * creating a duplicate — so a wrong link is worse than no link, and an
-   * ambiguous match (the house stocks seven milks and no plain "Milk")
-   * deliberately stays null. Put-away's own exact-name check and review
-   * sheet still catch it later; that's the layer built for it.
-   */
-  pantryItemId: string | null;
-  /** Borrowed from the matched inventory row when there's a confident
-   * match — a real fact, not a guess. Otherwise the catch-all. */
-  category: string;
-};
+export type { RecipeIngredientSuggestion };
 
 export type ClassifyIngredientsResult = {
   suggestions?: RecipeIngredientSuggestion[];
@@ -79,87 +52,27 @@ export async function classifyRecipeIngredients(
 ): Promise<ClassifyIngredientsResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  const recipe = await db.recipe.findUnique({
-    where: { id: recipeId },
-    select: { ingredients: true },
-  });
-  if (!recipe) return { error: "That recipe no longer exists." };
-
-  const lines = recipeLines(recipe.ingredients);
-  if (lines.length === 0) {
-    return { error: "This recipe doesn't list any ingredients yet." };
-  }
-
-  let parsed;
+  let result;
   try {
-    parsed = await parseIngredientNames(lines);
+    result = await classifyRecipe(recipeId);
   } catch (error) {
-    // Never let a Claude outage look like a data problem — the recipe is
+    if (!(error instanceof IngredientAiError)) throw error;
+    // Never let a Claude outage look like a data problem, the recipe is
     // fine, the parse isn't. Same shape as suggestMealsForSlot's guard.
-    console.error("classifyRecipeIngredients failed:", error);
+    console.error("classifyRecipeIngredients failed:", error.original);
     return { error: "Couldn't reach the AI just now. Try again in a moment." };
   }
 
-  if (parsed.length === 0) {
-    return { error: "Couldn't read shopping items out of these ingredients." };
+  switch (result.status) {
+    case "recipe_missing":
+      return { error: "That recipe no longer exists." };
+    case "no_ingredients":
+      return { error: "This recipe doesn't list any ingredients yet." };
+    case "unreadable":
+      return { error: "Couldn't read shopping items out of these ingredients." };
+    case "ok":
+      return { suggestions: result.suggestions };
   }
-
-  const [pantryItems, groceryItems] = await Promise.all([
-    db.pantryItem.findMany({
-      select: { id: true, name: true, category: true },
-    }),
-    db.groceryItem.findMany({
-      where: { checked: false },
-      select: { name: true },
-    }),
-  ]);
-
-  const pantryById = new Map(pantryItems.map((item) => [item.id, item]));
-  const onListNames = new Set(
-    groceryItems.map((item) => item.name.trim().toLowerCase()),
-  );
-
-  const suggestions = parsed.map((item): RecipeIngredientSuggestion => {
-    const name = item.name.trim();
-    const line = lines[item.lineIndex];
-
-    if (onListNames.has(name.toLowerCase())) {
-      return {
-        line,
-        name,
-        status: "on-list",
-        matchedName: null,
-        pantryItemId: null,
-        category: DEFAULT_CATEGORY,
-      };
-    }
-
-    const { match, ambiguous } = matchItem(name, pantryItems);
-    if (match) {
-      const full = pantryById.get(match.id)!;
-      return {
-        line,
-        name,
-        status: "in-pantry",
-        matchedName: full.name,
-        // See the pantryItemId doc comment above for why an ambiguous
-        // match is shown but never linked.
-        pantryItemId: ambiguous ? null : full.id,
-        category: ambiguous ? DEFAULT_CATEGORY : full.category,
-      };
-    }
-
-    return {
-      line,
-      name,
-      status: "missing",
-      matchedName: null,
-      pantryItemId: null,
-      category: DEFAULT_CATEGORY,
-    };
-  });
-
-  return { suggestions };
 }
 
 /** One row the human ticked in the review sheet. */

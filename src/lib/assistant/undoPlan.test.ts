@@ -7,6 +7,7 @@ import {
   fromCopy,
   modelColumns,
   planUndo,
+  referenceChecks,
   toCopy,
   undoPathFor,
   type UndoChangeInput,
@@ -31,6 +32,23 @@ function pantry(id: string, over: Record<string, unknown> = {}) {
     lowThreshold: 1, expiresAt: null, restockedAt: T, createdAt: T, updatedAt: T, ...over,
   };
 }
+
+function recipe(id: string, over: Record<string, unknown> = {}) {
+  return {
+    id, title: "ZZZ", ingredients: "a", steps: "b", servings: null, prepTime: null, cookTime: null,
+    sourceUrl: null, notes: null, shareToken: null, rating: null, lastCookedAt: null,
+    nutritionCalories: null, nutritionProteinG: null, nutritionCarbsG: null, nutritionFatG: null,
+    nutritionServings: null, nutritionFingerprint: null, createdAt: T, updatedAt: T, ...over,
+  };
+}
+
+const tag = (id: string) => ({ id, name: `ZZZ ${id}`, createdAt: T });
+const recipeTag = (id: string, recipeId: string, tagId: string) => ({ id, recipeId, tagId });
+const cookbookRecipe = (id: string, recipeId: string) => ({ id, cookbookId: "cb", recipeId, addedAt: T });
+const mealPlan = (id: string) => ({ id, weekStart: "2030-01-06T07:00:00.000Z", createdAt: T });
+const entry = (id: string, mealPlanId: string, over: Record<string, unknown> = {}) => ({
+  id, mealPlanId, dayOffset: 0, slot: "Dinner", title: "ZZZ", recipeId: null, createdAt: T, updatedAt: T, ...over,
+});
 
 function change(
   model: string,
@@ -117,6 +135,117 @@ test("undoPlan: steps run restores, then deletes, then re-creates, ids sorted", 
   ]);
 });
 
+test("undoPlan: a created recipe with its tags and cookbook link removes children before parents", () => {
+  const result = plan([
+    change("Recipe", "r", "create", null, recipe("r")),
+    change("Tag", "t", "create", null, tag("t")),
+    change("RecipeTag", "rt", "create", null, recipeTag("rt", "r", "t")),
+    change("CookbookRecipe", "cr", "create", null, cookbookRecipe("cr", "r")),
+    change("MealPlan", "mp", "create", null, mealPlan("mp")),
+    change("MealPlanEntry", "e", "create", null, entry("e", "mp", { recipeId: "r" })),
+  ]);
+  assert.ok(result.ok);
+  assert.deepEqual(result.steps.map((s) => `${s.kind}:${s.model}`), [
+    "remove:CookbookRecipe",
+    "remove:MealPlanEntry",
+    "remove:RecipeTag",
+    "remove:MealPlan",
+    "remove:Recipe",
+    "remove:Tag",
+  ]);
+});
+
+test("undoPlan: deleted recipe, tag, plan and their links re-create parents first", () => {
+  const result = plan([
+    change("RecipeTag", "rt", "delete", recipeTag("rt", "r", "t"), null),
+    change("MealPlanEntry", "e", "delete", entry("e", "mp", { recipeId: "r" }), null),
+    change("Recipe", "r", "delete", recipe("r"), null),
+    change("MealPlan", "mp", "delete", mealPlan("mp"), null),
+    change("Tag", "t", "delete", tag("t"), null),
+    change("GroceryItem", "g", "delete", grocery("g", { pantryItemId: "p" }), null),
+    change("PantryItem", "p", "delete", pantry("p"), null),
+  ]);
+  assert.ok(result.ok);
+  assert.deepEqual(result.steps.map((s) => `${s.kind}:${s.model}`), [
+    "recreate:MealPlan",
+    "recreate:PantryItem",
+    "recreate:Recipe",
+    "recreate:Tag",
+    "recreate:GroceryItem",
+    "recreate:MealPlanEntry",
+    "recreate:RecipeTag",
+  ]);
+});
+
+test("undoPlan: restores come first for the new models too, then removes, then re-creates", () => {
+  const result = plan([
+    change("Tag", "t", "create", null, tag("t")),
+    change("Recipe", "r", "update", recipe("r"), recipe("r", { rating: 5 })),
+    change("MealPlanEntry", "e", "update", entry("e", "mp"), entry("e", "mp", { title: "ZZZ 2" })),
+    change("CookbookRecipe", "cr", "delete", cookbookRecipe("cr", "r"), null),
+  ]);
+  assert.ok(result.ok);
+  assert.deepEqual(result.steps.map((s) => `${s.kind}:${s.model}`), [
+    "restore:MealPlanEntry",
+    "restore:Recipe",
+    "remove:Tag",
+    "recreate:CookbookRecipe",
+  ]);
+});
+
+test("referenceChecks: a removed parent is checked against each kind of row that points at it", () => {
+  const result = plan([
+    change("Recipe", "r", "create", null, recipe("r")),
+    change("Tag", "t", "create", null, tag("t")),
+    change("MealPlan", "mp", "create", null, mealPlan("mp")),
+    change("PantryItem", "p", "create", null, pantry("p")),
+  ]);
+  assert.ok(result.ok);
+  const checks = referenceChecks(result.steps).map((c) => `${c.model}:${c.recordId}:${c.ref.child}.${c.ref.column}`);
+  assert.deepEqual(checks, [
+    "MealPlan:mp:MealPlanEntry.mealPlanId",
+    "PantryItem:p:GroceryItem.pantryItemId",
+    "PantryItem:p:VoiceChange.pantryItemId",
+    "Recipe:r:RecipeTag.recipeId",
+    "Recipe:r:CookbookRecipe.recipeId",
+    "Recipe:r:MealPlanEntry.recipeId",
+    "Tag:t:RecipeTag.tagId",
+  ]);
+  assert.ok(referenceChecks(result.steps).every((c) => c.exclude.length === 0));
+});
+
+test("referenceChecks: rows this plan removes itself are left out of the count", () => {
+  const result = plan([
+    change("Recipe", "r", "create", null, recipe("r")),
+    change("Tag", "t", "create", null, tag("t")),
+    change("RecipeTag", "rt", "create", null, recipeTag("rt", "r", "t")),
+    change("MealPlan", "mp", "create", null, mealPlan("mp")),
+    change("MealPlanEntry", "e1", "create", null, entry("e1", "mp", { recipeId: "r" })),
+    change("MealPlanEntry", "e2", "create", null, entry("e2", "mp", { dayOffset: 1, recipeId: "r" })),
+    change("PantryItem", "p", "create", null, pantry("p")),
+    change("GroceryItem", "g", "create", null, grocery("g", { pantryItemId: "p" })),
+  ]);
+  assert.ok(result.ok);
+  const excluded = (model: string, child: string) =>
+    referenceChecks(result.steps).find((c) => c.model === model && c.ref.child === child)?.exclude;
+  assert.deepEqual(excluded("Recipe", "RecipeTag"), ["rt"]);
+  assert.deepEqual(excluded("Tag", "RecipeTag"), ["rt"]);
+  assert.deepEqual(excluded("Recipe", "MealPlanEntry")?.sort(), ["e1", "e2"]);
+  assert.deepEqual(excluded("MealPlan", "MealPlanEntry")?.sort(), ["e1", "e2"]);
+  assert.deepEqual(excluded("Recipe", "CookbookRecipe"), []);
+  assert.deepEqual(excluded("PantryItem", "GroceryItem"), ["g"]);
+  assert.deepEqual(excluded("PantryItem", "VoiceChange"), []);
+});
+
+test("referenceChecks: only removes are checked, not restores or re-creates", () => {
+  const result = plan([
+    change("Recipe", "r", "update", recipe("r"), recipe("r", { rating: 2 })),
+    change("Tag", "t", "delete", tag("t"), null),
+  ]);
+  assert.ok(result.ok);
+  assert.deepEqual(referenceChecks(result.steps), []);
+});
+
 test("undoPlan: refuses a failed request (non-2xx)", () => {
   const changes = [change("GroceryItem", "g", "create", null, grocery("g"))];
   for (const status of [0, 199, 300, 409, 500]) {
@@ -146,6 +275,7 @@ test("undoPlan: not_undoable for no changes, old-format rows, unknown models, mi
   assert.deepEqual(plan([good, { model: "GroceryItem", recordId: "o", action: "update", summary: '{"quantity":2}' }]), notUndoable);
   assert.deepEqual(plan([{ model: "GroceryItem", recordId: "o", action: "update", summary: "not json" }]), notUndoable);
   assert.deepEqual(plan([change("Recipe", "r", "update", { id: "r" }, { id: "r" })]), notUndoable);
+  assert.deepEqual(plan([change("Cookbook", "c", "create", null, { id: "c" })]), notUndoable);
   const { createdAt: _c, ...partial } = grocery("g");
   void _c;
   assert.deepEqual(plan([change("GroceryItem", "g", "create", null, partial)]), notUndoable);
@@ -208,6 +338,19 @@ test("undoPlan: findStale names changed, missing and already-existing rows", () 
 test("column lists come from the schema types, dates included", () => {
   assert.equal(modelColumns("PantryItem").length, 11);
   assert.equal(modelColumns("GroceryItem").length, 15);
+  assert.deepEqual(
+    [
+      modelColumns("Recipe").length, modelColumns("Tag").length, modelColumns("RecipeTag").length,
+      modelColumns("CookbookRecipe").length, modelColumns("MealPlan").length,
+      modelColumns("MealPlanEntry").length,
+    ],
+    [20, 3, 3, 4, 3, 8],
+  );
+  const r = fromCopy("Recipe", recipe("r", { lastCookedAt: "2026-11-01T00:00:00.000Z" }));
+  assert.ok(r.lastCookedAt instanceof Date && r.updatedAt instanceof Date);
+  assert.equal(r.shareToken, null);
+  assert.ok(fromCopy("MealPlan", mealPlan("mp")).weekStart instanceof Date);
+  assert.ok(fromCopy("CookbookRecipe", cookbookRecipe("cr", "r")).addedAt instanceof Date);
   const copy = fromCopy("GroceryItem", grocery("g"));
   assert.ok(copy.createdAt instanceof Date);
   assert.equal(copy.checkedAt, null);

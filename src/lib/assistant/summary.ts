@@ -10,12 +10,10 @@ import {
   type CalendarDate,
 } from "@/lib/householdDate";
 import { daysUntilInZone } from "@/lib/assistant/today";
+import { pickNearestPlan } from "@/lib/mealPlanWeek";
 
 // Pure pieces of the Assistant API's /summary route: which meal plan is a
 // week's, which events land on which day, and the inventory headline counts.
-
-/** How far a plan's stored `weekStart` may sit from the household zone's midnight. */
-export const PLAN_TOLERANCE_MS = 14 * 60 * 60 * 1000;
 
 /**
  * The plan for the week starting `sunday`. Plans are stored as the creating
@@ -28,17 +26,7 @@ export function findPlanForWeek<P extends { weekStart: Date }>(
   sunday: CalendarDate,
   timeZone: string = HOUSEHOLD_TIME_ZONE,
 ): P | null {
-  const target = zoneMidnightInstant(sunday, timeZone).getTime();
-  let best: P | null = null;
-  let bestGap = Infinity;
-  for (const plan of plans) {
-    const gap = Math.abs(plan.weekStart.getTime() - target);
-    if (gap <= PLAN_TOLERANCE_MS && gap < bestGap) {
-      best = plan;
-      bestGap = gap;
-    }
-  }
-  return best;
+  return pickNearestPlan(plans, zoneMidnightInstant(sunday, timeZone).getTime());
 }
 
 type BucketEvent = { startAt: Date; endAt: Date; allDay: boolean };

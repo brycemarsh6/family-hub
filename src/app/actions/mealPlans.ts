@@ -11,9 +11,13 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { isUniqueViolationError } from "@/lib/prismaErrors";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import { toMealSlot, MANAGER_ROLES } from "@/lib/constants";
+import {
+  getOrCreateMealPlanRow,
+  setMealPlanEntryRow,
+  clearMealPlanEntryRow,
+} from "@/lib/mealPlanWrites";
 import type { Category, Location } from "@/lib/constants";
 import { effectiveExpiry, daysUntil } from "@/lib/expiring";
 import { suggestMeals, type MealSuggestion } from "@/lib/mealSuggest";
@@ -45,20 +49,8 @@ export async function createMealPlan(
 ): Promise<CreateMealPlanResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  let mealPlanId: string | undefined;
-
-  try {
-    const created = await db.mealPlan.create({ data: { weekStart } });
-    mealPlanId = created.id;
-  } catch (error) {
-    if (!isUniqueViolationError(error)) throw error;
-
-    const existing = await db.mealPlan.findUnique({
-      where: { weekStart },
-      select: { id: true },
-    });
-    mealPlanId = existing?.id;
-  }
+  const { plan } = await getOrCreateMealPlanRow(weekStart);
+  const mealPlanId = plan?.id;
 
   refreshMealPlanViews();
   return { mealPlanId };
@@ -80,9 +72,9 @@ export async function deleteMealPlan(mealPlanId: string): Promise<void> {
 }
 
 /**
- * Fill (or overwrite) one slot. Upserts on the entry's own unique key, so a
- * double-tap or a slow network retry lands on the same row instead of a
- * duplicate.
+ * Fill (or overwrite) one slot. `mealPlanWrites.ts` locks the slot's row and
+ * updates or creates it, so a double-tap or a slow network retry lands on
+ * the same row instead of a duplicate.
  */
 export async function setMealPlanEntry(input: {
   mealPlanId: string;
@@ -93,34 +85,8 @@ export async function setMealPlanEntry(input: {
 }): Promise<MealPlanActionResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  const slot = toMealSlot(input.slot);
-  if (!slot) return { error: "That's not a real meal slot." };
-  if (!Number.isInteger(input.dayOffset) || input.dayOffset < 0 || input.dayOffset > 6) {
-    return { error: "That's not a real day of the week." };
-  }
-  const title = input.title.trim();
-  if (!title) return { error: "Give the meal a name." };
-
-  await db.mealPlanEntry.upsert({
-    where: {
-      mealPlanId_dayOffset_slot: {
-        mealPlanId: input.mealPlanId,
-        dayOffset: input.dayOffset,
-        slot,
-      },
-    },
-    create: {
-      mealPlanId: input.mealPlanId,
-      dayOffset: input.dayOffset,
-      slot,
-      title,
-      recipeId: input.recipeId ?? null,
-    },
-    update: {
-      title,
-      recipeId: input.recipeId ?? null,
-    },
-  });
+  const result = await setMealPlanEntryRow(input);
+  if (result.error) return { error: result.error };
 
   refreshMealPlanViews();
   return {};
@@ -239,13 +205,7 @@ export async function clearMealPlanEntry(input: {
 }): Promise<void> {
   if (!(await getVerifiedSession())) return;
 
-  await db.mealPlanEntry.deleteMany({
-    where: {
-      mealPlanId: input.mealPlanId,
-      dayOffset: input.dayOffset,
-      slot: input.slot,
-    },
-  });
+  await clearMealPlanEntryRow(input);
 
   refreshMealPlanViews();
 }
