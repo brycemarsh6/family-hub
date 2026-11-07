@@ -553,9 +553,9 @@ participant like the app. Refusals come from the shared module as
 - **Objective:** close Vision's V1 and V2 and Captain's B1, B2, B3 and B5
   in one pass (B4 is Fury's STRUCTURE.md amendment A10).
 - **Boundaries:** May touch: `src/lib/habits/tapWrites.ts` → moved to
-  `src/lib/habitTapWrites.ts`; `src/lib/habits/habitInput.ts` and
-  `habitInput.test.ts` → moved to `src/lib/habitInput.ts` and
-  `src/lib/habitInput.test.ts`; `src/lib/assistant/habitActor.ts` (+ test),
+  new `src/lib/habitTapWrites.ts`; `src/lib/habits/habitInput.ts` and
+  `src/lib/habits/habitInput.test.ts` → moved to new `src/lib/habitInput.ts`
+  and new `src/lib/habitInput.test.ts`; `src/lib/assistant/habitActor.ts` (+ test),
   new `src/lib/assistant/habitActorEnv.ts`; `src/lib/assistant/undoPlan.ts`,
   `undoHooks.ts`, `undoPlanHabits.test.ts`; `src/lib/assistant/habitReads.ts`,
   `schemasHabits.ts` (+ test); `src/app/actions/habitChecks.ts`,
