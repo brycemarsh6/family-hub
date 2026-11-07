@@ -375,7 +375,32 @@
 
 ## Gate ledger
 
-(none yet)
+### Captain pass 1 (at `F0` commit): BLOCKED
+
+- **BLOCKER:** `actions/tags.ts` `renameTag` re-implements the tag-name
+  rules (trim/empty message, case-insensitive clash) now living in
+  `recipeWrites.ts` `findOrCreateTagRow`. Fix: new `src/lib/tagWrites.ts`
+  with the tag writes moved out of `recipeWrites.ts` plus `renameTagRow`,
+  one private name check and one clash query; `renameTag` a thin wrapper.
+- NOTEs (fix now marked *): N1* week lookup in three places
+  (`findPlanForWeek`, `findPlanNear`, `summaryReads` range;
+  `PLAN_TOLERANCE_MS` imported from `summary.ts`); N2 `findPlanNear` a read
+  in a writes module; N3* write errors mapped to status by message text;
+  N4* tag existence checked three ways; N5* total-time rule twice
+  (`serializeRecipes` vs `totalTimeBucket`); N6* the 503 written twice;
+  N7* small dups/naming (`toMealSlot`, private `ratingError`, alias
+  `removeMealPlanEntry`, double trim; `toShareUrl` vs `ShareSheet`); N8*
+  stale comments (`findOrCreateTag`, `setMealPlanEntry`); N9
+  `addIngredientsToGroceries` still writes GroceryItem directly; N10 sizes
+  by the canonical counter: `recipes.ts` 384/231, `recipeWrites.ts`
+  332/244, `undoWrites.ts` 270/215, `undoPlan.test.ts` 361/333 (next undo
+  test goes in a sibling file); N11 undo REFERENCES/FOREIGN_KEYS not pinned
+  to the schema (DMMF test).
+- Proposed STRUCTURE.md amendments A1-A4 (for Bryce; STRUCTURE.md is held
+  by other agents): write-module homes and the P2002/P2003 single-check
+  line; one meal-plan week lookup; write errors carry a code; mission 40's
+  three amendments updated (P2025, `undoModels.ts` as the one registry,
+  `undoWrites.ts` restores from copies only).
 
 ## Delivery
 
@@ -441,3 +466,97 @@
   `changed_since`, `in_use` in `details.records[].problem` (mission 40's
   shape, so the contracts' "409 in_use" means that). Gate pass 1: Vision +
   Captain dispatched in parallel.
+
+### Vision pass 1 (at `1c718b0`): BLOCKED
+
+- Gauntlet re-run green (tsc, eslint, 1200/1200, UTC 1193 + 7 skipped
+  calendar-DST tests, LA 1200, build, recordcheck 0 hard). Boundaries
+  clean per commit. Builders' evidence spot-checked and matched (incl.
+  spring-forward 2030-03-10). Live: create/undo/redo, share/stop/undo,
+  refusals `missing` (re-create FK, now proven live), `in_use`,
+  `changed_since`; 13 h-off plan reused; bad input 400/404. Counts
+  restored. Family-app parity read against `5a3cdc0`: only the intended
+  changes.
+- **BLOCKER:** `PATCH /recipes/{id}` and `PUT /meal-plan/days/{date}/{slot}`
+  each do two transactions; if the second fails the first is saved but
+  the request is logged non-2xx, so undo refuses `failed_request` (and a
+  "retry" message makes Winnie's retry copy the half-written row).
+  Reproduced live with a held family delete. Fix: one transaction per
+  handler (`updateRecipeAndTagsRow`, `setMealPlanEntryInWeekRow`).
+- NOTEs: different-instant double plan create (known); grocery-needs one
+  parse call may truncate at `max_tokens` on a big week and answer empty
+  lists with no `readable` flag; both old-model undo changes judged
+  improvements; A-B-A share undo correct; share tokens never on the wire.
+
+### F1a, one transaction per write request, tag writes in one home
+
+- **Objective:** close Vision's and Captain's blockers.
+- **Boundaries.** May touch: `src/lib/recipeWrites.ts`, new
+  `src/lib/tagWrites.ts`, `src/lib/mealPlanWrites.ts`,
+  `src/app/actions/recipes.ts`, `src/app/actions/tags.ts`,
+  `src/app/actions/mealPlans.ts`, `src/lib/assistant/serializeRecipes.ts`
+  (+ test), `src/lib/assistant/recipeReads.ts`, the route files
+  `recipes/route.ts`, `recipes/[id]/route.ts`, `tags/route.ts`,
+  `meal-plan/days/[date]/[slot]/route.ts`. Nothing else.
+- **Work:**
+  1. `recipeWrites.ts`: `updateRecipeAndTagsRow(id, patch?, tagIds?)` locks
+     the recipe once and applies the field patch and the tag diff in ONE
+     transaction (unknown tag → refusal, nothing written), returning
+     `{ before, after, created, deleted }`. PATCH route uses it; delete the
+     false "undoable" comment.
+  2. `mealPlanWrites.ts`: `setMealPlanEntryInWeekRow(instant, toleranceMs,
+     entry)` does find-or-create plan and the slot write in ONE transaction
+     (P2002 retry of the whole transaction kept), returning
+     `{ planCreated, before, after }`. PUT route uses it.
+  3. New `src/lib/tagWrites.ts`: move `findOrCreateTagRow`,
+     `addRecipeTagRow`, `removeRecipeTagRow`, `setRecipeTagRows` (and the
+     tag-diff helper item 1 reuses) out of `recipeWrites.ts`; add
+     `renameTagRow(tagId, name)`; one private name check and one
+     case-insensitive clash query (with an except-id option) shared by
+     create and rename; one exported tag-existence check used by
+     `createRecipeRow`, the diff and the PATCH route (drop
+     `allTagsExist` from `recipeReads.ts`). `renameTag` becomes a thin
+     wrapper: same guard, three messages, `revalidatePath`. No import
+     cycle between the two write modules (tagWrites may take a `tx`).
+  4. Write-module refusals carry a code: `{ error, code: "missing" |
+     "invalid" }`; routes map `code` to 404/400 and never match message
+     text (`toWriteFailure`, the PUT route). Actions keep showing `error`.
+  5. Names/comments: `clearMealPlanEntryRow` imported without the
+     `removeMealPlanEntry` alias (bare name or `write…`); make
+     `ratingError` private; fix the stale docblocks on `findOrCreateTag`
+     and `setMealPlanEntry`.
+- **Verification:** tsc, eslint, `npm test`, both TZ legs. Live (port
+  3195, setup above; reuse Vision's held-delete script
+  `scratchpad/v/live2.ts`): both blocker scenarios now fail with nothing
+  written (title unchanged, no empty plan), counts unchanged; positive
+  controls: PATCH fields + tags succeeds and undo restores both; PUT into
+  an empty 2030 week creates plan + entry and undo removes both. App
+  parity by script for `renameTag` (rename, clash, empty, missing) and the
+  wrapped actions touched. Sizes by preflight `lineCounts` (copy at
+  `scratchpad/lc.mjs`).
+- **Evidence / done:** outputs per check, sizes, `git diff --stat` inside
+  the boundary, commit hash.
+
+### F1b, Captain's cheap notes (after F1a)
+
+- **Boundaries.** May touch: `src/lib/mealPlanWrites.ts`,
+  `src/lib/assistant/summary.ts` (+ test), `src/lib/assistant/summaryReads.ts`,
+  `src/lib/assistant/mealPlanReads.ts`, `src/lib/recipeTimeFilter.ts`
+  (+ its test if one exists), `src/lib/assistant/serializeRecipes.ts`,
+  `src/lib/assistant/serializeMealPlan.ts`, `src/lib/assistant/errors.ts`
+  (+ `errors.test.ts`), `src/lib/assistant/openapiMealPlanPaths.ts`, routes
+  `recipes/[id]/shortfall/route.ts`, `meal-plan/grocery-needs/route.ts`,
+  `meal-plan/days/[date]/[slot]/route.ts`, `meal-plan/route.ts`.
+- **Work:** N1: `PLAN_TOLERANCE_MS` and one pure nearest-plan picker live
+  beside `findPlanNear` in `mealPlanWrites.ts` (pure part may be a small
+  pure sibling if `summary.ts` must stay db-free); `findPlanForWeek`,
+  `summaryReads.ts` and `mealPlanReads.ts` use them; one
+  `getOrCreateWeekPlan`/`findWeekPlan` pair so no route passes the
+  tolerance by hand. N5: export `totalRecipeMinutes` from
+  `recipeTimeFilter.ts`, `totalTimeBucket` and the serializer use it. N6:
+  `aiUnavailable()` factory in `errors.ts` (+ a test that it carries
+  `retry-after: 5`). N7: `toMealSlot` in `serializeMealPlan.ts`.
+  grocery-needs: add `readable: boolean` (false when the parse returns
+  nothing for a week that had lines), documented in OpenAPI.
+- **Verification:** gauntlet; `/summary` and `/meal-plan` answers unchanged
+  for a 2030 test week (before/after by script); sizes; diff stat.
