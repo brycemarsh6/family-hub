@@ -271,8 +271,8 @@ Replace this section at the end of each session. Don't append.
   (`634627a`) on 2026-11-06 and is live (production deploy READY, routes
   answer 401 without a token). What to tell Winnie is in the mission
   file's Delivery.
-- **Winnie's cookbooks (mission 45)** passed its gates on 2026-11-06
-  (Vision and Captain on pass 2) from `claude/assistant-cookbooks`:
+- **Winnie's cookbooks (mission 45)** merged as PR #63 (`480091a`) on
+  2026-11-06 and is live (routes answer 401 without a token):
   create, rename, file/unfile, share, and delete only her own cookbooks
   with no family filings (Hill's H1 to H4; review H1 and H4 first). Writes
   in `src/lib/cookbookWrites.ts`; refusals in `src/lib/writeError.ts`.

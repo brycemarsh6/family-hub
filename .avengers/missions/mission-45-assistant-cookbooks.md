@@ -1,7 +1,8 @@
 # Mission 45: Winnie's cookbooks (Assistant API)
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERED (gates PASS; PR and merge next)
+**Status:** DELIVERED, merged as PR #63 (`480091a`) on 2026-11-06,
+production deploy READY, cookbook routes answer 401 without a token
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/assistant-cookbooks` (from `origin/main` at `634627a`,
 mission 44, PR #61)
@@ -462,7 +463,8 @@ mission 44, PR #61)
   different tag).
 - **No schema change.**
 - **Leftovers (next touch):** `src/lib/voice/apply.ts:124` has the same
-  ILIKE wildcard match (follow-up offered); Captain's NOTEs N2, N3, N5,
+  ILIKE wildcard match (fixed after merge on branch
+  `claude/voice-exact-match`: `findExactName` in `src/lib/match.ts`); Captain's NOTEs N2, N3, N5,
   N6, N7, N9, N10 (pass 1) and the lookup idiom (pass 2); Vision's: the
   delete guard refuses when any filing races the delete, even Winnie's own.
 - **For Bryce:** Hill's H1 (delete at all?) and H4 (no twins from Winnie)

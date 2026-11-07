@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { matchItem } from "@/lib/match";
+import { findExactName, matchItem } from "@/lib/match";
 import type { ParsedAction } from "@/lib/voice/parse";
 import { toCategory, DEFAULT_LOCATION } from "@/lib/constants";
 
@@ -120,10 +120,14 @@ async function applyAdd(action: ParsedAction): Promise<string> {
 async function applyBuy(action: ParsedAction): Promise<string> {
   // Already on the list? Don't stack duplicates — saying it twice while
   // cooking is normal.
-  const existing = await db.groceryItem.findFirst({
-    where: { name: { equals: action.item, mode: "insensitive" }, checked: false },
+  // Exact name ignoring capitals, compared here rather than by the database
+  // (a Prisma insensitive `equals` is ILIKE, where `%` and `_` are wildcards).
+  // The unchecked list is short, so reading its names is cheap.
+  const unchecked = await db.groceryItem.findMany({
+    where: { checked: false },
+    select: { id: true, name: true },
   });
-  if (existing) return `${action.item} is already on the shopping list.`;
+  if (findExactName(action.item, unchecked)) return `${action.item} is already on the shopping list.`;
 
   // If it's a known pantry item, tag the grocery row with it so "put away"
   // later tops up the right jar instead of creating a duplicate.
