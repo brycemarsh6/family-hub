@@ -249,6 +249,68 @@ From AGENTS.md, absolute for every agent:
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Captain | PASS | none | NOTES: ScheduleView 577/650 total (361 code), next Schedule feature extracts the two-panel wrapper; MonthCell past the soft cap (373, 253 code); stale comments (ScheduleView:443 "20rem", ScheduleMiniMonth "320px", monthLayout.ts:88,100,158,163); Year 40/60rem and Dashboard 45rem thresholds copied between component and skeleton (L1's note now bites: amendment A-L2-3); AppChrome comment above `<main>` names no users of `data-page-width`. Amendments A-L2-1 to A-L2-4 drafted (below) |
+| 1 | Vision | BLOCKED | (1) MonthCell phone: lane-3-only day shows three blank 16px spacers above "+N more" (fixture: three bars Nov 2 to 4 plus a bar Nov 1 to 2); (2) ScheduleMiniMonth browse offset reapplies when the day in view returns to the month it was set in; (3) 22rem column gives 42px day buttons beside the Sidebar (gaps and border forgot) | Gauntlet green (1260 tests both zones). NOTES: Stark's test counts were 5 high (concurrent runs); assignLanes cap-independence and phoneOverflowByDay verified; stale comments; tapped empty day rings the next day with a row; rAF not cancelled on cleanup; em dash kept at loading.tsx:163 |
+| 1 | Strange | BLOCKED | (1) mini month day buttons 42px beside the Sidebar (same as Vision 3); (2) Schedule title row: the month-jump chevron sits 488px from its title at 1180 (`w-full` on the portaled slot), against "a row never stretches" and mission-19/F2's ruling | Measured clean: mini month 440x404 sticky at top 138, 48px days, arrows browse without scrolling, tap jumps, ring follows scroll, flips month, far day navigates; Month 4 chips 12px and right "+N more" at 1180/820/Sidebar/Rail, 375 same as main; Week 155px cols 12px with times (Rail 144 too; Sidebar 118 stays 10px); Year 4/3/3/2; every sheet full screen; no sideways scroll; dark OK. NOTES: the approved mock has no Schedule title bar on wide (month shows twice now: Bryce's call); dev data too sparse to scroll today to the top (bottom spacer idea); all-day chips stay 9px on wide timelines (follow-up); ring has no accessible state; wide Month leaves about 250px empty below; older: loading labels Year/Day/3 Day as Week, new event returns to Week |
+
+## Fix batch 1 (after pass 1)
+
+### F1 - Month phone spacers and record comments
+- **Status:** DISPATCHED (parallel with F2; boundaries disjoint)
+- **Boundaries:** may touch: `src/components/MonthCell.tsx`,
+  `src/components/MonthGrid.tsx`, `src/lib/monthLayout.ts`,
+  `src/lib/monthLayout.test.ts`, `src/app/(app)/calendar/loading.tsx`
+  (comment only) · must not touch: F2's files, everything else.
+- **Spec:**
+  1. Vision blocker 1: on a phone (below 48rem) a cell must never show
+     an empty lane spacer below its last lane-0-to-2 slot that is
+     filled. Put "which lane slots render, and at which width" in one
+     exported pure helper in `monthLayout.ts` (for example
+     `laneVisibility(slots)` returning, per lane, `"both" | "wide" |
+     "none"`), use it in MonthCell (an empty spacer above the phone's
+     last filled lane stays `block`; one at or past it, below the wide
+     last filled lane, is `hidden @min-[48rem]:block`), and test it with
+     Vision's fixture (row Nov 1 to 7 2026: three bars Nov 2 to 4 on
+     lanes 0 to 2 and a bar Nov 1 to 2 on lane 3: Nov 1 shows nothing
+     on the phone but "+1 more", and keeps the three spacers wide).
+     Fixture script for reference:
+     `/private/tmp/claude-501/-Users-brycemarsh-Developer-family-hub--claude-worktrees-marshee-send-feedback-d53a21/c7edbb24-1bb3-490a-9cd3-aa71b71b9712/scratchpad/lanes.ts`.
+  2. Stale comments: `monthLayout.ts` (around lines 88, 100, 157 to 172:
+     "three", "never passes a third argument"), `MonthCell.tsx:71`
+     ("up to three pill/bar slots"). `loading.tsx:163`: replace the em
+     dash in the rewritten comment line.
+  - MonthCell.tsx stays at or under 380 lines (trim stale comment text).
+- **Verification / evidence:** whole Gauntlet; new test name; line counts.
+
+### F2 - Schedule mini month fixes and the title chevron
+- **Status:** DISPATCHED (parallel with F1)
+- **Boundaries:** may touch: `src/components/ScheduleView.tsx`,
+  `src/components/ScheduleMiniMonth.tsx`,
+  `src/lib/useScheduleDayInView.ts`, `src/components/CalendarHeader.tsx`
+  (the schedule title slot's classes and its comment only) · must not
+  touch: F1's files, everything else.
+- **Spec:**
+  1. Vision blocker 2: a browse offset must not come back when the day
+     in view returns to the month it was set in. Reset it whenever the
+     day-in-view month changes (a `key` on `<ScheduleMiniMonth>` from
+     the day-in-view year and month is the simplest).
+  2. Vision 3 / Strange 1: the 50rem column becomes `24rem` (Strange's
+     arithmetic: 384 minus 34 border and padding minus 24 gaps, over 7,
+     is 46.6px). Fix the "20rem" comment in ScheduleView and the
+     "320px" text in ScheduleMiniMonth (it is 384px beside the Sidebar).
+  3. Strange 2: the month-jump chevron sits 4px after the Schedule title
+     at every width, as it does in Week and Month: drop `w-full` from
+     the `SCHEDULE_TITLE_SLOT_ID` span (`CalendarHeader.tsx:268`), keep
+     long titles truncating (`min-w-0`), and read the mission-19/F2
+     comment in CalendarHeader before choosing the classes. If 375
+     changes, say how (Strange measured a 93px gap there on main).
+  4. Notes folded in: the ring gets an accessible state (an sr-only
+     "(showing)" or similar in the day button's label when it is the
+     day in view); `useScheduleDayInView` cancels a pending rAF on
+     cleanup.
+  - ScheduleView.tsx stays at or under 590 lines.
+- **Verification / evidence:** whole Gauntlet; class strings; line
+  counts.
 
 ## Handoff log
 
@@ -261,3 +323,5 @@ From AGENTS.md, absolute for every agent:
   plan). C2 and C3 dispatched in parallel.
 - 2026-11-07: C2 and C3 DONE and committed. Gates dispatched: Vision,
   Strange, Captain (pass 1, in parallel: all read-only).
+- 2026-11-07: pass 1: Captain PASS, Vision BLOCKED (3), Strange BLOCKED
+  (2, one shared with Vision). Fix batch 1 (F1, F2) dispatched.
