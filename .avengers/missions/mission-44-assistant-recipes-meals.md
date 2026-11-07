@@ -583,3 +583,57 @@
   dropped the leftover `totalMinutes` re-export alias (3 files, imports
   only).
 - Gate pass 2: Vision + Captain dispatched in parallel.
+
+### Captain pass 2 (at `d83af5b`): PASS
+
+- Blocker closed: tag-name rules once in `tagWrites.ts` (`checkTagName`,
+  `findTagByName`), `renameTag` a thin wrapper. N1, N3-N8 closed as
+  contracted. Sizes: `tagWrites.ts` 178/121, `recipeWrites.ts` 251/171,
+  `mealPlanWrites.ts` 190/127, `mealPlanWeek.ts` 33/19.
+- NOTEs (next touch): `WriteError` lives in `tagWrites.ts`; its re-export
+  from `recipeWrites.ts` has no importers; move it with `invalid()`/
+  `missing()` builders to `src/lib/writeError.ts` and `toWriteFailure` to
+  `assistant/errors.ts`; `recipeWrites.ts:119` retypes "That tag no longer
+  exists." instead of `TAG_MISSING`; `tagWrites.ts` header overclaims
+  (`deleteTag` still in the action); N2 `findWeekPlan` stays in writes
+  (justified: used inside the transaction); N9, N11, double trim,
+  `toShareUrl` vs `ShareSheet` carried; `actions/recipes.ts` 384 and
+  `undoPlan.test.ts` 361 over the soft cap.
+- Proposed STRUCTURE.md amendments A1-A4 updated to the final code (full
+  text in Captain's pass-2 report, summarised): A1 `tagWrites.ts` as the
+  lowest recipe-side write module, one transaction per multi-table write,
+  `prismaErrors.ts` as the only Prisma code check; A2 `mealPlanWeek.ts`
+  the only week-matching rule; A3 write refusals carry a code, mapped only
+  by `toWriteFailure`; A4 `undoModels.ts` the one undo registry,
+  `undoWrites.ts` restores from copies only.
+
+### Vision pass 2 (at `d83af5b`): BLOCKED
+
+- Pass-1 blocker closed live (both held-delete cases write nothing).
+  Gauntlet green (1204, both TZ legs, build, recordcheck 0 hard). 47 live
+  checks pass: merged PATCH (fields+tags, tags-only, `[]`), codes,
+  `renameTagRow`, DST (Nov and Mar 2030), the week trap with a Pacific
+  plan, grocery-needs, `/summary` unchanged. Counts restored.
+- **BLOCKER (new, from F1a):** `setMealPlanEntryInWeekRow` keeps one
+  retry, but with the plan create inside the transaction a request can
+  lose a plan race and then a slot race: 3 simultaneous PUTs into an empty
+  week (two on the same slot) → `200,200,500` in 7 of 8 trials
+  (`scratchpad/v2/race.ts`). Nothing written, but the module's promise is
+  broken. Fix: up to 3 attempts for that function.
+- NOTEs: recipe or tag deleted mid-write → 500 not 404 (nothing written);
+  PUT's mid-write 404 now says "no longer exists" (code unchanged);
+  partial truncation in grocery-needs still reports `readable: true`.
+
+### F2, enough retries for plan + slot races
+
+- **Boundaries.** May touch: `src/lib/mealPlanWrites.ts`,
+  `src/lib/recipeWrites.ts` (two one-liners below). Nothing else.
+- **Work:** `setMealPlanEntryInWeekRow` retries the whole transaction on
+  P2002 up to 3 attempts in all (`setMealPlanEntryRow` keeps 2); header
+  comment says why (a plan race then a slot race). In `recipeWrites.ts`:
+  return `TAG_MISSING` from `tagWrites.ts` instead of retyping the message;
+  delete the importer-less `export type { WriteError }` re-export.
+- **Verification:** gauntlet in full (build with no server). Live:
+  Vision's `scratchpad/v2/race.ts` → 0 failures in 24 rounds (raise its
+  round count); `scratchpad/v/live2.ts` first check passes; counts
+  before/after.
