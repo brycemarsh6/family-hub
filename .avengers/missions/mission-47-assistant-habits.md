@@ -547,6 +547,77 @@ participant like the app. Refusals come from the shared module as
   2026-11-06 (values 0/0 unchanged; recompute re-run). Test rows' `createdAt`
   backdated by script for the streak run (deleted).
 
+### F1 - fixes from Vision pass 1 and Captain pass 1
+
+- **Status:** PENDING
+- **Objective:** close Vision's V1 and V2 and Captain's B1, B2, B3 and B5
+  in one pass (B4 is Fury's STRUCTURE.md amendment A10).
+- **Boundaries:** May touch: `src/lib/habits/tapWrites.ts` → moved to
+  `src/lib/habitTapWrites.ts`; `src/lib/habits/habitInput.ts` and
+  `habitInput.test.ts` → moved to `src/lib/habitInput.ts` and
+  `src/lib/habitInput.test.ts`; `src/lib/assistant/habitActor.ts` (+ test),
+  new `src/lib/assistant/habitActorEnv.ts`; `src/lib/assistant/undoPlan.ts`,
+  `undoHooks.ts`, `undoPlanHabits.test.ts`; `src/lib/assistant/habitReads.ts`,
+  `schemasHabits.ts` (+ test); `src/app/actions/habitChecks.ts`,
+  `habitHours.ts`, `habits.ts`; the 8 route files under
+  `src/app/api/assistant/v1/habits/`; `src/components/HabitForm.tsx` (one
+  import line only, if the type's source moves). Must not touch:
+  `src/lib/habits/*Writes.ts`, `habitsRead.ts`, `undoModels.ts`,
+  `undoWrites.ts`, `STRUCTURE.md`, `prisma/schema.prisma`.
+- **Work:**
+  1. **B1, B2 (placement):** `git mv` the two modules (and the test) to
+     the top of `src/lib/`; fix their relative imports (`./habits/...`)
+     and every importer (actions, routes, `schemasHabits.ts`, the comment
+     in `habitActor.ts`). `HabitForm.tsx:20` may import `HabitInput` from
+     `@/lib/habitInput` directly.
+  2. **B3 (guard callback):** the tap functions take `guard: (habit:
+     HabitForAction) => boolean` instead of `actor`, run it right after
+     `loadHabitForAction` and before the day check (a refused habit and a
+     missing one still answer `HABIT_NOT_FOUND`, a bad day still leaks
+     nothing). `removeHours` takes `guard: (entry, habit) =>
+     Promise<WriteError | null>` and runs it inside its transaction; the
+     `[entryId]` route folds its `canLogFor` and `didAssistantCreate`
+     checks into that guard (404 before 403 kept). Actions pass
+     `(h) => canLogFor({ userId, role }, forUserId, h)`; routes the same
+     with Winnie's actor.
+  3. **B5 (env read):** `habitActor.ts` becomes pure:
+     `habitActorFor(ownerId: string | undefined): HabitActor` (test it
+     without `process.env`); the env read moves to a new `server-only`
+     `habitActorEnv.ts` exporting `assistantHabitActor()`, imported by
+     `habitReads.ts` and the routes.
+  4. **V1 (chore streak after undo):** `streakWork` also returns
+     `choreUsers` (every userId named by a HabitParticipant, HabitLog or
+     HabitTimeEntry step, habit existing or not); `afterUndo` adds the
+     current participants of every restored or re-created habit, then
+     calls `recomputeChoreStreaks(choreUsers, today, tx)` once,
+     unconditionally (idempotent). Tests for both groupings (undo of a
+     chore create; undo of a habit-to-chore PATCH).
+  5. **V2 (edit the result you can still see):** in the PATCH transaction,
+     after `checkHabitInput`, refuse with
+     `invalid(INCLUDE_YOURSELF)` when `!canEditHabit(actor, { isPrivate:
+     checked.fields.isPrivate ?? false, participantIds })` (rolls back,
+     nothing recorded). Export `INCLUDE_YOURSELF = "Include yourself, or
+     ask a parent."` from `habitInput.ts`; `actions/habits.ts` imports it.
+     Apply the same check on `POST /habits`. **Create default (pending
+     Hill H8; Fury's call until she answers):** a one-person hours habit
+     is private only when that person is the owner
+     (`assistantHabitActor().userId`); for anyone else it is created not
+     private, so the create is never refused on that count and Winnie can
+     still see what she made.
+- **Verification:** tsc, eslint, `npm test` (1298 plus the new tests),
+  both TZ legs, build. Live on dev (setup above, reuse C3's `live.mts` and
+  Vision's `vchore.mts`, `vmove.mts`): undo of a chore create → the
+  person's `UserPreferences` chore streak equals a fresh
+  `recomputeChoreStreak`; undo of a habit-to-chore PATCH, same; `PATCH`
+  moving the owner's private habit to another person → 400 with
+  `INCLUDE_YOURSELF`, nothing changed; `POST` of a one-person hours habit
+  for the owner → private; for another person → not private, 201, then
+  `GET` 200. Re-run C3's full live table (82 lines) after the move so
+  nothing regressed. Counts restored; ZZZ rows by id.
+- **Evidence required:** gauntlet tails, live lines PASS/FAIL, `git diff
+  --stat` inside the boundary, `wc -l` of moved files, commit hash.
+- **Report:** -
+
 ### C4 - records (after the gates)
 
 - CLAUDE.md edits in Design, this file's Delivery, Captain's amendments if
@@ -556,7 +627,27 @@ participant like the app. Refusals come from the shared module as
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | - | - | - |
+| 1 | Vision | BLOCKED | V1 chore streak not rebuilt after undo of a chore create or a habit-to-chore PATCH (proven in a rolled-back tx); V2 PATCH can move the owner's private habit to another person (app refuses) | H3 item 4 conflicts with the app's create rule (to Hill as H8); PATCH off "weekdays" drops this week's chore overrides and undo can't restore them (tell Winnie); boundary: `habitHoursVocabulary.ts` under H6 |
+| 1 | Captain | BLOCKED | B1 `tapWrites.ts` and B2 `habitInput.ts` inside `src/lib/habits/` import files the engine may not (move up); B3 tap module gates on an actor (guard callback); B4 undo writes habit tables (A10 exception); B5 `habitActor.ts` reads env without `server-only` | A11 to A14 drafted; NOTEs: route holds raw `FOR UPDATE` (A14, next touch); `actions/habits.ts:39` duplicate NOT_FOUND; minutes wording away from its rule; OpenAPI literals; one-person-hours-private rule in two places; `habitReads` own `db.user` query; `streakWork` in the generic planner; undoModels growth; CLAUDE.md 413 lines; PENDING/DONE double status lines; Design says `streakWork` in undoHooks |
+
+### Vision pass 1 (at `4e36d89`): BLOCKED
+
+Gauntlet re-run green (1298; UTC 1291 + 7 skips; LA 1298; build; recordcheck
+0 hard, 9 harmless REVIEW). Boundaries clean. 21 live probes PASS (401,
+12 operations, 17 = 17, undo check 1 → 0 equals recompute, participant
+restore equals recompute, no-ops record nothing, 400s, 404s, 5 people).
+Privacy on script-made private rows: every verb 404, absent from every
+list, nothing written. Blockers V1 and V2 above with scripts `vchore.mts`,
+`vmove.mts`. Parity of the actions confirmed against 88d094b (two
+disclosed harmless differences).
+
+### Captain pass 1 (at `4e36d89`): BLOCKED
+
+No cycles, `@/app` grep empty, route gate holds, tests in covered globs,
+no file over 300 (largest undoWrites 286/229). Blockers B1 to B5 above.
+Amendment texts A10 to A14 in Captain's report (A10 pasted into
+STRUCTURE.md by Fury; A11 to A14 for Bryce with mission 44's A1 to A4 and
+45's A5 to A9).
 | 1 | Captain | - | - | - |
 
 ## Handoff log
