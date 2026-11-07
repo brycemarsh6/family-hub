@@ -1,15 +1,16 @@
-import type { DashboardLayout } from "./dashboardLayout";
-import type { DashboardWidgetId } from "./dashboardWidgets";
+import type { DashboardLayout, DashboardWidget } from "./dashboardLayout";
+import { DASHBOARD_WIDGETS } from "./dashboardWidgets";
 
 // Pure rules for the dashboard's picked items and the wall tablet's layout
-// (decisions 132, 136, 137, 138). The parser keeps `items` as a claim about
+// (decisions 132, 136, 137, 138). Picks belong to one widget instance, so a
+// second Habits widget has its own. The parser keeps `items` as a claim about
 // ids (shape only, no db); keepOwnPicks is where the page turns that claim
 // into something it may use, and splitPicks and togglePick are what the
 // Customize picker does with it. No db, no React.
 
-/** The picked ids a widget has in this layout, in picked order; empty when none. */
-export function picksOf(layout: DashboardLayout, id: DashboardWidgetId): string[] {
-  return layout.widgets.find((w) => w.id === id)?.items ?? [];
+/** The picked ids one widget instance has, in picked order; empty when none. */
+export function picksOf(widget: DashboardWidget): string[] {
+  return widget.items ?? [];
 }
 
 /**
@@ -22,10 +23,10 @@ export function keepOwnPicks(picks: string[], allowed: Iterable<string>): string
   return picks.filter((id) => ok.has(id));
 }
 
-/** The wall tablet has no Habits or Chores today tile (decision 138); everyone else's layout is unchanged. */
+/** The wall tablet drops every kind the registry marks `onTablet: false`, today Habits and Chores (decision 138); everyone else's layout is unchanged. */
 export function layoutForViewer(layout: DashboardLayout, isDevice: boolean): DashboardLayout {
   if (!isDevice) return layout;
-  return { version: 1, widgets: layout.widgets.filter((w) => w.id !== "habits" && w.id !== "chores") };
+  return { version: 2, widgets: layout.widgets.filter((w) => DASHBOARD_WIDGETS[w.kind].onTablet) };
 }
 
 /**
