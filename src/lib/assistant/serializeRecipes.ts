@@ -1,4 +1,3 @@
-export { toWriteFailure } from "./errors";
 import { fingerprintIngredients } from "@/lib/nutritionFingerprint";
 import { totalRecipeMinutes } from "@/lib/recipeTimeFilter";
 import { recipeLines } from "@/lib/recipeText";
@@ -98,10 +97,6 @@ export function toShortfall(recipeId: string, suggestions: Suggestion[] | null) 
     missing: list.filter((s) => s.status === "missing").map((s) => ({ line: s.line, name: s.name })),
     onList: list.filter((s) => s.status === "on-list").map((s) => ({ line: s.line, name: s.name })),
   };
-}
-
-export function toCookbook(row: { id: string; title: string; _count: { recipes: number } }) {
-  return { id: row.id, title: row.title, recipeCount: row._count.recipes };
 }
 
 export function toTag(row: { id: string; name: string }, recipeCount: number) {
