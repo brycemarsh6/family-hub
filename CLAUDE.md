@@ -272,7 +272,11 @@ Replace this section at the end of each session. Don't append.
   PR C (per-person habits tiles) are next; see
   `.avengers/missions/mission-39-tablet-login.md`.
 - **Winnie notifications (mission 42)** merged as PR #58 on 2026-11-06.
-  Bryce adds the two env vars in Vercel and taps "Send test to Winnie".
+  **Connected and proven on 2026-11-06:** Bryce added the two env vars in
+  Vercel (Production, Sensitive), redeployed, and a "Send test to Winnie"
+  tap arrived in her chat. Winnie's 9 AM to 9 PM Denver window
+  is her own routine setting (not Marshee's); she offered to exempt
+  `connection.test` events and keep it for ordinary alerts. No real alerts are wired yet; choosing their rules is next.
   Details: `.avengers/missions/mission-42-winnie-notify.md`.
 - **Winnie's recipes and meal plan (mission 44)** merged as PR #61
   (`634627a`) on 2026-11-06 and is live (production deploy READY, routes
