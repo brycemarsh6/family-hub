@@ -1,8 +1,7 @@
 # Mission 50: Winnie's plans and goals (Assistant API)
 
 **Project:** family-hub (Marshee)
-**Status:** PLANNED (contracts written, Hill H1 to H9 decided; build waits
-for Bryce to switch Fury back to Opus)
+**Status:** GATES PASSED (Vision and Captain PASS on pass 2); merging
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/plans-goals-assistant-mission-1a9a26` from `origin/main`
 `d0397e2` (holds `fc9772b`, mission 47's records). Worktree
@@ -560,6 +559,7 @@ through `goalsRead`-level code), no auth, no `revalidatePath`, refusals as
 | 1 | Vision | BLOCKED | V1 undo of a title-only goal edit rebuilds the number cache from check-ins, so a goal with no check-ins whose `currentValue` differs from its start drifts (80 → 82, live) | `PUT /vision/together/spiritual/abc` → 500 (horizon parsed before validation); `kindOrder` could in theory hit `exists` on a remove + re-create of the same unique key in one plan (no current write does); missing vs hidden goal wording differs on writes (app parity); "Ask Bryce" names Bryce in H2 and H4 (Hill's words); `keepsHours` copies the raw `period`; vision action validates twice. Gauntlet green, build exit 0, parity re-run 45/0, privacy and owner-unset clean |
 | 1 | Captain | BLOCKED | B1 `serializeGoals.ts` copies `goalOwnership` / `isPrivateGoal`; B2 vision PUT route compares a board with `TOGETHER_BOARD` (use `boardOwnerId`); B3 two new vision readers outside `visionsRead.ts` (`goalReads.readVision`, the PUT route's no-op read); B4 `undoHooks` writes the number cache itself (one writer in `goalWrites.ts` with a keep-`updatedAt` option); B5 Ongoing tripwire crossed (4th and 5th `targetDate === null`: add `isOngoingGoal`); B6 `toWeek` copies `ThisWeekList.tsx`'s row order (one pure `weekRows`) | `lockGoal` raw `FOR UPDATE` in `goalReads.ts` (move to `goalWrites.ts`, A14); plan-item PATCH H4 read outside the lock; `planItemWrites` computes today and imports `assistant/today`; `canSee && canEdit` in three places (A19); `atomically` homed in a habit writer; `habitActor*` naming; pre-existing P2003 and `DEVICE_REFUSED` duplicates; undoModels / undoWrites near 300; STRUCTURE.md 1433 and CLAUDE.md 439 lines; amendments A15 to A20 drafted |
 
+| 2 | Vision | PASS | none (V1 closed live: undo and redo of a title edit keep `currentValue` 80 on a goal whose start is 82; gauntlet green, build exit 0, `live.ts` 125/0, own probe 34/0, counts identical) | `viewGoal` inside the plan-item PATCH transaction uses the global `db` (two pool connections per PATCH; a burst of 10+ could stall); the goal lock orders Winnie's requests only, the family's plan-item actions don't take it (narrow race on H4); **decided behaviour change:** the family removing a non-newest check-in no longer bumps `Goal.updatedAt`, so a later undo of Winnie's goal edit succeeds where it used to answer 409 (correct, nothing visible reads it); g3 test case changed to fit the new rule; pass 1 NOTEs unchanged |
 | 2 | Captain | PASS | none (B1 to B6 closed; no cycles by script; sizes under 300 except `goals.ts` 343 of soft cap 350) | Condition met: A15 and A16 pasted into STRUCTURE.md (they replace sentences this mission made stale). NOTEs: `goals.ts` at 343, next addition comes with a split; vision Mine/Together owner mapping in two places (A18); carried: A19 triple `canSee && canEdit`, `atomically` home, `habitActor*` naming, P2003 / `DEVICE_REFUSED` duplicates, undoModels / undoWrites near 300 |
 
 ### Amendments A17 to A20 (Captain's final texts, for Bryce with A1 to A14; not yet in STRUCTURE.md). A15 and A16 are in STRUCTURE.md.
@@ -624,6 +624,90 @@ in `habitActor*.ts`; `assistant/goalReads.ts` reads only through
   Banner brief taken. Contracts written. Hill H1 to H9 recorded. Next:
   Bryce switches back to Opus, then C1 and C2 go out in parallel.
 
+- 2026-11-07 - Bryce switched Fury back to Opus. C1 `ee30bc3` and C2
+  `4334282` in parallel, C3 `8ad6a97`. Gate pass 1 at `06d1c60`: Vision
+  BLOCKED (V1), Captain BLOCKED (B1 to B6). F1 `ee77e0e`. Gate pass 2 at
+  `3deb201`: Vision PASS, Captain PASS. A15 and A16 pasted into
+  STRUCTURE.md (`056f2ea`). Records (C4) next, then sync, PR, merge.
+
 ## Delivery
 
-(Not yet.)
+- **Verdicts:** Vision PASS (pass 2 of 3), Captain PASS (pass 2 of 3).
+  Strange not assembled: no family-visible string changed (components got
+  helper calls only; `weekRows` proven identical on dev). Hill decided H1
+  to H9.
+- **Shipped for Winnie:** 11 routes (Design, Routes), every write with
+  copies and undoable, the goal's number cache rebuilt inside the undo
+  transaction, proven live through the real routes by the builder (125
+  lines, twice) and by Vision (pass 1 probes, pass 2 125 + 34 lines).
+- **For the family's app:** behaviour identical, proven by parity script
+  (45 cases, 0 FAIL, run three times). Disclosed differences: removing a
+  check-in that is not the newest no longer bumps the goal's `updatedAt`
+  (nothing shows it); the vision upsert retry now re-runs the whole save.
+- **No schema change. No migration.**
+- **Records:** STRUCTURE.md gained A15 (the `isOngoingGoal` rule) and A16
+  (number cache writers, `lockGoal`, `planItemRowOf`). CLAUDE.md: the
+  mission 47 bullet's "Next for Winnie" line and the mission 50 bullet.
+- **Deliberate leftovers (next touch):** Vision's and Captain's NOTEs above
+  (two pool connections in the plan-item PATCH, the family not taking the
+  goal lock, `kindOrder` theory, missing vs hidden wording on writes,
+  `keepsHours` raw `period`, double vision validation, A18 owner mapping
+  twice, A19 `canChange`, `atomically` home, `habitActor*` naming,
+  `goals.ts` at 343 needs a split before it grows, undoModels / undoWrites
+  near 300); undo of a goal create proven by Vision live but not by the
+  builder; Captain's A17 to A20 wait with A1 to A14.
+- **For Bryce (review first):** the privacy preset (Winnie is Bryce;
+  edits only his and Together goals; goals she makes are shared, H3), then
+  Hill's H1 to H9, then A17 to A20. `ASSISTANT_OWNER_USER_ID` must be set
+  in Vercel (already on his checklist) or "Mine" is refused.
+- **Shipped check:** (after the merge)
+
+### What to tell Winnie (plain English, for Bryce to paste or adapt)
+
+> New in Marshee: you can see and work the family's plans and goals.
+> Re-read `/api/assistant/v1/openapi.json` for the exact shapes. People
+> are always `personId`s from `GET /family`.
+>
+> - **Goals:** `GET /goals` lists the goals you may see (`?status=active`,
+>   `done` or `all`; `?personId=` for one person's goals plus Together).
+>   Each has its life area, target date or `ongoing`, `ownership` ("mine"
+>   or "together") with `ownerId`, whether it is private, and its number
+>   (unit, start, target, current, progress, pace). `GET /goals/{id}` adds
+>   its plan items and every check-in, newest first, each with
+>   `createdByAssistant`.
+> - **This week:** `GET /goals/week` is the This week screen for everyone
+>   (`?personId=` for one person): each goal's plan items with this week's
+>   counts, the week's done of total, the next steps, and on Sundays the
+>   recap.
+> - **Vision:** `GET /vision` gives every board (Together first, then each
+>   person) at 5, 10 and 15 years; `?board=together` or `?board=<personId>`
+>   and `?horizon=10` narrow it. `PUT /vision/{board}/{area}/{horizon}`
+>   with `{ "text": "..." }` writes one statement, on the Together board
+>   or Bryce's board only. You can't clear one (empty text is refused).
+> - **Add and edit goals:** `POST /goals` needs `title`, `area` and
+>   `ownership` ("mine" means Bryce's); add `targetDate` (YYYY-MM-DD) or
+>   `"ongoing": true`, or leave both out for the end of this year. A
+>   number to track is `measureUnit`, `startValue`, `targetValue`.
+>   `PATCH /goals/{id}` changes any of those, or `"completed": true/false`;
+>   `"removeNumber": true` works only when the goal has no check-ins.
+>   Never send `visibility`: you get 400. Goals you make are shared; Bryce
+>   can make one private in the app.
+> - **Check-ins:** `POST /goals/{id}/check-ins` with `{ "value": 78 }`.
+>   `DELETE /goals/{id}/check-ins/{checkInId}` removes one you added
+>   yourself (403 for the family's: ask Bryce).
+> - **Plan items:** `POST /goals/{id}/plan-items` adds a habit, step or
+>   reminder at the end; a habit makes its habit too. `PATCH
+>   /plan-items/{id}` edits one, or `"done": true/false` on a step. A habit
+>   can't be changed to a step or reminder. **To log a habit item**, use
+>   its `habitId` with `POST /habits/{habitId}/check` (a Mine goal's habit
+>   is its owner's; a Together habit checks everyone at once). An item
+>   with `habitId` null must be re-saved in the app before it can be
+>   checked.
+> - **Whose goals you can change:** Bryce's and Together goals. Other
+>   people's goals are read-only to you ("You can't change that goal."),
+>   and their private goals answer 404: ask, don't guess.
+> - **Undo:** every change above can be undone for 30 days with `POST
+>   /audit/{requestId}/undo`; the goal's current number is recomputed with
+>   it. Undo refuses if a family member changed the same row since; tell
+>   Bryce instead of forcing it. You can never delete a goal, plan item or
+>   vision statement.
