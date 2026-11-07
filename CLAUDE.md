@@ -243,6 +243,13 @@ Replace this section at the end of each session. Don't append.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
   for the swipe `pointerdown` issue and `CalendarViews.tsx` growth that CV6's
   gates flagged (details in `mission-19-calendar-cv6-dropdown-swipe.md`).
+- **Tablet login (mission 39) PR A** passed its gates on 2026-11-06 and
+  merges from `claude/mission-39-tablet-login-pra-49f32c`: an admin sets up
+  one "Tablet" login in Manage family, its chip is last on the login page,
+  it can check off any task, and Sign out on it asks for an admin password.
+  PR B (the tablet's own dashboard, calendar editing, the parent rule) and
+  PR C (per-person habits tiles) are next; see
+  `.avengers/missions/mission-39-tablet-login.md`.
 - **Winnie notifications (mission 42)** is built on branch
   `claude/winnie-notify-ed0df7`; **the merge waits for Bryce's go** (his
   rule for this mission). After merge he adds the two env vars in Vercel and
@@ -288,6 +295,11 @@ Replace this section at the end of each session. Don't append.
   drag the Family order into Bryce, Emily, Ledger, Eleanor, Lucy. Open
   Habits & Chores, Whole family, in portrait and landscape: swipe sideways
   with a finger, scroll one column, tap a check, try Filter.
+- **Tablet login setup** (about 5 minutes): on your phone, Settings, Manage
+  family, "Set up a tablet login", choose the Tablet password, Create. On the
+  tablet: Settings, Sign out (it is still Emily, so one tap), tap the
+  "Tablet" chip at the bottom, enter that password. Then on the tablet try
+  Settings, Sign out: a wrong admin password is refused, yours signs it out.
 - **Delete the commented production `DATABASE_URL` line in `.env`**
   (host `ep-hidden-surf-`). It isn't used, but AGENTS.md says no dev
   machine should hold it. No agent edits `.env`.
@@ -302,7 +314,8 @@ Replace this section at the end of each session. Don't append.
   Troubleshooting, Review Pinned Git Origins) so the app's merge button
   works. Delete the "zz m31" to "zz m35" test habits, the four
   "zz m37" habits, the "zz m37 Commissions" goal, the four "zz m38"
-  goals and the deactivated "zz m41 test renamed" profile on dev whenever.
+  goals, the deactivated "zz m41 test renamed" profile and the deactivated
+  "zz m39 Tablet" device on dev whenever.
 
 **Waiting on Bryce:**
 - **PR A is live:** press Recompute streaks once (Settings). The production

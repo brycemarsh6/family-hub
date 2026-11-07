@@ -1,7 +1,7 @@
 # Mission: Tablet login (mission 39)
 
 **Project:** family-hub (Marshee)
-**Status:** PR A BUILDING (C1 to C4; contracts A and B written, see "PR A build")
+**Status:** PR A GATES PASSED (Vision, Strange, Captain); merging. PR B (C5 to C7) and PR C (C8) not started
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch (planning only):** `claude/nice-visvesvaraya-ff9197` (from origin/main 812b537). The build gets its own branch.
 
@@ -378,6 +378,8 @@ reactivatePerson device check (Vision blocker); AdminPasswordSheet form remounts
 | 1 | Vision | BLOCKED | `reactivatePerson` could bring back a second active device (deactivate A, create B, reactivate A) | Gauntlet re-run green; 7 UTC skips are pre-existing DST tests; notes: non-atomic create, shared lockout, logout DB read, Avatar colour on device |
 | 1 | Strange | BLOCKED | AdminPasswordSheet error survives Cancel and reopen | Run on dev with screenshots S1 to S21; test device "zz m39 Tablet" created and deactivated via UI; notes: Settings card shows initial not icon, explainer copy partly untrue |
 | 1 | Captain | PASS | none | A1 (tablet rules home) and A2 (actions row) written into STRUCTURE.md; notes: DeviceBadge duplication, PersonManageSheet split candidate |
+| 2 | Vision | PASS | none | Pass-1 blocker closed (reactivate refuses a second active device); notes: check-then-write race, logout fails open on a DB error by design, `setRole` doesn't refuse a device target via direct POST (PR B), stray blank line in AdminPasswordSheet |
+| 2 | Strange | PASS | none | S15 fixed (error gone after Cancel and reopen, run twice); DeviceBadge on Settings card about 5.4:1 dark, 4.3:1 light; "zz m39 Tablet" reactivated for the test and deactivated again; notes: no hint why the create button is gone, Next dev logs server action arguments including passwords |
 
 ## Handoff log
 
@@ -399,8 +401,9 @@ reactivatePerson device check (Vision blocker); AdminPasswordSheet form remounts
 
 ## Delivery
 
-- **Shipped:** nothing yet (planning only).
-- **Shipped check:** this file's commit on `claude/nice-visvesvaraya-ff9197`,
-  pushed; see the handoff log.
-- **Deliberate leftovers:** the tap-your-name actor picker; a second tablet;
-  whether Winnie should ever act as the tablet (no, by the Assistant API plan).
+- **Shipped (PR A):** C1 to C4 on branch `claude/mission-39-tablet-login-pra-49f32c`: Set up a tablet login (admin only, one active device, reactivate refuses a second), Tablet chip last with a Tablet icon, the tablet completes any task, Sign out on the tablet asks for an admin password. STRUCTURE.md A1 and A2.
+- **Decided by Hill:** the create sheet's explainer wording (medium; leaves out Menu style, adds "Only an admin can rename it or change its password").
+- **Fury's calls:** Name box kept from the mock, prefilled "Tablet"; the admin sign-out lockout says "Too many tries. Wait about 15 minutes, then try again."; wrong admin passwords share the Tablet's 5-try lockout.
+- **Not exercised by agents:** the right-admin-password sign out and the real tablet sign-in (Bryce's).
+- **Deliberate leftovers:** PR B (C5 to C7), PR C (C8); `setRole` refusing a device target; a hint for why the create button is hidden; `PersonManageSheet.tsx` split (Captain); the tap-your-name actor picker; a second tablet.
+- **Dev data:** a deactivated "zz m39 Tablet" device row on the dev branch.
