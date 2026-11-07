@@ -1,5 +1,4 @@
-import { ApiError } from "./errors";
-import type { WriteError } from "@/lib/tagWrites";
+export { toWriteFailure } from "./errors";
 import { fingerprintIngredients } from "@/lib/nutritionFingerprint";
 import { totalRecipeMinutes } from "@/lib/recipeTimeFilter";
 import { recipeLines } from "@/lib/recipeText";
@@ -107,15 +106,4 @@ export function toCookbook(row: { id: string; title: string; _count: { recipes: 
 
 export function toTag(row: { id: string; name: string }, recipeCount: number) {
   return { id: row.id, name: row.name, recipeCount };
-}
-
-/**
- * A write module's refusal as the API's: `missing` names something that
- * doesn't exist (404); `invalid` is a bad request (400). Goes by the code,
- * never the message text.
- */
-export function toWriteFailure(failure: WriteError): ApiError {
-  return failure.code === "missing"
-    ? new ApiError(404, "not_found", failure.error)
-    : new ApiError(400, "validation", failure.error);
 }

@@ -1,7 +1,6 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
-import { ApiError, fromZodError } from "@/lib/assistant/errors";
+import { ApiError, fromZodError, toWriteFailure } from "@/lib/assistant/errors";
 import { mealPlanPutBody, mealSlotParams } from "@/lib/assistant/schemasMealPlan";
-import { toWriteFailure } from "@/lib/assistant/serializeRecipes";
 import { toMealCell, weekForDate } from "@/lib/assistant/serializeMealPlan";
 import { getRecipeTitle } from "@/lib/assistant/mealPlanReads";
 import { parseDateParam } from "@/lib/householdDate";
