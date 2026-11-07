@@ -339,3 +339,98 @@ mission 44, PR #61)
 - 2026-11-06: Fury gauntlet at `944e4d3`: tsc, eslint, `npm test`
   1249/1249, `npm run build` exit 0 (4 new cookbook routes listed). Gate
   pass 1: Vision + Captain in parallel.
+
+## Gate ledger
+
+### Captain pass 1 (at `0f85097`): BLOCKED
+
+- **BLOCKER:** test split headers missing. `undoPlan.test.ts` has no header
+  naming `undoPlan.ts` and its sibling; `undoPlanCookbook.test.ts` doesn't
+  name the module it covers (STRUCTURE.md, File-size caps, test files).
+- Clean: mission 44's `WriteError`/`toWriteFailure` NOTEs closed with no
+  leftovers; dependency direction; `cookbookWrites.ts` as the write home
+  (the action no longer touches `db`); route/read/serializer split; undo
+  registry. Sizes all under the soft cap (`cookbookWrites.ts` 199/132).
+- NOTEs (fix now marked *): N1* `recipeWrites.ts:113` retypes the
+  cookbook-missing message; N2 a second `CookbookRecipe` insert inside
+  `createRecipeRow` (could share a `fileRecipeInTx`); N3 `RECIPE_MISSING`
+  home in `writeError.ts` vs the domain constants; N4* `errors.ts` header
+  overclaims "no imports beyond a zod type"; N5 null vs `COOKBOOK_MISSING`
+  across the cookbook writes; N6 the delete guard's `WriteError` return path
+  has no caller (the route throws); N7 share URLs built in four places;
+  N8* recipe order stated twice (query and serializer); N9 CLAUDE.md 375
+  lines vs ~250, STRUCTURE.md 1320 vs its 650 trigger; N10
+  `actions/recipes.ts` retypes "That recipe no longer exists." six times.
+- Proposed STRUCTURE.md amendments for Bryce (on top of mission 44's A1 to
+  A4): A5 write refusals and named missing-row constants; A6 one share-URL
+  builder; A7 caller guards inside a write lock; A8 name `tagWrites.ts` and
+  `cookbookWrites.ts` among the write modules.
+
+### Vision pass 1 (at `0f85097`): BLOCKED
+
+- Gauntlet re-run green (tsc, eslint, 1249/1249, UTC 1242 + 7 skipped, LA
+  1249, build with 4 cookbook routes, recordcheck 0 hard). Boundaries clean
+  per commit. Live 47/51 (2 were his own test mistake, 2 the blocker):
+  twins, no-ops, delete + undo byte-identical, refusals, 15-round delete vs
+  family filing race 0 inconsistent. Counts restored. Production read-only:
+  401 on `/recipes` and `/cookbooks`.
+- **BLOCKER:** `findOrCreateCookbookRow` matches with Prisma `equals` +
+  `mode: "insensitive"`, which Postgres runs as `ILIKE` with nothing
+  escaped: `%` and `_` act as wildcards. Reproduced: with `… alpha`
+  present, `… _lpha` and `… al%` returned alpha (200, `created: false`);
+  `"%"` would hand Winnie the oldest family cookbook, which she might then
+  file into, rename or share. Fix: exact `lower(title) = lower($1)`.
+- NOTEs: same ILIKE wildcard in `tagWrites.ts` `findTagByName` (POST
+  /tags, rename clash; folded into F1) and `src/lib/voice/apply.ts:124`
+  (follow-up); H1 gap: Winnie can unfile the family's filings from her own
+  cookbook and then delete it (all undoable, undo the delete first), to go
+  in the notes to Winnie; the merge date was UTC (fixed to Denver
+  2026-11-06); the delete guard refuses any filing racing the delete, even
+  her own (safe side); app parity line by line, only the allowed
+  differences.
+
+### F1 - exact title match, Captain's headers and cheap notes
+
+- **Objective:** close Vision's and Captain's blockers.
+- **Boundaries:** May touch: `src/lib/cookbookWrites.ts`,
+  `src/lib/tagWrites.ts`, `src/lib/recipeWrites.ts`,
+  `src/lib/assistant/errors.ts`, `src/lib/assistant/cookbookReads.ts`,
+  `src/lib/assistant/undoPlan.test.ts` (header comment only),
+  `src/lib/assistant/undoPlanCookbook.test.ts` (header comment only).
+  Nothing else.
+- **Work:**
+  1. `findOrCreateCookbookRow`: inside the transaction, after the advisory
+     lock, find the match with `tx.$queryRaw` `SELECT "id" FROM "Cookbook"
+     WHERE lower("title") = lower(${title}) ORDER BY "createdAt" ASC, "id"
+     ASC LIMIT 1`, then load it with its recipe count.
+  2. `tagWrites.ts` `findTagByName` (both callers): the same exact
+     `lower("name") = lower($1)` match, keeping the except-id option and the
+     recipe count. No wording change.
+  3. `recipeWrites.ts`: import `COOKBOOK_MISSING` instead of retyping it
+     (Captain N1). `errors.ts` header: "beyond two types" (N4).
+     `cookbookReads.ts`: drop the query's `addedAt` ordering, the
+     serializer's sort is the rule (N8).
+  4. Headers: `undoPlan.test.ts` "Tests for undoPlan.ts (general undo
+     rules). Cookbooks as undo parents are in the sibling
+     undoPlanCookbook.test.ts."; `undoPlanCookbook.test.ts` "Tests for
+     undoPlan.ts: cookbooks as undo parents (mission 45). The general rules
+     are in the sibling undoPlan.test.ts."
+- **Verification:** tsc, eslint, `npm test`, both TZ legs. Live on dev
+  (port 3270, setup above; Vision's script is at
+  `scratchpad/live.ts`), ZZZ rows only: with `ZZZ Assistant Test F alpha`
+  present, `… _lpha` and `… al%` each create a new cookbook (201); `… ALPHA`
+  still finds alpha (200, `created: false`); 5 parallel creates with mixed
+  capitals still make one row. Tags: with `ZZZ Assistant Test F tag`
+  present, `POST /tags` `… t_g` and `… t%` each create (201), `… TAG`
+  finds it; `renameTag`'s clash check by script: renaming another test tag
+  to `… t_g` is allowed when only `… tag` exists, `… TAG` is refused.
+  Re-run Vision's `scratchpad/live.ts` in full. Counts before/after; test
+  rows and AssistantRequests deleted by id.
+- **Evidence / done:** outputs per check, `git diff --stat`, commit hash.
+- **F1 DONE `3b5d6a9`** (7 files, +38/-15). Exact `lower()` match for cookbooks
+  and tags; Captain's headers, N1, N4, N8. Live 11/11: `_lpha` and `al%`
+  create (201), `ALPHA` finds (200); 5 parallel mixed-capital creates → 1
+  row; tags `t_g`/`t%` create, `TAG` finds; rename clash exact. Vision's
+  `live.ts` 49 + 2 openapi checks that lacked the token (re-checked with
+  it: 4 cookbook paths). Counts restored. Fury: eslint clean, build exit 0.
+  Gate pass 2: Vision + Captain in parallel.

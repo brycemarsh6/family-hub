@@ -268,7 +268,7 @@ Replace this section at the end of each session. Don't append.
   Bryce adds the two env vars in Vercel and taps "Send test to Winnie".
   Details: `.avengers/missions/mission-42-winnie-notify.md`.
 - **Winnie's recipes and meal plan (mission 44)** merged as PR #61
-  (`634627a`) on 2026-11-07 and is live (production deploy READY, routes
+  (`634627a`) on 2026-11-06 and is live (production deploy READY, routes
   answer 401 without a token). What to tell Winnie is in the mission
   file's Delivery. Cookbook edits are mission 45, in progress on
   `claude/assistant-cookbooks`. After that for Winnie: calendar/tasks
