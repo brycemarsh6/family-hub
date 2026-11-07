@@ -285,15 +285,30 @@ Replace this section at the end of each session. Don't append.
 - **Winnie's cookbooks (mission 45)** merged as PR #63 (`480091a`) on
   2026-11-06 and is live (routes answer 401 without a token):
   create, rename, file/unfile, share, and delete only her own cookbooks
-  with no family filings (Hill's H1 to H4; review H1 and H4 first). Writes
-  in `src/lib/cookbookWrites.ts`; refusals in `src/lib/writeError.ts`.
-  What to tell Winnie is in the mission file's Delivery. Next for Winnie:
-  calendar/tasks (after CD1), then replacing the app's Claude features
-  with her (needs a two-way link; Bryce parked it 2026-11-06). Captain's
-  STRUCTURE.md amendments A1 to A4 (mission 44) and A5 to A9 (mission 45)
-  wait in the mission files.
+  with no family filings (Hill's H1 to H4; Bryce is fine with them,
+  2026-11-06). Writes in `src/lib/cookbookWrites.ts`; refusals in
+  `src/lib/writeError.ts`. What to tell Winnie is in the mission file's
+  Delivery. Next for Winnie: habits and chores (mission 47, below), then
+  plans and goals, then calendar/tasks (after CD1), then replacing the
+  app's Claude features with her (needs a two-way link; Bryce parked it
+  2026-11-06). Captain's STRUCTURE.md amendments A1 to A4 (mission 44) and
+  A5 to A9 (mission 45) wait in the mission files.
+- **Winnie's habits and chores (mission 47)** is being built on branch
+  `claude/assistant-habits`: 12 routes under `/habits` (today's list, a
+  person's habits, a habit's stats, the chore chart; check, skip, undo
+  either, log and remove her own time; add and edit, never delete), every
+  write undoable with the streaks rebuilt inside the undo. Shared rules in
+  `src/lib/habits/tapWrites.ts` and `habitInput.ts`; the family's habit
+  actions are thin wrappers now. Privacy preset for Bryce to review:
+  Winnie is "Bryce" for private habits through `ASSISTANT_OWNER_USER_ID`.
+  Hill's H1 to H7 in `.avengers/missions/mission-47-assistant-habits.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Winnie and private habits (mission 47):** in Vercel add
+  `ASSISTANT_OWNER_USER_ID` = your own id (from `GET /family`) to
+  Production and redeploy. Until then Winnie sees non-private habits
+  only. Then review Hill's H3 item 4 (a one-person hours habit she makes
+  is private, like the app's) and H6 (quarter-hour time entries).
 - **PR C phone check** (about 5 minutes): on Today, a streak flame on a
   habit done 2+ days running; tap a habit name to open its stats; check
   the last habit of the day and see confetti once. On the iPad, open
