@@ -466,6 +466,73 @@ through `goalsRead`-level code), no auth, no `revalidatePath`, refusals as
   else; `loadWeekRecap` has two scopes); (5) PATCH routes roll back on a
   no-op; (6) undo of a goal create not run live (unit-tested in C2).
 
+### F1 - fixes from Vision pass 1 and Captain pass 1
+
+- **Objective:** close Vision's V1 and Captain's B1 to B6, plus the cheap
+  NOTEs (horizon 500, `lockGoal` placement, H4 under the lock, today from
+  the caller), with nothing the family sees changing.
+- **Boundaries:** May touch: `src/lib/goals.ts` (add `isOngoingGoal` only),
+  `src/lib/goalsProgress.ts` (add `weekRows` and a one-line comment at
+  `paceStatus` only) or a new `src/lib/goalsWeek.ts` (+ test) if
+  `goalsProgress.ts` would pass 300, `src/lib/visionsRead.ts` (add two
+  readers only), `src/lib/goalWrites.ts`, `src/lib/planItemWrites.ts`,
+  `src/app/actions/planItems.ts` (pass `today` only),
+  `src/components/ThisWeekList.tsx` and `src/components/GoalCard.tsx` (call
+  the new helpers; no markup or class change),
+  `src/app/(app)/plans/goals/[id]/edit/page.tsx` (`isOngoingGoal` only),
+  `src/lib/assistant/undoWork.ts`, `undoHooks.ts`, `undoPlanGoals.test.ts`,
+  `goalReads.ts`, `serializeGoals.ts` (+ test), `schemasGoals.ts` (+ test),
+  and the route files under `src/app/api/assistant/v1/goals/`,
+  `plan-items/`, `vision/`. Must not touch: other components, other
+  `src/lib/assistant/undo*` files, `prisma/schema.prisma`, `STRUCTURE.md`.
+- **Work:**
+  1. **V1:** `goalWork` adds a Goal step's goal only when the step is a
+     re-create, or its `before` and `after` copies differ in
+     `currentValue` or `checkedInAt` (those two columns only); goals named
+     by any GoalCheckIn step stay; removed goals stay out. Tests: a title-only
+     restore gives []; a restore differing in `currentValue` is included; a
+     re-create is included.
+  2. **B4:** `rebuildGoalNumber(tx, goalId, { keepUpdatedAt?: boolean })`
+     in `goalWrites.ts` is the one writer (skip the write when nothing
+     differs; keep `updatedAt` when asked; return quietly if the goal is
+     gone); `afterUndo` calls it per `goalWork` goal with `keepUpdatedAt:
+     true` and loses its own `tx.goal` read and update.
+  3. **B1:** `serializeGoals.ts` uses `goalOwnership` and `isPrivateGoal`.
+  4. **B2:** the vision PUT route uses `boardOwnerId(params.board)`.
+  5. **B3:** `visionsRead.ts` gains `loadVisionRows({ boards, horizons })`
+     (narrow select: id, boardKey, area, horizon, text, updatedAt) and
+     `loadVisionStatement(boardKey, area, horizon)`; `readVision` and the PUT
+     route use them; no `db.visionStatement` outside `visionsRead.ts` and
+     `visionWrites.ts`. Validate the horizon (and area) before the lookup so
+     `abc` answers 400 "Pick 5, 10 or 15 years.", not 500.
+  6. **B5:** `isOngoingGoal(goal: { targetDate: Date | null })` in
+     `goals.ts` beside `isPrivateGoal`; used in `serializeGoals.ts`,
+     `schemasGoals.ts`, the edit page and `GoalCard.tsx`; `paceStatus` keeps
+     its inline check with a one-line comment saying why (import cycle).
+  7. **B6:** one pure `weekRows(goal, weekStart)` giving This week's row
+     order (habits, steps ticked this week oldest first, the next step,
+     reminders) beside `weekSummary`; `ThisWeekList.tsx` and
+     `serializeGoals.toWeek` both call it. Unit test it.
+  8. **NOTEs:** move `lockGoal` from `goalReads.ts` into `goalWrites.ts`;
+     the plan-item PATCH route locks the parent goal and makes its H4 check
+     inside the same transaction as the write; `createPlanItem` takes
+     `today` from its caller (the action and the route pass
+     `householdToday(new Date())`) and `planItemWrites.ts` imports nothing
+     from `src/lib/assistant/`.
+- **Verification:** tsc, eslint, `npm test`, both TZ legs, `npm run build`
+  (report the real exit code). Re-run C1's parity script (it must still
+  show 0 FAIL) and C3's `scratchpad/c3/live.ts` (all PASS), plus Vision's
+  `scratchpad/vision/probe.ts` title-edit line: undo of a title edit on a
+  goal whose `currentValue` differs from its start leaves `currentValue`
+  as it was. `PUT /vision/together/spiritual/abc` → 400. This week's page
+  renders the same rows as before (compare `weekRows` output with the old
+  inline order on the dev goals by script). Counts restored; ZZZ rows by id.
+- **Evidence required:** gauntlet tails with exit codes, live lines
+  PASS/FAIL, `git diff --stat` inside the boundary, sizes, commit hash,
+  and `grep -rn "targetDate === null\|db.visionStatement\|FOR UPDATE"
+  src/` output.
+- **Status:** not started.
+
 ### C4 - records (after the gates)
 
 - CLAUDE.md edits in Design, Records; this file's Delivery with "What to
@@ -475,6 +542,8 @@ through `goalsRead`-level code), no auth, no `revalidatePath`, refusals as
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | BLOCKED | V1 undo of a title-only goal edit rebuilds the number cache from check-ins, so a goal with no check-ins whose `currentValue` differs from its start drifts (80 → 82, live) | `PUT /vision/together/spiritual/abc` → 500 (horizon parsed before validation); `kindOrder` could in theory hit `exists` on a remove + re-create of the same unique key in one plan (no current write does); missing vs hidden goal wording differs on writes (app parity); "Ask Bryce" names Bryce in H2 and H4 (Hill's words); `keepsHours` copies the raw `period`; vision action validates twice. Gauntlet green, build exit 0, parity re-run 45/0, privacy and owner-unset clean |
+| 1 | Captain | BLOCKED | B1 `serializeGoals.ts` copies `goalOwnership` / `isPrivateGoal`; B2 vision PUT route compares a board with `TOGETHER_BOARD` (use `boardOwnerId`); B3 two new vision readers outside `visionsRead.ts` (`goalReads.readVision`, the PUT route's no-op read); B4 `undoHooks` writes the number cache itself (one writer in `goalWrites.ts` with a keep-`updatedAt` option); B5 Ongoing tripwire crossed (4th and 5th `targetDate === null`: add `isOngoingGoal`); B6 `toWeek` copies `ThisWeekList.tsx`'s row order (one pure `weekRows`) | `lockGoal` raw `FOR UPDATE` in `goalReads.ts` (move to `goalWrites.ts`, A14); plan-item PATCH H4 read outside the lock; `planItemWrites` computes today and imports `assistant/today`; `canSee && canEdit` in three places (A19); `atomically` homed in a habit writer; `habitActor*` naming; pre-existing P2003 and `DEVICE_REFUSED` duplicates; undoModels / undoWrites near 300; STRUCTURE.md 1433 and CLAUDE.md 439 lines; amendments A15 to A20 drafted |
 
 ## Handoff log
 
