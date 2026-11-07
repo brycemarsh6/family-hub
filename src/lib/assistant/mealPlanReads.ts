@@ -1,17 +1,11 @@
 import "server-only";
 
 // The meal-plan routes' database reads, narrow selects only. The week's plan
-// is always found by distance (findPlanNear, +-PLAN_TOLERANCE_MS), never by
-// equality: plans are stored as the creating phone's local midnight.
+// is found with `findWeekPlan` (mealPlanWrites.ts), by distance, never by
+// equality.
 
 import { db } from "@/lib/db";
-import { findPlanNear } from "@/lib/mealPlanWrites";
-import { PLAN_TOLERANCE_MS } from "@/lib/assistant/summary";
 import { recipeLines } from "@/lib/recipeText";
-
-export function findWeekPlan(instant: Date) {
-  return findPlanNear(instant, PLAN_TOLERANCE_MS);
-}
 
 /** A week's entries, and the titles of the recipes they link to. */
 export async function readWeekEntries(planId: string) {

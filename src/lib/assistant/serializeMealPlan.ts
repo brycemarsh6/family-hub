@@ -1,4 +1,4 @@
-import { HOUSEHOLD_TIME_ZONE, MEAL_SLOTS, type MealSlot } from "@/lib/constants";
+import { HOUSEHOLD_TIME_ZONE, MEAL_SLOTS, toMealSlot, type MealSlot } from "@/lib/constants";
 import {
   addCalendarDays,
   calendarDaysBetween,
@@ -46,8 +46,9 @@ export function toWeek(
     const meals = Object.fromEntries(MEAL_SLOTS.map((slot) => [slot, null])) as Record<MealSlot, MealCell | null>;
     for (const entry of entries) {
       if (entry.dayOffset !== offset) continue;
-      if (!(MEAL_SLOTS as readonly string[]).includes(entry.slot)) continue;
-      meals[entry.slot as MealSlot] = toMealCell(entry, entry.recipeId ? (recipeTitles.get(entry.recipeId) ?? null) : null);
+      const slot = toMealSlot(entry.slot);
+      if (!slot) continue;
+      meals[slot] = toMealCell(entry, entry.recipeId ? (recipeTitles.get(entry.recipeId) ?? null) : null);
     }
     return { date: formatCalendarDate(addCalendarDays(sunday, offset)), meals };
   });

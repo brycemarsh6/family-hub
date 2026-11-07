@@ -50,6 +50,15 @@ export function errorResponse(err: ApiError, headers?: HeadersInit): Response {
   );
 }
 
+/** 503 `ai_unavailable`, the one wording every AI-reading route shares; `errorResponse` adds `retry-after: 5`. */
+export function aiUnavailable(): ApiError {
+  return new ApiError(
+    503,
+    "ai_unavailable",
+    "Couldn't reach the AI to read the ingredients just now. Try again in a moment.",
+  );
+}
+
 /** 404 `not_found` — the one wording every route shares. */
 export function notFound(): ApiError {
   return new ApiError(404, "not_found", "That record doesn't exist.");

@@ -176,18 +176,3 @@ export async function applyRecipeTagDiff(
   }
   return { created, deleted };
 }
-
-/**
- * `applyRecipeTagDiff` on its own: one transaction, recipe row-locked.
- * `{ error }` for a missing recipe or an unknown tag id.
- */
-export async function setRecipeTagRows(
-  recipeId: string,
-  tagIds: string[],
-): Promise<{ created: RecipeTag[]; deleted: RecipeTag[] } | WriteError> {
-  return db.$transaction(async (tx) => {
-    const locked = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Recipe" WHERE "id" = ${recipeId} FOR UPDATE`;
-    if (locked.length === 0) return { error: "That recipe no longer exists.", code: "missing" as const };
-    return applyRecipeTagDiff(tx, recipeId, tagIds);
-  });
-}

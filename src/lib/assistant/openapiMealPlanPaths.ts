@@ -43,7 +43,9 @@ export const mealPlanOperations: Operation[] = [
       "then checked against the inventory and the shopping list. A week with no linked recipes answers empty lists without the AI.",
     query: mealPlanWeekQuery,
     response:
-      "{ weekOf, recipes: [{id,title}], missing: [{ name, from: [{recipeId, line}] }], onList: [name], have: [name] }. " +
+      "{ weekOf, readable, recipes: [{id,title}], missing: [{ name, from: [{recipeId, line}] }], onList: [name], have: [name] }. " +
+      "readable is false when the week had ingredient lines but the AI read none of them (the lists are then empty and mean " +
+      "\"unknown\", not \"nothing needed\"); true otherwise, including a week with no lines. " +
       "503 ai_unavailable (retry-after 5) when the AI can't be reached (nothing is guessed; try again).",
   },
 ];

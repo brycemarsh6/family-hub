@@ -1,7 +1,7 @@
 import { ApiError } from "./errors";
 import type { WriteError } from "@/lib/tagWrites";
 import { fingerprintIngredients } from "@/lib/nutritionFingerprint";
-import { parseTimeToMinutes } from "@/lib/recipeTimeFilter";
+import { totalRecipeMinutes } from "@/lib/recipeTimeFilter";
 import { recipeLines } from "@/lib/recipeText";
 
 // DB row -> wire format for the Assistant API's recipe routes. Pure, and
@@ -34,12 +34,9 @@ export type RecipeDetailRow = RecipeListRow & {
   nutritionFingerprint: string | null;
 };
 
-/** Prep plus cook, from whichever of the two parse; null when neither does. */
-export function totalMinutes(prepTime: string | null, cookTime: string | null): number | null {
-  const prep = prepTime ? parseTimeToMinutes(prepTime) : null;
-  const cook = cookTime ? parseTimeToMinutes(cookTime) : null;
-  return prep === null && cook === null ? null : (prep ?? 0) + (cook ?? 0);
-}
+// Prep plus cook is `totalRecipeMinutes` (recipeTimeFilter.ts); the old name
+// stays exported for `recipeReads.ts` and the serializer test.
+export { totalRecipeMinutes as totalMinutes } from "@/lib/recipeTimeFilter";
 
 export function toRecipeListItem(row: RecipeListRow) {
   return {
@@ -50,7 +47,7 @@ export function toRecipeListItem(row: RecipeListRow) {
     servings: row.servings,
     prepTime: row.prepTime,
     cookTime: row.cookTime,
-    totalMinutes: totalMinutes(row.prepTime, row.cookTime),
+    totalMinutes: totalRecipeMinutes(row.prepTime, row.cookTime),
     tags: row.tags.map((t) => ({ id: t.tag.id, name: t.tag.name })),
     cookbooks: row.cookbooks.map((c) => ({ id: c.cookbook.id, title: c.cookbook.title })),
     shared: row.shareToken !== null,

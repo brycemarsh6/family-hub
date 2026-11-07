@@ -18,6 +18,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import type { MealPlan, MealPlanEntry, Prisma } from "@/generated/prisma/client";
 import { toMealSlot } from "@/lib/constants";
+import { pickNearestPlan, planWindow } from "@/lib/mealPlanWeek";
 import { isUniqueViolationError } from "@/lib/prismaErrors";
 import type { WriteError } from "@/lib/tagWrites";
 
@@ -42,44 +43,16 @@ export async function getOrCreateMealPlanRow(
 }
 
 /**
- * The plan whose weekStart is within `toleranceMs` of `instant`, nearest
- * first. Plans are stored as the creating phone's local midnight, which
- * differs by zone, so lookup is by distance, never by equality.
+ * The week's plan: the one whose weekStart is within PLAN_TOLERANCE_MS of
+ * `instant`, nearest first. Plans are stored as the creating phone's local
+ * midnight, which differs by zone, so lookup is by distance, never by equality.
  */
-export async function findPlanNear(
+export async function findWeekPlan(
   instant: Date,
-  toleranceMs: number,
   client: Prisma.TransactionClient | typeof db = db,
 ): Promise<MealPlan | null> {
   const t = instant.getTime();
-  const plans = await client.mealPlan.findMany({
-    where: {
-      weekStart: { gte: new Date(t - toleranceMs), lte: new Date(t + toleranceMs) },
-    },
-  });
-  let best: MealPlan | null = null;
-  let bestGap = Infinity;
-  for (const plan of plans) {
-    const gap = Math.abs(plan.weekStart.getTime() - t);
-    if (gap < bestGap) {
-      best = plan;
-      bestGap = gap;
-    }
-  }
-  return best;
-}
-
-/**
- * Find the week's existing plan within tolerance, or create one at `instant`
- * (an exact-instant collision re-finds, via getOrCreateMealPlanRow).
- */
-export async function getOrCreatePlanNear(
-  instant: Date,
-  toleranceMs: number,
-): Promise<{ plan: MealPlan | null; created: MealPlan | null }> {
-  const found = await findPlanNear(instant, toleranceMs);
-  if (found) return { plan: found, created: null };
-  return getOrCreateMealPlanRow(instant);
+  return pickNearestPlan(await client.mealPlan.findMany({ where: { weekStart: planWindow(t) } }), t);
 }
 
 async function lockSlot(
@@ -167,7 +140,7 @@ export async function setMealPlanEntryRow(
 }
 
 /**
- * Fill one slot in the week whose plan sits within `toleranceMs` of
+ * Fill one slot in the week whose plan sits within PLAN_TOLERANCE_MS of
  * `instant`, creating that plan at `instant` when the week has none. Plan
  * and slot are written in ONE transaction, so a failure leaves no empty plan
  * behind and the request is all-or-nothing for undo. `planCreated` is a copy
@@ -176,7 +149,6 @@ export async function setMealPlanEntryRow(
  */
 export async function setMealPlanEntryInWeekRow(
   instant: Date,
-  toleranceMs: number,
   input: SlotInput,
 ): Promise<
   | WriteError
@@ -188,7 +160,7 @@ export async function setMealPlanEntryInWeekRow(
   const { slot, dayOffset, title, recipeId } = checked;
   return retryOnceOnRace(() =>
     db.$transaction(async (tx) => {
-      const found = await findPlanNear(instant, toleranceMs, tx);
+      const found = await findWeekPlan(instant, tx);
       const plan = found ?? (await tx.mealPlan.create({ data: { weekStart: instant } }));
       const written = await writeSlot(tx, { mealPlanId: plan.id, dayOffset, slot }, title, recipeId);
       return { planCreated: found ? null : plan, ...written };

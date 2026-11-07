@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
-import { ApiError, errorResponse, fromZodError, notFound, unauthorisedResponse } from "./errors";
+import { ApiError, aiUnavailable, errorResponse, fromZodError, notFound, unauthorisedResponse } from "./errors";
 
 test("errorResponse uses the envelope and status", async () => {
   const res = errorResponse(new ApiError(404, "not_found", "Nope.", { id: "x" }));
@@ -45,4 +45,11 @@ test("notFound is a 404 not_found ApiError", () => {
   assert.ok(err instanceof ApiError);
   assert.equal(err.status, 404);
   assert.equal(err.code, "not_found");
+});
+
+test("aiUnavailable is a 503 that carries retry-after: 5", async () => {
+  const res = errorResponse(aiUnavailable());
+  assert.equal(res.status, 503);
+  assert.equal(res.headers.get("retry-after"), "5");
+  assert.equal((await res.json()).error.code, "ai_unavailable");
 });

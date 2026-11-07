@@ -1,9 +1,10 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { mealPlanWeekQuery } from "@/lib/assistant/schemasMealPlan";
 import { toWeek, weekForDate } from "@/lib/assistant/serializeMealPlan";
-import { findWeekPlan, readWeekEntries } from "@/lib/assistant/mealPlanReads";
+import { readWeekEntries } from "@/lib/assistant/mealPlanReads";
 import { requireHouseholdToday } from "@/lib/assistant/today";
 import { parseDateParam } from "@/lib/householdDate";
+import { findWeekPlan } from "@/lib/mealPlanWrites";
 import type { z } from "zod";
 
 export const GET = assistantRoute<Record<string, never>, undefined, z.output<typeof mealPlanWeekQuery>>({
