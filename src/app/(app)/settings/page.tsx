@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, LogOut, MessageSquare, Users } from "lucide-react";
+import { AdminPasswordSheet } from "@/components/AdminPasswordSheet";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { SettingsAccountCard } from "@/components/SettingsAccountCard";
 import { NavModeSetting } from "@/components/NavModeSetting";
@@ -86,15 +87,21 @@ export default async function SettingsPage() {
 
       {/* A plain form pointed at the Server Action, same as the old drawer
           row: no client JavaScript required, the browser just submits it. */}
-      <form action={logout} className="mt-6">
-        <button
-          type="submit"
-          className="flex min-h-14 w-full items-center gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
-        >
-          <LogOut aria-hidden="true" size={22} className="shrink-0 text-muted" />
-          Sign out
-        </button>
-      </form>
+      {user.isDevice ? (
+        // The tablet can't sign itself out with one tap: this asks for an
+        // admin's password first (mission 39, C4).
+        <AdminPasswordSheet />
+      ) : (
+        <form action={logout} className="mt-6">
+          <button
+            type="submit"
+            className="flex min-h-14 w-full items-center gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
+          >
+            <LogOut aria-hidden="true" size={22} className="shrink-0 text-muted" />
+            Sign out
+          </button>
+        </form>
+      )}
     </div>
   );
 }

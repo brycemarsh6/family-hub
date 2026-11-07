@@ -269,6 +269,10 @@ export const ROLE_LABELS: Record<Role, string> = {
  */
 export const ASSIGNABLE_ROLES: readonly Role[] = ROLES.filter((role) => role !== "device");
 
+/** The name the "Set up a tablet login" sheet prefills, and the fallback
+ * createDeviceLogin uses when the name is left blank (mission 39). */
+export const DEVICE_DISPLAY_NAME_DEFAULT = "Tablet";
+
 // A fixed data palette for avatar initials — the same reasoning as the
 // nutrition donut's fixed orange/blue/purple (src/app/kitchen/cooking/
 // recipes/[id]/NutritionSection.tsx): these name arbitrary *people*, not UI
