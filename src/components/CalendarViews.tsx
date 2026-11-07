@@ -41,7 +41,8 @@ import type { CalendarEventView, CalendarHabitDayView, CalendarPersonView, Calen
 type CalendarViewsProps = {
   events: CalendarEventView[];
   /**
-   * mission-14/C2 — page.tsx's parallel `db.task.findMany`, converted the
+   * mission-14/C2 — page.tsx's parallel task read (`getTasksInDueRange`,
+   * src/lib/calendarTaskQuery.ts), converted the
    * same way `events` is. mission-14/C3: filtered per day and handed to
    * DaySection for Week/Day, and passed straight through to MonthGrid for
    * Month (which does its own per-row conversion — see that component).

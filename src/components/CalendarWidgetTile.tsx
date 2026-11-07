@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays } from "lucide-react";
 import DashboardTile from "./DashboardTile";
-import { DaySection } from "./DaySection";
+import { DaySection, DaySectionHeader } from "./DaySection";
 import { EventCard } from "./EventCard";
 import { HabitDayCard } from "./HabitDayCard";
 import { TaskCard } from "./TaskCard";
@@ -22,7 +23,7 @@ import {
 } from "@/lib/calendarWidget";
 import { DASHBOARD_WIDGET_WORDS, DASHBOARD_WIDGETS, type WidgetSize } from "@/lib/dashboardWidgets";
 import type { CalendarWidgetOptions } from "@/lib/dashboardWidgetOptions";
-import { isSameDay, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
+import { isSameDay } from "@/lib/mealPlanDates";
 import { useNowMinute } from "@/lib/useNowMinute";
 import { useToday } from "@/lib/useToday";
 import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
@@ -42,37 +43,31 @@ const LARGE_CAP = 6;
 const NARROW_DAY_CAP = 3;
 const WIDE_DAY_CAP = 5;
 
+/** Wide Extra large columns: 3 days sit in 3 columns; 7 days wrap, each column at least 13rem (208px) wide. */
+function wideColumns(dayCount: number): string {
+  return dayCount === 7 ? "@min-[30rem]:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]" : "@min-[30rem]:grid-cols-3";
+}
+
 type Handlers = {
   onOpenEvent: (event: CalendarEventView, day: Date) => void;
   onOpenTask: (task: CalendarTaskView, day: Date) => void;
 };
 
-function MoreLine({ more }: { more: number }) {
+/** "+N more": a full-width 44px row that opens Schedule on that list's day. */
+function MoreLine({ more, day }: { more: number; day: Date }) {
   if (more <= 0) return null;
-  return <p className="px-1 text-sm text-muted">{DASHBOARD_WIDGET_WORDS.moreRows(more)}</p>;
+  return (
+    <Link
+      href={`/calendar?${buildCalendarSearch("schedule", day)}`}
+      className="flex min-h-11 w-full items-center px-1 text-left text-sm text-muted"
+    >
+      {DASHBOARD_WIDGET_WORDS.moreRows(more)}
+    </Link>
+  );
 }
 
 function EmptyLine({ word }: { word: string }) {
   return <p className="px-1 py-2 text-sm text-muted">{word}</p>;
-}
-
-/** The weekday + date header of DaySection, for a day that has nothing to draw. */
-function DayHeader({ day, today }: { day: Date; today: Date }) {
-  const isToday = isSameDay(day, today);
-  return (
-    <div className="mb-1 flex items-center gap-2 px-1">
-      <span className={`text-xs font-semibold uppercase tracking-wide ${isToday ? "text-accent" : "text-muted"}`}>
-        {SHORT_DAY_NAMES[day.getDay()]}
-      </span>
-      <span
-        className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${
-          isToday ? "bg-accent text-accent-fg" : "text-fg"
-        }`}
-      >
-        {day.getDate()}
-      </span>
-    </div>
-  );
 }
 
 /** Today's rows with no day header: tasks, planned habits, then events (Medium). */
@@ -116,7 +111,7 @@ function DayColumn({
   if (empty !== null) {
     return (
       <div className="min-w-0">
-        <DayHeader day={day} today={today} />
+        <DaySectionHeader day={day} isToday={isToday} className="mb-1" />
         <EmptyLine word={empty} />
       </div>
     );
@@ -125,8 +120,45 @@ function DayColumn({
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <DaySection day={day} today={today} tasks={shown.tasks} habitDays={shown.habitDays} events={shown.events} compact {...handlers} />
-      <MoreLine more={shown.more} />
+      <MoreLine more={shown.more} day={day} />
     </div>
+  );
+}
+
+/** The grey shape of each size before the browser knows the day, matching the real rows (h-12, gap-1) and day gaps (gap-3). */
+function CalendarSkeleton({ size, dayCount }: { size: WidgetSize; dayCount: number }) {
+  const rows = (count: number) =>
+    Array.from({ length: count }, (_, row) => <SkeletonBlock key={row} className="h-12 w-full" />);
+  const dayBlock = (key: number, count: number) => (
+    <div key={key} className="flex min-w-0 flex-col gap-1">
+      <SkeletonBlock className="h-7 w-16" />
+      {rows(count)}
+    </div>
+  );
+  const days = (count: number) => Array.from({ length: dayCount }, (_, day) => dayBlock(day, count));
+  if (size === "s") {
+    return (
+      <DashboardTile href="/calendar" icon={ICON} title={TITLE} shape="link">
+        <SkeletonBlock className="h-12 w-full" />
+      </DashboardTile>
+    );
+  }
+  return (
+    <DashboardTile href="/calendar" icon={ICON} title={TITLE} shape="panel">
+      {size === "m" && <div className="flex flex-col gap-1">{rows(3)}</div>}
+      {size === "l" && (
+        <div className="flex flex-col gap-1">
+          <SkeletonBlock className="h-7 w-16" />
+          {rows(6)}
+        </div>
+      )}
+      {size === "xl" && (
+        <div className="@container">
+          <div className="flex flex-col gap-3 @min-[30rem]:hidden">{days(3)}</div>
+          <div className={`hidden gap-3 @min-[30rem]:grid ${wideColumns(dayCount)}`}>{days(5)}</div>
+        </div>
+      )}
+    </DashboardTile>
   );
 }
 
@@ -149,12 +181,7 @@ export default function CalendarWidgetTile({
   };
 
   if (today === null || now === null) {
-    const shape = size === "s" ? "link" : "panel";
-    return (
-      <DashboardTile href="/calendar" icon={ICON} title={TITLE} shape={shape}>
-        <SkeletonBlock className={size === "s" ? "h-12 w-full" : "h-24 w-full"} />
-      </DashboardTile>
-    );
+    return <CalendarSkeleton size={size} dayCount={options.days} />;
   }
 
   if (size === "s") {
@@ -190,7 +217,7 @@ export default function CalendarWidgetTile({
             ) : (
               <DaySection day={today} today={today} tasks={cap.tasks} habitDays={cap.habitDays} events={cap.events} compact {...handlers} />
             )}
-            <MoreLine more={cap.more} />
+            <MoreLine more={cap.more} day={today} />
           </div>
         )}
       </DashboardTile>
@@ -200,10 +227,12 @@ export default function CalendarWidgetTile({
   // Extra large: the day list is its own CSS container, so the columns follow
   // the tile's real width, not the screen's. From 30rem (480px) of body the
   // days sit side by side (5 rows each); narrower they stack (3 rows each).
+  // 3 days sit in 3 columns; 7 days wrap into as many columns as fit at 13rem
+  // (208px) each, so a narrow tile gets a second row instead of crushed columns.
   // The two lists are both in the DOM and CSS shows one, since the row cap
   // differs and only the browser knows which width it has.
   const days = widgetDays(today, options.days);
-  const columns = options.days === 7 ? "@min-[30rem]:grid-cols-7" : "@min-[30rem]:grid-cols-3";
+  const columns = wideColumns(options.days);
   const list = (cap: number) =>
     days.map((day) => (
       <DayColumn key={day.getTime()} data={data} day={day} today={today} now={now} options={options} cap={cap} handlers={handlers} />

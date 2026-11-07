@@ -68,7 +68,7 @@ test("next: an event that already ended is skipped, one still running counts", (
 test("next: an all-day event today counts, and sorts by Schedule's order after earlier-starting ones", () => {
   const out = nextCalendarItem(data({ events: [allDayEvent("holiday", 12), timed("lunch", 12, 15, 12, 16)] }), today, now, opts());
   assert.ok(out?.type === "event");
-  assert.ok(["holiday", "lunch"].includes(out.event.id));
+  assert.equal(out.event.id, "holiday");
   assert.equal(nextCalendarItem(data({ events: [allDayEvent("holiday", 12)] }), today, now, opts())?.type, "event");
 });
 
@@ -161,6 +161,43 @@ test("capDayItems: keeps the first N across tasks, habit days, events and counts
   assert.equal(capDayItems(items, 5).more, 0);
   assert.equal(capDayItems(items, 99).more, 0);
   assert.equal(capDayItems(items, 0).more, 5);
+});
+
+test("capDayItems: open items win the room, done ones go last", () => {
+  const items: DayItems = {
+    tasks: [task("tDone", 12, true), task("tOpen", 12)],
+    habitDays: [habit("hDone", 12, true)],
+    events: [timed("e1", 12, 15, 12, 16), timed("e2", 12, 17, 12, 18)],
+    endedHidden: 0,
+  };
+  const three = capDayItems(items, 3);
+  assert.deepEqual([ids(three.tasks), three.habitDays.length, ids(three.events), three.more], [["tOpen"], 0, ["e1", "e2"], 2]);
+  const four = capDayItems(items, 4);
+  assert.deepEqual([ids(four.tasks), ids(four.habitDays), ids(four.events), four.more], [["tOpen", "tDone"], [], ["e1", "e2"], 1]);
+  const five = capDayItems(items, 5);
+  assert.deepEqual([ids(five.tasks), ids(five.habitDays), five.more], [["tOpen", "tDone"], ["hDone:12"], 0]);
+});
+
+test("capDayItems: an open habit day outranks events, and open comes before done inside each list", () => {
+  const items: DayItems = {
+    tasks: [],
+    habitDays: [habit("hDone", 12, true), habit("hOpen", 12)],
+    events: [timed("e1", 12, 15, 12, 16)],
+    endedHidden: 0,
+  };
+  const two = capDayItems(items, 2);
+  assert.deepEqual([ids(two.habitDays), ids(two.events), two.more], [["hOpen:12"], ["e1"], 1]);
+  assert.deepEqual(ids(capDayItems(items, 9).habitDays), ["hOpen:12", "hDone:12"]);
+});
+
+test("day items: open tasks and habit days come before done ones", () => {
+  const d = data({
+    tasks: [task("tDone", 12, true), task("tOpen", 12), task("tOpen2", 12)],
+    habitDays: [habit("hDone", 12, true), habit("hOpen", 12)],
+  });
+  const out = calendarDayItems(d, today, now, opts(), { hideEnded: false });
+  assert.deepEqual(ids(out.tasks), ["tOpen", "tOpen2", "tDone"]);
+  assert.deepEqual(ids(out.habitDays), ["hOpen:12", "hDone:12"]);
 });
 
 test("empty words: every branch", () => {

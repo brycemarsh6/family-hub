@@ -101,9 +101,18 @@ export function nextItemWhen(item: NextCalendarItem, today: Date): string {
   return `${word}, ${formatClockTime(event.startAt)}`;
 }
 
+/** Open items before done ones, otherwise in the order given (a stable sort). */
+function openFirst<T>(list: T[], isDone: (item: T) => boolean): T[] {
+  return [...list.filter((item) => !isDone(item)), ...list.filter(isDone)];
+}
+const taskDone = (task: CalendarTaskView) => task.completedAt !== null;
+const habitDone = (item: CalendarHabitDayView) => item.done;
+
 /**
  * Everything on one day, in DaySection order: tasks, planned habit days, then
- * events (Schedule's sort). `tasksOnly` empties the habit days and events.
+ * events (Schedule's sort). Inside tasks and inside habit days the open ones
+ * come before the done ones, so a capped list and an uncapped one agree.
+ * `tasksOnly` empties the habit days and events.
  * `hideEnded` hides only timed events that have ended (`endAt <= now`) and
  * counts them in `endedHidden`; all-day events, tasks and habit days are never
  * hidden, and a completed task or a done habit stays.
@@ -115,9 +124,15 @@ export function calendarDayItems(
   options: CalendarWidgetOptions,
   { hideEnded }: { hideEnded: boolean },
 ): DayItems {
-  const tasks = data.tasks.filter((task) => isSameDay(allDayInstantToLocalDay(task.dueDate), day));
+  const tasks = openFirst(
+    data.tasks.filter((task) => isSameDay(allDayInstantToLocalDay(task.dueDate), day)),
+    taskDone,
+  );
   if (options.tasksOnly) return { tasks, habitDays: [], events: [], endedHidden: 0 };
-  const habitDays = data.habitDays.filter((item) => isSameDay(allDayInstantToLocalDay(item.dayInstant), day));
+  const habitDays = openFirst(
+    data.habitDays.filter((item) => isSameDay(allDayInstantToLocalDay(item.dayInstant), day)),
+    habitDone,
+  );
   const onDay = data.events
     .filter((event) => daysEventCovers(event.startAt, event.endAt, event.allDay, [day]).length > 0)
     .sort(compareEvents);
@@ -125,7 +140,13 @@ export function calendarDayItems(
   return { tasks, habitDays, events, endedHidden: onDay.length - events.length };
 }
 
-/** The first `limit` items across tasks, then habit days, then events; `more` counts the rest, for "+N more". */
+/**
+ * The most important `limit` items, kept by priority: open tasks, open habit
+ * days, events, then done tasks, then done habit days (so a finished chore
+ * never pushes a meeting out of a short list). Each returned list keeps open
+ * before done and is otherwise in the order given. `more` counts everything
+ * not kept, for "+N more".
+ */
 export function capDayItems(items: DayItems, limit: number): DayItems & { more: number } {
   let room = Math.max(limit, 0);
   const take = <T>(list: T[]): T[] => {
@@ -133,9 +154,13 @@ export function capDayItems(items: DayItems, limit: number): DayItems & { more: 
     room -= kept.length;
     return kept;
   };
-  const tasks = take(items.tasks);
-  const habitDays = take(items.habitDays);
+  const openTasks = take(items.tasks.filter((task) => !taskDone(task)));
+  const openHabits = take(items.habitDays.filter((item) => !habitDone(item)));
   const events = take(items.events);
+  const doneTasks = take(items.tasks.filter(taskDone));
+  const doneHabits = take(items.habitDays.filter(habitDone));
+  const tasks = [...openTasks, ...doneTasks];
+  const habitDays = [...openHabits, ...doneHabits];
   const total = items.tasks.length + items.habitDays.length + items.events.length;
   return { tasks, habitDays, events, endedHidden: items.endedHidden, more: total - (tasks.length + habitDays.length + events.length) };
 }

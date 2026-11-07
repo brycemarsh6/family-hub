@@ -41,14 +41,11 @@ export type DashboardLayout = {
 
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = {
   version: 2,
-  widgets: [
-    { uid: "calendar", kind: "calendar", size: "l" },
-    ...DASHBOARD_WIDGET_KINDS.filter((kind) => kind !== "calendar").map((kind) => ({
-      uid: kind,
-      kind,
-      size: DASHBOARD_WIDGETS[kind].defaultSize,
-    })),
-  ],
+  widgets: DASHBOARD_WIDGET_KINDS.map((kind) => ({
+    uid: kind,
+    kind,
+    size: DASHBOARD_WIDGETS[kind].defaultSize,
+  })),
 };
 
 const UID_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
@@ -93,10 +90,10 @@ function defaultLayout(): DashboardLayout {
   return { version: 2, widgets: DEFAULT_DASHBOARD_LAYOUT.widgets.map((w) => ({ ...w })) };
 }
 
-/** The kinds v1's registry rendered half width; every other kind rendered full. Frozen: v1 is history. */
 /** The seven kinds v1's registry had. Frozen: a v1 layout upgrades to what W1 made of it, so the repair never adds `calendar`. */
 const V1_KINDS: readonly DashboardWidgetKind[] = ["todayMeals", "habits", "chores", "goals", "inventory", "grocery", "recipes"];
 
+/** The kinds v1's registry rendered half width; every other kind rendered full. Frozen: v1 is history. */
 const V1_HALF_KINDS: readonly DashboardWidgetKind[] = ["inventory", "grocery"];
 
 /**
