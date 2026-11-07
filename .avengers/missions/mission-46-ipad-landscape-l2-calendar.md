@@ -80,7 +80,7 @@ From AGENTS.md, absolute for every agent:
 ## Contracts
 
 ### C1 - the page opts in; Week, 3 Day, Day and Year use the width
-- **Status:** DISPATCHED
+- **Status:** DONE (Stark: Gauntlet green, 1252 tests, UTC 1245 pass and 7 skipped, build exit 0; committed as C1; gates run after C2 and C3)
 - **Boundaries:** may touch: `src/app/(app)/calendar/page.tsx`,
   `src/app/(app)/calendar/loading.tsx`, `src/components/YearView.tsx`,
   `src/components/TimelineDayColumn.tsx` · must not touch:
@@ -124,11 +124,125 @@ From AGENTS.md, absolute for every agent:
   lines in 157px columns, phone Week unchanged, Year 4/3/2 across at the
   sizes above, skeleton wide.
 
-### C2 - Month chips readable on wide (waits for Bryce, question 1)
-- **Status:** PENDING
+### C2 - Month chips readable on wide (decision 225)
+- **Status:** DISPATCHED (parallel with C3; boundaries disjoint)
+- **Boundaries:** may touch: `src/components/MonthGrid.tsx`,
+  `src/components/MonthCell.tsx`, `src/lib/monthLayout.ts`,
+  `src/lib/monthLayout.test.ts`, `src/components/MonthGridSkeletonRows.tsx`
+  · must not touch: everything in C3's may-touch list,
+  `src/app/(app)/calendar/*`, `src/components/YearView.tsx`,
+  `src/components/TimelineDayColumn.tsx`, `src/components/MonthChips.tsx`,
+  every sheet, `prisma/`, `package.json`, `DESIGN.md`, `STRUCTURE.md`,
+  `CLAUDE.md`, `.env`.
+- **Spec:**
+  1. The Month grid (the rows, not the sheets; MonthGrid renders none)
+     sits inside one `@container` wrapper. "Wide" means a container of at
+     least 48rem (768px: 820 upright, 1180 with or without the Sidebar).
+  2. Wide: up to **4** chips a day, each with a **12px** title
+     (`text-xs`), about 18px tall, then "+N more" in 12px. Below 48rem:
+     exactly today's look (3 lanes, 9px, 16px tall, today's "+N more").
+  3. Pure CSS, no measuring. `assignLanes` already tracks occupancy of
+     hidden lanes, so lane numbers do not depend on the cap (prove it,
+     below). Lay the month out once with a cap of 4; render the fourth
+     lane `hidden @min-[48rem]:block` (its blank spacer too); render two
+     "+N more" spans, the phone one (`@min-[48rem]:hidden`) with the
+     3-lane count and the wide one (`hidden @min-[48rem]:inline`) with
+     the 4-lane count, each only when its count is above 0. The phone
+     count is the 4-lane overflow plus the lane-3 spans covering that
+     day; derive it with one exported pure helper in `monthLayout.ts`,
+     not inline arithmetic. Keep the "render lanes up to the last filled
+     one" rule correct for both widths (a trailing lane-3 slot must not
+     leave a 16px hole on the phone).
+  4. `VISIBLE_LANES` is defined twice (`MonthGrid.tsx:65`,
+     `monthLayout.ts:37`). Make `monthLayout.ts` the one home: export
+     the phone and wide lane counts there and import them in MonthGrid.
+  5. Tests in `monthLayout.test.ts`: lanes 0 to 2 from a cap of 4 equal
+     a cap of 3 for a busy month fixture; the phone overflow helper
+     equals `assignLanes(..., 3).overflowByDay` for that fixture; a day
+     with five events shows "+1 more" wide and "+2 more" on the phone.
+  6. `MonthGridSkeletonRows.tsx`: only if it hardcodes the lane count or
+     chip height, match it; otherwise leave it.
+  - MonthCell.tsx is at 350 lines: keep it at or under 380 by trimming
+    stale comment text if needed. No em or en dashes. Add no package.
+- **Verification:** the whole Gauntlet passes. Do not start or stop a
+  dev server.
+- **Evidence required:** Gauntlet tails (test counts); `git diff --stat`;
+  the new class strings; the new tests' names; line counts.
+- **Done criteria:** Strange sees 4 readable chips a day and correct
+  "+N more" at 1180, 820 and Sidebar; 375 identical to `main`.
 
-### C3 - Schedule mini month (waits for Bryce, questions 2 and 3)
-- **Status:** PENDING
+### C3 - Schedule mini month (decisions 226 to 228, the "Calendar, Schedule" board)
+- **Status:** DISPATCHED (parallel with C2; boundaries disjoint)
+- **Boundaries:** may touch: `src/components/ScheduleView.tsx`,
+  new `src/components/ScheduleMiniMonth.tsx`,
+  new `src/lib/useScheduleDayInView.ts`,
+  new `src/lib/useScheduleDayInView.test.ts`,
+  `src/components/CalendarViews.tsx` (prop wiring only, net +15 lines at
+  most) · must not touch: everything in C2's may-touch list (it may
+  import `monthGridDays` and `isTodayCell` from `monthLayout.ts`, not
+  edit it), `src/components/CalendarHeader.tsx`,
+  `src/lib/useScheduleMonthTitle.ts`, `src/lib/useScheduleWindow.ts`,
+  `src/components/CalendarSheets.tsx`, `src/components/MonthJumpSheet.tsx`,
+  `src/app/(app)/calendar/*`, `prisma/`, `package.json`, `DESIGN.md`,
+  `STRUCTURE.md`, `CLAUDE.md`, `.env`.
+- **Spec:**
+  1. Layout: ScheduleView's list (not its two sheets, which stay outside)
+     sits inside a `@container` wrapper holding a grid: one column below
+     50rem (exactly today: no mini month rendered or hidden by
+     `hidden`, list unchanged); from 50rem a `20rem` mini-month column
+     plus the list; from 64rem the mini month is `27.5rem` (440px, the
+     mock). Gap 20px. At 1180 (1148 container): 440 + list. Sidebar at
+     1180 (about 892): 320 + list. 820 upright (788): list only, as
+     today. The mini month is `sticky`, top aligned just under the
+     pinned Schedule header bar (use `SCHEDULE_HEADER_BAR_HEIGHT_PX`
+     and `useHamburgerRowHeight()` the way ScheduleView already places
+     things; `align-self: start`).
+  2. `ScheduleMiniMonth.tsx` (presentational, the mock's look: white
+     card, 16px radius, month title with 44px previous and next arrows,
+     S M T W T F S, a 7-column day grid with 44px or taller tap
+     targets; days outside the shown month are blank, not dimmed
+     numbers, as the mock). Today: filled accent circle. The day in view
+     (not today): a 2px accent ring (226). Tapping a day calls
+     `onPickDay(day)`. No dots (228). Real `<button>`s with
+     `aria-label`s ("Jump to Friday, November 6"), `aria-current="date"`
+     on today. Colors from the existing tokens (`bg-surface`,
+     `border-line`, `bg-accent`, `text-accent-fg`, `text-muted`), Lucide
+     `ChevronLeft`/`ChevronRight`.
+  3. Shown month (227): follows the day in view's month; the arrows move
+     a browse offset that resets to 0 whenever the day in view moves to
+     a different month. Arrows never scroll the list.
+  4. `useScheduleDayInView.ts`: export a pure
+     `topmostVisibleDay(dayTops: {day: number; top: number | null}[],
+     revealLineY: number): number | null` (the last day whose top is at
+     or above the reveal line; the first loaded day if none is; mirror
+     `topmostClearedMonth`'s rule and comments) with tests in the new
+     test file (add no new test directory; `src/lib/*.test.ts` is in
+     the glob already), and a hook that reads ScheduleView's `dayRefs`
+     on scroll and resize (rAF-throttled, passive listener) only while
+     the mini month is shown (a `matchMedia`-free check: pass `enabled`
+     from whether the mini-month element has a non-zero width, read via
+     a ref, or simply always run; say which you chose and why).
+  5. Jumping: add `scrollToDay(day: Date): boolean` to
+     `ScheduleViewHandle` (scrolls the window so that day's row sits
+     just under the header bar, same offset `scrollToToday` uses; false
+     when the row is not loaded). The mini month's `onPickDay` tries
+     `scrollToDay` first; when it returns false, it falls back to the
+     same `jumpToDay` CalendarViews already hands MonthJumpSheet (wire
+     it to ScheduleView as a prop; that is CalendarViews' only change).
+  6. Size: ScheduleView.tsx is 532 lines (hard cap 650). Its net growth
+     must stay at or under 45 lines; the logic goes in the hook and the
+     component. Report total and code lines for every touched file.
+  - No em or en dashes anywhere. Add no package.
+- **Verification:** the whole Gauntlet passes (`npm test` count rises by
+  the new tests). Do not start or stop a dev server.
+- **Evidence required:** Gauntlet tails; `git diff --stat`; the grid and
+  sticky class strings; new test names; line counts.
+- **Done criteria:** Strange at 1180: mini month 440px left, list right;
+  tapping the 18th scrolls the list there and rings the 18th; scrolling
+  into the next month flips the mini month; arrows browse without
+  scrolling; tapping a day beyond the loaded window navigates there;
+  Sidebar shows a 320px mini month; 820 upright and 375 unchanged;
+  event and task sheets still open full screen.
 
 ## Gate ledger
 
@@ -140,3 +254,7 @@ From AGENTS.md, absolute for every agent:
 - 2026-11-07: mission opened. Mission 44 marked DELIVERED. Banner brief
   in. Two mock boards posted for Bryce. C1 dispatched (needs no design
   call: the plan already settles it).
+- 2026-11-07: C1 DONE and committed. Waiting on Bryce for the two
+  canvas boards before C2 and C3.
+- 2026-11-07: Bryce: "Yes, as recommended" (decisions 225 to 228 in the
+  plan). C2 and C3 dispatched in parallel.
