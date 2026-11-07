@@ -1,7 +1,7 @@
 # Mission 43: Dashboard widgets v2, step W1 (sizes, grid, Customize sheet)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERING (all gates PASS: Vision pass 3, Captain pass 2, Strange pass 3)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/dashboard-customizable-widgets-a9d4c0` (from `origin/main` at `a1f9b6e`)
 **Plan:** `.avengers/plans/dashboard-widgets-v2.md` (W1 of W1 to W5)
@@ -491,6 +491,18 @@ From AGENTS.md, absolute for every agent:
 | 2 | Captain | PASS | none | 20 test cases before and after the split; all doc claims true. NOTES: "Back to Customize" defined twice in dashboardWidgets.ts; nextWidgetUid comment still says "the upgrade"; page.tsx:74 "like habits"; DESIGN.md ToggleSwitch list omits HabitForm and GoalForm |
 | 2 | Vision | PASS | none | Gauntlet re-run green (1191; UTC 1184 + 7 existing skips; build ok); 44 test names identical before and after the split, no assertion lost. NOTES: setView during render is safe (own state, one re-render); ResizeObserver watches only the strip (safe, gallery remounts per kind); onScrollEnd valid, onScroll still covers Safari without scrollend; label swap byte-identical; process: Fury's doc edits shared Stark's commit, next time commit them apart |
 | 2 | Strange | BLOCKED | 1: blocker 5 fixed at 375 but not at 820: default Chores today Large is 360x267 with 81px of content (about 70% empty) because its 2 rows are set by Habits and Goals beside it; needs a design call (Strange recommends Chores default Medium) | blockers 1 to 4 and the cap line FIXED with measurements; tapped half-hidden card not scrolled into view and the gallery comment claims it is; loading skeleton now taller than real tiles; gallery shows a scrollbar line plus dots; dark inactive dot faint; no regressions |
+| 3 | Vision | PASS | none | Gauntlet re-run green at 646a48c (1191; UTC 1184 + 7 skips; build exit 0); packer spots re-derived by hand, match; exhaustive v1 check (645,120 layouts): Chores always m, no empty cells or order breaks at 2 columns, saved v2 Large kept. NOTES: scrollIntoView could scroll an ancestor (Strange to confirm); Stark edited C5's status line |
+| 3 | Strange | PASS | none | 820 default: Chores today M 360x152 (was 267 tall); Large switch saves across reload and back; gallery tap scrolls both ways, dot follows; one scroll indicator. NOTES: saved v2 Large layouts keep Large (dev account had it; production layouts are v1 and upgrade to M); Recipes alone on the last 4-column row (packer, decision 202); dev badge covers sheet bottom (dev only) |
+
+## Delivery
+
+- Gates: Vision PASS (pass 3), Captain PASS (pass 2), Strange PASS (pass 3).
+- Leftovers (not this mission): Recipes alone on the last 4-column row of
+  the default; loading skeleton Large taller than a sparse real tile; dark
+  inactive gallery dot faint; pressed accent button contrast 3.37 (app-wide);
+  telling same-kind widgets apart is a W3 requirement (decision 212).
+- Bryce's iPad check: the 4-column collage, Small Inventory truncation,
+  Chores today Medium and switching it to Large in Customize.
 
 ## Handoff log
 

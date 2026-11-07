@@ -230,6 +230,13 @@ Replace this section at the end of each session. Don't append.
   column per person (swipe sideways), rows by time of day, Filter, and a
   household order set by dragging on Manage family (`User.familyOrder`).
   Leftovers in `.avengers/missions/mission-41-habits-family-columns.md`.
+- **Dashboard widgets W1 (mission 43)** passed its gates on 2026-11-06
+  from branch `claude/dashboard-customizable-widgets-a9d4c0`: widgets have
+  sizes (Small, Medium, Large, Extra large), a kind can be added more than
+  once, a 2 or 4 column grid packs them, and Customize edits size with
+  swipeable previews. Layout JSON is v2 (old layouts upgrade on read).
+  Chores today defaults to Medium (decision 214). Next: W2, the Calendar
+  widget (`.avengers/plans/dashboard-widgets-v2.md`).
 - **Hill decides for Bryce** (`.claude/agents/hill.md`); merges don't wait
   for him. Phone tests go on Bryce's checklist below and never block.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
@@ -280,6 +287,12 @@ Replace this section at the end of each session. Don't append.
   drag the Family order into Bryce, Emily, Ledger, Eleanor, Lucy. Open
   Habits & Chores, Whole family, in portrait and landscape: swipe sideways
   with a finger, scroll one column, tap a check, try Filter.
+- **Dashboard widgets iPad check** (about 5 minutes): on the iPad, see the
+  4-column dashboard; check the Small Inventory tile isn't cut off. Open
+  Customize, tap Chores today, switch it to Large and back; add a second
+  Habits widget, then Remove it.
+- **Review Hill's dashboard calls:** 200, 201 (amended by 209), 203 and
+  212 in `.avengers/missions/mission-43-dashboard-widgets-w1.md`.
 - **Delete the commented production `DATABASE_URL` line in `.env`**
   (host `ep-hidden-surf-`). It isn't used, but AGENTS.md says no dev
   machine should hold it. No agent edits `.env`.
