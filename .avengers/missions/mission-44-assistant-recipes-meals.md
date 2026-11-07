@@ -537,6 +537,15 @@
 - **Evidence / done:** outputs per check, sizes, `git diff --stat` inside
   the boundary, commit hash.
 
+- **F1a DONE `038faf6`** (12 files, +408/-288). New `tagWrites.ts`
+  193/131 (canonical counter); `recipeWrites.ts` 251/171; `mealPlanWrites.ts`
+  218/150. Live 40/40: both held-delete blockers now fail with nothing
+  written (500 internal, 0 changes, no empty plan); PATCH fields + tags
+  undo exact; PUT creating plan undo/redo; 5 parallel → 1 plan; renameTag
+  parity JSON-identical; counts restored. Leftovers it named:
+  `setRecipeTagRows` and `getOrCreatePlanNear` now unused; a held-delete
+  FK race answers 500 (nothing written, retry safe).
+
 ### F1b, Captain's cheap notes (after F1a)
 
 - **Boundaries.** May touch: `src/lib/mealPlanWrites.ts`,
@@ -557,6 +566,8 @@
   `aiUnavailable()` factory in `errors.ts` (+ a test that it carries
   `retry-after: 5`). N7: `toMealSlot` in `serializeMealPlan.ts`.
   grocery-needs: add `readable: boolean` (false when the parse returns
-  nothing for a week that had lines), documented in OpenAPI.
+  nothing for a week that had lines), documented in OpenAPI. Delete the
+  now-unused `setRecipeTagRows` (`src/lib/tagWrites.ts`, added to the
+  boundary) and `getOrCreatePlanNear` unless N1's pair reuses it.
 - **Verification:** gauntlet; `/summary` and `/meal-plan` answers unchanged
   for a 2030 test week (before/after by script); sizes; diff stat.
