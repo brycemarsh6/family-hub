@@ -13,34 +13,26 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import {
-  canEdit,
-  canLog,
-  canSee,
-  habitCheckTarget,
-  habitInputFromPlan,
-  habitParticipantsFor,
-  validatePlanItemInput,
-  type PlanItemInput,
-} from "@/lib/goals";
+import { canEdit, canLog, canSee, habitCheckTarget } from "@/lib/goals";
 import { type PlanItemRow } from "@/lib/goalsProgress";
 import type { CalendarDate } from "@/lib/householdDate";
-import { toGoalVisibility, toHabitPeriod, toPlanKind } from "@/lib/goalVocabulary";
+import { toGoalVisibility } from "@/lib/goalVocabulary";
 import { canLogFor } from "@/lib/habits/access";
-import { checkHabit, createHabit, deleteHabit, uncheckNewest, updateHabit } from "@/lib/habits/habitWrites";
+import { checkHabit, deleteHabit, uncheckNewest } from "@/lib/habits/habitWrites";
 import { periodWindow } from "@/lib/habits/schedule";
 import type { ScheduleSpec } from "@/lib/habits/types";
-import { loadHabitForAction, loadHabitsForPlan } from "@/lib/habitsRead";
+import { loadHabitsForPlan } from "@/lib/habitsRead";
+import { GOAL_NOT_ALLOWED, type GoalPolicyRow } from "@/lib/goalWrites";
+import { createPlanItem as createPlanItemRow, PLAN_ITEM_GONE, planItemRowOf, setStepDone, updatePlanItem as updatePlanItemRow } from "@/lib/planItemWrites";
 import { Prisma } from "@/generated/prisma/client";
-import { isMissingRowError } from "@/lib/prismaErrors";
 
 export type PlanItemActionResult = { error?: string };
 export type CreatePlanItemResult = PlanItemActionResult & { id?: string };
 
 const NOT_SIGNED_IN = "Not signed in.";
 const DEVICE_REFUSED = "A shared device can't change goals.";
-const NOT_ALLOWED = "You can't change that goal.";
-const GONE = "That plan no longer exists.";
+const NOT_ALLOWED = GOAL_NOT_ALLOWED;
+const GONE = PLAN_ITEM_GONE;
 const TRACKS_HOURS = "That habit tracks hours.";
 const NOT_LINKED = "This habit needs to be saved once more before it can be checked. Tap Edit, then Save.";
 
@@ -54,8 +46,6 @@ function refreshPlansViews() {
 }
 
 type Access = "edit" | "log";
-
-type GoalPolicyRow = { ownerId: string | null; visibility: string; area: string };
 
 /** The one place a goal row is judged: edit refuses devices (canEdit), log lets a device on Together goals (canLog). */
 function allowed(goal: GoalPolicyRow, user: VerifiedUser, access: Access): boolean {
@@ -80,18 +70,7 @@ async function loadItem(id: string, access: Access): Promise<LoadedItem> {
   if (!row) return { error: GONE, missing: true };
   if (!allowed(row.goal, user, access)) return { error: NOT_ALLOWED };
 
-  const item: PlanItemRow = {
-    id: row.id,
-    goalId: row.goalId,
-    title: row.title,
-    kind: toPlanKind(row.kind) ?? "reminder",
-    timesPerPeriod: row.timesPerPeriod,
-    period: toHabitPeriod(row.period),
-    habitId: row.habitId,
-    doneAt: row.doneAt,
-    sortOrder: row.sortOrder,
-    createdAt: row.createdAt,
-  };
+  const item = planItemRowOf(row);
   return { user, item, goal: row.goal };
 }
 
@@ -100,111 +79,21 @@ export async function createPlanItem(goalId: string, raw: unknown): Promise<Crea
   if (!user) return { error: NOT_SIGNED_IN };
   if (user.isDevice) return { error: DEVICE_REFUSED };
 
-  const goal = await db.goal.findUnique({
-    where: { id: goalId },
-    select: { ownerId: true, visibility: true, area: true },
-  });
-  if (!goal) return { error: "That goal no longer exists." };
-  if (!allowed(goal, user, "edit")) return { error: NOT_ALLOWED };
+  const result = await createPlanItemRow((goal) => allowed(goal, user, "edit"), goalId, raw, user.userId);
+  if ("error" in result) return { error: result.error };
 
-  const checked = validatePlanItemInput(raw);
-  if ("error" in checked) return { error: checked.error };
-  const input = checked.ok;
-
-  const { _max } = await db.planItem.aggregate({ where: { goalId }, _max: { sortOrder: true } });
-
-  try {
-    const created = await db.$transaction(async (tx) => {
-      const habit = input.kind === "habit" ? await newHabit(tx, input, goal, user, householdToday(new Date())!) : null;
-      return tx.planItem.create({
-        data: {
-          goalId,
-          title: input.title,
-          kind: input.kind,
-          timesPerPeriod: input.timesPerPeriod,
-          period: input.period,
-          habitId: habit?.id ?? null,
-          sortOrder: (_max.sortOrder ?? -1) + 1,
-        },
-        select: { id: true },
-      });
-    });
-    refreshPlansViews();
-    return { id: created.id };
-  } catch (error) {
-    if (isMissingParentError(error)) return { error: "That goal no longer exists." };
-    throw error;
-  }
-}
-
-/** The Habit behind a new habit item: the goal's owner for a Mine goal, every active person for a Together one. */
-async function newHabit(tx: Prisma.TransactionClient, input: PlanItemInput, goal: GoalPolicyRow, user: VerifiedUser, today: CalendarDate) {
-  return createHabit(
-    {
-      fields: { ...habitInputFromPlan(input, goal), createdById: user.userId },
-      participantIds: habitParticipantsFor(goal),
-      today,
-    },
-    tx,
-  );
-}
-
-/**
- * Brings the linked Habit in step with an edited item. An edit that names no
- * Track never changes it (decision 198): an hours habit (`keepsHours`) then
- * only takes the new title, because the item's repeat fields stand for checks.
- */
-async function updateLinkedHabit(
-  tx: Prisma.TransactionClient,
-  habitId: string,
-  input: PlanItemInput,
-  goal: GoalPolicyRow,
-  today: CalendarDate,
-  keepsHours: boolean,
-) {
-  const { title, schedule, times, track, weeklyMinutes, paceDays } = habitInputFromPlan(input, goal);
-  if (keepsHours) return updateHabit(habitId, { title }, today, tx);
-  return updateHabit(habitId, { title, schedule, times, track, weeklyMinutes, paceDays }, today, tx);
+  refreshPlansViews();
+  return { id: result.item.id };
 }
 
 /** Rewrites title, kind and repeat. Turning a step into anything else forgets that it was done. */
 export async function updatePlanItem(id: string, raw: unknown): Promise<PlanItemActionResult> {
-  const loaded = await loadItem(id, "edit");
-  if ("error" in loaded) return { error: loaded.error };
+  const user = await getVerifiedUser();
+  if (!user) return { error: NOT_SIGNED_IN };
+  if (user.isDevice) return { error: DEVICE_REFUSED };
 
-  const checked = validatePlanItemInput(raw);
-  if ("error" in checked) return { error: checked.error };
-  const input = checked.ok;
-
-  const { user, item, goal } = loaded;
-  const today = householdToday(new Date())!;
-
-  try {
-    const keepsHours = input.kind === "habit" && input.track === undefined && !!item.habitId && (await loadHabitForAction(item.habitId))?.track === "hours";
-    await db.$transaction(async (tx) => {
-      // A habit keeps its Habit in step with the item; anything else lets the Habit go.
-      let habitId: string | null = null;
-      if (input.kind === "habit") {
-        const updated = item.habitId ? await updateLinkedHabit(tx, item.habitId, input, goal, today, keepsHours) : null;
-        habitId = updated ? updated.id : (await newHabit(tx, input, goal, user, today)).id;
-      }
-      await tx.planItem.update({
-        where: { id },
-        data: {
-          title: input.title,
-          kind: input.kind,
-          timesPerPeriod: keepsHours ? item.timesPerPeriod : input.timesPerPeriod,
-          period: keepsHours ? item.period : input.period,
-          habitId,
-          ...(input.kind === "step" ? {} : { doneAt: null }),
-        },
-      });
-      if (habitId === null && item.habitId) await deleteHabit(item.habitId, today, tx);
-    });
-  } catch (error) {
-    if (isMissingRowError(error)) return { error: GONE };
-    throw error;
-  }
+  const result = await updatePlanItemRow((goal) => allowed(goal, user, "edit"), id, raw, householdToday(new Date())!, user.userId);
+  if ("error" in result) return { error: result.error };
 
   refreshPlansViews();
   return {};
@@ -290,26 +179,21 @@ export async function undoHabitLog(id: string): Promise<PlanItemActionResult> {
   return {};
 }
 
-async function setStepDone(id: string, doneAt: Date | null): Promise<PlanItemActionResult> {
-  const loaded = await loadItem(id, "log");
-  if ("error" in loaded) return { error: loaded.error };
-  if (loaded.item.kind !== "step") return { error: "Only a step can be checked off." };
+async function setStep(id: string, done: boolean): Promise<PlanItemActionResult> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: NOT_SIGNED_IN };
 
-  try {
-    await db.planItem.update({ where: { id }, data: { doneAt } });
-  } catch (error) {
-    if (isMissingRowError(error)) return { error: GONE };
-    throw error;
-  }
+  const result = await setStepDone((goal) => allowed(goal, user, "log"), id, done);
+  if ("error" in result) return { error: result.error };
 
   refreshPlansViews();
   return {};
 }
 
 export async function completeStep(id: string): Promise<PlanItemActionResult> {
-  return setStepDone(id, new Date());
+  return setStep(id, true);
 }
 
 export async function uncompleteStep(id: string): Promise<PlanItemActionResult> {
-  return setStepDone(id, null);
+  return setStep(id, false);
 }
