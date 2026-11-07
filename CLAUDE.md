@@ -287,8 +287,9 @@ Replace this section at the end of each session. Don't append.
 - **Winnie's morning briefing (mission 48)** merged as PR #71 (`ae8e0a4`)
   on 2026-11-07 and is deployed (production READY, the
   `WinnieBriefingSent` migration applied in the build, the route answers
-  401 without the secret). It sends nothing until Bryce sets `CRON_SECRET`
-  in Vercel (checklist). Hill's H2 and H10
+  401 without the secret). **`CRON_SECRET` is set** (Bryce, 2026-11-07,
+  Production, Sensitive; production redeployed). First real briefing
+  expected 2026-11-08, 9:00 to 9:59 Denver. Hill's H2 and H10
   and amendments A-48-2 and A-48-4 are the calls for Bryce to look at:
   `.avengers/missions/mission-48-winnie-briefing.md`.
   Details: `.avengers/missions/mission-42-winnie-notify.md`.
@@ -321,11 +322,9 @@ Replace this section at the end of each session. Don't append.
   plans and goals (its own mission and chat), then calendar/tasks.
 
 **Bryce's checklist (never blocks work):**
-- **Turn on the morning briefing (mission 48):** in Vercel, Settings,
-  Environment Variables, add `CRON_SECRET` (any long random text, Production,
-  Sensitive), then redeploy. The next morning between 9 and 10, you and
-  Emily should each get "Good morning, ..." from Winnie. Steps and checks are
-  in the mission file's Delivery.
+- **Morning briefing check (mission 48), 2026-11-08:** between 9 and 10
+  AM Denver, did you and Emily each get "Good morning, ..." from Winnie?
+  If not, see the mission file's Delivery, step 2.
 - **Winnie and private habits (mission 47):** in Vercel add
   `ASSISTANT_OWNER_USER_ID` = your own id (from `GET /family`) to
   Production and redeploy. Until then Winnie sees non-private habits
