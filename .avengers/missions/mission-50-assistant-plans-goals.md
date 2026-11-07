@@ -332,7 +332,24 @@ through `goalsRead`-level code), no auth, no `revalidatePath`, refusals as
   hash.
 - **Done criteria:** gauntlet green; parity all MATCH; no string in the
   three actions changed (moves only).
-- **Status:** not started.
+- **Status:** DONE at `ee30bc3` (6 files, +640/-328).
+- **Report:** tsc 0, `eslint .` 0, `npm test` 1341, UTC 1334 + 7 skips, LA
+  1341. Parity (`scratchpad/parity/parity.ts`, dev only): OLD (actions at
+  `d0397e2`), NEW (thin actions) and MOD (modules direct) on 45 cases, 0
+  comparison FAIL; returned rows vs database 69 MATCH, 0 FAIL; error
+  words identical. Counts restored (Goal 8, GoalCheckIn 3, PlanItem 2,
+  VisionStatement 0, Habit 18, HabitParticipant 27); vision slot used was
+  empty before and after. Sizes: goalWrites 255, planItemWrites 244,
+  visionWrites 62; actions goals 264 → 145, planItems 315 → 199, visions
+  47 → 33. Deviations: `updatePlanItem` takes `createdById` (a step turned
+  habit keeps the creator); new `GOAL_NEEDS_OWNER` (a Mine goal with a null
+  owner is refused, never stored as Together); `planItemRowOf` exported
+  for C3's H4 check; the vision upsert retry now re-runs the whole attempt
+  (a failed statement can't continue in a Postgres transaction); habit →
+  step's cascaded logs are not returned (Winnie's route refuses it, H4).
+  `rebuildGoalNumber` bumps `updatedAt` like the app always did, so **the
+  undo hook keeps its own `updatedAt`-preserving write and C3 does not swap
+  it** (C2 deviation 3); both use `numberAfterCheckIns`.
 
 ### C2 - undo learns goals
 
@@ -363,7 +380,19 @@ through `goalsRead`-level code), no auth, no `revalidatePath`, refusals as
 - **Evidence required:** test names, counts before/after, `wc -l` of
   touched files, `git diff --stat`, commit hash.
 - **Done criteria:** gauntlet green; fake-column failure shown.
-- **Status:** not started.
+- **Status:** DONE at `4334282` (7 files, +374/-77).
+- **Report:** tsc 0, `eslint .` 0, `npm test` 1341 (12 new in
+  `undoPlanGoals.test.ts`); UTC 1334 + 7 skips; LA 1341. Fake column in
+  `GOAL_CHECK_IN_COLUMNS` fails tsc (TS2353), removed. Sizes: undoModels
+  293, undoPlan 261, undoWork 64 (new; `streakWork` moved here), undoHooks
+  52, undoWrites 292 (no `undoTables.ts` needed). Deviations: (1) PlanLog
+  sits under `REFERENCES.PlanItem` only (it has no `goalId`); PlanItem is
+  now a parent table. (2) **Ordering change for every model:** re-created
+  tier-0 rows now run before restores (`kindOrder`), else a redo of
+  reminder → habit restores the item before its Habit exists (FK). Gates
+  to look at. (3) The hook's rebuild keeps the goal's `updatedAt` so a
+  redo does not hit `changed_since`; C3's swap to `rebuildGoalNumber`
+  must keep that (or the hook keeps its own write).
 
 ### C3 - goal and vision routes (after C1 and C2)
 
@@ -372,8 +401,8 @@ through `goalsRead`-level code), no auth, no `revalidatePath`, refusals as
 - **Boundaries:** May touch: `src/lib/assistant/habitActor.ts` (+ test),
   `habitActorEnv.ts`, new `src/lib/assistant/goalReads.ts`, new
   `serializeGoals.ts` (+ test), new `schemasGoals.ts` (+ test), new
-  `openapiGoalPaths.ts`, `openapi.ts` (import + spread only),
-  `undoHooks.ts` (swap to `rebuildGoalNumber` only), and new route files
+  `openapiGoalPaths.ts`, `openapi.ts` (import + spread only), and new
+  route files
   under `src/app/api/assistant/v1/goals/`, `.../plan-items/`,
   `.../vision/`. Must not touch: `src/lib/goals*.ts`, `visions*.ts`, the
   three write modules (BLOCKED-ON-CONTRACT if one lacks something),
