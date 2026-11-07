@@ -1,10 +1,20 @@
 // Which models undo can restore, remove and re-create, and how they hang
 // together. Pure data (no database), shared by undoPlan.ts and undoWrites.ts.
+//
+// VOLATILE columns are caches the app rebuilds on its own (a habit's streak
+// numbers). A copy still records them (so it stays a full row), but undo never
+// matches on them (a family tap that only moved a cache is not a conflict) and
+// never writes them back (a restored old number would be wrong); undoHooks.ts
+// rebuilds them inside the same transaction.
 
 import type {
   Cookbook,
   CookbookRecipe,
   GroceryItem,
+  Habit,
+  HabitLog,
+  HabitParticipant,
+  HabitTimeEntry,
   MealPlan,
   MealPlanEntry,
   PantryItem,
@@ -22,7 +32,11 @@ export type UndoModel =
   | "Cookbook"
   | "CookbookRecipe"
   | "MealPlan"
-  | "MealPlanEntry";
+  | "MealPlanEntry"
+  | "Habit"
+  | "HabitParticipant"
+  | "HabitLog"
+  | "HabitTimeEntry";
 
 export type ColumnKind = "date" | "value";
 
@@ -78,6 +92,29 @@ const MEAL_PLAN_ENTRY_COLUMNS: Record<keyof MealPlanEntry, ColumnKind> = {
   recipeId: "value", createdAt: "date", updatedAt: "date",
 };
 
+const HABIT_COLUMNS: Record<keyof Habit, ColumnKind> = {
+  id: "value", title: "value", kind: "value", mode: "value", icon: "value", lifeArea: "value",
+  timeOfDay: "value", schedule: "value", weekdays: "value", times: "value", anchorWeek: "date",
+  carryOver: "value", track: "value", weeklyMinutes: "value", paceDays: "value",
+  hoursSince: "date", sharing: "value", isPrivate: "value", everyone: "value",
+  archivedAt: "date", createdById: "value", createdAt: "date", updatedAt: "date",
+};
+
+const HABIT_PARTICIPANT_COLUMNS: Record<keyof HabitParticipant, ColumnKind> = {
+  id: "value", habitId: "value", userId: "value", sortOrder: "value", currentStreak: "value",
+  bestStreak: "value", streakAsOf: "date", joinedAt: "date",
+};
+
+const HABIT_LOG_COLUMNS: Record<keyof HabitLog, ColumnKind> = {
+  id: "value", habitId: "value", userId: "value", day: "date", status: "value",
+  loggedById: "value", createdAt: "date",
+};
+
+const HABIT_TIME_ENTRY_COLUMNS: Record<keyof HabitTimeEntry, ColumnKind> = {
+  id: "value", habitId: "value", userId: "value", day: "date", minutes: "value",
+  loggedById: "value", createdAt: "date",
+};
+
 function describe(kinds: Record<string, ColumnKind>) {
   const columns = Object.keys(kinds);
   return { columns, dates: columns.filter((c) => kinds[c] === "date") };
@@ -93,7 +130,20 @@ export const MODELS: Record<UndoModel, { columns: readonly string[]; dates: read
   CookbookRecipe: describe(COOKBOOK_RECIPE_COLUMNS),
   MealPlan: describe(MEAL_PLAN_COLUMNS),
   MealPlanEntry: describe(MEAL_PLAN_ENTRY_COLUMNS),
+  Habit: describe(HABIT_COLUMNS),
+  HabitParticipant: describe(HABIT_PARTICIPANT_COLUMNS),
+  HabitLog: describe(HABIT_LOG_COLUMNS),
+  HabitTimeEntry: describe(HABIT_TIME_ENTRY_COLUMNS),
 };
+
+/** Cache columns undo neither matches on nor writes (see the header). */
+export const VOLATILE: Partial<Record<UndoModel, readonly string[]>> = {
+  HabitParticipant: ["currentStreak", "bestStreak", "streakAsOf"],
+};
+
+export function isVolatile(model: UndoModel, column: string): boolean {
+  return VOLATILE[model]?.includes(column) ?? false;
+}
 
 /**
  * 0 = a parent (nothing in this list points at it as a required owner), 1 =
@@ -103,7 +153,9 @@ export const MODELS: Record<UndoModel, { columns: readonly string[]; dates: read
  */
 export const TIER: Record<UndoModel, 0 | 1> = {
   PantryItem: 0, Recipe: 0, Tag: 0, Cookbook: 0, MealPlan: 0,
+  Habit: 0,
   GroceryItem: 1, RecipeTag: 1, CookbookRecipe: 1, MealPlanEntry: 1,
+  HabitParticipant: 1, HabitLog: 1, HabitTimeEntry: 1,
 };
 
 /** The database table behind each parent model (for the row locks). */
@@ -113,6 +165,7 @@ export const PARENT_TABLES = {
   Tag: "Tag",
   Cookbook: "Cookbook",
   MealPlan: "MealPlan",
+  Habit: "Habit",
 } as const;
 
 export type ParentModel = keyof typeof PARENT_TABLES;
@@ -126,7 +179,10 @@ export function isParentModel(model: string): model is ParentModel {
  * (VoiceChange): such rows are never removed by a plan, so they always count.
  */
 export type Reference = {
-  child: "GroceryItem" | "VoiceChange" | "RecipeTag" | "CookbookRecipe" | "MealPlanEntry";
+  child:
+    | "GroceryItem" | "VoiceChange" | "RecipeTag" | "CookbookRecipe" | "MealPlanEntry"
+    | "HabitParticipant" | "HabitLog" | "HabitTimeEntry"
+    | "HabitPlannedDay" | "ChoreWeekOverride" | "Nudge" | "PlanItem";
   column: string;
 };
 
@@ -143,6 +199,17 @@ export const REFERENCES: Record<ParentModel, readonly Reference[]> = {
   Tag: [{ child: "RecipeTag", column: "tagId" }],
   Cookbook: [{ child: "CookbookRecipe", column: "cookbookId" }],
   MealPlan: [{ child: "MealPlanEntry", column: "mealPlanId" }],
+  // The last four are not covered by undo, so a plan never removes them and
+  // they always count as in use.
+  Habit: [
+    { child: "HabitParticipant", column: "habitId" },
+    { child: "HabitLog", column: "habitId" },
+    { child: "HabitTimeEntry", column: "habitId" },
+    { child: "HabitPlannedDay", column: "habitId" },
+    { child: "ChoreWeekOverride", column: "habitId" },
+    { child: "Nudge", column: "habitId" },
+    { child: "PlanItem", column: "habitId" },
+  ],
 };
 
 /**
@@ -152,7 +219,7 @@ export const REFERENCES: Record<ParentModel, readonly Reference[]> = {
  */
 export type ForeignKey = {
   column: string;
-  parent: "PantryItem" | "User" | "Recipe" | "Tag" | "Cookbook" | "MealPlan";
+  parent: "PantryItem" | "User" | "Recipe" | "Tag" | "Cookbook" | "MealPlan" | "Habit";
   onMissing: "null" | "refuse";
 };
 
@@ -172,5 +239,20 @@ export const FOREIGN_KEYS: Partial<Record<UndoModel, readonly ForeignKey[]>> = {
   MealPlanEntry: [
     { column: "mealPlanId", parent: "MealPlan", onMissing: "refuse" },
     { column: "recipeId", parent: "Recipe", onMissing: "null" },
+  ],
+  Habit: [{ column: "createdById", parent: "User", onMissing: "null" }],
+  HabitParticipant: [
+    { column: "habitId", parent: "Habit", onMissing: "refuse" },
+    { column: "userId", parent: "User", onMissing: "refuse" },
+  ],
+  HabitLog: [
+    { column: "habitId", parent: "Habit", onMissing: "refuse" },
+    { column: "userId", parent: "User", onMissing: "refuse" },
+    { column: "loggedById", parent: "User", onMissing: "null" },
+  ],
+  HabitTimeEntry: [
+    { column: "habitId", parent: "Habit", onMissing: "refuse" },
+    { column: "userId", parent: "User", onMissing: "refuse" },
+    { column: "loggedById", parent: "User", onMissing: "null" },
   ],
 };

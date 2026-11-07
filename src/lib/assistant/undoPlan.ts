@@ -7,7 +7,7 @@
 // they are collapsed per row: the earliest `before` and the latest `after`.
 
 import { decodeChangeSummary, type RowCopy } from "./changeCopy";
-import { MODELS, REFERENCES, TIER, isParentModel, type ParentModel, type Reference, type UndoModel } from "./undoModels";
+import { MODELS, REFERENCES, TIER, isParentModel, isVolatile, type ParentModel, type Reference, type UndoModel } from "./undoModels";
 
 export type { UndoModel } from "./undoModels";
 
@@ -175,13 +175,18 @@ export function sameCopy(
   b: Record<string, unknown> | null,
 ): boolean {
   if (a === null || b === null) return a === b;
-  return MODELS[model].columns.every((c) => (a[c] ?? null) === (b[c] ?? null));
+  return MODELS[model].columns.every((c) => isVolatile(model, c) || (a[c] ?? null) === (b[c] ?? null));
 }
 
-/** The columns of a copy as values Prisma writes (date strings to Dates). */
+/**
+ * The columns of a copy as values Prisma writes (date strings to Dates).
+ * Volatile cache columns are left out, so they are neither matched on in a
+ * `where` nor written by a restore, and a re-created row gets the default.
+ */
 export function fromCopy(model: UndoModel, copy: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const column of MODELS[model].columns) {
+    if (isVolatile(model, column)) continue;
     const value = copy[column] ?? null;
     out[column] = MODELS[model].dates.includes(column) && typeof value === "string" ? new Date(value) : value;
   }
@@ -236,4 +241,36 @@ export function referenceChecks(steps: UndoStep[]): ReferenceCheck[] {
     }
   }
   return checks;
+}
+
+const PER_PERSON = new Set(["HabitParticipant", "HabitLog", "HabitTimeEntry"]);
+
+/**
+ * From the steps: which people on which habit had a row touched (read from
+ * whichever copy exists), and which habits were themselves restored or
+ * re-created (their schedule may have changed, so everyone is rebuilt). A
+ * removed habit is left out: there is nothing to rebuild.
+ */
+export function streakWork(steps: readonly UndoStep[]): {
+  users: Map<string, string[]>;
+  habits: string[];
+} {
+  const users = new Map<string, Set<string>>();
+  const habits = new Set<string>();
+  for (const step of steps) {
+    if (step.model === "Habit") {
+      if (step.kind !== "remove") habits.add(step.recordId);
+    } else if (PER_PERSON.has(step.model)) {
+      for (const copy of [step.before, step.after]) {
+        if (!copy) continue;
+        const { habitId, userId } = copy;
+        if (typeof habitId !== "string" || typeof userId !== "string") continue;
+        users.set(habitId, (users.get(habitId) ?? new Set()).add(userId));
+      }
+    }
+  }
+  return {
+    users: new Map([...users].map(([habitId, ids]) => [habitId, [...ids].sort()])),
+    habits: [...habits].sort(),
+  };
 }
