@@ -40,6 +40,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
+import { tabletMayCompleteAnyTask } from "@/lib/tabletRules";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
@@ -263,7 +264,9 @@ export async function deleteTask(id: string): Promise<TaskActionResult> {
  * comment for why it's a third guard form and who has to approve it landing
  * in STRUCTURE.md. A manager may act on any task; anyone else may act only
  * on a task they are genuinely a person on (a real TaskPerson row, read
- * fresh here — never inferred from anything client-supplied). Returns an
+ * fresh here, never inferred from anything client-supplied). The kitchen
+ * tablet (a device login) may also act on any task, via tabletRules.ts.
+ * Returns an
  * error message, or null when the caller is allowed to proceed.
  * uncompleteTask does NOT use this — it's MANAGER_ROLES-only, see the file
  * header.
@@ -273,6 +276,7 @@ async function assertCanCompleteTask(
   taskId: string,
 ): Promise<string | null> {
   if (MANAGER_ROLES.includes(user.role)) return null;
+  if (tabletMayCompleteAnyTask(user.role)) return null;
 
   const membership = await db.taskPerson.findUnique({
     where: { taskId_userId: { taskId, userId: user.userId } },

@@ -11,7 +11,7 @@ structural changes against it.
 | `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout for one page | Pages needing a genuinely chrome-free root layout; those go in `src/app/share/` |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`), plus **session-gated GET routes for bytes a page cannot inline** (an `<img src>`), where a Server Action cannot serve the response: `/api/feedback/[id]/screenshot` is the one instance (mission-38). Such a route calls `getVerifiedUser()` itself, answers 404 to anyone not allowed (the same answer as an unknown id), reads through the domain's one reader, sends `Cache-Control: private, no-store`, never writes, and is never added to proxy.ts's public lists. A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
-| `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action |
+| `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** (`logout` reads the session only to send a device login back to `/settings`; the tablet signs out through `logoutWithAdminPassword`, which is guard form (a) and not part of the exception) — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action |
 | `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice`, `/api/alexa` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
@@ -496,6 +496,28 @@ Adding a second definition of any of these is a BLOCKER:
   `familyOrder`, writing no other `User` column. (Approved by Bryce
   2026-11-05, mission-30, Captain's A8; debt closed mission-31; order added
   mission-41, Captain's A1.)
+- **Tablet rules have one home (mission 39, decision 10).**
+  `src/lib/tabletRules.ts` is the only home of what the tablet (role
+  `"device"`) may do beyond the default for every signed-in login. It holds
+  one named, exported, pure check per rule, prefixed `tabletMay...`
+  (`tabletMayCompleteAnyTask(role)` is the first), so the later per-login
+  permissions page can turn each check into one switch. The file imports only
+  from `constants.ts` (no `db`, no `server-only`, nothing from `habits/` or
+  another domain policy), so every policy can import it without a cycle. A
+  rule that needs a database fact (PR B's parent rule needs the creator's
+  role) takes it as a plain argument, read fresh by the caller. Where a domain
+  has a lib policy, the policy calls the helper inside its existing check
+  (`canEditHabit` / `canChangeChore` in `habits/access.ts`, `canEdit` in
+  `goals.ts`); where the guard lives in the action (tasks, calendar), the
+  guard calls it. An action or page never calls a `tabletMay...` helper next
+  to a domain policy to widen it. From mission 39 PR B on, a **new**
+  permission decision that tests `role === "device"` or `isDevice` inline
+  outside this file is a BLOCKER. Identity and display tests are not
+  permissions and stay where they are (sorting the tablet last, its icon,
+  choosing the sign-out sheet, the household people filter); the existing
+  device tests are grandfathered and PR B moves each one it rewrites. Code
+  calls the role `device`; "tablet" appears only in this file's name, the
+  `tabletMay...` prefix and UI copy. (Mission 39 PR A, Captain's A1.)
 - **Habits & Chores PR B homes (mission-31).** `src/lib/habitsToday.ts` is
   the only home of the Today page's rules (row building and viewer order; `carrySince` and `habitStartDay` moved to
   `habits/carryOver.ts` in mission-33, and the tap-day window
@@ -580,22 +602,40 @@ Adding a second definition of any of these is a BLOCKER:
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it
 - `src/lib/dashboardWidgets.ts`: `DASHBOARD_WIDGETS`, the only widget
-  registry; `DASHBOARD_WIDGET_IDS` there is the one id list and the default
-  order (a test pins the record to it). `parseDashboardLayout` in
-  `dashboardLayout.ts` is the only reader of the stored layout JSON.
-  **Insertion rule, at the `parseDashboardLayout` entry:** a registry id
-  missing from a saved layout is inserted directly after the nearest
-  earlier registry id that the saved list has (at the start if none), not
-  appended at the end; that is how the `goals` widget lands second for
-  people who already saved a layout. (Added 2026-11-04, mission-29.)
-  **Picks (mission-34):** a widget's optional `items` (only `habits` and
+  registry (per kind: label, allowed `sizes`, `defaultSize`, `onTablet`);
+  `DASHBOARD_WIDGET_KINDS` there is the one kind list and the default
+  order (a test pins the record to it); `WIDGET_SIZES` /
+  `WIDGET_SIZE_LABELS` the only size list and size names;
+  `DASHBOARD_WIDGET_WORDS` the dashboard and Customize words.
+  `parseDashboardLayout` in `dashboardLayout.ts` is the only reader of the
+  stored layout JSON (version 2: a list of widget instances, each
+  `{ uid, kind, size, items? }`, so a kind may appear more than once).
+  **Upgrade rule (mission-43):** a version 1 layout is upgraded on read,
+  sized by v1's own pairing rule, so a saved dashboard opens unchanged; the
+  v1 insertion rule (mission-29) lives on only inside that upgrade. A v2
+  layout never gets missing kinds inserted: a removed widget stays removed.
+  `nextWidgetUid` is the only rule for a new or repaired uid (Add and the
+  parser's repair use it). The default layout and the v1 upgrade hold each
+  kind once, so they use the bare kind, which is what `nextWidgetUid` gives
+  a first instance.
+  `src/lib/dashboardGrid.ts` (`packWidgets`, `gridAreaVars`) is the only
+  placement rule for the grid at 2 and 4 columns; the DOM stays in layout
+  order and CSS variables place each cell, never `grid-auto-flow: dense`.
+  `src/lib/dashboardLoaders.ts` holds the dashboard's kitchen reads, one
+  per kind; the page loads only the kinds on the layout (goals load for
+  every signed-in viewer and habits for every non-device viewer, for the
+  notes and the pickers).
+  **Picks (mission-34, per instance since mission-43):** a widget's optional `items` (only `habits` and
   `goals`, `PICKABLE_WIDGET_IDS`) is checked for shape in the parser and
-  for ownership in the loaders, through `keepOwnPicks` in `src/lib/dashboardPicks.ts`, which also holds
-  `picksOf` (the only way to read a widget's picks), `layoutForViewer` (the
-  tablet's layout leaves out `habits` and `chores`, decision 138),
-  and the picker's pure rules (`splitPicks`, `togglePick`);
-  `reorderWidgets` sits in `dashboardLayout.ts` beside `toggleWidget` and
-  `setWidgetItems`; `isPickableWidget` / `PickableWidgetId` in
+  for ownership per instance, through `keepOwnPicks` in `src/lib/dashboardPicks.ts`, which also holds
+  `picksOf(widget)` (the only way to read a widget's picks), `layoutForViewer` (the
+  tablet's layout leaves out kinds whose `onTablet` is false: `habits` and
+  `chores`, decision 138),
+  and the picker's pure rules (`splitPicks`, `togglePick`); the layout
+  edits (`addWidget`, `removeWidget`, `resizeWidget`, `setWidgetItems`,
+  `reorderWidgets`) all sit in `dashboardLayout.ts`; `habitsTileFor` (in
+  `habitsRead.ts`) and `goalsTileFor` (in `goalsRead.ts`) apply one
+  instance's picks to its kind's single load; `isPickableWidget` / `PickableWidgetId` in
   `dashboardWidgets.ts` are the only "which widgets take picks" test; `src/lib/habitsDashboard.ts` the tile row rules (`habitsTileRows`, `choresTileRows`, `pickableHabits`,
   `keepShownRows` (decision 147) and `plannedTodayRows`, the only "which
   rows go on Planned today" rule, which `habitsTileRows` leaves out); the
@@ -611,7 +651,9 @@ Adding a second definition of any of these is a BLOCKER:
   **Dependency direction:** `habitsDashboard.ts` imports only
   `habitVocabulary.ts` and types from `habitsToday.ts`; `dashboardPicks.ts`
   imports only `dashboardLayout.ts` / `dashboardWidgets.ts`; `habitsRead.ts`
-  and `goalsRead.ts` may import them, never the reverse.
+  and `goalsRead.ts` may import them, never the reverse. `dashboardGrid.ts`
+  imports only types from `dashboardWidgets.ts`; `dashboardLoaders.ts` is
+  `server-only` and imported only by the dashboard page.
 - `brand/` — the logo artwork. The two `Marshee*.tsx` components and the
   `src/app/` icon files are all **generated from** these masters; a
   hand-drawn or re-traced second version of the mark or wordmark is a

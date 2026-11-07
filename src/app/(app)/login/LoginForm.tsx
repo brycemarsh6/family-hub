@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { login, type LoginState } from "@/app/actions/auth";
 import { AvatarBadge } from "@/components/AvatarBadge";
+import { DeviceBadge } from "@/components/DeviceBadge";
 import type { Role } from "@/lib/constants";
 
 const EMPTY: LoginState = {};
@@ -14,6 +15,20 @@ export type LoginAccount = {
   avatarColor: string;
   role: Role;
 };
+
+/** The tablet login (role "device") gets the Tablet badge, not an initial. */
+function AccountIcon({ account }: { account: LoginAccount }) {
+  if (account.role === "device") {
+    return <DeviceBadge bgClass="bg-line" />;
+  }
+  return (
+    <AvatarBadge
+      displayName={account.displayName}
+      avatarColor={account.avatarColor}
+      size={40}
+    />
+  );
+}
 
 /**
  * Tap-your-name, then password — two views in one component, the
@@ -35,11 +50,7 @@ export function LoginForm({ accounts }: { accounts: LoginAccount[] }) {
             onClick={() => setSelected(account)}
             className="flex min-h-14 items-center gap-3 rounded-xl border border-line bg-surface-2 px-4 text-left text-base font-semibold text-fg transition-colors active:bg-line"
           >
-            <AvatarBadge
-              displayName={account.displayName}
-              avatarColor={account.avatarColor}
-              size={40}
-            />
+            <AccountIcon account={account} />
             {account.displayName}
           </button>
         ))}
@@ -63,11 +74,7 @@ export function LoginForm({ accounts }: { accounts: LoginAccount[] }) {
         </button>
 
         <div className="mt-2 flex items-center gap-3">
-          <AvatarBadge
-            displayName={selected.displayName}
-            avatarColor={selected.avatarColor}
-            size={40}
-          />
+          <AccountIcon account={selected} />
           <span className="text-lg font-semibold">{selected.displayName}</span>
         </div>
       </div>

@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Tablet } from "lucide-react";
 import { AvatarBadge } from "@/components/AvatarBadge";
+import { DeviceBadge } from "@/components/DeviceBadge";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { CreatePersonSheet } from "@/components/CreatePersonSheet";
+import { CreateDeviceSheet } from "@/components/CreateDeviceSheet";
 import { PersonManageSheet } from "@/components/PersonManageSheet";
 import type { PersonInfo } from "@/lib/personInfo";
 import { ROLE_LABELS } from "@/lib/constants";
 
 /** Active people first (alphabetical), deactivated people dimmed and
  * sorted last (also alphabetical among themselves) — per the C3 contract.
+ * Among the active, the tablet login (role "device") sits after the people.
  * Re-run on every render rather than stored, so a deactivate/reactivate
  * immediately moves someone to the right place in the list. */
 function sortPeople(people: PersonInfo[]): PersonInfo[] {
@@ -18,6 +21,9 @@ function sortPeople(people: PersonInfo[]): PersonInfo[] {
     const aOut = a.deactivatedAt !== null;
     const bOut = b.deactivatedAt !== null;
     if (aOut !== bOut) return aOut ? 1 : -1;
+    const aDevice = a.role === "device";
+    const bDevice = b.role === "device";
+    if (aDevice !== bDevice) return aDevice ? 1 : -1;
     return a.displayName.localeCompare(b.displayName);
   });
 }
@@ -38,14 +44,18 @@ export function FamilyList({
 }) {
   const [people, setPeople] = useState(initialPeople);
   const [addOpen, setAddOpen] = useState(false);
+  const [deviceOpen, setDeviceOpen] = useState(false);
   const [managingId, setManagingId] = useState<string | null>(null);
 
   const managingPerson = people.find((p) => p.id === managingId) ?? null;
   const sorted = sortPeople(people);
+  // At most one active tablet login; the button comes back once it's deactivated.
+  const hasActiveDevice = people.some((p) => p.role === "device" && p.deactivatedAt === null);
 
   function handleCreated(person: PersonInfo) {
     setPeople((prev) => [...prev, person]);
     setAddOpen(false);
+    setDeviceOpen(false);
   }
 
   function handleUpdated(person: PersonInfo) {
@@ -66,11 +76,15 @@ export function FamilyList({
                   deactivated ? "opacity-50" : ""
                 }`}
               >
-                <AvatarBadge
-                  displayName={person.displayName}
-                  avatarColor={person.avatarColor}
-                  size={40}
-                />
+                {person.role === "device" ? (
+                  <DeviceBadge />
+                ) : (
+                  <AvatarBadge
+                    displayName={person.displayName}
+                    avatarColor={person.avatarColor}
+                    size={40}
+                  />
+                )}
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2">
                     <span className="truncate text-base font-medium">
@@ -97,6 +111,17 @@ export function FamilyList({
         })}
       </ul>
 
+      {!hasActiveDevice && (
+        <button
+          type="button"
+          onClick={() => setDeviceOpen(true)}
+          className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface text-base font-medium text-fg transition-colors active:bg-surface-2"
+        >
+          <Tablet aria-hidden="true" size={20} />
+          Set up a tablet login
+        </button>
+      )}
+
       {/* Keeps the last row clear of the floating add button. */}
       <div aria-hidden="true" className="h-20" />
 
@@ -104,6 +129,10 @@ export function FamilyList({
 
       {addOpen && (
         <CreatePersonSheet onCreated={handleCreated} onClose={() => setAddOpen(false)} />
+      )}
+
+      {deviceOpen && (
+        <CreateDeviceSheet onCreated={handleCreated} onClose={() => setDeviceOpen(false)} />
       )}
 
       {managingPerson && (

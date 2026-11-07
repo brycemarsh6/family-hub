@@ -51,10 +51,14 @@ export default async function LoginPage() {
     select: { id: true, displayName: true, avatarColor: true, role: true },
     orderBy: { createdAt: "asc" },
   });
-  const accounts = accountRows.map((account) => ({
-    ...account,
-    role: toRole(account.role),
-  }));
+  // The tablet's chip goes last. Array.sort is stable, so everyone else
+  // keeps the createdAt order the query gave them.
+  const accounts = accountRows
+    .map((account) => ({
+      ...account,
+      role: toRole(account.role),
+    }))
+    .sort((a, b) => Number(a.role === "device") - Number(b.role === "device"));
 
   return (
     <div className="mx-auto flex max-w-sm flex-col justify-center py-16">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { AvatarBadge } from "@/components/AvatarBadge";
+import { DeviceBadge } from "@/components/DeviceBadge";
 import { ROLE_LABELS, type Role } from "@/lib/constants";
 
 /**
@@ -22,7 +23,11 @@ export function SettingsAccountCard({
   const body = (
     <>
       <span className="flex min-w-0 items-center gap-3">
-        <AvatarBadge displayName={displayName} avatarColor={avatarColor} size={40} />
+        {isDevice ? (
+          <DeviceBadge />
+        ) : (
+          <AvatarBadge displayName={displayName} avatarColor={avatarColor} size={40} />
+        )}
         <span className="min-w-0">
           <span className="block truncate text-base font-semibold">{displayName}</span>
           <span className="block text-sm text-muted">{ROLE_LABELS[role]}</span>
