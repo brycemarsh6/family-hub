@@ -1,7 +1,7 @@
 # Mission 47: Winnie's habits and chores (Assistant API)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED
+**Status:** AT-THE-GATES
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/assistant-habits` from `origin/main` 88d094b (holds
 174f74d, PR #65). Worktree `parallel-work-strategy-e056c5`.
@@ -516,7 +516,36 @@ participant like the app. Refusals come from the shared module as
   sizes, `git diff --stat` inside the boundary, commit hash.
 - **Done criteria:** gauntlet green; every live line PASS; `openapi.test.ts`
   green with the 12 rows.
-- **Report:** -
+- **Status:** DONE at `17aa653` (17 files, +1629/-1).
+- **Report:** tsc 0, `eslint .` 0, `npm test` 1298 (1265 + 33), UTC leg
+  1291 + 7 self-skips, LA leg 1298, build 0 (8 new route paths listed).
+  Live on dev, port 3247, tokenless `GET /habits` → 401; `GET
+  /openapi.json` lists the 12 operations; `GET /habits` 17 = DB 17. Phase
+  1 (owner set) 78 PASS, phase 2 (owner unset) 4 PASS, 0 FAIL. Headline
+  proofs: 3 checks → streak 3; undo → 2, equal to a fresh `recomputeHabit`
+  (`{"currentStreak":2,"bestStreak":2,"streakAsOf":"2026-11-05"}` both
+  ways); redo → 3. Together check fans out and undoes as a pair. Family
+  re-tap then undo of hers → 409 `changed_since`. Family-logged entry →
+  403 with H4's words. `isPrivate` in any body → 400. Day 8 back,
+  tomorrow, archived, 40/15/750 minutes → 400; 45 → 201 (H6; the contract
+  line saying 45 → 400 predates H6). Parent's private habit → 404 on every
+  verb. Owner unset: admin's private habit 404 and absent. Counts
+  18/27/16/6/4 before and after; cleanup by id (11 habits, 1 entry, 95
+  requests). Files: habitActor 15 (+54 test), schemasHabits 216 (+196),
+  serializeHabits 261 (+222), habitReads 207, openapiHabitPaths 150,
+  routes 306 in 8 files. Deviations: `GET /habits/today` never emits
+  `late` as a row state (a late check lives on the carried day; `late`
+  shows as `status` in the check response and in `recentLogs`); the chart
+  includes `state` and `tag` per chore (a skipped or moved chore would
+  otherwise look normal); `GET /habits/{id}` lists this week's hours
+  entries with ids so Winnie can find one to remove; write responses are
+  read ungated (she just wrote the row), which matters for H3 item 4: a
+  one-person hours habit she makes for someone else is private to them,
+  so later reads answer 404 (create tested live; hours-add and PATCH
+  ungated paths not exercised). Side effect on dev: a test chore for the
+  parent moved that person's `UserPreferences.choreStreakAsOf` to
+  2026-11-06 (values 0/0 unchanged; recompute re-run). Test rows' `createdAt`
+  backdated by script for the streak run (deleted).
 
 ### C4 - records (after the gates)
 
