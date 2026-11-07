@@ -637,3 +637,9 @@
   Vision's `scratchpad/v2/race.ts` → 0 failures in 24 rounds (raise its
   round count); `scratchpad/v/live2.ts` first check passes; counts
   before/after.
+- **F2 DONE `1c0363a`** (2 files, +25/-20). Race 24 rounds of 3
+  simultaneous PUTs into empty weeks: 0/72 non-200 (was 7 of 8 rounds
+  failing); same-slot into an existing plan 0/48; `live2.ts` all PASS.
+  Counts restored. Gauntlet green; Fury re-ran `npm run build`: exit 0.
+  Vision pass 3 (last) dispatched; Captain not re-gated (2 files, no
+  structural change beyond his own NOTE).
