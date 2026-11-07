@@ -489,3 +489,12 @@ Preflight's one hard failure on C2 is the schema's length; STRUCTURE.md
   `briefingSent.ts`; `AND` filter in `loadHouseholdAdults`; `maxDuration =
   60` and a `recordOutcome` helper in the route. 1329 tests pass (UTC 1322
   + 7 DST skips). Vision pass 2 dispatched.
+- 2026-11-07: **Hill on Captain's amendments** (Bryce: "for now ask all
+  questions to Hill"): A-48-1 approve (high); A-48-2 approve with change,
+  event-word homes written as instances, `connection.test`'s words stay in
+  the action (medium, **Bryce to look at**); A-48-3 approve with change,
+  delete the feedbackTime "only clock" sentence (high); A-48-4 approve with
+  change, `findPlanForWeek` moves to `mealPlanWeek.ts` not
+  `householdEvents.ts` (medium, **Bryce to look at**); A-48-5 approve as a
+  pending rule naming its two sites (high); A-48-6 approve (high). Fury
+  wrote all six into STRUCTURE.md. Captain pass 2 dispatched.

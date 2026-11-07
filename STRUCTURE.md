@@ -12,7 +12,7 @@ structural changes against it.
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`), plus **session-gated GET routes for bytes a page cannot inline** (an `<img src>`), where a Server Action cannot serve the response: `/api/feedback/[id]/screenshot` is the one instance (mission-38). Such a route calls `getVerifiedUser()` itself, answers 404 to anyone not allowed (the same answer as an unknown id), reads through the domain's one reader, sends `Cache-Control: private, no-store`, never writes, and is never added to proxy.ts's public lists. A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
 | `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** (`logout` reads the session only to send a device login back to `/settings`; the tablet signs out through `logoutWithAdminPassword`, which is guard form (a) and not part of the exception) — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action |
-| `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice`, `/api/alexa` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
+| `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice`, `/api/alexa`, `/api/cron/briefing` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
@@ -30,9 +30,15 @@ structural changes against it.
   follow the same split — auth lives next to the data, once, in the action.
   For non-browser clients that cannot hold a session, the guard may instead
   be a Route Handler in `src/app/api/` whose own auth check (a shared token,
-  or a platform signature plus skill ID) runs before the body is parsed and
-  before any lib call — `/api/voice`, `/api/alexa` and `/api/assistant/v1/`
-  (whose gate is the shared `assistantRoute` wrapper) are the three instances.
+  a bearer secret, or a platform signature plus skill ID) runs before the
+  body is parsed and before any lib call — `/api/voice`, `/api/alexa`,
+  `/api/assistant/v1/` (whose gate is the shared `assistantRoute` wrapper)
+  and `/api/cron/briefing` (mission-48: Vercel's cron, gated by a
+  constant-time `Authorization: Bearer ${CRON_SECRET}` check that runs first
+  and answers 401 when the secret is missing) are the instances. A new cron
+  job is its own route under `src/app/api/cron/<job>/`, carries the same
+  first-line `CRON_SECRET` check, and gets its own exact entry in
+  `PUBLIC_ROUTES`; `/api/cron/` is never a public prefix (A-48-1).
   The invariant is the same either way: the pure `server-only` call carries
   no auth, and exactly one guarded caller does.
   **Domain write modules** (added 2026-10-09, mission-21; Bryce-approved). A
@@ -557,9 +563,47 @@ Adding a second definition of any of these is a BLOCKER:
   Denver `occurredAt`, which outcomes retry, the 1 s / 3 s schedule, the
   10 s attempt timeout, the one log line) live in pure
   `src/lib/winnieEvents.ts`, tested with a fake fetch; `describeAttempt`
-  takes no URL or key so a log line cannot leak them. The one caller today
-  is `sendWinnieTestEvent` (`actions/winnie.ts`, guard form a, admin only).
-  (Added 2026-11-06, mission-42; Bryce approved the plan.)
+  takes no URL or key so a log line cannot leak them. Its callers are
+  `sendWinnieTestEvent` (`actions/winnie.ts`, guard form a, admin only) and
+  the morning briefing cron route `src/app/api/cron/briefing/route.ts`
+  (`CRON_SECRET` gate, mission-48). Like a domain write module it may have
+  several guarded callers, each carrying its own gate; it never carries one.
+  Instances of where event words live: `briefing.daily`'s title and body are
+  built only in `briefing.ts`; `connection.test`'s one-line title and body
+  stay in `actions/winnie.ts`; the next event type with more than a sentence
+  of words follows `briefing.ts`. (Added 2026-11-06, mission-42; Bryce
+  approved the plan. Callers amended mission-48, A-48-2, Hill approved.)
+- **Winnie's morning briefing (mission-48).** `src/lib/briefing.ts` is the
+  pure builder (no `db`, env or clock read; callers pass `today` and `now`)
+  and the only home of the briefing's words. `src/lib/briefingRead.ts`
+  (`server-only`, no auth) gathers one adult's input only through the
+  existing readers (`loadTodayPage` for habits, so `canSeeHabit` keeps
+  private habits private; `getCalendarEventsInRange`; `findPlanForWeek` and
+  `slotsForDay`), and runs the family-wide reads once per run
+  (`loadBriefingShared`). `src/lib/briefingSent.ts` (`server-only`, no auth)
+  is the only writer of `WinnieBriefingSent`; the claim (insert before send,
+  unique `(userId, day)`) is the once-a-day guard. `loadHouseholdAdults` in
+  `householdPeople.ts` is the only "who gets a briefing" rule. Their one
+  caller is the `CRON_SECRET`-gated route. (Added mission-48, A-48-6, Hill
+  approved.)
+- **Which household days an event covers** is `eventDayRange` and
+  `bucketEventsByDay` (all-day: UTC midnights, end exclusive; timed:
+  `[startAt, endAt)` in the household zone), and **which stored plan is a
+  week's** is `findPlanForWeek`. All three live today in
+  `src/lib/assistant/summary.ts`. A top-level lib module may import these
+  pure exports (`briefing.ts` and `briefingRead.ts` do); it never imports
+  `assistant/` route machinery (`assistantRoute`, auth, `openapi`). The next
+  contract that touches them moves `eventDayRange` and `bucketEventsByDay`
+  to a neutral pure `src/lib/householdEvents.ts` and `findPlanForWeek` to
+  `src/lib/mealPlanWeek.ts` (the week-matching rule's home), with
+  `summary.ts` re-importing them. A second copy of either rule is a BLOCKER.
+  (Added mission-48, A-48-4, Hill approved.)
+- **Pending (A-48-5, adopt when either site is next touched):** a
+  `vacationLabel(through, today)` in `habitVocabulary.ts` becomes the only
+  choice between `VACATION_TODAY_LABEL` and `vacationThroughLabel` (the
+  last day reads "today"). The two sites that make it today are
+  `src/components/HabitTodayList.tsx` (the vacation card) and
+  `src/lib/briefing.ts` (the Chores line). Not a BLOCKER until it exists.
 - **Send feedback (mission-38).** `src/lib/feedback.ts` has no imports, on
   purpose, and holds the rules: `MESSAGE_MAX`, `SCREENSHOT_MAX_BYTES`,
   `USER_AGENT_MAX`, `SCREENSHOT_TYPE`, `TOUCH_STAMP` (the one encoding of "a
@@ -586,10 +630,8 @@ Adding a second definition of any of these is a BLOCKER:
   `feedbackTimeAgo(createdAt, now)` and `feedbackTimeLabel(createdAt)`
   ("Tue, Nov 3, 11:30 PM"). It imports only `constants.ts`,
   `householdDate.ts` and `mealPlanDates.ts`; day, month and weekday words
-  come from those helpers, never from `toLocale*` options. Its private
-  `CLOCK` is the repo's only household-zone clock formatter: a second screen
-  that needs one moves it into `householdDate.ts` as an export, and a copy
-  elsewhere is a BLOCKER. A list that shows "time ago" takes one `now` from
+  come from those helpers, never from `toLocale*` options. Its clock uses
+  `formatHouseholdClock` from `householdDate.ts`. A list that shows "time ago" takes one `now` from
   its server page as a prop, so server and browser print the same words.
   (Added mission-38, on Captain's ruling.)
 - `src/app/globals.css` — the color tokens
@@ -605,6 +647,12 @@ Adding a second definition of any of these is a BLOCKER:
   the dash-free week title ("Nov 1 to 7"), beside `formatShortCalendarDate`;
   `formatWeekRange` in `mealPlanDates.ts` keeps its dash for Meal Plan only,
   and a third week-range formatter is a BLOCKER. (Added mission-36.)
+  `formatHouseholdClock(instant, timeZone, { dropZeroMinutes })` (moved from
+  `feedbackTime.ts`'s private `CLOCK` in mission-48) is the repo's only
+  household-zone clock formatter: a plain ASCII space before AM/PM and, on
+  request, no `:00`. `hourInZone(instant, timeZone)` beside it is the only
+  wall-clock hour reader. A copy elsewhere is a BLOCKER. (A-48-3, Hill
+  approved.)
 - `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it
