@@ -467,6 +467,15 @@ mission 44, PR #61)
   `claude/voice-exact-match`: `findExactName` in `src/lib/match.ts`); Captain's NOTEs N2, N3, N5,
   N6, N7, N9, N10 (pass 1) and the lookup idiom (pass 2); Vision's: the
   delete guard refuses when any filing races the delete, even Winnie's own.
+- **Voice duplicate check, decided by Bryce (2026-11-06, relayed by the
+  Winnie mission 22 sync session as his words "yes to the chocolate milk"):**
+  after the "said twice, added twice" fix (PRs #64 and #65), `applyBuy`
+  skips a spoken item as "already on the shopping list" when the spoken
+  words, or the pantry name they loosely match, are already unchecked on the
+  list. So asking for "chocolate milk" when only "Milk" is stocked and
+  listed says "already on the list" instead of adding a second "Milk". The
+  looser match stands; no code change. Still untested by script (needs the
+  database).
 - **For Bryce:** Hill's H1 (delete at all?) and H4 (no twins from Winnie)
   first; Captain's STRUCTURE.md amendments A5 to A9 (plus mission 44's A1
   to A4) to approve once STRUCTURE.md is free.
