@@ -30,15 +30,17 @@ beyond `md:text-3xl` titles and centered sheets.
    The end state is every signed-in page wide.
 2. **Pages size against their own space, not the screen.** Each wide
    page wraps its columns (only its columns: never a sheet or a fixed bar,
-   and never `<main>`, because CSS containment would pin every
-   `position: fixed` sheet inside the page; mission-44, Fury) in a CSS
+   and never `<main>`, as a precaution: older engines treated a container
+   as the positioning parent of `position: fixed` sheets; current Chrome
+   does not, mission-44, Vision) in a CSS
    container (`@container`, built into Tailwind v4; the repo already uses
    `@min-[…]` once in `TimelineAllDayStrip.tsx`). Pages use container
    variants (`@min-[45rem]:`, `@3xl:`), never `md:`/`lg:` screen
    breakpoints, for column counts. So the pinned Sidebar (256px) or Rail (72px) simply
    leaves the page less room and it fits what is left: no extra work.
    Breakpoints to use: 2 columns from a 768px container, 3 from 1024px,
-   the 4-column dashboard from 896px (today's `md` grid).
+   the 4-column dashboard from a 720px (45rem) container (mission-44:
+   a 768px screen leaves a 736px grid, which keeps 4 columns).
 3. **A row never stretches past a readable width.** Wide pages get more
    columns, more panels, or a wider grid, never one long stretched row.
    Rows with a stepper and a cart button stay 340px or wider.
@@ -227,6 +229,9 @@ the width rule; L2 and W2 share calendar code, so L2 goes first.
   checking off a past day is a later add.
 - **223:** the reference iPad is the 11-inch size, 1180x820 in landscape
   and 820x1180 upright. Gates test both, plus 1180 with the Sidebar on.
+- **224 (Bryce, 2026-11-07, L1):** the dashboard's top cards (Planned
+  today, Pick a day, nudges) sit two across on a wide page, one column on
+  a phone, chosen from the "Top cards" mock boards.
 
 ## Open
 

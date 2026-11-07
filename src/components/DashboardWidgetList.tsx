@@ -31,9 +31,12 @@ import type { DashboardLayout } from "@/lib/dashboardLayout";
  * The page is wide (`data-page-width="wide"`, see AppChrome.tsx), with no
  * title of its own (decision 221). The grid is 2 columns, and 4 from a 45rem
  * container width, not a screen breakpoint, so the Sidebar menu or a
- * different iPad shrinks it correctly. The `@container` element wraps only
- * the grid: a container becomes the positioning parent of fixed descendants,
- * so the Customize sheet stays outside it, as its sibling. The Customize
+ * different iPad shrinks it correctly. The notes cards above the grid (planned
+ * today, pick a day, nudges) sit two across from the same container width, so
+ * a row never stretches across the iPad (decision 224). The `@container`
+ * element wraps only columns: older engines made a container the positioning
+ * parent of fixed descendants, so the Customize sheet stays outside it, as
+ * its sibling. The Customize
  * button is portaled into the wordmark header's right end
  * (WORDMARK_HEADER_ACTIONS_ID); with no slot it renders nowhere. The DOM stays in the
  * person's list order; each cell gets its row and column from the packer
@@ -90,7 +93,13 @@ export default function DashboardWidgetList({
   return (
     <div data-page-width="wide" className="py-4">
       {canCustomize && headerSlot && createPortal(customizeButton, headerSlot)}
-      {notes && <div className="mb-4">{notes}</div>}
+      {notes && (
+        <div className="@container mb-1">
+          <div className="grid items-start gap-x-4 @min-[45rem]:grid-cols-2">
+            {notes}
+          </div>
+        </div>
+      )}
 
       <div className="@container">
         {widgets.length === 0 ? (

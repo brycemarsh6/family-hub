@@ -1,7 +1,7 @@
 # Mission 44: iPad landscape L1 (the width rule, the chrome, the dashboard)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERING
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/ipad-landscape-plan` (from `origin/main` at `3aabe35`), PR #62
 **Plan:** `.avengers/plans/ipad-landscape-v1.md` (step L1 of L1 to L6), approved by Bryce 2026-11-07 (decisions 215 to 223)
@@ -41,8 +41,9 @@ the 11-inch: 1180x820 landscape, 820x1180 upright).
   `HamburgerButton.tsx` already uses for `data-fills-width`). Not
   `data-fills-width`: that one also pins the page to one screen height.
 - **The container wrapper holds the columns only, never `<main>`.** A
-  CSS container (`@container`) applies layout containment, which makes it
-  the positioning parent of every `position: fixed` descendant. `<main>`
+  CSS container (`@container`) was treated by older engines as the
+  positioning parent of every `position: fixed` descendant (Vision, pass
+  1: current Chrome does not; kept as a precaution). `<main>`
   holds every bottom sheet and fixed bar, so a container there would pin
   them inside the page. Each wide page therefore wraps just its grid or
   columns in a `@container` element and renders its sheets outside that
@@ -180,6 +181,19 @@ From AGENTS.md, absolute for every agent:
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Captain | PASS | none | NOTES: the 45rem class strings are written four times across the list and the skeleton (amendment idea for L2: export the container class strings once); the "measured dimension" inventory in STRUCTURE.md does not list WORDMARK_HEADER_ACTIONS_ID; the Wide pages entry should say the id lives in src/lib/ unlike SCHEDULE_TITLE_SLOT_ID; the appChrome.ts hook comment overclaims mount order (for Vision); CLAUDE.md is 385 lines against its own 250 cap, a cleanup mission not a blocker |
+| 1 | Vision | PASS | none | Gauntlet re-run green (1239 tests, UTC 1232 pass and 7 skipped, build exit 0); boundaries clean. NOTES: `container-type: inline-size` does not apply layout containment in current Chrome (proved with a test page), so the "positioning parent" reason in STRUCTURE.md, the plan and the DashboardWidgetList comment should be worded as a precaution, and HoursLogSheet (inline, fixed) already sits inside the dashboard container (works in Chrome; iPad Safari unproven, goes on the iPad check); the appChrome.ts hook comment overclaims mount order (React's post-commit snapshot re-check is what makes it correct); plan line 41 still says "4 columns from 896px"; the empty state keeps `mt-6` (40px under notes vs the grid's 16px); the header row overflows at 320px (no family phone is that narrow); no `<h1>` on the dashboard now (an `sr-only` one is a design call) |
+| 1 | Strange | BLOCKED | the dashboard notes cards (Planned today, Pick a day, nudges) run the full 1133px at 1180, so a habit name sits about 1000px from its check button; violates the new "a row never stretches" rule | Everything else measured clean: 4 columns at 1180 (271px with the emulator scrollbar, 275 on the iPad), 4 at 820, 2 at 375, Sidebar 4 x 207px, Rail 4 x 253px, Customize lined up with the grid's right edge, sheet unclipped, resize survives a reload, skeleton wide from the first frame, other pages unchanged. NOTES: Customize appears only after hydration (short pop-in; a placeholder in loading.tsx later); the skeleton has no notes blocks (older than L1); notes cards 12px apart vs tiles 16px; the packer can leave the last row's column 4 empty (older than L1) |
+| 2 | Strange | PASS | none | Notes 2 x 558.5px at 1180 (matching Medium tiles), 2 x 430.5 Sidebar, 2 x 522.5 Rail, 2 x 386 at 820, 1 column at 375; 16px to the grid; no sideways scroll. NOTES: `items-start` leaves a short card with empty space beside a taller one (items-stretch is a taste call); no nudge on dev data to see |
+
+## Fix batch 1 (after pass 1)
+
+Strange's blocker: the notes cards stretched 1133px at 1180. Bryce chose
+two side by side from a mock (canvas boards "Top cards", 2026-11-07),
+decision 224. Fixed in `DashboardWidgetList.tsx` (notes in a container
+grid, 2 columns from 45rem). Captain/Vision doc notes applied in
+STRUCTURE.md, the plan, and the `appChrome.ts` comment. Needs Strange's
+re-check of the notes at 1180, Sidebar, Rail and 375.
 
 ## Handoff log
 

@@ -328,7 +328,9 @@ Replace this section at the end of each session. Don't append.
 - **Landscape dashboard check** (about 2 minutes): turn the kitchen iPad
   sideways and reload the dashboard: the tiles fill the screen in 4
   columns, there is no "Dashboard" title, and Customize sits in the top
-  bar next to the Marshee wordmark. Open Customize, change a size, reload.
+  bar next to the Marshee wordmark. Open Customize, change a size, reload. On a day with Planned today or Pick a day, the cards
+  sit two across. On the Habits tile, open an hours habit's log sheet and
+  check it covers the whole screen (iPad Safari is unproven).
 - **Dashboard widgets iPad check** (about 5 minutes): on the iPad, see the
   4-column dashboard; check the Small Inventory tile isn't cut off. Open
   Customize, tap Chores today, switch it to Large and back; add a second

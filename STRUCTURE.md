@@ -951,11 +951,17 @@ Adding a second definition of any of these is a BLOCKER:
   the frame changes, so the page still scrolls as a page (unlike
   `data-fills-width`). Three rules hold for every wide page:
   1. **The CSS container wraps the columns only, never `<main>` and never
-     an element that holds a sheet or a fixed bar.** `@container` applies
-     layout containment, which makes the element the positioning parent of
-     every `position: fixed` descendant; a container around a bottom sheet
-     pins the sheet inside the page. The dashboard's container holds its
-     grid, and the Customize sheet is the container's sibling.
+     an element that holds a sheet or a fixed bar,** as a precaution:
+     older browser engines treated a container as the positioning parent
+     of every `position: fixed` descendant, which would pin a bottom sheet
+     inside the page. Current Chrome does not (Vision proved
+     `container-type: inline-size` leaves a fixed child on the viewport,
+     mission-44), and iPad Safari is checked on the device. Keep sheets
+     outside the container or portal them. The dashboard's container holds
+     its grid, and the Customize sheet is the container's sibling. Known
+     exception: `HoursLogSheet` renders inline from the Habits tile, so it
+     sits inside the dashboard container (works in Chrome; on Bryce's
+     iPad check).
   2. **Column counts come from container variants (`@min-[…]:`, `@3xl:`),
      never screen breakpoints (`md:`, `lg:`).** The page then fits whatever
      room the pinned Sidebar or Rail leaves it, with no extra code.
@@ -965,8 +971,9 @@ Adding a second definition of any of these is a BLOCKER:
   The wordmark header has an empty slot, `WORDMARK_HEADER_ACTIONS_ID`
   (`src/lib/appChrome.ts`), at its right end; a page whose state owns a
   header button portals the button into it (the dashboard's Customize,
-  decision 221), the same shape as `SCHEDULE_TITLE_SLOT_ID` in
-  `CalendarHeader.tsx`. The page list and the order the pages go wide in
+  decision 221). It is the same shape as `SCHEDULE_TITLE_SLOT_ID` in
+  `CalendarHeader.tsx`, but the id lives in `src/lib/` because both the
+  chrome and the page import it. The page list and the order the pages go wide in
   are in `.avengers/plans/ipad-landscape-v1.md`.
 - **A measured dimension of app chrome** that two or more surfaces position
   against **has one home in `src/lib/`**, and the markup that produces it
@@ -984,7 +991,8 @@ Adding a second definition of any of these is a BLOCKER:
   `NAV_RAIL_WIDTH_PX` and `NAV_SIDEBAR_WIDTH_PX` there, feeding the
   `--app-nav-width` CSS variable that the fixed bars use as their left edge.
   `SCHEDULE_HEADER_BAR_HEIGHT_PX` and `SCHEDULE_TITLE_SLOT_ID` stay in
-  `CalendarHeader.tsx`. (Added 2026-09-05, mission-16; Bryce approved.)
+  `CalendarHeader.tsx`. Mission 44 adds `WORDMARK_HEADER_ACTIONS_ID` (the
+  wordmark header's right-end slot) to `src/lib/appChrome.ts`. (Added 2026-09-05, mission-16; Bryce approved.)
 - `src/lib/personInfo.ts` — `PERSON_SELECT` / `toPersonInfo`, the single
   place a `User` row becomes something a client may see. **This is the
   security-relevant one**: it builds the public shape field by field so a

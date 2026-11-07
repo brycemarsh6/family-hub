@@ -74,9 +74,9 @@ function subscribeToNothing() {
  * renders it but nothing portals in) or on the server. A browser-only read,
  * so `useSyncExternalStore` (DESIGN.md), not state set in an effect: the
  * server snapshot is null and the client snapshot reads the DOM, which React
- * reconciles after hydration without a cascading render. The header is
- * committed before the page below it, so the node exists by the time a page
- * asks.
+ * re-checks after the first commit and re-renders if the node has appeared
+ * (on a client navigation into the page the header and the page can mount in
+ * the same commit, so the first read may be null).
  */
 export function useWordmarkHeaderActionsTarget(): HTMLElement | null {
   return useSyncExternalStore(
