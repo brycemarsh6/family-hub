@@ -28,11 +28,14 @@ beyond `md:text-3xl` titles and centered sheets.
    `<main>` drops `max-w-3xl` at `md` and up when it is present. Pages
    not yet adapted keep 768px, so nothing stretches badly mid-rollout.
    The end state is every signed-in page wide.
-2. **Pages size against their own space, not the screen.** `<main>` is a
-   CSS container (`@container`, built into Tailwind v4; the repo already
-   uses `@min-[…]` once in `TimelineAllDayStrip.tsx`). Pages use container
-   variants (`@3xl:`, `@5xl:`), never `md:`/`lg:` screen breakpoints, for
-   column counts. So the pinned Sidebar (256px) or Rail (72px) simply
+2. **Pages size against their own space, not the screen.** Each wide
+   page wraps its columns (only its columns: never a sheet or a fixed bar,
+   and never `<main>`, because CSS containment would pin every
+   `position: fixed` sheet inside the page; mission-44, Fury) in a CSS
+   container (`@container`, built into Tailwind v4; the repo already uses
+   `@min-[…]` once in `TimelineAllDayStrip.tsx`). Pages use container
+   variants (`@min-[45rem]:`, `@3xl:`), never `md:`/`lg:` screen
+   breakpoints, for column counts. So the pinned Sidebar (256px) or Rail (72px) simply
    leaves the page less room and it fits what is left: no extra work.
    Breakpoints to use: 2 columns from a 768px container, 3 from 1024px,
    the 4-column dashboard from 896px (today's `md` grid).
@@ -43,6 +46,8 @@ beyond `md:text-3xl` titles and centered sheets.
    not need 1148px. The `FloatingAddButton` moves to the bottom-right
    corner of the content area on wide pages (today it sits at the left
    edge of a centered 768px wrapper, which looks lost once the cap lifts).
+   That change lands with the first wide page that has one (L4 Recipes or
+   L5 Goals), where Strange can see it; L1 does not touch the button.
 5. **Sheets are unchanged**: they already center at `md:max-w-md`.
 6. The rule goes into STRUCTURE.md and DESIGN.md in step L1, before any
    other page changes.
@@ -189,9 +194,9 @@ help:
 
 ## Steps (one PR and one chat each)
 
-- **L1: the rule, the chrome and the dashboard.** The opt-in attribute,
-  `<main>` as a container, the FloatingAddButton corner rule, the
-  dashboard wide, STRUCTURE.md and DESIGN.md written. Gates check 1180
+- **L1: the rule, the chrome and the dashboard** (mission 44). The opt-in
+  attribute, the per-page container rule, the header slot for Customize,
+  the dashboard wide, STRUCTURE.md and DESIGN.md written. Gates check 1180
   landscape with and without the pinned Sidebar, and 820 upright.
 - **L2: Calendar** (Schedule + month, Month, Week, 3 Day, Day, Year).
 - **L3: Habits and Chores** (Mine, Whole family fit-everyone, Manage,

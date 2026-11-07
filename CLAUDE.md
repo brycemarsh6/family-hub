@@ -216,7 +216,7 @@ Lucide outline icons only, secondary row actions behind a right-to-left swipe
 (destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-11-06)
+## Current status (updated 2026-11-07)
 
 Replace this section at the end of each session. Don't append.
 
@@ -243,6 +243,13 @@ Replace this section at the end of each session. Don't append.
   column per person (swipe sideways), rows by time of day, Filter, and a
   household order set by dragging on Manage family (`User.familyOrder`).
   Leftovers in `.avengers/missions/mission-41-habits-family-columns.md`.
+- **iPad landscape L1 (mission 44)** is being built on branch
+  `claude/ipad-landscape-plan` (PR #62): the width rule for the kitchen
+  iPad in landscape, and the dashboard as the first wide page (no page
+  title, Customize in the wordmark header). Plan for every page, approved
+  by Bryce (decisions 215 to 223):
+  `.avengers/plans/ipad-landscape-v1.md`. Next: L2 (Calendar), then the
+  Calendar widget W2 (`.avengers/plans/dashboard-widgets-v2.md`).
 - **Dashboard widgets W1 (mission 43)** passed its gates on 2026-11-06
   from branch `claude/dashboard-customizable-widgets-a9d4c0`: widgets have
   sizes (Small, Medium, Large, Extra large), a kind can be added more than
@@ -318,6 +325,10 @@ Replace this section at the end of each session. Don't append.
   tablet: Settings, Sign out (it is still Emily, so one tap), tap the
   "Tablet" chip at the bottom, enter that password. Then on the tablet try
   Settings, Sign out: a wrong admin password is refused, yours signs it out.
+- **Landscape dashboard check** (about 2 minutes): turn the kitchen iPad
+  sideways and reload the dashboard: the tiles fill the screen in 4
+  columns, there is no "Dashboard" title, and Customize sits in the top
+  bar next to the Marshee wordmark. Open Customize, change a size, reload.
 - **Dashboard widgets iPad check** (about 5 minutes): on the iPad, see the
   4-column dashboard; check the Small Inventory tile isn't cut off. Open
   Customize, tap Chores today, switch it to Large and back; add a second
