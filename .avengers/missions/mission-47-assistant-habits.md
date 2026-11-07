@@ -1,0 +1,462 @@
+# Mission 47: Winnie's habits and chores (Assistant API)
+
+**Project:** family-hub (Marshee)
+**Status:** CONTRACTED
+**Started:** 2026-11-06 · **Updated:** 2026-11-06
+**Branch:** `claude/assistant-habits` from `origin/main` 88d094b (holds
+174f74d, PR #65). Worktree `parallel-work-strategy-e056c5`.
+
+## Brief
+
+- **Goal:** Winnie (Bryce's Grok bot, the one client of `/api/assistant/v1/`)
+  can read and act on habits and chores: today's list, a person's habits, a
+  habit's stats (streak, hours progress), the chore chart; check or skip a
+  habit or chore for a named person, undo either, log and remove her own
+  hours entries; add and edit habits and chores. Never delete one.
+- **Done means:** the routes in Design answer in production behind the token
+  (each new path answers 401 to a tokenless `curl`, read-only check); every
+  write records before/after copies and `POST /audit/{requestId}/undo`
+  reverses it **with the streak caches rebuilt in the same transaction**
+  (proven live on dev: a three-day check run undone shows 3 → 2 and equals
+  a fresh recompute); the family's Server Actions behave identically (parity
+  script on dev); Vision and Captain PASS; gauntlet green in both time
+  zones; CLAUDE.md record fixes in the same PR.
+- **Out of scope** (leftovers, not built): nudges, vacations, plan-the-day,
+  reorder, chore week moves and skips (`ChoreWeekOverride`), a habits line
+  in `GET /summary`, any delete of a habit, changing `isPrivate` through the
+  API, plans and goals (the next mission), calendar and tasks (after both).
+- **Why no plan existed:** `habits-chores-v1.md` decisions 42 to 43 cover
+  Winnie texting reminders (the other direction) and say "later, Winnie can
+  act in Marshee on a text reply"; `plans-goals-v1.md` has one line on
+  voice logging. This file is the first plan for the API side.
+
+## Standing rulings (Bryce, 2026-11-06, don't re-litigate)
+
+- Whole app except passwords, family members and roles. One token, no
+  per-person permissions, acting as nobody. Every write undoable 30 days.
+  She deletes only what she created (`didAssistantCreate`,
+  `src/lib/assistant/audit.ts`).
+- Goals, vision entries, plan items, habits: add and edit, never delete.
+- Order for Winnie: habits and chores (this), then plans and goals, then
+  calendar and tasks.
+- **Privacy default, set by Bryce for this mission and listed for his
+  review:** Winnie sees and changes Bryce's private habits, and other
+  people's habits only when they are not private. `canSeeHabit` and its
+  siblings in `src/lib/habits/access.ts` stay the one source of truth.
+
+## Decided by Hill (2026-11-06; Bryce can overturn any)
+
+Pending Hill's report (Q1 to Q7 dispatched). Fury's recommendations, to be
+replaced by her decisions:
+
+- **H1 archive/restore via PATCH:** yes; reversible and undoable; never a
+  hard delete.
+- **H2 `GET /habits/today` with no `personId`:** every active household
+  person Winnie may see, one call for "what's left today".
+- **H3 create defaults:** `participantIds` required; `kind` "habit",
+  `schedule` "daily", `mode` "build", `sharing` "each"; icon, lifeArea,
+  timeOfDay null; `carryOver` false; `isPrivate` false and not settable.
+- **H4 403 wording:** "Winnie can only remove hours she logged herself."
+- **H5 skips on chores:** yes, same as the app's day skip.
+- **H6 minutes:** 30 to 720, whole, multiple of 30, else 400 (the app's
+  own rule, `HOURS_LIMITS`); no silent clamping.
+- **H7 `loggedById` null:** acceptable; the app shows no "by" for her.
+
+## Design (Fury's structural calls)
+
+### Winnie's actor
+
+`src/lib/assistant/habitActor.ts` (pure): `assistantHabitActor()` returns
+`{ userId: process.env.ASSISTANT_OWNER_USER_ID ?? "", role: "admin" }`. Fed
+unchanged to `access.ts`: a manager who is "Bryce" for the participant test,
+so she sees his private habits and nobody else's, and may check for anyone
+on a habit she can see. Unset, she sees non-private habits only. Bryce sets
+the variable in Vercel (his id from `GET /family`). `loggedById` and
+`createdById` are `null` on her writes (the bot is not a user, like
+shopping's `addedById`); ownership is the audit log.
+
+### Routes (`src/app/api/assistant/v1/habits/...`)
+
+| Method and path | Does | Backed by |
+|---|---|---|
+| `GET /habits?personId=&includeArchived=` | habits and chores Winnie can see (optionally one person's), each with participants and their streaks | `habitReads.ts` |
+| `GET /habits/today?personId=` | one person's (or every visible person's) day: each row with state done / skipped / left, due, carried, hours progress | `loadTodayPage` per person + `canSeeHabit` filter |
+| `GET /habits/{id}` | one habit with stats: per participant current and best streak (aged with `streakAfter`), this week's hours (`hoursWeek`), last 14 days of logs | `habitReads.ts` |
+| `GET /habits/chart?personId=` | that person's chore chart for this week | `loadChoreChart` |
+| `POST /habits` | add a habit or chore | `createHabit` |
+| `PATCH /habits/{id}` | edit fields and participants; `archived: true/false` (H1) | `updateHabit`, `archiveHabit`, `restoreHabit` |
+| `POST /habits/{id}/check` `{ personId, day? }` | check ("late" on a carried day) | `tapCheck` |
+| `POST /habits/{id}/skip` `{ personId, day? }` | skip the day | `tapSkip` |
+| `DELETE /habits/{id}/check?personId=&day=` | undo a check (a skip stays) | `tapUncheck("check")` |
+| `DELETE /habits/{id}/skip?personId=&day=` | undo a skip (a check stays) | `tapUncheck("skip")` |
+| `POST /habits/{id}/hours` `{ personId, minutes, day? }` | log time on an hours habit | `logHours` |
+| `DELETE /habits/{id}/hours/{entryId}` | remove an entry she logged (`didAssistantCreate("HabitTimeEntry")`, else 403) | `removeHours` |
+
+Same day window as the app: today, the last 7 days, plus the one carried day
+(`isTapDayAllowed`); never the future. Together habits fan out to every
+participant like the app. Refusals come from the shared module as
+`WriteError` (`src/lib/writeError.ts`) mapped by `toWriteFailure`
+(`missing` → 404, else 400); 403 `forbidden` exists in `ApiErrorCode`.
+
+### Shared rule modules (actions and routes behave identically)
+
+- **`src/lib/habits/tapWrites.ts`** (new, `server-only`): the guard that
+  today lives in `src/app/actions/habitChecks.ts` and `habitHours.ts`, as
+  functions taking `(actor: HabitActor, input, today, client = db)`:
+  `tapCheck`, `tapSkip`, `tapUncheck(kind)`, `logHours`, `removeHours`.
+  Each loads the habit (`loadHabitForAction`, `loadLogStatus`,
+  `loadCarriedDay`, `loadTimeEntryForAction` from `src/lib/habitsRead.ts`),
+  applies `canLogFor`, the day window, archived and track refusals,
+  `statusForTap`, calls the existing writer, and **returns the rows it
+  created or removed** (full `HabitLog` / `HabitTimeEntry` rows, read inside
+  the same transaction) or a `WriteError`. The messages are the actions'
+  exact strings, exported as constants the actions reuse.
+- **`src/lib/habits/habitInput.ts`** (new, pure): `checkHabitInput(input,
+  household, alreadyOnHabit)` is `checkInput` moved out of
+  `actions/habits.ts` with the household list passed in (the one DB read it
+  did), plus the `HabitInput` type. Messages unchanged.
+- Writers' signatures do not change. Routes that need Habit and
+  HabitParticipant copies wrap the writer in `db.$transaction` and read the
+  rows before and after inside it (`FOR UPDATE` on the habit for PATCH, as
+  cookbooks do).
+- **Actions become thin:** `habitChecks.ts`, `habitHours.ts` call
+  `tapWrites` and return `{ error }` from the module's message;
+  `habits.ts` imports `checkHabitInput`. No family-visible wording changes.
+
+### Undo learns habits
+
+- `src/lib/assistant/undoModels.ts`: `Habit` (tier 0, parent),
+  `HabitParticipant`, `HabitLog`, `HabitTimeEntry` (tier 1). REFERENCES for
+  Habit list every child; the ones undo does not cover (`HabitPlannedDay`,
+  `ChoreWeekOverride`, `Nudge`, `PlanItem`) always count as in use, like
+  `VoiceChange`. FOREIGN_KEYS: `habitId` refuse, `userId` refuse,
+  `loggedById` and `createdById` null.
+- **Volatile columns** (new): `VOLATILE: HabitParticipant → currentStreak,
+  bestStreak, streakAsOf`. Undo neither matches on them nor writes them:
+  they are caches.
+- **After-undo recompute** (new `src/lib/assistant/undoHooks.ts`,
+  `server-only`, called from `undoWrites.ts` after the steps, same
+  transaction): every `(habitId, userId)` named by a HabitParticipant,
+  HabitLog or HabitTimeEntry step → `recomputeStreaks(habitId, userIds,
+  today, tx)`; every Habit step whose row still exists → `recomputeHabit(tx,
+  habitId, today)`. `today` is `householdToday(now)`. Direction lib → lib
+  (`assistant` imports `habits`); `habits` never imports `assistant`, so no
+  cycle. **Why:** a check's undo deletes the log row; without this the
+  cached flame stays one too high until the next tap.
+
+### Records
+
+- This file; CLAUDE.md Current status (mission 44 and 45 bullets' "Next for
+  Winnie" lines → this mission, then plans and goals, then calendar/tasks
+  after CD1, then replacing the app's Claude features with her; drop the
+  "review Hill's H1 and H4" line; add the mission 47 bullet; Bryce's
+  checklist gains `ASSISTANT_OWNER_USER_ID`).
+
+## Danger register
+
+- AGENTS.md in full. Dev branch only; `npm run db:seed` / `db:reset`
+  forbidden; never write the `User` table (reads of id and role are fine,
+  **print ids and counts only, never names**); secrets only in `.env` and
+  Vercel; agents never open, print or edit `.env`.
+- Winnie's real token never appears anywhere. Live tests use a throwaway
+  hash in the dev server's process env only. Never write to production; the
+  production check is `curl` without a token → 401.
+- Test rows are `ZZZ Assistant Test …` habits (and their logs and entries),
+  deleted by id afterwards. Never check, skip, edit or archive a family
+  habit in a test: tests make their own.
+- Parallel chats own other branches; this mission edits no
+  `prisma/schema.prisma`, `STRUCTURE.md` or component files.
+- Stage by explicit path; `git show --stat HEAD` after each commit.
+
+## Gauntlet
+
+- `npx tsc --noEmit` · `npx eslint .` · `npm test` · `npm run build`
+- `TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts` (and `TZ=America/Los_Angeles`)
+- `node ~/.claude/skills/avengers/recordcheck.mjs`
+- Baseline at 88d094b: tsc clean, `npm test` 1252 pass, 0 fail.
+
+## Assembled
+
+- **Stark + Vision** (always).
+- **Captain:** two new lib modules, an undo registry change with a new
+  hook, new route files; the diff will pass 300 lines.
+- **Strange: out** unless a family-visible string changes (none planned).
+- **Banner:** two briefs taken before contracts (habits domain; API
+  patterns), recorded in Design.
+- **Hill:** Q1 to Q7 above.
+
+## Contracts
+
+### Live-test setup (every contract that says "live")
+
+- Worktree has no `.env`: `ln -s ../../../.env .env` from the worktree root
+  (gitignored). Never open, print or edit it. Leave the link; Fury removes
+  it at delivery.
+- Scripts importing `server-only` modules: `node --require <stub making
+  require('server-only') return {}> --import tsx --env-file=.env <script>`,
+  scripts in the scratchpad only.
+- Throwaway token for route tests: random token + SHA-256 hex hash via
+  `node:crypto`; server `ASSISTANT_API_TOKEN_HASH=<hash>
+  ASSISTANT_OWNER_USER_ID=<id> npx next dev --port 3247` in the background;
+  stop it after.
+- People for tests: read one `admin` and one non-admin, non-device,
+  active user id from the dev database (ids only). Never print names.
+- Report counts before/after of Habit, HabitParticipant, HabitLog,
+  HabitTimeEntry, AssistantRequest.
+- **Commit rule (parallel builders share this worktree):** never `git add`
+  other paths; commit with `git commit -m "<msg>" -- <your paths>` (use
+  `git add -N` for new files first). `npm run build` waits for Fury (shared
+  `.next`); run tsc, eslint and the tests.
+
+### C1 - shared tap and input rules, thin actions
+
+- **Status:** PENDING
+- **Objective:** one `server-only` home for the check, skip, uncheck,
+  unskip, hours-add and hours-remove rules, and one pure home for the habit
+  form's validation, with the family's actions as thin wrappers that behave
+  the same.
+- **Boundaries:** May touch: new `src/lib/habits/tapWrites.ts`, new
+  `src/lib/habits/tapWrites.test.ts` (pure parts only), new
+  `src/lib/habits/habitInput.ts`, new `src/lib/habits/habitInput.test.ts`,
+  `src/app/actions/habitChecks.ts`, `src/app/actions/habitHours.ts`,
+  `src/app/actions/habits.ts`, and `src/components/HabitForm.tsx` only if
+  its `HabitInput` import needs a new source (import line only). Must not touch:
+  `src/lib/assistant/**` (C2 runs in parallel), `src/lib/habits/*Writes.ts`,
+  `src/lib/habitsRead.ts`, components, other actions, `prisma/schema.prisma`,
+  `STRUCTURE.md`.
+- **Work:**
+  1. `tapWrites.ts` (header like `habitWrites.ts`; imports `WriteError`,
+     `invalid`, `missing` from `src/lib/writeError.ts`):
+     - `tapCheck(actor, { habitId, forUserId, day?, loggedById }, today,
+       client = db)` → `{ created: HabitLog[]; userIds: string[] }` |
+       WriteError. Guard order as `habitChecks.ts` `guardedTap` plus the
+       check-specific refusals: row and `canLogFor` → `missing(NOT_FOUND)`;
+       bad or disallowed day → `invalid("That day can't be changed.")`;
+       hours habit → `invalid("That habit tracks hours.")`; archived →
+       `invalid("That habit is archived.")`. Status from `statusForTap(day,
+       carried)`. After `checkHabit`, read the created rows (`findMany`
+       by habitId, userIds, day) inside the same transaction; an
+       already-checked day returns `created: []`.
+     - `tapSkip(...)` same shape, `skipHabit`.
+     - `tapUncheck(kind: "check" | "skip", actor, { habitId, forUserId,
+       day? }, today, client = db)` → `{ removed: HabitLog[] }` |
+       WriteError. `loadLogStatus` decides as `removeRow` does today; a
+       mismatch or no row returns `removed: []` with nothing written. Read
+       the rows before `uncheckHabit` deletes them (same transaction).
+     - `logHours(actor, { habitId, forUserId, day, minutes, loggedById },
+       today, client = db)` → `{ entry: HabitTimeEntry }` | WriteError:
+       `habitHours.ts`'s guard order and exact messages ("That habit is
+       archived.", "Pick a time from half an hour to 12 hours.", "Pick a
+       day from the last week.", "That habit doesn't track hours.").
+     - `removeHours(actor, entryId, today, client = db)` → `{ removed:
+       HabitTimeEntry | null }` | WriteError (null when already gone, the
+       action's success case). Read the full row before removing it.
+     - Export the message constants (`HABIT_NOT_FOUND`, etc.) so the
+       actions and later the routes reuse the same strings.
+     - A `day` given as a string is parsed with `parseDateParam` by the
+       caller; the module takes `CalendarDate | undefined`.
+  2. `habitInput.ts` (pure, no `server-only`, no db): `HabitInput` type
+     moved from `actions/habits.ts` (re-exported there for existing
+     imports), `checkHabitInput(input, household: readonly string[],
+     alreadyOnHabit: readonly string[] = [])` = the old `checkInput` with
+     the household passed in; identical messages and result type. The
+     action reads `householdParticipantIds()` and passes it.
+  3. `habitChecks.ts`: each action = session, parse `day`, call
+     `tapWrites`, map a `WriteError` to `{ error }`, `done()`. Remove
+     `guardedTap`, `removeRow` and the duplicated constants (import them).
+     `habitHours.ts` likewise. `habits.ts` imports `checkHabitInput`.
+- **Verification:** tsc, eslint, `npm test`, both TZ legs. Unit tests for
+  `checkHabitInput` (move or add: each refusal message once, one happy
+  path per schedule, hours shape) in `habitInput.test.ts`. Live on dev (no
+  server), `ZZZ Assistant Test` habits only, **parity script** in the
+  scratchpad: the OLD action bodies (copied minus auth and
+  `revalidatePath`, calling the writers) and the new module run side by
+  side on separate test habits, for: check today, check twice (no-op),
+  check a day 3 back, a day 8 back (refused), tomorrow (refused), a
+  carried day on a carry-over daily habit after a 9-day gap (written
+  "late"), skip, unskip, uncheck leaves a skip, a kid actor for another
+  person (refused), a device actor (allowed on a non-private habit,
+  refused on a private one), hours add 60 (ok), 45 (refused), remove own
+  entry, remove a gone entry (success). Show the resulting `HabitLog` /
+  `HabitTimeEntry` rows and the `HabitParticipant` streak columns match
+  field by field (ids and timestamps aside) and that every returned row
+  equals the database row. Counts before/after; all test rows deleted by
+  id.
+- **Evidence required:** outputs per check (a FAIL reported as FAIL),
+  `wc -l` of new and changed files (`habits.ts` is 322 today), `git diff
+  --stat` inside the boundary, commit hash.
+- **Done criteria:** gauntlet green; parity table all MATCH; no string in
+  `src/app/actions/habit*.ts` changed (diff shows moves only).
+- **Report:** -
+
+### C2 - undo learns habits
+
+- **Status:** PENDING
+- **Objective:** undo can restore, remove and re-create `Habit`,
+  `HabitParticipant`, `HabitLog` and `HabitTimeEntry` rows, ignores the
+  streak caches when matching, and rebuilds them in the same transaction.
+- **Boundaries:** May touch: `src/lib/assistant/undoModels.ts`,
+  `src/lib/assistant/undoPlan.ts`, `src/lib/assistant/undoWrites.ts`, new
+  `src/lib/assistant/undoHooks.ts`, new
+  `src/lib/assistant/undoPlanHabits.test.ts`. Must not touch anything else:
+  `undoPlan.test.ts` (over its soft cap; new tests go in the new file),
+  `src/lib/habits/**` (C1 runs in parallel), actions, routes,
+  `prisma/schema.prisma`.
+- **Work:**
+  1. Column maps typed `Record<keyof Habit | HabitParticipant | HabitLog |
+     HabitTimeEntry, ColumnKind>` (dates: `anchorWeek`, `hoursSince`,
+     `archivedAt`, `createdAt`, `updatedAt`, `joinedAt`, `day`, `streakAsOf`);
+     the four in `UndoModel`, `MODELS`, `TIER` (Habit 0, others 1),
+     `PARENT_TABLES` (Habit), `REFERENCES.Habit` = HabitParticipant,
+     HabitLog, HabitTimeEntry, HabitPlannedDay, ChoreWeekOverride, Nudge,
+     PlanItem (all by `habitId`; extend `Reference.child`), FOREIGN_KEYS
+     as Design says (`ForeignKey.parent` gains "Habit"). `delegate()`,
+     `countReferences()`, `parentExists()` in `undoWrites.ts` gain the
+     tables.
+  2. `VOLATILE: Partial<Record<UndoModel, readonly string[]>>` in
+     `undoModels.ts` (HabitParticipant's three streak columns).
+     `sameCopy`, `findStale` and the `where` built from a copy skip
+     volatile columns; a restore's `data` leaves them out; `toCopy` still
+     records them (so the copy stays a full row). Document in the file
+     header why.
+  3. `undoHooks.ts` (`server-only`): `afterUndo(tx, steps, now)` as Design
+     says, importing `recomputeStreaks` and `recomputeHabit` from
+     `@/lib/habits/streakWrites` and `householdToday` from `./today`.
+     Tolerates a removed habit (`recomputeStreaks` returns `{}` when the
+     habit is gone) and dedupes users per habit. `undoWrites.ts` calls it
+     after the steps loop, before returning, inside the transaction.
+- **Verification:** tsc, eslint, `npm test`, both TZ legs. Tests in
+  `undoPlanHabits.test.ts`: undoing a habit create with two participants
+  removes participants before the habit; undoing a check on a Together
+  habit removes every participant's log; a HabitParticipant copy that
+  differs only in streak columns is not stale and restores without writing
+  them; a Habit edit restores in place; `in_use` ignores logs the same plan
+  removes; the hook's grouping (pure part: steps → habitId → userIds).
+  Column pin: a fake key in `HABIT_COLUMNS` fails tsc (show it, then remove
+  it). Live proofs happen in C3.
+- **Evidence required:** test names, suite counts before/after, `wc -l` of
+  touched files (`undoWrites.ts` is 271, `undoPlan.ts` about 215), `git
+  diff --stat` inside the boundary, commit hash.
+- **Done criteria:** gauntlet green; the fake-column tsc failure shown.
+- **Report:** -
+
+### C3 - habit routes (after C1 and C2)
+
+- **Status:** PENDING
+- **Objective:** the 12 routes in Design, every write undoable with the
+  streaks right afterwards, documented in OpenAPI.
+- **Boundaries:** May touch: new `src/lib/assistant/habitActor.ts` (+ test),
+  new `src/lib/assistant/habitReads.ts`, new
+  `src/lib/assistant/serializeHabits.ts` (+ test), new
+  `src/lib/assistant/schemasHabits.ts` (+ test), new
+  `src/lib/assistant/openapiHabitPaths.ts`, `src/lib/assistant/openapi.ts`
+  (import + spread only), `src/lib/assistant/errors.ts` only if a new code
+  is unavoidable, new route files under `src/app/api/assistant/v1/habits/`
+  (`route.ts`, `today/route.ts`, `chart/route.ts`, `[id]/route.ts`,
+  `[id]/check/route.ts`, `[id]/skip/route.ts`, `[id]/hours/route.ts`,
+  `[id]/hours/[entryId]/route.ts`). Must not touch: `src/lib/habits/**`,
+  `src/lib/habitsRead.ts`, undo files, actions, components. If a shared
+  module lacks something, stop and report BLOCKED-ON-CONTRACT.
+- **Rules:** mission 44's route rules (each file exports only `export const
+  <METHOD> = assistantRoute(...)`; parse, call lib, shape; reads in one
+  `server-only` read module with narrow `select`s, shaped by pure
+  serializers). Every write pushes one `changes` entry per row with full
+  copies (`toCopy` shapes from the actual rows), models `Habit`,
+  `HabitParticipant`, `HabitLog`, `HabitTimeEntry`. A no-op (already
+  checked, nothing to uncheck) records nothing and answers 200 with the
+  count 0. Winnie's actor from `assistantHabitActor()` in every route;
+  `loggedById`/`createdById` null; `today` from `householdToday`.
+  Visibility: a habit Winnie may not see answers 404 like a missing one.
+  `personId` must be an active household person (`HOUSEHOLD_PERSON_WHERE`)
+  else 404; a person not on the habit is `canLogFor`'s refusal (404 via
+  `missing`).
+- **Shapes** (fields in `serializeHabits.ts`; dates as `YYYY-MM-DD`):
+  - HABIT = `{ id, title, kind, mode, icon, lifeArea, timeOfDay, schedule,
+    weekdays, times, anchorWeek, carryOver, sharing, isPrivate, everyone,
+    archived, track, weeklyMinutes, paceDays, participants: [{ personId,
+    streak, bestStreak }] }` (streak aged with `streakAfter`/`displayStreak`
+    using the participant's vacations; chores show the person's chore
+    streak from `UserPreferences`, aged with `choreStreakAfter`).
+  - `GET /habits` → `{ habits: [HABIT] }`, live first then archived when
+    `includeArchived=true`, ordered by title then id.
+  - `GET /habits/today` → `{ date, people: [{ personId, rows: [{ habitId,
+    title, kind, dueState, state: "done" | "late" | "skipped" | "left",
+    carriedFrom, onVacation, skippedThisWeek, hours: { doneMinutes,
+    targetMinutes, leftMinutes, met } | null }], choreStreak }] }`. Rows come
+    from `loadTodayPage({ userId: personId, role }, today).rows` filtered by
+    `canSeeHabit(assistantActor, row)` (rows carry `isPrivate` and
+    participants). One person when `personId` is given (404 if unknown).
+  - `GET /habits/{id}` → `{ habit: HABIT & { hoursWeek: HoursWeek-shaped per
+    participant | null, recentLogs: [{ personId, day, status }] (14 days),
+    createdByAssistant } }`.
+  - `GET /habits/chart?personId=` → the `ChoreChartData` fields except
+    `personName`, `subtitle` and chip names: `{ personId, today, defaultWeek,
+    thisWeek }` with chore ids and titles only.
+  - `POST /habits` body: the `HabitInput` fields with H3 defaults
+    (`participantIds` required, `isPrivate` not accepted); validated with
+    `checkHabitInput(input, household)`; → 201 `{ habit: HABIT }`. Changes:
+    the Habit create and one HabitParticipant create per person.
+  - `PATCH /habits/{id}` body: any subset of the same fields plus
+    `archived?: boolean`; the current row fills the rest, then
+    `checkHabitInput`. Lock the habit `FOR UPDATE`, copy Habit and
+    HabitParticipant rows before and after. `archived` alone calls
+    `archiveHabit`/`restoreHabit`. → `{ habit: HABIT }`.
+  - `POST /habits/{id}/check` `{ personId, day? }` → `{ checked: n, status }`;
+    `POST /habits/{id}/skip` → `{ skipped: n }`;
+    `DELETE /habits/{id}/check?personId=&day=` → `{ removed: n }`;
+    `DELETE /habits/{id}/skip?...` → `{ removed: n }`.
+  - `POST /habits/{id}/hours` `{ personId, minutes, day? }` → 201 `{ entry:
+    { id, habitId, personId, day, minutes }, week: hours shape }`;
+    `DELETE /habits/{id}/hours/{entryId}` → `{ removed: true }`; not hers →
+    403 `forbidden` with H4's wording; gone → 404.
+- **Verification:** tsc, eslint, `npm test`, both TZ legs. Live (port 3247,
+  setup above), positive control first (`GET /openapi.json` 200 and lists
+  the 12 operations; `GET /habits` count equals the DB count of visible
+  habits), `ZZZ Assistant Test` habits only (made through `POST /habits`
+  with the admin and the non-admin as participants, plus one Together
+  habit, one hours habit, one chore, and by script one private habit for
+  the admin and one private habit for the non-admin): each route once; then
+  undo each write and show the row and the streak: **check 3 days running
+  → `GET /habits/{id}` streak 3; undo the last → streak 2 and equal to a
+  fresh `recomputeHabit` run by script; redo → 3**; undo a Together check
+  (every participant's log gone); undo hours add (entry gone, week total
+  back); undo a PATCH (title and participants back, streak columns
+  untouched by the undo itself); undo a create (habit and participants
+  gone). Refusals: family taps the habit by script, then undo Winnie's
+  earlier check → 409 `changed_since`; remove a family-logged entry → 403,
+  nothing changed; a day 8 back → 400; tomorrow → 400; minutes 45 → 400;
+  `isPrivate` in a body → 400; a private habit of the non-admin → 404 on
+  GET, check, PATCH; the admin's private habit visible with
+  `ASSISTANT_OWNER_USER_ID` set and 404 with it unset (restart the server
+  once). Counts before/after; all test rows and AssistantRequests deleted
+  by id.
+- **Evidence required:** outputs per check (a FAIL reported as FAIL),
+  sizes, `git diff --stat` inside the boundary, commit hash.
+- **Done criteria:** gauntlet green; every live line PASS; `openapi.test.ts`
+  green with the 12 rows.
+- **Report:** -
+
+### C4 - records (after the gates)
+
+- CLAUDE.md edits in Design, this file's Delivery, Captain's amendments if
+  any. Fury writes these.
+
+## Gate ledger
+
+| Pass | Gate | Verdict | Blockers | Notes |
+|---|---|---|---|---|
+| 1 | Vision | - | - | - |
+| 1 | Captain | - | - | - |
+
+## Handoff log
+
+- 2026-11-06 - Branch cut from 88d094b; mission 47 free everywhere (45
+  merged, 46 taken). Two Banner briefs taken. Plan approved by Bryce
+  (plan mode, on Fable). Hill Q1 to Q7 dispatched. `npm ci` done; baseline
+  tsc clean. Next: preflight C1 and C2, dispatch both Starks in parallel.
+
+## Delivery
+
+- **Shipped:** -
+- **Shipped check:** -
+- **Deliberate leftovers:** -
