@@ -415,3 +415,29 @@
   its linked line come back with the link kept), pantry `in_use` ignores
   lines the plan removes. DB paths unproven until C4/C5 live. C4 and C5
   written and dispatched in parallel (disjoint; Fury wires C5's registry).
+- 2026-11-06: C5 DONE `8c3d8fd` (9 new files, 461 lines). Live 39/39:
+  empty-week PUT → one plan at Denver midnight; Pacific-midnight plan
+  reused; DST week 2030-11-03 stored 06:00Z (local midnight MDT), next
+  Sunday 07:00Z (MST); 5 parallel PUTs → one plan, one create recorded;
+  undo of creating PUT, overwrite, clear; redo; refusals `in_use` and
+  `changed`; grocery-needs one Haiku call; AI down → 503 `ai_unavailable`
+  retry-after 5. Counts restored. Registry `openapiMealPlanPaths.ts` waits
+  for Fury to wire into `openapi.ts` after C4 commits (only those 2 tests
+  red). grocery-needs imports C4's `ai_unavailable` (uncommitted at the
+  time). Different-instant double create still possible (C2 note).
+- 2026-11-06: C4 DONE `875b86b` (15 files, +834). Live all PASS: positive
+  control (GET /recipes 146 = DB 146), filters incl. maxMinutes, create
+  with cookbook + tag (3 changes), PATCH fields + tag set, cooked, share
+  (public link 200), stop share (404), shortfall (1 Haiku) and AI-down
+  503 + retry-after 5, DELETE /recipes 405; undo of every write incl. redo
+  with same ids; refusals `changed` and `in_use`. Counts restored. Its
+  first run exposed that `stopSharingRecipeRow` wrote (bumping `updatedAt`)
+  even when already off, so a later undo was refused.
+- 2026-11-06: Fury F0 (trivial, `recipeWrites.ts` +3, `openapi.ts` +2):
+  stop-share on an unshared recipe writes nothing; `mealPlanOperations`
+  wired. Full gauntlet green on the tree: tsc, eslint, `npm test` 1200/1200,
+  UTC 1193 + 7 skipped / 0 fail, LA 1200/0, `npm run build` (all 10 new
+  routes listed). Undo refusal shape: 409 `conflict`, `details.reason`
+  `changed_since`, `in_use` in `details.records[].problem` (mission 40's
+  shape, so the contracts' "409 in_use" means that). Gate pass 1: Vision +
+  Captain dispatched in parallel.

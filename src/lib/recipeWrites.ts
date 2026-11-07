@@ -215,6 +215,9 @@ export async function stopSharingRecipeRow(
   return db.$transaction(async (tx) => {
     const before = await lockRecipe(tx, id);
     if (!before) return null;
+    // Already off: write nothing, so `updatedAt` doesn't move and an earlier
+    // undo isn't refused as "changed since".
+    if (!before.shareToken) return { before, after: before };
     const after = await tx.recipe.update({ where: { id }, data: { shareToken: null } });
     return { before, after };
   });
