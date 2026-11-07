@@ -145,7 +145,7 @@ function CalendarSkeleton({ size, dayCount }: { size: WidgetSize; dayCount: numb
   }
   return (
     <DashboardTile href="/calendar" icon={ICON} title={TITLE} shape="panel">
-      {size === "m" && <div className="flex flex-col gap-1">{rows(3)}</div>}
+      {size === "m" && <div className="flex flex-col gap-2">{rows(3)}</div>}
       {size === "l" && (
         <div className="flex flex-col gap-1">
           <SkeletonBlock className="h-7 w-16" />
