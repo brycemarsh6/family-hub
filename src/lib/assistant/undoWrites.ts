@@ -14,13 +14,20 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
-import { isUniqueViolationError } from "@/lib/prismaErrors";
+import { isForeignKeyViolationError, isUniqueViolationError } from "@/lib/prismaErrors";
 import { ApiError, notFound } from "./errors";
 import type { ChangeInput } from "./audit";
+import {
+  FOREIGN_KEYS,
+  PARENT_TABLES,
+  type ParentModel,
+  type Reference,
+} from "./undoModels";
 import {
   findStale,
   fromCopy,
   planUndo,
+  referenceChecks,
   toCopy,
   undoPathFor,
   type StaleRecord,
@@ -63,7 +70,40 @@ type Delegate = {
 type Tx = Parameters<Parameters<typeof db.$transaction>[0]>[0];
 
 function delegate(tx: Tx, model: UndoModel): Delegate {
-  return (model === "PantryItem" ? tx.pantryItem : tx.groceryItem) as unknown as Delegate;
+  const tables: Record<UndoModel, unknown> = {
+    PantryItem: tx.pantryItem,
+    GroceryItem: tx.groceryItem,
+    Recipe: tx.recipe,
+    Tag: tx.tag,
+    RecipeTag: tx.recipeTag,
+    CookbookRecipe: tx.cookbookRecipe,
+    MealPlan: tx.mealPlan,
+    MealPlanEntry: tx.mealPlanEntry,
+  };
+  return tables[model] as Delegate;
+}
+
+/** Rows of `ref.child` pointing at `parentId`, leaving out `exclude` (rows this plan removes). */
+function countReferences(tx: Tx, ref: Reference, parentId: string, exclude: string[]): Promise<number> {
+  const where = { [ref.column]: parentId, id: { notIn: exclude } };
+  const tables = {
+    GroceryItem: tx.groceryItem,
+    VoiceChange: tx.voiceChange,
+    RecipeTag: tx.recipeTag,
+    CookbookRecipe: tx.cookbookRecipe,
+    MealPlanEntry: tx.mealPlanEntry,
+  };
+  return (tables[ref.child] as unknown as { count(args: { where: object }): Promise<number> }).count({ where });
+}
+
+async function parentExists(tx: Tx, parent: string, id: string): Promise<boolean> {
+  const where = { where: { id }, select: { id: true } };
+  const tables = {
+    PantryItem: tx.pantryItem, User: tx.user, Recipe: tx.recipe, Tag: tx.tag,
+    Cookbook: tx.cookbook, MealPlan: tx.mealPlan,
+  } as Record<string, unknown>;
+  const found = await (tables[parent] as { findUnique(args: object): Promise<unknown> }).findUnique(where);
+  return found !== null;
 }
 
 /** Everything but the id, for an update's data. */
@@ -106,9 +146,8 @@ export async function undoRequest(
 
     // What the rows look like now.
     const current = new Map<string, Record<string, unknown>>();
-    for (const model of ["PantryItem", "GroceryItem"] as const) {
+    for (const model of new Set(plan.steps.map((s) => s.model))) {
       const ids = plan.steps.filter((s) => s.model === model).map((s) => s.recordId);
-      if (ids.length === 0) continue;
       for (const row of await delegate(tx, model).findMany({ where: { id: { in: ids } } })) {
         current.set(`${model}:${row.id as string}`, row);
       }
@@ -116,26 +155,26 @@ export async function undoRequest(
     const stale = findStale(plan.steps, current);
     if (stale.length > 0) throw changedSince(stale);
 
-    // Removing a pantry row would silently null any link the family has made
-    // to it since (a shopping line, a voice log), so refuse instead.
-    // The rows are locked first (sorted, so two undoes cannot deadlock): a
-    // family "add to list" inserts a link that needs a share lock on its
-    // pantry row, so it waits here and is then counted, not silently nulled.
-    const removing = plan.steps
-      .filter((s) => s.kind === "remove" && s.model === "PantryItem")
-      .map((s) => s.recordId)
-      .sort();
-    if (removing.length > 0) {
-      await tx.$queryRaw`SELECT id FROM "PantryItem" WHERE id IN (${Prisma.join(removing)}) ORDER BY id FOR UPDATE`;
+    // Removing a parent row would silently null (or cascade away) any link the
+    // family has made to it since (a shopping line, a voice log, a meal-plan
+    // entry), so refuse instead. Links that this same plan removes don't count:
+    // they go first. The parents are locked first (model by model, ids sorted,
+    // so two undoes cannot deadlock): a family insert of a link needs a share
+    // lock on its parent row, so it waits here and is then counted.
+    const removing = plan.steps.filter((s) => s.kind === "remove");
+    const parentIds = (model: ParentModel) =>
+      removing.filter((s) => s.model === model).map((s) => s.recordId).sort();
+    for (const model of Object.keys(PARENT_TABLES).sort() as ParentModel[]) {
+      const ids = parentIds(model);
+      if (ids.length === 0) continue;
+      await tx.$queryRaw`SELECT id FROM ${Prisma.raw(`"${PARENT_TABLES[model]}"`)} WHERE id IN (${Prisma.join(ids)}) ORDER BY id FOR UPDATE`;
     }
     const inUse: StaleRecord[] = [];
-    for (const step of plan.steps) {
-      if (step.kind !== "remove" || step.model !== "PantryItem") continue;
-      const [grocery, voice] = await Promise.all([
-        tx.groceryItem.count({ where: { pantryItemId: step.recordId } }),
-        tx.voiceChange.count({ where: { pantryItemId: step.recordId } }),
-      ]);
-      if (grocery + voice > 0) inUse.push({ model: step.model, recordId: step.recordId, problem: "in_use" });
+    for (const { model, recordId, ref, exclude } of referenceChecks(plan.steps)) {
+      if (inUse.some((r) => r.model === model && r.recordId === recordId)) continue;
+      if ((await countReferences(tx, ref, recordId, exclude)) > 0) {
+        inUse.push({ model, recordId, problem: "in_use" });
+      }
     }
     if (inUse.length > 0) throw changedSince(inUse);
 
@@ -148,10 +187,17 @@ export async function undoRequest(
       const detail = { undoes: requestId, step: step.kind };
 
       if (step.kind === "restore") {
-        const { count } = await table.updateMany({
-          where: fromCopy(step.model, step.after!),
-          data: withoutId(fromCopy(step.model, step.before!)),
-        });
+        let count: number;
+        try {
+          ({ count } = await table.updateMany({
+            where: fromCopy(step.model, step.after!),
+            data: withoutId(fromCopy(step.model, step.before!)),
+          }));
+        } catch (error) {
+          // The old copy points at a row the family deleted since.
+          if (isForeignKeyViolationError(error)) throw changedSince([{ ...name[0], problem: "missing" }]);
+          throw error;
+        }
         if (count !== 1) throw changedSince(name);
         // Our own write holds the row until commit, so this read is exact.
         const row = await table.findUnique({ where: { id: step.recordId } });
@@ -185,6 +231,9 @@ export async function undoRequest(
           if (isUniqueViolationError(error)) {
             throw changedSince([{ ...name[0], problem: "exists" }]);
           }
+          if (isForeignKeyViolationError(error)) {
+            throw changedSince([{ ...name[0], problem: "missing" }]);
+          }
           throw error;
         }
         logged.push({
@@ -204,21 +253,18 @@ export async function undoRequest(
 }
 
 /**
- * The columns to re-create a deleted row from. A shopping line whose pantry
- * item (or whose adder) no longer exists comes back with that link empty,
- * the same thing the database does when those rows are deleted.
+ * The columns to re-create a deleted row from. A link whose target no longer
+ * exists comes back empty when the database would have emptied it too (a
+ * shopping line's pantry item or adder, a meal-plan entry's recipe). Any other
+ * missing target means the row cannot come back: 409, naming the target.
  */
 async function recreateData(tx: Tx, step: UndoStep): Promise<Record<string, unknown>> {
   const data = fromCopy(step.model, step.before!);
-  if (step.model === "GroceryItem") {
-    const pantryItemId = data.pantryItemId as string | null;
-    if (pantryItemId && !(await tx.pantryItem.findUnique({ where: { id: pantryItemId }, select: { id: true } }))) {
-      data.pantryItemId = null;
-    }
-    const addedById = data.addedById as string | null;
-    if (addedById && !(await tx.user.findUnique({ where: { id: addedById }, select: { id: true } }))) {
-      data.addedById = null;
-    }
+  for (const fk of FOREIGN_KEYS[step.model] ?? []) {
+    const id = data[fk.column] as string | null;
+    if (!id || (await parentExists(tx, fk.parent, id))) continue;
+    if (fk.onMissing === "null") data[fk.column] = null;
+    else throw changedSince([{ model: fk.parent, recordId: id, problem: "missing" }]);
   }
   return data;
 }

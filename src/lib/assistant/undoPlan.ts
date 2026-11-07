@@ -6,42 +6,12 @@
 // Several changes may touch the same row (two merge-adds onto one line), so
 // they are collapsed per row: the earliest `before` and the latest `after`.
 
-import type { GroceryItem, PantryItem } from "@/generated/prisma/client";
 import { decodeChangeSummary, type RowCopy } from "./changeCopy";
+import { MODELS, REFERENCES, TIER, isParentModel, type ParentModel, type Reference, type UndoModel } from "./undoModels";
+
+export type { UndoModel } from "./undoModels";
 
 export const UNDO_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
-
-export type UndoModel = "PantryItem" | "GroceryItem";
-
-type ColumnKind = "date" | "value";
-
-/**
- * Every column of each model we may restore, and which of them are dates.
- * Typed over the generated Prisma rows, so a column added to the schema stops
- * `tsc` here until it is classified (otherwise undo would silently skip it).
- */
-const PANTRY_COLUMNS: Record<keyof PantryItem, ColumnKind> = {
-  id: "value", name: "value", location: "value", quantity: "value", unit: "value",
-  category: "value", lowThreshold: "value", expiresAt: "date", restockedAt: "date",
-  createdAt: "date", updatedAt: "date",
-};
-
-const GROCERY_COLUMNS: Record<keyof GroceryItem, ColumnKind> = {
-  id: "value", name: "value", quantity: "value", unit: "value", category: "value",
-  checked: "value", addedBy: "value", note: "value", store: "value", addedById: "value",
-  location: "value", categoryEdited: "value", pantryItemId: "value", createdAt: "date",
-  checkedAt: "date",
-};
-
-function describe(kinds: Record<string, ColumnKind>) {
-  const columns = Object.keys(kinds);
-  return { columns, dates: columns.filter((c) => kinds[c] === "date") };
-}
-
-const MODELS: Record<UndoModel, { columns: readonly string[]; dates: readonly string[] }> = {
-  PantryItem: describe(PANTRY_COLUMNS),
-  GroceryItem: describe(GROCERY_COLUMNS),
-};
 
 /** The path a request to undo `requestId` is logged under. */
 export const undoPathFor = (requestId: string) => `/api/assistant/v1/audit/${requestId}/undo`;
@@ -89,6 +59,11 @@ export type UndoStep = {
 export type UndoPlan = { ok: true; steps: UndoStep[] };
 
 const KIND_ORDER = { restore: 0, remove: 1, recreate: 2 } as const;
+
+/** Where a step sorts among its kind: children first for removes, parents first for re-creates. */
+function tierOrder(step: UndoStep): number {
+  return step.kind === "remove" ? -TIER[step.model] : step.kind === "recreate" ? TIER[step.model] : 0;
+}
 
 /** Stable text for comparing two copies. */
 function key(copy: RowCopy | undefined): string {
@@ -170,11 +145,13 @@ export function planUndo(input: {
   }
   if (steps.length === 0) return { ok: false, reason: "not_undoable" };
 
-  // Restores first, then deletes, then re-creates; ids sorted inside each so
-  // every undo touches rows in the same order.
+  // Restores first, then deletes (children before parents), then re-creates
+  // (parents before children); model and id sorted inside each so every undo
+  // touches rows in the same order.
   steps.sort(
     (a, b) =>
       KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+      tierOrder(a) - tierOrder(b) ||
       a.model.localeCompare(b.model) ||
       a.recordId.localeCompare(b.recordId),
   );
@@ -234,4 +211,29 @@ export function findStale(
     }
   }
   return stale;
+}
+
+export type ReferenceCheck = {
+  model: ParentModel;
+  recordId: string;
+  ref: Reference;
+  /** Ids of `ref.child` rows this same plan removes (they go first, so they don't count). */
+  exclude: string[];
+};
+
+/**
+ * For every parent row the plan removes, which rows must not still point at
+ * it. The ones counted exclude children that the plan itself removes.
+ */
+export function referenceChecks(steps: UndoStep[]): ReferenceCheck[] {
+  const removing = steps.filter((s) => s.kind === "remove");
+  const checks: ReferenceCheck[] = [];
+  for (const step of removing) {
+    if (!isParentModel(step.model)) continue;
+    for (const ref of REFERENCES[step.model]) {
+      const exclude = removing.filter((s) => s.model === ref.child).map((s) => s.recordId);
+      checks.push({ model: step.model, recordId: step.recordId, ref, exclude });
+    }
+  }
+  return checks;
 }
