@@ -1,7 +1,7 @@
 # Mission 45: Winnie's cookbooks (Assistant API)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (C1 to C3 done; Vision and Captain pass 1)
+**Status:** DELIVERED (gates PASS; PR and merge next)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/assistant-cookbooks` (from `origin/main` at `634627a`,
 mission 44, PR #61)
@@ -434,3 +434,77 @@ mission 44, PR #61)
   `live.ts` 49 + 2 openapi checks that lacked the token (re-checked with
   it: 4 cookbook paths). Counts restored. Fury: eslint clean, build exit 0.
   Gate pass 2: Vision + Captain in parallel.
+
+### Captain pass 2 (at `2691308`): PASS
+
+- Pass-1 blocker closed (both test headers name `undoPlan.ts` and each
+  other); N1, N4, N8 closed; the exact `lower()` match stays inside the two
+  write modules. Sizes: `cookbookWrites.ts` 207/138, `tagWrites.ts`
+  186/129, `recipeWrites.ts` 248/170.
+- NOTEs: the `lower() = lower()` lookup idiom now appears twice (extract on
+  a third); `src/lib/voice/apply.ts:124` still uses the ILIKE path
+  (follow-up); CLAUDE.md length trend. Proposed amendment A9: name lookups
+  use exact `lower()` equality, never Prisma `mode: "insensitive"`.
+
+## Delivery
+
+- **Verdicts:** Vision PASS (pass 2 of 3), Captain PASS (pass 2 of 3).
+  Strange not assembled (no family-visible wording changed; the app's two
+  fixes reuse its existing "no longer exists" messages). Hill decided H1 to
+  H4.
+- **Shipped for Winnie:** 9 cookbook routes (Design, Routes). Every write
+  saves copies and undoes (proven live per route).
+- **For the family's app:** behaviour identical, plus: filing into or
+  deleting a cookbook already deleted on another phone shows "That cookbook
+  no longer exists." instead of an error page; renaming to the same title
+  and stop-sharing an unshared cookbook no longer write. Tag rename's clash
+  check is now exact (a name with `%` or `_` no longer clashes with a
+  different tag).
+- **No schema change.**
+- **Leftovers (next touch):** `src/lib/voice/apply.ts:124` has the same
+  ILIKE wildcard match (follow-up offered); Captain's NOTEs N2, N3, N5,
+  N6, N7, N9, N10 (pass 1) and the lookup idiom (pass 2); Vision's: the
+  delete guard refuses when any filing races the delete, even Winnie's own.
+- **For Bryce:** Hill's H1 (delete at all?) and H4 (no twins from Winnie)
+  first; Captain's STRUCTURE.md amendments A5 to A9 (plus mission 44's A1
+  to A4) to approve once STRUCTURE.md is free.
+
+### What to tell Winnie (plain English, for Bryce to paste or adapt)
+
+> New in Marshee: you can manage cookbooks. Re-read
+> `/api/assistant/v1/openapi.json` for the exact shapes.
+>
+> - **See them:** `GET /cookbooks` lists every cookbook (with how many
+>   recipes and whether it's shared). `GET /cookbooks/{id}` shows one with
+>   its recipes, newest first, and `createdByAssistant` (true if you made it).
+> - **Make one:** `POST /cookbooks` with `{ "title": "..." }`. If a cookbook
+>   with that name already exists (any capitals), you get that one back with
+>   `created: false` instead of a twin. Tell Bryce you used the existing one.
+> - **Rename:** `PATCH /cookbooks/{id}` with `{ "title": "..." }`. Any
+>   cookbook, the family's too.
+> - **File a recipe:** `PUT /cookbooks/{id}/recipes/{recipeId}` with `{}`.
+>   Take one out: `DELETE` on the same path. Taking a recipe out of a
+>   cookbook never deletes the recipe.
+> - **Share:** `POST /cookbooks/{id}/share` with `{}` gives a public link;
+>   `DELETE /cookbooks/{id}/share` turns it off. The link always shows the
+>   cookbook as it is now, so anything filed into a shared cookbook later is
+>   public too. Say so when you share one.
+> - **Delete:** `DELETE /cookbooks/{id}` works only on a cookbook you made,
+>   and only while every recipe in it was filed by you. Otherwise you get
+>   403 (not yours) or 409 (the family filed recipes in it). Don't take the
+>   family's recipes out just to delete it: ask Bryce.
+> - **Undo:** every change above can be undone for 30 days with
+>   `POST /audit/{requestId}/undo`. Undo refuses if a family member changed
+>   it since; tell Bryce instead of forcing it. If you deleted a cookbook
+>   and took recipes out before that, undo the delete first.
+
+### Vision pass 2 (at `2691308`): PASS
+
+- Blocker closed live: 17/17 (`_lpha`, `al%`, bare `%`, a backslash title
+  each create; padded `ALPHA` finds; tags `t_g`/`t%` create, `TAG` finds,
+  5 parallel → 1 row; rename clash exact, wording unchanged). Full
+  `live.ts` 51/51. Gauntlet green (1249, both TZ legs, build, recordcheck 0
+  hard). Counts restored; 0 capital-only twins on dev.
+- NOTEs: `findTagByName` now orders twins by id (none exist on dev); one
+  stray `openapi.get` audit row on dev, deleted by Fury by id (count back
+  to 4); H1 two-step gap and `voice/apply.ts` carried.
