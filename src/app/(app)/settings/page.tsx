@@ -4,6 +4,7 @@ import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { SettingsAccountCard } from "@/components/SettingsAccountCard";
 import { NavModeSetting } from "@/components/NavModeSetting";
 import { VacationCard } from "@/components/VacationCard";
+import { WinnieSettings } from "@/components/WinnieSettings";
 import { logout } from "@/app/actions/auth";
 import { householdToday } from "@/lib/assistant/today";
 import { requireVerifiedUser } from "@/lib/dal";
@@ -80,6 +81,8 @@ export default async function SettingsPage() {
           <VacationCard vacations={vacations} today={formatCalendarDate(today)} />
         </>
       )}
+
+      {user.role === "admin" && <WinnieSettings />}
 
       {/* A plain form pointed at the Server Action, same as the old drawer
           row: no client JavaScript required, the browser just submits it. */}

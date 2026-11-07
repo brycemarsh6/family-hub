@@ -161,6 +161,12 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   goals/vision/plan items/habits) is in
   `.avengers/missions/mission-40-assistant-undo.md`; it supersedes the
   mission 23/24 list in `.avengers/plans/assistant-api-v1.md`.
+- **Winnie notifications** (mission 42): Marshee can also push events to
+  Winnie's Grok webhook (one way; she shows them in Bryce's chat 9 AM to
+  9 PM Denver). Phase 1 is only an admin-only "Send test to Winnie" button
+  in Settings. `src/lib/winnieNotify.ts` is the only sender; it reads
+  `WINNIE_WEBHOOK_URL` and `WINNIE_WEBHOOK_KEY` (Vercel only) and sends
+  nothing if either is missing. Retry rules are in `src/lib/winnieEvents.ts`.
 
 ## Tech stack, and why
 
@@ -244,10 +250,12 @@ Replace this section at the end of each session. Don't append.
 - **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
   for the swipe `pointerdown` issue and `CalendarViews.tsx` growth that CV6's
   gates flagged (details in `mission-19-calendar-cv6-dropdown-swipe.md`).
-- **Assistant API mission 40 (Winnie's undo)** passed its gates on
-  2026-11-06 on branch `claude/assistant-undo`; the merge waits for Bryce's
-  go. Next: mission 42, Marshee → Winnie notification webhook (ask Bryce
-  before merging it too).
+- **Winnie notifications (mission 42)** is built on branch
+  `claude/winnie-notify-ed0df7`; **the merge waits for Bryce's go** (his
+  rule for this mission). After merge he adds the two env vars in Vercel and
+  taps "Send test to Winnie". Mission 40 (Winnie's undo) merged as PR #57
+  on 2026-11-06 and is live. Details:
+  `.avengers/missions/mission-42-winnie-notify.md`.
 
 **Bryce's checklist (never blocks work):**
 - **PR C phone check** (about 5 minutes): on Today, a streak flame on a

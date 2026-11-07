@@ -29,7 +29,7 @@ export function calendarDateInZone(instant: Date, timeZone: string): CalendarDat
 }
 
 /** Offset (ms, zone minus UTC) in effect in `timeZone` at `instant`. */
-function zoneOffsetMs(instant: Date, timeZone: string): number {
+export function zoneOffsetMs(instant: Date, timeZone: string): number {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     hourCycle: "h23",

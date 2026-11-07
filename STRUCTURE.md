@@ -521,6 +521,16 @@ Adding a second definition of any of these is a BLOCKER:
 - `formatShortCalendarDate` in `householdDate.ts`: the shared "Nov 3"
   formatter (`MONTH_NAMES` is now exported from `mealPlanDates.ts` for it).
   (Added 2026-11-04, mission-27; Bryce approved the plan.)
+- **Winnie notifications (mission-42).** `src/lib/winnieNotify.ts`
+  (`server-only`, no auth; callers check the role) is the only code that
+  reads `WINNIE_WEBHOOK_URL` / `WINNIE_WEBHOOK_KEY` and the only outbound
+  call to Winnie; a second sender is a BLOCKER. The rules (event shape,
+  Denver `occurredAt`, which outcomes retry, the 1 s / 3 s schedule, the
+  10 s attempt timeout, the one log line) live in pure
+  `src/lib/winnieEvents.ts`, tested with a fake fetch; `describeAttempt`
+  takes no URL or key so a log line cannot leak them. The one caller today
+  is `sendWinnieTestEvent` (`actions/winnie.ts`, guard form a, admin only).
+  (Added 2026-11-06, mission-42; Bryce approved the plan.)
 - **Send feedback (mission-38).** `src/lib/feedback.ts` has no imports, on
   purpose, and holds the rules: `MESSAGE_MAX`, `SCREENSHOT_MAX_BYTES`,
   `USER_AGENT_MAX`, `SCREENSHOT_TYPE`, `TOUCH_STAMP` (the one encoding of "a
