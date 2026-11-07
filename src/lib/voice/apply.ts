@@ -118,17 +118,6 @@ async function applyAdd(action: ParsedAction): Promise<string> {
 }
 
 async function applyBuy(action: ParsedAction): Promise<string> {
-  // Already on the list? Don't stack duplicates — saying it twice while
-  // cooking is normal.
-  // Exact name ignoring capitals, compared here rather than by the database
-  // (a Prisma insensitive `equals` is ILIKE, where `%` and `_` are wildcards).
-  // The unchecked list is short, so reading its names is cheap.
-  const unchecked = await db.groceryItem.findMany({
-    where: { checked: false },
-    select: { id: true, name: true },
-  });
-  if (findExactName(action.item, unchecked)) return `${action.item} is already on the shopping list.`;
-
   // If it's a known pantry item, tag the grocery row with it so "put away"
   // later tops up the right jar instead of creating a duplicate.
   //
@@ -142,6 +131,21 @@ async function applyBuy(action: ParsedAction): Promise<string> {
   });
   const result = matchItem(action.item, pantryItems);
   const match = result.ambiguous ? null : result.match;
+
+  // Already on the list? Don't stack duplicates — saying it twice while
+  // cooking is normal. Checked against the spoken words AND the pantry name
+  // the row would be saved under: the first "add chips" saves the pantry's
+  // "Tortilla chips", so a second "add chips" must find that row too.
+  // Exact names ignoring capitals, compared here rather than by the database
+  // (a Prisma insensitive `equals` is ILIKE, where `%` and `_` are wildcards).
+  // The unchecked list is short, so reading its names is cheap.
+  const unchecked = await db.groceryItem.findMany({
+    where: { checked: false },
+    select: { id: true, name: true },
+  });
+  if (findExactName(action.item, unchecked) || (match && findExactName(match.name, unchecked))) {
+    return `${action.item} is already on the shopping list.`;
+  }
 
   await db.groceryItem.create({
     data: {
