@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { canEditHabit, canLogFor, canSeeHabit } from "@/lib/habits/access";
-import { habitActorFor } from "./habitActor";
+import { canEdit, canSee } from "@/lib/goals";
+import { canEditVision } from "@/lib/visions";
+import { goalViewerFor, habitActorFor } from "./habitActor";
 
 const privateOfBryce = { isPrivate: true, participantIds: ["bryce"] };
 const privateOfEmily = { isPrivate: true, participantIds: ["emily"] };
@@ -33,4 +35,29 @@ test("with the owner unset she sees only habits that are not private", () => {
   assert.ok(!canSeeHabit(actor, privateOfBryce));
   assert.ok(!canSeeHabit(actor, privateOfEmily));
   assert.ok(canSeeHabit(actor, shared));
+});
+
+test("goalViewerFor: a person carrying the owner's id, never a device", () => {
+  assert.deepEqual(goalViewerFor("bryce"), { userId: "bryce", isDevice: false });
+  assert.deepEqual(goalViewerFor(undefined), { userId: "", isDevice: false });
+});
+
+test("with the owner set she sees his private goals and edits his and Together's", () => {
+  const viewer = goalViewerFor("bryce");
+  assert.ok(canSee({ ownerId: "bryce", visibility: "private" }, viewer));
+  assert.ok(!canSee({ ownerId: "emily", visibility: "private" }, viewer));
+  assert.ok(canSee({ ownerId: "emily", visibility: "shared" }, viewer));
+  assert.ok(canEdit({ ownerId: "bryce", visibility: "shared" }, viewer));
+  assert.ok(canEdit({ ownerId: null, visibility: "shared" }, viewer));
+  assert.ok(!canEdit({ ownerId: "emily", visibility: "shared" }, viewer));
+  assert.ok(canEditVision(null, viewer) && canEditVision("bryce", viewer) && !canEditVision("emily", viewer));
+});
+
+test("with the owner unset she sees only goals that are not private and edits Together's", () => {
+  const viewer = goalViewerFor(undefined);
+  assert.ok(!canSee({ ownerId: "bryce", visibility: "private" }, viewer));
+  assert.ok(!canSee({ ownerId: null, visibility: "private" }, viewer));
+  assert.ok(canSee({ ownerId: "bryce", visibility: "shared" }, viewer));
+  assert.ok(!canEdit({ ownerId: "bryce", visibility: "shared" }, viewer));
+  assert.ok(canEdit({ ownerId: null, visibility: "shared" }, viewer));
 });

@@ -88,6 +88,11 @@ export function isPrivateGoal(goal: Pick<GoalRow, "visibility">): boolean {
   return goal.visibility === "private";
 }
 
+/** A goal with no target date: it has no deadline and no pace line. */
+export function isOngoingGoal(goal: { targetDate: Date | null }): boolean {
+  return goal.targetDate === null;
+}
+
 /** Whether a goal sits on a vision board: the Together board holds Together goals, a person's holds theirs. */
 export function goalOnBoard(goal: Pick<GoalRow, "ownerId">, board: VisionBoardKey): boolean {
   return board === TOGETHER_BOARD ? goal.ownerId === null : goal.ownerId === board;

@@ -12,13 +12,18 @@ import type { Prisma } from "@/generated/prisma/client";
 import { recomputeChoreStreaks } from "@/lib/habits/choreWrites";
 import { recomputeHabit, recomputeStreaks } from "@/lib/habits/streakWrites";
 import { householdToday } from "./today";
-import { streakWork, type UndoStep } from "./undoPlan";
+import { rebuildGoalNumber } from "@/lib/goalWrites";
+import type { UndoStep } from "./undoPlan";
+import { goalWork, streakWork } from "./undoWork";
 
 export async function afterUndo(
   tx: Prisma.TransactionClient,
   steps: readonly UndoStep[],
   now: Date,
 ): Promise<void> {
+  // A goal's number mirrors its newest check-in (VOLATILE in undoModels.ts): rebuilt from the check-ins left,
+  // keeping `updatedAt` so the goal still matches the copy the undo just logged.
+  for (const goalId of goalWork(steps)) await rebuildGoalNumber(tx, goalId, { keepUpdatedAt: true });
   const today = householdToday(now);
   if (!today) return;
   const { users, habits, choreUsers } = streakWork(steps);

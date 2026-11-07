@@ -8,11 +8,9 @@ import { HoursLogSheet, type RunChange } from "./HoursLogSheet";
 import { PlanItemRow } from "./PlanItemRow";
 import { WeekRecapCard } from "./WeekRecapCard";
 import type { SwipeAction } from "./SwipeActions";
-import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import {
   goalOwnership,
   goalsInScope,
-  nextStep,
   type GoalView,
   type PlansPageData,
   type Viewer,
@@ -20,7 +18,7 @@ import {
 import type { WeekRecap } from "@/lib/goalsRecap";
 import { weekSummary, type PlanItemView } from "@/lib/goalsProgress";
 import { GOAL_OWNERSHIP_LABELS, lifeAreaInfo } from "@/lib/goalVocabulary";
-import { zoneMidnightInstant } from "@/lib/householdDate";
+import { weekRows } from "@/lib/goalsWeek";
 import { formatWeekRange } from "@/lib/mealPlanDates";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { applyPlanItemChange, type PlanItemChange } from "@/lib/planItemChanges";
@@ -72,24 +70,9 @@ export function ThisWeekList({
   const shown = goalsInScope(goals, viewer, filter);
   const { done, total } = weekSummary(shown);
 
-  // Each goal with what it contributes to this week; a goal with nothing is skipped.
-  // A step checked off this week stays put, struck through, so a second tap can undo it;
-  // the next undone step sits below it rather than sliding into its place. `doneAt` is a real
-  // instant and the week starts at household midnight, so the cut-off is that midnight, not UTC's.
-  // Done steps run oldest first, which leaves the one just ticked directly above the next step.
-  const weekStartMs = zoneMidnightInstant(ws, HOUSEHOLD_TIME_ZONE).getTime();
-  const doneAtMs = (item: PlanItemView) => item.doneAt?.getTime() ?? 0;
+  // Each goal with what it contributes to this week (`weekRows` says in what order); a goal with nothing is skipped.
   const cards = shown.flatMap((goal) => {
-    const step = nextStep(goal.items);
-    const stepView = step ? goal.items.find((item) => item.id === step.id) : undefined;
-    const rows = [
-      ...goal.items.filter((item) => item.kind === "habit"),
-      ...goal.items
-        .filter((item) => item.kind === "step" && item.doneAt !== null && doneAtMs(item) >= weekStartMs)
-        .sort((a, b) => doneAtMs(a) - doneAtMs(b)),
-      ...(stepView ? [stepView] : []),
-      ...goal.items.filter((item) => item.kind === "reminder"),
-    ];
+    const rows = weekRows(goal, ws);
     return rows.length > 0 ? [{ goal, rows }] : [];
   });
 

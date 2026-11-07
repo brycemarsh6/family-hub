@@ -10,9 +10,9 @@ import {
   planUndo,
   referenceChecks,
   sameCopy,
-  streakWork,
   type UndoChangeInput,
 } from "@/lib/assistant/undoPlan";
+import { streakWork } from "@/lib/assistant/undoWork";
 
 const NOW = new Date("2026-11-06T12:00:00.000Z");
 const T = "2026-11-06T10:00:00.000Z";

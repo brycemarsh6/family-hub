@@ -291,8 +291,13 @@ Adding a second definition of any of these is a BLOCKER:
   or null). `findGoals` in `goalsRead.ts` orders ongoing goals last
   (`nulls: "last"`). `ONGOING_LABEL` in `goalVocabulary.ts` is the only
   "Ongoing" wording; a component or page that types the word itself is a
-  BLOCKER. If a fourth place compares `targetDate === null`, add an
-  `isOngoingGoal(goal)` helper in `goals.ts` beside `isPrivateGoal`. The form
+  BLOCKER. `isOngoingGoal(goal)` in `goals.ts`, beside `isPrivateGoal`, is
+  the only "is this goal Ongoing" check (mission-50; added when the
+  tripwire was crossed). A page, component, action, route or serializer
+  that compares `targetDate` with `null` itself is a BLOCKER. The one
+  sanctioned inline check is in `paceStatus` (`goalsProgress.ts`),
+  commented, because `goals.ts` imports `goalsProgress.ts` and importing it
+  back would make a cycle. The form
   limits `GOAL_TITLE_MAX` / `GOAL_WHY_MAX` / `MEASURE_UNIT_MAX` /
   `HABIT_TIMES_MAX` are exported from `goals.ts` (the `MIN_PASSWORD_LENGTH`
   precedent). `goalOnBoard(goal, board)` there is how a goal is matched to a
@@ -348,16 +353,23 @@ Adding a second definition of any of these is a BLOCKER:
   `goalsRecap.ts` takes only types from `goals.ts`, and `goals.ts` and
   `goalsProgress.ts` never import `goalsRecap.ts`. The `GoalCheckIn` table
   is the only check-in history; `Goal.currentValue` / `checkedInAt` mirror
-  its newest row and are written only by `src/app/actions/goals.ts` (check
-  in, `deleteCheckIn`, and removing the number in `updateGoal`, each in one
-  transaction), and read for pages only by `goalsRead.ts`.
+  its newest row and are written only by `src/lib/goalWrites.ts`
+  (mission-50): `addCheckIn`; removing the number in `updateGoal`; and
+  `rebuildGoalNumber(tx, goalId, { keepUpdatedAt? })`, the one writer of
+  the fallback, which skips a write that changes nothing and keeps
+  `updatedAt` when asked. It is called by check-in removal and by
+  `afterUndo` (`assistant/undoHooks.ts`, with `keepUpdatedAt: true`, for the
+  goals `goalWork` in `assistant/undoWork.ts` names); undo never writes the
+  cache columns itself (`VOLATILE` in `undoModels.ts`). `lockGoal(tx, id)`
+  in `goalWrites.ts` is the only goal row lock. They are read for pages
+  only by `goalsRead.ts`.
   `numberAfterCheckIns` in `goalsProgress.ts` is the one fallback rule (the
   newest remaining check-in, else the start value). **Two places must
-  change together:** the two `PlanItemRow` builders (`actions/planItems.ts`
-  and `goalsRead.ts`), and the two check-in flags in `goalsRead.ts`
+  change together:** the two `PlanItemRow` builders (`planItemRowOf` in
+  `planItemWrites.ts`, and `goalsRead.ts`), and the two check-in flags in `goalsRead.ts`
   (`goalInclude` and `toView`). **Size watch:** `GoalDetail.tsx` is 277
   lines (soft cap 350) after mission 37 moved "The result" card into
-  `GoalResultCard.tsx`; `goals.ts` is 338 and `GoalForm.tsx` 334 (its target-date field, with the
+  `GoalResultCard.tsx`; `goals.ts` is 343 (mission-50) and `GoalForm.tsx` 334 (its target-date field, with the
   chips and Ongoing, is the split seam); `goals.test.ts`
   is 344 after mission 30 split its habit tests into `goalsHabitInput.test.ts`;
   the next goal test goes in a new file by concern.
