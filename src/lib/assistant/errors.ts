@@ -19,6 +19,7 @@ export type ApiErrorCode =
   | "unsupported_media_type"
   | "rate_limited"
   | "busy"
+  | "ai_unavailable"
   | "internal"
   | "audit_failed";
 
@@ -39,7 +40,13 @@ export class ApiError extends Error {
 export function errorResponse(err: ApiError, headers?: HeadersInit): Response {
   return Response.json(
     { error: { code: err.code, message: err.message, details: err.details } },
-    { status: err.status, headers },
+    {
+      status: err.status,
+      // The AI being down is brief; tell the bot when to retry. The route
+      // wrapper only passes a header for its own `busy` case, so the code
+      // carries it here.
+      headers: headers ?? (err.code === "ai_unavailable" ? { "retry-after": "5" } : undefined),
+    },
   );
 }
 
