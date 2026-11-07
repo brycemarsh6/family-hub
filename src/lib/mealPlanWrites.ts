@@ -13,7 +13,9 @@ import "server-only";
 // read after the lock is exactly what the write then replaces. A slot that
 // does not exist yet cannot be locked, so two creators can race; the loser
 // hits the unique key (P2002), its transaction rolls back whole, and it runs
-// once more, now finding and locking the winner's row.
+// once more, now finding and locking the winner's row. A write that also
+// creates the week's plan can lose twice (the plan race, then the slot race
+// on the winner's plan), so that one gets three attempts.
 
 import { db } from "@/lib/db";
 import type { MealPlan, MealPlanEntry, Prisma } from "@/generated/prisma/client";
@@ -113,13 +115,14 @@ async function writeSlot(
   return { before, after };
 }
 
-/** Run a whole transaction; if it lost a create race (P2002) run it once more. */
-async function retryOnceOnRace<T>(attempt: () => Promise<T>): Promise<T> {
-  try {
-    return await attempt();
-  } catch (error) {
-    if (!isUniqueViolationError(error)) throw error;
-    return await attempt();
+/** Run a whole transaction; if it lost a create race (P2002) run it again, up to `attempts` in all. */
+async function retryOnRace<T>(attempt: () => Promise<T>, attempts: number): Promise<T> {
+  for (let n = 1; ; n++) {
+    try {
+      return await attempt();
+    } catch (error) {
+      if (n >= attempts || !isUniqueViolationError(error)) throw error;
+    }
   }
 }
 
@@ -136,7 +139,7 @@ export async function setMealPlanEntryRow(
 
   const { slot, dayOffset, title, recipeId } = checked;
   const where = { mealPlanId: input.mealPlanId, dayOffset, slot };
-  return retryOnceOnRace(() => db.$transaction((tx) => writeSlot(tx, where, title, recipeId)));
+  return retryOnRace(() => db.$transaction((tx) => writeSlot(tx, where, title, recipeId)), 2);
 }
 
 /**
@@ -145,7 +148,8 @@ export async function setMealPlanEntryRow(
  * and slot are written in ONE transaction, so a failure leaves no empty plan
  * behind and the request is all-or-nothing for undo. `planCreated` is a copy
  * of the plan this call made, null when the week already had one. A lost
- * create race (plan or slot, P2002) reruns the whole transaction once.
+ * create race (plan or slot, P2002) reruns the whole transaction, up to 3
+ * attempts in all.
  */
 export async function setMealPlanEntryInWeekRow(
   instant: Date,
@@ -158,13 +162,15 @@ export async function setMealPlanEntryInWeekRow(
   if ("error" in checked) return checked;
 
   const { slot, dayOffset, title, recipeId } = checked;
-  return retryOnceOnRace(() =>
-    db.$transaction(async (tx) => {
-      const found = await findWeekPlan(instant, tx);
-      const plan = found ?? (await tx.mealPlan.create({ data: { weekStart: instant } }));
-      const written = await writeSlot(tx, { mealPlanId: plan.id, dayOffset, slot }, title, recipeId);
-      return { planCreated: found ? null : plan, ...written };
-    }),
+  return retryOnRace(
+    () =>
+      db.$transaction(async (tx) => {
+        const found = await findWeekPlan(instant, tx);
+        const plan = found ?? (await tx.mealPlan.create({ data: { weekStart: instant } }));
+        const written = await writeSlot(tx, { mealPlanId: plan.id, dayOffset, slot }, title, recipeId);
+        return { planCreated: found ? null : plan, ...written };
+      }),
+    3,
   );
 }
 
