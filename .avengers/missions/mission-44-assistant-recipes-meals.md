@@ -571,3 +571,15 @@
   boundary) and `getOrCreatePlanNear` unless N1's pair reuses it.
 - **Verification:** gauntlet; `/summary` and `/meal-plan` answers unchanged
   for a 2030 test week (before/after by script); sizes; diff stat.
+- **F1b DONE `db41279`** (17 files, +134/-122). New pure
+  `src/lib/mealPlanWeek.ts` (`PLAN_TOLERANCE_MS`, `pickNearestPlan`,
+  `planWindow`) used by `findPlanForWeek`, `summaryReads.ts` and
+  `mealPlanWrites.findWeekPlan`; `getOrCreatePlanNear` and
+  `setRecipeTagRows` deleted; `totalRecipeMinutes` one rule;
+  `aiUnavailable()` + test; `toMealSlot`; grocery-needs `readable`. Live:
+  `/summary` (4 dates + real week by hash) and `/meal-plan` (5 dates)
+  identical before/after; writes and undo unchanged; readable true/false
+  cases. Tests 1204, both TZ legs, build, recordcheck 0 hard. Fury then
+  dropped the leftover `totalMinutes` re-export alias (3 files, imports
+  only).
+- Gate pass 2: Vision + Captain dispatched in parallel.

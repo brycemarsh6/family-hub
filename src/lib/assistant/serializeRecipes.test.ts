@@ -7,8 +7,8 @@ import {
   toShareUrl,
   toShortfall,
   toWriteFailure,
-  totalMinutes,
 } from "./serializeRecipes";
+import { totalRecipeMinutes } from "@/lib/recipeTimeFilter";
 
 const row = {
   id: "r1",
@@ -49,9 +49,9 @@ test("toRecipeListItem: exact key set, ISO date, never the token", () => {
 });
 
 test("totalMinutes: sums what parses, null when neither does", () => {
-  assert.equal(totalMinutes("10 min", null), 10);
-  assert.equal(totalMinutes(null, "a while"), null);
-  assert.equal(totalMinutes("nope", "45 min"), 45);
+  assert.equal(totalRecipeMinutes("10 min", null), 10);
+  assert.equal(totalRecipeMinutes(null, "a while"), null);
+  assert.equal(totalRecipeMinutes("nope", "45 min"), 45);
 });
 
 test("toRecipeDetail: lines as arrays, absolute share URL, nutrition and its outdated flag", () => {

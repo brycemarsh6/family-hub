@@ -10,8 +10,8 @@ import {
   toRecipeDetail,
   toRecipeListItem,
   toTag,
-  totalMinutes,
 } from "./serializeRecipes";
+import { totalRecipeMinutes } from "@/lib/recipeTimeFilter";
 
 const LIST_SELECT = {
   id: true,
@@ -60,7 +60,7 @@ export async function listRecipes(filter: {
   if (maxMinutes !== undefined) {
     // A recipe whose times don't parse is left out rather than guessed at.
     rows = rows.filter((row) => {
-      const total = totalMinutes(row.prepTime, row.cookTime);
+      const total = totalRecipeMinutes(row.prepTime, row.cookTime);
       return total !== null && total <= maxMinutes;
     });
   }

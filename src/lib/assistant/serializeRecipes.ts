@@ -34,10 +34,6 @@ export type RecipeDetailRow = RecipeListRow & {
   nutritionFingerprint: string | null;
 };
 
-// Prep plus cook is `totalRecipeMinutes` (recipeTimeFilter.ts); the old name
-// stays exported for `recipeReads.ts` and the serializer test.
-export { totalRecipeMinutes as totalMinutes } from "@/lib/recipeTimeFilter";
-
 export function toRecipeListItem(row: RecipeListRow) {
   return {
     id: row.id,
