@@ -44,6 +44,7 @@ import { tabletMayCompleteAnyTask } from "@/lib/tabletRules";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
+import { getTasksInDueRange } from "@/lib/calendarTaskQuery";
 import type { CalendarTaskView } from "@/lib/types";
 
 function refreshCalendarViews() {
@@ -440,52 +441,5 @@ export async function fetchTasks(
   const dueDateWindowStart = localDayToAllDayInstant(startOfDay(windowStart));
   const dueDateWindowEnd = localDayToAllDayInstant(startOfDay(windowEnd));
 
-  const tasks = await db.task.findMany({
-    where: { dueDate: { gte: dueDateWindowStart, lt: dueDateWindowEnd } },
-    orderBy: { dueDate: "asc" },
-    select: {
-      id: true,
-      title: true,
-      details: true,
-      dueDate: true,
-      completedAt: true,
-      people: {
-        select: {
-          // mission-16/C10 — same select as page.tsx's identical query,
-          // and for the same reason: this is the ONLY place a task loaded
-          // by ScheduleView's far-scrolled chunks (well outside the page's
-          // own ±61-day roster window) can carry the fact that one of its
-          // assignees is deactivated. See CalendarTaskView's mapping below.
-          user: {
-            select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
-          },
-        },
-      },
-    },
-  });
-
-  return tasks.map((task) => ({
-    id: task.id,
-    title: task.title,
-    details: task.details,
-    dueDate: task.dueDate,
-    completedAt: task.completedAt,
-    people: task.people.map((person) => ({
-      userId: person.user.id,
-      displayName: person.user.displayName,
-      avatarColor: person.user.avatarColor,
-      // mission-16/C10 — fixes the C8 regression: a task fetched from far
-      // outside the page's roster window used to get a picker with no
-      // opinion on its assignees at all. Carrying the flag on the task's
-      // own person row makes it true regardless of which window fetched
-      // this task.
-      deactivated: person.user.deactivatedAt !== null,
-    })),
-    // Same source and reasoning as page.tsx's own CalendarTaskView mapping
-    // (D3, mission-14's Banner brief): computed from the verified session
-    // against real TaskPerson rows already joined above, never from a role
-    // or user object. Decides only whether a mark-complete control is
-    // DRAWN — completeTask's own membership guard is the real gate.
-    isMine: task.people.some((person) => person.user.id === session.userId),
-  }));
+  return getTasksInDueRange(dueDateWindowStart, dueDateWindowEnd, session.userId);
 }

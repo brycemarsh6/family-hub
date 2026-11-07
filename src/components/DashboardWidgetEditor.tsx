@@ -2,8 +2,13 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import DashboardWidgetGallery from "./DashboardWidgetGallery";
+import { Segmented } from "./HabitFormFields";
+import { ToggleSwitch } from "./ToggleSwitch";
 import type { DashboardWidget } from "@/lib/dashboardLayout";
+import { calendarOptionsOf } from "@/lib/dashboardWidgetOptions";
+import type { DashboardWidgetOptions } from "@/lib/dashboardWidgetOptions";
 import {
+  CALENDAR_WIDGET_WORDS,
   DASHBOARD_PICKER_LABELS,
   DASHBOARD_WIDGETS,
   DASHBOARD_WIDGET_WORDS,
@@ -14,6 +19,7 @@ import type { WidgetSize } from "@/lib/dashboardWidgets";
 /**
  * The edit view inside the Customize sheet for one widget (decisions 204,
  * 206): a back control, the widget's name, the Size gallery (a tap saves at
+ * once), the Calendar's Options (switches and a Days strip, each saved at
  * once), "Pick" for the kinds that have picks, and "Remove widget" (one tap,
  * no confirmation). A body for the sheet, not a sheet of its own, and it holds
  * no state: every tap is handed up and the dashboard saves it.
@@ -21,6 +27,7 @@ import type { WidgetSize } from "@/lib/dashboardWidgets";
 export default function DashboardWidgetEditor({
   widget,
   onResize,
+  onOptions,
   onPick,
   onRemove,
   onBack,
@@ -28,6 +35,7 @@ export default function DashboardWidgetEditor({
 }: {
   widget: DashboardWidget;
   onResize: (size: WidgetSize) => void;
+  onOptions: (patch: DashboardWidgetOptions) => void;
   onPick: () => void;
   onRemove: () => void;
   onBack: () => void;
@@ -61,6 +69,8 @@ export default function DashboardWidgetEditor({
       </h3>
       <DashboardWidgetGallery kind={widget.kind} selected={widget.size} onSelect={onResize} />
 
+      {widget.kind === "calendar" && <CalendarOptions widget={widget} onOptions={onOptions} />}
+
       {isPickableWidget(widget.kind) && (
         <button
           type="button"
@@ -79,6 +89,48 @@ export default function DashboardWidgetEditor({
       >
         {DASHBOARD_WIDGET_WORDS.removeWidget}
       </button>
+    </>
+  );
+}
+
+/** The Calendar widget's Options (decisions 235, 238): two switches, and Days only while Extra large. */
+function CalendarOptions({
+  widget,
+  onOptions,
+}: {
+  widget: DashboardWidget;
+  onOptions: (patch: DashboardWidgetOptions) => void;
+}) {
+  const options = calendarOptionsOf(widget);
+  const rows = [
+    { key: "tasksOnly", label: CALENDAR_WIDGET_WORDS.tasksOnly, checked: options.tasksOnly },
+    { key: "wholeDay", label: CALENDAR_WIDGET_WORDS.wholeDay, checked: options.wholeDay },
+  ] as const;
+  return (
+    <>
+      <h3 className="mt-4 mb-1 px-3 text-sm font-semibold uppercase tracking-wide text-muted">
+        {CALENDAR_WIDGET_WORDS.options}
+      </h3>
+      {rows.map((row) => (
+        <div key={row.key} className="flex min-h-14 items-center justify-between gap-3 rounded-xl px-3">
+          <span className="min-w-0 text-base font-medium text-fg">{row.label}</span>
+          <ToggleSwitch checked={row.checked} label={row.label} onChange={(next) => onOptions({ [row.key]: next })} />
+        </div>
+      ))}
+      {widget.size === "xl" && (
+        <div className="mt-1 px-3">
+          <p className="mb-1 text-base font-medium text-fg">{CALENDAR_WIDGET_WORDS.days}</p>
+          <Segmented
+            label={CALENDAR_WIDGET_WORDS.days}
+            value={String(options.days) as "3" | "7"}
+            options={[
+              { key: "3", label: CALENDAR_WIDGET_WORDS.days3 },
+              { key: "7", label: CALENDAR_WIDGET_WORDS.days7 },
+            ]}
+            onChange={(next) => onOptions({ days: next === "7" ? 7 : 3 })}
+          />
+        </div>
+      )}
     </>
   );
 }

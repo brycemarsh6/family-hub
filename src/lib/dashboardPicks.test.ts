@@ -27,7 +27,7 @@ test("picksOf reads one widget's items, empty when it has none", () => {
 
 test("the tablet's layout leaves out habits and chores and keeps the rest in order", () => {
   const ids = layoutForViewer(DEFAULT_DASHBOARD_LAYOUT, true).widgets.map((w) => w.uid);
-  assert.deepEqual(ids, ["todayMeals", "goals", "inventory", "grocery", "recipes"]);
+  assert.deepEqual(ids, ["calendar", "todayMeals", "goals", "inventory", "grocery", "recipes"]);
 });
 
 test("the tablet drops every instance of an off-tablet kind and keeps sizes", () => {
@@ -35,9 +35,9 @@ test("the tablet drops every instance of an off-tablet kind and keeps sizes", ()
   const out = layoutForViewer(two, true);
   assert.equal(out.version, 2);
   assert.deepEqual(out.widgets.map((w) => `${w.uid}:${w.size}`), [
-    "todayMeals:m", "goals:m", "inventory:s", "grocery:s", "recipes:m", "inventory-2:m",
+    "calendar:l", "todayMeals:m", "goals:m", "inventory:s", "grocery:s", "recipes:m", "inventory-2:m",
   ]);
-  assert.equal(two.widgets.length, 9);
+  assert.equal(two.widgets.length, 10);
 });
 
 test("a person's layout is returned as it is", () => {

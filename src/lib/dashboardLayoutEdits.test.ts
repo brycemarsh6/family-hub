@@ -36,11 +36,11 @@ test("addWidget: appends with the next free uid, snaps the size, does not mutate
   const before = JSON.stringify(DEFAULT_DASHBOARD_LAYOUT);
   const one = addWidget(DEFAULT_DASHBOARD_LAYOUT, "habits", "m");
   assert.equal(JSON.stringify(DEFAULT_DASHBOARD_LAYOUT), before);
-  assert.deepEqual(one.widgets[7], { uid: "habits-2", kind: "habits", size: "m" });
-  assert.equal(one.widgets.length, 8);
+  assert.deepEqual(one.widgets[8], { uid: "habits-2", kind: "habits", size: "m" });
+  assert.equal(one.widgets.length, 9);
   const two = addWidget(one, "habits", "xl");
-  assert.deepEqual(two.widgets[8], { uid: "habits-3", kind: "habits", size: "l" });
-  assert.equal(addWidget(DEFAULT_DASHBOARD_LAYOUT, "todayMeals", "s").widgets[7].size, "m");
+  assert.deepEqual(two.widgets[9], { uid: "habits-3", kind: "habits", size: "l" });
+  assert.equal(addWidget(DEFAULT_DASHBOARD_LAYOUT, "todayMeals", "s").widgets[8].size, "m");
 });
 
 test("addWidget: a no-op at the cap", () => {
@@ -54,7 +54,7 @@ test("addWidget: a no-op at the cap", () => {
 test("removeWidget: drops one instance by uid, leaves the rest, ignores an unknown uid", () => {
   const before = JSON.stringify(DEFAULT_DASHBOARD_LAYOUT);
   const out = removeWidget(addWidget(DEFAULT_DASHBOARD_LAYOUT, "habits", "m"), "habits");
-  assert.deepEqual(uids(out), ["todayMeals", "chores", "goals", "inventory", "grocery", "recipes", "habits-2"]);
+  assert.deepEqual(uids(out), ["calendar", "todayMeals", "chores", "goals", "inventory", "grocery", "recipes", "habits-2"]);
   assert.deepEqual(removeWidget(DEFAULT_DASHBOARD_LAYOUT, "nope"), DEFAULT_DASHBOARD_LAYOUT);
   assert.equal(JSON.stringify(DEFAULT_DASHBOARD_LAYOUT), before);
   assert.deepEqual(removeWidget({ version: 2, widgets: [{ uid: "a", kind: "recipes", size: "s" }] }, "a").widgets, []);
@@ -66,8 +66,8 @@ test("resizeWidget: changes one instance, snaps, keeps items, does not mutate", 
   assert.equal(JSON.stringify(DEFAULT_DASHBOARD_LAYOUT), before);
   assert.equal(out.widgets.find((w) => w.uid === "inventory")?.size, "m");
   assert.equal(out.widgets.filter((w) => w.size === "s").length, 1);
-  assert.equal(resizeWidget(DEFAULT_DASHBOARD_LAYOUT, "inventory", "xl").widgets[4].size, "m");
-  assert.equal(resizeWidget(DEFAULT_DASHBOARD_LAYOUT, "habits", "s").widgets[1].size, "m");
+  assert.equal(resizeWidget(DEFAULT_DASHBOARD_LAYOUT, "inventory", "xl").widgets[5].size, "m");
+  assert.equal(resizeWidget(DEFAULT_DASHBOARD_LAYOUT, "habits", "s").widgets[2].size, "m");
   assert.deepEqual(resizeWidget(DEFAULT_DASHBOARD_LAYOUT, "nope", "m"), DEFAULT_DASHBOARD_LAYOUT);
 });
 

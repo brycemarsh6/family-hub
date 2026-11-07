@@ -190,7 +190,8 @@ structural changes against it.
   loudly anyway (PrismaClient refuses to construct in a browser). Any
   **other** lib module that imports `db` must carry `server-only` —
   `dal.ts`, `voice/apply.ts`, `loginRateLimit.ts`, and
-  `calendarEventQuery.ts` are the instances — the last (mission-15/C1) is a
+  `calendarEventQuery.ts` and `calendarTaskQuery.ts` (mission-49) are the
+  instances — `calendarEventQuery.ts` (mission-15/C1) is a
   SELECT-plus-mapper module shaped like `personInfo.ts` but, unlike it,
   runs the query itself, so it carries the guard.
   When a module needs both a testable policy and a database read, split
@@ -230,6 +231,23 @@ structural changes against it.
 ## One source of truth
 
 Adding a second definition of any of these is a BLOCKER:
+
+- **`src/lib/calendarTaskQuery.ts`** (`server-only`, no auth; mission-49):
+  `getTasksInDueRange(dueStart, dueEnd, viewerUserId)` is the only Task
+  select and `CalendarTaskView` mapper. Its callers are the Calendar page,
+  `fetchTasks` in `actions/tasks.ts` and `loadCalendarWidget`; each keeps
+  its own bounds rule and the module takes bounds as given. A second
+  `db.task.findMany` that builds a `CalendarTaskView` is a BLOCKER
+  (`briefingRead.ts`'s narrow task query builds no view, so it is not one).
+- **`compareEvents` in `src/lib/scheduleWindow.ts`** is the only order for
+  events within a day (start, then id), used by Schedule and the Calendar
+  widget. **`formatClockTime` in `calendarDates.ts`** is the only
+  browser-local single-time label ("3 PM", "12:30 PM"), on the same
+  `clockParts` as `formatTimeRange`; `formatHouseholdClock` stays the
+  server's zone-explicit formatter. (Mission-49.)
+- **`DaySectionHeader` in `DaySection.tsx`** is the only weekday-and-date
+  day header; DaySection and `CalendarWidgetTile`'s day columns both draw
+  it. (Mission-49.)
 
 - **`src/lib/useOptimisticRun.ts` is the only home of the optimistic tap
   wrapper** (clear the error, start a transition, show the change, await the
@@ -661,15 +679,28 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/dashboardWidgets.ts`: `DASHBOARD_WIDGETS`, the only widget
   registry (per kind: label, allowed `sizes`, `defaultSize`, `onTablet`);
   `DASHBOARD_WIDGET_KINDS` there is the one kind list and the default
-  order (a test pins the record to it); `WIDGET_SIZES` /
-  `WIDGET_SIZE_LABELS` the only size list and size names;
-  `DASHBOARD_WIDGET_WORDS` the dashboard and Customize words.
+  order (a test pins the record to it). `calendar` is first (mission-49,
+  decision 237: all four sizes, Large by default, on the tablet).
+  `WIDGET_SIZES` / `WIDGET_SIZE_LABELS` are the only size list and size
+  names; `DASHBOARD_WIDGET_WORDS` holds the dashboard and Customize words,
+  and `CALENDAR_WIDGET_WORDS` the Calendar widget's and its options' words
+  (decision 238). A widget's words typed in a component are a BLOCKER.
   `parseDashboardLayout` in `dashboardLayout.ts` is the only reader of the
   stored layout JSON (version 2: a list of widget instances, each
-  `{ uid, kind, size, items? }`, so a kind may appear more than once).
+  `{ uid, kind, size, items?, options? }`, so a kind may appear more than once).
+  **Options (mission-49):** `src/lib/dashboardWidgetOptions.ts` is the only
+  home of each kind's option shape, defaults (`CALENDAR_WIDGET_DEFAULTS`)
+  and cleaner (`cleanWidgetOptions`); the parser and `setWidgetOptions`
+  both clean through it, so a bad value or a key the kind does not have
+  never survives. `calendarOptionsOf(widget)` is the only way to read a
+  Calendar widget's options with defaults filled in, and `widgetRowDetail`
+  the only Customize second line. Only `calendar` has options; a new
+  kind's options are added there, never parsed elsewhere.
   **Upgrade rule (mission-43):** a version 1 layout is upgraded on read,
   sized by v1's own pairing rule, so a saved dashboard opens unchanged; the
-  v1 insertion rule (mission-29) lives on only inside that upgrade. A v2
+  v1 insertion rule (mission-29) lives on only inside that upgrade, and runs
+  over the frozen `V1_KINDS` (the seven v1 kinds), never
+  `DASHBOARD_WIDGET_KINDS`, so an upgrade never adds a kind v1 lacked. A v2
   layout never gets missing kinds inserted: a removed widget stays removed.
   `nextWidgetUid` is the only rule for a new or repaired uid (Add and the
   parser's repair use it). The default layout and the v1 upgrade hold each
@@ -680,8 +711,16 @@ Adding a second definition of any of these is a BLOCKER:
   `src/lib/dashboardGrid.ts` (`packWidgets`, `gridAreaVars`) is the only
   placement rule for the grid at 2 and 4 columns; the DOM stays in layout
   order and CSS variables place each cell, never `grid-auto-flow: dense`.
-  `src/lib/dashboardLoaders.ts` holds the dashboard's kitchen reads, one
-  per kind; the page loads only the kinds on the layout (goals load for
+  `src/lib/dashboardLoaders.ts` holds the dashboard's kitchen reads and
+  the Calendar widget's read (`loadCalendarWidget`: events, tasks and
+  planned habit days from Denver yesterday through today + 9, one read
+  shared by every Calendar widget on the layout), one loader per kind.
+  `src/lib/calendarWidget.ts` is the widget's pure engine (the next item,
+  a day's items with open before done, caps that drop done items first,
+  empty words). It takes `today` and `now` from the browser (`useToday`,
+  `useNowMinute`), never the server; it matches events by
+  `daysEventCovers`, tasks and habit days by `allDayInstantToLocalDay`, and
+  orders events with Schedule's `compareEvents`. The page loads only the kinds on the layout (goals load for
   every signed-in viewer and habits for every non-device viewer, for the
   notes and the pickers).
   **Picks (mission-34, per instance since mission-43):** a widget's optional `items` (only `habits` and
@@ -713,6 +752,11 @@ Adding a second definition of any of these is a BLOCKER:
   and `goalsRead.ts` may import them, never the reverse. `dashboardGrid.ts`
   imports only types from `dashboardWidgets.ts`; `dashboardLoaders.ts` is
   `server-only` and imported only by the dashboard page.
+  `dashboardWidgetOptions.ts` imports only `dashboardWidgets.ts`;
+  `dashboardLayout.ts` may import it, never the reverse.
+  `calendarWidget.ts` imports only pure calendar and dashboard-vocabulary
+  modules (`mealPlanDates`, `calendarDates`, `scheduleWindow`,
+  `dashboardWidgets`, types), never `db` or a `*Read.ts`.
 - `brand/` — the logo artwork. The two `Marshee*.tsx` components and the
   `src/app/` icon files are all **generated from** these masters; a
   hand-drawn or re-traced second version of the mark or wordmark is a
@@ -1041,6 +1085,13 @@ Adding a second definition of any of these is a BLOCKER:
   `CalendarViews` root, which holds every sheet. `data-page-width="wide"`
   and `data-fills-viewport` combine on the Calendar: the first lifts the
   width cap, the second drops the bottom padding on the hour timeline.
+  On the dashboard, an Extra large Calendar widget is its own container
+  (its day list): its days sit side by side from 30rem of tile body (3
+  days as 3 columns; 7 days wrap at a 13rem column floor, decision 240)
+  and stack below that. Where two widths need different row caps, both
+  lists may be rendered and a container variant shows one; that is allowed
+  only for a small fixed list (at most 7 days), never one that grows with
+  data. (Mission-49.)
   (Mission-46, Captain's A-L2-1.)
   The wordmark header has an empty slot, `WORDMARK_HEADER_ACTIONS_ID`
   (`src/lib/appChrome.ts`), at its right end; a page whose state owns a

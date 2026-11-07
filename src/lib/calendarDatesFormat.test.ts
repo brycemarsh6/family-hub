@@ -11,7 +11,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatTimeRange, formatAllDayLabel, isPast } from "./calendarDates";
+import { formatClockTime, formatTimeRange, formatAllDayLabel, isPast } from "./calendarDates";
 
 function d(year: number, month: number, day: number, hour = 0, minute = 0): Date {
   return new Date(year, month, day, hour, minute);
@@ -177,4 +177,19 @@ test("isPast: an event still running (end in the future) is not past", () => {
 test("isPast: an event ending exactly at now counts as past", () => {
   const now = d(2026, 7, 9, 15, 0);
   assert.equal(isPast(d(2026, 7, 9, 15, 0), now), true);
+});
+
+// ---------------------------------------------------------------------------
+// formatClockTime
+
+test("formatClockTime: drops :00, keeps other minutes, always shows the meridiem", () => {
+  assert.equal(formatClockTime(d(2026, 7, 9, 15, 0)), "3 PM");
+  assert.equal(formatClockTime(d(2026, 7, 9, 9, 30)), "9:30 AM");
+  assert.equal(formatClockTime(d(2026, 7, 9, 0, 0)), "12 AM");
+  assert.equal(formatClockTime(d(2026, 7, 9, 12, 30)), "12:30 PM");
+});
+
+test("formatClockTime: reads the same start as formatTimeRange does", () => {
+  // "8 – 9 PM" shares its meridiem, so the start there is "8"; with a crossing range it is "11:30 AM".
+  assert.equal(formatTimeRange(d(2026, 7, 9, 11, 30), d(2026, 7, 9, 13)), `${formatClockTime(d(2026, 7, 9, 11, 30))} – 1 PM`);
 });

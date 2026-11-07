@@ -175,7 +175,8 @@ export type ScheduleMonthGroup = {
   days: ScheduleDayRow[];
 };
 
-function compareEvents(a: ScheduleEvent, b: ScheduleEvent): number {
+// Shared with calendarWidget.ts so the dashboard orders a day like Schedule.
+export function compareEvents(a: ScheduleEvent, b: ScheduleEvent): number {
   const byStart = a.startAt.getTime() - b.startAt.getTime();
   if (byStart !== 0) return byStart;
   if (a.id < b.id) return -1;
