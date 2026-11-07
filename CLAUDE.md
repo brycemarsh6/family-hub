@@ -267,10 +267,11 @@ Replace this section at the end of each session. Don't append.
 - **Winnie notifications (mission 42)** merged as PR #58 on 2026-11-06.
   Bryce adds the two env vars in Vercel and taps "Send test to Winnie".
   Details: `.avengers/missions/mission-42-winnie-notify.md`.
-- **Winnie's recipes and meal plan (mission 44)** passed its gates on
-  2026-11-06 (Vision on pass 3, Captain pass 2) and merges from
-  `claude/assistant-recipes-meals`. What to tell Winnie is in the mission
-  file's Delivery. Next for Winnie: cookbook edits, then calendar/tasks
+- **Winnie's recipes and meal plan (mission 44)** merged as PR #61
+  (`634627a`) on 2026-11-07 and is live (production deploy READY, routes
+  answer 401 without a token). What to tell Winnie is in the mission
+  file's Delivery. Cookbook edits are mission 45, in progress on
+  `claude/assistant-cookbooks`. After that for Winnie: calendar/tasks
   (after CD1), then replacing the app's Claude features with her (needs a
   two-way link; Bryce parked it 2026-11-06). Captain's proposed
   STRUCTURE.md amendments A1 to A4 wait in the mission file.

@@ -1,7 +1,8 @@
 # Mission 44: Winnie's recipes and meal plan (Assistant API)
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERED (gates PASS; PR and merge next)
+**Status:** DELIVERED, merged as PR #61 (`634627a`) on 2026-11-07,
+production deploy READY, live routes answer 401 without a token
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/assistant-recipes-meals` (from `origin/main` at `5a3cdc0`)
 
