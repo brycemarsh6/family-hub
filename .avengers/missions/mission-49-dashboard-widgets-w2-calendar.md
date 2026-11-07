@@ -138,7 +138,11 @@ From AGENTS.md, absolute for every agent:
 
 ### C1 - the pure engine and the shared task query
 
-- **Status:** PENDING
+- **Status:** DONE (commit after `7d5ea69`; Fury re-ran: 1354 tests pass in
+  Denver and UTC, tsc errors only in DashboardWidgetPreview.tsx, the C2 file).
+  Amended once (BLOCKED-ON-CONTRACT): may also export `compareEvents` from
+  `scheduleWindow.ts` and add `formatClockTime` to `calendarDates.ts`.
+  Judgment kept: times read "3 PM" (house style drops ":00").
 - **Boundaries:** may touch: new `src/lib/calendarTaskQuery.ts`,
   `src/app/(app)/calendar/page.tsx` (its task query only),
   `src/app/actions/tasks.ts` (`fetchTasks` only), new
@@ -156,11 +160,15 @@ From AGENTS.md, absolute for every agent:
 
 ### C2 - the widget on the dashboard (loader, tile, previews)
 
-- **Status:** PENDING (after C1)
+- **Status:** DISPATCHED (spec in the dispatch: loader with a padded
+  Denver range, `CalendarWidgetTile` deciding today and now in the browser,
+  container-variant columns for Extra large, Today's meals icon swap).
 
 ### C3 - Customize options (editor section, row second line, wiring)
 
-- **Status:** PENDING (after C1, parallel with C2: disjoint files)
+- **Status:** DISPATCHED (parallel with C2: Options section with two
+  ToggleSwitch rows and a Days Segmented while Extra large; row second line
+  from `widgetRowDetail`).
 
 ## Gate ledger
 
@@ -170,3 +178,6 @@ From AGENTS.md, absolute for every agent:
 
 - 2026-11-07: mission opened. Mission 46 marked DELIVERED. Banner brief
   in. Hill's calls 233 to 239 in. C1 dispatched.
+- 2026-11-07: Bryce approved 233 to 239. C1 DONE and committed. Fresh
+  worktree needed `npx prisma generate` and `npm ci` (no file changes).
+  C2 and C3 dispatched in parallel.

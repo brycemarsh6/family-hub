@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Package, ShoppingCart, BookOpen, CalendarDays } from "lucide-react";
+import { Package, ShoppingCart, BookOpen, UtensilsCrossed } from "lucide-react";
 import DashboardTile from "@/components/DashboardTile";
 import ChoresTile from "@/components/ChoresTile";
 import { ChoreShoutOutCard } from "@/components/ChoreShoutOutCard";
@@ -9,12 +9,15 @@ import { NudgeCards } from "@/components/NudgeCard";
 import { PlanDayCard } from "@/components/PlanDayCard";
 import { PlannedTodayCard } from "@/components/PlannedTodayCard";
 import TodayMealsTile from "@/components/TodayMealsTile";
+import CalendarWidgetTile from "@/components/CalendarWidgetTile";
 import DashboardWidgetList from "@/components/DashboardWidgetList";
 import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
 import { DEFAULT_DASHBOARD_LAYOUT, parseDashboardLayout, type DashboardWidget } from "@/lib/dashboardLayout";
+import { calendarOptionsOf } from "@/lib/dashboardWidgetOptions";
 import { layoutForViewer, picksOf } from "@/lib/dashboardPicks";
 import {
+  loadCalendarWidget,
   loadGrocerySummary,
   loadInventorySummary,
   loadMealPlans,
@@ -75,13 +78,15 @@ export default async function DashboardPage() {
   // picker has its list even before a Goals widget is on the layout. Habits & Chores read the same rows Today does and have no widget on
   // the tablet; the cards above the tiles (nudges and the rest) need them
   // whenever the viewer is not a device, with or without a Habits widget.
-  const [mealPlans, inventory, grocery, recipes, goalsData, habitsData] = await Promise.all([
+  const [mealPlans, inventory, grocery, recipes, goalsData, habitsData, calendarData] = await Promise.all([
     kinds.has("todayMeals") ? loadMealPlans(serverNow) : null,
     kinds.has("inventory") ? loadInventorySummary(serverNow) : null,
     kinds.has("grocery") ? loadGrocerySummary() : null,
     kinds.has("recipes") ? loadRecipesSummary() : null,
     user ? loadGoalsTile({ userId: user.userId, isDevice: user.isDevice }, goalsToday) : null,
     user && !user.isDevice ? loadDashboardHabits({ userId: user.userId, role: user.role }, goalsToday) : null,
+    // Every Calendar widget shares this one padded read; the browser decides today (see loadCalendarWidget).
+    user && kinds.has("calendar") ? loadCalendarWidget({ userId: user.userId, role: user.role }, goalsToday) : null,
   ]);
 
   // One tile per widget, keyed by its uid. A widget whose data is missing
@@ -123,11 +128,14 @@ export default async function DashboardPage() {
         return (
           <TodayMealsTile
             href="/kitchen/cooking/meal-plan"
-            icon={<CalendarDays size={20} className="text-muted" />}
+            icon={<UtensilsCrossed size={20} className="text-muted" />}
             title={DASHBOARD_WIDGETS.todayMeals.label}
             plans={mealPlans}
           />
         );
+      case "calendar":
+        if (!calendarData) return null;
+        return <CalendarWidgetTile data={calendarData} size={widget.size} options={calendarOptionsOf(widget)} />;
       case "goals": {
         if (!goalsData) return null;
         const tile = goalsTileFor(goalsData, picks);

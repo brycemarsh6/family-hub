@@ -3,6 +3,13 @@ import "server-only";
 import { db } from "@/lib/db";
 import { isLow } from "@/lib/constants";
 import { addDays } from "@/lib/mealPlanDates";
+import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
+import { addCalendarDays, utcMidnightInstant, zoneMidnightInstant, type CalendarDate } from "@/lib/householdDate";
+import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
+import { getTasksInDueRange } from "@/lib/calendarTaskQuery";
+import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
+import type { CalendarWidgetData } from "@/lib/calendarWidget";
+import type { HabitActor } from "@/lib/habits/types";
 import { isExpiringWithin } from "@/lib/expiring";
 import { storeBreakdown, urgentLowItems, type StoreCount, type UrgentLowItems } from "@/lib/dashboard";
 import type { Category, Location } from "@/lib/constants";
@@ -129,4 +136,27 @@ export async function loadMealPlans(now: Date): Promise<MealPlanView[]> {
       recipeId: entry.recipeId,
     })),
   }));
+}
+
+/**
+ * What the Calendar widget draws: events, tasks and planned habit days from
+ * the household's (Denver) yesterday through nine days after today. The range
+ * is padded on purpose. The BROWSER decides which day is "today" (the server
+ * is UTC on Vercel), and a viewer's local day can differ from Denver's by a
+ * day, so the widget needs a day of slack before and after its own 7-day
+ * look-ahead / 7-day column view. Events are bounded by Denver midnights;
+ * tasks and habit days are stored at UTC midnight, so they use UTC-midnight
+ * bounds for the same calendar dates (the Calendar page's convention). Ends
+ * are exclusive, so the end is the start of the day after today + 9.
+ * Every Calendar widget on the layout shares this one read.
+ */
+export async function loadCalendarWidget(viewer: HabitActor, today: CalendarDate): Promise<CalendarWidgetData> {
+  const first = addCalendarDays(today, -1);
+  const after = addCalendarDays(today, 10);
+  const [events, tasks, habitDays] = await Promise.all([
+    getCalendarEventsInRange(zoneMidnightInstant(first, HOUSEHOLD_TIME_ZONE), zoneMidnightInstant(after, HOUSEHOLD_TIME_ZONE)),
+    getTasksInDueRange(utcMidnightInstant(first), utcMidnightInstant(after), viewer.userId),
+    loadPlannedHabitDays(viewer, utcMidnightInstant(first), utcMidnightInstant(after)),
+  ]);
+  return { events, tasks, habitDays };
 }
