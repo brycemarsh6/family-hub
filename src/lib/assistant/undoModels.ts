@@ -2,6 +2,7 @@
 // together. Pure data (no database), shared by undoPlan.ts and undoWrites.ts.
 
 import type {
+  Cookbook,
   CookbookRecipe,
   GroceryItem,
   MealPlan,
@@ -18,6 +19,7 @@ export type UndoModel =
   | "Recipe"
   | "Tag"
   | "RecipeTag"
+  | "Cookbook"
   | "CookbookRecipe"
   | "MealPlan"
   | "MealPlanEntry";
@@ -59,6 +61,10 @@ const RECIPE_TAG_COLUMNS: Record<keyof RecipeTag, ColumnKind> = {
   id: "value", recipeId: "value", tagId: "value",
 };
 
+const COOKBOOK_COLUMNS: Record<keyof Cookbook, ColumnKind> = {
+  id: "value", title: "value", shareToken: "value", createdAt: "date", updatedAt: "date",
+};
+
 const COOKBOOK_RECIPE_COLUMNS: Record<keyof CookbookRecipe, ColumnKind> = {
   id: "value", cookbookId: "value", recipeId: "value", addedAt: "date",
 };
@@ -83,6 +89,7 @@ export const MODELS: Record<UndoModel, { columns: readonly string[]; dates: read
   Recipe: describe(RECIPE_COLUMNS),
   Tag: describe(TAG_COLUMNS),
   RecipeTag: describe(RECIPE_TAG_COLUMNS),
+  Cookbook: describe(COOKBOOK_COLUMNS),
   CookbookRecipe: describe(COOKBOOK_RECIPE_COLUMNS),
   MealPlan: describe(MEAL_PLAN_COLUMNS),
   MealPlanEntry: describe(MEAL_PLAN_ENTRY_COLUMNS),
@@ -95,7 +102,7 @@ export const MODELS: Record<UndoModel, { columns: readonly string[]; dates: read
  * parents first so a child finds its parent.
  */
 export const TIER: Record<UndoModel, 0 | 1> = {
-  PantryItem: 0, Recipe: 0, Tag: 0, MealPlan: 0,
+  PantryItem: 0, Recipe: 0, Tag: 0, Cookbook: 0, MealPlan: 0,
   GroceryItem: 1, RecipeTag: 1, CookbookRecipe: 1, MealPlanEntry: 1,
 };
 
@@ -104,6 +111,7 @@ export const PARENT_TABLES = {
   PantryItem: "PantryItem",
   Recipe: "Recipe",
   Tag: "Tag",
+  Cookbook: "Cookbook",
   MealPlan: "MealPlan",
 } as const;
 
@@ -133,6 +141,7 @@ export const REFERENCES: Record<ParentModel, readonly Reference[]> = {
     { child: "MealPlanEntry", column: "recipeId" },
   ],
   Tag: [{ child: "RecipeTag", column: "tagId" }],
+  Cookbook: [{ child: "CookbookRecipe", column: "cookbookId" }],
   MealPlan: [{ child: "MealPlanEntry", column: "mealPlanId" }],
 };
 
