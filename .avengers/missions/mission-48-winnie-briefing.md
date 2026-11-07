@@ -415,3 +415,69 @@ Preflight's one hard failure on C2 is the schema's length; STRUCTURE.md
   applied. Stark's choices: Pick a day period from `page.manage` schedule;
   kept `dynamic = "force-dynamic"` though Next 16 handlers are not cached
   by default. Vision and Captain dispatched.
+- 2026-11-07: **Captain pass 1: BLOCKED (3, all from Fury's contract
+  text).** B1 `briefingSent.ts` inline `P2002` check (use
+  `isUniqueViolationError` from `prismaErrors.ts`). B2 `formatBriefingClock`
+  is a second household-zone clock (move `feedbackTime.ts`'s private
+  `CLOCK` into `householdDate.ts` as one export with a drop-`:00` option;
+  add `hourInZone` beside it for `isBriefingHour`). B3 `isBriefingRecipientRole`
+  is a dormant second "who gets a briefing" rule (delete; 
+  `loadHouseholdAdults` is the one rule). Notes: amendments A-48-1 to A-48-6
+  (proxy and guarded-route instances, Winnie sender callers, the clock,
+  event-day rule ownership in `assistant/summary.ts`, a shared
+  `vacationLabel` choice, the briefing modules), the meals read written
+  twice, two User queries per run. Fix batch waits for Vision.
+- 2026-11-07: **Vision pass 1: PASS** on 7b598d6. Re-ran the full gauntlet;
+  proved every day of 2025 to 2027 has exactly one cron hour wholly inside
+  Denver's 9 o'clock (Mar 8 and Nov 1 2026 checked); 401 paths incl. empty
+  and unset secret; proxy entry exact (`/api/cron/briefingx` redirects).
+  Notes taken into F1: no `maxDuration` (a slow Winnie could hit the
+  function limit), a throw in `finishBriefing` after an accepted send
+  misrecords it as unreachable, `loadHouseholdAdults` spreads and then
+  overwrites `HOUSEHOLD_PERSON_WHERE.role`. Notes left: an adult with no
+  habits on vacation gets "Nothing on today" (as the Today card); greeting
+  uses the full displayName; family-typed titles may hold dashes; a whole-run
+  read failure misses the day (H10).
+
+### F1 - gate fixes (Captain B1 to B3, Vision notes)
+
+- **Objective:** clear Captain's three blockers and three of Vision's notes
+  without changing any briefing text.
+- **Boundaries:** may touch `src/lib/briefingSent.ts`, `src/lib/briefing.ts`,
+  `src/lib/briefing.test.ts`, `src/lib/householdDate.ts`, `src/lib/householdDate.test.ts`
+  (if it exists; else add the tests to `src/lib/briefing.test.ts` and say
+  so), `src/lib/feedbackTime.ts`, `src/lib/feedbackTime.test.ts` (if it
+  exists), `src/lib/householdPeople.ts`, `src/app/api/cron/briefing/route.ts`.
+  Must not touch anything else (STRUCTURE.md is Fury's).
+- **B1:** `briefingSent.ts` uses `isUniqueViolationError` from
+  `src/lib/prismaErrors.ts`; no inline `P2002`; drop the now-unused Prisma
+  import.
+- **B2:** move the household-zone clock into `src/lib/householdDate.ts` as
+  one export, e.g. `formatHouseholdClock(instant, { dropZeroMinutes })`,
+  returning a plain ASCII space before AM/PM. `feedbackTime.ts` drops its
+  private `CLOCK` and calls it with `dropZeroMinutes: false` (its labels
+  only lose a U+202F, if Intl emits one; say what its tests show).
+  `briefing.ts` calls it with `dropZeroMinutes: true` and keeps
+  `formatBriefingClock` only if it becomes a one-line wrapper (or drop it
+  and call the export directly; say which). Add `hourInZone(instant,
+  timeZone)` beside it from the same Intl parts (`hourCycle: "h23"`), and
+  make `isBriefingHour` `hourInZone(now, HOUSEHOLD_TIME_ZONE) === 9`. Tests
+  for both modes and for `hourInZone` at 8:59:59 / 9:00 / 23:59 in MST and
+  MDT.
+- **B3:** delete `isBriefingRecipientRole` and its test case;
+  `loadHouseholdAdults` is the one rule.
+- **Vision notes:** `export const maxDuration = 60` in the route (check the
+  Next 16 route segment docs for the name; say what you found);
+  `finishBriefing` after a send gets its own try/catch so an accepted send is
+  never re-marked "unreachable" (log only the eventId); `loadHouseholdAdults`
+  combines the household filter and the role filter with `AND: [HOUSEHOLD_PERSON_WHERE,
+  { role: { in: MANAGER_ROLES } }]` instead of a spread that overwrites
+  `role`.
+- **Verification:** `npx tsc --noEmit`; `npx eslint .`; `npm test`; the
+  UTC and America/Los_Angeles full runs; `npm run build`; `grep -rn
+  "P2002" src/lib/briefingSent.ts` empty; `grep -rn "Intl.DateTimeFormat"
+  src/lib/briefing.ts src/lib/feedbackTime.ts` empty.
+- **Evidence required:** command tails; the new householdDate exports'
+  signatures; any feedback label change shown by its tests.
+- **Done criteria:** Captain and Vision re-pass; the approved six-line copy
+  test is unchanged and green.
