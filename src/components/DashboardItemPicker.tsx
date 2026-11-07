@@ -26,7 +26,7 @@ export default function DashboardItemPicker({
   nothingPicked,
   none,
   onChange,
-  backLabel = DASHBOARD_PICKER_LABELS.back,
+  backLabel,
   onBack,
   onClose,
 }: {
@@ -39,7 +39,7 @@ export default function DashboardItemPicker({
   none: string;
   onChange: (ids: string[]) => void;
   /** The back control's name: the view it returns to (decision 210). */
-  backLabel?: string;
+  backLabel: string;
   onBack: () => void;
   onClose: () => void;
 }) {

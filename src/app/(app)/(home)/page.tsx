@@ -71,7 +71,7 @@ export default async function DashboardPage() {
   const kinds = new Set(layout.widgets.map((widget) => widget.kind));
 
   // A kind with two widgets is read once; each widget applies its own picks
-  // below. Goals load for every signed-in viewer, like habits, so the Goals
+  // below. Goals load for every signed-in viewer, so the Goals
   // picker has its list even before a Goals widget is on the layout. Habits & Chores read the same rows Today does and have no widget on
   // the tablet; the cards above the tiles (nudges and the rest) need them
   // whenever the viewer is not a device, with or without a Habits widget.

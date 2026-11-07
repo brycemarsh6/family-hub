@@ -29,11 +29,11 @@ test("pack: the default layout at 2 columns stacks, the two Smalls share a row",
   assert.deepEqual(packWidgets(defaultSizes, 2), [
     spot(1, 1, 2, 1), // todayMeals m
     spot(2, 1, 2, 2), // habits l
-    spot(4, 1, 2, 2), // chores l
-    spot(6, 1, 2, 1), // goals m
-    spot(7, 1, 1, 1), // inventory s
-    spot(7, 2, 1, 1), // grocery s
-    spot(8, 1, 2, 1), // recipes m
+    spot(4, 1, 2, 1), // chores m
+    spot(5, 1, 2, 1), // goals m
+    spot(6, 1, 1, 1), // inventory s
+    spot(6, 2, 1, 1), // grocery s
+    spot(7, 1, 2, 1), // recipes m
   ]);
 });
 
@@ -41,11 +41,11 @@ test("pack: the default layout at 4 columns tucks widgets in beside each other",
   assert.deepEqual(packWidgets(defaultSizes, 4), [
     spot(1, 1, 2, 1), // todayMeals m
     spot(1, 3, 2, 2), // habits l beside it
-    spot(2, 1, 2, 2), // chores l under todayMeals
-    spot(3, 3, 2, 1), // goals m under habits
-    spot(4, 1, 1, 1), // inventory s
-    spot(4, 2, 1, 1), // grocery s
-    spot(4, 3, 2, 1), // recipes m
+    spot(2, 1, 2, 1), // chores m under todayMeals
+    spot(3, 1, 2, 1), // goals m
+    spot(3, 3, 1, 1), // inventory s under habits
+    spot(3, 4, 1, 1), // grocery s
+    spot(4, 1, 2, 1), // recipes m
   ]);
 });
 

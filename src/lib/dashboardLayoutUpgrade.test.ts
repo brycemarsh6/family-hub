@@ -26,25 +26,25 @@ test("v1 default (everything on) upgrades to exactly the v2 default", () => {
 
 test("v1: all on, the two halves pair into Small and the full widgets keep their widths", () => {
   assert.deepEqual(sizes(parseDashboardLayout(v1(allOn()))), [
-    "todayMeals:m", "habits:l", "chores:l", "goals:m", "inventory:s", "grocery:s", "recipes:m",
+    "todayMeals:m", "habits:l", "chores:m", "goals:m", "inventory:s", "grocery:s", "recipes:m",
   ]);
 });
 
 test("v1: Inventory off, Grocery went full, so it becomes Medium", () => {
   assert.deepEqual(sizes(parseDashboardLayout(v1(off("inventory")))), [
-    "todayMeals:m", "habits:l", "chores:l", "goals:m", "grocery:m", "recipes:m",
+    "todayMeals:m", "habits:l", "chores:m", "goals:m", "grocery:m", "recipes:m",
   ]);
 });
 
 test("v1: Grocery off, Inventory went full, so it becomes Medium", () => {
   assert.deepEqual(sizes(parseDashboardLayout(v1(off("grocery")))), [
-    "todayMeals:m", "habits:l", "chores:l", "goals:m", "inventory:m", "recipes:m",
+    "todayMeals:m", "habits:l", "chores:m", "goals:m", "inventory:m", "recipes:m",
   ]);
 });
 
 test("v1: both halves off, they are gone and nothing else changes", () => {
   const out = parseDashboardLayout(v1(off("inventory", "grocery")));
-  assert.deepEqual(sizes(out), ["todayMeals:m", "habits:l", "chores:l", "goals:m", "recipes:m"]);
+  assert.deepEqual(sizes(out), ["todayMeals:m", "habits:l", "chores:m", "goals:m", "recipes:m"]);
 });
 
 test("v1: halves moved apart both went full, so both become Medium", () => {
@@ -90,7 +90,7 @@ test("v1: reordered keeps the person's order, uid is the kind", () => {
   ];
   const out = parseDashboardLayout(JSON.stringify(v1(reordered)));
   assert.deepEqual(uids(out), ["recipes", "inventory", "todayMeals", "habits", "chores", "goals"]);
-  assert.deepEqual(sizes(out), ["recipes:m", "inventory:m", "todayMeals:m", "habits:l", "chores:l", "goals:m"]);
+  assert.deepEqual(sizes(out), ["recipes:m", "inventory:m", "todayMeals:m", "habits:l", "chores:m", "goals:m"]);
   assert.ok(out.widgets.every((w) => w.uid === w.kind));
 });
 
@@ -144,6 +144,7 @@ test("v1: a saved four-widget layout gains habits, chores and goals after todayM
   );
   assert.deepEqual(uids(out), ["todayMeals", "habits", "chores", "goals", "grocery", "recipes"]);
   assert.equal(out.widgets.find((w) => w.kind === "grocery")?.size, "m");
+  assert.equal(out.widgets.find((w) => w.kind === "chores")?.size, "m"); // decision 214
 });
 
 test("v1: goals lands right after todayMeals even when todayMeals was moved last", () => {

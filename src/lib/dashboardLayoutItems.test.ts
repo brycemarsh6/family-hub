@@ -30,7 +30,7 @@ test("items: survive a round trip on habits and goals, in picked order", () => {
   const stored = layoutOf([
     { uid: "todayMeals", kind: "todayMeals", size: "m" },
     { uid: "habits", kind: "habits", size: "l", items: ["h3", "h1", "h2"] },
-    { uid: "chores", kind: "chores", size: "l" },
+    { uid: "chores", kind: "chores", size: "m" },
     { uid: "goals", kind: "goals", size: "m", items: ["g2", "g1"] },
     { uid: "inventory", kind: "inventory", size: "s" },
   ]);

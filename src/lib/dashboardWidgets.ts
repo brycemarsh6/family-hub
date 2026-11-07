@@ -42,7 +42,7 @@ type DashboardWidgetDef = {
 export const DASHBOARD_WIDGETS: Record<DashboardWidgetKind, DashboardWidgetDef> = {
   todayMeals: { label: "Today's meals", sizes: ["m"], defaultSize: "m", onTablet: true },
   habits: { label: "Habits", sizes: ["m", "l"], defaultSize: "l", onTablet: false },
-  chores: { label: "Chores today", sizes: ["m", "l"], defaultSize: "l", onTablet: false },
+  chores: { label: "Chores today", sizes: ["m", "l"], defaultSize: "m", onTablet: false },
   goals: { label: "Goals this week", sizes: ["m"], defaultSize: "m", onTablet: true },
   inventory: { label: "Inventory", sizes: ["s", "m"], defaultSize: "s", onTablet: true },
   grocery: { label: "Grocery", sizes: ["s", "m"], defaultSize: "s", onTablet: true },
@@ -63,7 +63,6 @@ export const DASHBOARD_PICKER_LABELS = {
   pick: "Pick",
   showing: "Showing",
   notShowing: "Not showing",
-  back: "Back to Customize",
 } as const;
 
 /** Most items a widget keeps picked; the parser cuts anything past it. */

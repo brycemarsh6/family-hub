@@ -55,7 +55,7 @@ function isWidgetSize(value: unknown): value is WidgetSize {
   return typeof value === "string" && (WIDGET_SIZES as readonly string[]).includes(value);
 }
 
-/** The kind itself when free, else `kind-2`, `kind-3`, ...: the smallest free one. The one uid rule for the parser, the upgrade and Add. */
+/** The kind itself when free, else `kind-2`, `kind-3`, ...: the smallest free one. The one uid rule for the parser's repair and Add. */
 export function nextWidgetUid(taken: Iterable<string>, kind: DashboardWidgetKind): string {
   const used = new Set(taken);
   if (!used.has(kind)) return kind;

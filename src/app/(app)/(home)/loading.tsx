@@ -14,9 +14,9 @@ import { gridAreaVars } from "@/lib/dashboardGrid";
 //
 // The blocks follow the default layout through the same packer and the same
 // CSS variables as DashboardWidgetList, at both column counts, with the same
-// row rule (auto rows, 9.5rem minimum per cell, decision 209), so the page does not jump when the real tiles land. A person's
-// saved layout can differ from the default; the grid still has the right
-// shape. Re-check this if the grid's row height or gap changes.
+// row rule (auto rows, 9.5rem minimum per cell, decision 209), so the
+// skeleton's shape matches the real tiles. A person's saved layout can differ
+// from the default; the grid still has the right shape. Re-check this if the grid's row height or gap changes.
 export default function Loading() {
   const areas = gridAreaVars(DEFAULT_DASHBOARD_LAYOUT.widgets.map((widget) => widget.size));
   return (

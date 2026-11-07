@@ -76,9 +76,9 @@ export default function DashboardWidgetGallery({
       <div
         ref={strip}
         onScroll={onScroll}
-        // A tap scrolls a card into view smoothly; the dot follows when that scroll ends.
+        // A tap scrolls its card into view smoothly (the card's onClick); the dot follows when that scroll ends.
         onScrollEnd={onScroll}
-        className="relative flex snap-x snap-mandatory items-end gap-3 overflow-x-auto px-3 pb-2"
+        className="relative flex snap-x snap-mandatory items-end gap-3 overflow-x-auto px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {sizes.map((size) => {
           const isSelected = size === selected;
@@ -88,7 +88,10 @@ export default function DashboardWidgetGallery({
               type="button"
               aria-pressed={isSelected}
               aria-label={WIDGET_SIZE_LABELS[size]}
-              onClick={() => onSelect(size)}
+              onClick={(event) => {
+                onSelect(size);
+                event.currentTarget.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+              }}
               className="flex min-h-12 shrink-0 snap-center flex-col items-center gap-1.5 rounded-2xl p-1.5 transition-colors active:bg-surface-2"
             >
               <span

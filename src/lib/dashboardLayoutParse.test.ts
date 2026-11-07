@@ -25,7 +25,7 @@ test("default layout: registry order, each kind at its default size, uid is the 
   assert.deepEqual(DEFAULT_DASHBOARD_LAYOUT.widgets, [
     { uid: "todayMeals", kind: "todayMeals", size: "m" },
     { uid: "habits", kind: "habits", size: "l" },
-    { uid: "chores", kind: "chores", size: "l" },
+    { uid: "chores", kind: "chores", size: "m" },
     { uid: "goals", kind: "goals", size: "m" },
     { uid: "inventory", kind: "inventory", size: "s" },
     { uid: "grocery", kind: "grocery", size: "s" },

@@ -442,7 +442,7 @@ From AGENTS.md, absolute for every agent:
   Captain re-checks the test names; Vision re-runs the Gauntlet.
 
 ### C5 - gate fixes, pass 2 (Strange's blocker via decision 214, notes)
-- **Status:** OPEN
+- **Status:** DONE (Gauntlet green per Stark, 1191 tests)
 - **Boundaries:** may touch: `src/lib/dashboardWidgets.ts`,
   `src/lib/dashboardLayout.ts` (the `nextWidgetUid` comment only),
   `src/lib/dashboardLayoutParse.test.ts`, `src/lib/dashboardLayoutEdits.test.ts`,
