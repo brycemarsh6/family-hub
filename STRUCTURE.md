@@ -940,6 +940,13 @@ Adding a second definition of any of these is a BLOCKER:
   caller would reintroduce this with no compile error"* — and `MonthJumpSheet`
   was that third caller, one mission later, wrong on arrival: **282 of 730
   days** across 2026–27 painted a today marker on a foreign month's cell.)
+- **Month lane counts have one home.** `PHONE_LANES` (3) and `WIDE_LANES`
+  (4) live in `src/lib/monthLayout.ts`. MonthGrid lays each row out once
+  with `WIDE_LANES`; the phone's "+N more" is `phoneOverflowByDay` of that
+  one layout, which lane slots draw at which width is `laneVisibility`,
+  and CSS hides the fourth lane under 48rem. A second `assignLanes` call
+  per row, or a lane count written in a component, is a BLOCKER.
+  (Mission-46/C2 and F1, Captain's A-L2-2.)
 - **Page opt-outs from the app frame are data attributes that the chrome
   reads with `has-[[…]]:`**, never a page reaching into the chrome. Three
   exist: `data-fills-viewport` (the calendar's hour timeline: `<main>` drops
@@ -950,7 +957,9 @@ Adding a second definition of any of these is a BLOCKER:
   `data-page-width="wide"` (mission-44, below). The
   `AppChrome.tsx` comment above `<main>` lists every attribute and its
   users; a new opt-out adds itself there and here. (Mission-41, Captain's A4.)
-- **Wide pages (mission-44, the iPad landscape plan).** A page that should
+- **Wide pages (mission-44, the iPad landscape plan).** Two pages are
+  wide: the dashboard (mission-44) and the Calendar (mission-46, every
+  view). A page that should
   use the whole width of a landscape iPad puts `data-page-width="wide"` on
   its root element (and on its `loading.tsx` root, so it is wide from the
   first paint). From `md` up, `<main>`, the wordmark header's row and the
@@ -975,6 +984,14 @@ Adding a second definition of any of these is a BLOCKER:
   3. **A row never stretches past a readable width.** More columns, more
      panels or a wider grid; never one 1148px row. Fixed bars (`AddItemBar`)
      stay centered at 768px.
+  The Calendar's containers are the Year grid, the Month grid, each
+  `TimelineDayColumn` (so text size follows the column's own width, not
+  how many columns there are) and the Schedule two-panel row (plus the
+  all-day "+N more" label's own older container); never the
+  `CalendarViews` root, which holds every sheet. `data-page-width="wide"`
+  and `data-fills-viewport` combine on the Calendar: the first lifts the
+  width cap, the second drops the bottom padding on the hour timeline.
+  (Mission-46, Captain's A-L2-1.)
   The wordmark header has an empty slot, `WORDMARK_HEADER_ACTIONS_ID`
   (`src/lib/appChrome.ts`), at its right end; a page whose state owns a
   header button portals the button into it (the dashboard's Customize,
@@ -1146,6 +1163,9 @@ Adding a second definition of any of these is a BLOCKER:
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (actions/groceries.ts
   was split three ways at ~624 before hitting the hard cap; current largest
   hand-written files sit in the ~350–420 range.)
+  Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 578 total /
+  about 361 code (89% of the hard cap; the next Schedule feature extracts
+  the two-panel wrapper), `CalendarViews.tsx` 502, `MonthCell.tsx` 367.
 - **Hard cap: 650 lines** — crossing it needs a written justification in the
   file header, or it's a BLOCKER. `src/generated/` is exempt, and so is
   `prisma/schema.prisma`: a Prisma schema is a single declarative file that

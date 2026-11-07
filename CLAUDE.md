@@ -243,13 +243,13 @@ Replace this section at the end of each session. Don't append.
   column per person (swipe sideways), rows by time of day, Filter, and a
   household order set by dragging on Manage family (`User.familyOrder`).
   Leftovers in `.avengers/missions/mission-41-habits-family-columns.md`.
-- **iPad landscape L1 (mission 44)** is being built on branch
-  `claude/ipad-landscape-plan` (PR #62): the width rule for the kitchen
-  iPad in landscape, and the dashboard as the first wide page (no page
-  title, Customize in the wordmark header). Plan for every page, approved
-  by Bryce (decisions 215 to 223):
-  `.avengers/plans/ipad-landscape-v1.md`. Next: L2 (Calendar), then the
-  Calendar widget W2 (`.avengers/plans/dashboard-widgets-v2.md`).
+- **iPad landscape:** L1 (mission 44, PR #62) made the dashboard wide.
+  L2 (mission 46) makes the Calendar wide on branch
+  `claude/ipad-landscape-l2-calendar-46358d`: a sticky mini month beside
+  Schedule, 4 readable chips a day on wide Month, readable wide Week
+  columns, Year 4 across (decisions 225 to 232; 229 to 232 decided by Hill). Plan:
+  `.avengers/plans/ipad-landscape-v1.md`. Next: W2, the Calendar widget
+  (`.avengers/plans/dashboard-widgets-v2.md`), then L3 (Habits).
 - **Dashboard widgets W1 (mission 43)** passed its gates on 2026-11-06
   from branch `claude/dashboard-customizable-widgets-a9d4c0`: widgets have
   sizes (Small, Medium, Large, Extra large), a kind can be added more than
@@ -352,6 +352,11 @@ Replace this section at the end of each session. Don't append.
   tablet: Settings, Sign out (it is still Emily, so one tap), tap the
   "Tablet" chip at the bottom, enter that password. Then on the tablet try
   Settings, Sign out: a wrong admin password is refused, yours signs it out.
+- **Landscape Calendar check** (about 3 minutes): on the kitchen iPad
+  sideways, open Calendar, Schedule: a month card on the left; tap a day
+  and the list jumps there; scroll and the ring follows. Month: 4 events
+  a day you can read. Week: titles and times readable. Year: 4 across.
+  Upright, Schedule is the list alone as before.
 - **Landscape dashboard check** (about 2 minutes): turn the kitchen iPad
   sideways and reload the dashboard: the tiles fill the screen in 4
   columns, there is no "Dashboard" title, and Customize sits in the top

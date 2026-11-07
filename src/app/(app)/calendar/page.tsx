@@ -201,8 +201,10 @@ export default async function CalendarPage({
   // loading.tsx's 143px skeleton offset both depend on it. Change it and
   // both must be re-derived. The bottom half is dropped on the hour
   // timeline views (they fill the viewport; see AppChrome's `<main>`).
+  // `data-page-width="wide"` lifts the 768px cap (STRUCTURE.md "Wide pages",
+  // mission-46).
   return (
-    <div className="py-2 has-[[data-fills-viewport]]:pb-0">
+    <div data-page-width="wide" className="py-2 has-[[data-fills-viewport]]:pb-0">
       <CalendarViews
         events={eventViews}
         tasks={taskViews}
