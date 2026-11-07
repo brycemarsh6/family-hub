@@ -1,7 +1,7 @@
 # Mission 48: Winnie's daily morning briefing
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERED (PR #71 merged `ae8e0a4`, live; waits on Bryce's `CRON_SECRET`)
+**Status:** DELIVERED (PR #71 merged `ae8e0a4`, live; `CRON_SECRET` set 2026-11-07)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/winnie-briefing` (from `origin/main` at `fc9772b`)
 
@@ -519,7 +519,9 @@ Vercel's timer uses to call Marshee. Without it the briefing never runs.
 2. Open vercel.com, the family-hub project, Settings, Environment
    Variables, Add New.
 3. Key: `CRON_SECRET`. Value: the text you copied. Environment:
-   Production only. Turn on Sensitive. Save.
+   Production only. Turn on Sensitive. Save. Make sure no line break comes
+   along at the end: a trailing newline fails the build with
+   `INVALID_CRON_SECRET` (it happened on 2026-11-07).
 4. Deployments, the newest Production one, the three dots, Redeploy. (A
    new variable only reaches the app after a redeploy.)
 5. Optional check: Settings, Cron Jobs. Two jobs for `/api/cron/briefing`
@@ -569,3 +571,9 @@ Vercel's timer uses to call Marshee. Without it the briefing never runs.
   Jobs page.
 - First real send: the first 9 AM Denver run after Bryce sets
   `CRON_SECRET` and redeploys.
+- 2026-11-07: Bryce set `CRON_SECRET` in Vercel (Production, Sensitive),
+  helped by the parent session. The first try failed the build with
+  `INVALID_CRON_SECRET` (a trailing newline); he replaced the value and
+  redeployed; production is Ready on main. Fury re-checked the route: 401
+  without the secret. First real briefing expected 2026-11-08 between 9:00
+  and 9:59 Denver.
