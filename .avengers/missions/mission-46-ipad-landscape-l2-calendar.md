@@ -1,7 +1,7 @@
 # Mission 46: iPad landscape L2 (the Calendar goes wide)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** DELIVERING
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/ipad-landscape-l2-calendar-46358d` (from `origin/main` at `174f74d`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L2 (Calendar section; decisions 215 to 224)
@@ -252,6 +252,8 @@ From AGENTS.md, absolute for every agent:
 | 1 | Captain | PASS | none | NOTES: ScheduleView 577/650 total (361 code), next Schedule feature extracts the two-panel wrapper; MonthCell past the soft cap (373, 253 code); stale comments (ScheduleView:443 "20rem", ScheduleMiniMonth "320px", monthLayout.ts:88,100,158,163); Year 40/60rem and Dashboard 45rem thresholds copied between component and skeleton (L1's note now bites: amendment A-L2-3); AppChrome comment above `<main>` names no users of `data-page-width`. Amendments A-L2-1 to A-L2-4 drafted (below) |
 | 1 | Vision | BLOCKED | (1) MonthCell phone: lane-3-only day shows three blank 16px spacers above "+N more" (fixture: three bars Nov 2 to 4 plus a bar Nov 1 to 2); (2) ScheduleMiniMonth browse offset reapplies when the day in view returns to the month it was set in; (3) 22rem column gives 42px day buttons beside the Sidebar (gaps and border forgot) | Gauntlet green (1260 tests both zones). NOTES: Stark's test counts were 5 high (concurrent runs); assignLanes cap-independence and phoneOverflowByDay verified; stale comments; tapped empty day rings the next day with a row; rAF not cancelled on cleanup; em dash kept at loading.tsx:163 |
 | 1 | Strange | BLOCKED | (1) mini month day buttons 42px beside the Sidebar (same as Vision 3); (2) Schedule title row: the month-jump chevron sits 488px from its title at 1180 (`w-full` on the portaled slot), against "a row never stretches" and mission-19/F2's ruling | Measured clean: mini month 440x404 sticky at top 138, 48px days, arrows browse without scrolling, tap jumps, ring follows scroll, flips month, far day navigates; Month 4 chips 12px and right "+N more" at 1180/820/Sidebar/Rail, 375 same as main; Week 155px cols 12px with times (Rail 144 too; Sidebar 118 stays 10px); Year 4/3/3/2; every sheet full screen; no sideways scroll; dark OK. NOTES: the approved mock has no Schedule title bar on wide (month shows twice now: Bryce's call); dev data too sparse to scroll today to the top (bottom spacer idea); all-day chips stay 9px on wide timelines (follow-up); ring has no accessible state; wide Month leaves about 250px empty below; older: loading labels Year/Day/3 Day as Week, new event returns to Week |
+| 2 | Vision | PASS | none | Gauntlet green with real exit codes (1261 tests; UTC 1254 pass, 7 skipped; build 0); all four pass-1 blockers closed (MonthCell checked by server rendering the real component); STRUCTURE claims checked one by one. NOTES: the Calendar container list omitted the older all-day "+N more" container (fixed); AppChrome comment above `<main>` names no `data-page-width` users (open, Captain's note); VoiceOver focus drops when a browsed tap remounts the card; "(showing)" not added when the day in view is today; at 375 the Schedule title and chevron now center together, chevron 4px after the title |
+| 2 | Strange | PASS | none | Sidebar: 384px column, 46.6px days; Rail 440px, 48px; chevron 4px from the title at 1180, 820 and 375; long title truncates at 375; browse resets after a scroll round trip; "(showing)" follows the ring; phone Month lane-4-only day shows just "+1 more"; wide Month, Week, Year, sheets unchanged; test events deleted. NOTES: wide Week all-day chips still 9px; title skeleton shows the URL month before the list settles (sparse dev data) |
 
 ## Captain's amendments
 
@@ -340,3 +342,22 @@ From AGENTS.md, absolute for every agent:
   (2, one shared with Vision). Fix batch 1 (F1, F2) dispatched.
 - 2026-11-07: F1 and F2 DONE and committed; A-L2-1 and A-L2-2 written.
   Vision pass 2 and Strange pass 2 dispatched.
+- 2026-11-07: pass 2: Vision PASS, Strange PASS (Captain PASS at pass 1;
+  fix batch changed no structure). Delivering.
+
+## Delivery
+
+- **Shipped:** C1 to C3 and F1, F2 (commits listed by `git log
+  174f74d..HEAD`), STRUCTURE.md A-L2-1 and A-L2-2, CLAUDE.md status and
+  Bryce's "Landscape Calendar check".
+- **Open for Bryce:** keep or hide the Schedule "Month YYYY" title on
+  wide screens (Fury recommends keeping it here, hiding it as a small
+  follow-up because three files measure the header's height); Captain's
+  A-L2-3 and A-L2-4.
+- **Deliberate leftovers:** wide Week and 3 Day all-day chips are still
+  9px (TimelineAllDayStrip, follow-up); AppChrome's comment above
+  `<main>` should name the dashboard and Calendar as `data-page-width`
+  users; a tapped empty day rings the next day that has a row; the mini
+  month loses VoiceOver focus on remount; "(showing)" is missing when the
+  day in view is today; MonthGridSkeletonRows keeps its phone height on
+  wide; wide Month leaves about 250px empty below the grid.

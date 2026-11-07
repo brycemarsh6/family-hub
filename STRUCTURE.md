@@ -979,7 +979,8 @@ Adding a second definition of any of these is a BLOCKER:
      stay centered at 768px.
   The Calendar's containers are the Year grid, the Month grid, each
   `TimelineDayColumn` (so text size follows the column's own width, not
-  how many columns there are) and the Schedule two-panel row; never the
+  how many columns there are) and the Schedule two-panel row (plus the
+  all-day "+N more" label's own older container); never the
   `CalendarViews` root, which holds every sheet. `data-page-width="wide"`
   and `data-fills-viewport` combine on the Calendar: the first lifts the
   width cap, the second drops the bottom padding on the hour timeline.
