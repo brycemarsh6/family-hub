@@ -531,7 +531,22 @@ through `goalsRead`-level code), no auth, no `revalidatePath`, refusals as
   PASS/FAIL, `git diff --stat` inside the boundary, sizes, commit hash,
   and `grep -rn "targetDate === null\|db.visionStatement\|FOR UPDATE"
   src/` output.
-- **Status:** not started.
+- **Status:** DONE at `ee77e0e` (21 files, +203/-114).
+- **Report:** tsc 0, `eslint .` 0, `npm test` 1375 (5 new), UTC 1368 + 7
+  skips, LA 1375, build exit 0. Parity 45 cases 0 FAIL (69 rows MATCH);
+  `c3/live.ts` 125 PASS 0 FAIL; Vision's probe title-edit line PASS
+  (`currentValue` 80 stays 80), `abc` horizon → 400; probe's one FAIL is
+  its own stale snapshot (same line failed in Vision's run; API correct).
+  `weekRows` vs the old inline order on dev: 8 of 8 identical. Counts
+  restored. Grep: `targetDate === null` only in `isOngoingGoal` and the
+  commented `paceStatus`; `db.visionStatement` only in `visionsRead.ts`;
+  goal `FOR UPDATE` only in `goalWrites.ts`. Deviations: `weekRows` in new
+  `src/lib/goalsWeek.ts` (`nextStep` lives in `goals.ts`, which imports
+  `goalsProgress.ts`); **`rebuildGoalNumber` now skips a write that changes
+  nothing, so the family removing a check-in that is not the newest no
+  longer bumps the goal's `updatedAt`** (nothing visible reads it; gates to
+  judge); scratchpad scripts adjusted for the new `today` parameter and
+  port.
 
 ### C4 - records (after the gates)
 
