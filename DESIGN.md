@@ -409,7 +409,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   The Delete label names the value ("Delete 183 lb check-in from Nov 4"),
   because two rows can share a date
 - `ProgressBar` — the only way to show a fraction
-- `ToggleSwitch`: the only on/off switch (`DashboardItemPicker` and `HabitsChoresSettings` use it)
+- `ToggleSwitch`: the only on/off switch (`DashboardItemPicker`, `HabitForm`, `GoalForm` and `HabitsChoresSettings` use it)
 - `LogButton` — the 44px round log/undo control for habits
 - The sheet family: `RadioSheet` (pick one), `ActionSheet` (⋯ menus),
   `ConfirmSheet` (the two count-confirm deletes), `TitleSheet` (name a thing)

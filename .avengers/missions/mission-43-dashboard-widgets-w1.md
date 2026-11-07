@@ -96,6 +96,11 @@ For Bryce first: 200, 201, 203.
 
 For Bryce first: 209, 212.
 
+- **214 (Bryce, 2026-11-06, after Strange pass 2):** Chores today defaults
+  to Medium, not Large, so an empty Chores tile is not a big blank card on
+  the iPad. Bryce: "we can start with medium and I can change it manually
+  in the app after if I want to". Applies to new and upgraded layouts.
+
 Bryce (2026-11-06, back from away): shown 200, 203, 209 and 212; said
 "please continue", so all of Hill's calls stand. Design calls go to Bryce
 again from here.
@@ -436,6 +441,46 @@ From AGENTS.md, absolute for every agent:
   (dots, previews, 30-widget list, back labels, Large tiles, cap line);
   Captain re-checks the test names; Vision re-runs the Gauntlet.
 
+### C5 - gate fixes, pass 2 (Strange's blocker via decision 214, notes)
+- **Status:** OPEN
+- **Boundaries:** may touch: `src/lib/dashboardWidgets.ts`,
+  `src/lib/dashboardLayout.ts` (the `nextWidgetUid` comment only),
+  `src/lib/dashboardLayoutParse.test.ts`, `src/lib/dashboardLayoutEdits.test.ts`,
+  `src/lib/dashboardLayoutUpgrade.test.ts`, `src/lib/dashboardLayoutItems.test.ts`,
+  `src/lib/dashboardWidgets.test.ts`, `src/lib/dashboardGrid.test.ts`,
+  `src/components/DashboardWidgetGallery.tsx`,
+  `src/components/DashboardItemPicker.tsx`,
+  `src/app/(app)/(home)/loading.tsx` (its comment only),
+  `src/app/(app)/(home)/page.tsx` (one comment only) · must not touch:
+  `src/lib/dashboardGrid.ts`, `src/lib/dashboardPicks.ts`,
+  `src/components/DashboardWidgetList.tsx`, `src/app/actions/`, `prisma/`,
+  `package.json`, `DESIGN.md`, `STRUCTURE.md`, `CLAUDE.md`, `.env`.
+- **Spec:**
+  1. **Decision 214.** `DASHBOARD_WIDGETS.chores.defaultSize` becomes `"m"`
+     (sizes stay `["m","l"]`). Update test expectations that assumed Large
+     Chores in the default or the v1 upgrade, and add one assertion that a
+     v1 layout with Chores enabled upgrades to Chores at `"m"`.
+  2. **Tap scrolls into view.** In the gallery card's onClick, after
+     selecting, call `scrollIntoView({ behavior: "smooth", inline:
+     "center", block: "nearest" })` on that card, so the existing
+     `onScrollEnd` moves the dot to it. Keep the comment true.
+  3. **One scroll indicator.** Hide the strip's scrollbar
+     (`[scrollbar-width:none]` plus `[&::-webkit-scrollbar]:hidden`).
+  4. **True comments.** `loading.tsx`: say the skeleton follows the same
+     packer and row minimum, not that the page "does not jump".
+     `dashboardLayout.ts`: the `nextWidgetUid` comment says "the parser's
+     repair and Add", not "the upgrade". `page.tsx` around line 74: drop
+     "like habits".
+  5. **One phrase once.** `DASHBOARD_PICKER_LABELS.back` points at
+     `DASHBOARD_WIDGET_WORDS.backToCustomize` (or is removed with
+     `backLabel` made required), so "Back to Customize" is written once.
+  - No em or en dashes. Each file under 350 lines.
+- **Verification:** the whole Gauntlet passes.
+- **Evidence required:** each Gauntlet command's tail; the test count
+  (1191 plus any added); `git status --short`.
+- **Done criteria:** Strange re-checks the default dashboard at 820 and the
+  gallery tap at 375; Vision re-runs the Gauntlet.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -443,6 +488,9 @@ From AGENTS.md, absolute for every agent:
 | 1 | Captain | BLOCKED | 1: second test split keeps the bare dashboardLayout.test.ts name (STRUCTURE.md test-split rule); Upgrade header does not name dashboardLayout.ts | uid-rule overclaim (default and upgradeV1 hand-write uid: kind); goals load wording; habitsRead 365/277; KIND_ICONS second icon map; inline "+N more" and tile titles in page.tsx; sheet header row x4; DESIGN.md ToggleSwitch example stale; dashboardLoaders comments cite gone kitchen/page.tsx; proposed dependency clause for dashboardGrid/dashboardLoaders; naming of DashboardAddWidget (no action) |
 | 1 | Vision | PASS | none | exhaustive v1 differential (1,935,360 rows) identical; v2 and packer fuzz clean. NOTES: uid reuse in flight shows old tile briefly; client saves the filtered `renderable` layout (inert today); sheet fallback does not reset `view`; re-tap of selected size re-saves; inline "Customize dashboard" / "Reset to default"; Large Habits/Chores taller (for Strange); layout read now serial; goals-load doc wording; habitsRead 365/277 |
 | 1 | Strange | BLOCKED | 5: (1) gallery dots light the wrong card, offsetLeft measured from the dialog, dots shown when the strip cannot scroll; (2) preview SHAPES draw Large narrower than Medium, Small label truncates; (3) sheet buttons squash below 48px with long lists (flex col + max-h, no shrink-0); (4) back controls "Back to Customize" go elsewhere from the Add kind view and from Pick; (5) Large Habits/Chores with little content are big empty cards on the default dashboard (Chores 343x320, 67% empty) | iPad 4-col collage for everyone (Bryce iPad check); cap disabled with no words; pressed accent button contrast 3.37 (app-wide sweep); duplicate kinds indistinguishable; Remove optimistic needs DESIGN.md exception; loading.tsx jump (pre-existing); Grocery Small line-clamp; tapped card half hidden; faint dark dots; DESIGN.md ToggleSwitch line stale |
+| 2 | Captain | PASS | none | 20 test cases before and after the split; all doc claims true. NOTES: "Back to Customize" defined twice in dashboardWidgets.ts; nextWidgetUid comment still says "the upgrade"; page.tsx:74 "like habits"; DESIGN.md ToggleSwitch list omits HabitForm and GoalForm |
+| 2 | Vision | PASS | none | Gauntlet re-run green (1191; UTC 1184 + 7 existing skips; build ok); 44 test names identical before and after the split, no assertion lost. NOTES: setView during render is safe (own state, one re-render); ResizeObserver watches only the strip (safe, gallery remounts per kind); onScrollEnd valid, onScroll still covers Safari without scrollend; label swap byte-identical; process: Fury's doc edits shared Stark's commit, next time commit them apart |
+| 2 | Strange | BLOCKED | 1: blocker 5 fixed at 375 but not at 820: default Chores today Large is 360x267 with 81px of content (about 70% empty) because its 2 rows are set by Habits and Goals beside it; needs a design call (Strange recommends Chores default Medium) | blockers 1 to 4 and the cap line FIXED with measurements; tapped half-hidden card not scrolled into view and the gallery comment claims it is; loading skeleton now taller than real tiles; gallery shows a scrollbar line plus dots; dark inactive dot faint; no regressions |
 
 ## Handoff log
 
