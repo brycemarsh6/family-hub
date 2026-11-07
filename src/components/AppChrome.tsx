@@ -11,6 +11,7 @@ import { PinnedNav } from "@/components/PinnedNav";
 import {
   HAMBURGER_ROW_HEIGHT_PX,
   pinnedNavWidthPx,
+  WORDMARK_HEADER_ACTIONS_ID,
   showsWordmarkHeader,
 } from "@/lib/appChrome";
 import type { NavMode } from "@/lib/navMode";
@@ -63,7 +64,7 @@ export function AppChrome({
           `src/lib/appChrome.ts`, which carries the dependents list.
         */
         <header className="print:hidden sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-3xl items-center gap-2 px-4 py-3">
+          <div className="mx-auto flex w-full max-w-3xl items-center gap-2 px-4 py-3 md:[body:has([data-page-width=wide])_&]:max-w-none">
             {user && <HamburgerButton onSendFeedback={openFeedback} pinned={pinnedMode !== null} />}
             {/* The wordmark alone, in brand Sage — no icon tile beside it.
                 The mark and the word say the same thing, so showing both in
@@ -73,6 +74,9 @@ export function AppChrome({
             <Link href="/" className="flex min-h-12 items-center">
               <MarsheeWordmark className="h-10 w-auto text-brand-sage" />
             </Link>
+            {/* Empty slot: a wide page portals its action here (the
+                dashboard's Customize button). */}
+            <div id={WORDMARK_HEADER_ACTIONS_ID} className="ml-auto flex items-center" />
           </div>
         </header>
       ) : (
@@ -87,9 +91,12 @@ export function AppChrome({
           timeline, which already ends at the viewport bottom) drops the
           bottom padding so the document doesn't scroll past it. A page holding
           a `data-fills-width` element (Whole family's columns on an iPad) lifts
-          the width cap and fills exactly one screen from `md` up. */}
+          the width cap and fills exactly one screen from `md` up. A page whose root
+          carries `data-page-width="wide"` lifts only the width cap from `md`
+          up (the wordmark header row and the floating hamburger row lift
+          theirs to match) and scrolls as usual. */}
       <main
-        className={`mx-auto w-full max-w-3xl flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] has-[[data-fills-viewport]]:pb-0 has-[[data-fills-width]]:md:h-dvh has-[[data-fills-width]]:md:max-w-none has-[[data-fills-width]]:md:flex-none has-[[data-fills-width]]:md:flex-col has-[[data-fills-width]]:md:pb-3 has-[[data-fills-width]]:md:flex print:pb-0 ${
+        className={`mx-auto w-full max-w-3xl flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] has-[[data-fills-viewport]]:pb-0 has-[[data-fills-width]]:md:h-dvh has-[[data-fills-width]]:md:max-w-none has-[[data-fills-width]]:md:flex-none has-[[data-fills-width]]:md:flex-col has-[[data-fills-width]]:md:pb-3 has-[[data-fills-width]]:md:flex has-[[data-page-width=wide]]:md:max-w-none print:pb-0 ${
           wordmark ? "pt-4" : ""
         }`}
         style={
