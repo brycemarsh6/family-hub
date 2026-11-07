@@ -20,8 +20,18 @@ const off = (...ids: string[]): V1[] => allOn().map((w) => (ids.includes(w.id) ?
 const uids = (layout: DashboardLayout) => layout.widgets.map((w) => w.uid);
 const sizes = (layout: DashboardLayout) => layout.widgets.map((w) => `${w.kind}:${w.size}`);
 
-test("v1 default (everything on) upgrades to exactly the v2 default", () => {
-  assert.deepEqual(parseDashboardLayout(v1(allOn())), DEFAULT_DASHBOARD_LAYOUT);
+test("v1 default (everything on) upgrades to the v2 default without the Calendar (W2 never adds it)", () => {
+  assert.deepEqual(parseDashboardLayout(v1(allOn())), {
+    ...DEFAULT_DASHBOARD_LAYOUT,
+    widgets: DEFAULT_DASHBOARD_LAYOUT.widgets.filter((w) => w.kind !== "calendar"),
+  });
+});
+
+test("v1: a stored row that lacks Calendar, or has none of its own, never gains it", () => {
+  assert.ok(!parseDashboardLayout(v1([{ id: "recipes", enabled: true }])).widgets.some((w) => w.kind === "calendar"));
+  assert.ok(!parseDashboardLayout(v1(allOn().slice(2))).widgets.some((w) => w.kind === "calendar"));
+  // A v1 row naming calendar is not a v1 kind; it is dropped like any unknown id.
+  assert.ok(!parseDashboardLayout(v1([{ id: "calendar", enabled: true }, ...allOn()])).widgets.some((w) => w.kind === "calendar"));
 });
 
 test("v1: all on, the two halves pair into Small and the full widgets keep their widths", () => {

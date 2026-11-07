@@ -3,11 +3,12 @@ import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { resolveServerFetchWindow } from "@/lib/calendarPaging";
 import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
+import { getTasksInDueRange } from "@/lib/calendarTaskQuery";
 import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
 import { CalendarViews } from "@/components/CalendarViews";
-import type { CalendarPersonView, CalendarTaskView } from "@/lib/types";
+import type { CalendarPersonView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,7 @@ export default async function CalendarPage({
   // cross-country round trip (CLAUDE.md's performance section, from the
   // Inventory fix this mirrors) — batching keeps this page at ONE round
   // trip's worth of latency for three queries, not three.
-  const [eventViews, tasks, roster, habitDays] = await Promise.all([
+  const [eventViews, taskViews, roster, habitDays] = await Promise.all([
     // Events joined with their people in the same round trip (Prisma's
     // nested `select`, not a second query) — the select and the
     // row→CalendarEventView mapping both moved to calendarEventQuery.ts in
@@ -84,40 +85,9 @@ export default async function CalendarPage({
     // why (the personInfo.ts precedent, and why this one carries
     // `server-only` when personInfo.ts doesn't).
     getCalendarEventsInRange(windowStart, windowEnd),
-    // A Task has one due date, not a start/end span, so "in range" is a
-    // plain point-in-window test rather than the events query's overlap
-    // test above. `dueDate` is stored at UTC midnight (Task's own schema
-    // comment, mission-13/CT1's fixed all-day convention — the same one
-    // CalendarEvent's all-day rows now use), and `windowStart`/`windowEnd`
-    // already carry `WINDOW_TZ_SKEW_PAD_DAYS` of padding for exactly this
-    // UTC-vs-device-local gap (calendarPaging.ts's own header), so no
-    // separate skew handling is needed here.
-    db.task.findMany({
-      where: { dueDate: { gte: windowStart, lt: windowEnd } },
-      orderBy: { dueDate: "asc" },
-      select: {
-        id: true,
-        title: true,
-        details: true,
-        dueDate: true,
-        completedAt: true,
-        people: {
-          select: {
-            // mission-16/C10 — `deactivatedAt` added here so the fact
-            // lives on the TASK's own people, never inferred from window
-            // membership. See taskViews' own mapping below for why: the
-            // roster fetched a few lines down is scoped to THIS page's
-            // window, but ScheduleView's client-side fetch
-            // (actions/tasks.ts's fetchTasks, which shares this exact
-            // select) can load a task from far outside it, where the
-            // roster carries no opinion about that person at all.
-            user: {
-              select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
-            },
-          },
-        },
-      },
-    }),
+    // Tasks in the same padded window (calendarTaskQuery.ts says why the
+    // bounds need no separate skew handling, and owns `isMine`).
+    getTasksInDueRange(windowStart, windowEnd, user ? user.userId : null),
     // The full household roster, kids included — a task can be reassigned
     // to a kid even though only a manager can open the edit view
     // (TaskDetailSheet's own `canManage` gate).
@@ -157,36 +127,6 @@ export default async function CalendarPage({
         )
       : Promise.resolve([]),
   ]);
-
-  const taskViews: CalendarTaskView[] = tasks.map((task) => ({
-    id: task.id,
-    title: task.title,
-    details: task.details,
-    dueDate: task.dueDate,
-    completedAt: task.completedAt,
-    people: task.people.map((person) => ({
-      userId: person.user.id,
-      displayName: person.user.displayName,
-      avatarColor: person.user.avatarColor,
-      // mission-16/C10 — a fact about THIS person on THIS task, read
-      // straight off the row the query above already joined. Fixes the
-      // mission-16/C8 regression: that version widened the ROSTER to
-      // cover deactivated people, which only reaches tasks inside this
-      // page's own window — a task ScheduleView loads from further out
-      // got a roster with no opinion on its assignees at all, so a
-      // deactivated person on it vanished from the picker with no marker
-      // and no way to unassign. Carrying the flag here means it's true
-      // (or false) regardless of which window fetched the task.
-      deactivated: person.user.deactivatedAt !== null,
-    })),
-    // Per D3 (mission-14's Banner brief): computed here, from the verified
-    // session against real TaskPerson rows already joined above — never a
-    // role or user object handed down for a component to gate on. `user`
-    // is the same getVerifiedUser() result canManage already used; a
-    // signed-out request never reaches this page (proxy.ts), but the
-    // `user !== null` guard keeps this correct even if that ever changes.
-    isMine: user !== null && task.people.some((person) => person.user.id === user.userId),
-  }));
 
   const people: CalendarPersonView[] = roster.map((person) => ({
     userId: person.id,

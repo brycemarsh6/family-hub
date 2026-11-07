@@ -7,6 +7,7 @@
 // test pins the record's key order to it.
 
 export const DASHBOARD_WIDGET_KINDS = [
+  "calendar",
   "todayMeals",
   "habits",
   "chores",
@@ -40,6 +41,7 @@ type DashboardWidgetDef = {
 };
 
 export const DASHBOARD_WIDGETS: Record<DashboardWidgetKind, DashboardWidgetDef> = {
+  calendar: { label: "Calendar", sizes: ["s", "m", "l", "xl"], defaultSize: "l", onTablet: true },
   todayMeals: { label: "Today's meals", sizes: ["m"], defaultSize: "m", onTablet: true },
   habits: { label: "Habits", sizes: ["m", "l"], defaultSize: "l", onTablet: false },
   chores: { label: "Chores today", sizes: ["m", "l"], defaultSize: "m", onTablet: false },
@@ -91,4 +93,24 @@ export const DASHBOARD_WIDGET_WORDS = {
   backTo: (name: string) => `Back to ${name}`,
   /** The muted line under a disabled Add button at the cap (decision 211). */
   full: "Your dashboard is full. Remove a widget to add another.",
+} as const;
+
+/** The words the Calendar widget and its options add in W2 (decision 238). */
+export const CALENDAR_WIDGET_WORDS = {
+  options: "Options",
+  tasksOnly: "Tasks only",
+  wholeDay: "Whole day",
+  days: "Days",
+  days3: "3 days",
+  days7: "7 days",
+  nextEmpty: "Nothing in the next 7 days",
+  nextEmptyTasks: "No tasks in the next 7 days",
+  todayEmpty: "Nothing today",
+  todayEnded: "Nothing else today",
+  todayEmptyTasks: "No tasks today",
+  dayEmpty: "Nothing",
+  dayEmptyTasks: "No tasks",
+  today: "Today",
+  tomorrow: "Tomorrow",
+  allDay: "All day",
 } as const;

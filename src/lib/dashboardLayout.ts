@@ -1,3 +1,4 @@
+import { cleanWidgetOptions, type DashboardWidgetOptions } from "@/lib/dashboardWidgetOptions";
 import {
   DASHBOARD_WIDGETS,
   DASHBOARD_WIDGET_KINDS,
@@ -29,6 +30,8 @@ export type DashboardWidget = {
   size: WidgetSize;
   /** The ids the person picked, in picked order; only `habits` and `goals` carry it. Shape only: the page checks the ids are theirs. */
   items?: string[];
+  /** Per-widget settings; only `calendar` carries them. Always cleaned, so a stored key outside the kind's options never survives. */
+  options?: DashboardWidgetOptions;
 };
 
 export type DashboardLayout = {
@@ -38,11 +41,14 @@ export type DashboardLayout = {
 
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayout = {
   version: 2,
-  widgets: DASHBOARD_WIDGET_KINDS.map((kind) => ({
-    uid: kind,
-    kind,
-    size: DASHBOARD_WIDGETS[kind].defaultSize,
-  })),
+  widgets: [
+    { uid: "calendar", kind: "calendar", size: "l" },
+    ...DASHBOARD_WIDGET_KINDS.filter((kind) => kind !== "calendar").map((kind) => ({
+      uid: kind,
+      kind,
+      size: DASHBOARD_WIDGETS[kind].defaultSize,
+    })),
+  ],
 };
 
 const UID_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
@@ -88,13 +94,16 @@ function defaultLayout(): DashboardLayout {
 }
 
 /** The kinds v1's registry rendered half width; every other kind rendered full. Frozen: v1 is history. */
+/** The seven kinds v1's registry had. Frozen: a v1 layout upgrades to what W1 made of it, so the repair never adds `calendar`. */
+const V1_KINDS: readonly DashboardWidgetKind[] = ["todayMeals", "habits", "chores", "goals", "inventory", "grocery", "recipes"];
+
 const V1_HALF_KINDS: readonly DashboardWidgetKind[] = ["inventory", "grocery"];
 
 /**
  * A saved v1 layout to v2, with the repair v1's own parser did: unknown ids
  * dropped, duplicates removed (first wins), and registry ids missing from the
  * stored row added switched on, directly after the nearest id before it in
- * DASHBOARD_WIDGET_KINDS that is already in the list (at the start if none
+ * V1_KINDS that is already in the list (at the start if none
  * is). Then the switched-off widgets go and the rest are sized by v1's
  * pairing rule, so the dashboard looks as it did: two consecutive switched-on
  * half widgets (inventory, grocery) become Small, a half widget with no half
@@ -108,7 +117,7 @@ function upgradeV1(entries: unknown[]): DashboardLayout {
   for (const entry of entries) {
     if (typeof entry !== "object" || entry === null) continue;
     const { id, enabled, items } = entry as { id?: unknown; enabled?: unknown; items?: unknown };
-    if (!isWidgetKind(id) || seen.has(id)) continue;
+    if (!isWidgetKind(id) || !V1_KINDS.includes(id) || seen.has(id)) continue;
     seen.add(id);
     old.push({
       kind: id,
@@ -116,9 +125,9 @@ function upgradeV1(entries: unknown[]): DashboardLayout {
       items: isPickableWidget(id) ? cleanItems(items) : null,
     });
   }
-  DASHBOARD_WIDGET_KINDS.forEach((kind, index) => {
+  V1_KINDS.forEach((kind, index) => {
     if (seen.has(kind)) return;
-    const before = DASHBOARD_WIDGET_KINDS.slice(0, index).reverse().find((other) => seen.has(other));
+    const before = V1_KINDS.slice(0, index).reverse().find((other) => seen.has(other));
     const at = before === undefined ? 0 : old.findIndex((w) => w.kind === before) + 1;
     old.splice(at, 0, { kind, enabled: true, items: null });
     seen.add(kind);
@@ -152,17 +161,25 @@ function parseV2(entries: unknown[]): DashboardLayout {
   for (const entry of entries) {
     if (widgets.length >= MAX_DASHBOARD_WIDGETS) break;
     if (typeof entry !== "object" || entry === null) continue;
-    const { uid, kind, size, items } = entry as { uid?: unknown; kind?: unknown; size?: unknown; items?: unknown };
+    const { uid, kind, size, items, options } = entry as {
+      uid?: unknown;
+      kind?: unknown;
+      size?: unknown;
+      items?: unknown;
+      options?: unknown;
+    };
     if (!isWidgetKind(kind)) continue;
     const goodUid = typeof uid === "string" && UID_PATTERN.test(uid) && !taken.has(uid);
     const finalUid = goodUid ? uid : nextWidgetUid(taken, kind);
     taken.add(finalUid);
     const picked = isPickableWidget(kind) ? cleanItems(items) : null;
+    const kept = cleanWidgetOptions(kind, options);
     widgets.push({
       uid: finalUid,
       kind,
       size: isWidgetSize(size) ? snapSize(kind, size) : DASHBOARD_WIDGETS[kind].defaultSize,
       ...(picked ? { items: picked } : {}),
+      ...(kept ? { options: kept } : {}),
     });
   }
   return { version: 2, widgets };
@@ -231,7 +248,28 @@ export function setWidgetItems(layout: DashboardLayout, uid: string, items: stri
     version: 2,
     widgets: layout.widgets.map((w) => {
       if (w.uid !== uid || !isPickableWidget(w.kind)) return { ...w };
-      return { uid: w.uid, kind: w.kind, size: w.size, ...(picked ? { items: picked } : {}) };
+      const next = { ...w };
+      delete next.items;
+      return picked ? { ...next, items: picked } : next;
+    }),
+  };
+}
+
+/**
+ * Merge `patch` into one widget's options, cleaned the way the parser cleans
+ * them, so a bad value or a key the kind does not have is dropped. An unknown
+ * uid changes nothing, and a widget whose kind has no options stays without
+ * any. Returns a new layout.
+ */
+export function setWidgetOptions(layout: DashboardLayout, uid: string, patch: DashboardWidgetOptions): DashboardLayout {
+  return {
+    version: 2,
+    widgets: layout.widgets.map((w) => {
+      if (w.uid !== uid) return { ...w };
+      const next = { ...w };
+      delete next.options;
+      const merged = cleanWidgetOptions(w.kind, { ...w.options, ...patch });
+      return merged ? { ...next, options: merged } : next;
     }),
   };
 }
