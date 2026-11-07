@@ -174,6 +174,12 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   in Settings. `src/lib/winnieNotify.ts` is the only sender; it reads
   `WINNIE_WEBHOOK_URL` and `WINNIE_WEBHOOK_KEY` (Vercel only) and sends
   nothing if either is missing. Retry rules are in `src/lib/winnieEvents.ts`.
+  **Morning briefing** (mission 48): each adult (admin, parent) gets their
+  day in the 9 o'clock hour Denver (chores, tasks, calendar, meals, Pick a
+  day). Two Vercel crons (15:00 and 16:00 UTC) call
+  `/api/cron/briefing`, which checks `CRON_SECRET` first and sends only
+  inside 9 AM Denver; the `WinnieBriefingSent` table stops a second one.
+  Words in `src/lib/briefing.ts`.
 
 ## Tech stack, and why
 
@@ -276,7 +282,13 @@ Replace this section at the end of each session. Don't append.
   Vercel (Production, Sensitive), redeployed, and a "Send test to Winnie"
   tap arrived in her chat. Winnie's 9 AM to 9 PM Denver window
   is her own routine setting (not Marshee's); she offered to exempt
-  `connection.test` events and keep it for ordinary alerts. No real alerts are wired yet; choosing their rules is next.
+  `connection.test` events and keep it for ordinary alerts. The first real
+  alert is the morning briefing (mission 48, below).
+- **Winnie's morning briefing (mission 48)** is built on branch
+  `claude/winnie-briefing` and merges after its gates. It sends nothing
+  until Bryce sets `CRON_SECRET` in Vercel (checklist). Hill's H2 and H10
+  and amendments A-48-2 and A-48-4 are the calls for Bryce to look at:
+  `.avengers/missions/mission-48-winnie-briefing.md`.
   Details: `.avengers/missions/mission-42-winnie-notify.md`.
 - **Winnie's recipes and meal plan (mission 44)** merged as PR #61
   (`634627a`) on 2026-11-06 and is live (production deploy READY, routes
@@ -307,6 +319,11 @@ Replace this section at the end of each session. Don't append.
   plans and goals (its own mission and chat), then calendar/tasks.
 
 **Bryce's checklist (never blocks work):**
+- **Turn on the morning briefing (mission 48):** in Vercel, Settings,
+  Environment Variables, add `CRON_SECRET` (any long random text, Production,
+  Sensitive), then redeploy. The next morning between 9 and 10, you and
+  Emily should each get "Good morning, ..." from Winnie. Steps and checks are
+  in the mission file's Delivery.
 - **Winnie and private habits (mission 47):** in Vercel add
   `ASSISTANT_OWNER_USER_ID` = your own id (from `GET /family`) to
   Production and redeploy. Until then Winnie sees non-private habits

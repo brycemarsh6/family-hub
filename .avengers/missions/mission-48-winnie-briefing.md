@@ -505,3 +505,45 @@ Preflight's one hard failure on C2 is the schema's length; STRUCTURE.md
   wall-clock hour reader (server code...)" and took Captain's two wording
   notes on A-48-6. Captain said the fix needs only a check of that
   sentence, not a full pass.
+- 2026-11-07: **Captain pass 2: PASS** at c06f964 (wording fix confirmed).
+
+## Delivery
+
+### Bryce's steps (plain English)
+
+**1. Set `CRON_SECRET` in Vercel (about 3 minutes).** This is the password
+Vercel's timer uses to call Marshee. Without it the briefing never runs.
+1. Make a long random password. On the Mac, open Terminal and run
+   `openssl rand -hex 32`, then copy what it prints. Don't paste it into
+   any chat.
+2. Open vercel.com, the family-hub project, Settings, Environment
+   Variables, Add New.
+3. Key: `CRON_SECRET`. Value: the text you copied. Environment:
+   Production only. Turn on Sensitive. Save.
+4. Deployments, the newest Production one, the three dots, Redeploy. (A
+   new variable only reaches the app after a redeploy.)
+5. Optional check: Settings, Cron Jobs. Two jobs for `/api/cron/briefing`
+   should be listed (15:00 and 16:00 UTC). One of them fires inside
+   Denver's 9 o'clock hour each day; the other wakes up, sees it is 8 or
+   10 AM Denver, and sends nothing.
+
+**2. Confirm the first briefing (the next morning).**
+1. Between 9:00 and 10:00 AM Denver, Winnie posts "Good morning, Bryce.
+   Here's <day>." in your chat. It can come any time in that hour (the free
+   plan picks the minute).
+2. Ask Emily whether she got hers ("Good morning, Emily...").
+3. If nothing arrived by 10:00: Vercel, the project, Logs, filter by
+   `/api/cron/briefing`. A line `briefing sent=2 alreadySent=0 failed=0
+   notConfigured=0` means Marshee sent both and Winnie accepted them. A run
+   with no such line and status 200 is the other job (8 or 10 AM Denver),
+   which is normal. A 401 means `CRON_SECRET` is missing or the redeploy
+   didn't happen. `notConfigured=2` means Winnie's webhook settings are
+   missing; `failed` means Winnie refused or couldn't be reached.
+4. Each person gets one per day at most, even if Vercel calls twice.
+
+### Calls for Bryce to look at (none block anything)
+- H2 (medium): multi-day events read the Calendar's "Day 2 of 3 Trip".
+- H10 (medium): if Winnie is down for the whole 9 o'clock hour, that day's
+  briefing is skipped, not sent later.
+- A-48-2 and A-48-4 (medium): STRUCTURE.md homes for event words and the
+  meal-plan week rule.
