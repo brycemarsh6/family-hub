@@ -237,3 +237,15 @@ export function searchRecipes<T extends { title: string; ingredients: string }>(
     .sort((a, b) => b.value - a.value)
     .map((s) => s.recipe);
 }
+
+/**
+ * The row whose name is exactly `name` apart from capitals, or undefined.
+ * Not fuzzy: this is "is this exact thing already here?". It replaced a
+ * Prisma `equals` + `mode: "insensitive"` lookup, which Postgres runs as
+ * ILIKE, where `%` and `_` in the name act as wildcards (mission 45 found
+ * the same trap in cookbook and tag lookups).
+ */
+export function findExactName<T extends { name: string }>(name: string, rows: T[]): T | undefined {
+  const wanted = name.toLowerCase();
+  return rows.find((row) => row.name.toLowerCase() === wanted);
+}
