@@ -1,14 +1,14 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import type { ChangeInput } from "@/lib/assistant/audit";
 import { notFound, toWriteFailure } from "@/lib/assistant/errors";
-import { assistantHabitActor } from "@/lib/assistant/habitActor";
+import { assistantHabitActor } from "@/lib/assistant/habitActorEnv";
 import { getHabit, getHabitDetail, habitSnapshot } from "@/lib/assistant/habitReads";
 import { habitInputFromRow, habitPatchBody, patchedHabitInput } from "@/lib/assistant/schemasHabits";
 import { habitChanges } from "@/lib/assistant/serializeHabits";
 import { requireHouseholdToday } from "@/lib/assistant/today";
 import { db } from "@/lib/db";
 import { canEditHabit } from "@/lib/habits/access";
-import { checkHabitInput } from "@/lib/habits/habitInput";
+import { INCLUDE_YOURSELF, checkHabitInput } from "@/lib/habitInput";
 import { archiveHabit, restoreHabit, updateHabit } from "@/lib/habits/habitWrites";
 import { householdParticipantIds } from "@/lib/habits/participantWrites";
 import { loadHabitForAction } from "@/lib/habitsRead";
@@ -54,6 +54,10 @@ export const PATCH = assistantRoute<{ id: string }, z.output<typeof habitPatchBo
             const current = habitInputFromRow(await tx.habit.findUniqueOrThrow({ where: { id: params.id } }), ids);
             const checked = checkHabitInput(patchedHabitInput(current, edit), household, ids);
             if ("error" in checked) throw toWriteFailure(invalid(checked.error));
+            // The app's rule: you may not leave behind what you could no longer edit (rolls back, nothing recorded).
+            if (!canEditHabit(actor, { isPrivate: checked.fields.isPrivate ?? false, participantIds: checked.participantIds })) {
+              throw toWriteFailure(invalid(INCLUDE_YOURSELF));
+            }
             await updateHabit(params.id, checked.fields, today, tx, { participantIds: checked.participantIds, everyone: checked.everyone });
           }
           if (archived !== undefined && (before.habit.archivedAt !== null) !== archived) {

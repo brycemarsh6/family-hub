@@ -11,8 +11,10 @@
 import { revalidatePath } from "next/cache";
 import { getVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import { HABIT_NOT_FOUND, logHours, removeHours } from "@/lib/habits/tapWrites";
+import { canLogFor } from "@/lib/habits/access";
+import { HABIT_NOT_FOUND, logHours, removeHours } from "@/lib/habitTapWrites";
 import { parseDateParam } from "@/lib/householdDate";
+import { missing } from "@/lib/writeError";
 import type { HabitActionResult } from "./habits";
 
 const NOT_FOUND = HABIT_NOT_FOUND;
@@ -32,7 +34,7 @@ export async function addHabitTime(habitId: string, forUserId: string, dayIso: s
   if (typeof habitId !== "string" || typeof forUserId !== "string") return { error: NOT_FOUND };
   try {
     const result = await logHours(
-      { userId: user.userId, role: user.role },
+      (h) => canLogFor({ userId: user.userId, role: user.role }, forUserId, h),
       { habitId, forUserId, day: typeof dayIso === "string" ? parseDateParam(dayIso) : null, minutes, loggedById: user.userId },
       householdToday(new Date())!,
     );
@@ -50,7 +52,11 @@ export async function removeHabitTime(entryId: string): Promise<HabitActionResul
   if (!user) return { error: NOT_SIGNED_IN };
   if (typeof entryId !== "string") return { error: NOT_FOUND };
   try {
-    const result = await removeHours({ userId: user.userId, role: user.role }, entryId, householdToday(new Date())!);
+    const result = await removeHours(
+      (entry, habit) => (canLogFor({ userId: user.userId, role: user.role }, entry.userId, habit) ? null : missing(HABIT_NOT_FOUND)),
+      entryId,
+      householdToday(new Date())!,
+    );
     if ("error" in result) return { error: result.error };
     return done();
   } catch (err) {

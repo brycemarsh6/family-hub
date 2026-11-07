@@ -16,7 +16,7 @@ import { revalidatePath } from "next/cache";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
 import { canEditHabit } from "@/lib/habits/access";
-import { checkHabitInput, type HabitInput } from "@/lib/habits/habitInput";
+import { INCLUDE_YOURSELF, checkHabitInput, type HabitInput } from "@/lib/habitInput";
 import {
   archiveHabit as archiveHabitRow,
   createHabit as createHabitRow,
@@ -73,7 +73,7 @@ export async function createHabit(input: HabitInput): Promise<HabitActionResult>
   const checked = checkHabitInput(input, await householdParticipantIds());
   if ("error" in checked) return checked;
   if (!mayEditResult(user, checked.fields.isPrivate ?? false, checked.participantIds)) {
-    return { error: "Include yourself, or ask a parent." };
+    return { error: INCLUDE_YOURSELF };
   }
   try {
     const habit = await createHabitRow({
@@ -100,7 +100,7 @@ export async function updateHabit(habitId: string, input: HabitInput): Promise<H
   const checked = checkHabitInput(input, await householdParticipantIds(), habit.participantIds);
   if ("error" in checked) return checked;
   if (!mayEditResult(user, checked.fields.isPrivate ?? false, checked.participantIds)) {
-    return { error: "Include yourself, or ask a parent." };
+    return { error: INCLUDE_YOURSELF };
   }
   try {
     const { fields, participantIds, everyone } = checked;

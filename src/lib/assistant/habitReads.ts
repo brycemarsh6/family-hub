@@ -23,7 +23,7 @@ import type { Vacation } from "@/lib/habits/types";
 import { addCalendarDays, formatCalendarDate, startOfWeek, utcMidnightInstant, type CalendarDate } from "@/lib/householdDate";
 import { assistantCreatedWhere, didAssistantCreate } from "./audit";
 import { notFound } from "./errors";
-import { assistantHabitActor } from "./habitActor";
+import { assistantHabitActor } from "./habitActorEnv";
 import {
   toChart,
   toHabit,
@@ -199,9 +199,4 @@ export async function habitSnapshot(tx: Prisma.TransactionClient, id: string) {
   const habit = await tx.habit.findUnique({ where: { id } });
   if (!habit) return null;
   return { habit, participants: await tx.habitParticipant.findMany({ where: { habitId: id }, orderBy: { id: "asc" } }) };
-}
-
-/** One time entry as stored, or null. */
-export function readTimeEntry(entryId: string) {
-  return db.habitTimeEntry.findUnique({ where: { id: entryId } });
 }

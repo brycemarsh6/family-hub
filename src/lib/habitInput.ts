@@ -3,8 +3,8 @@
 // same words. Pure: no `server-only`, no database. The one read the old
 // `checkInput` did (who is in the household) is now the caller's to pass in.
 
-import { toLifeArea } from "../goalVocabulary";
-import { HABIT_TRACKS, checkHoursTarget, toHabitTrack, toPaceDays } from "../habitHoursVocabulary";
+import { toLifeArea } from "./goalVocabulary";
+import { HABIT_TRACKS, checkHoursTarget, toHabitTrack, toPaceDays } from "./habitHoursVocabulary";
 import {
   HABIT_ICONS,
   HABIT_TIMES_LIMITS,
@@ -18,10 +18,13 @@ import {
   toHabitMode,
   toHabitSchedule,
   toHabitSharing,
-} from "../habitVocabulary";
-import { participantsAllowed, sharedNeedsMorePeople } from "../habitsToday";
-import { dayOfWeek, parseDateParam } from "../householdDate";
-import type { HabitFields } from "./habitRows";
+} from "./habitVocabulary";
+import { participantsAllowed, sharedNeedsMorePeople } from "./habitsToday";
+import { dayOfWeek, parseDateParam } from "./householdDate";
+import type { HabitFields } from "./habits/habitRows";
+
+/** What a person is told when the habit they would leave behind is one they could no longer edit. */
+export const INCLUDE_YOURSELF = "Include yourself, or ask a parent.";
 
 /** The editor's whole form, as the page sends it. `anchorWeek` is a `YYYY-MM-DD` Sunday. */
 export type HabitInput = {

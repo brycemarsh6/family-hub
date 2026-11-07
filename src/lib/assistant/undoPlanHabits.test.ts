@@ -133,3 +133,30 @@ test("streakWork groups people per habit from either copy and ignores removed ha
   // h1 restored, h2 removed (create undone): only h1 is rebuilt as a habit.
   assert.deepEqual(work.habits, ["h1"]);
 });
+
+test("streakWork choreUsers: an undone chore create names its people though the habit is gone", () => {
+  const work = streakWork(steps([
+    change("Habit", "c1", "create", null, habit("c1", { kind: "chore" })),
+    change("HabitParticipant", "p1", "create", null, participant("p1", "c1", "uA")),
+    change("HabitParticipant", "p2", "create", null, participant("p2", "c1", "uB")),
+  ]));
+  assert.deepEqual(work.habits, []);
+  assert.deepEqual(work.choreUsers, ["uA", "uB"]);
+});
+
+test("streakWork choreUsers: a habit-to-chore edit undone names no one, so the hook reads the habit's people", () => {
+  const work = streakWork(steps([
+    change("Habit", "h1", "update", habit("h1", { kind: "chore" }), habit("h1")),
+  ]));
+  assert.deepEqual(work.habits, ["h1"]);
+  assert.deepEqual(work.choreUsers, []);
+});
+
+test("streakWork choreUsers: log and hours rows count from either copy, each person once", () => {
+  const work = streakWork(steps([
+    change("HabitLog", "l1", "delete", log("l1", "h1", "uA"), null),
+    change("HabitLog", "l2", "create", null, log("l2", "h2", "uA")),
+    change("HabitTimeEntry", "t1", "create", null, { ...log("t1", "h3", "uB"), minutes: 30 }),
+  ]));
+  assert.deepEqual(work.choreUsers, ["uA", "uB"]);
+});

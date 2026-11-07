@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkHabitInput } from "@/lib/habits/habitInput";
+import { checkHabitInput } from "@/lib/habitInput";
 import {
   habitChartQuery,
   habitCreateBody,
@@ -72,8 +72,8 @@ test("habitHoursBody: minutes need only be a whole number here (the shared rule 
   assert.ok(!ok(habitHoursBody.safeParse({ personId: "p" })));
 });
 
-const create = (body: unknown) => {
-  const input = newHabitInput(habitCreateBody.parse(body), HOUSEHOLD);
+const create = (body: unknown, owner = "bryce") => {
+  const input = newHabitInput(habitCreateBody.parse(body), HOUSEHOLD, owner);
   return { input, checked: checkHabitInput(input, HOUSEHOLD) };
 };
 
@@ -103,12 +103,15 @@ test("newHabitInput: biweekly needs a Sunday anchor week, in the app's words", (
   assert.deepEqual(create({ title: "Car", participantIds: ["bryce"], schedule: "biweekly", anchorWeek: "2026-11-02" }).checked, { error: "Pick which week it starts." });
 });
 
-test("newHabitInput: hours needs weeklyHours, counts monsat, and one person's is private", () => {
+test("newHabitInput: hours needs weeklyHours, counts monsat, and only the owner's one-person one is private", () => {
   assert.deepEqual(create({ title: "Study", participantIds: ["bryce"], track: "hours" }).checked, { error: "Pick 1 to 80 hours a week." });
   const mine = create({ title: "Study", participantIds: ["bryce"], track: "hours", weeklyHours: 10 });
   assert.equal(mine.input.paceDays, "monsat");
   assert.equal(mine.input.isPrivate, true);
   assert.ok(!("error" in mine.checked));
+  // Private only for the owner: for anyone else (or no owner set) she could not see it again.
+  assert.equal(create({ title: "Study", participantIds: ["emily"], track: "hours", weeklyHours: 10 }).input.isPrivate, false);
+  assert.equal(create({ title: "Study", participantIds: ["bryce"], track: "hours", weeklyHours: 10 }, "").input.isPrivate, false);
   const two = create({ title: "Study", participantIds: ["bryce", "emily"], track: "hours", weeklyHours: 10 });
   assert.equal(two.input.isPrivate, false);
   assert.equal(create({ title: "Study", everyone: true, track: "hours", weeklyHours: 10 }).input.isPrivate, false);

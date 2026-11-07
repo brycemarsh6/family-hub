@@ -10,7 +10,7 @@ import {
   HABIT_SHARING,
   TIMES_OF_DAY,
 } from "@/lib/habitVocabulary";
-import type { HabitInput } from "@/lib/habits/habitInput";
+import type { HabitInput } from "@/lib/habitInput";
 import { calendarDateFromUtcMidnight, formatCalendarDate } from "@/lib/householdDate";
 
 // Request shapes for the Assistant API's habit routes, and the two pure
@@ -106,10 +106,13 @@ const OPEN_SCHEDULES = ["weekly", "monthly"];
  * The create body as the form would have sent it, with the defaults of
  * mission 47 (H3): a build habit that repeats daily (a chore: on certain
  * days), checked per person, no carry-over, once for weekly and monthly, hours
- * counted Monday to Saturday. `isPrivate` is the app's rule for an hours habit
- * for one person. Nothing else is decided here: `checkHabitInput` refuses.
+ * counted Monday to Saturday. `isPrivate` follows the app's rule for an hours
+ * habit for one person, but only when that person is the owner (`ownerId`,
+ * Bryce): she sees only his private habits, so a private habit for anyone else
+ * would vanish from her, and the app refuses a create she could not edit
+ * afterwards (H8). Nothing else is decided here: `checkHabitInput` refuses.
  */
-export function newHabitInput(body: HabitCreateBody, household: readonly string[]): HabitInput {
+export function newHabitInput(body: HabitCreateBody, household: readonly string[], ownerId: string): HabitInput {
   const kind = body.kind ?? "habit";
   const track = body.track ?? "checks";
   const hours = track === "hours";
@@ -129,7 +132,7 @@ export function newHabitInput(body: HabitCreateBody, household: readonly string[
     anchorWeek: body.anchorWeek ?? null,
     carryOver: body.carryOver ?? false,
     sharing: body.sharing ?? "each",
-    isPrivate: hours && new Set(participantIds).size === 1,
+    isPrivate: hours && ownerId !== "" && new Set(participantIds).size === 1 && participantIds[0] === ownerId,
     participantIds,
     everyone,
     track,

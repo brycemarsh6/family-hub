@@ -12,7 +12,8 @@
 import { revalidatePath } from "next/cache";
 import { getVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import { HABIT_NOT_FOUND, tapCheck, tapSkip, tapUncheck } from "@/lib/habits/tapWrites";
+import { canLogFor } from "@/lib/habits/access";
+import { HABIT_NOT_FOUND, tapCheck, tapSkip, tapUncheck } from "@/lib/habitTapWrites";
 import { parseDateParam, type CalendarDate } from "@/lib/householdDate";
 import type { HabitActionResult } from "./habits";
 
@@ -38,7 +39,7 @@ export async function checkHabit(habitId: string, forUserId?: string, day?: stri
   if (typeof habitId !== "string" || (forUserId !== undefined && typeof forUserId !== "string")) return { error: NOT_FOUND };
   try {
     const result = await tapCheck(
-      { userId: user.userId, role: user.role },
+      (h) => canLogFor({ userId: user.userId, role: user.role }, forUserId ?? user.userId, h),
       { habitId, forUserId: forUserId ?? user.userId, day: tapDay(day), loggedById: user.userId },
       householdToday(new Date())!,
     );
@@ -57,7 +58,7 @@ export async function skipHabit(habitId: string, forUserId?: string, day?: strin
   if (typeof habitId !== "string" || (forUserId !== undefined && typeof forUserId !== "string")) return { error: NOT_FOUND };
   try {
     const result = await tapSkip(
-      { userId: user.userId, role: user.role },
+      (h) => canLogFor({ userId: user.userId, role: user.role }, forUserId ?? user.userId, h),
       { habitId, forUserId: forUserId ?? user.userId, day: tapDay(day), loggedById: user.userId },
       householdToday(new Date())!,
     );
@@ -77,7 +78,7 @@ async function removeRow(kind: "check" | "skip", habitId: string, forUserId?: st
   try {
     const result = await tapUncheck(
       kind,
-      { userId: user.userId, role: user.role },
+      (h) => canLogFor({ userId: user.userId, role: user.role }, forUserId ?? user.userId, h),
       { habitId, forUserId: forUserId ?? user.userId, day: tapDay(day) },
       householdToday(new Date())!,
     );

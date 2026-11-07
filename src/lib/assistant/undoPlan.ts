@@ -249,14 +249,19 @@ const PER_PERSON = new Set(["HabitParticipant", "HabitLog", "HabitTimeEntry"]);
  * From the steps: which people on which habit had a row touched (read from
  * whichever copy exists), and which habits were themselves restored or
  * re-created (their schedule may have changed, so everyone is rebuilt). A
- * removed habit is left out: there is nothing to rebuild.
+ * removed habit is left out: there is nothing to rebuild. `choreUsers` is
+ * everyone named by any of those rows, habit existing or not: a chore's
+ * streak lives on the person (`UserPreferences`), so it is rebuilt for them
+ * even when the chore itself was just undone out of existence.
  */
 export function streakWork(steps: readonly UndoStep[]): {
   users: Map<string, string[]>;
   habits: string[];
+  choreUsers: string[];
 } {
   const users = new Map<string, Set<string>>();
   const habits = new Set<string>();
+  const choreUsers = new Set<string>();
   for (const step of steps) {
     if (step.model === "Habit") {
       if (step.kind !== "remove") habits.add(step.recordId);
@@ -265,6 +270,7 @@ export function streakWork(steps: readonly UndoStep[]): {
         if (!copy) continue;
         const { habitId, userId } = copy;
         if (typeof habitId !== "string" || typeof userId !== "string") continue;
+        choreUsers.add(userId);
         users.set(habitId, (users.get(habitId) ?? new Set()).add(userId));
       }
     }
@@ -272,5 +278,6 @@ export function streakWork(steps: readonly UndoStep[]): {
   return {
     users: new Map([...users].map(([habitId, ids]) => [habitId, [...ids].sort()])),
     habits: [...habits].sort(),
+    choreUsers: [...choreUsers].sort(),
   };
 }

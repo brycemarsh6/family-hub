@@ -1,28 +1,32 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { didAssistantCreate } from "@/lib/assistant/audit";
 import { ApiError, notFound, toWriteFailure } from "@/lib/assistant/errors";
-import { assistantHabitActor } from "@/lib/assistant/habitActor";
-import { readTimeEntry } from "@/lib/assistant/habitReads";
+import { assistantHabitActor } from "@/lib/assistant/habitActorEnv";
 import { timeEntryChange } from "@/lib/assistant/serializeHabits";
 import { requireHouseholdToday } from "@/lib/assistant/today";
 import { canLogFor } from "@/lib/habits/access";
-import { removeHours } from "@/lib/habits/tapWrites";
-import { loadHabitForAction } from "@/lib/habitsRead";
+import { HABIT_NOT_FOUND, removeHours } from "@/lib/habitTapWrites";
+import { missing } from "@/lib/writeError";
 
 export const DELETE = assistantRoute<{ id: string; entryId: string }>({
   action: "habits.removeHours",
   handler: async ({ params, changes, now }) => {
     const today = requireHouseholdToday(now);
     const actor = assistantHabitActor();
-    const entry = await readTimeEntry(params.entryId);
-    if (!entry || entry.habitId !== params.id) throw notFound();
-    // A habit she may not see answers 404 before anything about the entry is said.
-    const habit = await loadHabitForAction(entry.habitId);
-    if (!habit || !canLogFor(actor, entry.userId, habit)) throw notFound();
-    if (!(await didAssistantCreate("HabitTimeEntry", entry.id))) {
-      throw new ApiError(403, "forbidden", "Winnie can only remove time she logged herself.");
-    }
-    const result = await removeHours(actor, entry.id, today);
+    // The guard runs inside the removal's transaction. A habit she may not see
+    // (or an entry on another habit) answers 404 before anything about the
+    // entry is said; time the family logged answers 403.
+    const result = await removeHours(
+      async (entry, habit) => {
+        if (entry.habitId !== params.id || !canLogFor(actor, entry.userId, habit)) return missing(HABIT_NOT_FOUND);
+        if (!(await didAssistantCreate("HabitTimeEntry", entry.id))) {
+          throw new ApiError(403, "forbidden", "Winnie can only remove time she logged herself.");
+        }
+        return null;
+      },
+      params.entryId,
+      today,
+    );
     if ("error" in result) throw toWriteFailure(result);
     if (!result.removed) throw notFound();
     changes.push(timeEntryChange("delete", result.removed));
