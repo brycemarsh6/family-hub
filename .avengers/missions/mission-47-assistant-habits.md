@@ -46,21 +46,50 @@
 
 ## Decided by Hill (2026-11-06; Bryce can overturn any)
 
-Pending Hill's report (Q1 to Q7 dispatched). Fury's recommendations, to be
-replaced by her decisions:
+Hill read hill.md, missions 40 and 45, the habits plan, the access,
+vocabulary and writer files. Nothing asked was BRYCE ONLY.
 
-- **H1 archive/restore via PATCH:** yes; reversible and undoable; never a
-  hard delete.
-- **H2 `GET /habits/today` with no `personId`:** every active household
-  person Winnie may see, one call for "what's left today".
-- **H3 create defaults:** `participantIds` required; `kind` "habit",
-  `schedule` "daily", `mode` "build", `sharing` "each"; icon, lifeArea,
-  timeOfDay null; `carryOver` false; `isPrivate` false and not settable.
-- **H4 403 wording:** "Winnie can only remove hours she logged herself."
-- **H5 skips on chores:** yes, same as the app's day skip.
-- **H6 minutes:** 30 to 720, whole, multiple of 30, else 400 (the app's
-  own rule, `HOURS_LIMITS`); no silent clamping.
-- **H7 `loggedById` null:** acceptable; the app shows no "by" for her.
+- **H1 archive and restore via PATCH (high):** yes. `archived: true/false`
+  on any habit or chore she may see, with copies; a PATCH that changes
+  nothing records nothing; no `DELETE /habits/{id}`. Decision 58 made
+  Archive the reversible alternative to Delete; the Edit screen offers it.
+- **H2 `GET /habits/today` with no `personId` (high):** every active
+  person's day in household order (`User.familyOrder`), tablet and
+  deactivated people left out, Bryce's private habits only under Bryce.
+  Decision 46 ("one bundled text per person per day") and `GET /summary`
+  are the precedents.
+- **H3 create defaults (medium; Bryce to look at item 4 first):** Fury's
+  list (`participantIds` required; `kind` "habit", `schedule` "daily",
+  `mode` "build", `sharing` "each", `track` "checks", `carryOver` false;
+  icon, lifeArea, timeOfDay, createdById null; `isPrivate` never settable
+  by Winnie) plus: (1) `everyone: true` accepted as the one alternative to
+  `participantIds` (decision 87); (2) schedule details required as
+  `checkInput` demands ("weekdays" needs `weekdays`, "biweekly" needs a
+  Sunday `anchorWeek`), the one default being `times` = 1 for weekly and
+  monthly; (3) `track: "hours"` requires `weeklyHours` 1 to 80, `paceDays`
+  defaults "monsat" (decision 183), hours shape forced as `habitColumns`
+  does; (4) **an hours habit for one person is private, as the app makes
+  it (decisions 186, 194)**; (5) a chore defaults to "weekdays" and needs
+  `weekdays`, the rest as `choreChart.ts:50-65`; a chore may not track
+  hours. Refusals reuse the app's words.
+- **H4 403 wording (high):** "Winnie can only remove time she logged
+  herself." (the app's noun for an entry is "time").
+- **H5 skips on chores (high):** yes, exactly as for habits (today or up to
+  7 days back, never the future); week-level chore changes stay out.
+- **H6 minutes (medium):** whole minutes 30 to 720 in steps of 15; refuse
+  anything else with 400, never clamp; wording "Pick a time from half an
+  hour to 12 hours, in quarter hours."; the check lives in one shared
+  function beside `checkHoursTarget` in `habitHoursVocabulary.ts` and the
+  app's `addHabitTime` action uses it too (its stepper still sends
+  multiples of 30, so nothing visible changes). Reason: `formatHours`
+  rounds to quarter hours, so quarter-hour entries keep every shown number
+  exact. Applied to C1 by amendment (sent to the builder mid-build).
+- **H7 Winnie's check shows no tapper (high):** acceptable; `loggedById`
+  stays null; no screen reads it today; shopping is the precedent.
+
+**For Bryce to look at first:** H3 item 4 (a one-person hours habit Winnie
+makes is private), H3 items 1 to 3, H6 (quarter hours), and the privacy
+preset itself (`ASSISTANT_OWNER_USER_ID`).
 
 ## Design (Fury's structural calls)
 
@@ -287,7 +316,28 @@ participant like the app. Refusals come from the shared module as
   --stat` inside the boundary, commit hash.
 - **Done criteria:** gauntlet green; parity table all MATCH; no string in
   `src/app/actions/habit*.ts` changed (diff shows moves only).
-- **Report:** -
+- **Status:** DONE at `9ff4c26` (8 files, +527/-215), H6 applied in the
+  same commit.
+- **Report:** tsc 0, `eslint .` 0, `npm test` 1265 (1252 + 6 habitInput
+  + 1 checkEntryMinutes + C2's 7 in the same tree); LA leg 1265; UTC leg
+  1258 + 7 self-skips. Parity script
+  (`scratchpad/parity.mts`, dev only): 31 cases MATCH, 3 EXPECTED-DIFF
+  from H6 (40 and 15 minutes refused with the new wording; 45 now
+  accepted). Counts restored (Habit 18, HabitParticipant 27, HabitLog 16,
+  HabitTimeEntry 6, AssistantRequest 4). Sizes: tapWrites 203,
+  habitInput 141 (+121 test), habits.ts 322 → 191, habitChecks 119 → 100,
+  habitHours 76 → 60, habitHoursVocabulary 102. Deviations: `day` is
+  `CalendarDate | null | undefined` (null = unparseable, refused only
+  after the access check so a private habit's existence never leaks);
+  no `tapWrites.test.ts` (server-only, nothing pure to import);
+  `removeHours` reads the full entry itself (`loadTimeEntryForAction`
+  selects two columns and `habitsRead.ts` was off limits); guard reads
+  stay outside the transaction as before; the actions' try/catch now also
+  covers the guard reads. Test cleanup deleted its own habits by the
+  `ZZZ Assistant Test parity` title prefix rather than by id (a first run
+  crashed on a `loggedById` foreign key and left rows; the next run's
+  cleanup took them). No device user on dev: device and kid cases used
+  fake actors with the non-admin's real id.
 
 ### C2 - undo learns habits
 
@@ -338,7 +388,16 @@ participant like the app. Refusals come from the shared module as
   touched files (`undoWrites.ts` is 271, `undoPlan.ts` about 215), `git
   diff --stat` inside the boundary, commit hash.
 - **Done criteria:** gauntlet green; the fake-column tsc failure shown.
-- **Report:** -
+- **Status:** DONE at `fb8c60c` (5 files, +301/-7).
+- **Report:** tsc 0; eslint (assistant folder only; the full `eslint .`
+  runs at the gates); `npm test` 1259 (1252 + 7); LA leg 1259; UTC leg
+  1252 pass + 7 self-skips, 0 fail. Fake `fakeColumn` in
+  `HABIT_LOG_COLUMNS` fails tsc (TS2353), removed. Deviations: the pure
+  grouping `streakWork(steps)` lives in `undoPlan.ts` (276 lines), since
+  `undoHooks.ts` is `server-only` and untestable; `fromCopy` omits the
+  volatile columns for re-creates too, so a re-created participant row
+  takes the defaults and the hook rebuilds them. Sizes: undoModels 258,
+  undoPlan 276, undoWrites 286, undoHooks 25, test 135.
 
 ### C3 - habit routes (after C1 and C2)
 
@@ -351,10 +410,15 @@ participant like the app. Refusals come from the shared module as
   `src/lib/assistant/schemasHabits.ts` (+ test), new
   `src/lib/assistant/openapiHabitPaths.ts`, `src/lib/assistant/openapi.ts`
   (import + spread only), `src/lib/assistant/errors.ts` only if a new code
-  is unavoidable, new route files under `src/app/api/assistant/v1/habits/`
-  (`route.ts`, `today/route.ts`, `chart/route.ts`, `[id]/route.ts`,
-  `[id]/check/route.ts`, `[id]/skip/route.ts`, `[id]/hours/route.ts`,
-  `[id]/hours/[entryId]/route.ts`). Must not touch: `src/lib/habits/**`,
+  is unavoidable, and the new route files: new
+  `src/app/api/assistant/v1/habits/route.ts`, new
+  `src/app/api/assistant/v1/habits/today/route.ts`, new
+  `src/app/api/assistant/v1/habits/chart/route.ts`, new
+  `src/app/api/assistant/v1/habits/[id]/route.ts`, new
+  `src/app/api/assistant/v1/habits/[id]/check/route.ts`, new
+  `src/app/api/assistant/v1/habits/[id]/skip/route.ts`, new
+  `src/app/api/assistant/v1/habits/[id]/hours/route.ts`, new
+  `src/app/api/assistant/v1/habits/[id]/hours/[entryId]/route.ts`. Must not touch: `src/lib/habits/**`,
   `src/lib/habitsRead.ts`, undo files, actions, components. If a shared
   module lacks something, stop and report BLOCKED-ON-CONTRACT.
 - **Rules:** mission 44's route rules (each file exports only `export const
@@ -392,10 +456,22 @@ participant like the app. Refusals come from the shared module as
   - `GET /habits/chart?personId=` → the `ChoreChartData` fields except
     `personName`, `subtitle` and chip names: `{ personId, today, defaultWeek,
     thisWeek }` with chore ids and titles only.
-  - `POST /habits` body: the `HabitInput` fields with H3 defaults
-    (`participantIds` required, `isPrivate` not accepted); validated with
-    `checkHabitInput(input, household)`; → 201 `{ habit: HABIT }`. Changes:
-    the Habit create and one HabitParticipant create per person.
+  - `POST /habits` body (zod, `.strict()`): `title` required; `kind`
+    ("habit" default, or "chore"), `mode`, `icon`, `lifeArea`, `timeOfDay`,
+    `schedule`, `weekdays`, `times`, `anchorWeek`, `carryOver`, `sharing`,
+    `track`, `weeklyHours`, `paceDays` optional; `participantIds` (array)
+    or `everyone: true` required, one of the two; **`isPrivate` not
+    accepted** (400 as an unknown key). Apply H3's defaults, then build a
+    full `HabitInput` and run `checkHabitInput(input, household)` so the
+    app's rules and words decide: `kind` "habit", `mode` "build",
+    `sharing` "each", `track` "checks", `carryOver` false, nulls for icon,
+    lifeArea, timeOfDay; `schedule` "daily" for a habit and "weekdays" for
+    a chore; `times` 1 for weekly and monthly; `paceDays` "monsat" for
+    hours; `weeklyHours` required for hours (no default; refuse with the
+    app's "Pick 1 to 80 hours a week." if missing). `isPrivate` = `track
+    === "hours" && participantIds.length === 1` (H3 item 4, as the app's
+    form does), else false. → 201 `{ habit: HABIT }`. Changes: the Habit
+    create and one HabitParticipant create per person.
   - `PATCH /habits/{id}` body: any subset of the same fields plus
     `archived?: boolean`; the current row fills the rest, then
     `checkHabitInput`. Lock the habit `FOR UPDATE`, copy Habit and
@@ -408,7 +484,13 @@ participant like the app. Refusals come from the shared module as
   - `POST /habits/{id}/hours` `{ personId, minutes, day? }` → 201 `{ entry:
     { id, habitId, personId, day, minutes }, week: hours shape }`;
     `DELETE /habits/{id}/hours/{entryId}` → `{ removed: true }`; not hers →
-    403 `forbidden` with H4's wording; gone → 404.
+    403 `forbidden` "Winnie can only remove time she logged herself."
+    (H4); gone → 404. Minutes are checked by `checkEntryMinutes`
+    (`habitHoursVocabulary.ts`, H6) through `logHours`; the zod schema
+    only requires an integer so the shared rule gives the words.
+  - `PATCH /habits/{id}` body may change `isPrivate`? **No**: not accepted
+    (unknown key → 400). A PATCH that changes nothing records nothing and
+    answers 200 (H1).
 - **Verification:** tsc, eslint, `npm test`, both TZ legs. Live (port 3247,
   setup above), positive control first (`GET /openapi.json` 200 and lists
   the 12 operations; `GET /habits` count equals the DB count of visible
