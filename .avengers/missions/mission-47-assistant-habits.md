@@ -87,9 +87,24 @@ vocabulary and writer files. Nothing asked was BRYCE ONLY.
 - **H7 Winnie's check shows no tapper (high):** acceptable; `loggedById`
   stays null; no screen reads it today; shopping is the precedent.
 
-**For Bryce to look at first:** H3 item 4 (a one-person hours habit Winnie
-makes is private), H3 items 1 to 3, H6 (quarter hours), and the privacy
-preset itself (`ASSISTANT_OWNER_USER_ID`).
+- **H8 one-person hours habit for someone other than Bryce (medium;
+  decided after Vision pass 1):** create it **not private**. A one-person
+  hours habit is private only when that person is the owner
+  (`ASSISTANT_OWNER_USER_ID`); otherwise, and when the owner id is unset,
+  `isPrivate` is false, and the create is never refused on that count.
+  This amends H3 item 4 to: "an hours habit for one person is private only
+  when that person is the owner; otherwise not private, as the app's form
+  does for a habit that is not Just me (decision 194)." Reason: decision
+  194 is the real rule (Private turns on with "Just me"); the app's form
+  cannot even make a one-person hours habit for someone else, and the
+  server's "you must still be able to see what you made" rule would
+  otherwise make such a create impossible for Winnie, since `isPrivate` is
+  never hers to set. The person can flip Private on in the app (decision
+  78). Tell Winnie in one line.
+
+**For Bryce to look at first:** H8 with H3 item 4 (privacy defaults for
+habits Winnie creates), H3 items 1 to 3, H6 (quarter hours), and the
+privacy preset itself (`ASSISTANT_OWNER_USER_ID`).
 
 ## Design (Fury's structural calls)
 
@@ -129,7 +144,8 @@ participant like the app. Refusals come from the shared module as
 
 ### Shared rule modules (actions and routes behave identically)
 
-- **`src/lib/habits/tapWrites.ts`** (new, `server-only`): the guard that
+- **`src/lib/habitTapWrites.ts`** (new, `server-only`, top of `src/lib/`
+  since it reads through `habitsRead.ts`; moved there by F1): the guard that
   today lives in `src/app/actions/habitChecks.ts` and `habitHours.ts`, as
   functions taking `(actor: HabitActor, input, today, client = db)`:
   `tapCheck`, `tapSkip`, `tapUncheck(kind)`, `logHours`, `removeHours`.
@@ -140,7 +156,8 @@ participant like the app. Refusals come from the shared module as
   created or removed** (full `HabitLog` / `HabitTimeEntry` rows, read inside
   the same transaction) or a `WriteError`. The messages are the actions'
   exact strings, exported as constants the actions reuse.
-- **`src/lib/habits/habitInput.ts`** (new, pure): `checkHabitInput(input,
+- **`src/lib/habitInput.ts`** (new, pure, top of `src/lib/` since it takes
+  `goalVocabulary.ts`; moved there by F1): `checkHabitInput(input,
   household, alreadyOnHabit)` is `checkInput` moved out of
   `actions/habits.ts` with the household list passed in (the one DB read it
   did), plus the `HabitInput` type. Messages unchanged.
@@ -168,7 +185,10 @@ participant like the app. Refusals come from the shared module as
   transaction): every `(habitId, userId)` named by a HabitParticipant,
   HabitLog or HabitTimeEntry step → `recomputeStreaks(habitId, userIds,
   today, tx)`; every Habit step whose row still exists → `recomputeHabit(tx,
-  habitId, today)`. `today` is `householdToday(now)`. Direction lib → lib
+  habitId, today)`; then (F1) the chore streak of every person named,
+  plus the current participants of restored habits, is rebuilt once with
+  `recomputeChoreStreaks`. The pure grouping `streakWork(steps)` lives in
+  `undoPlan.ts`. `today` is `householdToday(now)`. Direction lib → lib
   (`assistant` imports `habits`); `habits` never imports `assistant`, so no
   cycle. **Why:** a check's undo deletes the log row; without this the
   cached flame stays one too high until the next tap.
@@ -239,7 +259,6 @@ participant like the app. Refusals come from the shared module as
 
 ### C1 - shared tap and input rules, thin actions
 
-- **Status:** PENDING
 - **Objective:** one `server-only` home for the check, skip, uncheck,
   unskip, hours-add and hours-remove rules, and one pure home for the habit
   form's validation, with the family's actions as thin wrappers that behave
@@ -341,7 +360,6 @@ participant like the app. Refusals come from the shared module as
 
 ### C2 - undo learns habits
 
-- **Status:** PENDING
 - **Objective:** undo can restore, remove and re-create `Habit`,
   `HabitParticipant`, `HabitLog` and `HabitTimeEntry` rows, ignores the
   streak caches when matching, and rebuilds them in the same transaction.
@@ -401,7 +419,6 @@ participant like the app. Refusals come from the shared module as
 
 ### C3 - habit routes (after C1 and C2)
 
-- **Status:** PENDING
 - **Objective:** the 12 routes in Design, every write undoable with the
   streaks right afterwards, documented in OpenAPI.
 - **Boundaries:** May touch: new `src/lib/assistant/habitActor.ts` (+ test),
@@ -549,7 +566,8 @@ participant like the app. Refusals come from the shared module as
 
 ### F1 - fixes from Vision pass 1 and Captain pass 1
 
-- **Status:** PENDING
+- **Status:** DONE at `dfe563a` (21 files, +207/-136). Report below the
+  Evidence line.
 - **Objective:** close Vision's V1 and V2 and Captain's B1, B2, B3 and B5
   in one pass (B4 is Fury's STRUCTURE.md amendment A10).
 - **Boundaries:** May touch: `src/lib/habits/tapWrites.ts` → moved to
@@ -616,7 +634,21 @@ participant like the app. Refusals come from the shared module as
   nothing regressed. Counts restored; ZZZ rows by id.
 - **Evidence required:** gauntlet tails, live lines PASS/FAIL, `git diff
   --stat` inside the boundary, `wc -l` of moved files, commit hash.
-- **Report:** -
+- **Report:** tsc 0, `eslint .` 0, `npm test` 1301 (1298 + 3 streakWork
+  tests), UTC 1294 + 7 skips, LA 1301, build 0 (8 routes). Live: undo of a
+  chore create → chore streak 0/0 → 1/1 = fresh recompute (was stuck at 0
+  before); undo of a habit-to-chore PATCH, same; both for the non-admin
+  (0/0 = 0/0); PATCH moving the owner's private habit → 400
+  "Include yourself, or ask a parent.", row unchanged; one-person hours
+  habit for the owner → private; for the other person → not private and
+  `GET` 200 (H8); C3's full table re-run 78 + 4 PASS, 0 FAIL. Counts
+  18/27/16/6/4 restored. Sizes: habitTapWrites 211, habitInput 144,
+  habitActor 16, habitActorEnv 10, undoPlan 283, undoHooks 32, habitReads
+  202, schemasHabits 219. Deviations: the `[entryId]` guard throws
+  `ApiError(403)` (WriteError has no `forbidden` code and `writeError.ts`
+  was off limits); C1's `parity.mts` still points at the old path and was
+  not re-run (the live table and unit tests cover the module); the dev
+  server was stopped by pid after a broad `pkill` was refused.
 
 ### C4 - records (after the gates)
 
@@ -656,6 +688,13 @@ STRUCTURE.md by Fury; A11 to A14 for Bryce with mission 44's A1 to A4 and
   merged, 46 taken). Two Banner briefs taken. Plan approved by Bryce
   (plan mode, on Fable). Hill Q1 to Q7 dispatched. `npm ci` done; baseline
   tsc clean. Next: preflight C1 and C2, dispatch both Starks in parallel.
+- 2026-11-06 - Hill H1 to H7 recorded. C2 done `fb8c60c`, C1 done
+  `9ff4c26` (H6 folded in). C3 done `17aa653`. CLAUDE.md fixes `c0d2010`
+  (the cookbook H1/H4 review line removed: Bryce said on 2026-11-06 he is
+  fine with them; recorded here since no mission file held it). Gates pass
+  1 at `4e36d89`: Vision BLOCKED (V1, V2), Captain BLOCKED (B1 to B5).
+  A10 pasted into STRUCTURE.md (`9286f7f`). Hill H8 decided. F1 done
+  `dfe563a`. Next: gate pass 2, both in parallel.
 
 ## Delivery
 

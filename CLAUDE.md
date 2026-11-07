@@ -298,7 +298,7 @@ Replace this section at the end of each session. Don't append.
   person's habits, a habit's stats, the chore chart; check, skip, undo
   either, log and remove her own time; add and edit, never delete), every
   write undoable with the streaks rebuilt inside the undo. Shared rules in
-  `src/lib/habits/tapWrites.ts` and `habitInput.ts`; the family's habit
+  `src/lib/habitTapWrites.ts` and `src/lib/habitInput.ts`; the family's habit
   actions are thin wrappers now. Privacy preset for Bryce to review:
   Winnie is "Bryce" for private habits through `ASSISTANT_OWNER_USER_ID`.
   Hill's H1 to H7 in `.avengers/missions/mission-47-assistant-habits.md`.
