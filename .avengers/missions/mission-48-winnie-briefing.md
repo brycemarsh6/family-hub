@@ -1,7 +1,7 @@
 # Mission 48: Winnie's daily morning briefing
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING (all gates PASS)
+**Status:** DELIVERED (PR #71 merged `ae8e0a4`, live; waits on Bryce's `CRON_SECRET`)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/winnie-briefing` (from `origin/main` at `fc9772b`)
 
@@ -555,3 +555,17 @@ Vercel's timer uses to call Marshee. Without it the briefing never runs.
   householdDate helpers build an Intl formatter per call (fine at these
   volumes). Fury removed the worktree's `.env` symlink. **Status: all gates
   PASS; delivering.**
+
+### Shipped check (2026-11-07)
+- PR #71 merged as `ae8e0a4` after Gauntlet pass (2m17s) and the Vercel
+  preview build; main had not moved, so no re-sync was needed.
+- Production deploy `dpl_9wxxvsBKDix7AEEPAADgJq4dDt8d` READY at `ae8e0a4`.
+  Build log: `Applying migration 20261112000000_winnie_briefing_sent`.
+- `curl https://family-hub-xi-fawn.vercel.app/api/cron/briefing`: 401
+  `{"error":"unauthorized"}`; a wrong bearer: 401;
+  `/api/cron/briefingx`: 307 to `/login`.
+- Crons: not read back through a tool (no Vercel CLI here); the deploy that
+  carries them is READY, and Bryce's step 1.5 confirms them on the Cron
+  Jobs page.
+- First real send: the first 9 AM Denver run after Bryce sets
+  `CRON_SECRET` and redeploys.
