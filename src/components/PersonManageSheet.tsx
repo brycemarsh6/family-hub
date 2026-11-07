@@ -250,17 +250,26 @@ export function PersonManageSheet({
         {view === "menu" && (
           <div className="flex flex-col gap-1">
             <MenuRow label="Rename" onClick={() => setView("rename")} />
-            <MenuRow label="Avatar colour" onClick={() => setView("avatarColor")} />
+            {person.role !== "device" && (
+              <MenuRow label="Avatar colour" onClick={() => setView("avatarColor")} />
+            )}
             {/* setRole refuses a self-targeted change on the server
-                (usersRoles.ts) — not offered here for the same reason. */}
-            {!isSelf && <MenuRow label="Change role" onClick={() => setView("role")} />}
+                (usersRoles.ts), so not offered here for the same reason. A
+                tablet login (role "device") has no role to change either,
+                and is never a passwordless profile, so it gets neither
+                Change role nor Upgrade profile. */}
+            {!isSelf && person.role !== "device" && (
+              <MenuRow label="Change role" onClick={() => setView("role")} />
+            )}
             {person.hasAccount ? (
               <MenuRow label="Reset password" onClick={() => setView("resetPassword")} />
             ) : (
-              <MenuRow
-                label="Upgrade profile to account"
-                onClick={() => setView("upgradeAccount")}
-              />
+              person.role !== "device" && (
+                <MenuRow
+                  label="Upgrade profile to account"
+                  onClick={() => setView("upgradeAccount")}
+                />
+              )
             )}
             {/* deactivatePerson also refuses a self-targeted deactivation
                 on the server — not offered here for the same reason. */}

@@ -1,7 +1,7 @@
 # Mission: Tablet login (mission 39)
 
 **Project:** family-hub (Marshee)
-**Status:** INTERROGATED (research done, mock shown, Bryce's answers recorded; no contracts dispatched, nothing built)
+**Status:** PR A BUILDING (C1 to C4; contracts A and B written, see "PR A build")
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch (planning only):** `claude/nice-visvesvaraya-ff9197` (from origin/main 812b537). The build gets its own branch.
 
@@ -339,11 +339,45 @@ Fury's recommendations, recorded; Bryce can overturn any:
   merges). Widget ids per person must survive a person being deactivated
   (drop the tile silently, the `keepOwnPicks` precedent).
 
+## PR A build (2026-11-06): contracts in full
+
+**Scope:** C1 to C4 only. C5 to C8 are later PRs. Mission 38 merged (PR #55),
+so Sign out now lives at the bottom of `src/app/(app)/settings/page.tsx`
+(a plain `<form action={logout}>`), and C4 is in this PR. Assembled: Stark x2
+(disjoint boundaries), Vision, Strange, Captain. Branch
+`claude/mission-39-tablet-login-pra-49f32c`. No migration.
+
+**Shared rule file (new, created by contract A):** `src/lib/tabletRules.ts`,
+one named exported check per rule so the later permissions page can turn each
+into a switch. PR A ships one: `tabletMayCompleteAnyTask(role)` (true for
+`device`). Test: `src/lib/tabletRules.test.ts` (inside the existing `src/lib/*.test.ts` glob).
+
+### Contract A: C1 + C2 + C3 (Stark 1)
+1. **Objective:** an admin can create the one Tablet login from Manage family, it shows as a last "Tablet" chip with the Lucide `Tablet` icon on the login page, and the tablet can complete any task.
+2. **Boundaries.** May touch: `src/app/actions/users.ts` (new `createDeviceLogin(password)`: `requireRole("admin")`, name fixed to "Tablet", password >= `MIN_PASSWORD_LENGTH`, refuses if an active device user already exists, no `joinEveryoneHabits`), `src/components/FamilyList.tsx` (a "Set up a tablet login" button, hidden once an active device exists; a Tablet icon on the row if simple), new `src/components/CreateDeviceSheet.tsx` (house sheet, same bones as `CreatePersonSheet.tsx`: password + confirm, the mock's explainer text), `src/components/PersonManageSheet.tsx` (hide Change role and Upgrade profile when `person.role === "device"`; Rename, Reset password, Deactivate stay), `src/lib/constants.ts` only if needed, `src/app/(app)/login/page.tsx` (sort device last, stable otherwise), `src/app/(app)/login/LoginForm.tsx` (Lucide `Tablet` icon in place of `AvatarBadge` for role `device`, in the chip and on the password step), `src/app/actions/tasks.ts` (`assertCanCompleteTask` lets a device through via the helper), new `src/lib/tabletRules.ts` and `src/lib/tabletRules.test.ts`. Must not touch: `prisma/`, `auth.ts`, `session.ts`, `settings/page.tsx`, `nav.ts`, `NavList.tsx`, `profile/`, `src/app/api/assistant/`, any habits/goals/plans/calendar file, `uncompleteTask` (stays manager only), package.json.
+3. **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test` (count rises), the UTC direct run from AGENTS.md.
+4. **Evidence:** the diff stat, the new test names and pass output, the gauntlet outputs, and a one-line reading of how `createDeviceLogin` refuses a non-admin and a second device.
+5. **Done:** all verification green; tablet-rules test proves device true and admin/parent/kid false (kid and non-assigned still refused: the helper only adds `device`).
+
+### Contract B: C4 (Stark 2)
+1. **Objective:** on a device login, Sign out asks for an admin password before signing out; person logins still sign out in one tap.
+2. **Boundaries.** May touch: `src/app/actions/auth.ts` (new `logoutWithAdminPassword(_prev, formData)` returning `{error?}`: must be a verified device session via the DAL; rate-limited with `isLoginRateLimited` / `recordLoginAttempt` keyed on the tablet's user id and ip, using the same lockout copy; checks the password against every active admin's `passwordHash` with `verifyPassword`; on success `deleteSession` and redirect to `/login`; also make plain `logout()` refuse to sign out a session whose role is `device`, redirecting back to `/settings`), `src/app/(app)/settings/page.tsx` (render the sheet trigger for a device, the existing form for everyone else; this is the ONLY edit there), new `src/components/AdminPasswordSheet.tsx` (mock: "Sign the tablet out?", Admin password, Cancel / Sign out). Must not touch: schema, `session.ts`, `dal.ts`, `loginRateLimit*.ts`, `nav.ts`, `NavList.tsx`, anything in Contract A's list, `src/app/api/assistant/`. STRUCTURE.md says only `login`/`logout` may skip a DAL guard: `logoutWithAdminPassword` is NOT an exception and must open with a DAL guard.
+3. **Verification:** tsc, eslint, `npm test`, UTC run. If a pure helper (for example "does this password match any of these hashes") is worth extracting, put it in `src/lib/` with a test.
+4. **Evidence:** diff stat, gauntlet outputs, and a reading of the failure paths (non-device caller, no admins, wrong password, rate limit hit, plain `logout` on a device cookie).
+5. **Done:** gauntlet green; reading shows wrong password is refused and counted, right one signs out.
+
+### Fix batch F1 (after pass 1)
+reactivatePerson device check (Vision blocker); AdminPasswordSheet form remounts on open (Strange blocker); shared `DeviceBadge` used in LoginForm, FamilyList and SettingsAccountCard; Avatar colour hidden for a device; `logout()` signs out even if the device lookup fails. Explainer copy: Hill.
+
+### After both: Fury runs the gauntlet in full (adds `npm run build` and recordcheck), then Vision, Strange (running app on dev; Strange creates and later deactivates a clearly named test device only if Bryce-safe: see danger note), Captain. The real Tablet password is Bryce's: no agent enters one. For app checks, Strange may use a throwaway login created through the UI only if an admin session is available; otherwise reads and structure only, and Bryce's phone check covers it.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| — | — | not started | — | — |
+| 1 | Vision | BLOCKED | `reactivatePerson` could bring back a second active device (deactivate A, create B, reactivate A) | Gauntlet re-run green; 7 UTC skips are pre-existing DST tests; notes: non-atomic create, shared lockout, logout DB read, Avatar colour on device |
+| 1 | Strange | BLOCKED | AdminPasswordSheet error survives Cancel and reopen | Run on dev with screenshots S1 to S21; test device "zz m39 Tablet" created and deactivated via UI; notes: Settings card shows initial not icon, explainer copy partly untrue |
+| 1 | Captain | PASS | none | A1 (tablet rules home) and A2 (actions row) written into STRUCTURE.md; notes: DeviceBadge duplication, PersonManageSheet split candidate |
 
 ## Handoff log
 

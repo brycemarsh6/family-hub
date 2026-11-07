@@ -17,9 +17,9 @@
 // entirely, so only the admin role reaches any of them (unlike the
 // existing action files, which stay reachable by any signed-in session
 // or, per Phase 3a's C1 contract, by admin/parent). Voice-token
-// issue/revoke are Phase 5, not built here. Device-mode (role "device")
-// creation and management is Phase 4's own flow, not this one — see
-// ASSIGNABLE_ROLES below.
+// issue/revoke are Phase 5, not built here. A device login (role "device")
+// is not created by createPerson: it has its own createDeviceLogin below
+// (mission 39); see ASSIGNABLE_ROLES below.
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -33,6 +33,7 @@ import {
   toAvatarColor,
   ASSIGNABLE_ROLES,
   AVATAR_COLORS,
+  DEVICE_DISPLAY_NAME_DEFAULT,
   type Role,
   type AvatarColor,
 } from "@/lib/constants";
@@ -100,6 +101,47 @@ export async function createPerson(
     select: PERSON_SELECT,
   });
   if (created.role !== "device") await joinEveryoneHabits(created.id);
+
+  refreshFamilyViews();
+  return { person: toPersonInfo(created) };
+}
+
+/**
+ * Create the kitchen tablet's login (mission 39): role "device", always with
+ * a password (it signs in from the login page like anyone else). Separate
+ * from createPerson on purpose, which refuses non-assignable roles. At most
+ * one active device login: a second tablet is a later decision, and the
+ * Manage family button hides once one exists. A device is not a household
+ * person, so it never joins Everyone habits.
+ */
+export async function createDeviceLogin(
+  displayName: string,
+  password: string,
+): Promise<PersonResult> {
+  await requireRole("admin");
+
+  const trimmedName = displayName.trim() || DEVICE_DISPLAY_NAME_DEFAULT;
+
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { error: `Passwords must be at least ${MIN_PASSWORD_LENGTH} characters.` };
+  }
+
+  const existing = await db.user.findFirst({
+    where: { role: "device", deactivatedAt: null },
+    select: { id: true },
+  });
+  if (existing) {
+    return { error: "There is already a tablet login. Deactivate it before setting up another." };
+  }
+
+  const passwordHash = await hashPassword(password);
+  const existingCount = await db.user.count();
+  const avatarColor: AvatarColor = AVATAR_COLORS[existingCount % AVATAR_COLORS.length].name;
+
+  const created = await db.user.create({
+    data: { displayName: trimmedName, role: "device", passwordHash, avatarColor },
+    select: PERSON_SELECT,
+  });
 
   refreshFamilyViews();
   return { person: toPersonInfo(created) };
@@ -188,6 +230,20 @@ export async function setPersonAvatarColor(userId: string, color: string): Promi
  */
 export async function reactivatePerson(userId: string): Promise<PersonResult> {
   await requireRole("admin");
+
+  // Only one active tablet login at a time (same rule as creating one).
+  const target = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (target?.role === "device") {
+    const otherDevice = await db.user.findFirst({
+      where: { role: "device", deactivatedAt: null, id: { not: userId } },
+      select: { id: true },
+    });
+    if (otherDevice) {
+      return {
+        error: "There is already a tablet login. Deactivate it before reactivating this one.",
+      };
+    }
+  }
 
   let updated: PersonRow;
   try {
