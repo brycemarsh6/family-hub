@@ -102,6 +102,12 @@ tell when a rule's reason has expired.
   data loss. The test is not "does this write to the database" — it is
   **"if this fails, does undoing it on screen look like a correction or
   like a loss?"**
+  **Named exception (decision 213, mission-43):** Remove widget in the
+  Customize sheet (decision 204) is optimistic. It edits a layout, not the
+  family's data: the habits, goals and lists behind the tile are untouched,
+  Add puts the widget back, and only its size and picks are lost. A failed
+  save returns the row with the inline error, which reads as a correction,
+  not a loss.
 - **Delete is a single tap, no confirmation** — everywhere, for consistency.
   Exactly two sanctioned exceptions, both because they silently touch many
   rows' relationships: deleting a **cookbook** and deleting a **tag**, each
@@ -332,8 +338,9 @@ A new one-off that duplicates one of these jobs is a design violation:
   remove dashboard widgets (mission-43). The grid is 2 columns on phones
   and 4 from `md`; a widget is Small (1x1), Medium (2x1), Large (2x2) or
   Extra large (full width, 2 tall; Large on a phone), from the sizes its
-  kind allows; rows are at least about 150px and grow to fit, so a tile is
-  never cut off (decision 201); a later Small fills an earlier hole
+  kind allows; every cell is at least about 150px tall and grows to fit, so
+  a tile is never cut off, and a Large alone in its row fits its content
+  (decisions 201 and 209); a later Small fills an earlier hole
   (decision 202). The sheet is one dialog with internal views: the list
   (a row per widget that opens its edit view, with a chevron, and a drag
   grip on the right, decisions 140 and 208; "Add widget"; Reset to
@@ -402,7 +409,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   The Delete label names the value ("Delete 183 lb check-in from Nov 4"),
   because two rows can share a date
 - `ProgressBar` — the only way to show a fraction
-- `ToggleSwitch` — the only on/off switch (`DashboardCustomizeSheet` uses it)
+- `ToggleSwitch`: the only on/off switch (`DashboardItemPicker` and `HabitsChoresSettings` use it)
 - `LogButton` — the 44px round log/undo control for habits
 - The sheet family: `RadioSheet` (pick one), `ActionSheet` (⋯ menus),
   `ConfirmSheet` (the two count-confirm deletes), `TitleSheet` (name a thing)

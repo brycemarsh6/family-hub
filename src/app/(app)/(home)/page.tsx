@@ -20,6 +20,7 @@ import {
   loadMealPlans,
   loadRecipesSummary,
 } from "@/lib/dashboardLoaders";
+import { DASHBOARD_WIDGETS, DASHBOARD_WIDGET_WORDS } from "@/lib/dashboardWidgets";
 import { householdToday } from "@/lib/assistant/today";
 import { goalsTileFor, loadGoalsTile } from "@/lib/goalsRead";
 import { habitsTileFor, loadDashboardHabits } from "@/lib/habitsRead";
@@ -123,7 +124,7 @@ export default async function DashboardPage() {
           <TodayMealsTile
             href="/kitchen/cooking/meal-plan"
             icon={<CalendarDays size={20} className="text-muted" />}
-            title="Today's meals"
+            title={DASHBOARD_WIDGETS.todayMeals.label}
             plans={mealPlans}
           />
         );
@@ -138,7 +139,7 @@ export default async function DashboardPage() {
           <DashboardTile
             href="/kitchen/inventory"
             icon={<Package size={20} className="text-muted" />}
-            title="Inventory"
+            title={DASHBOARD_WIDGETS.inventory.label}
             badge={inventory.lowCount > 0 ? `${inventory.lowCount} low` : undefined}
           >
             <p className="text-lg font-semibold tabular-nums">
@@ -150,7 +151,7 @@ export default async function DashboardPage() {
             {inventory.urgent.names.length > 0 && (
               <p className="mt-1 line-clamp-2 text-sm text-muted">
                 {inventory.urgent.names.join(", ")}
-                {inventory.urgent.more > 0 && ` +${inventory.urgent.more} more`}
+                {inventory.urgent.more > 0 && ` ${DASHBOARD_WIDGET_WORDS.moreRows(inventory.urgent.more)}`}
               </p>
             )}
           </DashboardTile>
@@ -161,7 +162,7 @@ export default async function DashboardPage() {
           <DashboardTile
             href="/kitchen/shopping"
             icon={<ShoppingCart size={20} className="text-muted" />}
-            title="Grocery"
+            title={DASHBOARD_WIDGETS.grocery.label}
             badge={grocery.toBuy > 0 ? `${grocery.toBuy} to buy` : undefined}
           >
             {grocery.toBuy === 0 ? (
@@ -181,7 +182,7 @@ export default async function DashboardPage() {
           <DashboardTile
             href="/kitchen/cooking/recipes"
             icon={<BookOpen size={20} className="text-muted" />}
-            title="Recipes"
+            title={DASHBOARD_WIDGETS.recipes.label}
           >
             <p className="text-sm text-muted">
               {recipes.count} {recipes.count === 1 ? "recipe" : "recipes"}
@@ -204,6 +205,10 @@ export default async function DashboardPage() {
     const tile = tileFor(widget);
     if (tile) tiles[widget.uid] = tile;
   }
+  // The client saves this filtered list when a person customizes. That is safe:
+  // a widget loses its tile only when its data is missing (Habits and Chores
+  // with no signed-in user, already removed for devices, who cannot customize),
+  // so today nothing is dropped from a layout that can be saved.
   const renderable = { ...layout, widgets: layout.widgets.filter((widget) => widget.uid in tiles) };
 
   // The nudge and Sunday cards sit under the heading row, above the tiles,

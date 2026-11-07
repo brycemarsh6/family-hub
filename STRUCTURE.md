@@ -582,13 +582,17 @@ Adding a second definition of any of these is a BLOCKER:
   sized by v1's own pairing rule, so a saved dashboard opens unchanged; the
   v1 insertion rule (mission-29) lives on only inside that upgrade. A v2
   layout never gets missing kinds inserted: a removed widget stays removed.
-  `nextWidgetUid` is the only uid rule (parser, upgrade and Add share it).
+  `nextWidgetUid` is the only rule for a new or repaired uid (Add and the
+  parser's repair use it). The default layout and the v1 upgrade hold each
+  kind once, so they use the bare kind, which is what `nextWidgetUid` gives
+  a first instance.
   `src/lib/dashboardGrid.ts` (`packWidgets`, `gridAreaVars`) is the only
   placement rule for the grid at 2 and 4 columns; the DOM stays in layout
   order and CSS variables place each cell, never `grid-auto-flow: dense`.
   `src/lib/dashboardLoaders.ts` holds the dashboard's kitchen reads, one
-  per kind; the page loads only the kinds on the layout (habits and goals
-  load for every non-device viewer, for the notes and the pickers).
+  per kind; the page loads only the kinds on the layout (goals load for
+  every signed-in viewer and habits for every non-device viewer, for the
+  notes and the pickers).
   **Picks (mission-34, per instance since mission-43):** a widget's optional `items` (only `habits` and
   `goals`, `PICKABLE_WIDGET_IDS`) is checked for shape in the parser and
   for ownership per instance, through `keepOwnPicks` in `src/lib/dashboardPicks.ts`, which also holds
@@ -615,7 +619,9 @@ Adding a second definition of any of these is a BLOCKER:
   **Dependency direction:** `habitsDashboard.ts` imports only
   `habitVocabulary.ts` and types from `habitsToday.ts`; `dashboardPicks.ts`
   imports only `dashboardLayout.ts` / `dashboardWidgets.ts`; `habitsRead.ts`
-  and `goalsRead.ts` may import them, never the reverse.
+  and `goalsRead.ts` may import them, never the reverse. `dashboardGrid.ts`
+  imports only types from `dashboardWidgets.ts`; `dashboardLoaders.ts` is
+  `server-only` and imported only by the dashboard page.
 - `brand/` — the logo artwork. The two `Marshee*.tsx` components and the
   `src/app/` icon files are all **generated from** these masters; a
   hand-drawn or re-traced second version of the mark or wordmark is a

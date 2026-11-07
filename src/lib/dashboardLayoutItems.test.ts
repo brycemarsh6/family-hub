@@ -1,7 +1,7 @@
 // Pins the `items` (picked ids) cases of dashboardLayout.ts: parsing, cleaning,
 // setWidgetItems and how add, resize and reorder keep them (decisions 44, 49).
 // Picks belong to one widget instance, so two Habits widgets pick separately.
-// Sibling of dashboardLayout.test.ts, split off to keep both under 350 lines;
+// Sibling of dashboardLayoutParse.test.ts and dashboardLayoutEdits.test.ts, split off to keep each under 350 lines;
 // the v1 picks case is in dashboardLayoutUpgrade.test.ts.
 
 import { test } from "node:test";

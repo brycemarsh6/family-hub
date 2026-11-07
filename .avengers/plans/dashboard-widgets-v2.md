@@ -123,6 +123,9 @@ with a mock.
 - Large: 8 to 10 rings, 6 bars, or a week of dots.
 - Extra large: a bars grid, or a week report.
 - Chores: list (M, L).
+- **Required (decision 212):** a Customize row's muted second line must tell
+  two same-kind widgets apart (the style name joins the size); when two still
+  read the same, number the later ones in list order ("Habits 2").
 - Live check-off stays at 44px rows, through `habitRowTaps` and `HabitTileRows`.
 - **Open for this step:** whether a habit gets its own color for rings and bars. That needs a design call and possibly a field.
 

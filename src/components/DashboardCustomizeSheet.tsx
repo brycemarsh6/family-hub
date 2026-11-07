@@ -83,8 +83,12 @@ export default function DashboardCustomizeSheet({
 
   // An edit or pick view whose widget is gone (removed, or reset away) falls back to the list.
   const target = view.name === "edit" || view.name === "pick" ? layout.widgets.find((w) => w.uid === view.uid) : undefined;
-  const showing: View = (view.name === "edit" || view.name === "pick") && !target ? { name: "list" } : view;
+  const gone = (view.name === "edit" || view.name === "pick") && !target;
+  const showing: View = gone ? { name: "list" } : view;
+  // Reset the stored view too, so the widget coming back (undo, a failed save) does not reopen a stale edit view.
+  if (gone) setView({ name: "list" });
   const toList = () => setView({ name: "list" });
+  const full = layout.widgets.length >= MAX_DASHBOARD_WIDGETS;
 
   const title =
     target && showing.name === "edit"
@@ -95,7 +99,7 @@ export default function DashboardCustomizeSheet({
           ? DASHBOARD_WIDGET_WORDS.addTitle
           : showing.name === "addKind"
             ? DASHBOARD_WIDGETS[showing.kind].label
-            : "Customize dashboard";
+            : DASHBOARD_WIDGET_WORDS.customizeTitle;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
@@ -110,7 +114,7 @@ export default function DashboardCustomizeSheet({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative flex max-h-[85vh] w-full flex-col overflow-y-auto rounded-t-2xl bg-surface p-4 shadow-lg md:max-w-md md:rounded-2xl"
+        className="relative flex max-h-[85vh] w-full flex-col overflow-y-auto rounded-t-2xl [&>*]:shrink-0 bg-surface p-4 shadow-lg md:max-w-md md:rounded-2xl"
         style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       >
         {showing.name === "pick" && target && isPickableWidget(target.kind) ? (
@@ -119,6 +123,7 @@ export default function DashboardCustomizeSheet({
             items={pickable[target.kind]}
             picks={picksOf(target)}
             onChange={(ids) => onPicks(target.uid, ids)}
+            backLabel={DASHBOARD_WIDGET_WORDS.backTo(DASHBOARD_WIDGETS[target.kind].label)}
             onBack={() => setView({ name: "edit", uid: target.uid })}
             onClose={onClose}
           />
@@ -190,11 +195,12 @@ export default function DashboardCustomizeSheet({
             <button
               type="button"
               onClick={() => setView({ name: "add" })}
-              disabled={layout.widgets.length >= MAX_DASHBOARD_WIDGETS}
+              disabled={full}
               className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
             >
               {DASHBOARD_WIDGET_WORDS.addWidget}
             </button>
+            {full && <p className="mt-2 px-3 text-sm text-muted">{DASHBOARD_WIDGET_WORDS.full}</p>}
           </>
         )}
 
@@ -210,7 +216,7 @@ export default function DashboardCustomizeSheet({
             onClick={onReset}
             className="mt-3 flex h-12 w-full items-center justify-center rounded-xl border border-line text-base font-medium text-fg transition-colors active:bg-surface-2"
           >
-            Reset to default
+            {DASHBOARD_WIDGET_WORDS.reset}
           </button>
         )}
       </div>

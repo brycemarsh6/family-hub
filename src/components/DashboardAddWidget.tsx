@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import DashboardWidgetGallery from "./DashboardWidgetGallery";
 import {
-  DASHBOARD_PICKER_LABELS,
   DASHBOARD_WIDGETS,
   DASHBOARD_WIDGET_KINDS,
   DASHBOARD_WIDGET_WORDS,
@@ -47,7 +46,7 @@ export default function DashboardAddWidget({
         <button
           type="button"
           onClick={onBack}
-          aria-label={DASHBOARD_PICKER_LABELS.back}
+          aria-label={kind ? DASHBOARD_WIDGET_WORDS.backToAdd : DASHBOARD_WIDGET_WORDS.backToCustomize}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-fg transition-colors active:bg-surface-2"
         >
           <ChevronLeft aria-hidden="true" size={22} />

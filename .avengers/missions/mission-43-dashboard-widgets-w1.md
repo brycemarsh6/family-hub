@@ -76,6 +76,30 @@ Decided by Hill 2026-11-06 (Bryce delegated: "Please call agent hill I'm busy").
 
 For Bryce first: 200, 201, 203.
 
+### Gate-fix calls (Hill, 2026-11-06, after pass 1)
+
+- **209 (medium, amends 201):** grid rows are `auto`; each cell has
+  `min-h-[9.5rem]`, and `loading.tsx` follows the same rule. Large and
+  Extra large still span 2 rows, so a Large alone fits its content instead
+  of stretching. Default sizes unchanged.
+- **210 (high):** each back control names the view it returns to. Add kind
+  view: "Back to Add a widget". Pick: "Back to {widget name}". Edit view and
+  Add list keep "Back to Customize". Words live in `DASHBOARD_WIDGET_WORDS`.
+- **211 (high):** at the 30-widget cap the Add button stays disabled with a
+  muted line under it: "Your dashboard is full. Remove a widget to add
+  another."
+- **212 (medium):** telling same-kind widgets apart is a required W3
+  outcome (written into the plan's W3): the style name joins the size line;
+  if two still read the same, later ones are numbered ("Habits 2").
+- **213 (high):** keep 204 (Remove is optimistic), recorded in DESIGN.md as
+  a named exception beside the delete carve-out, in Hill's words.
+
+For Bryce first: 209, 212.
+
+Bryce (2026-11-06, back from away): shown 200, 203, 209 and 212; said
+"please continue", so all of Hill's calls stand. Design calls go to Bryce
+again from here.
+
 ## Fury's structural calls (Bryce: "You recommend on structure")
 
 - **No `data-fills-width`.** The plan named it, but that attribute also
@@ -336,12 +360,93 @@ From AGENTS.md, absolute for every agent:
   820 wide: add, resize, pick, reorder, remove and Reset all save and
   survive a reload.
 
+### C4 - gate fixes, pass 1 (Captain 1 blocker, Strange 5 blockers, chosen notes)
+- **Status:** DONE (Gauntlet green per Stark: 1191 tests before and after the split; visual items await Strange)
+- **Boundaries:** may touch: `src/lib/dashboardLayout.test.ts` (rename
+  away), new `src/lib/dashboardLayoutParse.test.ts`,
+  new `src/lib/dashboardLayoutEdits.test.ts`,
+  new `src/lib/dashboardWidgets.test.ts`,
+  `src/lib/dashboardLayoutUpgrade.test.ts`,
+  `src/lib/dashboardLayoutItems.test.ts`, `src/lib/dashboardPicks.test.ts`,
+  `src/lib/dashboardGrid.test.ts`, `src/lib/dashboardWidgets.ts` (words
+  object only), `src/lib/dashboardLoaders.ts` (comments only),
+  `src/components/DashboardWidgetList.tsx`,
+  `src/components/DashboardCustomizeSheet.tsx`,
+  `src/components/DashboardWidgetEditor.tsx`,
+  `src/components/DashboardAddWidget.tsx`,
+  `src/components/DashboardWidgetGallery.tsx`,
+  `src/components/DashboardWidgetPreview.tsx`,
+  `src/components/DashboardItemPicker.tsx` (a `backLabel` prop only),
+  `src/components/DashboardTile.tsx` (its header comment only),
+  `src/app/(app)/(home)/loading.tsx`, `src/app/(app)/(home)/page.tsx` ·
+  must not touch: `src/lib/dashboardLayout.ts`, `src/lib/dashboardGrid.ts`,
+  `src/lib/dashboardPicks.ts`, `src/lib/habitsRead.ts`,
+  `src/lib/goalsRead.ts`, `src/app/actions/`, `prisma/`, `package.json`,
+  `DESIGN.md`, `STRUCTURE.md`, `CLAUDE.md`, `.env`.
+- **Spec:**
+  1. **Tests renamed by concern (Captain blocker).** Split the bare
+     dashboardLayout test file into `dashboardLayoutParse.test.ts` (parsing,
+     snapping, uid repair, cap, default) and `dashboardLayoutEdits.test.ts`
+     (add, remove, resize, setWidgetItems, reorder, nextWidgetUid); move the
+     registry assertions into `dashboardWidgets.test.ts`. Delete the old file
+     with `git mv` or `git rm` (no copy left behind). Each file's header
+     names the module it tests; the Upgrade header names `dashboardLayout.ts`.
+     The total test count from `npm test` is unchanged; report before and
+     after counts.
+  2. **Gallery (Strange 1).** The strip is `relative`, so card offsets are
+     measured from it. Dots show only when `scrollWidth > clientWidth`,
+     re-measured on resize (a `ResizeObserver`). After a tap scrolls a card
+     into view, the in-view dot updates (re-run the onScroll measure on
+     `scrollend` or after the smooth scroll).
+  3. **Preview shapes (Strange 2).** `SHAPES`: `s` `aspect-square w-[88px]`,
+     `m` `aspect-[2/1] w-44`, `l` `aspect-square w-44`, `xl` stays wider
+     than `m` at 2:1. At Small the icon stacks above the label so the label
+     never truncates.
+  4. **No squashed buttons (Strange 3).** Every direct child of the sheet's
+     scrolling column is `shrink-0` (`[&>*]:shrink-0` or per element): the
+     list wrapper, Add widget, Reset, the editor's buttons, the gallery
+     wrapper. Buttons stay at least 48px with 30 widgets in the list.
+  5. **Back labels (decision 210, Strange 4).** Add to
+     `DASHBOARD_WIDGET_WORDS`: `backToCustomize` ("Back to Customize"),
+     `backToAdd` ("Back to Add a widget"), `backTo(name)` ("Back to
+     {name}"). The Add kind view uses `backToAdd`; `DashboardItemPicker`
+     gets an optional `backLabel` prop (default its current text) and the
+     editor passes `backTo(widget label)`.
+  6. **Grid rows (decision 209, Strange 5).** `DashboardWidgetList`: rows
+     `auto` (`auto-rows-auto` or no auto-rows class), each cell
+     `min-h-[9.5rem]`; Large and Extra large keep their 2-row span from the
+     packer. `loading.tsx` uses the same rule.
+  7. **Cap line (decision 211).** When the layout holds
+     `MAX_DASHBOARD_WIDGETS`, the Add button stays disabled and a muted line
+     under it reads `DASHBOARD_WIDGET_WORDS.full` = "Your dashboard is full.
+     Remove a widget to add another."
+  8. **Notes taken.** "Customize dashboard" and "Reset to default" move into
+     `DASHBOARD_WIDGET_WORDS`; `page.tsx` uses `moreRows` for the inventory
+     "+N more" and `DASHBOARD_WIDGETS[kind].label` for tile titles where they
+     match; the sheet's fallback (widget gone) also resets the view to list;
+     a one-line comment where the client saves the filtered `renderable`
+     layout saying why that is safe; `dashboardLoaders.ts` comments no longer
+     cite `kitchen/page.tsx` (name the Inventory page or say what the rule
+     is); the `DashboardTile.tsx` header no longer says "full or half width".
+  - No em or en dashes. Each file under 350 lines.
+- **Verification:** the whole Gauntlet passes.
+- **Evidence required:** each Gauntlet command's tail; test counts before
+  and after the split; line counts of touched files; `git status --short`.
+- **Done criteria:** Strange re-gates in the browser at 375 and 820 wide
+  (dots, previews, 30-widget list, back labels, Large tiles, cap line);
+  Captain re-checks the test names; Vision re-runs the Gauntlet.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Captain | BLOCKED | 1: second test split keeps the bare dashboardLayout.test.ts name (STRUCTURE.md test-split rule); Upgrade header does not name dashboardLayout.ts | uid-rule overclaim (default and upgradeV1 hand-write uid: kind); goals load wording; habitsRead 365/277; KIND_ICONS second icon map; inline "+N more" and tile titles in page.tsx; sheet header row x4; DESIGN.md ToggleSwitch example stale; dashboardLoaders comments cite gone kitchen/page.tsx; proposed dependency clause for dashboardGrid/dashboardLoaders; naming of DashboardAddWidget (no action) |
+| 1 | Vision | PASS | none | exhaustive v1 differential (1,935,360 rows) identical; v2 and packer fuzz clean. NOTES: uid reuse in flight shows old tile briefly; client saves the filtered `renderable` layout (inert today); sheet fallback does not reset `view`; re-tap of selected size re-saves; inline "Customize dashboard" / "Reset to default"; Large Habits/Chores taller (for Strange); layout read now serial; goals-load doc wording; habitsRead 365/277 |
+| 1 | Strange | BLOCKED | 5: (1) gallery dots light the wrong card, offsetLeft measured from the dialog, dots shown when the strip cannot scroll; (2) preview SHAPES draw Large narrower than Medium, Small label truncates; (3) sheet buttons squash below 48px with long lists (flex col + max-h, no shrink-0); (4) back controls "Back to Customize" go elsewhere from the Add kind view and from Pick; (5) Large Habits/Chores with little content are big empty cards on the default dashboard (Chores 343x320, 67% empty) | iPad 4-col collage for everyone (Bryce iPad check); cap disabled with no words; pressed accent button contrast 3.37 (app-wide sweep); duplicate kinds indistinguishable; Remove optimistic needs DESIGN.md exception; loading.tsx jump (pre-existing); Grocery Small line-clamp; tapped card half hidden; faint dark dots; DESIGN.md ToggleSwitch line stale |
 
 ## Handoff log
 
+- 2026-11-06: pass 1 gates done (Captain and Strange blocked). Hill decided
+  209 to 213; Fury made the doc fixes; C4 written for Stark.
 - 2026-11-06: mission opened from the approved plan; Hill dispatched with
   nine design calls (200 to 208); C1 written.

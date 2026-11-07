@@ -14,13 +14,10 @@ import type { MealPlanView } from "@/lib/types";
 // goalsRead.ts (no second habit reader). `now` is the server clock, used only
 // to bound queries and the expiring-soon count, never to decide which day it is.
 
-// Same window kitchen/page.tsx's own tile badge uses for "expiring soon":
-// today/tomorrow plus one extra day of runway. Duplicated here rather than
-// imported from a shared constant: expiring.ts doesn't currently export
-// this number (it lives as a private constant inside kitchen/page.tsx), and
-// lifting it would mean touching that file too for a three-line saving with
-// no behavior change. If a third caller ever needs this number, that's the time
-// to actually make the shared constant.
+// "Expiring soon" on the Inventory tile means today/tomorrow plus one extra
+// day of runway. The number is kept here rather than in a shared constant:
+// expiring.ts doesn't export one, and this tile is its only caller. If a
+// second caller ever needs it, that's the time to make the shared constant.
 const EXPIRING_SOON_WINDOW_DAYS = 3;
 
 // How many of the most-urgent low items to name on the Inventory tile
@@ -48,9 +45,9 @@ export async function loadInventorySummary(now: Date): Promise<InventorySummary>
     },
   });
 
-  // Same reasoning as kitchen/page.tsx's own lowCount: Postgres (like
-  // SQLite before it) can't compare two columns of the same row to each
-  // other inside a `where`, so the low check happens here instead. Fine at
+  // Postgres can't compare two columns of the same row to each other inside
+  // a `where`, so the low check happens here instead (the Inventory page
+  // does the same). Fine at
   // family scale (hundreds of rows, not thousands).
   const lowItems = pantryItems.filter((item) => isLow(item.quantity, item.lowThreshold));
 

@@ -26,6 +26,7 @@ export default function DashboardItemPicker({
   nothingPicked,
   none,
   onChange,
+  backLabel = DASHBOARD_PICKER_LABELS.back,
   onBack,
   onClose,
 }: {
@@ -37,6 +38,8 @@ export default function DashboardItemPicker({
   /** Shown instead when there is nothing to pick from. */
   none: string;
   onChange: (ids: string[]) => void;
+  /** The back control's name: the view it returns to (decision 210). */
+  backLabel?: string;
   onBack: () => void;
   onClose: () => void;
 }) {
@@ -61,7 +64,7 @@ export default function DashboardItemPicker({
         <button
           type="button"
           onClick={onBack}
-          aria-label={DASHBOARD_PICKER_LABELS.back}
+          aria-label={backLabel}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-fg transition-colors active:bg-surface-2"
         >
           <ChevronLeft aria-hidden="true" size={22} />

@@ -14,11 +14,11 @@ const KIND_ICONS: Record<DashboardWidgetKind, ComponentType<{ size?: number; cla
   recipes: BookOpen,
 };
 
-/** Shape follows the size: Small a square, Medium 2:1, Large a square, Extra large 2:1 and wider. */
+/** Shape follows the size: Small a narrow square, Medium 2:1, Large a taller square as wide as Medium, Extra large 2:1 and wider. */
 const SHAPES: Record<WidgetSize, string> = {
-  s: "aspect-square w-24",
+  s: "aspect-square w-[88px]",
   m: "aspect-[2/1] w-44",
-  l: "aspect-square w-36",
+  l: "aspect-square w-44",
   xl: "aspect-[2/1] w-56",
 };
 
@@ -43,7 +43,7 @@ export default function DashboardWidgetPreview({ kind, size }: { kind: Dashboard
       aria-hidden="true"
       className={`flex flex-col gap-1.5 overflow-hidden rounded-xl border border-line bg-surface-2 p-2.5 ${SHAPES[size]}`}
     >
-      <div className="flex items-center gap-1.5 text-muted">
+      <div className={`flex gap-1.5 text-muted ${size === "s" ? "flex-col items-start" : "items-center"}`}>
         <Icon aria-hidden="true" size={14} className="shrink-0" />
         <span className="truncate text-xs font-semibold">{DASHBOARD_WIDGETS[kind].label}</span>
       </div>

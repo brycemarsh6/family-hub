@@ -40,7 +40,7 @@ export default function DashboardWidgetEditor({
         <button
           type="button"
           onClick={onBack}
-          aria-label={DASHBOARD_PICKER_LABELS.back}
+          aria-label={DASHBOARD_WIDGET_WORDS.backToCustomize}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-fg transition-colors active:bg-surface-2"
         >
           <ChevronLeft aria-hidden="true" size={22} />

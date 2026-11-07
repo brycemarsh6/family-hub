@@ -29,7 +29,7 @@ import type { DashboardLayout } from "@/lib/dashboardLayout";
  * The grid is 2 columns on phones and 4 from md up. The DOM stays in the
  * person's list order; each cell gets its row and column from the packer
  * (dashboardGrid.ts) through CSS custom properties, one pair per column count,
- * and rows grow to fit their tile (decision 201).
+ * and rows are `auto` with a 9.5rem minimum per cell, so a tile is never cut and a lone Large fits its content (decision 209).
  *
  * Every Customize change (add, remove, resize, drag, picks, reset) is
  * optimistic through useOptimisticRun: it shows at once and saves in the
@@ -96,12 +96,12 @@ export default function DashboardWidgetList({
           />
         </div>
       ) : (
-        <div className="mt-6 grid auto-rows-[minmax(9.5rem,auto)] grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="mt-6 grid auto-rows-auto grid-cols-2 gap-4 md:grid-cols-4">
           {widgets.map((widget, i) => (
             <div
               key={widget.uid}
               style={areas[i] as React.CSSProperties}
-              className="min-w-0 [grid-column:var(--dash-c2)] [grid-row:var(--dash-r2)] md:[grid-column:var(--dash-c4)] md:[grid-row:var(--dash-r4)]"
+              className="min-h-[9.5rem] min-w-0 [grid-column:var(--dash-c2)] [grid-row:var(--dash-r2)] md:[grid-column:var(--dash-c4)] md:[grid-row:var(--dash-r4)]"
             >
               {tiles[widget.uid] ?? <SkeletonBlock className="h-full w-full" />}
             </div>

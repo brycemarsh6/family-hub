@@ -83,4 +83,13 @@ export const DASHBOARD_WIDGET_WORDS = {
   emptyHint: "Tap Customize to add widgets.",
   /** The muted line under a Medium Habits or Chores tile that has more rows than it shows. */
   moreRows: (n: number) => `+${n} more`,
+  /** The sheet's title and its Reset button (moved here from the sheet, so each phrase lives once). */
+  customizeTitle: "Customize dashboard",
+  reset: "Reset to default",
+  /** Back controls name the view they return to (decision 210). */
+  backToCustomize: "Back to Customize",
+  backToAdd: "Back to Add a widget",
+  backTo: (name: string) => `Back to ${name}`,
+  /** The muted line under a disabled Add button at the cap (decision 211). */
+  full: "Your dashboard is full. Remove a widget to add another.",
 } as const;

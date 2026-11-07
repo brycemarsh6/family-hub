@@ -1,10 +1,12 @@
-// Pins the v1 to v2 upgrade inside parseDashboardLayout: a saved v1 layout
+// Tests dashboardLayout.ts: pins the v1 to v2 upgrade inside
+// parseDashboardLayout. A saved v1 layout
 // (an id and an on/off switch per widget) must open looking the same as it
 // did, same widgets, same order, same widths. The cases mirror the old
 // widgetSpans tests: every v1 "full" widget becomes its default size, a pair
 // of "half" widgets (inventory, grocery) become Small, a lone half widget,
-// which v1 drew full width, becomes Medium. Siblings: dashboardLayout.test.ts
-// (the default, v2 parsing, edits) and dashboardLayoutItems.test.ts.
+// which v1 drew full width, becomes Medium. Siblings:
+// dashboardLayoutParse.test.ts, dashboardLayoutEdits.test.ts and
+// dashboardLayoutItems.test.ts.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

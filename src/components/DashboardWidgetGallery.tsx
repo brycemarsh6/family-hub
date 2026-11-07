@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import DashboardWidgetPreview from "./DashboardWidgetPreview";
 import { DASHBOARD_WIDGETS, WIDGET_SIZE_LABELS } from "@/lib/dashboardWidgets";
@@ -26,6 +26,7 @@ export default function DashboardWidgetGallery({
   const { sizes } = DASHBOARD_WIDGETS[kind];
   const strip = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(Math.max(0, sizes.indexOf(selected)));
+  const [scrolls, setScrolls] = useState(false);
 
   // Open with the selected card showing: set the strip's own scroll, so the page never jumps.
   useEffect(() => {
@@ -38,7 +39,8 @@ export default function DashboardWidgetGallery({
   }, []);
 
   // The card whose middle is nearest the strip's middle is the one "in view".
-  function onScroll() {
+  // The strip is `relative`, so each card's offsetLeft is measured from the strip, not the dialog.
+  const onScroll = useCallback(() => {
     const el = strip.current;
     if (!el) return;
     const middle = el.scrollLeft + el.clientWidth / 2;
@@ -53,14 +55,30 @@ export default function DashboardWidgetGallery({
       }
     });
     setInView(best);
-  }
+  }, []);
+
+  // Dots only make sense when the strip can actually scroll; re-measured when it resizes.
+  useEffect(() => {
+    const el = strip.current;
+    if (!el) return;
+    const measure = () => setScrolls(el.scrollWidth > el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(() => {
+      measure();
+      onScroll();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onScroll]);
 
   return (
-    <div>
+    <div className="shrink-0">
       <div
         ref={strip}
         onScroll={onScroll}
-        className="flex snap-x snap-mandatory items-end gap-3 overflow-x-auto px-3 pb-2"
+        // A tap scrolls a card into view smoothly; the dot follows when that scroll ends.
+        onScrollEnd={onScroll}
+        className="relative flex snap-x snap-mandatory items-end gap-3 overflow-x-auto px-3 pb-2"
       >
         {sizes.map((size) => {
           const isSelected = size === selected;
@@ -93,7 +111,7 @@ export default function DashboardWidgetGallery({
           );
         })}
       </div>
-      {sizes.length >= 2 && (
+      {sizes.length >= 2 && scrolls && (
         <div aria-hidden="true" className="mt-1 flex justify-center gap-1.5">
           {sizes.map((size, i) => (
             <span
