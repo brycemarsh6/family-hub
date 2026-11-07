@@ -441,16 +441,17 @@ export function ScheduleView({
       ) : (
         <>
           {/* mission-46/C3: one column below 50rem; a mini month beside the list
-              from 50rem (20rem, then 27.5rem from 64rem). The container wraps
+              from 50rem (24rem, then 27.5rem from 64rem). The container wraps
               this grid only; the sheets below stay outside it. */}
           <div className="@container">
-            <div className="grid grid-cols-[minmax(0,1fr)] gap-5 @min-[50rem]:grid-cols-[22rem_minmax(0,1fr)] @min-[64rem]:grid-cols-[27.5rem_minmax(0,1fr)]">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-5 @min-[50rem]:grid-cols-[24rem_minmax(0,1fr)] @min-[64rem]:grid-cols-[27.5rem_minmax(0,1fr)]">
               <div
                 ref={miniMonthRef}
                 className="sticky hidden self-start @min-[50rem]:block"
                 style={{ top: scheduleChromeHeight + 8 }}
               >
                 <ScheduleMiniMonth
+                  key={`${new Date(dayInViewTime).getFullYear()}-${new Date(dayInViewTime).getMonth()}`}
                   dayInView={new Date(dayInViewTime)}
                   today={today}
                   onPickDay={(day) => {

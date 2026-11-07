@@ -67,6 +67,7 @@ export function useScheduleDayInView(
 
   useEffect(() => {
     let framePending = false;
+    let frameId = 0;
 
     function sync() {
       framePending = false;
@@ -90,13 +91,14 @@ export function useScheduleDayInView(
     function onScrollOrResize() {
       if (framePending) return;
       framePending = true;
-      requestAnimationFrame(sync);
+      frameId = requestAnimationFrame(sync);
     }
 
     onScrollOrResize();
     window.addEventListener("scroll", onScrollOrResize, { passive: true });
     window.addEventListener("resize", onScrollOrResize);
     return () => {
+      cancelAnimationFrame(frameId);
       window.removeEventListener("scroll", onScrollOrResize);
       window.removeEventListener("resize", onScrollOrResize);
     };

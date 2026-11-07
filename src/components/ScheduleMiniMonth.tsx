@@ -3,8 +3,10 @@
 // The wide Schedule's month beside the list (mission-46/C3, decisions 226 to
 // 228). Presentational: ScheduleView hands it the day in view and what to do
 // on a tap. The arrows only browse (a local offset); they never scroll the
-// list. The offset resets whenever the day in view moves to another month,
-// derived at render time from the month it was set for rather than an effect.
+// list. The offset resets whenever the day in view moves to another month:
+// ScheduleView keys this component by that month, so it remounts (a stored
+// month key could not tell "returned to the month it was set in" from "never
+// left").
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -26,13 +28,11 @@ type ScheduleMiniMonthProps = {
 };
 
 export function ScheduleMiniMonth({ dayInView, today, onPickDay }: ScheduleMiniMonthProps) {
-  const viewKey = dayInView.getFullYear() * 12 + dayInView.getMonth();
-  const [browse, setBrowse] = useState({ viewKey, offset: 0 });
-  const offset = browse.viewKey === viewKey ? browse.offset : 0;
+  const [offset, setOffset] = useState(0);
   const shownMonth = new Date(dayInView.getFullYear(), dayInView.getMonth() + offset, 1);
 
   function step(direction: 1 | -1) {
-    setBrowse({ viewKey, offset: offset + direction });
+    setOffset((current) => current + direction);
   }
 
   return (
@@ -68,16 +68,17 @@ export function ScheduleMiniMonth({ dayInView, today, onPickDay }: ScheduleMiniM
           // Days outside the shown month are blank (the mock), not dimmed
           // numbers; the cell stays so the columns keep their places. The
           // circle is 48px where the column allows it and shrinks with the
-          // 320px card beside the Sidebar rather than overflowing it.
+          // 384px card beside the Sidebar rather than overflowing it.
           if (!isSameMonth(day, shownMonth)) return <span key={day.getTime()} />;
           const isToday = isTodayCell(day, shownMonth, today);
           const isInView = !isToday && isSameDay(day, dayInView);
+          const label = `Jump to ${FULL_DAY_NAMES[day.getDay()]}, ${FULL_MONTH_NAMES[day.getMonth()]} ${day.getDate()}`;
           return (
             <button
               key={day.getTime()}
               type="button"
               onClick={() => onPickDay(day)}
-              aria-label={`Jump to ${FULL_DAY_NAMES[day.getDay()]}, ${FULL_MONTH_NAMES[day.getMonth()]} ${day.getDate()}`}
+              aria-label={isInView ? `${label} (showing)` : label}
               aria-current={isToday ? "date" : undefined}
               className={`flex aspect-square w-full max-w-12 items-center justify-center justify-self-center rounded-full transition-colors active:bg-surface-2 ${
                 isToday
