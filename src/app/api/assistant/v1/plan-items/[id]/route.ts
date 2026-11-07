@@ -6,7 +6,7 @@ import { HABIT_TO_OTHER_KIND, editsPlanItemFields, patchedPlanItemRaw, planItemP
 import { planItemEditChangedAnything, planItemUpdateChanges, toPlanItem } from "@/lib/assistant/serializeGoals";
 import { requireHouseholdToday } from "@/lib/assistant/today";
 import { db } from "@/lib/db";
-import { GOAL_NOT_ALLOWED } from "@/lib/goalWrites";
+import { GOAL_NOT_ALLOWED, lockGoal } from "@/lib/goalWrites";
 import { PLAN_ITEM_GONE, planItemRowOf, setStepDone, updatePlanItem } from "@/lib/planItemWrites";
 import { missing } from "@/lib/writeError";
 import type { z } from "zod";
@@ -21,23 +21,32 @@ export const PATCH = assistantRoute<{ id: string }, z.output<typeof planItemPatc
     const today = requireHouseholdToday(now);
     const { id } = params;
 
-    // Hidden and forbidden are one answer, as the app's own edit gives.
-    const found = await db.planItem.findUnique({ where: { id }, include: { goal: { select: { ownerId: true, visibility: true, area: true } } } });
-    if (!found) throw toWriteFailure(missing(PLAN_ITEM_GONE));
-    if (!winnieMayChangeGoal(found.goal)) throw toWriteFailure(missing(GOAL_NOT_ALLOWED));
-    const { goal: _goal, ...row } = found;
-    void _goal;
-    // Hill's H4: a habit stays a habit here (its checks would be deleted with it).
-    if (body.kind !== undefined && body.kind !== "habit" && planItemRowOf(row).kind === "habit") {
-      throw new ApiError(400, "validation", HABIT_TO_OTHER_KIND);
-    }
-    const current = (await viewGoal(row.goalId, today))?.items.find((item) => item.id === id);
-    if (!current) throw notFound();
-
+    // The parent goal is locked, then the item is read, checked and written in ONE transaction,
+    // so the checks below judge exactly the row the write changes. If nothing changed the
+    // transaction is rolled back (no write, no record).
     let diff: ChangeInput[];
+    let goalId = "";
     try {
       diff = await db.$transaction(
         async (tx) => {
+          const probe = await tx.planItem.findUnique({ where: { id }, select: { goalId: true } });
+          if (!probe) throw toWriteFailure(missing(PLAN_ITEM_GONE));
+          goalId = probe.goalId;
+          await lockGoal(tx, goalId);
+
+          // Hidden and forbidden are one answer, as the app's own edit gives.
+          const found = await tx.planItem.findUnique({ where: { id }, include: { goal: { select: { ownerId: true, visibility: true, area: true } } } });
+          if (!found) throw toWriteFailure(missing(PLAN_ITEM_GONE));
+          if (!winnieMayChangeGoal(found.goal)) throw toWriteFailure(missing(GOAL_NOT_ALLOWED));
+          const { goal: _goal, ...row } = found;
+          void _goal;
+          // Hill's H4: a habit stays a habit here (its checks would be deleted with it).
+          if (body.kind !== undefined && body.kind !== "habit" && planItemRowOf(row).kind === "habit") {
+            throw new ApiError(400, "validation", HABIT_TO_OTHER_KIND);
+          }
+          const current = (await viewGoal(goalId, today))?.items.find((item) => item.id === id);
+          if (!current) throw notFound();
+
           let edit: Parameters<typeof planItemUpdateChanges>[0] = {
             item: { before: row, after: row },
             habits: { before: [], after: [] },
@@ -67,7 +76,7 @@ export const PATCH = assistantRoute<{ id: string }, z.output<typeof planItemPatc
       diff = [];
     }
     changes.push(...diff);
-    const item = (await viewGoal(row.goalId, today))?.items.find((candidate) => candidate.id === id);
+    const item = (await viewGoal(goalId, today))?.items.find((candidate) => candidate.id === id);
     if (!item) throw notFound();
     return { data: { item: toPlanItem(item) } };
   },

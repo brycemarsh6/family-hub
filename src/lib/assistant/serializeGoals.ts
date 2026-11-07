@@ -1,9 +1,9 @@
-import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import { LIFE_AREAS, type VisionHorizon } from "@/lib/goalVocabulary";
-import { goalOnBoard, nextStep, type GoalView, type PlanItemView } from "@/lib/goals";
+import { goalOnBoard, goalOwnership, isOngoingGoal, isPrivateGoal, nextStep, type GoalView, type PlanItemView } from "@/lib/goals";
 import { weekSummary, weekTodo } from "@/lib/goalsProgress";
 import type { WeekRecap } from "@/lib/goalsRecap";
-import { calendarDateFromUtcMidnight, formatCalendarDate, zoneMidnightInstant, type CalendarDate } from "@/lib/householdDate";
+import { weekRows } from "@/lib/goalsWeek";
+import { calendarDateFromUtcMidnight, formatCalendarDate, type CalendarDate } from "@/lib/householdDate";
 import type { ChangeInput } from "./audit";
 import { habitChanges, type HabitSnapshot } from "./serializeHabits";
 import { toCopy } from "./undoPlan";
@@ -39,10 +39,10 @@ export function toGoalSummary(goal: GoalView) {
     area: goal.area,
     why: goal.why,
     targetDate: goal.targetDate ? day(goal.targetDate) : null,
-    ongoing: goal.targetDate === null,
-    ownership: goal.ownerId === null ? "together" : "mine",
+    ongoing: isOngoingGoal(goal),
+    ownership: goalOwnership(goal),
     ownerId: goal.ownerId,
-    private: goal.visibility === "private",
+    private: isPrivateGoal(goal),
     number: toNumber(goal),
     completed: goal.completedAt !== null,
     completedAt: goal.completedAt ? instant(goal.completedAt) : null,
@@ -118,19 +118,10 @@ function toRecap(recap: WeekRecap | null) {
  * count, the habits still to do, and on Sundays the recap of the week just ended.
  */
 export function toWeek(input: { goals: readonly GoalView[]; weekStart: CalendarDate; recapDay: boolean; recap: WeekRecap | null; personId?: string }) {
-  const weekStartMs = zoneMidnightInstant(input.weekStart, HOUSEHOLD_TIME_ZONE).getTime();
-  const doneAtMs = (item: PlanItemView) => item.doneAt?.getTime() ?? 0;
   const goals = input.goals.flatMap((goal) => {
-    const step = nextStep(goal.items);
-    const stepView = step ? goal.items.find((item) => item.id === step.id) : undefined;
-    const rows = [
-      ...goal.items.filter((item) => item.kind === "habit"),
-      ...goal.items.filter((item) => item.kind === "step" && item.doneAt !== null && doneAtMs(item) >= weekStartMs).sort((a, b) => doneAtMs(a) - doneAtMs(b)),
-      ...(stepView ? [stepView] : []),
-      ...goal.items.filter((item) => item.kind === "reminder"),
-    ];
+    const rows = weekRows(goal, input.weekStart);
     if (rows.length === 0) return [];
-    return [{ id: goal.id, title: goal.title, area: goal.area, ownership: goal.ownerId === null ? "together" : "mine", ownerId: goal.ownerId, planItems: rows.map(toPlanItem) }];
+    return [{ id: goal.id, title: goal.title, area: goal.area, ownership: goalOwnership(goal), ownerId: goal.ownerId, planItems: rows.map(toPlanItem) }];
   });
   const todo = weekTodo([...input.goals], Number.POSITIVE_INFINITY);
   return {

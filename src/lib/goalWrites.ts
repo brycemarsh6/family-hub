@@ -52,6 +52,11 @@ function newMeasureData(measure: GoalInput["measure"]) {
   };
 }
 
+/** Inside a write's transaction: lock the goal row, so the reads and the write that follow see one goal. */
+export async function lockGoal(tx: Prisma.TransactionClient, id: string): Promise<void> {
+  await tx.$queryRaw`SELECT "id" FROM "Goal" WHERE "id" = ${id} FOR UPDATE`;
+}
+
 /** The goal and the caller's `guard`, read inside `tx`. */
 async function guardedGoal(guard: GoalGuard, id: string, tx: Prisma.TransactionClient): Promise<Goal | WriteError> {
   const goal = await tx.goal.findUnique({ where: { id } });
@@ -204,12 +209,18 @@ export async function addCheckIn(
 
 /**
  * Point a goal's current number back at the newest check-in it has left, or
- * at its start value (no check-in date) when none remain. The one rule behind
- * removing a check-in, and behind undo. Returns the updated goal, `null` when
- * the goal is gone.
+ * at its start value (no check-in date) when none remain. The one writer of
+ * that rule, behind removing a check-in and behind undo. Nothing is written
+ * when the number already stands there. `keepUpdatedAt` leaves the goal's
+ * `updatedAt` as it was (undo needs the goal to still match the copy it just
+ * logged). Returns the goal as it is now, `null` when the goal is gone.
  */
-export async function rebuildGoalNumber(tx: Prisma.TransactionClient, goalId: string): Promise<Goal | null> {
-  const goal = await tx.goal.findUnique({ where: { id: goalId }, select: { startValue: true } });
+export async function rebuildGoalNumber(
+  tx: Prisma.TransactionClient,
+  goalId: string,
+  options: { keepUpdatedAt?: boolean } = {},
+): Promise<Goal | null> {
+  const goal = await tx.goal.findUnique({ where: { id: goalId } });
   if (!goal) return null;
   const remaining = await tx.goalCheckIn.findMany({
     where: { goalId },
@@ -217,7 +228,9 @@ export async function rebuildGoalNumber(tx: Prisma.TransactionClient, goalId: st
     take: 1,
     select: { value: true, at: true },
   });
-  return tx.goal.update({ where: { id: goalId }, data: numberAfterCheckIns(goal.startValue, remaining) });
+  const next = numberAfterCheckIns(goal.startValue, remaining);
+  if (next.currentValue === goal.currentValue && next.checkedInAt?.getTime() === goal.checkedInAt?.getTime()) return goal;
+  return tx.goal.update({ where: { id: goalId }, data: options.keepUpdatedAt ? { ...next, updatedAt: goal.updatedAt } : next });
 }
 
 /**

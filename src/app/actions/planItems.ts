@@ -79,7 +79,7 @@ export async function createPlanItem(goalId: string, raw: unknown): Promise<Crea
   if (!user) return { error: NOT_SIGNED_IN };
   if (user.isDevice) return { error: DEVICE_REFUSED };
 
-  const result = await createPlanItemRow((goal) => allowed(goal, user, "edit"), goalId, raw, user.userId);
+  const result = await createPlanItemRow((goal) => allowed(goal, user, "edit"), goalId, raw, householdToday(new Date())!, user.userId);
   if ("error" in result) return { error: result.error };
 
   refreshPlansViews();

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { calendarDateString } from "@/lib/assistant/schemas";
 import { GOAL_OWNERSHIPS, HABIT_PERIODS, LIFE_AREAS, PLAN_KINDS, VISION_HORIZONS } from "@/lib/goalVocabulary";
-import type { PlanItemView } from "@/lib/goals";
+import { isOngoingGoal, type PlanItemView } from "@/lib/goals";
 import { targetDateChips } from "@/lib/goalsProgress";
 import { HABIT_TRACKS, PACE_DAYS } from "@/lib/habitHoursVocabulary";
 import { calendarDateFromUtcMidnight, formatCalendarDate, type CalendarDate } from "@/lib/householdDate";
@@ -155,7 +155,7 @@ export type StoredGoalFields = {
  * visibility, which keeps its stored value.
  */
 export function patchedGoalRaw(row: StoredGoalFields, body: GoalPatchBody) {
-  const ongoing = body.ongoing === true || (body.targetDate === undefined && row.targetDate === null && body.ongoing !== false);
+  const ongoing = body.ongoing === true || (body.targetDate === undefined && isOngoingGoal(row) && body.ongoing !== false);
   const stored = row.targetDate ? formatCalendarDate(calendarDateFromUtcMidnight(row.targetDate)) : null;
   const had = row.measureUnit !== null;
   const asked = measureOf(body.measureUnit, body.startValue, body.targetValue);

@@ -7,7 +7,6 @@ import "server-only";
 // she may not see is answered as missing, never filtered by a second rule.
 
 import { db } from "@/lib/db";
-import type { Prisma } from "@/generated/prisma/client";
 import { TOGETHER_BOARD, VISION_HORIZONS, toGoalVisibility, type VisionHorizon } from "@/lib/goalVocabulary";
 import { canEdit, canSee, countsInScope, goalsInScope, type GoalView } from "@/lib/goals";
 import type { GoalPolicyRow } from "@/lib/goalWrites";
@@ -15,7 +14,7 @@ import { loadGoal, loadPlansPage, loadWeekRecap } from "@/lib/goalsRead";
 import type { CalendarDate } from "@/lib/householdDate";
 import { loadHouseholdPeople } from "@/lib/householdPeople";
 import { boardOwnerId, canEditVision } from "@/lib/visions";
-import { loadGoalVision } from "@/lib/visionsRead";
+import { loadGoalVision, loadVisionRows } from "@/lib/visionsRead";
 import { assistantCreatedWhere, didAssistantCreate } from "./audit";
 import { assistantGoalViewer, assistantOwnerId } from "./habitActorEnv";
 import { requireHouseholdPerson } from "./habitReads";
@@ -100,16 +99,8 @@ export async function readVision(opts: { board?: string; horizon?: VisionHorizon
   const boards = opts.board === undefined ? all : [opts.board];
   const horizons = opts.horizon === undefined ? VISION_HORIZONS : [opts.horizon];
   const [rows, page] = await Promise.all([
-    db.visionStatement.findMany({
-      where: { boardKey: { in: boards }, horizon: { in: [...horizons] } },
-      select: { boardKey: true, area: true, horizon: true, text: true },
-    }),
+    loadVisionRows({ boards, horizons }),
     loadPlansPage(viewer, today),
   ]);
   return { boards: toVisionBoards({ boards, horizons, rows, goals: page.goals, canEdit: (board) => canEditVision(boardOwnerId(board), viewer) }) };
-}
-
-/** Inside a write's transaction: lock the goal row, so the reads and the write that follow see one goal. */
-export async function lockGoal(tx: Prisma.TransactionClient, id: string): Promise<void> {
-  await tx.$queryRaw`SELECT "id" FROM "Goal" WHERE "id" = ${id} FOR UPDATE`;
 }

@@ -169,12 +169,21 @@ test("goalWork names goals from Goal and check-in steps, from either copy, and s
   const s = steps([
     change("GoalCheckIn", "c1", "create", null, checkIn("c1", "g1", 78)),
     change("GoalCheckIn", "c2", "delete", checkIn("c2", "g2", 80), null),
-    change("Goal", "g3", "update", goal("g3", { title: "a" }), goal("g3", { title: "b" })),
+    change("Goal", "g3", "update", goal("g3", { currentValue: 90 }), goal("g3", { currentValue: 85 })),
     change("Goal", "g4", "create", null, goal("g4")),
     change("GoalCheckIn", "c4", "create", null, checkIn("c4", "g4", 85)),
     change("PlanItem", "i1", "create", null, item("i1", "g5")),
   ]);
   assert.deepEqual(goalWork(s), ["g1", "g2", "g3"]);
+});
+
+test("goalWork leaves out a title-only restore, takes one that moved the number", () => {
+  const titleOnly = steps([change("Goal", "g1", "update", goal("g1", { title: "a", currentValue: 82 }), goal("g1", { title: "b", currentValue: 82 }))]);
+  assert.deepEqual(goalWork(titleOnly), []);
+  const moved = steps([change("Goal", "g1", "update", goal("g1", { currentValue: 90 }), goal("g1", { currentValue: 78 }))]);
+  assert.deepEqual(goalWork(moved), ["g1"]);
+  const dated = steps([change("Goal", "g1", "update", goal("g1"), goal("g1", { checkedInAt: T }))]);
+  assert.deepEqual(goalWork(dated), ["g1"]);
 });
 
 test("goalWork keeps a goal that is re-created", () => {
@@ -183,6 +192,10 @@ test("goalWork keeps a goal that is re-created", () => {
     change("GoalCheckIn", "c1", "delete", checkIn("c1", "g1", 80), null),
   ]);
   assert.deepEqual(goalWork(s), ["g1"]);
+});
+
+test("goalWork includes a goal that is re-created, even with no check-in", () => {
+  assert.deepEqual(goalWork(steps([change("Goal", "g1", "delete", goal("g1"), null)])), ["g1"]);
 });
 
 test("streakWork still groups from undoWork.ts", () => {

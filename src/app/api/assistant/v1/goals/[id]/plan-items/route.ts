@@ -13,7 +13,7 @@ export const POST = assistantRoute<{ id: string }, z.output<typeof planItemCreat
   handler: async ({ params, body, changes, now }) => {
     const today = requireHouseholdToday(now);
     // Made by the bot, not a user: a habit's createdById stays null.
-    const result = await createPlanItem(winnieMayChangeGoal, params.id, body, null);
+    const result = await createPlanItem(winnieMayChangeGoal, params.id, body, today, null);
     if ("error" in result) throw toWriteFailure(result);
     changes.push(...planItemCreateChanges(result.item, result.habits, result.participants));
     const item = (await viewGoal(params.id, today))?.items.find((candidate) => candidate.id === result.item.id);

@@ -12,33 +12,18 @@ import type { Prisma } from "@/generated/prisma/client";
 import { recomputeChoreStreaks } from "@/lib/habits/choreWrites";
 import { recomputeHabit, recomputeStreaks } from "@/lib/habits/streakWrites";
 import { householdToday } from "./today";
-import { numberAfterCheckIns } from "@/lib/goalsProgress";
+import { rebuildGoalNumber } from "@/lib/goalWrites";
 import type { UndoStep } from "./undoPlan";
 import { goalWork, streakWork } from "./undoWork";
-
-/**
- * A goal's number mirrors its newest check-in (`Goal.currentValue`,
- * `checkedInAt`, VOLATILE in undoModels.ts): rebuilt from the check-ins that
- * are left, the rule the app's own check-in removal uses. `updatedAt` is kept
- * as it is, so the goal still matches the copy the undo just logged.
- */
-async function rebuildGoalNumbers(tx: Prisma.TransactionClient, goalIds: readonly string[]): Promise<void> {
-  for (const id of goalIds) {
-    const goal = await tx.goal.findUnique({ where: { id } });
-    if (!goal) continue;
-    const remaining = await tx.goalCheckIn.findMany({ where: { goalId: id }, select: { value: true, at: true } });
-    const next = numberAfterCheckIns(goal.startValue, remaining);
-    if (next.currentValue === goal.currentValue && next.checkedInAt?.getTime() === goal.checkedInAt?.getTime()) continue;
-    await tx.goal.update({ where: { id }, data: { ...next, updatedAt: goal.updatedAt } });
-  }
-}
 
 export async function afterUndo(
   tx: Prisma.TransactionClient,
   steps: readonly UndoStep[],
   now: Date,
 ): Promise<void> {
-  await rebuildGoalNumbers(tx, goalWork(steps));
+  // A goal's number mirrors its newest check-in (VOLATILE in undoModels.ts): rebuilt from the check-ins left,
+  // keeping `updatedAt` so the goal still matches the copy the undo just logged.
+  for (const goalId of goalWork(steps)) await rebuildGoalNumber(tx, goalId, { keepUpdatedAt: true });
   const today = householdToday(now);
   if (!today) return;
   const { users, habits, choreUsers } = streakWork(steps);

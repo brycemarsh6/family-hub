@@ -1,13 +1,13 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import type { ChangeInput } from "@/lib/assistant/audit";
 import { ApiError, notFound, toWriteFailure } from "@/lib/assistant/errors";
-import { getGoal, lockGoal, winnieMayChangeGoal } from "@/lib/assistant/goalReads";
+import { getGoal, winnieMayChangeGoal } from "@/lib/assistant/goalReads";
 import { NUMBER_HAS_CHECK_INS, editsGoalFields, goalPatchBody, patchedGoalRaw } from "@/lib/assistant/schemasGoals";
 import { changedColumns, checkInChange, goalUpdateChange } from "@/lib/assistant/serializeGoals";
 import { requireHouseholdToday } from "@/lib/assistant/today";
 import { db } from "@/lib/db";
 import type { GoalCheckIn } from "@/generated/prisma/client";
-import { GOAL_GONE, GOAL_NOT_ALLOWED, setGoalCompleted, updateGoal } from "@/lib/goalWrites";
+import { GOAL_GONE, GOAL_NOT_ALLOWED, lockGoal, setGoalCompleted, updateGoal } from "@/lib/goalWrites";
 import { missing } from "@/lib/writeError";
 import type { z } from "zod";
 

@@ -16,7 +16,6 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import { Prisma, type Habit, type HabitParticipant, type PlanItem } from "@/generated/prisma/client";
-import { householdToday } from "@/lib/assistant/today";
 import { habitInputFromPlan, habitParticipantsFor, validatePlanItemInput, type PlanItemInput } from "./goals";
 import { toHabitPeriod, toPlanKind } from "./goalVocabulary";
 import { GOAL_GONE, GOAL_NOT_ALLOWED, type GoalGuard, type GoalPolicyRow } from "./goalWrites";
@@ -114,13 +113,14 @@ export function planItemRowOf(row: PlanItem): PlanItemForWrite {
 
 /**
  * Add a habit, step or reminder under a goal, last in its list. A habit makes
- * its Habit (`createdById` is the person who made it, `null` for the Assistant
+ * its Habit (`today` is the household's day, the caller's to give; `createdById` is the person who made it, `null` for the Assistant
  * API). The Habit and its participants come back with the item.
  */
 export async function createPlanItem(
   guard: GoalGuard,
   goalId: string,
   raw: unknown,
+  today: CalendarDate,
   createdById: string | null,
   client: Client = db,
 ): Promise<{ item: PlanItem; habits: Habit[]; participants: HabitParticipant[] } | WriteError> {
@@ -135,7 +135,7 @@ export async function createPlanItem(
       const input = checked.ok;
 
       const { _max } = await tx.planItem.aggregate({ where: { goalId }, _max: { sortOrder: true } });
-      const habit = input.kind === "habit" ? await newHabit(tx, input, goal, createdById, householdToday(new Date())!) : null;
+      const habit = input.kind === "habit" ? await newHabit(tx, input, goal, createdById, today) : null;
       const item = await tx.planItem.create({
         data: {
           goalId,

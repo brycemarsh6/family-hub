@@ -88,6 +88,22 @@ export async function loadVisionBoard(
   };
 }
 
+/** The statements on these boards at these horizons (every area), narrow columns only. For the Assistant API's Vision read. */
+export function loadVisionRows(opts: { boards: readonly string[]; horizons: readonly VisionHorizon[] }) {
+  return db.visionStatement.findMany({
+    where: { boardKey: { in: [...opts.boards] }, horizon: { in: [...opts.horizons] } },
+    select: { id: true, boardKey: true, area: true, horizon: true, text: true, updatedAt: true },
+  });
+}
+
+/** One statement by its board, area and horizon; null when that slot is empty. */
+export function loadVisionStatement(boardKey: VisionBoardKey, area: LifeArea, horizon: VisionHorizon) {
+  return db.visionStatement.findUnique({
+    where: { boardKey_area_horizon: { boardKey, area, horizon } },
+    select: { id: true, boardKey: true, area: true, horizon: true, text: true, updatedAt: true },
+  });
+}
+
 /** The `GOAL_PAGE_VISION_HORIZON` vision a goal's page shows: its owner's, else Together's, else none. */
 export async function loadGoalVision(goal: GoalView): Promise<VisionRow | null> {
   const horizon = GOAL_PAGE_VISION_HORIZON;

@@ -42,18 +42,27 @@ export function streakWork(steps: readonly UndoStep[]): {
   };
 }
 
+/** Whether the request's own two copies of a goal differ in the number cache. */
+function movedNumber(step: UndoStep): boolean {
+  return ["currentValue", "checkedInAt"].some((column) => step.before?.[column] !== step.after?.[column]);
+}
+
 /**
- * Goals whose number cache (`currentValue`, `checkedInAt`) must be rebuilt:
- * every goal named by a Goal step or a check-in step (read from whichever copy
- * exists), except a goal the plan removes. The hook still skips any that are
- * gone from the database.
+ * Goals whose number cache (`currentValue`, `checkedInAt`) must be rebuilt: a
+ * goal the undo re-creates, a goal whose Goal step moved the cache (its two
+ * copies differ in `currentValue` or `checkedInAt`), and every goal named by a
+ * check-in step (read from whichever copy exists), except a goal the plan
+ * removes. A restore that left the cache alone (a title edit) is not rebuilt:
+ * a goal with no check-ins keeps the number it has. The hook still skips any
+ * that are gone from the database.
  */
 export function goalWork(steps: readonly UndoStep[]): string[] {
   const goals = new Set<string>();
   const removed = new Set<string>();
   for (const step of steps) {
     if (step.model === "Goal") {
-      (step.kind === "remove" ? removed : goals).add(step.recordId);
+      if (step.kind === "remove") removed.add(step.recordId);
+      else if (step.kind === "recreate" || movedNumber(step)) goals.add(step.recordId);
     } else if (step.model === "GoalCheckIn") {
       for (const copy of [step.before, step.after]) {
         if (typeof copy?.goalId === "string") goals.add(copy.goalId);
