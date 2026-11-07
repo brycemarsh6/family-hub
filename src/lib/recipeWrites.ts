@@ -7,10 +7,13 @@ import "server-only";
 // `revalidatePath`; each caller carries its own gate and its own route
 // strings.
 //
+// Tag writes live in `tagWrites.ts` (this module imports it for the tag diff
+// that rides inside a recipe edit).
+//
 // Input normalization AND the field guards (required text, rating range) live
 // here with the actions' exact messages, so both callers reject and store the
-// same things. A guard failure comes back as `{ error }`, a missing row as
-// `null`, never a throw.
+// same things. A guard failure comes back as `{ error, code }` (`code` says
+// 404 or 400 to the API), a missing row as `null`, never a throw.
 //
 // Every write returns whole-row copies (every column) of what it created,
 // replaced or removed, for the audit log and undo. Updates take a row lock
@@ -25,13 +28,16 @@ import type {
   Recipe,
   RecipeTag,
   CookbookRecipe,
-  Tag,
 } from "@/generated/prisma/client";
-import { isUniqueViolationError } from "@/lib/prismaErrors";
+import { applyRecipeTagDiff, tagsExist } from "@/lib/tagWrites";
+import type { WriteError } from "@/lib/tagWrites";
+
+export type { WriteError };
 
 type Tx = Prisma.TransactionClient;
 
-export type WriteError = { error: string };
+const INVALID = (error: string): WriteError => ({ error, code: "invalid" });
+const MISSING = (error: string): WriteError => ({ error, code: "missing" });
 
 /** The text fields a caller may set on a recipe. */
 export type RecipeFields = {
@@ -71,7 +77,7 @@ function requiredFieldError(fields: {
 }
 
 /** `null` clears the rating, so it is a real input, not an error. */
-export function ratingError(rating: number | null): string | null {
+function ratingError(rating: number | null): string | null {
   if (rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
     return "Ratings run 1 to 5.";
   }
@@ -97,7 +103,7 @@ export async function createRecipeRow(
   | WriteError
 > {
   const invalid = requiredFieldError(fields);
-  if (invalid) return { error: invalid };
+  if (invalid) return INVALID(invalid);
 
   const cookbookId = options.cookbookId || null;
   const tagIds = [...new Set(options.tagIds ?? [])];
@@ -108,12 +114,9 @@ export async function createRecipeRow(
         where: { id: cookbookId },
         select: { id: true },
       });
-      if (!cookbook) return { error: "That cookbook no longer exists." };
+      if (!cookbook) return MISSING("That cookbook no longer exists.");
     }
-    if (tagIds.length > 0) {
-      const found = await tx.tag.count({ where: { id: { in: tagIds } } });
-      if (found !== tagIds.length) return { error: "That tag no longer exists." };
-    }
+    if (!(await tagsExist(tx, tagIds))) return MISSING("That tag no longer exists.");
 
     const recipe = await tx.recipe.create({
       data: {
@@ -148,30 +151,54 @@ export async function updateRecipeRow(
   id: string,
   patch: RecipePatch,
 ): Promise<{ before: Recipe; after: Recipe } | WriteError | null> {
+  const result = await updateRecipeAndTagsRow(id, patch);
+  if (!result || "error" in result) return result;
+  return { before: result.before, after: result.after };
+}
+
+/**
+ * A field patch and a tag set (the full set, by id) applied together: the
+ * recipe is locked once and both writes share ONE transaction, so a failure
+ * in either leaves nothing written. Either part may be left out. Returns
+ * `{ before, after }` for the recipe (equal, and `updatedAt` untouched, when
+ * the patch is empty) and copies of the tag links created and deleted.
+ * `{ error }` for a bad patch or an unknown tag id (nothing written); null
+ * when the recipe is missing.
+ */
+export async function updateRecipeAndTagsRow(
+  id: string,
+  patch: RecipePatch = {},
+  tagIds?: string[],
+): Promise<
+  { before: Recipe; after: Recipe; created: RecipeTag[]; deleted: RecipeTag[] } | WriteError | null
+> {
   const invalid =
     requiredFieldError(patch) ??
     (patch.rating !== undefined ? ratingError(patch.rating) : null);
-  if (invalid) return { error: invalid };
+  if (invalid) return INVALID(invalid);
 
   return db.$transaction(async (tx) => {
     const before = await lockRecipe(tx, id);
     if (!before) return null;
 
-    const after = await tx.recipe.update({
-      where: { id },
-      data: {
-        ...(patch.title !== undefined ? { title: patch.title.trim() } : {}),
-        ...(patch.ingredients !== undefined ? { ingredients: patch.ingredients.trim() } : {}),
-        ...(patch.steps !== undefined ? { steps: patch.steps.trim() } : {}),
-        ...(patch.servings !== undefined ? { servings: optionalText(patch.servings) } : {}),
-        ...(patch.prepTime !== undefined ? { prepTime: optionalText(patch.prepTime) } : {}),
-        ...(patch.cookTime !== undefined ? { cookTime: optionalText(patch.cookTime) } : {}),
-        ...(patch.sourceUrl !== undefined ? { sourceUrl: optionalText(patch.sourceUrl) } : {}),
-        ...(patch.notes !== undefined ? { notes: optionalText(patch.notes) } : {}),
-        ...(patch.rating !== undefined ? { rating: patch.rating } : {}),
-      },
-    });
-    return { before, after };
+    // Tags first: an unknown tag id refuses before anything is written.
+    const tags = tagIds ? await applyRecipeTagDiff(tx, id, tagIds) : { created: [], deleted: [] };
+    if ("error" in tags) return tags;
+
+    const data = {
+      ...(patch.title !== undefined ? { title: patch.title.trim() } : {}),
+      ...(patch.ingredients !== undefined ? { ingredients: patch.ingredients.trim() } : {}),
+      ...(patch.steps !== undefined ? { steps: patch.steps.trim() } : {}),
+      ...(patch.servings !== undefined ? { servings: optionalText(patch.servings) } : {}),
+      ...(patch.prepTime !== undefined ? { prepTime: optionalText(patch.prepTime) } : {}),
+      ...(patch.cookTime !== undefined ? { cookTime: optionalText(patch.cookTime) } : {}),
+      ...(patch.sourceUrl !== undefined ? { sourceUrl: optionalText(patch.sourceUrl) } : {}),
+      ...(patch.notes !== undefined ? { notes: optionalText(patch.notes) } : {}),
+      ...(patch.rating !== undefined ? { rating: patch.rating } : {}),
+    };
+    const after =
+      Object.keys(data).length > 0 ? await tx.recipe.update({ where: { id }, data }) : before;
+    return { before, after, ...tags };
   });
 }
 
@@ -220,113 +247,5 @@ export async function stopSharingRecipeRow(
     if (!before.shareToken) return { before, after: before };
     const after = await tx.recipe.update({ where: { id }, data: { shareToken: null } });
     return { before, after };
-  });
-}
-
-/**
- * Case-insensitive find-or-create (Tag.name's own uniqueness is
- * case-sensitive). `created` is the new row's copy, or null when the tag
- * already existed. A lost race on the exact same name re-finds the winner.
- */
-export async function findOrCreateTagRow(
-  name: string,
-): Promise<{ tag: Tag; recipeCount: number; created: Tag | null } | WriteError> {
-  const trimmed = name.trim();
-  if (!trimmed) return { error: "Give the tag a name." };
-
-  const find = () =>
-    db.tag.findFirst({
-      where: { name: { equals: trimmed, mode: "insensitive" } },
-      include: { _count: { select: { recipes: true } } },
-    });
-
-  const existing = await find();
-  if (existing) {
-    const { _count, ...tag } = existing;
-    return { tag, recipeCount: _count.recipes, created: null };
-  }
-
-  try {
-    const created = await db.tag.create({ data: { name: trimmed } });
-    return { tag: created, recipeCount: 0, created };
-  } catch (error) {
-    if (!isUniqueViolationError(error)) throw error;
-    const winner = await find();
-    if (!winner) throw error;
-    const { _count, ...tag } = winner;
-    return { tag, recipeCount: _count.recipes, created: null };
-  }
-}
-
-/** Put a tag on a recipe. Idempotent: `created` is null when it was already there. */
-export async function addRecipeTagRow(
-  recipeId: string,
-  tagId: string,
-): Promise<{ created: RecipeTag | null } | WriteError> {
-  const [recipe, tag] = await Promise.all([
-    db.recipe.findUnique({ where: { id: recipeId }, select: { id: true } }),
-    db.tag.findUnique({ where: { id: tagId }, select: { id: true } }),
-  ]);
-  if (!recipe) return { error: "That recipe no longer exists." };
-  if (!tag) return { error: "That tag no longer exists." };
-
-  try {
-    return { created: await db.recipeTag.create({ data: { recipeId, tagId } }) };
-  } catch (error) {
-    if (isUniqueViolationError(error)) return { created: null };
-    throw error;
-  }
-}
-
-/** Take a tag off a recipe. Idempotent: `removed` is the deleted row's copy, or null. */
-export async function removeRecipeTagRow(
-  recipeId: string,
-  tagId: string,
-): Promise<{ removed: RecipeTag | null }> {
-  return db.$transaction(async (tx) => {
-    const row = await tx.recipeTag.findUnique({
-      where: { recipeId_tagId: { recipeId, tagId } },
-    });
-    if (!row) return { removed: null };
-    const { count } = await tx.recipeTag.deleteMany({ where: { id: row.id } });
-    return { removed: count > 0 ? row : null };
-  });
-}
-
-/**
- * Make a recipe carry exactly these tags: the diff is applied in one
- * transaction (recipe row-locked). Returns copies of the rows created and
- * deleted, or `{ error }` for a missing recipe or an unknown tag id.
- */
-export async function setRecipeTagRows(
-  recipeId: string,
-  tagIds: string[],
-): Promise<{ created: RecipeTag[]; deleted: RecipeTag[] } | WriteError> {
-  const wanted = [...new Set(tagIds)];
-
-  return db.$transaction(async (tx) => {
-    const recipe = await lockRecipe(tx, recipeId);
-    if (!recipe) return { error: "That recipe no longer exists." };
-
-    if (wanted.length > 0) {
-      const found = await tx.tag.count({ where: { id: { in: wanted } } });
-      if (found !== wanted.length) return { error: "That tag no longer exists." };
-    }
-
-    const current = await tx.recipeTag.findMany({ where: { recipeId } });
-    const have = new Set(current.map((row) => row.tagId));
-    const keep = new Set(wanted);
-
-    const deleted = current.filter((row) => !keep.has(row.tagId));
-    if (deleted.length > 0) {
-      await tx.recipeTag.deleteMany({ where: { id: { in: deleted.map((row) => row.id) } } });
-    }
-    const created: RecipeTag[] = [];
-    for (const tagId of wanted) {
-      if (!have.has(tagId)) {
-        created.push(await tx.recipeTag.create({ data: { recipeId, tagId } }));
-      }
-    }
-    return { created, deleted };
   });
 }

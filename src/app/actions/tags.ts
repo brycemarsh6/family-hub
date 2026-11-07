@@ -11,30 +11,20 @@ import { MANAGER_ROLES } from "@/lib/constants";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import {
   findOrCreateTagRow,
+  renameTagRow,
   addRecipeTagRow,
   removeRecipeTagRow,
-} from "@/lib/recipeWrites";
+} from "@/lib/tagWrites";
 
 export type TagInfo = { id: string; name: string; recipeCount: number };
 export type TagResult = { tag?: TagInfo; error?: string };
 
 /**
- * Case-insensitive find-or-create — the Recipes v2 plan's "search or
- * create" rule: an existing tag surfaces first, and "create" is only ever
- * offered for a name that genuinely doesn't exist yet. The check happens
- * here rather than only client-side, so a direct call (this is a real
- * public POST endpoint) can't slip a duplicate past the UI. Tag.name's own
- * database uniqueness is case-SENSITIVE (see the schema comment), so this
- * function is what actually keeps "Dessert" and "dessert" as one tag.
- *
- * The guarantee is "no duplicate from a later request", not "no duplicate
- * ever": this is a read-then-write with no transaction around it, so two
- * requests racing on different casings of a brand-new name could still
- * create both rows. Left as is deliberately — a household of two tapping
- * the same new tag name in the same instant isn't a real scenario, and the
- * cure (a serializable transaction, or a normalized-name column) costs more
- * than the disease. Merging duplicates by hand is a one-liner if it ever
- * happens.
+ * Case-insensitive find-or-create, the Recipes v2 plan's "search or create"
+ * rule: an existing tag surfaces first, and "create" is only ever offered for
+ * a name that genuinely doesn't exist yet. The check lives in `tagWrites.ts`
+ * (shared with the Assistant API), so a direct call to this public POST
+ * endpoint can't slip a duplicate past the UI.
  */
 export async function findOrCreateTag(name: string): Promise<TagResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
@@ -51,30 +41,13 @@ export async function findOrCreateTag(name: string): Promise<TagResult> {
 export async function renameTag(tagId: string, name: string): Promise<TagResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  const trimmed = name.trim();
-  if (!trimmed) return { error: "Give the tag a name." };
-
-  const clash = await db.tag.findFirst({
-    where: { name: { equals: trimmed, mode: "insensitive" }, id: { not: tagId } },
-    select: { id: true },
-  });
-  if (clash) return { error: "A tag with that name already exists." };
-
-  let updated;
-  try {
-    updated = await db.tag.update({
-      where: { id: tagId },
-      data: { name: trimmed },
-      select: { id: true, name: true, _count: { select: { recipes: true } } },
-    });
-  } catch (error) {
-    // Deleted on another phone while this one still had it on screen.
-    if (isMissingRowError(error)) return { error: "That tag no longer exists." };
-    throw error;
-  }
+  const result = await renameTagRow(tagId, name);
+  if ("error" in result) return { error: result.error };
 
   revalidatePath("/kitchen/cooking/recipes");
-  return { tag: { id: updated.id, name: updated.name, recipeCount: updated._count.recipes } };
+  return {
+    tag: { id: result.tag.id, name: result.tag.name, recipeCount: result.recipeCount },
+  };
 }
 
 export type TagActionResult = { error?: string };

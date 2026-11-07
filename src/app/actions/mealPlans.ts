@@ -15,8 +15,8 @@ import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import { toMealSlot, MANAGER_ROLES } from "@/lib/constants";
 import {
   getOrCreateMealPlanRow,
-  setMealPlanEntryRow as writeMealPlanEntry,
-  clearMealPlanEntryRow as removeMealPlanEntry,
+  setMealPlanEntryRow,
+  clearMealPlanEntryRow,
 } from "@/lib/mealPlanWrites";
 import type { Category, Location } from "@/lib/constants";
 import { effectiveExpiry, daysUntil } from "@/lib/expiring";
@@ -72,9 +72,9 @@ export async function deleteMealPlan(mealPlanId: string): Promise<void> {
 }
 
 /**
- * Fill (or overwrite) one slot. Upserts on the entry's own unique key, so a
- * double-tap or a slow network retry lands on the same row instead of a
- * duplicate.
+ * Fill (or overwrite) one slot. `mealPlanWrites.ts` locks the slot's row and
+ * updates or creates it, so a double-tap or a slow network retry lands on
+ * the same row instead of a duplicate.
  */
 export async function setMealPlanEntry(input: {
   mealPlanId: string;
@@ -85,7 +85,7 @@ export async function setMealPlanEntry(input: {
 }): Promise<MealPlanActionResult> {
   if (!(await getVerifiedSession())) return { error: "Not signed in." };
 
-  const result = await writeMealPlanEntry(input);
+  const result = await setMealPlanEntryRow(input);
   if (result.error) return { error: result.error };
 
   refreshMealPlanViews();
@@ -205,7 +205,7 @@ export async function clearMealPlanEntry(input: {
 }): Promise<void> {
   if (!(await getVerifiedSession())) return;
 
-  await removeMealPlanEntry(input);
+  await clearMealPlanEntryRow(input);
 
   refreshMealPlanViews();
 }

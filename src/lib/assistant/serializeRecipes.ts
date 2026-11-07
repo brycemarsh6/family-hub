@@ -1,4 +1,5 @@
 import { ApiError } from "./errors";
+import type { WriteError } from "@/lib/tagWrites";
 import { fingerprintIngredients } from "@/lib/nutritionFingerprint";
 import { parseTimeToMinutes } from "@/lib/recipeTimeFilter";
 import { recipeLines } from "@/lib/recipeText";
@@ -116,11 +117,12 @@ export function toTag(row: { id: string; name: string }, recipeCount: number) {
 }
 
 /**
- * A write module's `{ error }` as the API's refusal: the "no longer exists"
- * messages name what is missing (404); anything else is a bad request.
+ * A write module's refusal as the API's: `missing` names something that
+ * doesn't exist (404); `invalid` is a bad request (400). Goes by the code,
+ * never the message text.
  */
-export function toWriteFailure(message: string): ApiError {
-  return message.endsWith("no longer exists.")
-    ? new ApiError(404, "not_found", message)
-    : new ApiError(400, "validation", message);
+export function toWriteFailure(failure: WriteError): ApiError {
+  return failure.code === "missing"
+    ? new ApiError(404, "not_found", failure.error)
+    : new ApiError(400, "validation", failure.error);
 }

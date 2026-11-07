@@ -21,7 +21,7 @@ export const POST = assistantRoute<Record<string, never>, z.output<typeof recipe
       { ...rest, ingredients: ingredients.join("\n"), steps: steps.join("\n") },
       { cookbookId, tagIds },
     );
-    if ("error" in result) throw toWriteFailure(result.error);
+    if ("error" in result) throw toWriteFailure(result);
 
     const { recipe, cookbookRecipe, recipeTags } = result;
     changes.push({

@@ -88,10 +88,3 @@ export async function listTags() {
   });
   return rows.map((row) => toTag(row, row._count.recipes));
 }
-
-/** True when every id is a real tag (a cheap check before a two-part edit). */
-export async function allTagsExist(tagIds: string[]): Promise<boolean> {
-  const wanted = [...new Set(tagIds)];
-  if (wanted.length === 0) return true;
-  return (await db.tag.count({ where: { id: { in: wanted } } })) === wanted.length;
-}

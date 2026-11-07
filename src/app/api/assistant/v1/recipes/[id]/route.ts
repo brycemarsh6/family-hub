@@ -1,9 +1,9 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
-import { ApiError, notFound } from "@/lib/assistant/errors";
+import { notFound } from "@/lib/assistant/errors";
 import { recipePatchBody } from "@/lib/assistant/schemasRecipes";
-import { allTagsExist, getRecipe } from "@/lib/assistant/recipeReads";
+import { getRecipe } from "@/lib/assistant/recipeReads";
 import { toWriteFailure } from "@/lib/assistant/serializeRecipes";
-import { setRecipeTagRows, updateRecipeRow } from "@/lib/recipeWrites";
+import { updateRecipeAndTagsRow } from "@/lib/recipeWrites";
 import type { z } from "zod";
 
 export const GET = assistantRoute<{ id: string }>({
@@ -26,18 +26,14 @@ export const PATCH = assistantRoute<{ id: string }, z.output<typeof recipePatchB
       ...(steps ? { steps: steps.join("\n") } : {}),
     };
 
-    // The fields and the tag set are two writes in two transactions. A
-    // failure between them leaves the first one written, and recorded in the
-    // audit log (so it is undoable). The tag ids are checked up front so the
-    // common failure, an unknown tag, writes nothing at all.
-    if (tagIds && !(await allTagsExist(tagIds))) {
-      throw new ApiError(404, "not_found", "That tag no longer exists.");
-    }
+    // The fields and the tag set go in ONE transaction: either the whole edit
+    // is saved and recorded, or nothing is written (an unknown tag, a recipe
+    // deleted mid-request), so a failed request is never half-undoable.
+    const result = await updateRecipeAndTagsRow(params.id, fields, tagIds);
+    if (!result) throw notFound();
+    if ("error" in result) throw toWriteFailure(result);
 
     if (Object.keys(fields).length > 0) {
-      const result = await updateRecipeRow(params.id, fields);
-      if (!result) throw notFound();
-      if ("error" in result) throw toWriteFailure(result.error);
       changes.push({
         model: "Recipe",
         recordId: params.id,
@@ -47,30 +43,25 @@ export const PATCH = assistantRoute<{ id: string }, z.output<typeof recipePatchB
         after: result.after,
       });
     }
-
-    if (tagIds) {
-      const result = await setRecipeTagRows(params.id, tagIds);
-      if ("error" in result) throw toWriteFailure(result.error);
-      for (const row of result.deleted) {
-        changes.push({
-          model: "RecipeTag",
-          recordId: row.id,
-          action: "delete",
-          summary: { recipeId: params.id, tagId: row.tagId },
-          before: row,
-          after: null,
-        });
-      }
-      for (const row of result.created) {
-        changes.push({
-          model: "RecipeTag",
-          recordId: row.id,
-          action: "create",
-          summary: { recipeId: params.id, tagId: row.tagId },
-          before: null,
-          after: row,
-        });
-      }
+    for (const row of result.deleted) {
+      changes.push({
+        model: "RecipeTag",
+        recordId: row.id,
+        action: "delete",
+        summary: { recipeId: params.id, tagId: row.tagId },
+        before: row,
+        after: null,
+      });
+    }
+    for (const row of result.created) {
+      changes.push({
+        model: "RecipeTag",
+        recordId: row.id,
+        action: "create",
+        summary: { recipeId: params.id, tagId: row.tagId },
+        before: null,
+        after: row,
+      });
     }
 
     const recipe = await getRecipe(params.id, request.nextUrl.origin);

@@ -19,6 +19,7 @@ import { db } from "@/lib/db";
 import type { MealPlan, MealPlanEntry, Prisma } from "@/generated/prisma/client";
 import { toMealSlot } from "@/lib/constants";
 import { isUniqueViolationError } from "@/lib/prismaErrors";
+import type { WriteError } from "@/lib/tagWrites";
 
 /**
  * Create a week's plan at `weekStart`. Two phones tapping the same week at
@@ -48,9 +49,10 @@ export async function getOrCreateMealPlanRow(
 export async function findPlanNear(
   instant: Date,
   toleranceMs: number,
+  client: Prisma.TransactionClient | typeof db = db,
 ): Promise<MealPlan | null> {
   const t = instant.getTime();
-  const plans = await db.mealPlan.findMany({
+  const plans = await client.mealPlan.findMany({
     where: {
       weekStart: { gte: new Date(t - toleranceMs), lte: new Date(t + toleranceMs) },
     },
@@ -88,28 +90,27 @@ async function lockSlot(
 }
 
 export type SetMealPlanEntryResult =
-  | { error: string }
+  | WriteError
   | { error?: undefined; before: MealPlanEntry | null; after: MealPlanEntry };
 
-/**
- * Fill (or overwrite) one slot. Validates like the family's action always
- * has, plus a recipe that no longer exists is an error (it used to crash).
- * `before` is the entry this replaced, null when the slot was empty.
- */
-export async function setMealPlanEntryRow(input: {
-  mealPlanId: string;
+type SlotInput = {
   dayOffset: number;
   slot: string;
   title: string;
   recipeId?: string | null;
-}): Promise<SetMealPlanEntryResult> {
+};
+
+/** The family's validation of a slot write, normalized; or the refusal. */
+async function checkSlotInput(
+  input: SlotInput,
+): Promise<{ slot: string; dayOffset: number; title: string; recipeId: string | null } | WriteError> {
   const slot = toMealSlot(input.slot);
-  if (!slot) return { error: "That's not a real meal slot." };
+  if (!slot) return { error: "That's not a real meal slot.", code: "invalid" };
   if (!Number.isInteger(input.dayOffset) || input.dayOffset < 0 || input.dayOffset > 6) {
-    return { error: "That's not a real day of the week." };
+    return { error: "That's not a real day of the week.", code: "invalid" };
   }
   const title = input.title.trim();
-  if (!title) return { error: "Give the meal a name." };
+  if (!title) return { error: "Give the meal a name.", code: "invalid" };
 
   const recipeId = input.recipeId ?? null;
   if (recipeId) {
@@ -117,31 +118,82 @@ export async function setMealPlanEntryRow(input: {
       where: { id: recipeId },
       select: { id: true },
     });
-    if (!recipe) return { error: "That recipe no longer exists." };
+    if (!recipe) return { error: "That recipe no longer exists.", code: "missing" };
   }
+  return { slot, dayOffset: input.dayOffset, title, recipeId };
+}
 
-  const where = { mealPlanId: input.mealPlanId, dayOffset: input.dayOffset, slot };
-  const attempt = () =>
-    db.$transaction(async (tx) => {
-      await lockSlot(tx, where);
-      const before = await tx.mealPlanEntry.findUnique({
-        where: { mealPlanId_dayOffset_slot: where },
-      });
-      const after = before
-        ? await tx.mealPlanEntry.update({
-            where: { id: before.id },
-            data: { title, recipeId },
-          })
-        : await tx.mealPlanEntry.create({ data: { ...where, title, recipeId } });
-      return { before, after };
-    });
+/** Lock the slot's row, then update it or create it; `before` is what it replaced. */
+async function writeSlot(
+  tx: Prisma.TransactionClient,
+  where: { mealPlanId: string; dayOffset: number; slot: string },
+  title: string,
+  recipeId: string | null,
+) {
+  await lockSlot(tx, where);
+  const before = await tx.mealPlanEntry.findUnique({
+    where: { mealPlanId_dayOffset_slot: where },
+  });
+  const after = before
+    ? await tx.mealPlanEntry.update({ where: { id: before.id }, data: { title, recipeId } })
+    : await tx.mealPlanEntry.create({ data: { ...where, title, recipeId } });
+  return { before, after };
+}
 
+/** Run a whole transaction; if it lost a create race (P2002) run it once more. */
+async function retryOnceOnRace<T>(attempt: () => Promise<T>): Promise<T> {
   try {
     return await attempt();
   } catch (error) {
     if (!isUniqueViolationError(error)) throw error;
     return await attempt();
   }
+}
+
+/**
+ * Fill (or overwrite) one slot. Validates like the family's action always
+ * has, plus a recipe that no longer exists is an error (it used to crash).
+ * `before` is the entry this replaced, null when the slot was empty.
+ */
+export async function setMealPlanEntryRow(
+  input: SlotInput & { mealPlanId: string },
+): Promise<SetMealPlanEntryResult> {
+  const checked = await checkSlotInput(input);
+  if ("error" in checked) return checked;
+
+  const { slot, dayOffset, title, recipeId } = checked;
+  const where = { mealPlanId: input.mealPlanId, dayOffset, slot };
+  return retryOnceOnRace(() => db.$transaction((tx) => writeSlot(tx, where, title, recipeId)));
+}
+
+/**
+ * Fill one slot in the week whose plan sits within `toleranceMs` of
+ * `instant`, creating that plan at `instant` when the week has none. Plan
+ * and slot are written in ONE transaction, so a failure leaves no empty plan
+ * behind and the request is all-or-nothing for undo. `planCreated` is a copy
+ * of the plan this call made, null when the week already had one. A lost
+ * create race (plan or slot, P2002) reruns the whole transaction once.
+ */
+export async function setMealPlanEntryInWeekRow(
+  instant: Date,
+  toleranceMs: number,
+  input: SlotInput,
+): Promise<
+  | WriteError
+  | { error?: undefined; planCreated: MealPlan | null; before: MealPlanEntry | null; after: MealPlanEntry }
+> {
+  const checked = await checkSlotInput(input);
+  if ("error" in checked) return checked;
+
+  const { slot, dayOffset, title, recipeId } = checked;
+  return retryOnceOnRace(() =>
+    db.$transaction(async (tx) => {
+      const found = await findPlanNear(instant, toleranceMs, tx);
+      const plan = found ?? (await tx.mealPlan.create({ data: { weekStart: instant } }));
+      const written = await writeSlot(tx, { mealPlanId: plan.id, dayOffset, slot }, title, recipeId);
+      return { planCreated: found ? null : plan, ...written };
+    }),
+  );
 }
 
 /**

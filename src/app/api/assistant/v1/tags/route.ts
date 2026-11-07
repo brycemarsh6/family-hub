@@ -2,7 +2,7 @@ import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { listTags } from "@/lib/assistant/recipeReads";
 import { tagCreateBody } from "@/lib/assistant/schemasRecipes";
 import { toTag, toWriteFailure } from "@/lib/assistant/serializeRecipes";
-import { findOrCreateTagRow } from "@/lib/recipeWrites";
+import { findOrCreateTagRow } from "@/lib/tagWrites";
 import type { z } from "zod";
 
 export const GET = assistantRoute({
@@ -15,7 +15,7 @@ export const POST = assistantRoute<Record<string, never>, z.output<typeof tagCre
   body: tagCreateBody,
   handler: async ({ body, changes }) => {
     const result = await findOrCreateTagRow(body.name);
-    if ("error" in result) throw toWriteFailure(result.error);
+    if ("error" in result) throw toWriteFailure(result);
     if (result.created) {
       changes.push({
         model: "Tag",

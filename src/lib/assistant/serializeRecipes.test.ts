@@ -86,7 +86,11 @@ test("toShortfall: three piles; unreadable gives empty lists", () => {
   assert.deepEqual(toShortfall("r1", null), { recipeId: "r1", readable: false, have: [], missing: [], onList: [] });
 });
 
-test("toWriteFailure: a missing thing is 404, anything else 400", () => {
-  assert.equal(toWriteFailure("That tag no longer exists.").status, 404);
-  assert.equal(toWriteFailure("Ratings run 1 to 5.").status, 400);
+test("toWriteFailure: code missing is 404, invalid is 400", () => {
+  const missing = toWriteFailure({ error: "That tag no longer exists.", code: "missing" });
+  assert.equal(missing.status, 404);
+  assert.equal(missing.message, "That tag no longer exists.");
+  assert.equal(toWriteFailure({ error: "Ratings run 1 to 5.", code: "invalid" }).status, 400);
+  // The code decides, not the wording.
+  assert.equal(toWriteFailure({ error: "No longer exists.", code: "invalid" }).status, 400);
 });

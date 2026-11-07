@@ -1,11 +1,12 @@
 import { assistantRoute } from "@/lib/assistant/assistantRoute";
 import { ApiError, fromZodError } from "@/lib/assistant/errors";
 import { mealPlanPutBody, mealSlotParams } from "@/lib/assistant/schemasMealPlan";
+import { toWriteFailure } from "@/lib/assistant/serializeRecipes";
 import { toMealCell, weekForDate } from "@/lib/assistant/serializeMealPlan";
 import { findWeekPlan, getRecipeTitle } from "@/lib/assistant/mealPlanReads";
 import { PLAN_TOLERANCE_MS } from "@/lib/assistant/summary";
 import { parseDateParam } from "@/lib/householdDate";
-import { clearMealPlanEntryRow, getOrCreatePlanNear, setMealPlanEntryRow } from "@/lib/mealPlanWrites";
+import { clearMealPlanEntryRow, setMealPlanEntryInWeekRow } from "@/lib/mealPlanWrites";
 import type { z } from "zod";
 
 type Params = { date: string; slot: string };
@@ -28,32 +29,24 @@ export const PUT = assistantRoute<Params, z.output<typeof mealPlanPutBody>>({
     if (body.recipeId && !recipe) throw new ApiError(404, "not_found", "That recipe doesn't exist.");
     const title = body.title ?? recipe!.title;
 
-    // One plan per week: find the existing one within +-14 h before creating.
-    const { plan, created } = await getOrCreatePlanNear(instant, PLAN_TOLERANCE_MS);
-    if (!plan) throw new ApiError(409, "conflict", "That week's plan changed while we were saving; try again.");
-    if (created) {
-      changes.push({
-        model: "MealPlan",
-        recordId: created.id,
-        action: "create",
-        summary: { weekOf: date },
-        before: null,
-        after: created,
-      });
-    }
-
-    const result = await setMealPlanEntryRow({
-      mealPlanId: plan.id,
+    // One transaction: find the week's plan within +-14 h (or create it) and
+    // write the slot, so a failure leaves no empty plan behind.
+    const result = await setMealPlanEntryInWeekRow(instant, PLAN_TOLERANCE_MS, {
       dayOffset,
       slot,
       title,
       recipeId: body.recipeId ?? null,
     });
-    if (result.error !== undefined) {
-      if (result.error === "That recipe no longer exists.") {
-        throw new ApiError(404, "not_found", "That recipe doesn't exist.");
-      }
-      throw new ApiError(400, "validation", result.error);
+    if (result.error !== undefined) throw toWriteFailure(result);
+    if (result.planCreated) {
+      changes.push({
+        model: "MealPlan",
+        recordId: result.planCreated.id,
+        action: "create",
+        summary: { weekOf: date },
+        before: null,
+        after: result.planCreated,
+      });
     }
     changes.push({
       model: "MealPlanEntry",
