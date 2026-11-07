@@ -8,10 +8,10 @@ import { ChevronRight } from "lucide-react";
  * rule as the old landing-page tiles: no smaller link or button living
  * inside it, so a tap anywhere on the card always does the one obvious thing.
  *
- * How wide a tile is no longer its own business: DashboardWidgetList wraps
- * each tile in a grid cell and picks full or half width from the person's
- * layout, so the tile just fills its cell (`h-full`, which also keeps two
- * side-by-side tiles the same height).
+ * How big a tile is no longer its own business: DashboardWidgetList wraps
+ * each tile in a grid cell sized from the person's layout (Small to Extra
+ * large), so the tile just fills its cell (`h-full`, which also keeps tiles
+ * on the same row the same height).
  *
  * The second shape, `shape="panel"`, is for a tile with controls inside (the
  * Habits and Chores today tiles, decision 132): the card is a plain div, only

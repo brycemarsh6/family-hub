@@ -163,29 +163,39 @@ export async function loadGoalAreaCounts(
   return counts;
 }
 
-/**
- * What the dashboard tile shows: this week's habit taps for the viewer's own and Together goals, and what is left.
- * `picks` are goal ids from the layout (decision 136): ids that are not among the goals counted here are dropped,
- * and with any left "Still to do" lists the picked goals' habits only (`picked` is true). `pickable` is the goal
- * list for the picker: Mine and Together, not completed, soonest target date first.
- */
-export async function loadGoalsTile(
-  viewer: Viewer,
-  today: CalendarDate,
-  picks: string[] = [],
-): Promise<{
+/** What the Goals tile needs before any widget's picks: the in-scope goals and the week's counts. */
+export type GoalsTileData = {
+  /** Mine and Together goals, not completed, soonest target date first. */
+  inScope: GoalView[];
   done: number;
   total: number;
-  todo: WeekTodoItem[];
-  picked: boolean;
+  /** The goal list for the picker, in the same order as `inScope`. */
   pickable: { id: string; title: string }[];
-}> {
+};
+
+/**
+ * What the dashboard's Goals widgets share: this week's habit taps for the viewer's own and Together goals,
+ * and the goal list for the picker. Picks belong to each widget, so they are applied by `goalsTileFor`
+ * and this loader reads once however many Goals widgets there are.
+ */
+export async function loadGoalsTile(viewer: Viewer, today: CalendarDate): Promise<GoalsTileData> {
   const { goals } = await loadPlansPage(viewer, today);
   const inScope = goalsInScope(goals, viewer, "mine");
-  const pickable = inScope.map((goal) => ({ id: goal.id, title: goal.title }));
-  const own = keepOwnPicks(picks, pickable.map((goal) => goal.id));
-  const todo = own.length > 0 ? weekTodoForGoals(inScope, own) : weekTodo(inScope, 3);
-  return { ...weekSummary(inScope), todo, picked: own.length > 0, pickable };
+  return { inScope, ...weekSummary(inScope), pickable: inScope.map((goal) => ({ id: goal.id, title: goal.title })) };
+}
+
+/**
+ * One Goals widget's tile data. `picks` are goal ids from that widget (decision 136): ids that are not among
+ * the goals counted are dropped, and with any left "Still to do" lists the picked goals' habits only
+ * (`picked` is true).
+ */
+export function goalsTileFor(
+  data: GoalsTileData,
+  picks: string[],
+): { done: number; total: number; todo: WeekTodoItem[]; picked: boolean } {
+  const own = keepOwnPicks(picks, data.pickable.map((goal) => goal.id));
+  const todo = own.length > 0 ? weekTodoForGoals(data.inScope, own) : weekTodo(data.inScope, 3);
+  return { done: data.done, total: data.total, todo, picked: own.length > 0 };
 }
 
 /**

@@ -9,6 +9,7 @@ import { checkHabit, skipHabit, uncheckHabit, unskipHabit } from "@/app/actions/
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView } from "@/lib/habitsRead";
 import { keepShownRows } from "@/lib/habitsDashboard";
+import { DASHBOARD_WIDGET_WORDS } from "@/lib/dashboardWidgets";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
@@ -43,19 +44,24 @@ export function habitRowTaps(
  * `HabitTodayList`. The rows shown at load stay until the next real page load
  * (decision 147): a tapped row keeps its place with its change even when the
  * refresh behind the tap no longer lists it, and no new row slides in.
- * `empty` is the server's line for no rows.
+ * `empty` is the server's line for no rows. `limit` (a Medium widget) shows
+ * the first rows only and says how many more there are, in plain text: the
+ * whole tile is still one place to tap, so no link (decision 207).
  */
 export function HabitTileRows({
   rows,
   todayRows,
   empty,
   showStreaks,
+  limit,
 }: {
   rows: HabitRowView[];
   /** The server's full Today rows for this tile's kind, for a shown row the tile filter drops. */
   todayRows: HabitRowView[];
   empty: string | null;
   showStreaks: boolean;
+  /** Most rows to list; the rest become a "+N more" line. Without it every row shows. */
+  limit?: number;
 }) {
   // Fixed at load: which rows this tile shows, the rows as the last saved tap
   // left them (for a row the server stops sending), and the empty line to fall back on.
@@ -74,14 +80,16 @@ export function HabitTileRows({
       onSuccess?.();
     });
   const emptyLine = empty ?? firstEmpty;
+  const shown = limit === undefined ? live : live.slice(0, limit);
+  const hidden = live.length - shown.length;
 
   return (
     <>
       {live.length === 0 && emptyLine && <p className="text-sm text-muted">{emptyLine}</p>}
       {live.length > 0 && (
         // The list runs to the card's edge when nothing sits under it, so there is no empty strip below the last row.
-        <ul className={`-mx-4 divide-y divide-line border-t border-line ${error ? "border-b" : "-mb-4"}`}>
-          {live.map((row) => (
+        <ul className={`-mx-4 divide-y divide-line border-t border-line ${error || hidden > 0 ? "border-b" : "-mb-4"}`}>
+          {shown.map((row) => (
             <li key={row.id}>
               <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, (change, action) => keep(change, action), (hoursRow) => {
                 setError(null);
@@ -91,6 +99,7 @@ export function HabitTileRows({
           ))}
         </ul>
       )}
+      {hidden > 0 && <p className="mt-2 text-sm text-muted">{DASHBOARD_WIDGET_WORDS.moreRows(hidden)}</p>}
       {error && !logging && (
         <p role="alert" className="mt-2 text-sm text-warn">
           {error}
@@ -124,12 +133,14 @@ export default function HabitsTile({
   label,
   empty,
   showStreaks,
+  limit,
 }: {
   rows: HabitRowView[];
   todayRows: HabitRowView[];
   label: string | null;
   empty: string | null;
   showStreaks: boolean;
+  limit?: number;
 }) {
   return (
     <DashboardTile
@@ -139,7 +150,7 @@ export default function HabitsTile({
       title="Habits"
     >
       {label && <p className="mb-1 text-sm text-muted">{label}</p>}
-      <HabitTileRows rows={rows} todayRows={todayRows} empty={empty} showStreaks={showStreaks} />
+      <HabitTileRows rows={rows} todayRows={todayRows} empty={empty} showStreaks={showStreaks} limit={limit} />
     </DashboardTile>
   );
 }

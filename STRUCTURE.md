@@ -602,22 +602,40 @@ Adding a second definition of any of these is a BLOCKER:
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it
 - `src/lib/dashboardWidgets.ts`: `DASHBOARD_WIDGETS`, the only widget
-  registry; `DASHBOARD_WIDGET_IDS` there is the one id list and the default
-  order (a test pins the record to it). `parseDashboardLayout` in
-  `dashboardLayout.ts` is the only reader of the stored layout JSON.
-  **Insertion rule, at the `parseDashboardLayout` entry:** a registry id
-  missing from a saved layout is inserted directly after the nearest
-  earlier registry id that the saved list has (at the start if none), not
-  appended at the end; that is how the `goals` widget lands second for
-  people who already saved a layout. (Added 2026-11-04, mission-29.)
-  **Picks (mission-34):** a widget's optional `items` (only `habits` and
+  registry (per kind: label, allowed `sizes`, `defaultSize`, `onTablet`);
+  `DASHBOARD_WIDGET_KINDS` there is the one kind list and the default
+  order (a test pins the record to it); `WIDGET_SIZES` /
+  `WIDGET_SIZE_LABELS` the only size list and size names;
+  `DASHBOARD_WIDGET_WORDS` the dashboard and Customize words.
+  `parseDashboardLayout` in `dashboardLayout.ts` is the only reader of the
+  stored layout JSON (version 2: a list of widget instances, each
+  `{ uid, kind, size, items? }`, so a kind may appear more than once).
+  **Upgrade rule (mission-43):** a version 1 layout is upgraded on read,
+  sized by v1's own pairing rule, so a saved dashboard opens unchanged; the
+  v1 insertion rule (mission-29) lives on only inside that upgrade. A v2
+  layout never gets missing kinds inserted: a removed widget stays removed.
+  `nextWidgetUid` is the only rule for a new or repaired uid (Add and the
+  parser's repair use it). The default layout and the v1 upgrade hold each
+  kind once, so they use the bare kind, which is what `nextWidgetUid` gives
+  a first instance.
+  `src/lib/dashboardGrid.ts` (`packWidgets`, `gridAreaVars`) is the only
+  placement rule for the grid at 2 and 4 columns; the DOM stays in layout
+  order and CSS variables place each cell, never `grid-auto-flow: dense`.
+  `src/lib/dashboardLoaders.ts` holds the dashboard's kitchen reads, one
+  per kind; the page loads only the kinds on the layout (goals load for
+  every signed-in viewer and habits for every non-device viewer, for the
+  notes and the pickers).
+  **Picks (mission-34, per instance since mission-43):** a widget's optional `items` (only `habits` and
   `goals`, `PICKABLE_WIDGET_IDS`) is checked for shape in the parser and
-  for ownership in the loaders, through `keepOwnPicks` in `src/lib/dashboardPicks.ts`, which also holds
-  `picksOf` (the only way to read a widget's picks), `layoutForViewer` (the
-  tablet's layout leaves out `habits` and `chores`, decision 138),
-  and the picker's pure rules (`splitPicks`, `togglePick`);
-  `reorderWidgets` sits in `dashboardLayout.ts` beside `toggleWidget` and
-  `setWidgetItems`; `isPickableWidget` / `PickableWidgetId` in
+  for ownership per instance, through `keepOwnPicks` in `src/lib/dashboardPicks.ts`, which also holds
+  `picksOf(widget)` (the only way to read a widget's picks), `layoutForViewer` (the
+  tablet's layout leaves out kinds whose `onTablet` is false: `habits` and
+  `chores`, decision 138),
+  and the picker's pure rules (`splitPicks`, `togglePick`); the layout
+  edits (`addWidget`, `removeWidget`, `resizeWidget`, `setWidgetItems`,
+  `reorderWidgets`) all sit in `dashboardLayout.ts`; `habitsTileFor` (in
+  `habitsRead.ts`) and `goalsTileFor` (in `goalsRead.ts`) apply one
+  instance's picks to its kind's single load; `isPickableWidget` / `PickableWidgetId` in
   `dashboardWidgets.ts` are the only "which widgets take picks" test; `src/lib/habitsDashboard.ts` the tile row rules (`habitsTileRows`, `choresTileRows`, `pickableHabits`,
   `keepShownRows` (decision 147) and `plannedTodayRows`, the only "which
   rows go on Planned today" rule, which `habitsTileRows` leaves out); the
@@ -633,7 +651,9 @@ Adding a second definition of any of these is a BLOCKER:
   **Dependency direction:** `habitsDashboard.ts` imports only
   `habitVocabulary.ts` and types from `habitsToday.ts`; `dashboardPicks.ts`
   imports only `dashboardLayout.ts` / `dashboardWidgets.ts`; `habitsRead.ts`
-  and `goalsRead.ts` may import them, never the reverse.
+  and `goalsRead.ts` may import them, never the reverse. `dashboardGrid.ts`
+  imports only types from `dashboardWidgets.ts`; `dashboardLoaders.ts` is
+  `server-only` and imported only by the dashboard page.
 - `brand/` — the logo artwork. The two `Marshee*.tsx` components and the
   `src/app/` icon files are all **generated from** these masters; a
   hand-drawn or re-traced second version of the mark or wordmark is a

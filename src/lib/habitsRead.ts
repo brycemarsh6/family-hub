@@ -205,10 +205,9 @@ export async function loadTodayPage(viewer: HabitActor, today: CalendarDate): Pr
 
 /** What the dashboard shows from Habits & Chores: the two tiles, the cards above them and the habits the picker lists. */
 export type DashboardHabits = {
-  habits: TileRows<HabitRowView>;
+  /** The viewer's full Today rows; each Habits widget applies its own picks to them (`habitsTileFor`). */
+  rows: HabitRowView[];
   chores: TileRows<HabitRowView>;
-  /** The viewer's full Today rows for the Habits tile's ids (the picks, or every habit), so a kept row stays current (decision 147). */
-  habitsToday: HabitRowView[];
   /** The viewer's full Today chore rows, for the same reason. */
   choresToday: HabitRowView[];
   choreStreak: number;
@@ -224,18 +223,16 @@ export type DashboardHabits = {
 
 /**
  * The dashboard's habit data, built on the Today loader so it reads exactly
- * what Today reads (private habits already follow `canSeeHabit` there).
- * `picks` is the layout's claim: ids that are not among the viewer's pickable
- * habits are dropped here (decision 137), so a stale or foreign id never reaches a tile.
+ * what Today reads (private habits already follow `canSeeHabit` there). It is
+ * read once however many Habits widgets there are: picks belong to each
+ * widget, so `habitsTileFor` applies them afterwards.
  */
-export async function loadDashboardHabits(viewer: HabitActor, today: CalendarDate, picks: string[]): Promise<DashboardHabits> {
+export async function loadDashboardHabits(viewer: HabitActor, today: CalendarDate): Promise<DashboardHabits> {
   const page = await loadTodayPage(viewer, today);
   const pickable = pickableHabits(page.manage).map((item) => ({ id: item.id, title: item.title, icon: item.icon }));
-  const ownPicks = keepOwnPicks(picks, pickable.map((item) => item.id));
   return {
-    habits: habitsTileRows(page.rows, ownPicks),
+    rows: page.rows,
     chores: choresTileRows(page.rows),
-    habitsToday: page.rows.filter((row) => row.kind === "habit" && (ownPicks.length === 0 || ownPicks.includes(row.id))),
     choresToday: page.rows.filter((row) => row.kind === "chore"),
     choreStreak: page.choreStreak,
     nudges: page.nudges,
@@ -243,6 +240,24 @@ export async function loadDashboardHabits(viewer: HabitActor, today: CalendarDat
     plannedToday: plannedTodayRows(page.rows),
     prompts: page.prompts,
     pickable,
+  };
+}
+
+/**
+ * One Habits widget's tile data from the shared load. `picks` is that widget's
+ * claim: ids that are not among the viewer's pickable habits are dropped
+ * (decision 137), so a stale or foreign id never reaches a tile. `todayRows`
+ * is the viewer's full Today rows for the tile's ids (the picks, or every
+ * habit), so a kept row stays current (decision 147).
+ */
+export function habitsTileFor(
+  data: Pick<DashboardHabits, "rows" | "pickable">,
+  picks: string[],
+): { tile: TileRows<HabitRowView>; todayRows: HabitRowView[] } {
+  const own = keepOwnPicks(picks, data.pickable.map((item) => item.id));
+  return {
+    tile: habitsTileRows(data.rows, own),
+    todayRows: data.rows.filter((row) => row.kind === "habit" && (own.length === 0 || own.includes(row.id))),
   };
 }
 
