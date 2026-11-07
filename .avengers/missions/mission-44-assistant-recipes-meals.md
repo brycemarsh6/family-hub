@@ -1,7 +1,7 @@
 # Mission 44: Winnie's recipes and meal plan (Assistant API)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** DELIVERED (gates PASS; PR and merge next)
 **Started:** 2026-11-06 · **Updated:** 2026-11-06
 **Branch:** `claude/assistant-recipes-meals` (from `origin/main` at `5a3cdc0`)
 
@@ -402,9 +402,75 @@
   three amendments updated (P2025, `undoModels.ts` as the one registry,
   `undoWrites.ts` restores from copies only).
 
+### Vision pass 3 (at `f2f506f`): PASS
+
+- Race closed live: Vision's own `race.ts` 0/24, Stark's 24-round copy
+  0/72 twice with exactly one plan per week and no missing entries; one
+  429 in the control was the API's rate limiter. Retry loop proven to stop
+  (3 attempts max, non-P2002 errors not retried, original error kept);
+  family action `setMealPlanEntryRow` unchanged (2 attempts). Gauntlet
+  green. NOTEs: race tests can trip the rate limiter; double blank line in
+  `recipeWrites.ts`; pass-2 NOTEs carried.
+
 ## Delivery
 
-(not yet)
+- **Verdicts:** Vision PASS (pass 3 of 3), Captain PASS (pass 2 of 3).
+  Strange not assembled (no family-visible wording changed; the two app
+  fixes reuse existing messages). Hill unavailable; Bryce answered live.
+- **Synced with main** at `f9215f6` (tablet login #60, dashboard widgets
+  #59): tsc, eslint, `npm test` 1239/1239, UTC 1232 + 7 skipped, LA 1239,
+  build green.
+- **Shipped for Winnie:** 15 routes (Brief, Done means 1). Every write
+  saves copies; undo works for all of them (proven live per route).
+- **For the family's app:** behaviour identical, plus three fixes:
+  tagging or filling a meal with a recipe/tag deleted on another phone
+  shows the existing "no longer exists" message instead of an error page;
+  "Stop sharing" on an unshared recipe no longer touches it.
+- **No schema change.**
+- **Leftovers (next touch):** Captain's NOTEs (pass 1 N2, N9, N11; pass 2
+  `WriteError` home, `toWriteFailure` into `errors.ts`, `tagWrites.ts`
+  header, `deleteTag` still in the action, double trim, `toShareUrl` vs
+  `ShareSheet`, `actions/recipes.ts` and `undoPlan.test.ts` over the soft
+  cap); Vision's NOTEs: two phones in different zones creating the same
+  week at the same instant can make two plans; a recipe or tag deleted
+  mid-write answers 500 (nothing written, retry safe); grocery-needs on a
+  huge week could be cut short by the AI's output limit and still say
+  `readable: true`; mission 40's sorted-lock leftover.
+- **For Bryce:** Captain's STRUCTURE.md amendments A1-A4 (Gate ledger,
+  Captain pass 2) to approve once STRUCTURE.md is free.
+
+### What to tell Winnie (plain English, for Bryce to paste or adapt)
+
+> New in Marshee: recipes and the meal plan. Re-read
+> `/api/assistant/v1/openapi.json` for the exact shapes.
+>
+> - **Recipes:** `GET /recipes` lists them (filters: `q` words, `tagId`,
+>   `cookbookId`, `maxMinutes`). `GET /recipes/{id}` gives the full recipe
+>   with ingredient and step lines. You can add one (`POST /recipes`, with
+>   ingredient and step lines as lists, optionally a `cookbookId` and
+>   `tagIds`), edit one (`PATCH /recipes/{id}`, any field, `rating` 1 to 5,
+>   or `tagIds` as the whole new set), mark it cooked
+>   (`POST /recipes/{id}/cooked`), and turn its public share link on or off
+>   (`POST` / `DELETE /recipes/{id}/share`). You cannot delete recipes;
+>   if you add one by mistake, undo that request.
+> - **What am I missing:** `GET /recipes/{id}/shortfall` says which
+>   ingredients the house has, which are missing, and which are already on
+>   the shopping list. If it answers 503 `ai_unavailable`, wait a few
+>   seconds and try again. To buy the missing ones, use `POST /shopping`.
+> - **Tags and cookbooks:** `GET /tags`, `POST /tags` (finds an existing
+>   tag in any capitalisation before making a new one), `GET /cookbooks`.
+> - **Meal plan:** `GET /meal-plan?weekOf=YYYY-MM-DD` shows that week
+>   (Sunday to Saturday, Denver). Fill a meal with
+>   `PUT /meal-plan/days/{date}/{slot}` where slot is exactly `Breakfast`,
+>   `Lunch`, `Dinner` or `Snacks`, body `{ "title": "...", "recipeId": "..." }`
+>   (either one; with only a recipe the title is the recipe's name). Clear
+>   one with `DELETE` on the same path. Filling overwrites what is there.
+> - **Shopping for the week:** `GET /meal-plan/grocery-needs?weekOf=...`
+>   lists what the week's recipes need that the house lacks. If
+>   `readable` is false, the ingredient lines couldn't be read.
+> - **Undo:** every change above can be undone for 30 days with
+>   `POST /audit/{requestId}/undo`, same as before. Undo refuses if a
+>   family member changed it since; tell Bryce instead of forcing it.
 
 ## Handoff log
 
@@ -643,3 +709,4 @@
   Counts restored. Gauntlet green; Fury re-ran `npm run build`: exit 0.
   Vision pass 3 (last) dispatched; Captain not re-gated (2 files, no
   structural change beyond his own NOTE).
+- 2026-11-06: Vision pass 3 PASS. Delivery written; CLAUDE.md status updated (also: auto-archive is off, mission 42 merged). Synced main `f9215f6`.

@@ -60,8 +60,8 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
 - **One chat per PR** (Bryce, 2026-11-06). After a PR merges, if the plan
   has a next PR, offer it as a New task card (`start_session`, fresh, own
   worktree) with a handoff: what just merged, what's next, which plan and
-  mission files to read. Don't start the next PR in the same chat. Chats
-  auto-archive when their PR merges.
+  mission files to read. Don't start the next PR in the same chat.
+  Auto-archive is off (Bryce, 2026-11-06): chats stay open after merge.
 - **Parallel chats each get their own worktree.** Shared files
   (`prisma/schema.prisma`, `CLAUDE.md`, `STRUCTURE.md`, `HubNav.tsx`,
   `package.json`) get small edits only; sync with `main` right before merging.
@@ -161,6 +161,13 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   goals/vision/plan items/habits) is in
   `.avengers/missions/mission-40-assistant-undo.md`; it supersedes the
   mission 23/24 list in `.avengers/plans/assistant-api-v1.md`.
+  Mission 44 added **recipes and the meal plan**: list/read/add/edit
+  recipes, mark cooked, share links, tags, cookbook list, "what am I
+  missing" (`/recipes/{id}/shortfall`), a week's plan, fill or clear a
+  meal (`/meal-plan/days/{date}/{slot}`) and the week's grocery needs,
+  all undoable. Writes live in `src/lib/recipeWrites.ts`, `tagWrites.ts`
+  and `mealPlanWrites.ts`; the week-matching rule in `mealPlanWeek.ts`.
+  No recipe delete or cookbook edits for Winnie (Bryce, 2026-11-06).
 - **Winnie notifications** (mission 42): Marshee can also push events to
   Winnie's Grok webhook (one way; she shows them in Bryce's chat 9 AM to
   9 PM Denver). Phase 1 is only an admin-only "Send test to Winnie" button
@@ -257,12 +264,16 @@ Replace this section at the end of each session. Don't append.
   PR B (the tablet's own dashboard, calendar editing, the parent rule) and
   PR C (per-person habits tiles) are next; see
   `.avengers/missions/mission-39-tablet-login.md`.
-- **Winnie notifications (mission 42)** is built on branch
-  `claude/winnie-notify-ed0df7`; **the merge waits for Bryce's go** (his
-  rule for this mission). After merge he adds the two env vars in Vercel and
-  taps "Send test to Winnie". Mission 40 (Winnie's undo) merged as PR #57
-  on 2026-11-06 and is live. Details:
-  `.avengers/missions/mission-42-winnie-notify.md`.
+- **Winnie notifications (mission 42)** merged as PR #58 on 2026-11-06.
+  Bryce adds the two env vars in Vercel and taps "Send test to Winnie".
+  Details: `.avengers/missions/mission-42-winnie-notify.md`.
+- **Winnie's recipes and meal plan (mission 44)** passed its gates on
+  2026-11-06 (Vision on pass 3, Captain pass 2) and merges from
+  `claude/assistant-recipes-meals`. What to tell Winnie is in the mission
+  file's Delivery. Next for Winnie: cookbook edits, then calendar/tasks
+  (after CD1), then replacing the app's Claude features with her (needs a
+  two-way link; Bryce parked it 2026-11-06). Captain's proposed
+  STRUCTURE.md amendments A1 to A4 wait in the mission file.
 
 **Bryce's checklist (never blocks work):**
 - **PR C phone check** (about 5 minutes): on Today, a streak flame on a
