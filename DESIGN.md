@@ -27,6 +27,14 @@ tell when a rule's reason has expired.
   which is how a constitution becomes noise on day one. 44px is still
   Apple's HIG minimum, so the floor is a real one, not a loophole. The wall
   tablet and the phone-in-a-store are the design targets, not a mouse.
+- **Pages use the width they are given, and a row never stretches to fill
+  it.** Marshee lives on phones, an upright iPad and an 11-inch iPad in
+  landscape on the kitchen wall. A page that goes wide (`data-page-width`,
+  STRUCTURE.md "Wide pages") gets more columns, more panels or a wider
+  grid; a list row keeps about its phone width, because a name on the far
+  left and a stepper on the far right of an 1148px row is harder to read
+  and to tap than two columns of rows. Each page's wide layout is decided
+  in `.avengers/plans/ipad-landscape-v1.md` (Bryce, decisions 215 to 223).
 - **A target must also be unoccluded.** For every interactive control there
   must exist a scroll position the user can actually reach at which
   `elementFromPoint` at the control's centre returns that control. A fixed
@@ -332,11 +340,15 @@ A new one-off that duplicates one of these jobs is a design violation:
   day is due or still doable; a not-due today stays plain with a bold number,
   so an outline always means "this is something to do". Vacation days are
   drawn as Skipped. Archived items are not in the Report.
-- `DashboardWidgetList` (the dashboard's heading row, widget grid and
-  Customize button, and the nudge and Sunday cards above the grid) /
+- `DashboardWidgetList` (the dashboard's widget grid and Customize button,
+  and the nudge and Sunday cards above the grid) /
   `DashboardCustomizeSheet`: the only way to add, size, reorder, pick or
-  remove dashboard widgets (mission-43). The grid is 2 columns on phones
-  and 4 from `md`; a widget is Small (1x1), Medium (2x1), Large (2x2) or
+  remove dashboard widgets (mission-43). The dashboard has no page title
+  or subtitle on any size: the wordmark header already says where you are,
+  and the 11-inch iPad needs the room (decision 221, mission-44); Customize
+  sits at the right end of that header row. The grid is 2 columns on
+  phones and 4 from a 45rem container width, so on a landscape iPad it
+  fills the screen; a widget is Small (1x1), Medium (2x1), Large (2x2) or
   Extra large (full width, 2 tall; Large on a phone), from the sizes its
   kind allows; every cell is at least about 150px tall and grows to fit, so
   a tile is never cut off, and a Large alone in its row fits its content
