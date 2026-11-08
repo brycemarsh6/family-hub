@@ -15,17 +15,23 @@ export function TagFilterChips({
   onSelect,
   totalCount,
   countFor,
+  className = "-mx-4 mb-4 px-4",
 }: {
   tags: TagFilterOption[];
   selectedTagId: string | null;
   onSelect: (tagId: string | null) => void;
   totalCount: number;
   countFor: (tagId: string) => number;
+  /** Margin and padding for the scroller; the default bleeds to the page
+   * edges with a gap below, which is what the filter bar wants. */
+  className?: string;
 }) {
   if (tags.length === 0) return null;
 
   return (
-    <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div
+      className={`overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
+    >
       <div className="flex w-max gap-2">
         <Chip
           active={selectedTagId === null}

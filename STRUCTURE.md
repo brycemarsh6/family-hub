@@ -680,9 +680,17 @@ Adding a second definition of any of these is a BLOCKER:
   a bug, and a second zone-explicit helper elsewhere is a BLOCKER. (Added
   2026-10-09, mission-21; Bryce-approved.) `startOfWeek` (Sunday) and
   `startOfMonth` live here too. `formatWeekTitle(weekStart, currentYear)` is
-  the dash-free week title ("Nov 1 to 7"), beside `formatShortCalendarDate`;
-  `formatWeekRange` in `mealPlanDates.ts` keeps its dash for Meal Plan only,
-  and a third week-range formatter is a BLOCKER. (Added mission-36.)
+  the dash-free week title ("Nov 1 to 7"), beside `formatShortCalendarDate`.
+  `formatWeekRange(weekStart)` in `mealPlanDates.ts` (browser-local `Date`:
+  Meal Plan, the Calendar Week title, Schedule, This week, the meal plan
+  sheets) prints the same dash-free range ("Nov 1 to 7", "Nov 29 to Dec 5";
+  mission-52, decision 268). They are two homes because their date types
+  differ, not their spelling; a spelling change changes both. The Calendar
+  3 Day title's private range formatter in `calendarViewConfig.ts`
+  (mission-17) still prints an en dash: grandfathered debt, retired the next
+  time the Calendar header is touched by a `formatDayRange(start, end)`
+  beside `formatWeekRange` that both use. Any other range formatter is a
+  BLOCKER. (Added mission-36; reworded mission-52, Captain's A-L4-6.)
   `formatHouseholdClock(instant, timeZone, { dropZeroMinutes })` (moved from
   `feedbackTime.ts`'s private `CLOCK` in mission-48) is the repo's only
   household-zone clock formatter: a plain ASCII space before AM/PM and, on
@@ -1099,11 +1107,13 @@ Adding a second definition of any of these is a BLOCKER:
   `AppChrome.tsx` comment above `<main>` lists every attribute; the pages
   that use `data-page-width="wide"` are listed only in "Wide pages" below,
   and the comment points there. A new opt-out adds itself there and here.
-  (Mission-41, Captain's A4; mission-51, A-L5-8.)
+  (Mission-41, Captain's A4; mission-51, A-L5-8; mission-52, A-L4-8.)
 - **Wide pages (mission-44, the iPad landscape plan).** Wide pages: the
   dashboard (mission-44), the Calendar (mission-46, every view), Plans &
   Goals' This week, Goals and Vision tabs, the Goal page and the recipe
-  detail page (mission-51). Their containers: This week's goal-card grid;
+  detail page (mission-51), and the Kitchen lists (mission-52): Inventory,
+  Shopping, Expiring, Recipes (All recipes and Cookbooks), Cookbook detail
+  and Meal plan. Their containers: This week's goal-card grid;
   the Goals board; the Vision card grid; the Goal page's two-panel row
   (`GoalDetail`, with the More row and every sheet outside it); the recipe
   body (two columns). The recipe header band is not a container, because
@@ -1144,9 +1154,68 @@ Adding a second definition of any of these is a BLOCKER:
   2. **Column counts come from container variants (`@min-[…]:`, `@3xl:`),
      never screen breakpoints (`md:`, `lg:`).** The page then fits whatever
      room the pinned Sidebar or Rail leaves it, with no extra code.
+     **Measured column counts (mission-52).** When JavaScript must decide
+     which item goes in which column (a stable split, so a group never
+     changes column when it opens or closes), the component measures the
+     element whose width the columns divide with `useContainerWidth(ref)`
+     (`src/lib/useContainerWidth.ts`) and turns that into a count with
+     `columnCountFor(width, max)`, splitting with `splitByWeight`
+     (`src/lib/splitColumns.ts`). That is still the container's own width,
+     never the window's, so this rule's reason holds. `COLUMN_MIN_WIDTH_PX`
+     (2 columns from 768px, 3 from 1024px) is the only JavaScript home of
+     those thresholds; the classes `@min-[48rem]:` and `@min-[64rem]:` are
+     their CSS mirror and change with them. A width threshold written as a
+     number in a component, a read of `window.innerWidth` or `matchMedia`
+     for layout, or CSS `columns` for a list of groups is a BLOCKER. The
+     measured element holds no sheet, stays mounted in every state of its
+     list (empty, searching, grouped), and reads 0 on the server, so the
+     first paint is one column and hydration matches; the step to 2 or 3
+     columns after a hard reload is the known cost. Measuring an element
+     through a ref this way is not a browser-only read under the
+     `useSyncExternalStore` rule (`useHamburgerRowHeight` is the same
+     shape). Use a measured count only when JavaScript needs it: a small
+     fixed set of columns (Expiring's three sections, Cookbooks' cards, a
+     week's seven days) uses container variants. Instances: Inventory,
+     Shopping, All recipes and Cookbook detail (split), and the Meal plan
+     (it picks its wide layout at `COLUMN_MIN_WIDTH_PX[3]`). (Captain's
+     A-L4-1.)
   3. **A row never stretches past a readable width.** More columns, more
      panels or a wider grid; never one 1148px row. Fixed bars (`AddItemBar`)
      stay centered at 768px.
+  4. **The + button sits bottom-right on wide pages** (mission-52 and
+     mission-53, plan rule 4; its props are in "The floating +" below). `FloatingAddButton` keeps its fixed full-width wrapper (left
+     edge `--app-nav-width`); from `md` on a wide page its inner box lifts
+     the 768px cap and aligns right. Below `md`, and on pages not yet wide,
+     it stays bottom-left. A fixed element that must clear it on a wide
+     page reacts with the same `md:[body:has([data-page-width=wide])_&]:`
+     selector, never a measured offset: the All recipes A-Z rail
+     (`RecipeLetterRail.tsx`) ends above it. `AddItemBar` stays centered at
+     768px (rule 3). (Captain's A-L4-3.)
+  **A page's title row may switch with `md:`** (mission-52). A title with
+  at most two buttons beside it is not a column count, so it may go from
+  stacked to one row with `md:flex-row md:items-center md:justify-between`,
+  and one button may be rendered twice, shown with `md:hidden` and
+  `hidden md:flex`, when its phone and wide positions differ (Cookbook
+  detail's Add recipe). This exists because header buttons may render their
+  sheet inline (`PutAwayButton`, `ReviewQueueButton`) and rule 1 forbids a
+  container around them. The row must fit the 736px the Sidebar leaves at a
+  1024px screen. Anything below the title row, or a row with more than two
+  buttons, uses container variants. (Captain's A-L4-2.)
+  **A wide page's loading file.** A wide page's `loading.tsx` renders
+  `<SkeletonPage wide />` (or its own skeleton with the attribute on its
+  root); the shared `(app)/loading.tsx` stays narrow until every page is
+  wide. A `loading.tsx` also covers every route below its folder, so a wide
+  one sits only in a folder whose pages are all wide. Where a wide page has
+  narrow pages below it, the wide page and its `loading.tsx` move into a
+  route group (`kitchen/cooking/recipes/(browse)/`), so the narrow pages
+  keep the shared skeleton. (Captain's A-L4-4.)
+  **Pending (A-L4-5, adopt when a fifth list needs it or two of these are
+  next touched):** the measured split grid (`grid items-start gap-x-4` with
+  `gridTemplateColumns: repeat(n, minmax(0, 1fr))`, after `columnCountFor`
+  and `splitByWeight`) is written in `PantryList`, `GroceryList`,
+  `RecipeList` and `FlatRecipeRows`. It moves into one `SplitColumnGrid`
+  component (ref, count, split, grid, one render prop per column); after
+  that a hand-written copy is a BLOCKER. Not a BLOCKER until it exists.
   The Calendar's containers are the Year grid, the Month grid, each
   `TimelineDayColumn` (so text size follows the column's own width, not
   how many columns there are) and the Schedule two-panel row (plus the
@@ -1154,6 +1223,10 @@ Adding a second definition of any of these is a BLOCKER:
   `CalendarViews` root, which holds every sheet. `data-page-width="wide"`
   and `data-fills-viewport` combine on the Calendar: the first lifts the
   width cap, the second drops the bottom padding on the hour timeline.
+  The Kitchen lists' containers are Inventory's and All recipes' search
+  rows, Expiring's sections and Cookbooks' cards; Inventory, Shopping, All
+  recipes, Cookbook detail and the Meal plan measure instead (rule 2).
+  Every sheet stays a sibling. (Mission-52.)
   On the dashboard, an Extra large Calendar widget is its own container
   (its day list): its days sit side by side from 30rem of tile body (3
   days as 3 columns; 7 days wrap at a 13rem column floor, decision 240)
@@ -1189,7 +1262,8 @@ Adding a second definition of any of these is a BLOCKER:
   row's check); bottom right on wide pages from `md`, through its own
   wrapper (`md:[body:has([data-page-width=wide])_&]`). Its props are
   `onClick` or `href`, plus `label`. Wide scroll areas reserve room for it
-  (`pb-20`). There is no + on the tablet.
+  (`pb-20`). There is no + on the tablet. A fixed element that must clear
+  it follows rule 4 above.
   **Shared class strings (mission-53, A-L3-3; A-L2-3 done):** a class
   string that a component and its skeleton share is one exported constant
   in `src/lib/`, written as a whole literal so the Tailwind scan finds it:
@@ -1370,6 +1444,12 @@ Adding a second definition of any of these is a BLOCKER:
   Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 578 total /
   about 361 code (89% of the hard cap; the next Schedule feature extracts
   the two-panel wrapper), `CalendarViews.tsx` 502, `MonthCell.tsx` 367.
+  Kitchen trend (mission-52, A-L4-7): `PantryList.tsx` 376 total / about
+  300 code (over the soft cap; the next Inventory change extracts the
+  search and location chips row), `MealPlanList.tsx` 360 / about 310 code
+  (was 281; the next Meal Plan feature moves the wide branch of
+  `renderList` into its own component), `RecipeList.tsx` 346 / about 250
+  code (was 322 before the rail moved to `RecipeLetterRail.tsx`).
 - **Hard cap: 650 lines** — crossing it needs a written justification in the
   file header, or it's a BLOCKER. `src/generated/` is exempt, and so is
   `prisma/schema.prisma`: a Prisma schema is a single declarative file that

@@ -47,7 +47,7 @@ export default async function RecipesPage() {
   }));
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <RecipesBrowser recipes={recipes} cookbooks={cookbooks} tags={tags} />
     </div>
   );

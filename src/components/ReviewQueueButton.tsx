@@ -68,7 +68,7 @@ export function ReviewQueueButton({ initial }: { initial: ReviewQueue }) {
           setOpen(true);
         }}
         aria-label={`Review ${queue.total} inventory ${queue.total === 1 ? "item" : "items"} that need a look`}
-        className="mt-3 flex min-h-11 items-center gap-2 rounded-xl border border-warn bg-warn-soft px-4 text-sm font-semibold text-warn transition-opacity active:opacity-80"
+        className="flex min-h-11 items-center gap-2 rounded-xl border border-warn bg-warn-soft px-4 text-sm font-semibold text-warn transition-opacity active:opacity-80"
       >
         <AlertCircle aria-hidden="true" size={16} className="animate-pulse" />
         {queue.total} to review

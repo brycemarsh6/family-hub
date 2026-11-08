@@ -27,7 +27,7 @@ export function AddLowItemsButton({ count }: { count: number }) {
       <button
         type="button"
         onClick={() => setPickingStore(true)}
-        className="mt-3 min-h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-fg transition-opacity active:opacity-80"
+        className="min-h-11 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-fg transition-opacity active:opacity-80"
       >
         <span aria-hidden="true">🛒</span> Add {count} low{" "}
         {count === 1 ? "item" : "items"} to the list

@@ -44,9 +44,21 @@ export function SkeletonList({ rows = 6 }: { rows?: number }) {
  * The whole screen, for routes with no more specific skeleton. Announced
  * politely to screen readers so the wait isn't silent for anyone using one.
  */
-export function SkeletonPage({ children }: { children?: React.ReactNode }) {
+export function SkeletonPage({
+  children,
+  wide = false,
+}: {
+  children?: React.ReactNode;
+  wide?: boolean;
+}) {
+  // `wide` opts into the wide page frame from the first paint (STRUCTURE.md "Wide pages").
   return (
-    <div className="py-2" role="status" aria-label="Loading">
+    <div
+      className="py-2"
+      role="status"
+      aria-label="Loading"
+      data-page-width={wide ? "wide" : undefined}
+    >
       <SkeletonHeader />
       {children ?? <SkeletonList />}
     </div>

@@ -222,7 +222,7 @@ Lucide outline icons only, secondary row actions behind a right-to-left swipe
 (destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-11-07, L5)
+## Current status (updated 2026-11-08, L4)
 
 Replace this section at the end of each session. Don't append.
 
@@ -267,8 +267,17 @@ Replace this section at the end of each session. Don't append.
   board gets it from L3, not L4). Decisions 255 to 258 (Bryce) and 259 to
   263 (Hill). Leftovers in
   `.avengers/missions/mission-53-ipad-landscape-l3-habits.md`. Plan:
-  `.avengers/plans/ipad-landscape-v1.md`. Still to do: L4 (Kitchen lists,
-  in flight as mission 52), L6 (Forms, Settings).
+  `.avengers/plans/ipad-landscape-v1.md`. **L4 (mission 52)** made the
+  Kitchen lists wide (all three gates passed 2026-11-08, branch
+  `claude/ipad-landscape-l4-kitchen-1af045`): Inventory and Shopping in
+  two stable columns, Expiring in three, All recipes letter groups in
+  three, Cookbooks 4 across, Cookbook detail in three, the Meal plan week
+  as a 7-column grid with compact Coming up cards. The split helper is
+  `src/lib/splitColumns.ts` with `useContainerWidth.ts`. Week ranges now
+  read "Nov 8 to 14" everywhere, the Calendar's Week title included.
+  Hill's calls 264 to 273 (268, 269, 271, 272 are the medium ones) in
+  `.avengers/missions/mission-52-ipad-landscape-l4-kitchen.md`. Still to
+  do: L6 (Forms, Settings).
 - **Calendar widget W2 (mission 49)** passed its gates on 2026-11-07 from
   branch `claude/dashboard-w2-calendar-widget-40bbe6`: a Calendar widget in
   all four sizes (Small next item, Medium and Large today, Extra large 3 or
@@ -430,6 +439,14 @@ Replace this section at the end of each session. Don't append.
   seconds). Tap Filter, hide one person. Open Manage, Chore chart, the
   Report icon and one habit's stats. On your phone, Whole family shows a
   shared habit once in each person's card. Look at Hill's 259 to 263.
+- **Landscape Kitchen check** (about 5 minutes, mission 52): on the
+  kitchen iPad sideways, open Inventory and Shopping: groups in two
+  columns. Hard-reload Inventory once: it may show one column for a blink,
+  then two (expected). All recipes: three columns, tap a letter on the A-Z
+  rail and land on it; the rail ends above the round +. While scrolling,
+  check the letter headers stick in Safari. Expiring: three columns. Meal
+  plan: the week as a grid; tap a Coming up card and it opens below.
+  Look at Hill's 268, 269, 271 and 272.
 - **Landscape dashboard check** (about 2 minutes): turn the kitchen iPad
   sideways and reload the dashboard: the tiles fill the screen in 4
   columns, there is no "Dashboard" title, and Customize sits in the top

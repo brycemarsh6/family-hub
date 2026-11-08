@@ -21,7 +21,13 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatMonthTitle, isSameMonth, toLocalDateString } from "./mealPlanDates";
+import {
+  formatMonthTitle,
+  formatShortDayHeader,
+  formatWeekRange,
+  isSameMonth,
+  toLocalDateString,
+} from "./mealPlanDates";
 
 function d(year: number, month: number, day: number): Date {
   return new Date(year, month, day);
@@ -62,4 +68,24 @@ test("formatMonthTitle: full month name, not the abbreviated MONTH_NAMES set", (
 
 test("formatMonthTitle: ignores the day-of-month entirely", () => {
   assert.equal(formatMonthTitle(d(2026, 10, 1)), formatMonthTitle(d(2026, 10, 30)));
+});
+
+// ---------------------------------------------------------------------------
+// formatWeekRange
+
+test("formatWeekRange: one month prints 'to', never a dash", () => {
+  assert.equal(formatWeekRange(d(2026, 10, 8)), "Nov 8 to 14");
+});
+
+test("formatWeekRange: a week crossing a month names both months", () => {
+  assert.equal(formatWeekRange(d(2026, 10, 29)), "Nov 29 to Dec 5");
+});
+
+// ---------------------------------------------------------------------------
+// formatShortDayHeader
+
+test("formatShortDayHeader: three-letter weekday, space, day number", () => {
+  assert.equal(formatShortDayHeader(d(2026, 10, 1)), "Sun 1");
+  assert.equal(formatShortDayHeader(d(2026, 10, 2)), "Mon 2");
+  assert.equal(formatShortDayHeader(d(2026, 10, 14)), "Sat 14");
 });

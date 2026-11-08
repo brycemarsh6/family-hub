@@ -4,23 +4,27 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 
 /**
- * The Recipes page's "+" — replaces the old header New button. Pinned to
- * the bottom-LEFT corner, deliberately: the A-Z jump rail (RecipeList) owns
- * the right edge at full height, so a bottom-right button would sit right on
- * top of X/Y/Z.
+ * The Recipes page's "+" (it replaced the old header New button).
  *
- * Aligned to the content column's own left edge, not the raw viewport edge —
- * the app's page content is centered in a max-w-3xl column with margin
- * around it on wide screens, and pinning to the viewport edge would leave
- * the button stranded out in that margin on a desktop-width window. When the
- * pinned menu is on, `--app-nav-width` (set by AppChrome) moves the left edge
- * past it; unset, it is 0.
+ * On phones and ordinary pages it sits at the bottom-LEFT of the content
+ * column, on purpose: the A-Z jump rail (RecipeList) owns the right edge at
+ * full height, and a habit row's check sits at the right, so a bottom-right
+ * button would cover them.
  *
- * A page that carries `data-page-width="wide"` (Habits & Chores) has no
- * narrow column, so there, from `md` up, the button lifts the cap and sits at
- * the bottom RIGHT, past the content (phones keep the bottom left, clear of the
- * last row's check). It is a button (`onClick`) or a link
- * (`href`); `label` is what a screen reader says.
+ * On a wide page (anything with `data-page-width="wide"`, from `md` up) it
+ * lifts the cap and moves to the bottom-RIGHT of the content area (rule 4 in
+ * .avengers/plans/ipad-landscape-v1.md). The Recipes rail then stops above
+ * the button (RecipeLetterRail raises its own bottom edge with the same
+ * selector), so they never overlap.
+ *
+ * It lines up with the content column's edge, not the raw viewport edge: the
+ * page is centered in a max-w-3xl column with margin around it, and pinning
+ * to the viewport would strand the button out in that margin. When the pinned
+ * menu is on, `--app-nav-width` (set by AppChrome) moves the left edge past
+ * it; unset, it is 0.
+ *
+ * It is a button (`onClick`) or a link (`href`); `label` is what a screen
+ * reader says.
  */
 export function FloatingAddButton({ onClick, href, label = "Add" }: { onClick?: () => void; href?: string; label?: string }) {
   const className =

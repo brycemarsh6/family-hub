@@ -259,6 +259,14 @@ the width rule; L2 and W2 share calendar code, so L2 goes first.
   list shows (the ring never marks a day the list is not showing). Idea
   for later: a "Nothing planned" row for a tapped empty day, as the mock
   draws for Mon 9.
+- **L4 (mission 52, Kitchen lists):** Hill's ten decisions are recorded in
+  `.avengers/missions/mission-52-ipad-landscape-l4-kitchen.md` (numbered
+  there 264 to 273; L5 holds 244 to 254 and L3 255 to 263). Headlines: Log leftovers, Add recipe, Put away and the Inventory
+  buttons move into the title row on wide pages; the A-Z rail ends above
+  the +; cookbook cards 2 then 4 across; the Meal plan's Coming up weeks
+  are compact cards that open the week grid in place; week ranges read
+  "Nov 8 to 14" everywhere; the one-row search and chips start at a
+  1024px container.
 
 - **244 to 254 (decided by Hill, 2026-11-07, L5; medium calls 248, 249,
   251):** 244 all six life areas show on the 3-column Goals board, an
