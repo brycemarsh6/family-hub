@@ -1,7 +1,7 @@
 # Mission 51: iPad landscape L3 (Habits & Chores go wide)
 
 **Project:** family-hub (Marshee)
-**Status:** FIXING (pass 1: Vision and Captain BLOCKED; F1 dispatched)
+**Status:** GATING (F1 done; Strange pass 1, Captain pass 2, then Vision pass 2)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/habits-chores-ipad-landscape-f04eee` (cut from `944444b`; `origin/main` with PR #74 merged in at `1bb7645`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L3 (section "Habits and Chores"; decisions 215 to 223, 230)
@@ -342,7 +342,7 @@ Status per contract is kept on its heading line.
 
 ## Fix batch 1 (after pass 1)
 
-### F1: past days true to the day; filter rules in lib; Week view; notes
+### F1: past days true to the day; filter rules in lib; Week view; notes (DONE, `2d0fb63`)
 - **Objective:** clear Vision's and Captain's four pass-1 blockers and
   Captain's strongest note, plus the cheap notes, in one dispatch.
 - **May touch:** `src/lib/habitsRead.ts` and `src/lib/habitsStatsRead.ts`
@@ -446,6 +446,14 @@ Status per contract is kept on its heading line.
 - Also: mission-46 file's "Waiting for Bryce" line (A-L2-3 done here).
 
 ## Handoff log
+
+- 2026-11-07: F1 DONE (`2d0fb63`, 19 files, +183/-60). Stark: gauntlet green
+  (1424; UTC 1417 + 7 skipped; LA 1424; build 0); Vision's probe before:
+  weekly habit missing from Monday, Friday habit due Monday; after: open
+  at 0 of 2, Friday habit gone. `buildTodayRows` also drops logs after
+  the day and members who joined later (a viewer who joined later still
+  gets a row: NOTE). `habitVocabulary.ts` 425. Next: Strange pass 1 and
+  Captain pass 2 together, then Vision pass 2.
 
 - 2026-11-07: C4 DONE (`854cc82`, 14 files, +123/-64). Stark: gauntlet green,
   built CSS holds every new container class, each grid string has one
