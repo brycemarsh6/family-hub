@@ -286,7 +286,7 @@ Status per contract is kept on its heading line.
   for the wide columns; each wide column's scroll area reserves bottom
   room for the floating +.
 
-### C3: Whole family fits everyone
+### C3: Whole family fits everyone (DONE, `00181fb`)
 - **May touch:** `HabitFamilyView.tsx`, `HabitFamilyWide.tsx`,
   `HabitFamilyWideColumn.tsx`, `HabitFamilyColumn.tsx` (card styling only),
   `habitsFamilyColumns.ts` + test (`fitsEveryone`), `AppChrome.tsx` comment
@@ -339,6 +339,16 @@ Status per contract is kept on its heading line.
 |---|---|---|---|---|
 
 ## Handoff log
+
+- 2026-11-07: C3 DONE (`00181fb`, 7 files, +150/-83). Stark: gauntlet green
+  (1387; UTC 1380 pass, 7 skipped; build 0). **Fury's contract was
+  wrong:** 5 x 220 + 4 x 14 = 1156 > 1148, so `fitsEveryone(1148, 5)`
+  could not be true. Stark kept the 220px minimum (decision 217) and made
+  the gap 12 (`FIT_COLUMN_GAP`, strip `gap-3`): exactly 1148. Fury accepts
+  (structural). Tint stays 12%: lowest pair light red `text-muted-strong`
+  4.91:1 (all 8 swatches, both themes, computed). For Strange: card icon
+  tile `bg-accent-soft` with `text-muted-strong` when finished; header
+  flame on the tint unmeasured.
 
 - 2026-11-07: C2 DONE (`a11bb00`, 6 files, +166/-62). Stark: gauntlet
   green (1386; UTC 1379 pass, 7 skipped; build 0); 3 new grouping tests;
