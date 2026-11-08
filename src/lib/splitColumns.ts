@@ -32,10 +32,13 @@ export function columnCountFor(
 
 /**
  * Splits `items` into exactly `columns` arrays (some may be empty), keeping
- * order: column 1 holds a prefix, column 2 the next run, and so on. A cut
- * falls after the item where the running weight first reaches or passes
- * k/columns of the total weight, for k = 1 to columns - 1. Weights below 1
- * count as 1.
+ * order: column 1 holds a prefix, column 2 the next run, and so on. Before an
+ * item is added, the split asks where the middle of that item sits. If the
+ * middle is at or past the line where the current column's fair share of the
+ * total weight ends (k/columns of the total, for k = 1 to columns - 1), the
+ * item starts the next column. So a heavy last group gets a column of its own
+ * instead of landing on top of everything before it. Weights below 1 count
+ * as 1.
  */
 export function splitByWeight<T>(
   items: readonly T[],
@@ -50,13 +53,17 @@ export function splitByWeight<T>(
   let column = 0;
   let running = 0;
   items.forEach((item, i) => {
-    result[column].push(item);
-    running += weights[i];
     // Move on one column at most per item, so a huge item can never leave
-    // an empty column in the middle.
-    if (column < columns - 1 && running * columns >= (column + 1) * total) {
+    // an empty column in the middle, and never cut before a column's first item.
+    if (
+      result[column].length > 0 &&
+      column < columns - 1 &&
+      (running + weights[i] / 2) * columns >= (column + 1) * total
+    ) {
       column += 1;
     }
+    result[column].push(item);
+    running += weights[i];
   });
   return result;
 }

@@ -79,3 +79,11 @@ test("no empty column before a non-empty one", () => {
     }
   }
 });
+
+test("a heavy last group gets its own column", () => {
+  assert.deepEqual(splitByWeight([4, 11], 2, (x) => x), [[4], [11]]);
+});
+
+test("a heavy last group gets its own column after lighter groups", () => {
+  assert.deepEqual(splitByWeight([3, 3, 21], 2, (x) => x), [[3, 3], [21]]);
+});
