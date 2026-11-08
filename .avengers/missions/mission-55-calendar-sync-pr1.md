@@ -348,13 +348,29 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
   (soft cap 350).
 - **Done criteria:** Fury opens the page in the preview and taps through.
 
+### C5 - Gate fixes, pass 1 (everything that does not wait on Bryce)
+- **Status:** PENDING
+- **Objective:** Fix Captain's code blockers, Strange's contrast blocker, and the gate notes worth fixing before the first real link.
+- **Boundaries:** may touch: `src/app/api/google/callback/route.ts`, `src/app/actions/linkedCalendars.ts`, new `src/lib/google/redirectUri.ts`, new `src/lib/google/redirectUri.test.ts`, new `src/lib/google/scopes.ts`, new `src/lib/google/scopes.test.ts`, `src/lib/google/oauth.ts`, `src/lib/tokenCryptoCore.ts`, `src/lib/tokenCryptoCore.test.ts`, `src/lib/tokenCrypto.ts`, `src/lib/linkedCalendarWrites.ts`, `src/lib/linkedCalendarsRead.ts`, `src/lib/calendarSyncVocabulary.ts`, `src/lib/calendarSyncVocabulary.test.ts`, `src/components/LinkedAccountCard.tsx`, `src/components/RadioSheet.tsx`, `src/app/(app)/settings/calendars/page.tsx`, `prisma/seed-linked-calendars.ts`, `README.md`, `.env.example`, `AGENTS.md`. Must not touch: `STRUCTURE.md`, `src/proxy.ts`, `prisma/schema.prisma`, `prisma/migrations/`, `src/components/SyncedCalendarsList.tsx`.
+- **Spec:**
+  1. Captain: delete both `revalidatePath` calls and the import from the callback route (every `(app)` page is dynamic). New pure `redirectUri.ts` per Captain: `GOOGLE_CALLBACK_PATH`, `requestOriginFrom(host, forwardedProto)`, `googleRedirectUri(origin)`, with tests (localhost and 127.0.0.1 give http, a production host gives https, a comma list uses its first entry, a junk proto falls back, a null host gives null). Route and action each read `headers()` and pass the values in; no copy remains.
+  2. Captain: a comment above `refreshAccessToken`: dormant until PR 2 of `calendar-sync-v1.md`, where the outbound push fetches an access token with it. Seed: `orderBy: [{ createdAt: "asc" }, { id: "asc" }]` and name `npm run db:bootstrap-users` in the error. `AGENTS.md`: add the google glob to the direct UTC command and correct "four-directory" to five. Fix the two wrong comments (`linkedCalendarsRead.ts` near `loadRefreshToken`, `linkedCalendarWrites.ts` header). Add `toAccountStatus` beside `toSyncDirection` and use it in the reader. Stop exporting `GOOGLE_SCOPES` if it moves (see 4).
+  3. Strange: `text-muted` becomes `text-muted-strong` on the card's text lines inside pressable rows. `RadioSheet` gains optional `hint?: string` per option, under the label in `text-sm font-normal text-muted`, wrapping; the card passes `SYNC_DIRECTION_HINTS[value]` and the hint line under each calendar name goes. The card title is always the email, with the muted line under it ("Work, linked by Bryce"), so the label stops appearing twice. Unlink gets its own `useOptimisticRun` so a direction change does not dim it.
+  4. Vision note 1: new pure `scopes.ts` with `GOOGLE_SCOPES`, `CALENDAR_SCOPES` (the two calendar ones) and `hasCalendarScopes(granted: string)`, with tests. Google expands `email` to `userinfo.email` in its answer, so compare only the calendar scopes. In the callback: if the granted scope string lacks them, redirect `?error=calendars` **before** saving, so a narrower re-link cannot overwrite a good token. If `listCalendars` or `replaceCalendars` fails after saving, redirect `?error=calendars` too (the saved account stays). `linkErrorMessage("calendars")`: "Google didn't share this account's calendars. Unlink it if it shows here, then try again and leave every box ticked."
+  5. Vision notes 5, 6, 7, 10, 11: `parseKey` rejects anything but strict standard base64 of exactly 32 bytes (test: the 43-character passphrase is refused). `tokenCrypto.ts` caches only a good key, never the absence of one. The page shows `?error=` through the same strict shape as the callback, otherwise treats it as `google`. `replaceCalendars` gets an explicit 15000 ms transaction timeout. README and `.env.example` say the two Google values go in Vercel and local `.env`, and `TOKEN_ENCRYPTION_KEY` has one value per environment.
+- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`, `npm run build`; `grep -rn "x-forwarded-proto" src` hits only the two callers passing the header; `grep -n revalidatePath src/app/api/google/callback/route.ts` is empty.
+- **Evidence required:** command output and the new test names.
+- **Done criteria:** Fury re-runs the commands; Captain and Strange re-gate.
+- **Waits on Bryce (C6, not in this contract):** the "Syncing isn't on yet" line, the outbound hint wording, the "1 syncing" summary, Captain's STRUCTURE.md amendments.
+- **Report:** -
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
-| 1 | Strange | — | — | — |
-| 1 | Captain | — | — | — |
+| 1 | Vision | PASS | none | 16 notes; the ones not fixed in C5 are listed under Deliberate leftovers |
+| 1 | Strange | BLOCKED | Screen claims syncing that does not exist yet (Bryce's wording); pressed-row contrast 4.33:1 | RadioSheet hints, card title, summary |
+| 1 | Captain | BLOCKED | Callback shape needs an amendment; `revalidatePath` in the route; two redirect-URI copies; `refreshAccessToken` dormant with no comment; seed people rule | AGENTS.md glob, `toAccountStatus`, comments |
 
 ## Handoff log
 
@@ -375,4 +391,4 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 
 - **Shipped:** —
 - **Shipped check:** —
-- **Deliberate leftovers:** —
+- **Deliberate leftovers:** Before PR 2: two parents linking the same Google account (one Unlink revokes both, and events could push twice); store each calendar's `accessRole` so reader-only calendars cannot be set to sync. Low risk, left open: the state cookie is not tied to the Marshee user who started the link; a deactivated parent's account cannot be unlinked; Google sign-in from the installed home-screen app is unproven, so Bryce tries it after merge. iPad landscape width for Settings stays on L6.
