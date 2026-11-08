@@ -39,3 +39,46 @@ export const SYNCED_CALENDARS_WORDS = {
   notConfigured: "Google sync isn't set up on this server yet",
   notYours: (name: string) => `Only ${name} can change this account`,
 } as const;
+
+export const SYNCED_CALENDARS_EXTRA_WORDS = {
+  linkedOk: "Google account linked.",
+  renameButton: "Rename",
+  renameHeading: "Rename account",
+  renameSave: "Save",
+  emptyTitle: "No calendars linked yet",
+  emptyHint: "Link a Google account to bring its calendars in.",
+  ownerOnlyNote: "You can only change or unlink accounts you linked.",
+  directionSheetTitle: "Sync direction",
+} as const;
+
+/** "Linked by Bryce", or "Work, linked by Bryce" when the account has a label. */
+export function linkedByLine(linkerName: string, label: string | null): string {
+  return label ? `${label}, linked by ${linkerName}` : `Linked by ${linkerName}`;
+}
+
+/** The collapsed card summary: "2 calendars, 1 both ways". */
+export function calendarsSummary(count: number, bothWays: number): string {
+  if (count === 0) return "No calendars";
+  const total = `${count} ${count === 1 ? "calendar" : "calendars"}`;
+  return bothWays > 0 ? `${total}, ${bothWays} both ways` : total;
+}
+
+const LINK_ERROR_MESSAGES: Record<string, string> = {
+  state: "That link expired. Try again.",
+  signin: "Sign in to Marshee first, then link.",
+  access_denied: "Google didn't allow it. Try again.",
+  admin_policy_enforced:
+    "Your work's Google admin has blocked Marshee. Ask them to allow it, or link a personal account.",
+  exchange: "Google didn't finish the link. Try again.",
+  "no-refresh-token": "Google didn't give Marshee lasting access. Try again.",
+  google: "Something went wrong linking Google. Try again.",
+};
+
+/** The page's line for an `?error=` code from the callback route. */
+export function linkErrorMessage(code: string): string {
+  return (
+    Object.hasOwn(LINK_ERROR_MESSAGES, code)
+      ? LINK_ERROR_MESSAGES[code]
+      : `Google returned an error (${code}). Try again.`
+  );
+}

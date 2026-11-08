@@ -1,0 +1,175 @@
+"use client";
+
+import { useOptimistic, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { RadioSheet } from "@/components/RadioSheet";
+import { TitleSheet } from "@/components/TitleSheet";
+import { renameLinkedAccount, setCalendarDirection, unlinkAccount } from "@/app/actions/linkedCalendars";
+import { useOptimisticRun } from "@/lib/useOptimisticRun";
+import {
+  SYNCED_CALENDARS_EXTRA_WORDS,
+  SYNCED_CALENDARS_WORDS,
+  SYNC_DIRECTIONS,
+  SYNC_DIRECTION_HINTS,
+  SYNC_DIRECTION_LABELS,
+  calendarsSummary,
+  linkedByLine,
+  type SyncDirection,
+} from "@/lib/calendarSyncVocabulary";
+import type { SyncedAccountRow } from "@/lib/linkedCalendarsRead";
+
+type DirectionChange = { calendarId: string; direction: SyncDirection };
+
+// The actions answer { ok: true } or { error }; useOptimisticRun reads only error.
+async function errorOnly(result: Promise<{ ok: true } | { error: string }>): Promise<{ error?: string }> {
+  const settled = await result;
+  return "error" in settled ? settled : {};
+}
+
+/**
+ * One linked Google account: a collapsed summary that opens to its calendars.
+ * Only the person who linked it sees the direction chevrons, Rename and Unlink
+ * (the server re-checks every one of them). A direction change shows at once
+ * and rolls back with a message if the save fails; Unlink waits for the
+ * server, since it can't be undone. RadioSheet has no slot for a hint, so the
+ * current direction's hint sits under each calendar's name instead.
+ */
+export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccountRow; viewerId: string }) {
+  const isOwner = account.userId === viewerId;
+  const [open, setOpen] = useState(false);
+  const [pickingId, setPickingId] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState(false);
+
+  const [directions, setDirection] = useOptimistic(
+    Object.fromEntries(account.calendars.map((calendar) => [calendar.id, calendar.direction])) as Record<
+      string,
+      SyncDirection
+    >,
+    (current, change: DirectionChange) => ({ ...current, [change.calendarId]: change.direction }),
+  );
+  const directionRun = useOptimisticRun<DirectionChange>(setDirection);
+  const renameRun = useOptimisticRun<never>(() => {});
+
+  const bothWays = account.calendars.filter((calendar) => directions[calendar.id] === "twoWay").length;
+  const picking = account.calendars.find((calendar) => calendar.id === pickingId) ?? null;
+
+  return (
+    <section className="rounded-xl border border-line bg-surface">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="flex min-h-16 w-full items-center justify-between gap-3 rounded-xl px-4 py-2 text-left transition-colors active:bg-surface-2"
+      >
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-base font-medium">{account.label ?? account.email}</span>
+          {account.label && <span className="truncate text-sm text-muted">{account.email}</span>}
+          <span className="text-sm text-muted">{linkedByLine(account.linkerName, account.label)}</span>
+          <span className="text-sm text-muted">{calendarsSummary(account.calendars.length, bothWays)}</span>
+        </span>
+        {open ? (
+          <ChevronDown aria-hidden="true" size={18} className="shrink-0 text-muted" />
+        ) : (
+          <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+        )}
+      </button>
+
+      {open && (
+        <div className="border-t border-line">
+          {account.calendars.map((calendar) => {
+            const direction = directions[calendar.id] ?? calendar.direction;
+            const content = (
+              <>
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-base">{calendar.name}</span>
+                  <span className="text-sm text-muted">{SYNC_DIRECTION_HINTS[direction]}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-sm text-muted">
+                  {SYNC_DIRECTION_LABELS[direction]}
+                  {isOwner && <ChevronRight aria-hidden="true" size={18} />}
+                </span>
+              </>
+            );
+            const rowClass = "flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2 text-left";
+            return isOwner ? (
+              <button
+                key={calendar.id}
+                type="button"
+                onClick={() => setPickingId(calendar.id)}
+                className={`${rowClass} transition-colors active:bg-surface-2`}
+              >
+                {content}
+              </button>
+            ) : (
+              <div key={calendar.id} className={rowClass}>
+                {content}
+              </div>
+            );
+          })}
+
+          {isOwner ? (
+            <div className="flex flex-col border-t border-line">
+              <button
+                type="button"
+                onClick={() => setRenaming(true)}
+                className="flex min-h-14 w-full items-center px-4 text-left text-base font-medium transition-colors active:bg-surface-2"
+              >
+                {SYNCED_CALENDARS_EXTRA_WORDS.renameButton}
+              </button>
+              <button
+                type="button"
+                disabled={directionRun.pending}
+                onClick={() => directionRun.run(null, () => errorOnly(unlinkAccount(account.id)))}
+                className="flex min-h-14 w-full items-center rounded-b-xl px-4 text-left text-base font-medium text-danger transition-colors active:bg-surface-2 disabled:opacity-50"
+              >
+                {SYNCED_CALENDARS_WORDS.unlinkButton}
+              </button>
+            </div>
+          ) : (
+            <p className="border-t border-line px-4 py-3 text-sm text-muted">
+              {SYNCED_CALENDARS_WORDS.notYours(account.linkerName)}
+            </p>
+          )}
+
+          {directionRun.error && (
+            <p role="alert" className="px-4 pb-3 text-sm text-warn">
+              {directionRun.error}
+            </p>
+          )}
+        </div>
+      )}
+
+      {picking && (
+        <RadioSheet
+          title={`${picking.name}: ${SYNCED_CALENDARS_EXTRA_WORDS.directionSheetTitle}`}
+          options={SYNC_DIRECTIONS.map((value) => ({ value, label: SYNC_DIRECTION_LABELS[value] }))}
+          selected={directions[picking.id] ?? picking.direction}
+          onSelect={(next) =>
+            directionRun.run({ calendarId: picking.id, direction: next }, () =>
+              errorOnly(setCalendarDirection(picking.id, next)),
+            )
+          }
+          onClose={() => setPickingId(null)}
+        />
+      )}
+
+      {renaming && (
+        <TitleSheet
+          heading={SYNCED_CALENDARS_EXTRA_WORDS.renameHeading}
+          initialValue={account.label ?? ""}
+          placeholder={account.email}
+          submitLabel={SYNCED_CALENDARS_EXTRA_WORDS.renameSave}
+          pending={renameRun.pending}
+          error={renameRun.error}
+          onSubmit={(label) =>
+            renameRun.run(null, () => errorOnly(renameLinkedAccount(account.id, label)), () => setRenaming(false))
+          }
+          onClose={() => {
+            renameRun.setError(null);
+            setRenaming(false);
+          }}
+        />
+      )}
+    </section>
+  );
+}

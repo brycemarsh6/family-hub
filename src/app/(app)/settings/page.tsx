@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, LogOut, MessageSquare, Users } from "lucide-react";
+import { CalendarSync, ChevronRight, LogOut, MessageSquare, Users } from "lucide-react";
 import { AdminPasswordSheet } from "@/components/AdminPasswordSheet";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { SettingsAccountCard } from "@/components/SettingsAccountCard";
@@ -8,6 +8,8 @@ import { VacationCard } from "@/components/VacationCard";
 import { WinnieSettings } from "@/components/WinnieSettings";
 import { logout } from "@/app/actions/auth";
 import { householdToday } from "@/lib/assistant/today";
+import { SYNCED_CALENDARS_WORDS } from "@/lib/calendarSyncVocabulary";
+import { MANAGER_ROLES } from "@/lib/constants";
 import { requireVerifiedUser } from "@/lib/dal";
 import { countNewFeedback } from "@/lib/feedbackRead";
 import { loadVacations } from "@/lib/habitsRead";
@@ -28,6 +30,7 @@ export default async function SettingsPage() {
   const user = await requireVerifiedUser();
   const today = householdToday(new Date())!;
   const vacations = user.isDevice ? [] : await loadVacations(user.userId, today);
+  const canSyncCalendars = !user.isDevice && MANAGER_ROLES.includes(user.role);
   const newFeedback = user.role === "admin" ? await countNewFeedback() : 0;
 
   return (
@@ -51,6 +54,19 @@ export default async function SettingsPage() {
           <span className="flex items-center gap-3">
             <Users aria-hidden="true" size={22} className="shrink-0 text-muted" />
             Manage family
+          </span>
+          <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+        </Link>
+      )}
+
+      {canSyncCalendars && (
+        <Link
+          href="/settings/calendars"
+          className="mt-3 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
+        >
+          <span className="flex items-center gap-3">
+            <CalendarSync aria-hidden="true" size={22} className="shrink-0 text-muted" />
+            {SYNCED_CALENDARS_WORDS.rowLabel}
           </span>
           <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
         </Link>
