@@ -127,7 +127,7 @@ function WeekGridRow({
                 <span className="line-clamp-2 min-w-0">{entry.title}</span>
               </span>
             ) : (
-              <span className="text-sm text-muted">Add</span>
+              <span className={`text-sm ${isToday ? "text-muted-strong" : "text-muted"}`}>Add</span>
             )}
           </button>
         );

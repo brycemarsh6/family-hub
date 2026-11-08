@@ -119,7 +119,7 @@ export function CookbookDetail({
 
       {/* From md the Add recipe button joins this row, just left of the
           actions button; below md it is the full-width button further down. */}
-      <div className="mb-1 flex items-start justify-between gap-3 md:items-center">
+      <div className="mb-1 flex items-start justify-between gap-3 md:mb-4 md:items-center">
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-bold tracking-tight md:text-3xl">
             {title}

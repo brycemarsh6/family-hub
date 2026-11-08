@@ -145,7 +145,14 @@ export function ExpiringList({
               <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
                 {SECTION_TITLES[section.urgency]}
               </h2>
-              <ul className="space-y-2">
+              {/* While "now" spans two columns its rows sit in a two-column grid, so they are not 877px wide. */}
+              <ul
+                className={
+                  section.urgency === "now"
+                    ? "space-y-2 @min-[48rem]:grid @min-[48rem]:grid-cols-2 @min-[48rem]:gap-2 @min-[48rem]:space-y-0 @min-[64rem]:block @min-[64rem]:space-y-2"
+                    : "space-y-2"
+                }
+              >
                 {section.items.map((entry) => (
                   <ExpiringRow
                     key={entry.item.id}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useRef, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { WeekCard } from "./WeekCard";
 import { WeekGrid } from "./WeekGrid";
@@ -118,6 +118,11 @@ export function MealPlanList({
   const wide = useContainerWidth(listRef) >= COLUMN_MIN_WIDTH_PX[3];
   // Wide only: the one week opened from a summary card or a past-week header.
   const [openWeekId, setOpenWeekId] = useState<string | null>(null);
+  const openGridRef = useRef<HTMLDivElement>(null);
+  // The opened grid sits below the cards, often off screen, so bring it into view.
+  useEffect(() => {
+    if (openWeekId !== null) openGridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [openWeekId]);
   const toggleWeek = (id: string) => setOpenWeekId((cur) => (cur === id ? null : id));
 
   const [creatingPlan, setCreatingPlan] = useState(false);
@@ -270,12 +275,14 @@ export function MealPlanList({
                 )}
               </div>
               {openPlan && (
-                <WeekGrid
-                  plan={openPlan}
-                  today={today}
-                  onSlotTap={tapFor(openPlan)}
-                  onDeletePlan={deleteFor(openPlan)}
-                />
+                <div ref={openGridRef}>
+                  <WeekGrid
+                    plan={openPlan}
+                    today={today}
+                    onSlotTap={tapFor(openPlan)}
+                    onDeletePlan={deleteFor(openPlan)}
+                  />
+                </div>
               )}
             </>
           )
