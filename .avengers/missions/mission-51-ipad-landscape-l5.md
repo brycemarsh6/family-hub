@@ -1,9 +1,9 @@
 # Mission 51: iPad landscape L5 (Recipe page, Goal page, Plans tabs)
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING (all three gates PASS on pass 2, 2026-11-07)
+**Status:** DELIVERED (merged as PR #79, commit `3933c7f`, 2026-11-07; production deploy READY)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
-**Branch:** `claude/ipad-landscape-l5-c6ce5b` (worktree, from `origin/main` at `798c475`)
+**Branch:** `claude/ipad-landscape-l5-c6ce5b` (worktree, from `origin/main` at `798c475`), PR #79
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L5 of L1 to L6. Fury's
 approved build plan for this step: `~/.claude/plans/moonlit-sprouting-umbrella.md`
 (Bryce approved it 2026-11-07; its contracts are copied below).
@@ -437,3 +437,35 @@ Vision's blocker: applied by Fury as a two-class edit in `GoalsList.tsx:84` (Vis
   (STRUCTURE.md A-L5-1 to A-L5-9, DESIGN.md, CLAUDE.md, the plan).
   Final Gauntlet green (1403 tests). L4 still not on main; Bryce chose to
   merge L5 now (the board inherits L4's button later).
+- 2026-11-07: PR #79 opened, Gauntlet green (2m31s), merged as `3933c7f`
+  with main unchanged since the branch point (no sync needed).
+  `git log origin/main..HEAD` after the merge: 0 commits unpushed.
+
+## Delivery
+
+- **Shipped (PR #79, `3933c7f`):** C1 to C3 and F1 (one commit,
+  `43be43c`), STRUCTURE.md A-L5-1 to A-L5-9, DESIGN.md (the wide Plans &
+  Goals and recipe page bullet; the hero sentence narrowed to phones),
+  CLAUDE.md status and the "L5 iPad check", the plan's decisions 244 to
+  254 and the + button note.
+- **Decided by Hill** (244 to 254 above). Medium calls for Bryce: 248
+  (circles, not pills), 249 (Cooked today in the Rating card), 251 (the
+  phone order).
+- **Production deploy:** GitHub deployment 7631618181 for `3933c7f` reached `success` ("Deployment has completed") on 2026-11-07, checked from the records branch.
+- **Deliberate leftovers:** `[id]/edit` inherits the recipe page's wide
+  skeleton until L6 widens the form; the + on the Goals board floats where
+  the old 768px column was until L4 lands (then it is bottom-right with no
+  L5 change); the 3+2 board keeps the two-bands look (shared grid rows,
+  accepted by Strange); 2- and 3-area boards were simulated in the DOM
+  (no finished goals on dev), one glance on the device once some exist;
+  the Rating card is the one bordered card among divider sections on the
+  phone; at 820 upright Ingredients (400) is wider than Instructions
+  (353), Bryce's glance; the recipe skeleton mirrors the body grid string
+  (A-L2-3 in L3 should list it, shared strings in a non-client module);
+  Tailwind emits unused unprefixed `grid-rows-[...]` rules picked up from
+  comment text.
+- **Older than L5, found here:** `export type` in the "use server" file
+  `src/app/actions/groceriesRecipes.ts:35` breaks every server action in
+  dev (same class as the HabitInput item); production unverified.
+  STRUCTURE.md is 1534 lines, past its 650-line housekeeping trigger.
+- **Not for Winnie:** nothing in L5 changes the Assistant API.

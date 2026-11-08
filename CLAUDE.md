@@ -250,8 +250,8 @@ Replace this section at the end of each session. Don't append.
   household order set by dragging on Manage family (`User.familyOrder`).
   Leftovers in `.avengers/missions/mission-41-habits-family-columns.md`.
 - **iPad landscape:** L1 (mission 44, PR #62) made the dashboard wide;
-  L2 (mission 46, PR #67) the Calendar; L5 (mission 51, branch
-  `claude/ipad-landscape-l5-c6ce5b`) passed all three gates on 2026-11-07:
+  L2 (mission 46, PR #67) the Calendar; L5 (mission 51) merged as PR #79
+  (`3933c7f`) on 2026-11-07 after all three gates passed:
   This week 2 columns, the Goals board 3 life-area columns (column-major,
   empty areas shown at 3 columns), Vision 3 across, the Goal page two
   panels, the recipe page with Ingredients (400px) beside the Steps and
