@@ -34,7 +34,7 @@ export default async function FamilyPage() {
   const orderPeople = await loadHouseholdPeople();
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href="/settings" label="Settings" />
 
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Manage family</h1>
@@ -42,13 +42,20 @@ export default async function FamilyPage() {
         Add people, reset passwords, and change roles.
       </p>
 
-      <FamilyList people={people} currentUserId={admin.userId} />
-
-      <h2 className="mb-1 mt-8 text-lg font-semibold">Family order</h2>
-      <p className="mb-3 text-sm text-muted">
-        Drag to set the order people appear in on Whole family, the habit pickers and the vision boards.
-      </p>
-      <FamilyOrderList key={orderPeople.map((p) => `${p.id}:${p.displayName}:${p.avatarColor}`).join("|")} people={orderPeople} />
+      <FamilyList
+        people={people}
+        currentUserId={admin.userId}
+        aside={
+          // The heading's top margin only separates it from the list on a phone; on wide the two columns start level.
+          <div className="@min-[48rem]:[&>h2]:mt-0">
+            <h2 className="mb-1 mt-8 text-lg font-semibold">Family order</h2>
+            <p className="mb-3 text-sm text-muted">
+              Drag to set the order people appear in on Whole family, the habit pickers and the vision boards.
+            </p>
+            <FamilyOrderList key={orderPeople.map((p) => `${p.id}:${p.displayName}:${p.avatarColor}`).join("|")} people={orderPeople} />
+          </div>
+        }
+      />
     </div>
   );
 }

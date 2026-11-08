@@ -8,6 +8,7 @@ import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { CreatePersonSheet } from "@/components/CreatePersonSheet";
 import { CreateDeviceSheet } from "@/components/CreateDeviceSheet";
 import { PersonManageSheet } from "@/components/PersonManageSheet";
+import { TWO_COLUMN_CLASSES } from "@/lib/gridClasses";
 import type { PersonInfo } from "@/lib/personInfo";
 import { ROLE_LABELS } from "@/lib/constants";
 
@@ -34,13 +35,20 @@ function sortPeople(people: PersonInfo[]): PersonInfo[] {
  * server on every write (the same pattern CookbookDetail/
  * ShareRecipeControls already established) rather than router.refresh(),
  * so a rename or a role change feels instant.
+ *
+ * Wide (a 48rem container): the list and the tablet button on the left, the
+ * page's Family order block (`aside`) on the right. The + and the three
+ * sheets are the container's siblings, so nothing fixed sits inside it.
  */
 export function FamilyList({
   people: initialPeople,
   currentUserId,
+  aside,
 }: {
   people: PersonInfo[];
   currentUserId: string;
+  /** The Family order block (heading, intro, drag list), shown beside the list on wide. */
+  aside: React.ReactNode;
 }) {
   const [people, setPeople] = useState(initialPeople);
   const [addOpen, setAddOpen] = useState(false);
@@ -63,7 +71,10 @@ export function FamilyList({
   }
 
   return (
-    <div>
+    <>
+      <div className="@container">
+        <div className={TWO_COLUMN_CLASSES}>
+          <div>
       <ul className="flex flex-col gap-2">
         {sorted.map((person) => {
           const deactivated = person.deactivatedAt !== null;
@@ -122,6 +133,12 @@ export function FamilyList({
         </button>
       )}
 
+          </div>
+
+          {aside}
+        </div>
+      </div>
+
       {/* Keeps the last row clear of the floating add button. */}
       <div aria-hidden="true" className="h-20" />
 
@@ -144,6 +161,6 @@ export function FamilyList({
           onClose={() => setManagingId(null)}
         />
       )}
-    </div>
+    </>
   );
 }

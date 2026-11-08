@@ -28,7 +28,7 @@ export default async function FeedbackPage({
   const items = await loadFeedbackList(status);
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href="/settings" label="Settings" />
 
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Feedback</h1>
