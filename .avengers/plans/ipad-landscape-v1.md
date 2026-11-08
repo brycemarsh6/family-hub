@@ -260,6 +260,20 @@ the width rule; L2 and W2 share calendar code, so L2 goes first.
   for later: a "Nothing planned" row for a tapped empty day, as the mock
   draws for Mon 9.
 
+- **233 (Bryce, 2026-11-07, L3):** Habits & Chores has one layout on
+  every screen: phones get the same bar (wrapping to two rows) and the
+  same Morning, Afternoon, Evening, Anytime grouping; chores carry a
+  "Chore" tag. No separate phone layout.
+- **234 (Bryce, 2026-11-07, L3):** Mine's time-of-day columns share one
+  neutral tint with white cards; the time icons tell them apart. No new
+  colours.
+- **235 (Bryce, 2026-11-07, L3):** Whole family has no per-column
+  toggles; the bar's Filter (people, time of day, Together only) applies
+  to every column.
+- **236 (Bryce, 2026-11-07, L3):** the Report is one bar-chart icon
+  button at the right of the Habits bar on both views, hidden on the
+  tablet login; the foot card and the family toolbar button go.
+
 ## Open
 
 - None for the plan. Per-step design details go to Bryce with a mock, or
