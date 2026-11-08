@@ -393,3 +393,24 @@ export function familyRowTag(together: boolean, chore: boolean): string | null {
   const tags = [together ? FAMILY_ROW_TAGS.together : null, chore ? FAMILY_ROW_TAGS.chore : null].filter((tag) => tag !== null);
   return tags.length > 0 ? tags.join(" · ") : null;
 }
+
+// ---- The Habits bar, day browsing and Filter sheet (mission 51, Hill's H1 to H4) ----
+
+/** The two views, named in the bar's subtitle and in the Filter sheet's Show group. */
+export const HABITS_VIEW_LABELS = { mine: "Mine", family: "Whole family" } as const;
+
+/** Under the bar on a past day (decision 238). */
+export const PAST_DAY_VIEW_ONLY = "Looking back. Past days are view only.";
+
+/** The Filter sheet's title and group labels (decision 239). */
+export const HABIT_FILTER_LABELS = { title: "Filter", show: "Show", timeOfDay: "Time of day", togetherOnly: "Together only", people: "People" } as const;
+
+/** The bar's Filter button: "Filter", or "Filter · 2" counting the narrowed groups (Show never counts). */
+export function filterButtonLabel(narrowed: number): string {
+  return narrowed > 0 ? `${HABIT_FILTER_LABELS.title} · ${narrowed}` : HABIT_FILTER_LABELS.title;
+}
+
+/** What an empty column says (decision 240); `key` is a time of day or "anytime". A column a filter emptied says `NOTHING_HERE_TODAY` instead. */
+export function nothingInColumnLabel(key: TimeOfDay | "anytime"): string {
+  return key === "anytime" ? NOTHING_HERE_TODAY : `Nothing this ${key}.`;
+}

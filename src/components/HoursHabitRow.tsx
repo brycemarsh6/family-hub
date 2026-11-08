@@ -53,11 +53,14 @@ export function HoursHabitRow({
   hours,
   onLog,
   showStreaks,
+  readOnly = false,
 }: {
   row: HabitRowView;
   hours: HoursRowView;
   onLog: () => void;
   showStreaks: boolean;
+  /** A past day (mission 51): the bar and the words stay, the log button goes. */
+  readOnly?: boolean;
 }) {
   return (
     <div className="flex min-h-15 items-center gap-3 px-3 py-2">
@@ -80,7 +83,7 @@ export function HoursHabitRow({
           <HoursLeftLine hours={hours} />
         </div>
       </Link>
-      <HoursLogButton hours={hours} title={row.title} onClick={onLog} />
+      {!readOnly && <HoursLogButton hours={hours} title={row.title} onClick={onLog} />}
     </div>
   );
 }

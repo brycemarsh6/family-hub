@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Flame, SkipForward, Undo2 } from "lucide-react";
+import { Check, Flame, SkipForward, Undo2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { HoursHabitRow } from "./HoursHabitRow";
@@ -33,6 +33,7 @@ export function HabitRow({
   onSkip,
   onUnskip,
   showStreaks,
+  readOnly = false,
 }: {
   row: HabitRowView;
   /** Check it, or undo the check when it is already done. An hours habit's row opens the log sheet instead; it has no check. */
@@ -42,8 +43,10 @@ export function HabitRow({
   onUnskip: () => void;
   /** The viewer's "Show streaks" switch; the family tablet always passes true (decision 98). */
   showStreaks: boolean;
+  /** A past day (mission 51): the check is a plain marker, there is no swipe, and an hours row has no log button. */
+  readOnly?: boolean;
 }) {
-  if (row.hours) return <HoursHabitRow row={row} hours={row.hours} onLog={onToggle} showStreaks={showStreaks} />;
+  if (row.hours) return <HoursHabitRow row={row} hours={row.hours} onLog={onToggle} showStreaks={showStreaks} readOnly={readOnly} />;
 
   // Excused rows (skipped, undone on vacation, skipped this week) look finished too (decisions 115, 127).
   const finished = row.doneToday || isExcused(row);
@@ -61,7 +64,9 @@ export function HabitRow({
   const shownPeople = row.sharing === "together" ? row.participants : othersDone;
 
   let actions: SwipeAction[] = [];
-  if (row.skippedToday) {
+  if (readOnly) {
+    // Nothing to swipe on a past day.
+  } else if (row.skippedToday) {
     actions = [
       {
         label: "Undo skip",
@@ -153,7 +158,18 @@ export function HabitRow({
           </div>
         </div>
       </Link>
-      <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={skippedMark} skippedLabel={row.skippedToday ? SKIPPED_TODAY_LABEL : SKIPPED_THIS_WEEK_LABEL} onClick={onToggle} />
+      {readOnly && !skippedMark ? (
+        <span
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+            row.doneToday ? "bg-accent text-accent-fg" : "border-2 border-line-strong"
+          }`}
+        >
+          {row.doneToday && <Check aria-hidden="true" size={22} />}
+          <span className="sr-only">{row.doneToday ? `${row.title} is done` : `${row.title} is not done`}</span>
+        </span>
+      ) : (
+        <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={skippedMark} skippedLabel={row.skippedToday ? SKIPPED_TODAY_LABEL : SKIPPED_THIS_WEEK_LABEL} onClick={onToggle} />
+      )}
     </div>
   );
 

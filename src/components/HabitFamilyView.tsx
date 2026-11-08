@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useOptimistic, useRef, useState } from "react";
+import { useEffect, useOptimistic, useRef, useState, type ReactNode } from "react";
 import { Users } from "lucide-react";
 import { HoursLogSheet } from "./HoursLogSheet";
 import { FamilyHabitRow, HabitFamilyColumn } from "./HabitFamilyColumn";
@@ -9,6 +9,7 @@ import { checkHabit, uncheckHabit } from "@/app/actions/habitChecks";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { FamilyPage, FamilyRow } from "@/lib/habitsFamily";
 import { formatCalendarDate } from "@/lib/householdDate";
+import { HABITS_VIEW_LABELS } from "@/lib/habitVocabulary";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
 /** A tap applied to every place the habit shows: the strip and each column (an Each habit's `userId` keeps it to one person's own flags). */
@@ -18,6 +19,12 @@ function applyToPage(page: FamilyPage, change: HabitChange): FamilyPage {
     together: applyHabitChange(page.together, change),
     columns: page.columns.map((column) => ({ ...column, rows: applyHabitChange(column.rows, change) })),
   };
+}
+
+/** A past day (mission 51): nobody can tick anything, and the Sunday shout-out is not for that day. */
+function lockPage(page: FamilyPage): FamilyPage {
+  const lock = (row: FamilyRow): FamilyRow => ({ ...row, canLog: false });
+  return { ...page, together: page.together.map(lock), columns: page.columns.map((column) => ({ ...column, shoutOut: false, rows: column.rows.map(lock) })) };
 }
 
 /** A carried row's tap is for the missed day, not today (same rule as Today). */
@@ -34,19 +41,31 @@ const dayOf = (row: FamilyRow) => (row.carriedFrom ? formatCalendarDate(row.carr
 export function HabitFamilyView({
   page,
   showStreaks,
-  canManage,
   focusPersonId,
+  keep,
+  hiddenPeople,
+  readOnly = false,
+  bar,
 }: {
   page: FamilyPage;
   showStreaks: boolean;
-  /** False on the wall tablet: no Report link. */
-  canManage: boolean;
   /** `?person=<id>`: that person's column (wide) or card (stacked) scrolls into view on load. An unknown id does nothing. */
   focusPersonId?: string;
+  /** The Filter sheet's test (time of day, Together only): whether a row shows. */
+  keep: (row: FamilyRow) => boolean;
+  /** People the Filter sheet turned off: their columns are left out. */
+  hiddenPeople: string[];
+  /** A past day: plain markers, no checks, no hours log. */
+  readOnly?: boolean;
+  /** Draws the page's bar with this view's subtitle. */
+  bar: (subtitle: ReactNode) => ReactNode;
 }) {
   const root = useRef<HTMLDivElement>(null);
-  const [live, applyOptimistic] = useOptimistic<FamilyPage, HabitChange>(page, applyToPage);
+  const [state, applyOptimistic] = useOptimistic<FamilyPage, HabitChange>(page, applyToPage);
   const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
+  const live = readOnly ? lockPage(state) : state;
+  // What the Filter sheet leaves: its people, and on the stacked cards its rows (the wide columns filter their own, keeping the whole-day count).
+  const columns = live.columns.filter((column) => !hiddenPeople.includes(column.id));
   // The hours row whose log sheet is open: the habit and the person, read live so bars move as soon as Add is tapped.
   const [logging, setLogging] = useState<{ habitId: string; userId: string } | null>(null);
   const loggingRow = logging ? live.columns.flatMap((column) => column.rows).find((row) => row.id === logging.habitId && row.logForId === logging.userId && row.hours) : undefined;
@@ -60,6 +79,7 @@ export function HabitFamilyView({
   }, [focusPersonId]);
 
   function toggle(row: FamilyRow) {
+    if (readOnly) return;
     if (row.hours) {
       setError(null);
       return setLogging({ habitId: row.id, userId: row.logForId });
@@ -71,20 +91,21 @@ export function HabitFamilyView({
 
   return (
     <div ref={root} className="flex flex-col gap-3.5 md:min-h-0 md:flex-1">
+      {bar(HABITS_VIEW_LABELS.family)}
       {error && !loggingRow && (
         <p role="alert" className="text-sm text-warn">
           {error}
         </p>
       )}
       <div className="flex flex-col gap-3.5 md:hidden">
-        {live.together.length > 0 && (
+        {live.together.some(keep) && (
           <section aria-label="Together" className="rounded-2xl border border-line bg-surface p-3">
             <div className="flex items-center gap-2 pb-1">
               <Users aria-hidden="true" size={20} className="text-accent" />
               <h2 className="text-base font-bold">Together</h2>
             </div>
             <ul className="flex flex-col divide-y divide-line sm:flex-row sm:flex-wrap sm:divide-y-0 sm:gap-x-8">
-              {live.together.map((row) => (
+              {live.together.filter(keep).map((row) => (
                 <li key={row.id} className="sm:min-w-64">
                   <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => toggle(row)} together />
                 </li>
@@ -92,17 +113,17 @@ export function HabitFamilyView({
             </ul>
           </section>
         )}
-        {live.columns.length === 0 ? (
+        {columns.length === 0 ? (
           <p className="text-sm text-muted">No one to show yet.</p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-start gap-3.5">
-            {live.columns.map((column) => (
-              <HabitFamilyColumn key={column.id} column={column} together={live.together} showStreaks={showStreaks} onToggle={toggle} />
+            {columns.map((column) => (
+              <HabitFamilyColumn key={column.id} column={{ ...column, rows: column.rows.filter(keep) }} together={live.together} showStreaks={showStreaks} onToggle={toggle} />
             ))}
           </div>
         )}
       </div>
-      <HabitFamilyWide page={live} showStreaks={showStreaks} canManage={canManage} onToggle={toggle} />
+      <HabitFamilyWide page={{ ...live, columns }} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
       {loggingRow?.hours && (
         <HoursLogSheet
           habitId={loggingRow.id}
