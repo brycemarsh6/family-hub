@@ -208,7 +208,8 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
   new `src/lib/google/idToken.ts`, new `src/lib/google/idToken.test.ts`,
   new `src/lib/google/calendarApi.ts`, new `src/lib/google/types.ts`, new
   `src/lib/linkedCalendarWrites.ts`, new `src/lib/linkedCalendarsRead.ts`,
-  `package.json` (the `test` script only: add `src/lib/google/*.test.ts`),
+  `package.json` (the `test` script only: add the glob for test files in
+  the new google directory),
   `.github/workflows/ci.yml` (both timezone test steps: the same glob).
   Must not touch: `prisma/`, `src/app/`, `src/components/`, `src/proxy.ts`.
 - **Spec:** `oauth.ts` (`server-only`): `isGoogleConfigured()` (both env
