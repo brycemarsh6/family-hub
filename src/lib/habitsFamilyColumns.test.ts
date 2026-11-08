@@ -3,7 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { FamilyRow } from "./habitsFamily";
-import { emptyColumnText, familyCountText, groupColumnRows } from "./habitsFamilyColumns";
+import type { HabitRowView } from "./habitsRead";
+import { emptyColumnText, familyCountText, groupColumnRows, groupRowsByTime } from "./habitsFamilyColumns";
 import { familyRowTag } from "./habitVocabulary";
 
 const row = (id: string, timeOfDay: FamilyRow["timeOfDay"], kind: FamilyRow["kind"] = "habit", extra: Partial<FamilyRow> = {}) =>
@@ -68,4 +69,23 @@ test("familyCountText: the count, with On vacation after it or alone when nothin
   assert.equal(familyCountText(base, []), "1 of 2 done");
   assert.equal(familyCountText({ ...base, onVacation: true }, []), "1 of 2 done · On vacation");
   assert.equal(familyCountText({ ...base, rows: [], onVacation: true, totalCount: 0 }, []), "On vacation");
+});
+
+const mine = (id: string, timeOfDay: HabitRowView["timeOfDay"], kind: HabitRowView["kind"] = "habit") => ({ id, timeOfDay, kind }) as HabitRowView;
+const timeIds = (groups: ReturnType<typeof groupRowsByTime>) => groups.map((g) => [g.key, g.items.map((i) => i.row.id)]);
+
+test("groupRowsByTime: Morning, Afternoon, Evening, Anytime, empty groups kept", () => {
+  const groups = groupRowsByTime([mine("a", null), mine("b", "evening"), mine("c", "morning")]);
+  assert.deepEqual(timeIds(groups), [["morning", ["c"]], ["afternoon", []], ["evening", ["b"]], ["anytime", ["a"]]]);
+  assert.deepEqual(timeIds(groupRowsByTime([])), [["morning", []], ["afternoon", []], ["evening", []], ["anytime", []]]);
+});
+
+test("groupRowsByTime: a chore sits in its time column with the Chore tag", () => {
+  const groups = groupRowsByTime([mine("h", "morning"), mine("c", "morning", "chore")]);
+  assert.deepEqual(groups[0].items.map((i) => i.tag), [null, "Chore"]);
+});
+
+test("groupRowsByTime: keep filters rows and leaves the column in place", () => {
+  const groups = groupRowsByTime([mine("a", "morning"), mine("b", "evening")], (r) => r.timeOfDay === "evening");
+  assert.deepEqual(timeIds(groups), [["morning", []], ["afternoon", []], ["evening", ["b"]], ["anytime", []]]);
 });

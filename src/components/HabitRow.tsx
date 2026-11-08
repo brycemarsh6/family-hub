@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Check, Flame, SkipForward, Undo2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
@@ -34,6 +35,8 @@ export function HabitRow({
   onUnskip,
   showStreaks,
   readOnly = false,
+  layout = "row",
+  tag = null,
 }: {
   row: HabitRowView;
   /** Check it, or undo the check when it is already done. An hours habit's row opens the log sheet instead; it has no check. */
@@ -45,8 +48,21 @@ export function HabitRow({
   showStreaks: boolean;
   /** A past day (mission 51): the check is a plain marker, there is no swipe, and an hours row has no log button. */
   readOnly?: boolean;
+  /** "row" (the default, and the dashboard tile's) is today's row. "auto" is a card for Mine's time columns: a tall card from a 60rem container (mission 51 C2). */
+  layout?: "row" | "auto";
+  /** "Chore" (`familyRowTag`): drawn as a small tag under the title. Only the "auto" layout shows it. */
+  tag?: string | null;
 }) {
-  if (row.hours) return <HoursHabitRow row={row} hours={row.hours} onLog={onToggle} showStreaks={showStreaks} readOnly={readOnly} />;
+  if (row.hours) return <HoursHabitRow row={row} hours={row.hours} onLog={onToggle} showStreaks={showStreaks} readOnly={readOnly} layout={layout} />;
+  const card = layout === "auto";
+  // Class strings stay whole so Tailwind can see them; "row" adds none of them.
+  const bodyCard = card ? " @min-[60rem]:relative @min-[60rem]:min-h-25 @min-[60rem]:flex-col @min-[60rem]:items-stretch" : "";
+  const linkCard = card ? " @min-[60rem]:flex-col @min-[60rem]:justify-center @min-[60rem]:text-center" : "";
+  const tileCard = card ? " @min-[60rem]:h-12 @min-[60rem]:w-12" : "";
+  const textCard = card ? " @min-[60rem]:items-center @min-[60rem]:px-12" : "";
+  // The check sits at the card's bottom right on the tall card; "row" adds no wrapper, so the tile's DOM is unchanged.
+  const checkSlot = (check: ReactNode) => (card ? <div className="shrink-0 @min-[60rem]:absolute @min-[60rem]:bottom-2 @min-[60rem]:right-2">{check}</div> : check);
+  const centerCard = card ? " @min-[60rem]:justify-center" : "";
 
   // Excused rows (skipped, undone on vacation, skipped this week) look finished too (decisions 115, 127).
   const finished = row.doneToday || isExcused(row);
@@ -91,23 +107,24 @@ export function HabitRow({
   }
 
   const body = (
-    <div className="flex min-h-15 items-center gap-3 px-3 py-1.5">
-      <Link href={`/habits/${row.id}`} draggable={false} className="flex min-w-0 flex-1 items-center gap-3 self-stretch">
+    <div className={`flex min-h-15 items-center gap-3 px-3 py-1.5${bodyCard}`}>
+      <Link href={`/habits/${row.id}`} draggable={false} className={`flex min-w-0 flex-1 items-center gap-3 self-stretch${linkCard}`}>
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
             finished ? "bg-surface-2 text-muted" : "bg-accent-soft text-accent"
-          }`}
+          }${tileCard}`}
         >
           <HabitIcon name={row.icon} kind={row.kind} />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className={`flex min-w-0 flex-1 flex-col gap-0.5${textCard}`}>
+          <div className={`flex flex-wrap items-center gap-1.5${centerCard}`}>
             <span className={`text-base font-semibold ${excusedByCalendar ? "text-muted-strong" : finished ? "text-muted" : ""}`}>{row.title}</span>
             {row.mode === "quit" && <span className={QUIT_TAG_CLASS}>Quit</span>}
             {row.carriedFrom && !row.doneToday && <span className={TAG_CLASS}>Carried over</span>}
             {row.weekTag && <span className={QUIT_TAG_CLASS}>{row.weekTag}</span>}
           </div>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted">
+          {card && tag && <span className={`self-start @min-[60rem]:self-center ${QUIT_TAG_CLASS}`}>{tag}</span>}
+          <div className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted${centerCard}`}>
             {row.carriedFrom && !row.doneToday ? (
               <>
                 <span>From {formatDayLabel(new Date(row.carriedFrom.year, row.carriedFrom.month - 1, row.carriedFrom.day)).split(",")[0]}</span>
@@ -158,20 +175,23 @@ export function HabitRow({
           </div>
         </div>
       </Link>
-      {readOnly && !skippedMark ? (
-        <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-            row.doneToday ? "bg-accent text-accent-fg" : "border-2 border-line-strong"
-          }`}
-        >
-          {row.doneToday && <Check aria-hidden="true" size={22} />}
-          <span className="sr-only">{row.doneToday ? `${row.title} is done` : `${row.title} is not done`}</span>
-        </span>
-      ) : (
-        <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={skippedMark} skippedLabel={row.skippedToday ? SKIPPED_TODAY_LABEL : SKIPPED_THIS_WEEK_LABEL} onClick={onToggle} />
+      {checkSlot(
+        readOnly && !skippedMark ? (
+          <span
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+              row.doneToday ? "bg-accent text-accent-fg" : "border-2 border-line-strong"
+            }`}
+          >
+            {row.doneToday && <Check aria-hidden="true" size={22} />}
+            <span className="sr-only">{row.doneToday ? `${row.title} is done` : `${row.title} is not done`}</span>
+          </span>
+        ) : (
+          <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={skippedMark} skippedLabel={row.skippedToday ? SKIPPED_TODAY_LABEL : SKIPPED_THIS_WEEK_LABEL} onClick={onToggle} />
+        ),
       )}
     </div>
   );
 
-  return actions.length > 0 ? <SwipeActions actions={actions}>{body}</SwipeActions> : body;
+  const swipeable = actions.length > 0 ? <SwipeActions actions={actions}>{body}</SwipeActions> : body;
+  return card ? <div className="overflow-hidden rounded-2xl bg-surface">{swipeable}</div> : swipeable;
 }

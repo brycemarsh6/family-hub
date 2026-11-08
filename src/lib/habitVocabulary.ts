@@ -414,3 +414,7 @@ export function filterButtonLabel(narrowed: number): string {
 export function nothingInColumnLabel(key: TimeOfDay | "anytime"): string {
   return key === "anytime" ? NOTHING_HERE_TODAY : `Nothing this ${key}.`;
 }
+
+/** A past day with nothing due (mission 51 C2; the title and hint of the empty state). */
+export const PAST_DAY_NOTHING_DUE_TITLE = "Nothing was due";
+export const PAST_DAY_NOTHING_DUE_HINT = "No habits or chores were due that day";

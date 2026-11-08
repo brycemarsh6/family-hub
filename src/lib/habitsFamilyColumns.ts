@@ -1,4 +1,5 @@
 import { NOTHING_DUE_TODAY, NOTHING_HERE_TODAY, ON_VACATION_LABEL, TIMES_OF_DAY, familyRowTag, type TimeOfDay } from "./habitVocabulary";
+import type { HabitRowView } from "./habitsRead";
 import { countedRows, doneCountLabel, type FamilyColumn, type FamilyRow } from "./habitsFamily";
 
 // The wide (iPad) Whole family column: one person's rows grouped by time of
@@ -35,6 +36,25 @@ export function groupColumnRows(column: ColumnInput, together: readonly FamilyRo
   return keys
     .map((key) => ({ key, items: items.filter((item) => (item.row.timeOfDay ?? "anytime") === key) }))
     .filter((group) => group.items.length > 0);
+}
+
+/** A Mine row with the small tag the Today cards show (null for a plain habit; "Chore" for a chore). */
+export type TimeRowItem = { row: HabitRowView; tag: string | null };
+
+/** One of Today's four time-of-day columns; `items` may be empty (the caller decides whether to draw it). */
+export type TimeGroup = { key: TimeOfDay | "anytime"; items: TimeRowItem[] };
+
+/**
+ * Mine's rows in Morning, Afternoon, Evening, then Anytime order, all four
+ * groups kept even when empty. Rows keep their order; `keep` is the Filter.
+ */
+export function groupRowsByTime(rows: readonly HabitRowView[], keep: (row: HabitRowView) => boolean = () => true): TimeGroup[] {
+  const kept = rows.filter(keep);
+  const keys: TimeGroup["key"][] = [...TIMES_OF_DAY, "anytime"];
+  return keys.map((key) => ({
+    key,
+    items: kept.filter((row) => (row.timeOfDay ?? "anytime") === key).map((row) => ({ row, tag: familyRowTag(false, row.kind === "chore") })),
+  }));
 }
 
 /** What an empty column says: nothing due at all, or (the filter chip hid every row) Today's "Nothing here today.". */

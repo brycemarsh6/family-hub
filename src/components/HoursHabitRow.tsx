@@ -54,6 +54,7 @@ export function HoursHabitRow({
   onLog,
   showStreaks,
   readOnly = false,
+  layout = "row",
 }: {
   row: HabitRowView;
   hours: HoursRowView;
@@ -61,8 +62,10 @@ export function HoursHabitRow({
   showStreaks: boolean;
   /** A past day (mission 51): the bar and the words stay, the log button goes. */
   readOnly?: boolean;
+  /** "auto" is a card in Mine's time columns (same classes, a rounded surface); "row" is the dashboard tile's row. */
+  layout?: "row" | "auto";
 }) {
-  return (
+  const body = (
     <div className="flex min-h-15 items-center gap-3 px-3 py-2">
       <Link href={`/habits/${row.id}`} draggable={false} className="flex min-w-0 flex-1 items-center gap-3 self-stretch">
         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${hours.met ? "bg-surface-2 text-muted" : "bg-accent-soft text-accent"}`}>
@@ -86,4 +89,5 @@ export function HoursHabitRow({
       {!readOnly && <HoursLogButton hours={hours} title={row.title} onClick={onLog} />}
     </div>
   );
+  return layout === "auto" ? <div className="overflow-hidden rounded-2xl bg-surface">{body}</div> : body;
 }

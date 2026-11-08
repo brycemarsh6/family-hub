@@ -2,10 +2,11 @@
 
 import { useOptimistic, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Flame, Plane } from "lucide-react";
+import { Clock, Flame, Plane } from "lucide-react";
 import { ChoreShoutOutCard } from "./ChoreShoutOutCard";
 import { EmptyState } from "./EmptyState";
 import { HabitConfetti } from "./HabitConfetti";
+import { TIME_ICONS } from "./HabitFilterChips";
 import { HabitRow } from "./HabitRow";
 import { HoursLogSheet } from "./HoursLogSheet";
 import { habitRowTaps } from "./HabitsTile";
@@ -14,11 +15,23 @@ import { PlanDayCard } from "./PlanDayCard";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { HabitRowView, TodayNudge, TodayPrompt } from "@/lib/habitsRead";
 import { doneCountLabel } from "@/lib/habitsFamily";
+import { groupRowsByTime } from "@/lib/habitsFamilyColumns";
 import { allRequiredDoneToday } from "@/lib/habitsToday";
 import { formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { isExcused } from "@/lib/habits/weekOverrides";
-import { HABITS_VIEW_LABELS, NOTHING_HERE_TODAY, VACATION_TODAY_LABEL, streakLabel, vacationThroughLabel } from "@/lib/habitVocabulary";
+import {
+  ANYTIME_LABEL,
+  HABITS_VIEW_LABELS,
+  NOTHING_HERE_TODAY,
+  PAST_DAY_NOTHING_DUE_HINT,
+  PAST_DAY_NOTHING_DUE_TITLE,
+  TIME_OF_DAY_LABELS,
+  VACATION_TODAY_LABEL,
+  nothingInColumnLabel,
+  streakLabel,
+  vacationThroughLabel,
+} from "@/lib/habitVocabulary";
 
 /** Finished means checked or excused (skipped, on vacation, skipped this week): those sink to the bottom when the page loads. */
 function isFinished(row: HabitRowView) {
@@ -84,12 +97,13 @@ export function HabitTodayList({
   const ordered = [...live].sort((a, b) => rank(a) - rank(b));
 
   const shown = ordered.filter(keep);
-  const sections = [
-    { key: "habit", title: "Habits", rows: shown.filter((row) => row.kind === "habit") },
-    { key: "chore", title: "Chores", rows: shown.filter((row) => row.kind === "chore") },
-  ].filter((section) => section.rows.length > 0);
+  const columns = groupRowsByTime(ordered, keep);
+  // Which columns had rows before the Filter: an emptied one says "Nothing here today." (decision 240).
+  const hadRows = new Set(groupRowsByTime(ordered).filter((group) => group.items.length > 0).map((group) => group.key));
 
   const throughDay = vacationThrough ? parseDateParam(vacationThrough) : null;
+  // How many cards the top strip holds, so two or more can sit side by side.
+  const stripCards = Number(nudges.length > 0) + Number(throughDay !== null) + Number(shoutOut) + Number(prompts.length > 0);
   // "Mine · 2 of 7 done · 5 days" with the chore streak's flame from 2 days (decisions 120, 237); none on a past day (the cached streak is as of a later day).
   const streak = showStreaks && !readOnly ? streakLabel(choreStreak, "days") : null;
   const subtitle = (
@@ -114,20 +128,27 @@ export function HabitTodayList({
       {bar(subtitle)}
       {/* The flag is the server's on load; after a tap it is worked out again from the tapped rows, by the same rule. */}
       {!readOnly && <HabitConfetti fire={confetti || allRequiredDoneToday(live)} today={todayKey} />}
-      <NudgeCards nudges={nudges} />
-      {throughDay && (
-        <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-line bg-surface py-2 pl-3 pr-1">
-          <Plane aria-hidden="true" size={20} className="shrink-0 text-muted" />
-          <p className="min-w-0 flex-1 text-sm font-semibold">
-            {vacationThrough === todayKey ? VACATION_TODAY_LABEL : vacationThroughLabel(formatShortCalendarDate(throughDay))}
-          </p>
-          <Link href="/settings" className="flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-semibold text-accent">
-            Change
-          </Link>
+      {/* The top strip: its cards sit two across from 45rem of its own width (decision 224's pattern). */}
+      {stripCards > 0 && (
+        <div className="@container">
+          <div className={`grid grid-cols-1 items-start gap-x-3 ${stripCards >= 2 ? "@min-[45rem]:grid-cols-2" : ""}`}>
+            <NudgeCards nudges={nudges} />
+            {throughDay && (
+              <div className="mb-3 flex items-center gap-2.5 rounded-2xl border border-line bg-surface py-2 pl-3 pr-1">
+                <Plane aria-hidden="true" size={20} className="shrink-0 text-muted" />
+                <p className="min-w-0 flex-1 text-sm font-semibold">
+                  {vacationThrough === todayKey ? VACATION_TODAY_LABEL : vacationThroughLabel(formatShortCalendarDate(throughDay))}
+                </p>
+                <Link href="/settings" className="flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-semibold text-accent">
+                  Change
+                </Link>
+              </div>
+            )}
+            {shoutOut && <ChoreShoutOutCard />}
+            <PlanDayCard prompts={prompts} />
+          </div>
         </div>
       )}
-      {shoutOut && <ChoreShoutOutCard />}
-      <PlanDayCard prompts={prompts} />
       {error && !logging && (
         <p role="alert" className="mb-3 text-sm text-warn">
           {error}
@@ -138,8 +159,8 @@ export function HabitTodayList({
         <div>
           <EmptyState
             emoji="🌱"
-            title={readOnly ? "Nothing was due" : "Nothing to do today"}
-            hint={readOnly ? "No habits or chores were due that day" : canManage ? "Add a habit or a chore to see it here" : "Nothing is due right now"}
+            title={readOnly ? PAST_DAY_NOTHING_DUE_TITLE : "Nothing to do today"}
+            hint={readOnly ? PAST_DAY_NOTHING_DUE_HINT : canManage ? "Add a habit or a chore to see it here" : "Nothing is due right now"}
           />
           {canManage && !readOnly && (
             <Link
@@ -150,28 +171,43 @@ export function HabitTodayList({
             </Link>
           )}
         </div>
-      ) : shown.length === 0 ? (
-        <p className="text-sm text-muted">{NOTHING_HERE_TODAY}</p>
       ) : (
-        <div className="flex flex-col gap-4">
-          {sections.map((section) => (
-            <section key={section.key}>
-              <div className="mb-1.5 flex items-baseline justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{section.title}</h2>
-                <span className="text-sm text-muted">{doneCountLabel(section.rows)}</span>
-              </div>
-              <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
-                {section.rows.map((row) => (
-                  <li key={row.id}>
-                    <HabitRow row={row} showStreaks={showStreaks} readOnly={readOnly} {...habitRowTaps(row, run, (hoursRow) => {
-                      setError(null);
-                      setLoggingId(hoursRow.id);
-                    })} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+        <div className="@container">
+          {shown.length === 0 && <p className="text-sm text-muted @min-[40rem]:hidden">{NOTHING_HERE_TODAY}</p>}
+          <div className="grid grid-cols-1 gap-3 @min-[40rem]:grid-cols-2 @min-[60rem]:grid-cols-4">
+            {columns.map((column) => {
+              const empty = column.items.length === 0;
+              const Icon = column.key === "anytime" ? Clock : TIME_ICONS[column.key];
+              return (
+                // A phone drops empty columns; from 40rem all four stay so the day reads as a whole.
+                <section key={column.key} data-time-column={column.key} className={`rounded-2xl bg-surface-2 p-3 ${empty ? "hidden @min-[40rem]:block" : ""}`}>
+                  <div className="mb-3 flex items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface text-muted-strong">
+                      <Icon aria-hidden="true" size={22} />
+                    </span>
+                    <div className="min-w-0">
+                      <h2 className="text-base font-semibold">{column.key === "anytime" ? ANYTIME_LABEL : TIME_OF_DAY_LABELS[column.key]}</h2>
+                      {!empty && <p className="text-sm text-muted">{doneCountLabel(column.items.map((item) => item.row))}</p>}
+                    </div>
+                  </div>
+                  {empty ? (
+                    <p className="text-sm text-muted">{hadRows.has(column.key) ? NOTHING_HERE_TODAY : nothingInColumnLabel(column.key)}</p>
+                  ) : (
+                    <ul className="flex flex-col gap-2">
+                      {column.items.map(({ row, tag }) => (
+                        <li key={row.id}>
+                          <HabitRow row={row} showStreaks={showStreaks} readOnly={readOnly} layout="auto" tag={tag} {...habitRowTaps(row, run, (hoursRow) => {
+                            setError(null);
+                            setLoggingId(hoursRow.id);
+                          })} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
+          </div>
         </div>
       )}
 
