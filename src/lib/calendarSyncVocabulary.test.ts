@@ -10,6 +10,8 @@ import {
   SYNC_DIRECTION_HINTS,
   SYNC_DIRECTION_LABELS,
   isSyncDirection,
+  toAccountStatus,
+  toLinkErrorCode,
   toSyncDirection,
 } from "./calendarSyncVocabulary";
 
@@ -45,6 +47,22 @@ describe("calendar sync vocabulary", () => {
     assert.equal(toSyncDirection(7), "off");
   });
 
+  it("toAccountStatus keeps good values and repairs the rest to ok", () => {
+    assert.equal(toAccountStatus("needs-relink"), "needs-relink");
+    assert.equal(toAccountStatus("ok"), "ok");
+    assert.equal(toAccountStatus("weird"), "ok");
+    assert.equal(toAccountStatus(null), "ok");
+  });
+
+  it("toLinkErrorCode passes the strict shape and turns anything else into google", () => {
+    assert.equal(toLinkErrorCode("access_denied"), "access_denied");
+    assert.equal(toLinkErrorCode("no-refresh-token"), "no-refresh-token");
+    assert.equal(toLinkErrorCode("Bad Code!"), "google");
+    assert.equal(toLinkErrorCode("a".repeat(41)), "google");
+    assert.equal(toLinkErrorCode(""), "google");
+    assert.equal(toLinkErrorCode(undefined), "google");
+  });
+
   it("pins the page words", () => {
     assert.equal(SYNCED_CALENDARS_WORDS.pageTitle, "Synced calendars");
     assert.equal(SYNCED_CALENDARS_WORDS.linkButton, "Link a Google account");
@@ -71,6 +89,10 @@ describe("calendar sync vocabulary", () => {
     assert.equal(
       linkErrorMessage("no-refresh-token"),
       "Google didn't give Marshee lasting access. Try again.",
+    );
+    assert.equal(
+      linkErrorMessage("calendars"),
+      "Google didn't share this account's calendars. Unlink it if it shows here, then try again and leave every box ticked.",
     );
     assert.equal(linkErrorMessage("weird_code"), "Google returned an error (weird_code). Try again.");
     assert.equal(linkErrorMessage("constructor"), "Google returned an error (constructor). Try again.");

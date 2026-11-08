@@ -4,8 +4,10 @@ import type { SyncDirection } from "@/lib/calendarSyncVocabulary";
 import type { GoogleCalendarSummary } from "@/lib/google/types";
 
 // Writes for linked Google accounts and their calendars (mission 55). No
-// auth and no revalidatePath here: the Server Action that calls these checks
-// the session and the owner first, then revalidates.
+// auth and no revalidatePath here. The Server Actions that call these check
+// the session and the owner first, then revalidate; the Google callback route
+// checks the session and the one-time state itself, and needs no revalidate
+// because every settings page is dynamic.
 
 /** Create or refresh the link for this person and Google account. */
 export async function saveLinkedAccount(input: {
@@ -33,6 +35,9 @@ export async function saveLinkedAccount(input: {
     select: { id: true },
   });
 }
+
+// A long calendar list can outlast Prisma's 5 second default.
+const REPLACE_TIMEOUT_MS = 15_000;
 
 /**
  * Make the stored calendars match Google's list, in one transaction. A
@@ -63,7 +68,7 @@ export async function replaceCalendars(accountId: string, calendars: GoogleCalen
         },
       });
     }
-  });
+  }, { timeout: REPLACE_TIMEOUT_MS });
 }
 
 export async function setCalendarDirection(calendarId: string, direction: SyncDirection): Promise<void> {

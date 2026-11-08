@@ -15,6 +15,7 @@ import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { SYNCED_CALENDARS_WORDS, isSyncDirection } from "@/lib/calendarSyncVocabulary";
 import { googleAuthUrl, isGoogleConfigured, revokeToken } from "@/lib/google/oauth";
+import { googleRedirectUri, requestOriginFrom } from "@/lib/google/redirectUri";
 import { STATE_COOKIE_NAME, STATE_TTL_SECONDS, newOauthState } from "@/lib/google/oauthState";
 import { isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import {
@@ -42,19 +43,6 @@ function refresh() {
   revalidatePath("/settings");
 }
 
-// Built the same way as the callback route's copy (src/app/api/google/callback/route.ts),
-// so Google sees the identical redirect URI at both ends. Kept private in each
-// file because neither may import from the other.
-async function redirectUri(): Promise<string | null> {
-  const h = await headers();
-  const host = h.get("host");
-  if (!host) return null;
-  const forwarded = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  const isLocal = /^(localhost|127\.0\.0\.1)(:|$)/.test(host);
-  const proto = forwarded === "http" || forwarded === "https" ? forwarded : isLocal ? "http" : "https";
-  return `${proto}://${host}/api/google/callback`;
-}
-
 export async function startGoogleLink(): Promise<{ url: string } | ActionError> {
   const user = await getVerifiedUser();
   const refused = refusal(user);
@@ -63,8 +51,10 @@ export async function startGoogleLink(): Promise<{ url: string } | ActionError> 
   if (!isGoogleConfigured() || !isTokenKeyConfigured()) {
     return { error: SYNCED_CALENDARS_WORDS.notConfigured };
   }
-  const uri = await redirectUri();
-  if (!uri) return { error: GENERIC_ERROR };
+  const h = await headers();
+  const origin = requestOriginFrom(h.get("host"), h.get("x-forwarded-proto"));
+  if (!origin) return { error: GENERIC_ERROR };
+  const uri = googleRedirectUri(origin);
 
   const state = newOauthState();
   const url = googleAuthUrl({ state, redirectUri: uri });

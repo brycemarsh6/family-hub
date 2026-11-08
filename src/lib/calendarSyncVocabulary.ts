@@ -31,6 +31,11 @@ export function toSyncDirection(raw: unknown): SyncDirection {
 export const ACCOUNT_STATUSES = ["ok", "needs-relink"] as const;
 export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
 
+/** Anything unknown is "ok", the state that asks nothing of the person. */
+export function toAccountStatus(raw: unknown): AccountStatus {
+  return ACCOUNT_STATUSES.some((status) => status === raw) ? (raw as AccountStatus) : "ok";
+}
+
 export const SYNCED_CALENDARS_WORDS = {
   pageTitle: "Synced calendars",
   rowLabel: "Synced calendars",
@@ -71,8 +76,19 @@ const LINK_ERROR_MESSAGES: Record<string, string> = {
     "Your work's Google admin has blocked Marshee. Ask them to allow it, or link a personal account.",
   exchange: "Google didn't finish the link. Try again.",
   "no-refresh-token": "Google didn't give Marshee lasting access. Try again.",
+  calendars:
+    "Google didn't share this account's calendars. Unlink it if it shows here, then try again and leave every box ticked.",
   google: "Something went wrong linking Google. Try again.",
 };
+
+// The only shape of ?error= the callback copies into a redirect and the page
+// shows. Anything else is treated as the generic "google".
+const LINK_ERROR_SHAPE = /^[a-z_-]{1,40}$/;
+
+/** A safe `?error=` code: the value itself if it has the strict shape, else "google". */
+export function toLinkErrorCode(raw: unknown): string {
+  return typeof raw === "string" && LINK_ERROR_SHAPE.test(raw) ? raw : "google";
+}
 
 /** The page's line for an `?error=` code from the callback route. */
 export function linkErrorMessage(code: string): string {

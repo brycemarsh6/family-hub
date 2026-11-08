@@ -19,6 +19,24 @@ function reason(fn: () => unknown): string | undefined {
   return undefined;
 }
 
+describe("parseKey", () => {
+  it("accepts standard base64 of 32 bytes", () => {
+    assert.equal(parseKey(randomBytes(32).toString("base64")).length, 32);
+  });
+
+  it("refuses the 43-character passphrase that Node would half-decode", () => {
+    assert.throws(() => parseKey("this-is-a-passphrase-not-a-real-key-123456"));
+  });
+
+  it("refuses base64url, wrong lengths and stray characters", () => {
+    assert.throws(() => parseKey(Buffer.from([251, 255, 254, ...randomBytes(29)]).toString("base64url")));
+    assert.throws(() => parseKey(randomBytes(31).toString("base64")));
+    assert.throws(() => parseKey(randomBytes(33).toString("base64")));
+    assert.throws(() => parseKey(` ${randomBytes(32).toString("base64")}`));
+    assert.throws(() => parseKey(""));
+  });
+});
+
 describe("tokenCryptoCore", () => {
   it("round trips a token", () => {
     const stored = encryptToken("1//refresh-token-value", key);

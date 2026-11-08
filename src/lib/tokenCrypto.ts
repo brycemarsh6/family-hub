@@ -5,23 +5,22 @@ import {
   parseKey,
 } from "@/lib/tokenCryptoCore";
 
-// Reads TOKEN_ENCRYPTION_KEY once and hands it to the pure core. Never logs
-// the key; a missing or malformed key is reported as "not configured".
-let cachedKey: Buffer | null | undefined;
+// Reads TOKEN_ENCRYPTION_KEY and hands it to the pure core. Never logs the
+// key; a missing or malformed key is reported as "not configured". Only a
+// good key is remembered, so fixing the setting never needs a restart to be
+// noticed.
+let cachedKey: Buffer | undefined;
 
 function readKey(): Buffer | null {
-  if (cachedKey !== undefined) return cachedKey;
+  if (cachedKey) return cachedKey;
   const raw = process.env.TOKEN_ENCRYPTION_KEY;
-  if (!raw) {
-    cachedKey = null;
-    return cachedKey;
-  }
+  if (!raw) return null;
   try {
     cachedKey = parseKey(raw);
+    return cachedKey;
   } catch {
-    cachedKey = null;
+    return null;
   }
-  return cachedKey;
 }
 
 export function isTokenKeyConfigured(): boolean {

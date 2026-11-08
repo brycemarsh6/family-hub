@@ -23,8 +23,16 @@ export class TokenCryptoError extends Error {
   }
 }
 
-/** Turns a base64 key into 32 bytes; anything else throws. */
+// Strict standard base64 only (what `openssl rand -base64 32` prints). Node's
+// decoder skips characters it doesn't know, so a passphrase could otherwise
+// decode to 32 bytes by accident.
+const STANDARD_BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+
+/** Turns a standard base64 key into exactly 32 bytes; anything else throws. */
 export function parseKey(base64: string): Buffer {
+  if (base64.length % 4 !== 0 || !STANDARD_BASE64.test(base64)) {
+    throw new Error("Encryption key must be standard base64");
+  }
   const key = Buffer.from(base64, "base64");
   if (key.length !== KEY_BYTES) {
     throw new Error(`Encryption key must be exactly ${KEY_BYTES} bytes`);

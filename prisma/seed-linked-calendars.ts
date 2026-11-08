@@ -34,14 +34,16 @@ async function main() {
   for (const role of ["admin", "parent"]) {
     const found = await db.user.findFirst({
       where: { role, deactivatedAt: null },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       select: { id: true, role: true },
     });
     if (found) managers.push(found);
   }
 
   if (managers.length === 0) {
-    console.error("No admin or parent found to attach fake accounts to. Nothing seeded.");
+    console.error(
+      "No admin or parent found to attach fake accounts to. Nothing seeded. Run npm run db:bootstrap-users first.",
+    );
     process.exit(1);
   }
 

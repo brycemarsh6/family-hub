@@ -1,4 +1,5 @@
 import "server-only";
+import { GOOGLE_SCOPES } from "./scopes";
 import type { ExchangeResult, RefreshResult } from "./types";
 
 // The one place that reads GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET. Same
@@ -10,13 +11,6 @@ const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 const TIMEOUT_MS = 10_000;
-
-export const GOOGLE_SCOPES = [
-  "openid",
-  "email",
-  "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
-  "https://www.googleapis.com/auth/calendar.events.owned",
-];
 
 function credentials(): { clientId: string; clientSecret: string } | null {
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
@@ -84,6 +78,8 @@ export async function exchangeCode({ code, redirectUri }: { code: string; redire
   }
 }
 
+// Dormant until PR 2 of calendar-sync-v1.md, where the outbound push fetches
+// an access token with it. Nothing calls it yet.
 export async function refreshAccessToken(refreshToken: string): Promise<RefreshResult> {
   const creds = credentials();
   if (!creds) return { ok: false, reason: "not-configured" };

@@ -1,11 +1,13 @@
 import { cookies, headers } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
-import { revalidatePath } from "next/cache";
 import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { exchangeCode } from "@/lib/google/oauth";
 import { STATE_COOKIE_NAME, oauthStatesMatch } from "@/lib/google/oauthState";
 import { identityFromIdToken } from "@/lib/google/idToken";
+import { googleRedirectUri, requestOriginFrom } from "@/lib/google/redirectUri";
+import { hasCalendarScopes } from "@/lib/google/scopes";
+import { toLinkErrorCode } from "@/lib/calendarSyncVocabulary";
 import { listCalendars } from "@/lib/google/calendarApi";
 import { encryptSecret, isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import { replaceCalendars, saveLinkedAccount } from "@/lib/linkedCalendarWrites";
@@ -20,18 +22,11 @@ import { replaceCalendars, saveLinkedAccount } from "@/lib/linkedCalendarWrites"
 export const dynamic = "force-dynamic";
 
 const PAGE = "/settings/calendars";
-// Only a Google error code in this shape may be copied into our redirect.
-const GOOGLE_ERROR_CODE = /^[a-z_-]{1,40}$/;
 
 /** The request's own origin from the host headers, or null if there is no host. */
 async function requestOrigin(): Promise<string | null> {
   const h = await headers();
-  const host = h.get("host");
-  if (!host) return null;
-  const forwarded = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  const isLocal = /^(localhost|127\.0\.0\.1)(:|$)/.test(host);
-  const proto = forwarded === "http" || forwarded === "https" ? forwarded : isLocal ? "http" : "https";
-  return `${proto}://${host}`;
+  return requestOriginFrom(h.get("host"), h.get("x-forwarded-proto"));
 }
 
 export async function GET(request: NextRequest) {
@@ -51,17 +46,20 @@ export async function GET(request: NextRequest) {
 
   const googleError = params.get("error");
   if (googleError !== null) {
-    return back(GOOGLE_ERROR_CODE.test(googleError) ? `error=${googleError}` : "error=google");
+    return back(`error=${toLinkErrorCode(googleError)}`);
   }
 
   const code = params.get("code");
   const callbackOrigin = await requestOrigin();
   if (!code || !callbackOrigin || !isTokenKeyConfigured()) return back("error=google");
 
-  const exchange = await exchangeCode({ code, redirectUri: `${callbackOrigin}/api/google/callback` });
+  const exchange = await exchangeCode({ code, redirectUri: googleRedirectUri(callbackOrigin) });
   if (!exchange.ok) {
     return back(exchange.reason === "no-refresh-token" ? "error=no-refresh-token" : "error=exchange");
   }
+
+  // A narrower grant (a box unticked) must not overwrite a good saved token.
+  if (!hasCalendarScopes(exchange.scope)) return back("error=calendars");
 
   const identity = identityFromIdToken(exchange.idToken);
   if (!identity) return back("error=exchange");
@@ -81,17 +79,14 @@ export async function GET(request: NextRequest) {
     return back("error=google");
   }
 
-  // The account is saved. If the calendar list fails, the page just shows none.
+  // The account is saved and stays saved if the calendar list fails.
   const listed = await listCalendars(exchange.accessToken);
-  if (listed.ok) {
-    try {
-      await replaceCalendars(accountId, listed.calendars);
-    } catch {
-      // Same: keep the saved account, show no calendars.
-    }
+  if (!listed.ok) return back("error=calendars");
+  try {
+    await replaceCalendars(accountId, listed.calendars);
+  } catch {
+    return back("error=calendars");
   }
 
-  revalidatePath(PAGE);
-  revalidatePath("/settings");
   return back(`linked=${encodeURIComponent(accountId)}`);
 }

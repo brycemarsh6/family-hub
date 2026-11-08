@@ -2,7 +2,7 @@ import { BackLink } from "@/components/BackLink";
 import { SyncedCalendarsList } from "@/components/SyncedCalendarsList";
 import { requireRole } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
-import { SYNCED_CALENDARS_EXTRA_WORDS, SYNCED_CALENDARS_WORDS, linkErrorMessage } from "@/lib/calendarSyncVocabulary";
+import { SYNCED_CALENDARS_EXTRA_WORDS, SYNCED_CALENDARS_WORDS, linkErrorMessage, toLinkErrorCode } from "@/lib/calendarSyncVocabulary";
 import { isGoogleConfigured } from "@/lib/google/oauth";
 import { loadSyncedCalendarsPage } from "@/lib/linkedCalendarsRead";
 import { isTokenKeyConfigured } from "@/lib/tokenCrypto";
@@ -33,7 +33,7 @@ export default async function SyncedCalendarsPage({
 
       {error ? (
         <p role="alert" className="mt-3 text-sm text-warn">
-          {linkErrorMessage(error)}
+          {linkErrorMessage(toLinkErrorCode(error))}
         </p>
       ) : linked ? (
         <p role="status" className="mt-3 text-sm text-muted">

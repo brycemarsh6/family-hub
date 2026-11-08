@@ -31,8 +31,8 @@ async function errorOnly(result: Promise<{ ok: true } | { error: string }>): Pro
  * Only the person who linked it sees the direction chevrons, Rename and Unlink
  * (the server re-checks every one of them). A direction change shows at once
  * and rolls back with a message if the save fails; Unlink waits for the
- * server, since it can't be undone. RadioSheet has no slot for a hint, so the
- * current direction's hint sits under each calendar's name instead.
+ * server, since it can't be undone, and has its own run so a direction change
+ * never dims it. The direction hints show in the picker sheet.
  */
 export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccountRow; viewerId: string }) {
   const isOwner = account.userId === viewerId;
@@ -49,6 +49,7 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
   );
   const directionRun = useOptimisticRun<DirectionChange>(setDirection);
   const renameRun = useOptimisticRun<never>(() => {});
+  const unlinkRun = useOptimisticRun<never>(() => {});
 
   const bothWays = account.calendars.filter((calendar) => directions[calendar.id] === "twoWay").length;
   const picking = account.calendars.find((calendar) => calendar.id === pickingId) ?? null;
@@ -62,10 +63,9 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
         className="flex min-h-16 w-full items-center justify-between gap-3 rounded-xl px-4 py-2 text-left transition-colors active:bg-surface-2"
       >
         <span className="flex min-w-0 flex-col">
-          <span className="truncate text-base font-medium">{account.label ?? account.email}</span>
-          {account.label && <span className="truncate text-sm text-muted">{account.email}</span>}
-          <span className="text-sm text-muted">{linkedByLine(account.linkerName, account.label)}</span>
-          <span className="text-sm text-muted">{calendarsSummary(account.calendars.length, bothWays)}</span>
+          <span className="truncate text-base font-medium">{account.email}</span>
+          <span className="text-sm text-muted-strong">{linkedByLine(account.linkerName, account.label)}</span>
+          <span className="text-sm text-muted-strong">{calendarsSummary(account.calendars.length, bothWays)}</span>
         </span>
         {open ? (
           <ChevronDown aria-hidden="true" size={18} className="shrink-0 text-muted" />
@@ -82,9 +82,8 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
               <>
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-base">{calendar.name}</span>
-                  <span className="text-sm text-muted">{SYNC_DIRECTION_HINTS[direction]}</span>
                 </span>
-                <span className="flex shrink-0 items-center gap-2 text-sm text-muted">
+                <span className="flex shrink-0 items-center gap-2 text-sm text-muted-strong">
                   {SYNC_DIRECTION_LABELS[direction]}
                   {isOwner && <ChevronRight aria-hidden="true" size={18} />}
                 </span>
@@ -118,8 +117,8 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
               </button>
               <button
                 type="button"
-                disabled={directionRun.pending}
-                onClick={() => directionRun.run(null, () => errorOnly(unlinkAccount(account.id)))}
+                disabled={unlinkRun.pending}
+                onClick={() => unlinkRun.run(null, () => errorOnly(unlinkAccount(account.id)))}
                 className="flex min-h-14 w-full items-center rounded-b-xl px-4 text-left text-base font-medium text-danger transition-colors active:bg-surface-2 disabled:opacity-50"
               >
                 {SYNCED_CALENDARS_WORDS.unlinkButton}
@@ -131,9 +130,9 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
             </p>
           )}
 
-          {directionRun.error && (
+          {(directionRun.error ?? unlinkRun.error) && (
             <p role="alert" className="px-4 pb-3 text-sm text-warn">
-              {directionRun.error}
+              {directionRun.error ?? unlinkRun.error}
             </p>
           )}
         </div>
@@ -142,7 +141,9 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
       {picking && (
         <RadioSheet
           title={`${picking.name}: ${SYNCED_CALENDARS_EXTRA_WORDS.directionSheetTitle}`}
-          options={SYNC_DIRECTIONS.map((value) => ({ value, label: SYNC_DIRECTION_LABELS[value] }))}
+          options={SYNC_DIRECTIONS.map((value) => ({ value, label: SYNC_DIRECTION_LABELS[value],
+            hint: SYNC_DIRECTION_HINTS[value],
+          }))}
           selected={directions[picking.id] ?? picking.direction}
           onSelect={(next) =>
             directionRun.run({ calendarId: picking.id, direction: next }, () =>

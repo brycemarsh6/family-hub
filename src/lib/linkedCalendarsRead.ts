@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/tokenCrypto";
-import { toSyncDirection, type AccountStatus, type SyncDirection } from "@/lib/calendarSyncVocabulary";
+import { toAccountStatus, toSyncDirection, type AccountStatus, type SyncDirection } from "@/lib/calendarSyncVocabulary";
 
 // Reads for linked Google accounts (mission 55). The page reader uses an
 // explicit select that leaves out encryptedRefreshToken, so the stored token
@@ -46,7 +46,7 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
     linkerName: account.user.displayName,
     email: account.email,
     label: account.label,
-    status: account.status === "needs-relink" ? "needs-relink" : "ok",
+    status: toAccountStatus(account.status),
     calendars: account.calendars
       .map((calendar) => ({ ...calendar, direction: toSyncDirection(calendar.direction) }))
       .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.name.localeCompare(b.name)),
@@ -71,7 +71,7 @@ export async function loadCalendarOwner(calendarId: string): Promise<{ userId: s
   return calendar ? { userId: calendar.account.userId, name: calendar.account.user.displayName } : null;
 }
 
-/** The decrypted refresh token. Only for the callback/relink path. */
+/** The decrypted refresh token, for revoking it at Google when an account is unlinked. */
 export async function loadRefreshToken(accountId: string): Promise<string | null> {
   const account = await db.linkedAccount.findUnique({
     where: { id: accountId },
