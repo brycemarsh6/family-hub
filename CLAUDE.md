@@ -292,8 +292,8 @@ Replace this section at the end of each session. Don't append.
   `WinnieBriefingSent` migration applied in the build, the route answers
   401 without the secret). **`CRON_SECRET` is set** (Bryce, 2026-11-07,
   Production, Sensitive; production redeployed). First real briefing
-  expected 2026-11-08, 9:00 to 9:59 Denver. Hill's H2 and H10
-  and amendments A-48-2 and A-48-4 are the calls for Bryce to look at:
+  expected 2026-11-08, 9:00 to 9:59 Denver. Bryce approved
+  all of Hill's calls on 2026-11-07, H10 included; nothing is left to review:
   `.avengers/missions/mission-48-winnie-briefing.md`.
   Details: `.avengers/missions/mission-42-winnie-notify.md`.
 - **Winnie's recipes and meal plan (mission 44)** merged as PR #61
@@ -321,8 +321,22 @@ Replace this section at the end of each session. Don't append.
   actions are thin wrappers now. Privacy preset for Bryce to review:
   Winnie is "Bryce" for private habits through `ASSISTANT_OWNER_USER_ID`.
   Hill's H1 to H8, Captain's A11 to A14 and "What to tell Winnie" in
-  `.avengers/missions/mission-47-assistant-habits.md`. Next for Winnie:
-  plans and goals (its own mission and chat), then calendar/tasks.
+  `.avengers/missions/mission-47-assistant-habits.md`. Plans and goals
+  followed (mission 50, below). Next for Winnie: calendar/tasks (after
+  CD1), then replacing the app's Claude features with her.
+- **Winnie's plans and goals (mission 50)** passed its gates on 2026-11-07
+  (Vision and Captain PASS on pass 2) and merges from
+  `claude/plans-goals-assistant-mission-1a9a26`: 11 routes under `/goals`,
+  `/plan-items` and `/vision` (read goals, one goal with check-ins, This
+  week, Vision boards; add and edit goals, check-ins, plan items and
+  vision statements; remove only her own check-ins; never delete). Every
+  write undoable, with the goal's number rebuilt inside the undo. Writes
+  in `src/lib/goalWrites.ts`, `planItemWrites.ts` and `visionWrites.ts`;
+  the family's goal, plan item and vision actions are thin wrappers now.
+  Privacy preset for Bryce to review: Winnie is "Bryce" for private goals,
+  edits only his and Together goals, and the goals she makes are shared.
+  Hill's H1 to H9, Captain's A17 to A20 and "What to tell Winnie" in
+  `.avengers/missions/mission-50-assistant-plans-goals.md`.
 
 **Bryce's checklist (never blocks work):**
 - **Morning briefing check (mission 48), 2026-11-08:** between 9 and 10

@@ -3,7 +3,7 @@ import { BackLink } from "@/components/BackLink";
 import { GoalForm, type GoalFormValues } from "@/components/GoalForm";
 import { requireVerifiedUser } from "@/lib/dal";
 import { householdToday } from "@/lib/assistant/today";
-import { goalOwnership } from "@/lib/goals";
+import { goalOwnership, isOngoingGoal } from "@/lib/goals";
 import { loadGoal } from "@/lib/goalsRead";
 import { calendarDateFromUtcMidnight, formatCalendarDate } from "@/lib/householdDate";
 
@@ -28,7 +28,7 @@ export default async function EditGoalPage({ params }: { params: Promise<{ id: s
     visibility: goal.visibility,
     why: goal.why ?? "",
     targetDate: goal.targetDate ? formatCalendarDate(calendarDateFromUtcMidnight(goal.targetDate)) : "",
-    ongoing: goal.targetDate === null,
+    ongoing: isOngoingGoal(goal),
     measure:
       unit !== null && start !== null && target !== null
         ? { unit, start: String(start), target: String(target) }

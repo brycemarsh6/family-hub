@@ -60,6 +60,15 @@ export type UndoPlan = { ok: true; steps: UndoStep[] };
 
 const KIND_ORDER = { restore: 0, remove: 1, recreate: 2 } as const;
 
+/**
+ * Which kind runs when: a re-created parent (tier 0) first, so a restored row
+ * can point at it (a habit-to-reminder edit undone twice); then restores, then
+ * deletes, then the rest of the re-creates.
+ */
+function kindOrder(step: UndoStep): number {
+  return step.kind === "recreate" && TIER[step.model] === 0 ? -1 : KIND_ORDER[step.kind];
+}
+
 /** Where a step sorts among its kind: children first for removes, parents first for re-creates. */
 function tierOrder(step: UndoStep): number {
   return step.kind === "remove" ? -TIER[step.model] : step.kind === "recreate" ? TIER[step.model] : 0;
@@ -145,12 +154,12 @@ export function planUndo(input: {
   }
   if (steps.length === 0) return { ok: false, reason: "not_undoable" };
 
-  // Restores first, then deletes (children before parents), then re-creates
+  // Re-created parents, then restores, then deletes (children before parents), then re-creates
   // (parents before children); model and id sorted inside each so every undo
   // touches rows in the same order.
   steps.sort(
     (a, b) =>
-      KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+      kindOrder(a) - kindOrder(b) ||
       tierOrder(a) - tierOrder(b) ||
       a.model.localeCompare(b.model) ||
       a.recordId.localeCompare(b.recordId),
@@ -236,48 +245,17 @@ export function referenceChecks(steps: UndoStep[]): ReferenceCheck[] {
   for (const step of removing) {
     if (!isParentModel(step.model)) continue;
     for (const ref of REFERENCES[step.model]) {
-      const exclude = removing.filter((s) => s.model === ref.child).map((s) => s.recordId);
+      // Rows the plan removes go first; so do rows it restores away from this
+      // parent (a reminder-to-habit edit undone no longer points at the habit).
+      const exclude = steps
+        .filter(
+          (s) =>
+            s.model === ref.child &&
+            (s.kind === "remove" || (s.kind === "restore" && s.before?.[ref.column] !== step.recordId)),
+        )
+        .map((s) => s.recordId);
       checks.push({ model: step.model, recordId: step.recordId, ref, exclude });
     }
   }
   return checks;
-}
-
-const PER_PERSON = new Set(["HabitParticipant", "HabitLog", "HabitTimeEntry"]);
-
-/**
- * From the steps: which people on which habit had a row touched (read from
- * whichever copy exists), and which habits were themselves restored or
- * re-created (their schedule may have changed, so everyone is rebuilt). A
- * removed habit is left out: there is nothing to rebuild. `choreUsers` is
- * everyone named by any of those rows, habit existing or not: a chore's
- * streak lives on the person (`UserPreferences`), so it is rebuilt for them
- * even when the chore itself was just undone out of existence.
- */
-export function streakWork(steps: readonly UndoStep[]): {
-  users: Map<string, string[]>;
-  habits: string[];
-  choreUsers: string[];
-} {
-  const users = new Map<string, Set<string>>();
-  const habits = new Set<string>();
-  const choreUsers = new Set<string>();
-  for (const step of steps) {
-    if (step.model === "Habit") {
-      if (step.kind !== "remove") habits.add(step.recordId);
-    } else if (PER_PERSON.has(step.model)) {
-      for (const copy of [step.before, step.after]) {
-        if (!copy) continue;
-        const { habitId, userId } = copy;
-        if (typeof habitId !== "string" || typeof userId !== "string") continue;
-        choreUsers.add(userId);
-        users.set(habitId, (users.get(habitId) ?? new Set()).add(userId));
-      }
-    }
-  }
-  return {
-    users: new Map([...users].map(([habitId, ids]) => [habitId, [...ids].sort()])),
-    habits: [...habits].sort(),
-    choreUsers: [...choreUsers].sort(),
-  };
 }

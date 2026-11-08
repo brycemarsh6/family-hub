@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { ProgressBar } from "./ProgressBar";
-import { isPrivateGoal, whoseGoal, type GoalView } from "@/lib/goals";
+import { isOngoingGoal, isPrivateGoal, whoseGoal, type GoalView } from "@/lib/goals";
 import { formatMeasure, PACE_LABELS, weekSummary } from "@/lib/goalsProgress";
 import { GOAL_OWNERSHIP_LABELS, ONGOING_LABEL } from "@/lib/goalVocabulary";
 
@@ -29,7 +29,7 @@ export function GoalCard({ goal, viewerId }: { goal: GoalView; viewerId: string 
           {isPrivateGoal(goal) && (
             <Lock aria-label="Private" className="shrink-0 text-muted" size={14} />
           )}
-          {goal.targetDate === null && (
+          {isOngoingGoal(goal) && (
             <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted-strong whitespace-nowrap">
               {ONGOING_LABEL}
             </span>

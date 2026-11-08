@@ -1,3 +1,4 @@
+import type { Viewer } from "@/lib/goals";
 import type { HabitActor } from "@/lib/habits/types";
 
 // Who Winnie is to the habit rules (mission 47). The bot is not a user, so
@@ -13,4 +14,13 @@ import type { HabitActor } from "@/lib/habits/types";
 
 export function habitActorFor(ownerId: string | undefined): HabitActor {
   return { userId: ownerId ?? "", role: "admin" };
+}
+
+// The same borrowed identity for Plans & Goals (mission 50): a person, never a
+// shared device, so `canSee`, `canEdit` and `canEditVision` (goals.ts,
+// visions.ts) make her Bryce for his private goals and for his vision board,
+// and keep every other person's private goals and boards out of reach.
+
+export function goalViewerFor(ownerId: string | undefined): Viewer {
+  return { userId: ownerId ?? "", isDevice: false };
 }

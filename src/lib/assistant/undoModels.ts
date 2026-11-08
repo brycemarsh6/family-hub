@@ -8,35 +8,16 @@
 // rebuilds them inside the same transaction.
 
 import type {
-  Cookbook,
-  CookbookRecipe,
-  GroceryItem,
-  Habit,
-  HabitLog,
-  HabitParticipant,
-  HabitTimeEntry,
-  MealPlan,
-  MealPlanEntry,
-  PantryItem,
-  Recipe,
-  RecipeTag,
-  Tag,
+  Cookbook, CookbookRecipe, Goal, GoalCheckIn, GroceryItem, Habit, HabitLog, HabitParticipant,
+  HabitTimeEntry, MealPlan, MealPlanEntry, PantryItem, PlanItem, Recipe, RecipeTag, Tag,
+  VisionStatement,
 } from "@/generated/prisma/client";
 
 export type UndoModel =
-  | "PantryItem"
-  | "GroceryItem"
-  | "Recipe"
-  | "Tag"
-  | "RecipeTag"
-  | "Cookbook"
-  | "CookbookRecipe"
-  | "MealPlan"
-  | "MealPlanEntry"
-  | "Habit"
-  | "HabitParticipant"
-  | "HabitLog"
-  | "HabitTimeEntry";
+  | "PantryItem" | "GroceryItem" | "Recipe" | "Tag" | "RecipeTag" | "Cookbook"
+  | "CookbookRecipe" | "MealPlan" | "MealPlanEntry"
+  | "Habit" | "HabitParticipant" | "HabitLog" | "HabitTimeEntry"
+  | "Goal" | "GoalCheckIn" | "PlanItem" | "VisionStatement";
 
 export type ColumnKind = "date" | "value";
 
@@ -115,6 +96,28 @@ const HABIT_TIME_ENTRY_COLUMNS: Record<keyof HabitTimeEntry, ColumnKind> = {
   loggedById: "value", createdAt: "date",
 };
 
+const GOAL_COLUMNS: Record<keyof Goal, ColumnKind> = {
+  id: "value", title: "value", area: "value", why: "value", targetDate: "date", ownerId: "value",
+  visibility: "value", measureUnit: "value", startValue: "value", targetValue: "value",
+  currentValue: "value", checkedInAt: "date", completedAt: "date", createdById: "value",
+  createdAt: "date", updatedAt: "date",
+};
+
+const GOAL_CHECK_IN_COLUMNS: Record<keyof GoalCheckIn, ColumnKind> = {
+  id: "value", goalId: "value", value: "value", at: "date", createdById: "value",
+};
+
+const PLAN_ITEM_COLUMNS: Record<keyof PlanItem, ColumnKind> = {
+  id: "value", goalId: "value", title: "value", kind: "value", timesPerPeriod: "value",
+  period: "value", doneAt: "date", sortOrder: "value", habitId: "value", createdAt: "date",
+  updatedAt: "date",
+};
+
+const VISION_STATEMENT_COLUMNS: Record<keyof VisionStatement, ColumnKind> = {
+  id: "value", area: "value", horizon: "value", ownerId: "value", boardKey: "value",
+  text: "value", updatedById: "value", createdAt: "date", updatedAt: "date",
+};
+
 function describe(kinds: Record<string, ColumnKind>) {
   const columns = Object.keys(kinds);
   return { columns, dates: columns.filter((c) => kinds[c] === "date") };
@@ -134,11 +137,17 @@ export const MODELS: Record<UndoModel, { columns: readonly string[]; dates: read
   HabitParticipant: describe(HABIT_PARTICIPANT_COLUMNS),
   HabitLog: describe(HABIT_LOG_COLUMNS),
   HabitTimeEntry: describe(HABIT_TIME_ENTRY_COLUMNS),
+  Goal: describe(GOAL_COLUMNS),
+  GoalCheckIn: describe(GOAL_CHECK_IN_COLUMNS),
+  PlanItem: describe(PLAN_ITEM_COLUMNS),
+  VisionStatement: describe(VISION_STATEMENT_COLUMNS),
 };
 
 /** Cache columns undo neither matches on nor writes (see the header). */
 export const VOLATILE: Partial<Record<UndoModel, readonly string[]>> = {
   HabitParticipant: ["currentStreak", "bestStreak", "streakAsOf"],
+  // The goal's number mirrors its newest check-in; undoHooks.ts rebuilds it.
+  Goal: ["currentValue", "checkedInAt"],
 };
 
 export function isVolatile(model: UndoModel, column: string): boolean {
@@ -153,9 +162,9 @@ export function isVolatile(model: UndoModel, column: string): boolean {
  */
 export const TIER: Record<UndoModel, 0 | 1> = {
   PantryItem: 0, Recipe: 0, Tag: 0, Cookbook: 0, MealPlan: 0,
-  Habit: 0,
+  Habit: 0, Goal: 0, VisionStatement: 0,
   GroceryItem: 1, RecipeTag: 1, CookbookRecipe: 1, MealPlanEntry: 1,
-  HabitParticipant: 1, HabitLog: 1, HabitTimeEntry: 1,
+  HabitParticipant: 1, HabitLog: 1, HabitTimeEntry: 1, GoalCheckIn: 1, PlanItem: 1,
 };
 
 /** The database table behind each parent model (for the row locks). */
@@ -166,6 +175,8 @@ export const PARENT_TABLES = {
   Cookbook: "Cookbook",
   MealPlan: "MealPlan",
   Habit: "Habit",
+  Goal: "Goal",
+  PlanItem: "PlanItem",
 } as const;
 
 export type ParentModel = keyof typeof PARENT_TABLES;
@@ -182,7 +193,7 @@ export type Reference = {
   child:
     | "GroceryItem" | "VoiceChange" | "RecipeTag" | "CookbookRecipe" | "MealPlanEntry"
     | "HabitParticipant" | "HabitLog" | "HabitTimeEntry"
-    | "HabitPlannedDay" | "ChoreWeekOverride" | "Nudge" | "PlanItem";
+    | "HabitPlannedDay" | "ChoreWeekOverride" | "Nudge" | "PlanItem" | "GoalCheckIn" | "PlanLog";
   column: string;
 };
 
@@ -199,8 +210,10 @@ export const REFERENCES: Record<ParentModel, readonly Reference[]> = {
   Tag: [{ child: "RecipeTag", column: "tagId" }],
   Cookbook: [{ child: "CookbookRecipe", column: "cookbookId" }],
   MealPlan: [{ child: "MealPlanEntry", column: "mealPlanId" }],
-  // The last four are not covered by undo, so a plan never removes them and
-  // they always count as in use.
+  // HabitPlannedDay, ChoreWeekOverride and Nudge are not covered by undo, so a
+  // plan never removes them and they always count as in use. A PlanItem is
+  // covered: one the plan removes, or restores away from the habit, is left
+  // out of the count (referenceChecks).
   Habit: [
     { child: "HabitParticipant", column: "habitId" },
     { child: "HabitLog", column: "habitId" },
@@ -210,6 +223,12 @@ export const REFERENCES: Record<ParentModel, readonly Reference[]> = {
     { child: "Nudge", column: "habitId" },
     { child: "PlanItem", column: "habitId" },
   ],
+  Goal: [
+    { child: "GoalCheckIn", column: "goalId" },
+    { child: "PlanItem", column: "goalId" },
+  ],
+  // PlanLog is not covered, so a plan never removes one: always in use.
+  PlanItem: [{ child: "PlanLog", column: "planItemId" }],
 };
 
 /**
@@ -219,7 +238,7 @@ export const REFERENCES: Record<ParentModel, readonly Reference[]> = {
  */
 export type ForeignKey = {
   column: string;
-  parent: "PantryItem" | "User" | "Recipe" | "Tag" | "Cookbook" | "MealPlan" | "Habit";
+  parent: "PantryItem" | "User" | "Recipe" | "Tag" | "Cookbook" | "MealPlan" | "Habit" | "Goal";
   onMissing: "null" | "refuse";
 };
 
@@ -254,5 +273,21 @@ export const FOREIGN_KEYS: Partial<Record<UndoModel, readonly ForeignKey[]>> = {
     { column: "habitId", parent: "Habit", onMissing: "refuse" },
     { column: "userId", parent: "User", onMissing: "refuse" },
     { column: "loggedById", parent: "User", onMissing: "null" },
+  ],
+  Goal: [
+    { column: "ownerId", parent: "User", onMissing: "refuse" }, // not silently Together
+    { column: "createdById", parent: "User", onMissing: "null" },
+  ],
+  GoalCheckIn: [
+    { column: "goalId", parent: "Goal", onMissing: "refuse" },
+    { column: "createdById", parent: "User", onMissing: "null" },
+  ],
+  PlanItem: [
+    { column: "goalId", parent: "Goal", onMissing: "refuse" },
+    { column: "habitId", parent: "Habit", onMissing: "refuse" }, // not unlinked
+  ],
+  VisionStatement: [
+    { column: "ownerId", parent: "User", onMissing: "refuse" },
+    { column: "updatedById", parent: "User", onMissing: "null" },
   ],
 };

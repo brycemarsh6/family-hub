@@ -6,13 +6,13 @@
 // device never edits). Validation and the board rules live in
 // src/lib/visions.ts. A client names only "mine" or "together": "mine" always
 // means the signed-in person, so nobody can name another person's board. Empty
-// text clears the vision.
+// text clears the vision. The write itself lives in src/lib/visionWrites.ts
+// (mission 50), shared with the Assistant API.
 
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
-import { isUniqueViolationError } from "@/lib/prismaErrors";
-import { canEditVision, validateVisionInput, visionBoardKey } from "@/lib/visions";
+import { canEditVision, validateVisionInput } from "@/lib/visions";
+import { saveVision as saveVisionRow } from "@/lib/visionWrites";
 
 export type VisionActionResult = { error?: string };
 
@@ -25,23 +25,9 @@ export async function saveVision(raw: unknown): Promise<VisionActionResult> {
   const { board, area, horizon, text } = parsed.ok;
 
   const ownerId = board === "mine" ? user.userId : null;
-  if (!canEditVision(ownerId, user)) return { error: "A shared device can't change visions." };
+  const result = await saveVisionRow((owner) => canEditVision(owner, user), { ownerId, area, horizon, text }, user.userId);
+  if ("error" in result) return { error: result.error };
 
-  const boardKey = visionBoardKey(ownerId);
-  if (text === "") {
-    await db.visionStatement.deleteMany({ where: { boardKey, area, horizon } });
-  } else {
-    const key = { boardKey_area_horizon: { boardKey, area, horizon } };
-    const create = { boardKey, area, horizon, ownerId, text, updatedById: user.userId };
-    const update = { text, updatedById: user.userId };
-    try {
-      await db.visionStatement.upsert({ where: key, create, update });
-    } catch (error) {
-      // Two first saves at once: the other one created the row between our look and our write. Update it.
-      if (!isUniqueViolationError(error)) throw error;
-      await db.visionStatement.upsert({ where: key, create, update });
-    }
-  }
   revalidatePath("/plans", "layout");
   return {};
 }

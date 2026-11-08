@@ -75,7 +75,7 @@ Hill ran as a general agent on Fable following `.claude/agents/hill.md`.
   covering more than one day: "Day 2 of 3 Trip" (timed or all-day). Order:
   all-day and continuing items first by start, then today's timed items by
   start time. Fury's alternative ("Until 11 AM Conference") was turned down
-  for one source of truth. **Bryce to look at first.**
+  for one source of truth. **Approved by Bryce, 2026-11-07.**
 - **H3 (high):** "(this week)" for weekly and every-other-week, "(this
   month)" for monthly: `WindowProgress.label` (`src/lib/habits/progress.ts`).
 - **H4 (high):** vacation Chores line "Chores: You're on vacation through Nov
@@ -101,7 +101,7 @@ Hill ran as a general agent on Fable following `.claude/agents/hill.md`.
   all questions to Hill".
 - **H10 (medium):** `not-configured` leaves no row; `rejected` or
   `unreachable` keeps the row with that status and nobody retries that day.
-  **Bryce to look at:** a Winnie outage for the whole 9 o'clock hour means
+  **Approved by Bryce, 2026-11-07 ("I approve that"):** a Winnie outage for the whole 9 o'clock hour means
   that day's briefing is missed, not sent late. The PR notes say this PR
   creates one new table on production at merge.
 
@@ -492,10 +492,10 @@ Preflight's one hard failure on C2 is the schema's length; STRUCTURE.md
 - 2026-11-07: **Hill on Captain's amendments** (Bryce: "for now ask all
   questions to Hill"): A-48-1 approve (high); A-48-2 approve with change,
   event-word homes written as instances, `connection.test`'s words stay in
-  the action (medium, **Bryce to look at**); A-48-3 approve with change,
+  the action (medium; **approved by Bryce, 2026-11-07**); A-48-3 approve with change,
   delete the feedbackTime "only clock" sentence (high); A-48-4 approve with
   change, `findPlanForWeek` moves to `mealPlanWeek.ts` not
-  `householdEvents.ts` (medium, **Bryce to look at**); A-48-5 approve as a
+  `householdEvents.ts` (medium; **approved by Bryce, 2026-11-07**); A-48-5 approve as a
   pending rule naming its two sites (high); A-48-6 approve (high). Fury
   wrote all six into STRUCTURE.md. Captain pass 2 dispatched.
 - 2026-11-07: **Captain pass 2: BLOCKED (1, Fury's amendment text).**
@@ -544,11 +544,16 @@ Vercel's timer uses to call Marshee. Without it the briefing never runs.
 4. Each person gets one per day at most, even if Vercel calls twice.
 
 ### Calls for Bryce to look at (none block anything)
-- H2 (medium): multi-day events read the Calendar's "Day 2 of 3 Trip".
 - H10 (medium): if Winnie is down for the whole 9 o'clock hour, that day's
-  briefing is skipped, not sent later.
-- A-48-2 and A-48-4 (medium): STRUCTURE.md homes for event words and the
-  meal-plan week rule.
+  briefing is skipped, not sent later. **Approved by Bryce, 2026-11-07**
+  ("I approve that"). Nothing is left for Bryce to look at.
+
+**Approved by Bryce on 2026-11-07:** "I approve all of those calls, so you can clear the need for me to review them now."
+That covers H2 (multi-day events read the Calendar's "Day 2 of 3 Trip"),
+A-48-2 and A-48-4 (STRUCTURE.md homes for event words and the meal-plan
+week rule), the medium content calls (the 9:00 to 9:59 send time,
+"Nothing on today" on an empty day, the message wording) and the routine
+high calls (H1, H3 to H8). H10 was not in that list; he approved it separately the same day.
 - 2026-11-07: **Vision pass 2: PASS** on F1 (hour sweep 2025 to 2027 again
   clean; `hourInZone` matched the old method every minute of 2025 to 2027
   in five zones; `formatHouseholdClock` matched every minute of 2026;
