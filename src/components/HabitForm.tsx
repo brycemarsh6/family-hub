@@ -2,22 +2,16 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, RotateCcw, Trash2 } from "lucide-react";
 import { Field, LifeAreaField, Segmented, TimeOfDayField } from "./HabitFormFields";
+import { HabitEditActions } from "./HabitEditActions";
 import { HabitIconPicker } from "./HabitIconPicker";
 import { HoursFields, TrackField, initialWeeklyHours, initialWho, type HoursInitial } from "./HabitHoursFields";
 import { IdeaChips } from "./IdeaChips";
 import { HabitScheduleField, type ScheduleValue } from "./HabitScheduleField";
 import { ParticipantPicker, type Person } from "./ParticipantPicker";
 import { ToggleSwitch } from "./ToggleSwitch";
-import {
-  archiveHabit,
-  createHabit,
-  deleteHabit,
-  restoreHabit,
-  updateHabit,
-  type HabitActionResult,
-} from "@/app/actions/habits";
+import { createHabit, updateHabit, type HabitActionResult } from "@/app/actions/habits";
+import { FORM_COLUMN_CLASSES, FORM_EYEBROW_CLASSES, FORM_GRID_CLASSES, FORM_SAVE_WIDE_CLASSES } from "@/lib/gridClasses";
 import type { HabitInput } from "@/lib/habitInput";
 import { toLifeArea } from "@/lib/goalVocabulary";
 import { toHabitTrack, toPaceDays, type HabitTrack, type PaceDays } from "@/lib/habitHoursVocabulary";
@@ -50,8 +44,6 @@ import { formatCalendarDate } from "@/lib/householdDate";
 
 const BUTTON_PRIMARY =
   "flex min-h-12 items-center justify-center gap-1.5 rounded-full bg-accent px-4 text-sm font-semibold text-accent-fg disabled:opacity-40";
-const BUTTON_PLAIN =
-  "flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-fg disabled:opacity-40";
 
 /** The habit being edited; its Track fields come from the loader and are left out for a habit that never had them. */
 type FormInitial = HabitManagerItem & HoursInitial;
@@ -61,8 +53,14 @@ type FormInitial = HabitManagerItem & HoursInitial;
  * cannot drift). `initial` is the habit being edited; without it the form is
  * blank. The order is the same on both (decisions 176, 178): kind, name, chore
  * ideas (New only), life area, habit ideas (New only), icon, then the rest.
- * Saving, archiving and deleting go through the habit actions and then
- * return to /habits/manage.
+ * Saving goes through the habit actions and then returns to /habits/manage;
+ * Archive and Delete live in HabitEditActions, under Save when editing.
+ *
+ * Layout: the fields are one DOM in two column divs. On a phone the columns
+ * stack in the order above; from a 48rem container they sit side by side, the
+ * left "What" (kind to icon) and the right "When and who" (the rest, then
+ * Save). The form itself is the `@container` because it holds no sheet, so
+ * the container rule (STRUCTURE.md rule 1) is kept.
  */
 export function HabitForm({
   people,
@@ -193,158 +191,139 @@ export function HabitForm({
         event.preventDefault();
         save();
       }}
-      className="flex flex-col gap-4"
+      className="@container"
     >
-      <Segmented
-        label="Kind of item"
-        value={kind}
-        options={[
-          { key: "habit", label: "Habit" },
-          { key: "chore", label: "Chore" },
-        ]}
-        onChange={pickKind}
-      />
-
-      {kind === "habit" && <TrackField value={track} onChange={pickTrack} />}
-
-      <label className="flex flex-col gap-2">
-        <span className="text-sm font-semibold">Name</span>
-        <input
-          type="text"
-          value={title}
-          maxLength={HABIT_TITLE_MAX}
-          onChange={(event) => setTitle(event.target.value)}
-          className="min-h-12 rounded-xl border border-line bg-surface px-3.5 text-base text-fg"
-        />
-      </label>
-
-      {!initial && kind === "chore" && (
-        <IdeaChips label={CHORE_IDEAS_LABEL} ideas={CHORE_IDEAS.map((idea) => idea.title)} onPick={pickIdea} />
-      )}
-
-      <LifeAreaField
-        value={lifeArea}
-        hint={initial || kind === "chore" || lifeArea ? LIFE_AREA_HINT : LIFE_AREA_HINT_PICK}
-        onChange={setLifeArea}
-      />
-
-      {!initial && kind === "habit" && ideaArea && (
-        <IdeaChips
-          label={habitIdeasLabel(ideaArea)}
-          ideas={HABIT_IDEAS[ideaArea].map((idea) => idea.title)}
-          onPick={pickIdea}
-        />
-      )}
-
-      <Field label="Icon">
-        <HabitIconPicker value={icon} kind={kind} onChange={setIcon} />
-      </Field>
-
-      {!hours && (
-        <Field label="Kind" hint="Quit means a check is “I avoided it today”">
+      <div className={FORM_GRID_CLASSES}>
+        <div className={FORM_COLUMN_CLASSES}>
+          <p className={FORM_EYEBROW_CLASSES}>What</p>
           <Segmented
-            label="Build or quit"
-            value={mode}
+            label="Kind of item"
+            value={kind}
             options={[
-              { key: "build", label: "Build" },
-              { key: "quit", label: "Quit" },
+              { key: "habit", label: "Habit" },
+              { key: "chore", label: "Chore" },
             ]}
-            onChange={setMode}
+            onChange={pickKind}
           />
-        </Field>
-      )}
 
-      <Field label="Who" hint={HABIT_WHO_CHOICES.find((choice) => choice.key === who)?.hint}>
-        <Segmented
-          label="Who it is for"
-          value={who}
-          options={HABIT_WHO_CHOICES.filter(({ key }) => !hours || key !== "together").map(({ key, label }) => ({ key, label }))}
-          onChange={pickWho}
-        />
-      </Field>
+          {kind === "habit" && <TrackField value={track} onChange={pickTrack} />}
 
-      {who !== "me" && (
-        <ParticipantPicker
-          people={people}
-          selectedIds={selectedIds}
-          everyone={everyone}
-          onChange={(next) => {
-            setSelectedIds(next.selectedIds);
-            setEveryone(next.everyone);
-          }}
-        />
-      )}
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-semibold">Name</span>
+            <input
+              type="text"
+              value={title}
+              maxLength={HABIT_TITLE_MAX}
+              onChange={(event) => setTitle(event.target.value)}
+              className="min-h-12 rounded-xl border border-line bg-surface px-3.5 text-base text-fg"
+            />
+          </label>
 
-      {hours ? (
-        <HoursFields hours={weeklyHours} paceDays={paceDays} onHours={setWeeklyHours} onPaceDays={setPaceDays} />
-      ) : (
-        <Field label="How often">
-          <HabitScheduleField value={schedule} onChange={setSchedule} thisSunday={thisSunday} nextSunday={nextSunday} />
-        </Field>
-      )}
-
-      <TimeOfDayField value={timeOfDay} onChange={setTimeOfDay} />
-
-      {canCarry && (
-        <div className="flex items-center gap-3">
-          <div className="flex flex-1 flex-col gap-0.5">
-            <span className="text-sm font-semibold">Carry over if unfinished</span>
-            <span className="text-[13px] text-muted">Shows once on the next day, counted as done late</span>
-          </div>
-          <ToggleSwitch checked={carryOver} onChange={setCarryOver} label="Carry over if unfinished" />
-        </div>
-      )}
-
-      {canBePrivate && (
-        <div className="flex items-center gap-3">
-          <div className="flex flex-1 flex-col gap-0.5">
-            <span className="text-sm font-semibold">Private</span>
-            <span className="text-[13px] text-muted">
-              Only you see it: not on the family tablet, other screens or nudges
-            </span>
-          </div>
-          <ToggleSwitch checked={isPrivate} onChange={setIsPrivate} label="Private" />
-        </div>
-      )}
-
-      {error && (
-        <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
-          {error}
-        </p>
-      )}
-
-      <button type="submit" disabled={pending} className={BUTTON_PRIMARY}>
-        Save
-      </button>
-
-      {initial && (
-        <>
-          <hr className="border-line" />
-          {initial.archived ? (
-            <button type="button" disabled={pending} onClick={() => run(() => restoreHabit(initial.id))} className={BUTTON_PLAIN}>
-              <RotateCcw aria-hidden="true" size={16} />
-              Restore
-            </button>
-          ) : (
-            <>
-              <button type="button" disabled={pending} onClick={() => run(() => archiveHabit(initial.id))} className={BUTTON_PLAIN}>
-                <Archive aria-hidden="true" size={16} />
-                Archive
-              </button>
-              <span className="text-center text-[13px] text-muted">Archive keeps its history and can be brought back.</span>
-            </>
+          {!initial && kind === "chore" && (
+            <IdeaChips label={CHORE_IDEAS_LABEL} ideas={CHORE_IDEAS.map((idea) => idea.title)} onPick={pickIdea} />
           )}
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => run(() => deleteHabit(initial.id))}
-            className="flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-danger px-4 text-sm font-semibold text-danger disabled:opacity-40"
-          >
-            <Trash2 aria-hidden="true" size={16} />
-            Delete
+
+          <LifeAreaField
+            value={lifeArea}
+            hint={initial || kind === "chore" || lifeArea ? LIFE_AREA_HINT : LIFE_AREA_HINT_PICK}
+            onChange={setLifeArea}
+          />
+
+          {!initial && kind === "habit" && ideaArea && (
+            <IdeaChips
+              label={habitIdeasLabel(ideaArea)}
+              ideas={HABIT_IDEAS[ideaArea].map((idea) => idea.title)}
+              onPick={pickIdea}
+            />
+          )}
+
+          <Field label="Icon">
+            <HabitIconPicker value={icon} kind={kind} onChange={setIcon} />
+          </Field>
+        </div>
+
+        <div className={FORM_COLUMN_CLASSES}>
+          <p className={FORM_EYEBROW_CLASSES}>When and who</p>
+          {!hours && (
+            <Field label="Kind" hint="Quit means a check is “I avoided it today”">
+              <Segmented
+                label="Build or quit"
+                value={mode}
+                options={[
+                  { key: "build", label: "Build" },
+                  { key: "quit", label: "Quit" },
+                ]}
+                onChange={setMode}
+              />
+            </Field>
+          )}
+
+          <Field label="Who" hint={HABIT_WHO_CHOICES.find((choice) => choice.key === who)?.hint}>
+            <Segmented
+              label="Who it is for"
+              value={who}
+              options={HABIT_WHO_CHOICES.filter(({ key }) => !hours || key !== "together").map(({ key, label }) => ({ key, label }))}
+              onChange={pickWho}
+            />
+          </Field>
+
+          {who !== "me" && (
+            <ParticipantPicker
+              people={people}
+              selectedIds={selectedIds}
+              everyone={everyone}
+              onChange={(next) => {
+                setSelectedIds(next.selectedIds);
+                setEveryone(next.everyone);
+              }}
+            />
+          )}
+
+          {hours ? (
+            <HoursFields hours={weeklyHours} paceDays={paceDays} onHours={setWeeklyHours} onPaceDays={setPaceDays} />
+          ) : (
+            <Field label="How often">
+              <HabitScheduleField value={schedule} onChange={setSchedule} thisSunday={thisSunday} nextSunday={nextSunday} />
+            </Field>
+          )}
+
+          <TimeOfDayField value={timeOfDay} onChange={setTimeOfDay} />
+
+          {canCarry && (
+            <div className="flex items-center gap-3">
+              <div className="flex flex-1 flex-col gap-0.5">
+                <span className="text-sm font-semibold">Carry over if unfinished</span>
+                <span className="text-[13px] text-muted">Shows once on the next day, counted as done late</span>
+              </div>
+              <ToggleSwitch checked={carryOver} onChange={setCarryOver} label="Carry over if unfinished" />
+            </div>
+          )}
+
+          {canBePrivate && (
+            <div className="flex items-center gap-3">
+              <div className="flex flex-1 flex-col gap-0.5">
+                <span className="text-sm font-semibold">Private</span>
+                <span className="text-[13px] text-muted">
+                  Only you see it: not on the family tablet, other screens or nudges
+                </span>
+              </div>
+              <ToggleSwitch checked={isPrivate} onChange={setIsPrivate} label="Private" />
+            </div>
+          )}
+
+          {error && (
+            <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+              {error}
+            </p>
+          )}
+
+          <button type="submit" disabled={pending} className={`${BUTTON_PRIMARY} ${FORM_SAVE_WIDE_CLASSES}`}>
+            Save
           </button>
-        </>
-      )}
+
+          {initial && <HabitEditActions initial={initial} pending={pending} run={run} />}
+        </div>
+      </div>
     </form>
   );
 }
