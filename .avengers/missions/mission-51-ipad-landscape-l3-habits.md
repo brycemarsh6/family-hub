@@ -1,7 +1,7 @@
 # Mission 51: iPad landscape L3 (Habits & Chores go wide)
 
 **Project:** family-hub (Marshee)
-**Status:** FIXING (Strange pass 1 and Captain pass 2 BLOCKED; F2 dispatched)
+**Status:** GATING pass 2 (F2 and F2b built; Captain pass 3 PASS; Strange pass 2 running; Vision pass 2 next)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/habits-chores-ipad-landscape-f04eee` (cut from `944444b`; `origin/main` with PR #74 merged in at `1bb7645`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L3 (section "Habits and Chores"; decisions 215 to 223, 230)
@@ -338,6 +338,7 @@ Status per contract is kept on its heading line.
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Strange | BLOCKED | (1) Whole family wide: an `sr-only` in the skipped marker escapes the column scroller, the page scrolls 33 to 57px (title under the hamburger after the hours sheet closes) and with classic scrollbars five people stop fitting; (2) Report Week at 375: cards 558px in a 343px grid (implicit auto track), counts and cells cut off; (3) Chore chart This week at 1180: a changed chore's title shrinks to 0px and its tag spills out; (4) phone Whole family checks no longer line up right (`HabitFamilyColumn.tsx:110`); (5) decision 233: phone family cards still group Habits / Chores with no Chore tag; (6) Stats at 1180: hours habit all on the left, solo habit leaves the right half empty (plan puts week, log, nudges, side by side right) | Session already signed in as Bryce in the pane; no data created. Passed: bar targets 44px+, past day has no buttons and the H2 line, sheets full screen, no sideways scroll elsewhere, skeleton matches, tint contrast light 4.91 / dark 6.46, header flame 5.64+ / 6.66+, fit rule at 924/1108/820 proxies, Goals and Recipes + unchanged. NOTES: + on a 375 phone sits over the bottom check (gate the right move to `md`); Mine columns stretch to the tallest (`items-start`); three card shapes; past-day not-done marker is `line-strong` (older); Time of day group hidden when one time; a one-person Together habit labelled Mine; truncated chore names on Default week; Report pager and Year picker span 1148; 375 bar orphans the Report icon; hours habits left out of counts (older). Not covered: real Sidebar/Rail (dev error `HabitInput is not defined` from `src/app/actions/habits.ts:36`, from main), tablet login, iPad Safari |
+| 3 | Captain | PASS | None | Pass-2 blocker cleared (`shownColumns`, `togetherRowShown` in `habitsReportScope.ts:177-185`, tested). F2 split of `HabitHoursStats`, phone cards on `groupColumnRows`, + right from `md`, F2b all pass; cheap notes cleared. NOTES: time-group heading lookup repeated in three components (next touch: `timeGroupLabel(key)`); phone Together row shows in the strip and each card (Strange/Vision to judge); `HabitForm.tsx` exactly 350 (next split); `groceriesRecipes.ts:35` and `groceriesPutAway.ts:28-33` re-export types from `"use server"` files (older; A-51-10); duplicate `Tile` (older). Final A-51-1 to A-51-10 text below |
 | 2 | Captain | BLOCKED | `HabitFamilyView.tsx:70-71` still matches the people filter (columns hidden, Together row with all people hidden) in a component (STRUCTURE.md :918-919; F1 spec item 3): add `shownColumns` / `togetherRowShown` beside `stillHiddenPeople`, tested | Pass-1 B1, B2 and the strongest note cleared; new helpers pass; `buildTodayRows` bound placed right (`habitsToday.ts` 353 / 283 code, no split). NOTES: `HABITS_BAR_LABELS.report` retypes `REPORT_LABELS.title`; orphaned comment above `HABITS_BAR_LABELS` (`PAST_DAY_VIEW_ONLY` lost its comment); `habitStartDay` computed twice; `HabitsDayView`/`HabitTodayList` take the type from `habitsRead`; `sharing: string` could be `HabitSharing`. A-51-6 and A-51-8 text updated (below) |
 | 1 | Vision | BLOCKED | (1) a past day is built from data after it: log and hours reads have no upper bound, habits created after the day show as due (probe: a 2-a-week habit checked Wed and Thu vanishes from Monday; a habit made Friday shows Monday as missed); (2) Report Week rows stretch about 1148px on the now-wide Report (STRUCTURE.md Wide pages rule 3) | Gauntlet green with real codes (1415; UTC 1408 + 7 skipped; LA 1415; record check 0 hard, 7 REVIEW; build 0); boundaries clean; built CSS holds lib-only classes. NOTES: phone family card says `NOTHING_DUE_TODAY` when the Filter emptied it; phone Together strip ignores hidden people; stale "14px" comment; one-frame reflow before the ResizeObserver fires; 752 to 767px screens show the strip without the frame (no real iPad); + bottom right on phones too (Strange to judge); Manage second grid puts both links side by side with no archive; habits archived after a past day are missing from it; habits loading covers New/Edit |
 | 1 | Captain | BLOCKED | (1) `habitsFamilyColumns.ts:2` and its test import `HabitRowView` type from server-only `habitsRead.ts` (STRUCTURE.md dependency direction :815-817): import from `./habitsToday`; (2) `HabitsDayView.tsx:58,63` builds and matches filter options in a component (STRUCTURE.md :915-920 one filter rule) | Strongest NOTE: `habits/loading.tsx:17` copies Mine's grid and drifted (`gap-3.5` vs `gap-3`): `HABITS_DAY_GRID_CLASSES`. NOTES: vocabulary 420/252 (rule clauses contradict, A-51-8); second "Mine" literal; bar words inline in components; two copies of the read-only marker; `lockPage` and people filter untested in tsx; time key order written twice in `habitsFamilyColumns.ts`; stale comments ("14px", header); habits `loading.tsx` also covers New/Edit (narrow pages) and other subpages' shapes; ReportYear indentation; sheet frame copied (old debt). Amendments A-51-1 to A-51-9 drafted |
@@ -469,55 +470,19 @@ Status per contract is kept on its heading line.
   (that import only: `HabitInput` from `@/lib/habitInput`) and delete
   `src/app/actions/habits.ts:36`.
 
-## Captain's amendments (drafted pass 1; C5 writes them into STRUCTURE.md)
+## Captain's amendments (final text, Captain pass 3; C5 writes them into STRUCTURE.md)
 
-- **A-51-1** Wide pages: three pages are wide (dashboard, Calendar,
-  Habits & Chores: `/habits`, Manage, Chore chart, Report, Stats; New and
-  Edit not until L6). Habits' containers: Mine top strip and column grid;
-  Whole family one round both layouts; Manage, Chore chart (plus each day
-  card), Report Year, Stats one each. Sheets stay siblings. Whole family
-  switches at a 45rem container while `data-fills-width` reacts at `md`;
-  they agree because 768 (or 1024 with the Sidebar) leaves 736px.
-- **A-51-2** `FloatingAddButton` is the only floating +: bottom left of
-  the 768px column on non-wide pages, bottom right on wide pages via its
-  own wrapper; `onClick` or `href`, `label`; wide scroll areas reserve
-  room (`pb-20`); no + on the tablet.
-- **A-51-3** (A-L2-3 done) a class string a component and its skeleton
-  share is one exported constant in `src/lib/` (whole literal for the
-  Tailwind scan): `DASHBOARD_GRID_CLASSES` / `DASHBOARD_CELL_CLASSES`,
-  `YEAR_GRID_CLASSES`, `HABITS_DAY_GRID_CLASSES`. A skeleton typing a copy
-  is a BLOCKER.
-- **A-51-4** `src/lib/habitsDay.ts` is the only home of the day browser
-  (`resolveHabitsDay`) and `/habits` URL builder (`habitsHref`); a past
-  day's lock is display only, writes keep `isTapDayAllowed`; imports only
-  `householdDate.ts` and `habits/carryOver.ts`.
-- **A-51-5** `habitsFamilyColumns.ts` is the only time-of-day grouping
-  (`groupColumnRows`, `groupRowsByTime`) and the fit rule
-  (`fitsEveryone`, `FIT_COLUMN_MIN` 220, `FIT_COLUMN_GAP` 12 = `gap-3`,
-  both ends name each other); `HabitRow layout="auto"` and
-  `FamilyHabitRow layout="card"` are the only tall cards; imports only
-  vocabulary, `habitsFamily.ts` and types from `habitsToday.ts`.
-- **A-51-6** filter rule: `HabitsDayView` is the one client owner of both
-  views' Filter state; `reportFilterOptions(..., { kinds: false, areas:
-  false })`, `matchesHabitsFilter`, `narrowedFilterCount` (decision 239)
-  live in `habitsReportScope.ts`; lists receive `keep(row)` only.
-- **A-51-7** `HabitsBar.tsx` the only Habits bar (drawn through
-  `bar(subtitle)`); `HabitFilterSheet.tsx` the only filter sheet and the
-  only Mine / Whole family switch; the bar icon the only Report entry.
-- **A-51-8** vocabulary: new habit words stay in `habitVocabulary.ts`
-  while its code is well under the cap (420 / about 252); past about 300
-  code lines a concern gets its own file. Fix the stale "380 lines".
-- **A-51-9** Page opt-outs: the AppChrome comment names the three wide
-  pages and Whole family's `data-fills-width`.
-- **Pass 2 updates:** A-51-6 final text: `habitsReportScope.ts` holds
-  every Today and Whole family filter rule (`reportFilterOptions(..., {
-  kinds: false, areas: false })`, `matchesHabitsFilter`,
-  `narrowedFilterCount`, `stillHiddenPeople`, `shownColumns` /
-  `togetherRowShown`); a component that matches rows or columns against
-  the Filter, people included, is a BLOCKER. A-51-8 numbers: 425 total /
-  254 code at F1; a word already exported is referenced, never retyped.
-  Size watch: `habitVocabulary.ts` 425 / 254, `habitsToday.ts` 353 / 283.
-- Also: mission-46 file's "Waiting for Bryce" line (A-L2-3 done here).
+- **A-51-1 Wide pages.** Three pages are wide: the dashboard, the Calendar, and Habits & Chores. Habits & Chores means `/habits`, Manage, Chore chart, Report and Stats. New and Edit stay narrow until L6. Habits' containers: Mine has a top strip and a column grid. Whole family has one container round both layouts. Manage, Chore chart (and each of its day cards), Report Year and Stats have one each. Sheets stay siblings of the container. Whole family switches layouts at a 45rem container while `data-fills-width` reacts at `md`. They agree because a 768 screen (or 1024 with the Sidebar pinned) leaves a 736px container. Stats goes to two columns from a 50rem container only when its right column has something (nudges, Side by side, or an hours habit's `HabitHoursDetail`). Otherwise it is one column capped at `max-w-3xl`.
+- **A-51-2 The floating +.** `FloatingAddButton` is the only floating +. It sits bottom left of the 768px column on non-wide pages, and on wide pages below `md` (phones stay clear of the last row's check). It sits bottom right on wide pages from `md`, through its own wrapper (`md:[body:has([data-page-width=wide])_&]`). Its props are `onClick` or `href`, plus `label`. Wide scroll areas reserve room for it (`pb-20`). There is no + on the tablet.
+- **A-51-3 Shared class strings.** (A-L2-3, done here.) A class string that a component and its skeleton share is one exported constant in `src/lib/`, written as a whole literal so the Tailwind scan finds it: `DASHBOARD_GRID_CLASSES` / `DASHBOARD_CELL_CLASSES`, `YEAR_GRID_CLASSES`, `HABITS_DAY_GRID_CLASSES` (in `gridClasses.ts`). A skeleton that types its own copy is a BLOCKER.
+- **A-51-4 The day browser.** `src/lib/habitsDay.ts` is the only home of the day browser (`resolveHabitsDay`) and the `/habits` URL builder (`habitsHref`). A past day's lock is display only; writes keep `isTapDayAllowed`. It imports only `householdDate.ts` and `habits/carryOver.ts`.
+- **A-51-5 Time-of-day grouping.** `habitsFamilyColumns.ts` is the only time-of-day grouping (`groupColumnRows` for the family view on both the phone cards and the wide columns, `groupRowsByTime` for Mine) and the only fit rule. The fit rule is `fitsEveryone`, `FIT_COLUMN_MIN` 220 and `FIT_COLUMN_GAP` 12 (= `gap-3`), and both ends name each other. It is also the only home of a column's empty text (`emptyColumnText`). Row tags come from `familyRowTag` through `ColumnItem` / `TimeRowItem`. `HabitRow layout="auto"` and `FamilyHabitRow layout="card"` are the only tall cards. The file imports only vocabulary, `habitsFamily.ts` and types from `habitsToday.ts`.
+- **A-51-6 The filter rule.** `HabitsDayView` is the one client owner of the Filter state for both views. `habitsReportScope.ts` holds every Today and Whole family filter rule: `reportFilterOptions(..., { kinds: false, areas: false })`, `matchesHabitsFilter`, `narrowedFilterCount` (decision 239), `stillHiddenPeople`, `shownColumns` and `togetherRowShown`. Lists receive `keep(row)` only. A component that matches rows or columns against the Filter, people included, is a BLOCKER. `HabitFilterSheet.tsx` only draws each chip's on/off state.
+- **A-51-7 The Habits bar.** `HabitsBar.tsx` is the only Habits bar, drawn through `bar(subtitle)`. `HabitFilterSheet.tsx` is the only filter sheet and the only Mine / Whole family switch. The bar icon is the only Report entry.
+- **A-51-8 Habit vocabulary.** New habit words stay in `habitVocabulary.ts` while its code is well under the cap (425 total / about 254 code at F2). Past about 300 code lines, a concern gets its own file. A word that is already exported is referenced, never typed again (example: `HABITS_BAR_LABELS.report` is `REPORT_LABELS.title`). Fix the stale "380 lines" in the Size watch. Size watch: `habitVocabulary.ts` 425 / 254, `habitsToday.ts` 353 / 283, `habitsReportScope.ts` 280, `HabitForm.tsx` 350 (at the soft cap).
+- **A-51-9 Page opt-outs.** The `AppChrome` comment above `<main>` names the three wide pages and Whole family's `data-fills-width`.
+- **A-51-10 Types and Server Action files.** A component takes a type from its lib home (for example `HabitInput` from `@/lib/habitInput`), never through a `"use server"` file. A new type re-export in `src/app/actions/` is a BLOCKER, because Turbopack dev threw `HabitInput is not defined` on `export type { HabitInput };` (mission 51). Existing debt, to fix on the next touch: `groceriesRecipes.ts:35` and `groceriesPutAway.ts:28-33`. Add "type re-exports" to the forbidden column of the `src/app/actions/` layout row.
+- Also: update the "Waiting for Bryce" line in the mission-46 file (A-L2-3 is done here).
 
 ## Handoff log
 
