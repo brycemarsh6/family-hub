@@ -2,6 +2,7 @@
 
 import { monthGridDays, isTodayCell } from "@/lib/monthLayout";
 import { isSameMonth } from "@/lib/mealPlanDates";
+import { YEAR_GRID_CLASSES } from "@/lib/gridClasses";
 
 /**
  * The Year view's whole content (mission-18/C4): twelve mini month-grids
@@ -61,9 +62,9 @@ export function YearView({ anchor, today, onPickMonth }: YearViewProps) {
     // The grid follows its own container's width, not the screen's (mission-46):
     // 2 across on a phone, 3 from 40rem (820 upright, or 1180 beside the
     // Sidebar), 4 from 60rem (1180 landscape). YearGridSkeleton in
-    // calendar/loading.tsx repeats these exact classes.
+    // YEAR_GRID_CLASSES (lib/gridClasses.ts) is shared with YearGridSkeleton in calendar/loading.tsx.
     <div className="@container">
-      <div className="grid grid-cols-2 gap-3 @min-[40rem]:grid-cols-3 @min-[60rem]:grid-cols-4">
+      <div className={YEAR_GRID_CLASSES}>
         {months.map((month) => (
           <button
             key={month.getMonth()}

@@ -168,10 +168,12 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
         </p>
       )}
 
-      <div className="flex flex-col gap-3">
+      {/* One container round the day cards (STRUCTURE.md "Wide pages"): 1 column, 2 from 36rem, 7 from 64rem. The sheet below stays outside it. */}
+      <div className="@container">
+      <div className="grid grid-cols-1 gap-3 @min-[36rem]:grid-cols-2 @min-[64rem]:grid-cols-7">
         {view === "default"
           ? live.defaultWeek.map((day) => (
-              <section key={day.weekday} className={`${CARD} border-line`}>
+              <section key={day.weekday} className={`@container min-w-0 ${CARD} border-line`}>
                 <h2 className="font-bold">{day.name}</h2>
                 {day.chores.map((chore) =>
                   chore.id.startsWith("new-") ? (
@@ -195,7 +197,7 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
                       event.preventDefault();
                       save(day.weekday);
                     }}
-                    className="flex gap-2"
+                    className="flex flex-col gap-2 @min-[12rem]:flex-row"
                   >
                     <input
                       type="text"
@@ -227,7 +229,7 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
               </section>
             ))
           : live.thisWeek.days.map((day) => (
-              <section key={day.weekday} className={`${CARD} ${day.isToday ? "border-2 border-accent" : "border-line"}`}>
+              <section key={day.weekday} className={`@container min-w-0 ${CARD} ${day.isToday ? "border-2 border-accent" : "border-line"}`}>
                 <h2 className="font-bold">
                   {day.name}
                   {day.isToday && <span className="ml-2 text-xs font-semibold text-accent">TODAY</span>}
@@ -238,6 +240,7 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
                 ))}
               </section>
             ))}
+      </div>
       </div>
 
       {open && (

@@ -16,7 +16,7 @@ import {
   resizeWidget,
   setWidgetItems,
 } from "@/lib/dashboardLayout";
-import { gridAreaVars } from "@/lib/dashboardGrid";
+import { DASHBOARD_CELL_CLASSES, DASHBOARD_GRID_CLASSES, gridAreaVars } from "@/lib/dashboardGrid";
 import { useWordmarkHeaderActionsTarget } from "@/lib/appChrome";
 import { DASHBOARD_WIDGET_WORDS } from "@/lib/dashboardWidgets";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
@@ -30,7 +30,7 @@ import type { DashboardLayout } from "@/lib/dashboardLayout";
  *
  * The page is wide (`data-page-width="wide"`, see AppChrome.tsx), with no
  * title of its own (decision 221). The grid is 2 columns, and 4 from a 45rem
- * container width, not a screen breakpoint, so the Sidebar menu or a
+ * container width (`DASHBOARD_GRID_CLASSES`, shared with the home skeleton), not a screen breakpoint, so the Sidebar menu or a
  * different iPad shrinks it correctly. The notes cards above the grid (planned
  * today, pick a day, nudges) sit two across from the same container width, so
  * a row never stretches across the iPad (decision 224). The `@container`
@@ -111,12 +111,12 @@ export default function DashboardWidgetList({
             />
           </div>
         ) : (
-          <div className="grid auto-rows-auto grid-cols-2 gap-4 @min-[45rem]:grid-cols-4">
+          <div className={DASHBOARD_GRID_CLASSES}>
             {widgets.map((widget, i) => (
               <div
                 key={widget.uid}
                 style={areas[i] as React.CSSProperties}
-                className="min-h-[9.5rem] min-w-0 [grid-column:var(--dash-c2)] [grid-row:var(--dash-r2)] @min-[45rem]:[grid-column:var(--dash-c4)] @min-[45rem]:[grid-row:var(--dash-r4)]"
+                className={DASHBOARD_CELL_CLASSES}
               >
                 {tiles[widget.uid] ?? <SkeletonBlock className="h-full w-full" />}
               </div>

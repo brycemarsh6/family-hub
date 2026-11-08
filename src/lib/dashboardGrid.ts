@@ -7,6 +7,17 @@ import type { WidgetSize } from "./dashboardWidgets";
 // and gives each cell its row and column through CSS custom properties, one
 // pair per column count. No React, no db.
 
+/**
+ * The grid's and each cell's classes, written once: the dashboard list and the
+ * home skeleton (`(home)/loading.tsx`) both import them, so the skeleton can
+ * never drift (Captain's A-L2-3). Container variants, not screen breakpoints.
+ * They stay full literal strings here because Tailwind finds class names by
+ * scanning source text.
+ */
+export const DASHBOARD_GRID_CLASSES = "grid auto-rows-auto grid-cols-2 gap-4 @min-[45rem]:grid-cols-4";
+export const DASHBOARD_CELL_CLASSES =
+  "min-h-[9.5rem] min-w-0 [grid-column:var(--dash-c2)] [grid-row:var(--dash-r2)] @min-[45rem]:[grid-column:var(--dash-c4)] @min-[45rem]:[grid-row:var(--dash-r4)]";
+
 export type GridColumns = 2 | 4;
 export type GridCell = { row: number; col: number; w: number; h: number };
 
