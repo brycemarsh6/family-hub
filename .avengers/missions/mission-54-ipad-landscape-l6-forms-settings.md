@@ -242,8 +242,18 @@ Order: C1 alone first (small; every other contract imports its constants). Then 
 
 Hill is not used from here on (Bryce, 2026-11-08: bypass permissions mode only). Hill's calls 274 to 283 stand; Bryce chose to keep them. New content or design calls go to Bryce.
 
-### F2 - skeleton shapes and the Feedback row cap
+**Decision 284 (Bryce, 2026-11-08):** on wide screens, Edit habit's Archive (or Restore) and Delete hug their words and line up on the right under Save. The caption under Archive stays as it is. The phone stays full width.
+
+### F3 - Edit habit's Archive and Delete hug their words (decision 284)
 - **Status:** PENDING
+- **Boundaries:** may touch: `src/components/HabitEditActions.tsx` · must not touch: `src/components/HabitForm.tsx`, `src/lib/gridClasses.ts`, `package.json`, `STRUCTURE.md`, `DESIGN.md`, `CLAUDE.md`, `.env`
+- **Spec:** add `FORM_SAVE_WIDE_CLASSES` from `@/lib/gridClasses` to the Restore, Archive and Delete buttons, so all three match Save (the block renders as a fragment straight into `HabitForm`'s flex column, inside the form's `@container`). Do not retype the string. The `hr` and the caption stay unchanged. Update the doc comment only if it now says something untrue. No em or en dashes.
+- **Verification:** `npx tsc --noEmit`, `npm run lint`, `npm test` exit 0 (real exit codes).
+- **Evidence required:** tails with counts; the changed lines; `git status --short`.
+- **Done criteria:** Strange pass 2 measures all three hugging at the right edge of the second column at 1180, full width at 375.
+
+### F2 - skeleton shapes and the Feedback row cap
+- **Status:** DONE (commit `3e3aefc`; tsc, lint, 1443 tests)
 - **Boundaries:** may touch: `src/app/(app)/profile/loading.tsx`, `src/app/(app)/kitchen/cooking/recipes/new/loading.tsx`, `src/app/(app)/kitchen/cooking/recipes/new/manual/loading.tsx` (new), `src/app/(app)/settings/loading.tsx`, `src/app/(app)/settings/feedback/loading.tsx` (new), `src/components/FeedbackList.tsx` · must not touch: `src/components/Skeleton.tsx`, `src/lib/gridClasses.ts`, `src/lib/containerWidth*`, `src/components/FeedbackRow.tsx`, `src/components/HabitEditActions.tsx`, `src/app/(app)/kitchen/cooking/recipes/[id]/edit/loading.tsx`, `package.json`, `STRUCTURE.md`, `DESIGN.md`, `CLAUDE.md`, `.env`
 - **Spec:** (1) `profile/loading.tsx` and `recipes/new/loading.tsx`: root `<div className="py-2" data-page-width="wide" role="status" aria-label="Loading">`, inside it `<div className={NARROW_PAGE_CLASSES}><SkeletonHeader /><SkeletonList /></div>`; comment: a short page is wide and centered at 40rem (decision 276). (2) New `recipes/new/manual/loading.tsx`: `export { default } from "../../[id]/edit/loading";` with a one-line comment that the manual form is the same full-width form as Edit and this keeps `new/loading.tsx`'s 40rem cap off it. (3) `settings/loading.tsx`: `<SkeletonPage wide>` with children `<div className="@container"><div className={TWO_COLUMN_CLASSES}><SkeletonList rows={3} /><SkeletonList rows={3} /></div></div>`; comment that it also covers Manage family. (4) New `settings/feedback/loading.tsx`: `<SkeletonPage wide>` with children `<div className="@container"><div className="grid grid-cols-1 @min-[64rem]:grid-cols-[30rem_minmax(0,1fr)] @min-[64rem]:items-start @min-[64rem]:gap-x-8"><SkeletonList /><SkeletonBlock className="hidden h-96 w-full rounded-2xl @min-[64rem]:block" /></div></div>`; comment: 64rem is `COLUMN_MIN_WIDTH_PX[3]`, and this must change with `FeedbackList`'s measured split. (5) `FeedbackList.tsx`: the `ul` is `max-w-[48rem] space-y-2` when `!wide`, and stays `space-y-2` when wide; a one-line comment that below the panel width the rows keep the old 768px page width. The EmptyState stays uncapped (decision 280). No em or en dashes.
 - **Verification:** `npx tsc --noEmit`, `npm run lint`, `npm test` exit 0 (read real exit codes; the shell is zsh, so `${PIPESTATUS}` does not work).

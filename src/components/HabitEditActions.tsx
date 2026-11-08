@@ -1,6 +1,7 @@
 "use client";
 
 import { Archive, RotateCcw, Trash2 } from "lucide-react";
+import { FORM_SAVE_WIDE_CLASSES } from "@/lib/gridClasses";
 import { archiveHabit, deleteHabit, restoreHabit, type HabitActionResult } from "@/app/actions/habits";
 
 const BUTTON_PLAIN =
@@ -25,13 +26,13 @@ export function HabitEditActions({
     <>
       <hr className="border-line" />
       {initial.archived ? (
-        <button type="button" disabled={pending} onClick={() => run(() => restoreHabit(initial.id))} className={BUTTON_PLAIN}>
+        <button type="button" disabled={pending} onClick={() => run(() => restoreHabit(initial.id))} className={`${BUTTON_PLAIN} ${FORM_SAVE_WIDE_CLASSES}`}>
           <RotateCcw aria-hidden="true" size={16} />
           Restore
         </button>
       ) : (
         <>
-          <button type="button" disabled={pending} onClick={() => run(() => archiveHabit(initial.id))} className={BUTTON_PLAIN}>
+          <button type="button" disabled={pending} onClick={() => run(() => archiveHabit(initial.id))} className={`${BUTTON_PLAIN} ${FORM_SAVE_WIDE_CLASSES}`}>
             <Archive aria-hidden="true" size={16} />
             Archive
           </button>
@@ -42,7 +43,7 @@ export function HabitEditActions({
         type="button"
         disabled={pending}
         onClick={() => run(() => deleteHabit(initial.id))}
-        className="flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-danger px-4 text-sm font-semibold text-danger disabled:opacity-40"
+        className={`flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-danger px-4 text-sm font-semibold text-danger disabled:opacity-40 ${FORM_SAVE_WIDE_CLASSES}`}
       >
         <Trash2 aria-hidden="true" size={16} />
         Delete
