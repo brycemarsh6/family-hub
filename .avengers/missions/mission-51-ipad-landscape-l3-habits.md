@@ -337,6 +337,49 @@ Status per contract is kept on its heading line.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Captain | BLOCKED | (1) `habitsFamilyColumns.ts:2` and its test import `HabitRowView` type from server-only `habitsRead.ts` (STRUCTURE.md dependency direction :815-817): import from `./habitsToday`; (2) `HabitsDayView.tsx:58,63` builds and matches filter options in a component (STRUCTURE.md :915-920 one filter rule) | Strongest NOTE: `habits/loading.tsx:17` copies Mine's grid and drifted (`gap-3.5` vs `gap-3`): `HABITS_DAY_GRID_CLASSES`. NOTES: vocabulary 420/252 (rule clauses contradict, A-51-8); second "Mine" literal; bar words inline in components; two copies of the read-only marker; `lockPage` and people filter untested in tsx; time key order written twice in `habitsFamilyColumns.ts`; stale comments ("14px", header); habits `loading.tsx` also covers New/Edit (narrow pages) and other subpages' shapes; ReportYear indentation; sheet frame copied (old debt). Amendments A-51-1 to A-51-9 drafted |
+
+## Captain's amendments (drafted pass 1; C5 writes them into STRUCTURE.md)
+
+- **A-51-1** Wide pages: three pages are wide (dashboard, Calendar,
+  Habits & Chores: `/habits`, Manage, Chore chart, Report, Stats; New and
+  Edit not until L6). Habits' containers: Mine top strip and column grid;
+  Whole family one round both layouts; Manage, Chore chart (plus each day
+  card), Report Year, Stats one each. Sheets stay siblings. Whole family
+  switches at a 45rem container while `data-fills-width` reacts at `md`;
+  they agree because 768 (or 1024 with the Sidebar) leaves 736px.
+- **A-51-2** `FloatingAddButton` is the only floating +: bottom left of
+  the 768px column on non-wide pages, bottom right on wide pages via its
+  own wrapper; `onClick` or `href`, `label`; wide scroll areas reserve
+  room (`pb-20`); no + on the tablet.
+- **A-51-3** (A-L2-3 done) a class string a component and its skeleton
+  share is one exported constant in `src/lib/` (whole literal for the
+  Tailwind scan): `DASHBOARD_GRID_CLASSES` / `DASHBOARD_CELL_CLASSES`,
+  `YEAR_GRID_CLASSES`, `HABITS_DAY_GRID_CLASSES`. A skeleton typing a copy
+  is a BLOCKER.
+- **A-51-4** `src/lib/habitsDay.ts` is the only home of the day browser
+  (`resolveHabitsDay`) and `/habits` URL builder (`habitsHref`); a past
+  day's lock is display only, writes keep `isTapDayAllowed`; imports only
+  `householdDate.ts` and `habits/carryOver.ts`.
+- **A-51-5** `habitsFamilyColumns.ts` is the only time-of-day grouping
+  (`groupColumnRows`, `groupRowsByTime`) and the fit rule
+  (`fitsEveryone`, `FIT_COLUMN_MIN` 220, `FIT_COLUMN_GAP` 12 = `gap-3`,
+  both ends name each other); `HabitRow layout="auto"` and
+  `FamilyHabitRow layout="card"` are the only tall cards; imports only
+  vocabulary, `habitsFamily.ts` and types from `habitsToday.ts`.
+- **A-51-6** filter rule: `HabitsDayView` is the one client owner of both
+  views' Filter state; `reportFilterOptions(..., { kinds: false, areas:
+  false })`, `matchesHabitsFilter`, `narrowedFilterCount` (decision 239)
+  live in `habitsReportScope.ts`; lists receive `keep(row)` only.
+- **A-51-7** `HabitsBar.tsx` the only Habits bar (drawn through
+  `bar(subtitle)`); `HabitFilterSheet.tsx` the only filter sheet and the
+  only Mine / Whole family switch; the bar icon the only Report entry.
+- **A-51-8** vocabulary: new habit words stay in `habitVocabulary.ts`
+  while its code is well under the cap (420 / about 252); past about 300
+  code lines a concern gets its own file. Fix the stale "380 lines".
+- **A-51-9** Page opt-outs: the AppChrome comment names the three wide
+  pages and Whole family's `data-fills-width`.
+- Also: mission-46 file's "Waiting for Bryce" line (A-L2-3 done here).
 
 ## Handoff log
 
