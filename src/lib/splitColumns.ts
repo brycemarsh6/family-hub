@@ -8,7 +8,8 @@
 // never changes column when it is opened or closed. Pure: no React, no DOM.
 
 /**
- * The one place the column thresholds live: the narrowest container, in
+ * The one JavaScript home of the column thresholds (the `@min-[48rem]:` and
+ * `@min-[64rem]:` classes are their CSS mirror): the narrowest container, in
  * pixels, that gets 2 or 3 columns. They match the plan's container
  * breakpoints (2 columns from a 768px container, 3 from 1024px), see
  * `.avengers/plans/ipad-landscape-v1.md` rule 2.
@@ -51,8 +52,9 @@ export function splitByWeight<T>(
   items.forEach((item, i) => {
     result[column].push(item);
     running += weights[i];
-    // Move on past every share boundary this item reached or passed.
-    while (column < columns - 1 && running * columns >= (column + 1) * total) {
+    // Move on one column at most per item, so a huge item can never leave
+    // an empty column in the middle.
+    if (column < columns - 1 && running * columns >= (column + 1) * total) {
       column += 1;
     }
   });

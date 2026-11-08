@@ -60,3 +60,22 @@ test("columnCountFor follows the thresholds", () => {
   assert.equal(columnCountFor(1024, 2), 2);
   assert.equal(columnCountFor(1500, 1), 1);
 });
+
+test("no empty column before a non-empty one", () => {
+  const probes: [string, number][][] = [
+    [["a", 1000], ["b", 1], ["c", 1], ["d", 1]],
+    [["a", 1], ["b", 100], ["c", 1]],
+  ];
+  for (const items of probes) {
+    const cols = splitByWeight(items, 3, (x) => x[1]);
+    assert.deepEqual(cols.flat(), items);
+    const lens = cols.map((c) => c.length);
+    const firstEmpty = lens.indexOf(0);
+    if (firstEmpty !== -1) {
+      assert.ok(
+        lens.slice(firstEmpty).every((n) => n === 0),
+        `sizes ${lens}`,
+      );
+    }
+  }
+});

@@ -146,8 +146,8 @@ test("week: title, days and isCurrentPeriod across the Mar 8 2026 DST spring-for
 
 test("week: title crosses a month boundary correctly", () => {
   // Jul 26 to Aug 1, 2026: a real week (Sunday Jul 26 through Saturday Aug 1)
-  // that starts in one month and ends in the next, the same shape
-  // formatWeekRange's own doc comment illustrates with "Jul 27 – Aug 2".
+  // that starts in one month and ends in the next, the case
+  // formatWeekRange's "to" spelling has to handle.
   const anchor = d(2026, 6, 30); // Thursday, Jul 30 2026
   assert.equal(VIEW_CONFIG.week.title(anchor), "Jul 26 to Aug 1");
 });

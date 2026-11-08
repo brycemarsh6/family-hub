@@ -115,6 +115,7 @@ function WeekGridRow({
           <button
             key={dayOffset}
             type="button"
+            aria-label={`${formatShortDayHeader(date)}, ${slot}: ${entry ? entry.title : "Add"}`}
             onClick={() => onSlotTap(dayOffset, slot, entry?.title ?? "", entry?.recipeId ?? null)}
             className={`min-h-16 rounded-xl border p-2 text-left transition-colors active:bg-line ${tone}`}
           >

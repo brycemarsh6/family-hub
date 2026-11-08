@@ -14,6 +14,9 @@ import { useLayoutEffect, useState } from "react";
  * just leaves the page less room, and the column count follows that room
  * (STRUCTURE.md "Wide pages", rule 2).
  *
+ * Attach the ref to an element that is always rendered (the effect depends
+ * only on the ref).
+ *
  * Known cost: on a hard reload the list paints at one column until the page
  * hydrates, then goes to 2 or 3. Client-side navigation measures before the
  * first paint, so it does not jump.

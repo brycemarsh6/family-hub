@@ -114,6 +114,7 @@ export function MealPlanList({
   // sit OUTSIDE the measured wrapper (STRUCTURE.md "Wide pages", rule 1). It
   // wraps every state of the list so the ref is attached on the first render.
   const listRef = useRef<HTMLDivElement>(null);
+  // The week grid needs the 3-column width to fit seven days.
   const wide = useContainerWidth(listRef) >= COLUMN_MIN_WIDTH_PX[3];
   // Wide only: the one week opened from a summary card or a past-week header.
   const [openWeekId, setOpenWeekId] = useState<string | null>(null);

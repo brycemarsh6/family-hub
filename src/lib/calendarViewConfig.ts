@@ -206,9 +206,8 @@ export type ViewConfig = {
 const SHORT_MONTH_FORMATTER = new Intl.DateTimeFormat("en-US", { month: "short" });
 
 /** "Sep 9–11" / "Aug 30 – Sep 1" — 3 Day's own range label, mission-17/C4.
- * The exact same shape as `formatWeekRange` (mealPlanDates.ts) — same-month
- * gets the tight en dash, a month crossing gets the wider one plus both
- * month names — deliberately re-implemented locally rather than
+ * Once the same shape as `formatWeekRange` (mealPlanDates.ts); that function
+ * now spells ranges with "to", while this label keeps its dashes. Deliberately re-implemented locally rather than
  * generalizing that function to an arbitrary span: `formatWeekRange` is off
  * this contract's boundary, and widening a shared, already-tested function's
  * signature to serve a single new caller is a bigger change than a five-line

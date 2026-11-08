@@ -174,11 +174,6 @@ export function RecipeList({
     <div ref={gridRef}>
       <div ref={searchWrapperRef} className="@container mb-3">
         <div className="flex flex-col gap-3 @min-[64rem]:flex-row @min-[64rem]:items-center">
-          {filters && (
-            <div className="order-first @min-[64rem]:order-none @min-[64rem]:min-w-0">
-              {filters}
-            </div>
-          )}
           <div className="relative @min-[64rem]:min-w-[16rem] @min-[64rem]:flex-1">
             <Search
               aria-hidden="true"
@@ -204,6 +199,11 @@ export function RecipeList({
               </button>
             )}
           </div>
+          {filters && (
+            <div className="order-first @min-[64rem]:order-none @min-[64rem]:min-w-0">
+              {filters}
+            </div>
+          )}
         </div>
       </div>
 

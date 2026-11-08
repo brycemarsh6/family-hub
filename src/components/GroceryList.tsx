@@ -55,8 +55,9 @@ function applyChange(
 // Wide pages (STRUCTURE.md "Wide pages"): on a landscape iPad the groups sit
 // in 2 columns. The split is made in JavaScript from the group order and row
 // counts (splitColumns.ts), not with CSS `columns`, because CSS columns
-// balance by measured height and a group would hop to another column as rows
-// are checked off. The measured wrapper (gridRef) holds the list only: the
+// balance by measured height. The split stays put as groups open and close;
+// checking off rows can still move a group, because the weights are the
+// unchecked counts. The measured wrapper (gridRef) holds the list only: the
 // edit sheet at the bottom is its sibling, never inside it (Wide pages rule 1).
 const ALL = "All";
 const UNASSIGNED = "Unassigned";
@@ -188,6 +189,7 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
           />
         ) : (
           <div className="space-y-6">
+            {sortedGroups.length > 0 && (
             <div className="grid items-start gap-x-4" style={gridStyle}>
               {splitByWeight(
                 sortedGroups,
@@ -215,6 +217,7 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
                 </div>
               ))}
             </div>
+            )}
 
             {unchecked.length === 0 && (
               <p className="max-w-[35rem] rounded-xl bg-accent-soft px-4 py-3 text-base font-medium text-accent">

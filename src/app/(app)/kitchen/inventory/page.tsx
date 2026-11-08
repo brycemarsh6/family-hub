@@ -83,11 +83,13 @@ export default async function PantryPage() {
           </p>
         </div>
 
-        <div className="flex flex-col items-start gap-3 md:flex-row-reverse md:items-center">
-          {lowNotYetListed > 0 && <AddLowItemsButton count={lowNotYetListed} />}
+        {(lowNotYetListed > 0 || reviewQueue.total > 0) && (
+          <div className="flex flex-col items-start gap-3 md:flex-row-reverse md:items-center">
+            {lowNotYetListed > 0 && <AddLowItemsButton count={lowNotYetListed} />}
 
-          <ReviewQueueButton initial={reviewQueue} />
-        </div>
+            <ReviewQueueButton initial={reviewQueue} />
+          </div>
+        )}
       </div>
 
       <PantryList items={items} canManage={canManage} />
