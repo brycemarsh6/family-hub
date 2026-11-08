@@ -257,8 +257,8 @@ Replace this section at the end of each session. Don't append.
   panels, the recipe page with Ingredients (400px) beside the Steps and
   the hero swapped for an icon tile from `md`. Hill's calls 244 to 254
   (248, 249, 251 are the medium ones). **L3 (mission 53)** made Habits &
-  Chores wide (all three gates passed 2026-11-07, branch
-  `claude/habits-chores-ipad-landscape-f04eee`): one thin bar with the
+  Chores wide (merged as PR #81, `c021950`, 2026-11-08; production
+  deploy READY): one thin bar with the
   day as the title, Filter, day arrows (past days up to 14 back are view
   only), Today, Manage and a Report icon; Mine in Morning, Afternoon,
   Evening and Anytime columns; Whole family fits everyone on one screen
