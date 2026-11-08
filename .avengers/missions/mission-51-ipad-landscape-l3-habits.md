@@ -1,7 +1,7 @@
 # Mission 51: iPad landscape L3 (Habits & Chores go wide)
 
 **Project:** family-hub (Marshee)
-**Status:** FIXING (Captain pass 3 PASS; Strange pass 2 BLOCKED on 2; F3 dispatched; then Strange pass 3 and Vision pass 2)
+**Status:** FIXING (Captain pass 3 PASS; Strange pass 2 BLOCKED on 2; F3 built; Strange pass 3 and Vision pass 2 running)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/habits-chores-ipad-landscape-f04eee` (cut from `944444b`; `origin/main` with PR #74 merged in at `1bb7645`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L3 (section "Habits and Chores"; decisions 215 to 223, 230)
@@ -473,7 +473,7 @@ Status per contract is kept on its heading line.
 
 ## Fix batch 3 (after Strange pass 2)
 
-### F3: two Strange pass-2 blockers (DISPATCHED)
+### F3: two Strange pass-2 blockers (DONE, `4b98008`: 4 files; tsc, lint, build 0; 1425 tests, UTC 1418 + 7 skipped; LA leg left to Vision)
 - **Objective:** chore chart tags stay inside their card, and the phone Whole family shows each Together row once per person, like the wide layout.
 - **May touch:** `src/components/ChoreChart.tsx` (the tag in `WeekRow` only), `src/components/HabitFamilyView.tsx` (remove the phone Together strip), `src/lib/habitsReportScope.ts` and `.test.ts` (remove `togetherRowShown` and its test if nothing calls it).
 - **Must not touch:** `HabitRow.tsx` (`QUIT_TAG_CLASS` stays: Today uses it), every other file, constitutions, `.env`, `prisma/`.
@@ -489,7 +489,7 @@ Status per contract is kept on its heading line.
 - **A-51-3 Shared class strings.** (A-L2-3, done here.) A class string that a component and its skeleton share is one exported constant in `src/lib/`, written as a whole literal so the Tailwind scan finds it: `DASHBOARD_GRID_CLASSES` / `DASHBOARD_CELL_CLASSES`, `YEAR_GRID_CLASSES`, `HABITS_DAY_GRID_CLASSES` (in `gridClasses.ts`). A skeleton that types its own copy is a BLOCKER.
 - **A-51-4 The day browser.** `src/lib/habitsDay.ts` is the only home of the day browser (`resolveHabitsDay`) and the `/habits` URL builder (`habitsHref`). A past day's lock is display only; writes keep `isTapDayAllowed`. It imports only `householdDate.ts` and `habits/carryOver.ts`.
 - **A-51-5 Time-of-day grouping.** `habitsFamilyColumns.ts` is the only time-of-day grouping (`groupColumnRows` for the family view on both the phone cards and the wide columns, `groupRowsByTime` for Mine) and the only fit rule. The fit rule is `fitsEveryone`, `FIT_COLUMN_MIN` 220 and `FIT_COLUMN_GAP` 12 (= `gap-3`), and both ends name each other. It is also the only home of a column's empty text (`emptyColumnText`). Row tags come from `familyRowTag` through `ColumnItem` / `TimeRowItem`. `HabitRow layout="auto"` and `FamilyHabitRow layout="card"` are the only tall cards. The file imports only vocabulary, `habitsFamily.ts` and types from `habitsToday.ts`.
-- **A-51-6 The filter rule.** `HabitsDayView` is the one client owner of the Filter state for both views. `habitsReportScope.ts` holds every Today and Whole family filter rule: `reportFilterOptions(..., { kinds: false, areas: false })`, `matchesHabitsFilter`, `narrowedFilterCount` (decision 239), `stillHiddenPeople`, `shownColumns` and `togetherRowShown`. Lists receive `keep(row)` only. A component that matches rows or columns against the Filter, people included, is a BLOCKER. `HabitFilterSheet.tsx` only draws each chip's on/off state.
+- **A-51-6 The filter rule.** `HabitsDayView` is the one client owner of the Filter state for both views. `habitsReportScope.ts` holds every Today and Whole family filter rule: `reportFilterOptions(..., { kinds: false, areas: false })`, `matchesHabitsFilter`, `narrowedFilterCount` (decision 239), `stillHiddenPeople` and `shownColumns` (F3 removed `togetherRowShown` with the phone Together strip). Lists receive `keep(row)` only. A component that matches rows or columns against the Filter, people included, is a BLOCKER. `HabitFilterSheet.tsx` only draws each chip's on/off state.
 - **A-51-7 The Habits bar.** `HabitsBar.tsx` is the only Habits bar, drawn through `bar(subtitle)`. `HabitFilterSheet.tsx` is the only filter sheet and the only Mine / Whole family switch. The bar icon is the only Report entry.
 - **A-51-8 Habit vocabulary.** New habit words stay in `habitVocabulary.ts` while its code is well under the cap (425 total / about 254 code at F2). Past about 300 code lines, a concern gets its own file. A word that is already exported is referenced, never typed again (example: `HABITS_BAR_LABELS.report` is `REPORT_LABELS.title`). Fix the stale "380 lines" in the Size watch. Size watch: `habitVocabulary.ts` 425 / 254, `habitsToday.ts` 353 / 283, `habitsReportScope.ts` 280, `HabitForm.tsx` 350 (at the soft cap).
 - **A-51-9 Page opt-outs.** The `AppChrome` comment above `<main>` names the three wide pages and Whole family's `data-fills-width`.
