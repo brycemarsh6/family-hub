@@ -4,10 +4,8 @@ import { useState } from "react";
 import { BookOpen } from "lucide-react";
 import { QuantityStepper } from "./QuantityStepper";
 import { CATEGORIES, LOCATIONS } from "@/lib/constants";
-import type {
-  PutAwayDecision,
-  PutAwayNewItem,
-} from "@/app/actions/groceriesPutAway";
+import type { PutAwayDecision } from "@/lib/putAway";
+import type { PutAwayNewItem } from "@/lib/putAwayClassify";
 
 /**
  * Steps through the checked items that don't already exist in the

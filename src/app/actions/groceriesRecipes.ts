@@ -32,7 +32,11 @@ function refreshGroceryViews() {
   revalidatePath("/");
 }
 
-export type { RecipeIngredientSuggestion };
+// RecipeIngredientSuggestion is NOT re-exported from here: in a "use server"
+// file a bare `export type { X }` survives the dev server-action transform as a
+// runtime reference to a name that no longer exists, and every action in the
+// file then crashes with "X is not defined" (users.ts carries the long note).
+// Components import the type from "@/lib/recipeIngredientMatch" directly.
 
 export type ClassifyIngredientsResult = {
   suggestions?: RecipeIngredientSuggestion[];

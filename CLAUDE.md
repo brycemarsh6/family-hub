@@ -483,14 +483,11 @@ Replace this section at the end of each session. Don't append.
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
-- Dev only: the "HabitInput is not defined" error is fixed (mission 53
-  removed the type export from `src/app/actions/habits.ts`). Same class,
-  still open, found by Strange in mission 51: every server action in dev
-  fails with "RecipeIngredientSuggestion is not defined" from
-  `export type` in `src/app/actions/groceriesRecipes.ts:35` (the Groceries
-  sheet, Create share link and the Menu style save all fail in dev).
-  Check production; the fix is moving the type exports out of the
-  "use server" files.
+- Dev only, fixed 2026-11-08: the "X is not defined" crash from a type
+  re-exported in a "use server" file (`PersonInfo`, `HabitInput`, then
+  `RecipeIngredientSuggestion` and the put-away types). None are left, and
+  `src/lib/useServerExports.test.ts` now fails the Gauntlet if one comes
+  back. Components import such types from their `src/lib/` home.
 - STRUCTURE.md is 1534 lines, 2.4 times its own 650-line housekeeping
   trigger (Captain, mission 51): a one-PR cleanup mission that moves the
   provenance stories into `docs/history/structure-rationale.md` is due.
