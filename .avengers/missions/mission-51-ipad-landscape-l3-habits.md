@@ -96,6 +96,30 @@ past day says it is view only, H3 Filter sheet title and group labels, H4
 empty-column wording ("Nothing this afternoon" from the mock vs the existing
 `NOTHING_DUE_TODAY`).
 
+## Hill's calls (decided by Hill, 2026-11-07; Bryce may overturn any)
+
+- **H1 (237):** Mine subtitle "Mine · 2 of 7 done" (`doneCountLabel`),
+  then " · " and the flame with `streakLabel(choreStreak, "days")` when
+  Show streaks is on and the streak is 2+ (flame has `sr-only` "chore
+  streak"); "Mine" alone with no live rows; no flame on a past day.
+  Whole family: "Whole family" alone.
+- **H2 (238):** a past day shows one `text-sm text-muted` line under the
+  bar: "Looking back. Past days are view only." Plain markers, no buttons.
+- **H3 (239):** Filter sheet title "Filter"; groups "Show" (Mine, Whole
+  family links), "Time of day", the "Together only" switch, "People"
+  (family only, all on by default). Button reads "Filter · N", N counting
+  narrowed groups (time not All, Together only on, any person off); Show
+  never counts.
+- **H4 (240):** empty Mine columns stay on wide: "Nothing this morning." /
+  "Nothing this afternoon." / "Nothing this evening." / Anytime uses
+  `NOTHING_HERE_TODAY`; filter-emptied columns all say
+  `NOTHING_HERE_TODAY`; an empty column shows no count.
+- Words for `habitVocabulary.ts`: `HABITS_VIEW_LABELS`,
+  `PAST_DAY_VIEW_ONLY`, `HABIT_FILTER_LABELS`, `filterButtonLabel(n)`,
+  `nothingInColumnLabel(key)`.
+- For Bryce to look at first: H2's sentence, H3's count rule, H4's
+  Anytime wording.
+
 ## Fury's structural calls (written on Fable at Bryce's request, 2026-11-07)
 
 1. **Day browsing is read-only and bounded.** `?day=YYYY-MM-DD`; a new pure
@@ -194,7 +218,7 @@ From AGENTS.md, absolute for every agent:
 
 Status per contract is kept on its heading line.
 
-### C1: shell, bar, day browsing, Filter sheet, +
+### C1: shell, bar, day browsing, Filter sheet, + (DONE, `907e401`)
 - **Objective:** `/habits` is a wide page with the new bar, a bounded
   read-only day browser, a Filter sheet and a floating +.
 - **May touch:** `src/app/(app)/habits/page.tsx`, new `habits/loading.tsx`,
@@ -226,6 +250,15 @@ Status per contract is kept on its heading line.
   two bar rows.
 - **Done:** Vision reproduces the above; `git diff --stat` only names the
   may-touch files.
+
+- **C1 amendments (Fury, before dispatch, 2026-11-07):** may also touch
+  `HabitRow.tsx` and `HoursHabitRow.tsx` (a `readOnly` prop only: a plain
+  marker, no swipe, no log button) and `HabitFamilyWide.tsx` (remove its
+  Filter / Report toolbar and own filter state; it takes `keep`). The bar
+  is drawn by each list through a `bar(subtitle)` render prop from
+  `HabitsDayView`, so the count follows the optimistic rows. Signed-in
+  DOM checks move to Strange (a `curl` gets the login redirect); Stark's
+  evidence is the gauntlet, unit tests and the diff.
 
 ### C2: Mine as time-of-day columns
 - **May touch:** `HabitTodayList.tsx`, `HabitRow.tsx`,
@@ -300,6 +333,13 @@ Status per contract is kept on its heading line.
 |---|---|---|---|---|
 
 ## Handoff log
+
+- 2026-11-07: C1 DONE (`907e401`, 15 files, +706/-219). Gauntlet green per
+  Stark (1383 tests; UTC 1376 pass, 7 skipped; build 0); Fury re-ran
+  `habitsDay.test.ts` (8 pass) and checked the file list. Notes: past-day
+  empty words are inline in `HabitTodayList` (C2 moves them to the
+  vocabulary; Hill to review); phone family cards' counts narrow with the
+  filter (C3); `habitVocabulary.ts` 416 lines.
 
 - 2026-11-07: mission opened; PR #74 confirmed on `origin/main`
   (`7674730`); Banner dispatched.
