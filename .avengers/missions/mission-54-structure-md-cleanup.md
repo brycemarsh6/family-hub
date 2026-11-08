@@ -13,7 +13,7 @@
   each rule's binding text and a one-line pointer). Do that pass: move every
   provenance story word for word into the new history file, keep every rule
   where it is, and leave a pointer behind each rule that lost its story.
-- **Measured first (Bryce asked):** STRUCTURE.md is **1,677 lines** on
+- **Measured first (Bryce asked):** STRUCTURE.md is **1,676 lines** (`wc -l`) on
   `main` at `7dc5b28` (CLAUDE.md still says 1,534). It was 737 lines on
   2026-11-04 (mission-27's Captain pass). The 940 lines added since are
   almost all **rule inventories** from the habits, dashboard and iPad
@@ -206,7 +206,7 @@ aside):
   rule exists) live in `docs/history/structure-rationale.md` under the
   same section and rule names; a rule here keeps its binding text and a
   one-line pointer, and a new rule's story goes straight to that file.
-  The pass is due again 200 lines above the count recorded here: 1,677
+  The pass is due again 200 lines above the count recorded here: 1,676
   before the 2026-11-08 pass (mission-54), N after." (N filled in by
   Stark from `wc -l`.) The existing "(Added 2026-11-04, mission-27, on
   Captain's ruling; Bryce approved.)" tag stays and gains "Reworded
@@ -230,9 +230,10 @@ aside):
 
 ## Contracts
 
-### C1: Move the provenance stories out of STRUCTURE.md into `docs/history/structure-rationale.md`, word for word, leaving a pointer behind each
+### C1 - Move the provenance stories out of STRUCTURE.md into `docs/history/structure-rationale.md`, word for word, leaving a pointer behind each
 - **Status:** PENDING (dispatch after Bryce's D1 to D3 and the switch to Opus 5.5)
-- **Boundaries:** may touch: `STRUCTURE.md`, `docs/history/structure-rationale.md` (new) · must not touch: anything else (no `CLAUDE.md`, `DESIGN.md`, `AGENTS.md`, `README.md`, `docs/history/README.md`, mission or plan files, `src/`, `prisma/`, `package.json`, `.env`). No commits.
+- **Boundaries:** may touch: `STRUCTURE.md`, new `docs/history/structure-rationale.md` · must not touch: anything else (no `CLAUDE.md`, `DESIGN.md`, `AGENTS.md`, `README.md`, `docs/history/README.md`, mission or plan files, `src/`, `prisma/`, `package.json`; there is no env file in this worktree and none is to be created). No commits.
+- **Preflight note (Fury, 2026-11-08):** preflight hard-fails STRUCTURE.md as "over the 650 hard cap". STRUCTURE.md's own File-size caps section says the caps govern source files, not documents, so this is the tool applying a code rule to prose; settled by that rule, not waived.
 - **Spec:** the move rules above, the pointer form, the archive layout and the two sanctioned rewrites. Work section by section in file order. Keep STRUCTURE.md's headings and the Wide pages numbering untouched. Re-wrap moved text at about 78 columns; never change a word, a number, a path, a backtick or a quote mark. Do not fix typos, dashes or stale facts on either side (they are history now; list anything that looks wrong under "Noticed" in the report).
 - **Verification (Stark runs, pastes output):**
   1. `git show 7dc5b28:STRUCTURE.md > /tmp/structure-old.md && node <checker> /tmp/structure-old.md STRUCTURE.md docs/history/structure-rationale.md --allow-diff` → zero `FAIL` lines; the `DIFF` block contains only the words of the two sanctioned rewrites.
@@ -245,10 +246,10 @@ aside):
 - **Done criteria:** Fury re-runs items 1 to 5 himself before dispatching Vision; the counts match Stark's report.
 - **Report:** (pending)
 
-### C2: CLAUDE.md: replace the one "Open, not scheduled" line and the Current status date
+### C2 - CLAUDE.md: replace the one "Open, not scheduled" line and the Current status date
 - **Status:** PENDING (after C1 passes its gates, right before the PR)
 - **Boundaries:** may touch: `CLAUDE.md` · must not touch: anything else.
-- **Spec:** replace the two-line bullet beginning "STRUCTURE.md is 1534 lines, 2.4 times its own 650-line housekeeping trigger" with: "STRUCTURE.md's housekeeping pass ran 2026-11-08 (mission 54, PR #<n>): the stories moved to `docs/history/structure-rationale.md`; the file went from 1,677 to <N> lines with every rule kept. The pass is due again at <N+200> lines." Change the heading "## Current status (updated 2026-11-08, L4)" to "## Current status (updated 2026-11-08, mission 54)". Nothing else. Fury may do this edit himself (two lines) rather than dispatching Stark; if so, this contract records it.
+- **Spec:** replace the two-line bullet beginning "STRUCTURE.md is 1534 lines, 2.4 times its own 650-line housekeeping trigger" with: "STRUCTURE.md's housekeeping pass ran 2026-11-08 (mission 54, PR #<n>): the stories moved to `docs/history/structure-rationale.md`; the file went from 1,676 to <N> lines with every rule kept. The pass is due again at <N+200> lines." Change the heading "## Current status (updated 2026-11-08, L4)" to "## Current status (updated 2026-11-08, mission 54)". Nothing else. Fury may do this edit himself (two lines) rather than dispatching Stark; if so, this contract records it.
 - **Verification:** `git diff --stat CLAUDE.md` shows one file, about 4 lines changed; `wc -l CLAUDE.md` under 250 is not required by this file's rule (its own cap note says ~250 and it is already over; not this mission's job, noted below).
 - **Report:** (pending)
 
@@ -263,7 +264,8 @@ Budget: 3 passes per gate, then stop and surface.
 
 ## Handoff log
 
-- 2026-11-08 (Fury, Fable): branch `claude/structure-md-cleanup-0b5cc7` is level with `main` `7dc5b28`. Measured STRUCTURE.md: 1,677 lines (not 1,534). Read the whole file; found the stories come to roughly 250 to 300 lines, so the 650 target is not reachable by moving stories alone. Wrote `movecheck.mjs` in the scratchpad and self-tested it (a verbatim move passes; a reworded chunk fails; a pointer that swallows the old tag shows up as a diff, hence the separate-parenthetical pointer form). Plan written; waiting on Bryce's D1 to D3, then the switch to Opus 5.5, then C1.
+- 2026-11-08 (Fury, Fable): branch `claude/structure-md-cleanup-0b5cc7` is level with `main` `7dc5b28`. Measured STRUCTURE.md: 1,676 lines by `wc -l` (not 1,534; the Read tool shows 1,677 because it counts the last line without a newline differently). Read the whole file; found the stories come to roughly 250 to 300 lines, so the 650 target is not reachable by moving stories alone. Wrote `movecheck.mjs` in the scratchpad and self-tested it (a verbatim move passes; a reworded chunk fails; a pointer that swallows the old tag shows up as a diff, hence the separate-parenthetical pointer form). Plan written; waiting on Bryce's D1 to D3, then the switch to Opus 5.5, then C1.
+- 2026-11-08 (Fury, Fable): Bryce approved the plan and took the recommendation on D1, D2 and D3. Records committed. Next: preflight C1, switch the chat to Opus 5.5, dispatch Stark.
 
 ## Delivery
 
