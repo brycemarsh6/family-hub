@@ -17,6 +17,8 @@ export function PastMealWeeks({
   today,
   onSlotTap,
   onDeletePlan,
+  openId,
+  onToggle,
 }: {
   /** Already sorted newest first. */
   plans: MealPlanView[];
@@ -31,10 +33,21 @@ export function PastMealWeeks({
   /** Omitted entirely (not disabled) for a kid session — see WeekCard's own
    * comment on the same prop. */
   onDeletePlan?: (mealPlanId: string) => void;
+  /** Controlled mode, for the wide Meal Plan (decision 248): the parent owns
+   * which week is open and draws it as a WeekGrid under the whole row, so
+   * this list shows only the headers. Leave both off for the phone layout,
+   * which keeps its own open set and expands in place. */
+  openId?: string | null;
+  onToggle?: (mealPlanId: string) => void;
 }) {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const controlled = onToggle !== undefined;
 
   function toggle(id: string) {
+    if (onToggle) {
+      onToggle(id);
+      return;
+    }
     setOpenIds((previous) => {
       const next = new Set(previous);
       if (next.has(id)) next.delete(id);
@@ -50,7 +63,7 @@ export function PastMealWeeks({
       </h2>
       <div className="flex flex-col gap-2">
         {plans.map((plan) => {
-          const open = openIds.has(plan.id);
+          const open = controlled ? openId === plan.id : openIds.has(plan.id);
           return (
             <div key={plan.id}>
               <button
@@ -66,7 +79,7 @@ export function PastMealWeeks({
                 />
                 Week of {formatWeekRange(plan.weekStart)}
               </button>
-              {open && (
+              {open && !controlled && (
                 <div className="mt-2">
                   <WeekCard
                     plan={plan}

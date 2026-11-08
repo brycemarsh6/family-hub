@@ -126,25 +126,41 @@ export function ExpiringList({
 
   return (
     <div className="space-y-6">
-      {sections.map((section) => (
-        <section key={section.urgency}>
-          <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
-            {SECTION_TITLES[section.urgency]}
-          </h2>
-          <ul className="space-y-2">
-            {section.items.map((entry) => (
-              <ExpiringRow
-                key={entry.item.id}
-                item={entry.item}
-                label={entry.label}
-                urgency={entry.urgency}
-                isEstimate={entry.isEstimate}
-                {...rowHandlers(entry.item)}
-              />
-            ))}
-          </ul>
-        </section>
-      ))}
+      {/* The container wraps the sections only; the sheets below are its
+          siblings (STRUCTURE.md "Wide pages", rule 1). Sections fill fixed
+          columns from the left, so a missing one leaves its column empty
+          (decision 250). "Eat now" spans the top row from 768px and shares
+          the row from 1024px. */}
+      <div className="@container">
+        <div className="grid items-start gap-x-4 gap-y-6 @min-[48rem]:grid-cols-2 @min-[64rem]:grid-cols-3">
+          {sections.map((section) => (
+            <section
+              key={section.urgency}
+              className={
+                section.urgency === "now"
+                  ? "@min-[48rem]:col-span-2 @min-[64rem]:col-span-1"
+                  : undefined
+              }
+            >
+              <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
+                {SECTION_TITLES[section.urgency]}
+              </h2>
+              <ul className="space-y-2">
+                {section.items.map((entry) => (
+                  <ExpiringRow
+                    key={entry.item.id}
+                    item={entry.item}
+                    label={entry.label}
+                    urgency={entry.urgency}
+                    isEstimate={entry.isEstimate}
+                    {...rowHandlers(entry.item)}
+                  />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </div>
 
       {editingEntry && (
         <PantryItemEditSheet

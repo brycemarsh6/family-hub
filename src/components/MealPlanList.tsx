@@ -1,13 +1,17 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { WeekCard } from "./WeekCard";
+import { WeekGrid } from "./WeekGrid";
+import { WeekSummaryCard } from "./WeekSummaryCard";
 import { PastMealWeeks } from "./PastMealWeeks";
 import { SlotEditSheet } from "./SlotEditSheet";
 import { CreatePlanSheet } from "./CreatePlanSheet";
 import { EmptyState } from "./EmptyState";
 import { useToday } from "@/lib/useToday";
+import { useContainerWidth } from "@/lib/useContainerWidth";
+import { COLUMN_MIN_WIDTH_PX } from "@/lib/splitColumns";
 import { addDays, formatDayLabel, isSameDay, sundayOf } from "@/lib/mealPlanDates";
 import type { MealSlot } from "@/lib/constants";
 import type { MealPlanView } from "@/lib/types";
@@ -104,6 +108,17 @@ export function MealPlanList({
   const [, startTransition] = useTransition();
   const today = useToday();
 
+  // The wide layout (WeekGrid, Coming up beside Past weeks) is decided by the
+  // list wrapper's own measured width, not the screen's, so the pinned
+  // Sidebar or Rail just leaves it less room (structural call 4). The sheets
+  // sit OUTSIDE the measured wrapper (STRUCTURE.md "Wide pages", rule 1). It
+  // wraps every state of the list so the ref is attached on the first render.
+  const listRef = useRef<HTMLDivElement>(null);
+  const wide = useContainerWidth(listRef) >= COLUMN_MIN_WIDTH_PX[3];
+  // Wide only: the one week opened from a summary card or a past-week header.
+  const [openWeekId, setOpenWeekId] = useState<string | null>(null);
+  const toggleWeek = (id: string) => setOpenWeekId((cur) => (cur === id ? null : id));
+
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [editingSlot, setEditingSlot] = useState<EditingSlot | null>(null);
 
@@ -177,84 +192,134 @@ export function MealPlanList({
   // useToday's own comment for why guessing here would risk showing the
   // wrong "current week" for part of every evening. Rendering nothing that
   // depends on it for a moment is the honest tradeoff.
-  if (today === null) {
-    return (
-      <div>
-        {addWeekButton}
-        <div aria-hidden="true" className="h-40" />
-      </div>
-    );
-  }
+  function renderList(today: Date) {
+    const todaySunday = sundayOf(today);
+    const currentPlan = optimisticPlans.find((p) => isSameDay(p.weekStart, todaySunday));
+    const futurePlans = optimisticPlans
+      .filter((p) => p.weekStart.getTime() > todaySunday.getTime())
+      .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
+    const pastPlans = optimisticPlans
+      .filter((p) => p.weekStart.getTime() < todaySunday.getTime())
+      .sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
 
-  const todaySunday = sundayOf(today);
-  const currentPlan = optimisticPlans.find((p) => isSameDay(p.weekStart, todaySunday));
-  const futurePlans = optimisticPlans
-    .filter((p) => p.weekStart.getTime() > todaySunday.getTime())
-    .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
-  const pastPlans = optimisticPlans
-    .filter((p) => p.weekStart.getTime() < todaySunday.getTime())
-    .sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
-
-  return (
-    <div>
-      {addWeekButton}
-
-      {optimisticPlans.length === 0 ? (
+    if (optimisticPlans.length === 0) {
+      return (
         <EmptyState
           emoji="🗓️"
           title="No weeks planned yet"
           hint='Tap "Plan a week" above to get started.'
         />
-      ) : (
-        <div className="flex flex-col gap-6">
-          {currentPlan ? (
-            <WeekCard
-              plan={currentPlan}
-              today={today}
-              onSlotTap={(dayOffset, slot, currentTitle, currentRecipeId) =>
-                openSlot(currentPlan, dayOffset, slot, currentTitle, currentRecipeId)
-              }
-              onDeletePlan={canManage ? () => handleDeletePlan(currentPlan.id) : undefined}
-            />
-          ) : (
-            <EmptyState
-              emoji="🗓️"
-              title="This week isn't planned yet"
-              hint='Tap "Plan a week" above to fill it in.'
-            />
-          )}
+      );
+    }
 
-          {futurePlans.length > 0 && (
-            <section>
-              <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
-                Coming up
-              </h2>
-              <div className="flex flex-col gap-4">
-                {futurePlans.map((plan) => (
-                  <WeekCard
-                    key={plan.id}
-                    plan={plan}
+    const tapFor =
+      (plan: MealPlanView) =>
+      (dayOffset: number, slot: MealSlot, currentTitle: string, currentRecipeId: string | null) =>
+        openSlot(plan, dayOffset, slot, currentTitle, currentRecipeId);
+    const deleteFor = (plan: MealPlanView) =>
+      canManage ? () => handleDeletePlan(plan.id) : undefined;
+    // Same props either way; only the wide layout swaps the card for the grid.
+    const Week = wide ? WeekGrid : WeekCard;
+    const openPlan = wide ? optimisticPlans.find((p) => p.id === openWeekId) : undefined;
+
+    return (
+      <div className="flex flex-col gap-6">
+        {currentPlan ? (
+          <Week
+            plan={currentPlan}
+            today={today}
+            onSlotTap={tapFor(currentPlan)}
+            onDeletePlan={deleteFor(currentPlan)}
+          />
+        ) : (
+          <EmptyState
+            emoji="🗓️"
+            title="This week isn't planned yet"
+            hint='Tap "Plan a week" above to fill it in.'
+          />
+        )}
+
+        {wide ? (
+          (futurePlans.length > 0 || pastPlans.length > 0) && (
+            <>
+              <div className="grid grid-cols-2 items-start gap-4">
+                <section>
+                  {futurePlans.length > 0 && (
+                    <>
+                      <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
+                        Coming up
+                      </h2>
+                      <div className="grid grid-cols-2 gap-3">
+                        {futurePlans.map((plan) => (
+                          <WeekSummaryCard key={plan.id} plan={plan}
+                            open={openWeekId === plan.id} onToggle={() => toggleWeek(plan.id)} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </section>
+                {pastPlans.length > 0 && (
+                  <PastMealWeeks
+                    plans={pastPlans}
                     today={today}
-                    onSlotTap={(dayOffset, slot, currentTitle, currentRecipeId) =>
-                      openSlot(plan, dayOffset, slot, currentTitle, currentRecipeId)
-                    }
-                    onDeletePlan={canManage ? () => handleDeletePlan(plan.id) : undefined}
+                    onSlotTap={openSlot}
+                    openId={openWeekId}
+                    onToggle={toggleWeek}
                   />
-                ))}
+                )}
               </div>
-            </section>
-          )}
+              {openPlan && (
+                <WeekGrid
+                  plan={openPlan}
+                  today={today}
+                  onSlotTap={tapFor(openPlan)}
+                  onDeletePlan={deleteFor(openPlan)}
+                />
+              )}
+            </>
+          )
+        ) : (
+          <>
+            {futurePlans.length > 0 && (
+              <section>
+                <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
+                  Coming up
+                </h2>
+                <div className="flex flex-col gap-4">
+                  {futurePlans.map((plan) => (
+                    <WeekCard
+                      key={plan.id}
+                      plan={plan}
+                      today={today}
+                      onSlotTap={tapFor(plan)}
+                      onDeletePlan={deleteFor(plan)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
-          {pastPlans.length > 0 && (
-            <PastMealWeeks
-              plans={pastPlans}
-              today={today}
-              onSlotTap={openSlot}
-              onDeletePlan={canManage ? handleDeletePlan : undefined}
-            />
-          )}
-        </div>
-      )}
+            {pastPlans.length > 0 && (
+              <PastMealWeeks
+                plans={pastPlans}
+                today={today}
+                onSlotTap={openSlot}
+                onDeletePlan={canManage ? handleDeletePlan : undefined}
+              />
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {addWeekButton}
+
+      <div ref={listRef}>
+        {today === null ? <div aria-hidden="true" className="h-40" /> : renderList(today)}
+      </div>
 
       {creatingPlan && (
         <CreatePlanSheet
