@@ -40,7 +40,7 @@ export default async function MealPlanPage() {
   }));
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
         Meal Plan
       </h1>

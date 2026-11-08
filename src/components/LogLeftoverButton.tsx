@@ -25,7 +25,7 @@ export function LogLeftoverButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-4 min-h-12 w-full rounded-xl bg-accent px-4 text-base font-semibold text-accent-fg transition-opacity active:opacity-80"
+        className="min-h-12 w-full rounded-xl bg-accent px-4 text-base font-semibold text-accent-fg transition-opacity active:opacity-80 md:w-auto"
       >
         <span aria-hidden="true">🥡</span> Log leftovers
       </button>

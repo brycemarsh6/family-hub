@@ -114,10 +114,12 @@ export function CookbookDetail({
     filters.minRating !== null;
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href="/kitchen/cooking/recipes" label="Recipes" />
 
-      <div className="mb-1 flex items-start justify-between gap-3">
+      {/* From md the Add recipe button joins this row, just left of the
+          actions button; below md it is the full-width button further down. */}
+      <div className="mb-1 flex items-start justify-between gap-3 md:mb-4 md:items-center">
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-bold tracking-tight md:text-3xl">
             {title}
@@ -126,20 +128,30 @@ export function CookbookDetail({
             {recipes.length} {recipes.length === 1 ? "recipe" : "recipes"}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          aria-label="Cookbook actions"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-surface transition-colors active:bg-surface-2"
-        >
-          <MoreVertical aria-hidden="true" size={20} />
-        </button>
+        <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className="hidden min-h-12 items-center justify-center gap-1.5 rounded-xl bg-accent px-4 text-base font-semibold text-accent-fg transition-opacity active:opacity-80 md:flex"
+          >
+            <Plus aria-hidden="true" size={20} />
+            Add recipe
+          </button>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Cookbook actions"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-surface transition-colors active:bg-surface-2"
+          >
+            <MoreVertical aria-hidden="true" size={20} />
+          </button>
+        </div>
       </div>
 
       <button
         type="button"
         onClick={() => setAddOpen(true)}
-        className="mb-4 flex min-h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80"
+        className="mb-4 flex min-h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 md:hidden"
       >
         <Plus aria-hidden="true" size={20} />
         Add recipe
