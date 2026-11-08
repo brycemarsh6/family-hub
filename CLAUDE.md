@@ -55,11 +55,12 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
 - **The Avengers.** Non-trivial builds go through the `/avengers` skill (Fury
   orchestrating Banner, Stark, Vision, Strange, Captain). Missions live in
   `.avengers/missions/`, plans in `.avengers/plans/`.
-- **Hill decides for Bryce** (Bryce, 2026-11-05). Content and design calls
-  that would wait for Bryce go to Hill (`.claude/agents/hill.md`: Fable,
-  extra-high effort, read-only). Fury records each one in the plan as
-  "decided by Hill" and lists them for Bryce at the end of each PR; Bryce can
-  overturn any. Hill never decides logins, real-device tests, money or the
+- **Hill only runs when Bryce is away in bypass permissions mode** (Bryce,
+  2026-11-08; he first set Hill up on 2026-11-05). In that mode, content and
+  design calls that would wait for Bryce go to Hill (`.claude/agents/hill.md`:
+  Fable, extra-high effort, read-only), and Fury records each one as "decided
+  by Hill" for Bryce to review. **In any other mode do not call Hill at all:
+  ask Bryce.** Hill never decides logins, real-device tests, money or the
   danger register.
 - **Merges no longer wait for Bryce** (2026-11-05): once every gate passes and
   the Gauntlet is green, Fury pushes, opens the PR and merges, then checks the
