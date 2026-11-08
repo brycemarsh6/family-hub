@@ -8,6 +8,9 @@ project) and the next Claude session. Plain English, no assumed background.
 
 ## Rules for this file
 
+- **The test for every line:** add it only if a chat would make a real
+  mistake without it. History, status and anything already in the code or
+  a mission file does not belong here.
 - **Hard cap: 250 lines.** Run `wc -l CLAUDE.md` before every commit that
   touches it. Over the cap means cut first, then add. (It reached 523 lines
   by 2026-11-08 because mission write-ups piled up here; this is the second
