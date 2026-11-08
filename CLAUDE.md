@@ -226,9 +226,6 @@ yet** or is next. Everything merged is in its mission file.
   `CalendarViews.tsx` growth (`mission-19-calendar-cv6-dropdown-swipe.md`).
 - **Winnie next:** calendar and tasks (after CD1), then replacing the app's
   Claude features with her (needs a two-way link; parked by Bryce).
-- **STRUCTURE.md cleanup** is due (it is far past its own housekeeping
-  trigger): one PR moving provenance stories into
-  `docs/history/structure-rationale.md`.
 - **Bryce's phone checklist, things waiting on him, and open follow-ups:**
   [.avengers/status.md](.avengers/status.md).
 

@@ -3,6 +3,9 @@
 Captain's constitution for this repo. It codifies the layout and boundaries
 the project already holds (full reasoning in docs/history/claude-md-archive-2026-10-31.md); Captain gates
 structural changes against it.
+The story behind each rule (why it exists, which mission added it, its
+corrections) is in docs/history/structure-rationale.md under the same
+section and rule names; a rule here keeps a one-line pointer.
 
 ## Layout map
 
@@ -90,8 +93,7 @@ structural changes against it.
   under that prefix that bypasses the wrapper is a BLOCKER — proxy will not
   stop it.
 - **No Prisma enums or provider-specific schema features.** TypeScript via
-  `constants.ts` enforces vocabularies instead. This is what made the
-  SQLite→Postgres move a provider swap, not a rewrite.
+  `constants.ts` enforces vocabularies instead. (Story: docs/history/structure-rationale.md, "No Prisma enums: the provider swap".)
 - **Date math is calendar-component math, never milliseconds**, and "what day
   is it" is decided on the client (`useToday.ts`) — or, for a server with no
   browser behind it, zone-explicitly via `householdDate.ts` (see One source
@@ -119,13 +121,7 @@ structural changes against it.
   **bounds any range it will scan with an explicit span cap**, returning
   **`null`** on any refusal rather than throwing — while the type's own
   empty value (`[]` for a list) means the request SUCCEEDED and genuinely
-  found nothing. **Amended 2026-09-05, Bryce-approved**: this clause used
-  to say refuse with the empty value, and mission-15/C6 found that costs a
-  real bug — a client that cannot tell "you may not have this" from "there
-  is nothing here" either retries a refusal forever or treats an
-  unconfirmed range as checked territory. The Schedule's endless scroll
-  walled off every event beyond the first quiet month for exactly that
-  reason. A caller that ignores the distinction is free to; one that needs
+  found nothing. (Story: docs/history/structure-rationale.md, "Guard forms: refusal versus emptiness".) A caller that ignores the distinction is free to; one that needs
   it must be able to make it. That cap is **one
   security number for every endpoint that scans a range**, and its home is
   `src/lib/` (proposed `fetchWindow.ts`: `MAX_FETCH_SPAN_DAYS`,
@@ -167,9 +163,7 @@ structural changes against it.
   the accepted set — so "narrows, never widens" does not reach it. What
   the two genuinely share, and what generalises, is the shape worth
   naming: a blanket refusal relaxed for **one specific row**, on a fact
-  **read fresh from the database**. A clause whose binding rule cannot
-  describe the case it cites produces unsound verdicts later, which is
-  why this was fixed before form (c) was ever used to judge anything.
+  **read fresh from the database**. (Story: docs/history/structure-rationale.md, "Guard forms: the membership form correction".)
   Pages use the redirecting guards (`requireVerifiedUser`,
   `requireRole`), never the null-returning ones. Route Handlers for
   non-browser clients keep their own token/signature gates.
@@ -197,9 +191,7 @@ structural changes against it.
   When a module needs both a testable policy and a database read, split
   it: the pure half gets its own import-free file and the tests point
   there (`loginRateLimitPolicy.ts` / `loginRateLimit.ts` is the pattern).
-  This is not pedantry — a test file that transitively imports `db.ts`
-  puts the **live family database** one future test away from the test
-  runner.
+  (Story: docs/history/structure-rationale.md, "Skipping server-only: the live database remark".)
 - **The DAL's cached `loadSessionUser()` is the one sanctioned sequential
   DB read before a page's `Promise.all`** — auth precedes data by design,
   and `cache()` guarantees at most one user lookup per render pass, shared
@@ -691,14 +683,13 @@ Adding a second definition of any of these is a BLOCKER:
   time the Calendar header is touched by a `formatDayRange(start, end)`
   beside `formatWeekRange` that both use. Any other range formatter is a
   BLOCKER. (Added mission-36; reworded mission-52, Captain's A-L4-6.)
-  `formatHouseholdClock(instant, timeZone, { dropZeroMinutes })` (moved from
-  `feedbackTime.ts`'s private `CLOCK` in mission-48) is the repo's only
+  `formatHouseholdClock(instant, timeZone, { dropZeroMinutes })` is the repo's only
   household-zone clock formatter: a plain ASCII space before AM/PM and, on
   request, no `:00`. `hourInZone(instant, timeZone)` beside it is the only
   zone-explicit wall-clock hour reader (server code; browser-local reads stay
   in `calendarDates.ts` / `timelineLayout.ts`). A copy elsewhere is a
   BLOCKER. (A-48-3, Hill
-  approved.)
+  approved.) (Story: docs/history/structure-rationale.md, "Household date helpers: where the clock formatter came from".)
 - `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it
@@ -1012,12 +1003,8 @@ Adding a second definition of any of these is a BLOCKER:
   decision `npm test` structurally cannot reach, which is CV3's
   `VIEW_CONFIG` lesson in a worse form. **The two current copies
   (`actions/tasks.ts`, `actions/calendar.ts`) are grandfathered debt to
-  migrate in one contract; a third copy is a BLOCKER.** Note what changed
-  its class: it was ordinary input validation until mission-16/C3b gave it
-  an authorization carve-out, and that same security-shaped edit then had
-  to be made by hand in both copies — correctly, only because one builder
-  happened to hold both files in one contract.
-  (Added 2026-09-05, mission-16, on Captain's ruling; Bryce approved.)
+  migrate in one contract; a third copy is a BLOCKER.**
+  (Added 2026-09-05, mission-16, on Captain's ruling; Bryce approved.) (Story: docs/history/structure-rationale.md, "validatedPeople: what changed its class".)
   **"Code lines" means one thing, and the tool is the definition.**
   `preflight.mjs`'s `lineCounts` is the canonical counter; a report quoting a
   code count states which counter produced it. Its original heuristic did
@@ -1026,18 +1013,12 @@ Adding a second definition of any of these is a BLOCKER:
   dominant documentation form in components, so it over-reported code exactly
   where this clause is meant to protect prose. **Fixed 2026-09-06**; a `.tsx`
   code count from an older report is an upper bound.
-  (Added 2026-09-06, mission-18, on Captain's finding; Bryce approved.
-  Instance: one mission file reported `TimelineGrid.tsx` 555/297 and
-  `MonthCell.tsx` 350/108 by two different methods, three contracts apart —
-  the same file reading 237 or 108 depending on the counter.)
+  (Added 2026-09-06, mission-18, on Captain's finding; Bryce approved.) (Story: docs/history/structure-rationale.md, "Code lines: the JSX-comment counter instance".)
   **A code line is one that is neither blank nor comment-only** —
   `lineCounts` skips blanks, `//`, `*`, `/* … */` and `{/* … */}` blocks. A
   count that **includes** blank lines is a different measurement and must not
   be compared against a cap threshold or another gate's figure.
-  (Added 2026-09-09, mission-19, on Captain's pass-2 finding; Bryce approved.
-  Instance: two gates reported the same file at **191 and 216 on the same
-  commit**, both in good faith, differing by exactly its **25 blank lines** —
-  the failure this clause exists to end, arriving in the clause's own terms.)
+  (Added 2026-09-09, mission-19, on Captain's pass-2 finding; Bryce approved.) (Story: docs/history/structure-rationale.md, "Code lines: the blank-line counter instance".)
 - **The pointer-gesture machine has two definitions, and the divergence has
   already cost a shipped defect.** `SwipeActions.tsx` and
   `src/lib/usePageSwipe.ts` each implement the same four-state machine
@@ -1056,8 +1037,7 @@ Adding a second definition of any of these is a BLOCKER:
   `handleRowPointerDownCapture` now resets `swallowNextClick` on every
   pointer-down and raises it only for the tap that closes an open row. Bryce's
   real-device check is **still owed**; the extraction and a single
-  `DIRECTION_LOCK_PX` remain open. One machine, one bug, fixed by hand in each
-  copy a mission apart: the `validatedPeople` failure, caught late.
+  `DIRECTION_LOCK_PX` remain open. (Story: docs/history/structure-rationale.md, "Pointer-gesture machine: one machine, one bug".)
   **The migration is one contract, and it carries three obligations**: extract
   the shared machine (mode transitions, lock distance, capture guard, swallow
   decision) into `src/lib/`, keeping each caller's own release math
@@ -1084,11 +1064,7 @@ Adding a second definition of any of these is a BLOCKER:
   test is a BLOCKER.** An `isSameDay(day, today)` over a week or a
   `columnDays` array is **not** an instance — those grids contain no foreign
   days, and routing them through this would be wrong.
-  (Added 2026-09-09, mission-19/F1, on Captain's ruling; Bryce approved.
-  DESIGN.md predicted this failure in writing one mission earlier — *"a third
-  caller would reintroduce this with no compile error"* — and `MonthJumpSheet`
-  was that third caller, one mission later, wrong on arrival: **282 of 730
-  days** across 2026–27 painted a today marker on a foreign month's cell.)
+  (Added 2026-09-09, mission-19/F1, on Captain's ruling; Bryce approved.) (Story: docs/history/structure-rationale.md, "Month grid today test: the DESIGN.md prediction".)
 - **Month lane counts have one home.** `PHONE_LANES` (3) and `WIDE_LANES`
   (4) live in `src/lib/monthLayout.ts`. MonthGrid lays each row out once
   with `WIDE_LANES`; the phone's "+N more" is `phoneOverflowByDay` of that
@@ -1140,9 +1116,7 @@ Adding a second definition of any of these is a BLOCKER:
      an element that holds a sheet or a fixed bar,** as a precaution:
      older browser engines treated a container as the positioning parent
      of every `position: fixed` descendant, which would pin a bottom sheet
-     inside the page. Current Chrome does not (Vision proved
-     `container-type: inline-size` leaves a fixed child on the viewport,
-     mission-44), and iPad Safari is checked on the device. Keep sheets
+     inside the page. (Story: docs/history/structure-rationale.md, "Wide pages: rule 1 and the container proof".) Keep sheets
      outside the container or portal them. The dashboard's container holds
      its grid, and the Customize sheet is the container's sibling. Known
      exceptions (work in Chrome; on Bryce's iPad check): `HoursLogSheet`
@@ -1196,9 +1170,7 @@ Adding a second definition of any of these is a BLOCKER:
   stacked to one row with `md:flex-row md:items-center md:justify-between`,
   and one button may be rendered twice, shown with `md:hidden` and
   `hidden md:flex`, when its phone and wide positions differ (Cookbook
-  detail's Add recipe). This exists because header buttons may render their
-  sheet inline (`PutAwayButton`, `ReviewQueueButton`) and rule 1 forbids a
-  container around them. The row must fit the 736px the Sidebar leaves at a
+  detail's Add recipe). (Story: docs/history/structure-rationale.md, "Wide pages: why the title row may switch".) The row must fit the 736px the Sidebar leaves at a
   1024px screen. Anything below the title row, or a row with more than two
   buttons, uses container variants. (Captain's A-L4-2.)
   **A wide page's loading file.** A wide page's `loading.tsx` renders
@@ -1281,12 +1253,7 @@ Adding a second definition of any of these is a BLOCKER:
   against **has one home in `src/lib/`**, and the markup that produces it
   carries a comment naming its dependents. A **runtime measurement** is an
   equal-standing alternative for any one surface; **a second hardcoded copy
-  is not.** This rule exists because mission-16's worst defect was exactly
-  this shape: the app header is 73px, three files positioned against it,
-  and one still said 64 — so "go to today" scrolled the reader to a spot
-  hidden behind the header, and the same stale 64 sat in a second file one
-  directory away. One fact, three encodings, two agreeing by import and one
-  silently stale. **Closed in mission-23:** the header now exists only on `/`
+  is not.** **Closed in mission-23:** the header now exists only on `/`
   and `/login`, and the dimension pages position against is the floating
   hamburger's row, `HAMBURGER_ROW_HEIGHT_PX` (plus `useHamburgerRowHeight`) in
   `src/lib/appChrome.ts`, which lists its dependents. Mission 25 adds
@@ -1294,7 +1261,7 @@ Adding a second definition of any of these is a BLOCKER:
   `--app-nav-width` CSS variable that the fixed bars use as their left edge.
   `SCHEDULE_HEADER_BAR_HEIGHT_PX` and `SCHEDULE_TITLE_SLOT_ID` stay in
   `CalendarHeader.tsx`. Mission 44 adds `WORDMARK_HEADER_ACTIONS_ID` (the
-  wordmark header's right-end slot) to `src/lib/appChrome.ts`. (Added 2026-09-05, mission-16; Bryce approved.)
+  wordmark header's right-end slot) to `src/lib/appChrome.ts`. (Added 2026-09-05, mission-16; Bryce approved.) (Story: docs/history/structure-rationale.md, "Chrome dimension rule: the 73px header story".)
 - `src/lib/personInfo.ts` — `PERSON_SELECT` / `toPersonInfo`, the single
   place a `User` row becomes something a client may see. **This is the
   security-relevant one**: it builds the public shape field by field so a
@@ -1311,11 +1278,8 @@ Adding a second definition of any of these is a BLOCKER:
   copy in a component is a second definition and is a BLOCKER. The
   existing copies (`PantryItemEditSheet.tsx`, `EventDateTimeFields.tsx`,
   `TaskForm.tsx`) are **grandfathered debt to be migrated in one mission,
-  not a pattern to cite**. That distinction is load-bearing:
-  `mealPlanDates.ts` already described itself as this job's shared home
-  while `TaskForm.tsx` cited the survivors as "the house pattern" — two
-  comments asserting opposite conventions for the same function.
-  (Added 2026-09-04, mission-14, replacing a failed rule — see below.)
+  not a pattern to cite**.
+  (Added 2026-09-04, mission-14, replacing a failed rule — see below.) (Story: docs/history/structure-rationale.md, "Local-date string conversions: why the distinction is load-bearing".)
 - `src/lib/mealPlanDates.ts` also owns **month and weekday names — and the
   names are exported.** It already holds `MONTH_NAMES` (short) and
   `FULL_MONTH_NAMES` (long); both were **unexported**, which is the whole
@@ -1325,10 +1289,7 @@ Adding a second definition of any of these is a BLOCKER:
   **each documented in-file that it did so because the canonical array was
   off-boundary or unimportable** — *a boundary satisfied by copying*, which
   the trip-condition rule below already names as instructing rather than
-  restraining. Two mechanisms now coexist for one fact: three copies derive
-  names from `Intl` at runtime and two are hardcoded English arrays, so a
-  locale or ICU-data change moves three and leaves two, **and two screens
-  spell the same month differently**. Export the two arrays (or one
+  restraining. (Story: docs/history/structure-rationale.md, "Month and weekday names: the five definitions".) Export the two arrays (or one
   `monthName(date, "short" | "long")` helper) and import them; **the four
   existing copies are grandfathered debt to migrate in one contract, not a
   pattern to cite, and a sixth definition is a BLOCKER.** A caller wanting a
@@ -1347,14 +1308,8 @@ Adding a second definition of any of these is a BLOCKER:
 - **Trip conditions are keyed to DEFINITIONS, never to importer counts.**
   A rule of the form "a third *consumer* forces the extraction" is
   satisfiable by writing a fourth copy, which is precisely the outcome it
-  exists to prevent — so it does not restrain, it *instructs*. This is not
-  hypothetical: the retired `parseLocalDateString` trip condition
-  (mission-13/Captain) said a third importer would force a move to
-  `src/lib/`, and two builders in consecutive contracts complied **by
-  copying**, each documenting in-file that it was doing so to stay under
-  the threshold. The importer count never reached three; the tree reached
-  five copies of a five-line function. Count what exists, not what points
-  at it. (Added 2026-09-04, mission-14; Bryce approved.)
+  exists to prevent — so it does not restrain, it *instructs*. Count what exists, not what points
+  at it. (Added 2026-09-04, mission-14; Bryce approved.) (Story: docs/history/structure-rationale.md, "Trip conditions: the parseLocalDateString story".)
 
 - **A vocabulary widened ahead of its consumers carries exactly one
   reachability gate.** When a union names more members than the app can serve
@@ -1385,12 +1340,9 @@ Adding a second definition of any of these is a BLOCKER:
   `showArrows` and `ownsTodayScroll` followed in mission-18/C5, on Captain's
   ruling that the *last* flip is the last chance to collect the debt at all,
   since waving it through retires the mechanism rather than deferring the
-  cleanup. `showLocation` and `compact`, listed here through CV3–CV4, were
-  resolved differently and correctly: they now derive from the data shape
-  (`columnDays.length > 1`) rather than from the view tag, which answers for a
-  new member automatically. **The clause still binds for any future vocabulary
+  cleanup. **The clause still binds for any future vocabulary
   widened ahead of its consumers** — `ASSIGNABLE_ROLES` below is the open one.)
-  (Added 2026-09-03, mission-11, on Captain's ruling.)
+  (Added 2026-09-03, mission-11, on Captain's ruling.) (Story: docs/history/structure-rationale.md, "Reachability gate: the closed instances".)
 - **A reachability flip carries its assertions with it.** The record exists so
   that "which members are real" is answered in exactly one place — which makes
   the tests pinning today's answer part of that record's contract, not
@@ -1404,43 +1356,30 @@ Adding a second definition of any of these is a BLOCKER:
   clearly-labelled fictional name is the correct substitute — the property
   under test ("a name this build does not know is normalised away") outlives
   the vocabulary's own membership.
-  (Added 2026-09-06, mission-18, on Captain's ruling; Bryce approved.
-  Instance: mission-18/C4 flipped `BUILT_VIEWS.year` and necessarily
-  falsified nine test cases across `calendarPaging.test.ts`,
-  `calendarViewConfig.test.ts`, `calendarViewVocabulary.test.ts` and
-  `useCanonicalCalendarUrl.test.ts` — one of which, `calendarViewVocabulary.
-  test.ts`, had written its own obsolescence in-file: *"this assertion is
-  meant to fail then, and to be updated then."* The other three carry that
-  framing only because C4 added it while updating them; checked against the
-  pre-C4 blobs rather than the post-fix text, which reads as though all four
-  had foreseen it.)
+  (Added 2026-09-06, mission-18, on Captain's ruling; Bryce approved.) (Story: docs/history/structure-rationale.md, "Reachability flip: the BUILT_VIEWS instance".)
 
 ## File-size caps
 
 - **Both caps are measured in total lines, but a file whose non-comment
   code is well under the cap is not a split candidate — report BOTH counts
-  before naming a seam.** This project deliberately explains itself at
-  length, and the caps were quietly taxing that. Two measurements from
-  mission-16 are why: `useScheduleWindow.ts` read 431/350 and was carried
-  as debt across two missions, but is **172 lines of code** — 60%
-  documentation, and Captain withdrew its own split ruling on measuring it.
-  And the change that pushed `ScheduleView.tsx` to 95% of the **hard** cap,
-  forcing a whole extra contract, added **82 lines of which 8 were code**.
+  before naming a seam.**
   A seam named on total lines alone can cost a mission for prose.
-  (Added 2026-09-05, mission-16, on Captain's ruling; Bryce approved.)
+  (Added 2026-09-05, mission-16, on Captain's ruling; Bryce approved.) (Story: docs/history/structure-rationale.md, "Both caps: the two mission-16 measurements".)
 - **The caps govern source files, not documents.** They apply to hand-written
   code under `src/`, `prisma/` (the schema stays exempt) and repo tooling
   scripts. Markdown (`STRUCTURE.md`, `DESIGN.md`, `README.md`, `.avengers/`,
   `docs/`) is outside them: a code-line count of prose measures nothing.
   `CLAUDE.md` keeps the 250-line cap in its own header because it loads on
-  every turn. This file's growth is a trend to watch, never a BLOCKER: past
-  650 lines it is due a housekeeping pass that moves provenance narratives
-  ("Added …", "Instance: …") into `docs/history/structure-rationale.md`,
-  leaving each rule's binding text and a one-line pointer. (Added 2026-11-04,
-  mission-27, on Captain's ruling; Bryce approved.)
-- **Soft cap: 350 lines** — a NOTE and a split candidate. (actions/groceries.ts
-  was split three ways at ~624 before hitting the hard cap; current largest
-  hand-written files sit in the ~350–420 range.)
+  every turn. This file's growth is a trend to watch,
+  never a BLOCKER. Its provenance stories (instances, corrections, why a
+  rule exists) live in `docs/history/structure-rationale.md` under the
+  same section and rule names; a rule here keeps its binding text and a
+  one-line pointer, and a new rule's story goes straight to that file.
+  The pass is due again 200 lines above the count recorded here: 1,676
+  before the 2026-11-08 pass (mission-54), 1,583 after. (Added 2026-11-04,
+  mission-27, on Captain's ruling; Bryce approved. Reworded 2026-11-08,
+  mission-54, Bryce approved.) (Story: docs/history/structure-rationale.md, "Housekeeping note".)
+- **Soft cap: 350 lines** — a NOTE and a split candidate. (Story: docs/history/structure-rationale.md, "Soft cap: the groceries.ts split".)
   Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 578 total /
   about 361 code (89% of the hard cap; the next Schedule feature extracts
   the two-panel wrapper), `CalendarViews.tsx` 502, `MonthCell.tsx` 367.
@@ -1472,18 +1411,7 @@ Adding a second definition of any of these is a BLOCKER:
   narrowest content. Precedents: `calendarDates.test.ts` /
   `calendarDatesFormat.test.ts` (mission-10/C2) and `timelineLayout.test.ts` /
   `timelineLayoutPacking.test.ts` (mission-12/C4).
-  (Clause added 2026-09-03: the previous text read as forbidding the
-  concern-split this repo had already shipped, and
-  `useCalendarPeriod.test.ts` at 344 now needs it — the letter was corrected
-  to match the practice before a builder obeyed the letter. **Re-worded
-  2026-09-03**, Bryce approving, after mission-12's second live use: Captain
-  found the text still demanded *each half* name its concern while both real
-  splits had deliberately kept the bare name on one of them. Tying the name
-  to the **primary concern** rather than to which file happened to be
-  retained turns an accident into a principle, and settles the second-split
-  case the previous wording left silent — which matters because files in this
-  repo demonstrably return to the cap: this very file was born at 349 and hit
-  376 inside one mission, and `useCalendarPeriod.test.ts` at 344 is next.)
+  (Story: docs/history/structure-rationale.md, "Test files cap: how the concern-split clause was corrected".)
   **When the natural home is already at the cap, a small number of tests may
   be adopted by a sibling module's test file, with a header comment naming
   the module they cover and why they live there. This is a debt marker, not
@@ -1494,10 +1422,7 @@ Adding a second definition of any of these is a BLOCKER:
 
   Live instances of the adoption clause — keep this list short, and empty it
   by splitting rather than by growing it:
-  - (none — emptied 2026-09-02, mission 10's C2, which split
-    `calendarDates.test.ts` by concern into `calendarDates.test.ts`
-    (day/span math) and `calendarDatesFormat.test.ts` (label formatting) and
-    sent `calendarDayDiff`'s test home from `monthLayout.test.ts`.)
+  - (none) (Story: docs/history/structure-rationale.md, "Adoption clause: the emptied instance list".)
 
 - **A lib export with no application caller is dormant, not dead — but it
   must say so.** Keeping one is allowed when a named future consumer
@@ -1510,17 +1435,14 @@ Adding a second definition of any of these is a BLOCKER:
   outright when the dormant code describes behaviour the app **no longer
   has**, rather than behaviour merely unused — a dormant-export comment would
   then preserve a wrong answer for a future reader, which is the
-  overclaiming-comment failure this repo tracks. `periodWindowEdges` was the
-  retired navigation wall; deleting it removed both the code and that future
-  wrong answer.
+  overclaiming-comment failure this repo tracks. (Story: docs/history/structure-rationale.md, "Dormant exports: periodWindowEdges".)
 - **Built-ahead engines.** When a Bryce-approved multi-PR plan builds a
   pure engine ahead of its screens, its exports may stay dormant until the PR
   the plan names. Each one carries "Dormant until PR X (mission N): <its
   consumer>", and the two-mission clock above starts at mission N, not at
   the mission that wrote it. If mission N ships without calling it, the
-  normal rule applies from then on. First instance: `src/lib/habits/`
-  (mission 30; consumers in missions 31, 32 and 34). (Approved by Bryce
-  2026-11-05, mission-30, Captain's A7.)
+  normal rule applies from then on. (Approved by Bryce
+  2026-11-05, mission-30, Captain's A7.) (Story: docs/history/structure-rationale.md, "Built-ahead engines: the first instance".)
 
 ## Naming
 
@@ -1543,12 +1465,7 @@ Adding a second definition of any of these is a BLOCKER:
   Naming a family of exports is fine (`Skeleton.tsx`); naming a **deleted**
   export is not — a `grep` for the filename must not come up empty. Rename in
   the mission that deletes the last matching export, or in the next mission
-  that touches the file. (Added 2026-09-03, mission-11. First instance:
-  `MonthLoadingSkeleton.tsx`, which exported only `MonthGridSkeletonRows`
-  after mission-11/C1 deleted the wrapper, was renamed to
-  `MonthGridSkeletonRows.tsx` in mission-15/C5. **No live instance remains:** `HubNav.tsx`
-  (found 2026-09-06 exporting only `HubBottomNav`) was deleted in mission-23
-  when the side drawer replaced the bottom nav.)
+  that touches the file. (Added 2026-09-03, mission-11.) (Story: docs/history/structure-rationale.md, "Component file name: the first and last instances".)
 
 - **Shared *test* helpers live in `src/lib/testing/`, and that directory is
   exempt from the dormant-export rule** — its tests are its callers, so an
@@ -1611,9 +1528,7 @@ Adding a second definition of any of these is a BLOCKER:
   **One named exception, added 2026-09-04 (mission-13/CT1,
   Bryce-approved; written up 2026-09-05): a data migration that corrects
   values already written under a convention now known to be wrong.**
-  CT1's all-day fix had to rewrite existing `CalendarEvent` rows —
-  leaving them would have meant two date conventions live in one column
-  with every reader guessing which one it held. Such a migration must
+  (Story: docs/history/structure-rationale.md, "Migrations additive only: why CT1 needed an exception".) Such a migration must
   change **values only**, never drop or retype a column; be
   **idempotent**, so a partial run and a re-run land in the same place;
   carry its reasoning in the migration file itself; and be **counted
@@ -1625,13 +1540,7 @@ Adding a second definition of any of these is a BLOCKER:
 - A new/changed Prisma model needs `npx prisma generate` **and a dev-server
   restart** (`db.ts` caches the client on `globalThis`).
 - Secrets live in `.env` and Vercel env vars only — never in chat, git or
-  a terminal transcript. **(Corrected 2026-09-05: this rule used to open
-  with `FAMILY_PASSWORD` differing between dev and prod, which stopped
-  being current at the 2026-08-29 accounts cutover — Captain confirmed
-  zero references remain in `src/`, `prisma/`, `.github/` or AGENTS.md.
-  It survives only as a value in `.env` and Vercel, as a rollback lane
-  whose stated ~7-day window has now expired; deleting it from both is
-  outstanding cleanup, not a live rule.)** Rotating the **dev**
+  a terminal transcript. (Story: docs/history/structure-rationale.md, "Secrets: the FAMILY_PASSWORD correction".) Rotating the **dev**
   `SESSION_SECRET` is the response when a dev cookie leaks into a
   transcript — mission-16 gate round 3 is the recorded instance.
 - It's `proxy.ts`, not `middleware.ts` (Next 16) — a middleware.ts won't run.
@@ -1671,6 +1580,4 @@ Adding a second definition of any of these is a BLOCKER:
 - **Per-person accounts** (`session.ts`/`dal.ts`, `getVerifiedUser`,
   `MANAGER_ROLES`, the `User` table, `bootstrap-users.ts`) — shipped
   2026-08-28/29, replacing the single shared family password, which the
-  cheap-swap design anticipated. **(Corrected 2026-09-05 on Captain's
-  finding: this line still described the retired architecture as current,
-  inside the section headed "don't relitigate.")**
+  cheap-swap design anticipated. (Story: docs/history/structure-rationale.md, "Per-person accounts: the retired-architecture correction".)
