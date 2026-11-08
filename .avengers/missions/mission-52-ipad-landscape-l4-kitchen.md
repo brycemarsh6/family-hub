@@ -1,7 +1,7 @@
 # Mission 52: iPad landscape L4 (Kitchen lists go wide)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (C0 to C4 committed 2026-11-07; Fury's Gauntlet run, then Vision)
+**Status:** DELIVERING (every gate PASS 2026-11-08: Vision pass 4, Captain pass 2, Strange pass 3; main merged in `f1350a6`; Gauntlet green after the merge, 1440 tests)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/ipad-landscape-l4-kitchen-1af045` (from `origin/main` at `798c475`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L4 (Kitchen section)
@@ -305,6 +305,7 @@ jump; the rail above the + on All recipes; Safari sticky headers in columns).
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 4 | Vision | PASS | none | Bryce allowed a fourth pass ("Let's keep things moving", 2026-11-08). Covers F3 `de8db00`, F4 `82a4d40`, the renumber `9e1de1a` and `22a8309`, and the merge of main `f1350a6` (FloatingAddButton body taken from main, the inner box line was the same on both sides; AppChrome identical to main; nothing dropped from either side). Gauntlet at `f1350a6`: 1440 tests, UTC 1433 pass and 7 skipped. NOTES: rotating wide to narrow with a week open keeps it open, harmless; `scrollIntoView` smooth ignores reduced motion; `@min-[48rem]:gap-2` stays on in block mode at 64rem, no effect; one stray `git checkout` was refused by the dirty tree, nothing changed |
 | 1 | Captain | BLOCKED | the `AppChrome.tsx` comment above `<main>` names `data-page-width` but none of its users (rule at STRUCTURE.md ~1063); fix: one line pointing at "Wide pages" (A-L4-8) | Measured width is a legitimate extension (A-L4-1); header rows on `md:` acceptable (A-L4-2); + corner rule (A-L4-3); recipes `loading.tsx` scope: move the list page and skeleton into a route group `recipes/(browse)/` (A-L4-4); split-grid pattern written 7 times in 4 files: pending `SplitColumnGrid` (A-L4-5); STRUCTURE.md lines 676 to 679 now wrong about `formatWeekRange` (A-L4-6, 3 Day dash grandfathered); size trend row (A-L4-7); nine wide pages (A-L4-9); `splitColumns.ts` comment overclaims "one place" (CSS mirror classes); `RecipeLetterRail` lacks "use client"; `WeekGrid` repeats WeekCard's header; stale comments `calendarViewConfig.ts:209` and its test line 150; no new dependency direction |
 | 3 | Strange | PASS | none | On a long page the opened week settles at y=64 (56 + 8), the title fully visible and hit-testable; pinned path (0 + 8) checked by simulation since Menu style cannot be changed on dev; fresh loads scrollY 0; 375 unchanged |
 | 2 | Strange | BLOCKED | the opened week grid scrolls to y=0 on a long page, under the floating hamburger (DESIGN.md: every non-dashboard page reserves `HAMBURGER_ROW_HEIGHT_PX`); dev data is too short to show it, the family's past-weeks list is not | Fixes 2 to 4 pass: today's empty cells 4.76:1 light / 6.20:1 dark; Eat now rows 435px at 924 and 383px at 820, three columns at 1180 and 1108 unchanged; Cookbook detail gap 16px; 375 unchanged; fresh loads do not scroll; closing does not scroll. NOTES: Eat now row columns (gap-2) do not line up exactly with the section grid (gap-x-4), harmless; dev Expiring data is one column of 82 items |
