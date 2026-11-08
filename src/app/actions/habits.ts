@@ -33,8 +33,6 @@ export type RecomputeResult = { error?: string; habits?: number };
 /** What every habit action answers: an `error` to show inline, or success (with the new habit's `id` on create). */
 export type HabitActionResult = { error?: string; id?: string };
 
-export type { HabitInput };
-
 const MAX_REORDER_IDS = 500;
 const NOT_FOUND = "That habit isn't available.";
 const NOT_SIGNED_IN = "Not signed in.";

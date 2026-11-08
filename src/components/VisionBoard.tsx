@@ -131,7 +131,8 @@ export function VisionBoard({
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="@container">
+      <div className="grid grid-cols-2 gap-3 @min-[64rem]:grid-cols-3">
         {cards.map((card, index) => (
           <VisionCard
             key={card.area}
@@ -149,6 +150,7 @@ export function VisionBoard({
             onAnotherPrompt={() => anotherPrompt(card.area)}
           />
         ))}
+      </div>
       </div>
 
       {hint && <p className="mt-3 text-center text-sm text-muted">{hint}</p>}

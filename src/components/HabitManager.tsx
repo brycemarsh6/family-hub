@@ -131,6 +131,10 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
         </div>
       )}
 
+      {/* Habits left, Chores right from a 45rem container (the page fits whatever room the Sidebar leaves);
+          a lone group takes the left column and never stretches (STRUCTURE.md "Wide pages" rule 3). */}
+      <div className="@container">
+        <div className="grid items-start gap-x-4 @min-[45rem]:grid-cols-2">
       {groups.map(
         (group) =>
           group.items.length > 0 && (
@@ -163,8 +167,14 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
             </section>
           ),
       )}
+        </div>
+      </div>
 
-      <Link href="/habits/chart" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5`}>
+      {/* Second grid, same columns: the two links stay in the left column, Archived spans their rows on the right.
+          DOM order stays chart, Archived, settings so a phone reads as it always has. */}
+      <div className="@container">
+        <div className="grid items-start gap-x-4 @min-[45rem]:grid-cols-2">
+      <Link href="/habits/chart" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5 @min-[45rem]:col-start-1`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
           <CalendarDays aria-hidden="true" size={20} />
         </div>
@@ -176,7 +186,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
       </Link>
 
       {state.archived.length > 0 && (
-        <section>
+        <section className="@min-[45rem]:col-start-2 @min-[45rem]:row-span-2 @min-[45rem]:row-start-1">
           <h2 className={SECTION_HEADING}>
             <span className="inline-flex items-center gap-1.5">
               <Archive aria-hidden="true" size={14} />
@@ -211,7 +221,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
         </section>
       )}
 
-      <Link href="/settings" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5`}>
+      <Link href="/settings" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5 @min-[45rem]:col-start-1`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
           <SlidersHorizontal aria-hidden="true" size={20} />
         </div>
@@ -221,6 +231,8 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
         </span>
         <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
       </Link>
+        </div>
+      </div>
     </div>
   );
 }

@@ -11,7 +11,7 @@ structural changes against it.
 | `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout for one page | Pages needing a genuinely chrome-free root layout; those go in `src/app/share/` |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`), plus **session-gated GET routes for bytes a page cannot inline** (an `<img src>`), where a Server Action cannot serve the response: `/api/feedback/[id]/screenshot` is the one instance (mission-38). Such a route calls `getVerifiedUser()` itself, answers 404 to anyone not allowed (the same answer as an unknown id), reads through the domain's one reader, sends `Cache-Control: private, no-store`, never writes, and is never added to proxy.ts's public lists. A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
-| `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** (`logout` reads the session only to send a device login back to `/settings`; the tablet signs out through `logoutWithAdminPassword`, which is guard form (a) and not part of the exception) — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action |
+| `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** (`logout` reads the session only to send a device login back to `/settings`; the tablet signs out through `logoutWithAdminPassword`, which is guard form (a) and not part of the exception) — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action; **type re-exports** (mission-53, A-L3-10: a component takes a type from its lib home, never through a `"use server"` file, because Turbopack dev threw `HabitInput is not defined` on `export type { HabitInput };`. A new one is a BLOCKER; existing debt to fix on the next touch: `groceriesRecipes.ts:35`, `groceriesPutAway.ts:28-33`) |
 | `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice`, `/api/alexa`, `/api/cron/briefing` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
@@ -232,6 +232,11 @@ structural changes against it.
 
 Adding a second definition of any of these is a BLOCKER:
 
+- **`src/components/RecipeBody.tsx`** is the only markup for a recipe's
+  Ingredients, Instructions and Notes. The share and print pages render
+  `RecipeBody` whole; the private detail page places the three exported
+  sections itself. A second copy of that markup anywhere is a BLOCKER.
+  (Mission-51, A-L5-6.)
 - **`src/lib/calendarTaskQuery.ts`** (`server-only`, no auth; mission-49):
   `getTasksInDueRange(dueStart, dueEnd, viewerUserId)` is the only Task
   select and `CalendarTaskView` mapper. Its callers are the Calendar page,
@@ -283,7 +288,8 @@ Adding a second definition of any of these is a BLOCKER:
   relative path. `src/lib/navMode.ts`: the only menu-style list
 - `src/lib/goalVocabulary.ts` — Plans & Goals' vocabulary: `LIFE_AREAS`,
   `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`,
-  `ONGOING_LABEL` (mission-38), and
+  `ONGOING_LABEL` (mission-38), `GOAL_BOARD_EMPTY_AREA` (mission-51, the
+  wide Goals board's empty-area line), and
   the vision words (`VISION_HORIZONS`, `TOGETHER_BOARD`, `VisionBoardKey`,
   `GOAL_PAGE_VISION_HORIZON`). `LIFE_AREAS` has six areas, in order:
   Spiritual, Health & Wellness, Personal Growth, Relationships & Connections,
@@ -927,6 +933,31 @@ Adding a second definition of any of these is a BLOCKER:
   filter option builder or matcher anywhere else, a component file included,
   is a BLOCKER; `HabitFilterChips.tsx` only draws chips and attaches
   `TIME_ICONS`.
+  **Habits & Chores page (mission-53, Captain's A-L3-4 to A-L3-7).**
+  `src/lib/habitsDay.ts` is the only home of the day browser
+  (`resolveHabitsDay`) and the `/habits` URL builder (`habitsHref`); a
+  past day's lock is display only, and writes keep `isTapDayAllowed`. It
+  imports only `householdDate.ts` and `habits/carryOver.ts`.
+  `habitsFamilyColumns.ts` is the only time-of-day grouping
+  (`groupColumnRows` for the family view, phone cards and wide columns
+  alike; `groupRowsByTime` for Mine), the only fit rule (`fitsEveryone`,
+  `FIT_COLUMN_MIN` 220 and `FIT_COLUMN_GAP` 12, which is `gap-3`; both
+  ends name each other) and the only home of a column's empty text
+  (`emptyColumnText`). Row tags come from `familyRowTag` through
+  `ColumnItem` / `TimeRowItem`. `HabitRow layout="auto"` and
+  `FamilyHabitRow layout="card"` are the only tall cards. The file
+  imports only vocabulary, `habitsFamily.ts` and types from
+  `habitsToday.ts`. `HabitsDayView` is the one client owner of the Filter
+  state for both views, and `habitsReportScope.ts` holds every Today and
+  Whole family filter rule: `reportFilterOptions(..., { kinds: false,
+  areas: false })`, `matchesHabitsFilter`, `narrowedFilterCount`
+  (decision 261), `stillHiddenPeople` and `shownColumns`. Lists receive
+  `keep(row)` only; a component that matches rows or columns against the
+  Filter, people included, is a BLOCKER, and `HabitFilterSheet.tsx` only
+  draws each chip's on/off state. `HabitsBar.tsx` is the only Habits bar,
+  drawn through `bar(subtitle)`; `HabitFilterSheet.tsx` is the only
+  filter sheet and the only Mine / Whole family switch; the bar icon is
+  the only Report entry.
   `TIME_ICONS`, exported from `HabitFilterChips.tsx`, is the only
   time-of-day icon map. Both Report files are pure: no `db`, and callers pass
   `today`. `canSeeHabitReport(actor, personId)` in `habits/access.ts` is the
@@ -957,8 +988,12 @@ Adding a second definition of any of these is a BLOCKER:
   `isDayExcused(spec, overrides, vacations, day)` in `weekOverrides.ts`
   should become the one per-day "excused" rule; `monthCalendar` and
   `nothingDueText` each decide it today (not yet built). **Size watch:**
-  `habitVocabulary.ts` is 380 lines, `habitsStats.ts` 387, `habitsToday.ts`
-  350, `habitsRead.ts` 350, `habitsFamily.ts` 360 (its stats-page data is
+  `habitVocabulary.ts` is 425 lines (about 254 code; mission-53, A-L3-8:
+  new habit words stay there while its code is well under the cap, past
+  about 300 code lines a concern gets its own file, and an exported word
+  is referenced, never typed again), `habitsStats.ts` 387, `habitsToday.ts`
+  353 (about 283 code), `habitsReportScope.ts` 275, `HabitForm.tsx` 350
+  (at the soft cap), `habitsRead.ts` 350, `habitsFamily.ts` 360 (its stats-page data is
   the split seam), and the tests `habitsStats.test.ts` 426,
   `habitsReport.test.ts` 373, `habitsToday.test.ts` 383 (hours tests live in
   `habitsTodayHours.test.ts`), `goalsProgress.test.ts` 367 and
@@ -1069,17 +1104,32 @@ Adding a second definition of any of these is a BLOCKER:
   bottom padding to `pb-3` and is exactly one screen tall so only the columns scroll; the
   floating hamburger's row lifts its cap too, so the button lines up) and
   `data-page-width="wide"` (mission-44, below). The
-  `AppChrome.tsx` comment above `<main>` lists every attribute and its
-  users; a new opt-out adds itself there and here. (Mission-41, Captain's A4.)
-  For `data-page-width="wide"`, whose users grow with every step of the iPad
-  plan, that comment points at "Wide pages" below, which names every wide
-  page; the other attributes keep their users in the comment. (Mission-52,
-  Captain's A-L4-8.)
-- **Wide pages (mission-44, the iPad landscape plan).** Nine pages are
-  wide: the dashboard (mission-44), the Calendar (mission-46, every view),
-  and the Kitchen lists (mission-52): Inventory, Shopping, Expiring,
-  Recipes (All recipes and Cookbooks), Cookbook detail and Meal plan. A
-  page that should
+  `AppChrome.tsx` comment above `<main>` lists every attribute; the pages
+  that use `data-page-width="wide"` are listed only in "Wide pages" below,
+  and the comment points there. A new opt-out adds itself there and here.
+  (Mission-41, Captain's A4; mission-51, A-L5-8; mission-52, A-L4-8.)
+- **Wide pages (mission-44, the iPad landscape plan).** Wide pages: the
+  dashboard (mission-44), the Calendar (mission-46, every view), Plans &
+  Goals' This week, Goals and Vision tabs, the Goal page and the recipe
+  detail page (mission-51), and the Kitchen lists (mission-52): Inventory,
+  Shopping, Expiring, Recipes (All recipes and Cookbooks), Cookbook detail
+  and Meal plan. Their containers: This week's goal-card grid;
+  the Goals board; the Vision card grid; the Goal page's two-panel row
+  (`GoalDetail`, with the More row and every sheet outside it); the recipe
+  body (two columns). The recipe header band is not a container, because
+  it holds the action sheets. `plans/loading.tsx` mirrors This week's grid
+  and `recipes/[id]/loading.tsx` the recipe body (mission-51, A-L5-1).
+  Habits & Chores is wide too (mission-53, A-L3-1): `/habits`, Manage,
+  Chore chart, Report and Stats; New and Edit stay narrow until L6. Its
+  containers: Mine's top strip and its column grid; one round both Whole
+  family layouts; Manage; the Chore chart (and each of its day cards);
+  Report Year; Stats. `HoursLogSheet` and `ChoreChartSheet` are the
+  containers' siblings. Whole family switches layouts at a 45rem
+  container while `data-fills-width` reacts at `md`; they agree because a
+  768 screen (or 1024 with the Sidebar pinned) leaves a 736px container.
+  Stats goes to two columns from a 50rem container only when its right
+  column has something (nudges, Side by side, or an hours habit's
+  `HabitHoursDetail`); otherwise it is one column capped at `max-w-3xl`. A page that should
   use the whole width of a landscape iPad puts `data-page-width="wide"` on
   its root element (and on its `loading.tsx` root, so it is wide from the
   first paint). From `md` up, `<main>`, the wordmark header's row and the
@@ -1095,9 +1145,12 @@ Adding a second definition of any of these is a BLOCKER:
      mission-44), and iPad Safari is checked on the device. Keep sheets
      outside the container or portal them. The dashboard's container holds
      its grid, and the Customize sheet is the container's sibling. Known
-     exception: `HoursLogSheet` renders inline from the Habits tile, so it
-     sits inside the dashboard container (works in Chrome; on Bryce's
-     iPad check).
+     exceptions (work in Chrome; on Bryce's iPad check): `HoursLogSheet`
+     renders inline from the Habits tile, inside the dashboard container;
+     on the recipe page, `NutritionSection` (Confirm servings),
+     `RecipeCookbooksSection` and `RecipeTagsSection` render their sheets
+     inline inside the body container. Do not add to this list: a new
+     sheet goes outside the container or is portaled (mission-51, A-L5-4).
   2. **Column counts come from container variants (`@min-[…]:`, `@3xl:`),
      never screen breakpoints (`md:`, `lg:`).** The page then fits whatever
      room the pinned Sidebar or Rail leaves it, with no extra code.
@@ -1129,8 +1182,8 @@ Adding a second definition of any of these is a BLOCKER:
   3. **A row never stretches past a readable width.** More columns, more
      panels or a wider grid; never one 1148px row. Fixed bars (`AddItemBar`)
      stay centered at 768px.
-  4. **The + button sits bottom-right on wide pages** (mission-52, plan
-     rule 4). `FloatingAddButton` keeps its fixed full-width wrapper (left
+  4. **The + button sits bottom-right on wide pages** (mission-52 and
+     mission-53, plan rule 4; its props are in "The floating +" below). `FloatingAddButton` keeps its fixed full-width wrapper (left
      edge `--app-nav-width`); from `md` on a wide page its inner box lifts
      the 768px cap and aligns right. Below `md`, and on pages not yet wide,
      it stays bottom-left. A fixed element that must clear it on a wide
@@ -1182,6 +1235,41 @@ Adding a second definition of any of these is a BLOCKER:
   only for a small fixed list (at most 7 days), never one that grows with
   data. (Mission-49.)
   (Mission-46, Captain's A-L2-1.)
+  **Column dissolve (mission-51, A-L5-2):** a two-column layout may set a
+  different phone order with one DOM: each column div carries
+  `@max-[48rem]:contents` and each child an `order-N`, so below 48rem the
+  columns vanish and the children reorder in the parent flex column.
+  Allowed only for a small fixed set of sections (the recipe page's
+  seven); never for a list that grows with data, because `order` breaks
+  the match between reading order and DOM order there. The order is
+  written once, in the page's top comment and its classes.
+  **The one screen breakpoint (A-L5-3):** rule 2's exception: `RecipeHero`
+  switches from the phone hero to the small icon tile at `md`, a screen
+  breakpoint, because it sits in the header band (which holds sheets, so
+  cannot be a container) and `md` is exactly where `<main>` lifts its
+  width cap for a wide page. It is decoration, not a column count. A
+  second screen breakpoint on a wide page needs the same written reason
+  here.
+  **The Goals board (A-L5-5)** places its six areas in pure CSS,
+  column-major: `grid-flow-col` with a row count of ceil(visible areas / 2)
+  at 2 columns (a `--board-rows` variable) and 2 rows of all six at 3
+  columns, because the mock stacks fixed pairs. An empty area renders only
+  at 3 columns (`hidden @min-[64rem]:block`, `GOAL_BOARD_EMPTY_AREA`). No
+  JS split helper while the list is the fixed `LIFE_AREAS`.
+  **The floating + (mission-53, A-L3-2):** `FloatingAddButton` is the
+  only floating +. It sits bottom left of the 768px column on non-wide
+  pages, and on wide pages below `md` (phones stay clear of the last
+  row's check); bottom right on wide pages from `md`, through its own
+  wrapper (`md:[body:has([data-page-width=wide])_&]`). Its props are
+  `onClick` or `href`, plus `label`. Wide scroll areas reserve room for it
+  (`pb-20`). There is no + on the tablet. A fixed element that must clear
+  it follows rule 4 above.
+  **Shared class strings (mission-53, A-L3-3; A-L2-3 done):** a class
+  string that a component and its skeleton share is one exported constant
+  in `src/lib/`, written as a whole literal so the Tailwind scan finds it:
+  `DASHBOARD_GRID_CLASSES` / `DASHBOARD_CELL_CLASSES` (`dashboardGrid.ts`),
+  `YEAR_GRID_CLASSES` and `HABITS_DAY_GRID_CLASSES` (`gridClasses.ts`). A
+  skeleton that types its own copy is a BLOCKER.
   The wordmark header has an empty slot, `WORDMARK_HEADER_ACTIONS_ID`
   (`src/lib/appChrome.ts`), at its right end; a page whose state owns a
   header button portals the button into it (the dashboard's Customize,
@@ -1437,6 +1525,15 @@ Adding a second definition of any of these is a BLOCKER:
 ## Naming
 
 - Components: `PascalCase.tsx`, flat in `src/components/`.
+- **A component's `className` prop is only for the caller's spacing and
+  placement.** The component keeps its own layout classes (`flex`,
+  `items-center`, its own gap) and applies
+  `className={\`<its layout> ${className}\`}`; the prop's default holds only
+  the spacing or alignment the old single caller used (`mb-4`,
+  `mb-6 justify-around`). A caller places a component without restating
+  its layout, so the component can change its insides without breaking
+  callers. (Mission-51, A-L5-9. Instances: `HabitFilterChips`,
+  `DaySectionHeader`, `RecipeActionCircles`.)
 - Actions and lib: `camelCase.ts`; action exports are verbs
   (`createRecipe`, `putAway…`).
 - Routes follow Next App Router conventions; route groups like `(app)` are

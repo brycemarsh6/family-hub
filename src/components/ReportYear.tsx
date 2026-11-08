@@ -14,13 +14,16 @@ export function ReportYear({ year, today, choiceHrefs }: { year: YearData; today
   return (
     <>
       <ReportItemChooser choices={year.choices.map((choice) => ({ ...choice, href: choiceHrefs[choice.id] }))} chosenId={year.chosenId} />
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+      {/* Columns follow the container's width, not the screen's (STRUCTURE.md "Wide pages"). */}
+      <div className="@container">
+      <div className="grid grid-cols-2 gap-2 @min-[40rem]:grid-cols-3 @min-[60rem]:grid-cols-4">
         {year.months.map((month) => (
           <section key={month.month} className="rounded-2xl border border-line bg-surface p-1.5">
             <h2 className="mb-1 px-0.5 text-sm font-semibold">{month.name}</h2>
             <HabitMonthCalendar cells={month.cells} leading={month.leading} today={today} compact />
           </section>
         ))}
+      </div>
       </div>
       {year.totals && <p className="mt-3 text-sm text-muted">{year.totals}</p>}
     </>

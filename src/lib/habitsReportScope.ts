@@ -127,8 +127,8 @@ function personChips(viewer: HabitActor, people: readonly ChartPerson[], personI
 
 export type ReportFilterOption = { key: string; label: string };
 
-/** All, then Habits and Chores (only when both are shown, and `kinds` is not false: Today and Whole family already split them), the times of day present, then the life areas present in the order Today meets them (decision 169). Icons are the page's, by key prefix: `kind:`, `time:`, `area:`. */
-export function reportFilterOptions(items: readonly Pick<ScopedItem, "kind" | "timeOfDay" | "lifeArea">[], { kinds = true }: { kinds?: boolean } = {}): ReportFilterOption[] {
+/** All, then Habits and Chores (only when both are shown, and `kinds` is not false: Today and Whole family already split them), the times of day present, then (unless `areas` is false: Today and Whole family filter by time only) the life areas present in the order Today meets them (decision 169). Icons are the page's, by key prefix: `kind:`, `time:`, `area:`. */
+export function reportFilterOptions(items: readonly Pick<ScopedItem, "kind" | "timeOfDay" | "lifeArea">[], { kinds = true, areas: withAreas = true }: { kinds?: boolean; areas?: boolean } = {}): ReportFilterOption[] {
   const options: ReportFilterOption[] = [{ key: REPORT_FILTER_ALL, label: REPORT_LABELS.filterAll }];
   if (kinds && items.some((item) => item.kind === "habit") && items.some((item) => item.kind === "chore")) {
     options.push({ key: "kind:habit", label: REPORT_LABELS.filterHabits }, { key: "kind:chore", label: REPORT_LABELS.filterChores });
@@ -136,6 +136,7 @@ export function reportFilterOptions(items: readonly Pick<ScopedItem, "kind" | "t
   for (const time of TIMES_OF_DAY) {
     if (items.some((item) => toTimeOfDay(item.timeOfDay) === time)) options.push({ key: `time:${time}`, label: TIME_OF_DAY_LABELS[time] });
   }
+  if (!withAreas) return options;
   const areas = new Set<string>();
   for (const item of items) {
     const area = toLifeArea(item.lifeArea);
@@ -156,6 +157,26 @@ export function matchesReportFilter(item: Pick<ScopedItem, "kind" | "timeOfDay" 
   if (key.startsWith("kind:")) return item.kind === key.slice(5);
   if (key.startsWith("time:")) return toTimeOfDay(item.timeOfDay) === key.slice(5);
   return key.startsWith("area:") && toLifeArea(item.lifeArea) === key.slice(5);
+}
+
+/** The Today and Whole family Filter (mission 53): a time-of-day chip, and Together only. */
+export function matchesHabitsFilter(row: Pick<ScopedItem, "kind" | "timeOfDay" | "lifeArea"> & { sharing: string }, { time, togetherOnly }: { time: string; togetherOnly: boolean }): boolean {
+  return matchesReportFilter(row, time) && (!togetherOnly || row.sharing === "together");
+}
+
+/** How many Filter groups narrow the view (the badge on the bar): time, Together only, and hidden people count one each (decision 261). */
+export function narrowedFilterCount({ time, togetherOnly, hiddenPeople }: { time: string; togetherOnly: boolean; hiddenPeople: readonly string[] }): number {
+  return (time !== REPORT_FILTER_ALL ? 1 : 0) + (togetherOnly ? 1 : 0) + (hiddenPeople.length > 0 ? 1 : 0);
+}
+
+/** The hidden people who are still on the page (a refresh may have dropped one), so a stale id never counts. */
+export function stillHiddenPeople(hiddenPeople: readonly string[], people: readonly { id: string }[]): string[] {
+  return hiddenPeople.filter((id) => people.some((person) => person.id === id));
+}
+
+/** The columns the Filter's People group leaves (a hidden person's column is dropped). */
+export function shownColumns<T extends { id: string }>(columns: readonly T[], hiddenPeople: readonly string[]): T[] {
+  return columns.filter((column) => !hiddenPeople.includes(column.id));
 }
 
 // ---- Scope: what is shown, and the range the loader must read ----

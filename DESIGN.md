@@ -149,9 +149,10 @@ tell when a rule's reason has expired.
   floating hamburger's row) use `--app-nav-width` as their left edge so they
   line up with the content. On a wide page (`data-page-width`, from `md`)
   the round + sits at the bottom-right corner of the content area, where a
-  right thumb lands on an iPad; on phones it stays bottom-left because the
-  Recipes A-Z rail owns the right edge there, and on wide pages that rail
-  ends above the button (mission-52, decision 266).
+  right thumb lands on an iPad (mission-53). Below `md`, and on every other
+  page, it stays bottom-left, clear of a row's check and of the Recipes A-Z
+  rail; on wide pages that rail ends above the button (mission-52,
+  decision 266).
 - **The drawer reaches every destination directly; there are no landing
   pages.** `BackLink` is the one edge back up from a page below a drawer
   destination (recipe detail to Recipes), never on a destination itself.
@@ -309,20 +310,36 @@ A new one-off that duplicates one of these jobs is a design violation:
   `HabitScheduleField` and the small fields in `HabitFormFields` (`Field`,
   `Segmented`, `TimeOfDayField`, `LifeAreaField`); a new habit field goes in
   it, never in a second form
-- `HabitFamilyView` / `HabitFamilyColumn` / `HabitViewChips`: the Whole
-  family view of Habits & Chores. `HabitFamilyView` is the Together strip plus
-  a grid of person cards (`auto-fit` columns of at least 340px: stacked on a
-  phone, two across on an 820px iPad); `HabitFamilyColumn` is one card (avatar,
-  name, "x of y done" with skipped rows in neither number, then Habits and
-  Chores) and holds `FamilyHabitRow`, the compact line: icon and title linking
+- `HabitsBar` / `HabitFilterSheet`: the one thin bar at the top of Habits &
+  Chores, on both views and every screen (decisions 255, 258; mission-53):
+  the day as the page title with a subtitle ("Mine · 2 of 7 done" and the
+  chore streak flame, or "Whole family"), then Filter, 44px back and
+  forward arrows around Today (a past day, up to 14 back, is view only:
+  "Looking back. Past days are view only." under the bar, plain markers,
+  no buttons), Manage, and a bar-chart icon for the Report. It wraps to two
+  rows on a phone; the tablet login has no Manage, Report or +. The Filter
+  sheet holds the Mine / Whole family switch (kept in the URL,
+  `?view=family`) and the Time of day, Together only and People filters
+  for every column (decisions 257, 261); the button reads "Filter · N".
+- Mine (`HabitTodayList`): Morning, Afternoon, Evening and Anytime
+  columns, one neutral `bg-surface-2` tint with `bg-surface` cards and the
+  time icons telling them apart (decision 256); 1 column on a phone, 2 on
+  an upright iPad, 4 landscape. An empty column stays and says "Nothing
+  this morning." and so on (decision 262).
+- `HabitFamilyView` / `HabitFamilyColumn`: the Whole family view. On a
+  phone it is a stack of person cards; from a 45rem container it is one
+  tinted column per person, all fitting one screen when they can (220px
+  each) and a 330px swipe strip when they cannot. Rows in both are grouped
+  by time of day like Mine, with "Chore" and "Together" tags; a Together
+  habit shows once in each of its people's cards, never in a separate
+  strip. `HabitFamilyColumn` is one card (avatar,
+  name, "x of y done" with skipped rows in neither number) and holds
+  `FamilyHabitRow`, the compact line: icon and title linking
   to the stats page, streak label, 44px check. A row the viewer may not tick for
   shows its state in a plain marker that is not a button; a Together row's
-  check does not name one person. `HabitViewChips` (its own file) is
-  the "Mine" / "Whole family" pair of link pills above both views, the choice
-  kept in the URL (`?view=family`); it is a view switch, not a second
-  `PageTabs`, and the wall tablet never shows it. The chore streak is a
-  `--streak` flame and "N days" after the "Chores" title on Today and on each
-  card (2 or more, the Show streaks switch, always on the tablet); a person
+  check does not name one person. The chore streak is a
+  `--streak` flame and "N days" in Mine's subtitle and next to each
+  person's count (2 or more, the Show streaks switch, always on the tablet); a person
   on vacation reads "On vacation" under their name and their rows are
   excused (sorted with finished rows); on a Sunday after a clean chore week
   Today and the card carry a `--streak-soft` line. `VacationCard` (Settings):
@@ -344,6 +361,21 @@ A new one-off that duplicates one of these jobs is a design violation:
   day is due or still doable; a not-due today stays plain with a bold number,
   so an outline always means "this is something to do". Vacation days are
   drawn as Skipped. Archived items are not in the Report.
+- Wide Plans & Goals and the recipe page (mission-51, decisions 244 to
+  254, Hill): This week's goal cards sit 2 across from a 48rem container,
+  never 3, because each card holds tappable plan rows; the Goals board is
+  3 columns of two life areas each (column-major, Spiritual over Health
+  and so on), 2 columns below 64rem, and shows every area at 3 columns
+  with "No goals here yet" on an empty one so the board keeps its shape;
+  Vision's six cards go 3 across from 64rem; the Goal page is two equal
+  panels, The result left and The plan right, with the vision line under
+  both. The recipe page keeps its three action circles (not pills) in a
+  header band beside the title, drops the hero for a small icon tile from
+  `md`, puts Ingredients in a fixed 25rem column beside the Steps, and
+  Cooked today lives in the Rating card under the ingredients, not in the
+  header; on a phone the order is Ingredients, Instructions, Notes,
+  Rating + Cooked, Nutrition, Cookbooks, Tags. No cookbook names or tags
+  are repeated in the header line (they have live sections with Add).
 - `DashboardWidgetList` (the dashboard's widget grid and Customize button,
   and the nudge and Sunday cards above the grid) /
   `DashboardCustomizeSheet`: the only way to add, size, reorder, pick or
@@ -468,8 +500,11 @@ A new one-off that duplicates one of these jobs is a design violation:
   Shopping.
 - **Inventory groups start fully collapsed** — auto-opening low groups
   looked arbitrary at real scale.
-- **No recipe photos** — C7 was dropped (Vercel Blob is paid); the gradient
-  + `ChefHat` hero is the permanent treatment, not a placeholder.
+- **No recipe photos**: C7 was dropped (Vercel Blob is paid). On phones
+  the gradient + `ChefHat` hero is the permanent treatment, not a
+  placeholder; from `md` up (upright iPad included) the recipe page shows
+  a small `ChefHat` icon tile beside the title instead (decision 216,
+  mission-51).
 - **Single-tap delete stays** unless real accidental-deletion pain appears.
 - **No third-party app is the design reference** — earlier Todoist/Monarch
   comparisons were explicitly dropped.

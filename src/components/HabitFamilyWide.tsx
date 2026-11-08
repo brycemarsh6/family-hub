@@ -1,79 +1,52 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { BarChart3, ListFilter } from "lucide-react";
-import { HabitFilterChips, withTimeIcons } from "./HabitFilterChips";
+import { useEffect, useRef, useState } from "react";
 import { HabitFamilyWideColumn } from "./HabitFamilyWideColumn";
-import { REPORT_LABELS } from "@/lib/habitVocabulary";
-import { REPORT_FILTER_ALL, activeReportFilter, matchesReportFilter, reportFilterOptions } from "@/lib/habitsReportScope";
 import type { FamilyPage, FamilyRow } from "@/lib/habitsFamily";
+import { fitsEveryone } from "@/lib/habitsFamilyColumns";
 
 /**
- * The iPad layout of Whole family (768px and up): a toolbar (Filter, and Report
- * for someone who can manage), then a strip of 330px person columns that swipes
- * sideways. It fills the height left on the screen, so the page itself never
- * scrolls; each column scrolls on its own. `data-fills-width` tells the app
- * chrome to lift its 768px cap and bottom padding for this page.
+ * The iPad layout of Whole family (from 45rem of room): when every person fits
+ * at 220px or more (`fitsEveryone`, measured here) the columns share the width
+ * equally; otherwise a strip of 330px person columns that swipes sideways. The page's bar (mission 53) holds the Filter
+ * and the Report; this is only the strip. It fills the height left on the
+ * screen, so the page itself never scrolls; each column scrolls on its own.
+ * `data-fills-width` tells the app chrome to lift its 768px cap and bottom
+ * padding for this page.
  */
 export function HabitFamilyWide({
   page,
   showStreaks,
-  canManage,
+  keep,
   onToggle,
 }: {
   page: FamilyPage;
   showStreaks: boolean;
-  canManage: boolean;
+  /** The Filter sheet's test: whether a row shows. The count above each column is always the whole day. */
+  keep: (row: FamilyRow) => boolean;
   onToggle: (row: FamilyRow) => void;
 }) {
-  const [filtering, setFiltering] = useState(false);
-  const [filter, setFilter] = useState(REPORT_FILTER_ALL);
-  // One chip for every column; its options come from every row on the page, Together included.
-  const everyRow = [...page.columns.flatMap((column) => column.rows), ...page.together];
-  const filterOptions = reportFilterOptions(everyRow, { kinds: false });
-  const options = withTimeIcons(filterOptions);
-  const active = activeReportFilter(filterOptions, filter);
+  const root = useRef<HTMLDivElement>(null);
+  // Until measured (and while hidden, width 0) the 330px swipe strip shows.
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setWidth(el.getBoundingClientRect().width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  // The strip's gap-3 below is FIT_COLUMN_GAP (12px): the fit rule counts on it, so change them together.
+  const fits = fitsEveryone(width, page.columns.length);
 
   return (
-    <div data-fills-width className="hidden min-h-0 flex-1 flex-col md:flex">
-      <div className="mb-3 flex shrink-0 items-center gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            // Hiding the chips must not leave an invisible chip filtering the columns.
-            if (filtering) setFilter(REPORT_FILTER_ALL);
-            setFiltering((on) => !on);
-          }}
-          aria-pressed={filtering}
-          className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-colors ${
-            filtering ? "border-accent bg-accent text-accent-fg" : "border-line bg-surface"
-          }`}
-        >
-          <ListFilter aria-hidden="true" size={18} />
-          Filter
-        </button>
-        {canManage && (
-          <Link href="/habits/report" className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-semibold">
-            <BarChart3 aria-hidden="true" size={18} />
-            {REPORT_LABELS.title}
-          </Link>
-        )}
-      </div>
-      {filtering && options.length > 1 && <HabitFilterChips options={options} value={active} onChange={setFilter} className="mb-3 shrink-0" />}
+    <div ref={root} data-fills-width className="hidden min-h-0 flex-1 flex-col @min-[45rem]:flex">
       {page.columns.length === 0 ? (
         <p className="text-sm text-muted">No one to show yet.</p>
       ) : (
-        <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3.5 overflow-x-auto pb-2">
+        <div className={`flex min-h-0 flex-1 gap-3 pb-2 ${fits ? "" : "snap-x snap-mandatory overflow-x-auto"}`}>
           {page.columns.map((column) => (
-            <HabitFamilyWideColumn
-              key={column.id}
-              column={column}
-              together={page.together}
-              showStreaks={showStreaks}
-              keep={(row) => matchesReportFilter(row, active)}
-              onToggle={onToggle}
-            />
+            <HabitFamilyWideColumn key={column.id} column={column} together={page.together} showStreaks={showStreaks} fits={fits} keep={keep} onToggle={onToggle} />
           ))}
         </div>
       )}
