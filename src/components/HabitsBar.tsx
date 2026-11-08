@@ -7,7 +7,7 @@ const ICON_BUTTON = "flex h-11 w-11 shrink-0 items-center justify-center rounded
 const DISABLED = "pointer-events-none opacity-40";
 
 /**
- * The bar at the top of Habits & Chores (mission 51): the day as the page's
+ * The bar at the top of Habits & Chores (mission 53): the day as the page's
  * title with a subtitle under it, then Filter, the day arrows with Today,
  * Manage and the Report. The controls wrap under the title on a phone. The
  * arrows and Today are links (the day is the URL); an arrow at the edge of the

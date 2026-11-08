@@ -17,7 +17,7 @@ export default async function HabitStatsPage({ params }: { params: Promise<{ id:
   if (!data) notFound();
 
   return (
-    // Wide page: lifts the 768px cap on a landscape iPad (STRUCTURE.md "Wide pages", mission-51).
+    // Wide page: lifts the 768px cap on a landscape iPad (STRUCTURE.md "Wide pages", mission-53).
     <div data-page-width="wide" className="py-2">
       <BackLink href="/habits" label="Habits & Chores" />
       <HabitStats data={data} />

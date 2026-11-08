@@ -1,7 +1,7 @@
 import { addCalendarDays, calendarDaysBetween, formatCalendarDate, parseDateParam, type CalendarDate } from "./householdDate";
 import { CARRY_LOOKBACK_DAYS } from "./habits/carryOver";
 
-// The Habits page's day browser (mission 51, decision 222): `?day=YYYY-MM-DD`
+// The Habits page's day browser (mission 53, decision 222): `?day=YYYY-MM-DD`
 // shows a past day, read only, as far back as the data window reaches. Pure,
 // so the bounds are pinned by tests.
 

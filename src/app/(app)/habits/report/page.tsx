@@ -19,7 +19,7 @@ export default async function HabitReportPage({ searchParams }: { searchParams: 
   if (!report) redirect("/habits");
 
   return (
-    // Wide page: lifts the 768px cap on a landscape iPad (STRUCTURE.md "Wide pages", mission-51).
+    // Wide page: lifts the 768px cap on a landscape iPad (STRUCTURE.md "Wide pages", mission-53).
     <div data-page-width="wide" className="py-2">
       <BackLink href="/habits" label="Habits & Chores" />
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">{REPORT_LABELS.title}</h1>

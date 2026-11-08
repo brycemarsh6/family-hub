@@ -382,7 +382,7 @@ test("sharedNeedsMorePeople: Together or Side by side with fewer than two people
   assert.equal(sharedNeedsMorePeople(false, 1), false);
 });
 
-// ---- A past day is built from what was true then (mission 51 F1) ----
+// ---- A past day is built from what was true then (mission 53 F1) ----
 
 const monday = d(2026, 11, 2);
 

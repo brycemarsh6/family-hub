@@ -1,7 +1,7 @@
 import { SkeletonBlock } from "@/components/Skeleton";
 import { HABITS_DAY_GRID_CLASSES } from "@/lib/gridClasses";
 
-// The Habits & Chores loading state (mission 51): the bar, then the columns at
+// The Habits & Chores loading state (mission 53): the bar, then the columns at
 // the same container widths as the real list (1, 2 or 4 across). One file
 // covers /habits and its children, none of which has its own.
 export default function Loading() {

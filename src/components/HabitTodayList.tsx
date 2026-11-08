@@ -77,7 +77,7 @@ export function HabitTodayList({
   prompts?: TodayPrompt[];
   /** The Filter sheet's test (time of day, Together only): whether a row shows. */
   keep: (row: HabitRowView) => boolean;
-  /** A past day: markers instead of buttons, no swipe, no hours log, no confetti (mission 51). */
+  /** A past day: markers instead of buttons, no swipe, no hours log, no confetti (mission 53). */
   readOnly?: boolean;
   /** Draws the page's bar with this list's subtitle, so its count follows the live rows. */
   bar: (subtitle: ReactNode) => ReactNode;
@@ -101,13 +101,13 @@ export function HabitTodayList({
 
   const shown = ordered.filter(keep);
   const columns = groupRowsByTime(ordered, keep);
-  // Which columns had rows before the Filter: an emptied one says "Nothing here today." (decision 240).
+  // Which columns had rows before the Filter: an emptied one says "Nothing here today." (decision 262).
   const hadRows = new Set(groupRowsByTime(ordered).filter((group) => group.items.length > 0).map((group) => group.key));
 
   const throughDay = vacationThrough ? parseDateParam(vacationThrough) : null;
   // How many cards the top strip holds, so two or more can sit side by side.
   const stripCards = Number(nudges.length > 0) + Number(throughDay !== null) + Number(shoutOut) + Number(prompts.length > 0);
-  // "Mine · 2 of 7 done · 5 days" with the chore streak's flame from 2 days (decisions 120, 237); none on a past day (the cached streak is as of a later day).
+  // "Mine · 2 of 7 done · 5 days" with the chore streak's flame from 2 days (decisions 120, 259); none on a past day (the cached streak is as of a later day).
   const streak = showStreaks && !readOnly ? streakLabel(choreStreak, "days") : null;
   const subtitle = (
     <>

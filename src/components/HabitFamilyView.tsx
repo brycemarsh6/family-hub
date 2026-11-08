@@ -21,7 +21,7 @@ function applyToPage(page: FamilyPage, change: HabitChange): FamilyPage {
   };
 }
 
-/** A past day (mission 51): nobody can tick anything, and the Sunday shout-out is not for that day. */
+/** A past day (mission 53): nobody can tick anything, and the Sunday shout-out is not for that day. */
 function lockPage(page: FamilyPage): FamilyPage {
   const lock = (row: FamilyRow): FamilyRow => ({ ...row, canLog: false });
   return { ...page, together: page.together.map(lock), columns: page.columns.map((column) => ({ ...column, shoutOut: false, rows: column.rows.map(lock) })) };

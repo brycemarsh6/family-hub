@@ -172,7 +172,7 @@ test("matchesHabitsFilter: the time chip and Together only both have to agree", 
   assert.equal(matchesHabitsFilter(row, { time: "time:morning", togetherOnly: true }), true);
 });
 
-test("narrowedFilterCount: time, Together only and hidden people count one each (decision 239)", () => {
+test("narrowedFilterCount: time, Together only and hidden people count one each (decision 261)", () => {
   assert.equal(narrowedFilterCount({ time: "all", togetherOnly: false, hiddenPeople: [] }), 0);
   assert.equal(narrowedFilterCount({ time: "time:morning", togetherOnly: false, hiddenPeople: [] }), 1);
   assert.equal(narrowedFilterCount({ time: "all", togetherOnly: true, hiddenPeople: ["a", "b"] }), 2);

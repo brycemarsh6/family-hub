@@ -20,7 +20,7 @@ export default async function ChoreChartPage({ searchParams }: { searchParams: P
   if (!chart) notFound();
 
   return (
-    // Wide page: lifts the 768px cap on a landscape iPad (STRUCTURE.md "Wide pages", mission-51).
+    // Wide page: lifts the 768px cap on a landscape iPad (STRUCTURE.md "Wide pages", mission-53).
     <div data-page-width="wide" className="py-2">
       <BackLink href="/habits/manage" label="Manage" />
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{CHORE_CHART_LABELS.title}</h1>

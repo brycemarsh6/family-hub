@@ -46,9 +46,9 @@ export function HabitRow({
   onUnskip: () => void;
   /** The viewer's "Show streaks" switch; the family tablet always passes true (decision 98). */
   showStreaks: boolean;
-  /** A past day (mission 51): the check is a plain marker, there is no swipe, and an hours row has no log button. */
+  /** A past day (mission 53): the check is a plain marker, there is no swipe, and an hours row has no log button. */
   readOnly?: boolean;
-  /** "row" (the default, and the dashboard tile's) is today's row. "auto" is a card for Mine's time columns: a tall card from a 60rem container (mission 51 C2). */
+  /** "row" (the default, and the dashboard tile's) is today's row. "auto" is a card for Mine's time columns: a tall card from a 60rem container (mission 53 C2). */
   layout?: "row" | "auto";
   /** "Chore" (`familyRowTag`): drawn as a small tag under the title. Only the "auto" layout shows it. */
   tag?: string | null;

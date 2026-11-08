@@ -60,7 +60,7 @@ export function HoursHabitRow({
   hours: HoursRowView;
   onLog: () => void;
   showStreaks: boolean;
-  /** A past day (mission 51): the bar and the words stay, the log button goes. */
+  /** A past day (mission 53): the bar and the words stay, the log button goes. */
   readOnly?: boolean;
   /** "auto" is a card in Mine's time columns (same classes, a rounded surface); "row" is the dashboard tile's row. */
   layout?: "row" | "auto";

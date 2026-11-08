@@ -1,7 +1,7 @@
-# Mission 51: iPad landscape L3 (Habits & Chores go wide)
+# Mission 53: iPad landscape L3 (Habits & Chores go wide)
 
 **Project:** family-hub (Marshee)
-**Status:** RECORDS (all gates PASS: Vision 2, Strange 3, Captain 3; C5 next)
+**Status:** RECORDS (all gates PASS: Vision 2, Strange 3, Captain 3; main merged at `2dc1eb2`; C5 next)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/habits-chores-ipad-landscape-f04eee` (cut from `944444b`; `origin/main` with PR #74 merged in at `1bb7645`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L3 (section "Habits and Chores"; decisions 215 to 223, 230)
@@ -10,6 +10,17 @@
 Numbering: 49 (`mission-49-dashboard-widgets-w2-calendar.md`) and 50
 (`mission-50-assistant-plans-goals.md`) are taken on `origin/main`; no
 branch claims 51 (checked `git branch -r`, 2026-11-07).
+
+**Renumbered 2026-11-07 (before the PR):** L5 merged as mission 51
+(`mission-51-ipad-landscape-l5.md`, PR #79) and L4 is mission 52 in its
+own chat, so this mission is **53** (this file was
+`mission-51-ipad-landscape-l3-habits.md`; commits and gate rows below say
+"Mission 51" and mean this one). Decisions 233 to 243 belong to mission
+49, and L5 and L4 used 244 to 254, so this mission's decisions move:
+233 to 236 are now **255 to 258** (Bryce) and Hill's 237 to 240 are now
+**259 to 262**; Hill's H5 (past-day empty words) is **263**. The old
+numbers stay as written in the history below; the plan, the code
+comments and the constitutions use the new ones.
 
 ## Brief
 
@@ -117,8 +128,14 @@ empty-column wording ("Nothing this afternoon" from the mock vs the existing
 - Words for `habitVocabulary.ts`: `HABITS_VIEW_LABELS`,
   `PAST_DAY_VIEW_ONLY`, `HABIT_FILTER_LABELS`, `filterButtonLabel(n)`,
   `nothingInColumnLabel(key)`.
+- **H5 (263, medium, 2026-11-07):** a past day with nothing due says
+  "Nothing due that day" / "You had no habits or chores to do"
+  (`PAST_DAY_NOTHING_DUE_TITLE` / `_HINT`), replacing the builder's
+  "Nothing was due" / "No habits or chores were due that day": same voice
+  as "Nothing due today", and the hint adds a fact instead of repeating
+  "due".
 - For Bryce to look at first: H2's sentence, H3's count rule, H4's
-  Anytime wording.
+  Anytime wording, H5.
 
 ## Fury's structural calls (written on Fable at Bryce's request, 2026-11-07)
 

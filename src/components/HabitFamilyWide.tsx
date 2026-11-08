@@ -8,7 +8,7 @@ import { fitsEveryone } from "@/lib/habitsFamilyColumns";
 /**
  * The iPad layout of Whole family (from 45rem of room): when every person fits
  * at 220px or more (`fitsEveryone`, measured here) the columns share the width
- * equally; otherwise a strip of 330px person columns that swipes sideways. The page's bar (mission 51) holds the Filter
+ * equally; otherwise a strip of 330px person columns that swipes sideways. The page's bar (mission 53) holds the Filter
  * and the Report; this is only the strip. It fills the height left on the
  * screen, so the page itself never scrolls; each column scrolls on its own.
  * `data-fills-width` tells the app chrome to lift its 768px cap and bottom

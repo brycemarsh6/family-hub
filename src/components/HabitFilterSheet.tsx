@@ -13,7 +13,7 @@ export type FilterPerson = { id: string; displayName: string; avatarColor: strin
 const GROUP_LABEL = "mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted";
 
 /**
- * The Filter sheet (mission 51, decision 239): Show (Mine / Whole family, links
+ * The Filter sheet (mission 53, decision 261): Show (Mine / Whole family, links
  * that keep the day), Time of day, the Together only switch, and People (Whole
  * family only). It narrows what both views show and changes nothing saved.
  * The frame is `RadioSheet`'s (a bottom sheet, centred from `md`, Escape or the

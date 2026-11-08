@@ -13,7 +13,7 @@ import type { HabitRowView } from "@/lib/habitsToday";
 import { REPORT_FILTER_ALL, activeReportFilter, matchesHabitsFilter, narrowedFilterCount, reportFilterOptions, stillHiddenPeople } from "@/lib/habitsReportScope";
 
 /**
- * The one client owner of the Habits page (mission 51): the Filter state (time
+ * The one client owner of the Habits page (mission 53): the Filter state (time
  * of day, Together only, who), the sheet, and the bar. Each list draws the bar
  * itself through `bar(subtitle)`, so the "2 of 7 done" under the date follows
  * the list's live rows. The filter is a plain `keep` test both lists share.

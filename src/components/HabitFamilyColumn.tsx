@@ -136,7 +136,7 @@ export function FamilyHabitRow({
 /**
  * One person's card on the family view: avatar, name, "x of y done" (their own rows and the
  * Together ones they are on; excused rows are in neither number, 109, 115), then their rows under Morning,
- * Afternoon, Evening and Anytime with the same Chore and Together tags as the wide columns (decision 233). The
+ * Afternoon, Evening and Anytime with the same Chore and Together tags as the wide columns (decision 255). The
  * chore streak is a flame beside the count (120, 233); a person on vacation reads "On vacation" under
  * their name (after the count when something still counts, "5 of 5 done · On vacation"); on a Sunday after a clean week the card says so (122).
  */

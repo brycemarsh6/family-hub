@@ -159,12 +159,12 @@ export function matchesReportFilter(item: Pick<ScopedItem, "kind" | "timeOfDay" 
   return key.startsWith("area:") && toLifeArea(item.lifeArea) === key.slice(5);
 }
 
-/** The Today and Whole family Filter (mission 51): a time-of-day chip, and Together only. */
+/** The Today and Whole family Filter (mission 53): a time-of-day chip, and Together only. */
 export function matchesHabitsFilter(row: Pick<ScopedItem, "kind" | "timeOfDay" | "lifeArea"> & { sharing: string }, { time, togetherOnly }: { time: string; togetherOnly: boolean }): boolean {
   return matchesReportFilter(row, time) && (!togetherOnly || row.sharing === "together");
 }
 
-/** How many Filter groups narrow the view (the badge on the bar): time, Together only, and hidden people count one each (decision 239). */
+/** How many Filter groups narrow the view (the badge on the bar): time, Together only, and hidden people count one each (decision 261). */
 export function narrowedFilterCount({ time, togetherOnly, hiddenPeople }: { time: string; togetherOnly: boolean; hiddenPeople: readonly string[] }): number {
   return (time !== REPORT_FILTER_ALL ? 1 : 0) + (togetherOnly ? 1 : 0) + (hiddenPeople.length > 0 ? 1 : 0);
 }

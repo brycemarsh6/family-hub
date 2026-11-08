@@ -394,20 +394,20 @@ export function familyRowTag(together: boolean, chore: boolean): string | null {
   return tags.length > 0 ? tags.join(" · ") : null;
 }
 
-// ---- The Habits bar, day browsing and Filter sheet (mission 51, Hill's H1 to H4) ----
+// ---- The Habits bar, day browsing and Filter sheet (mission 53, Hill's H1 to H4) ----
 
 /** The two views, named in the bar's subtitle and in the Filter sheet's Show group. */
 export const HABITS_VIEW_LABELS = { mine: "Mine", family: "Whole family" } as const;
 
-/** The Habits bar's controls (mission 51). */
+/** The Habits bar's controls (mission 53). */
 export const HABITS_BAR_LABELS = { previousDay: "Previous day", today: "Today", nextDay: "Next day", manage: "Manage", report: REPORT_LABELS.title } as const;
 /** Read only by a screen reader, after the chore streak's flame. */
 export const CHORE_STREAK_SR = "chore streak ";
 
-/** Under the bar on a past day (decision 238). */
+/** Under the bar on a past day (decision 260). */
 export const PAST_DAY_VIEW_ONLY = "Looking back. Past days are view only.";
 
-/** The Filter sheet's title and group labels (decision 239). */
+/** The Filter sheet's title and group labels (decision 261). */
 export const HABIT_FILTER_LABELS = { title: "Filter", show: "Show", timeOfDay: "Time of day", togetherOnly: "Together only", people: "People" } as const;
 
 /** The bar's Filter button: "Filter", or "Filter · 2" counting the narrowed groups (Show never counts). */
@@ -415,11 +415,11 @@ export function filterButtonLabel(narrowed: number): string {
   return narrowed > 0 ? `${HABIT_FILTER_LABELS.title} · ${narrowed}` : HABIT_FILTER_LABELS.title;
 }
 
-/** What an empty column says (decision 240); `key` is a time of day or "anytime". A column a filter emptied says `NOTHING_HERE_TODAY` instead. */
+/** What an empty column says (decision 262); `key` is a time of day or "anytime". A column a filter emptied says `NOTHING_HERE_TODAY` instead. */
 export function nothingInColumnLabel(key: TimeOfDay | "anytime"): string {
   return key === "anytime" ? NOTHING_HERE_TODAY : `Nothing this ${key}.`;
 }
 
-/** A past day with nothing due (mission 51 C2; the title and hint of the empty state). */
-export const PAST_DAY_NOTHING_DUE_TITLE = "Nothing was due";
-export const PAST_DAY_NOTHING_DUE_HINT = "No habits or chores were due that day";
+/** A past day with nothing due (mission 53 C2; the title and hint of the empty state). */
+export const PAST_DAY_NOTHING_DUE_TITLE = "Nothing due that day";
+export const PAST_DAY_NOTHING_DUE_HINT = "You had no habits or chores to do";
