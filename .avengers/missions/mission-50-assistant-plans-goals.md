@@ -1,7 +1,7 @@
 # Mission 50: Winnie's plans and goals (Assistant API)
 
 **Project:** family-hub (Marshee)
-**Status:** GATES PASSED (Vision and Captain PASS on pass 2); merging
+**Status:** SHIPPED. Merged as PR #75 (`82d924c`) on 2026-11-07; production deploy READY
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/plans-goals-assistant-mission-1a9a26` from `origin/main`
 `d0397e2` (holds `fc9772b`, mission 47's records). Worktree
@@ -660,7 +660,14 @@ in `habitActor*.ts`; `assistant/goalReads.ts` reads only through
   edits only his and Together goals; goals she makes are shared, H3), then
   Hill's H1 to H9, then A17 to A20. `ASSISTANT_OWNER_USER_ID` must be set
   in Vercel (already on his checklist) or "Mine" is refused.
-- **Shipped check:** (after the merge)
+- **Shipped check:** PR #75 merged 2026-11-07 18:15 UTC as `82d924c`
+  (Gauntlet SUCCESS). Vercel status on the merge commit: "Deployment has
+  completed". Tokenless curl to production: all 11 new operations answer
+  401 (GET/POST /goals, GET /goals/week, GET/PATCH /goals/{id}, POST
+  check-ins, DELETE a check-in, POST plan-items, PATCH /plan-items/{id},
+  GET /vision, PUT /vision/...); a made-up route answers 404, so the 401s
+  come from the real routes. Nothing was written to production.
+  `git log origin/main..HEAD` on the mission branch was empty.
 
 ### What to tell Winnie (plain English, for Bryce to paste or adapt)
 

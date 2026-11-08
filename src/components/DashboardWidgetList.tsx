@@ -15,6 +15,7 @@ import {
   reorderWidgets,
   resizeWidget,
   setWidgetItems,
+  setWidgetOptions,
 } from "@/lib/dashboardLayout";
 import { DASHBOARD_CELL_CLASSES, DASHBOARD_GRID_CLASSES, gridAreaVars } from "@/lib/dashboardGrid";
 import { useWordmarkHeaderActionsTarget } from "@/lib/appChrome";
@@ -43,7 +44,7 @@ import type { DashboardLayout } from "@/lib/dashboardLayout";
  * (dashboardGrid.ts) through CSS custom properties, one pair per column count,
  * and rows are `auto` with a 9.5rem minimum per cell, so a tile is never cut and a lone Large fits its content (decision 209).
  *
- * Every Customize change (add, remove, resize, drag, picks, reset) is
+ * Every Customize change (add, remove, resize, drag, picks, options, reset) is
  * optimistic through useOptimisticRun: it shows at once and saves in the
  * background, and a failed save puts the old layout back and says so in the
  * sheet. A widget added a moment ago has no tile until the server answers, so
@@ -135,6 +136,7 @@ export default function DashboardWidgetList({
           onResize={(uid, size) => change(resizeWidget(optimisticLayout, uid, size))}
           onReorder={(uids) => change(reorderWidgets(optimisticLayout, uids))}
           onPicks={(uid, ids) => change(setWidgetItems(optimisticLayout, uid, ids))}
+          onOptions={(uid, patch) => change(setWidgetOptions(optimisticLayout, uid, patch))}
           onReset={() => change(DEFAULT_DASHBOARD_LAYOUT)}
           onClose={() => setOpen(false)}
         />

@@ -1,11 +1,12 @@
-import { BookOpen, CalendarDays, House, ListChecks, Package, ShoppingCart, Target } from "lucide-react";
+import { BookOpen, CalendarDays, House, ListChecks, Package, ShoppingCart, Target, UtensilsCrossed } from "lucide-react";
 import type { ComponentType } from "react";
 import { DASHBOARD_WIDGETS } from "@/lib/dashboardWidgets";
 import type { DashboardWidgetKind, WidgetSize } from "@/lib/dashboardWidgets";
 
 /** The same Lucide icon each real tile draws in its header. */
 const KIND_ICONS: Record<DashboardWidgetKind, ComponentType<{ size?: number; className?: string; "aria-hidden"?: "true" }>> = {
-  todayMeals: CalendarDays,
+  todayMeals: UtensilsCrossed,
+  calendar: CalendarDays,
   habits: ListChecks,
   chores: House,
   goals: Target,
