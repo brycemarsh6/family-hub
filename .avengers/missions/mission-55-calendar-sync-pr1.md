@@ -307,8 +307,12 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
   `src/components/SyncedCalendarsList.tsx`, new
   `src/components/LinkedAccountCard.tsx`, `src/app/(app)/settings/page.tsx`
   (one new row), `.env.example` (three commented names), `README.md` (one
-  short "Google sync" paragraph naming the env vars). Must not touch:
-  `src/lib/`, `src/app/actions/`, `src/app/api/`, `src/proxy.ts`, `prisma/`.
+  short "Google sync" paragraph naming the env vars),
+  `src/lib/calendarSyncVocabulary.ts` and its test (the page's error words
+  live there), new `prisma/seed-linked-calendars.ts`, new
+  `prisma/clean-linked-calendars.ts`, `package.json` (two `db:` script
+  lines only). Must not touch:
+  `src/app/actions/`, `src/app/api/`, `src/proxy.ts`, `prisma/`.
 - **Spec:** page: `requireRole(...MANAGER_ROLES)`, `BackLink href="/settings"
   label="Settings"`, title from the vocabulary, reads
   `loadSyncedCalendarsPage()` plus `isGoogleConfigured() &&
@@ -317,7 +321,10 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
   (`state`: "That link expired. Try again."; `signin`: "Sign in to Marshee
   first, then link."; `access_denied`: "Google didn't allow it. Try
   again."; `admin_policy_enforced`: "Your work's Google admin has blocked
-  Marshee. Ask them to allow it, or link a personal account."; anything
+  Marshee. Ask them to allow it, or link a personal account.";
+  `exchange`: "Google didn't finish the link. Try again.";
+  `no-refresh-token`: "Google didn't give Marshee lasting access. Try
+  again."; anything
   else: "Google returned an error ({code}). Try again."). Cards: email
   (or label with email under it), "linked by {name}", collapsed summary
   ("2 calendars, 1 both ways"), tap to expand; each calendar row 56px+
@@ -332,12 +339,13 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
   non-device managers, a `Link` to `/settings/calendars` styled like the
   Manage family row, label "Synced calendars". Lucide `CalendarSync` or
   `CalendarCog` icon.
-- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm run build`;
-  dev server screenshots at 375px light and dark of: empty + not
-  configured; one seeded account (insert a fake row on the dev branch by a
-  one-off script the builder deletes, token field any encrypted string).
-- **Evidence required:** the screenshots' paths, `wc -l` of each
-  component (soft cap 350).
+- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`, `npm run build`.
+  A browser check needs a signed-in session, so screenshots move to
+  Strange. The seed script makes two fake accounts (googleSubject starting
+  `zz-m55-`, one per manager, a fake non-decryptable token) on the dev
+  branch only, and the clean script removes only rows with that prefix.
+- **Evidence required:** command output, `wc -l` of each component
+  (soft cap 350).
 - **Done criteria:** Fury opens the page in the preview and taps through.
 
 ## Gate ledger
