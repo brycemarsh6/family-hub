@@ -337,6 +337,7 @@ Status per contract is kept on its heading line.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 2 | Captain | BLOCKED | `HabitFamilyView.tsx:70-71` still matches the people filter (columns hidden, Together row with all people hidden) in a component (STRUCTURE.md :918-919; F1 spec item 3): add `shownColumns` / `togetherRowShown` beside `stillHiddenPeople`, tested | Pass-1 B1, B2 and the strongest note cleared; new helpers pass; `buildTodayRows` bound placed right (`habitsToday.ts` 353 / 283 code, no split). NOTES: `HABITS_BAR_LABELS.report` retypes `REPORT_LABELS.title`; orphaned comment above `HABITS_BAR_LABELS` (`PAST_DAY_VIEW_ONLY` lost its comment); `habitStartDay` computed twice; `HabitsDayView`/`HabitTodayList` take the type from `habitsRead`; `sharing: string` could be `HabitSharing`. A-51-6 and A-51-8 text updated (below) |
 | 1 | Vision | BLOCKED | (1) a past day is built from data after it: log and hours reads have no upper bound, habits created after the day show as due (probe: a 2-a-week habit checked Wed and Thu vanishes from Monday; a habit made Friday shows Monday as missed); (2) Report Week rows stretch about 1148px on the now-wide Report (STRUCTURE.md Wide pages rule 3) | Gauntlet green with real codes (1415; UTC 1408 + 7 skipped; LA 1415; record check 0 hard, 7 REVIEW; build 0); boundaries clean; built CSS holds lib-only classes. NOTES: phone family card says `NOTHING_DUE_TODAY` when the Filter emptied it; phone Together strip ignores hidden people; stale "14px" comment; one-frame reflow before the ResizeObserver fires; 752 to 767px screens show the strip without the frame (no real iPad); + bottom right on phones too (Strange to judge); Manage second grid puts both links side by side with no archive; habits archived after a past day are missing from it; habits loading covers New/Edit |
 | 1 | Captain | BLOCKED | (1) `habitsFamilyColumns.ts:2` and its test import `HabitRowView` type from server-only `habitsRead.ts` (STRUCTURE.md dependency direction :815-817): import from `./habitsToday`; (2) `HabitsDayView.tsx:58,63` builds and matches filter options in a component (STRUCTURE.md :915-920 one filter rule) | Strongest NOTE: `habits/loading.tsx:17` copies Mine's grid and drifted (`gap-3.5` vs `gap-3`): `HABITS_DAY_GRID_CLASSES`. NOTES: vocabulary 420/252 (rule clauses contradict, A-51-8); second "Mine" literal; bar words inline in components; two copies of the read-only marker; `lockPage` and people filter untested in tsx; time key order written twice in `habitsFamilyColumns.ts`; stale comments ("14px", header); habits `loading.tsx` also covers New/Edit (narrow pages) and other subpages' shapes; ReportYear indentation; sheet frame copied (old debt). Amendments A-51-1 to A-51-9 drafted |
 
@@ -443,6 +444,14 @@ Status per contract is kept on its heading line.
   code lines a concern gets its own file. Fix the stale "380 lines".
 - **A-51-9** Page opt-outs: the AppChrome comment names the three wide
   pages and Whole family's `data-fills-width`.
+- **Pass 2 updates:** A-51-6 final text: `habitsReportScope.ts` holds
+  every Today and Whole family filter rule (`reportFilterOptions(..., {
+  kinds: false, areas: false })`, `matchesHabitsFilter`,
+  `narrowedFilterCount`, `stillHiddenPeople`, `shownColumns` /
+  `togetherRowShown`); a component that matches rows or columns against
+  the Filter, people included, is a BLOCKER. A-51-8 numbers: 425 total /
+  254 code at F1; a word already exported is referenced, never retyped.
+  Size watch: `habitVocabulary.ts` 425 / 254, `habitsToday.ts` 353 / 283.
 - Also: mission-46 file's "Waiting for Bryce" line (A-L2-3 done here).
 
 ## Handoff log
