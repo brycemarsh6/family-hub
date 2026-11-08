@@ -1,9 +1,9 @@
 # Mission 51: iPad landscape L3 (Habits & Chores go wide)
 
 **Project:** family-hub (Marshee)
-**Status:** EXECUTING (contracts written; Hill's H1 to H4 next, then C1)
+**Status:** GATING (C1 to C4 done; Vision and Captain pass 1)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
-**Branch:** `claude/habits-chores-ipad-landscape-f04eee` (from `origin/main` at `7674730`, after PR #74 merged)
+**Branch:** `claude/habits-chores-ipad-landscape-f04eee` (cut from `944444b`; `origin/main` with PR #74 merged in at `1bb7645`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L3 (section "Habits and Chores"; decisions 215 to 223, 230)
 **Mocks:** canvas boards "Today" (`project/Today.dc.html`) and "Family" (`project/Family.dc.html`) on https://claude.ai/artifact/XpmoRsLuBuPUdwuRSzK25n
 
@@ -305,7 +305,7 @@ Status per contract is kept on its heading line.
   1180, 1180+Sidebar, 820 (from a `javascript_tool` or Playwright-free
   `getBoundingClientRect` dump Stark runs in the preview).
 
-### C4: Manage, Chore chart, Report Year, Stats, A-L2-3
+### C4: Manage, Chore chart, Report Year, Stats, A-L2-3 (DONE, `854cc82`)
 - **May touch:** `HabitManager.tsx`, `ChoreChart.tsx`, `ReportYear.tsx`,
   `HabitStats.tsx`, `habits/manage|chart|report|[id]/page.tsx` (root gets
   `data-page-width="wide"`), `src/lib/dashboardGrid.ts`, new
@@ -339,6 +339,13 @@ Status per contract is kept on its heading line.
 |---|---|---|---|---|
 
 ## Handoff log
+
+- 2026-11-07: C4 DONE (`854cc82`, 14 files, +123/-64). Stark: gauntlet green,
+  built CSS holds every new container class, each grid string has one
+  home. **Branch base was `944444b`, not `7674730`:** the worktree was cut
+  before PR #74 merged, so main (PR #74 and #78) was merged in via the
+  app (`1bb7645`, no conflicts). After the merge: tsc 0, `npm test` 1415
+  pass, grid strings still single-homed (Fury ran each).
 
 - 2026-11-07: C3 DONE (`00181fb`, 7 files, +150/-83). Stark: gauntlet green
   (1387; UTC 1380 pass, 7 skipped; build 0). **Fury's contract was
