@@ -8,7 +8,7 @@
     "build:vercel": "node prisma/migrate-on-production.mjs && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "TZ=America/Denver node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts",
+    "test": "TZ=America/Denver node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts src/lib/google/*.test.ts",
     "postinstall": "prisma generate",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
