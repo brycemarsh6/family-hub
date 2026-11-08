@@ -361,6 +361,18 @@ A new one-off that duplicates one of these jobs is a design violation:
   day is due or still doable; a not-due today stays plain with a bold number,
   so an outline always means "this is something to do". Vacation days are
   drawn as Skipped. Archived items are not in the Report.
+- Wide forms, Settings, Manage family and Feedback (`mission-54-ipad-landscape-l6-forms-settings.md`,
+  decisions 274 to 283 Hill, 284 Bryce): long forms go two columns from a
+  48rem container, with small section labels on Habit, Goal and Event only
+  in that layout. Save hugs its words at the foot of the second column, and
+  Edit habit's Archive and Delete hug theirs under it, so a one-tap Delete
+  is never the widest thing there; on a phone all stay full width. Short
+  pages (New task, the recipe chooser and imports, Profile) are centered at
+  640px, and an import lifts that cap when its full form appears. Settings
+  and Manage family are two columns from 48rem. Feedback shows a 480px list
+  beside a panel from a 64rem container ("Tap a report to read it here.",
+  nothing opens by itself, the open row has an accent border); below that
+  it keeps its sheet, and its rows stay at most 768px wide.
 - Wide Plans & Goals and the recipe page (mission-51, decisions 244 to
   254, Hill): This week's goal cards sit 2 across from a 48rem container,
   never 3, because each card holds tappable plan rows; the Goals board is

@@ -1,7 +1,7 @@
 # Mission 54: iPad landscape L6 (Forms, Settings, Manage family, Feedback)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (plan approved by Bryce 2026-11-08; Hill's Q1 to Q10 re-dispatched on Opus 5.5 at Bryce's ask, the Fable run was stopped before it answered; C1 waits for her answers)
+**Status:** DELIVERED when this file's PR merges (all three gates passed 2026-11-08; see Delivery). Another mission on `main` also carries the number 54 (`mission-54-structure-md-cleanup.md`), so cite this one by its full file name.
 **Started:** 2026-11-08 · **Updated:** 2026-11-08
 **Branch:** `claude/ipad-landscape-l6-bfb5c4` (worktree `parallel-work-strategy-e056c5`, cut from `origin/main` at `7dc5b28`, PR #84 merged)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L6 (the last step): sections "Forms (every New and Edit page)" and "Settings, Profile, Login", plus the rules at the top.
@@ -170,7 +170,9 @@ below. Preflight: `node ~/.claude/skills/avengers/preflight.mjs <this file> <con
 - **Q9 Manage family phones.** The 80px spacer moves under Family order, so the + clears the order list's last row and the gap between the people list and "Family order" goes. Phones change by that much. Rec: yes.
 - **Q10 Settings columns from 768px** (820 upright and the Sidebar get two columns of about 380px cards) or from 1024px. Rec: 768 (a card is a phone-width row).
 
-## Hill's decisions (Hill on Opus 5.5, 2026-11-08; Bryce can overturn any)
+## Hill's decisions (Hill on Opus 5.5, 2026-11-08; Bryce kept all ten the same day and can overturn any)
+
+Correction, 2026-11-08 (Bryce): Hill stays on Fable and runs only when he is away in bypass permissions mode, so this chat should not have used Hill. The move to Opus 5.5 in this mission's first commit was dropped by taking `main`'s files in the merge and never reached `main`.
 
 Numbers 274 to 283 (re-check `main` before merging). Medium ones first for Bryce: 277, 274.
 
@@ -224,7 +226,7 @@ Order: C1 alone first (small; every other contract imports its constants). Then 
 - **Done criteria:** Strange: Settings two columns at 1180, 820, Sidebar, today's order at 375, Menu style's sheet on the viewport (and the tablet Sign out sheet, if a tablet login exists on dev); Manage family list left and order right at 1180, + bottom right, every sheet on the viewport, drag still reorders; Feedback at 1180 shows the list at 480px and the tapped report in the right panel with no sheet, the panel stays in view while the list scrolls, a swipe Mark done on the open report empties the panel; at 820 and with the Sidebar (Q6 = 1024) the sheet opens as today; 375 unchanged.
 
 ### C5 - records (Fury, after the gates)
-- **Status:** PENDING
+- **Status:** DONE (the records commit; Captain's final amendment text went into STRUCTURE.md after its pass 3)
 - **Boundaries:** `STRUCTURE.md`, `DESIGN.md`, `CLAUDE.md`, this file, `.avengers/plans/ipad-landscape-v1.md`. Small edits; sync with `main` right before merging.
 - **Spec:** STRUCTURE.md "Wide pages": the L6 pages and their containers (forms: the `<form>` is the container; Settings; Manage family; Feedback measured); the portal remedy as used (Settings' two sheets); the Settings column dissolve instance; `FORM_*`, `TWO_COLUMN_CLASSES`, `NARROW_PAGE_CLASSES` in the shared-strings list; the four loading files; "New and Edit stay narrow until L6" and "edit waits for L6" lines retired; the Size watch rows (`HabitForm.tsx` after the split, `FeedbackList.tsx`). DESIGN.md: one bullet for wide forms, Settings, Manage family and Feedback (decision 220 and Hill's calls). CLAUDE.md: Current status (L6 done, the plan complete) and an "L6 iPad check" on Bryce's checklist. Plan: L6 delivered, decisions 274 onward pointing here. Then `node ~/.claude/skills/avengers/recordcheck.mjs` over the range.
 
@@ -245,7 +247,7 @@ Hill is not used from here on (Bryce, 2026-11-08: bypass permissions mode only).
 **Decision 284 (Bryce, 2026-11-08):** on wide screens, Edit habit's Archive (or Restore) and Delete hug their words and line up on the right under Save. The caption under Archive stays as it is. The phone stays full width.
 
 ### F3 - Edit habit's Archive and Delete hug their words (decision 284)
-- **Status:** PENDING
+- **Status:** DONE (commit `80ed490`; tsc, lint, 1443 tests)
 - **Boundaries:** may touch: `src/components/HabitEditActions.tsx` · must not touch: `src/components/HabitForm.tsx`, `src/lib/gridClasses.ts`, `package.json`, `STRUCTURE.md`, `DESIGN.md`, `CLAUDE.md`, `.env`
 - **Spec:** add `FORM_SAVE_WIDE_CLASSES` from `@/lib/gridClasses` to the Restore, Archive and Delete buttons, so all three match Save (the block renders as a fragment straight into `HabitForm`'s flex column, inside the form's `@container`). Do not retype the string. The `hr` and the caption stay unchanged. Update the doc comment only if it now says something untrue. No em or en dashes.
 - **Verification:** `npx tsc --noEmit`, `npm run lint`, `npm test` exit 0 (real exit codes).
@@ -273,6 +275,10 @@ Vision after C1 to C4 (Gauntlet re-run; boundaries; hunts: the portaled sheets' 
 | 2 | Vision | PASS | None | At `59d3201`: tsc, lint, 1443 tests, UTC 1436 pass and 7 skipped, build all exit 0. Both pass 1 blockers reproduced with negative controls and gone. NOTES: a Mark done failing mid tab switch loses its error line; Settings' right card starts below its heading; rotating to upright with a report open raises the sheet |
 | 2 | Captain | PASS | None | All eight readers of the row height are in the Dependents comment. NOTES: `wide && optimisticItems.length > 0` appears twice; Size watch uses the count at records time |
 | 1 | Strange | BLOCKED | (1) Skeletons: Profile and `recipes/new/*` 1148 wide against 640 pages; Settings, Manage family and Feedback one list against two columns or list plus panel. (2) Feedback rows 877px wide with the Sidebar pinned (no panel, no cap) | At `b207a2c`. Everything else on the must-prove list PASSED by measurement: columns at all sizes, Save (275), short pages (276), recipe (277, 278), 16px Settings gap, Feedback panel and tabs, every sheet on the viewport, Manage family drag and +, no sideways scroll. NOTES: Settings right card lower is not a defect; Habit Edit's Archive and Delete run the full column under a 97px Save (to Bryce); older form skeletons show boards; Feedback hard reload blink; Event Starts and Ends missing until hydration (older debt); recipe Source link 158px at 820. Not covered: tablet Sign out sheet (no active tablet login on dev), paste and photo extraction, real iPad Safari. Left behind: nothing |
+| 3 | Vision | PASS | None | At `80ed490`: tsc, lint, 1443 tests, UTC 1436 pass and 7 skipped, build all exit 0. Loading scope proven from the compiled route tree; the `manual` re-export renders the Edit skeleton; the 64rem and 48rem classes compile; `px-8` beats `px-4`. NOTES: at 375 the Settings skeleton's two lists touch; the Feedback skeleton shows a panel on an empty tab; `SkeletonBlock`'s `rounded-lg` beats a passed `rounded-2xl` |
+| 3 | Captain | PASS | None | Allowed: `settings/feedback/loading.tsx`'s mirrored grid and the `manual` re-export. A-L6-6, A-L6-8, A-L6-10 and A-L6-13 rewritten. NOTES: nothing in `FeedbackList` points to the skeleton's 30rem; `FORM_SAVE_WIDE_CLASSES`'s comment undersells it; `max-w-[48rem]` could be `max-w-3xl`; two short-page skeletons are identical (a third moves into one `SkeletonShortPage`) |
+| 2 | Strange | COVERAGE ONLY | None (no reports on dev, real Sidebar not on screen) | At `5aee0f7`. Skeletons match their pages at 1180 and 820; decision 284 measured at 1180, 924 and 820, full width at 375 |
+| 3 | Strange | PASS | None | At `5aee0f7`, with Bryce's go-ahead for one test report and the Sidebar on dev, both undone and confirmed gone. Rows 768 with the real Sidebar, 480 plus panel at 1180, 768 at 820, 343 at 375; Sidebar sheet opens; Edit habit buttons hug at the column edge. NOTES: Feedback skeleton list 892 against 768 rows with the Sidebar; New and Done tabs run past the capped rows with the Sidebar. Not covered: real iPad Safari and touch, Restore (no archived habit on dev), tablet Sign out sheet |
 
 ## Handoff log
 
@@ -289,7 +295,15 @@ Vision after C1 to C4 (Gauntlet re-run; boundaries; hunts: the portaled sheets' 
   Q4. Contracts amended to match. Preflight: 0 hard failures on C1 to C4.
   Fury commits each contract by explicit path (one shared git index, parallel
   builders).
+- 2026-11-08: fix batches F1 to F3 built and gated. Bryce kept Hill's ten
+  calls and decided 284 himself. `main` merged twice (PRs #86 to #88).
 
 ## Delivery
 
-PENDING.
+Every New and Edit form, Settings, Manage family and Feedback use the full width of a landscape iPad, which finishes `.avengers/plans/ipad-landscape-v1.md`. Gates: Vision, Captain and Strange all PASS (each used its three passes; ledger above). Gauntlet at Vision's pass 3: tsc, lint, 1443 tests, UTC leg, build all exit 0. No migration.
+
+Deliberately left (notes, none blocking): the older habit, goal and calendar form skeletons show list or board shapes; the Feedback skeleton is wider than its capped rows with the Sidebar pinned; a report open while rotating to upright raises the sheet; Event's Starts and Ends appear only after hydration (older date-string debt); recipe Source link is 158px at 820; the small tidy-ups in Captain's pass 3 row.
+
+Not covered by any gate: real iPad Safari and touch, the tablet Sign out sheet, Restore on an archived habit, paste and photo extraction. These are in Bryce's "Landscape forms and Settings check" in `.avengers/status.md`.
+
+The `CLAUDE.md` L6 status line comes out in the records commit, because this PR is what merges it.

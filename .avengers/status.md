@@ -86,6 +86,19 @@ it is done. The pre-cleanup text is in
   bar next to the Marshee wordmark. Open Customize, change a size, reload. On a day with Planned today or Pick a day, the cards
   sit two across. On the Habits tile, open an hours habit's log sheet and
   check it covers the whole screen (iPad Safari is unproven).
+- **Landscape forms and Settings check** (about 5 minutes, L6): on the
+  kitchen iPad sideways, open New habit: two columns, with Save small at
+  the bottom right. Edit a habit: Archive and Delete are small and on the
+  right under Save. Open New task and Profile: centered, not full width.
+  Settings: two columns. Tap Menu style and, on the tablet login, Sign out:
+  each sheet should cover the whole screen (iPad Safari is unproven, and
+  Sign out was never tested because the test copy has no active tablet
+  login). Manage family: drag the Family order and put it back. Feedback:
+  tap a report and read it on the right, switch New and Done and see
+  nothing open by itself. Paste a recipe, or use a photo, and see the full
+  form go two columns. Upright, Feedback opens as a sheet. If any Hill call
+  bothers you, the ten are 274 to 283 in
+  `.avengers/missions/mission-54-ipad-landscape-l6-forms-settings.md`.
 - **Calendar widget check** (about 5 minutes): on the iPad, Customize,
   Add widget, Calendar; try each size. Extra large with 7 days: days wrap
   onto a second row and titles stay readable. Tap "+N more" and land on
