@@ -69,6 +69,9 @@ export function toGoalVisibility(raw: unknown): GoalVisibility {
   return GOAL_VISIBILITIES.find((option) => option === raw) ?? "private";
 }
 
+/** The Goals board's line under a life area that has no goals (wide board only). */
+export const GOAL_BOARD_EMPTY_AREA = "No goals here yet";
+
 export const GOAL_OWNERSHIPS = ["mine", "together"] as const;
 
 export type GoalOwnership = (typeof GOAL_OWNERSHIPS)[number];

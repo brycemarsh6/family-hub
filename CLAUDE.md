@@ -222,7 +222,7 @@ Lucide outline icons only, secondary row actions behind a right-to-left swipe
 (destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-11-07)
+## Current status (updated 2026-11-07, L5)
 
 Replace this section at the end of each session. Don't append.
 
@@ -250,8 +250,16 @@ Replace this section at the end of each session. Don't append.
   household order set by dragging on Manage family (`User.familyOrder`).
   Leftovers in `.avengers/missions/mission-41-habits-family-columns.md`.
 - **iPad landscape:** L1 (mission 44, PR #62) made the dashboard wide;
-  L2 (mission 46, PR #67) made the Calendar wide (delivered). Plan:
-  `.avengers/plans/ipad-landscape-v1.md`. Next: L3 (Habits).
+  L2 (mission 46, PR #67) the Calendar; L5 (mission 51) merged as PR #79
+  (`3933c7f`) on 2026-11-07 after all three gates passed:
+  This week 2 columns, the Goals board 3 life-area columns (column-major,
+  empty areas shown at 3 columns), Vision 3 across, the Goal page two
+  panels, the recipe page with Ingredients (400px) beside the Steps and
+  the hero swapped for an icon tile from `md`. Hill's calls 244 to 254
+  (248, 249, 251 are the medium ones). L5 did not touch the + button; the
+  Goals board inherits L4's bottom-right version when L4 merges. Plan:
+  `.avengers/plans/ipad-landscape-v1.md`. Still to do: L3 (Habits), L4
+  (Kitchen lists, in flight), L6 (Forms, Settings).
 - **Calendar widget W2 (mission 49)** passed its gates on 2026-11-07 from
   branch `claude/dashboard-w2-calendar-widget-40bbe6`: a Calendar widget in
   all four sizes (Small next item, Medium and Large today, Extra large 3 or
@@ -389,6 +397,17 @@ Replace this section at the end of each session. Don't append.
   tablet: Settings, Sign out (it is still Emily, so one tap), tap the
   "Tablet" chip at the bottom, enter that password. Then on the tablet try
   Settings, Sign out: a wrong admin password is refused, yours signs it out.
+- **L5 iPad check** (about 5 minutes): sideways, Plans & Goals: This
+  week two across; Goals three columns with "No goals here yet" under an
+  empty area; Vision three across; a goal page as two panels. Upright:
+  Goals two columns; tap Done and check two or three areas still use both
+  columns. Open a recipe: icon tile by the title, Ingredients beside the
+  Steps; tap Recalculate under Nutrition, Edit under Cookbooks and Tags,
+  and check each sheet opens on screen (iPad Safari is the unproven
+  browser for sheets inside a container). On your phone, a recipe reads
+  Ingredients, Instructions, Notes, Rating, Nutrition, Cookbooks, Tags.
+  Glance at Hill's 248 (circles, not pills), 249 (Cooked today in the
+  Rating card) and 251 (that phone order).
 - **Landscape Calendar check** (about 3 minutes): on the kitchen iPad
   sideways, open Calendar, Schedule: a month card on the left; tap a day
   and the list jumps there; scroll and the ring follows. Month: 4 events
@@ -450,6 +469,15 @@ Replace this section at the end of each session. Don't append.
 - Dev only, older than mission 49: every Settings server action fails with
   "HabitInput is not defined" from `export type { HabitInput }` in the
   "use server" file `src/app/actions/habits.ts`. Check production.
+  Same class, found by Strange in mission 51: every server action in dev
+  fails with "RecipeIngredientSuggestion is not defined" from
+  `export type` in `src/app/actions/groceriesRecipes.ts:35` (the Groceries
+  sheet, Create share link and the Menu style save all fail in dev).
+  Check production; the fix is moving the type exports out of the
+  "use server" files.
+- STRUCTURE.md is 1534 lines, 2.4 times its own 650-line housekeeping
+  trigger (Captain, mission 51): a one-PR cleanup mission that moves the
+  provenance stories into `docs/history/structure-rationale.md` is due.
 - Hours tracker follow-ups (mission 37 Delivery): a page left open over
   Saturday night shows last week's total in the sheet until reloaded; the
   Who hint says "checks" on an hours habit.

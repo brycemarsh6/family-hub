@@ -340,6 +340,21 @@ A new one-off that duplicates one of these jobs is a design violation:
   day is due or still doable; a not-due today stays plain with a bold number,
   so an outline always means "this is something to do". Vacation days are
   drawn as Skipped. Archived items are not in the Report.
+- Wide Plans & Goals and the recipe page (mission-51, decisions 244 to
+  254, Hill): This week's goal cards sit 2 across from a 48rem container,
+  never 3, because each card holds tappable plan rows; the Goals board is
+  3 columns of two life areas each (column-major, Spiritual over Health
+  and so on), 2 columns below 64rem, and shows every area at 3 columns
+  with "No goals here yet" on an empty one so the board keeps its shape;
+  Vision's six cards go 3 across from 64rem; the Goal page is two equal
+  panels, The result left and The plan right, with the vision line under
+  both. The recipe page keeps its three action circles (not pills) in a
+  header band beside the title, drops the hero for a small icon tile from
+  `md`, puts Ingredients in a fixed 25rem column beside the Steps, and
+  Cooked today lives in the Rating card under the ingredients, not in the
+  header; on a phone the order is Ingredients, Instructions, Notes,
+  Rating + Cooked, Nutrition, Cookbooks, Tags. No cookbook names or tags
+  are repeated in the header line (they have live sections with Add).
 - `DashboardWidgetList` (the dashboard's widget grid and Customize button,
   and the nudge and Sunday cards above the grid) /
   `DashboardCustomizeSheet`: the only way to add, size, reorder, pick or
@@ -464,8 +479,11 @@ A new one-off that duplicates one of these jobs is a design violation:
   Shopping.
 - **Inventory groups start fully collapsed** — auto-opening low groups
   looked arbitrary at real scale.
-- **No recipe photos** — C7 was dropped (Vercel Blob is paid); the gradient
-  + `ChefHat` hero is the permanent treatment, not a placeholder.
+- **No recipe photos**: C7 was dropped (Vercel Blob is paid). On phones
+  the gradient + `ChefHat` hero is the permanent treatment, not a
+  placeholder; from `md` up (upright iPad included) the recipe page shows
+  a small `ChefHat` icon tile beside the title instead (decision 216,
+  mission-51).
 - **Single-tap delete stays** unless real accidental-deletion pain appears.
 - **No third-party app is the design reference** — earlier Todoist/Monarch
   comparisons were explicitly dropped.
