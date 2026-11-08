@@ -1,7 +1,7 @@
 # Mission 51: iPad landscape L3 (Habits & Chores go wide)
 
 **Project:** family-hub (Marshee)
-**Status:** GATING (F1 done; Strange pass 1, Captain pass 2, then Vision pass 2)
+**Status:** FIXING (Strange pass 1 and Captain pass 2 BLOCKED; F2 dispatched)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/habits-chores-ipad-landscape-f04eee` (cut from `944444b`; `origin/main` with PR #74 merged in at `1bb7645`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L3 (section "Habits and Chores"; decisions 215 to 223, 230)
@@ -337,6 +337,7 @@ Status per contract is kept on its heading line.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Strange | BLOCKED | (1) Whole family wide: an `sr-only` in the skipped marker escapes the column scroller, the page scrolls 33 to 57px (title under the hamburger after the hours sheet closes) and with classic scrollbars five people stop fitting; (2) Report Week at 375: cards 558px in a 343px grid (implicit auto track), counts and cells cut off; (3) Chore chart This week at 1180: a changed chore's title shrinks to 0px and its tag spills out; (4) phone Whole family checks no longer line up right (`HabitFamilyColumn.tsx:110`); (5) decision 233: phone family cards still group Habits / Chores with no Chore tag; (6) Stats at 1180: hours habit all on the left, solo habit leaves the right half empty (plan puts week, log, nudges, side by side right) | Session already signed in as Bryce in the pane; no data created. Passed: bar targets 44px+, past day has no buttons and the H2 line, sheets full screen, no sideways scroll elsewhere, skeleton matches, tint contrast light 4.91 / dark 6.46, header flame 5.64+ / 6.66+, fit rule at 924/1108/820 proxies, Goals and Recipes + unchanged. NOTES: + on a 375 phone sits over the bottom check (gate the right move to `md`); Mine columns stretch to the tallest (`items-start`); three card shapes; past-day not-done marker is `line-strong` (older); Time of day group hidden when one time; a one-person Together habit labelled Mine; truncated chore names on Default week; Report pager and Year picker span 1148; 375 bar orphans the Report icon; hours habits left out of counts (older). Not covered: real Sidebar/Rail (dev error `HabitInput is not defined` from `src/app/actions/habits.ts:36`, from main), tablet login, iPad Safari |
 | 2 | Captain | BLOCKED | `HabitFamilyView.tsx:70-71` still matches the people filter (columns hidden, Together row with all people hidden) in a component (STRUCTURE.md :918-919; F1 spec item 3): add `shownColumns` / `togetherRowShown` beside `stillHiddenPeople`, tested | Pass-1 B1, B2 and the strongest note cleared; new helpers pass; `buildTodayRows` bound placed right (`habitsToday.ts` 353 / 283 code, no split). NOTES: `HABITS_BAR_LABELS.report` retypes `REPORT_LABELS.title`; orphaned comment above `HABITS_BAR_LABELS` (`PAST_DAY_VIEW_ONLY` lost its comment); `habitStartDay` computed twice; `HabitsDayView`/`HabitTodayList` take the type from `habitsRead`; `sharing: string` could be `HabitSharing`. A-51-6 and A-51-8 text updated (below) |
 | 1 | Vision | BLOCKED | (1) a past day is built from data after it: log and hours reads have no upper bound, habits created after the day show as due (probe: a 2-a-week habit checked Wed and Thu vanishes from Monday; a habit made Friday shows Monday as missed); (2) Report Week rows stretch about 1148px on the now-wide Report (STRUCTURE.md Wide pages rule 3) | Gauntlet green with real codes (1415; UTC 1408 + 7 skipped; LA 1415; record check 0 hard, 7 REVIEW; build 0); boundaries clean; built CSS holds lib-only classes. NOTES: phone family card says `NOTHING_DUE_TODAY` when the Filter emptied it; phone Together strip ignores hidden people; stale "14px" comment; one-frame reflow before the ResizeObserver fires; 752 to 767px screens show the strip without the frame (no real iPad); + bottom right on phones too (Strange to judge); Manage second grid puts both links side by side with no archive; habits archived after a past day are missing from it; habits loading covers New/Edit |
 | 1 | Captain | BLOCKED | (1) `habitsFamilyColumns.ts:2` and its test import `HabitRowView` type from server-only `habitsRead.ts` (STRUCTURE.md dependency direction :815-817): import from `./habitsToday`; (2) `HabitsDayView.tsx:58,63` builds and matches filter options in a component (STRUCTURE.md :915-920 one filter rule) | Strongest NOTE: `habits/loading.tsx:17` copies Mine's grid and drifted (`gap-3.5` vs `gap-3`): `HABITS_DAY_GRID_CLASSES`. NOTES: vocabulary 420/252 (rule clauses contradict, A-51-8); second "Mine" literal; bar words inline in components; two copies of the read-only marker; `lockPage` and people filter untested in tsx; time key order written twice in `habitsFamilyColumns.ts`; stale comments ("14px", header); habits `loading.tsx` also covers New/Edit (narrow pages) and other subpages' shapes; ReportYear indentation; sheet frame copied (old debt). Amendments A-51-1 to A-51-9 drafted |
@@ -403,6 +404,65 @@ Status per contract is kept on its heading line.
   empty; `grep -n "habitsRead" src/lib/habitsFamilyColumns*.ts` empty.
 - **Evidence:** outputs of each, `git show --stat HEAD`, line counts.
 - **Done:** Vision, Captain and Strange pass 2.
+
+## Fix batch 2 (after Strange pass 1 and Captain pass 2)
+
+### F2: layout fixes, people filter in lib, dev error
+- **Objective:** clear Strange's six pass-1 blockers and Captain's pass-2
+  blocker, plus the cheap notes, in one dispatch.
+- **May touch:** `HabitFamilyWideColumn.tsx`, `LogButton.tsx`,
+  `ReportWeek.tsx`, `ChoreChart.tsx`, `HabitFamilyColumn.tsx`,
+  `HabitFamilyView.tsx`, `HabitStats.tsx`, `HabitHoursStats.tsx`,
+  `HabitsDayView.tsx`, `HabitTodayList.tsx`, `FloatingAddButton.tsx`,
+  `src/lib/gridClasses.ts`, `src/lib/habitsReportScope.ts` + test,
+  `src/lib/habitVocabulary.ts`, `src/lib/habitsToday.ts` (the duplicate
+  `habitStartDay` only), `src/lib/habitsFamilyColumns.ts` + test (only if
+  the phone grouping needs a helper), and **`src/app/actions/habits.ts`
+  line 36 only** (`export type { HabitInput };`: nothing imports it from
+  there, and Turbopack dev throws `HabitInput is not defined` on it,
+  which blocked Strange's Sidebar and Rail checks; from mission 47).
+- **Must not touch:** loaders, `prisma/`, `package.json`, constitutions,
+  `.env`, any other action file.
+- **Spec:**
+  1. (S1) `relative` on the column scroller in `HabitFamilyWideColumn`
+     and on `LogButton`'s skipped-marker span, so `sr-only` text stays in
+     its box; `document.documentElement.scrollHeight` equals the
+     viewport on Whole family wide.
+  2. (S2) `ReportWeek` item grid and header grid `grid-cols-1` base
+     (`minmax(0,1fr)`), so 375 cards fit 343px.
+  3. (S3) Chore chart rows (This week and Default week): title and tag
+     stack (title `w-full truncate`, tag under it), so no title is 0px and
+     no tag leaves its card at about 146px columns.
+  4. (S4) `FamilyHabitRow` row layout's inner flex is `min-w-0 flex-1`,
+     so phone checks line up on the right.
+  5. (S5, decision 233) Phone family person cards group by Morning,
+     Afternoon, Evening, Anytime with `groupColumnRows` (empty groups
+     dropped) and the same tags (`familyRowTag`: Chore, Together); the
+     chore streak flame moves beside the person's count (as on the wide
+     column header).
+  6. (S6) Stats: the hours habit's This week, hours by day and Time logged
+     go in the right column (split `HabitHoursStats` into exported parts
+     or props, no copy of its markup); a habit with nothing for the right
+     column renders one column capped at `max-w-3xl` (today's width), not
+     a half-empty grid.
+  7. (Captain pass 2) `shownColumns(columns, hiddenPeople)` and
+     `togetherRowShown(row, hiddenPeople)` in `habitsReportScope.ts`,
+     tested (hidden column drops; Together row with every person hidden
+     drops; one shown person or no participants stays);
+     `HabitFamilyView` calls them; `grep -n "hiddenPeople.includes"
+     src/components/HabitFamilyView.tsx` is empty.
+  8. Notes: the floating + moves bottom right only from `md` on wide
+     pages (phones keep bottom left); `items-start` in
+     `HABITS_DAY_GRID_CLASSES` so columns are their own height;
+     `HABITS_BAR_LABELS.report` references `REPORT_LABELS.title`; the
+     orphaned comment goes back above `PAST_DAY_VIEW_ONLY`; one
+     `startDay` in `buildTodayRows`; `HabitsDayView` and `HabitTodayList`
+     take `HabitRowView` from `@/lib/habitsToday`; `matchesHabitsFilter`
+     types `sharing` as the sharing type if one exists.
+- **Verification:** gauntlet (tsc, lint, `npm test`, UTC and Los Angeles
+  legs, build); new tests; the grep in item 7; `grep -n "HabitInput"
+  src/app/actions/habits.ts` shows only the import and its two uses.
+- **Done:** Strange pass 2, Captain pass 3, Vision pass 2 all PASS.
 
 ## Captain's amendments (drafted pass 1; C5 writes them into STRUCTURE.md)
 
