@@ -9,6 +9,7 @@ import { PastMealWeeks } from "./PastMealWeeks";
 import { SlotEditSheet } from "./SlotEditSheet";
 import { CreatePlanSheet } from "./CreatePlanSheet";
 import { EmptyState } from "./EmptyState";
+import { useHamburgerRowHeight } from "@/lib/appChrome";
 import { useToday } from "@/lib/useToday";
 import { useContainerWidth } from "@/lib/useContainerWidth";
 import { COLUMN_MIN_WIDTH_PX } from "@/lib/splitColumns";
@@ -119,6 +120,8 @@ export function MealPlanList({
   // Wide only: the one week opened from a summary card or a past-week header.
   const [openWeekId, setOpenWeekId] = useState<string | null>(null);
   const openGridRef = useRef<HTMLDivElement>(null);
+  // Keeps the opened week title clear of the floating menu button (0 where the menu is pinned).
+  const hamburgerRowHeight = useHamburgerRowHeight();
   // The opened grid sits below the cards, often off screen, so bring it into view.
   useEffect(() => {
     if (openWeekId !== null) openGridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -275,7 +278,10 @@ export function MealPlanList({
                 )}
               </div>
               {openPlan && (
-                <div ref={openGridRef}>
+                <div
+                  ref={openGridRef}
+                  style={{ scrollMarginTop: hamburgerRowHeight + 8 }}
+                >
                   <WeekGrid
                     plan={openPlan}
                     today={today}
