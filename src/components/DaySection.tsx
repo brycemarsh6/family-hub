@@ -72,6 +72,24 @@ function NotLoadedCard() {
   );
 }
 
+/** The weekday + date header of one calendar day, today marked. Shared with the dashboard Calendar widget. */
+export function DaySectionHeader({ day, isToday, className = "mb-2" }: { day: Date; isToday: boolean; className?: string }) {
+  return (
+    <div className={`${className} flex items-center gap-2 px-1`}>
+      <span className={`text-xs font-semibold uppercase tracking-wide ${isToday ? "text-accent" : "text-muted"}`}>
+        {SHORT_DAY_NAMES[day.getDay()]}
+      </span>
+      <span
+        className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${
+          isToday ? "bg-accent text-accent-fg" : "text-fg"
+        }`}
+      >
+        {day.getDate()}
+      </span>
+    </div>
+  );
+}
+
 /**
  * One calendar day: the gutter (weekday + day number, today marked) and
  * that day's event cards. Week view renders seven of these, Day view
@@ -176,22 +194,7 @@ export function DaySection(
 
   return (
     <section>
-      <div className="mb-2 flex items-center gap-2 px-1">
-        <span
-          className={`text-xs font-semibold uppercase tracking-wide ${
-            isToday ? "text-accent" : "text-muted"
-          }`}
-        >
-          {SHORT_DAY_NAMES[day.getDay()]}
-        </span>
-        <span
-          className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${
-            isToday ? "bg-accent text-accent-fg" : "text-fg"
-          }`}
-        >
-          {day.getDate()}
-        </span>
-      </div>
+      <DaySectionHeader day={day} isToday={isToday} />
 
       <div
         className={`flex flex-col gap-2 ${

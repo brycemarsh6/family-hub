@@ -1,8 +1,8 @@
 # Mission 46: iPad landscape L2 (the Calendar goes wide)
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING
-**Started:** 2026-11-07 · **Updated:** 2026-11-07
+**Status:** DELIVERED (merged as PR #67, commit `359281d`, 2026-11-07; live, production deploy READY on `fc9772b`)
+**Started:** 2026-11-07 · **Updated:** 2026-11-07 (marked delivered in mission 49, W2)
 **Branch:** `claude/ipad-landscape-l2-calendar-46358d` (from `origin/main` at `174f74d`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L2 (Calendar section; decisions 215 to 224)
 
@@ -347,6 +347,8 @@ written; A-L2-3 is done in L3.)
   Vision pass 2 and Strange pass 2 dispatched.
 - 2026-11-07: pass 2: Vision PASS, Strange PASS (Captain PASS at pass 1;
   fix batch changed no structure). Delivering.
+- 2026-11-07: merged as PR #67 (`359281d`). Marked DELIVERED from the
+  W2 branch (mission 49).
 
 ## Delivery
 

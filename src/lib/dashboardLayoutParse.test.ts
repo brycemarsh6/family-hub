@@ -23,6 +23,7 @@ const v2 = (widgets: unknown): unknown => ({ version: 2, widgets });
 test("default layout: registry order, each kind at its default size, uid is the kind", () => {
   assert.equal(DEFAULT_DASHBOARD_LAYOUT.version, 2);
   assert.deepEqual(DEFAULT_DASHBOARD_LAYOUT.widgets, [
+    { uid: "calendar", kind: "calendar", size: "l" },
     { uid: "todayMeals", kind: "todayMeals", size: "m" },
     { uid: "habits", kind: "habits", size: "l" },
     { uid: "chores", kind: "chores", size: "m" },
@@ -62,8 +63,8 @@ test("parse: the default is returned as a fresh copy", () => {
   const a = parseDashboardLayout(null);
   a.widgets[0].size = "s";
   a.widgets.pop();
-  assert.equal(DEFAULT_DASHBOARD_LAYOUT.widgets[0].size, "m");
-  assert.equal(parseDashboardLayout(null).widgets.length, 7);
+  assert.equal(DEFAULT_DASHBOARD_LAYOUT.widgets[0].size, "l");
+  assert.equal(parseDashboardLayout(null).widgets.length, 8);
 });
 
 // --- parseDashboardLayout: v2 ------------------------------------------

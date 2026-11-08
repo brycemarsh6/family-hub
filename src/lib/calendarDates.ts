@@ -56,6 +56,12 @@ function clockParts(date: Date): { numeric: string; meridiem: string } {
   return { numeric: minute ? `${hour}:${minute}` : hour, meridiem };
 }
 
+/** One instant as a clock label ("3 PM", "12:30 PM"), the start of `formatTimeRange` with its meridiem always shown. */
+export function formatClockTime(date: Date): string {
+  const { numeric, meridiem } = clockParts(date);
+  return `${numeric} ${meridiem}`;
+}
+
 /**
  * The house label for a timed event's start–end range: "8 – 9 PM",
  * "10 – 11 AM", "12:30 – 4:30 PM", "11:30 AM – 1 PM". `:00` minutes are
