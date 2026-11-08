@@ -3,7 +3,7 @@
 import { useOptimistic } from "react";
 import { Flame } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
-import { HabitHoursStats } from "./HabitHoursStats";
+import { HabitHoursDetail, HabitHoursTiles } from "./HabitHoursStats";
 import { HabitIcon } from "./HabitIcon";
 import { HabitMonthCalendar, type CalendarCell } from "./HabitMonthCalendar";
 import { HabitSideBySide } from "./HabitSideBySide";
@@ -47,7 +47,7 @@ function Tile({ value, label, flame = false }: { value: number; label: string; f
  * The stats page body (decisions 94, 97, 104): header, nudge rows, tiles, the
  * month with its perfect-days line, and for Side by side habits the table and
  * the week strips. An hours habit (`data.hours`) swaps the tiles, month and
- * table for `HabitHoursStats`. The data is plain values from `loadHabitStats`. A tapped day
+ * table for `HabitHoursTiles` and (in the right column) `HabitHoursDetail`. The data is plain values from `loadHabitStats`. A tapped day
  * changes at once (the same `useOptimistic` idiom as the Today list), and the
  * tile total follows; the streak numbers wait for the server.
  */
@@ -76,6 +76,8 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
 
   const hasNudges = data.nudgeable.length > 0;
   const showSide = !data.hours && !!data.sideBySide;
+  // Two columns only when the right one has something: an hours habit's week, nudges, or Side by side. Otherwise one readable column.
+  const hasRight = hasNudges || showSide || !!data.hours;
 
   return (
     <div className="flex flex-col gap-3">
@@ -91,9 +93,9 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
 
       {/* The header spans; below it two columns from a 50rem container (STRUCTURE.md "Wide pages"). DOM order is the
           phone's order (nudges, numbers, side by side); the wide placement is explicit so the numbers sit left and
-          nudges plus Side by side right. An empty right column leaves the left one a single readable column. */}
+          nudges plus Side by side (an hours habit's week and log) right. An empty right column leaves the left one a single column capped at today's width. */}
       <div className="@container">
-        <div className="grid items-start gap-3 @min-[50rem]:grid-cols-2">
+        <div className={`grid items-start gap-3 ${hasRight ? "@min-[50rem]:grid-cols-2" : "max-w-3xl"}`}>
           {hasNudges && (
             <div className="flex flex-col gap-3 @min-[50rem]:col-start-2 @min-[50rem]:row-start-1">
               {data.nudgeable.map((person) => (
@@ -111,7 +113,7 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
           <div className={`flex flex-col gap-3 @min-[50rem]:col-start-1 @min-[50rem]:row-start-1 ${hasNudges ? "@min-[50rem]:row-span-2" : ""}`}>
             {data.subjectId !== data.viewerId && <p className="text-sm text-muted">Showing {data.subjectName}’s numbers.</p>}
             {data.hours ? (
-              <HabitHoursStats hours={data.hours} />
+              <HabitHoursTiles hours={data.hours} />
             ) : (
               <>
                 <div className="flex gap-2">
@@ -138,6 +140,12 @@ export function HabitStats({ data }: { data: HabitStatsData }) {
               </>
             )}
           </div>
+
+          {data.hours && (
+            <div className={`flex flex-col gap-3 @min-[50rem]:col-start-2 ${hasNudges ? "@min-[50rem]:row-start-2" : "@min-[50rem]:row-start-1"}`}>
+              <HabitHoursDetail hours={data.hours} />
+            </div>
+          )}
 
           {showSide && data.sideBySide && (
             <div className={`flex flex-col gap-3 @min-[50rem]:col-start-2 ${hasNudges ? "@min-[50rem]:row-start-2" : "@min-[50rem]:row-start-1"}`}>

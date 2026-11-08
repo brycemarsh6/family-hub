@@ -399,12 +399,12 @@ export function familyRowTag(together: boolean, chore: boolean): string | null {
 /** The two views, named in the bar's subtitle and in the Filter sheet's Show group. */
 export const HABITS_VIEW_LABELS = { mine: "Mine", family: "Whole family" } as const;
 
-/** Under the bar on a past day (decision 238). */
 /** The Habits bar's controls (mission 51). */
-export const HABITS_BAR_LABELS = { previousDay: "Previous day", today: "Today", nextDay: "Next day", manage: "Manage", report: "Report" } as const;
+export const HABITS_BAR_LABELS = { previousDay: "Previous day", today: "Today", nextDay: "Next day", manage: "Manage", report: REPORT_LABELS.title } as const;
 /** Read only by a screen reader, after the chore streak's flame. */
 export const CHORE_STREAK_SR = "chore streak ";
 
+/** Under the bar on a past day (decision 238). */
 export const PAST_DAY_VIEW_ONLY = "Looking back. Past days are view only.";
 
 /** The Filter sheet's title and group labels (decision 239). */

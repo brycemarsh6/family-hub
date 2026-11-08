@@ -17,8 +17,9 @@ import { Plus } from "lucide-react";
  * past it; unset, it is 0.
  *
  * A page that carries `data-page-width="wide"` (Habits & Chores) has no
- * narrow column, so there the button lifts the cap from `md` and sits at the
- * bottom RIGHT, past the content. It is a button (`onClick`) or a link
+ * narrow column, so there, from `md` up, the button lifts the cap and sits at
+ * the bottom RIGHT, past the content (phones keep the bottom left, clear of the
+ * last row's check). It is a button (`onClick`) or a link
  * (`href`); `label` is what a screen reader says.
  */
 export function FloatingAddButton({ onClick, href, label = "Add" }: { onClick?: () => void; href?: string; label?: string }) {
@@ -29,7 +30,7 @@ export function FloatingAddButton({ onClick, href, label = "Add" }: { onClick?: 
       className="pointer-events-none fixed right-0 left-[var(--app-nav-width,0px)] z-40 flex justify-center"
       style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
     >
-      <div className="flex w-full max-w-3xl px-4 md:[body:has([data-page-width=wide])_&]:max-w-none [body:has([data-page-width=wide])_&]:justify-end">
+      <div className="flex w-full max-w-3xl px-4 md:[body:has([data-page-width=wide])_&]:max-w-none md:[body:has([data-page-width=wide])_&]:justify-end">
         {href ? (
           <Link href={href} aria-label={label} className={className}>
             <Plus aria-hidden="true" size={26} />

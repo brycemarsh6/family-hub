@@ -8,7 +8,8 @@ import { HabitTodayList } from "./HabitTodayList";
 import { HabitsBar } from "./HabitsBar";
 import type { FamilyPage } from "@/lib/habitsFamily";
 import { habitsHref } from "@/lib/habitsDay";
-import type { HabitRowView, TodayPage } from "@/lib/habitsRead";
+import type { TodayPage } from "@/lib/habitsRead";
+import type { HabitRowView } from "@/lib/habitsToday";
 import { REPORT_FILTER_ALL, activeReportFilter, matchesHabitsFilter, narrowedFilterCount, reportFilterOptions, stillHiddenPeople } from "@/lib/habitsReportScope";
 
 /**

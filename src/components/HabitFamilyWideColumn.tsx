@@ -71,7 +71,8 @@ export function HabitFamilyWideColumn({
           </p>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-20">
+      {/* `relative` keeps the sr-only text inside this scroller: without it the nearest positioned box is the page, and the clipped text stretches the page. */}
+      <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-20">
         {groups.length === 0 && <p className="py-3 text-sm text-muted-strong">{emptyColumnText(column, together)}</p>}
         {groups.map((group) => {
           const Icon = group.key === "anytime" ? null : TIME_ICONS[group.key];

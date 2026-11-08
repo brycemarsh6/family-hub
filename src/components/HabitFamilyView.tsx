@@ -9,6 +9,7 @@ import { checkHabit, uncheckHabit } from "@/app/actions/habitChecks";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { FamilyPage, FamilyRow } from "@/lib/habitsFamily";
 import { formatCalendarDate } from "@/lib/householdDate";
+import { shownColumns, togetherRowShown } from "@/lib/habitsReportScope";
 import { HABITS_VIEW_LABELS } from "@/lib/habitVocabulary";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
@@ -67,8 +68,8 @@ export function HabitFamilyView({
   const live = readOnly ? lockPage(state) : state;
   // What the Filter sheet leaves: its people. Each layout filters its own rows with `keep`, so "x of y done" stays the whole day.
   // The phone Together strip leaves out a row whose people are all hidden.
-  const togetherShown = live.together.filter((row) => keep(row) && !(row.participants.length > 0 && row.participants.every((p) => hiddenPeople.includes(p.userId))));
-  const columns = live.columns.filter((column) => !hiddenPeople.includes(column.id));
+  const togetherShown = live.together.filter((row) => keep(row) && togetherRowShown(row, hiddenPeople));
+  const columns = shownColumns(live.columns, hiddenPeople);
   // The hours row whose log sheet is open: the habit and the person, read live so bars move as soon as Add is tapped.
   const [logging, setLogging] = useState<{ habitId: string; userId: string } | null>(null);
   const loggingRow = logging ? live.columns.flatMap((column) => column.rows).find((row) => row.id === logging.habitId && row.logForId === logging.userId && row.hours) : undefined;

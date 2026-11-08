@@ -72,9 +72,12 @@ function WeekRow({ chore, onOpen }: { chore: ChartWeekChore; onOpen: () => void 
       <span className="flex shrink-0 text-accent">
         <HabitIcon name={chore.icon} kind="chore" size={18} />
       </span>
-      <span className={`min-w-0 flex-1 truncate font-medium ${faded ? "text-muted-strong" : ""}`}>{chore.title}</span>
+      {/* The title and its tag stack, so a narrow column keeps the whole title and the tag stays in the card. */}
+      <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 py-1">
+        <span className={`w-full truncate font-medium ${faded ? "text-muted-strong" : ""}`}>{chore.title}</span>
+        {chore.tag && <span className={QUIT_TAG_CLASS}>{chore.tag}</span>}
+      </span>
       {chore.who && <span className="shrink-0 text-xs text-muted">{chore.who}</span>}
-      {chore.tag && <span className={`shrink-0 ${QUIT_TAG_CLASS}`}>{chore.tag}</span>}
     </>
   );
   return chore.canChange ? (
@@ -186,8 +189,10 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
                       <span className="flex shrink-0 text-accent">
                         <HabitIcon name={chore.icon} kind="chore" size={18} />
                       </span>
-                      <span className="min-w-0 flex-1 truncate font-medium">{chore.title}</span>
-                      {chore.who && <span className="shrink-0 text-xs text-muted">{chore.who}</span>}
+                      <span className="flex min-w-0 flex-1 flex-col items-start py-1">
+                        <span className="w-full truncate font-medium">{chore.title}</span>
+                        {chore.who && <span className="text-xs text-muted">{chore.who}</span>}
+                      </span>
                     </Link>
                   ),
                 )}

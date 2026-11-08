@@ -174,6 +174,16 @@ export function stillHiddenPeople(hiddenPeople: readonly string[], people: reado
   return hiddenPeople.filter((id) => people.some((person) => person.id === id));
 }
 
+/** The columns the Filter's People group leaves (a hidden person's column is dropped). */
+export function shownColumns<T extends { id: string }>(columns: readonly T[], hiddenPeople: readonly string[]): T[] {
+  return columns.filter((column) => !hiddenPeople.includes(column.id));
+}
+
+/** Whether the phone Together strip keeps a row: not when it has people and every one of them is hidden. */
+export function togetherRowShown(row: { participants: readonly { userId: string }[] }, hiddenPeople: readonly string[]): boolean {
+  return row.participants.length === 0 || !row.participants.every((p) => hiddenPeople.includes(p.userId));
+}
+
 // ---- Scope: what is shown, and the range the loader must read ----
 
 /** What the loader reads for the range shown only: these items' checks from `from` to `to`, inclusive. */

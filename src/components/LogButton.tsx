@@ -32,7 +32,7 @@ export function LogButton({
 }) {
   if (skipped) {
     return (
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-line-strong text-muted">
+      <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-line-strong text-muted">
         <SkipForward aria-hidden="true" size={18} />
         <span className="sr-only">{skippedLabel}</span>
       </span>

@@ -222,12 +222,12 @@ export function buildTodayRows(
   const rows: HabitRowView[] = [];
   for (const habit of live) {
     // A past day is built from what was true then: not a habit made later, and no checks or hours after the day.
-    if (compareDays(habitStartDay(habit.createdAt), today) > 0) continue;
+    const startDay = habitStartDay(habit.createdAt);
+    if (compareDays(startDay, today) > 0) continue;
     const logs = (logsByHabit.get(habit.id) ?? []).filter((log) => compareDays(log.day, today) <= 0);
     const entries = (timeByHabit.get(habit.id) ?? []).filter((entry) => compareDays(entry.day, today) <= 0);
     const mine = logsForUser(logs, viewer.userId);
     const spec = specFromRow(habit);
-    const startDay = habitStartDay(habit.createdAt);
     const since = carrySince(habit.participants.find((p) => p.userId === viewer.userId)?.joinedAt, startDay);
     const progress = spec ? windowProgress(spec, mine, today, startDay) : null;
     const change = weekChange(spec, habit.weekOverrides, today);
