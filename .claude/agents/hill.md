@@ -2,7 +2,7 @@
 name: hill
 description: Avengers Decider. Stands in for Bryce on the content and design calls he would normally make (wording, layout, fields, business rules, approving a mock, choosing between options). Dispatch with one question or a short batch, the options, Fury's recommendation, and the files to read. Returns a decision and a one-line reason for each. Read-only. Never decides anything on the "never" list.
 tools: Read, Glob, Grep
-model: fable
+model: opus
 effort: xhigh
 ---
 

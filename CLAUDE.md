@@ -44,8 +44,8 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   orchestrating Banner, Stark, Vision, Strange, Captain). Missions live in
   `.avengers/missions/`, plans in `.avengers/plans/`.
 - **Hill decides for Bryce** (Bryce, 2026-11-05). Content and design calls
-  that would wait for Bryce go to Hill (`.claude/agents/hill.md`: Fable,
-  extra-high effort, read-only). Fury records each one in the plan as
+  that would wait for Bryce go to Hill (`.claude/agents/hill.md`: Opus 5.5
+  since 2026-11-08, extra-high effort, read-only). Fury records each one in the plan as
   "decided by Hill" and lists them for Bryce at the end of each PR; Bryce can
   overturn any. Hill never decides logins, real-device tests, money or the
   danger register.
