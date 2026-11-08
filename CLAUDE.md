@@ -290,7 +290,7 @@ Replace this section at the end of each session. Don't append.
   401 without the secret). **`CRON_SECRET` is set** (Bryce, 2026-11-07,
   Production, Sensitive; production redeployed). First real briefing
   expected 2026-11-08, 9:00 to 9:59 Denver. Bryce approved
-  Hill's other calls on 2026-11-07; only H10 is left for Bryce to look at:
+  all of Hill's calls on 2026-11-07, H10 included; nothing is left to review:
   `.avengers/missions/mission-48-winnie-briefing.md`.
   Details: `.avengers/missions/mission-42-winnie-notify.md`.
 - **Winnie's recipes and meal plan (mission 44)** merged as PR #61

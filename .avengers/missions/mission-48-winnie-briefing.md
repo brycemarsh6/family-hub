@@ -101,7 +101,7 @@ Hill ran as a general agent on Fable following `.claude/agents/hill.md`.
   all questions to Hill".
 - **H10 (medium):** `not-configured` leaves no row; `rejected` or
   `unreachable` keeps the row with that status and nobody retries that day.
-  **Bryce to look at:** a Winnie outage for the whole 9 o'clock hour means
+  **Approved by Bryce, 2026-11-07 ("I approve that"):** a Winnie outage for the whole 9 o'clock hour means
   that day's briefing is missed, not sent late. The PR notes say this PR
   creates one new table on production at merge.
 
@@ -545,15 +545,15 @@ Vercel's timer uses to call Marshee. Without it the briefing never runs.
 
 ### Calls for Bryce to look at (none block anything)
 - H10 (medium): if Winnie is down for the whole 9 o'clock hour, that day's
-  briefing is skipped, not sent later. **Still for Bryce to look at.**
+  briefing is skipped, not sent later. **Approved by Bryce, 2026-11-07**
+  ("I approve that"). Nothing is left for Bryce to look at.
 
 **Approved by Bryce on 2026-11-07:** "I approve all of those calls, so you can clear the need for me to review them now."
 That covers H2 (multi-day events read the Calendar's "Day 2 of 3 Trip"),
 A-48-2 and A-48-4 (STRUCTURE.md homes for event words and the meal-plan
 week rule), the medium content calls (the 9:00 to 9:59 send time,
 "Nothing on today" on an empty day, the message wording) and the routine
-high calls (H1, H3 to H8). H10 was not in what he was shown, so it stays
-above.
+high calls (H1, H3 to H8). H10 was not in that list; he approved it separately the same day.
 - 2026-11-07: **Vision pass 2: PASS** on F1 (hour sweep 2025 to 2027 again
   clean; `hourInZone` matched the old method every minute of 2025 to 2027
   in five zones; `formatHouseholdClock` matched every minute of 2026;
