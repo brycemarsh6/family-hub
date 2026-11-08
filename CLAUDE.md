@@ -439,14 +439,6 @@ Replace this section at the end of each session. Don't append.
   seconds). Tap Filter, hide one person. Open Manage, Chore chart, the
   Report icon and one habit's stats. On your phone, Whole family shows a
   shared habit once in each person's card. Look at Hill's 259 to 263.
-- **Landscape Kitchen check** (about 5 minutes, mission 52): on the
-  kitchen iPad sideways, open Inventory and Shopping: groups in two
-  columns. Hard-reload Inventory once: it may show one column for a blink,
-  then two (expected). All recipes: three columns, tap a letter on the A-Z
-  rail and land on it; the rail ends above the round +. While scrolling,
-  check the letter headers stick in Safari. Expiring: three columns. Meal
-  plan: the week as a grid; tap a Coming up card and it opens below.
-  Look at Hill's 268, 269, 271 and 272.
 - **Landscape dashboard check** (about 2 minutes): turn the kitchen iPad
   sideways and reload the dashboard: the tiles fill the screen in 4
   columns, there is no "Dashboard" title, and Customize sits in the top
