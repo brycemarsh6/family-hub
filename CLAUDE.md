@@ -8,18 +8,30 @@ project) and the next Claude session. Plain English, no assumed background.
 
 ## Rules for this file
 
-- **Keep it under ~250 lines.** Everything here costs tokens on every turn.
-- **No session diaries here.** Mission details go in `.avengers/missions/`,
-  plans in `.avengers/plans/`, and anything worth keeping as history goes in
-  `docs/history/`. At the end of a session, update **Current status** below
-  (replace it, don't append to it).
+- **Hard cap: 250 lines.** Run `wc -l CLAUDE.md` before every commit that
+  touches it. Over the cap means cut first, then add. (It reached 523 lines
+  by 2026-11-08 because mission write-ups piled up here; this is the second
+  slimming, the first was PR #31.)
+- **Only facts that stay true for weeks belong here:** what the app is, how
+  we work, decisions already made, design headlines, what's built in one or
+  two lines per feature.
+- **Where everything else goes:**
+  - A mission merged: its own file in `.avengers/missions/` (the Delivery
+    section). Decision numbers, Hill's calls, gate results, branch names,
+    commit hashes and PR numbers live there, **never here**.
+  - Phone tests for Bryce, things waiting on him, open follow-ups:
+    [.avengers/status.md](.avengers/status.md).
+  - Stories and old reasoning: `docs/history/`.
+- **No session diaries.** Current status (bottom of this file) lists only
+  work that is not merged yet. When your PR merges, delete your line. Never
+  add "passed its gates" or "merged as PR #N" lines.
 - **Danger rules live in [AGENTS.md](AGENTS.md)** (imported above), design rules
   in [DESIGN.md](DESIGN.md), structure rules in [STRUCTURE.md](STRUCTURE.md).
   Don't copy them here; link to them.
-- The full pre-2026-10-31 file (every plan, session note and decision story) is
-  kept word for word in
-  [docs/history/claude-md-archive-2026-10-31.md](docs/history/claude-md-archive-2026-10-31.md).
-  Search it when you need the reasoning behind an old decision.
+- Older archives, word for word:
+  [docs/history/claude-md-archive-2026-10-31.md](docs/history/claude-md-archive-2026-10-31.md)
+  and
+  [docs/history/claude-md-archive-2026-11-08.md](docs/history/claude-md-archive-2026-11-08.md).
 
 ## What this is
 
@@ -67,30 +79,29 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   `package.json`) get small edits only; sync with `main` right before merging.
 - **Run commands, practical setup and file layout:** [README.md](README.md).
 
+
 ## What's built
 
-- **Dashboard** (`/`): the tiles (Calendar, Today's meals, Inventory, Grocery,
-  Recipes and more) are widgets. Each person can show, hide and reorder them from a Customize sheet,
-  saved per person. Device logins (the wall tablet) see the default layout and
-  get no Customize button.
+Each feature is one or two lines here. Detail lives in the plan and mission
+files named beside it.
+
+- **Dashboard** (`/`): tiles (Calendar, Today's meals, Inventory, Grocery,
+  Recipes, Habits, Chores and more) are widgets in four sizes. Each person
+  shows, hides, resizes and reorders them from Customize. Device logins (the
+  wall tablet) see the default layout and get no Customize button. Plan:
+  `.avengers/plans/dashboard-widgets-v2.md`.
 - **One side drawer** for the whole app, opened by a hamburger button at the
-  top left (the wordmark header shows only on the dashboard and login). It lists
-  Dashboard, Calendar, Habits & Chores, Plans & Goals, Lists, a Kitchen group
-  (Recipes, Meal Plan, Shopping, Inventory, Expiring), then Profile, Settings
-  and Sign out. On wide screens (1024px and up) a per-login "Menu style"
-  setting in Settings can pin it open as an icon rail or a full sidebar.
-  Phones always use the menu button. There are no landing pages. Old
-  `/kitchen`, `/kitchen/cooking` and `/chores` forward to Inventory, Recipes
-  and Habits & Chores. Habits & Chores (`/habits`) is live (PR B); the old
-  `/routines` forwards to it too.
-- **Send feedback** (mission 38): a drawer row opens a sheet over the
-  current page (message up to 2000 characters, optional screenshot of the
-  visible page, stored in the row). Admins read reports at
-  `/settings/feedback` (New / Done, swipe Mark done or Delete). This
-  changed the drawer footer: it is now Settings + Send feedback only;
-  Profile, the name card and Sign out moved into Settings (the drawer
-  bullet above predates this).
-- **Kitchen** (the Kitchen group in the drawer):
+  top left (the wordmark header shows only on the dashboard and login). It
+  lists Dashboard, Calendar, Habits & Chores, Plans & Goals, Lists, a Kitchen
+  group (Recipes, Meal Plan, Shopping, Inventory, Expiring), then Settings and
+  Send feedback. Profile, the name card and Sign out live in Settings. On
+  wide screens a per-login "Menu style" setting can pin it open as an icon
+  rail or a full sidebar. There are no landing pages; old `/kitchen`,
+  `/kitchen/cooking`, `/chores` and `/routines` forward to their new homes.
+- **Send feedback**: a drawer row opens a sheet (message up to 2000
+  characters, optional screenshot). Admins read reports at
+  `/settings/feedback`.
+- **Kitchen**:
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
     tap-to-edit sheet.
@@ -103,82 +114,51 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
     add-to-meal-plan, add-ingredients-to-groceries.
   - **Meal Plan**: week view, four slots a day, AI suggestions grounded in real
     inventory.
-- **Plans & Goals** (`/plans`): three tabs, This week, Goals and Vision. A goal
-  has one of six life areas (Spiritual, Health & Wellness, Personal Growth,
-  Relationships & Connections, Work & Money, Fun & Adventure), a target date
-  or "Ongoing" (mission 38),
-  Mine or Together, optionally private, and optionally a number to track
-  with check-ins. Plan items under a goal are habits, steps or reminders,
-  logged with one tap. Goal detail is at `/plans/goals/[id]`. The Vision tab
-  holds one statement per life area at 5, 10 or 15 years, on a Mine or
-  Together board, with writing prompts on empty cards; idea chips fill the
-  New goal form and the Add-to-plan sheet. PR 3 (#39) added a
-  "Goals this week" dashboard tile (second in the default order), a Sunday
-  recap card at the top of This week, and a check-in history list on the
-  goal page. Direction in `.avengers/plans/plans-goals-v1.md`.
-- **Habits engine** (mission 30, live since 2026-11-05, PR #41): Plans &
-  Goals habits now live in their own `Habit` tables, with one check per person per day (no
-  "times a day"). The rules (schedules, streaks, carry-over, who can see or
-  log) are pure code in `src/lib/habits/`, with words in
-  `src/lib/habitVocabulary.ts`. Settings has a "Habits & Chores" section: a
-  Show streaks switch (saved per login) and, for admins only, a Recompute
-  streaks button. PR B (#43) added the tab: Today (tap to check, swipe to
-  skip), Manage (drag to reorder), New and Edit. PR C added streaks, nudges,
-  confetti, a stats page per habit (`/habits/[id]`) and the Whole family
-  view. PR D added the chore chart, chore streak and vacation mode; PR E1 added
-  the Habits and Chores today dashboard tiles and the Pick view; PR E2 added
-  plan the day (a "Pick a day" card on prompt days, "Planned today" on the
-  dashboard, planned days on the Calendar). PR F added the Report
-  (`/habits/report`: Week, Month and Year for one person, parents can
-  pick a person) and idea chips on the New habit form (six per life area,
-  eight chores, words in `src/lib/habitIdeas.ts`, mirrored from
-  `.avengers/plans/habits-ideas.md`). That finishes the plan
-  (`.avengers/plans/habits-chores-v1.md`). Mission 37 added hours habits:
-  Track: Hours logs time toward a weekly target (`HabitTimeEntry`, rules in
-  `src/lib/habits/hours.ts`, words in `src/lib/habitHoursVocabulary.ts`).
-- **Calendar**: live since 2026-09-04. Month, Year, Schedule and hour-timeline
-  views, tasks, month-jump dropdown and swipe-to-page (CV0 to CV6 merged).
-  Read `.avengers/plans/calendar-v2.md` before calendar work.
-- **Family accounts**: per-person logins (P1 + P2 shipped). P3 (role gates,
-  account management, kid profiles without a password) **is live**: its
-  commit `42bb676` has been on `main` since 2026-08-31 (this file said "not
-  deployed" until 2026-11-05; `git merge-base --is-ancestor` settled it).
-  See `mission-6-accounts-p3-roles-and-settings.md`.
+- **Plans & Goals** (`/plans`): This week, Goals and Vision tabs. A goal has
+  one of six life areas, a target date or "Ongoing", Mine or Together,
+  optionally private, optionally a number tracked with check-ins. Plan items
+  under a goal are habits, steps or reminders. The Vision tab holds one
+  statement per life area at 5, 10 or 15 years. Plan:
+  `.avengers/plans/plans-goals-v1.md`.
+- **Habits & Chores** (`/habits`): Today, Manage, Whole family, chore chart,
+  streaks, nudges, vacation mode, plan the day, Report and stats per habit,
+  and hours habits (a weekly time target). The rules (schedules, streaks,
+  carry-over, who can see or log) are pure code in `src/lib/habits/`, words
+  in `src/lib/habitVocabulary.ts`. Settings has a Show streaks switch and, for
+  admins, Recompute streaks. Plan: `.avengers/plans/habits-chores-v1.md`.
+- **Calendar**: Month, Year, Schedule and hour-timeline views, tasks,
+  month-jump dropdown, swipe-to-page. Read `.avengers/plans/calendar-v2.md`
+  before calendar work.
+- **iPad landscape**: wide pages use a per-page opt-in rule (a container that
+  sizes columns against its own space). Done for the dashboard, Calendar,
+  Habits & Chores, Kitchen lists, Plans, Goal page and recipe page. Left:
+  Forms, Settings, Manage family, Feedback. Plan:
+  `.avengers/plans/ipad-landscape-v1.md`; the rule is in STRUCTURE.md.
+- **Family accounts**: per-person logins, role gates, account management, kid
+  profiles without a password. A "Tablet" device login for the wall tablet
+  can check off any task; signing out of it needs an admin password. Next:
+  the tablet's own dashboard and calendar editing (see Current status).
 - **Voice**: Siri shortcut over `/api/voice` is the working path, used daily.
-  `/api/alexa` is live but dormant; Alexa+ (V3b) is blocked on Amazon
+  `/api/alexa` is live but dormant; Alexa+ is blocked on Amazon
   (`.avengers/plans/v3b-alexa-plus-addon.md`).
-- **Assistant API** (`/api/assistant/v1/`): a private, token-protected API for
-  Bryce's Grok bot, Winnie (the plan calls it "Home Hub"). Mission 21
-  (inventory, leftovers, family, audit log) shipped in PR #28. Mission 22
-  (PR #30) added the shopping list (`/shopping`, check-off, put-away,
-  from-low-inventory) and one-call `GET /summary`, with the writes in
-  `src/lib/groceryWrites.ts` and `src/lib/putAway.ts`; Winnie may delete
-  only shopping rows she created. Mission 40 added **undo**: every write
-  saves before/after copies in the audit log, and
-  `POST /audit/{requestId}/undo` reverses a whole request for 30 days
-  (refuses if anyone changed the row since). Bryce's 2026-11-06 scope for
-  Winnie (whole app except logins, no per-person permissions, never deletes
-  goals/vision/plan items/habits) is in
-  `.avengers/missions/mission-40-assistant-undo.md`; it supersedes the
-  mission 23/24 list in `.avengers/plans/assistant-api-v1.md`.
-  Mission 44 added **recipes and the meal plan**: list/read/add/edit
-  recipes, mark cooked, share links, tags, cookbook list, "what am I
-  missing" (`/recipes/{id}/shortfall`), a week's plan, fill or clear a
-  meal (`/meal-plan/days/{date}/{slot}`) and the week's grocery needs,
-  all undoable. Writes live in `src/lib/recipeWrites.ts`, `tagWrites.ts`
-  and `mealPlanWrites.ts`; the week-matching rule in `mealPlanWeek.ts`.
-  No recipe delete or cookbook edits for Winnie (Bryce, 2026-11-06).
-- **Winnie notifications** (mission 42): Marshee can also push events to
-  Winnie's Grok webhook (one way; she shows them in Bryce's chat 9 AM to
-  9 PM Denver). Phase 1 is only an admin-only "Send test to Winnie" button
-  in Settings. `src/lib/winnieNotify.ts` is the only sender; it reads
-  `WINNIE_WEBHOOK_URL` and `WINNIE_WEBHOOK_KEY` (Vercel only) and sends
-  nothing if either is missing. Retry rules are in `src/lib/winnieEvents.ts`.
-  **Morning briefing** (mission 48): each adult (admin, parent) gets their
-  day in the 9 o'clock hour Denver (chores, tasks, calendar, meals, Pick a
-  day). Two Vercel crons (15:00 and 16:00 UTC) call
-  `/api/cron/briefing`, which checks `CRON_SECRET` first and sends only
-  inside 9 AM Denver; the `WinnieBriefingSent` table stops a second one.
+- **Assistant API** (`/api/assistant/v1/`): a private, token-protected API
+  for Bryce's Grok bot, Winnie (the plan calls it "Home Hub"). It covers the
+  whole app except logins: inventory, leftovers, family, shopping and
+  `GET /summary`, recipes, meal plan and cookbooks, habits and chores, plans
+  and goals. Every write saves before/after copies in the audit log and
+  `POST /audit/{requestId}/undo` reverses a whole request for 30 days.
+  Writes live in shared `src/lib/*Writes.ts` files used by both the family's
+  Server Actions and the API. Winnie never deletes goals, vision statements,
+  plan items or habits; she may hard-delete only what she created.
+  Scope and rules: `.avengers/missions/mission-40-assistant-undo.md`.
+- **Winnie notifications**: Marshee pushes events to Winnie's Grok webhook
+  (one way). `src/lib/winnieNotify.ts` is the only sender; it reads
+  `WINNIE_WEBHOOK_URL` and `WINNIE_WEBHOOK_KEY` (Vercel only, both set) and
+  sends nothing if either is missing. Connected and proven. Winnie's own
+  9 AM to 9 PM Denver quiet window is her routine's setting, not Marshee's.
+  **Morning briefing**: each adult gets their day in the 9 o'clock hour
+  Denver, from two Vercel crons calling `/api/cron/briefing`, which checks
+  `CRON_SECRET` first; the `WinnieBriefingSent` table stops a second send.
   Words in `src/lib/briefing.ts`.
 
 ## Tech stack, and why
@@ -214,6 +194,9 @@ Reasons for each are in the archive and the mission files.
 - **Bryce directs content and design decisions** (layout, fields, wording).
   Claude recommends on structure and tooling.
 
+- **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
+  desktop mouse. Hover is a bonus, never the only way to learn something.
+
 ## Design rules
 
 All in [DESIGN.md](DESIGN.md), each with its reason. The headlines: touch-first
@@ -222,302 +205,27 @@ Lucide outline icons only, secondary row actions behind a right-to-left swipe
 (destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-11-08, L4)
+## Current status (updated 2026-11-08)
 
-Replace this section at the end of each session. Don't append.
+Replace this section, don't append. It lists only work that is **not merged
+yet** or is next. Everything merged is in its mission file.
 
-**In progress:**
-- **Send feedback (mission 38)** passed its gates on 2026-11-06 (Strange
-  on a fourth pass Bryce allowed) and merges from
-  `claude/marshee-send-feedback-d53a21`. Follow-ups: Winnie told about new
-  feedback (after an Assistant API route), Calendar timeline screenshots
-  show the top hours, a Mark done button in the detail sheet. Phone check:
-  send one from a long Inventory page on the iPad and read it in Settings.
-- **Weekly hours habits (mission 37)** passed its gates on 2026-11-06 and
-  merges from branch `claude/habits-hours`: a habit can track hours toward
-  a weekly target (a bar, "N hours left, about M a day", a log sheet,
-  weeks streak, stats page, goal plans). Decisions 182 to 199. Vision
-  needed a fourth pass, which Bryce allowed. Leftovers:
-  `.avengers/missions/mission-37-habits-hours.md` (Delivery).
-- **Ongoing goals (mission 38)** passed its gates on 2026-11-06 and merges
-  from branch `claude/goals-ongoing`: a goal's target date is optional
-  ("Ongoing" chip, tag and goal page; no pace line), and new goals open on
-  "End of this year". Leftovers in
-  `.avengers/missions/mission-38-goals-ongoing.md` (Delivery).
-- **Whole family columns (mission 41)** passed its gates on 2026-11-06 and
-  merges from branch `claude/habits-family-columns`: on the iPad, one 330px
-  column per person (swipe sideways), rows by time of day, Filter, and a
-  household order set by dragging on Manage family (`User.familyOrder`).
-  Leftovers in `.avengers/missions/mission-41-habits-family-columns.md`.
-- **iPad landscape:** L1 (mission 44, PR #62) made the dashboard wide;
-  L2 (mission 46, PR #67) the Calendar; L5 (mission 51) merged as PR #79
-  (`3933c7f`) on 2026-11-07 after all three gates passed:
-  This week 2 columns, the Goals board 3 life-area columns (column-major,
-  empty areas shown at 3 columns), Vision 3 across, the Goal page two
-  panels, the recipe page with Ingredients (400px) beside the Steps and
-  the hero swapped for an icon tile from `md`. Hill's calls 244 to 254
-  (248, 249, 251 are the medium ones). **L3 (mission 53)** made Habits &
-  Chores wide (merged as PR #81, `c021950`, 2026-11-08; production
-  deploy READY): one thin bar with the
-  day as the title, Filter, day arrows (past days up to 14 back are view
-  only), Today, Manage and a Report icon; Mine in Morning, Afternoon,
-  Evening and Anytime columns; Whole family fits everyone on one screen
-  when it can; Manage, Chore chart, Report and Stats use the width. The
-  floating + moves bottom right on every wide page from `md` (so the Goals
-  board gets it from L3, not L4). Decisions 255 to 258 (Bryce) and 259 to
-  263 (Hill). Leftovers in
-  `.avengers/missions/mission-53-ipad-landscape-l3-habits.md`. Plan:
-  `.avengers/plans/ipad-landscape-v1.md`. **L4 (mission 52)** made the
-  Kitchen lists wide (all three gates passed 2026-11-08, branch
-  `claude/ipad-landscape-l4-kitchen-1af045`): Inventory and Shopping in
-  two stable columns, Expiring in three, All recipes letter groups in
-  three, Cookbooks 4 across, Cookbook detail in three, the Meal plan week
-  as a 7-column grid with compact Coming up cards. The split helper is
-  `src/lib/splitColumns.ts` with `useContainerWidth.ts`. Week ranges now
-  read "Nov 8 to 14" everywhere, the Calendar's Week title included.
-  Hill's calls 264 to 273 (268, 269, 271, 272 are the medium ones) in
-  `.avengers/missions/mission-52-ipad-landscape-l4-kitchen.md`. Still to
-  do: L6 (Forms, Settings).
-- **Calendar widget W2 (mission 49)** passed its gates on 2026-11-07 from
-  branch `claude/dashboard-w2-calendar-widget-40bbe6`: a Calendar widget in
-  all four sizes (Small next item, Medium and Large today, Extra large 3 or
-  7 days), options Tasks only and Whole day, first at Large on the default
-  and tablet layouts; one shared task query (`src/lib/calendarTaskQuery.ts`).
-  Decisions 233 to 243 (233 to 239 approved by Bryce; 240 to 243 by Hill).
-  Next: W3 (`.avengers/plans/dashboard-widgets-v2.md`). Leftovers in
-  `.avengers/missions/mission-49-dashboard-widgets-w2-calendar.md`.
-- **Dashboard widgets W1 (mission 43)** passed its gates on 2026-11-06
-  from branch `claude/dashboard-customizable-widgets-a9d4c0`: widgets have
-  sizes (Small, Medium, Large, Extra large), a kind can be added more than
-  once, a 2 or 4 column grid packs them, and Customize edits size with
-  swipeable previews. Layout JSON is v2 (old layouts upgrade on read).
-  Chores today defaults to Medium (decision 214).
-- **Hill decides for Bryce** (`.claude/agents/hill.md`); merges don't wait
-  for him. Phone tests go on Bryce's checklist below and never block.
-- **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
-  desktop mouse. Hover is a bonus, never the only way to learn something.
-- **Calendar CD1** (drag to reschedule) on branch `claude/calendar-cd1`. Watch
-  for the swipe `pointerdown` issue and `CalendarViews.tsx` growth that CV6's
-  gates flagged (details in `mission-19-calendar-cv6-dropdown-swipe.md`).
-- **Tablet login (mission 39) PR A** passed its gates on 2026-11-06 and
-  merges from `claude/mission-39-tablet-login-pra-49f32c`: an admin sets up
-  one "Tablet" login in Manage family, its chip is last on the login page,
-  it can check off any task, and Sign out on it asks for an admin password.
-  PR B (the tablet's own dashboard, calendar editing, the parent rule) and
-  PR C (per-person habits tiles) are next; see
+- **iPad landscape L6** (Forms, Settings, Manage family, Feedback) is the
+  last step and has no mission yet. Plan: `.avengers/plans/ipad-landscape-v1.md`.
+- **Dashboard widgets W3** is next after the W2 Calendar widget:
+  `.avengers/plans/dashboard-widgets-v2.md`.
+- **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
+  parent rule) and PR C (per-person habits tiles) are next:
   `.avengers/missions/mission-39-tablet-login.md`.
-- **Winnie notifications (mission 42)** merged as PR #58 on 2026-11-06.
-  **Connected and proven on 2026-11-06:** Bryce added the two env vars in
-  Vercel (Production, Sensitive), redeployed, and a "Send test to Winnie"
-  tap arrived in her chat. Winnie's 9 AM to 9 PM Denver window
-  is her own routine setting (not Marshee's); she offered to exempt
-  `connection.test` events and keep it for ordinary alerts. The first real
-  alert is the morning briefing (mission 48, below).
-- **Winnie's morning briefing (mission 48)** merged as PR #71 (`ae8e0a4`)
-  on 2026-11-07 and is deployed (production READY, the
-  `WinnieBriefingSent` migration applied in the build, the route answers
-  401 without the secret). **`CRON_SECRET` is set** (Bryce, 2026-11-07,
-  Production, Sensitive; production redeployed). First real briefing
-  expected 2026-11-08, 9:00 to 9:59 Denver. Bryce approved
-  all of Hill's calls on 2026-11-07, H10 included; nothing is left to review:
-  `.avengers/missions/mission-48-winnie-briefing.md`.
-  Details: `.avengers/missions/mission-42-winnie-notify.md`.
-- **Winnie's recipes and meal plan (mission 44)** merged as PR #61
-  (`634627a`) on 2026-11-06 and is live (production deploy READY, routes
-  answer 401 without a token). What to tell Winnie is in the mission
-  file's Delivery.
-- **Winnie's cookbooks (mission 45)** merged as PR #63 (`480091a`) on
-  2026-11-06 and is live (routes answer 401 without a token):
-  create, rename, file/unfile, share, and delete only her own cookbooks
-  with no family filings (Hill's H1 to H4; Bryce is fine with them,
-  2026-11-06). Writes in `src/lib/cookbookWrites.ts`; refusals in
-  `src/lib/writeError.ts`. What to tell Winnie is in the mission file's
-  Delivery. Next for Winnie: habits and chores (mission 47, below), then
-  plans and goals, then calendar/tasks (after CD1), then replacing the
-  app's Claude features with her (needs a two-way link; Bryce parked it
-  2026-11-06). Captain's STRUCTURE.md amendments A1 to A4 (mission 44) and
-  A5 to A9 (mission 45) wait in the mission files.
-- **Winnie's habits and chores (mission 47)** merged as PR #69
-  (`587399b`) on 2026-11-06 and is live (routes answer 401 without a
-  token): 12 routes under `/habits` (today's list, a
-  person's habits, a habit's stats, the chore chart; check, skip, undo
-  either, log and remove her own time; add and edit, never delete), every
-  write undoable with the streaks rebuilt inside the undo. Shared rules in
-  `src/lib/habitTapWrites.ts` and `src/lib/habitInput.ts`; the family's habit
-  actions are thin wrappers now. Privacy preset for Bryce to review:
-  Winnie is "Bryce" for private habits through `ASSISTANT_OWNER_USER_ID`.
-  Hill's H1 to H8, Captain's A11 to A14 and "What to tell Winnie" in
-  `.avengers/missions/mission-47-assistant-habits.md`. Plans and goals
-  followed (mission 50, below). Next for Winnie: calendar/tasks (after
-  CD1), then replacing the app's Claude features with her.
-- **Winnie's plans and goals (mission 50)** merged as PR #75
-  (`82d924c`) on 2026-11-07 and is live (routes answer 401 without a
-  token): 11 routes under `/goals`,
-  `/plan-items` and `/vision` (read goals, one goal with check-ins, This
-  week, Vision boards; add and edit goals, check-ins, plan items and
-  vision statements; remove only her own check-ins; never delete). Every
-  write undoable, with the goal's number rebuilt inside the undo. Writes
-  in `src/lib/goalWrites.ts`, `planItemWrites.ts` and `visionWrites.ts`;
-  the family's goal, plan item and vision actions are thin wrappers now.
-  Privacy preset for Bryce to review: Winnie is "Bryce" for private goals,
-  edits only his and Together goals, and the goals she makes are shared.
-  Hill's H1 to H9, Captain's A17 to A20 and "What to tell Winnie" in
-  `.avengers/missions/mission-50-assistant-plans-goals.md`.
-
-**Bryce's checklist (never blocks work):**
-- **Morning briefing check (mission 48), 2026-11-08:** between 9 and 10
-  AM Denver, did you and Emily each get "Good morning, ..." from Winnie?
-  If not, see the mission file's Delivery, step 2.
-- **Winnie and private habits (mission 47):** in Vercel add
-  `ASSISTANT_OWNER_USER_ID` = your own id (from `GET /family`) to
-  Production and redeploy. Until then Winnie sees non-private habits
-  only. Then review Hill's H8 (a one-person hours habit she makes is
-  private only when that person is you) and H6 (quarter-hour time entries).
-- **PR C phone check** (about 5 minutes): on Today, a streak flame on a
-  habit done 2+ days running; tap a habit name to open its stats; check
-  the last habit of the day and see confetti once. On the iPad, open
-  Whole family. Have Emily nudge you on a shared habit, then tap "Got it".
-- **PR D phone check** (about 5 minutes): Manage, Chore chart; add a chore
-  to a day, then on This week move one and skip one. In Settings add a
-  short vacation and see Today say "You're on vacation", then delete it.
-  On a Sunday, look for "You finished every chore last week" if you did.
-- **PR E1 phone check** (about 5 minutes): on the dashboard, check a
-  habit on the Habits tile and undo it; Customize, drag a tile by its grip
-  on the iPad; tap Pick on Habits, turn two on and drag them into order.
-- **PR E2 phone check** (about 5 minutes, on a Friday): the "Pick a day"
-  card on Today and the dashboard; tap "Other day" on the iPhone and pick a
-  date (the card leaves once; browsing the picker plans nothing). On the
-  planned day, the habit sits in "Planned today" on the dashboard. On the
-  Calendar, Week and Schedule show it with its icon; a check on a later
-  planned day can mean "this week's goal is done" (decision 160).
-- **PR F phone check** (about 5 minutes): Habits & Chores, the Report
-  card at the bottom; flip Week, Month and Year, and the arrows. On the
-  iPad, check the small Month squares are easy to read. As a parent, tap
-  Emily's chip. New habit: pick a life area and tap an idea chip; for a
-  chore, the Chore ideas under Name. Look for the new "No phone in bed"
-  icon. Try Together with only yourself and see "Pick at least two
-  people, or choose Just me."
-- **Hours tracker phone check** (about 5 minutes): New habit, Track:
-  Hours, 10 hours a week. On Today tap + and add 1 hour; see the bar and
-  "9 hours left, about N a day". Open its stats page and delete that
-  entry. Under a goal, add an hours plan and log from This week. On the
-  iPad, look at Whole family.
-- **Ongoing goals phone check** (about 3 minutes): New goal, tap Ongoing
-  and see the date box grey out; save and see the "Ongoing" tag on the
-  card and "Ongoing" on its page. Scroll the Goals list to the very
-  bottom: if the + still covers a card, screenshot it where it happens.
-- **Whole family iPad check** (about 5 minutes): Settings, Manage family,
-  drag the Family order into Bryce, Emily, Ledger, Eleanor, Lucy. Open
-  Habits & Chores, Whole family, in portrait and landscape: swipe sideways
-  with a finger, scroll one column, tap a check, try Filter.
-- **Tablet login setup** (about 5 minutes): on your phone, Settings, Manage
-  family, "Set up a tablet login", choose the Tablet password, Create. On the
-  tablet: Settings, Sign out (it is still Emily, so one tap), tap the
-  "Tablet" chip at the bottom, enter that password. Then on the tablet try
-  Settings, Sign out: a wrong admin password is refused, yours signs it out.
-- **L5 iPad check** (about 5 minutes): sideways, Plans & Goals: This
-  week two across; Goals three columns with "No goals here yet" under an
-  empty area; Vision three across; a goal page as two panels. Upright:
-  Goals two columns; tap Done and check two or three areas still use both
-  columns. Open a recipe: icon tile by the title, Ingredients beside the
-  Steps; tap Recalculate under Nutrition, Edit under Cookbooks and Tags,
-  and check each sheet opens on screen (iPad Safari is the unproven
-  browser for sheets inside a container). On your phone, a recipe reads
-  Ingredients, Instructions, Notes, Rating, Nutrition, Cookbooks, Tags.
-  Glance at Hill's 248 (circles, not pills), 249 (Cooked today in the
-  Rating card) and 251 (that phone order).
-- **Landscape Calendar check** (about 3 minutes): on the kitchen iPad
-  sideways, open Calendar, Schedule: a month card on the left; tap a day
-  and the list jumps there; scroll and the ring follows. Month: 4 events
-  a day you can read. Week: titles and times readable. Year: 4 across.
-  Upright, Schedule is the list alone as before.
-- **Landscape Habits check** (about 5 minutes, mission 53): on the
-  kitchen iPad sideways, open Habits & Chores. Mine shows four time-of-day
-  columns; tap ‹ to yesterday and see "Looking back. Past days are view
-  only." with no check buttons, then Today. Open Whole family: all five
-  of you appear at once (they should appear right away, not after a few
-  seconds). Tap Filter, hide one person. Open Manage, Chore chart, the
-  Report icon and one habit's stats. On your phone, Whole family shows a
-  shared habit once in each person's card. Look at Hill's 259 to 263.
-- **Landscape Kitchen check** (about 5 minutes, mission 52): on the
-  kitchen iPad sideways, open Inventory and Shopping: groups in two
-  columns. Hard-reload Inventory once: it may show one column for a blink,
-  then two (expected). All recipes: three columns, tap a letter on the A-Z
-  rail and land on it; the rail ends above the round +. While scrolling,
-  check the letter headers stick in Safari. Expiring: three columns. Meal
-  plan: the week as a grid; tap a Coming up card and it opens below.
-  Look at Hill's 268, 269, 271 and 272.
-- **Landscape dashboard check** (about 2 minutes): turn the kitchen iPad
-  sideways and reload the dashboard: the tiles fill the screen in 4
-  columns, there is no "Dashboard" title, and Customize sits in the top
-  bar next to the Marshee wordmark. Open Customize, change a size, reload. On a day with Planned today or Pick a day, the cards
-  sit two across. On the Habits tile, open an hours habit's log sheet and
-  check it covers the whole screen (iPad Safari is unproven).
-- **Calendar widget check** (about 5 minutes): on the iPad, Customize,
-  Add widget, Calendar; try each size. Extra large with 7 days: days wrap
-  onto a second row and titles stay readable. Tap "+N more" and land on
-  that day's Schedule. Turn on Tasks only, then Whole day, reload. On the
-  phone, Extra large stacks the days. Look at Hill's 240 (the wrapped
-  7 days) and 241 (done items sink) while you're there.
-- **Dashboard widgets iPad check** (about 5 minutes): on the iPad, see the
-  4-column dashboard; check the Small Inventory tile isn't cut off. Open
-  Customize, tap Chores today, switch it to Large and back; add a second
-  Habits widget, then Remove it.
-- **Review Hill's dashboard calls:** 200, 201 (amended by 209), 203 and
-  212 in `.avengers/missions/mission-43-dashboard-widgets-w1.md`.
-- **Delete the commented production `DATABASE_URL` line in `.env`**
-  (host `ep-hidden-surf-`). It isn't used, but AGENTS.md says no dev
-  machine should hold it. No agent edits `.env`.
-- **Kids and chores:** once a kid profile exists, a kid tapping a shared
-  chore on the chart should see "Ask a parent to change a shared chore."
-- **Review Hill's medium calls:** 94, 95, 104, 110, 111 (PR C); 117, 121,
-  122, 123 and 127 (PR D; 130 goes with 127); 135, 136, 137 and 149
-  (PR E1); 156, 159, 160 and 161 (PR E2); 163, 167, 170, 172, 179 and 181
-  (PR F); 188, 191, 192, 197 and 198 (hours tracker). Plan:
-  `.avengers/plans/habits-chores-v1.md`.
-- **Optional:** confirm the family-hub origin in the desktop app (Help,
-  Troubleshooting, Review Pinned Git Origins) so the app's merge button
-  works. Delete the "zz m31" to "zz m35" test habits, the four
-  "zz m37" habits, the "zz m37 Commissions" goal, the four "zz m38"
-  goals, the deactivated "zz m41 test renamed" profile and the deactivated
-  "zz m39 Tablet" device on dev whenever.
-
-**Waiting on Bryce:**
-- **PR A is live:** press Recompute streaks once (Settings). The production
-  counts are checked (all 0: no habits existed yet; mission 30 file).
-- **Look at the Sunday recap** on the first Sunday after 2026-11-04. It has
-  only been tested, never seen on a real Sunday.
-- **Eaten tap after a swipe**: the fix landed in mission 27 (F3). Sixty seconds
-  on a phone: swipe a Shopping row a little, let go, tap it; then swipe one
-  open, tap an action, tap the row. Both taps should work.
-- **Touch vs. scroll** for swipe inside the calendar's timeline scroller: only
-  testable on a real device.
-- **Assistant API production setup** (after PR #28): put the token hash in Vercel
-  as `ASSISTANT_API_TOKEN_HASH`, paste the token into Home Hub, then change
-  Bryce's own Marshee password.
-- **Kid logins are Bryce's call.** P3's role gates are live (above), so a
-  kid profile (no password) is safe to create from Settings, Manage family.
-  Giving a kid a password is a separate decision.
-
-**Open, not scheduled:**
-- Dev only, fixed 2026-11-08: the "X is not defined" crash from a type
-  re-exported in a "use server" file (`PersonInfo`, `HabitInput`, then
-  `RecipeIngredientSuggestion` and the put-away types). None are left, and
-  `src/lib/useServerExports.test.ts` now fails the Gauntlet if one comes
-  back. Components import such types from their `src/lib/` home.
-- STRUCTURE.md is 1534 lines, 2.4 times its own 650-line housekeeping
-  trigger (Captain, mission 51): a one-PR cleanup mission that moves the
-  provenance stories into `docs/history/structure-rationale.md` is due.
-- Hours tracker follow-ups (mission 37 Delivery): a page left open over
-  Saturday night shows last week's total in the sheet until reloaded; the
-  Who hint says "checks" on an hours habit.
-- The Edit screen says "Edit habit" for a chore and doesn't light the
-  house icon (found by Strange in PR F, older than it).
-- Inventory collapse state doesn't persist across reloads; Shopping has no
-  collapsible groups; no per-item "usual store".
-- **Structured ingredients tripwire is at 3 of 4.** If a fourth feature needs
-  them, stop working around it and build them.
-- Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
-  by Bryce's Grok bot. Left uncommitted on purpose.
+- **Calendar CD1** (drag to reschedule) is open as PR #26, branch
+  `claude/calendar-cd1`. Watch the swipe `pointerdown` issue and
+  `CalendarViews.tsx` growth (`mission-19-calendar-cv6-dropdown-swipe.md`).
+- **Winnie next:** calendar and tasks (after CD1), then replacing the app's
+  Claude features with her (needs a two-way link; parked by Bryce).
+- **STRUCTURE.md cleanup** is due (it is far past its own housekeeping
+  trigger): one PR moving provenance stories into
+  `docs/history/structure-rationale.md`.
+- **Bryce's phone checklist, things waiting on him, and open follow-ups:**
+  [.avengers/status.md](.avengers/status.md).
 
 **Not built yet:** family profiles, to-dos, photo gallery, barcode scanning.
