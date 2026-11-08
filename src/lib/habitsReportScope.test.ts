@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "./householdDate";
 import type { HabitActor } from "./habits/types";
-import { activeReportFilter, matchesReportFilter, parseReportParams, reportFilterOptions, reportHref, reportPersonId, reportScope, type ReportParams } from "./habitsReportScope";
+import { activeReportFilter, matchesHabitsFilter, matchesReportFilter, narrowedFilterCount, shownColumns, stillHiddenPeople, parseReportParams, reportFilterOptions, reportHref, reportPersonId, reportScope, type ReportParams } from "./habitsReportScope";
 import type { TodayHabitInput } from "./habitsToday";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -151,4 +151,41 @@ test("reportPersonId: a parent or admin may ask for a household person; everyone
   assert.equal(reportPersonId(parent, null, people), "amy");
   assert.equal(reportPersonId({ userId: "cy", role: "kid" }, "amy", people), "cy");
   assert.equal(reportPersonId({ userId: "tablet", role: "device" }, "amy", people), "tablet");
+});
+
+test("filter: areas false leaves the life areas out (Today and Whole family filter by time only)", () => {
+  const rows = [
+    { kind: "habit" as const, timeOfDay: "evening", lifeArea: "fun" },
+    { kind: "chore" as const, timeOfDay: "morning", lifeArea: "health" },
+  ];
+  assert.deepEqual(reportFilterOptions(rows, { kinds: false, areas: false }).map((option) => option.key), ["all", "time:morning", "time:evening"]);
+  assert.deepEqual(reportFilterOptions(rows, { areas: false }).map((option) => option.key), ["all", "kind:habit", "kind:chore", "time:morning", "time:evening"]);
+});
+
+test("matchesHabitsFilter: the time chip and Together only both have to agree", () => {
+  const row = { kind: "habit" as const, timeOfDay: "morning", lifeArea: null, sharing: "together" };
+  const solo = { ...row, sharing: "each" };
+  assert.equal(matchesHabitsFilter(row, { time: "all", togetherOnly: false }), true);
+  assert.equal(matchesHabitsFilter(solo, { time: "all", togetherOnly: true }), false);
+  assert.equal(matchesHabitsFilter(row, { time: "all", togetherOnly: true }), true);
+  assert.equal(matchesHabitsFilter(row, { time: "time:evening", togetherOnly: false }), false);
+  assert.equal(matchesHabitsFilter(row, { time: "time:morning", togetherOnly: true }), true);
+});
+
+test("narrowedFilterCount: time, Together only and hidden people count one each (decision 261)", () => {
+  assert.equal(narrowedFilterCount({ time: "all", togetherOnly: false, hiddenPeople: [] }), 0);
+  assert.equal(narrowedFilterCount({ time: "time:morning", togetherOnly: false, hiddenPeople: [] }), 1);
+  assert.equal(narrowedFilterCount({ time: "all", togetherOnly: true, hiddenPeople: ["a", "b"] }), 2);
+  assert.equal(narrowedFilterCount({ time: "time:morning", togetherOnly: true, hiddenPeople: ["a"] }), 3);
+});
+
+test("stillHiddenPeople: an id that left the page no longer counts", () => {
+  assert.deepEqual(stillHiddenPeople(["a", "gone"], [{ id: "a" }, { id: "b" }]), ["a"]);
+  assert.deepEqual(stillHiddenPeople([], [{ id: "a" }]), []);
+});
+
+test("shownColumns: a hidden person's column drops, the rest keep their order", () => {
+  const columns = [{ id: "a" }, { id: "b" }, { id: "c" }];
+  assert.deepEqual(shownColumns(columns, ["b"]), [{ id: "a" }, { id: "c" }]);
+  assert.deepEqual(shownColumns(columns, []), columns);
 });

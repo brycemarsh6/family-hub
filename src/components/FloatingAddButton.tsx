@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Plus } from "lucide-react";
 
 /**
@@ -14,22 +15,31 @@ import { Plus } from "lucide-react";
  * the button stranded out in that margin on a desktop-width window. When the
  * pinned menu is on, `--app-nav-width` (set by AppChrome) moves the left edge
  * past it; unset, it is 0.
+ *
+ * A page that carries `data-page-width="wide"` (Habits & Chores) has no
+ * narrow column, so there, from `md` up, the button lifts the cap and sits at
+ * the bottom RIGHT, past the content (phones keep the bottom left, clear of the
+ * last row's check). It is a button (`onClick`) or a link
+ * (`href`); `label` is what a screen reader says.
  */
-export function FloatingAddButton({ onClick }: { onClick: () => void }) {
+export function FloatingAddButton({ onClick, href, label = "Add" }: { onClick?: () => void; href?: string; label?: string }) {
+  const className =
+    "pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-fg shadow-lg transition-opacity active:opacity-80";
   return (
     <div
       className="pointer-events-none fixed right-0 left-[var(--app-nav-width,0px)] z-40 flex justify-center"
       style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
     >
-      <div className="w-full max-w-3xl px-4">
-        <button
-          type="button"
-          onClick={onClick}
-          aria-label="Add"
-          className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-fg shadow-lg transition-opacity active:opacity-80"
-        >
-          <Plus aria-hidden="true" size={26} />
-        </button>
+      <div className="flex w-full max-w-3xl px-4 md:[body:has([data-page-width=wide])_&]:max-w-none md:[body:has([data-page-width=wide])_&]:justify-end">
+        {href ? (
+          <Link href={href} aria-label={label} className={className}>
+            <Plus aria-hidden="true" size={26} />
+          </Link>
+        ) : (
+          <button type="button" onClick={onClick} aria-label={label} className={className}>
+            <Plus aria-hidden="true" size={26} />
+          </button>
+        )}
       </div>
     </div>
   );

@@ -256,10 +256,19 @@ Replace this section at the end of each session. Don't append.
   empty areas shown at 3 columns), Vision 3 across, the Goal page two
   panels, the recipe page with Ingredients (400px) beside the Steps and
   the hero swapped for an icon tile from `md`. Hill's calls 244 to 254
-  (248, 249, 251 are the medium ones). L5 did not touch the + button; the
-  Goals board inherits L4's bottom-right version when L4 merges. Plan:
-  `.avengers/plans/ipad-landscape-v1.md`. Still to do: L3 (Habits), L4
-  (Kitchen lists, in flight), L6 (Forms, Settings).
+  (248, 249, 251 are the medium ones). **L3 (mission 53)** made Habits &
+  Chores wide (all three gates passed 2026-11-07, branch
+  `claude/habits-chores-ipad-landscape-f04eee`): one thin bar with the
+  day as the title, Filter, day arrows (past days up to 14 back are view
+  only), Today, Manage and a Report icon; Mine in Morning, Afternoon,
+  Evening and Anytime columns; Whole family fits everyone on one screen
+  when it can; Manage, Chore chart, Report and Stats use the width. The
+  floating + moves bottom right on every wide page from `md` (so the Goals
+  board gets it from L3, not L4). Decisions 255 to 258 (Bryce) and 259 to
+  263 (Hill). Leftovers in
+  `.avengers/missions/mission-53-ipad-landscape-l3-habits.md`. Plan:
+  `.avengers/plans/ipad-landscape-v1.md`. Still to do: L4 (Kitchen lists,
+  in flight as mission 52), L6 (Forms, Settings).
 - **Calendar widget W2 (mission 49)** passed its gates on 2026-11-07 from
   branch `claude/dashboard-w2-calendar-widget-40bbe6`: a Calendar widget in
   all four sizes (Small next item, Medium and Large today, Extra large 3 or
@@ -413,6 +422,14 @@ Replace this section at the end of each session. Don't append.
   and the list jumps there; scroll and the ring follows. Month: 4 events
   a day you can read. Week: titles and times readable. Year: 4 across.
   Upright, Schedule is the list alone as before.
+- **Landscape Habits check** (about 5 minutes, mission 53): on the
+  kitchen iPad sideways, open Habits & Chores. Mine shows four time-of-day
+  columns; tap ‹ to yesterday and see "Looking back. Past days are view
+  only." with no check buttons, then Today. Open Whole family: all five
+  of you appear at once (they should appear right away, not after a few
+  seconds). Tap Filter, hide one person. Open Manage, Chore chart, the
+  Report icon and one habit's stats. On your phone, Whole family shows a
+  shared habit once in each person's card. Look at Hill's 259 to 263.
 - **Landscape dashboard check** (about 2 minutes): turn the kitchen iPad
   sideways and reload the dashboard: the tiles fill the screen in 4
   columns, there is no "Dashboard" title, and Customize sits in the top
@@ -466,10 +483,9 @@ Replace this section at the end of each session. Don't append.
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
-- Dev only, older than mission 49: every Settings server action fails with
-  "HabitInput is not defined" from `export type { HabitInput }` in the
-  "use server" file `src/app/actions/habits.ts`. Check production.
-  Same class, found by Strange in mission 51: every server action in dev
+- Dev only: the "HabitInput is not defined" error is fixed (mission 53
+  removed the type export from `src/app/actions/habits.ts`). Same class,
+  still open, found by Strange in mission 51: every server action in dev
   fails with "RecipeIngredientSuggestion is not defined" from
   `export type` in `src/app/actions/groceriesRecipes.ts:35` (the Groceries
   sheet, Create share link and the Menu style save all fail in dev).

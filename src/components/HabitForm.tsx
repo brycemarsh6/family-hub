@@ -17,8 +17,8 @@ import {
   restoreHabit,
   updateHabit,
   type HabitActionResult,
-  type HabitInput,
 } from "@/app/actions/habits";
+import type { HabitInput } from "@/lib/habitInput";
 import { toLifeArea } from "@/lib/goalVocabulary";
 import { toHabitTrack, toPaceDays, type HabitTrack, type PaceDays } from "@/lib/habitHoursVocabulary";
 import {

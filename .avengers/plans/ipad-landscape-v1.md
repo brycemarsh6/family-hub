@@ -274,6 +274,33 @@ the width rule; L2 and W2 share calendar code, so L2 goes first.
 - **L5 note on the + button:** L5 did not touch `FloatingAddButton`; the
   Goals board inherits L4's bottom-right version when L4 merges. Until
   then the + floats where the old 768px column was.
+- **255 (Bryce, 2026-11-07, L3, mission 53):** Habits & Chores has one layout on
+  every screen: phones get the same bar (wrapping to two rows) and the
+  same Morning, Afternoon, Evening, Anytime grouping; chores carry a
+  "Chore" tag. No separate phone layout.
+- **256 (Bryce, 2026-11-07, L3, mission 53):** Mine's time-of-day columns share one
+  neutral tint with white cards; the time icons tell them apart. No new
+  colours.
+- **257 (Bryce, 2026-11-07, L3, mission 53):** Whole family has no per-column
+  toggles; the bar's Filter (people, time of day, Together only) applies
+  to every column.
+- **258 (Bryce, 2026-11-07, L3, mission 53):** the Report is one bar-chart icon
+  button at the right of the Habits bar on both views, hidden on the
+  tablet login; the foot card and the family toolbar button go.
+- **259 to 263 (decided by Hill, 2026-11-07, L3, mission 53; Bryce may
+  overturn any):** 259 the Mine subtitle "Mine · 2 of 7 done", then the
+  chore streak flame when Show streaks is on and it is 2 or more (none on
+  a past day); 260 a past day shows "Looking back. Past days are view
+  only." under the bar, plain markers and no buttons; 261 the Filter sheet
+  groups Show, Time of day, Together only and People (family only), and
+  the button reads "Filter · N", N counting narrowed groups; 262 empty
+  Mine columns stay ("Nothing this morning." and so on; Anytime and
+  filter-emptied columns say "Nothing here today"); 263 a past day with
+  nothing due says "Nothing due that day" / "You had no habits or chores
+  to do" (medium). Numbers 233 to 243 belong to mission 49
+  (`dashboard-widgets-v2.md`); L3 first wrote its calls as 233 to 240 and
+  renumbered them here. Details in
+  `.avengers/missions/mission-53-ipad-landscape-l3-habits.md`.
 
 ## Open
 

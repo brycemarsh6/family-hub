@@ -4,7 +4,6 @@ import { useOptimistic, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ChoreChartSheet } from "./ChoreChartSheet";
-import { QUIT_TAG_CLASS } from "./HabitRow";
 import { HabitIcon } from "./HabitIcon";
 import { addChartChore, clearChoreChange, moveChoreThisWeek, skipChoreThisWeek } from "@/app/actions/choreChart";
 import type { ChartChore, ChartWeekChore, ChartWeekDay, ChoreChartData } from "@/lib/choreChart";
@@ -72,9 +71,12 @@ function WeekRow({ chore, onOpen }: { chore: ChartWeekChore; onOpen: () => void 
       <span className="flex shrink-0 text-accent">
         <HabitIcon name={chore.icon} kind="chore" size={18} />
       </span>
-      <span className={`min-w-0 flex-1 truncate font-medium ${faded ? "text-muted-strong" : ""}`}>{chore.title}</span>
+      {/* The title and its tag stack, so a narrow column keeps the whole title and the tag stays in the card. */}
+      <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 py-1">
+        <span className={`w-full truncate font-medium ${faded ? "text-muted-strong" : ""}`}>{chore.title}</span>
+        {chore.tag && <span className="max-w-full rounded-lg bg-surface-2 px-2 py-0.5 text-xs font-semibold leading-tight text-muted-strong">{chore.tag}</span>}
+      </span>
       {chore.who && <span className="shrink-0 text-xs text-muted">{chore.who}</span>}
-      {chore.tag && <span className={`shrink-0 ${QUIT_TAG_CLASS}`}>{chore.tag}</span>}
     </>
   );
   return chore.canChange ? (
@@ -168,10 +170,12 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
         </p>
       )}
 
-      <div className="flex flex-col gap-3">
+      {/* One container round the day cards (STRUCTURE.md "Wide pages"): 1 column, 2 from 36rem, 7 from 64rem. The sheet below stays outside it. */}
+      <div className="@container">
+      <div className="grid grid-cols-1 gap-3 @min-[36rem]:grid-cols-2 @min-[64rem]:grid-cols-7">
         {view === "default"
           ? live.defaultWeek.map((day) => (
-              <section key={day.weekday} className={`${CARD} border-line`}>
+              <section key={day.weekday} className={`@container min-w-0 ${CARD} border-line`}>
                 <h2 className="font-bold">{day.name}</h2>
                 {day.chores.map((chore) =>
                   chore.id.startsWith("new-") ? (
@@ -184,8 +188,10 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
                       <span className="flex shrink-0 text-accent">
                         <HabitIcon name={chore.icon} kind="chore" size={18} />
                       </span>
-                      <span className="min-w-0 flex-1 truncate font-medium">{chore.title}</span>
-                      {chore.who && <span className="shrink-0 text-xs text-muted">{chore.who}</span>}
+                      <span className="flex min-w-0 flex-1 flex-col items-start py-1">
+                        <span className="w-full truncate font-medium">{chore.title}</span>
+                        {chore.who && <span className="text-xs text-muted">{chore.who}</span>}
+                      </span>
                     </Link>
                   ),
                 )}
@@ -195,7 +201,7 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
                       event.preventDefault();
                       save(day.weekday);
                     }}
-                    className="flex gap-2"
+                    className="flex flex-col gap-2 @min-[12rem]:flex-row"
                   >
                     <input
                       type="text"
@@ -227,7 +233,7 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
               </section>
             ))
           : live.thisWeek.days.map((day) => (
-              <section key={day.weekday} className={`${CARD} ${day.isToday ? "border-2 border-accent" : "border-line"}`}>
+              <section key={day.weekday} className={`@container min-w-0 ${CARD} ${day.isToday ? "border-2 border-accent" : "border-line"}`}>
                 <h2 className="font-bold">
                   {day.name}
                   {day.isToday && <span className="ml-2 text-xs font-semibold text-accent">TODAY</span>}
@@ -238,6 +244,7 @@ export function ChoreChart({ chart, view }: { chart: ChoreChartData; view: "defa
                 ))}
               </section>
             ))}
+      </div>
       </div>
 
       {open && (

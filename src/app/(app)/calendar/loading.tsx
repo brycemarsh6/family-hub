@@ -5,6 +5,7 @@ import { SkeletonBlock } from "@/components/Skeleton";
 import { MonthGridSkeletonRows } from "@/components/MonthGridSkeletonRows";
 import { parseViewParam } from "@/lib/calendarPaging";
 import { HAMBURGER_ROW_HEIGHT_PX } from "@/lib/appChrome";
+import { YEAR_GRID_CLASSES } from "@/lib/gridClasses";
 import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 
 // Calendar's own loading.tsx (Next's route-level Suspense fallback, shown
@@ -161,7 +162,7 @@ function TimelineGridSkeleton() {
 /**
  * Year's own shape (mission-18/C4): twelve grey blocks in `YearView.tsx`'s
  * own `@container` wrapper and responsive grid (2, 3 or 4 across,
- * mission-46), the exact same wrapper classes, not a lookalike, so a real device's column width can never drift from what
+ * mission-46), from the one `YEAR_GRID_CLASSES` constant, not a lookalike, so a real device's column width can never drift from what
  * this skeleton assumes. Unlike the timeline box above, this shape has a
  * FIXED height regardless of viewport (twelve fixed-size tiles, not
  * "however much of the screen is left"), matching `MonthGridSkeletonRows`'
@@ -180,7 +181,7 @@ function TimelineGridSkeleton() {
 function YearGridSkeleton() {
   return (
     <div className="@container">
-      <div className="grid grid-cols-2 gap-3 @min-[40rem]:grid-cols-3 @min-[60rem]:grid-cols-4">
+      <div className={YEAR_GRID_CLASSES}>
         {Array.from({ length: 12 }, (_, index) => (
           <SkeletonBlock key={index} className="h-36 w-full" />
         ))}

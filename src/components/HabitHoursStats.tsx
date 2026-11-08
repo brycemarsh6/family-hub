@@ -24,26 +24,34 @@ function Tile({ value, label, flame = false }: { value: string; label: string; f
 }
 
 /**
- * The hours habit's stats body (decisions 192, 195, 196, 198): the three tiles,
+ * The hours habit's stats body (decisions 192, 195, 196, 198) in two parts, so
+ * the stats page can put them in its two columns: the three tiles here, and
+ * `HabitHoursDetail` for the rest. There is no month calendar. The words come
+ * ready-made from `buildHoursStats`; these only draw them.
+ */
+export function HabitHoursTiles({ hours }: { hours: HoursStatsData }) {
+  return (
+    <div className="flex gap-2">
+      <Tile value={String(hours.tiles.current)} label="Current streak, weeks" flame />
+      <Tile value={String(hours.tiles.best)} label="Best streak, weeks" />
+      <Tile value={hours.tiles.totalText} label="Total hours" />
+    </div>
+  );
+}
+
+/**
  * "This week" with its bar and a Sunday to Saturday chart drawn to scale (the
  * hours above each bar, blank over an empty day), the last four weeks, the
  * "Switched to hours" line, the entries to remove, and for Side by side one bar
- * per person. There is no month calendar here. The words come ready-made from
- * `buildHoursStats`; this only draws them.
+ * per person.
  */
-export function HabitHoursStats({ hours }: { hours: HoursStatsData }) {
+export function HabitHoursDetail({ hours }: { hours: HoursStatsData }) {
   const tallest = Math.max(...hours.chartDays.map((day) => day.minutes), 1);
   const { view } = hours;
 
   return (
     <>
-      <div className="flex gap-2">
-        <Tile value={String(hours.tiles.current)} label="Current streak, weeks" flame />
-        <Tile value={String(hours.tiles.best)} label="Best streak, weeks" />
-        <Tile value={hours.tiles.totalText} label="Total hours" />
-      </div>
-
-      <h2 className={`mt-1 ${SECTION_TITLE}`}>This week</h2>
+      <h2 className={SECTION_TITLE}>This week</h2>
       <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3.5">
         <p className="text-2xl font-bold tabular-nums">{view.doneText}</p>
         <ProgressBar fraction={view.fraction} label={`This week: ${view.doneText}`} />
