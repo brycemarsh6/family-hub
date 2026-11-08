@@ -232,6 +232,11 @@ structural changes against it.
 
 Adding a second definition of any of these is a BLOCKER:
 
+- **`src/components/RecipeBody.tsx`** is the only markup for a recipe's
+  Ingredients, Instructions and Notes. The share and print pages render
+  `RecipeBody` whole; the private detail page places the three exported
+  sections itself. A second copy of that markup anywhere is a BLOCKER.
+  (Mission-51, A-L5-6.)
 - **`src/lib/calendarTaskQuery.ts`** (`server-only`, no auth; mission-49):
   `getTasksInDueRange(dueStart, dueEnd, viewerUserId)` is the only Task
   select and `CalendarTaskView` mapper. Its callers are the Calendar page,
@@ -283,7 +288,8 @@ Adding a second definition of any of these is a BLOCKER:
   relative path. `src/lib/navMode.ts`: the only menu-style list
 - `src/lib/goalVocabulary.ts` — Plans & Goals' vocabulary: `LIFE_AREAS`,
   `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`,
-  `ONGOING_LABEL` (mission-38), and
+  `ONGOING_LABEL` (mission-38), `GOAL_BOARD_EMPTY_AREA` (mission-51, the
+  wide Goals board's empty-area line), and
   the vision words (`VISION_HORIZONS`, `TOGETHER_BOARD`, `VisionBoardKey`,
   `GOAL_PAGE_VISION_HORIZON`). `LIFE_AREAS` has six areas, in order:
   Spiritual, Health & Wellness, Personal Growth, Relationships & Connections,
@@ -1061,11 +1067,19 @@ Adding a second definition of any of these is a BLOCKER:
   bottom padding to `pb-3` and is exactly one screen tall so only the columns scroll; the
   floating hamburger's row lifts its cap too, so the button lines up) and
   `data-page-width="wide"` (mission-44, below). The
-  `AppChrome.tsx` comment above `<main>` lists every attribute and its
-  users; a new opt-out adds itself there and here. (Mission-41, Captain's A4.)
-- **Wide pages (mission-44, the iPad landscape plan).** Two pages are
-  wide: the dashboard (mission-44) and the Calendar (mission-46, every
-  view). A page that should
+  `AppChrome.tsx` comment above `<main>` lists every attribute; the pages
+  that use `data-page-width="wide"` are listed only in "Wide pages" below,
+  and the comment points there. A new opt-out adds itself there and here.
+  (Mission-41, Captain's A4; mission-51, A-L5-8.)
+- **Wide pages (mission-44, the iPad landscape plan).** Wide pages: the
+  dashboard (mission-44), the Calendar (mission-46, every view), Plans &
+  Goals' This week, Goals and Vision tabs, the Goal page and the recipe
+  detail page (mission-51). Their containers: This week's goal-card grid;
+  the Goals board; the Vision card grid; the Goal page's two-panel row
+  (`GoalDetail`, with the More row and every sheet outside it); the recipe
+  body (two columns). The recipe header band is not a container, because
+  it holds the action sheets. `plans/loading.tsx` mirrors This week's grid
+  and `recipes/[id]/loading.tsx` the recipe body (mission-51, A-L5-1). A page that should
   use the whole width of a landscape iPad puts `data-page-width="wide"` on
   its root element (and on its `loading.tsx` root, so it is wide from the
   first paint). From `md` up, `<main>`, the wordmark header's row and the
@@ -1081,9 +1095,12 @@ Adding a second definition of any of these is a BLOCKER:
      mission-44), and iPad Safari is checked on the device. Keep sheets
      outside the container or portal them. The dashboard's container holds
      its grid, and the Customize sheet is the container's sibling. Known
-     exception: `HoursLogSheet` renders inline from the Habits tile, so it
-     sits inside the dashboard container (works in Chrome; on Bryce's
-     iPad check).
+     exceptions (work in Chrome; on Bryce's iPad check): `HoursLogSheet`
+     renders inline from the Habits tile, inside the dashboard container;
+     on the recipe page, `NutritionSection` (Confirm servings),
+     `RecipeCookbooksSection` and `RecipeTagsSection` render their sheets
+     inline inside the body container. Do not add to this list: a new
+     sheet goes outside the container or is portaled (mission-51, A-L5-4).
   2. **Column counts come from container variants (`@min-[…]:`, `@3xl:`),
      never screen breakpoints (`md:`, `lg:`).** The page then fits whatever
      room the pinned Sidebar or Rail leaves it, with no extra code.
@@ -1105,6 +1122,27 @@ Adding a second definition of any of these is a BLOCKER:
   only for a small fixed list (at most 7 days), never one that grows with
   data. (Mission-49.)
   (Mission-46, Captain's A-L2-1.)
+  **Column dissolve (mission-51, A-L5-2):** a two-column layout may set a
+  different phone order with one DOM: each column div carries
+  `@max-[48rem]:contents` and each child an `order-N`, so below 48rem the
+  columns vanish and the children reorder in the parent flex column.
+  Allowed only for a small fixed set of sections (the recipe page's
+  seven); never for a list that grows with data, because `order` breaks
+  the match between reading order and DOM order there. The order is
+  written once, in the page's top comment and its classes.
+  **The one screen breakpoint (A-L5-3):** rule 2's exception: `RecipeHero`
+  switches from the phone hero to the small icon tile at `md`, a screen
+  breakpoint, because it sits in the header band (which holds sheets, so
+  cannot be a container) and `md` is exactly where `<main>` lifts its
+  width cap for a wide page. It is decoration, not a column count. A
+  second screen breakpoint on a wide page needs the same written reason
+  here.
+  **The Goals board (A-L5-5)** places its six areas in pure CSS,
+  column-major: `grid-flow-col` with a row count of ceil(visible areas / 2)
+  at 2 columns (a `--board-rows` variable) and 2 rows of all six at 3
+  columns, because the mock stacks fixed pairs. An empty area renders only
+  at 3 columns (`hidden @min-[64rem]:block`, `GOAL_BOARD_EMPTY_AREA`). No
+  JS split helper while the list is the fixed `LIFE_AREAS`.
   The wordmark header has an empty slot, `WORDMARK_HEADER_ACTIONS_ID`
   (`src/lib/appChrome.ts`), at its right end; a page whose state owns a
   header button portals the button into it (the dashboard's Customize,
@@ -1354,6 +1392,15 @@ Adding a second definition of any of these is a BLOCKER:
 ## Naming
 
 - Components: `PascalCase.tsx`, flat in `src/components/`.
+- **A component's `className` prop is only for the caller's spacing and
+  placement.** The component keeps its own layout classes (`flex`,
+  `items-center`, its own gap) and applies
+  `className={\`<its layout> ${className}\`}`; the prop's default holds only
+  the spacing or alignment the old single caller used (`mb-4`,
+  `mb-6 justify-around`). A caller places a component without restating
+  its layout, so the component can change its insides without breaking
+  callers. (Mission-51, A-L5-9. Instances: `HabitFilterChips`,
+  `DaySectionHeader`, `RecipeActionCircles`.)
 - Actions and lib: `camelCase.ts`; action exports are verbs
   (`createRecipe`, `putAway…`).
 - Routes follow Next App Router conventions; route groups like `(app)` are

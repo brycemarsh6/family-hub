@@ -94,7 +94,8 @@ export function AppChrome({
           the width cap and fills exactly one screen from `md` up. A page whose root
           carries `data-page-width="wide"` lifts only the width cap from `md`
           up (the wordmark header row and the floating hamburger row lift
-          theirs to match) and scrolls as usual. */}
+          theirs to match) and scrolls as usual. The pages that are wide are
+          listed in STRUCTURE.md, "Wide pages", not here. */}
       <main
         className={`mx-auto w-full max-w-3xl flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] has-[[data-fills-viewport]]:pb-0 has-[[data-fills-width]]:md:h-dvh has-[[data-fills-width]]:md:max-w-none has-[[data-fills-width]]:md:flex-none has-[[data-fills-width]]:md:flex-col has-[[data-fills-width]]:md:pb-3 has-[[data-fills-width]]:md:flex has-[[data-page-width=wide]]:md:max-w-none print:pb-0 ${
           wordmark ? "pt-4" : ""

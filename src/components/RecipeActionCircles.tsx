@@ -20,6 +20,7 @@ export function RecipeActionCircles({
   steps,
   initialShareToken,
   plannedWeeks,
+  className = "mb-6 justify-around",
 }: {
   recipeId: string;
   title: string;
@@ -29,13 +30,17 @@ export function RecipeActionCircles({
   /** Weeks that already have a meal plan, so the picker reuses one instead
    * of colliding on MealPlan.weekStart. */
   plannedWeeks: PlannedWeek[];
+  /** Spacing and alignment for the row (the component keeps its own flex),
+   * so the page can place it in the wide header band. Defaults to the old
+   * own-row look. */
+  className?: string;
 }) {
   const [openSheet, setOpenSheet] = useState<
     "share" | "mealPlan" | "groceries" | null
   >(null);
 
   return (
-    <div className="mb-6 flex items-center justify-around">
+    <div className={`flex items-center ${className}`}>
       <ActionCircle
         icon={<CalendarDays aria-hidden="true" size={22} />}
         label="Meal Plan"
