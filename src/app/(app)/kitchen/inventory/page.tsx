@@ -70,17 +70,26 @@ export default async function PantryPage() {
   const lowNotYetListed = lowItems.filter((item) => !item.onList).length;
 
   return (
-    <div className="py-2">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Inventory</h1>
-        <p className="mt-1 text-sm text-muted">
-          {items.length} {items.length === 1 ? "item" : "items"}
-          {lowItems.length > 0 && ` · ${lowItems.length} running low`}
-        </p>
+    <div className="py-2" data-page-width="wide">
+      {/* Title block first; from md the two buttons sit on its right, the
+          low-items button outermost (flex-row-reverse). Below md they stack
+          under the title as before. */}
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Inventory</h1>
+          <p className="mt-1 text-sm text-muted">
+            {items.length} {items.length === 1 ? "item" : "items"}
+            {lowItems.length > 0 && ` · ${lowItems.length} running low`}
+          </p>
+        </div>
 
-        {lowNotYetListed > 0 && <AddLowItemsButton count={lowNotYetListed} />}
+        {(lowNotYetListed > 0 || reviewQueue.total > 0) && (
+          <div className="flex flex-col items-start gap-3 md:flex-row-reverse md:items-center">
+            {lowNotYetListed > 0 && <AddLowItemsButton count={lowNotYetListed} />}
 
-        <ReviewQueueButton initial={reviewQueue} />
+            <ReviewQueueButton initial={reviewQueue} />
+          </div>
+        )}
       </div>
 
       <PantryList items={items} canManage={canManage} />

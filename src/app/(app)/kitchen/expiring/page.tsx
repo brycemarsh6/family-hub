@@ -107,17 +107,21 @@ export default async function ExpiringPage() {
   );
 
   return (
-    <div className="py-2">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Expiring</h1>
-        <p className="mt-1 text-sm text-muted">
-          {entries.length === 0
-            ? "Nothing needs eating soon"
-            : `${entries.length} ${entries.length === 1 ? "thing needs" : "things need"} eating soon`}
-        </p>
-      </div>
+    <div className="py-2" data-page-width="wide">
+      {/* From md the button sits right of the title and hugs its text
+          (decision 264); on phones it is the full-width button under it. */}
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Expiring</h1>
+          <p className="mt-1 text-sm text-muted">
+            {entries.length === 0
+              ? "Nothing needs eating soon"
+              : `${entries.length} ${entries.length === 1 ? "thing needs" : "things need"} eating soon`}
+          </p>
+        </div>
 
-      <LogLeftoverButton />
+        <LogLeftoverButton />
+      </div>
 
       <ExpiringList entries={entries} canManage={canManage} />
     </div>

@@ -47,18 +47,22 @@ export default async function GroceriesPage() {
   const checkedCount = items.filter((item) => item.checked).length;
 
   return (
-    <div className="py-2">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          Shopping
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          {items.length - checkedCount} to buy
-          {checkedCount > 0 && ` · ${checkedCount} in the trolley`}
-        </p>
+    <div className="py-2" data-page-width="wide">
+      {/* Title block first; from md the put-away buttons sit on its right.
+          Below md they stack under the title as before. */}
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+            Shopping
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            {items.length - checkedCount} to buy
+            {checkedCount > 0 && ` · ${checkedCount} in the trolley`}
+          </p>
+        </div>
 
         {checkedCount > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {/* Client-side now, not a plain form: put-away has to classify
                 what's checked before it knows whether to act immediately or
                 open the review sheet for anything new — see PutAwayButton. */}
