@@ -321,9 +321,9 @@ Replace this section at the end of each session. Don't append.
   `.avengers/missions/mission-47-assistant-habits.md`. Plans and goals
   followed (mission 50, below). Next for Winnie: calendar/tasks (after
   CD1), then replacing the app's Claude features with her.
-- **Winnie's plans and goals (mission 50)** passed its gates on 2026-11-07
-  (Vision and Captain PASS on pass 2) and merges from
-  `claude/plans-goals-assistant-mission-1a9a26`: 11 routes under `/goals`,
+- **Winnie's plans and goals (mission 50)** merged as PR #75
+  (`82d924c`) on 2026-11-07 and is live (routes answer 401 without a
+  token): 11 routes under `/goals`,
   `/plan-items` and `/vision` (read goals, one goal with check-ins, This
   week, Vision boards; add and edit goals, check-ins, plan items and
   vision statements; remove only her own check-ins; never delete). Every
