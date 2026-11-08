@@ -23,14 +23,11 @@ function refreshPutAwayViews() {
   revalidatePath("/");
 }
 
-// The types moved to lib/putAway.ts and lib/putAwayClassify.ts with the logic; re-exported so the two
-// components that import them from this file keep working unchanged.
-export type {
-  PutAwayMergeSuggestion,
-  PutAwayNewItem,
-  PutAwayClassification,
-} from "@/lib/putAwayClassify";
-export type { PutAwayDecision } from "@/lib/putAway";
+// The put-away types live with their logic in lib/putAway.ts and
+// lib/putAwayClassify.ts, and components import them from there. They are
+// NOT re-exported here: in a "use server" file a bare `export type { X }`
+// survives the dev server-action transform as a runtime reference, and every
+// action in the file then crashes with "X is not defined" (see users.ts).
 
 export type PutAwayResult = { error?: string };
 

@@ -2,12 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { PutAwayReviewSheet } from "./PutAwayReviewSheet";
-import {
-  classifyForPutAway,
-  commitPutAway,
-  type PutAwayClassification,
-  type PutAwayDecision,
-} from "@/app/actions/groceriesPutAway";
+import { classifyForPutAway, commitPutAway } from "@/app/actions/groceriesPutAway";
+import type { PutAwayDecision } from "@/lib/putAway";
+import type { PutAwayClassification } from "@/lib/putAwayClassify";
 
 /**
  * Replaces a plain `<form action={putAwayCheckedItems}>` because put-away

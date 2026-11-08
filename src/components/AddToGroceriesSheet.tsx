@@ -5,8 +5,8 @@ import { Check } from "lucide-react";
 import {
   classifyRecipeIngredients,
   addIngredientsToGroceries,
-  type RecipeIngredientSuggestion,
 } from "@/app/actions/groceriesRecipes";
+import type { RecipeIngredientSuggestion } from "@/lib/recipeIngredientMatch";
 
 /**
  * "Add to groceries": read the recipe's ingredients, work out what the house
