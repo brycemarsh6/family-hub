@@ -76,7 +76,7 @@ export function FeedbackList({
               hint={status === "new" ? "Reports from Send feedback show up here." : "Reports you mark done move here."}
             />
           ) : (
-            <ul className="space-y-2">
+            <ul className={wide ? "space-y-2" : "max-w-[48rem] space-y-2" /* below the panel width the rows keep the old 768px page width */}>
               {optimisticItems.map((item) => (
                 <FeedbackRow
                   key={item.id}
