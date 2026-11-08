@@ -1,7 +1,7 @@
 # Mission 54: STRUCTURE.md housekeeping (stories out, rules stay)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES, both PASS at pass 2; Gauntlet and delivery next (plan approved by Bryce 2026-11-08: D1 stories only, D2 the +200 trigger, D3 Size watch stays)
+**Status:** DELIVERED on merge of this file; both gates PASS at pass 2, Gauntlet green (plan approved by Bryce 2026-11-08: D1 stories only, D2 the +200 trigger, D3 Size watch stays)
 **Started:** 2026-11-08 · **Updated:** 2026-11-08 (Fury, plan)
 **Branch:** `claude/structure-md-cleanup-0b5cc7`, cut from `main` at `7dc5b28` (0 ahead, 0 behind at plan time)
 
@@ -15,7 +15,7 @@
   where it is, and leave a pointer behind each rule that lost its story.
 - **Measured first (Bryce asked):** STRUCTURE.md is **1,676 lines** (`wc -l`) on
   `main` at `7dc5b28` (CLAUDE.md still says 1,534). It was 737 lines on
-  2026-11-04 (mission-27's Captain pass). The 940 lines added since are
+  2026-11-04 (mission-27's Captain pass). The 939 lines added since are
   almost all **rule inventories** from the habits, dashboard and iPad
   landscape missions (which file is the only home of which rule), not
   stories.
@@ -60,8 +60,7 @@ From AGENTS.md, absolute for every agent:
 - Direct pushes to `main` are blocked; branch → PR → Gauntlet green →
   merge. Fury alone runs git. Stark and the gates never commit or push.
 - No agent edits `.env`, runs `db:seed` / `db:reset`, or touches the
-  database. This mission needs none of that: it edits three markdown
-  files.
+  database. This mission needs none of that: it edits markdown files only.
 - The test script pins `TZ=America/Denver`; the UTC run is the direct
   `TZ=UTC node --import tsx --test …` command below.
 
@@ -88,7 +87,7 @@ Vision and Captain (verification):
 
 ## Assembled
 
-- **Stark** (builder): one contract, three markdown files.
+- **Stark** (builder): markdown files only.
 - **Vision** (correctness): re-runs the checker and the Gauntlet, audits
   the diff against the boundaries, hunts for a moved chunk that carried a
   normative sentence, a pointer whose heading does not exist, a
@@ -217,8 +216,7 @@ aside):
 ## Fury's pre-dispatch checklist
 
 - [x] Grep what the files hold before forbidding: every cross-reference
-      form into STRUCTURE.md was listed (section names in 60 source
-      comments and 75 mission or plan files; no `#anchor` links, no line
+      form into STRUCTURE.md was listed (section names in 62 source files and 63 mission or plan files; no `#anchor` links, no line
       numbers). None names a story; all name rules or sections that stay.
 - [x] One contract touches STRUCTURE.md and the archive; the CLAUDE.md
       edit is a second, sequential contract. No parallel contracts.
@@ -250,7 +248,7 @@ aside):
 - **Status:** DONE 2026-11-08, changed from this spec because PR #86 merged first: CLAUDE.md now says to delete your line when your PR merges and never to name a PR, and the old "1534 lines" note had moved to `.avengers/status.md`. So: the "STRUCTURE.md cleanup is due" bullet is deleted from CLAUDE.md (the heading's date was already 2026-11-08), the status.md line is replaced with the real count and the next trigger (1,783), and one checklist line carries the `FAMILY_PASSWORD` chore (both gates' NOTE; `grep` over `src`, `prisma`, `.github`, `AGENTS.md`, `package.json` and `next.config.ts` finds 0 references).
 - **Boundaries:** may touch: `CLAUDE.md` · must not touch: anything else.
 - **Spec:** replace the two-line bullet beginning "STRUCTURE.md is 1534 lines, 2.4 times its own 650-line housekeeping trigger" with: "STRUCTURE.md's housekeeping pass ran 2026-11-08 (mission 54, PR #<n>): the stories moved to `docs/history/structure-rationale.md`; the file went from 1,676 to <N> lines with every rule kept. The pass is due again at <N+200> lines." Change the heading "## Current status (updated 2026-11-08, L4)" to "## Current status (updated 2026-11-08, mission 54)". Nothing else. Fury may do this edit himself (two lines) rather than dispatching Stark; if so, this contract records it.
-- **Verification:** `git diff --stat CLAUDE.md` shows one file, about 4 lines changed; `wc -l CLAUDE.md` under 250 is not required by this file's rule (its own cap note says ~250 and it is already over; not this mission's job, noted below).
+- **Verification:** `git diff --stat CLAUDE.md` shows one file, about 4 lines changed; `wc -l CLAUDE.md` is under the 250 cap that PR #86 set (232 after this change).
 - **Report:** (pending)
 
 ### F1 - Fix round: restore what the gates found, apply Captain's rulings on the Unsure list
@@ -283,12 +281,15 @@ Budget: 3 passes per gate, then stop and surface.
 
 ## Handoff log
 
-- 2026-11-08 (Fury, Fable): branch `claude/structure-md-cleanup-0b5cc7` is level with `main` `7dc5b28`. Measured STRUCTURE.md: 1,676 lines by `wc -l` (not 1,534; the Read tool shows 1,677 because it counts the last line without a newline differently). Read the whole file; found the stories come to roughly 250 to 300 lines, so the 650 target is not reachable by moving stories alone. Wrote `movecheck.mjs` in the scratchpad and self-tested it (a verbatim move passes; a reworded chunk fails; a pointer that swallows the old tag shows up as a diff, hence the separate-parenthetical pointer form). Plan written; waiting on Bryce's D1 to D3, then the switch to Opus 5.5, then C1.
+- 2026-11-08 (Fury, Fable): branch `claude/structure-md-cleanup-0b5cc7` is level with `main` `7dc5b28`. Measured STRUCTURE.md: 1,676 lines by `wc -l` (not 1,534). Read the whole file; found the stories come to roughly 250 to 300 lines, so the 650 target is not reachable by moving stories alone. Wrote `movecheck.mjs` in the scratchpad and self-tested it (a verbatim move passes; a reworded chunk fails; a pointer that swallows the old tag shows up as a diff, hence the separate-parenthetical pointer form). Plan written; waiting on Bryce's D1 to D3, then the switch to Opus 5.5, then C1.
 - 2026-11-08 (Fury, Fable): Bryce approved the plan and took the recommendation on D1, D2 and D3. Records committed. Next: preflight C1, switch the chat to Opus 5.5, dispatch Stark.
 - 2026-11-08 (Fury, Opus 5.5): Stark finished C1; Fury re-ran its checks and they match. C1 committed. Vision and Captain dispatched together on that commit so their findings batch into one fix round; Captain also rules on Stark's Unsure list.
 
 ## Delivery
 
-- **Shipped:** (pending)
-- **Shipped check:** `git log origin/main..HEAD` → (pending)
-- **Deliberate leftovers:** CLAUDE.md is over its own ~250-line note (not this mission); the pending Captain amendments listed under Out of scope; the secrets rule's `FAMILY_PASSWORD` cleanup note (moving to the archive with its story; it says deleting the value from `.env` and Vercel is outstanding, which only Bryce can do).
+- **Shipped:** STRUCTURE.md went from 1,676 to 1,583 lines (`wc -l`). 29 story passages (1,153 words) moved word for word into new `docs/history/structure-rationale.md` (241 lines), each leaving a pointer that names its archive heading. The housekeeping note now triggers 200 lines above the recorded count, so at 1,783. `docs/history/README.md` lists the new file.
+- **The estimate was wrong, and why:** the plan guessed the stories were 250 to 300 lines and the file would land near 1,350 to 1,450. The real saving is 93 lines. Most story-shaped text turned out to be tangled with binding words or to give a later rule its subject; both gates blocked the first pass on exactly that, and five passages went back. What remains is almost all rule text, so reaching 650 means moving rule inventories to companion files, which Bryce's brief ruled out for this mission.
+- **Evidence:** `movecheck.mjs` against `7dc5b28` (scratchpad, not committed): zero FAIL lines, the `<` lines are exactly six tag endings that each gained a closing bracket, and the `>` lines are those plus the header sentence and the housekeeping note. 29 pointers match 29 `###` headings. 41 amendment ids and every `#` heading are unchanged. Vision and Captain both PASS at pass 2 (`6c97d25`). Gauntlet at `4f2f2a9`: build 0, eslint 0, `npm test` 0, UTC run 0, `tsc` 0 after clearing a stale `.next/dev` folder (git-ignored; its validator named a route mission 52 had moved). Preflight's hard failure on STRUCTURE.md's length is the tool applying a code cap to a document; the File-size caps section exempts documents.
+- **Changed from the brief, and why:** PR #86 merged while this ran. Its new CLAUDE.md rule says to delete your line when your PR merges, so the "STRUCTURE.md cleanup is due" bullet is deleted rather than reworded, and the old "1534 lines" note was replaced where it now lives, in `.avengers/status.md`. One checklist line was added there for the `FAMILY_PASSWORD` cleanup, which otherwise survived only in the archive.
+- **Shipped check:** `git log origin/main..HEAD` is run after the merge and reported to Bryce.
+- **Deliberate leftovers:** the pending Captain amendments listed under Out of scope. Gate NOTEs, none blocking: "Closed in mission-23:" and "replacing a failed rule, see below" now depend on their pointers; one archive heading says "the five definitions" over only the "Two mechanisms" sentence; six archive chunks start or end mid-phrase, as the intro warns; AGENTS.md says "in the same commit" where STRUCTURE.md says "in or before"; `movecheck.mjs` was not committed, and belongs beside `recordcheck.mjs` if the next pass wants it.
