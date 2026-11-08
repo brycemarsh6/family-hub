@@ -407,7 +407,7 @@ Status per contract is kept on its heading line.
 
 ## Fix batch 2 (after Strange pass 1 and Captain pass 2)
 
-### F2: layout fixes, people filter in lib, dev error
+### F2: layout fixes, people filter in lib, dev error (DONE except the dev error, `78b9a05`)
 - **Objective:** clear Strange's six pass-1 blockers and Captain's pass-2
   blocker, plus the cheap notes, in one dispatch.
 - **May touch:** `HabitFamilyWideColumn.tsx`, `LogButton.tsx`,
@@ -463,6 +463,11 @@ Status per contract is kept on its heading line.
   legs, build); new tests; the grep in item 7; `grep -n "HabitInput"
   src/app/actions/habits.ts` shows only the import and its two uses.
 - **Done:** Strange pass 2, Captain pass 3, Vision pass 2 all PASS.
+- **F2b amendment (Fury):** Stark stopped correctly: `HabitForm.tsx:14-21`
+  imports `type HabitInput` from `@/app/actions/habits` (Fury's grep missed
+  the multi-line import). F2b may touch `src/components/HabitForm.tsx`
+  (that import only: `HabitInput` from `@/lib/habitInput`) and delete
+  `src/app/actions/habits.ts:36`.
 
 ## Captain's amendments (drafted pass 1; C5 writes them into STRUCTURE.md)
 
@@ -515,6 +520,13 @@ Status per contract is kept on its heading line.
 - Also: mission-46 file's "Waiting for Bryce" line (A-L2-3 done here).
 
 ## Handoff log
+
+- 2026-11-07: F2 DONE except the dev error (`78b9a05`, 16 files,
+  +121/-69). Stark: gauntlet green (1426; UTC 1419 + 7 skipped; LA 1426;
+  build 0); two new people-filter tests. Notes: `sharing` stays `string`
+  (the row type is `string`); phone family cards now also show Together
+  rows inside each person's groups (as the wide columns do): Strange to
+  judge. F2b sent to Stark for the `HabitInput` dev error.
 
 - 2026-11-07: F1 DONE (`2d0fb63`, 19 files, +183/-60). Stark: gauntlet green
   (1424; UTC 1417 + 7 skipped; LA 1424; build 0); Vision's probe before:
