@@ -1,7 +1,7 @@
 # Mission 53: iPad landscape L3 (Habits & Chores go wide)
 
 **Project:** family-hub (Marshee)
-**Status:** RECORDS (all gates PASS: Vision 2, Strange 3, Captain 3; main merged at `2dc1eb2`; C5 next)
+**Status:** DELIVERING (all gates PASS: Vision 2, Strange 3, Captain 3; main merged at `2dc1eb2`; C5 records written; PR next)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/habits-chores-ipad-landscape-f04eee` (cut from `944444b`; `origin/main` with PR #74 merged in at `1bb7645`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L3 (section "Habits and Chores"; decisions 215 to 223, 230)
@@ -342,7 +342,7 @@ Status per contract is kept on its heading line.
   only the constant's home.
 - **Evidence:** counts, grep output, `git diff --stat`.
 
-### C5: records (after gates pass)
+### C5: records (DONE, written by Fury after the gates; amendments as A-L3-1 to A-L3-10, A-L3-9 dropped because L5 moved the wide-page list out of the AppChrome comment)
 - STRUCTURE.md "Wide pages": add the Habits pages and their containers, the
   `FloatingAddButton` wide rule, mark A-L2-3 done; file-size rows if any
   file passed 350. DESIGN.md: the Habits bar and the + on wide pages.
@@ -514,6 +514,39 @@ Status per contract is kept on its heading line.
 - **A-51-9 Page opt-outs.** The `AppChrome` comment above `<main>` names the three wide pages and Whole family's `data-fills-width`.
 - **A-51-10 Types and Server Action files.** A component takes a type from its lib home (for example `HabitInput` from `@/lib/habitInput`), never through a `"use server"` file. A new type re-export in `src/app/actions/` is a BLOCKER, because Turbopack dev threw `HabitInput is not defined` on `export type { HabitInput };` (mission 51). Existing debt, to fix on the next touch: `groceriesRecipes.ts:35` and `groceriesPutAway.ts:28-33`. Add "type re-exports" to the forbidden column of the `src/app/actions/` layout row.
 - Also: update the "Waiting for Bryce" line in the mission-46 file (A-L2-3 is done here).
+
+## Delivery
+
+**Records written (C5):** STRUCTURE.md "Wide pages" (A-L3-1 to A-L3-3),
+the Habits & Chores page rules (A-L3-4 to A-L3-7), the Size watch
+(A-L3-8), the `src/app/actions/` row (A-L3-10); DESIGN.md (the Habits bar,
+Mine, Whole family, the + on wide pages); plan decisions 255 to 263;
+CLAUDE.md "Current status" and Bryce's "Landscape Habits check"; the
+mission-46 A-L2-3 line.
+
+**Leftovers (NOTES, not this mission's job):**
+- Past days: a person added to a habit after the day still gets a row
+  on that day (`habitsToday.ts`, `buildTodayRows`; fix with a `joinedAt`
+  skip, and Together's `members[0]` fallback must then pick someone who
+  had joined); profiles made later show an empty column; habits archived
+  after a past day are missing from it.
+- The Whole family fit can show the 330px strip for a moment before the
+  five columns (seen in a hidden browser pane; check on the iPad).
+- Chore chart: titles cut to about 6 characters at 1180 with two-line
+  tags; the tag colour sits close to the chip's.
+- Stats for an hours habit is lopsided (left 73px, right 800px); Hill
+  could move the This week chart under the tiles.
+- The 375 bar puts the Report icon alone on a second row; on phones the +
+  covers the start of rows while scrolling.
+- The time-group heading lookup is repeated in three components (next
+  touch: `timeGroupLabel(key)`); `HabitForm.tsx` is at 350 lines;
+  `groceriesRecipes.ts` and `groceriesPutAway.ts` still re-export types
+  from `"use server"` files (A-L3-10 debt); `habits/loading.tsx` also
+  covers New and Edit.
+- Hours habits are not counted in "N of M done" (older).
+- Dark mode draws bright scrollbars in desktop Chrome (`color-scheme`).
+
+**Not covered by any gate:** the tablet login, real iPad Safari.
 
 ## Handoff log
 

@@ -263,6 +263,7 @@ written; A-L2-3 is done in L3.)
 - **A-L2-1** (Wide pages names its pages; the Calendar's containers) and
   **A-L2-2** (Month lane counts have one home) are written into
   STRUCTURE.md in this PR: they record what was built.
+- **A-L2-3 done in mission 53 (L3, 2026-11-07):** STRUCTURE.md "Wide pages", A-L3-3. The line below is kept as written.
 - **Waiting for Bryce:** A-L2-3 (a container class string a skeleton
   mirrors is exported once from the component; bring the Dashboard 45rem
   and Year 40/60rem pairs into line in L3) and A-L2-4 (a Calendar
