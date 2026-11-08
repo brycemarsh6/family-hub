@@ -1,7 +1,7 @@
 # Mission 53: iPad landscape L3 (Habits & Chores go wide)
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING (all gates PASS: Vision 2, Strange 3, Captain 3; main merged at `2dc1eb2`; C5 records written; PR next)
+**Status:** DELIVERED (merged as PR #81, commit `c021950`, 2026-11-08; production deploy READY)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/habits-chores-ipad-landscape-f04eee` (cut from `944444b`; `origin/main` with PR #74 merged in at `1bb7645`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L3 (section "Habits and Chores"; decisions 215 to 223, 230)
@@ -547,6 +547,14 @@ mission-46 A-L2-3 line.
 - Dark mode draws bright scrollbars in desktop Chrome (`color-scheme`).
 
 **Not covered by any gate:** the tablet login, real iPad Safari.
+
+**Shipped check (2026-11-08):** PR #81 merged as `c021950` at 05:14 UTC
+(auto-merge after the Gauntlet passed). GitHub deployment 7631739737 for
+`c021950` reached `success` ("Deployment has completed") at 05:15 UTC.
+On production, `/habits` and `/habits?day=2026-11-07` answer 307 to
+`/login` when signed out, and `/api/assistant/v1/summary` answers 401.
+The signed-in view (a past day is view only) is on Bryce's "Landscape
+Habits check".
 
 ## Handoff log
 
