@@ -179,11 +179,6 @@ export function shownColumns<T extends { id: string }>(columns: readonly T[], hi
   return columns.filter((column) => !hiddenPeople.includes(column.id));
 }
 
-/** Whether the phone Together strip keeps a row: not when it has people and every one of them is hidden. */
-export function togetherRowShown(row: { participants: readonly { userId: string }[] }, hiddenPeople: readonly string[]): boolean {
-  return row.participants.length === 0 || !row.participants.every((p) => hiddenPeople.includes(p.userId));
-}
-
 // ---- Scope: what is shown, and the range the loader must read ----
 
 /** What the loader reads for the range shown only: these items' checks from `from` to `to`, inclusive. */

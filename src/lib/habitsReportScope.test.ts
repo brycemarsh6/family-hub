@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CalendarDate } from "./householdDate";
 import type { HabitActor } from "./habits/types";
-import { activeReportFilter, matchesHabitsFilter, matchesReportFilter, narrowedFilterCount, shownColumns, stillHiddenPeople, togetherRowShown, parseReportParams, reportFilterOptions, reportHref, reportPersonId, reportScope, type ReportParams } from "./habitsReportScope";
+import { activeReportFilter, matchesHabitsFilter, matchesReportFilter, narrowedFilterCount, shownColumns, stillHiddenPeople, parseReportParams, reportFilterOptions, reportHref, reportPersonId, reportScope, type ReportParams } from "./habitsReportScope";
 import type { TodayHabitInput } from "./habitsToday";
 
 const d = (year: number, month: number, day: number): CalendarDate => ({ year, month, day });
@@ -188,11 +188,4 @@ test("shownColumns: a hidden person's column drops, the rest keep their order", 
   const columns = [{ id: "a" }, { id: "b" }, { id: "c" }];
   assert.deepEqual(shownColumns(columns, ["b"]), [{ id: "a" }, { id: "c" }]);
   assert.deepEqual(shownColumns(columns, []), columns);
-});
-
-test("togetherRowShown: drops only when every person on it is hidden", () => {
-  const row = { participants: [{ userId: "a" }, { userId: "b" }] };
-  assert.equal(togetherRowShown(row, ["a", "b"]), false);
-  assert.equal(togetherRowShown(row, ["a"]), true);
-  assert.equal(togetherRowShown({ participants: [] }, ["a"]), true);
 });

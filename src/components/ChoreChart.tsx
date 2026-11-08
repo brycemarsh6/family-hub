@@ -4,7 +4,6 @@ import { useOptimistic, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ChoreChartSheet } from "./ChoreChartSheet";
-import { QUIT_TAG_CLASS } from "./HabitRow";
 import { HabitIcon } from "./HabitIcon";
 import { addChartChore, clearChoreChange, moveChoreThisWeek, skipChoreThisWeek } from "@/app/actions/choreChart";
 import type { ChartChore, ChartWeekChore, ChartWeekDay, ChoreChartData } from "@/lib/choreChart";
@@ -75,7 +74,7 @@ function WeekRow({ chore, onOpen }: { chore: ChartWeekChore; onOpen: () => void 
       {/* The title and its tag stack, so a narrow column keeps the whole title and the tag stays in the card. */}
       <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 py-1">
         <span className={`w-full truncate font-medium ${faded ? "text-muted-strong" : ""}`}>{chore.title}</span>
-        {chore.tag && <span className={QUIT_TAG_CLASS}>{chore.tag}</span>}
+        {chore.tag && <span className="max-w-full rounded-lg bg-surface-2 px-2 py-0.5 text-xs font-semibold leading-tight text-muted-strong">{chore.tag}</span>}
       </span>
       {chore.who && <span className="shrink-0 text-xs text-muted">{chore.who}</span>}
     </>

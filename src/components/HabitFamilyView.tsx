@@ -1,19 +1,18 @@
 "use client";
 
 import { useEffect, useOptimistic, useRef, useState, type ReactNode } from "react";
-import { Users } from "lucide-react";
 import { HoursLogSheet } from "./HoursLogSheet";
-import { FamilyHabitRow, HabitFamilyColumn } from "./HabitFamilyColumn";
+import { HabitFamilyColumn } from "./HabitFamilyColumn";
 import { HabitFamilyWide } from "./HabitFamilyWide";
 import { checkHabit, uncheckHabit } from "@/app/actions/habitChecks";
 import { applyHabitChange, type HabitChange } from "@/lib/habitChanges";
 import type { FamilyPage, FamilyRow } from "@/lib/habitsFamily";
 import { formatCalendarDate } from "@/lib/householdDate";
-import { shownColumns, togetherRowShown } from "@/lib/habitsReportScope";
+import { shownColumns } from "@/lib/habitsReportScope";
 import { HABITS_VIEW_LABELS } from "@/lib/habitVocabulary";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 
-/** A tap applied to every place the habit shows: the strip and each column (an Each habit's `userId` keeps it to one person's own flags). */
+/** A tap applied to every place the habit shows: each Together row and each column (an Each habit's `userId` keeps it to one person's own flags). */
 function applyToPage(page: FamilyPage, change: HabitChange): FamilyPage {
   return {
     ...page,
@@ -32,7 +31,7 @@ function lockPage(page: FamilyPage): FamilyPage {
 const dayOf = (row: FamilyRow) => (row.carriedFrom ? formatCalendarDate(row.carriedFrom) : undefined);
 
 /**
- * The family view (decision 95): the Together strip, then a card per person.
+ * The family view (decision 95): a card per person, each with its Together rows.
  * Under 45rem of room: the stacked cards (side by side where two fit). From 45rem up
  * (an iPad): `HabitFamilyWide`'s columns by time of day (mission 41, 51). The switch
  * is on the container's width, not the screen's.
@@ -67,8 +66,6 @@ export function HabitFamilyView({
   const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
   const live = readOnly ? lockPage(state) : state;
   // What the Filter sheet leaves: its people. Each layout filters its own rows with `keep`, so "x of y done" stays the whole day.
-  // The phone Together strip leaves out a row whose people are all hidden.
-  const togetherShown = live.together.filter((row) => keep(row) && togetherRowShown(row, hiddenPeople));
   const columns = shownColumns(live.columns, hiddenPeople);
   // The hours row whose log sheet is open: the habit and the person, read live so bars move as soon as Add is tapped.
   const [logging, setLogging] = useState<{ habitId: string; userId: string } | null>(null);
@@ -104,21 +101,6 @@ export function HabitFamilyView({
       {/* One container round both layouts decides which shows. 45rem and the chrome's `md` frame switch together: a 768 screen leaves a 736px container (the Sidebar pins only from 1024, which leaves 736 too), over 720. The sheet below stays outside (STRUCTURE.md, Wide pages, rule 1). */}
       <div className="@container flex flex-col gap-3.5 md:min-h-0 md:flex-1">
         <div className="flex flex-col gap-3.5 @min-[45rem]:hidden">
-          {togetherShown.length > 0 && (
-            <section aria-label="Together" className="rounded-2xl border border-line bg-surface p-3">
-              <div className="flex items-center gap-2 pb-1">
-                <Users aria-hidden="true" size={20} className="text-accent" />
-                <h2 className="text-base font-bold">Together</h2>
-              </div>
-              <ul className="flex flex-col divide-y divide-line sm:flex-row sm:flex-wrap sm:divide-y-0 sm:gap-x-8">
-                {togetherShown.map((row) => (
-                  <li key={row.id} className="sm:min-w-64">
-                    <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => toggle(row)} together />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
           {columns.length === 0 ? (
             <p className="text-sm text-muted">No one to show yet.</p>
           ) : (
