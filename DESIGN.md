@@ -147,7 +147,11 @@ tell when a rule's reason has expired.
   are never both open, and below `lg` the menu button is used. Phones never
   pin. Fixed bars that span the screen (`AddItemBar`, `FloatingAddButton`, the
   floating hamburger's row) use `--app-nav-width` as their left edge so they
-  line up with the content.
+  line up with the content. On a wide page (`data-page-width`, from `md`)
+  the round + sits at the bottom-right corner of the content area, where a
+  right thumb lands on an iPad; on phones it stays bottom-left because the
+  Recipes A-Z rail owns the right edge there, and on wide pages that rail
+  ends above the button (mission-52, decision 246).
 - **The drawer reaches every destination directly; there are no landing
   pages.** `BackLink` is the one edge back up from a page below a drawer
   destination (recipe detail to Recipes), never on a destination itself.
