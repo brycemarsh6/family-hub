@@ -381,3 +381,43 @@ test("sharedNeedsMorePeople: Together or Side by side with fewer than two people
   assert.equal(sharedNeedsMorePeople(true, 5), false);
   assert.equal(sharedNeedsMorePeople(false, 1), false);
 });
+
+// ---- A past day is built from what was true then (mission 51 F1) ----
+
+const monday = d(2026, 11, 2);
+
+test("past day: a 2-a-week habit checked Wed and Thu is still open at 0 of 2 on the Monday before", () => {
+  const h = habit({ id: "w2", schedule: "weekly", times: 2 });
+  const logs = logsFor("w2", [
+    { day: d(2026, 11, 4), status: "done", userId: "me" },
+    { day: d(2026, 11, 5), status: "done", userId: "me" },
+  ]);
+  const rows = buildTodayRows(me, [h], logs, monday);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].progress?.count, 0);
+  assert.equal(rows[0].progress?.target, 2);
+  assert.equal(rows[0].doneToday, false);
+});
+
+test("past day: a habit made on Friday has no row on the Monday before", () => {
+  const made = habit({ id: "friday", createdAt: new Date("2026-11-06T18:00:00Z") });
+  assert.deepEqual(buildTodayRows(me, [made], noLogs, monday), []);
+  assert.equal(buildTodayRows(me, [made], noLogs, d(2026, 11, 6)).length, 1);
+});
+
+test("past day: a person who joined later is not on the habit that day, but is from the day they joined", () => {
+  const h = habit({ id: "j", participants: [member("me"), { ...member("late"), joinedAt: new Date("2026-11-04T18:00:00Z") }], sharing: "together" });
+  assert.deepEqual(buildTodayRows(me, [h], noLogs, monday)[0].participants.map((p) => p.userId), ["me"]);
+  assert.deepEqual(buildTodayRows(me, [h], noLogs, today)[0].participants.map((p) => p.userId), ["me", "late"]);
+});
+
+test("past day: today's rows are unchanged by the bound (a check today still counts)", () => {
+  const h = habit({ id: "w2", schedule: "weekly", times: 2 });
+  const logs = logsFor("w2", [
+    { day: d(2026, 11, 3), status: "done", userId: "me" },
+    { day: today, status: "done", userId: "me" },
+  ]);
+  const rows = buildTodayRows(me, [h], logs, today);
+  assert.equal(rows[0].progress?.count, 2);
+  assert.equal(rows[0].doneToday, true);
+});

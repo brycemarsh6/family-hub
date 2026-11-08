@@ -66,6 +66,8 @@ export function HabitFamilyView({
   const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
   const live = readOnly ? lockPage(state) : state;
   // What the Filter sheet leaves: its people. Each layout filters its own rows with `keep`, so "x of y done" stays the whole day.
+  // The phone Together strip leaves out a row whose people are all hidden.
+  const togetherShown = live.together.filter((row) => keep(row) && !(row.participants.length > 0 && row.participants.every((p) => hiddenPeople.includes(p.userId))));
   const columns = live.columns.filter((column) => !hiddenPeople.includes(column.id));
   // The hours row whose log sheet is open: the habit and the person, read live so bars move as soon as Add is tapped.
   const [logging, setLogging] = useState<{ habitId: string; userId: string } | null>(null);
@@ -101,14 +103,14 @@ export function HabitFamilyView({
       {/* One container round both layouts decides which shows. 45rem and the chrome's `md` frame switch together: a 768 screen leaves a 736px container (the Sidebar pins only from 1024, which leaves 736 too), over 720. The sheet below stays outside (STRUCTURE.md, Wide pages, rule 1). */}
       <div className="@container flex flex-col gap-3.5 md:min-h-0 md:flex-1">
         <div className="flex flex-col gap-3.5 @min-[45rem]:hidden">
-          {live.together.some(keep) && (
+          {togetherShown.length > 0 && (
             <section aria-label="Together" className="rounded-2xl border border-line bg-surface p-3">
               <div className="flex items-center gap-2 pb-1">
                 <Users aria-hidden="true" size={20} className="text-accent" />
                 <h2 className="text-base font-bold">Together</h2>
               </div>
               <ul className="flex flex-col divide-y divide-line sm:flex-row sm:flex-wrap sm:divide-y-0 sm:gap-x-8">
-                {live.together.filter(keep).map((row) => (
+                {togetherShown.map((row) => (
                   <li key={row.id} className="sm:min-w-64">
                     <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => toggle(row)} together />
                   </li>

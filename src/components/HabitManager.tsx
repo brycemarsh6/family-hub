@@ -174,7 +174,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
           DOM order stays chart, Archived, settings so a phone reads as it always has. */}
       <div className="@container">
         <div className="grid items-start gap-x-4 @min-[45rem]:grid-cols-2">
-      <Link href="/habits/chart" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5`}>
+      <Link href="/habits/chart" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5 @min-[45rem]:col-start-1`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
           <CalendarDays aria-hidden="true" size={20} />
         </div>
@@ -221,7 +221,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
         </section>
       )}
 
-      <Link href="/settings" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5`}>
+      <Link href="/settings" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5 @min-[45rem]:col-start-1`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
           <SlidersHorizontal aria-hidden="true" size={20} />
         </div>

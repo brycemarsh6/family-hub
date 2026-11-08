@@ -9,7 +9,7 @@ import { HabitsBar } from "./HabitsBar";
 import type { FamilyPage } from "@/lib/habitsFamily";
 import { habitsHref } from "@/lib/habitsDay";
 import type { HabitRowView, TodayPage } from "@/lib/habitsRead";
-import { REPORT_FILTER_ALL, activeReportFilter, matchesReportFilter, reportFilterOptions } from "@/lib/habitsReportScope";
+import { REPORT_FILTER_ALL, activeReportFilter, matchesHabitsFilter, narrowedFilterCount, reportFilterOptions, stillHiddenPeople } from "@/lib/habitsReportScope";
 
 /**
  * The one client owner of the Habits page (mission 51): the Filter state (time
@@ -55,13 +55,13 @@ export function HabitsDayView({
   const readOnly = !isToday;
   const isFamily = family !== null;
   const rows: HabitRowView[] = family ? [...family.columns.flatMap((column) => column.rows), ...family.together] : (mine?.rows ?? []);
-  const timeOptions = withTimeIcons(reportFilterOptions(rows, { kinds: false })).filter((option) => !option.key.startsWith("area:"));
+  const timeOptions = withTimeIcons(reportFilterOptions(rows, { kinds: false, areas: false }));
   const time = activeReportFilter(timeOptions, timeKey);
   const people = family ? family.columns.map(({ id, displayName, avatarColor }) => ({ id, displayName, avatarColor })) : [];
-  const hidden = hiddenPeople.filter((id) => people.some((person) => person.id === id));
+  const hidden = stillHiddenPeople(hiddenPeople, people);
 
-  const keep = (row: HabitRowView) => matchesReportFilter(row, time) && (!togetherOnly || row.sharing === "together");
-  const narrowed = (time !== REPORT_FILTER_ALL ? 1 : 0) + (togetherOnly ? 1 : 0) + (hidden.length > 0 ? 1 : 0);
+  const keep = (row: HabitRowView) => matchesHabitsFilter(row, { time, togetherOnly });
+  const narrowed = narrowedFilterCount({ time, togetherOnly, hiddenPeople: hidden });
   const dayParam = (target: string | null) => (target && target !== todayKey ? target : null);
   const hrefFor = (family: boolean, target: string | null) => habitsHref({ family, day: dayParam(target), person: focusPersonId });
 

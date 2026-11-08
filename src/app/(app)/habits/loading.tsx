@@ -1,4 +1,5 @@
 import { SkeletonBlock } from "@/components/Skeleton";
+import { HABITS_DAY_GRID_CLASSES } from "@/lib/gridClasses";
 
 // The Habits & Chores loading state (mission 51): the bar, then the columns at
 // the same container widths as the real list (1, 2 or 4 across). One file
@@ -14,7 +15,7 @@ export default function Loading() {
         <SkeletonBlock className="h-11 w-72" />
       </div>
       <div className="@container">
-        <div className="grid grid-cols-1 gap-3.5 @min-[40rem]:grid-cols-2 @min-[60rem]:grid-cols-4">
+        <div className={HABITS_DAY_GRID_CLASSES}>
           {[0, 1, 2, 3].map((i) => (
             <SkeletonBlock key={i} className="h-72 rounded-2xl" />
           ))}

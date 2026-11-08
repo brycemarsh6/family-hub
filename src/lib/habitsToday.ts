@@ -221,7 +221,10 @@ export function buildTodayRows(
 ): HabitRowView[] {
   const rows: HabitRowView[] = [];
   for (const habit of live) {
-    const logs = logsByHabit.get(habit.id) ?? [];
+    // A past day is built from what was true then: not a habit made later, and no checks or hours after the day.
+    if (compareDays(habitStartDay(habit.createdAt), today) > 0) continue;
+    const logs = (logsByHabit.get(habit.id) ?? []).filter((log) => compareDays(log.day, today) <= 0);
+    const entries = (timeByHabit.get(habit.id) ?? []).filter((entry) => compareDays(entry.day, today) <= 0);
     const mine = logsForUser(logs, viewer.userId);
     const spec = specFromRow(habit);
     const startDay = habitStartDay(habit.createdAt);
@@ -244,7 +247,7 @@ export function buildTodayRows(
     const labelOf = (n: number) => (chore ? null : streakLabel(n, unit));
     // Oldest member first, then by id: the same order for every viewer and every load.
     const members: HabitMemberView[] = [...habit.participants]
-      .filter((p) => !p.user.deactivatedAt)
+      .filter((p) => !p.user.deactivatedAt && compareDays(habitStartDay(p.joinedAt), today) <= 0)
       .sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime() || (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0))
       .map((p) => {
         const log = todayOf(p.userId);
@@ -291,7 +294,7 @@ export function buildTodayRows(
       streakUnit: unit,
       streak: viewerStreak,
       streakLabel: labelOf(viewerStreak),
-      ...hoursRowFields(hoursSpecOf(habit), viewer.userId, timeByHabit.get(habit.id) ?? [], today, (id) => vacationsByUser.get(id) ?? [], members),
+      ...hoursRowFields(hoursSpecOf(habit), viewer.userId, entries, today, (id) => vacationsByUser.get(id) ?? [], members),
     });
   }
   return rows;

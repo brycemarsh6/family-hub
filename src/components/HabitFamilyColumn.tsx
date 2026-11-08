@@ -10,7 +10,7 @@ import { QUIT_TAG_CLASS } from "./HabitRow";
 import { LogButton } from "./LogButton";
 import { ProgressBar } from "./ProgressBar";
 import { isExcused, isExcusedAllDay } from "@/lib/habits/weekOverrides";
-import { CHORES_LAST_WEEK_FAMILY, NOTHING_DUE_TODAY, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, streakLabel } from "@/lib/habitVocabulary";
+import { CHORES_LAST_WEEK_FAMILY, NOTHING_DUE_TODAY, NOTHING_HERE_TODAY, ON_VACATION_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, streakLabel } from "@/lib/habitVocabulary";
 import type { FamilyColumn, FamilyRow } from "@/lib/habitsFamily";
 import { familyCountText } from "@/lib/habitsFamilyColumns";
 
@@ -177,7 +177,7 @@ export function HabitFamilyColumn({
           {CHORES_LAST_WEEK_FAMILY}
         </p>
       )}
-      {sections.length === 0 && <p className="py-2 text-sm text-muted">{NOTHING_DUE_TODAY}</p>}
+      {sections.length === 0 && <p className="py-2 text-sm text-muted">{column.rows.length > 0 ? NOTHING_HERE_TODAY : NOTHING_DUE_TODAY}</p>}
       {sections.map((section) => (
         <div key={section.key}>
           <h3 className="flex items-center gap-2 pt-1 text-xs font-semibold uppercase tracking-wide text-muted">

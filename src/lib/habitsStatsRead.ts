@@ -156,7 +156,7 @@ export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): P
     habitIds.length === 0
       ? []
       : db.habitLog.findMany({
-          where: { habitId: { in: habitIds }, day: { gte: utcMidnightInstant(todayLogsFrom(today)) } },
+          where: { habitId: { in: habitIds }, day: { gte: utcMidnightInstant(todayLogsFrom(today)), lte: utcMidnightInstant(today) } },
           select: { habitId: true, userId: true, day: true, status: true },
         }),
     db.vacationPeriod.findMany({ where: { userId: { in: ids } }, select: { userId: true, startDay: true, endDay: true } }),
@@ -165,7 +165,7 @@ export async function loadFamilyPage(viewer: HabitActor, today: CalendarDate): P
     habitIds.length === 0
       ? []
       : db.habitTimeEntry.findMany({
-          where: { habitId: { in: habitIds }, habit: { track: "hours" }, day: { gte: utcMidnightInstant(addCalendarDays(startOfWeek(today), -7)) } },
+          where: { habitId: { in: habitIds }, habit: { track: "hours" }, day: { gte: utcMidnightInstant(addCalendarDays(startOfWeek(today), -7)), lte: utcMidnightInstant(today) } },
           select: { habitId: true, userId: true, day: true, minutes: true },
         }),
   ]);

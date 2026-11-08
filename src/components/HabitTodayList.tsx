@@ -17,11 +17,13 @@ import type { HabitRowView, TodayNudge, TodayPrompt } from "@/lib/habitsRead";
 import { doneCountLabel } from "@/lib/habitsFamily";
 import { groupRowsByTime } from "@/lib/habitsFamilyColumns";
 import { allRequiredDoneToday } from "@/lib/habitsToday";
+import { HABITS_DAY_GRID_CLASSES } from "@/lib/gridClasses";
 import { formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { isExcused } from "@/lib/habits/weekOverrides";
 import {
   ANYTIME_LABEL,
+  CHORE_STREAK_SR,
   HABITS_VIEW_LABELS,
   NOTHING_HERE_TODAY,
   PAST_DAY_NOTHING_DUE_HINT,
@@ -115,7 +117,7 @@ export function HabitTodayList({
           {" · "}
           <span className="inline-flex items-center gap-0.5 font-semibold text-streak">
             <Flame aria-hidden="true" size={14} />
-            <span className="sr-only">chore streak </span>
+            <span className="sr-only">{CHORE_STREAK_SR}</span>
             {streak}
           </span>
         </>
@@ -174,7 +176,7 @@ export function HabitTodayList({
       ) : (
         <div className="@container">
           {shown.length === 0 && <p className="text-sm text-muted @min-[40rem]:hidden">{NOTHING_HERE_TODAY}</p>}
-          <div className="grid grid-cols-1 gap-3 @min-[40rem]:grid-cols-2 @min-[60rem]:grid-cols-4">
+          <div className={HABITS_DAY_GRID_CLASSES}>
             {columns.map((column) => {
               const empty = column.items.length === 0;
               const Icon = column.key === "anytime" ? Clock : TIME_ICONS[column.key];

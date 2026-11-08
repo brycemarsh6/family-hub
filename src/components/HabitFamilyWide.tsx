@@ -36,6 +36,7 @@ export function HabitFamilyWide({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+  // The strip's gap-3 below is FIT_COLUMN_GAP (12px): the fit rule counts on it, so change them together.
   const fits = fitsEveryone(width, page.columns.length);
 
   return (

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { FamilyRow } from "./habitsFamily";
-import type { HabitRowView } from "./habitsRead";
+import type { HabitRowView } from "./habitsToday";
 import { emptyColumnText, familyCountText, fitsEveryone, groupColumnRows, groupRowsByTime } from "./habitsFamilyColumns";
 import { familyRowTag } from "./habitVocabulary";
 
@@ -98,4 +98,10 @@ test("fitsEveryone: 220px columns and 12px gaps; nobody to fit is false", () => 
   assert.equal(fitsEveryone(1000, 0), false);
   assert.equal(fitsEveryone(1148, 5), true);
   assert.equal(fitsEveryone(1147, 5), false);
+});
+
+test("grouping: both groupers use one time order (Morning, Afternoon, Evening, Anytime)", () => {
+  const keys = (groups: { key: string }[]) => groups.map((group) => group.key);
+  assert.deepEqual(keys(groupRowsByTime([])), ["morning", "afternoon", "evening", "anytime"]);
+  assert.deepEqual(keys(groupColumnRows({ rows: [{ id: "a", timeOfDay: "evening" }, { id: "b", timeOfDay: null }, { id: "c", timeOfDay: "morning" }] as FamilyRow[], togetherIds: [], onVacation: false }, [])), ["morning", "evening", "anytime"]);
 });

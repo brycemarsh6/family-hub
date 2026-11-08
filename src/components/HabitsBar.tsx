@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { BarChart3, ChevronLeft, ChevronRight, ListFilter, SlidersHorizontal } from "lucide-react";
-import { PAST_DAY_VIEW_ONLY, REPORT_LABELS, filterButtonLabel } from "@/lib/habitVocabulary";
+import { HABITS_BAR_LABELS, PAST_DAY_VIEW_ONLY, filterButtonLabel } from "@/lib/habitVocabulary";
 
 const ICON_BUTTON = "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface";
 const DISABLED = "pointer-events-none opacity-40";
@@ -60,7 +60,7 @@ export function HabitsBar({
               href={prevHref ?? todayHref}
               replace
               scroll={false}
-              aria-label="Previous day"
+              aria-label={HABITS_BAR_LABELS.previousDay}
               aria-disabled={prevHref ? undefined : true}
               tabIndex={prevHref ? undefined : -1}
               className={`flex h-11 w-11 items-center justify-center rounded-full ${prevHref ? "" : DISABLED}`}
@@ -75,13 +75,13 @@ export function HabitsBar({
               tabIndex={isToday ? -1 : undefined}
               className={`flex min-h-11 items-center rounded-full px-3 text-sm font-semibold ${isToday ? `${DISABLED} text-muted` : "text-accent"}`}
             >
-              Today
+              {HABITS_BAR_LABELS.today}
             </Link>
             <Link
               href={nextHref ?? todayHref}
               replace
               scroll={false}
-              aria-label="Next day"
+              aria-label={HABITS_BAR_LABELS.nextDay}
               aria-disabled={nextHref ? undefined : true}
               tabIndex={nextHref ? undefined : -1}
               className={`flex h-11 w-11 items-center justify-center rounded-full ${nextHref ? "" : DISABLED}`}
@@ -91,10 +91,10 @@ export function HabitsBar({
           </div>
           {canManage && (
             <>
-              <Link href="/habits/manage" aria-label="Manage" className={ICON_BUTTON}>
+              <Link href="/habits/manage" aria-label={HABITS_BAR_LABELS.manage} className={ICON_BUTTON}>
                 <SlidersHorizontal aria-hidden="true" size={20} />
               </Link>
-              <Link href="/habits/report" aria-label={REPORT_LABELS.title} className={ICON_BUTTON}>
+              <Link href="/habits/report" aria-label={HABITS_BAR_LABELS.report} className={ICON_BUTTON}>
                 <BarChart3 aria-hidden="true" size={20} />
               </Link>
             </>
