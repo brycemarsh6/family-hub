@@ -52,21 +52,28 @@ export function CookbookList({ cookbooks }: { cookbooks: CookbookListItem[] }) {
         Sort: {sort === "az" ? "A–Z" : "Most recent"}
       </button>
 
-      <ul className="space-y-2">
-        {sorted.map((cookbook) => (
-          <li key={cookbook.id}>
-            <Link
-              href={`/kitchen/cooking/recipes/cookbooks/${cookbook.id}`}
-              className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
-            >
-              <span className="truncate">{cookbook.title}</span>
-              <span className="shrink-0 text-sm text-muted">
-                {cookbook.count} {cookbook.count === 1 ? "recipe" : "recipes"}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {/* One column of rows on a phone; cards in 2 columns from a 48rem
+          container and 4 from 64rem (never 3, decision 247). The container is
+          this div, so a pinned Sidebar just gives the grid less room. */}
+      <div className="@container">
+        <ul className="grid grid-cols-1 gap-2 @min-[48rem]:grid-cols-2 @min-[48rem]:gap-3 @min-[64rem]:grid-cols-4">
+          {sorted.map((cookbook) => (
+            <li key={cookbook.id}>
+              <Link
+                href={`/kitchen/cooking/recipes/cookbooks/${cookbook.id}`}
+                className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2 @min-[48rem]:h-full @min-[48rem]:min-h-28 @min-[48rem]:flex-col @min-[48rem]:items-start @min-[48rem]:justify-between @min-[48rem]:p-3"
+              >
+                <span className="truncate @min-[48rem]:line-clamp-2 @min-[48rem]:max-w-full @min-[48rem]:whitespace-normal @min-[48rem]:font-semibold">
+                  {cookbook.title}
+                </span>
+                <span className="shrink-0 text-sm text-muted">
+                  {cookbook.count} {cookbook.count === 1 ? "recipe" : "recipes"}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       {sortSheetOpen && (
         <RadioSheet

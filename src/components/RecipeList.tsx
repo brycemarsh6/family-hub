@@ -7,6 +7,9 @@ import { EmptyState } from "./EmptyState";
 import { SwipeActions } from "./SwipeActions";
 import { searchRecipes } from "@/lib/match";
 import { useHamburgerRowHeight } from "@/lib/appChrome";
+import { columnCountFor, splitByWeight } from "@/lib/splitColumns";
+import { useContainerWidth } from "@/lib/useContainerWidth";
+import { ALPHABET, RecipeLetterRail } from "./RecipeLetterRail";
 
 export type RecipeListItem = {
   id: string;
@@ -14,14 +17,14 @@ export type RecipeListItem = {
   ingredients: string;
 };
 
-const ALPHABET = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
-
 /** First-letter bucket for a title: A-Z, or "#" for anything else (digits,
  * symbols, or an empty title, though the form doesn't allow the last one). */
 function letterOf(title: string): string {
   const first = title.trim().charAt(0).toUpperCase();
   return /[A-Z]/.test(first) ? first : "#";
 }
+
+const GRID_CLASS = "grid items-start gap-x-4";
 
 /**
  * Recipes browsed A-Z with a slide-to-jump rail, or searched — same
@@ -41,11 +44,17 @@ export function RecipeList({
   onRemove,
   emptyTitle = "No recipes yet",
   emptyHint = "Tap the + button to add one.",
+  filters,
 }: {
   recipes: RecipeListItem[];
   onRemove?: (recipeId: string) => void;
   emptyTitle?: string;
   emptyHint?: string;
+  /** Rendered in the same row as the search box on wide screens (above it
+   * on phones). It lives inside the measured search wrapper on purpose: the
+   * rail's `railTop` is read from that wrapper's bottom edge, so whatever
+   * sits beside or above the search box must be inside it. */
+  filters?: React.ReactNode;
 }) {
   const [query, setQuery] = useState("");
   // The letter currently under a finger on the rail, for visual feedback —
@@ -54,6 +63,13 @@ export function RecipeList({
   const [pressedLetter, setPressedLetter] = useState<string | null>(null);
 
   const railRef = useRef<HTMLDivElement>(null);
+  // Wide pages split the letters (or the search results) into 2 or 3
+  // columns, decided from the order and row counts only, never from pixel
+  // heights (src/lib/splitColumns.ts), so a letter never hops columns. CSS
+  // `columns` would balance by height and is not used. The ref is on the
+  // always-mounted outer div so the width is measured in every view.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const columns = columnCountFor(useContainerWidth(gridRef), 3);
   const sectionRefs = useRef(new Map<string, HTMLElement>());
 
   // The rail spans from just below the search box to just above the bottom
@@ -110,6 +126,10 @@ export function RecipeList({
     return byLetter;
   }, [sorted]);
 
+  const lettersWithRecipes = ALPHABET.filter((letter) => groups.has(letter));
+  const columnLetters = splitByWeight(lettersWithRecipes, columns, (l) => groups.get(l)!.length + 1);
+  const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };
+
   function scrollToLetter(letter: string) {
     const section = sectionRefs.current.get(letter);
     if (!section) return; // empty letter — inert, nothing to jump to
@@ -151,31 +171,40 @@ export function RecipeList({
   }
 
   return (
-    <div>
-      <div ref={searchWrapperRef} className="relative mb-3">
-        <Search
-          aria-hidden="true"
-          size={18}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-        />
-        <input
-          type="text"
-          inputMode="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search recipes…"
-          className="min-h-12 w-full rounded-xl border border-line bg-surface pl-10 pr-10 text-base placeholder:text-muted"
-        />
-        {query && (
-          <button
-            type="button"
-            onClick={() => setQuery("")}
-            aria-label="Clear search"
-            className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
-          >
-            <X aria-hidden="true" size={18} />
-          </button>
-        )}
+    <div ref={gridRef}>
+      <div ref={searchWrapperRef} className="@container mb-3">
+        <div className="flex flex-col gap-3 @min-[64rem]:flex-row @min-[64rem]:items-center">
+          {filters && (
+            <div className="order-first @min-[64rem]:order-none @min-[64rem]:min-w-0">
+              {filters}
+            </div>
+          )}
+          <div className="relative @min-[64rem]:min-w-[16rem] @min-[64rem]:flex-1">
+            <Search
+              aria-hidden="true"
+              size={18}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+            />
+            <input
+              type="text"
+              inputMode="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search recipes…"
+              className="min-h-12 w-full rounded-xl border border-line bg-surface pl-10 pr-10 text-base placeholder:text-muted"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              >
+                <X aria-hidden="true" size={18} />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {searchResults ? (
@@ -186,53 +215,70 @@ export function RecipeList({
             hint="Search checks both the title and the ingredients."
           />
         ) : (
-          <ul className="space-y-2">
-            {searchResults.map((recipe) => (
-              <RecipeRow key={recipe.id} recipe={recipe} onRemove={onRemove} />
+          <div className={GRID_CLASS} style={gridStyle}>
+            {splitByWeight(searchResults, columns, () => 1).map((column, i) => (
+              <ul key={i} className="space-y-2">
+                {column.map((recipe) => (
+                  <RecipeRow key={recipe.id} recipe={recipe} onRemove={onRemove} />
+                ))}
+              </ul>
             ))}
-          </ul>
+          </div>
         )
       ) : sorted.length === 0 ? (
         <EmptyState emoji="📖" title={emptyTitle} hint={emptyHint} />
       ) : (
         <div className="relative pr-8">
-          <div>
-            {ALPHABET.filter((letter) => groups.has(letter)).map((letter) => (
-              <section
-                key={letter}
-                ref={(el) => {
-                  if (el) sectionRefs.current.set(letter, el);
-                  else sectionRefs.current.delete(letter);
-                }}
-                style={{ scrollMarginTop: stickyOffset }}
-              >
-                {/* The scroll target is this plain section, not the sticky
-                    heading below — scrollIntoView's "smooth" behavior doesn't
-                    reliably compute a target against a position: sticky
-                    element (it's already visually "in place" once stuck, so
-                    Chromium can compute zero scroll distance). A normal-flow
-                    wrapper doesn't have that problem, and starts in the same
-                    spot the heading would anyway. */}
-                <h2
-                  style={{ top: stickyOffset }}
-                  className="sticky z-10 -mx-4 bg-bg px-4 py-1.5 text-sm font-semibold uppercase tracking-wide text-muted"
-                >
-                  {letter}
-                </h2>
-                <ul className="mb-2 space-y-2 py-1">
-                  {groups.get(letter)!.map((recipe) => (
-                    <RecipeRow key={recipe.id} recipe={recipe} onRemove={onRemove} />
-                  ))}
-                </ul>
-              </section>
+          <div className={GRID_CLASS} style={gridStyle}>
+            {columnLetters.map((letters, i) => (
+              <div key={i}>
+                {letters.map((letter) => (
+                  <section
+                    key={letter}
+                    ref={(el) => {
+                      if (el) sectionRefs.current.set(letter, el);
+                      else sectionRefs.current.delete(letter);
+                    }}
+                    style={{ scrollMarginTop: stickyOffset }}
+                  >
+                    {/* The scroll target is this plain section, not the sticky
+                        heading below — scrollIntoView's "smooth" behavior
+                        doesn't reliably compute a target against a position:
+                        sticky element (it's already visually "in place" once
+                        stuck, so Chromium can compute zero scroll distance).
+                        A normal-flow wrapper doesn't have that problem, and
+                        starts in the same spot the heading would anyway. */}
+                    <h2
+                      style={{ top: stickyOffset }}
+                      className={`sticky z-10 bg-bg py-1.5 text-sm font-semibold uppercase tracking-wide text-muted ${
+                        // The bleed to the page edge is for one column; in a
+                        // column it would overlap the neighbour.
+                        columns > 1 ? "" : "-mx-4 px-4"
+                      }`}
+                    >
+                      {letter}
+                    </h2>
+                    <ul className="mb-2 space-y-2 py-1">
+                      {groups.get(letter)!.map((recipe) => (
+                        <RecipeRow key={recipe.id} recipe={recipe} onRemove={onRemove} />
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </div>
             ))}
           </div>
 
           {/* The jump rail. Pinned to the viewport's right edge (not the
               content column) so it's reachable at a phone's actual screen
-              edge, same as the iPhone contacts rail it's modeled on. */}
-          <div
-            ref={railRef}
+              edge, same as the iPhone contacts rail it's modeled on. It sits
+              outside the column grid above (STRUCTURE.md "Wide pages",
+              rule 1). */}
+          <RecipeLetterRail
+            railRef={railRef}
+            railTop={railTop}
+            pressedLetter={pressedLetter}
+            hasLetter={(letter) => groups.has(letter)}
             onPointerDown={handlePointerDown}
             onPointerMove={(event) => {
               // Requires an active press for every pointer type (touch
@@ -243,31 +289,7 @@ export function RecipeList({
               jumpToClientY(event.clientY);
             }}
             onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            // Bottom is a class so wide pages can end the rail above the +
-            // (decision 246: the + sits bottom-right there).
-            style={{ top: railTop ?? 140 }}
-            className="bottom-[calc(1rem+env(safe-area-inset-bottom))] md:[body:has([data-page-width=wide])_&]:bottom-[calc(5.5rem+env(safe-area-inset-bottom))] fixed right-0 z-30 flex w-7 touch-none select-none flex-col items-center justify-between py-1"
-          >
-            {ALPHABET.map((letter) => {
-              const hasRecipes = groups.has(letter);
-              return (
-                <span
-                  key={letter}
-                  aria-hidden="true"
-                  className={`text-[10px] font-semibold leading-none transition-colors ${
-                    !hasRecipes
-                      ? "text-line"
-                      : pressedLetter === letter
-                        ? "text-accent"
-                        : "text-muted"
-                  }`}
-                >
-                  {letter}
-                </span>
-              );
-            })}
-          </div>
+          />
         </div>
       )}
     </div>

@@ -84,24 +84,29 @@ export function RecipesBrowser({
       {view === "cookbooks" ? (
         <CookbookList cookbooks={cookbooks} />
       ) : (
-        <>
-          <TagFilterChips
-            tags={tags}
-            selectedTagId={selectedTagId}
-            onSelect={setSelectedTagId}
-            totalCount={recipes.length}
-            countFor={(tagId) => recipes.filter((r) => r.tagIds.includes(tagId)).length}
-          />
-          <RecipeList
-            recipes={visibleRecipes}
-            emptyTitle={selectedTagId ? "No matches" : undefined}
-            emptyHint={
-              selectedTagId
-                ? `No recipes tagged "${tags.find((t) => t.id === selectedTagId)?.name}".`
-                : undefined
-            }
-          />
-        </>
+        <RecipeList
+          recipes={visibleRecipes}
+          emptyTitle={selectedTagId ? "No matches" : undefined}
+          emptyHint={
+            selectedTagId
+              ? `No recipes tagged "${tags.find((t) => t.id === selectedTagId)?.name}".`
+              : undefined
+          }
+          filters={
+            tags.length > 0 ? (
+              <TagFilterChips
+                tags={tags}
+                selectedTagId={selectedTagId}
+                onSelect={setSelectedTagId}
+                totalCount={recipes.length}
+                countFor={(tagId) => recipes.filter((r) => r.tagIds.includes(tagId)).length}
+                // mb-1 on phones keeps today's 16px between chips and search
+                // (the row's gap-3 adds the other 12px).
+                className="-mx-4 mb-1 px-4 @min-[64rem]:mx-0 @min-[64rem]:mb-0 @min-[64rem]:px-0"
+              />
+            ) : undefined
+          }
+        />
       )}
 
       <FloatingAddButton onClick={() => setAddSheetOpen(true)} />
