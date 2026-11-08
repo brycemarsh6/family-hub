@@ -153,7 +153,7 @@ Mechanical, because these are the failures that recur under load.
 Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 
 ### C1 - Tables, vocabulary and the encryption core
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran the checks)
 - **Objective:** Add `LinkedAccount` and `LinkedCalendar` to the schema
   with a hand-written additive migration, the sync vocabulary, and the
   AES-256-GCM token encryption split into a tested pure core and a
@@ -200,7 +200,7 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
   applies it to the dev branch with `npx prisma migrate deploy`.
 
 ### C2 - Google OAuth and the linked-calendar read/write modules
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran the checks)
 - **Objective:** Pure Google call wrappers (no auth) and the domain
   reader/writer for linked accounts and calendars.
 - **Boundaries:** may touch: new `src/lib/google/oauth.ts`, new
@@ -256,7 +256,7 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
   `identityFromIdToken` with a hand-built unsigned JWT passes.
 
 ### C3 - The callback route, the proxy entry and the actions
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran the checks)
 - **Objective:** Start the link, receive Google's return, and expose the
   guarded actions for direction, rename and unlink.
 - **Boundaries:** may touch: new `src/app/api/google/callback/route.ts`,
@@ -300,7 +300,7 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 - **Done criteria:** Fury re-runs the curls and reads the route top to bottom.
 
 ### C4 - The Synced calendars page, its components and the Settings row
-- **Status:** PENDING
+- **Status:** DONE (Stark; Fury re-ran the checks)
 - **Objective:** The screens from Mock A.
 - **Boundaries:** may touch: new `src/app/(app)/settings/calendars/page.tsx`,
   new `src/app/(app)/settings/calendars/loading.tsx`, new
@@ -362,6 +362,14 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
   research pass on Google's docs done. Bryce approved all eight interview
   recommendations (plan file). Plan and this mission written; awaiting
   Bryce's approval, then the chat switches to Opus 5.5 for the build.
+- 2026-11-08: Bryce approved; build on Opus 5.5. C1 to C4 done. Migration
+  `20261113000000_linked_calendars` matched `prisma migrate diff` word for
+  word and was applied to dev after the `ep-hidden-pine-` host check.
+  Preflight false alarms, recorded rather than absorbed: the schema file's
+  hard cap (STRUCTURE.md exempts it by name), and two boundary strings that
+  were not paths (reworded). Fake accounts (`zz-m55-`) are on dev for
+  Strange; remove with `npm run db:clean-linked-calendars` before delivery.
+  Gates next.
 
 ## Delivery
 
