@@ -8,6 +8,12 @@ import { allDayInstantToLocalDay, localDayToAllDayInstant } from "@/lib/calendar
 import { EventDateTimeFields, parseLocalDateString } from "./EventDateTimeFields";
 import { EventPeopleField } from "./EventPeopleField";
 import type { CalendarPersonView } from "@/lib/types";
+import {
+  FORM_COLUMN_CLASSES,
+  FORM_EYEBROW_CLASSES,
+  FORM_GRID_CLASSES,
+  FORM_SAVE_WIDE_CLASSES,
+} from "@/lib/gridClasses";
 
 // A new event's default start needs the browser's real clock; only
 // useToday() (day-granular) exists in src/lib/, off this contract's
@@ -39,7 +45,11 @@ export type EventFormDefaults = {
  * useActionState+FormData, per C1's binding contract note. `start`/`end`
  * seed once for a new event via React's "adjust state during render"
  * pattern (guarded by `start === null`), not an effect — see
- * subscribeToClock's comment above. */
+ * subscribeToClock's comment above.
+ *
+ * Two columns from a 48rem container (left: what and when; right: who and
+ * where, with the error and Save). The form is the `@container` because it
+ * holds no sheet; a phone stacks the columns in the same order as before. */
 export function EventForm({
   people, // full household roster, kids included — an event can be FOR a kid
   currentUserId,
@@ -136,66 +146,76 @@ export function EventForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Field label="Title">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          autoComplete="off"
-          autoFocus
-          className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base outline-none"
-        />
-      </Field>
+    <form onSubmit={handleSubmit} className="@container">
+      <div className={FORM_GRID_CLASSES}>
+        <div className={FORM_COLUMN_CLASSES}>
+          <p className={FORM_EYEBROW_CLASSES}>What and when</p>
 
-      <label className="flex min-h-12 items-center justify-between rounded-xl bg-surface-2 px-4">
-        <span className="text-base font-medium">All day</span>
-        <input
-          type="checkbox"
-          checked={allDay}
-          onChange={(e) => toggleAllDay(e.target.checked)}
-          className="h-6 w-6 accent-accent"
-        />
-      </label>
+          <Field label="Title">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoComplete="off"
+              autoFocus
+              className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base outline-none"
+            />
+          </Field>
 
-      {start && end && (
-        <EventDateTimeFields start={start} end={end} allDay={allDay} setStart={setStart} setEnd={setEnd} />
-      )}
+          <label className="flex min-h-12 items-center justify-between rounded-xl bg-surface-2 px-4">
+            <span className="text-base font-medium">All day</span>
+            <input
+              type="checkbox"
+              checked={allDay}
+              onChange={(e) => toggleAllDay(e.target.checked)}
+              className="h-6 w-6 accent-accent"
+            />
+          </label>
 
-      <EventPeopleField people={people} selectedUserIds={selectedUserIds} onToggle={togglePerson} />
+          {start && end && (
+            <EventDateTimeFields start={start} end={end} allDay={allDay} setStart={setStart} setEnd={setEnd} />
+          )}
+        </div>
 
-      <Field label="Location" hint="Optional">
-        <input
-          type="text"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          autoComplete="off"
-          className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base outline-none"
-        />
-      </Field>
+        <div className={FORM_COLUMN_CLASSES}>
+          <p className={FORM_EYEBROW_CLASSES}>Who and where</p>
 
-      <Field label="Notes" hint="Optional">
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          className="w-full resize-y rounded-xl bg-surface-2 px-4 py-3 text-base outline-none"
-        />
-      </Field>
+          <EventPeopleField people={people} selectedUserIds={selectedUserIds} onToggle={togglePerson} />
 
-      {error && (
-        <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
-          {error}
-        </p>
-      )}
+          <Field label="Location" hint="Optional">
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              autoComplete="off"
+              className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base outline-none"
+            />
+          </Field>
 
-      <button
-        type="submit"
-        disabled={pending || !start || !end}
-        className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
-      >
-        {pending ? "Saving…" : isEdit ? "Save changes" : "Add event"}
-      </button>
+          <Field label="Notes" hint="Optional">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full resize-y rounded-xl bg-surface-2 px-4 py-3 text-base outline-none"
+            />
+          </Field>
+
+          {error && (
+            <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={pending || !start || !end}
+            className={`min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50 ${FORM_SAVE_WIDE_CLASSES}`}
+          >
+            {pending ? "Saving…" : isEdit ? "Save changes" : "Add event"}
+          </button>
+        </div>
+      </div>
     </form>
   );
 }

@@ -16,7 +16,7 @@ export default async function EditRecipePage({
   if (!recipe) notFound();
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink
         href={`/kitchen/cooking/recipes/${recipe.id}`}
         label={recipe.title}

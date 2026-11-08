@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireVerifiedUser } from "@/lib/dal";
 import { BackLink } from "@/components/BackLink";
 import { ProfileForm } from "@/components/ProfileForm";
+import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
@@ -18,18 +19,20 @@ export default async function ProfilePage() {
   if (user.isDevice) redirect("/");
 
   return (
-    <div className="py-2">
-      <BackLink href="/settings" label="Settings" />
-      <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Profile</h1>
-      <p className="mb-4 mt-1 text-sm text-muted">
-        Your name, avatar colour, and password.
-      </p>
+    <div className="py-2" data-page-width="wide">
+      <div className={NARROW_PAGE_CLASSES}>
+        <BackLink href="/settings" label="Settings" />
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Profile</h1>
+        <p className="mb-4 mt-1 text-sm text-muted">
+          Your name, avatar colour, and password.
+        </p>
 
-      <ProfileForm
-        displayName={user.displayName}
-        avatarColor={user.avatarColor}
-        role={user.role}
-      />
+        <ProfileForm
+          displayName={user.displayName}
+          avatarColor={user.avatarColor}
+          role={user.role}
+        />
+      </div>
     </div>
   );
 }

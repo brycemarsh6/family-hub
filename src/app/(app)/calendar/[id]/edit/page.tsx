@@ -63,7 +63,7 @@ export default async function EditEventPage({
   if (!event) notFound();
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href="/calendar" label="Calendar" />
 
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">

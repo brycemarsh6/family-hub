@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { RecipeForm, type RecipeFormDefaults } from "./RecipeForm";
+import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 import { createRecipe, extractRecipeFromPastedText } from "@/app/actions/recipes";
 
 /**
@@ -9,7 +10,14 @@ import { createRecipe, extractRecipeFromPastedText } from "@/app/actions/recipes
  * something, then the same RecipeForm every other path uses — pre-filled,
  * fully editable, nothing written to the database until Save is tapped.
  */
-export function PasteImportForm({ cookbookId }: { cookbookId?: string }) {
+export function PasteImportForm({
+  cookbookId,
+  header,
+}: {
+  cookbookId?: string;
+  /** The page's BackLink, title and intro, rendered inside the one outer wrapper. */
+  header: React.ReactNode;
+}) {
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -41,53 +49,56 @@ export function PasteImportForm({ cookbookId }: { cookbookId?: string }) {
     });
   }
 
-  if (extracted) {
-    return (
-      <div>
-        <p className="mb-4 rounded-xl bg-accent-soft px-4 py-3 text-base font-medium text-accent">
-          Extracted — review and edit before saving.
-        </p>
-        <RecipeForm
-          key={version}
-          action={createRecipe}
-          submitLabel="Save recipe"
-          defaultValues={extracted}
-          cookbookId={cookbookId}
-        />
-      </div>
-    );
-  }
-
+  // One outer wrapper: the header sits above both steps, centered at 40rem
+  // while typing the input, and the cap lifts when the full recipe form appears.
   return (
-    <div className="flex flex-col gap-4">
-      <label className="block text-sm text-muted">
-        <span className="mb-1 block">Recipe text</span>
-        <textarea
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          rows={14}
-          placeholder="Paste here…"
-          className="w-full resize-y rounded-xl bg-surface-2 px-4 py-3 text-base outline-none placeholder:text-muted"
-        />
-      </label>
+    <div className={extracted ? undefined : NARROW_PAGE_CLASSES}>
+      {header}
+      {extracted ? (
+        <div>
+          <p className="mb-4 rounded-xl bg-accent-soft px-4 py-3 text-base font-medium text-accent">
+            Extracted — review and edit before saving.
+          </p>
+          <RecipeForm
+            key={version}
+            action={createRecipe}
+            submitLabel="Save recipe"
+            defaultValues={extracted}
+            cookbookId={cookbookId}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <label className="block text-sm text-muted">
+            <span className="mb-1 block">Recipe text</span>
+            <textarea
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              rows={14}
+              placeholder="Paste here…"
+              className="w-full resize-y rounded-xl bg-surface-2 px-4 py-3 text-base outline-none placeholder:text-muted"
+            />
+          </label>
 
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
-        >
-          {error}
-        </p>
+          {error && (
+            <p
+              role="alert"
+              className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
+            >
+              {error}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleExtract}
+            disabled={isPending || !text.trim()}
+            className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
+          >
+            {isPending ? "Extracting…" : "Extract recipe"}
+          </button>
+        </div>
       )}
-
-      <button
-        type="button"
-        onClick={handleExtract}
-        disabled={isPending || !text.trim()}
-        className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
-      >
-        {isPending ? "Extracting…" : "Extract recipe"}
-      </button>
     </div>
   );
 }

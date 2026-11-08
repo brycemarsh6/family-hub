@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { Camera, X } from "lucide-react";
 import { RecipeForm, type RecipeFormDefaults } from "./RecipeForm";
+import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 import { createRecipe, extractRecipeFromRecipePhotos } from "@/app/actions/recipes";
 
 type Photo = { mediaType: "image/jpeg"; data: string; previewUrl: string };
@@ -20,7 +21,14 @@ const JPEG_QUALITY = 0.85;
  * same RecipeForm every other path uses — pre-filled, fully editable,
  * nothing written to the database until Save is tapped.
  */
-export function PhotoImportForm({ cookbookId }: { cookbookId?: string }) {
+export function PhotoImportForm({
+  cookbookId,
+  header,
+}: {
+  cookbookId?: string;
+  /** The page's BackLink, title and intro, rendered inside the one outer wrapper. */
+  header: React.ReactNode;
+}) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isReadingFile, setIsReadingFile] = useState(false);
@@ -89,103 +97,106 @@ export function PhotoImportForm({ cookbookId }: { cookbookId?: string }) {
     });
   }
 
-  if (extracted) {
-    return (
-      <div>
-        <p className="mb-4 rounded-xl bg-accent-soft px-4 py-3 text-base font-medium text-accent">
-          Extracted — review and edit before saving.
-        </p>
-        <RecipeForm
-          key={version}
-          action={createRecipe}
-          submitLabel="Save recipe"
-          defaultValues={extracted}
-          cookbookId={cookbookId}
-        />
-      </div>
-    );
-  }
-
+  // One outer wrapper: the header sits above both steps, centered at 40rem
+  // while typing the input, and the cap lifts when the full recipe form appears.
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex gap-3">
-        {photos.map((photo, index) => (
-          <div
-            key={index}
-            className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-xl border border-line"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- a local canvas data URL, not an optimizable remote asset */}
-            <img
-              src={photo.previewUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-            <button
-              type="button"
-              onClick={() => removePhoto(index)}
-              aria-label="Remove photo"
-              className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white"
-            >
-              <X aria-hidden="true" size={14} />
-            </button>
-          </div>
-        ))}
+    <div className={extracted ? undefined : NARROW_PAGE_CLASSES}>
+      {header}
+      {extracted ? (
+        <div>
+          <p className="mb-4 rounded-xl bg-accent-soft px-4 py-3 text-base font-medium text-accent">
+            Extracted — review and edit before saving.
+          </p>
+          <RecipeForm
+            key={version}
+            action={createRecipe}
+            submitLabel="Save recipe"
+            defaultValues={extracted}
+            cookbookId={cookbookId}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-3">
+            {photos.map((photo, index) => (
+              <div
+                key={index}
+                className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-xl border border-line"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- a local canvas data URL, not an optimizable remote asset */}
+                <img
+                  src={photo.previewUrl}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(index)}
+                  aria-label="Remove photo"
+                  className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white"
+                >
+                  <X aria-hidden="true" size={14} />
+                </button>
+              </div>
+            ))}
 
-        {photos.length < MAX_PHOTOS && (
+            {photos.length < MAX_PHOTOS && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isReadingFile}
+                className="flex aspect-square w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line text-muted disabled:opacity-50"
+              >
+                <Camera aria-hidden="true" size={22} />
+                <span className="text-xs">
+                  {isReadingFile ? "Adding…" : "Add photo"}
+                </span>
+              </button>
+            )}
+          </div>
+
+          {/* Deliberately NO `capture` attribute. It reads like a hint but it
+              isn't: on iOS, capture="environment" opens the camera directly and
+              removes "Photo Library" and "Choose File" from the sheet entirely.
+              That broke the most common real case — a recipe already sitting in
+              the camera roll as a screenshot, which is exactly where the
+              household's recipes live. Without it, `accept="image/*"` gives the
+              normal iOS sheet with Take Photo, Photo Library, and Choose File,
+              so the camera is still one tap away. */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileSelected}
+            className="hidden"
+          />
+
+          <p className="text-sm text-muted">
+            {photos.length === 0
+              ? "Add up to 3 photos — extra pages of the same recipe are fine."
+              : `${photos.length} of ${MAX_PHOTOS} photos added.`}
+          </p>
+
+          {error && (
+            <p
+              role="alert"
+              className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
+            >
+              {error}
+            </p>
+          )}
+
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isReadingFile}
-            className="flex aspect-square w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line text-muted disabled:opacity-50"
+            onClick={handleExtract}
+            disabled={isPending || photos.length === 0}
+            className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
           >
-            <Camera aria-hidden="true" size={22} />
-            <span className="text-xs">
-              {isReadingFile ? "Adding…" : "Add photo"}
-            </span>
+            {isPending ? "Extracting…" : "Extract recipe"}
           </button>
-        )}
-      </div>
-
-      {/* Deliberately NO `capture` attribute. It reads like a hint but it
-          isn't: on iOS, capture="environment" opens the camera directly and
-          removes "Photo Library" and "Choose File" from the sheet entirely.
-          That broke the most common real case — a recipe already sitting in
-          the camera roll as a screenshot, which is exactly where the
-          household's recipes live. Without it, `accept="image/*"` gives the
-          normal iOS sheet with Take Photo, Photo Library, and Choose File,
-          so the camera is still one tap away. */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleFileSelected}
-        className="hidden"
-      />
-
-      <p className="text-sm text-muted">
-        {photos.length === 0
-          ? "Add up to 3 photos — extra pages of the same recipe are fine."
-          : `${photos.length} of ${MAX_PHOTOS} photos added.`}
-      </p>
-
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
-        >
-          {error}
-        </p>
+        </div>
       )}
-
-      <button
-        type="button"
-        onClick={handleExtract}
-        disabled={isPending || photos.length === 0}
-        className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
-      >
-        {isPending ? "Extracting…" : "Extract recipe"}
-      </button>
     </div>
   );
 }
