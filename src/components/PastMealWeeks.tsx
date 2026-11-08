@@ -33,7 +33,7 @@ export function PastMealWeeks({
   /** Omitted entirely (not disabled) for a kid session — see WeekCard's own
    * comment on the same prop. */
   onDeletePlan?: (mealPlanId: string) => void;
-  /** Controlled mode, for the wide Meal Plan (decision 248): the parent owns
+  /** Controlled mode, for the wide Meal Plan (decision 268): the parent owns
    * which week is open and draws it as a WeekGrid under the whole row, so
    * this list shows only the headers. Leave both off for the phone layout,
    * which keeps its own open set and expands in place. */

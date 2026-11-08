@@ -6,7 +6,7 @@ import type { MealPlanView } from "@/lib/types";
 
 const MEALS_PER_WEEK = 7 * MEAL_SLOTS.length;
 
-/** A future week as a compact card on the wide Meal Plan (decision 248): the
+/** A future week as a compact card on the wide Meal Plan (decision 268): the
  * range and how full it is. Tapping it opens the week as a WeekGrid. */
 export function WeekSummaryCard({
   plan,

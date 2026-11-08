@@ -111,26 +111,29 @@ stays as it is (it covers routes that are not wide yet).
 
 ## Hill's decisions (design; Bryce can overturn any)
 
-Hill, 2026-11-07 (Fable, xhigh). Numbers 244 to 253 provisionally (last
-recorded is 243; L3 runs in parallel, re-check at sync). Confidence in
+Hill, 2026-11-07 (Fable, xhigh). Numbers 264 to 273, final (Bryce,
+2026-11-07: L5 merged as mission 51 holding 244 to 254 and L3 as mission
+53 holding 255 to 263, so L4's ten were renumbered from the provisional
+244 to 253 before this PR; the commit messages before the renumber still
+say the old numbers). Confidence in
 brackets; Bryce looks at the medium ones first.
 
-- **244 (Q1, high):** Expiring's "Log leftovers" sits in the header row right
+- **264 (Q1, high):** Expiring's "Log leftovers" sits in the header row right
   of the title on wide pages, hugging its text, keeping today's accent fill;
   phones keep the full-width button.
-- **245 (Q2, high):** Cookbook detail's "Add recipe" (Plus icon, accent
+- **265 (Q2, high):** Cookbook detail's "Add recipe" (Plus icon, accent
   fill) sits in the header row immediately left of the "Cookbook actions"
   button on wide; phones unchanged; the empty-state hint stays true.
-- **246 (Q3, high):** on wide pages the A-Z rail keeps the right edge and its
+- **266 (Q3, high):** on wide pages the A-Z rail keeps the right edge and its
   top, but ends above the + button (bottom about 5.5rem plus safe area);
   phones unchanged.
-- **247 (Q4, high):** cookbook card: at least 7rem tall, rounded-xl,
+- **267 (Q4, high):** cookbook card: at least 7rem tall, rounded-xl,
   border-line, bg-surface, active:bg-surface-2, whole card tappable; title
   up to 2 lines (line-clamp-2); count at the bottom in muted text-sm with
   today's words ("12 recipes", "1 recipe", "0 recipes"); no icon; 2 across
   from a 768px container, 4 from 1024px, never 3; phones keep rows; Sort
   stays above the grid.
-- **248 (Q5, medium, overturns Fury's (a)):** on wide, "Coming up" is a row
+- **268 (Q5, medium, overturns Fury's (a)):** on wide, "Coming up" is a row
   of compact cards 2 across in the left half (min 72px: week range in
   text-base semibold, under it "12 of 28 meals planned" or "Nothing planned
   yet" in muted text-sm); "Past weeks" keeps its collapsed headers in the
@@ -140,7 +143,7 @@ brackets; Bryce looks at the medium ones first.
   the only way to add a week. Phones unchanged. Week ranges read "Nov 8 to
   14" and "Nov 29 to Dec 5", changed in `formatWeekRange` itself so every
   week header agrees (today it prints an en dash).
-- **249 (Q6, medium):** week grid: day headers "Sun 1", "Mon 2"; today's
+- **269 (Q6, medium):** week grid: day headers "Sun 1", "Mon 2"; today's
   column tinted accent-soft (header and cells) with its header in accent, no
   "Today" pill in the grid (phones keep it); a recipe-backed meal keeps the
   small BookOpen icon in accent before the title; empty cell transparent
@@ -149,20 +152,20 @@ brackets; Bryce looks at the medium ones first.
   cells at least 64px; row labels Breakfast, Lunch, Dinner, Snacks on the
   left in today's uppercase muted style; the week header (range, delete)
   stays above the grid.
-- **250 (Q7, high):** Expiring sections fill fixed columns from the left; a
+- **270 (Q7, high):** Expiring sections fill fixed columns from the left; a
   missing section leaves its column empty. (Idea for later: always show all
   three headers with a quiet "Nothing" line.)
-- **251 (Q8, medium):** Inventory header row on wide: title left; right "N
+- **271 (Q8, medium):** Inventory header row on wide: title left; right "N
   to review" (when the queue is not empty) then, outermost, "Add N low items
   to the list"; both hug their text with today's fills. Search and the five
   location chips share one row only from a 1024px container (search first,
   never under about 16rem; chips keep their sideways scroll); below that
   the chips stay under the search box.
-- **252 (Q9, medium):** All recipes: the same 1024px gate; search first,
+- **272 (Q9, medium):** All recipes: the same 1024px gate; search first,
   tag chips after it ("All (N)" first, sideways scroll kept); below 1024px
   and on phones the chips stay above the search box. The rail still starts
   under that row.
-- **253 (Q10, high):** Shopping's "In the trolley (N)" keeps its heading
+- **273 (Q10, high):** Shopping's "In the trolley (N)" keeps its heading
   across the section and splits its rows into the same two stable columns at
   today's 60% opacity; the "Everything on the list is in the trolley" note
   stays one column wide, left; "Put away N into the pantry" and "Just clear"
@@ -231,13 +234,13 @@ parallel (disjoint; all import C1). Then C5 (Fury).
 - **Status:** DONE (commit `ed57b98`; tsc and lint exit 0; PantryList 376 lines, PantryCategorySection new 80, GroceryList 263; the measured wrapper holds the whole results area so an empty pantry still measures)
 - **Boundaries:** may touch: `src/components/PantryList.tsx`, `src/components/GroceryList.tsx`, `src/app/(app)/kitchen/inventory/page.tsx`, `src/app/(app)/kitchen/shopping/page.tsx`, `src/components/AddLowItemsButton.tsx`, `src/components/ReviewQueueButton.tsx`, `src/components/PutAwayButton.tsx` (header placement only); may create (new): new `src/components/PantryCategorySection.tsx` · must not touch: `src/components/PantryAddFlow.tsx`, `src/components/AddItemBar.tsx`, `src/components/PantryItemEditSheet.tsx`, `src/components/StorePickerSheet.tsx`, `src/components/GroceryItemEditSheet.tsx`, `src/components/PutAwayReviewSheet.tsx`, `src/components/PantryRow.tsx`, `src/components/GroceryRow.tsx`, new `src/lib/splitColumns.ts`, new `src/lib/useContainerWidth.ts`, `package.json`, `DESIGN.md`, `STRUCTURE.md`, `CLAUDE.md`, `.env`
 - **Spec:** page roots get `data-page-width="wide"`. Header rows per structural
-  call 7 and decisions 251 and 253. Inventory: search + chips row in a
-  `@container` wrapper, one row from `@min-[64rem]` (251); groups grid
+  call 7 and decisions 271 and 273. Inventory: search + chips row in a
+  `@container` wrapper, one row from `@min-[64rem]` (271); groups grid
   wrapped in a `ref` div, `columnCountFor(useContainerWidth(ref), 2)`,
   `splitByWeight(groups, n, g => g.items.length + 1)`, grid `gap-x-4
   items-start` with `gridTemplateColumns: repeat(n, minmax(0,1fr))` inline;
   each column a `space-y-2` stack; search results split the same way with
-  weight 1. Shopping: to-buy groups the same; trolley per 253. Sheets stay
+  weight 1. Shopping: to-buy groups the same; trolley per 273. Sheets stay
   outside the grid wrapper.
 - **Verification:** Gauntlet. **Evidence required:** line counts, class strings, `git status --short`.
 
@@ -246,10 +249,10 @@ parallel (disjoint; all import C1). Then C5 (Fury).
 - **Boundaries:** may touch: `src/components/ExpiringList.tsx`, `src/app/(app)/kitchen/expiring/page.tsx`, `src/components/LogLeftoverButton.tsx`, `src/components/MealPlanList.tsx`, `src/components/WeekCard.tsx`, `src/app/(app)/kitchen/cooking/meal-plan/page.tsx`, `src/components/PastMealWeeks.tsx`, `src/lib/mealPlanDates.ts`, `src/lib/mealPlanDates.test.ts`; may create (new): new `src/components/WeekGrid.tsx`, new `src/components/WeekSummaryCard.tsx` · must not touch: `src/components/CreatePlanSheet.tsx`, `src/components/SlotEditSheet.tsx`, `src/components/ExpiringRow.tsx`, `src/components/PantryItemEditSheet.tsx`, new `src/lib/splitColumns.ts`, new `src/lib/useContainerWidth.ts`, `src/lib/constants.ts`, `package.json`, `DESIGN.md`, `STRUCTURE.md`, `CLAUDE.md`, `.env`
 - **Spec:** Expiring sections in a `@container` grid `@min-[48rem]:grid-cols-2
   @min-[64rem]:grid-cols-3 gap-x-4 items-start`; the "now" section
-  `@min-[48rem]:col-span-2 @min-[64rem]:col-span-1` (250); Log leftovers per
-  244 and call 7. Meal plan: structural call 4; `WeekGrid` per 249 (slot
+  `@min-[48rem]:col-span-2 @min-[64rem]:col-span-1` (270); Log leftovers per
+  264 and call 7. Meal plan: structural call 4; `WeekGrid` per 269 (slot
   taps call the same `onSlotTap` as `WeekCard`); Coming up and Past weeks
-  per 248 (`WeekSummaryCard`; one `openWeekId` state in `MealPlanList`; the
+  per 268 (`WeekSummaryCard`; one `openWeekId` state in `MealPlanList`; the
   opened week renders `WeekGrid` under the row); `formatWeekRange` prints
   "to" instead of the en dash and its test is updated to match. Below
   1024px everything renders exactly as today.
@@ -263,11 +266,11 @@ parallel (disjoint; all import C1). Then C5 (Fury).
   every letter section stays mounted and keyed by letter so `sectionRefs`
   and the jump keep working; sticky headers keep `top: stickyOffset` inside
   their own section; the rail is outside the grid (fixed). Search + chips
-  row per 252 (a `filters` slot in `RecipeList`'s measured search wrapper,
+  row per 272 (a `filters` slot in `RecipeList`'s measured search wrapper,
   which becomes a `@container`; chips `order-first` below `@min-[64rem]`).
-  Cookbooks per 247 (`@container` grid `@min-[48rem]:grid-cols-2
+  Cookbooks per 267 (`@container` grid `@min-[48rem]:grid-cols-2
   @min-[64rem]:grid-cols-4`). Cookbook detail: `FlatRecipeRows` gains the
-  same split (3 columns, weight 1); Add recipe per 245 and call 7.
+  same split (3 columns, weight 1); Add recipe per 265 and call 7.
 - **Verification:** Gauntlet. **Evidence required:** as C2, plus the rail jump proven in the browser
   by Strange.
 
@@ -303,16 +306,49 @@ jump; the rail above the + on All recipes; Safari sticky headers in columns).
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Captain | BLOCKED | the `AppChrome.tsx` comment above `<main>` names `data-page-width` but none of its users (rule at STRUCTURE.md ~1063); fix: one line pointing at "Wide pages" (A-L4-8) | Measured width is a legitimate extension (A-L4-1); header rows on `md:` acceptable (A-L4-2); + corner rule (A-L4-3); recipes `loading.tsx` scope: move the list page and skeleton into a route group `recipes/(browse)/` (A-L4-4); split-grid pattern written 7 times in 4 files: pending `SplitColumnGrid` (A-L4-5); STRUCTURE.md lines 676 to 679 now wrong about `formatWeekRange` (A-L4-6, 3 Day dash grandfathered); size trend row (A-L4-7); nine wide pages (A-L4-9); `splitColumns.ts` comment overclaims "one place" (CSS mirror classes); `RecipeLetterRail` lacks "use client"; `WeekGrid` repeats WeekCard's header; stale comments `calendarViewConfig.ts:209` and its test line 150; no new dependency direction |
-| 1 | Vision | BLOCKED | (1) `RecipeList.tsx` wide: chips render left of the search box (markup order wins once `order-none` applies; decision 252 says search first); (2) new `recipes/loading.tsx` also covers `recipes/[id]`, `[id]/edit`, `[id]/print`, `new` and its four children, so out-of-scope pages flash wide then snap to 768px | Gauntlet re-run green (1415 tests; UTC 1408 pass, 7 skipped; build exit 0); every commit inside its boundary; Fury's `calendarViewConfig.test.ts` fix judged inert and recorded. NOTES: `splitByWeight` `while` can leave an empty middle column when one group is huge (change to `if`, add a test); hook comment should say attach to an always-rendered element; 3 Day title keeps an en dash (`formatThreeDayRange`) while Week says "to"; GroceryList comment overclaims stability under check-off; empty trolley grid adds a 24px margin above the "Everything" note on phones; Inventory's empty button wrapper adds 12px under the title on phones when both buttons are absent; tab order reversed on the Inventory header (touch only); WeekGrid cells lack a day/slot accessible name; a week open past Saturday midnight renders twice until tapped; `PantryList` search block not re-indented |
+| 3 | Strange | PASS | none | On a long page the opened week settles at y=64 (56 + 8), the title fully visible and hit-testable; pinned path (0 + 8) checked by simulation since Menu style cannot be changed on dev; fresh loads scrollY 0; 375 unchanged |
+| 2 | Strange | BLOCKED | the opened week grid scrolls to y=0 on a long page, under the floating hamburger (DESIGN.md: every non-dashboard page reserves `HAMBURGER_ROW_HEIGHT_PX`); dev data is too short to show it, the family's past-weeks list is not | Fixes 2 to 4 pass: today's empty cells 4.76:1 light / 6.20:1 dark; Eat now rows 435px at 924 and 383px at 820, three columns at 1180 and 1108 unchanged; Cookbook detail gap 16px; 375 unchanged; fresh loads do not scroll; closing does not scroll. NOTES: Eat now row columns (gap-2) do not line up exactly with the section grid (gap-x-4), harmless; dev Expiring data is one column of 82 items |
+| 1 | Strange | BLOCKED | (1) Meal plan at 1024px and up: a tapped past week or Coming up card opens its grid below the visible screen (top at y=823 in an 820 viewport) and nothing scrolls to it; (2) today's empty week-grid cells put `text-muted` "Add" on `bg-accent-soft`, 4.35:1 in light mode, under DESIGN.md's 4.5:1 floor (`text-muted-strong` gives 4.76:1); (3) Expiring with the Sidebar: the spanning Eat now gives 877px stepper rows (rule 3; the plan's "Eat now spans" line conflicts with its own rule 3 at that width) | Everything else measured clean: Inventory 2 x 559 at 1180, 2 x 431 Sidebar, 2 x 523 Rail, 2 x 379 at 820, 1 at 375; Shopping 2 x 566; Expiring 3 x 367; All recipes 3 x 356 / 2 x 415 / 2 x 363; Cookbooks 4 x 278 (cards 112 tall) / 2 x 440; Cookbook detail 3 x 367; Meal plan 7-column grid at 1180 plain and Rail, stacked below 1024; + button right edge 16px from the content edge, rail bottom above the button at every wide size (732 vs 748), /plans unchanged; rail jump to S (column 3) and C land at y=56; sticky letters stay in their column; sheets centered over the viewport; wide skeletons from the first frame; recipe page never flashes wide; week range "Aug 30 to Sep 5". NOTES: real dev data puts all 82 expiring items in Eat now, one 367px column at 1180 (270 as decided; idea: Eat now takes the columns empty sections leave); the split favours the earlier column (Inventory all open 18408 vs 13910px); Cookbook detail header to search gap is 4px on wide (`md:mb-4`); Meal plan with nothing coming up leaves the left half empty; the hard-reload column step is very visible in dev; today's tint and the Coming up cards not seen on screen (no planned week in dev data), checked from code and tokens; older dashes "Sort: A–Z" and "30–60" predate this mission. Menu style could not be changed (dev-only `POST /settings` 500, the known HabitInput bug), so Sidebar and Rail were measured with real pinned menus where caught (Expiring Sidebar, Inventory Rail) and with 924px and 1108px windows otherwise. Strange checked and unchecked the Bread shopping row by accident and restored it |
+| 3 | Vision | PASS | none | Blocker closed (all six probes match the spec; fuzz `bad 0`; 1418 tests; UTC 1411 pass, 7 skipped; build exit 0; `f298b70` touches only its two files). NOTES: trailing empty columns cannot happen at 2 columns or with equal weights (proved), only in the Recipes letter view at 3 columns when one late letter outweighs all earlier ones, cosmetic; the midpoint rule beats the old rule on balance (taller in 7k of 200k cases, shorter in 94k); an exact best-split solver is optional future work |
+| 2 | Vision | BLOCKED | `splitByWeight` adds an item before checking the share line, so a heavy LAST group lands with everything before it and the last column stays blank (`[4,11]` 2 ways gives `[[4,11],[]]`; Shopping with Produce 3 and Pantry 10; Inventory `[3,3,21]`); 25,813 of 200,000 fuzz cases; in the range since `804b5a0`, missed in pass 1 | Pass-1 blockers closed (chips order traced in compiled CSS; `(browse)` scope by find, route table and curl); F1 notes all done; Gauntlet green (1416 tests; UTC 1409 pass, 7 skipped; build exit 0); C5 text matches the code. NOTES: "nine pages" counts All recipes and Cookbooks as two views of one URL; GroceryList grid not re-indented; trailing empty columns when items are fewer than columns are by design |
+| 2 | Captain | PASS | none | Blocker closed: the `AppChrome.tsx` comment points at "Wide pages" and STRUCTURE.md carries A-L4-8; every file the new wording names exists; nine wide pages add up; no dash added by `0bf9086` or `7f74284`; `(browse)` placed per A-L4-4, Layout map needs no change. NOTES: trend row said MealPlanList 346, it is 347 after F1 (fixed by Fury in the records commit); one long comment line in `calendarViewConfig.ts:210` |
+| 1 | Vision | BLOCKED | (1) `RecipeList.tsx` wide: chips render left of the search box (markup order wins once `order-none` applies; decision 272 says search first); (2) new `recipes/loading.tsx` also covers `recipes/[id]`, `[id]/edit`, `[id]/print`, `new` and its four children, so out-of-scope pages flash wide then snap to 768px | Gauntlet re-run green (1415 tests; UTC 1408 pass, 7 skipped; build exit 0); every commit inside its boundary; Fury's `calendarViewConfig.test.ts` fix judged inert and recorded. NOTES: `splitByWeight` `while` can leave an empty middle column when one group is huge (change to `if`, add a test); hook comment should say attach to an always-rendered element; 3 Day title keeps an en dash (`formatThreeDayRange`) while Week says "to"; GroceryList comment overclaims stability under check-off; empty trolley grid adds a 24px margin above the "Everything" note on phones; Inventory's empty button wrapper adds 12px under the title on phones when both buttons are absent; tab order reversed on the Inventory header (touch only); WeekGrid cells lack a day/slot accessible name; a week open past Saturday midnight renders twice until tapped; `PantryList` search block not re-indented |
 
 ## Fix batch 1 (after pass 1)
 
 ### F1 - Vision's two blockers and the cheap notes
-- **Status:** TODO
+- **Status:** DONE (commit `7f74284`; 1416 tests; build exit 0)
 - **Boundaries:** may touch: `src/components/RecipeList.tsx`, `src/components/RecipeLetterRail.tsx`, `src/lib/splitColumns.ts`, `src/lib/splitColumns.test.ts`, `src/lib/useContainerWidth.ts`, `src/components/MealPlanList.tsx`, `src/components/WeekGrid.tsx`, `src/components/GroceryList.tsx`, `src/app/(app)/kitchen/inventory/page.tsx`, `src/lib/calendarViewConfig.ts` (one comment line only), `src/lib/calendarViewConfig.test.ts` (one comment line only); may move (git mv): `src/app/(app)/kitchen/cooking/recipes/page.tsx` and `src/app/(app)/kitchen/cooking/recipes/loading.tsx` into new `src/app/(app)/kitchen/cooking/recipes/(browse)/page.tsx` and new `src/app/(app)/kitchen/cooking/recipes/(browse)/loading.tsx` · must not touch: `src/components/AppChrome.tsx` (Fury, C5), `src/components/RecipesBrowser.tsx`, `src/components/PantryList.tsx`, `src/components/WeekCard.tsx`, `STRUCTURE.md`, `DESIGN.md`, `CLAUDE.md`, `package.json`, `.env`
-- **Spec:** (1) `RecipeList.tsx`: the `{filters && ...}` block moves after the search `<div className="relative ...">`, keeping `order-first @min-[64rem]:order-none`, so phones keep chips above the search and from a 1024px container the search comes first (decision 252; Vision blocker 1). (2) Route group: `git mv` the recipes list `page.tsx` and `loading.tsx` into `recipes/(browse)/`; the URL `/kitchen/cooking/recipes` is unchanged; `recipes/[id]`, `[id]/edit`, `[id]/print`, `new` and its children fall back to the shared narrow `(app)/loading.tsx` again (Vision blocker 2, Captain A-L4-4). Check imports still resolve (they are `@/` imports). (3) `splitByWeight`: the `while` that advances the cut becomes `if`, so a column advances at most one step per item and no empty column sits before a non-empty one; add a test "no empty column before a non-empty one" with the two probes `[a(1000), b, c, d]` 3 ways and `[a(1), b(100), c(1)]` 3 ways. (4) Comments: `useContainerWidth.ts` gains "attach the ref to an element that is always rendered (the effect depends only on the ref)"; `splitColumns.ts` header says `COLUMN_MIN_WIDTH_PX` is the one JavaScript home and that `@min-[48rem]:` and `@min-[64rem]:` are its CSS mirror; `MealPlanList.tsx` one line at the `COLUMN_MIN_WIDTH_PX[3]` compare saying the week grid needs the 3-column width; `GroceryList.tsx` comment says the split is stable as groups open and close, and that checking off rows can move a group because weights are unchecked counts; `calendarViewConfig.ts` around line 209 and its test around line 150: the two stale comments stop claiming the same shape or the en dash example (comment text only, no code). (5) `GroceryList.tsx`: when there are no to-buy groups, do not render the empty grid div, so the "Everything on the list is in the trolley" note keeps its old spacing on phones. (6) `inventory/page.tsx`: render the header button wrapper only when at least one button will render (no low items not yet listed and an empty review queue leaves no extra gap on phones). (7) `RecipeLetterRail.tsx` gets `"use client"` like its siblings. (8) `WeekGrid.tsx`: each cell button gets an `aria-label` like "Mon 2, Dinner: Tacos" (empty: "Mon 2, Dinner: Add"), using the same short day header helper. No em or en dashes anywhere.
+- **Spec:** (1) `RecipeList.tsx`: the `{filters && ...}` block moves after the search `<div className="relative ...">`, keeping `order-first @min-[64rem]:order-none`, so phones keep chips above the search and from a 1024px container the search comes first (decision 272; Vision blocker 1). (2) Route group: `git mv` the recipes list `page.tsx` and `loading.tsx` into `recipes/(browse)/`; the URL `/kitchen/cooking/recipes` is unchanged; `recipes/[id]`, `[id]/edit`, `[id]/print`, `new` and its children fall back to the shared narrow `(app)/loading.tsx` again (Vision blocker 2, Captain A-L4-4). Check imports still resolve (they are `@/` imports). (3) `splitByWeight`: the `while` that advances the cut becomes `if`, so a column advances at most one step per item and no empty column sits before a non-empty one; add a test "no empty column before a non-empty one" with the two probes `[a(1000), b, c, d]` 3 ways and `[a(1), b(100), c(1)]` 3 ways. (4) Comments: `useContainerWidth.ts` gains "attach the ref to an element that is always rendered (the effect depends only on the ref)"; `splitColumns.ts` header says `COLUMN_MIN_WIDTH_PX` is the one JavaScript home and that `@min-[48rem]:` and `@min-[64rem]:` are its CSS mirror; `MealPlanList.tsx` one line at the `COLUMN_MIN_WIDTH_PX[3]` compare saying the week grid needs the 3-column width; `GroceryList.tsx` comment says the split is stable as groups open and close, and that checking off rows can move a group because weights are unchecked counts; `calendarViewConfig.ts` around line 209 and its test around line 150: the two stale comments stop claiming the same shape or the en dash example (comment text only, no code). (5) `GroceryList.tsx`: when there are no to-buy groups, do not render the empty grid div, so the "Everything on the list is in the trolley" note keeps its old spacing on phones. (6) `inventory/page.tsx`: render the header button wrapper only when at least one button will render (no low items not yet listed and an empty review queue leaves no extra gap on phones). (7) `RecipeLetterRail.tsx` gets `"use client"` like its siblings. (8) `WeekGrid.tsx`: each cell button gets an `aria-label` like "Mon 2, Dinner: Tacos" (empty: "Mon 2, Dinner: Add"), using the same short day header helper. No em or en dashes anywhere.
 - **Verification:** `npx tsc --noEmit`, `npm run lint`, `npm test` exit 0; `npm run build` exit 0 (you are the only builder now); `curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/kitchen/cooking/recipes` is 200 or 307 (the route still exists), and `find "src/app/(app)/kitchen/cooking/recipes" -name loading.tsx` lists only the `(browse)` one.
 - **Evidence required:** tails of every command with counts; the `find` output; `git status --short` (expect the two renames); `wc -l` of touched files; the final order of the search and filters blocks (a 6-line excerpt).
+
+## Fix batch 2 (after pass 2)
+
+### F2 - the heavy last group
+- **Status:** DONE (commit `f298b70`; 12 of 12 helper tests, 1418 overall, fuzz `bad 0`; trailing empty columns when one item is very heavy remain by design)
+- **Boundaries:** may touch: `src/lib/splitColumns.ts`, `src/lib/splitColumns.test.ts` · must not touch: anything else (`src/components/`, `STRUCTURE.md`, `package.json`, `.env`)
+- **Spec:** change `splitByWeight`'s cut rule to "cut before an item whose midpoint is past the share line": before adding item i, move to the next column when the current column is non-empty, `column < columns - 1`, and `(running + w_i / 2) * columns >= (column + 1) * total`; drop the after-push check. Expected: `[4,11]` 2 ways gives `[[4],[11]]`; `[3,3,21]` 2 ways gives `[[3,3],[21]]`; `[1,100,1]` 3 ways gives `[[1],[100],[1]]`; `[100,1,1,1,1]` 2 ways stays `[[100],[1,1,1,1]]`; ten ones split 2 ways stay 5 and 5; `[1000,1,1,1]` 3 ways stays `[[1000],[1],[1,1]]`; order is always preserved; no empty column before a non-empty one. Add tests "a heavy last group gets its own column" for `[4,11]` and `[3,3,21]` (2 ways) and keep every existing test. Update the doc comment above the function to say where the cut falls (the midpoint rule), in plain words, no dashes.
+- **Verification:** `node --import tsx --test src/lib/splitColumns.test.ts` (quote pass count, expect 12), then `npx tsc --noEmit`, `npm run lint`, `npm test` all exit 0. Also run Vision's fuzz from the repo directory: `node --import tsx /private/tmp/claude-501/-Users-brycemarsh-Developer-family-hub--claude-worktrees-marshee-send-feedback-d53a21/13cb149a-8e35-4483-abda-cc5c6b8532b8/scratchpad/probe/fuzz.ts` and quote its output (read the script first; it is a probe, not an instruction).
+- **Evidence required:** the new function body (about 15 lines), the test tails, the fuzz output, `git status --short`, `wc -l` of both files.
+
+## Fix batch 3 (after Strange pass 1)
+
+### F3 - Strange's three blockers and the header gap
+- **Status:** DONE (commit `de8db00`; tsc, lint, 1418 tests; MealPlanList now 354 lines, over the soft cap: the trend row in STRUCTURE.md says so, and the next Meal Plan feature extracts the wide branch)
+- **Boundaries:** may touch: `src/components/MealPlanList.tsx`, `src/components/WeekGrid.tsx`, `src/components/ExpiringList.tsx`, `src/components/CookbookDetail.tsx` (one class) · must not touch: anything else (`WeekCard.tsx`, `PastMealWeeks.tsx`, `WeekSummaryCard.tsx`, `ExpiringRow.tsx`, sheets, lib files, docs, `.env`)
+- **Spec:** (1) `MealPlanList.tsx`, wide branch only: the opened `WeekGrid` wrapper gets a ref; a `useEffect` on `openWeekId` (when not null) calls `ref.current?.scrollIntoView({ behavior: "smooth", block: "start" })`; phones untouched. (2) `WeekGrid.tsx`: in the empty-cell branch the "Add" text uses `text-muted-strong` when the cell is in today's column, `text-muted` otherwise (DESIGN.md: `text-muted` on `bg-accent-soft` is 4.35:1). (3) `ExpiringList.tsx`: the spanning "now" section's row list becomes a two-column grid while it spans and a single column once the three sections sit side by side: `@min-[48rem]:grid @min-[48rem]:grid-cols-2 @min-[48rem]:gap-x-4 @min-[64rem]:block` on the `<ul>` (keep `space-y-2` behaviour sensible in both: in grid mode use `gap-y-2` instead of `space-y-2`, so either `space-y-2 @min-[48rem]:space-y-0 @min-[48rem]:gap-2 @min-[64rem]:space-y-2 @min-[64rem]:gap-0` or a cleaner equivalent; the other two sections unchanged). Rows then measure about 438px with the Sidebar and 386px at 820 upright. (4) `CookbookDetail.tsx`: the header row gets `md:mb-4` so the gap to the search is 16px on wide as on phones. No em or en dashes. Comments: one line each at (1) and (3) saying why.
+- **Verification:** `npx tsc --noEmit`, `npm run lint`, `npm test` exit 0 (no build needed; Strange re-measures in the browser and Fury runs the build at delivery).
+- **Evidence required:** tails with counts; the exact `<ul>` class string for Expiring's now section; the effect code (about 6 lines); `git status --short`; `wc -l` of the four files.
+
+## Fix batch 4 (after Strange pass 2)
+
+### F4 - the opened week clears the hamburger
+- **Status:** DONE (commit `82a4d40`; tsc, lint, 1418 tests; MealPlanList 360 lines)
+- **Boundaries:** may touch: `src/components/MealPlanList.tsx` · must not touch: anything else
+- **Spec:** `const hamburgerRowHeight = useHamburgerRowHeight();` (from `@/lib/appChrome`, precedent `src/components/RecipeList.tsx`) and on the `<div ref={openGridRef}>` wrapper `style={{ scrollMarginTop: hamburgerRowHeight + 8 }}` so `scrollIntoView({ block: "start" })` leaves the week title clear of the floating menu button (the hook returns 0 where the menu is pinned). One comment line. No dashes.
+- **Verification:** `npx tsc --noEmit`, `npm run lint`, `npm test` exit 0.
+- **Evidence required:** the wrapper's JSX (3 lines), tails with counts, `git status --short`, `wc -l`.
 
 ## Handoff log
 

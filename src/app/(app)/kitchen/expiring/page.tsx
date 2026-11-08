@@ -109,7 +109,7 @@ export default async function ExpiringPage() {
   return (
     <div className="py-2" data-page-width="wide">
       {/* From md the button sits right of the title and hugs its text
-          (decision 244); on phones it is the full-width button under it. */}
+          (decision 264); on phones it is the full-width button under it. */}
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Expiring</h1>

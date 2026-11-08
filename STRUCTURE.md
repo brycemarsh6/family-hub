@@ -678,7 +678,7 @@ Adding a second definition of any of these is a BLOCKER:
   `formatWeekRange(weekStart)` in `mealPlanDates.ts` (browser-local `Date`:
   Meal Plan, the Calendar Week title, Schedule, This week, the meal plan
   sheets) prints the same dash-free range ("Nov 1 to 7", "Nov 29 to Dec 5";
-  mission-52, decision 248). They are two homes because their date types
+  mission-52, decision 268). They are two homes because their date types
   differ, not their spelling; a spelling change changes both. The Calendar
   3 Day title's private range formatter in `calendarViewConfig.ts`
   (mission-17) still prints an en dash: grandfathered debt, retired the next
@@ -1344,7 +1344,7 @@ Adding a second definition of any of these is a BLOCKER:
   code under `src/`, `prisma/` (the schema stays exempt) and repo tooling
   scripts. Markdown (`STRUCTURE.md`, `DESIGN.md`, `README.md`, `.avengers/`,
   `docs/`) is outside them: a code-line count of prose measures nothing.
-  `CLAUDE.md` keeps the 250-line cap in its own header because it loads on
+  `CLAUDE.md` keeps the 270-line cap in its own header because it loads on
   every turn. This file's growth is a trend to watch, never a BLOCKER: past
   650 lines it is due a housekeeping pass that moves provenance narratives
   ("Added …", "Instance: …") into `docs/history/structure-rationale.md`,
@@ -1358,9 +1358,9 @@ Adding a second definition of any of these is a BLOCKER:
   the two-panel wrapper), `CalendarViews.tsx` 502, `MonthCell.tsx` 367.
   Kitchen trend (mission-52, A-L4-7): `PantryList.tsx` 376 total / about
   300 code (over the soft cap; the next Inventory change extracts the
-  search and location chips row), `MealPlanList.tsx` 346 / about 300 code
+  search and location chips row), `MealPlanList.tsx` 360 / about 310 code
   (was 281; the next Meal Plan feature moves the wide branch of
-  `renderList` into its own component), `RecipeList.tsx` 346 / about 250
+  `renderList` into its own component), `RecipeList.tsx` 346 / about 270
   code (was 322 before the rail moved to `RecipeLetterRail.tsx`).
 - **Hard cap: 650 lines** — crossing it needs a written justification in the
   file header, or it's a BLOCKER. `src/generated/` is exempt, and so is

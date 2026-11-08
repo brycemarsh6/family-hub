@@ -2,7 +2,7 @@
 
 // The wide version of WeekCard: one week as a table, a column per day and a
 // row per meal slot. It exists only from 1024px of list width (decision 218
-// and 248): seven columns plus a label column need about that much room for a
+// and 268): seven columns plus a label column need about that much room for a
 // meal title to wrap to two lines, and below it WeekCard's stacked days read
 // better. MealPlanList measures its own width and decides which one to draw;
 // slot taps call the same handler WeekCard's do.

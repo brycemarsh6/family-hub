@@ -261,8 +261,7 @@ the width rule; L2 and W2 share calendar code, so L2 goes first.
   draws for Mon 9.
 - **L4 (mission 52, Kitchen lists):** Hill's ten decisions are recorded in
   `.avengers/missions/mission-52-ipad-landscape-l4-kitchen.md` (numbered
-  there 244 to 253, provisional until the parallel L3 chat's numbers are
-  known). Headlines: Log leftovers, Add recipe, Put away and the Inventory
+  there 264 to 273; L5 holds 244 to 254 and L3 255 to 263). Headlines: Log leftovers, Add recipe, Put away and the Inventory
   buttons move into the title row on wide pages; the A-Z rail ends above
   the +; cookbook cards 2 then 4 across; the Meal plan's Coming up weeks
   are compact cards that open the week grid in place; week ranges read

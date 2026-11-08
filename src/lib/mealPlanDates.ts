@@ -70,7 +70,7 @@ export const SHORT_DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 /** "Aug 9 to 15" for a week that stays in one month, "Jul 27 to Aug 2" for
  * one that crosses a month boundary. Words, not a dash (Bryce's standing
- * rule; decision 248), so every week header agrees. */
+ * rule; decision 268), so every week header agrees. */
 export function formatWeekRange(weekStart: Date): string {
   const end = addDays(weekStart, 6);
   const startMonth = MONTH_NAMES[weekStart.getMonth()];
@@ -80,7 +80,7 @@ export function formatWeekRange(weekStart: Date): string {
     : `${startMonth} ${weekStart.getDate()} to ${endMonth} ${end.getDate()}`;
 }
 
-/** "Sun 9", "Mon 10": a week grid column header (decision 249). */
+/** "Sun 9", "Mon 10": a week grid column header (decision 269). */
 export function formatShortDayHeader(date: Date): string {
   return `${SHORT_DAY_NAMES[date.getDay()]} ${date.getDate()}`;
 }

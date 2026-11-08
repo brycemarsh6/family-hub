@@ -53,7 +53,7 @@ export function CookbookList({ cookbooks }: { cookbooks: CookbookListItem[] }) {
       </button>
 
       {/* One column of rows on a phone; cards in 2 columns from a 48rem
-          container and 4 from 64rem (never 3, decision 247). The container is
+          container and 4 from 64rem (never 3, decision 267). The container is
           this div, so a pinned Sidebar just gives the grid less room. */}
       <div className="@container">
         <ul className="grid grid-cols-1 gap-2 @min-[48rem]:grid-cols-2 @min-[48rem]:gap-3 @min-[64rem]:grid-cols-4">

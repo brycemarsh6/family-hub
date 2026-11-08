@@ -33,7 +33,7 @@ export function RecipeLetterRail({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       // Bottom is a class so wide pages can end the rail above the +
-      // (decision 246: the + sits bottom-right there).
+      // (decision 266: the + sits bottom-right there).
       style={{ top: railTop ?? 140 }}
       className="bottom-[calc(1rem+env(safe-area-inset-bottom))] md:[body:has([data-page-width=wide])_&]:bottom-[calc(5.5rem+env(safe-area-inset-bottom))] fixed right-0 z-30 flex w-7 touch-none select-none flex-col items-center justify-between py-1"
     >

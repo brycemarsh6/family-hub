@@ -129,7 +129,7 @@ export function ExpiringList({
       {/* The container wraps the sections only; the sheets below are its
           siblings (STRUCTURE.md "Wide pages", rule 1). Sections fill fixed
           columns from the left, so a missing one leaves its column empty
-          (decision 250). "Eat now" spans the top row from 768px and shares
+          (decision 270). "Eat now" spans the top row from 768px and shares
           the row from 1024px. */}
       <div className="@container">
         <div className="grid items-start gap-x-4 gap-y-6 @min-[48rem]:grid-cols-2 @min-[64rem]:grid-cols-3">

@@ -151,7 +151,7 @@ tell when a rule's reason has expired.
   the round + sits at the bottom-right corner of the content area, where a
   right thumb lands on an iPad; on phones it stays bottom-left because the
   Recipes A-Z rail owns the right edge there, and on wide pages that rail
-  ends above the button (mission-52, decision 246).
+  ends above the button (mission-52, decision 266).
 - **The drawer reaches every destination directly; there are no landing
   pages.** `BackLink` is the one edge back up from a page below a drawer
   destination (recipe detail to Recipes), never on a destination itself.
