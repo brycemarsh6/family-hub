@@ -260,7 +260,7 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 - **Objective:** Start the link, receive Google's return, and expose the
   guarded actions for direction, rename and unlink.
 - **Boundaries:** may touch: new `src/app/api/google/callback/route.ts`,
-  `src/proxy.ts` (add `"/api/google/callback"` to `PUBLIC_ROUTES` only),
+  `src/proxy.ts` (add the callback's exact path to `PUBLIC_ROUTES` only),
   new `src/app/actions/linkedCalendars.ts`. Must not touch: `src/lib/`
   (except importing), `src/components/`, `prisma/`.
 - **Spec:** `startGoogleLink()` (guard a, `MANAGER_ROLES`, not devices):
@@ -291,8 +291,11 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
   the dev server up and no Google env vars, `curl -i
   http://localhost:3000/api/google/callback?state=x&code=y` without a
   session → 302 to `/login` from proxy is NOT the expected outcome (it is
-  public); expected: 302 to `/settings/calendars?error=signin`; with a
-  session cookie and a wrong state → `?error=state`.
+  public); expected: 302 to `/settings/calendars?error=signin`. The
+  signed-in paths (wrong state gives `?error=state`, and so on) cannot be
+  curled without a session, so the gates check them by reading the route
+  and in the running app. A failed exchange maps to `?error=exchange`, or
+  `?error=no-refresh-token` for that `exchangeCode` reason.
 - **Evidence required:** the curl outputs; `grep -n "console\." src/app/api/google/callback/route.ts` showing no log line prints a variable from the token exchange.
 - **Done criteria:** Fury re-runs the curls and reads the route top to bottom.
 
