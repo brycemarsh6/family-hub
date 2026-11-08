@@ -1,7 +1,7 @@
 # Mission 54: STRUCTURE.md housekeeping (stories out, rules stay)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (plan approved by Bryce 2026-11-08: D1 stories only, D2 the +200 trigger, D3 Size watch stays)
+**Status:** AT-THE-GATES, both PASS at pass 2; Gauntlet and delivery next (plan approved by Bryce 2026-11-08: D1 stories only, D2 the +200 trigger, D3 Size watch stays)
 **Started:** 2026-11-08 · **Updated:** 2026-11-08 (Fury, plan)
 **Branch:** `claude/structure-md-cleanup-0b5cc7`, cut from `main` at `7dc5b28` (0 ahead, 0 behind at plan time)
 
@@ -247,7 +247,7 @@ aside):
 - **Report:** DONE, re-run by Fury 2026-11-08 and matching: 1,676 to 1,599 lines (archive 204), 23 passages moved and 23 pointers, each pointer naming a real `###` heading; 986 words moved; the checker's only additions are the header sentence, the housekeeping note and "Reworded 2026-11-08, mission-54, Bryce" in its tag; 41 of 41 amendment ids kept; `##` headings unchanged. `npm test` 1443 pass, eslint clean. `tsc` reports 2 errors, both in the git-ignored `.next/` validator files (a stale route), none in `src/`; the build before the PR regenerates them. Stark kept every passage entangled with a binding word, or inside a parenthetical with a closing bracket on its last word, and listed them as **Unsure** for Captain (the "Instance:" tags among them), which is why the result is above the plan's 1,350 to 1,450 estimate.
 
 ### C2 - CLAUDE.md: replace the one "Open, not scheduled" line and the Current status date
-- **Status:** PENDING (after C1 passes its gates, right before the PR)
+- **Status:** DONE 2026-11-08, changed from this spec because PR #86 merged first: CLAUDE.md now says to delete your line when your PR merges and never to name a PR, and the old "1534 lines" note had moved to `.avengers/status.md`. So: the "STRUCTURE.md cleanup is due" bullet is deleted from CLAUDE.md (the heading's date was already 2026-11-08), the status.md line is replaced with the real count and the next trigger (1,783), and one checklist line carries the `FAMILY_PASSWORD` chore (both gates' NOTE; `grep` over `src`, `prisma`, `.github`, `AGENTS.md`, `package.json` and `next.config.ts` finds 0 references).
 - **Boundaries:** may touch: `CLAUDE.md` · must not touch: anything else.
 - **Spec:** replace the two-line bullet beginning "STRUCTURE.md is 1534 lines, 2.4 times its own 650-line housekeeping trigger" with: "STRUCTURE.md's housekeeping pass ran 2026-11-08 (mission 54, PR #<n>): the stories moved to `docs/history/structure-rationale.md`; the file went from 1,676 to <N> lines with every rule kept. The pass is due again at <N+200> lines." Change the heading "## Current status (updated 2026-11-08, L4)" to "## Current status (updated 2026-11-08, mission 54)". Nothing else. Fury may do this edit himself (two lines) rather than dispatching Stark; if so, this contract records it.
 - **Verification:** `git diff --stat CLAUDE.md` shows one file, about 4 lines changed; `wc -l CLAUDE.md` under 250 is not required by this file's rule (its own cap note says ~250 and it is already over; not this mission's job, noted below).
@@ -276,6 +276,8 @@ aside):
 |---|---|---|---|---|
 | 1 | Vision (`501be89`) | BLOCKED | 3: `withTimeZone` rule lost its subject; month-names rule counts into a list that left; the `git add -A` story held a live remedy | `npm test` 1443 pass, UTC run 1443 tests with 0 fail, eslint clean; `tsc` only the 2 stale `.next` errors. Pointer for `pinned` no longer lands (F1 restores it); `FAMILY_PASSWORD` to-do now only in the archive. |
 | 1 | Captain (`501be89`) | BLOCKED | The same 3 | Ruled on the whole Unsure list (applied in F1); bracket repair acceptable if recorded; `docs/history/README.md` should list the new file. |
+| 2 | Vision (`6c97d25`) | PASS | 0 | All three read closed in place; nine new cuts read whole; `npm test` 1443 pass, UTC run 0 fail, eslint clean. Notes: "Closed in mission-23:" and "replacing a failed rule, see below" now rely on a pointer; one archive heading says "five definitions" over only the "Two mechanisms" sentence; `FAMILY_PASSWORD` chore needs a checklist home (done in C2). |
+| 2 | Captain (`6c97d25`) | PASS | 0 | Every ruling applied as ruled; 1,583 confirmed by `wc -l`; next pass due at 1,783. Note: AGENTS.md says "in the same commit" where STRUCTURE.md says "in or before" (out of scope). |
 
 Budget: 3 passes per gate, then stop and surface.
 
