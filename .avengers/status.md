@@ -101,6 +101,9 @@ it is done. The pre-cleanup text is in
 - **Delete the commented production `DATABASE_URL` line in `.env`**
   (host `ep-hidden-surf-`). It isn't used, but AGENTS.md says no dev
   machine should hold it. No agent edits `.env`.
+- **Delete `FAMILY_PASSWORD` from `.env` and from Vercel.** Nothing in the
+  code reads it, and its rollback window has passed. (Details moved to
+  `docs/history/structure-rationale.md` in mission 54.)
 - **Kids and chores:** once a kid profile exists, a kid tapping a shared
   chore on the chart should see "Ask a parent to change a shared chore."
 - **Review Hill's medium calls:** 94, 95, 104, 110, 111 (PR C); 117, 121,
@@ -138,9 +141,10 @@ it is done. The pre-cleanup text is in
   `RecipeIngredientSuggestion` and the put-away types). None are left, and
   `src/lib/useServerExports.test.ts` now fails the Gauntlet if one comes
   back. Components import such types from their `src/lib/` home.
-- STRUCTURE.md is 1534 lines, 2.4 times its own 650-line housekeeping
-  trigger (Captain, mission 51): a one-PR cleanup mission that moves the
-  provenance stories into `docs/history/structure-rationale.md` is due.
+- STRUCTURE.md is 1,583 lines after its housekeeping pass (mission 54 moved
+  the stories to `docs/history/structure-rationale.md`). What is left is
+  almost all rule text, so going lower means moving rule inventories into
+  companion files, a separate decision. The next pass is due at 1,783 lines.
 - Hours tracker follow-ups (mission 37 Delivery): a page left open over
   Saturday night shows last week's total in the sheet until reloaded; the
   Who hint says "checks" on an hours habit.
