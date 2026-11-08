@@ -69,8 +69,8 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
 
 ## What's built
 
-- **Dashboard** (`/`): the tiles (Today's meals, Inventory, Grocery, Recipes) are
-  widgets. Each person can show, hide and reorder them from a Customize sheet,
+- **Dashboard** (`/`): the tiles (Calendar, Today's meals, Inventory, Grocery,
+  Recipes and more) are widgets. Each person can show, hide and reorder them from a Customize sheet,
   saved per person. Device logins (the wall tablet) see the default layout and
   get no Customize button.
 - **One side drawer** for the whole app, opened by a hamburger button at the
@@ -249,20 +249,23 @@ Replace this section at the end of each session. Don't append.
   column per person (swipe sideways), rows by time of day, Filter, and a
   household order set by dragging on Manage family (`User.familyOrder`).
   Leftovers in `.avengers/missions/mission-41-habits-family-columns.md`.
-- **iPad landscape:** L1 (mission 44, PR #62) made the dashboard wide.
-  L2 (mission 46) makes the Calendar wide on branch
-  `claude/ipad-landscape-l2-calendar-46358d`: a sticky mini month beside
-  Schedule, 4 readable chips a day on wide Month, readable wide Week
-  columns, Year 4 across (decisions 225 to 232; 229 to 232 decided by Hill). Plan:
-  `.avengers/plans/ipad-landscape-v1.md`. Next: W2, the Calendar widget
-  (`.avengers/plans/dashboard-widgets-v2.md`), then L3 (Habits).
+- **iPad landscape:** L1 (mission 44, PR #62) made the dashboard wide;
+  L2 (mission 46, PR #67) made the Calendar wide (delivered). Plan:
+  `.avengers/plans/ipad-landscape-v1.md`. Next: L3 (Habits).
+- **Calendar widget W2 (mission 49)** passed its gates on 2026-11-07 from
+  branch `claude/dashboard-w2-calendar-widget-40bbe6`: a Calendar widget in
+  all four sizes (Small next item, Medium and Large today, Extra large 3 or
+  7 days), options Tasks only and Whole day, first at Large on the default
+  and tablet layouts; one shared task query (`src/lib/calendarTaskQuery.ts`).
+  Decisions 233 to 243 (233 to 239 approved by Bryce; 240 to 243 by Hill).
+  Next: W3 (`.avengers/plans/dashboard-widgets-v2.md`). Leftovers in
+  `.avengers/missions/mission-49-dashboard-widgets-w2-calendar.md`.
 - **Dashboard widgets W1 (mission 43)** passed its gates on 2026-11-06
   from branch `claude/dashboard-customizable-widgets-a9d4c0`: widgets have
   sizes (Small, Medium, Large, Extra large), a kind can be added more than
   once, a 2 or 4 column grid packs them, and Customize edits size with
   swipeable previews. Layout JSON is v2 (old layouts upgrade on read).
-  Chores today defaults to Medium (decision 214). Next: W2, the Calendar
-  widget (`.avengers/plans/dashboard-widgets-v2.md`).
+  Chores today defaults to Medium (decision 214).
 - **Hill decides for Bryce** (`.claude/agents/hill.md`); merges don't wait
   for him. Phone tests go on Bryce's checklist below and never block.
 - **Marshee is touch only** (Bryce, 2026-11-03): phones and iPads, never a
@@ -397,6 +400,12 @@ Replace this section at the end of each session. Don't append.
   bar next to the Marshee wordmark. Open Customize, change a size, reload. On a day with Planned today or Pick a day, the cards
   sit two across. On the Habits tile, open an hours habit's log sheet and
   check it covers the whole screen (iPad Safari is unproven).
+- **Calendar widget check** (about 5 minutes): on the iPad, Customize,
+  Add widget, Calendar; try each size. Extra large with 7 days: days wrap
+  onto a second row and titles stay readable. Tap "+N more" and land on
+  that day's Schedule. Turn on Tasks only, then Whole day, reload. On the
+  phone, Extra large stacks the days. Look at Hill's 240 (the wrapped
+  7 days) and 241 (done items sink) while you're there.
 - **Dashboard widgets iPad check** (about 5 minutes): on the iPad, see the
   4-column dashboard; check the Small Inventory tile isn't cut off. Open
   Customize, tap Chores today, switch it to Large and back; add a second
@@ -438,6 +447,9 @@ Replace this section at the end of each session. Don't append.
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- Dev only, older than mission 49: every Settings server action fails with
+  "HabitInput is not defined" from `export type { HabitInput }` in the
+  "use server" file `src/app/actions/habits.ts`. Check production.
 - Hours tracker follow-ups (mission 37 Delivery): a page left open over
   Saturday night shows last week's total in the sheet until reloaded; the
   Who hint says "checks" on an hours habit.
