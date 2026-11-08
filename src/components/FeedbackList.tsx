@@ -60,7 +60,7 @@ export function FeedbackList({
     <>
       <div
         ref={wrapRef}
-        className={wide ? "grid grid-cols-[30rem_minmax(0,1fr)] items-start gap-x-8" : undefined}
+        className={wide && optimisticItems.length > 0 ? "grid grid-cols-[30rem_minmax(0,1fr)] items-start gap-x-8" : undefined}
       >
         <div>
           {error && (
@@ -100,6 +100,7 @@ export function FeedbackList({
         {wide && optimisticItems.length > 0 && (
           // Sticky under the menu button so it stays in view while a long list scrolls; never taller than the screen below it, scrolling inside itself.
           <aside
+            key={opened?.id ?? "empty"}
             className="sticky overflow-y-auto rounded-2xl border border-line bg-surface p-4"
             style={{ top: panelTop, maxHeight: `calc(100dvh - ${panelTop + 16}px)` }}
           >

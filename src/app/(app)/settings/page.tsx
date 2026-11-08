@@ -45,8 +45,8 @@ export default async function SettingsPage() {
 
       <div className="@container">
         <div className={TWO_COLUMN_CLASSES}>
-          {/* Both columns start level on wide: the first section drops its top margin. */}
-          <div className="@max-[48rem]:contents @min-[48rem]:[&>:first-child>*]:mt-0">
+          {/* Both columns start level on wide: the first section keeps a 16px gap under the title. */}
+          <div className="@max-[48rem]:contents @min-[48rem]:[&>:first-child>*]:mt-4">
             <div className="order-1">
               <SettingsAccountCard
                 displayName={user.displayName}
@@ -118,7 +118,7 @@ export default async function SettingsPage() {
             </div>
           </div>
 
-          <div className="@max-[48rem]:contents @min-[48rem]:[&>:first-child>*]:mt-0">
+          <div className="@max-[48rem]:contents @min-[48rem]:[&>:first-child>*]:mt-4">
             {!user.isDevice && (
               <>
                 <div className="order-5">
