@@ -260,7 +260,7 @@ Status per contract is kept on its heading line.
   DOM checks move to Strange (a `curl` gets the login redirect); Stark's
   evidence is the gauntlet, unit tests and the diff.
 
-### C2: Mine as time-of-day columns
+### C2: Mine as time-of-day columns (DONE, `a11bb00`)
 - **May touch:** `HabitTodayList.tsx`, `HabitRow.tsx`,
   `src/lib/habitsFamilyColumns.ts` + its test (add `groupRowsByTime(rows)`
   for `HabitRowView`, reusing the same key order), `HoursHabitRow.tsx` (card
@@ -279,6 +279,12 @@ Status per contract is kept on its heading line.
   4 `[data-time-column]`, at 820 upright 2, at 375 1; the dashboard's
   Habits tile DOM unchanged (diff of `curl /` before and after).
 - **Evidence:** the three DOM counts, the tile diff (empty), test output.
+
+- **C3 amendments (Fury, before dispatch):** `HabitFamilyColumn.tsx` may
+  also take a `keep` prop so the phone card's count stays the whole day
+  while rows filter; `FamilyHabitRow` gets a `layout="card"` (tall card)
+  for the wide columns; each wide column's scroll area reserves bottom
+  room for the floating +.
 
 ### C3: Whole family fits everyone
 - **May touch:** `HabitFamilyView.tsx`, `HabitFamilyWide.tsx`,
@@ -333,6 +339,12 @@ Status per contract is kept on its heading line.
 |---|---|---|---|---|
 
 ## Handoff log
+
+- 2026-11-07: C2 DONE (`a11bb00`, 6 files, +166/-62). Stark: gauntlet
+  green (1386; UTC 1379 pass, 7 skipped; build 0); 3 new grouping tests;
+  `HabitsTile` and `PlannedTodayCard` pass no `layout` (grep). Fury checked
+  the file list. For Hill: `PAST_DAY_NOTHING_DUE_TITLE` / `_HINT`. For
+  Strange: tall card check sits bottom right (`px-12` keeps text clear).
 
 - 2026-11-07: C1 DONE (`907e401`, 15 files, +706/-219). Gauntlet green per
   Stark (1383 tests; UTC 1376 pass, 7 skipped; build 0); Fury re-ran
