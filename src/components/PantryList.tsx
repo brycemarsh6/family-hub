@@ -1,19 +1,21 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
-import { ChevronRight, Search, X } from "lucide-react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
+import { Search, X } from "lucide-react";
 import { PantryRow } from "./PantryRow";
+import { PantryCategorySection } from "./PantryCategorySection";
 import { PantryItemEditSheet, type PantryItemEdits } from "./PantryItemEditSheet";
 import { StorePickerSheet } from "./StorePickerSheet";
 import { EmptyState } from "./EmptyState";
 import {
   LOCATIONS,
   locationIcon,
-  categoryIcon,
   categoryOrder,
   isLow,
 } from "@/lib/constants";
 import { searchItems } from "@/lib/match";
+import { columnCountFor, splitByWeight } from "@/lib/splitColumns";
+import { useContainerWidth } from "@/lib/useContainerWidth";
 import type { PantryItemView } from "@/lib/types";
 import {
   setPantryQuantity,
@@ -50,6 +52,13 @@ function applyChange(
   }
 }
 
+// Wide pages (STRUCTURE.md "Wide pages"): on a landscape iPad the groups sit
+// in 2 columns. The split is made in JavaScript from the group order and row
+// counts (splitColumns.ts), not with CSS `columns`, because CSS columns
+// balance by measured height and a group would hop to another column the
+// moment it was opened or closed. The measured wrapper (gridRef) holds the
+// groups only: the two sheets at the bottom are its siblings, never inside
+// it (Wide pages rule 1).
 const ALL = "All";
 
 export function PantryList({
@@ -71,6 +80,13 @@ export function PantryList({
   // itself, so the sheet always reads the latest optimistic data for it.
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingItem = optimisticItems.find((item) => item.id === editingId);
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const width = useContainerWidth(gridRef);
+  const columns = columnCountFor(width, 2);
+  const gridStyle = {
+    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+  };
 
   // Which item (if any) is waiting on a store choice before it goes on the
   // list. The cart button doesn't add the item directly anymore — it opens
@@ -182,7 +198,11 @@ export function PantryList({
       {/* Big touch target, one tap to clear — typed search, not voice or
           barcode (those are separate, planned features), just "don't make me
           scroll to find the thing I typed part of the name of." */}
-      <div className="relative mb-3">
+      {/* The search box and the chips share one row once this wrapper is
+          1024px wide (a container variant, so a pinned sidebar is counted). */}
+      <div className="@container mb-4">
+        <div className="flex flex-col gap-3 @min-[64rem]:flex-row @min-[64rem]:items-center">
+      <div className="relative @min-[64rem]:min-w-[16rem] @min-[64rem]:flex-1">
         <Search
           aria-hidden="true"
           size={18}
@@ -213,7 +233,7 @@ export function PantryList({
         five of them won't fit across a 375px phone, and shrinking them below a
         fingertip would defeat the point of a kitchen-tablet app.
       */}
-      <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-4 overflow-x-auto px-4 @min-[64rem]:mx-0 @min-[64rem]:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex w-max gap-2">
           {[ALL, ...LOCATIONS.map((l) => l.name)].map((option) => {
             const active = filter === option;
@@ -241,96 +261,73 @@ export function PantryList({
           })}
         </div>
       </div>
+        </div>
+      </div>
 
-      {searchResults ? (
-        searchResults.length === 0 ? (
+      {/* One wrapper for every state of the results (list, search, empty), so
+          the measured element never changes under the observer. */}
+      <div ref={gridRef}>
+        {searchResults ? (
+          searchResults.length === 0 ? (
+            <EmptyState
+              emoji="🔍"
+              title={`No matches for "${query.trim()}"`}
+              hint="Try a shorter or different word — search matches the start of any word in the name."
+            />
+          ) : (
+            // Flat and ranked, not grouped by category — the point of typing
+            // "straw" is seeing Strawberries first, not hunting through
+            // Produce and Meals & Frozen Food to find it.
+            <div className="grid items-start gap-x-4" style={gridStyle}>
+              {splitByWeight(searchResults, columns, () => 1).map((col, c) => (
+                <ul key={c} className="space-y-2">
+                  {col.map((item) => (
+                    <PantryRow key={item.id} item={item} {...rowHandlers(item)} />
+                  ))}
+                </ul>
+              ))}
+            </div>
+          )
+        ) : visible.length === 0 ? (
           <EmptyState
-            emoji="🔍"
-            title={`No matches for "${query.trim()}"`}
-            hint="Try a shorter or different word — search matches the start of any word in the name."
+            emoji="🥫"
+            title={filter === ALL ? "The pantry is empty" : `Nothing in ${filter}`}
+            hint="Add what you have below, and the app will tell you when it runs low."
           />
         ) : (
-          // Flat and ranked, not grouped by category — the point of typing
-          // "straw" is seeing Strawberries first, not hunting through
-          // Produce and Meals & Frozen Food to find it.
-          <ul className="space-y-2">
-            {searchResults.map((item) => (
-              <PantryRow key={item.id} item={item} {...rowHandlers(item)} />
-            ))}
-          </ul>
-        )
-      ) : visible.length === 0 ? (
-        <EmptyState
-          emoji="🥫"
-          title={filter === ALL ? "The pantry is empty" : `Nothing in ${filter}`}
-          hint="Add what you have below, and the app will tell you when it runs low."
-        />
-      ) : (
-        <div className="space-y-2">
-          {/* One tap to open or shut everything, so a collapsed list is never
-              a hunt through twenty headers for the thing you want. */}
-          <div className="flex justify-end pb-1">
-            <button
-              type="button"
-              onClick={toggleAll}
-              className="min-h-11 rounded-lg px-3 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
-            >
-              {allOpen ? "Collapse all" : "Expand all"}
-            </button>
-          </div>
+          <div className="space-y-2">
+            {/* One tap to open or shut everything, so a collapsed list is never
+                a hunt through twenty headers for the thing you want. */}
+            <div className="flex justify-end pb-1">
+              <button
+                type="button"
+                onClick={toggleAll}
+                className="min-h-11 rounded-lg px-3 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              >
+                {allOpen ? "Collapse all" : "Expand all"}
+              </button>
+            </div>
 
-          {groups.map((group) => {
-            const CategoryIcon = categoryIcon(group.category);
-            const open = openCategories.has(group.category);
-            return (
-              <section key={group.category}>
-                <h2>
-                  <button
-                    type="button"
-                    onClick={() => toggleCategory(group.category)}
-                    aria-expanded={open}
-                    className="flex min-h-12 w-full items-center gap-2 rounded-xl px-1 text-left text-sm font-semibold uppercase tracking-wide text-muted transition-colors active:bg-surface-2"
-                  >
-                    <ChevronRight
-                      aria-hidden="true"
-                      size={16}
-                      className={`shrink-0 transition-transform ${
-                        open ? "rotate-90" : ""
-                      }`}
-                    />
-                    <CategoryIcon aria-hidden="true" size={16} className="shrink-0" />
-                    <span className="min-w-0 flex-1">
-                      {group.category}{" "}
-                      <span className="font-normal normal-case">
-                        ({group.items.length})
-                      </span>
-                    </span>
-                    {/* The low count rides on the header so a shut group still
-                        tells you whether anything inside needs attention. */}
-                    {group.lowCount > 0 && (
-                      <span className="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium normal-case text-warn">
-                        {group.lowCount} low
-                      </span>
-                    )}
-                  </button>
-                </h2>
-
-                {open && (
-                  <ul className="mt-2 space-y-2">
-                    {group.items.map((item) => (
-                      <PantryRow
-                        key={item.id}
-                        item={item}
-                        {...rowHandlers(item)}
+            <div className="grid items-start gap-x-4" style={gridStyle}>
+              {splitByWeight(groups, columns, (g) => g.items.length + 1).map(
+                (column, c) => (
+                  <div key={c} className="space-y-2">
+                    {column.map((group) => (
+                      <PantryCategorySection
+                        key={group.category}
+                        group={group}
+                        open={openCategories.has(group.category)}
+                        onToggle={() => toggleCategory(group.category)}
+                        rowHandlers={rowHandlers}
                       />
                     ))}
-                  </ul>
-                )}
-              </section>
-            );
-          })}
-        </div>
-      )}
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {editingItem && (
         <PantryItemEditSheet

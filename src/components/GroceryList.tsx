@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
 import { GroceryRow } from "./GroceryRow";
 import {
   GroceryItemEditSheet,
@@ -13,6 +13,8 @@ import {
   STORES,
   STORE_ICON as StoreIcon,
 } from "@/lib/constants";
+import { columnCountFor, splitByWeight } from "@/lib/splitColumns";
+import { useContainerWidth } from "@/lib/useContainerWidth";
 import type { GroceryItemView } from "@/lib/types";
 import {
   toggleGroceryItem,
@@ -50,6 +52,12 @@ function applyChange(
   }
 }
 
+// Wide pages (STRUCTURE.md "Wide pages"): on a landscape iPad the groups sit
+// in 2 columns. The split is made in JavaScript from the group order and row
+// counts (splitColumns.ts), not with CSS `columns`, because CSS columns
+// balance by measured height and a group would hop to another column as rows
+// are checked off. The measured wrapper (gridRef) holds the list only: the
+// edit sheet at the bottom is its sibling, never inside it (Wide pages rule 1).
 const ALL = "All";
 const UNASSIGNED = "Unassigned";
 
@@ -66,6 +74,13 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
   // same reasoning as PantryList.
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingItem = optimisticItems.find((item) => item.id === editingId);
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const width = useContainerWidth(gridRef);
+  const columns = columnCountFor(width, 2);
+  const gridStyle = {
+    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+  };
 
   function run(change: Change, serverAction: () => Promise<void>) {
     startTransition(async () => {
@@ -102,6 +117,27 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
       : storeFilter === UNASSIGNED
         ? "Nothing without a store yet"
         : `Nothing from ${storeFilter}`;
+
+  function renderRow(item: GroceryItemView) {
+    return (
+      <GroceryRow
+        key={item.id}
+        item={item}
+        onToggle={() =>
+          run({ type: "toggle", id: item.id }, () => toggleGroceryItem(item.id))
+        }
+        onQuantityChange={(quantity) =>
+          run({ type: "quantity", id: item.id, quantity }, () =>
+            setGroceryQuantity(item.id, quantity),
+          )
+        }
+        onEdit={() => setEditingId(item.id)}
+        onDelete={() =>
+          run({ type: "delete", id: item.id }, () => deleteGroceryItem(item.id))
+        }
+      />
+    );
+  }
 
   return (
     <div>
@@ -141,92 +177,68 @@ export function GroceryList({ items }: { items: GroceryItemView[] }) {
         </div>
       </div>
 
-      {filteredByStore.length === 0 ? (
-        <EmptyState
-          emoji="🛒"
-          title={emptyTitle}
-          hint="Add something below, or pull in what's running low from the inventory."
-        />
-      ) : (
-        <div className="space-y-6">
-          {sortedGroups.map(([category, categoryItems]) => {
-            const CategoryIcon = categoryIcon(category);
-            return (
-              <section key={category}>
-                <h2 className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
-                  <CategoryIcon aria-hidden="true" size={16} />
-                  {category}
-                  <span className="font-normal normal-case">
-                    ({categoryItems.length})
-                  </span>
+      {/* One wrapper for every state (list or empty), so the measured element
+          never changes under the observer. */}
+      <div ref={gridRef}>
+        {filteredByStore.length === 0 ? (
+          <EmptyState
+            emoji="🛒"
+            title={emptyTitle}
+            hint="Add something below, or pull in what's running low from the inventory."
+          />
+        ) : (
+          <div className="space-y-6">
+            <div className="grid items-start gap-x-4" style={gridStyle}>
+              {splitByWeight(
+                sortedGroups,
+                columns,
+                ([, categoryItems]) => categoryItems.length + 1,
+              ).map((column, c) => (
+                <div key={c} className="space-y-6">
+                  {column.map(([category, categoryItems]) => {
+                    const CategoryIcon = categoryIcon(category);
+                    return (
+                      <section key={category}>
+                        <h2 className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
+                          <CategoryIcon aria-hidden="true" size={16} />
+                          {category}
+                          <span className="font-normal normal-case">
+                            ({categoryItems.length})
+                          </span>
+                        </h2>
+                        <ul className="space-y-2">
+                          {categoryItems.map((item) => renderRow(item))}
+                        </ul>
+                      </section>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {unchecked.length === 0 && (
+              <p className="max-w-[35rem] rounded-xl bg-accent-soft px-4 py-3 text-base font-medium text-accent">
+                Everything on the list is in the trolley. 🎉
+              </p>
+            )}
+
+            {checked.length > 0 && (
+              <section>
+                <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
+                  In the trolley ({checked.length})
                 </h2>
-                <ul className="space-y-2">
-                  {categoryItems.map((item) => (
-                    <GroceryRow
-                      key={item.id}
-                      item={item}
-                      onToggle={() =>
-                        run({ type: "toggle", id: item.id }, () =>
-                          toggleGroceryItem(item.id),
-                        )
-                      }
-                      onQuantityChange={(quantity) =>
-                        run({ type: "quantity", id: item.id, quantity }, () =>
-                          setGroceryQuantity(item.id, quantity),
-                        )
-                      }
-                      onEdit={() => setEditingId(item.id)}
-                      onDelete={() =>
-                        run({ type: "delete", id: item.id }, () =>
-                          deleteGroceryItem(item.id),
-                        )
-                      }
-                    />
+                <div className="grid items-start gap-x-4" style={gridStyle}>
+                  {splitByWeight(checked, columns, () => 1).map((column, c) => (
+                    <ul key={c} className="space-y-2 opacity-60">
+                      {column.map((item) => renderRow(item))}
+                    </ul>
                   ))}
-                </ul>
+                </div>
               </section>
-            );
-          })}
-
-          {unchecked.length === 0 && (
-            <p className="rounded-xl bg-accent-soft px-4 py-3 text-base font-medium text-accent">
-              Everything on the list is in the trolley. 🎉
-            </p>
-          )}
-
-          {checked.length > 0 && (
-            <section>
-              <h2 className="mb-2 px-1 text-sm font-semibold uppercase tracking-wide text-muted">
-                In the trolley ({checked.length})
-              </h2>
-              <ul className="space-y-2 opacity-60">
-                {checked.map((item) => (
-                  <GroceryRow
-                    key={item.id}
-                    item={item}
-                    onToggle={() =>
-                      run({ type: "toggle", id: item.id }, () =>
-                        toggleGroceryItem(item.id),
-                      )
-                    }
-                    onQuantityChange={(quantity) =>
-                      run({ type: "quantity", id: item.id, quantity }, () =>
-                        setGroceryQuantity(item.id, quantity),
-                      )
-                    }
-                    onEdit={() => setEditingId(item.id)}
-                    onDelete={() =>
-                      run({ type: "delete", id: item.id }, () =>
-                        deleteGroceryItem(item.id),
-                      )
-                    }
-                  />
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
 
       {editingItem && (
         <GroceryItemEditSheet
