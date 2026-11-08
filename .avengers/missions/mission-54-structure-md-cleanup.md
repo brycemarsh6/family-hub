@@ -253,12 +253,29 @@ aside):
 - **Verification:** `git diff --stat CLAUDE.md` shows one file, about 4 lines changed; `wc -l CLAUDE.md` under 250 is not required by this file's rule (its own cap note says ~250 and it is already over; not this mission's job, noted below).
 - **Report:** (pending)
 
+### F1 - Fix round: restore what the gates found, apply Captain's rulings on the Unsure list
+- **Status:** PENDING
+- **Boundaries:** may touch: `STRUCTURE.md`, `docs/history/structure-rationale.md`, `docs/history/README.md` · must not touch: anything else (no `CLAUDE.md`, no mission or plan files, no `src/`). No commits.
+- **Sanctioned punctuation repair (Captain's ruling, recorded here because the plan said "two sanctioned rewrites, and no others"):** where a provenance tag and its story share one parenthetical, the archive holds the story verbatim, including the original closing bracket, and the tag left in STRUCTURE.md gains one closing bracket after its own last word. No word changes. Each such tag is the only new item it may add to the checker's DIFF block.
+- **Restore to STRUCTURE.md verbatim, removing the pointer and, where the whole chunk comes back, its `###` heading:**
+  1. Shared test helpers: the whole "This exists because `withTimeZone` ..." sentence (Vision and Captain BLOCKER). Remove chunk and pointer.
+  2. Month and weekday names: the two sentences "It already holds `MONTH_NAMES` ... how to spell a month." and "`calendarViewConfig.ts` ... restraining." (Vision and Captain BLOCKER). "Two mechanisms now coexist ..." stays in the archive; the pointer stays after the restored text.
+  3. Never `git add -A`: the whole "(Recorded 2026-09-03, mission-10: ...)" parenthetical (Vision and Captain BLOCKER). Remove chunk and pointer.
+  4. Vocabulary gate: the sentence "The clause was collected in full before that happened ... deferring the cleanup." (Fury, from Vision's NOTE: `src/components/CalendarViews.tsx:252` cites "the hazard STRUCTURE.md names for `pinned`", Bryce required cross-references to land and this PR changes no code.) Anything else in that chunk stays in the archive, split at sentence boundaries as needed.
+  5. Server Actions are public POST endpoints: the clause "the proxy drills proved the sloppy prefix opens real holes." It was a mid-sentence cut, which the move rules forbid (both gates' NOTE). Remove chunk and pointer.
+- **Move to the archive (Captain's MOVE rulings; old-file line numbers from `git show 7dc5b28:STRUCTURE.md`):** 1029-1032 and 1037-1040 (the "Code lines" Instance stories); 1087-1091 (`isTodayCell` history from "DESIGN.md predicted"); 1407-1416 (reachability-flip Instance); 1546-1551 from "First instance:" to the end (tag left behind: "(Added 2026-09-03, mission-11.)"); 1497-1500 (STRUCTURE.md keeps "- (none)", the archive starts at the words after "(none"); 1015-1019 ("Note what changed its class" through "both files in one contract" only, at sentence boundaries); 1350-1356 ("This is not hypothetical ... five-line function."; "Count what exists, not what points at it." stays); 1441-1443 (the soft-cap `groceries.ts` parenthetical). One `###` heading and one pointer per contiguous passage.
+- **Keep, no change:** every other Unsure item (Captain's KEEP rulings).
+- **Also:** one line in `docs/history/README.md` listing the new file, in that file's own format. Re-measure with `wc -l` and put the real count in the housekeeping note's "after" number.
+- **Verification (Stark runs, Fury and the gates re-run):** the C1 checks 1 to 5, against the same baseline `7dc5b28`. The checker's `<` lines must be only the old tag-ending words that gained a bracket; its `>` lines only those same words with a bracket, the header sentence, the housekeeping note and the "Reworded" tag.
+- **Evidence required:** full checker output including every `<` and `>` line, `wc -l` for all three files, pointer-to-heading match, amendment ids compared, a grep showing `withTimeZone`, `FULL_MONTH_NAMES`, `pinned` and "right remedy" present in STRUCTURE.md.
+- **Report:** (pending)
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
-| 1 | Captain | — | — | — |
+| 1 | Vision (`501be89`) | BLOCKED | 3: `withTimeZone` rule lost its subject; month-names rule counts into a list that left; the `git add -A` story held a live remedy | `npm test` 1443 pass, UTC run 1443 tests with 0 fail, eslint clean; `tsc` only the 2 stale `.next` errors. Pointer for `pinned` no longer lands (F1 restores it); `FAMILY_PASSWORD` to-do now only in the archive. |
+| 1 | Captain (`501be89`) | BLOCKED | The same 3 | Ruled on the whole Unsure list (applied in F1); bracket repair acceptable if recorded; `docs/history/README.md` should list the new file. |
 
 Budget: 3 passes per gate, then stop and surface.
 
