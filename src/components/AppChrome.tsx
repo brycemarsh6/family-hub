@@ -92,7 +92,8 @@ export function AppChrome({
           bottom padding so the document doesn't scroll past it. A page holding
           a `data-fills-width` element (Whole family's columns on an iPad) lifts
           the width cap and fills exactly one screen from `md` up. A page whose root
-          carries `data-page-width="wide"` lifts only the width cap from `md`
+          carries `data-page-width="wide"` (the dashboard, Calendar and
+          Habits & Chores) lifts only the width cap from `md`
           up (the wordmark header row and the floating hamburger row lift
           theirs to match) and scrolls as usual. */}
       <main

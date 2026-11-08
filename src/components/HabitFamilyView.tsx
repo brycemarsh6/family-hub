@@ -32,8 +32,9 @@ const dayOf = (row: FamilyRow) => (row.carriedFrom ? formatCalendarDate(row.carr
 
 /**
  * The family view (decision 95): the Together strip, then a card per person.
- * Below 768px: the stacked cards (side by side where two fit). From 768px up
- * (an iPad): `HabitFamilyWide`'s 330px columns by time of day (mission 41).
+ * Under 45rem of room: the stacked cards (side by side where two fit). From 45rem up
+ * (an iPad): `HabitFamilyWide`'s columns by time of day (mission 41, 51). The switch
+ * is on the container's width, not the screen's.
  * Both layouts are rendered from this one optimistic state.
  * A tap logs for `row.logForId` through the same actions and the same optimistic
  * reducer as Today; a row the viewer may not log for has no button.
@@ -64,7 +65,7 @@ export function HabitFamilyView({
   const [state, applyOptimistic] = useOptimistic<FamilyPage, HabitChange>(page, applyToPage);
   const { run, error, setError, pending } = useOptimisticRun(applyOptimistic);
   const live = readOnly ? lockPage(state) : state;
-  // What the Filter sheet leaves: its people, and on the stacked cards its rows (the wide columns filter their own, keeping the whole-day count).
+  // What the Filter sheet leaves: its people. Each layout filters its own rows with `keep`, so "x of y done" stays the whole day.
   const columns = live.columns.filter((column) => !hiddenPeople.includes(column.id));
   // The hours row whose log sheet is open: the habit and the person, read live so bars move as soon as Add is tapped.
   const [logging, setLogging] = useState<{ habitId: string; userId: string } | null>(null);
@@ -97,33 +98,36 @@ export function HabitFamilyView({
           {error}
         </p>
       )}
-      <div className="flex flex-col gap-3.5 md:hidden">
-        {live.together.some(keep) && (
-          <section aria-label="Together" className="rounded-2xl border border-line bg-surface p-3">
-            <div className="flex items-center gap-2 pb-1">
-              <Users aria-hidden="true" size={20} className="text-accent" />
-              <h2 className="text-base font-bold">Together</h2>
-            </div>
-            <ul className="flex flex-col divide-y divide-line sm:flex-row sm:flex-wrap sm:divide-y-0 sm:gap-x-8">
-              {live.together.filter(keep).map((row) => (
-                <li key={row.id} className="sm:min-w-64">
-                  <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => toggle(row)} together />
-                </li>
+      {/* One container round both layouts decides which shows. 45rem and the chrome's `md` frame switch together: a 768 screen leaves a 736px container (the Sidebar pins only from 1024, which leaves 736 too), over 720. The sheet below stays outside (STRUCTURE.md, Wide pages, rule 1). */}
+      <div className="@container flex flex-col gap-3.5 md:min-h-0 md:flex-1">
+        <div className="flex flex-col gap-3.5 @min-[45rem]:hidden">
+          {live.together.some(keep) && (
+            <section aria-label="Together" className="rounded-2xl border border-line bg-surface p-3">
+              <div className="flex items-center gap-2 pb-1">
+                <Users aria-hidden="true" size={20} className="text-accent" />
+                <h2 className="text-base font-bold">Together</h2>
+              </div>
+              <ul className="flex flex-col divide-y divide-line sm:flex-row sm:flex-wrap sm:divide-y-0 sm:gap-x-8">
+                {live.together.filter(keep).map((row) => (
+                  <li key={row.id} className="sm:min-w-64">
+                    <FamilyHabitRow row={row} showStreaks={showStreaks} onToggle={() => toggle(row)} together />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {columns.length === 0 ? (
+            <p className="text-sm text-muted">No one to show yet.</p>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-start gap-3.5">
+              {columns.map((column) => (
+                <HabitFamilyColumn key={column.id} column={column} together={live.together} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
               ))}
-            </ul>
-          </section>
-        )}
-        {columns.length === 0 ? (
-          <p className="text-sm text-muted">No one to show yet.</p>
-        ) : (
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-start gap-3.5">
-            {columns.map((column) => (
-              <HabitFamilyColumn key={column.id} column={{ ...column, rows: column.rows.filter(keep) }} together={live.together} showStreaks={showStreaks} onToggle={toggle} />
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+        <HabitFamilyWide page={{ ...live, columns }} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
       </div>
-      <HabitFamilyWide page={{ ...live, columns }} showStreaks={showStreaks} keep={keep} onToggle={toggle} />
       {loggingRow?.hours && (
         <HoursLogSheet
           habitId={loggingRow.id}

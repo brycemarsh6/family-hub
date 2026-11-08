@@ -68,3 +68,12 @@ export function familyCountText(column: ColumnInput & Pick<FamilyColumn, "totalC
   const count = doneCountLabel(countedRows(column, together));
   return column.onVacation ? `${count} · ${ON_VACATION_LABEL}` : count;
 }
+
+/** The narrowest a person's column may be when everyone fits side by side, and the gap between columns (px). 12, not 14: five 220px columns at the 1148px a 1180 iPad leaves need exactly 1148. */
+export const FIT_COLUMN_MIN = 220;
+export const FIT_COLUMN_GAP = 12;
+
+/** Whether `count` columns of at least 220px, 14px apart, fit in `width` px (so the strip needs no sideways swipe). */
+export function fitsEveryone(width: number, count: number): boolean {
+  return count > 0 && width >= count * FIT_COLUMN_MIN + (count - 1) * FIT_COLUMN_GAP;
+}

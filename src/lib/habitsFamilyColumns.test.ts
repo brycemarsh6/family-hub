@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { FamilyRow } from "./habitsFamily";
 import type { HabitRowView } from "./habitsRead";
-import { emptyColumnText, familyCountText, groupColumnRows, groupRowsByTime } from "./habitsFamilyColumns";
+import { emptyColumnText, familyCountText, fitsEveryone, groupColumnRows, groupRowsByTime } from "./habitsFamilyColumns";
 import { familyRowTag } from "./habitVocabulary";
 
 const row = (id: string, timeOfDay: FamilyRow["timeOfDay"], kind: FamilyRow["kind"] = "habit", extra: Partial<FamilyRow> = {}) =>
@@ -88,4 +88,14 @@ test("groupRowsByTime: a chore sits in its time column with the Chore tag", () =
 test("groupRowsByTime: keep filters rows and leaves the column in place", () => {
   const groups = groupRowsByTime([mine("a", "morning"), mine("b", "evening")], (r) => r.timeOfDay === "evening");
   assert.deepEqual(timeIds(groups), [["morning", []], ["afternoon", []], ["evening", ["b"]], ["anytime", []]]);
+});
+
+test("fitsEveryone: 220px columns and 12px gaps; nobody to fit is false", () => {
+  assert.equal(fitsEveryone(1148, 5), true);
+  assert.equal(fitsEveryone(892, 5), false);
+  assert.equal(fitsEveryone(788, 3), true);
+  assert.equal(fitsEveryone(788, 4), false);
+  assert.equal(fitsEveryone(1000, 0), false);
+  assert.equal(fitsEveryone(1148, 5), true);
+  assert.equal(fitsEveryone(1147, 5), false);
 });

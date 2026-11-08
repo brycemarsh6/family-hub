@@ -44,6 +44,7 @@ export function FamilyHabitRow({
   onToggle,
   together = false,
   tag = null,
+  layout = "row",
 }: {
   row: FamilyRow;
   showStreaks: boolean;
@@ -52,7 +53,10 @@ export function FamilyHabitRow({
   together?: boolean;
   /** A small label under the title ("Together", "Chore"): the wide layout, where rows of every kind share a group. */
   tag?: string | null;
+  /** "card" (the wide columns): a tall card with the icon on top. "row" (the phone cards): one line. */
+  layout?: "row" | "card";
 }) {
+  const card = layout === "card";
   const finished = row.doneToday || isExcused(row);
   const excusedByCalendar = isExcusedAllDay(row);
   const skippedMark = row.skippedToday || (row.skippedThisWeek && !row.doneToday);
@@ -68,49 +72,62 @@ export function FamilyHabitRow({
   // The check names whose it is, because a card holds several people's rows (and a parent or the tablet taps for others).
   const who = row.participants.find((p) => p.userId === row.logForId)?.displayName ?? "them";
 
-  return (
-    <div className="flex min-h-14 items-center gap-2.5">
-      <TitleArea row={row}>
+  const title = (
+    <TitleArea row={row}>
+      {!card && (
         <span className={`flex shrink-0 ${finished ? "text-muted" : "text-accent"}`}>
           <HabitIcon name={row.icon} kind={row.kind} size={20} />
         </span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className={`text-base font-semibold ${excusedByCalendar ? "text-muted-strong" : finished ? "text-muted" : ""}`}>{row.title}</span>
-          {row.hours ? (
-            // An hours habit shows the person's week: "6½ of 10 hours this week", the bar and the hours left (decision 197).
-            <span className="mt-0.5 flex flex-col gap-1">
-              <span className="text-xs text-muted">{row.hours.doneText}</span>
-              <ProgressBar fraction={row.hours.fraction} label={`${row.title} for ${who}: ${row.hours.doneText}`} />
-              <HoursLeftLine hours={row.hours} />
-            </span>
-          ) : (
-            meta && <span className={`text-xs ${excusedByCalendar ? "text-muted-strong" : "text-muted"}`}>{meta}</span>
-          )}
-          {tag && <span className={`mt-1 self-start ${QUIT_TAG_CLASS}`}>{tag}</span>}
-        </span>
-        {streak && (
-          <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-streak">
-            <Flame aria-hidden="true" size={14} />
-            {streak}
+      )}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className={`text-base font-semibold ${excusedByCalendar ? "text-muted-strong" : finished ? "text-muted" : ""}`}>{row.title}</span>
+        {row.hours ? (
+          // An hours habit shows the person's week: "6½ of 10 hours this week", the bar and the hours left (decision 197).
+          <span className="mt-0.5 flex flex-col gap-1">
+            <span className="text-xs text-muted">{row.hours.doneText}</span>
+            <ProgressBar fraction={row.hours.fraction} label={`${row.title} for ${who}: ${row.hours.doneText}`} />
+            <HoursLeftLine hours={row.hours} />
           </span>
+        ) : (
+          meta && <span className={`text-xs ${excusedByCalendar ? "text-muted-strong" : "text-muted"}`}>{meta}</span>
         )}
-      </TitleArea>
-      {row.hours && row.canLog ? (
-        <HoursLogButton hours={row.hours} title={row.title} forName={who} onClick={onToggle} />
-      ) : skippedMark ? (
-        <LogButton done={false} label={row.title} idle="empty" skipped skippedLabel={row.skippedToday ? SKIPPED_TODAY_LABEL : SKIPPED_THIS_WEEK_LABEL} onClick={onToggle} />
-      ) : row.canLog ? (
-        <LogButton done={row.doneToday} label={row.title} forName={together ? undefined : who} idle="empty" onClick={onToggle} />
-      ) : (
-        <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-            row.doneToday ? "bg-accent text-accent-fg" : "border-2 border-line-strong"
-          }`}
-        >
-          {row.doneToday && <Check aria-hidden="true" size={22} />}
-          <span className="sr-only">{row.doneToday ? `${row.title} is done` : `${row.title} is not done yet`}</span>
+        {tag && <span className={`mt-1 self-start ${QUIT_TAG_CLASS}`}>{tag}</span>}
+      </span>
+      {streak && (
+        <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-streak">
+          <Flame aria-hidden="true" size={14} />
+          {streak}
         </span>
       )}
+    </TitleArea>
+  );
+
+  return (
+    <div className={card ? "flex min-h-[100px] flex-col gap-2 rounded-2xl bg-surface p-3" : "flex min-h-14 items-center gap-2.5"}>
+      {card && (
+        <span aria-hidden="true" className={`flex h-11 w-11 shrink-0 items-center justify-center self-center rounded-xl bg-accent-soft ${finished ? "text-muted-strong" : "text-accent"}`}>
+          <HabitIcon name={row.icon} kind={row.kind} size={22} />
+        </span>
+      )}
+      <div className="flex items-start gap-2.5">
+        {title}
+        {row.hours && row.canLog ? (
+          <HoursLogButton hours={row.hours} title={row.title} forName={who} onClick={onToggle} />
+        ) : skippedMark ? (
+          <LogButton done={false} label={row.title} idle="empty" skipped skippedLabel={row.skippedToday ? SKIPPED_TODAY_LABEL : SKIPPED_THIS_WEEK_LABEL} onClick={onToggle} />
+        ) : row.canLog ? (
+          <LogButton done={row.doneToday} label={row.title} forName={together ? undefined : who} idle="empty" onClick={onToggle} />
+        ) : (
+          <span
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+              row.doneToday ? "bg-accent text-accent-fg" : "border-2 border-line-strong"
+            }`}
+          >
+            {row.doneToday && <Check aria-hidden="true" size={22} />}
+            <span className="sr-only">{row.doneToday ? `${row.title} is done` : `${row.title} is not done yet`}</span>
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -125,17 +142,21 @@ export function HabitFamilyColumn({
   column,
   together,
   showStreaks,
+  keep = () => true,
   onToggle,
 }: {
   column: FamilyColumn;
   /** The Together strip's rows, so the count can include the ones this person is on. */
   together: FamilyRow[];
   showStreaks: boolean;
+  /** The Filter sheet's test: whether a row shows. The count above is always the whole day. */
+  keep?: (row: FamilyRow) => boolean;
   onToggle: (row: FamilyRow) => void;
 }) {
+  const shown = column.rows.filter(keep);
   const sections = [
-    { key: "habit", title: "Habits", rows: column.rows.filter((row) => row.kind === "habit") },
-    { key: "chore", title: "Chores", rows: column.rows.filter((row) => row.kind === "chore") },
+    { key: "habit", title: "Habits", rows: shown.filter((row) => row.kind === "habit") },
+    { key: "chore", title: "Chores", rows: shown.filter((row) => row.kind === "chore") },
   ].filter((section) => section.rows.length > 0);
 
   return (

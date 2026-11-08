@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { HabitFamilyWideColumn } from "./HabitFamilyWideColumn";
 import type { FamilyPage, FamilyRow } from "@/lib/habitsFamily";
+import { fitsEveryone } from "@/lib/habitsFamilyColumns";
 
 /**
- * The iPad layout of Whole family (768px and up): a strip of 330px person
- * columns that swipes sideways. The page's bar (mission 51) holds the Filter
+ * The iPad layout of Whole family (from 45rem of room): when every person fits
+ * at 220px or more (`fitsEveryone`, measured here) the columns share the width
+ * equally; otherwise a strip of 330px person columns that swipes sideways. The page's bar (mission 51) holds the Filter
  * and the Report; this is only the strip. It fills the height left on the
  * screen, so the page itself never scrolls; each column scrolls on its own.
  * `data-fills-width` tells the app chrome to lift its 768px cap and bottom
@@ -23,14 +26,26 @@ export function HabitFamilyWide({
   keep: (row: FamilyRow) => boolean;
   onToggle: (row: FamilyRow) => void;
 }) {
+  const root = useRef<HTMLDivElement>(null);
+  // Until measured (and while hidden, width 0) the 330px swipe strip shows.
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setWidth(el.getBoundingClientRect().width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const fits = fitsEveryone(width, page.columns.length);
+
   return (
-    <div data-fills-width className="hidden min-h-0 flex-1 flex-col md:flex">
+    <div ref={root} data-fills-width className="hidden min-h-0 flex-1 flex-col @min-[45rem]:flex">
       {page.columns.length === 0 ? (
         <p className="text-sm text-muted">No one to show yet.</p>
       ) : (
-        <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3.5 overflow-x-auto pb-2">
+        <div className={`flex min-h-0 flex-1 gap-3 pb-2 ${fits ? "" : "snap-x snap-mandatory overflow-x-auto"}`}>
           {page.columns.map((column) => (
-            <HabitFamilyWideColumn key={column.id} column={column} together={page.together} showStreaks={showStreaks} keep={keep} onToggle={onToggle} />
+            <HabitFamilyWideColumn key={column.id} column={column} together={page.together} showStreaks={showStreaks} fits={fits} keep={keep} onToggle={onToggle} />
           ))}
         </div>
       )}
