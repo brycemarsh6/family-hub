@@ -15,11 +15,6 @@ sentence here reads oddly alone, the rule beside the pointer is what binds.
 
 ## Boundary rules
 
-### Server Actions are public POST endpoints: the sloppy prefix
-
-the proxy drills proved the
-sloppy prefix opens real holes.
-
 ### No Prisma enums: the provider swap
 
 This is what made the
@@ -54,10 +49,37 @@ runner.
 (moved from
 `feedbackTime.ts`'s private `CLOCK` in mission-48)
 
+### validatedPeople: what changed its class
+
+Note what changed
+its class: it was ordinary input validation until mission-16/C3b gave it
+an authorization carve-out, and that same security-shaped edit then had
+to be made by hand in both copies — correctly, only because one builder
+happened to hold both files in one contract.
+
+### Code lines: the JSX-comment counter instance
+
+Instance: one mission file reported `TimelineGrid.tsx` 555/297 and
+`MonthCell.tsx` 350/108 by two different methods, three contracts apart —
+the same file reading 237 or 108 depending on the counter.)
+
+### Code lines: the blank-line counter instance
+
+Instance: two gates reported the same file at **191 and 216 on the same
+commit**, both in good faith, differing by exactly its **25 blank lines** —
+the failure this clause exists to end, arriving in the clause's own terms.)
+
 ### Pointer-gesture machine: one machine, one bug
 
 One machine, one bug, fixed by hand in each
 copy a mission apart: the `validatedPeople` failure, caught late.
+
+### Month grid today test: the DESIGN.md prediction
+
+DESIGN.md predicted this failure in writing one mission earlier — *"a third
+caller would reintroduce this with no compile error"* — and `MonthJumpSheet`
+was that third caller, one mission later, wrong on arrival: **282 of 730
+days** across 2026–27 painted a today marker on a foreign month's cell.)
 
 ### Wide pages: rule 1 and the container proof
 
@@ -89,30 +111,39 @@ comments asserting opposite conventions for the same function.
 
 ### Month and weekday names: the five definitions
 
-It already holds `MONTH_NAMES` (short) and
-`FULL_MONTH_NAMES` (long); both were **unexported**, which is the whole
-reason there are now **five** definitions of how to spell a month.
-`calendarViewConfig.ts` (mission-17), `MonthChips.tsx` (mission-18/C3) and
-`YearView.tsx` (mission-18/C4) each wrote a local `Intl.DateTimeFormat`, and
-**each documented in-file that it did so because the canonical array was
-off-boundary or unimportable** — *a boundary satisfied by copying*, which
-the trip-condition rule below already names as instructing rather than
-restraining. Two mechanisms now coexist for one fact: three copies derive
+Two mechanisms now coexist for one fact: three copies derive
 names from `Intl` at runtime and two are hardcoded English arrays, so a
 locale or ICU-data change moves three and leaves two, **and two screens
 spell the same month differently**.
 
+### Trip conditions: the parseLocalDateString story
+
+This is not
+hypothetical: the retired `parseLocalDateString` trip condition
+(mission-13/Captain) said a third importer would force a move to
+`src/lib/`, and two builders in consecutive contracts complied **by
+copying**, each documenting in-file that it was doing so to stay under
+the threshold. The importer count never reached three; the tree reached
+five copies of a five-line function.
+
 ### Reachability gate: the closed instances
 
-The clause was collected in full before that happened — `renderer` and
-`CalendarHeader.tsx`'s `pinned` moved into `VIEW_CONFIG` in mission-17/C3;
-`showArrows` and `ownsTodayScroll` followed in mission-18/C5, on Captain's
-ruling that the *last* flip is the last chance to collect the debt at all,
-since waving it through retires the mechanism rather than deferring the
-cleanup. `showLocation` and `compact`, listed here through CV3–CV4, were
+`showLocation` and `compact`, listed here through CV3–CV4, were
 resolved differently and correctly: they now derive from the data shape
 (`columnDays.length > 1`) rather than from the view tag, which answers for a
 new member automatically.
+
+### Reachability flip: the BUILT_VIEWS instance
+
+Instance: mission-18/C4 flipped `BUILT_VIEWS.year` and necessarily
+falsified nine test cases across `calendarPaging.test.ts`,
+`calendarViewConfig.test.ts`, `calendarViewVocabulary.test.ts` and
+`useCanonicalCalendarUrl.test.ts` — one of which, `calendarViewVocabulary.
+test.ts`, had written its own obsolescence in-file: *"this assertion is
+meant to fail then, and to be updated then."* The other three carry that
+framing only because C4 added it while updating them; checked against the
+pre-C4 blobs rather than the post-fix text, which reads as though all four
+had foreseen it.)
 
 ## File-size caps
 
@@ -133,6 +164,12 @@ This file's growth is a trend to watch, never a BLOCKER: past
 ("Added …", "Instance: …") into `docs/history/structure-rationale.md`,
 leaving each rule's binding text and a one-line pointer.
 
+### Soft cap: the groceries.ts split
+
+(actions/groceries.ts
+was split three ways at ~624 before hitting the hard cap; current largest
+hand-written files sit in the ~350–420 range.)
+
 ### Test files cap: how the concern-split clause was corrected
 
 (Clause added 2026-09-03: the previous text read as forbidding the
@@ -148,6 +185,13 @@ case the previous wording left silent — which matters because files in this
 repo demonstrably return to the cap: this very file was born at 349 and hit
 376 inside one mission, and `useCalendarPeriod.test.ts` at 344 is next.)
 
+### Adoption clause: the emptied instance list
+
+— emptied 2026-09-02, mission 10's C2, which split
+`calendarDates.test.ts` by concern into `calendarDates.test.ts`
+(day/span math) and `calendarDatesFormat.test.ts` (label formatting) and
+sent `calendarDayDiff`'s test home from `monthLayout.test.ts`.)
+
 ### Dormant exports: periodWindowEdges
 
 `periodWindowEdges` was the
@@ -161,23 +205,16 @@ First instance: `src/lib/habits/`
 
 ## Naming
 
-### Shared test helpers: the withTimeZone story
+### Component file name: the first and last instances
 
-This exists because `withTimeZone` — the helper that pins a timezone so a
-DST case cannot pass vacuously — reached **four** definitions
-(`scheduleWindow.test.ts`, `scheduleWindowState.test.ts`,
-`timelineLayout.test.ts`, `calendarDates.test.ts`), which the
-count-definitions rule above already makes a failure, while the
-constitution offered nowhere to put it.
+First instance:
+`MonthLoadingSkeleton.tsx`, which exported only `MonthGridSkeletonRows`
+after mission-11/C1 deleted the wrapper, was renamed to
+`MonthGridSkeletonRows.tsx` in mission-15/C5. **No live instance remains:** `HubNav.tsx`
+(found 2026-09-06 exporting only `HubBottomNav`) was deleted in mission-23
+when the side drawer replaced the bottom nav.)
 
 ## Danger register (absolute, for every agent)
-
-### Never git add -A: the mission-10 sweep
-
-(Recorded 2026-09-03, mission-10: a documentation commit swept
-seven of a builder's source files plus two throwaway scripts. Removing the
-strays in a follow-up, rather than rewriting a pushed branch, is the right
-remedy.)
 
 ### Migrations additive only: why CT1 needed an exception
 

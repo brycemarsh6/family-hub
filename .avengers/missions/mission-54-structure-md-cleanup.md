@@ -268,7 +268,7 @@ aside):
 - **Also:** one line in `docs/history/README.md` listing the new file, in that file's own format. Re-measure with `wc -l` and put the real count in the housekeeping note's "after" number.
 - **Verification (Stark runs, Fury and the gates re-run):** the C1 checks 1 to 5, against the same baseline `7dc5b28`. The checker's `<` lines must be only the old tag-ending words that gained a bracket; its `>` lines only those same words with a bracket, the header sentence, the housekeeping note and the "Reworded" tag.
 - **Evidence required:** full checker output including every `<` and `>` line, `wc -l` for all three files, pointer-to-heading match, amendment ids compared, a grep showing `withTimeZone`, `FULL_MONTH_NAMES`, `pinned` and "right remedy" present in STRUCTURE.md.
-- **Report:** (pending)
+- **Report:** DONE, re-run by Fury 2026-11-08 and matching: 1,583 lines, archive 241, 29 pointers matching 29 headings, 41 amendment ids kept, headings unchanged, 1,153 words moved. The checker's `<` lines are exactly the six tag endings that gained a bracket. Every MOVE ruling applied. Fury then moved one pointer by hand, out of the middle of the `formatHouseholdClock` sentence to the end of that rule.
 
 ## Gate ledger
 
