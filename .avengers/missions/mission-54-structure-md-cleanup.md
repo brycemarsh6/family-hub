@@ -244,7 +244,7 @@ aside):
   6. `npx tsc --noEmit && npx eslint . && npm test` (docs only, but the Gauntlet is the Gauntlet). Fury runs the UTC test and `npm run build` once before the PR.
 - **Evidence required:** the full checker output; the three `wc -l` numbers; the pointer-to-heading match (or the mismatches); the amendment-id and section-name comparisons; `git diff --stat`; the **Unsure** list (kept in STRUCTURE.md, one line each with why); the **Noticed** list.
 - **Done criteria:** Fury re-runs items 1 to 5 himself before dispatching Vision; the counts match Stark's report.
-- **Report:** (pending)
+- **Report:** DONE, re-run by Fury 2026-11-08 and matching: 1,676 to 1,599 lines (archive 204), 23 passages moved and 23 pointers, each pointer naming a real `###` heading; 986 words moved; the checker's only additions are the header sentence, the housekeeping note and "Reworded 2026-11-08, mission-54, Bryce" in its tag; 41 of 41 amendment ids kept; `##` headings unchanged. `npm test` 1443 pass, eslint clean. `tsc` reports 2 errors, both in the git-ignored `.next/` validator files (a stale route), none in `src/`; the build before the PR regenerates them. Stark kept every passage entangled with a binding word, or inside a parenthetical with a closing bracket on its last word, and listed them as **Unsure** for Captain (the "Instance:" tags among them), which is why the result is above the plan's 1,350 to 1,450 estimate.
 
 ### C2 - CLAUDE.md: replace the one "Open, not scheduled" line and the Current status date
 - **Status:** PENDING (after C1 passes its gates, right before the PR)
@@ -266,6 +266,7 @@ Budget: 3 passes per gate, then stop and surface.
 
 - 2026-11-08 (Fury, Fable): branch `claude/structure-md-cleanup-0b5cc7` is level with `main` `7dc5b28`. Measured STRUCTURE.md: 1,676 lines by `wc -l` (not 1,534; the Read tool shows 1,677 because it counts the last line without a newline differently). Read the whole file; found the stories come to roughly 250 to 300 lines, so the 650 target is not reachable by moving stories alone. Wrote `movecheck.mjs` in the scratchpad and self-tested it (a verbatim move passes; a reworded chunk fails; a pointer that swallows the old tag shows up as a diff, hence the separate-parenthetical pointer form). Plan written; waiting on Bryce's D1 to D3, then the switch to Opus 5.5, then C1.
 - 2026-11-08 (Fury, Fable): Bryce approved the plan and took the recommendation on D1, D2 and D3. Records committed. Next: preflight C1, switch the chat to Opus 5.5, dispatch Stark.
+- 2026-11-08 (Fury, Opus 5.5): Stark finished C1; Fury re-ran its checks and they match. C1 committed. Vision and Captain dispatched together on that commit so their findings batch into one fix round; Captain also rules on Stark's Unsure list.
 
 ## Delivery
 

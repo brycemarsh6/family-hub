@@ -1,0 +1,204 @@
+# STRUCTURE.md rationale: the stories behind the rules
+
+This file holds the provenance stories that used to sit inside
+[STRUCTURE.md](../../STRUCTURE.md): why a rule exists, the instance that
+prompted it, which mission added it and how its wording was corrected. They
+were cut from STRUCTURE.md at commit 7dc5b28 on 2026-11-08 by mission 54
+(the housekeeping pass), moved word for word, never rewritten. Git holds the
+old file at that commit.
+
+How to read a pointer: a rule in STRUCTURE.md that lost text carries
+`(Story: docs/history/structure-rationale.md, "<heading>".)`. Find that
+heading here (one `###` per rule, under the `##` section of the same name
+as in STRUCTURE.md). The rule text itself stays in STRUCTURE.md, and where a
+sentence here reads oddly alone, the rule beside the pointer is what binds.
+
+## Boundary rules
+
+### Server Actions are public POST endpoints: the sloppy prefix
+
+the proxy drills proved the
+sloppy prefix opens real holes.
+
+### No Prisma enums: the provider swap
+
+This is what made the
+SQLite→Postgres move a provider swap, not a rewrite.
+
+### Guard forms: refusal versus emptiness
+
+**Amended 2026-09-05, Bryce-approved**: this clause used
+to say refuse with the empty value, and mission-15/C6 found that costs a
+real bug — a client that cannot tell "you may not have this" from "there
+is nothing here" either retries a refusal forever or treats an
+unconfirmed range as checked territory. The Schedule's endless scroll
+walled off every event beyond the first quiet month for exactly that
+reason.
+
+### Guard forms: the membership form correction
+
+A clause whose binding rule cannot
+describe the case it cites produces unsound verdicts later, which is
+why this was fixed before form (c) was ever used to judge anything.
+
+### Skipping server-only: the live database remark
+
+This is not pedantry — a test file that transitively imports `db.ts`
+puts the **live family database** one future test away from the test
+runner.
+
+## One source of truth
+
+### Household date helpers: where the clock formatter came from
+
+(moved from
+`feedbackTime.ts`'s private `CLOCK` in mission-48)
+
+### Pointer-gesture machine: one machine, one bug
+
+One machine, one bug, fixed by hand in each
+copy a mission apart: the `validatedPeople` failure, caught late.
+
+### Wide pages: rule 1 and the container proof
+
+Current Chrome does not (Vision proved
+`container-type: inline-size` leaves a fixed child on the viewport,
+mission-44), and iPad Safari is checked on the device.
+
+### Wide pages: why the title row may switch
+
+This exists because header buttons may render their
+sheet inline (`PutAwayButton`, `ReviewQueueButton`) and rule 1 forbids a
+container around them.
+
+### Chrome dimension rule: the 73px header story
+
+This rule exists because mission-16's worst defect was exactly
+this shape: the app header is 73px, three files positioned against it,
+and one still said 64 — so "go to today" scrolled the reader to a spot
+hidden behind the header, and the same stale 64 sat in a second file one
+directory away. One fact, three encodings, two agreeing by import and one
+silently stale.
+
+### Local-date string conversions: why the distinction is load-bearing
+
+That distinction is load-bearing:
+`mealPlanDates.ts` already described itself as this job's shared home
+while `TaskForm.tsx` cited the survivors as "the house pattern" — two
+comments asserting opposite conventions for the same function.
+
+### Month and weekday names: the five definitions
+
+It already holds `MONTH_NAMES` (short) and
+`FULL_MONTH_NAMES` (long); both were **unexported**, which is the whole
+reason there are now **five** definitions of how to spell a month.
+`calendarViewConfig.ts` (mission-17), `MonthChips.tsx` (mission-18/C3) and
+`YearView.tsx` (mission-18/C4) each wrote a local `Intl.DateTimeFormat`, and
+**each documented in-file that it did so because the canonical array was
+off-boundary or unimportable** — *a boundary satisfied by copying*, which
+the trip-condition rule below already names as instructing rather than
+restraining. Two mechanisms now coexist for one fact: three copies derive
+names from `Intl` at runtime and two are hardcoded English arrays, so a
+locale or ICU-data change moves three and leaves two, **and two screens
+spell the same month differently**.
+
+### Reachability gate: the closed instances
+
+The clause was collected in full before that happened — `renderer` and
+`CalendarHeader.tsx`'s `pinned` moved into `VIEW_CONFIG` in mission-17/C3;
+`showArrows` and `ownsTodayScroll` followed in mission-18/C5, on Captain's
+ruling that the *last* flip is the last chance to collect the debt at all,
+since waving it through retires the mechanism rather than deferring the
+cleanup. `showLocation` and `compact`, listed here through CV3–CV4, were
+resolved differently and correctly: they now derive from the data shape
+(`columnDays.length > 1`) rather than from the view tag, which answers for a
+new member automatically.
+
+## File-size caps
+
+### Both caps: the two mission-16 measurements
+
+This project deliberately explains itself at
+length, and the caps were quietly taxing that. Two measurements from
+mission-16 are why: `useScheduleWindow.ts` read 431/350 and was carried
+as debt across two missions, but is **172 lines of code** — 60%
+documentation, and Captain withdrew its own split ruling on measuring it.
+And the change that pushed `ScheduleView.tsx` to 95% of the **hard** cap,
+forcing a whole extra contract, added **82 lines of which 8 were code**.
+
+### Housekeeping note
+
+This file's growth is a trend to watch, never a BLOCKER: past
+650 lines it is due a housekeeping pass that moves provenance narratives
+("Added …", "Instance: …") into `docs/history/structure-rationale.md`,
+leaving each rule's binding text and a one-line pointer.
+
+### Test files cap: how the concern-split clause was corrected
+
+(Clause added 2026-09-03: the previous text read as forbidding the
+concern-split this repo had already shipped, and
+`useCalendarPeriod.test.ts` at 344 now needs it — the letter was corrected
+to match the practice before a builder obeyed the letter. **Re-worded
+2026-09-03**, Bryce approving, after mission-12's second live use: Captain
+found the text still demanded *each half* name its concern while both real
+splits had deliberately kept the bare name on one of them. Tying the name
+to the **primary concern** rather than to which file happened to be
+retained turns an accident into a principle, and settles the second-split
+case the previous wording left silent — which matters because files in this
+repo demonstrably return to the cap: this very file was born at 349 and hit
+376 inside one mission, and `useCalendarPeriod.test.ts` at 344 is next.)
+
+### Dormant exports: periodWindowEdges
+
+`periodWindowEdges` was the
+retired navigation wall; deleting it removed both the code and that future
+wrong answer.
+
+### Built-ahead engines: the first instance
+
+First instance: `src/lib/habits/`
+(mission 30; consumers in missions 31, 32 and 34).
+
+## Naming
+
+### Shared test helpers: the withTimeZone story
+
+This exists because `withTimeZone` — the helper that pins a timezone so a
+DST case cannot pass vacuously — reached **four** definitions
+(`scheduleWindow.test.ts`, `scheduleWindowState.test.ts`,
+`timelineLayout.test.ts`, `calendarDates.test.ts`), which the
+count-definitions rule above already makes a failure, while the
+constitution offered nowhere to put it.
+
+## Danger register (absolute, for every agent)
+
+### Never git add -A: the mission-10 sweep
+
+(Recorded 2026-09-03, mission-10: a documentation commit swept
+seven of a builder's source files plus two throwaway scripts. Removing the
+strays in a follow-up, rather than rewriting a pushed branch, is the right
+remedy.)
+
+### Migrations additive only: why CT1 needed an exception
+
+CT1's all-day fix had to rewrite existing `CalendarEvent` rows —
+leaving them would have meant two date conventions live in one column
+with every reader guessing which one it held.
+
+### Secrets: the FAMILY_PASSWORD correction
+
+**(Corrected 2026-09-05: this rule used to open
+with `FAMILY_PASSWORD` differing between dev and prod, which stopped
+being current at the 2026-08-29 accounts cutover — Captain confirmed
+zero references remain in `src/`, `prisma/`, `.github/` or AGENTS.md.
+It survives only as a value in `.env` and Vercel, as a rollback lane
+whose stated ~7-day window has now expired; deleting it from both is
+outstanding cleanup, not a live rule.)**
+
+## Settled decisions — don't relitigate
+
+### Per-person accounts: the retired-architecture correction
+
+**(Corrected 2026-09-05 on Captain's
+finding: this line still described the retired architecture as current,
+inside the section headed "don't relitigate.")**
