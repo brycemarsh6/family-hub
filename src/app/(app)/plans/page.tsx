@@ -39,7 +39,7 @@ export default async function PlansPage({
     const horizon = toVisionHorizon(firstOf(params.years)) ?? DEFAULT_VISION_HORIZON;
     const board = await loadVisionBoard(viewer, firstOf(params.board), horizon, today);
     return (
-      <div className="py-2">
+      <div className="py-2" data-page-width="wide">
         <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">Plans &amp; Goals</h1>
         <PageTabs label="Plans views" tabs={PLANS_TABS} value={view} />
         <VisionBoard
@@ -58,7 +58,7 @@ export default async function PlansPage({
   const recap = view === "week" ? await loadWeekRecap(viewer, today) : null;
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">Plans &amp; Goals</h1>
       <PageTabs label="Plans views" tabs={PLANS_TABS} value={view} />
       {view === "goals" ? (

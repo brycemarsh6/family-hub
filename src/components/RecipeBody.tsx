@@ -15,60 +15,78 @@ export type RecipeBodyData = {
  *
  * The servings/prep/cook/source meta row used to live here too; it moved to
  * RecipeMeta (Recipes v2's C3 redesign) so the private page can place it
- * near the top of the page, ahead of the rating/cookbook/cooked controls,
- * while this stays further down. Both pages render RecipeMeta immediately
- * before this component, so nothing is lost — the split is just about
- * where each page positions the two pieces.
+ * near the top of the page, while this stays further down.
+ *
+ * Each of the three sections is also exported on its own (mission 51, L5).
+ * Rendered whole by the share page and the print page; the private detail
+ * page places the three sections itself. This component just composes them
+ * in the old order, so the share and print pages render exactly what they
+ * did before.
  */
-export function RecipeBody({ recipe }: { recipe: RecipeBodyData }) {
-  const ingredients = recipeLines(recipe.ingredients);
-  const steps = recipeLines(recipe.steps);
+export function RecipeIngredientsSection({ ingredients }: { ingredients: string }) {
+  const lines = recipeLines(ingredients);
+  if (lines.length === 0) return null;
 
   return (
+    <section className="mb-6">
+      <h2 className="mb-2 text-lg font-semibold">Ingredients</h2>
+      <ul className="flex flex-col gap-2">
+        {lines.map((ingredient, index) => (
+          <li
+            key={index}
+            className="rounded-xl border border-line bg-surface px-4 py-3 text-base"
+          >
+            {ingredient}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function RecipeStepsSection({ steps }: { steps: string }) {
+  const lines = recipeLines(steps);
+  if (lines.length === 0) return null;
+
+  return (
+    <section className="mb-6">
+      <h2 className="mb-2 text-lg font-semibold">Instructions</h2>
+      <ol className="flex flex-col gap-2">
+        {lines.map((step, index) => (
+          <li
+            key={index}
+            className="flex gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-base"
+          >
+            <span className="shrink-0 font-semibold text-muted">
+              {index + 1}.
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+export function RecipeNotesSection({ notes }: { notes: string | null }) {
+  if (!notes) return null;
+
+  return (
+    <section className="mb-6">
+      <h2 className="mb-2 text-lg font-semibold">Notes</h2>
+      <p className="whitespace-pre-wrap rounded-xl border border-line bg-surface px-4 py-3 text-base text-muted">
+        {notes}
+      </p>
+    </section>
+  );
+}
+
+export function RecipeBody({ recipe }: { recipe: RecipeBodyData }) {
+  return (
     <>
-      {ingredients.length > 0 && (
-        <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">Ingredients</h2>
-          <ul className="flex flex-col gap-2">
-            {ingredients.map((ingredient, index) => (
-              <li
-                key={index}
-                className="rounded-xl border border-line bg-surface px-4 py-3 text-base"
-              >
-                {ingredient}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {steps.length > 0 && (
-        <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">Instructions</h2>
-          <ol className="flex flex-col gap-2">
-            {steps.map((step, index) => (
-              <li
-                key={index}
-                className="flex gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-base"
-              >
-                <span className="shrink-0 font-semibold text-muted">
-                  {index + 1}.
-                </span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      {recipe.notes && (
-        <section className="mb-6">
-          <h2 className="mb-2 text-lg font-semibold">Notes</h2>
-          <p className="whitespace-pre-wrap rounded-xl border border-line bg-surface px-4 py-3 text-base text-muted">
-            {recipe.notes}
-          </p>
-        </section>
-      )}
+      <RecipeIngredientsSection ingredients={recipe.ingredients} />
+      <RecipeStepsSection steps={recipe.steps} />
+      <RecipeNotesSection notes={recipe.notes} />
     </>
   );
 }

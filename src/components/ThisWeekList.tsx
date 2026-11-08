@@ -128,7 +128,8 @@ export function ThisWeekList({
       {cards.length === 0 ? (
         <EmptyState emoji="🎯" title="Nothing planned yet" hint="Add a goal, then give it a plan" />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="@container">
+        <div className="grid grid-cols-1 items-start gap-3 @min-[48rem]:grid-cols-2">
           {cards.map(({ goal, rows }) => (
             <section key={goal.id} className="overflow-hidden rounded-2xl border border-line bg-surface">
               <Link
@@ -161,6 +162,7 @@ export function ThisWeekList({
               </ul>
             </section>
           ))}
+        </div>
         </div>
       )}
 

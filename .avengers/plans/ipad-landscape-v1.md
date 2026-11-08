@@ -260,6 +260,21 @@ the width rule; L2 and W2 share calendar code, so L2 goes first.
   for later: a "Nothing planned" row for a tapped empty day, as the mock
   draws for Mon 9.
 
+- **244 to 254 (decided by Hill, 2026-11-07, L5; medium calls 248, 249,
+  251):** 244 all six life areas show on the 3-column Goals board, an
+  empty one with "No goals here yet"; 245 the 2-column state is
+  column-major; 246 Goal page panels are equal halves; 247 the vision line
+  stays under both panels; 248 the recipe header keeps the three action
+  circles, not the mock's pills; 249 Cooked today sits in the Rating card,
+  not the header; 250 no cookbook names or tags repeated in the header
+  line; 251 phone order Ingredients, Instructions, Notes, Rating + Cooked,
+  Nutrition, Cookbooks, Tags; 252 the hero hides from `md`; 253 This week
+  stays 2 columns; 254 Ingredients fixed at 25rem. Details in
+  `.avengers/missions/mission-51-ipad-landscape-l5.md`.
+- **L5 note on the + button:** L5 did not touch `FloatingAddButton`; the
+  Goals board inherits L4's bottom-right version when L4 merges. Until
+  then the + floats where the old 768px column was.
+
 ## Open
 
 - None for the plan. Per-step design details go to Bryce with a mock, or

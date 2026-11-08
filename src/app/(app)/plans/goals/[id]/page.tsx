@@ -29,7 +29,7 @@ export default async function GoalPage({ params }: { params: Promise<{ id: strin
     owner === "theirs" ? (goal.owner?.displayName ?? GOAL_OWNERSHIP_LABELS.together) : GOAL_OWNERSHIP_LABELS[owner];
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href="/plans?view=goals" label="Goals" />
 
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{goal.title}</h1>

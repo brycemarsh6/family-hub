@@ -26,6 +26,12 @@ import {
   type PlanItemActionResult,
 } from "@/app/actions/planItems";
 
+// Two panels: The result on the left, The plan on the right. One "@container"
+// wraps only the two panels (they go side by side from 48rem of the page's own
+// width, so 1180, the Sidebar and the 820 iPad all get two panels and a phone
+// gets one, with no extra code). Every sheet
+// sits after it, outside, so each still opens on the viewport.
+//
 // Every way this goal can change on screen before the server has caught up.
 // An optimistic value falls back to the server's own the moment the call
 // finishes, so a refused call snaps back by itself; `run` then says why.
@@ -185,54 +191,61 @@ export function GoalDetail({
         </div>
       )}
 
-      <GoalResultCard goal={goal} onCheckIn={() => setSheet({ kind: "checkIn" })} onDeleteCheckIn={handleDeleteCheckIn} />
+      <div className="@container">
+        <div className="grid grid-cols-1 items-start gap-5 @min-[48rem]:grid-cols-2">
+          <div>
+            <GoalResultCard goal={goal} onCheckIn={() => setSheet({ kind: "checkIn" })} onDeleteCheckIn={handleDeleteCheckIn} />
+          </div>
+          <div>
+            <h2 className="mb-2 mt-0 px-1 text-xs font-semibold uppercase tracking-wide text-muted">The plan</h2>
+            {goal.items.length === 0 ? (
+              <p className="px-1 text-sm text-muted">
+                {goal.canEdit ? "No plan yet. What will you do to get there?" : "No plan yet."}
+              </p>
+            ) : (
+              <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+                {goal.items.map((item) => (
+                  <li key={item.id}>
+                    <PlanItemRow
+                      item={item}
+                      canLog={goal.canLog}
+                      onLog={() => run({ type: "log", itemId: item.id }, () => logHabit(item.id))}
+                      onUndo={() => run({ type: "undo", itemId: item.id }, () => undoHabitLog(item.id))}
+                      onStepToggle={() =>
+                        item.done
+                          ? run({ type: "stepUndone", itemId: item.id }, () => uncompleteStep(item.id))
+                          : run({ type: "stepDone", itemId: item.id, at: new Date() }, () => completeStep(item.id))
+                      }
+                      onLogTime={() => {
+                        setError(null);
+                        setLoggingId(item.id);
+                      }}
+                      actions={itemActions(item)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
 
-      <h2 className="mb-2 mt-5 px-1 text-xs font-semibold uppercase tracking-wide text-muted">The plan</h2>
-      {goal.items.length === 0 ? (
-        <p className="px-1 text-sm text-muted">
-          {goal.canEdit ? "No plan yet. What will you do to get there?" : "No plan yet."}
-        </p>
-      ) : (
-        <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
-          {goal.items.map((item) => (
-            <li key={item.id}>
-              <PlanItemRow
-                item={item}
-                canLog={goal.canLog}
-                onLog={() => run({ type: "log", itemId: item.id }, () => logHabit(item.id))}
-                onUndo={() => run({ type: "undo", itemId: item.id }, () => undoHabitLog(item.id))}
-                onStepToggle={() =>
-                  item.done
-                    ? run({ type: "stepUndone", itemId: item.id }, () => uncompleteStep(item.id))
-                    : run({ type: "stepDone", itemId: item.id, at: new Date() }, () => completeStep(item.id))
-                }
-                onLogTime={() => {
-                  setError(null);
-                  setLoggingId(item.id);
-                }}
-                actions={itemActions(item)}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+            {error && !logging && (
+              <p role="alert" className="mt-3 rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+                {error}
+              </p>
+            )}
 
-      {error && !logging && (
-        <p role="alert" className="mt-3 rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
-          {error}
-        </p>
-      )}
-
-      {goal.canEdit && (
-        <button
-          type="button"
-          onClick={() => setSheet({ kind: "item" })}
-          className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line font-semibold text-accent active:bg-surface-2"
-        >
-          <Plus aria-hidden="true" size={20} />
-          Add to the plan
-        </button>
-      )}
+            {goal.canEdit && (
+              <button
+                type="button"
+                onClick={() => setSheet({ kind: "item" })}
+                className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line font-semibold text-accent active:bg-surface-2"
+              >
+                <Plus aria-hidden="true" size={20} />
+                Add to the plan
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
 
       {logging?.hours?.forUserId && logging.habitId && (
         <HoursLogSheet
