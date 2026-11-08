@@ -1,7 +1,7 @@
 # Mission 51: iPad landscape L3 (Habits & Chores go wide)
 
 **Project:** family-hub (Marshee)
-**Status:** GATING (C1 to C4 done; Vision and Captain pass 1)
+**Status:** FIXING (pass 1: Vision and Captain BLOCKED; F1 dispatched)
 **Started:** 2026-11-07 · **Updated:** 2026-11-07
 **Branch:** `claude/habits-chores-ipad-landscape-f04eee` (cut from `944444b`; `origin/main` with PR #74 merged in at `1bb7645`)
 **Plan:** `.avengers/plans/ipad-landscape-v1.md`, step L3 (section "Habits and Chores"; decisions 215 to 223, 230)
@@ -337,7 +337,71 @@ Status per contract is kept on its heading line.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | BLOCKED | (1) a past day is built from data after it: log and hours reads have no upper bound, habits created after the day show as due (probe: a 2-a-week habit checked Wed and Thu vanishes from Monday; a habit made Friday shows Monday as missed); (2) Report Week rows stretch about 1148px on the now-wide Report (STRUCTURE.md Wide pages rule 3) | Gauntlet green with real codes (1415; UTC 1408 + 7 skipped; LA 1415; record check 0 hard, 7 REVIEW; build 0); boundaries clean; built CSS holds lib-only classes. NOTES: phone family card says `NOTHING_DUE_TODAY` when the Filter emptied it; phone Together strip ignores hidden people; stale "14px" comment; one-frame reflow before the ResizeObserver fires; 752 to 767px screens show the strip without the frame (no real iPad); + bottom right on phones too (Strange to judge); Manage second grid puts both links side by side with no archive; habits archived after a past day are missing from it; habits loading covers New/Edit |
 | 1 | Captain | BLOCKED | (1) `habitsFamilyColumns.ts:2` and its test import `HabitRowView` type from server-only `habitsRead.ts` (STRUCTURE.md dependency direction :815-817): import from `./habitsToday`; (2) `HabitsDayView.tsx:58,63` builds and matches filter options in a component (STRUCTURE.md :915-920 one filter rule) | Strongest NOTE: `habits/loading.tsx:17` copies Mine's grid and drifted (`gap-3.5` vs `gap-3`): `HABITS_DAY_GRID_CLASSES`. NOTES: vocabulary 420/252 (rule clauses contradict, A-51-8); second "Mine" literal; bar words inline in components; two copies of the read-only marker; `lockPage` and people filter untested in tsx; time key order written twice in `habitsFamilyColumns.ts`; stale comments ("14px", header); habits `loading.tsx` also covers New/Edit (narrow pages) and other subpages' shapes; ReportYear indentation; sheet frame copied (old debt). Amendments A-51-1 to A-51-9 drafted |
+
+## Fix batch 1 (after pass 1)
+
+### F1: past days true to the day; filter rules in lib; Week view; notes
+- **Objective:** clear Vision's and Captain's four pass-1 blockers and
+  Captain's strongest note, plus the cheap notes, in one dispatch.
+- **May touch:** `src/lib/habitsRead.ts` and `src/lib/habitsStatsRead.ts`
+  (only the `day` filters of `loadTodayPage` and `loadFamilyPage`'s
+  `habitLog` and `habitTimeEntry` reads), `src/lib/habitsToday.ts`
+  (`buildTodayRows` only) and its test file under `src/lib/` (or
+  `src/lib/habits/`), `src/lib/habitsFamilyColumns.ts` + test,
+  `src/lib/habitsReportScope.ts` + test, `src/lib/gridClasses.ts`,
+  `src/lib/habitVocabulary.ts` (words only), `HabitsDayView.tsx`,
+  `HabitsBar.tsx`, `HabitTodayList.tsx`, `src/app/(app)/habits/loading.tsx`,
+  `ReportWeek.tsx`, `HabitFamilyColumn.tsx`, `HabitFamilyView.tsx`,
+  `HabitFamilyWide.tsx` (comment only), `HabitManager.tsx`.
+- **Must not touch:** other loaders or their callers (the dashboard's
+  `loadDashboardHabits` must behave as today), `prisma/`, `package.json`,
+  constitutions, `.env`.
+- **Spec:**
+  1. (Vision B1) Both loaders bound `habitLog.day` and
+     `habitTimeEntry.day` with `lte: utcMidnightInstant(today)` next to
+     the existing `gte`. `buildTodayRows` skips a habit whose
+     `habitStartDay(createdAt)` is after `today` (`compareDays`), and
+     treats a participant whose `joinedAt` day is after `today` as not on
+     it for that day if that is a one-line change in the same loop (else
+     leave and say so). Tests: a "2 times a week" habit with logs on Wed
+     and Thu is open at 0 of 2 on the Monday before; a habit created
+     Friday has no row on Monday; today's rows unchanged (an existing
+     test still passes).
+  2. (Captain B1) `habitsFamilyColumns.ts` and its test take
+     `HabitRowView` from `./habitsToday`. One private helper holds the
+     time key order and bucket test for both groupers. Fix the "14px"
+     comment and the file header; `FIT_COLUMN_GAP` and
+     `HabitFamilyWide`'s `gap-3` name each other in comments.
+  3. (Captain B2) `habitsReportScope.ts`: `reportFilterOptions(...,
+     { kinds, areas })` (`areas: false` leaves life areas out),
+     `matchesHabitsFilter(row, { time, togetherOnly })`, and
+     `narrowedFilterCount({ time, togetherOnly, hiddenPeople })`
+     (decision 239), all tested. `HabitsDayView` only holds state and
+     calls them; the people filter (columns hidden) moves to a tested
+     pure helper beside them.
+  4. (Captain strongest note) `HABITS_DAY_GRID_CLASSES` in
+     `gridClasses.ts` (the list's `gap-3`), used by `HabitTodayList` and
+     `habits/loading.tsx`.
+  5. (Vision B2) `ReportWeek`: one `@container`; inside each section the
+     item cards are a grid `grid gap-2 @min-[50rem]:grid-cols-2`; the S M
+     T W T F S header shows once per column (a second copy
+     `hidden @min-[50rem]:grid`). Phone unchanged.
+  6. Notes: phone family card says `NOTHING_HERE_TODAY` when the Filter
+     emptied rows it has; the phone Together strip hides a row whose
+     people are all hidden; Manage's second grid keeps both links in the
+     left column with or without Archived (fix the placement to match the
+     comment); the bar's "Previous day", "Today", "Next day", "Manage",
+     "Report" and H1's sr-only "chore streak" move to
+     `habitVocabulary.ts`.
+- **Verification:** gauntlet (tsc, lint, `npm test`, UTC and
+  Los Angeles legs, build); the new tests; `grep -rn "grid-cols-1 gap-3
+  @min-\[40rem\]" src` only in `gridClasses.ts`; `grep -n
+  "startsWith(\"area:\")\|sharing === \"together\"" src/components/HabitsDayView.tsx`
+  empty; `grep -n "habitsRead" src/lib/habitsFamilyColumns*.ts` empty.
+- **Evidence:** outputs of each, `git show --stat HEAD`, line counts.
+- **Done:** Vision, Captain and Strange pass 2.
 
 ## Captain's amendments (drafted pass 1; C5 writes them into STRUCTURE.md)
 
