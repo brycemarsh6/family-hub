@@ -3,8 +3,14 @@ import { describe, it } from "node:test";
 import {
   ACCOUNT_STATUSES,
   calendarsSummary,
+  copyFailedLine,
+  copyRemoveFailedLine,
+  isReadOnlyRole,
+  onGoogleLine,
+  ownerLine,
   linkedByLine,
   linkErrorMessage,
+  EVENT_SYNC_WORDS,
   SYNCED_CALENDARS_EXTRA_WORDS,
   SYNCED_CALENDARS_WORDS,
   SYNC_DIRECTIONS,
@@ -24,14 +30,54 @@ describe("calendar sync vocabulary", () => {
     assert.equal(SYNC_DIRECTION_LABELS.twoWay, "Both ways");
   });
 
-  it("words the outbound hint and the not-on-yet line", () => {
+  it("words the outbound hint and how syncing works", () => {
     assert.equal(
       SYNC_DIRECTION_HINTS.outbound,
       "Events you choose to sync are copied to this calendar.",
     );
     assert.equal(
-      SYNCED_CALENDARS_EXTRA_WORDS.syncNotOn,
-      "Syncing isn't on yet. Your choices are saved for when it starts.",
+      SYNCED_CALENDARS_EXTRA_WORDS.syncHowItWorks,
+      "Marshee copies an event to a calendar when that calendar is set to sync and you tick it on the event. Google events don't come into Marshee yet.",
+    );
+    assert.equal("syncNotOn" in SYNCED_CALENDARS_EXTRA_WORDS, false);
+  });
+
+  it("words the Google warning hint and the read only label", () => {
+    assert.equal(
+      SYNCED_CALENDARS_EXTRA_WORDS.unverifiedHint,
+      'Google may say it hasn\'t verified this app. That\'s expected for a private family app. Tap Advanced, then "Go to themarshandco.com (unsafe)".',
+    );
+    assert.equal(SYNCED_CALENDARS_EXTRA_WORDS.readOnly, "Read only");
+    assert.equal(isReadOnlyRole("reader"), true);
+    assert.equal(isReadOnlyRole("writer"), true);
+    assert.equal(isReadOnlyRole("owner"), false);
+    assert.equal(isReadOnlyRole(null), false);
+  });
+
+  it("pins the event form and detail sheet words", () => {
+    assert.equal(EVENT_SYNC_WORDS.fieldLabel, "Sync to");
+    assert.equal(EVENT_SYNC_WORDS.fieldHint, "Optional");
+    assert.equal(EVENT_SYNC_WORDS.busyLabel, "Show as busy on Google");
+    assert.equal(EVENT_SYNC_WORDS.tryAgain, "Try again");
+    assert.equal(EVENT_SYNC_WORDS.done, "Done");
+    assert.equal(
+      EVENT_SYNC_WORDS.deletedCopyLeft,
+      "Deleted from Marshee. Its copy in Google couldn't be removed, so delete it there.",
+    );
+    assert.equal(
+      EVENT_SYNC_WORDS.reconnect,
+      "Google stopped letting Marshee in. Unlink this account and link it again.",
+    );
+    assert.equal(ownerLine("Emily"), "Emily's");
+    assert.equal(onGoogleLine("Family"), "On Google: Family");
+    assert.equal(copyFailedLine("Family"), "Couldn't copy to Family.");
+    assert.equal(copyRemoveFailedLine("Family"), "Couldn't remove the copy from Family.");
+  });
+
+  it("words the already-linked error", () => {
+    assert.equal(
+      linkErrorMessage("already-linked"),
+      "Someone else in the family already linked this Google account.",
     );
   });
 

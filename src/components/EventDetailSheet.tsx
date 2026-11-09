@@ -2,9 +2,15 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Check, ChevronLeft, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
-import { deleteCalendarEvent } from "@/app/actions/calendar";
+import { deleteCalendarEvent, retryEventSync } from "@/app/actions/calendar";
+import {
+  copyFailedLine,
+  copyRemoveFailedLine,
+  EVENT_SYNC_WORDS,
+  onGoogleLine,
+} from "@/lib/calendarSyncVocabulary";
 import { formatAllDayLabel, formatTimeRange } from "@/lib/calendarDates";
 import { formatDayLabel } from "@/lib/mealPlanDates";
 import type { CalendarEventView } from "@/lib/types";
@@ -45,16 +51,22 @@ export function EventDetailSheet({
   const [view, setView] = useState<"main" | "menu">("main");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // True after a delete whose Google copy could not be removed: the event is
+  // gone from Marshee, so the sheet stays open to say so, and every way out
+  // of it counts as "deleted" so the parent refreshes.
+  const [copyLeft, setCopyLeft] = useState(false);
+  const close = copyLeft ? onDeleted : onClose;
+  const syncs = event.syncs ?? [];
 
   useEffect(() => {
     function handleKeyDown(keyboardEvent: KeyboardEvent) {
       if (keyboardEvent.key !== "Escape") return;
       if (view !== "main") setView("main");
-      else onClose();
+      else close();
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, view]);
+  }, [close, view]);
 
   const badge =
     formatAllDayLabel(event.startAt, event.endAt, event.allDay, day) ??
@@ -69,7 +81,22 @@ export function EventDetailSheet({
         setError(result.error);
         return;
       }
+      if (result.googleCopyLeft) {
+        setCopyLeft(true);
+        return;
+      }
       onDeleted();
+    });
+  }
+
+  // The refresh lets the page reload; the open sheet keeps the event it was
+  // given, so a fixed copy shows when the sheet is next opened.
+  function handleRetry() {
+    setError(null);
+    startTransition(async () => {
+      const result = await retryEventSync(event.id);
+      if (result.error) setError(result.error);
+      router.refresh();
     });
   }
 
@@ -78,7 +105,7 @@ export function EventDetailSheet({
       <button
         type="button"
         aria-label="Close"
-        onClick={onClose}
+        onClick={close}
         className="absolute inset-0 bg-black/40"
       />
 
@@ -115,7 +142,7 @@ export function EventDetailSheet({
             )}
             <button
               type="button"
-              onClick={onClose}
+              onClick={close}
               aria-label="Close"
               className="flex h-11 w-11 items-center justify-center rounded-lg text-xl text-muted transition-colors hover:bg-surface-2"
             >
@@ -124,7 +151,20 @@ export function EventDetailSheet({
           </div>
         </div>
 
-        {view === "menu" ? (
+        {copyLeft ? (
+          <div className="flex flex-col gap-4">
+            <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+              {EVENT_SYNC_WORDS.deletedCopyLeft}
+            </p>
+            <button
+              type="button"
+              onClick={onDeleted}
+              className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80"
+            >
+              {EVENT_SYNC_WORDS.done}
+            </button>
+          </div>
+        ) : view === "menu" ? (
           <div className="flex flex-col gap-4">
             {error && (
               <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
@@ -169,6 +209,44 @@ export function EventDetailSheet({
             )}
             {createdByName && (
               <p className="mb-4 text-xs text-muted">Added by {createdByName}</p>
+            )}
+
+            {syncs.length > 0 && (
+              <div className="mb-4 flex flex-col gap-2">
+                {error && (
+                  <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+                    {error}
+                  </p>
+                )}
+                {syncs.map((sync, index) =>
+                  sync.status === "ok" ? (
+                    <p key={`${sync.calendarName}-${index}`} className="flex items-center gap-2 text-sm text-muted">
+                      <Check aria-hidden="true" size={16} className="shrink-0 text-accent" />
+                      {onGoogleLine(sync.calendarName)}
+                    </p>
+                  ) : (
+                    <div key={`${sync.calendarName}-${index}`} className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+                      <p>
+                        {sync.status === "removing"
+                          ? copyRemoveFailedLine(sync.calendarName)
+                          : sync.failReason === "reconnect"
+                            ? EVENT_SYNC_WORDS.reconnect
+                            : copyFailedLine(sync.calendarName)}
+                      </p>
+                      {canManage && sync.failReason !== "reconnect" && (
+                        <button
+                          type="button"
+                          onClick={handleRetry}
+                          disabled={pending}
+                          className="mt-2 min-h-12 w-full rounded-xl bg-surface px-4 text-base font-semibold text-fg transition-opacity active:opacity-80 disabled:opacity-50"
+                        >
+                          {pending ? EVENT_SYNC_WORDS.tryingAgain : EVENT_SYNC_WORDS.tryAgain}
+                        </button>
+                      )}
+                    </div>
+                  ),
+                )}
+              </div>
             )}
 
             {canManage && (

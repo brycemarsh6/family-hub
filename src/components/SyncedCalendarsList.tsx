@@ -62,6 +62,9 @@ export function SyncedCalendarsList({
       ) : (
         <p className="mt-4 text-sm text-muted">{SYNCED_CALENDARS_WORDS.notConfigured}</p>
       )}
+      {configured && (
+        <p className="mt-2 text-sm text-muted">{SYNCED_CALENDARS_EXTRA_WORDS.unverifiedHint}</p>
+      )}
       {link.error && (
         <p role="alert" className="mt-2 text-sm text-warn">
           {link.error}
@@ -69,7 +72,7 @@ export function SyncedCalendarsList({
       )}
 
       {accounts.length > 0 && (
-        <p className="mt-3 text-sm text-muted">{SYNCED_CALENDARS_EXTRA_WORDS.syncNotOn}</p>
+        <p className="mt-3 text-sm text-muted">{SYNCED_CALENDARS_EXTRA_WORDS.syncHowItWorks}</p>
       )}
       <p className="mt-3 text-sm text-muted">{SYNCED_CALENDARS_EXTRA_WORDS.ownerOnlyNote}</p>
     </div>

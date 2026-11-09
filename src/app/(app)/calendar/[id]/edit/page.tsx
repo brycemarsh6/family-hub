@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
+import { loadSyncTargets } from "@/lib/linkedCalendarsRead";
 import { BackLink } from "@/components/BackLink";
 import { EventForm } from "@/components/EventForm";
 
@@ -37,7 +38,7 @@ export default async function EditEventPage({
 
   const { id } = await params;
 
-  const [event, people] = await Promise.all([
+  const [event, people, syncTargets] = await Promise.all([
     db.calendarEvent.findUnique({
       where: { id },
       select: {
@@ -48,7 +49,11 @@ export default async function EditEventPage({
         startAt: true,
         endAt: true,
         allDay: true,
+        showBusyOnGoogle: true,
         people: { select: { userId: true } },
+        // Which calendars already hold a copy. The form only shows the ones it
+        // still offers; a copy on any other calendar is never touched.
+        syncs: { select: { linkedCalendarId: true } },
       },
     }),
     db.user.findMany({
@@ -58,6 +63,7 @@ export default async function EditEventPage({
       select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
       orderBy: { createdAt: "asc" },
     }),
+    loadSyncTargets(user.userId),
   ]);
 
   if (!event) notFound();
@@ -71,6 +77,7 @@ export default async function EditEventPage({
       </h1>
 
       <EventForm
+        syncTargets={syncTargets}
         people={people.map((person) => ({
           userId: person.id,
           // mission-16/C8 — `displayName` is never touched; the marker is
@@ -99,6 +106,8 @@ export default async function EditEventPage({
           location: event.location ?? "",
           notes: event.notes ?? "",
           userIds: event.people.map((person) => person.userId),
+          syncCalendarIds: event.syncs.map((sync) => sync.linkedCalendarId),
+          showBusyOnGoogle: event.showBusyOnGoogle,
         }}
       />
     </div>

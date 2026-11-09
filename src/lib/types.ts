@@ -5,6 +5,8 @@
 // the JavaScript sent to the phone small, and makes it obvious exactly which
 // fields each screen actually needs.
 
+import type { SyncFailReason } from "./calendarSyncVocabulary";
+
 export type GroceryItemView = {
   id: string;
   name: string;
@@ -120,6 +122,22 @@ export type CalendarEventView = {
    * consumer that doesn't care about it just ignores the field.
    */
   createdByName: string | null;
+  /**
+   * Where Marshee copied this event to in Google (mission 56), for the detail
+   * sheet. Built field by field from a narrow select: no Google ids, etags or
+   * saved Google versions ever reach the browser. Optional so the existing
+   * test fixtures (outside mission 56's boundaries) still type-check; absent
+   * means no copies.
+   */
+  syncs?: CalendarEventSyncView[];
+};
+
+/** One Google copy of an event: which calendar, how it went, and why not. */
+export type CalendarEventSyncView = {
+  calendarName: string;
+  /** "ok", "pending", "failed" or "removing"; anything but "ok" is a problem. */
+  status: string;
+  failReason: SyncFailReason | null;
 };
 
 /**

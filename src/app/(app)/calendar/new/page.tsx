@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
+import { loadSyncTargets } from "@/lib/linkedCalendarsRead";
 import { parseDateParam } from "@/lib/calendarPaging";
 import { BackLink } from "@/components/BackLink";
 import { EventForm } from "@/components/EventForm";
@@ -58,11 +59,14 @@ export default async function NewEventPage({
   // (a soccer practice) even though only a manager can create one. Narrow
   // select, no passwordHash — the same nested-select shape the calendar
   // page's own people join and personInfo.ts's rule both already sanction.
-  const people = await db.user.findMany({
-    where: { deactivatedAt: null },
-    select: { id: true, displayName: true, avatarColor: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const [people, syncTargets] = await Promise.all([
+    db.user.findMany({
+      where: { deactivatedAt: null },
+      select: { id: true, displayName: true, avatarColor: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    loadSyncTargets(user.userId),
+  ]);
 
   return (
     <div className="py-2" data-page-width="wide">
@@ -73,6 +77,7 @@ export default async function NewEventPage({
       </h1>
 
       <EventForm
+        syncTargets={syncTargets}
         people={people.map((person) => ({
           userId: person.id,
           displayName: person.displayName,

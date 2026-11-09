@@ -15,6 +15,8 @@ export type SyncedCalendarRow = {
   colorHex: string | null;
   isPrimary: boolean;
   direction: SyncDirection;
+  /** Google's role for the linked person; null for rows linked before mission 56. */
+  accessRole: string | null;
 };
 
 export type SyncedAccountRow = {
@@ -38,7 +40,7 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
       status: true,
       user: { select: { displayName: true } },
       calendars: {
-        select: { id: true, name: true, colorHex: true, isPrimary: true, direction: true },
+        select: { id: true, name: true, colorHex: true, isPrimary: true, direction: true, accessRole: true },
       },
     },
   });

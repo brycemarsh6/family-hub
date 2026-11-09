@@ -162,7 +162,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
   applies it to dev with `npx prisma migrate deploy` after the host check.
 
 ### C2 - Pure event mapping and the Google events calls
-- **Status:** NOT STARTED
+- **Status:** DONE (Stark; Fury re-ran the tests)
 - **Objective:** Turn a Marshee event into Google's shape in tested pure code
   and add the insert, update, delete calls to `calendarApi.ts`.
 - **Boundaries:** may touch: new `src/lib/google/eventPayload.ts`, new
@@ -194,7 +194,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
 - **Done criteria:** Fury re-runs the tests and reads the payload.
 
 ### C3 - The push, wired into the event actions
-- **Status:** NOT STARTED
+- **Status:** DONE (Stark; Fury read the action diff and re-ran the tests at the gate)
 - **Objective:** Create, update, remove and retry Google copies from
   `actions/calendar.ts`, store `accessRole`, and refuse a Google account
   someone else already linked.
@@ -241,7 +241,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
   `src/components/MonthGrid.tsx` (the empty value only),
   `src/app/(app)/calendar/new/page.tsx`,
   `src/app/(app)/calendar/[id]/edit/page.tsx`, `src/lib/calendarEventQuery.ts`,
-  `src/lib/types.ts`, `src/lib/calendarSyncVocabulary.ts`,
+  `src/lib/types.ts`, `src/lib/linkedCalendarsRead.ts` (add `accessRole` to the page's select only), `src/lib/calendarSyncVocabulary.ts`,
   `src/lib/calendarSyncVocabulary.test.ts`, `src/app/privacy/page.tsx`.
   Must not touch: `src/app/actions/`, `src/lib/google/`, `prisma/`.
 - **Spec:** every word lives in `calendarSyncVocabulary.ts`. **Form:**
@@ -256,8 +256,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
   per copy with a check icon, "On Google: <calendar name>"; a failed or
   pending copy shows a warn box "Couldn't copy to <calendar name>." or, for
   reason `reconnect`, "Google stopped letting Marshee in. Unlink this account
-  and link it again.", and "Try again" (48px+) calling `retryEventSync`, except
-  for `reconnect`. After a delete with `googleCopyLeft`, the sheet stays open
+  and link it again.", and "Try again" (48px+) calling `retryEventSync`, except for `reconnect`. A row with status `removing` (Google refused to remove a copy after an untick) shows "Couldn't remove the copy from <calendar name>." with Try again. Any status other than `ok` is a problem, never a success line. After a delete with `googleCopyLeft`, the sheet stays open
   showing "Deleted from Marshee. Its copy in Google couldn't be removed, so
   delete it there." with a Done button that calls `onDeleted`. **Synced
   calendars page:** under the Link button, "Google may say it hasn't verified
@@ -314,6 +313,10 @@ line. Contracts run one at a time because later ones build on earlier ones.
 
 - 2026-11-09: Bryce linked his Gmail on production after a redeploy (Vercel
   still held a deleted client id). Plan written on Opus 5.5.
+- 2026-11-09: C1 to C3 done and committed. Stark added a `removing` row status
+  in C3 (a failed untick keeps the row so Try again finishes the removal and
+  cannot undo the untick). Fury accepted it. Bryce has not seen the line
+  "Couldn't remove the copy from ..."; it goes to him with the final report.
 - 2026-11-09: Bryce approved the plan, mock and wording, and added the
   per-event busy switch for all-day events. Preflight on C1 reports
   `prisma/schema.prisma` over the hard cap: false alarm, STRUCTURE.md exempts

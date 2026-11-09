@@ -63,10 +63,51 @@ export const SYNCED_CALENDARS_EXTRA_WORDS = {
   renameSave: "Save",
   emptyTitle: "No calendars linked yet",
   emptyHint: "Link a Google account to bring its calendars in.",
-  syncNotOn: "Syncing isn't on yet. Your choices are saved for when it starts.",
+  syncHowItWorks:
+    "Marshee copies an event to a calendar when that calendar is set to sync and you tick it on the event. Google events don't come into Marshee yet.",
+  unverifiedHint:
+    'Google may say it hasn\'t verified this app. That\'s expected for a private family app. Tap Advanced, then "Go to themarshandco.com (unsafe)".',
+  readOnly: "Read only",
   ownerOnlyNote: "You can only change or unlink accounts you linked.",
   directionSheetTitle: "Sync direction",
 } as const;
+
+/** A calendar whose role is known and is not "owner" cannot be written to. Unknown (null) is not read only. */
+export function isReadOnlyRole(accessRole: string | null): boolean {
+  return accessRole !== null && accessRole !== "owner";
+}
+
+// The event form's "Sync to" field and the detail sheet's copy lines (mission 56).
+export const EVENT_SYNC_WORDS = {
+  fieldLabel: "Sync to",
+  fieldHint: "Optional",
+  busyLabel: "Show as busy on Google",
+  tryAgain: "Try again",
+  tryingAgain: "Trying\u2026",
+  done: "Done",
+  deletedCopyLeft: "Deleted from Marshee. Its copy in Google couldn't be removed, so delete it there.",
+  reconnect: "Google stopped letting Marshee in. Unlink this account and link it again.",
+} as const;
+
+/** "Emily's", the muted second line under a calendar that is someone else's. */
+export function ownerLine(ownerName: string): string {
+  return `${ownerName}'s`;
+}
+
+/** The detail sheet's line for a copy that went through. */
+export function onGoogleLine(calendarName: string): string {
+  return `On Google: ${calendarName}`;
+}
+
+/** The detail sheet's warning for a copy that did not go through. */
+export function copyFailedLine(calendarName: string): string {
+  return `Couldn't copy to ${calendarName}.`;
+}
+
+/** The detail sheet's warning for a copy Google would not remove after an untick. */
+export function copyRemoveFailedLine(calendarName: string): string {
+  return `Couldn't remove the copy from ${calendarName}.`;
+}
 
 /** "Linked by Bryce", or "Work, linked by Bryce" when the account has a label. */
 export function linkedByLine(linkerName: string, label: string | null): string {
