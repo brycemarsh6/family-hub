@@ -59,12 +59,14 @@ export async function replaceCalendars(accountId: string, calendars: GoogleCalen
           name: calendar.summary,
           colorHex: calendar.backgroundColor,
           isPrimary: calendar.primary,
+          accessRole: calendar.accessRole,
           direction: "off",
         },
         update: {
           name: calendar.summary,
           colorHex: calendar.backgroundColor,
           isPrimary: calendar.primary,
+          accessRole: calendar.accessRole,
         },
       });
     }

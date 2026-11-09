@@ -36,6 +36,17 @@ export function toAccountStatus(raw: unknown): AccountStatus {
   return ACCOUNT_STATUSES.some((status) => status === raw) ? (raw as AccountStatus) : "ok";
 }
 
+// Why a Google copy did not get through (mission 56). Fixed words only, never
+// a Google response. "reconnect": the person revoked access. "refused":
+// Google said no to this calendar. "network": anything else.
+export const SYNC_FAIL_REASONS = ["network", "reconnect", "refused"] as const;
+export type SyncFailReason = (typeof SYNC_FAIL_REASONS)[number];
+
+/** Anything unknown (or null) is "network", the plainest "try again". */
+export function toSyncFailReason(raw: unknown): SyncFailReason {
+  return SYNC_FAIL_REASONS.some((reason) => reason === raw) ? (raw as SyncFailReason) : "network";
+}
+
 export const SYNCED_CALENDARS_WORDS = {
   pageTitle: "Synced calendars",
   rowLabel: "Synced calendars",
@@ -77,6 +88,7 @@ const LINK_ERROR_MESSAGES: Record<string, string> = {
     "Your work's Google admin has blocked Marshee. Ask them to allow it, or link a personal account.",
   exchange: "Google didn't finish the link. Try again.",
   "no-refresh-token": "Google didn't give Marshee lasting access. Try again.",
+  "already-linked": "Someone else in the family already linked this Google account.",
   calendars:
     "Google didn't share this account's calendars. Unlink it if it shows here, then try again and leave every box ticked.",
   google: "Something went wrong linking Google. Try again.",

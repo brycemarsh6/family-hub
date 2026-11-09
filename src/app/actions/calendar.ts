@@ -26,6 +26,7 @@ import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
 import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
+import { pushEventCopies, removeEventCopies } from "@/lib/calendarEventPush";
 import type { CalendarEventView, CalendarHabitDayView } from "@/lib/types";
 
 function refreshCalendarViews() {
@@ -51,7 +52,19 @@ export type CalendarEventInput = {
   /** Every person this event is for. At least one is required — there is
    * no "nobody's" event. */
   userIds: string[];
+  /** LinkedCalendar ids to copy this event to (mission 56). Undefined leaves
+   * the Google copies alone; the server re-checks every id. */
+  syncCalendarIds?: string[];
+  /** Only read for an all-day event: send it to Google as busy. Undefined on
+   * an update leaves it alone. */
+  showBusyOnGoogle?: boolean;
 };
+
+/** A client list of calendar ids, or undefined when it is absent or not a list of strings. */
+function cleanCalendarIds(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter((id): id is string => typeof id === "string");
+}
 
 /**
  * Re-validates a proposed people list against the database rather than
@@ -158,12 +171,18 @@ export async function createCalendarEvent(
       startAt: input.startAt,
       endAt: input.endAt,
       allDay: input.allDay,
+      showBusyOnGoogle: input.allDay && input.showBusyOnGoogle === true,
       rrule: input.rrule?.trim() || null,
       createdById: user.userId,
       people: { create: uniqueUserIds.map((userId) => ({ userId })) },
     },
     select: { id: true },
   });
+
+  // The Marshee write stands whatever Google says; a failed copy is recorded
+  // on its sync row and shown on the detail sheet, never as an error here.
+  const syncIds = cleanCalendarIds(input.syncCalendarIds);
+  if (syncIds && syncIds.length > 0) await pushEventCopies({ eventId: created.id, requestedIds: syncIds });
 
   refreshCalendarViews();
   return { id: created.id };
@@ -215,6 +234,12 @@ export async function updateCalendarEvent(
           startAt: input.startAt,
           endAt: input.endAt,
           allDay: input.allDay,
+          // Stored only for an all-day event; undefined leaves it alone.
+          ...(input.allDay
+            ? input.showBusyOnGoogle === undefined
+              ? {}
+              : { showBusyOnGoogle: input.showBusyOnGoogle === true }
+            : { showBusyOnGoogle: false }),
           rrule: input.rrule?.trim() || null,
         },
       }),
@@ -229,6 +254,8 @@ export async function updateCalendarEvent(
     throw error;
   }
 
+  await pushEventCopies({ eventId: id, requestedIds: cleanCalendarIds(input.syncCalendarIds) });
+
   refreshCalendarViews();
   return {};
 }
@@ -240,17 +267,40 @@ export async function updateCalendarEvent(
  * is treated as success, the same idempotence deleteTag gets from catching
  * P2025 rather than reading first.
  */
-export async function deleteCalendarEvent(id: string): Promise<CalendarEventActionResult> {
+export async function deleteCalendarEvent(
+  id: string,
+): Promise<CalendarEventActionResult & { googleCopyLeft?: true }> {
   const user = await getVerifiedUser();
   if (!user || !MANAGER_ROLES.includes(user.role)) {
     return { error: "Only parents can do that." };
   }
+
+  // Ask Google first: deleting the event cascades its sync rows away, and
+  // they hold the ids needed to find the copies. The event is deleted either
+  // way, and the person is told if a copy may remain.
+  const { left } = await removeEventCopies(id);
 
   try {
     await db.calendarEvent.delete({ where: { id } });
   } catch (error) {
     if (!isMissingRowError(error)) throw error;
   }
+
+  refreshCalendarViews();
+  return left > 0 ? { googleCopyLeft: true } : {};
+}
+
+/**
+ * "Try again" on the detail sheet: re-push the copies that are not "ok". Same
+ * guard form as the other writes here. Failures stay on the sync rows.
+ */
+export async function retryEventSync(eventId: string): Promise<CalendarEventActionResult> {
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
+
+  await pushEventCopies({ eventId, retryOnly: true });
 
   refreshCalendarViews();
   return {};
