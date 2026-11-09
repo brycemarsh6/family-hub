@@ -1,5 +1,8 @@
 import "server-only";
+import { deleteEvent, getEvent, insertEvent, updateEvent, type FetchLike } from "./calendarEventCalls";
 import type { GoogleCalendarSummary, ListCalendarsResult } from "./types";
+
+type Tail<T extends unknown[]> = T extends [unknown, ...infer Rest] ? Rest : never;
 
 // Thin wrappers over Google Calendar's REST API. No auth logic here: the
 // caller passes a fresh access token. Failures carry a reason only, never a
@@ -50,3 +53,12 @@ export async function listCalendars(accessToken: string): Promise<ListCalendarsR
     return { ok: false, reason: "network" };
   }
 }
+
+// The event calls bound to the real fetch. The logic lives in
+// calendarEventCalls.ts so tests can run it with a fake fetch.
+const realFetch: FetchLike = (url, init) => fetch(url, init);
+
+export const insertGoogleEvent = (...args: Tail<Parameters<typeof insertEvent>>) => insertEvent(realFetch, ...args);
+export const updateGoogleEvent = (...args: Tail<Parameters<typeof updateEvent>>) => updateEvent(realFetch, ...args);
+export const getGoogleEvent = (...args: Tail<Parameters<typeof getEvent>>) => getEvent(realFetch, ...args);
+export const deleteGoogleEvent = (...args: Tail<Parameters<typeof deleteEvent>>) => deleteEvent(realFetch, ...args);

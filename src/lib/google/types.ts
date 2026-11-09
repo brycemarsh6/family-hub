@@ -20,3 +20,23 @@ export type RefreshResult =
 export type ListCalendarsResult =
   | { ok: true; calendars: GoogleCalendarSummary[] }
   | { ok: false; reason: "unauthorized" | "network" };
+
+// Google Calendar event copies. Same rule: a reason word, never a body.
+export type GoogleEventPayload = {
+  summary: string;
+  location?: string;
+  description?: string;
+  start: { dateTime: string; timeZone: string } | { date: string };
+  end: { dateTime: string; timeZone: string } | { date: string };
+  status: "confirmed";
+  transparency: "opaque" | "transparent";
+  extendedProperties: { private: { marsheeEventId: string } };
+};
+
+export type EventCallFailReason = "conflict" | "changed" | "gone" | "unauthorized" | "network";
+
+export type EventCallResult = { ok: true; etag: string | null } | { ok: false; reason: EventCallFailReason };
+
+export type GetEventResult =
+  | { ok: true; etag: string | null; event: Record<string, unknown> }
+  | { ok: false; reason: EventCallFailReason };

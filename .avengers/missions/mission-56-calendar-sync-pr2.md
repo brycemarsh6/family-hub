@@ -135,7 +135,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
 ## Contracts
 
 ### C1 - Sync table, accessRole column and the schema comment fix
-- **Status:** NOT STARTED
+- **Status:** DONE (Stark; Fury matched the SQL to prisma migrate diff and applied it to dev after the host check)
 - **Objective:** Add the `CalendarEventSync` table and
   `LinkedCalendar.accessRole` with a hand-written additive migration, and
   correct the wrong "local midnight" comment on `CalendarEvent`.
@@ -166,8 +166,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
 - **Objective:** Turn a Marshee event into Google's shape in tested pure code
   and add the insert, update, delete calls to `calendarApi.ts`.
 - **Boundaries:** may touch: new `src/lib/google/eventPayload.ts`, new
-  `src/lib/google/eventPayload.test.ts`, new
-  `src/lib/google/calendarApiEvents.test.ts`, `src/lib/google/calendarApi.ts`,
+  `src/lib/google/eventPayload.test.ts`, new `src/lib/google/calendarEventCalls.ts`, new `src/lib/google/calendarEventCalls.test.ts`, `src/lib/google/calendarApi.ts`,
   `src/lib/google/types.ts`. Must not touch: `src/lib/google/oauth.ts`,
   `src/app/`, `src/components/`, `prisma/`.
 - **Spec:** `googleEventIdFor(marsheeId)`: lowercase hex of the id's bytes,
@@ -180,8 +179,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
   `extendedProperties.private.marsheeEventId`; no `attendees`, no
   `recurrence`; `transparency` is `opaque` for a timed event or an all-day
   event with `showBusyOnGoogle`, and `transparent` for any other all-day
-  event. `calendarApi.ts`
-  gains `insertEvent`, `updateEvent` (optional `ifMatch`), `getEvent`,
+  event. A `server-only` file cannot be imported by a test, so the calls live in pure `calendarEventCalls.ts`, taking `fetch` as a parameter, and `calendarApi.ts` only binds them to the global `fetch`. The calls are `insertEvent`, `updateEvent` (optional `ifMatch`), `getEvent`,
   `deleteEvent`, each URL-encoding the calendar id, taking the access token as
   an argument, with a 10 second timeout and `sendUpdates=none`. Results are
   `{ ok: true, etag }` or `{ ok: false, reason }` where reason is one of
@@ -201,17 +199,14 @@ line. Contracts run one at a time because later ones build on earlier ones.
   `actions/calendar.ts`, store `accessRole`, and refuse a Google account
   someone else already linked.
 - **Boundaries:** may touch: new `src/lib/calendarSyncPlan.ts`, new
-  `src/lib/calendarSyncPlan.test.ts`, new `src/lib/calendarEventPush.ts`, new
-  `src/lib/calendarEventPush.test.ts`, `src/lib/linkedCalendarWrites.ts`,
+  `src/lib/calendarSyncPlan.test.ts`, new `src/lib/calendarEventPush.ts`, `src/lib/linkedCalendarWrites.ts`,
   `src/lib/linkedCalendarsRead.ts`, `src/app/actions/calendar.ts`,
   `src/app/api/google/callback/route.ts`, `src/lib/calendarSyncVocabulary.ts`
   (fail reasons and the new error code only). Must not touch:
   `src/components/`, `prisma/`, `src/lib/google/oauth.ts`.
 - **Spec:** implements design decisions 1 to 10. `calendarSyncPlan.ts` is
   pure: from existing rows, requested ids and each calendar's direction it
-  returns what to create, update and remove. `calendarEventPush.ts`
-  (`server-only`, no auth) takes its Google calls and token source as
-  parameters so the tests can fake them. Calendars push in parallel.
+  returns what to create, update and remove, and it holds the push steps (including the 409, 412 and 404 handling) with its Google calls, token source and row writes passed in as parameters, so the tests can fake them (a `server-only` file cannot be imported by a test). `calendarEventPush.ts` (`server-only`, no auth) binds those parameters to the real database and Google calls and has no logic of its own; `calendarSyncPlan.test.ts` carries every case. Calendars push in parallel.
   `loadSyncTargets(viewerId)` returns the calendars a form may list, with
   owner name, whether it is the viewer's, and whether it starts ticked; it
   returns nothing when Google or the key is not configured. Actions:

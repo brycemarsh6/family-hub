@@ -1,0 +1,120 @@
+import type { EventCallFailReason, EventCallResult, GetEventResult, GoogleEventPayload } from "./types";
+
+// Insert, update, get and delete for one Google calendar event. Pure: `fetch`
+// is a parameter so tests never reach Google (calendarApi.ts binds the real
+// one). No auth logic: the caller passes a fresh access token. Failures carry
+// a reason word only, never a response body, and a caught error is dropped,
+// since it could quote the Authorization header.
+
+const EVENTS_BASE = "https://www.googleapis.com/calendar/v3/calendars";
+const TIMEOUT_MS = 10_000;
+
+export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
+
+function eventUrl(calendarId: string, googleEventId?: string): string {
+  const base = `${EVENTS_BASE}/${encodeURIComponent(calendarId)}/events`;
+  const path = googleEventId === undefined ? base : `${base}/${encodeURIComponent(googleEventId)}`;
+  return `${path}?sendUpdates=none`;
+}
+
+function failReason(status: number): EventCallFailReason {
+  if (status === 409) return "conflict";
+  if (status === 412) return "changed";
+  if (status === 404 || status === 410) return "gone";
+  if (status === 401 || status === 403) return "unauthorized";
+  return "network";
+}
+
+async function call(
+  fetchFn: FetchLike,
+  url: string,
+  accessToken: string,
+  method: string,
+  extra: { body?: unknown; ifMatch?: string } = {},
+): Promise<{ ok: true; res: Response } | { ok: false; reason: EventCallFailReason }> {
+  const headers: Record<string, string> = { Authorization: `Bearer ${accessToken}` };
+  if (extra.body !== undefined) headers["Content-Type"] = "application/json";
+  if (extra.ifMatch) headers["If-Match"] = extra.ifMatch;
+  try {
+    const res = await fetchFn(url, {
+      method,
+      headers,
+      body: extra.body === undefined ? undefined : JSON.stringify(extra.body),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) return { ok: false, reason: failReason(res.status) };
+    return { ok: true, res };
+  } catch {
+    // Deliberately drops the error: it could quote the Authorization header.
+    return { ok: false, reason: "network" };
+  }
+}
+
+async function etagOf(res: Response): Promise<string | null> {
+  try {
+    const data = (await res.json()) as { etag?: unknown };
+    return typeof data.etag === "string" ? data.etag : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Create the copy under the id Marshee chose. 409 means it already exists (or was deleted). */
+export async function insertEvent(
+  fetchFn: FetchLike,
+  accessToken: string,
+  calendarId: string,
+  googleEventId: string,
+  payload: GoogleEventPayload,
+): Promise<EventCallResult> {
+  const r = await call(fetchFn, eventUrl(calendarId), accessToken, "POST", {
+    body: { ...payload, id: googleEventId },
+  });
+  if (!r.ok) return r;
+  return { ok: true, etag: await etagOf(r.res) };
+}
+
+/** Replace the copy. With `ifMatch`, 412 means someone changed it in Google first. */
+export async function updateEvent(
+  fetchFn: FetchLike,
+  accessToken: string,
+  calendarId: string,
+  googleEventId: string,
+  payload: GoogleEventPayload,
+  ifMatch?: string,
+): Promise<EventCallResult> {
+  const r = await call(fetchFn, eventUrl(calendarId, googleEventId), accessToken, "PUT", {
+    body: { ...payload, id: googleEventId },
+    ifMatch,
+  });
+  if (!r.ok) return r;
+  return { ok: true, etag: await etagOf(r.res) };
+}
+
+export async function getEvent(
+  fetchFn: FetchLike,
+  accessToken: string,
+  calendarId: string,
+  googleEventId: string,
+): Promise<GetEventResult> {
+  const r = await call(fetchFn, eventUrl(calendarId, googleEventId), accessToken, "GET");
+  if (!r.ok) return r;
+  try {
+    const event = (await r.res.json()) as Record<string, unknown>;
+    return { ok: true, etag: typeof event.etag === "string" ? event.etag : null, event };
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+}
+
+/** Delete the copy. No If-Match; the caller treats `gone` as success. */
+export async function deleteEvent(
+  fetchFn: FetchLike,
+  accessToken: string,
+  calendarId: string,
+  googleEventId: string,
+): Promise<EventCallResult> {
+  const r = await call(fetchFn, eventUrl(calendarId, googleEventId), accessToken, "DELETE");
+  if (!r.ok) return r;
+  return { ok: true, etag: null };
+}
