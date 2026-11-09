@@ -231,7 +231,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
 - **Done criteria:** Fury re-runs the tests and reads the action diff.
 
 ### C4 - The form, the detail sheet and the words
-- **Status:** NOT STARTED
+- **Status:** DONE (Stark; one defect moved to C4b)
 - **Objective:** Show "Sync to" on the event form and sync status on the
   detail sheet, and ship the approved wording on the Synced calendars and
   privacy pages.
@@ -282,6 +282,15 @@ line. Contracts run one at a time because later ones build on earlier ones.
 - **Evidence required:** screenshots of the form with and without targets, and
   of the sheet for ok and failed rows.
 - **Done criteria:** Strange PASS.
+
+### C4b - Try again shows the truth, and fake rows for the design gate
+- **Status:** NOT STARTED
+- **Objective:** After Try again the open sheet shows the new result, and fake sync rows exist so Strange can see every state without Google.
+- **Boundaries:** may touch: `src/app/actions/calendar.ts`, `src/lib/calendarEventQuery.ts`, `src/components/EventDetailSheet.tsx`, `prisma/seed-linked-calendars.ts`, `prisma/clean-linked-calendars.ts`. Must not touch: everything else, and the `User` table may only be read.
+- **Spec:** (1) `retryEventSync` returns the event's fresh sync list on success, built by the same narrow mapping `toCalendarEventView` uses (one shared helper, no second select shape). The sheet holds that list in local state and shows it in place of `event.syncs` once a retry has returned. (2) The seed script also makes four fake events titled `zz-m56 ...`, tomorrow, for the first manager, on that manager's fake "Main calendar": one with an `ok` row, one `failed` with reason `network`, one `failed` with reason `reconnect`, and a fourth with status `removing`. `googleEventId` is a fixed fake. Safe to re-run. The clean script deletes events whose title starts `zz-m56 ` before it deletes the fake accounts, and prints both counts. It never touches an event without that prefix.
+- **Verification:** the five Gauntlet steps. Do not run the seed or clean scripts; Fury runs them.
+- **Evidence required:** the verification output; the diff of both prisma scripts.
+- **Done criteria:** Fury reads the scripts, runs seed for Strange and clean after.
 
 ### C5 - Records
 - **Status:** NOT STARTED
