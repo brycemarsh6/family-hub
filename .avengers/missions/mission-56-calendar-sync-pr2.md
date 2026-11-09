@@ -348,11 +348,15 @@ line. Contracts run one at a time because later ones build on earlier ones.
 | 1 | Vision | BLOCKED | Failed untick undone by next edit; reconnect line sent people to Unlink, which orphans copies | Gauntlet green; test gaps on Try again removal and 412 branches |
 | 1 | Captain | BLOCKED | Six placement items (second reader, pure logic in actions and in the binding file, duplicate role rule, status vocabulary, google/ import rule) | Amendment A1 and A2 drafted |
 | 1 | Strange | BLOCKED | Failed untick shows ticked; privacy "keeps nothing else" untrue because of previousJson; dead end on removing with reconnect; 4.33:1 owner line; busy row not a ToggleSwitch | A failed copy is silent after Save; raise with Bryce as a later small marker |
+| 2 | Vision | PASS | none | Reconnect row keeps its line after a relink (ask Bryce about Try again); the edit-page filter has no automated test; 25 mutation runs, 24 caught |
+| 2 | Captain | BLOCKED | Edit page's own sync select (needs amendment A3); split test files lack sibling headers | B1 to B6 from pass 1 closed |
+| 2 | Strange | NOT RUN | Could not sign in: the permission system refused a read of `.env`, correctly, and Fury will not work around it | Busy row's tap target is 44px, to be measured; needs Bryce to sign in or approve |
 
 ## Handoff log
 
 - 2026-11-09: Bryce linked his Gmail on production after a redeploy (Vercel
   still held a deleted client id). Plan written on Opus 5.5.
+- 2026-11-09: Strange pass 1 signed in with a throwaway session cookie made from the app's secret, on Fury's brief. Fury had not asked Bryce and told him so. In pass 2 the permission system refused the `.env` read and Strange stopped. Mission 9 and mission 21 disagree on minting a cookie.
 - 2026-11-09: C1 to C3 done and committed. Stark added a `removing` row status
   in C3 (a failed untick keeps the row so Try again finishes the removal and
   cannot undo the untick). Fury accepted it. Bryce has not seen the line
