@@ -52,10 +52,10 @@ export function EventSyncToField({
           </label>
         ))}
         {showBusyRow && (
-          <div className="flex min-h-12 items-center justify-between gap-3 rounded-xl bg-surface-2 px-4 py-2">
+          <label className="flex min-h-12 items-center justify-between gap-3 rounded-xl bg-surface-2 px-4 py-2">
             <span className="text-base font-medium text-fg">{EVENT_SYNC_WORDS.busyLabel}</span>
             <ToggleSwitch checked={showBusy} onChange={onBusyChange} label={EVENT_SYNC_WORDS.busyLabel} />
-          </div>
+          </label>
         )}
       </div>
     </div>

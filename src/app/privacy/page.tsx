@@ -42,7 +42,9 @@ export default function PrivacyPage() {
       <h2 className={sectionTitle}>What Marshee keeps</h2>
       <p>
         Marshee stores your email address, Google&apos;s ID for your account,
-        the names and colors of your calendars, and a login token for the link.
+        the permissions you gave Marshee, each calendar&apos;s name, color and
+        Google ID, which calendar is your main one, what Google lets you do on
+        each calendar, and a login token for the link.
         The token is encrypted. For each event copied to Google, Marshee keeps
         Google&apos;s ID and version marker for that copy, so it can update it
         later. If a copy was changed in Google and Marshee replaces it, Marshee

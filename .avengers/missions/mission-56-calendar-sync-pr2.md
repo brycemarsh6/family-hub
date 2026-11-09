@@ -334,6 +334,17 @@ line. Contracts run one at a time because later ones build on earlier ones.
 - **Evidence required:** verification output; the diff.
 - **Done criteria:** Captain pass 3 on items 1, 2 and the A3 text; Strange checks the screens; Vision reads item 4.
 
+### C8 - Gate fixes, pass 3
+- **Status:** DONE (Stark; Fury tapped the row in the running app: words, switch, words flipped it once each)
+- **Objective:** Make the privacy page true (Vision's pass 3 blocker) and make the whole busy row tappable. Bryce approved both on 2026-11-09.
+- **Boundaries:** may touch: `src/app/privacy/page.tsx`, `src/components/EventSyncToField.tsx`. Must not touch: any other file.
+- **Spec:**
+  1. Privacy, "What Marshee keeps": the first sentence becomes, word for word: "Marshee stores your email address, Google's ID for your account, the permissions you gave Marshee, each calendar's name, color and Google ID, which calendar is your main one, what Google lets you do on each calendar, and a login token for the link." Use `&apos;`. Nothing else on the page changes.
+  2. `EventSyncToField.tsx`: the busy row is a `label` like the rows above it, so a tap anywhere on the row flips the switch. It keeps `ToggleSwitch`. One tap flips it exactly once.
+- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`. A dev server is running from this folder, so no `rm -rf .next` and no `npm run build`; Fury runs those after stopping it.
+- **Evidence required:** verification output; the diff.
+- **Done criteria:** Fury taps the row in the running app (words, then switch) and each tap flips it once; Vision pass 3 re-check of the privacy sentence.
+
 ### C5 - Records
 - **Status:** NOT STARTED
 - **Objective:** Bring `STRUCTURE.md`, `CLAUDE.md` and `.avengers/status.md`
@@ -365,9 +376,13 @@ line. Contracts run one at a time because later ones build on earlier ones.
 | 2 | Vision | PASS | none | Reconnect row keeps its line after a relink (ask Bryce about Try again); the edit-page filter has no automated test; 25 mutation runs, 24 caught |
 | 2 | Captain | BLOCKED | Edit page's own sync select (needs amendment A3); split test files lack sibling headers | B1 to B6 from pass 1 closed |
 | 2 | Strange | NOT RUN | Could not sign in: the permission system refused a read of `.env`, correctly, and Fury will not work around it | Busy row's tap target is 44px, to be measured; needs Bryce to sign in or approve |
+| 3 | Captain | PASS | none | `calendarSyncPlanPush.test.ts` is over the soft cap (398 code lines), a further split must name both files for their concern; A3 also carried two small clauses (guards for a missing row or caught error; scoped `prisma/` scripts), accurate per Captain |
+| 3 | Vision | BLOCKED | Privacy "keeps nothing else from Google" still untrue: Google's calendar IDs, main-calendar flag, access role and granted scopes are stored | Try again on reconnect rows correct in 9 fake-Google scenarios; Try again is a no-op on a calendar switched off |
+| 2 | Strange | PASS | none | Same privacy gap raised as a note; busy row's words are not tappable (switch is 56x44, row 60px) |
 
 ## Handoff log
 
+- 2026-11-09: Bryce approved the fuller privacy sentence and the whole-row tap on the busy row. Contract C8 carries both.
 - 2026-11-09: Bryce approved all four after gate pass 2: he signs in himself for Strange (no secret handling, the `.env` block stays), the privacy wording, amendment A3, and Try again on reconnect rows. Contract C7 carries the code; Fury filed A3 in `STRUCTURE.md`.
 - 2026-11-09: Bryce linked his Gmail on production after a redeploy (Vercel
   still held a deleted client id). Plan written on Opus 5.5.
