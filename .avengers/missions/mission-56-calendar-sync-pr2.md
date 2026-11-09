@@ -299,7 +299,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
 - **Done criteria:** Fury reads the scripts, runs seed for Strange and clean after.
 
 ### C6 - Gate fixes, pass 1
-- **Status:** NOT STARTED
+- **Status:** DONE (Stark; preflight's two hard failures were false alarms: the exempt schema file and a backticked non-path)
 - **Objective:** Close every blocker from Vision, Captain and Strange pass 1, plus the cheap notes.
 - **Boundaries:** may touch: `prisma/schema.prisma` (the comment above `CalendarEventSync.status` only), `src/lib/calendarSyncPlan.ts`, `src/lib/calendarSyncPlan.test.ts`, new `src/lib/calendarSyncPlanPush.test.ts`, `src/lib/calendarEventPush.ts`, `src/lib/linkedCalendarsRead.ts`, `src/lib/calendarSyncVocabulary.ts`, `src/lib/calendarSyncVocabulary.test.ts`, `src/lib/calendarEventQuery.ts`, `src/lib/types.ts`, `src/lib/google/eventPayload.ts`, `src/lib/google/eventPayload.test.ts`, `src/lib/google/calendarApi.ts`, `src/lib/google/calendarEventCalls.ts`, `src/app/actions/calendar.ts`, `src/app/(app)/calendar/[id]/edit/page.tsx`, `src/components/EventDetailSheet.tsx`, `src/components/EventSyncToField.tsx`, `src/components/MonthGrid.tsx`, `src/lib/calendarWidget.test.ts`, `src/lib/scheduleWindowState.test.ts`, `src/lib/scheduleWindowStateRefresh.test.ts`, any other test fixture `tsc` names for `syncs`. Must not touch: `src/app/privacy/page.tsx`, `prisma/migrations/`, `STRUCTURE.md`.
 - **Spec:**
