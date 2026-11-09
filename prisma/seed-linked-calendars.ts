@@ -5,12 +5,15 @@
 // Run with:  npm run db:seed-linked-calendars
 // Clean up with:  npm run db:clean-linked-calendars
 //
-// IMPORTANT: this only writes LinkedAccount and LinkedCalendar rows. It reads
-// the User table for ids and never writes to it (AGENTS.md danger register).
+// IMPORTANT: this only writes LinkedAccount and LinkedCalendar rows, plus
+// four fake events (mission 56) with their sync rows. It reads the User table
+// for ids and never writes to it (AGENTS.md danger register).
 // Every account has a googleSubject starting "zz-m55-" so the clean script
 // can remove exactly these rows. The stored token is a fixed fake string that
 // cannot be decrypted, so nothing here can ever reach Google. Safe to re-run:
-// each account is upserted on its (userId, googleSubject) pair.
+// each account is upserted on its (userId, googleSubject) pair, and each fake
+// event is only created when no event with its title exists yet. The fake
+// events are titled "zz-m56 ..." so the clean script can find exactly them.
 //
 // Uses relative imports because tsx runs this outside of Next.js.
 
@@ -23,6 +26,17 @@ const db = new PrismaClient({ adapter });
 
 const SUBJECT_PREFIX = "zz-m55-";
 const FAKE_TOKEN = "zz-m55-not-a-real-token";
+
+const EVENT_PREFIX = "zz-m56 ";
+const FAKE_GOOGLE_EVENT_ID = "zz-m56-not-a-real-google-event";
+
+// One fake event per sync state the detail sheet can show.
+const FAKE_EVENTS = [
+  { title: `${EVENT_PREFIX}copied ok`, status: "ok", failReason: null },
+  { title: `${EVENT_PREFIX}failed network`, status: "failed", failReason: "network" },
+  { title: `${EVENT_PREFIX}failed reconnect`, status: "failed", failReason: "reconnect" },
+  { title: `${EVENT_PREFIX}removing`, status: "removing", failReason: null },
+];
 
 const CALENDARS = [
   { googleCalendarId: "primary", name: "Main calendar", isPrimary: true, direction: "twoWay" },
@@ -47,6 +61,7 @@ async function main() {
     process.exit(1);
   }
 
+  let firstMainCalendarId: string | null = null;
   for (const manager of managers) {
     const subject = `${SUBJECT_PREFIX}${manager.role}`;
     const account = await db.linkedAccount.upsert({
@@ -63,17 +78,54 @@ async function main() {
       select: { id: true },
     });
     for (const calendar of CALENDARS) {
-      await db.linkedCalendar.upsert({
+      const row = await db.linkedCalendar.upsert({
         where: {
           accountId_googleCalendarId: { accountId: account.id, googleCalendarId: calendar.googleCalendarId },
         },
         update: {},
         create: { accountId: account.id, ...calendar },
+        select: { id: true },
       });
+      if (manager === managers[0] && calendar.isPrimary) firstMainCalendarId = row.id;
     }
   }
 
-  console.log(`Seeded ${managers.length} fake linked account(s), prefix ${SUBJECT_PREFIX}.`);
+  // Fake events tomorrow, for the first manager, on their fake Main calendar.
+  let eventsMade = 0;
+  if (firstMainCalendarId) {
+    const start = new Date();
+    start.setDate(start.getDate() + 1);
+    start.setHours(10, 0, 0, 0);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    for (const fake of FAKE_EVENTS) {
+      const existing = await db.calendarEvent.findFirst({
+        where: { title: fake.title },
+        select: { id: true },
+      });
+      if (existing) continue;
+      await db.calendarEvent.create({
+        data: {
+          title: fake.title,
+          startAt: start,
+          endAt: end,
+          createdById: managers[0].id,
+          syncs: {
+            create: {
+              linkedCalendarId: firstMainCalendarId,
+              googleEventId: FAKE_GOOGLE_EVENT_ID,
+              status: fake.status,
+              failReason: fake.failReason,
+            },
+          },
+        },
+      });
+      eventsMade += 1;
+    }
+  }
+
+  console.log(
+    `Seeded ${managers.length} fake linked account(s), prefix ${SUBJECT_PREFIX}; ${eventsMade} new fake event(s), prefix "${EVENT_PREFIX}".`,
+  );
 }
 
 main()

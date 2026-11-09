@@ -22,12 +22,12 @@ import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { isMissingRowError } from "@/lib/prismaErrors";
-import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
+import { getCalendarEventsInRange, getEventSyncViews } from "@/lib/calendarEventQuery";
 import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
 import { pushEventCopies, removeEventCopies } from "@/lib/calendarEventPush";
-import type { CalendarEventView, CalendarHabitDayView } from "@/lib/types";
+import type { CalendarEventSyncView, CalendarEventView, CalendarHabitDayView } from "@/lib/types";
 
 function refreshCalendarViews() {
   revalidatePath("/calendar");
@@ -294,7 +294,9 @@ export async function deleteCalendarEvent(
  * "Try again" on the detail sheet: re-push the copies that are not "ok". Same
  * guard form as the other writes here. Failures stay on the sync rows.
  */
-export async function retryEventSync(eventId: string): Promise<CalendarEventActionResult> {
+export async function retryEventSync(
+  eventId: string,
+): Promise<CalendarEventActionResult & { syncs?: CalendarEventSyncView[] }> {
   const user = await getVerifiedUser();
   if (!user || !MANAGER_ROLES.includes(user.role)) {
     return { error: "Only parents can do that." };
@@ -303,7 +305,8 @@ export async function retryEventSync(eventId: string): Promise<CalendarEventActi
   await pushEventCopies({ eventId, retryOnly: true });
 
   refreshCalendarViews();
-  return {};
+  // The fresh list lets the open sheet show the new result.
+  return { syncs: await getEventSyncViews(eventId) };
 }
 
 /**

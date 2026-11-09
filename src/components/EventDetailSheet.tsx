@@ -13,7 +13,7 @@ import {
 } from "@/lib/calendarSyncVocabulary";
 import { formatAllDayLabel, formatTimeRange } from "@/lib/calendarDates";
 import { formatDayLabel } from "@/lib/mealPlanDates";
-import type { CalendarEventView } from "@/lib/types";
+import type { CalendarEventSyncView, CalendarEventView } from "@/lib/types";
 
 /**
  * The house bottom sheet for one event, opened by tapping its card. One
@@ -56,7 +56,10 @@ export function EventDetailSheet({
   // of it counts as "deleted" so the parent refreshes.
   const [copyLeft, setCopyLeft] = useState(false);
   const close = copyLeft ? onDeleted : onClose;
-  const syncs = event.syncs ?? [];
+  // The list a Try again returned, tagged with the event it belongs to so it
+  // can never show on another event.
+  const [retried, setRetried] = useState<{ eventId: string; syncs: CalendarEventSyncView[] } | null>(null);
+  const syncs = (retried?.eventId === event.id ? retried.syncs : event.syncs) ?? [];
 
   useEffect(() => {
     function handleKeyDown(keyboardEvent: KeyboardEvent) {
@@ -89,13 +92,14 @@ export function EventDetailSheet({
     });
   }
 
-  // The refresh lets the page reload; the open sheet keeps the event it was
-  // given, so a fixed copy shows when the sheet is next opened.
+  // The action hands back the fresh list so the open sheet shows the result;
+  // the refresh reloads the page's own data.
   function handleRetry() {
     setError(null);
     startTransition(async () => {
       const result = await retryEventSync(event.id);
       if (result.error) setError(result.error);
+      if (result.syncs) setRetried({ eventId: event.id, syncs: result.syncs });
       router.refresh();
     });
   }
