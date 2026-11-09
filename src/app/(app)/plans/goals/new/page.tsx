@@ -12,7 +12,7 @@ export default async function NewGoalPage() {
   if (user.isDevice) redirect("/plans");
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href="/plans?view=goals" label="Goals" />
 
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">New goal</h1>

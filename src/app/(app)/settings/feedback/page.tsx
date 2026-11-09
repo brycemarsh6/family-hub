@@ -28,7 +28,7 @@ export default async function FeedbackPage({
   const items = await loadFeedbackList(status);
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href="/settings" label="Settings" />
 
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Feedback</h1>
@@ -36,7 +36,8 @@ export default async function FeedbackPage({
 
       <PageTabs label="Feedback views" tabs={TABS} value={status} />
 
-      <FeedbackList items={items} status={status} now={new Date()} />
+      {/* The tabs are links that keep this component mounted; the key stops an open report carrying over to the other tab (decision 280). */}
+      <FeedbackList key={status} items={items} status={status} now={new Date()} />
     </div>
   );
 }

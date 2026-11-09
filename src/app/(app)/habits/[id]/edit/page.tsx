@@ -26,7 +26,7 @@ export default async function EditHabitPage({ params }: { params: Promise<{ id: 
   const people = await loadHabitRoster();
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href="/habits/manage" label="Manage" />
       <Link
         href={`/habits/${habit.id}`}

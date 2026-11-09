@@ -20,7 +20,8 @@ import type { NavMode } from "./navMode";
  * padding, `CalendarHeader.tsx`'s lift onto this row and pinned Schedule
  * bar, `ScheduleView.tsx`'s month-title boundary, `TimelineGrid.tsx`'s
  * scroller seed (via `CalendarViews.tsx`), `RecipeList.tsx`'s sticky
- * letters, and `calendar/loading.tsx`'s skeleton.
+ * letters, `calendar/loading.tsx`'s skeleton, `FeedbackList.tsx`'s sticky
+ * panel, and `MealPlanList.tsx`'s `scrollMarginTop`.
  */
 export const HAMBURGER_ROW_HEIGHT_PX = 56;
 

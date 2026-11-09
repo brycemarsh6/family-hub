@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { ChevronRight, Menu } from "lucide-react";
 import { RadioSheet } from "@/components/RadioSheet";
 import { saveNavMode } from "@/app/actions/preferences";
@@ -54,15 +55,18 @@ export function NavModeSetting({ navMode }: { navMode: NavMode }) {
         </p>
       )}
 
-      {open && (
+      {/* Portaled to the body: Settings' column container would otherwise trap the fixed sheet (STRUCTURE.md Wide pages rule 1). */}
+      {open &&
+        createPortal(
         <RadioSheet
           title="Menu style"
           options={NAV_MODES.map((mode) => ({ value: mode, label: NAV_MODE_LABELS[mode] }))}
           selected={optimisticMode}
           onSelect={choose}
           onClose={() => setOpen(false)}
-        />
-      )}
+        />,
+          document.body,
+        )}
     </div>
   );
 }

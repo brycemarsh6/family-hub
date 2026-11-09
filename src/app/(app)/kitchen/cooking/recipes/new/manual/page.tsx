@@ -13,7 +13,7 @@ export default async function ManualNewRecipePage({
     : "/kitchen/cooking/recipes/new";
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href={backHref} label="Add recipe" />
 
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">

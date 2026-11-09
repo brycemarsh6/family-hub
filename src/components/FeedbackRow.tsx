@@ -10,6 +10,7 @@ export function FeedbackRow({
   item,
   now,
   done,
+  selected,
   onOpen,
   onToggleDone,
   onDelete,
@@ -18,12 +19,17 @@ export function FeedbackRow({
   now: Date;
   /** True on the Done tab: the first swipe action then reads "Mark new". */
   done: boolean;
+  /** The report open in the wide panel. */
+  selected?: boolean;
   onOpen: () => void;
   onToggleDone: () => void;
   onDelete: () => void;
 }) {
   return (
-    <li className="rounded-xl border border-line bg-surface">
+    <li
+      aria-current={selected ? "true" : undefined}
+      className={`rounded-xl border bg-surface ${selected ? "border-accent" : "border-line"}`}
+    >
       {/* Mark done / Mark new first, Delete last (furthest from the row). */}
       <SwipeActions
         actions={[

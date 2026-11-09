@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { RecipeForm, type RecipeFormDefaults } from "./RecipeForm";
+import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 import { createRecipe, importRecipeFromLink } from "@/app/actions/recipes";
 
 /**
@@ -11,7 +12,14 @@ import { createRecipe, importRecipeFromLink } from "@/app/actions/recipes";
  * The flakiest import path, so failures always name a specific next step
  * rather than dead-ending.
  */
-export function LinkImportForm({ cookbookId }: { cookbookId?: string }) {
+export function LinkImportForm({
+  cookbookId,
+  header,
+}: {
+  cookbookId?: string;
+  /** The page's BackLink, title and intro, rendered inside the one outer wrapper. */
+  header: React.ReactNode;
+}) {
   const [url, setUrl] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -44,55 +52,58 @@ export function LinkImportForm({ cookbookId }: { cookbookId?: string }) {
     });
   }
 
-  if (extracted) {
-    return (
-      <div>
-        <p className="mb-4 rounded-xl bg-accent-soft px-4 py-3 text-base font-medium text-accent">
-          Extracted — review and edit before saving.
-        </p>
-        <RecipeForm
-          key={version}
-          action={createRecipe}
-          submitLabel="Save recipe"
-          defaultValues={extracted}
-          cookbookId={cookbookId}
-        />
-      </div>
-    );
-  }
-
+  // One outer wrapper: the header sits above both steps, centered at 40rem
+  // while typing the input, and the cap lifts when the full recipe form appears.
   return (
-    <div className="flex flex-col gap-4">
-      <label className="block text-sm text-muted">
-        <span className="mb-1 block">Recipe link</span>
-        <input
-          type="url"
-          inputMode="url"
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
-          placeholder="https://…"
-          autoComplete="off"
-          className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base outline-none placeholder:text-muted"
-        />
-      </label>
+    <div className={extracted ? undefined : NARROW_PAGE_CLASSES}>
+      {header}
+      {extracted ? (
+        <div>
+          <p className="mb-4 rounded-xl bg-accent-soft px-4 py-3 text-base font-medium text-accent">
+            Extracted — review and edit before saving.
+          </p>
+          <RecipeForm
+            key={version}
+            action={createRecipe}
+            submitLabel="Save recipe"
+            defaultValues={extracted}
+            cookbookId={cookbookId}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <label className="block text-sm text-muted">
+            <span className="mb-1 block">Recipe link</span>
+            <input
+              type="url"
+              inputMode="url"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              placeholder="https://…"
+              autoComplete="off"
+              className="min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base outline-none placeholder:text-muted"
+            />
+          </label>
 
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
-        >
-          {error}
-        </p>
+          {error && (
+            <p
+              role="alert"
+              className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn"
+            >
+              {error}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleImport}
+            disabled={isPending || !url.trim()}
+            className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
+          >
+            {isPending ? "Fetching…" : "Import recipe"}
+          </button>
+        </div>
       )}
-
-      <button
-        type="button"
-        onClick={handleImport}
-        disabled={isPending || !url.trim()}
-        className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
-      >
-        {isPending ? "Fetching…" : "Import recipe"}
-      </button>
     </div>
   );
 }
