@@ -13,9 +13,9 @@ section and rule names; a rule here keeps a one-line pointer.
 |---|---|---|
 | `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout for one page | Pages needing a genuinely chrome-free root layout; those go in `src/app/share/` |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
-| `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`), plus **session-gated GET routes for bytes a page cannot inline** (an `<img src>`), where a Server Action cannot serve the response: `/api/feedback/[id]/screenshot` is the one instance (mission-38). Such a route calls `getVerifiedUser()` itself, answers 404 to anyone not allowed (the same answer as an unknown id), reads through the domain's one reader, sends `Cache-Control: private, no-store`, never writes, and is never added to proxy.ts's public lists. A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
+| `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`), plus **session-gated GET routes for bytes a page cannot inline** (an `<img src>`), where a Server Action cannot serve the response: `/api/feedback/[id]/screenshot` is the one instance (mission-38). Such a route calls `getVerifiedUser()` itself, answers 404 to anyone not allowed (the same answer as an unknown id), reads through the domain's one reader, sends `Cache-Control: private, no-store`, never writes, and is never added to proxy.ts's public lists. Also **browser return routes**, where a third party sends a person's browser back and a Server Action cannot receive the GET: `/api/google/callback` is the one instance (mission-55; rules under "Browser return routes" below). A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
 | `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** (`logout` reads the session only to send a device login back to `/settings`; the tablet signs out through `logoutWithAdminPassword`, which is guard form (a) and not part of the exception) — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action; **type re-exports** (mission-53, A-L3-10: a component takes a type from its lib home, never through a `"use server"` file, because Turbopack dev threw `HabitInput is not defined` on `export type { HabitInput };`. A new one is a BLOCKER; existing debt to fix on the next touch: `groceriesRecipes.ts:35`, `groceriesPutAway.ts:28-33`) |
-| `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice`, `/api/alexa`, `/api/cron/briefing` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
+| `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/api/voice`, `/api/alexa`, `/api/cron/briefing`, `/api/google/callback` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
@@ -61,6 +61,24 @@ section and rule names; a rule here keeps a one-line pointer.
   `write…` or `…Row(s)` (`setPantryQuantity as writePantryQuantity`,
   `reorderHabits as reorderHabitRows`, `markNudgeSeen as markNudgeSeenRow`
   are the instances).
+- **Browser return routes (mission-55).** A provider that sends a person's
+  browser back to Marshee (an OAuth redirect) arrives as a plain GET, so it
+  needs a Route Handler at `src/app/api/<provider>/callback/route.ts`.
+  `/api/google/callback` is the one instance; another needs its own
+  amendment. It is an exact entry in `PUBLIC_ROUTES` only so proxy.ts does
+  not bounce the return to `/login`; the route is its own gate. It is GET
+  only. Its first lib call is the session guard (`getVerifiedUser()` plus
+  `MANAGER_ROLES` or a named role), and a one-time state value from an
+  `httpOnly` cookie is then checked in constant time against the query. The
+  cookie is cleared before either check, so a state value works once. No
+  provider call and no write happens until both checks pass. Provider calls
+  and every write are lib calls, with this route as their guarded caller.
+  Every outcome is a redirect to one named page carrying only a fixed code;
+  a provider's error code is copied only if it matches a strict shape. No
+  token, code or provider response is logged or put in a URL. It never calls
+  `revalidatePath`: every `(app)` page is dynamic and the return is a full
+  page load. Its redirect URI comes only from `src/lib/google/redirectUri.ts`.
+  (Added 2026-11-08, mission-55, on Captain's ruling; Bryce approved.) (Story: docs/history/structure-rationale.md, "Browser return routes: the Google instance".)
 - **Dependency direction:** `lib` imports from nothing above it (never `app/`
   or `components/`); `components` may import `lib` and `actions`; `actions`
   import `lib` and the db. No cycles, ever.
@@ -1357,6 +1375,34 @@ Adding a second definition of any of these is a BLOCKER:
   under test ("a name this build does not know is normalised away") outlives
   the vocabulary's own membership.
   (Added 2026-09-06, mission-18, on Captain's ruling; Bryce approved.) (Story: docs/history/structure-rationale.md, "Reachability flip: the BUILT_VIEWS instance".)
+- **Google calendar link (mission-55).** `src/lib/calendarSyncVocabulary.ts`
+  (no imports, beside `constants.ts` under the `navMode.ts` precedent) is the
+  only home of `SYNC_DIRECTIONS`, `ACCOUNT_STATUSES`, their labels, hints and
+  repairers, the Synced calendars page's words and `linkErrorMessage`, the
+  only wording for a callback `?error=` code. `src/lib/tokenCryptoCore.ts` is
+  pure, with the key passed in, and `src/lib/tokenCrypto.ts` (`server-only`)
+  is the only reader of `TOKEN_ENCRYPTION_KEY`; nothing else encrypts or
+  decrypts a stored Google token. In `src/lib/google/`, `oauth.ts`
+  (`server-only`, no auth) is the only reader of `GOOGLE_CLIENT_ID` and
+  `GOOGLE_CLIENT_SECRET` and the only caller of Google's auth endpoints;
+  `calendarApi.ts` (`server-only`, no auth) is the only caller of the
+  Calendar API; `oauthState.ts`, `idToken.ts`, `redirectUri.ts` and
+  `scopes.ts` are pure. `redirectUri.ts` is the only builder of the redirect
+  URI, because Google compares it letter by letter and the start and return
+  must match; a second copy is a BLOCKER. `src/lib/linkedCalendarWrites.ts`
+  (`server-only`, no auth, no `revalidatePath`) is the domain write module
+  and the only writer of `LinkedAccount` and `LinkedCalendar`; its callers
+  are `actions/linkedCalendars.ts` and the callback route, each carrying its
+  own gate. `src/lib/linkedCalendarsRead.ts` (`server-only`, no auth) is the
+  only reader of both tables for pages, actions and routes;
+  `loadSyncedCalendarsPage` never selects `encryptedRefreshToken`, and
+  `loadRefreshToken` is the one read that decrypts. A second reader or writer
+  is a BLOCKER (scoped `prisma/` scripts are outside this rule).
+  **Dependency direction:** `src/lib/google/` imports only its own files and
+  node built-ins, never `db`, `tokenCrypto.ts` or a `*Read` or `*Writes`
+  module; a token reaches it as an argument. `src/lib/google/*.test.ts` is in
+  `package.json`'s test script and both CI timezone steps.
+  (Added 2026-11-08, mission-55, on Captain's ruling; Bryce approved.)
 
 ## File-size caps
 

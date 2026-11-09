@@ -5,6 +5,7 @@ import {
   calendarsSummary,
   linkedByLine,
   linkErrorMessage,
+  SYNCED_CALENDARS_EXTRA_WORDS,
   SYNCED_CALENDARS_WORDS,
   SYNC_DIRECTIONS,
   SYNC_DIRECTION_HINTS,
@@ -21,6 +22,17 @@ describe("calendar sync vocabulary", () => {
     assert.equal(SYNC_DIRECTION_LABELS.off, "Not synced");
     assert.equal(SYNC_DIRECTION_LABELS.outbound, "Marshee to Google only");
     assert.equal(SYNC_DIRECTION_LABELS.twoWay, "Both ways");
+  });
+
+  it("words the outbound hint and the not-on-yet line", () => {
+    assert.equal(
+      SYNC_DIRECTION_HINTS.outbound,
+      "Events you choose to sync are copied to this calendar.",
+    );
+    assert.equal(
+      SYNCED_CALENDARS_EXTRA_WORDS.syncNotOn,
+      "Syncing isn't on yet. Your choices are saved for when it starts.",
+    );
   });
 
   it("has a hint for every direction", () => {
@@ -101,7 +113,8 @@ describe("calendar sync vocabulary", () => {
   it("words the linked-by line and the collapsed summary", () => {
     assert.equal(linkedByLine("Bryce", null), "Linked by Bryce");
     assert.equal(linkedByLine("Bryce", "Work"), "Work, linked by Bryce");
-    assert.equal(calendarsSummary(2, 1), "2 calendars, 1 both ways");
+    assert.equal(calendarsSummary(2, 1), "2 calendars, 1 syncing");
+    assert.equal(calendarsSummary(2, 2), "2 calendars, 2 syncing");
     assert.equal(calendarsSummary(1, 0), "1 calendar");
     assert.equal(calendarsSummary(0, 0), "No calendars");
   });

@@ -51,7 +51,7 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
   const renameRun = useOptimisticRun<never>(() => {});
   const unlinkRun = useOptimisticRun<never>(() => {});
 
-  const bothWays = account.calendars.filter((calendar) => directions[calendar.id] === "twoWay").length;
+  const syncing = account.calendars.filter((calendar) => directions[calendar.id] !== "off").length;
   const picking = account.calendars.find((calendar) => calendar.id === pickingId) ?? null;
 
   return (
@@ -65,7 +65,7 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-base font-medium">{account.email}</span>
           <span className="text-sm text-muted-strong">{linkedByLine(account.linkerName, account.label)}</span>
-          <span className="text-sm text-muted-strong">{calendarsSummary(account.calendars.length, bothWays)}</span>
+          <span className="text-sm text-muted-strong">{calendarsSummary(account.calendars.length, syncing)}</span>
         </span>
         {open ? (
           <ChevronDown aria-hidden="true" size={18} className="shrink-0 text-muted" />

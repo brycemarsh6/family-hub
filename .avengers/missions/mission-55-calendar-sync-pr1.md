@@ -362,7 +362,21 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 - **Evidence required:** command output and the new test names.
 - **Done criteria:** Fury re-runs the commands; Captain and Strange re-gate.
 - **Waits on Bryce (C6, not in this contract):** the "Syncing isn't on yet" line, the outbound hint wording, the "1 syncing" summary, Captain's STRUCTURE.md amendments.
-- **Report:** -
+- **Report:** DONE at `2e8b263`. Fury re-ran `npx tsc --noEmit` (clean) and `npm test` (1483 pass, 0 fail).
+
+### C6 - Bryce's three wording decisions
+- **Status:** PENDING
+- **Objective:** Make the screen honest that syncing has not started, using the three wordings Bryce approved on 2026-11-08.
+- **Boundaries:** may touch: `src/lib/calendarSyncVocabulary.ts`, `src/lib/calendarSyncVocabulary.test.ts`, `src/components/SyncedCalendarsList.tsx`, `src/components/LinkedAccountCard.tsx`. Must not touch: `STRUCTURE.md`, `prisma/schema.prisma`, `prisma/migrations/`, `src/proxy.ts`, `src/app/api/google/callback/route.ts`, `src/app/actions/linkedCalendars.ts`.
+- **Spec:**
+  1. New key `syncNotOn` in `SYNCED_CALENDARS_EXTRA_WORDS`: exactly "Syncing isn't on yet. Your choices are saved for when it starts." In `SyncedCalendarsList.tsx`, render it as a `text-sm text-muted` paragraph directly above the `ownerOnlyNote` paragraph, only when `accounts.length > 0`.
+  2. `SYNC_DIRECTION_HINTS.outbound` becomes exactly "Events you choose to sync are copied to this calendar."
+  3. `calendarsSummary(count, syncing)`: the second parameter is renamed and the phrase becomes `${syncing} syncing`, so "2 calendars, 1 syncing". Its doc comment follows. In `LinkedAccountCard.tsx` the count is every calendar whose direction is not "off" (both "outbound" and "twoWay"); rename the local to `syncing`.
+  4. Update the tests to the new words. Add one test that an account with one outbound and one two-way calendar reads as 2 syncing, if that can be asserted against pure code; otherwise assert `calendarsSummary(2, 2)` and say so in the report.
+- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`; `grep -rn "both ways" src/lib/calendarSyncVocabulary.ts` hits only the `twoWay` label ("Both ways" is matched case-insensitively if you add `-i`).
+- **Evidence required:** command output and the changed lines.
+- **Done criteria:** Fury re-runs the commands; Strange sees the line and the summary on the running page.
+- **Report:** DONE. The "one outbound plus one two-way" count lives inline in the card (from its optimistic state), so it has no pure test; `calendarsSummary(2, 2)` is asserted instead, as the contract allowed. Strange checks the real count on the page. STRUCTURE.md's three amendments and the story line were written by Fury alongside this contract, after Bryce approved them on 2026-11-08.
 
 ## Gate ledger
 

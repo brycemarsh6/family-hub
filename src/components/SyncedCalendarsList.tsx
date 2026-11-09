@@ -68,6 +68,9 @@ export function SyncedCalendarsList({
         </p>
       )}
 
+      {accounts.length > 0 && (
+        <p className="mt-3 text-sm text-muted">{SYNCED_CALENDARS_EXTRA_WORDS.syncNotOn}</p>
+      )}
       <p className="mt-3 text-sm text-muted">{SYNCED_CALENDARS_EXTRA_WORDS.ownerOnlyNote}</p>
     </div>
   );

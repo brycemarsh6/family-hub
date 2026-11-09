@@ -15,7 +15,7 @@ export const SYNC_DIRECTION_LABELS: Record<SyncDirection, string> = {
 
 export const SYNC_DIRECTION_HINTS: Record<SyncDirection, string> = {
   off: "Marshee and this calendar stay separate.",
-  outbound: "Events you add in Marshee are copied to this calendar.",
+  outbound: "Events you choose to sync are copied to this calendar.",
   twoWay: "Changes in either place show up in the other.",
 };
 
@@ -52,6 +52,7 @@ export const SYNCED_CALENDARS_EXTRA_WORDS = {
   renameSave: "Save",
   emptyTitle: "No calendars linked yet",
   emptyHint: "Link a Google account to bring its calendars in.",
+  syncNotOn: "Syncing isn't on yet. Your choices are saved for when it starts.",
   ownerOnlyNote: "You can only change or unlink accounts you linked.",
   directionSheetTitle: "Sync direction",
 } as const;
@@ -61,11 +62,11 @@ export function linkedByLine(linkerName: string, label: string | null): string {
   return label ? `${label}, linked by ${linkerName}` : `Linked by ${linkerName}`;
 }
 
-/** The collapsed card summary: "2 calendars, 1 both ways". */
-export function calendarsSummary(count: number, bothWays: number): string {
+/** The collapsed card summary: "2 calendars, 1 syncing". */
+export function calendarsSummary(count: number, syncing: number): string {
   if (count === 0) return "No calendars";
   const total = `${count} ${count === 1 ? "calendar" : "calendars"}`;
-  return bothWays > 0 ? `${total}, ${bothWays} both ways` : total;
+  return syncing > 0 ? `${total}, ${syncing} syncing` : total;
 }
 
 const LINK_ERROR_MESSAGES: Record<string, string> = {
