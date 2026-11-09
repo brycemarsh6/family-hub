@@ -41,7 +41,10 @@ import { decrypt, COOKIE_NAME } from "@/lib/session";
 // a calendar. It is public only so the proxy does not bounce it to /login
 // first; the route checks the signed-in manager and the one-time state cookie
 // itself, and sends everything else to /settings/calendars?error=.
-const PUBLIC_ROUTES = ["/login", "/api/voice", "/api/alexa", "/api/cron/briefing", "/api/google/callback"];
+//
+// /privacy is the public privacy policy page Google's consent screen links to.
+// Static text, no data; an exact match so nothing else opens with it.
+const PUBLIC_ROUTES = ["/login", "/privacy", "/api/voice", "/api/alexa", "/api/cron/briefing", "/api/google/callback"];
 
 // Shared recipes and cookbooks are the cases that can't be an exact match:
 // the URL carries a per-item token (/share/recipe/<token>,
