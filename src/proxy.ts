@@ -36,7 +36,12 @@ import { decrypt, COOKIE_NAME } from "@/lib/session";
 // /api/cron/briefing is Vercel's cron calling in with no session cookie. The
 // route's own CRON_SECRET bearer check, its very first step, is the gate;
 // proxy is only UX.
-const PUBLIC_ROUTES = ["/login", "/api/voice", "/api/alexa", "/api/cron/briefing"];
+//
+// /api/google/callback is Google sending the browser back after a person links
+// a calendar. It is public only so the proxy does not bounce it to /login
+// first; the route checks the signed-in manager and the one-time state cookie
+// itself, and sends everything else to /settings/calendars?error=.
+const PUBLIC_ROUTES = ["/login", "/api/voice", "/api/alexa", "/api/cron/briefing", "/api/google/callback"];
 
 // Shared recipes and cookbooks are the cases that can't be an exact match:
 // the URL carries a per-item token (/share/recipe/<token>,

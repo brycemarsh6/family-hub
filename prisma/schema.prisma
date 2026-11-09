@@ -581,6 +581,7 @@ model User {
   /// Winnie's morning briefing (mission 48): the days this person's briefing
   /// was claimed. Cascade: a deleted person's guard rows mean nothing.
   winnieBriefingsSent WinnieBriefingSent[]
+  linkedAccounts      LinkedAccount[]
 
   // No relation to LoginAttempt here — see that model's own doc comment for
   // why userId there is deliberately not a foreign key.
@@ -1233,4 +1234,66 @@ model WinnieBriefingSent {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, day])
+}
+
+/// A Google account a parent linked to Marshee (calendar sync, mission 55).
+/// The refresh token is stored only as AES-256-GCM text
+/// (`v1.<iv>.<tag>.<ct>`, src/lib/tokenCryptoCore.ts); access tokens are never
+/// stored. `keyVersion` allows a later key rotation. `provider` is "google";
+/// `status` is plain text: "ok" | "needs-relink"
+/// (src/lib/calendarSyncVocabulary.ts).
+model LinkedAccount {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider String @default("google")
+
+  /// The stable account id (the id token's `sub`), so a changed email still
+  /// matches the same account.
+  googleSubject String
+  email         String
+
+  /// A nickname the linker gave this account, shown instead of the email.
+  label String?
+
+  encryptedRefreshToken String
+  keyVersion            Int    @default(1)
+  scopes                String
+  status                String @default("ok")
+
+  linkedAt      DateTime  @default(now())
+  lastCheckedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  calendars LinkedCalendar[]
+
+  @@unique([userId, googleSubject])
+}
+
+/// One calendar inside a linked Google account. `direction` is plain text:
+/// "off" | "outbound" | "twoWay" (src/lib/calendarSyncVocabulary.ts).
+/// `syncToken` and `lastPulledAt` stay empty until the pull side (PR 3).
+model LinkedCalendar {
+  id String @id @default(cuid())
+
+  accountId String
+  account   LinkedAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  googleCalendarId String
+  name             String
+  colorHex         String?
+  isPrimary        Boolean @default(false)
+
+  direction String @default("off")
+
+  syncToken    String?
+  lastPulledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([accountId, googleCalendarId])
 }
