@@ -135,8 +135,9 @@ files named beside it.
   before calendar work.
 - **iPad landscape**: wide pages use a per-page opt-in rule (a container that
   sizes columns against its own space). Done for the dashboard, Calendar,
-  Habits & Chores, Kitchen lists, Plans, Goal page and recipe page. Left:
-  Forms, Settings, Manage family, Feedback. Plan:
+  Habits & Chores, Kitchen lists, Plans, Goal page, recipe page, forms,
+  Settings, Manage family and Feedback. The plan is finished. Not wide on
+  purpose: `/lists` (coming soon), `/login` and the recipe print page. Plan:
   `.avengers/plans/ipad-landscape-v1.md`; the rule is in STRUCTURE.md.
 - **Family accounts**: per-person logins, role gates, account management, kid
   profiles without a password. A "Tablet" device login for the wall tablet
