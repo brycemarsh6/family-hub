@@ -1313,7 +1313,7 @@ model LinkedCalendar {
 
 /// One Marshee event copied to one Google calendar. `googleEventId` is
 /// chosen by Marshee (hex of the event id) so a retry can never make a
-/// second copy. `status` is plain text: "pending" | "ok" | "failed";
+/// second copy. `status` is plain text: "pending" | "ok" | "failed" | "removing";
 /// `failReason` is a fixed reason word, never a Google response body.
 /// `previousJson` holds the losing version when both sides changed.
 /// `lastPulledAt` stays empty until the pull side (PR 3).

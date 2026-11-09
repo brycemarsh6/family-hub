@@ -47,6 +47,17 @@ export function toSyncFailReason(raw: unknown): SyncFailReason {
   return SYNC_FAIL_REASONS.some((reason) => reason === raw) ? (raw as SyncFailReason) : "network";
 }
 
+// The state of one Google copy of an event (mission 56): "pending" before the
+// call, "ok" or "failed" after it, "removing" for an untick whose Google
+// delete did not go through.
+export const SYNC_ROW_STATUSES = ["pending", "ok", "failed", "removing"] as const;
+export type SyncRowStatus = (typeof SYNC_ROW_STATUSES)[number];
+
+/** Anything unknown is "failed", so a strange row shows as a problem with Try again. */
+export function toSyncRowStatus(raw: unknown): SyncRowStatus {
+  return SYNC_ROW_STATUSES.some((status) => status === raw) ? (raw as SyncRowStatus) : "failed";
+}
+
 export const SYNCED_CALENDARS_WORDS = {
   pageTitle: "Synced calendars",
   rowLabel: "Synced calendars",
@@ -86,8 +97,15 @@ export const EVENT_SYNC_WORDS = {
   tryingAgain: "Trying\u2026",
   done: "Done",
   deletedCopyLeft: "Deleted from Marshee. Its copy in Google couldn't be removed, so delete it there.",
-  reconnect: "Google stopped letting Marshee in. Unlink this account and link it again.",
+  reconnect:
+    "Google stopped letting Marshee in. On Synced calendars, tap Link a Google account and choose this account again.",
 } as const;
+
+/** The last line of a Google description: "For: Bryce, Emily", or nothing when no one is named. */
+export function forLine(names: string[]): string {
+  const named = names.filter((name) => name.trim() !== "");
+  return named.length > 0 ? `For: ${named.join(", ")}` : "";
+}
 
 /** "Emily's", the muted second line under a calendar that is someone else's. */
 export function ownerLine(ownerName: string): string {

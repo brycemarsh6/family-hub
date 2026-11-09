@@ -7,7 +7,7 @@ import type { EventCallFailReason, EventCallResult, GetEventResult, GoogleEventP
 // since it could quote the Authorization header.
 
 const EVENTS_BASE = "https://www.googleapis.com/calendar/v3/calendars";
-const TIMEOUT_MS = 10_000;
+export const TIMEOUT_MS = 10_000;
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
 

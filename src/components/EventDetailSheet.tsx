@@ -59,7 +59,7 @@ export function EventDetailSheet({
   // The list a Try again returned, tagged with the event it belongs to so it
   // can never show on another event.
   const [retried, setRetried] = useState<{ eventId: string; syncs: CalendarEventSyncView[] } | null>(null);
-  const syncs = (retried?.eventId === event.id ? retried.syncs : event.syncs) ?? [];
+  const syncs = (retried?.eventId === event.id ? retried.syncs : event.syncs);
 
   useEffect(() => {
     function handleKeyDown(keyboardEvent: KeyboardEvent) {
@@ -121,7 +121,7 @@ export function EventDetailSheet({
         style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       >
         <div className="mb-2 flex items-center justify-between">
-          {view === "menu" ? (
+          {view === "menu" && !copyLeft ? (
             <button
               type="button"
               onClick={() => setView("main")}
@@ -134,7 +134,7 @@ export function EventDetailSheet({
             <h2 className="min-w-0 break-words text-lg font-semibold">{event.title}</h2>
           )}
           <div className="flex shrink-0 items-center gap-1">
-            {view === "main" && canManage && (
+            {view === "main" && canManage && !copyLeft && (
               <button
                 type="button"
                 onClick={() => setView("menu")}
@@ -215,7 +215,7 @@ export function EventDetailSheet({
               <p className="mb-4 text-xs text-muted">Added by {createdByName}</p>
             )}
 
-            {syncs.length > 0 && (
+            {canManage && syncs.length > 0 && (
               <div className="mb-4 flex flex-col gap-2">
                 {error && (
                   <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
@@ -224,20 +224,23 @@ export function EventDetailSheet({
                 )}
                 {syncs.map((sync, index) =>
                   sync.status === "ok" ? (
-                    <p key={`${sync.calendarName}-${index}`} className="flex items-center gap-2 text-sm text-muted">
+                    <p
+                      key={`${sync.calendarName}-${index}`}
+                      className="flex items-center gap-2 text-sm text-muted [overflow-wrap:anywhere]"
+                    >
                       <Check aria-hidden="true" size={16} className="shrink-0 text-accent" />
                       {onGoogleLine(sync.calendarName)}
                     </p>
                   ) : (
                     <div key={`${sync.calendarName}-${index}`} className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
-                      <p>
-                        {sync.status === "removing"
-                          ? copyRemoveFailedLine(sync.calendarName)
-                          : sync.failReason === "reconnect"
-                            ? EVENT_SYNC_WORDS.reconnect
+                      <p className="[overflow-wrap:anywhere]">
+                        {sync.failReason === "reconnect"
+                          ? EVENT_SYNC_WORDS.reconnect
+                          : sync.status === "removing"
+                            ? copyRemoveFailedLine(sync.calendarName)
                             : copyFailedLine(sync.calendarName)}
                       </p>
-                      {canManage && sync.failReason !== "reconnect" && (
+                      {sync.failReason !== "reconnect" && (
                         <button
                           type="button"
                           onClick={handleRetry}

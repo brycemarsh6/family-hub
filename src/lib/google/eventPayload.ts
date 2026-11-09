@@ -1,5 +1,6 @@
 import { HOUSEHOLD_TIME_ZONE } from "../constants";
 import { calendarDateFromUtcMidnight } from "../householdDate";
+import { forLine } from "../calendarSyncVocabulary";
 import type { GoogleEventPayload } from "./types";
 
 // Turns a Marshee event into the shape Google Calendar wants. Pure: no
@@ -41,10 +42,8 @@ function dateString(stored: Date): string {
 }
 
 export function toGoogleEvent(input: EventPayloadInput): GoogleEventPayload {
-  const names = input.forNames.filter((n) => n.trim() !== "");
   const notes = input.notes?.trim() ?? "";
-  const forLine = names.length > 0 ? `For: ${names.join(", ")}` : "";
-  const description = [notes, forLine].filter((part) => part !== "").join("\n\n");
+  const description = [notes, forLine(input.forNames)].filter((part) => part !== "").join("\n\n");
 
   const payload: GoogleEventPayload = {
     summary: input.title,

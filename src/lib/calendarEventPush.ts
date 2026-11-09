@@ -1,6 +1,5 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { decryptSecret } from "@/lib/tokenCrypto";
 import { refreshAccessToken } from "@/lib/google/oauth";
 import {
   deleteGoogleEvent,
@@ -8,9 +7,16 @@ import {
   insertGoogleEvent,
   updateGoogleEvent,
 } from "@/lib/google/calendarApi";
-import { isCalendarPushConfigured } from "@/lib/linkedCalendarsRead";
-import { toSyncDirection } from "@/lib/calendarSyncVocabulary";
-import { removeAllCopies, syncEventCopies, type PlanCalendar, type PlanRow, type SyncDeps } from "@/lib/calendarSyncPlan";
+import { isCalendarPushConfigured, loadPushCalendars, loadRefreshToken } from "@/lib/linkedCalendarsRead";
+import { toSyncRowStatus } from "@/lib/calendarSyncVocabulary";
+import {
+  removeAllCopies,
+  sortedPersonNames,
+  syncEventCopies,
+  tokenFailReason,
+  type PlanRow,
+  type SyncDeps,
+} from "@/lib/calendarSyncPlan";
 
 // Binds calendarSyncPlan.ts to the real database and Google (mission 56). No
 // auth here (the Server Actions check it first) and no logic of its own: the
@@ -20,14 +26,11 @@ import { removeAllCopies, syncEventCopies, type PlanCalendar, type PlanRow, type
 
 async function getAccessToken(accountId: string): ReturnType<SyncDeps["getAccessToken"]> {
   try {
-    const account = await db.linkedAccount.findUnique({
-      where: { id: accountId },
-      select: { encryptedRefreshToken: true },
-    });
-    if (!account) return { ok: false, reason: "network" };
-    const refreshed = await refreshAccessToken(decryptSecret(account.encryptedRefreshToken));
+    const refreshToken = await loadRefreshToken(accountId);
+    if (refreshToken === null) return { ok: false, reason: "network" };
+    const refreshed = await refreshAccessToken(refreshToken);
     if (refreshed.ok) return { ok: true, accessToken: refreshed.accessToken };
-    return { ok: false, reason: refreshed.reason === "revoked" ? "reconnect" : "network" };
+    return { ok: false, reason: tokenFailReason(refreshed.reason) };
   } catch {
     return { ok: false, reason: "network" };
   }
@@ -52,18 +55,12 @@ const deps: SyncDeps = {
   now: () => new Date(),
 };
 
-async function loadCalendars(): Promise<PlanCalendar[]> {
-  const calendars = await db.linkedCalendar.findMany({
-    select: { id: true, googleCalendarId: true, accountId: true, direction: true, accessRole: true },
-  });
-  return calendars.map((calendar) => ({ ...calendar, direction: toSyncDirection(calendar.direction) }));
-}
-
 async function loadRows(eventId: string): Promise<PlanRow[]> {
-  return db.calendarEventSync.findMany({
+  const rows = await db.calendarEventSync.findMany({
     where: { eventId },
     select: { linkedCalendarId: true, googleEventId: true, etag: true, status: true },
   });
+  return rows.map((row) => ({ ...row, status: toSyncRowStatus(row.status) }));
 }
 
 /**
@@ -94,11 +91,8 @@ export async function pushEventCopies(input: {
       },
     });
     if (!event) return { failed: 0 };
-    const forNames = event.people
-      .map((person) => person.user)
-      .sort((a, b) => a.displayName.localeCompare(b.displayName) || a.id.localeCompare(b.id))
-      .map((user) => user.displayName);
-    const [rows, calendars] = await Promise.all([loadRows(event.id), loadCalendars()]);
+    const forNames = sortedPersonNames(event.people.map((person) => person.user));
+    const [rows, calendars] = await Promise.all([loadRows(event.id), loadPushCalendars()]);
     return await syncEventCopies(deps, {
       payloadInput: {
         marsheeEventId: event.id,
@@ -132,7 +126,7 @@ export async function removeEventCopies(eventId: string): Promise<{ left: number
     const rows = await loadRows(eventId);
     if (rows.length === 0) return { left: 0 };
     if (!isCalendarPushConfigured()) return { left: rows.length };
-    return await removeAllCopies(deps, { eventId, rows, calendars: await loadCalendars() });
+    return await removeAllCopies(deps, { eventId, rows, calendars: await loadPushCalendars() });
   } catch {
     return { left: 1 };
   }

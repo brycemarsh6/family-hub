@@ -1,5 +1,5 @@
 import "server-only";
-import { deleteEvent, getEvent, insertEvent, updateEvent, type FetchLike } from "./calendarEventCalls";
+import { deleteEvent, getEvent, insertEvent, TIMEOUT_MS, updateEvent, type FetchLike } from "./calendarEventCalls";
 import type { GoogleCalendarSummary, ListCalendarsResult } from "./types";
 
 type Tail<T extends unknown[]> = T extends [unknown, ...infer Rest] ? Rest : never;
@@ -9,7 +9,6 @@ type Tail<T extends unknown[]> = T extends [unknown, ...infer Rest] ? Rest : nev
 // response body or the token.
 
 const CALENDAR_LIST_URL = "https://www.googleapis.com/calendar/v3/users/me/calendarList";
-const TIMEOUT_MS = 10_000;
 const MAX_PAGES = 20;
 
 export async function listCalendars(accessToken: string): Promise<ListCalendarsResult> {

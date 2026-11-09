@@ -16,7 +16,10 @@ import {
   SYNC_DIRECTIONS,
   SYNC_DIRECTION_HINTS,
   SYNC_DIRECTION_LABELS,
+  forLine,
   isSyncDirection,
+  SYNC_ROW_STATUSES,
+  toSyncRowStatus,
   toAccountStatus,
   toLinkErrorCode,
   toSyncDirection,
@@ -66,7 +69,7 @@ describe("calendar sync vocabulary", () => {
     );
     assert.equal(
       EVENT_SYNC_WORDS.reconnect,
-      "Google stopped letting Marshee in. Unlink this account and link it again.",
+      "Google stopped letting Marshee in. On Synced calendars, tap Link a Google account and choose this account again.",
     );
     assert.equal(ownerLine("Emily"), "Emily's");
     assert.equal(onGoogleLine("Family"), "On Google: Family");
@@ -163,5 +166,18 @@ describe("calendar sync vocabulary", () => {
     assert.equal(calendarsSummary(2, 2), "2 calendars, 2 set to sync");
     assert.equal(calendarsSummary(1, 0), "1 calendar");
     assert.equal(calendarsSummary(0, 0), "No calendars");
+  });
+
+  it("pins the four row statuses and repairs anything unknown to failed", () => {
+    assert.deepEqual([...SYNC_ROW_STATUSES], ["pending", "ok", "failed", "removing"]);
+    for (const status of SYNC_ROW_STATUSES) assert.equal(toSyncRowStatus(status), status);
+    assert.equal(toSyncRowStatus("weird"), "failed");
+    assert.equal(toSyncRowStatus(null), "failed");
+  });
+
+  it("builds the For line from named people only", () => {
+    assert.equal(forLine(["Bryce", "Emily"]), "For: Bryce, Emily");
+    assert.equal(forLine(["Bryce", "  ", ""]), "For: Bryce");
+    assert.equal(forLine([]), "");
   });
 });

@@ -20,7 +20,7 @@
 
 import "server-only";
 import { db } from "./db";
-import { toSyncFailReason } from "./calendarSyncVocabulary";
+import { toSyncFailReason, toSyncRowStatus } from "./calendarSyncVocabulary";
 import type { CalendarEventSyncView, CalendarEventView } from "./types";
 
 // Mission 56: only what the detail sheet shows. Never previousJson, etag or
@@ -39,10 +39,10 @@ type EventSyncRow = {
 };
 
 /** Builds the sheet's sync list field by field; the one mapping for it. */
-export function toEventSyncViews(rows: EventSyncRow[]): CalendarEventSyncView[] {
+function toEventSyncViews(rows: EventSyncRow[]): CalendarEventSyncView[] {
   return rows.map((sync) => ({
     calendarName: sync.linkedCalendar.name,
-    status: sync.status,
+    status: toSyncRowStatus(sync.status),
     failReason: sync.failReason === null ? null : toSyncFailReason(sync.failReason),
   }));
 }

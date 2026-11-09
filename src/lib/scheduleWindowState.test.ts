@@ -70,6 +70,7 @@ function fakeEvent(
     allDay,
     people: [],
     createdByName: null,
+    syncs: [],
   };
 }
 

@@ -1,3 +1,4 @@
+import { ToggleSwitch } from "./ToggleSwitch";
 import { EVENT_SYNC_WORDS, ownerLine } from "@/lib/calendarSyncVocabulary";
 import type { SyncTarget } from "@/lib/linkedCalendarsRead";
 
@@ -40,7 +41,7 @@ export function EventSyncToField({
           >
             <span className="flex min-w-0 flex-col">
               <span className="truncate text-base font-medium text-fg">{target.name}</span>
-              {!target.isMine && <span className="text-xs text-muted">{ownerLine(target.ownerName)}</span>}
+              {!target.isMine && <span className="text-xs text-muted-strong">{ownerLine(target.ownerName)}</span>}
             </span>
             <input
               type="checkbox"
@@ -51,15 +52,10 @@ export function EventSyncToField({
           </label>
         ))}
         {showBusyRow && (
-          <label className="flex min-h-12 items-center justify-between gap-3 rounded-xl bg-surface-2 px-4 py-2">
+          <div className="flex min-h-12 items-center justify-between gap-3 rounded-xl bg-surface-2 px-4 py-2">
             <span className="text-base font-medium text-fg">{EVENT_SYNC_WORDS.busyLabel}</span>
-            <input
-              type="checkbox"
-              checked={showBusy}
-              onChange={(e) => onBusyChange(e.target.checked)}
-              className="h-6 w-6 shrink-0 accent-accent"
-            />
-          </label>
+            <ToggleSwitch checked={showBusy} onChange={onBusyChange} label={EVENT_SYNC_WORDS.busyLabel} />
+          </div>
         )}
       </div>
     </div>

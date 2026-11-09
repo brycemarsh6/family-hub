@@ -27,6 +27,7 @@ import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
 import { pushEventCopies, removeEventCopies } from "@/lib/calendarEventPush";
+import { busyColumn, cleanRequestedIds } from "@/lib/calendarSyncPlan";
 import type { CalendarEventSyncView, CalendarEventView, CalendarHabitDayView } from "@/lib/types";
 
 function refreshCalendarViews() {
@@ -59,12 +60,6 @@ export type CalendarEventInput = {
    * an update leaves it alone. */
   showBusyOnGoogle?: boolean;
 };
-
-/** A client list of calendar ids, or undefined when it is absent or not a list of strings. */
-function cleanCalendarIds(raw: unknown): string[] | undefined {
-  if (!Array.isArray(raw)) return undefined;
-  return raw.filter((id): id is string => typeof id === "string");
-}
 
 /**
  * Re-validates a proposed people list against the database rather than
@@ -171,7 +166,7 @@ export async function createCalendarEvent(
       startAt: input.startAt,
       endAt: input.endAt,
       allDay: input.allDay,
-      showBusyOnGoogle: input.allDay && input.showBusyOnGoogle === true,
+      ...busyColumn(input.allDay, input.showBusyOnGoogle),
       rrule: input.rrule?.trim() || null,
       createdById: user.userId,
       people: { create: uniqueUserIds.map((userId) => ({ userId })) },
@@ -181,7 +176,7 @@ export async function createCalendarEvent(
 
   // The Marshee write stands whatever Google says; a failed copy is recorded
   // on its sync row and shown on the detail sheet, never as an error here.
-  const syncIds = cleanCalendarIds(input.syncCalendarIds);
+  const syncIds = cleanRequestedIds(input.syncCalendarIds);
   if (syncIds && syncIds.length > 0) await pushEventCopies({ eventId: created.id, requestedIds: syncIds });
 
   refreshCalendarViews();
@@ -235,11 +230,7 @@ export async function updateCalendarEvent(
           endAt: input.endAt,
           allDay: input.allDay,
           // Stored only for an all-day event; undefined leaves it alone.
-          ...(input.allDay
-            ? input.showBusyOnGoogle === undefined
-              ? {}
-              : { showBusyOnGoogle: input.showBusyOnGoogle === true }
-            : { showBusyOnGoogle: false }),
+          ...busyColumn(input.allDay, input.showBusyOnGoogle),
           rrule: input.rrule?.trim() || null,
         },
       }),
@@ -254,7 +245,7 @@ export async function updateCalendarEvent(
     throw error;
   }
 
-  await pushEventCopies({ eventId: id, requestedIds: cleanCalendarIds(input.syncCalendarIds) });
+  await pushEventCopies({ eventId: id, requestedIds: cleanRequestedIds(input.syncCalendarIds) });
 
   refreshCalendarViews();
   return {};

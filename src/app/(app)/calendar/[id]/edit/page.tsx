@@ -52,8 +52,9 @@ export default async function EditEventPage({
         showBusyOnGoogle: true,
         people: { select: { userId: true } },
         // Which calendars already hold a copy. The form only shows the ones it
-        // still offers; a copy on any other calendar is never touched.
-        syncs: { select: { linkedCalendarId: true } },
+        // still offers; a copy on any other calendar is never touched. A copy
+        // whose removal failed is not ticked: the person unticked it.
+        syncs: { where: { status: { not: "removing" } }, select: { linkedCalendarId: true } },
       },
     }),
     db.user.findMany({

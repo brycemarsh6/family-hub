@@ -4,7 +4,7 @@ import type {
   GetEventResult,
   GoogleEventPayload,
 } from "@/lib/google/types";
-import type { SyncDirection, SyncFailReason } from "@/lib/calendarSyncVocabulary";
+import { isReadOnlyRole, type SyncDirection, type SyncFailReason, type SyncRowStatus } from "@/lib/calendarSyncVocabulary";
 
 // The decisions and the push steps for copying a Marshee event to Google
 // (mission 56, design decisions 3 to 8). Pure: no database, no network, no
@@ -29,18 +29,46 @@ export type PlanRow = {
   linkedCalendarId: string;
   googleEventId: string;
   etag: string | null;
-  /** "pending", "ok", "failed", or "removing" (an untick whose Google delete failed). */
-  status: string;
+  /** "removing" is an untick whose Google delete failed. */
+  status: SyncRowStatus;
 };
 
 /** Only a calendar set to sync that Google lets Marshee write to. Unknown (null) is allowed. */
 export function isPushable(calendar: { direction: SyncDirection; accessRole: string | null }): boolean {
-  return calendar.direction !== "off" && (calendar.accessRole === null || calendar.accessRole === "owner");
+  return calendar.direction !== "off" && !isReadOnlyRole(calendar.accessRole);
 }
 
 /** Whether a calendar starts ticked on a new event: the viewer's own "Both ways" ones. */
 export function startsTicked(calendar: { direction: SyncDirection; isMine: boolean }): boolean {
   return calendar.isMine && calendar.direction === "twoWay";
+}
+
+/** A client list of calendar ids, or undefined when it is absent or not a list of strings. */
+export function cleanRequestedIds(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter((id): id is string => typeof id === "string");
+}
+
+/**
+ * The `showBusyOnGoogle` column to write: only an all-day event stores it
+ * (a timed event is always busy, so it is reset to false); undefined on an
+ * all-day event leaves the column alone.
+ */
+export function busyColumn(allDay: boolean, showBusy: boolean | undefined): { showBusyOnGoogle?: boolean } {
+  if (!allDay) return { showBusyOnGoogle: false };
+  return showBusy === undefined ? {} : { showBusyOnGoogle: showBusy === true };
+}
+
+/** Why a token refresh failed, as a sync fail word: a revoked grant needs a reconnect, anything else is the network. */
+export function tokenFailReason(refreshReason: string): "reconnect" | "network" {
+  return refreshReason === "revoked" ? "reconnect" : "network";
+}
+
+/** People's display names in a stable order (name, then id), for the "For:" line. */
+export function sortedPersonNames(people: { id: string; displayName: string }[]): string[] {
+  return [...people]
+    .sort((a, b) => a.displayName.localeCompare(b.displayName) || a.id.localeCompare(b.id))
+    .map((person) => person.displayName);
 }
 
 export type SyncPlan = { create: string[]; update: string[]; remove: string[] };
@@ -79,7 +107,7 @@ export function planSync(input: {
 export type RowKey = { eventId: string; linkedCalendarId: string; googleEventId: string };
 export type RowPatch = {
   etag?: string | null;
-  status?: "pending" | "ok" | "failed" | "removing";
+  status?: SyncRowStatus;
   failReason?: SyncFailReason | null;
   lastPushedAt?: Date | null;
   previousJson?: string | null;

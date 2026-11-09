@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { decryptSecret, isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import { isGoogleConfigured } from "@/lib/google/oauth";
-import { isPushable, startsTicked } from "@/lib/calendarSyncPlan";
+import { isPushable, startsTicked, type PlanCalendar } from "@/lib/calendarSyncPlan";
 import { toAccountStatus, toSyncDirection, type AccountStatus, type SyncDirection } from "@/lib/calendarSyncVocabulary";
 
 // Reads for linked Google accounts (mission 55). The page reader uses an
@@ -84,6 +84,14 @@ export async function loadRefreshToken(accountId: string): Promise<string | null
   return account ? decryptSecret(account.encryptedRefreshToken) : null;
 }
 
+/** Every linked calendar as the push needs it (not filtered: the plan decides what is pushable). */
+export async function loadPushCalendars(): Promise<PlanCalendar[]> {
+  const calendars = await db.linkedCalendar.findMany({
+    select: { id: true, googleCalendarId: true, accountId: true, direction: true, accessRole: true },
+  });
+  return calendars.map((calendar) => ({ ...calendar, direction: toSyncDirection(calendar.direction) }));
+}
+
 /** True when another person has already linked this Google account (its `sub`). */
 export async function isGoogleAccountLinkedByAnother(sub: string, userId: string): Promise<boolean> {
   const other = await db.linkedAccount.findFirst({
@@ -104,7 +112,6 @@ export type SyncTarget = {
   name: string;
   ownerName: string;
   isMine: boolean;
-  direction: SyncDirection;
   /** Starts ticked on a new event: the viewer's own "Both ways" calendars. */
   startsTicked: boolean;
 };
@@ -145,7 +152,6 @@ export async function loadSyncTargets(viewerId: string): Promise<SyncTarget[]> {
       name: calendar.name,
       ownerName: calendar.account.user.displayName,
       isMine,
-      direction,
       startsTicked: startsTicked({ direction, isMine }),
     }));
 }
