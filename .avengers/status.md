@@ -132,6 +132,14 @@ it is done. The pre-cleanup text is in
   "zz m39 Tablet" device on dev whenever.
 
 **Waiting on Bryce:**
+- **Google Calendar setup (mission 55):** follow "Bryce's setup" in
+  `.avengers/missions/mission-55-calendar-sync-pr1.md`, then link your Terros
+  account as its feasibility test. Calendar sync PR 2 waits on that result.
+- **Google link from the home-screen app:** once the setup is done, on your
+  phone open the installed Marshee icon, Settings, Synced calendars, and link
+  an account. Check you land back on the page signed in. This has only been
+  checked in a normal browser, and the real Link button has never been seen
+  with live Google keys.
 - **PR A is live:** press Recompute streaks once (Settings). The production
   counts are checked (all 0: no habits existed yet; mission 30 file).
 - **Look at the Sunday recap** on the first Sunday after 2026-11-04. It has

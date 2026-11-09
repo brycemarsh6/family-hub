@@ -42,6 +42,12 @@ This is not pedantry — a test file that transitively imports `db.ts`
 puts the **live family database** one future test away from the test
 runner.
 
+### Browser return routes: the Google instance
+
+Google's OAuth return is a browser GET that writes, which fit neither the
+non-browser row nor the bytes-route row of the layout map. Mission 55 named
+it as its own shape.
+
 ## One source of truth
 
 ### Household date helpers: where the clock formatter came from

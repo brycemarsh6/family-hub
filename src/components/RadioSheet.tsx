@@ -14,6 +14,10 @@ import { Check } from "lucide-react";
  * `leading` (optional, per-option) renders before the label — added for
  * Family Accounts' avatar-colour picker, where each row needs a small
  * color swatch inline. Every existing caller omits it and is unaffected.
+ *
+ * `hint` (optional, per-option) is a wrapping line of smaller muted text under
+ * the label, for choices that need a sentence of explanation. Omitted, the
+ * row looks exactly as before.
  */
 export function RadioSheet<T extends string>({
   title,
@@ -23,7 +27,7 @@ export function RadioSheet<T extends string>({
   onClose,
 }: {
   title: string;
-  options: { value: T; label: string; leading?: React.ReactNode }[];
+  options: { value: T; label: string; leading?: React.ReactNode; hint?: string }[];
   selected: T;
   onSelect: (value: T) => void;
   onClose: () => void;
@@ -77,7 +81,14 @@ export function RadioSheet<T extends string>({
             >
               <span className="flex min-w-0 items-center gap-3">
                 {option.leading}
-                <span className="min-w-0 truncate">{option.label}</span>
+                {option.hint ? (
+                  <span className="flex min-w-0 flex-col py-2">
+                    <span className="min-w-0 truncate">{option.label}</span>
+                    <span className="text-sm font-normal text-muted-strong">{option.hint}</span>
+                  </span>
+                ) : (
+                  <span className="min-w-0 truncate">{option.label}</span>
+                )}
               </span>
               {selected === option.value && (
                 <Check aria-hidden="true" size={18} className="shrink-0 text-accent" />

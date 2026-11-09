@@ -128,6 +128,17 @@ rate-limited) are deliberately not logged.
 - **What it can't touch:** accounts, passwords and settings. It has no
   route for them, and it can delete only what it created itself.
 
+## Google sync
+
+Settings > Synced calendars lets a parent or admin link a Google account and
+choose, per calendar, whether Marshee syncs with it. It needs three env vars,
+never in git: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` go in Vercel and in
+your local `.env`; `TOKEN_ENCRYPTION_KEY` (encrypts the stored Google tokens)
+has one value per environment, so local and production use different ones.
+Without them the
+page says sync isn't set up. For local testing, `npm run db:seed-linked-calendars`
+adds two fake accounts and `npm run db:clean-linked-calendars` removes them.
+
 ## Why some files aren't saved to git
 
 Git (via `.gitignore`) is deliberately not tracking a few things:

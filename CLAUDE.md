@@ -133,6 +133,10 @@ files named beside it.
 - **Calendar**: Month, Year, Schedule and hour-timeline views, tasks,
   month-jump dropdown, swipe-to-page. Read `.avengers/plans/calendar-v2.md`
   before calendar work.
+- **Google Calendar link** (`/settings/calendars`, parents and admins): link
+  Google accounts, choose each calendar's sync direction. Refresh tokens are
+  encrypted. **Nothing syncs yet**; the page says so. Plan:
+  `.avengers/plans/calendar-sync-v1.md`.
 - **iPad landscape**: wide pages use a per-page opt-in rule (a container that
   sizes columns against its own space). Done for the dashboard, Calendar,
   Habits & Chores, Kitchen lists, Plans, Goal page, recipe page, forms,
@@ -215,6 +219,9 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
 
+- **Calendar sync PR 2** (outbound push) starts only after Bryce's Google setup
+  and the Terros link test, or after dropping the work account. Steps:
+  `.avengers/missions/mission-55-calendar-sync-pr1.md`, "Bryce's setup".
 - **Dashboard widgets W3** is next after the W2 Calendar widget:
   `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the

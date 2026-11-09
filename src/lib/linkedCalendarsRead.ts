@@ -1,0 +1,81 @@
+import "server-only";
+import { db } from "@/lib/db";
+import { decryptSecret } from "@/lib/tokenCrypto";
+import { toAccountStatus, toSyncDirection, type AccountStatus, type SyncDirection } from "@/lib/calendarSyncVocabulary";
+
+// Reads for linked Google accounts (mission 55). The page reader uses an
+// explicit select that leaves out encryptedRefreshToken, so the stored token
+// can never reach a client component by accident.
+
+export type SyncedCalendarRow = {
+  id: string;
+  name: string;
+  colorHex: string | null;
+  isPrimary: boolean;
+  direction: SyncDirection;
+};
+
+export type SyncedAccountRow = {
+  id: string;
+  userId: string;
+  linkerName: string;
+  email: string;
+  label: string | null;
+  status: AccountStatus;
+  calendars: SyncedCalendarRow[];
+};
+
+export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
+  const accounts = await db.linkedAccount.findMany({
+    orderBy: { linkedAt: "asc" },
+    select: {
+      id: true,
+      userId: true,
+      email: true,
+      label: true,
+      status: true,
+      user: { select: { displayName: true } },
+      calendars: {
+        select: { id: true, name: true, colorHex: true, isPrimary: true, direction: true },
+      },
+    },
+  });
+  return accounts.map((account) => ({
+    id: account.id,
+    userId: account.userId,
+    linkerName: account.user.displayName,
+    email: account.email,
+    label: account.label,
+    status: toAccountStatus(account.status),
+    calendars: account.calendars
+      .map((calendar) => ({ ...calendar, direction: toSyncDirection(calendar.direction) }))
+      .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.name.localeCompare(b.name)),
+  }));
+}
+
+/** Who linked this account, for the actions' fresh ownership check. */
+export async function loadAccountOwner(accountId: string): Promise<{ userId: string; name: string } | null> {
+  const account = await db.linkedAccount.findUnique({
+    where: { id: accountId },
+    select: { userId: true, user: { select: { displayName: true } } },
+  });
+  return account ? { userId: account.userId, name: account.user.displayName } : null;
+}
+
+/** Who linked the account this calendar belongs to. */
+export async function loadCalendarOwner(calendarId: string): Promise<{ userId: string; name: string } | null> {
+  const calendar = await db.linkedCalendar.findUnique({
+    where: { id: calendarId },
+    select: { account: { select: { userId: true, user: { select: { displayName: true } } } } },
+  });
+  return calendar ? { userId: calendar.account.userId, name: calendar.account.user.displayName } : null;
+}
+
+/** The decrypted refresh token, for revoking it at Google when an account is unlinked. */
+export async function loadRefreshToken(accountId: string): Promise<string | null> {
+  const account = await db.linkedAccount.findUnique({
+    where: { id: accountId },
+    select: { encryptedRefreshToken: true },
+  });
+  return account ? decryptSecret(account.encryptedRefreshToken) : null;
+}
