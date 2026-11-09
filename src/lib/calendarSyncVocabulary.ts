@@ -62,11 +62,11 @@ export function linkedByLine(linkerName: string, label: string | null): string {
   return label ? `${label}, linked by ${linkerName}` : `Linked by ${linkerName}`;
 }
 
-/** The collapsed card summary: "2 calendars, 1 syncing". */
-export function calendarsSummary(count: number, syncing: number): string {
+/** The collapsed card summary: "2 calendars, 1 set to sync". */
+export function calendarsSummary(count: number, setToSync: number): string {
   if (count === 0) return "No calendars";
   const total = `${count} ${count === 1 ? "calendar" : "calendars"}`;
-  return syncing > 0 ? `${total}, ${syncing} syncing` : total;
+  return setToSync > 0 ? `${total}, ${setToSync} set to sync` : total;
 }
 
 const LINK_ERROR_MESSAGES: Record<string, string> = {

@@ -113,8 +113,8 @@ describe("calendar sync vocabulary", () => {
   it("words the linked-by line and the collapsed summary", () => {
     assert.equal(linkedByLine("Bryce", null), "Linked by Bryce");
     assert.equal(linkedByLine("Bryce", "Work"), "Work, linked by Bryce");
-    assert.equal(calendarsSummary(2, 1), "2 calendars, 1 syncing");
-    assert.equal(calendarsSummary(2, 2), "2 calendars, 2 syncing");
+    assert.equal(calendarsSummary(2, 1), "2 calendars, 1 set to sync");
+    assert.equal(calendarsSummary(2, 2), "2 calendars, 2 set to sync");
     assert.equal(calendarsSummary(1, 0), "1 calendar");
     assert.equal(calendarsSummary(0, 0), "No calendars");
   });

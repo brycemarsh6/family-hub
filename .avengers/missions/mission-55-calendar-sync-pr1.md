@@ -392,6 +392,7 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 - **Evidence required:** command output and the new order of the first lines of `GET`.
 - **Done criteria:** Fury re-runs the commands; Captain and Strange confirm pass 3 on those lines.
 - **Report:** DONE. `getVerifiedUser()` is the first lib call in `GET`; one origin computation; success is `linked=1`; hint is `text-muted-strong`; the test string is 43 characters. Pass 3 waits on Bryce's answer about "1 set to sync".
+- **Follow-up, 2026-11-08:** Bryce chose "2 calendars, 1 set to sync" over "1 syncing", after Strange pointed out the clash with "Syncing isn't on yet". A one-phrase edit Fury made directly in `calendarSyncVocabulary.ts`, its test and the local name in `LinkedAccountCard.tsx`, then gated in pass 3.
 
 ## Gate ledger
 
