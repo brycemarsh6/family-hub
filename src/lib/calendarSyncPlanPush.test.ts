@@ -1,3 +1,9 @@
+// Unit tests for calendarSyncPlan.ts's push steps (syncEventCopies,
+// removeAllCopies) against a fake Google. The planning rules (planSync, busy
+// columns, ticks) are tested in the sibling calendarSyncPlan.test.ts, split by
+// concern.
+// Run with `npm test`.
+
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {

@@ -1489,12 +1489,16 @@ Adding a second definition of any of these is a BLOCKER:
   `isPushable`, `startsTicked`, `planSync`, and the 409, 412 and 404 handling.
   `src/lib/calendarEventPush.ts` (`server-only`, no auth, no `revalidatePath`)
   binds it to the real database and Google, makes no decision beyond the "not
-  configured" early returns, and is the only writer of `CalendarEventSync`.
+  configured" early returns and its guards for a missing row or a caught
+  error, and is the only writer of `CalendarEventSync` (scoped `prisma/`
+  scripts are outside this rule).
   Its guarded caller today is `actions/calendar.ts`; like a domain write
   module it may have more, each carrying its own gate, and any new code path
   that writes a `CalendarEvent` calls it rather than re-implementing it.
-  `EVENT_SYNC_SELECT` and `toEventSyncViews` in `calendarEventQuery.ts` are
-  the only sync-row select and view mapping for screens;
+  `EVENT_SYNC_SELECT`, `EVENT_TICKED_SYNC_SELECT` (the edit form's ticks:
+  `linkedCalendarId` only, never a `removing` row) and `toEventSyncViews` in
+  `calendarEventQuery.ts` are the only sync-row selects and view mapping for
+  screens;
   `CalendarEventSyncView` is built field by field and never carries a Google
   id, an etag or `previousJson`. A second writer, a second view mapping or a
   copy of a push decision is a BLOCKER.

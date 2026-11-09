@@ -32,6 +32,13 @@ const EVENT_SYNC_SELECT = {
   linkedCalendar: { select: { name: true } },
 } as const;
 
+// Mission 56: the edit form's ticks. A copy whose removal failed is not
+// ticked, because the person unticked it.
+export const EVENT_TICKED_SYNC_SELECT = {
+  where: { status: { not: "removing" } },
+  select: { linkedCalendarId: true },
+} as const;
+
 type EventSyncRow = {
   status: string;
   failReason: string | null;

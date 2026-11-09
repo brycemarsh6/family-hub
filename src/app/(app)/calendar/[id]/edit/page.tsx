@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
+import { EVENT_TICKED_SYNC_SELECT } from "@/lib/calendarEventQuery";
 import { loadSyncTargets } from "@/lib/linkedCalendarsRead";
 import { BackLink } from "@/components/BackLink";
 import { EventForm } from "@/components/EventForm";
@@ -54,7 +55,7 @@ export default async function EditEventPage({
         // Which calendars already hold a copy. The form only shows the ones it
         // still offers; a copy on any other calendar is never touched. A copy
         // whose removal failed is not ticked: the person unticked it.
-        syncs: { where: { status: { not: "removing" } }, select: { linkedCalendarId: true } },
+        syncs: EVENT_TICKED_SYNC_SELECT,
       },
     }),
     db.user.findMany({

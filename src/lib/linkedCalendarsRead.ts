@@ -75,7 +75,7 @@ export async function loadCalendarOwner(calendarId: string): Promise<{ userId: s
   return calendar ? { userId: calendar.account.userId, name: calendar.account.user.displayName } : null;
 }
 
-/** The decrypted refresh token, for revoking it at Google when an account is unlinked. */
+/** The decrypted refresh token, for revoking it at Google on unlink and for the push's access token. */
 export async function loadRefreshToken(accountId: string): Promise<string | null> {
   const account = await db.linkedAccount.findUnique({
     where: { id: accountId },

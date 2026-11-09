@@ -240,16 +240,14 @@ export function EventDetailSheet({
                             ? copyRemoveFailedLine(sync.calendarName)
                             : copyFailedLine(sync.calendarName)}
                       </p>
-                      {sync.failReason !== "reconnect" && (
-                        <button
-                          type="button"
-                          onClick={handleRetry}
-                          disabled={pending}
-                          className="mt-2 min-h-12 w-full rounded-xl bg-surface px-4 text-base font-semibold text-fg transition-opacity active:opacity-80 disabled:opacity-50"
-                        >
-                          {pending ? EVENT_SYNC_WORDS.tryingAgain : EVENT_SYNC_WORDS.tryAgain}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={handleRetry}
+                        disabled={pending}
+                        className="mt-2 min-h-12 w-full rounded-xl bg-surface px-4 text-base font-semibold text-fg transition-opacity active:opacity-80 disabled:opacity-50"
+                      >
+                        {pending ? EVENT_SYNC_WORDS.tryingAgain : EVENT_SYNC_WORDS.tryAgain}
+                      </button>
                     </div>
                   ),
                 )}

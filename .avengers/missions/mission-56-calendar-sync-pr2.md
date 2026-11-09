@@ -320,6 +320,20 @@ line. Contracts run one at a time because later ones build on earlier ones.
 - **Evidence required:** verification output; test names added; line counts of `calendarSyncPlan.ts` and both test files.
 - **Done criteria:** Vision, Captain and Strange re-gate.
 
+### C7 - Gate fixes, pass 2
+- **Status:** DONE (Stark; Gauntlet green, 1593 tests)
+- **Objective:** Close Captain's two pass 2 blockers and ship the two changes Bryce approved on 2026-11-09 (the privacy wording, Try again on reconnect rows).
+- **Boundaries:** may touch: `src/lib/calendarEventQuery.ts`, `src/app/(app)/calendar/[id]/edit/page.tsx`, `src/lib/calendarSyncPlan.test.ts`, `src/lib/calendarSyncPlanPush.test.ts`, `src/app/privacy/page.tsx`, `src/components/EventDetailSheet.tsx`, `src/lib/linkedCalendarsRead.ts` (one comment only). Must not touch: `STRUCTURE.md`, `prisma/`, `src/lib/calendarSyncVocabulary.ts`, any other file.
+- **Spec:**
+  1. `calendarEventQuery.ts` exports `EVENT_TICKED_SYNC_SELECT = { where: { status: { not: "removing" } }, select: { linkedCalendarId: true } } as const`, with a comment saying it is the edit form's ticks and that a copy whose removal failed is not ticked because the person unticked it. The edit page uses it in place of its own literal.
+  2. `calendarSyncPlan.test.ts` gets a top comment naming its module and its sibling `calendarSyncPlanPush.test.ts` and saying what each covers. `calendarSyncPlanPush.test.ts` gets the matching comment naming `calendarSyncPlan.ts` and its sibling. Model: the top of `calendarDates.test.ts`.
+  3. Privacy, "What Marshee keeps": the sentences from "For each event copied to Google" to the end of the paragraph become, word for word: "For each event copied to Google, Marshee keeps Google's ID and version marker for that copy, so it can update it later. If a copy was changed in Google and Marshee replaces it, Marshee keeps the version it replaced. Marshee keeps nothing else from Google." Keep `&apos;` for the apostrophe. "The token is encrypted." stays.
+  4. `EventDetailSheet.tsx`: Try again also shows on a row whose reason is `reconnect`. Remove the `sync.failReason !== "reconnect"` condition around the button. The words on the row do not change, and the order of the words check does not change.
+  5. `linkedCalendarsRead.ts`: the comment above `loadRefreshToken` says it serves both revoking on unlink and the push's access token.
+- **Verification:** the five Gauntlet steps.
+- **Evidence required:** verification output; the diff.
+- **Done criteria:** Captain pass 3 on items 1, 2 and the A3 text; Strange checks the screens; Vision reads item 4.
+
 ### C5 - Records
 - **Status:** NOT STARTED
 - **Objective:** Bring `STRUCTURE.md`, `CLAUDE.md` and `.avengers/status.md`
@@ -354,6 +368,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
 
 ## Handoff log
 
+- 2026-11-09: Bryce approved all four after gate pass 2: he signs in himself for Strange (no secret handling, the `.env` block stays), the privacy wording, amendment A3, and Try again on reconnect rows. Contract C7 carries the code; Fury filed A3 in `STRUCTURE.md`.
 - 2026-11-09: Bryce linked his Gmail on production after a redeploy (Vercel
   still held a deleted client id). Plan written on Opus 5.5.
 - 2026-11-09: Strange pass 1 signed in with a throwaway session cookie made from the app's secret, on Fury's brief. Fury had not asked Bryce and told him so. In pass 2 the permission system refused the `.env` read and Strange stopped. Mission 9 and mission 21 disagree on minting a cookie.

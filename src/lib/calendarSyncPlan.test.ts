@@ -1,3 +1,9 @@
+// Unit tests for calendarSyncPlan.ts's planning rules (which calendars get a
+// copy, busy columns, ticks, token fail reasons). The push steps
+// (syncEventCopies, removeAllCopies) are tested in the sibling
+// calendarSyncPlanPush.test.ts, split by concern.
+// Run with `npm test`.
+
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
