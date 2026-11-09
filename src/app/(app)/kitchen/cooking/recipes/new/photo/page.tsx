@@ -12,18 +12,23 @@ export default async function PhotoImportPage({
     : "/kitchen/cooking/recipes/new";
 
   return (
-    <div className="py-2">
-      <BackLink href={backHref} label="Add recipe" />
+    <div className="py-2" data-page-width="wide">
+      <PhotoImportForm
+        cookbookId={cookbookId}
+        header={
+          <>
+            <BackLink href={backHref} label="Add recipe" />
 
-      <h1 className="mb-1 text-2xl font-bold tracking-tight md:text-3xl">
-        From a photo
-      </h1>
-      <p className="mb-4 text-sm text-muted">
-        A cookbook page, a handwritten card, or a screenshot — we&apos;ll pull
-        out the recipe for you to review before saving.
-      </p>
-
-      <PhotoImportForm cookbookId={cookbookId} />
+            <h1 className="mb-1 text-2xl font-bold tracking-tight md:text-3xl">
+              From a photo
+            </h1>
+            <p className="mb-4 text-sm text-muted">
+              A cookbook page, a handwritten card, or a screenshot — we&apos;ll pull
+              out the recipe for you to review before saving.
+            </p>
+          </>
+        }
+      />
     </div>
   );
 }

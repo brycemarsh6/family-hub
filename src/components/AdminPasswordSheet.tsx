@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { LogOut } from "lucide-react";
 import { logoutWithAdminPassword, type LoginState } from "@/app/actions/auth";
 
@@ -36,7 +37,9 @@ export function AdminPasswordSheet() {
         Sign out
       </button>
 
-      {open && (
+      {/* Portaled to the body: Settings' column container would otherwise trap the fixed overlay (STRUCTURE.md Wide pages rule 1). */}
+      {open &&
+        createPortal(
         <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
           <button
             type="button"
@@ -46,8 +49,9 @@ export function AdminPasswordSheet() {
           />
 
           <AdminPasswordForm onCancel={() => setOpen(false)} />
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </>
   );
 }

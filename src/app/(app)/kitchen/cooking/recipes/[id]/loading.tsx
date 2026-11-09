@@ -1,6 +1,6 @@
 import { SkeletonBlock } from "@/components/Skeleton";
 
-// Shaped like the page: header row, title, then Ingredients beside the steps. edit/ inherits this until L6 widens it; print/ has its own plain skeleton.
+// Shaped like the page: header row, title, then Ingredients beside the steps. edit/ has its own form-shaped skeleton; print/ has its own plain skeleton.
 export default function Loading() {
   return (
     <div className="py-2" data-page-width="wide" role="status" aria-label="Loading">

@@ -5,6 +5,7 @@ import { MANAGER_ROLES } from "@/lib/constants";
 import { parseDateParam } from "@/lib/calendarPaging";
 import { BackLink } from "@/components/BackLink";
 import { TaskForm } from "@/components/TaskForm";
+import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 
 export const dynamic = "force-dynamic";
 
@@ -45,22 +46,24 @@ export default async function NewTaskPage({
   });
 
   return (
-    <div className="py-2">
-      <BackLink href="/calendar" label="Calendar" />
+    <div className="py-2" data-page-width="wide">
+      <div className={NARROW_PAGE_CLASSES}>
+        <BackLink href="/calendar" label="Calendar" />
 
-      <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">
-        New task
-      </h1>
+        <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">
+          New task
+        </h1>
 
-      <TaskForm
-        people={people.map((person) => ({
-          userId: person.id,
-          displayName: person.displayName,
-          avatarColor: person.avatarColor,
-        }))}
-        currentUserId={user.userId}
-        initialDateISO={initialDateISO}
-      />
+        <TaskForm
+          people={people.map((person) => ({
+            userId: person.id,
+            displayName: person.displayName,
+            avatarColor: person.avatarColor,
+          }))}
+          currentUserId={user.userId}
+          initialDateISO={initialDateISO}
+        />
+      </div>
     </div>
   );
 }

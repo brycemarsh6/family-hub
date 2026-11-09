@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Keyboard, ClipboardPaste, Camera, Link2 } from "lucide-react";
 import { BackLink } from "@/components/BackLink";
 import { db } from "@/lib/db";
+import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 
 // Every import path — typed, pasted, photo, link — lands here first. Photo
 // and link are visible now (per the Recipes plan's "no feature is stubbed
@@ -38,39 +39,41 @@ export default async function NewRecipeChooserPage({
   const suffix = cookbookId ? `?cookbookId=${cookbookId}` : "";
 
   return (
-    <div className="py-2">
-      <BackLink href={backHref} label={backLabel} />
+    <div className="py-2" data-page-width="wide">
+      <div className={NARROW_PAGE_CLASSES}>
+        <BackLink href={backHref} label={backLabel} />
 
-      <h1 className="mb-1 text-2xl font-bold tracking-tight md:text-3xl">
-        Add recipe
-      </h1>
-      <p className="mb-4 text-sm text-muted">How do you want to add it?</p>
+        <h1 className="mb-1 text-2xl font-bold tracking-tight md:text-3xl">
+          Add recipe
+        </h1>
+        <p className="mb-4 text-sm text-muted">How do you want to add it?</p>
 
-      <div className="flex flex-col gap-2">
-        <ChooserOption
-          href={`/kitchen/cooking/recipes/new/manual${suffix}`}
-          icon={Keyboard}
-          title="Type it in"
-          hint="Fill out a blank form"
-        />
-        <ChooserOption
-          href={`/kitchen/cooking/recipes/new/paste${suffix}`}
-          icon={ClipboardPaste}
-          title="Paste text"
-          hint="Copy a recipe from anywhere and paste it in"
-        />
-        <ChooserOption
-          href={`/kitchen/cooking/recipes/new/photo${suffix}`}
-          icon={Camera}
-          title="From a photo"
-          hint="Snap a cookbook page or a screenshot"
-        />
-        <ChooserOption
-          href={`/kitchen/cooking/recipes/new/link${suffix}`}
-          icon={Link2}
-          title="From a link"
-          hint="Paste a URL to a recipe blog"
-        />
+        <div className="flex flex-col gap-2">
+          <ChooserOption
+            href={`/kitchen/cooking/recipes/new/manual${suffix}`}
+            icon={Keyboard}
+            title="Type it in"
+            hint="Fill out a blank form"
+          />
+          <ChooserOption
+            href={`/kitchen/cooking/recipes/new/paste${suffix}`}
+            icon={ClipboardPaste}
+            title="Paste text"
+            hint="Copy a recipe from anywhere and paste it in"
+          />
+          <ChooserOption
+            href={`/kitchen/cooking/recipes/new/photo${suffix}`}
+            icon={Camera}
+            title="From a photo"
+            hint="Snap a cookbook page or a screenshot"
+          />
+          <ChooserOption
+            href={`/kitchen/cooking/recipes/new/link${suffix}`}
+            icon={Link2}
+            title="From a link"
+            hint="Paste a URL to a recipe blog"
+          />
+        </div>
       </div>
     </div>
   );

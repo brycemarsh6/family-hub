@@ -25,6 +25,7 @@ import {
 } from "@/lib/goalVocabulary";
 import { formatCalendarDate, parseDateParam, type CalendarDate } from "@/lib/householdDate";
 import { createGoal, updateGoal } from "@/app/actions/goals";
+import { FORM_COLUMN_CLASSES, FORM_EYEBROW_CLASSES, FORM_GRID_CLASSES, FORM_SAVE_WIDE_CLASSES } from "@/lib/gridClasses";
 
 /** The form's fields as the inputs hold them: text, not numbers, until submit. */
 export type GoalFormValues = {
@@ -61,6 +62,12 @@ const INPUT_CLASSES = "min-h-12 w-full rounded-xl bg-surface-2 px-4 text-base te
  * real numbers, not strings) and lets the action do the checking. In edit
  * mode "Mine" / "Together" is shown but can't change: Mine always means the
  * person who made it.
+ *
+ * Layout: one DOM in two column divs. On a phone they stack in today's order;
+ * from a 48rem container they sit side by side, the left "What and when" (life
+ * area to target date) and the right "Why and how to track it" (the rest, then
+ * Save). The form itself is the `@container` because it holds no sheet, so the
+ * container rule (STRUCTURE.md rule 1) is kept.
  */
 export function GoalForm(
   props:
@@ -133,184 +140,192 @@ export function GoalForm(
   const earliest = initialDate ? earlierDate(today, initialDate) : today;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Field label="Life area" group>
-        <div className="flex flex-wrap gap-2">
-          {LIFE_AREAS.map(({ key, short, icon: Icon }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => set("area", key)}
-              aria-pressed={values.area === key}
-              className={`${CHIP_CLASSES} ${values.area === key ? CHIP_ON : CHIP_OFF}`}
-            >
-              <Icon aria-hidden="true" size={16} />
-              {short}
-            </button>
-          ))}
-        </div>
-      </Field>
+    <form onSubmit={handleSubmit} className="@container">
+      <div className={FORM_GRID_CLASSES}>
+        <div className={FORM_COLUMN_CLASSES}>
+          <p className={FORM_EYEBROW_CLASSES}>What and when</p>
+          <Field label="Life area" group>
+            <div className="flex flex-wrap gap-2">
+              {LIFE_AREAS.map(({ key, short, icon: Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => set("area", key)}
+                  aria-pressed={values.area === key}
+                  className={`${CHIP_CLASSES} ${values.area === key ? CHIP_ON : CHIP_OFF}`}
+                >
+                  <Icon aria-hidden="true" size={16} />
+                  {short}
+                </button>
+              ))}
+            </div>
+          </Field>
 
-      <Field label="Name">
-        <input
-          type="text"
-          value={values.title}
-          onChange={(event) => set("title", event.target.value)}
-          maxLength={GOAL_TITLE_MAX}
-          autoComplete="off"
-          autoFocus={!isEdit}
-          className={INPUT_CLASSES}
-        />
-      </Field>
-
-      {!isEdit && values.area && (
-        <IdeaChips
-          label={`Ideas for ${lifeAreaInfo(values.area).short}`}
-          ideas={GOAL_IDEAS[values.area]}
-          onPick={(idea) => set("title", idea)}
-        />
-      )}
-
-      <Field label="For" group>
-        {isEdit ? (
-          <p className="text-base text-fg">{GOAL_OWNERSHIP_LABELS[values.ownership]}</p>
-        ) : (
-          <div className="flex gap-2">
-            {GOAL_OWNERSHIPS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setOwnership(option)}
-                aria-pressed={values.ownership === option}
-                className={`${CHIP_CLASSES} ${values.ownership === option ? CHIP_ON : CHIP_OFF}`}
-              >
-                {GOAL_OWNERSHIP_LABELS[option]}
-              </button>
-            ))}
-          </div>
-        )}
-      </Field>
-
-      {values.ownership === "mine" && (!isEdit || props.initial.ownership === "mine") && (
-        <div className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-surface-2 pl-4 pr-1">
-          <div>
-            <p className="text-base font-medium text-fg">Keep private</p>
-            <p className="text-sm text-muted-strong">Only you can see this goal</p>
-          </div>
-          <ToggleSwitch
-            checked={isPrivateGoal(values)}
-            onChange={(next) => set("visibility", next ? "private" : "shared")}
-            label="Keep private"
-          />
-        </div>
-      )}
-
-      <Field label="Target date" group>
-        <div className="mb-2 flex flex-wrap gap-2">
-          {targetDateChips(today).map(({ label, date }) => {
-            const text = formatCalendarDate(date);
-            return (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setValues((current) => ({ ...current, targetDate: text, ongoing: false }))}
-                aria-pressed={!values.ongoing && values.targetDate === text}
-                className={`${CHIP_CLASSES} ${!values.ongoing && values.targetDate === text ? CHIP_ON : CHIP_OFF}`}
-              >
-                {label}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => set("ongoing", true)}
-            aria-pressed={values.ongoing}
-            className={`${CHIP_CLASSES} ${values.ongoing ? CHIP_ON : CHIP_OFF}`}
-          >
-            {ONGOING_LABEL}
-          </button>
-        </div>
-        <input
-          type="date"
-          value={values.targetDate}
-          min={formatCalendarDate(earliest)}
-          onChange={(event) => setValues((current) => ({ ...current, targetDate: event.target.value, ongoing: false }))}
-          onClick={() => values.ongoing && set("ongoing", false)}
-          aria-label="Target date"
-          className={`${INPUT_CLASSES} ${values.ongoing ? "opacity-45" : ""}`}
-        />
-      </Field>
-
-      <Field label="Why (optional)">
-        <textarea
-          value={values.why}
-          onChange={(event) => set("why", event.target.value)}
-          maxLength={GOAL_WHY_MAX}
-          placeholder="Why does this matter to you?"
-          className="min-h-24 w-full resize-y rounded-xl bg-surface-2 px-4 py-3 text-base text-fg outline-none placeholder:text-muted"
-        />
-      </Field>
-
-      <div className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-surface-2 pl-4 pr-1">
-        <p className="text-base font-medium text-fg">Track a number</p>
-        <ToggleSwitch
-          checked={values.measure !== null}
-          onChange={(next) => set("measure", next ? { unit: "", start: "", target: "" } : null)}
-          label="Track a number"
-        />
-      </div>
-
-      {values.measure && (
-        <div className="flex flex-col gap-4">
-          <Field label="Unit">
+          <Field label="Name">
             <input
               type="text"
-              value={values.measure.unit}
-              onChange={(event) => setMeasureField("unit", event.target.value)}
-              maxLength={MEASURE_UNIT_MAX}
-              placeholder="lb, $, pages"
+              value={values.title}
+              onChange={(event) => set("title", event.target.value)}
+              maxLength={GOAL_TITLE_MAX}
               autoComplete="off"
+              autoFocus={!isEdit}
               className={INPUT_CLASSES}
             />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Starting at">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={values.measure.start}
-                onChange={(event) => setMeasureField("start", event.target.value)}
-                autoComplete="off"
-                className={INPUT_CLASSES}
+
+          {!isEdit && values.area && (
+            <IdeaChips
+              label={`Ideas for ${lifeAreaInfo(values.area).short}`}
+              ideas={GOAL_IDEAS[values.area]}
+              onPick={(idea) => set("title", idea)}
+            />
+          )}
+
+          <Field label="For" group>
+            {isEdit ? (
+              <p className="text-base text-fg">{GOAL_OWNERSHIP_LABELS[values.ownership]}</p>
+            ) : (
+              <div className="flex gap-2">
+                {GOAL_OWNERSHIPS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setOwnership(option)}
+                    aria-pressed={values.ownership === option}
+                    className={`${CHIP_CLASSES} ${values.ownership === option ? CHIP_ON : CHIP_OFF}`}
+                  >
+                    {GOAL_OWNERSHIP_LABELS[option]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </Field>
+
+          {values.ownership === "mine" && (!isEdit || props.initial.ownership === "mine") && (
+            <div className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-surface-2 pl-4 pr-1">
+              <div>
+                <p className="text-base font-medium text-fg">Keep private</p>
+                <p className="text-sm text-muted-strong">Only you can see this goal</p>
+              </div>
+              <ToggleSwitch
+                checked={isPrivateGoal(values)}
+                onChange={(next) => set("visibility", next ? "private" : "shared")}
+                label="Keep private"
               />
-            </Field>
-            <Field label="Target">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={values.measure.target}
-                onChange={(event) => setMeasureField("target", event.target.value)}
-                autoComplete="off"
-                className={INPUT_CLASSES}
-              />
-            </Field>
-          </div>
+            </div>
+          )}
+
+          <Field label="Target date" group>
+            <div className="mb-2 flex flex-wrap gap-2">
+              {targetDateChips(today).map(({ label, date }) => {
+                const text = formatCalendarDate(date);
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setValues((current) => ({ ...current, targetDate: text, ongoing: false }))}
+                    aria-pressed={!values.ongoing && values.targetDate === text}
+                    className={`${CHIP_CLASSES} ${!values.ongoing && values.targetDate === text ? CHIP_ON : CHIP_OFF}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => set("ongoing", true)}
+                aria-pressed={values.ongoing}
+                className={`${CHIP_CLASSES} ${values.ongoing ? CHIP_ON : CHIP_OFF}`}
+              >
+                {ONGOING_LABEL}
+              </button>
+            </div>
+            <input
+              type="date"
+              value={values.targetDate}
+              min={formatCalendarDate(earliest)}
+              onChange={(event) => setValues((current) => ({ ...current, targetDate: event.target.value, ongoing: false }))}
+              onClick={() => values.ongoing && set("ongoing", false)}
+              aria-label="Target date"
+              className={`${INPUT_CLASSES} ${values.ongoing ? "opacity-45" : ""}`}
+            />
+          </Field>
         </div>
-      )}
 
-      {error && (
-        <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
-          {error}
-        </p>
-      )}
+        <div className={FORM_COLUMN_CLASSES}>
+          <p className={FORM_EYEBROW_CLASSES}>Why and how to track it</p>
+          <Field label="Why (optional)">
+            <textarea
+              value={values.why}
+              onChange={(event) => set("why", event.target.value)}
+              maxLength={GOAL_WHY_MAX}
+              placeholder="Why does this matter to you?"
+              className="min-h-24 w-full resize-y rounded-xl bg-surface-2 px-4 py-3 text-base text-fg outline-none placeholder:text-muted"
+            />
+          </Field>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
-      >
-        {pending ? "Saving…" : isEdit ? "Save" : "Add goal"}
-      </button>
+          <div className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-surface-2 pl-4 pr-1">
+            <p className="text-base font-medium text-fg">Track a number</p>
+            <ToggleSwitch
+              checked={values.measure !== null}
+              onChange={(next) => set("measure", next ? { unit: "", start: "", target: "" } : null)}
+              label="Track a number"
+            />
+          </div>
+
+          {values.measure && (
+            <div className="flex flex-col gap-4">
+              <Field label="Unit">
+                <input
+                  type="text"
+                  value={values.measure.unit}
+                  onChange={(event) => setMeasureField("unit", event.target.value)}
+                  maxLength={MEASURE_UNIT_MAX}
+                  placeholder="lb, $, pages"
+                  autoComplete="off"
+                  className={INPUT_CLASSES}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Starting at">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={values.measure.start}
+                    onChange={(event) => setMeasureField("start", event.target.value)}
+                    autoComplete="off"
+                    className={INPUT_CLASSES}
+                  />
+                </Field>
+                <Field label="Target">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={values.measure.target}
+                    onChange={(event) => setMeasureField("target", event.target.value)}
+                    autoComplete="off"
+                    className={INPUT_CLASSES}
+                  />
+                </Field>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={pending}
+            className={`min-h-12 w-full rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50 ${FORM_SAVE_WIDE_CLASSES}`}
+          >
+            {pending ? "Saving…" : isEdit ? "Save" : "Add goal"}
+          </button>
+        </div>
+      </div>
     </form>
   );
 }

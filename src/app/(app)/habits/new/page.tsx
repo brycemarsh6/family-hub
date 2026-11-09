@@ -18,7 +18,7 @@ export default async function NewHabitPage() {
   const people = await loadHabitRoster();
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href="/habits/manage" label="Manage" />
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">New habit or chore</h1>
       <HabitForm

@@ -38,7 +38,7 @@ export default async function EditGoalPage({ params }: { params: Promise<{ id: s
     goal.title.length > TITLE_LINK_MAX ? goal.title.slice(0, TITLE_LINK_MAX) + "…" : goal.title;
 
   return (
-    <div className="py-2">
+    <div className="py-2" data-page-width="wide">
       <BackLink href={"/plans/goals/" + id} label={label} />
 
       <h1 className="mb-4 text-2xl font-bold tracking-tight md:text-3xl">Edit goal</h1>

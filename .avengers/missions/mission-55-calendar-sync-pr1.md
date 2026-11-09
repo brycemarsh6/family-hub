@@ -404,6 +404,9 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 | 2 | Vision | PASS | none | 9 notes; notes 1 and 2 are the same two lines as Captain's blockers |
 | 2 | Strange | BLOCKED | RadioSheet hint 4.33:1 on a pressed row, light theme | "1 syncing" sits above "Syncing isn't on yet" (asked Bryce) |
 | 2 | Captain | BLOCKED | Callback runs a lib call before the guard; success redirect carries a database id | All five pass 1 blockers closed |
+| 3 | Vision | PASS | none | 3 notes: an uncaught throw is a 500, so "every outcome is a redirect" is loose; C3 and C6 specs keep their old wording, corrected in C7 |
+| 3 | Strange | PASS | none | Link button never seen with live keys; Rename can't clear a label |
+| 3 | Captain | PASS | none | Redundant `isDevice` test becomes a risk once mission 39 PR B ships |
 
 ## Handoff log
 
@@ -419,9 +422,16 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
   were not paths (reworded). Fake accounts (`zz-m55-`) are on dev for
   Strange; remove with `npm run db:clean-linked-calendars` before delivery.
   Gates next.
+- 2026-11-08: Three gate passes, all PASS at the end. Bryce approved the
+  wording changes and the STRUCTURE.md amendments. Fake accounts removed
+  from dev (2 rows). Merging main brought one conflict in the Settings page:
+  L6 had rebuilt it with `order-N` columns, so the Synced calendars row now
+  sits in its own `order-3` div after Manage family. That resolution came
+  after the gates' last pass, and Fury checked it on the running page at
+  phone and wide widths.
 
 ## Delivery
 
-- **Shipped:** —
-- **Shipped check:** —
-- **Deliberate leftovers:** Before PR 2: two parents linking the same Google account (one Unlink revokes both, and events could push twice); store each calendar's `accessRole` so reader-only calendars cannot be set to sync. Low risk, left open: the state cookie is not tied to the Marshee user who started the link; a deactivated parent's account cannot be unlinked; Google sign-in from the installed home-screen app is unproven, so Bryce tries it after merge. iPad landscape width for Settings stays on L6.
+- **Shipped:** PR 1 of `calendar-sync-v1.md`: linked accounts, the Synced calendars page, encrypted tokens. Nothing syncs yet, and the page says so.
+- **Shipped check:** run after merge and reported in the chat; a record cannot contain its own merge.
+- **Deliberate leftovers:** PR 2 turns on outbound push, so "Syncing isn't on yet" stops being true then and needs Bryce's new wording in that PR. A refused narrow grant leaves Marshee listed in that person's Google access until they remove it. `?error=calendars` also fires on a network blip, where "leave every box ticked" is the wrong advice. Rename cannot clear a label. Before PR 2: two parents linking the same Google account (one Unlink revokes both, and events could push twice); store each calendar's `accessRole` so reader-only calendars cannot be set to sync. Low risk, left open: the state cookie is not tied to the Marshee user who started the link; a deactivated parent's account cannot be unlinked; Google sign-in from the installed home-screen app is unproven, so Bryce tries it after merge. iPad landscape width for Settings stays on L6.

@@ -207,7 +207,9 @@ help:
   Expiring, Recipes list, Cookbooks, Cookbook detail, Meal plan week).
 - **L5: Recipe page, Goal page, Plans tabs** (This week, Goals board,
   Vision).
-- **L6: Forms, Settings, Manage family, Feedback.**
+- **L6: Forms, Settings, Manage family, Feedback** (delivered,
+  `.avengers/missions/mission-54-ipad-landscape-l6-forms-settings.md`).
+  This finishes the plan.
 
 Dashboard widgets W2 (the Calendar widget) waits for L1, so it is built on
 the width rule; L2 and W2 share calendar code, so L2 goes first.
@@ -309,8 +311,11 @@ the width rule; L2 and W2 share calendar code, so L2 goes first.
   (`dashboard-widgets-v2.md`); L3 first wrote its calls as 233 to 240 and
   renumbered them here. Details in
   `.avengers/missions/mission-53-ipad-landscape-l3-habits.md`.
+- **274 to 284 (L6):** 274 to 283 were Hill's calls (277 and 274 are the
+  medium ones) and Bryce kept them on 2026-11-08; 284 is Bryce's. Details in
+  `.avengers/missions/mission-54-ipad-landscape-l6-forms-settings.md`.
 
 ## Open
 
 - None for the plan. Per-step design details go to Bryce with a mock, or
-  to Hill when he is away.
+  to Hill only when he is away in bypass permissions mode.
