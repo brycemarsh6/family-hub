@@ -84,7 +84,7 @@ export function RadioSheet<T extends string>({
                 {option.hint ? (
                   <span className="flex min-w-0 flex-col py-2">
                     <span className="min-w-0 truncate">{option.label}</span>
-                    <span className="text-sm font-normal text-muted">{option.hint}</span>
+                    <span className="text-sm font-normal text-muted-strong">{option.hint}</span>
                   </span>
                 ) : (
                   <span className="min-w-0 truncate">{option.label}</span>

@@ -25,7 +25,7 @@ describe("parseKey", () => {
   });
 
   it("refuses the 43-character passphrase that Node would half-decode", () => {
-    assert.throws(() => parseKey("this-is-a-passphrase-not-a-real-key-123456"));
+    assert.throws(() => parseKey("correct-horse-battery-staple-correct-horse1"));
   });
 
   it("refuses base64url, wrong lengths and stray characters", () => {

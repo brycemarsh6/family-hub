@@ -349,7 +349,7 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 - **Done criteria:** Fury opens the page in the preview and taps through.
 
 ### C5 - Gate fixes, pass 1 (everything that does not wait on Bryce)
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** Fix Captain's code blockers, Strange's contrast blocker, and the gate notes worth fixing before the first real link.
 - **Boundaries:** may touch: `src/app/api/google/callback/route.ts`, `src/app/actions/linkedCalendars.ts`, new `src/lib/google/redirectUri.ts`, new `src/lib/google/redirectUri.test.ts`, new `src/lib/google/scopes.ts`, new `src/lib/google/scopes.test.ts`, `src/lib/google/oauth.ts`, `src/lib/tokenCryptoCore.ts`, `src/lib/tokenCryptoCore.test.ts`, `src/lib/tokenCrypto.ts`, `src/lib/linkedCalendarWrites.ts`, `src/lib/linkedCalendarsRead.ts`, `src/lib/calendarSyncVocabulary.ts`, `src/lib/calendarSyncVocabulary.test.ts`, `src/components/LinkedAccountCard.tsx`, `src/components/RadioSheet.tsx`, `src/app/(app)/settings/calendars/page.tsx`, `prisma/seed-linked-calendars.ts`, `README.md`, `.env.example`, `AGENTS.md`. Must not touch: `STRUCTURE.md`, `src/proxy.ts`, `prisma/schema.prisma`, `prisma/migrations/`, `src/components/SyncedCalendarsList.tsx`.
 - **Spec:**
@@ -365,7 +365,7 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 - **Report:** DONE at `2e8b263`. Fury re-ran `npx tsc --noEmit` (clean) and `npm test` (1483 pass, 0 fail).
 
 ### C6 - Bryce's three wording decisions
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** Make the screen honest that syncing has not started, using the three wordings Bryce approved on 2026-11-08.
 - **Boundaries:** may touch: `src/lib/calendarSyncVocabulary.ts`, `src/lib/calendarSyncVocabulary.test.ts`, `src/components/SyncedCalendarsList.tsx`, `src/components/LinkedAccountCard.tsx`. Must not touch: `STRUCTURE.md`, `prisma/schema.prisma`, `prisma/migrations/`, `src/proxy.ts`, `src/app/api/google/callback/route.ts`, `src/app/actions/linkedCalendars.ts`.
 - **Spec:**
@@ -378,6 +378,21 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 - **Done criteria:** Fury re-runs the commands; Strange sees the line and the summary on the running page.
 - **Report:** DONE. The "one outbound plus one two-way" count lives inline in the card (from its optimistic state), so it has no pure test; `calendarsSummary(2, 2)` is asserted instead, as the contract allowed. Strange checks the real count on the page. STRUCTURE.md's three amendments and the story line were written by Fury alongside this contract, after Bryce approved them on 2026-11-08.
 
+### C7 - Gate fixes, pass 2
+- **Status:** DONE
+- **Objective:** Fix Captain's two blockers and Strange's contrast blocker from pass 2, plus two small notes from Vision.
+- **Boundaries:** may touch: `src/app/api/google/callback/route.ts`, `src/components/RadioSheet.tsx`, `src/lib/tokenCryptoCore.test.ts`, `src/lib/tokenCrypto.ts`. Must not touch: `STRUCTURE.md`, `src/proxy.ts`, `prisma/schema.prisma`, `prisma/migrations/`, `src/lib/calendarSyncVocabulary.ts`, `src/app/actions/linkedCalendars.ts`.
+- **Spec:**
+  1. Captain, callback route: `getVerifiedUser()` becomes the first lib call in `GET`, directly after the state cookie is read and deleted. Only then compute the origin and define `back`, then run the refusal check. Compute the origin once and use that one value both for `back` (falling back to `request.nextUrl.origin`) and for the redirect URI check; the second `requestOrigin()` call goes. The cookie is still cleared before either check, and no outcome changes.
+  2. Captain, callback route: success returns `back("linked=1")`. `accountId` stays for `replaceCalendars`. This corrects C3, which named `?linked=<accountId>`; the page only tests whether `linked` is present. Confirm that by reading `src/app/(app)/settings/calendars/page.tsx`, which is read-only here.
+  3. Strange, `RadioSheet.tsx`: on the hint span, `text-muted` becomes `text-muted-strong`.
+  4. Vision note 4, `tokenCryptoCore.test.ts`: the test named for the 43-character passphrase uses a 42-character string. Use `correct-horse-battery-staple-correct-horse1`, which is 43, and confirm the length in your report.
+  5. Vision note 6, `tokenCrypto.ts`: the comment that fixing the setting "never needs a restart" holds only for a missing or bad key. Reword it to say that replacing one good key with another takes effect on restart or redeploy. Comment only.
+- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`; `grep -n "accountId" src/app/api/google/callback/route.ts` shows no use inside a redirect.
+- **Evidence required:** command output and the new order of the first lines of `GET`.
+- **Done criteria:** Fury re-runs the commands; Captain and Strange confirm pass 3 on those lines.
+- **Report:** DONE. `getVerifiedUser()` is the first lib call in `GET`; one origin computation; success is `linked=1`; hint is `text-muted-strong`; the test string is 43 characters. Pass 3 waits on Bryce's answer about "1 set to sync".
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -385,6 +400,9 @@ Order: C1, then C2, then C3 and C4 in parallel (disjoint files), then gates.
 | 1 | Vision | PASS | none | 16 notes; the ones not fixed in C5 are listed under Deliberate leftovers |
 | 1 | Strange | BLOCKED | Screen claims syncing that does not exist yet (Bryce's wording); pressed-row contrast 4.33:1 | RadioSheet hints, card title, summary |
 | 1 | Captain | BLOCKED | Callback shape needs an amendment; `revalidatePath` in the route; two redirect-URI copies; `refreshAccessToken` dormant with no comment; seed people rule | AGENTS.md glob, `toAccountStatus`, comments |
+| 2 | Vision | PASS | none | 9 notes; notes 1 and 2 are the same two lines as Captain's blockers |
+| 2 | Strange | BLOCKED | RadioSheet hint 4.33:1 on a pressed row, light theme | "1 syncing" sits above "Syncing isn't on yet" (asked Bryce) |
+| 2 | Captain | BLOCKED | Callback runs a lib call before the guard; success redirect carries a database id | All five pass 1 blockers closed |
 
 ## Handoff log
 

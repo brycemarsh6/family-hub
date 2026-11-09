@@ -7,8 +7,9 @@ import {
 
 // Reads TOKEN_ENCRYPTION_KEY and hands it to the pure core. Never logs the
 // key; a missing or malformed key is reported as "not configured". Only a
-// good key is remembered, so fixing the setting never needs a restart to be
-// noticed.
+// good key is remembered, so fixing a missing or bad key is noticed without a
+// restart. Replacing one good key with another takes effect on restart or
+// redeploy.
 let cachedKey: Buffer | undefined;
 
 function readKey(): Buffer | null {

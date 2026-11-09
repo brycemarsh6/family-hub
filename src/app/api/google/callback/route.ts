@@ -30,15 +30,18 @@ async function requestOrigin(): Promise<string | null> {
 }
 
 export async function GET(request: NextRequest) {
-  const origin = (await requestOrigin()) ?? request.nextUrl.origin;
-  const back = (query: string) => NextResponse.redirect(new URL(`${PAGE}?${query}`, origin));
-
   // Read the state cookie and clear it straight away, so a state value works once.
   const cookieStore = await cookies();
   const savedState = cookieStore.get(STATE_COOKIE_NAME)?.value;
   cookieStore.delete(STATE_COOKIE_NAME);
 
+  // The guard comes before any other lib call.
   const user = await getVerifiedUser();
+
+  const requestUrlOrigin = await requestOrigin();
+  const origin = requestUrlOrigin ?? request.nextUrl.origin;
+  const back = (query: string) => NextResponse.redirect(new URL(`${PAGE}?${query}`, origin));
+
   if (!user || user.isDevice || !MANAGER_ROLES.includes(user.role)) return back("error=signin");
 
   const params = request.nextUrl.searchParams;
@@ -50,10 +53,9 @@ export async function GET(request: NextRequest) {
   }
 
   const code = params.get("code");
-  const callbackOrigin = await requestOrigin();
-  if (!code || !callbackOrigin || !isTokenKeyConfigured()) return back("error=google");
+  if (!code || !requestUrlOrigin || !isTokenKeyConfigured()) return back("error=google");
 
-  const exchange = await exchangeCode({ code, redirectUri: googleRedirectUri(callbackOrigin) });
+  const exchange = await exchangeCode({ code, redirectUri: googleRedirectUri(requestUrlOrigin) });
   if (!exchange.ok) {
     return back(exchange.reason === "no-refresh-token" ? "error=no-refresh-token" : "error=exchange");
   }
@@ -88,5 +90,5 @@ export async function GET(request: NextRequest) {
     return back("error=calendars");
   }
 
-  return back(`linked=${encodeURIComponent(accountId)}`);
+  return back("linked=1");
 }
