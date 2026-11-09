@@ -124,8 +124,14 @@ From AGENTS.md, absolute for every agent:
    be switched to busy. Timed events are always busy. Bryce asked for the
    switch; his setters read the calendar these copies land on.
 3. Unticking a calendar on an edit removes that Google copy.
-4. All wording in contract C4: approved as written, except the label of the
-   busy switch, which is Fury's proposal and Bryce can change until C4 runs.
+4. All wording in contract C4: approved. On 2026-11-09 Bryce also approved
+   "Show as busy on Google", "Couldn't remove the copy from <calendar name>."
+   and "Trying…".
+5. The reconnect line becomes "Google stopped letting Marshee in. On Synced
+   calendars, tap Link a Google account and choose this account again."
+   (Vision: the old line sent people to Unlink, which drops every sync row.)
+6. Sync lines on the detail sheet are for parents only (`canManage`).
+7. Captain's STRUCTURE.md amendments A1 and A2: approved, filed in C5.
 
 ## Fury's pre-dispatch checklist
 
@@ -284,13 +290,35 @@ line. Contracts run one at a time because later ones build on earlier ones.
 - **Done criteria:** Strange PASS.
 
 ### C4b - Try again shows the truth, and fake rows for the design gate
-- **Status:** NOT STARTED
+- **Status:** DONE (Stark; Fury read both prisma scripts and ran the seed)
 - **Objective:** After Try again the open sheet shows the new result, and fake sync rows exist so Strange can see every state without Google.
 - **Boundaries:** may touch: `src/app/actions/calendar.ts`, `src/lib/calendarEventQuery.ts`, `src/components/EventDetailSheet.tsx`, `prisma/seed-linked-calendars.ts`, `prisma/clean-linked-calendars.ts`. Must not touch: everything else, and the `User` table may only be read.
 - **Spec:** (1) `retryEventSync` returns the event's fresh sync list on success, built by the same narrow mapping `toCalendarEventView` uses (one shared helper, no second select shape). The sheet holds that list in local state and shows it in place of `event.syncs` once a retry has returned. (2) The seed script also makes four fake events titled `zz-m56 ...`, tomorrow, for the first manager, on that manager's fake "Main calendar": one with an `ok` row, one `failed` with reason `network`, one `failed` with reason `reconnect`, and a fourth with status `removing`. `googleEventId` is a fixed fake. Safe to re-run. The clean script deletes events whose title starts `zz-m56 ` before it deletes the fake accounts, and prints both counts. It never touches an event without that prefix.
 - **Verification:** the five Gauntlet steps. Do not run the seed or clean scripts; Fury runs them.
 - **Evidence required:** the verification output; the diff of both prisma scripts.
 - **Done criteria:** Fury reads the scripts, runs seed for Strange and clean after.
+
+### C6 - Gate fixes, pass 1
+- **Status:** NOT STARTED
+- **Objective:** Close every blocker from Vision, Captain and Strange pass 1, plus the cheap notes.
+- **Boundaries:** may touch: `prisma/schema.prisma` (the comment above `CalendarEventSync.status` only), `src/lib/calendarSyncPlan.ts`, `src/lib/calendarSyncPlan.test.ts`, new `src/lib/calendarSyncPlanPush.test.ts`, `src/lib/calendarEventPush.ts`, `src/lib/linkedCalendarsRead.ts`, `src/lib/calendarSyncVocabulary.ts`, `src/lib/calendarSyncVocabulary.test.ts`, `src/lib/calendarEventQuery.ts`, `src/lib/types.ts`, `src/lib/google/eventPayload.ts`, `src/lib/google/eventPayload.test.ts`, `src/lib/google/calendarApi.ts`, `src/lib/google/calendarEventCalls.ts`, `src/app/actions/calendar.ts`, `src/app/(app)/calendar/[id]/edit/page.tsx`, `src/components/EventDetailSheet.tsx`, `src/components/EventSyncToField.tsx`, `src/components/MonthGrid.tsx`, `src/lib/calendarWidget.test.ts`, `src/lib/scheduleWindowState.test.ts`, `src/lib/scheduleWindowStateRefresh.test.ts`, any other test fixture `tsc` names for `syncs`. Must not touch: `src/app/privacy/page.tsx`, `prisma/migrations/`, `STRUCTURE.md`.
+- **Spec:**
+  1. Edit page: a row with status `removing` does not count as ticked (Vision and Strange). Test: a calendar re-ticked after a failed untick goes to `update`, which is the person's latest choice.
+  2. Reconnect line becomes Bryce's approved words (his decision 5). In the sheet the reconnect check comes first, so a `removing` row with reason `reconnect` shows that line with no Try again.
+  3. Sync lines on the sheet render only when `canManage` (Bryce's decision 6).
+  4. `EventSyncToField`: owner line uses `text-muted-strong`. The busy row uses `ToggleSwitch` in a `div` with the same row classes, not a checkbox.
+  5. Sheet: copy lines get `[overflow-wrap:anywhere]`; the back chevron and the menu are hidden when the copy-left message is showing.
+  6. Captain B1: `calendarEventPush.ts` reads through `linkedCalendarsRead.ts`: `getAccessToken` uses `loadRefreshToken`, and `loadCalendars` moves there as `loadPushCalendars`.
+  7. Captain B2: pure `cleanRequestedIds` and one busy-column helper move to `calendarSyncPlan.ts`, with tests; the actions call them.
+  8. Captain B3: the revoked-to-`reconnect` mapping and the people-name sort move to pure exports in `calendarSyncPlan.ts`, with tests.
+  9. Captain B5: `isPushable` uses `isReadOnlyRole`.
+  10. Captain B6: `SYNC_ROW_STATUSES`, `SyncRowStatus`, `toSyncRowStatus` in the vocabulary, unknown repairs to `failed`; `PlanRow`, `RowPatch` and `CalendarEventSyncView` use it; rows are repaired where they are read; the schema comment lists all four statuses.
+  11. `CalendarEventView.syncs` becomes required; fixtures get `syncs: []`; drop `?? []`.
+  12. Cheap notes: `forLine(names)` in the vocabulary used by `eventPayload.ts`; export `TIMEOUT_MS` once; drop `SyncTarget.direction`; `toEventSyncViews` loses `export` if nothing outside uses it.
+  13. Tests: split the push steps into `calendarSyncPlanPush.test.ts`. Add: Try again finishes a stuck removal; both 412 branches (get failed, second update gone).
+- **Verification:** the five Gauntlet steps.
+- **Evidence required:** verification output; test names added; line counts of `calendarSyncPlan.ts` and both test files.
+- **Done criteria:** Vision, Captain and Strange re-gate.
 
 ### C5 - Records
 - **Status:** NOT STARTED
@@ -317,6 +345,9 @@ line. Contracts run one at a time because later ones build on earlier ones.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | BLOCKED | Failed untick undone by next edit; reconnect line sent people to Unlink, which orphans copies | Gauntlet green; test gaps on Try again removal and 412 branches |
+| 1 | Captain | BLOCKED | Six placement items (second reader, pure logic in actions and in the binding file, duplicate role rule, status vocabulary, google/ import rule) | Amendment A1 and A2 drafted |
+| 1 | Strange | BLOCKED | Failed untick shows ticked; privacy "keeps nothing else" untrue because of previousJson; dead end on removing with reconnect; 4.33:1 owner line; busy row not a ToggleSwitch | A failed copy is silent after Save; raise with Bryce as a later small marker |
 
 ## Handoff log
 
