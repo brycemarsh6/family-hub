@@ -3,7 +3,7 @@
 (Opened as mission 56; renumbered 2026-11-09 because calendar sync PR 2 took 56 on main.)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (Vision and Captain pass 1; Strange after Bryce signs in on the dev server)
+**Status:** DELIVERED (all gates PASS; merge and production check recorded under Delivery)
 
 **Strange's sign-in (precedent, mission 56 calendar sync, 2026-11-09):** Bryce signs in himself in the built-in browser pane on the local dev server. No agent reads `.env` or mints a session cookie. Test photos for the gate (made from macOS wallpapers, no family photos) live in the session scratchpad `testphotos/`: `land-dated.jpg` (3000x2000, taken 2023-06-14), `portrait-dated.jpg` (2000x3000, taken 2021-11-09), `land-nodate.jpg` and `small.jpg` (no EXIF). Every test upload goes to the dev store and is deleted through the page afterward.
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
@@ -167,6 +167,12 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 
 | 1 | Strange (HEAD 3ad6ec1, dev server, Bryce's session, dev store) | BLOCKED | 2: failure line renders "1 photocouldn't be added." (JSX drops the space, Manager :122-123); on iPad the "Add photos" button (1148x48) and the progress/failure rows stretch the full page width (STRUCTURE.md wide-page rule 3, ipad-landscape-v1 rules 3-4) | passed: Settings row matches Manage family, count 0/4/0; count wording; upload progress; 3 / 7 column grid; thumbs only (~13 KB), full ~75 KB; cache headers; taken dates exact (no off-by-one); caption save + collapse; delete waits ("Deleting…" then removed); 48px targets; contrast both themes. Notes: alt text identical for undated cells (use takenOn); "1 photo. They show…" grammar (Bryce's copy); unreadable file loses its reason; failure row never clears; focus falls to BODY after delete; counter counts before whitespace collapse. Cleanup: 5 test photos uploaded and deleted through the page, final count 0, `public/strange-test/` removed. |
 
+| 2 | Captain (HEAD e47b78e) | PASS | none (both pass-1 blockers cleared) | notes: STRUCTURE.md at 1,770 lines, 13 below the 1,783 cleanup trigger, so the next rule-adding mission should run the cleanup pass first; `shortDateWithYear` duplicates `VacationCard.tsx:17`'s text shape (candidate shared helper); `public/strange-test/` present mid-gate, confirm removed before merge; no own `loading.tsx` (carried leftover) |
+
+| 2 | Strange (HEAD e47b78e) | PASS | none (both pass-1 blockers cleared) | failure line "1 photo couldn't be added." (real failure forced by patching fetch, then restored); unreadable file shows "That photo couldn't be read." with no Try again; Add photos 165x48 on iPad, rows 448 wide, phone unchanged; count wording 0/1/2+ correct; focus to Add photos after each delete; alt text from takenOn; messages clear after a later success. Note: a batch with both an upload error and an unreadable file shows only the upload error. Cleanup: 5 test photos uploaded and deleted, final 0, `public/strange-test/` removed (Fury confirmed). |
+
+| 2 | Vision (HEAD e47b78e, `git diff 3ad6ec1 HEAD`) | PASS | none | gauntlet re-run green; guards still first; new cleanup only reaches a path the same call made; select has no paths; notes: a photo over 3.5 MiB after shrinking would fail every retry (unproven at real sizes; later: re-encode lower or treat as unreadable); delete during upload leaves focus on body |
+
 ### C4 — Gate pass 1 fix batch
 - **Status:** PENDING
 - **Objective:** Clear the four gate-pass-1 blockers and the notes Fury took, in one dispatch.
@@ -207,6 +213,14 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 
 ## Delivery
 
-- **Shipped:** not yet.
-- **Shipped check:** not yet.
-- **Deliberate leftovers:** none yet.
+- **Shipped:** the `SlideshowPhoto` table (migration `20261115000000_slideshow_photos`), private Blob storage through `src/lib/slideshowBlob.ts`, the login-checked image route, the add/caption/delete actions, the in-browser shrink and EXIF date reader, and the Slideshow photos page with its Settings row. Gates: Vision PASS (pass 2), Captain PASS (pass 2), Strange PASS (pass 2). STRUCTURE.md amendments A, B, C (Bryce-approved).
+- **Shipped check:** filled in after merge.
+- **Deliberate leftovers:**
+  - No own `loading.tsx` for `/settings/slideshow` (inherits the Settings skeleton).
+  - A shrunk photo over 3.5 MiB fails every retry; unproven at real sizes. If Bryce's phone test hits it, re-encode at lower quality in `shrinkPhoto`.
+  - A batch with both an upload error and an unreadable file shows only the upload error.
+  - `shortDateWithYear` in the Manager builds the same text as `VacationCard.tsx:17`; a shared `formatShortCalendarDateWithYear` is a candidate helper.
+  - The caption counter counts before whitespace collapse.
+  - STRUCTURE.md is 1,770 lines, 13 below its cleanup trigger: run the cleanup pass before S2 adds rules.
+  - Real iPhone HEIC photos and the on-screen keyboard over the sheet are proven only by Bryce's phone check (`.avengers/status.md`).
+- **Model note (cost discipline):** Vision on Fable missed nothing a re-read caught; its pass-1 mission-number note was also found by Captain.
