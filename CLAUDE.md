@@ -151,8 +151,10 @@ files named beside it.
   `.avengers/plans/ipad-landscape-v1.md`; the rule is in STRUCTURE.md.
 - **Family accounts**: per-person logins, role gates, account management, kid
   profiles without a password. A "Tablet" device login for the wall tablet
-  can check off any task; signing out of it needs an admin password. Next:
-  the tablet's own dashboard and calendar editing (see Current status).
+  can check off any task; signing out of it needs an admin password. A
+  per-login **Text size** (Settings: Normal, Large, Extra large) magnifies
+  the whole app on tablets only, through the root font size: size things in
+  rem, never fixed px text (`.avengers/missions/mission-58-text-size.md`).
 - **Voice**: Siri shortcut over `/api/voice` is the working path, used daily.
   `/api/alexa` is live but dormant; Alexa+ is blocked on Amazon
   (`.avengers/plans/v3b-alexa-plus-addon.md`).
@@ -230,8 +232,8 @@ yet** or is next. Everything merged is in its mission file.
   `.avengers/missions/mission-56-calendar-sync-pr2.md` first. Any new code
   that writes a `CalendarEvent` (including CD1) must call the push.
 - **Screensaver S2** (the wall-tablet slideshow, sleep mode) is next:
-  `.avengers/plans/screensaver-slideshow-v1.md`. Run STRUCTURE.md's
-  cleanup pass first (13 lines below its trigger after mission 57).
+  `.avengers/plans/screensaver-slideshow-v1.md`. A long new STRUCTURE.md
+  entry for it goes in a `docs/structure/` companion file (mission 59).
 - **Dashboard widgets W3** is next after the W2 Calendar widget:
   `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the

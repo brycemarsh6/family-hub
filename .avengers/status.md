@@ -6,6 +6,12 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Text size on the kitchen iPad (mission 58)**, about 3 minutes: sign in
+  as Tablet, Settings, tap the Large "Aa" tile; the whole app grows at once.
+  Read the dashboard and Calendar Month from across the kitchen; if Large is
+  not enough, try Extra large. Your phone must look unchanged. Then answer
+  the two rule questions in the mission file's Delivery (rem rule, Month
+  breakpoint rule) and which iPad it is (10.2 inch or 10.9/11 inch).
 - **Morning briefing check (mission 48), 2026-11-08:** between 9 and 10
   AM Denver, did you and Emily each get "Good morning, ..." from Winnie?
   If not, see the mission file's Delivery, step 2.
@@ -170,10 +176,10 @@ it is done. The pre-cleanup text is in
   `RecipeIngredientSuggestion` and the put-away types). None are left, and
   `src/lib/useServerExports.test.ts` now fails the Gauntlet if one comes
   back. Components import such types from their `src/lib/` home.
-- STRUCTURE.md is 1,583 lines after its housekeeping pass (mission 54 moved
-  the stories to `docs/history/structure-rationale.md`). What is left is
-  almost all rule text, so going lower means moving rule inventories into
-  companion files, a separate decision. The next pass is due at 1,783 lines.
+- STRUCTURE.md is 1,064 lines after mission 59 moved 13 long
+  single-feature entries into `docs/structure/` companion files (stories
+  were already in `docs/history/structure-rationale.md`, mission 54). The
+  next pass is due at 1,264 lines.
 - Hours tracker follow-ups (mission 37 Delivery): a page left open over
   Saturday night shows last week's total in the sheet until reloaded; the
   Who hint says "checks" on an hours habit.

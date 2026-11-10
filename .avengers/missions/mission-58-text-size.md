@@ -1,7 +1,7 @@
 # Mission: Text size setting (mission 58)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (F2 done; gate pass 3, the last in budget)
+**Status:** DELIVERED (all gates PASS on pass 3; two constitution rules wait for Bryce)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 ## Brief
@@ -375,4 +375,35 @@ eslint, 1627 Denver, UTC 1620 + 7 skipped, build exit 0.
 
 ## Delivery
 
-Not delivered.
+- **What shipped:** a per-login Text size (Normal, Large, Extra large) in
+  Settings as three "Aa" tiles under Menu style, saved in
+  `UserPreferences.textSize` (additive migration
+  `20261116000000_add_text_size`), applied as `data-text-size` on `<html>`;
+  `globals.css` raises the root font size to 125% / 150% (and Lucide icons
+  by `zoom`) only on screens at least 48rem wide and 40rem tall, so phones in
+  either orientation are unchanged. Every px text size in the app became rem;
+  the menu row, rail and sidebar widths and the Schedule bar offset follow
+  the root size; Month and week columns keep their tablet layout at every
+  size (px container breakpoints).
+- **Gates:** Vision PASS (pass 3), Strange PASS (pass 3), Captain PASS (pass
+  2 and 3). Ledger above. Gauntlet at merge time recorded in the PR.
+- **Mid-mission merges:** main moved twice (PR #94 took "mission 57" and the
+  20261115 migration stamp, so this became mission 58 with 20261116; PR #95
+  split STRUCTURE.md, so the chrome-dimension rule edit moved to
+  `docs/structure/layout.md`).
+- **Waiting for Bryce (not filed):** Captain's rule A (STRUCTURE.md Wide
+  pages: rem container thresholds follow Text size; Month and week columns
+  are the px exceptions) and rule B (DESIGN.md: sizes in rem, not px, with
+  the listed px exceptions). Exact text is in Captain's pass 2 report,
+  summarised in the pass 2 ledger row; Fury files them on Bryce's yes. Also
+  which iPad: on a 10.2 inch (810 wide) at Extra large, Month drops to its
+  phone layout (still readable).
+- **Deliberate leftovers (follow-ups, not this mission):** tablet's own
+  3 or 4 big widgets is mission 39 PR B (C5); Schedule first load scrolls to
+  today before habit days load (pre-existing); Schedule's Today button
+  ignores the pinned bar in its observer (pre-existing, bigger gap at XL);
+  `useHamburgerInsetPx` returns a new object per measure (perf only);
+  calendar loading skeleton `h-[66px]` jumps at Large/XL; Month with the
+  sidebar at XL uses the phone layout; Menu style change seen only after a
+  reload in the hidden pane (unconfirmed, outside mission).
+

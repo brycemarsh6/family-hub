@@ -26,7 +26,8 @@ const HAMBURGER_ROW_HEIGHT_REM = 3.5;
  *
  * Dependents (check each when this changes): `AppChrome.tsx`'s `<main>` top
  * padding, `CalendarHeader.tsx`'s lift onto this row and pinned Schedule
- * bar, `ScheduleView.tsx`'s month-title boundary, `TimelineGrid.tsx`'s
+ * bar, `ScheduleView.tsx`'s chrome offset (scroll target, day-row margins,
+ * month-title boundary), `TimelineGrid.tsx`'s
  * scroller seed (via `CalendarViews.tsx`), `RecipeList.tsx`'s sticky
  * letters, `calendar/loading.tsx`'s skeleton, `FeedbackList.tsx`'s sticky
  * panel, and `MealPlanList.tsx`'s `scrollMarginTop`.
