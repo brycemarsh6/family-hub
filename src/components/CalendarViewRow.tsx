@@ -29,7 +29,7 @@ export function CalendarViewRow({
             onClick={() => onSelectView(option.value)}
             aria-pressed={selected}
             className={`flex h-11 items-center whitespace-nowrap rounded-full px-3.5 text-sm transition-colors ${
-              selected ? "bg-fg font-semibold text-bg" : "font-medium text-muted active:bg-line"
+              selected ? "bg-fg font-semibold text-bg" : "font-medium text-muted-strong active:bg-line"
             }`}
           >
             {option.label}

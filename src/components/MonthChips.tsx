@@ -42,8 +42,7 @@ const MONTH_NAME_FORMATTER = new Intl.DateTimeFormat("en-US", { month: "short" }
  * `useCalendarPeriod.ts`'s own `monthAnchor` relies on. There's no shared
  * "add N months" helper in `src/lib/` to import instead (`mealPlanDates.ts`
  * only has `addDays`), and generalizing one for this single caller is
- * outside this contract's boundary — a five-line local copy, same call as
- * `calendarViewConfig.ts`'s own `formatThreeDayRange`. */
+ * outside this contract's boundary — a five-line local copy. */
 function monthStart(anchor: Date, offset: number): Date {
   return new Date(anchor.getFullYear(), anchor.getMonth() + offset, 1);
 }

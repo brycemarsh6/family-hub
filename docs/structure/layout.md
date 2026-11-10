@@ -265,8 +265,12 @@ Wide pages: the
   `DASHBOARD_GRID_CLASSES` / `DASHBOARD_CELL_CLASSES` (`dashboardGrid.ts`),
   `YEAR_GRID_CLASSES`, `HABITS_DAY_GRID_CLASSES`, `FORM_GRID_CLASSES`,
   `FORM_COLUMN_CLASSES`, `FORM_SPAN_CLASSES`, `FORM_SAVE_WIDE_CLASSES`,
-  `FORM_EYEBROW_CLASSES`, `TWO_COLUMN_CLASSES` and `NARROW_PAGE_CLASSES`
-  (`gridClasses.ts`). A skeleton that types its own copy is a BLOCKER, and
+  `FORM_EYEBROW_CLASSES`, `TWO_COLUMN_CLASSES`, `NARROW_PAGE_CLASSES`,
+  `PAGE_BLEED_CLASSES`, `CALENDAR_VIEW_ROW_CLASSES` and
+  `CALENDAR_VIEW_CIRCLE_CLASSES` (`gridClasses.ts`).
+  `CALENDAR_VIEW_ROW_CLASSES` and `CALENDAR_VIEW_CIRCLE_CLASSES` share the
+  Calendar top bar's 48rem container threshold (the row shows where the
+  circle hides) and change together (mission-67). A skeleton that types its own copy is a BLOCKER, and
   so is a long form, a two-column settings page or a short page that types
   its own copy of the form grid, the two-column grid or the 40rem cap
   (mission-54). `FORM_GRID_CLASSES` and `TWO_COLUMN_CLASSES` differ only by

@@ -605,15 +605,15 @@ amendment id.
   `startOfMonth` live here too. `formatWeekTitle(weekStart, currentYear)` is
   the dash-free week title ("Nov 1 to 7"), beside `formatShortCalendarDate`.
   `formatWeekRange(weekStart)` in `mealPlanDates.ts` (browser-local `Date`:
-  Meal Plan, the Calendar Week title, Schedule, This week, the meal plan
-  sheets) prints the same dash-free range ("Nov 1 to 7", "Nov 29 to Dec 5";
-  mission-52, decision 268). They are two homes because their date types
-  differ, not their spelling; a spelling change changes both. The Calendar
-  3 Day title's private range formatter in `calendarViewConfig.ts`
-  (mission-17) still prints an en dash: grandfathered debt, retired the next
-  time the Calendar header is touched by a `formatDayRange(start, end)`
-  beside `formatWeekRange` that both use. Any other range formatter is a
-  BLOCKER. (Added mission-36; reworded mission-52, Captain's A-L4-6.)
+  Meal Plan, Schedule, This week, the meal plan sheets) prints the same
+  dash-free range ("Nov 1 to 7", "Nov 29 to Dec 5"; mission-52, decision
+  268). They are two homes because their date types differ, not their
+  spelling; a spelling change changes both. The Calendar's top-bar title is
+  a month, not a range (`formatMonthHeading(day, today)` in
+  `mealPlanDates.ts`, mission-67), so the old 3 Day range formatter in
+  `calendarViewConfig.ts` is gone and no `formatDayRange` is owed. Any other
+  range formatter is a BLOCKER. (Added mission-36; reworded mission-52,
+  Captain's A-L4-6; debt closed mission-67.)
   `formatHouseholdClock(instant, timeZone, { dropZeroMinutes })` is the repo's only
   household-zone clock formatter: a plain ASCII space before AM/PM and, on
   request, no `:00`. `hourInZone(instant, timeZone)` and
@@ -798,6 +798,13 @@ amendment id.
   mission-27:** `MONTH_NAMES` is now exported, and the two mission-27 sites
   (`GoalDetail.tsx` and the goal page) use `formatShortCalendarDate` instead
   of a local formatter; the grandfathered copies count is unchanged.
+  **Update 2026-11-10, mission-67:** `calendarViewConfig.ts`'s copy is
+  gone; the Calendar title reads `formatMonthHeading(day, today)`, the one
+  "month name, year only outside this year" helper, in `mealPlanDates.ts`.
+  The remaining grandfathered copies are `MonthChips.tsx` and `YearView.tsx`.
+  `MonthChips`'s own "year only outside this year" chip label is the same
+  rule in short form; its migration passes a length to the shared helper
+  rather than keeping a second copy.
 - Shared UI jobs — see DESIGN.md's component vocabulary
 
 - **Trip conditions are keyed to DEFINITIONS, never to importer counts.**

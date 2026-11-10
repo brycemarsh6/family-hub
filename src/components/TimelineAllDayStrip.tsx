@@ -209,7 +209,7 @@ export function TimelineAllDayStrip({
 
   return (
     <div
-      className="grid gap-0.5 px-1 pb-1"
+      className={`grid gap-0.5 px-1 pb-1 ${corner ? "items-start" : ""}`}
       // mission-17/C5: raised from 18px to 24px, matching the timed grid's
       // own MIN_BLOCK_MINUTES floor — Strange's ruling on the 24px timed
       // block explicitly does NOT cover this row too: a timed block's 24px
@@ -220,6 +220,9 @@ export function TimelineAllDayStrip({
       // no reason.
       // With a corner the rows may grow to fit its label (Largest text);
       // without one they stay a fixed 24px as before.
+      // With a corner, `items-start` on the grid keeps every bar (event,
+      // task, habit pill) at its 24px at the top of its row instead of
+      // stretching to the corner's height.
       style={{ gridTemplateColumns, gridAutoRows: corner ? "minmax(24px, auto)" : "24px" }}
     >
       {corner ? (

@@ -77,7 +77,7 @@ export function TimelineDayLabel({ day, today, notLoaded }: TimelineDayLabelProp
             as a count could never be misheard as ("not all"
             can't parse as a number the way "no events" briefly
             could), and is the exact phrase this file's own
-            worded banner below and DaySection.tsx's
+            TimelineGrid.tsx's worded banner and DaySection.tsx's
             `NotLoadedCard` already use — one wording for the
             same fact everywhere the app states it, not three.
             mission-17/C8 (round 3, Strange) — the day number

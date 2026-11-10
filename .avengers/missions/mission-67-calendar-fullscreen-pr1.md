@@ -246,10 +246,48 @@ share one worktree).
 - **Evidence required:** output; the re-measured header height and how.
 - **Done criteria:** green; Strange's capture shows no jump.
 
+### C4 - (fix batch 1) Gate pass 1 fixes
+- **Status:** DONE (Stark 2026-11-10: Schedule pinned title via `formatMonthHeading` with the old text while `today` is null; row `text-muted-strong`; strip grid `items-start` when `corner` is set, covering event, task and habit bars; three comments; tsc, lint, 1819 tests, TZ=UTC, build green before the follow-up, tsc, lint, tests after)
+- **Boundaries:** may touch: `src/lib/useScheduleMonthTitle.ts`,
+  `src/components/CalendarViewRow.tsx`, `src/components/TimelineAllDayStrip.tsx`,
+  `src/components/MonthChips.tsx` (comment only),
+  `src/components/TimelineDayHeader.tsx` (comment only),
+  `src/components/ScheduleView.tsx` (comment only). · must not touch:
+  everything else, including DESIGN.md, STRUCTURE.md, `docs/**` (Fury's).
+- **Work:**
+  1. Strange B1: Schedule's pinned month title (the portaled text built in
+     `useScheduleMonthTitle.ts`, today `formatMonthTitle(visibleMonthAnchor)`)
+     uses `formatMonthHeading(visibleMonthAnchor, today)` so this year's
+     months drop the year, like every other view (Bryce's decision 3). Keep
+     the per-month `sr-only` h2 in `ScheduleView.tsx` as it is. If `today`
+     can be null there, keep the old text until it resolves.
+  2. Strange B2: `CalendarViewRow` unselected segments use
+     `text-muted-strong` instead of `text-muted` (4.33:1 to 4.74:1 on
+     `bg-surface-2`). Selected pill unchanged.
+  3. Strange and Vision NOTE (approved mock shows a slim bar): in Day view
+     with the corner, all-day bars keep their 24px height and sit at the
+     top of their row instead of stretching to the corner's height. 3 Day
+     and Week unchanged.
+  4. Comments: `MonthChips.tsx:46` drop the clause naming the deleted
+     `formatThreeDayRange`; `TimelineDayHeader.tsx` "this file's own worded
+     banner" becomes "TimelineGrid.tsx's worded banner and DaySection.tsx's
+     `NotLoadedCard`"; `ScheduleView.tsx` ~209 bar height comment becomes
+     86px at 16 and 129px at Largest (5.375rem).
+- **Verification:** `npx tsc --noEmit`, `npm run lint`, `npm test`, the
+  AGENTS.md `TZ=UTC` line, `npm run build`; all green. `git diff --stat`
+  shows only the may-touch files (plus Fury's uncommitted DESIGN.md,
+  STRUCTURE.md, layout.md, mission file and calendar-v2.md).
+- **Evidence required:** the diff of items 1 to 3; command output.
+- **Done criteria:** green; Strange pass 2 measures the Schedule title,
+  the row contrast and the Day bar height.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Strange (HEAD d2b19d7) | BLOCK | (1) Schedule's "September 2026" truncates at 393 for logins that see Refresh; (2) view row unselected text 4.33:1 in light; (3) `CalendarViewRow` is a second view switcher without a vocabulary entry | Edge to edge 0px on both sides everywhere; title fits without Refresh; row shows at 1024 Normal/Large, falls back at 1024 Larger/Largest and 768; + bottom right on all views, Month last row 32px clear; Schedule flip within 1 to 4px; zoom floor 0px band in 7 iPad states. Notes: skeleton controls slide 52px for logins without Refresh (Fury: accept until PR 9); Month skeleton taller than grid (older); iPad Largest hour labels wrap and touch the edge (older px gutter; PR 7 follow-up); Day single all-day bar stretches (fixed in C4); 768 Normal shows the circle; kid, Tablet and pinned menu not seen |
+| 1 | Vision (HEAD d2b19d7) | BLOCK | DESIGN.md lacks the Calendar + exception to "a target must also be unoccluded" and still says the + is bottom-left below `md` (doc only, no code) | Gauntlet all green (1819; build exit 0). Title tests hold in both zones. Notes: Day corner with exactly one all-day lane stretches that pill to about 49px; not-loaded label at Largest may spill past the 48px gutter; stale comments `ScheduleView.tsx:209` (130/195px) and `MonthChips.tsx:46`; skeleton always draws Refresh (jump for logins without a link); skeleton corner 3.25rem vs 48px gutter; Day h2 now reads only the month (plan's intent) |
+| 1 | Captain (HEAD d2b19d7) | PASS | none | Stale STRUCTURE.md range-formatter and month-name lines (Fury applied Captain's text); layout.md shared-class list (applied); layout.md points at a DESIGN.md exception that must land in this PR; two stale comments (`MonthChips.tsx:46` names the deleted `formatThreeDayRange`, `TimelineDayHeader.tsx` says "this file's own worded banner") for the fix batch; strip 417 and loading 342 over the soft cap, not split candidates |
 
 ## Handoff log
 
