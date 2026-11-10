@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
-import { formatHouseholdClock } from "@/lib/householdDate";
+import { calendarDateInZone, formatHouseholdClock, type CalendarDate } from "@/lib/householdDate";
 import {
   formatScreensaverDate,
-  formatTakenOn,
+  formatTakenLine,
   pickNextPhoto,
+  yearsAgoToday,
   type ScreensaverSettings,
 } from "@/lib/screensaver";
 import { slideshowImageUrl } from "@/lib/slideshowPhotos";
@@ -16,7 +17,9 @@ const CROSSFADE_CLASSES = "transition-opacity duration-1000 ease-in-out";
 // After every photo failed to load, wait this long before trying again.
 const RETRY_AFTER_ALL_FAILED_MS = 30_000;
 
-type Slots = { a: SlideshowShowItem | null; b: SlideshowShowItem | null; active: "a" | "b" };
+// `today` is Denver's date when the photo was picked, so the "years ago" words are fixed for as long as it shows.
+type Shown = { photo: SlideshowShowItem; today: CalendarDate };
+type Slots = { a: Shown | null; b: Shown | null; active: "a" | "b" };
 
 /** Loads and decodes the image so the crossfade never starts on a half-drawn photo. */
 async function preload(id: string): Promise<boolean> {
@@ -36,17 +39,18 @@ async function preload(id: string): Promise<boolean> {
  * when its switch is on) sit bottom right over a soft shade.
  */
 function PhotoLayer({
-  photo,
+  shown,
   visible,
   settings,
 }: {
-  photo: SlideshowShowItem | null;
+  shown: Shown | null;
   visible: boolean;
   settings: ScreensaverSettings;
 }) {
-  if (!photo) return null;
+  if (!shown) return null;
+  const { photo, today } = shown;
   const caption = settings.showCaption && photo.caption ? photo.caption : null;
-  const takenOn = settings.showTakenOn ? formatTakenOn(photo.takenOn) : null;
+  const takenOn = settings.showTakenOn ? formatTakenLine(photo.takenOn, today) : null;
   return (
     <div className={`absolute inset-0 ${CROSSFADE_CLASSES} ${visible ? "opacity-100" : "opacity-0"}`}>
       {/* eslint-disable-next-line @next/next/no-img-element -- a private, authenticated image route; next/image's optimiser would not carry the login */}
@@ -78,7 +82,11 @@ function PhotoLayer({
         >
           <div className="max-w-[50%]">
             {caption && <p className="text-2xl font-medium">{caption}</p>}
-            {takenOn && <p className="text-lg text-white/80">{takenOn}</p>}
+            {takenOn && (
+              <p className={takenOn.onThisDay ? "text-lg font-medium text-amber-200" : "text-lg text-white/80"}>
+                {takenOn.text}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -127,7 +135,10 @@ export function ScreensaverSlide({
       for (;;) {
         const usable = ids.filter((id) => !failedIds.has(id));
         if (usable.length === 0) break;
-        const pick = pickNextPhoto(usable, shownIds, lastId, Math.random);
+        // Today is worked out at every pick, so midnight moves on to the new day's memories.
+        const today = calendarDateInZone(new Date(), HOUSEHOLD_TIME_ZONE);
+        const onThisDayIds = photos.filter((p) => yearsAgoToday(p.takenOn, today) !== null).map((p) => p.id);
+        const pick = pickNextPhoto(usable, shownIds, lastId, Math.random, onThisDayIds);
         if (!pick) break;
         shownIds = pick.shownIds;
         lastId = pick.id;
@@ -141,7 +152,7 @@ export function ScreensaverSlide({
         if (!photo) continue;
         setSlots((prev) => {
           const next = prev.active === "a" ? "b" : "a";
-          return { ...prev, [next]: photo, active: next };
+          return { ...prev, [next]: { photo, today }, active: next };
         });
         timer = window.setTimeout(advance, settings.secondsPerPhoto * 1000);
         return;
@@ -160,8 +171,8 @@ export function ScreensaverSlide({
 
   return (
     <>
-      <PhotoLayer photo={slots.a} visible={slots.active === "a"} settings={settings} />
-      <PhotoLayer photo={slots.b} visible={slots.active === "b"} settings={settings} />
+      <PhotoLayer shown={slots.a} visible={slots.active === "a"} settings={settings} />
+      <PhotoLayer shown={slots.b} visible={slots.active === "b"} settings={settings} />
       {settings.showClock && (
         <div
           className="absolute bottom-0 left-0 z-10 px-8 pb-6 text-white"

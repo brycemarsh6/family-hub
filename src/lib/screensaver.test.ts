@@ -7,6 +7,7 @@ import {
   START_AFTER_STEPS,
   formatScreensaverDate,
   formatSleepMinute,
+  formatTakenLine,
   formatTakenOn,
   isSleepTime,
   parseScreensaverField,
@@ -15,6 +16,7 @@ import {
   stepLadder,
   stepSleepMinute,
   toScreensaverSettings,
+  yearsAgoToday,
   type ScreensaverSettings,
 } from "./screensaver";
 
@@ -220,4 +222,63 @@ test("formatters", () => {
   assert.equal(formatTakenOn("2023-02-30"), null);
   assert.equal(formatTakenOn("June 14"), null);
   assert.equal(formatTakenOn(""), null);
+});
+
+test("yearsAgoToday: same month and day in an earlier year", () => {
+  const today = { year: 2026, month: 11, day: 10 };
+  assert.equal(yearsAgoToday("2025-11-10", today), 1);
+  assert.equal(yearsAgoToday("2023-11-10", today), 3);
+  assert.equal(yearsAgoToday("2026-11-10", today), null); // earlier today is not a memory
+  assert.equal(yearsAgoToday("2027-11-10", today), null);
+  assert.equal(yearsAgoToday("2025-11-09", today), null);
+  assert.equal(yearsAgoToday("2025-10-10", today), null);
+  assert.equal(yearsAgoToday(null, today), null);
+  assert.equal(yearsAgoToday("not a date", today), null);
+  assert.equal(yearsAgoToday("2023-02-30", today), null);
+});
+
+test("yearsAgoToday: a February 29 photo counts on February 28 only when the year has no leap day", () => {
+  assert.equal(yearsAgoToday("2024-02-29", { year: 2026, month: 2, day: 28 }), 2);
+  assert.equal(yearsAgoToday("2024-02-29", { year: 2028, month: 2, day: 28 }), null); // 2028 is a leap year
+  assert.equal(yearsAgoToday("2024-02-29", { year: 2028, month: 2, day: 29 }), 4);
+  assert.equal(yearsAgoToday("2024-02-29", { year: 2026, month: 3, day: 1 }), null);
+  assert.equal(yearsAgoToday("2023-02-28", { year: 2026, month: 2, day: 28 }), 3);
+});
+
+test("formatTakenLine: the ago words on the day, the date otherwise", () => {
+  const today = { year: 2026, month: 11, day: 10 };
+  assert.deepEqual(formatTakenLine("2025-11-10", today), { text: "A year ago today", onThisDay: true });
+  assert.deepEqual(formatTakenLine("2023-11-10", today), { text: "3 years ago today", onThisDay: true });
+  assert.deepEqual(formatTakenLine("2023-06-14", today), { text: "June 14, 2023", onThisDay: false });
+  assert.deepEqual(formatTakenLine("2026-11-10", today), { text: "November 10, 2026", onThisDay: false });
+  assert.equal(formatTakenLine(null, today), null);
+  assert.equal(formatTakenLine("bad", today), null);
+});
+
+test("pickNextPhoto: firstIds are picked before the rest, then the rest shuffle", () => {
+  const ids = ["a", "b", "c", "d"];
+  // random 0 would pick "a"; the first-ids rule narrows the pool to b and d.
+  const one = pickNextPhoto(ids, [], null, () => 0, ["b", "d"]);
+  assert.equal(one?.id, "b");
+  const two = pickNextPhoto(ids, one!.shownIds, one!.id, () => 0, ["b", "d"]);
+  assert.equal(two?.id, "d");
+  const three = pickNextPhoto(ids, two!.shownIds, two!.id, () => 0, ["b", "d"]);
+  assert.equal(three?.id, "a"); // both memories have shown: back to the normal pool
+  assert.deepEqual(three?.shownIds, ["b", "d", "a"]);
+  // An id in firstIds that is not in the usable list is ignored.
+  assert.equal(pickNextPhoto(["a", "b"], [], null, () => 0, ["zzz"])?.id, "a");
+  // Empty firstIds changes nothing.
+  assert.deepEqual(pickNextPhoto(ids, [], null, () => 0, []), pickNextPhoto(ids, [], null, () => 0));
+});
+
+test("pickNextPhoto: a new round still avoids lastId, and memories lead it", () => {
+  const ids = ["a", "b", "c"];
+  // Round over; "b" is both the last shown and a memory, with "c" another memory.
+  const next = pickNextPhoto(ids, ["a", "b", "c"], "b", () => 0, ["b", "c"]);
+  assert.equal(next?.id, "c");
+  assert.deepEqual(next?.shownIds, ["c"]);
+  // Only memory is lastId: the round opens with another photo instead.
+  assert.equal(pickNextPhoto(ids, ["a", "b", "c"], "b", () => 0, ["b"])?.id, "a");
+  // A single photo repeats by necessity.
+  assert.deepEqual(pickNextPhoto(["a"], ["a"], "a", () => 0, ["a"]), { id: "a", shownIds: ["a"] });
 });

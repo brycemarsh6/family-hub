@@ -2,7 +2,8 @@
 
 Part of [STRUCTURE.md](../../STRUCTURE.md)'s "One source of truth" list,
 cut from it word for word at commit e62056c on 2026-11-09 by mission 59
-(Screensaver added by mission 62, Start page by mission 64).
+(Screensaver added by mission 62, Start page by mission 64, On this day
+by mission 65).
 Every rule here binds exactly like STRUCTURE.md; a second definition is a
 BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
 
@@ -51,8 +52,11 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `BACK_TO_BLACK_STEPS`, `SLEEP_MINUTE_STEP`) with `stepLadder` and
   `stepSleepMinute`, the row cleaner `toScreensaverSettings`, the save
   validator `parseScreensaverField`, `isSleepTime`, the screen rule
-  `screensaverState`, the shuffle `pickNextPhoto`, the formatters
-  `formatSleepMinute`, `formatScreensaverDate` and `formatTakenOn`, and
+  `screensaverState`, the shuffle `pickNextPhoto` (its `firstIds` are
+  picked first each round), the "on this day" rule `yearsAgoToday` (Denver
+  today, Feb 29 counts on Feb 28 in other years), the formatters
+  `formatSleepMinute`, `formatScreensaverDate`, `formatTakenOn` and
+  `formatTakenLine`, and
   `SCREENSAVER_WORDS`. Every screensaver word, the overlay's `aria-label`
   and the stepper units included, is in `SCREENSAVER_WORDS`; components
   never type them. `src/lib/screensaverRead.ts` (`server-only`, no auth) is
