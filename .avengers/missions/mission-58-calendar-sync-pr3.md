@@ -498,6 +498,27 @@ would flip Google's own choice. Both are fixed before the pull exists.
 - **Done criteria:** each item has a named test, or for item 4 a test of
   the pure part plus the call sites quoted.
 
+### C8 - Fake data for the design gate
+
+- **Objective:** let Strange see every new screen piece on the dev branch
+  with no real Google link.
+- **Boundaries:** may touch `prisma/seed-linked-calendars.ts` and
+  `prisma/clean-linked-calendars.ts` only. Stark never runs them; Fury does.
+- **Spec:** the seed also (1) sets the first fake account's first calendar
+  to "twoWay" with `lastPulledAt` 2 minutes ago; (2) adds a third fake
+  account (`googleSubject` "zz-m55-relink", owner the first admin, status
+  "needs-relink", one "twoWay" calendar); (3) adds two pulled events titled
+  "zz-m58 from Google timed" (tomorrow 2 to 3 PM Denver) and "zz-m58 from
+  Google all-day" (the day after), each with `sourceLinkedCalendarId` = the
+  calendar from (1), `createdById` and the one person = that account's
+  owner, and a sync row (`googleEventId` "zz-m58-g1" / "zz-m58-g2",
+  status "ok", `lastPulledAt` now). Created only when absent (safe to
+  re-run). The clean script deletes "zz-m58 " events first, then the
+  existing cleanup. Never writes `User`. The fake token stays undecryptable,
+  so a pull on dev fails at decryption and calls nothing.
+- **Verification:** `npx tsc --noEmit`; `npx eslint prisma/`.
+- **Done criteria:** Fury runs seed, sees the rows, runs clean, sees none.
+
 ### C6 - Records
 
 - STRUCTURE.md's "Google calendar link" entry widened for the new files
