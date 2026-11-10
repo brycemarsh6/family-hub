@@ -1,7 +1,7 @@
 # Mission 59: split STRUCTURE.md's long feature entries into companion files
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERED (both gates PASS at pass 1; PR pending merge)
+**Status:** DELIVERED (merged as PR #95, 2026-11-09; amendments in a follow-up PR)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 ## Brief
@@ -365,3 +365,10 @@ starts right after its kept text and ends right before the next top-level
   and to say a first entry may create a new companion; a size watch on the
   companions (`habits.md` 302 lines).
 - **Not committed:** the checker scripts (scratchpad only).
+- **Follow-up, same day:** Bryce approved all three of Captain's proposed
+  amendments, written by Fury on branch `claude/structure-companion-amendments`:
+  checklist item 4 now also greps docs/structure/ for every file a diff
+  touches; the housekeeping note now moves an existing entry a change takes
+  past 15 lines, lets a feature's first entry start a new companion, and
+  records the companion sizes for a trend watch. The stale "PR
+  pending merge" status line above was corrected in the same change.
