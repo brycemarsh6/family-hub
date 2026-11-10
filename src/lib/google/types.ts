@@ -24,12 +24,14 @@ export type ListCalendarsResult =
 // Google Calendar event copies. Same rule: a reason word, never a body.
 export type GoogleEventPayload = {
   summary: string;
-  location?: string;
-  description?: string;
+  /** Always sent, "" when empty, so a PATCH clears a field the person emptied. */
+  location: string;
+  description: string;
   start: { dateTime: string; timeZone: string } | { date: string };
   end: { dateTime: string; timeZone: string } | { date: string };
   status: "confirmed";
-  transparency: "opaque" | "transparent";
+  /** Absent on an update that must leave Google's own busy/free choice alone. */
+  transparency?: "opaque" | "transparent";
   extendedProperties: { private: { marsheeEventId: string } };
 };
 
@@ -40,3 +42,27 @@ export type EventCallResult = { ok: true; etag: string | null } | { ok: false; r
 export type GetEventResult =
   | { ok: true; etag: string | null; event: Record<string, unknown> }
   | { ok: false; reason: EventCallFailReason };
+
+// Reading events back (the pull). Only the fields Marshee reads are typed.
+export type GoogleEventIn = {
+  id: string;
+  status?: string;
+  etag?: string;
+  updated?: string;
+  summary?: string;
+  description?: string;
+  location?: string;
+  eventType?: string;
+  transparency?: string;
+  start?: { date?: string; dateTime?: string };
+  end?: { date?: string; dateTime?: string };
+  extendedProperties?: { private?: { marsheeEventId?: string } };
+};
+
+export type ListEventsMode = { syncToken: string } | { timeMin: string };
+
+export type ListEventsFailReason = "restart" | "unauthorized" | "network" | "too-many";
+
+export type ListEventsResult =
+  | { ok: true; events: GoogleEventIn[]; nextSyncToken: string | null }
+  | { ok: false; reason: ListEventsFailReason };

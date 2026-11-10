@@ -32,6 +32,10 @@ const EVENT_SYNC_SELECT = {
   linkedCalendar: { select: { name: true } },
 } as const;
 
+// Mission 60: the source calendar's id and name; the view carries the name
+// only, the edit page also uses the id. The one select shape for it.
+export const EVENT_SOURCE_SELECT = { select: { id: true, name: true } } as const;
+
 // Mission 56: the edit form's ticks. A copy whose removal failed is not
 // ticked, because the person unticked it.
 export const EVENT_TICKED_SYNC_SELECT = {
@@ -84,6 +88,8 @@ export const CALENDAR_EVENT_SELECT = {
     select: EVENT_SYNC_SELECT,
     orderBy: { createdAt: "asc" },
   },
+  // Mission 60: for the sheet's "From Google" line (the view keeps the name).
+  sourceLinkedCalendar: EVENT_SOURCE_SELECT,
 } as const;
 
 /** The shape CALENDAR_EVENT_SELECT produces. */
@@ -98,6 +104,7 @@ export type CalendarEventRow = {
   people: { user: { id: string; displayName: string; avatarColor: string } }[];
   createdBy: { displayName: string } | null;
   syncs: EventSyncRow[];
+  sourceLinkedCalendar: { id: string; name: string } | null;
 };
 
 /**
@@ -125,6 +132,7 @@ export function toCalendarEventView(row: CalendarEventRow): CalendarEventView {
     // mission-9's K2/C2a finding.
     createdByName: row.createdBy?.displayName ?? null,
     syncs: toEventSyncViews(row.syncs),
+    sourceCalendarName: row.sourceLinkedCalendar?.name ?? null,
   };
 }
 

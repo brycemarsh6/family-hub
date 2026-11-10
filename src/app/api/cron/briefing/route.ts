@@ -1,4 +1,3 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import { calendarDateInZone, type CalendarDate } from "@/lib/householdDate";
@@ -8,6 +7,7 @@ import { loadBriefingInput, loadBriefingShared } from "@/lib/briefingRead";
 import { claimBriefing, finishBriefing, releaseBriefing, type BriefingStatus } from "@/lib/briefingSent";
 import { buildWinnieEvent } from "@/lib/winnieEvents";
 import { sendWinnieEvent } from "@/lib/winnieNotify";
+import { isAuthorized } from "@/lib/cronAuth";
 
 // Winnie's morning briefing (mission 48). Vercel's cron calls this twice a day
 // (15:00 and 16:00 UTC); only the run that lands in the 9 o'clock hour in
@@ -18,17 +18,6 @@ import { sendWinnieEvent } from "@/lib/winnieNotify";
 export const dynamic = "force-dynamic";
 // Winnie's webhook can be slow and each adult is sent in turn; ask for the full minute.
 export const maxDuration = 60;
-
-/** True only for `Authorization: Bearer <CRON_SECRET>`. Constant-time; a missing secret never matches. */
-function isAuthorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const provided = request.headers.get("authorization");
-  if (!provided) return false;
-  const a = createHash("sha256").update(provided).digest();
-  const b = createHash("sha256").update(`Bearer ${secret}`).digest();
-  return timingSafeEqual(a, b);
-}
 
 /** Marks how a send ended. A failure here never turns into a second outcome: the send already happened. */
 async function recordOutcome(userId: string, day: CalendarDate, status: Exclude<BriefingStatus, "sending">, eventId: string) {

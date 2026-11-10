@@ -43,6 +43,8 @@ export type EventFormDefaults = {
   /** Calendars this event already has a Google copy on (edit only). */
   syncCalendarIds: string[];
   showBusyOnGoogle: boolean;
+  /** The Google calendar this event was pulled from (edit only), kept ticked and locked. */
+  sourceCalendar?: { calendarId: string; name: string } | null;
 };
 
 /** One form for both New and Edit (the RecipeForm precedent) — calls
@@ -233,6 +235,7 @@ export function EventForm({
             allDay={allDay}
             showBusy={showBusy}
             onBusyChange={setShowBusy}
+            source={defaultValues?.sourceCalendar ?? null}
           />
 
           {error && (

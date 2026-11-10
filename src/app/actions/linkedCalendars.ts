@@ -13,17 +13,26 @@ import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
-import { SYNCED_CALENDARS_WORDS, isSyncDirection } from "@/lib/calendarSyncVocabulary";
+import { SYNCED_CALENDARS_WORDS, alreadySyncedThrough, isSyncDirection } from "@/lib/calendarSyncVocabulary";
+import { canTurnOn, raceWinner } from "@/lib/calendarSyncRules";
 import { googleAuthUrl, isGoogleConfigured, revokeToken } from "@/lib/google/oauth";
 import { googleRedirectUri, requestOriginFrom } from "@/lib/google/redirectUri";
 import { STATE_COOKIE_NAME, STATE_TTL_SECONDS, newOauthState } from "@/lib/google/oauthState";
 import { isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import {
+  adoptSiblingPulls,
   renameLinkedAccount as writeRenameAccount,
   setCalendarDirection as writeCalendarDirection,
   unlinkAccount as writeUnlinkAccount,
 } from "@/lib/linkedCalendarWrites";
-import { loadAccountOwner, loadCalendarOwner, loadRefreshToken } from "@/lib/linkedCalendarsRead";
+import {
+  loadAccountCalendarIds,
+  loadAccountOwner,
+  loadCalendarOwner,
+  loadRefreshToken,
+  loadSiblingCalendars,
+} from "@/lib/linkedCalendarsRead";
+import { removePulledEvents } from "@/lib/calendarEventPull";
 
 const NOT_SIGNED_IN = "Not signed in.";
 const NOT_ALLOWED = "Only a parent or admin can change synced calendars.";
@@ -86,7 +95,37 @@ export async function setCalendarDirection(
   if (!owner) return { error: GENERIC_ERROR };
   if (owner.userId !== user.userId) return { error: SYNCED_CALENDARS_WORDS.notYours(owner.name) };
 
-  await writeCalendarDirection(calendarId, direction);
+  // Only one link of a Google calendar may sync it (Bryce, 2026-11-09): two would let
+  // Marshee delete or overwrite the real event. Turning one off is always fine.
+  if (direction === "off") {
+    await writeCalendarDirection(calendarId, direction);
+    refresh();
+    return { ok: true };
+  }
+  const others = await loadSiblingCalendars(calendarId);
+  if (!canTurnOn(others)) {
+    const on = others.find((other) => other.direction !== "off");
+    return { error: alreadySyncedThrough(on?.email ?? "another account") };
+  }
+
+  const turnedOnAt = await writeCalendarDirection(calendarId, direction);
+
+  // Two people tapping at once can both pass the check above. Look again: if another
+  // link was turned on first, this one steps back to off.
+  const after = await loadSiblingCalendars(calendarId);
+  const winner = raceWinner({ id: calendarId, updatedAt: turnedOnAt }, after);
+  if (winner) {
+    await writeCalendarDirection(calendarId, "off");
+    refresh();
+    return { error: alreadySyncedThrough(winner.email) };
+  }
+
+  // "Both ways" takes over what an earlier link of this Google calendar had pulled in,
+  // so the next pull does not bring those events in a second time (Bryce, answer 9).
+  if (direction === "twoWay") {
+    const offIds = after.filter((other) => other.direction === "off").map((other) => other.id);
+    await adoptSiblingPulls(calendarId, offIds);
+  }
   refresh();
   return { ok: true };
 }
@@ -120,6 +159,13 @@ export async function unlinkAccount(accountId: string): Promise<{ ok: true } | A
   const owner = await loadAccountOwner(accountId);
   if (!owner) return { error: GENERIC_ERROR };
   if (owner.userId !== user.userId) return { error: SYNCED_CALENDARS_WORDS.notYours(owner.name) };
+
+  // The events pulled from this account's calendars go first (Bryce, 2026-11-09), so a
+  // relink does not import them twice. This comes before the revoke below, since their
+  // copies on this account's other calendars need the token. If any cannot be removed,
+  // stop: the unlink would orphan them.
+  const removed = await removePulledEvents(await loadAccountCalendarIds(accountId));
+  if (removed.failed > 0) return { error: GENERIC_ERROR };
 
   // Best effort: tell Google to forget us, but unlink even if that fails.
   try {

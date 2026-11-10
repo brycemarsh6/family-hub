@@ -2,7 +2,8 @@ import "server-only";
 import { db } from "@/lib/db";
 import { decryptSecret, isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import { isGoogleConfigured } from "@/lib/google/oauth";
-import { isPushable, startsTicked, type PlanCalendar } from "@/lib/calendarSyncPlan";
+import type { PullCalendarRow } from "@/lib/calendarPullRun";
+import { isPushable, startsTicked, type PlanCalendar } from "@/lib/calendarSyncRules";
 import { toAccountStatus, toSyncDirection, type AccountStatus, type SyncDirection } from "@/lib/calendarSyncVocabulary";
 
 // Reads for linked Google accounts (mission 55). The page reader uses an
@@ -17,6 +18,10 @@ export type SyncedCalendarRow = {
   direction: SyncDirection;
   /** Google's role for the linked person; null for rows linked before mission 56. */
   accessRole: string | null;
+  /** When a pull of this calendar last worked; null if none has. (The pull's lease stamp is not shown.) */
+  lastPulledOkAt: Date | null;
+  /** The other link's account email when this one is off and another link of the same Google calendar is on; else null. */
+  syncedThrough: string | null;
 };
 
 export type SyncedAccountRow = {
@@ -40,10 +45,26 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
       status: true,
       user: { select: { displayName: true } },
       calendars: {
-        select: { id: true, name: true, colorHex: true, isPrimary: true, direction: true, accessRole: true },
+        select: {
+          id: true,
+          name: true,
+          colorHex: true,
+          isPrimary: true,
+          googleCalendarId: true,
+          direction: true,
+          accessRole: true,
+          lastPulledOkAt: true,
+        },
       },
     },
   });
+  // Which Google calendars have a link that is on, and through whose email.
+  const onThrough = new Map<string, string>();
+  for (const account of accounts) {
+    for (const calendar of account.calendars) {
+      if (toSyncDirection(calendar.direction) !== "off") onThrough.set(calendar.googleCalendarId, account.email);
+    }
+  }
   return accounts.map((account) => ({
     id: account.id,
     userId: account.userId,
@@ -52,7 +73,11 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
     label: account.label,
     status: toAccountStatus(account.status),
     calendars: account.calendars
-      .map((calendar) => ({ ...calendar, direction: toSyncDirection(calendar.direction) }))
+      .map(({ googleCalendarId, ...calendar }) => {
+        const direction = toSyncDirection(calendar.direction);
+        const through = onThrough.get(googleCalendarId);
+        return { ...calendar, direction, syncedThrough: direction === "off" && through !== undefined ? through : null };
+      })
       .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.name.localeCompare(b.name)),
   }));
 }
@@ -75,6 +100,28 @@ export async function loadCalendarOwner(calendarId: string): Promise<{ userId: s
   return calendar ? { userId: calendar.account.userId, name: calendar.account.user.displayName } : null;
 }
 
+/**
+ * The other links of this calendar's Google calendar, for the one-link rule
+ * (canTurnOn in calendarSyncRules.ts), the handover and the race check. Empty
+ * when the calendar is not found.
+ */
+export async function loadSiblingCalendars(
+  calendarId: string,
+): Promise<{ id: string; direction: SyncDirection; email: string; updatedAt: Date }[]> {
+  const calendar = await db.linkedCalendar.findUnique({ where: { id: calendarId }, select: { googleCalendarId: true } });
+  if (!calendar) return [];
+  const others = await db.linkedCalendar.findMany({
+    where: { googleCalendarId: calendar.googleCalendarId, id: { not: calendarId } },
+    select: { id: true, direction: true, updatedAt: true, account: { select: { email: true } } },
+  });
+  return others.map((other) => ({
+    id: other.id,
+    direction: toSyncDirection(other.direction),
+    email: other.account.email,
+    updatedAt: other.updatedAt,
+  }));
+}
+
 /** The decrypted refresh token, for revoking it at Google on unlink and for the push's access token. */
 export async function loadRefreshToken(accountId: string): Promise<string | null> {
   const account = await db.linkedAccount.findUnique({
@@ -90,6 +137,59 @@ export async function loadPushCalendars(): Promise<PlanCalendar[]> {
     select: { id: true, googleCalendarId: true, accountId: true, direction: true, accessRole: true },
   });
   return calendars.map((calendar) => ({ ...calendar, direction: toSyncDirection(calendar.direction) }));
+}
+
+/** The "Both ways" calendars the pull reads: accounts that still work only. */
+export async function loadPullCalendars(): Promise<PullCalendarRow[]> {
+  const calendars = await db.linkedCalendar.findMany({
+    where: { direction: "twoWay", account: { status: "ok" } },
+    select: {
+      id: true,
+      googleCalendarId: true,
+      accountId: true,
+      syncToken: true,
+      createdAt: true,
+      account: { select: { userId: true } },
+    },
+  });
+  return calendars.map(({ account, ...calendar }) => ({ ...calendar, linkerId: account.userId }));
+}
+
+/**
+ * The ids of an account's linked calendars: all of them (an unlink), or only
+ * those whose Google id is not in `keepGoogleCalendarIds` (calendars Google no
+ * longer lists). Their pulled events are removed before the calendars go.
+ * The same filter as replaceCalendars's deleteMany (linkedCalendarWrites.ts): keep them in step.
+ */
+export async function loadAccountCalendarIds(accountId: string, keepGoogleCalendarIds?: string[]): Promise<string[]> {
+  const calendars = await db.linkedCalendar.findMany({
+    where: { accountId, ...(keepGoogleCalendarIds ? { googleCalendarId: { notIn: keepGoogleCalendarIds } } : {}) },
+    select: { id: true },
+  });
+  return calendars.map((calendar) => calendar.id);
+}
+
+/**
+ * What the Calendar page needs for the pull (mission 60): whether to show
+ * Refresh (a manager, Google configured, some "Both ways" calendar on an
+ * account that still works) and the emails of the viewer's own accounts Google
+ * has locked out (`needs-relink`), for the banner.
+ */
+export async function loadCalendarPullState(
+  viewerId: string,
+  isManager: boolean,
+): Promise<{ showRefresh: boolean; relinkEmails: string[] }> {
+  const [twoWay, relink] = await Promise.all([
+    isManager && isCalendarPushConfigured()
+      ? db.linkedCalendar.count({ where: { direction: "twoWay", account: { status: "ok" } } })
+      : Promise.resolve(0),
+    db.linkedAccount.findMany({
+      where: { userId: viewerId, status: "needs-relink" },
+      orderBy: { linkedAt: "asc" },
+      select: { email: true },
+    }),
+  ]);
+  return { showRefresh: twoWay > 0, relinkEmails: relink.map((account) => account.email) };
 }
 
 /** True when another person has already linked this Google account (its `sub`). */

@@ -9,14 +9,8 @@ import {
 } from "@/lib/google/calendarApi";
 import { isCalendarPushConfigured, loadPushCalendars, loadRefreshToken } from "@/lib/linkedCalendarsRead";
 import { toSyncRowStatus } from "@/lib/calendarSyncVocabulary";
-import {
-  removeAllCopies,
-  sortedPersonNames,
-  syncEventCopies,
-  tokenFailReason,
-  type PlanRow,
-  type SyncDeps,
-} from "@/lib/calendarSyncPlan";
+import { removeAllCopies, syncEventCopies, type SyncDeps } from "@/lib/calendarSyncPlan";
+import { sortedPersonNames, tokenFailReason, type PlanRow } from "@/lib/calendarSyncRules";
 
 // Binds calendarSyncPlan.ts to the real database and Google (mission 56). No
 // auth here (the Server Actions check it first) and no logic of its own: the
@@ -73,6 +67,8 @@ export async function pushEventCopies(input: {
   eventId: string;
   requestedIds?: string[];
   retryOnly?: boolean;
+  /** Leave this calendar's copy alone, neither updated nor removed (a pull's push out, for its source). */
+  exceptLinkedCalendarId?: string | null;
 }): Promise<{ failed: number }> {
   if (!isCalendarPushConfigured()) return { failed: 0 };
   try {
@@ -87,6 +83,7 @@ export async function pushEventCopies(input: {
         endAt: true,
         allDay: true,
         showBusyOnGoogle: true,
+        sourceLinkedCalendarId: true,
         people: { select: { user: { select: { id: true, displayName: true } } } },
       },
     });
@@ -109,6 +106,8 @@ export async function pushEventCopies(input: {
       calendars,
       requestedIds: input.requestedIds,
       retryOnly: input.retryOnly,
+      sourceLinkedCalendarId: event.sourceLinkedCalendarId,
+      exceptLinkedCalendarId: input.exceptLinkedCalendarId,
     });
   } catch {
     // Dropped on purpose; the Marshee event already stands.
@@ -120,13 +119,17 @@ export async function pushEventCopies(input: {
  * Ask Google to remove every copy of the event, before the Marshee delete
  * cascades the rows away. `left` is how many copies may remain. With Google
  * or the key missing nothing is called, and `left` counts the rows.
+ * `exceptLinkedCalendarId` keeps one calendar's copy: a pulled event's source.
  */
-export async function removeEventCopies(eventId: string): Promise<{ left: number }> {
+export async function removeEventCopies(
+  eventId: string,
+  opts: { exceptLinkedCalendarId?: string | null } = {},
+): Promise<{ left: number }> {
   try {
-    const rows = await loadRows(eventId);
+    const rows = (await loadRows(eventId)).filter((row) => row.linkedCalendarId !== opts.exceptLinkedCalendarId);
     if (rows.length === 0) return { left: 0 };
     if (!isCalendarPushConfigured()) return { left: rows.length };
-    return await removeAllCopies(deps, { eventId, rows, calendars: await loadPushCalendars() });
+    return await removeAllCopies(deps, { eventId, rows, calendars: await loadPushCalendars(), exceptLinkedCalendarId: opts.exceptLinkedCalendarId });
   } catch {
     return { left: 1 };
   }

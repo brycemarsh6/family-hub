@@ -36,7 +36,10 @@ export default function PrivacyPage() {
         Marshee uses these to copy events you choose from Marshee into a Google
         calendar you pick, and to update or delete those copies when you change
         or delete the event in Marshee. For events you choose to copy, Google
-        receives the title, time, place, notes and who the event is for.
+        receives the title, time, place, notes and who the event is for. For a
+        calendar set to Both ways, Marshee also reads its events from Google and
+        keeps them up to date in Marshee, and changes you make to those events in
+        Marshee go back to Google.
       </p>
 
       <h2 className={sectionTitle}>What Marshee keeps</h2>
@@ -48,7 +51,12 @@ export default function PrivacyPage() {
         The token is encrypted. For each event copied to Google, Marshee keeps
         Google&apos;s ID and version marker for that copy, so it can update it
         later. If a copy was changed in Google and Marshee replaces it, Marshee
-        keeps the version it replaced. Marshee keeps nothing else from Google.
+        keeps the version it replaced. For each calendar set to Both ways,
+        Marshee keeps a bookmark from Google, so it can ask only for what
+        changed, and the time it last checked. Events from those calendars are
+        saved in Marshee like any other event (title, time, place and notes),
+        with Google&apos;s ID and version marker. Marshee keeps nothing else
+        from Google.
       </p>
 
       <h2 className={sectionTitle}>Who sees it</h2>
@@ -65,7 +73,8 @@ export default function PrivacyPage() {
         Google doesn&apos;t answer, Marshee still unlinks and deletes. You can
         also remove access yourself at myaccount.google.com/permissions. Events
         already copied to Google stay there. Unlink stops Marshee from changing
-        them.
+        them. Events that came in from that account&apos;s calendars are removed
+        from Marshee. They stay in Google.
       </p>
 
       <h2 className={sectionTitle}>Google API Services User Data Policy</h2>

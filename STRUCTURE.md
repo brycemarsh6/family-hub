@@ -20,7 +20,7 @@ a one-line pointer.
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
 | `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`), plus **session-gated GET routes for bytes a page cannot inline** (an `<img src>`), where a Server Action cannot serve the response: `/api/feedback/[id]/screenshot` (mission-38) and `/api/slideshow/[id]/image` (mission-57) are the two instances. Such a route calls `getVerifiedUser()` itself, answers 404 to anyone not allowed (the same answer as an unknown id), reads through the domain's one reader, never writes, and is never added to proxy.ts's public lists. It sends `Cache-Control: private, no-store` by default. It may send `private, max-age=31536000, immutable` only when the bytes behind a URL can never change: the id in the path is made by the server, and the stored file is written once with overwrite refused (the slideshow image). That choice accepts that a copy stays in one device's own cache after sign-out or delete, so it is for household photos, never for anything a person reports or edits. Also **browser return routes**, where a third party sends a person's browser back and a Server Action cannot receive the GET: `/api/google/callback` is the one instance (mission-55; rules under "Browser return routes" below). A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
 | `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** (`logout` reads the session only to send a device login back to `/settings`; the tablet signs out through `logoutWithAdminPassword`, which is guard form (a) and not part of the exception) — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action; **type re-exports** (mission-53, A-L3-10: a component takes a type from its lib home, never through a `"use server"` file, because Turbopack dev threw `HabitInput is not defined` on `export type { HabitInput };`. A new one is a BLOCKER; existing debt to fix on the next touch: `groceriesRecipes.ts:35`, `groceriesPutAway.ts:28-33`) |
-| `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/privacy`, `/api/voice`, `/api/alexa`, `/api/cron/briefing`, `/api/google/callback` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
+| `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/privacy`, `/api/voice`, `/api/alexa`, `/api/cron/briefing`, `/api/cron/calendar-pull`, `/api/google/callback` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
 | `src/components/` | Shared client components, flat directory, PascalCase | Server-only logic |
 | `src/generated/` | Generated Prisma client — never hand-edited, exempt from all caps | Everything else |
@@ -47,6 +47,9 @@ a one-line pointer.
   job is its own route under `src/app/api/cron/<job>/`, carries the same
   first-line `CRON_SECRET` check, and gets its own exact entry in
   `PUBLIC_ROUTES`; `/api/cron/` is never a public prefix (A-48-1).
+  `src/lib/cronAuth.ts` (`server-only`) is the one `CRON_SECRET` check;
+  `/api/cron/briefing` and `/api/cron/calendar-pull` (mission-60) call it
+  first, and a second copy of the check is a BLOCKER.
   The invariant is the same either way: the pure `server-only` call carries
   no auth, and exactly one guarded caller does.
   **Domain write modules** (added 2026-10-09, mission-21; Bryce-approved). A
@@ -830,9 +833,10 @@ amendment id.
   under test ("a name this build does not know is normalised away") outlives
   the vocabulary's own membership.
   (Added 2026-09-06, mission-18, on Captain's ruling; Bryce approved.) (Story: docs/history/structure-rationale.md, "Reachability flip: the BUILT_VIEWS instance".)
-- **Google calendar link (mission-55) and copying events to Google
-  (mission-56).** (Rules: docs/structure/calendar-sync.md, "Google calendar
-  link and copying events to Google".)
+- **Google calendar link (mission-55), copying events to Google
+  (mission-56) and bringing them back (mission-60).** (Rules:
+  docs/structure/calendar-sync.md, "Google calendar link, copying events to
+  Google and bringing them back".)
 
 ## File-size caps
 

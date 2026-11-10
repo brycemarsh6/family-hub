@@ -33,9 +33,9 @@ import { decrypt, COOKIE_NAME } from "@/lib/session";
 // x-voice-token at all; the signature is the real gate, run before anything
 // is parsed or written.
 //
-// /api/cron/briefing is Vercel's cron calling in with no session cookie. The
-// route's own CRON_SECRET bearer check, its very first step, is the gate;
-// proxy is only UX.
+// /api/cron/briefing and /api/cron/calendar-pull are Vercel's cron calling in
+// with no session cookie. Each route's own CRON_SECRET bearer check, its very
+// first step, is the gate; proxy is only UX.
 //
 // /api/google/callback is Google sending the browser back after a person links
 // a calendar. It is public only so the proxy does not bounce it to /login
@@ -44,7 +44,7 @@ import { decrypt, COOKIE_NAME } from "@/lib/session";
 //
 // /privacy is the public privacy policy page Google's consent screen links to.
 // Static text, no data; an exact match so nothing else opens with it.
-const PUBLIC_ROUTES = ["/login", "/privacy", "/api/voice", "/api/alexa", "/api/cron/briefing", "/api/google/callback"];
+const PUBLIC_ROUTES = ["/login", "/privacy", "/api/voice", "/api/alexa", "/api/cron/briefing", "/api/cron/calendar-pull", "/api/google/callback"];
 
 // Shared recipes and cookbooks are the cases that can't be an exact match:
 // the URL carries a per-item token (/share/recipe/<token>,
