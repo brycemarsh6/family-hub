@@ -31,10 +31,8 @@ project) and the next Claude session. Plain English, no assumed background.
 - **Danger rules live in [AGENTS.md](AGENTS.md)** (imported above), design rules
   in [DESIGN.md](DESIGN.md), structure rules in [STRUCTURE.md](STRUCTURE.md).
   Don't copy them here; link to them.
-- Older archives, word for word:
-  [docs/history/claude-md-archive-2026-10-31.md](docs/history/claude-md-archive-2026-10-31.md)
-  and
-  [docs/history/claude-md-archive-2026-11-08.md](docs/history/claude-md-archive-2026-11-08.md).
+- Older archives, word for word: `docs/history/claude-md-archive-2026-10-31.md`
+  and `docs/history/claude-md-archive-2026-11-08.md`.
 
 ## What this is
 
@@ -77,7 +75,6 @@ login (family accounts P1 + P2). Merging to `main` deploys to them.
   has a next PR, offer it as a New task card (`start_session`, fresh, own
   worktree) with a handoff: what just merged, what's next, which plan and
   mission files to read. Don't start the next PR in the same chat.
-  Auto-archive is off (Bryce, 2026-11-06): chats stay open after merge.
 - **Parallel chats each get their own worktree.** Shared files
   (`prisma/schema.prisma`, `CLAUDE.md`, `STRUCTURE.md`, `HubNav.tsx`,
   `package.json`) get small edits only; sync with `main` right before merging.
@@ -110,7 +107,8 @@ files named beside it.
   in private Vercel Blob (prod store Production only, dev store Preview and
   Development). Rules: STRUCTURE.md "Slideshow photos".
 - **Screensaver** (Tablet login only): an idle photo slideshow, black in
-  sleep hours; a tap only wakes it. Settings `/settings/wall-tablet`, rules
+  sleep hours; a tap only wakes it, to the tablet's start page. Settings
+  `/settings/wall-tablet` (parents, admins and the Tablet itself), rules
   `src/lib/screensaver.ts`, structure in `docs/structure/slideshow.md`.
 - **Kitchen**:
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
@@ -160,6 +158,8 @@ files named beside it.
   per-login **Text size** (Normal, Large, Larger, Largest) magnifies the
   app on tablets only, through the root font size; the pinned side menu
   never grows. Size things in rem, never px text (mission 58 file).
+  **Open Marshee on** is each login's page after sign-in (`startPage.ts`);
+  `/` and the Dashboard link always show the dashboard.
 - **Voice**: Siri shortcut over `/api/voice` is the working path, used daily.
   `/api/alexa` is live but dormant; Alexa+ is blocked on Amazon
   (`.avengers/plans/v3b-alexa-plus-addon.md`).
@@ -227,13 +227,13 @@ Lucide outline icons only, secondary row actions behind a right-to-left swipe
 (destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-11-09)
+## Current status (updated 2026-11-10)
 
 Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
 
-- **Screensaver S3** ("Open Marshee on" start page) is next:
-  `.avengers/plans/screensaver-slideshow-v1.md`; read mission 62's Delivery.
+- **Screensaver S4** ("On this day") is next:
+  `.avengers/plans/screensaver-slideshow-v1.md`; read mission 64's Delivery.
 - **Dashboard widgets W3** is next after the W2 Calendar widget:
   `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the

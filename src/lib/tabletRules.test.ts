@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ROLES } from "./constants";
-import { tabletMayCompleteAnyTask } from "./tabletRules";
+import { tabletMayChangeWallTablet, tabletMayCompleteAnyTask } from "./tabletRules";
 
 test("tabletMayCompleteAnyTask: true for the device role", () => {
   assert.equal(tabletMayCompleteAnyTask("device"), true);
@@ -19,5 +19,14 @@ test("tabletMayCompleteAnyTask: false for admin, parent and kid (the helper only
 
 test("tabletMayCompleteAnyTask: device is the only role that passes", () => {
   const allowed = ROLES.filter((role) => tabletMayCompleteAnyTask(role));
+  assert.deepEqual(allowed, ["device"]);
+});
+
+test("tabletMayChangeWallTablet: true for the device role", () => {
+  assert.equal(tabletMayChangeWallTablet("device"), true);
+});
+
+test("tabletMayChangeWallTablet: device is the only role that passes", () => {
+  const allowed = ROLES.filter((role) => tabletMayChangeWallTablet(role));
   assert.deepEqual(allowed, ["device"]);
 });

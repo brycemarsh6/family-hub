@@ -90,6 +90,7 @@ export default async function RootLayout({
         <AppChrome
           navMode={user?.navMode ?? DEFAULT_NAV_MODE}
           screensaver={screensaver}
+          startPage={user?.startPage}
           user={
             user && {
               displayName: user.displayName,

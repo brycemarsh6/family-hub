@@ -4,6 +4,7 @@ import { AdminPasswordSheet } from "@/components/AdminPasswordSheet";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { SettingsAccountCard } from "@/components/SettingsAccountCard";
 import { NavModeSetting } from "@/components/NavModeSetting";
+import { StartPageSetting } from "@/components/StartPageSetting";
 import { TextSizeSetting } from "@/components/TextSizeSetting";
 import { VacationCard } from "@/components/VacationCard";
 import { WinnieSettings } from "@/components/WinnieSettings";
@@ -11,6 +12,7 @@ import { logout } from "@/app/actions/auth";
 import { householdToday } from "@/lib/assistant/today";
 import { SYNCED_CALENDARS_WORDS } from "@/lib/calendarSyncVocabulary";
 import { MANAGER_ROLES } from "@/lib/constants";
+import { tabletMayChangeWallTablet } from "@/lib/tabletRules";
 import { requireVerifiedUser } from "@/lib/dal";
 import { countNewFeedback } from "@/lib/feedbackRead";
 import { loadVacations } from "@/lib/habitsRead";
@@ -23,17 +25,18 @@ export const dynamic = "force-dynamic";
 
 /**
  * App-wide settings: your account card first (taps through to /profile),
- * "Menu style" for everyone (devices too), the
+ * "Menu style" for everyone (devices too), "Text size", "Open Marshee on"
+ * (accounts only: the tablet sets its own on the Wall tablet page), the
  * admin-only doors "Manage family" and "Feedback", the parent and admin doors "Synced calendars"
- * "Slideshow photos" and "Wall tablet", and last the "Habits & Chores" section
+ * and "Slideshow photos", the "Wall tablet" door (parents, admins and the tablet itself), and last the "Habits & Chores" section
  * and the Vacation mode card (accounts only: a device login never sees them), then
  * Sign out last. Your own name, colour and
  * password live on /profile.
  *
  * Wide (a 48rem container, decision 283): two columns. Left: account card,
- * Menu style, Manage family, Synced calendars, Slideshow photos, Wall tablet, Feedback, Sign out. Right:
+ * Menu style, Text size, Open Marshee on, Manage family, Synced calendars, Slideshow photos, Wall tablet, Feedback, Sign out. Right:
  * Habits & Chores, Vacation, Winnie. A phone keeps one column in this order:
- * 1 account card, 2 Menu style, 3 Manage family, Synced calendars, then Slideshow photos and Wall tablet (they
+ * 1 account card, 2 Menu style, Text size, Open Marshee on, 3 Manage family, Synced calendars, then Slideshow photos and Wall tablet (they
  * share order-3, so source order decides), 4 Feedback, 5 Habits & Chores, 6 Vacation,
  * 7 Winnie, 8 Sign out. The column divs dissolve (`contents`) below 48rem and
  * each section's `order-N` sets that order. The two sheets inside (Menu style,
@@ -69,6 +72,7 @@ export default async function SettingsPage() {
             <div className="order-2">
               <NavModeSetting navMode={user.navMode} />
               <TextSizeSetting textSize={user.textSize} />
+              {!user.isDevice && <StartPageSetting startPage={user.startPage} forTablet={false} />}
             </div>
 
             {user.role === "admin" && (
@@ -119,7 +123,7 @@ export default async function SettingsPage() {
               </div>
             )}
 
-            {canManageSlideshow && (
+            {(canManageSlideshow || tabletMayChangeWallTablet(user.role)) && (
               <div className="order-3">
                 <Link
                   href="/settings/wall-tablet"

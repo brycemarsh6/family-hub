@@ -18,6 +18,7 @@ import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/password";
 import { matchesAnyHash } from "@/lib/adminPasswordMatch";
 import { isLoginRateLimited, recordLoginAttempt } from "@/lib/loginRateLimit";
+import { toStartPage } from "@/lib/startPage";
 
 export type LoginState = { error?: string };
 
@@ -61,7 +62,13 @@ export async function login(
   // *allowed* to check it (that's the rate-limit gate right after).
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, passwordHash: true, deactivatedAt: true },
+    select: {
+      id: true,
+      role: true,
+      passwordHash: true,
+      deactivatedAt: true,
+      preferences: { select: { startPage: true } },
+    },
   });
   const canAttempt = !!user && !user.deactivatedAt && !!user.passwordHash;
 
@@ -95,7 +102,7 @@ export async function login(
 
   // redirect() works by throwing a signal Next.js catches, so it must sit
   // outside any try/catch — there isn't one here, which is why.
-  redirect("/");
+  redirect(toStartPage(user!.preferences?.startPage));
 }
 
 export async function logout(): Promise<void> {
