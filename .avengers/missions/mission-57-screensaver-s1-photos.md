@@ -161,6 +161,42 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision (HEAD 3ad6ec1) | PASS | none | 9 notes; gauntlet re-run green; boundaries clean; auth, caching and EXIF parser reviewed |
+
+| 1 | Captain (HEAD 3ad6ec1) | BLOCKED | 2: `SlideshowPhotoSheet.tsx:8-11` local `MONTH_NAMES`, and `SlideshowPhotosManager.tsx:15-18` local `Intl.DateTimeFormat` month formatter, both violate STRUCTURE.md's month-name rule ("a sixth definition is a BLOCKER") | notes: mission number at STRUCTURE.md:17; `normalizeCaption` copy; repeated `select` (export `SLIDESHOW_PHOTO_SELECT`); `canSyncCalendars` name gates two doors; no own `loading.tsx`; full-width Add button on iPad (for Strange); proposed amendments A (caching rule wording), B (Slideshow photos one-source-of-truth entry), C (Wide pages list) |
+
+| 1 | Strange (HEAD 3ad6ec1, dev server, Bryce's session, dev store) | BLOCKED | 2: failure line renders "1 photocouldn't be added." (JSX drops the space, Manager :122-123); on iPad the "Add photos" button (1148x48) and the progress/failure rows stretch the full page width (STRUCTURE.md wide-page rule 3, ipad-landscape-v1 rules 3-4) | passed: Settings row matches Manage family, count 0/4/0; count wording; upload progress; 3 / 7 column grid; thumbs only (~13 KB), full ~75 KB; cache headers; taken dates exact (no off-by-one); caption save + collapse; delete waits ("Deleting…" then removed); 48px targets; contrast both themes. Notes: alt text identical for undated cells (use takenOn); "1 photo. They show…" grammar (Bryce's copy); unreadable file loses its reason; failure row never clears; focus falls to BODY after delete; counter counts before whitespace collapse. Cleanup: 5 test photos uploaded and deleted through the page, final count 0, `public/strange-test/` removed. |
+
+### C4 — Gate pass 1 fix batch
+- **Status:** PENDING
+- **Objective:** Clear the four gate-pass-1 blockers and the notes Fury took, in one dispatch.
+- **Boundaries:** may touch: `src/components/SlideshowPhotosManager.tsx`, `src/components/SlideshowPhotoSheet.tsx`, `src/lib/slideshowPhotos.ts`, `src/lib/slideshowPhotos.test.ts`, `src/lib/slideshowRead.ts`, `src/lib/shrinkPhoto.ts`, `src/app/actions/slideshowPhotos.ts`, `src/app/(app)/settings/page.tsx`, `STRUCTURE.md` (line 17's "mission-56" to "mission-57" only; the amendments wait for Bryce). Must not touch: everything else, including `prisma/`, `src/lib/mealPlanDates.ts`, `src/lib/householdDate.ts`, `src/lib/gridClasses.ts`.
+- **Blockers:**
+  1. (Captain) `SlideshowPhotoSheet.tsx`: delete the local `MONTH_NAMES`; use `FULL_MONTH_NAMES` from `@/lib/mealPlanDates`. Keep the label built from the `YYYY-MM-DD` text with no timezone conversion (`parseDateParam` from `@/lib/householdDate` is fine if it fits; null means "Added by <name>").
+  2. (Captain) `SlideshowPhotosManager.tsx`: delete `addedDate` and its `Intl.DateTimeFormat`; build dates with `calendarDateInZone(..., HOUSEHOLD_TIME_ZONE)` and `formatShortCalendarDate` from `@/lib/householdDate` (see note 5 for the new alt wording).
+  3. (Strange) The failure line must read "1 photo couldn't be added." / "N photos couldn't be added." with the space: build the sentence in one expression.
+  4. (Strange) From `md` up, "Add photos" hugs its label (`md:w-auto md:px-6`, the `LogLeftoverButton.tsx` pattern), and the progress block and failure row are capped at `md:max-w-md`. Below `md` nothing changes.
+- **Notes taken:**
+  5. Alt text: "Photo taken <Mon D, YYYY>" from `takenOn` when there is one, otherwise "Photo added <Mon D, YYYY>" (Denver), both through the shared helpers in blocker 1/2 (short month names from the shared source, never a new list).
+  6. Use `normalizeCaption` in `handleSaveCaption` instead of the inline copy.
+  7. Export `SLIDESHOW_PHOTO_SELECT` from `slideshowRead.ts` and use it in both `listSlideshowPhotos` and the action's `create` select.
+  8. `PHOTO_MAX_BYTES` becomes `3.5 * 1024 * 1024` (Vercel Functions' request body limit is 4.5 MB; photo + thumb + multipart must fit); update its test.
+  9. If the first `put` throws, still try to delete `photoPath` (deleting a missing path is harmless).
+  10. `shrinkPhoto`: set `imageSmoothingQuality = "high"` on both canvases.
+  11. A file `shrinkPhoto` cannot read shows its own message ("That photo couldn't be read.") in the alert line and is not offered for "Try again"; only upload failures are retried.
+  12. The failure row clears when any later action succeeds (delete or caption save) and has no stale state across uploads.
+  13. After a successful delete, focus moves to the "Add photos" button.
+  14. `settings/page.tsx`: add `const canManageSlideshow = canSyncCalendars;` with a one-line comment, and gate the row on it.
+  15. STRUCTURE.md:17: "mission-56" becomes "mission-57" (a correction, not an amendment).
+- **Not taken:** Captain's own `loading.tsx` for the page (fine to inherit for now; recorded as a leftover); the counter counting before whitespace collapse (harmless); dropping the redundant `user.isDevice ||` checks (harmless until tablet PR B).
+- **Verification:** the gauntlet passes; the test count rises only by any new tests you add.
+- **Evidence required:** each blocker's new code quoted; `grep -n "MONTH_NAMES\|DateTimeFormat" src/components/Slideshow*.tsx` returns nothing; gauntlet last lines; `git show --stat HEAD`.
+- **Done criteria:** Captain and Strange pass 2 both PASS.
+- **Report:** pending.
+
+**Vision pass 1 notes queued for the fix batch:** STRUCTURE.md:17 says "mission-56" (renumbered, now 57); `SlideshowPhotosManager.tsx:90` re-implements `normalizeCaption`; `PHOTO_MAX_BYTES` (4 MiB) + thumb + multipart overhead can exceed Vercel Functions' 4.5 MB request body limit (lower to 3.5 MiB); first `put` throwing after storing leaves an orphan (clean up that path too); thumbnail drawn without `imageSmoothingQuality = "high"`. Not taken: the route answering 500 on a Blob outage (a broken image either way); a caption save on a photo another parent deleted keeps it in the grid until reload (rare, harmless).
+
+**Done-means correction (Vision note):** a signed-out request never reaches the image route: `proxy.ts` redirects it to `/login` like every protected path, which leaks nothing. The route's own 404 covers a valid cookie whose user fails verification. The Brief's "a signed-out request gets 404" was Fury's wording error; the code follows the plan.
 
 ## Handoff log
 
