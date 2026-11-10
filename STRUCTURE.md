@@ -48,7 +48,7 @@ a one-line pointer.
   first-line `CRON_SECRET` check, and gets its own exact entry in
   `PUBLIC_ROUTES`; `/api/cron/` is never a public prefix (A-48-1).
   `src/lib/cronAuth.ts` (`server-only`) is the one `CRON_SECRET` check;
-  `/api/cron/briefing` and `/api/cron/calendar-pull` (mission-58) call it
+  `/api/cron/briefing` and `/api/cron/calendar-pull` (mission-60) call it
   first, and a second copy of the check is a BLOCKER.
   The invariant is the same either way: the pure `server-only` call carries
   no auth, and exactly one guarded caller does.
@@ -285,7 +285,7 @@ amendment id.
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
   `VacationCard`, `HabitTileRows` (in `HabitsTile.tsx`, used by both dashboard habit
   tiles) `DashboardWidgetList` (moved over in mission-34), `PlanDayCard` and
-  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37), `FeedbackList` (mission-38);
+  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37), `FeedbackList` (mission-38), `TextSizeSetting` (mission-58);
   `HoursLogSheet` takes its caller's `run` (typed `RunChange`) and never
   wraps a save itself)
   calls it with the action as a closure, so lib never imports `app/`. A second
@@ -308,7 +308,11 @@ amendment id.
   screen that maps paths to page names by itself is a BLOCKER.
   `src/lib/routeRedirects.ts`: `LEGACY_ROUTE_REDIRECTS`, the only redirect
   map; it has **no imports at all**, because `next.config.ts` imports it by
-  relative path. `src/lib/navMode.ts`: the only menu-style list
+  relative path. `src/lib/navMode.ts`: the only menu-style list.
+  `src/lib/textSize.ts`: the only text-size list (`TEXT_SIZES`, labels,
+  preview sizes, `TEXT_SIZE_HELP`, `DEFAULT_TEXT_SIZE`, `toTextSize`), no
+  imports; `globals.css`'s `data-text-size` block is the only place a size
+  becomes a font size (mission-58).
 - `src/lib/goalVocabulary.ts` — Plans & Goals' vocabulary: `LIFE_AREAS`,
   `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`,
   `ONGOING_LABEL` (mission-38), `GOAL_BOARD_EMPTY_AREA` (mission-51, the
@@ -830,7 +834,7 @@ amendment id.
   the vocabulary's own membership.
   (Added 2026-09-06, mission-18, on Captain's ruling; Bryce approved.) (Story: docs/history/structure-rationale.md, "Reachability flip: the BUILT_VIEWS instance".)
 - **Google calendar link (mission-55), copying events to Google
-  (mission-56) and bringing them back (mission-58).** (Rules:
+  (mission-56) and bringing them back (mission-60).** (Rules:
   docs/structure/calendar-sync.md, "Google calendar link, copying events to
   Google and bringing them back".)
 

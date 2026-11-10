@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NAV_RAIL_WIDTH_PX, NAV_SIDEBAR_WIDTH_PX, pinnedNavWidthPx, showsWordmarkHeader } from "./appChrome";
+import { HAMBURGER_ROW_HEIGHT, NAV_RAIL_WIDTH, NAV_SIDEBAR_WIDTH, pinnedNavWidth, showsWordmarkHeader } from "./appChrome";
 
 test("showsWordmarkHeader: the dashboard and /login show it", () => {
   assert.equal(showsWordmarkHeader("/"), true);
@@ -15,10 +15,14 @@ test("showsWordmarkHeader: every other page does not", () => {
   assert.equal(showsWordmarkHeader("/kitchen/inventory"), false);
 });
 
-test("pinnedNavWidthPx: 0 for the menu button, 72 for the rail, 256 for the sidebar", () => {
-  assert.equal(pinnedNavWidthPx("hamburger"), 0);
-  assert.equal(pinnedNavWidthPx("rail"), 72);
-  assert.equal(pinnedNavWidthPx("sidebar"), 256);
-  assert.equal(NAV_RAIL_WIDTH_PX, 72);
-  assert.equal(NAV_SIDEBAR_WIDTH_PX, 256);
+test("pinnedNavWidth: 0px for the menu button, 4.5rem for the rail, 16rem for the sidebar", () => {
+  assert.equal(pinnedNavWidth("hamburger"), "0px");
+  assert.equal(pinnedNavWidth("rail"), "4.5rem");
+  assert.equal(pinnedNavWidth("sidebar"), "16rem");
+  assert.equal(NAV_RAIL_WIDTH, "4.5rem");
+  assert.equal(NAV_SIDEBAR_WIDTH, "16rem");
+});
+
+test("HAMBURGER_ROW_HEIGHT: derived from the rem number, still 3.5rem", () => {
+  assert.equal(HAMBURGER_ROW_HEIGHT, "3.5rem");
 });

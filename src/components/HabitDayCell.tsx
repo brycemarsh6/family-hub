@@ -10,7 +10,7 @@ export type CalendarCell = { day: string; state: MonthCellState; reason?: CellRe
 const FULL = "flex min-h-11 w-full max-w-12 items-center justify-center justify-self-center rounded-full text-sm";
 
 /** The Report's small grids: about 22px cells, 10px numbers (decision 167). Read-only, so no tap target to protect. */
-const COMPACT = "flex h-[22px] w-full max-w-[22px] items-center justify-center justify-self-center rounded-full text-[10px]";
+const COMPACT = "flex h-[1.375rem] w-full max-w-[1.375rem] items-center justify-center justify-self-center rounded-full text-[0.625rem]";
 
 /** Look by state. Done and Skipped differ by shape as well as color (a filled disc, a dashed ring), Missed by its amber fill. Future and not-due days are plain (no ring), so only a due day looks like something to do; a not-due today is plain too, its number bolder. */
 function cellClass(state: MonthCellState, isToday: boolean): string {

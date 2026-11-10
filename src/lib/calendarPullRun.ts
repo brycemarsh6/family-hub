@@ -8,7 +8,7 @@ import {
 } from "@/lib/calendarSyncPull";
 
 // The steps of a pull, in order, with every database and Google call
-// injected (mission 58, C4b). Pure: tests run it with fakes. The real
+// injected (mission 60, C4b). Pure: tests run it with fakes. The real
 // bindings are in calendarEventPull.ts. Nothing here touches, logs or
 // returns an access token or a sync token beyond handing them to the deps.
 

@@ -241,7 +241,7 @@ export async function syncEventCopies(
 /**
  * Delete: ask Google to remove the copy on every calendar (even ones since
  * switched off, decision 8 and plan decision 6), except `exceptLinkedCalendarId`
- * (a pulled event's source, mission 58). Returns how many copies are
+ * (a pulled event's source, mission 60). Returns how many copies are
  * left. The caller deletes the Marshee event either way.
  */
 export async function removeAllCopies(

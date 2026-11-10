@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { SkeletonBlock } from "@/components/Skeleton";
 import { MonthGridSkeletonRows } from "@/components/MonthGridSkeletonRows";
 import { parseViewParam } from "@/lib/calendarPaging";
-import { HAMBURGER_ROW_HEIGHT_PX } from "@/lib/appChrome";
+import { HAMBURGER_ROW_HEIGHT } from "@/lib/appChrome";
 import { YEAR_GRID_CLASSES } from "@/lib/gridClasses";
 import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 
@@ -245,7 +245,7 @@ export default function Loading() {
     <div data-page-width="wide" className="py-2 has-[[data-fills-viewport]]:pb-0" role="status" aria-label="Loading Calendar">
       <div
         className="mb-2 flex h-[66px] items-start justify-end gap-3 pl-14"
-        style={{ marginTop: -HAMBURGER_ROW_HEIGHT_PX }}
+        style={{ marginTop: `calc(-1 * ${HAMBURGER_ROW_HEIGHT})` }}
       >
         <SkeletonBlock className="h-11 w-11 rounded-full" />
         <SkeletonBlock className="h-11 w-11 rounded-full" />

@@ -134,7 +134,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
       {/* Habits left, Chores right from a 45rem container (the page fits whatever room the Sidebar leaves);
           a lone group takes the left column and never stretches (STRUCTURE.md "Wide pages" rule 3). */}
       <div className="@container">
-        <div className="grid items-start gap-x-4 @min-[45rem]:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-x-4 @min-[45rem]:grid-cols-2">
       {groups.map(
         (group) =>
           group.items.length > 0 && (
@@ -173,7 +173,7 @@ export function HabitManager({ active, archived }: { active: HabitManagerItem[];
       {/* Second grid, same columns: the two links stay in the left column, Archived spans their rows on the right.
           DOM order stays chart, Archived, settings so a phone reads as it always has. */}
       <div className="@container">
-        <div className="grid items-start gap-x-4 @min-[45rem]:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-x-4 @min-[45rem]:grid-cols-2">
       <Link href="/habits/chart" className={`${CARD} mt-5 flex min-h-15 items-center gap-3 py-1.5 @min-[45rem]:col-start-1`}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg">
           <CalendarDays aria-hidden="true" size={20} />

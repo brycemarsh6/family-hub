@@ -129,7 +129,7 @@ export type CalendarEventView = {
    */
   syncs: CalendarEventSyncView[];
   /**
-   * The Google calendar this event was pulled from (mission 58), for the
+   * The Google calendar this event was pulled from (mission 60), for the
    * detail sheet's "From Google" line. Name only, never an id. Null or absent
    * for an event made in Marshee.
    */

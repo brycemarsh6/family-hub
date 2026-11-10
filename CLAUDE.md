@@ -153,8 +153,10 @@ files named beside it.
   `.avengers/plans/ipad-landscape-v1.md`; the rule is in STRUCTURE.md.
 - **Family accounts**: per-person logins, role gates, account management, kid
   profiles without a password. A "Tablet" device login for the wall tablet
-  can check off any task; signing out of it needs an admin password. Next:
-  the tablet's own dashboard and calendar editing (see Current status).
+  can check off any task; signing out of it needs an admin password. A
+  per-login **Text size** (Settings: Normal, Large, Extra large) magnifies
+  the whole app on tablets only, through the root font size: size things in
+  rem, never fixed px text (`.avengers/missions/mission-58-text-size.md`).
 - **Voice**: Siri shortcut over `/api/voice` is the working path, used daily.
   `/api/alexa` is live but dormant; Alexa+ is blocked on Amazon
   (`.avengers/plans/v3b-alexa-plus-addon.md`).

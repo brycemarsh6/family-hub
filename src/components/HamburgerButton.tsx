@@ -81,7 +81,7 @@ export function HamburgerButton({
         // `left-[var(--app-nav-width,0px)]` starts it at the pinned menu's right
         // edge (AppChrome sets the variable; unset it is 0, the old inset-x-0).
         // The button's h-12 plus the 0.5rem top offset below make up
-        // HAMBURGER_ROW_HEIGHT_PX in src/lib/appChrome.ts: change either here
+        // HAMBURGER_ROW_HEIGHT in src/lib/appChrome.ts: change either here
         // and update that constant, then check the dependents listed there.
         <div
           className="print:hidden pointer-events-none fixed right-0 left-[var(--app-nav-width,0px)] z-50 flex justify-center"

@@ -248,7 +248,7 @@ inside the section headed "don't relitigate.")**
 
 ## One link per Google calendar
 
-Mission-58 pass 2: a shared Google calendar linked by two family members
+Mission-60 pass 2: a shared Google calendar linked by two family members
 gave two LinkedCalendar rows one googleCalendarId. The pull's first answer
 was to adopt a sibling link's events, which needed a relation read of
 LinkedCalendar outside linkedCalendarsRead.ts (Captain blocker) and made

@@ -43,7 +43,7 @@ export function ActionCircle({
         {icon}
       </span>
       <span
-        className={`font-medium text-muted ${size === "sm" ? "text-[11px] leading-4" : "text-xs"}`}
+        className={`font-medium text-muted ${size === "sm" ? "text-[0.6875rem] leading-4" : "text-xs"}`}
       >
         {label}
       </span>

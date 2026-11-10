@@ -1,4 +1,4 @@
-# Mission 58: Calendar sync PR 3, bring Google events into Marshee
+# Mission 60: Calendar sync PR 3, bring Google events into Marshee
 
 **Project:** family-hub (Marshee)
 **Status:** INTERROGATING (plan and mocks waiting on Bryce)
@@ -733,6 +733,8 @@ would flip Google's own choice. Both are fixed before the pull exists.
 | 1 | Vision | BLOCKED | PATCH keeps cleared notes/location in Google; a Google change never reaches other calendars; a shared calendar linked twice imports twice; unlink then relink duplicates pulled events; `calendarPullRun.ts` outside C4b's list | Gauntlet green (1677, UTC and LA too, build ok); echoes, lease, restart, secrets all check out; Google HTML descriptions show raw `<br>`; a failed Marshee delete of a pulled event can come back; mission number 57 already used on main |
 
 ## Handoff log
+
+- 2026-11-09: Renumbered from mission 58 to mission 60 at merge time: another chat merged `mission-58-text-size.md` first. Fake data keeps its "zz-m58" prefix.
 
 - 2026-11-09: Bryce answered Strange's words: reconnect next step "To fix it, tap Link a Google account and choose this account again."; edit note "stays on"; privacy Unlinking adds "Events that came in from that account's calendars are removed from Marshee. They stay in Google." Vision's budget is spent; Bryce allowed a fourth pass after the handover fix (answer 9). The Schedule reconnect banner scrolls away (answer 10). Merged origin/main (17 commits, clean).
 

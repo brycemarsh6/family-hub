@@ -96,7 +96,7 @@ export default function DashboardWidgetList({
       {canCustomize && headerSlot && createPortal(customizeButton, headerSlot)}
       {notes && (
         <div className="@container mb-1">
-          <div className="grid items-start gap-x-4 @min-[45rem]:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-x-4 @min-[45rem]:grid-cols-2">
             {notes}
           </div>
         </div>

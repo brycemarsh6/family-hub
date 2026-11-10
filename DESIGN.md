@@ -41,7 +41,7 @@ tell when a rule's reason has expired.
   overlay the page reserves no room for — a floating action button, a toast,
   a sticky banner — fails this even at 44px, because no amount of scrolling
   moves what sits at a fixed viewport y. The floating hamburger passes because
-  `<main>` reserves its row (`HAMBURGER_ROW_HEIGHT_PX`) above the content. **Size and reachability are different properties.** (Added 2026-09-03
+  `<main>` reserves its row (`HAMBURGER_ROW_HEIGHT`, in rem since mission-58) above the content. **Size and reachability are different properties.** (Added 2026-09-03
   on Strange's ruling, mission 9: Month's grid passed every size check while
   one of its day numbers opened the Add sheet instead of Day view, and the
   first measurement — taken scrolled to the bottom — reported zero failures
@@ -91,6 +91,22 @@ tell when a rule's reason has expired.
   identical in kind to the timed block beside it. The precedent it rests on
   is the app's own: in Month the **cell** is the 44px target and the pills
   inside it are non-interactive.)*
+- **Sizes are rem, not px, so Text size reaches them (mission-58).** Text,
+  spacing, tap targets and any chrome dimension written into a `style` are
+  rem (Tailwind's scale, or an arbitrary value such as `text-[0.625rem]`),
+  because the Text size setting raises the root font size on wide screens
+  and a px value stays put while everything around it grows. Never write
+  `text-[Npx]`; convert as N/16 rem. Px on purpose, and only here: **(a)** the
+  hour timeline's geometry (hour height, event top and height), under the
+  hour-timeline exception above; **(b)** container thresholds that must not
+  move with Text size (`docs/structure/layout.md`, Wide pages rule 2);
+  **(c)** a number JavaScript needs, which is measured or derived from the
+  live root font size, never assumed to be 16 (a `_PX` constant may only seed
+  the first paint); **(d)** Lucide icons' `size` prop, which `globals.css`'s
+  Text size block scales with `zoom`; **(e)** hairline borders (1px, 2px).
+  *(Reason: Strange's mission-58 pass 1 found 17 files of px text staying
+  small while the page grew, and a px menu row covering every page's first
+  line. Captain's ruling; Bryce approved 2026-11-09.)*
 - **Quantities change only by tapping** — the shared `QuantityStepper` (+/−),
   never a typed number. Typing numbers is fiddly on a phone and worse on a
   wall tablet. (Prose is different: recipes and notes are keyboard entry —
@@ -135,7 +151,7 @@ tell when a rule's reason has expired.
   root layout via `AppChrome`. Its list never changes as you move, only which
   row is lit. The wordmark header appears only on the dashboard and `/login`;
   every other page shows the floating hamburger and reserves
-  `HAMBURGER_ROW_HEIGHT_PX` above its content, so the button is never an
+  `HAMBURGER_ROW_HEIGHT` above its content, so the button is never an
   unreserved overlay. `/login` and `/share/*` render no drawer: there is no
   session yet to navigate with, and a shared link must not leak the app's
   navigation to someone with no session.

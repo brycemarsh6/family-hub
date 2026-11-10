@@ -4,6 +4,7 @@ import { AdminPasswordSheet } from "@/components/AdminPasswordSheet";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { SettingsAccountCard } from "@/components/SettingsAccountCard";
 import { NavModeSetting } from "@/components/NavModeSetting";
+import { TextSizeSetting } from "@/components/TextSizeSetting";
 import { VacationCard } from "@/components/VacationCard";
 import { WinnieSettings } from "@/components/WinnieSettings";
 import { logout } from "@/app/actions/auth";
@@ -67,6 +68,7 @@ export default async function SettingsPage() {
 
             <div className="order-2">
               <NavModeSetting navMode={user.navMode} />
+              <TextSizeSetting textSize={user.textSize} />
             </div>
 
             {user.role === "admin" && (

@@ -1,13 +1,13 @@
 // Fake linked Google accounts, for looking at the Synced calendars page
 // (mission 55) without a real Google link. One account per manager (the
 // first admin and the first parent), each with two calendars, plus a third
-// "needs reconnecting" account (mission 58) and two events pulled from Google.
+// "needs reconnecting" account (mission 60) and two events pulled from Google.
 //
 // Run with:  npm run db:seed-linked-calendars
 // Clean up with:  npm run db:clean-linked-calendars
 //
 // IMPORTANT: this only writes LinkedAccount and LinkedCalendar rows, plus
-// four fake events (mission 56) and two fake pulled events (mission 58), each
+// four fake events (mission 56) and two fake pulled events (mission 60), each
 // with their sync rows. It reads the User table
 // for ids and never writes to it (AGENTS.md danger register).
 // Every account has a googleSubject starting "zz-m55-" so the clean script
@@ -117,7 +117,7 @@ async function main() {
     }
   }
 
-  // Mission 58: the first fake account's Main calendar is "twoWay" and was
+  // Mission 60: the first fake account's Main calendar is "twoWay" and was
   // pulled 2 minutes ago (set on every run, so re-running refreshes it). The
   // other fake accounts' Main calendars are the same Google calendar, and only
   // one link of a Google calendar may be on, so they are set "off" here.
@@ -135,7 +135,7 @@ async function main() {
     });
   }
 
-  // Mission 58: a third fake account, owned by the first admin, that needs
+  // Mission 60: a third fake account, owned by the first admin, that needs
   // reconnecting, with one two-way calendar.
   const admin = managers.find((m) => m.role === "admin") ?? managers[0];
   const relinkAccount = await db.linkedAccount.upsert({
@@ -189,7 +189,7 @@ async function main() {
           syncs: {
             create: {
               linkedCalendarId: firstMainCalendarId,
-              // One id per fake event: the (calendar, Google id) pair is unique (mission 58).
+              // One id per fake event: the (calendar, Google id) pair is unique (mission 60).
               googleEventId: `${FAKE_GOOGLE_EVENT_ID}-${FAKE_EVENTS.indexOf(fake)}`,
               status: fake.status,
               failReason: fake.failReason,
@@ -201,7 +201,7 @@ async function main() {
     }
   }
 
-  // Mission 58: two events "pulled from Google" onto the first Main calendar,
+  // Mission 60: two events "pulled from Google" onto the first Main calendar,
   // owned by that account's owner. One timed (tomorrow 2 to 3 PM Denver), one
   // all-day (the day after).
   let pulledMade = 0;

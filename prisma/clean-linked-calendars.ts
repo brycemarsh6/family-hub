@@ -14,7 +14,7 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
 
 async function main() {
-  // Pulled events (mission 58) first, then the rest, so nothing is left
+  // Pulled events (mission 60) first, then the rest, so nothing is left
   // pointing at a fake calendar.
   const pulled = await db.calendarEvent.deleteMany({
     where: { title: { startsWith: "zz-m58 " } },

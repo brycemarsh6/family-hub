@@ -244,7 +244,7 @@ export function TimelineAllDayStrip({
               // TaskCard.tsx's own aria-label already documents for the
               // identical fact.
               aria-label={completed ? `${task.title}, completed` : task.title}
-              className={`truncate rounded border px-1 text-left text-[9px] font-semibold leading-[24px] ${
+              className={`truncate rounded border px-1 text-left text-[0.5625rem] font-semibold leading-[1.5rem] ${
                 completed ? "border-muted text-muted" : "border-fg text-fg"
               }`}
               style={{
@@ -291,7 +291,7 @@ export function TimelineAllDayStrip({
             key={span.event.id}
             type="button"
             onClick={() => onOpenEvent(event, representativeDay)}
-            className={`truncate border-y px-1 text-left text-[9px] font-semibold leading-[24px] text-fg border-fg ${
+            className={`truncate border-y px-1 text-left text-[0.5625rem] font-semibold leading-[1.5rem] text-fg border-fg ${
               continuesBefore ? "" : "rounded-l border-l"
             } ${continuesAfter ? "" : "rounded-r border-r"}`}
             style={{
@@ -345,7 +345,7 @@ export function TimelineAllDayStrip({
         <button
           type="button"
           onClick={collapseAllDay}
-          className="min-w-0 overflow-hidden whitespace-nowrap text-left text-[9px] leading-[24px] text-muted underline decoration-dotted"
+          className="min-w-0 overflow-hidden whitespace-nowrap text-left text-[0.5625rem] leading-[1.5rem] text-muted underline decoration-dotted"
           style={{ gridColumn: "2 / -1", gridRow: maxAllDayLane + 2 }}
         >
           − Show less
@@ -371,7 +371,7 @@ export function TimelineAllDayStrip({
           //
           // Three tiers, not one, because the ink that has to fit grows
           // with the digit count — measured directly against this button's
-          // own font (`text-[9px] font-semibold`), not assumed: "+9 more"
+          // own font (`text-[0.5625rem] font-semibold`), not assumed: "+9 more"
           // is 35.8px of ink, "+99 more" is 41.4px, "+999 more" is 45.3px.
           // A single threshold sized for one digit would clip the trailing
           // "e" off a two- or three-digit count in a column just wide
@@ -384,7 +384,7 @@ export function TimelineAllDayStrip({
               type="button"
               onClick={expandAllDay}
               aria-label={overflowLabel}
-              className="@container min-w-0 overflow-hidden whitespace-nowrap text-left text-[9px] leading-[24px] text-muted underline decoration-dotted"
+              className="@container min-w-0 overflow-hidden whitespace-nowrap text-left text-[0.5625rem] leading-[1.5rem] text-muted underline decoration-dotted"
               style={{ gridColumn: col + 2, gridRow: maxAllDayLane + 2 }}
             >
               <span>+{count}</span>

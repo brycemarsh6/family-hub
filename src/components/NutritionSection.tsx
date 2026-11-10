@@ -140,7 +140,7 @@ function NutritionResults({ nutrition }: { nutrition: Nutrition }) {
       >
         <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-surface">
           <span className="text-xl font-bold tabular-nums">~{calories}</span>
-          <span className="text-[10px] text-muted">cal / serving</span>
+          <span className="text-[0.625rem] text-muted">cal / serving</span>
         </div>
       </div>
 

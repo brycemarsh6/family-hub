@@ -11,7 +11,7 @@ import { runPull, type PullAccessResult, type PullRunDeps, type PullRunResult } 
 import type { EventFields, KnownEvent, PullKnown } from "@/lib/calendarSyncPull";
 import type { GoogleEventIn } from "@/lib/google/types";
 
-// Binds calendarPullRun.ts to the real database and Google (mission 58). No
+// Binds calendarPullRun.ts to the real database and Google (mission 60). No
 // auth here (its callers check it first: Refresh and the on-open pull in
 // actions/calendarPull.ts, the cron route, the unlink action and the Google
 // callback route for removePulledEvents) and no

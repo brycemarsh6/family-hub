@@ -9,7 +9,7 @@ import type { SyncTarget } from "@/lib/linkedCalendarsRead";
  * Pure display; EventForm owns the ticked ids and the busy switch. Draws
  * nothing when there are no targets. "Show as busy on Google" appears only
  * for an all-day event with at least one calendar ticked, because a timed
- * event is always busy. An event pulled from Google (mission 58) shows its
+ * event is always busy. An event pulled from Google (mission 60) shows its
  * source calendar first as a locked row: it stays on, since turning it off
  * would delete the original.
  */

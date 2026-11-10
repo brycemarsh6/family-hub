@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { NavDrawer } from "@/components/NavDrawer";
 import { NavList } from "@/components/NavList";
-import { pinnedNavWidthPx } from "@/lib/appChrome";
+import { pinnedNavWidth } from "@/lib/appChrome";
 import type { NavMode } from "@/lib/navMode";
 
 // Tailwind's `lg` breakpoint, where this menu appears (HamburgerButton keeps
@@ -23,8 +23,8 @@ const RAIL_BUTTON_CLASS =
  * The side menu pinned open on wide screens (`lg` and up), for people whose
  * Menu style setting is "icons only" (`rail`) or "icons + names" (`sidebar`).
  * Below `lg` it is `hidden` and the floating hamburger plus `NavDrawer` do
- * the job, exactly as before. Its width is `NAV_RAIL_WIDTH_PX` or
- * `NAV_SIDEBAR_WIDTH_PX` from `src/lib/appChrome.ts`; AppChrome sets
+ * the job, exactly as before. Its width is `NAV_RAIL_WIDTH` or
+ * `NAV_SIDEBAR_WIDTH` from `src/lib/appChrome.ts`; AppChrome sets
  * `--app-nav-width` from the same numbers.
  *
  * In rail mode the first item is a menu button that opens the same `NavDrawer`
@@ -62,7 +62,7 @@ export function PinnedNav({
       aria-label="Menu"
       className="hidden lg:flex sticky top-0 h-dvh shrink-0 flex-col overflow-y-auto border-r border-line bg-surface p-3 print:hidden"
       style={{
-        width: pinnedNavWidthPx(mode),
+        width: pinnedNavWidth(mode),
         paddingTop: "calc(0.75rem + env(safe-area-inset-top))",
         paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))",
       }}

@@ -1,12 +1,12 @@
 "use server";
 
-// Per-person settings. Today that is three things: the dashboard widget layout,
-// the menu style and the "Show streaks" switch. Any signed-in ACCOUNT may save its own dashboard layout;
-// a device-mode session (the wall tablet) is refused there, because it always
-// shows the default layout and has no Customize button. The menu style is
-// different: devices may save it too, since the wall tablet has its own
-// Settings row. Every row is keyed by the session's userId, never by anything
-// the caller sends.
+// Per-person settings. Today that is four things: the dashboard widget layout,
+// the menu style, the text size and the "Show streaks" switch. Any signed-in
+// ACCOUNT may save its own dashboard layout; a device-mode session (the wall
+// tablet) is refused there, because it always shows the default layout and has
+// no Customize button. The menu style and the text size are different: devices
+// may save them too, since the wall tablet has its own Settings rows. Every row is keyed by the session's
+// userId, never by anything the caller sends.
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -16,6 +16,7 @@ import {
   serializeDashboardLayout,
 } from "@/lib/dashboardLayout";
 import { NAV_MODES } from "@/lib/navMode";
+import { TEXT_SIZES } from "@/lib/textSize";
 
 export type PreferencesResult = { error?: string };
 
@@ -71,6 +72,33 @@ export async function saveNavMode(input: unknown): Promise<PreferencesResult> {
   } catch (err) {
     console.error("saveNavMode failed", err);
     return { error: "Couldn't save your menu style. Try again." };
+  }
+
+  revalidatePath("/", "layout");
+  return {};
+}
+
+/**
+ * Save the signed-in login's "Text size". Devices may save their own (the wall
+ * tablet is the reason this setting exists). The value must be exactly one of
+ * TEXT_SIZES: an unknown value is an error, not a silent default.
+ */
+export async function saveTextSize(input: unknown): Promise<PreferencesResult> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
+
+  const textSize = TEXT_SIZES.find((size) => size === input);
+  if (!textSize) return { error: "That isn't a text size." };
+
+  try {
+    await db.userPreferences.upsert({
+      where: { userId: user.userId },
+      create: { userId: user.userId, textSize },
+      update: { textSize },
+    });
+  } catch (err) {
+    console.error("saveTextSize failed", err);
+    return { error: "Couldn't save your text size. Try again." };
   }
 
   revalidatePath("/", "layout");

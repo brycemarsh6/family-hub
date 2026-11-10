@@ -6,6 +6,10 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Text size on the kitchen iPad (mission 58)**, about 3 minutes: sign in
+  as Tablet, Settings, tap the Large "Aa" tile; the whole app grows at once.
+  Read the dashboard and Calendar Month from across the kitchen; if Large is
+  not enough, try Extra large. Your phone must look unchanged.
 - **Morning briefing check (mission 48), 2026-11-08:** between 9 and 10
   AM Denver, did you and Emily each get "Good morning, ..." from Winnie?
   If not, see the mission file's Delivery, step 2.
@@ -143,9 +147,9 @@ it is done. The pre-cleanup text is in
   test" tomorrow with your main calendar ticked, check Google; edit the
   title, check again; delete it, check it leaves Google. If all good, switch
   the main calendar to "Both ways".
-- **Google to Marshee test (mission 58, about 5 minutes, after the PR 2
+- **Google to Marshee test (mission 60, about 5 minutes, after the PR 2
   test):** follow "Bryce's test" in
-  `.avengers/missions/mission-58-calendar-sync-pr3.md`: switch your main
+  `.avengers/missions/mission-60-calendar-sync-pr3.md`: switch your main
   calendar to "Both ways", open Calendar, see your Google events appear;
   add, rename and delete a test event on each side and watch it follow.
 - **Google link from the home-screen app:** on your
@@ -190,7 +194,7 @@ it is done. The pre-cleanup text is in
   visible on the event's sheet, not right after Save (a small marker later);
   Try again does nothing on a calendar switched off since; a calendar linked
   before PR 2 shows no "Read only" until it is relinked.
-- Google to Marshee follow-ups (mission 58 Delivery): a handover whose
+- Google to Marshee follow-ups (mission 60 Delivery): a handover whose
   transaction fails leaves the calendar on (turn it back off); the handover
   keeps the wrong row when a "Marshee to Google" twin made a second copy;
   the one-link race check reads an `updatedAt` the pull also bumps; the

@@ -192,7 +192,8 @@ export function TimelineDayColumn({
                 still works under it since column-direction
                 flex-shrink only touches the cross axis (height)
                 here, not the width truncation depends on. */}
-            <span className={`block truncate font-semibold ${compact ? "text-[10px] @min-[8rem]:text-xs" : "text-xs"}`}>
+            {/* @min-[128px] is px on purpose (mission-58): in rem it would move with Text size. */}
+            <span className={`block truncate font-semibold ${compact ? "text-[0.625rem] @min-[128px]:text-xs" : "text-xs"}`}>
               {event.title}
             </span>
             {/* The rule is the column's own width (D5, mission-46): a
@@ -211,10 +212,10 @@ export function TimelineDayColumn({
                 the only place the truth (a genuine 15-minute
                 appointment, not 30) can still be told. */}
             {(heightPx >= 40 || trueDurationMinutes < MIN_BLOCK_MINUTES) && (
-              <span className={`block truncate text-[9px] ${compact ? "hidden @min-[8rem]:block" : ""}`}>{formatTimeRange(event.startAt, event.endAt)}</span>
+              <span className={`block truncate text-[0.5625rem] ${compact ? "hidden @min-[128px]:block" : ""}`}>{formatTimeRange(event.startAt, event.endAt)}</span>
             )}
             {!compact && heightPx >= 72 && event.location && (
-              <span className="block truncate text-[9px]">{event.location}</span>
+              <span className="block truncate text-[0.5625rem]">{event.location}</span>
             )}
           </button>
         );

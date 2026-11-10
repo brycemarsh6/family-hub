@@ -125,8 +125,8 @@ export function MonthCell({
         <span
           className={
             isToday
-              ? "flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-accent-fg"
-              : `text-[11px] font-semibold ${isCurrentMonth ? "text-fg" : "text-muted"}`
+              ? "flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[0.6875rem] font-bold text-accent-fg"
+              : `text-[0.6875rem] font-semibold ${isCurrentMonth ? "text-fg" : "text-muted"}`
           }
         >
           {day.getDate()}
@@ -150,19 +150,22 @@ export function MonthCell({
         // between them — that gap (not the rounding logic, which was
         // already correct) is what made a 3-day bar read as three
         // unrelated chips.
-        <div className={`-mx-1 flex-col gap-0.5 ${phoneHasLanes ? "flex" : "hidden @min-[48rem]:flex"}`}>
+        // The @min-[768px] container breakpoints here are px on purpose
+        // (mission-58): in rem they would move with Text size and drop the
+        // tablet layout at Large and Extra large.
+        <div className={`-mx-1 flex-col gap-0.5 ${phoneHasLanes ? "flex" : "hidden @min-[768px]:flex"}`}>
           {visibility.map((show, lane) => {
             if (show === "none") return null;
             const slot = slots[lane];
             // "wide" lanes are display:none on a phone, so they leave no gap
             // above "+N more" (mission-46/C2, F1).
-            const laneShow = show === "wide" ? "hidden @min-[48rem]:block" : "block";
+            const laneShow = show === "wide" ? "hidden @min-[768px]:block" : "block";
             if (!slot) {
               return (
                 <span
                   key={lane}
                   aria-hidden="true"
-                  className={`${laneShow} h-4 @min-[48rem]:h-[18px]`}
+                  className={`${laneShow} h-4 @min-[768px]:h-[1.125rem]`}
                 />
               );
             }
@@ -193,7 +196,7 @@ export function MonthCell({
             return (
               <span
                 key={lane}
-                className={`${laneShow} h-4 truncate border-y px-1 text-[9px] leading-4 @min-[48rem]:h-[18px] @min-[48rem]:text-xs @min-[48rem]:leading-[18px] ${
+                className={`${laneShow} h-4 truncate border-y px-1 text-[0.5625rem] leading-4 @min-[768px]:h-[1.125rem] @min-[768px]:text-xs @min-[768px]:leading-[1.125rem] ${
                   past || done ? "font-medium text-muted border-muted" : "font-semibold text-fg border-fg"
                 } ${slot.roundLeft ? "rounded-l border-l" : ""} ${slot.roundRight ? "rounded-r border-r" : ""}`}
                 style={{ background: bandedBackground(colors, past || done ? 0.05 : 0.1) }}
@@ -353,12 +356,12 @@ export function MonthCell({
       )}
 
       {phoneOverflow > 0 && (
-        <span className="text-[9px] leading-tight text-muted @min-[48rem]:hidden">
+        <span className="text-[0.5625rem] leading-tight text-muted @min-[768px]:hidden">
           +{phoneOverflow} more
         </span>
       )}
       {overflow > 0 && (
-        <span className="hidden text-xs leading-tight text-muted @min-[48rem]:inline">
+        <span className="hidden text-xs leading-tight text-muted @min-[768px]:inline">
           +{overflow} more
         </span>
       )}

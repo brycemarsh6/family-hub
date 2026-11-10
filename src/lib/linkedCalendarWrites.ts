@@ -137,7 +137,7 @@ export async function unlinkAccount(accountId: string): Promise<void> {
   await db.linkedAccount.delete({ where: { id: accountId } });
 }
 
-// The pull (mission 58): the only writes of a calendar's sync token,
+// The pull (mission 60): the only writes of a calendar's sync token,
 // lastPulledAt (the lease) and lastPulledOkAt, and of an account's
 // needs-relink status.
 

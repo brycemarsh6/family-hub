@@ -56,7 +56,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   the relation, and nothing else of those tables; no other file filters or
   selects through a `linkedCalendar` relation. A second reader or writer is a
   BLOCKER (scoped `prisma/` scripts are outside this rule).
-  **One link per Google calendar (mission-58, Bryce).** Two `LinkedCalendar`
+  **One link per Google calendar (mission-60, Bryce).** Two `LinkedCalendar`
   rows may share a `googleCalendarId` (a shared calendar linked by two
   people), but only one may be set to anything but "off". `canTurnOn` in
   `calendarSyncRules.ts` is the only home of that rule. `setCalendarDirection`
@@ -95,7 +95,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `exceptLinkedCalendarId` is passed only by the pull's push out, with the
   event's source calendar, so Google's original is never patched with
   Marshee's fields; a push back (Marshee won) passes none.
-  **The pull (mission-58).** `src/lib/calendarSyncPull.ts` is pure (no `db`,
+  **The pull (mission-60).** `src/lib/calendarSyncPull.ts` is pure (no `db`,
   no network, no clock: `now` is passed in) and is the only home of the pull
   decisions: `planPull` (inserts, updates, deletes, conflicts, skipped Google
   kinds, `pushOut`) and `PULL_SKIP_REASONS`. `src/lib/calendarPullRun.ts` is
@@ -136,5 +136,5 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   timezone steps.
   (Added 2026-11-08, mission-55, on Captain's ruling; Bryce approved. Widened
   2026-11-09, mission-56, on Captain's ruling; Bryce approved. Widened
-  2026-11-09, mission-58, on Captain's ruling; Bryce approved.) (Story:
+  2026-11-09, mission-60, on Captain's ruling; Bryce approved.) (Story:
   docs/history/structure-rationale.md, "One link per Google calendar".)

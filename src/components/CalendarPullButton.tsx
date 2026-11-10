@@ -8,7 +8,7 @@ import { ActionCircle } from "./ActionCircle";
 import { pullGoogleEvents } from "@/app/actions/calendarPull";
 import { PULL_WORDS, relinkLine } from "@/lib/calendarSyncVocabulary";
 
-// The pull side of the Calendar screen (mission 58): the on-open pull, the
+// The pull side of the Calendar screen (mission 60): the on-open pull, the
 // Refresh circle beside the + button, and the reconnect banner. CalendarViews
 // is not touched, so the page wraps it in `CalendarPullProvider` and the
 // header reads the same context. The server decides what is pulled and how
