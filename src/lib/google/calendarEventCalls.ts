@@ -166,9 +166,9 @@ export async function listEvents(
         headers: { Authorization: `Bearer ${accessToken}` },
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      if (res.status === 410 || res.status === 400) return { ok: false, reason: "restart" };
-      if (res.status === 401 || res.status === 403) return { ok: false, reason: "unauthorized" };
-      if (!res.ok) return { ok: false, reason: "network" };
+      if (res.status === 410 || res.status === 400) return { ok: false, reason: "restart", status: res.status };
+      if (res.status === 401 || res.status === 403) return { ok: false, reason: "unauthorized", status: res.status };
+      if (!res.ok) return { ok: false, reason: "network", status: res.status };
       const data = (await res.json()) as { items?: unknown; nextPageToken?: unknown; nextSyncToken?: unknown };
       for (const raw of Array.isArray(data.items) ? data.items : []) {
         if (typeof raw === "object" && raw !== null && typeof (raw as { id?: unknown }).id === "string") {
