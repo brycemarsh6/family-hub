@@ -128,7 +128,7 @@ export default async function CalendarPage({
           localDayToAllDayInstant(startOfDay(windowEnd)),
         )
       : Promise.resolve([]),
-    // The Refresh button and the reconnect banner (mission 57): two small
+    // The Refresh button and the reconnect banner (mission 58): two small
     // reads in the same round trip. Refresh is for parents and admins, never
     // a device login (the action refuses anyone else too).
     user

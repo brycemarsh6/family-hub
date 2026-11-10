@@ -1,7 +1,7 @@
 import type { GoogleEventIn } from "@/lib/google/types";
 import { eventFromGoogle } from "@/lib/google/eventFromGoogle";
 
-// Decides what one pulled page of Google events does to Marshee (mission 57,
+// Decides what one pulled page of Google events does to Marshee (mission 58,
 // "Fury's design decisions, revised"). Pure: no database, no network, no
 // clock (the caller passes `now`). The binding that reads `known` from the
 // database and writes the plan back is calendarEventPull.ts (C4).

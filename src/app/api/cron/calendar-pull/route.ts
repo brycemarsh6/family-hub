@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { isAuthorized } from "@/lib/cronAuth";
 import { pullCalendars } from "@/lib/calendarEventPull";
 
-// The daily calendar pull (mission 57). Vercel's cron calls this once a day
+// The daily calendar pull (mission 58). Vercel's cron calls this once a day
 // (10:00 UTC, 3 or 4 AM in Denver) so tokens stay fresh and a revoked link is
 // found even when nobody opens the Calendar. Its own gate is the CRON_SECRET
 // bearer check, run before anything else. The answer carries counts only.

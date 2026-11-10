@@ -121,7 +121,7 @@ export function ownerLine(ownerName: string): string {
   return `${ownerName}'s`;
 }
 
-// The pull side (mission 57): the Calendar's Refresh button and note, the
+// The pull side (mission 58): the Calendar's Refresh button and note, the
 // reconnect banner, and the event form's locked source row.
 export const PULL_WORDS = {
   refreshLabel: "Refresh",

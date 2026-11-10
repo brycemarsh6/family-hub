@@ -1,4 +1,4 @@
-# Mission 57: Calendar sync PR 3, bring Google events into Marshee
+# Mission 58: Calendar sync PR 3, bring Google events into Marshee
 
 **Project:** family-hub (Marshee)
 **Status:** INTERROGATING (plan and mocks waiting on Bryce)
@@ -152,6 +152,10 @@ the privacy wording approved.
 5. **(Asked after the contracts were started.)** An event made in Marshee
    and deleted in Google on a "Both ways" calendar. **Bryce: delete it in
    Marshee too**, with its copies on other calendars.
+6. **(After Vision pass 1.)** Unlinking an account, or Google no longer
+   listing a calendar, leaves pulled events that a relink would import a
+   second time. **Bryce: remove them.** Events made in Marshee are never
+   touched; the pulled ones come back once on relink.
 
 ## Fury's design decisions, revised after Bryce's answers
 
@@ -354,7 +358,10 @@ would flip Google's own choice. Both are fixed before the pull exists.
   `src/lib/linkedCalendarsRead.ts` (add `loadPullCalendars`), new
   `src/app/actions/calendarPull.ts` (guard: `MANAGER_ROLES` for Refresh;
   the on-open pull allows any signed-in family login but only pulls),
-  new `src/app/api/cron/calendar-pull/route.ts`
+  new `src/app/api/cron/calendar-pull/route.ts`, new
+  `src/lib/calendarPullRun.ts` and its test (amended by Fury after Vision
+  pass 1: the pure orchestrator the fake-deps tests needed, which the
+  dispatch allowed but the contract had not named),
   (`CRON_SECRET` check: move the briefing route's `isAuthorized` into new
   `src/lib/cronAuth.ts` and have both routes import it, so
   `src/app/api/cron/briefing/route.ts` changes only that import),
@@ -438,6 +445,7 @@ would flip Google's own choice. Both are fixed before the pull exists.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | BLOCKED | PATCH keeps cleared notes/location in Google; a Google change never reaches other calendars; a shared calendar linked twice imports twice; unlink then relink duplicates pulled events; `calendarPullRun.ts` outside C4b's list | Gauntlet green (1677, UTC and LA too, build ok); echoes, lease, restart, secrets all check out; Google HTML descriptions show raw `<br>`; a failed Marshee delete of a pulled event can come back; mission number 57 already used on main |
 
 ## Handoff log
 

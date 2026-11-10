@@ -90,7 +90,7 @@ export async function unlinkAccount(accountId: string): Promise<void> {
   await db.linkedAccount.delete({ where: { id: accountId } });
 }
 
-// The pull (mission 57): the only writes of a calendar's sync token and
+// The pull (mission 58): the only writes of a calendar's sync token and
 // lastPulledAt, and of an account's needs-relink status.
 
 /** Google no longer accepts this account's link; the person must connect it again. */

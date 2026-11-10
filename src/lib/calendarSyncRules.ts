@@ -3,7 +3,7 @@ import { isReadOnlyRole, type SyncDirection, type SyncRowStatus } from "@/lib/ca
 // The pure rules for copying a Marshee event to Google (mission 56, design
 // decisions 3 to 8): which calendars take a copy, the busy column, ticks, and
 // the fixed fail words. No database, no network, no `server-only` import. The
-// push steps that use them are in calendarSyncPlan.ts (split out in mission 57
+// push steps that use them are in calendarSyncPlan.ts (split out in mission 58
 // so the pull has room).
 
 /** A linked calendar as the plan needs it. */

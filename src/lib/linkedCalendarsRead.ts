@@ -113,7 +113,7 @@ export async function loadPullCalendars(): Promise<PullCalendarRow[]> {
 }
 
 /**
- * What the Calendar page needs for the pull (mission 57): whether to show
+ * What the Calendar page needs for the pull (mission 58): whether to show
  * Refresh (a manager, Google configured, some "Both ways" calendar on an
  * account that still works) and the emails of the viewer's own accounts Google
  * has locked out (`needs-relink`), for the banner.
