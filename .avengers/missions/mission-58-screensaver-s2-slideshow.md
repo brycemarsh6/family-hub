@@ -155,6 +155,22 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Done criteria:** Vision pass 3 PASS.
 - **Report:** DONE (Stark); Fury re-ran 2026-11-09: tsc 0, eslint 0, `npm test` exit 0 (1635), UTC exit 0 (1635, 0 fail), build exit 0 (Stark, captured). Self-close now needs a minute with no touch; loads in three cases (leave awake; other change at most once a minute; background at most once every 10 minutes). Bryce asked what the 10 minutes buys; refresh cadence may change after his answer, before Vision pass 3.
 
+### C7 — Neon-friendly checking, and Strange's phase 1 polish
+- **Status:** PENDING
+- **Objective:** The tablet only wakes the database when something can actually change, and the Wall tablet page gets Strange's small fixes.
+- **Why (Bryce's Neon screenshot, 2026-11-09):** Free plan, 100 CU-hours a month, 5.62 used since Oct 31. Neon suspends the project at the limit, which would take Marshee down. A database that is asked something every 10 minutes never gets to sleep (it sleeps after 5 idle minutes). A tablet checking all day and night would cost about 90 to 180 CU-hours a month.
+- **Boundaries:** may touch: `src/components/ScreensaverHost.tsx`, `src/components/LadderStepper.tsx`, `src/components/WallTabletSettings.tsx`, `src/app/(app)/settings/wall-tablet/loading.tsx`. Must not touch: everything else.
+- **Spec:**
+  1. In `ScreensaverHost.tsx` replace the 10-minute background case. Loads happen only in these cases, and the doc comment lists them: (a) leaving "awake" for slideshow or sleep: a fresh load first, as now; (b) the cached rule's answer differs from what is showing (slideshow to sleep, sleep to slideshow, a shown overlay to awake): at most once every 60 seconds, which only happens at real transitions; (c) while a slideshow is showing: one refresh at most every 60 minutes (`BACKGROUND_REFRESH_MS = 3_600_000`), so new photos and changed settings arrive; (d) awake and idle past "Start after" outside sleep hours with a cached photo count of 0: one check at most every 60 minutes. Never a refresh while someone is using the tablet, and never during the sleep overlay except (b). Keep the 15-second load timeout, the 60-second failure wait and C6's rule that a self-close needs a minute with no touch.
+  2. `LadderStepper.tsx`: the value span's `min-w-16` becomes `min-w-20`.
+  3. `loading.tsx`: add a `h-11 w-24` block for the BackLink, then three groups, each `mt-6` with a `h-6 w-32` heading block over `SkeletonList` with `rows={3}`, `rows={3}` and `rows={4}`; no hand-typed class strings beyond those sizes.
+  4. `WallTabletSettings.tsx`: any successful save clears every row's error line.
+- **Not taken:** skipping a Black from or Until value equal to the other end (a design call, waiting on Bryce).
+- **Verification:** the gauntlet, all five commands, with `npm run build` captured as `BUILD=$?` without a pipe.
+- **Evidence required:** the new load-case code quoted; traces for: tablet asleep all night (loads at the transitions only, none between); slideshow showing all day (one load an hour); 0 photos, a parent adds one at noon, sleep off (appears within an hour plus "Start after"); a tap during an in-flight load (overlay stays until its own click); `git diff --stat`.
+- **Done criteria:** Vision pass 3 PASS.
+- **Report:** (pending)
+
 ### C4 — Records (Fury)
 - **STRUCTURE.md: Bryce approved Captain's amendments 1 to 5 (2026-11-09), written by Fury with Captain's pass-2 corrections: Screensaver entry, Slideshow photos writes and `slideshowImageUrl`, `minuteOfDayInZone` in the householdDate entry, Wall tablet in the short pages and loading lists, the two-steppers line. STRUCTURE.md now 1,810 lines (trend; the split PR is its own session).**
 - Mission 57's Delivery "Shipped check" line; STRUCTURE.md entry for the screensaver (Captain's wording, Bryce's yes); CLAUDE.md "What's built" line; `.avengers/status.md` tablet check; this file's Delivery.
