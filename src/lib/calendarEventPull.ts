@@ -4,7 +4,7 @@ import { refreshAccessToken } from "@/lib/google/oauth";
 import { marsheeIdOf } from "@/lib/google/eventFromGoogle";
 import { listGoogleEvents } from "@/lib/google/calendarApi";
 import { isCalendarPushConfigured, loadPullCalendars, loadRefreshToken } from "@/lib/linkedCalendarsRead";
-import { claimCalendarForPull, markAccountNeedsRelink, saveSyncToken } from "@/lib/linkedCalendarWrites";
+import { claimCalendarForPull, markAccountNeedsRelink, markPulledOk, saveSyncToken } from "@/lib/linkedCalendarWrites";
 import { pushEventCopies, removeEventCopies } from "@/lib/calendarEventPush";
 import { tokenFailReason } from "@/lib/calendarSyncRules";
 import { runPull, type PullAccessResult, type PullRunDeps, type PullRunResult } from "@/lib/calendarPullRun";
@@ -121,6 +121,7 @@ const deps: PullRunDeps = {
   markNeedsRelink: markAccountNeedsRelink,
   list: listGoogleEvents,
   saveSyncToken,
+  markPulledOk,
   loadKnown,
   async writeInsert({ event, sync, googleEventId }) {
     const { personIds, ...fields } = event;

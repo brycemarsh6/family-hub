@@ -196,3 +196,8 @@ export async function saveSyncToken(calendarId: string, token: string | null): P
     data: token === null ? { syncToken: null } : { syncToken: token, lastPulledOkAt: new Date() },
   });
 }
+
+/** A clean pull that came back with no bookmark: stamp `lastPulledOkAt` only, leave the token as it is. */
+export async function markPulledOk(calendarId: string): Promise<void> {
+  await db.linkedCalendar.update({ where: { id: calendarId }, data: { lastPulledOkAt: new Date() } });
+}

@@ -50,6 +50,8 @@ export type PullRunDeps = {
   list: (accessToken: string, googleCalendarId: string, mode: ListEventsMode) => Promise<ListEventsResult>;
   /** Saves the calendar's sync token; null clears it. */
   saveSyncToken: (calendarId: string, token: string | null) => Promise<void>;
+  /** Stamps "Last checked" after a clean pull that returned no token; the saved token is left alone. */
+  markPulledOk: (calendarId: string) => Promise<void>;
   loadKnown: (calendar: { id: string; googleCalendarId: string }, events: GoogleEventIn[]) => Promise<PullKnown>;
   /** Each write is one transaction (event, person, sync row). */
   writeInsert: (insert: PullInsert) => Promise<void>;
@@ -76,37 +78,14 @@ function writeFailReason(error: unknown): string {
 /** `checked` counts the calendars this run claimed and tried (a failed one too); a skipped one is not counted. */
 export type PullRunResult = { changed: boolean; failed: number; checked: number };
 
-async function pullOne(
+/** Writes one list's events into Marshee, then moves the bookmark if every write worked. */
+async function applyListed(
   deps: PullRunDeps,
   calendar: PullCalendarRow,
-  accessToken: string,
+  listed: Extract<ListEventsResult, { ok: true }>,
   now: Date,
-  rewindow: boolean,
+  windowStart: Date,
 ): Promise<Omit<PullRunResult, "checked">> {
-  const windowStart = new Date(now.getTime() - PULL_WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  const windowEnd = new Date(now.getTime() + PULL_HORIZON_DAYS * 24 * 60 * 60 * 1000);
-
-  let listed: ListEventsResult | null = null;
-  // A rewindow run ignores the saved token and pulls the full window again.
-  if (calendar.syncToken && !rewindow) {
-    listed = await deps.list(accessToken, calendar.googleCalendarId, { syncToken: calendar.syncToken });
-    if (!listed.ok && listed.reason === "restart") {
-      // The token is no good: drop it and pull in full, in this same run.
-      await deps.saveSyncToken(calendar.id, null);
-      listed = null;
-    }
-  }
-  if (!listed) {
-    listed = await deps.list(accessToken, calendar.googleCalendarId, {
-      timeMin: windowStart.toISOString(),
-      timeMax: windowEnd.toISOString(),
-    });
-  }
-  if (!listed.ok) {
-    deps.noteFailure?.(`list:${listed.reason}${listed.status ? `:${listed.status}` : ""}`);
-    return { changed: false, failed: 1 };
-  }
-
   const known = await deps.loadKnown(calendar, listed.events);
   const plan = planPull({
     calendar: { id: calendar.id },
@@ -145,15 +124,58 @@ async function pullOne(
   for (const eventId of pushOuts) await attempt(() => deps.pushBack(eventId, calendar.id), false);
 
   // The bookmark moves only when every event of the run is written, and never to nothing.
-  if (failed === 0 && listed.nextSyncToken !== null) {
+  if (failed === 0) {
     try {
-      await deps.saveSyncToken(calendar.id, listed.nextSyncToken);
+      if (listed.nextSyncToken !== null) await deps.saveSyncToken(calendar.id, listed.nextSyncToken);
+      // No bookmark came back, but the pull worked: "Last checked" still moves, the token stays as it is.
+      else await deps.markPulledOk(calendar.id);
     } catch (error) {
       deps.noteFailure?.(writeFailReason(error).replace("write", "save-token"));
       failed += 1;
     }
   }
   return { changed, failed };
+}
+
+async function pullOne(
+  deps: PullRunDeps,
+  calendar: PullCalendarRow,
+  accessToken: string,
+  now: Date,
+  rewindow: boolean,
+): Promise<Omit<PullRunResult, "checked">> {
+  const windowStart = new Date(now.getTime() - PULL_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const windowEnd = new Date(now.getTime() + PULL_HORIZON_DAYS * 24 * 60 * 60 * 1000);
+
+  // A calendar with a token is read by token first, even on a rewindow run: the token holds
+  // the changes since last time, including events moved or cancelled outside the window,
+  // which a window pull would never see. Dropping it unread would lose those for good.
+  let tokenPass: Omit<PullRunResult, "checked"> | null = null;
+  if (calendar.syncToken) {
+    const listed = await deps.list(accessToken, calendar.googleCalendarId, { syncToken: calendar.syncToken });
+    if (!listed.ok && listed.reason === "restart") {
+      // The token is no good: drop it and pull in full, in this same run.
+      await deps.saveSyncToken(calendar.id, null);
+    } else if (!listed.ok) {
+      deps.noteFailure?.(`list:${listed.reason}${listed.status ? `:${listed.status}` : ""}`);
+      return { changed: false, failed: 1 };
+    } else {
+      tokenPass = await applyListed(deps, calendar, listed, now, windowStart);
+      // Only a rewindow run goes on to a full pass, and only after a clean token pass.
+      if (!rewindow || tokenPass.failed > 0) return tokenPass;
+    }
+  }
+
+  const listed = await deps.list(accessToken, calendar.googleCalendarId, {
+    timeMin: windowStart.toISOString(),
+    timeMax: windowEnd.toISOString(),
+  });
+  if (!listed.ok) {
+    deps.noteFailure?.(`list:${listed.reason}${listed.status ? `:${listed.status}` : ""}`);
+    return { changed: tokenPass?.changed ?? false, failed: 1 };
+  }
+  const full = await applyListed(deps, calendar, listed, now, windowStart);
+  return { changed: (tokenPass?.changed ?? false) || full.changed, failed: full.failed };
 }
 
 /** Pulls every "Both ways" calendar that is due. Never throws; touches nothing when Google is not set up. */
