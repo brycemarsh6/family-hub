@@ -24,7 +24,8 @@
 //
 // THE FLOOR: the day never zooms out past filling the visible rail (scroller
 // height minus the sticky header), so an iPad in portrait shows no blank band
-// under 11 PM. The floor is measured, kept in state, and re-measured on resize.
+// under 11 PM. The floor is measured, kept in state, and re-measured whenever
+// the scroller or the sticky header changes size (a ResizeObserver).
 // It only limits what is DRAWN and what a pinch can reach; the stored value is
 // not rewritten, so the same person on a phone keeps their 32.
 //
@@ -131,21 +132,33 @@ export function useTimelineZoom(
     }
   }, [hourHeightPx, scrollerRef, railRef]);
 
+  // The same measurement the scroll-to-now effect uses.
+  const measureFloor = useCallback((): number => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return MIN_HOUR_HEIGHT_PX;
+    const header = stickyHeaderRef.current?.getBoundingClientRect().height ?? 0;
+    const floor = Math.min(MAX_HOUR_HEIGHT_PX, minHourHeightFor(scroller.clientHeight - header));
+    setFloorPx(floor);
+    return floor;
+  }, [scrollerRef, stickyHeaderRef]);
+
+  // A layout effect, so the first paint already respects the floor. The
+  // observer re-measures whenever the scroller or the sticky header changes
+  // size (window resize, the all-day strip appearing or going away).
+  useLayoutEffect(() => {
+    measureFloor();
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const observer = new ResizeObserver(() => measureFloor());
+    observer.observe(scroller);
+    if (stickyHeaderRef.current) observer.observe(stickyHeaderRef.current);
+    return () => observer.disconnect();
+  }, [measureFloor, scrollerRef, stickyHeaderRef]);
+
   useEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
     const el = scroller;
-
-    // The same measurement the scroll-to-now effect uses. Runs after the
-    // grid's layout effects, so the scroller already has its real height.
-    function measureFloor(): number {
-      const header = stickyHeaderRef.current?.getBoundingClientRect().height ?? 0;
-      const floor = Math.min(MAX_HOUR_HEIGHT_PX, minHourHeightFor(el.clientHeight - header));
-      setFloorPx(floor);
-      return floor;
-    }
-    measureFloor();
-    window.addEventListener("resize", measureFloor);
 
     let pinch: { startDistance: number; startHeight: number; floor: number } | null = null;
     let lastHeight = heightRef.current; // newest height asked for
@@ -199,8 +212,10 @@ export function useTimelineZoom(
       if (final === startHeight) {
         // A tap or a pinch back to where it began: nothing to save, and the
         // stored value must not be overwritten by a floored one.
+        // Render it while the anchor is still set (as the saving branch does),
+        // so the minute under the fingers does not jump.
+        flushSync(() => setLive(null));
         anchorRef.current = null;
-        setLive(null);
         return;
       }
       // Render the final height now (anchor still set) so no frame is lost.
@@ -240,7 +255,6 @@ export function useTimelineZoom(
     el.addEventListener("gesturestart", preventDefault, options);
     el.addEventListener("gesturechange", preventDefault, options);
     return () => {
-      window.removeEventListener("resize", measureFloor);
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
@@ -250,7 +264,7 @@ export function useTimelineZoom(
       cancelAnimationFrame(frame);
       anchorRef.current = null;
     };
-  }, [viewerId, scrollerRef, railRef, stickyHeaderRef]);
+  }, [viewerId, scrollerRef, railRef, measureFloor]);
 
   return hourHeightPx;
 }
