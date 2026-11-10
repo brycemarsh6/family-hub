@@ -2,13 +2,13 @@
 // a fake Google. Failures, removeAllCopies and the Try again/412 edge cases
 // are in the sibling calendarSyncPlanPushFailures.test.ts; the planning rules
 // are in calendarSyncRules.test.ts. The shared fake is in
-// calendarSyncPlanTestHarness.ts.
+// testing/calendarSyncPlanHarness.ts.
 // Run with `npm test`.
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { syncEventCopies } from "./calendarSyncPlan";
-import { GOOGLE_ID, PAYLOAD_INPUT, cal, harness, lastPatch, row } from "./calendarSyncPlanTestHarness";
+import { GOOGLE_ID, PAYLOAD_INPUT, cal, harness, lastPatch, row } from "./testing/calendarSyncPlanHarness";
 
 describe("syncEventCopies: create", () => {
   it("writes pending first, inserts under the Marshee-chosen id, then ok with the etag", async () => {

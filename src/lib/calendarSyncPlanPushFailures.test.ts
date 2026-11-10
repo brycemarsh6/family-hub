@@ -1,13 +1,13 @@
 // Unit tests for calendarSyncPlan.ts's push steps, failures, removeAllCopies
 // and the Try again/412 edge cases, against a fake Google. Create and update
 // are in the sibling calendarSyncPlanPush.test.ts. The shared fake is in
-// calendarSyncPlanTestHarness.ts.
+// testing/calendarSyncPlanHarness.ts.
 // Run with `npm test`.
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { removeAllCopies, syncEventCopies } from "./calendarSyncPlan";
-import { EVENT_ID, GOOGLE_ID, PAYLOAD_INPUT, TOKEN, lastPatch, cal, harness, row } from "./calendarSyncPlanTestHarness";
+import { EVENT_ID, GOOGLE_ID, PAYLOAD_INPUT, TOKEN, lastPatch, cal, harness, row } from "./testing/calendarSyncPlanHarness";
 
 describe("syncEventCopies: failures", () => {
   it("a revoked token marks failed with reconnect and makes no Google call", async () => {

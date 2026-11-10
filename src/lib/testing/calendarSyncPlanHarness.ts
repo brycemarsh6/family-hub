@@ -1,7 +1,7 @@
-import { googleEventIdFor, type EventPayloadInput } from "./google/eventPayload";
-import type { EventCallResult, GetEventResult, GoogleEventPayload } from "./google/types";
-import type { RowKey, RowPatch, SyncDeps } from "./calendarSyncPlan";
-import type { PlanCalendar, PlanRow } from "./calendarSyncRules";
+import { googleEventIdFor, type EventPayloadInput } from "../google/eventPayload";
+import type { EventCallResult, GetEventResult, GoogleEventPayload } from "../google/types";
+import type { RowKey, RowPatch, SyncDeps } from "../calendarSyncPlan";
+import type { PlanCalendar, PlanRow } from "../calendarSyncRules";
 
 // The fake Google and fake rows shared by calendarSyncPlanPush.test.ts and
 // calendarSyncPlanPushFailures.test.ts (not itself a test file). Nothing here
