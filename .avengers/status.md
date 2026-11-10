@@ -26,6 +26,11 @@ it is done. The pre-cleanup text is in
   Slideshow card looks right without the Slideshow photos row, set "Open
   Marshee on" to Calendar, then let the slideshow start and tap it: it
   opens Calendar. Set it back if you like.
+- **On this day (mission 66)**, whenever a photo's anniversary comes up:
+  on the kitchen tablet, a photo taken on today's date in an earlier year
+  shows soon after the slideshow starts, with "2 years ago today" (or "A
+  year ago today") in yellow where the date usually is. Say if the yellow
+  is too loud or too quiet.
 - **Neon usage watch (mission 62), until 2026-11-17:** glance at the Neon
   Usage chart once or twice. Compute should stay well under the free 100
   CU-hours a month with the tablet on all day. If it climbs fast, tell

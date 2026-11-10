@@ -107,7 +107,8 @@ files named beside it.
   in private Vercel Blob (prod store Production only, dev store Preview and
   Development). Rules: STRUCTURE.md "Slideshow photos".
 - **Screensaver** (Tablet login only): an idle photo slideshow, black in
-  sleep hours; a tap only wakes it, to the tablet's start page. Settings
+  sleep hours; a tap only wakes it, to the tablet's start page. Photos
+  taken on today's date in past years show first ("2 years ago today"). Settings
   `/settings/wall-tablet` (parents, admins and the Tablet itself), rules
   `src/lib/screensaver.ts`, structure in `docs/structure/slideshow.md`.
 - **Kitchen**:
@@ -232,8 +233,6 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
 
-- **Screensaver S4** ("On this day") is next:
-  `.avengers/plans/screensaver-slideshow-v1.md`; read mission 64's Delivery.
 - **Dashboard widgets W3** is next after the W2 Calendar widget:
   `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the

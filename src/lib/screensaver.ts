@@ -1,11 +1,19 @@
 // The wall tablet's screensaver rules, pure on purpose (imports only the date
 // helpers and constants): the settings and their allowed values, what state
-// the screen is in, the no-repeat shuffle, and the words. Tested in
+// the screen is in, the no-repeat shuffle (with "on this day" photos first),
+// the date lines, and the words. Tested in
 // screensaver.test.ts. The row is read in screensaverRead.ts and written by
 // actions/screensaver.ts.
 
 import { HOUSEHOLD_TIME_ZONE } from "./constants";
-import { calendarDateInZone, dayOfWeek, formatHouseholdClock, minuteOfDayInZone, parseDateParam } from "./householdDate";
+import {
+  calendarDateInZone,
+  dayOfWeek,
+  formatHouseholdClock,
+  minuteOfDayInZone,
+  parseDateParam,
+  type CalendarDate,
+} from "./householdDate";
 import { FULL_DAY_NAMES, FULL_MONTH_NAMES } from "./mealPlanDates";
 
 export type ScreensaverSettings = {
@@ -149,12 +157,15 @@ export function screensaverState(args: {
  * with `lastId` when two or more photos exist. `shownIds` for the next call
  * comes back; ids no longer in `currentIds` are dropped. Null when there are
  * no photos. `random` returns [0, 1) and is passed in so tests are fixed.
+ * `firstIds` (the "on this day" photos) are picked before any other while one
+ * is still unshown this round.
  */
 export function pickNextPhoto(
   currentIds: readonly string[],
   shownIds: readonly string[],
   lastId: string | null,
   random: () => number,
+  firstIds: readonly string[] = [],
 ): { id: string; shownIds: string[] } | null {
   if (currentIds.length === 0) return null;
   const current = new Set(currentIds);
@@ -165,6 +176,8 @@ export function pickNextPhoto(
     round = [];
     pool = currentIds.length >= 2 ? currentIds.filter((id) => id !== lastId) : [...currentIds];
   }
+  const first = pool.filter((id) => firstIds.includes(id));
+  if (first.length > 0) pool = first;
   const id = pool[Math.min(Math.floor(random() * pool.length), pool.length - 1)];
   return { id, shownIds: [...round, id] };
 }
@@ -186,6 +199,38 @@ export function formatTakenOn(takenOn: string | null): string | null {
   const date = parseDateParam(takenOn);
   if (!date) return null;
   return `${FULL_MONTH_NAMES[date.month - 1]} ${date.day}, ${date.year}`;
+}
+
+function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+/**
+ * Whole years since the photo when it was taken on today's month and day in an
+ * earlier year, else null. A February 29 photo counts on February 28 in a year
+ * with no leap day. Null or bad text gives null.
+ */
+export function yearsAgoToday(takenOn: string | null, today: CalendarDate): number | null {
+  if (takenOn === null) return null;
+  const date = parseDateParam(takenOn);
+  if (!date || date.year >= today.year) return null;
+  const sameDay = date.month === today.month && date.day === today.day;
+  const leapDayOnFeb28 =
+    date.month === 2 && date.day === 29 && today.month === 2 && today.day === 28 && !isLeapYear(today.year);
+  return sameDay || leapDayOnFeb28 ? today.year - date.year : null;
+}
+
+/** The slide's date line: the "ago" words on today's anniversary, else the taken date; null when there is none. */
+export function formatTakenLine(
+  takenOn: string | null,
+  today: CalendarDate,
+): { text: string; onThisDay: boolean } | null {
+  const years = yearsAgoToday(takenOn, today);
+  if (years !== null) {
+    return { text: years === 1 ? SCREENSAVER_WORDS.yearAgoToday : SCREENSAVER_WORDS.yearsAgoToday(years), onThisDay: true };
+  }
+  const text = formatTakenOn(takenOn);
+  return text === null ? null : { text, onThisDay: false };
 }
 
 /** The Wall tablet page's words, in one place. */
@@ -211,4 +256,6 @@ export const SCREENSAVER_WORDS = {
   minUnit: "min",
   secUnit: "sec",
   saveFailed: "That didn't save. Check your connection and try again.",
+  yearAgoToday: "A year ago today",
+  yearsAgoToday: (years: number) => `${years} years ago today`,
 } as const;
