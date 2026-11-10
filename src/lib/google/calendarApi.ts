@@ -1,5 +1,5 @@
 import "server-only";
-import { deleteEvent, getEvent, insertEvent, TIMEOUT_MS, updateEvent, type FetchLike } from "./calendarEventCalls";
+import { deleteEvent, getEvent, insertEvent, listEvents, TIMEOUT_MS, updateEvent, type FetchLike } from "./calendarEventCalls";
 import type { GoogleCalendarSummary, ListCalendarsResult } from "./types";
 
 type Tail<T extends unknown[]> = T extends [unknown, ...infer Rest] ? Rest : never;
@@ -61,3 +61,4 @@ export const insertGoogleEvent = (...args: Tail<Parameters<typeof insertEvent>>)
 export const updateGoogleEvent = (...args: Tail<Parameters<typeof updateEvent>>) => updateEvent(realFetch, ...args);
 export const getGoogleEvent = (...args: Tail<Parameters<typeof getEvent>>) => getEvent(realFetch, ...args);
 export const deleteGoogleEvent = (...args: Tail<Parameters<typeof deleteEvent>>) => deleteEvent(realFetch, ...args);
+export const listGoogleEvents = (...args: Tail<Parameters<typeof listEvents>>) => listEvents(realFetch, ...args);

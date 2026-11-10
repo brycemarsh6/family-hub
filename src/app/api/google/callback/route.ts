@@ -11,7 +11,8 @@ import { toLinkErrorCode } from "@/lib/calendarSyncVocabulary";
 import { listCalendars } from "@/lib/google/calendarApi";
 import { encryptSecret, isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import { replaceCalendars, saveLinkedAccount } from "@/lib/linkedCalendarWrites";
-import { isGoogleAccountLinkedByAnother } from "@/lib/linkedCalendarsRead";
+import { isGoogleAccountLinkedByAnother, loadAccountCalendarIds } from "@/lib/linkedCalendarsRead";
+import { removePulledEvents } from "@/lib/calendarEventPull";
 
 // Google sends the browser back here after the person says yes or no. The
 // proxy lets the path through without a Marshee session cookie (it is in
@@ -93,6 +94,10 @@ export async function GET(request: NextRequest) {
   const listed = await listCalendars(exchange.accessToken);
   if (!listed.ok) return back("error=calendars");
   try {
+    // Calendars Google no longer lists are deleted by replaceCalendars; the events pulled
+    // from them go first (Bryce, 2026-11-09) so a relink does not import them twice.
+    const gone = await loadAccountCalendarIds(accountId, listed.calendars.map((calendar) => calendar.id));
+    if ((await removePulledEvents(gone)).failed > 0) return back("error=calendars");
     await replaceCalendars(accountId, listed.calendars);
   } catch {
     return back("error=calendars");

@@ -347,7 +347,7 @@ export function TimelineGrid({
               const notLoaded = isOutsideWindow(day, windowStart, windowEnd);
               return (
                 <div key={day.getTime()} className="flex flex-col items-center gap-0.5 px-0.5">
-                  <span className={`text-[10px] font-semibold uppercase tracking-wide ${isToday ? "text-accent" : "text-muted"}`}>
+                  <span className={`text-[0.625rem] font-semibold uppercase tracking-wide ${isToday ? "text-accent" : "text-muted"}`}>
                     {SHORT_DAY_NAMES[day.getDay()]}
                   </span>
                   <span className="flex items-center gap-0.5">
@@ -485,7 +485,7 @@ export function TimelineGrid({
               <span
                 key={hour}
                 aria-hidden="true"
-                className="absolute right-1 -translate-y-1/2 text-[10px] text-muted"
+                className="absolute right-1 -translate-y-1/2 text-[0.625rem] text-muted"
                 style={{ top: `calc(var(--hour-height) * ${hour})` }}
               >
                 {hour === 0 ? "" : label}

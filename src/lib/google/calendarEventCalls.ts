@@ -1,6 +1,14 @@
-import type { EventCallFailReason, EventCallResult, GetEventResult, GoogleEventPayload } from "./types";
+import type {
+  EventCallFailReason,
+  EventCallResult,
+  GetEventResult,
+  GoogleEventIn,
+  GoogleEventPayload,
+  ListEventsMode,
+  ListEventsResult,
+} from "./types";
 
-// Insert, update, get and delete for one Google calendar event. Pure: `fetch`
+// Insert, update (a PATCH), get and delete for one Google calendar event. Pure: `fetch`
 // is a parameter so tests never reach Google (calendarApi.ts binds the real
 // one). No auth logic: the caller passes a fresh access token. Failures carry
 // a reason word only, never a response body, and a caught error is dropped,
@@ -8,6 +16,7 @@ import type { EventCallFailReason, EventCallResult, GetEventResult, GoogleEventP
 
 const EVENTS_BASE = "https://www.googleapis.com/calendar/v3/calendars";
 export const TIMEOUT_MS = 10_000;
+export const MAX_LIST_PAGES = 20;
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
 
@@ -74,7 +83,11 @@ export async function insertEvent(
   return { ok: true, etag: await etagOf(r.res) };
 }
 
-/** Replace the copy. With `ifMatch`, 412 means someone changed it in Google first. */
+/**
+ * Change the copy. A PATCH, not a PUT: only the fields in the payload change,
+ * so a pulled event keeps its guests, reminders, video link and color. With
+ * `ifMatch`, 412 means someone changed it in Google first.
+ */
 export async function updateEvent(
   fetchFn: FetchLike,
   accessToken: string,
@@ -83,7 +96,7 @@ export async function updateEvent(
   payload: GoogleEventPayload,
   ifMatch?: string,
 ): Promise<EventCallResult> {
-  const r = await call(fetchFn, eventUrl(calendarId, googleEventId), accessToken, "PUT", {
+  const r = await call(fetchFn, eventUrl(calendarId, googleEventId), accessToken, "PATCH", {
     body: { ...payload, id: googleEventId },
     ifMatch,
   });
@@ -117,4 +130,59 @@ export async function deleteEvent(
   const r = await call(fetchFn, eventUrl(calendarId, googleEventId), accessToken, "DELETE");
   if (!r.ok) return r;
   return { ok: true, etag: null };
+}
+
+function listUrl(calendarId: string, mode: ListEventsMode, pageToken: string | null): string {
+  const url = new URL(`${EVENTS_BASE}/${encodeURIComponent(calendarId)}/events`);
+  // Google rejects syncToken combined with timeMin, so a token pull never
+  // sends a window; the caller skips anything outside it locally.
+  if ("syncToken" in mode) url.searchParams.set("syncToken", mode.syncToken);
+  else url.searchParams.set("timeMin", mode.timeMin);
+  url.searchParams.set("singleEvents", "true");
+  url.searchParams.set("showDeleted", "true");
+  url.searchParams.set("maxResults", "250");
+  if (pageToken) url.searchParams.set("pageToken", pageToken);
+  return url.toString();
+}
+
+/**
+ * Every event Google returns for a calendar: all pages of a full pull
+ * (`timeMin`) or of a changes pull (`syncToken`). 410 and 400 mean the token
+ * is no good ("restart": drop it and pull in full). More than 20 pages is
+ * "too-many". Cancelled events come back too (showDeleted).
+ */
+export async function listEvents(
+  fetchFn: FetchLike,
+  accessToken: string,
+  calendarId: string,
+  mode: ListEventsMode,
+): Promise<ListEventsResult> {
+  const events: GoogleEventIn[] = [];
+  let pageToken: string | null = null;
+  for (let page = 0; page < MAX_LIST_PAGES; page += 1) {
+    try {
+      const res = await fetchFn(listUrl(calendarId, mode, pageToken), {
+        method: "GET",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      if (res.status === 410 || res.status === 400) return { ok: false, reason: "restart" };
+      if (res.status === 401 || res.status === 403) return { ok: false, reason: "unauthorized" };
+      if (!res.ok) return { ok: false, reason: "network" };
+      const data = (await res.json()) as { items?: unknown; nextPageToken?: unknown; nextSyncToken?: unknown };
+      for (const raw of Array.isArray(data.items) ? data.items : []) {
+        if (typeof raw === "object" && raw !== null && typeof (raw as { id?: unknown }).id === "string") {
+          events.push(raw as GoogleEventIn);
+        }
+      }
+      pageToken = typeof data.nextPageToken === "string" && data.nextPageToken ? data.nextPageToken : null;
+      if (!pageToken) {
+        return { ok: true, events, nextSyncToken: typeof data.nextSyncToken === "string" ? data.nextSyncToken : null };
+      }
+    } catch {
+      // Deliberately drops the error: it could quote the Authorization header.
+      return { ok: false, reason: "network" };
+    }
+  }
+  return { ok: false, reason: "too-many" };
 }

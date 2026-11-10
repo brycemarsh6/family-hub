@@ -16,7 +16,7 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-0.5">
         <span className="text-sm font-semibold">{label}</span>
-        {hint && <span className="text-[13px] text-muted">{hint}</span>}
+        {hint && <span className="text-[0.8125rem] text-muted">{hint}</span>}
       </div>
       {children}
     </div>

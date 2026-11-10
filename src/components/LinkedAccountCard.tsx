@@ -1,20 +1,25 @@
 "use client";
 
 import { useOptimistic, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
 import { RadioSheet } from "@/components/RadioSheet";
 import { TitleSheet } from "@/components/TitleSheet";
 import { renameLinkedAccount, setCalendarDirection, unlinkAccount } from "@/app/actions/linkedCalendars";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
+import { useNowMinute } from "@/lib/useNowMinute";
+import { feedbackTimeAgo } from "@/lib/feedbackTime";
 import {
   SYNCED_CALENDARS_EXTRA_WORDS,
   SYNCED_CALENDARS_WORDS,
   SYNC_DIRECTIONS,
   SYNC_DIRECTION_HINTS,
   SYNC_DIRECTION_LABELS,
+  alreadySyncedThrough,
   calendarsSummary,
   isReadOnlyRole,
+  lastCheckedLine,
   linkedByLine,
+  relinkLine,
   type SyncDirection,
 } from "@/lib/calendarSyncVocabulary";
 import type { SyncedAccountRow } from "@/lib/linkedCalendarsRead";
@@ -40,6 +45,8 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
   const [open, setOpen] = useState(false);
   const [pickingId, setPickingId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
+  // Null on the server and the first paint, so "Last checked" never mismatches.
+  const now = useNowMinute();
 
   const [directions, setDirection] = useOptimistic(
     Object.fromEntries(account.calendars.map((calendar) => [calendar.id, calendar.direction])) as Record<
@@ -75,25 +82,47 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
         )}
       </button>
 
+      {account.status === "needs-relink" && (
+        <div className="border-t border-line bg-warn-soft px-4 py-3 text-sm font-medium text-warn [overflow-wrap:anywhere]">
+          <p className="flex items-start gap-2">
+            <TriangleAlert aria-hidden="true" size={18} className="mt-0.5 shrink-0" />
+            {relinkLine(account.email)}
+          </p>
+          {isOwner && <p className="mt-1 pl-[26px]">{SYNCED_CALENDARS_EXTRA_WORDS.reconnectNextStep}</p>}
+        </div>
+      )}
+
       {open && (
         <div className="border-t border-line">
           {account.calendars.map((calendar) => {
             const direction = directions[calendar.id] ?? calendar.direction;
             // Google lets Marshee write only to calendars the person owns.
             const readOnly = isReadOnlyRole(calendar.accessRole);
+            // Another link already syncs this Google calendar: no control, only the words.
+            const lockedBy = direction === "off" ? calendar.syncedThrough : null;
             const content = (
               <>
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-base">{calendar.name}</span>
+                  {direction === "twoWay" && calendar.lastPulledOkAt && now && (
+                    <span className="text-sm text-muted-strong">
+                      {lastCheckedLine(feedbackTimeAgo(calendar.lastPulledOkAt, now))}
+                    </span>
+                  )}
+                  {lockedBy && (
+                    <span className="text-sm text-muted-strong [overflow-wrap:anywhere]">
+                      {alreadySyncedThrough(lockedBy)}
+                    </span>
+                  )}
                 </span>
                 <span className="flex shrink-0 items-center gap-2 text-sm text-muted-strong">
                   {readOnly ? SYNCED_CALENDARS_EXTRA_WORDS.readOnly : SYNC_DIRECTION_LABELS[direction]}
-                  {isOwner && !readOnly && <ChevronRight aria-hidden="true" size={18} />}
+                  {isOwner && !readOnly && !lockedBy && <ChevronRight aria-hidden="true" size={18} />}
                 </span>
               </>
             );
             const rowClass = "flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2 text-left";
-            return isOwner && !readOnly ? (
+            return isOwner && !readOnly && !lockedBy ? (
               <button
                 key={calendar.id}
                 type="button"

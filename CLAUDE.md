@@ -111,7 +111,7 @@ files named beside it.
   Development). Rules: STRUCTURE.md "Slideshow photos".
 - **Screensaver** (Tablet login only): an idle photo slideshow, black in
   sleep hours; a tap only wakes it. Settings `/settings/wall-tablet`, rules
-  `src/lib/screensaver.ts`, structure STRUCTURE.md "Screensaver".
+  `src/lib/screensaver.ts`, structure in `docs/structure/slideshow.md`.
 - **Kitchen**:
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
@@ -144,8 +144,10 @@ files named beside it.
   Google accounts, choose each calendar's sync direction. Refresh tokens are
   encrypted. **Marshee to Google works** (PR 2): the event form's "Sync to"
   copies an event to chosen calendars and keeps the copies updated and
-  deleted; nothing comes back from Google yet (PR 3). Plan:
-  `.avengers/plans/calendar-sync-v1.md`.
+  deleted. **Google to Marshee works** (PR 3): "Both ways" calendars pull on
+  opening Calendar, on Refresh and a daily cron; one link per Google
+  calendar. Any new code that writes a `CalendarEvent` must call the push.
+  Plan: `.avengers/plans/calendar-sync-v1.md`.
 - **iPad landscape**: wide pages use a per-page opt-in rule (a container that
   sizes columns against its own space). Done for the dashboard, Calendar,
   Habits & Chores, Kitchen lists, Plans, Goal page, recipe page, forms,
@@ -154,8 +156,10 @@ files named beside it.
   `.avengers/plans/ipad-landscape-v1.md`; the rule is in STRUCTURE.md.
 - **Family accounts**: per-person logins, role gates, account management, kid
   profiles without a password. A "Tablet" device login for the wall tablet
-  can check off any task; signing out of it needs an admin password. Next:
-  the tablet's own dashboard and calendar editing (see Current status).
+  can check off any task; signing out of it needs an admin password. A
+  per-login **Text size** (Settings: Normal, Large, Extra large) magnifies
+  the whole app on tablets only, through the root font size: size things in
+  rem, never fixed px text (`.avengers/missions/mission-58-text-size.md`).
 - **Voice**: Siri shortcut over `/api/voice` is the working path, used daily.
   `/api/alexa` is live but dormant; Alexa+ is blocked on Amazon
   (`.avengers/plans/v3b-alexa-plus-addon.md`).
@@ -228,12 +232,8 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
 
-- **Calendar sync PR 3** (Google to Marshee, for "Both ways" calendars) is
-  next. Read the Delivery of
-  `.avengers/missions/mission-56-calendar-sync-pr2.md` first. Any new code
-  that writes a `CalendarEvent` (including CD1) must call the push.
 - **Screensaver S3** ("Open Marshee on" start page) is next:
-  `.avengers/plans/screensaver-slideshow-v1.md`; read mission 58's Delivery.
+  `.avengers/plans/screensaver-slideshow-v1.md`; read mission 61's Delivery.
 - **Dashboard widgets W3** is next after the W2 Calendar widget:
   `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the

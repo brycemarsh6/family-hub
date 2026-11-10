@@ -8,6 +8,8 @@ import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
 import { CalendarViews } from "@/components/CalendarViews";
+import { CalendarPullProvider } from "@/components/CalendarPullButton";
+import { loadCalendarPullState } from "@/lib/linkedCalendarsRead";
 import type { CalendarPersonView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +77,7 @@ export default async function CalendarPage({
   // cross-country round trip (CLAUDE.md's performance section, from the
   // Inventory fix this mirrors) — batching keeps this page at ONE round
   // trip's worth of latency for three queries, not three.
-  const [eventViews, taskViews, roster, habitDays] = await Promise.all([
+  const [eventViews, taskViews, roster, habitDays, pullState] = await Promise.all([
     // Events joined with their people in the same round trip (Prisma's
     // nested `select`, not a second query) — the select and the
     // row→CalendarEventView mapping both moved to calendarEventQuery.ts in
@@ -126,6 +128,12 @@ export default async function CalendarPage({
           localDayToAllDayInstant(startOfDay(windowEnd)),
         )
       : Promise.resolve([]),
+    // The Refresh button and the reconnect banner (mission 60): two small
+    // reads in the same round trip. Refresh is for parents and admins, never
+    // a device login (the action refuses anyone else too).
+    user
+      ? loadCalendarPullState(user.userId, canManage && !user.isDevice)
+      : Promise.resolve({ showRefresh: false, relinkEmails: [] }),
   ]);
 
   const people: CalendarPersonView[] = roster.map((person) => ({
@@ -145,15 +153,17 @@ export default async function CalendarPage({
   // mission-46).
   return (
     <div data-page-width="wide" className="py-2 has-[[data-fills-viewport]]:pb-0">
-      <CalendarViews
-        events={eventViews}
-        tasks={taskViews}
-        habitDays={habitDays}
-        people={people}
-        canManage={canManage}
-        windowStart={windowStart}
-        windowEnd={windowEnd}
-      />
+      <CalendarPullProvider showRefresh={pullState.showRefresh} relinkEmails={pullState.relinkEmails}>
+        <CalendarViews
+          events={eventViews}
+          tasks={taskViews}
+          habitDays={habitDays}
+          people={people}
+          canManage={canManage}
+          windowStart={windowStart}
+          windowEnd={windowEnd}
+        />
+      </CalendarPullProvider>
     </div>
   );
 }

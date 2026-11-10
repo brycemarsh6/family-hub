@@ -4,6 +4,7 @@ import "../globals.css";
 import { AppChrome } from "@/components/AppChrome";
 import { getVerifiedUser } from "@/lib/dal";
 import { DEFAULT_NAV_MODE } from "@/lib/navMode";
+import { DEFAULT_TEXT_SIZE } from "@/lib/textSize";
 import { loadScreensaverSettings } from "@/lib/screensaverRead";
 
 // Marshee's three brand faces. Named --font-inter/--font-manrope/
@@ -82,6 +83,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      data-text-size={user?.textSize ?? DEFAULT_TEXT_SIZE}
       className={`${inter.variable} ${manrope.variable} ${cormorantGaramond.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-bg text-fg">

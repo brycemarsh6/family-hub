@@ -27,7 +27,7 @@ import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
 import { pushEventCopies, removeEventCopies } from "@/lib/calendarEventPush";
-import { busyColumn, cleanRequestedIds } from "@/lib/calendarSyncPlan";
+import { busyColumn, cleanRequestedIds } from "@/lib/calendarSyncRules";
 import type { CalendarEventSyncView, CalendarEventView, CalendarHabitDayView } from "@/lib/types";
 
 function refreshCalendarViews() {

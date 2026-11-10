@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
-import { EVENT_TICKED_SYNC_SELECT } from "@/lib/calendarEventQuery";
+import { EVENT_SOURCE_SELECT, EVENT_TICKED_SYNC_SELECT } from "@/lib/calendarEventQuery";
 import { loadSyncTargets } from "@/lib/linkedCalendarsRead";
 import { BackLink } from "@/components/BackLink";
 import { EventForm } from "@/components/EventForm";
@@ -51,6 +51,7 @@ export default async function EditEventPage({
         endAt: true,
         allDay: true,
         showBusyOnGoogle: true,
+        sourceLinkedCalendar: EVENT_SOURCE_SELECT,
         people: { select: { userId: true } },
         // Which calendars already hold a copy. The form only shows the ones it
         // still offers; a copy on any other calendar is never touched. A copy
@@ -110,6 +111,9 @@ export default async function EditEventPage({
           userIds: event.people.map((person) => person.userId),
           syncCalendarIds: event.syncs.map((sync) => sync.linkedCalendarId),
           showBusyOnGoogle: event.showBusyOnGoogle,
+          sourceCalendar: event.sourceLinkedCalendar
+            ? { calendarId: event.sourceLinkedCalendar.id, name: event.sourceLinkedCalendar.name }
+            : null,
         }}
       />
     </div>

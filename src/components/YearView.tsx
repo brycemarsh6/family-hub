@@ -95,8 +95,8 @@ export function YearView({ anchor, today, onPickMonth }: YearViewProps) {
                     key={day.getTime()}
                     className={
                       isToday
-                        ? "flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[7px] font-bold text-accent-fg"
-                        : `flex h-4 w-4 items-center justify-center text-[7px] ${
+                        ? "flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[0.4375rem] font-bold text-accent-fg"
+                        : `flex h-4 w-4 items-center justify-center text-[0.4375rem] ${
                             inMonth ? "text-fg" : "text-muted"
                           }`
                     }

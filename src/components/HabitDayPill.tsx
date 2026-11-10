@@ -9,7 +9,7 @@ export function HabitDayPill({ habitDay, gridColumn, gridRow }: { habitDay: Cale
     <Link
       href={`/habits/${habitDay.habitId}`}
       aria-label={habitDay.done ? `${habitDay.title}, done` : habitDay.title}
-      className={`flex items-center gap-0.5 truncate rounded border px-1 text-left text-[9px] font-semibold leading-[24px] ${
+      className={`flex items-center gap-0.5 truncate rounded border px-1 text-left text-[0.5625rem] font-semibold leading-[1.5rem] ${
         habitDay.done ? "border-muted text-muted" : "border-fg text-fg"
       }`}
       style={{ gridColumn, gridRow, background: "var(--surface-2)" }}

@@ -293,7 +293,7 @@ export function HabitForm({
             <div className="flex items-center gap-3">
               <div className="flex flex-1 flex-col gap-0.5">
                 <span className="text-sm font-semibold">Carry over if unfinished</span>
-                <span className="text-[13px] text-muted">Shows once on the next day, counted as done late</span>
+                <span className="text-[0.8125rem] text-muted">Shows once on the next day, counted as done late</span>
               </div>
               <ToggleSwitch checked={carryOver} onChange={setCarryOver} label="Carry over if unfinished" />
             </div>
@@ -303,7 +303,7 @@ export function HabitForm({
             <div className="flex items-center gap-3">
               <div className="flex flex-1 flex-col gap-0.5">
                 <span className="text-sm font-semibold">Private</span>
-                <span className="text-[13px] text-muted">
+                <span className="text-[0.8125rem] text-muted">
                   Only you see it: not on the family tablet, other screens or nudges
                 </span>
               </div>

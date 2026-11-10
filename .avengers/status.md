@@ -6,17 +6,21 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
-- **Wall tablet screensaver (mission 58)**, on the real kitchen tablet
+- **Wall tablet screensaver (mission 61)**, on the real kitchen tablet
   signed in as Tablet: leave it alone 30 minutes and see the slideshow
   (clock readable on bright photos?); tap it and land on the dashboard
   without pressing anything; after 10 PM see it go black, tap, and see it
   go black again after 2 minutes. Add a photo in Slideshow photos and see
   it join a running slideshow within the hour. If the clock is hard to read
   on a bright photo, say so: the shade can go one step darker.
-- **Neon usage watch (mission 58), until 2026-11-17:** glance at the Neon
+- **Neon usage watch (mission 61), until 2026-11-17:** glance at the Neon
   Usage chart once or twice. Compute should stay well under the free 100
   CU-hours a month with the tablet on all day. If it climbs fast, tell
   Claude (the photo cache on iPad Safari is the suspect).
+- **Text size on the kitchen iPad (mission 58)**, about 3 minutes: sign in
+  as Tablet, Settings, tap the Large "Aa" tile; the whole app grows at once.
+  Read the dashboard and Calendar Month from across the kitchen; if Large is
+  not enough, try Extra large. Your phone must look unchanged.
 - **Morning briefing check (mission 48), 2026-11-08:** between 9 and 10
   AM Denver, did you and Emily each get "Good morning, ..." from Winnie?
   If not, see the mission file's Delivery, step 2.
@@ -154,6 +158,11 @@ it is done. The pre-cleanup text is in
   test" tomorrow with your main calendar ticked, check Google; edit the
   title, check again; delete it, check it leaves Google. If all good, switch
   the main calendar to "Both ways".
+- **Google to Marshee test (mission 60, about 5 minutes, after the PR 2
+  test):** follow "Bryce's test" in
+  `.avengers/missions/mission-60-calendar-sync-pr3.md`: switch your main
+  calendar to "Both ways", open Calendar, see your Google events appear;
+  add, rename and delete a test event on each side and watch it follow.
 - **Google link from the home-screen app:** on your
   phone open the installed Marshee icon, Settings, Synced calendars, and link
   an account. Check you land back on the page signed in. This has only been
@@ -181,10 +190,10 @@ it is done. The pre-cleanup text is in
   `RecipeIngredientSuggestion` and the put-away types). None are left, and
   `src/lib/useServerExports.test.ts` now fails the Gauntlet if one comes
   back. Components import such types from their `src/lib/` home.
-- STRUCTURE.md is 1,583 lines after its housekeeping pass (mission 54 moved
-  the stories to `docs/history/structure-rationale.md`). What is left is
-  almost all rule text, so going lower means moving rule inventories into
-  companion files, a separate decision. The next pass is due at 1,783 lines.
+- STRUCTURE.md is 1,064 lines after mission 59 moved 13 long
+  single-feature entries into `docs/structure/` companion files (stories
+  were already in `docs/history/structure-rationale.md`, mission 54). The
+  next pass is due at 1,264 lines.
 - Hours tracker follow-ups (mission 37 Delivery): a page left open over
   Saturday night shows last week's total in the sheet until reloaded; the
   Who hint says "checks" on an hours habit.
@@ -195,8 +204,15 @@ it is done. The pre-cleanup text is in
 - Google copy follow-ups (mission 56 Delivery): a copy that fails is only
   visible on the event's sheet, not right after Save (a small marker later);
   Try again does nothing on a calendar switched off since; a calendar linked
-  before PR 2 shows no "Read only" until it is relinked; the privacy page
-  needs another look when PR 3 starts keeping sync tokens.
+  before PR 2 shows no "Read only" until it is relinked.
+- Google to Marshee follow-ups (mission 60 Delivery): a handover whose
+  transaction fails leaves the calendar on (turn it back off); the handover
+  keeps the wrong row when a "Marshee to Google" twin made a second copy;
+  the one-link race check reads an `updatedAt` the pull also bumps; the
+  event sheet hides "On Google" by calendar name, not id; "Up to date" can
+  sit beside the reconnect banner; `calendarPullRun.test.ts` is about 360
+  lines (split due); the locked "Already synced through" row gives no reason
+  when the other link needs reconnecting.
 - **Structured ingredients tripwire is at 3 of 4.** If a fourth feature needs
   them, stop working around it and build them.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made

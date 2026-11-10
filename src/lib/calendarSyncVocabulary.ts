@@ -16,7 +16,7 @@ export const SYNC_DIRECTION_LABELS: Record<SyncDirection, string> = {
 export const SYNC_DIRECTION_HINTS: Record<SyncDirection, string> = {
   off: "Marshee and this calendar stay separate.",
   outbound: "Events you choose to sync are copied to this calendar.",
-  twoWay: "Changes in either place show up in the other.",
+  twoWay: "Events on this calendar show up in Marshee, and changes in either place show up in the other.",
 };
 
 export function isSyncDirection(raw: unknown): raw is SyncDirection {
@@ -75,12 +75,13 @@ export const SYNCED_CALENDARS_EXTRA_WORDS = {
   emptyTitle: "No calendars linked yet",
   emptyHint: "Link a Google account to bring its calendars in.",
   syncHowItWorks:
-    "Marshee copies an event to a calendar when that calendar is set to sync and you tick it on the event. Google events don't come into Marshee yet.",
+    "Marshee copies an event to a calendar when that calendar is set to sync and you tick it. Calendars set to Both ways also bring their events into Marshee.",
   unverifiedHint:
     'Google may say it hasn\'t verified this app. That\'s expected for a private family app. Tap Advanced, then "Go to themarshandco.com (unsafe)".',
   readOnly: "Read only",
   ownerOnlyNote: "You can only change or unlink accounts you linked.",
   directionSheetTitle: "Sync direction",
+  reconnectNextStep: "To fix it, tap Link a Google account and choose this account again.",
 } as const;
 
 /** A calendar whose role is known and is not "owner" cannot be written to. Unknown (null) is not read only. */
@@ -107,9 +108,49 @@ export function forLine(names: string[]): string {
   return named.length > 0 ? `For: ${named.join(", ")}` : "";
 }
 
+/** A Google description without Marshee's own trailing "For: ..." line (the inverse of `forLine` joined by a blank line). */
+export function withoutForLine(description: string): string {
+  const text = description.trim();
+  const at = text.lastIndexOf("\n\n");
+  const last = at === -1 ? text : text.slice(at + 2);
+  if (!/^For: [^\n]+$/.test(last)) return text;
+  return at === -1 ? "" : text.slice(0, at).trim();
+}
+
 /** "Emily's", the muted second line under a calendar that is someone else's. */
 export function ownerLine(ownerName: string): string {
   return `${ownerName}'s`;
+}
+
+// The pull side (mission 60): the Calendar's Refresh button and note, the
+// reconnect banner, and the event form's locked source row.
+export const PULL_WORDS = {
+  refreshLabel: "Refresh",
+  upToDate: "Up to date",
+  unreachable: "Couldn't reach Google. Try again later.",
+  fixLink: "Fix on Synced calendars",
+  cameFromHere: "Came from here",
+  sourceStaysOn: "The calendar it came from stays on, so editing here changes it in Google too.",
+} as const;
+
+/** The banner and the account card's line when Google has stopped letting Marshee in. */
+export function relinkLine(email: string): string {
+  return `Google stopped letting Marshee in for ${email}. Events from it aren't updating.`;
+}
+
+/** The row's line when another link of the same Google calendar is already on (Bryce, 2026-11-09). */
+export function alreadySyncedThrough(email: string): string {
+  return `Already synced through ${email}`;
+}
+
+/** The detail sheet's muted line for an event that came from Google. */
+export function fromGoogleLine(calendarName: string): string {
+  return `From Google: ${calendarName}`;
+}
+
+/** The muted line under a "Both ways" calendar; `ago` is a household "5 min ago" or "Just now". */
+export function lastCheckedLine(ago: string): string {
+  return ago === "Just now" ? "Last checked just now" : `Last checked ${ago}`;
 }
 
 /** The detail sheet's line for a copy that went through. */

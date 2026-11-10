@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   ACCOUNT_STATUSES,
+  alreadySyncedThrough,
   calendarsSummary,
   copyFailedLine,
   copyRemoveFailedLine,
@@ -10,6 +11,7 @@ import {
   ownerLine,
   linkedByLine,
   linkErrorMessage,
+  PULL_WORDS,
   EVENT_SYNC_WORDS,
   SYNCED_CALENDARS_EXTRA_WORDS,
   SYNCED_CALENDARS_WORDS,
@@ -17,6 +19,7 @@ import {
   SYNC_DIRECTION_HINTS,
   SYNC_DIRECTION_LABELS,
   forLine,
+  withoutForLine,
   isSyncDirection,
   SYNC_ROW_STATUSES,
   toSyncRowStatus,
@@ -40,7 +43,7 @@ describe("calendar sync vocabulary", () => {
     );
     assert.equal(
       SYNCED_CALENDARS_EXTRA_WORDS.syncHowItWorks,
-      "Marshee copies an event to a calendar when that calendar is set to sync and you tick it on the event. Google events don't come into Marshee yet.",
+      "Marshee copies an event to a calendar when that calendar is set to sync and you tick it. Calendars set to Both ways also bring their events into Marshee.",
     );
     assert.equal("syncNotOn" in SYNCED_CALENDARS_EXTRA_WORDS, false);
   });
@@ -179,5 +182,48 @@ describe("calendar sync vocabulary", () => {
     assert.equal(forLine(["Bryce", "Emily"]), "For: Bryce, Emily");
     assert.equal(forLine(["Bryce", "  ", ""]), "For: Bryce");
     assert.equal(forLine([]), "");
+  });
+});
+
+describe("withoutForLine", () => {
+  it("removes Marshee's trailing For line and keeps the notes", () => {
+    assert.equal(withoutForLine("Bring the form\n\nFor: Bryce, Emily"), "Bring the form");
+  });
+
+  it("returns empty when the For line was all there was", () => {
+    assert.equal(withoutForLine("For: Bryce"), "");
+  });
+
+  it("leaves other text, and a For line that is not last, alone", () => {
+    assert.equal(withoutForLine("Bring snacks"), "Bring snacks");
+    assert.equal(withoutForLine("For: Bryce\n\nThen call"), "For: Bryce\n\nThen call");
+    assert.equal(withoutForLine("Gift\nFor: Bryce"), "Gift\nFor: Bryce");
+  });
+
+  it("only strips one line, so it undoes forLine exactly once", () => {
+    const sent = ["Notes", forLine(["A"])].join("\n\n");
+    assert.equal(withoutForLine(withoutForLine(sent)), "Notes");
+  });
+});
+
+describe("alreadySyncedThrough", () => {
+  it("names the other account's email, in Bryce's approved words", () => {
+    assert.equal(alreadySyncedThrough("emily@example.com"), "Already synced through emily@example.com");
+  });
+});
+
+describe("round 3 words (Bryce, 2026-11-09)", () => {
+  it("pins the reconnect next step on Synced calendars", () => {
+    assert.equal(
+      SYNCED_CALENDARS_EXTRA_WORDS.reconnectNextStep,
+      "To fix it, tap Link a Google account and choose this account again.",
+    );
+  });
+
+  it("pins the edit form note for an event that came from Google", () => {
+    assert.equal(
+      PULL_WORDS.sourceStaysOn,
+      "The calendar it came from stays on, so editing here changes it in Google too.",
+    );
   });
 });

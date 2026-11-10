@@ -1,4 +1,4 @@
-# Mission 58: Screensaver S2, the tablet slideshow and sleep mode
+# Mission 61: Screensaver S2, the tablet slideshow and sleep mode
 
 **Project:** family-hub (Marshee)
 **Status:** DELIVERING (all gates PASS; PR next)
@@ -12,7 +12,7 @@ Plan: `.avengers/plans/screensaver-slideshow-v1.md` (approved by Bryce 2026-11-0
 - PR #94 is merged on `origin/main` (`e62056c`), and `mission-57-screensaver-s1-photos.md` is on main.
 - Production deploy `dpl_ECGfBri8pesymrLFLENYfZgQefr3` for `e62056cde93b59e10772d9726363d68a61ba3c02` is READY; its build log shows "Applying migration `20261115000000_slideshow_photos`" against the production host. Recorded in mission 57's Delivery through this PR.
 - Worktree `.env` symlinked to the main checkout's (gitignored). Not read.
-- Next free numbers on `origin/main`: mission 58; migration stamp after `20261115000000`.
+- Next free numbers on `origin/main`: Mission 61; migration stamp after `20261115000000`.
 
 ## Brief
 
@@ -233,4 +233,6 @@ Budget: 3 passes per gate, then stop and surface.
 - **Gates:** Captain PASS (pass 2); Vision PASS (pass 3, plus new gates on C8 and C9b); Strange PASS (phase 1, and phase 2 pass 2 on the Tablet login). STRUCTURE.md amendments 1 to 5 (Bryce approved).
 - **Open notes, not this mission's job:** a photo that fails once stays out until the slideshow restarts; a caption edit reaches a running slideshow only at its next start; at phone width the clock and caption overlap (tablet only); the clock's contrast margin on very bright warm photos is thin (step the shade to `via-black/50` if real photos show it); the hourly swap was not watched live and is on Bryce's tablet check; STRUCTURE.md is 1,810 lines and its split is its own PR.
 - **Dev copy left behind:** a Tablet device login Bryce created on the dev branch for the phase 2 check (dev only; never scripted away, per the User table rule).
+- **Renumbered 58 to 61 at merge (2026-11-09):** while this mission ran, main took 58 (text size), 59 (STRUCTURE.md split) and 60 (calendar sync PR 3). Commits before the merge say "Mission 58"; they are this mission. The STRUCTURE.md amendments moved with the split: the Screensaver and Slideshow photos rules live in `docs/structure/slideshow.md`, the short-page and loading lines in `docs/structure/layout.md`, the stepper and `minuteOfDayInZone` lines stay in STRUCTURE.md.
+- **Migration order note:** `20261116000000_screensaver_settings` shares its timestamp with main's `add_text_size` and `calendar_pull` and sorts before the already-applied `20261117000000_calendar_pull_ok`. Kept as is: it is already applied on dev under this name, and `prisma migrate deploy` applies every unapplied migration. The production check confirms it.
 - **Shipped check:** (filled at merge.)

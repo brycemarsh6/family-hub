@@ -1,4 +1,4 @@
-// Unit tests for calendarSyncPlan.ts's planning rules (which calendars get a
+// Unit tests for calendarSyncRules.ts's planning rules (which calendars get a
 // copy, busy columns, ticks, token fail reasons). The push steps
 // (syncEventCopies, removeAllCopies) are tested in the sibling
 // calendarSyncPlanPush.test.ts, split by concern.
@@ -8,15 +8,18 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   busyColumn,
+  canTurnOn,
   cleanRequestedIds,
   isPushable,
+  planHandover,
   planSync,
+  raceWinner,
   sortedPersonNames,
   startsTicked,
   tokenFailReason,
   type PlanCalendar,
   type PlanRow,
-} from "./calendarSyncPlan";
+} from "./calendarSyncRules";
 import { linkErrorMessage, toLinkErrorCode, toSyncFailReason } from "./calendarSyncVocabulary";
 
 const GOOGLE_ID = "6d61727368656576656e74";
@@ -159,5 +162,102 @@ describe("already-linked error code", () => {
       linkErrorMessage("already-linked"),
       "Someone else in the family already linked this Google account.",
     );
+  });
+});
+
+describe("planSync: the source calendar of a pulled event", () => {
+  const calendars: PlanCalendar[] = [
+    { id: "src", googleCalendarId: "s@g", accountId: "x", direction: "twoWay", accessRole: "owner" },
+    { id: "other", googleCalendarId: "o@g", accountId: "x", direction: "twoWay", accessRole: "owner" },
+  ];
+  const rows: PlanRow[] = [
+    { linkedCalendarId: "src", googleEventId: "g1", etag: '"e"', status: "ok" },
+    { linkedCalendarId: "other", googleEventId: "g2", etag: '"e"', status: "ok" },
+  ];
+
+  it("cannot be unticked: an empty request still updates it and removes only the others", () => {
+    const plan = planSync({ rows, calendars, requestedIds: [], sourceLinkedCalendarId: "src" });
+    assert.deepEqual(plan, { create: [], update: ["src"], remove: ["other"] });
+  });
+
+  it("without a source an empty request removes both", () => {
+    assert.deepEqual(planSync({ rows, calendars, requestedIds: [] }).remove, ["src", "other"]);
+  });
+
+  it("when it is no longer pushable its row is left alone", () => {
+    const off = calendars.map((c) => (c.id === "src" ? { ...c, direction: "off" as const } : c));
+    const plan = planSync({ rows, calendars: off, requestedIds: [], sourceLinkedCalendarId: "src" });
+    assert.deepEqual(plan, { create: [], update: [], remove: ["other"] });
+  });
+});
+
+describe("canTurnOn (one link per Google calendar)", () => {
+  it("allows it when there are no other links, or all of them are off", () => {
+    assert.equal(canTurnOn([]), true);
+    assert.equal(canTurnOn([{ direction: "off" }, { direction: "off" }]), true);
+  });
+
+  it("refuses when any other link is on, in any direction", () => {
+    assert.equal(canTurnOn([{ direction: "off" }, { direction: "outbound" }]), false);
+    assert.equal(canTurnOn([{ direction: "twoWay" }]), false);
+  });
+});
+
+describe("planHandover (a handover between two links of one Google calendar)", () => {
+  it("moves every sibling row when the new calendar has none", () => {
+    const plan = planHandover([], [{ id: "s1", eventId: "e1" }, { id: "s2", eventId: "e2" }]);
+    assert.deepEqual(plan, { move: ["s1", "s2"], drop: [] });
+  });
+
+  it("drops a sibling row whose event already has a row on the new calendar", () => {
+    const plan = planHandover(["e1"], [{ id: "s1", eventId: "e1" }, { id: "s2", eventId: "e2" }]);
+    assert.deepEqual(plan, { move: ["s2"], drop: ["s1"] });
+  });
+
+  it("moves only the first of two sibling rows for the same event", () => {
+    const plan = planHandover([], [{ id: "s1", eventId: "e1" }, { id: "s2", eventId: "e1" }]);
+    assert.deepEqual(plan, { move: ["s1"], drop: ["s2"] });
+  });
+
+  it("does nothing when there are no siblings", () => {
+    assert.deepEqual(planHandover(["e1"], []), { move: [], drop: [] });
+  });
+});
+
+describe("raceWinner (two links turned on at once)", () => {
+  const at = (n: number) => new Date(2026, 10, 9, 10, 0, n);
+  const other = (id: string, direction: "off" | "outbound" | "twoWay", n: number) => ({
+    id,
+    direction,
+    updatedAt: at(n),
+  });
+
+  it("is null when no other link is on", () => {
+    assert.equal(raceWinner({ id: "me", updatedAt: at(5) }, [other("a", "off", 1)]), null);
+    assert.equal(raceWinner({ id: "me", updatedAt: at(5) }, []), null);
+  });
+
+  it("is the other link when it was turned on first", () => {
+    assert.equal(raceWinner({ id: "me", updatedAt: at(5) }, [other("a", "twoWay", 1)])?.id, "a");
+  });
+
+  it("is null when this link got there first", () => {
+    assert.equal(raceWinner({ id: "me", updatedAt: at(1) }, [other("a", "outbound", 5)]), null);
+  });
+
+  it("breaks an exact tie by the lower id", () => {
+    assert.equal(raceWinner({ id: "b", updatedAt: at(5) }, [other("a", "twoWay", 5)])?.id, "a");
+    assert.equal(raceWinner({ id: "a", updatedAt: at(5) }, [other("b", "twoWay", 5)]), null);
+  });
+});
+
+describe("planSync: exceptLinkedCalendarId", () => {
+  it("leaves that calendar out of create, update and remove", () => {
+    const rows = [row("src"), row("b"), row("c")];
+    const calendars = [cal("src"), cal("b"), cal("c"), cal("d")];
+    const plan = planSync({ rows, calendars, requestedIds: ["src", "b", "d"], exceptLinkedCalendarId: "src" });
+    assert.deepEqual(plan, { create: ["d"], update: ["b"], remove: ["c"] });
+    const dropped = planSync({ rows, calendars, requestedIds: ["b"], exceptLinkedCalendarId: "src" });
+    assert.deepEqual(dropped.remove, ["c"]);
   });
 });
