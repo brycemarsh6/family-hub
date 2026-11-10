@@ -1,5 +1,11 @@
 # Calendar v2 — the Google/Apple hybrid, Tasks, and drag
 
+> **Partly replaced on 2026-11-10 by `calendar-fullscreen-v1.md`.** That plan
+> overrides decision 4 (the arrows go), decision 6 (the header), the CV6
+> month-jump sheet (now a dropdown and an iPad side panel) and all of CD1
+> (drag to reschedule is rebuilt as its PR 4, and repeating events drag
+> too). Everything else here still stands.
+
 > **Provenance.** Designed and approved with Bryce on 2026-09-02 in plan
 > mode, from a screen-by-screen Google Calendar walkthrough (eight view
 > screenshots, then the task sheet and a 3-day timeline). This file is the

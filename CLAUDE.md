@@ -238,10 +238,10 @@ yet** or is next. Everything merged is in its mission file.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
   parent rule) and PR C (per-person habits tiles) are next:
   `.avengers/missions/mission-39-tablet-login.md`.
-- **Calendar CD1** (drag to reschedule) is open as PR #26, branch
-  `claude/calendar-cd1`. Watch the swipe `pointerdown` issue and
-  `CalendarViews.tsx` growth (`mission-19-calendar-cv6-dropdown-swipe.md`).
-- **Winnie next:** calendar and tasks (after CD1), then replacing the app's
+- **Calendar full screen rebuild** (nine PRs, approved, PR 1 is next):
+  read `.avengers/plans/calendar-fullscreen-v1.md` before any calendar
+  work. It replaces CD1 (old PR #26, closed); drag is its PR 4.
+- **Winnie next:** calendar and tasks (after the drag PR), then replacing the app's
   Claude features with her (needs a two-way link; parked by Bryce).
 - **Bryce's phone checklist, things waiting on him, and open follow-ups:**
   [.avengers/status.md](.avengers/status.md).
