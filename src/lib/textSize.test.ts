@@ -8,6 +8,7 @@ import {
   TEXT_SIZES,
   TEXT_SIZE_HELP,
   TEXT_SIZE_LABELS,
+  TEXT_SIZE_PREVIEW_REM,
   toTextSize,
 } from "./textSize";
 
@@ -33,4 +34,9 @@ test("toTextSize: garbage falls back to the default without throwing", () => {
   for (const raw of [null, undefined, 42, "Large", "huge", "__proto__", "", {}, []]) {
     assert.equal(toTextSize(raw), DEFAULT_TEXT_SIZE);
   }
+});
+
+test("TEXT_SIZE_PREVIEW_REM: one preview size per size, growing", () => {
+  assert.deepEqual(TEXT_SIZE_PREVIEW_REM, { normal: 1, large: 1.25, xl: 1.5 });
+  assert.deepEqual(Object.keys(TEXT_SIZE_PREVIEW_REM), [...TEXT_SIZES]);
 });

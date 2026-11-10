@@ -1,12 +1,12 @@
 "use server";
 
 // Per-person settings. Today that is four things: the dashboard widget layout,
-// the menu style, the text size and the "Show streaks" switch. Any signed-in ACCOUNT may save its own dashboard layout;
-// a device-mode session (the wall tablet) is refused there, because it always
-// shows the default layout and has no Customize button. The menu style is
-// different: devices may save it too, since the wall tablet has its own
-// Settings row. Every row is keyed by the session's userId, never by anything
-// the caller sends.
+// the menu style, the text size and the "Show streaks" switch. Any signed-in
+// ACCOUNT may save its own dashboard layout; a device-mode session (the wall
+// tablet) is refused there, because it always shows the default layout and has
+// no Customize button. The menu style and the text size are different: devices
+// may save them too, since the wall tablet has its own Settings rows. Every row is keyed by the session's
+// userId, never by anything the caller sends.
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";

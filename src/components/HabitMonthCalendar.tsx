@@ -34,7 +34,7 @@ export function HabitMonthCalendar({
     <div className={compact ? "" : "rounded-2xl border border-line bg-surface p-2"}>
       <div className="grid grid-cols-7 gap-0.5">
         {WEEKDAY_LETTERS.map((letter, index) => (
-          <span key={index} aria-hidden="true" className={`text-center font-semibold text-muted ${compact ? "text-[10px]" : "text-xs"}`}>
+          <span key={index} aria-hidden="true" className={`text-center font-semibold text-muted ${compact ? "text-[0.625rem]" : "text-xs"}`}>
             {letter}
           </span>
         ))}

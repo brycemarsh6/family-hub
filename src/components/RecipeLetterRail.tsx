@@ -43,7 +43,7 @@ export function RecipeLetterRail({
           <span
             key={letter}
             aria-hidden="true"
-            className={`text-[10px] font-semibold leading-none transition-colors ${
+            className={`text-[0.625rem] font-semibold leading-none transition-colors ${
               !hasRecipes
                 ? "text-line"
                 : pressedLetter === letter

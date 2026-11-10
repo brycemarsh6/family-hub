@@ -63,7 +63,7 @@ export function ScheduleMiniMonth({ dayInView, today, onPickDay }: ScheduleMiniM
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[15px]">
+      <div className="grid grid-cols-7 gap-1 text-center text-[0.9375rem]">
         {monthGridDays(shownMonth).map((day) => {
           // Days outside the shown month are blank (the mock), not dimmed
           // numbers; the cell stays so the columns keep their places. The
@@ -94,7 +94,7 @@ export function ScheduleMiniMonth({ dayInView, today, onPickDay }: ScheduleMiniM
         })}
       </div>
 
-      <p className="text-center text-[13px] text-muted">Tap a day to jump the list</p>
+      <p className="text-center text-[0.8125rem] text-muted">Tap a day to jump the list</p>
     </div>
   );
 }

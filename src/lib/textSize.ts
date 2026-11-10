@@ -13,6 +13,13 @@ export const TEXT_SIZE_LABELS: Record<TextSize, string> = {
   xl: "Extra large",
 };
 
+/** How big the "Aa" on each Settings tile is drawn, in rem. */
+export const TEXT_SIZE_PREVIEW_REM: Record<TextSize, number> = {
+  normal: 1,
+  large: 1.25,
+  xl: 1.5,
+};
+
 export const TEXT_SIZE_HELP = "Applies on wide screens.";
 
 export const DEFAULT_TEXT_SIZE: TextSize = "normal";

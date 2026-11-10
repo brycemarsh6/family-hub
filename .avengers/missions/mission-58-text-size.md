@@ -1,7 +1,7 @@
 # Mission: Text size setting (mission 58)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (T1 dispatched)
+**Status:** AT-THE-GATES (F1 done; gate pass 2: Vision, Strange, Captain)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 ## Brief
@@ -151,15 +151,146 @@ REVIEW lines read: the may-touch files import `navMode.ts`/`RadioSheet.tsx`
 only to copy their shape, nothing there decides this behaviour. `textSize`
 already exists as a local variable in `QuantityStepper.tsx:29`, unrelated.
 
+**T1 status: DONE** (Stark, 2026-11-09). Report: 4 new tests (1593 to 1597);
+tsc, eslint, both test runs and build green; SQL exactly one `ADD COLUMN`.
+Then Fury found `main` had moved: the screensaver chat merged PR #94 as
+"mission 57" with migration `20261115000000_slideshow_photos`. This mission
+was renamed to 58 and its migration to `20261116000000_add_text_size`;
+committed as T1, then `origin/main` merged cleanly. After the merge:
+`npm ci` (main added `@vercel/blob`), gauntlet green (1625 tests Denver; UTC
+1618 pass + 7 skipped; build ok). SQL re-matched against `prisma migrate diff`
+from main's schema: identical. Worktree `.env` symlinked to the main
+checkout's (gitignored; never read); host check `ep-hidden-pine-` (dev);
+Fury applied it with `npx prisma migrate deploy`.
+
 ### T2 — Sweep fixes
 
-Whatever Strange's sweep at Large and Extra large on a regular iPad
-(820 x 1180 and 1180 x 820) finds. Boundaries named once findings exist.
+Became fix batch F1 below (F1a, F1b, F1c), from gate pass 1.
+
+## Fix batch F1 (after gate pass 1)
+
+Three contracts with disjoint files, dispatched in parallel. Builders run
+tsc, eslint and both test runs; **not** `npm run build` (three builders and a
+dev server share one `.next`). Fury runs the build once after all three.
+Fury's calls, recorded: the Month view keeps its tablet layout at every text
+size (a px container breakpoint) rather than falling back to the phone layout;
+the pinned rail at Extra large in landscape may scroll vertically (noted for
+Bryce); the Settings control is rebuilt as mocked (three "Aa" tiles inline,
+no sheet), which also retires the RadioSheet-row duplication Captain noted.
+
+**F1 preflight (2026-11-09):** 0 hard failures on all three. Soft-cap WARNs
+on `CalendarHeader`, `ScheduleView`, `MonthCell`, `TimelineAllDayStrip`,
+`TimelineGrid`: class-string edits, no growth. F1c's RadioSheet import REVIEW
+is the import F1c removes. `lucide-react` adds class `lucide` to every icon
+(`node_modules/lucide-react/dist/esm/Icon.mjs:35`), so `svg.lucide` reaches them.
+
+**F1 status: DONE** (three Starks, 2026-11-09). F1a: row `3.5rem`, rail
+`4.5rem`, sidebar `16rem`, `pinnedNavWidth` returns a CSS length, new
+`useHamburgerInsetPx` for ScheduleView (open question: `SCHEDULE_HEADER_BAR_HEIGHT_PX`
+130 is still px). F1b: all 17 files, 0 `text-[Npx]` left, MonthCell
+`@min-[768px]`, TimelineDayColumn `@min-[128px]`. F1c: three "Aa" tiles
+(radiogroup), `useOptimisticRun`, instant `data-text-size`, height
+condition, `svg.lucide` zoom, `TEXT_SIZE_PREVIEW_REM`. Fury's combined
+gauntlet: tsc, eslint, 1626 Denver, UTC 1619 + 7 skipped, build exit 0.
+Fury filed Captain's bookkeeping in STRUCTURE.md (`textSize.ts` entry, hook
+caller list). The portaled-sheets line no longer applies (no sheet). Captain's
+two new rules (Wide pages rule 2 extension, DESIGN.md "size in rem") wait
+for Bryce, as constitution rules have before.
+
+### F1a — Menu chrome follows the text size
+- **Objective:** the floating menu button's reserved row and the pinned
+  rail/sidebar widths scale with the root font size, so nothing overlaps or
+  clips at Large and Extra large, and nothing changes at Normal.
+- **Boundaries:** may touch: `src/lib/appChrome.ts`, `src/lib/appChrome.test.ts`,
+  `src/components/AppChrome.tsx`, `src/components/PinnedNav.tsx`,
+  `src/components/HamburgerButton.tsx`, `src/components/CalendarHeader.tsx`,
+  `src/app/(app)/calendar/loading.tsx`, `src/components/ScheduleView.tsx`.
+  Must not touch: every file in F1b and F1c, `src/lib/useOptimisticRun.ts`,
+  `STRUCTURE.md`, `DESIGN.md`, `CLAUDE.md`.
+- **Shape:** the row as a CSS length in rem (`3.5rem` = 0.5rem gap + 3rem
+  button) wherever it is written into a style; the rail `4.5rem`, the sidebar
+  `16rem`, with the width helper returning a CSS length so
+  `--app-nav-width-lg` and the fixed bars follow. Keep a px number only where
+  JavaScript needs one (the hook's first-paint seed, ScheduleView's math), and
+  there derive it from the live root font size rather than assume 16.
+  `useHamburgerRowHeight` already measures the real button; keep that.
+  Update the comments that name 56/72/256 px. Update `appChrome.test.ts` to
+  the new values.
+- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`, the
+  AGENTS.md UTC run, all green.
+- **Evidence required:** command tails; `git diff --stat`; every place a row
+  height or nav width is now written, listed with file:line.
+- **Done criteria:** Strange pass 2 measures the button bottom above every
+  page's first line and the rail with no horizontal scroll at Large and
+  Extra large, 820x1180 and 1180x820, and Normal unchanged.
+
+### F1b — Fixed pixel text becomes rem
+- **Objective:** every `text-[Npx]` in the app grows with Text size, and the
+  Month and week-column views keep their tablet layout at every text size.
+- **Boundaries:** may touch: `src/components/ActionCircle.tsx`,
+  `src/components/HabitDayCell.tsx`, `src/components/HabitDayPill.tsx`,
+  `src/components/HabitEditActions.tsx`, `src/components/HabitForm.tsx`,
+  `src/components/HabitFormFields.tsx`, `src/components/HabitHoursStats.tsx`,
+  `src/components/HabitMonthCalendar.tsx`, `src/components/HabitStats.tsx`,
+  `src/components/MonthCell.tsx`, `src/components/NutritionSection.tsx`,
+  `src/components/RecipeLetterRail.tsx`, `src/components/ScheduleMiniMonth.tsx`,
+  `src/components/TimelineAllDayStrip.tsx`, `src/components/TimelineDayColumn.tsx`,
+  `src/components/TimelineGrid.tsx`, `src/components/YearView.tsx`.
+  Must not touch: every file in F1a and F1c; the hour timeline's px geometry
+  (hour height, event top/height maths) stays px under DESIGN.md's exception.
+- **Shape:** each `text-[Npx]` becomes its exact rem (`/16`, e.g. 9px is
+  `text-[0.5625rem]`, 10px `text-[0.625rem]`, 11px `text-[0.6875rem]`, 7px
+  `text-[0.4375rem]`), with any paired px `leading-[..]` or pill height
+  (`h-[18px]`) converted the same way. In `MonthCell.tsx` the
+  `@min-[48rem]` container variants become `@min-[768px]` (and in
+  `TimelineDayColumn.tsx` its `@min-[8rem]` becomes `@min-[128px]`) so the
+  layout switch no longer moves with text size; one comment at each says why
+  (mission-58). Pixel values in prose comments stay.
+- **Verification:** as F1a, plus
+  `grep -rE 'text-\[[0-9.]+px\]' src | grep -v generated` prints nothing.
+- **Evidence required:** command tails; the grep output; `git diff --stat`.
+- **Done criteria:** Strange pass 2 measures Month pills at or above 12px at
+  Large and Extra large on 820x1180, and calendar/habit labels growing in step.
+
+### F1c — The Settings control as mocked, and the CSS block
+- **Objective:** the Text size control is the mocked three "Aa" tiles,
+  saves through `useOptimisticRun`, resizes the page at once, and the size
+  rule leaves landscape phones alone and grows icons too.
+- **Boundaries:** may touch: `src/components/TextSizeSetting.tsx`,
+  `src/lib/textSize.ts`, `src/lib/textSize.test.ts`, `src/app/globals.css`
+  (the mission-58 block only), `src/app/actions/preferences.ts` (header
+  comment lines 1 to 12 only). Must not touch: every file in F1a and F1b,
+  `src/lib/useOptimisticRun.ts`, `src/components/RadioSheet.tsx`,
+  `NavModeSetting.tsx`, `src/app/(app)/settings/page.tsx`.
+- **Shape (as mocked, Bryce's decision 1):** a card like the Menu style row
+  with the Lucide `Type` icon and "Text size" label, then three equal tiles
+  in a row, each a button at least 4.5rem tall: "Aa" drawn at 1rem, 1.25rem,
+  1.5rem, the label ("Normal", "Large", "Extra large") under it. The chosen
+  tile carries the accent border and `aria-pressed` (or a radiogroup with
+  `aria-checked`); `TEXT_SIZE_HELP` under the tiles; the error line under
+  that. No sheet, no portal. Preview sizes live in `src/lib/textSize.ts`
+  beside the labels. Save via `const { run, error } = useOptimisticRun(...)`.
+  On choose, set `document.documentElement.dataset.textSize = next` at once
+  and put the previous value back if the save fails.
+- **CSS:** the media query becomes
+  `@media (min-width: 48rem) and (min-height: 40rem)` (an iPad is at least
+  744px tall either way; a landscape phone is under 440px), and inside it
+  `svg.lucide` gets `zoom: 1.25` / `zoom: 1.5` beside each font size, with
+  a comment. Preferences header: "The menu style and the text size are
+  different: devices may save them too".
+- **Verification:** as F1a.
+- **Evidence required:** command tails; the final CSS block; `git diff --stat`.
+- **Done criteria:** Strange pass 2 sees the tiles, a tap resizing the page
+  before the server answers, icons growing, and Captain sees no hand-written
+  optimistic wrapper.
 
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Captain | BLOCK | `TextSizeSetting.tsx:17-33` hand-writes the optimistic tap wrapper; STRUCTURE.md makes `useOptimisticRun` its only home (NavModeSetting is listed debt, not a pattern). Contract slip: T1 said copy NavModeSetting | Amendments proposed: Settings RadioSheet-row rule (third copy extracts), Wide pages rule 2 (container rem follows text size, media rem and `COLUMN_MIN_WIDTH_PX` do not), DESIGN.md "size in rem, not px", bookkeeping (textSize.ts entry, three portaled sheets, hook caller list); `preferences.ts:6-8` header wording; landscape large phones (about 930px) get the bigger size |
+| 1 | Vision | PASS | none | Gauntlet re-run green (1625 Denver; UTC 1618 + 7 skipped; build; recordcheck 0 hard). Boundaries exact. No leak to `/privacy`, `/share` or signed-out pages. `saveTextSize` and `toTextSize` sound. Landscape large phones (about 932px) cross 768px and get the bigger size, against decision 2: fix with a height condition. Add the slideshow screensaver to the sweep |
+| 1 | Strange | BLOCK | (1) floating menu button grows but the reserved row is a fixed 56px, so it covers every page's first line (`appChrome.ts:26`, `AppChrome.tsx:107`, `CalendarHeader.tsx:164-166`, `calendar/loading.tsx:248`, `ScheduleView.tsx:209`); (2) pinned rail/sidebar widths are px, so rem-sized links clip sideways and scroll (`appChrome.ts:100-112`, `AppChrome.tsx:131`, `PinnedNav.tsx:63`); (3) Month pills SHRINK to 9px at Large/XL because `@min-[48rem]` container queries now need 960/1152px (`MonthCell.tsx:196,356`, `TimelineDayColumn.tsx:195,214`); (4) every `text-[Npx]` stays put while everything else grows (17 files) | Lucide icons (px) do not grow; page resizes only after the server answers (172ms local); sheet shows a plain list, not the mocked "Aa" tiles (decision 1, Fury's contract slip); drawer and rail scroll at XL landscape; Inventory header wraps (readable); phone 390 pixel-identical at XL; iPad mini portrait (744) below the gate; 20+ pages at XL portrait: no h-scroll, no clipping, no target under 44px |
 
 ## Handoff log
 
@@ -169,6 +300,8 @@ Whatever Strange's sweep at Large and Extra large on a regular iPad
   five questions.
 - 2026-11-09: Bryce answered all five (Decisions above), each as recommended.
   Next: write T1 and T2 in full, run preflight, dispatch.
+- 2026-11-09: Bryce said "Yes, build it" (model switched to Opus). T1 built,
+  renumbered to mission 58, main merged, migration applied to dev. Gates next.
 
 ## Delivery
 

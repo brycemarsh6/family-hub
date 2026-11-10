@@ -11,7 +11,7 @@ import {
 import { ActionCircle } from "./ActionCircle";
 import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
-import { HAMBURGER_ROW_HEIGHT_PX } from "@/lib/appChrome";
+import { HAMBURGER_ROW_HEIGHT } from "@/lib/appChrome";
 
 /**
  * mission-16/C4 — the DOM id ScheduleView.tsx portals its own scroll-driven
@@ -33,7 +33,7 @@ export const SCHEDULE_TITLE_SLOT_ID = "calendar-header-schedule-title-slot";
 /**
  * This component's OWN rendered height while pinned for Schedule, NOT
  * counting the device's top safe-area inset. ScheduleView.tsx adds the
- * inset back (via `useHamburgerRowHeight()`) to know exactly where its own
+ * inset back (via `useHamburgerInsetPx()`) to know exactly where its own
  * content starts being visible, so its "which month is topmost" label
  * flips the moment a new month clears the bottom of this bar.
  *
@@ -161,9 +161,9 @@ export function CalendarHeader({
     ? {
         top: 0,
         paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)",
-        marginTop: `calc(-1 * (${HAMBURGER_ROW_HEIGHT_PX}px + 0.5rem + env(safe-area-inset-top)))`,
+        marginTop: `calc(-1 * (${HAMBURGER_ROW_HEIGHT} + 0.5rem + env(safe-area-inset-top)))`,
       }
-    : { marginTop: -HAMBURGER_ROW_HEIGHT_PX };
+    : { marginTop: `calc(-1 * ${HAMBURGER_ROW_HEIGHT})` };
 
   return (
     <div className={pinned ? "sticky z-20 -mx-4 bg-bg px-4 pb-1" : undefined} style={liftStyle}>

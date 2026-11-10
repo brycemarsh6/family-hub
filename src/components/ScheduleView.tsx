@@ -14,7 +14,7 @@ import { TaskDetailSheet } from "./TaskDetailSheet";
 import { SkeletonBlock } from "./Skeleton";
 import { ScheduleMiniMonth } from "./ScheduleMiniMonth";
 import { SCHEDULE_TITLE_SLOT_ID, SCHEDULE_HEADER_BAR_HEIGHT_PX } from "./CalendarHeader";
-import { HAMBURGER_ROW_HEIGHT_PX, useHamburgerRowHeight } from "@/lib/appChrome";
+import { useHamburgerInsetPx } from "@/lib/appChrome";
 import {
   useScheduleWindow,
   type ScheduleFetchers,
@@ -203,10 +203,10 @@ export function ScheduleView({
   // useScheduleMonthTitle's offset argument, and every day row's own
   // scrollMarginTop): the chrome this view has pinned above it is the
   // Schedule bar, measured from the screen's top edge. The hook measures
-  // the hamburger's bottom edge (safe-area inset + the 56px row), so
-  // swapping that row for the bar's own height leaves inset + bar.
-  const scheduleChromeHeight =
-    useHamburgerRowHeight() - HAMBURGER_ROW_HEIGHT_PX + SCHEDULE_HEADER_BAR_HEIGHT_PX;
+  // the hamburger's bottom edge (safe-area inset + the 3.5rem row, which
+  // follows the Text size), so swapping that row for the bar's own height
+  // leaves inset + bar. `useHamburgerInsetPx` is that inset alone.
+  const scheduleChromeHeight = useHamburgerInsetPx() + SCHEDULE_HEADER_BAR_HEIGHT_PX;
 
   // mission-15/C10 (Strange's blocker) — re-arms the one-shot below
   // whenever `initialDayTime` genuinely changes, mirroring

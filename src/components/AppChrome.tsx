@@ -9,8 +9,8 @@ import type { DrawerUser } from "@/components/NavList";
 import { MarsheeWordmark } from "@/components/MarsheeWordmark";
 import { PinnedNav } from "@/components/PinnedNav";
 import {
-  HAMBURGER_ROW_HEIGHT_PX,
-  pinnedNavWidthPx,
+  HAMBURGER_ROW_HEIGHT,
+  pinnedNavWidth,
   WORDMARK_HEADER_ACTIONS_ID,
   showsWordmarkHeader,
 } from "@/lib/appChrome";
@@ -29,7 +29,7 @@ import type { NavMode } from "@/lib/navMode";
  *
  * `navMode` is the person's Menu style. When it is "rail" or "sidebar" the
  * whole page sits beside a `PinnedNav` at `lg` and up, and `--app-nav-width`
- * (that menu's width, from `pinnedNavWidthPx`) is set at `lg` only, for the
+ * (that menu's width, from `pinnedNavWidth`) is set at `lg` only, for the
  * fixed bars to use as their left edge: HamburgerButton's floating wrapper,
  * AddItemBar and FloatingAddButton. Below `lg` the variable is unset (their
  * fallback is 0), so phones and upright tablets are unchanged. The floating
@@ -60,7 +60,7 @@ export function AppChrome({
         /*
           This header only exists on the dashboard and /login. What other
           files position against is the floating hamburger's row,
-          `HAMBURGER_ROW_HEIGHT_PX` / `useHamburgerRowHeight` in
+          `HAMBURGER_ROW_HEIGHT` / `useHamburgerRowHeight` in
           `src/lib/appChrome.ts`, which carries the dependents list.
         */
         <header className="print:hidden sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur">
@@ -104,7 +104,7 @@ export function AppChrome({
           wordmark
             ? undefined
             : {
-                paddingTop: `calc(env(safe-area-inset-top) + ${HAMBURGER_ROW_HEIGHT_PX}px)`,
+                paddingTop: `calc(env(safe-area-inset-top) + ${HAMBURGER_ROW_HEIGHT})`,
               }
         }
       >
@@ -128,7 +128,7 @@ export function AppChrome({
     // unset and the fixed bars fall back to 0.
     <div
       className="flex flex-1 flex-col lg:flex-row lg:[--app-nav-width:var(--app-nav-width-lg)]"
-      style={{ "--app-nav-width-lg": `${pinnedNavWidthPx(pinnedMode)}px` } as React.CSSProperties}
+      style={{ "--app-nav-width-lg": pinnedNavWidth(pinnedMode) } as React.CSSProperties}
     >
       <PinnedNav mode={pinnedMode} onSendFeedback={openFeedback} />
       <div className="flex min-w-0 flex-1 flex-col">{page}</div>
