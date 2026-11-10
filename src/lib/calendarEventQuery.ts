@@ -29,11 +29,12 @@ import type { CalendarEventSyncView, CalendarEventView } from "./types";
 const EVENT_SYNC_SELECT = {
   status: true,
   failReason: true,
+  linkedCalendarId: true,
   linkedCalendar: { select: { name: true } },
 } as const;
 
-// Mission 60: the source calendar's id and name; the view carries the name
-// only, the edit page also uses the id. The one select shape for it.
+// Mission 60: the source calendar's id and name (Marshee's row id, never a
+// Google id); the view carries both, the edit page also uses the id. The one select shape for it.
 export const EVENT_SOURCE_SELECT = { select: { id: true, name: true } } as const;
 
 // Mission 56: the edit form's ticks. A copy whose removal failed is not
@@ -46,12 +47,14 @@ export const EVENT_TICKED_SYNC_SELECT = {
 type EventSyncRow = {
   status: string;
   failReason: string | null;
+  linkedCalendarId: string;
   linkedCalendar: { name: string };
 };
 
 /** Builds the sheet's sync list field by field; the one mapping for it. */
 function toEventSyncViews(rows: EventSyncRow[]): CalendarEventSyncView[] {
   return rows.map((sync) => ({
+    linkedCalendarId: sync.linkedCalendarId,
     calendarName: sync.linkedCalendar.name,
     status: toSyncRowStatus(sync.status),
     failReason: sync.failReason === null ? null : toSyncFailReason(sync.failReason),
@@ -133,6 +136,7 @@ export function toCalendarEventView(row: CalendarEventRow): CalendarEventView {
     createdByName: row.createdBy?.displayName ?? null,
     syncs: toEventSyncViews(row.syncs),
     sourceCalendarName: row.sourceLinkedCalendar?.name ?? null,
+    sourceLinkedCalendarId: row.sourceLinkedCalendar?.id ?? null,
   };
 }
 

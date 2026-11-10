@@ -113,7 +113,7 @@ export async function setCalendarDirection(
   // Two people tapping at once can both pass the check above. Look again: if another
   // link was turned on first, this one steps back to off.
   const after = await loadSiblingCalendars(calendarId);
-  const winner = raceWinner({ id: calendarId, updatedAt: turnedOnAt }, after);
+  const winner = raceWinner({ id: calendarId, turnedOnAt }, after);
   if (winner) {
     await writeCalendarDirection(calendarId, "off");
     refresh();
@@ -124,7 +124,15 @@ export async function setCalendarDirection(
   // so the next pull does not bring those events in a second time (Bryce, answer 9).
   if (direction === "twoWay") {
     const offIds = after.filter((other) => other.direction === "off").map((other) => other.id);
-    await adoptSiblingPulls(calendarId, offIds);
+    try {
+      await adoptSiblingPulls(calendarId, offIds);
+    } catch {
+      // The handover is one transaction, so nothing moved. Turn the calendar back off
+      // rather than leave it on with the earlier link's events still unclaimed.
+      await writeCalendarDirection(calendarId, "off");
+      refresh();
+      return { error: GENERIC_ERROR };
+    }
   }
   refresh();
   return { ok: true };

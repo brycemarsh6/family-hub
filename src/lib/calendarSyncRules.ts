@@ -115,27 +115,47 @@ export function canTurnOn(others: { direction: SyncDirection }[]): boolean {
   return others.every((other) => other.direction === "off");
 }
 
-/** A sync row of an off sibling link, as the handover needs it. */
-export type HandoverRow = { id: string; eventId: string };
+/** A sync row of the calendar being turned on, as the handover needs it. */
+export type HandoverTargetRow = { id: string; eventId: string };
+
+/**
+ * A sync row of an off sibling link. `sourceIsSibling` is true when the
+ * event's source calendar (`sourceLinkedCalendarId`) is one of the siblings,
+ * so this row points at the original Google event.
+ */
+export type HandoverRow = { id: string; eventId: string; sourceIsSibling: boolean };
 
 /**
  * A handover (Bryce, 2026-11-09, answer 9): a calendar is turned on while
  * another link of the same Google calendar, now off, holds its pulled state.
- * Says which of the siblings' sync rows move to the new calendar and which are
- * dropped because the event already has a row there (or an earlier sibling row
- * for the same event is moving). Rows are moved, never copied. `targetEventIds`
- * are the events that already have a sync row on the new calendar. Both lists
- * hold sync row ids and keep the input order.
+ * Says which sync rows move to the new calendar and which are dropped. Rows
+ * are moved, never copied. An event with a row on both sides keeps the target
+ * row, unless the event was pulled from a sibling: then the sibling row is the
+ * original and the target row is a "Marshee to Google" twin, so the first such
+ * sibling row moves and the target row is dropped. Of two sibling rows for one
+ * event, the first moves. `drop` can hold target row ids as well as sibling
+ * ones. All lists hold sync row ids and keep the input order.
  */
 export function planHandover(
-  targetEventIds: string[],
+  targetRows: HandoverTargetRow[],
   siblingRows: HandoverRow[],
 ): { move: string[]; drop: string[] } {
-  const taken = new Set(targetEventIds);
-  const move: string[] = [];
-  const drop: string[] = [];
+  const targetEvents = new Set(targetRows.map((row) => row.eventId));
+  // Events whose target row is a twin, with the sibling row that replaces it.
+  const originals = new Map<string, string>();
   for (const row of siblingRows) {
-    if (taken.has(row.eventId)) {
+    if (row.sourceIsSibling && targetEvents.has(row.eventId) && !originals.has(row.eventId)) {
+      originals.set(row.eventId, row.id);
+    }
+  }
+  const taken = new Set(targetEvents);
+  const move: string[] = [];
+  const drop: string[] = targetRows.filter((row) => originals.has(row.eventId)).map((row) => row.id);
+  for (const row of siblingRows) {
+    const original = originals.get(row.eventId);
+    if (original !== undefined) {
+      (original === row.id ? move : drop).push(row.id);
+    } else if (taken.has(row.eventId)) {
       drop.push(row.id);
     } else {
       taken.add(row.eventId);
@@ -147,20 +167,24 @@ export function planHandover(
 
 /**
  * After a calendar was turned on, the other on link that got there first, if
- * any (the older `updatedAt`; the lower id breaks a tie). Two people tapping at
- * once can both pass `canTurnOn`; the one this returns for keeps the calendar
- * and the other turns itself back off.
+ * any (the older `turnedOnAt`; the lower id breaks a tie). A null stamp counts
+ * as earlier than any stamp: a link turned on before the column existed was on
+ * first. Two people tapping at once can both pass `canTurnOn`; the one this
+ * returns for keeps the calendar and the other turns itself back off.
  */
-export function raceWinner<T extends { id: string; direction: SyncDirection; updatedAt: Date }>(
-  mine: { id: string; updatedAt: Date },
+export function raceWinner<T extends { id: string; direction: SyncDirection; turnedOnAt: Date | null }>(
+  mine: { id: string; turnedOnAt: Date | null },
   others: T[],
 ): T | null {
+  const stamp = (at: Date | null) => (at === null ? Number.NEGATIVE_INFINITY : at.getTime());
+  // Compared as a sign so two nulls (-Infinity minus -Infinity) are a tie, not NaN.
+  const order = (a: Date | null, b: Date | null) => (stamp(a) < stamp(b) ? -1 : stamp(a) > stamp(b) ? 1 : 0);
   const earlier = others
     .filter((other) => other.direction !== "off")
     .filter((other) => {
-      const diff = other.updatedAt.getTime() - mine.updatedAt.getTime();
+      const diff = order(other.turnedOnAt, mine.turnedOnAt);
       return diff < 0 || (diff === 0 && other.id.localeCompare(mine.id) < 0);
     })
-    .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime() || a.id.localeCompare(b.id));
+    .sort((a, b) => order(a.turnedOnAt, b.turnedOnAt) || a.id.localeCompare(b.id));
   return earlier[0] ?? null;
 }
