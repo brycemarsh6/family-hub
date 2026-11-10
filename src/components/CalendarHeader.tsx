@@ -37,15 +37,18 @@ export const SCHEDULE_TITLE_SLOT_ID = "calendar-header-schedule-title-slot";
  * content starts being visible, so its "which month is topmost" label
  * flips the moment a new month clears the bottom of this bar.
  *
- * 130 = 8 (`pt-2` equivalent, the hamburger's top offset) + 66 (action row:
- * 44px circle + 6px `gap-1.5` + 16px `leading-4` label) + 8 (`mb-2`) + 28
- * (title row: Schedule has no arrows, so just the `h-7` span) + 16 (`mb-4`)
- * + 4 (`pb-1`). The visible "Calendar" h1 (32px + 8px `mb-2` = 40) is gone
- * (Bryce, 2026-11-02), which took the old 170 to 130. The 170 was measured
- * live at 375 and 1024 on 2026-11-02 (Vision C4 notes); 130 is that minus
- * the 40, and was then measured live at 375 and 1024 (Strange S-2).
+ * 8.125rem (130px at the default 16px root) = 0.5rem (`pt-2`, the
+ * hamburger's top offset) + 4.125rem action row (44px circle + 6px `gap-1.5`
+ * + 16px `leading-4` label = 66px at 16) + 0.5rem (`mb-2`) + 1.75rem (title
+ * row: Schedule has no arrows, so just the `h-7` span) + 1rem (`mb-4`) +
+ * 0.25rem (`pb-1`). Every part is rem, so the bar grows with the Text size
+ * setting (about 162px Large, 195px XL), which is why this is rem and
+ * ScheduleView.tsx multiplies it by the live root font size (the `rootPx`
+ * from `useHamburgerInsetPx()`). The visible "Calendar" h1 (32px + 8px
+ * `mb-2` = 40) is gone (Bryce, 2026-11-02), which took the old 170 to 130.
+ * 130 was measured live at 375 and 1024 (Strange S-2).
  */
-export const SCHEDULE_HEADER_BAR_HEIGHT_PX = 130;
+export const SCHEDULE_HEADER_BAR_HEIGHT_REM = 8.125;
 
 /**
  * The Calendar branch's header row: the Today/view-switcher/Add circles,
@@ -325,7 +328,7 @@ export function CalendarHeader({
               already 44px because of the arrows either side), but
               Schedule's row has NO 44px sibling to hide the growth behind
               (`showArrows` is false there) — the row's OWN flow height
-              would have grown 28px -> 44px, and `SCHEDULE_HEADER_BAR_HEIGHT_PX`
+              would have grown 28px -> 44px, and `SCHEDULE_HEADER_BAR_HEIGHT_REM`
               below (which ScheduleView.tsx, out of this contract's
               boundary, adds to its own scroll-offset math) would have gone
               stale the moment this shipped.
@@ -344,7 +347,7 @@ export function CalendarHeader({
               instead of growing the bar. Either way: the row's rendered
               height is UNCHANGED from before this contract, on every view,
               in both the null-frame and the resolved-frame — which is what
-              keeps `SCHEDULE_HEADER_BAR_HEIGHT_PX` correct with no edit
+              keeps `SCHEDULE_HEADER_BAR_HEIGHT_REM` correct with no edit
               needed, and what keeps the null/resolved frames matching
               (they already matched at h-7; nothing about this button's
               presence depends on `title`, so it changes nothing about that

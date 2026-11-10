@@ -41,7 +41,7 @@ tell when a rule's reason has expired.
   overlay the page reserves no room for — a floating action button, a toast,
   a sticky banner — fails this even at 44px, because no amount of scrolling
   moves what sits at a fixed viewport y. The floating hamburger passes because
-  `<main>` reserves its row (`HAMBURGER_ROW_HEIGHT_PX`) above the content. **Size and reachability are different properties.** (Added 2026-09-03
+  `<main>` reserves its row (`HAMBURGER_ROW_HEIGHT`, in rem since mission-58) above the content. **Size and reachability are different properties.** (Added 2026-09-03
   on Strange's ruling, mission 9: Month's grid passed every size check while
   one of its day numbers opened the Add sheet instead of Day view, and the
   first measurement — taken scrolled to the bottom — reported zero failures
@@ -135,7 +135,7 @@ tell when a rule's reason has expired.
   root layout via `AppChrome`. Its list never changes as you move, only which
   row is lit. The wordmark header appears only on the dashboard and `/login`;
   every other page shows the floating hamburger and reserves
-  `HAMBURGER_ROW_HEIGHT_PX` above its content, so the button is never an
+  `HAMBURGER_ROW_HEIGHT` above its content, so the button is never an
   unreserved overlay. `/login` and `/share/*` render no drawer: there is no
   session yet to navigate with, and a shared link must not leak the app's
   navigation to someone with no session.

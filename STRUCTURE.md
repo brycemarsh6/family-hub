@@ -1374,13 +1374,17 @@ Adding a second definition of any of these is a BLOCKER:
   equal-standing alternative for any one surface; **a second hardcoded copy
   is not.** **Closed in mission-23:** the header now exists only on `/`
   and `/login`, and the dimension pages position against is the floating
-  hamburger's row, `HAMBURGER_ROW_HEIGHT_PX` (plus `useHamburgerRowHeight`) in
-  `src/lib/appChrome.ts`, which lists its dependents. A component that
-  reads `useHamburgerRowHeight` to position a surface is a dependent and
+  hamburger's row, `HAMBURGER_ROW_HEIGHT` (a CSS length in rem, so it
+  follows Text size; mission-58), plus the measuring hooks
+  (`useHamburgerRowHeight`, and the inset and root size Schedule reads), in
+  `src/lib/appChrome.ts`, which lists its dependents. A px copy of the row
+  there is only a first-paint seed; new code never positions against it. A
+  component that reads those hooks to position a surface is a dependent and
   joins that comment in the same change (mission-54, A-L6-12). Mission 25 adds
-  `NAV_RAIL_WIDTH_PX` and `NAV_SIDEBAR_WIDTH_PX` there, feeding the
-  `--app-nav-width` CSS variable that the fixed bars use as their left edge.
-  `SCHEDULE_HEADER_BAR_HEIGHT_PX` and `SCHEDULE_TITLE_SLOT_ID` stay in
+  the pinned menu's widths there, `NAV_RAIL_WIDTH` and `NAV_SIDEBAR_WIDTH`
+  (CSS lengths in rem since mission-58, read through `pinnedNavWidth`),
+  feeding the `--app-nav-width` CSS variable that the fixed bars use as their
+  left edge. The Schedule bar's height and `SCHEDULE_TITLE_SLOT_ID` stay in
   `CalendarHeader.tsx`. Mission 44 adds `WORDMARK_HEADER_ACTIONS_ID` (the
   wordmark header's right-end slot) to `src/lib/appChrome.ts`. (Added 2026-09-05, mission-16; Bryce approved.) (Story: docs/history/structure-rationale.md, "Chrome dimension rule: the 73px header story".)
 - `src/lib/personInfo.ts` — `PERSON_SELECT` / `toPersonInfo`, the single

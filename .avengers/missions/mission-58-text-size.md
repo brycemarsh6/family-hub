@@ -1,7 +1,7 @@
 # Mission: Text size setting (mission 58)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (F1 done; gate pass 2: Vision, Strange, Captain)
+**Status:** AT-THE-GATES (F2 done; gate pass 3, the last in budget)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 ## Brief
@@ -284,6 +284,71 @@ for Bryce, as constitution rules have before.
   before the server answers, icons growing, and Captain sees no hand-written
   optimistic wrapper.
 
+## Fix batch F2 (after gate pass 2)
+
+One contract, one builder (all small). Then gate pass 3, the last in budget.
+
+### F2 — Schedule bar, rollback, bare grids
+- **Objective:** Schedule's scroll offset follows the bar's real height at
+  every text size; a failed text size save always puts `<html>` back to the
+  saved size; Habits Manage and the dashboard grid never grow wider than
+  their column.
+- **Boundaries:** may touch: `src/components/CalendarHeader.tsx` (the
+  `SCHEDULE_HEADER_BAR_HEIGHT_PX` constant, its new rem twin, and its comment only),
+  `src/components/ScheduleView.tsx`, `src/lib/appChrome.ts`,
+  `src/lib/appChrome.test.ts`, `src/components/TextSizeSetting.tsx`,
+  `src/lib/textSize.ts` (a comment only), `src/app/globals.css` (the
+  mission-58 block comment only), `src/components/HabitManager.tsx` (lines
+  137 and 176 class strings only), `src/components/DashboardWidgetList.tsx`
+  (line 99 class string only). Must not touch: anything else; `STRUCTURE.md`,
+  `DESIGN.md` and the mission file are Fury's.
+- **Shape:**
+  1. Bar: `SCHEDULE_HEADER_BAR_HEIGHT_REM = 8.125` (130 / 16) replaces the
+     px constant; comment updated (every part of the bar is rem). In
+     `appChrome.ts`, give ScheduleView the live root font size from the same
+     measuring setup (for example `useHamburgerInsetPx` returning
+     `{ insetPx, rootPx }`, or one shared internal measuring helper that both
+     hooks use, which also answers Captain's "third hook extracts" note).
+     ScheduleView computes `insetPx + SCHEDULE_HEADER_BAR_HEIGHT_REM * rootPx`.
+     At 16px it must equal 130 + inset exactly.
+  2. `appChrome.ts` tidy (Captain pass 2): derive `HAMBURGER_ROW_HEIGHT`
+     from `HAMBURGER_ROW_HEIGHT_REM` and the seed `HAMBURGER_ROW_HEIGHT_PX`
+     from `HAMBURGER_ROW_HEIGHT_REM * 16`; make the seed file-private if
+     nothing outside imports it.
+  3. Rollback: on `result.error` or a throw, put `<html>` back to the
+     server-confirmed `textSize` prop, never the tap-time value. Add an
+     effect that writes `optimisticSize` to
+     `document.documentElement.dataset.textSize`, so `<html>` always ends
+     equal to the selected tile (keep the instant write in `choose`; the
+     effect is the safety net). Lint rule `react-hooks/immutability` forbids
+     writing `document` inside the component body; an effect or the
+     existing module helper is fine.
+  4. Cross-reference comments: `TEXT_SIZE_PREVIEW_REM` and the CSS block
+     each name the other so 1 / 1.25 / 1.5 change together.
+  5. `grid-cols-1` on `HabitManager.tsx:137` and `:176` and
+     `DashboardWidgetList.tsx:99` (as `HabitTodayList.tsx:137` does).
+- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`, the
+  AGENTS.md UTC run, `npm run build`, all green.
+- **Evidence required:** command tails; `git diff --stat`; the ScheduleView
+  maths line; a short trace of the two-fast-failing-taps case through the
+  new code ending with `<html>` equal to the saved size.
+- **Done criteria:** Strange pass 3 at XL 820x1180: Today puts the day row
+  top at or below the bar bottom (195), the month title switches as a
+  heading crosses the bar, Habits Manage grips on screen. Vision pass 3:
+  the fast-tap trace holds.
+
+**F2 status: DONE** (Stark, 2026-11-09). `SCHEDULE_HEADER_BAR_HEIGHT_REM`
+8.125; `useHamburgerInsetPx` returns `{ insetPx, rootPx }` through one shared
+private `useFloatingButtonMeasure`; ScheduleView `insetPx + 8.125 * rootPx`
+(130 at 16px); row constants derived from `HAMBURGER_ROW_HEIGHT_REM`, the px
+seed file-private; TextSizeSetting rolls back to the saved prop via a ref plus
+an effect syncing `<html>` to the selected tile; cross-reference comments;
+`grid-cols-1` on three grids. Fury: three stale comments renamed to the REM
+constant (`CalendarHeader.tsx:331,350`, `useScheduleMonthTitle.ts:12`), and
+the stale `HAMBURGER_ROW_HEIGHT_PX` / `NAV_*_WIDTH_PX` names fixed in
+STRUCTURE.md's chrome-dimension rule and DESIGN.md:44,138. Gauntlet: tsc,
+eslint, 1627 Denver, UTC 1620 + 7 skipped, build exit 0.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
@@ -291,6 +356,9 @@ for Bryce, as constitution rules have before.
 | 1 | Captain | BLOCK | `TextSizeSetting.tsx:17-33` hand-writes the optimistic tap wrapper; STRUCTURE.md makes `useOptimisticRun` its only home (NavModeSetting is listed debt, not a pattern). Contract slip: T1 said copy NavModeSetting | Amendments proposed: Settings RadioSheet-row rule (third copy extracts), Wide pages rule 2 (container rem follows text size, media rem and `COLUMN_MIN_WIDTH_PX` do not), DESIGN.md "size in rem, not px", bookkeeping (textSize.ts entry, three portaled sheets, hook caller list); `preferences.ts:6-8` header wording; landscape large phones (about 930px) get the bigger size |
 | 1 | Vision | PASS | none | Gauntlet re-run green (1625 Denver; UTC 1618 + 7 skipped; build; recordcheck 0 hard). Boundaries exact. No leak to `/privacy`, `/share` or signed-out pages. `saveTextSize` and `toTextSize` sound. Landscape large phones (about 932px) cross 768px and get the bigger size, against decision 2: fix with a height condition. Add the slideshow screensaver to the sweep |
 | 1 | Strange | BLOCK | (1) floating menu button grows but the reserved row is a fixed 56px, so it covers every page's first line (`appChrome.ts:26`, `AppChrome.tsx:107`, `CalendarHeader.tsx:164-166`, `calendar/loading.tsx:248`, `ScheduleView.tsx:209`); (2) pinned rail/sidebar widths are px, so rem-sized links clip sideways and scroll (`appChrome.ts:100-112`, `AppChrome.tsx:131`, `PinnedNav.tsx:63`); (3) Month pills SHRINK to 9px at Large/XL because `@min-[48rem]` container queries now need 960/1152px (`MonthCell.tsx:196,356`, `TimelineDayColumn.tsx:195,214`); (4) every `text-[Npx]` stays put while everything else grows (17 files) | Lucide icons (px) do not grow; page resizes only after the server answers (172ms local); sheet shows a plain list, not the mocked "Aa" tiles (decision 1, Fury's contract slip); drawer and rail scroll at XL landscape; Inventory header wraps (readable); phone 390 pixel-identical at XL; iPad mini portrait (744) below the gate; 20+ pages at XL portrait: no h-scroll, no clipping, no target under 44px |
+| 2 | Captain | PASS | none (pass 1 blocker closed) | Stale facts to fix before merge: STRUCTURE.md:1376-1382 chrome-dimension rule names `HAMBURGER_ROW_HEIGHT_PX` as the positioning dimension and the deleted `NAV_*_WIDTH_PX`; DESIGN.md:44,138 same. `appChrome.ts` types the row three times (derive from `HAMBURGER_ROW_HEIGHT_REM`), `HAMBURGER_ROW_HEIGHT_PX` could be file-private; `useHamburgerInsetPx` copies the measuring setup (third hook extracts); size factors in `textSize.ts` and `globals.css` should cross-reference; `SCHEDULE_HEADER_BAR_HEIGHT_PX` 130 still px; Naming suffix convention proposed. Rules A (Wide pages rule 2) and B (DESIGN.md rem) restated with exact text, waiting for Bryce |
+| 2 | Vision | BLOCK | (1) `SCHEDULE_HEADER_BAR_HEIGHT_PX` 130 (`CalendarHeader.tsx:48`) used by `ScheduleView.tsx:209`: the bar is all rem (about 162px Large, 195px XL), so a jump to a day lands under the sticky bar, mini month tucks under, month title flips late. Fix: bar height in rem times the live root px. (2) `TextSizeSetting.tsx:30-44` rolls back to the tap-time value: two fast failing taps (offline) leave `<html>` at an unsaved size while the Normal tile shows selected, and tapping Normal is a no-op. Fix: roll back to the server-confirmed prop, optionally sync html to the optimistic value in an effect | Gauntlet green (1626; UTC 1619 + 7; build; recordcheck 0 hard). Boundaries clean. Normal pixel-identical (every conversion is exact /16). `useHamburgerInsetPx` correct. Month `@min-[768px]` needs a 768px grid: 820 portrait XL leaves 772px, an 810-wide iPad (10.2 inch) drops to the phone layout. All-day strip chips `leading-[1.5rem]` in 24px rows: eyeball. Skeleton `h-[66px]` jumps (cosmetic) |
+| 2 | Strange | BLOCK | All four pass 1 blockers closed with measurements. New: (1) Schedule bar 195px at XL (162.5 Large) but scroll offset and month-title switch stay 130 (same as Vision's); (2) Habits Manage at XL (820 and 1180 sidebar): bare `grid` column grows to the longest title, card 911px wide in 805, every drag grip off screen (`HabitManager.tsx:137,176`) | Tiles as mocked (radiogroup, 72px tall, Aa 16/20/24, accent selected, resize 1ms after tap, save 209ms). Rail/sidebar: no sideways scroll, vertical accepted (rail XL 1029/820, sidebar XL 1051/820, sidebar XL is 384 of 1180). Month pills 12/15/18px. Labels grow in step; icons exactly x1.25 / x1.5. Phone landscape 844x390 stays 16px. Normal unchanged. Month with sidebar at XL 1180 drops below 768 and uses the phone layout (pills 13.5px). `DashboardWidgetList.tsx:99` same bare grid, no clip yet. Menu style change showed only after reload (hidden pane, outside mission). Calendar loading showed "Week" for month (pre-existing?) |
 
 ## Handoff log
 

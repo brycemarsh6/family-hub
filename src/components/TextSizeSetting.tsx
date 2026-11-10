@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic } from "react";
+import { useEffect, useOptimistic, useRef } from "react";
 import { Type } from "lucide-react";
 import { saveTextSize } from "@/app/actions/preferences";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
@@ -27,17 +27,29 @@ export function TextSizeSetting({ textSize }: { textSize: TextSize }) {
   const [optimisticSize, setOptimisticSize] = useOptimistic(textSize);
   const { run, error } = useOptimisticRun<TextSize>(setOptimisticSize);
 
+  // The latest server-confirmed size, so a save that fails after an earlier
+  // one succeeded rolls back to what is really saved, not to a stale render.
+  const savedRef = useRef(textSize);
+  useEffect(() => {
+    savedRef.current = textSize;
+  }, [textSize]);
+
+  // Safety net: <html> always ends equal to the selected tile, including
+  // after a failed save rolls the optimistic value back to the saved prop.
+  useEffect(() => {
+    showTextSize(optimisticSize);
+  }, [optimisticSize]);
+
   function choose(next: TextSize) {
     if (next === optimisticSize) return;
-    const previous = optimisticSize;
     showTextSize(next);
     run(next, async () => {
       try {
         const result = await saveTextSize(next);
-        if (result.error) showTextSize(previous);
+        if (result.error) showTextSize(savedRef.current);
         return result;
       } catch (err) {
-        showTextSize(previous);
+        showTextSize(savedRef.current);
         throw err;
       }
     });

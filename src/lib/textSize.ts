@@ -13,7 +13,11 @@ export const TEXT_SIZE_LABELS: Record<TextSize, string> = {
   xl: "Extra large",
 };
 
-/** How big the "Aa" on each Settings tile is drawn, in rem. */
+/**
+ * How big the "Aa" on each Settings tile is drawn, in rem. These are the
+ * same factors as the font-size percentages and icon zoom in the mission-58
+ * block of globals.css (100 / 125 / 150%): change both together.
+ */
 export const TEXT_SIZE_PREVIEW_REM: Record<TextSize, number> = {
   normal: 1,
   large: 1.25,

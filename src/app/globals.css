@@ -186,7 +186,9 @@ body {
    put: the height condition keeps landscape phones (under 440px tall) out,
    while an iPad is at least 744px tall either way. Percent, not px, so it
    still respects the device's own default. Lucide icons are px-sized svgs, so
-   they get the same factor through zoom. */
+   they get the same factor through zoom. The factors (1 / 1.25 / 1.5) are
+   repeated as TEXT_SIZE_PREVIEW_REM in src/lib/textSize.ts: change both
+   together. */
 @media (min-width: 48rem) and (min-height: 40rem) {
   html[data-text-size="large"] {
     font-size: 125%;
