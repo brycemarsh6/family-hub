@@ -156,16 +156,23 @@ export function ScreensaverSlide({
       <PhotoLayer photo={slots.a} visible={slots.active === "a"} settings={settings} />
       <PhotoLayer photo={slots.b} visible={slots.active === "b"} settings={settings} />
       {settings.showClock && (
-        <div
-          className="absolute bottom-0 left-0 z-10 px-8 pb-6 text-white"
-          style={{
-            paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))",
-            paddingLeft: "calc(2rem + env(safe-area-inset-left))",
-          }}
-        >
-          <p className="text-7xl font-semibold leading-none">{time}</p>
-          <p className="mt-2 text-xl text-white/80">{date}</p>
-        </div>
+        <>
+          {/* A shade that does not depend on the photo, so the clock reads on bright photos with no caption */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-56 bg-gradient-to-t from-black/70 via-black/40 to-transparent"
+          />
+          <div
+            className="absolute bottom-0 left-0 z-10 px-8 pb-6 text-white"
+            style={{
+              paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))",
+              paddingLeft: "calc(2rem + env(safe-area-inset-left))",
+            }}
+          >
+            <p className="text-7xl font-semibold leading-none [text-shadow:0_1px_8px_rgb(0_0_0/0.6)]">{time}</p>
+            <p className="mt-2 text-xl text-white/80 [text-shadow:0_1px_8px_rgb(0_0_0/0.6)]">{date}</p>
+          </div>
+        </>
       )}
     </>
   );
