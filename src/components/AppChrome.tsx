@@ -8,6 +8,7 @@ import { HamburgerButton } from "@/components/HamburgerButton";
 import type { DrawerUser } from "@/components/NavList";
 import { MarsheeWordmark } from "@/components/MarsheeWordmark";
 import { PinnedNav } from "@/components/PinnedNav";
+import { ScreensaverHost } from "@/components/ScreensaverHost";
 import {
   HAMBURGER_ROW_HEIGHT_PX,
   pinnedNavWidthPx,
@@ -15,6 +16,7 @@ import {
   showsWordmarkHeader,
 } from "@/lib/appChrome";
 import type { NavMode } from "@/lib/navMode";
+import type { ScreensaverSettings } from "@/lib/screensaver";
 
 /**
  * Everything around a page: the chrome the root layout used to inline. The
@@ -39,10 +41,13 @@ import type { NavMode } from "@/lib/navMode";
 export function AppChrome({
   user,
   navMode,
+  screensaver = null,
   children,
 }: {
   user: DrawerUser | null;
   navMode: NavMode;
+  /** The wall tablet's screensaver settings; null for every login but a device login, which mounts no screensaver. */
+  screensaver?: ScreensaverSettings | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -117,6 +122,7 @@ export function AppChrome({
           onClose={() => setFeedbackOpen(false)}
         />
       )}
+      {user && screensaver && <ScreensaverHost initialSettings={screensaver} />}
     </>
   );
 

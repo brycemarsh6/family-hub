@@ -1,7 +1,7 @@
 # Mission 58: Screensaver S2, the tablet slideshow and sleep mode
 
 **Project:** family-hub (Marshee)
-**Status:** EXECUTE (Bryce approved the mock and every recommendation 2026-11-09; C1 dispatched)
+**Status:** GATES (C1 to C3 built; Vision and Captain on the code, Strange waits for Bryce's Tablet sign-in)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 **Branch:** `claude/screensaver-s2-slideshow`, cut from `main` at `e62056c` (the PR #94 merge).
 
@@ -105,24 +105,24 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Report:** DONE (Stark), re-run by Fury 2026-11-09: tsc 0 (after `npm install` in this worktree; `@vercel/blob` was missing, and a stale `.next` removed), eslint 0, `npm test` 1634 pass, UTC run 1634 tests 0 fail 7 skipped; `db.` absent from `actions/slideshowPhotos.ts`; one reader, one writer of `ScreensaverSettings`. Fury replaced Stark's invented `SCREENSAVER_WORDS` with the approved mock's words (Stark had no copy of the mock). Migration applied to the dev branch (host checked `ep-hidden-pine-`), `migrate status` up to date. `pickNextPhoto` returns `{ id, shownIds } | null`; the caller keeps `shownIds`. C1 status: DONE.
 
 ### C2 — The Wall tablet page and its Settings row
-- **Status:** PENDING (after C1; may run beside C3, disjoint files)
+- **Status:** DONE
 - **Objective:** Parents and admins change every screensaver setting from `/settings/wall-tablet`, reached from a new "Wall tablet" row on Settings, exactly as the approved mock.
 - **Boundaries:** may touch: new `src/app/(app)/settings/wall-tablet/page.tsx`, new `src/components/WallTabletSettings.tsx`, new `src/components/LadderStepper.tsx`, `src/app/(app)/settings/page.tsx` (one row and its top comment). Must not touch: everything else (C1's files are read-only now; ask, do not edit, if one is wrong).
 - **Spec:** page: `requireRole(...MANAGER_ROLES)` like `settings/slideshow/page.tsx`, then `loadScreensaverSettings()` and `countSlideshowPhotos()`; `data-page-width="wide"` root with its content inside `NARROW_PAGE_CLASSES` (STRUCTURE.md "Short pages"); `BackLink` to Settings; words only from `SCREENSAVER_WORDS`. `WallTabletSettings` (client): three sections in the mock's order; each switch a `ToggleSwitch`, each number a `LadderStepper` driven by `stepLadder` / `stepSleepMinute` and shown with its unit ("30 min", "15 sec", "10:00 PM", "2 min"); optimistic like `HabitsChoresSettings` (shows at once, a failed save puts the old value back and says so under that row); the three sleep rows are disabled when "Go black at night" is off; the Slideshow photos row links to `/settings/slideshow` with the count. `LadderStepper`: the `QuantityStepper` look, 48px buttons, `aria-label` "Decrease <label>" / "Increase <label>", a disabled end, the shown text passed in. Settings row: "Wall tablet", Lucide `Tablet` icon, same classes as the Slideshow photos row, `order-3` right after it, gated on `canManageSlideshow`.
 - **Verification:** `npx tsc --noEmit`; `npx eslint .`; `npm test`.
 - **Evidence required:** gauntlet last lines; `git diff --stat`; a `grep` showing no number input (`type="number"`) and no hand-typed label text in the new components.
 - **Done criteria:** Strange's pass on the running page.
-- **Report:** (pending)
+- **Report:** DONE (Stark): new page, `WallTabletSettings.tsx`, `LadderStepper.tsx`, one Settings row; tsc 0, eslint 0, `npm test` 1634 pass; no number inputs. Stark's note: two taps inside one render could save the same step twice (server rule still holds). Fury re-runs with C3.
 
 ### C3 — The ScreensaverHost (idle timer, slideshow, black screen)
-- **Status:** PENDING (after C1; may run beside C2)
+- **Status:** DONE
 - **Objective:** On a device login only, the tablet shows the slideshow and the black screen by the C1 rule, and a tap only wakes it.
 - **Boundaries:** may touch: new `src/components/ScreensaverHost.tsx`, new `src/components/ScreensaverSlide.tsx` (if the slide drawing is worth its own file), `src/components/AppChrome.tsx` (one optional prop and the mount), `src/app/(app)/layout.tsx` (load settings for device logins only and pass them). Must not touch: everything else.
 - **Spec:** layout: `const screensaver = user?.isDevice ? await loadScreensaverSettings() : null;` passed as `AppChrome`'s `screensaver` prop; `AppChrome` mounts `<ScreensaverHost initialSettings={screensaver} />` only when it is non-null. Host: last-tap time in a ref, set on mount and by capturing `pointerdown` and `keydown` on `window`; a 1-second interval computes `screensaverState` with `HOUSEHOLD_TIME_ZONE`; before leaving "awake" it awaits `loadScreensaverShow()` (a `null` or a throw means stay awake and try again on a later tick, never more than once a minute), re-checks with the fresh settings and photo count, then shows. Overlay: `createPortal` to `document.body` (only ever rendered after mount), `fixed inset-0`, above everything (higher z than the drawer and sheets), black background, `touch-action: none`. Slideshow: the current photo `object-contain` over a blurred, scaled `object-cover` copy of the same image; the next photo preloaded and decoded before a 1-second crossfade; `secondsPerPhoto` per photo via `pickNextPhoto` (Math.random); overlays per the mock (clock `formatHouseholdClock` with the date under it bottom left; caption over `formatTakenOn` bottom right; a soft dark shade under the words; each only when its switch is on, and the date line hidden when the photo has none). A photo whose image fails to load is skipped. Sleep: the same overlay, pure black, nothing on it. Tap: the overlay's `onPointerDown` calls `preventDefault` and `stopPropagation`; its `onClick` resets the last tap, hides the overlay and calls `router.push("/")` unless the path is already `/`. The tick resumes after wake. When the tab is hidden nothing breaks (intervals may pause). No screen power, brightness or wake-lock calls.
 - **Verification:** `npx tsc --noEmit`; `npx eslint .`; `npm test`; `npm run build`.
 - **Evidence required:** gauntlet last lines; `git diff --stat`; the exact lines that make the overlay swallow the tap; `grep -n "wakeLock\|brightness" src/components/ScreensaverHost.tsx` (empty).
 - **Done criteria:** Strange's pass on the dev server with the Tablet login (Bryce signs it in), with "Start after" set to 1 minute and test photos only.
-- **Report:** (pending)
+- **Report:** DONE (Stark): host with capture-phase tap listeners, 1-second tick, fresh `loadScreensaverShow()` before leaving awake (retry no sooner than 60 s), portal at `z-[100]` above the drawer's `z-[60]`, wake only on the overlay's own click; `ScreensaverSlide.tsx` two-layer 1-second crossfade with preload and `decode()`. Fury re-ran C2 and C3 together 2026-11-09: tsc 0, eslint 0, `npm test` 1634 pass, UTC 1634 tests 0 fail, `npm run build` 0 with `/settings/wall-tablet` in the route list.
 
 ### C4 — Records (Fury)
 - Mission 57's Delivery "Shipped check" line; STRUCTURE.md entry for the screensaver (Captain's wording, Bryce's yes); CLAUDE.md "What's built" line; `.avengers/status.md` tablet check; this file's Delivery.
