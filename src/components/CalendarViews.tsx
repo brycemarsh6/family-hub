@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CalendarHeader } from "./CalendarHeader";
 import { CalendarSheets } from "./CalendarSheets";
 import { DaySection } from "./DaySection";
+import { FloatingAddButton } from "./FloatingAddButton";
 import { MonthChips } from "./MonthChips";
 import { MonthGrid } from "./MonthGrid";
 import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
@@ -66,9 +67,8 @@ type CalendarViewsProps = {
   people: CalendarPersonView[];
   /**
    * True for admin/parent sessions, computed server-side in page.tsx —
-   * gates the header's Add circle (mission-9/C5, Strange's B1 remedy) and
-   * the detail sheet's Edit/⋯. Per STRUCTURE.md, hiding UI is never the
-   * real gate — the write actions in actions/calendar.ts check this
+   * gates the floating + and the detail sheet's Edit/⋯. Per STRUCTURE.md,
+   * hiding UI is never the real gate — the write actions in actions/calendar.ts check this
    * independently, so a kid whose browser somehow rendered these controls
    * anyway would still be refused server-side.
    */
@@ -145,8 +145,7 @@ export function CalendarViews({
   // useHamburgerRowHeight just above — only renderPeriodContent's "month",
   // "timeline" and "year" branches actually spread these handlers onto
   // anything; Schedule manages its own scrolling and is never wrapped.
-  // `step` is the SAME call the header's Prev/Next arrows make (below) —
-  // this is an addition to how the calendar pages, not a replacement.
+  // `step` is how the calendar pages now that the header has no arrows.
   const pageSwipeHandlers = usePageSwipe({
     onSwipeLeft: () => step(1),
     onSwipeRight: () => step(-1),
@@ -246,7 +245,7 @@ export function CalendarViews({
     router.push(`/calendar?${buildCalendarSearch("month", day)}`);
   }
 
-  const title = today === null || anchor === null ? null : config.title(anchor);
+  const title = today === null || anchor === null ? null : config.title(anchor, today);
   const addSheetDateParam = anchor ? `?date=${toLocalDateString(anchor)}` : "";
 
   // mission-17/C3 — replaces the old `view === "member"` ternary chain with
@@ -448,24 +447,20 @@ export function CalendarViews({
       <CalendarHeader
         view={view}
         onPickView={() => setPickingView(true)}
+        onSelectView={setView}
         todayResolved={today !== null}
         isCurrentPeriod={headerIsCurrentPeriod}
         onToday={handleToday}
         title={title}
-        onPrev={() => step(-1)}
-        onNext={() => step(1)}
-        prevDisabled={today === null}
-        nextDisabled={today === null}
-        prevLabel={config.prevLabel}
-        nextLabel={config.nextLabel}
-        canManage={canManage}
-        onAdd={() => setAddingEvent(true)}
         onOpenMonthJump={() => setPickingMonth(true)}
       />
 
       {/* The render switch itself — which case runs for which view — lives
           in `renderPeriodContent`, above; see that function's own comment. */}
       <div className="flex flex-col gap-4">{renderPeriodContent()}</div>
+
+      {/* The round + (mission 67), bottom right on all six views, for logins that can add. */}
+      {canManage && <FloatingAddButton placement="right" label="Add" onClick={() => setAddingEvent(true)} />}
 
       {/* mission-19/C1 — the view picker, Add, event-detail, and
           task-detail sheets were extracted verbatim into CalendarSheets

@@ -58,8 +58,8 @@ import type { CalendarPeriodView } from "./calendarViewVocabulary";
  *
  * `step: 0` is Schedule, and it is a real answer rather than a missing
  * one: Schedule is a continuous scrolling list, so it has no period to
- * page between, and CV3 hides the header's arrows for it entirely
- * (calendar-v2.md's `showArrows`). Stepping it is a no-op — deliberately
+ * page between (the header has no arrows now; swipe still calls
+ * `step`). Stepping it is a no-op — deliberately
  * NOT the one-day step that this function's old
  * `view === "week" ? 7 : 1` catch-all would have silently given it, and
  * given 3 Day too.

@@ -18,6 +18,9 @@ import { VIEW_CONFIG } from "./calendarViewConfig";
 import { isSameDay } from "./mealPlanDates";
 import type { CalendarPeriodView } from "./calendarViewVocabulary";
 
+// Mid-November 2026, the Denver "today" every title below is read against.
+const TODAY = new Date(2026, 10, 10);
+
 const ALL_VIEWS: CalendarPeriodView[] = [
   "schedule",
   "day",
@@ -57,18 +60,12 @@ test("pinned is true for Schedule alone", () => {
   }
 });
 
-// mission-18/C5 (Captain's reachability blocker) — `showArrows` and
-// `ownsTodayScroll` used to be inline `view === "schedule"` tests beside
-// this file (CalendarHeader.tsx, CalendarViews.tsx) rather than rows here,
-// same shape as `pinned`/`renderer` before mission-17/C3. Asserted the
-// same way those two already are: every view checked against what it
-// should be, not just Schedule's own row, so a future view silently
-// inheriting the wrong default would fail here too.
-test("showArrows is false for Schedule alone", () => {
-  for (const view of ALL_VIEWS) {
-    assert.equal(VIEW_CONFIG[view].showArrows, view !== "schedule", `${view}.showArrows`);
-  }
-});
+// mission-18/C5 (Captain's reachability blocker) — `ownsTodayScroll` used
+// to be an inline `view === "schedule"` test beside this file rather than a
+// row here, same shape as `pinned`/`renderer` before mission-17/C3. Asserted
+// the same way: every view checked against what it should be, not just
+// Schedule's own row, so a future view silently inheriting the wrong default
+// would fail here too.
 
 test("ownsTodayScroll is true for Schedule alone", () => {
   for (const view of ALL_VIEWS) {
@@ -105,7 +102,7 @@ test("week: title, days and isCurrentPeriod across the Nov 1 2026 DST fall-back 
   const anchor = d(2026, 10, 3); // Tuesday, mid-week
   const { title, days, isCurrentPeriod } = VIEW_CONFIG.week;
 
-  assert.equal(title(anchor), "Nov 1 to 7");
+  assert.equal(title(anchor, TODAY), "November");
 
   const week = days(anchor);
   assert.equal(week.length, 7);
@@ -127,7 +124,7 @@ test("week: title, days and isCurrentPeriod across the Mar 8 2026 DST spring-for
   const anchor = d(2026, 2, 10); // Tuesday, mid-week
   const { title, days, isCurrentPeriod } = VIEW_CONFIG.week;
 
-  assert.equal(title(anchor), "Mar 8 to 14");
+  assert.equal(title(anchor, TODAY), "March");
 
   const week = days(anchor);
   assert.equal(week.length, 7);
@@ -144,12 +141,21 @@ test("week: title, days and isCurrentPeriod across the Mar 8 2026 DST spring-for
   assert.equal(isCurrentPeriod(anchor, d(2026, 2, 15)), false); // next week's Sunday
 });
 
-test("week: title crosses a month boundary correctly", () => {
-  // Jul 26 to Aug 1, 2026: a real week (Sunday Jul 26 through Saturday Aug 1)
-  // that starts in one month and ends in the next, the case
-  // formatWeekRange's "to" spelling has to handle.
+test("week: a week spanning two months is titled by its first visible day's month", () => {
+  // Jul 26 to Aug 1, 2026: the Sunday is in July.
   const anchor = d(2026, 6, 30); // Thursday, Jul 30 2026
-  assert.equal(VIEW_CONFIG.week.title(anchor), "Jul 26 to Aug 1");
+  assert.equal(VIEW_CONFIG.week.title(anchor, TODAY), "July");
+  // Anchored on the Saturday that is already August, still July.
+  assert.equal(VIEW_CONFIG.week.title(d(2026, 7, 1), TODAY), "July");
+});
+
+test("week: a year-boundary week takes the first day's year", () => {
+  // Dec 27 2026 (Sunday) to Jan 2 2027.
+  assert.equal(VIEW_CONFIG.week.title(d(2027, 0, 1), TODAY), "December");
+  // Same week read from 2027: December is not the current year, so it says so.
+  assert.equal(VIEW_CONFIG.week.title(d(2027, 0, 1), d(2027, 0, 5)), "December 2026");
+  // Jan 3 2027 (Sunday) starts a week wholly in 2027.
+  assert.equal(VIEW_CONFIG.week.title(d(2027, 0, 5), TODAY), "January 2027");
 });
 
 // ---------------------------------------------------------------------------
@@ -159,7 +165,7 @@ test("day: title, days and isCurrentPeriod", () => {
   const anchor = d(2026, 10, 3); // Tuesday, Nov 3 2026
   const { title, days, isCurrentPeriod } = VIEW_CONFIG.day;
 
-  assert.equal(title(anchor), "Tuesday, Nov 3");
+  assert.equal(title(anchor, TODAY), "November");
   assert.equal(days(anchor).length, 1);
   assert.ok(isSameDay(days(anchor)[0], anchor));
 
@@ -177,7 +183,8 @@ test("month: title and isCurrentPeriod across the Jan 31 -> Feb boundary", () =>
   const anchor = d(2026, 0, 31);
   const { title, isCurrentPeriod } = VIEW_CONFIG.month;
 
-  assert.equal(title(anchor), "January 2026");
+  assert.equal(title(anchor, TODAY), "January");
+  assert.equal(title(anchor, d(2027, 5, 1)), "January 2026");
   assert.equal(isCurrentPeriod(anchor, d(2026, 0, 1)), true); // same month, day 1
   assert.equal(isCurrentPeriod(anchor, d(2026, 0, 31)), true); // same month, same day
   assert.equal(isCurrentPeriod(anchor, d(2026, 1, 1)), false); // February
@@ -228,14 +235,17 @@ test("threeDay: days spans three consecutive calendar days across the Nov 1 2026
   assert.equal(isCurrentPeriod(anchor, d(2026, 9, 30)), false);
 });
 
-test("threeDay: title spans the anchor's own 3-day window, same-month and cross-month", () => {
-  // Anchor-relative (the anchor plus the next two days), never a
-  // week-snapped range — the same property the `days` test above checks
-  // for the column set, checked here for the label that describes it.
-  assert.equal(VIEW_CONFIG.threeDay.title(d(2026, 8, 9)), "Sep 9–11");
-  // Crosses a month boundary: Aug 30, 31, Sep 1 — the same shape
-  // formatWeekRange's own doc comment illustrates for a week-long span.
-  assert.equal(VIEW_CONFIG.threeDay.title(d(2026, 7, 30)), "Aug 30 – Sep 1");
+test("threeDay: title is the first visible day's month, even when the span crosses into the next", () => {
+  // Anchor-relative (the anchor plus the next two days).
+  assert.equal(VIEW_CONFIG.threeDay.title(d(2026, 8, 9), TODAY), "September");
+  // Aug 30, 31, Sep 1: titled by August, the first visible day.
+  assert.equal(VIEW_CONFIG.threeDay.title(d(2026, 7, 30), TODAY), "August");
+  assert.equal(VIEW_CONFIG.threeDay.title(d(2027, 0, 1), TODAY), "January 2027");
+});
+
+test("schedule: title is the anchor's month, with the year only outside this year", () => {
+  assert.equal(VIEW_CONFIG.schedule.title(d(2026, 10, 3), TODAY), "November");
+  assert.equal(VIEW_CONFIG.schedule.title(d(2027, 1, 3), TODAY), "February 2027");
 });
 
 // ---------------------------------------------------------------------------
@@ -245,7 +255,8 @@ test("threeDay: title spans the anchor's own 3-day window, same-month and cross-
 
 test("year: title and isCurrentPeriod", () => {
   const anchor = d(2026, 10, 3);
-  assert.equal(VIEW_CONFIG.year.title(anchor), "2026");
+  assert.equal(VIEW_CONFIG.year.title(anchor, TODAY), "2026");
+  assert.equal(VIEW_CONFIG.year.title(d(2027, 5, 1), TODAY), "2027");
   assert.equal(VIEW_CONFIG.year.isCurrentPeriod(anchor, d(2026, 0, 1)), true);
   assert.equal(VIEW_CONFIG.year.isCurrentPeriod(anchor, d(2025, 11, 31)), false);
 });

@@ -1,18 +1,13 @@
 "use client";
 
-import {
-  CalendarCheck,
-  CalendarRange,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-} from "lucide-react";
+import { CalendarCheck, CalendarRange, ChevronDown } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
 import { CalendarPullButton, CalendarRelinkBanner } from "./CalendarPullButton";
+import { CalendarViewRow } from "./CalendarViewRow";
 import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { HAMBURGER_ROW_HEIGHT } from "@/lib/appChrome";
+import { CALENDAR_VIEW_CIRCLE_CLASSES } from "@/lib/gridClasses";
 
 /**
  * mission-16/C4 — the DOM id ScheduleView.tsx portals its own scroll-driven
@@ -38,129 +33,57 @@ export const SCHEDULE_TITLE_SLOT_ID = "calendar-header-schedule-title-slot";
  * content starts being visible, so its "which month is topmost" label
  * flips the moment a new month clears the bottom of this bar.
  *
- * 8.125rem (130px at the default 16px root) = 0.5rem (`pt-2`, the
- * hamburger's top offset) + 4.125rem action row (44px circle + 6px `gap-1.5`
- * + 16px `leading-4` label = 66px at 16) + 0.5rem (`mb-2`) + 1.75rem (title
- * row: Schedule has no arrows, so just the `h-7` span) + 1rem (`mb-4`) +
- * 0.25rem (`pb-1`). Every part is rem, so the bar grows with the Text size
- * setting (about 143px at Large, 176px at Larger, 195px at Largest), which is why this is rem and
- * ScheduleView.tsx multiplies it by the live root font size (the `rootPx`
- * from `useHamburgerInsetPx()`). The visible "Calendar" h1 (32px + 8px
- * `mb-2` = 40) is gone (Bryce, 2026-11-02), which took the old 170 to 130.
- * 130 was measured live at 375 and 1024 (Strange S-2).
+ * 5.375rem = 0.5rem (`pt-2`, the hamburger's top offset) + 4.125rem (the
+ * one row: a 2.75rem circle + 0.375rem `gap-1.5` + 1rem `leading-4` label,
+ * the tallest thing in it) + 0.5rem (`pb-2`) + 0.25rem (`pb-1`) = 5.375rem.
+ * Every part is rem, so the bar grows with the Text size setting, which is
+ * why ScheduleView.tsx multiplies it by the live root font size (the
+ * `rootPx` from `useHamburgerInsetPx()`).
  */
-export const SCHEDULE_HEADER_BAR_HEIGHT_REM = 8.125;
+export const SCHEDULE_HEADER_BAR_HEIGHT_REM = 5.375;
 
 /**
- * The Calendar branch's header row: the Today/view-switcher/Add circles,
- * then the prev/next arrows around the period title. Extracted out of
- * CalendarViews.tsx (mission-8's Captain pass-2 recommendation, made "up
- * front" rather than after K2/K3 pile more onto that file) — this
- * component owns zero state of its own, it only renders what CalendarViews
- * already computed. Every prop below is exactly the value CalendarViews'
- * JSX used to read directly; moving this out changes nothing about what
- * renders, which is why the C4 contract requires a pixel diff before
- * building anything new on top of it.
- *
- * The Add circle (mission-9/C5, Strange's B1 remedy) replaces the
- * FloatingAddButton the Calendar branch used to render on top of the page
- * content. That overlay covered real, tappable day numbers on Month's
- * 7-column grid — the FAB is 56px, wider than a 44.42px cell, so no corner
- * placement escapes it, and a fixed-position overlay can't be moved by
- * document padding either (both were measured and both failed). Removing
- * it here rather than per-view keeps the switcher's own DESIGN.md rule —
- * "Its list never changes as you move" from being violated by an Add
- * button that would otherwise jump from a floating bottom-left position on
- * Week/Day to a header circle on Month alone.
+ * The Calendar's top bar, one row beside the fixed hamburger: the period
+ * title (with a small down arrow, opening the month-jump sheet) at the
+ * left, then Today, View and Refresh at the right. From iPad width a row of
+ * the six views replaces the View circle (a container query on this bar,
+ * see `CalendarViewRow`). It owns no state; CalendarViews.tsx hands it
+ * everything. Adding is the floating + CalendarViews mounts, not a circle.
  */
 export function CalendarHeader({
   view,
   onPickView,
+  onSelectView,
   todayResolved,
   isCurrentPeriod,
   onToday,
   title,
-  onPrev,
-  onNext,
-  prevDisabled,
-  nextDisabled,
-  prevLabel,
-  nextLabel,
-  canManage,
-  onAdd,
   onOpenMonthJump,
 }: {
-  /** The real union, imported rather than hand-written (mission-11/C1) —
-   * the local copy that used to sit here was a second place the view
-   * vocabulary lived, and it disagreed with `CalendarPeriodView` the moment
-   * anything widened the type. It now comes from calendarViewVocabulary.ts,
-   * which is also where this file reads the switcher circle's label from
-   * (mission-11/C2) — importing `VIEW_CONFIG` out of CalendarViews.tsx for
-   * that would have recreated the component-to-component cycle that file's
-   * own header warns about. */
   view: CalendarPeriodView;
+  /** Opens the view picker sheet (the circle). */
   onPickView: () => void;
+  /** Picks a view directly (the row of six). */
+  onSelectView: (view: CalendarPeriodView) => void;
   /** False while useToday() hasn't resolved yet — see CalendarViews.tsx. */
   todayResolved: boolean;
   isCurrentPeriod: boolean;
   onToday: () => void;
-  /** Null while `today` hasn't resolved — renders the same pulsing
-   * placeholder CalendarViews' inline version did. */
+  /** Null while `today` hasn't resolved — renders a pulsing placeholder. */
   title: string | null;
-  onPrev: () => void;
-  onNext: () => void;
-  prevDisabled: boolean;
-  nextDisabled: boolean;
-  prevLabel: string;
-  nextLabel: string;
-  /** True for admin/parent sessions only — a kid session renders two
-   * circles, not three, and `justify-end` keeps them right-aligned
-   * (no separate layout branch needed). This is UI-only convenience: the
-   * real gate is the MANAGER_ROLES check inside the write actions
-   * themselves (actions/calendar.ts), same as every other manage-only
-   * control in this branch. */
-  canManage: boolean;
-  onAdd: () => void;
-  /**
-   * mission-19/C3 — opens the month-jump sheet (`MonthJumpSheet.tsx`, mounted
-   * from `CalendarSheets.tsx`). Called from the invisible overlay button
-   * below, never from the title `<h2>`/portal slot themselves — see that
-   * button's own comment for why.
-   */
+  /** Opens the month-jump sheet (`MonthJumpSheet.tsx`, mounted from `CalendarSheets.tsx`). */
   onOpenMonthJump: () => void;
 }) {
-  // mission-16/C4 (D1/Done#4) — Schedule is the one view whose content
-  // scrolls far enough, and long enough, for "which month is on screen" to
-  // ever change; Week/Day/Month each show one fixed period and never need
-  // this. So the pin is scoped to Schedule alone rather than applied to
-  // every view. Wrapping in a real element (rather than the bare Fragment
-  // this used to return) is what lets that element carry `position:
-  // sticky` at all — for every other view this div is unstyled and
-  // changes nothing about the rendered layout.
-  //
-  // mission-17/C3 — this used to be its own `view === "schedule"` test,
-  // the second independent one (CalendarViews.tsx's render switch had the
-  // other) beside `VIEW_CONFIG`, a total record over all six views with no
-  // `pinned` field — so `threeDay` and `year` would have inherited
-  // `pinned = false` silently the moment either became reachable
-  // (STRUCTURE.md's per-member-difference clause; Captain's finding).
-  // Reading `VIEW_CONFIG[view].pinned` instead makes a future view that
-  // also wants this decide so in one place rather than reintroducing a
-  // second inline test beside the record that already owns the answer.
+  // Schedule is the one view whose content scrolls far enough for "which
+  // month is on screen" to change, so only it pins (and portals its own
+  // scroll-driven title in). Read from the record, not a `view ===` test.
   const pinned = VIEW_CONFIG[view].pinned;
-  // mission-18/C5 (Captain's reachability blocker) — `showArrows` used to
-  // be a prop CalendarViews.tsx computed as `view !== "schedule"` and
-  // handed down, a third inline per-view test beside this same record.
-  // Read the same way `pinned` is, directly above: see `showArrows`'s own
-  // comment on `ViewConfig` (calendarViewConfig.ts) for why this was the
-  // last chance for that pattern to hide a per-member difference.
-  const showArrows = VIEW_CONFIG[view].showArrows;
 
-  // mission-23 — the action row shares the floating hamburger's row (top
-  // left), so the wrapper is lifted by that row's height. The page's own
-  // `py-2` supplies the button's 0.5rem top offset. Pinned, the wrapper
-  // starts at the very top and carries the safe-area inset (and the
-  // offset) as padding, so its row lands where the unpinned one does.
+  // mission-23 — the bar shares the floating hamburger's row (top left), so
+  // the wrapper is lifted by that row's height. The page's own `py-2`
+  // supplies the 0.5rem top offset. Pinned, the wrapper starts at the very
+  // top and carries the safe-area inset (and the offset) as padding, so its
+  // row lands where the unpinned one does.
   const liftStyle: React.CSSProperties = pinned
     ? {
         top: 0,
@@ -175,226 +98,78 @@ export function CalendarHeader({
         {/* No visible title (Bryce's call); `sr-only` is absolutely positioned,
             so it takes no layout and the page still has its heading. */}
         <h1 className="sr-only">Calendar</h1>
-        <div className="mb-2 flex items-center justify-end gap-3 pl-14">
-          <ActionCircle
-            icon={<CalendarCheck aria-hidden="true" size={20} />}
-            label="Today"
-            onClick={onToday}
-            disabled={!todayResolved || isCurrentPeriod}
-            size="sm"
-          />
-          <ActionCircle
-            icon={<CalendarRange aria-hidden="true" size={20} />}
-            // The label comes from the one total `Record<CalendarPeriodView,
-            // string>` the picker also reads (mission-11/C2), never a ternary
-            // chain. The chain this replaced ended in a catch-all `: "Month"`,
-            // so the moment C2 widened the union, Schedule / 3 Day / Year
-            // would each have rendered a circle labelled "Month" with no
-            // compile error — the label had been protected only by this file
-            // hand-writing its own copy of the view union, which C1 correctly
-            // removed. A total record makes the label a compiler-checked
-            // per-view difference instead.
-            label={VIEW_LABELS[view]}
-            onClick={onPickView}
-            size="sm"
-          />
-          <CalendarPullButton />
-          {canManage && (
-            <ActionCircle
-              icon={<Plus aria-hidden="true" size={20} />}
-              label="Add"
-              onClick={onAdd}
-              size="sm"
-            />
-          )}
-        </div>
+        {/* The container the view row's rem threshold measures (gridClasses.ts). */}
+        <div className="@container">
+          <div className="flex items-start gap-2 pb-2 pl-14">
+            {/* Fixed `h-11` so the null-frame and resolved-frame match. `relative`
+                so the overlay button below positions against this span; the
+                press fill sits on THIS span, behind the title and arrow (a fill
+                on the button itself would paint over them). `min-w-0` lets a
+                long title truncate, as a last resort; the title is 1.125rem on a phone
+                so "January 2027" fits beside the three circles at 393px, and
+                1.25rem from a 30rem bar. */}
+            <span className="relative flex h-11 min-w-0 items-center gap-1 rounded-lg px-1 transition-colors has-[>button:active]:bg-surface-2">
+              {title === null ? (
+                <span aria-hidden="true" className="h-5 w-28 animate-pulse rounded bg-surface-2" />
+              ) : pinned ? (
+                // The pinned bar owns the one live month label for Schedule:
+                // ScheduleView.tsx portals its own scroll-driven `<h2>` into
+                // this node (SCHEDULE_TITLE_SLOT_ID, above). The span must stay
+                // EMPTY: any fallback child would sit beside the portaled one
+                // and show a double label. `title` is unused in this branch.
+                <span
+                  id={SCHEDULE_TITLE_SLOT_ID}
+                  className="flex min-w-0 items-center [&_h2]:text-lg [&_h2]:font-bold @min-[30rem]:[&_h2]:text-xl"
+                />
+              ) : (
+                <h2 className="truncate text-lg font-bold @min-[30rem]:text-xl">{title}</h2>
+              )}
 
-        <div className="mb-4 flex items-center justify-between gap-2">
-          {showArrows && (
-            <button
-              type="button"
-              onClick={onPrev}
-              disabled={prevDisabled}
-              aria-label={prevLabel}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors active:bg-surface-2 disabled:opacity-40"
-            >
-              <ChevronLeft aria-hidden="true" size={22} />
-            </button>
-          )}
+              {/* A visible hint that the title opens the month-jump sheet; a
+                  sibling of the branches above (never inside the portal slot),
+                  dimmed with them while `today` hasn't resolved. */}
+              <ChevronDown
+                aria-hidden="true"
+                size={18}
+                className={title === null ? "shrink-0 text-muted opacity-40" : "shrink-0 text-muted"}
+              />
 
-          {/* Pinned height: this is the one piece of the header whose CONTENT
-              depends on `today` (the title text itself), so it's the one
-              piece that needs the null-frame and resolved-frame to match
-              exactly rather than by coincidence. The buttons on either side
-              render identically regardless of `today`, so they need no such
-              pinning.
+              {/* The control every view opens the month-jump sheet from: an
+                  overlay on the whole span (44px tall, the span's own height),
+                  a sibling of the branches above so the Schedule slot stays
+                  childless. Disabled until `today` resolves: there is no anchor
+                  to seed the sheet with before then. */}
+              <button
+                type="button"
+                onClick={onOpenMonthJump}
+                disabled={!todayResolved}
+                aria-label="Jump to a month or day"
+                className="absolute inset-0 z-10"
+              />
+            </span>
 
-              mission-19/C3 — `relative` added so the overlay button below can
-              position against THIS span, not the page. The three branches
-              inside are otherwise byte-identical to before this contract:
-              the Schedule `pinned` branch in particular is STILL the same
-              empty, childless `<span id={SCHEDULE_TITLE_SLOT_ID}>` — see its
-              own comment for why it must stay that way.
-
-              mission-19/F3 (Strange's press-state blocker) — `rounded-lg
-              transition-colors has-[>button:active]:bg-surface-2` moved HERE,
-              onto this span, and removed from the overlay button below. F2's
-              first version painted the fill on the button itself, which sits
-              at `z-10` above the title/portal-slot/caret (all plain, unpositioned
-              flow content) — so the fill painted OVER the title, not behind it,
-              erasing it completely by 80ms into an ordinary tap (measured:
-              title ink 2509 -> 0, contrast 6.96:1 -> 1.00:1) and doing so with
-              the exact token/rounding/row the app's own loading skeleton three
-              lines below uses, so a press visually claimed "this is loading"
-              instead of "you pressed this". A background painted on a PARENT
-              box paints in that box's own background step, which happens
-              before any of its children are painted — title, portal slot, and
-              caret alike — regardless of the button's z-index, so the fill is
-              now structurally behind them rather than merely styled to look
-              that way. `:has()` is why no JS state is needed: the browser
-              already tracks `:active` on the child button, this only asks the
-              parent to read it. Confirmed this doesn't touch this span's own
-              box: background-color never affects layout, so the h-7 sizing
-              the comment above this one depends on (null/resolved-frame
-              equality) is unchanged. */}
-          <span className="relative flex h-7 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg transition-colors has-[>button:active]:bg-surface-2">
-            {title === null ? (
-              <span aria-hidden="true" className="h-5 w-32 animate-pulse rounded bg-surface-2" />
-            ) : pinned ? (
-              // mission-16/C4 (D2): the pinned bar owns the one live month
-              // label for Schedule. ScheduleView.tsx portals its own
-              // scroll-driven `<h2>` into this exact node (see
-              // SCHEDULE_TITLE_SLOT_ID's own comment for why a portal, not a
-              // prop) — this span renders NOTHING of its own on purpose: any
-              // fallback children here would sit ALONGSIDE the portaled
-              // content in the live DOM rather than being replaced by it,
-              // producing exactly the double label D2 exists to prevent.
-              // `title` (the anchor's static month) is intentionally unused
-              // in this branch — ScheduleView's live answer is what's shown.
-              // mission-46/F2: no `w-full`. The slot is as wide as the title so
-              // the chevron sibling sits 4px after it (parent `gap-1`), as in
-              // Week and Month; `min-w-0` lets a long title truncate.
-              <span id={SCHEDULE_TITLE_SLOT_ID} className="flex min-w-0 items-center justify-center" />
-            ) : (
-              <h2 className="truncate text-lg font-semibold">{title}</h2>
-            )}
-
-            {/* mission-19/F2 (Strange's blocker) — a visible affordance that
-                the title row opens the month-jump sheet. A flex SIBLING of
-                the three branches above (never a child of the portal slot —
-                see that branch's own comment), glued to the title via the
-                parent's `gap-1` rather than pinned to the row's right edge:
-                Strange measured a `justify-end` caret leaving a 78.3px gap
-                from Schedule's title (a 343px span with no arrows) versus
-                26.3px on the arrow views, far enough to read as unrelated to
-                the title it's meant to belong to. An 18px glyph inside the
-                shared `h-7` box adds no flow height on any view — verified
-                unchanged in both the null-frame and the resolved-frame.
-
-                mission-19/F3 (Strange's NOTE 1) — dimmed to `opacity-40`
-                while `title === null` (the same condition the skeleton
-                placeholder branch above and the overlay button's own
-                `disabled` prop already key off — all three describe the
-                identical "today hasn't resolved yet" moment). Before this,
-                the caret was the ONE control in this row still at full
-                opacity while Today/Prev/Next were all dimmed to 0.4 and
-                disabled — the brightest mark in a row of dimmed, inert
-                controls, on a control that is itself disabled underneath it.
-                `disabled:` can't reach the caret directly (it's a sibling of
-                the button, not a descendant), so this reads the same
-                condition the button's `disabled` prop already reads, rather
-                than inventing a second source of truth for "is today ready
-                yet". Paint-only: opacity never affects layout, so this
-                changes nothing in the geometry table. */}
-            <ChevronDown
-              aria-hidden="true"
-              size={18}
-              className={title === null ? "shrink-0 text-muted opacity-40" : "shrink-0 text-muted"}
-            />
-
-            {/* mission-19/C3 — THE control every view opens the month-jump
-                sheet from. A SIBLING of the three branches above, not a
-                child of any one of them — deliberately, because the Schedule
-                branch's own span must stay exactly as it was (see its
-                comment just above): adding a click target INSIDE it, or
-                swapping it for a `<button>`, would either put fallback
-                content next to ScheduleView's portaled `<h2>` (the double-
-                label bug D2 already fixed once) or hand the portal target
-                itself `disabled`/button semantics that have nothing to do
-                with what's portaled into it.
-
-                THE DESIGN DECISION THIS CONTRACT ASKED FOR, WRITTEN DOWN:
-                this wraps the slot rather than becoming it, AND it wraps by
-                overlaying rather than by growing the shared `h-7` box. A
-                plain `min-h-11` on that box (the naive fix) would have
-                worked on the five arrow-views for free (their row is
-                already 44px because of the arrows either side), but
-                Schedule's row has NO 44px sibling to hide the growth behind
-                (`showArrows` is false there) — the row's OWN flow height
-                would have grown 28px -> 44px, and `SCHEDULE_HEADER_BAR_HEIGHT_REM`
-                below (which ScheduleView.tsx, out of this contract's
-                boundary, adds to its own scroll-offset math) would have gone
-                stale the moment this shipped.
-
-                Instead, this button is `position: absolute` — entirely
-                outside document flow — so it contributes NOTHING to the row's
-                rendered height on any view. Its own box is what gets measured
-                for the 44px floor: `-inset-y-[9px]` expands 9px past the
-                shared span's top and bottom edges, so a 28px box becomes a
-                46px hit target (28 + 9 + 9), comfortably clearing 44 rather
-                than landing exactly on the boundary. On the five arrow-views
-                that 46px sits centered inside the row's own already-44px
-                height (spilling by 1px into the row's own margin either
-                side — inconsequential, nothing else occupies that space); on
-                Schedule it spills into the pinned bar's own padding/margin
-                instead of growing the bar. Either way: the row's rendered
-                height is UNCHANGED from before this contract, on every view,
-                in both the null-frame and the resolved-frame — which is what
-                keeps `SCHEDULE_HEADER_BAR_HEIGHT_REM` correct with no edit
-                needed, and what keeps the null/resolved frames matching
-                (they already matched at h-7; nothing about this button's
-                presence depends on `title`, so it changes nothing about that
-                equality).
-
-                `disabled` while `today` hasn't resolved yet, matching every
-                other header control's convention (`onToday`'s own
-                disabled={!todayResolved || isCurrentPeriod}` just above) —
-                there is no anchor to seed the sheet with before then.
-
-                mission-19/F2 — added a press fill matching the Prev/Next
-                arrows in this same row, so a plain tap wasn't zero pixels of
-                change until the sheet's own open animation started. F3
-                (Strange's blocker): that fill lived on THIS button, which
-                sits above the title/caret in paint order (an absolutely
-                positioned element paints above in-flow content regardless of
-                z-index) — so it painted OVER the title instead of behind it,
-                erasing it completely partway into an ordinary tap. The fill
-                itself moved up to the parent span above (see its own comment)
-                so it paints behind everything in this box instead; this
-                button now contributes NOTHING visible, only the click target
-                and its geometry — unchanged from F2/C3, still the same
-                `-inset-y-[9px]` 46px-tall hit box that the giant comment two
-                blocks up depends on. */}
-            <button
-              type="button"
-              onClick={onOpenMonthJump}
-              disabled={!todayResolved}
-              aria-label="Jump to a month or day"
-              className="absolute inset-x-0 -inset-y-[9px] z-10"
-            />
-          </span>
-
-          {showArrows && (
-            <button
-              type="button"
-              onClick={onNext}
-              disabled={nextDisabled}
-              aria-label={nextLabel}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors active:bg-surface-2 disabled:opacity-40"
-            >
-              <ChevronRight aria-hidden="true" size={22} />
-            </button>
-          )}
+            <div className="ml-auto flex shrink-0 items-start gap-2">
+              <ActionCircle
+                icon={<CalendarCheck aria-hidden="true" size={20} />}
+                label="Today"
+                onClick={onToday}
+                disabled={!todayResolved || isCurrentPeriod}
+                size="sm"
+              />
+              <div className={CALENDAR_VIEW_CIRCLE_CLASSES}>
+                <ActionCircle
+                  icon={<CalendarRange aria-hidden="true" size={20} />}
+                  // The label comes from the one total `VIEW_LABELS` record the
+                  // picker also reads, never a ternary chain.
+                  label={VIEW_LABELS[view]}
+                  onClick={onPickView}
+                  size="sm"
+                />
+              </div>
+              <CalendarViewRow view={view} onSelectView={onSelectView} />
+              <CalendarPullButton />
+            </div>
+          </div>
         </div>
       </div>
       {/* Outside the sticky bar on purpose: it scrolls away with the list (Bryce, 2026-11-09). */}

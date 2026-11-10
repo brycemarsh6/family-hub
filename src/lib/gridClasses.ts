@@ -29,3 +29,13 @@ export const TWO_COLUMN_CLASSES = "grid grid-cols-1 @min-[48rem]:grid-cols-2 @mi
 
 /** Short pages (task, import, Add recipe, Profile): content capped at 40rem inside a wide page (mission 54). */
 export const NARROW_PAGE_CLASSES = "mx-auto w-full max-w-[40rem]";
+
+/** Cancels `<main>`'s `px-4` (AppChrome.tsx) so a grid runs edge to edge; the two change together (mission 67). */
+export const PAGE_BLEED_CLASSES = "-mx-4";
+
+/** The Calendar top bar's row of six views: hidden until the bar (a `@container`) is 48rem wide (the row is 25.8rem, the widest title 12rem, the rest 9.5rem), then shown; the View circle hides at the same width, so the two change together (mission 67). */
+export const CALENDAR_VIEW_ROW_CLASSES =
+  "hidden rounded-full bg-surface-2 px-[0.1875rem] @min-[48rem]:flex";
+
+/** The View circle's wrapper: gone from 48rem, where the row of six replaces it. Changes together with CALENDAR_VIEW_ROW_CLASSES (mission 67). */
+export const CALENDAR_VIEW_CIRCLE_CLASSES = "@min-[48rem]:hidden";

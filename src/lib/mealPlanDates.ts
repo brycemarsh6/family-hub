@@ -129,3 +129,11 @@ export const FULL_MONTH_NAMES = [
 export function formatMonthTitle(date: Date): string {
   return `${FULL_MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
 }
+
+/** "November", or "January 2027" when `day` is not in `today`'s year — the
+ * Calendar's top-bar title. Pass the Denver `today` (useToday), so the year
+ * only appears once the month leaves the current year. */
+export function formatMonthHeading(day: Date, today: Date): string {
+  const name = FULL_MONTH_NAMES[day.getMonth()];
+  return day.getFullYear() === today.getFullYear() ? name : `${name} ${day.getFullYear()}`;
+}

@@ -111,7 +111,8 @@ Wide pages: the
      mission-53, plan rule 4; its props are in "The floating +" below). `FloatingAddButton` keeps its fixed full-width wrapper (left
      edge `--app-nav-width`); from `md` on a wide page its inner box lifts
      the 768px cap and aligns right. Below `md`, and on a page that is not
-     wide, it stays bottom-left. A fixed element that must clear it on a wide
+     wide, it stays bottom-left, unless `placement="right"` (the
+     Calendar only, mission-67). A fixed element that must clear it on a wide
      page reacts with the same `md:[body:has([data-page-width=wide])_&]:`
      selector, never a measured offset: the All recipes A-Z rail
      (`RecipeLetterRail.tsx`) ends above it. `AddItemBar` stays centered at
@@ -239,9 +240,25 @@ Wide pages: the
   pages, and on wide pages below `md` (phones stay clear of the last
   row's check); bottom right on wide pages from `md`, through its own
   wrapper (`md:[body:has([data-page-width=wide])_&]`). Its props are
-  `onClick` or `href`, plus `label`. Wide scroll areas reserve room for it
+  `onClick` or `href`, `label`, and `placement` (`"auto"`, the default,
+  follows the rule above; `"right"` sits bottom right at every width).
+  Only the Calendar uses `"right"` (mission-67; DESIGN.md records why it
+  may cover events). Wide scroll areas reserve room for it
   (`pb-20`). There is no + on the tablet. A fixed element that must clear
   it follows rule 4 above.
+  **Edge to edge (the Calendar, mission-67, Captain's ruling).** A
+  surface that must reach both screen edges cancels `<main>`'s side
+  padding on its own root with `PAGE_BLEED_CLASSES` (`-mx-4`,
+  `src/lib/gridClasses.ts`), never with a new page attribute or a change
+  to `<main>`. It reaches the edge at every width because a wide page's
+  `<main>` has no cap from `md` and a phone is narrower than the 768px
+  cap. Instances: `TimelineGrid`'s root (Day, 3 Day, Week), `MonthGrid`'s
+  root, and their skeletons in `calendar/loading.tsx`. A bleeding surface
+  draws no rounded box and no outer left or right line. The top bar,
+  Schedule's list and Year stay inside the padding. Strips that bleed and
+  pad back (`-mx-4 ... px-4`: the pinned Schedule bar, `MonthChips` and its
+  skeleton) use the same mechanism; a new one uses the constant. `<main>`'s
+  `px-4` and `PAGE_BLEED_CLASSES` change together.
   **Shared class strings (mission-53, A-L3-3; A-L2-3 done):** a class
   string that a component and its skeleton share is one exported constant
   in `src/lib/`, written as a whole literal so the Tailwind scan finds it:

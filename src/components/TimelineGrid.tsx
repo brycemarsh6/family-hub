@@ -96,10 +96,12 @@ import {
   type TimelineColumnSlot,
   type TimelineBlock,
 } from "@/lib/timelineLayout";
-import { isSameDay, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
+import { isSameDay } from "@/lib/mealPlanDates";
 import { isOutsideWindow } from "@/lib/calendarDates";
+import { PAGE_BLEED_CLASSES } from "@/lib/gridClasses";
 import { useTimelineZoom } from "@/lib/useTimelineZoom";
 import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
+import { TimelineDayHeaderRow, TimelineDayLabel } from "./TimelineDayHeader";
 import { TimelineDayColumn } from "./TimelineDayColumn";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
@@ -333,7 +335,7 @@ export function TimelineGrid({
 
   return (
     <div
-      data-fills-viewport className="overflow-hidden rounded-t-xl border border-b-0 border-line"
+      data-fills-viewport className={`overflow-hidden ${PAGE_BLEED_CLASSES}`}
       style={{ ["--hour-height" as string]: `${hourHeightPx}px` }}
     >
       <div ref={scrollerRef} className="overflow-y-auto pb-[env(safe-area-inset-bottom)]" style={{ height: scrollerHeightStyle }}>
@@ -352,84 +354,17 @@ export function TimelineGrid({
             sticky div — not its own sticky element — so this property
             survives the extraction unchanged. */}
         <div ref={stickyHeaderRef} className="sticky top-0 z-20 border-b border-line bg-bg">
-          <div className="grid py-1" style={{ gridTemplateColumns }}>
-            <span aria-hidden="true" />
-            {columnDays.map((day) => {
-              const isToday = isSameDay(day, today);
-              const notLoaded = isOutsideWindow(day, windowStart, windowEnd);
-              return (
-                <div key={day.getTime()} className="flex flex-col items-center gap-0.5 px-0.5">
-                  <span className={`text-[0.625rem] font-semibold uppercase tracking-wide ${isToday ? "text-accent" : "text-muted"}`}>
-                    {SHORT_DAY_NAMES[day.getDay()]}
-                  </span>
-                  <span className="flex items-center gap-0.5">
-                    <span
-                      className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                        isToday ? "bg-accent text-accent-fg" : "text-fg"
-                      }`}
-                    >
-                      {day.getDate()}
-                    </span>
-                    {/* Per-column not-loaded glyph — MonthCell's own policy
-                        (small, muted, next to the day number), applied here
-                        rather than inside the all-day lanes below: a day
-                        with zero all-day events still needs somewhere to
-                        say "not fully fetched," and the header cell is
-                        where MonthCell puts the identical fact.
-                        mission-17/C7, item 2 — the glyph alone was
-                        `aria-hidden`, telling a screen reader nothing in a
-                        mixed window; the sr-only span says it in words.
-                        Never `hidden` — `display: none` drops it from the
-                        a11y tree entirely (mission-9's finding).
-                        mission-18/C1 — the string used to read "no events
-                        loaded for this day," which is FALSE on the real
-                        production path and was shipped anyway (mission-17's
-                        own delivery note names it as CV4's one open
-                        finding). `isOutsideWindow` (calendarDates.ts) flags
-                        a day whenever EITHER edge fails full containment —
-                        including a day that's only PARTIALLY outside, which
-                        is the common case here, not an edge case: the fetch
-                        window's edges are built server-side from
-                        `startOfDay`/`addDays` (calendarPaging.ts's
-                        `buildFetchWindow`), both of which construct
-                        midnight in the SERVER's own runtime timezone (UTC
-                        on Vercel). Rendered here in the BROWSER (this file
-                        is "use client"), that UTC-midnight instant lands at
-                        6 PM Mountain Daylight Time (5 PM Standard) the
-                        PRECEDING Denver calendar day — so the last day the
-                        window is meant to cover still gets everything from
-                        its own local midnight up to that afternoon/evening
-                        cutoff fetched and rendered right here, in the same
-                        column, underneath a label claiming zero did. This
-                        can only be OBSERVED on a UTC server: a Denver dev
-                        server's own `startOfDay` already lands on a Denver
-                        midnight, so the two edges agree and the false case
-                        never occurs locally — confirmed by reading
-                        `buildFetchWindow`'s and `isOutsideWindow`'s own
-                        implementations, not by trying to reproduce it here.
-                        "Not all events loaded" is true in BOTH the fully-
-                        unfetched case and this partial one, reads the same
-                        as a count could never be misheard as ("not all"
-                        can't parse as a number the way "no events" briefly
-                        could), and is the exact phrase this file's own
-                        worded banner below and DaySection.tsx's
-                        `NotLoadedCard` already use — one wording for the
-                        same fact everywhere the app states it, not three.
-                        mission-17/C8 (round 3, Strange) — the day number
-                        sits right before this ("Fri", "6", then this span),
-                        which is why a leading "no"/"not" still matters:
-                        nothing here should ever read as a quantity. */}
-                    {notLoaded && (
-                      <>
-                        <CalendarOff aria-hidden="true" size={9} className="shrink-0 text-muted" />
-                        <span className="sr-only">— not all events loaded</span>
-                      </>
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          {/* 3 Day and Week: the weekday row. Day view has no row: its label
+              rides in the all-day strip's gutter corner (mission 67). */}
+          {compact && (
+            <TimelineDayHeaderRow
+              columnDays={columnDays}
+              today={today}
+              windowStart={windowStart}
+              windowEnd={windowEnd}
+              gridTemplateColumns={gridTemplateColumns}
+            />
+          )}
 
           {/* mission-17/C6 — the all-day strip's own grid (tasks, events,
               the expand state, the "+N more" button) now lives in
@@ -451,6 +386,15 @@ export function TimelineGrid({
             onOpenEvent={onOpenEvent}
             onOpenTask={onOpenTask}
             gridTemplateColumns={gridTemplateColumns}
+            corner={
+              compact ? undefined : (
+                <TimelineDayLabel
+                  day={columnDays[0]}
+                  today={today}
+                  notLoaded={outsideColumns[0]}
+                />
+              )
+            }
           />
 
           {/* mission-17/C5 — Strange reached the state (2000ms injected
