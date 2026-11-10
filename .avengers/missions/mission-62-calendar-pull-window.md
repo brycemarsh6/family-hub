@@ -65,10 +65,34 @@ AGENTS.md (7 DST skips expected), `npm run build`.
   calendar holding a token lists in full window mode; `listUrl` puts
   `timeMax` in the URL for a full pull and not for a token pull.
 
+### W2 - Vision pass 1: collect the token's changes before the rewindow
+
+- **Boundaries:** W1's list, plus `src/lib/linkedCalendarWrites.ts` (one
+  small write) and `src/lib/testing/calendarPullRunHarness.ts`.
+- **Spec:**
+  1. In `pullOne`, when `rewindow` is true and the calendar has a token,
+     first run the normal token pass exactly as today (list with the token,
+     plan, write; a "restart" falls through to the full list as now). Only
+     when that pass had zero failures, run the full window list with the
+     same `now` and save its `nextSyncToken` under the existing rule. If the
+     token pass failed (list or write), return its failure, keep the old
+     token, and do no full pass. `changed` is true if either pass changed
+     something.
+  2. A clean full pass that gets `nextSyncToken: null` still stamps
+     "Last checked": a new dep `markPulledOk(calendarId)` backed by a write
+     in `linkedCalendarWrites.ts` that sets only `lastPulledOkAt` (the token
+     is left as it is).
+- **Tests:** rewindow plus a token gives listModes `[{syncToken},
+  {timeMin, timeMax}]`; a cancelled event in the token pass is deleted and
+  the saved token is the full pass's; a failed token pass does no full pass
+  and saves nothing; a clean full pass with a null token calls
+  `markPulledOk` and not `saveSyncToken`.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | BLOCKED | A rewindow dropped the token without collecting its changes, so a change moved or cancelled outside the window was lost for good | Both nextSyncToken outcomes safe; no duplicates possible; cron force:true right; reason log safe; ~1,000 events for 10 weekly series, cap 5,000; a first pull of ~1,000 inserts takes 15 to 40 s (fine on Fluid compute, else set maxDuration later); a series edit in a token pull can hit too-many until the next cron; "Last checked" stays empty with null tokens (W2 item 2) |
 
 ## Handoff log
 
