@@ -282,7 +282,7 @@ amendment id.
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
   `VacationCard`, `HabitTileRows` (in `HabitsTile.tsx`, used by both dashboard habit
   tiles) `DashboardWidgetList` (moved over in mission-34), `PlanDayCard` and
-  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37), `FeedbackList` (mission-38);
+  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37), `FeedbackList` (mission-38), `TextSizeSetting` (mission-58);
   `HoursLogSheet` takes its caller's `run` (typed `RunChange`) and never
   wraps a save itself)
   calls it with the action as a closure, so lib never imports `app/`. A second
@@ -305,7 +305,11 @@ amendment id.
   screen that maps paths to page names by itself is a BLOCKER.
   `src/lib/routeRedirects.ts`: `LEGACY_ROUTE_REDIRECTS`, the only redirect
   map; it has **no imports at all**, because `next.config.ts` imports it by
-  relative path. `src/lib/navMode.ts`: the only menu-style list
+  relative path. `src/lib/navMode.ts`: the only menu-style list.
+  `src/lib/textSize.ts`: the only text-size list (`TEXT_SIZES`, labels,
+  preview sizes, `TEXT_SIZE_HELP`, `DEFAULT_TEXT_SIZE`, `toTextSize`), no
+  imports; `globals.css`'s `data-text-size` block is the only place a size
+  becomes a font size (mission-58).
 - `src/lib/goalVocabulary.ts` — Plans & Goals' vocabulary: `LIFE_AREAS`,
   `PLAN_KINDS`, `HABIT_PERIODS`, `GOAL_VISIBILITIES`, `GOAL_OWNERSHIPS`,
   `ONGOING_LABEL` (mission-38), `GOAL_BOARD_EMPTY_AREA` (mission-51, the

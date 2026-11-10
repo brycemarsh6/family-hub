@@ -36,7 +36,7 @@ export function HabitEditActions({
             <Archive aria-hidden="true" size={16} />
             Archive
           </button>
-          <span className="text-center text-[13px] text-muted">Archive keeps its history and can be brought back.</span>
+          <span className="text-center text-[0.8125rem] text-muted">Archive keeps its history and can be brought back.</span>
         </>
       )}
       <button

@@ -14,7 +14,7 @@ const EMPTY_STUB = 4;
 function Tile({ value, label, flame = false }: { value: string; label: string; flame?: boolean }) {
   return (
     <div className="flex flex-1 flex-col gap-0.5 rounded-2xl border border-line bg-surface p-2.5">
-      <span className="flex items-center gap-1 text-[22px] font-bold">
+      <span className="flex items-center gap-1 text-[1.375rem] font-bold">
         {flame && <Flame aria-hidden="true" size={16} className="text-streak" />}
         {value}
       </span>

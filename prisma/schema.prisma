@@ -749,6 +749,10 @@ model UserPreferences {
   /// text. Null = the default (menu button); `toNavMode` repairs anything odd.
   navMode String?
 
+  /// "Text size" (mission 58): one of TEXT_SIZES in src/lib/textSize.ts, as
+  /// text. Null = Normal; `toTextSize` repairs anything odd.
+  textSize String?
+
   /// "Show streaks" (mission 30): off hides streak numbers for this person.
   /// Streaks are still counted either way.
   showStreaks Boolean @default(true)
