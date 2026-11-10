@@ -1346,3 +1346,28 @@ model CalendarEventSync {
   @@unique([eventId, linkedCalendarId])
   @@index([linkedCalendarId])
 }
+
+/// One photo for the wall-tablet slideshow. The bytes (a full photo and a
+/// thumbnail) live in Vercel Blob in a private store, at `photoPath` and
+/// `thumbPath`; this row is the index. `takenOn` is the camera's date as a
+/// plain YYYY-MM-DD, with no timezone. There is no relation to `User` on
+/// purpose (same as `Feedback`): `uploadedById` is a plain id and
+/// `uploadedByName` a snapshot, so deleting a person never touches photos.
+model SlideshowPhoto {
+  id String @id @default(cuid())
+
+  photoPath String @unique
+  thumbPath String @unique
+  width     Int
+  height    Int
+
+  caption String?
+  takenOn String?
+
+  uploadedById   String
+  uploadedByName String
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

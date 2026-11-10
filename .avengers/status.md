@@ -51,6 +51,12 @@ it is done. The pre-cleanup text is in
   drag the Family order into Bryce, Emily, Ledger, Eleanor, Lucy. Open
   Habits & Chores, Whole family, in portrait and landscape: swipe sideways
   with a finger, scroll one column, tap a check, try Filter.
+- **Slideshow photos phone check (mission 57)** (about 5 minutes): on your
+  iPhone, Settings, Slideshow photos, Add photos, and pick 3 or 4 real
+  photos from your camera roll (include one taken in portrait). Watch
+  "Adding N of M photos". Tap one: is the "Taken" date right? Add a
+  caption, tap Done, reopen it. Delete one. This is the first real test of
+  iPhone (HEIC) photos and their dates.
 - **Tablet login setup** (about 5 minutes): on your phone, Settings, Manage
   family, "Set up a tablet login", choose the Tablet password, Create. On the
   tablet: Settings, Sign out (it is still Emily, so one tap), tap the

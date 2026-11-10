@@ -139,6 +139,14 @@ Without them the
 page says sync isn't set up. For local testing, `npm run db:seed-linked-calendars`
 adds two fake accounts and `npm run db:clean-linked-calendars` removes them.
 
+## Slideshow photos
+
+Settings > Slideshow photos lets a parent or admin add photos for the wall
+tablet. The files live in a private Vercel Blob store. Locally, put the **dev**
+store's token in `.env` as `BLOB_READ_WRITE_TOKEN` (never the production
+store's). Vercel deployments need no token: they use `BLOB_STORE_ID` and
+automatic OIDC sign-in.
+
 ## Why some files aren't saved to git
 
 Git (via `.gitignore`) is deliberately not tracking a few things:
