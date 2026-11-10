@@ -13,6 +13,13 @@ it is done. The pre-cleanup text is in
   go black again after 2 minutes. Add a photo in Slideshow photos and see
   it join a running slideshow within the hour. If the clock is hard to read
   on a bright photo, say so: the shade can go one step darker.
+- **Open Marshee on (mission 64)**, about 3 minutes: on your phone,
+  Settings, "Open Marshee on", pick a page, sign out and back in: you land
+  there. On the kitchen tablet signed in as Tablet: Settings shows a Wall
+  tablet row (no "Open Marshee on" row of its own); open it, check the
+  Slideshow card looks right without the Slideshow photos row, set "Open
+  Marshee on" to Calendar, then let the slideshow start and tap it: it
+  opens Calendar. Set it back if you like.
 - **Neon usage watch (mission 62), until 2026-11-17:** glance at the Neon
   Usage chart once or twice. Compute should stay well under the free 100
   CU-hours a month with the tablet on all day. If it climbs fast, tell

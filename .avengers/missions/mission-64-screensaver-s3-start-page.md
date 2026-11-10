@@ -1,7 +1,7 @@
 # Mission 64: Screensaver S3, "Open Marshee on" (start page)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** DELIVERING
 **Started:** 2026-11-10 · **Updated:** 2026-11-10
 
 ## Brief
@@ -196,6 +196,9 @@ commit; no direct push to `main`.
 |---|---|---|---|---|
 | 1 | Vision (HEAD f280be5) | PASS | none | Gauntlet re-run green (tsc, eslint, 1784 tests, UTC 1777 pass 7 skipped DST, build). No redirect off the app; none of the 9 pages is role-gated; kids refused by both save actions and the page. Notes: a signed-in visit to `/login` still goes to `/` (out of scope); wake compares path only; `saveStartPage` lets a device save its own (no screen offers it); with two device logins they could differ; `photoCount` still sent to the tablet. |
 | 1 | Captain (HEAD f280be5) | BLOCKED | `startPageLabel` maps paths to words itself (rule: `navLabelForPath` only); four new inline device permission tests (rule: `tabletRules.ts` is the only home). Fix: C3 | Notes: "tablet" in names follows the Wall tablet feature precedent (Captain drafted a clarifying amendment, not applied: constitution amendments need Bryce); duplicated strict check; loading skeleton missing the new row; schema and STRUCTURE.md sizes are the known exemptions; CLAUDE.md at 250 exactly. |
+| 2 | Captain (HEAD ff8bb2b) | PASS | none | Both blockers fixed (`navLabelForPath`, `tabletMayChangeWallTablet` at all four sites); C3 notes landed. Notes: two lines in `slideshow.md` slightly over wrap width; the personal row hidden on the tablet is a display choice, not a permission. |
+| 2 | Vision (HEAD ff8bb2b) | PASS | none | Gauntlet re-run green (1787 tests, UTC 1780 pass 7 DST skips, build). Role matrix unchanged for signed out, kid, parent, admin, device; `redirect("/")` outside any try; labels identical for all 9 options and junk. |
+| 1 | Strange (HEAD ff8bb2b, dev server, Bryce's admin session) | PASS | none | Settings row matches Menu style exactly (358x56 at 390, 551x56 at 1180); sheet lists the 9 pages, 48px options, 44px close, Escape and backdrop close; optimistic save survives reload; Wall tablet row independent of Bryce's own; failed save reverts with the amber `text-warn` line; dark mode uses theme colours. Both start pages set back to Dashboard (stored as "/"). Notes: Tablet login view not seen (needs Bryce's sign-in; on his checklist); "Each photo" becomes the Slideshow card's last row on the tablet without `rounded-b-xl`; the Wall tablet skeleton puts the BackLink block under the title (older than this mission); dev-only Next badge. |
 
 ## Log
 
@@ -205,4 +208,8 @@ commit; no direct push to `main`.
 
 ## Delivery
 
+- **Shipped:** `UserPreferences.startPage` (migration `20261119000000_start_page`, one `ALTER TABLE ... ADD COLUMN`); `src/lib/startPage.ts` (options, cleaner, `isStartPage`, words); `startPageRead.ts`; `saveStartPage` and `saveTabletStartPage`; the redirect after sign-in; the tablet's wake to its start page (fresh from each `loadScreensaverShow`); `StartPageSetting` on Settings (not on the tablet) and at the top of the Wall tablet page; the Tablet login may open the Wall tablet page and change its settings, through `tabletMayChangeWallTablet` (Bryce, 2026-11-10).
+- **Gates:** Vision PASS (pass 1 and 2); Captain PASS (pass 2, after C3); Strange PASS (parent login). The Tablet login view is on Bryce's checklist in `.avengers/status.md`.
+- **Open notes, not this mission's job:** a signed-in visit to `/login` still goes to `/`; the wake compares the path only (a tablet on `/calendar?view=year` with start page `/calendar` stays put); a second device login would start on Dashboard until someone saves again; Captain's drafted naming amendment ("tablet" in feature names) needs Bryce; the Wall tablet skeleton puts the BackLink block under the title; two long lines in `docs/structure/slideshow.md`.
+- **Dev copy left behind:** Bryce's and the tablet's start pages on the dev branch are "/" (Dashboard) after Strange's test.
 - **Shipped check:** (filled at merge.)
