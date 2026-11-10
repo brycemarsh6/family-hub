@@ -656,6 +656,23 @@ would flip Google's own choice. Both are fixed before the pull exists.
   siblings); `lastCheckedLine` reads only `lastPulledOkAt`; every new word
   pinned in the vocabulary test; files only from the list.
 
+### C11 - Strange pass 2: "Up to date" only after a real check
+
+- **Objective:** Refresh never says "Up to date" when no calendar was checked.
+- **Boundaries:** `src/lib/calendarPullRun.ts` and `src/lib/calendarPullRun.test.ts`,
+  `src/lib/calendarEventPull.ts`, `src/app/actions/calendarPull.ts`,
+  `src/components/CalendarPullButton.tsx`. Nothing else.
+- **Spec:** `PullRunResult` gains `checked: number`, the calendars `runPull`
+  claimed and tried (a calendar skipped by its lease, or by the
+  once-per-Google-calendar guard, is not counted). It flows through
+  `pullCalendars` and `pullGoogleEvents`. `CalendarPullButton` shows
+  `PULL_WORDS.upToDate` only when `checked > 0 && failed === 0`; when
+  `checked === 0 && failed === 0` it shows no note (no new words).
+- **Verification:** tsc, eslint, `npm test`, the TZ=UTC command.
+- **Done criteria:** tests: a run whose every calendar is leased returns
+  `checked: 0`; a normal run counts each tried calendar; a failed calendar
+  still counts as checked.
+
 ### C6 - Records
 
 - STRUCTURE.md's "Google calendar link" entry widened for the new files
@@ -677,6 +694,8 @@ would flip Google's own choice. Both are fixed before the pull exists.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 4 | Vision | PASS (extra pass, Bryce answer 9) | | Handover closed; merge clean; build green; follow-ups: a failed handover transaction leaves the calendar on (revert to off); planHandover keeps the wrong row when a "Marshee to Google" twin made a second copy; raceWinner reads updatedAt that the pull also bumps; sheet hides "On Google" by name (match by id); PR #95 moved STRUCTURE.md entries to docs/structure/ (C6 goes there); check production for twin on-links before merge |
+| 2 | Strange | BLOCKED | Refresh says "Up to date" when the 30 second lease skipped every calendar, seconds after a failure (runPull must report how many it checked) | Pass 1 blocker 1 and all C10 notes closed on screen; Synced calendars not seen (stale dev server, Fury restarted it on port 3000 with Bryce's OK); "Up to date" beside the reconnect banner; privacy "uses these to" omits reading Both ways calendars |
 | 3 | Vision | BLOCKED (budget spent) | Without adoption, a handover (link A off, link B on, same Google calendar) imports every event again; deleting a duplicate removes the real Google event through A's rows | Pass 2 blockers closed; gauntlet green (1703, UTC and LA, build); canTurnOn race (two taps in the same instant); check production for twin on-links before merge; locked row gives no reason when the on link needs reconnecting; seed holds a twin state |
 | 1 | Strange | BLOCKED | Refresh note covers the month-jump control and never clears; "Last checked" shows failed attempts (lease stamp); "Already synced through" squeezes the calendar name to 0px; reconnect warning on Synced calendars has no next step | Failure note colors; refresh on failure too; dimmed spinner; Schedule banner takes 35% of a phone screen; iPad Fix button 860px wide; sheet shows From Google and On Google for one calendar; "stays ticked" beside a lock; locked-out calendar still in Sync to; privacy Unlinking silent on pulled events |
 | 3 | Captain | PASS | | "another link is on" test written 3 times; one-link rule not atomic; `calendarPullRun.test.ts` 347 lines; STRUCTURE.md housekeeping due |
