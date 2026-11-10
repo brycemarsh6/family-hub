@@ -3,7 +3,9 @@
 (Opened as mission 56; renumbered 2026-11-09 because calendar sync PR 2 took 56 on main.)
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (C1 next)
+**Status:** AT-THE-GATES (Vision and Captain pass 1; Strange after Bryce signs in on the dev server)
+
+**Strange's sign-in (precedent, mission 56 calendar sync, 2026-11-09):** Bryce signs in himself in the built-in browser pane on the local dev server. No agent reads `.env` or mints a session cookie. Test photos for the gate (made from macOS wallpapers, no family photos) live in the session scratchpad `testphotos/`: `land-dated.jpg` (3000x2000, taken 2023-06-14), `portrait-dated.jpg` (2000x3000, taken 2021-11-09), `land-nodate.jpg` and `small.jpg` (no EXIF). Every test upload goes to the dev store and is deleted through the page afterward.
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 Plan: `.avengers/plans/screensaver-slideshow-v1.md` (approved by Bryce 2026-11-09). This is PR S1.
@@ -145,7 +147,7 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 - **Report:** pending.
 
 ### C3b — Delete waits for the server (fixes Fury's contract error)
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** Make the sheet's Delete follow DESIGN.md's destructive-verb carve-out (lines 102-112): wait for `deleteSlideshowPhoto`, then remove the photo and close the sheet; never remove it optimistically.
 - **Why:** C3 said "optimistic removal". That contradicts DESIGN.md's written, Bryce-approved rule. Stark built the contract as written and flagged the conflict. The contract was wrong, not the build.
 - **Boundaries:** may touch: `src/components/SlideshowPhotosManager.tsx`, `src/components/SlideshowPhotoSheet.tsx`. Must not touch: everything else.
@@ -153,7 +155,7 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 - **Verification:** the gauntlet passes.
 - **Evidence required:** the new `handleDelete` quoted; gauntlet last lines; `git show --stat HEAD`.
 - **Done criteria:** Fury reads `handleDelete` and confirms no state change before the awaited result.
-- **Report:** pending.
+- **Report:** DONE (Stark, 2026-11-09). `handleDelete` awaits `deleteSlideshowPhoto` before any state change (Fury read it); the sheet shows "Deleting…" and disables both buttons while in flight; a failure stays in the sheet's alert line. Gauntlet green.
 
 ## Gate ledger
 
