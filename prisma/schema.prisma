@@ -1367,3 +1367,26 @@ model SlideshowPhoto {
 
   @@index([createdAt])
 }
+
+/// The wall tablet's screensaver settings: one row for the whole household
+/// (`id` is always "household"). A missing row reads as the defaults; the
+/// first save creates it. Times are minutes after midnight on the Denver wall
+/// clock (1320 = 10 PM). `updatedById` is a plain id, no relation to `User`
+/// (same as `SlideshowPhoto`).
+model ScreensaverSettings {
+  id String @id @default("household")
+
+  startAfterMinutes Int     @default(30)
+  secondsPerPhoto   Int     @default(15)
+  showClock         Boolean @default(true)
+  showCaption       Boolean @default(true)
+  showTakenOn       Boolean @default(true)
+
+  sleepEnabled       Boolean @default(true)
+  sleepStartMinute   Int     @default(1320)
+  sleepEndMinute     Int     @default(360)
+  backToBlackMinutes Int     @default(2)
+
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+}

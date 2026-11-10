@@ -88,7 +88,7 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 ## Contracts
 
 ### C1 — Screensaver foundation (table, pure rules, reader, actions, slideshow writes move)
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** Everything S2 needs below the screens: the settings table, the pure rules with tests, the readers, the two actions, and S1's writes moved into `slideshowWrites.ts`.
 - **Boundaries:** may touch: `prisma/schema.prisma` (one new model at the end), new `prisma/migrations/20261116000000_screensaver_settings/migration.sql`, new `src/lib/screensaver.ts`, new `src/lib/screensaver.test.ts`, `src/lib/householdDate.ts` and `src/lib/householdDate.test.ts` (add `minuteOfDayInZone` and its tests only), new `src/lib/screensaverRead.ts`, new `src/lib/slideshowWrites.ts`, `src/lib/slideshowRead.ts` (add `listSlideshowShowItems` and its select only), `src/app/actions/slideshowPhotos.ts` (call `slideshowWrites.ts` instead of `db`), new `src/app/actions/screensaver.ts`. Must not touch: everything else, above all `src/components/`, `src/app/(app)/`, `STRUCTURE.md`, `package.json`, `.env`. Never run `prisma migrate` (Fury applies it). No commits.
 - **Spec:**
@@ -102,7 +102,7 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Verification:** `npx prisma validate`; `npx prisma generate`; `npx tsc --noEmit`; `npx eslint .`; `npm test`; the direct UTC test command from the Gauntlet. Expected all exit 0, test count up only by new tests.
 - **Evidence required:** the migration SQL in full; the last lines and pass counts of both test runs; `grep -n "db\." src/app/actions/slideshowPhotos.ts` (empty); `grep -rn "screensaverSettings" src --include=*.ts | grep -v generated` (only `screensaverRead.ts` reads, only `actions/screensaver.ts` writes); `git diff --stat`.
 - **Done criteria:** Fury re-runs tsc and both test runs and gets the same counts; Fury applies the migration to the dev branch (host checked) and `npx prisma migrate status` is clean.
-- **Report:** (pending)
+- **Report:** DONE (Stark), re-run by Fury 2026-11-09: tsc 0 (after `npm install` in this worktree; `@vercel/blob` was missing, and a stale `.next` removed), eslint 0, `npm test` 1634 pass, UTC run 1634 tests 0 fail 7 skipped; `db.` absent from `actions/slideshowPhotos.ts`; one reader, one writer of `ScreensaverSettings`. Fury replaced Stark's invented `SCREENSAVER_WORDS` with the approved mock's words (Stark had no copy of the mock). Migration applied to the dev branch (host checked `ep-hidden-pine-`), `migrate status` up to date. `pickNextPhoto` returns `{ id, shownIds } | null`; the caller keeps `shownIds`. C1 status: DONE.
 
 ### C2 — The Wall tablet page and its Settings row
 - **Status:** PENDING (after C1; may run beside C3, disjoint files)
