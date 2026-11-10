@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { decryptSecret, isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import { isGoogleConfigured } from "@/lib/google/oauth";
-import { isPushable, startsTicked, type PlanCalendar } from "@/lib/calendarSyncPlan";
+import { isPushable, startsTicked, type PlanCalendar } from "@/lib/calendarSyncRules";
 import { toAccountStatus, toSyncDirection, type AccountStatus, type SyncDirection } from "@/lib/calendarSyncVocabulary";
 
 // Reads for linked Google accounts (mission 55). The page reader uses an

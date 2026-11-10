@@ -9,14 +9,8 @@ import {
 } from "@/lib/google/calendarApi";
 import { isCalendarPushConfigured, loadPushCalendars, loadRefreshToken } from "@/lib/linkedCalendarsRead";
 import { toSyncRowStatus } from "@/lib/calendarSyncVocabulary";
-import {
-  removeAllCopies,
-  sortedPersonNames,
-  syncEventCopies,
-  tokenFailReason,
-  type PlanRow,
-  type SyncDeps,
-} from "@/lib/calendarSyncPlan";
+import { removeAllCopies, syncEventCopies, type SyncDeps } from "@/lib/calendarSyncPlan";
+import { sortedPersonNames, tokenFailReason, type PlanRow } from "@/lib/calendarSyncRules";
 
 // Binds calendarSyncPlan.ts to the real database and Google (mission 56). No
 // auth here (the Server Actions check it first) and no logic of its own: the

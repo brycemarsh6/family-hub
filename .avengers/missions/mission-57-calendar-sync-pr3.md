@@ -346,8 +346,14 @@ order.
   calendar is "Both ways"; the on-open pull runs for any login, at most
   once per page view, and calls `router.refresh()` only when `changed`.
   The banner (D) shows to the linker of a `needs-relink` account. "Last
-  checked" on Synced calendars reads `lastPulledAt`. Privacy: Bryce's
-  approved text after the humanizer pass Fury runs before dispatch.
+  checked" on Synced calendars reads `lastPulledAt`. Privacy: replace the
+  last sentence of "What Marshee keeps" with this text (Bryce's approved
+  wording after Fury's humanizer pass, which only fixed what "when it last
+  checked" belongs to): "For each calendar set to Both ways, Marshee keeps a
+  bookmark from Google, so it can ask only for what changed, and the time
+  it last checked. Events from those calendars are saved in Marshee like
+  any other event (title, time, place and notes), with Google's ID and
+  version marker. Marshee keeps nothing else from Google."
   Touch targets 48px, Lucide outline icons (`RefreshCw`, `Lock`,
   `TriangleAlert`), colors by job (DESIGN.md).
 - **Verification:** the Gauntlet; Strange's screenshots.

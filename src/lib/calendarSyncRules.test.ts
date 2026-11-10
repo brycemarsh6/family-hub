@@ -1,4 +1,4 @@
-// Unit tests for calendarSyncPlan.ts's planning rules (which calendars get a
+// Unit tests for calendarSyncRules.ts's planning rules (which calendars get a
 // copy, busy columns, ticks, token fail reasons). The push steps
 // (syncEventCopies, removeAllCopies) are tested in the sibling
 // calendarSyncPlanPush.test.ts, split by concern.
@@ -16,7 +16,7 @@ import {
   tokenFailReason,
   type PlanCalendar,
   type PlanRow,
-} from "./calendarSyncPlan";
+} from "./calendarSyncRules";
 import { linkErrorMessage, toLinkErrorCode, toSyncFailReason } from "./calendarSyncVocabulary";
 
 const GOOGLE_ID = "6d61727368656576656e74";
