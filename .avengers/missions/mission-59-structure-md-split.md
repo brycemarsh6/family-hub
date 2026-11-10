@@ -99,7 +99,7 @@ Decided by Fury (structure and tooling):
   `/private/tmp/claude-501/-Users-brycemarsh-Developer-family-hub--claude-worktrees-dashboard-w2-calendar-widget-40bbe6/3bf1bab0-19e8-458c-9a0f-6d8b75e1cf8f/scratchpad/movecheck.mjs`.
   Not committed (docs-only PR).
 - **S2 coordination:** S2 (mission 58, `claude/screensaver-s2-slideshow`)
-  had not touched STRUCTURE.md at `a8c0615`. Sync with `main` right before
+  had not touched STRUCTURE.md as of 2026-11-09 (its branch is not pushed). Sync with `main` right before
   merge; if S2 merged first with a long screensaver entry, it moves too.
 
 ## Danger register
