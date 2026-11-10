@@ -85,11 +85,12 @@ Wide pages: the
      choice JavaScript makes). (Captain's A-L4-1.)
      **Container thresholds and Text size (mission-58).** A rem container
      variant (`@min-[48rem]:`) follows the Text size setting, because a
-     container query's rem is the root font size: at Large it switches at
-     960px, at Extra large at 1152px, so bigger text gets fewer, wider
+     container query's rem is the root font size: at Large (110%) it
+     switches at 845px, at Larger (135%) at 1037px, at Largest (150%) at
+     1152px, so bigger text gets fewer, wider
      columns. That is the default and is intended. `COLUMN_MIN_WIDTH_PX` and
      media queries do not move (a media query's rem is the browser default),
-     so at Large and Extra large a measured layout and its skeleton's
+     so at any size above Normal a measured layout and its skeleton's
      `@min-[…rem]:` mirror may differ by one column step; that is the known
      cost, not a mirror to fix. A container threshold that must not move with
      Text size, because the layout below it is the phone layout and a tablet

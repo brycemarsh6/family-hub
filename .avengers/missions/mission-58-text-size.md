@@ -1,7 +1,7 @@
 # Mission: Text size setting (mission 58)
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERED (all gates PASS on pass 3; two constitution rules wait for Bryce)
+**Status:** FOLLOW-UP GATED (F3 passed Vision and Strange; shipping on branch `claude/text-size-tune`)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 ## Brief
@@ -361,6 +361,8 @@ eslint, 1627 Denver, UTC 1620 + 7 skipped, build exit 0.
 | 2 | Strange | BLOCK | All four pass 1 blockers closed with measurements. New: (1) Schedule bar 195px at XL (162.5 Large) but scroll offset and month-title switch stay 130 (same as Vision's); (2) Habits Manage at XL (820 and 1180 sidebar): bare `grid` column grows to the longest title, card 911px wide in 805, every drag grip off screen (`HabitManager.tsx:137,176`) | Tiles as mocked (radiogroup, 72px tall, Aa 16/20/24, accent selected, resize 1ms after tap, save 209ms). Rail/sidebar: no sideways scroll, vertical accepted (rail XL 1029/820, sidebar XL 1051/820, sidebar XL is 384 of 1180). Month pills 12/15/18px. Labels grow in step; icons exactly x1.25 / x1.5. Phone landscape 844x390 stays 16px. Normal unchanged. Month with sidebar at XL 1180 drops below 768 and uses the phone layout (pills 13.5px). `DashboardWidgetList.tsx:99` same bare grid, no clip yet. Menu style change showed only after reload (hidden pane, outside mission). Calendar loading showed "Week" for month (pre-existing?) |
 | 3 | Captain | PASS | none | One source of truth holds (`HAMBURGER_ROW_HEIGHT_REM` the only number; measuring setup once in `useFloatingButtonMeasure`; `SCHEDULE_HEADER_BAR_HEIGHT_PX` gone everywhere). Docs match code. No cap breached (`CalendarHeader` 398, `ScheduleView` 580, both over soft cap before this mission). Wording: `appChrome.ts:29-30` dependents line should say Schedule's whole chrome offset; STRUCTURE.md:1379 should name `useHamburgerInsetPx`; root 16 written three times in `appChrome.ts` (fine until a fourth) |
 | 3 | Vision | PASS | none (both pass 2 blockers closed, traced) | Gauntlet green (1627; UTC 1620 + 7; build; recordcheck 0 hard). Boundaries exact. Schedule offset 130 / 162.5 / 195; `rootPx` re-read through the rem button's ResizeObserver. Rollback traced through two failing taps, fail then succeed, succeed then fail, three taps, tap back to saved in flight: `<html>` always ends at the saved size (proof: `savedRef` equals the layout prop from the same commit). `useHamburgerRowHeight` unchanged for its four other callers. `grid-cols-1` pixel-identical at Normal. Notes: `useHamburgerInsetPx` returns a new object per measure, so Schedule re-renders on every resize (perf only; return the old object when equal); brief tile/size mismatch in fail-then-succeed, settles correctly |
+| F3-1 | Vision | PASS | none | Gauntlet green at 063588d (1749; UTC 1742 + 7; build; recordcheck 0 hard). Boundaries exact. Saved `xl` stays valid (now 135%). Zoom reset error under 0.003px; nothing inside the wrapper measures itself. Notes: layout.md "Large and Extra large" wording (fixed by Fury); `MonthCell.tsx:155` comment names old sizes (later contract); rail content box 47px vs 48px rows (pre-existing) |
+| F3-1 | Strange | PASS | none | 1180x820 rail at all four sizes: aside 72, items 48x48, icons 22, no rail scroll, Send feedback at 760-808. Dashboard (dev data) fits at Large (bottom 709), side by side at Larger, one per row at Largest. Sidebar Larger 256 wide, no clip. Portrait Larger no overflow. Phone 390: four tiles 75x72, no overflow. Notes: at Large the page still scrolls 12px of blank bottom padding (`main` pb 6rem), and Bryce's real data leaves an estimated 25-40px spare; sidebar at Larger gives one per row (866 < 972); rail's names drawer still grows (accepted pass 1). **Incident:** the pane switched from the Tablet login to Bryce mid-run (not Strange's doing); Strange restored Tablet's prefs (hamburger, normal) with one direct `UserPreferences` update on the dev branch after the host check, User table untouched |
 
 ## Handoff log
 
@@ -372,6 +374,78 @@ eslint, 1627 Denver, UTC 1620 + 7 skipped, build exit 0.
   Next: write T1 and T2 in full, run preflight, dispatch.
 - 2026-11-09: Bryce said "Yes, build it" (model switched to Opus). T1 built,
   renumbered to mission 58, main merged, migration applied to dev. Gates next.
+
+## Follow-up after Bryce's iPad test (2026-11-09)
+
+Bryce tested PR 97 on the wall iPad (Tablet login, landscape, icon rail) and
+sent three screenshots. At Large (125%) the dashboard's bottom row
+(Inventory, Grocery, Recipes) is cut off (the Inventory tile ends about
+885 to 905 points down, the screen is 820), and the rail's 13 icons no
+longer fit, so it scrolls and Send feedback (or the top icon) is hidden. At
+Extra large (150%) the dashboard drops to one widget per row, because the
+grid's 45rem container switch moves to 1080px.
+
+### Decisions by Bryce, round 2 (2026-11-09)
+
+6. **Four sizes:** Normal 100%, Large 110% (the whole dashboard fits in
+   landscape), Larger 135% (the side-by-side layout, bigger, a short
+   scroll), Largest 150% (today's Extra large: one widget per row). Saved
+   keys stay `normal`, `large`, `xl` and gain `xxl`; a login saved on `xl`
+   becomes Larger (135%).
+7. **Names:** "Normal", "Large", "Larger", "Largest" (four Aa tiles).
+8. **The pinned menu never grows:** rail and sidebar stay Normal size at
+   every text size, icons included, so all 13 destinations always fit.
+   (Bryce: "I'm totally okay if the icons are just a little bit smaller. I
+   don't have to scroll on the side of the icon tab.")
+
+### F3 — Four sizes, the pinned menu stays Normal
+- **Objective:** Text size has four steps (100, 110, 135, 150%) named per
+  decision 7, and the pinned rail and sidebar render at exactly their Normal
+  size at every step.
+- **Boundaries:** may touch: `src/lib/textSize.ts`, `src/lib/textSize.test.ts`,
+  `src/app/globals.css` (the mission-58 block only), `src/components/TextSizeSetting.tsx`,
+  `src/components/PinnedNav.tsx`, `src/lib/appChrome.ts`, `src/lib/appChrome.test.ts`,
+  `src/components/CalendarHeader.tsx` and `src/components/ScheduleView.tsx`
+  (comments that quote the old Large/XL pixel figures only). Must not touch:
+  `src/components/NavList.tsx`, `src/components/NavDrawer.tsx`,
+  `src/components/AppChrome.tsx`, `prisma/`, `DESIGN.md`, `STRUCTURE.md`,
+  `docs/`, `CLAUDE.md`, the mission file (Fury's).
+- **Shape:**
+  1. `TEXT_SIZES` becomes `normal, large, xl, xxl`; labels Normal, Large,
+     Larger, Largest; `TEXT_SIZE_PREVIEW_REM` 1, 1.1, 1.35, 1.5. `toTextSize`
+     and `saveTextSize` need no other change (they read `TEXT_SIZES`). Tests
+     updated, including `xxl` as valid.
+  2. CSS: `large` 110%, `xl` 135%, `xxl` 150%, with `svg.lucide` zoom 1.1,
+     1.35, 1.5. Inside the same media query, a rule cancels the size on an
+     element marked `data-text-size-reset`: `zoom` 1/1.1, 1/1.35, 1/1.5
+     (write the decimals to 4 places, with a comment), so rem lengths and
+     zoomed icons inside it come out at their Normal size.
+  3. `PinnedNav.tsx`: the `<aside>` keeps its width and scrolling, and its
+     width becomes a fixed px value again; its padding and `NavList` (and
+     the rail's menu button and divider) move into one inner wrapper marked
+     `data-text-size-reset`. The rail's `NavDrawer` stays outside the
+     wrapper (it is a fixed overlay, unchanged behaviour).
+  4. `appChrome.ts`: `NAV_RAIL_WIDTH` and `NAV_SIDEBAR_WIDTH` become `"72px"`
+     and `"256px"` again, with a comment: px on purpose, the pinned menu
+     stays Normal at every text size (mission-58 follow-up), so
+     `--app-nav-width` and the aside agree. Test updated.
+  5. Tiles: four in a row (`grid-cols-4`), still at least 4.5rem tall.
+  6. Comments quoting the old 125/150% or 162/195px figures updated.
+- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`, the
+  AGENTS.md UTC run, `npm run build`.
+- **Evidence required:** command tails; `git diff --stat`; the final CSS
+  block; the PinnedNav wrapper markup.
+- **Done criteria:** Strange at 1180x820 with the rail: at every size the
+  rail's links are the Normal size (rail 72 wide, links 48px), no rail
+  scroll, Send feedback visible; dashboard fits whole at Large (default
+  tablet layout or the closest available), side by side at Larger, one per
+  row at Largest; four tiles fit on a 390px phone.
+- **Build result (Stark, 2026-11-09):** DONE. tsc, eslint, 1749 tests,
+  the UTC run and the build all green. One deviation from Shape step 3,
+  accepted by Fury: the padding stays on the `<aside>` in px (12px plus
+  `env(safe-area-inset-*)`) instead of moving into the wrapper, so the
+  iPad's safe-area spacing is never shrunk by the reset zoom. The wrapper
+  holds the menu button, divider and `NavList`.
 
 ## Delivery
 
@@ -411,3 +485,13 @@ eslint, 1627 Denver, UTC 1620 + 7 skipped, build exit 0.
   sidebar at XL uses the phone layout; Menu style change seen only after a
   reload in the hidden pane (unconfirmed, outside mission).
 
+- **Follow-up F3 (after Bryce's iPad test):** four sizes, Normal 100%,
+  Large 110%, Larger 135%, Largest 150% (a saved `xl` now means 135%); the
+  pinned rail and sidebar stay Normal at every size through a
+  `data-text-size-reset` zoom wrapper, so the rail never scrolls. Vision and
+  Strange PASS (ledger rows F3-1). Gauntlet after syncing main: 1757 tests;
+  UTC 1750 + 7 skipped; build green.
+- **F3 leftovers:** at Large the dashboard still scrolls about 12px of blank
+  bottom padding (`main` pb 6rem), and Bryce's real data has an estimated
+  25-40px to spare (his iPad check settles it); with the sidebar, Larger
+  shows one widget per row; `MonthCell.tsx:155` comment names old sizes.

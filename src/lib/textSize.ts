@@ -3,25 +3,27 @@
 // file is importable from a Server Action and from a client component alike.
 // A size scales the whole app on wide screens (globals.css); phones stay put.
 
-export const TEXT_SIZES = ["normal", "large", "xl"] as const;
+export const TEXT_SIZES = ["normal", "large", "xl", "xxl"] as const;
 
 export type TextSize = (typeof TEXT_SIZES)[number];
 
 export const TEXT_SIZE_LABELS: Record<TextSize, string> = {
   normal: "Normal",
   large: "Large",
-  xl: "Extra large",
+  xl: "Larger",
+  xxl: "Largest",
 };
 
 /**
  * How big the "Aa" on each Settings tile is drawn, in rem. These are the
  * same factors as the font-size percentages and icon zoom in the mission-58
- * block of globals.css (100 / 125 / 150%): change both together.
+ * block of globals.css (100 / 110 / 135 / 150%): change both together.
  */
 export const TEXT_SIZE_PREVIEW_REM: Record<TextSize, number> = {
   normal: 1,
-  large: 1.25,
-  xl: 1.5,
+  large: 1.1,
+  xl: 1.35,
+  xxl: 1.5,
 };
 
 export const TEXT_SIZE_HELP = "Applies on wide screens.";

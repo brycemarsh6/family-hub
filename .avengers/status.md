@@ -18,9 +18,10 @@ it is done. The pre-cleanup text is in
   CU-hours a month with the tablet on all day. If it climbs fast, tell
   Claude (the photo cache on iPad Safari is the suspect).
 - **Text size on the kitchen iPad (mission 58)**, about 3 minutes: sign in
-  as Tablet, Settings, tap the Large "Aa" tile; the whole app grows at once.
-  Read the dashboard and Calendar Month from across the kitchen; if Large is
-  not enough, try Extra large. Your phone must look unchanged.
+  as Tablet, Settings: four "Aa" tiles. In landscape, Large should show the
+  whole dashboard with nothing cut off, Larger the same layout bigger,
+  Largest one widget per row. The side menu stays small and never scrolls.
+  Your phone must look unchanged.
 - **Morning briefing check (mission 48), 2026-11-08:** between 9 and 10
   AM Denver, did you and Emily each get "Good morning, ..." from Winnie?
   If not, see the mission file's Delivery, step 2.

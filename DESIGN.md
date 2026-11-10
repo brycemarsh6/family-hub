@@ -103,7 +103,11 @@ tell when a rule's reason has expired.
   **(c)** a number JavaScript needs, which is measured or derived from the
   live root font size, never assumed to be 16 (a `_PX` constant may only seed
   the first paint); **(d)** Lucide icons' `size` prop, which `globals.css`'s
-  Text size block scales with `zoom`; **(e)** hairline borders (1px, 2px).
+  Text size block scales with `zoom`; **(e)** hairline borders (1px, 2px);
+  **(f)** the pinned side menu (rail and sidebar), which stays its Normal
+  size at every Text size so all its destinations always fit (Bryce,
+  2026-11-09): its width is px and its contents sit in a wrapper marked
+  `data-text-size-reset`, which `globals.css` zooms back to Normal.
   *(Reason: Strange's mission-58 pass 1 found 17 files of px text staying
   small while the page grew, and a px menu row covering every page's first
   line. Captain's ruling; Bryce approved 2026-11-09.)*

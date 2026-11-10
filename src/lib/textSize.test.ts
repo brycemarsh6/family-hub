@@ -16,7 +16,8 @@ test("TEXT_SIZE_LABELS: one exact label per size, nothing extra", () => {
   assert.deepEqual(TEXT_SIZE_LABELS, {
     normal: "Normal",
     large: "Large",
-    xl: "Extra large",
+    xl: "Larger",
+    xxl: "Largest",
   });
   assert.deepEqual(Object.keys(TEXT_SIZE_LABELS), [...TEXT_SIZES]);
 });
@@ -28,6 +29,7 @@ test("TEXT_SIZE_HELP and DEFAULT_TEXT_SIZE are pinned", () => {
 
 test("toTextSize: every valid value passes through", () => {
   for (const size of TEXT_SIZES) assert.equal(toTextSize(size), size);
+  assert.equal(toTextSize("xxl"), "xxl");
 });
 
 test("toTextSize: garbage falls back to the default without throwing", () => {
@@ -37,6 +39,6 @@ test("toTextSize: garbage falls back to the default without throwing", () => {
 });
 
 test("TEXT_SIZE_PREVIEW_REM: one preview size per size, growing", () => {
-  assert.deepEqual(TEXT_SIZE_PREVIEW_REM, { normal: 1, large: 1.25, xl: 1.5 });
+  assert.deepEqual(TEXT_SIZE_PREVIEW_REM, { normal: 1, large: 1.1, xl: 1.35, xxl: 1.5 });
   assert.deepEqual(Object.keys(TEXT_SIZE_PREVIEW_REM), [...TEXT_SIZES]);
 });
