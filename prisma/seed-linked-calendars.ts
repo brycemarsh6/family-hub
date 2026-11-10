@@ -174,7 +174,8 @@ async function main() {
           syncs: {
             create: {
               linkedCalendarId: firstMainCalendarId,
-              googleEventId: FAKE_GOOGLE_EVENT_ID,
+              // One id per fake event: the (calendar, Google id) pair is unique (mission 58).
+              googleEventId: `${FAKE_GOOGLE_EVENT_ID}-${FAKE_EVENTS.indexOf(fake)}`,
               status: fake.status,
               failReason: fake.failReason,
             },
