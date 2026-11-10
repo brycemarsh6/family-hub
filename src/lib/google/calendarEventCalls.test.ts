@@ -216,10 +216,10 @@ describe("listEvents", () => {
     assert.deepEqual(await listEvents(fetchFn, TOKEN, "a@b.com", { syncToken: "S" }), { ok: true, events: [], nextSyncToken: "T" });
   });
 
-  it("maps 410 and 400 to restart, 401 and 403 to unauthorized, the rest to network", async () => {
+  it("maps 410 and 400 to restart, 401 and 403 to unauthorized, the rest to network, with the status", async () => {
     const mode = { syncToken: "S" };
     for (const [status, reason] of [[410, "restart"], [400, "restart"], [401, "unauthorized"], [403, "unauthorized"], [500, "network"], [404, "network"]] as const) {
-      assert.deepEqual(await listEvents(fake(status, {}).fetchFn, TOKEN, "a@b.com", mode), { ok: false, reason });
+      assert.deepEqual(await listEvents(fake(status, {}).fetchFn, TOKEN, "a@b.com", mode), { ok: false, reason, status });
     }
   });
 
@@ -229,9 +229,9 @@ describe("listEvents", () => {
     };
     const bad: FetchLike = async () => new Response("not json", { status: 200 });
     const secret = fake(500, { error: { message: "SYNC-SECRET body" } }).fetchFn;
-    for (const f of [boom, bad, secret]) {
+    for (const [f, status] of [[boom, undefined], [bad, undefined], [secret, 500]] as const) {
       const r = await listEvents(f, TOKEN, "a@b.com", { syncToken: "S" });
-      assert.deepEqual(r, { ok: false, reason: "network" });
+      assert.deepEqual(r, status === undefined ? { ok: false, reason: "network" } : { ok: false, reason: "network", status });
       assert.ok(!JSON.stringify(r).includes("SECRET"));
     }
   });
