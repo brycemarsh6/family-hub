@@ -2,7 +2,7 @@
 
 Part of [STRUCTURE.md](../../STRUCTURE.md)'s "One source of truth" list,
 cut from it word for word at commit e62056c on 2026-11-09 by mission 59
-(Screensaver added by mission 61).
+(Screensaver added by mission 62).
 Every rule here binds exactly like STRUCTURE.md; a second definition is a
 BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
 
@@ -31,7 +31,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `addSlideshowPhoto`, `updateSlideshowCaption` and `deleteSlideshowPhoto`
   (guard form a, `MANAGER_ROLES`) call them and keep their own gates, the
   Blob calls and `revalidatePath`; a Winnie route would be a second caller
-  with its own gate (mission-61). `listSlideshowShowItems` in
+  with its own gate (mission-62). `listSlideshowShowItems` in
   `slideshowRead.ts` is the tablet's narrow list (id, size, caption, taken
   date; never the paths). The bytes go out through
   `src/app/api/slideshow/[id]/image/route.ts` alone. **`SlideshowPhoto`
@@ -71,4 +71,4 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `slideshowImageUrl`. `ScreensaverSettings` has no relation to `User`
   (`updatedById` is a plain id, the `SlideshowPhoto` precedent). A second
   reader, writer, state rule, shuffle or step list is a BLOCKER. (Added
-  mission-61, on Captain's ruling, Bryce-approved.)
+  mission-62, on Captain's ruling, Bryce-approved.)

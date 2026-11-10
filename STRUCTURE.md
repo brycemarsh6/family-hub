@@ -586,11 +586,11 @@ amendment id.
   (Added mission-38, on Captain's ruling.)
 - **Slideshow photos (mission-57).** (Rules: docs/structure/slideshow.md,
   "Slideshow photos".)
-- **Screensaver (mission-61).** (Rules: docs/structure/slideshow.md,
+- **Screensaver (mission-62).** (Rules: docs/structure/slideshow.md,
   "Screensaver".)
 - `QuantityStepper` (counts by one) and `LadderStepper` (moves along a
   fixed list, shows text it is given) are the only −/+ steppers; a third
-  is a BLOCKER. (Added mission-61, on Captain's ruling, Bryce-approved.)
+  is a BLOCKER. (Added mission-62, on Captain's ruling, Bryce-approved.)
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,

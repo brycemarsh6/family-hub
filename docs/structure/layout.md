@@ -173,7 +173,7 @@ Wide pages: the
   print page. The long forms are New and Edit habit, New and Edit goal, New
   and Edit event, and the manual recipe form with recipe Edit. The short
   pages are New task, the Add recipe chooser, the paste, link and photo
-  imports, Profile, and Wall tablet (mission-61). Settings, Manage family, Feedback and Slideshow
+  imports, Profile, and Wall tablet (mission-62). Settings, Manage family, Feedback and Slideshow
   photos (mission-57) are wide too.
   Containers: each long form's `<form>` (`HabitForm`, `GoalForm`,
   `EventForm`, `RecipeForm`), with the grid as its child because a

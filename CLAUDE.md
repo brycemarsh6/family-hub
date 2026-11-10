@@ -233,7 +233,7 @@ Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
 
 - **Screensaver S3** ("Open Marshee on" start page) is next:
-  `.avengers/plans/screensaver-slideshow-v1.md`; read mission 61's Delivery.
+  `.avengers/plans/screensaver-slideshow-v1.md`; read mission 62's Delivery.
 - **Dashboard widgets W3** is next after the W2 Calendar widget:
   `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the

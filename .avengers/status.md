@@ -6,14 +6,14 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
-- **Wall tablet screensaver (mission 61)**, on the real kitchen tablet
+- **Wall tablet screensaver (mission 62)**, on the real kitchen tablet
   signed in as Tablet: leave it alone 30 minutes and see the slideshow
   (clock readable on bright photos?); tap it and land on the dashboard
   without pressing anything; after 10 PM see it go black, tap, and see it
   go black again after 2 minutes. Add a photo in Slideshow photos and see
   it join a running slideshow within the hour. If the clock is hard to read
   on a bright photo, say so: the shade can go one step darker.
-- **Neon usage watch (mission 61), until 2026-11-17:** glance at the Neon
+- **Neon usage watch (mission 62), until 2026-11-17:** glance at the Neon
   Usage chart once or twice. Compute should stay well under the free 100
   CU-hours a month with the tablet on all day. If it climbs fast, tell
   Claude (the photo cache on iPad Safari is the suspect).
