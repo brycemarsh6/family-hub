@@ -1,0 +1,386 @@
+# Mission 57: Calendar sync PR 3, bring Google events into Marshee
+
+**Project:** family-hub (Marshee)
+**Status:** INTERROGATING (plan and mocks waiting on Bryce)
+**Started:** 2026-11-09 · **Updated:** 2026-11-09
+
+Plan: `.avengers/plans/calendar-sync-v1.md`, "PR split", the PR 3 entry.
+Previous PR: `.avengers/missions/mission-56-calendar-sync-pr2.md` (merged as
+brycemarsh6/family-hub#93). Branch: `claude/marshee-calendar-sync-pr3`, from
+`main` at `dd6eb34`.
+
+## Brief
+
+- **Goal:** Events on a Google calendar set to "Both ways" show up in
+  Marshee, and later changes on either side follow.
+- **Done means:** After Bryce switches `bryce.r.marsh@gmail.com` to "Both
+  ways", opening the Calendar brings its events in within a few seconds,
+  shown in Bryce's color with "Added by Bryce" and a "From Google" line. An
+  edit or delete in Google shows in Marshee on the next open or Refresh. An
+  edit or delete in Marshee goes back to Google (the PR 2 push). When both
+  sides changed, the later change wins and the other is kept in
+  `previousJson`. A revoked Google link marks the account "needs relink" and
+  says so. No Google call is made when the env vars are missing. The
+  privacy page matches every Google field stored. Gauntlet green, all
+  assembled gates PASS, PR merged, production checked.
+- **Out of scope:** filters for work calendars, tasks, attendees and RSVP,
+  editing a whole repeating series (each occurrence arrives as its own
+  event), Apple, CD1 (PR #26), Winnie, the "failed copy is silent after
+  Save" marker, a pull more often than once a day by cron (Hobby plan).
+
+## Danger register
+
+From AGENTS.md and mission 56, absolute for every agent:
+- Never run `npm run db:seed` or `npm run db:reset`. Never write a clean or
+  reset script for `User`.
+- Never read, print or edit `.env`.
+- Never log, return to the browser, or put in an error message a refresh
+  token, access token, authorization code, client secret, the encryption key
+  or a sync token. Failures carry a fixed reason word, never a Google body.
+- Migrations additive only; Fury reviews the SQL and alone runs
+  `npx prisma migrate deploy` against the dev branch after checking the host.
+- Never `git add -A` or `git add .`; stage by path; `git show --stat HEAD`.
+- The dev branch holds real family data; treat it as private.
+- **No agent or test ever calls Google Calendar for real.** Bryce's main
+  calendar is live and his setters read it. Tests inject a fake fetch.
+
+## Gauntlet
+
+- `npx tsc --noEmit`
+- `npx eslint .`
+- `npm test`
+- `TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts src/lib/google/*.test.ts`
+- `npm run build`
+- `wc -l CLAUDE.md` under 250 if touched
+- Record check: `node ~/.claude/skills/avengers/recordcheck.mjs`
+
+## Assembled
+
+- Stark + Vision (always). Vision is adversarial on echo loops (a pull
+  pushing back, a push pulled again), duplicates, conflict order, all-day
+  dates, 410 handling and token handling.
+- Strange: yes, the Calendar header, the event sheet and form, Synced
+  calendars and the privacy page change.
+- Captain: yes, the planned splits, new lib modules, a cron route.
+- Banner: done (code brief 2026-11-09, facts used below).
+
+## Google facts re-checked 2026-11-09
+
+- `events.list` reference: `syncToken` cannot be combined with `timeMin`,
+  `timeMax`, `orderBy`, `q`, `updatedMin`, `iCalUID` or the extended
+  property filters. `410` means drop the token and pull in full again.
+  Deleted events always come back on token pulls, with `status:
+  "cancelled"`. Page size 250 by default, 2500 at most.
+- Sync guide: the first full pull may be limited with `timeMin`. Its
+  official Java sample (`googleworkspace/java-samples`, `SyncTokenSample`)
+  sets `timeMin` **only when there is no token** and `syncToken` alone
+  afterwards. That settles the plan's open question without a live call:
+  **later pulls send `syncToken` and never `timeMin`**, and anything outside
+  the window is skipped locally. A `400` on a token pull is handled like
+  `410`, so the design holds whichever page is right. No live test is
+  needed, so Bryce's calendar is never touched by an agent.
+- Vercel: Hobby cron jobs run at most once a day (anything more often fails
+  the deploy), timing within the hour. Up to 100 cron jobs per project.
+
+## Fury's design decisions (structure, Fury recommends)
+
+1. **Split before adding.** `calendarSyncPlan.ts` keeps the push steps;
+   the pure rules (`isPushable`, `startsTicked`, `cleanRequestedIds`,
+   `busyColumn`, `tokenFailReason`, `sortedPersonNames`, `planSync`) move to
+   `calendarSyncRules.ts`. `calendarSyncPlanPush.test.ts` splits into
+   create/update and failures/edge cases files. Contract C1, no behavior
+   change, run first, gated by Captain.
+2. **Pure pull logic** in `src/lib/calendarSyncPull.ts` (decides insert,
+   update, delete, skip, conflict for each Google event) and
+   `src/lib/google/eventFromGoogle.ts` (Google JSON to Marshee fields, the
+   inverse of `eventPayload.ts`). `src/lib/google/calendarEventCalls.ts`
+   gains `listEvents` (injected fetch, paging, `410`/`400` as "restart").
+3. **Binding** in `src/lib/calendarEventPull.ts` (`server-only`, the
+   `calendarEventPush.ts` shape). It is the only writer of pulled events and
+   of `LinkedCalendar.syncToken` / `lastPulledAt`. A pull never calls the
+   push, so nothing echoes.
+4. **Migration (additive):** `CalendarEvent.sourceLinkedCalendarId?`
+   (SetNull) only; the sync row's `etag`, `lastPulledAt` and
+   `previousJson` already hold the rest. A pulled event gets a
+   `CalendarEventSync` row with Google's own event id, so the PR 2 push
+   updates it in place. Its source calendar shows ticked and locked on the
+   form (it cannot be unticked, since that would delete the original).
+5. **Echoes:** a Google event whose etag equals the stored etag is skipped.
+   An event Marshee created and pushed is matched by its sync row (or by
+   `extendedProperties.private.marsheeEventId`), never imported twice.
+6. **Conflicts:** if both sides changed since the last sync, the later of
+   Google's `updated` and the Marshee event's `updatedAt` wins. The loser is
+   written to `previousJson`. If Marshee wins, the pull calls nothing; the
+   next push (or Try again) sends it.
+7. **A pulled copy missing in Google (404 on push)** is not recreated under
+   a new id; the next pull's "cancelled" handles it.
+8. **When:** the Calendar page (and the dashboard Calendar widget) fire a
+   pull after they load, at most once every 5 minutes per calendar, then
+   refresh the view only if something changed. Refresh skips the 5 minutes.
+   One Vercel cron, daily at about 3 AM Denver, keeps tokens fresh and finds
+   broken links; it checks `CRON_SECRET` like the briefing cron.
+9. **needs-relink:** a refresh-token `invalid_grant` sets the account to
+   `needs-relink`; it goes back to `ok` on relink (already written in PR 1).
+10. **Window:** the first pull asks from 30 days back (Bryce to confirm),
+    everything ahead. A page cap (20 pages) stops a runaway pull and records
+    a failure instead.
+
+## Questions for Bryce (content, his call)
+
+Asked 2026-11-09 with mocks A to E (Refresh button, "From Google" line on
+the event sheet, locked source row in Sync to, the reconnect banner, new
+Synced calendars words). Fury's recommendation in brackets.
+
+1. How far back the first pull reaches [30 days back, everything ahead].
+2. Deleting a Google event in Marshee also deletes it in Google [yes, that
+   is what "Both ways" means and matches plan decision 6].
+3. Switching a calendar off "Both ways" [its events stay in Marshee and stop
+   updating; nothing disappears by surprise].
+4. Mocks A to E and the privacy wording [approve]. Proposed privacy addition,
+   replacing "Marshee keeps nothing else from Google.": "For each calendar
+   set to Both ways, Marshee keeps a bookmark from Google so it can ask only
+   for what changed, and when it last checked. Events from those calendars
+   are saved in Marshee like any other event (title, time, place and notes),
+   with Google's ID and version marker. Marshee keeps nothing else from
+   Google." (Goes through the humanizer before it ships.)
+
+**Answers (Bryce, 2026-11-09): all four as recommended.** 30 days back;
+deleting a Google event in Marshee deletes it in Google; switching off
+"Both ways" keeps pulled events and stops updating them; mocks A to E and
+the privacy wording approved.
+
+5. **(Asked after the contracts were started.)** An event made in Marshee
+   and deleted in Google on a "Both ways" calendar. **Bryce: delete it in
+   Marshee too**, with its copies on other calendars.
+
+## Fury's design decisions, revised after Bryce's answers
+
+These replace decisions 5 to 8 above where they differ.
+
+- **Pulled events:** `createdById` and the one person are the account's
+  linker (so the existing person colors show the owner).
+  `sourceLinkedCalendarId` is the calendar it came from. A sync row holds
+  Google's own event id, `etag`, `status "ok"`, `lastPulledAt`.
+- **Row lookup:** additive `@@unique([linkedCalendarId, googleEventId])` on
+  `CalendarEventSync` (true by construction today; Fury checks dev for
+  duplicates before deploying the migration). It also stops two pulls
+  racing into a double import.
+- **Lease:** a pull claims each calendar with one conditional update
+  (`lastPulledAt` null or older than 5 minutes, or 30 seconds for Refresh);
+  a claim that updates 0 rows skips the calendar. So two devices opening the
+  Calendar together never pull the same calendar twice.
+- **Notes:** the "For: ..." line Marshee adds to a Google description is
+  stripped when pulling, so it never piles up in Marshee's notes.
+- **Skipped Google kinds:** `eventType` "workingLocation" and "focusTime"
+  (not events). Status "tentative" counts as confirmed.
+- **Conflicts:** Google changed = etag differs from the row. Marshee changed
+  = the event's `updatedAt` is later than the row's last push and last pull.
+  Both changed: the later of Google's `updated` and Marshee's `updatedAt`
+  wins; the loser's fields go to `previousJson`. If Marshee wins, the pull
+  binding calls `pushEventCopies({ eventId })` for that event (a push from a
+  pull, not an echo: the push saves the new etag, so the next pull skips).
+- **Deletes from Google** ("cancelled"): the Marshee event is deleted, and
+  `removeEventCopies` takes its copies off other calendars first (Bryce,
+  answer 5). Cancelled ids Marshee never knew are skipped.
+- **The push for pulled rows:** a `gone` on update of a row whose event's
+  `sourceLinkedCalendarId` is that calendar is recorded as failed "network"
+  and never re-inserted (the next pull deletes it). The source calendar is
+  always kept in `requestedIds` on the server, so it cannot be unticked.
+- **Window:** a full pull sends `timeMin` = now minus 30 days,
+  `singleEvents=true`, `showDeleted=true`, `maxResults=250`; token pulls
+  send `syncToken`, `singleEvents=true`, `showDeleted=true`,
+  `maxResults=250` only. An unknown event that ends before the window is
+  skipped. More than 20 pages stops and records a failure. `410` or `400`
+  on a token pull clears the token and does a full pull in the same run;
+  existing events are matched by row, so nothing doubles.
+- **needs-relink:** `refreshAccessToken` answering "revoked" during a pull
+  sets the account `needs-relink`. Push failures keep their PR 2 behavior.
+- **Calendar off "Both ways":** pulls stop; pulled events and their rows
+  stay (Bryce, answer 3). The PR 2 push already leaves a copy on a calendar
+  that is no longer pushable alone.
+
+## Contracts
+
+C1 and C2 have disjoint boundaries and run in parallel. The rest run in
+order.
+
+### C1 - Split the push plan and its test by concern (no behavior change)
+
+- **Objective:** move the pure rules out of `calendarSyncPlan.ts` and split
+  its push test, so the pull has room, with no behavior change.
+- **Boundaries:** may touch `src/lib/calendarSyncPlan.ts`, new
+  `src/lib/calendarSyncRules.ts`, `src/lib/calendarSyncPlan.test.ts`
+  (moved by git rename to new `src/lib/calendarSyncRules.test.ts`),
+  `src/lib/calendarSyncPlanPush.test.ts`, new
+  `src/lib/calendarSyncPlanPushFailures.test.ts`, and the import lines only
+  of `src/lib/calendarEventPush.ts`, `src/lib/linkedCalendarsRead.ts`,
+  `src/app/actions/calendar.ts`. Must not touch anything else. No
+  re-exports: each importer imports from the file that owns the name.
+- **Spec:** `calendarSyncRules.ts` (pure, imports only the vocabulary) owns
+  `PlanCalendar`, `PlanRow`, `SyncPlan`, `isPushable`, `startsTicked`,
+  `cleanRequestedIds`, `busyColumn`, `tokenFailReason`,
+  `sortedPersonNames`, `planSync`. `calendarSyncPlan.ts` keeps the push
+  steps and their types (`RowKey`, `RowPatch`, `TokenResult`, `SyncDeps`,
+  `syncEventCopies`, `removeAllCopies`). The push test splits into
+  create/update (stays) and failures, `removeAllCopies` and Try again/412
+  edge cases (new file); the shared harness moves to the top of each file or
+  a small `calendarSyncPlanTestHarness.ts` (not `*.test.ts`). Each split
+  file opens with a one-line header naming its sibling. Header comments in
+  the moved code keep their meaning.
+- **Verification:** the full Gauntlet; the test count equals the count on
+  `main` (1593 in Denver).
+- **Evidence required:** before and after test counts, `wc -l` of every
+  touched file, `git diff --stat`.
+- **Done criteria:** same count, no file over 350 lines, no logic line
+  changed (a reviewer can read the diff as moves).
+
+### C2 - Google side of the pull: list events and read them back
+
+- **Objective:** a pure `listEvents` call and a pure mapping of a Google
+  event to Marshee's fields.
+- **Boundaries:** may touch `src/lib/google/calendarEventCalls.ts`,
+  `src/lib/google/calendarEventCalls.test.ts`, `src/lib/google/types.ts`,
+  `src/lib/google/calendarApi.ts` (one new binding line, `listGoogleEvents`),
+  new `src/lib/google/eventFromGoogle.ts` and its test,
+  `src/lib/calendarSyncVocabulary.ts` (only if a "For:" parse helper belongs
+  beside `forLine`; add a test in its existing test file). Must not touch
+  anything outside `src/lib/google/` except the vocabulary and its test.
+- **Spec:** `listEvents(fetchFn, accessToken, calendarId, { syncToken } |
+  { timeMin })` pages with `pageToken`, max 20 pages, returns `{ ok: true,
+  events: GoogleEventIn[], nextSyncToken }` or `{ ok: false, reason:
+  "restart" | "unauthorized" | "network" | "too-many" }` (`410` and `400`
+  are "restart"). The query is exactly as in "Window" above: never
+  `timeMin` with `syncToken`. `GoogleEventIn` types only the fields we read
+  (`id`, `status`, `etag`, `updated`, `summary`, `description`, `location`,
+  `start`, `end`, `eventType`, `extendedProperties.private.marsheeEventId`).
+  `eventFromGoogle(event)` returns `{ kind: "cancelled", id }`,
+  `{ kind: "skip", id }` (workingLocation, focusTime, missing start), or
+  `{ kind: "event", id, etag, updated: Date, marsheeEventId?, title (empty
+  becomes "(No title)"), notes (with Marshee's own trailing "For:" line
+  removed), location, startAt, endAt, allDay }`. All-day: `start.date`
+  to UTC midnight via the existing helpers in `householdDate.ts` /
+  `calendarDates.ts`, end exclusive as stored today. Timed: `dateTime`
+  parsed with its offset. Must round-trip with `toGoogleEvent` (a test
+  sends a Marshee event out and back and gets the same fields).
+- **Verification:** the Gauntlet. Tests use a fake fetch only; one test
+  asserts no request URL ever holds both `syncToken` and `timeMin`, one
+  asserts paging stops at 20.
+- **Evidence required:** test names and counts, both timezones.
+- **Done criteria:** round-trip test passes in Denver and UTC; DST dates
+  covered (an all-day event on 2026-11-01 and a timed one across it).
+
+### C3 - Migration and the pure pull planner
+
+- **Objective:** decide, with no database or network, what one pulled page
+  of Google events does to Marshee.
+- **Boundaries:** may touch `prisma/schema.prisma` (the two additions
+  only), a new migration folder `prisma/migrations/20261115000000_calendar_pull/`,
+  new `src/lib/calendarSyncPull.ts` and `src/lib/calendarSyncPull.test.ts`.
+  Stark writes the SQL with `prisma migrate diff`; he never runs a
+  migration. Fury applies it to the dev branch.
+- **Spec:** schema: `CalendarEvent.sourceLinkedCalendarId String?` with a
+  relation to `LinkedCalendar` (`onDelete: SetNull`) and an index;
+  `CalendarEventSync @@unique([linkedCalendarId, googleEventId])`.
+  `planPull({ calendar, linkerId, windowStart, googleEvents, known })`
+  where `known` maps googleEventId (and marsheeEventId) to `{ eventId,
+  etag, lastPushedAt, lastPulledAt, eventUpdatedAt, sourceLinkedCalendarId }`.
+  Returns `{ inserts, updates, deletes, pushBacks, skipped }` following
+  "Fury's design decisions, revised" exactly: echoes skipped by etag,
+  conflicts by time with `previousJson` for the loser, cancelled known
+  events deleted, unknown cancelled and out-of-window skipped, a Google
+  copy of a Marshee event matched by `marsheeEventId` when no row matches.
+- **Verification:** the Gauntlet; `npx prisma validate`; `npx prisma
+  migrate diff` output pasted (additive only).
+- **Evidence required:** the SQL; a test per branch (insert, echo skip,
+  Google-only change, Marshee-only change, both changed each way, cancelled
+  known, cancelled unknown, out of window, marsheeEventId match, all-day).
+- **Done criteria:** every decision bullet has a named test.
+
+### C4 - Bind the pull: database, Google, action, cron, push tweaks
+
+- **Objective:** run `planPull` against the real database and Google.
+- **Boundaries:** may touch new `src/lib/calendarEventPull.ts`
+  (`server-only`), `src/lib/linkedCalendarWrites.ts` (add
+  `markAccountNeedsRelink`, `claimCalendarForPull`, `saveSyncToken`),
+  `src/lib/linkedCalendarsRead.ts` (add `loadPullCalendars`),
+  `src/lib/calendarSyncPlan.ts` and `src/lib/calendarSyncRules.ts` (the
+  pulled-row rules in the revised decisions), their tests, new
+  `src/app/actions/calendarPull.ts` (guard: `MANAGER_ROLES` for Refresh;
+  the on-open pull allows any signed-in family login but only pulls),
+  `src/app/actions/calendar.ts` (keep the source calendar in
+  `requestedIds`), new `src/app/api/cron/calendar-pull/route.ts`
+  (`CRON_SECRET` check copied from the briefing route's shape),
+  `src/proxy.ts` (`PUBLIC_ROUTES` entry), `vercel.json` (one cron,
+  `0 10 * * *`, which is 3 AM Denver in winter, 4 AM in summer).
+- **Spec:** the revised decisions. `pullCalendars({ force })` returns `{
+  changed: boolean, failed: number }` and never throws; nothing is called
+  and nothing written when `isCalendarPushConfigured()` is false. Writes of
+  one Google event happen in one transaction (event, person, sync row). The
+  sync token is saved only after every event of the run is written. No
+  token or sync token is logged or returned. The cron returns counts only.
+- **Verification:** the Gauntlet; a fake-deps test of the binding where it
+  is pure enough, otherwise the planner tests plus a dev-branch run with
+  Google unconfigured that proves `pullCalendars` returns at once with no
+  write (Fury reads the query log or row counts).
+- **Evidence required:** diff stat, the cron file, the proxy line, the
+  guard lines.
+- **Done criteria:** Vision can trace each revised decision to a line.
+
+### C5 - Screens and words
+
+- **Objective:** build mocks A to E and the privacy addition exactly as
+  Bryce approved.
+- **Boundaries:** may touch `src/components/CalendarHeader.tsx`, a new
+  small client component for the Refresh button and the on-open pull
+  (`src/components/CalendarPullButton.tsx` or similar, keeping
+  `CalendarViews.tsx` untouched), `src/app/(app)/calendar/page.tsx`,
+  `src/components/CalendarWidgetTile.tsx` (fire the on-open pull only),
+  `src/components/EventDetailSheet.tsx` and the sheet's caller,
+  the event form's Sync to list component, `src/lib/calendarEventQuery.ts`
+  (expose the source calendar name to views), `src/lib/types.ts`,
+  `src/lib/calendarSyncVocabulary.ts`, the Synced calendars components
+  (`SyncedCalendarsList.tsx`, `LinkedAccountCard.tsx`),
+  `src/app/privacy/page.tsx`.
+- **Spec:** mocks A to E in this mission (chat, 2026-11-09). Words go in
+  the vocabulary. Refresh shows only to parents and admins when some
+  calendar is "Both ways"; the on-open pull runs for any login, at most
+  once per page view, and calls `router.refresh()` only when `changed`.
+  The banner (D) shows to the linker of a `needs-relink` account. "Last
+  checked" on Synced calendars reads `lastPulledAt`. Privacy: Bryce's
+  approved text after the humanizer pass Fury runs before dispatch.
+  Touch targets 48px, Lucide outline icons (`RefreshCw`, `Lock`,
+  `TriangleAlert`), colors by job (DESIGN.md).
+- **Verification:** the Gauntlet; Strange's screenshots.
+- **Evidence required:** files touched, the words added.
+- **Done criteria:** Strange PASS.
+
+### C6 - Records
+
+- STRUCTURE.md's "Google calendar link" entry widened for the new files
+  (Captain's text, Bryce approves); CLAUDE.md's Google Calendar line and
+  Current status updated (`wc -l` under 250); `.avengers/status.md` gets
+  Bryce's phone test; this file's Delivery; the record check.
+
+## Bryce's test (production, after merge)
+
+1. On Synced calendars, switch `bryce.r.marsh@gmail.com` to "Both ways".
+2. Open the Calendar. Within a few seconds your Google events from the last
+   30 days onward appear in your color.
+3. In Google, add "Marshee pull test" tomorrow. In Marshee tap Refresh: it
+   appears. Rename it in Google, Refresh: the name follows.
+4. Rename it in Marshee: Google follows. Delete it in Marshee: it leaves
+   Google.
+
+## Gate ledger
+
+| Pass | Gate | Verdict | Blockers | Notes |
+|---|---|---|---|---|
+
+## Handoff log
+
+- 2026-11-09: Mission opened on Opus 5.5. Banner's code brief: `syncToken`
+  and `lastPulledAt` already exist on `LinkedCalendar`, `lastPulledAt` and
+  `previousJson` on `CalendarEventSync`; nothing sets `needs-relink` yet;
+  events are colored by their people, so "colored by owner" means the
+  linker is put on the event. Bryce's PR 2 production test is still on his
+  checklist in `.avengers/status.md`.
