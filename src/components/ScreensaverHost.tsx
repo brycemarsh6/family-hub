@@ -10,8 +10,10 @@ import { SCREENSAVER_WORDS, screensaverState, type ScreensaverSettings } from "@
 import type { SlideshowShowItem } from "@/lib/slideshowRead";
 
 const TICK_MS = 1000;
-// Fresh data is fetched at most this often (and a failed load waits this long).
+// A state change the cached rule asks for is checked at most this often (and a failed load waits this long).
 const RETRY_MS = 60_000;
+// The quiet background refresh (idle a minute or showing) runs at most this often.
+const BACKGROUND_REFRESH_MS = 600_000;
 // A load that has not settled by then counts as a failure.
 const LOAD_TIMEOUT_MS = 15_000;
 // Idle at least this long, the host keeps its photo and settings view fresh.
@@ -23,9 +25,15 @@ type Show = { kind: "slideshow"; settings: ScreensaverSettings; photos: Slidesho
  * The wall tablet's screensaver: mounted by AppChrome for a device login only.
  * A 1-second tick asks `screensaverState` what the screen should be. Before it
  * leaves "awake" it fetches fresh settings and photos (`loadScreensaverShow`)
- * and re-checks the rule with them. While idle a minute or showing, it also
- * refreshes once a minute and closes a shown overlay when the rule says
- * "awake", so new photos and changed settings reach the tablet without a reload.
+ * and re-checks the rule with them. Loads happen in exactly three cases:
+ * (a) leaving "awake" for slideshow or sleep, held back only by a recent failure;
+ * (b) the cached rule differs from what is showing in any other way (slideshow
+ * to sleep, sleep to slideshow, an overlay to awake), at most once a minute;
+ * (c) a background refresh while idle a minute or showing, at most once every
+ * 10 minutes. A failed load waits a minute. A shown overlay closes by itself
+ * when fresh data says "awake", but never within a minute of a touch (the
+ * overlay's own click wakes it), so new photos and changed settings reach the
+ * tablet without a reload.
  *
  * A tap must only wake the screen, never press what is underneath. The overlay
  * is the hit target from the first touch; it swallows `pointerdown` and wakes
@@ -42,8 +50,10 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
   // Unknown until the first load; the tick assumes "maybe" so it goes to look.
   const photoCountRef = useRef<number | null>(null);
   const lastTapRef = useRef(0);
-  // No load before this time (set after any load; the leave-awake load skips the refresh part).
+  // Case (b) waits for this (set after any load); case (a) skips it.
   const nextRefreshAtRef = useRef(0);
+  // Case (c) waits for this (set after any load).
+  const nextBackgroundAtRef = useRef(0);
   const failedUntilRef = useRef(0);
   const loadingRef = useRef(false);
 
@@ -84,10 +94,14 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
       const current = showRef.current?.kind ?? "awake";
       // Cached photo count 0 never blocks a look: only "awake" is decided by it.
       const wanted = stateNow(settingsRef.current, photoCountRef.current !== 0);
-      const leaving = wanted !== "awake" && wanted !== current;
-      // Rule: while idle a minute or while showing, look again at most once a minute with fresh data, and let every decision (including closing a shown overlay) use it.
-      const refresh = (now - lastTapRef.current >= IDLE_REFRESH_AFTER_MS || current !== "awake") && now >= nextRefreshAtRef.current;
-      if (!leaving && !refresh) return;
+      // (a) leaving awake: only a recent failure holds it back.
+      const leaving = current === "awake" && wanted !== "awake";
+      // (b) the cached rule differs from what is showing, any other way: once a minute.
+      const changing = !leaving && wanted !== current && now >= nextRefreshAtRef.current;
+      // (c) background refresh while idle a minute or showing: once every 10 minutes.
+      const background =
+        (now - lastTapRef.current >= IDLE_REFRESH_AFTER_MS || current !== "awake") && now >= nextBackgroundAtRef.current;
+      if (!leaving && !changing && !background) return;
 
       loadingRef.current = true;
       let fresh: Awaited<ReturnType<typeof loadScreensaverShow>> = null;
@@ -105,6 +119,7 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
       window.clearTimeout(timeout);
       loadingRef.current = false;
       nextRefreshAtRef.current = Date.now() + RETRY_MS;
+      nextBackgroundAtRef.current = Date.now() + BACKGROUND_REFRESH_MS;
       if (!fresh) {
         failedUntilRef.current = Date.now() + RETRY_MS;
         return;
@@ -116,8 +131,10 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
         setShow({ kind: "slideshow", settings: fresh.settings, photos: fresh.photos });
       } else if (confirmed === "sleep" && showRef.current?.kind !== "sleep") {
         setShow({ kind: "sleep" });
-      } else if (confirmed === "awake" && showRef.current) {
-        // Closes by itself: no route change, nothing pressed.
+      } else if (confirmed === "awake" && showRef.current && Date.now() - lastTapRef.current >= IDLE_REFRESH_AFTER_MS) {
+        // Closes by itself: no route change, nothing pressed. Read the last touch
+        // after the load returns: a recent touch means the overlay's own click will
+        // wake it, and unmounting under a finger would drop the click onto the page.
         setShow(null);
       }
     }
@@ -133,6 +150,7 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
   function wake() {
     lastTapRef.current = Date.now();
     nextRefreshAtRef.current = 0;
+    nextBackgroundAtRef.current = 0;
     setShow(null);
     if (pathname !== "/") router.push("/");
   }

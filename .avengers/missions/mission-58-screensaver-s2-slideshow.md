@@ -143,7 +143,7 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Report:** DONE (Stark); Fury re-ran 2026-11-09: tsc 0, eslint 0, `npm test` 1635 pass, UTC 1635 tests 0 fail, `npm run build` exit 0 (captured directly; Stark's was piped). Host now refreshes at most once a minute while idle a minute or while showing, decides with the fresh data, closes a shown overlay by itself when the rule says awake, and treats a load still pending after 15 s as a failure. `slideshowImageUrl` adopted in three components; `grep -rn "api/slideshow/" src/components` empty.
 
 ### C6 — Gate pass 2 fix: no self-close mid-tap, slower background refresh
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** A shown overlay never closes by itself while someone may be touching it, and the tablet's background checks are slow enough for the production database to suspend.
 - **Boundaries:** may touch: `src/components/ScreensaverHost.tsx` only. Must not touch: everything else.
 - **Spec:**
@@ -153,7 +153,7 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Verification:** the gauntlet, all five commands.
 - **Evidence required:** the new code quoted; a trace of: the 6 AM sleep end with 0 photos (closes within about a minute, no tap); a tap during an in-flight load (overlay stays until its own click); a household with 0 photos where a parent adds one at noon and sleep is off (slideshow within about 10 minutes plus Start after); worst-case loads per hour while the tablet sleeps all night (6, plus at most one per state change); gauntlet last lines; `git diff --stat` (one file).
 - **Done criteria:** Vision pass 3 PASS.
-- **Report:** (pending)
+- **Report:** DONE (Stark); Fury re-ran 2026-11-09: tsc 0, eslint 0, `npm test` exit 0 (1635), UTC exit 0 (1635, 0 fail), build exit 0 (Stark, captured). Self-close now needs a minute with no touch; loads in three cases (leave awake; other change at most once a minute; background at most once every 10 minutes). Bryce asked what the 10 minutes buys; refresh cadence may change after his answer, before Vision pass 3.
 
 ### C4 — Records (Fury)
 - **STRUCTURE.md: Bryce approved Captain's amendments 1 to 5 (2026-11-09), written by Fury with Captain's pass-2 corrections: Screensaver entry, Slideshow photos writes and `slideshowImageUrl`, `minuteOfDayInZone` in the householdDate entry, Wall tablet in the short pages and loading lists, the two-steppers line. STRUCTURE.md now 1,810 lines (trend; the split PR is its own session).**
