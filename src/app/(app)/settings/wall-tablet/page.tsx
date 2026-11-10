@@ -1,29 +1,35 @@
+import { redirect } from "next/navigation";
+
 import { BackLink } from "@/components/BackLink";
 import { StartPageSetting } from "@/components/StartPageSetting";
 import { WallTabletSettings } from "@/components/WallTabletSettings";
 import { MANAGER_ROLES } from "@/lib/constants";
-import { requireRole } from "@/lib/dal";
+import { requireVerifiedUser } from "@/lib/dal";
 import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 import { SCREENSAVER_WORDS } from "@/lib/screensaver";
 import { loadScreensaverSettings } from "@/lib/screensaverRead";
 import { countSlideshowPhotos } from "@/lib/slideshowRead";
 import { loadTabletStartPage } from "@/lib/startPageRead";
+import { tabletMayChangeWallTablet } from "@/lib/tabletRules";
 
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
 
 /**
  * Parents, admins and the wall tablet itself: how the screensaver behaves and
- * where a tap on it goes. `requireRole` bounces a kid to `/`, and the save
- * actions check the login again. The tablet gets no link to Slideshow photos
- * (that page stays parents and admins only). A short page: all of it, BackLink and title included, sits inside
- * NARROW_PAGE_CLASSES.
+ * where a tap on it goes. A kid is sent to `/` (`tabletMayChangeWallTablet`
+ * is the tablet's gate), and the save actions check the login again. The
+ * tablet gets no link to Slideshow photos (that page stays parents and admins
+ * only), so it is not sent the count. A short page: all of it, BackLink and
+ * title included, sits inside NARROW_PAGE_CLASSES.
  */
 export default async function WallTabletPage() {
-  const user = await requireRole(...MANAGER_ROLES, "device");
+  const user = await requireVerifiedUser();
+  const canManagePhotos = MANAGER_ROLES.includes(user.role);
+  if (!canManagePhotos && !tabletMayChangeWallTablet(user.role)) redirect("/");
   const [settings, photoCount, startPage] = await Promise.all([
     loadScreensaverSettings(),
-    countSlideshowPhotos(),
+    canManagePhotos ? countSlideshowPhotos() : 0,
     loadTabletStartPage(),
   ]);
 
@@ -37,7 +43,7 @@ export default async function WallTabletPage() {
 
         {startPage !== null && <StartPageSetting forTablet startPage={startPage} />}
 
-        <WallTabletSettings initialSettings={settings} photoCount={photoCount} canManagePhotos={!user.isDevice} />
+        <WallTabletSettings initialSettings={settings} photoCount={photoCount} canManagePhotos={canManagePhotos} />
       </div>
     </div>
   );

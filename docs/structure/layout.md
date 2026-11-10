@@ -132,7 +132,8 @@ Wide pages: the
   `settings/wall-tablet/loading.tsx` and
   `kitchen/cooking/recipes/new/loading.tsx` are their own skeletons: the
   `data-page-width="wide"` root, then `SkeletonHeader` and `SkeletonList`
-  (Wall tablet has three, one per section) inside `NARROW_PAGE_CLASSES`. `settings/loading.tsx` renders
+  (Wall tablet has four: one row for the start page, then one per
+  section) inside `NARROW_PAGE_CLASSES`. `settings/loading.tsx` renders
   `<SkeletonPage wide>` with two lists in `TWO_COLUMN_CLASSES` inside a
   container, and it also covers Manage family, which has the same two
   columns. `settings/feedback/loading.tsx` renders `<SkeletonPage wide>`

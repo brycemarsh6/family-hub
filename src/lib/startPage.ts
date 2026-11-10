@@ -4,7 +4,7 @@
 // a client component alike. Anything not exactly in the list reads as the
 // Dashboard, so a stored value can never redirect off the app.
 
-import { NAV_SECTIONS } from "./nav";
+import { NAV_SECTIONS, navLabelForPath } from "./nav";
 
 // Every drawer destination in the drawer's order, minus Lists (still "coming
 // soon"). Settings is not offered.
@@ -21,10 +21,14 @@ export function toStartPage(raw: unknown): string {
   return START_PAGE_OPTIONS.find((option) => option.href === raw)?.href ?? DEFAULT_START_PAGE;
 }
 
+/** True when `raw` is exactly one of START_PAGE_OPTIONS' hrefs (the save actions' check). */
+export function isStartPage(raw: unknown): raw is string {
+  return START_PAGE_OPTIONS.some((option) => option.href === raw);
+}
+
 /** The page's name for a stored value (the Dashboard for anything unknown). */
 export function startPageLabel(href: unknown): string {
-  const clean = toStartPage(href);
-  return START_PAGE_OPTIONS.find((option) => option.href === clean)?.label ?? "Dashboard";
+  return navLabelForPath(toStartPage(href));
 }
 
 export const START_PAGE_WORDS = {

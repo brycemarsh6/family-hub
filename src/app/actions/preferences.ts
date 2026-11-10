@@ -17,7 +17,8 @@ import {
 } from "@/lib/dashboardLayout";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { NAV_MODES } from "@/lib/navMode";
-import { START_PAGE_OPTIONS, START_PAGE_WORDS } from "@/lib/startPage";
+import { isStartPage, START_PAGE_WORDS } from "@/lib/startPage";
+import { tabletMayChangeWallTablet } from "@/lib/tabletRules";
 import { TEXT_SIZES } from "@/lib/textSize";
 
 export type PreferencesResult = { error?: string };
@@ -89,8 +90,8 @@ export async function saveStartPage(input: unknown): Promise<PreferencesResult> 
   const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
 
-  const startPage = START_PAGE_OPTIONS.find((option) => option.href === input)?.href;
-  if (!startPage) return { error: START_PAGE_WORDS.notAPage };
+  if (!isStartPage(input)) return { error: START_PAGE_WORDS.notAPage };
+  const startPage = input;
 
   try {
     await db.userPreferences.upsert({
@@ -115,12 +116,12 @@ export async function saveStartPage(input: unknown): Promise<PreferencesResult> 
 export async function saveTabletStartPage(input: unknown): Promise<PreferencesResult> {
   const user = await getVerifiedUser();
   if (!user) return { error: "Not signed in." };
-  if (!user.isDevice && !MANAGER_ROLES.includes(user.role)) {
+  if (!MANAGER_ROLES.includes(user.role) && !tabletMayChangeWallTablet(user.role)) {
     return { error: START_PAGE_WORDS.notAllowed };
   }
 
-  const startPage = START_PAGE_OPTIONS.find((option) => option.href === input)?.href;
-  if (!startPage) return { error: START_PAGE_WORDS.notAPage };
+  if (!isStartPage(input)) return { error: START_PAGE_WORDS.notAPage };
+  const startPage = input;
 
   try {
     const devices = await db.user.findMany({

@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { getVerifiedUser } from "@/lib/dal";
 import { db } from "@/lib/db";
+import { tabletMayChangeWallTablet } from "@/lib/tabletRules";
 import { parseScreensaverField, type ScreensaverSettings } from "@/lib/screensaver";
 import { loadScreensaverSettings } from "@/lib/screensaverRead";
 import { listSlideshowShowItems, type SlideshowShowItem } from "@/lib/slideshowRead";
@@ -19,7 +20,7 @@ export type SaveScreensaverResult = { ok: true } | { ok: false; error: string };
 
 export async function saveScreensaverSetting(field: unknown, value: unknown): Promise<SaveScreensaverResult> {
   const user = await getVerifiedUser();
-  if (!user || (!user.isDevice && !MANAGER_ROLES.includes(user.role))) {
+  if (!user || (!MANAGER_ROLES.includes(user.role) && !tabletMayChangeWallTablet(user.role))) {
     return { ok: false, error: "Only parents, admins and the wall tablet can change these settings." };
   }
   const parsed = parseScreensaverField(field, value);

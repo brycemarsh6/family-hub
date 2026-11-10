@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_START_PAGE,
   START_PAGE_OPTIONS,
+  isStartPage,
   START_PAGE_WORDS,
   startPageLabel,
   toStartPage,
@@ -62,4 +63,11 @@ test("START_PAGE_WORDS are pinned", () => {
     notAllowed: "Only parents, admins and the wall tablet can change this.",
     notAPage: "That isn't a page you can start on.",
   });
+});
+
+test("isStartPage: true for every option, false for anything else", () => {
+  for (const option of START_PAGE_OPTIONS) assert.equal(isStartPage(option.href), true);
+  for (const raw of [null, undefined, "", "/lists", "/settings", "https://evil.example", 5, {}]) {
+    assert.equal(isStartPage(raw), false);
+  }
 });

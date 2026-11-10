@@ -138,7 +138,7 @@ commit; no direct push to `main`.
 - **Report:** DONE (Stark), re-run by Fury 2026-11-10: tsc 0, eslint 0, `npm test` 1784 pass 0 fail. Migration SQL is the one `ALTER TABLE` line. Applied to dev (host checked `ep-hidden-pine-`), `migrate status` up to date. Stark's own calls: `startPageLabel` takes `unknown`; `saveTabletStartPage` with no device login is a no-op success; AppChrome's `startPage` prop is optional (host defaults to `/`). Preflight's one hard failure was `prisma/schema.prisma` over the cap, which STRUCTURE.md exempts (as in mission 62).
 
 ### C2 — UI and the written rules
-- **Status:** DISPATCHED
+- **Status:** DONE
 - **Boundaries:** may touch: new `src/components/StartPageSetting.tsx`,
   `src/app/(app)/settings/page.tsx`, `src/app/(app)/settings/wall-tablet/page.tsx`,
   `src/components/WallTabletSettings.tsx`, `docs/structure/slideshow.md`,
@@ -173,18 +173,35 @@ commit; no direct push to `main`.
 - **Evidence required:** `git diff --stat`; tsc, eslint, test counts.
 - **Done criteria:** Fury re-runs; Strange sees the rows on a parent login
   and the Tablet login on the dev server.
-- **Report:** (pending)
+- **Report:** DONE (Stark), re-run by Fury 2026-11-10: tsc 0, eslint 0, 1784 tests pass, build 0. Committed with C1 as `f280be5`. Strange's look on the dev server is still to come.
+
+### C3 — Gate pass 1 fixes (Captain's two blockers, plus cheap notes)
+- **Status:** DONE
+- **Boundaries:** may touch: `src/lib/startPage.ts`, `src/lib/startPage.test.ts`, `src/lib/tabletRules.ts`, `src/lib/tabletRules.test.ts`, `src/app/actions/screensaver.ts`, `src/app/actions/preferences.ts`, `src/app/(app)/settings/page.tsx`, `src/app/(app)/settings/wall-tablet/page.tsx`, `src/app/(app)/settings/wall-tablet/loading.tsx`, `src/components/WallTabletSettings.tsx`, `docs/structure/slideshow.md`, `docs/structure/layout.md`. Must not touch: everything else, above all `STRUCTURE.md`, `CLAUDE.md`, `src/lib/nav.ts`, `prisma/`, `.env`. No commits.
+- **Work:**
+  1. BLOCKER (STRUCTURE.md, `navLabelForPath` is the only path-to-words): `startPageLabel` returns `navLabelForPath(toStartPage(href))`; the literal "Dashboard" goes.
+  2. BLOCKER (STRUCTURE.md, `tabletRules.ts` is the only home of what the device may do): add `tabletMayChangeWallTablet(role: Role): boolean` (role === "device"; doc comment: the tablet may open the Wall tablet page and change its settings and its start page; Bryce, 2026-11-10, mission 64) with a test. Use it in `saveScreensaverSetting` and `saveTabletStartPage` (allowed when `MANAGER_ROLES` includes the role or the check passes), on the Wall tablet page (`requireVerifiedUser()` then `redirect("/")` unless allowed), and on the Settings door (`canManageSlideshow || tabletMayChangeWallTablet(user.role)`). `canManagePhotos` becomes `MANAGER_ROLES.includes(user.role)`.
+  3. NOTE: add `isStartPage(raw: unknown): raw is string` to `startPage.ts` (tested); both save actions use it instead of their inline `find`.
+  4. NOTE: the Wall tablet page passes `photoCount` only when photos can be managed (0 otherwise), or drops it for devices, whichever keeps `WallTabletSettings` simplest.
+  5. NOTE: `loading.tsx` gains one `SkeletonList rows={1}` above the three sections; `docs/structure/layout.md`'s Wall tablet skeleton description updated to match.
+  6. NOTE: `docs/structure/slideshow.md`: header line notes "Start page added by mission 64"; the Screensaver and Start page entries name `tabletMayChangeWallTablet` as the tablet's gate; rewrap the over-long lines.
+- **Verification:** `npx tsc --noEmit`, `npx eslint`, `npm test`, `npm run build`, all 0; `grep -rn "isDevice\|\"device\"" src/app/actions/screensaver.ts src/app/actions/preferences.ts "src/app/(app)/settings/page.tsx" "src/app/(app)/settings/wall-tablet/page.tsx"` shows no new inline device permission tests.
+- **Evidence required:** command outputs with counts; the grep; `git diff --stat`.
+- **Done criteria:** Fury re-runs; Captain re-gates PASS.
+- **Report:** DONE (Stark), re-run by Fury 2026-11-10: tsc 0, eslint 0, 1787 tests pass (3 new). `photoCount` kept and passed as 0 for the tablet (no count read); `WallTabletSettings.tsx` unchanged.
 
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision (HEAD f280be5) | PASS | none | Gauntlet re-run green (tsc, eslint, 1784 tests, UTC 1777 pass 7 skipped DST, build). No redirect off the app; none of the 9 pages is role-gated; kids refused by both save actions and the page. Notes: a signed-in visit to `/login` still goes to `/` (out of scope); wake compares path only; `saveStartPage` lets a device save its own (no screen offers it); with two device logins they could differ; `photoCount` still sent to the tablet. |
+| 1 | Captain (HEAD f280be5) | BLOCKED | `startPageLabel` maps paths to words itself (rule: `navLabelForPath` only); four new inline device permission tests (rule: `tabletRules.ts` is the only home). Fix: C3 | Notes: "tablet" in names follows the Wall tablet feature precedent (Captain drafted a clarifying amendment, not applied: constitution amendments need Bryce); duplicated strict check; loading skeleton missing the new row; schema and STRUCTURE.md sizes are the known exemptions; CLAUDE.md at 250 exactly. |
 
 ## Log
 
 - 2026-11-10 (Fury, Opus 5.5): next free mission number on `origin/main`
   was 64 (main ends at 63); latest migration `20261118000000_calendar_turned_on`.
-  Mock approved by Bryce. C1 dispatched to Stark, DONE, re-run by Fury. C2 dispatched.
+  Mock approved by Bryce. C1 dispatched to Stark, DONE, re-run by Fury. C2 dispatched, DONE, committed `f280be5`. Vision PASS, Captain BLOCKED (two). C3 dispatched, DONE, committed. Re-gate: Vision and Captain pass 2, Strange pass 1 on the parent login (the in-app browser is still signed in as Bryce on dev).
 
 ## Delivery
 

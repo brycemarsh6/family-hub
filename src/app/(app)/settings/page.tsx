@@ -12,6 +12,7 @@ import { logout } from "@/app/actions/auth";
 import { householdToday } from "@/lib/assistant/today";
 import { SYNCED_CALENDARS_WORDS } from "@/lib/calendarSyncVocabulary";
 import { MANAGER_ROLES } from "@/lib/constants";
+import { tabletMayChangeWallTablet } from "@/lib/tabletRules";
 import { requireVerifiedUser } from "@/lib/dal";
 import { countNewFeedback } from "@/lib/feedbackRead";
 import { loadVacations } from "@/lib/habitsRead";
@@ -122,7 +123,7 @@ export default async function SettingsPage() {
               </div>
             )}
 
-            {(canManageSlideshow || user.isDevice) && (
+            {(canManageSlideshow || tabletMayChangeWallTablet(user.role)) && (
               <div className="order-3">
                 <Link
                   href="/settings/wall-tablet"
