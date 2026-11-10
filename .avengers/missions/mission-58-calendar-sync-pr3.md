@@ -424,6 +424,80 @@ would flip Google's own choice. Both are fixed before the pull exists.
 - **Evidence required:** files touched, the words added.
 - **Done criteria:** Strange PASS.
 
+### C7b - Gate fixes, pass 1: structure (Captain)
+
+- **Objective:** clear Captain's two code blockers and two cheap notes.
+- **Boundaries:** may touch `src/lib/calendarSyncPlanTestHarness.ts`
+  (moved by git rename to new `src/lib/testing/calendarSyncPlanHarness.ts`),
+  `src/lib/calendarSyncPlanPush.test.ts`,
+  `src/lib/calendarSyncPlanPushFailures.test.ts`,
+  `src/lib/calendarSyncRules.test.ts` (header only),
+  `src/lib/calendarEventQuery.ts`, `src/lib/types.ts`,
+  `src/app/(app)/calendar/[id]/edit/page.tsx`, `src/lib/cronAuth.ts`.
+- **Spec:** (1) move the harness, fix its imports and the two tests' imports
+  and headers. (2) `export const EVENT_SOURCE_SELECT = { select: { id: true,
+  name: true } } as const;` in `calendarEventQuery.ts`, used in
+  `CALENDAR_EVENT_SELECT` and the edit page; `CalendarEventRow` widened;
+  the view still carries the name only. (3) `import "server-only"` in
+  `cronAuth.ts` (check the briefing route's tests still run; if a pure test
+  imports it, report BLOCKED-ON-CONTRACT).
+- **Verification:** tsc, eslint, `npm test`, TZ=UTC command.
+- **Done criteria:** same test count (1677), no reader of `LinkedCalendar`
+  outside the named exceptions.
+
+### C7a - Gate fixes, pass 1: correctness (Vision) and Bryce's answer 6
+
+- **Objective:** clear Vision's four code blockers and Bryce's unlink rule.
+- **Boundaries:** may touch `src/lib/google/eventPayload.ts` and its test,
+  `src/lib/google/types.ts`, `src/lib/google/eventFromGoogle.ts` and its
+  test, `src/lib/google/calendarEventCalls.test.ts`,
+  `src/lib/calendarSyncPull.ts` and its test, `src/lib/calendarPullRun.ts`
+  and its test, `src/lib/calendarEventPull.ts`,
+  `src/lib/linkedCalendarsRead.ts`, `src/lib/calendarSyncPlanPush.test.ts`,
+  `src/lib/calendarSyncPlanPushFailures.test.ts`,
+  `src/lib/testing/calendarSyncPlanHarness.ts`,
+  `src/app/actions/linkedCalendars.ts`,
+  `src/app/api/google/callback/route.ts`.
+- **Spec:**
+  1. **Cleared fields clear.** `toGoogleEvent` always sends `location` and
+     `description`, as `""` when empty; `GoogleEventPayload` types them as
+     required strings. Test: an update with null notes and location sends
+     both keys as `""`.
+  2. **A Google change reaches the other calendars.** A Google-wins update
+     with `changed: true` on an event that has sync rows on other calendars
+     is pushed after the run's writes (`pushEventCopies({ eventId })`, the
+     same path as `pushBacks`). Test in `calendarPullRun.test.ts` or the
+     planner.
+  3. **One Google calendar, one import.** `runPull` pulls each
+     `googleCalendarId` once per run (first in a stable order: oldest
+     `LinkedCalendar.createdAt`, then id). Before an insert, an existing
+     `CalendarEventSync` with the same `googleEventId` on any LinkedCalendar
+     with the same `googleCalendarId` is adopted (a row on this calendar
+     pointing at that event) instead of inserting. Tests for both.
+  4. **Unlink removes pulled events (Bryce, answer 6).** New
+     `removePulledEvents(linkedCalendarIds)` in `calendarEventPull.ts`: for
+     each event whose `sourceLinkedCalendarId` is in the list, call
+     `removeEventCopies` for its copies on other calendars (not the source:
+     it still lives in Google) and delete the event. Called by the unlink
+     action before the unlink write, and by the callback route before
+     `replaceCalendars` for the calendars Google no longer lists (read those
+     ids through `linkedCalendarsRead.ts`). Events made in Marshee are never
+     touched. The source-calendar exclusion must be explicit in code.
+  5. **Notes from Google's web editor** (Vision note, Fury's call):
+     `eventFromGoogle` turns an HTML description into text: `<br>` and
+     `</p>`/`</div>` to new lines, other tags removed, `&amp; &lt; &gt;
+     &quot; &#39; &nbsp;` decoded, then `withoutForLine`. Plain text is left
+     alone. Tests.
+  6. **Captain notes:** `marsheeIdOf(event)` exported from
+     `eventFromGoogle.ts` and used by `calendarEventPull.ts` instead of its
+     own read; the binding's revoked/network mapping uses
+     `tokenFailReason` (or a sibling in `calendarSyncRules.ts`, which C7a
+     may then touch) instead of its own.
+- **Verification:** the full gauntlet except build (Fury builds).
+- **Evidence required:** test names per item, counts both timezones.
+- **Done criteria:** each item has a named test, or for item 4 a test of
+  the pure part plus the call sites quoted.
+
 ### C6 - Records
 
 - STRUCTURE.md's "Google calendar link" entry widened for the new files
@@ -445,6 +519,7 @@ would flip Google's own choice. Both are fixed before the pull exists.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Captain | BLOCKED | Test harness belongs in `src/lib/testing/`; two new readers of `LinkedCalendar` outside `linkedCalendarsRead.ts` (needs `EVENT_SOURCE_SELECT`); the STRUCTURE.md entry's closed lists no longer match (amendment drafted, Bryce to approve) | Second reader of `marsheeEventId`; pull binding repeats `tokenFailReason`; `cronAuth.ts` lacks `server-only`; "Just now" has two homes; STRUCTURE.md housekeeping due soon |
 | 1 | Vision | BLOCKED | PATCH keeps cleared notes/location in Google; a Google change never reaches other calendars; a shared calendar linked twice imports twice; unlink then relink duplicates pulled events; `calendarPullRun.ts` outside C4b's list | Gauntlet green (1677, UTC and LA too, build ok); echoes, lease, restart, secrets all check out; Google HTML descriptions show raw `<br>`; a failed Marshee delete of a pulled event can come back; mission number 57 already used on main |
 
 ## Handoff log
