@@ -355,7 +355,9 @@ would flip Google's own choice. Both are fixed before the pull exists.
   `src/app/actions/calendarPull.ts` (guard: `MANAGER_ROLES` for Refresh;
   the on-open pull allows any signed-in family login but only pulls),
   new `src/app/api/cron/calendar-pull/route.ts`
-  (`CRON_SECRET` check copied from the briefing route's shape),
+  (`CRON_SECRET` check: move the briefing route's `isAuthorized` into new
+  `src/lib/cronAuth.ts` and have both routes import it, so
+  `src/app/api/cron/briefing/route.ts` changes only that import),
   `src/proxy.ts` (`PUBLIC_ROUTES` entry), `vercel.json` (one cron,
   `0 10 * * *`, which is 3 AM Denver in winter, 4 AM in summer).
 - **Spec:** the revised decisions. `pullCalendars({ force })` returns `{
