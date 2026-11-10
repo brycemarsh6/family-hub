@@ -849,7 +849,7 @@ amendment id.
   one-line pointer, and a new rule's story goes straight to that file.
   The pass is due again 200 lines above the count recorded here: 1,676
   before the 2026-11-08 pass (mission-54), 1,583 after; 1,770 before the
-  2026-11-09 split (mission-59), 1064 after. A new One source of truth entry
+  2026-11-09 split (mission-59), 1,064 after. A new One source of truth entry
   for one feature that runs past 15 lines goes in that feature's companion
   file in docs/structure/, with its headline and pointer here. (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded

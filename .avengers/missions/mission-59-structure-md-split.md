@@ -1,7 +1,7 @@
 # Mission 59: split STRUCTURE.md's long feature entries into companion files
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (C1b built, Captain and Vision pass 1)
+**Status:** DELIVERED (both gates PASS at pass 1; PR pending merge)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 ## Brief
@@ -277,6 +277,34 @@ starts right after its kept text and ends right before the next top-level
 
 ## Gate ledger
 
+- **Captain pass 1 (`187eee5`): PASS.** Re-ran the checker (0 FAIL) and his
+  own selection check (re-inserted every companion body in place of its
+  pointer: only the sanctioned edits differ). 278 ids, decision numbers,
+  mission tags and 30 Story pointers all still present. Every cite that
+  landed before still lands. NOTEs: (1) "1064" lacks its comma (inside
+  edit 3); (2) some companion text binds other features' files (the
+  habit engine's A10 exception for `assistant/undoWrites.ts`,
+  `dashboard.md` limiting `habitsRead.ts`), proposed checklist item 4
+  amendment: grep STRUCTURE.md and docs/structure/ for every file a diff
+  touches; (3) the 15-line rule covers only new entries, proposed
+  "or an existing one a change takes past 15 lines moves on that touch",
+  and say a first entry may create a new companion; (4) no size watch on
+  companions (`habits.md` 302); (5) the note's "keeps its binding text"
+  wording is slightly stale for moved entries. Amendments 2 to 4 need
+  Bryce; not this mission's sanctioned edits.
+- **Vision pass 1 (`187eee5`): PASS.** Gauntlet re-run: `tsc` 0, eslint 0,
+  `npm test` 1,621 pass, UTC run 1,614 pass and 7 skipped, build 0. Checker
+  0 FAIL. Own splice test (every pointer replaced by its companion body,
+  compared with the old file): only the sanctioned words differ; all 13
+  range ends verified. Boundary audit clean (CLAUDE.md and status.md are
+  Fury's declared record edits). NOTEs: `dashboard.md` says `see "Wide
+  pages" below` though Wide pages is now in `layout.md` (word for word
+  forbids a reword; a later touch may add "(layout.md)"); `habits.md` and
+  `dashboard.md` bodies open mid-thought (readable with the intro);
+  `layout.md`'s chrome body opens "Closed in mission-23:"; "1064" comma.
+- **Fury after the gates:** "1064" became "1,064" (inside edit 3; checker
+  re-run, 0 FAIL, same DIFF words).
+
 ## Handoff log
 
 - 2026-11-09 (Fury, Opus 5.5): branch `claude/structure-md-split` from
@@ -314,3 +342,24 @@ starts right after its kept text and ends right before the next top-level
   S2 status line, `.avengers/status.md`'s STRUCTURE.md line.
 
 ## Delivery
+
+- **Shipped:** STRUCTURE.md 1,770 to 1,064 lines. 13 single-feature One
+  source of truth entries moved word for word into
+  `docs/structure/{layout,plans-goals,slideshow,habits,dashboard,calendar-sync}.md`;
+  each keeps its headline plus a `(Rules: docs/structure/...)` pointer.
+  New rule (D3): a new single-feature entry past 15 lines goes in its
+  companion. Next pass due at 1,264.
+- **Evidence:** checker 0 FAIL, 13 pointers, DIFF only the four sanctioned
+  edits; selection proven twice independently (Captain's re-insert, Vision's
+  splice); 59 top-level entries before and after; 278 ids and tags kept.
+- **Lesson:** C1's range rule ("to the next bold entry") was Fury's error;
+  a word-for-word checker cannot see a wrong selection. Any future move
+  needs a selection check (count entries before and after, and re-insert
+  each moved body at its pointer).
+- **Left for Bryce (Captain's proposed amendments, not made):** checklist
+  item 4 to grep docs/structure/ for every file a diff touches; the
+  15-line rule to also move an existing entry a change takes past 15 lines
+  (Send feedback 22, Tablet rules 22, Winnie notifications 17 already are),
+  and to say a first entry may create a new companion; a size watch on the
+  companions (`habits.md` 302 lines).
+- **Not committed:** the checker scripts (scratchpad only).
