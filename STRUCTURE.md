@@ -855,9 +855,17 @@ amendment id.
   before the 2026-11-08 pass (mission-54), 1,583 after; 1,770 before the
   2026-11-09 split (mission-59), 1,064 after. A new One source of truth entry
   for one feature that runs past 15 lines goes in that feature's companion
-  file in docs/structure/, with its headline and pointer here. (Added
+  file in docs/structure/, with its headline and pointer here. An existing
+  entry that a change takes past 15 lines moves to its companion on that
+  touch. A feature's first such entry may start a new
+  `docs/structure/<feature>.md`. The companions are documents too, so no
+  cap applies, but their sizes are a trend to watch, re-measured and
+  recorded here at each pass: 2026-11-09 (mission-59) `habits.md` 302,
+  `layout.md` 262, `dashboard.md` 89, `calendar-sync.md` 75,
+  `plans-goals.md` 68, `slideshow.md` 35. (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
+  Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,
   Bryce approved.) (Story: docs/history/structure-rationale.md, "Housekeeping note".)
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (Story: docs/history/structure-rationale.md, "Soft cap: the groceries.ts split".)
   Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 578 total /
@@ -1039,7 +1047,8 @@ amendment id.
 2. Size — caps respected; growth trends flagged.
 3. Dependency direction — arrows hold; no cycles; the guarded-action split
    intact on any new external call.
-4. One source of truth — no second definitions; no copy-pasted shared logic.
+4. One source of truth — no second definitions; no copy-pasted shared logic;
+   grep STRUCTURE.md and docs/structure/ for every file the diff touches.
 5. Naming — consistent with conventions and neighbors.
 
 ## Settled decisions — don't relitigate
