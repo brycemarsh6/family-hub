@@ -112,7 +112,7 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 - **Report:** pending.
 
 ### C2 — Server Actions and the browser shrink helper
-- **Status:** PENDING (after C1)
+- **Status:** DONE (Stark, 2026-11-09, commit d08469b). Guard is the first statement of all three actions (Fury grepped lines 41, 130, 153); ids are only used in `where`, paths come from the row or `photoPaths` on a server-made id. Gauntlet green (1621 both timezones). Unspecified case: caption update on an unknown id returns "That photo isn't there any more." `shrinkPhoto` has not run in a browser yet; C3's design gate is its first real run.
 - **Objective:** Add the three write actions and the client-only helper that shrinks a picked photo into a full photo and a thumbnail and reads its taken date.
 - **Boundaries:**
   - May touch: new `src/app/actions/slideshowPhotos.ts`, new `src/lib/shrinkPhoto.ts`.
