@@ -1,7 +1,8 @@
-# STRUCTURE.md companion: Slideshow photos
+# STRUCTURE.md companion: Slideshow and screensaver
 
 Part of [STRUCTURE.md](../../STRUCTURE.md)'s "One source of truth" list,
-cut from it word for word at commit e62056c on 2026-11-09 by mission 59.
+cut from it word for word at commit e62056c on 2026-11-09 by mission 59
+(Screensaver added by mission 61).
 Every rule here binds exactly like STRUCTURE.md; a second definition is a
 BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
 
@@ -43,7 +44,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
 
 ### Screensaver
 
-Added by mission 61 (Screensaver S2). `src/lib/screensaver.ts` (pure; imports
+`src/lib/screensaver.ts` (pure; imports
   only `constants.ts`, `householdDate.ts`, `mealPlanDates.ts`) is the only
   home of the `ScreensaverSettings` type, `SCREENSAVER_DEFAULTS`, the step
   lists (`START_AFTER_STEPS`, `SECONDS_PER_PHOTO_STEPS`,
