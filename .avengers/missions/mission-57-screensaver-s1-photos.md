@@ -1,4 +1,6 @@
-# Mission: Screensaver S1, slideshow photos
+# Mission 57: Screensaver S1, slideshow photos
+
+(Opened as mission 56; renumbered 2026-11-09 because calendar sync PR 2 took 56 on main.)
 
 **Project:** family-hub (Marshee)
 **Status:** CONTRACTED (C1 next)
@@ -76,7 +78,7 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 ## Contracts
 
 ### C1 — Photo storage foundation: table, Blob wrapper, pure helpers, and the login-checked image route
-- **Status:** PENDING
+- **Status:** DONE (Stark, 2026-11-09). Report: @vercel/blob pinned 2.9.0; `put`/`get`/`del` signatures confirmed from installed types; migration matched `migrate diff`; +28 tests both timezones (1512 Denver; UTC 1505 pass + 7 skipped); all five gauntlet commands green; no token option; no test imports the Blob wrapper. Then main was merged in (calendar sync PR 2), the schema conflict resolved by keeping both new tables, the migration renamed to `20261115000000_slideshow_photos` (main took the 20261114 stamp) and re-checked against main's schema (identical), and Fury applied it to the dev branch (host `ep-hidden-pine-`) with `npx prisma migrate deploy`.
 - **Objective:** Add the `SlideshowPhoto` table, the `@vercel/blob` dependency, server-only storage and read helpers, two tested pure helper modules, and `GET /api/slideshow/[id]/image`.
 - **Boundaries:**
   - May touch: `package.json`, `package-lock.json`, `prisma/schema.prisma` (append one model, nothing else), new `prisma/migrations/20261115000000_slideshow_photos/migration.sql`, new `src/lib/slideshowPhotos.ts`, new `src/lib/slideshowPhotos.test.ts`, new `src/lib/exifDate.ts`, new `src/lib/exifDate.test.ts`, new `src/lib/slideshowBlob.ts`, new `src/lib/slideshowRead.ts`, new `src/app/api/slideshow/[id]/image/route.ts`, `STRUCTURE.md` (the private-image-route rule only, plus a layout-table mention if one lists such routes), `.env.example`, `README.md` (env section only).
