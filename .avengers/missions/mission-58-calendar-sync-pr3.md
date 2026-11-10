@@ -156,6 +156,13 @@ the privacy wording approved.
    listing a calendar, leaves pulled events that a relink would import a
    second time. **Bryce: remove them.** Events made in Marshee are never
    touched; the pulled ones come back once on relink.
+7. **(After Vision pass 2.)** Two links to one Google calendar (a shared
+   Family calendar linked by two people) let Marshee delete or overwrite the
+   real event. **Bryce: only one link can sync a given Google calendar.**
+   The other link's row says "Already synced through <email>" and cannot be
+   switched on.
+8. **Bryce approved Captain's STRUCTURE.md amendment** (pass 2 text, with
+   C9's changes folded in by Captain's pass 3).
 
 ## Fury's design decisions, revised after Bryce's answers
 
@@ -457,7 +464,9 @@ would flip Google's own choice. Both are fixed before the pull exists.
   `src/lib/calendarSyncPlanPushFailures.test.ts`,
   `src/lib/testing/calendarSyncPlanHarness.ts`,
   `src/app/actions/linkedCalendars.ts`,
-  `src/app/api/google/callback/route.ts`.
+  `src/app/api/google/callback/route.ts`, and (amended by Fury after Vision
+  pass 2) `src/lib/calendarEventPush.ts` and `src/lib/calendarSyncPlan.ts`
+  for the `exceptLinkedCalendarId` option only, which the dispatch allowed.
 - **Spec:**
   1. **Cleared fields clear.** `toGoogleEvent` always sends `location` and
      `description`, as `""` when empty; `GoogleEventPayload` types them as
@@ -519,6 +528,58 @@ would flip Google's own choice. Both are fixed before the pull exists.
 - **Verification:** `npx tsc --noEmit`; `npx eslint prisma/`.
 - **Done criteria:** Fury runs seed, sees the rows, runs clean, sees none.
 
+### C9 - Gate fixes, pass 2 (Vision and Captain), Bryce's answer 7
+
+- **Objective:** remove the two-links-to-one-calendar case, keep pushOut off
+  the original, and clear the pass 2 notes worth fixing.
+- **Boundaries:** may touch `src/lib/linkedCalendarsRead.ts`,
+  `src/lib/linkedCalendarWrites.ts`, `src/app/actions/linkedCalendars.ts`,
+  `src/lib/calendarSyncRules.ts` and `src/lib/calendarSyncRules.test.ts`,
+  `src/lib/calendarSyncVocabulary.ts` and its test,
+  `src/components/LinkedAccountCard.tsx`,
+  `src/components/SyncedCalendarsList.tsx`, `src/lib/calendarEventPull.ts`,
+  `src/lib/calendarPullRun.ts` and `src/lib/calendarPullRun.test.ts`, new
+  `src/lib/calendarPullRunPush.test.ts` (if the run test passes 350 lines),
+  `src/lib/calendarSyncPull.ts` and its test, `src/lib/calendarEventPush.ts`,
+  `src/lib/calendarSyncPlan.ts`, `src/lib/calendarSyncPlanPush.test.ts`,
+  `src/lib/calendarSyncPlanPushFailures.test.ts`,
+  `src/lib/testing/calendarSyncPlanHarness.ts`,
+  `src/lib/google/eventFromGoogle.ts` and its test,
+  `src/lib/calendarEventQuery.ts` (comments only).
+- **Spec:**
+  1. **One link per Google calendar (Bryce, answer 7).** A pure rule in
+     `calendarSyncRules.ts`: a calendar may be set to anything but "off"
+     only when no other LinkedCalendar with the same `googleCalendarId` is
+     set to anything but "off". `setCalendarDirection` (action) reads the
+     siblings through a new `loadSiblingCalendars(calendar)` in
+     `linkedCalendarsRead.ts` and refuses with the vocabulary's words.
+     `loadSyncedCalendarsPage` gives each calendar `syncedThrough: string |
+     null` (the other link's account email when this one is "off" and a
+     sibling is on). `LinkedAccountCard.tsx` shows "Already synced through
+     <email>" on that row in place of the direction control. Word:
+     `alreadySyncedThrough(email)` in the vocabulary.
+  2. **No sibling adoption.** Remove the sibling lookup from `loadKnown`
+     (this also clears Captain's pass 2 blocker). Keep the once-per-
+     `googleCalendarId` dedupe in `runPull` as a guard.
+  3. **pushOut never touches the source.** `pushEventCopies` /
+     `syncEventCopies` take `exceptLinkedCalendarId`; for pushOut it is the
+     event's source calendar, so the source is neither updated nor removed.
+     pushBacks (Marshee won) still include the source. Test: a pushOut makes
+     no call on the source calendar.
+  4. **`textFromDescription`:** treat text as HTML only when it holds a known
+     tag (`br p div a b i u ul ol li span`); `</li>` becomes a new line;
+     decode numeric entities (`&#8217;`, `&#x2019;`). Tests including
+     "Pick up <Emma> at 3" left alone.
+  5. **Honest removal:** `removePulledEvents` doc comment says it counts only
+     database failures (Google copies follow PR 2's delete-anyway rule).
+  6. Comments: "Mission 57" in `calendarEventQuery.ts` becomes 58; the
+     `calendarEventPull.ts` header names all its guarded callers; one
+     cross-reference comment between the two "calendars Google no longer
+     lists" filters.
+- **Verification:** tsc, eslint, `npm test`, TZ=UTC command.
+- **Done criteria:** a test per item 1, 3, 4; `loadKnown` has no relation
+  filter on `LinkedCalendar`.
+
 ### C6 - Records
 
 - STRUCTURE.md's "Google calendar link" entry widened for the new files
@@ -540,6 +601,8 @@ would flip Google's own choice. Both are fixed before the pull exists.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 2 | Vision | BLOCKED | Sibling adoption makes twin sync rows, so unlink, untick or a second copy can delete the real Google event or jam the pull; pushOut PATCHes the source original (Google's rich text and links lost, "For:" line added); C7a touched two files outside its list | Pass 1 blockers closed; gauntlet green (1694, UTC and LA legs, build); `textFromDescription` eats `<Emma>`, joins list items, leaves numeric entities; removal ignores `left`; unlink race narrow; "Last checked" shows attempts |
+| 2 | Captain | BLOCKED | `calendarEventPull.ts` reads `LinkedCalendar.googleCalendarId` through a relation filter (needs `loadSiblingCalendarIds` in `linkedCalendarsRead.ts`) | Pass 1 code blockers closed; amendment final (Bryce to approve); "keep source" filter written twice; dropped-calendar set computed in two places; stale header and "Mission 57" comments; `calendarPullRun.test.ts` at 345 lines; removal ignores `left` |
 | 1 | Captain | BLOCKED | Test harness belongs in `src/lib/testing/`; two new readers of `LinkedCalendar` outside `linkedCalendarsRead.ts` (needs `EVENT_SOURCE_SELECT`); the STRUCTURE.md entry's closed lists no longer match (amendment drafted, Bryce to approve) | Second reader of `marsheeEventId`; pull binding repeats `tokenFailReason`; `cronAuth.ts` lacks `server-only`; "Just now" has two homes; STRUCTURE.md housekeeping due soon |
 | 1 | Vision | BLOCKED | PATCH keeps cleared notes/location in Google; a Google change never reaches other calendars; a shared calendar linked twice imports twice; unlink then relink duplicates pulled events; `calendarPullRun.ts` outside C4b's list | Gauntlet green (1677, UTC and LA too, build ok); echoes, lease, restart, secrets all check out; Google HTML descriptions show raw `<br>`; a failed Marshee delete of a pulled event can come back; mission number 57 already used on main |
 
