@@ -164,8 +164,14 @@ const deps: PullRunDeps = {
  * lease); otherwise a calendar is pulled at most every 5 minutes. Never
  * throws; does nothing at all when Google or the key is missing.
  */
-export function pullCalendars(opts: { force: boolean }): Promise<PullRunResult> {
-  return runPull(deps, opts);
+export async function pullCalendars(opts: { force: boolean }): Promise<PullRunResult> {
+  const reasons: string[] = [];
+  const result = await runPull({ ...deps, noteFailure: (reason) => reasons.push(reason) }, opts);
+  // Reason words, statuses and Prisma codes only (see noteFailure): safe for the log.
+  if (result.failed > 0) {
+    console.warn(`[calendar pull] ${result.failed} failed of ${result.checked} checked: ${reasons.slice(0, 10).join(", ")}`);
+  }
+  return result;
 }
 
 /**

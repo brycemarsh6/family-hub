@@ -65,4 +65,5 @@ export type ListEventsFailReason = "restart" | "unauthorized" | "network" | "too
 
 export type ListEventsResult =
   | { ok: true; events: GoogleEventIn[]; nextSyncToken: string | null }
-  | { ok: false; reason: ListEventsFailReason };
+  /** `status` is Google's HTTP status when there was one (for the server log only). */
+  | { ok: false; reason: ListEventsFailReason; status?: number };

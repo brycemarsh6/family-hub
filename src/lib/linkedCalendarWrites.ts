@@ -76,14 +76,23 @@ export async function replaceCalendars(accountId: string, calendars: GoogleCalen
   }, { timeout: REPLACE_TIMEOUT_MS });
 }
 
-/** Returns the row's new `updatedAt`, which the one-link race check compares. */
-export async function setCalendarDirection(calendarId: string, direction: SyncDirection): Promise<Date> {
+/**
+ * Returns the row's `turnedOnAt`, which the one-link race check compares.
+ * "off" clears it; any other direction stamps it only when it is empty, so a
+ * "One way" to "Both ways" switch keeps the original stamp.
+ */
+export async function setCalendarDirection(calendarId: string, direction: SyncDirection): Promise<Date | null> {
+  if (direction === "off") {
+    await db.linkedCalendar.update({ where: { id: calendarId }, data: { direction, turnedOnAt: null } });
+    return null;
+  }
+  const current = await db.linkedCalendar.findUnique({ where: { id: calendarId }, select: { turnedOnAt: true } });
   const updated = await db.linkedCalendar.update({
     where: { id: calendarId },
-    data: { direction },
-    select: { updatedAt: true },
+    data: { direction, turnedOnAt: current?.turnedOnAt ?? new Date() },
+    select: { turnedOnAt: true },
   });
-  return updated.updatedAt;
+  return updated.turnedOnAt;
 }
 
 /**
@@ -92,23 +101,34 @@ export async function setCalendarDirection(calendarId: string, direction: SyncDi
  * Google calendar), in one transaction, so the next pull does not import
  * those events a second time. Pulled events and sync rows are moved, never
  * copied; a sibling row for an event this calendar already has a row for is
- * deleted (planHandover decides). The calendar's sync token is cleared so its
- * next pull is a full one that settles anything the move left stale.
+ * deleted (planHandover decides; when the event was pulled from a sibling,
+ * the target's "Marshee to Google" twin row is dropped instead). The
+ * calendar's sync token is cleared so its next pull is a full one that
+ * settles anything the move left stale.
  */
 export async function adoptSiblingPulls(calendarId: string, siblingIds: string[]): Promise<void> {
   await db.$transaction(async (tx) => {
     const target = await tx.calendarEventSync.findMany({
       where: { linkedCalendarId: calendarId },
-      select: { eventId: true },
+      select: { id: true, eventId: true },
     });
     const siblingRows = siblingIds.length
       ? await tx.calendarEventSync.findMany({
           where: { linkedCalendarId: { in: siblingIds } },
           orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-          select: { id: true, eventId: true },
+          select: { id: true, eventId: true, linkedCalendarId: true, event: { select: { sourceLinkedCalendarId: true } } },
         })
       : [];
-    const { move, drop } = planHandover(target.map((row) => row.eventId), siblingRows);
+    // Read before the source update below: a row whose event was pulled from its own
+    // link points at the original Google event, not at a "Marshee to Google" twin.
+    const { move, drop } = planHandover(
+      target,
+      siblingRows.map((row) => ({
+        id: row.id,
+        eventId: row.eventId,
+        isSourceRow: row.event.sourceLinkedCalendarId === row.linkedCalendarId,
+      })),
+    );
     if (siblingIds.length) {
       await tx.calendarEvent.updateMany({
         where: { sourceLinkedCalendarId: { in: siblingIds } },
