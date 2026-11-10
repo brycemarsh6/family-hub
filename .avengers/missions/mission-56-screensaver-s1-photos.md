@@ -1,0 +1,160 @@
+# Mission: Screensaver S1, slideshow photos
+
+**Project:** family-hub (Marshee)
+**Status:** CONTRACTED (C1 next)
+**Started:** 2026-11-09 · **Updated:** 2026-11-09
+
+Plan: `.avengers/plans/screensaver-slideshow-v1.md` (approved by Bryce 2026-11-09). This is PR S1.
+
+## Brief
+
+- **Goal:** Parents and admins can add, caption and delete family photos from their phones. Photos are stored privately in Vercel Blob and listed on a new "Slideshow photos" page under Settings. No slideshow yet (that is S2).
+- **Done means:**
+  - A parent or admin uploads photos from a phone (including iPhone HEIC photos), sees them in a grid, edits a caption, and deletes one with one tap.
+  - The photo's "taken" date is saved when the file has one.
+  - Kids and the Tablet login cannot reach the page or its actions; any signed-in login can view a photo through `/api/slideshow/[id]/image`; a signed-out request gets 404.
+  - Deleting a photo removes both the database row and the stored file.
+  - The gauntlet passes, including new tests for the pure helpers.
+- **Out of scope:** the slideshow itself, screensaver settings, sleep mode, the default page setting, "On this day", any other photo feature (recipes, profiles, vision cards, a gallery), kids uploading, the Assistant API.
+
+## Danger register
+
+From AGENTS.md (absolute):
+- Never run `npm run db:seed` or `npm run db:reset`.
+- Migrations are additive only; review the SQL before applying. Merging applies it to production.
+- Never write a clean or reset script for the `User` table.
+- Secrets live in `.env` and Vercel env vars only. The Blob tokens never go in chat, git, or a dispatch prompt.
+- Never `git add -A` or `git add .`; stage by path; `git show --stat HEAD` after each commit.
+- Direct pushes to `main` are blocked; branch, PR, Gauntlet green, merge.
+
+New for this mission:
+- **Production photos are the family's real photos.** Local dev and tests use the dev Blob store only. No agent ever uploads to, lists or deletes from the production store.
+- **Creating the Blob stores changes Bryce's Vercel account.** Fury asks Bryce right before doing it.
+- A delete in the dev store must only ever target a path the same code just created.
+
+## Gauntlet
+
+- `npx tsc --noEmit`
+- `npx eslint .`
+- `npm test`
+- `TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts src/lib/google/*.test.ts`
+- `npm run build`
+
+## Assembled
+
+- Stark + Vision (always).
+- Strange: a new visible page and a Settings row.
+- Captain: new table, new route, new files, a STRUCTURE.md amendment (private browser caching for slideshow images).
+- Banner: done during planning (2026-11-09 brief, summarized in the plan's Context).
+
+## Open design questions (for Bryce, with the mock)
+
+Answered by Bryce 2026-11-09 (he approved every recommendation):
+- A "Slideshow photos" row in Settings, parents and admins only, showing the photo count.
+- The page: BackLink to Settings, title, "N photos. They show on the wall tablet.", one "Add photos" button, a 3-across grid (phone), newest first, a small speech-bubble mark on photos with a caption.
+- "Add photos" opens the camera roll with multi-select. A progress line ("Adding 7 of 12") and bar. One failure never stops the rest; failed ones get "Try again".
+- Tapping a photo opens a sheet: the photo, "Taken <date> · added by <name>", an optional caption (max 80 characters), Delete (one tap, no confirmation) and Done.
+
+## Blob stores (created 2026-11-09 by Fury, with Bryce's yes)
+
+- `marshee-photos-prod` (`store_t5ixPBMk9ZkJL7vh`), private, pdx1. For the Production environment only.
+- `marshee-photos-dev` (`store_fVA6UhAamXKF8h3x`), private, pdx1. For Preview, Development and local `.env`.
+- Created unconnected on purpose: the MCP connect option cannot pick environments, and connecting prod to every environment would let preview builds write real photos. Bryce connects each in the Vercel dashboard with the right environments; both set `BLOB_READ_WRITE_TOKEN`.
+- Local: Bryce pastes the dev store's token into the main checkout's `.env` himself. Worktrees have no `.env` of their own.
+- **Connected and verified 2026-11-09** (`filter_project_envs`, values not decrypted): prod sets `BLOB_STORE_ID` + `BLOB_WEBHOOK_PUBLIC_KEY` for Production only; dev sets the same pair for Development + Preview. **No `BLOB_READ_WRITE_TOKEN` was created.** New stores sign in with OIDC: on Vercel the SDK reads `VERCEL_OIDC_TOKEN` + `BLOB_STORE_ID` and refreshes the token itself. So production holds no long-lived Blob secret at all.
+- Local dev cannot get OIDC without the Vercel CLI (12-hour tokens). Chosen fallback: the dev store's own read-write token as `BLOB_READ_WRITE_TOKEN` in the local `.env` only (the SDK documents this for local development). Code must not hard-require either credential style; it calls the SDK with no token option and lets it resolve.
+
+## Design decisions made while contracting (Fury, structure calls)
+
+- **Two files per photo:** a full photo (longest side 2048 px, JPEG 0.85) for the slideshow and a thumbnail (longest side 400 px, JPEG 0.8) for the grid. 42 full photos on a phone grid would be about 40 MB; thumbnails keep it about 2 MB.
+- **Upload goes through a Server Action, one photo per call**, not Vercel's client-upload flow. Each shrunk photo is about 1 MB, well under the 8 MB action limit, and the client-upload completion webhook does not fire on localhost. The action uses the same `getVerifiedUser` gate as every other write.
+- **The "taken" date is a plain `YYYY-MM-DD` string (`takenOn`)**, read in the browser from the JPEG's EXIF `DateTimeOriginal` by a small pure parser in `src/lib/exifDate.ts`. A camera date has no timezone, so storing it as a moment in time would shift it by the household offset. No new EXIF dependency: `exifr` is 1.3 MB unpacked, and only one tag is needed. iPhone Safari hands a file input JPEG (it converts HEIC itself), so JPEG-only parsing covers the family's phones.
+- **No relation to `User`**: the row stores `uploadedById` and `uploadedByName` as plain strings, like `Feedback.authorId`/`authorName`. Deleting a person never touches photos, and no cleanup script needs to reason about a foreign key into `User`.
+- **Image responses are cached privately for a year** (`Cache-Control: private, max-age=31536000, immutable`). A photo's bytes never change for a given id and path. A deleted photo can linger in one device's own cache, but it is no longer listed anywhere, so nothing shows it. This is the STRUCTURE.md amendment Captain reviews.
+- **Who:** page and write actions require `MANAGER_ROLES` (admin, parent) and `!user.isDevice`. Viewing an image requires any signed-in login (S2's tablet needs it).
+
+## Contracts
+
+### C1 — Photo storage foundation: table, Blob wrapper, pure helpers, and the login-checked image route
+- **Status:** PENDING
+- **Objective:** Add the `SlideshowPhoto` table, the `@vercel/blob` dependency, server-only storage and read helpers, two tested pure helper modules, and `GET /api/slideshow/[id]/image`.
+- **Boundaries:**
+  - May touch: `package.json`, `package-lock.json`, `prisma/schema.prisma` (append one model, nothing else), new `prisma/migrations/20261114000000_slideshow_photos/migration.sql`, new `src/lib/slideshowPhotos.ts`, new `src/lib/slideshowPhotos.test.ts`, new `src/lib/exifDate.ts`, new `src/lib/exifDate.test.ts`, new `src/lib/slideshowBlob.ts`, new `src/lib/slideshowRead.ts`, new `src/app/api/slideshow/[id]/image/route.ts`, `STRUCTURE.md` (the private-image-route rule only, plus a layout-table mention if one lists such routes), `.env.example`, `README.md` (env section only).
+  - Must not touch: `proxy.ts`, `src/lib/dal.ts`, `src/app/(app)/layout.tsx`, `src/components/`, `src/app/actions/`, any existing migration, `.env`.
+  - **No `prisma migrate` command of any kind** (Fury reviews the SQL and runs `npx prisma migrate deploy` against the dev branch). `npx prisma generate` and `npx prisma migrate diff` are allowed.
+  - **No call to the real Blob service.** Tests never import `slideshowBlob.ts`; no script uploads, lists or deletes.
+- **What to build:**
+  1. `npm install @vercel/blob` (pin the exact installed version in `package.json`, matching how `next` is pinned). Confirm from the installed package's types that `put`, `get` (with `access: "private"`) and `del` exist; quote the signatures in the report.
+  2. Model, appended to the schema:
+     - `id String @id @default(cuid())`
+     - `photoPath String @unique` and `thumbPath String @unique` (Blob pathnames)
+     - `width Int`, `height Int` (of the full photo)
+     - `caption String?`
+     - `takenOn String?` (`YYYY-MM-DD`, the camera date, no timezone)
+     - `uploadedById String`, `uploadedByName String` (plain strings, no relation)
+     - `createdAt DateTime @default(now())`
+     - `@@index([createdAt])`
+     - A `///` doc comment saying what the table is, that the bytes live in Vercel Blob (private store), and why there is no `User` relation.
+  3. Hand-written migration SQL that creates only that table and its indexes, matching `prisma migrate diff` output from main's schema to the new one.
+  4. `src/lib/slideshowPhotos.ts` (pure, no imports from server-only code), exporting: `CAPTION_MAX = 80`; `PHOTO_MAX_BYTES = 4 * 1024 * 1024`; `THUMB_MAX_BYTES = 512 * 1024`; `PHOTO_LONG_EDGE = 2048`; `THUMB_LONG_EDGE = 400`; `PHOTO_TYPE = "image/jpeg"`; `normalizeCaption(raw: unknown): string | null` (trims, collapses inner whitespace, empty becomes null, over 80 characters becomes null with no truncation, non-string becomes null); `isTakenOn(raw: unknown): raw is string` (a real calendar date `YYYY-MM-DD`, years 1900 to 2100; rejects `2023-02-30`); `photoPaths(id: string): { photoPath, thumbPath }` returning `slideshow/<id>.jpg` and `slideshow/<id>-thumb.jpg`; `toDimension(raw: unknown): number | null` (an integer 1 to 8192).
+  5. `src/lib/exifDate.ts` (pure): `readExifTakenOn(bytes: ArrayBuffer | Uint8Array): string | null`. Walks JPEG markers to APP1 `Exif\0\0`, reads the TIFF header (both byte orders), follows IFD0 to the Exif sub-IFD pointer (tag `0x8769`), reads `DateTimeOriginal` (`0x9003`), and falls back to IFD0 `DateTime` (`0x0132`). Returns `YYYY-MM-DD` only when `isTakenOn` accepts it. Never throws: any truncated or malformed input returns null. Bounds-checks every read.
+  6. Tests: `slideshowPhotos.test.ts` covers every export's edge cases. `exifDate.test.ts` builds small JPEG byte arrays in the test (a helper that writes SOI, an APP1 with a TIFF header, IFD0 and an Exif IFD), and covers: little-endian, big-endian, DateTime-only fallback, no APP1, APP1 that is not Exif, a truncated buffer at several cut points, a zero date (`0000:00:00 00:00:00`), and an offset pointing past the end. Both files sit flat in `src/lib/`, so the existing test glob picks them up (no `package.json` glob change).
+  7. `src/lib/slideshowBlob.ts` (`import "server-only"`): `putSlideshowFile(pathname, bytes)` calls `put` with `access: "private"`, `contentType: "image/jpeg"`, `addRandomSuffix: false`, `allowOverwrite: false` (or the installed SDK's equivalent; report what you used), and returns the stored pathname. `getSlideshowFile(pathname)` calls `get(pathname, { access: "private" })` and returns `{ stream, contentType }` or null on anything but 200. `deleteSlideshowFiles(pathnames: string[])` calls `del`. **No token option anywhere**: the SDK resolves OIDC on Vercel and `BLOB_READ_WRITE_TOKEN` locally. A comment says so and names both.
+  8. `src/lib/slideshowRead.ts` (`import "server-only"`): `listSlideshowPhotos()` newest first, selecting id, width, height, caption, takenOn, uploadedByName, createdAt (never paths); `loadSlideshowPhotoPaths(id)` returning `{ photoPath, thumbPath } | null`; `countSlideshowPhotos()`.
+  9. `src/app/api/slideshow/[id]/image/route.ts`: copy the shape of `src/app/api/feedback/[id]/screenshot/route.ts`. `getVerifiedUser()`, null means 404. Any signed-in login is allowed (devices included). `?size=thumb` serves the thumbnail, anything else serves the full photo. Unknown id or missing blob is 404. Headers: `Content-Type: image/jpeg`, `Cache-Control: private, max-age=31536000, immutable`, `X-Content-Type-Options: nosniff`. A header comment explains why this route caches where the screenshot route does not.
+  10. `STRUCTURE.md`: amend the private-image-route rule so it names both instances and states when `private, max-age=..., immutable` is allowed (bytes that never change for a given URL) versus `no-store` (the default). Small edit only.
+  11. `.env.example` and README: one commented entry for `BLOB_READ_WRITE_TOKEN` saying it is for local development only, holds the **dev** store's token, and that Vercel deployments use `BLOB_STORE_ID` plus automatic OIDC instead. Never a real value.
+- **Verification:** the gauntlet (all five commands) passes. `npx prisma migrate diff --from-schema-datamodel <(git show origin/main:prisma/schema.prisma) --to-schema-datamodel prisma/schema.prisma --script` (or the installed Prisma's equivalent flags) matches the migration SQL apart from whitespace and comments.
+- **Evidence required:** the full migration SQL and the diff output; the SDK signatures quoted from the installed types; the test counts before and after for both timezones; each gauntlet command's last lines; `wc -l` of every new file; `git diff --stat`.
+- **Done criteria:** Fury reads the SQL (one `CREATE TABLE`, its indexes, nothing else), re-runs the test glob and sees the new tests counted in both timezones, and greps that `slideshowBlob.ts` has no `token:` option and is imported by no test.
+- **Report:** pending.
+
+### C2 — Server Actions and the browser shrink helper
+- **Status:** PENDING (after C1)
+- **Objective:** Add the three write actions and the client-only helper that shrinks a picked photo into a full photo and a thumbnail and reads its taken date.
+- **Boundaries:**
+  - May touch: new `src/app/actions/slideshowPhotos.ts`, new `src/lib/shrinkPhoto.ts`.
+  - Must not touch: everything else, including `prisma/`, `STRUCTURE.md`, `src/components/`, the C1 files.
+- **What to build:**
+  1. `src/app/actions/slideshowPhotos.ts` (`"use server"`), every action starting with `const user = await getVerifiedUser()` and refusing unless `user && !user.isDevice && MANAGER_ROLES.includes(user.role)`, returning `{ ok: false, error }` with a plain-English message (no throw to the client):
+     - `addSlideshowPhoto(formData)`: fields `photo` (File), `thumb` (File), `width`, `height`, `takenOn` (optional). Validates with the C1 helpers: both files `image/jpeg`, photo within `PHOTO_MAX_BYTES`, thumb within `THUMB_MAX_BYTES`, dimensions via `toDimension`, `takenOn` via `isTakenOn` else null. Creates the id first (`cuid`-style via Prisma default is not available before insert, so generate with `crypto.randomUUID()` and pass it as `id`), uploads both files to `photoPaths(id)`, then inserts the row. If the insert fails, deletes both uploaded files. If the second upload fails, deletes the first. Returns `{ ok: true, photo }` with the same shape `listSlideshowPhotos` returns. `revalidatePath("/settings/slideshow")` and `revalidatePath("/settings")`.
+     - `updateSlideshowCaption(id, caption)`: `normalizeCaption`; a caption that is non-empty but too long is an error ("Captions can be up to 80 characters."), empty clears it.
+     - `deleteSlideshowPhoto(id)`: loads paths, deletes the row, then deletes both files. A missing row is `{ ok: true }` (already gone). A file-delete failure after the row is gone is logged with `console.error` and still returns ok, because the photo is already unlisted.
+  2. `src/lib/shrinkPhoto.ts` (`import "client-only"`): `shrinkPhoto(file: File): Promise<{ photo: Blob; thumb: Blob; width: number; height: number; takenOn: string | null }>`. Reads the bytes once, calls `readExifTakenOn` on them, decodes with `createImageBitmap(file, { imageOrientation: "from-image" })` (falling back to an `<img>` decode if that throws), draws to a canvas at `PHOTO_LONG_EDGE` (never upscaling) and `THUMB_LONG_EDGE`, and encodes with `canvas.toBlob("image/jpeg", 0.85 / 0.8)`. Throws a plain `Error("That photo couldn't be read.")` on decode failure. Uses the C1 constants, not new numbers.
+- **Verification:** the gauntlet passes.
+- **Evidence required:** each gauntlet command's last lines; the guard line from each action quoted; `git diff --stat`.
+- **Done criteria:** Fury greps every exported action for the guard as its first statement, and checks no action trusts a client-sent id for anything but lookup.
+- **Report:** pending.
+
+### C3 — The Slideshow photos page and its Settings row
+- **Status:** PENDING (after C2)
+- **Objective:** Build the page and sheet Bryce approved in the mock, and the Settings row that opens it.
+- **Boundaries:**
+  - May touch: `src/app/(app)/settings/page.tsx`, new `src/app/(app)/settings/slideshow/page.tsx`, new `src/components/SlideshowPhotosManager.tsx`, new `src/components/SlideshowPhotoSheet.tsx`.
+  - Must not touch: everything else, including the C1 and C2 files, `src/lib/nav.ts`, `DESIGN.md`, `STRUCTURE.md`.
+- **What to build (Bryce's approved mock, recorded above under "Open design questions"):**
+  1. Settings row: "Slideshow photos" with the Lucide `Images` icon and the photo count on the right, styled exactly like the "Manage family" link. Shown only when `!user.isDevice && MANAGER_ROLES.includes(user.role)`. Place it in the left column directly after "Synced calendars", sharing its `order-3`, and update the page's doc comment order list.
+  2. `/settings/slideshow` page: `requireRole(...MANAGER_ROLES)`, `export const dynamic = "force-dynamic"`, a `BackLink` to Settings, the title "Slideshow photos", the line "N photos. They show on the wall tablet." (singular "1 photo"; zero reads "No photos yet. Add some to show on the wall tablet."), then `SlideshowPhotosManager` with the list from `listSlideshowPhotos()`.
+  3. `SlideshowPhotosManager` (client): a full-width 48px+ "Add photos" button wrapping a hidden `<input type="file" accept="image/*" multiple>`. Picked files upload **one at a time** (`shrinkPhoto`, then `addSlideshowPhoto`); a progress block shows "Adding N of M photos" with a bar; each success puts the photo at the front of the grid at once. A failure never stops the rest; at the end, "N photo(s) couldn't be added." with a "Try again" button that retries only the failed files. The grid: 3 columns on a phone, more on wider screens using the page's existing container pattern, square cells, `<img src="/api/slideshow/<id>/image?size=thumb" loading="lazy">` with `object-cover`, a small Lucide `MessageSquare` mark in the corner when the photo has a caption. Each cell is a button (48px+) that opens the sheet. Alt text is the caption, or "Photo added <date>" when there is none.
+  4. `SlideshowPhotoSheet` (client): follows `FeedbackDetailSheet.tsx`'s sheet shape (portal, Escape, focus in and back, bottom sheet on phones and centered dialog on wide screens). Shows the full photo (`object-contain`, max height so the sheet fits), "Taken <Month D, YYYY> · added by <name>" (just "Added by <name>" when there is no date; the date is formatted from the `YYYY-MM-DD` string without any timezone conversion), a caption text field with a live "N/80" counter, and two buttons: Delete (danger color, one tap, no confirmation, optimistic removal) and Done (saves the caption only if it changed, then closes). Errors show in a `role="alert"` line.
+- **Verification:** the gauntlet passes.
+- **Evidence required:** each gauntlet command's last lines; `wc -l` of every new or changed file; `git diff --stat`.
+- **Done criteria:** Strange's gate on the running app with real uploads to the **dev** store (Fury supplies test photos; every uploaded test photo is deleted through the page afterward).
+- **Report:** pending.
+
+## Gate ledger
+
+| Pass | Gate | Verdict | Blockers | Notes |
+|---|---|---|---|---|
+
+## Handoff log
+
+- 2026-11-09: Plan approved and committed on branch `claude/family-screensaver-slideshow-263de9`. Mission file opened. Photos page mock shown to Bryce; waiting on his answers and his yes to create two private Blob stores (production and dev) on the Marsh Team.
+- 2026-11-09: C1 preflight: 3 hard failures, all over-cap files that are not code (`package-lock.json`, `prisma/schema.prisma`, `STRUCTURE.md`), the same exemption every migration mission has used. REVIEW claim "both files flat in `src/lib/` are picked up by the glob" checked: `package.json` test script globs `src/lib/*.test.ts`. Worktree `.env` symlinked to the main checkout's (the same link the other worktrees use; gitignored).
+- 2026-11-09: Bryce approved the mock and the stores. Both stores created (see "Blob stores"). Waiting on Bryce's dashboard connect and `.env` step; contracts next.
+
+## Delivery
+
+- **Shipped:** not yet.
+- **Shipped check:** not yet.
+- **Deliberate leftovers:** none yet.
