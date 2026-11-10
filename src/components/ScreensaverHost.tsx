@@ -21,6 +21,17 @@ const IDLE_REFRESH_AFTER_MS = 60_000;
 
 type Show = { kind: "slideshow"; settings: ScreensaverSettings; photos: SlideshowShowItem[] } | { kind: "sleep" } | null;
 
+/** True when the fresh photo ids (as a set) or any setting differ from what the slideshow is showing. */
+function differs(
+  showing: { settings: ScreensaverSettings; photos: SlideshowShowItem[] },
+  fresh: { settings: ScreensaverSettings; photos: SlideshowShowItem[] },
+) {
+  const ids = new Set(showing.photos.map((p) => p.id));
+  const sameIds = ids.size === fresh.photos.length && fresh.photos.every((p) => ids.has(p.id));
+  const keys = Object.keys(fresh.settings) as (keyof ScreensaverSettings)[];
+  return !sameIds || keys.some((key) => showing.settings[key] !== fresh.settings[key]);
+}
+
 /**
  * The wall tablet's screensaver: mounted by AppChrome for a device login only.
  * A 1-second tick asks `screensaverState` what the screen should be. Before it
@@ -136,6 +147,9 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
       photoCountRef.current = fresh.photos.length;
       const confirmed = stateNow(fresh.settings, fresh.photos.length > 0);
       if (confirmed === "slideshow" && showRef.current?.kind !== "slideshow") {
+        setShow({ kind: "slideshow", settings: fresh.settings, photos: fresh.photos });
+      } else if (confirmed === "slideshow" && showRef.current?.kind === "slideshow" && differs(showRef.current, fresh)) {
+        // A running slideshow takes the fresh photos and settings (the slide restarts its round).
         setShow({ kind: "slideshow", settings: fresh.settings, photos: fresh.photos });
       } else if (confirmed === "sleep" && showRef.current?.kind !== "sleep") {
         setShow({ kind: "sleep" });

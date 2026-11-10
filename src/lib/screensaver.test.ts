@@ -46,6 +46,20 @@ test("stepSleepMinute wraps round midnight both ways", () => {
   assert.equal(stepSleepMinute(0, 1), 30);
 });
 
+test("stepSleepMinute skips the other end, up, down and across midnight", () => {
+  assert.equal(stepSleepMinute(1320, 1, 1350), 1380);
+  assert.equal(stepSleepMinute(1320, -1, 1290), 1260);
+  assert.equal(stepSleepMinute(1410, 1, 0), 30);
+  assert.equal(stepSleepMinute(30, -1, 0), 1410);
+  assert.equal(stepSleepMinute(1320, 1, 600), 1350);
+});
+
+test("stepSleepMinute steps off an already-equal pair normally", () => {
+  assert.equal(stepSleepMinute(1320, 1, 1320), 1350);
+  assert.equal(stepSleepMinute(1320, -1, 1320), 1290);
+  assert.equal(stepSleepMinute(0, -1, 0), 1410);
+});
+
 test("toScreensaverSettings: no row, a good row, junk repaired", () => {
   assert.deepEqual(toScreensaverSettings(null), SCREENSAVER_DEFAULTS);
   assert.deepEqual(toScreensaverSettings(undefined), SCREENSAVER_DEFAULTS);

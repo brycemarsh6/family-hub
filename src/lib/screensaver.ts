@@ -58,9 +58,15 @@ export function stepLadder(steps: readonly number[], value: number, dir: 1 | -1)
   return [...steps].reverse().find((s) => s < value) ?? steps[0];
 }
 
-/** One 30-minute step round the clock; wraps past midnight both ways. */
-export function stepSleepMinute(minute: number, dir: 1 | -1): number {
-  return (((minute + dir * SLEEP_MINUTE_STEP) % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+/**
+ * One 30-minute step round the clock; wraps past midnight both ways. A step
+ * that would land on `avoid` (the other end of the sleep window) goes one
+ * further, so the two ends are never equal. Starting on `avoid` just steps off.
+ */
+export function stepSleepMinute(minute: number, dir: 1 | -1, avoid?: number): number {
+  const step = (m: number) => (((m + dir * SLEEP_MINUTE_STEP) % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
+  const next = step(minute);
+  return next === avoid ? step(next) : next;
 }
 
 function isSleepMinute(value: unknown): value is number {

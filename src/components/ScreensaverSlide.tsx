@@ -82,7 +82,8 @@ function PhotoLayer({
 /**
  * The slideshow picture: shuffled photos with a 1-second crossfade between
  * them, and the clock and date bottom left. Mounted fresh each time the
- * slideshow starts, with the photos the host just loaded.
+ * slideshow starts, with the photos the host just loaded. When the host swaps
+ * in different photos or settings, the effect below restarts the round.
  */
 export function ScreensaverSlide({
   photos,
@@ -111,17 +112,24 @@ export function ScreensaverSlide({
     const ids = photos.map((p) => p.id);
     let shownIds: string[] = [];
     let lastId: string | null = null;
+    // Photos whose image failed to load: never picked again during this slideshow.
+    const failedIds = new Set<string>();
 
     async function advance() {
-      // Every photo gets one try per advance; a photo that fails to load is skipped.
-      for (let attempt = 0; attempt < ids.length; attempt++) {
-        const pick = pickNextPhoto(ids, shownIds, lastId, Math.random);
-        if (!pick) return;
+      // A photo that fails to load is skipped, and not asked for again.
+      for (;;) {
+        const usable = ids.filter((id) => !failedIds.has(id));
+        if (usable.length === 0) break;
+        const pick = pickNextPhoto(usable, shownIds, lastId, Math.random);
+        if (!pick) break;
         shownIds = pick.shownIds;
         lastId = pick.id;
         const ok = await preload(pick.id);
         if (cancelled) return;
-        if (!ok) continue;
+        if (!ok) {
+          failedIds.add(pick.id);
+          continue;
+        }
         const photo = photos.find((p) => p.id === pick.id);
         if (!photo) continue;
         setSlots((prev) => {
@@ -131,6 +139,8 @@ export function ScreensaverSlide({
         timer = window.setTimeout(advance, settings.secondsPerPhoto * 1000);
         return;
       }
+      // Every photo failed: forget the failures and try them all again later.
+      failedIds.clear();
       timer = window.setTimeout(advance, RETRY_AFTER_ALL_FAILED_MS);
     }
 

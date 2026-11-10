@@ -92,13 +92,15 @@ export function WallTabletSettings({
 
   function sleepRow(field: "sleepStartMinute" | "sleepEndMinute", label: string) {
     const value = settings[field];
+    // Skip the other end's value, so nobody turns sleep off by landing on it.
+    const other = settings[field === "sleepStartMinute" ? "sleepEndMinute" : "sleepStartMinute"];
     return (
       <Row label={label} error={errors[field]}>
         <LadderStepper
           label={label}
           shownText={formatSleepMinute(value)}
           disabled={!settings.sleepEnabled}
-          onStep={(dir) => change(field, stepSleepMinute(value, dir))}
+          onStep={(dir) => change(field, stepSleepMinute(value, dir, other))}
         />
       </Row>
     );

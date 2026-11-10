@@ -172,7 +172,7 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Report:** DONE (Stark); Fury re-ran 2026-11-09 with exit codes captured: tsc 0, eslint 0, `npm test` 0 (1635), UTC 0 (1635, 0 fail), build 0. Four load cases (leave awake; state change at most once a minute; slideshow showing one refresh an hour; awake with 0 photos one look an hour); none overnight between transitions; `wake()` no longer resets the hourly timer; stepper `min-w-20`; skeleton reshaped; a successful save clears every row's error.
 
 ### C8 — Sleep times never equal, and Vision pass 3 notes 1 and 2
-- **Status:** PENDING (Bryce approved 2026-11-09: "It's important that nobody accidentally turns sleep off"; build after Vision pass 3 so his review stays on fixed code)
+- **Status:** DONE (Bryce approved 2026-11-09: "It's important that nobody accidentally turns sleep off"; build after Vision pass 3 so his review stays on fixed code)
 - **Objective:** The Black from and Until steppers skip any time equal to the other one; a running slideshow takes fresh photos and settings; a photo that fails to load is not asked for again.
 - **Boundaries:** may touch: `src/lib/screensaver.ts` (`stepSleepMinute` gains an optional `avoid` argument, or a new pure helper beside it), `src/lib/screensaver.test.ts` (tests), `src/components/WallTabletSettings.tsx` (pass the other end), `src/components/ScreensaverHost.tsx` and `src/components/ScreensaverSlide.tsx` (notes 1 and 2). Must not touch: everything else.
 - **Spec:** stepping Black from skips the value equal to Until, and the reverse; wrapping round midnight still works; a stored equal pair (made before this change) still displays and each stepper moves off it normally. The server's `parseScreensaverField` is unchanged (equal stays accepted there, meaning no sleep hours, per the C1 rule). No new words.
@@ -180,7 +180,7 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Verification:** the gauntlet, all five commands, exit codes captured.
 - **Evidence required:** tests for skip up, skip down, skip across midnight, and an already-equal pair; gauntlet last lines; `git diff --stat`.
 - **Done criteria:** Vision reviews the C8 diff and PASSES (a new gate on new code, not a fourth pass on the old).
-- **Report:** (pending)
+- **Report:** DONE (Stark); Fury re-ran 2026-11-09 with exit codes captured: tsc 0, eslint 0, `npm test` 0 (1637), UTC 0 (1637, 0 fail), build 0. `stepSleepMinute(minute, dir, avoid?)` skips the other end (5 skip tests plus the already-equal pair); a running slideshow takes fresh photo ids and settings at the hourly refresh only when they differ (caption-only changes wait for the next start); `ScreensaverSlide` keeps a per-slideshow set of failed ids and never asks for them again. Host and slide changes have no tests (only tsc, eslint, build); Vision and Strange cover them.
 
 ### C4 — Records (Fury)
 - **STRUCTURE.md: Bryce approved Captain's amendments 1 to 5 (2026-11-09), written by Fury with Captain's pass-2 corrections: Screensaver entry, Slideshow photos writes and `slideshowImageUrl`, `minuteOfDayInZone` in the householdDate entry, Wall tablet in the short pages and loading lists, the two-steppers line. STRUCTURE.md now 1,810 lines (trend; the split PR is its own session).**
