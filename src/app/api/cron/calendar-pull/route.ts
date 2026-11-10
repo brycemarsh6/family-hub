@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return Response.json({ error: "unauthorized" }, { status: 401 });
 
   // Refresh's short lease: this is the day's one check, and the page may have pulled minutes ago.
-  const result = await pullCalendars({ force: true });
+  // Rewindow: pull in full again so the one-year horizon moves forward a day each day.
+  const result = await pullCalendars({ force: true, rewindow: true });
   console.info(`calendar-pull changed=${result.changed} failed=${result.failed}`);
   return Response.json({ changed: result.changed, failed: result.failed });
 }

@@ -59,7 +59,7 @@ export type GoogleEventIn = {
   extendedProperties?: { private?: { marsheeEventId?: string } };
 };
 
-export type ListEventsMode = { syncToken: string } | { timeMin: string };
+export type ListEventsMode = { syncToken: string } | { timeMin: string; timeMax: string };
 
 export type ListEventsFailReason = "restart" | "unauthorized" | "network" | "too-many";
 

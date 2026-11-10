@@ -75,6 +75,43 @@ describe("runPull: writes", () => {
   });
 });
 
+describe("runPull: rewindow collects the token's changes first", () => {
+  it("deletes an event the token pass cancelled, then saves the full pass's token", async () => {
+    const known: PullKnown = {
+      byGoogleId: new Map([
+        [
+          "gdel",
+          {
+            eventId: "evDel",
+            hasRow: true,
+            etag: '"e1"',
+            lastPushedAt: null,
+            lastPulledAt: new Date("2026-11-09T10:00:00Z"),
+            eventUpdatedAt: new Date("2026-11-09T10:00:00Z"),
+            sourceLinkedCalendarId: "c1",
+            current: { title: "Old", notes: null, location: null, startAt: new Date("2026-11-12T19:00:00Z"), endAt: new Date("2026-11-12T20:00:00Z"), allDay: false },
+          },
+        ],
+      ]),
+      byMarsheeId: new Map(),
+    };
+    let loads = 0;
+    const f = fake({
+      calendars: [{ ...CAL, syncToken: "tok-old" }],
+      // Only the token pass sees the event; the full pass has nothing left to delete.
+      loadKnown: async () => (++loads === 1 ? known : { byGoogleId: new Map(), byMarsheeId: new Map() }),
+      lists: [
+        { ok: true, events: [gEvent({ id: "gdel", status: "cancelled" })], nextSyncToken: "tok-mid" },
+        { ok: true, events: [], nextSyncToken: "tok-full" },
+      ],
+    });
+    const result = await runPull(f.deps, { force: true, rewindow: true });
+    assert.deepEqual(result, { changed: true, failed: 0, checked: 1 });
+    assert.equal(f.calls.includes("delete:evDel"), true);
+    assert.equal(f.calls.at(-1), "saveToken:c1:tok-full");
+  });
+});
+
 /** One known event with a row, the fields Marshee holds being "Old". */
 function knownOne(over: Partial<KnownEvent> = {}): PullKnown {
   const known: KnownEvent = {

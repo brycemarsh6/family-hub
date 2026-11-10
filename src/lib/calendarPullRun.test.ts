@@ -53,10 +53,45 @@ describe("runPull: guards", () => {
 });
 
 describe("runPull: sync token", () => {
-  it("sends timeMin 30 days back when there is no token", async () => {
+  it("sends timeMin 30 days back and timeMax 365 days ahead when there is no token", async () => {
     const f = fake();
     await runPull(f.deps, { force: false });
-    assert.deepEqual(f.listModes, [{ timeMin: "2026-10-10T18:00:00.000Z" }]);
+    assert.deepEqual(f.listModes, [{ timeMin: "2026-10-10T18:00:00.000Z", timeMax: "2027-11-09T18:00:00.000Z" }]);
+  });
+
+  const WINDOW = { timeMin: "2026-10-10T18:00:00.000Z", timeMax: "2027-11-09T18:00:00.000Z" };
+
+  it("with rewindow a calendar holding a token reads the token first, then lists the full window", async () => {
+    const f = fake({
+      calendars: [{ ...CAL, syncToken: "tok-old" }],
+      lists: [
+        { ok: true, events: [], nextSyncToken: "tok-mid" },
+        { ok: true, events: [], nextSyncToken: "tok-full" },
+      ],
+    });
+    await runPull(f.deps, { force: true, rewindow: true });
+    assert.deepEqual(f.listModes, [{ syncToken: "tok-old" }, WINDOW]);
+    assert.equal(f.calls.filter((c) => c.startsWith("saveToken")).at(-1), "saveToken:c1:tok-full");
+  });
+
+  it("with rewindow a failed token pass does no full pass and saves nothing", async () => {
+    const f = fake({ calendars: [{ ...CAL, syncToken: "tok-old" }], lists: [{ ok: false, reason: "network" }] });
+    assert.deepEqual(await runPull(f.deps, { force: true, rewindow: true }), { changed: false, failed: 1, checked: 1 });
+    assert.deepEqual(f.listModes, [{ syncToken: "tok-old" }]);
+    assert.equal(f.calls.some((c) => c.startsWith("saveToken") || c.startsWith("markOk")), false);
+  });
+
+  it("with rewindow a restart from the token pass runs just one full pull", async () => {
+    const f = fake({ calendars: [{ ...CAL, syncToken: "tok-old" }], lists: [{ ok: false, reason: "restart" }, { ok: true, events: [], nextSyncToken: "tok-full" }] });
+    await runPull(f.deps, { force: true, rewindow: true });
+    assert.deepEqual(f.listModes, [{ syncToken: "tok-old" }, WINDOW]);
+  });
+
+  it("a clean full pull with no token back stamps Last checked and does not save a token", async () => {
+    const f = fake({ lists: [{ ok: true, events: [], nextSyncToken: null }] });
+    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 0, checked: 1 });
+    assert.equal(f.calls.includes("markOk:c1"), true);
+    assert.equal(f.calls.some((c) => c.startsWith("saveToken")), false);
   });
 
   it("sends only the token when there is one", async () => {
@@ -74,7 +109,10 @@ describe("runPull: sync token", () => {
       ],
     });
     const result = await runPull(f.deps, { force: false });
-    assert.deepEqual(f.listModes, [{ syncToken: "tok-old" }, { timeMin: "2026-10-10T18:00:00.000Z" }]);
+    assert.deepEqual(f.listModes, [
+      { syncToken: "tok-old" },
+      { timeMin: "2026-10-10T18:00:00.000Z", timeMax: "2027-11-09T18:00:00.000Z" },
+    ]);
     assert.deepEqual(
       f.calls.filter((c) => c.startsWith("saveToken") || c.startsWith("insert")),
       ["saveToken:c1:null", "insert:g1", "saveToken:c1:tok-new"],

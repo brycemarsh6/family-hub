@@ -148,23 +148,24 @@ describe("event calls: status codes", () => {
 const LIST_BASE = "https://www.googleapis.com/calendar/v3/calendars/a%40b.com/events?";
 
 describe("listEvents", () => {
-  it("a full pull sends timeMin, singleEvents, showDeleted and maxResults, never syncToken", async () => {
+  it("a full pull sends timeMin, timeMax, singleEvents, showDeleted and maxResults, never syncToken", async () => {
     const { fetchFn, seen } = fake(200, { items: [{ id: "e1" }], nextSyncToken: "SYNC-1" });
-    const r = await listEvents(fetchFn, TOKEN, "a@b.com", { timeMin: "2026-10-01T00:00:00.000Z" });
+    const r = await listEvents(fetchFn, TOKEN, "a@b.com", { timeMin: "2026-10-01T00:00:00.000Z", timeMax: "2027-10-01T00:00:00.000Z" });
     assert.deepEqual(r, { ok: true, events: [{ id: "e1" }], nextSyncToken: "SYNC-1" });
     assert.equal(seen[0].init.method, "GET");
     assert.equal(
       seen[0].url,
-      `${LIST_BASE}timeMin=2026-10-01T00%3A00%3A00.000Z&singleEvents=true&showDeleted=true&maxResults=250`,
+      `${LIST_BASE}timeMin=2026-10-01T00%3A00%3A00.000Z&timeMax=2027-10-01T00%3A00%3A00.000Z&singleEvents=true&showDeleted=true&maxResults=250`,
     );
     assert.equal((seen[0].init.headers as Record<string, string>).Authorization, `Bearer ${TOKEN}`);
     assert.ok(seen[0].init.signal);
   });
 
-  it("a token pull sends syncToken, singleEvents, showDeleted and maxResults, never timeMin", async () => {
+  it("a token pull sends syncToken, singleEvents, showDeleted and maxResults, never timeMin or timeMax", async () => {
     const { fetchFn, seen } = fake(200, { items: [], nextSyncToken: "SYNC-2" });
     await listEvents(fetchFn, TOKEN, "a@b.com", { syncToken: "SYNC-1" });
     assert.equal(seen[0].url, `${LIST_BASE}syncToken=SYNC-1&singleEvents=true&showDeleted=true&maxResults=250`);
+    assert.ok(!seen[0].url.includes("timeMax"));
   });
 
   it("no request URL ever holds both syncToken and timeMin, across pages and modes", async () => {
@@ -176,7 +177,7 @@ describe("listEvents", () => {
       return new Response(JSON.stringify(n % 3 === 0 ? { items: [] } : { items: [], nextPageToken: `P${n}` }), { status: 200 });
     };
     await listEvents(fetchFn, TOKEN, "a@b.com", { syncToken: "S" });
-    await listEvents(fetchFn, TOKEN, "a@b.com", { timeMin: "2026-10-01T00:00:00.000Z" });
+    await listEvents(fetchFn, TOKEN, "a@b.com", { timeMin: "2026-10-01T00:00:00.000Z", timeMax: "2027-10-01T00:00:00.000Z" });
     assert.ok(urls.length >= 4);
     for (const url of urls) assert.ok(!(url.includes("syncToken") && url.includes("timeMin")), url);
   });
@@ -237,7 +238,7 @@ describe("listEvents", () => {
   });
 
   it("a last page without a sync token gives null", async () => {
-    const r = await listEvents(fake(200, { items: [] }).fetchFn, TOKEN, "a@b.com", { timeMin: "2026-10-01T00:00:00.000Z" });
+    const r = await listEvents(fake(200, { items: [] }).fetchFn, TOKEN, "a@b.com", { timeMin: "2026-10-01T00:00:00.000Z", timeMax: "2027-10-01T00:00:00.000Z" });
     assert.deepEqual(r, { ok: true, events: [], nextSyncToken: null });
   });
 });
