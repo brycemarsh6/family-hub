@@ -112,10 +112,13 @@ describe("toGoogleEvent: keepGoogleBusy", () => {
 });
 
 describe("toGoogleEvent: text and fixed fields", () => {
-  it("leaves out description and location when empty", () => {
+  it("sends description and location as empty strings when empty, so an update clears them", () => {
     const p = toGoogleEvent(base({ notes: "  ", location: " " }));
-    assert.equal("description" in p, false);
-    assert.equal("location" in p, false);
+    assert.equal(p.description, "");
+    assert.equal(p.location, "");
+    const q = toGoogleEvent(base({ notes: null, location: null }));
+    assert.equal(q.description, "");
+    assert.equal(q.location, "");
   });
 
   it("puts the For line alone when there are no notes", () => {

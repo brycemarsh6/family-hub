@@ -42,6 +42,28 @@ function timedInstant(text: string | undefined): Date | null {
   return Number.isNaN(instant.getTime()) ? null : instant;
 }
 
+/** The Marshee event id Marshee wrote into a Google event, or undefined. */
+export function marsheeIdOf(event: GoogleEventIn): string | undefined {
+  const id = event.extendedProperties?.private?.marsheeEventId;
+  return typeof id === "string" && id !== "" ? id : undefined;
+}
+
+const ENTITIES: Record<string, string> = { lt: "<", gt: ">", quot: '"', "#39": "'", nbsp: " " };
+
+/**
+ * Google's web editor saves a description as HTML. Turns it into text: line
+ * breaks for `<br>`, `</p>` and `</div>`, other tags dropped, a few entities
+ * decoded. Text with no tag in it is returned as it is.
+ */
+export function textFromDescription(description: string): string {
+  if (!/<\/?[a-z][^>]*>/i.test(description)) return description;
+  return description
+    .replace(/<br\s*\/?>|<\/(p|div)\s*>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&(lt|gt|quot|#39|nbsp);/g, (_m, name: string) => ENTITIES[name])
+    .replace(/&amp;/g, "&");
+}
+
 export function eventFromGoogle(event: GoogleEventIn): PulledEvent {
   const id = event.id;
   if (event.status === "cancelled") return { kind: "cancelled", id };
@@ -62,16 +84,16 @@ export function eventFromGoogle(event: GoogleEventIn): PulledEvent {
   if (!startAt || !endAt) return { kind: "skip", id };
 
   const title = event.summary?.trim() ?? "";
-  const notes = withoutForLine(event.description ?? "");
+  const notes = withoutForLine(textFromDescription(event.description ?? ""));
   const location = event.location?.trim() ?? "";
-  const marsheeEventId = event.extendedProperties?.private?.marsheeEventId;
+  const marsheeEventId = marsheeIdOf(event);
   const updated = timedInstant(event.updated) ?? new Date(0);
   return {
     kind: "event",
     id,
     etag: typeof event.etag === "string" ? event.etag : null,
     updated,
-    ...(typeof marsheeEventId === "string" && marsheeEventId !== "" ? { marsheeEventId } : {}),
+    ...(marsheeEventId ? { marsheeEventId } : {}),
     title: title === "" ? "(No title)" : title,
     notes: notes === "" ? null : notes,
     location: location === "" ? null : location,

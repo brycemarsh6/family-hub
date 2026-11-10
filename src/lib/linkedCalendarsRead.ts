@@ -107,9 +107,29 @@ export async function loadPushCalendars(): Promise<PlanCalendar[]> {
 export async function loadPullCalendars(): Promise<PullCalendarRow[]> {
   const calendars = await db.linkedCalendar.findMany({
     where: { direction: "twoWay", account: { status: "ok" } },
-    select: { id: true, googleCalendarId: true, accountId: true, syncToken: true, account: { select: { userId: true } } },
+    select: {
+      id: true,
+      googleCalendarId: true,
+      accountId: true,
+      syncToken: true,
+      createdAt: true,
+      account: { select: { userId: true } },
+    },
   });
   return calendars.map(({ account, ...calendar }) => ({ ...calendar, linkerId: account.userId }));
+}
+
+/**
+ * The ids of an account's linked calendars: all of them (an unlink), or only
+ * those whose Google id is not in `keepGoogleCalendarIds` (calendars Google no
+ * longer lists). Their pulled events are removed before the calendars go.
+ */
+export async function loadAccountCalendarIds(accountId: string, keepGoogleCalendarIds?: string[]): Promise<string[]> {
+  const calendars = await db.linkedCalendar.findMany({
+    where: { accountId, ...(keepGoogleCalendarIds ? { googleCalendarId: { notIn: keepGoogleCalendarIds } } : {}) },
+    select: { id: true },
+  });
+  return calendars.map((calendar) => calendar.id);
 }
 
 /**

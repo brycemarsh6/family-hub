@@ -24,8 +24,9 @@ export type ListCalendarsResult =
 // Google Calendar event copies. Same rule: a reason word, never a body.
 export type GoogleEventPayload = {
   summary: string;
-  location?: string;
-  description?: string;
+  /** Always sent, "" when empty, so a PATCH clears a field the person emptied. */
+  location: string;
+  description: string;
   start: { dateTime: string; timeZone: string } | { date: string };
   end: { dateTime: string; timeZone: string } | { date: string };
   status: "confirmed";

@@ -122,6 +122,37 @@ describe("removeAllCopies", () => {
     assert.deepEqual(res, { left: 1 });
   });
 
+  it("leaves a pulled event's source calendar alone: only copies on other calendars are removed", async () => {
+    const h = harness({});
+    const res = await removeAllCopies(h.deps, {
+      eventId: EVENT_ID,
+      rows: [row("src"), row("copy")],
+      calendars: [cal("src"), cal("copy")],
+      exceptLinkedCalendarId: "src",
+    });
+    assert.deepEqual(res, { left: 0 });
+    assert.deepEqual(h.calls, [{ op: "remove", calendarId: "copy@group.calendar.google.com" }]);
+  });
+
+  it("with only the source calendar's row it calls Google not at all", async () => {
+    const h = harness({});
+    const res = await removeAllCopies(h.deps, {
+      eventId: EVENT_ID,
+      rows: [row("src")],
+      calendars: [cal("src")],
+      exceptLinkedCalendarId: "src",
+    });
+    assert.deepEqual(res, { left: 0 });
+    assert.equal(h.calls.length, 0);
+    assert.equal(h.tokenFetches(), 0);
+  });
+
+  it("a null exception removes every copy, as before", async () => {
+    const h = harness({});
+    await removeAllCopies(h.deps, { eventId: EVENT_ID, rows: [row("a")], calendars: [cal("a")], exceptLinkedCalendarId: null });
+    assert.equal(h.calls.length, 1);
+  });
+
   it("counts a revoked token as a copy left, with no Google call", async () => {
     const h = harness({ token: { ok: false, reason: "reconnect" } });
     const res = await removeAllCopies(h.deps, { eventId: EVENT_ID, rows: [row("a")], calendars: [cal("a")] });

@@ -51,6 +51,8 @@ export function toGoogleEvent(input: EventPayloadInput, keepGoogleBusy = false):
 
   const payload: GoogleEventPayload = {
     summary: input.title,
+    location: input.location?.trim() ?? "",
+    description,
     start: input.allDay
       ? { date: dateString(input.startAt) }
       : { dateTime: input.startAt.toISOString(), timeZone: HOUSEHOLD_TIME_ZONE },
@@ -63,8 +65,5 @@ export function toGoogleEvent(input: EventPayloadInput, keepGoogleBusy = false):
   if (!keepGoogleBusy) {
     payload.transparency = !input.allDay || input.showBusyOnGoogle ? "opaque" : "transparent";
   }
-  const location = input.location?.trim();
-  if (location) payload.location = location;
-  if (description !== "") payload.description = description;
   return payload;
 }

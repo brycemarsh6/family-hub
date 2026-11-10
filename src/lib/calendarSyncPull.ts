@@ -22,7 +22,10 @@ export type EventFields = {
  * whose googleEventId is in the page, with their event, fills `byGoogleId`
  * (`hasRow: true`); (2) events whose id is in the page's marsheeEventId
  * values and that have no row on this calendar, fills `byMarsheeId`
- * (`hasRow: false`, the sync fields null).
+ * (`hasRow: false`, the sync fields null). Query (1) is widened by the binding:
+ * an event Marshee already imported through another LinkedCalendar of the same
+ * Google calendar also lands in `byGoogleId`, with `hasRow: false`, so it is
+ * adopted (given a row here) and never imported a second time.
  */
 export type KnownEvent = {
   eventId: string;
@@ -34,6 +37,8 @@ export type KnownEvent = {
   /** CalendarEvent.updatedAt. */
   eventUpdatedAt: Date;
   sourceLinkedCalendarId: string | null;
+  /** True when the event has a sync row on a calendar other than this one (a copy a Google change must reach). */
+  hasOtherCopies?: boolean;
   /** The event as Marshee has it now, for `previousJson` when Google wins. */
   current: EventFields;
 };
@@ -89,7 +94,9 @@ export type PullUpdate = {
   fields: (EventFields & { showBusyOnGoogle: boolean; updatedAt: Date }) | null;
   /** True when `fields` differs from what Marshee holds (the view needs a refresh). */
   changed: boolean;
-  /** True when no row exists yet (a Google copy found by marsheeEventId). */
+  /** True when Google's change was taken and the event has copies elsewhere: the binding pushes it out after the writes. */
+  pushOut: boolean;
+  /** True when no row exists yet (a Google copy found by marsheeEventId, or an event adopted from a sibling link). */
   createRow: boolean;
   row: PullRowPatch;
 };
@@ -212,6 +219,7 @@ export function planPull(input: PullInput): PullPlan {
         googleEventId: ev.id,
         fields: null,
         changed: false,
+        pushOut: false,
         createRow: true,
         row: { etag: ev.etag, lastPulledAt: now, status: "ok" },
       });
@@ -224,12 +232,14 @@ export function planPull(input: PullInput): PullPlan {
     }
 
     const base = { eventId: match.eventId, googleEventId: ev.id, createRow: false };
+    const changed = !sameFields(theirs, match.current);
     if (!marsheeChanged(match) || ev.updated.getTime() > match.eventUpdatedAt.getTime()) {
       // Google's change is taken; if Marshee also changed, its version is kept in previousJson.
       plan.updates.push({
         ...base,
         fields: { ...theirs, showBusyOnGoogle: ev.showBusyOnGoogle, updatedAt: now },
-        changed: !sameFields(theirs, match.current),
+        changed,
+        pushOut: changed && match.hasOtherCopies === true,
         row: {
           etag: ev.etag,
           lastPulledAt: now,
@@ -243,6 +253,7 @@ export function planPull(input: PullInput): PullPlan {
         ...base,
         fields: null,
         changed: false,
+        pushOut: false,
         row: { etag: ev.etag, lastPulledAt: now, previousJson: fieldsJson(theirs) },
       });
       plan.pushBacks.push(match.eventId);

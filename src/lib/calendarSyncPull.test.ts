@@ -267,3 +267,28 @@ describe("planPull busy or free", () => {
     assert.equal(plan.updates[0].fields?.showBusyOnGoogle, false);
   });
 });
+
+describe("planPull: another link of the same Google calendar", () => {
+  it("adopts an event a sibling link imported: a row here, no insert, nothing else changed", () => {
+    const plan = run([gEvent()], { g1: knownEvent({ hasRow: false, etag: null, lastPushedAt: null, sourceLinkedCalendarId: "calOld" }) });
+    assert.equal(plan.inserts.length, 0);
+    assert.equal(plan.updates.length, 1);
+    assert.equal(plan.updates[0].createRow, true);
+    assert.equal(plan.updates[0].fields, null);
+    assert.equal(plan.updates[0].pushOut, false);
+    assert.equal(plan.updates[0].row.etag, '"e2"');
+  });
+});
+
+describe("planPull: Google's change reaches other calendars", () => {
+  it("sets pushOut when Google wins, something changed and copies exist elsewhere", () => {
+    const plan = run([gEvent({ summary: "Moved" })], { g1: knownEvent({ hasOtherCopies: true }) });
+    assert.equal(plan.updates[0].changed, true);
+    assert.equal(plan.updates[0].pushOut, true);
+  });
+
+  it("does not set pushOut with no copies elsewhere, or when the fields are the same", () => {
+    assert.equal(run([gEvent({ summary: "Moved" })], { g1: knownEvent() }).updates[0].pushOut, false);
+    assert.equal(run([gEvent()], { g1: knownEvent({ hasOtherCopies: true }) }).updates[0].pushOut, false);
+  });
+});

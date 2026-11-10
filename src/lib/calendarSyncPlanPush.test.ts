@@ -68,6 +68,19 @@ describe("syncEventCopies: update", () => {
     assert.equal(lastPatch(h).etag, '"upd"');
   });
 
+  it("an update with no notes and no location sends both keys as empty strings, so Google clears them", async () => {
+    const h = harness({});
+    await syncEventCopies(h.deps, {
+      payloadInput: { ...PAYLOAD_INPUT, notes: null, location: null, forNames: [] },
+      rows: [row("a")],
+      calendars: [cal("a")],
+      requestedIds: ["a"],
+    });
+    const sent = h.payloads.find((p) => p.op === "update")!.payload;
+    assert.equal(sent.location, "");
+    assert.equal(sent.description, "");
+  });
+
   it("a 412 records Google's version in previousJson and overwrites without If-Match", async () => {
     const h = harness({ update: [{ ok: false, reason: "changed" }] });
     const res = await syncEventCopies(h.deps, {

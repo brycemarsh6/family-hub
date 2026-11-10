@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { eventFromGoogle } from "./eventFromGoogle";
+import { eventFromGoogle, marsheeIdOf, textFromDescription } from "./eventFromGoogle";
 import { toGoogleEvent, type EventPayloadInput } from "./eventPayload";
 import type { GoogleEventIn } from "./types";
 
@@ -157,5 +157,40 @@ describe("eventFromGoogle: busy or free", () => {
   it("a timed event is always false, whatever Google says", () => {
     assert.equal(eventKind(eventFromGoogle({ id: "t", ...timed })).showBusyOnGoogle, false);
     assert.equal(eventKind(eventFromGoogle({ id: "t", ...timed, transparency: "transparent" })).showBusyOnGoogle, false);
+  });
+});
+
+describe("eventFromGoogle: HTML descriptions from Google's web editor", () => {
+  const timed = { start: { dateTime: "2026-03-07T19:00:00Z" }, end: { dateTime: "2026-03-07T20:00:00Z" } };
+
+  it("turns <br>, </p> and </div> into new lines and drops other tags", () => {
+    assert.equal(textFromDescription("Bring forms<br>and a pen<br/>ok"), "Bring forms\nand a pen\nok");
+    assert.equal(textFromDescription("<p>One</p><p>Two</p>"), "One\nTwo\n");
+    assert.equal(textFromDescription("<div>A</div><div><b>B</b></div>"), "A\nB\n");
+    assert.equal(textFromDescription('See <a href="https://x.test">the page</a>'), "See the page");
+  });
+
+  it("decodes &amp; &lt; &gt; &quot; &#39; &nbsp; once, in HTML only", () => {
+    assert.equal(textFromDescription("<p>Tom &amp; Jerry &lt;3 &gt; &quot;hi&quot; it&#39;s&nbsp;ok</p>"), 'Tom & Jerry <3 > "hi" it\'s ok\n');
+    assert.equal(textFromDescription("<p>&amp;lt;</p>"), "&lt;\n");
+  });
+
+  it("leaves plain text alone, even with an ampersand or a less-than sign", () => {
+    assert.equal(textFromDescription("Fish &amp; chips if 1 < 2\nline two"), "Fish &amp; chips if 1 < 2\nline two");
+  });
+
+  it("eventFromGoogle gives clean notes, still removing Marshee's For line", () => {
+    const e = eventKind(eventFromGoogle({ id: "h", ...timed, description: "Bring forms<br><br>For: Bryce" }));
+    assert.equal(e.notes, "Bring forms");
+    const f = eventKind(eventFromGoogle({ id: "h", ...timed, description: "<p>Call &amp; ask</p>" }));
+    assert.equal(f.notes, "Call & ask");
+  });
+});
+
+describe("marsheeIdOf", () => {
+  it("reads the private property, and nothing for a missing or empty one", () => {
+    assert.equal(marsheeIdOf({ id: "a", extendedProperties: { private: { marsheeEventId: "m1" } } }), "m1");
+    assert.equal(marsheeIdOf({ id: "a", extendedProperties: { private: { marsheeEventId: "" } } }), undefined);
+    assert.equal(marsheeIdOf({ id: "a" }), undefined);
   });
 });

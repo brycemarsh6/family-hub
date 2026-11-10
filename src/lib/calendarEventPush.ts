@@ -116,13 +116,17 @@ export async function pushEventCopies(input: {
  * Ask Google to remove every copy of the event, before the Marshee delete
  * cascades the rows away. `left` is how many copies may remain. With Google
  * or the key missing nothing is called, and `left` counts the rows.
+ * `exceptLinkedCalendarId` keeps one calendar's copy: a pulled event's source.
  */
-export async function removeEventCopies(eventId: string): Promise<{ left: number }> {
+export async function removeEventCopies(
+  eventId: string,
+  opts: { exceptLinkedCalendarId?: string | null } = {},
+): Promise<{ left: number }> {
   try {
-    const rows = await loadRows(eventId);
+    const rows = (await loadRows(eventId)).filter((row) => row.linkedCalendarId !== opts.exceptLinkedCalendarId);
     if (rows.length === 0) return { left: 0 };
     if (!isCalendarPushConfigured()) return { left: rows.length };
-    return await removeAllCopies(deps, { eventId, rows, calendars: await loadPushCalendars() });
+    return await removeAllCopies(deps, { eventId, rows, calendars: await loadPushCalendars(), exceptLinkedCalendarId: opts.exceptLinkedCalendarId });
   } catch {
     return { left: 1 };
   }

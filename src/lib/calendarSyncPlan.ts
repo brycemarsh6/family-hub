@@ -238,17 +238,20 @@ export async function syncEventCopies(
 
 /**
  * Delete: ask Google to remove the copy on every calendar (even ones since
- * switched off, decision 8 and plan decision 6). Returns how many copies are
+ * switched off, decision 8 and plan decision 6), except `exceptLinkedCalendarId`
+ * (a pulled event's source, mission 58). Returns how many copies are
  * left. The caller deletes the Marshee event either way.
  */
 export async function removeAllCopies(
   deps: SyncDeps,
-  input: { eventId: string; rows: PlanRow[]; calendars: PlanCalendar[] },
+  input: { eventId: string; rows: PlanRow[]; calendars: PlanCalendar[]; exceptLinkedCalendarId?: string | null },
 ): Promise<{ left: number }> {
+  // The one calendar to leave alone: where a pulled event came from (it still lives in Google).
+  const rows = input.rows.filter((row) => row.linkedCalendarId !== input.exceptLinkedCalendarId);
   const byId = new Map(input.calendars.map((c) => [c.id, c]));
   const getToken = tokenSource(deps);
   const results = await Promise.all(
-    input.rows.map(async (row) => {
+    rows.map(async (row) => {
       const calendar = byId.get(row.linkedCalendarId);
       if (!calendar) return false;
       try {

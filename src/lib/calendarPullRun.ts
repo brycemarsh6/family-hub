@@ -26,9 +26,11 @@ export type PullCalendarRow = {
   /** The account's linker: the creator and one person of every event pulled in. */
   linkerId: string;
   syncToken: string | null;
+  /** Orders calendars that share a Google calendar: the oldest link is the one pulled. */
+  createdAt: Date;
 };
 
-export type PullAccessResult = { ok: true; accessToken: string } | { ok: false; reason: "revoked" | "network" };
+export type PullAccessResult = { ok: true; accessToken: string } | { ok: false; reason: "reconnect" | "network" };
 
 export type PullRunDeps = {
   isConfigured: () => boolean;
@@ -41,7 +43,7 @@ export type PullRunDeps = {
   list: (accessToken: string, googleCalendarId: string, mode: ListEventsMode) => Promise<ListEventsResult>;
   /** Saves the calendar's sync token; null clears it. */
   saveSyncToken: (calendarId: string, token: string | null) => Promise<void>;
-  loadKnown: (calendarId: string, events: GoogleEventIn[]) => Promise<PullKnown>;
+  loadKnown: (calendar: { id: string; googleCalendarId: string }, events: GoogleEventIn[]) => Promise<PullKnown>;
   /** Each write is one transaction (event, person, sync row). */
   writeInsert: (insert: PullInsert) => Promise<void>;
   writeUpdate: (calendarId: string, update: PullUpdate) => Promise<void>;
@@ -75,7 +77,7 @@ async function pullOne(
   }
   if (!listed.ok) return { changed: false, failed: 1 };
 
-  const known = await deps.loadKnown(calendar.id, listed.events);
+  const known = await deps.loadKnown(calendar, listed.events);
   const plan = planPull({
     calendar: { id: calendar.id },
     linkerId: calendar.linkerId,
@@ -97,10 +99,16 @@ async function pullOne(
       failed += 1;
     }
   };
+  const pushOuts: string[] = [];
   for (const insert of plan.inserts) await attempt(() => deps.writeInsert(insert), true);
-  for (const update of plan.updates) await attempt(() => deps.writeUpdate(calendar.id, update), update.changed);
+  for (const update of plan.updates) {
+    const before = failed;
+    await attempt(() => deps.writeUpdate(calendar.id, update), update.changed);
+    // Only a change that was saved goes out: a failed write would push the old version over Google's.
+    if (update.pushOut && failed === before) pushOuts.push(update.eventId);
+  }
   for (const del of plan.deletes) await attempt(() => deps.writeDelete(del), true);
-  for (const eventId of plan.pushBacks) await attempt(() => deps.pushBack(eventId), false);
+  for (const eventId of [...plan.pushBacks, ...pushOuts]) await attempt(() => deps.pushBack(eventId), false);
 
   // The bookmark moves only when every event of the run is written, and never to nothing.
   if (failed === 0 && listed.nextSyncToken !== null) {
@@ -120,7 +128,16 @@ export async function runPull(deps: PullRunDeps, opts: { force: boolean }): Prom
   try {
     const now = deps.now();
     const staleBefore = new Date(now.getTime() - (opts.force ? PULL_FORCE_LEASE_MS : PULL_LEASE_MS));
-    const calendars = await deps.loadCalendars();
+    // One Google calendar linked twice is pulled once: the oldest link, then the lowest id.
+    const byAge = [...(await deps.loadCalendars())].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id),
+    );
+    const seenGoogle = new Set<string>();
+    const calendars = byAge.filter((c) => {
+      if (seenGoogle.has(c.googleCalendarId)) return false;
+      seenGoogle.add(c.googleCalendarId);
+      return true;
+    });
     // One access token per account per run, even when it fails.
     const access = new Map<string, PullAccessResult>();
     for (const calendar of calendars) {
@@ -130,7 +147,7 @@ export async function runPull(deps: PullRunDeps, opts: { force: boolean }): Prom
         if (!token) {
           token = await deps.getAccessToken(calendar.accountId);
           access.set(calendar.accountId, token);
-          if (!token.ok && token.reason === "revoked") await deps.markNeedsRelink(calendar.accountId);
+          if (!token.ok && token.reason === "reconnect") await deps.markNeedsRelink(calendar.accountId);
         }
         if (!token.ok) {
           total.failed += 1;

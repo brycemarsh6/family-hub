@@ -23,7 +23,8 @@ import {
   setCalendarDirection as writeCalendarDirection,
   unlinkAccount as writeUnlinkAccount,
 } from "@/lib/linkedCalendarWrites";
-import { loadAccountOwner, loadCalendarOwner, loadRefreshToken } from "@/lib/linkedCalendarsRead";
+import { loadAccountCalendarIds, loadAccountOwner, loadCalendarOwner, loadRefreshToken } from "@/lib/linkedCalendarsRead";
+import { removePulledEvents } from "@/lib/calendarEventPull";
 
 const NOT_SIGNED_IN = "Not signed in.";
 const NOT_ALLOWED = "Only a parent or admin can change synced calendars.";
@@ -120,6 +121,13 @@ export async function unlinkAccount(accountId: string): Promise<{ ok: true } | A
   const owner = await loadAccountOwner(accountId);
   if (!owner) return { error: GENERIC_ERROR };
   if (owner.userId !== user.userId) return { error: SYNCED_CALENDARS_WORDS.notYours(owner.name) };
+
+  // The events pulled from this account's calendars go first (Bryce, 2026-11-09), so a
+  // relink does not import them twice. This comes before the revoke below, since their
+  // copies on this account's other calendars need the token. If any cannot be removed,
+  // stop: the unlink would orphan them.
+  const removed = await removePulledEvents(await loadAccountCalendarIds(accountId));
+  if (removed.failed > 0) return { error: GENERIC_ERROR };
 
   // Best effort: tell Google to forget us, but unlink even if that fails.
   try {

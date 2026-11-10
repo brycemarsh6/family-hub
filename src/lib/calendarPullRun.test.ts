@@ -8,14 +8,14 @@ import {
   type PullCalendarRow,
   type PullRunDeps,
 } from "./calendarPullRun";
-import type { PullKnown } from "./calendarSyncPull";
+import type { KnownEvent, PullKnown } from "./calendarSyncPull";
 import type { GoogleEventIn, ListEventsMode, ListEventsResult } from "./google/types";
 
 // The pull's steps with every call faked. The rules for each event are in
 // calendarSyncPull.test.ts; this file proves the order and the guards.
 
 const NOW = new Date("2026-11-09T18:00:00Z");
-const CAL: PullCalendarRow = { id: "c1", googleCalendarId: "g-cal", accountId: "a1", linkerId: "u1", syncToken: null };
+const CAL: PullCalendarRow = { id: "c1", googleCalendarId: "g-cal", accountId: "a1", linkerId: "u1", syncToken: null, createdAt: new Date("2026-11-01T00:00:00Z") };
 const EMPTY_KNOWN: PullKnown = { byGoogleId: new Map(), byMarsheeId: new Map() };
 
 function gEvent(over: Partial<GoogleEventIn> = {}): GoogleEventIn {
@@ -162,8 +162,8 @@ describe("runPull: sync token", () => {
 });
 
 describe("runPull: access", () => {
-  it("marks the account needs-relink when the refresh token is revoked", async () => {
-    const f = fake({ getAccessToken: async () => ({ ok: false, reason: "revoked" }) });
+  it("marks the account needs-relink when Google says the link needs a reconnect", async () => {
+    const f = fake({ getAccessToken: async () => ({ ok: false, reason: "reconnect" }) });
     const result = await runPull(f.deps, { force: false });
     assert.deepEqual(result, { changed: false, failed: 1 });
     assert.ok(f.calls.includes("relink:a1"));
@@ -179,10 +179,10 @@ describe("runPull: access", () => {
   it("asks for one access token per account and marks needs-relink once", async () => {
     const calls: string[] = [];
     const f = fake({
-      calendars: [CAL, { ...CAL, id: "c2" }],
+      calendars: [CAL, { ...CAL, id: "c2", googleCalendarId: "g-cal-2" }],
       getAccessToken: async (id) => {
         calls.push(`token:${id}`);
-        return { ok: false, reason: "revoked" };
+        return { ok: false, reason: "reconnect" };
       },
     });
     const result = await runPull(f.deps, { force: false });
@@ -259,5 +259,87 @@ describe("runPull: writes", () => {
     assert.deepEqual(result, { changed: true, failed: 0 });
     const order = f.calls.filter((c) => /^(update|delete|pushBack)/.test(c));
     assert.deepEqual(order, ["update:gwin", "delete:evDel", "pushBack:evWin"]);
+  });
+});
+
+/** One known event with a row, the fields Marshee holds being "Old". */
+function knownOne(over: Partial<KnownEvent> = {}): PullKnown {
+  const known: KnownEvent = {
+    eventId: "evG",
+    hasRow: true,
+    etag: '"e1"',
+    lastPushedAt: new Date("2026-11-09T10:00:00Z"),
+    lastPulledAt: null,
+    eventUpdatedAt: new Date("2026-11-09T10:00:00Z"),
+    sourceLinkedCalendarId: "c1",
+    current: { title: "Old", notes: null, location: null, startAt: new Date("2026-11-12T19:00:00Z"), endAt: new Date("2026-11-12T20:00:00Z"), allDay: false },
+    ...over,
+  };
+  return { byGoogleId: new Map([["g1", known]]), byMarsheeId: new Map() };
+}
+
+describe("runPull: a Google change reaches the other calendars", () => {
+  const changed = { ok: true, events: [gEvent({ etag: '"e2"', summary: "New title" })], nextSyncToken: "t" } as ListEventsResult;
+
+  it("pushes a Google-wins change after the writes when the event has copies elsewhere", async () => {
+    const f = fake({ loadKnown: async () => knownOne({ hasOtherCopies: true }), lists: [changed] });
+    await runPull(f.deps, { force: false });
+    assert.deepEqual(f.calls.filter((c) => /^(update|pushBack)/.test(c)), ["update:g1", "pushBack:evG"]);
+  });
+
+  it("pushes nothing when the event has no copies elsewhere", async () => {
+    const f = fake({ loadKnown: async () => knownOne(), lists: [changed] });
+    await runPull(f.deps, { force: false });
+    assert.ok(!f.calls.some((c) => c.startsWith("pushBack")));
+  });
+
+  it("does not push a change whose write failed (it would put the old version over Google's)", async () => {
+    const f = fake({
+      loadKnown: async () => knownOne({ hasOtherCopies: true }),
+      lists: [changed],
+      writeUpdate: async () => {
+        throw new Error("db");
+      },
+    });
+    assert.equal((await runPull(f.deps, { force: false })).failed, 1);
+    assert.ok(!f.calls.some((c) => c.startsWith("pushBack")));
+  });
+});
+
+describe("runPull: one Google calendar, one import", () => {
+  const OLD = new Date("2026-10-01T00:00:00Z");
+  const NEWER = new Date("2026-10-05T00:00:00Z");
+  const claimed = (f: Fake) => f.calls.filter((c) => c.startsWith("claim")).map((c) => c.split(":")[1]);
+
+  it("pulls a Google calendar linked twice once: the oldest link; breaks a tie by the lower id", async () => {
+    const f = fake({
+      calendars: [
+        { ...CAL, id: "cB", accountId: "aB", createdAt: NEWER },
+        { ...CAL, id: "cA", accountId: "aA", createdAt: OLD },
+        { ...CAL, id: "cOther", googleCalendarId: "g-other", accountId: "aC", createdAt: NEWER },
+      ],
+    });
+    await runPull(f.deps, { force: false });
+    assert.deepEqual(claimed(f), ["cA", "cOther"]);
+    const tie = fake({ calendars: [{ ...CAL, id: "c2", createdAt: OLD }, { ...CAL, id: "c1", createdAt: OLD }] });
+    await runPull(tie.deps, { force: false });
+    assert.deepEqual(claimed(tie), ["c1"]);
+  });
+
+  it("adopts an event a sibling link already imported: a row here, no second event", async () => {
+    let seen = "";
+    const rows: string[] = [];
+    const f = fake({
+      loadKnown: async (calendar) => {
+        seen = calendar.googleCalendarId;
+        return knownOne({ eventId: "evSibling", hasRow: false, etag: null, lastPushedAt: null, sourceLinkedCalendarId: "cOld" });
+      },
+      lists: [{ ok: true, events: [gEvent()], nextSyncToken: "t" }],
+      writeUpdate: async (_c, u) => void rows.push(`${u.eventId}:${u.createRow}`),
+    });
+    await runPull(f.deps, { force: false });
+    assert.equal(seen, "g-cal");
+    assert.deepEqual(rows, ["evSibling:true"]);
+    assert.ok(!f.calls.some((c) => c.startsWith("insert")));
   });
 });

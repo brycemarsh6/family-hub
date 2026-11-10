@@ -1,10 +1,12 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { refreshAccessToken } from "@/lib/google/oauth";
+import { marsheeIdOf } from "@/lib/google/eventFromGoogle";
 import { listGoogleEvents } from "@/lib/google/calendarApi";
 import { isCalendarPushConfigured, loadPullCalendars, loadRefreshToken } from "@/lib/linkedCalendarsRead";
 import { claimCalendarForPull, markAccountNeedsRelink, saveSyncToken } from "@/lib/linkedCalendarWrites";
 import { pushEventCopies, removeEventCopies } from "@/lib/calendarEventPush";
+import { tokenFailReason } from "@/lib/calendarSyncRules";
 import { runPull, type PullAccessResult, type PullRunDeps, type PullRunResult } from "@/lib/calendarPullRun";
 import type { EventFields, KnownEvent, PullKnown } from "@/lib/calendarSyncPull";
 import type { GoogleEventIn } from "@/lib/google/types";
@@ -23,7 +25,7 @@ async function getAccessToken(accountId: string): Promise<PullAccessResult> {
     if (refreshToken === null) return { ok: false, reason: "network" };
     const refreshed = await refreshAccessToken(refreshToken);
     if (refreshed.ok) return { ok: true, accessToken: refreshed.accessToken };
-    return { ok: false, reason: refreshed.reason === "revoked" ? "revoked" : "network" };
+    return { ok: false, reason: tokenFailReason(refreshed.reason) };
   } catch {
     return { ok: false, reason: "network" };
   }
@@ -50,6 +52,7 @@ type KnownEventRow = {
 function knownFrom(
   event: KnownEventRow,
   sync: { etag: string | null; lastPushedAt: Date | null; lastPulledAt: Date | null } | null,
+  hasOtherCopies = false,
 ): KnownEvent {
   return {
     eventId: event.id,
@@ -59,6 +62,7 @@ function knownFrom(
     lastPulledAt: sync?.lastPulledAt ?? null,
     eventUpdatedAt: event.updatedAt,
     sourceLinkedCalendarId: event.sourceLinkedCalendarId,
+    hasOtherCopies,
     current: {
       title: event.title,
       notes: event.notes,
@@ -70,24 +74,48 @@ function knownFrom(
   };
 }
 
-/** What Marshee holds for this page: events with a row here, and Marshee-made copies with none yet. */
-async function loadKnown(calendarId: string, events: GoogleEventIn[]): Promise<PullKnown> {
+/**
+ * What Marshee holds for this page: events with a row here, events a sibling
+ * link of the same Google calendar already imported (adopted, so never
+ * imported twice), and Marshee-made copies with no row yet.
+ */
+async function loadKnown(calendar: { id: string; googleCalendarId: string }, events: GoogleEventIn[]): Promise<PullKnown> {
   const googleIds = events.map((event) => event.id);
   const rows = await db.calendarEventSync.findMany({
-    where: { linkedCalendarId: calendarId, googleEventId: { in: googleIds } },
-    select: { googleEventId: true, etag: true, lastPushedAt: true, lastPulledAt: true, event: { select: KNOWN_SELECT } },
+    where: { linkedCalendarId: calendar.id, googleEventId: { in: googleIds } },
+    select: {
+      googleEventId: true,
+      etag: true,
+      lastPushedAt: true,
+      lastPulledAt: true,
+      event: {
+        select: { ...KNOWN_SELECT, syncs: { where: { linkedCalendarId: { not: calendar.id } }, select: { linkedCalendarId: true }, take: 1 } },
+      },
+    },
   });
   const byGoogleId = new Map<string, KnownEvent>();
-  for (const row of rows) byGoogleId.set(row.googleEventId, knownFrom(row.event, row));
+  for (const row of rows) byGoogleId.set(row.googleEventId, knownFrom(row.event, row, row.event.syncs.length > 0));
+
+  const unmatched = googleIds.filter((id) => !byGoogleId.has(id));
+  if (unmatched.length > 0) {
+    const siblings = await db.calendarEventSync.findMany({
+      where: {
+        googleEventId: { in: unmatched },
+        linkedCalendar: { googleCalendarId: calendar.googleCalendarId, id: { not: calendar.id } },
+      },
+      select: { googleEventId: true, event: { select: KNOWN_SELECT } },
+    });
+    for (const row of siblings) if (!byGoogleId.has(row.googleEventId)) byGoogleId.set(row.googleEventId, knownFrom(row.event, null));
+  }
 
   const marsheeIds = events
     .filter((event) => !byGoogleId.has(event.id))
-    .map((event) => event.extendedProperties?.private?.marsheeEventId)
-    .filter((id): id is string => typeof id === "string" && id !== "");
+    .map(marsheeIdOf)
+    .filter((id): id is string => id !== undefined);
   const byMarsheeId = new Map<string, KnownEvent>();
   if (marsheeIds.length > 0) {
     const found = await db.calendarEvent.findMany({
-      where: { id: { in: marsheeIds }, syncs: { none: { linkedCalendarId: calendarId } } },
+      where: { id: { in: marsheeIds }, syncs: { none: { linkedCalendarId: calendar.id } } },
       select: KNOWN_SELECT,
     });
     for (const event of found) byMarsheeId.set(event.id, knownFrom(event, null));
@@ -148,4 +176,37 @@ const deps: PullRunDeps = {
  */
 export function pullCalendars(opts: { force: boolean }): Promise<PullRunResult> {
   return runPull(deps, opts);
+}
+
+/**
+ * Unlinking an account, or Google no longer listing a calendar, removes the
+ * events pulled from those calendars (Bryce, 2026-11-09), so a relink imports
+ * them once, not twice. Only events whose source is in the list: an event
+ * Marshee made has no source and is never touched. Each event's copies on
+ * other calendars come off first; its original on the source calendar stays,
+ * since it still lives in Google. Returns how many could not be removed (the
+ * caller stops, so nothing is left to come back after the unlink); never throws.
+ */
+export async function removePulledEvents(linkedCalendarIds: string[]): Promise<{ failed: number }> {
+  if (linkedCalendarIds.length === 0) return { failed: 0 };
+  let failed = 0;
+  try {
+    const events = await db.calendarEvent.findMany({
+      where: { sourceLinkedCalendarId: { in: linkedCalendarIds } },
+      select: { id: true, sourceLinkedCalendarId: true },
+    });
+    for (const event of events) {
+      try {
+        // Explicit: the source calendar's copy is Google's own and is not deleted.
+        await removeEventCopies(event.id, { exceptLinkedCalendarId: event.sourceLinkedCalendarId });
+        await db.calendarEvent.deleteMany({ where: { id: event.id, sourceLinkedCalendarId: { in: linkedCalendarIds } } });
+      } catch {
+        // Deliberately drops the error: it could quote a value from Google.
+        failed += 1;
+      }
+    }
+  } catch {
+    failed += 1;
+  }
+  return { failed };
 }
