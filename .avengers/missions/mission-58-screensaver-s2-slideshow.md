@@ -124,6 +124,24 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Done criteria:** Strange's pass on the dev server with the Tablet login (Bryce signs it in), with "Start after" set to 1 minute and test photos only.
 - **Report:** DONE (Stark): host with capture-phase tap listeners, 1-second tick, fresh `loadScreensaverShow()` before leaving awake (retry no sooner than 60 s), portal at `z-[100]` above the drawer's `z-[60]`, wake only on the overlay's own click; `ScreensaverSlide.tsx` two-layer 1-second crossfade with preload and `decode()`. Fury re-ran C2 and C3 together 2026-11-09: tsc 0, eslint 0, `npm test` 1634 pass, UTC 1634 tests 0 fail, `npm run build` 0 with `/settings/wall-tablet` in the route list.
 
+### C5 — Gate pass 1 fix batch
+- **Status:** PENDING
+- **Objective:** Clear Vision's and Captain's pass-1 blockers and the notes Fury took, in one dispatch.
+- **Boundaries:** may touch: `src/components/ScreensaverHost.tsx`, `src/components/ScreensaverSlide.tsx`, new `src/app/(app)/settings/wall-tablet/loading.tsx`, `src/components/WallTabletSettings.tsx`, `src/lib/screensaver.ts` (`SCREENSAVER_WORDS` only), `src/lib/screensaver.test.ts` (one comment), `src/lib/slideshowPhotos.ts` and `src/lib/slideshowPhotos.test.ts` (add `slideshowImageUrl` and its test), `src/components/SlideshowPhotoSheet.tsx` and `src/components/SlideshowPhotosManager.tsx` (use `slideshowImageUrl` only). Must not touch: everything else.
+- **Blockers:**
+  1. (Vision) The host keeps its view of the world fresh. While the tablet has been idle at least a minute, or while an overlay is showing, it calls `loadScreensaverShow()` at most once every 60 seconds and keeps the latest settings and photo count. Every tick decides with those. Before leaving "awake" it still does a fresh load first, as now. A cached photo count of 0 never stops it from looking again. A showing overlay closes by itself (`setShow(null)`, no route change, nothing pressed) when the rule, with fresh data, says "awake": for example the sleep screen at the sleep end with no photos, or the slideshow after every photo is deleted. It switches slideshow to sleep and back as now. A one-line comment states the rule.
+  2. (Captain) `src/app/(app)/settings/wall-tablet/loading.tsx` shaped exactly like `src/app/(app)/profile/loading.tsx` (wide root, `NARROW_PAGE_CLASSES` inside, `SkeletonHeader`, three `SkeletonList`s), no hand-typed class strings.
+- **Notes taken:**
+  3. (Vision) A load that has not settled after 15 seconds counts as a failure (the same as `null`), so a hung request can never stop the screensaver.
+  4. (Captain) `slideshowImageUrl(id, size?: "thumb")` in `slideshowPhotos.ts` beside `photoPaths` is the only builder of the image route URL; the slide, the sheet and the manager use it; one test.
+  5. (Captain) "Wake Marshee" and the units "min" and "sec" move into `SCREENSAVER_WORDS`.
+  6. (Vision) `screensaver.test.ts:140` comment: Mar 7 is MST, not MDT.
+- **Not taken:** the rollback of a failed middle tap (rare; the house shape in `HabitsChoresSettings`); a shared class string for the two steppers (waits on Bryce's answer to amendment 5).
+- **Verification:** the gauntlet, all five commands.
+- **Evidence required:** the new refresh and auto-close code quoted; how each of Vision's scenarios A and B now ends, traced through the code; gauntlet last lines; `grep -rn "api/slideshow/" src/components` (empty); `git diff --stat`.
+- **Done criteria:** Vision and Captain pass 2 both PASS.
+- **Report:** (pending)
+
 ### C4 — Records (Fury)
 - Mission 57's Delivery "Shipped check" line; STRUCTURE.md entry for the screensaver (Captain's wording, Bryce's yes); CLAUDE.md "What's built" line; `.avengers/status.md` tablet check; this file's Delivery.
 
@@ -131,6 +149,8 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision (HEAD e9cc68e) | BLOCKED | 1: `ScreensaverHost.tsx:75,78,100-101` once a load returns 0 photos the host never looks again while awake (photos added later never show without a reload), and a shown overlay only closes on a tap, so with 0 photos the sleep screen stays black all day after 6 AM (breaks Q7 and the done-means "without a reload") | gauntlet re-run green, boundaries clean; notes: decisions use the last-loaded settings (lowering Start after takes one more cycle); a hung load leaves `loadingRef` stuck; tap-through reviewed, none found; rollback of a failed middle tap restores the older value (house shape); save action sound (`__proto__` refused); S1 writes move unchanged; shuffle and DST sound; test comment says MDT on Mar 7 (MST) |
+| 1 | Captain (HEAD e9cc68e) | BLOCKED | 1: `/settings/wall-tablet` has no own `loading.tsx` (Short pages rule; it inherits Settings' two-column skeleton) | notes: three hand-built `/api/slideshow/${id}/image` URLs (propose `slideshowImageUrl` in `slideshowPhotos.ts`); `LadderStepper` copies `QuantityStepper`'s button classes; "Wake Marshee", "min", "sec" typed in components; two Settings labels repeat `SCREENSAVER_WORDS`; client uses `formatHouseholdClock` on purpose (Denver on the tablet); layout adds one read for device logins only; STRUCTURE.md will cross 1,783 (trend, split PR later). Drafted amendments 1 to 5 (Screensaver entry; Slideshow writes sentence; `minuteOfDayInZone` in the householdDate entry; Wall tablet in the Short pages and loading lists; optional two-steppers line), waiting for Bryce. |
 
 Budget: 3 passes per gate, then stop and surface.
 
