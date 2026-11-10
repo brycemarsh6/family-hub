@@ -1,4 +1,4 @@
-# Mission 62: Calendar pull window (one year ahead)
+# Mission 63: Calendar pull window (one year ahead)
 
 **Project:** family-hub (Marshee). **Status:** gates passed, PR open. **Assembled:** Stark, Vision (small diff, no screen change, no new file beyond tests).
 
@@ -111,3 +111,5 @@ AGENTS.md (7 DST skips expected), `npm run build`.
 ## Handoff log
 
 - 2026-11-09: Opened from the mission 60 chat after Bryce's first real pull failed. Branch `claude/calendar-pull-window` from PR 99's branch (merged with main after PR 100).
+
+- 2026-11-09: Renumbered 62 to 63 at merge: the screensaver S2 chat merged mission 62 first.
