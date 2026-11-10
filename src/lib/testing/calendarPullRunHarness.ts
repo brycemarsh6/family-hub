@@ -52,6 +52,7 @@ export function fake(
       return lists.shift() ?? { ok: false, reason: "network" };
     },
     saveSyncToken: async (id, token) => void calls.push(`saveToken:${id}:${token}`),
+    markPulledOk: async (id) => void calls.push(`markOk:${id}`),
     loadKnown: async () => EMPTY_KNOWN,
     writeInsert: async (i) => void calls.push(`insert:${i.googleEventId}`),
     writeUpdate: async (_c, u) => void calls.push(`update:${u.googleEventId}`),
