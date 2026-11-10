@@ -6,6 +6,7 @@ import { getSession } from "./session";
 import { db } from "./db";
 import { toRole, type Role } from "./constants";
 import { toNavMode, type NavMode } from "./navMode";
+import { toTextSize, type TextSize } from "./textSize";
 
 // The Data Access Layer: the single place the rest of the app asks "is this
 // request allowed?".
@@ -32,6 +33,7 @@ export type VerifiedUser = {
   avatarColor: string;
   isDevice: boolean;
   navMode: NavMode;
+  textSize: TextSize;
   showStreaks: boolean;
 };
 
@@ -61,7 +63,7 @@ const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
       displayName: true,
       avatarColor: true,
       deactivatedAt: true,
-      preferences: { select: { navMode: true, showStreaks: true } },
+      preferences: { select: { navMode: true, textSize: true, showStreaks: true } },
     },
   });
 
@@ -74,6 +76,7 @@ const loadSessionUser = cache(async (): Promise<VerifiedUser | null> => {
     avatarColor: user.avatarColor,
     isDevice: user.role === "device",
     navMode: toNavMode(user.preferences?.navMode),
+    textSize: toTextSize(user.preferences?.textSize),
     showStreaks: user.preferences?.showStreaks ?? true,
   };
 });

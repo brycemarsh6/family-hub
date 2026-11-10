@@ -179,3 +179,16 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* "Text size" (mission 58): a login's choice sets data-text-size on <html>
+   (see the app layout). Raising the root font size scales every rem-based
+   size, spacing and tap target together. Wide screens only, so phones stay
+   put. Percent, not px, so it still respects the device's own default. */
+@media (min-width: 48rem) {
+  html[data-text-size="large"] {
+    font-size: 125%;
+  }
+  html[data-text-size="xl"] {
+    font-size: 150%;
+  }
+}
