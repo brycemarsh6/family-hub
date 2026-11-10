@@ -1,6 +1,8 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { decryptSecret } from "@/lib/tokenCrypto";
+import { decryptSecret, isTokenKeyConfigured } from "@/lib/tokenCrypto";
+import { isGoogleConfigured } from "@/lib/google/oauth";
+import { isPushable, startsTicked, type PlanCalendar } from "@/lib/calendarSyncPlan";
 import { toAccountStatus, toSyncDirection, type AccountStatus, type SyncDirection } from "@/lib/calendarSyncVocabulary";
 
 // Reads for linked Google accounts (mission 55). The page reader uses an
@@ -13,6 +15,8 @@ export type SyncedCalendarRow = {
   colorHex: string | null;
   isPrimary: boolean;
   direction: SyncDirection;
+  /** Google's role for the linked person; null for rows linked before mission 56. */
+  accessRole: string | null;
 };
 
 export type SyncedAccountRow = {
@@ -36,7 +40,7 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
       status: true,
       user: { select: { displayName: true } },
       calendars: {
-        select: { id: true, name: true, colorHex: true, isPrimary: true, direction: true },
+        select: { id: true, name: true, colorHex: true, isPrimary: true, direction: true, accessRole: true },
       },
     },
   });
@@ -71,11 +75,83 @@ export async function loadCalendarOwner(calendarId: string): Promise<{ userId: s
   return calendar ? { userId: calendar.account.userId, name: calendar.account.user.displayName } : null;
 }
 
-/** The decrypted refresh token, for revoking it at Google when an account is unlinked. */
+/** The decrypted refresh token, for revoking it at Google on unlink and for the push's access token. */
 export async function loadRefreshToken(accountId: string): Promise<string | null> {
   const account = await db.linkedAccount.findUnique({
     where: { id: accountId },
     select: { encryptedRefreshToken: true },
   });
   return account ? decryptSecret(account.encryptedRefreshToken) : null;
+}
+
+/** Every linked calendar as the push needs it (not filtered: the plan decides what is pushable). */
+export async function loadPushCalendars(): Promise<PlanCalendar[]> {
+  const calendars = await db.linkedCalendar.findMany({
+    select: { id: true, googleCalendarId: true, accountId: true, direction: true, accessRole: true },
+  });
+  return calendars.map((calendar) => ({ ...calendar, direction: toSyncDirection(calendar.direction) }));
+}
+
+/** True when another person has already linked this Google account (its `sub`). */
+export async function isGoogleAccountLinkedByAnother(sub: string, userId: string): Promise<boolean> {
+  const other = await db.linkedAccount.findFirst({
+    where: { googleSubject: sub, userId: { not: userId } },
+    select: { id: true },
+  });
+  return other !== null;
+}
+
+/** Copying events to Google needs both the Google settings and the token key. */
+export function isCalendarPushConfigured(): boolean {
+  return isGoogleConfigured() && isTokenKeyConfigured();
+}
+
+export type SyncTarget = {
+  /** The LinkedCalendar row id, which is what the event actions take. */
+  calendarId: string;
+  name: string;
+  ownerName: string;
+  isMine: boolean;
+  /** Starts ticked on a new event: the viewer's own "Both ways" calendars. */
+  startsTicked: boolean;
+};
+
+/**
+ * The calendars an event form may list under "Sync to": set to sync, and
+ * writable by Marshee. Nothing when Google or the key is not configured. The
+ * viewer's own calendars come first.
+ */
+export async function loadSyncTargets(viewerId: string): Promise<SyncTarget[]> {
+  if (!isCalendarPushConfigured()) return [];
+  const calendars = await db.linkedCalendar.findMany({
+    where: { direction: { not: "off" } },
+    select: {
+      id: true,
+      name: true,
+      isPrimary: true,
+      direction: true,
+      accessRole: true,
+      account: { select: { userId: true, user: { select: { displayName: true } } } },
+    },
+  });
+  return calendars
+    .map((calendar) => {
+      const direction = toSyncDirection(calendar.direction);
+      return { calendar, direction, isMine: calendar.account.userId === viewerId };
+    })
+    .filter(({ calendar, direction }) => isPushable({ direction, accessRole: calendar.accessRole }))
+    .sort(
+      (a, b) =>
+        Number(b.isMine) - Number(a.isMine) ||
+        a.calendar.account.user.displayName.localeCompare(b.calendar.account.user.displayName) ||
+        Number(b.calendar.isPrimary) - Number(a.calendar.isPrimary) ||
+        a.calendar.name.localeCompare(b.calendar.name),
+    )
+    .map(({ calendar, direction, isMine }) => ({
+      calendarId: calendar.id,
+      name: calendar.name,
+      ownerName: calendar.account.user.displayName,
+      isMine,
+      startsTicked: startsTicked({ direction, isMine }),
+    }));
 }

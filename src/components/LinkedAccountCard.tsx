@@ -13,6 +13,7 @@ import {
   SYNC_DIRECTION_HINTS,
   SYNC_DIRECTION_LABELS,
   calendarsSummary,
+  isReadOnlyRole,
   linkedByLine,
   type SyncDirection,
 } from "@/lib/calendarSyncVocabulary";
@@ -78,19 +79,21 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
         <div className="border-t border-line">
           {account.calendars.map((calendar) => {
             const direction = directions[calendar.id] ?? calendar.direction;
+            // Google lets Marshee write only to calendars the person owns.
+            const readOnly = isReadOnlyRole(calendar.accessRole);
             const content = (
               <>
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-base">{calendar.name}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2 text-sm text-muted-strong">
-                  {SYNC_DIRECTION_LABELS[direction]}
-                  {isOwner && <ChevronRight aria-hidden="true" size={18} />}
+                  {readOnly ? SYNCED_CALENDARS_EXTRA_WORDS.readOnly : SYNC_DIRECTION_LABELS[direction]}
+                  {isOwner && !readOnly && <ChevronRight aria-hidden="true" size={18} />}
                 </span>
               </>
             );
             const rowClass = "flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2 text-left";
-            return isOwner ? (
+            return isOwner && !readOnly ? (
               <button
                 key={calendar.id}
                 type="button"

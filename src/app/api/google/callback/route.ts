@@ -11,6 +11,7 @@ import { toLinkErrorCode } from "@/lib/calendarSyncVocabulary";
 import { listCalendars } from "@/lib/google/calendarApi";
 import { encryptSecret, isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import { replaceCalendars, saveLinkedAccount } from "@/lib/linkedCalendarWrites";
+import { isGoogleAccountLinkedByAnother } from "@/lib/linkedCalendarsRead";
 
 // Google sends the browser back here after the person says yes or no. The
 // proxy lets the path through without a Marshee session cookie (it is in
@@ -65,6 +66,13 @@ export async function GET(request: NextRequest) {
 
   const identity = identityFromIdToken(exchange.idToken);
   if (!identity) return back("error=exchange");
+
+  // One Google account, one Marshee link: two links would push every event twice.
+  try {
+    if (await isGoogleAccountLinkedByAnother(identity.sub, user.userId)) return back("error=already-linked");
+  } catch {
+    return back("error=google");
+  }
 
   let accountId: string;
   try {
