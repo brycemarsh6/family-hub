@@ -1317,6 +1317,11 @@ model LinkedCalendar {
   /// The last pull that worked; drives "Last checked" on Synced calendars.
   lastPulledOkAt DateTime?
 
+  /// When this link was last turned on from "off". The one-link race check
+  /// reads it; the pull never writes it. Null for a link turned on before this
+  /// column existed (counts as on first) and for one that is off.
+  turnedOnAt DateTime?
+
   syncs        CalendarEventSync[]
   pulledEvents CalendarEvent[]     @relation("PulledEvents")
 
