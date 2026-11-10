@@ -91,6 +91,22 @@ tell when a rule's reason has expired.
   identical in kind to the timed block beside it. The precedent it rests on
   is the app's own: in Month the **cell** is the 44px target and the pills
   inside it are non-interactive.)*
+- **Sizes are rem, not px, so Text size reaches them (mission-58).** Text,
+  spacing, tap targets and any chrome dimension written into a `style` are
+  rem (Tailwind's scale, or an arbitrary value such as `text-[0.625rem]`),
+  because the Text size setting raises the root font size on wide screens
+  and a px value stays put while everything around it grows. Never write
+  `text-[Npx]`; convert as N/16 rem. Px on purpose, and only here: **(a)** the
+  hour timeline's geometry (hour height, event top and height), under the
+  hour-timeline exception above; **(b)** container thresholds that must not
+  move with Text size (`docs/structure/layout.md`, Wide pages rule 2);
+  **(c)** a number JavaScript needs, which is measured or derived from the
+  live root font size, never assumed to be 16 (a `_PX` constant may only seed
+  the first paint); **(d)** Lucide icons' `size` prop, which `globals.css`'s
+  Text size block scales with `zoom`; **(e)** hairline borders (1px, 2px).
+  *(Reason: Strange's mission-58 pass 1 found 17 files of px text staying
+  small while the page grew, and a px menu row covering every page's first
+  line. Captain's ruling; Bryce approved 2026-11-09.)*
 - **Quantities change only by tapping** — the shared `QuantityStepper` (+/−),
   never a typed number. Typing numbers is fiddly on a phone and worse on a
   wall tablet. (Prose is different: recipes and notes are keyboard entry —

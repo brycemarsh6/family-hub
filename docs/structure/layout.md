@@ -66,7 +66,8 @@ Wide pages: the
      never the window's, so this rule's reason holds. `COLUMN_MIN_WIDTH_PX`
      (2 columns from 768px, 3 from 1024px) is the only JavaScript home of
      those thresholds; the classes `@min-[48rem]:` and `@min-[64rem]:` are
-     their CSS mirror and change with them. A width threshold written as a
+     their CSS mirror at Normal text size and change with them. A width
+     threshold written as a
      number in a component, a read of `window.innerWidth` or `matchMedia`
      for layout, or CSS `columns` for a list of groups is a BLOCKER. The
      measured element holds no sheet, stays mounted in every state of its
@@ -82,6 +83,23 @@ Wide pages: the
      and Feedback (each picks its wide layout at `COLUMN_MIN_WIDTH_PX[3]`;
      Feedback because a sheet below that width and a panel above it is a
      choice JavaScript makes). (Captain's A-L4-1.)
+     **Container thresholds and Text size (mission-58).** A rem container
+     variant (`@min-[48rem]:`) follows the Text size setting, because a
+     container query's rem is the root font size: at Large it switches at
+     960px, at Extra large at 1152px, so bigger text gets fewer, wider
+     columns. That is the default and is intended. `COLUMN_MIN_WIDTH_PX` and
+     media queries do not move (a media query's rem is the browser default),
+     so at Large and Extra large a measured layout and its skeleton's
+     `@min-[…rem]:` mirror may differ by one column step; that is the known
+     cost, not a mirror to fix. A container threshold that must not move with
+     Text size, because the layout below it is the phone layout and a tablet
+     must keep its own at every size, is written in px with a comment at the
+     class naming mission-58 and why. Instances: `MonthCell.tsx`
+     (`@min-[768px]:`, the Month grid's lanes, pills and "+N more") and
+     `TimelineDayColumn.tsx` (`@min-[128px]:`, a narrow column's title size
+     and time line). A new px container threshold outside this list, or a
+     rem one put back in these two files, is a BLOCKER. (Added mission-58, on
+     Captain's ruling; Bryce approved 2026-11-09.)
   3. **A row never stretches past a readable width.** More columns, more
      panels or a wider grid; never one 1148px row. One exception: the
      recipe form's Title spans both columns, because Bryce's plan draws it
