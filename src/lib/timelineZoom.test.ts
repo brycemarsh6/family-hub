@@ -16,11 +16,13 @@ import {
   minuteUnderPoint,
   anchorScrollTop,
   showsTimeLine,
+  minHourHeightFor,
+  titleFitsFullSize,
 } from "./timelineZoom";
 
-test("range constants: 32 to 128 with a 48 default", () => {
+test("range constants: 32 to 192 with a 48 default", () => {
   assert.equal(MIN_HOUR_HEIGHT_PX, 32);
-  assert.equal(MAX_HOUR_HEIGHT_PX, 128);
+  assert.equal(MAX_HOUR_HEIGHT_PX, 192);
   assert.equal(DEFAULT_HOUR_HEIGHT_PX, 48);
 });
 
@@ -30,9 +32,10 @@ test("hourHeightKey: prefix plus the person id", () => {
 
 test("clampHourHeight: pins to the range and rescues non-finite numbers", () => {
   assert.equal(clampHourHeight(10), 32);
-  assert.equal(clampHourHeight(500), 128);
+  assert.equal(clampHourHeight(500), 192);
   assert.equal(clampHourHeight(80), 80);
   assert.equal(clampHourHeight(32), 32);
+  assert.equal(clampHourHeight(192), 192);
   assert.equal(clampHourHeight(128), 128);
   assert.equal(clampHourHeight(Number.NaN), 48);
   assert.equal(clampHourHeight(Number.POSITIVE_INFINITY), 48);
@@ -52,14 +55,14 @@ test("parseStoredHourHeight: a number is kept, or clamped into the range", () =>
   assert.equal(parseStoredHourHeight("96"), 96);
   assert.equal(parseStoredHourHeight("72.5"), 72.5);
   assert.equal(parseStoredHourHeight("5"), 32);
-  assert.equal(parseStoredHourHeight("9999"), 128);
+  assert.equal(parseStoredHourHeight("9999"), 192);
 });
 
 test("pinchHourHeight: fingers twice as far apart doubles the height, clamped", () => {
   assert.equal(pinchHourHeight(48, 100, 200), 96);
   assert.equal(pinchHourHeight(48, 100, 100), 48);
   assert.equal(pinchHourHeight(48, 100, 50), 32); // 24 clamps up to 32
-  assert.equal(pinchHourHeight(96, 100, 400), 128); // 384 clamps down to 128
+  assert.equal(pinchHourHeight(96, 100, 400), 192); // 384 clamps down to 192
   assert.equal(pinchHourHeight(48, 90, 100), 53.33); // rounded to 2 decimals
 });
 
@@ -113,4 +116,26 @@ test("showsTimeLine: a real 15-minute event shows the time only with 24px of roo
 
 test("showsTimeLine: zoomed out, a 45-minute event (24px at 32px/hour) is title only", () => {
   assert.equal(showsTimeLine(24, 45), false);
+});
+
+test("minHourHeightFor: the whole day fills the visible rail, never below 32", () => {
+  assert.equal(minHourHeightFor(681), 32); // phone rail: 28.4 rounds up to the minimum
+  assert.equal(minHourHeightFor(960), 40); // iPad rail
+  assert.equal(minHourHeightFor(0), 32);
+  assert.equal(minHourHeightFor(-50), 32);
+  assert.equal(minHourHeightFor(NaN), 32);
+});
+
+test("the floor lifts clamp and pinch, and the cap stays 192", () => {
+  assert.equal(clampHourHeight(32, 40), 40);
+  assert.equal(clampHourHeight(300, 40), 192);
+  assert.equal(pinchHourHeight(48, 100, 10, 40), 40); // pinching in stops at the floor
+  assert.equal(pinchHourHeight(96, 100, 400, 40), 192);
+});
+
+test("titleFitsFullSize: 20px and up keeps the normal title", () => {
+  assert.equal(titleFitsFullSize(19.9), false);
+  assert.equal(titleFitsFullSize(20), true);
+  assert.equal(titleFitsFullSize(16), false);
+  assert.equal(titleFitsFullSize(24), true);
 });

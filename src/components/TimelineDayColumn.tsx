@@ -36,7 +36,7 @@
 
 import { minutesOfDay, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
 import { formatTimeRange, isPast } from "@/lib/calendarDates";
-import { showsTimeLine } from "@/lib/timelineZoom";
+import { showsTimeLine, titleFitsFullSize } from "@/lib/timelineZoom";
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
 import type { CalendarEventView } from "@/lib/types";
@@ -194,7 +194,16 @@ export function TimelineDayColumn({
                 flex-shrink only touches the cross axis (height)
                 here, not the width truncation depends on. */}
             {/* @min-[128px] is px on purpose (mission-58): in rem it would move with Text size. */}
-            <span className={`block truncate font-semibold ${compact ? "text-[0.625rem] @min-[128px]:text-xs" : "text-xs"}`}>
+            {/* mission-64: under 20px tall the title takes a 12px line so it fits whole. */}
+            <span
+              className={`block truncate font-semibold ${
+                !titleFitsFullSize(heightPx)
+                  ? "text-[0.625rem] leading-[0.75rem]"
+                  : compact
+                    ? "text-[0.625rem] @min-[128px]:text-xs"
+                    : "text-xs"
+              }`}
+            >
               {event.title}
             </span>
             {/* The rule is the column's own width (D5, mission-46): a

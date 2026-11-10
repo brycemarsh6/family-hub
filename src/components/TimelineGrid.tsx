@@ -77,7 +77,7 @@
 // column, leaving real headroom rather than the one line C6 did. Same
 // discipline throughout: every class name, inline style, and comment
 // reproduced exactly, not rewritten — this is a line-count fix, not a
-// behaviour change. `HOURS_PER_DAY`/`PX_PER_MINUTE` are passed down as
+// behaviour change. `HOURS_PER_DAY`/`pxPerMinute` are passed down as
 // plain numbers rather than re-derived in the new file from a private copy
 // of the hour height, for the identical reason `gridTemplateColumns`
 // itself is a prop and not a second formula. This same contract also fixed
@@ -104,7 +104,8 @@ import { TimelineDayColumn } from "./TimelineDayColumn";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
 // The rail's own scale is LIVE (mission-64): `useTimelineZoom` returns the
-// hour height in px (32 to 128, default 48, changed by a two-finger pinch),
+// hour height in px (32 to 192, default 48, changed by a two-finger pinch,
+// never below the height at which the whole day fills the visible rail),
 // published below as the CSS custom property `--hour-height` so nothing else
 // in this file's markup repeats the raw number. At the default 48px/hour a
 // MIN_BLOCK_MINUTES (30 min, timelineLayout.ts) block draws 24px tall — see
@@ -206,12 +207,12 @@ export function TimelineGrid({
   const scrollerRef = useRef<HTMLDivElement>(null);
   // The hour rail, so the zoom can measure where it starts below the sticky header.
   const railRef = useRef<HTMLDivElement>(null);
-  const hourHeightPx = useTimelineZoom(viewerId, scrollerRef, railRef);
-  const pxPerMinute = hourHeightPx / 60;
   // mission-17/C7 (item 4) — a live DOM query, not React state, to avoid
   // the same-commit staleness the sizing effect's own imperative write
   // below already dodges the same way.
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const hourHeightPx = useTimelineZoom(viewerId, scrollerRef, railRef, stickyHeaderRef);
+  const pxPerMinute = hourHeightPx / 60;
   const columnDaysKey = columnDays.map((day) => day.getTime()).join(",");
 
   // --- Sizing: this component's own overflow-y-auto scroller, sized from

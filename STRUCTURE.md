@@ -717,6 +717,17 @@ amendment id.
   `columnDays` array is **not** an instance — those grids contain no foreign
   days, and routing them through this would be wrong.
   (Added 2026-09-09, mission-19/F1, on Captain's ruling; Bryce approved.) (Story: docs/history/structure-rationale.md, "Month grid today test: the DESIGN.md prediction".)
+- **The hour timeline's scale has one home.** `src/lib/timelineZoom.ts`
+  holds `DEFAULT_HOUR_HEIGHT_PX` (48), `MIN_HOUR_HEIGHT_PX` (32),
+  `MAX_HOUR_HEIGHT_PX` (192), the zoom maths (clamp, pinch, the whole-day
+  floor, the scroll anchor) and the block text rules (`showsTimeLine`,
+  `titleFitsFullSize`). `src/lib/useTimelineZoom.ts` is the only reader and
+  writer of the remembered zoom (localStorage, keyed per person) and the
+  only pinch listener. `TimelineGrid.tsx` turns the live height into
+  `pxPerMinute` once and passes it down; `--hour-height` is the only way
+  markup sees it. A second hour-height constant, a component working out its
+  own px per minute, or a second pinch listener is a BLOCKER. (Added
+  2026-11-10, mission-64, Captain's A-64-1; Bryce approved.)
 - **Month lane counts have one home.** `PHONE_LANES` (3) and `WIDE_LANES`
   (4) live in `src/lib/monthLayout.ts`. MonthGrid lays each row out once
   with `WIDE_LANES`; the phone's "+N more" is `phoneOverflowByDay` of that
