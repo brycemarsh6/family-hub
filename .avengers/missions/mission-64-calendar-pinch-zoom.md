@@ -1,7 +1,7 @@
 # Mission: Calendar pinch to zoom (hour timeline)
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** AT-THE-GATES
 **Started:** 2026-11-10 · **Updated:** 2026-11-10
 
 ## Brief
@@ -98,7 +98,7 @@ From AGENTS.md, absolute for every agent:
 
 ### C1 - Live, pinchable, remembered hour height on the timeline
 
-- **Status:** DISPATCHED
+- **Status:** DONE (commit 58f5c5e)
 - **Objective:** replace the fixed 48px hour with a live hour height that a
   two-finger pinch changes (32 to 128px, anchored at the pinch midpoint),
   saved per person per device, without breaking swipe-to-page.
@@ -172,7 +172,14 @@ From AGENTS.md, absolute for every agent:
   boundary changed; at 48px the timeline renders exactly as before
   (gridlines, labels, block positions, time-line rule); `TimelineGrid.tsx`
   stays under the 650 hard cap.
-- **Report:** pending.
+- **Report:** Stark DONE. New `src/lib/timelineZoom.ts` (pure helpers),
+  `src/lib/timelineZoom.test.ts` (15 tests), `src/lib/useTimelineZoom.ts`
+  (hook). `usePageSwipe.ts` gained pure `nextActivePointers` and
+  `pointerDownAction` (5 tests). Gauntlet green by his run: tests 1778 to
+  1798; UTC 1791 pass, 7 skipped (not compared with before); build ok.
+  TimelineGrid 526 lines. He ran `npx prisma generate` (no database) for a
+  stale local client. Out-of-range stored values are clamped, not reset.
+  No browser exercise of the pinch (cannot be faked with a mouse).
 
 ## Gate ledger
 
@@ -195,6 +202,8 @@ From AGENTS.md, absolute for every agent:
 
 - 2026-11-10: Bryce decided range (copy Google, 32 to 128px), remember per
   person and device, Day/3 Day/Week shared, short-event rule. C1 written.
+- 2026-11-10: C1 built and committed. Vision, Strange, Captain dispatched in
+  parallel (all read-only) against the commit after this log line.
 
 ## Delivery
 
