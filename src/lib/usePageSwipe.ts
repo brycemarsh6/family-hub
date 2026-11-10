@@ -147,6 +147,34 @@ export function nextSwallowNextClick(current: boolean, event: SwallowEvent): boo
   return true; // "lockToSwiping" always arms it
 }
 
+/**
+ * mission-64 (pinch to zoom). The ids of the pointers currently down, after
+ * one pointer goes down or comes up. Pure and exported for the same reason as
+ * the functions above. A PRIMARY pointer is always the first finger of a
+ * fresh gesture (a touch's first finger, or the mouse), so it resets the list
+ * first: a pointerup that never arrived can never leave a stale id behind
+ * that would make every later swipe yield.
+ */
+export function nextActivePointers(
+  ids: readonly number[],
+  event: "down" | "up",
+  pointerId: number,
+  isPrimary = true,
+): number[] {
+  if (event === "up") return ids.filter((id) => id !== pointerId);
+  const base = isPrimary ? [] : ids.filter((id) => id !== pointerId);
+  return [...base, pointerId];
+}
+
+/** What a pointerdown does, given the ids down INCLUDING this one (the
+ * result of `nextActivePointers`): `"start"` begins a gesture; `"yield"`
+ * means a second finger landed, so this is a pinch, not a swipe: the gesture stops being a
+ * page turn for the rest of its life and the new finger never restarts the
+ * start point. */
+export function pointerDownAction(idsDown: readonly number[]): "start" | "yield" {
+  return idsDown.length > 1 ? "yield" : "start";
+}
+
 /** Past this much horizontal travel, a released swipe pages. Deliberately
  * a plain constant rather than something derived from screen width or
  * SwipeActions' own `openWidth` math: this gesture has no live visual
@@ -209,11 +237,22 @@ export function usePageSwipe({
   // phase click handler to decide whether to swallow the click that
   // follows. Same shape as SwipeActions.tsx:89.
   const swallowNextClick = useRef(false);
+  // mission-64: the pointers currently down, so a second finger is noticed.
+  const activePointers = useRef<number[]>([]);
 
   function handlePointerDown(event: React.PointerEvent) {
     // Mouse right/middle click has no business starting a page-swipe —
     // same guard as SwipeActions.tsx:93.
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    // mission-64: a second finger means a pinch. Yield for the rest of this
+    // gesture and leave its start point (and the swallow flag) alone. The
+    // reset for a fresh first finger below it stays reachable: a primary
+    // pointer empties the list, so it always lands on "start".
+    activePointers.current = nextActivePointers(activePointers.current, "down", event.pointerId, event.isPrimary);
+    if (pointerDownAction(activePointers.current) === "yield") {
+      mode.current = "scrolling";
+      return;
+    }
     if (isGestureClaimed?.()) return; // CD1 seam — never even enters "undecided"
     // mission-19/F1: a NEW gesture starting always clears whatever the
     // PREVIOUS gesture left behind — see nextSwallowNextClick's own
@@ -264,7 +303,11 @@ export function usePageSwipe({
     offsetRef.current = dx;
   }
 
-  function endGesture() {
+  function endGesture(event: React.PointerEvent) {
+    activePointers.current = nextActivePointers(activePointers.current, "up", event.pointerId);
+    // A finger is still down (the other half of a pinch): the gesture is not
+    // over, and it already yielded, so there is nothing to release.
+    if (activePointers.current.length > 0) return;
     if (mode.current === "swiping") {
       const direction = resolveSwipeDirection(offsetRef.current, SWIPE_PAGE_THRESHOLD_PX);
       if (direction === "left") onSwipeLeft();

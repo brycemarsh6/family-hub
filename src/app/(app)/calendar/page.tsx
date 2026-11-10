@@ -162,6 +162,7 @@ export default async function CalendarPage({
           canManage={canManage}
           windowStart={windowStart}
           windowEnd={windowEnd}
+          viewerId={user?.userId ?? null}
         />
       </CalendarPullProvider>
     </div>

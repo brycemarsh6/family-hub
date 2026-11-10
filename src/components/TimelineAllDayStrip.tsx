@@ -203,7 +203,7 @@ export function TimelineAllDayStrip({
       // own MIN_BLOCK_MINUTES floor — Strange's ruling on the 24px timed
       // block explicitly does NOT cover this row too: a timed block's 24px
       // is defended by its real duration (MIN_BLOCK_MINUTES x
-      // HOUR_HEIGHT_PX), and this bar has no duration to be faithful to at
+      // the default 48px hour), and this bar has no duration to be faithful to at
       // all — `18px` was a free constant, not arithmetic, so it gets no
       // such defense and is raised to match rather than kept shorter for
       // no reason.
