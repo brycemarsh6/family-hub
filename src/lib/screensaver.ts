@@ -201,5 +201,8 @@ export const SCREENSAVER_WORDS = {
   backToBlack: "Back to black after",
   backToBlackHelp:
     "When someone taps the tablet at night, how long with no taps before it goes black again.",
+  wakeLabel: "Wake Marshee",
+  minUnit: "min",
+  secUnit: "sec",
   saveFailed: "That didn't save. Check your connection and try again.",
 } as const;

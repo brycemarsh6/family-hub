@@ -109,8 +109,8 @@ export function WallTabletSettings({
       <section className="mt-6">
         <h2 className="text-lg font-semibold">{SCREENSAVER_WORDS.slideshowSection}</h2>
         <div className={CARD_CLASSES}>
-          {ladderRow("startAfterMinutes", SCREENSAVER_WORDS.startAfter, START_AFTER_STEPS, "min")}
-          {ladderRow("secondsPerPhoto", SCREENSAVER_WORDS.eachPhoto, SECONDS_PER_PHOTO_STEPS, "sec")}
+          {ladderRow("startAfterMinutes", SCREENSAVER_WORDS.startAfter, START_AFTER_STEPS, SCREENSAVER_WORDS.minUnit)}
+          {ladderRow("secondsPerPhoto", SCREENSAVER_WORDS.eachPhoto, SECONDS_PER_PHOTO_STEPS, SCREENSAVER_WORDS.secUnit)}
           <Link
             href="/settings/slideshow"
             className={`${ROW_CLASSES} rounded-b-xl transition-colors active:bg-surface-2`}
@@ -139,7 +139,7 @@ export function WallTabletSettings({
           {switchRow("sleepEnabled", SCREENSAVER_WORDS.sleepEnabled)}
           {sleepRow("sleepStartMinute", SCREENSAVER_WORDS.sleepFrom)}
           {sleepRow("sleepEndMinute", SCREENSAVER_WORDS.sleepUntil)}
-          {ladderRow("backToBlackMinutes", SCREENSAVER_WORDS.backToBlack, BACK_TO_BLACK_STEPS, "min", sleepOff)}
+          {ladderRow("backToBlackMinutes", SCREENSAVER_WORDS.backToBlack, BACK_TO_BLACK_STEPS, SCREENSAVER_WORDS.minUnit, sleepOff)}
         </div>
         <p className="mt-2 text-sm text-muted">{SCREENSAVER_WORDS.backToBlackHelp}</p>
       </section>

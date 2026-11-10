@@ -8,7 +8,7 @@ import { addSlideshowPhoto, deleteSlideshowPhoto, updateSlideshowCaption } from 
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
 import { calendarDateInZone, formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { shrinkPhoto } from "@/lib/shrinkPhoto";
-import { normalizeCaption } from "@/lib/slideshowPhotos";
+import { normalizeCaption, slideshowImageUrl } from "@/lib/slideshowPhotos";
 import type { SlideshowPhotoItem } from "@/lib/slideshowRead";
 
 /** 3 across on a phone, more as the page's own width grows (container variants, never screen breakpoints). */
@@ -195,7 +195,7 @@ export function SlideshowPhotosManager({ initialPhotos }: { initialPhotos: Slide
                 {/* A plain img: the route needs the login cookie, which the image optimizer would not send. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`/api/slideshow/${photo.id}/image?size=thumb`}
+                  src={slideshowImageUrl(photo.id, "thumb")}
                   alt={altText(photo)}
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover"

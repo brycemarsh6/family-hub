@@ -137,7 +137,7 @@ test("screensaverState: sleep hours", () => {
 });
 
 test("screensaverState: Denver DST nights, chosen so a UTC mistake fails", () => {
-  // 2026-03-08 spring forward: 02:00 MST becomes 03:00 MDT. 10 PM MDT on Mar 7 is 05:00Z Mar 8 (MST: 22:00 = 05:00Z).
+  // 2026-03-08 spring forward: 02:00 MST becomes 03:00 MDT. 10 PM MST on Mar 7 is 05:00Z Mar 8 (MST is UTC-7).
   assert.equal(stateAt(new Date(Date.UTC(2026, 2, 8, 4, 59)), 600), "slideshow"); // 9:59 PM MST
   assert.equal(stateAt(new Date(Date.UTC(2026, 2, 8, 5, 0)), 600), "sleep"); // 10:00 PM MST
   // 6 AM on Mar 8 is MDT (UTC-6): 12:00Z. 11:59Z is 5:59 AM MDT.

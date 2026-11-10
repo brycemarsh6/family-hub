@@ -125,7 +125,7 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Report:** DONE (Stark): host with capture-phase tap listeners, 1-second tick, fresh `loadScreensaverShow()` before leaving awake (retry no sooner than 60 s), portal at `z-[100]` above the drawer's `z-[60]`, wake only on the overlay's own click; `ScreensaverSlide.tsx` two-layer 1-second crossfade with preload and `decode()`. Fury re-ran C2 and C3 together 2026-11-09: tsc 0, eslint 0, `npm test` 1634 pass, UTC 1634 tests 0 fail, `npm run build` 0 with `/settings/wall-tablet` in the route list.
 
 ### C5 — Gate pass 1 fix batch
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** Clear Vision's and Captain's pass-1 blockers and the notes Fury took, in one dispatch.
 - **Boundaries:** may touch: `src/components/ScreensaverHost.tsx`, `src/components/ScreensaverSlide.tsx`, new `src/app/(app)/settings/wall-tablet/loading.tsx`, `src/components/WallTabletSettings.tsx`, `src/lib/screensaver.ts` (`SCREENSAVER_WORDS` only), `src/lib/screensaver.test.ts` (one comment), `src/lib/slideshowPhotos.ts` and `src/lib/slideshowPhotos.test.ts` (add `slideshowImageUrl` and its test), `src/components/SlideshowPhotoSheet.tsx` and `src/components/SlideshowPhotosManager.tsx` (use `slideshowImageUrl` only). Must not touch: everything else.
 - **Blockers:**
@@ -140,7 +140,7 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Verification:** the gauntlet, all five commands.
 - **Evidence required:** the new refresh and auto-close code quoted; how each of Vision's scenarios A and B now ends, traced through the code; gauntlet last lines; `grep -rn "api/slideshow/" src/components` (empty); `git diff --stat`.
 - **Done criteria:** Vision and Captain pass 2 both PASS.
-- **Report:** (pending)
+- **Report:** DONE (Stark); Fury re-ran 2026-11-09: tsc 0, eslint 0, `npm test` 1635 pass, UTC 1635 tests 0 fail, `npm run build` exit 0 (captured directly; Stark's was piped). Host now refreshes at most once a minute while idle a minute or while showing, decides with the fresh data, closes a shown overlay by itself when the rule says awake, and treats a load still pending after 15 s as a failure. `slideshowImageUrl` adopted in three components; `grep -rn "api/slideshow/" src/components` empty.
 
 ### C4 — Records (Fury)
 - Mission 57's Delivery "Shipped check" line; STRUCTURE.md entry for the screensaver (Captain's wording, Bryce's yes); CLAUDE.md "What's built" line; `.avengers/status.md` tablet check; this file's Delivery.

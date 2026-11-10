@@ -9,6 +9,7 @@ import {
   pickNextPhoto,
   type ScreensaverSettings,
 } from "@/lib/screensaver";
+import { slideshowImageUrl } from "@/lib/slideshowPhotos";
 import type { SlideshowShowItem } from "@/lib/slideshowRead";
 
 const CROSSFADE_CLASSES = "transition-opacity duration-1000 ease-in-out";
@@ -17,15 +18,11 @@ const RETRY_AFTER_ALL_FAILED_MS = 30_000;
 
 type Slots = { a: SlideshowShowItem | null; b: SlideshowShowItem | null; active: "a" | "b" };
 
-function photoUrl(id: string) {
-  return `/api/slideshow/${id}/image`;
-}
-
 /** Loads and decodes the image so the crossfade never starts on a half-drawn photo. */
 async function preload(id: string): Promise<boolean> {
   try {
     const image = new Image();
-    image.src = photoUrl(id);
+    image.src = slideshowImageUrl(id);
     await image.decode();
     return true;
   } catch {
@@ -54,13 +51,13 @@ function PhotoLayer({
     <div className={`absolute inset-0 ${CROSSFADE_CLASSES} ${visible ? "opacity-100" : "opacity-0"}`}>
       {/* eslint-disable-next-line @next/next/no-img-element -- a private, authenticated image route; next/image's optimiser would not carry the login */}
       <img
-        src={photoUrl(photo.id)}
+        src={slideshowImageUrl(photo.id)}
         alt=""
         className="absolute inset-0 h-full w-full scale-125 object-cover blur-2xl brightness-50"
       />
       {/* eslint-disable-next-line @next/next/no-img-element -- same private route */}
       <img
-        src={photoUrl(photo.id)}
+        src={slideshowImageUrl(photo.id)}
         alt={photo.caption ?? ""}
         className="absolute inset-0 h-full w-full object-contain"
       />
