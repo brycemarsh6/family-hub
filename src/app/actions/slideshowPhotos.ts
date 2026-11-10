@@ -10,7 +10,6 @@ import { revalidatePath } from "next/cache";
 
 import { MANAGER_ROLES } from "@/lib/constants";
 import { getVerifiedUser } from "@/lib/dal";
-import { db } from "@/lib/db";
 import { deleteSlideshowFiles, putSlideshowFile } from "@/lib/slideshowBlob";
 import {
   CAPTION_MAX,
@@ -22,7 +21,8 @@ import {
   photoPaths,
   toDimension,
 } from "@/lib/slideshowPhotos";
-import { SLIDESHOW_PHOTO_SELECT, loadSlideshowPhotoPaths, type SlideshowPhotoItem } from "@/lib/slideshowRead";
+import { loadSlideshowPhotoPaths, type SlideshowPhotoItem } from "@/lib/slideshowRead";
+import { createSlideshowPhotoRow, deleteSlideshowPhotoRow, updateSlideshowCaptionRow } from "@/lib/slideshowWrites";
 
 export type AddSlideshowPhotoResult =
   | { ok: true; photo: SlideshowPhotoItem }
@@ -87,18 +87,15 @@ export async function addSlideshowPhoto(formData: FormData): Promise<AddSlidesho
 
   let created: SlideshowPhotoItem;
   try {
-    created = await db.slideshowPhoto.create({
-      data: {
-        id,
-        photoPath,
-        thumbPath,
-        width,
-        height,
-        takenOn,
-        uploadedById: user.userId,
-        uploadedByName: user.displayName,
-      },
-      select: SLIDESHOW_PHOTO_SELECT,
+    created = await createSlideshowPhotoRow({
+      id,
+      photoPath,
+      thumbPath,
+      width,
+      height,
+      takenOn,
+      uploadedById: user.userId,
+      uploadedByName: user.displayName,
     });
   } catch (error) {
     console.error("Slideshow photo save failed", error);
@@ -133,8 +130,8 @@ export async function updateSlideshowCaption(id: string, caption: string): Promi
   }
 
   try {
-    const result = await db.slideshowPhoto.updateMany({ where: { id }, data: { caption: clean } });
-    if (result.count === 0) return { ok: false, error: "That photo isn't there any more." };
+    const count = await updateSlideshowCaptionRow(id, clean);
+    if (count === 0) return { ok: false, error: "That photo isn't there any more." };
   } catch (error) {
     console.error("Slideshow caption save failed", error);
     return { ok: false, error: "The caption didn't save. Please try again." };
@@ -154,7 +151,7 @@ export async function deleteSlideshowPhoto(id: string): Promise<SlideshowPhotoRe
   try {
     paths = await loadSlideshowPhotoPaths(id);
     if (!paths) return { ok: true };
-    await db.slideshowPhoto.deleteMany({ where: { id } });
+    await deleteSlideshowPhotoRow(id);
   } catch (error) {
     console.error("Slideshow photo delete failed", error);
     return { ok: false, error: "That photo didn't delete. Please try again." };

@@ -109,6 +109,9 @@ files named beside it.
   caption and delete family photos for the wall-tablet screensaver. Stored
   in private Vercel Blob (prod store Production only, dev store Preview and
   Development). Rules: STRUCTURE.md "Slideshow photos".
+- **Screensaver** (Tablet login only): an idle photo slideshow, black in
+  sleep hours; a tap only wakes it. Settings `/settings/wall-tablet`, rules
+  `src/lib/screensaver.ts`, structure in `docs/structure/slideshow.md`.
 - **Kitchen**:
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
@@ -229,9 +232,8 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
 
-- **Screensaver S2** (the wall-tablet slideshow, sleep mode) is next:
-  `.avengers/plans/screensaver-slideshow-v1.md`. A long new STRUCTURE.md
-  entry for it goes in a `docs/structure/` companion file (mission 59).
+- **Screensaver S3** ("Open Marshee on" start page) is next:
+  `.avengers/plans/screensaver-slideshow-v1.md`; read mission 62's Delivery.
 - **Dashboard widgets W3** is next after the W2 Calendar widget:
   `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the

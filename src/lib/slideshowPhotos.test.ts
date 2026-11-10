@@ -11,6 +11,7 @@ import {
   isTakenOn,
   normalizeCaption,
   photoPaths,
+  slideshowImageUrl,
   toDimension,
 } from "./slideshowPhotos";
 
@@ -86,6 +87,11 @@ test("photoPaths names the photo and its thumbnail", () => {
     photoPath: "slideshow/abc-123.jpg",
     thumbPath: "slideshow/abc-123-thumb.jpg",
   });
+});
+
+test("slideshowImageUrl builds the full and thumbnail routes", () => {
+  assert.equal(slideshowImageUrl("abc-123"), "/api/slideshow/abc-123/image");
+  assert.equal(slideshowImageUrl("abc-123", "thumb"), "/api/slideshow/abc-123/image?size=thumb");
 });
 
 test("toDimension accepts whole numbers 1 to 8192", () => {

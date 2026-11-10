@@ -127,10 +127,11 @@ Wide pages: the
   `<SkeletonPage wide />` (or its own skeleton with the attribute on its
   root); the shared `(app)/loading.tsx` stays narrow and now serves only
   `/lists` and `/login`; the recipe print page keeps its own plain
-  skeleton. A short page counts as wide here (A-L6-8). `profile/loading.tsx`
-  and `kitchen/cooking/recipes/new/loading.tsx` are their own skeletons: the
+  skeleton. A short page counts as wide here (A-L6-8). `profile/loading.tsx`,
+  `settings/wall-tablet/loading.tsx` and
+  `kitchen/cooking/recipes/new/loading.tsx` are their own skeletons: the
   `data-page-width="wide"` root, then `SkeletonHeader` and `SkeletonList`
-  inside `NARROW_PAGE_CLASSES`. `settings/loading.tsx` renders
+  (Wall tablet has three, one per section) inside `NARROW_PAGE_CLASSES`. `settings/loading.tsx` renders
   `<SkeletonPage wide>` with two lists in `TWO_COLUMN_CLASSES` inside a
   container, and it also covers Manage family, which has the same two
   columns. `settings/feedback/loading.tsx` renders `<SkeletonPage wide>`
@@ -172,7 +173,7 @@ Wide pages: the
   print page. The long forms are New and Edit habit, New and Edit goal, New
   and Edit event, and the manual recipe form with recipe Edit. The short
   pages are New task, the Add recipe chooser, the paste, link and photo
-  imports, and Profile. Settings, Manage family, Feedback and Slideshow
+  imports, Profile, and Wall tablet (mission-62). Settings, Manage family, Feedback and Slideshow
   photos (mission-57) are wide too.
   Containers: each long form's `<form>` (`HabitForm`, `GoalForm`,
   `EventForm`, `RecipeForm`), with the grid as its child because a

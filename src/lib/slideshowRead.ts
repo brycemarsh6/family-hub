@@ -49,3 +49,19 @@ export async function loadSlideshowPhotoPaths(
 export async function countSlideshowPhotos(): Promise<number> {
   return db.slideshowPhoto.count();
 }
+
+export type SlideshowShowItem = {
+  id: string;
+  width: number;
+  height: number;
+  caption: string | null;
+  takenOn: string | null;
+};
+
+/** What the tablet's slideshow needs per photo (oldest first, the shuffle reorders it). */
+export async function listSlideshowShowItems(): Promise<SlideshowShowItem[]> {
+  return db.slideshowPhoto.findMany({
+    orderBy: { createdAt: "asc" },
+    select: { id: true, width: true, height: true, caption: true, takenOn: true },
+  });
+}
