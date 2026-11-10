@@ -686,7 +686,9 @@ Adding a second definition of any of these is a BLOCKER:
   `PHOTO_MAX_BYTES`, `THUMB_MAX_BYTES`, `PHOTO_LONG_EDGE`,
   `THUMB_LONG_EDGE`, `PHOTO_TYPE`, `normalizeCaption` (the only caption
   cleaner), `isTakenOn`, `photoPaths` (the only builder of a stored
-  pathname) and `toDimension`. `src/lib/exifDate.ts` (pure) is the only
+  pathname), `slideshowImageUrl` (the only builder of the image route's
+  URL, `/api/slideshow/{id}/image`, with `?size=thumb` for the small copy)
+  and `toDimension`. `src/lib/exifDate.ts` (pure) is the only
   EXIF reader. `src/lib/shrinkPhoto.ts` (`client-only`) is the only
   in-browser photo shrink. `src/lib/slideshowBlob.ts` (`server-only`, no
   auth, never a `token` option) is the only importer of `@vercel/blob`;
@@ -694,10 +696,15 @@ Adding a second definition of any of these is a BLOCKER:
   route (get), each carrying its own gate. `src/lib/slideshowRead.ts`
   (`server-only`, no auth) is the only reader of `SlideshowPhoto` and owns
   `SLIDESHOW_PHOTO_SELECT`; its list never carries the stored paths.
+  `src/lib/slideshowWrites.ts` (`server-only`, no auth, no
+  `revalidatePath`: `createSlideshowPhotoRow`, `updateSlideshowCaptionRow`,
+  `deleteSlideshowPhotoRow`) holds the only writes to `SlideshowPhoto`.
   `addSlideshowPhoto`, `updateSlideshowCaption` and `deleteSlideshowPhoto`
-  (guard form a, `MANAGER_ROLES`) are the only writers; if a second caller
-  appears (a Winnie route, the tablet's slideshow), the writes move into
-  `src/lib/slideshowWrites.ts` first. The bytes go out through
+  (guard form a, `MANAGER_ROLES`) call them and keep their own gates, the
+  Blob calls and `revalidatePath`; a Winnie route would be a second caller
+  with its own gate (mission-58). `listSlideshowShowItems` in
+  `slideshowRead.ts` is the tablet's narrow list (id, size, caption, taken
+  date; never the paths). The bytes go out through
   `src/app/api/slideshow/[id]/image/route.ts` alone. **`SlideshowPhoto`
   has no Prisma relation to `User` on purpose** (the `Feedback`
   precedent): `uploadedById` is a plain id and `uploadedByName` a
@@ -705,6 +712,37 @@ Adding a second definition of any of these is a BLOCKER:
   that first confirms no `uploadedById` lacks a `User` row. A second
   reader, writer, Blob importer or caption cleaner is a BLOCKER. (Added
   mission-57, on Captain's ruling, Bryce-approved.)
+- **Screensaver (mission-58).** `src/lib/screensaver.ts` (pure; imports
+  only `constants.ts`, `householdDate.ts`, `mealPlanDates.ts`) is the only
+  home of the `ScreensaverSettings` type, `SCREENSAVER_DEFAULTS`, the step
+  lists (`START_AFTER_STEPS`, `SECONDS_PER_PHOTO_STEPS`,
+  `BACK_TO_BLACK_STEPS`, `SLEEP_MINUTE_STEP`) with `stepLadder` and
+  `stepSleepMinute`, the row cleaner `toScreensaverSettings`, the save
+  validator `parseScreensaverField`, `isSleepTime`, the screen rule
+  `screensaverState`, the shuffle `pickNextPhoto`, the formatters
+  `formatSleepMinute`, `formatScreensaverDate` and `formatTakenOn`, and
+  `SCREENSAVER_WORDS`. Every screensaver word, the overlay's `aria-label`
+  and the stepper units included, is in `SCREENSAVER_WORDS`; components
+  never type them. `src/lib/screensaverRead.ts` (`server-only`, no auth) is
+  the only reader of `ScreensaverSettings`; a missing row reads as the
+  defaults. `saveScreensaverSetting` (`actions/screensaver.ts`, guard form
+  a, `MANAGER_ROLES`, never a device) is the only writer; if a second
+  caller appears (a Winnie route), the write moves into
+  `src/lib/screensaverWrites.ts` first. `loadScreensaverShow` (guard form
+  a, device logins only, `null` on refusal) is the tablet's only fresh
+  read. The `(app)` layout reads the settings for a device login alone,
+  and only `AppChrome` mounts `ScreensaverHost`. Its overlay is portaled
+  to `document.body` after mount, above the drawer. Its clock and date
+  lines use `formatHouseholdClock` and `formatScreensaverDate` with
+  `HOUSEHOLD_TIME_ZONE` in the browser on purpose: the tablet shows Denver
+  whatever its own zone. `ScreensaverSlide` builds image URLs only with
+  `slideshowImageUrl`. `ScreensaverSettings` has no relation to `User`
+  (`updatedById` is a plain id, the `SlideshowPhoto` precedent). A second
+  reader, writer, state rule, shuffle or step list is a BLOCKER. (Added
+  mission-58, on Captain's ruling, Bryce-approved.)
+- `QuantityStepper` (counts by one) and `LadderStepper` (moves along a
+  fixed list, shows text it is given) are the only −/+ steppers; a third
+  is a BLOCKER. (Added mission-58, on Captain's ruling, Bryce-approved.)
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,
@@ -728,8 +766,9 @@ Adding a second definition of any of these is a BLOCKER:
   BLOCKER. (Added mission-36; reworded mission-52, Captain's A-L4-6.)
   `formatHouseholdClock(instant, timeZone, { dropZeroMinutes })` is the repo's only
   household-zone clock formatter: a plain ASCII space before AM/PM and, on
-  request, no `:00`. `hourInZone(instant, timeZone)` beside it is the only
-  zone-explicit wall-clock hour reader (server code; browser-local reads stay
+  request, no `:00`. `hourInZone(instant, timeZone)` and
+  `minuteOfDayInZone(instant, timeZone)` beside it are the only
+  zone-explicit wall-clock readers (server code; browser-local reads stay
   in `calendarDates.ts` / `timelineLayout.ts`). A copy elsewhere is a
   BLOCKER. (A-48-3, Hill
   approved.) (Story: docs/history/structure-rationale.md, "Household date helpers: where the clock formatter came from".)
@@ -1227,10 +1266,11 @@ Adding a second definition of any of these is a BLOCKER:
   `<SkeletonPage wide />` (or its own skeleton with the attribute on its
   root); the shared `(app)/loading.tsx` stays narrow and now serves only
   `/lists` and `/login`; the recipe print page keeps its own plain
-  skeleton. A short page counts as wide here (A-L6-8). `profile/loading.tsx`
-  and `kitchen/cooking/recipes/new/loading.tsx` are their own skeletons: the
+  skeleton. A short page counts as wide here (A-L6-8). `profile/loading.tsx`,
+  `settings/wall-tablet/loading.tsx` and
+  `kitchen/cooking/recipes/new/loading.tsx` are their own skeletons: the
   `data-page-width="wide"` root, then `SkeletonHeader` and `SkeletonList`
-  inside `NARROW_PAGE_CLASSES`. `settings/loading.tsx` renders
+  (Wall tablet has three, one per section) inside `NARROW_PAGE_CLASSES`. `settings/loading.tsx` renders
   `<SkeletonPage wide>` with two lists in `TWO_COLUMN_CLASSES` inside a
   container, and it also covers Manage family, which has the same two
   columns. `settings/feedback/loading.tsx` renders `<SkeletonPage wide>`
@@ -1272,7 +1312,7 @@ Adding a second definition of any of these is a BLOCKER:
   print page. The long forms are New and Edit habit, New and Edit goal, New
   and Edit event, and the manual recipe form with recipe Edit. The short
   pages are New task, the Add recipe chooser, the paste, link and photo
-  imports, and Profile. Settings, Manage family, Feedback and Slideshow
+  imports, Profile, and Wall tablet (mission-58). Settings, Manage family, Feedback and Slideshow
   photos (mission-57) are wide too.
   Containers: each long form's `<form>` (`HabitForm`, `GoalForm`,
   `EventForm`, `RecipeForm`), with the grid as its child because a
