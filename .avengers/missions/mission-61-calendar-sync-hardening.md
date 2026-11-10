@@ -1,7 +1,7 @@
 # Mission 61: Calendar sync PR 3 hardening (Google to Marshee follow-ups)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** AT-THE-GATES (pass 2)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 Source: `.avengers/status.md`, "Open, not scheduled", the "Google to Marshee
@@ -141,10 +141,40 @@ C1, C2 and C3 have disjoint boundaries and run in parallel.
 - **Evidence required:** before and after counts, `wc -l` of each file.
 - **Done criteria:** same count, every file under 300 lines.
 
+### C4 - fix batch after gate pass 1
+- **Status:** DONE
+- **Boundaries:** may touch: new `src/lib/testing/calendarPullRunHarness.ts`,
+  `src/lib/calendarPullRun.test.ts`, `src/lib/calendarPullRunWrites.test.ts`,
+  `src/app/actions/linkedCalendars.ts`, `src/lib/linkedCalendarWrites.ts`,
+  `src/lib/calendarSyncRules.ts`, `src/lib/calendarSyncRules.test.ts`,
+  `src/lib/calendarEventQuery.ts` (one comment). Must not touch anything
+  else. Fury edits `docs/structure/calendar-sync.md` himself.
+- **Design:**
+  1. Captain BLOCKER: move `NOW`, `CAL`, `EMPTY_KNOWN`, `gEvent`, `type Fake`
+     and `fake` unchanged into the new harness (header: the fake pull steps
+     shared by the two pull-run test files, not itself a test file, nothing
+     reaches the network or a database). Both test files import them.
+  2. Vision NOTE: in the action's catch, `console.error` a fixed message with
+     the calendar id only (no error object, no Google ids, no tokens).
+  3. Vision NOTE: `sourceIsSibling` becomes "the event's source is this
+     row's own `linkedCalendarId`" (rename the field to `isSourceRow` if
+     clearer); select the sibling row's `linkedCalendarId`. Update the type
+     doc, the planHandover doc and the tests (drop the impossible
+     combination; keep the twin tests failing if the rule is reverted).
+  4. Vision NOTE: fix the stale "(the view keeps the name)" comment in
+     `calendarEventQuery.ts`.
+- **Verification:** the Gauntlet (not build; Fury runs it); pull-run files
+  still 23 tests; suite count reported.
+- **Evidence required:** outputs, `wc -l`, diff stat.
+- **Done criteria:** no duplicated fake block (`diff` of the two test
+  headers' setup gone); every file under 300 lines.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | PASS | none | bare catch logs nothing; rollback write itself could throw (two failures); `sourceIsSibling` true for every sibling row; read-then-write stamp not atomic (harmless); stale comment in calendarEventQuery.ts |
+| 1 | Captain | BLOCKED | duplicated 56-line fake block in the two pull-run test files (rule: shared fakes live in `src/lib/testing/`) | naming and headers comply; migration additive and ordered; companion `calendar-sync.md` wording for `EVENT_SYNC_SELECT` and `turnedOnAt`; screensaver migration on dev dated 20261116 should restamp after 20261118 |
 
 ## Handoff log
 
@@ -160,6 +190,13 @@ C1, C2 and C3 have disjoint boundaries and run in parallel.
   parallel screensaver chat. `prisma migrate deploy` to dev was refused by
   the auto mode safety check: not applied to dev, asked Bryce. Production
   applies it in the Vercel build on merge.
+- 2026-11-09: gate pass 1: Vision PASS (notes), Captain BLOCKED (duplicated
+  fakes). C4 fix batch DONE: `src/lib/testing/calendarPullRunHarness.ts`
+  (64 lines), test files 151 and 160 lines (23 tests), catch logs the
+  calendar id, `HandoverRow.isSourceRow` (event source is the row's own
+  link), stale comment fixed. Fury amended `docs/structure/calendar-sync.md`
+  (EVENT_SYNC_SELECT wording, `turnedOnAt` single writer, pull-run harness),
+  marked "for Bryce to review". Gauntlet 1754 / 1754 UTC (7 skipped), build ok.
 
 ## Delivery
 

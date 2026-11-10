@@ -119,11 +119,11 @@ export function canTurnOn(others: { direction: SyncDirection }[]): boolean {
 export type HandoverTargetRow = { id: string; eventId: string };
 
 /**
- * A sync row of an off sibling link. `sourceIsSibling` is true when the
- * event's source calendar (`sourceLinkedCalendarId`) is one of the siblings,
- * so this row points at the original Google event.
+ * A sync row of an off sibling link. `isSourceRow` is true when the event's
+ * source calendar (`sourceLinkedCalendarId`) is this row's own link, so this
+ * row points at the original Google event.
  */
-export type HandoverRow = { id: string; eventId: string; sourceIsSibling: boolean };
+export type HandoverRow = { id: string; eventId: string; isSourceRow: boolean };
 
 /**
  * A handover (Bryce, 2026-11-09, answer 9): a calendar is turned on while
@@ -144,7 +144,7 @@ export function planHandover(
   // Events whose target row is a twin, with the sibling row that replaces it.
   const originals = new Map<string, string>();
   for (const row of siblingRows) {
-    if (row.sourceIsSibling && targetEvents.has(row.eventId) && !originals.has(row.eventId)) {
+    if (row.isSourceRow && targetEvents.has(row.eventId) && !originals.has(row.eventId)) {
       originals.set(row.eventId, row.id);
     }
   }

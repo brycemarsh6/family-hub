@@ -204,7 +204,7 @@ describe("canTurnOn (one link per Google calendar)", () => {
 });
 
 describe("planHandover (a handover between two links of one Google calendar)", () => {
-  const sib = (id: string, eventId: string, sourceIsSibling = false) => ({ id, eventId, sourceIsSibling });
+  const sib = (id: string, eventId: string, isSourceRow = false) => ({ id, eventId, isSourceRow });
   const tgt = (id: string, eventId: string) => ({ id, eventId });
 
   it("moves every sibling row when the new calendar has none", () => {
@@ -226,14 +226,14 @@ describe("planHandover (a handover between two links of one Google calendar)", (
     assert.deepEqual(planHandover([tgt("t1", "e1")], []), { move: [], drop: [] });
   });
 
-  it("keeps the sibling row and drops the target row (a twin) when the event came from the sibling", () => {
+  it("keeps the sibling row and drops the target row (a twin) when the sibling row is the event's source", () => {
     const plan = planHandover([tgt("t1", "e1")], [sib("s1", "e1", true), sib("s2", "e2")]);
     assert.deepEqual(plan, { move: ["s1", "s2"], drop: ["t1"] });
   });
 
-  it("moves the first source sibling row of a twin event and drops the other sibling rows", () => {
-    const plan = planHandover([tgt("t1", "e1")], [sib("s0", "e1"), sib("s1", "e1", true), sib("s2", "e1", true)]);
-    assert.deepEqual(plan, { move: ["s1"], drop: ["t1", "s0", "s2"] });
+  it("moves the source sibling row of a twin event and drops the target row and the other sibling row", () => {
+    const plan = planHandover([tgt("t1", "e1")], [sib("s0", "e1"), sib("s1", "e1", true)]);
+    assert.deepEqual(plan, { move: ["s1"], drop: ["t1", "s0"] });
   });
 
   it("moves a source sibling row as usual when the target has no row for the event", () => {

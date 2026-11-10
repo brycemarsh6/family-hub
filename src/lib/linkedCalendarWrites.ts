@@ -116,18 +116,17 @@ export async function adoptSiblingPulls(calendarId: string, siblingIds: string[]
       ? await tx.calendarEventSync.findMany({
           where: { linkedCalendarId: { in: siblingIds } },
           orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-          select: { id: true, eventId: true, event: { select: { sourceLinkedCalendarId: true } } },
+          select: { id: true, eventId: true, linkedCalendarId: true, event: { select: { sourceLinkedCalendarId: true } } },
         })
       : [];
-    // Read before the source update below: a row whose event was pulled from a sibling
-    // points at the original Google event, not at a "Marshee to Google" twin.
-    const siblingSet = new Set(siblingIds);
+    // Read before the source update below: a row whose event was pulled from its own
+    // link points at the original Google event, not at a "Marshee to Google" twin.
     const { move, drop } = planHandover(
       target,
       siblingRows.map((row) => ({
         id: row.id,
         eventId: row.eventId,
-        sourceIsSibling: row.event.sourceLinkedCalendarId !== null && siblingSet.has(row.event.sourceLinkedCalendarId),
+        isSourceRow: row.event.sourceLinkedCalendarId === row.linkedCalendarId,
       })),
     );
     if (siblingIds.length) {

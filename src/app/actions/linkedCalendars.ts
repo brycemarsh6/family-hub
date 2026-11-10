@@ -127,6 +127,7 @@ export async function setCalendarDirection(
     try {
       await adoptSiblingPulls(calendarId, offIds);
     } catch {
+      console.error("adoptSiblingPulls failed for calendar", calendarId);
       // The handover is one transaction, so nothing moved. Turn the calendar back off
       // rather than leave it on with the earlier link's events still unclaimed.
       await writeCalendarDirection(calendarId, "off");

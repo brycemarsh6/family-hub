@@ -91,7 +91,7 @@ export const CALENDAR_EVENT_SELECT = {
     select: EVENT_SYNC_SELECT,
     orderBy: { createdAt: "asc" },
   },
-  // Mission 60: for the sheet's "From Google" line (the view keeps the name).
+  // Mission 60: for the sheet's "From Google" line (the view keeps the name and the row id).
   sourceLinkedCalendar: EVENT_SOURCE_SELECT,
 } as const;
 
