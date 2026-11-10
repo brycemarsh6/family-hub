@@ -41,7 +41,7 @@ describe("calendar sync vocabulary", () => {
     );
     assert.equal(
       SYNCED_CALENDARS_EXTRA_WORDS.syncHowItWorks,
-      "Marshee copies an event to a calendar when that calendar is set to sync and you tick it on the event. Google events don't come into Marshee yet.",
+      "Marshee copies an event to a calendar when that calendar is set to sync and you tick it. Calendars set to Both ways also bring their events into Marshee.",
     );
     assert.equal("syncNotOn" in SYNCED_CALENDARS_EXTRA_WORDS, false);
   });

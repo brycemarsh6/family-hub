@@ -84,6 +84,8 @@ export const CALENDAR_EVENT_SELECT = {
     select: EVENT_SYNC_SELECT,
     orderBy: { createdAt: "asc" },
   },
+  // Mission 57: the name only, for the sheet's "From Google" line.
+  sourceLinkedCalendar: { select: { name: true } },
 } as const;
 
 /** The shape CALENDAR_EVENT_SELECT produces. */
@@ -98,6 +100,7 @@ export type CalendarEventRow = {
   people: { user: { id: string; displayName: string; avatarColor: string } }[];
   createdBy: { displayName: string } | null;
   syncs: EventSyncRow[];
+  sourceLinkedCalendar: { name: string } | null;
 };
 
 /**
@@ -125,6 +128,7 @@ export function toCalendarEventView(row: CalendarEventRow): CalendarEventView {
     // mission-9's K2/C2a finding.
     createdByName: row.createdBy?.displayName ?? null,
     syncs: toEventSyncViews(row.syncs),
+    sourceCalendarName: row.sourceLinkedCalendar?.name ?? null,
   };
 }
 

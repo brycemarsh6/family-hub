@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronLeft, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Calendar, Check, ChevronLeft, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { deleteCalendarEvent, retryEventSync } from "@/app/actions/calendar";
 import {
   copyFailedLine,
   copyRemoveFailedLine,
   EVENT_SYNC_WORDS,
+  fromGoogleLine,
   onGoogleLine,
 } from "@/lib/calendarSyncVocabulary";
 import { formatAllDayLabel, formatTimeRange } from "@/lib/calendarDates";
@@ -205,6 +206,13 @@ export function EventDetailSheet({
                   </span>
                 ))}
               </div>
+            )}
+
+            {canManage && event.sourceCalendarName && (
+              <p className="mb-2 flex items-center gap-2 text-sm text-muted [overflow-wrap:anywhere]">
+                <Calendar aria-hidden="true" size={16} className="shrink-0" />
+                {fromGoogleLine(event.sourceCalendarName)}
+              </p>
             )}
 
             {event.location && <p className="mb-3 text-base text-fg">{event.location}</p>}

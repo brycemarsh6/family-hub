@@ -128,6 +128,12 @@ export type CalendarEventView = {
    * saved Google versions ever reach the browser. Empty means no copies.
    */
   syncs: CalendarEventSyncView[];
+  /**
+   * The Google calendar this event was pulled from (mission 57), for the
+   * detail sheet's "From Google" line. Name only, never an id. Null or absent
+   * for an event made in Marshee.
+   */
+  sourceCalendarName?: string | null;
 };
 
 /** One Google copy of an event: which calendar, how it went, and why not. */

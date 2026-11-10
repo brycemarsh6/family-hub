@@ -1,11 +1,13 @@
 "use client";
 
 import { useOptimistic, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
 import { RadioSheet } from "@/components/RadioSheet";
 import { TitleSheet } from "@/components/TitleSheet";
 import { renameLinkedAccount, setCalendarDirection, unlinkAccount } from "@/app/actions/linkedCalendars";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
+import { useNowMinute } from "@/lib/useNowMinute";
+import { feedbackTimeAgo } from "@/lib/feedbackTime";
 import {
   SYNCED_CALENDARS_EXTRA_WORDS,
   SYNCED_CALENDARS_WORDS,
@@ -14,7 +16,9 @@ import {
   SYNC_DIRECTION_LABELS,
   calendarsSummary,
   isReadOnlyRole,
+  lastCheckedLine,
   linkedByLine,
+  relinkLine,
   type SyncDirection,
 } from "@/lib/calendarSyncVocabulary";
 import type { SyncedAccountRow } from "@/lib/linkedCalendarsRead";
@@ -40,6 +44,8 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
   const [open, setOpen] = useState(false);
   const [pickingId, setPickingId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
+  // Null on the server and the first paint, so "Last checked" never mismatches.
+  const now = useNowMinute();
 
   const [directions, setDirection] = useOptimistic(
     Object.fromEntries(account.calendars.map((calendar) => [calendar.id, calendar.direction])) as Record<
@@ -75,6 +81,13 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
         )}
       </button>
 
+      {account.status === "needs-relink" && (
+        <p className="flex items-start gap-2 border-t border-line bg-warn-soft px-4 py-3 text-sm font-medium text-warn [overflow-wrap:anywhere]">
+          <TriangleAlert aria-hidden="true" size={18} className="mt-0.5 shrink-0" />
+          {relinkLine(account.email)}
+        </p>
+      )}
+
       {open && (
         <div className="border-t border-line">
           {account.calendars.map((calendar) => {
@@ -85,6 +98,11 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
               <>
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-base">{calendar.name}</span>
+                  {direction === "twoWay" && calendar.lastPulledAt && now && (
+                    <span className="text-sm text-muted-strong">
+                      {lastCheckedLine(feedbackTimeAgo(calendar.lastPulledAt, now))}
+                    </span>
+                  )}
                 </span>
                 <span className="flex shrink-0 items-center gap-2 text-sm text-muted-strong">
                   {readOnly ? SYNCED_CALENDARS_EXTRA_WORDS.readOnly : SYNC_DIRECTION_LABELS[direction]}

@@ -9,6 +9,7 @@ import {
   Plus,
 } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
+import { CalendarPullButton, CalendarRelinkBanner } from "./CalendarPullButton";
 import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { HAMBURGER_ROW_HEIGHT_PX } from "@/lib/appChrome";
@@ -193,6 +194,7 @@ export function CalendarHeader({
           onClick={onPickView}
           size="sm"
         />
+        <CalendarPullButton />
         {canManage && (
           <ActionCircle
             icon={<Plus aria-hidden="true" size={20} />}
@@ -390,6 +392,8 @@ export function CalendarHeader({
           </button>
         )}
       </div>
+
+      <CalendarRelinkBanner />
     </div>
   );
 }

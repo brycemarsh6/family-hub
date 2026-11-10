@@ -48,7 +48,12 @@ export default function PrivacyPage() {
         The token is encrypted. For each event copied to Google, Marshee keeps
         Google&apos;s ID and version marker for that copy, so it can update it
         later. If a copy was changed in Google and Marshee replaces it, Marshee
-        keeps the version it replaced. Marshee keeps nothing else from Google.
+        keeps the version it replaced. For each calendar set to Both ways,
+        Marshee keeps a bookmark from Google, so it can ask only for what
+        changed, and the time it last checked. Events from those calendars are
+        saved in Marshee like any other event (title, time, place and notes),
+        with Google&apos;s ID and version marker. Marshee keeps nothing else
+        from Google.
       </p>
 
       <h2 className={sectionTitle}>Who sees it</h2>

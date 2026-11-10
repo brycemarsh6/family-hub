@@ -18,6 +18,8 @@ export type SyncedCalendarRow = {
   direction: SyncDirection;
   /** Google's role for the linked person; null for rows linked before mission 56. */
   accessRole: string | null;
+  /** When the pull last looked at this calendar; null if it never has. */
+  lastPulledAt: Date | null;
 };
 
 export type SyncedAccountRow = {
@@ -41,7 +43,15 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
       status: true,
       user: { select: { displayName: true } },
       calendars: {
-        select: { id: true, name: true, colorHex: true, isPrimary: true, direction: true, accessRole: true },
+        select: {
+          id: true,
+          name: true,
+          colorHex: true,
+          isPrimary: true,
+          direction: true,
+          accessRole: true,
+          lastPulledAt: true,
+        },
       },
     },
   });
@@ -100,6 +110,29 @@ export async function loadPullCalendars(): Promise<PullCalendarRow[]> {
     select: { id: true, googleCalendarId: true, accountId: true, syncToken: true, account: { select: { userId: true } } },
   });
   return calendars.map(({ account, ...calendar }) => ({ ...calendar, linkerId: account.userId }));
+}
+
+/**
+ * What the Calendar page needs for the pull (mission 57): whether to show
+ * Refresh (a manager, Google configured, some "Both ways" calendar on an
+ * account that still works) and the emails of the viewer's own accounts Google
+ * has locked out (`needs-relink`), for the banner.
+ */
+export async function loadCalendarPullState(
+  viewerId: string,
+  isManager: boolean,
+): Promise<{ showRefresh: boolean; relinkEmails: string[] }> {
+  const [twoWay, relink] = await Promise.all([
+    isManager && isCalendarPushConfigured()
+      ? db.linkedCalendar.count({ where: { direction: "twoWay", account: { status: "ok" } } })
+      : Promise.resolve(0),
+    db.linkedAccount.findMany({
+      where: { userId: viewerId, status: "needs-relink" },
+      orderBy: { linkedAt: "asc" },
+      select: { email: true },
+    }),
+  ]);
+  return { showRefresh: twoWay > 0, relinkEmails: relink.map((account) => account.email) };
 }
 
 /** True when another person has already linked this Google account (its `sub`). */

@@ -9,6 +9,7 @@ import { EventCard } from "./EventCard";
 import { HabitDayCard } from "./HabitDayCard";
 import { TaskCard } from "./TaskCard";
 import { SkeletonBlock } from "./Skeleton";
+import { useOpenPull } from "./CalendarPullButton";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
 import {
   calendarDayItems,
@@ -175,6 +176,7 @@ export default function CalendarWidgetTile({
   options: CalendarWidgetOptions;
 }) {
   const router = useRouter();
+  useOpenPull();
   const today = useToday();
   const now = useNowMinute();
   const openDay = (day: Date) => router.push(`/calendar?${buildCalendarSearch("schedule", day)}`);

@@ -51,6 +51,7 @@ export default async function EditEventPage({
         endAt: true,
         allDay: true,
         showBusyOnGoogle: true,
+        sourceLinkedCalendar: { select: { id: true, name: true } },
         people: { select: { userId: true } },
         // Which calendars already hold a copy. The form only shows the ones it
         // still offers; a copy on any other calendar is never touched. A copy
@@ -110,6 +111,9 @@ export default async function EditEventPage({
           userIds: event.people.map((person) => person.userId),
           syncCalendarIds: event.syncs.map((sync) => sync.linkedCalendarId),
           showBusyOnGoogle: event.showBusyOnGoogle,
+          sourceCalendar: event.sourceLinkedCalendar
+            ? { calendarId: event.sourceLinkedCalendar.id, name: event.sourceLinkedCalendar.name }
+            : null,
         }}
       />
     </div>

@@ -16,7 +16,7 @@ export const SYNC_DIRECTION_LABELS: Record<SyncDirection, string> = {
 export const SYNC_DIRECTION_HINTS: Record<SyncDirection, string> = {
   off: "Marshee and this calendar stay separate.",
   outbound: "Events you choose to sync are copied to this calendar.",
-  twoWay: "Changes in either place show up in the other.",
+  twoWay: "Events on this calendar show up in Marshee, and changes in either place show up in the other.",
 };
 
 export function isSyncDirection(raw: unknown): raw is SyncDirection {
@@ -75,7 +75,7 @@ export const SYNCED_CALENDARS_EXTRA_WORDS = {
   emptyTitle: "No calendars linked yet",
   emptyHint: "Link a Google account to bring its calendars in.",
   syncHowItWorks:
-    "Marshee copies an event to a calendar when that calendar is set to sync and you tick it on the event. Google events don't come into Marshee yet.",
+    "Marshee copies an event to a calendar when that calendar is set to sync and you tick it. Calendars set to Both ways also bring their events into Marshee.",
   unverifiedHint:
     'Google may say it hasn\'t verified this app. That\'s expected for a private family app. Tap Advanced, then "Go to themarshandco.com (unsafe)".',
   readOnly: "Read only",
@@ -119,6 +119,32 @@ export function withoutForLine(description: string): string {
 /** "Emily's", the muted second line under a calendar that is someone else's. */
 export function ownerLine(ownerName: string): string {
   return `${ownerName}'s`;
+}
+
+// The pull side (mission 57): the Calendar's Refresh button and note, the
+// reconnect banner, and the event form's locked source row.
+export const PULL_WORDS = {
+  refreshLabel: "Refresh",
+  upToDate: "Up to date",
+  unreachable: "Couldn't reach Google. Try again later.",
+  fixLink: "Fix on Synced calendars",
+  cameFromHere: "Came from here",
+  sourceStaysTicked: "The calendar it came from stays ticked, so editing here changes it in Google too.",
+} as const;
+
+/** The banner and the account card's line when Google has stopped letting Marshee in. */
+export function relinkLine(email: string): string {
+  return `Google stopped letting Marshee in for ${email}. Events from it aren't updating.`;
+}
+
+/** The detail sheet's muted line for an event that came from Google. */
+export function fromGoogleLine(calendarName: string): string {
+  return `From Google: ${calendarName}`;
+}
+
+/** The muted line under a "Both ways" calendar; `ago` is a household "5 min ago" or "Just now". */
+export function lastCheckedLine(ago: string): string {
+  return ago === "Just now" ? "Last checked just now" : `Last checked ${ago}`;
 }
 
 /** The detail sheet's line for a copy that went through. */
