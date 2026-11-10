@@ -143,6 +143,11 @@ it is done. The pre-cleanup text is in
   test" tomorrow with your main calendar ticked, check Google; edit the
   title, check again; delete it, check it leaves Google. If all good, switch
   the main calendar to "Both ways".
+- **Google to Marshee test (mission 58, about 5 minutes, after the PR 2
+  test):** follow "Bryce's test" in
+  `.avengers/missions/mission-58-calendar-sync-pr3.md`: switch your main
+  calendar to "Both ways", open Calendar, see your Google events appear;
+  add, rename and delete a test event on each side and watch it follow.
 - **Google link from the home-screen app:** on your
   phone open the installed Marshee icon, Settings, Synced calendars, and link
   an account. Check you land back on the page signed in. This has only been
@@ -184,8 +189,15 @@ it is done. The pre-cleanup text is in
 - Google copy follow-ups (mission 56 Delivery): a copy that fails is only
   visible on the event's sheet, not right after Save (a small marker later);
   Try again does nothing on a calendar switched off since; a calendar linked
-  before PR 2 shows no "Read only" until it is relinked; the privacy page
-  needs another look when PR 3 starts keeping sync tokens.
+  before PR 2 shows no "Read only" until it is relinked.
+- Google to Marshee follow-ups (mission 58 Delivery): a handover whose
+  transaction fails leaves the calendar on (turn it back off); the handover
+  keeps the wrong row when a "Marshee to Google" twin made a second copy;
+  the one-link race check reads an `updatedAt` the pull also bumps; the
+  event sheet hides "On Google" by calendar name, not id; "Up to date" can
+  sit beside the reconnect banner; `calendarPullRun.test.ts` is about 360
+  lines (split due); the locked "Already synced through" row gives no reason
+  when the other link needs reconnecting.
 - **Structured ingredients tripwire is at 3 of 4.** If a fourth feature needs
   them, stop working around it and build them.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made

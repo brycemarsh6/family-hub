@@ -690,10 +690,38 @@ would flip Google's own choice. Both are fixed before the pull exists.
 4. Rename it in Marshee: Google follows. Delete it in Marshee: it leaves
    Google.
 
+## Delivery
+
+- **Status:** all assembled gates PASS: Vision pass 4 (an extra pass Bryce
+  allowed, answer 9), Captain pass 3, Strange pass 3. Contracts C1 to C11
+  and C6 records done.
+- **What shipped:** Google to Marshee for "Both ways" calendars (full pull 30
+  days back, then `syncToken` pulls; on opening Calendar, Refresh and a daily
+  cron at 10:00 UTC), last write wins with the loser in `previousJson`,
+  needs-relink handling, one link per Google calendar with a handover that
+  moves pulled events, unlink removes pulled events, "Last checked" from
+  `lastPulledOkAt`. Migrations `20261116000000_calendar_pull` and
+  `20261117000000_calendar_pull_ok`, both additive, applied to dev by Fury.
+- **Settled without touching Google:** `syncToken` cannot be combined with
+  `timeMin`; a token pull sends no window and skips outside it locally.
+- **Records:** `docs/structure/calendar-sync.md` entry widened (Captain's
+  amendment, Bryce answer 8, plus C10's handover facts), STRUCTURE.md
+  headline, cron check and proxy row; story in
+  `docs/history/structure-rationale.md`; CLAUDE.md; `.avengers/status.md`
+  (Bryce's test and the follow-ups below).
+- **Deliberately not done (follow-ups in status.md):** revert a calendar to
+  off when the handover transaction fails; `planHandover` keeps the wrong
+  row after a "Marshee to Google" twin copy; the race check reads an
+  `updatedAt` the pull also bumps; the sheet matches "On Google" by name;
+  "Up to date" beside the reconnect banner; split `calendarPullRun.test.ts`.
+- **Production:** Bryce confirmed only his account is linked, so no twin
+  on-links exist before the merge.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 3 | Strange | PASS | | Last checked follows only good pulls; Already synced through as a second line; reconnect next step for the linker; second Refresh inside the lease shows no note; privacy sentence word for word; the pinned drawer button covers headings when scrolling (app-wide, older); seed has no needs-relink account linked by someone else |
 | 4 | Vision | PASS (extra pass, Bryce answer 9) | | Handover closed; merge clean; build green; follow-ups: a failed handover transaction leaves the calendar on (revert to off); planHandover keeps the wrong row when a "Marshee to Google" twin made a second copy; raceWinner reads updatedAt that the pull also bumps; sheet hides "On Google" by name (match by id); PR #95 moved STRUCTURE.md entries to docs/structure/ (C6 goes there); check production for twin on-links before merge |
 | 2 | Strange | BLOCKED | Refresh says "Up to date" when the 30 second lease skipped every calendar, seconds after a failure (runPull must report how many it checked) | Pass 1 blocker 1 and all C10 notes closed on screen; Synced calendars not seen (stale dev server, Fury restarted it on port 3000 with Bryce's OK); "Up to date" beside the reconnect banner; privacy "uses these to" omits reading Both ways calendars |
 | 3 | Vision | BLOCKED (budget spent) | Without adoption, a handover (link A off, link B on, same Google calendar) imports every event again; deleting a duplicate removes the real Google event through A's rows | Pass 2 blockers closed; gauntlet green (1703, UTC and LA, build); canTurnOn race (two taps in the same instant); check production for twin on-links before merge; locked row gives no reason when the on link needs reconnecting; seed holds a twin state |

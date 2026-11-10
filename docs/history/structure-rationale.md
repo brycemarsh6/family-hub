@@ -245,3 +245,14 @@ outstanding cleanup, not a live rule.)**
 **(Corrected 2026-09-05 on Captain's
 finding: this line still described the retired architecture as current,
 inside the section headed "don't relitigate.")**
+
+## One link per Google calendar
+
+Mission-58 pass 2: a shared Google calendar linked by two family members
+gave two LinkedCalendar rows one googleCalendarId. The pull's first answer
+was to adopt a sibling link's events, which needed a relation read of
+LinkedCalendar outside linkedCalendarsRead.ts (Captain blocker) and made
+twin sync rows that could delete or overwrite the real Google event (Vision
+blocker). Bryce (answer 7) ruled that only one link may sync a Google
+calendar. The rule moved to canTurnOn, the sibling read to
+loadSiblingCalendars, and the pull stopped reading other links' rows. Bryce approved the entry (answer 8). Vision pass 3 then found that a handover between the two links imported everything again, so C10 added `adoptSiblingPulls`: switching a link on moves the old link's pulled state instead.

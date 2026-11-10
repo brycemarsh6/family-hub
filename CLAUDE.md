@@ -141,8 +141,10 @@ files named beside it.
   Google accounts, choose each calendar's sync direction. Refresh tokens are
   encrypted. **Marshee to Google works** (PR 2): the event form's "Sync to"
   copies an event to chosen calendars and keeps the copies updated and
-  deleted; nothing comes back from Google yet (PR 3). Plan:
-  `.avengers/plans/calendar-sync-v1.md`.
+  deleted. **Google to Marshee works** (PR 3): "Both ways" calendars pull on
+  opening Calendar, on Refresh and a daily cron; one link per Google
+  calendar. Any new code that writes a `CalendarEvent` must call the push.
+  Plan: `.avengers/plans/calendar-sync-v1.md`.
 - **iPad landscape**: wide pages use a per-page opt-in rule (a container that
   sizes columns against its own space). Done for the dashboard, Calendar,
   Habits & Chores, Kitchen lists, Plans, Goal page, recipe page, forms,
@@ -220,15 +222,11 @@ Lucide outline icons only, secondary row actions behind a right-to-left swipe
 (destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-11-08)
+## Current status (updated 2026-11-09)
 
 Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
 
-- **Calendar sync PR 3** (Google to Marshee, for "Both ways" calendars) is
-  next. Read the Delivery of
-  `.avengers/missions/mission-56-calendar-sync-pr2.md` first. Any new code
-  that writes a `CalendarEvent` (including CD1) must call the push.
 - **Screensaver S2** (the wall-tablet slideshow, sleep mode) is next:
   `.avengers/plans/screensaver-slideshow-v1.md`. A long new STRUCTURE.md
   entry for it goes in a `docs/structure/` companion file (mission 59).
