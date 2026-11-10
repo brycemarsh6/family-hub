@@ -204,50 +204,78 @@ describe("canTurnOn (one link per Google calendar)", () => {
 });
 
 describe("planHandover (a handover between two links of one Google calendar)", () => {
+  const sib = (id: string, eventId: string, isSourceRow = false) => ({ id, eventId, isSourceRow });
+  const tgt = (id: string, eventId: string) => ({ id, eventId });
+
   it("moves every sibling row when the new calendar has none", () => {
-    const plan = planHandover([], [{ id: "s1", eventId: "e1" }, { id: "s2", eventId: "e2" }]);
+    const plan = planHandover([], [sib("s1", "e1"), sib("s2", "e2")]);
     assert.deepEqual(plan, { move: ["s1", "s2"], drop: [] });
   });
 
   it("drops a sibling row whose event already has a row on the new calendar", () => {
-    const plan = planHandover(["e1"], [{ id: "s1", eventId: "e1" }, { id: "s2", eventId: "e2" }]);
+    const plan = planHandover([tgt("t1", "e1")], [sib("s1", "e1"), sib("s2", "e2")]);
     assert.deepEqual(plan, { move: ["s2"], drop: ["s1"] });
   });
 
   it("moves only the first of two sibling rows for the same event", () => {
-    const plan = planHandover([], [{ id: "s1", eventId: "e1" }, { id: "s2", eventId: "e1" }]);
+    const plan = planHandover([], [sib("s1", "e1"), sib("s2", "e1")]);
     assert.deepEqual(plan, { move: ["s1"], drop: ["s2"] });
   });
 
   it("does nothing when there are no siblings", () => {
-    assert.deepEqual(planHandover(["e1"], []), { move: [], drop: [] });
+    assert.deepEqual(planHandover([tgt("t1", "e1")], []), { move: [], drop: [] });
+  });
+
+  it("keeps the sibling row and drops the target row (a twin) when the sibling row is the event's source", () => {
+    const plan = planHandover([tgt("t1", "e1")], [sib("s1", "e1", true), sib("s2", "e2")]);
+    assert.deepEqual(plan, { move: ["s1", "s2"], drop: ["t1"] });
+  });
+
+  it("moves the source sibling row of a twin event and drops the target row and the other sibling row", () => {
+    const plan = planHandover([tgt("t1", "e1")], [sib("s0", "e1"), sib("s1", "e1", true)]);
+    assert.deepEqual(plan, { move: ["s1"], drop: ["t1", "s0"] });
+  });
+
+  it("moves a source sibling row as usual when the target has no row for the event", () => {
+    const plan = planHandover([tgt("t1", "e9")], [sib("s1", "e1", true)]);
+    assert.deepEqual(plan, { move: ["s1"], drop: [] });
   });
 });
 
 describe("raceWinner (two links turned on at once)", () => {
   const at = (n: number) => new Date(2026, 10, 9, 10, 0, n);
-  const other = (id: string, direction: "off" | "outbound" | "twoWay", n: number) => ({
+  const other = (id: string, direction: "off" | "outbound" | "twoWay", n: number | null) => ({
     id,
     direction,
-    updatedAt: at(n),
+    turnedOnAt: n === null ? null : at(n),
   });
 
   it("is null when no other link is on", () => {
-    assert.equal(raceWinner({ id: "me", updatedAt: at(5) }, [other("a", "off", 1)]), null);
-    assert.equal(raceWinner({ id: "me", updatedAt: at(5) }, []), null);
+    assert.equal(raceWinner({ id: "me", turnedOnAt: at(5) }, [other("a", "off", 1)]), null);
+    assert.equal(raceWinner({ id: "me", turnedOnAt: at(5) }, []), null);
   });
 
   it("is the other link when it was turned on first", () => {
-    assert.equal(raceWinner({ id: "me", updatedAt: at(5) }, [other("a", "twoWay", 1)])?.id, "a");
+    assert.equal(raceWinner({ id: "me", turnedOnAt: at(5) }, [other("a", "twoWay", 1)])?.id, "a");
   });
 
   it("is null when this link got there first", () => {
-    assert.equal(raceWinner({ id: "me", updatedAt: at(1) }, [other("a", "outbound", 5)]), null);
+    assert.equal(raceWinner({ id: "me", turnedOnAt: at(1) }, [other("a", "outbound", 5)]), null);
   });
 
   it("breaks an exact tie by the lower id", () => {
-    assert.equal(raceWinner({ id: "b", updatedAt: at(5) }, [other("a", "twoWay", 5)])?.id, "a");
-    assert.equal(raceWinner({ id: "a", updatedAt: at(5) }, [other("b", "twoWay", 5)]), null);
+    assert.equal(raceWinner({ id: "b", turnedOnAt: at(5) }, [other("a", "twoWay", 5)])?.id, "a");
+    assert.equal(raceWinner({ id: "a", turnedOnAt: at(5) }, [other("b", "twoWay", 5)]), null);
+  });
+
+  it("counts a null stamp as earlier than any stamp", () => {
+    assert.equal(raceWinner({ id: "me", turnedOnAt: at(1) }, [other("z", "twoWay", null)])?.id, "z");
+    assert.equal(raceWinner({ id: "me", turnedOnAt: null }, [other("a", "twoWay", 1)]), null);
+  });
+
+  it("breaks a tie of two null stamps by the lower id", () => {
+    assert.equal(raceWinner({ id: "b", turnedOnAt: null }, [other("a", "twoWay", null)])?.id, "a");
+    assert.equal(raceWinner({ id: "a", turnedOnAt: null }, [other("b", "twoWay", null)]), null);
   });
 });
 

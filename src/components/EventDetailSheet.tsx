@@ -61,9 +61,10 @@ export function EventDetailSheet({
   // can never show on another event.
   const [retried, setRetried] = useState<{ eventId: string; syncs: CalendarEventSyncView[] } | null>(null);
   // The calendar the event came from already says "From Google", so its "On Google" line
-  // is left out (matched by name: the view carries no ids). A failed copy always shows.
+  // is left out (matched by Marshee's calendar row id, so two calendars sharing a name can't
+  // hide each other's line). A failed copy always shows.
   const syncs = (retried?.eventId === event.id ? retried.syncs : event.syncs).filter(
-    (sync) => !(sync.status === "ok" && sync.calendarName === event.sourceCalendarName),
+    (sync) => !(sync.status === "ok" && sync.linkedCalendarId === event.sourceLinkedCalendarId),
   );
 
   useEffect(() => {

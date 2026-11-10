@@ -130,14 +130,18 @@ export type CalendarEventView = {
   syncs: CalendarEventSyncView[];
   /**
    * The Google calendar this event was pulled from (mission 60), for the
-   * detail sheet's "From Google" line. Name only, never an id. Null or absent
-   * for an event made in Marshee.
+   * detail sheet's "From Google" line. The name, plus Marshee's own row id for
+   * that calendar (never a Google id), so the sheet can match by id. Null or
+   * absent for an event made in Marshee.
    */
   sourceCalendarName?: string | null;
+  sourceLinkedCalendarId?: string | null;
 };
 
 /** One Google copy of an event: which calendar, how it went, and why not. */
 export type CalendarEventSyncView = {
+  /** Marshee's LinkedCalendar row id (never a Google id). */
+  linkedCalendarId: string;
   calendarName: string;
   /** Anything but "ok" is a problem ("pending" included). */
   status: SyncRowStatus;

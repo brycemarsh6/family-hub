@@ -52,7 +52,19 @@ export type PullRunDeps = {
   /** Push the event's Marshee version out; `exceptLinkedCalendarId` is a copy to leave alone. */
   pushBack: (eventId: string, exceptLinkedCalendarId?: string | null) => Promise<void>;
   now: () => Date;
+  /**
+   * Hears a short reason word for each failure (for the server log). Only
+   * fixed words, an HTTP status or a Prisma error code: never a token, an
+   * error message or anything from an event.
+   */
+  noteFailure?: (reason: string) => void;
 };
+
+/** A Prisma error code ("P2002") when the error carries one; never its message. */
+function writeFailReason(error: unknown): string {
+  const code = typeof error === "object" && error !== null ? (error as { code?: unknown }).code : undefined;
+  return typeof code === "string" && /^P\d{4}$/.test(code) ? `write:${code}` : "write:error";
+}
 
 /** `checked` counts the calendars this run claimed and tried (a failed one too); a skipped one is not counted. */
 export type PullRunResult = { changed: boolean; failed: number; checked: number };
@@ -77,7 +89,10 @@ async function pullOne(
   if (!listed) {
     listed = await deps.list(accessToken, calendar.googleCalendarId, { timeMin: windowStart.toISOString() });
   }
-  if (!listed.ok) return { changed: false, failed: 1 };
+  if (!listed.ok) {
+    deps.noteFailure?.(`list:${listed.reason}${listed.status ? `:${listed.status}` : ""}`);
+    return { changed: false, failed: 1 };
+  }
 
   const known = await deps.loadKnown(calendar, listed.events);
   const plan = planPull({
@@ -96,8 +111,9 @@ async function pullOne(
     try {
       await write();
       if (counts) changed = true;
-    } catch {
-      // Deliberately drops the error: it could quote a value from Google.
+    } catch (error) {
+      // Deliberately drops the message: it could quote a value from Google.
+      deps.noteFailure?.(writeFailReason(error));
       failed += 1;
     }
   };
@@ -119,7 +135,8 @@ async function pullOne(
   if (failed === 0 && listed.nextSyncToken !== null) {
     try {
       await deps.saveSyncToken(calendar.id, listed.nextSyncToken);
-    } catch {
+    } catch (error) {
+      deps.noteFailure?.(writeFailReason(error).replace("write", "save-token"));
       failed += 1;
     }
   }
@@ -156,17 +173,20 @@ export async function runPull(deps: PullRunDeps, opts: { force: boolean }): Prom
           if (!token.ok && token.reason === "reconnect") await deps.markNeedsRelink(calendar.accountId);
         }
         if (!token.ok) {
+          deps.noteFailure?.(`token:${token.reason}`);
           total.failed += 1;
           continue;
         }
         const result = await pullOne(deps, calendar, token.accessToken, now);
         total.changed = total.changed || result.changed;
         total.failed += result.failed;
-      } catch {
+      } catch (error) {
+        deps.noteFailure?.(writeFailReason(error).replace("write", "calendar"));
         total.failed += 1;
       }
     }
-  } catch {
+  } catch (error) {
+    deps.noteFailure?.(writeFailReason(error).replace("write", "run"));
     total.failed += 1;
   }
   return total;

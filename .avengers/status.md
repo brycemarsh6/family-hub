@@ -153,6 +153,14 @@ it is done. The pre-cleanup text is in
   `.avengers/missions/mission-60-calendar-sync-pr3.md`: switch your main
   calendar to "Both ways", open Calendar, see your Google events appear;
   add, rename and delete a test event on each side and watch it follow.
+- **Mission 61 structure note to review:** `docs/structure/calendar-sync.md`
+  was widened on Captain's ruling (the `turnedOnAt` single writer, the
+  pull-run test harness, `EVENT_SYNC_SELECT` wording), marked "for Bryce to
+  review". Say yes and the next chat changes it to "Bryce approved".
+- **Dev database:** apply mission 61's `turnedOnAt` column to the dev branch
+  with `npx prisma migrate deploy` (the auto mode safety check refused it for
+  Claude). Production gets it on merge. Until then a local dev server breaks
+  on Synced calendars.
 - **Google link from the home-screen app:** on your
   phone open the installed Marshee icon, Settings, Synced calendars, and link
   an account. Check you land back on the page signed in. This has only been
@@ -195,14 +203,14 @@ it is done. The pre-cleanup text is in
   visible on the event's sheet, not right after Save (a small marker later);
   Try again does nothing on a calendar switched off since; a calendar linked
   before PR 2 shows no "Read only" until it is relinked.
-- Google to Marshee follow-ups (mission 60 Delivery): a handover whose
-  transaction fails leaves the calendar on (turn it back off); the handover
-  keeps the wrong row when a "Marshee to Google" twin made a second copy;
-  the one-link race check reads an `updatedAt` the pull also bumps; the
-  event sheet hides "On Google" by calendar name, not id; "Up to date" can
-  sit beside the reconnect banner; `calendarPullRun.test.ts` is about 360
-  lines (split due); the locked "Already synced through" row gives no reason
-  when the other link needs reconnecting.
+- Google to Marshee follow-ups (mission 60 Delivery; the code ones were
+  fixed in mission 61). Both need Bryce's wording first: "Up to date" can
+  sit beside the reconnect banner; the locked "Already synced through" row
+  gives no reason when the other link needs reconnecting. From mission 61:
+  a handover that drops a "Marshee to Google" twin row leaves that twin on
+  Google (deleting it needs a Google call), so the next full pull can bring
+  it back in once; a failed handover whose turn-back-off write also fails
+  stays on (two failures in a row).
 - **Structured ingredients tripwire is at 3 of 4.** If a fourth feature needs
   them, stop working around it and build them.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
