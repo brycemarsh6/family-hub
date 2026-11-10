@@ -1,7 +1,7 @@
 # Mission 66: Screensaver S4, "On this day"
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING
+**Status:** DELIVERED
 **Started:** 2026-11-10 · **Updated:** 2026-11-10
 
 ## Brief
@@ -112,4 +112,4 @@ AGENTS.md, `npm run build`.
 - This was the plan's last PR: `.avengers/plans/screensaver-slideshow-v1.md`
   is finished.
 
-- **Shipped check:** (filled at merge.)
+- **Shipped check:** merged as PR #106, merge commit `6124353a3a9db938e082d3efe14d3b6ca27df631`. The first production deploy `dpl_3QYSsm7p8kZH7AbKKZy5Zh4zPLmf` failed before any change (Prisma P1002, advisory lock timeout). The redeploy of the same commit, `dpl_3JBf64ApxbgXWuL7aJdTc7a5K5au`, is READY on marshee.themarshandco.com; its build reported "No pending migrations to apply". Recorded in a follow-up PR, since direct pushes to main are blocked.
