@@ -274,8 +274,10 @@ order.
 - **Objective:** decide, with no database or network, what one pulled page
   of Google events does to Marshee.
 - **Boundaries:** may touch `prisma/schema.prisma` (the two additions
-  only), a new migration folder `prisma/migrations/20261115000000_calendar_pull/`,
-  new `src/lib/calendarSyncPull.ts` and `src/lib/calendarSyncPull.test.ts`.
+  only), new `prisma/migrations/20261116000000_calendar_pull/migration.sql`,
+  new `src/lib/calendarSyncPull.ts`, new `src/lib/calendarSyncPull.test.ts`.
+  (Preflight flags `prisma/schema.prisma` over the hard cap: STRUCTURE.md
+  exempts it by name, as in missions 55 and 56.)
   Stark writes the SQL with `prisma migrate diff`; he never runs a
   migration. Fury applies it to the dev branch.
 - **Spec:** schema: `CalendarEvent.sourceLinkedCalendarId String?` with a
@@ -296,19 +298,63 @@ order.
   known, cancelled unknown, out of window, marsheeEventId match, all-day).
 - **Done criteria:** every decision bullet has a named test.
 
-### C4 - Bind the pull: database, Google, action, cron, push tweaks
+### C4a - Make the push safe for events that came from Google
+
+Found by Fury after C3: `updateEvent` sends a `PUT`, which replaces the
+whole Google event. On a pulled event that would erase its guests,
+reminders, video link and color the first time anyone edits it in Marshee,
+on Bryce's live calendar. And the push always sends a busy/free value, which
+would flip Google's own choice. Both are fixed before the pull exists.
+
+- **Objective:** a Marshee edit changes only the fields Marshee carries,
+  keeps Google's busy/free on pulled timed events, and can never recreate or
+  untick the original of a pulled event.
+- **Boundaries:** may touch `src/lib/google/calendarEventCalls.ts` and its
+  test, `src/lib/google/types.ts`, `src/lib/google/eventPayload.ts` and its
+  test, `src/lib/google/eventFromGoogle.ts` and its test,
+  `src/lib/calendarSyncPull.ts` and its test, `src/lib/calendarSyncPlan.ts`,
+  `src/lib/calendarSyncPlanPush.test.ts`,
+  `src/lib/calendarSyncPlanPushFailures.test.ts`,
+  `src/lib/calendarSyncPlanTestHarness.ts`, `src/lib/calendarSyncRules.ts`
+  and its test, `src/lib/calendarEventPush.ts`. Nothing else.
+- **Spec:**
+  1. `updateEvent` uses `PATCH` (same URL, body, `If-Match` and results).
+     The 409 revive and the 412 overwrite keep working through it. A test
+     asserts the method.
+  2. `GoogleEventIn` gains `transparency`. `eventFromGoogle` returns
+     `showBusyOnGoogle = transparency !== "transparent"` for all-day events
+     (Google's default when the field is missing is busy) and `false` for
+     timed ones (the column's meaning). `planPull` carries it on inserts and
+     on Google-wins updates.
+  3. `toGoogleEvent` takes an optional `keepGoogleBusy: boolean`; when true
+     the payload has no `transparency`, so the `PATCH` leaves Google's value.
+     The push sets it for a timed event sent to its own source calendar
+     (`sourceLinkedCalendarId === calendar.id`). All-day pulled events send
+     `showBusyOnGoogle` as today.
+  4. `planSync`: the source calendar is always desired when it is still
+     pushable, whatever `requestedIds` says (it cannot be unticked). When it
+     is no longer pushable its row is left alone (decision 8).
+  5. On a `gone` while updating a row on the event's source calendar, the
+     push records `failed`/"network" and never inserts (no recreated
+     original); the next pull's "cancelled" deletes it.
+  6. `calendarEventPush.ts` reads `sourceLinkedCalendarId` with the event and
+     passes it to the plan.
+- **Verification:** the Gauntlet (tsc, eslint, `npm test`, the TZ=UTC
+  command). New tests for each spec item.
+- **Evidence required:** test names, counts both timezones, diff stat.
+- **Done criteria:** a test proves an update request is a `PATCH` without
+  `transparency` for a timed pulled event on its source calendar.
+
+### C4b - Bind the pull: database, Google, action, cron
 
 - **Objective:** run `planPull` against the real database and Google.
 - **Boundaries:** may touch new `src/lib/calendarEventPull.ts`
   (`server-only`), `src/lib/linkedCalendarWrites.ts` (add
   `markAccountNeedsRelink`, `claimCalendarForPull`, `saveSyncToken`),
-  `src/lib/linkedCalendarsRead.ts` (add `loadPullCalendars`),
-  `src/lib/calendarSyncPlan.ts` and `src/lib/calendarSyncRules.ts` (the
-  pulled-row rules in the revised decisions), their tests, new
+  `src/lib/linkedCalendarsRead.ts` (add `loadPullCalendars`), new
   `src/app/actions/calendarPull.ts` (guard: `MANAGER_ROLES` for Refresh;
   the on-open pull allows any signed-in family login but only pulls),
-  `src/app/actions/calendar.ts` (keep the source calendar in
-  `requestedIds`), new `src/app/api/cron/calendar-pull/route.ts`
+  new `src/app/api/cron/calendar-pull/route.ts`
   (`CRON_SECRET` check copied from the briefing route's shape),
   `src/proxy.ts` (`PUBLIC_ROUTES` entry), `vercel.json` (one cron,
   `0 10 * * *`, which is 3 AM Denver in winter, 4 AM in summer).
@@ -316,8 +362,13 @@ order.
   changed: boolean, failed: number }` and never throws; nothing is called
   and nothing written when `isCalendarPushConfigured()` is false. Writes of
   one Google event happen in one transaction (event, person, sync row). The
-  sync token is saved only after every event of the run is written. No
-  token or sync token is logged or returned. The cron returns counts only.
+  sync token is saved only after every event of the run is written, and
+  never when `listEvents` gives `nextSyncToken: null`. Pulled writes set
+  the event's `updatedAt` to the plan's `now` explicitly (C3's rule, or
+  the next pull mistakes the pull's own write for a Marshee change). A
+  delete calls `removeEventCopies` before deleting the event. `pushBacks`
+  call `pushEventCopies({ eventId })` after the run's writes. No token or
+  sync token is logged or returned. The cron returns counts only.
 - **Verification:** the Gauntlet; a fake-deps test of the binding where it
   is pure enough, otherwise the planner tests plus a dev-branch run with
   Google unconfigured that proves `pullCalendars` returns at once with no
@@ -383,6 +434,8 @@ order.
 |---|---|---|---|---|
 
 ## Handoff log
+
+- 2026-11-09: C1 and C2 done and committed (tests 1593 to 1621). C2 notes for C4: `listEvents` gives `nextSyncToken: null` when Google sends none (do not save a token then); a typed "For: ..." last paragraph in Google is stripped too (accepted edge). The worktree's Prisma client was stale; Fury ran `npx prisma generate` (local only).
 
 - 2026-11-09: Mission opened on Opus 5.5. Banner's code brief: `syncToken`
   and `lastPulledAt` already exist on `LinkedCalendar`, `lastPulledAt` and
