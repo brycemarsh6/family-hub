@@ -445,6 +445,12 @@ model CalendarEvent {
   createdById String?
   createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
+  /// The linked Google calendar a pulled event came from (calendar sync PR 3);
+  /// null for events made in Marshee. SetNull: unlinking a calendar keeps the
+  /// events it brought in.
+  sourceLinkedCalendarId String?
+  sourceLinkedCalendar   LinkedCalendar? @relation("PulledEvents", fields: [sourceLinkedCalendarId], references: [id], onDelete: SetNull)
+
   people CalendarEventPerson[]
   syncs  CalendarEventSync[]
 
@@ -455,6 +461,7 @@ model CalendarEvent {
   /// sorts on startAt.
   @@index([startAt])
   @@index([createdById])
+  @@index([sourceLinkedCalendarId])
 }
 
 /// One person on one event — the Skylight-style split-color pill needs
@@ -1303,7 +1310,8 @@ model LinkedCalendar {
   syncToken    String?
   lastPulledAt DateTime?
 
-  syncs CalendarEventSync[]
+  syncs        CalendarEventSync[]
+  pulledEvents CalendarEvent[]     @relation("PulledEvents")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1340,5 +1348,6 @@ model CalendarEventSync {
   updatedAt DateTime @updatedAt
 
   @@unique([eventId, linkedCalendarId])
+  @@unique([linkedCalendarId, googleEventId])
   @@index([linkedCalendarId])
 }
