@@ -90,7 +90,7 @@ Wide pages: the
      1152px, so bigger text gets fewer, wider
      columns. That is the default and is intended. `COLUMN_MIN_WIDTH_PX` and
      media queries do not move (a media query's rem is the browser default),
-     so at Large and Extra large a measured layout and its skeleton's
+     so at any size above Normal a measured layout and its skeleton's
      `@min-[…rem]:` mirror may differ by one column step; that is the known
      cost, not a mirror to fix. A container threshold that must not move with
      Text size, because the layout below it is the phone layout and a tablet
