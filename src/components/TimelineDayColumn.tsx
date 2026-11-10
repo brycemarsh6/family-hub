@@ -30,12 +30,13 @@
 // event draw clipped halves on both days without them fighting over one
 // shared column). `hoursPerDay`/`pxPerMinute` are passed rather than
 // re-imported so this file never risks disagreeing with the caller's own
-// `HOUR_HEIGHT_PX`/`MINUTES_PER_DAY`-derived constants — a second private
+// live hour height (mission-65)/`MINUTES_PER_DAY`-derived values — a second private
 // copy of either is exactly the kind of drift this mission's own report
 // (`GUTTER_WIDTH_PX`, and the old bottom-nav height) keeps finding.
 
-import { minutesOfDay, MIN_BLOCK_MINUTES, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
+import { minutesOfDay, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
 import { formatTimeRange, isPast } from "@/lib/calendarDates";
+import { showsTimeLine, titleFitsFullSize } from "@/lib/timelineZoom";
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
 import type { CalendarEventView } from "@/lib/types";
@@ -146,14 +147,14 @@ export function TimelineDayColumn({
             // the real contrast, exactly MonthCell's own technique.
             //
             // 44px NOTE — Strange's ruling (mission-17, gate round
-            // 1): "accept the height, reject the abutment." At this
-            // file's HOUR_HEIGHT_PX (48, TimelineGrid.tsx), a
+            // 1): "accept the height, reject the abutment." At the
+            // default hour height (48px, timelineZoom.ts), a
             // MIN_BLOCK_MINUTES (30 min, timelineLayout.ts) block
             // draws 30/60 * 48 = 24px tall — under DESIGN.md's 44px
             // floor. Inflating the box past its computed geometry
             // was rejected (it would either paint over a neighbor
             // or reintroduce the ambiguous tap the pad exists to
-            // prevent, and doubling HOUR_HEIGHT_PX to clear 44px
+            // prevent, and doubling the hour height to clear 44px
             // outright would halve the visible day from 9.2 hours
             // to 4.6, paid on every open of the app's most-used
             // view). The exception carries a written boundary: a
@@ -193,7 +194,16 @@ export function TimelineDayColumn({
                 flex-shrink only touches the cross axis (height)
                 here, not the width truncation depends on. */}
             {/* @min-[128px] is px on purpose (mission-58): in rem it would move with Text size. */}
-            <span className={`block truncate font-semibold ${compact ? "text-[0.625rem] @min-[128px]:text-xs" : "text-xs"}`}>
+            {/* mission-65: under 20px tall the title takes a 12px line so it fits whole. */}
+            <span
+              className={`block truncate font-semibold ${
+                !titleFitsFullSize(heightPx)
+                  ? "text-[0.625rem] leading-[0.75rem]"
+                  : compact
+                    ? "text-[0.625rem] @min-[128px]:text-xs"
+                    : "text-xs"
+              }`}
+            >
               {event.title}
             </span>
             {/* The rule is the column's own width (D5, mission-46): a
@@ -210,8 +220,11 @@ export function TimelineDayColumn({
                 is itself under MIN_BLOCK_MINUTES, in which case the
                 height is a pad, not a fact, and the time line is
                 the only place the truth (a genuine 15-minute
-                appointment, not 30) can still be told. */}
-            {(heightPx >= 40 || trueDurationMinutes < MIN_BLOCK_MINUTES) && (
+                appointment, not 30) can still be told. mission-65: that
+                override also needs 24px of room (showsTimeLine,
+                timelineZoom.ts), so zoomed out the block shows its
+                title only, like Google. */}
+            {showsTimeLine(heightPx, trueDurationMinutes) && (
               <span className={`block truncate text-[0.5625rem] ${compact ? "hidden @min-[128px]:block" : ""}`}>{formatTimeRange(event.startAt, event.endAt)}</span>
             )}
             {!compact && heightPx >= 72 && event.location && (

@@ -39,6 +39,8 @@ import type { CalendarEventView, CalendarHabitDayView, CalendarPersonView, Calen
 // is that switch.
 
 type CalendarViewsProps = {
+  /** The signed-in person's id: the key for their remembered timeline zoom. */
+  viewerId: string | null;
   events: CalendarEventView[];
   /**
    * mission-14/C2 — page.tsx's parallel task read (`getTasksInDueRange`,
@@ -111,6 +113,7 @@ export function CalendarViews({
   canManage,
   windowStart,
   windowEnd,
+  viewerId,
 }: CalendarViewsProps) {
   // For the Add sheet's own destinations only — the calendar's own paging
   // navigations all go through useCalendarNavigation.
@@ -353,6 +356,7 @@ export function CalendarViews({
               onOpenEvent={(event, day) => setSelected({ event, day })}
               onOpenTask={(task) => setSelectedTask(task)}
               chromeOffsetPx={chromeOffsetPx}
+              viewerId={viewerId}
             />
           </div>
         )

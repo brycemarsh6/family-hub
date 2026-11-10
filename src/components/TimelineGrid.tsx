@@ -77,9 +77,9 @@
 // column, leaving real headroom rather than the one line C6 did. Same
 // discipline throughout: every class name, inline style, and comment
 // reproduced exactly, not rewritten — this is a line-count fix, not a
-// behaviour change. `HOURS_PER_DAY`/`PX_PER_MINUTE` are passed down as
+// behaviour change. `HOURS_PER_DAY`/`pxPerMinute` are passed down as
 // plain numbers rather than re-derived in the new file from a private copy
-// of `HOUR_HEIGHT_PX`, for the identical reason `gridTemplateColumns`
+// of the hour height, for the identical reason `gridTemplateColumns`
 // itself is a prop and not a second formula. This same contract also fixed
 // the per-column not-loaded `sr-only` string — see its own comment, right
 // where the string lives, for the full defect.
@@ -98,17 +98,19 @@ import {
 } from "@/lib/timelineLayout";
 import { isSameDay, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
 import { isOutsideWindow } from "@/lib/calendarDates";
+import { useTimelineZoom } from "@/lib/useTimelineZoom";
 import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
 import { TimelineDayColumn } from "./TimelineDayColumn";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
-/** The rail's own scale — CSS custom property `--hour-height`, per the
- * contract, so nothing else in this file's markup repeats the raw number.
- * 48px/hour means a MIN_BLOCK_MINUTES (30 min, timelineLayout.ts) block
- * draws 24px tall — see the block-rendering section below for why that's a
- * disclosed, reasoned exception to the 44px floor rather than a miss. */
-const HOUR_HEIGHT_PX = 48;
-const PX_PER_MINUTE = HOUR_HEIGHT_PX / 60;
+// The rail's own scale is LIVE (mission-65): `useTimelineZoom` returns the
+// hour height in px (32 to 192, default 48, changed by a two-finger pinch,
+// never below the height at which the whole day fills the visible rail),
+// published below as the CSS custom property `--hour-height` so nothing else
+// in this file's markup repeats the raw number. At the default 48px/hour a
+// MIN_BLOCK_MINUTES (30 min, timelineLayout.ts) block draws 24px tall — see
+// the block-rendering section in TimelineDayColumn.tsx for why that's a
+// disclosed, reasoned exception to the 44px floor rather than a miss.
 /** Tied to timelineLayout.ts's own MINUTES_PER_DAY (D2's "always 1440
  * rail minutes" invariant) rather than a bare 24, so a change to that
  * constant could never silently disagree with how many rows this file
@@ -176,6 +178,9 @@ type TimelineGridProps = {
    * `calc()` string, safe under SSR); a real measurement refines it the
    * instant this mounts. */
   chromeOffsetPx: number;
+  /** The signed-in person's id, the key for their remembered zoom (mission-65).
+   * `null` means no saved zoom: the default hour height, nothing written. */
+  viewerId: string | null;
 };
 
 /** One event's shape as the pure layout library needs it — see
@@ -197,12 +202,17 @@ export function TimelineGrid({
   onOpenEvent,
   onOpenTask,
   chromeOffsetPx,
+  viewerId,
 }: TimelineGridProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // The hour rail, so the zoom can measure where it starts below the sticky header.
+  const railRef = useRef<HTMLDivElement>(null);
   // mission-17/C7 (item 4) — a live DOM query, not React state, to avoid
   // the same-commit staleness the sizing effect's own imperative write
   // below already dodges the same way.
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const hourHeightPx = useTimelineZoom(viewerId, scrollerRef, railRef, stickyHeaderRef);
+  const pxPerMinute = hourHeightPx / 60;
   const columnDaysKey = columnDays.map((day) => day.getTime()).join(",");
 
   // --- Sizing: this component's own overflow-y-auto scroller, sized from
@@ -259,6 +269,8 @@ export function TimelineGrid({
   // (useNowMinute.ts's own poll interval) and yank the reader's scroll
   // position back to "now" while they're trying to read something earlier
   // or later in the day, which is not what "scroll to now ON OPEN" means.
+  // A zoom change is likewise not a reason to run it: it reads the live
+  // `pxPerMinute` each time it DOES run, but pinching must never jump back.
   useLayoutEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
@@ -270,8 +282,8 @@ export function TimelineGrid({
     const visibleRailHeightPx = Math.max(0, scroller.clientHeight - stickyHeaderHeightPx);
     const targetTopPx =
       todayIndex === -1
-        ? 7 * 60 * PX_PER_MINUTE
-        : Math.max(0, minutesOfDay(now) * PX_PER_MINUTE - visibleRailHeightPx / 3);
+        ? 7 * 60 * pxPerMinute
+        : Math.max(0, minutesOfDay(now) * pxPerMinute - visibleRailHeightPx / 3);
     scroller.scrollTop = targetTopPx;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnDaysKey]);
@@ -322,7 +334,7 @@ export function TimelineGrid({
   return (
     <div
       data-fills-viewport className="overflow-hidden rounded-t-xl border border-b-0 border-line"
-      style={{ ["--hour-height" as string]: `${HOUR_HEIGHT_PX}px` }}
+      style={{ ["--hour-height" as string]: `${hourHeightPx}px` }}
     >
       <div ref={scrollerRef} className="overflow-y-auto pb-[env(safe-area-inset-bottom)]" style={{ height: scrollerHeightStyle }}>
         {/* Sticky as ONE unit — the weekday header and the all-day strip
@@ -477,6 +489,7 @@ export function TimelineGrid({
             positioned column per day holding gridlines, the now-line (only
             in today's own column, if present), and every timed block. */}
         <div
+            ref={railRef}
             className="relative grid"
             style={{ gridTemplateColumns, height: `calc(var(--hour-height) * ${HOURS_PER_DAY})` }}
           >
@@ -502,7 +515,7 @@ export function TimelineGrid({
               eventById={eventById}
               now={now}
               hoursPerDay={HOURS_PER_DAY}
-              pxPerMinute={PX_PER_MINUTE}
+              pxPerMinute={pxPerMinute}
               compact={compact}
               onOpenEvent={onOpenEvent}
             />

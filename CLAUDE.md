@@ -135,9 +135,9 @@ files named beside it.
   carry-over, who can see or log) are pure code in `src/lib/habits/`, words
   in `src/lib/habitVocabulary.ts`. Settings has a Show streaks switch and, for
   admins, Recompute streaks. Plan: `.avengers/plans/habits-chores-v1.md`.
-- **Calendar**: Month, Year, Schedule and hour-timeline views, tasks,
-  month-jump dropdown, swipe-to-page. Read `.avengers/plans/calendar-v2.md`
-  before calendar work.
+- **Calendar**: Month, Year, Schedule and hour-timeline views, tasks, month
+  jump, swipe-to-page, pinch to zoom the hours (per person, per device;
+  mission 65). Read `.avengers/plans/calendar-v2.md` before calendar work.
 - **Google Calendar link** (`/settings/calendars`, parents and admins): link
   Google accounts, choose each calendar's sync direction. Refresh tokens are
   encrypted. **Marshee to Google works** (PR 2): the event form's "Sync to"

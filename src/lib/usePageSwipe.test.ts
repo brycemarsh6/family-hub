@@ -10,7 +10,14 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { nextGestureMode, resolveSwipeDirection, nextSwallowNextClick, DIRECTION_LOCK_PX } from "./usePageSwipe";
+import {
+  nextGestureMode,
+  resolveSwipeDirection,
+  nextSwallowNextClick,
+  nextActivePointers,
+  pointerDownAction,
+  DIRECTION_LOCK_PX,
+} from "./usePageSwipe";
 
 test("nextGestureMode: stays undecided while BOTH axes are still under the lock distance", () => {
   assert.equal(nextGestureMode("undecided", 3, 2), "undecided");
@@ -81,4 +88,44 @@ test("nextSwallowNextClick: pointerdown is a no-op when nothing needed clearing"
 test("nextSwallowNextClick: locking into a swipe arms the swallow regardless of its prior value", () => {
   assert.equal(nextSwallowNextClick(false, "lockToSwiping"), true);
   assert.equal(nextSwallowNextClick(true, "lockToSwiping"), true);
+});
+
+
+// ---------------------------------------------------------------------------
+// nextActivePointers / pointerDownAction — mission-65 (pinch to zoom). A
+// pinch must never turn the page, so a second finger's pointerdown makes the
+// gesture yield instead of restarting it.
+
+test("pointerDownAction: one finger down starts a gesture", () => {
+  assert.equal(pointerDownAction([1]), "start");
+});
+
+test("pointerDownAction: a second finger down yields", () => {
+  assert.equal(pointerDownAction([1, 2]), "yield");
+  assert.equal(pointerDownAction([1, 2, 3]), "yield");
+});
+
+test("nextActivePointers: a second finger is added, a primary one resets", () => {
+  assert.deepEqual(nextActivePointers([], "down", 1, true), [1]);
+  assert.deepEqual(nextActivePointers([1], "down", 2, false), [1, 2]);
+  // A fresh first finger after a lost pointerup: the stale ids are dropped.
+  assert.deepEqual(nextActivePointers([1, 2], "down", 7, true), [7]);
+});
+
+test("nextActivePointers: lifting removes only that finger", () => {
+  assert.deepEqual(nextActivePointers([1, 2], "up", 1), [2]);
+  assert.deepEqual(nextActivePointers([2], "up", 2), []);
+  assert.deepEqual(nextActivePointers([2], "up", 9), [2]); // unknown id: no change
+});
+
+test("a pinch, both fingers lift, then a fresh first finger: the gesture starts again", () => {
+  let ids = nextActivePointers([], "down", 1, true);
+  assert.equal(pointerDownAction(ids), "start");
+  ids = nextActivePointers(ids, "down", 2, false);
+  assert.equal(pointerDownAction(ids), "yield");
+  ids = nextActivePointers(ids, "up", 1);
+  ids = nextActivePointers(ids, "up", 2);
+  assert.deepEqual(ids, []);
+  ids = nextActivePointers(ids, "down", 3, true);
+  assert.equal(pointerDownAction(ids), "start");
 });

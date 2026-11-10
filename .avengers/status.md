@@ -6,6 +6,12 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar pinch to zoom (mission 65)**, about 5 minutes on your iPhone
+  and the iPad. The 8 steps are in the mission file's "Phone test for
+  Bryce": pinch on 2 PM and it stays under your fingers; in to about 3.5
+  hours, out to about 21; pinching never changes the day; Day, 3 Day and
+  Week share the zoom; on the iPad, fully zoomed out fills the screen with
+  no blank band.
 - **Wall tablet screensaver (mission 62)**, on the real kitchen tablet
   signed in as Tablet: leave it alone 30 minutes and see the slideshow
   (clock readable on bright photos?); tap it and land on the dashboard
@@ -201,6 +207,11 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- **Calendar zoom first-frame flicker (mission 65, Strange pass 3 NOTE):**
+  on a fresh iPad load the hour lines may jump once. Fix: move the
+  `useTimelineZoom` call in `TimelineGrid.tsx` below its sizing layout
+  effect, or `flushSync` the ResizeObserver callback. Also: short titles at
+  Largest text size on a tablet can lose letter tails (DESIGN.md names it).
 - Dev only, fixed 2026-11-08: the "X is not defined" crash from a type
   re-exported in a "use server" file (`PersonInfo`, `HabitInput`, then
   `RecipeIngredientSuggestion` and the put-away types). None are left, and
