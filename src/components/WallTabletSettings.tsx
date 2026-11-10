@@ -52,7 +52,9 @@ export function WallTabletSettings({
     } catch {
       error = SCREENSAVER_WORDS.saveFailed;
     }
-    if (error) {
+    if (!error) {
+      setErrors({});
+    } else {
       setSettings((s) => ({ ...s, [field]: previous as ScreensaverSettings[F] }));
       setErrors((e) => ({ ...e, [field]: error ?? undefined }));
     }

@@ -156,7 +156,7 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Report:** DONE (Stark); Fury re-ran 2026-11-09: tsc 0, eslint 0, `npm test` exit 0 (1635), UTC exit 0 (1635, 0 fail), build exit 0 (Stark, captured). Self-close now needs a minute with no touch; loads in three cases (leave awake; other change at most once a minute; background at most once every 10 minutes). Bryce asked what the 10 minutes buys; refresh cadence may change after his answer, before Vision pass 3.
 
 ### C7 — Neon-friendly checking, and Strange's phase 1 polish
-- **Status:** PENDING
+- **Status:** DONE
 - **Objective:** The tablet only wakes the database when something can actually change, and the Wall tablet page gets Strange's small fixes.
 - **Why (Bryce's Neon screenshot, 2026-11-09):** Free plan, 100 CU-hours a month, 5.62 used since Oct 31. Neon suspends the project at the limit, which would take Marshee down. A database that is asked something every 10 minutes never gets to sleep (it sleeps after 5 idle minutes). A tablet checking all day and night would cost about 90 to 180 CU-hours a month.
 - **Boundaries:** may touch: `src/components/ScreensaverHost.tsx`, `src/components/LadderStepper.tsx`, `src/components/WallTabletSettings.tsx`, `src/app/(app)/settings/wall-tablet/loading.tsx`. Must not touch: everything else.
@@ -169,7 +169,7 @@ Asked 2026-11-09 with the mock (slideshow, black screen, Wall tablet page). Fury
 - **Verification:** the gauntlet, all five commands, with `npm run build` captured as `BUILD=$?` without a pipe.
 - **Evidence required:** the new load-case code quoted; traces for: tablet asleep all night (loads at the transitions only, none between); slideshow showing all day (one load an hour); 0 photos, a parent adds one at noon, sleep off (appears within an hour plus "Start after"); a tap during an in-flight load (overlay stays until its own click); `git diff --stat`.
 - **Done criteria:** Vision pass 3 PASS.
-- **Report:** (pending)
+- **Report:** DONE (Stark); Fury re-ran 2026-11-09 with exit codes captured: tsc 0, eslint 0, `npm test` 0 (1635), UTC 0 (1635, 0 fail), build 0. Four load cases (leave awake; state change at most once a minute; slideshow showing one refresh an hour; awake with 0 photos one look an hour); none overnight between transitions; `wake()` no longer resets the hourly timer; stepper `min-w-20`; skeleton reshaped; a successful save clears every row's error.
 
 ### C4 — Records (Fury)
 - **STRUCTURE.md: Bryce approved Captain's amendments 1 to 5 (2026-11-09), written by Fury with Captain's pass-2 corrections: Screensaver entry, Slideshow photos writes and `slideshowImageUrl`, `minuteOfDayInZone` in the householdDate entry, Wall tablet in the short pages and loading lists, the two-steppers line. STRUCTURE.md now 1,810 lines (trend; the split PR is its own session).**

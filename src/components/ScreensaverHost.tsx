@@ -12,8 +12,8 @@ import type { SlideshowShowItem } from "@/lib/slideshowRead";
 const TICK_MS = 1000;
 // A state change the cached rule asks for is checked at most this often (and a failed load waits this long).
 const RETRY_MS = 60_000;
-// The quiet background refresh (idle a minute or showing) runs at most this often.
-const BACKGROUND_REFRESH_MS = 600_000;
+// The quiet refresh (a slideshow showing, or an idle look for the first photo) runs at most this often.
+const BACKGROUND_REFRESH_MS = 3_600_000;
 // A load that has not settled by then counts as a failure.
 const LOAD_TIMEOUT_MS = 15_000;
 // Idle at least this long, the host keeps its photo and settings view fresh.
@@ -25,15 +25,20 @@ type Show = { kind: "slideshow"; settings: ScreensaverSettings; photos: Slidesho
  * The wall tablet's screensaver: mounted by AppChrome for a device login only.
  * A 1-second tick asks `screensaverState` what the screen should be. Before it
  * leaves "awake" it fetches fresh settings and photos (`loadScreensaverShow`)
- * and re-checks the rule with them. Loads happen in exactly three cases:
+ * and re-checks the rule with them. The database sleeps after 5 idle minutes,
+ * so loads happen only when something can change, in exactly four cases:
  * (a) leaving "awake" for slideshow or sleep, held back only by a recent failure;
- * (b) the cached rule differs from what is showing in any other way (slideshow
- * to sleep, sleep to slideshow, an overlay to awake), at most once a minute;
- * (c) a background refresh while idle a minute or showing, at most once every
- * 10 minutes. A failed load waits a minute. A shown overlay closes by itself
- * when fresh data says "awake", but never within a minute of a touch (the
- * overlay's own click wakes it), so new photos and changed settings reach the
- * tablet without a reload.
+ * (b) the cached rule differs from what is showing (slideshow to sleep, sleep
+ * to slideshow, an overlay to awake), at most once a minute, so only at real
+ * transitions;
+ * (c) while a slideshow is showing, one refresh at most every 60 minutes;
+ * (d) awake, idle past "Start after" outside sleep hours with 0 photos cached,
+ * one check at most every 60 minutes.
+ * Never a refresh while someone is using the tablet, and none during the sleep
+ * overlay except (b). A failed load waits a minute. A shown overlay closes by
+ * itself when fresh data says "awake", but never within a minute of a touch
+ * (the overlay's own click wakes it), so new photos and changed settings reach
+ * the tablet without a reload.
  *
  * A tap must only wake the screen, never press what is underneath. The overlay
  * is the hit target from the first touch; it swallows `pointerdown` and wakes
@@ -52,7 +57,7 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
   const lastTapRef = useRef(0);
   // Case (b) waits for this (set after any load); case (a) skips it.
   const nextRefreshAtRef = useRef(0);
-  // Case (c) waits for this (set after any load).
+  // Cases (c) and (d) wait for this (set after any successful load).
   const nextBackgroundAtRef = useRef(0);
   const failedUntilRef = useRef(0);
   const loadingRef = useRef(false);
@@ -98,10 +103,13 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
       const leaving = current === "awake" && wanted !== "awake";
       // (b) the cached rule differs from what is showing, any other way: once a minute.
       const changing = !leaving && wanted !== current && now >= nextRefreshAtRef.current;
-      // (c) background refresh while idle a minute or showing: once every 10 minutes.
-      const background =
-        (now - lastTapRef.current >= IDLE_REFRESH_AFTER_MS || current !== "awake") && now >= nextBackgroundAtRef.current;
-      if (!leaving && !changing && !background) return;
+      const slow = now >= nextBackgroundAtRef.current;
+      // (c) a slideshow is showing: refresh at most every 60 minutes.
+      const refreshing = current === "slideshow" && slow;
+      // (d) idle past "Start after" with 0 photos cached: look again at most every 60 minutes.
+      const lookingForPhotos =
+        current === "awake" && photoCountRef.current === 0 && stateNow(settingsRef.current, true) === "slideshow" && slow;
+      if (!leaving && !changing && !refreshing && !lookingForPhotos) return;
 
       loadingRef.current = true;
       let fresh: Awaited<ReturnType<typeof loadScreensaverShow>> = null;
@@ -119,11 +127,11 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
       window.clearTimeout(timeout);
       loadingRef.current = false;
       nextRefreshAtRef.current = Date.now() + RETRY_MS;
-      nextBackgroundAtRef.current = Date.now() + BACKGROUND_REFRESH_MS;
       if (!fresh) {
         failedUntilRef.current = Date.now() + RETRY_MS;
         return;
       }
+      nextBackgroundAtRef.current = Date.now() + BACKGROUND_REFRESH_MS;
       settingsRef.current = fresh.settings;
       photoCountRef.current = fresh.photos.length;
       const confirmed = stateNow(fresh.settings, fresh.photos.length > 0);
@@ -150,7 +158,6 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
   function wake() {
     lastTapRef.current = Date.now();
     nextRefreshAtRef.current = 0;
-    nextBackgroundAtRef.current = 0;
     setShow(null);
     if (pathname !== "/") router.push("/");
   }

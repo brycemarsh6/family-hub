@@ -39,7 +39,7 @@ export function LadderStepper({
         −
       </button>
 
-      <span className={`min-w-16 text-center text-base font-semibold tabular-nums ${disabled ? "opacity-40" : ""}`}>
+      <span className={`min-w-20 text-center text-base font-semibold tabular-nums ${disabled ? "opacity-40" : ""}`}>
         {shownText}
       </span>
 
