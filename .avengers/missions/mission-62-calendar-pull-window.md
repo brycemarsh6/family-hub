@@ -1,6 +1,6 @@
 # Mission 62: Calendar pull window (one year ahead)
 
-**Project:** family-hub (Marshee). **Status:** in progress. **Assembled:** Stark, Vision (small diff, no screen change, no new file beyond tests).
+**Project:** family-hub (Marshee). **Status:** gates passed, PR open. **Assembled:** Stark, Vision (small diff, no screen change, no new file beyond tests).
 
 ## Brief
 
@@ -88,10 +88,24 @@ AGENTS.md (7 DST skips expected), `npm run build`.
   and saves nothing; a clean full pass with a null token calls
   `markPulledOk` and not `saveSyncToken`.
 
+## Delivery
+
+- Full pulls send `timeMin` 30 days back and `timeMax` 365 days ahead
+  (Bryce: one year). The daily cron runs with `rewindow`: it reads the
+  saved token's changes first, then lists the full window, so the horizon
+  moves a day each day and no change is lost. "Last checked" also stamps
+  after a clean pull that gets no token back. PR 99 (safe reason log) is
+  merged; its test now uses the shared harness.
+- Follow-ups: a first pull of about 1,000 events takes 15 to 40 seconds
+  (fine on Fluid compute; set `maxDuration` if a first Refresh times out);
+  editing a whole forever series in Google can make a token pull hit
+  `too-many` until the next morning's rewindow.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 2 | Vision | PASS | | Blocker closed; no duplicates between passes; null-token stamp and the token pass saving first are safe; Denver, UTC and LA tests plus build green |
 | 1 | Vision | BLOCKED | A rewindow dropped the token without collecting its changes, so a change moved or cancelled outside the window was lost for good | Both nextSyncToken outcomes safe; no duplicates possible; cron force:true right; reason log safe; ~1,000 events for 10 weekly series, cap 5,000; a first pull of ~1,000 inserts takes 15 to 40 s (fine on Fluid compute, else set maxDuration later); a series edit in a token pull can hit too-many until the next cron; "Last checked" stays empty with null tokens (W2 item 2) |
 
 ## Handoff log
