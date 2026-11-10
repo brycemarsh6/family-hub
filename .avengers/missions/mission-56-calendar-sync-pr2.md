@@ -4,7 +4,7 @@
 **Status:** BUILDING (Bryce approved the plan, the mock and the wording 2026-11-09)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
-Plan: `.avengers/plans/calendar-sync-v1.md`, "PR split" item 2. Previous PR:
+Plan: `.avengers/plans/calendar-sync-v1.md`, "PR split", the PR 2 entry. Previous PR:
 `.avengers/missions/mission-55-calendar-sync-pr1.md`. Branch:
 `claude/marshee-calendar-sync-pr2-dee89b`, from `main` at `0e31431`.
 
@@ -332,7 +332,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
   5. `linkedCalendarsRead.ts`: the comment above `loadRefreshToken` says it serves both revoking on unlink and the push's access token.
 - **Verification:** the five Gauntlet steps.
 - **Evidence required:** verification output; the diff.
-- **Done criteria:** Captain pass 3 on items 1, 2 and the A3 text; Strange checks the screens; Vision reads item 4.
+- **Done criteria:** Captain pass 3 on the ticked-rows select, the test headers and the A3 text; Strange checks the screens; Vision reads the Try again change.
 
 ### C8 - Gate fixes, pass 3
 - **Status:** DONE (Stark; Fury tapped the row in the running app: words, switch, words flipped it once each)
@@ -346,7 +346,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
 - **Done criteria:** Fury taps the row in the running app (words, then switch) and each tap flips it once; Vision pass 3 re-check of the privacy sentence.
 
 ### C5 - Records
-- **Status:** NOT STARTED
+- **Status:** DONE (Fury: CLAUDE.md, status.md, this file; STRUCTURE.md A1 to A3 filed earlier)
 - **Objective:** Bring `STRUCTURE.md`, `CLAUDE.md` and `.avengers/status.md`
   up to date.
 - **Boundaries:** may touch: `STRUCTURE.md` (the "Google calendar link"
@@ -379,6 +379,7 @@ line. Contracts run one at a time because later ones build on earlier ones.
 | 3 | Captain | PASS | none | `calendarSyncPlanPush.test.ts` is over the soft cap (398 code lines), a further split must name both files for their concern; A3 also carried two small clauses (guards for a missing row or caught error; scoped `prisma/` scripts), accurate per Captain |
 | 3 | Vision | BLOCKED | Privacy "keeps nothing else from Google" still untrue: Google's calendar IDs, main-calendar flag, access role and granted scopes are stored | Try again on reconnect rows correct in 9 fake-Google scenarios; Try again is a no-op on a calendar switched off |
 | 2 | Strange | PASS | none | Same privacy gap raised as a note; busy row's words are not tappable (switch is 56x44, row 60px) |
+| 4 | Vision | PASS | none | Extra pass approved by Bryce. Privacy paragraph matches every Google field written; PR 3 must update it when it writes `syncToken` or pulled events |
 
 ## Handoff log
 
@@ -397,3 +398,29 @@ line. Contracts run one at a time because later ones build on earlier ones.
   that file by name (recorded the same way in mission 55).
 
 ## Delivery
+
+**Status:** all gates PASS (Vision pass 4, Captain pass 3, Strange pass 2).
+Gauntlet green: 1593 tests in Denver; UTC 1586 pass, 7 skipped (Denver-only
+DST cases); tsc, eslint and build clean. Fake `zz-m56` events and `zz-m55-`
+accounts removed from dev (4 events, 2 accounts, no User rows).
+
+**What shipped:** the `CalendarEventSync` table, `LinkedCalendar.accessRole`
+and `CalendarEvent.showBusyOnGoogle` (additive migration
+`20261114000000_calendar_event_sync`); "Sync to" and "Show as busy on Google"
+on the event form; push on create, edit and delete with etag handling; sync
+lines and Try again on the detail sheet (parents and admins); the unverified
+app hint on Synced calendars; the privacy page brought in line with the code.
+
+**Deliberate leftovers:**
+- A failed copy is silent after Save; it shows only on the event's sheet.
+  A small marker is a later follow-up.
+- The sync rows reach every browser in the event data, though the sheet shows
+  them only to parents and admins. They hold calendar names and statuses only.
+- `accessRole` stays empty for calendars linked before PR 2 until relinked, so
+  "Read only" does not show for them yet.
+- Try again does nothing on a calendar switched off since the copy failed.
+- `calendarSyncPlan.ts` and `calendarSyncPlanPush.test.ts` are near or over
+  the soft cap; split by concern before PR 3 adds the pull.
+- CD1 (PR #26) must call the push when it lands, since it moves events.
+- PR 3 must update the privacy page when it stores sync tokens or pulled
+  events.
