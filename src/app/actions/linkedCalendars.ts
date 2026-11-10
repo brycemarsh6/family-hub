@@ -14,12 +14,13 @@ import { revalidatePath } from "next/cache";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { SYNCED_CALENDARS_WORDS, alreadySyncedThrough, isSyncDirection } from "@/lib/calendarSyncVocabulary";
-import { canTurnOn } from "@/lib/calendarSyncRules";
+import { canTurnOn, raceWinner } from "@/lib/calendarSyncRules";
 import { googleAuthUrl, isGoogleConfigured, revokeToken } from "@/lib/google/oauth";
 import { googleRedirectUri, requestOriginFrom } from "@/lib/google/redirectUri";
 import { STATE_COOKIE_NAME, STATE_TTL_SECONDS, newOauthState } from "@/lib/google/oauthState";
 import { isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import {
+  adoptSiblingPulls,
   renameLinkedAccount as writeRenameAccount,
   setCalendarDirection as writeCalendarDirection,
   unlinkAccount as writeUnlinkAccount,
@@ -96,15 +97,35 @@ export async function setCalendarDirection(
 
   // Only one link of a Google calendar may sync it (Bryce, 2026-11-09): two would let
   // Marshee delete or overwrite the real event. Turning one off is always fine.
-  if (direction !== "off") {
-    const others = await loadSiblingCalendars(calendarId);
-    if (!canTurnOn(others)) {
-      const on = others.find((other) => other.direction !== "off");
-      return { error: alreadySyncedThrough(on?.email ?? "another account") };
-    }
+  if (direction === "off") {
+    await writeCalendarDirection(calendarId, direction);
+    refresh();
+    return { ok: true };
+  }
+  const others = await loadSiblingCalendars(calendarId);
+  if (!canTurnOn(others)) {
+    const on = others.find((other) => other.direction !== "off");
+    return { error: alreadySyncedThrough(on?.email ?? "another account") };
   }
 
-  await writeCalendarDirection(calendarId, direction);
+  const turnedOnAt = await writeCalendarDirection(calendarId, direction);
+
+  // Two people tapping at once can both pass the check above. Look again: if another
+  // link was turned on first, this one steps back to off.
+  const after = await loadSiblingCalendars(calendarId);
+  const winner = raceWinner({ id: calendarId, updatedAt: turnedOnAt }, after);
+  if (winner) {
+    await writeCalendarDirection(calendarId, "off");
+    refresh();
+    return { error: alreadySyncedThrough(winner.email) };
+  }
+
+  // "Both ways" takes over what an earlier link of this Google calendar had pulled in,
+  // so the next pull does not bring those events in a second time (Bryce, answer 9).
+  if (direction === "twoWay") {
+    const offIds = after.filter((other) => other.direction === "off").map((other) => other.id);
+    await adoptSiblingPulls(calendarId, offIds);
+  }
   refresh();
   return { ok: true };
 }

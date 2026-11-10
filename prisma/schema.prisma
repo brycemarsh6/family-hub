@@ -1307,8 +1307,11 @@ model LinkedCalendar {
   /// null for rows linked before PR 2, meaning unknown.
   accessRole String?
 
-  syncToken    String?
-  lastPulledAt DateTime?
+  syncToken      String?
+  /// The pull's lease stamp (set when a pull starts, even one that fails).
+  lastPulledAt   DateTime?
+  /// The last pull that worked; drives "Last checked" on Synced calendars.
+  lastPulledOkAt DateTime?
 
   syncs        CalendarEventSync[]
   pulledEvents CalendarEvent[]     @relation("PulledEvents")

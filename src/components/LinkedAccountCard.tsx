@@ -83,10 +83,13 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
       </button>
 
       {account.status === "needs-relink" && (
-        <p className="flex items-start gap-2 border-t border-line bg-warn-soft px-4 py-3 text-sm font-medium text-warn [overflow-wrap:anywhere]">
-          <TriangleAlert aria-hidden="true" size={18} className="mt-0.5 shrink-0" />
-          {relinkLine(account.email)}
-        </p>
+        <div className="border-t border-line bg-warn-soft px-4 py-3 text-sm font-medium text-warn [overflow-wrap:anywhere]">
+          <p className="flex items-start gap-2">
+            <TriangleAlert aria-hidden="true" size={18} className="mt-0.5 shrink-0" />
+            {relinkLine(account.email)}
+          </p>
+          {isOwner && <p className="mt-1 pl-[26px]">{SYNCED_CALENDARS_EXTRA_WORDS.reconnectNextStep}</p>}
+        </div>
       )}
 
       {open && (
@@ -101,14 +104,19 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
               <>
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-base">{calendar.name}</span>
-                  {direction === "twoWay" && calendar.lastPulledAt && now && (
+                  {direction === "twoWay" && calendar.lastPulledOkAt && now && (
                     <span className="text-sm text-muted-strong">
-                      {lastCheckedLine(feedbackTimeAgo(calendar.lastPulledAt, now))}
+                      {lastCheckedLine(feedbackTimeAgo(calendar.lastPulledOkAt, now))}
+                    </span>
+                  )}
+                  {lockedBy && (
+                    <span className="text-sm text-muted-strong [overflow-wrap:anywhere]">
+                      {alreadySyncedThrough(lockedBy)}
                     </span>
                   )}
                 </span>
                 <span className="flex shrink-0 items-center gap-2 text-sm text-muted-strong">
-                  {lockedBy ? alreadySyncedThrough(lockedBy) : readOnly ? SYNCED_CALENDARS_EXTRA_WORDS.readOnly : SYNC_DIRECTION_LABELS[direction]}
+                  {readOnly ? SYNCED_CALENDARS_EXTRA_WORDS.readOnly : SYNC_DIRECTION_LABELS[direction]}
                   {isOwner && !readOnly && !lockedBy && <ChevronRight aria-hidden="true" size={18} />}
                 </span>
               </>

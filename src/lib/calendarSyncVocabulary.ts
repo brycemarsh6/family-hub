@@ -81,6 +81,7 @@ export const SYNCED_CALENDARS_EXTRA_WORDS = {
   readOnly: "Read only",
   ownerOnlyNote: "You can only change or unlink accounts you linked.",
   directionSheetTitle: "Sync direction",
+  reconnectNextStep: "To fix it, tap Link a Google account and choose this account again.",
 } as const;
 
 /** A calendar whose role is known and is not "owner" cannot be written to. Unknown (null) is not read only. */
@@ -129,7 +130,7 @@ export const PULL_WORDS = {
   unreachable: "Couldn't reach Google. Try again later.",
   fixLink: "Fix on Synced calendars",
   cameFromHere: "Came from here",
-  sourceStaysTicked: "The calendar it came from stays ticked, so editing here changes it in Google too.",
+  sourceStaysOn: "The calendar it came from stays on, so editing here changes it in Google too.",
 } as const;
 
 /** The banner and the account card's line when Google has stopped letting Marshee in. */

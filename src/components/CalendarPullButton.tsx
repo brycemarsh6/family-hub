@@ -14,6 +14,9 @@ import { PULL_WORDS, relinkLine } from "@/lib/calendarSyncVocabulary";
 // header reads the same context. The server decides what is pulled and how
 // often (a lease per calendar); this file only asks.
 
+// How long the note under Refresh stays.
+const NOTE_MS = 4000;
+
 type PullContext = { showRefresh: boolean; relinkEmails: string[] };
 
 const CalendarPullContext = createContext<PullContext>({ showRefresh: false, relinkEmails: [] });
@@ -52,18 +55,34 @@ export function CalendarPullButton() {
   const { showRefresh } = useContext(CalendarPullContext);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [note, setNote] = useState<string | null>(null);
+  const [note, setNote] = useState<{ text: string; failed: boolean } | null>(null);
+
+  // The note goes away on its own, so it never sits over the month-jump control.
+  useEffect(() => {
+    if (!note) return;
+    const timer = setTimeout(() => setNote(null), NOTE_MS);
+    return () => clearTimeout(timer);
+  }, [note]);
+
   if (!showRefresh) return null;
 
   function refresh() {
+    // Not `disabled` on the circle: that would dim the spinning icon.
+    if (pending) return;
     setNote(null);
     startTransition(async () => {
       try {
         const result = await pullGoogleEvents(true);
-        if (result.changed) router.refresh();
-        setNote(result.failed > 0 ? PULL_WORDS.unreachable : PULL_WORDS.upToDate);
+        // A failed run can still have saved some events, so the page refreshes either way.
+        router.refresh();
+        setNote(
+          result.failed > 0
+            ? { text: PULL_WORDS.unreachable, failed: true }
+            : { text: PULL_WORDS.upToDate, failed: false },
+        );
       } catch {
-        setNote(PULL_WORDS.unreachable);
+        router.refresh();
+        setNote({ text: PULL_WORDS.unreachable, failed: true });
       }
     });
   }
@@ -74,15 +93,16 @@ export function CalendarPullButton() {
         icon={<RefreshCw aria-hidden="true" size={20} className={pending ? "animate-spin" : undefined} />}
         label={PULL_WORDS.refreshLabel}
         onClick={refresh}
-        disabled={pending}
         size="sm"
       />
       {note && !pending && (
         <p
           role="status"
-          className="absolute right-0 top-full z-30 mt-1 w-max max-w-[16rem] rounded-xl bg-surface-2 px-3 py-2 text-sm text-fg shadow-lg"
+          className={`pointer-events-none absolute right-0 top-full z-30 mt-1 w-max max-w-[16rem] rounded-xl px-3 py-2 text-sm shadow-lg ${
+            note.failed ? "bg-warn-soft text-warn" : "bg-surface-2 text-fg"
+          }`}
         >
-          {note}
+          {note.text}
         </p>
       )}
     </div>
@@ -103,7 +123,7 @@ export function CalendarRelinkBanner() {
           </p>
           <Link
             href="/settings/calendars"
-            className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl bg-surface px-4 text-base font-semibold text-fg transition-opacity active:opacity-80"
+            className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl bg-surface px-4 text-base font-semibold text-fg transition-opacity active:opacity-80 md:inline-flex md:w-auto"
           >
             {PULL_WORDS.fixLink}
           </Link>

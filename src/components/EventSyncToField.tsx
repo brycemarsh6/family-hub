@@ -10,7 +10,7 @@ import type { SyncTarget } from "@/lib/linkedCalendarsRead";
  * nothing when there are no targets. "Show as busy on Google" appears only
  * for an all-day event with at least one calendar ticked, because a timed
  * event is always busy. An event pulled from Google (mission 58) shows its
- * source calendar first as a locked row: it stays ticked, since unticking it
+ * source calendar first as a locked row: it stays on, since turning it off
  * would delete the original.
  */
 export function EventSyncToField({
@@ -75,7 +75,7 @@ export function EventSyncToField({
           </label>
         )}
       </div>
-      {source && <p className="mt-2 text-xs">{PULL_WORDS.sourceStaysTicked}</p>}
+      {source && <p className="mt-2 text-xs">{PULL_WORDS.sourceStaysOn}</p>}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   ownerLine,
   linkedByLine,
   linkErrorMessage,
+  PULL_WORDS,
   EVENT_SYNC_WORDS,
   SYNCED_CALENDARS_EXTRA_WORDS,
   SYNCED_CALENDARS_WORDS,
@@ -208,5 +209,21 @@ describe("withoutForLine", () => {
 describe("alreadySyncedThrough", () => {
   it("names the other account's email, in Bryce's approved words", () => {
     assert.equal(alreadySyncedThrough("emily@example.com"), "Already synced through emily@example.com");
+  });
+});
+
+describe("round 3 words (Bryce, 2026-11-09)", () => {
+  it("pins the reconnect next step on Synced calendars", () => {
+    assert.equal(
+      SYNCED_CALENDARS_EXTRA_WORDS.reconnectNextStep,
+      "To fix it, tap Link a Google account and choose this account again.",
+    );
+  });
+
+  it("pins the edit form note for an event that came from Google", () => {
+    assert.equal(
+      PULL_WORDS.sourceStaysOn,
+      "The calendar it came from stays on, so editing here changes it in Google too.",
+    );
   });
 });

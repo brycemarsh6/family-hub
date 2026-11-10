@@ -17,8 +17,8 @@ import type { GoogleEventIn } from "@/lib/google/types";
 // callback route for removePulledEvents) and no
 // decisions: the steps are in calendarPullRun.ts and the rules in
 // calendarSyncPull.ts, where tests run them with fakes. This is the only
-// writer of pulled events and of a calendar's syncToken and lastPulledAt
-// (through linkedCalendarWrites.ts). Nothing here logs, returns or stores a
+// writer of pulled events and of a calendar's syncToken, lastPulledAt and
+// lastPulledOkAt (through linkedCalendarWrites.ts). Nothing here logs, returns or stores a
 // token, and every catch drops its error, since it could quote one.
 
 async function getAccessToken(accountId: string): Promise<PullAccessResult> {

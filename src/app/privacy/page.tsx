@@ -70,7 +70,8 @@ export default function PrivacyPage() {
         Google doesn&apos;t answer, Marshee still unlinks and deletes. You can
         also remove access yourself at myaccount.google.com/permissions. Events
         already copied to Google stay there. Unlink stops Marshee from changing
-        them.
+        them. Events that came in from that account&apos;s calendars are removed
+        from Marshee. They stay in Google.
       </p>
 
       <h2 className={sectionTitle}>Google API Services User Data Policy</h2>

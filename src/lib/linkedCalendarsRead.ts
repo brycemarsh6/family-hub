@@ -18,8 +18,8 @@ export type SyncedCalendarRow = {
   direction: SyncDirection;
   /** Google's role for the linked person; null for rows linked before mission 56. */
   accessRole: string | null;
-  /** When the pull last looked at this calendar; null if it never has. */
-  lastPulledAt: Date | null;
+  /** When a pull of this calendar last worked; null if none has. (The pull's lease stamp is not shown.) */
+  lastPulledOkAt: Date | null;
   /** The other link's account email when this one is off and another link of the same Google calendar is on; else null. */
   syncedThrough: string | null;
 };
@@ -53,7 +53,7 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
           googleCalendarId: true,
           direction: true,
           accessRole: true,
-          lastPulledAt: true,
+          lastPulledOkAt: true,
         },
       },
     },
@@ -102,18 +102,24 @@ export async function loadCalendarOwner(calendarId: string): Promise<{ userId: s
 
 /**
  * The other links of this calendar's Google calendar, for the one-link rule
- * (canTurnOn in calendarSyncRules.ts). Empty when the calendar is not found.
+ * (canTurnOn in calendarSyncRules.ts), the handover and the race check. Empty
+ * when the calendar is not found.
  */
 export async function loadSiblingCalendars(
   calendarId: string,
-): Promise<{ direction: SyncDirection; email: string }[]> {
+): Promise<{ id: string; direction: SyncDirection; email: string; updatedAt: Date }[]> {
   const calendar = await db.linkedCalendar.findUnique({ where: { id: calendarId }, select: { googleCalendarId: true } });
   if (!calendar) return [];
   const others = await db.linkedCalendar.findMany({
     where: { googleCalendarId: calendar.googleCalendarId, id: { not: calendarId } },
-    select: { direction: true, account: { select: { email: true } } },
+    select: { id: true, direction: true, updatedAt: true, account: { select: { email: true } } },
   });
-  return others.map((other) => ({ direction: toSyncDirection(other.direction), email: other.account.email }));
+  return others.map((other) => ({
+    id: other.id,
+    direction: toSyncDirection(other.direction),
+    email: other.account.email,
+    updatedAt: other.updatedAt,
+  }));
 }
 
 /** The decrypted refresh token, for revoking it at Google on unlink and for the push's access token. */

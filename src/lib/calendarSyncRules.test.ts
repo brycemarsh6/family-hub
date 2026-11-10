@@ -11,7 +11,9 @@ import {
   canTurnOn,
   cleanRequestedIds,
   isPushable,
+  planHandover,
   planSync,
+  raceWinner,
   sortedPersonNames,
   startsTicked,
   tokenFailReason,
@@ -198,6 +200,54 @@ describe("canTurnOn (one link per Google calendar)", () => {
   it("refuses when any other link is on, in any direction", () => {
     assert.equal(canTurnOn([{ direction: "off" }, { direction: "outbound" }]), false);
     assert.equal(canTurnOn([{ direction: "twoWay" }]), false);
+  });
+});
+
+describe("planHandover (a handover between two links of one Google calendar)", () => {
+  it("moves every sibling row when the new calendar has none", () => {
+    const plan = planHandover([], [{ id: "s1", eventId: "e1" }, { id: "s2", eventId: "e2" }]);
+    assert.deepEqual(plan, { move: ["s1", "s2"], drop: [] });
+  });
+
+  it("drops a sibling row whose event already has a row on the new calendar", () => {
+    const plan = planHandover(["e1"], [{ id: "s1", eventId: "e1" }, { id: "s2", eventId: "e2" }]);
+    assert.deepEqual(plan, { move: ["s2"], drop: ["s1"] });
+  });
+
+  it("moves only the first of two sibling rows for the same event", () => {
+    const plan = planHandover([], [{ id: "s1", eventId: "e1" }, { id: "s2", eventId: "e1" }]);
+    assert.deepEqual(plan, { move: ["s1"], drop: ["s2"] });
+  });
+
+  it("does nothing when there are no siblings", () => {
+    assert.deepEqual(planHandover(["e1"], []), { move: [], drop: [] });
+  });
+});
+
+describe("raceWinner (two links turned on at once)", () => {
+  const at = (n: number) => new Date(2026, 10, 9, 10, 0, n);
+  const other = (id: string, direction: "off" | "outbound" | "twoWay", n: number) => ({
+    id,
+    direction,
+    updatedAt: at(n),
+  });
+
+  it("is null when no other link is on", () => {
+    assert.equal(raceWinner({ id: "me", updatedAt: at(5) }, [other("a", "off", 1)]), null);
+    assert.equal(raceWinner({ id: "me", updatedAt: at(5) }, []), null);
+  });
+
+  it("is the other link when it was turned on first", () => {
+    assert.equal(raceWinner({ id: "me", updatedAt: at(5) }, [other("a", "twoWay", 1)])?.id, "a");
+  });
+
+  it("is null when this link got there first", () => {
+    assert.equal(raceWinner({ id: "me", updatedAt: at(1) }, [other("a", "outbound", 5)]), null);
+  });
+
+  it("breaks an exact tie by the lower id", () => {
+    assert.equal(raceWinner({ id: "b", updatedAt: at(5) }, [other("a", "twoWay", 5)])?.id, "a");
+    assert.equal(raceWinner({ id: "a", updatedAt: at(5) }, [other("b", "twoWay", 5)]), null);
   });
 });
 

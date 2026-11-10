@@ -114,3 +114,53 @@ export function planSync(input: {
 export function canTurnOn(others: { direction: SyncDirection }[]): boolean {
   return others.every((other) => other.direction === "off");
 }
+
+/** A sync row of an off sibling link, as the handover needs it. */
+export type HandoverRow = { id: string; eventId: string };
+
+/**
+ * A handover (Bryce, 2026-11-09, answer 9): a calendar is turned on while
+ * another link of the same Google calendar, now off, holds its pulled state.
+ * Says which of the siblings' sync rows move to the new calendar and which are
+ * dropped because the event already has a row there (or an earlier sibling row
+ * for the same event is moving). Rows are moved, never copied. `targetEventIds`
+ * are the events that already have a sync row on the new calendar. Both lists
+ * hold sync row ids and keep the input order.
+ */
+export function planHandover(
+  targetEventIds: string[],
+  siblingRows: HandoverRow[],
+): { move: string[]; drop: string[] } {
+  const taken = new Set(targetEventIds);
+  const move: string[] = [];
+  const drop: string[] = [];
+  for (const row of siblingRows) {
+    if (taken.has(row.eventId)) {
+      drop.push(row.id);
+    } else {
+      taken.add(row.eventId);
+      move.push(row.id);
+    }
+  }
+  return { move, drop };
+}
+
+/**
+ * After a calendar was turned on, the other on link that got there first, if
+ * any (the older `updatedAt`; the lower id breaks a tie). Two people tapping at
+ * once can both pass `canTurnOn`; the one this returns for keeps the calendar
+ * and the other turns itself back off.
+ */
+export function raceWinner<T extends { id: string; direction: SyncDirection; updatedAt: Date }>(
+  mine: { id: string; updatedAt: Date },
+  others: T[],
+): T | null {
+  const earlier = others
+    .filter((other) => other.direction !== "off")
+    .filter((other) => {
+      const diff = other.updatedAt.getTime() - mine.updatedAt.getTime();
+      return diff < 0 || (diff === 0 && other.id.localeCompare(mine.id) < 0);
+    })
+    .sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime() || a.id.localeCompare(b.id));
+  return earlier[0] ?? null;
+}

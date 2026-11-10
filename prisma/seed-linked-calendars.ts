@@ -43,6 +43,8 @@ const EVENT_PREFIX = "zz-m56 ";
 const FAKE_GOOGLE_EVENT_ID = "zz-m56-not-a-real-google-event";
 
 const RELINK_SUBJECT = "zz-m55-relink";
+// Its own Google calendar id: sharing "primary" would make a second on-link of the Main calendar.
+const RELINK_CALENDAR = "zz-m58-old";
 const PULLED_PREFIX = "zz-m58 ";
 
 /** The UTC instant of `hour`:00 on `date` as read on a Denver wall clock. */
@@ -60,7 +62,7 @@ const FAKE_EVENTS = [
 ];
 
 const CALENDARS = [
-  { googleCalendarId: "primary", name: "Main calendar", isPrimary: true, direction: "twoWay" },
+  { googleCalendarId: "primary", name: "Main calendar", isPrimary: true, direction: "off" },
   { googleCalendarId: "family", name: "Family", isPrimary: false, direction: "off" },
 ];
 
@@ -83,6 +85,7 @@ async function main() {
   }
 
   let firstMainCalendarId: string | null = null;
+  const otherMainCalendarIds: string[] = [];
   for (const manager of managers) {
     const subject = `${SUBJECT_PREFIX}${manager.role}`;
     const account = await db.linkedAccount.upsert({
@@ -107,16 +110,28 @@ async function main() {
         create: { accountId: account.id, ...calendar },
         select: { id: true },
       });
-      if (manager === managers[0] && calendar.isPrimary) firstMainCalendarId = row.id;
+      if (calendar.isPrimary) {
+        if (manager === managers[0]) firstMainCalendarId = row.id;
+        else otherMainCalendarIds.push(row.id);
+      }
     }
   }
 
   // Mission 58: the first fake account's Main calendar is "twoWay" and was
-  // pulled 2 minutes ago (set on every run, so re-running refreshes it).
+  // pulled 2 minutes ago (set on every run, so re-running refreshes it). The
+  // other fake accounts' Main calendars are the same Google calendar, and only
+  // one link of a Google calendar may be on, so they are set "off" here.
   if (firstMainCalendarId) {
+    const pulled = new Date(Date.now() - 2 * 60 * 1000);
     await db.linkedCalendar.update({
       where: { id: firstMainCalendarId },
-      data: { direction: "twoWay", lastPulledAt: new Date(Date.now() - 2 * 60 * 1000) },
+      data: { direction: "twoWay", lastPulledAt: pulled, lastPulledOkAt: pulled },
+    });
+  }
+  if (otherMainCalendarIds.length > 0) {
+    await db.linkedCalendar.updateMany({
+      where: { id: { in: otherMainCalendarIds } },
+      data: { direction: "off" },
     });
   }
 
@@ -139,12 +154,12 @@ async function main() {
   });
   await db.linkedCalendar.upsert({
     where: {
-      accountId_googleCalendarId: { accountId: relinkAccount.id, googleCalendarId: "primary" },
+      accountId_googleCalendarId: { accountId: relinkAccount.id, googleCalendarId: RELINK_CALENDAR },
     },
     update: {},
     create: {
       accountId: relinkAccount.id,
-      googleCalendarId: "primary",
+      googleCalendarId: RELINK_CALENDAR,
       name: "Old calendar",
       isPrimary: true,
       direction: "twoWay",

@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import type { SyncDirection } from "@/lib/calendarSyncVocabulary";
 import type { GoogleCalendarSummary } from "@/lib/google/types";
+import { planHandover } from "@/lib/calendarSyncRules";
 
 // Writes for linked Google accounts and their calendars (mission 55). No
 // auth and no revalidatePath here. The Server Actions that call these check
@@ -75,8 +76,52 @@ export async function replaceCalendars(accountId: string, calendars: GoogleCalen
   }, { timeout: REPLACE_TIMEOUT_MS });
 }
 
-export async function setCalendarDirection(calendarId: string, direction: SyncDirection): Promise<void> {
-  await db.linkedCalendar.update({ where: { id: calendarId }, data: { direction } });
+/** Returns the row's new `updatedAt`, which the one-link race check compares. */
+export async function setCalendarDirection(calendarId: string, direction: SyncDirection): Promise<Date> {
+  const updated = await db.linkedCalendar.update({
+    where: { id: calendarId },
+    data: { direction },
+    select: { updatedAt: true },
+  });
+  return updated.updatedAt;
+}
+
+/**
+ * A handover (Bryce, 2026-11-09, answer 9): a calendar turned on to "Both ways"
+ * takes over the pulled state of its off siblings (other links of the same
+ * Google calendar), in one transaction, so the next pull does not import
+ * those events a second time. Pulled events and sync rows are moved, never
+ * copied; a sibling row for an event this calendar already has a row for is
+ * deleted (planHandover decides). The calendar's sync token is cleared so its
+ * next pull is a full one that settles anything the move left stale.
+ */
+export async function adoptSiblingPulls(calendarId: string, siblingIds: string[]): Promise<void> {
+  await db.$transaction(async (tx) => {
+    const target = await tx.calendarEventSync.findMany({
+      where: { linkedCalendarId: calendarId },
+      select: { eventId: true },
+    });
+    const siblingRows = siblingIds.length
+      ? await tx.calendarEventSync.findMany({
+          where: { linkedCalendarId: { in: siblingIds } },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          select: { id: true, eventId: true },
+        })
+      : [];
+    const { move, drop } = planHandover(target.map((row) => row.eventId), siblingRows);
+    if (siblingIds.length) {
+      await tx.calendarEvent.updateMany({
+        where: { sourceLinkedCalendarId: { in: siblingIds } },
+        data: { sourceLinkedCalendarId: calendarId },
+      });
+    }
+    // Deletes first: a moved row must not meet a row it duplicates.
+    if (drop.length) await tx.calendarEventSync.deleteMany({ where: { id: { in: drop } } });
+    if (move.length) {
+      await tx.calendarEventSync.updateMany({ where: { id: { in: move } }, data: { linkedCalendarId: calendarId } });
+    }
+    await tx.linkedCalendar.update({ where: { id: calendarId }, data: { syncToken: null } });
+  }, { timeout: REPLACE_TIMEOUT_MS });
 }
 
 export async function renameLinkedAccount(accountId: string, label: string | null): Promise<void> {
@@ -92,8 +137,9 @@ export async function unlinkAccount(accountId: string): Promise<void> {
   await db.linkedAccount.delete({ where: { id: accountId } });
 }
 
-// The pull (mission 58): the only writes of a calendar's sync token and
-// lastPulledAt, and of an account's needs-relink status.
+// The pull (mission 58): the only writes of a calendar's sync token,
+// lastPulledAt (the lease) and lastPulledOkAt, and of an account's
+// needs-relink status.
 
 /** Google no longer accepts this account's link; the person must connect it again. */
 export async function markAccountNeedsRelink(accountId: string): Promise<void> {
@@ -118,7 +164,15 @@ export async function claimCalendarForPull(calendarId: string, staleBefore: Date
   return claimed.count === 1;
 }
 
-/** Save Google's bookmark for "what changed since"; null clears it. */
+/**
+ * Save Google's bookmark for "what changed since"; null clears it. Saving a
+ * real token is the pull's success mark (the run saves one only after every
+ * event is written), so it also stamps `lastPulledOkAt`, which "Last checked"
+ * reads. Clearing a token does not.
+ */
 export async function saveSyncToken(calendarId: string, token: string | null): Promise<void> {
-  await db.linkedCalendar.update({ where: { id: calendarId }, data: { syncToken: token } });
+  await db.linkedCalendar.update({
+    where: { id: calendarId },
+    data: token === null ? { syncToken: null } : { syncToken: token, lastPulledOkAt: new Date() },
+  });
 }

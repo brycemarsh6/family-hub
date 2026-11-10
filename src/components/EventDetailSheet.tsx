@@ -60,7 +60,11 @@ export function EventDetailSheet({
   // The list a Try again returned, tagged with the event it belongs to so it
   // can never show on another event.
   const [retried, setRetried] = useState<{ eventId: string; syncs: CalendarEventSyncView[] } | null>(null);
-  const syncs = (retried?.eventId === event.id ? retried.syncs : event.syncs);
+  // The calendar the event came from already says "From Google", so its "On Google" line
+  // is left out (matched by name: the view carries no ids). A failed copy always shows.
+  const syncs = (retried?.eventId === event.id ? retried.syncs : event.syncs).filter(
+    (sync) => !(sync.status === "ok" && sync.calendarName === event.sourceCalendarName),
+  );
 
   useEffect(() => {
     function handleKeyDown(keyboardEvent: KeyboardEvent) {
