@@ -1,21 +1,30 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ImagePlus, MessageSquare } from "lucide-react";
 import { ProgressBar } from "@/components/ProgressBar";
 import { SlideshowPhotoSheet } from "@/components/SlideshowPhotoSheet";
 import { addSlideshowPhoto, deleteSlideshowPhoto, updateSlideshowCaption } from "@/app/actions/slideshowPhotos";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
+import { calendarDateInZone, formatShortCalendarDate, parseDateParam } from "@/lib/householdDate";
 import { shrinkPhoto } from "@/lib/shrinkPhoto";
+import { normalizeCaption } from "@/lib/slideshowPhotos";
 import type { SlideshowPhotoItem } from "@/lib/slideshowRead";
 
 /** 3 across on a phone, more as the page's own width grows (container variants, never screen breakpoints). */
 const GRID_CLASSES = "grid grid-cols-3 gap-2 @min-[40rem]:grid-cols-5 @min-[60rem]:grid-cols-7";
 
-const addedDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: HOUSEHOLD_TIME_ZONE });
+/** "Nov 3, 2026" from the shared short-date helper plus the year. */
+function shortDateWithYear(date: { year: number; month: number; day: number }): string {
+  return `${formatShortCalendarDate(date)}, ${date.year}`;
+}
 
+/** The caption, else when the photo was taken (camera date, no timezone), else when it was added (Denver). */
 function altText(photo: SlideshowPhotoItem): string {
-  return photo.caption ?? `Photo added ${addedDate.format(new Date(photo.createdAt))}`;
+  if (photo.caption) return photo.caption;
+  const taken = photo.takenOn ? parseDateParam(photo.takenOn) : null;
+  if (taken) return `Photo taken ${shortDateWithYear(taken)}`;
+  return `Photo added ${shortDateWithYear(calendarDateInZone(new Date(photo.createdAt), HOUSEHOLD_TIME_ZONE))}`;
 }
 
 function countLine(count: number): string {
@@ -35,18 +44,38 @@ export function SlideshowPhotosManager({ initialPhotos }: { initialPhotos: Slide
   const [failed, setFailed] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const focusAddAfterDelete = useRef(false);
 
   const open = photos.find((photo) => photo.id === openId) ?? null;
   const busy = progress !== null;
+
+  // After a delete the sheet closes and the photo it opened from is gone, so
+  // focus goes to Add photos. This effect runs after the sheet's own cleanup.
+  useEffect(() => {
+    if (focusAddAfterDelete.current) {
+      focusAddAfterDelete.current = false;
+      addButton.current?.focus();
+    }
+  }, [photos]);
 
   async function upload(files: File[]) {
     setError(null);
     setFailed([]);
     const missed: File[] = [];
+    let unreadable = 0;
+    let uploadError: string | null = null;
     for (let index = 0; index < files.length; index += 1) {
       setProgress({ current: index + 1, total: files.length });
+      let shrunk: Awaited<ReturnType<typeof shrinkPhoto>>;
       try {
-        const shrunk = await shrinkPhoto(files[index]);
+        shrunk = await shrinkPhoto(files[index]);
+      } catch {
+        // A file that can't be read won't read next time either, so it isn't offered for Try again.
+        unreadable += 1;
+        continue;
+      }
+      try {
         const formData = new FormData();
         formData.append("photo", shrunk.photo, "photo.jpg");
         formData.append("thumb", shrunk.thumb, "thumb.jpg");
@@ -58,7 +87,7 @@ export function SlideshowPhotosManager({ initialPhotos }: { initialPhotos: Slide
           setPhotos((current) => [result.photo, ...current]);
         } else {
           missed.push(files[index]);
-          setError(result.error);
+          uploadError = result.error;
         }
       } catch {
         missed.push(files[index]);
@@ -66,6 +95,10 @@ export function SlideshowPhotosManager({ initialPhotos }: { initialPhotos: Slide
     }
     setProgress(null);
     setFailed(missed);
+    if (uploadError) setError(uploadError);
+    else if (unreadable > 0) {
+      setError(unreadable === 1 ? "That photo couldn't be read." : `${unreadable} photos couldn't be read.`);
+    }
   }
 
   function handlePick(event: React.ChangeEvent<HTMLInputElement>) {
@@ -74,21 +107,30 @@ export function SlideshowPhotosManager({ initialPhotos }: { initialPhotos: Slide
     if (files.length > 0) void upload(files);
   }
 
+  // A later success (delete or caption save) clears the old upload messages.
+  function clearUploadMessages() {
+    setFailed([]);
+    setError(null);
+  }
+
   // Delete waits for the server (DESIGN.md: a one-shot destructive verb is not optimistic).
   // Nothing changes on screen until it says ok; the sheet shows any error.
   async function handleDelete(photo: SlideshowPhotoItem) {
     const result = await deleteSlideshowPhoto(photo.id);
     if (!result.ok) return result.error;
+    focusAddAfterDelete.current = true;
     setOpenId(null);
     setPhotos((current) => current.filter((item) => item.id !== photo.id));
+    clearUploadMessages();
     return null;
   }
 
   async function handleSaveCaption(photo: SlideshowPhotoItem, caption: string) {
     const result = await updateSlideshowCaption(photo.id, caption);
     if (!result.ok) return result.error;
-    const saved = caption.trim().replace(/\s+/g, " ") || null;
+    const saved = normalizeCaption(caption);
     setPhotos((current) => current.map((item) => (item.id === photo.id ? { ...item, caption: saved } : item)));
+    clearUploadMessages();
     return null;
   }
 
@@ -98,17 +140,18 @@ export function SlideshowPhotosManager({ initialPhotos }: { initialPhotos: Slide
 
       <input ref={input} type="file" accept="image/*" multiple onChange={handlePick} className="hidden" />
       <button
+        ref={addButton}
         type="button"
         onClick={() => input.current?.click()}
         disabled={busy}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50 md:w-auto md:px-6"
       >
         <ImagePlus aria-hidden="true" size={20} />
         Add photos
       </button>
 
       {progress && (
-        <div className="mt-3 rounded-xl border border-line bg-surface p-3" role="status">
+        <div className="mt-3 rounded-xl border border-line bg-surface p-3 md:max-w-md" role="status">
           <p className="mb-2 text-sm font-medium">
             Adding {progress.current} of {progress.total} {progress.total === 1 ? "photo" : "photos"}
           </p>
@@ -117,9 +160,9 @@ export function SlideshowPhotosManager({ initialPhotos }: { initialPhotos: Slide
       )}
 
       {!busy && failed.length > 0 && (
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-line bg-surface p-3">
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-line bg-surface p-3 md:max-w-md">
           <p className="text-sm text-warn">
-            {failed.length} {failed.length === 1 ? "photo" : "photos"} couldn&apos;t be added.
+            {`${failed.length} ${failed.length === 1 ? "photo" : "photos"} couldn't be added.`}
           </p>
           <button
             type="button"

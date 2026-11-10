@@ -43,7 +43,9 @@ export default async function SettingsPage() {
   const today = householdToday(new Date())!;
   const vacations = user.isDevice ? [] : await loadVacations(user.userId, today);
   const canSyncCalendars = !user.isDevice && MANAGER_ROLES.includes(user.role);
-  const slideshowCount = canSyncCalendars ? await countSlideshowPhotos() : 0;
+  // Same people as the calendar link: parents and admins on a real login.
+  const canManageSlideshow = canSyncCalendars;
+  const slideshowCount = canManageSlideshow ? await countSlideshowPhotos() : 0;
   const newFeedback = user.role === "admin" ? await countNewFeedback() : 0;
 
   return (
@@ -97,7 +99,7 @@ export default async function SettingsPage() {
               </div>
             )}
 
-            {canSyncCalendars && (
+            {canManageSlideshow && (
               <div className="order-3">
                 <Link
                   href="/settings/slideshow"

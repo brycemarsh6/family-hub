@@ -75,6 +75,7 @@ function encode(
   canvas.height = size.height;
   const context = canvas.getContext("2d");
   if (!context) return Promise.reject(new Error(UNREADABLE));
+  context.imageSmoothingQuality = "high";
   context.drawImage(source, 0, 0, size.width, size.height);
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error(UNREADABLE))), PHOTO_TYPE, quality);

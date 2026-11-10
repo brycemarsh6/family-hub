@@ -2,18 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { parseDateParam } from "@/lib/householdDate";
+import { FULL_MONTH_NAMES } from "@/lib/mealPlanDates";
 import { CAPTION_MAX, normalizeCaption } from "@/lib/slideshowPhotos";
 import type { SlideshowPhotoItem } from "@/lib/slideshowRead";
 
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-/** "November 3, 2026" from a `YYYY-MM-DD` camera date. Read from the text, never through a Date, so no timezone can move it. */
-function takenLabel(takenOn: string): string {
-  const [year, month, day] = takenOn.split("-").map(Number);
-  return `${MONTH_NAMES[month - 1]} ${day}, ${year}`;
+/** "November 3, 2026" from a `YYYY-MM-DD` camera date, or null. Read from the text, never through a Date, so no timezone can move it. */
+function takenLabel(takenOn: string | null): string | null {
+  const date = takenOn ? parseDateParam(takenOn) : null;
+  return date ? `${FULL_MONTH_NAMES[date.month - 1]} ${date.day}, ${date.year}` : null;
 }
 
 /**
@@ -43,6 +40,7 @@ export function SlideshowPhotoSheet({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const taken = takenLabel(photo.takenOn);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -107,7 +105,7 @@ export function SlideshowPhotoSheet({
         />
 
         <p className="mt-3 text-sm text-muted">
-          {photo.takenOn ? `Taken ${takenLabel(photo.takenOn)} · added by ${photo.uploadedByName}` : `Added by ${photo.uploadedByName}`}
+          {taken ? `Taken ${taken} · added by ${photo.uploadedByName}` : `Added by ${photo.uploadedByName}`}
         </p>
 
         <label htmlFor="slideshow-caption" className="mt-3 text-sm font-medium">

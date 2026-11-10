@@ -17,19 +17,22 @@ export type SlideshowPhotoItem = {
   createdAt: Date;
 };
 
+/** The columns a photo item carries (never the paths). Shared with the add action. */
+export const SLIDESHOW_PHOTO_SELECT = {
+  id: true,
+  width: true,
+  height: true,
+  caption: true,
+  takenOn: true,
+  uploadedByName: true,
+  createdAt: true,
+} as const;
+
 /** Newest first. */
 export async function listSlideshowPhotos(): Promise<SlideshowPhotoItem[]> {
   return db.slideshowPhoto.findMany({
     orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      width: true,
-      height: true,
-      caption: true,
-      takenOn: true,
-      uploadedByName: true,
-      createdAt: true,
-    },
+    select: SLIDESHOW_PHOTO_SELECT,
   });
 }
 

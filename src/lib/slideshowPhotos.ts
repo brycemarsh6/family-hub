@@ -6,7 +6,7 @@
 export const CAPTION_MAX = 80;
 
 /** The most bytes of one full photo we accept (the browser aims for about 1 MB). */
-export const PHOTO_MAX_BYTES = 4 * 1024 * 1024;
+export const PHOTO_MAX_BYTES = 3.5 * 1024 * 1024;
 
 /** The most bytes of one thumbnail we accept. */
 export const THUMB_MAX_BYTES = 512 * 1024;

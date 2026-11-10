@@ -16,7 +16,7 @@ import {
 
 test("the limits are the ones the contract names", () => {
   assert.equal(CAPTION_MAX, 80);
-  assert.equal(PHOTO_MAX_BYTES, 4 * 1024 * 1024);
+  assert.equal(PHOTO_MAX_BYTES, 3.5 * 1024 * 1024);
   assert.equal(THUMB_MAX_BYTES, 512 * 1024);
   assert.equal(PHOTO_LONG_EDGE, 2048);
   assert.equal(THUMB_LONG_EDGE, 400);

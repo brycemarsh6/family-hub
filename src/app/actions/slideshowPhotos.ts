@@ -22,7 +22,7 @@ import {
   photoPaths,
   toDimension,
 } from "@/lib/slideshowPhotos";
-import { loadSlideshowPhotoPaths, type SlideshowPhotoItem } from "@/lib/slideshowRead";
+import { SLIDESHOW_PHOTO_SELECT, loadSlideshowPhotoPaths, type SlideshowPhotoItem } from "@/lib/slideshowRead";
 
 export type AddSlideshowPhotoResult =
   | { ok: true; photo: SlideshowPhotoItem }
@@ -73,6 +73,8 @@ export async function addSlideshowPhoto(formData: FormData): Promise<AddSlidesho
     await putSlideshowFile(photoPath, new Uint8Array(await photo.arrayBuffer()));
   } catch (error) {
     console.error("Slideshow photo upload failed", error);
+    // The put may have stored the file before it threw; deleting a missing path is harmless.
+    await cleanUp([photoPath]);
     return { ok: false, error: ADD_FAILED };
   }
   try {
@@ -96,15 +98,7 @@ export async function addSlideshowPhoto(formData: FormData): Promise<AddSlidesho
         uploadedById: user.userId,
         uploadedByName: user.displayName,
       },
-      select: {
-        id: true,
-        width: true,
-        height: true,
-        caption: true,
-        takenOn: true,
-        uploadedByName: true,
-        createdAt: true,
-      },
+      select: SLIDESHOW_PHOTO_SELECT,
     });
   } catch (error) {
     console.error("Slideshow photo save failed", error);
