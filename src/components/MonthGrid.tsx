@@ -43,6 +43,7 @@ function taskAsMonthEvent(task: CalendarTaskView): CalendarEventView {
     allDay: true,
     people: task.people,
     createdByName: null,
+    syncs: [],
   };
 }
 
@@ -64,6 +65,7 @@ function habitDayAsMonthEvent(item: CalendarHabitDayView): CalendarEventView {
     allDay: true,
     people: [],
     createdByName: null,
+    syncs: [],
   };
 }
 

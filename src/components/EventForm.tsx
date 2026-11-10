@@ -7,6 +7,8 @@ import { addDays, startOfDay } from "@/lib/mealPlanDates";
 import { allDayInstantToLocalDay, localDayToAllDayInstant } from "@/lib/calendarDates";
 import { EventDateTimeFields, parseLocalDateString } from "./EventDateTimeFields";
 import { EventPeopleField } from "./EventPeopleField";
+import { EventSyncToField } from "./EventSyncToField";
+import type { SyncTarget } from "@/lib/linkedCalendarsRead";
 import type { CalendarPersonView } from "@/lib/types";
 import {
   FORM_COLUMN_CLASSES,
@@ -38,6 +40,9 @@ export type EventFormDefaults = {
   location: string;
   notes: string;
   userIds: string[];
+  /** Calendars this event already has a Google copy on (edit only). */
+  syncCalendarIds: string[];
+  showBusyOnGoogle: boolean;
 };
 
 /** One form for both New and Edit (the RecipeForm precedent) — calls
@@ -51,12 +56,15 @@ export type EventFormDefaults = {
  * where, with the error and Save). The form is the `@container` because it
  * holds no sheet; a phone stacks the columns in the same order as before. */
 export function EventForm({
+  syncTargets,
   people, // full household roster, kids included — an event can be FOR a kid
   currentUserId,
   defaultValues,
   initialDateISO, // "YYYY-MM-DD" day in view when "+" was tapped, ignored
   // once editing — a string, built into a Date only here (see new/page.tsx).
 }: {
+  /** Calendars the "Sync to" field may offer; empty hides the field. */
+  syncTargets: SyncTarget[];
   people: CalendarPersonView[];
   currentUserId: string;
   defaultValues?: EventFormDefaults;
@@ -74,6 +82,12 @@ export function EventForm({
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
     defaultValues?.userIds ?? [currentUserId],
   );
+  const [syncIds, setSyncIds] = useState<string[]>(() =>
+    isEdit
+      ? syncTargets.filter((t) => defaultValues.syncCalendarIds.includes(t.calendarId)).map((t) => t.calendarId)
+      : syncTargets.filter((t) => t.startsTicked).map((t) => t.calendarId),
+  );
+  const [showBusy, setShowBusy] = useState(defaultValues?.showBusyOnGoogle ?? false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -119,6 +133,12 @@ export function EventForm({
     );
   }
 
+  function toggleSyncCalendar(calendarId: string) {
+    setSyncIds((current) =>
+      current.includes(calendarId) ? current.filter((id) => id !== calendarId) : [...current, calendarId],
+    );
+  }
+
   function handleSubmit(formEvent: React.FormEvent) {
     formEvent.preventDefault();
     if (!start || !end) return;
@@ -133,6 +153,11 @@ export function EventForm({
       endAt: end,
       allDay,
       userIds: selectedUserIds,
+      // Sent only when the form offered targets, so an edit with none can
+      // never wipe the Google copies. The switch is per event and only shown
+      // for an all-day event with a calendar ticked.
+      syncCalendarIds: syncTargets.length > 0 ? syncIds : undefined,
+      showBusyOnGoogle: syncTargets.length > 0 && allDay && syncIds.length > 0 ? showBusy : undefined,
     };
 
     setError(null);
@@ -200,6 +225,15 @@ export function EventForm({
               className="w-full resize-y rounded-xl bg-surface-2 px-4 py-3 text-base outline-none"
             />
           </Field>
+
+          <EventSyncToField
+            targets={syncTargets}
+            selectedIds={syncIds}
+            onToggle={toggleSyncCalendar}
+            allDay={allDay}
+            showBusy={showBusy}
+            onBusyChange={setShowBusy}
+          />
 
           {error && (
             <p role="alert" className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">

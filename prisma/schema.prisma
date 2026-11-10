@@ -410,13 +410,14 @@ model CalendarEvent {
   notes    String?
   location String?
 
-  /// Timed events are stored as real UTC instants. All-day events follow
-  /// the MealPlan.weekStart precedent instead: a plain calendar date built
-  /// from browser-local year/month/day components (never `@db.Date`, which
-  /// would break the no-provider-specific-features rule), so "the 4th"
-  /// means the 4th regardless of which timezone reads it back.
+  /// Timed events are stored as real UTC instants. All-day events are
+  /// stored at UTC midnight of the calendar date (see calendarDates.ts):
+  /// the year/month/day the person picked, written as that date at
+  /// 00:00 UTC (never `@db.Date`, which would break the
+  /// no-provider-specific-features rule), so "the 4th" means the 4th
+  /// regardless of which timezone reads it back.
   ///
-  /// For an all-day/multi-day event, `endAt` is EXCLUSIVE — local midnight
+  /// For an all-day/multi-day event, `endAt` is EXCLUSIVE: UTC midnight
   /// of the day AFTER the last day it covers (the Google/Outlook all-day
   /// convention), not the last day itself. A single all-day event on the
   /// 4th is therefore startAt = midnight of the 4th, endAt = midnight of
@@ -426,6 +427,11 @@ model CalendarEvent {
   endAt   DateTime
 
   allDay Boolean @default(false)
+
+  /// Only read for all-day events when copied to Google: false (the
+  /// default) sends them as free, true sends them as busy. Timed events
+  /// are always busy.
+  showBusyOnGoogle Boolean @default(false)
 
   /// An RRULE string (FREQ/INTERVAL/BYDAY/UNTIL), or verbatim custom rules
   /// from a synced Google event too rich for our own picker to express.
@@ -440,6 +446,7 @@ model CalendarEvent {
   createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   people CalendarEventPerson[]
+  syncs  CalendarEventSync[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1289,13 +1296,51 @@ model LinkedCalendar {
 
   direction String @default("off")
 
+  /// Google's access role for this calendar ("owner", "writer", ...);
+  /// null for rows linked before PR 2, meaning unknown.
+  accessRole String?
+
   syncToken    String?
   lastPulledAt DateTime?
+
+  syncs CalendarEventSync[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([accountId, googleCalendarId])
+}
+
+/// One Marshee event copied to one Google calendar. `googleEventId` is
+/// chosen by Marshee (hex of the event id) so a retry can never make a
+/// second copy. `status` is plain text: "pending" | "ok" | "failed" | "removing";
+/// `failReason` is a fixed reason word, never a Google response body.
+/// `previousJson` holds the losing version when both sides changed.
+/// `lastPulledAt` stays empty until the pull side (PR 3).
+model CalendarEventSync {
+  id String @id @default(cuid())
+
+  event   CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId String
+
+  linkedCalendar   LinkedCalendar @relation(fields: [linkedCalendarId], references: [id], onDelete: Cascade)
+  linkedCalendarId String
+
+  googleEventId String
+  etag          String?
+
+  status     String  @default("pending")
+  failReason String?
+
+  lastPushedAt DateTime?
+  lastPulledAt DateTime?
+  previousJson String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, linkedCalendarId])
+  @@index([linkedCalendarId])
 }
 
 /// One photo for the wall-tablet slideshow. The bytes (a full photo and a

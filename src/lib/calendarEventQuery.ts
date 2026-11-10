@@ -20,7 +20,49 @@
 
 import "server-only";
 import { db } from "./db";
-import type { CalendarEventView } from "./types";
+import { toSyncFailReason, toSyncRowStatus } from "./calendarSyncVocabulary";
+import type { CalendarEventSyncView, CalendarEventView } from "./types";
+
+// Mission 56: only what the detail sheet shows. Never previousJson, etag or
+// a Google id. The one select shape for sync rows, used by the event query
+// and by getEventSyncViews.
+const EVENT_SYNC_SELECT = {
+  status: true,
+  failReason: true,
+  linkedCalendar: { select: { name: true } },
+} as const;
+
+// Mission 56: the edit form's ticks. A copy whose removal failed is not
+// ticked, because the person unticked it.
+export const EVENT_TICKED_SYNC_SELECT = {
+  where: { status: { not: "removing" } },
+  select: { linkedCalendarId: true },
+} as const;
+
+type EventSyncRow = {
+  status: string;
+  failReason: string | null;
+  linkedCalendar: { name: string };
+};
+
+/** Builds the sheet's sync list field by field; the one mapping for it. */
+function toEventSyncViews(rows: EventSyncRow[]): CalendarEventSyncView[] {
+  return rows.map((sync) => ({
+    calendarName: sync.linkedCalendar.name,
+    status: toSyncRowStatus(sync.status),
+    failReason: sync.failReason === null ? null : toSyncFailReason(sync.failReason),
+  }));
+}
+
+/** An event's fresh sync list, for "Try again" to hand back to the open sheet. */
+export async function getEventSyncViews(eventId: string): Promise<CalendarEventSyncView[]> {
+  const rows = await db.calendarEventSync.findMany({
+    where: { eventId },
+    select: EVENT_SYNC_SELECT,
+    orderBy: { createdAt: "asc" },
+  });
+  return toEventSyncViews(rows);
+}
 
 /** The exact `select` every caller needs to build a CalendarEventView. */
 export const CALENDAR_EVENT_SELECT = {
@@ -38,6 +80,10 @@ export const CALENDAR_EVENT_SELECT = {
   },
   // Narrow select, never the full row — see the module comment.
   createdBy: { select: { displayName: true } },
+  syncs: {
+    select: EVENT_SYNC_SELECT,
+    orderBy: { createdAt: "asc" },
+  },
 } as const;
 
 /** The shape CALENDAR_EVENT_SELECT produces. */
@@ -51,6 +97,7 @@ export type CalendarEventRow = {
   allDay: boolean;
   people: { user: { id: string; displayName: string; avatarColor: string } }[];
   createdBy: { displayName: string } | null;
+  syncs: EventSyncRow[];
 };
 
 /**
@@ -77,6 +124,7 @@ export function toCalendarEventView(row: CalendarEventRow): CalendarEventView {
     // than threaded alongside events as a separate id-keyed map, per
     // mission-9's K2/C2a finding.
     createdByName: row.createdBy?.displayName ?? null,
+    syncs: toEventSyncViews(row.syncs),
   };
 }
 

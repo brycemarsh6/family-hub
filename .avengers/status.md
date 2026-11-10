@@ -132,10 +132,12 @@ it is done. The pre-cleanup text is in
   "zz m39 Tablet" device on dev whenever.
 
 **Waiting on Bryce:**
-- **Google Calendar setup (mission 55):** follow "Bryce's setup" in
-  `.avengers/missions/mission-55-calendar-sync-pr1.md`, then link your Terros
-  account as its feasibility test. Calendar sync PR 2 waits on that result.
-- **Google link from the home-screen app:** once the setup is done, on your
+- **Google copy test (mission 56, about 5 minutes):** follow "Bryce's test"
+  in `.avengers/missions/mission-56-calendar-sync-pr2.md`: add "Marshee
+  test" tomorrow with your main calendar ticked, check Google; edit the
+  title, check again; delete it, check it leaves Google. If all good, switch
+  the main calendar to "Both ways".
+- **Google link from the home-screen app:** on your
   phone open the installed Marshee icon, Settings, Synced calendars, and link
   an account. Check you land back on the page signed in. This has only been
   checked in a normal browser, and the real Link button has never been seen
@@ -173,6 +175,11 @@ it is done. The pre-cleanup text is in
   house icon (found by Strange in PR F, older than it).
 - Inventory collapse state doesn't persist across reloads; Shopping has no
   collapsible groups; no per-item "usual store".
+- Google copy follow-ups (mission 56 Delivery): a copy that fails is only
+  visible on the event's sheet, not right after Save (a small marker later);
+  Try again does nothing on a calendar switched off since; a calendar linked
+  before PR 2 shows no "Read only" until it is relinked; the privacy page
+  needs another look when PR 3 starts keeping sync tokens.
 - **Structured ingredients tripwire is at 3 of 4.** If a fourth feature needs
   them, stop working around it and build them.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made

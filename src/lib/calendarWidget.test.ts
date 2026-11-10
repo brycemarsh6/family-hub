@@ -27,7 +27,7 @@ const utcDay = (day: number) => new Date(Date.UTC(2026, 10, day));
 const opts = (patch: Partial<CalendarWidgetOptions> = {}): CalendarWidgetOptions => ({ ...CALENDAR_WIDGET_DEFAULTS, ...patch });
 
 function event(id: string, startAt: Date, endAt: Date, allDay = false): CalendarEventView {
-  return { id, title: id, notes: null, location: null, startAt, endAt, allDay, people: [], createdByName: null };
+  return { id, title: id, notes: null, location: null, startAt, endAt, allDay, people: [], createdByName: null, syncs: [] };
 }
 const timed = (id: string, startDay: number, startHour: number, endDay: number, endHour: number) =>
   event(id, local(startDay, startHour), local(endDay, endHour));
