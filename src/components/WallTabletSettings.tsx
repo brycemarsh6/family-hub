@@ -26,14 +26,18 @@ const CARD_CLASSES = "mt-3 divide-y divide-line rounded-xl border border-line bg
  * change shows at once and saves in the background, one field per tap; a failed
  * save puts the old value back and says so under that row (same shape as
  * HabitsChoresSettings). Numbers move only by the −/+ buttons along their lists.
- * The three sleep steppers grey out while "Go black at night" is off.
+ * The three sleep steppers grey out while "Go black at night" is off. The
+ * Slideshow photos link shows to parents and admins only (`canManagePhotos`);
+ * the tablet itself sees the two ladders alone.
  */
 export function WallTabletSettings({
   initialSettings,
   photoCount,
+  canManagePhotos,
 }: {
   initialSettings: ScreensaverSettings;
   photoCount: number;
+  canManagePhotos: boolean;
 }) {
   const [settings, setSettings] = useState(initialSettings);
   const [errors, setErrors] = useState<Partial<Record<ScreensaverField, string>>>({});
@@ -115,16 +119,18 @@ export function WallTabletSettings({
         <div className={CARD_CLASSES}>
           {ladderRow("startAfterMinutes", SCREENSAVER_WORDS.startAfter, START_AFTER_STEPS, SCREENSAVER_WORDS.minUnit)}
           {ladderRow("secondsPerPhoto", SCREENSAVER_WORDS.eachPhoto, SECONDS_PER_PHOTO_STEPS, SCREENSAVER_WORDS.secUnit)}
-          <Link
-            href="/settings/slideshow"
-            className={`${ROW_CLASSES} rounded-b-xl transition-colors active:bg-surface-2`}
-          >
-            <span>{SCREENSAVER_WORDS.photosRow}</span>
-            <span className="flex items-center gap-2">
-              <span className="text-sm text-muted">{photoCount}</span>
-              <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
-            </span>
-          </Link>
+          {canManagePhotos && (
+            <Link
+              href="/settings/slideshow"
+              className={`${ROW_CLASSES} rounded-b-xl transition-colors active:bg-surface-2`}
+            >
+              <span>{SCREENSAVER_WORDS.photosRow}</span>
+              <span className="flex items-center gap-2">
+                <span className="text-sm text-muted">{photoCount}</span>
+                <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
+              </span>
+            </Link>
+          )}
         </div>
       </section>
 

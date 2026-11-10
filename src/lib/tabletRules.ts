@@ -18,3 +18,12 @@ import type { Role } from "./constants";
 export function tabletMayCompleteAnyTask(role: Role): boolean {
   return role === "device";
 }
+
+/**
+ * The tablet may open the Wall tablet page and change its settings and its
+ * start page (Bryce, 2026-11-10, mission 64). Parents and admins may too, by
+ * the manager rule; this adds only `device`.
+ */
+export function tabletMayChangeWallTablet(role: Role): boolean {
+  return role === "device";
+}

@@ -1,7 +1,7 @@
 "use server";
 
-// Per-person settings. Today that is four things: the dashboard widget layout,
-// the menu style, the text size and the "Show streaks" switch. Any signed-in
+// Per-person settings. Today that is five things: the dashboard widget layout,
+// the menu style, the start page, the text size and the "Show streaks" switch. Any signed-in
 // ACCOUNT may save its own dashboard layout; a device-mode session (the wall
 // tablet) is refused there, because it always shows the default layout and has
 // no Customize button. The menu style and the text size are different: devices
@@ -15,7 +15,10 @@ import {
   parseDashboardLayout,
   serializeDashboardLayout,
 } from "@/lib/dashboardLayout";
+import { MANAGER_ROLES } from "@/lib/constants";
 import { NAV_MODES } from "@/lib/navMode";
+import { isStartPage, START_PAGE_WORDS } from "@/lib/startPage";
+import { tabletMayChangeWallTablet } from "@/lib/tabletRules";
 import { TEXT_SIZES } from "@/lib/textSize";
 
 export type PreferencesResult = { error?: string };
@@ -72,6 +75,71 @@ export async function saveNavMode(input: unknown): Promise<PreferencesResult> {
   } catch (err) {
     console.error("saveNavMode failed", err);
     return { error: "Couldn't save your menu style. Try again." };
+  }
+
+  revalidatePath("/", "layout");
+  return {};
+}
+
+/**
+ * Save the signed-in login's "Open Marshee on". Devices may save their own.
+ * The value must be exactly one of START_PAGE_OPTIONS' hrefs: an unknown value
+ * is an error, not a silent default.
+ */
+export async function saveStartPage(input: unknown): Promise<PreferencesResult> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
+
+  if (!isStartPage(input)) return { error: START_PAGE_WORDS.notAPage };
+  const startPage = input;
+
+  try {
+    await db.userPreferences.upsert({
+      where: { userId: user.userId },
+      create: { userId: user.userId, startPage },
+      update: { startPage },
+    });
+  } catch (err) {
+    console.error("saveStartPage failed", err);
+    return { error: START_PAGE_WORDS.saveError };
+  }
+
+  revalidatePath("/", "layout");
+  return {};
+}
+
+/**
+ * Save the wall tablet's start page: written on every active device login.
+ * Allowed for a device login (the tablet itself) or a parent or admin. The
+ * value must be exactly one of START_PAGE_OPTIONS' hrefs.
+ */
+export async function saveTabletStartPage(input: unknown): Promise<PreferencesResult> {
+  const user = await getVerifiedUser();
+  if (!user) return { error: "Not signed in." };
+  if (!MANAGER_ROLES.includes(user.role) && !tabletMayChangeWallTablet(user.role)) {
+    return { error: START_PAGE_WORDS.notAllowed };
+  }
+
+  if (!isStartPage(input)) return { error: START_PAGE_WORDS.notAPage };
+  const startPage = input;
+
+  try {
+    const devices = await db.user.findMany({
+      where: { role: "device", deactivatedAt: null },
+      select: { id: true },
+    });
+    await db.$transaction(
+      devices.map((device) =>
+        db.userPreferences.upsert({
+          where: { userId: device.id },
+          create: { userId: device.id, startPage },
+          update: { startPage },
+        }),
+      ),
+    );
+  } catch (err) {
+    console.error("saveTabletStartPage failed", err);
+    return { error: START_PAGE_WORDS.saveError };
   }
 
   revalidatePath("/", "layout");

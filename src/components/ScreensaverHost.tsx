@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ScreensaverSlide } from "@/components/ScreensaverSlide";
 import { loadScreensaverShow } from "@/app/actions/screensaver";
 import { HOUSEHOLD_TIME_ZONE } from "@/lib/constants";
+import { DEFAULT_START_PAGE } from "@/lib/startPage";
 import { SCREENSAVER_WORDS, screensaverState, type ScreensaverSettings } from "@/lib/screensaver";
 import type { SlideshowShowItem } from "@/lib/slideshowRead";
 
@@ -57,12 +58,21 @@ function differs(
  * caught on `window`, reset the idle clock. Nothing here touches the screen's
  * power or light.
  */
-export function ScreensaverHost({ initialSettings }: { initialSettings: ScreensaverSettings }) {
+export function ScreensaverHost({
+  initialSettings,
+  initialStartPage = DEFAULT_START_PAGE,
+}: {
+  initialSettings: ScreensaverSettings;
+  /** The tablet's start page (a toStartPage value); a tap on the screensaver goes here. */
+  initialStartPage?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [show, setShowState] = useState<Show>(null);
   const showRef = useRef<Show>(null);
   const settingsRef = useRef(initialSettings);
+  // Refreshed from every load, so a parent's change reaches a running tablet.
+  const startPageRef = useRef(initialStartPage);
   // Unknown until the first load; the tick assumes "maybe" so it goes to look.
   const photoCountRef = useRef<number | null>(null);
   const lastTapRef = useRef(0);
@@ -144,6 +154,7 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
       }
       nextBackgroundAtRef.current = Date.now() + BACKGROUND_REFRESH_MS;
       settingsRef.current = fresh.settings;
+      startPageRef.current = fresh.startPage;
       photoCountRef.current = fresh.photos.length;
       const confirmed = stateNow(fresh.settings, fresh.photos.length > 0);
       if (confirmed === "slideshow" && showRef.current?.kind !== "slideshow") {
@@ -173,7 +184,7 @@ export function ScreensaverHost({ initialSettings }: { initialSettings: Screensa
     lastTapRef.current = Date.now();
     nextRefreshAtRef.current = 0;
     setShow(null);
-    if (pathname !== "/") router.push("/");
+    if (pathname !== startPageRef.current) router.push(startPageRef.current);
   }
 
   if (!mounted || !show) return null;
