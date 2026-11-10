@@ -1,4 +1,4 @@
-// The hour timeline's zoom, as pure maths (mission-64, pinch to zoom). The
+// The hour timeline's zoom, as pure maths (mission-65, pinch to zoom). The
 // hour height used to be a fixed 48px in TimelineGrid.tsx; it is now a live
 // value a two-finger pinch changes, kept between MIN and MAX below (Google
 // Calendar on Bryce's iPhone runs about 32pt to about 128pt per hour; Bryce

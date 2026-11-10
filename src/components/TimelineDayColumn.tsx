@@ -30,7 +30,7 @@
 // event draw clipped halves on both days without them fighting over one
 // shared column). `hoursPerDay`/`pxPerMinute` are passed rather than
 // re-imported so this file never risks disagreeing with the caller's own
-// live hour height (mission-64)/`MINUTES_PER_DAY`-derived values — a second private
+// live hour height (mission-65)/`MINUTES_PER_DAY`-derived values — a second private
 // copy of either is exactly the kind of drift this mission's own report
 // (`GUTTER_WIDTH_PX`, and the old bottom-nav height) keeps finding.
 
@@ -194,7 +194,7 @@ export function TimelineDayColumn({
                 flex-shrink only touches the cross axis (height)
                 here, not the width truncation depends on. */}
             {/* @min-[128px] is px on purpose (mission-58): in rem it would move with Text size. */}
-            {/* mission-64: under 20px tall the title takes a 12px line so it fits whole. */}
+            {/* mission-65: under 20px tall the title takes a 12px line so it fits whole. */}
             <span
               className={`block truncate font-semibold ${
                 !titleFitsFullSize(heightPx)
@@ -220,7 +220,7 @@ export function TimelineDayColumn({
                 is itself under MIN_BLOCK_MINUTES, in which case the
                 height is a pad, not a fact, and the time line is
                 the only place the truth (a genuine 15-minute
-                appointment, not 30) can still be told. mission-64: that
+                appointment, not 30) can still be told. mission-65: that
                 override also needs 24px of room (showsTimeLine,
                 timelineZoom.ts), so zoomed out the block shows its
                 title only, like Google. */}

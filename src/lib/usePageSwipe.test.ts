@@ -92,7 +92,7 @@ test("nextSwallowNextClick: locking into a swipe arms the swallow regardless of 
 
 
 // ---------------------------------------------------------------------------
-// nextActivePointers / pointerDownAction — mission-64 (pinch to zoom). A
+// nextActivePointers / pointerDownAction — mission-65 (pinch to zoom). A
 // pinch must never turn the page, so a second finger's pointerdown makes the
 // gesture yield instead of restarting it.
 

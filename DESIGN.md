@@ -73,13 +73,13 @@ tell when a rule's reason has expired.
   its duration. The hour height is each person's own pinch zoom, 32 to
   192px per hour (default 48; never shorter than the whole day filling the
   visible rail), so a `MIN_BLOCK_MINUTES` (30) block draws 16 to 96px
-  (mission 64). Inflating past its geometry would either paint over a
+  (mission 65). Inflating past its geometry would either paint over a
   neighbour or reintroduce the ambiguous tap the floor exists to prevent,
   and a fixed rail tall enough to clear 44px would cost most of the visible
   day on the app's most-used view; zoom puts that trade in the reader's
   hands instead. Under 20px the title drops to a 0.75rem line, which fits
   whole at Normal text size; at larger Text sizes on a tablet a short
-  title can still lose its letter tails (a known limit, mission 64). The boundary: **(a)** every block
+  title can still lose its letter tails (a known limit, mission 65). The boundary: **(a)** every block
   stays a real `<button>` with a real accessible name; **(b)** consecutive
   blocks never abut — each draws 2px shorter and 2px narrower than its
   computed geometry, so a near-miss lands on a non-interactive seam instead

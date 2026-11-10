@@ -6,7 +6,7 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
-- **Calendar pinch to zoom (mission 64)**, about 5 minutes on your iPhone
+- **Calendar pinch to zoom (mission 65)**, about 5 minutes on your iPhone
   and the iPad. The 8 steps are in the mission file's "Phone test for
   Bryce": pinch on 2 PM and it stays under your fingers; in to about 3.5
   hours, out to about 21; pinching never changes the day; Day, 3 Day and
@@ -200,7 +200,7 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
-- **Calendar zoom first-frame flicker (mission 64, Strange pass 3 NOTE):**
+- **Calendar zoom first-frame flicker (mission 65, Strange pass 3 NOTE):**
   on a fresh iPad load the hour lines may jump once. Fix: move the
   `useTimelineZoom` call in `TimelineGrid.tsx` below its sizing layout
   effect, or `flushSync` the ResizeObserver callback. Also: short titles at

@@ -103,7 +103,7 @@ import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
 import { TimelineDayColumn } from "./TimelineDayColumn";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
-// The rail's own scale is LIVE (mission-64): `useTimelineZoom` returns the
+// The rail's own scale is LIVE (mission-65): `useTimelineZoom` returns the
 // hour height in px (32 to 192, default 48, changed by a two-finger pinch,
 // never below the height at which the whole day fills the visible rail),
 // published below as the CSS custom property `--hour-height` so nothing else
@@ -178,7 +178,7 @@ type TimelineGridProps = {
    * `calc()` string, safe under SSR); a real measurement refines it the
    * instant this mounts. */
   chromeOffsetPx: number;
-  /** The signed-in person's id, the key for their remembered zoom (mission-64).
+  /** The signed-in person's id, the key for their remembered zoom (mission-65).
    * `null` means no saved zoom: the default hour height, nothing written. */
   viewerId: string | null;
 };

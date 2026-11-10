@@ -1,4 +1,4 @@
-// Unit tests for the timeline zoom's pure maths — mission-64 (pinch to zoom).
+// Unit tests for the timeline zoom's pure maths — mission-65 (pinch to zoom).
 // The touch listeners in useTimelineZoom.ts need a real device; these cover
 // the decisions: clamp, storage parse, the anchor formula, the time-line rule.
 

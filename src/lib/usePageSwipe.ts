@@ -148,7 +148,7 @@ export function nextSwallowNextClick(current: boolean, event: SwallowEvent): boo
 }
 
 /**
- * mission-64 (pinch to zoom). The ids of the pointers currently down, after
+ * mission-65 (pinch to zoom). The ids of the pointers currently down, after
  * one pointer goes down or comes up. Pure and exported for the same reason as
  * the functions above. A PRIMARY pointer is always the first finger of a
  * fresh gesture (a touch's first finger, or the mouse), so it resets the list
@@ -237,14 +237,14 @@ export function usePageSwipe({
   // phase click handler to decide whether to swallow the click that
   // follows. Same shape as SwipeActions.tsx:89.
   const swallowNextClick = useRef(false);
-  // mission-64: the pointers currently down, so a second finger is noticed.
+  // mission-65: the pointers currently down, so a second finger is noticed.
   const activePointers = useRef<number[]>([]);
 
   function handlePointerDown(event: React.PointerEvent) {
     // Mouse right/middle click has no business starting a page-swipe —
     // same guard as SwipeActions.tsx:93.
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    // mission-64: a second finger means a pinch. Yield for the rest of this
+    // mission-65: a second finger means a pinch. Yield for the rest of this
     // gesture and leave its start point (and the swallow flag) alone. The
     // reset for a fresh first finger below it stays reachable: a primary
     // pointer empties the list, so it always lands on "start".

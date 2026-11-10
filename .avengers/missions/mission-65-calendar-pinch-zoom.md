@@ -284,7 +284,7 @@ From AGENTS.md, absolute for every agent:
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Captain | PASS | none | Stale `PX_PER_MINUTE` comment (TimelineGrid:80); usePageSwipe 337, near soft cap, extraction owed; SwipeActions lacks the second-finger yield; CalendarViews 507 vs 502 trend line; fifth hand-rolled localStorage store. Amendments A-64-1 (adopted) and A-64-2 (optional, not adopted) |
+| 1 | Captain | PASS | none | Stale `PX_PER_MINUTE` comment (TimelineGrid:80); usePageSwipe 337, near soft cap, extraction owed; SwipeActions lacks the second-finger yield; CalendarViews 507 vs 502 trend line; fifth hand-rolled localStorage store. Amendments A-65-1 (adopted) and A-65-2 (optional, not adopted) |
 | 1 | Vision | PASS | none | Gauntlet green at a68101d (1798; UTC 1791 + 7 skips, which also exist at base 6ba78ca); boundary exact. Notes: the hydration rescale branch is effectively unreachable (TimelineGrid mounts after hydration); scroll-then-second-finger case unproven; one finger left after a pinch may not scroll until both lift; pinch-on-event click unproven; two-finger tap saves an unchanged height |
 | 3 | Vision | PASS | none | Gauntlet green at 6be920e (1801; UTC 1794 + 7); boundary exact; no observer loop; doc phrases true. NOTE: first floor measure reads the seed height |
 | 3 | Strange | PASS | none | 0px band in all 7 iPad portrait states incl. "+N more" expand/collapse; stored 32 kept; phone at 48 unchanged; DESIGN.md wording true. NOTE: first committed frame on a fresh iPad load likely shows a band for one frame (follow-up in status.md) |
@@ -342,4 +342,4 @@ From AGENTS.md, absolute for every agent:
   not scheduled"); the half-cut time line on 15-minute events at 48px
   (Bryce: keep as is); usePageSwipe at 337 lines with the gesture-machine
   extraction owed (SwipeActions lacks the second-finger yield); Captain's
-  optional A-64-2 (shared localStorage helper) not adopted.
+  optional A-65-2 (shared localStorage helper) not adopted.
