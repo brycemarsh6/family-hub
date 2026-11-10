@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calendar slide mock</title>
+<style>
+:root{--bg:#1c1b16;--fg:#ece8df;--muted:#9a958a;--line:#3a3830;--accent:#e0a458;--ev:#2e3a2f}
+*{box-sizing:border-box}body{margin:0;background:#111;color:var(--fg);font:14px -apple-system,system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}p{color:var(--muted);margin:0 0 16px;max-width:700px}
+.row{display:flex;flex-wrap:wrap;gap:24px}
+.col{display:flex;flex-direction:column;gap:8px;align-items:center}
+.label{font-weight:600}
+.phone{width:240px;height:440px;background:var(--bg);border-radius:28px;border:6px solid #000;overflow:hidden;position:relative}
+.top{height:56px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px}
+.page{position:absolute;top:56px;bottom:0;left:0;right:0}
+.boxed{margin:8px;border:1px solid var(--line);border-radius:12px;border-bottom:0;overflow:hidden;position:absolute;inset:64px 0 0 0}
+.grid{position:absolute;inset:0;display:flex}
+.gut{width:34px;flex:none;position:relative}
+.gut span{position:absolute;right:4px;font-size:9px;color:var(--muted);transform:translateY(-50%)}
+.days{flex:1;overflow:hidden;position:relative}
+.strip{position:absolute;top:0;bottom:0;display:flex}
+.day{border-left:1px solid var(--line);position:relative;flex:none}
+.day h4{margin:0;height:30px;font-size:10px;text-align:center;color:var(--muted);border-bottom:1px solid var(--line);padding-top:4px}
+.hr{position:absolute;left:0;right:0;border-top:1px solid var(--line);opacity:.6}
+.ev{position:absolute;left:2px;right:2px;background:var(--ev);border:1px solid var(--fg);border-radius:5px;font-size:9px;padding:2px;font-weight:600}
+.anim .strip{animation:slide 3.2s ease-in-out infinite}
+@keyframes slide{0%,25%{transform:translateX(0)}55%,80%{transform:translateX(var(--to))}100%{transform:translateX(0)}}
+.jump .strip{animation:jump 3.2s steps(1) infinite}
+@keyframes jump{0%{transform:translateX(0)}50%{transform:translateX(var(--to))}}
+</style></head><body>
+<h1>Calendar: slide and edge-to-edge (mock)</h1>
+<p>Each phone loops a swipe to the next page. Left is Marshee today. Middle and right are the two choices.</p>
+<div class="row" id="row"></div>
+<script>
+const hours=["9 AM","10 AM","11 AM","12 PM","1 PM","2 PM","3 PM","4 PM","5 PM"];
+const names=["Tue 10","Wed 11","Thu 12","Fri 13","Sat 14","Sun 15"];
+const evs={0:[[1,2,"Teeth cleaning"],[2.2,3,"Costco"]],1:[[0.5,7,"Drive to CA"]],2:[[0.5,7,"Drive"]],3:[[3,4.5,"Soccer"]],4:[[1,2,"Pancakes"]],5:[[4,5,"Church"]]};
+function phone(title,cls,boxed,perPage){
+  const W=boxed?240-12-16-34:240-12-34; const dw=W/perPage; const HH=44;
+  let days="";names.forEach((n,i)=>{let e="";(evs[i]||[]).forEach(v=>e+=`<div class="ev" style="top:${30+v[0]*HH}px;height:${(v[1]-v[0])*HH-2}px">${v[2]}</div>`);
+    let h="";hours.forEach((_,k)=>h+=`<div class="hr" style="top:${30+k*HH}px"></div>`);
+    days+=`<div class="day" style="width:${dw}px"><h4>${n}</h4>${h}${e}</div>`});
+  let gut="";hours.forEach((t,k)=>gut+=`<span style="top:${30+k*HH}px">${t}</span>`);
+  const inner=`<div class="grid"><div class="gut">${gut}</div><div class="days"><div class="strip" style="--to:-${dw*perPage}px">${days}</div></div></div>`;
+  return `<div class="col"><div class="label">${title}</div><div class="phone ${cls}"><div class="top">${perPage==1?"Day":"3 Day"}</div>${boxed?`<div class="boxed">${inner}</div>`:`<div class="page">${inner}</div>`}</div></div>`;
+}
+document.getElementById("row").innerHTML=
+ phone("Today: boxed, jumps","jump",true,1)+
+ phone("A: edge to edge, slides (Day)","anim",false,1)+
+ phone("B: edge to edge, slides (3 Day)","anim",false,3);
+</script>
+</body></html>

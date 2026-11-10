@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calendar full screen mock</title>
+<style>
+:root{--bg:#1c1b16;--fg:#ece8df;--muted:#9a958a;--line:#34322b;--accent:#e0a458;--ev:#2e3a2f;--surface:#26241e;--fab:#e0a458}
+*{box-sizing:border-box}body{margin:0;background:#0d0d0b;color:var(--fg);font:14px -apple-system,system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}p.sub{color:var(--muted);margin:0 0 16px;max-width:760px}
+.row{display:flex;flex-wrap:wrap;gap:28px}
+.col{display:flex;flex-direction:column;gap:8px;align-items:center;width:340px}
+.label{font-weight:600;text-align:center}.note{color:var(--muted);font-size:12px;text-align:center}
+.phone{width:340px;height:600px;background:var(--bg);border-radius:30px;border:6px solid #000;overflow:hidden;position:relative}
+.status{height:26px}
+.hdr{display:flex;align-items:center;gap:6px;padding:0 8px;height:54px}
+.circ{width:34px;height:34px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.icons{margin-left:auto;display:flex;gap:6px}
+.icons div{display:flex;flex-direction:column;align-items:center;font-size:8px;color:var(--muted);gap:2px}
+.month{font-size:17px;font-weight:600;display:flex;align-items:center;gap:4px;padding:6px 4px}
+.month .car{font-size:10px;color:var(--muted)}
+.body{position:absolute;left:0;right:0;bottom:0;overflow:hidden}
+.top{display:flex;border-bottom:1px solid var(--line)}
+.gut{width:38px;flex:none;position:relative}
+.cols{flex:1;display:flex}
+.c{flex:1;border-left:1px solid var(--line);position:relative}
+.dh{text-align:center;padding:4px 0 6px}
+.dh small{display:block;font-size:9px;color:var(--muted);letter-spacing:.05em}
+.dh b{font-size:15px}
+.today b{background:var(--accent);color:#1c1b16;border-radius:50%;display:inline-block;width:24px;height:24px;line-height:24px;font-size:13px}
+.today small{color:var(--accent)}
+.allday{background:#3b5c50;border-radius:4px;font-size:9px;font-weight:600;padding:3px 4px;margin:2px}
+.grid{display:flex;position:relative}
+.hl{position:absolute;right:4px;font-size:9px;color:var(--muted);transform:translateY(-50%)}
+.hr{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+.ev{position:absolute;left:2px;right:2px;background:var(--ev);border:1px solid var(--fg);border-radius:5px;font-size:9px;padding:2px 3px;font-weight:600}
+.fab{position:absolute;right:14px;bottom:18px;width:52px;height:52px;border-radius:16px;background:var(--fab);color:#1c1b16;font-size:30px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px #0008;z-index:5}
+.dayhead{width:38px;flex:none;text-align:center;padding:4px 0 6px}
+.mini{background:var(--surface);padding:6px 8px 8px;border-bottom:1px solid var(--line)}
+.mini .w,.mini .d{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
+.mini .w{font-size:9px;color:var(--muted);margin-bottom:2px}
+.mini .d span{font-size:11px;height:26px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.mini .d i{width:3px;height:3px;border-radius:50%;background:var(--accent);display:block;margin-top:1px}
+.mini .d .t{background:var(--accent);color:#1c1b16;border-radius:50%;width:22px;height:22px}
+.chips{display:flex;gap:6px;margin-top:6px;overflow:hidden}
+.chips span{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:10px;white-space:nowrap}
+.chips .on{background:var(--accent);color:#1c1b16;border-color:var(--accent)}
+.pill{background:var(--fab);color:#1c1b16;border-radius:999px;padding:12px 20px;font-weight:600;font-size:15px}
+.allday.task{background:#4a5a7a}
+.more{font-size:10px;color:var(--muted);padding:2px 4px}
+</style></head><body>
+<h1>Calendar: full screen (mock)</h1>
+<p class="sub">No box and no date bar. "November ⌄" sits top left and opens the little month. The + floats bottom right. Each phone is drawn about as wide as an iPhone.</p>
+<div class="row" id="row"></div>
+<script>
+const HH=46, hours=["7 AM","8 AM","9 AM","10 AM","11 AM","12 PM","1 PM","2 PM","3 PM","4 PM"];
+function header(){return `<div class="status"></div><div class="hdr"><div class="circ">☰</div><div class="month">November <span class="car">▼</span></div>
+<div class="icons"><div><span class="circ">✓</span>Today</div><div><span class="circ">▦</span>3 Day</div><div><span class="circ">↻</span>Refresh</div></div></div>`}
+function gridBody(n,evs){let gut="",cols="";hours.forEach((h,i)=>gut+=`<span class="hl" style="top:${8+i*HH}px">${h}</span>`);
+ for(let c=0;c<n;c++){let s="";hours.forEach((_,i)=>s+=`<div class="hr" style="top:${8+i*HH}px"></div>`);(evs[c]||[]).forEach(e=>s+=`<div class="ev" style="top:${8+e[0]*HH}px;height:${e[1]*HH-2}px">${e[2]}</div>`);cols+=`<div class="c" style="height:600px">${s}</div>`}
+ return `<div class="grid"><div class="gut" style="height:600px">${gut}</div><div class="cols">${cols}</div></div>`}
+function dayView(){return header()+`<div class="body" style="top:80px"><div class="top"><div class="dayhead today"><small>THU</small><b>26</b></div><div class="cols"><div class="c" style="border-left:1px solid var(--line);padding:4px 4px 6px"><div class="allday">Thanksgiving Day</div></div></div></div>${gridBody(1,{0:[[3,1.5,"Turkey in the oven"],[5,2,"Dinner at Grandma's"]]})}</div><div class="fab">+</div>`}
+function threeDay(){const d=[["THU","26",1],["FRI","27",0],["SAT","28",0]];let h="";d.forEach(x=>h+=`<div class="c ${x[2]?"today":""}" style="border-left:none"><div class="dh"><small>${x[0]}</small><b>${x[1]}</b></div></div>`);
+ return header()+`<div class="body" style="top:80px"><div class="top" style="flex-direction:column"><div style="display:flex"><div class="gut"></div><div class="cols">${h}</div></div><div style="display:flex"><div class="gut"></div><div class="cols"><div class="c" style="border:none"><div class="allday">Thanksgiving</div></div><div class="c" style="border:none"><div class="allday">Black Friday</div></div><div class="c" style="border:none"></div></div></div></div>${gridBody(3,{2:[[5,4,"Adams Family Pictures"]]})}</div><div class="fab">+</div>`}
+function dropdown(){let d="";const dots=[1,2,3,8,9,11,13,16,18,19,21,23,24,27,28];for(let i=0;i<0;i++)d+="<span></span>";for(let i=1;i<=30;i++)d+=`<span class="${i==26?"t":""}">${i}${dots.includes(i)&&i!=26?"<i></i>":""}</span>`;
+ const mini=`<div class="mini"><div class="w"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div><div class="d">${d}</div><div class="chips"><span class="on">Nov</span><span>Dec</span><span>Jan 2027</span><span>Feb</span><span>Mar</span></div></div>`;
+ return header().replace("▼","▲")+`<div class="body" style="top:80px">${mini}<div class="top"><div class="dayhead today"><small>THU</small><b>26</b></div><div class="cols"><div class="c" style="padding:4px 4px 6px"><div class="allday">Thanksgiving Day</div></div></div></div>${gridBody(1,{})}</div><div class="fab">+</div>`}
+document.getElementById("row").innerHTML=
+ `<div class="col"><div class="label">Day</div><div class="phone">${dayView()}</div><div class="note">Day and date sit in the top-left corner. All-day events sit beside them.</div></div>`+
+ `<div class="col"><div class="label">3 Day</div><div class="phone">${threeDay()}</div><div class="note">Dates sit on top of each column and slide with the grid. No outer border on any side.</div></div>`+
+ `<div class="col"><div class="label">Tap "November"</div><div class="phone">${dropdown()}</div><div class="note">A little month drops down and pushes the calendar down. Swipe it for other months, or tap a month chip.</div></div>`+
+ `<div class="col"><div class="label">Tap +</div><div class="phone">${fabOpen()}</div><div class="note">The page dims. Event and Task pop up right above your thumb. The + turns into an X to close.</div></div>`+
+ `<div class="col"><div class="label">More than 2 all-day items</div><div class="phone">${plusTwo(false)}</div><div class="note">Two show, then "+2". Tap "+2" (or the arrow on the left) to open them all.</div></div>`+
+ `<div class="col"><div class="label">Opened</div><div class="phone">${plusTwo(true)}</div><div class="note">All of them show. Tap the up arrow on the left to close.</div></div>`;
+function fabOpen(){return threeDay().replace('<div class="fab">+</div>','')+`<div style="position:absolute;inset:0;background:#000b;z-index:6"></div>
+<div style="position:absolute;right:14px;bottom:84px;display:flex;flex-direction:column;gap:10px;align-items:flex-end;z-index:7">
+<div class="pill">☐✓ Task</div><div class="pill">▦ Event</div></div><div class="fab" style="z-index:7;font-size:24px">✕</div>`}
+function plusTwo(open){const d=[["MON","9",0],["TUE","10",1],["WED","11",0]];let h="";d.forEach(x=>h+=`<div class="c ${x[2]?"today":""}" style="border-left:none"><div class="dh"><small>${x[0]}</small><b>${x[1]}</b></div></div>`);
+ const tue=open?`<div class="allday">All day event</div><div class="allday task">✓ Pay water bill</div><div class="allday task">✓ Call Grandma</div><div class="allday task">✓ Return library books</div>`:`<div class="allday">All day event</div><div class="allday task">✓ Pay water bill</div><div class="more">+2</div>`;
+ return header()+`<div class="body" style="top:80px"><div class="top" style="flex-direction:column"><div style="display:flex"><div class="gut"></div><div class="cols">${h}</div></div><div style="display:flex"><div class="gut" style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;color:var(--muted)">${open?"⌃":"⌄"}</div><div class="cols"><div class="c" style="border:none"></div><div class="c" style="border:none">${tue}</div><div class="c" style="border:none"><div class="allday">Veterans Day</div></div></div></div></div>${gridBody(3,{0:[[0,1,"Gym"]],1:[[3,1,"Teeth cleaning"],[4.5,1,"Costco"]],2:[[1,6,"Drive to California"]]})}</div><div class="fab">+</div>`}
+</script>
+</body></html>

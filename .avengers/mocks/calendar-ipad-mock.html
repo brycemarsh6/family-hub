@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calendar iPad mock</title>
+<style>
+:root{--bg:#1c1b16;--fg:#ece8df;--muted:#9a958a;--line:#34322b;--accent:#e0a458;--ev:#2e3a2f;--surface:#26241e;--task:#4a5a7a;--ad:#3b5c50}
+*{box-sizing:border-box}body{margin:0;background:#0d0d0b;color:var(--fg);font:14px -apple-system,system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}p.sub{color:var(--muted);margin:0 0 16px;max-width:800px}
+.item{margin-bottom:28px}.label{font-weight:600;margin-bottom:6px}.note{color:var(--muted);font-size:12px;margin-top:6px;max-width:800px}
+.ipad{width:800px;max-width:100%;aspect-ratio:4/3;background:var(--bg);border-radius:22px;border:8px solid #000;overflow:hidden;position:relative;display:flex;flex-direction:column;font-size:11px}
+.hdr{display:flex;align-items:center;gap:8px;padding:10px 12px;flex:none}
+.ham{width:30px;height:30px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center}
+.mon{font-size:18px;font-weight:600}.mon span{font-size:10px;color:var(--muted);margin-left:4px}
+.right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.pill{background:var(--surface);border-radius:999px;padding:6px 12px}
+.seg{display:flex;background:var(--surface);border-radius:999px;padding:2px}
+.seg span{padding:5px 10px;border-radius:999px;color:var(--muted)}.seg .on{background:var(--fg);color:var(--bg);font-weight:600}
+.circ{width:30px;height:30px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center}
+.main{flex:1;display:flex;min-height:0}
+.panel{width:250px;flex:none;padding:6px 10px;border-right:1px solid var(--line)}
+.chips{display:flex;gap:5px;overflow:hidden;align-items:center;flex:none}
+.chips span{border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap;font-size:10px}
+.chips .on{background:var(--accent);color:#1c1b16;border-color:var(--accent)}.chips b{font-size:10px}
+.mini{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:10px;row-gap:4px}
+.mini .w{color:var(--muted);font-size:9px}.mini span{height:26px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.mini i{width:3px;height:3px;border-radius:50%;background:var(--accent);margin-top:1px}
+.mini .t{background:var(--accent);color:#1c1b16;border-radius:50%;width:24px;height:24px}
+.cal{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+.top{display:flex;border-bottom:1px solid var(--line);flex:none}
+.gut{width:44px;flex:none;position:relative}
+.cols{flex:1;display:flex;min-width:0}.c{flex:1;min-width:0;position:relative}
+.dh{text-align:center;padding:2px 0 4px}.dh small{display:block;font-size:9px;color:var(--muted)}.dh b{font-size:17px;font-weight:500}
+.today small{color:var(--accent)}.today b{background:var(--accent);color:#1c1b16;border-radius:50%;display:inline-block;width:28px;height:28px;line-height:28px;font-size:14px}
+.ad{background:var(--ad);border-radius:3px;font-size:9px;font-weight:600;padding:3px 4px;margin:2px;white-space:nowrap;overflow:hidden}
+.ad.task{background:var(--task)}.ad.done{opacity:.5;text-decoration:line-through}
+.more{font-size:9px;color:var(--muted);padding:1px 4px}
+.chev{display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;color:var(--muted)}
+.grid{flex:1;display:flex;overflow:hidden}
+.hl{position:absolute;right:5px;font-size:8px;color:var(--muted);transform:translateY(-50%)}
+.hr{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+.vl{border-left:1px solid var(--line)}
+.ev{position:absolute;left:2px;right:2px;background:var(--ev);border:1px solid var(--fg);border-radius:4px;font-size:9px;padding:2px 3px;font-weight:600;overflow:hidden}
+.fab{position:absolute;right:14px;bottom:14px;width:46px;height:46px;border-radius:14px;background:var(--accent);color:#1c1b16;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px #0008;z-index:5}
+.mg{flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:auto repeat(5,1fr);min-height:0}
+.mg .wd{text-align:center;color:var(--muted);font-size:10px;padding:4px 0;border-bottom:1px solid var(--line)}
+.mg .cell{border-left:1px solid var(--line);border-bottom:1px solid var(--line);padding:2px;overflow:hidden}
+.mg .cell:nth-child(7n+1){border-left:none}
+.mg .n{text-align:center;font-size:10px;margin-bottom:1px}.mg .n.t span{background:var(--accent);color:#1c1b16;border-radius:50%;padding:1px 4px}
+.mp{background:var(--ev);border-left:3px solid var(--accent);font-size:9px;padding:1px 3px;margin:1px 0;white-space:nowrap;overflow:hidden;border-radius:2px}
+.side{width:150px;flex:none;border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:10px;color:var(--muted)}
+.side .on{color:var(--fg);font-weight:600}
+</style></head><body>
+<h1>Calendar on the iPad (mock)</h1>
+<p class="sub">Drawn landscape and smaller than a real iPad. Google's iPad layout, in Marshee's colours. Scroll down for all five.</p>
+<div id="out"></div>
+<script>
+const HH=34,hours=["6 AM","7 AM","8 AM","9 AM","10 AM","11 AM","12 PM","1 PM","2 PM","3 PM","4 PM","5 PM"];
+function header(view,open){const v=["Schedule","Day","3 Day","Week","Month","Year"].map(x=>`<span class="${x==view?"on":""}">${x}</span>`).join("");
+ return `<div class="hdr"><div class="ham">☰</div><div class="mon">November<span>${open?"▲":"▼"}</span></div><div class="right"><div class="pill">Today</div><div class="seg">${v}</div><div class="circ">↻</div></div></div>`}
+function hourGrid(n,evs){let g="";hours.forEach((h,i)=>g+=`<span class="hl" style="top:${10+i*HH}px">${h}</span>`);let c="";
+ for(let k=0;k<n;k++){let s="";hours.forEach((_,i)=>s+=`<div class="hr" style="top:${10+i*HH}px"></div>`);(evs[k]||[]).forEach(e=>s+=`<div class="ev" style="top:${10+e[0]*HH}px;height:${e[1]*HH-2}px">${e[2]}</div>`);c+=`<div class="c vl">${s}</div>`}
+ return `<div class="grid"><div class="gut">${g}</div><div class="cols">${c}</div></div>`}
+const wkEv={1:[[0.2,0.5,"Wake Up"],[0.8,2,"Gym"],[3,2.5,"(No title)"]],2:[[0,0.5,"Wake Up"],[3.4,1,"Teeth cleaning"],[5,1,"Costco"]],3:[[0.3,1.7,"Get ready"],[2,10,"Drive to California"]],4:[[0,0.5,"Wake up"],[2,10,"Drive"]],5:[[0,0.5,"Wake Up"],[4,1.5,"Marc Turgeon"]],6:[[0,0.5,"Wake Up"]],0:[[2,6,"Church program"]]};
+function weekTop(days){const d=days||[["SUN","8"],["MON","9"],["TUE","10",1],["WED","11"],["THU","12"],["FRI","13"],["SAT","14"]];
+ const h=d.map(x=>`<div class="c ${x[2]?"today":""}"><div class="dh"><small>${x[0]}</small><b>${x[1]}</b></div></div>`).join("");
+ const ad=d.map((x,i)=>`<div class="c">${i==2?'<div class="ad">All day event</div><div class="ad task done">✓ Test</div><div class="more">+2</div>':i==3?'<div class="ad">Veterans Day</div>':""}</div>`).join("");
+ return `<div class="top" style="flex-direction:column"><div style="display:flex"><div class="gut"></div><div class="cols">${h}</div></div><div style="display:flex"><div class="gut chev">⌄</div><div class="cols">${ad}</div></div></div>`}
+function miniPanel(){let m="";"SMTWTFS".split("").forEach(x=>m+=`<span class="w">${x}</span>`);const dots=[1,2,3,4,7,8,9,11,12,13,14,15,16,18,19,20,21,23,24,25,26,27,28,29,30];
+ for(let i=1;i<=30;i++)m+=`<span class="${i==10?"t":""}">${i}${dots.includes(i)&&i!=10?"<i></i>":""}</span>`;
+ return `<div class="panel"><div class="chips"><span class="on">Nov</span><span>Dec</span><b>2027</b><span>Jan</span><span>Feb</span></div><div class="mini">${m}</div></div>`}
+function ipad(inner,view,open){return `<div class="ipad">${header(view,open)}<div class="main">${inner}</div></div>`}
+const week=ipad(`<div class="cal">${weekTop()}${hourGrid(7,wkEv)}<div class="fab">+</div></div>`,"Week");
+const weekOpen=ipad(`${miniPanel()}<div class="cal">${weekTop()}${hourGrid(7,wkEv)}<div class="fab">+</div></div>`,"Week",true);
+const day=ipad(`<div class="cal"><div class="top"><div class="gut today" style="text-align:center;padding:2px 0 4px"><div class="dh"><small>TUE</small><b>10</b></div><div style="color:var(--muted)">⌄</div></div><div class="cols"><div class="c"><div class="ad">All day event</div><div class="ad task done">✓ Test</div><div class="more">2 more</div></div></div></div>${hourGrid(1,{0:[[0,0.5,"Wake Up"],[3.4,1,"Teeth cleaning"],[5,1,"Costco"]]})}<div class="fab">+</div></div>`,"Day");
+function monthGrid(){let g="";["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(x=>g+=`<div class="wd">${x}</div>`);
+ const ev={1:["Kyle's birthday","All Saints' Day","Daylight Saving ends"],2:["All Souls' Day","Call Parker"],3:["Election Day","Dentist"],7:["Primary Program","Drive","Lily's baptism"],8:["(No title)","Church program"],9:["Wake Up","Gym","(No title)","+3 more"],10:["All day event","✓ Test","+6 more"],11:["Veterans Day","Wake Up","+2 more"],12:["Wake up","Drive"],13:["Wake Up","Marc Turgeon"],14:["Wake Up"],26:["Thanksgiving Day"],27:["Black Friday"],28:["Adams Family Pictures"]};
+ for(let i=1;i<=35;i++){const d=i<=30?i:i-30;const items=(i<=30?ev[i]:null)||(i>15&&i<=30?["Wake Up"]:[]);
+  g+=`<div class="cell"><div class="n ${i==10?"t":""}"><span>${d}</span></div>${items.map(t=>t.startsWith("+")?`<div class="more">${t.slice(1)}</div>`:`<div class="mp">${t}</div>`).join("")}</div>`}
+ return `<div class="mg">${g}</div>`}
+const monthOpen=ipad(`<div class="cal"><div class="chips" style="padding:6px 12px;border-bottom:1px solid var(--line)"><span class="on">Nov</span><span>Dec</span><b>2027</b><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span></div>${monthGrid()}<div class="fab">+</div></div>`,"Month",true);
+const pinned=ipad(`<div class="side"><div class="on">▦ Calendar</div><div>☑ Habits</div><div>◎ Plans</div><div>≡ Lists</div><div>🍴 Kitchen</div><div>⚙ Settings</div></div>${miniPanel()}<div class="cal">${weekTop([["SUN","8"],["MON","9"],["TUE","10",1],["WED","11"],["THU","12"],["FRI","13"],["SAT","14"]])}${hourGrid(7,wkEv)}<div class="fab">+</div></div>`,"Week",true);
+const items=[["Week",week,"All six views sit in a row at the top (Google style) instead of the view picker. Today on its own. Refresh stays as a circle. Two all-day items, then +2, the arrow on the left."],
+ ["Week, after tapping November",weekOpen,"A side panel opens on the left with the month chips and the little month. The week moves over to make room. Tap November again to close it."],
+ ["Day",day,"The day and date sit top left with the open/close arrow under them. All-day items run full width, then '2 more'."],
+ ["Month, after tapping November",monthOpen,"Month only gets the row of month chips (no little month, since the big one is right there). Busy days say '3 more'. The + floats over the corner."],
+ ["Week with your side menu pinned open",pinned,"If a login has 'Always open' menu style, the side menu stays, then the little month panel, then the week. It gets narrow in portrait."]];
+document.getElementById("out").innerHTML=items.map(x=>`<div class="item"><div class="label">${x[0]}</div>${x[1]}<div class="note">${x[2]}</div></div>`).join("");
+</script>
+</body></html>
