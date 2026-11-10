@@ -130,10 +130,10 @@ export type HandoverRow = { id: string; eventId: string; isSourceRow: boolean };
  * another link of the same Google calendar, now off, holds its pulled state.
  * Says which sync rows move to the new calendar and which are dropped. Rows
  * are moved, never copied. An event with a row on both sides keeps the target
- * row, unless the event was pulled from a sibling: then the sibling row is the
- * original and the target row is a "Marshee to Google" twin, so the first such
- * sibling row moves and the target row is dropped. Of two sibling rows for one
- * event, the first moves. `drop` can hold target row ids as well as sibling
+ * row, unless the event was pulled from a sibling: then that sibling's row
+ * (`isSourceRow`) is the original and the target row is a "Marshee to Google"
+ * twin, so the source row moves and the target row is dropped. Otherwise, of
+ * two sibling rows for one event, the first moves. `drop` can hold target row ids as well as sibling
  * ones. All lists hold sync row ids and keep the input order.
  */
 export function planHandover(

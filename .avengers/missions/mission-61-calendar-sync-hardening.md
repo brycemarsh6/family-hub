@@ -1,7 +1,7 @@
 # Mission 61: Calendar sync PR 3 hardening (Google to Marshee follow-ups)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES (pass 2)
+**Status:** DELIVERED
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 Source: `.avengers/status.md`, "Open, not scheduled", the "Google to Marshee
@@ -175,6 +175,8 @@ C1, C2 and C3 have disjoint boundaries and run in parallel.
 |---|---|---|---|---|
 | 1 | Vision | PASS | none | bare catch logs nothing; rollback write itself could throw (two failures); `sourceIsSibling` true for every sibling row; read-then-write stamp not atomic (harmless); stale comment in calendarEventQuery.ts |
 | 1 | Captain | BLOCKED | duplicated 56-line fake block in the two pull-run test files (rule: shared fakes live in `src/lib/testing/`) | naming and headers comply; migration additive and ordered; companion `calendar-sync.md` wording for `EVENT_SYNC_SELECT` and `turnedOnAt`; screensaver migration on dev dated 20261116 should restamp after 20261118 |
+| 2 | Vision | PASS | none | planHandover doc said "first such" (fixed); the `isSourceRow` call site needs the database, so only the pure rule is tested; rollback write can itself throw (accepted) |
+| 2 | Captain | PASS | none | two companion wording fixes (applied); `setCalendarDirection` names both the writer and the action; screensaver migration restamp |
 
 ## Handoff log
 
@@ -198,8 +200,22 @@ C1, C2 and C3 have disjoint boundaries and run in parallel.
   (EVENT_SYNC_SELECT wording, `turnedOnAt` single writer, pull-run harness),
   marked "for Bryce to review". Gauntlet 1754 / 1754 UTC (7 skipped), build ok.
 
+- 2026-11-09: gate pass 2: Vision PASS (twin tests proved to fail on a
+  scratch revert), Captain PASS. Fury applied the doc-comment and companion
+  wording notes (comments only), updated status.md, pushed and opened the PR.
+
 ## Delivery
 
-- **Shipped:**
-- **Shipped check:**
-- **Deliberate leftovers:**
+- **Shipped:** fixes 1 to 5 (see Brief), in `setCalendarDirection` (action
+  and writer), `planHandover` / `raceWinner`, migration
+  `20261118000000_calendar_turned_on`, `EventDetailSheet.tsx`, and the
+  pull-run tests split into `calendarPullRun.test.ts`,
+  `calendarPullRunWrites.test.ts` and `src/lib/testing/calendarPullRunHarness.ts`.
+  Gauntlet 1754 tests Denver, 1754 UTC (7 skipped), build ok.
+- **Shipped check:** recorded in the PR; the chat runs
+  `git log origin/main..HEAD` after merge.
+- **Deliberate leftovers:** in `.avengers/status.md` (two wording items for
+  Bryce, the orphaned Google twin, the double-failure rollback, the dev
+  migration, the companion amendment review). The screensaver chat should
+  restamp its `20261116000000_screensaver_settings` migration after
+  20261118 (note left in the shared notes folder).

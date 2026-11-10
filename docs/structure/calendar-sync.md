@@ -51,8 +51,8 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `loadCalendarPullState` and `loadSiblingCalendars`;
   `loadSyncedCalendarsPage` never selects `encryptedRefreshToken`, and
   `loadRefreshToken` is the one read that decrypts. The exceptions are
-  `EVENT_SYNC_SELECT` (the row's own `linkedCalendarId` and a calendar's
-  `name`) and `EVENT_SOURCE_SELECT` (a
+  `EVENT_SYNC_SELECT` (a calendar's `name`; the sync row's own
+  `linkedCalendarId` is its own column, not a read of `LinkedCalendar`) and `EVENT_SOURCE_SELECT` (a
   source calendar's `id` and `name`) in `calendarEventQuery.ts`, read through
   the relation, and nothing else of those tables; no other file filters or
   selects through a `linkedCalendar` relation. A second reader or writer is a
@@ -76,8 +76,9 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `saveSyncToken` and is what "Last checked" shows; `lastPulledAt` is the
   pull lease only. `turnedOnAt` (mission-61) is written only by
   `setCalendarDirection` in `linkedCalendarWrites.ts` (cleared on "off",
-  stamped once when turned on) and read only by `loadSiblingCalendars` for
-  `raceWinner`; the pull never writes it.
+  stamped once when turned on), read by that writer itself (to stamp once,
+  and returned for `raceWinner`) and by `loadSiblingCalendars`; the pull never
+  reads or writes it.
   **The push (mission-56).** `src/lib/calendarSyncRules.ts` is pure (no `db`,
   no env read, no `server-only`) and is the only home of the sync decisions:
   `isPushable`, `startsTicked`, `cleanRequestedIds`, `busyColumn`,
