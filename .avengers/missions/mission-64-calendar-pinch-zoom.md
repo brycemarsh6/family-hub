@@ -1,0 +1,203 @@
+# Mission: Calendar pinch to zoom (hour timeline)
+
+**Project:** family-hub (Marshee)
+**Status:** BUILDING
+**Started:** 2026-11-10 · **Updated:** 2026-11-10
+
+## Brief
+
+- **Goal:** on the Calendar's hour timeline (Day, 3 Day, Week), pinching two
+  fingers apart makes hours taller (zoom in), pinching together makes them
+  shorter (zoom out), like Google Calendar. The hour under the fingers stays
+  under the fingers while pinching. The zoom is remembered per person and
+  per device.
+- **Done means:**
+  1. One live hour height drives the timeline (gridlines, hour labels, event
+     blocks, now-line, scroll-to-now) instead of the fixed 48px.
+  2. A two-finger pinch on the hour rail changes it between **32px and
+     128px per hour** (default stays 48px). The minute under the pinch
+     midpoint stays at the same screen position while pinching.
+  3. A pinch never turns the page (swipe-to-change-days does not fire
+     during or after a two-finger gesture), and iPhone's whole-page zoom
+     does not happen on the hour rail.
+  4. The chosen hour height is saved in localStorage under a key that
+     includes the signed-in person's id, read with `useSyncExternalStore`,
+     shared by Day, 3 Day and Week. Reloading keeps it.
+  5. Event blocks: the time line shows when the block is 40px or taller, or
+     when the event is really under 30 minutes AND the block is at least
+     24px tall (today's behaviour at 48px/hour). Shorter than that: title
+     only.
+  6. Pure logic (clamp, anchor math, storage parse, the time-line rule) has
+     unit tests; gauntlet green.
+- **Out of scope:** Month, Year, Schedule views; a zoom button or slider;
+  zoom on the dashboard Calendar widget; drag to reschedule (CD1, PR #26);
+  making hour height follow Text size; wrapping long titles onto two lines.
+
+## Bryce's decisions (2026-11-10, in chat)
+
+- **Range:** copy Google. Measured from Bryce's Google Calendar screenshots
+  (iPhone, dark mode): about 32pt per hour zoomed out, about 128pt per hour
+  zoomed in. In Marshee on his phone that is about 14 hours to about 3.5
+  hours on screen. The iPad shows more hours at the same zoom.
+- **Remember:** yes, per person and per device.
+- **Views:** Day, 3 Day and Week share one zoom.
+- **Short events:** like Google. Title only when there is room for one line;
+  time when there is room for two. Fixes the 15-minute override that would
+  otherwise cut the time line in half when zoomed out.
+
+## Danger register
+
+From AGENTS.md, absolute for every agent:
+- No `npm run db:seed` / `db:reset`, no clean/reset scripts for `User`.
+- No schema change in this mission (zoom lives in localStorage).
+- Never `git add -A` / `git add .`; stage by path; `git show --stat HEAD`.
+- No push to `main`; branch, PR, Gauntlet, merge (Fury only).
+- Secrets never in code or chat.
+
+## Gauntlet
+
+- `npx tsc --noEmit`
+- `npm run lint`
+- `npm test`
+- `TZ=UTC node --import tsx --test src/lib/*.test.ts src/lib/voice/*.test.ts src/lib/assistant/*.test.ts src/lib/habits/*.test.ts src/lib/google/*.test.ts`
+- `npm run build`
+
+## Assembled
+
+- Stark + Vision (always).
+- Strange: the timeline looks different at every zoom.
+- Captain: two new lib files and edits to files already past the 350 soft cap
+  (`TimelineGrid.tsx` 514, `CalendarViews.tsx` 503).
+- Banner: out. Fury read the timeline, swipe hook and page inline.
+
+## Facts Fury gathered (file:line at HEAD 6ba78ca)
+
+- `src/components/TimelineGrid.tsx:110-111` `HOUR_HEIGHT_PX = 48`,
+  `PX_PER_MINUTE`; `:325` sets `--hour-height`; `:273-274` scroll-to-now uses
+  `PX_PER_MINUTE`, keyed on `columnDaysKey` only (must stay that way: a zoom
+  change must not jump back to now); `:481`, `:489` rail height and labels
+  via the CSS variable; `:505` passes `pxPerMinute` to each column.
+- `src/components/TimelineDayColumn.tsx` places blocks in px from
+  `pxPerMinute` (`top`, `drawnHeightPx`), so zoom re-renders it. The time
+  line rule is at the `heightPx >= 40 || trueDurationMinutes <
+  MIN_BLOCK_MINUTES` condition. Its 44px comment names `HOUR_HEIGHT_PX (48)`.
+- `src/components/CalendarViews.tsx:147` `usePageSwipe({ onSwipeLeft,
+  onSwipeRight })`, spread on a `touch-pan-y` wrapper around TimelineGrid
+  (`:343`). `touch-pan-y` already tells the browser not to pinch-zoom there.
+- `src/lib/usePageSwipe.ts:213` `handlePointerDown` restarts the gesture on
+  **every** pointerdown, including a second finger's. A two-finger pinch
+  would therefore reset and may still lock into "swiping". Mission-19's
+  note: the swallow-clear sits after early returns; keep it reachable for a
+  new first finger.
+- `src/app/(app)/calendar/page.tsx` has `user` (`user.userId`); CalendarViews
+  is not given the viewer's id today.
+- Per-device precedent: `src/lib/lastCalendarView.ts` (localStorage +
+  `useSyncExternalStore` + a same-tab signal).
+
+## Contracts
+
+### C1 - Live, pinchable, remembered hour height on the timeline
+
+- **Status:** DISPATCHED
+- **Objective:** replace the fixed 48px hour with a live hour height that a
+  two-finger pinch changes (32 to 128px, anchored at the pinch midpoint),
+  saved per person per device, without breaking swipe-to-page.
+- **Boundaries:**
+  - May touch: new `src/lib/timelineZoom.ts` (pure: constants
+    `MIN_HOUR_HEIGHT_PX = 32`, `MAX_HOUR_HEIGHT_PX = 128`,
+    `DEFAULT_HOUR_HEIGHT_PX = 48`; clamp; parse a stored string to a valid
+    height or the default; storage key from a person id; the anchor math
+    that, given anchor minute, new px per minute, rail offset and the
+    midpoint's Y in the scroller, returns the new scrollTop; and
+    `showsTimeLine(heightPx, trueDurationMinutes)`), new `src/lib/timelineZoom.test.ts`,
+    new `src/lib/useTimelineZoom.ts` (client hook: the stored value via
+    `useSyncExternalStore` with a same-tab signal like
+    `lastCalendarView.ts`, the native touch listeners, the anchoring).
+  - May touch (edit): `src/components/TimelineGrid.tsx`,
+    `src/components/TimelineDayColumn.tsx`, `src/components/CalendarViews.tsx`
+    (thread one `viewerId: string | null` prop only),
+    `src/app/(app)/calendar/page.tsx` (pass `user?.userId ?? null` only),
+    `src/lib/usePageSwipe.ts`, `src/lib/usePageSwipe.test.ts`,
+    `src/components/TimelineAllDayStrip.tsx` (stale comment only, if it
+    names the old constant as a live value).
+  - Must not touch: `prisma/`, `src/lib/timelineLayout.ts`,
+    `src/lib/lastCalendarView.ts`, `src/lib/useCalendarNavigation.ts`,
+    every other component, `package.json`, `CLAUDE.md`, `DESIGN.md`,
+    `STRUCTURE.md`, `.avengers/`.
+- **Rules the build must follow:**
+  1. Pinch uses native `touchstart`/`touchmove`/`touchend`/`touchcancel`
+     listeners added with `{ passive: false }` on the scroller. With exactly
+     two touches: `preventDefault()`, height = clamp(startHeight ×
+     currentDistance / startDistance). The anchor minute is the minute under
+     the two-finger midpoint when the pinch starts; on each move the
+     scroller's `scrollTop` is set so that minute sits under the CURRENT
+     midpoint (so moving both fingers also pans, like Google). Also
+     `preventDefault` Safari's `gesturestart`/`gesturechange` on the
+     scroller so the page itself never zooms.
+  2. Rail offset = the hour rail's top inside the scroll content (the sticky
+     weekday header plus the all-day strip sit above it). Measure it from
+     the DOM, never a constant.
+  3. Height updates at most once per animation frame; scrollTop is applied
+     after the new height has rendered (layout effect), so the anchor does
+     not drift. Save to storage only when the pinch ends.
+  4. When the stored height first resolves after hydration (server snapshot
+     is the default 48), keep the minute at the top of the visible rail
+     where it was; scroll-to-now stays keyed on the column set only and uses
+     the live px per minute.
+  5. `usePageSwipe`: a pointerdown while another pointer is already down
+     makes the current gesture yield for the rest of that gesture (mode
+     "scrolling", no page turn, nothing swallowed wrongly), and the new
+     finger never restarts the gesture's start point. Track active pointer
+     ids; clear them on up/cancel. A fresh first finger after all fingers
+     lift still clears the stale swallow flag (mission-19 F1). The decision
+     goes in an exported pure function beside `nextGestureMode` so
+     `usePageSwipe.test.ts` can test it (node:test only, no DOM runner).
+  8. Not reusable here: `src/lib/useScrollAnchor.ts` anchors Schedule's
+     page scroller on prepends; the timeline has its own scroller. Do not
+     import or edit it.
+  6. No `px` text sizes added; Lucide only; keep every existing comment
+     accurate (update ones that say the hour is a fixed 48px).
+  7. Storage key prefix `marshee:timeline-hour-height:`; a missing or
+     garbage value, or no viewer id, means the default and no write.
+- **Verification:** the full gauntlet above, all green. New tests in
+  `src/lib/timelineZoom.test.ts` and new cases in
+  `src/lib/usePageSwipe.test.ts` (second pointer yields; first finger after
+  lift resets) run in both `npm test` and the UTC run.
+- **Evidence required:** each gauntlet command with its last lines (test
+  counts before and after); `wc -l` of every touched file; the diff stat;
+  the exact anchor formula with one worked example in numbers; a note on
+  whether a browser check was possible (pinch cannot be faked with a mouse,
+  so say what was and wasn't exercised).
+- **Done criteria:** Vision re-runs the gauntlet green; no file outside the
+  boundary changed; at 48px the timeline renders exactly as before
+  (gridlines, labels, block positions, time-line rule); `TimelineGrid.tsx`
+  stays under the 650 hard cap.
+- **Report:** pending.
+
+## Gate ledger
+
+| Pass | Gate | Verdict | Blockers | Notes |
+|---|---|---|---|---|
+
+## Phone test for Bryce (after merge)
+
+1. iPhone, Calendar, Day view. Pinch apart on 2 PM: 2 PM stays under your
+   fingers and about 3.5 hours fill the screen at the most.
+2. Pinch together: about 14 hours on screen at the most. Short events show
+   a one-line title.
+3. Pinch, then lift: the day did not change (no swipe to the next day).
+   One-finger left/right swipe still changes days.
+4. Switch to 3 Day and Week: same zoom. Leave Calendar and come back: same
+   zoom. The page itself never zooms.
+5. Same on the iPad.
+
+## Handoff log
+
+- 2026-11-10: Bryce decided range (copy Google, 32 to 128px), remember per
+  person and device, Day/3 Day/Week shared, short-event rule. C1 written.
+
+## Delivery
+
+- **Shipped:** pending.
+- **Shipped check:** pending.
+- **Deliberate leftovers:** pending.
