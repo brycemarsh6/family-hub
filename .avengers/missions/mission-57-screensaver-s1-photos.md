@@ -129,7 +129,7 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 - **Report:** pending.
 
 ### C3 — The Slideshow photos page and its Settings row
-- **Status:** PENDING (after C2)
+- **Status:** DONE (Stark, 2026-11-09). Settings row gated by `canSyncCalendars` (same `!isDevice && MANAGER_ROLES` test), count only loaded for managers; page, manager (186 lines) and sheet (143 lines); gauntlet green. Stark flagged that "optimistic removal" contradicts DESIGN.md's destructive-verb carve-out: Fury confirmed the contract was wrong, fixed in C3b.
 - **Objective:** Build the page and sheet Bryce approved in the mock, and the Settings row that opens it.
 - **Boundaries:**
   - May touch: `src/app/(app)/settings/page.tsx`, new `src/app/(app)/settings/slideshow/page.tsx`, new `src/components/SlideshowPhotosManager.tsx`, new `src/components/SlideshowPhotoSheet.tsx`.
@@ -142,6 +142,17 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 - **Verification:** the gauntlet passes.
 - **Evidence required:** each gauntlet command's last lines; `wc -l` of every new or changed file; `git diff --stat`.
 - **Done criteria:** Strange's gate on the running app with real uploads to the **dev** store (Fury supplies test photos; every uploaded test photo is deleted through the page afterward).
+- **Report:** pending.
+
+### C3b — Delete waits for the server (fixes Fury's contract error)
+- **Status:** PENDING
+- **Objective:** Make the sheet's Delete follow DESIGN.md's destructive-verb carve-out (lines 102-112): wait for `deleteSlideshowPhoto`, then remove the photo and close the sheet; never remove it optimistically.
+- **Why:** C3 said "optimistic removal". That contradicts DESIGN.md's written, Bryce-approved rule. Stark built the contract as written and flagged the conflict. The contract was wrong, not the build.
+- **Boundaries:** may touch: `src/components/SlideshowPhotosManager.tsx`, `src/components/SlideshowPhotoSheet.tsx`. Must not touch: everything else.
+- **What to build:** while the delete is in flight, the Delete button shows a pending state (disabled with "Deleting…" is fine; it must not look like nothing happened) and the sheet stays open. On `{ ok: true }` the photo leaves the grid and the sheet closes. On failure the sheet stays open with the error in its `role="alert"` line and the grid never changed. Remove the put-it-back-in-sorted-place code, since it is no longer needed.
+- **Verification:** the gauntlet passes.
+- **Evidence required:** the new `handleDelete` quoted; gauntlet last lines; `git show --stat HEAD`.
+- **Done criteria:** Fury reads `handleDelete` and confirms no state change before the awaited result.
 - **Report:** pending.
 
 ## Gate ledger
