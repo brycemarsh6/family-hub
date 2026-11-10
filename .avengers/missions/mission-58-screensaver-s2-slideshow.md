@@ -1,7 +1,7 @@
 # Mission 58: Screensaver S2, the tablet slideshow and sleep mode
 
 **Project:** family-hub (Marshee)
-**Status:** GATES (C1 to C3 built; Vision and Captain on the code, Strange waits for Bryce's Tablet sign-in)
+**Status:** DELIVERING (all gates PASS; PR next)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 **Branch:** `claude/screensaver-s2-slideshow`, cut from `main` at `e62056c` (the PR #94 merge).
 
@@ -225,7 +225,12 @@ Budget: 3 passes per gate, then stop and surface.
 
 - 2026-11-09 (Fury, Opus 5.5): step 0 done (above). Read the plan, mission 57, mission 54 and the S1 code. Mission file opened. Mock and questions going to Bryce.
 - 2026-11-09 (Fury, Opus 5.5): Bryce approved all. STRUCTURE.md split proposed as its own task card. Contracts C1 to C4 written. C1 preflight: one hard failure, `prisma/schema.prisma` over 650 lines, which STRUCTURE.md's File-size caps exempts (same as every migration mission); REVIEW claims checked (`dayOfWeek`, `FULL_DAY_NAMES`, `FULL_MONTH_NAMES`, `formatHouseholdClock`, `hourInZone`, `parseDateParam` all exist). C1 dispatched to Stark.
+- 2026-11-09 (Fury, Opus 5.5): C5 to C9b built and gated (see ledger). Strange phase 2 on Bryce's dev Tablet login found the clock unreadable on bright photos (C9); Vision caught C9's shade covering the caption (C9b). All gates PASS. Records written; dev cleanup and PR next.
 
 ## Delivery
 
-(Pending.)
+- **Shipped:** the `ScreensaverSettings` table (migration `20261116000000_screensaver_settings`, one CREATE TABLE), pure rules in `src/lib/screensaver.ts` (state, shuffle with no repeats in a round, sleep times that never equal each other, words), `minuteOfDayInZone` in `householdDate.ts`, the Wall tablet settings page with +/− ladders, and `ScreensaverHost` plus `ScreensaverSlide` mounted in AppChrome for device logins only. The tablet checks the server only when something can change (Neon free hours, C7). Clock shade so it reads on bright photos (C9, C9b).
+- **Gates:** Captain PASS (pass 2); Vision PASS (pass 3, plus new gates on C8 and C9b); Strange PASS (phase 1, and phase 2 pass 2 on the Tablet login). STRUCTURE.md amendments 1 to 5 (Bryce approved).
+- **Open notes, not this mission's job:** a photo that fails once stays out until the slideshow restarts; a caption edit reaches a running slideshow only at its next start; at phone width the clock and caption overlap (tablet only); the clock's contrast margin on very bright warm photos is thin (step the shade to `via-black/50` if real photos show it); the hourly swap was not watched live and is on Bryce's tablet check; STRUCTURE.md is 1,810 lines and its split is its own PR.
+- **Dev copy left behind:** a Tablet device login Bryce created on the dev branch for the phase 2 check (dev only; never scripted away, per the User table rule).
+- **Shipped check:** (filled at merge.)

@@ -109,6 +109,9 @@ files named beside it.
   caption and delete family photos for the wall-tablet screensaver. Stored
   in private Vercel Blob (prod store Production only, dev store Preview and
   Development). Rules: STRUCTURE.md "Slideshow photos".
+- **Screensaver** (Tablet login only): an idle photo slideshow, black in
+  sleep hours; a tap only wakes it. Settings `/settings/wall-tablet`, rules
+  `src/lib/screensaver.ts`, structure STRUCTURE.md "Screensaver".
 - **Kitchen**:
   - **Inventory**: Pantry / Fridge / Freezer / Storage, 29 categories in
     supermarket order, collapsible groups, low-stock badges, fuzzy search,
@@ -220,7 +223,7 @@ Lucide outline icons only, secondary row actions behind a right-to-left swipe
 (destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-11-08)
+## Current status (updated 2026-11-09)
 
 Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
@@ -229,9 +232,8 @@ yet** or is next. Everything merged is in its mission file.
   next. Read the Delivery of
   `.avengers/missions/mission-56-calendar-sync-pr2.md` first. Any new code
   that writes a `CalendarEvent` (including CD1) must call the push.
-- **Screensaver S2** (the wall-tablet slideshow, sleep mode) is next:
-  `.avengers/plans/screensaver-slideshow-v1.md`. Run STRUCTURE.md's
-  cleanup pass first (13 lines below its trigger after mission 57).
+- **Screensaver S3** ("Open Marshee on" start page) is next:
+  `.avengers/plans/screensaver-slideshow-v1.md`; read mission 58's Delivery.
 - **Dashboard widgets W3** is next after the W2 Calendar widget:
   `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
