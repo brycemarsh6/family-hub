@@ -1,7 +1,7 @@
 # Mission 59: split STRUCTURE.md's long feature entries into companion files
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (Bryce took D1 to D4, 2026-11-09)
+**Status:** CONTRACTED (C1b, after Bryce's D5, 2026-11-09)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 ## Brief
@@ -132,14 +132,14 @@ From AGENTS.md, absolute for every agent:
 
 ## Contracts
 
-### C1 - Move seven feature entries word for word into `docs/structure/`, leaving headline plus pointer
+### C1 - SUPERSEDED by C1b (wrong range rule) - Move seven feature entries word for word into `docs/structure/`, leaving headline plus pointer
 
 **Objective:** move the text of 11 One source of truth entries (the seven
 plan rows; Habits is five entries) from STRUCTURE.md into six new
 companion files, word for word, keeping each entry's headline and adding
 one pointer, plus the four sanctioned text edits below.
 
-**Boundaries:** may touch `STRUCTURE.md`, new `docs/structure/layout.md`, new `docs/structure/plans-goals.md`, new `docs/structure/slideshow.md`, new `docs/structure/optimistic-taps.md`, new `docs/structure/habits.md`, new `docs/structure/calendar-sync.md` · must not touch `CLAUDE.md`, `AGENTS.md`, `.avengers/status.md`, `docs/history/structure-rationale.md`, `src/`. No git commands.
+**Boundaries:** (superseded) may touch `STRUCTURE.md` · must not touch `CLAUDE.md`, `AGENTS.md`, `.avengers/status.md`, `docs/history/structure-rationale.md`, `src/`. No git commands.
 - **Verification and evidence:** listed after the moves, below.
 
 **The moves:** (line numbers are `STRUCTURE.md` at `e62056c`; each entry
@@ -230,6 +230,51 @@ counts; and an "Unsure" list for any cut you were not sure of.
 **Done criteria:** Fury re-runs the checker and gets zero FAIL with only
 sanctioned DIFF words; STRUCTURE.md is about 790 lines.
 
+### C1b - Redo the move with true entry ranges (Bryce's D5)
+
+**Objective:** starting again from `e62056c`'s STRUCTURE.md, move the text
+of 13 entries into six companion files word for word, keeping each
+entry's headline plus one pointer, plus C1's four sanctioned edits.
+
+**Boundaries:** may touch `STRUCTURE.md`, `docs/structure/layout.md`, `docs/structure/plans-goals.md`, `docs/structure/slideshow.md`, `docs/structure/habits.md`, `docs/structure/calendar-sync.md`, new `docs/structure/dashboard.md`, delete `docs/structure/optimistic-taps.md` · must not touch `CLAUDE.md`, `AGENTS.md`, `.avengers/status.md`, `docs/history/structure-rationale.md`, `src/`. No git commands.
+- **Verification and evidence:** as C1, with 13 pointers and the file list below.
+
+**The range rule (the correction):** an entry runs from its top-level
+`- ` line (bold or plain) to the line before the next top-level `- `
+line, of either kind. Blank lines at an entry's end stay in STRUCTURE.md.
+Restore `STRUCTURE.md` from `e62056c` first (`git show e62056c:STRUCTURE.md > STRUCTURE.md`
+is the one git command allowed) and delete C1's six companion files, then cut afresh.
+
+| Lines at `e62056c` | Entry | Kept in STRUCTURE.md (word for word, then the pointer) | Companion, `###` heading |
+|---|---|---|---|
+| 315-341 | `goals.ts` policy | first two sentences, through `` live beside the policy in `goals.ts`. `` | `plans-goals.md`, "The goal policy" |
+| 379-410 | Plans & Goals | `**Plans & Goals scope, recap and check-in history (mission-29).**` | `plans-goals.md`, "Plans & Goals scope, recap and check-in history" |
+| 444-488 | habit engine | first sentence, through `` the `src/lib/voice/` precedent. `` | `habits.md`, "The habit engine" |
+| 581-602 | Habits PR B | `**Habits & Chores PR B homes (mission-31).**` | `habits.md`, "Habits & Chores PR B homes" |
+| 684-707 | Slideshow | `**Slideshow photos (mission-57).**` | `slideshow.md`, "Slideshow photos" |
+| 739-819 | dashboard widgets | first sentence, through `(a test pins the record to it).` | `dashboard.md`, "The widget registry" |
+| 827-865 | Habits PR C | `**Habits & Chores PR C homes (mission-32).**` | `habits.md`, "Habits & Chores PR C homes" |
+| 866-906 | Habits PR D | `**Habits & Chores PR D homes (mission-33).**` | `habits.md`, "Habits & Chores PR D homes" |
+| 907-944 | Habits PR E2 | `**Habits & Chores PR E2 homes (mission-35).**` | `habits.md`, "Habits & Chores PR E2 homes" |
+| 945-1036 | Habits PR F | `**Habits & Chores PR F homes (mission-36).**` | `habits.md`, "Habits & Chores PR F homes" |
+| 1130-1366 | Wide pages | `**Wide pages (mission-44, the iPad landscape plan).**` | `layout.md`, "Wide pages" |
+| 1367-1381 | chrome dimension | through `**a second hardcoded copy is not.**` | `layout.md`, "A measured dimension of app chrome" |
+| 1477-1541 | Google calendar | `**Google calendar link (mission-55) and copying events to Google (mission-56).**` | `calendar-sync.md`, "Google calendar link and copying events to Google" |
+
+The optimistic tap wrapper (268-283) **stays** in STRUCTURE.md: 16 lines and
+used across every feature. Companion intros as in C1, except "Each entry
+continues the bold headline kept in STRUCTURE.md" becomes "Each entry
+continues the headline kept in STRUCTURE.md". Features: Layout, Plans &
+Goals, Slideshow photos, Habits & Chores, Dashboard, Calendar sync.
+Entries keep STRUCTURE.md's order in each file. Pointer line form, the
+four sanctioned edits, and the id check are exactly as C1 (N = final
+`wc -l`).
+
+**Done criteria:** Fury re-runs the checker (0 FAIL, 13 pointers, DIFF
+only edits 1 to 4) and checks, entry by entry, that each companion chunk
+starts right after its kept text and ends right before the next top-level
+`- ` line of the old file.
+
 ## Gate ledger
 
 ## Handoff log
@@ -243,5 +288,23 @@ sanctioned DIFF words; STRUCTURE.md is about 790 lines.
   exempt documents). Dispatching Stark.
   Fury edits the two record lines himself (CLAUDE.md's S2 status line
   about the cleanup pass; `.avengers/status.md`'s STRUCTURE.md line).
+- 2026-11-09 (Fury): Stark reported C1 DONE (checker 0 FAIL, 808
+  lines) and flagged in his Unsure list that the optimistic-taps range held
+  plain bullets. Fury checked: **C1's range rule was wrong.** The section
+  mixes bold-headed entries with plain `- \`file\`` entries; "runs to the
+  next top-level `- **` line" swept about 400 lines of other entries into
+  the companions (`constants.ts`, `nav.ts`, the goal and habit
+  vocabularies, the habit engine, `householdDate.ts`, `dashboardWidgets.ts`,
+  `personInfo.ts`, `mealPlanDates.ts` among them). The checker cannot see
+  this: it proves wording, not selection. Plan sizes were measured with the
+  same wrong rule, so the 790 estimate was wrong too. Stark's working-tree
+  edits are not committed and will be redone from `e62056c`. True sizes of
+  the approved entries: Wide pages 237, PR F 92, Google 65, PR D 41, PR C
+  39, PR E2 38, Plans & Goals 32, Slideshow 24, PR B 22, optimistic 16,
+  chrome dimension 15 (621 in all, landing near 1,175). D5 to Bryce.
+- 2026-11-09 (Fury): Bryce chose the recommendation: the approved list
+  plus three plain single-feature entries (`dashboardWidgets.ts` 81, the
+  habit engine 45, `goals.ts` 27), and the 16-line optimistic tap wrapper
+  stays (app-wide). C1b written.
 
 ## Delivery
