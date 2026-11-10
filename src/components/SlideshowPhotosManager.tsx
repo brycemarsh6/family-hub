@@ -74,18 +74,14 @@ export function SlideshowPhotosManager({ initialPhotos }: { initialPhotos: Slide
     if (files.length > 0) void upload(files);
   }
 
-  // The photo leaves the grid at once; a failed delete puts it back with the reason.
+  // Delete waits for the server (DESIGN.md: a one-shot destructive verb is not optimistic).
+  // Nothing changes on screen until it says ok; the sheet shows any error.
   async function handleDelete(photo: SlideshowPhotoItem) {
-    setError(null);
+    const result = await deleteSlideshowPhoto(photo.id);
+    if (!result.ok) return result.error;
     setOpenId(null);
     setPhotos((current) => current.filter((item) => item.id !== photo.id));
-    const result = await deleteSlideshowPhoto(photo.id);
-    if (!result.ok) {
-      setPhotos((current) =>
-        [...current, photo].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-      );
-      setError(result.error);
-    }
+    return null;
   }
 
   async function handleSaveCaption(photo: SlideshowPhotoItem, caption: string) {
@@ -177,7 +173,7 @@ export function SlideshowPhotosManager({ initialPhotos }: { initialPhotos: Slide
           photo={open}
           altText={altText(open)}
           onClose={() => setOpenId(null)}
-          onDelete={() => void handleDelete(open)}
+          onDelete={() => handleDelete(open)}
           onSaveCaption={(caption) => handleSaveCaption(open, caption)}
         />
       )}

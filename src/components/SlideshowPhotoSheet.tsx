@@ -33,13 +33,15 @@ export function SlideshowPhotoSheet({
   photo: SlideshowPhotoItem;
   altText: string;
   onClose: () => void;
-  onDelete: () => void;
+  /** Resolves to an error message, or null when deleted (the manager then closes the sheet). */
+  onDelete: () => Promise<string | null>;
   /** Resolves to an error message, or null when saved. */
   onSaveCaption: (caption: string) => Promise<string | null>;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
   const [caption, setCaption] = useState(photo.caption ?? "");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,6 +72,17 @@ export function SlideshowPhotoSheet({
     setSaving(false);
     if (failure) setError(failure);
     else onClose();
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    const failure = await onDelete();
+    // On success the manager closes the sheet, so only a failure comes back here.
+    if (failure) {
+      setDeleting(false);
+      setError(failure);
+    }
   }
 
   return createPortal(
@@ -121,16 +134,16 @@ export function SlideshowPhotoSheet({
         <div className="mt-3 flex gap-3">
           <button
             type="button"
-            onClick={onDelete}
-            disabled={saving}
+            onClick={() => void handleDelete()}
+            disabled={saving || deleting}
             className="h-12 flex-1 rounded-xl border border-line text-base font-semibold text-danger transition-colors active:bg-surface-2 disabled:opacity-50"
           >
-            Delete
+            {deleting ? "Deleting…" : "Delete"}
           </button>
           <button
             type="button"
             onClick={() => void handleDone()}
-            disabled={saving}
+            disabled={saving || deleting}
             className="h-12 flex-1 rounded-xl bg-accent text-base font-semibold text-accent-fg transition-opacity active:opacity-80 disabled:opacity-50"
           >
             Done
