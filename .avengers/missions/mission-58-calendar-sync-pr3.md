@@ -580,6 +580,82 @@ would flip Google's own choice. Both are fixed before the pull exists.
 - **Done criteria:** a test per item 1, 3, 4; `loadKnown` has no relation
   filter on `LinkedCalendar`.
 
+### C10 - Gate fixes, round 3 (Vision pass 3, Strange pass 1), Bryce's answers 9 and 10
+
+- **Objective:** a handover between two links of one Google calendar moves
+  the pulled state instead of importing it again, and Strange's four
+  blockers plus the cheap notes are fixed in Bryce's words.
+- **Boundaries:** may touch `prisma/schema.prisma` (one field), new
+  `prisma/migrations/20261117000000_calendar_pull_ok/migration.sql`,
+  `prisma/seed-linked-calendars.ts`, `src/lib/linkedCalendarWrites.ts`,
+  `src/lib/linkedCalendarsRead.ts`, `src/app/actions/linkedCalendars.ts`,
+  `src/lib/calendarSyncRules.ts` and its test, `src/lib/calendarPullRun.ts`
+  and its test (only if the success stamp needs a dep), 
+  `src/lib/calendarEventPull.ts`, `src/lib/calendarSyncVocabulary.ts` and its
+  test, `src/components/CalendarPullButton.tsx`,
+  `src/components/CalendarHeader.tsx`, `src/app/(app)/calendar/page.tsx`,
+  `src/components/LinkedAccountCard.tsx`, `src/components/EventDetailSheet.tsx`,
+  `src/components/EventSyncToField.tsx`, `src/app/privacy/page.tsx`.
+  Must not touch anything else; must not run any `prisma migrate` command
+  (Fury applies the migration), any `db:seed`/`db:reset`, or call Google.
+- **Spec:**
+  1. **Handover (Vision pass 3 blocker; Bryce answer 9: fix it).**
+     `loadSiblingCalendars` also returns each sibling's `id`. A pure
+     `planHandover(targetEventIds, siblingRows)` in `calendarSyncRules.ts`
+     says which sibling sync rows move to the new calendar and which are
+     dropped because the event already has a row on it. A new write
+     `adoptSiblingPulls(calendarId, siblingIds)` in `linkedCalendarWrites.ts`,
+     one `$transaction`: pulled events of each off sibling get
+     `sourceLinkedCalendarId = calendarId`; the dropped rows are deleted;
+     the rest of the siblings' `CalendarEventSync` rows move to `calendarId`;
+     the new calendar's `syncToken` is set to null. `setCalendarDirection`
+     calls it after `canTurnOn` passes, only for "twoWay". Rows are moved,
+     never copied. Tests for `planHandover`.
+  2. **Race hardening (Vision note).** After writing an on direction,
+     `setCalendarDirection` re-reads the siblings; if another one is on and
+     was turned on first (older `updatedAt`), set this one back to "off" and
+     return `alreadySyncedThrough`. Keep it small; no new migration for it.
+  3. **"Last checked" means a pull that worked (Strange blocker 2, Fury's
+     structure call).** Additive field `LinkedCalendar.lastPulledOkAt
+     DateTime?`, set only where a pull succeeds (with the sync token save).
+     `loadCalendarPullState` and the Synced calendars page drive
+     `lastCheckedLine` from it; `lastPulledAt` stays the lease stamp only.
+     Migration SQL: one `ALTER TABLE "LinkedCalendar" ADD COLUMN
+     "lastPulledOkAt" TIMESTAMP(3);`. Seed sets it with `lastPulledAt`.
+  4. **Refresh note (Strange blocker 1).** The note under Refresh clears
+     itself after about 4 seconds and has `pointer-events-none`, so the
+     month-jump control under it always takes taps. A failure note uses
+     `bg-warn-soft text-warn`; `router.refresh()` runs on failure too; the
+     spinning icon is not dimmed.
+  5. **"Already synced through" (Strange blocker 3).** A second line under
+     the calendar name in the row's left column (`text-sm text-muted-strong
+     [overflow-wrap:anywhere]`), so the name keeps its width.
+  6. **Reconnect next step (Strange blocker 4, Bryce's words).** In the
+     needs-reconnecting warn band on Synced calendars, for the person who
+     linked the account only, add: "To fix it, tap Link a Google account
+     and choose this account again." Word in the vocabulary, pinned in its
+     test.
+  7. **Cheap notes:** the Calendar's reconnect banner scrolls away with the
+     Schedule list instead of staying pinned (Bryce answer 10); on iPad the
+     banner's Fix button keeps its own width (no stretch); the event sheet
+     hides "On Google: X" for the calendar the event came from (it already
+     says "From Google"); the edit form note reads "The calendar it came
+     from stays on, so editing here changes it in Google too." (Bryce) and
+     the `EventSyncToField` comment matches; the privacy Unlinking section
+     adds "Events that came in from that account's calendars are removed
+     from Marshee. They stay in Google." (Bryce). The seed's parent account
+     "Main calendar" starts "off", so the fake data holds no twin on-links;
+     if the locked-out calendar Strange saw in Sync to was that seed twin,
+     say so in the report, otherwise hide calendars with `syncedThrough`
+     from Sync to.
+- **Verification:** `npx prisma validate`, `npx prisma generate`, `npx tsc
+  --noEmit`, `npx eslint .`, `npm test`, the TZ=UTC command from AGENTS.md.
+- **Evidence:** the outputs, the migration SQL in full, and the new tests'
+  names.
+- **Done criteria:** a test for `planHandover` (move, drop on duplicate, no
+  siblings); `lastCheckedLine` reads only `lastPulledOkAt`; every new word
+  pinned in the vocabulary test; files only from the list.
+
 ### C6 - Records
 
 - STRUCTURE.md's "Google calendar link" entry widened for the new files
@@ -601,12 +677,17 @@ would flip Google's own choice. Both are fixed before the pull exists.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 3 | Vision | BLOCKED (budget spent) | Without adoption, a handover (link A off, link B on, same Google calendar) imports every event again; deleting a duplicate removes the real Google event through A's rows | Pass 2 blockers closed; gauntlet green (1703, UTC and LA, build); canTurnOn race (two taps in the same instant); check production for twin on-links before merge; locked row gives no reason when the on link needs reconnecting; seed holds a twin state |
+| 1 | Strange | BLOCKED | Refresh note covers the month-jump control and never clears; "Last checked" shows failed attempts (lease stamp); "Already synced through" squeezes the calendar name to 0px; reconnect warning on Synced calendars has no next step | Failure note colors; refresh on failure too; dimmed spinner; Schedule banner takes 35% of a phone screen; iPad Fix button 860px wide; sheet shows From Google and On Google for one calendar; "stays ticked" beside a lock; locked-out calendar still in Sync to; privacy Unlinking silent on pulled events |
+| 3 | Captain | PASS | | "another link is on" test written 3 times; one-link rule not atomic; `calendarPullRun.test.ts` 347 lines; STRUCTURE.md housekeeping due |
 | 2 | Vision | BLOCKED | Sibling adoption makes twin sync rows, so unlink, untick or a second copy can delete the real Google event or jam the pull; pushOut PATCHes the source original (Google's rich text and links lost, "For:" line added); C7a touched two files outside its list | Pass 1 blockers closed; gauntlet green (1694, UTC and LA legs, build); `textFromDescription` eats `<Emma>`, joins list items, leaves numeric entities; removal ignores `left`; unlink race narrow; "Last checked" shows attempts |
 | 2 | Captain | BLOCKED | `calendarEventPull.ts` reads `LinkedCalendar.googleCalendarId` through a relation filter (needs `loadSiblingCalendarIds` in `linkedCalendarsRead.ts`) | Pass 1 code blockers closed; amendment final (Bryce to approve); "keep source" filter written twice; dropped-calendar set computed in two places; stale header and "Mission 57" comments; `calendarPullRun.test.ts` at 345 lines; removal ignores `left` |
 | 1 | Captain | BLOCKED | Test harness belongs in `src/lib/testing/`; two new readers of `LinkedCalendar` outside `linkedCalendarsRead.ts` (needs `EVENT_SOURCE_SELECT`); the STRUCTURE.md entry's closed lists no longer match (amendment drafted, Bryce to approve) | Second reader of `marsheeEventId`; pull binding repeats `tokenFailReason`; `cronAuth.ts` lacks `server-only`; "Just now" has two homes; STRUCTURE.md housekeeping due soon |
 | 1 | Vision | BLOCKED | PATCH keeps cleared notes/location in Google; a Google change never reaches other calendars; a shared calendar linked twice imports twice; unlink then relink duplicates pulled events; `calendarPullRun.ts` outside C4b's list | Gauntlet green (1677, UTC and LA too, build ok); echoes, lease, restart, secrets all check out; Google HTML descriptions show raw `<br>`; a failed Marshee delete of a pulled event can come back; mission number 57 already used on main |
 
 ## Handoff log
+
+- 2026-11-09: Bryce answered Strange's words: reconnect next step "To fix it, tap Link a Google account and choose this account again."; edit note "stays on"; privacy Unlinking adds "Events that came in from that account's calendars are removed from Marshee. They stay in Google." Vision's budget is spent; Bryce allowed a fourth pass after the handover fix (answer 9). The Schedule reconnect banner scrolls away (answer 10). Merged origin/main (17 commits, clean).
 
 - 2026-11-09: C1 and C2 done and committed (tests 1593 to 1621). C2 notes for C4: `listEvents` gives `nextSyncToken: null` when Google sends none (do not save a token then); a typed "For: ..." last paragraph in Google is stripped too (accepted edge). The worktree's Prisma client was stale; Fury ran `npx prisma generate` (local only).
 
