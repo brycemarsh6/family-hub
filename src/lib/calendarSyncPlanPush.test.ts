@@ -172,3 +172,46 @@ describe("syncEventCopies: update", () => {
     assert.equal(h.saves.length, 0);
   });
 });
+
+describe("syncEventCopies: a pulled event on its source calendar", () => {
+  const timedSource = { sourceLinkedCalendarId: "src" };
+
+  it("a timed update sends no transparency on the source calendar but does on others", async () => {
+    const h = harness({});
+    await syncEventCopies(h.deps, {
+      payloadInput: PAYLOAD_INPUT,
+      rows: [row("src"), row("b")],
+      calendars: [cal("src"), cal("b")],
+      requestedIds: ["src", "b"],
+      ...timedSource,
+    });
+    const bySource = h.payloads.find((p) => p.calendarId === "src@group.calendar.google.com")!;
+    const byOther = h.payloads.find((p) => p.calendarId === "b@group.calendar.google.com")!;
+    assert.equal("transparency" in bySource.payload, false);
+    assert.equal(byOther.payload.transparency, "opaque");
+  });
+
+  it("an all-day update still sends showBusyOnGoogle on the source calendar", async () => {
+    const h = harness({});
+    await syncEventCopies(h.deps, {
+      payloadInput: { ...PAYLOAD_INPUT, allDay: true, showBusyOnGoogle: false },
+      rows: [row("src")],
+      calendars: [cal("src")],
+      requestedIds: ["src"],
+      ...timedSource,
+    });
+    assert.equal(h.payloads[0].payload.transparency, "transparent");
+  });
+
+  it("an empty request cannot untick the source: it updates and never removes it", async () => {
+    const h = harness({});
+    await syncEventCopies(h.deps, {
+      payloadInput: PAYLOAD_INPUT,
+      rows: [row("src")],
+      calendars: [cal("src")],
+      requestedIds: [],
+      ...timedSource,
+    });
+    assert.deepEqual(h.calls.map((c) => c.op), ["update"]);
+  });
+});

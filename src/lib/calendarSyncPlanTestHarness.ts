@@ -1,5 +1,5 @@
 import { googleEventIdFor, type EventPayloadInput } from "./google/eventPayload";
-import type { EventCallResult, GetEventResult } from "./google/types";
+import type { EventCallResult, GetEventResult, GoogleEventPayload } from "./google/types";
 import type { RowKey, RowPatch, SyncDeps } from "./calendarSyncPlan";
 import type { PlanCalendar, PlanRow } from "./calendarSyncRules";
 
@@ -49,6 +49,7 @@ export function harness(script: {
   token?: { ok: true; accessToken: string } | { ok: false; reason: "reconnect" | "network" };
 }) {
   const calls: Call[] = [];
+  const payloads: { op: string; calendarId: string; payload: GoogleEventPayload }[] = [];
   const saves: { key: RowKey; patch: RowPatch }[] = [];
   const deleted: string[] = [];
   let tokenFetches = 0;
@@ -58,12 +59,14 @@ export function harness(script: {
       tokenFetches += 1;
       return script.token ?? { ok: true, accessToken: TOKEN };
     },
-    async insert(_t, calendarId) {
+    async insert(_t, calendarId, _g, payload) {
       calls.push({ op: "insert", calendarId });
+      payloads.push({ op: "insert", calendarId, payload });
       return next(script.insert, { ok: true, etag: '"new"' });
     },
-    async update(_t, calendarId, _g, _p, ifMatch) {
+    async update(_t, calendarId, _g, payload, ifMatch) {
       calls.push({ op: "update", calendarId, ifMatch });
+      payloads.push({ op: "update", calendarId, payload });
       return next(script.update, { ok: true, etag: '"upd"' });
     },
     async get(_t, calendarId) {
@@ -82,7 +85,7 @@ export function harness(script: {
     },
     now: () => new Date("2026-03-01T00:00:00Z"),
   };
-  return { deps, calls, saves, deleted, tokenFetches: () => tokenFetches };
+  return { deps, calls, payloads, saves, deleted, tokenFetches: () => tokenFetches };
 }
 
 export function lastPatch(h: ReturnType<typeof harness>): RowPatch {

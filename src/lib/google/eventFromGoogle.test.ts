@@ -143,3 +143,19 @@ describe("eventFromGoogle: round trip with toGoogleEvent", () => {
     assert.deepEqual(fieldsOf(input), { title: e.title, notes: e.notes, location: e.location, startAt: e.startAt, endAt: e.endAt, allDay: e.allDay });
   });
 });
+
+describe("eventFromGoogle: busy or free", () => {
+  const timed = { start: { dateTime: "2026-03-07T19:00:00Z" }, end: { dateTime: "2026-03-07T20:00:00Z" } };
+  const day = { start: { date: "2026-03-07" }, end: { date: "2026-03-08" } };
+
+  it("an all-day event is busy unless Google says transparent", () => {
+    assert.equal(eventKind(eventFromGoogle({ id: "a", ...day })).showBusyOnGoogle, true);
+    assert.equal(eventKind(eventFromGoogle({ id: "a", ...day, transparency: "opaque" })).showBusyOnGoogle, true);
+    assert.equal(eventKind(eventFromGoogle({ id: "a", ...day, transparency: "transparent" })).showBusyOnGoogle, false);
+  });
+
+  it("a timed event is always false, whatever Google says", () => {
+    assert.equal(eventKind(eventFromGoogle({ id: "t", ...timed })).showBusyOnGoogle, false);
+    assert.equal(eventKind(eventFromGoogle({ id: "t", ...timed, transparency: "transparent" })).showBusyOnGoogle, false);
+  });
+});

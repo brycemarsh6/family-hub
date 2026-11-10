@@ -8,7 +8,7 @@ import type {
   ListEventsResult,
 } from "./types";
 
-// Insert, update, get and delete for one Google calendar event. Pure: `fetch`
+// Insert, update (a PATCH), get and delete for one Google calendar event. Pure: `fetch`
 // is a parameter so tests never reach Google (calendarApi.ts binds the real
 // one). No auth logic: the caller passes a fresh access token. Failures carry
 // a reason word only, never a response body, and a caught error is dropped,
@@ -83,7 +83,11 @@ export async function insertEvent(
   return { ok: true, etag: await etagOf(r.res) };
 }
 
-/** Replace the copy. With `ifMatch`, 412 means someone changed it in Google first. */
+/**
+ * Change the copy. A PATCH, not a PUT: only the fields in the payload change,
+ * so a pulled event keeps its guests, reminders, video link and color. With
+ * `ifMatch`, 412 means someone changed it in Google first.
+ */
 export async function updateEvent(
   fetchFn: FetchLike,
   accessToken: string,
@@ -92,7 +96,7 @@ export async function updateEvent(
   payload: GoogleEventPayload,
   ifMatch?: string,
 ): Promise<EventCallResult> {
-  const r = await call(fetchFn, eventUrl(calendarId, googleEventId), accessToken, "PUT", {
+  const r = await call(fetchFn, eventUrl(calendarId, googleEventId), accessToken, "PATCH", {
     body: { ...payload, id: googleEventId },
     ifMatch,
   });

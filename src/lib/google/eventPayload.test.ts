@@ -103,6 +103,14 @@ describe("toGoogleEvent: all day", () => {
   });
 });
 
+describe("toGoogleEvent: keepGoogleBusy", () => {
+  it("leaves transparency out when asked, and sends it otherwise", () => {
+    assert.equal("transparency" in toGoogleEvent(base(), true), false);
+    assert.equal(toGoogleEvent(base(), false).transparency, "opaque");
+    assert.equal(toGoogleEvent(base()).transparency, "opaque");
+  });
+});
+
 describe("toGoogleEvent: text and fixed fields", () => {
   it("leaves out description and location when empty", () => {
     const p = toGoogleEvent(base({ notes: "  ", location: " " }));

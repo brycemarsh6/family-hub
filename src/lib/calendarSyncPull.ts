@@ -61,6 +61,7 @@ export type PullInsert = {
     createdById: string;
     personIds: string[];
     sourceLinkedCalendarId: string;
+    showBusyOnGoogle: boolean;
     updatedAt: Date;
   };
   sync: {
@@ -85,7 +86,7 @@ export type PullUpdate = {
   eventId: string;
   googleEventId: string;
   /** Google's fields to write on the event; null keeps Marshee's version. */
-  fields: (EventFields & { updatedAt: Date }) | null;
+  fields: (EventFields & { showBusyOnGoogle: boolean; updatedAt: Date }) | null;
   /** True when `fields` differs from what Marshee holds (the view needs a refresh). */
   changed: boolean;
   /** True when no row exists yet (a Google copy found by marsheeEventId). */
@@ -195,6 +196,7 @@ export function planPull(input: PullInput): PullPlan {
             createdById: linkerId,
             personIds: [linkerId],
             sourceLinkedCalendarId: calendar.id,
+            showBusyOnGoogle: ev.showBusyOnGoogle,
             updatedAt: now,
           },
           sync: { linkedCalendarId: calendar.id, googleEventId: ev.id, etag: ev.etag, status: "ok", lastPulledAt: now },
@@ -226,7 +228,7 @@ export function planPull(input: PullInput): PullPlan {
       // Google's change is taken; if Marshee also changed, its version is kept in previousJson.
       plan.updates.push({
         ...base,
-        fields: { ...theirs, updatedAt: now },
+        fields: { ...theirs, showBusyOnGoogle: ev.showBusyOnGoogle, updatedAt: now },
         changed: !sameFields(theirs, match.current),
         row: {
           etag: ev.etag,

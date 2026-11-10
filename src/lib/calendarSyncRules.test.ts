@@ -161,3 +161,29 @@ describe("already-linked error code", () => {
     );
   });
 });
+
+describe("planSync: the source calendar of a pulled event", () => {
+  const calendars: PlanCalendar[] = [
+    { id: "src", googleCalendarId: "s@g", accountId: "x", direction: "twoWay", accessRole: "owner" },
+    { id: "other", googleCalendarId: "o@g", accountId: "x", direction: "twoWay", accessRole: "owner" },
+  ];
+  const rows: PlanRow[] = [
+    { linkedCalendarId: "src", googleEventId: "g1", etag: '"e"', status: "ok" },
+    { linkedCalendarId: "other", googleEventId: "g2", etag: '"e"', status: "ok" },
+  ];
+
+  it("cannot be unticked: an empty request still updates it and removes only the others", () => {
+    const plan = planSync({ rows, calendars, requestedIds: [], sourceLinkedCalendarId: "src" });
+    assert.deepEqual(plan, { create: [], update: ["src"], remove: ["other"] });
+  });
+
+  it("without a source an empty request removes both", () => {
+    assert.deepEqual(planSync({ rows, calendars, requestedIds: [] }).remove, ["src", "other"]);
+  });
+
+  it("when it is no longer pushable its row is left alone", () => {
+    const off = calendars.map((c) => (c.id === "src" ? { ...c, direction: "off" as const } : c));
+    const plan = planSync({ rows, calendars: off, requestedIds: [], sourceLinkedCalendarId: "src" });
+    assert.deepEqual(plan, { create: [], update: [], remove: ["other"] });
+  });
+});

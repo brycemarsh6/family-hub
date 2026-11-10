@@ -249,3 +249,21 @@ describe("planPull deletes and matching", () => {
     assert.equal(plan.skipped.length, 1);
   });
 });
+
+describe("planPull busy or free", () => {
+  const day = { start: { date: "2026-11-12" }, end: { date: "2026-11-13" } };
+
+  it("an inserted all-day event carries Google's choice, busy when absent", () => {
+    assert.equal(run([gEvent(day)]).inserts[0].event.showBusyOnGoogle, true);
+    assert.equal(run([gEvent({ ...day, transparency: "transparent" })]).inserts[0].event.showBusyOnGoogle, false);
+  });
+
+  it("an inserted timed event is false", () => {
+    assert.equal(run([gEvent({ transparency: "transparent" })]).inserts[0].event.showBusyOnGoogle, false);
+  });
+
+  it("a Google-wins update carries it too", () => {
+    const plan = run([gEvent({ ...day, transparency: "transparent" })], { g1: knownEvent() });
+    assert.equal(plan.updates[0].fields?.showBusyOnGoogle, false);
+  });
+});

@@ -71,12 +71,15 @@ export type SyncPlan = { create: string[]; update: string[]; remove: string[] };
  * calendars alone": existing copies are updated, none added or removed. Every
  * requested id is checked against `calendars` here, so a tampered id for an
  * unknown, "off" or read-only calendar is ignored. A copy on a calendar that
- * is no longer pushable is left alone (decision 8).
+ * is no longer pushable is left alone (decision 8). The event's source
+ * calendar (where a pulled event came from) is always desired while it is
+ * pushable: it cannot be unticked, since that would delete the original.
  */
 export function planSync(input: {
   rows: PlanRow[];
   calendars: PlanCalendar[];
   requestedIds?: string[];
+  sourceLinkedCalendarId?: string | null;
 }): SyncPlan {
   const pushable = new Set(input.calendars.filter(isPushable).map((c) => c.id));
   const existing = new Set(input.rows.map((r) => r.linkedCalendarId));
@@ -88,6 +91,8 @@ export function planSync(input: {
   } else {
     for (const id of input.requestedIds) if (pushable.has(id)) desired.add(id);
   }
+  const source = input.sourceLinkedCalendarId;
+  if (source && pushable.has(source)) desired.add(source);
   return {
     create: [...desired].filter((id) => !existing.has(id)),
     update: [...desired].filter((id) => existing.has(id)),

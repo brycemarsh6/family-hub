@@ -181,3 +181,60 @@ describe("syncEventCopies: Try again and 412 edge cases", () => {
     assert.ok(h.saves.every((s) => s.key.googleEventId === GOOGLE_ID));
   });
 });
+
+describe("syncEventCopies: a source copy that is gone in Google", () => {
+  it("records failed/network and never inserts a recreated original", async () => {
+    const h = harness({ update: [{ ok: false, reason: "gone" }] });
+    const res = await syncEventCopies(h.deps, {
+      payloadInput: PAYLOAD_INPUT,
+      rows: [row("src")],
+      calendars: [cal("src")],
+      requestedIds: ["src"],
+      sourceLinkedCalendarId: "src",
+    });
+    assert.deepEqual(res, { failed: 1 });
+    assert.deepEqual(h.calls.map((c) => c.op), ["update"]);
+    assert.equal(lastPatch(h).status, "failed");
+    assert.equal(lastPatch(h).failReason, "network");
+  });
+
+  it("a gone after a 412 on the source also never inserts", async () => {
+    const h = harness({
+      update: [{ ok: false, reason: "changed" }, { ok: false, reason: "gone" }],
+    });
+    const res = await syncEventCopies(h.deps, {
+      payloadInput: PAYLOAD_INPUT,
+      rows: [row("src")],
+      calendars: [cal("src")],
+      requestedIds: ["src"],
+      sourceLinkedCalendarId: "src",
+    });
+    assert.deepEqual(res, { failed: 1 });
+    assert.ok(!h.calls.some((c) => c.op === "insert"));
+  });
+
+  it("a gone on a different calendar still recreates the copy", async () => {
+    const h = harness({ update: [{ ok: false, reason: "gone" }] });
+    const res = await syncEventCopies(h.deps, {
+      payloadInput: PAYLOAD_INPUT,
+      rows: [row("b")],
+      calendars: [cal("b")],
+      requestedIds: ["b"],
+      sourceLinkedCalendarId: "src",
+    });
+    assert.deepEqual(res, { failed: 0 });
+    assert.deepEqual(h.calls.map((c) => c.op), ["update", "insert"]);
+  });
+
+  it("the 409 revive still works through update on a non-source calendar", async () => {
+    const h = harness({ update: [{ ok: false, reason: "gone" }], insert: [{ ok: false, reason: "conflict" }] });
+    const res = await syncEventCopies(h.deps, {
+      payloadInput: PAYLOAD_INPUT,
+      rows: [row("b")],
+      calendars: [cal("b")],
+      requestedIds: ["b"],
+    });
+    assert.deepEqual(res, { failed: 0 });
+    assert.deepEqual(h.calls.map((c) => c.op), ["update", "insert", "update"]);
+  });
+});

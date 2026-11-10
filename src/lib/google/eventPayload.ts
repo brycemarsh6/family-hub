@@ -41,7 +41,11 @@ function dateString(stored: Date): string {
   return `${pad(d.year, 4)}-${pad(d.month, 2)}-${pad(d.day, 2)}`;
 }
 
-export function toGoogleEvent(input: EventPayloadInput): GoogleEventPayload {
+/**
+ * `keepGoogleBusy` leaves `transparency` out, so the PATCH keeps Google's own
+ * busy/free choice (a timed event pulled from Google, sent back to its source).
+ */
+export function toGoogleEvent(input: EventPayloadInput, keepGoogleBusy = false): GoogleEventPayload {
   const notes = input.notes?.trim() ?? "";
   const description = [notes, forLine(input.forNames)].filter((part) => part !== "").join("\n\n");
 
@@ -54,9 +58,11 @@ export function toGoogleEvent(input: EventPayloadInput): GoogleEventPayload {
       ? { date: dateString(input.endAt) }
       : { dateTime: input.endAt.toISOString(), timeZone: HOUSEHOLD_TIME_ZONE },
     status: "confirmed",
-    transparency: !input.allDay || input.showBusyOnGoogle ? "opaque" : "transparent",
     extendedProperties: { private: { marsheeEventId: input.marsheeEventId } },
   };
+  if (!keepGoogleBusy) {
+    payload.transparency = !input.allDay || input.showBusyOnGoogle ? "opaque" : "transparent";
+  }
   const location = input.location?.trim();
   if (location) payload.location = location;
   if (description !== "") payload.description = description;

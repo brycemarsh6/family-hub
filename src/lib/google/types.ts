@@ -29,7 +29,8 @@ export type GoogleEventPayload = {
   start: { dateTime: string; timeZone: string } | { date: string };
   end: { dateTime: string; timeZone: string } | { date: string };
   status: "confirmed";
-  transparency: "opaque" | "transparent";
+  /** Absent on an update that must leave Google's own busy/free choice alone. */
+  transparency?: "opaque" | "transparent";
   extendedProperties: { private: { marsheeEventId: string } };
 };
 
@@ -51,6 +52,7 @@ export type GoogleEventIn = {
   description?: string;
   location?: string;
   eventType?: string;
+  transparency?: string;
   start?: { date?: string; dateTime?: string };
   end?: { date?: string; dateTime?: string };
   extendedProperties?: { private?: { marsheeEventId?: string } };

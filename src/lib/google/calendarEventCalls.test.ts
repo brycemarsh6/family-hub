@@ -48,7 +48,7 @@ describe("event calls: requests", () => {
     assert.ok(seen[0].init.signal);
   });
 
-  it("update PUTs to the event with If-Match when given", async () => {
+  it("update PATCHes the event with If-Match when given", async () => {
     const { fetchFn, seen } = fake(200, { etag: '"e2"' });
     const r = await calls.update(fetchFn);
     assert.deepEqual(r, { ok: true, etag: '"e2"' });
@@ -56,8 +56,22 @@ describe("event calls: requests", () => {
       seen[0].url,
       "https://www.googleapis.com/calendar/v3/calendars/a%40b.com/events/abc123?sendUpdates=none",
     );
-    assert.equal(seen[0].init.method, "PUT");
+    assert.equal(seen[0].init.method, "PATCH");
     assert.equal((seen[0].init.headers as Record<string, string>)["If-Match"], '"etag1"');
+  });
+
+  it("update is a PATCH, never a PUT, and a body without transparency stays without it", async () => {
+    const { fetchFn, seen } = fake(200, {});
+    const partial = { ...payload };
+    delete partial.transparency;
+    await updateEvent(fetchFn, TOKEN, "a@b.com", "abc123", partial);
+    assert.equal(seen[0].init.method, "PATCH");
+    assert.equal("transparency" in JSON.parse(seen[0].init.body as string), false);
+  });
+
+  it("update still reports 409 as conflict and 412 as changed through PATCH", async () => {
+    assert.deepEqual(await updateEvent(fake(409, {}).fetchFn, TOKEN, "a@b.com", "abc123", payload), { ok: false, reason: "conflict" });
+    assert.deepEqual(await updateEvent(fake(412, {}).fetchFn, TOKEN, "a@b.com", "abc123", payload, '"x"'), { ok: false, reason: "changed" });
   });
 
   it("update sends no If-Match when none is given", async () => {

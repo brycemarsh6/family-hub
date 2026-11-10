@@ -81,6 +81,7 @@ export async function pushEventCopies(input: {
         endAt: true,
         allDay: true,
         showBusyOnGoogle: true,
+        sourceLinkedCalendarId: true,
         people: { select: { user: { select: { id: true, displayName: true } } } },
       },
     });
@@ -103,6 +104,7 @@ export async function pushEventCopies(input: {
       calendars,
       requestedIds: input.requestedIds,
       retryOnly: input.retryOnly,
+      sourceLinkedCalendarId: event.sourceLinkedCalendarId,
     });
   } catch {
     // Dropped on purpose; the Marshee event already stands.

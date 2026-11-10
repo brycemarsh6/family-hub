@@ -20,6 +20,8 @@ export type PulledEvent =
       startAt: Date;
       endAt: Date;
       allDay: boolean;
+      /** All-day: Google's busy choice (busy when absent). Timed: false, the column's meaning. */
+      showBusyOnGoogle: boolean;
     };
 
 const SKIPPED_TYPES = ["workingLocation", "focusTime"];
@@ -76,5 +78,6 @@ export function eventFromGoogle(event: GoogleEventIn): PulledEvent {
     startAt,
     endAt,
     allDay,
+    showBusyOnGoogle: allDay && event.transparency !== "transparent",
   };
 }
