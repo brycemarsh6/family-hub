@@ -12,9 +12,9 @@ import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { pullCalendars } from "@/lib/calendarEventPull";
 
-type PullActionResult = { changed: boolean; failed: number };
+type PullActionResult = { changed: boolean; failed: number; checked: number };
 
-const NOTHING: PullActionResult = { changed: false, failed: 0 };
+const NOTHING: PullActionResult = { changed: false, failed: 0, checked: 0 };
 
 export async function pullGoogleEvents(force: boolean): Promise<PullActionResult> {
   const user = await getVerifiedUser();
@@ -23,10 +23,10 @@ export async function pullGoogleEvents(force: boolean): Promise<PullActionResult
   // Refresh from anyone else is refused, not downgraded: nothing is pulled.
   if (force === true && !manager) return NOTHING;
 
-  const { changed, failed } = await pullCalendars({ force: force === true });
+  const { changed, failed, checked } = await pullCalendars({ force: force === true });
   if (changed) {
     revalidatePath("/calendar");
     revalidatePath("/");
   }
-  return { changed, failed };
+  return { changed, failed, checked };
 }

@@ -74,14 +74,29 @@ function fake(
 describe("runPull: guards", () => {
   it("calls nothing when Google is not configured", async () => {
     const f = fake({ isConfigured: () => false });
-    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 0 });
+    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 0, checked: 0 });
     assert.deepEqual(f.calls, []);
   });
 
   it("skips a calendar whose lease another caller holds", async () => {
     const f = fake({ claimResult: false });
-    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 0 });
+    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 0, checked: 0 });
     assert.deepEqual(f.calls, ["loadCalendars", `claim:c1:${PULL_LEASE_MS}`]);
+  });
+
+  it("counts no calendar as checked when every one is leased", async () => {
+    const f = fake({ claimResult: false, calendars: [CAL, { ...CAL, id: "c2", googleCalendarId: "g-cal-2" }] });
+    assert.equal((await runPull(f.deps, { force: true })).checked, 0);
+  });
+
+  it("counts each calendar it tried, a failed one too, and not one skipped as a twin", async () => {
+    const twin = { ...CAL, id: "c3", createdAt: new Date("2026-10-02T00:00:00Z") };
+    const f = fake({
+      calendars: [CAL, { ...CAL, id: "c2", googleCalendarId: "g-cal-2" }, twin],
+      lists: [{ ok: true, events: [], nextSyncToken: "t" }],
+    });
+    const result = await runPull(f.deps, { force: false });
+    assert.deepEqual(result, { changed: false, failed: 1, checked: 2 });
   });
 
   it("uses the 30 second lease for Refresh", async () => {
@@ -96,7 +111,7 @@ describe("runPull: guards", () => {
         throw new Error("db down");
       },
     });
-    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 1 });
+    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 1, checked: 0 });
   });
 });
 
@@ -127,12 +142,12 @@ describe("runPull: sync token", () => {
       f.calls.filter((c) => c.startsWith("saveToken") || c.startsWith("insert")),
       ["saveToken:c1:null", "insert:g1", "saveToken:c1:tok-new"],
     );
-    assert.deepEqual(result, { changed: true, failed: 0 });
+    assert.deepEqual(result, { changed: true, failed: 0, checked: 1 });
   });
 
   it("does not loop when a full pull answers restart", async () => {
     const f = fake({ lists: [{ ok: false, reason: "restart" }] });
-    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 1 });
+    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 1, checked: 1 });
     assert.equal(f.listModes.length, 1);
   });
 
@@ -156,7 +171,7 @@ describe("runPull: sync token", () => {
       },
     });
     const result = await runPull(f.deps, { force: false });
-    assert.deepEqual(result, { changed: true, failed: 1 });
+    assert.deepEqual(result, { changed: true, failed: 1, checked: 1 });
     assert.deepEqual(f.calls.filter((c) => c.startsWith("saveToken")), []);
   });
 });
@@ -165,14 +180,14 @@ describe("runPull: access", () => {
   it("marks the account needs-relink when Google says the link needs a reconnect", async () => {
     const f = fake({ getAccessToken: async () => ({ ok: false, reason: "reconnect" }) });
     const result = await runPull(f.deps, { force: false });
-    assert.deepEqual(result, { changed: false, failed: 1 });
+    assert.deepEqual(result, { changed: false, failed: 1, checked: 1 });
     assert.ok(f.calls.includes("relink:a1"));
     assert.ok(!f.calls.includes("list"));
   });
 
   it("does not mark needs-relink for a network failure", async () => {
     const f = fake({ getAccessToken: async () => ({ ok: false, reason: "network" }) });
-    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 1 });
+    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 1, checked: 1 });
     assert.ok(!f.calls.some((c) => c.startsWith("relink")));
   });
 
@@ -187,13 +202,13 @@ describe("runPull: access", () => {
     });
     const result = await runPull(f.deps, { force: false });
     assert.deepEqual(calls, ["token:a1"]);
-    assert.deepEqual(result, { changed: false, failed: 2 });
+    assert.deepEqual(result, { changed: false, failed: 2, checked: 2 });
     assert.equal(f.calls.filter((c) => c === "relink:a1").length, 1);
   });
 
   it("counts an unauthorized list as a failure and saves nothing", async () => {
     const f = fake({ lists: [{ ok: false, reason: "unauthorized" }] });
-    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 1 });
+    assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 1, checked: 1 });
     assert.deepEqual(f.calls.filter((c) => c.startsWith("saveToken")), []);
   });
 });
@@ -256,7 +271,7 @@ describe("runPull: writes", () => {
       ],
     });
     const result = await runPull(f.deps, { force: false });
-    assert.deepEqual(result, { changed: true, failed: 0 });
+    assert.deepEqual(result, { changed: true, failed: 0, checked: 1 });
     const order = f.calls.filter((c) => /^(update|delete|pushBack)/.test(c));
     assert.deepEqual(order, ["update:gwin", "delete:evDel", "pushBack:evWin"]);
   });

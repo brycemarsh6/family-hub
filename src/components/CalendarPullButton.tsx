@@ -75,11 +75,9 @@ export function CalendarPullButton() {
         const result = await pullGoogleEvents(true);
         // A failed run can still have saved some events, so the page refreshes either way.
         router.refresh();
-        setNote(
-          result.failed > 0
-            ? { text: PULL_WORDS.unreachable, failed: true }
-            : { text: PULL_WORDS.upToDate, failed: false },
-        );
+        // "Up to date" only after a real check: a run that skipped every calendar says nothing.
+        if (result.failed > 0) setNote({ text: PULL_WORDS.unreachable, failed: true });
+        else if (result.checked > 0) setNote({ text: PULL_WORDS.upToDate, failed: false });
       } catch {
         router.refresh();
         setNote({ text: PULL_WORDS.unreachable, failed: true });

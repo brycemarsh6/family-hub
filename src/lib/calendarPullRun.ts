@@ -54,14 +54,15 @@ export type PullRunDeps = {
   now: () => Date;
 };
 
-export type PullRunResult = { changed: boolean; failed: number };
+/** `checked` counts the calendars this run claimed and tried (a failed one too); a skipped one is not counted. */
+export type PullRunResult = { changed: boolean; failed: number; checked: number };
 
 async function pullOne(
   deps: PullRunDeps,
   calendar: PullCalendarRow,
   accessToken: string,
   now: Date,
-): Promise<PullRunResult> {
+): Promise<Omit<PullRunResult, "checked">> {
   const windowStart = new Date(now.getTime() - PULL_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   let listed: ListEventsResult | null = null;
@@ -127,7 +128,7 @@ async function pullOne(
 
 /** Pulls every "Both ways" calendar that is due. Never throws; touches nothing when Google is not set up. */
 export async function runPull(deps: PullRunDeps, opts: { force: boolean }): Promise<PullRunResult> {
-  const total: PullRunResult = { changed: false, failed: 0 };
+  const total: PullRunResult = { changed: false, failed: 0, checked: 0 };
   if (!deps.isConfigured()) return total;
   try {
     const now = deps.now();
@@ -147,6 +148,7 @@ export async function runPull(deps: PullRunDeps, opts: { force: boolean }): Prom
     for (const calendar of calendars) {
       try {
         if (!(await deps.claim(calendar.id, staleBefore, now))) continue;
+        total.checked += 1;
         let token = access.get(calendar.accountId);
         if (!token) {
           token = await deps.getAccessToken(calendar.accountId);
