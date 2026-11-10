@@ -53,10 +53,16 @@ describe("runPull: guards", () => {
 });
 
 describe("runPull: sync token", () => {
-  it("sends timeMin 30 days back when there is no token", async () => {
+  it("sends timeMin 30 days back and timeMax 365 days ahead when there is no token", async () => {
     const f = fake();
     await runPull(f.deps, { force: false });
-    assert.deepEqual(f.listModes, [{ timeMin: "2026-10-10T18:00:00.000Z" }]);
+    assert.deepEqual(f.listModes, [{ timeMin: "2026-10-10T18:00:00.000Z", timeMax: "2027-11-09T18:00:00.000Z" }]);
+  });
+
+  it("with rewindow a calendar holding a token still lists in full window mode", async () => {
+    const f = fake({ calendars: [{ ...CAL, syncToken: "tok-old" }] });
+    await runPull(f.deps, { force: true, rewindow: true });
+    assert.deepEqual(f.listModes, [{ timeMin: "2026-10-10T18:00:00.000Z", timeMax: "2027-11-09T18:00:00.000Z" }]);
   });
 
   it("sends only the token when there is one", async () => {
@@ -74,7 +80,10 @@ describe("runPull: sync token", () => {
       ],
     });
     const result = await runPull(f.deps, { force: false });
-    assert.deepEqual(f.listModes, [{ syncToken: "tok-old" }, { timeMin: "2026-10-10T18:00:00.000Z" }]);
+    assert.deepEqual(f.listModes, [
+      { syncToken: "tok-old" },
+      { timeMin: "2026-10-10T18:00:00.000Z", timeMax: "2027-11-09T18:00:00.000Z" },
+    ]);
     assert.deepEqual(
       f.calls.filter((c) => c.startsWith("saveToken") || c.startsWith("insert")),
       ["saveToken:c1:null", "insert:g1", "saveToken:c1:tok-new"],

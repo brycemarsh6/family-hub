@@ -14,6 +14,13 @@ import {
 
 /** How far back the first pull reaches (Bryce, 2026-11-09). */
 export const PULL_WINDOW_DAYS = 30;
+/**
+ * How far ahead a full pull reaches (Bryce, 2026-11-09). Without an end,
+ * Google expands every forever-repeating event into instances and the list
+ * overflows the page cap. The daily cron pulls in full again (`rewindow`),
+ * so this horizon moves forward a day each day.
+ */
+export const PULL_HORIZON_DAYS = 365;
 /** A calendar is pulled at most this often on page open... */
 export const PULL_LEASE_MS = 5 * 60 * 1000;
 /** ...and this often when a parent taps Refresh. */
@@ -74,11 +81,14 @@ async function pullOne(
   calendar: PullCalendarRow,
   accessToken: string,
   now: Date,
+  rewindow: boolean,
 ): Promise<Omit<PullRunResult, "checked">> {
   const windowStart = new Date(now.getTime() - PULL_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const windowEnd = new Date(now.getTime() + PULL_HORIZON_DAYS * 24 * 60 * 60 * 1000);
 
   let listed: ListEventsResult | null = null;
-  if (calendar.syncToken) {
+  // A rewindow run ignores the saved token and pulls the full window again.
+  if (calendar.syncToken && !rewindow) {
     listed = await deps.list(accessToken, calendar.googleCalendarId, { syncToken: calendar.syncToken });
     if (!listed.ok && listed.reason === "restart") {
       // The token is no good: drop it and pull in full, in this same run.
@@ -87,7 +97,10 @@ async function pullOne(
     }
   }
   if (!listed) {
-    listed = await deps.list(accessToken, calendar.googleCalendarId, { timeMin: windowStart.toISOString() });
+    listed = await deps.list(accessToken, calendar.googleCalendarId, {
+      timeMin: windowStart.toISOString(),
+      timeMax: windowEnd.toISOString(),
+    });
   }
   if (!listed.ok) {
     deps.noteFailure?.(`list:${listed.reason}${listed.status ? `:${listed.status}` : ""}`);
@@ -144,7 +157,7 @@ async function pullOne(
 }
 
 /** Pulls every "Both ways" calendar that is due. Never throws; touches nothing when Google is not set up. */
-export async function runPull(deps: PullRunDeps, opts: { force: boolean }): Promise<PullRunResult> {
+export async function runPull(deps: PullRunDeps, opts: { force: boolean; rewindow?: boolean }): Promise<PullRunResult> {
   const total: PullRunResult = { changed: false, failed: 0, checked: 0 };
   if (!deps.isConfigured()) return total;
   try {
@@ -177,7 +190,7 @@ export async function runPull(deps: PullRunDeps, opts: { force: boolean }): Prom
           total.failed += 1;
           continue;
         }
-        const result = await pullOne(deps, calendar, token.accessToken, now);
+        const result = await pullOne(deps, calendar, token.accessToken, now, opts.rewindow === true);
         total.changed = total.changed || result.changed;
         total.failed += result.failed;
       } catch (error) {

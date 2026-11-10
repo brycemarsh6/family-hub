@@ -135,9 +135,14 @@ export async function deleteEvent(
 function listUrl(calendarId: string, mode: ListEventsMode, pageToken: string | null): string {
   const url = new URL(`${EVENTS_BASE}/${encodeURIComponent(calendarId)}/events`);
   // Google rejects syncToken combined with timeMin, so a token pull never
-  // sends a window; the caller skips anything outside it locally.
+  // sends a window; the caller skips anything outside it locally. A full pull
+  // is closed at both ends: with no timeMax, Google expands every
+  // forever-repeating event into instances and the list overflows.
   if ("syncToken" in mode) url.searchParams.set("syncToken", mode.syncToken);
-  else url.searchParams.set("timeMin", mode.timeMin);
+  else {
+    url.searchParams.set("timeMin", mode.timeMin);
+    url.searchParams.set("timeMax", mode.timeMax);
+  }
   url.searchParams.set("singleEvents", "true");
   url.searchParams.set("showDeleted", "true");
   url.searchParams.set("maxResults", "250");
