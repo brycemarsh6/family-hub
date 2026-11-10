@@ -1,7 +1,7 @@
 # Mission 59: split STRUCTURE.md's long feature entries into companion files
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (C1b, after Bryce's D5, 2026-11-09)
+**Status:** AT-THE-GATES (C1b built, Captain and Vision pass 1)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 ## Brief
@@ -306,5 +306,11 @@ starts right after its kept text and ends right before the next top-level
   plus three plain single-feature entries (`dashboardWidgets.ts` 81, the
   habit engine 45, `goals.ts` 27), and the 16-line optimistic tap wrapper
   stays (app-wide). C1b written.
+- 2026-11-09 (Fury): Stark reported C1b DONE, STRUCTURE.md 1,064 lines,
+  six companions. Fury re-ran the checker (0 FAIL, 19 chunks, 13 pointers,
+  DIFF only edits 1 to 4) and the selection checks the checker cannot do:
+  59 top-level entries in One source of truth before and after, and no
+  column-0 `- ` line inside any companion. Fury's record edits: CLAUDE.md's
+  S2 status line, `.avengers/status.md`'s STRUCTURE.md line.
 
 ## Delivery

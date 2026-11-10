@@ -6,6 +6,10 @@ structural changes against it.
 The story behind each rule (why it exists, which mission added it, its
 corrections) is in docs/history/structure-rationale.md under the same
 section and rule names; a rule here keeps a one-line pointer.
+The long single-feature entries under One source of truth continue in
+companion files in docs/structure/, one per feature; the text there
+binds exactly like this file, and the entry here keeps its headline and
+a one-line pointer.
 
 ## Layout map
 
@@ -243,6 +247,11 @@ section and rule names; a rule here keeps a one-line pointer.
 
 Adding a second definition of any of these is a BLOCKER:
 
+An entry that ends in a pointer to docs/structure/ continues in that
+companion file, and the text there is part of this list. Search
+STRUCTURE.md and docs/structure/ together for a name, decision number or
+amendment id.
+
 - **`src/components/RecipeBody.tsx`** is the only markup for a recipe's
   Ingredients, Instructions and Notes. The share and print pages render
   `RecipeBody` whole; the private detail page places the three exported
@@ -316,29 +325,7 @@ Adding a second definition of any of these is a BLOCKER:
   policy. An action, page **or component** comparing a goal's `ownerId` or
   `visibility` itself is a BLOCKER; the display helpers `goalOwnership` /
   `whoseGoal` / `isPrivateGoal` live beside the policy in `goals.ts`.
-  `src/lib/goalsRead.ts` is the only page reader of goal rows.
-  **Ongoing goals (mission-38):** `Goal.targetDate` is nullable; null means
-  Ongoing. `validateGoalInput` in `goals.ts` is the only place that decides
-  whether a goal is ongoing or dated: only an explicit `ongoing: true` lets
-  a blank date through, and the past-date check applies only to a date.
-  Actions save its result as is, with no second check. `paceStatus` in
-  `goalsProgress.ts` is the only pace rule for an ongoing goal ("reached"
-  or null). `findGoals` in `goalsRead.ts` orders ongoing goals last
-  (`nulls: "last"`). `ONGOING_LABEL` in `goalVocabulary.ts` is the only
-  "Ongoing" wording; a component or page that types the word itself is a
-  BLOCKER. `isOngoingGoal(goal)` in `goals.ts`, beside `isPrivateGoal`, is
-  the only "is this goal Ongoing" check (mission-50; added when the
-  tripwire was crossed). A page, component, action, route or serializer
-  that compares `targetDate` with `null` itself is a BLOCKER. The one
-  sanctioned inline check is in `paceStatus` (`goalsProgress.ts`),
-  commented, because `goals.ts` imports `goalsProgress.ts` and importing it
-  back would make a cycle. The form
-  limits `GOAL_TITLE_MAX` / `GOAL_WHY_MAX` / `MEASURE_UNIT_MAX` /
-  `HABIT_TIMES_MAX` are exported from `goals.ts` (the `MIN_PASSWORD_LENGTH`
-  precedent). `goalOnBoard(goal, board)` there is how a goal is matched to a
-  vision board, so nothing outside `goals.ts` compares a goal's `ownerId`
-  for that. (Added 2026-11-04, mission-27; Bryce approved the plan. The
-  `goalOnBoard` line was added by mission-28.)
+  (Rules: docs/structure/plans-goals.md, "The goal policy".)
 - `src/lib/visions.ts`: the only vision policy. `canEditVision`,
   `visionBoardKey` / `boardOwnerId`, `validateVisionInput`, `visionForGoal`,
   `goalVisionLabel`, `boardHeading`, `boardHint` and `readOnlyEmptyText` live
@@ -377,37 +364,8 @@ Adding a second definition of any of these is a BLOCKER:
   `parseTypedNumber`; split from `goals.ts` at the test seam. (Added
   2026-11-04, mission-27; Bryce approved the plan.)
 - **Plans & Goals scope, recap and check-in history (mission-29).**
-  `countsInScope(goal, viewer, scope)` in `goals.ts` is the one scope rule
-  (a device or "everyone" keeps all, otherwise a goal that is not "theirs");
-  `goalsInScope` is its active-only wrapper, the only This week / tile
-  filter, and `loadWeekRecap` calls `countsInScope` for "mine" because a goal
-  completed mid-week still counts. An inline copy of the rule is a BLOCKER.
-  `src/lib/goalsRecap.ts` is the only recap logic: pure, with habit windows
-  and counts taken from `goalsProgress.ts` (`buildPlanItemView`,
-  `weekSummary`) and no target math of its own. **Dependency direction:**
-  `goalsRecap.ts` takes only types from `goals.ts`, and `goals.ts` and
-  `goalsProgress.ts` never import `goalsRecap.ts`. The `GoalCheckIn` table
-  is the only check-in history; `Goal.currentValue` / `checkedInAt` mirror
-  its newest row and are written only by `src/lib/goalWrites.ts`
-  (mission-50): `addCheckIn`; removing the number in `updateGoal`; and
-  `rebuildGoalNumber(tx, goalId, { keepUpdatedAt? })`, the one writer of
-  the fallback, which skips a write that changes nothing and keeps
-  `updatedAt` when asked. It is called by check-in removal and by
-  `afterUndo` (`assistant/undoHooks.ts`, with `keepUpdatedAt: true`, for the
-  goals `goalWork` in `assistant/undoWork.ts` names); undo never writes the
-  cache columns itself (`VOLATILE` in `undoModels.ts`). `lockGoal(tx, id)`
-  in `goalWrites.ts` is the only goal row lock. They are read for pages
-  only by `goalsRead.ts`.
-  `numberAfterCheckIns` in `goalsProgress.ts` is the one fallback rule (the
-  newest remaining check-in, else the start value). **Two places must
-  change together:** the two `PlanItemRow` builders (`planItemRowOf` in
-  `planItemWrites.ts`, and `goalsRead.ts`), and the two check-in flags in `goalsRead.ts`
-  (`goalInclude` and `toView`). **Size watch:** `GoalDetail.tsx` is 277
-  lines (soft cap 350) after mission 37 moved "The result" card into
-  `GoalResultCard.tsx`; `goals.ts` is 343 (mission-50) and `GoalForm.tsx` 334 (its target-date field, with the
-  chips and Ongoing, is the split seam); `goals.test.ts`
-  is 344 after mission 30 split its habit tests into `goalsHabitInput.test.ts`;
-  the next goal test goes in a new file by concern.
+  (Rules: docs/structure/plans-goals.md, "Plans & Goals scope, recap and
+  check-in history".)
 - `src/lib/planItemChanges.ts`: `applyPlanItemChange`, the only optimistic
   reducer for plan items. (Added 2026-11-04, mission-27; Bryce approved the
   plan.)
@@ -442,50 +400,8 @@ Adding a second definition of any of these is a BLOCKER:
   the `HabitParticipant` cache and is aged by `hoursStreakAfter`. Screens
   shape hours answers in `src/lib/habitsHours.ts`. (Added mission-37.)
 - `src/lib/habits/` is the habit engine, a domain subdirectory under the
-  `src/lib/voice/` precedent. `schedule.ts`, `carryOver.ts`, `streaks.ts`,
-  `progress.ts`, `perfectDays.ts`, `planPrompts.ts`, `access.ts`,
-  `habitRows.ts`, `weekOverrides.ts`, `choreStreak.ts`, `hours.ts` (the
-  weekly-hours rules, mission-37) and `types.ts` are
-  pure: no Prisma client, no `db`, and
-  callers pass `today`. `habitWrites.ts`, `participantWrites.ts`, `streakWrites.ts` and
-  `planWrites.ts` (all `server-only`) are the only writers of the `Habit`,
-  `HabitParticipant`, `HabitLog`, `HabitPlannedDay` and `HabitTimeEntry`
-  tables. One sanctioned exception (mission-47, amendment A10):
-  `src/lib/assistant/undoWrites.ts` restores, removes and re-creates
-  `Habit`, `HabitParticipant`, `HabitLog` and `HabitTimeEntry` rows from
-  audit copies only. It applies no habit rule and never writes the columns
-  that `VOLATILE` in `undoModels.ts` names (the streak caches). After its
-  steps it calls `afterUndo` (`assistant/undoHooks.ts`), which rebuilds the
-  touched streaks through `streakWrites.ts` in the same transaction. No
-  other module outside the four writer files writes these tables.
-  `streakWrites.ts` alone writes the cached streak columns (`currentStreak`,
-  `bestStreak`, `streakAsOf`; split out of `habitWrites.ts` in mission-35),
-  `participantWrites.ts` holds the participant writes (join, reorder,
-  replace) and `atomically`, and `planWrites.ts` is the only writer of
-  `HabitPlannedDay`. (Second file added mission-31; third and fourth
-  mission-35.) `src/lib/habitsRead.ts` (Today, Manage,
-  the editor, the action loaders and `loadHabitsForPlan`) and
-  `src/lib/habitsStatsRead.ts` (the stats page and the family view,
-  mission-32; the Report's `loadHabitReport`, mission-36) are the only readers of the `Habit`, `HabitParticipant`,
-  `HabitLog`, `HabitTimeEntry` and `Nudge` tables for pages and actions
-  (an action that needs one entry uses `loadTimeEntryForAction`). Both are
-  `server-only`, and each hands its rows to a pure builder. A third reader
-  is a BLOCKER. **Dependency direction:** `src/lib/habits/` may import
-  `habitVocabulary.ts`, `habitHoursVocabulary.ts`, `householdDate.ts`,
-  `constants.ts`, `householdPeople.ts` (the write files only), `db.ts` and the generated
-  client (types). Its writers take `today` from their caller and never
-  compute it. It never imports `goals*.ts`,
-  `goalVocabulary.ts` or `visions*.ts`, nor any other top-level `src/lib/`
-  module outside that list: no `habits*.ts`, no calendar or Schedule module
-  (`scheduleWindowState.ts`, `calendarDates.ts`), no `types.ts` view type.
-  Code that shapes engine answers for a screen lives one level up, in
-  `src/lib/` (mission-35 moved the Calendar builder and
-  `scheduleHabitDays.ts` out for this reason). The goals side may import the engine
-  (`goalsProgress.ts` takes `habits/progress`, the `habits/types` types
-  and `habitsHours.ts`'s plan builders, and `goals.ts` takes the
-  `HabitFields` type only). `src/lib/habits/*.test.ts` is in
-  `package.json`'s test script and both CI timezone steps. (Added
-  mission-30.)
+  `src/lib/voice/` precedent. (Rules: docs/structure/habits.md, "The habit
+  engine".)
 - `dayInVacation(day, vacations)` in `habits/schedule.ts`, beside
   `isDayInRange`, is the only "is this day inside one of these vacations"
   test. An inline `vacations.some(...)` or a loop over vacations asking the
@@ -578,28 +494,8 @@ Adding a second definition of any of these is a BLOCKER:
   device tests are grandfathered and PR B moves each one it rewrites. Code
   calls the role `device`; "tablet" appears only in this file's name, the
   `tabletMay...` prefix and UI copy. (Mission 39 PR A, Captain's A1.)
-- **Habits & Chores PR B homes (mission-31).** `src/lib/habitsToday.ts` is
-  the only home of the Today page's rules (row building and viewer order; `carrySince` and `habitStartDay` moved to
-  `habits/carryOver.ts` in mission-33, and the tap-day window
-  `isTapDayAllowed` / `TAP_DAYS_BACK` followed in mission-35, so
-  `habitsStats.ts` and `actions/habitChecks.ts` take it from the engine); it is pure, and `habitsRead.ts` fetches and calls it.
-  `src/lib/habitChanges.ts`'s `applyHabitChange` is the only optimistic
-  reducer for Today rows (the `planItemChanges.ts` precedent).
-  `src/components/HabitIcon.tsx`'s record is the only habit icon-name to
-  Lucide map, total over `HABIT_ICONS`. `src/components/SortableList.tsx` is
-  the only file that imports `@dnd-kit`. Tap actions live in
-  `actions/habitChecks.ts`, editor actions in `actions/habits.ts`. Habit
-  words (schedule labels long and short, time of day, who-labels, the title
-  limit, `canCarryOver`, `canBePrivate`, `isCheckStatus`, the plan-the-day words `PLAN_PROMPT_*`,
-  `PLAN_OTHER_DAY_LABEL`, `planChipLabel`, `PLANNED_TODAY_TITLE`,
-  `PLANNED_FOR_TODAY_LABEL`, `plannedForLabel`) live in
-  `habitVocabulary.ts`; "Mine" / "Together" for a habit's people is
-  `habitWhoLabel` there, and `GOAL_OWNERSHIP_LABELS` stays the words for a
-  goal's ownership. `STREAK_MIN_SHOWN` and `streakLabel` there are the only
-  "does a streak show, and what does it say" rule, for row streaks and the
-  chore streak alike; a component that compares a streak to a number or
-  types `days` after a count is a BLOCKER (added mission-34, on Captain's
-  ruling; the three chore-flame copies moved over in F1).
+- **Habits & Chores PR B homes (mission-31).**
+  (Rules: docs/structure/habits.md, "Habits & Chores PR B homes".)
 - `formatShortCalendarDate` in `householdDate.ts`: the shared "Nov 3"
   formatter (`MONTH_NAMES` is now exported from `mealPlanDates.ts` for it).
   (Added 2026-11-04, mission-27; Bryce approved the plan.)
@@ -681,30 +577,8 @@ Adding a second definition of any of these is a BLOCKER:
   `formatHouseholdClock` from `householdDate.ts`. A list that shows "time ago" takes one `now` from
   its server page as a prop, so server and browser print the same words.
   (Added mission-38, on Captain's ruling.)
-- **Slideshow photos (mission-57).** `src/lib/slideshowPhotos.ts` has no
-  imports, on purpose, and holds the rules: `CAPTION_MAX`,
-  `PHOTO_MAX_BYTES`, `THUMB_MAX_BYTES`, `PHOTO_LONG_EDGE`,
-  `THUMB_LONG_EDGE`, `PHOTO_TYPE`, `normalizeCaption` (the only caption
-  cleaner), `isTakenOn`, `photoPaths` (the only builder of a stored
-  pathname) and `toDimension`. `src/lib/exifDate.ts` (pure) is the only
-  EXIF reader. `src/lib/shrinkPhoto.ts` (`client-only`) is the only
-  in-browser photo shrink. `src/lib/slideshowBlob.ts` (`server-only`, no
-  auth, never a `token` option) is the only importer of `@vercel/blob`;
-  its callers are `actions/slideshowPhotos.ts` (put, delete) and the image
-  route (get), each carrying its own gate. `src/lib/slideshowRead.ts`
-  (`server-only`, no auth) is the only reader of `SlideshowPhoto` and owns
-  `SLIDESHOW_PHOTO_SELECT`; its list never carries the stored paths.
-  `addSlideshowPhoto`, `updateSlideshowCaption` and `deleteSlideshowPhoto`
-  (guard form a, `MANAGER_ROLES`) are the only writers; if a second caller
-  appears (a Winnie route, the tablet's slideshow), the writes move into
-  `src/lib/slideshowWrites.ts` first. The bytes go out through
-  `src/app/api/slideshow/[id]/image/route.ts` alone. **`SlideshowPhoto`
-  has no Prisma relation to `User` on purpose** (the `Feedback`
-  precedent): `uploadedById` is a plain id and `uploadedByName` a
-  snapshot; adding the relation later is a separate additive migration
-  that first confirms no `uploadedById` lacks a `User` row. A second
-  reader, writer, Blob importer or caption cleaner is a BLOCKER. (Added
-  mission-57, on Captain's ruling, Bryce-approved.)
+- **Slideshow photos (mission-57).** (Rules: docs/structure/slideshow.md,
+  "Slideshow photos".)
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,
@@ -736,87 +610,11 @@ Adding a second definition of any of these is a BLOCKER:
 - `src/lib/password.ts` — `MIN_PASSWORD_LENGTH`, the one answer to "how
   long must my password be", shared by the actions that enforce it and
   the inputs that advertise it
-- `src/lib/dashboardWidgets.ts`: `DASHBOARD_WIDGETS`, the only widget
-  registry (per kind: label, allowed `sizes`, `defaultSize`, `onTablet`);
-  `DASHBOARD_WIDGET_KINDS` there is the one kind list and the default
-  order (a test pins the record to it). `calendar` is first (mission-49,
-  decision 237: all four sizes, Large by default, on the tablet).
-  `WIDGET_SIZES` / `WIDGET_SIZE_LABELS` are the only size list and size
-  names; `DASHBOARD_WIDGET_WORDS` holds the dashboard and Customize words,
-  and `CALENDAR_WIDGET_WORDS` the Calendar widget's and its options' words
-  (decision 238). A widget's words typed in a component are a BLOCKER.
-  `parseDashboardLayout` in `dashboardLayout.ts` is the only reader of the
-  stored layout JSON (version 2: a list of widget instances, each
-  `{ uid, kind, size, items?, options? }`, so a kind may appear more than once).
-  **Options (mission-49):** `src/lib/dashboardWidgetOptions.ts` is the only
-  home of each kind's option shape, defaults (`CALENDAR_WIDGET_DEFAULTS`)
-  and cleaner (`cleanWidgetOptions`); the parser and `setWidgetOptions`
-  both clean through it, so a bad value or a key the kind does not have
-  never survives. `calendarOptionsOf(widget)` is the only way to read a
-  Calendar widget's options with defaults filled in, and `widgetRowDetail`
-  the only Customize second line. Only `calendar` has options; a new
-  kind's options are added there, never parsed elsewhere.
-  **Upgrade rule (mission-43):** a version 1 layout is upgraded on read,
-  sized by v1's own pairing rule, so a saved dashboard opens unchanged; the
-  v1 insertion rule (mission-29) lives on only inside that upgrade, and runs
-  over the frozen `V1_KINDS` (the seven v1 kinds), never
-  `DASHBOARD_WIDGET_KINDS`, so an upgrade never adds a kind v1 lacked. A v2
-  layout never gets missing kinds inserted: a removed widget stays removed.
-  `nextWidgetUid` is the only rule for a new or repaired uid (Add and the
-  parser's repair use it). The default layout and the v1 upgrade hold each
-  kind once, so they use the bare kind, which is what `nextWidgetUid` gives
-  a first instance.
-  The grid is 2 columns and 4 from a 45rem container width (the dashboard
-  is a wide page, mission-44: see "Wide pages" below), never from `md:`.
-  `src/lib/dashboardGrid.ts` (`packWidgets`, `gridAreaVars`) is the only
-  placement rule for the grid at 2 and 4 columns; the DOM stays in layout
-  order and CSS variables place each cell, never `grid-auto-flow: dense`.
-  `src/lib/dashboardLoaders.ts` holds the dashboard's kitchen reads and
-  the Calendar widget's read (`loadCalendarWidget`: events, tasks and
-  planned habit days from Denver yesterday through today + 9, one read
-  shared by every Calendar widget on the layout), one loader per kind.
-  `src/lib/calendarWidget.ts` is the widget's pure engine (the next item,
-  a day's items with open before done, caps that drop done items first,
-  empty words). It takes `today` and `now` from the browser (`useToday`,
-  `useNowMinute`), never the server; it matches events by
-  `daysEventCovers`, tasks and habit days by `allDayInstantToLocalDay`, and
-  orders events with Schedule's `compareEvents`. The page loads only the kinds on the layout (goals load for
-  every signed-in viewer and habits for every non-device viewer, for the
-  notes and the pickers).
-  **Picks (mission-34, per instance since mission-43):** a widget's optional `items` (only `habits` and
-  `goals`, `PICKABLE_WIDGET_IDS`) is checked for shape in the parser and
-  for ownership per instance, through `keepOwnPicks` in `src/lib/dashboardPicks.ts`, which also holds
-  `picksOf(widget)` (the only way to read a widget's picks), `layoutForViewer` (the
-  tablet's layout leaves out kinds whose `onTablet` is false: `habits` and
-  `chores`, decision 138),
-  and the picker's pure rules (`splitPicks`, `togglePick`); the layout
-  edits (`addWidget`, `removeWidget`, `resizeWidget`, `setWidgetItems`,
-  `reorderWidgets`) all sit in `dashboardLayout.ts`; `habitsTileFor` (in
-  `habitsRead.ts`) and `goalsTileFor` (in `goalsRead.ts`) apply one
-  instance's picks to its kind's single load; `isPickableWidget` / `PickableWidgetId` in
-  `dashboardWidgets.ts` are the only "which widgets take picks" test; `src/lib/habitsDashboard.ts` the tile row rules (`habitsTileRows`, `choresTileRows`, `pickableHabits`,
-  `keepShownRows` (decision 147) and `plannedTodayRows`, the only "which
-  rows go on Planned today" rule, which `habitsTileRows` leaves out); the
-  Goals tile's picked list is `weekTodoForGoals` beside `weekTodo` in
-  `goalsProgress.ts`. The tiles' data comes from `loadDashboardHabits` in
-  `habitsRead.ts` and `loadGoalsTile` in `goalsRead.ts`; no third habit
-  reader. A tile with controls inside uses `DashboardTile shape="panel"`
-  (DESIGN.md). `habitRowTaps` (in `HabitsTile.tsx`) is the only mapping
-  from a Today row's tap to a check action, used by `HabitTodayList`,
-  `HabitTileRows` and `PlannedTodayCard` for Today rows (`HabitRowView`); `HabitFamilyView`'s
-  `dayOf` is the family-row twin (it logs for another person through
-  `logForId`); a third copy of the carried-day routing is a BLOCKER.
-  **Dependency direction:** `habitsDashboard.ts` imports only
-  `habitVocabulary.ts` and types from `habitsToday.ts`; `dashboardPicks.ts`
-  imports only `dashboardLayout.ts` / `dashboardWidgets.ts`; `habitsRead.ts`
-  and `goalsRead.ts` may import them, never the reverse. `dashboardGrid.ts`
-  imports only types from `dashboardWidgets.ts`; `dashboardLoaders.ts` is
-  `server-only` and imported only by the dashboard page.
-  `dashboardWidgetOptions.ts` imports only `dashboardWidgets.ts`;
-  `dashboardLayout.ts` may import it, never the reverse.
-  `calendarWidget.ts` imports only pure calendar and dashboard-vocabulary
-  modules (`mealPlanDates`, `calendarDates`, `scheduleWindow`,
-  `dashboardWidgets`, types), never `db` or a `*Read.ts`.
+- `src/lib/dashboardWidgets.ts`: `DASHBOARD_WIDGETS`, the only widget registry
+  (per kind: label, allowed `sizes`, `defaultSize`, `onTablet`);
+  `DASHBOARD_WIDGET_KINDS` there is the one kind list and the default order (a
+  test pins the record to it). (Rules: docs/structure/dashboard.md, "The
+  widget registry".)
 - `brand/` — the logo artwork. The two `Marshee*.tsx` components and the
   `src/app/` icon files are all **generated from** these masters; a
   hand-drawn or re-traced second version of the mark or wordmark is a
@@ -824,216 +622,14 @@ Adding a second definition of any of these is a BLOCKER:
   `~/Desktop/marshee_brand_assets/` and is explicitly not a source — its
   mark is missing the M's centre descender despite its README claiming to
   be authoritative.)
-- **Habits & Chores PR C homes (mission-32).** `src/lib/habitsStats.ts` is
-  the only home of the stats page's rules: per-person totals, the month
-  calendar cells and their `tappable` window, completion rate, the side by
-  side rows, the weekly series, perfect days in a month,
-  `statsMonthTitle`, `effectiveState` / `dayCellLabel` (the one rule for how
-  a calendar cell reads and is spoken, with its words `DAY_CELL_WORDS` and
-  `DAY_CELL_REASON_WORDS` in `habitVocabulary.ts`), `nothingDueText` (shared
-  with the Report, mission-36), the open-kind count (`openCountOf`,
-  `openCountText`) and whether an open kind's unchecked today still draws as
-  "today" (`openTodayDoable`, the period's target not yet met). Cell drawing
-  is `HabitDayCell.tsx`, and `HabitDayLegend` there is the only month-calendar
-  legend (stats page and Report). `src/lib/habitsFamily.ts` builds the family view and
-  the stats page data (`buildFamilyPage`, `buildStatsData`,
-  `statsSubject`), and holds `doneCounts` / `doneCountLabel`, the one
-  "x of y done" rule for Today and the family view. Both files are pure:
-  no `db`, and callers pass `today`. The row streak (`displayStreak`,
-  `streakUnitOf`) lives in `habits/streaks.ts`; `habitsToday.ts` keeps the
-  confetti rule `allRequiredDoneToday`. **Dependency direction:** `habitsFamily.ts` may
-  import `habitsStats.ts` and `habitsToday.ts`, and `habitsStats.ts` may
-  import `habitsToday.ts`; never the reverse. `canNudge` and
-  `canSeeHabitStats` in `habits/access.ts` are the only nudge and stats
-  policy. `src/lib/habits/nudgeWrites.ts` (`server-only`, no auth) is the
-  only writer of the `Nudge` table; its only caller is
-  `src/app/actions/habitNudges.ts`, which owns the session, the guards and
-  `revalidatePath`. `src/lib/confettiSeen.ts` is the only home of the
-  once-a-day confetti marker on each device (the `lastStore.ts` pattern),
-  and `HabitConfetti.tsx` is the only importer of `canvas-confetti`.
-  `src/lib/habitsFamilyColumns.ts` (pure, mission-41, Captain's A3) is the
-  only home of the wide Whole family column: rows grouped by time of day then
-  Anytime, the Together rows a person is on (built from `countedRows`, never
-  a second merge), the row tags (words in `habitVocabulary.ts`:
-  `FAMILY_ROW_TAGS`, `familyRowTag`), the empty-column line and the header
-  count (`familyCountText`, used by both layouts). `HabitFamilyView` holds
-  the one optimistic state for both layouts; the stacked view is
-  `HabitFamilyColumn`, the wide one `HabitFamilyWide` /
-  `HabitFamilyWideColumn`, and `FamilyHabitRow` is the only family row.
-  **Dependency direction:** `habitsFamilyColumns.ts` imports only
-  `habitVocabulary.ts` and `habitsFamily.ts`; `habitsFamily.ts` never
-  imports it.
-- **Habits & Chores PR D homes (mission-33).** `habits/weekOverrides.ts`
-  is the only home of the this-week chore rules (`choreDayState`,
-  `choreTag`, `weekChange`) and of `isExcused`, the one "excused row" rule
-  (skipped today, or excused all day), built on `isExcusedAllDay`
-  (skipped this week or on vacation, and not done: a check done on such
-  a day counts, decisions 127 and 130). The counts and the sort call
-  `isExcused`; the confetti rule `allRequiredDoneToday` calls
-  `isExcusedAllDay`, because a skip today still counts as finishing a
-  required row. Deciding whether a row is excused anywhere outside
-  `weekOverrides.ts` is a BLOCKER; a component may read `onVacation` or
-  `skippedThisWeek` only to choose which label or marker to show. `habits/choreStreak.ts` is the only home of
-  the chore streak (`computeChoreStreak`, `choreStreakAfter`,
-  `finishedAllChoresLastWeek`). `habits/carryOver.ts` holds `carrySince`, `habitStartDay` and the tap-day
-  window `isTapDayAllowed` / `TAP_DAYS_BACK` (all moved from `habitsToday.ts`
-  so the engine never imports upward). `habits/choreWrites.ts` (`server-only`) is the only writer of `ChoreWeekOverride` (`habitWrites.ts`'s
-  `updateHabit` clears a habit's rows through its `clearChoreChanges` when
-  the schedule leaves `weekdays`) and of the `UserPreferences` chore streak
-  columns, through one `recomputeChoreStreak`, called in the same
-  transaction by every write that can change it. `habits/vacationWrites.ts`
-  (`server-only`) is the only writer of `VacationPeriod`. Their callers are
-  `src/app/actions/choreChart.ts` and `src/app/actions/vacations.ts`, which
-  own the session and the tablet refusal, and call `canEditChart` and
-  `canChangeChore` (in `habits/access.ts`, the only chart and
-  chore-change policy: a shared chore is a parent's or admin's, decision
-  125). `src/lib/choreChart.ts` holds
-  the chore pages' pure builders (the chart, the chore header with its
-  streak and Sunday flag, the vacation list order); its loaders live in the
-  two habit readers above, which now also read `ChoreWeekOverride`,
-  `VacationPeriod` and the chore streak columns. On the family view the
-  chore streak and Sunday flag count private chores, but only the number
-  and the flag leave the server. **Dependency direction:**
-  `choreChart.ts` imports only `habits/`, `habitVocabulary.ts`,
-  `householdDate.ts` and `mealPlanDates.ts`. `habitsToday.ts`,
-  `habitsFamily.ts`, `habitsRead.ts`, `habitsStatsRead.ts`, `habitsReport.ts`
-  and `habitsReportScope.ts` may import it (the two Report files take
-  `firstNameOf` and the chip types), and it never imports any of them. Among the write files,
-  `vacationWrites.ts` and `habitWrites.ts` may import `streakWrites.ts`;
-  `streakWrites.ts` may import `choreWrites.ts`; `habitWrites.ts`,
-  `streakWrites.ts`, `choreWrites.ts` and `vacationWrites.ts` may import
-  `participantWrites.ts`; `planWrites.ts` imports only `habitRows.ts` from
-  the engine. Never the reverse of any of these. (Updated mission-35.)
-- **Habits & Chores PR E2 homes (mission-35).** `habits/planPrompts.ts`
-  (pure, engine) is the only home of the plan-the-day rules: `isPromptDay`
-  (decision 143), `promptChips` (142), `isPlannableDay`, `isPlannedToday`
-  (the `planned` input to `dueState`, 145) and the "Planned for Sat" rule
-  (`laterPlannedDay`, `plannedLaterLabel`, 162). `src/lib/habitsPrompts.ts`
-  (pure) builds the Pick a day card's data (`buildTodayPrompts`,
-  `PromptHabitInput`, `TodayPrompt`); `habitsToday.ts` may import it, never
-  the reverse. `habits/planWrites.ts` (`server-only`, no auth, the
-  `nudgeWrites.ts` shape) has one caller, `src/app/actions/habitPlans.ts`,
-  which owns the session, `canLogFor`, `isPlannableDay` and
-  `revalidatePath`, and imports it as `planHabitDay as planHabitDayRow`. If
-  a second caller appears (a Winnie route), the day check moves into the
-  writer. Planned days are read only by `habitsRead.ts` (Today, dashboard)
-  and `habitsStatsRead.ts`'s `loadPlannedHabitDays` (the Calendar range,
-  reached from the Schedule through `fetchHabitDays` in
-  `actions/calendar.ts`). `src/lib/habitsCalendar.ts` (pure) is the only
-  home of which planned days the Calendar shows and when one reads as done:
-  `buildCalendarHabitDays` owns the view rule (the tablet sees none; only
-  the viewer's own rows on a habit they are still on and may see,
-  `canSeeHabit`, count; a removed participant keeps their rows, so the
-  participant check is a real rule; the reader's device early return only
-  skips the query) and done (`isCheckStatus` that day, or the period's
-  target met, decision 160); `plannedPeriodsRange` there is the only "which
-  checks the Calendar needs" range. `CalendarHabitDayView` in `types.ts` is
-  the Calendar's planned-day item, never a `CalendarTaskView` (a task's tap
-  opens the task editor and its `completedAt` means task completion).
-  `src/lib/scheduleHabitDays.ts` is pure: `addHabitDaysToSchedule` and
-  `coversWindow` (whether fetched coverage holds the whole window);
-  `useScheduleHabitDays.ts` owns only fetching and state, with
-  `fetchHabitDays` passed in. `PlanDayCard.tsx` (the one Pick a day card,
-  decision 161), `PlannedTodayCard.tsx`, `HabitDayCard.tsx` (the Schedule
-  row) and `HabitDayPill.tsx` (the all-day strip pill) are the only
-  components that draw these; a second copy inside a calendar component is a
-  BLOCKER. **Dependency direction:** `habitsCalendar.ts` imports only
-  `habits/`, `householdDate.ts`, `habitVocabulary.ts` and `types.ts`;
-  `scheduleHabitDays.ts` imports only `calendarDates.ts`,
-  `scheduleWindowState.ts` (types) and `types.ts`; `habitsStatsRead.ts`
-  may import `habitsCalendar.ts`, never the reverse.
-- **Habits & Chores PR F homes (mission-36).** `src/lib/habitsReport.ts` is
-  the only home of the Report's own rules: the pager (bounds, and the "This
-  week" / "This month" pill on a past period), each item's cells by range,
-  sections, the year totals, and `countText`, which composes a row's count
-  from `openCountOf` / `openCountText` (open kinds) and `nothingDueText`
-  (both in `habitsStats.ts`, which the stats page header uses too, so neither
-  says "0 of 0", decisions 177 and 181). A second copy of either count rule,
-  in a component or a lib file, is a BLOCKER. `habitsReport.ts` and
-  `habitsFamily.ts` (`buildStatsData`, `calendar.nothingDue`,
-  `calendar.openCount`) call them; the words are in `habitVocabulary.ts`
-  (`REPORT_LABELS`, `reportCountOf`, `reportCountThis`, `reportYearTotals`,
-  `reportDueLabel`, `REPORT_DUE_TODAY`, `reportNotThis`). Every Report cell
-  comes from `monthCalendar` in `habitsStats.ts`, so the Report and the stats
-  page draw a day by one rule; a second cell-state rule is a BLOCKER.
-  `src/lib/habitsReportScope.ts` is the only home of the Report's address and
-  scope: `parseReportParams`, `reportHref`, `weekParam` / `monthParam`, who
-  is shown (`reportPersonId`), the person chips, the shown items (Habits then
-  Chores, each in Manage order), the filter and the range the loader reads.
-  `reportFilterOptions` (with `{ kinds: false }` for lists already split by
-  kind), `activeReportFilter` and `matchesReportFilter` there are the one
-  habit filter rule; the Report, Today's `HabitTodayList` and the wide Whole
-  family (`HabitFamilyWide`) all call them (mission-41, Captain's A2). A
-  filter option builder or matcher anywhere else, a component file included,
-  is a BLOCKER; `HabitFilterChips.tsx` only draws chips and attaches
-  `TIME_ICONS`.
-  **Habits & Chores page (mission-53, Captain's A-L3-4 to A-L3-7).**
-  `src/lib/habitsDay.ts` is the only home of the day browser
-  (`resolveHabitsDay`) and the `/habits` URL builder (`habitsHref`); a
-  past day's lock is display only, and writes keep `isTapDayAllowed`. It
-  imports only `householdDate.ts` and `habits/carryOver.ts`.
-  `habitsFamilyColumns.ts` is the only time-of-day grouping
-  (`groupColumnRows` for the family view, phone cards and wide columns
-  alike; `groupRowsByTime` for Mine), the only fit rule (`fitsEveryone`,
-  `FIT_COLUMN_MIN` 220 and `FIT_COLUMN_GAP` 12, which is `gap-3`; both
-  ends name each other) and the only home of a column's empty text
-  (`emptyColumnText`). Row tags come from `familyRowTag` through
-  `ColumnItem` / `TimeRowItem`. `HabitRow layout="auto"` and
-  `FamilyHabitRow layout="card"` are the only tall cards. The file
-  imports only vocabulary, `habitsFamily.ts` and types from
-  `habitsToday.ts`. `HabitsDayView` is the one client owner of the Filter
-  state for both views, and `habitsReportScope.ts` holds every Today and
-  Whole family filter rule: `reportFilterOptions(..., { kinds: false,
-  areas: false })`, `matchesHabitsFilter`, `narrowedFilterCount`
-  (decision 261), `stillHiddenPeople` and `shownColumns`. Lists receive
-  `keep(row)` only; a component that matches rows or columns against the
-  Filter, people included, is a BLOCKER, and `HabitFilterSheet.tsx` only
-  draws each chip's on/off state. `HabitsBar.tsx` is the only Habits bar,
-  drawn through `bar(subtitle)`; `HabitFilterSheet.tsx` is the only
-  filter sheet and the only Mine / Whole family switch; the bar icon is
-  the only Report entry.
-  `TIME_ICONS`, exported from `HabitFilterChips.tsx`, is the only
-  time-of-day icon map. Both Report files are pure: no `db`, and callers pass
-  `today`. `canSeeHabitReport(actor, personId)` in `habits/access.ts` is the
-  only "whose Report may this viewer open" rule (it matches `canEditChart` on
-  purpose; they come from separate decisions, 164 and 119/125); a
-  `MANAGER_ROLES` or role test for the Report anywhere else is a BLOCKER.
-  `loadHabitReport` in `habitsStatsRead.ts` is the Report's only reader: it
-  asks `reportPersonId` who is shown before it queries, and reads checks,
-  vacations and `ChoreWeekOverride` rows for the range shown only, never all
-  time. `sharedNeedsMorePeople` in `habitsToday.ts`, beside
-  `participantsAllowed`, is the one "Together or Side by side needs two
-  people" rule (decision 175) and `SHARED_NEEDS_TWO_MESSAGE` in
-  `habitVocabulary.ts` its only wording; `HabitForm` and `actions/habits.ts`
-  both call them. `src/components/HabitDayCell.tsx` is the only drawing of
-  one habit day, for the stats calendar and every Report grid;
-  `HabitMonthCalendar`'s `compact` read-only mode is the Report's month grid,
-  and a copy of either inside a Report component is a BLOCKER.
-  **Dependency direction:** `habitsReport.ts` imports only
-  `habitsReportScope.ts`, `habitsStats.ts`, `habits/schedule.ts`,
-  `habits/types.ts`, `householdDate.ts`, `mealPlanDates.ts` (month names),
-  `habitVocabulary.ts` and `choreChart.ts`. `habitsReportScope.ts` imports
-  only `householdDate.ts`, `habits/` (`access.ts`, `carryOver.ts`,
-  `habitRows.ts`, `schedule.ts`, `types.ts`), `goalVocabulary.ts`,
-  `habitsToday.ts`, `habitVocabulary.ts` and `choreChart.ts`, and never
-  `habitsReport.ts`. `habitsStats.ts`, `habitsToday.ts`, `habitsFamily.ts`,
-  `choreChart.ts` and `src/lib/habits/` never import either Report file;
-  `habitsStatsRead.ts` may import both. **Next touch:** an
-  `isDayExcused(spec, overrides, vacations, day)` in `weekOverrides.ts`
-  should become the one per-day "excused" rule; `monthCalendar` and
-  `nothingDueText` each decide it today (not yet built). **Size watch:**
-  `habitVocabulary.ts` is 425 lines (about 254 code; mission-53, A-L3-8:
-  new habit words stay there while its code is well under the cap, past
-  about 300 code lines a concern gets its own file, and an exported word
-  is referenced, never typed again), `habitsStats.ts` 387, `habitsToday.ts`
-  353 (about 283 code), `habitsReportScope.ts` 275, `HabitForm.tsx` 350
-  (at the soft cap), `habitsRead.ts` 350, `habitsFamily.ts` 360 (its stats-page data is
-  the split seam), and the tests `habitsStats.test.ts` 426,
-  `habitsReport.test.ts` 373, `habitsToday.test.ts` 383 (hours tests live in
-  `habitsTodayHours.test.ts`), `goalsProgress.test.ts` 367 and
-  `habitsHours.test.ts` 298; the next habit rule or test goes in a new
-  file by concern (a `habitReportVocabulary.ts` and a sibling stats-calendar
-  test are the natural seams).
+- **Habits & Chores PR C homes (mission-32).**
+  (Rules: docs/structure/habits.md, "Habits & Chores PR C homes".)
+- **Habits & Chores PR D homes (mission-33).**
+  (Rules: docs/structure/habits.md, "Habits & Chores PR D homes".)
+- **Habits & Chores PR E2 homes (mission-35).**
+  (Rules: docs/structure/habits.md, "Habits & Chores PR E2 homes".)
+- **Habits & Chores PR F homes (mission-36).**
+  (Rules: docs/structure/habits.md, "Habits & Chores PR F homes".)
 - **The `validatedPeople` decision** — which `User` ids may be **written**
   onto an item. `personInfo.ts` below is the read-side twin of this rule;
   this is the write side, and it is security-relevant for the same reason.
@@ -1127,258 +723,14 @@ Adding a second definition of any of these is a BLOCKER:
   that use `data-page-width="wide"` are listed only in "Wide pages" below,
   and the comment points there. A new opt-out adds itself there and here.
   (Mission-41, Captain's A4; mission-51, A-L5-8; mission-52, A-L4-8.)
-- **Wide pages (mission-44, the iPad landscape plan).** Wide pages: the
-  dashboard (mission-44), the Calendar (mission-46, every view), Plans &
-  Goals' This week, Goals and Vision tabs, the Goal page and the recipe
-  detail page (mission-51), and the Kitchen lists (mission-52): Inventory,
-  Shopping, Expiring, Recipes (All recipes and Cookbooks), Cookbook detail
-  and Meal plan. Their containers: This week's goal-card grid;
-  the Goals board; the Vision card grid; the Goal page's two-panel row
-  (`GoalDetail`, with the More row and every sheet outside it); the recipe
-  body (two columns). The recipe header band is not a container, because
-  it holds the action sheets. `plans/loading.tsx` mirrors This week's grid
-  and `recipes/[id]/loading.tsx` the recipe body (mission-51, A-L5-1).
-  Habits & Chores is wide too (mission-53, A-L3-1): `/habits`, Manage,
-  Chore chart, Report and Stats, and New and Edit since mission-54. Its
-  containers: Mine's top strip and its column grid; one round both Whole
-  family layouts; Manage; the Chore chart (and each of its day cards);
-  Report Year; Stats. `HoursLogSheet` and `ChoreChartSheet` are the
-  containers' siblings. Whole family switches layouts at a 45rem
-  container while `data-fills-width` reacts at `md`; they agree because a
-  768 screen (or 1024 with the Sidebar pinned) leaves a 736px container.
-  Stats goes to two columns from a 50rem container only when its right
-  column has something (nudges, Side by side, or an hours habit's
-  `HabitHoursDetail`); otherwise it is one column capped at `max-w-3xl`. A page that should
-  use the whole width of a landscape iPad puts `data-page-width="wide"` on
-  its root element (and on its `loading.tsx` root, so it is wide from the
-  first paint). From `md` up, `<main>`, the wordmark header's row and the
-  floating hamburger's row lift their 768px cap for it; nothing else about
-  the frame changes, so the page still scrolls as a page (unlike
-  `data-fills-width`). Three rules hold for every wide page:
-  1. **The CSS container wraps the columns only, never `<main>` and never
-     an element that holds a sheet or a fixed bar,** as a precaution:
-     older browser engines treated a container as the positioning parent
-     of every `position: fixed` descendant, which would pin a bottom sheet
-     inside the page. (Story: docs/history/structure-rationale.md, "Wide pages: rule 1 and the container proof".) Keep sheets
-     outside the container or portal them. The dashboard's container holds
-     its grid, and the Customize sheet is the container's sibling. Known
-     exceptions (work in Chrome; on Bryce's iPad check): `HoursLogSheet`
-     renders inline from the Habits tile, inside the dashboard container;
-     on the recipe page, `NutritionSection` (Confirm servings),
-     `RecipeCookbooksSection` and `RecipeTagsSection` render their sheets
-     inline inside the body container. Do not add to this list: a new
-     sheet goes outside the container or is portaled (mission-51, A-L5-4).
-     Portaled instances: Settings' two sheets (`NavModeSetting`'s
-     `RadioSheet`, `AdminPasswordSheet`'s overlay; mission-54), which render
-     only after a tap, so `document.body` needs no server branch.
-  2. **Column counts come from container variants (`@min-[…]:`, `@3xl:`),
-     never screen breakpoints (`md:`, `lg:`).** The page then fits whatever
-     room the pinned Sidebar or Rail leaves it, with no extra code.
-     **Measured column counts (mission-52).** When JavaScript must decide
-     which item goes in which column (a stable split, so a group never
-     changes column when it opens or closes), the component measures the
-     element whose width the columns divide with `useContainerWidth(ref)`
-     (`src/lib/useContainerWidth.ts`) and turns that into a count with
-     `columnCountFor(width, max)`, splitting with `splitByWeight`
-     (`src/lib/splitColumns.ts`). That is still the container's own width,
-     never the window's, so this rule's reason holds. `COLUMN_MIN_WIDTH_PX`
-     (2 columns from 768px, 3 from 1024px) is the only JavaScript home of
-     those thresholds; the classes `@min-[48rem]:` and `@min-[64rem]:` are
-     their CSS mirror and change with them. A width threshold written as a
-     number in a component, a read of `window.innerWidth` or `matchMedia`
-     for layout, or CSS `columns` for a list of groups is a BLOCKER. The
-     measured element holds no sheet, stays mounted in every state of its
-     list (empty, searching, grouped), and reads 0 on the server, so the
-     first paint is one column and hydration matches; the step to 2 or 3
-     columns after a hard reload is the known cost. Measuring an element
-     through a ref this way is not a browser-only read under the
-     `useSyncExternalStore` rule (`useHamburgerRowHeight` is the same
-     shape). Use a measured count only when JavaScript needs it: a small
-     fixed set of columns (Expiring's three sections, Cookbooks' cards, a
-     week's seven days) uses container variants. Instances: Inventory,
-     Shopping, All recipes and Cookbook detail (split), and the Meal plan
-     and Feedback (each picks its wide layout at `COLUMN_MIN_WIDTH_PX[3]`;
-     Feedback because a sheet below that width and a panel above it is a
-     choice JavaScript makes). (Captain's A-L4-1.)
-  3. **A row never stretches past a readable width.** More columns, more
-     panels or a wider grid; never one 1148px row. One exception: the
-     recipe form's Title spans both columns, because Bryce's plan draws it
-     that way (mission-54). A short single-line field that spans a form is
-     allowed only there. A new one needs the same written reason here.
-     Fixed bars (`AddItemBar`) stay centered at 768px.
-  4. **The + button sits bottom-right on wide pages** (mission-52 and
-     mission-53, plan rule 4; its props are in "The floating +" below). `FloatingAddButton` keeps its fixed full-width wrapper (left
-     edge `--app-nav-width`); from `md` on a wide page its inner box lifts
-     the 768px cap and aligns right. Below `md`, and on a page that is not
-     wide, it stays bottom-left. A fixed element that must clear it on a wide
-     page reacts with the same `md:[body:has([data-page-width=wide])_&]:`
-     selector, never a measured offset: the All recipes A-Z rail
-     (`RecipeLetterRail.tsx`) ends above it. `AddItemBar` stays centered at
-     768px (rule 3). (Captain's A-L4-3.)
-  **A page's title row may switch with `md:`** (mission-52). A title with
-  at most two buttons beside it is not a column count, so it may go from
-  stacked to one row with `md:flex-row md:items-center md:justify-between`,
-  and one button may be rendered twice, shown with `md:hidden` and
-  `hidden md:flex`, when its phone and wide positions differ (Cookbook
-  detail's Add recipe). (Story: docs/history/structure-rationale.md, "Wide pages: why the title row may switch".) The row must fit the 736px the Sidebar leaves at a
-  1024px screen. Anything below the title row, or a row with more than two
-  buttons, uses container variants. (Captain's A-L4-2.)
-  **A wide page's loading file.** A wide page's `loading.tsx` renders
-  `<SkeletonPage wide />` (or its own skeleton with the attribute on its
-  root); the shared `(app)/loading.tsx` stays narrow and now serves only
-  `/lists` and `/login`; the recipe print page keeps its own plain
-  skeleton. A short page counts as wide here (A-L6-8). `profile/loading.tsx`
-  and `kitchen/cooking/recipes/new/loading.tsx` are their own skeletons: the
-  `data-page-width="wide"` root, then `SkeletonHeader` and `SkeletonList`
-  inside `NARROW_PAGE_CLASSES`. `settings/loading.tsx` renders
-  `<SkeletonPage wide>` with two lists in `TWO_COLUMN_CLASSES` inside a
-  container, and it also covers Manage family, which has the same two
-  columns. `settings/feedback/loading.tsx` renders `<SkeletonPage wide>`
-  with a list and a panel block, in a grid that mirrors `FeedbackList`'s
-  measured split at 64rem (A-L6-6). `recipes/[id]/edit/loading.tsx` is
-  form-shaped and takes its strings from `gridClasses.ts`.
-  `recipes/new/manual/loading.tsx` re-exports it, because the manual form
-  is the same full-width form and needs its own file to escape
-  `recipes/new/loading.tsx`'s 40rem cap. A route whose skeleton is exactly
-  another route's re-exports that file and never copies it. The habit,
-  goal and calendar forms, New task included, use their folders' wide
-  list-shaped skeletons (older, allowed). A new narrow page under one of
-  these folders needs the route-group move below or its own plain
-  `loading.tsx`. A `loading.tsx` also covers every route below its folder, so a wide
-  one sits only in a folder whose pages are all wide. Where a wide page has
-  narrow pages below it, the wide page and its `loading.tsx` move into a
-  route group (`kitchen/cooking/recipes/(browse)/`), so the narrow pages
-  keep the shared skeleton. (Captain's A-L4-4.)
-  **Pending (A-L4-5, adopt when a fifth list needs it or two of these are
-  next touched):** the measured split grid (`grid items-start gap-x-4` with
-  `gridTemplateColumns: repeat(n, minmax(0, 1fr))`, after `columnCountFor`
-  and `splitByWeight`) is written in `PantryList`, `GroceryList`,
-  `RecipeList` and `FlatRecipeRows`. It moves into one `SplitColumnGrid`
-  component (ref, count, split, grid, one render prop per column); after
-  that a hand-written copy is a BLOCKER. Not a BLOCKER until it exists.
-  The Calendar's containers are the Year grid, the Month grid, each
-  `TimelineDayColumn` (so text size follows the column's own width, not
-  how many columns there are) and the Schedule two-panel row (plus the
-  all-day "+N more" label's own older container); never the
-  `CalendarViews` root, which holds every sheet. `data-page-width="wide"`
-  and `data-fills-viewport` combine on the Calendar: the first lifts the
-  width cap, the second drops the bottom padding on the hour timeline.
-  The Kitchen lists' containers are Inventory's and All recipes' search
-  rows, Expiring's sections and Cookbooks' cards; Inventory, Shopping, All
-  recipes, Cookbook detail and the Meal plan measure instead (rule 2).
-  Every sheet stays a sibling. (Mission-52.)
-  **Forms, Settings, Manage family and Feedback (mission-54, A-L6-2).**
-  Every signed-in page is now wide except `/lists`, `/login` and the recipe
-  print page. The long forms are New and Edit habit, New and Edit goal, New
-  and Edit event, and the manual recipe form with recipe Edit. The short
-  pages are New task, the Add recipe chooser, the paste, link and photo
-  imports, and Profile. Settings, Manage family, Feedback and Slideshow
-  photos (mission-57) are wide too.
-  Containers: each long form's `<form>` (`HabitForm`, `GoalForm`,
-  `EventForm`, `RecipeForm`), with the grid as its child because a
-  container query never measures its own element; the div round Settings'
-  two columns; the div inside `FamilyList` round the list and its `aside`
-  slot (the page's Family order block); the div round Slideshow photos'
-  grid (its sheet is portaled). Short pages have no container.
-  Feedback measures instead (rule 2). A `<form>` may be the container only
-  while it holds no sheet or fixed bar; a form that gains one portals it or
-  moves it outside. In `FamilyList` the +, the spacer and the three sheets
-  are the container's siblings.
-  **Short pages (mission-54, A-L6-8, decision 276).** A short page is a
-  wide page with its whole content, BackLink and title included, inside
-  `NARROW_PAGE_CLASSES` (centered, at most 40rem). It is not a page left at
-  the old 768px cap. Its `loading.tsx` is wide at the root and capped with
-  the same constant inside, so the placeholder is as wide as the page. The
-  three import components take their BackLink and title as a
-  `header: React.ReactNode` prop and own the cap, because whether it
-  applies depends on their own state: it lifts when the extracted
-  `RecipeForm` appears. The page keeps the words.
-  On the dashboard, an Extra large Calendar widget is its own container
-  (its day list): its days sit side by side from 30rem of tile body (3
-  days as 3 columns; 7 days wrap at a 13rem column floor, decision 240)
-  and stack below that. Where two widths need different row caps, both
-  lists may be rendered and a container variant shows one; that is allowed
-  only for a small fixed list (at most 7 days), never one that grows with
-  data. (Mission-49.)
-  (Mission-46, Captain's A-L2-1.)
-  **Column dissolve (mission-51, A-L5-2):** a two-column layout may set a
-  different phone order with one DOM: each column div carries
-  `@max-[48rem]:contents` and each child an `order-N`, so below 48rem the
-  columns vanish and the children reorder in the parent flex column or
-  one-column grid. Allowed only for a small fixed set of sections (the
-  recipe page's seven, Settings' eight); never for a list that grows with
-  data, because `order` breaks the match between reading order and DOM
-  order there. The order is written once, in the page's top comment and
-  its classes.
-  **Leveling two columns (mission-54, A-L6-9).** A page may level the tops
-  of its columns from the column div with
-  `@min-[48rem]:[&>:first-child>*]:mt-N`, when the first child is a plain
-  wrapper the page owns round a card that takes no `className`. It sets
-  that one top margin and nothing else. A child selector that changes any
-  other property of a component's insides, or reaches deeper than the
-  card's root, is not allowed. Where the card already takes a `className`,
-  use that (A-L5-9). Instance: Settings.
-  **The one screen breakpoint (A-L5-3):** rule 2's exception: `RecipeHero`
-  switches from the phone hero to the small icon tile at `md`, a screen
-  breakpoint, because it sits in the header band (which holds sheets, so
-  cannot be a container) and `md` is exactly where `<main>` lifts its
-  width cap for a wide page. It is decoration, not a column count. A
-  second screen breakpoint on a wide page needs the same written reason
-  here.
-  **The Goals board (A-L5-5)** places its six areas in pure CSS,
-  column-major: `grid-flow-col` with a row count of ceil(visible areas / 2)
-  at 2 columns (a `--board-rows` variable) and 2 rows of all six at 3
-  columns, because the mock stacks fixed pairs. An empty area renders only
-  at 3 columns (`hidden @min-[64rem]:block`, `GOAL_BOARD_EMPTY_AREA`). No
-  JS split helper while the list is the fixed `LIFE_AREAS`.
-  **The floating + (mission-53, A-L3-2):** `FloatingAddButton` is the
-  only floating +. It sits bottom left of the 768px column on non-wide
-  pages, and on wide pages below `md` (phones stay clear of the last
-  row's check); bottom right on wide pages from `md`, through its own
-  wrapper (`md:[body:has([data-page-width=wide])_&]`). Its props are
-  `onClick` or `href`, plus `label`. Wide scroll areas reserve room for it
-  (`pb-20`). There is no + on the tablet. A fixed element that must clear
-  it follows rule 4 above.
-  **Shared class strings (mission-53, A-L3-3; A-L2-3 done):** a class
-  string that a component and its skeleton share is one exported constant
-  in `src/lib/`, written as a whole literal so the Tailwind scan finds it:
-  `DASHBOARD_GRID_CLASSES` / `DASHBOARD_CELL_CLASSES` (`dashboardGrid.ts`),
-  `YEAR_GRID_CLASSES`, `HABITS_DAY_GRID_CLASSES`, `FORM_GRID_CLASSES`,
-  `FORM_COLUMN_CLASSES`, `FORM_SPAN_CLASSES`, `FORM_SAVE_WIDE_CLASSES`,
-  `FORM_EYEBROW_CLASSES`, `TWO_COLUMN_CLASSES` and `NARROW_PAGE_CLASSES`
-  (`gridClasses.ts`). A skeleton that types its own copy is a BLOCKER, and
-  so is a long form, a two-column settings page or a short page that types
-  its own copy of the form grid, the two-column grid or the 40rem cap
-  (mission-54). `FORM_GRID_CLASSES` and `TWO_COLUMN_CLASSES` differ only by
-  the row gap and change together. `FORM_SAVE_WIDE_CLASSES` also dresses
-  the buttons that stand under Save on a form (`HabitEditActions`, decision
-  284). A component that picks its layout by measuring (rule 2) has no
-  container-variant string to share, so its skeleton may type the matching
-  `@min-[…]:` grid, with a comment naming the component and the
-  `COLUMN_MIN_WIDTH_PX` entry it mirrors (`settings/feedback/loading.tsx`,
-  mission-54).
-  The wordmark header has an empty slot, `WORDMARK_HEADER_ACTIONS_ID`
-  (`src/lib/appChrome.ts`), at its right end; a page whose state owns a
-  header button portals the button into it (the dashboard's Customize,
-  decision 221). It is the same shape as `SCHEDULE_TITLE_SLOT_ID` in
-  `CalendarHeader.tsx`, but the id lives in `src/lib/` because both the
-  chrome and the page import it. The page list and the order the pages go wide in
-  are in `.avengers/plans/ipad-landscape-v1.md`.
+- **Wide pages (mission-44, the iPad landscape plan).**
+  (Rules: docs/structure/layout.md, "Wide pages".)
 - **A measured dimension of app chrome** that two or more surfaces position
   against **has one home in `src/lib/`**, and the markup that produces it
   carries a comment naming its dependents. A **runtime measurement** is an
-  equal-standing alternative for any one surface; **a second hardcoded copy
-  is not.** **Closed in mission-23:** the header now exists only on `/`
-  and `/login`, and the dimension pages position against is the floating
-  hamburger's row, `HAMBURGER_ROW_HEIGHT_PX` (plus `useHamburgerRowHeight`) in
-  `src/lib/appChrome.ts`, which lists its dependents. A component that
-  reads `useHamburgerRowHeight` to position a surface is a dependent and
-  joins that comment in the same change (mission-54, A-L6-12). Mission 25 adds
-  `NAV_RAIL_WIDTH_PX` and `NAV_SIDEBAR_WIDTH_PX` there, feeding the
-  `--app-nav-width` CSS variable that the fixed bars use as their left edge.
-  `SCHEDULE_HEADER_BAR_HEIGHT_PX` and `SCHEDULE_TITLE_SLOT_ID` stay in
-  `CalendarHeader.tsx`. Mission 44 adds `WORDMARK_HEADER_ACTIONS_ID` (the
-  wordmark header's right-end slot) to `src/lib/appChrome.ts`. (Added 2026-09-05, mission-16; Bryce approved.) (Story: docs/history/structure-rationale.md, "Chrome dimension rule: the 73px header story".)
+  equal-standing alternative for any one surface; **a second hardcoded copy is
+  not.** (Rules: docs/structure/layout.md, "A measured dimension of app
+  chrome".)
 - `src/lib/personInfo.ts` — `PERSON_SELECT` / `toPersonInfo`, the single
   place a `User` row becomes something a client may see. **This is the
   security-relevant one**: it builds the public shape field by field so a
@@ -1475,70 +827,8 @@ Adding a second definition of any of these is a BLOCKER:
   the vocabulary's own membership.
   (Added 2026-09-06, mission-18, on Captain's ruling; Bryce approved.) (Story: docs/history/structure-rationale.md, "Reachability flip: the BUILT_VIEWS instance".)
 - **Google calendar link (mission-55) and copying events to Google
-  (mission-56).** `src/lib/calendarSyncVocabulary.ts` (no imports, beside
-  `constants.ts` under the `navMode.ts` precedent) is the only home of
-  `SYNC_DIRECTIONS`, `ACCOUNT_STATUSES`, `SYNC_FAIL_REASONS`,
-  `SYNC_ROW_STATUSES`, their labels, hints and repairers, `isReadOnlyRole`
-  (the only test of whether Google's role lets Marshee write to a calendar),
-  the Synced calendars page's words, the event form's and detail sheet's sync
-  words and `linkErrorMessage`, the only wording for a callback `?error=`
-  code. `src/lib/tokenCryptoCore.ts` is pure, with the key passed in, and
-  `src/lib/tokenCrypto.ts` (`server-only`) is the only reader of
-  `TOKEN_ENCRYPTION_KEY`; nothing else encrypts or decrypts a stored Google
-  token. In `src/lib/google/`, `oauth.ts` (`server-only`, no auth) is the only
-  reader of `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` and the only caller
-  of Google's auth endpoints; `calendarApi.ts` (`server-only`, no auth) is the
-  only file that gives the Calendar API a real `fetch`.
-  `calendarEventCalls.ts` is pure, takes `fetch` as a parameter (the
-  `winnieEvents.ts` shape), holds the event insert, update, get and delete,
-  and is imported only by `calendarApi.ts` and its own test. `eventPayload.ts`
-  is pure and is the only mapping of a Marshee event to Google's shape and
-  the only builder of a Google event id. `oauthState.ts`, `idToken.ts`,
-  `redirectUri.ts` and `scopes.ts` are pure. `redirectUri.ts` is the only
-  builder of the redirect URI, because Google compares it letter by letter
-  and the start and return must match; a second copy is a BLOCKER.
-  `src/lib/linkedCalendarWrites.ts` (`server-only`, no auth, no
-  `revalidatePath`) is the domain write module and the only writer of
-  `LinkedAccount` and `LinkedCalendar`; its callers are
-  `actions/linkedCalendars.ts` and the callback route, each carrying its own
-  gate. `src/lib/linkedCalendarsRead.ts` (`server-only`, no auth) is the only
-  reader of both tables for pages, actions, routes and lib modules, including
-  `loadSyncTargets` and `loadPushCalendars`; `loadSyncedCalendarsPage` never
-  selects `encryptedRefreshToken`, and `loadRefreshToken` is the one read that
-  decrypts. The one exception is `EVENT_SYNC_SELECT` in
-  `calendarEventQuery.ts`, which reads a calendar's `name` through the
-  relation and nothing else of those tables. A second reader or writer is a
-  BLOCKER (scoped `prisma/` scripts are outside this rule).
-  **The push (mission-56).** `src/lib/calendarSyncPlan.ts` is pure: no `db`,
-  no env read, no `server-only`, with its Google calls, token source and row
-  writes passed in as parameters. It is the only home of the push decisions:
-  `isPushable`, `startsTicked`, `planSync`, and the 409, 412 and 404 handling.
-  `src/lib/calendarEventPush.ts` (`server-only`, no auth, no `revalidatePath`)
-  binds it to the real database and Google, makes no decision beyond the "not
-  configured" early returns and its guards for a missing row or a caught
-  error, and is the only writer of `CalendarEventSync` (scoped `prisma/`
-  scripts are outside this rule).
-  Its guarded caller today is `actions/calendar.ts`; like a domain write
-  module it may have more, each carrying its own gate, and any new code path
-  that writes a `CalendarEvent` calls it rather than re-implementing it.
-  `EVENT_SYNC_SELECT`, `EVENT_TICKED_SYNC_SELECT` (the edit form's ticks:
-  `linkedCalendarId` only, never a `removing` row) and `toEventSyncViews` in
-  `calendarEventQuery.ts` are the only sync-row selects and view mapping for
-  screens;
-  `CalendarEventSyncView` is built field by field and never carries a Google
-  id, an etag or `previousJson`. A second writer, a second view mapping or a
-  copy of a push decision is a BLOCKER.
-  **Dependency direction:** `src/lib/google/` imports only its own files, node
-  built-ins and the pure `constants.ts`, `householdDate.ts` and
-  `calendarSyncVocabulary.ts`, never `db`, `tokenCrypto.ts` or a `*Read` or
-  `*Writes` module; a token reaches it as an argument. `calendarSyncPlan.ts`
-  imports only the pure files of `src/lib/google/` and the vocabulary.
-  `linkedCalendarsRead.ts` may import `calendarSyncPlan.ts`, never the
-  reverse, and `calendarEventPush.ts` is imported only by Server Actions.
-  `src/lib/google/*.test.ts` is in `package.json`'s test script and both CI
-  timezone steps.
-  (Added 2026-11-08, mission-55, on Captain's ruling; Bryce approved. Widened
-  2026-11-09, mission-56, on Captain's ruling; Bryce approved.)
+  (mission-56).** (Rules: docs/structure/calendar-sync.md, "Google calendar
+  link and copying events to Google".)
 
 ## File-size caps
 
@@ -1558,9 +848,13 @@ Adding a second definition of any of these is a BLOCKER:
   same section and rule names; a rule here keeps its binding text and a
   one-line pointer, and a new rule's story goes straight to that file.
   The pass is due again 200 lines above the count recorded here: 1,676
-  before the 2026-11-08 pass (mission-54), 1,583 after. (Added 2026-11-04,
-  mission-27, on Captain's ruling; Bryce approved. Reworded 2026-11-08,
-  mission-54, Bryce approved.) (Story: docs/history/structure-rationale.md, "Housekeeping note".)
+  before the 2026-11-08 pass (mission-54), 1,583 after; 1,770 before the
+  2026-11-09 split (mission-59), 1064 after. A new One source of truth entry
+  for one feature that runs past 15 lines goes in that feature's companion
+  file in docs/structure/, with its headline and pointer here. (Added
+  2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
+  2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
+  Bryce approved.) (Story: docs/history/structure-rationale.md, "Housekeeping note".)
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (Story: docs/history/structure-rationale.md, "Soft cap: the groceries.ts split".)
   Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 578 total /
   about 361 code (89% of the hard cap; the next Schedule feature extracts
