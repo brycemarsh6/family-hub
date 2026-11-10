@@ -586,6 +586,11 @@ amendment id.
   (Added mission-38, on Captain's ruling.)
 - **Slideshow photos (mission-57).** (Rules: docs/structure/slideshow.md,
   "Slideshow photos".)
+- **Screensaver (mission-62).** (Rules: docs/structure/slideshow.md,
+  "Screensaver".)
+- `QuantityStepper` (counts by one) and `LadderStepper` (moves along a
+  fixed list, shows text it is given) are the only −/+ steppers; a third
+  is a BLOCKER. (Added mission-62, on Captain's ruling, Bryce-approved.)
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,
@@ -609,8 +614,9 @@ amendment id.
   BLOCKER. (Added mission-36; reworded mission-52, Captain's A-L4-6.)
   `formatHouseholdClock(instant, timeZone, { dropZeroMinutes })` is the repo's only
   household-zone clock formatter: a plain ASCII space before AM/PM and, on
-  request, no `:00`. `hourInZone(instant, timeZone)` beside it is the only
-  zone-explicit wall-clock hour reader (server code; browser-local reads stay
+  request, no `:00`. `hourInZone(instant, timeZone)` and
+  `minuteOfDayInZone(instant, timeZone)` beside it are the only
+  zone-explicit wall-clock readers (server code; browser-local reads stay
   in `calendarDates.ts` / `timelineLayout.ts`). A copy elsewhere is a
   BLOCKER. (A-48-3, Hill
   approved.) (Story: docs/history/structure-rationale.md, "Household date helpers: where the clock formatter came from".)

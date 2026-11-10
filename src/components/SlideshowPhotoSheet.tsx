@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { parseDateParam } from "@/lib/householdDate";
 import { FULL_MONTH_NAMES } from "@/lib/mealPlanDates";
-import { CAPTION_MAX, normalizeCaption } from "@/lib/slideshowPhotos";
+import { CAPTION_MAX, normalizeCaption, slideshowImageUrl } from "@/lib/slideshowPhotos";
 import type { SlideshowPhotoItem } from "@/lib/slideshowRead";
 
 /** "November 3, 2026" from a `YYYY-MM-DD` camera date, or null. Read from the text, never through a Date, so no timezone can move it. */
@@ -99,7 +99,7 @@ export function SlideshowPhotoSheet({
         {/* A plain img: the route needs the login cookie, which the image optimizer would not send. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`/api/slideshow/${photo.id}/image`}
+          src={slideshowImageUrl(photo.id)}
           alt={altText}
           className="max-h-[50vh] w-full rounded-xl bg-surface-2 object-contain"
         />

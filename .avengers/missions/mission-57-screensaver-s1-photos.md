@@ -214,7 +214,7 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 ## Delivery
 
 - **Shipped:** the `SlideshowPhoto` table (migration `20261115000000_slideshow_photos`), private Blob storage through `src/lib/slideshowBlob.ts`, the login-checked image route, the add/caption/delete actions, the in-browser shrink and EXIF date reader, and the Slideshow photos page with its Settings row. Gates: Vision PASS (pass 2), Captain PASS (pass 2), Strange PASS (pass 2). STRUCTURE.md amendments A, B, C (Bryce-approved).
-- **Shipped check:** pushed 2026-11-09 as PR #94 (`git log origin/claude/family-screensaver-slideshow-263de9..HEAD` empty at push). Merge and production check: pending the Gauntlet.
+- **Shipped check:** pushed 2026-11-09 as PR #94 (`git log origin/claude/family-screensaver-slideshow-263de9..HEAD` empty at push). Merged as e62056c; production deploy dpl_ECGfBri8pesymrLFLENYfZgQefr3 READY with the migration applied (checked by mission 62, 2026-11-09).
 - **Deliberate leftovers:**
   - No own `loading.tsx` for `/settings/slideshow` (inherits the Settings skeleton).
   - A shrunk photo over 3.5 MiB fails every retry; unproven at real sizes. If Bryce's phone test hits it, re-encode at lower quality in `shrinkPhoto`.
