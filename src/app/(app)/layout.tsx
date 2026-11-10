@@ -5,6 +5,7 @@ import { AppChrome } from "@/components/AppChrome";
 import { getVerifiedUser } from "@/lib/dal";
 import { DEFAULT_NAV_MODE } from "@/lib/navMode";
 import { DEFAULT_TEXT_SIZE } from "@/lib/textSize";
+import { loadScreensaverSettings } from "@/lib/screensaverRead";
 
 // Marshee's three brand faces. Named --font-inter/--font-manrope/
 // --font-accent-serif (not --font-sans etc.) so they don't collide with the
@@ -75,6 +76,9 @@ export default async function RootLayout({
   // this same request already triggers, so this doesn't add an extra
   // database round trip on top of what the page itself needs.
   const user = await getVerifiedUser();
+  // The wall tablet's screensaver is for a device login only; every other
+  // login gets null, so no screensaver is mounted and no settings are read.
+  const screensaver = user?.isDevice ? await loadScreensaverSettings() : null;
 
   return (
     <html
@@ -85,6 +89,7 @@ export default async function RootLayout({
       <body className="flex min-h-full flex-col bg-bg text-fg">
         <AppChrome
           navMode={user?.navMode ?? DEFAULT_NAV_MODE}
+          screensaver={screensaver}
           user={
             user && {
               displayName: user.displayName,

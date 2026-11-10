@@ -11,6 +11,7 @@ import {
   formatShortCalendarDate,
   formatWeekTitle,
   hourInZone,
+  minuteOfDayInZone,
   parseDateParam,
   startOfMonth,
   startOfWeek,
@@ -164,6 +165,25 @@ test("hourInZone reads the wall-clock hour in MST and MDT", () => {
   assert.equal(hourInZone(mdt(9), DENVER), 9);
   assert.equal(hourInZone(mdt(23, 59), DENVER), 23);
   assert.equal(hourInZone(mdt(0), DENVER), 0);
+});
+
+test("minuteOfDayInZone reads minutes after midnight in MST and MDT", () => {
+  assert.equal(minuteOfDayInZone(mst(0), DENVER), 0);
+  assert.equal(minuteOfDayInZone(mst(7, 42), DENVER), 7 * 60 + 42);
+  assert.equal(minuteOfDayInZone(mst(23, 59, 59), DENVER), 23 * 60 + 59);
+  assert.equal(minuteOfDayInZone(mdt(0), DENVER), 0);
+  assert.equal(minuteOfDayInZone(mdt(22), DENVER), 1320);
+  assert.equal(minuteOfDayInZone(mdt(5, 59, 59), DENVER), 5 * 60 + 59);
+});
+
+test("minuteOfDayInZone across the Denver DST nights", () => {
+  // 2026-03-08: 2:00 MST jumps to 3:00 MDT. 08:59Z is 1:59 MST, 09:00Z is 3:00 MDT.
+  assert.equal(minuteOfDayInZone(new Date(Date.UTC(2026, 2, 8, 8, 59)), DENVER), 119);
+  assert.equal(minuteOfDayInZone(new Date(Date.UTC(2026, 2, 8, 9, 0)), DENVER), 180);
+  // 2026-11-01: 2:00 MDT falls back to 1:00 MST. 07:30Z is 1:30 MDT, 08:30Z is 1:30 MST.
+  assert.equal(minuteOfDayInZone(new Date(Date.UTC(2026, 10, 1, 7, 30)), DENVER), 90);
+  assert.equal(minuteOfDayInZone(new Date(Date.UTC(2026, 10, 1, 8, 30)), DENVER), 90);
+  assert.equal(minuteOfDayInZone(new Date(Date.UTC(2026, 10, 1, 9, 0)), DENVER), 120);
 });
 
 test("formatHouseholdClock drops :00 only when asked", () => {

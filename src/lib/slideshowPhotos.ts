@@ -48,6 +48,11 @@ export function photoPaths(id: string): { photoPath: string; thumbPath: string }
   return { photoPath: `slideshow/${id}.jpg`, thumbPath: `slideshow/${id}-thumb.jpg` };
 }
 
+/** The one place the image route's URL is built; `thumb` asks for the small copy. */
+export function slideshowImageUrl(id: string, size?: "thumb"): string {
+  return size === "thumb" ? `/api/slideshow/${id}/image?size=thumb` : `/api/slideshow/${id}/image`;
+}
+
 /** A whole number of pixels, 1 to 8192, else null. Form fields arrive as digit strings. */
 export function toDimension(raw: unknown): number | null {
   const value = typeof raw === "string" && /^\d{1,5}$/.test(raw) ? Number(raw) : raw;

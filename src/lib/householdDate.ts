@@ -52,6 +52,18 @@ export function hourInZone(instant: Date, timeZone: string): number {
   return Number(parts.find((p) => p.type === "hour")?.value);
 }
 
+/** Minutes after midnight (0 to 1439) on the wall clock of `timeZone` at `instant`. */
+export function minuteOfDayInZone(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    hour: "numeric",
+    minute: "numeric",
+  }).formatToParts(instant);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return get("hour") * 60 + get("minute");
+}
+
 /**
  * The app's clock style in `timeZone`: "10:05 AM", or with `dropZeroMinutes`
  * "10 AM" (minutes only when not on the hour). Always a plain ASCII space
