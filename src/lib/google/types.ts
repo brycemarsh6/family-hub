@@ -40,3 +40,26 @@ export type EventCallResult = { ok: true; etag: string | null } | { ok: false; r
 export type GetEventResult =
   | { ok: true; etag: string | null; event: Record<string, unknown> }
   | { ok: false; reason: EventCallFailReason };
+
+// Reading events back (the pull). Only the fields Marshee reads are typed.
+export type GoogleEventIn = {
+  id: string;
+  status?: string;
+  etag?: string;
+  updated?: string;
+  summary?: string;
+  description?: string;
+  location?: string;
+  eventType?: string;
+  start?: { date?: string; dateTime?: string };
+  end?: { date?: string; dateTime?: string };
+  extendedProperties?: { private?: { marsheeEventId?: string } };
+};
+
+export type ListEventsMode = { syncToken: string } | { timeMin: string };
+
+export type ListEventsFailReason = "restart" | "unauthorized" | "network" | "too-many";
+
+export type ListEventsResult =
+  | { ok: true; events: GoogleEventIn[]; nextSyncToken: string | null }
+  | { ok: false; reason: ListEventsFailReason };

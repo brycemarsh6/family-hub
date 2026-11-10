@@ -17,6 +17,7 @@ import {
   SYNC_DIRECTION_HINTS,
   SYNC_DIRECTION_LABELS,
   forLine,
+  withoutForLine,
   isSyncDirection,
   SYNC_ROW_STATUSES,
   toSyncRowStatus,
@@ -179,5 +180,26 @@ describe("calendar sync vocabulary", () => {
     assert.equal(forLine(["Bryce", "Emily"]), "For: Bryce, Emily");
     assert.equal(forLine(["Bryce", "  ", ""]), "For: Bryce");
     assert.equal(forLine([]), "");
+  });
+});
+
+describe("withoutForLine", () => {
+  it("removes Marshee's trailing For line and keeps the notes", () => {
+    assert.equal(withoutForLine("Bring the form\n\nFor: Bryce, Emily"), "Bring the form");
+  });
+
+  it("returns empty when the For line was all there was", () => {
+    assert.equal(withoutForLine("For: Bryce"), "");
+  });
+
+  it("leaves other text, and a For line that is not last, alone", () => {
+    assert.equal(withoutForLine("Bring snacks"), "Bring snacks");
+    assert.equal(withoutForLine("For: Bryce\n\nThen call"), "For: Bryce\n\nThen call");
+    assert.equal(withoutForLine("Gift\nFor: Bryce"), "Gift\nFor: Bryce");
+  });
+
+  it("only strips one line, so it undoes forLine exactly once", () => {
+    const sent = ["Notes", forLine(["A"])].join("\n\n");
+    assert.equal(withoutForLine(withoutForLine(sent)), "Notes");
   });
 });

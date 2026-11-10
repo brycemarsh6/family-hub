@@ -107,6 +107,15 @@ export function forLine(names: string[]): string {
   return named.length > 0 ? `For: ${named.join(", ")}` : "";
 }
 
+/** A Google description without Marshee's own trailing "For: ..." line (the inverse of `forLine` joined by a blank line). */
+export function withoutForLine(description: string): string {
+  const text = description.trim();
+  const at = text.lastIndexOf("\n\n");
+  const last = at === -1 ? text : text.slice(at + 2);
+  if (!/^For: [^\n]+$/.test(last)) return text;
+  return at === -1 ? "" : text.slice(0, at).trim();
+}
+
 /** "Emily's", the muted second line under a calendar that is someone else's. */
 export function ownerLine(ownerName: string): string {
   return `${ownerName}'s`;
