@@ -11,7 +11,7 @@ it is done. The pre-cleanup text is in
   Read the dashboard and Calendar Month from across the kitchen; if Large is
   not enough, try Extra large. Your phone must look unchanged. Then answer
   the two rule questions in the mission file's Delivery (rem rule, Month
-  breakpoint rule) and which iPad it is (10.2 inch or 10.9/11 inch).
+  breakpoint rule).
 - **Morning briefing check (mission 48), 2026-11-08:** between 9 and 10
   AM Denver, did you and Emily each get "Good morning, ..." from Winnie?
   If not, see the mission file's Delivery, step 2.

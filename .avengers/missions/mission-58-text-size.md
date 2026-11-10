@@ -395,9 +395,10 @@ eslint, 1627 Denver, UTC 1620 + 7 skipped, build exit 0.
   `docs/structure/layout.md` after mission 59: rem container thresholds follow Text size; Month and week columns
   are the px exceptions) and rule B (DESIGN.md: sizes in rem, not px, with
   the listed px exceptions). Exact text is in Captain's pass 2 report,
-  summarised in the pass 2 ledger row; Fury files them on Bryce's yes. Also
-  which iPad: on a 10.2 inch (810 wide) at Extra large, Month drops to its
-  phone layout (still readable).
+  summarised in the pass 2 ledger row; Fury files them on Bryce's yes.
+- **The wall tablet is an iPad Air 4th generation** (Bryce, 2026-11-09):
+  820 x 1180, the exact viewport every Strange pass measured. Month keeps its
+  tablet layout at Extra large in portrait (grid about 772px).
 - **Deliberate leftovers (follow-ups, not this mission):** tablet's own
   3 or 4 big widgets is mission 39 PR B (C5); Schedule first load scrolls to
   today before habit days load (pre-existing); Schedule's Today button
