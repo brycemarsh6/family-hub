@@ -201,7 +201,7 @@ From AGENTS.md, absolute for every agent:
 
 ### C2 - Range 32 to 192, whole-day floor, short-block title fits
 
-- **Status:** DISPATCHED
+- **Status:** DONE (commit below C2 log line)
 - **Objective:** apply Bryce's second-round decisions to the zoom: max 192,
   a floor so the day never ends above the bottom of the visible rail, and a
   title that fits whole in short blocks.
@@ -238,7 +238,14 @@ From AGENTS.md, absolute for every agent:
   counts; `wc -l` of touched files; `git diff --stat`.
 - **Done criteria:** Vision and Strange re-gate PASS; at 48px on a phone
   the timeline is unchanged from C1.
-- **Report:** pending.
+- **Report:** Stark DONE. MAX 192; pure `minHourHeightFor`,
+  `titleFitsFullSize`; clamp and pinch take a floor. The hook takes
+  `stickyHeaderRef`, measures the floor on mount, on resize and at pinch
+  start; drawn height = max(stored or live, floor); a pinch that ends where
+  it began saves nothing (so an iPad tap never overwrites a phone's 32).
+  Gauntlet green by his run: 1801 tests; UTC 1794 + 7 skips; build ok.
+  Note: the floor is first measured in a passive effect after mount, and a
+  later all-day strip growth is only picked up at resize or pinch start.
 
 ## Gate ledger
 
@@ -276,6 +283,8 @@ From AGENTS.md, absolute for every agent:
 - 2026-11-10: Captain PASS, Vision PASS, Strange BLOCK (cut titles at 32).
   Fury's hours conversion was wrong; Bryce re-decided (second round). C2
   written and dispatched; Fury writes the DESIGN.md and STRUCTURE.md edits.
+- 2026-11-10: C2 built; committed with the DESIGN.md and STRUCTURE.md
+  amendments. Vision and Strange pass 2 dispatched.
 
 ## Delivery
 
