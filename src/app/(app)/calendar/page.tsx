@@ -146,7 +146,7 @@ export default async function CalendarPage({
   }));
 
   // This `py-2` is load-bearing: CalendarHeader's lift/pinned margin and
-  // loading.tsx's 143px skeleton offset both depend on it. Change it and
+  // loading.tsx's 5.125rem skeleton offset both depend on it. Change it and
   // both must be re-derived. The bottom half is dropped on the hour
   // timeline views (they fill the viewport; see AppChrome's `<main>`).
   // `data-page-width="wide"` lifts the 768px cap (STRUCTURE.md "Wide pages",

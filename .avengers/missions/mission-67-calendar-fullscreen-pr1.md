@@ -1,7 +1,7 @@
 # Mission: Calendar full screen PR 1, the full screen layout
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING (C1 and C2 dispatched)
+**Status:** AT-THE-GATES
 **Started:** 2026-11-10 · **Updated:** 2026-11-10
 
 ## Brief
@@ -233,7 +233,7 @@ share one worktree).
   outside the may-touch list in `git status`.
 
 ### C3 - (C) Loading frame matches the new shape
-- **Status:** PENDING (after C1 and C2)
+- **Status:** DONE (Stark report 2026-11-10: `TopBarSkeleton` shares the C1 constants; header offset 143px to `calc(100dvh - 5.125rem - env(safe-area-inset-top))` from classes; Day corner mark; Month rows wrapped in the bleed; no + in the skeleton because the role is unknown there; Refresh always drawn; tsc, lint, 1819 tests, build green)
 - **Boundaries:** may touch: `src/app/(app)/calendar/loading.tsx`,
   `src/app/(app)/calendar/page.tsx` (comments only). · must not touch:
   everything else.
