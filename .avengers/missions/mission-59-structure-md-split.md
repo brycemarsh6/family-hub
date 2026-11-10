@@ -14,8 +14,8 @@
   companion files, without changing what any rule says.
 - **Number:** 59. Mission 58 is already taken by three in-flight sessions
   (screensaver S2, calendar sync PR 3, text size), so this one skips it.
-- **Done means:** (1) STRUCTURE.md is much shorter (about 790 lines
-  measured from the plan below); (2) `movecheck.mjs` (below) reports every
+- **Done means:** (1) STRUCTURE.md is much shorter (shipped: 1,064
+  lines, after C1b; the plan's 790 was mis-measured); (2) `movecheck.mjs` (below) reports every
   companion chunk found verbatim once in the old file, and the old file
   minus moved chunks equals the new file minus pointers, with only the
   sanctioned edits left; (3) every moved entry keeps its bold headline in
@@ -48,6 +48,8 @@ moves word for word):
 | Google calendar link and copying events to Google | 66 | `docs/structure/calendar-sync.md` |
 
 Total moved: about 1,008 lines. STRUCTURE.md lands near 790.
+(Superseded: these sizes used C1's wrong range rule. The shipped list is
+C1b's table, and STRUCTURE.md is 1,064 lines; see the handoff log.)
 
 **What stays:** every other entry and section unchanged; for each moved
 entry, its bold headline (word for word) and a pointer
