@@ -588,6 +588,8 @@ amendment id.
   "Slideshow photos".)
 - **Screensaver (mission-62).** (Rules: docs/structure/slideshow.md,
   "Screensaver".)
+- **Start page (mission-64).** (Rules: docs/structure/slideshow.md,
+  "Start page".)
 - `QuantityStepper` (counts by one) and `LadderStepper` (moves along a
   fixed list, shows text it is given) are the only −/+ steppers; a third
   is a BLOCKER. (Added mission-62, on Captain's ruling, Bryce-approved.)

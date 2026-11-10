@@ -58,11 +58,13 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   never type them. `src/lib/screensaverRead.ts` (`server-only`, no auth) is
   the only reader of `ScreensaverSettings`; a missing row reads as the
   defaults. `saveScreensaverSetting` (`actions/screensaver.ts`, guard form
-  a, `MANAGER_ROLES`, never a device) is the only writer; if a second
+  a, `MANAGER_ROLES` or a device login: Bryce, 2026-11-10, mission-64,
+  reversing S2's "never a device") is the only writer; the Wall tablet
+  page opens for the device login too (without the Slideshow photos link); if a second
   caller appears (a Winnie route), the write moves into
   `src/lib/screensaverWrites.ts` first. `loadScreensaverShow` (guard form
   a, device logins only, `null` on refusal) is the tablet's only fresh
-  read. The `(app)` layout reads the settings for a device login alone,
+  read; it also returns the tablet's fresh start page. The `(app)` layout reads the settings for a device login alone,
   and only `AppChrome` mounts `ScreensaverHost`. Its overlay is portaled
   to `document.body` after mount, above the drawer. Its clock and date
   lines use `formatHouseholdClock` and `formatScreensaverDate` with
@@ -72,3 +74,21 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   (`updatedById` is a plain id, the `SlideshowPhoto` precedent). A second
   reader, writer, state rule, shuffle or step list is a BLOCKER. (Added
   mission-62, on Captain's ruling, Bryce-approved.)
+
+### Start page
+
+`src/lib/startPage.ts` (pure; imports only `nav.ts`) is the only home of
+  `START_PAGE_OPTIONS` (the drawer's destinations minus Lists; Settings is
+  not offered), `DEFAULT_START_PAGE`, the cleaner `toStartPage` (anything
+  not exactly in the list reads as `/`, so a stored value can never
+  redirect off the app), `startPageLabel` and `START_PAGE_WORDS`; components
+  never type those words. `src/lib/startPageRead.ts` (`server-only`, no
+  auth) is the only reader of another login's start page
+  (`loadTabletStartPage`, the oldest active device login's). `saveStartPage`
+  (your own, devices too) and `saveTabletStartPage` (a parent, an admin or
+  the tablet; writes every active device login in one transaction), both in
+  `actions/preferences.ts`, are the only writers of
+  `UserPreferences.startPage`. The login redirect and the tablet's wake
+  push only `toStartPage` values. `StartPageSetting` is the only "Open
+  Marshee on" row. A second option list, cleaner, reader or writer is a
+  BLOCKER. (Added mission-64.)

@@ -42,12 +42,15 @@ export function AppChrome({
   user,
   navMode,
   screensaver = null,
+  startPage,
   children,
 }: {
   user: DrawerUser | null;
   navMode: NavMode;
   /** The wall tablet's screensaver settings; null for every login but a device login, which mounts no screensaver. */
   screensaver?: ScreensaverSettings | null;
+  /** The device login's start page, where a tap on the screensaver goes; unused for every other login. */
+  startPage?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -122,7 +125,7 @@ export function AppChrome({
           onClose={() => setFeedbackOpen(false)}
         />
       )}
-      {user && screensaver && <ScreensaverHost initialSettings={screensaver} />}
+      {user && screensaver && <ScreensaverHost initialSettings={screensaver} initialStartPage={startPage} />}
     </>
   );
 

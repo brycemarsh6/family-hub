@@ -1,4 +1,5 @@
 import { BackLink } from "@/components/BackLink";
+import { StartPageSetting } from "@/components/StartPageSetting";
 import { WallTabletSettings } from "@/components/WallTabletSettings";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { requireRole } from "@/lib/dal";
@@ -6,19 +7,25 @@ import { NARROW_PAGE_CLASSES } from "@/lib/gridClasses";
 import { SCREENSAVER_WORDS } from "@/lib/screensaver";
 import { loadScreensaverSettings } from "@/lib/screensaverRead";
 import { countSlideshowPhotos } from "@/lib/slideshowRead";
+import { loadTabletStartPage } from "@/lib/startPageRead";
 
 // Reads the session, so it can never be cached.
 export const dynamic = "force-dynamic";
 
 /**
- * Parents and admins: how the wall tablet's screensaver behaves. `requireRole`
- * bounces a kid or the tablet to `/`, and the save action checks the login
- * again. A short page: all of it, BackLink and title included, sits inside
+ * Parents, admins and the wall tablet itself: how the screensaver behaves and
+ * where a tap on it goes. `requireRole` bounces a kid to `/`, and the save
+ * actions check the login again. The tablet gets no link to Slideshow photos
+ * (that page stays parents and admins only). A short page: all of it, BackLink and title included, sits inside
  * NARROW_PAGE_CLASSES.
  */
 export default async function WallTabletPage() {
-  await requireRole(...MANAGER_ROLES);
-  const [settings, photoCount] = await Promise.all([loadScreensaverSettings(), countSlideshowPhotos()]);
+  const user = await requireRole(...MANAGER_ROLES, "device");
+  const [settings, photoCount, startPage] = await Promise.all([
+    loadScreensaverSettings(),
+    countSlideshowPhotos(),
+    loadTabletStartPage(),
+  ]);
 
   return (
     <div className="py-2" data-page-width="wide">
@@ -28,7 +35,9 @@ export default async function WallTabletPage() {
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{SCREENSAVER_WORDS.title}</h1>
         <p className="mt-2 text-sm text-muted">{SCREENSAVER_WORDS.sub}</p>
 
-        <WallTabletSettings initialSettings={settings} photoCount={photoCount} />
+        {startPage !== null && <StartPageSetting forTablet startPage={startPage} />}
+
+        <WallTabletSettings initialSettings={settings} photoCount={photoCount} canManagePhotos={!user.isDevice} />
       </div>
     </div>
   );
