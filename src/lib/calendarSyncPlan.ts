@@ -207,6 +207,8 @@ export async function syncEventCopies(
     retryOnly?: boolean;
     /** The calendar a pulled event came from: always kept, busy/free left to Google, never recreated. */
     sourceLinkedCalendarId?: string | null;
+    /** A calendar this run must not touch at all: a pull's push out skips the original it came from. */
+    exceptLinkedCalendarId?: string | null;
   },
 ): Promise<{ failed: number }> {
   const eventId = input.payloadInput.marsheeEventId;

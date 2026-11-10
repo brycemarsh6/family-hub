@@ -14,6 +14,7 @@ import {
   SYNC_DIRECTIONS,
   SYNC_DIRECTION_HINTS,
   SYNC_DIRECTION_LABELS,
+  alreadySyncedThrough,
   calendarsSummary,
   isReadOnlyRole,
   lastCheckedLine,
@@ -94,6 +95,8 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
             const direction = directions[calendar.id] ?? calendar.direction;
             // Google lets Marshee write only to calendars the person owns.
             const readOnly = isReadOnlyRole(calendar.accessRole);
+            // Another link already syncs this Google calendar: no control, only the words.
+            const lockedBy = direction === "off" ? calendar.syncedThrough : null;
             const content = (
               <>
                 <span className="flex min-w-0 flex-col">
@@ -105,13 +108,13 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
                   )}
                 </span>
                 <span className="flex shrink-0 items-center gap-2 text-sm text-muted-strong">
-                  {readOnly ? SYNCED_CALENDARS_EXTRA_WORDS.readOnly : SYNC_DIRECTION_LABELS[direction]}
-                  {isOwner && !readOnly && <ChevronRight aria-hidden="true" size={18} />}
+                  {lockedBy ? alreadySyncedThrough(lockedBy) : readOnly ? SYNCED_CALENDARS_EXTRA_WORDS.readOnly : SYNC_DIRECTION_LABELS[direction]}
+                  {isOwner && !readOnly && !lockedBy && <ChevronRight aria-hidden="true" size={18} />}
                 </span>
               </>
             );
             const rowClass = "flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2 text-left";
-            return isOwner && !readOnly ? (
+            return isOwner && !readOnly && !lockedBy ? (
               <button
                 key={calendar.id}
                 type="button"

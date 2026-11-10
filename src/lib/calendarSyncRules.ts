@@ -80,6 +80,8 @@ export function planSync(input: {
   calendars: PlanCalendar[];
   requestedIds?: string[];
   sourceLinkedCalendarId?: string | null;
+  /** A calendar to leave alone entirely: no create, update or remove (a pull's push out skips the source). */
+  exceptLinkedCalendarId?: string | null;
 }): SyncPlan {
   const pushable = new Set(input.calendars.filter(isPushable).map((c) => c.id));
   const existing = new Set(input.rows.map((r) => r.linkedCalendarId));
@@ -93,11 +95,22 @@ export function planSync(input: {
   }
   const source = input.sourceLinkedCalendarId;
   if (source && pushable.has(source)) desired.add(source);
+  const skip = input.exceptLinkedCalendarId;
   return {
-    create: [...desired].filter((id) => !existing.has(id)),
-    update: [...desired].filter((id) => existing.has(id)),
+    create: [...desired].filter((id) => !existing.has(id) && id !== skip),
+    update: [...desired].filter((id) => existing.has(id) && id !== skip),
     remove: input.rows
       .map((r) => r.linkedCalendarId)
-      .filter((id) => pushable.has(id) && !desired.has(id)),
+      .filter((id) => pushable.has(id) && !desired.has(id) && id !== skip),
   };
+}
+
+/**
+ * Whether a calendar may be set to anything but "off" (Bryce, 2026-11-09, answer
+ * 7): only when no other link of the same Google calendar is on. Two links to one
+ * Google calendar would let Marshee delete or overwrite the real event.
+ * `others` is the other links of this Google calendar, not this one.
+ */
+export function canTurnOn(others: { direction: SyncDirection }[]): boolean {
+  return others.every((other) => other.direction === "off");
 }

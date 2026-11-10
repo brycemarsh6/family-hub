@@ -32,7 +32,7 @@ const EVENT_SYNC_SELECT = {
   linkedCalendar: { select: { name: true } },
 } as const;
 
-// Mission 57: the source calendar's id and name; the view carries the name
+// Mission 58: the source calendar's id and name; the view carries the name
 // only, the edit page also uses the id. The one select shape for it.
 export const EVENT_SOURCE_SELECT = { select: { id: true, name: true } } as const;
 
@@ -88,7 +88,7 @@ export const CALENDAR_EVENT_SELECT = {
     select: EVENT_SYNC_SELECT,
     orderBy: { createdAt: "asc" },
   },
-  // Mission 57: for the sheet's "From Google" line (the view keeps the name).
+  // Mission 58: for the sheet's "From Google" line (the view keeps the name).
   sourceLinkedCalendar: EVENT_SOURCE_SELECT,
 } as const;
 

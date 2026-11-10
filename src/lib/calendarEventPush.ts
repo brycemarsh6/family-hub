@@ -67,6 +67,8 @@ export async function pushEventCopies(input: {
   eventId: string;
   requestedIds?: string[];
   retryOnly?: boolean;
+  /** Leave this calendar's copy alone, neither updated nor removed (a pull's push out, for its source). */
+  exceptLinkedCalendarId?: string | null;
 }): Promise<{ failed: number }> {
   if (!isCalendarPushConfigured()) return { failed: 0 };
   try {
@@ -105,6 +107,7 @@ export async function pushEventCopies(input: {
       requestedIds: input.requestedIds,
       retryOnly: input.retryOnly,
       sourceLinkedCalendarId: event.sourceLinkedCalendarId,
+      exceptLinkedCalendarId: input.exceptLinkedCalendarId,
     });
   } catch {
     // Dropped on purpose; the Marshee event already stands.

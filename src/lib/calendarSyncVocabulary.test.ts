@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   ACCOUNT_STATUSES,
+  alreadySyncedThrough,
   calendarsSummary,
   copyFailedLine,
   copyRemoveFailedLine,
@@ -201,5 +202,11 @@ describe("withoutForLine", () => {
   it("only strips one line, so it undoes forLine exactly once", () => {
     const sent = ["Notes", forLine(["A"])].join("\n\n");
     assert.equal(withoutForLine(withoutForLine(sent)), "Notes");
+  });
+});
+
+describe("alreadySyncedThrough", () => {
+  it("names the other account's email, in Bryce's approved words", () => {
+    assert.equal(alreadySyncedThrough("emily@example.com"), "Already synced through emily@example.com");
   });
 });

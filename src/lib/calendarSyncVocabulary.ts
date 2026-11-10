@@ -137,6 +137,11 @@ export function relinkLine(email: string): string {
   return `Google stopped letting Marshee in for ${email}. Events from it aren't updating.`;
 }
 
+/** The row's line when another link of the same Google calendar is already on (Bryce, 2026-11-09). */
+export function alreadySyncedThrough(email: string): string {
+  return `Already synced through ${email}`;
+}
+
 /** The detail sheet's muted line for an event that came from Google. */
 export function fromGoogleLine(calendarName: string): string {
   return `From Google: ${calendarName}`;

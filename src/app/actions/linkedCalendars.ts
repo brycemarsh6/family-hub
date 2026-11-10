@@ -13,7 +13,8 @@ import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
-import { SYNCED_CALENDARS_WORDS, isSyncDirection } from "@/lib/calendarSyncVocabulary";
+import { SYNCED_CALENDARS_WORDS, alreadySyncedThrough, isSyncDirection } from "@/lib/calendarSyncVocabulary";
+import { canTurnOn } from "@/lib/calendarSyncRules";
 import { googleAuthUrl, isGoogleConfigured, revokeToken } from "@/lib/google/oauth";
 import { googleRedirectUri, requestOriginFrom } from "@/lib/google/redirectUri";
 import { STATE_COOKIE_NAME, STATE_TTL_SECONDS, newOauthState } from "@/lib/google/oauthState";
@@ -23,7 +24,13 @@ import {
   setCalendarDirection as writeCalendarDirection,
   unlinkAccount as writeUnlinkAccount,
 } from "@/lib/linkedCalendarWrites";
-import { loadAccountCalendarIds, loadAccountOwner, loadCalendarOwner, loadRefreshToken } from "@/lib/linkedCalendarsRead";
+import {
+  loadAccountCalendarIds,
+  loadAccountOwner,
+  loadCalendarOwner,
+  loadRefreshToken,
+  loadSiblingCalendars,
+} from "@/lib/linkedCalendarsRead";
 import { removePulledEvents } from "@/lib/calendarEventPull";
 
 const NOT_SIGNED_IN = "Not signed in.";
@@ -86,6 +93,16 @@ export async function setCalendarDirection(
   const owner = await loadCalendarOwner(calendarId);
   if (!owner) return { error: GENERIC_ERROR };
   if (owner.userId !== user.userId) return { error: SYNCED_CALENDARS_WORDS.notYours(owner.name) };
+
+  // Only one link of a Google calendar may sync it (Bryce, 2026-11-09): two would let
+  // Marshee delete or overwrite the real event. Turning one off is always fine.
+  if (direction !== "off") {
+    const others = await loadSiblingCalendars(calendarId);
+    if (!canTurnOn(others)) {
+      const on = others.find((other) => other.direction !== "off");
+      return { error: alreadySyncedThrough(on?.email ?? "another account") };
+    }
+  }
 
   await writeCalendarDirection(calendarId, direction);
   refresh();

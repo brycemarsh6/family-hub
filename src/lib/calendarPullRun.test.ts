@@ -64,7 +64,7 @@ function fake(
     writeInsert: async (i) => void calls.push(`insert:${i.googleEventId}`),
     writeUpdate: async (_c, u) => void calls.push(`update:${u.googleEventId}`),
     writeDelete: async (d) => void calls.push(`delete:${d.eventId}`),
-    pushBack: async (id) => void calls.push(`pushBack:${id}`),
+    pushBack: async (id, except) => void calls.push(except ? `pushBack:${id}:except=${except}` : `pushBack:${id}`),
     now: () => NOW,
     ...over,
   };
@@ -284,7 +284,7 @@ describe("runPull: a Google change reaches the other calendars", () => {
   it("pushes a Google-wins change after the writes when the event has copies elsewhere", async () => {
     const f = fake({ loadKnown: async () => knownOne({ hasOtherCopies: true }), lists: [changed] });
     await runPull(f.deps, { force: false });
-    assert.deepEqual(f.calls.filter((c) => /^(update|pushBack)/.test(c)), ["update:g1", "pushBack:evG"]);
+    assert.deepEqual(f.calls.filter((c) => /^(update|pushBack)/.test(c)), ["update:g1", "pushBack:evG:except=c1"]);
   });
 
   it("pushes nothing when the event has no copies elsewhere", async () => {
@@ -325,21 +325,23 @@ describe("runPull: one Google calendar, one import", () => {
     await runPull(tie.deps, { force: false });
     assert.deepEqual(claimed(tie), ["c1"]);
   });
+});
 
-  it("adopts an event a sibling link already imported: a row here, no second event", async () => {
-    let seen = "";
-    const rows: string[] = [];
-    const f = fake({
-      loadKnown: async (calendar) => {
-        seen = calendar.googleCalendarId;
-        return knownOne({ eventId: "evSibling", hasRow: false, etag: null, lastPushedAt: null, sourceLinkedCalendarId: "cOld" });
-      },
-      lists: [{ ok: true, events: [gEvent()], nextSyncToken: "t" }],
-      writeUpdate: async (_c, u) => void rows.push(`${u.eventId}:${u.createRow}`),
+describe("runPull: a push out keeps off the original", () => {
+  it("a Google-wins push out excepts the calendar it came from; a Marshee-wins push back excepts nothing", async () => {
+    const out = fake({
+      loadKnown: async () => knownOne({ hasOtherCopies: true }),
+      lists: [{ ok: true, events: [gEvent({ etag: '"e2"', summary: "New title" })], nextSyncToken: "t" }],
     });
-    await runPull(f.deps, { force: false });
-    assert.equal(seen, "g-cal");
-    assert.deepEqual(rows, ["evSibling:true"]);
-    assert.ok(!f.calls.some((c) => c.startsWith("insert")));
+    await runPull(out.deps, { force: false });
+    assert.deepEqual(out.calls.filter((c) => c.startsWith("pushBack")), ["pushBack:evG:except=c1"]);
+
+    const back = fake({
+      loadKnown: async () =>
+        knownOne({ eventUpdatedAt: new Date("2026-11-09T18:00:00Z"), lastPushedAt: new Date("2026-11-09T10:00:00Z") }),
+      lists: [{ ok: true, events: [gEvent({ etag: '"e2"', summary: "New title", updated: "2026-11-09T12:00:00Z" })], nextSyncToken: "t" }],
+    });
+    await runPull(back.deps, { force: false });
+    assert.deepEqual(back.calls.filter((c) => c.startsWith("pushBack")), ["pushBack:evG"]);
   });
 });

@@ -42,7 +42,9 @@ const REPLACE_TIMEOUT_MS = 15_000;
 /**
  * Make the stored calendars match Google's list, in one transaction. A
  * calendar that stays keeps its direction, syncToken and lastPulledAt; new
- * ones start "off"; ones Google no longer lists are removed.
+ * ones start "off"; ones Google no longer lists are removed. The callback
+ * route removes those calendars' pulled events first, choosing them with
+ * loadAccountCalendarIds (linkedCalendarsRead.ts): keep the two filters in step.
  */
 export async function replaceCalendars(accountId: string, calendars: GoogleCalendarSummary[]): Promise<void> {
   await db.$transaction(async (tx) => {

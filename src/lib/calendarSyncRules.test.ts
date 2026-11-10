@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   busyColumn,
+  canTurnOn,
   cleanRequestedIds,
   isPushable,
   planSync,
@@ -185,5 +186,28 @@ describe("planSync: the source calendar of a pulled event", () => {
     const off = calendars.map((c) => (c.id === "src" ? { ...c, direction: "off" as const } : c));
     const plan = planSync({ rows, calendars: off, requestedIds: [], sourceLinkedCalendarId: "src" });
     assert.deepEqual(plan, { create: [], update: [], remove: ["other"] });
+  });
+});
+
+describe("canTurnOn (one link per Google calendar)", () => {
+  it("allows it when there are no other links, or all of them are off", () => {
+    assert.equal(canTurnOn([]), true);
+    assert.equal(canTurnOn([{ direction: "off" }, { direction: "off" }]), true);
+  });
+
+  it("refuses when any other link is on, in any direction", () => {
+    assert.equal(canTurnOn([{ direction: "off" }, { direction: "outbound" }]), false);
+    assert.equal(canTurnOn([{ direction: "twoWay" }]), false);
+  });
+});
+
+describe("planSync: exceptLinkedCalendarId", () => {
+  it("leaves that calendar out of create, update and remove", () => {
+    const rows = [row("src"), row("b"), row("c")];
+    const calendars = [cal("src"), cal("b"), cal("c"), cal("d")];
+    const plan = planSync({ rows, calendars, requestedIds: ["src", "b", "d"], exceptLinkedCalendarId: "src" });
+    assert.deepEqual(plan, { create: ["d"], update: ["b"], remove: ["c"] });
+    const dropped = planSync({ rows, calendars, requestedIds: ["b"], exceptLinkedCalendarId: "src" });
+    assert.deepEqual(dropped.remove, ["c"]);
   });
 });

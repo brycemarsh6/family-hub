@@ -49,18 +49,31 @@ export function marsheeIdOf(event: GoogleEventIn): string | undefined {
 }
 
 const ENTITIES: Record<string, string> = { lt: "<", gt: ">", quot: '"', "#39": "'", nbsp: " " };
+// Only these count as HTML, so "Pick up <Emma> at 3" stays as typed.
+const KNOWN_TAG = /<\/?(br|p|div|a|b|i|u|ul|ol|li|span)(\s[^>]*)?\/?>/i;
+
+function codePointText(code: number): string {
+  try {
+    return String.fromCodePoint(code);
+  } catch {
+    return "";
+  }
+}
 
 /**
  * Google's web editor saves a description as HTML. Turns it into text: line
- * breaks for `<br>`, `</p>` and `</div>`, other tags dropped, a few entities
- * decoded. Text with no tag in it is returned as it is.
+ * breaks for `<br>`, `</p>`, `</div>` and `</li>`, other tags dropped, a few
+ * named and all numeric entities decoded. Text with no known tag in it (a
+ * lone `<Emma>` is not one) is returned as it is.
  */
 export function textFromDescription(description: string): string {
-  if (!/<\/?[a-z][^>]*>/i.test(description)) return description;
+  if (!KNOWN_TAG.test(description)) return description;
   return description
-    .replace(/<br\s*\/?>|<\/(p|div)\s*>/gi, "\n")
-    .replace(/<[^>]*>/g, "")
+    .replace(/<br\s*\/?>|<\/(p|div|li)\s*>/gi, "\n")
+    .replace(/<\/?(br|p|div|a|b|i|u|ul|ol|li|span)(\s[^>]*)?\/?>/gi, "")
     .replace(/&(lt|gt|quot|#39|nbsp);/g, (_m, name: string) => ENTITIES[name])
+    .replace(/&#(\d+);/g, (_m, n: string) => codePointText(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_m, n: string) => codePointText(parseInt(n, 16)))
     .replace(/&amp;/g, "&");
 }
 

@@ -268,18 +268,6 @@ describe("planPull busy or free", () => {
   });
 });
 
-describe("planPull: another link of the same Google calendar", () => {
-  it("adopts an event a sibling link imported: a row here, no insert, nothing else changed", () => {
-    const plan = run([gEvent()], { g1: knownEvent({ hasRow: false, etag: null, lastPushedAt: null, sourceLinkedCalendarId: "calOld" }) });
-    assert.equal(plan.inserts.length, 0);
-    assert.equal(plan.updates.length, 1);
-    assert.equal(plan.updates[0].createRow, true);
-    assert.equal(plan.updates[0].fields, null);
-    assert.equal(plan.updates[0].pushOut, false);
-    assert.equal(plan.updates[0].row.etag, '"e2"');
-  });
-});
-
 describe("planPull: Google's change reaches other calendars", () => {
   it("sets pushOut when Google wins, something changed and copies exist elsewhere", () => {
     const plan = run([gEvent({ summary: "Moved" })], { g1: knownEvent({ hasOtherCopies: true }) });

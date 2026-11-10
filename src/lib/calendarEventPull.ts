@@ -12,7 +12,9 @@ import type { EventFields, KnownEvent, PullKnown } from "@/lib/calendarSyncPull"
 import type { GoogleEventIn } from "@/lib/google/types";
 
 // Binds calendarPullRun.ts to the real database and Google (mission 58). No
-// auth here (the Server Action and the cron route check it first) and no
+// auth here (its callers check it first: Refresh and the on-open pull in
+// actions/calendarPull.ts, the cron route, the unlink action and the Google
+// callback route for removePulledEvents) and no
 // decisions: the steps are in calendarPullRun.ts and the rules in
 // calendarSyncPull.ts, where tests run them with fakes. This is the only
 // writer of pulled events and of a calendar's syncToken and lastPulledAt
@@ -75,11 +77,11 @@ function knownFrom(
 }
 
 /**
- * What Marshee holds for this page: events with a row here, events a sibling
- * link of the same Google calendar already imported (adopted, so never
- * imported twice), and Marshee-made copies with no row yet.
+ * What Marshee holds for this page: events with a row here, and Marshee-made
+ * copies with no row yet. One link per Google calendar is enforced when a
+ * direction is set, so no other link's rows are read.
  */
-async function loadKnown(calendar: { id: string; googleCalendarId: string }, events: GoogleEventIn[]): Promise<PullKnown> {
+async function loadKnown(calendar: { id: string }, events: GoogleEventIn[]): Promise<PullKnown> {
   const googleIds = events.map((event) => event.id);
   const rows = await db.calendarEventSync.findMany({
     where: { linkedCalendarId: calendar.id, googleEventId: { in: googleIds } },
@@ -95,18 +97,6 @@ async function loadKnown(calendar: { id: string; googleCalendarId: string }, eve
   });
   const byGoogleId = new Map<string, KnownEvent>();
   for (const row of rows) byGoogleId.set(row.googleEventId, knownFrom(row.event, row, row.event.syncs.length > 0));
-
-  const unmatched = googleIds.filter((id) => !byGoogleId.has(id));
-  if (unmatched.length > 0) {
-    const siblings = await db.calendarEventSync.findMany({
-      where: {
-        googleEventId: { in: unmatched },
-        linkedCalendar: { googleCalendarId: calendar.googleCalendarId, id: { not: calendar.id } },
-      },
-      select: { googleEventId: true, event: { select: KNOWN_SELECT } },
-    });
-    for (const row of siblings) if (!byGoogleId.has(row.googleEventId)) byGoogleId.set(row.googleEventId, knownFrom(row.event, null));
-  }
 
   const marsheeIds = events
     .filter((event) => !byGoogleId.has(event.id))
@@ -163,8 +153,8 @@ const deps: PullRunDeps = {
     await removeEventCopies(eventId);
     await db.calendarEvent.deleteMany({ where: { id: eventId } });
   },
-  async pushBack(eventId) {
-    await pushEventCopies({ eventId });
+  async pushBack(eventId, exceptLinkedCalendarId) {
+    await pushEventCopies({ eventId, exceptLinkedCalendarId });
   },
   now: () => new Date(),
 };
@@ -186,6 +176,8 @@ export function pullCalendars(opts: { force: boolean }): Promise<PullRunResult> 
  * other calendars come off first; its original on the source calendar stays,
  * since it still lives in Google. Returns how many could not be removed (the
  * caller stops, so nothing is left to come back after the unlink); never throws.
+ * It counts only database failures: a copy Google would not delete follows PR 2's
+ * delete-anyway rule (the event goes, the copy may stay in Google) and is not counted.
  */
 export async function removePulledEvents(linkedCalendarIds: string[]): Promise<{ failed: number }> {
   if (linkedCalendarIds.length === 0) return { failed: 0 };

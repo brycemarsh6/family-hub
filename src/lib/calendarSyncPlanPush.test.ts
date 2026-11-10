@@ -228,3 +228,43 @@ describe("syncEventCopies: a pulled event on its source calendar", () => {
     assert.deepEqual(h.calls.map((c) => c.op), ["update"]);
   });
 });
+
+describe("syncEventCopies: a push out leaves the source alone", () => {
+  it("makes no call and no row write on the excepted source, while others still update", async () => {
+    const h = harness({});
+    const res = await syncEventCopies(h.deps, {
+      payloadInput: PAYLOAD_INPUT,
+      rows: [row("src"), row("b")],
+      calendars: [cal("src"), cal("b")],
+      requestedIds: undefined,
+      sourceLinkedCalendarId: "src",
+      exceptLinkedCalendarId: "src",
+    });
+    assert.equal(res.failed, 0);
+    assert.deepEqual(h.calls.map((c) => c.calendarId), ["b@group.calendar.google.com"]);
+    assert.ok(h.saves.every((s) => s.key.linkedCalendarId === "b"));
+  });
+
+  it("does not remove the source either when the plan would", async () => {
+    const h = harness({});
+    await syncEventCopies(h.deps, {
+      payloadInput: PAYLOAD_INPUT,
+      rows: [row("src"), row("b")],
+      calendars: [cal("src"), cal("b")],
+      requestedIds: ["b"],
+      exceptLinkedCalendarId: "src",
+    });
+    assert.ok(!h.calls.some((c) => c.op === "remove" || c.calendarId.startsWith("src")));
+  });
+
+  it("a push back (no exception) still updates the source", async () => {
+    const h = harness({});
+    await syncEventCopies(h.deps, {
+      payloadInput: PAYLOAD_INPUT,
+      rows: [row("src")],
+      calendars: [cal("src")],
+      sourceLinkedCalendarId: "src",
+    });
+    assert.deepEqual(h.calls.map((c) => c.op), ["update"]);
+  });
+});

@@ -22,10 +22,8 @@ export type EventFields = {
  * whose googleEventId is in the page, with their event, fills `byGoogleId`
  * (`hasRow: true`); (2) events whose id is in the page's marsheeEventId
  * values and that have no row on this calendar, fills `byMarsheeId`
- * (`hasRow: false`, the sync fields null). Query (1) is widened by the binding:
- * an event Marshee already imported through another LinkedCalendar of the same
- * Google calendar also lands in `byGoogleId`, with `hasRow: false`, so it is
- * adopted (given a row here) and never imported a second time.
+ * (`hasRow: false`, the sync fields null). Only one link per Google calendar
+ * can be on, so no other link's rows are read.
  */
 export type KnownEvent = {
   eventId: string;
@@ -96,7 +94,7 @@ export type PullUpdate = {
   changed: boolean;
   /** True when Google's change was taken and the event has copies elsewhere: the binding pushes it out after the writes. */
   pushOut: boolean;
-  /** True when no row exists yet (a Google copy found by marsheeEventId, or an event adopted from a sibling link). */
+  /** True when no row exists yet (a Google copy found by marsheeEventId). */
   createRow: boolean;
   row: PullRowPatch;
 };

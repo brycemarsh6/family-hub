@@ -179,6 +179,20 @@ describe("eventFromGoogle: HTML descriptions from Google's web editor", () => {
     assert.equal(textFromDescription("Fish &amp; chips if 1 < 2\nline two"), "Fish &amp; chips if 1 < 2\nline two");
   });
 
+  it("leaves a lone <Emma> alone (not a known tag), but strips known tags around it", () => {
+    assert.equal(textFromDescription("Pick up <Emma> at 3"), "Pick up <Emma> at 3");
+    assert.equal(textFromDescription("<p>Pick up <Emma> at 3</p>"), "Pick up <Emma> at 3\n");
+  });
+
+  it("puts each list item on its own line", () => {
+    assert.equal(textFromDescription("<ul><li>Milk</li><li>Eggs</li></ul>"), "Milk\nEggs\n");
+  });
+
+  it("decodes numeric entities, decimal and hex", () => {
+    assert.equal(textFromDescription("<p>It&#8217;s &#x2019; ok</p>"), "It\u2019s \u2019 ok\n");
+    assert.equal(textFromDescription("<p>&#99999999999;x</p>"), "x\n");
+  });
+
   it("eventFromGoogle gives clean notes, still removing Marshee's For line", () => {
     const e = eventKind(eventFromGoogle({ id: "h", ...timed, description: "Bring forms<br><br>For: Bryce" }));
     assert.equal(e.notes, "Bring forms");

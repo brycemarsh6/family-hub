@@ -20,6 +20,8 @@ export type SyncedCalendarRow = {
   accessRole: string | null;
   /** When the pull last looked at this calendar; null if it never has. */
   lastPulledAt: Date | null;
+  /** The other link's account email when this one is off and another link of the same Google calendar is on; else null. */
+  syncedThrough: string | null;
 };
 
 export type SyncedAccountRow = {
@@ -48,6 +50,7 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
           name: true,
           colorHex: true,
           isPrimary: true,
+          googleCalendarId: true,
           direction: true,
           accessRole: true,
           lastPulledAt: true,
@@ -55,6 +58,13 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
       },
     },
   });
+  // Which Google calendars have a link that is on, and through whose email.
+  const onThrough = new Map<string, string>();
+  for (const account of accounts) {
+    for (const calendar of account.calendars) {
+      if (toSyncDirection(calendar.direction) !== "off") onThrough.set(calendar.googleCalendarId, account.email);
+    }
+  }
   return accounts.map((account) => ({
     id: account.id,
     userId: account.userId,
@@ -63,7 +73,11 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
     label: account.label,
     status: toAccountStatus(account.status),
     calendars: account.calendars
-      .map((calendar) => ({ ...calendar, direction: toSyncDirection(calendar.direction) }))
+      .map(({ googleCalendarId, ...calendar }) => {
+        const direction = toSyncDirection(calendar.direction);
+        const through = onThrough.get(googleCalendarId);
+        return { ...calendar, direction, syncedThrough: direction === "off" && through !== undefined ? through : null };
+      })
       .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.name.localeCompare(b.name)),
   }));
 }
@@ -84,6 +98,22 @@ export async function loadCalendarOwner(calendarId: string): Promise<{ userId: s
     select: { account: { select: { userId: true, user: { select: { displayName: true } } } } },
   });
   return calendar ? { userId: calendar.account.userId, name: calendar.account.user.displayName } : null;
+}
+
+/**
+ * The other links of this calendar's Google calendar, for the one-link rule
+ * (canTurnOn in calendarSyncRules.ts). Empty when the calendar is not found.
+ */
+export async function loadSiblingCalendars(
+  calendarId: string,
+): Promise<{ direction: SyncDirection; email: string }[]> {
+  const calendar = await db.linkedCalendar.findUnique({ where: { id: calendarId }, select: { googleCalendarId: true } });
+  if (!calendar) return [];
+  const others = await db.linkedCalendar.findMany({
+    where: { googleCalendarId: calendar.googleCalendarId, id: { not: calendarId } },
+    select: { direction: true, account: { select: { email: true } } },
+  });
+  return others.map((other) => ({ direction: toSyncDirection(other.direction), email: other.account.email }));
 }
 
 /** The decrypted refresh token, for revoking it at Google on unlink and for the push's access token. */
@@ -123,6 +153,7 @@ export async function loadPullCalendars(): Promise<PullCalendarRow[]> {
  * The ids of an account's linked calendars: all of them (an unlink), or only
  * those whose Google id is not in `keepGoogleCalendarIds` (calendars Google no
  * longer lists). Their pulled events are removed before the calendars go.
+ * The same filter as replaceCalendars's deleteMany (linkedCalendarWrites.ts): keep them in step.
  */
 export async function loadAccountCalendarIds(accountId: string, keepGoogleCalendarIds?: string[]): Promise<string[]> {
   const calendars = await db.linkedCalendar.findMany({
