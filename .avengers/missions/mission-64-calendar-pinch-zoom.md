@@ -45,6 +45,24 @@
   time when there is room for two. Fixes the 15-minute override that would
   otherwise cut the time line in half when zoomed out.
 
+### Second round (2026-11-10, after the gates)
+
+- **Fury's conversion error, corrected.** Fury told Bryce 32/128px meant
+  about 14 / 3.5 hours on his phone, trusting the old "9.2 hours at 48"
+  comment. Strange measured the iPhone Day rail at 681px: 48px shows about
+  14.2 hours, 32px about 21, 128px about 5.3 (which does match Google).
+- **Range: 32 to 192px per hour** (Bryce). Out like Google (about 21 hours
+  on the phone), in to about 3.5 hours so 2 PM to 6 PM fills the screen.
+- **Whole-day floor** (Bryce): never zoom out past the whole day filling
+  the visible rail (iPad portrait otherwise left about 180px blank under
+  11 PM). Phones unaffected.
+- **Short blocks get a smaller title** (Bryce accepted Strange's fix) so a
+  30-minute title is not cut at 32px.
+- **Time line and location stay as built** (Bryce: "keep it, try it as
+  is, focus on the zoom"). The pre-existing half-cut time line on
+  15-minute events at 48px is left alone.
+- **DESIGN.md and STRUCTURE.md updated** (Bryce: yes to both).
+
 ## Danger register
 
 From AGENTS.md, absolute for every agent:
@@ -181,22 +199,73 @@ From AGENTS.md, absolute for every agent:
   stale local client. Out-of-range stored values are clamped, not reset.
   No browser exercise of the pinch (cannot be faked with a mouse).
 
+### C2 - Range 32 to 192, whole-day floor, short-block title fits
+
+- **Status:** DISPATCHED
+- **Objective:** apply Bryce's second-round decisions to the zoom: max 192,
+  a floor so the day never ends above the bottom of the visible rail, and a
+  title that fits whole in short blocks.
+- **Boundaries:**
+  - May touch: `src/lib/timelineZoom.ts`, `src/lib/timelineZoom.test.ts`,
+    `src/lib/useTimelineZoom.ts`, `src/components/TimelineDayColumn.tsx`,
+    `src/components/TimelineGrid.tsx`.
+  - Must not touch: everything else (including `usePageSwipe.ts`,
+    `CalendarViews.tsx`, `DESIGN.md`, `STRUCTURE.md`, `.avengers/`; Fury
+    writes the docs).
+- **Rules:**
+  1. `MAX_HOUR_HEIGHT_PX = 192`. `MIN_HOUR_HEIGHT_PX` stays 32.
+  2. New pure `minHourHeightFor(visibleRailPx)` = max(32, visibleRailPx /
+     24), with `visibleRailPx` = scroller `clientHeight` minus the sticky
+     header's height (measured, never a constant; same measurement the
+     scroll-to-now effect uses). The pinch clamps to [that floor, 192]. The
+     rendered height is also clamped to that floor, so a stored 32 on an
+     iPad draws the whole day, without overwriting the stored value (the
+     same person on a phone keeps 32). Re-evaluate on resize. Keep the
+     anchor rules from C1 (a floor change that alters the height keeps the
+     minute at the top of the visible rail).
+  3. New pure `titleFitsFullSize(heightPx)` = heightPx >= 20 (the undrawn
+     height). Below it, the title span uses `text-[0.625rem]
+     leading-[0.75rem]` in every column width, so a 12px line fits the 12px
+     content box with descenders inside. At 20 and up, nothing changes from
+     C1. Do not change `showsTimeLine` or the location line.
+  4. Fix the stale `PX_PER_MINUTE` comment at `TimelineGrid.tsx:80`, and any
+     comment or test that still says 128 is the maximum.
+  5. Tests: `minHourHeightFor` (phone rail 681 gives 32; iPad rail 960
+     gives 40; 0 gives 32), `titleFitsFullSize` at 19.9 and 20, and the
+     clamp at 192.
+- **Verification:** the full gauntlet, green.
+- **Evidence required:** each gauntlet command's last lines with test
+  counts; `wc -l` of touched files; `git diff --stat`.
+- **Done criteria:** Vision and Strange re-gate PASS; at 48px on a phone
+  the timeline is unchanged from C1.
+- **Report:** pending.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Captain | PASS | none | Stale `PX_PER_MINUTE` comment (TimelineGrid:80); usePageSwipe 337, near soft cap, extraction owed; SwipeActions lacks the second-finger yield; CalendarViews 507 vs 502 trend line; fifth hand-rolled localStorage store. Amendments A-64-1 (adopted) and A-64-2 (optional, not adopted) |
+| 1 | Vision | PASS | none | Gauntlet green at a68101d (1798; UTC 1791 + 7 skips, which also exist at base 6ba78ca); boundary exact. Notes: the hydration rescale branch is effectively unreachable (TimelineGrid mounts after hydration); scroll-then-second-finger case unproven; one finger left after a pinch may not scroll until both lift; pinch-on-event click unproven; two-finger tap saves an unchanged height |
+| 1 | Strange | BLOCK | 30-min titles cut at 32 to 39px/hour on columns 128px+ (title gets 12 of 16px; descenders chopped) | Range gives 21/14/5.3 hours on phone, not 14/3.5 (Fury's error); 15-min time line half-cut at 48 (pre-existing); Largest text at 32 unreadable on short blocks; iPad dead band at 32; DESIGN.md exception assumes fixed 48; at 128 a 15-min event still draws 30 min tall. Synthetic pinch: anchor held within 0.5 minute; two fingers never paged |
 
 ## Phone test for Bryce (after merge)
 
 1. iPhone, Calendar, Day view. Pinch apart on 2 PM: 2 PM stays under your
-   fingers and about 3.5 hours fill the screen at the most.
-2. Pinch together: about 14 hours on screen at the most. Short events show
-   a one-line title.
+   fingers and at the most about 3.5 hours fill the screen (2 PM to 6 PM).
+2. Pinch together: about 21 hours on screen at the most. Short events show
+   a whole one-line title, no letters cut.
 3. Pinch, then lift: the day did not change (no swipe to the next day).
    One-finger left/right swipe still changes days.
 4. Switch to 3 Day and Week: same zoom. Leave Calendar and come back: same
    zoom. The page itself never zooms.
-5. Same on the iPad.
+5. Same on the iPad. Zoomed all the way out, the day fills the screen with
+   no blank band under 11 PM.
+6. Start scrolling with one finger, then add a second: the day does not
+   change.
+7. Pinch with your fingers starting on an event, lift: the event does not
+   open.
+8. Lift one finger mid-pinch and drag the other: say whether it scrolls
+   (it may wait until both lift; that is expected).
 
 ## Handoff log
 
@@ -204,6 +273,9 @@ From AGENTS.md, absolute for every agent:
   person and device, Day/3 Day/Week shared, short-event rule. C1 written.
 - 2026-11-10: C1 built and committed. Vision, Strange, Captain dispatched in
   parallel (all read-only) against the commit after this log line.
+- 2026-11-10: Captain PASS, Vision PASS, Strange BLOCK (cut titles at 32).
+  Fury's hours conversion was wrong; Bryce re-decided (second round). C2
+  written and dispatched; Fury writes the DESIGN.md and STRUCTURE.md edits.
 
 ## Delivery
 
