@@ -89,3 +89,34 @@ export async function renameLinkedAccount(accountId: string, label: string | nul
 export async function unlinkAccount(accountId: string): Promise<void> {
   await db.linkedAccount.delete({ where: { id: accountId } });
 }
+
+// The pull (mission 57): the only writes of a calendar's sync token and
+// lastPulledAt, and of an account's needs-relink status.
+
+/** Google no longer accepts this account's link; the person must connect it again. */
+export async function markAccountNeedsRelink(accountId: string): Promise<void> {
+  await db.linkedAccount.update({ where: { id: accountId }, data: { status: "needs-relink" } });
+}
+
+/**
+ * Take the pull lease on a "Both ways" calendar: one conditional update that
+ * stamps lastPulledAt only if it is empty or older than `staleBefore`.
+ * Returns false for the caller that lost (or when the calendar was switched
+ * off meanwhile), so two devices never pull the same calendar together.
+ */
+export async function claimCalendarForPull(calendarId: string, staleBefore: Date, now: Date): Promise<boolean> {
+  const claimed = await db.linkedCalendar.updateMany({
+    where: {
+      id: calendarId,
+      direction: "twoWay",
+      OR: [{ lastPulledAt: null }, { lastPulledAt: { lt: staleBefore } }],
+    },
+    data: { lastPulledAt: now },
+  });
+  return claimed.count === 1;
+}
+
+/** Save Google's bookmark for "what changed since"; null clears it. */
+export async function saveSyncToken(calendarId: string, token: string | null): Promise<void> {
+  await db.linkedCalendar.update({ where: { id: calendarId }, data: { syncToken: token } });
+}

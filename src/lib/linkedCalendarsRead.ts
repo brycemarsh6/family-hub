@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { decryptSecret, isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import { isGoogleConfigured } from "@/lib/google/oauth";
+import type { PullCalendarRow } from "@/lib/calendarPullRun";
 import { isPushable, startsTicked, type PlanCalendar } from "@/lib/calendarSyncRules";
 import { toAccountStatus, toSyncDirection, type AccountStatus, type SyncDirection } from "@/lib/calendarSyncVocabulary";
 
@@ -90,6 +91,15 @@ export async function loadPushCalendars(): Promise<PlanCalendar[]> {
     select: { id: true, googleCalendarId: true, accountId: true, direction: true, accessRole: true },
   });
   return calendars.map((calendar) => ({ ...calendar, direction: toSyncDirection(calendar.direction) }));
+}
+
+/** The "Both ways" calendars the pull reads: accounts that still work only. */
+export async function loadPullCalendars(): Promise<PullCalendarRow[]> {
+  const calendars = await db.linkedCalendar.findMany({
+    where: { direction: "twoWay", account: { status: "ok" } },
+    select: { id: true, googleCalendarId: true, accountId: true, syncToken: true, account: { select: { userId: true } } },
+  });
+  return calendars.map(({ account, ...calendar }) => ({ ...calendar, linkerId: account.userId }));
 }
 
 /** True when another person has already linked this Google account (its `sub`). */

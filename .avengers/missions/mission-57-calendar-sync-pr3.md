@@ -385,14 +385,18 @@ would flip Google's own choice. Both are fixed before the pull exists.
   Bryce approved.
 - **Boundaries:** may touch `src/components/CalendarHeader.tsx`, a new
   small client component for the Refresh button and the on-open pull
-  (`src/components/CalendarPullButton.tsx` or similar, keeping
+  (new `src/components/CalendarPullButton.tsx`, keeping
   `CalendarViews.tsx` untouched), `src/app/(app)/calendar/page.tsx`,
   `src/components/CalendarWidgetTile.tsx` (fire the on-open pull only),
   `src/components/EventDetailSheet.tsx` and the sheet's caller,
-  the event form's Sync to list component, `src/lib/calendarEventQuery.ts`
+  `src/components/EventSyncToField.tsx`, `src/components/EventForm.tsx`,
+  `src/app/(app)/calendar/[id]/edit/page.tsx` (source calendar to the form),
+  `src/lib/calendarEventQuery.ts`
   (expose the source calendar name to views), `src/lib/types.ts`,
   `src/lib/calendarSyncVocabulary.ts`, the Synced calendars components
-  (`SyncedCalendarsList.tsx`, `LinkedAccountCard.tsx`),
+  (`src/components/SyncedCalendarsList.tsx`,
+  `src/components/LinkedAccountCard.tsx`), `src/lib/linkedCalendarsRead.ts`
+  (`lastPulledAt` and account status for the page and banner),
   `src/app/privacy/page.tsx`.
 - **Spec:** mocks A to E in this mission (chat, 2026-11-09). Words go in
   the vocabulary. Refresh shows only to parents and admins when some
