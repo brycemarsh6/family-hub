@@ -107,18 +107,18 @@ export async function loadCalendarOwner(calendarId: string): Promise<{ userId: s
  */
 export async function loadSiblingCalendars(
   calendarId: string,
-): Promise<{ id: string; direction: SyncDirection; email: string; updatedAt: Date }[]> {
+): Promise<{ id: string; direction: SyncDirection; email: string; turnedOnAt: Date | null }[]> {
   const calendar = await db.linkedCalendar.findUnique({ where: { id: calendarId }, select: { googleCalendarId: true } });
   if (!calendar) return [];
   const others = await db.linkedCalendar.findMany({
     where: { googleCalendarId: calendar.googleCalendarId, id: { not: calendarId } },
-    select: { id: true, direction: true, updatedAt: true, account: { select: { email: true } } },
+    select: { id: true, direction: true, turnedOnAt: true, account: { select: { email: true } } },
   });
   return others.map((other) => ({
     id: other.id,
     direction: toSyncDirection(other.direction),
     email: other.account.email,
-    updatedAt: other.updatedAt,
+    turnedOnAt: other.turnedOnAt,
   }));
 }
 
