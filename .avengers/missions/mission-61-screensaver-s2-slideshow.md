@@ -12,7 +12,7 @@ Plan: `.avengers/plans/screensaver-slideshow-v1.md` (approved by Bryce 2026-11-0
 - PR #94 is merged on `origin/main` (`e62056c`), and `mission-57-screensaver-s1-photos.md` is on main.
 - Production deploy `dpl_ECGfBri8pesymrLFLENYfZgQefr3` for `e62056cde93b59e10772d9726363d68a61ba3c02` is READY; its build log shows "Applying migration `20261115000000_slideshow_photos`" against the production host. Recorded in mission 57's Delivery through this PR.
 - Worktree `.env` symlinked to the main checkout's (gitignored). Not read.
-- Next free numbers on `origin/main`: Mission 61; migration stamp after `20261115000000`.
+- Next free numbers on `origin/main` at step 0: mission 58 (taken by text size before this merged, so this became 61); migration stamp after `20261115000000_slideshow_photos`.
 
 ## Brief
 
