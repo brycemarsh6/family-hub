@@ -249,7 +249,7 @@ From AGENTS.md, absolute for every agent:
 
 ### C3 - Floor follows the header; flush on an unchanged pinch end
 
-- **Status:** DISPATCHED
+- **Status:** DONE
 - **Objective:** keep the whole-day floor true whenever the sticky header or
   the scroller changes size, and stop the small jump when a pinch ends where
   it began.
@@ -273,7 +273,12 @@ From AGENTS.md, absolute for every agent:
 - **Done criteria:** Vision and Strange pass 3 PASS (the last pass in the
   budget). Strange re-measures iPad portrait Day Nov 10, Week Nov 8 to 14 and
   Week Nov 15 to 21: 0px blank band in each, stored value still 32.
-- **Report:** pending.
+- **Report:** Stark DONE. One ResizeObserver on the scroller and sticky
+  header calls `measureFloor` (window resize listener removed); first
+  measure in a layout effect; `flushSync` before clearing the anchor on an
+  unchanged pinch end. Gauntlet green by his run (1801; UTC 1794 + 7).
+  Untested in a browser: the first measure may read the seed height, which
+  the observer's first callback should correct before paint.
 
 ## Gate ledger
 
@@ -319,6 +324,7 @@ From AGENTS.md, absolute for every agent:
   floor. Fury scoped the DESIGN.md title sentence to Normal text size and
   loosened the STRUCTURE.md markup clause. C3 dispatched. Pass 3 is the
   last in the budget.
+- 2026-11-10: C3 built and committed. Vision and Strange pass 3 dispatched.
 
 ## Delivery
 
