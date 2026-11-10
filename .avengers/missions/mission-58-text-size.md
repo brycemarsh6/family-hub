@@ -391,8 +391,8 @@ eslint, 1627 Denver, UTC 1620 + 7 skipped, build exit 0.
   20261115 migration stamp, so this became mission 58 with 20261116; PR #95
   split STRUCTURE.md, so the chrome-dimension rule edit moved to
   `docs/structure/layout.md`).
-- **Waiting for Bryce (not filed):** Captain's rule A (STRUCTURE.md Wide
-  pages: rem container thresholds follow Text size; Month and week columns
+- **Waiting for Bryce (not filed):** Captain's rule A (Wide pages, now in
+  `docs/structure/layout.md` after mission 59: rem container thresholds follow Text size; Month and week columns
   are the px exceptions) and rule B (DESIGN.md: sizes in rem, not px, with
   the listed px exceptions). Exact text is in Captain's pass 2 report,
   summarised in the pass 2 ledger row; Fury files them on Bryce's yes. Also
