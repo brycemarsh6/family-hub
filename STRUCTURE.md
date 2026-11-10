@@ -14,7 +14,7 @@ section and rule names; a rule here keeps a one-line pointer.
 | `src/app/(app)/` | Authenticated routes, wrapped in `AppChrome` (drawer, hamburger, and the wordmark header on `/` and `/login`). `/login` deliberately lives here too and gets no drawer (`AppChrome` is handed no user), rather than moving to a separate layout for one page | Pages needing a genuinely chrome-free root layout; those go in `src/app/share/` |
 | `src/app/privacy/` | The one public static policy page (own root layout, no chrome, indexable) | Anything session-dependent |
 | `src/app/share/` | Public token-gated pages (own root layout, no chrome, `noindex`) | Anything session-dependent |
-| `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`), plus **session-gated GET routes for bytes a page cannot inline** (an `<img src>`), where a Server Action cannot serve the response: `/api/feedback/[id]/screenshot` (mission-38) and `/api/slideshow/[id]/image` (mission-57) are the two instances. Such a route calls `getVerifiedUser()` itself, answers 404 to anyone not allowed (the same answer as an unknown id), reads through the domain's one reader, sends `Cache-Control: private, no-store` (the default) or, only when the bytes never change for a given URL, `private, max-age=31536000, immutable` (the slideshow image), never writes, and is never added to proxy.ts's public lists. Also **browser return routes**, where a third party sends a person's browser back and a Server Action cannot receive the GET: `/api/google/callback` is the one instance (mission-55; rules under "Browser return routes" below). A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
+| `src/app/api/` | Route Handlers for non-browser clients (e.g. `/api/voice`, `/api/assistant/v1/`), plus **session-gated GET routes for bytes a page cannot inline** (an `<img src>`), where a Server Action cannot serve the response: `/api/feedback/[id]/screenshot` (mission-38) and `/api/slideshow/[id]/image` (mission-57) are the two instances. Such a route calls `getVerifiedUser()` itself, answers 404 to anyone not allowed (the same answer as an unknown id), reads through the domain's one reader, never writes, and is never added to proxy.ts's public lists. It sends `Cache-Control: private, no-store` by default. It may send `private, max-age=31536000, immutable` only when the bytes behind a URL can never change: the id in the path is made by the server, and the stored file is written once with overwrite refused (the slideshow image). That choice accepts that a copy stays in one device's own cache after sign-out or delete, so it is for household photos, never for anything a person reports or edits. Also **browser return routes**, where a third party sends a person's browser back and a Server Action cannot receive the GET: `/api/google/callback` is the one instance (mission-55; rules under "Browser return routes" below). A handler may run its own reads the way a page does — one `Promise.all`, a narrow `select`, shaped by a lib serializer; every write, and any rule the app also applies (a threshold, a bucket, a filter), is a lib call | Logic that belongs in an action or lib — writes and shared rules above all |
 | `src/app/actions/` | Server Actions — **every exported action opens with a DAL guard, except `auth.ts`'s `login`/`logout`** (`logout` reads the session only to send a device login back to `/settings`; the tablet signs out through `logoutWithAdminPassword`, which is guard form (a) and not part of the exception) — a login action can't require the session it exists to create. Two forms, chosen by who can reach the trigger, never by taste (see the guard-form rule below) | Unguarded exports outside that one named exception; pure logic (goes in lib); hiding a control instead of guarding its action; **type re-exports** (mission-53, A-L3-10: a component takes a type from its lib home, never through a `"use server"` file, because Turbopack dev threw `HabitInput is not defined` on `export type { HabitInput };`. A new one is a BLOCKER; existing debt to fix on the next touch: `groceriesRecipes.ts:35`, `groceriesPutAway.ts:28-33`) |
 | `src/proxy.ts` | The Next 16 proxy — redirect-to-login UX, plus the narrow public routes (`/login`, `/privacy`, `/api/voice`, `/api/alexa`, `/api/cron/briefing`, `/api/google/callback` — exact matches) and prefixes (`/share/recipe/`, `/share/cookbook/`, `/api/assistant/v1/`) | A second `middleware.ts` file (won't run under Next 16); treating this as the real auth gate — that's the in-action `getVerifiedSession()` guard, this is only UX |
 | `src/lib/` | Pure helpers, `server-only` AI/external-call wrappers (no auth checks of their own — the wrapping Server Action guards), and the auth/db infrastructure itself (`dal.ts`, `session.ts`, `db.ts`) | Anything importing from `app/` or `components/` |
@@ -681,6 +681,30 @@ Adding a second definition of any of these is a BLOCKER:
   `formatHouseholdClock` from `householdDate.ts`. A list that shows "time ago" takes one `now` from
   its server page as a prop, so server and browser print the same words.
   (Added mission-38, on Captain's ruling.)
+- **Slideshow photos (mission-57).** `src/lib/slideshowPhotos.ts` has no
+  imports, on purpose, and holds the rules: `CAPTION_MAX`,
+  `PHOTO_MAX_BYTES`, `THUMB_MAX_BYTES`, `PHOTO_LONG_EDGE`,
+  `THUMB_LONG_EDGE`, `PHOTO_TYPE`, `normalizeCaption` (the only caption
+  cleaner), `isTakenOn`, `photoPaths` (the only builder of a stored
+  pathname) and `toDimension`. `src/lib/exifDate.ts` (pure) is the only
+  EXIF reader. `src/lib/shrinkPhoto.ts` (`client-only`) is the only
+  in-browser photo shrink. `src/lib/slideshowBlob.ts` (`server-only`, no
+  auth, never a `token` option) is the only importer of `@vercel/blob`;
+  its callers are `actions/slideshowPhotos.ts` (put, delete) and the image
+  route (get), each carrying its own gate. `src/lib/slideshowRead.ts`
+  (`server-only`, no auth) is the only reader of `SlideshowPhoto` and owns
+  `SLIDESHOW_PHOTO_SELECT`; its list never carries the stored paths.
+  `addSlideshowPhoto`, `updateSlideshowCaption` and `deleteSlideshowPhoto`
+  (guard form a, `MANAGER_ROLES`) are the only writers; if a second caller
+  appears (a Winnie route, the tablet's slideshow), the writes move into
+  `src/lib/slideshowWrites.ts` first. The bytes go out through
+  `src/app/api/slideshow/[id]/image/route.ts` alone. **`SlideshowPhoto`
+  has no Prisma relation to `User` on purpose** (the `Feedback`
+  precedent): `uploadedById` is a plain id and `uploadedByName` a
+  snapshot; adding the relation later is a separate additive migration
+  that first confirms no `uploadedById` lacks a `User` row. A second
+  reader, writer, Blob importer or caption cleaner is a BLOCKER. (Added
+  mission-57, on Captain's ruling, Bryce-approved.)
 - `src/app/globals.css` — the color tokens
 - `src/lib/shelfLife.ts` — the shelf-life vocabulary
 - `src/lib/householdDate.ts` — calendar dates for **server** code,
@@ -1248,12 +1272,14 @@ Adding a second definition of any of these is a BLOCKER:
   print page. The long forms are New and Edit habit, New and Edit goal, New
   and Edit event, and the manual recipe form with recipe Edit. The short
   pages are New task, the Add recipe chooser, the paste, link and photo
-  imports, and Profile. Settings, Manage family and Feedback are wide too.
+  imports, and Profile. Settings, Manage family, Feedback and Slideshow
+  photos (mission-57) are wide too.
   Containers: each long form's `<form>` (`HabitForm`, `GoalForm`,
   `EventForm`, `RecipeForm`), with the grid as its child because a
   container query never measures its own element; the div round Settings'
   two columns; the div inside `FamilyList` round the list and its `aside`
-  slot (the page's Family order block). Short pages have no container.
+  slot (the page's Family order block); the div round Slideshow photos'
+  grid (its sheet is portaled). Short pages have no container.
   Feedback measures instead (rule 2). A `<form>` may be the container only
   while it holds no sheet or fixed bar; a form that gains one portals it or
   moves it outside. In `FamilyList` the +, the spacer and the three sheets

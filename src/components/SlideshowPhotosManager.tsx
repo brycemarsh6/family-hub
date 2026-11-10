@@ -29,7 +29,8 @@ function altText(photo: SlideshowPhotoItem): string {
 
 function countLine(count: number): string {
   if (count === 0) return "No photos yet. Add some to show on the wall tablet.";
-  return `${count} ${count === 1 ? "photo" : "photos"}. They show on the wall tablet.`;
+  if (count === 1) return "1 photo. It shows on the wall tablet.";
+  return `${count} photos. They show on the wall tablet.`;
 }
 
 /**

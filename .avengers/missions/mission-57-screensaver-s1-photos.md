@@ -192,7 +192,8 @@ Answered by Bryce 2026-11-09 (he approved every recommendation):
 - **Verification:** the gauntlet passes; the test count rises only by any new tests you add.
 - **Evidence required:** each blocker's new code quoted; `grep -n "MONTH_NAMES\|DateTimeFormat" src/components/Slideshow*.tsx` returns nothing; gauntlet last lines; `git show --stat HEAD`.
 - **Done criteria:** Captain and Strange pass 2 both PASS.
-- **Report:** pending.
+- **Report:** DONE (Stark, commit dd480ca): all 4 blockers and notes 5 to 15 built; tsc, eslint, both test timezones green (1621); Fury re-ran `npm run build` (exit 0) because Stark's capture missed the exit code. Untested at runtime: focus after delete and iPad widths (Strange pass 2).
+- **Fury, after Bryce's approvals (2026-11-09):** one-photo wording now "1 photo. It shows on the wall tablet." (Bryce approved); Captain's amendments A (caching rule wording), B (Slideshow photos one-source-of-truth entry) and C (Wide pages list and container) written into STRUCTURE.md (Bryce approved).
 
 **Vision pass 1 notes queued for the fix batch:** STRUCTURE.md:17 says "mission-56" (renumbered, now 57); `SlideshowPhotosManager.tsx:90` re-implements `normalizeCaption`; `PHOTO_MAX_BYTES` (4 MiB) + thumb + multipart overhead can exceed Vercel Functions' 4.5 MB request body limit (lower to 3.5 MiB); first `put` throwing after storing leaves an orphan (clean up that path too); thumbnail drawn without `imageSmoothingQuality = "high"`. Not taken: the route answering 500 on a Blob outage (a broken image either way); a caption save on a photo another parent deleted keeps it in the grid until reload (rare, harmless).
 
