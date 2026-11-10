@@ -1,7 +1,7 @@
 # Mission: Calendar pinch to zoom (hour timeline)
 
 **Project:** family-hub (Marshee)
-**Status:** AT-THE-GATES
+**Status:** DELIVERING
 **Started:** 2026-11-10 · **Updated:** 2026-11-10
 
 ## Brief
@@ -286,6 +286,8 @@ From AGENTS.md, absolute for every agent:
 |---|---|---|---|---|
 | 1 | Captain | PASS | none | Stale `PX_PER_MINUTE` comment (TimelineGrid:80); usePageSwipe 337, near soft cap, extraction owed; SwipeActions lacks the second-finger yield; CalendarViews 507 vs 502 trend line; fifth hand-rolled localStorage store. Amendments A-64-1 (adopted) and A-64-2 (optional, not adopted) |
 | 1 | Vision | PASS | none | Gauntlet green at a68101d (1798; UTC 1791 + 7 skips, which also exist at base 6ba78ca); boundary exact. Notes: the hydration rescale branch is effectively unreachable (TimelineGrid mounts after hydration); scroll-then-second-finger case unproven; one finger left after a pinch may not scroll until both lift; pinch-on-event click unproven; two-finger tap saves an unchanged height |
+| 3 | Vision | PASS | none | Gauntlet green at 6be920e (1801; UTC 1794 + 7); boundary exact; no observer loop; doc phrases true. NOTE: first floor measure reads the seed height |
+| 3 | Strange | PASS | none | 0px band in all 7 iPad portrait states incl. "+N more" expand/collapse; stored 32 kept; phone at 48 unchanged; DESIGN.md wording true. NOTE: first committed frame on a fresh iPad load likely shows a band for one frame (follow-up in status.md) |
 | 2 | Vision | BLOCK | Floor measured only at mount, on resize and at pinch start; strip shrink leaves a blank band (C3) | Possible one-frame flash at 32 on iPad (C3 rule 2); unchanged-pinch end can jump (C3 rule 3); DESIGN.md "never drawn cut" and "12px line" are Normal text size only; STRUCTURE.md "only way markup sees it" too strict (both fixed by Fury) |
 | 2 | Strange | BLOCK | (1) same stale floor: 28px band on iPad portrait Day and stripless weeks; (2) "a title is never drawn cut" false at Largest (fixed by scoping the DESIGN.md sentence, option (a)) | Pass 1 blocker fixed (descenders inside at 32); 192 on iPhone shows 3.55 hours; 48 unchanged; synthetic pinch to 192 held the midpoint minute at 675.00 |
 | 1 | Strange | BLOCK | 30-min titles cut at 32 to 39px/hour on columns 128px+ (title gets 12 of 16px; descenders chopped) | Range gives 21/14/5.3 hours on phone, not 14/3.5 (Fury's error); 15-min time line half-cut at 48 (pre-existing); Largest text at 32 unreadable on short blocks; iPad dead band at 32; DESIGN.md exception assumes fixed 48; at 128 a 15-min event still draws 30 min tall. Synthetic pinch: anchor held within 0.5 minute; two fingers never paged |
@@ -325,9 +327,19 @@ From AGENTS.md, absolute for every agent:
   loosened the STRUCTURE.md markup clause. C3 dispatched. Pass 3 is the
   last in the budget.
 - 2026-11-10: C3 built and committed. Vision and Strange pass 3 dispatched.
+- 2026-11-10: Pass 3: Vision PASS, Strange PASS. Delivering: PR, merge,
+  production check.
 
 ## Delivery
 
-- **Shipped:** pending.
-- **Shipped check:** pending.
-- **Deliberate leftovers:** pending.
+- **Shipped:** pinch to zoom on Day, 3 Day and Week (C1 to C3), 32 to 192px
+  per hour with a whole-day floor, remembered per person per device;
+  swipe-to-page yields to a second finger; short titles fit at Normal text
+  size; DESIGN.md and STRUCTURE.md amended (Bryce approved).
+- **Shipped check:** see the PR and the production check below.
+- **Deliberate leftovers:** the one-frame flicker on a fresh iPad load and
+  short titles at Largest text size on tablets (both in status.md "Open,
+  not scheduled"); the half-cut time line on 15-minute events at 48px
+  (Bryce: keep as is); usePageSwipe at 337 lines with the gesture-machine
+  extraction owed (SwipeActions lacks the second-finger yield); Captain's
+  optional A-64-2 (shared localStorage helper) not adopted.
