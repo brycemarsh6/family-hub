@@ -247,12 +247,42 @@ From AGENTS.md, absolute for every agent:
   Note: the floor is first measured in a passive effect after mount, and a
   later all-day strip growth is only picked up at resize or pinch start.
 
+### C3 - Floor follows the header; flush on an unchanged pinch end
+
+- **Status:** DISPATCHED
+- **Objective:** keep the whole-day floor true whenever the sticky header or
+  the scroller changes size, and stop the small jump when a pinch ends where
+  it began.
+- **Boundaries:**
+  - May touch: `src/lib/useTimelineZoom.ts`.
+  - Must not touch: everything else (Fury edits `DESIGN.md`,
+    `STRUCTURE.md` and the mission file).
+- **Rules:**
+  1. Replace the window `resize` listener with one `ResizeObserver` that
+     observes both the scroller and `stickyHeaderRef.current` and calls
+     `measureFloor`; disconnect it in the cleanup.
+  2. Measure the floor first in a layout effect, not a passive one, so the
+     first paint never draws below the floor.
+  3. In `end()`'s unchanged-height branch, render the final height with
+     `flushSync` while the anchor is still set, then clear the anchor (the
+     same order as the saving branch). Still save nothing.
+  4. No change to stored-value handling: a stored 32 on an iPad stays 32.
+- **Verification:** the full gauntlet, green.
+- **Evidence required:** gauntlet last lines with counts; `wc -l`;
+  `git diff --stat`.
+- **Done criteria:** Vision and Strange pass 3 PASS (the last pass in the
+  budget). Strange re-measures iPad portrait Day Nov 10, Week Nov 8 to 14 and
+  Week Nov 15 to 21: 0px blank band in each, stored value still 32.
+- **Report:** pending.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
 | 1 | Captain | PASS | none | Stale `PX_PER_MINUTE` comment (TimelineGrid:80); usePageSwipe 337, near soft cap, extraction owed; SwipeActions lacks the second-finger yield; CalendarViews 507 vs 502 trend line; fifth hand-rolled localStorage store. Amendments A-64-1 (adopted) and A-64-2 (optional, not adopted) |
 | 1 | Vision | PASS | none | Gauntlet green at a68101d (1798; UTC 1791 + 7 skips, which also exist at base 6ba78ca); boundary exact. Notes: the hydration rescale branch is effectively unreachable (TimelineGrid mounts after hydration); scroll-then-second-finger case unproven; one finger left after a pinch may not scroll until both lift; pinch-on-event click unproven; two-finger tap saves an unchanged height |
+| 2 | Vision | BLOCK | Floor measured only at mount, on resize and at pinch start; strip shrink leaves a blank band (C3) | Possible one-frame flash at 32 on iPad (C3 rule 2); unchanged-pinch end can jump (C3 rule 3); DESIGN.md "never drawn cut" and "12px line" are Normal text size only; STRUCTURE.md "only way markup sees it" too strict (both fixed by Fury) |
+| 2 | Strange | BLOCK | (1) same stale floor: 28px band on iPad portrait Day and stripless weeks; (2) "a title is never drawn cut" false at Largest (fixed by scoping the DESIGN.md sentence, option (a)) | Pass 1 blocker fixed (descenders inside at 32); 192 on iPhone shows 3.55 hours; 48 unchanged; synthetic pinch to 192 held the midpoint minute at 675.00 |
 | 1 | Strange | BLOCK | 30-min titles cut at 32 to 39px/hour on columns 128px+ (title gets 12 of 16px; descenders chopped) | Range gives 21/14/5.3 hours on phone, not 14/3.5 (Fury's error); 15-min time line half-cut at 48 (pre-existing); Largest text at 32 unreadable on short blocks; iPad dead band at 32; DESIGN.md exception assumes fixed 48; at 128 a 15-min event still draws 30 min tall. Synthetic pinch: anchor held within 0.5 minute; two fingers never paged |
 
 ## Phone test for Bryce (after merge)
@@ -285,6 +315,10 @@ From AGENTS.md, absolute for every agent:
   written and dispatched; Fury writes the DESIGN.md and STRUCTURE.md edits.
 - 2026-11-10: C2 built; committed with the DESIGN.md and STRUCTURE.md
   amendments. Vision and Strange pass 2 dispatched.
+- 2026-11-10: Pass 2: Vision BLOCK and Strange BLOCK on the same stale
+  floor. Fury scoped the DESIGN.md title sentence to Normal text size and
+  loosened the STRUCTURE.md markup clause. C3 dispatched. Pass 3 is the
+  last in the budget.
 
 ## Delivery
 

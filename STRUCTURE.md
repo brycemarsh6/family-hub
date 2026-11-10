@@ -724,8 +724,8 @@ amendment id.
   `titleFitsFullSize`). `src/lib/useTimelineZoom.ts` is the only reader and
   writer of the remembered zoom (localStorage, keyed per person) and the
   only pinch listener. `TimelineGrid.tsx` turns the live height into
-  `pxPerMinute` once and passes it down; `--hour-height` is the only way
-  markup sees it. A second hour-height constant, a component working out its
+  `pxPerMinute` once and passes it down; markup sees it only as
+  `--hour-height` or that passed-down `pxPerMinute`. A second hour-height constant, a component working out its
   own px per minute, or a second pinch listener is a BLOCKER. (Added
   2026-11-10, mission-64, Captain's A-64-1; Bryce approved.)
 - **Month lane counts have one home.** `PHONE_LANES` (3) and `WIDE_LANES`
