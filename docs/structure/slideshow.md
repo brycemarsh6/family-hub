@@ -3,7 +3,7 @@
 Part of [STRUCTURE.md](../../STRUCTURE.md)'s "One source of truth" list,
 cut from it word for word at commit e62056c on 2026-11-09 by mission 59
 (Screensaver added by mission 62, Start page by mission 64, On this day
-by mission 65).
+by mission 66).
 Every rule here binds exactly like STRUCTURE.md; a second definition is a
 BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
 

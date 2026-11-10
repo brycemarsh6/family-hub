@@ -26,7 +26,7 @@ it is done. The pre-cleanup text is in
   Slideshow card looks right without the Slideshow photos row, set "Open
   Marshee on" to Calendar, then let the slideshow start and tap it: it
   opens Calendar. Set it back if you like.
-- **On this day (mission 65)**, whenever a photo's anniversary comes up:
+- **On this day (mission 66)**, whenever a photo's anniversary comes up:
   on the kitchen tablet, a photo taken on today's date in an earlier year
   shows soon after the slideshow starts, with "2 years ago today" (or "A
   year ago today") in yellow where the date usually is. Say if the yellow

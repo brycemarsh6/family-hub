@@ -1,7 +1,7 @@
-# Mission 65: Screensaver S4, "On this day"
+# Mission 66: Screensaver S4, "On this day"
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** DELIVERING
 **Started:** 2026-11-10 · **Updated:** 2026-11-10
 
 ## Brief
@@ -91,8 +91,25 @@ AGENTS.md, `npm run build`.
 
 ## Gate ledger
 
-(filled as gates run)
+| Pass | Gate | Verdict | Blockers | Notes |
+|---|---|---|---|---|
+| C1 | Stark | DONE | none | 3 files; +5 tests (1787 to 1792) |
+| 1 | Vision (HEAD f0a592a) | PASS | none | Re-ran: tsc 0, eslint 0, `npm test` 0 (1792), UTC 0 (1792, 1785 pass, 7 DST skips), build 0. Denver today, Feb 29, `firstIds` vs no-repeat and `lastId`, failed photos, midnight rollover all checked. Notes: the number 65 was already taken on main by `mission-65-calendar-pinch-zoom.md` (renamed this file to 66, Fury rechecked origin/main); records sat outside C1's may-touch list (Fury's own, inert); a memory picked at 11:59 PM keeps its words up to one photo past midnight (by design); `text-amber-200` is a raw colour, consistent with the overlay's raw white. |
+| 1 | Strange (HEAD f0a592a, stand-in markup on the dev server, no Tablet login) | PASS | none | Amber line 10.1 to 11.9:1 on orange and pink, 8.5 worst on white, 16.9 on black, clock on (the default); higher than the white/80 line it replaces at 1366x1024 and 1180x820. Reads as part of the same block, a step above the caption subline, not loud. Notes: contrast computed from compiled colours, not sampled pixels; already true before S4: with the clock switched off, both date lines fall to about 2.4 to 3.5:1 on bright photos (caption gradient only), a separate small fix; on yellow photos the hue blends but contrast holds. Not seen: the real Tablet mount, real photos, the crossfade, midnight rollover, the tablet's screen. |
 
 ## Delivery
+
+- **What shipped:** `yearsAgoToday`, `formatTakenLine` and `firstIds` on
+  `pickNextPhoto` in `src/lib/screensaver.ts`, used by
+  `src/components/ScreensaverSlide.tsx`; 5 tests. Also mission 64's shipped
+  check (PR #105), CLAUDE.md's Screensaver line, `docs/structure/slideshow.md`
+  and Bryce's tablet check in `.avengers/status.md`.
+- **Not seen yet:** the Tablet login's real slideshow with a real anniversary
+  photo (on Bryce's checklist).
+- **Open notes for later:** with "Clock and date" off, the caption and date
+  lines are hard to read on bright photos (Strange; existed before S4; fix
+  by giving the caption gradient the clock shade's stops).
+- This was the plan's last PR: `.avengers/plans/screensaver-slideshow-v1.md`
+  is finished.
 
 - **Shipped check:** (filled at merge.)

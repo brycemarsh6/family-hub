@@ -233,7 +233,6 @@ browser-only reads use `useSyncExternalStore`.
 Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
 
-- **Screensaver S4** ("On this day", mission 65) is not merged yet.
 - **Dashboard widgets W3** is next after the W2 Calendar widget:
   `.avengers/plans/dashboard-widgets-v2.md`.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
