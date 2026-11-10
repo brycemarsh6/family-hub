@@ -1,7 +1,7 @@
 # Mission: Text size setting (mission 58)
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERED (all gates PASS on pass 3; two constitution rules wait for Bryce)
+**Status:** FOLLOW-UP BUILDING (PR 97 merged and live; Bryce's iPad test asked for new sizes, branch `claude/text-size-tune`)
 **Started:** 2026-11-09 · **Updated:** 2026-11-09
 
 ## Brief
@@ -372,6 +372,78 @@ eslint, 1627 Denver, UTC 1620 + 7 skipped, build exit 0.
   Next: write T1 and T2 in full, run preflight, dispatch.
 - 2026-11-09: Bryce said "Yes, build it" (model switched to Opus). T1 built,
   renumbered to mission 58, main merged, migration applied to dev. Gates next.
+
+## Follow-up after Bryce's iPad test (2026-11-09)
+
+Bryce tested PR 97 on the wall iPad (Tablet login, landscape, icon rail) and
+sent three screenshots. At Large (125%) the dashboard's bottom row
+(Inventory, Grocery, Recipes) is cut off (the Inventory tile ends about
+885 to 905 points down, the screen is 820), and the rail's 13 icons no
+longer fit, so it scrolls and Send feedback (or the top icon) is hidden. At
+Extra large (150%) the dashboard drops to one widget per row, because the
+grid's 45rem container switch moves to 1080px.
+
+### Decisions by Bryce, round 2 (2026-11-09)
+
+6. **Four sizes:** Normal 100%, Large 110% (the whole dashboard fits in
+   landscape), Larger 135% (the side-by-side layout, bigger, a short
+   scroll), Largest 150% (today's Extra large: one widget per row). Saved
+   keys stay `normal`, `large`, `xl` and gain `xxl`; a login saved on `xl`
+   becomes Larger (135%).
+7. **Names:** "Normal", "Large", "Larger", "Largest" (four Aa tiles).
+8. **The pinned menu never grows:** rail and sidebar stay Normal size at
+   every text size, icons included, so all 13 destinations always fit.
+   (Bryce: "I'm totally okay if the icons are just a little bit smaller. I
+   don't have to scroll on the side of the icon tab.")
+
+### F3 — Four sizes, the pinned menu stays Normal
+- **Objective:** Text size has four steps (100, 110, 135, 150%) named per
+  decision 7, and the pinned rail and sidebar render at exactly their Normal
+  size at every step.
+- **Boundaries:** may touch: `src/lib/textSize.ts`, `src/lib/textSize.test.ts`,
+  `src/app/globals.css` (the mission-58 block only), `src/components/TextSizeSetting.tsx`,
+  `src/components/PinnedNav.tsx`, `src/lib/appChrome.ts`, `src/lib/appChrome.test.ts`,
+  `src/components/CalendarHeader.tsx` and `src/components/ScheduleView.tsx`
+  (comments that quote the old Large/XL pixel figures only). Must not touch:
+  `src/components/NavList.tsx`, `src/components/NavDrawer.tsx`,
+  `src/components/AppChrome.tsx`, `prisma/`, `DESIGN.md`, `STRUCTURE.md`,
+  `docs/`, `CLAUDE.md`, the mission file (Fury's).
+- **Shape:**
+  1. `TEXT_SIZES` becomes `normal, large, xl, xxl`; labels Normal, Large,
+     Larger, Largest; `TEXT_SIZE_PREVIEW_REM` 1, 1.1, 1.35, 1.5. `toTextSize`
+     and `saveTextSize` need no other change (they read `TEXT_SIZES`). Tests
+     updated, including `xxl` as valid.
+  2. CSS: `large` 110%, `xl` 135%, `xxl` 150%, with `svg.lucide` zoom 1.1,
+     1.35, 1.5. Inside the same media query, a rule cancels the size on an
+     element marked `data-text-size-reset`: `zoom` 1/1.1, 1/1.35, 1/1.5
+     (write the decimals to 4 places, with a comment), so rem lengths and
+     zoomed icons inside it come out at their Normal size.
+  3. `PinnedNav.tsx`: the `<aside>` keeps its width and scrolling, and its
+     width becomes a fixed px value again; its padding and `NavList` (and
+     the rail's menu button and divider) move into one inner wrapper marked
+     `data-text-size-reset`. The rail's `NavDrawer` stays outside the
+     wrapper (it is a fixed overlay, unchanged behaviour).
+  4. `appChrome.ts`: `NAV_RAIL_WIDTH` and `NAV_SIDEBAR_WIDTH` become `"72px"`
+     and `"256px"` again, with a comment: px on purpose, the pinned menu
+     stays Normal at every text size (mission-58 follow-up), so
+     `--app-nav-width` and the aside agree. Test updated.
+  5. Tiles: four in a row (`grid-cols-4`), still at least 4.5rem tall.
+  6. Comments quoting the old 125/150% or 162/195px figures updated.
+- **Verification:** `npx tsc --noEmit`, `npx eslint .`, `npm test`, the
+  AGENTS.md UTC run, `npm run build`.
+- **Evidence required:** command tails; `git diff --stat`; the final CSS
+  block; the PinnedNav wrapper markup.
+- **Done criteria:** Strange at 1180x820 with the rail: at every size the
+  rail's links are the Normal size (rail 72 wide, links 48px), no rail
+  scroll, Send feedback visible; dashboard fits whole at Large (default
+  tablet layout or the closest available), side by side at Larger, one per
+  row at Largest; four tiles fit on a 390px phone.
+- **Build result (Stark, 2026-11-09):** DONE. tsc, eslint, 1749 tests,
+  the UTC run and the build all green. One deviation from Shape step 3,
+  accepted by Fury: the padding stays on the `<aside>` in px (12px plus
+  `env(safe-area-inset-*)`) instead of moving into the wrapper, so the
+  iPad's safe-area spacing is never shrunk by the reset zoom. The wrapper
+  holds the menu button, divider and `NavList`.
 
 ## Delivery
 

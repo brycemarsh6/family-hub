@@ -154,9 +154,9 @@ files named beside it.
 - **Family accounts**: per-person logins, role gates, account management, kid
   profiles without a password. A "Tablet" device login for the wall tablet
   can check off any task; signing out of it needs an admin password. A
-  per-login **Text size** (Settings: Normal, Large, Extra large) magnifies
-  the whole app on tablets only, through the root font size: size things in
-  rem, never fixed px text (`.avengers/missions/mission-58-text-size.md`).
+  per-login **Text size** (Normal, Large, Larger, Largest) magnifies the
+  app on tablets only, through the root font size; the pinned side menu
+  never grows. Size things in rem, never px text (mission 58 file).
 - **Voice**: Siri shortcut over `/api/voice` is the working path, used daily.
   `/api/alexa` is live but dormant; Alexa+ is blocked on Amazon
   (`.avengers/plans/v3b-alexa-plus-addon.md`).

@@ -186,20 +186,39 @@ body {
    put: the height condition keeps landscape phones (under 440px tall) out,
    while an iPad is at least 744px tall either way. Percent, not px, so it
    still respects the device's own default. Lucide icons are px-sized svgs, so
-   they get the same factor through zoom. The factors (1 / 1.25 / 1.5) are
-   repeated as TEXT_SIZE_PREVIEW_REM in src/lib/textSize.ts: change both
-   together. */
+   they get the same factor through zoom. The factors (1 / 1.1 / 1.35 / 1.5)
+   are repeated as TEXT_SIZE_PREVIEW_REM in src/lib/textSize.ts: change both
+   together.
+   The pinned menu never grows (follow-up, Bryce 2026-11-09): an element
+   marked data-text-size-reset gets zoom of 1 divided by the factor (written
+   to 4 places), so its rem lengths (root size x factor x 1/factor) and its
+   zoomed icons (factor x 1/factor) come out at their Normal size. */
 @media (min-width: 48rem) and (min-height: 40rem) {
   html[data-text-size="large"] {
-    font-size: 125%;
+    font-size: 110%;
   }
   html[data-text-size="large"] svg.lucide {
-    zoom: 1.25;
+    zoom: 1.1;
+  }
+  html[data-text-size="large"] [data-text-size-reset] {
+    zoom: 0.9091;
   }
   html[data-text-size="xl"] {
-    font-size: 150%;
+    font-size: 135%;
   }
   html[data-text-size="xl"] svg.lucide {
+    zoom: 1.35;
+  }
+  html[data-text-size="xl"] [data-text-size-reset] {
+    zoom: 0.7407;
+  }
+  html[data-text-size="xxl"] {
+    font-size: 150%;
+  }
+  html[data-text-size="xxl"] svg.lucide {
     zoom: 1.5;
+  }
+  html[data-text-size="xxl"] [data-text-size-reset] {
+    zoom: 0.6667;
   }
 }

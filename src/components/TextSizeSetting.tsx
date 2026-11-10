@@ -18,7 +18,7 @@ function showTextSize(size: TextSize) {
 }
 
 /**
- * The "Text size" card on /settings: three "Aa" tiles in a row, each drawn at
+ * The "Text size" card on /settings: four "Aa" tiles in a row, each drawn at
  * the size it gives. A tap resizes the page at once (the data-text-size
  * attribute on <html>) and saves in the background; a failed save puts the old
  * size back and says so under the tiles.
@@ -61,7 +61,7 @@ export function TextSizeSetting({ textSize }: { textSize: TextSize }) {
         <Type aria-hidden="true" size={22} className="shrink-0 text-muted" />
         Text size
       </div>
-      <div role="radiogroup" aria-label="Text size" className="mt-3 grid grid-cols-3 gap-2">
+      <div role="radiogroup" aria-label="Text size" className="mt-3 grid grid-cols-4 gap-2">
         {TEXT_SIZES.map((size) => {
           const selected = size === optimisticSize;
           return (

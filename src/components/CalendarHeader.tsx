@@ -43,7 +43,7 @@ export const SCHEDULE_TITLE_SLOT_ID = "calendar-header-schedule-title-slot";
  * + 16px `leading-4` label = 66px at 16) + 0.5rem (`mb-2`) + 1.75rem (title
  * row: Schedule has no arrows, so just the `h-7` span) + 1rem (`mb-4`) +
  * 0.25rem (`pb-1`). Every part is rem, so the bar grows with the Text size
- * setting (about 162px Large, 195px XL), which is why this is rem and
+ * setting (about 143px at Large, 176px at Larger, 195px at Largest), which is why this is rem and
  * ScheduleView.tsx multiplies it by the live root font size (the `rootPx`
  * from `useHamburgerInsetPx()`). The visible "Calendar" h1 (32px + 8px
  * `mb-2` = 40) is gone (Bryce, 2026-11-02), which took the old 170 to 130.

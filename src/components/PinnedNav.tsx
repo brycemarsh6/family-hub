@@ -24,8 +24,9 @@ const RAIL_BUTTON_CLASS =
  * Menu style setting is "icons only" (`rail`) or "icons + names" (`sidebar`).
  * Below `lg` it is `hidden` and the floating hamburger plus `NavDrawer` do
  * the job, exactly as before. Its width is `NAV_RAIL_WIDTH` or
- * `NAV_SIDEBAR_WIDTH` from `src/lib/appChrome.ts`; AppChrome sets
- * `--app-nav-width` from the same numbers.
+ * `NAV_SIDEBAR_WIDTH` from `src/lib/appChrome.ts` (px, so it stays Normal
+ * size at every Text size); AppChrome sets `--app-nav-width` from the same
+ * numbers.
  *
  * In rail mode the first item is a menu button that opens the same `NavDrawer`
  * (with names) over the page, for touch screens that have no hover. This
@@ -60,38 +61,48 @@ export function PinnedNav({
   return (
     <aside
       aria-label="Menu"
-      className="hidden lg:flex sticky top-0 h-dvh shrink-0 flex-col overflow-y-auto border-r border-line bg-surface p-3 print:hidden"
+      className="hidden lg:flex sticky top-0 h-dvh shrink-0 flex-col overflow-y-auto border-r border-line bg-surface print:hidden"
       style={{
         width: pinnedNavWidth(mode),
-        paddingTop: "calc(0.75rem + env(safe-area-inset-top))",
-        paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))",
+        paddingLeft: "12px",
+        paddingRight: "12px",
+        paddingTop: "calc(12px + env(safe-area-inset-top))",
+        paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
       }}
     >
+      {/* mission-58 follow-up: the menu stays Normal size at every Text size.
+          data-text-size-reset (globals.css) cancels the root font size and the
+          icon zoom for everything inside. The padding stays on the aside, in
+          px, so env(safe-area-inset-*) is not scaled by that zoom. */}
+      <div data-text-size-reset className="flex flex-1 flex-col">
+        {rail && (
+          <>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                aria-label="Show menu names"
+                title="Show menu names"
+                aria-expanded={open}
+                aria-controls={RAIL_DRAWER_ID}
+                className={RAIL_BUTTON_CLASS}
+              >
+                <Menu aria-hidden="true" size={22} />
+              </button>
+            </div>
+            <div aria-hidden="true" className="mx-auto my-0.5 w-8 border-t border-line" />
+          </>
+        )}
+        <NavList compact={rail} onNavigate={() => {}} onSendFeedback={onSendFeedback} />
+      </div>
       {rail && (
-        <>
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              aria-label="Show menu names"
-              title="Show menu names"
-              aria-expanded={open}
-              aria-controls={RAIL_DRAWER_ID}
-              className={RAIL_BUTTON_CLASS}
-            >
-              <Menu aria-hidden="true" size={22} />
-            </button>
-          </div>
-          <div aria-hidden="true" className="mx-auto my-0.5 w-8 border-t border-line" />
-          <NavDrawer
-            open={open}
-            onClose={() => setOpen(false)}
-            onSendFeedback={onSendFeedback}
-            id={RAIL_DRAWER_ID}
-          />
-        </>
+        <NavDrawer
+          open={open}
+          onClose={() => setOpen(false)}
+          onSendFeedback={onSendFeedback}
+          id={RAIL_DRAWER_ID}
+        />
       )}
-      <NavList compact={rail} onNavigate={() => {}} onSendFeedback={onSendFeedback} />
     </aside>
   );
 }

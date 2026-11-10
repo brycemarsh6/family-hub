@@ -153,16 +153,17 @@ export function showsWordmarkHeader(pathname: string): boolean {
  * The icons-only pinned menu's width. Dependents (check each when this
  * changes): `AppChrome.tsx`'s `--app-nav-width` variable, which the fixed
  * bars use as their left edge, and the pinned `<aside>` in `PinnedNav.tsx`.
- * mission-58: rem, so the links (which grow with Text size) never clip.
+ * mission-58: px on purpose. The pinned menu stays Normal size at every Text
+ * size (follow-up, Bryce 2026-11-09), so `--app-nav-width` and the aside agree.
  */
-export const NAV_RAIL_WIDTH = "4.5rem";
+export const NAV_RAIL_WIDTH = "72px";
 
 /**
  * The icons + names pinned menu's width, the same as the drawer's rows.
  * Dependents (check each when this changes): `AppChrome.tsx`'s
  * `--app-nav-width` variable and the pinned `<aside>` in `PinnedNav.tsx`.
  */
-export const NAV_SIDEBAR_WIDTH = "16rem";
+export const NAV_SIDEBAR_WIDTH = "256px";
 
 /** How wide the pinned menu is at `lg` and up, as a CSS length: 0px when the mode is the menu button. */
 export function pinnedNavWidth(mode: NavMode): string {

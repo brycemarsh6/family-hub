@@ -15,12 +15,12 @@ test("showsWordmarkHeader: every other page does not", () => {
   assert.equal(showsWordmarkHeader("/kitchen/inventory"), false);
 });
 
-test("pinnedNavWidth: 0px for the menu button, 4.5rem for the rail, 16rem for the sidebar", () => {
+test("pinnedNavWidth: 0px for the menu button, 72px for the rail, 256px for the sidebar", () => {
   assert.equal(pinnedNavWidth("hamburger"), "0px");
-  assert.equal(pinnedNavWidth("rail"), "4.5rem");
-  assert.equal(pinnedNavWidth("sidebar"), "16rem");
-  assert.equal(NAV_RAIL_WIDTH, "4.5rem");
-  assert.equal(NAV_SIDEBAR_WIDTH, "16rem");
+  assert.equal(pinnedNavWidth("rail"), "72px");
+  assert.equal(pinnedNavWidth("sidebar"), "256px");
+  assert.equal(NAV_RAIL_WIDTH, "72px");
+  assert.equal(NAV_SIDEBAR_WIDTH, "256px");
 });
 
 test("HAMBURGER_ROW_HEIGHT: derived from the rem number, still 3.5rem", () => {
