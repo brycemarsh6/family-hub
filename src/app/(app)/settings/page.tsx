@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarSync, ChevronRight, Images, LogOut, MessageSquare, Users } from "lucide-react";
+import { CalendarSync, ChevronRight, Images, LogOut, MessageSquare, Tablet, Users } from "lucide-react";
 import { AdminPasswordSheet } from "@/components/AdminPasswordSheet";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
 import { SettingsAccountCard } from "@/components/SettingsAccountCard";
@@ -24,15 +24,15 @@ export const dynamic = "force-dynamic";
  * App-wide settings: your account card first (taps through to /profile),
  * "Menu style" for everyone (devices too), the
  * admin-only doors "Manage family" and "Feedback", the parent and admin doors "Synced calendars"
- * and "Slideshow photos", and last the "Habits & Chores" section
+ * "Slideshow photos" and "Wall tablet", and last the "Habits & Chores" section
  * and the Vacation mode card (accounts only: a device login never sees them), then
  * Sign out last. Your own name, colour and
  * password live on /profile.
  *
  * Wide (a 48rem container, decision 283): two columns. Left: account card,
- * Menu style, Manage family, Synced calendars, Slideshow photos, Feedback, Sign out. Right:
+ * Menu style, Manage family, Synced calendars, Slideshow photos, Wall tablet, Feedback, Sign out. Right:
  * Habits & Chores, Vacation, Winnie. A phone keeps one column in this order:
- * 1 account card, 2 Menu style, 3 Manage family, Synced calendars, then Slideshow photos (they
+ * 1 account card, 2 Menu style, 3 Manage family, Synced calendars, then Slideshow photos and Wall tablet (they
  * share order-3, so source order decides), 4 Feedback, 5 Habits & Chores, 6 Vacation,
  * 7 Winnie, 8 Sign out. The column divs dissolve (`contents`) below 48rem and
  * each section's `order-N` sets that order. The two sheets inside (Menu style,
@@ -113,6 +113,21 @@ export default async function SettingsPage() {
                     <span className="text-sm text-muted">{slideshowCount}</span>
                     <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
                   </span>
+                </Link>
+              </div>
+            )}
+
+            {canManageSlideshow && (
+              <div className="order-3">
+                <Link
+                  href="/settings/wall-tablet"
+                  className="mt-3 flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 text-base font-medium transition-colors active:bg-surface-2"
+                >
+                  <span className="flex items-center gap-3">
+                    <Tablet aria-hidden="true" size={22} className="shrink-0 text-muted" />
+                    Wall tablet
+                  </span>
+                  <ChevronRight aria-hidden="true" size={18} className="shrink-0 text-muted" />
                 </Link>
               </div>
             )}
