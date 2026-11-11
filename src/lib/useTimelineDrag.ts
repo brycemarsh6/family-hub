@@ -15,7 +15,7 @@ import type { CalendarEventView } from "./types";
 // effects as `DragCallbacks`. This hook only carries them out.
 //
 // No React state, so no render, while a block is lifted. Every move writes
-// straight to the DOM: the block's `transform` and time line, the target
+// straight to the DOM: the block's `translate` and time line, the target
 // day's header tint, and the gutter marker (the new start, "4:30", with the
 // hour label under it hidden). Where the block lands is `resolveDrop`
 // (timelineDrag.ts), fed the LIVE hour height and columns measured now.
@@ -49,6 +49,17 @@ export function isOnDragBlock(target: EventTarget): boolean {
 /** The days the columns showed, as one comparable key. */
 function daysKey(days: Date[]): string {
   return days.map((day) => day.getTime()).join(",");
+}
+
+/**
+ * The block's own top in its column, unmoved, to the fraction of a pixel:
+ * its inline `top` (TimelineDayColumn.tsx). `offsetTop` is rounded to a
+ * whole pixel, which drew the lifted block up to half a pixel off the marker
+ * at an hour height that is not a whole number.
+ */
+function restTopPx(block: HTMLElement): number {
+  const top = parseFloat(block.style.top);
+  return Number.isFinite(top) ? top : block.offsetTop;
 }
 
 type Lift = {
@@ -193,9 +204,12 @@ export function useTimelineDrag(options: TimelineDragOptions): DragCallbacks {
       dx =
         current.columns[index].getBoundingClientRect().left -
         current.columns[current.originIndex].getBoundingClientRect().left;
-      dy = minutesOfDay(newStart) * pxPerMinute - current.block.offsetTop;
+      dy = minutesOfDay(newStart) * pxPerMinute - restTopPx(current.block);
     }
-    current.block.style.transform = `translate(${dx}px, ${dy}px)`;
+    // `translate`, never `transform`: the browser applies translate, then the
+    // lift's `scale`, then `transform`, so a `transform` move would be scaled
+    // by 1.04 and drift off the marker; a `translate` move is not.
+    current.block.style.translate = `${dx}px ${dy}px`;
     if (current.timeEl) {
       const end = new Date(start.getTime() + current.durationMinutes * 60000);
       current.timeEl.textContent = formatTimeRange(start, end);
@@ -253,7 +267,7 @@ export function useTimelineDrag(options: TimelineDragOptions): DragCallbacks {
     const instant = inPlace || latest.current.reduceMotion;
     if (instant) block.style.transition = "none";
     block.removeAttribute("data-lifted");
-    block.style.transform = "";
+    block.style.translate = "";
     const restore = () => {
       restoreTimer.current = 0;
       pendingRestore.current = null;
@@ -304,8 +318,8 @@ export function useTimelineDrag(options: TimelineDragOptions): DragCallbacks {
         columns,
         originIndex: columns.indexOf(column),
         daysKey: daysKey(columnDays),
-        // offsetTop ignores transforms, so the grab is from the block's real top.
-        grabOffsetY: y - rail.top - block.offsetTop,
+        // restTopPx ignores `translate`, so the grab is from the block's real top.
+        grabOffsetY: y - rail.top - restTopPx(block),
         x,
         y,
         newStart: null,

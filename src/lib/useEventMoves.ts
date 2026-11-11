@@ -103,7 +103,7 @@ export function useEventMoves(events: CalendarEventView[], move: MoveAction) {
   }
 
   // The glide back (FLIP): once the refused event is drawn home again, start
-  // it at the spot it was dropped and let its own transform transition carry
+  // it at the spot it was dropped and let its own `translate` transition carry
   // it home. Reduce motion makes that transition instant (globals.css).
   useLayoutEffect(() => {
     const pending = glide.current;
@@ -116,10 +116,10 @@ export function useEventMoves(events: CalendarEventView[], move: MoveAction) {
     if (!block) return;
     const home = block.getBoundingClientRect();
     block.style.transition = "none";
-    block.style.transform = `translate(${pending.left - home.left}px, ${pending.top - home.top}px)`;
+    block.style.translate = `${pending.left - home.left}px ${pending.top - home.top}px`;
     void block.offsetHeight; // commit the start spot before the transition returns
     block.style.transition = "";
-    block.style.transform = "";
+    block.style.translate = "";
   }, [shown]);
 
   function drop(eventId: string, newStart: Date) {

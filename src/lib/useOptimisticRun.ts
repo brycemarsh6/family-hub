@@ -8,8 +8,8 @@ export const SAVE_FAILED = "Couldn't save that. Check your connection and try ag
 /**
  * The await half of `run`, without React: awaits the action, then calls
  * `onSuccess`, or `fail` with `result.error` or, when the call never reached
- * the server (network down), SAVE_FAILED instead of the error page. Exported
- * for its tests only; callers use `run`.
+ * the server (network down), SAVE_FAILED instead of the error page.
+ * Exported for useOptimisticRun.test.ts; callers use `run`.
  */
 export async function settleAction(
   action: () => Promise<{ error?: string }>,

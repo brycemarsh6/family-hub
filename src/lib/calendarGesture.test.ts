@@ -1,44 +1,14 @@
 // Real unit tests (node:test) for calendarGesture.ts with the hold off: tap,
 // the one 8px direction lock, slide, scroll, pinch, cancel and the swallowed
 // click. The hold and drag sequences (hold on, mission 70) live in the
-// sibling `calendarGestureHold.test.ts`, split in mission 70 (F1). Run with
-// `npm test`.
+// sibling `calendarGestureHold.test.ts`, split in mission 70 (F1). The
+// touch steps both files feed the machine (`run`, `down`, `move`, ...) live
+// in `testing/gestureSteps.ts`. Run with `npm test`.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  gestureStep,
-  IDLE_GESTURE,
-  DIRECTION_LOCK_PX,
-  type GestureEffect,
-  type GestureEvent,
-  type GestureOptions,
-  type GestureState,
-} from "./calendarGesture";
-
-// Feed a whole touch sequence; return the final state and every effect.
-function run(events: GestureEvent[], options?: GestureOptions) {
-  let state: GestureState = IDLE_GESTURE;
-  const effects: GestureEffect[] = [];
-  for (const e of events) {
-    const r = gestureStep(state, e, options);
-    state = r.state;
-    effects.push(...r.effects);
-  }
-  return { state, effects };
-}
-const types = (effects: GestureEffect[]) => effects.map((e) => e.type);
-
-const down = (x = 100, y = 100, onBlock = false, t = 0, id = 1, isPrimary = true): GestureEvent => ({
-  type: "down", pointerId: id, x, y, time: t, onBlock, isPrimary,
-});
-const move = (x: number, y: number, t: number, id = 1): GestureEvent => ({
-  type: "move", pointerId: id, x, y, time: t,
-});
-const up = (x: number, y: number, t: number, id = 1): GestureEvent => ({
-  type: "up", pointerId: id, x, y, time: t,
-});
-const cancel = (id = 1): GestureEvent => ({ type: "cancel", pointerId: id });
+import { DIRECTION_LOCK_PX } from "./calendarGesture";
+import { run, types, down, move, up, cancel } from "./testing/gestureSteps";
 
 test("tap: down then up ends idle with no effects and the click is not swallowed", () => {
   const r = run([down(), up(100, 100, 50), { type: "click" }]);

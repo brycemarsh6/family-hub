@@ -139,7 +139,7 @@ export function TimelineDayColumn({
         // (this box's height) must never stand in for a fact (how
         // long this really is) when the two disagree.
         const trueDurationMinutes = (event.endAt.getTime() - event.startAt.getTime()) / 60000;
-        // Mission 70: only a block that starts and ends on one day may lift
+        // Mission 70: only a timed block on one day may lift
         // (canLiftOnTimeline, timelineDrag.ts; useTimelineDrag.ts lifts it).
         const draggable = canDrag && canLiftOnTimeline(event);
         return (
@@ -177,9 +177,10 @@ export function TimelineDayColumn({
             // approved mock's: bigger, a shadow, a 2px accent outline. It
             // grows from its top left corner, so its lifted top stays on the
             // gutter marker's line (and a Day block does not grow over the
-            // gutter). Its glide home eases `transform`; while lifted it
-            // follows in steps.
-            className={`absolute flex flex-col justify-start overflow-hidden rounded-md border px-1 text-left leading-tight select-none [-webkit-touch-callout:none] transition-[transform,scale,box-shadow] duration-200 ease-out data-lifted:z-15 data-lifted:origin-top-left data-lifted:scale-104 data-lifted:shadow-lg data-lifted:outline-2 data-lifted:outline-accent data-lifted:transition-[scale,box-shadow] ${
+            // gutter). It moves by `translate`, never `transform`, so the
+            // `scale` does not multiply the move; its glide home eases
+            // `translate`; while lifted it follows in steps.
+            className={`absolute flex flex-col justify-start overflow-hidden rounded-md border px-1 text-left leading-tight select-none [-webkit-touch-callout:none] transition-[translate,scale,box-shadow] duration-200 ease-out data-lifted:z-15 data-lifted:origin-top-left data-lifted:scale-104 data-lifted:shadow-lg data-lifted:outline-2 data-lifted:outline-accent data-lifted:transition-[scale,box-shadow] ${
               past ? "border-muted text-muted" : "border-fg text-fg"
             }`}
             style={{

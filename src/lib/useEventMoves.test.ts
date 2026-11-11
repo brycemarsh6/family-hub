@@ -1,13 +1,12 @@
 // Mission 70 (C4): the pure parts of useEventMoves.ts, the Undo bar's words
-// and the optimistic move, and (F1) the await half of useOptimisticRun's
-// `run` that its save now goes through: `onError` gets the server's reason. Dates are built from local parts and read back
-// with local getters (the same clock the timeline draws), so these hold
-// under TZ=America/Denver and TZ=UTC alike. Run with `npm test`.
+// and the optimistic move. Its save goes through useOptimisticRun's `run`,
+// tested in useOptimisticRun.test.ts. Dates are built from local parts and
+// read back with local getters (the same clock the timeline draws), so these
+// hold under TZ=America/Denver and TZ=UTC alike. Run with `npm test`.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { applyMove, movedToText } from "./useEventMoves";
-import { SAVE_FAILED, settleAction } from "./useOptimisticRun";
 import type { CalendarEventView } from "./types";
 
 test("movedToText names the weekday and the clock time", () => {
@@ -48,28 +47,4 @@ test("applyMove with an unknown id changes nothing", () => {
   const list = [event("a", 9)];
   const moved = applyMove(list, { id: "gone", startAt: new Date(), endAt: new Date() });
   assert.deepEqual(moved, list);
-});
-
-// What settleAction reported: the failure lines and how many successes.
-async function settled(action: () => Promise<{ error?: string }>) {
-  const failures: string[] = [];
-  let successes = 0;
-  await settleAction(action, (message) => failures.push(message), () => (successes += 1));
-  return { failures, successes };
-}
-
-test("settleAction hands a refusal's own reason to the error callback, never onSuccess", async () => {
-  const reason = "That move would end on another day.";
-  assert.deepEqual(await settled(async () => ({ error: reason })), { failures: [reason], successes: 0 });
-});
-
-test("settleAction turns a call that never reached the server into SAVE_FAILED", async () => {
-  const r = await settled(async () => {
-    throw new TypeError("Failed to fetch");
-  });
-  assert.deepEqual(r, { failures: [SAVE_FAILED], successes: 0 });
-});
-
-test("settleAction runs onSuccess once and no error callback when the save lands", async () => {
-  assert.deepEqual(await settled(async () => ({})), { failures: [], successes: 1 });
 });

@@ -335,13 +335,17 @@ test("resolveDrop: DST days (America/Denver pinned, so this runs under TZ=UTC to
 // canLiftOnTimeline — which timed blocks may be held and dragged (mission 70)
 
 test("canLiftOnTimeline: an event that starts and ends on one day may lift", () => {
-  assert.equal(canLiftOnTimeline({ startAt: d(2026, 10, 11, 9), endAt: d(2026, 10, 11, 10) }), true);
+  assert.equal(canLiftOnTimeline({ startAt: d(2026, 10, 11, 9), endAt: d(2026, 10, 11, 10), allDay: false }), true);
 });
 
 test("canLiftOnTimeline: an event that crosses midnight may not lift", () => {
-  assert.equal(canLiftOnTimeline({ startAt: d(2026, 10, 11, 23), endAt: d(2026, 10, 12, 1) }), false);
+  assert.equal(canLiftOnTimeline({ startAt: d(2026, 10, 11, 23), endAt: d(2026, 10, 12, 1), allDay: false }), false);
 });
 
 test("canLiftOnTimeline: an event that ends exactly at midnight is still one day and may lift", () => {
-  assert.equal(canLiftOnTimeline({ startAt: d(2026, 10, 11, 22), endAt: d(2026, 10, 12, 0) }), true);
+  assert.equal(canLiftOnTimeline({ startAt: d(2026, 10, 11, 22), endAt: d(2026, 10, 12, 0), allDay: false }), true);
+});
+
+test("canLiftOnTimeline: an all-day event never lifts, even one that covers a single day", () => {
+  assert.equal(canLiftOnTimeline({ startAt: d(2026, 10, 11, 0), endAt: d(2026, 10, 12, 0), allDay: true }), false);
 });

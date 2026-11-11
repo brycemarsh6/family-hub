@@ -2,47 +2,21 @@
 // (mission 70, drag to reschedule): the hold timer, holding, dragging, the
 // put-downs and the sequences that each end idle. The hold-off tests (tap,
 // slide, scroll, pinch, cancel) live in the sibling
-// `calendarGesture.test.ts`; the small helpers below are repeated from it so
-// each file reads on its own. Run with `npm test`.
+// `calendarGesture.test.ts`; the touch steps both files feed the machine
+// (`run`, `down`, `move`, ...) live in `testing/gestureSteps.ts`. Run with
+// `npm test`.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  gestureStep,
-  IDLE_GESTURE,
   DIRECTION_LOCK_PX,
   HOLD_MS,
   HOLD_SLOP_PX,
   type GestureEffect,
   type GestureEvent,
-  type GestureOptions,
-  type GestureState,
 } from "./calendarGesture";
+import { run, types, down, move, up, cancel } from "./testing/gestureSteps";
 import { resolveDrop } from "./timelineDrag";
-
-// Feed a whole touch sequence; return the final state and every effect.
-function run(events: GestureEvent[], options?: GestureOptions) {
-  let state: GestureState = IDLE_GESTURE;
-  const effects: GestureEffect[] = [];
-  for (const e of events) {
-    const r = gestureStep(state, e, options);
-    state = r.state;
-    effects.push(...r.effects);
-  }
-  return { state, effects };
-}
-const types = (effects: GestureEffect[]) => effects.map((e) => e.type);
-
-const down = (x = 100, y = 100, onBlock = false, t = 0, id = 1, isPrimary = true): GestureEvent => ({
-  type: "down", pointerId: id, x, y, time: t, onBlock, isPrimary,
-});
-const move = (x: number, y: number, t: number, id = 1): GestureEvent => ({
-  type: "move", pointerId: id, x, y, time: t,
-});
-const up = (x: number, y: number, t: number, id = 1): GestureEvent => ({
-  type: "up", pointerId: id, x, y, time: t,
-});
-const cancel = (id = 1): GestureEvent => ({ type: "cancel", pointerId: id });
 
 // ---- hold and drag, switched on (PR 4 will use these) ----
 
