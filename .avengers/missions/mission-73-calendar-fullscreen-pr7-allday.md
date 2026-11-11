@@ -187,6 +187,8 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
 
 ### C3 - zooming text, wrapping titles, hour labels
 
+- **Status:** DONE c78781c (zoom scale set in TimelineGrid, whole-line title clamp, time line gated by timeLineFits, labels nowrap; new useRootFontPx; 2030 tests, build ok)
+
 1. **Objective:** block titles and the all-day row grow with the zoom,
    titles wrap to whole lines, the time line shows only when it truly
    fits, and the hour labels never wrap.
