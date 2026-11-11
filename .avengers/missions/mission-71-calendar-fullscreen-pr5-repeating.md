@@ -152,7 +152,7 @@ injected fake `fetchFn` or fake deps. Sizes: report `wc -l` for every file
 touched; STRUCTURE.md caps apply.
 
 ### C1: The series id column, the pull fills it, the one-time backfill
-- **Status:** PENDING
+- **Status:** DONE `15cf257` (migration applied to the dev branch, host `ep-hidden-pine-…-pooler` checked; SQL: ADD COLUMN plus the twoWay token clear; `planPull` gains `seriesFills`, written by `writeSeriesFill` (sync row field only, counts no change, a failed fill keeps the token unsaved); +10 tests, npm test 1935, UTC 1925 + 10 skips; tsc and build blocked by a worktree with no `node_modules` of its own, Fury ran `npm ci` in the worktree; commit trailer says Sonnet 5.5, left as is)
 - **Objective:** every pulled event row knows its Google series id, for
   new pulls and for rows already here, without deleting or rewriting
   anything else.
