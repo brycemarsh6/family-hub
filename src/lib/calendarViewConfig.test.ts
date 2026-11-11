@@ -153,9 +153,9 @@ test("week: a year-boundary week takes the first day's year", () => {
   // Dec 27 2026 (Sunday) to Jan 2 2027.
   assert.equal(VIEW_CONFIG.week.title(d(2027, 0, 1), TODAY), "December");
   // Same week read from 2027: December is not the current year, so it says so.
-  assert.equal(VIEW_CONFIG.week.title(d(2027, 0, 1), d(2027, 0, 5)), "December 2026");
+  assert.equal(VIEW_CONFIG.week.title(d(2027, 0, 1), d(2027, 0, 5)), "Dec 2026");
   // Jan 3 2027 (Sunday) starts a week wholly in 2027.
-  assert.equal(VIEW_CONFIG.week.title(d(2027, 0, 5), TODAY), "January 2027");
+  assert.equal(VIEW_CONFIG.week.title(d(2027, 0, 5), TODAY), "Jan 2027");
 });
 
 // ---------------------------------------------------------------------------
@@ -184,7 +184,7 @@ test("month: title and isCurrentPeriod across the Jan 31 -> Feb boundary", () =>
   const { title, isCurrentPeriod } = VIEW_CONFIG.month;
 
   assert.equal(title(anchor, TODAY), "January");
-  assert.equal(title(anchor, d(2027, 5, 1)), "January 2026");
+  assert.equal(title(anchor, d(2027, 5, 1)), "Jan 2026");
   assert.equal(isCurrentPeriod(anchor, d(2026, 0, 1)), true); // same month, day 1
   assert.equal(isCurrentPeriod(anchor, d(2026, 0, 31)), true); // same month, same day
   assert.equal(isCurrentPeriod(anchor, d(2026, 1, 1)), false); // February
@@ -240,12 +240,12 @@ test("threeDay: title is the first visible day's month, even when the span cross
   assert.equal(VIEW_CONFIG.threeDay.title(d(2026, 8, 9), TODAY), "September");
   // Aug 30, 31, Sep 1: titled by August, the first visible day.
   assert.equal(VIEW_CONFIG.threeDay.title(d(2026, 7, 30), TODAY), "August");
-  assert.equal(VIEW_CONFIG.threeDay.title(d(2027, 0, 1), TODAY), "January 2027");
+  assert.equal(VIEW_CONFIG.threeDay.title(d(2027, 0, 1), TODAY), "Jan 2027");
 });
 
 test("schedule: title is the anchor's month, with the year only outside this year", () => {
   assert.equal(VIEW_CONFIG.schedule.title(d(2026, 10, 3), TODAY), "November");
-  assert.equal(VIEW_CONFIG.schedule.title(d(2027, 1, 3), TODAY), "February 2027");
+  assert.equal(VIEW_CONFIG.schedule.title(d(2027, 1, 3), TODAY), "Feb 2027");
 });
 
 // ---------------------------------------------------------------------------

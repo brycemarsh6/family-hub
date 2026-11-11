@@ -106,7 +106,8 @@ export function CalendarHeader({
                 press fill sits on THIS span, behind the title and arrow (a fill
                 on the button itself would paint over them). `min-w-0` lets a
                 long title truncate, as a last resort; the title is 1.125rem on a phone
-                so "January 2027" fits beside the three circles at 393px, and
+                so "Jan 2027" fits beside the three circles at 393px (a long month
+                plus a year did not), and
                 1.25rem from a 30rem bar. */}
             <span className="relative flex h-11 min-w-0 items-center gap-1 rounded-lg px-1 transition-colors has-[>button:active]:bg-surface-2">
               {title === null ? (

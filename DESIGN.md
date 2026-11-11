@@ -55,7 +55,7 @@ tell when a rule's reason has expired.
   item as a full-width row, and the list scrolls clear), or on Month by
   scrolling, because Month's page keeps `<main>`'s 6rem bottom padding
   below the grid so its last row always scrolls clear of the + (measured
-  32px clear on a 393 phone, 36px on an iPad at Largest text). The
+  32px clear on a 393 phone). The
   exception covers the Calendar's + only. Any other floating control, and
   the Calendar's + on a future view that can neither scroll nor zoom its
   content out from under it, must still pass this rule.
@@ -187,8 +187,8 @@ tell when a rule's reason has expired.
   floating hamburger's row) use `--app-nav-width` as their left edge so they
   line up with the content. On a wide page (`data-page-width`, from `md`)
   the round + sits at the bottom-right corner of the content area, where a
-  right thumb lands on an iPad (mission-53). Below `md`, and on every other
-  page, it stays bottom-left, clear of a row's check and of the Recipes A-Z
+  right thumb lands on an iPad (mission-53). Below `md` it stays bottom-left on
+  every page but the Calendar, clear of a row's check and of the Recipes A-Z
   rail; on wide pages that rail ends above the button (mission-52,
   decision 266). **The Calendar is the one exception: its + sits bottom
   right at every width, phone included** (`placement="right"`; Bryce,
@@ -466,7 +466,8 @@ A new one-off that duplicates one of these jobs is a design violation:
 - `CalendarHeader`: the Calendar's one top bar, beside the floating menu
   button (mission-67, Bryce 2026-11-10). At the left, the month title with
   a small down arrow: the first visible day's month, with the year only
-  when it is not this year ("January 2027"), the year itself on Year, and
+  when it is not this year, with the month shortened so the year always
+  fits beside the circles ("Jan 2027"; Bryce 2026-11-10), the year itself on Year, and
   on Schedule the month scrolling past. At the right, the Today, View and
   Refresh circles. No < > arrows and no Add circle: moving is swipe, Today
   and the title; adding is the bottom-right + (see the + rule above).

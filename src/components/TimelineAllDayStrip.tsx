@@ -266,7 +266,9 @@ export function TimelineAllDayStrip({
               // TaskCard.tsx's own aria-label already documents for the
               // identical fact.
               aria-label={completed ? `${task.title}, completed` : task.title}
-              className={`truncate rounded border px-1 text-left text-[0.5625rem] font-semibold leading-[1.5rem] ${
+              className={`truncate rounded border px-1 text-left text-[0.5625rem] font-semibold ${
+                corner ? "h-6 leading-[1.375rem]" : "leading-[1.5rem]"
+              } ${
                 completed ? "border-muted text-muted" : "border-fg text-fg"
               }`}
               style={{
@@ -313,7 +315,9 @@ export function TimelineAllDayStrip({
             key={span.event.id}
             type="button"
             onClick={() => onOpenEvent(event, representativeDay)}
-            className={`truncate border-y px-1 text-left text-[0.5625rem] font-semibold leading-[1.5rem] text-fg border-fg ${
+            className={`truncate border-y px-1 text-left text-[0.5625rem] font-semibold text-fg border-fg ${
+              corner ? "h-6 leading-[1.375rem]" : "leading-[1.5rem]"
+            } ${
               continuesBefore ? "" : "rounded-l border-l"
             } ${continuesAfter ? "" : "rounded-r border-r"}`}
             style={{

@@ -281,10 +281,43 @@ share one worktree).
 - **Done criteria:** green; Strange pass 2 measures the Schedule title,
   the row contrast and the Day bar height.
 
+### C5 - (fix batch 2) Gate pass 2 fixes
+- **Status:** DONE (Stark 2026-11-10: short month plus year via `MONTH_NAMES`; tests updated; Day corner bars `h-6`; tsc, lint, 1819 tests, TZ=UTC, build green)
+- **Boundaries:** may touch: `src/lib/mealPlanDates.ts`,
+  `src/lib/mealPlanDates.test.ts`, `src/lib/calendarViewConfig.test.ts`,
+  `src/components/CalendarHeader.tsx` (comment only),
+  `src/components/TimelineAllDayStrip.tsx`. · must not touch: everything
+  else, including DESIGN.md, `docs/**` and this mission file (Fury's).
+- **Work:**
+  1. Strange pass 2 BLOCKER, Bryce's call 2026-11-10 ("Jan 2027" when the
+     year shows): `formatMonthHeading(day, today)` returns the full month
+     name in today's year ("November") and the short name plus year
+     otherwise ("Jan 2027"), using the existing `MONTH_NAMES`. It is only
+     used by the Calendar top bar (VIEW_CONFIG titles and
+     `useScheduleMonthTitle.ts`), so change it in place and update its doc
+     comment. Leave `formatMonthTitle` and the sr-only h2s alone (screen
+     readers keep the full name). Update the tests that expect
+     "January 2027", "September 2025", "December 2026" for the new form.
+  2. `CalendarHeader.tsx` title comment: "January 2027" becomes "Jan 2027"
+     and say why (a long month plus a year did not fit beside three circles
+     at 393px).
+  3. Strange NOTE: in Day view with the corner, bordered all-day bars are
+     26px; make them 24px (`h-6`, or equivalent) when `corner` is set, so
+     they match Week. Bars without the corner unchanged.
+- **Verification:** `npx tsc --noEmit`, `npm run lint`, `npm test`, the
+  AGENTS.md `TZ=UTC` line, `npm run build`; all green. `git diff --stat`
+  shows only the may-touch files (plus Fury's DESIGN.md and mission file).
+- **Evidence required:** the diff; command output; a grep showing no
+  other caller of `formatMonthHeading`.
+- **Done criteria:** green; Strange pass 3 measures "Sep 2027" fitting at
+  393 with Refresh on every view, and the Day bar height.
+
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 2 | Strange (HEAD 229d626) | BLOCK | Next-year titles truncate at 393 for logins that see Refresh ("January 20..." on Schedule; "February 2027", "September 2027" on every view): the year is what gets cut. A wording call, asked of Bryce 2026-11-10 (recommend "Jan 2027" when the year shows) | B2 cleared (4.74:1 light, 6.51:1 dark); B3 cleared; this year's months fit with Refresh. Notes: Day all-day bars 26px not 24px (border; `h-6` fixes); corner label right; pre-load frame marks Week (older); edge to edge still 0px |
+| 2 | Vision (HEAD 229d626) | PASS | none | Gauntlet green (1819 both zones, build exit 0); every rulebook claim checked true against code; Schedule title correct at null today and year boundary. Notes: first frame of a cold Schedule load shows "November 2026" then "November"; DESIGN.md "36px on an iPad at Largest" was computed, not measured; bottom-left sentence could read "every other page" |
 | 1 | Strange (HEAD d2b19d7) | BLOCK | (1) Schedule's "September 2026" truncates at 393 for logins that see Refresh; (2) view row unselected text 4.33:1 in light; (3) `CalendarViewRow` is a second view switcher without a vocabulary entry | Edge to edge 0px on both sides everywhere; title fits without Refresh; row shows at 1024 Normal/Large, falls back at 1024 Larger/Largest and 768; + bottom right on all views, Month last row 32px clear; Schedule flip within 1 to 4px; zoom floor 0px band in 7 iPad states. Notes: skeleton controls slide 52px for logins without Refresh (Fury: accept until PR 9); Month skeleton taller than grid (older); iPad Largest hour labels wrap and touch the edge (older px gutter; PR 7 follow-up); Day single all-day bar stretches (fixed in C4); 768 Normal shows the circle; kid, Tablet and pinned menu not seen |
 | 1 | Vision (HEAD d2b19d7) | BLOCK | DESIGN.md lacks the Calendar + exception to "a target must also be unoccluded" and still says the + is bottom-left below `md` (doc only, no code) | Gauntlet all green (1819; build exit 0). Title tests hold in both zones. Notes: Day corner with exactly one all-day lane stretches that pill to about 49px; not-loaded label at Largest may spill past the 48px gutter; stale comments `ScheduleView.tsx:209` (130/195px) and `MonthChips.tsx:46`; skeleton always draws Refresh (jump for logins without a link); skeleton corner 3.25rem vs 48px gutter; Day h2 now reads only the month (plan's intent) |
 | 1 | Captain (HEAD d2b19d7) | PASS | none | Stale STRUCTURE.md range-formatter and month-name lines (Fury applied Captain's text); layout.md shared-class list (applied); layout.md points at a DESIGN.md exception that must land in this PR; two stale comments (`MonthChips.tsx:46` names the deleted `formatThreeDayRange`, `TimelineDayHeader.tsx` says "this file's own worded banner") for the fix batch; strip 417 and loading 342 over the soft cap, not split candidates |
@@ -303,6 +336,11 @@ share one worktree).
   `TimelineDayColumn.tsx` mentions the strip and gutter in comments only;
   C2's zoom import is read, not changed. Dispatched C1 and C2 in parallel
   at HEAD `ea6cbd4`.
+
+- 2026-11-10: gate pass 2: Vision PASS, Strange BLOCK on next-year title truncation with Refresh. Asked Bryce: "Jan 2027" or accept the cut until PR 9.
+- 2026-11-10: Bryce: "use Jan 2027 when the year shows". C5 written; Fury
+  updated DESIGN.md (example, the bottom-left sentence, dropped the
+  unmeasured 36px).
 
 ## Delivery
 
