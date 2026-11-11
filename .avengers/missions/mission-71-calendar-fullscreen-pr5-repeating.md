@@ -1,6 +1,6 @@
 # Mission 71: Calendar full screen PR 5, repeating events ("This one" or "All of them")
 
-- **Status:** GATES pass 1 (C1, C2, C2a, C3 built; worktree has its own `node_modules` (npm ci) and a generated Prisma client; no `.env` here (export from the main checkout, hostname only). (Bryce OK'd the mock 2026-11-11: "Looks good, build it", after asking for a draggable mock)
+- **Status:** GATES pass 2/3 (C1, C2, C2a, C3, F1, F2 built; rulebook applied; worktree has its own `node_modules` (npm ci) and a generated Prisma client; no `.env` here (export from the main checkout, hostname only). (Bryce OK'd the mock 2026-11-11: "Looks good, build it", after asking for a draggable mock)
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 5: Repeating events, "This one" or "All of them" (decision 22; small call I; Q1, Q2)"
 - **Branch:** `claude/calendar-fullscreen-pr5-dc232e`, cut from `origin/main` `6656fed` (PR 4 merged as #112)
@@ -414,7 +414,7 @@ touched; STRUCTURE.md caps apply.
 - N2: repeating events show a small repeat mark in this PR.
 
 ### F2: The sheet docks at the bottom on the iPad; the repeat mark
-- **Status:** IN PROGRESS
+- **Status:** DONE `80febc1` (sheet bottom-aligned at every width, `md:max-w-md` centred, rounded top; Lucide `Repeat` 1em, muted, inside the truncating title span, sr-only ", repeats"; TimelineDayColumn 265 to 275, RepeatMoveSheet 71; npm test 2001, UTC 1991 + 10 skips, tsc, lint, build exit 0. Probe 12 configs: sheet bottom = viewport bottom, icon on Wake Up only, kept when lifted. Stark reported FAILED on one condition: at 1024x768 Largest the 390px-tall sheet covers a 7:30 block at the harness's scroll. **Fury's call: accepted.** A bottom sheet covers whatever sits in the lower part of the screen, on the phone too (Strange pass 1, N1); the sheet's line says the time in words; Bryce's choice was the bottom so the block shows in most cases. Not a scroll-into-view in this PR: it would touch the gesture-side hook. Told to Bryce in the final report.)
 - **May touch:** `src/components/RepeatMoveSheet.tsx`,
   `src/components/TimelineDayColumn.tsx` (the block), and only if the mark
   needs a shared piece, `src/lib/types.ts`. Tests if any pure helper is added.
