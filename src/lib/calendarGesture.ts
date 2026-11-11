@@ -18,8 +18,8 @@
 //     reads as a scroll. Same comparison as SwipeActions.tsx.
 //   - A second finger at any stage is a pinch (`pointerDownAction`'s "yield");
 //     from a slide it also springs the track back.
-//   - The click swallow is armed only by a slide that locked in, and every
-//     pointer down clears it (`nextSwallowNextClick`, mission-19/F1: touch
+//   - The click swallow is armed by a slide that locked in (and, new in PR 4,
+//     by a hold that started), and every pointer down clears it (`nextSwallowNextClick`, mission-19/F1: touch
 //     gives no click after a drag, so a stale flag would eat the next tap).
 //   - A primary pointer down resets everything, so a pointer-up that never
 //     arrived can never leave a stale id (`nextActivePointers`).
@@ -27,20 +27,32 @@
 //     try/catch (it throws when the pointer is not current).
 // New in PR 3: pointer cancel never turns a page (it springs back).
 //
-// HOLD AND DRAG ARE OFF UNTIL PR 4. With `holdEnabled` false (the default)
-// the states "holding" and "dragging" are never entered and no hold timer is
-// ever requested.
+// HOLD AND DRAG (PR 4, mission 70). With `holdEnabled` true, a press on a
+// block that stays within 8px for HOLD_MS becomes "holding" (the block
+// lifts), and moving 8px or more from the press point then makes it
+// "dragging". With `holdEnabled` false (the default) those two states are
+// never entered and no hold timer is ever requested. The rules:
+//   - ONE 8px rule. Before the hold fires, travel of exactly 8px decides a
+//     scroll or a slide and clears the timer, so a hold can no longer happen.
+//     After it fires, travel of exactly 8px turns holding into dragging.
+//   - While holding or dragging, `setOffset` and `settle` are never emitted:
+//     the page cannot slide under a lifted block.
+//   - Every way out of holding or dragging tells the caller what to do with
+//     the lifted block: `dragDrop` when a drag is lifted, `dragCancel`
+//     otherwise (see `GestureEffect`).
+//   - The hold arms the click swallow, so the click a touch sends after the
+//     lift never also opens the event.
 
 /** The undecided zone: travel under this on both axes decides nothing. */
 export const DIRECTION_LOCK_PX = 8;
 
 /** How long a press on an event block must stay still before it becomes a
- * hold. Off until PR 4 (`holdEnabled`). */
-export const HOLD_MS = 500;
+ * hold (decision 17: 400 ms). Only with `holdEnabled`. */
+export const HOLD_MS = 400;
 
 /** How far a held press may wander before it counts as a move, not a hold.
- * The same distance as the direction lock, so there is one feel. Off until
- * PR 4. */
+ * The same distance as the direction lock, so there is one feel. Only with
+ * `holdEnabled`. */
 export const HOLD_SLOP_PX = DIRECTION_LOCK_PX;
 
 /** A finger that rested this long before lifting is not a flick. */
@@ -73,7 +85,7 @@ export type GestureState = {
   onBlock: boolean;
   /** True while a hold timer is running, so it is cleared exactly once. */
   holdArmed: boolean;
-  /** The next click is the tail of a committed slide: swallow it. */
+  /** The next click is the tail of a committed slide or a hold: swallow it. */
   swallow: boolean;
 };
 
@@ -110,14 +122,22 @@ export type GestureEffect =
   | { type: "springBack" }
   /** A second finger landed: the pinch (zoom) owns the touch now. */
   | { type: "handToPinch" }
-  // PR 4 only (never emitted while holdEnabled is false):
+  // Hold and drag (never emitted while holdEnabled is false):
+  /** The press became a hold: lift the block. Always followed, before the
+   * gesture ends, by exactly one `dragDrop` or one `dragCancel`. */
   | { type: "holdStarted" }
+  /** The lifted block follows the finger (pointer coordinates). */
   | { type: "dragMove"; x: number; y: number }
+  /** A drag was lifted here: work out the drop (`resolveDrop`). */
   | { type: "dragDrop"; x: number; y: number }
+  /** Put the lifted block back where it was, saving nothing. The ONE effect
+   * for every other way a hold ends: lifted without moving, pointer cancel,
+   * a second finger (then `handToPinch`), or a fresh primary down. There is
+   * no separate "hold ended" effect. */
   | { type: "dragCancel" };
 
 export type GestureOptions = {
-  /** Hold and drag. Off until PR 4. */
+  /** Hold and drag. Off by default; the timeline turns it on. */
   holdEnabled?: boolean;
 };
 
@@ -138,7 +158,8 @@ export const IDLE_GESTURE: GestureState = {
   swallow: false,
 };
 
-/** Back to rest. Keeps `swallow`: the click after a slide arrives later. */
+/** Back to rest. Keeps `swallow`: the click after a slide or a hold arrives
+ * later. */
 function toIdle(state: GestureState): GestureState {
   return { ...IDLE_GESTURE, swallow: state.swallow };
 }
@@ -154,9 +175,7 @@ function unwind(state: GestureState, effects: GestureEffect[]) {
   if (state.kind === "sliding") {
     effects.push({ type: "springBack" });
     effects.push({ type: "releaseCapture", pointerId: state.pointerId });
-  } else if (state.kind === "holding") {
-    effects.push({ type: "releaseCapture", pointerId: state.pointerId });
-  } else if (state.kind === "dragging") {
+  } else if (state.kind === "holding" || state.kind === "dragging") {
     effects.push({ type: "dragCancel" });
     effects.push({ type: "releaseCapture", pointerId: state.pointerId });
   }
@@ -258,7 +277,12 @@ export function gestureStep(
       // A finger is still down (the other half of a pinch): not over yet.
       if (down.length > 0) return { state: { ...state, down }, effects };
       if (state.kind === "pinch") return { state: toIdle(state), effects };
-      if (event.pointerId !== state.pointerId) return { state: toIdle(state), effects };
+      if (event.pointerId !== state.pointerId) {
+        // Not the finger that started it, yet nothing is left down: undo
+        // whatever was going so a lifted block is never left in the air.
+        unwind(state, effects);
+        return { state: toIdle(state), effects };
+      }
 
       clearTimerIfArmed(state, effects);
       if (state.kind === "sliding") {
@@ -270,6 +294,8 @@ export function gestureStep(
         });
         effects.push({ type: "releaseCapture", pointerId: state.pointerId });
       } else if (state.kind === "holding") {
+        // Lifted without moving: put it down, nothing to save.
+        effects.push({ type: "dragCancel" });
         effects.push({ type: "releaseCapture", pointerId: state.pointerId });
       } else if (state.kind === "dragging") {
         effects.push({ type: "dragDrop", x: event.x, y: event.y });
@@ -288,14 +314,18 @@ export function gestureStep(
     }
 
     case "holdFired": {
-      // Only a still-undecided press on a block can become a hold, and only
-      // when hold is on. Anything else means the timer outlived its press.
-      if (!holdEnabled || state.kind !== "undecided") {
+      // Only a still-undecided press on a block whose timer is running can
+      // become a hold, and only when hold is on. Anything else means the
+      // timer outlived its press.
+      if (!holdEnabled || state.kind !== "undecided" || !state.holdArmed) {
         return { state: state.holdArmed ? { ...state, holdArmed: false } : state, effects };
       }
+      // The swallow is armed here, not at the drop: the click after a hold
+      // that never moved must not open the event either.
       effects.push({ type: "capture", pointerId: state.pointerId });
+      effects.push({ type: "armSwallow" });
       effects.push({ type: "holdStarted" });
-      return { state: { ...state, kind: "holding", holdArmed: false }, effects };
+      return { state: { ...state, kind: "holding", holdArmed: false, swallow: true }, effects };
     }
 
     case "click": {

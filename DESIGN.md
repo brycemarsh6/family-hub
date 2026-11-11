@@ -115,8 +115,11 @@ tell when a rule's reason has expired.
   because the Text size setting raises the root font size on wide screens
   and a px value stays put while everything around it grows. Never write
   `text-[Npx]`; convert as N/16 rem. Px on purpose, and only here: **(a)** the
-  hour timeline's geometry (hour height, event top and height), under the
-  hour-timeline exception above; **(b)** container thresholds that must not
+  hour timeline's geometry (hour height, event top and
+  height, the 48px hour gutter), under the hour-timeline exception above,
+  and text that must fit inside that px gutter, capped with `min()` (the
+  drag marker is `min(0.6875rem, 12px)`, so it grows with Text size until
+  it would no longer fit); **(b)** container thresholds that must not
   move with Text size (`docs/structure/layout.md`, Wide pages rule 2);
   **(c)** a number JavaScript needs, which is measured or derived from the
   live root font size, never assumed to be 16 (a `_PX` constant may only seed
@@ -162,6 +165,15 @@ tell when a rule's reason has expired.
   (`SwipeActions`), destructive actions ordered last (furthest from the row)
   so a hesitant swipe surfaces the reversible one. Every action button is
   real markup — reachable without the gesture (keyboard, screen reader).
+- **A gesture is never the only way to change something.** Hold and drag
+  on the hour timeline moves an event (mission-70), and the event's edit
+  form still changes its time, through the same Server Action path and
+  Google push (`afterEventSaved`). A future gesture (resize, drag in
+  Month, drag a task) ships with its form or button route intact, because
+  a gesture can't be found by looking, can't be done by a screen reader,
+  and fails on a shaky hand or a wet wall tablet. Only logins that can
+  edit (`canManage`) get the gesture; for anyone else the item behaves
+  exactly as before (a tap opens it). (Bryce approved 2026-11-10.)
 - **Outline icons only, via Lucide — no emoji in the icon system.** Two
   deliberate exceptions: native `<select><option>` can't render SVG, so
   dropdowns fall back to plain text; and the Marshee mark and wordmark are
@@ -487,6 +499,34 @@ A new one-off that duplicates one of these jobs is a design violation:
   beside `PageTabs`, like the Vision board's 5 / 10 / 15 yr switch: it
   picks one of the Calendar's own views through the same state the View
   picker sheet sets, and it never holds a second list of view names.
+- The lifted event block (mission-70, Bryce approved the mock
+  2026-11-10): holding a timed, single-day event for 400 ms lifts it,
+  for parents and admins only. Lifted means `scale` 1.04, a shadow, a 2px
+  `--accent` outline and `z-15`; nothing else may use that look, so a
+  lifted look always means "this is moving". While lifted, three things
+  tell the same time, and they must always equal where a drop would
+  land: the block's position (snapped to 15 minutes), its own time line
+  where the column is wide enough to show one, and the gutter marker, a
+  small bold `--accent` start time ("4:30", no AM/PM, just "3" on the hour, on `--bg`) in the
+  hour column that hides any hour label it would sit on. The marker must
+  fit inside the gutter at every Text size; a clipped digit changes the
+  time it claims. The target day's header takes an `--accent` 15% tint
+  when the block crosses to another day. All-day, multi-day and task
+  items never lift and never look liftable. Under reduce motion the
+  glide back is instant.
+- `UndoBar`: the one bar for "that just happened" after a change
+  (mission-70's "Moved to Wed 2:15 PM", PR 8's tasks next). A neutral bar
+  is `bg-fg text-bg` with an optional action button (at least 48px, bold
+  and underlined, in the bar's own text colour) and `role="status"`; a
+  refusal or failed save is `tone="warn"`, never danger (see "Error
+  color"), `role="alert"`, with no action. One at a time (a new message
+  replaces the old and restarts the clock), 5 seconds, then gone. It sits
+  at the bottom, on the + row and left of it with at least 16px clear,
+  above the safe area. It covers content only for those 5 seconds, which
+  is why it is not held to "A target must also be unoccluded" the way a
+  permanent overlay is; anything longer-lived than a few seconds is.
+  A new undo or notice reuses it rather than adding a toast. (Bryce
+  approved 2026-11-10.)
 - `IdeaChips`: the one row of tappable idea chips ("Ideas for Health"). A
   tap hands the words to the form, never submits, and no chip is ever shown
   as selected. `GoalForm`, `PlanItemSheet` and the New habit form use it; a new
@@ -555,6 +595,10 @@ A new one-off that duplicates one of these jobs is a design violation:
   is also `text-warn`: the person did nothing wrong, but nothing is
   destroyed either, and they can try again. The Vision board and
   `VisionSheet` errors follow this.
+  A refused move (mission-70: a drop the server will not save, such as
+  "That move would cover a whole day") is also warn: the block glides
+  back to where it was, nothing was lost, and the reason shows in a warn
+  `UndoBar`. Red would claim something was destroyed.
 
 ## Strange's checklist
 

@@ -293,3 +293,36 @@ twin sync rows that could delete or overwrite the real Google event (Vision
 blocker). Bryce (answer 7) ruled that only one link may sync a Google
 calendar. The rule moved to canTurnOn, the sibling read to
 loadSiblingCalendars, and the pull stopped reading other links' rows. Bryce approved the entry (answer 8). Vision pass 3 then found that a handover between the two links imported everything again, so C10 added `adoptSiblingPulls`: switching a link on moves the old link's pulled state instead.
+
+### The pointer-gesture machine (mission-70 move)
+
+Mission-70 switched hold and drag on in the one machine and moved the full
+rule to docs/structure/calendar.md, because the entry passed 15 lines. The
+STRUCTURE.md bullet as it stood before mission-70, word for word:
+
+- **The pointer-gesture machine has two definitions; a third copy is a
+  BLOCKER.** `src/lib/calendarGesture.ts` (`gestureStep`, pure, tested) is
+  the calendar's machine; mission-69 replaced `usePageSwipe.ts`'s copy with
+  it. `src/lib/usePagedSwipe.ts` is its only driver (it carries out the
+  effects: pointer capture in try/catch, the click swallow, the frame
+  write). `SwipeActions.tsx` still holds its own four-state machine for
+  Inventory and Shopping rows. `DIRECTION_LOCK_PX` (8) has one definition,
+  in `calendarGesture.ts`; `SwipeActions.tsx` and `pageSettle.ts` import
+  it. Whether a released page slide turns is `settlePage`
+  (`src/lib/pageSettle.ts`) alone. A new swipe surface drives
+  `gestureStep` through a driver, never a copy of the machine.
+  **Open debt, one contract:** after Bryce checks mission-27/F3's
+  `pointerdown` clear in `SwipeActions.tsx` on a real device (synthetic
+  PointerEvents cannot settle this gesture), move `SwipeActions` onto
+  `gestureStep`, keep its own release math (`openWidth / 2`) at the call
+  site, and rename the file `gestureMachine.ts` in the same contract.
+  (Added 2026-09-09, mission-19; rewritten 2026-11-10, mission-69, on
+  Captain's ruling.) (Story: docs/history/structure-rationale.md,
+  "Pointer-gesture machine: one machine, one bug".)
+
+### One write path for an event's time
+
+The September drag attempt (mission-20, branch `claude/calendar-cd1`) had
+its own `moveCalendarEvent` that never reached the Google push. Mission-70
+rebuilt it so editing and dragging finish through one `afterEventSaved`,
+and the rule keeps a third path from appearing.

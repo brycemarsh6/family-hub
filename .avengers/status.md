@@ -6,6 +6,22 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar drag to reschedule (mission 70, PR 4 of 9)**, about 5
+  minutes, with a screen recording, on your iPhone and then the iPad,
+  signed in as yourself (a parent). Use a throwaway event for the moves.
+  Tap an event: it opens. Start a scroll on an event: the hours scroll.
+  Swipe sideways starting on an event: the page turns. Hold an event about
+  half a second: it lifts (bigger, outlined) with a small green time in
+  the hours column (the top of the block sits right on that time); drag it to a new time and let go: it stays, and
+  "Moved to ..." shows with Undo for 5 seconds. Tap Undo: it goes back.
+  On Week, drag one to another day. Drag one to the bottom edge and hold:
+  the hours scroll. Reload: the moved event is still there. Drag one day
+  of a repeating Google event (like "Wake Up") and check in Google
+  Calendar that only that day moved. Then sign in as a kid and as the
+  Tablet: holding an event lifts nothing and a tap still opens it. Last,
+  the old September bug: after all of that, swipe the page once more and
+  make sure it still turns. Watch for the hours scrolling under a lifted
+  event (that is the one thing no tool here can prove on a real iPhone).
 - **Calendar sliding swipe (mission 69, PR 3 of 9)**, about 3 minutes,
   with a screen recording, on your iPhone and then the iPad. On 3 Day:
   drag slowly sideways and let go early (it springs back); drag slowly
@@ -241,6 +257,8 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- Calendar drag follow-ups (mission 70 Delivery): `usePagedSwipe.ts` and
+  `useTimelineDrag.ts` are over the soft cap (split on next touch).
 - **Calendar zoom first-frame flicker (mission 65, Strange pass 3 NOTE):**
   on a fresh iPad load the hour lines may jump once. Fix: move the
   `useTimelineZoom` call in `TimelineGrid.tsx` below its sizing layout

@@ -48,6 +48,7 @@ export function TimelineHourLabels() {
       {HOUR_LABELS.map((label, hour) => (
         <span
           key={hour}
+          data-hour-label={hour}
           className="absolute right-1 -translate-y-1/2 text-[0.625rem] text-muted"
           style={{ top: `calc(var(--hour-height) * ${hour})` }}
         >
@@ -220,6 +221,8 @@ type TimelinePageColumnsProps = {
   onOpenEvent: (event: CalendarEventView, day: Date) => void;
   /** Day only: this page starts with its own hour labels. */
   ownGutter: boolean;
+  /** Mission 70: blocks may lift (the viewer can edit events). */
+  canDrag: boolean;
 };
 
 export function TimelinePageColumns({
@@ -231,6 +234,7 @@ export function TimelinePageColumns({
   pxPerMinute,
   onOpenEvent,
   ownGutter,
+  canDrag,
 }: TimelinePageColumnsProps) {
   const columnDaysKey = dayKey(columnDays);
   const eventById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
@@ -283,6 +287,7 @@ export function TimelinePageColumns({
           pxPerMinute={pxPerMinute}
           compact={compact}
           onOpenEvent={onOpenEvent}
+          canDrag={canDrag}
         />
       ))}
     </div>

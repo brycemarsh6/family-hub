@@ -18,6 +18,7 @@ import {
   isOutsideWindow,
   formatTimeRange,
   formatAllDayLabel,
+  formatClockDigits,
 } from "./calendarDates";
 
 function d(year: number, month: number, day: number, hour = 0, minute = 0): Date {
@@ -318,4 +319,12 @@ test("REGRESSION (V4) exact-fit: a day whose own end equals windowEnd exactly is
   const windowStart = d(2026, 7, 1);
   const windowEnd = d(2026, 7, 10); // Aug 10 00:00 — exactly day's own end
   assert.equal(isOutsideWindow(day, windowStart, windowEnd), false);
+});
+
+// Mission 70 (F1): the drag's gutter marker. Here rather than in
+// calendarDatesFormat.test.ts only because the mission's boundary named this file.
+test("formatClockDigits: the clock without AM or PM, :00 dropped like formatClockTime", () => {
+  assert.equal(formatClockDigits(d(2026, 10, 11, 16, 30)), "4:30");
+  assert.equal(formatClockDigits(d(2026, 10, 11, 16, 0)), "4");
+  assert.equal(formatClockDigits(d(2026, 10, 11, 0, 45)), "12:45");
 });

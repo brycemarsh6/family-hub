@@ -1,40 +1,14 @@
+// Real unit tests (node:test) for calendarGesture.ts with the hold off: tap,
+// the one 8px direction lock, slide, scroll, pinch, cancel and the swallowed
+// click. The hold and drag sequences (hold on, mission 70) live in the
+// sibling `calendarGestureHold.test.ts`, split in mission 70 (F1). The
+// touch steps both files feed the machine (`run`, `down`, `move`, ...) live
+// in `testing/gestureSteps.ts`. Run with `npm test`.
+
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  gestureStep,
-  IDLE_GESTURE,
-  DIRECTION_LOCK_PX,
-  HOLD_MS,
-  HOLD_SLOP_PX,
-  type GestureEffect,
-  type GestureEvent,
-  type GestureOptions,
-  type GestureState,
-} from "./calendarGesture";
-
-// Feed a whole touch sequence; return the final state and every effect.
-function run(events: GestureEvent[], options?: GestureOptions) {
-  let state: GestureState = IDLE_GESTURE;
-  const effects: GestureEffect[] = [];
-  for (const e of events) {
-    const r = gestureStep(state, e, options);
-    state = r.state;
-    effects.push(...r.effects);
-  }
-  return { state, effects };
-}
-const types = (effects: GestureEffect[]) => effects.map((e) => e.type);
-
-const down = (x = 100, y = 100, onBlock = false, t = 0, id = 1, isPrimary = true): GestureEvent => ({
-  type: "down", pointerId: id, x, y, time: t, onBlock, isPrimary,
-});
-const move = (x: number, y: number, t: number, id = 1): GestureEvent => ({
-  type: "move", pointerId: id, x, y, time: t,
-});
-const up = (x: number, y: number, t: number, id = 1): GestureEvent => ({
-  type: "up", pointerId: id, x, y, time: t,
-});
-const cancel = (id = 1): GestureEvent => ({ type: "cancel", pointerId: id });
+import { DIRECTION_LOCK_PX } from "./calendarGesture";
+import { run, types, down, move, up, cancel } from "./testing/gestureSteps";
 
 test("tap: down then up ends idle with no effects and the click is not swallowed", () => {
   const r = run([down(), up(100, 100, 50), { type: "click" }]);
@@ -189,59 +163,4 @@ test("a primary down mid-gesture (lost up) resets cleanly", () => {
   const r = run([down(), move(160, 100, 10), down(50, 50, false, 20, 3), up(50, 50, 30, 3)]);
   assert.equal(r.state.kind, "idle");
   assert.ok(types(r.effects).includes("springBack"));
-});
-
-// ---- hold and drag, switched on (PR 4 will use these) ----
-
-const ON = { holdEnabled: true };
-
-test("hold on: a press on a block starts the hold timer; a tap clears it and ends idle", () => {
-  const r = run([down(100, 100, true), up(100, 100, 50)], ON);
-  assert.equal(r.state.kind, "idle");
-  assert.deepEqual(r.effects, [{ type: "startHoldTimer", ms: HOLD_MS }, { type: "clearHoldTimer" }]);
-});
-
-test("hold on: a press off a block never arms the timer", () => {
-  assert.deepEqual(run([down(100, 100, false)], ON).effects, []);
-});
-
-test("hold on: holdFired then lift is holding, then idle", () => {
-  const held = run([down(100, 100, true), { type: "holdFired" }], ON);
-  assert.equal(held.state.kind, "holding");
-  const r = run([down(100, 100, true), { type: "holdFired" }, up(100, 100, 600)], ON);
-  assert.equal(r.state.kind, "idle");
-  assert.ok(types(r.effects).includes("releaseCapture"));
-});
-
-test("hold on: holding then a move past the slop drags; drop ends idle", () => {
-  const mid = run([down(100, 100, true), { type: "holdFired" }, move(100 + HOLD_SLOP_PX, 100, 700)], ON);
-  assert.equal(mid.state.kind, "dragging");
-  const r = run(
-    [down(100, 100, true), { type: "holdFired" }, move(140, 120, 700), up(140, 120, 800)],
-    ON,
-  );
-  assert.equal(r.state.kind, "idle");
-  assert.ok(types(r.effects).includes("dragDrop"));
-});
-
-test("hold on: moving before the hold fires cancels the timer and slides", () => {
-  const r = run([down(100, 100, true), move(120, 100, 100), { type: "holdFired" }, up(120, 100, 600)], ON);
-  assert.equal(r.state.kind, "idle");
-  assert.ok(types(r.effects).includes("clearHoldTimer"));
-  assert.ok(types(r.effects).includes("settle"));
-});
-
-test("hold on: cancel while dragging cancels the drag and ends idle", () => {
-  const r = run([down(100, 100, true), { type: "holdFired" }, move(140, 120, 700), cancel()], ON);
-  assert.equal(r.state.kind, "idle");
-  assert.ok(types(r.effects).includes("dragCancel"));
-});
-
-test("hold on: a second finger while holding hands to pinch and ends idle", () => {
-  const r = run(
-    [down(100, 100, true), { type: "holdFired" }, down(200, 100, false, 600, 2, false), up(0, 0, 700, 1), up(0, 0, 701, 2)],
-    ON,
-  );
-  assert.equal(r.state.kind, "idle");
-  assert.ok(types(r.effects).includes("handToPinch"));
 });

@@ -62,6 +62,13 @@ export function formatClockTime(date: Date): string {
   return `${numeric} ${meridiem}`;
 }
 
+/** One instant's clock digits with no meridiem ("4", "4:30"): the hour
+ * timeline's gutter marker while a block is dragged, where the hour labels
+ * beside it already say AM or PM. */
+export function formatClockDigits(date: Date): string {
+  return clockParts(date).numeric;
+}
+
 /**
  * The house label for a timed event's start–end range: "8 – 9 PM",
  * "10 – 11 AM", "12:30 – 4:30 PM", "11:30 AM – 1 PM". `:00` minutes are
