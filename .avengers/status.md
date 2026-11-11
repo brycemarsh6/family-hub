@@ -11,8 +11,8 @@ it is done. The pre-cleanup text is in
   signed in as yourself (a parent). Use a throwaway event for the moves.
   Tap an event: it opens. Start a scroll on an event: the hours scroll.
   Swipe sideways starting on an event: the page turns. Hold an event about
-  half a second: it lifts (bigger, outlined) with a small orange time in
-  the hours column; drag it to a new time and let go: it stays, and
+  half a second: it lifts (bigger, outlined) with a small green time in
+  the hours column (the top of the block sits right on that time); drag it to a new time and let go: it stays, and
   "Moved to ..." shows with Undo for 5 seconds. Tap Undo: it goes back.
   On Week, drag one to another day. Drag one to the bottom edge and hold:
   the hours scroll. Reload: the moved event is still there. Drag one day
