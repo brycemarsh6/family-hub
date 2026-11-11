@@ -109,7 +109,7 @@ phone only. Out-of-month cells in the little month are blank (the mock).
    `lg:[body:has([data-month-panel=open])_&]:[--app-nav-width-lg:var(--app-nav-rail-width)]!`.
    In sidebar mode PinnedNav renders both bodies (sidebar and rail) and the
    marker shows one; `NavList` unchanged; `navMode` untouched.
-6. **Layout:** container variant `@min-[768px]:` (px, listed in layout.md's
+6. **Layout:** container variant `@min-[768px]:` (Fury changed this to 700px after C3, see C4 part A) (px, listed in layout.md's
    mission-58 list), not `md:`. The container wraps only the panel and the
    period content; sheets, + dial, Undo bar outside. Mind the timeline's
    left bleed into the gap beside the panel.
@@ -329,16 +329,30 @@ HEAD` after.
   above at or under their old sizes where required.
 
 ### C4 - Schedule's little month moves into the panel
-- **Status:** PENDING (after C3)
-- **Objective:** the wide Schedule's right-hand `ScheduleMiniMonth` and its
+- **Status:** PENDING
+- **Objective:** (A) the side panel's container cutoff becomes 700px; (B) the wide Schedule's right-hand `ScheduleMiniMonth` and its
   two-column wrapper go; the panel rings Schedule's day in view and a day
   tap scrolls the list (or jumps).
 - **Boundaries:** may touch `src/components/ScheduleView.tsx`,
   `src/components/ScheduleMiniMonth.tsx` (delete),
   `src/lib/useScheduleDayInView.ts`, `src/lib/useScheduleDayInView.test.ts`,
   `src/components/CalendarViews.tsx`.
+  Added after C3 (Fury, 2026-11-11): `src/lib/gridClasses.ts`, new `src/lib/gridClasses.test.ts`.
 - **Must not touch:** everything else.
-- **Work:** delete `ScheduleMiniMonth.tsx` and the wrapper at
+- **Work, part A (the width cutoff, found after C3):** C3 used a 768px
+  container cutoff (`COLUMN_MIN_WIDTH_PX[2]`). `<main>` keeps `px-4` on wide
+  pages, so the Calendar body is 32px narrower than the window: an upright
+  iPad (768) gives 736, an iPad held sideways with a pinned Sidebar
+  (1024 - 256) gives 736. With 768 the side panel never appears on Bryce's
+  iPad in either case. New cutoff **700px**: one exported constant
+  `MONTH_PANEL_BESIDE_MIN_PX = 700` in `gridClasses.ts` beside the class
+  strings, which become `@min-[700px]:` (literal, Tailwind cannot read an
+  interpolated class); CalendarViews compares against the constant (drop the
+  `COLUMN_MIN_WIDTH_PX` import if unused); a small test asserts every
+  month-panel class string's container variant is
+  `@min-[${MONTH_PANEL_BESIDE_MIN_PX}px]`. Update the comments that say 768.
+  (Phones stay under it: the widest phone upright is about 440, less 32.)
+- **Work, part B:** delete `ScheduleMiniMonth.tsx` and the wrapper at
   `ScheduleView.tsx:445-460` (`@container`, the `@min-[50rem]` grid,
   `miniMonthRef`). Decide what `useScheduleDayInView`'s skip-ref argument
   becomes (removed, with its test updated, is expected; state what you did).
