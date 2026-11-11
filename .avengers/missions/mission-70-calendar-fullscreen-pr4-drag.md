@@ -1,6 +1,6 @@
 # Mission 70: Calendar full screen PR 4, drag to reschedule
 
-- **Status:** AT-THE-GATES (pass 1) (Bryce OK'd the mock 2026-11-10: "Looks great. Lets start"; gutter marker added at his request)
+- **Status:** DELIVERING (all gates PASS: Vision pass 3, Captain pass 3, Strange pass 3) (Bryce OK'd the mock 2026-11-10: "Looks great. Lets start"; gutter marker added at his request)
 - **Started:** 2026-11-10 · **Updated:** 2026-11-10
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 4: Drag to reschedule (decisions 17 to 22; small call H; answers 5, 6)"
 - **Branch:** `claude/calendar-fullscreen-pr4-drag`, cut from `origin/main` `f8289db` (PR 3 merged as #111)
@@ -258,6 +258,7 @@ calendar is touched by any agent.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 3 | Strange (HEAD b191f4c) | PASS | none | Drift fixed: drawn top on the marker at 0px at every one of 24 drag steps (phone Day 6 h; iPad 3 Day 2 columns, drawn left = column + 1); no jump on release. Refusal glide via `translate`: holds ~70 ms for the save, glides home ~185 to 200 ms, ends 0px off, light and dark; cancel the same; reduce motion snaps in one frame. probe-strange 50/50 by drawn position; marker left 5.6 in all large cases; builder's probe edits only stricter. status.md line true. Notes: refused block waits for the save before gliding (honest); px hour labels wrap at Largest on iPad (pre-existing) |
 | 3 | Vision (HEAD b191f4c, scoped to F2) | PASS | none | Gauntlet re-run green (1925; UTC 1915 + 10 skips; build 0). F2 diff exactly its 11 files. probe-vision 12/12 on a fresh bundle (4 `style.translate`, 0 transform writes); builder's probe edits only stricter. `restTopPx` cannot read a wrong value today (top always written in px; pinch puts the block down first). Helper move: test names, count and bodies identical. Note: `restTopPx` relies on TimelineDayColumn writing `top` in px |
 | 3 | Captain (HEAD b191f4c) | PASS | none | Pass-2 blocker closed (`useOptimisticRun.test.ts`); `testing/gestureSteps.ts` follows the testing rule, no copies left; glob fine; applied texts match the code; sizes recorded right. Notes applied by Fury: calendar.md says `translate`, never `transform`, and names `allDay` |
 | 2 | Vision (HEAD 466752a, code same at 956dcc4) | PASS | none | Gauntlet re-run green (1924; UTC 1914 + 10 skips; build 0 on retry, first try collided with another gate's build). F1 diff exactly its 13 declared files. probe-vision 12/12 on a fresh bundle. `run`'s change proven inert for all 20 callers; stale-lift check cannot fire in a normal drag (V7, V8 pass). Rulebook text matches the code. Notes: `canLiftOnTimeline` alone does not check `allDay` (add `!event.allDay` or reword the doc); TimelineGrid count 411 not 407; settleAction tests placement (Captain's call) |
@@ -269,5 +270,35 @@ calendar is touched by any agent.
 
 ## Delivery
 
+- **Gates:** Vision PASS (pass 2, re-checked pass 3 after F2), Captain
+  PASS (pass 3), Strange PASS (pass 3). Fix contracts F1 (pass 1, all three
+  gates) and F2 (pass 2: the scale-multiplied drift, test placement).
+- **Built:** hold and drag on in the one gesture machine (`HOLD_MS` 400);
+  `timelineDrag.ts` (`resolveDrop`, `canLiftOnTimeline`) ported and
+  extended; `moveCalendarEvent` through the shared `afterEventSaved` with
+  pure rules in `calendarMoveRules.ts`; `useTimelineDrag.ts` (the lift,
+  gutter marker, edge scroll, native scroll lock); `useEventMoves.ts`
+  (optimistic move through `useOptimisticRun`'s `run` and `onError`);
+  shared `UndoBar.tsx`.
+- **Bryce's design calls:** the mock ("Looks great"), the gutter marker
+  from his Google Calendar screenshots, the native scroll lock after his
+  first try of the mock, green marker ("Let's match the app"), the five
+  rulebook entries ("Yes I agree with those").
+- **Rulebook:** DESIGN.md (gesture never the only way, the lifted block,
+  `UndoBar`, a refused move is warn, the px gutter marker carve-out);
+  STRUCTURE.md points to new `docs/structure/calendar.md` (gesture machine,
+  one write path); the old gesture bullet moved word for word to
+  docs/history/structure-rationale.md.
+- **Tests:** npm test 1845 to 1925; UTC 1915 pass plus 10 DST skips.
+- **Database check:** a seeded 9 to 10 AM row moved to 2:15 to 3:15 PM on
+  the dev branch (C2 and Vision pass 1), through the action's body in a
+  script; the action itself (guard, Google push) is proven only by reading
+  and goes on Bryce's phone test, since no agent can sign in.
+- **Left for later (notes, not blockers):** `usePagedSwipe.ts` 393 and
+  `useTimelineDrag.ts` 358 are split candidates on their next touch; the px
+  hour labels wrap at Largest on iPad (pre-existing); `UndoBar` hardcodes
+  the + footprint; a view or period change by a second finger during a hold
+  is hardened but untested on iOS; `restTopPx` relies on `top` written in
+  px.
 - **Phone test:** added to `.avengers/status.md` (screen recording; the in-app parent drag, kid and Tablet logins, and the real iOS scroll lock are only provable there).
 - Bryce gave permission on 2026-11-10 to merge once every gate passes and the Gauntlet is green, unless a big decision comes up.

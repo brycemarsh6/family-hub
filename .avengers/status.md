@@ -257,6 +257,8 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- Calendar drag follow-ups (mission 70 Delivery): `usePagedSwipe.ts` and
+  `useTimelineDrag.ts` are over the soft cap (split on next touch).
 - **Calendar zoom first-frame flicker (mission 65, Strange pass 3 NOTE):**
   on a fresh iPad load the hour lines may jump once. Fix: move the
   `useTimelineZoom` call in `TimelineGrid.tsx` below its sizing layout
