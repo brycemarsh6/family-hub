@@ -1,6 +1,6 @@
 # Mission 72: Calendar full screen PR 6, the month dropdown and the iPad side panel
 
-- **Status:** DELIVERING (all gates PASS: Vision pass 3, Captain pass 2, Strange pass 3 plus a scoped fourth check Bryce approved) (Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes"; after Strange's budget: "Yes, fix and finish")
+- **Status:** DELIVERED (all gates PASS: Vision pass 3, Captain pass 2, Strange pass 3 plus a scoped fourth check Bryce approved) (Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes"; after Strange's budget: "Yes, fix and finish")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11 (delivery)
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 6: The month dropdown (decisions 8, 12, 14; small calls D, E)"
 - **Branch:** `claude/calendar-fullscreen-pr6-0e927b`, cut from `origin/main` `a1bd34a` (PR 5 merged as #113)
@@ -545,6 +545,7 @@ STRUCTURE.md after C4; Strange drafts the DESIGN.md exception at the gate.)
 
 ## Delivery
 
+- **Merged:** PR #114, merge commit `c466dc7`, Gauntlet green, Vercel production deployment 7722566774 succeeded (record fixed in the PR 7 branch, mission 73).
 - **Gates:** Vision PASS (pass 3), Captain PASS (pass 2), Strange PASS
   (scoped fourth check after F3, approved by Bryce once pass 3 used the
   budget). Fix contracts F1 (pass 1: Schedule place and stickiness, phone
