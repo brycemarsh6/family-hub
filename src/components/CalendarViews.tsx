@@ -10,6 +10,9 @@ import { MonthChips } from "./MonthChips";
 import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
 import { TimelineGrid } from "./TimelineGrid";
 import { PagedMonth, PagedYear } from "./PagedPeriodViews";
+import { UndoBar } from "./UndoBar";
+import { moveCalendarEvent } from "@/app/actions/calendar";
+import { useEventMoves } from "@/lib/useEventMoves";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
 import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
@@ -104,7 +107,7 @@ type CalendarViewsProps = {
  * and which of `events` land on each one, is computed here.
  */
 export function CalendarViews({
-  events,
+  events: serverEvents,
   tasks,
   habitDays,
   people,
@@ -134,6 +137,8 @@ export function CalendarViews({
   // own "timeline" branch guards it on its own rather than assuming
   // `today !== null` covers it too.
   const now = useNowMinute();
+  // Mission 70 (C4): a dropped event shows at its new time at once; `events` below is that list.
+  const { events, drop, bar, closeBar } = useEventMoves(serverEvents, moveCalendarEvent);
   const chromeOffsetPx = useHamburgerRowHeight();
 
   // Mission 69: each tap of Today bumps this, so the timeline scrolls to now
@@ -345,6 +350,7 @@ export function CalendarViews({
             chromeOffsetPx={chromeOffsetPx}
             viewerId={viewerId}
             canManage={canManage}
+            onDropEvent={canManage ? drop : undefined}
           />
         )
       );
@@ -445,6 +451,7 @@ export function CalendarViews({
 
       {/* The round + (mission 67) and its Event/Task bubbles (mission 68), bottom right on all six views, for logins that can add. */}
       {canManage && <CalendarAddDial dateParam={addSheetDateParam} />}
+      {bar && <UndoBar key={bar.id} {...bar} onClose={closeBar} />}
 
       {/* mission-19/C1 — the view picker, event-detail, and
           task-detail sheets were extracted verbatim into CalendarSheets
