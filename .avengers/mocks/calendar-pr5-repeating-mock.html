@@ -53,7 +53,7 @@ p.note{color:var(--muted);margin:0 0 10px;font-size:13px;line-height:1.45}
 </style></head><body>
 <div class="wrap">
 <h1>Repeating events (PR 5 mock)</h1>
-<p class="note">"Wake Up" repeats every day at 7 AM. Use the buttons under the phone to act out a drop, then tap the sheet's buttons like you would on the phone. Events that do not repeat never see this sheet; they move straight away like today.</p>
+<p class="note">"Wake Up" repeats every day at 7 AM. Press and hold a Wake Up block until it lifts, drag it, and let go. Events that do not repeat never see this sheet; they move straight away like today.</p>
 
 <div class="phone">
   <div class="top"><span class="title">November</span><span class="pill">Today</span></div>
@@ -81,9 +81,11 @@ p.note{color:var(--muted);margin:0 0 10px;font-size:13px;line-height:1.45}
 </div>
 
 <div class="ctl">
-  <button id="dSame">1. Drag Thursday's Wake Up to 7:30 AM (same day)</button>
-  <button id="dOther">2. Drag Thursday's Wake Up to Friday 7:30 AM (another day)</button>
-  <button id="dFail">3. "All of them", but Google says no</button>
+  <p class="note" style="margin:0"><b style="color:var(--fg)">Try it:</b> press and hold any Wake Up block for half a second until it lifts, drag it up, down or sideways, and let go. Or use the shortcuts below.</p>
+  <label class="note" style="display:flex;gap:8px;align-items:center;margin:0"><input type="checkbox" id="failToggle"> Pretend Google says no to "All of them"</label>
+  <button id="dSame">Shortcut: Thursday's Wake Up to 7:30 AM (same day)</button>
+  <button id="dOther">Shortcut: Thursday's Wake Up to Friday 7:30 AM (another day)</button>
+  <button id="dFail">Shortcut: "All of them", but Google says no</button>
   <button id="reset">Start over</button>
 </div>
 <div class="key">
@@ -116,18 +118,41 @@ function openSheet(p){pending=p;const t=ev[1];t.el.classList.add('lifted');t.day
  document.getElementById('sWhy').hidden=p.day===1;document.getElementById('bAll').hidden=p.day!==1;
  sheet.classList.add('show');scrim.classList.add('show');bar.className='bar'}
 function closeSheet(){sheet.classList.remove('show');scrim.classList.remove('show');ev.forEach(e=>e.el.classList.remove('lifted'))}
-function cancel(){closeSheet();const t=ev[1];t.day=1;t.start=420;draw();pending=null}
+function origin(p){return p.from||{t:ev[1],day:1,start:420}}
+function cancel(){closeSheet();const o=origin(pending);o.t.day=o.day;o.t.start=o.start;draw();pending=null}
 document.getElementById('dSame').onclick=()=>{build();setTimeout(()=>openSheet({day:1,start:450}),30)};
 document.getElementById('dOther').onclick=()=>{build();setTimeout(()=>openSheet({day:2,start:450}),30)};
 document.getElementById('dFail').onclick=()=>{build();setTimeout(()=>openSheet({day:1,start:450,fail:true}),30)};
 document.getElementById('reset').onclick=()=>{closeSheet();bar.className='bar';build()};
 document.getElementById('bCancel').onclick=cancel;scrim.onclick=cancel;
-document.getElementById('bThis').onclick=()=>{const p=pending;closeSheet();showBar('Moved to '+days[p.day]+' '+fmt(p.start),false,()=>{ev[1].day=1;ev[1].start=420;draw()})};
-document.getElementById('bAll').onclick=()=>{const p=pending;closeSheet();const shift=p.start-420;
- ev.forEach(e=>{e.start=420+shift});draw();
- setTimeout(()=>{if(p.fail){ev.forEach(e=>{e.start=420});draw();showBar("Couldn't change Google Calendar. Nothing moved.",true)}
-  else showBar('Moved every Wake Up to '+fmt(p.start),false,()=>{ev.forEach(e=>e.start=420);draw()})},700)};
+document.getElementById('bThis').onclick=()=>{const p=pending,o=origin(p);closeSheet();showBar('Moved to '+days[p.day]+' '+fmt(p.start),false,()=>{o.t.day=o.day;o.t.start=o.start;draw()})};
+document.getElementById('bAll').onclick=()=>{const p=pending,o=origin(p);closeSheet();const shift=p.start-o.start;
+ const before=ev.map(e=>e.start);ev.forEach((e,i)=>{e.start=before[i]+(e===o.t?0:shift)});o.t.start=p.start;draw();
+ setTimeout(()=>{if(p.fail||document.getElementById('failToggle').checked){ev.forEach((e,i)=>{e.start=before[i]});o.t.start=o.start;draw();showBar("Couldn't change Google Calendar. Nothing moved.",true)}
+  else showBar('Moved every Wake Up to '+fmt(p.start),false,()=>{ev.forEach((e,i)=>{e.start=before[i]});o.t.start=o.start;draw()})},700)};
 document.getElementById('undo').onclick=()=>{if(lastUndo)lastUndo();bar.className='bar'};
+// Real hold and drag: hold a Wake Up block about half a second, drag, let go.
+const grid=document.getElementById('grid');let hold=null;
+function colAt(x){for(let i=0;i<3;i++){const r=cols[i].getBoundingClientRect();if(x>=r.left&&x<r.right)return i}return null}
+grid.addEventListener('pointerdown',e=>{const t=ev.find(v=>v.el===e.target.closest('.ev'));if(!t||sheet.classList.contains('show'))return;
+ hold={t,x0:e.clientX,y0:e.clientY,start0:t.start,day0:t.day,lifted:false,id:e.pointerId,
+  timer:setTimeout(()=>{hold.lifted=true;t.el.classList.add('lifted');t.el.style.transition='none';if(navigator.vibrate)navigator.vibrate(10)},400)};
+ grid.setPointerCapture(e.pointerId)});
+grid.addEventListener('pointermove',e=>{if(!hold)return;const dx=e.clientX-hold.x0,dy=e.clientY-hold.y0;
+ if(!hold.lifted){if(Math.hypot(dx,dy)>8){clearTimeout(hold.timer);hold=null}return}
+ e.preventDefault();const t=hold.t;let m=hold.start0+Math.round(dy/HH*60/15)*15;m=Math.max(START*60,Math.min((START+11)*60,m));
+ const c=colAt(e.clientX);if(c!==null)t.day=c;t.start=m;draw()});
+function endHold(){if(!hold)return;clearTimeout(hold.timer);const h=hold;hold=null;if(!h.lifted)return;
+ const t=h.t;t.el.style.transition='';t.el.classList.remove('lifted');
+ if(t.day===h.day0&&t.start===h.start0){draw();return}
+ const p={day:t.day,start:t.start,from:{t,day:h.day0,start:h.start0}};
+ // the dropped block stays where it landed while the sheet asks
+ pending=p;t.el.classList.add('lifted');
+ document.getElementById('sSub').textContent='Wake Up, to '+days[p.day]+' '+fmt(p.start)+'.';
+ document.getElementById('sWhy').hidden=p.day===h.day0;document.getElementById('bAll').hidden=p.day!==h.day0;
+ sheet.classList.add('show');scrim.classList.add('show');bar.className='bar'}
+grid.addEventListener('pointerup',endHold);grid.addEventListener('pointercancel',endHold);
+grid.style.touchAction='none';
 build();
 </script>
 </body></html>
