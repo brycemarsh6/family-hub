@@ -188,14 +188,13 @@ Order: C1 and C2 in parallel (disjoint files); then C3 (needs C1); then C4
 needed; stage by explicit path; one commit per contract; `git show --stat
 HEAD` after.
 
-### C1: the open-state hook and the height hook
+### C1 - the open-state hook and the height hook
 - **Status:** PENDING
 - **Objective:** add `useMonthPanelOpen` and move the timeline's height
   measurement into `useFillViewportHeight`, which also re-measures when the
   calendar body above or around the timeline changes size.
-- **May touch:** `src/lib/monthPanelOpen.ts` (new),
-  `src/lib/monthPanelOpen.test.ts` (new), `src/lib/useFillViewportHeight.ts`
-  (new), `src/components/TimelineGrid.tsx`.
+- **Boundaries:** may touch new `src/lib/monthPanelOpen.ts`,
+  new `src/lib/monthPanelOpen.test.ts`, new `src/lib/useFillViewportHeight.ts`, `src/components/TimelineGrid.tsx`.
 - **Must not touch:** everything else, in particular `usePagedSwipe.ts`,
   `useTimelineZoom.ts`, `calendarGesture.ts`, `CalendarViews.tsx`.
 - **Work:**
@@ -230,12 +229,12 @@ HEAD` after.
 - **Done:** gates can see one height measurement of the scroller, in the new
   hook, and TimelineGrid shorter.
 
-### C2: the pinned menu squeezes to the rail while the panel is open
+### C2 - the pinned menu squeezes to the rail while the panel is open
 - **Status:** PENDING
 - **Objective:** while `[data-month-panel=open]` is anywhere on the page, a
   pinned **sidebar** draws as the icon rail (with its "Show menu names"
   button and drawer), and every fixed bar follows; `navMode` never changes.
-- **May touch:** `src/components/PinnedNav.tsx`, `src/components/AppChrome.tsx`,
+- **Boundaries:** may touch `src/components/PinnedNav.tsx`, `src/components/AppChrome.tsx`,
   `src/lib/appChrome.ts` (only if a constant must be exported).
 - **Must not touch:** `NavList.tsx`, `NavDrawer.tsx`, any calendar file,
   `FloatingAddButton.tsx`, `UndoBar.tsx`, `HamburgerButton.tsx`.
@@ -260,12 +259,12 @@ HEAD` after.
 - **Evidence:** exit codes; the compiled CSS rule text; the measured widths.
 - **Done:** the widths above, and NavList untouched.
 
-### C3: the month panel replaces the sheet
+### C3 - the month panel replaces the sheet
 - **Status:** PENDING (after C1)
 - **Objective:** tapping the title toggles an inline `MonthJumpPanel` built
   from one new `MiniMonth`; `MonthJumpSheet` is deleted.
-- **May touch:** `src/components/MiniMonth.tsx` (new),
-  `src/components/MonthJumpPanel.tsx` (new), `src/components/CalendarViews.tsx`,
+- **Boundaries:** may touch new `src/components/MiniMonth.tsx`,
+  new `src/components/MonthJumpPanel.tsx`, `src/components/CalendarViews.tsx`,
   `src/components/CalendarHeader.tsx`, `src/components/CalendarSheets.tsx`,
   `src/components/MonthJumpSheet.tsx` (delete), `src/lib/gridClasses.ts`,
   `src/lib/monthLayout.ts` and `src/lib/monthLayout.test.ts` (comments only).
@@ -329,12 +328,12 @@ HEAD` after.
 - **Done:** sheet gone; panel opens and closes from the title; the files
   above at or under their old sizes where required.
 
-### C4: Schedule's little month moves into the panel
+### C4 - Schedule's little month moves into the panel
 - **Status:** PENDING (after C3)
 - **Objective:** the wide Schedule's right-hand `ScheduleMiniMonth` and its
   two-column wrapper go; the panel rings Schedule's day in view and a day
   tap scrolls the list (or jumps).
-- **May touch:** `src/components/ScheduleView.tsx`,
+- **Boundaries:** may touch `src/components/ScheduleView.tsx`,
   `src/components/ScheduleMiniMonth.tsx` (delete),
   `src/lib/useScheduleDayInView.ts`, `src/lib/useScheduleDayInView.test.ts`,
   `src/components/CalendarViews.tsx`.
