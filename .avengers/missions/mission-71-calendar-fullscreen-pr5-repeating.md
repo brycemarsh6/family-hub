@@ -84,9 +84,63 @@ change is Bryce's phone test, on a throwaway event first.
 - Strange: the sheet is visible.
 - Captain: a new column, a new action and a new write rule.
 
-## Facts (Banner)
+## Facts (Banner, at `6656fed`)
 
-(pending)
+- Pull files live in `src/lib/` (`calendarEventPull.ts` binding and only
+  writer, `calendarPullRun.ts` steps, `calendarSyncPull.ts` `planPull`
+  :163). Insert `writeInsert` :126-136, update `writeUpdate` :137-151.
+- **Unchanged etag is skipped with no write** (`calendarSyncPull.ts`
+  :145-148, :227-229). So the backfill needs a new small write for skipped
+  rows that lack the series id (sync row only, never `CalendarEvent`).
+- Sync token on `LinkedCalendar.syncToken`; saved only after a clean run
+  (`calendarPullRun.ts:127-131`). No token: window now-30 to now+365 days.
+  Token cleared today only by a 410/400 restart and account handover.
+- **The pull never deletes rows Google stops listing**; only `cancelled`
+  items delete (`calendarSyncPull.ts:172-175`).
+- `GoogleEventIn` (`google/types.ts:47-60`) does not type
+  `recurringEventId`, `originalStartTime`, `start.timeZone`; the raw data
+  carries them (`calendarEventCalls.ts:179-180`). The list asks
+  `singleEvents=true`, so each day is its own row with Google's instance id.
+- Google client `calendarEventCalls.ts`: `getEvent`, `updateEvent` (PATCH,
+  optional If-Match), all `sendUpdates=none`; `fetchFn` injected, tests use
+  a fake.
+- Push: `afterEventSaved` (`actions/calendar.ts:41-44`) to `pushEventCopies`
+  to `planSync`; a drag of a pulled event PATCHes its own instance. The pull
+  never calls `afterEventSaved`. **Double-push risk is inside the new
+  action:** patching the parent and also calling `afterEventSaved` would be
+  two Google writes for one drop.
+- Directions `off | outbound | twoWay` (`calendarSyncVocabulary.ts:7`);
+  unlinked means no `LinkedCalendar` row. The action checks the event's
+  `sourceLinkedCalendarId` row is `twoWay` with account status ok.
+- Client: `CalendarEventView` (`types.ts:105-139`) has no series id; add via
+  `CALENDAR_EVENT_SELECT` and `toCalendarEventView`
+  (`calendarEventQuery.ts`). Drop path `useEventMoves.ts` `drop` :125-133,
+  `save` :75-103. `ConfirmSheet.tsx` is the closest house sheet.
+- `moveCalendarEvent(id, newStartIso)` (`actions/calendar.ts:268`); pure
+  rules `calendarMoveRules.ts` (`parseMoveStart`, `planMove`).
+- Tests: pull harness `testing/calendarPullRunHarness.ts`, push harness
+  `testing/calendarSyncPlanHarness.ts`, Google call fakes in
+  `google/calendarEventCalls.test.ts`.
+
+## Fury's structure calls (from the facts)
+
+- **Google instance ids change when a series' start time changes** (an
+  instance id carries its original start). So after "All of them", the
+  dragged row may be deleted and re-inserted by the pull with a new id.
+  Undo therefore cannot hold the old event id: the action returns the id of
+  the dragged day's row after the pull, and Undo calls the same action with
+  that id and the original start. The server still computes the minutes.
+- **The shift is wall-clock minutes**, computed in the household zone from
+  the stored row and the new start (same day only, Q1 enforced on the
+  server too), then applied to the parent's start and end in the parent's
+  own `timeZone`. Pure function, tested across both clock changes.
+- **Safety net for stale rows:** the pull deletes only what Google marks
+  cancelled. After the pull, the action lists the series' current instances
+  in the pull window (`events.instances`) and removes only Marshee rows of
+  that series and calendar that Google no longer lists. One reconcile in a
+  pure planner, never a hand loop over rows.
+- The action does not call `afterEventSaved`; it writes Google once (the
+  parent), then pulls. One Google write per drop.
 
 ## Contracts
 
