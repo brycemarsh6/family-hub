@@ -684,6 +684,11 @@ amendment id.
   hold and drag included, and `src/lib/usePagedSwipe.ts` is its only
   driver. (Rules: docs/structure/calendar.md, "The pointer-gesture
   machine".)
+- **One small month, one month-panel marker (mission-72).**
+  `MiniMonth.tsx` is the only navigation day grid; `data-month-panel` is
+  the only page-to-chrome signal for the rail look. (Rules:
+  docs/structure/calendar.md, "The small month and the month panel";
+  docs/structure/layout.md, "The month panel marker".)
 - **An event's time changes through one write path (mission-70).**
   Editing and dragging both save through `afterEventSaved` in
   `src/app/actions/calendar.ts`. (Rules: docs/structure/calendar.md, "One
@@ -894,17 +899,17 @@ amendment id.
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,
   Bryce approved.) (Story: docs/history/structure-rationale.md, "Housekeeping note".)
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (Story: docs/history/structure-rationale.md, "Soft cap: the groceries.ts split".)
-  Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 578 total /
-  about 361 code (89% of the hard cap; the next Schedule feature extracts
-  the two-panel wrapper), `CalendarViews.tsx` 490 total / 194 code (was 502; Month and Year
+  Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 559 total
+  (was 578; mission-72 removed the two-panel wrapper and its small month), `CalendarViews.tsx` 490 total / 194 code (was 502; Month and Year
   paging moved to `PagedPeriodViews.tsx`, mission-69; the drop and Undo bar
   added 8, mission-70; the repeat sheet added 4 more, 494 total / 197
-  code, mission-71), `useEventMoves.ts` 310 / 219 code (mission-71, was
+  code, mission-71; the month panel held it at 494, mission-72), `useEventMoves.ts` 310 / 219 code (mission-71, was
   136; its next
   feature moves the series half, `applySeriesShift`, the series save and
-  the repeat sheet's props, into `src/lib/useSeriesMove.ts`), `TimelineGrid.tsx` 411 / 178 code (was 471; one
+  the repeat sheet's props, into `src/lib/useSeriesMove.ts`), `TimelineGrid.tsx` 375 (was 471; one
   page of columns moved to `TimelinePage.tsx`, mission-69; drag wiring,
-  mission-70), `useTimelineDrag.ts` 358 / 275 code (mission-70; 8 over
+  mission-70; its height measurement moved to `useFillViewportHeight.ts`,
+  mission-72), `useTimelineDrag.ts` 358 / 275 code (mission-70; 8 over
   the soft cap, a split candidate on its next touch), `usePagedSwipe.ts` 393 / 302 code (was 342; a split
   candidate: its next touch moves the page-turn animation, `springBack`,
   `commit`, `startTurn` and their `transitionend` cleanups, into

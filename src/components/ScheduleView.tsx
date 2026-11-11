@@ -12,7 +12,6 @@ import { DaySection } from "./DaySection";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { SkeletonBlock } from "./Skeleton";
-import { ScheduleMiniMonth } from "./ScheduleMiniMonth";
 import { SCHEDULE_TITLE_SLOT_ID, SCHEDULE_HEADER_BAR_HEIGHT_REM } from "./CalendarHeader";
 import { useHamburgerInsetPx } from "@/lib/appChrome";
 import {
@@ -81,8 +80,12 @@ type ScheduleViewProps = {
    * check was wrong.
    */
   onTodayVisibleChange: (visible: boolean) => void;
-  /** Fallback for a mini-month tap beyond the loaded window (`jumpToDay`). */
-  onJumpToDay: (day: Date) => void;
+  /** Mission 72: the day in view (start-of-day time), for the month panel's ring. */
+  onDayInViewChange: (day: number) => void;
+  /** Mission 72: read the rows for it only while the month panel is open. */
+  trackDayInView: boolean;
+  /** Mission 72: height of a stacked open month panel stuck under the chrome (0 when none); rows reveal below it. */
+  revealExtraPx: number;
   ref?: Ref<ScheduleViewHandle>;
 };
 
@@ -143,12 +146,16 @@ function TodayEmptyRow({ day }: { day: Date }) {
   );
 }
 
+/** The chrome Schedule pins above its list: inset + bar. One source for the scroll margins and the month panel's sticky top (mission 72). */
+export const scheduleChromeHeightPx = (insetPx: number, rootPx: number) => insetPx + SCHEDULE_HEADER_BAR_HEIGHT_REM * rootPx;
 export function ScheduleView({
   initialDay,
   people,
   canManage,
   onTodayVisibleChange,
-  onJumpToDay,
+  onDayInViewChange,
+  trackDayInView,
+  revealExtraPx,
   ref,
 }: ScheduleViewProps) {
   const router = useRouter();
@@ -205,10 +212,11 @@ export function ScheduleView({
   // Schedule bar, measured from the screen's top edge. The hook measures
   // the hamburger's bottom edge (safe-area inset + the 3.5rem row, which
   // follows the Text size), so swapping that row for the bar's own height
-  // leaves inset + bar. `useHamburgerInsetPx` gives that inset and the live root font size,
-  // and the bar is rem too (86px at 16, 129px at Largest, 5.375rem).
+  // leaves inset + bar (`scheduleChromeHeightPx`: 86px bar at 16, 129px at Largest).
   const { insetPx, rootPx } = useHamburgerInsetPx();
-  const scheduleChromeHeight = insetPx + SCHEDULE_HEADER_BAR_HEIGHT_REM * rootPx;
+  const scheduleChromeHeight = scheduleChromeHeightPx(insetPx, rootPx);
+  // Mission 72: the line under everything pinned above the list: the chrome, plus a stacked open month panel.
+  const revealLine = scheduleChromeHeight + revealExtraPx;
 
   // mission-15/C10 (Strange's blocker) — re-arms the one-shot below
   // whenever `initialDayTime` genuinely changes, mirroring
@@ -251,7 +259,7 @@ export function ScheduleView({
     target.scrollIntoView({ behavior: "instant", block: "start" });
 
     const scroller = document.scrollingElement;
-    const landedShort = target.getBoundingClientRect().top > scheduleChromeHeight + 1;
+    const landedShort = target.getBoundingClientRect().top > revealLine + 1;
     const pinnedToScrollMax =
       scroller !== null && scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 1;
 
@@ -300,11 +308,11 @@ export function ScheduleView({
     }
     const observer = new IntersectionObserver(
       ([entry]) => onTodayVisibleChange(entry.isIntersecting),
-      { threshold: 0, rootMargin: "0px" },
+      { threshold: 0, rootMargin: `-${revealLine}px 0px 0px 0px` },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [today, months, onTodayVisibleChange]);
+  }, [today, months, onTodayVisibleChange, revealLine]);
 
   // mission-16/C9 — "which month is topmost" and the header portal it feeds
   // moved out to src/lib/useScheduleMonthTitle.ts (Captain's own named seam:
@@ -326,10 +334,9 @@ export function ScheduleView({
     SCHEDULE_TITLE_SLOT_ID,
   );
 
-  // mission-46/C3: `miniMonthRef` lets the hook skip work while that column is
-  // display:none; the +2 absorbs sub-pixel rounding on a row on the line.
-  const miniMonthRef = useRef<HTMLDivElement>(null);
-  const dayInViewTime = useScheduleDayInView(dayRefs, months, scheduleChromeHeight + 2, miniMonthRef, initialDay);
+  // Mission 72: the day in view feeds the panel's ring (rows read only while open; +2 absorbs rounding).
+  const dayInViewTime = useScheduleDayInView(dayRefs, months, revealLine + 2, trackDayInView, initialDay);
+  useEffect(() => onDayInViewChange(dayInViewTime), [dayInViewTime, onDayInViewChange]);
 
   function scrollToDay(day: Date): boolean {
     if (day < windowStart || day >= windowEnd) return false;
@@ -403,7 +410,7 @@ export function ScheduleView({
                     // This view only renders while CalendarHeader's
                     // Schedule bar is pinned (both read `VIEW_CONFIG`), so
                     // that number always describes the real chrome.
-                    style={{ scrollMarginTop: scheduleChromeHeight }}
+                    style={{ scrollMarginTop: revealLine }}
                   >
                     {isEmptyToday(row) ? (
                       // Holds off until the habit days arrive: an empty today row
@@ -442,65 +449,42 @@ export function ScheduleView({
         </div>
       ) : (
         <>
-          {/* mission-46/C3: one column below 50rem; a mini month beside the list
-              from 50rem (24rem, then 27.5rem from 64rem). The container wraps
-              this grid only; the sheets below stay outside it. */}
-          <div className="@container">
-            <div className="grid grid-cols-[minmax(0,1fr)] gap-5 @min-[50rem]:grid-cols-[24rem_minmax(0,1fr)] @min-[64rem]:grid-cols-[27.5rem_minmax(0,1fr)]">
-              <div
-                ref={miniMonthRef}
-                className="sticky hidden self-start @min-[50rem]:block"
-                style={{ top: scheduleChromeHeight + 8 }}
-              >
-                <ScheduleMiniMonth
-                  key={`${new Date(dayInViewTime).getFullYear()}-${new Date(dayInViewTime).getMonth()}`}
-                  dayInView={new Date(dayInViewTime)}
-                  today={today}
-                  onPickDay={(day) => {
-                    if (!scrollToDay(day)) onJumpToDay(day);
-                  }}
-                />
-              </div>
-              <div className="min-w-0">
-              {/* Sentinels sit OUTSIDE the loaded content, not between rows —
-                  rootMargin: "100% 0px" (set in the hook) means a fetch starts
-                  a full viewport before the sentinel is literally on screen,
-                  so the next chunk is usually ready before the reader reaches
-                  the edge. */}
-              <div ref={topSentinelRef} aria-hidden="true" />
-              {loadingBackward && (
-                <div className="flex flex-col gap-2 pb-2">
-                  <SkeletonBlock className="h-[46px] w-full" />
-                </div>
-              )}
-              {/* Only shown once a direction has genuinely stopped (D2/the
-                  hook's own applyChunkResult) — never while it's merely
-                  between fetches, which is what `loadingBackward` above
-                  already covers separately. */}
-              {!hasMoreBackward && !loadingBackward && (
-                <p className="pb-2 text-center text-xs text-muted">That&apos;s as far back as this loads.</p>
-              )}
-
-              {habitDaysFailed && (
-                <p role="alert" className="px-1 pb-2 text-sm text-warn">
-                  Couldn&apos;t load your planned habit days.
-                </p>
-              )}
-
-              {months.map(renderMonth)}
-
-              {!hasMoreForward && !loadingForward && (
-                <p className="pt-2 text-center text-xs text-muted">That&apos;s as far ahead as this loads.</p>
-              )}
-              {loadingForward && (
-                <div className="flex flex-col gap-2 pt-2">
-                  <SkeletonBlock className="h-[46px] w-full" />
-                </div>
-              )}
-              <div ref={bottomSentinelRef} aria-hidden="true" />
-              </div>
+          {/* Sentinels sit OUTSIDE the loaded content, not between rows —
+              rootMargin: "100% 0px" (set in the hook) means a fetch starts
+              a full viewport before the sentinel is literally on screen,
+              so the next chunk is usually ready before the reader reaches
+              the edge. */}
+          <div ref={topSentinelRef} aria-hidden="true" />
+          {loadingBackward && (
+            <div className="flex flex-col gap-2 pb-2">
+              <SkeletonBlock className="h-[46px] w-full" />
             </div>
-          </div>
+          )}
+          {/* Only shown once a direction has genuinely stopped (D2/the
+              hook's own applyChunkResult) — never while it's merely
+              between fetches, which is what `loadingBackward` above
+              already covers separately. */}
+          {!hasMoreBackward && !loadingBackward && (
+            <p className="pb-2 text-center text-xs text-muted">That&apos;s as far back as this loads.</p>
+          )}
+
+          {habitDaysFailed && (
+            <p role="alert" className="px-1 pb-2 text-sm text-warn">
+              Couldn&apos;t load your planned habit days.
+            </p>
+          )}
+
+          {months.map(renderMonth)}
+
+          {!hasMoreForward && !loadingForward && (
+            <p className="pt-2 text-center text-xs text-muted">That&apos;s as far ahead as this loads.</p>
+          )}
+          {loadingForward && (
+            <div className="flex flex-col gap-2 pt-2">
+              <SkeletonBlock className="h-[46px] w-full" />
+            </div>
+          )}
+          <div ref={bottomSentinelRef} aria-hidden="true" />
         </>
       )}
 

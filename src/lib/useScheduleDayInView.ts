@@ -1,15 +1,14 @@
 "use client";
 
 // Which day is the Schedule list showing right now? Feeds the ring on the
-// wide Schedule's mini month (mission-46/C3, decision 226). Same shape as
-// useScheduleMonthTitle.ts: a pure kernel (`topmostVisibleDay`, tested in
-// useScheduleDayInView.test.ts) plus a hook that does the DOM reads it can't.
+// Calendar's month panel (mission-46/C3, decision 226; mission 72 moved the
+// ring there). Same shape as useScheduleMonthTitle.ts: a pure kernel
+// (`topmostVisibleDay`, tested in useScheduleDayInView.test.ts) plus a hook
+// that does the DOM reads it can't.
 //
-// The hook always subscribes but skips the read while the mini month is not
-// on screen: `shownRef`'s element has no width when its column is
-// `display: none` (below 50rem), and then nothing is measured. That keeps the
-// phone free of per-frame `getBoundingClientRect` calls without a
-// `matchMedia` copy of a breakpoint that already lives in CSS.
+// The hook reads rows only while `enabled` (the panel is open), which keeps a
+// closed panel free of per-frame `getBoundingClientRect` calls. Opening it
+// re-runs the effect, which reads once at once.
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 
@@ -57,7 +56,7 @@ export function useScheduleDayInView(
   dayRefs: RefObject<Map<number, HTMLElement>>,
   months: { days: { day: Date }[] }[],
   revealLineY: number,
-  shownRef: RefObject<HTMLElement | null>,
+  enabled: boolean,
   initialDay: Date,
 ): number {
   const [dayInView, setDayInView] = useState(
@@ -66,13 +65,12 @@ export function useScheduleDayInView(
   const dayInViewRef = useRef(dayInView);
 
   useEffect(() => {
+    if (!enabled) return;
     let framePending = false;
     let frameId = 0;
 
     function sync() {
       framePending = false;
-      const shown = shownRef.current;
-      if (!shown || shown.offsetWidth === 0) return;
       const dayTops: DayTop[] = [];
       for (const month of months) {
         for (const row of month.days) {
@@ -102,7 +100,7 @@ export function useScheduleDayInView(
       window.removeEventListener("scroll", onScrollOrResize);
       window.removeEventListener("resize", onScrollOrResize);
     };
-  }, [months, revealLineY, dayRefs, shownRef]);
+  }, [months, revealLineY, dayRefs, enabled]);
 
   return dayInView;
 }

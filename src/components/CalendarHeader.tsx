@@ -44,7 +44,7 @@ export const SCHEDULE_HEADER_BAR_HEIGHT_REM = 5.375;
 
 /**
  * The Calendar's top bar, one row beside the fixed hamburger: the period
- * title (with a small down arrow, opening the month-jump sheet) at the
+ * title (with a small arrow, opening the month panel) at the
  * left, then Today, View and Refresh at the right. From iPad width a row of
  * the six views replaces the View circle (a container query on this bar,
  * see `CalendarViewRow`). It owns no state; CalendarViews.tsx hands it
@@ -58,7 +58,8 @@ export function CalendarHeader({
   isCurrentPeriod,
   onToday,
   title,
-  onOpenMonthJump,
+  onToggleMonthPanel,
+  monthPanelOpen,
 }: {
   view: CalendarPeriodView;
   /** Opens the view picker sheet (the circle). */
@@ -71,8 +72,9 @@ export function CalendarHeader({
   onToday: () => void;
   /** Null while `today` hasn't resolved — renders a pulsing placeholder. */
   title: string | null;
-  /** Opens the month-jump sheet (`MonthJumpSheet.tsx`, mounted from `CalendarSheets.tsx`). */
-  onOpenMonthJump: () => void;
+  /** Opens or closes the month panel (`MonthJumpPanel.tsx`, mounted by CalendarViews.tsx). */
+  onToggleMonthPanel: () => void;
+  monthPanelOpen: boolean;
 }) {
   // Schedule is the one view whose content scrolls far enough for "which
   // month is on screen" to change, so only it pins (and portals its own
@@ -126,25 +128,26 @@ export function CalendarHeader({
                 <h2 className="truncate text-lg font-bold @min-[30rem]:text-xl">{title}</h2>
               )}
 
-              {/* A visible hint that the title opens the month-jump sheet; a
+              {/* A visible hint that the title opens the month panel (turned up while open, instant under reduce motion); a
                   sibling of the branches above (never inside the portal slot),
                   dimmed with them while `today` hasn't resolved. */}
               <ChevronDown
                 aria-hidden="true"
                 size={18}
-                className={title === null ? "shrink-0 text-muted opacity-40" : "shrink-0 text-muted"}
+                className={`shrink-0 text-muted transition-transform ${title === null ? "opacity-40" : ""} ${monthPanelOpen ? "rotate-180" : ""}`}
               />
 
-              {/* The control every view opens the month-jump sheet from: an
+              {/* The control every view toggles the month panel from: an
                   overlay on the whole span (44px tall, the span's own height),
                   a sibling of the branches above so the Schedule slot stays
                   childless. Disabled until `today` resolves: there is no anchor
-                  to seed the sheet with before then. */}
+                  to frame the panel on before then. */}
               <button
                 type="button"
-                onClick={onOpenMonthJump}
+                onClick={onToggleMonthPanel}
                 disabled={!todayResolved}
                 aria-label="Jump to a month or day"
+                aria-expanded={monthPanelOpen}
                 className="absolute inset-0 z-10"
               />
             </span>

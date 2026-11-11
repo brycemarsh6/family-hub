@@ -1,6 +1,6 @@
 # Mission 71: Calendar full screen PR 5, repeating events ("This one" or "All of them")
 
-- **Status:** DELIVERING (all gates PASS: Vision pass 3, Captain pass 2, Strange pass 3) (Bryce OK'd the mock 2026-11-11: "Looks good, build it"; rulebook and N1, N2 approved: "I agree with all those recommendations")
+- **Status:** DELIVERED (all gates PASS: Vision pass 3, Captain pass 2, Strange pass 3) (Bryce OK'd the mock 2026-11-11: "Looks good, build it"; rulebook and N1, N2 approved: "I agree with all those recommendations")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 5: Repeating events, "This one" or "All of them" (decision 22; small call I; Q1, Q2)"
 - **Branch:** `claude/calendar-fullscreen-pr5-dc232e`, cut from `origin/main` `6656fed` (PR 4 merged as #112)
@@ -393,6 +393,7 @@ touched; STRUCTURE.md caps apply.
   rows back until the next pull.
 - **Phone test:** in `.avengers/status.md` (throwaway two-week "Test
   repeat" first). Follow-ups there too.
+- **Merged:** PR #113, merge commit `a1bd34a`, Gauntlet green, Vercel production deployment 7718116353 succeeded (record fixed in the PR 6 branch, mission 72).
 
 ### F1: Pass 1 fixes (Vision and Captain blockers, Vision notes)
 - **Status:** DONE `ab3c648` (all seven items; `writeDelete(del, calendarId)` excludes the pulled calendar, so the pull's cancelled delete and the series cleanup never call Google for the source; cleanup gated on the pull's `failed === 0`; `SHIFT_NOTHING_ERROR` "That's already its time." and the client's `isSeriesNoShift`; `loadSeriesCalendar` in linkedCalendarsRead.ts; `listGoogleInstances` in calendarApi.ts; `wallClockMs`, `instantAtWallClock`, `shiftWallClockInZone` in householdDate.ts (zoneMidnightInstant uses it; the hook uses `planSeriesShift`); `getAccountAccessToken` in calendarEventPull.ts marks needs-relink. npm test 2001, UTC 1991 + 10 skips, tsc, lint, build ran (exit not captured; Vision re-runs). useEventMoves 310)

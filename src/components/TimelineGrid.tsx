@@ -84,11 +84,12 @@
 // the per-column not-loaded `sr-only` string — see its own comment, right
 // where the string lives, for the full defect.
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { MINUTES_PER_DAY, minutesOfDay } from "@/lib/timelineLayout";
 import { isSameDay } from "@/lib/mealPlanDates";
 import { PAGE_BLEED_CLASSES } from "@/lib/gridClasses";
 import { useTimelineZoom } from "@/lib/useTimelineZoom";
+import { useFillViewportHeight } from "@/lib/useFillViewportHeight";
 import { usePagedSwipe } from "@/lib/usePagedSwipe";
 import { isOnDragBlock, useTimelineDrag } from "@/lib/useTimelineDrag";
 import { neighbourAnchor } from "@/lib/useCalendarPeriod";
@@ -237,52 +238,15 @@ export function TimelineGrid({
   const previousDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, -1));
   const nextDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, 1));
 
-  // --- Sizing: this component's own overflow-y-auto scroller, sized from
-  // its measured top edge to the bottom of the viewport. `chromeOffsetPx`
-  // seeds the CSS `calc()` used for the very first paint (and SSR) — cheap
-  // and correct because a `height` isn't a pinned `style={{ top }}`; a
-  // one-paint-late refinement here reads as the box settling, not as
-  // content jumping under a fixed point (see mission-16/C1's own rider
-  // comment for the "fine for scroll-mt, not fine for a pinned top"
-  // distinction this borrows).
-  const [measuredHeightPx, setMeasuredHeightPx] = useState<number | null>(null);
-
-  useLayoutEffect(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-
-    function measure() {
-      const top = scroller!.getBoundingClientRect().top;
-      const available = Math.max(window.innerHeight - top, MIN_SCROLLER_HEIGHT_PX);
-      setMeasuredHeightPx(available);
-      // Applied imperatively, in addition to the React state update above,
-      // for a real reason and not a redundant belt-and-suspenders: the
-      // scroll-to-now effect below runs in the SAME commit, immediately
-      // after this one, and reads `scroller.clientHeight` — a React state
-      // update doesn't reach the DOM until the NEXT render/commit, which is
-      // too late for that read. Mutating `style.height` here directly means
-      // the very next `getBoundingClientRect()`/`clientHeight` read in this
-      // same synchronous pass already reflects the real measured height,
-      // not the previous render's `calc()` first-paint seed. (Caught by
-      // measuring, not assumed: without this line, the scroll-to-now target
-      // was computed against the calc() fallback's clientHeight — visibly
-      // wrong on a real device, where the fallback overshoots the true
-      // available height.)
-      scroller!.style.height = `${available}px`;
-    }
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-    // Re-measures on a view switch, not just on mount: cheap, and correct if
-    // the chrome above this component ever renders at a different height for
-    // a different view. Not keyed on the days: a page turn must not touch
-    // the scroller (mission 69).
-  }, [view]);
-
-  const scrollerHeightStyle =
-    measuredHeightPx !== null
-      ? `${measuredHeightPx}px`
-      : `calc(100dvh - ${chromeOffsetPx}px)`;
+  // --- Sizing: this component's own overflow-y-auto scroller, filled to the
+  // viewport's bottom by useFillViewportHeight (the seed, the synchronous
+  // write the scroll-to-now effect below relies on, and the re-measure when
+  // the calendar body around it changes size).
+  const scrollerHeightStyle = useFillViewportHeight(scrollerRef, {
+    minPx: MIN_SCROLLER_HEIGHT_PX,
+    chromeOffsetPx,
+    resetKey: view,
+  });
 
   // --- Scroll-to-now on open (or 7 AM when today isn't one of the columns).
   // Keyed on the view and on Today's signal (mission 69: it used to be the

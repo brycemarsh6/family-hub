@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Month dropdown mock (PR 6)</title>
+<style>
+:root{--bg:#1c1b16;--fg:#ece8df;--muted:#9a958a;--line:#3a3830;--accent:#8fb08a;--ev:#2e3a2f;--evb:#6d8a6f;--surface:#26251f;--hh:40px;--gut:44px}
+*{box-sizing:border-box}
+html,body{margin:0;background:#111;color:var(--fg);font:14px -apple-system,system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+.wrap{max-width:1100px;margin:0 auto;padding:14px}
+h1{font-size:18px;margin:0 0 4px}
+h2{font-size:16px;margin:26px 0 4px}
+p.note{color:var(--muted);margin:0 0 10px;font-size:13px;line-height:1.5;max-width:640px}
+.tabs{display:flex;gap:6px;margin:8px 0}
+.tabs button{min-height:40px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;padding:0 14px}
+.tabs button.on{background:var(--accent);color:#1c1b16;border-color:var(--accent);font-weight:600}
+.dev{background:var(--bg);border:6px solid #000;border-radius:26px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.phone{width:393px;height:760px}
+.ipadL{width:1024px;height:620px;transform-origin:top left}
+.ipadP{width:768px;height:820px;transform-origin:top left}
+.scaleL{width:calc(1024px*.95);height:calc(620px*.95)}.scaleL .dev{transform:scale(.95)}
+.top{height:52px;display:flex;align-items:center;gap:8px;padding:0 10px;flex:none}
+.burger{width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--muted)}
+.title{font-weight:700;font-size:19px;display:flex;align-items:center;gap:4px;cursor:pointer;min-height:44px;padding:0 6px;border-radius:10px}
+.title .car{display:inline-block;font-size:12px;color:var(--muted);transition:transform 180ms}
+.title.open .car{transform:rotate(180deg)}
+.sp{flex:1}
+.circ{width:40px;height:40px;border-radius:999px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted)}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg span{padding:9px 13px;font-size:13px;color:var(--muted)}.seg span.on{background:var(--accent);color:#1c1b16;font-weight:600}
+/* dropdown */
+.drop{overflow:hidden;transition:height 220ms cubic-bezier(.2,.8,.2,1);height:0;flex:none;border-bottom:1px solid transparent}
+.drop.open{border-bottom-color:var(--line)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 10px 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips span{flex:none;min-height:44px;display:flex;align-items:center;padding:0 14px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-size:13px;cursor:pointer}
+.chips span.on{background:var(--accent);border-color:var(--accent);color:#1c1b16;font-weight:600}
+.months{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.months::-webkit-scrollbar{display:none}
+.mm{flex:none;width:100%;scroll-snap-align:start;padding:0 10px 10px}
+.mm .wk,.mm .days{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
+.mm .wk span{font-size:11px;color:var(--muted);padding:2px 0 4px}
+.mm .days span{height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;position:relative;cursor:pointer}
+.mm .days span b{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:999px;font-weight:500}
+.mm .days span.t b{background:var(--accent);color:#1c1b16;font-weight:700}
+.mm .days span.v b{box-shadow:inset 0 0 0 2px var(--accent);font-weight:700}
+.mm .days span.x{visibility:hidden}
+.mm .days i{position:absolute;bottom:3px;width:4px;height:4px;border-radius:2px;background:var(--muted)}
+/* calendar */
+.cal{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;overflow:hidden}
+.head{display:flex;border-bottom:1px solid var(--line);flex:none}
+.head .corner{width:var(--gut);flex:none;text-align:center;padding:4px 0;font-size:11px;color:var(--muted)}
+.head .corner b{display:block;font-size:18px;color:var(--accent)}
+.hcell{flex:1;text-align:center;padding:5px 0;border-left:1px solid var(--line);min-width:0}
+.hcell b{display:block;font-size:17px}.hcell small{color:var(--muted);font-size:10px}
+.hcell.today b{color:var(--accent)}
+.allday{flex:1;padding:4px;border-left:1px solid var(--line)}
+.allday span{display:block;background:var(--ev);border:1px solid var(--evb);border-radius:5px;font-size:11px;padding:2px 5px}
+.grid{flex:1;display:flex;position:relative;overflow:hidden}
+.gutter{width:var(--gut);flex:none;position:relative}
+.gutter span{position:absolute;right:6px;font-size:10px;color:var(--muted);transform:translateY(-50%)}
+.col{flex:1;border-left:1px solid var(--line);position:relative;min-width:0;
+ background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--hh) - 1px),var(--line) calc(var(--hh) - 1px),var(--line) var(--hh))}
+.ev{position:absolute;left:2px;right:2px;background:var(--ev);border:1px solid var(--evb);border-radius:6px;font-size:11px;padding:3px 4px;font-weight:600;line-height:1.25;overflow:hidden}
+.ev small{display:block;font-weight:400;color:var(--muted);font-size:10px}
+.fab{position:absolute;right:14px;bottom:14px;width:56px;height:56px;border-radius:999px;background:var(--accent);color:#1c1b16;font-size:30px;display:flex;align-items:center;justify-content:center;z-index:5}
+/* month view */
+.mgrid{flex:1;display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr}
+.mwk{display:grid;grid-template-columns:repeat(7,1fr);flex:none;font-size:11px;color:var(--muted);text-align:center;padding:4px 0}
+.mcell{border-top:1px solid var(--line);border-left:1px solid var(--line);font-size:12px;padding:3px;overflow:hidden}
+.mcell:nth-child(7n+1){border-left:0}
+.mcell .n{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:999px}
+.mcell.t .n{background:var(--accent);color:#1c1b16;font-weight:700}
+.mcell.o{color:var(--muted)}
+.mcell .p{display:block;background:var(--ev);border-radius:3px;font-size:9.5px;padding:1px 3px;margin-top:2px;white-space:nowrap;overflow:hidden}
+/* ipad panel + rail */
+.body{flex:1;display:flex;min-height:0}
+.panel{flex:none;width:0;overflow:hidden;transition:width 220ms cubic-bezier(.2,.8,.2,1);border-right:1px solid transparent}
+.panel.open{width:288px;border-right-color:var(--line)}
+.panel .inner{width:288px;padding-top:4px}
+.side{flex:none;border-right:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:4px;transition:width 220ms;overflow:hidden;width:220px}
+.side div{min-height:44px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:10px;color:var(--muted);white-space:nowrap}
+.side div.on{background:var(--surface);color:var(--fg)}
+.side div i{font-style:normal;width:20px;text-align:center;flex:none}
+.side.rail{width:64px}
+.side.rail div{padding:0 10px}
+.side.rail div em{display:none}
+.side div em{font-style:normal}
+.cap{color:var(--muted);font-size:12.5px;margin:8px 0 0;max-width:640px;line-height:1.45}
+.row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.qs{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-top:26px;max-width:760px}
+.qs li{margin:6px 0;line-height:1.45}
+</style></head><body>
+<div class="wrap">
+<h1>The month dropdown (PR 6 mock)</h1>
+<p class="note">Everything here is tappable. Tap <b>November</b> to open and close. Swipe the little month sideways for other months, or tap a month chip. The dots are days that have something on them. Today is filled green; the day you are looking at has a green ring.</p>
+
+<h2>Phone</h2>
+<div class="tabs" id="ptabs"><button class="on" data-v="day">Day</button><button data-v="week">Week</button><button data-v="month">Month</button></div>
+<div class="row">
+ <div><div class="dev phone" id="phone"></div>
+ <p class="cap" id="pcap"></p></div>
+</div>
+
+<h2>iPad, sideways (landscape)</h2>
+<div class="tabs" id="ltabs"><button class="on" data-v="week">Week</button><button data-v="month">Month</button></div>
+<div class="scaleL"><div class="dev ipadL" id="ipadL"></div></div>
+<p class="cap">On Schedule, Day, 3 Day and Week, tapping November opens a panel on the left and the calendar moves over. Picking a day keeps the panel open. It stays open until you tap November again, and the iPad remembers it for each person. On Month and Year only the chip row drops down (the big month is already on screen).</p>
+
+<h2>iPad, upright (portrait), with the side menu set to "Always open"</h2>
+<div class="dev ipadP" id="ipadP"></div>
+<p class="cap">While the panel is open the pinned side menu squeezes to icons only, so the week keeps room for its seven days. Close the panel and the full menu comes back. Your Menu style setting itself never changes.</p>
+
+<div class="qs">
+<b>Questions for Bryce (my recommendation first in each)</b>
+<ol>
+<li><b>Closing on the phone.</b> The dropdown closes when you tap November again or pick a day. Tapping the calendar below does nothing special (it scrolls, swipes and opens events as usual). <i>Recommend: yes, like Google.</i></li>
+<li><b>Swiping the little month</b> only changes the little month, never the calendar below. The calendar moves only when you tap a day. <i>Recommend: yes, so you can look ahead without losing your place.</i></li>
+<li><b>iPad Schedule.</b> Today the wide Schedule already shows a little month on the right of the list. With this PR, I recommend that month moves into the new left panel (open by tapping November, like every other view), so the iPad has one little month in one place. <i>Recommend: move it.</i> The other choice is to keep it on the right and have November do nothing extra on Schedule.</li>
+<li><b>Dots</b> show for about two months either side of the day you are on (what the app already has loaded). Further out, the little month shows dates with no dots. <i>Recommend: fine for now.</i></li>
+</ol>
+</div>
+</div>
+
+<script>
+const ME=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MF=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DN=["SUN","MON","TUE","WED","THU","FRI","SAT"];
+const TODAY=new Date(2026,10,11);
+const dotDays=new Set(["2026-10-1","2026-10-2","2026-10-4","2026-10-8","2026-10-9","2026-10-11","2026-10-13","2026-10-16","2026-10-18","2026-10-19","2026-10-21","2026-10-23","2026-10-24","2026-10-27","2026-10-28","2026-9-28","2026-9-30","2026-11-3","2026-11-5","2026-11-12","2026-11-24","2026-11-25"]);
+const k=d=>`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+const same=(a,b)=>k(a)===k(b);
+function mkState(id,view){return{id,view,open:false,inView:new Date(TODAY),shown:new Date(2026,10,1)}}
+const S={phone:mkState("phone","day"),ipadL:mkState("ipadL","week"),ipadP:mkState("ipadP","week")};
+
+function miniMonth(st,m){let h='<div class="mm"><div class="wk">'+"SMTWTFS".split("").map(x=>`<span>${x}</span>`).join("")+'</div><div class="days">';
+ const first=new Date(m.getFullYear(),m.getMonth(),1);for(let i=0;i<first.getDay();i++)h+='<span class="x"></span>';
+ const n=new Date(m.getFullYear(),m.getMonth()+1,0).getDate();
+ for(let d=1;d<=n;d++){const day=new Date(m.getFullYear(),m.getMonth(),d);const c=same(day,TODAY)?"t":same(day,st.inView)?"v":"";
+  h+=`<span class="${c}" data-day="${day.getTime()}"><b>${d}</b>${dotDays.has(k(day))&&c!=="t"?"<i></i>":""}</span>`}
+ return h+'</div></div>'}
+function chips(st){let h='<div class="chips">';for(let o=-4;o<=8;o++){const m=new Date(st.shown.getFullYear(),st.shown.getMonth()+o,1);
+ const lbl=m.getMonth()===0?`${ME[0]} ${m.getFullYear()}`:ME[m.getMonth()];h+=`<span class="${o===0?"on":""}" data-m="${m.getTime()}">${lbl}</span>`}return h+'</div>'}
+function months(st){let h='<div class="months">';for(let o=-1;o<=1;o++)h+=miniMonth(st,new Date(st.shown.getFullYear(),st.shown.getMonth()+o,1));return h+'</div>'}
+const bigOnScreen=v=>v==="month";
+function titleText(st){const d=st.view==="month"?st.shown:st.inView;return MF[d.getMonth()]+(d.getFullYear()!==2026?" "+d.getFullYear():"")}
+function topBar(st,ipad){return `<div class="top"><div class="burger">☰</div><div class="title ${st.open?"open":""}" data-t>${titleText(st)} <span class="car">▼</span></div><div class="sp"></div>${ipad?'<div class="seg"><span>Schedule</span><span'+(st.view==="day"?' class="on"':'')+'>Day</span><span>3 Day</span><span'+(st.view==="week"?' class="on"':'')+'>Week</span><span'+(st.view==="month"?' class="on"':'')+'>Month</span><span>Year</span></div>':'<div class="circ">'+TODAY.getDate()+'</div><div class="circ">▦</div>'}<div class="circ">⌕</div></div>`}
+
+function hourGrid(cols,evs){let g='<div class="grid"><div class="gutter">';for(let h=1;h<14;h++)g+=`<span style="top:${h*40}px">${((h+6)%12)||12} ${h+6<12?"AM":"PM"}</span>`;g+="</div>";
+ for(let c=0;c<cols;c++){g+='<div class="col">';(evs[c]||[]).forEach(e=>g+=`<div class="ev" style="top:${(e[0]-7)*40}px;height:${e[1]*40-2}px">${e[2]}<small>${e[3]}</small></div>`);g+="</div>"}return g+"</div>"}
+function weekStart(d){const s=new Date(d);s.setDate(d.getDate()-d.getDay());return s}
+function dayView(st){const d=st.inView;const evs=same(d,TODAY)?[[[7,1,"Wake Up","7 AM"],[9,1.5,"Dentist","9 to 10:30 AM"],[12,1,"Lunch with Mom","12 PM"],[16,1,"Soccer","4 PM"]]]:[[[7,1,"Wake Up","7 AM"],[10,1,"Errands","10 AM"]]];
+ return `<div class="head"><div class="corner">${DN[d.getDay()]}<b style="${same(d,TODAY)?"":"color:var(--fg)"}">${d.getDate()}</b></div><div class="allday"><span>Bryce's birthday week</span></div></div>`+hourGrid(1,evs)}
+function weekView(st){const s=weekStart(st.inView);let h='<div class="head"><div class="corner"></div>';for(let i=0;i<7;i++){const d=new Date(s);d.setDate(s.getDate()+i);h+=`<div class="hcell ${same(d,TODAY)?"today":""}"><small>${DN[i]}</small><b>${d.getDate()}</b></div>`}
+ const evs={0:[[9,1,"Church","9 AM"]],1:[[7,1,"Wake Up","7 AM"],[16,1,"Soccer","4 PM"]],2:[[7,1,"Wake Up","7 AM"]],3:[[7,1,"Wake Up","7 AM"],[9,1.5,"Dentist","9 AM"],[12,1,"Lunch","12 PM"]],4:[[7,1,"Wake Up","7 AM"],[18,2,"Date night","6 PM"]],5:[[7,1,"Wake Up","7 AM"]],6:[[10,2,"Hike","10 AM"]]};
+ return h+'</div>'+hourGrid(7,evs)}
+function monthView(st){const m=st.shown;let h='<div class="mwk">'+DN.map(x=>`<span>${x.slice(0,3)}</span>`).join("")+'</div><div class="mgrid">';const first=new Date(m.getFullYear(),m.getMonth(),1);const start=new Date(first);start.setDate(1-first.getDay());
+ for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const c=(same(d,TODAY)?"t ":"")+(d.getMonth()!==m.getMonth()?"o":"");h+=`<div class="mcell ${c}"><span class="n">${d.getDate()}</span>${dotDays.has(k(d))?'<span class="p">Wake Up</span>':""}${d.getDate()%5===0?'<span class="p">Soccer</span>':""}</div>`}
+ return h+'</div>'}
+function calBody(st){return (st.view==="day"?dayView(st):st.view==="week"?weekView(st):monthView(st))+'<div class="fab">+</div>'}
+
+function render(id){const st=S[id];const el=document.getElementById(id);const ipad=id!=="phone";
+ const chipOnly=bigOnScreen(st.view);
+ const dropInner=chips(st)+(chipOnly?"":months(st));
+ let html=topBar(st,ipad);
+ if(!ipad||chipOnly){html+=`<div class="drop ${st.open?"open":""}" data-drop><div>${dropInner}</div></div><div class="body">`+(id==="ipadP"?side(st):"")+`<div class="cal">${calBody(st)}</div></div>`}
+ else{html+=`<div class="body">`+(id==="ipadP"?side(st):"")+`<div class="panel ${st.open?"open":""}"><div class="inner">${dropInner}</div></div><div class="cal">${calBody(st)}</div></div>`}
+ el.innerHTML=html;
+ const drop=el.querySelector("[data-drop]");if(drop){drop.style.height=st.open?drop.firstElementChild.scrollHeight+"px":"0px"}
+ const mo=el.querySelector(".months");if(mo){mo.scrollLeft=mo.clientWidth;let t;mo.addEventListener("scroll",()=>{clearTimeout(t);t=setTimeout(()=>{const p=Math.round(mo.scrollLeft/mo.clientWidth)-1;if(p!==0){st.shown=new Date(st.shown.getFullYear(),st.shown.getMonth()+p,1);render(id)}},120)})}
+ const ch=el.querySelector(".chips .on");if(ch)ch.parentElement.scrollLeft=ch.offsetLeft-ch.parentElement.clientWidth/2+ch.clientWidth/2;
+ el.querySelector("[data-t]").onclick=()=>{st.open=!st.open;if(st.open)st.shown=new Date((st.view==="month"?st.shown:st.inView).getFullYear(),(st.view==="month"?st.shown:st.inView).getMonth(),1);render(id)};
+ el.querySelectorAll("[data-m]").forEach(c=>c.onclick=()=>{st.shown=new Date(+c.dataset.m);render(id)});
+ el.querySelectorAll("[data-day]").forEach(c=>c.onclick=()=>{st.inView=new Date(+c.dataset.day);if(!ipad)st.open=false;render(id)});
+ if(id==="phone")document.getElementById("pcap").textContent=chipOnly?"Month: only the chip row drops down, because the big month is already on screen. Tap a chip and the big month changes.":"The little month and the chips push the calendar down; nothing is hidden behind them. Tap a day: the calendar jumps there, keeps the same view, and the dropdown closes.";
+}
+function side(st){return `<div class="side ${st.open&&!bigOnScreen(st.view)?"rail":""}"><div class="on"><i>▦</i><em>Calendar</em></div><div><i>☑</i><em>Habits &amp; Chores</em></div><div><i>◎</i><em>Plans &amp; Goals</em></div><div><i>≡</i><em>Lists</em></div><div><i>🍴</i><em>Kitchen</em></div><div><i>⚙</i><em>Settings</em></div></div>`}
+// month view chips change the big month
+const origRender=render;
+function wireTabs(tabsId,id){document.querySelectorAll(`#${tabsId} button`).forEach(b=>b.onclick=()=>{document.querySelectorAll(`#${tabsId} button`).forEach(x=>x.classList.toggle("on",x===b));S[id].view=b.dataset.v;S[id].open=false;render(id)})}
+wireTabs("ptabs","phone");wireTabs("ltabs","ipadL");
+["phone","ipadL","ipadP"].forEach(render);
+</script>
+</body></html>

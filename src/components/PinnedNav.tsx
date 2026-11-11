@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { NavDrawer } from "@/components/NavDrawer";
 import { NavList } from "@/components/NavList";
-import { pinnedNavWidth } from "@/lib/appChrome";
 import type { NavMode } from "@/lib/navMode";
 
 // Tailwind's `lg` breakpoint, where this menu appears (HamburgerButton keeps
@@ -25,8 +24,10 @@ const RAIL_BUTTON_CLASS =
  * Below `lg` it is `hidden` and the floating hamburger plus `NavDrawer` do
  * the job, exactly as before. Its width is `NAV_RAIL_WIDTH` or
  * `NAV_SIDEBAR_WIDTH` from `src/lib/appChrome.ts` (px, so it stays Normal
- * size at every Text size); AppChrome sets `--app-nav-width` from the same
- * numbers.
+ * size at every Text size); AppChrome sets `--app-nav-width-lg` from the same
+ * numbers and the aside reads it, so the aside and the fixed bars always agree.
+ * In sidebar mode the rail body is rendered too, shown only while the month
+ * panel marker is on the page (AppChrome narrows `--app-nav-width-lg` then).
  *
  * In rail mode the first item is a menu button that opens the same `NavDrawer`
  * (with names) over the page, for touch screens that have no hover. This
@@ -58,12 +59,40 @@ export function PinnedNav({
     return () => query.removeEventListener("change", onChange);
   }, []);
 
+  const railBody = (
+    <>
+      <div data-text-size-reset className="flex flex-1 flex-col">
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Show menu names"
+            title="Show menu names"
+            aria-expanded={open}
+            aria-controls={RAIL_DRAWER_ID}
+            className={RAIL_BUTTON_CLASS}
+          >
+            <Menu aria-hidden="true" size={22} />
+          </button>
+        </div>
+        <div aria-hidden="true" className="mx-auto my-0.5 w-8 border-t border-line" />
+        <NavList compact onNavigate={() => {}} onSendFeedback={onSendFeedback} />
+      </div>
+      <NavDrawer
+        open={open}
+        onClose={() => setOpen(false)}
+        onSendFeedback={onSendFeedback}
+        id={RAIL_DRAWER_ID}
+      />
+    </>
+  );
+
   return (
     <aside
       aria-label="Menu"
       className="hidden lg:flex sticky top-0 h-dvh shrink-0 flex-col overflow-y-auto border-r border-line bg-surface print:hidden"
       style={{
-        width: pinnedNavWidth(mode),
+        width: "var(--app-nav-width-lg)",
         paddingLeft: "12px",
         paddingRight: "12px",
         paddingTop: "calc(12px + env(safe-area-inset-top))",
@@ -74,34 +103,20 @@ export function PinnedNav({
           data-text-size-reset (globals.css) cancels the root font size and the
           icon zoom for everything inside. The padding stays on the aside, in
           px, so env(safe-area-inset-*) is not scaled by that zoom. */}
-      <div data-text-size-reset className="flex flex-1 flex-col">
-        {rail && (
-          <>
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => setOpen(true)}
-                aria-label="Show menu names"
-                title="Show menu names"
-                aria-expanded={open}
-                aria-controls={RAIL_DRAWER_ID}
-                className={RAIL_BUTTON_CLASS}
-              >
-                <Menu aria-hidden="true" size={22} />
-              </button>
-            </div>
-            <div aria-hidden="true" className="mx-auto my-0.5 w-8 border-t border-line" />
-          </>
-        )}
-        <NavList compact={rail} onNavigate={() => {}} onSendFeedback={onSendFeedback} />
-      </div>
-      {rail && (
-        <NavDrawer
-          open={open}
-          onClose={() => setOpen(false)}
-          onSendFeedback={onSendFeedback}
-          id={RAIL_DRAWER_ID}
-        />
+      {/* mission-72: while a page holds `data-month-panel="open"` (the Calendar's
+          month panel), a pinned Sidebar draws as the icon rail. Both bodies are
+          rendered and CSS picks one; `navMode` never changes. The variant
+          classes are written out whole because Tailwind only finds literal
+          strings. docs/structure/layout.md, "The month panel marker". */}
+      {rail ? (
+        railBody
+      ) : (
+        <>
+          <div data-text-size-reset className="flex flex-1 flex-col [body:has([data-month-panel=open])_&]:hidden">
+            <NavList compact={false} onNavigate={() => {}} onSendFeedback={onSendFeedback} />
+          </div>
+          <div className="hidden flex-1 flex-col [body:has([data-month-panel=open])_&]:flex">{railBody}</div>
+        </>
       )}
     </aside>
   );

@@ -6,6 +6,25 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar month dropdown and iPad side panel (mission 72, PR 6 of
+  9)**, about 4 minutes. **iPhone:** in Day, tap "November": chips and a
+  little month drop down and push the calendar down, the arrow turns up.
+  Swipe the little month to January and tap a day: the calendar jumps
+  there in Day and the dropdown closes. In Month, tap the title: only the
+  chip row drops down; tap a chip and the month changes. In Schedule,
+  scroll down a week, tap the title: the dropdown appears under the top
+  bar and the list does not jump; tap a day and it lands right under the
+  bar. Close and reopen the Calendar: the dropdown starts closed.
+  **iPad held sideways:** in Week, tap the title: a panel opens on the
+  left and the week moves over; with your menu set to "Always open" it
+  squeezes to icons while the panel is open and comes back when it
+  closes. Tap a day: the week jumps, the panel stays. In Schedule, scroll
+  into next month: the little month follows and rings the day you are
+  reading. Close Marshee and reopen: the panel is still open (it is
+  remembered for you on this iPad). Turn the iPad upright, then close
+  the panel. If you use a bigger Text size, upright the panel drops down
+  instead of sitting beside. At Largest held sideways, event names in
+  Week get short while the panel is open (your call to keep).
 - **Calendar repeating events, "This one" or "All of them" (mission 71,
   PR 5 of 9)**, about 5 minutes, signed in as yourself (a parent). **Start
   on a throwaway event, never a real one.** In Google Calendar make an

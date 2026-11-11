@@ -28,8 +28,8 @@
 // mission brief acknowledges that when the second row's own event mix
 // differs enough, it may not.
 
-import { addDays, isSameDay, isSameMonth, sundayOf } from "./mealPlanDates";
-import { daysEventCovers } from "./calendarDates";
+import { addDays, isSameDay, isSameMonth, startOfDay, sundayOf, toLocalDateString } from "./mealPlanDates";
+import { allDayInstantToLocalDay, daysEventCovers } from "./calendarDates";
 
 const GRID_ROWS = 6;
 const DAYS_PER_ROW = 7;
@@ -55,9 +55,9 @@ export function monthGridDays(anchor: Date): Date[] {
  * of its neighbouring months, so a bare `isSameDay(day, today)` circles
  * today's date on the WRONG month's grid whenever that grid is showing a
  * month other than today's real one — DESIGN.md's today-marker rule, and
- * the exact bug mission-19/F1 fixed in MonthJumpSheet.tsx. `MonthGrid.tsx`
+ * the exact bug mission-19/F1 fixed in the old month-jump sheet (now MiniMonth.tsx). `MonthGrid.tsx`
  * and `YearView.tsx` each guarded this inline before this function existed;
- * `MonthJumpSheet.tsx` didn't, which is the "no compile error" failure
+ * that sheet didn't, which is the "no compile error" failure
  * DESIGN.md predicted one mission earlier. This is the invariant's one
  * home now — homed beside the function that creates the padding it guards
  * against, and reachable by `npm test`, which three inline `.tsx` copies
@@ -67,6 +67,24 @@ export function monthGridDays(anchor: Date): Date[] {
  * hand again. */
 export function isTodayCell(day: Date, shownMonth: Date, today: Date): boolean {
   return isSameDay(day, today) && isSameMonth(day, shownMonth);
+}
+
+/** The local "YYYY-MM-DD" of every day that has an event (across its whole span) or a task, for the small month's dots (mission-72). Reads only what was loaded; a span is capped at 62 days. */
+export function daysWithItems(
+  events: { startAt: Date; endAt: Date; allDay: boolean }[],
+  tasks: { dueDate: Date }[],
+): Set<string> {
+  const keys = new Set<string>();
+  for (const event of events) {
+    const first = event.allDay ? allDayInstantToLocalDay(event.startAt) : startOfDay(event.startAt);
+    const length = Math.min(62, Math.ceil((event.endAt.getTime() - event.startAt.getTime()) / 86_400_000) + 1);
+    const candidates = Array.from({ length }, (_, offset) => addDays(first, offset));
+    for (const day of daysEventCovers(event.startAt, event.endAt, event.allDay, candidates)) {
+      keys.add(toLocalDateString(day));
+    }
+  }
+  for (const task of tasks) keys.add(toLocalDateString(allDayInstantToLocalDay(task.dueDate)));
+  return keys;
 }
 
 /** The minimal, structural shape `assignLanes` needs from an event — not a

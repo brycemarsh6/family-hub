@@ -18,6 +18,7 @@ import {
   monthGridDays,
   assignLanes,
   isTodayCell,
+  daysWithItems,
   phoneOverflowByDay,
   laneVisibility,
   PHONE_LANES,
@@ -224,8 +225,8 @@ test("assignLanes-adjacent: a grid cell can be marked outside the fetch window",
 // isTodayCell — mission-19/F1 (both gates, independently): a padded month
 // grid contains up to 12 days of a neighbouring month, so a bare
 // isSameDay(day, today) circles today's date on the WRONG month's grid.
-// MonthGrid.tsx and YearView.tsx already guard this inline; MonthJumpSheet.tsx
-// (mission-19/C3) didn't, which is exactly the "no compile error" failure
+// MonthGrid.tsx and YearView.tsx already guard this inline; the old month-jump sheet
+// (mission-19/C3, now MiniMonth.tsx) didn't, which is exactly the "no compile error" failure
 // DESIGN.md predicted one mission ago. This is the invariant's one home —
 // see monthLayout.ts's own comment beside monthGridDays, the function that
 // creates the padding this guards against.
@@ -330,4 +331,20 @@ test("laneVisibility: a day whose only entry is on lane 3 shows nothing on the p
   assert.deepEqual(laneVisibility(slotsFor(1)), ["both", "both", "both", "wide"]);
   // An interior gap below a phone-visible lane stays a phone spacer.
   assert.deepEqual(laneVisibility([null, null, "z", null]), ["both", "both", "both", "none"]);
+});
+
+test("daysWithItems: a timed event, a 3-day all-day event and a task each mark their days", () => {
+  const allDayStart = new Date(Date.UTC(2026, 10, 10));
+  const allDayEndExclusive = new Date(Date.UTC(2026, 10, 13));
+  const keys = daysWithItems(
+    [
+      { startAt: d(2026, 10, 3, 9), endAt: d(2026, 10, 3, 10), allDay: false },
+      { startAt: allDayStart, endAt: allDayEndExclusive, allDay: true },
+    ],
+    [{ dueDate: new Date(Date.UTC(2026, 10, 20)) }],
+  );
+  assert.deepEqual(
+    [...keys].sort(),
+    ["2026-11-03", "2026-11-10", "2026-11-11", "2026-11-12", "2026-11-20"],
+  );
 });
