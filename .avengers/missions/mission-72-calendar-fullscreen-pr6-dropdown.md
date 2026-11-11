@@ -1,6 +1,6 @@
 # Mission 72: Calendar full screen PR 6, the month dropdown and the iPad side panel
 
-- **Status:** AT-THE-GATES (C1 to C4 DONE; Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
+- **Status:** STOPPED (Strange's 3-pass budget used with one open blocker; waiting for Bryce: proposed F3 one-line fix plus a scoped 4th Strange check) (was AT-THE-GATES (C1 to C4 DONE; Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 6: The month dropdown (decisions 8, 12, 14; small calls D, E)"
 - **Branch:** `claude/calendar-fullscreen-pr6-0e927b`, cut from `origin/main` `a1bd34a` (PR 5 merged as #113)
@@ -508,6 +508,22 @@ HEAD` after.
   measurements with screenshot paths.
 - **Done:** every measurement as expected, gauntlet green.
 
+### F3 - Strange pass 3 blocker (proposed, waiting for Bryce)
+- **Status:** PROPOSED
+- **Objective:** on Schedule the little month shows the month of the day
+  the list is showing, so the ring is visible, like main's ScheduleMiniMonth.
+- **Boundaries:** may touch `src/components/CalendarViews.tsx` (the
+  `MonthJumpPanel` `anchor` prop only), `DESIGN.md` (Fury: "mid-list on a
+  phone or an upright iPad"). Must not touch anything else.
+- **Work:** `anchor={isSchedule && scheduleDay !== null ? new Date(scheduleDay) : anchor}`
+  (or the equivalent with the file's names); the panel's existing
+  `seenAnchorMonth` reset follows it. CalendarViews stays at or under 494.
+- **Verification:** the five gauntlet commands; Strange's `p3/k.mjs` after a
+  scroll into December: visible month December, ring visible, on 1024
+  Sidebar beside and on the phone.
+- **Evidence:** exit codes, the k.mjs output and shots.
+- **Done:** as verification.
+
 **Fury's calls after F1:** (superseded by F2, which fixed it: page scroll 0 at every size) accepted the one missed measurement (1024x768, pinned Sidebar, Largest: the panel stacks, 535px tall, the timeline hits its 320px floor and the page scrolls 234px; returns to 0 on close; nothing hidden; told to Bryce). Accepted the sticky top at exactly the chrome height (the +0.5rem let list text show through) and sticky on Schedule only. Rulebooks updated to the JS `monthPanelBeside` decision.
 
 (Rulebooks: Fury lands Captain's drafts in calendar.md, layout.md and
@@ -517,6 +533,8 @@ STRUCTURE.md after C4; Strange drafts the DESIGN.md exception at the gate.)
 
 | Pass | Gate | Verdict | Findings |
 |---|---|---|---|
+| 3 | Strange (HEAD 72179d1) | BLOCK | Every F2 fix measured PASS (1024 and 1180 pinned Sidebar beside at all four sizes, rail 72, scroll 0, gap 0; 768 Normal beside, Large and up stacked; Schedule reveal line exact on phone, 768 Large and Largest; pass 1 sweep clean). B (present since C4, missed by passes 1 and 2): on Schedule the little month stays on the URL anchor's month while the list moves (list in December, panel shows November, no ring visible), breaking DESIGN.md's MiniMonth "the day on screen ringed"; regression from main's ScheduleMiniMonth. Fix: `MonthJumpPanel` `anchor` = Schedule's day in view on Schedule. Notes: DESIGN.md "mid-list on a phone" also applies to an upright iPad at Large and up; 1024 Largest beside Week columns 54px (titles clip) |
+| 3 | Vision (HEAD 72179d1) | PASS | Gauntlet green (tsc 0, lint 0, test 2017, UTC 2007 + 10 skips, build 0); boundary clean; pass 2 blocker fixed (`revealLine` used for scroll margin, landed-short, Today observer, day-in-view; sticky top stays chrome only). No flip between beside and stacked (effective width equal before and after the squeeze). Structure subset: CalendarViews 494, ScheduleView 564, no new numbers, lib imports appChrome only. Notes: Schedule month title still uses the chrome line (cosmetic); first-commit child-effect order unproven on device; build CSS warning comes from mission-67's file on main; Sidebar width read from the live variable |
 | 2 | Strange (HEAD b8b4180) | BLOCK | All F1 fixes measured PASS (Schedule hold and sticky on phone and iPad, phone tap closes first, 44.42x44 days, 768 Normal beside 53px / Largest stacked 103px, timeline gap 0 everywhere but one, dot clear, line full width). B: landscape iPad with a pinned Sidebar at any size above Normal stacks (1024x768 Large 52px / Larger 166 / Largest 234px page scroll; 1180x820 Largest 182), because `monthPanelBeside` is given the width measured with the 256px Sidebar, before the squeeze to the 72px rail; Rail rows show beside fits (54 to 74px columns). B (text): DESIGN.md parenthetical (768 upright stacks from Large) and "stays in view while the page scrolls" (Schedule only). Notes: phone Schedule dropdown covers the list top (reads fine), empty day rings the next |
 | 2 | Vision (HEAD b8b4180) | BLOCK | Gauntlet green (build 0, tsc 0, lint 0, test 2012, UTC 2002 + 10 skips); boundary clean; pass 1 B1 and B2 fixed. New B (introduced by F1): a stacked panel on Schedule is sticky at the chrome height, but Schedule still reveals rows at the chrome height, so a scrolled-to row lands behind the panel: upright iPad at Large and above (wide but stacked, stays open) day tap; phone Today with the dropdown open; the Today-visible observer and the day-in-view ring read behind the panel. Fix: one reveal line, `scheduleChromeHeight + revealExtraPx` (the stacked panel's measured height on Schedule) for scrollMarginTop, the day-in-view line, the landed-short check and the Today observer's rootMargin. Notes: null-viewer hold on a wide body; Month/Year not sticky (accepted); upright iPad stacks at Large too |
 | 2 | Captain (HEAD b8b4180) | PASS | Blocker fixed. JS `monthPanelBeside` from the measured container is allowed by layout.md rule 2 (wording right); `scheduleChromeHeightPx` in ScheduleView fine (one formula). Notes: monthPanelOpen.ts header out of date; `BESIDE_VIEW_MIN_PX`'s 48 copies `GUTTER_WIDTH_PX` (move it to lib on next timeline touch); DESIGN.md "stays in view while the page scrolls" broader than sticky-on-Schedule |
