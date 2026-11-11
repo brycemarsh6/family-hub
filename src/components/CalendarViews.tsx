@@ -7,10 +7,9 @@ import { CalendarSheets } from "./CalendarSheets";
 import { DaySection } from "./DaySection";
 import { CalendarAddDial } from "./CalendarAddDial";
 import { MonthChips } from "./MonthChips";
-import { MonthGrid } from "./MonthGrid";
 import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
 import { TimelineGrid } from "./TimelineGrid";
-import { YearView } from "./YearView";
+import { PagedMonth, PagedYear } from "./PagedPeriodViews";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import { usePageSwipe } from "@/lib/usePageSwipe";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
@@ -142,9 +141,8 @@ export function CalendarViews({
   // (see usePageSwipe.ts's own header for why it's a sibling of
   // SwipeActions.tsx's gesture machine rather than a shared import from
   // it). Called unconditionally, the same convention as useNowMinute/
-  // useHamburgerRowHeight just above — only renderPeriodContent's "month",
-  // "timeline" and "year" branches actually spread these handlers onto
-  // anything; Schedule manages its own scrolling and is never wrapped.
+  // useHamburgerRowHeight just above — only the "timeline" branch spreads these
+  // handlers now (Month and Year slide via usePagedSwipe, mission-69/C3); Schedule manages its own scrolling and is never wrapped.
   // `step` is how the calendar pages now that the header has no arrows.
   const pageSwipeHandlers = usePageSwipe({
     onSwipeLeft: () => step(1),
@@ -275,18 +273,17 @@ export function CalendarViews({
                 own `overflow-x-auto`), so wrapping it too would fight
                 its own drag-to-scroll for the same gesture. */}
             <MonthChips anchor={anchor} onPickMonth={handlePickMonth} />
-            <div className="touch-pan-y" {...pageSwipeHandlers}>
-              <MonthGrid
-                anchor={anchor}
-                today={today}
-                events={events}
-                tasks={tasks}
-                habitDays={habitDays}
-                windowStart={windowStart}
-                windowEnd={windowEnd}
-                onOpenDay={openDay}
-              />
-            </div>
+            <PagedMonth
+              anchor={anchor}
+              today={today}
+              events={events}
+              tasks={tasks}
+              habitDays={habitDays}
+              windowStart={windowStart}
+              windowEnd={windowEnd}
+              onOpenDay={openDay}
+              onTurn={step}
+            />
           </>
         )
       );
@@ -376,13 +373,9 @@ export function CalendarViews({
       return (
         today !== null &&
         anchor !== null && (
-          // mission-19/C4 — the swipe wrapper. YearView's own tappable
-          // units are its 12 month buttons; a swipe's click-swallow (see
-          // usePageSwipe.ts's header) is what stops a released drag from
-          // also firing whichever tile it ends on.
-          <div className="touch-pan-y" {...pageSwipeHandlers}>
-            <YearView anchor={anchor} today={today} onPickMonth={handlePickMonth} />
-          </div>
+          // mission-69/C3 — three years slide with the finger; the swipe's
+          // click-swallow stops a released drag firing the tile it ends on.
+          <PagedYear anchor={anchor} today={today} onPickMonth={handlePickMonth} onTurn={step} />
         )
       );
     }
