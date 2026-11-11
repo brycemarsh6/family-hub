@@ -367,6 +367,93 @@ HEAD` after.
 - **Evidence:** exit codes and counts; `wc -l` before and after.
 - **Done:** as the objective, with the sizes held.
 
+### F1 - Pass 1 fixes (Vision, Strange and Captain blockers, chosen notes)
+- **Status:** PENDING
+- **Objective:** the panel never moves the reader's place and stays in view
+  on Schedule; side-panel days reach 44px; the side layout appears only when
+  the view keeps usable columns; a day tap on the phone closes before it
+  scrolls; Captain's comment.
+- **Boundaries:** may touch `src/components/CalendarViews.tsx`,
+  `src/components/MonthJumpPanel.tsx`, `src/components/MiniMonth.tsx`,
+  `src/components/MonthChips.tsx`, `src/components/ScheduleView.tsx`,
+  `src/lib/gridClasses.ts`, `src/lib/gridClasses.test.ts`,
+  `src/lib/monthPanelOpen.ts`, `src/lib/monthPanelOpen.test.ts`.
+  Must not touch: `usePagedSwipe.ts`, `PagedTrack.tsx`, `useTimelineZoom.ts`,
+  `TimelineGrid.tsx`, `useFillViewportHeight.ts`, `PinnedNav.tsx`,
+  `AppChrome.tsx`, `NavList.tsx`, the rulebooks (Fury lands those).
+- **Work:**
+  1. **MonthChips jump (Strange B1 part 1).** Replace
+     `scrollIntoView({inline:"center", block:"nearest"})` with a scroll of
+     the strip only (`strip.scrollLeft = chip.offsetLeft -
+     (strip.clientWidth - chip.offsetWidth) / 2` on its `overflow-x-auto`
+     div, `behavior` instant). Opening the panel must never change
+     `window.scrollY`.
+  2. **Panel stays in view while the page scrolls (Vision B1, Strange B1
+     part 2).** The stacked panel (phone, and Month and Year at every
+     width) and the side panel on Schedule are `sticky` under the page's
+     pinned chrome: on Schedule `top` = Schedule's chrome height + 0.5rem
+     (`useHamburgerInsetPx().insetPx + SCHEDULE_HEADER_BAR_HEIGHT_REM *
+     rootPx`, the value ScheduleView already computes; one source, not a
+     second copy), stacked gets an opaque `bg-bg` and a z-index above the
+     list and below the sheets. The side column is `self-start`. Pick one
+     home for the top value and say which.
+  3. **Hold the reader's place on open and close (Vision B1).** When the
+     panel mounts or unmounts while `window.scrollY > 0`, keep the content
+     still: record the document height before the toggle and add the
+     difference to the scroll position in a layout effect after it (the
+     `useScrollAnchor` `prepareAdjustment` pattern; reuse it if it fits).
+     At `scrollY == 0` the panel pushes the view down as the mock shows.
+  4. **Phone day tap closes first (Vision B2).** Close (`flushSync`) before
+     `scrollToDay`/`jumpToDay`, so the picked day lands under the header.
+  5. **Side width and when to go beside (Strange B2).** The side column is
+     `21rem` (days (336 - padding) / 7 >= 44px at Normal; measure, do not
+     trust the sum). Beside is decided in JS, not by a bare container
+     query: `beside = view is Schedule/Day/3 Day/Week && width >=
+     MONTH_PANEL_BESIDE_MIN_PX && width - sideWidthPx >= 7 * 49 + 48`,
+     using the live root font size for `sideWidthPx` (DESIGN.md px case
+     (c)); put this as a pure function in `gridClasses.ts` with tests (at
+     least: 736 Normal beside; 736 Largest stacked; 920 Largest beside;
+     690 stacked). Apply side or stacked class strings from `beside`
+     (no `@min-[700px]:` variants left, or keep the constant's test true
+     to whatever remains). Remembering is unchanged: `wide` (width >=
+     700) still decides stored vs phone state; `beside` only decides the
+     layout, and the `data-month-panel` marker is set only when beside.
+  6. **Little month follows the view (Vision note).** The panel's shown
+     month resets to the anchor's month whenever the anchor's month
+     changes (Today, a swipe, a view switch) while it is open.
+  7. **Ringed day's dot (Strange note).** The dot never hides in the ring:
+     hide it on the ringed day, or move it clear; say which.
+  8. **Phone dropdown line full width (Strange note).** The stacked panel's
+     bottom line runs edge to edge like the calendar under it (cancel
+     `<main>`'s padding with `PAGE_BLEED_CLASSES` on the stacked wrapper,
+     keeping the chips' and month's own inner padding).
+  9. **Captain's blocker.** The comment on the cutoff constant names
+     mission-58 and why it is px (rem would move with Text size and drop
+     the side panel on an iPad at Large and above), pointing at
+     docs/structure/layout.md, Wide pages rule 2.
+  10. **Tidy (Captain notes).** Move the "Year: a chip shows that year"
+      comment to the prop it describes; reindent ScheduleView's list
+      children one level.
+  **Size:** CalendarViews.tsx stays at or under 494. Move the panel's
+  state and decisions (`wide`, `beside`, open state, toggle, the place-hold
+  effect) out of it into a hook, `useMonthPanel` in
+  `src/lib/monthPanelOpen.ts` (which already owns the open state), so the
+  file shrinks. ScheduleView.tsx must not grow (559).
+- **Verification:** the five gauntlet commands, exit 0. Then rerun Strange's
+  harness against the new build (scripts and instructions in the session
+  scratchpad `strange/`: `build.mjs`, `cdp.mjs`, `probe.mjs`,
+  `sched*.mjs`, `zoom.mjs`; rebuild the app first and copy the new CSS the
+  way `build.mjs` expects) and report: `window.scrollY` before and after
+  opening on Schedule mid-list (phone and 1024 sidebar); the panel's top on
+  screen after a Schedule day tap (iPad) and after scrolling; the picked
+  day's top vs the header after a phone day tap; side-panel day button
+  sizes at 1024 and 768 Normal; Week column width at 768 Largest (stacked
+  expected) and 768 Normal (beside); timeline bottom gap still 0px open
+  and closed.
+- **Evidence:** exit codes and counts, `wc -l` before and after, the
+  measurements above with screenshot paths.
+- **Done:** every measurement above as expected, gauntlet green.
+
 (Rulebooks: Fury lands Captain's drafts in calendar.md, layout.md and
 STRUCTURE.md after C4; Strange drafts the DESIGN.md exception at the gate.)
 
@@ -374,6 +461,9 @@ STRUCTURE.md after C4; Strange drafts the DESIGN.md exception at the gate.)
 
 | Pass | Gate | Verdict | Findings |
 |---|---|---|---|
+| 1 | Strange (HEAD 6639dd8) | BLOCK | Harness of real AppChrome + CalendarViews with production CSS, 128 shots in the session scratchpad `strange/`. PASS: timeline gap 0px closed/open/re-closed at zoom 32/96/192; rail squeeze 256 to 72 with fixed bars; arrow and aria-expanded; chips 44px; no bleed overlap; Month at rest no chips; phone close and swipe; iPad remember; dots. B1 Schedule: `MonthChips` `scrollIntoView` scrolls the document (list jumped from December to Oct 1); phone dropdown 4110px above the screen; iPad side panel not sticky (old one was). B2: side-panel days 38x44 at Normal (under the 44 floor); 768 Largest beside leaves Week columns 38px. Notes: no slide (fine, Bryce's call); 6-row months; dot under ringed day hides in the ring; phone dropdown line inset 16px; Year chip highlights a month; Schedule empty day rings the next day. DESIGN.md text drafted |
+| 1 | Vision (HEAD 6639dd8) | BLOCK | Gauntlet all green (build 0, tsc 0, lint 0, test 2006, UTC 1996 + 10 skips); boundaries clean. B1: on Schedule the panel is an ordinary block at the page top while the page scrolls: iPad beside, a day tap scrolls the panel away (the old ScheduleMiniMonth was `sticky self-start`); phone mid-list, the dropdown opens above the screen and the list jumps ~350px (Schedule turns scroll anchoring off). B2: phone `pickDay` scrolls then closes, so the picked day ends ~350px above the header. Notes: RO loop warning once per toggle (harmless); phone held sideways (body ~900) counts as wide and remembers; panel's shown month not reset when the anchor's month changes; `daysWithItems` 62-day cap from start, thin tests; PinnedNav both bodies mounted |
+| 1 | Captain (HEAD 6639dd8) | BLOCK | B: `gridClasses.ts:45-52` px threshold comment must name mission-58 and why (layout.md Wide pages rule 2). Notes: layout.md "these two files" should be "these files"; CalendarViews:425 Year chip comment sits above `pickDay`; ScheduleView 447-482 dedented one level too far; PinnedNav keeps both bodies mounted in sidebar mode (as ruled). Sizes, one source of truth, dependency direction, rulebooks all PASS |
 
 ## Delivery
 
