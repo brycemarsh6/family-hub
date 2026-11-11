@@ -35,6 +35,12 @@ export type GoogleEventPayload = {
   extendedProperties: { private: { marsheeEventId: string } };
 };
 
+/** A series change: only the two times, so the PATCH leaves every other field of the parent alone. */
+export type GoogleTimesPatch = {
+  start: { dateTime: string; timeZone: string };
+  end: { dateTime: string; timeZone: string };
+};
+
 export type EventCallFailReason = "conflict" | "changed" | "gone" | "unauthorized" | "network";
 
 export type EventCallResult = { ok: true; etag: string | null } | { ok: false; reason: EventCallFailReason };

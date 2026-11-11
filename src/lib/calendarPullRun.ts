@@ -183,8 +183,11 @@ async function pullOne(
   return { changed: (tokenPass?.changed ?? false) || full.changed, failed: full.failed };
 }
 
-/** Pulls every "Both ways" calendar that is due. Never throws; touches nothing when Google is not set up. */
-export async function runPull(deps: PullRunDeps, opts: { force: boolean; rewindow?: boolean }): Promise<PullRunResult> {
+/** Pulls every "Both ways" calendar that is due (or only `onlyCalendarId`, when given). Never throws; touches nothing when Google is not set up. */
+export async function runPull(
+  deps: PullRunDeps,
+  opts: { force: boolean; rewindow?: boolean; onlyCalendarId?: string },
+): Promise<PullRunResult> {
   const total: PullRunResult = { changed: false, failed: 0, checked: 0 };
   if (!deps.isConfigured()) return total;
   try {
@@ -198,7 +201,7 @@ export async function runPull(deps: PullRunDeps, opts: { force: boolean; rewindo
     const calendars = byAge.filter((c) => {
       if (seenGoogle.has(c.googleCalendarId)) return false;
       seenGoogle.add(c.googleCalendarId);
-      return true;
+      return opts.onlyCalendarId === undefined || c.id === opts.onlyCalendarId;
     });
     // One access token per account per run, even when it fails.
     const access = new Map<string, PullAccessResult>();

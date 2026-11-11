@@ -8,7 +8,7 @@ import { claimCalendarForPull, markAccountNeedsRelink, markPulledOk, saveSyncTok
 import { pushEventCopies, removeEventCopies } from "@/lib/calendarEventPush";
 import { tokenFailReason } from "@/lib/calendarSyncRules";
 import { runPull, type PullAccessResult, type PullRunDeps, type PullRunResult } from "@/lib/calendarPullRun";
-import type { EventFields, KnownEvent, PullKnown } from "@/lib/calendarSyncPull";
+import type { EventFields, KnownEvent, PullDelete, PullKnown } from "@/lib/calendarSyncPull";
 import type { GoogleEventIn } from "@/lib/google/types";
 
 // Binds calendarPullRun.ts to the real database and Google (mission 60). No
@@ -173,8 +173,9 @@ const deps: PullRunDeps = {
  * Pull every due "Both ways" calendar. `force` is Refresh (a 30 second
  * lease); otherwise a calendar is pulled at most every 5 minutes. Never
  * throws; does nothing at all when Google or the key is missing.
+ * `onlyCalendarId` pulls just that linked calendar (still behind its lease).
  */
-export async function pullCalendars(opts: { force: boolean; rewindow?: boolean }): Promise<PullRunResult> {
+export async function pullCalendars(opts: { force: boolean; rewindow?: boolean; onlyCalendarId?: string }): Promise<PullRunResult> {
   const reasons: string[] = [];
   const result = await runPull({ ...deps, noteFailure: (reason) => reasons.push(reason) }, opts);
   // Reason words, statuses and Prisma codes only (see noteFailure): safe for the log.
@@ -182,6 +183,11 @@ export async function pullCalendars(opts: { force: boolean; rewindow?: boolean }
     console.warn(`[calendar pull] ${result.failed} failed of ${result.checked} checked: ${reasons.slice(0, 10).join(", ")}`);
   }
   return result;
+}
+
+/** Deletes one pulled row exactly as the pull does for a cancelled event: its copies come off first. */
+export function deletePulledEvent(del: PullDelete): Promise<void> {
+  return deps.writeDelete(del);
 }
 
 /**

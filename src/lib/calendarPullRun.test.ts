@@ -187,3 +187,18 @@ describe("runPull: access", () => {
     assert.deepEqual(f.calls.filter((c) => c.startsWith("saveToken")), []);
   });
 });
+
+describe("runPull: one calendar by id", () => {
+  it("pulls only the named calendar, with the lease the caller asked for", async () => {
+    const f = fake({ calendars: [CAL, { ...CAL, id: "c2", googleCalendarId: "g-cal-2" }] });
+    const result = await runPull(f.deps, { force: true, onlyCalendarId: "c2" });
+    assert.equal(result.checked, 1);
+    assert.deepEqual(f.calls.filter((c) => c.startsWith("claim:")), [`claim:c2:${PULL_FORCE_LEASE_MS}`]);
+  });
+
+  it("pulls nothing for an id that is not a pullable calendar", async () => {
+    const f = fake();
+    assert.deepEqual(await runPull(f.deps, { force: true, onlyCalendarId: "nope" }), { changed: false, failed: 0, checked: 0 });
+    assert.deepEqual(f.calls, ["loadCalendars"]);
+  });
+});

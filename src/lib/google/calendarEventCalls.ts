@@ -4,6 +4,7 @@ import type {
   GetEventResult,
   GoogleEventIn,
   GoogleEventPayload,
+  GoogleTimesPatch,
   ListEventsMode,
   ListEventsResult,
 } from "./types";
@@ -93,7 +94,7 @@ export async function updateEvent(
   accessToken: string,
   calendarId: string,
   googleEventId: string,
-  payload: GoogleEventPayload,
+  payload: GoogleEventPayload | GoogleTimesPatch,
   ifMatch?: string,
 ): Promise<EventCallResult> {
   const r = await call(fetchFn, eventUrl(calendarId, googleEventId), accessToken, "PATCH", {
@@ -184,6 +185,56 @@ export async function listEvents(
       if (!pageToken) {
         return { ok: true, events, nextSyncToken: typeof data.nextSyncToken === "string" ? data.nextSyncToken : null };
       }
+    } catch {
+      // Deliberately drops the error: it could quote the Authorization header.
+      return { ok: false, reason: "network" };
+    }
+  }
+  return { ok: false, reason: "too-many" };
+}
+
+function instancesUrl(calendarId: string, googleEventId: string, timeMin: string, timeMax: string, pageToken: string | null): string {
+  const url = new URL(`${EVENTS_BASE}/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(googleEventId)}/instances`);
+  url.searchParams.set("timeMin", timeMin);
+  url.searchParams.set("timeMax", timeMax);
+  url.searchParams.set("maxResults", "250");
+  if (pageToken) url.searchParams.set("pageToken", pageToken);
+  return url.toString();
+}
+
+/**
+ * Every instance Google currently lists for one repeating event inside a
+ * window (cancelled ones are left out: no showDeleted). Used after a series
+ * change to see which Marshee rows Google no longer has. Same failure words
+ * as `listEvents`; there is no sync token, so `nextSyncToken` is always null.
+ */
+export async function listInstances(
+  fetchFn: FetchLike,
+  accessToken: string,
+  calendarId: string,
+  googleEventId: string,
+  timeMin: string,
+  timeMax: string,
+): Promise<ListEventsResult> {
+  const events: GoogleEventIn[] = [];
+  let pageToken: string | null = null;
+  for (let page = 0; page < MAX_LIST_PAGES; page += 1) {
+    try {
+      const res = await fetchFn(instancesUrl(calendarId, googleEventId, timeMin, timeMax, pageToken), {
+        method: "GET",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      if (res.status === 401 || res.status === 403) return { ok: false, reason: "unauthorized", status: res.status };
+      if (!res.ok) return { ok: false, reason: "network", status: res.status };
+      const data = (await res.json()) as { items?: unknown; nextPageToken?: unknown };
+      for (const raw of Array.isArray(data.items) ? data.items : []) {
+        if (typeof raw === "object" && raw !== null && typeof (raw as { id?: unknown }).id === "string") {
+          events.push(raw as GoogleEventIn);
+        }
+      }
+      pageToken = typeof data.nextPageToken === "string" && data.nextPageToken ? data.nextPageToken : null;
+      if (!pageToken) return { ok: true, events, nextSyncToken: null };
     } catch {
       // Deliberately drops the error: it could quote the Authorization header.
       return { ok: false, reason: "network" };

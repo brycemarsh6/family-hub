@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { deleteEvent, getEvent, insertEvent, listEvents, MAX_LIST_PAGES, updateEvent, type FetchLike } from "./calendarEventCalls";
+import { deleteEvent, getEvent, insertEvent, listEvents, listInstances, MAX_LIST_PAGES, updateEvent, type FetchLike } from "./calendarEventCalls";
 import { toGoogleEvent } from "./eventPayload";
 
 // Every test passes a fake fetch. Nothing here reaches Google.
@@ -240,5 +240,59 @@ describe("listEvents", () => {
   it("a last page without a sync token gives null", async () => {
     const r = await listEvents(fake(200, { items: [] }).fetchFn, TOKEN, "a@b.com", { timeMin: "2026-10-01T00:00:00.000Z", timeMax: "2027-10-01T00:00:00.000Z" });
     assert.deepEqual(r, { ok: true, events: [], nextSyncToken: null });
+  });
+});
+
+describe("listInstances", () => {
+  it("GETs the instances of one event for the window, without showDeleted, a sync token or singleEvents", async () => {
+    const { fetchFn, seen } = fake(200, { items: [{ id: "g1_20261110T140000Z" }] });
+    const r = await listInstances(fetchFn, TOKEN, "a@b.com", "series1", "2026-10-01T00:00:00.000Z", "2027-10-01T00:00:00.000Z");
+    assert.deepEqual(r, { ok: true, events: [{ id: "g1_20261110T140000Z" }], nextSyncToken: null });
+    const url = new URL(seen[0].url);
+    assert.equal(url.pathname, "/calendar/v3/calendars/a%40b.com/events/series1/instances");
+    assert.equal(url.searchParams.get("timeMin"), "2026-10-01T00:00:00.000Z");
+    assert.equal(url.searchParams.get("timeMax"), "2027-10-01T00:00:00.000Z");
+    assert.equal(url.searchParams.get("showDeleted"), null);
+    assert.equal(seen[0].init.method, "GET");
+  });
+
+  it("follows pageToken and joins the pages", async () => {
+    let n = 0;
+    const fetchFn: FetchLike = async () =>
+      new Response(JSON.stringify(n++ === 0 ? { items: [{ id: "a" }], nextPageToken: "P2" } : { items: [{ id: "b" }] }), { status: 200 });
+    const r = await listInstances(fetchFn, TOKEN, "cal", "s", "x", "y");
+    assert.deepEqual(r.ok && r.events.map((e) => e.id), ["a", "b"]);
+  });
+
+  it("maps 401 and 403 to unauthorized, 404 and 500 to network, a throw to network, and never carries the token", async () => {
+    for (const [status, reason] of [[401, "unauthorized"], [403, "unauthorized"], [404, "network"], [500, "network"]] as const) {
+      const r = await listInstances(fake(status, {}).fetchFn, TOKEN, "cal", "s", "x", "y");
+      assert.deepEqual(r, { ok: false, reason, status });
+    }
+    const boom: FetchLike = async () => {
+      throw new Error(`Bearer ${TOKEN}`);
+    };
+    const r = await listInstances(boom, TOKEN, "cal", "s", "x", "y");
+    assert.deepEqual(r, { ok: false, reason: "network" });
+    assert.ok(!JSON.stringify(r).includes(TOKEN));
+  });
+
+  it("stops at 20 pages with too-many", async () => {
+    const fetchFn: FetchLike = async () => new Response(JSON.stringify({ items: [], nextPageToken: "more" }), { status: 200 });
+    assert.deepEqual(await listInstances(fetchFn, TOKEN, "cal", "s", "x", "y"), { ok: false, reason: "too-many" });
+  });
+});
+
+describe("updateEvent with a times-only patch", () => {
+  it("sends exactly start, end and the id, with If-Match", async () => {
+    const { fetchFn, seen } = fake(200, { etag: '"e2"' });
+    const patch = {
+      start: { dateTime: "2026-07-01T07:30:00-06:00", timeZone: "America/Denver" },
+      end: { dateTime: "2026-07-01T08:30:00-06:00", timeZone: "America/Denver" },
+    };
+    const r = await updateEvent(fetchFn, TOKEN, "a@b.com", "series1", patch, '"e1"');
+    assert.deepEqual(r, { ok: true, etag: '"e2"' });
+    assert.deepEqual(JSON.parse(String(seen[0].init.body)), { ...patch, id: "series1" });
+    assert.equal((seen[0].init.headers as Record<string, string>)["If-Match"], '"e1"');
   });
 });
