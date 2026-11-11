@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Repeating events mock (PR 5)</title>
+<style>
+:root{--bg:#1c1b16;--fg:#ece8df;--muted:#9a958a;--line:#3a3830;--accent:#8fb08a;--ev:#2e3a2f;--evb:#6d8a6f;--warn:#f4d26b;--warn-soft:#3d3212;--surface:#26251f;--hh:44px;--gut:44px}
+*{box-sizing:border-box}
+html,body{margin:0;background:#111;color:var(--fg);font:14px -apple-system,system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+.wrap{max-width:420px;margin:0 auto;padding:12px}
+h1{font-size:17px;margin:0 0 4px}
+p.note{color:var(--muted);margin:0 0 10px;font-size:13px;line-height:1.45}
+.phone{height:640px;background:var(--bg);border-radius:24px;border:5px solid #000;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.top{height:52px;display:flex;align-items:center;gap:8px;padding:0 12px;flex:none}
+.top .title{font-weight:700;font-size:17px;flex:1}
+.pill{border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:13px}
+.head{display:flex;border-bottom:1px solid var(--line);flex:none}
+.head .corner{width:var(--gut)}
+.hcell{flex:1;text-align:center;padding:6px 0;border-left:1px solid var(--line)}
+.hcell b{display:block;font-size:18px}.hcell small{color:var(--muted);font-size:11px}
+.hcell.today b{color:var(--accent)}
+.grid{flex:1;display:flex;position:relative;overflow:hidden}
+.gutter{width:var(--gut);flex:none;position:relative}
+.gutter span{position:absolute;right:6px;font-size:10px;color:var(--muted);transform:translateY(-50%)}
+.col{flex:1;border-left:1px solid var(--line);position:relative;
+ background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--hh) - 1px),var(--line) calc(var(--hh) - 1px),var(--line) var(--hh))}
+.ev{position:absolute;left:2px;right:2px;background:var(--ev);border:1px solid var(--evb);border-radius:6px;font-size:11px;padding:3px 4px;font-weight:600;line-height:1.25;transition:top 260ms cubic-bezier(.2,.8,.2,1),left 260ms,box-shadow 160ms}
+.ev small{display:block;font-weight:400;color:var(--muted);font-size:10px}
+.ev.lifted{z-index:6;box-shadow:0 8px 22px rgba(0,0,0,.55),0 0 0 2px var(--accent);background:#37473a;scale:1.04}
+.ev .rep{font-size:10px;color:var(--muted);font-weight:400}
+.fab{position:absolute;right:14px;bottom:14px;width:56px;height:56px;border-radius:999px;background:var(--accent);color:#1c1b16;font-size:30px;display:flex;align-items:center;justify-content:center;z-index:5}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:8;opacity:0;pointer-events:none;transition:opacity 180ms}
+.scrim.show{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:18px 18px 0 0;padding:10px 16px 20px;z-index:9;transform:translateY(105%);transition:transform 220ms cubic-bezier(.2,.8,.2,1)}
+.sheet.show{transform:none}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
+.sheet h2{font-size:17px;margin:0 0 4px}
+.sheet .sub{color:var(--muted);font-size:14px;margin:0 0 14px;line-height:1.4}
+.sheet .why{font-size:13px;color:var(--muted);background:var(--bg);border-radius:10px;padding:10px 12px;margin:0 0 12px;line-height:1.4}
+.sheet button{display:block;width:100%;min-height:52px;border-radius:14px;font:inherit;font-size:16px;font-weight:600;margin-top:8px}
+.b1{background:var(--accent);color:#1c1b16;border:0}
+.b2{background:none;color:var(--fg);border:1px solid var(--line)}
+.b3{background:none;color:var(--muted);border:0}
+.bar{position:absolute;left:14px;right:84px;bottom:18px;min-height:48px;border-radius:12px;background:var(--fg);color:var(--bg);display:flex;align-items:center;gap:8px;padding:0 6px 0 14px;font-size:14px;z-index:7;transform:translateY(90px);transition:transform 200ms}
+.bar.show{transform:none}
+.bar .msg{flex:1;line-height:1.3}
+.bar button{background:none;border:0;color:#3f6b3a;font:inherit;font-weight:700;min-height:44px;min-width:64px}
+.bar.warn{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+.bar.warn button{display:none}
+.ctl{display:flex;flex-direction:column;gap:6px;margin:12px 0}
+.ctl button{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;text-align:left;padding:0 12px}
+.key{color:var(--muted);font-size:12px;line-height:1.5}
+.key b{color:var(--fg)}
+</style></head><body>
+<div class="wrap">
+<h1>Repeating events (PR 5 mock)</h1>
+<p class="note">"Wake Up" repeats every day at 7 AM. Use the buttons under the phone to act out a drop, then tap the sheet's buttons like you would on the phone. Events that do not repeat never see this sheet; they move straight away like today.</p>
+
+<div class="phone">
+  <div class="top"><span class="title">November</span><span class="pill">Today</span></div>
+  <div class="head"><div class="corner"></div>
+    <div class="hcell today"><small>Wed</small><b>11</b></div>
+    <div class="hcell"><small>Thu</small><b>12</b></div>
+    <div class="hcell"><small>Fri</small><b>13</b></div>
+  </div>
+  <div class="grid" id="grid">
+    <div class="gutter" id="gutter"></div>
+    <div class="col" id="c0"></div><div class="col" id="c1"></div><div class="col" id="c2"></div>
+  </div>
+  <div class="fab">+</div>
+  <div class="bar" id="bar"><span class="msg" id="barMsg"></span><button id="undo">Undo</button></div>
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <h2 id="sTitle">Move a repeating event</h2>
+    <p class="sub" id="sSub"></p>
+    <p class="why" id="sWhy" hidden>Only this one can move to another day. To move every Wake Up, drop it on the same day at the new time.</p>
+    <button class="b1" id="bThis">This one</button>
+    <button class="b2" id="bAll">All of them</button>
+    <button class="b3" id="bCancel">Cancel</button>
+  </div>
+</div>
+
+<div class="ctl">
+  <button id="dSame">1. Drag Thursday's Wake Up to 7:30 AM (same day)</button>
+  <button id="dOther">2. Drag Thursday's Wake Up to Friday 7:30 AM (another day)</button>
+  <button id="dFail">3. "All of them", but Google says no</button>
+  <button id="reset">Start over</button>
+</div>
+<div class="key">
+<b>The sheet:</b> title "Move a repeating event", one line saying where it is going, then <b>This one</b>, <b>All of them</b>, <b>Cancel</b>. Each is 52px tall, one-thumb reach. Tapping the dark area is the same as Cancel.<br>
+<b>This one:</b> only that day moves. Bar: "Moved to Thu 7:30 AM", Undo.<br>
+<b>All of them:</b> every Wake Up on screen moves at once, Google Calendar is changed, then the bar says "Moved every Wake Up to 7:30 AM", Undo. Undo moves them all back.<br>
+<b>Another day:</b> "All of them" is not offered, and a grey line says why.<br>
+<b>Cancel:</b> the block glides back. Nothing is saved.<br>
+<b>Google says no:</b> nothing changes anywhere, the blocks glide back, and a yellow bar says "Couldn't change Google Calendar. Nothing moved."
+</div>
+</div>
+
+<script>
+const HH=44, START=5; // grid starts at 5 AM
+const g=document.getElementById('gutter');
+for(let h=START;h<START+13;h++){const s=document.createElement('span');s.style.top=((h-START)*HH)+'px';s.textContent=h===12?'12 PM':(h>12?(h-12)+' PM':h+' AM');if(h>START)g.appendChild(s)}
+const cols=[0,1,2].map(i=>document.getElementById('c'+i));
+const days=['Wed','Thu','Fri'];
+let ev=[], lastUndo=null;
+function y(min){return (min-START*60)/60*HH}
+function fmt(min){let h=Math.floor(min/60),m=min%60,ap=h>=12?'PM':'AM';h=h%12||12;return h+(m?':'+String(m).padStart(2,'0'):'')+' '+ap}
+function build(){cols.forEach(c=>c.innerHTML='');ev=[0,1,2].map(d=>{const e=document.createElement('div');e.className='ev';cols[d].appendChild(e);return {el:e,day:d,start:420}});
+ const o=document.createElement('div');o.className='ev';o.style.top=y(600)+'px';o.style.height=HH*1.5+'px';o.innerHTML='Dentist<small>10 to 11:30 AM</small>';cols[1].appendChild(o);draw()}
+function draw(){ev.forEach(e=>{if(e.el.parentNode!==cols[e.day])cols[e.day].appendChild(e.el);e.el.style.top=y(e.start)+'px';e.el.style.height=HH*0.75+'px';e.el.innerHTML='Wake Up <span class="rep">&#8635;</span><small>'+fmt(e.start)+'</small>'})}
+const sheet=document.getElementById('sheet'),scrim=document.getElementById('scrim'),bar=document.getElementById('bar'),barMsg=document.getElementById('barMsg');
+let pending=null,barT=null;
+function showBar(msg,warn,undo){bar.className='bar show'+(warn?' warn':'');barMsg.textContent=msg;lastUndo=undo;clearTimeout(barT);barT=setTimeout(()=>bar.className='bar',5000)}
+function openSheet(p){pending=p;const t=ev[1];t.el.classList.add('lifted');t.day=p.day;t.start=p.start;draw();
+ document.getElementById('sSub').textContent='Wake Up, to '+days[p.day]+' '+fmt(p.start)+'.';
+ document.getElementById('sWhy').hidden=p.day===1;document.getElementById('bAll').hidden=p.day!==1;
+ sheet.classList.add('show');scrim.classList.add('show');bar.className='bar'}
+function closeSheet(){sheet.classList.remove('show');scrim.classList.remove('show');ev.forEach(e=>e.el.classList.remove('lifted'))}
+function cancel(){closeSheet();const t=ev[1];t.day=1;t.start=420;draw();pending=null}
+document.getElementById('dSame').onclick=()=>{build();setTimeout(()=>openSheet({day:1,start:450}),30)};
+document.getElementById('dOther').onclick=()=>{build();setTimeout(()=>openSheet({day:2,start:450}),30)};
+document.getElementById('dFail').onclick=()=>{build();setTimeout(()=>openSheet({day:1,start:450,fail:true}),30)};
+document.getElementById('reset').onclick=()=>{closeSheet();bar.className='bar';build()};
+document.getElementById('bCancel').onclick=cancel;scrim.onclick=cancel;
+document.getElementById('bThis').onclick=()=>{const p=pending;closeSheet();showBar('Moved to '+days[p.day]+' '+fmt(p.start),false,()=>{ev[1].day=1;ev[1].start=420;draw()})};
+document.getElementById('bAll').onclick=()=>{const p=pending;closeSheet();const shift=p.start-420;
+ ev.forEach(e=>{e.start=420+shift});draw();
+ setTimeout(()=>{if(p.fail){ev.forEach(e=>{e.start=420});draw();showBar("Couldn't change Google Calendar. Nothing moved.",true)}
+  else showBar('Moved every Wake Up to '+fmt(p.start),false,()=>{ev.forEach(e=>e.start=420);draw()})},700)};
+document.getElementById('undo').onclick=()=>{if(lastUndo)lastUndo();bar.className='bar'};
+build();
+</script>
+</body></html>

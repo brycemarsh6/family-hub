@@ -1,6 +1,6 @@
 # Mission 70: Calendar full screen PR 4, drag to reschedule
 
-- **Status:** DELIVERING (all gates PASS: Vision pass 3, Captain pass 3, Strange pass 3) (Bryce OK'd the mock 2026-11-10: "Looks great. Lets start"; gutter marker added at his request)
+- **Status:** DELIVERED (all gates PASS: Vision pass 3, Captain pass 3, Strange pass 3) (Bryce OK'd the mock 2026-11-10: "Looks great. Lets start"; gutter marker added at his request)
 - **Started:** 2026-11-10 · **Updated:** 2026-11-10
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 4: Drag to reschedule (decisions 17 to 22; small call H; answers 5, 6)"
 - **Branch:** `claude/calendar-fullscreen-pr4-drag`, cut from `origin/main` `f8289db` (PR 3 merged as #111)
@@ -302,3 +302,4 @@ calendar is touched by any agent.
   px.
 - **Phone test:** added to `.avengers/status.md` (screen recording; the in-app parent drag, kid and Tablet logins, and the real iOS scroll lock are only provable there).
 - Bryce gave permission on 2026-11-10 to merge once every gate passes and the Gauntlet is green, unless a big decision comes up.
+- **Merged:** PR #112, merge commit `6656fed`, Gauntlet green, Vercel production deployment 7703045725 succeeded (record fixed in the PR 5 branch, mission 71).
