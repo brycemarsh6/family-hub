@@ -60,7 +60,7 @@ const realDeps: SeriesMoveDeps = {
   updateEvent: updateGoogleEvent,
   listInstances: (...args) => listInstances((url, init) => fetch(url, init), ...args),
   async pullCalendar(calendarId) {
-    await pullCalendars({ force: true, onlyCalendarId: calendarId });
+    await pullCalendars({ force: true, onlyCalendarId: calendarId, ignoreLease: true });
   },
   async loadSeriesRows(calendarId, googleSeriesId, from, to) {
     const rows = await db.calendarEventSync.findMany({

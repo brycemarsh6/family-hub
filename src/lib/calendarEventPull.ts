@@ -173,9 +173,9 @@ const deps: PullRunDeps = {
  * Pull every due "Both ways" calendar. `force` is Refresh (a 30 second
  * lease); otherwise a calendar is pulled at most every 5 minutes. Never
  * throws; does nothing at all when Google or the key is missing.
- * `onlyCalendarId` pulls just that linked calendar (still behind its lease).
+ * `onlyCalendarId` pulls just that linked calendar; `ignoreLease` claims it even if it was pulled a moment ago.
  */
-export async function pullCalendars(opts: { force: boolean; rewindow?: boolean; onlyCalendarId?: string }): Promise<PullRunResult> {
+export async function pullCalendars(opts: { force: boolean; rewindow?: boolean; onlyCalendarId?: string; ignoreLease?: boolean }): Promise<PullRunResult> {
   const reasons: string[] = [];
   const result = await runPull({ ...deps, noteFailure: (reason) => reasons.push(reason) }, opts);
   // Reason words, statuses and Prisma codes only (see noteFailure): safe for the log.

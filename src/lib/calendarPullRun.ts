@@ -186,13 +186,20 @@ async function pullOne(
 /** Pulls every "Both ways" calendar that is due (or only `onlyCalendarId`, when given). Never throws; touches nothing when Google is not set up. */
 export async function runPull(
   deps: PullRunDeps,
-  opts: { force: boolean; rewindow?: boolean; onlyCalendarId?: string },
+  opts: { force: boolean; rewindow?: boolean; onlyCalendarId?: string; ignoreLease?: boolean },
 ): Promise<PullRunResult> {
   const total: PullRunResult = { changed: false, failed: 0, checked: 0 };
   if (!deps.isConfigured()) return total;
   try {
     const now = deps.now();
-    const staleBefore = new Date(now.getTime() - (opts.force ? PULL_FORCE_LEASE_MS : PULL_LEASE_MS));
+    // `ignoreLease` (the "All of them" pull) claims whatever the lease says: a stamp from a moment
+    // ago (opening the Calendar) must not leave Marshee on the old times. It still stamps the lease,
+    // so the regular pulls wait behind it. If a regular pull is running at the same moment, both
+    // may write: writes are keyed by the unique (calendar, Google id) pair, a clash counts as one
+    // failed write, the sync token is then not saved, and the next pull settles it.
+    const staleBefore = opts.ignoreLease
+      ? new Date(now.getTime() + 1)
+      : new Date(now.getTime() - (opts.force ? PULL_FORCE_LEASE_MS : PULL_LEASE_MS));
     // One Google calendar linked twice is pulled once: the oldest link, then the lowest id.
     const byAge = [...(await deps.loadCalendars())].sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id),

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { PULL_FORCE_LEASE_MS, PULL_LEASE_MS, runPull } from "./calendarPullRun";
-import { CAL, fake, gEvent } from "./testing/calendarPullRunHarness";
+import { CAL, NOW, fake, gEvent } from "./testing/calendarPullRunHarness";
 
 // The pull's steps with every call faked. The rules for each event are in
 // calendarSyncPull.test.ts. This file proves the order and the guards of
@@ -194,6 +194,18 @@ describe("runPull: one calendar by id", () => {
     const result = await runPull(f.deps, { force: true, onlyCalendarId: "c2" });
     assert.equal(result.checked, 1);
     assert.deepEqual(f.calls.filter((c) => c.startsWith("claim:")), [`claim:c2:${PULL_FORCE_LEASE_MS}`]);
+  });
+
+  it("a calendar claimed 5 seconds ago is still pulled by the series path and skipped by a normal force pull", async () => {
+    const lastClaim = NOW.getTime() - 5000;
+    // Mirrors the real claim: lastPulledAt < staleBefore.
+    const claim = async (_id: string, staleBefore: Date) => lastClaim < staleBefore.getTime();
+    const series = await runPull(fake({ claim }).deps, { force: true, onlyCalendarId: "c1", ignoreLease: true });
+    assert.equal(series.checked, 1);
+    const normal = await runPull(fake({ claim }).deps, { force: true, onlyCalendarId: "c1" });
+    assert.equal(normal.checked, 0);
+    const refresh = await runPull(fake({ claim }).deps, { force: true });
+    assert.equal(refresh.checked, 0);
   });
 
   it("pulls nothing for an id that is not a pullable calendar", async () => {
