@@ -134,6 +134,7 @@ calendar is touched by any agent.
 - **Done:** Vision can read every sequence test ending in idle.
 
 ### C2 — The save (one write path)
+- **Status:** DONE `54bcb60` (shared `afterEventSaved` at calendar.ts:41, called by update :257 and move :293; pure rules in new `calendarMoveRules.ts` 69 + 13 tests; calendar.ts 420 to 463; DB check moved a seeded 9 to 10 AM row to 2:15 to 3:15 via the action's body in a script, not the action itself (needs a cookie session), so C4 repeats it through the app; Stark ran `npx prisma generate` and a no-save install of `@vercel/blob@2.9.0`, a worktree env gap. Extra refusal "That move would cover a whole day" for the spring-forward edge)
 - **Objective:** `moveCalendarEvent(id, newStartIso)` that shares
   `updateCalendarEvent`'s write and Google push.
 - **Boundaries:** may touch `src/app/actions/calendar.ts`, a new server-only helper in
@@ -166,7 +167,7 @@ calendar is touched by any agent.
   with no React render per move.
 - **Boundaries:** may touch `src/lib/usePagedSwipe.ts`, `src/components/TimelineGrid.tsx`,
   `src/components/TimelinePage.tsx`, `src/components/TimelineDayColumn.tsx`,
-  a new `src/lib/useTimelineDrag.ts` (or similar, the DOM side of the lift,
+  `src/components/CalendarViews.tsx` (passing `canManage` down only), a new `src/lib/useTimelineDrag.ts` (or similar, the DOM side of the lift,
   NOT a second gesture machine: it only carries out effects), `src/app/globals.css`
   only if a class is needed. · must not touch `calendarGesture.ts` (C1 owns it), the server, sheets.
 - **Work:** blocks that may lift carry `data-drag-id` (only when the viewer
