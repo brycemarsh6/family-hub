@@ -4,7 +4,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import { resolveDrop } from "./timelineDrag";
 import { minutesOfDay } from "./timelineLayout";
 import { isSameDay } from "./mealPlanDates";
-import { formatClockTime, formatTimeRange } from "./calendarDates";
+import { formatClockDigits, formatTimeRange } from "./calendarDates";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 import type { DragCallbacks } from "./usePagedSwipe";
 import type { CalendarEventView } from "./types";
@@ -30,10 +30,12 @@ import type { CalendarEventView } from "./types";
 // The blocks that may lift carry `data-drag-id` (TimelineDayColumn.tsx); the
 // lifted one gets `data-lifted`, which its own classes style (scale, shadow,
 // accent outline). Every way out (drop, cancel, unmount) puts everything back.
+// A lift that went stale under the finger (its block left the page, or the
+// columns now show other days) is put down without a drop.
 
 /** The strips at the top (under the sticky header) and bottom of the hours
  * where a held block scrolls them. */
-export const EDGE_STRIP_PX = 44;
+const EDGE_STRIP_PX = 44;
 /** How far the hours scroll per frame while the finger sits in a strip. */
 const EDGE_SCROLL_PX_PER_FRAME = 6;
 /** The block's glide home; matches its `duration-200` class. */
@@ -44,9 +46,9 @@ export function isOnDragBlock(target: EventTarget): boolean {
   return target instanceof Element && target.closest("[data-drag-id]") !== null;
 }
 
-/** The gutter marker's text: the start without AM or PM ("4:30", "4"). */
-function markerText(start: Date): string {
-  return formatClockTime(start).split(" ")[0];
+/** The days the columns showed, as one comparable key. */
+function daysKey(days: Date[]): string {
+  return days.map((day) => day.getTime()).join(",");
 }
 
 type Lift = {
@@ -59,6 +61,8 @@ type Lift = {
   /** The page's day columns, measured each time they are needed. */
   columns: HTMLElement[];
   originIndex: number;
+  /** `daysKey` of the columns at the hold: a different key means stale. */
+  daysKey: string;
   grabOffsetY: number;
   x: number;
   y: number;
@@ -147,12 +151,15 @@ export function useTimelineDrag(options: TimelineDragOptions): DragCallbacks {
     const topPx = minutesOfDay(start) * pxPerMinute;
     marker.style.display = "flex";
     marker.style.top = `${topPx}px`;
-    marker.firstElementChild!.textContent = markerText(start);
-    // Hide an hour label the marker would sit on top of.
+    marker.firstElementChild!.textContent = formatClockDigits(start);
+    // Hide an hour label the marker sits on top of. Both are centred on
+    // their line, so they overlap when the lines are closer than half of
+    // the two heights together.
     const markerHeight = marker.offsetHeight;
     labels.forEach((label) => {
       const labelPx = Number(label.dataset.hourLabel) * 60 * pxPerMinute;
-      label.style.visibility = Math.abs(labelPx - topPx) < markerHeight ? "hidden" : "";
+      const overlaps = Math.abs(labelPx - topPx) < (markerHeight + label.offsetHeight) / 2;
+      label.style.visibility = overlaps ? "hidden" : "";
     });
   }
 
@@ -197,6 +204,12 @@ export function useTimelineDrag(options: TimelineDragOptions): DragCallbacks {
     showMarker(start);
   }
 
+  // The lifted block is gone from the page (a view or period change during
+  // the hold) or the columns show other days: nothing it says is true now.
+  function isStale(current: Lift): boolean {
+    return !current.block.isConnected || daysKey(latest.current.columnDays) !== current.daysKey;
+  }
+
   // -1 in the top strip, 1 in the bottom one, 0 elsewhere.
   function edgeDirection(y: number): number {
     const scroller = latest.current.scrollerRef.current?.getBoundingClientRect();
@@ -215,6 +228,7 @@ export function useTimelineDrag(options: TimelineDragOptions): DragCallbacks {
       const current = lift.current;
       const scroller = latest.current.scrollerRef.current;
       if (!current || !scroller) return;
+      if (isStale(current)) return putDown(true);
       const direction = edgeDirection(current.y);
       if (direction === 0) return;
       scroller.scrollTop += direction * EDGE_SCROLL_PX_PER_FRAME;
@@ -270,7 +284,7 @@ export function useTimelineDrag(options: TimelineDragOptions): DragCallbacks {
       putDown(true);
       // A glide home still finishing: tidy it now, before reading this block.
       flushRestore();
-      const { rootRef: root, railRef, events } = latest.current;
+      const { rootRef: root, railRef, events, columnDays } = latest.current;
       const block = target instanceof Element ? target.closest<HTMLElement>("[data-drag-id]") : null;
       const rail = railRef.current?.getBoundingClientRect();
       const column = block?.closest<HTMLElement>("[data-day-column]");
@@ -289,6 +303,7 @@ export function useTimelineDrag(options: TimelineDragOptions): DragCallbacks {
         durationMinutes: (event.endAt.getTime() - event.startAt.getTime()) / 60000,
         columns,
         originIndex: columns.indexOf(column),
+        daysKey: daysKey(columnDays),
         // offsetTop ignores transforms, so the grab is from the block's real top.
         grabOffsetY: y - rail.top - block.offsetTop,
         x,
@@ -301,6 +316,7 @@ export function useTimelineDrag(options: TimelineDragOptions): DragCallbacks {
     dragMove(x, y) {
       const current = lift.current;
       if (!current) return;
+      if (isStale(current)) return putDown(true);
       current.x = x;
       current.y = y;
       place(current);
@@ -309,6 +325,7 @@ export function useTimelineDrag(options: TimelineDragOptions): DragCallbacks {
     dragDrop(x, y) {
       const current = lift.current;
       if (!current) return;
+      if (isStale(current)) return putDown(true);
       current.x = x;
       current.y = y;
       const newStart = resolve(current);

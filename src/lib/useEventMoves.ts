@@ -1,9 +1,9 @@
 "use client";
 
-import { useLayoutEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import { useLayoutEffect, useOptimistic, useRef, useState } from "react";
 import { formatClockTime } from "./calendarDates";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
-import { SAVE_FAILED } from "./useOptimisticRun";
+import { useOptimisticRun } from "./useOptimisticRun";
 import type { CalendarEventView } from "./types";
 
 // Mission 70 (C4): what happens after a lifted block is let go on the hour
@@ -14,12 +14,14 @@ import type { CalendarEventView } from "./types";
 //
 // useTimelineDrag.ts puts the dropped block down in place with no transition
 // and calls `drop` from the touch handler, so the optimistic update must be
-// applied synchronously there: it is the first thing inside startTransition.
-// React renders a discrete touch's updates before the next paint, so the
-// block never shows a frame at its old spot.
+// applied synchronously there: `useOptimisticRun`'s `run` applies it first
+// thing inside its transition. React renders a discrete touch's updates
+// before the next paint, so the block never shows a frame at its old spot.
 //
-// The save is a closure (`move`, CalendarViews passes moveCalendarEvent), so
-// this file never imports from `app/` (the useOptimisticRun.ts rule).
+// The save goes through `run` (the one optimistic wrapper, STRUCTURE.md), its
+// `onError` carrying the glide back and the warn bar. The action is a closure
+// (`move`, CalendarViews passes moveCalendarEvent), so this file never
+// imports from `app/`.
 
 type MoveResult = { error?: string };
 type MoveAction = (id: string, newStartIso: string) => Promise<MoveResult>;
@@ -50,13 +52,16 @@ export type MoveBar = {
 /** Where a refused block was shown, so it can glide from there to home. */
 type GlideBack = { id: string; homeStartMs: number; left: number; top: number };
 
+/** The event's block on the current page. The neighbour pages either side
+ * (PagedTrack) are `inert` and may draw the same event, so they are skipped. */
 function blockFor(id: string): HTMLElement | null {
-  return document.querySelector<HTMLElement>(`[data-drag-id="${CSS.escape(id)}"]`);
+  const blocks = document.querySelectorAll<HTMLElement>(`[data-drag-id="${CSS.escape(id)}"]`);
+  return Array.from(blocks).find((block) => !block.closest("[inert]")) ?? null;
 }
 
 export function useEventMoves(events: CalendarEventView[], move: MoveAction) {
   const [shown, applyOptimistic] = useOptimistic(events, applyMove);
-  const [, startTransition] = useTransition();
+  const { run } = useOptimisticRun(applyOptimistic);
   const [bar, setBar] = useState<MoveBar | null>(null);
   const barId = useRef(0);
   const glide = useRef<GlideBack | null>(null);
@@ -71,22 +76,11 @@ export function useEventMoves(events: CalendarEventView[], move: MoveAction) {
     const from = event.startAt;
     const length = event.endAt.getTime() - from.getTime();
     const target = { id: event.id, startAt: newStart, endAt: new Date(newStart.getTime() + length) };
-    startTransition(async () => {
-      applyOptimistic(target);
-      let error: string | undefined;
-      try {
-        ({ error } = await move(event.id, newStart.toISOString()));
-      } catch {
-        error = SAVE_FAILED;
-      }
-      if (error) {
-        // Still drawn at the new spot: remember it, so the block glides home
-        // once the transition ends and the optimistic move falls away.
-        const block = blockFor(event.id);
-        const rect = block?.getBoundingClientRect();
-        if (rect) glide.current = { id: event.id, homeStartMs: from.getTime(), left: rect.left, top: rect.top };
-        showBar({ message: error, tone: "warn" });
-      } else if (!undo) {
+    run(
+      target,
+      () => move(event.id, newStart.toISOString()),
+      () => {
+        if (undo) return;
         showBar({
           message: movedToText(newStart),
           tone: "neutral",
@@ -96,8 +90,16 @@ export function useEventMoves(events: CalendarEventView[], move: MoveAction) {
             save({ ...event, startAt: target.startAt, endAt: target.endAt }, from, true);
           },
         });
-      }
-    });
+      },
+      (error) => {
+        // Still drawn at the new spot: remember it, so the block glides home
+        // once the transition ends and the optimistic move falls away.
+        const block = blockFor(event.id);
+        const rect = block?.getBoundingClientRect();
+        if (rect) glide.current = { id: event.id, homeStartMs: from.getTime(), left: rect.left, top: rect.top };
+        showBar({ message: error, tone: "warn" });
+      },
+    );
   }
 
   // The glide back (FLIP): once the refused event is drawn home again, start
@@ -123,6 +125,9 @@ export function useEventMoves(events: CalendarEventView[], move: MoveAction) {
   function drop(eventId: string, newStart: Date) {
     const event = shown.find((e) => e.id === eventId);
     if (!event) return;
+    // A refused earlier drop of this event still waiting to glide home: this
+    // newer drop decides where it is drawn now, so that glide is dropped.
+    if (glide.current?.id === eventId) glide.current = null;
     setBar(null);
     save(event, newStart, false);
   }

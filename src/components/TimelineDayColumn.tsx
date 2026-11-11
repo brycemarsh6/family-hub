@@ -39,7 +39,7 @@ import { formatTimeRange, isPast } from "@/lib/calendarDates";
 import { showsTimeLine, titleFitsFullSize } from "@/lib/timelineZoom";
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
-import { isSameDay } from "@/lib/mealPlanDates";
+import { canLiftOnTimeline } from "@/lib/timelineDrag";
 import type { CalendarEventView } from "@/lib/types";
 
 // `bandedBackground` (src/lib/color.ts, up to 3 diagonal bands — Month's
@@ -140,8 +140,8 @@ export function TimelineDayColumn({
         // long this really is) when the two disagree.
         const trueDurationMinutes = (event.endAt.getTime() - event.startAt.getTime()) / 60000;
         // Mission 70: only a block that starts and ends on one day may lift
-        // (useTimelineDrag.ts); one running past midnight draws clipped here.
-        const draggable = canDrag && isSameDay(event.startAt, new Date(event.endAt.getTime() - 1));
+        // (canLiftOnTimeline, timelineDrag.ts; useTimelineDrag.ts lifts it).
+        const draggable = canDrag && canLiftOnTimeline(event);
         return (
           <button
             key={slot.block.id}
@@ -174,9 +174,12 @@ export function TimelineDayColumn({
             // blocks — see `drawnHeightPx` above for that fix.
             // Mission 70: no text selection or iPhone long-press menu; the
             // lifted look (data-lifted, set by useTimelineDrag.ts) is the
-            // approved mock's: bigger, a shadow, a 2px accent outline. Its
-            // glide home eases `transform`; while lifted it follows in steps.
-            className={`absolute flex flex-col justify-start overflow-hidden rounded-md border px-1 text-left leading-tight select-none [-webkit-touch-callout:none] transition-[transform,scale,box-shadow] duration-200 ease-out data-lifted:z-15 data-lifted:scale-104 data-lifted:shadow-lg data-lifted:outline-2 data-lifted:outline-accent data-lifted:transition-[scale,box-shadow] ${
+            // approved mock's: bigger, a shadow, a 2px accent outline. It
+            // grows from its top left corner, so its lifted top stays on the
+            // gutter marker's line (and a Day block does not grow over the
+            // gutter). Its glide home eases `transform`; while lifted it
+            // follows in steps.
+            className={`absolute flex flex-col justify-start overflow-hidden rounded-md border px-1 text-left leading-tight select-none [-webkit-touch-callout:none] transition-[transform,scale,box-shadow] duration-200 ease-out data-lifted:z-15 data-lifted:origin-top-left data-lifted:scale-104 data-lifted:shadow-lg data-lifted:outline-2 data-lifted:outline-accent data-lifted:transition-[scale,box-shadow] ${
               past ? "border-muted text-muted" : "border-fg text-fg"
             }`}
             style={{

@@ -389,8 +389,12 @@ export function TimelineGrid({
             the viewport holding the columns' three pages. Day: no gutter
             here, each page brings its own labels. */}
         <div ref={railRef} className="relative flex" style={{ height: `calc(var(--hour-height) * ${HOURS_PER_DAY})` }}>
-          <div ref={markerRef} aria-hidden="true" className="pointer-events-none absolute left-0 z-20 -translate-y-1/2 justify-end pr-0.5" style={{ display: "none", width: GUTTER_WIDTH_PX }}>
-            <span className="bg-bg px-0.5 text-[0.6875rem] font-bold tabular-nums text-accent" />
+          {/* The gutter marker (mission 70). Px on purpose: the gutter is a
+              fixed 48px, so at Larger and Largest Text size a rem marker
+              ("12:45") ran out of its left edge. Its text grows with Text
+              size up to 12px, then stops. */}
+          <div ref={markerRef} aria-hidden="true" className="pointer-events-none absolute left-0 z-20 -translate-y-1/2 justify-end pr-[2px]" style={{ display: "none", width: GUTTER_WIDTH_PX }}>
+            <span className="bg-bg px-[2px] text-[min(0.6875rem,12px)] font-bold tabular-nums text-accent" />
           </div>
           {!isDay && <TimelineHourLabels />}
           <div ref={columnsViewportRef} className="min-w-0 flex-1 overflow-hidden">

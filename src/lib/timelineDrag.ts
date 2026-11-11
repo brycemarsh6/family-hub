@@ -260,3 +260,18 @@ export function resolveDrop(input: DropInput): Date | null {
   }
   return minutesOfDayToDate(day, startMinutes);
 }
+
+// ---------------------------------------------------------------------------
+// which blocks may lift
+
+/**
+ * True when a timed event may be held and dragged on the hour timeline: it
+ * starts and ends on one calendar day. One running past midnight draws
+ * clipped in its first column, so it never lifts; one ending exactly at
+ * midnight is still one day (its last instant is 11:59:59.999 PM). Whether
+ * the viewer may edit, and that the event is timed and not a task, is the
+ * caller's (TimelineDayColumn.tsx draws only timed events and asks this).
+ */
+export function canLiftOnTimeline(event: { startAt: Date; endAt: Date }): boolean {
+  return isSameDay(event.startAt, new Date(event.endAt.getTime() - 1));
+}
