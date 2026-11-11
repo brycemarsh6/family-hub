@@ -11,11 +11,13 @@ import assert from "node:assert/strict";
 import {
   periodAnchor,
   stepPeriod,
+  neighbourAnchor,
   withView,
   resetToToday,
   type CalendarPeriod,
 } from "./useCalendarPeriod";
 import { isSameDay } from "./mealPlanDates";
+import { VIEW_CONFIG } from "./calendarViewConfig";
 
 function d(year: number, month: number, day: number): Date {
   return new Date(year, month, day);
@@ -341,4 +343,49 @@ test("withView: the anchored day survives a switch to — and back from — ever
   const month = withView(year, "month", today);
   assert.equal(periodAnchor(stepPeriod(month, 1), today).getMonth(), 3);
   assert.equal(periodAnchor(stepPeriod(withView(month, "year", today), 1), today).getFullYear(), 2028);
+});
+
+// ---------------------------------------------------------------------------
+// neighbourAnchor: the sliding track's neighbours (mission 69 / C4).
+
+test("neighbourAnchor: day views move by their step in both directions", () => {
+  const anchor = d(2026, 10, 10);
+  assert.ok(isSameDay(neighbourAnchor("day", anchor, 1), d(2026, 10, 11)));
+  assert.ok(isSameDay(neighbourAnchor("day", anchor, -1), d(2026, 10, 9)));
+  assert.ok(isSameDay(neighbourAnchor("threeDay", anchor, 1), d(2026, 10, 13)));
+  assert.ok(isSameDay(neighbourAnchor("threeDay", anchor, -1), d(2026, 10, 7)));
+  assert.ok(isSameDay(neighbourAnchor("week", anchor, 1), d(2026, 10, 17)));
+  assert.ok(isSameDay(neighbourAnchor("week", anchor, -1), d(2026, 10, 3)));
+});
+
+test("neighbourAnchor: a Week anchor mid-week gives the neighbour week's seven days", () => {
+  // Wed Nov 11 2026: this week is Sun Nov 8 to Sat Nov 14.
+  const anchor = d(2026, 10, 11);
+  const next = VIEW_CONFIG.week.days(neighbourAnchor("week", anchor, 1));
+  const previous = VIEW_CONFIG.week.days(neighbourAnchor("week", anchor, -1));
+  assert.equal(next.length, 7);
+  assert.ok(isSameDay(next[0], d(2026, 10, 15)));
+  assert.ok(isSameDay(next[6], d(2026, 10, 21)));
+  assert.ok(isSameDay(previous[0], d(2026, 10, 1)));
+  assert.ok(isSameDay(previous[6], d(2026, 10, 7)));
+});
+
+test("neighbourAnchor: month and year land on the first of the month", () => {
+  const anchor = d(2026, 10, 17);
+  assert.ok(isSameDay(neighbourAnchor("month", anchor, 1), d(2026, 11, 1)));
+  assert.ok(isSameDay(neighbourAnchor("month", anchor, -1), d(2026, 9, 1)));
+  assert.ok(isSameDay(neighbourAnchor("year", anchor, 1), d(2027, 10, 1)));
+  assert.ok(isSameDay(neighbourAnchor("year", anchor, -1), d(2025, 10, 1)));
+});
+
+test("neighbourAnchor: a month-end anchor does not skip a short month", () => {
+  assert.ok(isSameDay(neighbourAnchor("month", d(2026, 0, 31), 1), d(2026, 1, 1)));
+  assert.ok(isSameDay(neighbourAnchor("month", d(2026, 2, 31), -1), d(2026, 1, 1)));
+  assert.ok(isSameDay(neighbourAnchor("month", d(2026, 11, 31), 1), d(2027, 0, 1)));
+});
+
+test("neighbourAnchor: schedule has no pages and returns the anchor", () => {
+  const anchor = d(2026, 10, 10);
+  assert.ok(isSameDay(neighbourAnchor("schedule", anchor, 1), anchor));
+  assert.ok(isSameDay(neighbourAnchor("schedule", anchor, -1), anchor));
 });

@@ -168,6 +168,24 @@ export function stepPeriod(period: CalendarPeriod, direction: 1 | -1): CalendarP
     : { ...period, dayOffset: period.dayOffset + direction * step };
 }
 
+/** The anchor one page away from `anchor` in `direction`, by `VIEW_CURSOR`'s
+ * step, so the sliding track's neighbours and Prev/Next share one step size.
+ * Day-basis views move by whole days; month-basis views land on the first of
+ * the month `step` months away (Month and Year read only their month or
+ * year, so the day-of-month clamp does not matter); Schedule has no pages
+ * and returns `anchor` itself. */
+export function neighbourAnchor(
+  view: CalendarPeriodView,
+  anchor: Date,
+  direction: 1 | -1,
+): Date {
+  const { basis, step } = VIEW_CURSOR[view];
+  if (step === 0) return anchor;
+  return basis === "month"
+    ? new Date(anchor.getFullYear(), anchor.getMonth() + direction * step, 1)
+    : addDays(anchor, direction * step);
+}
+
 /**
  * Switches which view a period represents, preserving the exact anchored
  * day — the property that makes Month → Day open the day the user was on,

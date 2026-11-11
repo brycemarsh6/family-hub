@@ -6,6 +6,16 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar sliding swipe (mission 69, PR 3 of 9)**, about 3 minutes,
+  with a screen recording, on your iPhone and then the iPad. On 3 Day:
+  drag slowly sideways and let go early (it springs back); drag slowly
+  past halfway (it glides to the next 3 days); a quick flick (it turns);
+  a diagonal drag (it scrolls the hours, never turns the page); swipe then
+  pinch straight away (it springs back and zooms). Scroll to the
+  afternoon, then swipe: the hours stay where they were. On Day the whole
+  day slides with its own hours and date, like Google. Do the same on
+  Week, Month and Year, and once with Reduce Motion on (pages turn
+  instantly). Send the recording if anything sticks, flashes or lags.
 - **Calendar + bubbles (mission 68, PR 2 of 9)**, about 1 minute, on
   your phone: open Calendar, tap the + (bottom right). The page dims, Task
   and Event pop up above it and the + turns into an X. Tap Task: the task

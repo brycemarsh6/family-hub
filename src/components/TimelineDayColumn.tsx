@@ -240,7 +240,7 @@ export function TimelineDayColumn({
           className="absolute inset-x-0 z-10 flex items-center"
           style={{ top: `${minutesOfDay(now) * pxPerMinute}px` }}
         >
-          <span className="h-2 w-2 -translate-x-1 rounded-full bg-danger" />
+          <span className="h-2 w-2 rounded-full bg-danger" />
           <span className="h-px flex-1 bg-danger" />
         </div>
       )}

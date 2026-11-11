@@ -137,7 +137,7 @@ files named beside it.
   in `src/lib/habitVocabulary.ts`. Settings has a Show streaks switch and, for
   admins, Recompute streaks. Plan: `.avengers/plans/habits-chores-v1.md`.
 - **Calendar**: Month, Year, Schedule and hour-timeline views, tasks, month
-  jump, swipe-to-page, pinch to zoom the hours (per person, per device;
+  jump, a sliding swipe (mission 69), pinch to zoom the hours (per person, per device;
   mission 65). Read `.avengers/plans/calendar-v2.md` before calendar work.
 - **Google Calendar link** (`/settings/calendars`, parents and admins): link
   Google accounts, choose each calendar's sync direction. Refresh tokens are
@@ -238,7 +238,7 @@ yet** or is next. Everything merged is in its mission file.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
   parent rule) and PR C (per-person habits tiles) are next:
   `.avengers/missions/mission-39-tablet-login.md`.
-- **Calendar full screen rebuild** (nine PRs, approved, PR 3 (the sliding swipe) is next):
+- **Calendar full screen rebuild** (nine PRs, approved, PR 4 is next):
   read `.avengers/plans/calendar-fullscreen-v1.md` before any calendar
   work. It replaces CD1 (old PR #26, closed); drag is its PR 4.
 - **Winnie next:** calendar and tasks (after the drag PR), then replacing the app's

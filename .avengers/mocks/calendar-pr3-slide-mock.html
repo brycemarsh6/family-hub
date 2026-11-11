@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Calendar slide mock (PR 3)</title>
+<style>
+:root{--bg:#1c1b16;--fg:#ece8df;--muted:#9a958a;--line:#3a3830;--accent:#e0a458;--ev:#2e3a2f;--hh:48px;--gut:44px}
+*{box-sizing:border-box}
+html,body{margin:0;background:#111;color:var(--fg);font:14px -apple-system,system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+.wrap{max-width:420px;margin:0 auto;padding:12px}
+h1{font-size:17px;margin:0 0 4px}
+p.note{color:var(--muted);margin:0 0 10px;font-size:13px;line-height:1.4}
+.phone{height:620px;background:var(--bg);border-radius:24px;border:5px solid #000;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.top{height:52px;display:flex;align-items:center;gap:8px;padding:0 10px;flex:none}
+.top .title{font-weight:700;font-size:17px;flex:1}
+.btn{border:1px solid var(--line);background:none;color:var(--fg);border-radius:999px;padding:8px 12px;font:inherit;font-size:13px}
+.btn.on{background:var(--accent);color:#1c1b16;border-color:var(--accent);font-weight:600}
+.views{display:flex;gap:6px;padding:0 10px 8px;flex:none}
+/* timeline */
+.scroller{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;touch-action:pan-y;overscroll-behavior:contain}
+.head{position:sticky;top:0;z-index:2;background:var(--bg);display:flex;border-bottom:1px solid var(--line)}
+.head .corner{width:var(--gut);flex:none}
+.vp{flex:1;overflow:hidden;position:relative}
+.track{display:flex;transform:translateX(calc(-33.3333% + var(--dx,0px)));width:300%;will-change:transform}
+.track.ease{transition:transform 260ms cubic-bezier(.2,.8,.2,1)}
+.panel{width:33.3333%;flex:none;display:flex}
+.hcell{flex:1;text-align:center;padding:6px 0;border-left:1px solid var(--line)}
+.hcell b{display:block;font-size:18px}
+.hcell small{color:var(--muted);font-size:11px}
+.hcell.today b{color:var(--accent)}
+.body{display:flex}
+.gutter{width:var(--gut);flex:none;position:relative;height:calc(var(--hh)*24)}
+.gutter span{position:absolute;right:6px;font-size:10px;color:var(--muted);transform:translateY(-50%)}
+.col{flex:1;border-left:1px solid var(--line);position:relative;height:calc(var(--hh)*24);
+ background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--hh) - 1px),var(--line) calc(var(--hh) - 1px),var(--line) var(--hh))}
+.ev{position:absolute;left:2px;right:2px;background:var(--ev);border:1px solid #6d8a6f;border-radius:6px;font-size:11px;padding:3px;font-weight:600;overflow:hidden}
+/* month */
+.month .mvp{flex:1;overflow:hidden;position:relative;touch-action:pan-y}
+.mpanel{width:33.3333%;flex:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));align-content:start}
+.mpanel .dow{color:var(--muted);font-size:11px;text-align:center;padding:4px 0}
+.mcell{min-width:0;overflow:hidden;border-top:1px solid var(--line);height:78px;padding:3px;font-size:12px}
+.mcell.other{color:#5c584f}
+.mcell.today span{background:var(--accent);color:#1c1b16;border-radius:999px;padding:1px 5px;font-weight:700}
+.mcell i{display:block;font-style:normal;font-size:9px;background:var(--ev);border-radius:3px;margin-top:2px;padding:1px 2px;white-space:nowrap;overflow:hidden}
+.fab{position:absolute;right:14px;bottom:14px;width:56px;height:56px;border-radius:18px;background:var(--accent);color:#1c1b16;font-size:30px;display:flex;align-items:center;justify-content:center;z-index:5}
+.readout{color:var(--muted);font-size:12px;margin-top:8px;min-height:1.4em}
+label.rm{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px;margin:8px 0}
+</style></head><body>
+<div class="wrap">
+<h1>Calendar sliding swipe (PR 3 mock)</h1>
+<p class="note">Try it with your finger. Drag sideways and the days follow you. Let go past a quarter of the way, or flick, and it glides to the next page. Let go early and it springs back. Scroll down to an afternoon hour, then swipe: the hours stay where you left them. Dragging mostly up and down scrolls the hours instead.</p>
+<div class="phone" id="phone">
+  <div class="top"><span class="title" id="title">November</span><button class="btn" id="today">Today</button></div>
+  <div class="views" id="views"></div>
+  <div id="stage" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
+  <div class="fab">+</div>
+</div>
+<label class="rm"><input type="checkbox" id="rm"> Pretend "Reduce motion" is on (pages turn instantly, no glide)</label>
+<div class="readout" id="readout"></div>
+</div>
+<script>
+const DAY=86400000, T0=new Date(2026,10,10);
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const views=[["Day",1],["3 Day",3],["Week",7],["Month",0]];
+let view=1, anchor=new Date(T0), busy=false;
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const same=(a,b)=>a.toDateString()===b.toDateString();
+function weekStart(d){return addDays(d,-d.getDay())}
+function rnd(seed){let x=Math.sin(seed)*10000;return x-Math.floor(x)}
+const titles=["Soccer","Dentist","Piano","Date night","Work out","Groceries","Call Mom","Church","Book club","School pickup"];
+function eventsFor(d){const s=d.getFullYear()*400+d.getMonth()*32+d.getDate();const n=Math.floor(rnd(s)*3);const out=[];
+ for(let i=0;i<n;i++){out.push({t:titles[Math.floor(rnd(s+i*7)*titles.length)],h:8+Math.floor(rnd(s+i*3)*11),len:1+Math.floor(rnd(s+i*5)*2)})}return out}
+function pageStart(a,offset){const n=views[view][1];
+ if(n===0)return new Date(a.getFullYear(),a.getMonth()+offset,1);
+ const base=n===7?weekStart(a):a;return addDays(base,offset*n)}
+function setTitle(){const s=pageStart(anchor,0);const y=s.getFullYear()!==2026?" "+s.getFullYear():"";document.getElementById("title").textContent=MONTHS[s.getMonth()]+y}
+function renderViews(){const el=document.getElementById("views");el.innerHTML="";
+ views.forEach(([name],i)=>{const b=document.createElement("button");b.className="btn"+(i===view?" on":"");b.textContent=name;
+ b.onclick=()=>{view=i;build(true)};el.appendChild(b)})}
+let scroller,tracks=[],root;
+function timelinePanels(){const n=views[view][1];let head="",body="";
+ for(let p=-1;p<=1;p++){const s=pageStart(anchor,p);let h="",c="";
+  for(let i=0;i<n;i++){const d=addDays(s,i);
+   h+=`<div class="hcell${same(d,T0)?" today":""}"><small>${DOW[d.getDay()]}</small><b>${d.getDate()}</b></div>`;
+   c+=`<div class="col">${eventsFor(d).map(e=>`<div class="ev" style="top:calc(var(--hh)*${e.h});height:calc(var(--hh)*${e.len} - 2px)">${e.t}</div>`).join("")}</div>`}
+  head+=`<div class="panel">${h}</div>`;body+=`<div class="panel">${c}</div>`}
+ return [head,body]}
+function monthPanels(){let out="";for(let p=-1;p<=1;p++){const s=pageStart(anchor,p);const g=weekStart(s);
+ const rows=Math.ceil((s.getDay()+new Date(s.getFullYear(),s.getMonth()+1,0).getDate())/7);
+ let h=DOW.map(d=>`<div class="dow">${d[0]}</div>`).join("");
+ for(let i=0;i<rows*7;i++){const d=addDays(g,i);const ev=eventsFor(d).slice(0,2);
+  h+=`<div class="mcell${d.getMonth()!==s.getMonth()?" other":""}${same(d,T0)?" today":""}"><span>${d.getDate()}</span>${ev.map(e=>`<i>${e.t}</i>`).join("")}</div>`}
+ out+=`<div class="mpanel">${h}</div>`}return out}
+function build(scrollNow){setTitle();renderViews();const st=document.getElementById("stage");const keep=scroller?scroller.scrollTop:0;
+ if(views[view][1]===0){st.className="month";st.innerHTML=`<div class="mvp" id="sv"><div class="track" id="t1">${monthPanels()}</div></div>`;
+  scroller=document.getElementById("sv");tracks=[document.getElementById("t1")];root=scroller}
+ else{const [h,b]=timelinePanels();st.className="";
+  st.innerHTML=`<div class="scroller" id="sv"><div class="head"><div class="corner"></div><div class="vp"><div class="track" id="t1">${h}</div></div></div>
+  <div class="body"><div class="gutter">${Array.from({length:23},(_,i)=>`<span style="top:calc(var(--hh)*${i+1})">${((i)%12)+1} ${i+1<12?"AM":"PM"}</span>`).join("")}</div>
+  <div class="vp"><div class="track" id="t2">${b}</div></div></div></div>`;
+  scroller=document.getElementById("sv");tracks=[document.getElementById("t1"),document.getElementById("t2")];root=scroller;
+  scroller.scrollTop=scrollNow?getComputedStyle(document.documentElement).getPropertyValue("--hh").trim().replace("px","")*8:keep}
+ attach()}
+function setDx(px,ease){root.style.setProperty("--dx",px+"px");tracks.forEach(t=>t.classList.toggle("ease",!!ease))}
+function readout(s){document.getElementById("readout").textContent=s}
+function attach(){let id=null,x0=0,y0=0,t0=0,mode="idle",lastX=0,lastT=0,vx=0;
+ const W=()=>tracks[0].parentElement.clientWidth;
+ scroller.onpointerdown=e=>{if(busy||id!==null)return;id=e.pointerId;x0=lastX=e.clientX;y0=e.clientY;t0=lastT=e.timeStamp;mode="undecided";vx=0};
+ scroller.onpointermove=e=>{if(e.pointerId!==id)return;const dx=e.clientX-x0,dy=e.clientY-y0;
+  if(mode==="undecided"){if(Math.abs(dx)>=8&&Math.abs(dx)>Math.abs(dy)){mode="sliding";try{scroller.setPointerCapture(id)}catch{}}
+   else if(Math.abs(dy)>=8){mode="scrolling";readout("Scrolling the hours")}}
+  if(mode==="sliding"){const dt=e.timeStamp-lastT;if(dt>0)vx=(e.clientX-lastX)/dt;lastX=e.clientX;lastT=e.timeStamp;setDx(dx,false);readout("Sliding: "+Math.round(dx)+" px")}};
+ const end=e=>{if(e.pointerId!==id)return;id=null;if(mode!=="sliding"){mode="idle";return}mode="idle";
+  const dx=e.clientX-x0,w=W(),flick=Math.abs(vx)>0.5&&Math.sign(vx)===Math.sign(dx);
+  const go=(Math.abs(dx)>w/4||flick)?(dx<0?1:-1):0;turn(go,e.type==="pointercancel"?0:go)};
+ scroller.onpointerup=end;scroller.onpointercancel=e=>{if(e.pointerId!==id)return;id=null;mode="idle";turn(0,0)}}
+function turn(_,go){const w=tracks[0].parentElement.clientWidth;const rm=document.getElementById("rm").checked;
+ if(go===0){readout("Sprang back");if(rm){setDx(0,false);return}setDx(0,true);return}
+ const done=()=>{anchor=pageStart(anchor,go);busy=false;build(false);readout(go>0?"Turned to the next page":"Turned to the previous page")};
+ if(rm){done();return}
+ busy=true;setDx(go>0?-w:w,true);setTimeout(done,270)}
+document.getElementById("today").onclick=()=>{anchor=new Date(T0);build(true)};
+build(true);
+</script>
+</body></html>

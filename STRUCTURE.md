@@ -673,37 +673,31 @@ amendment id.
   count that **includes** blank lines is a different measurement and must not
   be compared against a cap threshold or another gate's figure.
   (Added 2026-09-09, mission-19, on Captain's pass-2 finding; Bryce approved.) (Story: docs/history/structure-rationale.md, "Code lines: the blank-line counter instance".)
-- **The pointer-gesture machine has two definitions, and the divergence has
-  already cost a shipped defect.** `SwipeActions.tsx` and
-  `src/lib/usePageSwipe.ts` each implement the same four-state machine
-  (`idle`/`undecided`/`swiping`/`scrolling`), the 8px direction lock, the
-  try/caught `setPointerCapture`, and the capture-phase click swallow.
-  `DIRECTION_LOCK_PX = 8` is defined in both. `usePageSwipe.ts`'s header
-  records why the copy was made — `SwipeActions` is live on Inventory and
-  Shopping rows and this environment's tooling cannot drive that gesture to a
-  settled state — and that reasoning is sound; it is the reason this is debt
-  rather than a mistake.
-  **What makes it debt with a deadline:** mission-19/F1 fixed a stuck
-  click-swallow flag in `usePageSwipe.ts` (a touch drag past tap slop produces
-  no compatibility click, so the flag survived into the next gesture and ate
-  its tap). `SwipeActions.tsx` was outside that contract's boundary and carried
-  the same shape until **mission-27/F3 (commit `23b1faa`)**: its capture-phase
-  `handleRowPointerDownCapture` now resets `swallowNextClick` on every
-  pointer-down and raises it only for the tap that closes an open row. Bryce's
-  real-device check is **still owed**; the extraction and a single
-  `DIRECTION_LOCK_PX` remain open. (Story: docs/history/structure-rationale.md, "Pointer-gesture machine: one machine, one bug".)
-  **The migration is one contract, and it carries three obligations**: extract
-  the shared machine (mode transitions, lock distance, capture guard, swallow
-  decision) into `src/lib/`, keeping each caller's own release math
-  (`openWidth / 2` vs `SWIPE_PAGE_THRESHOLD_PX`) at the call site; **verify
-  F3's `pointerdown` clear in `SwipeActions.tsx` on a real device** (the
-  clear itself landed in mission-27/F3; this repo has twice recorded that synthetic PointerEvents cannot
-  settle this gesture, so a real-hardware pass by Bryce is the evidence, not a
-  harness); and collapse `DIRECTION_LOCK_PX` to one definition. **A third copy
-  of the machine is a BLOCKER.**
-  (Added 2026-09-09, mission-19, on Captain's ruling across two gate passes;
-  the shipped-defect evidence is Vision's, the mechanism Captain's. Bryce
-  approved.)
+- **The pointer-gesture machine has two definitions; a third copy is a
+  BLOCKER.** `src/lib/calendarGesture.ts` (`gestureStep`, pure, tested) is
+  the calendar's machine; mission-69 replaced `usePageSwipe.ts`'s copy with
+  it. `src/lib/usePagedSwipe.ts` is its only driver (it carries out the
+  effects: pointer capture in try/catch, the click swallow, the frame
+  write). `SwipeActions.tsx` still holds its own four-state machine for
+  Inventory and Shopping rows. `DIRECTION_LOCK_PX` (8) has one definition,
+  in `calendarGesture.ts`; `SwipeActions.tsx` and `pageSettle.ts` import
+  it. Whether a released page slide turns is `settlePage`
+  (`src/lib/pageSettle.ts`) alone. A new swipe surface drives
+  `gestureStep` through a driver, never a copy of the machine.
+  **Open debt, one contract:** after Bryce checks mission-27/F3's
+  `pointerdown` clear in `SwipeActions.tsx` on a real device (synthetic
+  PointerEvents cannot settle this gesture), move `SwipeActions` onto
+  `gestureStep`, keep its own release math (`openWidth / 2`) at the call
+  site, and rename the file `gestureMachine.ts` in the same contract.
+  (Added 2026-09-09, mission-19; rewritten 2026-11-10, mission-69, on
+  Captain's ruling.) (Story: docs/history/structure-rationale.md,
+  "Pointer-gesture machine: one machine, one bug".)
+- **Reduce motion has one JS reader.** `src/lib/usePrefersReducedMotion.ts`
+  (`useSyncExternalStore` over the media query) is how a component asks;
+  `globals.css`'s `prefers-reduced-motion` block zeroes CSS transitions.
+  `HabitConfetti.tsx`'s direct `matchMedia` read is debt, moved to the
+  hook on its next touch. (Proposed 2026-11-10, mission-69, Captain;
+  Bryce approved.)
 - **A padded month grid's "today" test has one home.** `monthGridDays`
   (`src/lib/monthLayout.ts`) returns 42 days, up to 12 of them belonging to a
   neighbouring month, so a bare `isSameDay(day, today)` circles today on the
@@ -900,7 +894,10 @@ amendment id.
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (Story: docs/history/structure-rationale.md, "Soft cap: the groceries.ts split".)
   Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 578 total /
   about 361 code (89% of the hard cap; the next Schedule feature extracts
-  the two-panel wrapper), `CalendarViews.tsx` 502, `MonthCell.tsx` 367.
+  the two-panel wrapper), `CalendarViews.tsx` 481 (was 502; Month and Year
+  paging moved to `PagedPeriodViews.tsx`, mission-69), `TimelineGrid.tsx`
+  383 (was 471; one page of columns moved to `TimelinePage.tsx`,
+  mission-69), `MonthCell.tsx` 367.
   Kitchen trend (mission-52, A-L4-7): `PantryList.tsx` 376 total / about
   300 code (over the soft cap; the next Inventory change extracts the
   search and location chips row), `MealPlanList.tsx` 360 / about 310 code

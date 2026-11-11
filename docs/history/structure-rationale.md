@@ -80,6 +80,43 @@ the failure this clause exists to end, arriving in the clause's own terms.)
 One machine, one bug, fixed by hand in each
 copy a mission apart: the `validatedPeople` failure, caught late.
 
+The STRUCTURE.md bullet as it stood before mission-69, word for word:
+
+- **The pointer-gesture machine has two definitions, and the divergence has
+  already cost a shipped defect.** `SwipeActions.tsx` and
+  `src/lib/usePageSwipe.ts` each implement the same four-state machine
+  (`idle`/`undecided`/`swiping`/`scrolling`), the 8px direction lock, the
+  try/caught `setPointerCapture`, and the capture-phase click swallow.
+  `DIRECTION_LOCK_PX = 8` is defined in both. `usePageSwipe.ts`'s header
+  records why the copy was made — `SwipeActions` is live on Inventory and
+  Shopping rows and this environment's tooling cannot drive that gesture to a
+  settled state — and that reasoning is sound; it is the reason this is debt
+  rather than a mistake.
+  **What makes it debt with a deadline:** mission-19/F1 fixed a stuck
+  click-swallow flag in `usePageSwipe.ts` (a touch drag past tap slop produces
+  no compatibility click, so the flag survived into the next gesture and ate
+  its tap). `SwipeActions.tsx` was outside that contract's boundary and carried
+  the same shape until **mission-27/F3 (commit `23b1faa`)**: its capture-phase
+  `handleRowPointerDownCapture` now resets `swallowNextClick` on every
+  pointer-down and raises it only for the tap that closes an open row. Bryce's
+  real-device check is **still owed**; the extraction and a single
+  `DIRECTION_LOCK_PX` remain open. (Story: docs/history/structure-rationale.md, "Pointer-gesture machine: one machine, one bug".)
+  **The migration is one contract, and it carries three obligations**: extract
+  the shared machine (mode transitions, lock distance, capture guard, swallow
+  decision) into `src/lib/`, keeping each caller's own release math
+  (`openWidth / 2` vs `SWIPE_PAGE_THRESHOLD_PX`) at the call site; **verify
+  F3's `pointerdown` clear in `SwipeActions.tsx` on a real device** (the
+  clear itself landed in mission-27/F3; this repo has twice recorded that synthetic PointerEvents cannot
+  settle this gesture, so a real-hardware pass by Bryce is the evidence, not a
+  harness); and collapse `DIRECTION_LOCK_PX` to one definition. **A third copy
+  of the machine is a BLOCKER.**
+  (Added 2026-09-09, mission-19, on Captain's ruling across two gate passes;
+  the shipped-defect evidence is Vision's, the mechanism Captain's. Bryce
+  approved.)
+
+2026-11-10, mission-69: `usePageSwipe.ts` deleted, replaced by
+`calendarGesture.ts`; `DIRECTION_LOCK_PX` collapsed to one definition.
+
 ### Month grid today test: the DESIGN.md prediction
 
 DESIGN.md predicted this failure in writing one mission earlier — *"a third

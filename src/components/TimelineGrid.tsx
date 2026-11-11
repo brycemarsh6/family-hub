@@ -84,25 +84,17 @@
 // the per-column not-loaded `sr-only` string — see its own comment, right
 // where the string lives, for the full defect.
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { CalendarOff } from "lucide-react";
-import {
-  MINUTES_PER_DAY,
-  minutesOfDay,
-  blockGeometry,
-  partitionForTimeline,
-  assignColumns,
-  type TimelineEvent,
-  type TimelineColumnSlot,
-  type TimelineBlock,
-} from "@/lib/timelineLayout";
+import { useLayoutEffect, useRef, useState } from "react";
+import { MINUTES_PER_DAY, minutesOfDay } from "@/lib/timelineLayout";
 import { isSameDay } from "@/lib/mealPlanDates";
-import { isOutsideWindow } from "@/lib/calendarDates";
 import { PAGE_BLEED_CLASSES } from "@/lib/gridClasses";
 import { useTimelineZoom } from "@/lib/useTimelineZoom";
-import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
-import { TimelineDayHeaderRow, TimelineDayLabel } from "./TimelineDayHeader";
-import { TimelineDayColumn } from "./TimelineDayColumn";
+import { usePagedSwipe } from "@/lib/usePagedSwipe";
+import { neighbourAnchor } from "@/lib/useCalendarPeriod";
+import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
+import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
+import { PagedTrack } from "./PagedTrack";
+import { TimelinePageHeader, TimelinePageColumns, TimelineHourLabels, GUTTER_WIDTH_PX } from "./TimelinePage";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
 // The rail's own scale is LIVE (mission-65): `useTimelineZoom` returns the
@@ -118,19 +110,8 @@ import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "
  * constant could never silently disagree with how many rows this file
  * draws. */
 const HOURS_PER_DAY = MINUTES_PER_DAY / 60;
-const GUTTER_WIDTH_PX = 48;
 
 const MIN_SCROLLER_HEIGHT_PX = 320;
-
-/** Hour gutter labels ("12 AM", "1 AM", ... "11 PM") via `Intl`, computed
- * once at module load against a fixed, deliberately non-transition date
- * (Jan 1 — nowhere near either US DST boundary) purely as a vehicle to get
- * `Intl.DateTimeFormat` to spell out a given HOUR NUMBER, never rendered or
- * compared as a real calendar day. */
-const HOUR_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: true });
-const HOUR_LABELS = Array.from({ length: HOURS_PER_DAY }, (_, hour) =>
-  HOUR_LABEL_FORMATTER.format(new Date(2000, 0, 1, hour, 0)),
-);
 
 // The timed block's own colour banding (`bandedBackground`, up to 3
 // diagonal bands, Month's own cap) used to be explained HERE, because this
@@ -146,6 +127,16 @@ type TimelineGridProps = {
    * (Week). The CALLER (mission-17/C4) decides which; this component only
    * ever renders however many columns it's handed. */
   columnDays: Date[];
+  /** Mission 69 (C4): the view and its anchor, so the previous and next
+   * pages of the sliding track get their own column days (the same
+   * `VIEW_CONFIG[view].days` the caller used for `columnDays`). */
+  view: CalendarPeriodView;
+  anchor: Date;
+  /** A page turn (1 = next), called by the swipe once the glide ends. */
+  onTurn: (direction: 1 | -1) => void;
+  /** Goes up by one each time Today is tapped, so scroll-to-now runs again
+   * even when the columns do not change. */
+  scrollToNowSignal: number;
   events: CalendarEventView[];
   /** mission-17/C5 — tasks due within the fetched window, the SAME shape
    * MonthGrid.tsx and DaySection.tsx already receive (CalendarViews.tsx
@@ -185,15 +176,12 @@ type TimelineGridProps = {
   viewerId: string | null;
 };
 
-/** One event's shape as the pure layout library needs it — see
- * timelineLayout.ts's own `TimelineEvent` doc comment for why this is
- * deliberately narrower than `CalendarEventView`. */
-function toTimelineEvent(event: CalendarEventView): TimelineEvent {
-  return { id: event.id, startAt: event.startAt, endAt: event.endAt, allDay: event.allDay };
-}
-
 export function TimelineGrid({
   columnDays,
+  view,
+  anchor,
+  onTurn,
+  scrollToNowSignal,
   events,
   tasks,
   habitDays,
@@ -215,7 +203,22 @@ export function TimelineGrid({
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
   const hourHeightPx = useTimelineZoom(viewerId, scrollerRef, railRef, stickyHeaderRef);
   const pxPerMinute = hourHeightPx / 60;
-  const columnDaysKey = columnDays.map((day) => day.getTime()).join(",");
+  // Mission 69 (C4): the root carries `--page-dx` and `data-glide`; the
+  // header's track and the columns' track both read it, so they cannot
+  // disagree. The gutter and the vertical scroller are not in a track.
+  const rootRef = useRef<HTMLDivElement>(null);
+  // The element whose width is one page: the columns viewport (it starts at
+  // the gutter's right edge in 3 Day and Week, and spans the root in Day).
+  const columnsViewportRef = useRef<HTMLDivElement>(null);
+  const isDay = view === "day";
+  const { handlers } = usePagedSwipe({
+    varRef: rootRef,
+    widthRef: columnsViewportRef,
+    onTurn,
+    pageKey: `${view}:${anchor.getTime()}:${scrollToNowSignal}`,
+  });
+  const previousDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, -1));
+  const nextDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, 1));
 
   // --- Sizing: this component's own overflow-y-auto scroller, sized from
   // its measured top edge to the bottom of the viewport. `chromeOffsetPx`
@@ -253,11 +256,11 @@ export function TimelineGrid({
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-    // Re-measures on every column-set change too (a view switch), not just
-    // on mount: cheap, and correct if the chrome above this component ever
-    // renders at a different height for a different view (it doesn't
-    // today, but nothing here should assume that stays true forever).
-  }, [columnDaysKey]);
+    // Re-measures on a view switch, not just on mount: cheap, and correct if
+    // the chrome above this component ever renders at a different height for
+    // a different view. Not keyed on the days: a page turn must not touch
+    // the scroller (mission 69).
+  }, [view]);
 
   const scrollerHeightStyle =
     measuredHeightPx !== null
@@ -265,8 +268,10 @@ export function TimelineGrid({
       : `calc(100dvh - ${chromeOffsetPx}px)`;
 
   // --- Scroll-to-now on open (or 7 AM when today isn't one of the columns).
-  // Keyed ONLY on the column set, deliberately excluding `today`/`now` from
-  // the dependency array (both are read fresh inside, via the ref, each
+  // Keyed on the view and on Today's signal (mission 69: it used to be the
+  // column set, which a page turn changes, and the hours must keep their
+  // place on a turn). Mount runs it too. `today`/`now` are deliberately
+  // excluded from the dependency array (both are read fresh inside, via the ref, each
   // time this DOES run) — including `now` would re-run this every 60s tick
   // (useNowMinute.ts's own poll interval) and yank the reader's scroll
   // position back to "now" while they're trying to read something earlier
@@ -288,57 +293,50 @@ export function TimelineGrid({
         : Math.max(0, minutesOfDay(now) * pxPerMinute - visibleRailHeightPx / 3);
     scroller.scrollTop = targetTopPx;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [columnDaysKey]);
+  }, [view, scrollToNowSignal]);
 
-  // --- Layout: partitionForTimeline (CV2, unchanged) splits into the
-  // all-day row and the timed set; `timed` feeds the hour rail below, and
-  // `allDayRow` is handed to `./TimelineAllDayStrip.tsx` (mission-17/C6),
-  // which is what actually calls monthLayout.assignLanes (D4) — no second
-  // packer.
-  const eventById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
-  const { allDayRow, timed } = useMemo(
-    () => partitionForTimeline(columnDays, events.map(toTimelineEvent)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [columnDaysKey, events],
+  // One header page and one columns page per column set: the previous, the
+  // current and the next. Neighbours get the same events, tasks and fetch
+  // window, so a day outside it shows the not-loaded glyph, as an edge does.
+  const headerPage = (days: Date[]) => (
+    <TimelinePageHeader
+      columnDays={days}
+      events={events}
+      tasks={tasks}
+      habitDays={habitDays}
+      today={today}
+      windowStart={windowStart}
+      windowEnd={windowEnd}
+      onOpenEvent={onOpenEvent}
+      onOpenTask={onOpenTask}
+      ownGutter={isDay}
+    />
   );
-
-  // mission-17/C5 — Strange reached the state where a Day/3 Day/Week
-  // column's window coverage was fully out of the fetched range and found
-  // the accessible text byte-identical to a genuinely-empty day, since the
-  // only differentiator was a 9x9px `aria-hidden` glyph. `outsideColumns`
-  // and `allColumnsOutside` below are what let the render body below show
-  // DaySection's own WORDED not-loaded card in that case — see that
-  // section's own comment for the full reasoning, including why a single
-  // shared banner correctly covers BOTH "Day as a card in the column body"
-  // and "3 Day/Week as a single strip" (Day has exactly one column, so the
-  // two descriptions collapse to the identical element).
-  const outsideColumns = columnDays.map((day) => isOutsideWindow(day, windowStart, windowEnd));
-  const allColumnsOutside = outsideColumns.length > 0 && outsideColumns.every(Boolean);
-
-  // One `assignColumns` call PER COLUMN (never once for the whole set) —
-  // each day's timed blocks are laid out independently, which is what lets
-  // a Fri 10 PM -> Sat 2 AM event draw a clipped block on BOTH days without
-  // the two clipped halves fighting over one shared column assignment.
-  const columnSlots: TimelineColumnSlot<TimelineBlock>[][] = columnDays.map((day) => {
-    const blocks: TimelineBlock[] = [];
-    for (const event of timed) {
-      const geometry = blockGeometry(day, event);
-      if (geometry) {
-        blocks.push({ id: event.id, topMinutes: geometry.topMinutes, heightMinutes: geometry.heightMinutes });
-      }
-    }
-    return assignColumns(blocks);
-  });
-
-  const gridTemplateColumns = `${GUTTER_WIDTH_PX}px repeat(${columnDays.length}, minmax(0, 1fr))`;
-  const compact = columnDays.length > 1; // 3 Day / Week — Day view (1 column) gets more detail (D5).
+  const columnsPage = (days: Date[]) => (
+    <TimelinePageColumns
+      columnDays={days}
+      events={events}
+      today={today}
+      now={now}
+      hoursPerDay={HOURS_PER_DAY}
+      pxPerMinute={pxPerMinute}
+      onOpenEvent={onOpenEvent}
+      ownGutter={isDay}
+    />
+  );
 
   return (
     <div
-      data-fills-viewport className={`overflow-hidden ${PAGE_BLEED_CLASSES}`}
+      ref={rootRef}
+      data-fills-viewport className={`touch-pan-y overflow-hidden ${PAGE_BLEED_CLASSES}`}
       style={{ ["--hour-height" as string]: `${hourHeightPx}px` }}
+      {...handlers}
     >
-      <div ref={scrollerRef} className="overflow-y-auto pb-[env(safe-area-inset-bottom)]" style={{ height: scrollerHeightStyle }}>
+      <div
+        ref={scrollerRef}
+        className="touch-pan-y overflow-y-auto overflow-x-hidden pb-[env(safe-area-inset-bottom)]"
+        style={{ height: scrollerHeightStyle }}
+      >
         {/* Sticky as ONE unit — the weekday header and the all-day strip
             stack inside it via ordinary flow, so there's no second `top`
             offset to compute or keep in sync with the first (a smaller,
@@ -352,118 +350,34 @@ export function TimelineGrid({
             and local, so it was never affected either way). mission-17/C6:
             `TimelineAllDayStrip` renders as an ordinary child of this SAME
             sticky div — not its own sticky element — so this property
-            survives the extraction unchanged. */}
-        <div ref={stickyHeaderRef} className="sticky top-0 z-20 border-b border-line bg-bg">
-          {/* 3 Day and Week: the weekday row. Day view has no row: its label
-              rides in the all-day strip's gutter corner (mission 67). */}
-          {compact && (
-            <TimelineDayHeaderRow
-              columnDays={columnDays}
-              today={today}
-              windowStart={windowStart}
-              windowEnd={windowEnd}
-              gridTemplateColumns={gridTemplateColumns}
+            survives the extraction unchanged. Mission 69 (F2): in 3 Day and
+            Week a fixed 48px corner sits beside a viewport that clips the
+            track (the viewport is the current page's height, so neighbours
+            never add a band); in Day there is no corner here, the date rides
+            in each header page. */}
+        <div ref={stickyHeaderRef} className="sticky top-0 z-20 flex border-b border-line bg-bg">
+          {!isDay && <div aria-hidden="true" className="shrink-0" style={{ width: GUTTER_WIDTH_PX }} />}
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <PagedTrack
+              previous={headerPage(previousDays)}
+              current={headerPage(columnDays)}
+              next={headerPage(nextDays)}
             />
-          )}
-
-          {/* mission-17/C6 — the all-day strip's own grid (tasks, events,
-              the expand state, the "+N more" button) now lives in
-              `./TimelineAllDayStrip.tsx`; see that file's own header for
-              the full reasoning. Passed `allDayRow` (already partitioned
-              above, not re-derived), `eventById` (the SAME map the hour
-              rail below also reads), and the SAME `gridTemplateColumns`
-              string this header row and the hour rail use, so all three
-              stay pixel-aligned by construction rather than by three
-              independently-matching formulas. Renders nothing (no height
-              claimed) when there's nothing to show — see that file's own
-              early-return comment. */}
-          <TimelineAllDayStrip
-            columnDays={columnDays}
-            allDayRow={allDayRow}
-            tasks={tasks}
-            habitDays={habitDays}
-            eventById={eventById}
-            onOpenEvent={onOpenEvent}
-            onOpenTask={onOpenTask}
-            gridTemplateColumns={gridTemplateColumns}
-            corner={
-              compact ? undefined : (
-                <TimelineDayLabel
-                  day={columnDays[0]}
-                  today={today}
-                  notLoaded={outsideColumns[0]}
-                />
-              )
-            }
-          />
-
-          {/* mission-17/C5 — Strange reached the state (2000ms injected
-              latency + 14 rapid Next taps) where every column here was
-              fully outside the fetched window, and found the accessible
-              text byte-identical to a genuinely-empty day apart from the
-              dates — the only differentiator was a 9x9px `aria-hidden`
-              glyph next to each day number above. DaySection.tsx's own
-              `NotLoadedCard` already solves this with WORDED text
-              (`ScheduleView` still renders it, proving the treatment is
-              affordable); that component is private to DaySection.tsx and
-              off this contract's boundary, so its markup is reproduced
-              verbatim here rather than imported. Rendered only when EVERY
-              column is out of window — the realistic case, since the fetch
-              window moves as one block — leaving the per-column glyph above
-              as the only signal for a MIXED window (only possible in 3 Day/
-              Week, never Day, which has exactly one column and so is never
-              "mixed"). That single-column case is also why one shared
-              element correctly satisfies BOTH "Day as a card in the column
-              body" and "3 Day/Week as a single strip": with one column, a
-              full-width strip IS the column's own body. */}
-          {allColumnsOutside && (
-            <div className="m-2 flex items-start gap-2 rounded-xl border border-line bg-surface px-3 py-3 text-sm text-muted">
-              <CalendarOff aria-hidden="true" size={16} className="mt-0.5 shrink-0" />
-              <span>
-                Not all events loaded
-                <span className="mt-0.5 block text-xs">
-                  Marshee shows about two months each way — tap Today to come back.
-                </span>
-              </span>
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* The hour rail: a gutter of 24 labels, then one relatively-
-            positioned column per day holding gridlines, the now-line (only
-            in today's own column, if present), and every timed block. */}
-        <div
-            ref={railRef}
-            className="relative grid"
-            style={{ gridTemplateColumns, height: `calc(var(--hour-height) * ${HOURS_PER_DAY})` }}
-          >
-          <div className="relative">
-            {HOUR_LABELS.map((label, hour) => (
-              <span
-                key={hour}
-                aria-hidden="true"
-                className="absolute right-1 -translate-y-1/2 text-[0.625rem] text-muted"
-                style={{ top: `calc(var(--hour-height) * ${hour})` }}
-              >
-                {hour === 0 ? "" : label}
-              </span>
-            ))}
-          </div>
-
-          {columnDays.map((day, columnIndex) => (
-            <TimelineDayColumn
-              key={day.getTime()}
-              day={day}
-              isToday={isSameDay(day, today)}
-              slots={columnSlots[columnIndex]}
-              eventById={eventById}
-              now={now}
-              hoursPerDay={HOURS_PER_DAY}
-              pxPerMinute={pxPerMinute}
-              compact={compact}
-              onOpenEvent={onOpenEvent}
+        {/* The hour rail. 3 Day and Week: one plain gutter of 24 labels, then
+            the viewport holding the columns' three pages. Day: no gutter
+            here, each page brings its own labels. */}
+        <div ref={railRef} className="flex" style={{ height: `calc(var(--hour-height) * ${HOURS_PER_DAY})` }}>
+          {!isDay && <TimelineHourLabels />}
+          <div ref={columnsViewportRef} className="min-w-0 flex-1 overflow-hidden">
+            <PagedTrack
+              previous={columnsPage(previousDays)}
+              current={columnsPage(columnDays)}
+              next={columnsPage(nextDays)}
             />
-          ))}
+          </div>
         </div>
       </div>
     </div>

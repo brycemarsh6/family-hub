@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { DIRECTION_LOCK_PX } from "@/lib/calendarGesture";
 
 // Swipe a list row right-to-left to reveal its actions — the iOS Mail /
 // Reminders gesture, which is what the household already expects from a
@@ -40,11 +41,6 @@ import { useRef, useState } from "react";
 /** Width of a single action button — wide enough for a 48px-plus tap
  * target. The row slides open by this times the number of actions. */
 const ACTION_WIDTH = 88;
-
-/** Past this much horizontal travel, the gesture is committed to a swipe
- * (or, if vertical won, to scrolling). Small enough to feel responsive,
- * large enough that a sloppy tap isn't read as a drag. */
-const DIRECTION_LOCK_PX = 8;
 
 type GestureMode = "idle" | "undecided" | "swiping" | "scrolling";
 
