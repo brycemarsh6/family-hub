@@ -15,6 +15,7 @@ import {
   localDayToAllDayInstant,
 } from "@/lib/calendarDates";
 import { addDays, isSameMonth, SHORT_DAY_NAMES } from "@/lib/mealPlanDates";
+import { PAGE_BLEED_CLASSES } from "@/lib/gridClasses";
 import { MonthCell, type MonthCellSlot } from "./MonthCell";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
@@ -188,7 +189,7 @@ export function MonthGrid({
   return (
     // One @container for the whole grid: MonthCell switches to 4 chips of
     // 12px titles from 48rem wide (mission-46/C2), by CSS alone.
-    <div className="@container">
+    <div className={`@container ${PAGE_BLEED_CLASSES}`}>
       <div className={`${ROW_CLASS} pb-1 text-center text-xs font-semibold uppercase tracking-wide text-muted`}>
         {SHORT_DAY_NAMES.map((name) => (
           <span key={name}>{name}</span>

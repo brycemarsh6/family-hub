@@ -6,6 +6,18 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar full screen layout (mission 67, PR 1 of 9)**, about 4
+  minutes on your iPhone and the iPad. Open Calendar: no box and no side
+  margins, "November" at the top left (no < > arrows), Today, View and
+  Refresh at the top right. Tap + at the bottom right: the Event or Task
+  sheet opens. Tap "November": the month sheet still opens. Today works,
+  swiping still changes the day, pinch still zooms. Day view: the weekday
+  and date sit in the corner above the hours. On the iPad held sideways
+  the six views sit in a row at the top; held upright, or at a bigger Text
+  size, the View circle comes back instead (say if you want the row
+  upright too). On the kitchen tablet signed in as Tablet there is no +.
+  Known and left for later: at Largest text on the iPad, "10 AM" wraps to
+  two lines in the hour column (PR 7 fixes text sizes there).
 - **Calendar pinch to zoom (mission 65)**, about 5 minutes on your iPhone
   and the iPad. The 8 steps are in the mission file's "Phone test for
   Bryce": pinch on 2 PM and it stays under your fingers; in to about 3.5
@@ -249,3 +261,6 @@ it is done. The pre-cleanup text is in
   them, stop working around it and build them.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
   by Bryce's Grok bot. Left uncommitted on purpose.
+- Calendar full screen PR 1 follow-ups (mission 67 Delivery): Day view's
+  all-day habit pills are 26px beside 24px event bars (`HabitDayPill.tsx`,
+  a small code fix); iPad Largest hour labels wrap (PR 7).

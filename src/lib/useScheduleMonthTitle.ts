@@ -37,7 +37,8 @@
 
 import { createElement, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { formatMonthTitle } from "@/lib/mealPlanDates";
+import { formatMonthHeading, formatMonthTitle } from "@/lib/mealPlanDates";
+import { useToday } from "@/lib/useToday";
 import type { ScheduleRenderMonth } from "@/lib/scheduleWindowState";
 
 /**
@@ -130,6 +131,11 @@ export function useScheduleMonthTitle(
 
   // Seeded with `initialDay`'s own month — see this hook's own doc comment.
   const [visibleMonthAnchor, setVisibleMonthAnchor] = useState(initialDay);
+
+  // This year's months drop the year, like every other view's title (the
+  // full year only shows for other years). `null` until the device's day
+  // resolves, so the old text (with the year) shows until then.
+  const today = useToday();
 
   // mission-16/C7 — mirrors `visibleMonthAnchor`'s latest value without
   // being a state read the effect below has to depend on (ref-not-state,
@@ -268,7 +274,7 @@ export function useScheduleMonthTitle(
         createElement(
           "h2",
           { className: "truncate text-lg font-semibold" },
-          formatMonthTitle(visibleMonthAnchor),
+          today ? formatMonthHeading(visibleMonthAnchor, today) : formatMonthTitle(visibleMonthAnchor),
         ),
         titleSlot,
       )

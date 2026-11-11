@@ -46,6 +46,19 @@ tell when a rule's reason has expired.
   one of its day numbers opened the Add sheet instead of Day view, and the
   first measurement — taken scrolled to the bottom — reported zero failures
   and would have shipped it. Measure at the position the user arrives at.)
+  **Recorded exception: the Calendar's + (Bryce, 2026-11-10,
+  mission-67).** On every Calendar view the round + is a fixed overlay
+  that the hour timeline reserves no room for, so it may cover part of an
+  event block, an all-day bar or a Schedule card. Bryce accepted that,
+  because a covered item is always reached another way: by pinching the
+  hours (a zoomed block grows out from under the +), by Schedule (every
+  item as a full-width row, and the list scrolls clear), or on Month by
+  scrolling, because Month's page keeps `<main>`'s 6rem bottom padding
+  below the grid so its last row always scrolls clear of the + (measured
+  32px clear on a 393 phone). The
+  exception covers the Calendar's + only. Any other floating control, and
+  the Calendar's + on a future view that can neither scroll nor zoom its
+  content out from under it, must still pass this rule.
 - **A press state must never reduce the legibility of a label inside its own
   target.** A control whose tap target is an absolutely-positioned overlay over
   text — the standard way to make a text row a big target — paints **above**
@@ -174,10 +187,14 @@ tell when a rule's reason has expired.
   floating hamburger's row) use `--app-nav-width` as their left edge so they
   line up with the content. On a wide page (`data-page-width`, from `md`)
   the round + sits at the bottom-right corner of the content area, where a
-  right thumb lands on an iPad (mission-53). Below `md`, and on every other
-  page, it stays bottom-left, clear of a row's check and of the Recipes A-Z
+  right thumb lands on an iPad (mission-53). Below `md`, and on pages that are not
+  wide, it stays bottom-left on every page but the Calendar, clear of a row's check and of the Recipes A-Z
   rail; on wide pages that rail ends above the button (mission-52,
-  decision 266).
+  decision 266). **The Calendar is the one exception: its + sits bottom
+  right at every width, phone included** (`placement="right"`; Bryce,
+  2026-11-10, mission-67). The Calendar has no row check and no letter
+  rail at its right edge to clear. Only logins that can add (`canManage`)
+  see it; it opens the Add sheet (Event or Task).
 - **The drawer reaches every destination directly; there are no landing
   pages.** `BackLink` is the one edge back up from a page below a drawer
   destination (recipe detail to Recipes), never on a destination itself.
@@ -446,6 +463,22 @@ A new one-off that duplicates one of these jobs is a design violation:
   strip of links, each at least 44px, the current one `aria-current`) is a
   second allowed carve-out: it picks a time range inside one page, so it is
   a form-style field like the day / week / month picker, not a new tab
+- `CalendarHeader`: the Calendar's one top bar, beside the floating menu
+  button (mission-67, Bryce 2026-11-10). At the left, the month title with
+  a small down arrow: the first visible day's month, with the year only
+  when it is not this year, with the month shortened so the year always
+  fits beside the circles ("Jan 2027"; Bryce 2026-11-10), the year itself on Year, and
+  on Schedule the month scrolling past. At the right, the Today, View and
+  Refresh circles. No < > arrows and no Add circle: moving is swipe, Today
+  and the title; adding is the bottom-right + (see the + rule above).
+  From a 48rem bar, a container query in rem so a bigger Text size falls
+  back by itself, `CalendarViewRow` replaces the View circle: the six
+  views from `CALENDAR_VIEW_OPTIONS` in one segmented row, each at least
+  44px tall, the current one `aria-pressed` on a `bg-fg` pill, the others
+  `text-muted-strong` on `bg-surface-2`. It is a third allowed carve-out
+  beside `PageTabs`, like the Vision board's 5 / 10 / 15 yr switch: it
+  picks one of the Calendar's own views through the same state the View
+  picker sheet sets, and it never holds a second list of view names.
 - `IdeaChips`: the one row of tappable idea chips ("Ideas for Health"). A
   tap hands the words to the form, never submits, and no chip is ever shown
   as selected. `GoalForm`, `PlanItemSheet` and the New habit form use it; a new

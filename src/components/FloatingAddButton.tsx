@@ -23,10 +23,24 @@ import { Plus } from "lucide-react";
  * menu is on, `--app-nav-width` (set by AppChrome) moves the left edge past
  * it; unset, it is 0.
  *
+ * `placement="right"` skips all of that: the button sits bottom-RIGHT at every
+ * width, on the viewport's right edge (the full-screen Calendar, which has no
+ * column margin and no rail to avoid).
+ *
  * It is a button (`onClick`) or a link (`href`); `label` is what a screen
  * reader says.
  */
-export function FloatingAddButton({ onClick, href, label = "Add" }: { onClick?: () => void; href?: string; label?: string }) {
+export function FloatingAddButton({
+  onClick,
+  href,
+  label = "Add",
+  placement = "auto",
+}: {
+  onClick?: () => void;
+  href?: string;
+  label?: string;
+  placement?: "auto" | "right";
+}) {
   const className =
     "pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-fg shadow-lg transition-opacity active:opacity-80";
   return (
@@ -34,7 +48,13 @@ export function FloatingAddButton({ onClick, href, label = "Add" }: { onClick?: 
       className="pointer-events-none fixed right-0 left-[var(--app-nav-width,0px)] z-40 flex justify-center"
       style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
     >
-      <div className="flex w-full max-w-3xl px-4 md:[body:has([data-page-width=wide])_&]:max-w-none md:[body:has([data-page-width=wide])_&]:justify-end">
+      <div
+        className={
+          placement === "right"
+            ? "flex w-full justify-end px-4"
+            : "flex w-full max-w-3xl px-4 md:[body:has([data-page-width=wide])_&]:max-w-none md:[body:has([data-page-width=wide])_&]:justify-end"
+        }
+      >
         {href ? (
           <Link href={href} aria-label={label} className={className}>
             <Plus aria-hidden="true" size={26} />

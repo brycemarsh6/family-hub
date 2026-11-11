@@ -22,6 +22,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  formatMonthHeading,
   formatMonthTitle,
   formatShortDayHeader,
   formatWeekRange,
@@ -88,4 +89,24 @@ test("formatShortDayHeader: three-letter weekday, space, day number", () => {
   assert.equal(formatShortDayHeader(d(2026, 10, 1)), "Sun 1");
   assert.equal(formatShortDayHeader(d(2026, 10, 2)), "Mon 2");
   assert.equal(formatShortDayHeader(d(2026, 10, 14)), "Sat 14");
+});
+
+// ---------------------------------------------------------------------------
+// formatMonthHeading
+
+test("formatMonthHeading: the bare month name in the current year", () => {
+  assert.equal(formatMonthHeading(d(2026, 10, 9), d(2026, 10, 10)), "November");
+  assert.equal(formatMonthHeading(d(2026, 0, 31), d(2026, 10, 10)), "January");
+});
+
+test("formatMonthHeading: adds the year for a previous or next year", () => {
+  assert.equal(formatMonthHeading(d(2025, 8, 15), d(2026, 10, 10)), "Sep 2025");
+  assert.equal(formatMonthHeading(d(2027, 0, 3), d(2026, 10, 10)), "Jan 2027");
+});
+
+test("formatMonthHeading: Dec 31 and Jan 1 edges follow the year, not the month", () => {
+  assert.equal(formatMonthHeading(d(2026, 11, 31), d(2026, 0, 1)), "December");
+  assert.equal(formatMonthHeading(d(2027, 0, 1), d(2026, 11, 31)), "Jan 2027");
+  assert.equal(formatMonthHeading(d(2026, 11, 31), d(2027, 0, 1)), "Dec 2026");
+  assert.equal(formatMonthHeading(d(2027, 0, 1), d(2027, 0, 1)), "January");
 });

@@ -206,7 +206,7 @@ export function ScheduleView({
   // the hamburger's bottom edge (safe-area inset + the 3.5rem row, which
   // follows the Text size), so swapping that row for the bar's own height
   // leaves inset + bar. `useHamburgerInsetPx` gives that inset and the live root font size,
-  // and the bar is rem too (130px at 16, 195px at Largest).
+  // and the bar is rem too (86px at 16, 129px at Largest, 5.375rem).
   const { insetPx, rootPx } = useHamburgerInsetPx();
   const scheduleChromeHeight = insetPx + SCHEDULE_HEADER_BAR_HEIGHT_REM * rootPx;
 

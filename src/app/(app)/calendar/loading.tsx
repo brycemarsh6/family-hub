@@ -5,15 +5,20 @@ import { SkeletonBlock } from "@/components/Skeleton";
 import { MonthGridSkeletonRows } from "@/components/MonthGridSkeletonRows";
 import { parseViewParam } from "@/lib/calendarPaging";
 import { HAMBURGER_ROW_HEIGHT } from "@/lib/appChrome";
-import { YEAR_GRID_CLASSES } from "@/lib/gridClasses";
+import {
+  CALENDAR_VIEW_CIRCLE_CLASSES,
+  CALENDAR_VIEW_ROW_CLASSES,
+  PAGE_BLEED_CLASSES,
+  YEAR_GRID_CLASSES,
+} from "@/lib/gridClasses";
 import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 
 // Calendar's own loading.tsx (Next's route-level Suspense fallback, shown
 // while page.tsx's server-side query is still running) — can't be the
 // generic app/(app)/loading.tsx SkeletonPage, same reasoning as the
-// dashboard's own (home)/loading.tsx: this page's shape (action circles
-// beside the hamburger, a title, a prev/next+title row, seven day rows) is
-// nothing like a plain list of rows.
+// dashboard's own (home)/loading.tsx: this page's shape (a one-row top bar
+// beside the hamburger, then a full-width grid) is nothing like a plain list
+// of rows.
 //
 // mission-9/C8 correction: an earlier version of this comment claimed this
 // file "now ALSO fires on every real navigation CalendarViews.tsx's paging
@@ -40,20 +45,20 @@ import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 // Every height below was MEASURED against the real signed-in page at 375px
 // (getBoundingClientRect in the browser), not guessed; the 2026-11-02 live
 // measurements (Vision C4 notes, Strange S-2) confirmed the header rows
-// and, after the visible title's removal, the pinned Schedule bar (130 at
-// 375 and 1024, Strange S-2) and the timeline scroller top (143, Fury's
-// live measurement, F2); the dashboard's own
-// h-56-for-a-164px-tile bug is exactly the failure mode this avoids. They
-// also happen to equal Tailwind utilities CalendarHeader.tsx already uses
-// for the same rows (h-11 circles, h-11 buttons, gap-3/mb-2/mb-4/gap-4),
-// which is reassuring rather than coincidental: both this file and the real
-// component are built from the same design tokens, so they can't quietly
-// drift apart the way two independently-eyeballed pixel counts could.
-//   action-circles row (Today + view switcher), sm circles
-//     (44 + 6 gap + 16 label), lifted onto the hamburger
-//     row with a negative margin:                           66px  -> h-[66px], mb-2 below (8px)
-//   (the "Calendar" h1 is gone: sr-only in CalendarHeader, no layout)
-//   prev/next + title row:                                  44px  -> h-11, mb-4 below (16px)
+// and the earlier two-row header; mission 67 (Calendar full screen PR 1, C3)
+// replaced that header with ONE row, so the numbers below are re-derived from
+// CalendarHeader.tsx's classes (see `TimelineGridSkeleton` for the sum), not
+// re-measured live: the dashboard's own h-56-for-a-164px-tile bug is exactly
+// the failure mode this avoids. They equal the Tailwind utilities the real
+// component uses for the same row (h-11 title, sm circles of 44 + 6 + 16,
+// gap-2, pb-2), so both this file and the real component are built from the
+// same design tokens and can't quietly drift apart. The class constants the
+// two share (the view row's and the View circle's container-query classes,
+// the page bleed) are imported from gridClasses.ts, not copied.
+//   top bar, one row lifted onto the hamburger row with a negative margin:
+//     tallest item is an sm circle (44 + 6 gap + 16 label):  66px  -> h-[66px] items, pb-2 below (8px)
+//   (the "Calendar" h1 is gone: sr-only in CalendarHeader, no layout; the old
+//    prev/next + title row is gone too, the title moved into the bar)
 //   one day row (gutter placeholder + a 46px grey body block —
 //     the SAME two pieces DaySection's own `loading` state
 //     renders, drawn here as one flat block instead of the two-
@@ -127,35 +132,94 @@ const SKELETON_SHAPE: Record<CalendarPeriodView, CalendarSkeletonShape> = {
 };
 
 /**
- * The hour timeline's own box (mission-17/C4): a single borderless block
- * approximating `TimelineGrid.tsx`'s real bordered wrapper, rather than
- * stacked rows like this file's day-row shape. Sized with the SAME formula
- * that component itself falls back on before its own runtime measurement lands (see its
- * own `scrollerHeightStyle` and `MIN_SCROLLER_HEIGHT_PX`) — `143` is the
- * scroller's top edge at 375px with no safe-area inset, from the classes
- * (the earlier 183, with the h1, was measured live on 2026-11-02; with the
- * title removed it measures 143 live, Fury's measurement, F2): 56 (`<main>`'s
- * hamburger-row padding) + 8 (this page's `py-2`) - 56 (the header's lift
- * onto that row) + 66 (action row) + 8 + 44 (prev/next row) + 16 (`mb-4`)
- * + 1 (the REAL box's border, which this borderless skeleton does not draw, so
- * its own top edge sits 1px higher and it ends 1px short of the viewport
- * bottom, harmless) = 143 (183 - 32 h1 - 8 `mb-2`). The bottom nav is gone,
- * so nothing is reserved below. An inline `style`, not a Tailwind arbitrary
- * class, to match `TimelineGrid.tsx`'s own technique for the identical
- * `calc()` — `min-h` is `MIN_SCROLLER_HEIGHT_PX` (320) as a real Tailwind
- * utility
- * rather than folded into the `calc()`, since CSS `calc()` can't express a
- * clamp on its own and `max()` nested inside a template string is harder to
- * read than the same floor `min-h-80` already states plainly.
+ * The hour timeline's own box (mission-17/C4, re-derived in mission 67/C3):
+ * a single borderless block approximating `TimelineGrid.tsx`'s real wrapper,
+ * which since mission 67 has no border and no rounded corners and bleeds to
+ * the screen edges (`PAGE_BLEED_CLASSES`). Sized with the SAME formula that
+ * component falls back on before its own runtime measurement lands (see its
+ * `scrollerHeightStyle` and `MIN_SCROLLER_HEIGHT_PX`). The scroller's top
+ * edge, from the classes (CalendarHeader.tsx, no safe-area inset):
+ *   3.5rem  `<main>`'s hamburger-row padding-top (HAMBURGER_ROW_HEIGHT)
+ * + 0.5rem  this page's `py-2`
+ * - 3.5rem  the header's lift onto that row
+ * + 4.125rem the one row: sm circle 2.75rem + 0.375rem `gap-1.5` + 1rem label
+ * + 0.5rem  the row's `pb-2`
+ * = 5.125rem = 82px at the default 16px root (56 + 8 - 56 + 66 + 8).
+ * There is no border to add (the old box had a 1px one) and no h1. The
+ * `env(safe-area-inset-top)` term is `<main>`'s own padding, which the real
+ * scroller sits below. Any relink banner (rare) sits below the bar and is
+ * not drawn here. The bottom nav is gone, so nothing is reserved below. An
+ * inline `style`, not a Tailwind arbitrary class, to match `TimelineGrid.tsx`'s
+ * own technique for the identical `calc()`; `min-h-80` is
+ * `MIN_SCROLLER_HEIGHT_PX` (320) as a real utility, since CSS `calc()` can't
+ * express a clamp on its own.
+ *
+ * Day view also gets its corner shape: a small grey weekday and date stand-in
+ * in the gutter column (`TimelineDayLabel`: a 10px weekday over a 24px date
+ * circle), where the real grid draws it inside the all-day strip. 3 Day and
+ * Week draw a weekday row above the strip instead; the block here is one flat
+ * box either way, so only Day needs the corner mark.
  */
-function TimelineGridSkeleton() {
+function TimelineGridSkeleton({ dayCorner }: { dayCorner: boolean }) {
   return (
     <div
       aria-hidden="true"
       data-fills-viewport
-      className="min-h-80 w-full animate-pulse rounded-lg bg-surface-2"
-      style={{ height: "calc(100dvh - 143px)" }}
-    />
+      className={`relative min-h-80 animate-pulse bg-surface-2 ${PAGE_BLEED_CLASSES}`}
+      style={{ height: "calc(100dvh - 5.125rem - env(safe-area-inset-top))" }}
+    >
+      {dayCorner && (
+        <div className="absolute left-0 top-0 flex w-[3.25rem] flex-col items-center gap-0.5 py-1">
+          <div className="h-2.5 w-7 rounded bg-line" />
+          <div className="h-6 w-6 rounded-full bg-line" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The one-row top bar (mission 67): the title block at the left, then Today,
+ * View and Refresh circles at the right, with the row of six views taking the
+ * View circle's place from the same 48rem container width as the real bar
+ * (both come from `gridClasses.ts`). No arrows, no Add circle: adding is the
+ * floating + the real page mounts only for logins that can add. The
+ * skeleton draws NO + on purpose: a kid login can't add, and `loading.tsx`
+ * can't know the role, so a + here would be one a kid sees for a moment and
+ * then loses. The Refresh circle is drawn though the real one only shows for
+ * logins with a linked Google calendar; the bar's right side is the same
+ * three circles for the common case and the layout can't be role-aware here.
+ */
+function CircleSkeleton() {
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <SkeletonBlock className="h-11 w-11 rounded-full" />
+      <SkeletonBlock className="h-4 w-10" />
+    </div>
+  );
+}
+
+function TopBarSkeleton() {
+  return (
+    <div className="@container">
+      <div className="flex items-start gap-2 pb-2 pl-14">
+        <SkeletonBlock className="h-11 w-36" />
+        <div className="ml-auto flex shrink-0 items-start gap-2">
+          <CircleSkeleton />
+          <div className={CALENDAR_VIEW_CIRCLE_CLASSES}>
+            <CircleSkeleton />
+          </div>
+          {/* The row itself is the grey, pulsing shape; its six slots are
+              empty boxes sized like the real buttons (h-11, about 4.3rem). */}
+          <div aria-hidden="true" className={`${CALENDAR_VIEW_ROW_CLASSES} animate-pulse`}>
+            {Array.from({ length: 6 }, (_, index) => (
+              <div key={index} className="h-11 w-[4.25rem]" />
+            ))}
+          </div>
+          <CircleSkeleton />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -240,24 +304,15 @@ function MonthChipsSkeleton() {
 
 export default function Loading() {
   const searchParams = useSearchParams();
-  const shape = SKELETON_SHAPE[parseViewParam(searchParams.get("view"))];
+  const view = parseViewParam(searchParams.get("view"));
+  const shape = SKELETON_SHAPE[view];
   return (
     <div data-page-width="wide" className="py-2 has-[[data-fills-viewport]]:pb-0" role="status" aria-label="Loading Calendar">
-      <div
-        className="mb-2 flex h-[66px] items-start justify-end gap-3 pl-14"
-        style={{ marginTop: `calc(-1 * ${HAMBURGER_ROW_HEIGHT})` }}
-      >
-        <SkeletonBlock className="h-11 w-11 rounded-full" />
-        <SkeletonBlock className="h-11 w-11 rounded-full" />
+      <div style={{ marginTop: `calc(-1 * ${HAMBURGER_ROW_HEIGHT})` }}>
+        <TopBarSkeleton />
       </div>
 
       <div>
-        <div className="mb-4 flex h-11 items-center gap-2">
-          <SkeletonBlock className="h-11 w-11" />
-          <SkeletonBlock className="h-11 flex-1" />
-          <SkeletonBlock className="h-11 w-11" />
-        </div>
-
         {"monthGrid" in shape ? (
           // mission-18/C5 — the `flex flex-col gap-4` wrapper here is the
           // SAME class CalendarViews.tsx uses around MonthChips + MonthGrid
@@ -266,10 +321,12 @@ export default function Loading() {
           // reproducing that exact structure rather than a single margin.
           <div className="flex flex-col gap-4">
             <MonthChipsSkeleton />
-            <MonthGridSkeletonRows />
+            <div className={PAGE_BLEED_CLASSES}>
+              <MonthGridSkeletonRows />
+            </div>
           </div>
         ) : "timelineGrid" in shape ? (
-          <TimelineGridSkeleton />
+          <TimelineGridSkeleton dayCorner={view === "day"} />
         ) : "yearGrid" in shape ? (
           <YearGridSkeleton />
         ) : (

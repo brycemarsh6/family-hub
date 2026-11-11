@@ -63,9 +63,14 @@ Standing constraints on every phase:
    **only when `/calendar` opens with no `?view=`** — the URL stays the
    source of truth, or the stored preference fights the resync effect (the
    C8/C9 drift, re-invented).
-6. **Header stays ours** (Today / View / Add circles + arrows); the title
-   becomes the month-dropdown trigger. Google's search and hamburger are
-   later walkthroughs.
+6. **Header** (rewritten by Calendar full screen PR 1, mission-67; Bryce,
+   2026-11-10): one row beside the menu button. The month title at the
+   left with a small down arrow, opening the month jump (the dropdown is
+   PR 6); Today, View and Refresh circles at the right. From a 48rem bar
+   the View circle becomes the row of six views. No < > arrows and no Add
+   circle: moving is by swipe, Today or the title, and adding is the
+   floating + at the bottom right. Refresh leaves in PR 9, where Search
+   takes its place.
 7. **Month pills show text at phone width.** Settles the open `md:`→`sm:`
    question (Strange measured 8 chars fit at 375; Google shows text there).
 8. **"Month chips"** = the horizontal scroller of month names above the

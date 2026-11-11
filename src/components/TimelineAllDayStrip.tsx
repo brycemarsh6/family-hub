@@ -49,7 +49,7 @@
 // shapes for exactly this reason, so `allDayRow` passes straight through
 // with no conversion step.
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { HabitDayPill } from "./HabitDayPill";
 import { assignLanes, type MonthLayoutEvent } from "@/lib/monthLayout";
 import { addDays } from "@/lib/mealPlanDates";
@@ -88,6 +88,11 @@ type TimelineAllDayStripProps = {
    * and hour rail too — see this file's own header for why it arrives as a
    * prop rather than a private re-derivation of `GUTTER_WIDTH_PX`. */
   gridTemplateColumns: string;
+  /** Day view's weekday and date (mission 67), drawn in the gutter cell and
+   * spanning every row, with the all-day lanes beside it. Left out for 3 Day
+   * and Week, whose labels sit in their own row above. The strip renders when
+   * it has lanes OR a corner. */
+  corner?: ReactNode;
 };
 
 export function TimelineAllDayStrip({
@@ -99,6 +104,7 @@ export function TimelineAllDayStrip({
   onOpenEvent,
   onOpenTask,
   gridTemplateColumns,
+  corner,
 }: TimelineAllDayStripProps) {
   const columnDaysKey = columnDays.map((day) => day.getTime()).join(",");
 
@@ -191,14 +197,19 @@ export function TimelineAllDayStrip({
   // exactly like Month's own "+N more" line only appearing when
   // overflow > 0. All hooks above run unconditionally on every render
   // (Rules of Hooks) before this early return.
-  if (maxAllDayLane < 0) return null;
+  if (maxAllDayLane < 0 && !corner) return null;
+
+  // Rows the corner spans: one per lane, plus the "+N more" / "− Show less"
+  // row when it is drawn. At least one, so a corner alone still has a row.
+  const hasMoreRow = maxAllDayLane >= 0 && (allDayExpanded || overflowByDay.some((count) => count > 0));
+  const cornerRows = Math.max(1, maxAllDayLane + 1 + (hasMoreRow ? 1 : 0));
 
   const dayBeforeSet = addDays(columnDays[0], -1);
   const dayAfterSet = addDays(columnDays[columnDays.length - 1], 1);
 
   return (
     <div
-      className="grid gap-0.5 px-1 pb-1"
+      className={`grid gap-0.5 px-1 pb-1 ${corner ? "items-start" : ""}`}
       // mission-17/C5: raised from 18px to 24px, matching the timed grid's
       // own MIN_BLOCK_MINUTES floor — Strange's ruling on the 24px timed
       // block explicitly does NOT cover this row too: a timed block's 24px
@@ -207,9 +218,20 @@ export function TimelineAllDayStrip({
       // all — `18px` was a free constant, not arithmetic, so it gets no
       // such defense and is raised to match rather than kept shorter for
       // no reason.
-      style={{ gridTemplateColumns, gridAutoRows: "24px" }}
+      // With a corner the rows may grow to fit its label (Largest text);
+      // without one they stay a fixed 24px as before.
+      // With a corner, `items-start` on the grid keeps every bar (event,
+      // task, habit pill) at its 24px at the top of its row instead of
+      // stretching to the corner's height.
+      style={{ gridTemplateColumns, gridAutoRows: corner ? "minmax(24px, auto)" : "24px" }}
     >
-      <span aria-hidden="true" />
+      {corner ? (
+        <div className="py-1" style={{ gridColumn: 1, gridRow: `1 / span ${cornerRows}` }}>
+          {corner}
+        </div>
+      ) : (
+        <span aria-hidden="true" />
+      )}
       {allDaySpans.map((span) => {
         // mission-17/C5 — tasks first, and ONLY against `taskById`: see
         // this file's own header for why a task id is never even looked up
@@ -244,7 +266,9 @@ export function TimelineAllDayStrip({
               // TaskCard.tsx's own aria-label already documents for the
               // identical fact.
               aria-label={completed ? `${task.title}, completed` : task.title}
-              className={`truncate rounded border px-1 text-left text-[0.5625rem] font-semibold leading-[1.5rem] ${
+              className={`truncate rounded border px-1 text-left text-[0.5625rem] font-semibold ${
+                corner ? "h-6 leading-[1.375rem]" : "leading-[1.5rem]"
+              } ${
                 completed ? "border-muted text-muted" : "border-fg text-fg"
               }`}
               style={{
@@ -291,7 +315,9 @@ export function TimelineAllDayStrip({
             key={span.event.id}
             type="button"
             onClick={() => onOpenEvent(event, representativeDay)}
-            className={`truncate border-y px-1 text-left text-[0.5625rem] font-semibold leading-[1.5rem] text-fg border-fg ${
+            className={`truncate border-y px-1 text-left text-[0.5625rem] font-semibold text-fg border-fg ${
+              corner ? "h-6 leading-[1.375rem]" : "leading-[1.5rem]"
+            } ${
               continuesBefore ? "" : "rounded-l border-l"
             } ${continuesAfter ? "" : "rounded-r border-r"}`}
             style={{

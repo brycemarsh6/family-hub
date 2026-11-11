@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calendar PR 1 mock</title>
+<style>
+:root{--bg:#f6f0e8;--surface:#fff;--s2:#ece4d6;--fg:#4e5256;--muted:#6f6a60;--line:#e2d9c9;--accent:#5a6b4f;--afg:#f6f0e8;--ev:#e4e9dc;--ad:#cfd9c2}
+@media (prefers-color-scheme:dark){:root{--bg:#1c1b16;--surface:#262420;--s2:#302d27;--fg:#f6f0e8;--muted:#a9a296;--line:#3b372f;--accent:#b7c3a6;--afg:#232b1c;--ev:#2c3324;--ad:#3d4a33}}
+*{box-sizing:border-box}
+body{margin:0;background:#8a8478;color:#222;font:15px -apple-system,system-ui,sans-serif;padding:16px}
+h1{font-size:19px;margin:0 0 4px;color:#fff}p.sub{color:#f3efe6;margin:0 0 18px;max-width:720px;line-height:1.4}
+.frame{margin:0 0 28px}
+.cap{color:#fff;font-weight:700;margin-bottom:4px}.note{color:#f3efe6;font-size:13px;margin:6px 0 0;max-width:720px;line-height:1.4}
+.fit{overflow:hidden;border-radius:14px;box-shadow:0 6px 20px #0006}
+.dev{background:var(--bg);color:var(--fg);position:relative;overflow:hidden;transform-origin:0 0}
+/* top bar */
+.bar{display:flex;align-items:flex-start;gap:.5rem;padding:.5rem .75rem 0 .75rem;height:5.25rem}
+.circ{display:flex;flex-direction:column;align-items:center;gap:.375rem;flex:none}
+.circ i{width:2.75rem;height:2.75rem;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:1rem}
+.circ b{font-weight:500;font-size:.6875rem;line-height:1rem;color:var(--muted)}
+.title{display:flex;align-items:center;gap:.25rem;font-size:1.25rem;font-weight:700;height:2.75rem;white-space:nowrap}
+.title span{font-size:.75rem;color:var(--muted)}
+.right{margin-left:auto;display:flex;gap:.5rem;align-items:flex-start}
+.seg{display:flex;background:var(--s2);border-radius:999px;padding:.1875rem;height:2.75rem;align-items:stretch}
+.seg span{padding:0 .875rem;border-radius:999px;color:var(--muted);display:flex;align-items:center;font-size:.875rem;font-weight:500}
+.seg .on{background:var(--fg);color:var(--bg);font-weight:600}
+/* grid */
+.hdrrow{display:flex;border-bottom:1px solid var(--line)}
+.gut{flex:none;position:relative}
+.cols{flex:1;display:flex}
+.c{flex:1;position:relative}
+.c+.c{border-left:1px solid var(--line)}
+.dh{text-align:center;padding:.25rem 0 .375rem}
+.dh small{display:block;font-size:.6875rem;color:var(--muted);letter-spacing:.05em;font-weight:600}
+.dh b{font-size:1.125rem;display:inline-block;width:2rem;height:2rem;line-height:2rem}
+.today small{color:var(--accent)}.today b{background:var(--accent);color:var(--afg);border-radius:50%}
+.allday{background:var(--ad);border-radius:.25rem;font-size:.75rem;font-weight:600;padding:.25rem .375rem;margin:.25rem .25rem 0}
+.hours{display:flex;position:relative}
+.hl{position:absolute;right:.375rem;font-size:.6875rem;color:var(--muted);transform:translateY(-50%)}
+.hr{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+.ev{position:absolute;left:2px;right:3px;background:var(--ev);border-left:3px solid var(--accent);border-radius:.3rem;font-size:.75rem;padding:.2rem .3rem;font-weight:600;overflow:hidden}
+.fab{position:absolute;right:1rem;bottom:1.25rem;width:3.5rem;height:3.5rem;border-radius:50%;background:var(--accent);color:var(--afg);font-size:2rem;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px #0005;z-index:5}
+.home{position:absolute;bottom:6px;left:50%;width:134px;margin-left:-67px;height:5px;border-radius:3px;background:var(--fg);opacity:.5;z-index:6}
+.status{height:47px}
+</style></head><body>
+<h1>Calendar PR 1: the full screen layout (mock, real sizes)</h1>
+<p class="sub">Drawn at the real width of each screen, then shrunk to fit yours. Light or dark follows your phone. What changes in PR 1: no box and no side margins, no date bar and no &lt; &gt; arrows, "November" at the top left, a round + at the bottom right. Refresh stays until the search PR. The + still opens today's Event or Task sheet (the bubbles are PR 2). Swiping still pages the way it does now (the slide is PR 3).</p>
+<div id="out"></div>
+<script>
+const HOURS=["7 AM","8 AM","9 AM","10 AM","11 AM","12 PM","1 PM","2 PM","3 PM","4 PM","5 PM","6 PM","7 PM","8 PM"];
+function circ(icon,label){return `<div class="circ"><i>${icon}</i><b>${label}</b></div>`}
+function bar(opts){
+  const seg=opts.seg?`<div class="seg">${["Schedule","Day","3 Day","Week","Month","Year"].map(v=>`<span class="${v==opts.view?"on":""}">${v}</span>`).join("")}</div>`:circ("▦",opts.view);
+  return `<div class="bar">${circ("☰","Menu")}<div class="title">${opts.title} <span>▼</span></div><div class="right">${circ("◎","Today")}${seg}${circ("↻","Refresh")}</div></div>`}
+function grid(days,gutRem,hh,evs,dayCorner){
+  let head;
+  if(dayCorner){head=`<div class="hdrrow"><div class="gut today" style="width:${gutRem}rem"><div class="dh"><small>${days[0][0]}</small><b>${days[0][1]}</b></div></div><div class="cols"><div class="c" style="border-left:1px solid var(--line);padding-bottom:.375rem">${(days[0][3]||[]).map(a=>`<div class="allday">${a}</div>`).join("")}</div></div></div>`}
+  else{head=`<div class="hdrrow" style="flex-direction:column"><div style="display:flex"><div class="gut" style="width:${gutRem}rem"></div><div class="cols">${days.map(d=>`<div class="c ${d[2]?"today":""}" style="border-left:none"><div class="dh"><small>${d[0]}</small><b>${d[1]}</b></div></div>`).join("")}</div></div><div style="display:flex;padding-bottom:.25rem"><div class="gut" style="width:${gutRem}rem"></div><div class="cols">${days.map(d=>`<div class="c" style="border-left:none">${(d[3]||[]).map(a=>`<div class="allday">${a}</div>`).join("")}</div>`).join("")}</div></div></div>`}
+  let gut="";HOURS.forEach((h,i)=>gut+=`<span class="hl" style="top:${.6+i*hh}rem">${h}</span>`);
+  let cols=days.map((d,ci)=>{let s="";HOURS.forEach((_,i)=>s+=`<div class="hr" style="top:${.6+i*hh}rem"></div>`);(evs[ci]||[]).forEach(e=>s+=`<div class="ev" style="top:${.6+e[0]*hh}rem;height:${e[1]*hh-.15}rem">${e[2]}</div>`);return `<div class="c" style="height:${HOURS.length*hh+1}rem;${ci==0?"border-left:1px solid var(--line)":""}">${s}</div>`}).join("");
+  return head+`<div class="hours"><div class="gut" style="width:${gutRem}rem;height:${HOURS.length*hh+1}rem">${gut}</div><div class="cols">${cols}</div></div>`}
+const week=[["SUN","22",0],["MON","23",0,["Leo's birthday"]],["TUE","24",0],["WED","25",0],["THU","26",1,["Thanksgiving Day"]],["FRI","27",0,["Black Friday"]],["SAT","28",0]];
+const frames=[
+ {cap:"iPhone (393 wide), Day view, Normal text",w:393,h:760,root:16,phone:true,
+  html:()=>bar({title:"November",view:"Day"})+grid([["THU","26",1,["Thanksgiving Day"]]],3.25,3,{0:[[2,1.5,"Turkey in the oven"],[5,2,"Dinner at Grandma's"],[9,1,"Pie"]]},true),
+  note:"Menu, \"November\", then Today, View, Refresh in one row. Thursday 26 sits in the corner above the hours; all-day items beside it. The hours start at the left edge and the day runs to the right edge. The + sits bottom right, above the home bar."},
+ {cap:"iPhone (393 wide), 3 Day view, Normal text",w:393,h:560,root:16,phone:true,
+  html:()=>bar({title:"November",view:"3 Day"})+grid(week.slice(4,7),3.25,3,{0:[[2,1.5,"Turkey in the oven"],[5,2,"Dinner"]],1:[[1,1,"Shop early"]],2:[[3,2,"Hike"]]},false),
+  note:"Dates sit on top of each column. Lines only between days and hours, none on the outer left or right."},
+ {cap:"iPad landscape (1024 wide), Week view, Normal text",w:1024,h:640,root:16,
+  html:()=>bar({title:"November",view:"Week",seg:true})+grid(week,3.5,3,{1:[[2,1,"School"]],2:[[4,1,"Dentist"]],4:[[2,1.5,"Turkey in the oven"],[5,2,"Dinner at Grandma's"]],5:[[1,1,"Shop early"]],6:[[3,2,"Hike"]]},false),
+  note:"The six views sit in a row at the top instead of the View circle. Then Refresh. The title is the month of the first day shown."},
+ {cap:"iPad portrait (768 wide), Week view, Largest text",w:768,h:700,root:24,
+  html:()=>bar({title:"January 2027",view:"Week"})+grid([["SUN","3",0],["MON","4",1],["TUE","5",0],["WED","6",0],["THU","7",0],["FRI","8",0],["SAT","9",0]],3.5,3,{1:[[2,1,"School"]],3:[[4,1.5,"Dentist"]]},false),
+  note:"At a big Text size the row of six no longer fits, so it falls back to the View circle by itself (the same one the phone uses). A year other than this one is added: \"January 2027\"."},
+];
+const out=document.getElementById("out");
+function draw(){out.innerHTML="";const avail=Math.min(out.clientWidth||innerWidth-32,1100);
+ frames.forEach(f=>{const s=Math.min(1,avail/f.w);const wrap=document.createElement("div");wrap.className="frame";
+  wrap.innerHTML=`<div class="cap">${f.cap}</div><div class="fit" style="width:${f.w*s}px;height:${f.h*s}px"><div class="dev" style="width:${f.w}px;height:${f.h}px;font-size:${f.root}px;transform:scale(${s})">${f.phone?'<div class="status"></div>':""}${f.html()}<div class="fab">+</div>${f.phone?'<div class="home"></div>':""}</div></div><div class="note">${f.note}</div>`;
+  out.appendChild(wrap)})}
+draw();addEventListener("resize",draw);
+</script>
+</body></html>
