@@ -89,7 +89,12 @@ import { MINUTES_PER_DAY, minutesOfDay } from "@/lib/timelineLayout";
 import { isSameDay } from "@/lib/mealPlanDates";
 import { PAGE_BLEED_CLASSES } from "@/lib/gridClasses";
 import { useTimelineZoom } from "@/lib/useTimelineZoom";
-import { TimelinePageHeader, TimelinePageColumns, timelineGridTemplate } from "./TimelinePage";
+import { usePagedSwipe } from "@/lib/usePagedSwipe";
+import { neighbourAnchor } from "@/lib/useCalendarPeriod";
+import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
+import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
+import { PagedTrack } from "./PagedTrack";
+import { TimelinePageHeader, TimelinePageColumns, GUTTER_WIDTH_PX } from "./TimelinePage";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
 // The rail's own scale is LIVE (mission-65): `useTimelineZoom` returns the
@@ -132,6 +137,16 @@ type TimelineGridProps = {
    * (Week). The CALLER (mission-17/C4) decides which; this component only
    * ever renders however many columns it's handed. */
   columnDays: Date[];
+  /** Mission 69 (C4): the view and its anchor, so the previous and next
+   * pages of the sliding track get their own column days (the same
+   * `VIEW_CONFIG[view].days` the caller used for `columnDays`). */
+  view: CalendarPeriodView;
+  anchor: Date;
+  /** A page turn (1 = next), called by the swipe once the glide ends. */
+  onTurn: (direction: 1 | -1) => void;
+  /** Goes up by one each time Today is tapped, so scroll-to-now runs again
+   * even when the columns do not change. */
+  scrollToNowSignal: number;
   events: CalendarEventView[];
   /** mission-17/C5 — tasks due within the fetched window, the SAME shape
    * MonthGrid.tsx and DaySection.tsx already receive (CalendarViews.tsx
@@ -173,6 +188,10 @@ type TimelineGridProps = {
 
 export function TimelineGrid({
   columnDays,
+  view,
+  anchor,
+  onTurn,
+  scrollToNowSignal,
   events,
   tasks,
   habitDays,
@@ -194,7 +213,13 @@ export function TimelineGrid({
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
   const hourHeightPx = useTimelineZoom(viewerId, scrollerRef, railRef, stickyHeaderRef);
   const pxPerMinute = hourHeightPx / 60;
-  const columnDaysKey = columnDays.map((day) => day.getTime()).join(",");
+  // Mission 69 (C4): the root carries `--page-dx` and `data-glide`; the
+  // header's track and the columns' track both read it, so they cannot
+  // disagree. The gutter and the vertical scroller are not in a track.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const { handlers } = usePagedSwipe({ varRef: rootRef, onTurn });
+  const previousDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, -1));
+  const nextDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, 1));
 
   // --- Sizing: this component's own overflow-y-auto scroller, sized from
   // its measured top edge to the bottom of the viewport. `chromeOffsetPx`
@@ -232,11 +257,11 @@ export function TimelineGrid({
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-    // Re-measures on every column-set change too (a view switch), not just
-    // on mount: cheap, and correct if the chrome above this component ever
-    // renders at a different height for a different view (it doesn't
-    // today, but nothing here should assume that stays true forever).
-  }, [columnDaysKey]);
+    // Re-measures on a view switch, not just on mount: cheap, and correct if
+    // the chrome above this component ever renders at a different height for
+    // a different view. Not keyed on the days: a page turn must not touch
+    // the scroller (mission 69).
+  }, [view]);
 
   const scrollerHeightStyle =
     measuredHeightPx !== null
@@ -244,8 +269,10 @@ export function TimelineGrid({
       : `calc(100dvh - ${chromeOffsetPx}px)`;
 
   // --- Scroll-to-now on open (or 7 AM when today isn't one of the columns).
-  // Keyed ONLY on the column set, deliberately excluding `today`/`now` from
-  // the dependency array (both are read fresh inside, via the ref, each
+  // Keyed on the view and on Today's signal (mission 69: it used to be the
+  // column set, which a page turn changes, and the hours must keep their
+  // place on a turn). Mount runs it too. `today`/`now` are deliberately
+  // excluded from the dependency array (both are read fresh inside, via the ref, each
   // time this DOES run) — including `now` would re-run this every 60s tick
   // (useNowMinute.ts's own poll interval) and yank the reader's scroll
   // position back to "now" while they're trying to read something earlier
@@ -267,14 +294,42 @@ export function TimelineGrid({
         : Math.max(0, minutesOfDay(now) * pxPerMinute - visibleRailHeightPx / 3);
     scroller.scrollTop = targetTopPx;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [columnDaysKey]);
+  }, [view, scrollToNowSignal]);
 
-  const gridTemplateColumns = timelineGridTemplate(columnDays.length);
+  // One header page and one columns page per column set: the previous, the
+  // current and the next. Neighbours get the same events, tasks and fetch
+  // window, so a day outside it shows the not-loaded glyph, as an edge does.
+  const headerPage = (days: Date[]) => (
+    <TimelinePageHeader
+      columnDays={days}
+      events={events}
+      tasks={tasks}
+      habitDays={habitDays}
+      today={today}
+      windowStart={windowStart}
+      windowEnd={windowEnd}
+      onOpenEvent={onOpenEvent}
+      onOpenTask={onOpenTask}
+    />
+  );
+  const columnsPage = (days: Date[]) => (
+    <TimelinePageColumns
+      columnDays={days}
+      events={events}
+      today={today}
+      now={now}
+      hoursPerDay={HOURS_PER_DAY}
+      pxPerMinute={pxPerMinute}
+      onOpenEvent={onOpenEvent}
+    />
+  );
 
   return (
     <div
-      data-fills-viewport className={`overflow-hidden ${PAGE_BLEED_CLASSES}`}
+      ref={rootRef}
+      data-fills-viewport className={`touch-pan-y overflow-hidden ${PAGE_BLEED_CLASSES}`}
       style={{ ["--hour-height" as string]: `${hourHeightPx}px` }}
+      {...handlers}
     >
       <div ref={scrollerRef} className="overflow-y-auto pb-[env(safe-area-inset-bottom)]" style={{ height: scrollerHeightStyle }}>
         {/* Sticky as ONE unit — the weekday header and the all-day strip
@@ -292,28 +347,23 @@ export function TimelineGrid({
             sticky div — not its own sticky element — so this property
             survives the extraction unchanged. */}
         <div ref={stickyHeaderRef} className="sticky top-0 z-20 border-b border-line bg-bg">
-          <TimelinePageHeader
-            columnDays={columnDays}
-            events={events}
-            tasks={tasks}
-            habitDays={habitDays}
-            today={today}
-            windowStart={windowStart}
-            windowEnd={windowEnd}
-            onOpenEvent={onOpenEvent}
-            onOpenTask={onOpenTask}
+          <PagedTrack
+            previous={headerPage(previousDays)}
+            current={headerPage(columnDays)}
+            next={headerPage(nextDays)}
           />
         </div>
 
-        {/* The hour rail: a gutter of 24 labels, then one relatively-
-            positioned column per day holding gridlines, the now-line (only
-            in today's own column, if present), and every timed block. */}
-        <div
-            ref={railRef}
-            className="relative grid"
-            style={{ gridTemplateColumns, height: `calc(var(--hour-height) * ${HOURS_PER_DAY})` }}
-          >
-          <div className="relative">
+        {/* The hour rail: the columns' three pages (gridlines, the now-line
+            in today's own column, every timed block), then the gutter of 24
+            labels drawn over them, outside the track so it never slides. */}
+        <div ref={railRef} className="relative" style={{ height: `calc(var(--hour-height) * ${HOURS_PER_DAY})` }}>
+          <PagedTrack
+            previous={columnsPage(previousDays)}
+            current={columnsPage(columnDays)}
+            next={columnsPage(nextDays)}
+          />
+          <div className="absolute inset-y-0 left-0 z-10 bg-bg" style={{ width: GUTTER_WIDTH_PX }}>
             {HOUR_LABELS.map((label, hour) => (
               <span
                 key={hour}
@@ -325,16 +375,6 @@ export function TimelineGrid({
               </span>
             ))}
           </div>
-
-          <TimelinePageColumns
-            columnDays={columnDays}
-            events={events}
-            today={today}
-            now={now}
-            hoursPerDay={HOURS_PER_DAY}
-            pxPerMinute={pxPerMinute}
-            onOpenEvent={onOpenEvent}
-          />
         </div>
       </div>
     </div>

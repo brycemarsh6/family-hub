@@ -3,16 +3,13 @@
 import { MonthGrid } from "./MonthGrid";
 import { PagedSwipeArea } from "./PagedTrack";
 import { YearView } from "./YearView";
+import { neighbourAnchor } from "@/lib/useCalendarPeriod";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
 // Mission 69 (C3): Month and Year as three sliding pages, extracted from
-// CalendarViews.tsx to keep it under its line cap. Neighbours are built from
-// `anchor` (Month reads only its month, Year only its year), so the period
-// cursor does not need to be exposed. Month neighbours get the same fetch
+// CalendarViews.tsx to keep it under its line cap. Neighbours come from
+// `neighbourAnchor` (the period cursor's own step size). Month neighbours get the same fetch
 // window, so days outside it show the existing "not loaded" glyph.
-
-const addMonths = (day: Date, n: number) => new Date(day.getFullYear(), day.getMonth() + n, 1);
-const addYears = (day: Date, n: number) => new Date(day.getFullYear() + n, 0, 1);
 
 type MonthProps = {
   anchor: Date;
@@ -30,9 +27,9 @@ export function PagedMonth({ anchor, onTurn, ...grid }: MonthProps) {
   return (
     <PagedSwipeArea
       onTurn={onTurn}
-      previous={<MonthGrid anchor={addMonths(anchor, -1)} {...grid} />}
+      previous={<MonthGrid anchor={neighbourAnchor("month", anchor, -1)} {...grid} />}
       current={<MonthGrid anchor={anchor} {...grid} />}
-      next={<MonthGrid anchor={addMonths(anchor, 1)} {...grid} />}
+      next={<MonthGrid anchor={neighbourAnchor("month", anchor, 1)} {...grid} />}
     />
   );
 }
@@ -48,9 +45,9 @@ export function PagedYear({ anchor, onTurn, ...year }: YearProps) {
   return (
     <PagedSwipeArea
       onTurn={onTurn}
-      previous={<YearView anchor={addYears(anchor, -1)} {...year} />}
+      previous={<YearView anchor={neighbourAnchor("year", anchor, -1)} {...year} />}
       current={<YearView anchor={anchor} {...year} />}
-      next={<YearView anchor={addYears(anchor, 1)} {...year} />}
+      next={<YearView anchor={neighbourAnchor("year", anchor, 1)} {...year} />}
     />
   );
 }

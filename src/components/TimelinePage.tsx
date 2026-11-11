@@ -25,7 +25,7 @@ import { TimelineDayHeaderRow, TimelineDayLabel } from "./TimelineDayHeader";
 import { TimelineDayColumn } from "./TimelineDayColumn";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
-const GUTTER_WIDTH_PX = 48;
+export const GUTTER_WIDTH_PX = 48;
 
 /** The one grid template the weekday row, the all-day strip and the hour
  * rail share, so they stay pixel-aligned by construction. */
@@ -215,8 +215,18 @@ export function TimelinePageColumns({
 
   const compact = columnDays.length > 1; // 3 Day / Week — Day view (1 column) gets more detail (D5).
 
+  // Mission 69 (C4): each page is its own full-width grid (an empty first cell
+  // where the gutter sits), so three of them slide as pages. The hour labels
+  // are drawn once by TimelineGrid, above the pages, and never move.
   return (
-    <>
+    <div
+      className="grid"
+      style={{
+        gridTemplateColumns: timelineGridTemplate(columnDays.length),
+        height: `calc(var(--hour-height) * ${hoursPerDay})`,
+      }}
+    >
+      <div aria-hidden="true" />
       {columnDays.map((day, columnIndex) => (
         <TimelineDayColumn
           key={day.getTime()}
@@ -231,6 +241,6 @@ export function TimelinePageColumns({
           onOpenEvent={onOpenEvent}
         />
       ))}
-    </>
+    </div>
   );
 }

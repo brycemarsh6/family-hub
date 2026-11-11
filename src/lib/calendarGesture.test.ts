@@ -130,6 +130,18 @@ test("second finger at sliding springs back, releases capture, hands to pinch, n
   assert.ok(!t.includes("settle"));
 });
 
+test("a pinch, both fingers lift, then a fresh first finger: the gesture starts again", () => {
+  const r = run([
+    down(),
+    down(200, 100, false, 5, 2, false),
+    up(100, 100, 20, 1),
+    up(200, 100, 25, 2),
+    down(50, 50, false, 100, 3),
+  ]);
+  assert.equal(r.state.kind, "undecided");
+  assert.equal(r.state.pointerId, 3);
+});
+
 test("a pinch is not a swipe: moves in a pinch do nothing, and lifting one finger stays pinch", () => {
   const r = run([down(), down(200, 100, false, 5, 2, false), move(300, 100, 10), up(0, 0, 11, 2)]);
   assert.equal(r.state.kind, "pinch");
