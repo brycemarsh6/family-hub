@@ -1,6 +1,6 @@
 # Mission 70: Calendar full screen PR 4, drag to reschedule
 
-- **Status:** BUILDING (Bryce OK'd the mock 2026-11-10: "Looks great. Lets start"; gutter marker added at his request)
+- **Status:** AT-THE-GATES (pass 1) (Bryce OK'd the mock 2026-11-10: "Looks great. Lets start"; gutter marker added at his request)
 - **Started:** 2026-11-10 · **Updated:** 2026-11-10
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 4: Drag to reschedule (decisions 17 to 22; small call H; answers 5, 6)"
 - **Branch:** `claude/calendar-fullscreen-pr4-drag`, cut from `origin/main` `f8289db` (PR 3 merged as #111)
@@ -231,6 +231,7 @@ calendar is touched by any agent.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Captain (HEAD fcf9239) | BLOCK | `useEventMoves.ts:68-99` copies `useOptimisticRun`'s save shape (STRUCTURE.md :281-292). Fix: `run` gains optional `onError(message)` called inside the transition; `useEventMoves` uses `run` | Machine count two (pass); placement, dependency direction, glob, constants pass. Recommends in this PR: `canLiftOnTimeline(event)` in `timelineDrag.ts` with tests (lift rule now inline in TimelineDayColumn:144); split `calendarGesture.test.ts` (437) and `timelineDrag.test.ts` (495). Notes: usePagedSwipe 393/302 split candidate next touch (`pagedTurn.ts`); calendar.ts 463/228 not a candidate; marker text cuts `formatClockTime` at the space; UndoBar hardcodes the + footprint; STRUCTURE.md :995 names the wrong test file. Drafts (a) to (e): gesture and write-path rules move to new `docs/structure/calendar.md`, wrapper list, test helper, trend |
 
 ## Delivery
 
