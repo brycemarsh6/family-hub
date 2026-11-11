@@ -225,6 +225,24 @@ tell when a rule's reason has expired.
   of across the screen. It keeps the sheet's manners: the house dim
   closes it, Escape closes it, focus moves to the first bubble and back to
   the + on close. Any other menu is still a sheet.
+  **A second named exception: the Calendar's month panel**
+  (`MonthJumpPanel`, mission-72, Bryce 2026-11-11). Tapping the month
+  title opens month chips and a little month (`MiniMonth`) inside the
+  page, not in a sheet, and the title's arrow turns up. On a phone it
+  drops down under the top bar and pushes the calendar down. On an iPad,
+  on Schedule, Day, 3 Day and Week, it is a column on the left and the
+  calendar moves over, when the calendar keeps room for usable day columns
+  (an upright iPad at the largest Text sizes gets the drop down instead).
+  On Month and Year only the chip row drops down, because the big month is
+  already on screen. The reason: you keep seeing the calendar you are
+  jumping from, and on the iPad the little month can stay open while you
+  work. It has no dim and no Escape: it closes when you tap the title
+  again, and on the phone also when you pick a day. The phone always
+  starts closed; the iPad remembers it for each person. While it sits
+  beside the calendar, a pinned Sidebar shows as the icon rail, and your
+  Menu style does not change. It stays in view while the page scrolls,
+  and opening or closing it never moves your place in the list. Any other
+  picker is still a sheet.
 
 ## Brand
 
@@ -483,9 +501,15 @@ A new one-off that duplicates one of these jobs is a design violation:
   strip of links, each at least 44px, the current one `aria-current`) is a
   second allowed carve-out: it picks a time range inside one page, so it is
   a form-style field like the day / week / month picker, not a new tab
+- `MiniMonth`: the one small month for jumping to a day (mission-72).
+  Weekday letters, today filled `--accent`, the day on screen ringed in
+  `--accent`, a small `--muted` dot under days that have something (only
+  where events are loaded, never on today). Days outside the month are
+  blank. Every day is at least 44px each way.
 - `CalendarHeader`: the Calendar's one top bar, beside the floating menu
   button (mission-67, Bryce 2026-11-10). At the left, the month title with
-  a small down arrow: the first visible day's month, with the year only
+  a small arrow that opens the month panel and turns up while it is open
+  (mission-72): the first visible day's month, with the year only
   when it is not this year, with the month shortened so the year always
   fits beside the circles ("Jan 2027"; Bryce 2026-11-10), the year itself on Year, and
   on Schedule the month scrolling past. At the right, the Today, View and
