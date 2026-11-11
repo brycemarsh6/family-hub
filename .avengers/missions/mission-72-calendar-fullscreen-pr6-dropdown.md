@@ -1,7 +1,7 @@
 # Mission 72: Calendar full screen PR 6, the month dropdown and the iPad side panel
 
-- **Status:** AT-THE-GATES (Bryce 2026-11-11 after Strange's budget: "Yes, fix and finish", F3 plus one scoped Strange check, then push, merge, check live; keep the sideways iPad Largest behaviour) (C1 to C4, F1, F2 DONE; Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
-- **Started:** 2026-11-11 · **Updated:** 2026-11-11
+- **Status:** DELIVERING (all gates PASS: Vision pass 3, Captain pass 2, Strange pass 3 plus a scoped fourth check Bryce approved) (Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes"; after Strange's budget: "Yes, fix and finish")
+- **Started:** 2026-11-11 · **Updated:** 2026-11-11 (delivery)
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 6: The month dropdown (decisions 8, 12, 14; small calls D, E)"
 - **Branch:** `claude/calendar-fullscreen-pr6-0e927b`, cut from `origin/main` `a1bd34a` (PR 5 merged as #113)
 - **Mock:** `.avengers/mocks/calendar-pr6-dropdown-mock.html` (sent to Bryce 2026-11-11)
@@ -533,6 +533,7 @@ STRUCTURE.md after C4; Strange drafts the DESIGN.md exception at the gate.)
 
 | Pass | Gate | Verdict | Findings |
 |---|---|---|---|
+| 4 (scoped, Bryce) | Strange (HEAD 88f2250) | PASS | F3 measured: Schedule panel follows the list into December and back to November with the ring visible, iPad beside and phone; Day and Week unaffected (start at the anchor's month); DESIGN.md paragraph matches. Note: at a week boundary the ring can lead the first fully visible row by a day (day-in-view rule, accepted) |
 | 3 | Strange (HEAD 72179d1) | BLOCK | Every F2 fix measured PASS (1024 and 1180 pinned Sidebar beside at all four sizes, rail 72, scroll 0, gap 0; 768 Normal beside, Large and up stacked; Schedule reveal line exact on phone, 768 Large and Largest; pass 1 sweep clean). B (present since C4, missed by passes 1 and 2): on Schedule the little month stays on the URL anchor's month while the list moves (list in December, panel shows November, no ring visible), breaking DESIGN.md's MiniMonth "the day on screen ringed"; regression from main's ScheduleMiniMonth. Fix: `MonthJumpPanel` `anchor` = Schedule's day in view on Schedule. Notes: DESIGN.md "mid-list on a phone" also applies to an upright iPad at Large and up; 1024 Largest beside Week columns 54px (titles clip) |
 | 3 | Vision (HEAD 72179d1) | PASS | Gauntlet green (tsc 0, lint 0, test 2017, UTC 2007 + 10 skips, build 0); boundary clean; pass 2 blocker fixed (`revealLine` used for scroll margin, landed-short, Today observer, day-in-view; sticky top stays chrome only). No flip between beside and stacked (effective width equal before and after the squeeze). Structure subset: CalendarViews 494, ScheduleView 564, no new numbers, lib imports appChrome only. Notes: Schedule month title still uses the chrome line (cosmetic); first-commit child-effect order unproven on device; build CSS warning comes from mission-67's file on main; Sidebar width read from the live variable |
 | 2 | Strange (HEAD b8b4180) | BLOCK | All F1 fixes measured PASS (Schedule hold and sticky on phone and iPad, phone tap closes first, 44.42x44 days, 768 Normal beside 53px / Largest stacked 103px, timeline gap 0 everywhere but one, dot clear, line full width). B: landscape iPad with a pinned Sidebar at any size above Normal stacks (1024x768 Large 52px / Larger 166 / Largest 234px page scroll; 1180x820 Largest 182), because `monthPanelBeside` is given the width measured with the 256px Sidebar, before the squeeze to the 72px rail; Rail rows show beside fits (54 to 74px columns). B (text): DESIGN.md parenthetical (768 upright stacks from Large) and "stays in view while the page scrolls" (Schedule only). Notes: phone Schedule dropdown covers the list top (reads fine), empty day rings the next |
@@ -544,4 +545,36 @@ STRUCTURE.md after C4; Strange drafts the DESIGN.md exception at the gate.)
 
 ## Delivery
 
-(pending)
+- **Gates:** Vision PASS (pass 3), Captain PASS (pass 2), Strange PASS
+  (scoped fourth check after F3, approved by Bryce once pass 3 used the
+  budget). Fix contracts F1 (pass 1: Schedule place and stickiness, phone
+  close-then-scroll, 44px side days, JS beside decision, Captain's comment),
+  F2 (pass 2: rail-aware beside, one Schedule reveal line), F3 (pass 3: the
+  Schedule panel follows the list's month).
+- **Built:** `MonthJumpPanel` (chips plus a swipeable `MiniMonth`) replaces
+  `MonthJumpSheet`; one small month (`MiniMonth`; `ScheduleMiniMonth` and
+  Schedule's two-column wrapper deleted); `useMonthPanel` and
+  `useMonthPanelOpen` (`monthPanelOpen.ts`): phone plain state, iPad per
+  person per device; `monthPanelBeside` and `widthWithRailNav`
+  (`gridClasses.ts`); `useFillViewportHeight` (moved out of TimelineGrid,
+  plus an observer on `data-calendar-body`); the pinned Sidebar squeezes to
+  the rail through `data-month-panel` (AppChrome, PinnedNav); dots from
+  `daysWithItems`; Month's always-on chips moved into the dropdown.
+- **Bryce's design calls:** the mock and seven recommendations ("Yes");
+  "Yes, fix and finish" after the budget; keep the sideways iPad at Largest
+  (54px Week columns, titles clip while the panel is open).
+- **Rulebook:** docs/structure/calendar.md "The small month and the month
+  panel"; docs/structure/layout.md "The month panel marker" and the px
+  list; STRUCTURE.md pointer and trend lines; DESIGN.md the month panel
+  exception, `MiniMonth`, the title arrow.
+- **Tests:** npm test 2001 to 2017; UTC 2007 pass + 10 skips.
+- **Not proven by any agent:** real iOS Safari and the signed-in app (no
+  agent login); all visuals came from harnesses mounting the real
+  components with production CSS (session scratchpad `strange/`).
+- **Left for later:** Schedule's header month title still uses the chrome
+  line, not the reveal line (cosmetic); `BESIDE_VIEW_MIN_PX`'s 48 copies
+  `GUTTER_WIDTH_PX` (move it to lib on the next timeline touch);
+  `daysWithItems` counts its 62-day cap from an event's start; Month and
+  Year chip rows are not sticky; the dropdown appears without a slide;
+  six-row little months; Year's chip row highlights a month.
+- **Phone test:** in `.avengers/status.md`.
