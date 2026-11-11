@@ -255,8 +255,11 @@ Wide pages: the
   `src/lib/gridClasses.ts`), never with a new page attribute or a change
   to `<main>`. It reaches the edge at every width because a wide page's
   `<main>` has no cap from `md` and a phone is narrower than the 768px
-  cap. Instances: `TimelineGrid`'s root (Day, 3 Day, Week), `MonthGrid`'s
-  root, and their skeletons in `calendar/loading.tsx`. A bleeding surface
+  cap. Instances: `TimelineGrid`'s root (Day, 3 Day, Week), `PagedMonth`'s
+  swipe area (Month; mission-69), and their skeletons in
+  `calendar/loading.tsx`. The bleed goes on the outermost root: inside an
+  `overflow-hidden` parent a bleeding child is clipped (mission-69,
+  Captain's finding). A bleeding surface
   draws no rounded box and no outer left or right line. The top bar,
   Schedule's list and Year stay inside the padding. Strips that bleed and
   pad back (`-mx-4 ... px-4`: the pinned Schedule bar, `MonthChips` and its

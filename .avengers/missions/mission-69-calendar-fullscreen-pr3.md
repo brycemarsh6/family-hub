@@ -223,6 +223,91 @@ pushes to `main`.
   now's dependencies now sit.
 - **Done:** gauntlet green; all five views slide; no file past 650.
 
+### F1 - Pass 1 fixes for the shared track (Month bleed, in-flight turn, notes)
+
+- **Status:** dispatched 2026-11-10
+- **Objective:** Fix Captain's Month bleed BLOCKER and Vision's in-flight turn BLOCKER in the shared track, plus the cheap notes on the same files.
+- **Boundaries:** may touch: `src/lib/usePagedSwipe.ts`,
+  `src/components/PagedTrack.tsx`, `src/components/PagedPeriodViews.tsx`,
+  `src/components/MonthGrid.tsx` (drop `PAGE_BLEED_CLASSES` from its root
+  only), `src/app/(app)/calendar/loading.tsx` (only if the Month skeleton no
+  longer lines up), `src/lib/calendarGesture.ts` (comment at line 15 only),
+  `src/lib/calendarGesture.test.ts` (the test name at line 83 only)
+  · must not touch: `src/components/TimelineGrid.tsx`,
+  `src/components/TimelinePage.tsx`, `src/components/CalendarViews.tsx`,
+  `src/components/TimelineDayColumn.tsx`, `STRUCTURE.md`, `docs/**`.
+- **Work:**
+  1. Captain B1: `PagedSwipeArea` takes an optional `className`; `PagedMonth`
+     passes `PAGE_BLEED_CLASSES`; `MonthGrid`'s root drops it (bleed on the
+     outermost root, never inside `overflow-hidden`). `PagedYear` passes
+     nothing (Year stays inside the padding).
+  2. Vision B3: `usePagedSwipe` takes a `pageKey` option. A
+     `useLayoutEffect([pageKey])` aborts a turn in flight when the key
+     changes and the change did not come from this hook's own commit (a
+     `committing` ref set around the `flushSync`): clear the timeout and
+     listener, glide off, `--page-dx` to 0, `turning` false. `PagedMonth`
+     and `PagedYear` pass their anchor's time.
+  3. Optional `widthRef` option: the element whose `clientWidth` is the page
+     width (default `varRef`). The timeline will pass its columns viewport
+     in F2.
+  4. Captain note: one glide length. Export `GLIDE_MS` and drive the track's
+     transition duration from it (inline style or a CSS variable), so the
+     timeout and the ease cannot drift.
+  5. Strange and Vision notes: a press during a spring-back takes the track
+     from where it is (read the current transform before removing the glide)
+     instead of snapping; clear `data-glide` when a spring-back ends; fix the
+     "same DOM node" comment in `PagedTrack.tsx` and `usePagedSwipe.ts`
+     (panels stay, contents shift by one period).
+  6. Vision note: reword `calendarGesture.ts:15` so
+     `grep -rn "DIRECTION_LOCK_PX = " src` returns one line; reword the test
+     name at `calendarGesture.test.ts:83` so it no longer names a deleted
+     file as current.
+- **Verification:** the gauntlet;
+  `grep -rn "DIRECTION_LOCK_PX = " src` returns exactly one line;
+  `grep -n PAGE_BLEED_CLASSES src/components/MonthGrid.tsx` returns nothing.
+- **Evidence:** gauntlet tails, the greps, the abort path quoted, line counts.
+- **Done:** gauntlet green; the timeline files are untouched.
+
+### F2 - Pass 1 fixes for the timeline (sideways scroll, mock structure, header clip)
+
+- **Status:** DONE `7b92452` (TimelineGrid 383, TimelinePage 282; new `TimelineHourLabels`; one `isDay` switch; now-line dot offset removed; 3 Day and Week all-day strip keeps a 0px first cell, so its bars may sit 2px right; gauntlet green per Stark, no app run) (Bryce: "Slides with its day", with a Google Calendar mid-swipe screenshot of Day view)
+- **Objective:** Day, 3 Day and Week turn with a real finger and look like the approved mock mid-drag.
+- **Boundaries:** may touch: `src/components/TimelineGrid.tsx`,
+  `src/components/TimelinePage.tsx`, `src/components/TimelineDayColumn.tsx`
+  (the now-line dot's offset only), `src/components/TimelineAllDayStrip.tsx`
+  (only if the Day corner label must move)
+  · must not touch: `src/lib/useTimelineZoom.ts`, `src/lib/timelineZoom.ts`,
+  `src/lib/usePagedSwipe.ts`, `src/components/PagedTrack.tsx`,
+  `src/components/CalendarViews.tsx`, `STRUCTURE.md`, `docs/**`.
+- **Work:**
+  1. Vision B1 and Strange B1: the scroller gets `overflow-x-hidden
+     touch-pan-y`.
+  2. Strange B2 (the mock's structure): the header has a fixed 48px corner;
+     the header track sits in an `overflow-hidden` viewport that starts at
+     the gutter's right edge. The columns track sits in the same kind of
+     viewport beside a plain, non-overlay gutter. Each page renders only its
+     day columns (the template without the 48px first column). Turn
+     distance is that viewport's width (`widthRef`).
+  3. Vision B2: the header clips neighbours to the current page's height
+     (`overflow-hidden` on the header viewport).
+  4. Pass `pageKey` = view plus anchor time.
+  5. Strange note: the now-line dot is no longer hidden by the gutter (start
+     it at the column's edge, or let the plain gutter make that moot).
+  6. Day view (Bryce, 2026-11-10, "Slides with its day", with a Google
+     Calendar Day screenshot mid-swipe): in Day the WHOLE page slides, each
+     page carrying its own hour labels column and its own corner date above
+     it, like Google. The outgoing day's column exits left while the
+     incoming page's hour labels and date ride in beside it. So Day has no
+     fixed gutter and no fixed corner: both tracks span the full width and
+     each page is [its hour labels | its day column], header page [its
+     corner date | its all-day strip]. 3 Day and Week keep item 2's fixed
+     gutter and corner (the approved mock). One structure switch keyed on
+     the view, not two copies of the page code.
+- **Verification:** the gauntlet; pinch zoom still anchors (read
+  `useTimelineZoom`'s rail and header reads against the new structure).
+- **Evidence:** gauntlet tails, line counts, how the zoom's refs map to the new DOM.
+- **Done:** gauntlet green; Strange pass 2 measures a real-finger turn and no blank band.
+
 ## Execution log
 
 - 2026-11-10: synced to `origin/main` `2c2d7df`. Banner brief in. Mock sent
@@ -232,6 +317,16 @@ pushes to `main`.
 - 2026-11-10: C1 and C2 DONE and committed. C3 dispatched.
 - 2026-11-10: C3 DONE and committed. C4 dispatched with `neighbourAnchor` added to its boundary.
 - 2026-11-10: C4 DONE and committed (`8d5f07c`). Gate pass 1: Vision, Strange, Captain in parallel.
+- 2026-11-10: Captain pass 1 BLOCK (Month bleed). Bryce approved Captain's
+  "Reduce motion has one JS reader" STRUCTURE.md amendment ("Yea"); Fury
+  applies it with the other STRUCTURE.md and layout.md drafts.
+- 2026-11-10: Vision and Strange pass 1 BLOCK. F1 (shared track) and F2
+  (timeline; Bryce chose "Slides with its day" for Day from a Google
+  screenshot; Fury kept 3 Day and Week on the approved mock's fixed hours)
+  done. Fury applied Captain's drafts: STRUCTURE.md gesture bullet
+  rewritten, reduce-motion bullet added (Bryce approved), Calendar trend
+  line, layout.md bleed instances; the old bullet moved word for word to
+  docs/history/structure-rationale.md. Gate pass 2 dispatched.
 - 2026-11-10: the 7 UTC non-passes checked: all 7 are DST tests
   (spring-forward Mar 8 and fall-back Nov 1, in the fetch chunking and the
   timeline rail) that skip on purpose under UTC ("ambient zone has no
@@ -240,7 +335,11 @@ pushes to `main`.
 
 ## Gate verdicts
 
-(none yet)
+| Pass | Gate | Verdict | Blockers | Notes |
+|---|---|---|---|---|
+| 1 | Captain (HEAD cbecb1e) | BLOCK | Month bleed clipped: `PagedSwipeArea` is `overflow-hidden` and `MonthGrid`'s `-mx-4` hangs outside it (layout.md "Edge to edge"). Fix: bleed on `PagedSwipeArea` via `PagedMonth`, drop it from `MonthGrid`, check the Month skeleton | Machine count exactly two (PASS); one `DIRECTION_LOCK_PX`; step sizes and settle one source; lib imports clean. Notes: TimelineGrid 382 total / 156 code; `GLIDE_MS` 260 duplicated in `PagedTrack` class; second JS reduce-motion reader in `HabitConfetti` (amendment drafted, needs Bryce); rename `calendarGesture.ts` when SwipeActions migrates; test name at `calendarGesture.test.ts:83` names a deleted file. Drafts for STRUCTURE.md 676-706 and 903 and layout.md 258 held by Fury |
+| 1 | Vision (HEAD cbecb1e) | BLOCK | (1) timeline scroller has implicit overflow-x auto, so a sideways drag scrolls the hours box natively, pointercancel fires, no turn (proved with real CDP touch input; fix `overflow-x-hidden` on the scroller); (2) neighbour headers not clipped to the current header height (fix `overflow-hidden` on the sticky header); (3) Today or any navigation during the 260ms glide is overridden by the delayed commit stepping from the new period (fix: `pageKey` option, abort an in-flight turn when it changes outside the commit) | Gauntlet re-run green (1845; UTC 1838 + 7 DST skips; build 0); boundaries clean. Notes: `calendarGesture.ts:15` comment makes the one-definition grep return 2; gutter overlay covers half the now-line dot; page width from root `clientWidth` vs track width (classic scrollbars); `data-glide` lingers after spring-back; PagedTrack comment on DOM reuse inaccurate; Month and Year now inside overflow-hidden (focus rings); log line UTC count pre-C4 |
+| 1 | Strange (HEAD cbecb1e) | BLOCK | (1) Vision's sideways-scroll blocker, seen with real CDP touch; (2) mid-drag does not match the approved mock: header labels slide over the gutter corner while their columns hide under it, and a 48px blank band sits between pages (fix: the mock's structure, fixed corner, clipped track viewports, pages of day columns only) | Tracks agree to 0px in every frame (about 110 per drag, five viewport sets); no flash at hand-over; scrollTop holds on turns, goes to now on Today and opening; Month and Year slide with a real finger; not-loaded glyph on the Jan 2027 neighbour before refetch; reduce motion zero glide frames; pinch mid-slide springs back, zoom takes over; cancel springs back; + placement unchanged, Tablet draws none. Notes: now-line dot 3px under the gutter; Month pages abut (as the mock); press during spring-back snaps; Month swipes only on the grid (as main). Not seen: kid login, pinned menu, real iOS |
 
 ## Delivery
 
