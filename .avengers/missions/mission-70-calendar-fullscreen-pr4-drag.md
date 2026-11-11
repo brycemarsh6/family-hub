@@ -204,6 +204,7 @@ calendar is touched by any agent.
 - **Done:** every probe above passes with numbers.
 
 ### C4 — The drop (optimistic move, Undo bar, refusal)
+- **Status:** DONE `1540015` (new useEventMoves 131 + 4 tests, UndoBar 72, CalendarViews 483 to 490; npm test 1913 to 1917, UTC 10 skips unchanged; gauntlet and build green. Real CDP touch 15/15 on a stand-alone harness mounting the real TimelineGrid, useEventMoves, UndoBar and CalendarAddDial with a stubbed moveCalendarEvent (ok, refused, slow 1 s): first frame after release already at 2:15 PM, no frame at 9 AM; Undo sends the 9 AM ISO; bar gone at 5.2 s; refusal glides back (FLIP, about 260 ms) with a warn bar; bar 16px clear of the + on phone and iPad. The bar appears when the save lands, not at the drop. Database check through the app not run: no agent can sign in, so it goes on Bryce's phone list; C2 proved the write on the dev database)
 - **Objective:** a drop moves the event at once, saves, offers Undo for 5
   seconds, and a refusal glides back with a warn line.
 - **Boundaries:** may touch `src/components/CalendarViews.tsx`, a shared
