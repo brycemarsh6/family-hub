@@ -455,7 +455,7 @@ HEAD` after.
 - **Done:** every measurement above as expected, gauntlet green.
 
 ### F2 - Pass 2 fixes (Vision and Strange blockers)
-- **Status:** PENDING
+- **Status:** DONE `28a9d10` (tsc, lint, npm test 2017 pass, UTC 0 fail 10 skipped, build all exit 0; CalendarViews 494, ScheduleView 564; harness: Sidebar 1024x768 and 1180x820 beside at every size with rail 72px, page scroll 0, gap 0; 768 Normal beside, Large and up stacked; Schedule stacked: tapped row lands at the panel's bottom, Today enabled while its row is behind the panel)
 - **Objective:** a landscape iPad with a pinned Sidebar decides beside as if
   the Sidebar were already the rail; on Schedule a stacked panel never hides
   the row Schedule scrolls to, the ring's day or today's visibility.
