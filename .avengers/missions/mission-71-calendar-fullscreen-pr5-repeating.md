@@ -356,7 +356,7 @@ touched; STRUCTURE.md caps apply.
 (pending)
 
 ### F1: Pass 1 fixes (Vision and Captain blockers, Vision notes)
-- **Status:** IN PROGRESS
+- **Status:** DONE `ab3c648` (all seven items; `writeDelete(del, calendarId)` excludes the pulled calendar, so the pull's cancelled delete and the series cleanup never call Google for the source; cleanup gated on the pull's `failed === 0`; `SHIFT_NOTHING_ERROR` "That's already its time." and the client's `isSeriesNoShift`; `loadSeriesCalendar` in linkedCalendarsRead.ts; `listGoogleInstances` in calendarApi.ts; `wallClockMs`, `instantAtWallClock`, `shiftWallClockInZone` in householdDate.ts (zoneMidnightInstant uses it; the hook uses `planSeriesShift`); `getAccountAccessToken` in calendarEventPull.ts marks needs-relink. npm test 2001, UTC 1991 + 10 skips, tsc, lint, build ran (exit not captured; Vision re-runs). useEventMoves 310)
 - **Objective:** the series cleanup never touches Google; the series move
   follows the readers and Google-call rules; the wall-clock shift has one
   home.
