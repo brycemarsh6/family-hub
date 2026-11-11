@@ -89,6 +89,8 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
 
 ### C1 - the pure rules (lib only, with tests)
 
+- **Status:** DONE 6ed6e2d (6 lib files, 13 new tests, 2029 pass in Denver and UTC; no component touched)
+
 1. **Objective:** add the pure functions and constants PR 7 needs, each
    tested, with no component change.
 2. **Boundaries:** May touch: `src/lib/timelineZoom.ts`,
