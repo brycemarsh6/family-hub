@@ -19,7 +19,7 @@
 // below), and — only in today's own column, if present — the live now-line.
 //
 // DEPENDENCY INJECTION, same discipline as TimelineGrid.tsx's own header
-// comment: this component owns no state and calls no hooks. `slots` (this
+// comment: this component owns no state (its one hook only reads the root font size, mission-73). `slots` (this
 // day's own `TimelineColumnSlot<TimelineBlock>[]`, timelineLayout.ts's
 // `assignColumns` output) and `eventById` (the SAME map the caller also
 // hands to `./TimelineAllDayStrip.tsx`) both arrive fully computed — this
@@ -37,7 +37,8 @@
 import { Repeat } from "lucide-react";
 import { minutesOfDay, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
 import { formatTimeRange, isPast } from "@/lib/calendarDates";
-import { showsTimeLine, titleFitsFullSize } from "@/lib/timelineZoom";
+import { showsTimeLine, timeLineFits, titleFitsFullSize, titleLineCount, zoomTextScale } from "@/lib/timelineZoom";
+import { useRootFontPx } from "@/lib/useRootFontPx";
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
 import { canLiftOnTimeline } from "@/lib/timelineDrag";
@@ -63,6 +64,13 @@ import type { CalendarEventView } from "@/lib/types";
 // `./TimelineAllDayStrip.tsx`; mission-18/C1 moved this timed-block use
 // here, out of TimelineGrid.tsx, which is what makes this file — not that
 // one — the place documenting it now.
+
+// Today's rem line heights (font size times leading-tight's 1.25), kept in rem
+// so the pixel maths below matches the CSS. The title's compact tier is
+// 0.78125rem on a narrow column; counting with the wider tier is the safe side.
+const TITLE_LINE_REM = 0.9375;
+const SMALL_TITLE_LINE_REM = 0.75;
+const TIME_LINE_REM = 0.703125;
 
 type TimelineDayColumnProps = {
   day: Date;
@@ -98,6 +106,12 @@ export function TimelineDayColumn({
   onOpenEvent,
   canDrag,
 }: TimelineDayColumnProps) {
+  // Mission 73: block text grows with the zoom (the CSS reads --zoom-text-scale,
+  // set by TimelineGrid from the same zoomTextScale); the line counts below need
+  // the same numbers in real pixels, so they use the live root font size.
+  const rootPx = useRootFontPx();
+  const scale = zoomTextScale(pxPerMinute * 60);
+  const timeLinePx = TIME_LINE_REM * rootPx * scale;
   return (
     <div data-day-column className="@container relative border-l border-line">
       {Array.from({ length: hoursPerDay }, (_, hour) => (
@@ -143,6 +157,20 @@ export function TimelineDayColumn({
         // Mission 70: only a timed block on one day may lift
         // (canLiftOnTimeline, timelineDrag.ts; useTimelineDrag.ts lifts it).
         const draggable = canDrag && canLiftOnTimeline(event);
+        // Mission 73: whole title lines in real pixels. The time line shows only
+        // if it truly fits beside one title line (the Largest 15-minute fix), and
+        // whatever shows below the title keeps its room out of the title's lines.
+        const smallTitle = !titleFitsFullSize(heightPx);
+        const titleLinePx = (smallTitle ? SMALL_TITLE_LINE_REM : TITLE_LINE_REM) * rootPx * scale;
+        const contentPx = drawnHeightPx - 2; // the 1px borders
+        const timeShown =
+          showsTimeLine(heightPx, trueDurationMinutes) &&
+          timeLineFits({ heightPx: contentPx, titleLinePx, timeLinePx, paddingPx: 0 });
+        const locationShown = !compact && heightPx >= 72 && !!event.location;
+        const titleLines = titleLineCount({
+          availablePx: contentPx - (timeShown ? timeLinePx : 0) - (locationShown ? timeLinePx : 0),
+          lineHeightPx: titleLinePx,
+        });
         return (
           <button
             key={slot.block.id}
@@ -213,13 +241,15 @@ export function TimelineDayColumn({
             {/* @min-[128px] is px on purpose (mission-58): in rem it would move with Text size. */}
             {/* mission-65: under 20px tall the title takes a 12px line so it fits whole. */}
             <span
-              className={`block truncate font-semibold ${
-                !titleFitsFullSize(heightPx)
-                  ? "text-[0.625rem] leading-[0.75rem]"
+              className={`font-semibold ${
+                smallTitle
+                  ? "text-[length:calc(0.625rem*var(--zoom-text-scale,1))] leading-[calc(0.75rem*var(--zoom-text-scale,1))]"
                   : compact
-                    ? "text-[0.625rem] @min-[128px]:text-xs"
-                    : "text-xs"
+                    ? "text-[length:calc(0.625rem*var(--zoom-text-scale,1))] @min-[128px]:text-[length:calc(0.75rem*var(--zoom-text-scale,1))]"
+                    : "text-[length:calc(0.75rem*var(--zoom-text-scale,1))]"
               }`}
+              // Mission 73: a line clamp of whole lines, not one truncated line.
+              style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: titleLines, overflow: "hidden" }}
             >
               {event.title}
               {/* Mission 71: a repeating event's mark. It sits inside the
@@ -251,11 +281,11 @@ export function TimelineDayColumn({
                 override also needs 24px of room (showsTimeLine,
                 timelineZoom.ts), so zoomed out the block shows its
                 title only, like Google. */}
-            {showsTimeLine(heightPx, trueDurationMinutes) && (
-              <span data-drag-time className={`block truncate text-[0.5625rem] ${compact ? "hidden @min-[128px]:block" : ""}`}>{formatTimeRange(event.startAt, event.endAt)}</span>
+            {timeShown && (
+              <span data-drag-time className={`block truncate text-[length:calc(0.5625rem*var(--zoom-text-scale,1))] ${compact ? "hidden @min-[128px]:block" : ""}`}>{formatTimeRange(event.startAt, event.endAt)}</span>
             )}
-            {!compact && heightPx >= 72 && event.location && (
-              <span className="block truncate text-[0.5625rem]">{event.location}</span>
+            {locationShown && (
+              <span className="block truncate text-[length:calc(0.5625rem*var(--zoom-text-scale,1))]">{event.location}</span>
             )}
           </button>
         );

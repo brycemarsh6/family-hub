@@ -50,7 +50,8 @@ export function TimelineHourLabels() {
         <span
           key={hour}
           data-hour-label={hour}
-          className="absolute right-1 -translate-y-1/2 text-[0.625rem] text-muted"
+          // whitespace-nowrap + min(): mission 70's marker precedent, so "10 AM" never wraps at Largest.
+          className="absolute right-1 -translate-y-1/2 whitespace-nowrap text-[min(0.625rem,12px)] text-muted"
           style={{ top: `calc(var(--hour-height) * ${hour})` }}
         >
           {hour === 0 ? "" : label}

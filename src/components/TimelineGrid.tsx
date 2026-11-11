@@ -89,6 +89,7 @@ import { MINUTES_PER_DAY, minutesOfDay } from "@/lib/timelineLayout";
 import { isSameDay } from "@/lib/mealPlanDates";
 import { PAGE_BLEED_CLASSES } from "@/lib/gridClasses";
 import { useTimelineZoom } from "@/lib/useTimelineZoom";
+import { zoomTextScale } from "@/lib/timelineZoom";
 import { useFillViewportHeight } from "@/lib/useFillViewportHeight";
 import { usePagedSwipe } from "@/lib/usePagedSwipe";
 import { isOnDragBlock, useTimelineDrag } from "@/lib/useTimelineDrag";
@@ -100,7 +101,6 @@ import { PagedTrack } from "./PagedTrack";
 import { AllDayToggle } from "./AllDayToggle";
 import { TimelinePageHeader, TimelinePageColumns, TimelineHourLabels, GUTTER_WIDTH_PX } from "./TimelinePage";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
-
 // The rail's own scale is LIVE (mission-65): `useTimelineZoom` returns the
 // hour height in px (32 to 192, default 48, changed by a two-finger pinch,
 // never below the height at which the whole day fills the visible rail),
@@ -331,7 +331,7 @@ export function TimelineGrid({
     <div
       ref={rootRef}
       data-fills-viewport className={`touch-pan-y overflow-hidden ${PAGE_BLEED_CLASSES}`}
-      style={{ ["--hour-height" as string]: `${hourHeightPx}px` }}
+      style={{ ["--hour-height" as string]: `${hourHeightPx}px`, ["--zoom-text-scale" as string]: zoomTextScale(hourHeightPx) }}
       {...handlers}
     >
       <div
