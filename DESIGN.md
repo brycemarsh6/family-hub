@@ -204,7 +204,14 @@ tell when a rule's reason has expired.
 - **Sheets are the house dialog**: bottom sheet on phones, centered dialog on
   wider screens. Multi-step flows live in *one* sheet with an internal view
   state machine — never stacked modals (two Escape listeners fight over one
-  keypress).
+  keypress). **One named exception: the Calendar's add menu**
+  (`CalendarAddDial`, mission-68, Bryce 2026-11-10). Tapping the
+  Calendar's bottom-right + dims the page and pops Event and Task bubbles
+  right above it, and the + becomes an X; there is no sheet. The reason is
+  one-handed reach: the choice appears where the thumb already is instead
+  of across the screen. It keeps the sheet's manners: the house dim
+  closes it, Escape closes it, focus moves to the first bubble and back to
+  the + on close. Any other menu is still a sheet.
 
 ## Brand
 
