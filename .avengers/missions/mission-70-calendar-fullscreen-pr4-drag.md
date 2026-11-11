@@ -1,6 +1,6 @@
 # Mission 70: Calendar full screen PR 4, drag to reschedule
 
-- **Status:** CONTRACTED (waiting on Bryce's OK of the mock before any builder runs)
+- **Status:** BUILDING (Bryce OK'd the mock 2026-11-10: "Looks great. Lets start"; gutter marker added at his request)
 - **Started:** 2026-11-10 · **Updated:** 2026-11-10
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 4: Drag to reschedule (decisions 17 to 22; small call H; answers 5, 6)"
 - **Branch:** `claude/calendar-fullscreen-pr4-drag`, cut from `origin/main` `f8289db` (PR 3 merged as #111)
@@ -107,13 +107,12 @@ calendar is touched by any agent.
 
 ## Contracts
 
-### C1: The pure parts (machine on, drop maths)
+### C1 — The pure parts (machine on, drop maths)
 - **Objective:** switch hold and drag on in the gesture machine and bring the
   drop maths over, all pure and tested.
-- **May touch:** `src/lib/calendarGesture.ts`, `src/lib/calendarGesture.test.ts`,
+- **Boundaries:** may touch `src/lib/calendarGesture.ts`, `src/lib/calendarGesture.test.ts`,
   new `src/lib/timelineDrag.ts`, new `src/lib/timelineDrag.test.ts`, new
-  `src/lib/testing/withTimeZone.ts` (port from `origin/claude/calendar-cd1`).
-- **Must not touch:** everything else.
+  `src/lib/testing/withTimeZone.ts` (the three new files are ported from the CD1 branch named in Facts). · must not touch everything else.
 - **Work:** `HOLD_MS` 400. Review the hold and drag branches of `gestureStep`
   and make sure: a second finger during holding or dragging cancels the drag
   and hands to pinch; cancel during dragging emits `dragCancel`; a hold that
@@ -133,12 +132,11 @@ calendar is touched by any agent.
   line counts of touched files.
 - **Done:** Vision can read every sequence test ending in idle.
 
-### C2: The save (one write path)
+### C2 — The save (one write path)
 - **Objective:** `moveCalendarEvent(id, newStartIso)` that shares
   `updateCalendarEvent`'s write and Google push.
-- **May touch:** `src/app/actions/calendar.ts`, a new server-only helper in
-  `src/lib/` if the shared step needs one (name it in the report), its test.
-- **Must not touch:** `prisma/schema.prisma`, the sync files'
+- **Boundaries:** may touch `src/app/actions/calendar.ts`, a new server-only helper in
+  `src/lib/` if the shared step needs one (name it in the report), its test. · must not touch `prisma/schema.prisma`, the sync files'
   behaviour (`calendarEventPush.ts`, `calendarSync*.ts`), any client file.
 - **Work:** guard as `updateCalendarEvent`; parse and bound the date
   (refuse outside 2000-01-01 to 2100-01-01); load the row; refuse missing,
@@ -162,15 +160,14 @@ calendar is touched by any agent.
 - **Done:** `grep -n pushEventCopies src/app/actions/calendar.ts` shows the
   update and move paths reach the push through one function.
 
-### C3: The lift (wire the machine to the blocks)
+### C3 — The lift (wire the machine to the blocks)
 - **Objective:** a held block lifts and follows the finger with its new time,
   with no React render per move.
-- **May touch:** `src/lib/usePagedSwipe.ts`, `src/components/TimelineGrid.tsx`,
+- **Boundaries:** may touch `src/lib/usePagedSwipe.ts`, `src/components/TimelineGrid.tsx`,
   `src/components/TimelinePage.tsx`, `src/components/TimelineDayColumn.tsx`,
   a new `src/lib/useTimelineDrag.ts` (or similar, the DOM side of the lift,
   NOT a second gesture machine: it only carries out effects), `src/app/globals.css`
-  only if a class is needed.
-- **Must not touch:** `calendarGesture.ts` (C1 owns it), the server, sheets.
+  only if a class is needed. · must not touch `calendarGesture.ts` (C1 owns it), the server, sheets.
 - **Work:** blocks that may lift carry `data-drag-id` (only when the viewer
   can edit, the event is timed, single-day, not a task). `isOnBlock` reads
   it. `usePagedSwipe` passes `holdEnabled` and runs the hold timer (one
@@ -203,13 +200,12 @@ calendar is touched by any agent.
   output, line counts.
 - **Done:** every probe above passes with numbers.
 
-### C4: The drop (optimistic move, Undo bar, refusal)
+### C4 — The drop (optimistic move, Undo bar, refusal)
 - **Objective:** a drop moves the event at once, saves, offers Undo for 5
   seconds, and a refusal glides back with a warn line.
-- **May touch:** `src/components/CalendarViews.tsx`, a new shared
-  `src/components/UndoBar.tsx`, the files C3 created, `TimelineGrid.tsx` /
-  `TimelinePage.tsx` props only.
-- **Must not touch:** server files, `calendarGesture.ts`.
+- **Boundaries:** may touch `src/components/CalendarViews.tsx`, a shared
+  new `src/components/UndoBar.tsx`, the files C3 created, `TimelineGrid.tsx` /
+  `TimelinePage.tsx` props only. · must not touch server files, `calendarGesture.ts`.
 - **Work:** `useOptimistic` over the events list (the `PantryList` pattern);
   drop calls `moveCalendarEvent`; Undo calls it again with the original
   start; bar text "Moved to Wed 2:15 PM" (the household's format helpers),
