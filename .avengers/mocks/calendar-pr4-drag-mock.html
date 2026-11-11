@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Calendar drag mock (PR 4)</title>
+<style>
+:root{--bg:#1c1b16;--fg:#ece8df;--muted:#9a958a;--line:#3a3830;--accent:#e0a458;--ev:#2e3a2f;--evb:#6d8a6f;--warn:#f4d26b;--warn-soft:#3d3212;--surface:#26251f;--hh:48px;--gut:44px}
+*{box-sizing:border-box}
+html,body{margin:0;background:#111;color:var(--fg);font:14px -apple-system,system-ui,sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.wrap{max-width:420px;margin:0 auto;padding:12px}
+h1{font-size:17px;margin:0 0 4px}
+p.note{color:var(--muted);margin:0 0 10px;font-size:13px;line-height:1.45}
+.phone{height:640px;background:var(--bg);border-radius:24px;border:5px solid #000;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.top{height:52px;display:flex;align-items:center;gap:8px;padding:0 10px;flex:none}
+.top .title{font-weight:700;font-size:17px;flex:1}
+.btn{border:1px solid var(--line);background:none;color:var(--fg);border-radius:999px;padding:8px 12px;font:inherit;font-size:13px}
+.btn.on{background:var(--accent);color:#1c1b16;border-color:var(--accent);font-weight:600}
+.views{display:flex;gap:6px;padding:0 10px 8px;flex:none}
+.scroller{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;touch-action:pan-y;overscroll-behavior:contain}
+.scroller.locked{touch-action:none;overflow-y:hidden}
+.sticky{position:sticky;top:0;z-index:3;background:var(--bg)}
+.head{display:flex;border-bottom:1px solid var(--line)}
+.head .corner{width:var(--gut);flex:none}
+.hcell{flex:1;text-align:center;padding:6px 0;border-left:1px solid var(--line)}
+.hcell b{display:block;font-size:18px}
+.hcell small{color:var(--muted);font-size:11px}
+.hcell.today b{color:var(--accent)}
+.hcell.target{background:rgba(224,164,88,.12)}
+.body{display:flex;position:relative}
+.gutter{width:var(--gut);flex:none;position:relative;height:calc(var(--hh)*24)}
+.gutter span{position:absolute;right:6px;font-size:10px;color:var(--muted);transform:translateY(-50%)}
+.cols{flex:1;display:flex;position:relative}
+.col{flex:1;border-left:1px solid var(--line);position:relative;height:calc(var(--hh)*24);
+ background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--hh) - 1px),var(--line) calc(var(--hh) - 1px),var(--line) var(--hh))}
+.ev{position:absolute;left:2px;right:2px;background:var(--ev);border:1px solid var(--evb);border-radius:6px;font-size:11px;padding:3px 4px;font-weight:600;overflow:hidden;line-height:1.25;
+ -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform 220ms cubic-bezier(.2,.8,.2,1),box-shadow 160ms,opacity 160ms}
+.ev small{display:block;font-weight:400;color:var(--muted);font-size:10px}
+.ev.allday{position:static;margin:2px;border-style:dashed}
+.ev.ghost{opacity:.35}
+.ev.lifted{z-index:6;transition:box-shadow 160ms,scale 160ms;scale:1.04;box-shadow:0 8px 22px rgba(0,0,0,.55),0 0 0 2px var(--accent);background:#37473a}
+.ev.lifted small{color:var(--fg);font-weight:600}
+.ev.pressing{transition:scale 400ms linear;scale:1.015}
+.ev.task{background:transparent;border-style:solid;border-color:var(--line)}
+.alldayrow{display:flex;border-bottom:1px solid var(--line);background:var(--bg)}
+.alldayrow .corner{width:var(--gut);flex:none;font-size:9px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.alldayrow .c{flex:1;border-left:1px solid var(--line);min-height:22px}
+.edge{position:absolute;left:0;right:0;height:44px;pointer-events:none;z-index:4;opacity:0;transition:opacity 150ms}
+.edge.on{opacity:1}
+.edge.topE{top:0;background:linear-gradient(rgba(224,164,88,.18),transparent)}
+.edge.botE{bottom:0;background:linear-gradient(transparent,rgba(224,164,88,.18))}
+.fab{position:absolute;right:14px;bottom:14px;width:56px;height:56px;border-radius:18px;background:var(--accent);color:#1c1b16;font-size:30px;display:flex;align-items:center;justify-content:center;z-index:5}
+.bar{position:absolute;left:14px;right:84px;bottom:18px;min-height:48px;border-radius:12px;background:var(--fg);color:var(--bg);display:flex;align-items:center;gap:8px;padding:0 6px 0 14px;font-size:14px;z-index:7;
+ transform:translateY(90px);transition:transform 200ms cubic-bezier(.2,.8,.2,1)}
+.bar.show{transform:none}
+.bar .msg{flex:1;line-height:1.3}
+.bar button{background:none;border:0;color:#8a6410;font:inherit;font-weight:700;min-height:44px;min-width:64px;border-radius:8px}
+.bar.warn{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+.bar.warn button{display:none}
+.opts{margin:10px 0;display:flex;flex-direction:column;gap:6px}
+label.o{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px}
+.readout{color:var(--muted);font-size:12px;margin-top:8px;min-height:1.4em}
+.key{color:var(--muted);font-size:12px;line-height:1.5;margin-top:10px}
+.key b{color:var(--fg)}
+</style></head><body>
+<div class="wrap">
+<h1>Drag to reschedule (PR 4 mock)</h1>
+<p class="note">Press and hold an event for about half a second. It lifts: a little bigger, a shadow, an outline, and its new time where its time used to be. Drag up or down (it snaps to 15 minutes) or across to another day. Hold near the top or bottom of the hours and they scroll. Let go: it stays, and a bar says "Moved to ..." with Undo for 5 seconds. A quick touch still scrolls, swipes or opens, as now.</p>
+<div class="phone" id="phone">
+  <div class="top"><span class="title">November</span><button class="btn">Today</button></div>
+  <div class="views" id="views"></div>
+  <div class="scroller" id="scroller">
+    <div class="sticky"><div class="head" id="head"></div><div class="alldayrow" id="allday"></div></div>
+    <div class="body"><div class="gutter" id="gutter"></div><div class="cols" id="cols"></div></div>
+  </div>
+  <div class="edge topE" id="edgeT" style="top:150px"></div>
+  <div class="edge botE" id="edgeB"></div>
+  <div class="fab">+</div>
+  <div class="bar" id="bar"><span class="msg" id="barMsg"></span><button id="undo">Undo</button></div>
+</div>
+<div class="opts">
+  <label class="o"><input type="radio" name="who" value="parent" checked> Signed in as a parent (can drag)</label>
+  <label class="o"><input type="radio" name="who" value="kid"> Signed in as a kid or the Tablet (nothing lifts; a tap still opens)</label>
+  <label class="o"><input type="checkbox" id="refuse"> Pretend the server refuses the next drop (it glides back, with a yellow reason)</label>
+</div>
+<div class="readout" id="readout"></div>
+<div class="key"><b>Does not lift:</b> all-day events (top row), events that span days, and tasks (the outlined "Take out trash"). They open on a tap as now.<br><b>Repeating events</b> (like "Wake up") lift too. In this PR the drop moves just that one day. PR 5 adds "This one or All of them".</div>
+</div>
+<script>
+const HOLD=400, SLOP=8, SNAP=15, EDGE=44;
+const T0=new Date(2026,10,10);
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const views=[["Day",1],["3 Day",3],["Week",7]];
+let view=1;
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+let events=[
+ {id:1,t:"Dentist",day:0,start:9*60,len:60},
+ {id:2,t:"Soccer practice",day:1,start:16*60+30,len:90},
+ {id:3,t:"Wake up",day:0,start:7*60,len:30,repeat:true},
+ {id:4,t:"Wake up",day:1,start:7*60,len:30,repeat:true},
+ {id:5,t:"Wake up",day:2,start:7*60,len:30,repeat:true},
+ {id:6,t:"Date night",day:2,start:19*60,len:120},
+ {id:7,t:"Take out trash",day:1,start:10*60,len:30,task:true},
+ {id:8,t:"Call Mom",day:-1,start:12*60,len:30},
+ {id:9,t:"Book club",day:4,start:18*60,len:60},
+];
+const allday=[{t:"Thanksgiving trip",day:2}];
+function fmt(m){m=((m%1440)+1440)%1440;let h=Math.floor(m/60),mi=m%60,ap=h>=12?"PM":"AM";h=h%12||12;return h+(mi?":"+String(mi).padStart(2,"0"):"")+" "+ap}
+function range(s,l){const a=fmt(s),b=fmt(s+l);const sa=a.slice(-2),sb=b.slice(-2);return (sa===sb?a.slice(0,-3):a)+" to "+b}
+function hh(){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hh"))}
+function colDays(){const n=views[view][1];const base=n===7?addDays(T0,-T0.getDay()):T0;return Array.from({length:n},(_,i)=>addDays(base,i))}
+function dayIndex(d){return Math.round((d-T0)/86400000)}
+const scroller=document.getElementById("scroller"),colsEl=document.getElementById("cols"),bar=document.getElementById("bar"),barMsg=document.getElementById("barMsg");
+function renderViews(){const el=document.getElementById("views");el.innerHTML="";views.forEach(([n],i)=>{const b=document.createElement("button");b.className="btn"+(i===view?" on":"");b.textContent=n;b.onclick=()=>{view=i;render()};el.appendChild(b)})}
+function render(){
+ renderViews();
+ const days=colDays();
+ const head=document.getElementById("head");head.innerHTML='<div class="corner"></div>';
+ const ad=document.getElementById("allday");ad.innerHTML='<div class="corner">all-day</div>';
+ days.forEach((d,i)=>{const c=document.createElement("div");c.className="hcell"+(dayIndex(d)===0?" today":"");c.dataset.i=i;c.innerHTML="<small>"+DOW[d.getDay()]+"</small><b>"+d.getDate()+"</b>";head.appendChild(c);
+  const a=document.createElement("div");a.className="c";allday.filter(x=>x.day===dayIndex(d)).forEach(x=>{const e=document.createElement("div");e.className="ev allday";e.textContent=x.t;e.onclick=()=>say("Opened "+x.t+" (all-day events open, they do not lift)");a.appendChild(e)});ad.appendChild(a)});
+ const g=document.getElementById("gutter");g.innerHTML="";for(let h=1;h<24;h++){const s=document.createElement("span");s.style.top="calc(var(--hh)*"+h+")";s.textContent=fmt(h*60).replace(":00","");g.appendChild(s)}
+ colsEl.innerHTML="";
+ days.forEach(d=>{const c=document.createElement("div");c.className="col";const di=dayIndex(d);
+  events.filter(e=>e.day===di).forEach(e=>{const b=document.createElement("div");b.className="ev"+(e.task?" task":"");b.dataset.id=e.id;
+   b.style.top="calc(var(--hh)*"+(e.start/60)+")";b.style.height="calc(var(--hh)*"+(e.len/60)+" - 2px)";
+   b.innerHTML=(e.task?"☐ ":"")+e.t+(e.repeat?" ↻":"")+"<small>"+range(e.start,e.len)+"</small>";c.appendChild(b)});
+  colsEl.appendChild(c)});
+}
+render();
+scroller.scrollTop=hh()*6.5;
+let barTimer=null,lastMove=null;
+function showBar(msg,warn){barMsg.textContent=msg;bar.className="bar show"+(warn?" warn":"");clearTimeout(barTimer);barTimer=setTimeout(()=>bar.className="bar"+(warn?" warn":""),warn?4000:5000)}
+document.getElementById("undo").onclick=()=>{if(!lastMove)return;const e=events.find(x=>x.id===lastMove.id);e.day=lastMove.day;e.start=lastMove.start;lastMove=null;render();bar.className="bar";say("Undone: back where it was")};
+function say(t){document.getElementById("readout").textContent=t}
+// gesture: one machine, like the real one
+let g=null,timer=null,raf=null;
+function isParent(){return document.querySelector('input[name=who]:checked').value==="parent"}
+colsEl.addEventListener("pointerdown",ev=>{
+ const b=ev.target.closest(".ev");g={x:ev.clientX,y:ev.clientY,id:ev.pointerId,kind:"undecided",block:b};
+ if(b&&isParent()&&!events.find(e=>e.id==b.dataset.id).task){b.classList.add("pressing");timer=setTimeout(()=>lift(ev.pointerId),HOLD)}
+});
+function lift(pid){
+ if(!g||g.kind!=="undecided")return;
+ g.kind="holding";const b=g.block;b.classList.remove("pressing");b.classList.add("lifted");
+ try{colsEl.setPointerCapture(pid)}catch{}
+ scroller.classList.add("locked");
+ const e=events.find(x=>x.id==b.dataset.id);g.ev=e;g.origDay=e.day;g.origStart=e.start;g.newDay=e.day;g.newStart=e.start;
+ const r=b.getBoundingClientRect();g.offY=g.y-r.top;
+ if(navigator.vibrate)navigator.vibrate(10);
+ say("Lifted. Drag it to a new time or day.");
+}
+window.addEventListener("pointermove",ev=>{
+ if(!g||ev.pointerId!==g.id)return;
+ const dx=ev.clientX-g.x,dy=ev.clientY-g.y;
+ if(g.kind==="undecided"){if(Math.abs(dx)>=SLOP||Math.abs(dy)>=SLOP){clearTimeout(timer);g.block&&g.block.classList.remove("pressing");g.kind="scrolling"}return}
+ if(g.kind==="holding"||g.kind==="dragging"){g.kind="dragging";g.cx=ev.clientX;g.cy=ev.clientY;ev.preventDefault();place();edgeScroll()}
+},{passive:false});
+function place(){
+ const b=g.block,e=g.ev,H=hh();
+ const colsR=colsEl.getBoundingClientRect(),days=colDays(),w=colsR.width/days.length;
+ let ci=Math.max(0,Math.min(days.length-1,Math.floor((g.cx-colsR.left)/w)));
+ const topPx=g.cy-g.offY-colsR.top; // includes scroll since cols moves with content
+ let m=Math.round((topPx/H*60)/SNAP)*SNAP;m=Math.max(0,Math.min(1440-e.len,m));
+ g.newDay=dayIndex(days[ci]);g.newStart=m;
+ const origCol=days.findIndex(d=>dayIndex(d)===g.origDay);
+ const tx=(ci-origCol)*w, ty=(m-g.origStart)/60*H;
+ b.style.transform="translate("+tx+"px,"+ty+"px)";
+ b.querySelector("small").textContent=range(m,e.len);
+ document.querySelectorAll(".hcell").forEach((h,i)=>h.classList.toggle("target",i===ci&&ci!==origCol));
+}
+function edgeScroll(){
+ const r=scroller.getBoundingClientRect(),headH=document.querySelector(".sticky").offsetHeight;
+ const nearTop=g.cy<r.top+headH+EDGE,nearBot=g.cy>r.bottom-EDGE;
+ document.getElementById("edgeT").classList.toggle("on",nearTop);document.getElementById("edgeB").classList.toggle("on",nearBot);
+ cancelAnimationFrame(raf);
+ if(nearTop||nearBot){const step=()=>{if(!g||g.kind!=="dragging")return;scroller.scrollTop+=nearTop?-6:6;place();raf=requestAnimationFrame(step)};raf=requestAnimationFrame(step)}
+}
+function end(ev,cancel){
+ if(!g||ev.pointerId!==g.id)return;clearTimeout(timer);cancelAnimationFrame(raf);
+ document.querySelectorAll(".edge").forEach(x=>x.classList.remove("on"));document.querySelectorAll(".hcell").forEach(h=>h.classList.remove("target"));
+ scroller.classList.remove("locked");
+ const b=g.block;
+ if(g.kind==="undecided"&&b&&!cancel){b.classList.remove("pressing");const e=events.find(x=>x.id==b.dataset.id);say("Opened "+e.t+" (a quick tap opens, as now)")}
+ if(g.kind==="holding"){b.classList.remove("lifted");say("Put back down without moving.")}
+ if(g.kind==="dragging"){
+  const e=g.ev,moved=g.newDay!==g.origDay||g.newStart!==g.origStart;
+  if(cancel||!moved){glideBack(b);say(cancel?"Cancelled: back where it was.":"Same time, nothing changed.")}
+  else if(document.getElementById("refuse").checked){document.getElementById("refuse").checked=false;glideBack(b);showBar("Couldn't move it. Only parents can change events.",true);say("Refused: it glided back.")}
+  else{lastMove={id:e.id,day:g.origDay,start:g.origStart};e.day=g.newDay;e.start=g.newStart;
+   const d=addDays(T0,e.day);render();showBar("Moved to "+DOW[d.getDay()]+" "+fmt(e.start),false);say("Saved. The Google copy moves too.")}
+ }
+ g=null;
+}
+function glideBack(b){b.classList.remove("lifted");b.style.transform="";const e=g.ev;setTimeout(()=>{b.querySelector("small").textContent=range(e.start,e.len)},220)}
+window.addEventListener("pointerup",ev=>end(ev,false));
+window.addEventListener("pointercancel",ev=>end(ev,true));
+document.addEventListener("contextmenu",e=>e.preventDefault());
+</script>
+</body></html>
