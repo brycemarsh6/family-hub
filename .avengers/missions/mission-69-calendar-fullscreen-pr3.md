@@ -1,6 +1,6 @@
 # Mission 69: Calendar full screen PR 3, the sliding swipe
 
-- **Status:** STOPPED at the gate budget (pass 3: Captain PASS at pass 2, Vision PASS, Strange BLOCK on a one-line reduce-motion fix). Asked Bryce 2026-11-10 whether to allow one focused fourth pass.
+- **Status:** AT-THE-GATES (Bryce 2026-11-10: "Yes, one more round", a fourth pass limited to the reduce-motion fix F4)
 - **Started:** 2026-11-10 · **Updated:** 2026-11-10
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 3: Sliding swipe (decision 7; small call A)"
 - **Branch:** `claude/calendar-fullscreen-pr3-096354`, synced to `origin/main` `2c2d7df` (PR 1 #109 and PR 2 #110 merged)
@@ -346,6 +346,25 @@ pushes to `main`.
 - **Done:** gauntlet green; gate pass 3 measures m41 going from minus a page
   to 0 in one frame at hand-over, m41 equal to `--page-dx` in every drag
   frame, and `--page-dx` 0 after a tap or scroll during a spring-back.
+
+### F4 - Reduce-motion hand-over flicker (Bryce allowed a fourth, focused pass)
+- **Status:** DONE `9e211bc` (one class, `transition-none`, on the track; built CSS shows the glide variant later and more specific; gauntlet green per Stark)
+- **Status:** dispatched 2026-11-10
+- **Objective:** Under Reduce Motion the track never transitions, so the hand-over paints the target at 0 in its first frame.
+- **Boundaries:** may touch: `src/components/PagedTrack.tsx` (the track's
+  `className` only)
+  · must not touch: every other file, including `src/app/globals.css`.
+- **Work:** the track's resting `transition-property` is `none`
+  (`transition-none`), and `[[data-glide=true]_&]:transition-transform`
+  still applies during a glide. Confirm in the built CSS that the glide
+  variant outranks `transition-none` (same specificity is not enough if
+  source order puts `transition-none` later).
+- **Verification:** the gauntlet; the built CSS rule order for both classes.
+- **Evidence:** gauntlet tails; the two CSS rules quoted with their order or
+  specificity.
+- **Done:** gauntlet green; pass 4 (Vision and Strange, reduce motion only,
+  plus one normal-motion glide) sees the target at 0 in the first frame
+  after release and normal glides unchanged.
 
 ## Execution log
 
