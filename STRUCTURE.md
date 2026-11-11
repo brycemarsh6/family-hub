@@ -604,7 +604,11 @@ amendment id.
   calendar-day helper goes here; a process-local getter in a server path is
   a bug, and a second zone-explicit helper elsewhere is a BLOCKER. (Added
   2026-10-09, mission-21; Bryce-approved.) `startOfWeek` (Sunday) and
-  `startOfMonth` live here too. `formatWeekTitle(weekStart, currentYear)` is
+  `startOfMonth` live here too. The wall-clock helpers `wallClockMs`,
+  `instantAtWallClock` (which `zoneMidnightInstant` uses) and
+  `shiftWallClockInZone` live here, and the browser may import them
+  (mission-71; docs/structure/calendar.md, "A repeating series belongs to
+  Google"). `formatWeekTitle(weekStart, currentYear)` is
   the dash-free week title ("Nov 1 to 7"), beside `formatShortCalendarDate`.
   `formatWeekRange(weekStart)` in `mealPlanDates.ts` (browser-local `Date`:
   Meal Plan, Schedule, This week, the meal plan sheets) prints the same
@@ -684,6 +688,10 @@ amendment id.
   Editing and dragging both save through `afterEventSaved` in
   `src/app/actions/calendar.ts`. (Rules: docs/structure/calendar.md, "One
   write path for an event's time".)
+- **A repeating series belongs to Google (mission-71).** "All of them"
+  changes the series parent in Google through `moveCalendarSeries`, then
+  pulls; never row by row. (Rules: docs/structure/calendar.md, "A
+  repeating series belongs to Google".)
 - **Reduce motion has one JS reader.** `src/lib/usePrefersReducedMotion.ts`
   (`useSyncExternalStore` over the media query) is how a component asks;
   `globals.css`'s `prefers-reduced-motion` block zeroes CSS transitions.
@@ -890,7 +898,10 @@ amendment id.
   about 361 code (89% of the hard cap; the next Schedule feature extracts
   the two-panel wrapper), `CalendarViews.tsx` 490 total / 194 code (was 502; Month and Year
   paging moved to `PagedPeriodViews.tsx`, mission-69; the drop and Undo bar
-  added 8, mission-70), `TimelineGrid.tsx` 411 / 178 code (was 471; one
+  added 8, mission-70; the repeat sheet added 4 more, 494 total,
+  mission-71), `useEventMoves.ts` 310 total (mission-71, was 136; its next
+  feature moves the series half, `applySeriesShift`, the series save and
+  the repeat sheet's props, into `src/lib/useSeriesMove.ts`), `TimelineGrid.tsx` 411 / 178 code (was 471; one
   page of columns moved to `TimelinePage.tsx`, mission-69; drag wiring,
   mission-70), `useTimelineDrag.ts` 358 / 275 code (mission-70; 8 over
   the soft cap, a split candidate on its next touch), `usePagedSwipe.ts` 393 / 302 code (was 342; a split

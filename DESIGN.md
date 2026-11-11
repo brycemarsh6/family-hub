@@ -527,6 +527,25 @@ A new one-off that duplicates one of these jobs is a design violation:
   permanent overlay is; anything longer-lived than a few seconds is.
   A new undo or notice reuses it rather than adding a toast. (Bryce
   approved 2026-11-10.)
+- `RepeatMoveSheet`: what a drop of one day of a repeating Google event
+  asks (mission-71, Bryce approved the mock 2026-11-11). A house sheet
+  titled "Move a repeating event", one line saying where it is going
+  ("Wake Up, to Thu 7:30 AM."), then **This one** (accent, on top), **All
+  of them**, **Cancel**; tapping the dim is Cancel. It sits at the bottom
+  at every width, the iPad included, so the dropped block stays in view
+  (Bryce, 2026-11-11). It is never danger-coloured, because nothing is
+  deleted. On another day "All of them" is not offered, and a grey line
+  says why ("Only this one can move to another day. To move every Wake Up,
+  drop it on the same day at the new time."). While it asks, the dropped
+  block keeps the lifted look, because it is still moving, but the gutter
+  marker and day tint are gone: the sheet's line is the one place the time
+  is told. Cancel glides the block home and saves nothing. "All of them"
+  moves every day on screen at once, then the bar says "Moved every Wake
+  Up to 7:30 AM" with Undo; if Google says no, every block glides back and
+  a warn bar gives the reason. A repeating event's block shows Lucide's
+  `Repeat` mark after its title, so a person knows before dragging that
+  the drop will ask (Bryce, 2026-11-11); the title wins when space is
+  short.
 - `IdeaChips`: the one row of tappable idea chips ("Ideas for Health"). A
   tap hands the words to the form, never submits, and no chip is ever shown
   as selected. `GoalForm`, `PlanItemSheet` and the New habit form use it; a new

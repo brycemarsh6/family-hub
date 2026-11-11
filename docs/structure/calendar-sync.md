@@ -27,8 +27,9 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   of Google's auth endpoints; `calendarApi.ts` (`server-only`, no auth) is the
   only file that gives the Calendar API a real `fetch`.
   `calendarEventCalls.ts` is pure, takes `fetch` as a parameter (the
-  `winnieEvents.ts` shape), holds the event insert, update, get, delete and
-  list (with its page cap), and is imported only by `calendarApi.ts` and its
+  `winnieEvents.ts` shape), holds the event insert, update (a full payload or
+  `shiftParentTimes`'s times patch), get, delete, list and `listInstances`
+  (each list with its page cap), and is imported only by `calendarApi.ts` and its
   own test. `eventPayload.ts` is pure and is the only mapping of a Marshee
   event to Google's shape and the only builder of a Google event id.
   `eventFromGoogle.ts` is pure and is the only mapping of a Google event back
@@ -102,27 +103,43 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   anything else. Only the pull fills it (`planPull`): on every insert and
   update, and, for a row whose etag is unchanged, through a `seriesFills`
   entry that `writeSeriesFill` in `calendarEventPull.ts` saves as that one
-  field on the sync row (never the event, its `updatedAt` or the etag). The
-  push never reads or writes it. Mission 71 added it (the migration also
-  cleared the "Both ways" sync tokens so one full pull backfills old rows).
-  `exceptLinkedCalendarId` is passed only by the pull's push out, with the
-  event's source calendar, so Google's original is never patched with
-  Marshee's fields; a push back (Marshee won) passes none.
+  field on the sync row (never the event, its `updatedAt` or the etag). A
+  fill never counts as a change, and a failed fill leaves the sync token
+  unsaved so the next pull tries again. A handover (`adoptSiblingPulls`)
+  moves it with its row. The push never reads or writes it. Its readers
+  are `EVENT_SYNC_SELECT`, only for `toCalendarEventView`'s `seriesId`
+  (`toEventSyncViews` leaves it out), and `moveCalendarSeries` (rules:
+  docs/structure/calendar.md, "A repeating series belongs to Google").
+  Mission 71 added it (the migration also cleared the "Both ways" sync
+  tokens so one full pull backfills old rows).
+  `exceptLinkedCalendarId` is passed only by the pull: its push out, with
+  the event's source calendar, so Google's original is never patched with
+  Marshee's fields, and its delete (`writeDelete(del, calendarId)`, also
+  used by the series move's cleanup through `deletePulledEvent`), with the
+  pulled calendar, whose copy Google already removed; a push back (Marshee
+  won) passes none.
   **The pull (mission-60).** `src/lib/calendarSyncPull.ts` is pure (no `db`,
   no network, no clock: `now` is passed in) and is the only home of the pull
   decisions: `planPull` (inserts, updates, deletes, conflicts, skipped Google
   kinds, `pushOut`) and `PULL_SKIP_REASONS`. `src/lib/calendarPullRun.ts` is
   pure, with every database and Google call injected (`PullRunDeps`); it holds
   the steps in order, `PULL_WINDOW_DAYS`, `PULL_LEASE_MS`,
-  `PULL_FORCE_LEASE_MS` and the once-per-Google-calendar guard, and never
+  `PULL_FORCE_LEASE_MS`, the once-per-Google-calendar guard and the
+  `onlyCalendarId` and `ignoreLease` options, passed only by the series move
+  (`ignoreLease` claims the lease whatever its stamp, and still stamps it),
+  and never
   logs or returns a token. `src/lib/calendarEventPull.ts` (`server-only`, no
   auth, no `revalidatePath`) binds it to the database and Google, makes no
-  decision, and through `pullCalendars` and `removePulledEvents` is the only
-  writer of pulled events (a `CalendarEvent` with `sourceLinkedCalendarId`).
+  decision, and through `pullCalendars`, `removePulledEvents` and
+  `deletePulledEvent` (the pull's own delete, for the series move's cleanup)
+  is the only writer of pulled events (a `CalendarEvent` with `sourceLinkedCalendarId`).
   Its guarded callers are `actions/calendarPull.ts`,
   `api/cron/calendar-pull/route.ts`, the unlink in `actions/linkedCalendars.ts`
-  and the callback route; it may have more, each carrying its own gate. A
-  copy of a pull decision, a second writer of pulled events, or a token in a
+  the callback route and `actions/calendarSeries.ts` (which also uses its
+  `getAccountAccessToken`, the pull's own token step, so a revoked grant
+  marks the account the same way); it may have more, each carrying its own gate. A
+  copy of a pull decision (`planSeriesCleanup` in `calendarSeriesRules.ts`
+  is the series move's own decision, not a copy), a second writer of pulled events, or a token in a
   log or an answer is a BLOCKER.
   `EVENT_SYNC_SELECT`, `EVENT_TICKED_SYNC_SELECT` (the edit form's ticks:
   `linkedCalendarId` only, never a `removing` row), `EVENT_SOURCE_SELECT` and
@@ -140,6 +157,11 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   `calendarSyncRules.ts` and the vocabulary; `calendarPullRun.ts` imports only
   `calendarSyncPull.ts` and `google/types.ts`. None of these imports `db`, a
   `*Read` or `*Writes` module or a `server-only` file.
+  `calendarSeriesRules.ts` imports only `householdDate.ts`,
+  `calendarMoveRules.ts` and `google/types.ts`; `calendarSeriesMove.ts` only
+  `calendarSeriesRules.ts`, `calendarPullRun.ts`, and types from
+  `calendarSyncPull.ts` and `google/types.ts`. Neither imports `db`, a `*Read`
+  or `*Writes` module or a `server-only` file.
   `linkedCalendarsRead.ts` may import `calendarSyncRules.ts` and types from
   `calendarPullRun.ts`, never the reverse. `calendarEventPush.ts` is imported
   only by Server Actions and `calendarEventPull.ts`; `calendarEventPull.ts`
