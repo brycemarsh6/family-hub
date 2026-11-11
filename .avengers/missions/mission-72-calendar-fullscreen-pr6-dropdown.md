@@ -1,6 +1,6 @@
 # Mission 72: Calendar full screen PR 6, the month dropdown and the iPad side panel
 
-- **Status:** STOPPED (Strange's 3-pass budget used with one open blocker; waiting for Bryce: proposed F3 one-line fix plus a scoped 4th Strange check) (was AT-THE-GATES (C1 to C4 DONE; Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
+- **Status:** AT-THE-GATES (Bryce 2026-11-11 after Strange's budget: "Yes, fix and finish", F3 plus one scoped Strange check, then push, merge, check live; keep the sideways iPad Largest behaviour) (C1 to C4, F1, F2 DONE; Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 6: The month dropdown (decisions 8, 12, 14; small calls D, E)"
 - **Branch:** `claude/calendar-fullscreen-pr6-0e927b`, cut from `origin/main` `a1bd34a` (PR 5 merged as #113)
@@ -508,8 +508,8 @@ HEAD` after.
   measurements with screenshot paths.
 - **Done:** every measurement as expected, gauntlet green.
 
-### F3 - Strange pass 3 blocker (proposed, waiting for Bryce)
-- **Status:** PROPOSED
+### F3 - Strange pass 3 blocker (approved by Bryce 2026-11-11)
+- **Status:** PENDING
 - **Objective:** on Schedule the little month shows the month of the day
   the list is showing, so the ring is visible, like main's ScheduleMiniMonth.
 - **Boundaries:** may touch `src/components/CalendarViews.tsx` (the
