@@ -56,6 +56,48 @@ docs/history/structure-rationale.md under the same name.
   (Added mission-19; rewritten mission-69 and mission-70, on Captain's
   ruling; mission-70's text approved by Bryce 2026-11-10.)
 
+## The small month and the month panel
+
+- **One small month.** `src/components/MiniMonth.tsx` is the only
+  navigation grid of days: weekday letters and the 42 cells from
+  `monthGridDays`, today from `isTodayCell`, an optional `selected` ring,
+  dots from `daysWithItems` (`monthLayout.ts`), `onPickDay`. Its callers
+  add their own header (`MonthJumpPanel`'s `MonthChips`). A second day grid
+  built from `monthGridDays` for navigation is a BLOCKER; `MonthGrid`/
+  `MonthCell` and `YearView` draw events and are not navigation grids.
+- **The month panel** is `src/components/MonthJumpPanel.tsx`, opened and
+  closed by the title. Below `MONTH_PANEL_BESIDE_MIN_PX` (700px of the
+  Calendar body's width, `gridClasses.ts`; px by design, layout.md rule 2)
+  it drops down above the view and its state is a plain `useState` that
+  starts closed (Bryce: the phone never remembers it). From that width, on
+  Schedule, Day, 3 Day and Week it is a column beside the view, and its
+  state is `useMonthPanelOpen(viewerId)` (`src/lib/monthPanelOpen.ts`): one
+  boolean per person per device in localStorage, read with
+  `useSyncExternalStore`, closed on the server and with no viewer. Month
+  and Year show only its chip row, above the view. Its root carries
+  `data-month-panel="open"` only while it sits beside the view; that marker
+  is the only signal the app chrome reads (layout.md, "The month panel
+  marker"). Beside-only on purpose: the squeeze only ever widens a body
+  that is already wide, so it cannot flip the layout back.
+- **Schedule's day in view has one tracker,** `useScheduleDayInView`;
+  ScheduleView reports it up (`onDayInViewChange`) only while the panel is
+  open (`trackDayInView`), for the ring, and the panel's day tap scrolls
+  the list through `scheduleRef` before falling back to `jumpToDay`.
+- **A second paging surface is allowed, never a nested one.** The panel's
+  little month pages with `PagedSwipeArea` (no drag callbacks), like Month
+  and Year. Because `--page-dx` is inherited, `[data-glide=true]` matches
+  any ancestor and React handlers bubble, a `PagedSwipeArea` or
+  `PagedTrack` inside another swipe root (the timeline's
+  `data-fills-viewport` root, Month's or Year's swipe area) is a BLOCKER.
+- **The timeline fills to the screen's bottom through
+  `useFillViewportHeight`** (`src/lib/useFillViewportHeight.ts`): it
+  measures on mount, window resize, a view change, and whenever the
+  `data-calendar-body` box (the panel and the view) changes size, which is
+  how it follows the panel opening and closing above it. A second height
+  measurement of the scroller is a BLOCKER.
+
+(Added mission-72, on Captain's ruling.)
+
 ## One write path for an event's time
 
 - **Two actions change an existing event's `startAt` or `endAt`:**

@@ -98,7 +98,10 @@ Wide pages: the
      class naming mission-58 and why. Instances: `MonthCell.tsx`
      (`@min-[768px]:`, the Month grid's lanes, pills and "+N more") and
      `TimelineDayColumn.tsx` (`@min-[128px]:`, a narrow column's title size
-     and time line). A new px container threshold outside this list, or a
+     and time line), and the Calendar body's month panel
+     (`@min-[700px]:`, `MONTH_PANEL_BESIDE_MIN_PX` in `gridClasses.ts`: the
+     panel beside the view on an iPad at every Text size; an upright iPad's
+     body is 736px, mission-72). A new px container threshold outside this list, or a
      rem one put back in these two files, is a BLOCKER. (Added mission-58, on
      Captain's ruling; Bryce approved 2026-11-09.)
   3. **A row never stretches past a readable width.** More columns, more
@@ -249,6 +252,17 @@ Wide pages: the
   `buttonRef` (focus returns to it on close). Unset, they change nothing. Wide scroll areas reserve room for it
   (`pb-20`). There is no + on the tablet. A fixed element that must clear
   it follows rule 4 above.
+  **The month panel marker (mission-72, Captain's ruling).** While
+  `data-month-panel="open"` is on the page, a pinned Sidebar draws as the
+  icon rail (with its "Show menu names" button, Bryce 2026-11-11) without
+  changing the person's Menu style: `PinnedNav` renders its sidebar and
+  rail bodies and the marker picks one, and `AppChrome`'s row overrides
+  `--app-nav-width-lg` with `--app-nav-rail-width` (`NAV_RAIL_WIDTH`) in
+  sidebar mode only. The pinned aside's width reads
+  `var(--app-nav-width-lg)`, so the aside and every fixed bar move
+  together. That override is the one `!important` in the chrome (it must
+  beat the inline variable); a second, a hard-coded nav width, or a page
+  changing `navMode` to get this look is a BLOCKER.
   **Edge to edge (the Calendar, mission-67, Captain's ruling).** A
   surface that must reach both screen edges cancels `<main>`'s side
   padding on its own root with `PAGE_BLEED_CLASSES` (`-mx-4`,
