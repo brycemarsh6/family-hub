@@ -229,6 +229,8 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
 
 ### F1 - Pass 1 fixes (Vision and Strange blockers, chosen notes)
 
+- **Status:** DONE 4211e69 (gauntlet green: tsc 0, lint 0, tests 2032 pass, UTC 2022 pass + 10 skips, build 0)
+
 1. **Objective:** fix the three pass-1 blockers so no title, time or
    location line is cut mid-letter at any zoom or Text size, plus the
    cheap notes.
