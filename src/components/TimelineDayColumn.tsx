@@ -34,6 +34,7 @@
 // copy of either is exactly the kind of drift this mission's own report
 // (`GUTTER_WIDTH_PX`, and the old bottom-nav height) keeps finding.
 
+import { Repeat } from "lucide-react";
 import { minutesOfDay, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
 import { formatTimeRange, isPast } from "@/lib/calendarDates";
 import { showsTimeLine, titleFitsFullSize } from "@/lib/timelineZoom";
@@ -221,6 +222,15 @@ export function TimelineDayColumn({
               }`}
             >
               {event.title}
+              {/* Mission 71: a repeating event's mark. It sits inside the
+                  truncating title span, so a narrow block clips the icon
+                  first and the title keeps its room. */}
+              {event.seriesId && (
+                <>
+                  <Repeat aria-hidden="true" className="ml-0.5 inline-block size-[1em] align-[-0.125em] text-muted" />
+                  <span className="sr-only">, repeats</span>
+                </>
+              )}
             </span>
             {/* The rule is the column's own width (D5, mission-46): a
                 phone 3 Day or Week column (about 44 to 100px) keeps a

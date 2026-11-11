@@ -8,7 +8,8 @@ import type { RepeatSheetProps } from "@/lib/useEventMoves";
  * was dropped behind the dim (useEventMoves.ts keeps its lifted look). "This
  * one" is the plain move, "All of them" shifts the whole series in Google,
  * Cancel and the dim put the block back. On another day only "This one" is
- * offered, with the line saying why. A house sheet like ConfirmSheet, but
+ * offered, with the line saying why. It docks at the bottom at every width
+ * (centred and max-w-md from md up) so the dropped block stays in view. A house sheet like ConfirmSheet, but
  * never danger-coloured: nothing here deletes.
  */
 export function RepeatMoveSheet({ title, where, sameDay, onThisOne, onAll, onCancel }: RepeatSheetProps) {
@@ -21,14 +22,14 @@ export function RepeatMoveSheet({ title, where, sameDay, onThisOne, onAll, onCan
   }, [onCancel]);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center">
       <button type="button" aria-label="Cancel" onClick={onCancel} className="absolute inset-0 bg-black/40" />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Move a repeating event"
-        className="relative flex w-full flex-col rounded-t-2xl bg-surface p-4 shadow-lg transition duration-200 starting:translate-y-8 starting:opacity-0 md:max-w-md md:rounded-2xl"
+        className="relative flex w-full flex-col rounded-t-2xl bg-surface p-4 shadow-lg transition duration-200 starting:translate-y-8 starting:opacity-0 md:max-w-md"
         style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
       >
         <h2 className="mb-1 text-lg font-semibold">Move a repeating event</h2>
