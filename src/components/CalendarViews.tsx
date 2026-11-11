@@ -451,7 +451,7 @@ export function CalendarViews({
           {panelOpen && today !== null && anchor !== null && (
             <div ref={panelRef} className={panelClasses} style={isSchedule ? { top: scheduleChromeHeightPx(insetPx, rootPx) } : undefined}>
               <MonthJumpPanel
-                anchor={anchor}
+                anchor={isSchedule && scheduleDay !== null ? new Date(scheduleDay) : anchor}
                 today={today}
                 selected={isSchedule && scheduleDay !== null ? new Date(scheduleDay) : anchor}
                 dotDays={dotDays}
