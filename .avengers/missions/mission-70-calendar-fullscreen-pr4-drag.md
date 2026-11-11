@@ -163,6 +163,7 @@ calendar is touched by any agent.
   update and move paths reach the push through one function.
 
 ### C3 — The lift (wire the machine to the blocks)
+- **Status:** DONE `be15b35` (usePagedSwipe 342 to 393, over the soft cap; new useTimelineDrag 327; TimelineGrid 407; TimelineDayColumn 261; TimelinePage 295; CalendarViews 483; gauntlet and build green. Real CDP touch, 13/13 probes, on a stand-alone page mounting the real `TimelineGrid` tree with the production build's CSS (the mission 19 harness pattern), because no agent can sign in: the app has no test login and only Bryce's real passwords exist. Not covered by the probe: the real `canManage` for kid and Tablet logins, the app shell. Notes: header tint covers the all-day strip too; shadow is `shadow-lg`, lighter than the mock; an event crossing midnight does not lift; time line hidden in narrow columns, the marker shows the time; probe first attached to another session's Chrome on port 9333, re-run clean on 9471)
 - **Objective:** a held block lifts and follows the finger with its new time,
   with no React render per move.
 - **Boundaries:** may touch `src/lib/usePagedSwipe.ts`, `src/components/TimelineGrid.tsx`,
@@ -215,10 +216,7 @@ calendar is touched by any agent.
   refusal: glide back, `bg-warn-soft text-warn`, `role="alert"`, the
   server's reason. The bar is generic (message, optional action) so PR 8
   reuses it.
-- **Verification:** gauntlet; in the running app on the dev database with
-  seeded events: drag 9 to 10 AM onto 2:15 PM, reload, still there; read
-  the row (2:15 to 3:15); Undo restores; as a kid nothing lifts; clean up
-  with `db:clean-calendar`.
+- **Verification:** gauntlet; real CDP touch on the C3 stand-alone harness (extend `probe-c3.mjs`) with a stubbed `moveCalendarEvent` (ok, refused, slow): the block lands at the new spot in the same frame as release (no flash of the old spot), the bar reads "Moved to ...", Undo calls the action with the original start and restores, the bar leaves after 5 s, a refusal glides back and shows the warn line. No agent can sign in to the app (no test login exists), so the in-app parent check (drag 9 to 10 AM onto 2:15 PM, reload, row reads 2:15 to 3:15) goes on Bryce's phone checklist; C2 already proved the write itself on the dev database.
 - **Evidence:** the row before and after (times only), screenshots of the
   lift and the bar, the clean script's output.
 - **Done:** the database check passes or the file says why it could not.
