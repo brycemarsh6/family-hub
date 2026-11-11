@@ -252,4 +252,5 @@ calendar is touched by any agent.
 
 ## Delivery
 
-(not yet)
+- **Phone test:** added to `.avengers/status.md` (screen recording; the in-app parent drag, kid and Tablet logins, and the real iOS scroll lock are only provable there).
+- Bryce gave permission on 2026-11-10 to merge once every gate passes and the Gauntlet is green, unless a big decision comes up.
