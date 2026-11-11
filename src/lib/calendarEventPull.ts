@@ -53,13 +53,14 @@ type KnownEventRow = {
 
 function knownFrom(
   event: KnownEventRow,
-  sync: { etag: string | null; lastPushedAt: Date | null; lastPulledAt: Date | null } | null,
+  sync: { etag: string | null; googleSeriesId: string | null; lastPushedAt: Date | null; lastPulledAt: Date | null } | null,
   hasOtherCopies = false,
 ): KnownEvent {
   return {
     eventId: event.id,
     hasRow: sync !== null,
     etag: sync?.etag ?? null,
+    googleSeriesId: sync?.googleSeriesId ?? null,
     lastPushedAt: sync?.lastPushedAt ?? null,
     lastPulledAt: sync?.lastPulledAt ?? null,
     eventUpdatedAt: event.updatedAt,
@@ -88,6 +89,7 @@ async function loadKnown(calendar: { id: string }, events: GoogleEventIn[]): Pro
     select: {
       googleEventId: true,
       etag: true,
+      googleSeriesId: true,
       lastPushedAt: true,
       lastPulledAt: true,
       event: {
@@ -147,6 +149,13 @@ const deps: PullRunDeps = {
           data: update.row,
         });
       }
+    });
+  },
+  async writeSeriesFill(calendarId, { eventId, googleSeriesId }) {
+    // Only this one field: the event, its updatedAt and the etag stay as they are.
+    await db.calendarEventSync.update({
+      where: { eventId_linkedCalendarId: { eventId, linkedCalendarId: calendarId } },
+      data: { googleSeriesId },
     });
   },
   async writeDelete({ eventId }) {

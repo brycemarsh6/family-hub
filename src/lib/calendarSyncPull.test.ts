@@ -72,6 +72,7 @@ describe("planPull inserts", () => {
       linkedCalendarId: "cal1",
       googleEventId: "g1",
       etag: '"e2"',
+      googleSeriesId: null,
       status: "ok",
       lastPulledAt: NOW,
     });
@@ -119,11 +120,62 @@ describe("planPull inserts", () => {
   });
 });
 
+describe("planPull series id on inserts", () => {
+  it("an insert carries Google's recurringEventId", () => {
+    const plan = run([gEvent({ recurringEventId: "parent1" })]);
+    assert.equal(plan.inserts[0].sync.googleSeriesId, "parent1");
+  });
+
+  it("an adopted Marshee copy carries it too", () => {
+    const plan = run(
+      [gEvent({ recurringEventId: "parent1", extendedProperties: { private: { marsheeEventId: "ev1" } } })],
+      {},
+      { ev1: knownEvent({ hasRow: false, etag: null }) },
+    );
+    assert.equal(plan.updates[0].row.googleSeriesId, "parent1");
+  });
+});
+
 describe("planPull known events", () => {
   it("skips an echo when the etag equals the row's", () => {
     const plan = run([gEvent({ etag: '"e1"' })], { g1: knownEvent() });
     assert.deepEqual(plan.skipped, [{ googleEventId: "g1", reason: "echo" }]);
     assert.equal(plan.updates.length + plan.inserts.length + plan.deletes.length, 0);
+  });
+
+  it("an unchanged etag with no saved series id writes the series id only", () => {
+    const plan = run([gEvent({ etag: '"e1"', recurringEventId: "parent1" })], { g1: knownEvent() });
+    assert.deepEqual(plan.seriesFills, [{ eventId: "ev1", googleEventId: "g1", googleSeriesId: "parent1" }]);
+    assert.deepEqual([plan.inserts, plan.updates, plan.deletes, plan.pushBacks], [[], [], [], []]);
+  });
+
+  it("an unchanged etag with the series id already saved plans nothing", () => {
+    const plan = run([gEvent({ etag: '"e1"', recurringEventId: "parent1" })], { g1: knownEvent({ googleSeriesId: "parent1" }) });
+    assert.deepEqual(plan.seriesFills, []);
+    assert.deepEqual([plan.inserts, plan.updates, plan.deletes, plan.pushBacks], [[], [], [], []]);
+  });
+
+  it("a non-repeating event with no saved series id stays null and plans nothing", () => {
+    const plan = run([gEvent({ etag: '"e1"' })], { g1: knownEvent({ googleSeriesId: null }) });
+    assert.deepEqual(plan.seriesFills, []);
+  });
+
+  it("a series id Google no longer reports is cleared once", () => {
+    const plan = run([gEvent({ etag: '"e1"' })], { g1: knownEvent({ googleSeriesId: "parent1" }) });
+    assert.deepEqual(plan.seriesFills, [{ eventId: "ev1", googleEventId: "g1", googleSeriesId: null }]);
+  });
+
+  it("a Marshee-only change with a missing series id still fills it, and is still left alone", () => {
+    const plan = run([gEvent({ etag: '"e1"', recurringEventId: "parent1" })], { g1: knownEvent({ eventUpdatedAt: LATER }) });
+    assert.equal(plan.seriesFills.length, 1);
+    assert.deepEqual(plan.skipped, [{ googleEventId: "g1", reason: "marshee-only" }]);
+    assert.deepEqual(plan.updates, []);
+  });
+
+  it("an update carries the series id", () => {
+    const plan = run([gEvent({ recurringEventId: "parent1" })], { g1: knownEvent({ googleSeriesId: "parent1" }) });
+    assert.equal(plan.updates[0].row.googleSeriesId, "parent1");
+    assert.deepEqual(plan.seriesFills, []);
   });
 
   it("takes a Google-only change, with no previousJson and no push back", () => {
@@ -134,7 +186,7 @@ describe("planPull known events", () => {
     assert.equal(up.fields?.title, "Dentist (moved)");
     assert.equal(up.changed, true);
     assert.equal(up.createRow, false);
-    assert.deepEqual(up.row, { etag: '"e2"', lastPulledAt: NOW, status: "ok" });
+    assert.deepEqual(up.row, { etag: '"e2"', googleSeriesId: null, lastPulledAt: NOW, status: "ok" });
     assert.equal(up.fields?.updatedAt, NOW);
     assert.deepEqual(plan.pushBacks, []);
   });
@@ -220,7 +272,7 @@ describe("planPull deletes and matching", () => {
     assert.equal(up.googleEventId, "hex1");
     assert.equal(up.createRow, true);
     assert.equal(up.fields, null);
-    assert.deepEqual(up.row, { etag: '"e2"', lastPulledAt: NOW, status: "ok" });
+    assert.deepEqual(up.row, { etag: '"e2"', googleSeriesId: null, lastPulledAt: NOW, status: "ok" });
   });
 
   it("prefers the row over marsheeEventId", () => {

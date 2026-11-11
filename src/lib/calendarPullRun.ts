@@ -4,6 +4,7 @@ import {
   type PullDelete,
   type PullInsert,
   type PullKnown,
+  type PullSeriesFill,
   type PullUpdate,
 } from "@/lib/calendarSyncPull";
 
@@ -58,6 +59,8 @@ export type PullRunDeps = {
   writeUpdate: (calendarId: string, update: PullUpdate) => Promise<void>;
   /** Takes the event's copies off other calendars, then deletes the event. */
   writeDelete: (del: PullDelete) => Promise<void>;
+  /** Writes only the sync row's googleSeriesId: never the event, its updatedAt or the etag. */
+  writeSeriesFill: (calendarId: string, fill: PullSeriesFill) => Promise<void>;
   /** Push the event's Marshee version out; `exceptLinkedCalendarId` is a copy to leave alone. */
   pushBack: (eventId: string, exceptLinkedCalendarId?: string | null) => Promise<void>;
   now: () => Date;
@@ -118,6 +121,8 @@ async function applyListed(
     if (update.pushOut && failed === before) pushOuts.push(update.eventId);
   }
   for (const del of plan.deletes) await attempt(() => deps.writeDelete(del), true);
+  // The series id changes nothing a person sees, so it never counts as a change.
+  for (const fill of plan.seriesFills) await attempt(() => deps.writeSeriesFill(calendar.id, fill), false);
   // A push back keeps the source (Marshee won). A push out carries Google's own version, so
   // the calendar it came from is left alone: its original is never patched with our fields.
   for (const eventId of plan.pushBacks) await attempt(() => deps.pushBack(eventId), false);

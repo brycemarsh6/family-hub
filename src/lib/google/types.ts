@@ -54,8 +54,12 @@ export type GoogleEventIn = {
   location?: string;
   eventType?: string;
   transparency?: string;
-  start?: { date?: string; dateTime?: string };
-  end?: { date?: string; dateTime?: string };
+  start?: { date?: string; dateTime?: string; timeZone?: string };
+  end?: { date?: string; dateTime?: string; timeZone?: string };
+  /** Set on an instance of a repeating event: the series parent's id. */
+  recurringEventId?: string;
+  /** Where the repeat rule put an instance, even if it was moved. */
+  originalStartTime?: { date?: string; dateTime?: string; timeZone?: string };
   extendedProperties?: { private?: { marsheeEventId?: string } };
 };
 

@@ -195,3 +195,50 @@ describe("runPull: a push out keeps off the original", () => {
     assert.deepEqual(back.calls.filter((c) => c.startsWith("pushBack")), ["pushBack:evG"]);
   });
 });
+
+describe("runPull: series id backfill", () => {
+  const row = (googleSeriesId: string | null): KnownEvent => ({
+    eventId: "ev1",
+    hasRow: true,
+    etag: '"e1"',
+    googleSeriesId,
+    lastPushedAt: null,
+    lastPulledAt: new Date("2026-11-09T10:00:00Z"),
+    eventUpdatedAt: new Date("2026-11-09T10:00:00Z"),
+    sourceLinkedCalendarId: "c1",
+    current: {
+      title: "Dentist",
+      notes: null,
+      location: null,
+      startAt: new Date("2026-11-12T19:00:00Z"),
+      endAt: new Date("2026-11-12T20:00:00Z"),
+      allDay: false,
+    },
+  });
+  const listed = (): ListEventsResult => ({ ok: true, events: [gEvent({ etag: '"e1"', recurringEventId: "parent1" })], nextSyncToken: "tok" });
+
+  it("writes only the series id for an unchanged row, counts no change, and a second run writes nothing", async () => {
+    const first = fake({ lists: [listed()], loadKnown: async () => ({ byGoogleId: new Map([["g1", row(null)]]), byMarsheeId: new Map() }) });
+    const result = await runPull(first.deps, { force: true });
+    assert.deepEqual(first.calls.filter((c) => /^(insert|update|delete|seriesFill|pushBack)/.test(c)), ["seriesFill:ev1:parent1"]);
+    assert.equal(result.changed, false);
+    assert.equal(result.failed, 0);
+
+    const second = fake({ lists: [listed()], loadKnown: async () => ({ byGoogleId: new Map([["g1", row("parent1")]]), byMarsheeId: new Map() }) });
+    await runPull(second.deps, { force: true });
+    assert.deepEqual(second.calls.filter((c) => /^(insert|update|delete|seriesFill|pushBack)/.test(c)), []);
+  });
+
+  it("a failed series id write keeps the sync token unsaved so the next run retries", async () => {
+    const f = fake({
+      lists: [listed()],
+      loadKnown: async () => ({ byGoogleId: new Map([["g1", row(null)]]), byMarsheeId: new Map() }),
+      writeSeriesFill: async () => {
+        throw Object.assign(new Error("x"), { code: "P2025" });
+      },
+    });
+    const result = await runPull(f.deps, { force: true });
+    assert.equal(result.failed, 1);
+    assert.equal(f.calls.some((c) => c.startsWith("saveToken")), false);
+  });
+});

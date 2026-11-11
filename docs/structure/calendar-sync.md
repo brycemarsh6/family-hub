@@ -97,6 +97,14 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   today are `actions/calendar.ts` and `calendarEventPull.ts`; like a domain
   write module it may have more, each carrying its own gate, and any new code
   path that writes a `CalendarEvent` calls it rather than re-implementing it.
+  `CalendarEventSync.googleSeriesId` is Google's `recurringEventId` (the
+  series parent's id) for a pulled instance of a repeating event, null for
+  anything else. Only the pull fills it (`planPull`): on every insert and
+  update, and, for a row whose etag is unchanged, through a `seriesFills`
+  entry that `writeSeriesFill` in `calendarEventPull.ts` saves as that one
+  field on the sync row (never the event, its `updatedAt` or the etag). The
+  push never reads or writes it. Mission 71 added it (the migration also
+  cleared the "Both ways" sync tokens so one full pull backfills old rows).
   `exceptLinkedCalendarId` is passed only by the pull's push out, with the
   event's source calendar, so Google's original is never patched with
   Marshee's fields; a push back (Marshee won) passes none.

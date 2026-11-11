@@ -1353,6 +1353,9 @@ model CalendarEventSync {
 
   googleEventId String
   etag          String?
+  /// Google's recurringEventId (the series parent's id) for a pulled
+  /// instance of a repeating event; null for anything that does not repeat.
+  googleSeriesId String?
 
   status     String  @default("pending")
   failReason String?
