@@ -12,7 +12,6 @@ import { DaySection } from "./DaySection";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { SkeletonBlock } from "./Skeleton";
-import { ScheduleMiniMonth } from "./ScheduleMiniMonth";
 import { SCHEDULE_TITLE_SLOT_ID, SCHEDULE_HEADER_BAR_HEIGHT_REM } from "./CalendarHeader";
 import { useHamburgerInsetPx } from "@/lib/appChrome";
 import {
@@ -81,8 +80,10 @@ type ScheduleViewProps = {
    * check was wrong.
    */
   onTodayVisibleChange: (visible: boolean) => void;
-  /** Fallback for a mini-month tap beyond the loaded window (`jumpToDay`). */
-  onJumpToDay: (day: Date) => void;
+  /** Mission 72: the day in view (start-of-day time), for the month panel's ring. */
+  onDayInViewChange: (day: number) => void;
+  /** Mission 72: read the rows for it only while the month panel is open. */
+  trackDayInView: boolean;
   ref?: Ref<ScheduleViewHandle>;
 };
 
@@ -148,7 +149,8 @@ export function ScheduleView({
   people,
   canManage,
   onTodayVisibleChange,
-  onJumpToDay,
+  onDayInViewChange,
+  trackDayInView,
   ref,
 }: ScheduleViewProps) {
   const router = useRouter();
@@ -326,10 +328,10 @@ export function ScheduleView({
     SCHEDULE_TITLE_SLOT_ID,
   );
 
-  // mission-46/C3: `miniMonthRef` lets the hook skip work while that column is
-  // display:none; the +2 absorbs sub-pixel rounding on a row on the line.
-  const miniMonthRef = useRef<HTMLDivElement>(null);
-  const dayInViewTime = useScheduleDayInView(dayRefs, months, scheduleChromeHeight + 2, miniMonthRef, initialDay);
+  // Mission 72: the day in view goes up to the month panel's ring. The hook
+  // reads rows only while the panel is open; the +2 absorbs sub-pixel rounding.
+  const dayInViewTime = useScheduleDayInView(dayRefs, months, scheduleChromeHeight + 2, trackDayInView, initialDay);
+  useEffect(() => onDayInViewChange(dayInViewTime), [dayInViewTime, onDayInViewChange]);
 
   function scrollToDay(day: Date): boolean {
     if (day < windowStart || day >= windowEnd) return false;
@@ -442,65 +444,42 @@ export function ScheduleView({
         </div>
       ) : (
         <>
-          {/* mission-46/C3: one column below 50rem; a mini month beside the list
-              from 50rem (24rem, then 27.5rem from 64rem). The container wraps
-              this grid only; the sheets below stay outside it. */}
-          <div className="@container">
-            <div className="grid grid-cols-[minmax(0,1fr)] gap-5 @min-[50rem]:grid-cols-[24rem_minmax(0,1fr)] @min-[64rem]:grid-cols-[27.5rem_minmax(0,1fr)]">
-              <div
-                ref={miniMonthRef}
-                className="sticky hidden self-start @min-[50rem]:block"
-                style={{ top: scheduleChromeHeight + 8 }}
-              >
-                <ScheduleMiniMonth
-                  key={`${new Date(dayInViewTime).getFullYear()}-${new Date(dayInViewTime).getMonth()}`}
-                  dayInView={new Date(dayInViewTime)}
-                  today={today}
-                  onPickDay={(day) => {
-                    if (!scrollToDay(day)) onJumpToDay(day);
-                  }}
-                />
-              </div>
-              <div className="min-w-0">
-              {/* Sentinels sit OUTSIDE the loaded content, not between rows —
-                  rootMargin: "100% 0px" (set in the hook) means a fetch starts
-                  a full viewport before the sentinel is literally on screen,
-                  so the next chunk is usually ready before the reader reaches
-                  the edge. */}
-              <div ref={topSentinelRef} aria-hidden="true" />
-              {loadingBackward && (
-                <div className="flex flex-col gap-2 pb-2">
-                  <SkeletonBlock className="h-[46px] w-full" />
-                </div>
-              )}
-              {/* Only shown once a direction has genuinely stopped (D2/the
-                  hook's own applyChunkResult) — never while it's merely
-                  between fetches, which is what `loadingBackward` above
-                  already covers separately. */}
-              {!hasMoreBackward && !loadingBackward && (
-                <p className="pb-2 text-center text-xs text-muted">That&apos;s as far back as this loads.</p>
-              )}
-
-              {habitDaysFailed && (
-                <p role="alert" className="px-1 pb-2 text-sm text-warn">
-                  Couldn&apos;t load your planned habit days.
-                </p>
-              )}
-
-              {months.map(renderMonth)}
-
-              {!hasMoreForward && !loadingForward && (
-                <p className="pt-2 text-center text-xs text-muted">That&apos;s as far ahead as this loads.</p>
-              )}
-              {loadingForward && (
-                <div className="flex flex-col gap-2 pt-2">
-                  <SkeletonBlock className="h-[46px] w-full" />
-                </div>
-              )}
-              <div ref={bottomSentinelRef} aria-hidden="true" />
-              </div>
-            </div>
+        {/* Sentinels sit OUTSIDE the loaded content, not between rows —
+            rootMargin: "100% 0px" (set in the hook) means a fetch starts
+            a full viewport before the sentinel is literally on screen,
+            so the next chunk is usually ready before the reader reaches
+            the edge. */}
+        <div ref={topSentinelRef} aria-hidden="true" />
+        {loadingBackward && (
+          <div className="flex flex-col gap-2 pb-2">
+            <SkeletonBlock className="h-[46px] w-full" />
           </div>
+        )}
+        {/* Only shown once a direction has genuinely stopped (D2/the
+            hook's own applyChunkResult) — never while it's merely
+            between fetches, which is what `loadingBackward` above
+            already covers separately. */}
+        {!hasMoreBackward && !loadingBackward && (
+          <p className="pb-2 text-center text-xs text-muted">That&apos;s as far back as this loads.</p>
+        )}
+
+        {habitDaysFailed && (
+          <p role="alert" className="px-1 pb-2 text-sm text-warn">
+            Couldn&apos;t load your planned habit days.
+          </p>
+        )}
+
+        {months.map(renderMonth)}
+
+        {!hasMoreForward && !loadingForward && (
+          <p className="pt-2 text-center text-xs text-muted">That&apos;s as far ahead as this loads.</p>
+        )}
+        {loadingForward && (
+          <div className="flex flex-col gap-2 pt-2">
+            <SkeletonBlock className="h-[46px] w-full" />
+          </div>
+        )}
+        <div ref={bottomSentinelRef} aria-hidden="true" />
         </>
       )}
 

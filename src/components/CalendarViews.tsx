@@ -23,10 +23,9 @@ import { toLocalDateString } from "@/lib/mealPlanDates";
 import { useNowMinute } from "@/lib/useNowMinute";
 import { useHamburgerRowHeight } from "@/lib/appChrome";
 import { useContainerWidth } from "@/lib/useContainerWidth";
-import { COLUMN_MIN_WIDTH_PX } from "@/lib/splitColumns";
 import { useMonthPanelOpen } from "@/lib/monthPanelOpen";
 import { daysWithItems } from "@/lib/monthLayout";
-import { MONTH_PANEL_BESIDE_VIEW_CLASSES, MONTH_PANEL_ROW_CLASSES, MONTH_PANEL_SIDE_CLASSES } from "@/lib/gridClasses";
+import { MONTH_PANEL_BESIDE_MIN_PX, MONTH_PANEL_BESIDE_VIEW_CLASSES, MONTH_PANEL_ROW_CLASSES, MONTH_PANEL_SIDE_CLASSES } from "@/lib/gridClasses";
 import type { CalendarEventView, CalendarHabitDayView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
@@ -156,10 +155,10 @@ export function CalendarViews({
 
   const [pickingView, setPickingView] = useState(false);
   // Mission 72: the month panel the title toggles. Phone (Calendar body under
-  // 768px): a plain boolean, always starts closed. Wider: remembered per
+  // 700px): a plain boolean, always starts closed. Wider: remembered per
   // person per device (`useMonthPanelOpen`). Measured on the body, never the window.
   const bodyRef = useRef<HTMLDivElement>(null);
-  const wide = useContainerWidth(bodyRef) >= COLUMN_MIN_WIDTH_PX[2];
+  const wide = useContainerWidth(bodyRef) >= MONTH_PANEL_BESIDE_MIN_PX;
   const [storedOpen, setStoredOpen] = useMonthPanelOpen(viewerId);
   const [phoneOpen, setPhoneOpen] = useState(false);
   const panelOpen = wide ? storedOpen : phoneOpen;
@@ -178,6 +177,7 @@ export function CalendarViews({
   // navigating — see handleToday below.
   const scheduleRef = useRef<ScheduleViewHandle>(null);
   const [scheduleTodayVisible, setScheduleTodayVisible] = useState(false);
+  const [scheduleDay, setScheduleDay] = useState<number | null>(null); // Mission 72: the panel's ring on Schedule
 
   const config = VIEW_CONFIG[view];
   // The null-guards below are about `today` not having resolved yet — NOT
@@ -396,7 +396,8 @@ export function CalendarViews({
               people={people}
               canManage={canManage}
               onTodayVisibleChange={setScheduleTodayVisible}
-              onJumpToDay={jumpToDay}
+              onDayInViewChange={setScheduleDay}
+              trackDayInView={panelOpen}
             />
           )
         );
@@ -423,7 +424,7 @@ export function CalendarViews({
   const beside = wide && panelOpen && !chipsOnly;
   // Year: a chip shows that year (its 1st). Elsewhere a day jumps in the same view; the phone's dropdown then closes.
   const pickDay = (day: Date) => {
-    jumpToDay(day);
+    if (!(config.renderer === "schedule" && scheduleRef.current?.scrollToDay(day))) jumpToDay(day);
     if (!wide) setPhoneOpen(false);
   };
 
@@ -452,7 +453,7 @@ export function CalendarViews({
               <MonthJumpPanel
                 anchor={anchor}
                 today={today}
-                selected={anchor}
+                selected={config.renderer === "schedule" && scheduleDay !== null ? new Date(scheduleDay) : anchor}
                 dotDays={dotDays}
                 chipsOnly={chipsOnly}
                 beside={beside}

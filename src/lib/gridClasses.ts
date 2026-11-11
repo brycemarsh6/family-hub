@@ -40,12 +40,15 @@ export const CALENDAR_VIEW_ROW_CLASSES =
 /** The View circle's wrapper: gone from 48rem, where the row of six replaces it. Changes together with CALENDAR_VIEW_ROW_CLASSES (mission 67). */
 export const CALENDAR_VIEW_CIRCLE_CLASSES = "@min-[48rem]:hidden";
 
-/** The Calendar's month panel and its view: stacked (the panel drops down above the view) until the Calendar body is 768px wide (COLUMN_MIN_WIDTH_PX[2], px by design, STRUCTURE.md "Wide pages"), then side by side on Schedule, Day, 3 Day and Week (mission 72). Changes together with the three below. */
-export const MONTH_PANEL_ROW_CLASSES = "@min-[768px]:flex @min-[768px]:items-start";
+/** Width of the Calendar body (a `@container`) from which the month panel sits beside the view. 700, not 768: `<main>` keeps `px-4`, so an upright iPad (768) and a sideways one with the pinned Sidebar (1024 - 256) both leave a 736px body. The class strings below spell it as a literal (Tailwind cannot read an interpolated class); gridClasses.test.ts keeps them equal (mission 72). */
+export const MONTH_PANEL_BESIDE_MIN_PX = 700;
+
+/** The Calendar's month panel and its view: stacked (the panel drops down above the view) until the Calendar body is 700px wide (px by design, STRUCTURE.md "Wide pages"), then side by side on Schedule, Day, 3 Day and Week (mission 72). Changes together with the three below. */
+export const MONTH_PANEL_ROW_CLASSES = "@min-[700px]:flex @min-[700px]:items-start";
 
 /** The panel when it sits beside the view: an 18rem left column with a line between; stacked, a line under it (mission 72). */
 export const MONTH_PANEL_SIDE_CLASSES =
-  "mb-4 border-b border-line @min-[768px]:mb-0 @min-[768px]:w-72 @min-[768px]:shrink-0 @min-[768px]:border-b-0 @min-[768px]:border-r @min-[768px]:pr-4";
+  "mb-4 border-b border-line @min-[700px]:mb-0 @min-[700px]:w-72 @min-[700px]:shrink-0 @min-[700px]:border-b-0 @min-[700px]:border-r @min-[700px]:pr-4";
 
 /** The view beside the panel: takes the rest of the row, and its 1rem left padding cancels the timeline's edge-to-edge bleed so the hour rail starts at the panel's line (mission 72). */
-export const MONTH_PANEL_BESIDE_VIEW_CLASSES = "@min-[768px]:min-w-0 @min-[768px]:flex-1 @min-[768px]:pl-4";
+export const MONTH_PANEL_BESIDE_VIEW_CLASSES = "@min-[700px]:min-w-0 @min-[700px]:flex-1 @min-[700px]:pl-4";

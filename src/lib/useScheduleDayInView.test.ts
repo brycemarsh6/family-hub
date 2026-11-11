@@ -1,5 +1,5 @@
-// Real unit tests for the pure kernel behind the wide Schedule's mini-month
-// ring (mission-46/C3). The hook's DOM reads have no meaning against a fake
+// Real unit tests for the pure kernel behind the month panel's
+// Schedule ring (mission-46/C3). The hook's DOM reads have no meaning against a fake
 // node with no layout, same as useScheduleMonthTitle.ts. Run with `npm test`.
 
 import { test } from "node:test";
