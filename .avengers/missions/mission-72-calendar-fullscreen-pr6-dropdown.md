@@ -368,7 +368,7 @@ HEAD` after.
 - **Done:** as the objective, with the sizes held.
 
 ### F1 - Pass 1 fixes (Vision, Strange and Captain blockers, chosen notes)
-- **Status:** PENDING
+- **Status:** DONE `9a2c419` (tsc, lint, npm test 2012 pass, UTC 0 fail 10 skipped, build all exit 0; CalendarViews 494, ScheduleView 559; harness: phone open mid-list holds the reader's row at 274px, side panel stays at top 86 after scroll and day tap, side days 44.42 x 44, 768 Largest stacked and 768 Normal beside)
 - **Objective:** the panel never moves the reader's place and stays in view
   on Schedule; side-panel days reach 44px; the side layout appears only when
   the view keeps usable columns; a day tap on the phone closes before it
