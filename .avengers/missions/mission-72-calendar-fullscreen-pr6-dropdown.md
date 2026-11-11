@@ -454,6 +454,8 @@ HEAD` after.
   measurements above with screenshot paths.
 - **Done:** every measurement above as expected, gauntlet green.
 
+**Fury's calls after F1:** accepted the one missed measurement (1024x768, pinned Sidebar, Largest: the panel stacks, 535px tall, the timeline hits its 320px floor and the page scrolls 234px; returns to 0 on close; nothing hidden; told to Bryce). Accepted the sticky top at exactly the chrome height (the +0.5rem let list text show through) and sticky on Schedule only. Rulebooks updated to the JS `monthPanelBeside` decision.
+
 (Rulebooks: Fury lands Captain's drafts in calendar.md, layout.md and
 STRUCTURE.md after C4; Strange drafts the DESIGN.md exception at the gate.)
 
