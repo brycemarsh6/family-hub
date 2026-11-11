@@ -194,5 +194,9 @@ function glideBack(b){b.classList.remove("lifted");b.style.transform="";const e=
 window.addEventListener("pointerup",ev=>end(ev,false));
 window.addEventListener("pointercancel",ev=>end(ev,true));
 document.addEventListener("contextmenu",e=>e.preventDefault());
+// Once a block is lifted, stop the browser's own scrolling. iOS decides
+// "this touch scrolls" when the finger lands, so changing touch-action later
+// does nothing; cancelling each touchmove is what actually stops it.
+document.addEventListener("touchmove",e=>{if(g&&(g.kind==="holding"||g.kind==="dragging"))e.preventDefault()},{passive:false});
 </script>
 </body></html>

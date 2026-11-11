@@ -181,10 +181,13 @@ calendar is touched by any agent.
   column, the time line text updated directly, the target day's header
   tinted. Edge strips (44px) at top and bottom scroll the hours with
   `requestAnimationFrame` while held there. While lifted the page cannot
-  slide and the scroller cannot scroll natively (`touch-action: none` on
-  the block from the start, since iOS reads it at pointerdown; the
-  scroller's own scrolling must still start from a block that is NOT held,
-  so prove that). `user-select: none` and `-webkit-touch-callout: none` on
+  slide and the scroller cannot scroll natively. iOS decides "this touch
+  scrolls" at touchstart, so toggling `touch-action` after the hold does
+  nothing (Bryce saw exactly this in the first mock: the hours scrolled
+  under the lifted block). The fix: one non-passive `touchmove` listener on
+  the grid root that calls `preventDefault()` only while the machine is
+  holding or dragging. Do NOT put `touch-action: none` on blocks: a
+  vertical scroll that starts on a block must still scroll; prove both. `user-select: none` and `-webkit-touch-callout: none` on
   blocks. Reduce motion: the glide back is instant. On drop calls an
   `onDrop(eventId, newStart)` prop (C4 fills it); in C3 it may log.
 - **Verification:** gauntlet; real touch with CDP `Input.dispatchTouchEvent`
