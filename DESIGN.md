@@ -244,8 +244,8 @@ tell when a rule's reason has expired.
   beside the calendar, a pinned Sidebar shows as the icon rail, and your
   Menu style does not change. On Schedule it stays in view while the list
   scrolls, and opening or closing it never moves your place in the list
-  (mid-list on a phone it covers the top of the list rather than pushing
-  it down). Any other picker is still a sheet.
+  (mid-list on a phone or an upright iPad it covers the top of the list
+  rather than pushing it down). Any other picker is still a sheet.
 
 ## Brand
 
