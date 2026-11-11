@@ -84,25 +84,12 @@
 // the per-column not-loaded `sr-only` string — see its own comment, right
 // where the string lives, for the full defect.
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { CalendarOff } from "lucide-react";
-import {
-  MINUTES_PER_DAY,
-  minutesOfDay,
-  blockGeometry,
-  partitionForTimeline,
-  assignColumns,
-  type TimelineEvent,
-  type TimelineColumnSlot,
-  type TimelineBlock,
-} from "@/lib/timelineLayout";
+import { useLayoutEffect, useRef, useState } from "react";
+import { MINUTES_PER_DAY, minutesOfDay } from "@/lib/timelineLayout";
 import { isSameDay } from "@/lib/mealPlanDates";
-import { isOutsideWindow } from "@/lib/calendarDates";
 import { PAGE_BLEED_CLASSES } from "@/lib/gridClasses";
 import { useTimelineZoom } from "@/lib/useTimelineZoom";
-import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
-import { TimelineDayHeaderRow, TimelineDayLabel } from "./TimelineDayHeader";
-import { TimelineDayColumn } from "./TimelineDayColumn";
+import { TimelinePageHeader, TimelinePageColumns, timelineGridTemplate } from "./TimelinePage";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
 // The rail's own scale is LIVE (mission-65): `useTimelineZoom` returns the
@@ -118,7 +105,6 @@ import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "
  * constant could never silently disagree with how many rows this file
  * draws. */
 const HOURS_PER_DAY = MINUTES_PER_DAY / 60;
-const GUTTER_WIDTH_PX = 48;
 
 const MIN_SCROLLER_HEIGHT_PX = 320;
 
@@ -184,13 +170,6 @@ type TimelineGridProps = {
    * `null` means no saved zoom: the default hour height, nothing written. */
   viewerId: string | null;
 };
-
-/** One event's shape as the pure layout library needs it — see
- * timelineLayout.ts's own `TimelineEvent` doc comment for why this is
- * deliberately narrower than `CalendarEventView`. */
-function toTimelineEvent(event: CalendarEventView): TimelineEvent {
-  return { id: event.id, startAt: event.startAt, endAt: event.endAt, allDay: event.allDay };
-}
 
 export function TimelineGrid({
   columnDays,
@@ -290,48 +269,7 @@ export function TimelineGrid({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnDaysKey]);
 
-  // --- Layout: partitionForTimeline (CV2, unchanged) splits into the
-  // all-day row and the timed set; `timed` feeds the hour rail below, and
-  // `allDayRow` is handed to `./TimelineAllDayStrip.tsx` (mission-17/C6),
-  // which is what actually calls monthLayout.assignLanes (D4) — no second
-  // packer.
-  const eventById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
-  const { allDayRow, timed } = useMemo(
-    () => partitionForTimeline(columnDays, events.map(toTimelineEvent)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [columnDaysKey, events],
-  );
-
-  // mission-17/C5 — Strange reached the state where a Day/3 Day/Week
-  // column's window coverage was fully out of the fetched range and found
-  // the accessible text byte-identical to a genuinely-empty day, since the
-  // only differentiator was a 9x9px `aria-hidden` glyph. `outsideColumns`
-  // and `allColumnsOutside` below are what let the render body below show
-  // DaySection's own WORDED not-loaded card in that case — see that
-  // section's own comment for the full reasoning, including why a single
-  // shared banner correctly covers BOTH "Day as a card in the column body"
-  // and "3 Day/Week as a single strip" (Day has exactly one column, so the
-  // two descriptions collapse to the identical element).
-  const outsideColumns = columnDays.map((day) => isOutsideWindow(day, windowStart, windowEnd));
-  const allColumnsOutside = outsideColumns.length > 0 && outsideColumns.every(Boolean);
-
-  // One `assignColumns` call PER COLUMN (never once for the whole set) —
-  // each day's timed blocks are laid out independently, which is what lets
-  // a Fri 10 PM -> Sat 2 AM event draw a clipped block on BOTH days without
-  // the two clipped halves fighting over one shared column assignment.
-  const columnSlots: TimelineColumnSlot<TimelineBlock>[][] = columnDays.map((day) => {
-    const blocks: TimelineBlock[] = [];
-    for (const event of timed) {
-      const geometry = blockGeometry(day, event);
-      if (geometry) {
-        blocks.push({ id: event.id, topMinutes: geometry.topMinutes, heightMinutes: geometry.heightMinutes });
-      }
-    }
-    return assignColumns(blocks);
-  });
-
-  const gridTemplateColumns = `${GUTTER_WIDTH_PX}px repeat(${columnDays.length}, minmax(0, 1fr))`;
-  const compact = columnDays.length > 1; // 3 Day / Week — Day view (1 column) gets more detail (D5).
+  const gridTemplateColumns = timelineGridTemplate(columnDays.length);
 
   return (
     <div
@@ -354,79 +292,17 @@ export function TimelineGrid({
             sticky div — not its own sticky element — so this property
             survives the extraction unchanged. */}
         <div ref={stickyHeaderRef} className="sticky top-0 z-20 border-b border-line bg-bg">
-          {/* 3 Day and Week: the weekday row. Day view has no row: its label
-              rides in the all-day strip's gutter corner (mission 67). */}
-          {compact && (
-            <TimelineDayHeaderRow
-              columnDays={columnDays}
-              today={today}
-              windowStart={windowStart}
-              windowEnd={windowEnd}
-              gridTemplateColumns={gridTemplateColumns}
-            />
-          )}
-
-          {/* mission-17/C6 — the all-day strip's own grid (tasks, events,
-              the expand state, the "+N more" button) now lives in
-              `./TimelineAllDayStrip.tsx`; see that file's own header for
-              the full reasoning. Passed `allDayRow` (already partitioned
-              above, not re-derived), `eventById` (the SAME map the hour
-              rail below also reads), and the SAME `gridTemplateColumns`
-              string this header row and the hour rail use, so all three
-              stay pixel-aligned by construction rather than by three
-              independently-matching formulas. Renders nothing (no height
-              claimed) when there's nothing to show — see that file's own
-              early-return comment. */}
-          <TimelineAllDayStrip
+          <TimelinePageHeader
             columnDays={columnDays}
-            allDayRow={allDayRow}
+            events={events}
             tasks={tasks}
             habitDays={habitDays}
-            eventById={eventById}
+            today={today}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
             onOpenEvent={onOpenEvent}
             onOpenTask={onOpenTask}
-            gridTemplateColumns={gridTemplateColumns}
-            corner={
-              compact ? undefined : (
-                <TimelineDayLabel
-                  day={columnDays[0]}
-                  today={today}
-                  notLoaded={outsideColumns[0]}
-                />
-              )
-            }
           />
-
-          {/* mission-17/C5 — Strange reached the state (2000ms injected
-              latency + 14 rapid Next taps) where every column here was
-              fully outside the fetched window, and found the accessible
-              text byte-identical to a genuinely-empty day apart from the
-              dates — the only differentiator was a 9x9px `aria-hidden`
-              glyph next to each day number above. DaySection.tsx's own
-              `NotLoadedCard` already solves this with WORDED text
-              (`ScheduleView` still renders it, proving the treatment is
-              affordable); that component is private to DaySection.tsx and
-              off this contract's boundary, so its markup is reproduced
-              verbatim here rather than imported. Rendered only when EVERY
-              column is out of window — the realistic case, since the fetch
-              window moves as one block — leaving the per-column glyph above
-              as the only signal for a MIXED window (only possible in 3 Day/
-              Week, never Day, which has exactly one column and so is never
-              "mixed"). That single-column case is also why one shared
-              element correctly satisfies BOTH "Day as a card in the column
-              body" and "3 Day/Week as a single strip": with one column, a
-              full-width strip IS the column's own body. */}
-          {allColumnsOutside && (
-            <div className="m-2 flex items-start gap-2 rounded-xl border border-line bg-surface px-3 py-3 text-sm text-muted">
-              <CalendarOff aria-hidden="true" size={16} className="mt-0.5 shrink-0" />
-              <span>
-                Not all events loaded
-                <span className="mt-0.5 block text-xs">
-                  Marshee shows about two months each way — tap Today to come back.
-                </span>
-              </span>
-            </div>
-          )}
         </div>
 
         {/* The hour rail: a gutter of 24 labels, then one relatively-
@@ -450,20 +326,15 @@ export function TimelineGrid({
             ))}
           </div>
 
-          {columnDays.map((day, columnIndex) => (
-            <TimelineDayColumn
-              key={day.getTime()}
-              day={day}
-              isToday={isSameDay(day, today)}
-              slots={columnSlots[columnIndex]}
-              eventById={eventById}
-              now={now}
-              hoursPerDay={HOURS_PER_DAY}
-              pxPerMinute={pxPerMinute}
-              compact={compact}
-              onOpenEvent={onOpenEvent}
-            />
-          ))}
+          <TimelinePageColumns
+            columnDays={columnDays}
+            events={events}
+            today={today}
+            now={now}
+            hoursPerDay={HOURS_PER_DAY}
+            pxPerMinute={pxPerMinute}
+            onOpenEvent={onOpenEvent}
+          />
         </div>
       </div>
     </div>
