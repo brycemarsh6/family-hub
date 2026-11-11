@@ -347,6 +347,7 @@ touched; STRUCTURE.md caps apply.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 2 | Strange (HEAD 10cee5e) | BLOCK | The repeat mark is `size-[1em]` (already follows the title's rem) and globals.css also zooms `svg.lucide` 1.5 at Largest: the mark is 27px on an 18px title, the title line 30px instead of 24, the 15-minute block's title crowded out; breaks DESIGN.md "the title wins". Fix: inline `style={{ zoom: 1 }}` on the `<Repeat>` with a comment (checked in the browser: 18 on 18, line height unchanged) | Docked sheet passes everywhere (bottom = screen, 448/672 wide, 48/72px buttons, block visible on 768x1024); DESIGN.md bullet matches; mark at Normal: same size as title, `text-muted`, centred, cut first when short; reduce motion instant. Note: 15-minute blocks unreadable at Largest with or without the mark (mission-65 small-title rule, follow-up) |
 | 2 | Captain (HEAD 10cee5e) | PASS | none | Pass-1 blockers closed (loadSeriesCalendar; calendarEventCalls imported only by calendarApi.ts and its test; wall-clock maths in householdDate.ts only). Applied rulebook text true on every grepped name. Wording notes applied by Fury: `exceptLinkedCalendarId` sentence names `removePulledEvents`; googleSeriesId readers name the pull's `loadKnown`; trend line counts from preflight `lineCounts` (CalendarViews 494 / 197, useEventMoves 310 / 219); "parents and admins"; `loadSeriesCalendar` in the loads list. Note: F1 changed the pull's cancelled-delete path for ordinary events too (tested by Vision) |
 | 3 | Vision (HEAD 10cee5e, scoped to F2, rulebook, status.md) | PASS | none | Gauntlet re-run green (2001; UTC 1991 + 10 skips; build exit 0). F2 touched only its two files. Every backticked name in the rulebook text exists (`useSeriesMove.ts` is the named future split). Phone test: repeat mark after a Refresh is true (insert writes the series id); the bar says "8 AM", not "8:00 AM" (Fury fixed status.md). Notes: the repeat mark's legibility on the event colour is Strange's; a never-ending daily test event leans on the mission-60 page cap, so the test event ends after two weeks |
 | 2 | Vision (HEAD 2180a67, F1 ab3c648) | PASS | none | Gauntlet re-run green (2001; UTC 1991 + 10 skips; build exit 0). F1 diff within its list. Probe on the real `removeAllCopies`: source-only cleanup makes no call; a copy on another calendar still comes off when the source cancels. householdDate helpers identical to the old maths in both TZ runs. `getAccountAccessToken` marks needs-relink only on reconnect. Notes: fall-back-hour drop 1:30 MDT to 1:30 MST now ignored (no This one either; one hour a year); a same-day drop `planMove` refuses shows the another-day line (wording only); no repo test for the binding's no-Google-call; standing: regular-pull race, un-backfilled rows, token clear |
@@ -440,4 +441,14 @@ touched; STRUCTURE.md caps apply.
   on iPad, the dropped block not covered on a 7:30 AM drop; the icon on
   Wake Up blocks, not on Dentist; screenshots saved there.
 - **Done:** committed with evidence.
+
+### F3: The repeat mark is sized once at Largest
+- **Status:** IN PROGRESS
+- **May touch:** `src/components/TimelineDayColumn.tsx` only.
+- **Work:** inline `style={{ zoom: 1 }}` on the `<Repeat>` element (a class
+  loses to `html[data-text-size] svg.lucide`), with a one-line comment: the
+  icon is 1em and already follows Text size through the title's rem font.
+- **Verification:** gauntlet; Strange's harness at 1024x768 Largest: mark
+  height equals the title's font size, title line height equals the no-icon
+  baseline.
 
