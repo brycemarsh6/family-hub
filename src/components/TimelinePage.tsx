@@ -27,10 +27,43 @@ import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "
 
 export const GUTTER_WIDTH_PX = 48;
 
+/** Hour labels ("12 AM", "1 AM", ... "11 PM") via `Intl`, computed once at
+ * module load against a fixed, deliberately non-transition date (Jan 1 —
+ * nowhere near either US DST boundary) purely as a vehicle to get
+ * `Intl.DateTimeFormat` to spell out a given HOUR NUMBER, never rendered or
+ * compared as a real calendar day. */
+const HOUR_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: true });
+const HOUR_LABELS = Array.from({ length: 24 }, (_, hour) =>
+  HOUR_LABEL_FORMATTER.format(new Date(2000, 0, 1, hour, 0)),
+);
+
+/** The column of hour labels. It reads `--hour-height` like the day columns
+ * do, so the labels and the gridlines stay level while zooming. Day view draws
+ * one inside each page (it slides with its day); 3 Day and Week draw one fixed
+ * gutter beside the sliding viewport. */
+export function TimelineHourLabels() {
+  return (
+    <div aria-hidden="true" className="relative shrink-0 bg-bg" style={{ width: GUTTER_WIDTH_PX }}>
+      {HOUR_LABELS.map((label, hour) => (
+        <span
+          key={hour}
+          className="absolute right-1 -translate-y-1/2 text-[0.625rem] text-muted"
+          style={{ top: `calc(var(--hour-height) * ${hour})` }}
+        >
+          {hour === 0 ? "" : label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** The one grid template the weekday row, the all-day strip and the hour
- * rail share, so they stay pixel-aligned by construction. */
-export function timelineGridTemplate(columnCount: number): string {
-  return `${GUTTER_WIDTH_PX}px repeat(${columnCount}, minmax(0, 1fr))`;
+ * rail share, so they stay pixel-aligned by construction. Day view's pages
+ * carry their own gutter cell; 3 Day and Week pages are day columns only
+ * (the strip and weekday row keep a zero-width first cell, which they
+ * place their bars around). */
+export function timelineGridTemplate(columnCount: number, gutterPx: number = GUTTER_WIDTH_PX): string {
+  return `${gutterPx}px repeat(${columnCount}, minmax(0, 1fr))`;
 }
 
 /** One event's shape as the pure layout library needs it — see
@@ -89,8 +122,9 @@ export function TimelinePageHeader({
   const allColumnsOutside = outsideColumns.length > 0 && outsideColumns.every(Boolean);
 
 
-  const gridTemplateColumns = timelineGridTemplate(columnDays.length);
   const compact = columnDays.length > 1; // 3 Day / Week — Day view (1 column) gets more detail (D5).
+  // Compact pages have no gutter cell: the corner is fixed outside the track.
+  const gridTemplateColumns = timelineGridTemplate(columnDays.length, compact ? 0 : GUTTER_WIDTH_PX);
 
   return (
     <>
@@ -215,18 +249,20 @@ export function TimelinePageColumns({
 
   const compact = columnDays.length > 1; // 3 Day / Week — Day view (1 column) gets more detail (D5).
 
-  // Mission 69 (C4): each page is its own full-width grid (an empty first cell
-  // where the gutter sits), so three of them slide as pages. The hour labels
-  // are drawn once by TimelineGrid, above the pages, and never move.
+  // Mission 69 (F2): Day's page starts with its own hour labels, so they ride
+  // in with their day. 3 Day and Week pages are day columns only; their one
+  // gutter is fixed beside the viewport that holds the track.
   return (
     <div
       className="grid"
       style={{
-        gridTemplateColumns: timelineGridTemplate(columnDays.length),
+        gridTemplateColumns: compact
+          ? `repeat(${columnDays.length}, minmax(0, 1fr))`
+          : timelineGridTemplate(1),
         height: `calc(var(--hour-height) * ${hoursPerDay})`,
       }}
     >
-      <div aria-hidden="true" />
+      {compact ? null : <TimelineHourLabels />}
       {columnDays.map((day, columnIndex) => (
         <TimelineDayColumn
           key={day.getTime()}

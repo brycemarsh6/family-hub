@@ -94,7 +94,7 @@ import { neighbourAnchor } from "@/lib/useCalendarPeriod";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 import { PagedTrack } from "./PagedTrack";
-import { TimelinePageHeader, TimelinePageColumns, GUTTER_WIDTH_PX } from "./TimelinePage";
+import { TimelinePageHeader, TimelinePageColumns, TimelineHourLabels, GUTTER_WIDTH_PX } from "./TimelinePage";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
 // The rail's own scale is LIVE (mission-65): `useTimelineZoom` returns the
@@ -112,16 +112,6 @@ import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "
 const HOURS_PER_DAY = MINUTES_PER_DAY / 60;
 
 const MIN_SCROLLER_HEIGHT_PX = 320;
-
-/** Hour gutter labels ("12 AM", "1 AM", ... "11 PM") via `Intl`, computed
- * once at module load against a fixed, deliberately non-transition date
- * (Jan 1 — nowhere near either US DST boundary) purely as a vehicle to get
- * `Intl.DateTimeFormat` to spell out a given HOUR NUMBER, never rendered or
- * compared as a real calendar day. */
-const HOUR_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: true });
-const HOUR_LABELS = Array.from({ length: HOURS_PER_DAY }, (_, hour) =>
-  HOUR_LABEL_FORMATTER.format(new Date(2000, 0, 1, hour, 0)),
-);
 
 // The timed block's own colour banding (`bandedBackground`, up to 3
 // diagonal bands, Month's own cap) used to be explained HERE, because this
@@ -217,7 +207,16 @@ export function TimelineGrid({
   // header's track and the columns' track both read it, so they cannot
   // disagree. The gutter and the vertical scroller are not in a track.
   const rootRef = useRef<HTMLDivElement>(null);
-  const { handlers } = usePagedSwipe({ varRef: rootRef, onTurn });
+  // The element whose width is one page: the columns viewport (it starts at
+  // the gutter's right edge in 3 Day and Week, and spans the root in Day).
+  const columnsViewportRef = useRef<HTMLDivElement>(null);
+  const isDay = view === "day";
+  const { handlers } = usePagedSwipe({
+    varRef: rootRef,
+    widthRef: columnsViewportRef,
+    onTurn,
+    pageKey: `${view}:${anchor.getTime()}`,
+  });
   const previousDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, -1));
   const nextDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, 1));
 
@@ -331,7 +330,11 @@ export function TimelineGrid({
       style={{ ["--hour-height" as string]: `${hourHeightPx}px` }}
       {...handlers}
     >
-      <div ref={scrollerRef} className="overflow-y-auto pb-[env(safe-area-inset-bottom)]" style={{ height: scrollerHeightStyle }}>
+      <div
+        ref={scrollerRef}
+        className="touch-pan-y overflow-y-auto overflow-x-hidden pb-[env(safe-area-inset-bottom)]"
+        style={{ height: scrollerHeightStyle }}
+      >
         {/* Sticky as ONE unit — the weekday header and the all-day strip
             stack inside it via ordinary flow, so there's no second `top`
             offset to compute or keep in sync with the first (a smaller,
@@ -345,35 +348,33 @@ export function TimelineGrid({
             and local, so it was never affected either way). mission-17/C6:
             `TimelineAllDayStrip` renders as an ordinary child of this SAME
             sticky div — not its own sticky element — so this property
-            survives the extraction unchanged. */}
-        <div ref={stickyHeaderRef} className="sticky top-0 z-20 border-b border-line bg-bg">
-          <PagedTrack
-            previous={headerPage(previousDays)}
-            current={headerPage(columnDays)}
-            next={headerPage(nextDays)}
-          />
+            survives the extraction unchanged. Mission 69 (F2): in 3 Day and
+            Week a fixed 48px corner sits beside a viewport that clips the
+            track (the viewport is the current page's height, so neighbours
+            never add a band); in Day there is no corner here, the date rides
+            in each header page. */}
+        <div ref={stickyHeaderRef} className="sticky top-0 z-20 flex border-b border-line bg-bg">
+          {!isDay && <div aria-hidden="true" className="shrink-0" style={{ width: GUTTER_WIDTH_PX }} />}
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <PagedTrack
+              previous={headerPage(previousDays)}
+              current={headerPage(columnDays)}
+              next={headerPage(nextDays)}
+            />
+          </div>
         </div>
 
-        {/* The hour rail: the columns' three pages (gridlines, the now-line
-            in today's own column, every timed block), then the gutter of 24
-            labels drawn over them, outside the track so it never slides. */}
-        <div ref={railRef} className="relative" style={{ height: `calc(var(--hour-height) * ${HOURS_PER_DAY})` }}>
-          <PagedTrack
-            previous={columnsPage(previousDays)}
-            current={columnsPage(columnDays)}
-            next={columnsPage(nextDays)}
-          />
-          <div className="absolute inset-y-0 left-0 z-10 bg-bg" style={{ width: GUTTER_WIDTH_PX }}>
-            {HOUR_LABELS.map((label, hour) => (
-              <span
-                key={hour}
-                aria-hidden="true"
-                className="absolute right-1 -translate-y-1/2 text-[0.625rem] text-muted"
-                style={{ top: `calc(var(--hour-height) * ${hour})` }}
-              >
-                {hour === 0 ? "" : label}
-              </span>
-            ))}
+        {/* The hour rail. 3 Day and Week: one plain gutter of 24 labels, then
+            the viewport holding the columns' three pages. Day: no gutter
+            here, each page brings its own labels. */}
+        <div ref={railRef} className="flex" style={{ height: `calc(var(--hour-height) * ${HOURS_PER_DAY})` }}>
+          {!isDay && <TimelineHourLabels />}
+          <div ref={columnsViewportRef} className="min-w-0 flex-1 overflow-hidden">
+            <PagedTrack
+              previous={columnsPage(previousDays)}
+              current={columnsPage(columnDays)}
+              next={columnsPage(nextDays)}
+            />
           </div>
         </div>
       </div>
