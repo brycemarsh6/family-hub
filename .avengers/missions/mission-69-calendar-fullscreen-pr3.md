@@ -1,6 +1,6 @@
 # Mission 69: Calendar full screen PR 3, the sliding swipe
 
-- **Status:** CONTRACTED, waiting for Bryce's OK on the mock before any builder runs
+- **Status:** AT-THE-GATES (C1 to C4 committed; gate pass 1 dispatched 2026-11-10)
 - **Started:** 2026-11-10 · **Updated:** 2026-11-10
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 3: Sliding swipe (decision 7; small call A)"
 - **Branch:** `claude/calendar-fullscreen-pr3-096354`, synced to `origin/main` `2c2d7df` (PR 1 #109 and PR 2 #110 merged)
@@ -90,6 +90,7 @@ pushes to `main`.
 ## Contracts
 
 ### C1 - Split TimelineGrid, behaviour unchanged
+- **Status:** DONE `84a354a` (TimelineGrid 471 to 342, TimelinePage 236; gauntlet green per Stark; ran `npx prisma generate` for a stale local client)
 
 - **Objective:** Move "one page of columns" out of `TimelineGrid.tsx` so the
   track can render three of them, with no visible change.
@@ -114,6 +115,7 @@ pushes to `main`.
   or header-row JSX; no prop or behaviour change visible to `CalendarViews`.
 
 ### C2 - The pure gesture machine, the settle rule, a reduce-motion hook
+- **Status:** DONE `5857a23` (36 new tests, npm test 1819 to 1855; UTC run has the same 7 non-passes as before the mission; flick speed is the last two moves, 0 after a 100ms rest)
 
 - **Objective:** Build and test the pure decisions, with no UI wired.
 - **Boundaries:** may touch: new `src/lib/calendarGesture.ts`,
@@ -130,8 +132,9 @@ pushes to `main`.
     hold timer fired, click. `options.holdEnabled` defaults to false; with
     it false, holding and dragging are never entered. Exports
     `DIRECTION_LOCK_PX = 8` (the one definition). Carries `usePageSwipe`'s
-    rules by name: 8px lock where vertical wins a tie toward scrolling as
-    today, a second pointer at any stage goes to pinch (from sliding it
+    rules by name: 8px lock where only a strictly larger vertical travel
+    scrolls and an exact tie slides, as today (`usePageSwipe.ts:97`;
+    corrected after C2, Stark followed the code), a second pointer at any stage goes to pinch (from sliding it
     also emits spring back), swallow armed only by a committed slide and
     cleared on every pointer down.
   - `pageSettle.ts`: `settlePage({ dx, velocityPxPerMs, pageWidth })`
@@ -156,6 +159,7 @@ pushes to `main`.
 - **Done:** all new tests pass in Denver and UTC; no existing file changed.
 
 ### C3 - PagedTrack and the slide for Month and Year
+- **Status:** DONE `a3c1014` (usePagedSwipe 258, PagedTrack 60, new PagedPeriodViews 56, CalendarViews 498 to 491; gauntlet green per Stark; no browser run. Neighbours use anchor ±1 month or year because CalendarViews has no `period`; C4 adds `neighbourAnchor`)
 
 - **Depends on:** C2.
 - **Objective:** Month and Year slide with the finger using the machine.
@@ -184,19 +188,24 @@ pushes to `main`.
   timeline is untouched.
 
 ### C4 - The timeline slide, scroll to now, retire usePageSwipe
+- **Status:** DONE `8d5f07c` (TimelineGrid 382, TimelinePage 246, CalendarViews 481; npm test 1845, UTC 1838 + 7 DST skips; scroll-to-now deps `[view, scrollToNowSignal]`; gutter is now a fixed overlay over the rail. The `grep -rn usePageSwipe src` check is accepted with 4 comment-only hits in `calendarGesture.ts` and its test, naming the retired file as the source of its rules; no import or code reference remains)
 
 - **Depends on:** C1, C3.
 - **Objective:** Day, 3 Day and Week slide with the finger; the hours stay
   put on a turn; `usePageSwipe.ts` is gone.
 - **Boundaries:** may touch: `src/components/TimelineGrid.tsx`,
   `src/components/TimelinePage.tsx`, `src/components/CalendarViews.tsx`,
-  `src/lib/usePagedSwipe.ts`, `src/components/PagedTrack.tsx`; delete
+  `src/lib/usePagedSwipe.ts`, `src/components/PagedTrack.tsx`,
+  `src/components/PagedPeriodViews.tsx` (switch to `neighbourAnchor`),
+  `src/lib/useCalendarPeriod.ts` (add one exported pure
+  `neighbourAnchor(view, anchor, direction)` built on `VIEW_CURSOR`, so the
+  step size has one home), `src/lib/useCalendarPeriod.test.ts` (its tests); delete
   `src/lib/usePageSwipe.ts` and `src/lib/usePageSwipe.test.ts` (any pure
   case not already covered moves into `calendarGesture.test.ts`);
   `src/components/SwipeActions.tsx` (only: import `DIRECTION_LOCK_PX` from
-  `calendarGesture.ts` and delete its own); `STRUCTURE.md` (the
-  pointer-gesture bullet only, to say the copies are now
-  `calendarGesture.ts` and `SwipeActions.tsx` and the lock is one constant).
+  `calendarGesture.ts` and delete its own). The STRUCTURE.md
+  pointer-gesture bullet is NOT in C4: Captain drafts it at the gate
+  (preflight: STRUCTURE.md is a document past the code cap).
   · must not touch: `useTimelineZoom.ts`, `timelineZoom.ts`, everything
   else.
 - **Shape:** two `PagedTrack`s (the sticky header's pages and the column
@@ -217,7 +226,17 @@ pushes to `main`.
 ## Execution log
 
 - 2026-11-10: synced to `origin/main` `2c2d7df`. Banner brief in. Mock sent
-  to Bryce. Contracts written. Waiting for Bryce's OK.
+  to Bryce. Contracts written.
+- 2026-11-10: Bryce OKed the mock ("Looks good"). C1 and C2 dispatched to
+  Stark in parallel (disjoint files).
+- 2026-11-10: C1 and C2 DONE and committed. C3 dispatched.
+- 2026-11-10: C3 DONE and committed. C4 dispatched with `neighbourAnchor` added to its boundary.
+- 2026-11-10: C4 DONE and committed (`8d5f07c`). Gate pass 1: Vision, Strange, Captain in parallel.
+- 2026-11-10: the 7 UTC non-passes checked: all 7 are DST tests
+  (spring-forward Mar 8 and fall-back Nov 1, in the fetch chunking and the
+  timeline rail) that skip on purpose under UTC ("ambient zone has no
+  fall-back transition") and pass in the Denver run. Pre-existing, not a
+  failure. UTC run: tests 1855, pass 1848, skipped 7, fail 0, exit 0.
 
 ## Gate verdicts
 
