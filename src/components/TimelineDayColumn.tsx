@@ -37,7 +37,7 @@
 import { Repeat } from "lucide-react";
 import { minutesOfDay, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
 import { formatTimeRange, isPast } from "@/lib/calendarDates";
-import { showsTimeLine, timeLineFits, titleFitsFullSize, titleLineCount, zoomTextScale } from "@/lib/timelineZoom";
+import { locationLineFits, showsTimeLine, timeLineFits, titleFitsFullSize, titleLineCount, zoomTextScale } from "@/lib/timelineZoom";
 import { useRootFontPx } from "@/lib/useRootFontPx";
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
@@ -66,7 +66,9 @@ import type { CalendarEventView } from "@/lib/types";
 // one — the place documenting it now.
 
 // Today's rem line heights (font size times leading-tight's 1.25), kept in rem
-// so the pixel maths below matches the CSS. The title's compact tier is
+// so the pixel maths below matches the CSS. CHANGE TOGETHER: the class strings
+// on the title and time spans below (text-[0.75rem], 0.625rem with its 0.75rem
+// leading, 0.5625rem) mirror these three numbers; edit one side, edit the other. The title's compact tier is
 // 0.78125rem on a narrow column; counting with the wider tier is the safe side.
 const TITLE_LINE_REM = 0.9375;
 const SMALL_TITLE_LINE_REM = 0.75;
@@ -160,13 +162,19 @@ export function TimelineDayColumn({
         // Mission 73: whole title lines in real pixels. The time line shows only
         // if it truly fits beside one title line (the Largest 15-minute fix), and
         // whatever shows below the title keeps its room out of the title's lines.
-        const smallTitle = !titleFitsFullSize(heightPx);
-        const titleLinePx = (smallTitle ? SMALL_TITLE_LINE_REM : TITLE_LINE_REM) * rootPx * scale;
         const contentPx = drawnHeightPx - 2; // the 1px borders
+        // The small tier also applies when a full title line (22.5px at Largest)
+        // would not fit the content box, so g, y and p never lose their tails.
+        const smallTitle = !titleFitsFullSize(heightPx) || TITLE_LINE_REM * rootPx * scale > contentPx;
+        const titleLinePx = (smallTitle ? SMALL_TITLE_LINE_REM : TITLE_LINE_REM) * rootPx * scale;
         const timeShown =
           showsTimeLine(heightPx, trueDurationMinutes) &&
           timeLineFits({ heightPx: contentPx, titleLinePx, timeLinePx, paddingPx: 0 });
-        const locationShown = !compact && heightPx >= 72 && !!event.location;
+        const locationShown =
+          !compact &&
+          heightPx >= 72 &&
+          !!event.location &&
+          locationLineFits({ heightPx: contentPx, titleLinePx, timeLinePx, timeShown });
         const titleLines = titleLineCount({
           availablePx: contentPx - (timeShown ? timeLinePx : 0) - (locationShown ? timeLinePx : 0),
           lineHeightPx: titleLinePx,
@@ -241,7 +249,7 @@ export function TimelineDayColumn({
             {/* @min-[128px] is px on purpose (mission-58): in rem it would move with Text size. */}
             {/* mission-65: under 20px tall the title takes a 12px line so it fits whole. */}
             <span
-              className={`font-semibold ${
+              className={`font-semibold break-words hyphens-auto ${
                 smallTitle
                   ? "text-[length:calc(0.625rem*var(--zoom-text-scale,1))] leading-[calc(0.75rem*var(--zoom-text-scale,1))]"
                   : compact

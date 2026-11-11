@@ -146,3 +146,22 @@ export function timeLineFits({
   if (!Number.isFinite(heightPx) || !Number.isFinite(needed)) return false;
   return heightPx >= needed;
 }
+
+/** Whether the location line fits under the title (and the time line, when it
+ * shows) in a block's real height. The location line is the same size as the
+ * time line. Measured in pixels, like timeLineFits. */
+export function locationLineFits({
+  heightPx,
+  titleLinePx,
+  timeLinePx,
+  timeShown,
+}: {
+  heightPx: number;
+  titleLinePx: number;
+  timeLinePx: number;
+  timeShown: boolean;
+}): boolean {
+  const needed = titleLinePx + (timeShown ? timeLinePx : 0) + timeLinePx;
+  if (!Number.isFinite(heightPx) || !Number.isFinite(needed)) return false;
+  return heightPx >= needed;
+}

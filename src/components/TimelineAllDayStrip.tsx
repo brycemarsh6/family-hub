@@ -41,10 +41,11 @@
 // TimelineGrid.tsx already computes is the same fix applied here, instead
 // of repeated.
 //
-// D4 still holds, one call site removed: this file is now the ONLY place
-// that calls `monthLayout.assignLanes` for the timeline views — the
-// EXISTING packer TimelineGrid.tsx used before this extraction, never a
-// second one. `TimelineEvent` (timelineLayout.ts) and `MonthLayoutEvent`
+// D4 still holds: the timeline has two callers of the EXISTING
+// `monthLayout.assignLanes`, never a second packer: this file (the layout) and
+// `allDayHiddenCount` in src/lib/timelineAllDay.ts (TimelineGrid's chevron
+// test). Both build their items through `timelineAllDayItems` and cap at
+// `TIMELINE_ALL_DAY_LANES`, so they cannot disagree. `TimelineEvent` (timelineLayout.ts) and `MonthLayoutEvent`
 // (monthLayout.ts) are structurally identical `{id, startAt, endAt, allDay}`
 // shapes for exactly this reason, so `allDayRow` passes straight through
 // with no conversion step.

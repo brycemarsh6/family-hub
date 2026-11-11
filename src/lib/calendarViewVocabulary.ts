@@ -1,6 +1,7 @@
 // The Calendar branch's view VOCABULARY — the six names Calendar v2 needs
 // (Schedule / Day / 3 Day / Week / Month / Year), their labels, and which
-// of them actually render today. Mission-11/CV1, contract C2.
+// of them actually render today. Mission-11/CV1, contract C2. It now also
+// holds the timeline all-day row's pure label functions (mission-73).
 //
 // No "server-only" guard and no React: this module is pure over its inputs
 // and holds nothing but data, which is what lets calendarPaging.ts (called

@@ -22,6 +22,7 @@ import {
   zoomTextScale,
   titleLineCount,
   timeLineFits,
+  locationLineFits,
 } from "./timelineZoom";
 
 test("range constants: 32 to 192 with a 48 default", () => {
@@ -172,4 +173,22 @@ test("timeLineFits: one title line, one time line and padding must fit", () => {
   assert.equal(timeLineFits({ heightPx: 33.9, ...rest }), false);
   assert.equal(timeLineFits({ heightPx: 24, ...rest }), false);
   assert.equal(timeLineFits({ heightPx: Number.NaN, ...rest }), false);
+});
+
+test("locationLineFits: title, time (when shown) and location lines must all fit", () => {
+  const rest = { titleLinePx: 15, timeLinePx: 11.25 };
+  assert.equal(locationLineFits({ heightPx: 37.5, timeShown: true, ...rest }), true);
+  assert.equal(locationLineFits({ heightPx: 37.4, timeShown: true, ...rest }), false);
+  assert.equal(locationLineFits({ heightPx: 26.25, timeShown: false, ...rest }), true);
+  assert.equal(locationLineFits({ heightPx: 26.2, timeShown: false, ...rest }), false);
+  assert.equal(locationLineFits({ heightPx: Number.NaN, timeShown: false, ...rest }), false);
+});
+
+test("locationLineFits: iPad Largest (root 24), 30 min at 150px/h with a location, worked through", () => {
+  // heightPx 75, drawn 73, content 71. Scale 1 + (150-48)/144*0.5 = 1.354.
+  const scale = zoomTextScale(150);
+  const title = 0.9375 * 24 * scale; // 30.5
+  const time = 0.703125 * 24 * scale; // 22.8
+  // 30.5 + 22.8 + 22.8 = 76.1 > 71: the location line must not show.
+  assert.equal(locationLineFits({ heightPx: 71, titleLinePx: title, timeLinePx: time, timeShown: true }), false);
 });

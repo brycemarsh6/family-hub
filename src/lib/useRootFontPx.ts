@@ -7,18 +7,33 @@ import { useSyncExternalStore } from "react";
 // attribute on <html>, so this watches that attribute and window resizes.
 // The calendar's block titles need real pixels to count whole lines.
 
+// The value is cached here and refreshed only when something can have changed
+// it, so a render never calls getComputedStyle (one per column per render
+// before). The first subscribe fills it.
+let cachedPx: number | null = null;
+
+export function readRootFontPx(): number {
+  return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+}
+
 function subscribe(onChange: () => void) {
-  const observer = new MutationObserver(onChange);
+  const refresh = () => {
+    cachedPx = readRootFontPx();
+    onChange();
+  };
+  cachedPx = readRootFontPx();
+  const observer = new MutationObserver(refresh);
   observer.observe(document.documentElement, { attributes: true });
-  window.addEventListener("resize", onChange);
+  window.addEventListener("resize", refresh);
   return () => {
     observer.disconnect();
-    window.removeEventListener("resize", onChange);
+    window.removeEventListener("resize", refresh);
   };
 }
 
 function getSnapshot() {
-  return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  if (cachedPx === null) cachedPx = readRootFontPx();
+  return cachedPx;
 }
 
 function getServerSnapshot() {

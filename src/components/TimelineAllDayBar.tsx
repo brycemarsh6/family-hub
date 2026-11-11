@@ -4,8 +4,8 @@
 // TimelineAllDayStrip.tsx (mission 73) so the strip drops below its size cap.
 // Moved, not rewritten: the markup and the reasoning comments travelled with
 // the code. Sizes: the old 24px row is now `1.5rem` times the zoom text scale
-// (`--zoom-text-scale`, set by TimelineGrid in a later contract; until then
-// the fallback 1 keeps today's look), so Text size now grows the row too.
+// (`--zoom-text-scale`, set by TimelineGrid beside `--hour-height` from
+// `zoomTextScale`; the fallback 1 covers any render outside the timeline), so Text size now grows the row too.
 
 import type { CSSProperties } from "react";
 import { avatarColorHex } from "@/lib/constants";

@@ -16,7 +16,7 @@ export function AllDayToggle({ expanded, onToggle }: { expanded: boolean; onTogg
       onClick={onToggle}
       aria-expanded={expanded}
       aria-label={expanded ? ALL_DAY_COLLAPSE_LABEL : ALL_DAY_EXPAND_LABEL}
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-fg"
+      className="flex h-11 w-[min(2.75rem,48px)] shrink-0 items-center justify-center rounded-full text-fg"
     >
       <Icon aria-hidden="true" size={20} />
     </button>

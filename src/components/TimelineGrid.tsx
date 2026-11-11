@@ -35,13 +35,13 @@
 // below; `allDayRow` is handed to `./TimelineAllDayStrip.tsx` (mission-17/
 // C6), which is what actually calls the EXISTING `monthLayout.assignLanes`
 // (D4) — no second packer, and this file no longer calls it directly at
-// all. `TimelineEvent` and `MonthLayoutEvent` are structurally identical
-// `{id, startAt, endAt, allDay}` shapes for exactly this reason, so the
-// all-day row's events pass straight through with no conversion step; see
-// the composition test in timelineLayoutPacking.test.ts, which mission-12/
-// Captain flagged as load-bearing STRUCTURE, not incidental coverage — do
-// not delete it just because this is now a real call site (one level
-// removed, through the strip component, rather than direct).
+// all. It asks `pageAllDayHiddenCount` (timelineAllDay.ts) only whether the
+// chevron shows. `TimelineEvent` and `MonthLayoutEvent` are structurally
+// identical `{id, startAt, endAt, allDay}` shapes, so the all-day row's events
+// pass straight through with no conversion step; see the composition test in
+// timelineLayoutPacking.test.ts, which mission-12/Captain flagged as
+// load-bearing STRUCTURE, not incidental coverage: do not delete it just
+// because this is now a real call site (one level removed, via the strip).
 //
 // mission-17/C5 added TASKS to the all-day strip, and the real "+N more"
 // button that replaced the circular dead end Strange traced (Month's own
