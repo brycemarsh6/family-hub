@@ -443,7 +443,7 @@ touched; STRUCTURE.md caps apply.
 - **Done:** committed with evidence.
 
 ### F3: The repeat mark is sized once at Largest
-- **Status:** IN PROGRESS
+- **Status:** DONE `35a7720` (inline `zoom: 1` on `<Repeat>`; TimelineDayColumn 276; npm test 2001, UTC 1991 + 10 skips, tsc, lint, build exit 0; probe at 1024x768: Largest mark 18x18 on 18px title, line 24 = Dentist baseline, light and dark; Normal 12x12, line 16 = baseline)
 - **May touch:** `src/components/TimelineDayColumn.tsx` only.
 - **Work:** inline `style={{ zoom: 1 }}` on the `<Repeat>` element (a class
   loses to `html[data-text-size] svg.lucide`), with a one-line comment: the
