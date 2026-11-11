@@ -227,6 +227,56 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
    Normal (same classes, scale 1); zoomed in, titles and pills grow; no
    title is cut mid-line; labels never wrap.
 
+### F1 - Pass 1 fixes (Vision and Strange blockers, chosen notes)
+
+1. **Objective:** fix the three pass-1 blockers so no title, time or
+   location line is cut mid-letter at any zoom or Text size, plus the
+   cheap notes.
+2. **Boundaries:** May touch: `src/components/TimelineDayColumn.tsx`,
+   `src/lib/useRootFontPx.ts`, `src/lib/timelineZoom.ts`,
+   `src/lib/timelineZoom.test.ts`, `src/components/AllDayToggle.tsx`,
+   and comment-only edits in `src/components/TimelineAllDayStrip.tsx`,
+   `src/components/TimelineAllDayBar.tsx`, `src/components/TimelineGrid.tsx`
+   (must stay at or under 400 lines), `src/lib/calendarViewVocabulary.ts`.
+   Must not touch: Month files, `monthLayout.ts`, `useTimelineZoom.ts`,
+   `calendarGesture.ts`, `usePagedSwipe.ts`, `CalendarViews.tsx`,
+   `appChrome.ts`, DESIGN.md, STRUCTURE.md, docs (Fury writes those).
+   - **B1 (Vision):** the location line shows only when it fits in real
+     pixels (title line + time line if shown + location line in the
+     content box), like the time line. Lift the check into a pure function
+     in `timelineZoom.ts` with tests if that is cleaner.
+   - **B2 (Strange):** narrow columns cut words at the right edge
+     ("teachei"). Add `break-words hyphens-auto` to the clamped title span
+     (the approved mock had `word-break: break-word`).
+   - **B3 (Strange):** at iPad Largest a 15 or 30 minute block at 48px an
+     hour loses descenders: the full title line (22.5px) does not fit the
+     20px content box. Use the small tier from real pixels too:
+     `smallTitle = !titleFitsFullSize(heightPx) || TITLE_LINE_REM * rootPx
+     * scale > contentPx` (computed after `contentPx`); the line count
+     uses the small line height when the small tier is chosen.
+   - **N (Vision):** `useRootFontPx` must not call `getComputedStyle` on
+     every render: cache the value in the module, refresh it only in the
+     subscribe callbacks (mutation, resize) and on first subscribe; export
+     the read as `readRootFontPx` (Captain amendment A).
+   - **N (Captain):** fix the stale comments Captain named
+     (TimelineAllDayStrip.tsx:44-46, TimelineAllDayBar.tsx:6-8,
+     TimelineGrid.tsx:33-40, calendarViewVocabulary.ts header) with his
+     suggested wording (in the Gate log's Captain entry and his report
+     quoted below); add a "change together" comment where
+     TimelineDayColumn's class strings mirror `TITLE_LINE_REM`,
+     `SMALL_TITLE_LINE_REM`, `TIME_LINE_REM`; restore TimelineGrid's blank
+     line after the imports if the 400 cap allows.
+   - **N (Strange):** `AllDayToggle` width `w-[min(2.75rem,48px)]` so it
+     never spills out of the 48px gutter at Largest (height may stay
+     2.75rem).
+3. **Verification:** gauntlet, five commands, real exit codes (no pipe to
+   tail without `; echo $?` on the command itself).
+4. **Evidence:** the diff summary per item; the new tests; line counts;
+   for B1 and B3, the numbers from the failing cases worked through the new
+   code (iPad Largest root 24: 30 min at 150px/h with a location; 15 min at
+   48px/h).
+5. **Done:** all items in, gauntlet green, files within caps.
+
 ## Gate log
 
 - **Fury's ruling before the gates (C3's flagged conflict):** a true
@@ -235,6 +285,42 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
   showed clipped mid-line). Kept: Bryce's recommendation 6, "the time line
   shows under the title only when there is room for it", which he approved.
   Strange to confirm on screen.
-- Pass 1: Vision, Strange and Captain dispatched in parallel at `841c0cb`.
+- Pass 1: Vision, Strange and Captain dispatched in parallel at `69dddbc`.
+- **Captain pass 1: PASS**, no blockers. NOTEs (to fold into the fix batch):
+  stale comments in TimelineAllDayStrip.tsx:44-46, TimelineAllDayBar.tsx:6-8,
+  TimelineGrid.tsx:33-40 and calendarViewVocabulary.ts's header; export
+  `readRootFontPx` from useRootFontPx.ts (appChrome.ts's own read is debt);
+  a "change together" comment beside TimelineDayColumn's rem constants;
+  restore TimelineGrid's blank line. Drafted rulebook text: A (STRUCTURE.md
+  "The live root font size has one JS reader"), B (docs/structure/calendar.md
+  "The timeline's all-day row and zoom text", plus one sentence on "The hour
+  timeline's scale has one home"), C (the TimelineGrid trend line, next seam
+  `useAllDayExpand.ts`). Needs Bryce's OK before landing.
+
+- **Vision pass 1: BLOCKED**, gauntlet all exit 0 (2030 tests; UTC 2020 +
+  10 skips; build 0), boundaries clean. BLOCKER: TimelineDayColumn.tsx:169,
+  the location line still uses the old `heightPx >= 72` rule, so at iPad
+  Largest (30 min at 144 to 166 px/h, 35 min near 124 to 130) title, time
+  and location overflow and letters lose their bottoms. Fix: gate it on
+  real pixels like the time line. NOTEs: full titles at scale 1 now take a
+  1.25 line height (15px, was 16px); compact clamp is on the safe side;
+  expand state and chevron visibility check out; `useRootFontPx` runs
+  `getComputedStyle` on every render of every column (cache it); the zoom
+  anchor holds by reasoning; stale strip comment; count buttons 24px tall
+  (not new).
+- **Strange pass 1: BLOCKED.** B2: narrow Week columns cut titles at the
+  right edge ("teachei", "conferer"), fix `break-words hyphens-auto`. B3:
+  iPad Largest, 15 and 30 minute blocks at 48px/h lose g, y, p tails, fix
+  the small tier from real pixels. NOTEs: the 15-minute title-only ruling
+  reads cleanly (looks like a 30 minute block now; zoom or tap shows the
+  time); lanes, counts, aria labels right; chevron correct, 44px, spills
+  9px at Largest (fix `min()` width); count button 24px is allowed by
+  DESIGN.md timeline exception (c), whose wording still names "+N more" and
+  "− Show less" (Fury updates); pinch anchor holds with the open row
+  (drift under 1.2 minutes); zoom text 1, 1.25, 1.5 as approved; hour
+  labels never wrap; at Largest and full zoom the open header takes 305px
+  on iPad landscape; reduce motion instant; dark mode right. Shots and
+  harness in this session's scratchpad `strange/`.
+- Fix batch F1 dispatched (all three blockers plus chosen notes).
 
 ## Delivery
