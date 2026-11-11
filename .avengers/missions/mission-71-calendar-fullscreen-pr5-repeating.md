@@ -1,6 +1,6 @@
 # Mission 71: Calendar full screen PR 5, repeating events ("This one" or "All of them")
 
-- **Status:** BUILDING C2 (resumed after two pauses, 2026-11-11; worktree has its own `node_modules` (npm ci) and a generated Prisma client; no `.env` here (export from the main checkout, hostname only). (Bryce OK'd the mock 2026-11-11: "Looks good, build it", after asking for a draggable mock)
+- **Status:** GATES pass 1 (C1, C2, C2a, C3 built; worktree has its own `node_modules` (npm ci) and a generated Prisma client; no `.env` here (export from the main checkout, hostname only). (Bryce OK'd the mock 2026-11-11: "Looks good, build it", after asking for a draggable mock)
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 5: Repeating events, "This one" or "All of them" (decision 22; small call I; Q1, Q2)"
 - **Branch:** `claude/calendar-fullscreen-pr5-dc232e`, cut from `origin/main` `6656fed` (PR 4 merged as #112)
@@ -281,7 +281,7 @@ touched; STRUCTURE.md caps apply.
 - **Done:** one or two commits, all above.
 
 ### C3: The sheet, the client side
-- **Status:** IN PROGRESS
+- **Status:** DONE `32696a8` (RepeatMoveSheet 70; useEventMoves 131 to 307 with pure `seriesShiftMinutes`, `shiftWallClock`, `applySeriesShift`, `movedAllText`, `seriesUndoRequest`; CalendarViews 490 to 494; seriesId from the source calendar's sync row; +6 tests, npm test 1995, UTC 1985 + 10 skips, tsc, lint, build green. CDP probe 112/112 on a harness mounting the real TimelineGrid, useEventMoves, RepeatMoveSheet, UndoBar with stubbed actions, 393x852 and 1024x768, light and dark; harness and 16 shots in the session scratchpad `harness-c3/`. Notes for the gates: `shiftWallClock` uses the same zone arithmetic as the server's `shiftParentTimes` (one source of truth?); Google's series id now reaches the browser; reduce motion and the real actions not probed)
 - **Objective:** a drop of a repeating event asks "This one", "All of
   them", Cancel, as in the approved mock.
 - **May touch:** `src/lib/types.ts` (`CalendarEventView.seriesId?:
