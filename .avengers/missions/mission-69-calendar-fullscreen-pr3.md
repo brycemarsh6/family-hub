@@ -1,6 +1,6 @@
 # Mission 69: Calendar full screen PR 3, the sliding swipe
 
-- **Status:** AT-THE-GATES (Bryce 2026-11-10: "Yes, one more round", a fourth pass limited to the reduce-motion fix F4)
+- **Status:** DELIVERING (all gates PASS: Captain pass 2, Vision pass 4, Strange pass 4)
 - **Started:** 2026-11-10 · **Updated:** 2026-11-10
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 3: Sliding swipe (decision 7; small call A)"
 - **Branch:** `claude/calendar-fullscreen-pr3-096354`, synced to `origin/main` `2c2d7df` (PR 1 #109 and PR 2 #110 merged)
@@ -403,7 +403,35 @@ pushes to `main`.
 | 2 | Strange (HEAD b57ffba) | BLOCK | F1 regression (same as Vision 1): inline always-on 260ms transition, so after a turn the day after the target flashes and slides back, and the drag trails the finger (-111 at a -192 finger) | Real-finger turns on Day, 3 Day, Week both ways at every viewport and Tablet; tracks agree 0px; no blank band; Day matches Bryce's Google picture; 3 Day/Week match the mock; header clipped; hours hold on turns, go to now on open, Today, view change; pinch zooms with labels 0px from gridlines; now-line dot whole; Month reaches both edges (Captain B1 fixed); spring-back pickup smooth. Notes: 3 Day/Week all-day bars 6px right, pre-existing; Month skeleton not seen rendered; Month swipes only on the grid (as main) |
 | 3 | Vision (HEAD 26555c5) | PASS | none | Gauntlet re-run green, build exit 0 captured; boundaries clean (23 files, all declared). Real touch on a production build: at rest transition 0s; one-frame hand-over with correct content on Day, 3 Day, Week, Month, Year, phone and Tablet iPad sizes; m41 equals `--page-dx` every drag frame (13 runs); 20 pickup runs (tap, scroll, cancel, pinch, hold) all end at 0; Today mid-glide from another period lands on today. Done-means audit: items 1 to 9 proven (kid/parent logins and real iOS not seen). Notes: reduce-motion commit frame may sample the old offset for 0.01ms (`motion-reduce:transition-none` would close it); `todayTaps` in pageKey unreachable (Today is disabled on the current period), harmless; tap during a spring-back on Month/Year opens the cell (a tap is a tap) |
 | 3 | Strange (HEAD 26555c5) | BLOCK | Reduce Motion only: for one painted frame after release the page shows the period after the target at the old drag offset (Day and Month screencasts). Cause: globals.css forces `transition-duration: 0.01ms !important` and the track's resting `transition-property` is `all`. Fix: `transition-none` at rest on the track in `PagedTrack.tsx`, glide class still wins under `data-glide` | Normal motion fixed in all 40 real-finger turns (5 views, 393 and 1024, admin and Tablet, both directions): drag 1:1 (0px), tracks agree, 16 glide frames, one-frame hand-over with correct content (hash and pixel checked). Day matches Bryce's Google picture; 3 Day/Week fixed hours; hours hold; pinch; Month edges; spring-back and pickup end at 0; Larger and Largest text pass. Notes: tap during spring-back on Month/Year opens the cell; Week header growth keeps hours still (correct) |
+| 4 | Strange (HEAD 31fd581, scoped to the pass-3 blocker, Bryce allowed) | PASS | none | Reduce motion: first painted frame after release shows the target at 0 on Day, Month and Week (screencasts). Normal motion: 1:1 drag, glide, one-frame hand-over on Day and Month. Note: for one frame (2 to 3 on Month) the "today" marker and the Today button's disabled state lag the incoming page; pre-existing, frame-capture only |
+| 4 | Vision (HEAD 31fd581, scoped to F4, Bryce allowed) | PASS | none | Gauntlet re-run green, build exit 0 captured; diff exactly one class; built CSS order and specificity confirmed and measured live (rest `none`, glide `transform 0.26s`). Real touch, production build: reduce motion Day both ways, Month both ways, Tablet 1024 all go from the drag offset to 0 with the target in one sample; normal Day both ways 16 glide frames, one-frame hand-over, 0 mismatches. Pass-3 reduce-motion note closed |
 
 ## Delivery
 
-(not yet)
+- **Gates:** Captain PASS (pass 2), Vision PASS (pass 4), Strange PASS
+  (pass 4). Pass 4 was a fourth, focused pass Bryce allowed
+  (2026-11-10, "Yes, one more round") after Strange's pass-3 blocker on
+  the reduce-motion hand-over.
+- **Built:** one pure gesture machine (`calendarGesture.ts`, hold and drag
+  off for PR 4), the settle rule (`pageSettle.ts`), `usePagedSwipe.ts`
+  driving `PagedTrack`, Month and Year in `PagedPeriodViews.tsx`, the
+  timeline split into `TimelineGrid.tsx` and `TimelinePage.tsx`,
+  `neighbourAnchor`, `usePrefersReducedMotion`. `usePageSwipe.ts` deleted;
+  one `DIRECTION_LOCK_PX`.
+- **Bryce's design calls:** the mock ("Looks good"); Day slides whole with
+  its own hours and date ("Slides with its day", from a Google
+  screenshot); 3 Day and Week keep fixed hours (the approved mock, Fury's
+  call, Bryce told); the reduce-motion rule in STRUCTURE.md ("Yea").
+- **Rulebook:** STRUCTURE.md gesture bullet rewritten and reduce-motion
+  bullet added; layout.md bleed instances; the old bullet moved word for
+  word to docs/history/structure-rationale.md.
+- **Tests:** npm test 1845 pass; UTC 1838 pass plus the 7 DST skips.
+- **Phone test:** in `.avengers/status.md` (screen recording).
+- **Left for later (notes, not blockers):** move `SwipeActions.tsx` onto
+  `gestureStep` after Bryce's real-device F3 check (STRUCTURE.md names it);
+  3 Day and Week all-day bars sit about 6px right of their columns
+  (pre-existing, `TimelineAllDayStrip.tsx`); a tap during a spring-back on
+  Month or Year opens the cell; the "today" marker and the Today button's
+  disabled state lag the incoming page for one frame; Month swipes only on
+  the grid (as before); `usePagedSwipe.ts` is 342 lines, near the soft cap;
+  not seen: kid login, pinned menu, real iOS Safari.
