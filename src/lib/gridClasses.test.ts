@@ -13,6 +13,7 @@ import {
   MONTH_PANEL_STACKED_CLASSES,
   MONTH_PANEL_STICKY_CLASSES,
   monthPanelBeside,
+  widthWithRailNav,
 } from "./gridClasses";
 
 test("the side class spells the one side width", () => {
@@ -50,4 +51,31 @@ test("under the 700px cutoff it always stacks", () => {
 
 test("a view without columns (Month, Year) never goes beside", () => {
   assert.equal(monthPanelBeside(false, 1200, 16), false);
+});
+
+// Mission 72 F2: a pinned Sidebar (256) squeezes to the rail (72) once beside.
+const decide = (width: number, nav: number, root: number) => monthPanelBeside(true, widthWithRailNav(width, nav, 72), root);
+
+test("1024 landscape with the Sidebar (736 body) goes beside at Large and Largest", () => {
+  assert.equal(decide(736, 256, 18), true);
+  assert.equal(decide(736, 256, 24), true);
+});
+
+test("1180 landscape with the Sidebar (892 body) goes beside at Largest", () => {
+  assert.equal(decide(892, 256, 24), true);
+});
+
+test("768 upright (no pinned menu) stacks at Large and goes beside at Normal", () => {
+  assert.equal(decide(736, 0, 18), false);
+  assert.equal(decide(736, 0, 16), true);
+});
+
+test("once beside, the body already has the rail's width: nothing is added, no flip", () => {
+  assert.equal(widthWithRailNav(920, 72, 72), 920);
+  assert.equal(decide(920, 72, 24), true);
+});
+
+test("a missing nav width adds nothing", () => {
+  assert.equal(widthWithRailNav(736, Number.NaN, 72), 736);
+  assert.equal(widthWithRailNav(736, 0, 72), 736);
 });

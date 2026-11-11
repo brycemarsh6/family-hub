@@ -181,7 +181,7 @@ export function CalendarViews({
   const chipsOnly = config.renderer === "month" || config.renderer === "year";
   const isSchedule = config.renderer === "schedule";
   const { insetPx, rootPx } = useHamburgerInsetPx();
-  const { bodyRef, viewRef, open: panelOpen, beside, toggle, closeNow } = useMonthPanel(viewerId, rootPx, !chipsOnly);
+  const { bodyRef, viewRef, panelRef, stackedHeightPx, open: panelOpen, beside, toggle, closeNow } = useMonthPanel(viewerId, rootPx, !chipsOnly);
   // The null-guards below are about `today` not having resolved yet — NOT
   // about which view is active, which is why they stay here rather than
   // moving into VIEW_CONFIG (every row would carry the same null check).
@@ -399,7 +399,7 @@ export function CalendarViews({
               canManage={canManage}
               onTodayVisibleChange={setScheduleTodayVisible}
               onDayInViewChange={setScheduleDay}
-              trackDayInView={panelOpen}
+              trackDayInView={panelOpen} revealExtraPx={stackedHeightPx}
             />
           )
         );
@@ -449,7 +449,7 @@ export function CalendarViews({
       <div ref={bodyRef} data-calendar-body className="@container">
         <div className={beside ? MONTH_PANEL_ROW_CLASSES : undefined}>
           {panelOpen && today !== null && anchor !== null && (
-            <div className={panelClasses} style={isSchedule ? { top: scheduleChromeHeightPx(insetPx, rootPx) } : undefined}>
+            <div ref={panelRef} className={panelClasses} style={isSchedule ? { top: scheduleChromeHeightPx(insetPx, rootPx) } : undefined}>
               <MonthJumpPanel
                 anchor={anchor}
                 today={today}

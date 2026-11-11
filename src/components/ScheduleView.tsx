@@ -84,6 +84,8 @@ type ScheduleViewProps = {
   onDayInViewChange: (day: number) => void;
   /** Mission 72: read the rows for it only while the month panel is open. */
   trackDayInView: boolean;
+  /** Mission 72: height of a stacked open month panel stuck under the chrome (0 when none); rows reveal below it. */
+  revealExtraPx: number;
   ref?: Ref<ScheduleViewHandle>;
 };
 
@@ -153,6 +155,7 @@ export function ScheduleView({
   onTodayVisibleChange,
   onDayInViewChange,
   trackDayInView,
+  revealExtraPx,
   ref,
 }: ScheduleViewProps) {
   const router = useRouter();
@@ -212,6 +215,8 @@ export function ScheduleView({
   // leaves inset + bar (`scheduleChromeHeightPx`: 86px bar at 16, 129px at Largest).
   const { insetPx, rootPx } = useHamburgerInsetPx();
   const scheduleChromeHeight = scheduleChromeHeightPx(insetPx, rootPx);
+  // Mission 72: the line under everything pinned above the list: the chrome, plus a stacked open month panel.
+  const revealLine = scheduleChromeHeight + revealExtraPx;
 
   // mission-15/C10 (Strange's blocker) — re-arms the one-shot below
   // whenever `initialDayTime` genuinely changes, mirroring
@@ -254,7 +259,7 @@ export function ScheduleView({
     target.scrollIntoView({ behavior: "instant", block: "start" });
 
     const scroller = document.scrollingElement;
-    const landedShort = target.getBoundingClientRect().top > scheduleChromeHeight + 1;
+    const landedShort = target.getBoundingClientRect().top > revealLine + 1;
     const pinnedToScrollMax =
       scroller !== null && scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 1;
 
@@ -303,11 +308,11 @@ export function ScheduleView({
     }
     const observer = new IntersectionObserver(
       ([entry]) => onTodayVisibleChange(entry.isIntersecting),
-      { threshold: 0, rootMargin: "0px" },
+      { threshold: 0, rootMargin: `-${revealLine}px 0px 0px 0px` },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [today, months, onTodayVisibleChange]);
+  }, [today, months, onTodayVisibleChange, revealLine]);
 
   // mission-16/C9 — "which month is topmost" and the header portal it feeds
   // moved out to src/lib/useScheduleMonthTitle.ts (Captain's own named seam:
@@ -330,7 +335,7 @@ export function ScheduleView({
   );
 
   // Mission 72: the day in view feeds the panel's ring (rows read only while open; +2 absorbs rounding).
-  const dayInViewTime = useScheduleDayInView(dayRefs, months, scheduleChromeHeight + 2, trackDayInView, initialDay);
+  const dayInViewTime = useScheduleDayInView(dayRefs, months, revealLine + 2, trackDayInView, initialDay);
   useEffect(() => onDayInViewChange(dayInViewTime), [dayInViewTime, onDayInViewChange]);
 
   function scrollToDay(day: Date): boolean {
@@ -405,7 +410,7 @@ export function ScheduleView({
                     // This view only renders while CalendarHeader's
                     // Schedule bar is pinned (both read `VIEW_CONFIG`), so
                     // that number always describes the real chrome.
-                    style={{ scrollMarginTop: scheduleChromeHeight }}
+                    style={{ scrollMarginTop: revealLine }}
                   >
                     {isEmptyToday(row) ? (
                       // Holds off until the habit days arrive: an empty today row

@@ -1,7 +1,9 @@
 "use client";
 
-// Whether the Calendar's month panel is open, remembered per person per
-// device (mission-72). A per-device UI convenience, not family data, so
+// The Calendar's month panel state (mission-72). This file owns two things:
+// the stored open value (`useMonthPanelOpen`) and everything CalendarViews
+// decides about the panel from it (`useMonthPanel`). Open is remembered per
+// person per device. A per-device UI convenience, not family data, so
 // localStorage with no server round trip, the same shape as
 // lastCalendarView.ts and the zoom's per-person key (timelineZoom.ts). Only
 // a wide container (an iPad) honours the stored value; the phone's dropdown
@@ -9,7 +11,8 @@
 
 import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
-import { monthPanelBeside, MONTH_PANEL_BESIDE_MIN_PX } from "@/lib/gridClasses";
+import { NAV_RAIL_WIDTH } from "@/lib/appChrome";
+import { monthPanelBeside, MONTH_PANEL_BESIDE_MIN_PX, widthWithRailNav } from "@/lib/gridClasses";
 import { useContainerWidth } from "@/lib/useContainerWidth";
 
 export const MONTH_PANEL_KEY_PREFIX = "marshee:calendar-month-panel:";
@@ -89,6 +92,12 @@ export function useMonthPanelOpen(viewerId: string | null): [boolean, (open: boo
  *   moved by however far that edge moved, before paint. Measuring the view's
  *   own edge (not the document height) stays right whether or not the
  *   browser's native scroll anchoring already helped.
+ * - A pinned Sidebar is what the body is measured beside, but it is squeezed
+ *   to the rail once the panel is beside, so the decision reads the live
+ *   `--app-nav-width` (set on AppChrome's wrapper, 256px only while the
+ *   Sidebar shows) and adds the difference (`widthWithRailNav`).
+ * - On a stacked panel, `stackedHeightPx` is its measured height (0 when none
+ *   is showing): Schedule reveals rows below it, not just below the chrome.
  * - `closeNow` closes a phone dropdown before the caller scrolls, so the
  *   picked day lands under the header (a no-op on a wide body).
  */
@@ -100,7 +109,25 @@ export function useMonthPanel(viewerId: string | null, rootPx: number, canBeside
   const [storedOpen, setStoredOpen] = useMonthPanelOpen(viewerId);
   const [phoneOpen, setPhoneOpen] = useState(false);
   const open = wide ? storedOpen : phoneOpen;
-  const beside = open && monthPanelBeside(canBeside, width, rootPx);
+  const [navPx, setNavPx] = useState(0);
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (el) setNavPx(parseFloat(getComputedStyle(el).getPropertyValue("--app-nav-width")) || 0);
+  }, [width]);
+  const beside = open && monthPanelBeside(canBeside, widthWithRailNav(width, navPx, parseFloat(NAV_RAIL_WIDTH)), rootPx);
+
+  // The stacked panel's height, kept by a ResizeObserver on its own box.
+  const [panelNode, panelRef] = useState<HTMLDivElement | null>(null);
+  const [panelHeightPx, setPanelHeightPx] = useState(0);
+  useLayoutEffect(() => {
+    if (!panelNode) return;
+    const measure = () => setPanelHeightPx(Math.round(panelNode.getBoundingClientRect().height));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(panelNode);
+    return () => observer.disconnect();
+  }, [panelNode]);
+  const stackedHeightPx = open && !beside && panelNode ? panelHeightPx : 0;
 
   const heldTop = useRef<number | null>(null);
   const hold = () => {
@@ -115,7 +142,8 @@ export function useMonthPanel(viewerId: string | null, rootPx: number, canBeside
   });
 
   const toggle = () => {
-    hold();
+    // With no viewer on a wide body nothing changes, so nothing is held.
+    if (!wide || viewerId !== null) hold();
     if (wide) setStoredOpen(!storedOpen);
     else setPhoneOpen(!phoneOpen);
   };
@@ -124,5 +152,5 @@ export function useMonthPanel(viewerId: string | null, rootPx: number, canBeside
     hold();
     flushSync(() => setPhoneOpen(false));
   };
-  return { bodyRef, viewRef, open, beside, toggle, closeNow };
+  return { bodyRef, viewRef, panelRef, stackedHeightPx, open, beside, toggle, closeNow };
 }

@@ -76,6 +76,19 @@ export function monthPanelBeside(canBeside: boolean, widthPx: number, rootPx: nu
   return widthPx - MONTH_PANEL_SIDE_REM * rootPx >= BESIDE_VIEW_MIN_PX;
 }
 
+/**
+ * The body width the panel's "beside" decision should use. A pinned Sidebar
+ * (`navPx` 256) is squeezed to the rail (`railPx` 72) the moment the panel
+ * goes beside, which hands its difference to the body; deciding on the
+ * measured width alone would never go beside on a landscape iPad above
+ * Normal text. Once beside, `navPx` is already the rail's, so nothing is
+ * added and the decision cannot flip (mission 72). A missing or odd `navPx`
+ * (no pinned menu, below `lg`) adds nothing.
+ */
+export function widthWithRailNav(widthPx: number, navPx: number, railPx: number): number {
+  return Number.isFinite(navPx) && navPx > railPx ? widthPx + (navPx - railPx) : widthPx;
+}
+
 /** The month panel and the view side by side (mission 72). Changes together with the strings below. */
 export const MONTH_PANEL_ROW_CLASSES = "flex items-start";
 
