@@ -276,6 +276,14 @@ it is done. The pre-cleanup text is in
 **Open, not scheduled:**
 - Calendar drag follow-ups (mission 70 Delivery): `usePagedSwipe.ts` and
   `useTimelineDrag.ts` are over the soft cap (split on next touch).
+- Calendar repeating follow-ups (mission 71 Delivery): at Largest text on
+  the iPad a 15-minute block's title and time overlap (mission-65's
+  small-title rule assumes Normal; best fixed in the all-day row PR, which
+  touches the blocks). On the iPad held sideways at Largest, the docked
+  sheet can cover a block dropped low on screen (the sheet's line still
+  says the time). `useEventMoves.ts` splits its series half into
+  `useSeriesMove.ts` on its next feature. Still to decide later: "This one
+  or All of them" in the edit form and on delete, and "This and following".
 - **Calendar zoom first-frame flicker (mission 65, Strange pass 3 NOTE):**
   on a fresh iPad load the hour lines may jump once. Fix: move the
   `useTimelineZoom` call in `TimelineGrid.tsx` below its sizing layout
