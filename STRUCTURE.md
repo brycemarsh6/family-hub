@@ -280,12 +280,12 @@ amendment id.
 - **`src/lib/useOptimisticRun.ts` is the only home of the optimistic tap
   wrapper** (clear the error, start a transition, show the change, await the
   action, show `result.error`, catch a network failure with the one exported
-  `SAVE_FAILED` message). Every component that taps and saves
+  `SAVE_FAILED` message). `run` also takes an optional `onError(message)`, called inside the transition, for a caller that shows the failure somewhere other than under the control (mission-70: the Calendar's Undo bar, which measures the refused block before it glides home). Every component that taps and saves
   (`HabitTodayList`, `HabitFamilyView`, `HabitStats`, `NudgeCard`,
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
   `VacationCard`, `HabitTileRows` (in `HabitsTile.tsx`, used by both dashboard habit
   tiles) `DashboardWidgetList` (moved over in mission-34), `PlanDayCard` and
-  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37), `FeedbackList` (mission-38), `TextSizeSetting` (mission-58);
+  `PlannedTodayCard` (mission-35), `HoursEntryList` (mission-37), `FeedbackList` (mission-38), `TextSizeSetting` (mission-58), `useEventMoves` (mission-70, through `onError`);
   `HoursLogSheet` takes its caller's `run` (typed `RunChange`) and never
   wraps a save itself)
   calls it with the action as a closure, so lib never imports `app/`. A second
@@ -674,24 +674,14 @@ amendment id.
   be compared against a cap threshold or another gate's figure.
   (Added 2026-09-09, mission-19, on Captain's pass-2 finding; Bryce approved.) (Story: docs/history/structure-rationale.md, "Code lines: the blank-line counter instance".)
 - **The pointer-gesture machine has two definitions; a third copy is a
-  BLOCKER.** `src/lib/calendarGesture.ts` (`gestureStep`, pure, tested) is
-  the calendar's machine; mission-69 replaced `usePageSwipe.ts`'s copy with
-  it. `src/lib/usePagedSwipe.ts` is its only driver (it carries out the
-  effects: pointer capture in try/catch, the click swallow, the frame
-  write). `SwipeActions.tsx` still holds its own four-state machine for
-  Inventory and Shopping rows. `DIRECTION_LOCK_PX` (8) has one definition,
-  in `calendarGesture.ts`; `SwipeActions.tsx` and `pageSettle.ts` import
-  it. Whether a released page slide turns is `settlePage`
-  (`src/lib/pageSettle.ts`) alone. A new swipe surface drives
-  `gestureStep` through a driver, never a copy of the machine.
-  **Open debt, one contract:** after Bryce checks mission-27/F3's
-  `pointerdown` clear in `SwipeActions.tsx` on a real device (synthetic
-  PointerEvents cannot settle this gesture), move `SwipeActions` onto
-  `gestureStep`, keep its own release math (`openWidth / 2`) at the call
-  site, and rename the file `gestureMachine.ts` in the same contract.
-  (Added 2026-09-09, mission-19; rewritten 2026-11-10, mission-69, on
-  Captain's ruling.) (Story: docs/history/structure-rationale.md,
-  "Pointer-gesture machine: one machine, one bug".)
+  BLOCKER.** `src/lib/calendarGesture.ts` decides every calendar touch,
+  hold and drag included, and `src/lib/usePagedSwipe.ts` is its only
+  driver. (Rules: docs/structure/calendar.md, "The pointer-gesture
+  machine".)
+- **An event's time changes through one write path (mission-70).**
+  Editing and dragging both save through `afterEventSaved` in
+  `src/app/actions/calendar.ts`. (Rules: docs/structure/calendar.md, "One
+  write path for an event's time".)
 - **Reduce motion has one JS reader.** `src/lib/usePrefersReducedMotion.ts`
   (`useSyncExternalStore` over the media query) is how a component asks;
   `globals.css`'s `prefers-reduced-motion` block zeroes CSS transitions.
@@ -886,7 +876,7 @@ amendment id.
   cap applies, but their sizes are a trend to watch, re-measured and
   recorded here at each pass: 2026-11-09 (mission-59) `habits.md` 302,
   `layout.md` 262, `dashboard.md` 89, `calendar-sync.md` 75,
-  `plans-goals.md` 68, `slideshow.md` 35. (Added
+  `plans-goals.md` 68, `slideshow.md` 35; 2026-11-10 (mission-70) `calendar.md` 87. (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,
@@ -894,10 +884,16 @@ amendment id.
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (Story: docs/history/structure-rationale.md, "Soft cap: the groceries.ts split".)
   Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 578 total /
   about 361 code (89% of the hard cap; the next Schedule feature extracts
-  the two-panel wrapper), `CalendarViews.tsx` 481 (was 502; Month and Year
-  paging moved to `PagedPeriodViews.tsx`, mission-69), `TimelineGrid.tsx`
-  383 (was 471; one page of columns moved to `TimelinePage.tsx`,
-  mission-69), `MonthCell.tsx` 367.
+  the two-panel wrapper), `CalendarViews.tsx` 490 total / 194 code (was 502; Month and Year
+  paging moved to `PagedPeriodViews.tsx`, mission-69; the drop and Undo bar
+  added 8, mission-70), `TimelineGrid.tsx` 407 / 178 code (was 471; one
+  page of columns moved to `TimelinePage.tsx`, mission-69; drag wiring,
+  mission-70), `usePagedSwipe.ts` 393 / 302 code (was 342; a split
+  candidate: its next touch moves the page-turn animation, `springBack`,
+  `commit`, `startTurn` and their `transitionend` cleanups, into
+  `src/lib/pagedTurn.ts`), `actions/calendar.ts` 463 / 228 code (not a
+  split candidate; see docs/structure/calendar.md, "One write path for an
+  event's time"), `MonthCell.tsx` 367.
   Kitchen trend (mission-52, A-L4-7): `PantryList.tsx` 376 total / about
   300 code (over the soft cap; the next Inventory change extracts the
   search and location chips row), `MealPlanList.tsx` 360 / about 310 code
@@ -992,10 +988,10 @@ amendment id.
   export with no application caller there is correct rather than dead.
   This exists because `withTimeZone` — the helper that pins a timezone so a
   DST case cannot pass vacuously — reached **four** definitions
-  (`scheduleWindow.test.ts`, `scheduleWindowState.test.ts`,
+  (`scheduleWindow.test.ts`, `scheduleWindowStateRefresh.test.ts`,
   `timelineLayout.test.ts`, `calendarDates.test.ts`), which the
   count-definitions rule above already makes a failure, while the
-  constitution offered nowhere to put it. **A new copy of a test helper
+  constitution offered nowhere to put it. Its home is now `src/lib/testing/withTimeZone.ts` (mission-70; first caller `timelineDrag.test.ts`). **A new copy of a test helper
   that already has a home is a BLOCKER**; the four existing copies are
   grandfathered debt to migrate in one contract.
   ⚠️ **A new directory under `src/lib/` needs its test glob entry in or
