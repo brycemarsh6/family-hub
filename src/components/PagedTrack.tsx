@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useRef, type CSSProperties, type ReactNode } from "react";
 import { GLIDE_MS, usePagedSwipe } from "@/lib/usePagedSwipe";
 
 // Mission 69 (C3): three pages side by side, shifted by `--page-dx` from the
@@ -24,11 +24,11 @@ export function PagedTrack({
   return (
     <div
       data-paged-track
-      className="relative will-change-transform [[data-glide=true]_&]:transition-transform [[data-glide=true]_&]:ease-out"
+      className="relative will-change-transform [[data-glide=true]_&]:transition-transform [[data-glide=true]_&]:duration-(--glide-ms) [[data-glide=true]_&]:ease-out"
       style={{
         transform: "translateX(var(--page-dx, 0px))",
-        transitionDuration: `${GLIDE_MS}ms`,
-      }}
+        "--glide-ms": `${GLIDE_MS}ms`,
+      } as CSSProperties}
     >
       <div aria-hidden="true" inert className="absolute inset-x-0 top-0 -translate-x-full">
         {previous}

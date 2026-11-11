@@ -268,6 +268,7 @@ export function CalendarViews({
             <MonthChips anchor={anchor} onPickMonth={handlePickMonth} />
             <PagedMonth
               anchor={anchor}
+              todayTaps={todayTaps}
               today={today}
               events={events}
               tasks={tasks}
@@ -365,7 +366,7 @@ export function CalendarViews({
         anchor !== null && (
           // mission-69/C3 — three years slide with the finger; the swipe's
           // click-swallow stops a released drag firing the tile it ends on.
-          <PagedYear anchor={anchor} today={today} onPickMonth={handlePickMonth} onTurn={step} />
+          <PagedYear anchor={anchor} todayTaps={todayTaps} today={today} onPickMonth={handlePickMonth} onTurn={step} />
         )
       );
     }

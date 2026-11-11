@@ -275,6 +275,10 @@ export function usePagedSwipe({
     const result = gestureStep(machine.current, gesture);
     machine.current = result.state;
     apply(result.effects, event);
+    // A press that picked the track up mid spring-back ended without sliding
+    // (tap, vertical scroll, cancel, pinch): only a slide moves it back, so
+    // ease it home here.
+    if (result.state.kind === "idle" && !turning.current && baseDx.current !== 0) springBack();
   }
 
   useEffect(

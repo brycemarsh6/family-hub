@@ -20,6 +20,7 @@ import {
 } from "@/lib/timelineLayout";
 import { isSameDay } from "@/lib/mealPlanDates";
 import { isOutsideWindow } from "@/lib/calendarDates";
+import { MINUTES_PER_DAY } from "@/lib/timelineLayout";
 import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
 import { TimelineDayHeaderRow, TimelineDayLabel } from "./TimelineDayHeader";
 import { TimelineDayColumn } from "./TimelineDayColumn";
@@ -33,7 +34,7 @@ export const GUTTER_WIDTH_PX = 48;
  * `Intl.DateTimeFormat` to spell out a given HOUR NUMBER, never rendered or
  * compared as a real calendar day. */
 const HOUR_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: true });
-const HOUR_LABELS = Array.from({ length: 24 }, (_, hour) =>
+const HOUR_LABELS = Array.from({ length: MINUTES_PER_DAY / 60 }, (_, hour) =>
   HOUR_LABEL_FORMATTER.format(new Date(2000, 0, 1, hour, 0)),
 );
 
@@ -57,11 +58,12 @@ export function TimelineHourLabels() {
   );
 }
 
-/** The one grid template the weekday row, the all-day strip and the hour
- * rail share, so they stay pixel-aligned by construction. Day view's pages
- * carry their own gutter cell; 3 Day and Week pages are day columns only
- * (the strip and weekday row keep a zero-width first cell, which they
- * place their bars around). */
+/** The grid template the weekday row, the all-day strip and (in Day) the
+ * columns page share, so they stay pixel-aligned by construction. Day's pages
+ * carry their own gutter cell (48px). In 3 Day and Week the header pages pass
+ * a zero-width first cell (the strip and weekday row place their bars around
+ * it) and the columns page is a plain `repeat(n, minmax(0, 1fr))` beside the
+ * fixed gutter, which lines up because both sit in same-width viewports. */
 export function timelineGridTemplate(columnCount: number, gutterPx: number = GUTTER_WIDTH_PX): string {
   return `${gutterPx}px repeat(${columnCount}, minmax(0, 1fr))`;
 }
@@ -87,6 +89,8 @@ type TimelinePageHeaderProps = {
   windowEnd: Date;
   onOpenEvent: (event: CalendarEventView, day: Date) => void;
   onOpenTask: (task: CalendarTaskView, day: Date) => void;
+  /** Day only: this page carries its own gutter corner (the date). */
+  ownGutter: boolean;
 };
 
 export function TimelinePageHeader({
@@ -99,6 +103,7 @@ export function TimelinePageHeader({
   windowEnd,
   onOpenEvent,
   onOpenTask,
+  ownGutter,
 }: TimelinePageHeaderProps) {
   const columnDaysKey = dayKey(columnDays);
   const eventById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
@@ -123,8 +128,8 @@ export function TimelinePageHeader({
 
 
   const compact = columnDays.length > 1; // 3 Day / Week — Day view (1 column) gets more detail (D5).
-  // Compact pages have no gutter cell: the corner is fixed outside the track.
-  const gridTemplateColumns = timelineGridTemplate(columnDays.length, compact ? 0 : GUTTER_WIDTH_PX);
+  // Pages without their own gutter have no gutter cell: the corner is fixed outside the track.
+  const gridTemplateColumns = timelineGridTemplate(columnDays.length, ownGutter ? GUTTER_WIDTH_PX : 0);
 
   return (
     <>
@@ -161,13 +166,13 @@ export function TimelinePageHeader({
         onOpenTask={onOpenTask}
         gridTemplateColumns={gridTemplateColumns}
         corner={
-          compact ? undefined : (
+          ownGutter ? (
             <TimelineDayLabel
               day={columnDays[0]}
               today={today}
               notLoaded={outsideColumns[0]}
             />
-          )
+          ) : undefined
         }
       />
 
@@ -213,6 +218,8 @@ type TimelinePageColumnsProps = {
   hoursPerDay: number;
   pxPerMinute: number;
   onOpenEvent: (event: CalendarEventView, day: Date) => void;
+  /** Day only: this page starts with its own hour labels. */
+  ownGutter: boolean;
 };
 
 export function TimelinePageColumns({
@@ -223,6 +230,7 @@ export function TimelinePageColumns({
   hoursPerDay,
   pxPerMinute,
   onOpenEvent,
+  ownGutter,
 }: TimelinePageColumnsProps) {
   const columnDaysKey = dayKey(columnDays);
   const eventById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
@@ -256,13 +264,13 @@ export function TimelinePageColumns({
     <div
       className="grid"
       style={{
-        gridTemplateColumns: compact
-          ? `repeat(${columnDays.length}, minmax(0, 1fr))`
-          : timelineGridTemplate(1),
+        gridTemplateColumns: ownGutter
+          ? timelineGridTemplate(1)
+          : `repeat(${columnDays.length}, minmax(0, 1fr))`,
         height: `calc(var(--hour-height) * ${hoursPerDay})`,
       }}
     >
-      {compact ? null : <TimelineHourLabels />}
+      {ownGutter && <TimelineHourLabels />}
       {columnDays.map((day, columnIndex) => (
         <TimelineDayColumn
           key={day.getTime()}

@@ -215,7 +215,7 @@ export function TimelineGrid({
     varRef: rootRef,
     widthRef: columnsViewportRef,
     onTurn,
-    pageKey: `${view}:${anchor.getTime()}`,
+    pageKey: `${view}:${anchor.getTime()}:${scrollToNowSignal}`,
   });
   const previousDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, -1));
   const nextDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, 1));
@@ -309,6 +309,7 @@ export function TimelineGrid({
       windowEnd={windowEnd}
       onOpenEvent={onOpenEvent}
       onOpenTask={onOpenTask}
+      ownGutter={isDay}
     />
   );
   const columnsPage = (days: Date[]) => (
@@ -320,6 +321,7 @@ export function TimelineGrid({
       hoursPerDay={HOURS_PER_DAY}
       pxPerMinute={pxPerMinute}
       onOpenEvent={onOpenEvent}
+      ownGutter={isDay}
     />
   );
 

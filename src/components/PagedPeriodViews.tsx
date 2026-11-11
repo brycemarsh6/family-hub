@@ -22,13 +22,15 @@ type MonthProps = {
   windowEnd: Date;
   onOpenDay: (day: Date) => void;
   onTurn: (direction: 1 | -1) => void;
+  /** The Today counter: Today on the current period still aborts a glide. */
+  todayTaps: number;
 };
 
-export function PagedMonth({ anchor, onTurn, ...grid }: MonthProps) {
+export function PagedMonth({ anchor, onTurn, todayTaps, ...grid }: MonthProps) {
   return (
     <PagedSwipeArea
       onTurn={onTurn}
-      pageKey={anchor.getTime()}
+      pageKey={`${anchor.getTime()}:${todayTaps}`}
       className={PAGE_BLEED_CLASSES}
       previous={<MonthGrid anchor={neighbourAnchor("month", anchor, -1)} {...grid} />}
       current={<MonthGrid anchor={anchor} {...grid} />}
@@ -42,13 +44,15 @@ type YearProps = {
   today: Date;
   onPickMonth: (firstOfMonth: Date) => void;
   onTurn: (direction: 1 | -1) => void;
+  /** The Today counter: Today on the current period still aborts a glide. */
+  todayTaps: number;
 };
 
-export function PagedYear({ anchor, onTurn, ...year }: YearProps) {
+export function PagedYear({ anchor, onTurn, todayTaps, ...year }: YearProps) {
   return (
     <PagedSwipeArea
       onTurn={onTurn}
-      pageKey={anchor.getTime()}
+      pageKey={`${anchor.getTime()}:${todayTaps}`}
       previous={<YearView anchor={neighbourAnchor("year", anchor, -1)} {...year} />}
       current={<YearView anchor={anchor} {...year} />}
       next={<YearView anchor={neighbourAnchor("year", anchor, 1)} {...year} />}
