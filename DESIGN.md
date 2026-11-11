@@ -507,7 +507,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   tell the same time, and they must always equal where a drop would
   land: the block's position (snapped to 15 minutes), its own time line
   where the column is wide enough to show one, and the gutter marker, a
-  small bold `--accent` start time ("4:30", no AM/PM, on `--bg`) in the
+  small bold `--accent` start time ("4:30", no AM/PM, just "3" on the hour, on `--bg`) in the
   hour column that hides any hour label it would sit on. The marker must
   fit inside the gutter at every Text size; a clipped digit changes the
   time it claims. The target day's header takes an `--accent` 15% tint

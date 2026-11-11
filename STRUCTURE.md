@@ -271,7 +271,9 @@ amendment id.
   events within a day (start, then id), used by Schedule and the Calendar
   widget. **`formatClockTime` in `calendarDates.ts`** is the only
   browser-local single-time label ("3 PM", "12:30 PM"), on the same
-  `clockParts` as `formatTimeRange`; `formatHouseholdClock` stays the
+  `clockParts` as `formatTimeRange`; `formatClockDigits` (the same clock
+  with no AM or PM, the drag's gutter marker, mission-70) is its one
+  sibling on those parts; `formatHouseholdClock` stays the
   server's zone-explicit formatter. (Mission-49.)
 - **`DaySectionHeader` in `DaySection.tsx`** is the only weekday-and-date
   day header; DaySection and `CalendarWidgetTile`'s day columns both draw
@@ -280,7 +282,7 @@ amendment id.
 - **`src/lib/useOptimisticRun.ts` is the only home of the optimistic tap
   wrapper** (clear the error, start a transition, show the change, await the
   action, show `result.error`, catch a network failure with the one exported
-  `SAVE_FAILED` message). `run` also takes an optional `onError(message)`, called inside the transition, for a caller that shows the failure somewhere other than under the control (mission-70: the Calendar's Undo bar, which measures the refused block before it glides home). Every component that taps and saves
+  `SAVE_FAILED` message). `run` also takes an optional `onError(message)`, called inside the transition, for a caller that shows the failure somewhere other than under the control (mission-70: the Calendar's Undo bar, which measures the refused block before it glides home). The await half is exported as `settleAction(action, fail, onSuccess?)` so it can be tested without React (`useOptimisticRun.test.ts`); `run` is built on it and is the only caller, so it is the same shape, not a second one. Every component that taps and saves
   (`HabitTodayList`, `HabitFamilyView`, `HabitStats`, `NudgeCard`,
   `ThisWeekList`, `VisionBoard`, `HabitManager`, `GoalDetail`, `ChoreChart`,
   `VacationCard`, `HabitTileRows` (in `HabitsTile.tsx`, used by both dashboard habit
@@ -876,7 +878,9 @@ amendment id.
   cap applies, but their sizes are a trend to watch, re-measured and
   recorded here at each pass: 2026-11-09 (mission-59) `habits.md` 302,
   `layout.md` 262, `dashboard.md` 89, `calendar-sync.md` 75,
-  `plans-goals.md` 68, `slideshow.md` 35; 2026-11-10 (mission-70) `calendar.md` 87. (Added
+  `plans-goals.md` 68, `slideshow.md` 35; 2026-11-10 (mission-70) `habits.md` 302, `layout.md` 315,
+  `calendar-sync.md` 147, `slideshow.md` 101, `dashboard.md` 89,
+  `calendar.md` 87, `plans-goals.md` 68. (Added
   2026-11-04, mission-27, on Captain's ruling; Bryce approved. Reworded
   2026-11-08, mission-54, Bryce approved. Widened 2026-11-09, mission-59,
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,
@@ -886,9 +890,10 @@ amendment id.
   about 361 code (89% of the hard cap; the next Schedule feature extracts
   the two-panel wrapper), `CalendarViews.tsx` 490 total / 194 code (was 502; Month and Year
   paging moved to `PagedPeriodViews.tsx`, mission-69; the drop and Undo bar
-  added 8, mission-70), `TimelineGrid.tsx` 407 / 178 code (was 471; one
+  added 8, mission-70), `TimelineGrid.tsx` 411 / 178 code (was 471; one
   page of columns moved to `TimelinePage.tsx`, mission-69; drag wiring,
-  mission-70), `usePagedSwipe.ts` 393 / 302 code (was 342; a split
+  mission-70), `useTimelineDrag.ts` 344 / 271 code (mission-70; 6 under
+  the soft cap, its next touch is a split candidate), `usePagedSwipe.ts` 393 / 302 code (was 342; a split
   candidate: its next touch moves the page-turn animation, `springBack`,
   `commit`, `startTurn` and their `transitionend` cleanups, into
   `src/lib/pagedTurn.ts`), `actions/calendar.ts` 463 / 228 code (not a
