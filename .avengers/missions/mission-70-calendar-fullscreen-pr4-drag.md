@@ -208,7 +208,7 @@ calendar is touched by any agent.
 - **Objective:** a drop moves the event at once, saves, offers Undo for 5
   seconds, and a refusal glides back with a warn line.
 - **Boundaries:** may touch `src/components/CalendarViews.tsx`, a shared
-  new `src/components/UndoBar.tsx`, the files C3 created, `TimelineGrid.tsx` /
+  new `src/components/UndoBar.tsx`, new `src/lib/useEventMoves.ts` and its test (amended after Vision pass 1: Fury's dispatch allowed a new lib hook to keep CalendarViews small, but the contract never named it), the files C3 created, `TimelineGrid.tsx` /
   `TimelinePage.tsx` props only. · must not touch server files, `calendarGesture.ts`.
 - **Work:** `useOptimistic` over the events list (the `PantryList` pattern);
   drop calls `moveCalendarEvent`; Undo calls it again with the original
@@ -231,6 +231,7 @@ calendar is touched by any agent.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision (HEAD fcf9239) | BLOCK | Boundary: `useEventMoves.ts` and its test not in C4's may-touch list (fix: amend the contract; done) | Gauntlet re-run green (1917; UTC 1907 + 10 skips; build 0). probe-c4 re-run 15/15; own CDP probe 12/12 (tap after drop, hold-lift-no-move, second finger, cancel, two quick drops with slow save, cross two columns, edge scroll stops, refused-then-drag, press during glide). DB check re-run on the dev branch: 9 to 10 AM moved to 2:15 to 3:15, cleaned. Server guard, no client length, bounds, one push path confirmed by reading. Notes: a view or period change during a hold (second finger) leaves stale columns (harden: `putDown` when the block is disconnected or the column key changed); stale glide rect after refused-then-redrop; `blockFor` searches the whole document (scope to non-inert); timer can lift if both up and cancel are lost (recovers next touch); device-zone vs Denver only differs for ~24h events, never lifted; real iOS pre-hold scroll decision is Bryce's recording |
 | 1 | Captain (HEAD fcf9239) | BLOCK | `useEventMoves.ts:68-99` copies `useOptimisticRun`'s save shape (STRUCTURE.md :281-292). Fix: `run` gains optional `onError(message)` called inside the transition; `useEventMoves` uses `run` | Machine count two (pass); placement, dependency direction, glob, constants pass. Recommends in this PR: `canLiftOnTimeline(event)` in `timelineDrag.ts` with tests (lift rule now inline in TimelineDayColumn:144); split `calendarGesture.test.ts` (437) and `timelineDrag.test.ts` (495). Notes: usePagedSwipe 393/302 split candidate next touch (`pagedTurn.ts`); calendar.ts 463/228 not a candidate; marker text cuts `formatClockTime` at the space; UndoBar hardcodes the + footprint; STRUCTURE.md :995 names the wrong test file. Drafts (a) to (e): gesture and write-path rules move to new `docs/structure/calendar.md`, wrapper list, test helper, trend |
 
 ## Delivery
