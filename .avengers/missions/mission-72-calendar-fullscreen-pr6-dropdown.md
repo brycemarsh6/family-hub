@@ -509,7 +509,7 @@ HEAD` after.
 - **Done:** every measurement as expected, gauntlet green.
 
 ### F3 - Strange pass 3 blocker (approved by Bryce 2026-11-11)
-- **Status:** PENDING
+- **Status:** DONE be1b716 (tsc 0, lint 0, test 2017, UTC 2007 + 10 skips, build 0; k.mjs after scroll to December: 1024 beside month Dec, ring Dec 5 visible; phone Dec, ring Dec 9 visible; CalendarViews 494)
 - **Objective:** on Schedule the little month shows the month of the day
   the list is showing, so the ring is visible, like main's ScheduleMiniMonth.
 - **Boundaries:** may touch `src/components/CalendarViews.tsx` (the
