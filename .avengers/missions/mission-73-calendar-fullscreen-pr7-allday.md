@@ -324,5 +324,6 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
   on iPad landscape; reduce motion instant; dark mode right. Shots and
   harness in this session's scratchpad `strange/`.
 - Fix batch F1 dispatched (all three blockers plus chosen notes).
+- Pass 2: Vision and Strange re-gate F1 (Captain already PASS).
 
 ## Delivery
