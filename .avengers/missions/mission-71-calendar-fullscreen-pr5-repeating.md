@@ -405,3 +405,37 @@ touched; STRUCTURE.md caps apply.
   `wc -l` of touched files.
 - **Done:** committed, evidence reported.
 
+## Bryce's answers after pass 1 (2026-11-11: "I agree with all those recommendations")
+
+- Rulebook additions approved (Captain's drafts (a) and (b), Strange's
+  `RepeatMoveSheet` bullet).
+- N1: on the iPad the sheet docks at the bottom like the phone, so the
+  dropped block stays visible.
+- N2: repeating events show a small repeat mark in this PR.
+
+### F2: The sheet docks at the bottom on the iPad; the repeat mark
+- **Status:** IN PROGRESS
+- **May touch:** `src/components/RepeatMoveSheet.tsx`,
+  `src/components/TimelineDayColumn.tsx` (the block), and only if the mark
+  needs a shared piece, `src/lib/types.ts`. Tests if any pure helper is added.
+- **Must not touch:** docs, DESIGN.md, STRUCTURE.md (Fury applies them),
+  server files, the gesture files, `ConfirmSheet.tsx`.
+- **Work:**
+  1. `RepeatMoveSheet` stays a bottom sheet at every width: from `md` up it
+     sits at the bottom, centred, the same `max-w-md` width, rounded top,
+     with the safe-area bottom padding the phone has. Scrim, Escape, focus
+     and reduce motion unchanged.
+  2. A timed block on the hour timeline whose event has a `seriesId` shows
+     Lucide's `Repeat` icon (outline, the house icon set) after the title,
+     sized in rem to the title's text, `text-muted`-style colour on the
+     block, `aria-hidden` with the block's accessible name gaining
+     ", repeats". It never pushes the title out: when the block is too
+     narrow for title and icon, the title wins (the icon is the part that
+     clips or hides). The lifted block keeps it.
+- **Verification:** gauntlet; the harness-c3 probe re-run (Strange's padded
+  copy at `harness-c3/strange/`) at 393x852, 1024x768, 768x1024, Normal and
+  Largest, light and dark: the sheet's bottom edge at the viewport bottom
+  on iPad, the dropped block not covered on a 7:30 AM drop; the icon on
+  Wake Up blocks, not on Dentist; screenshots saved there.
+- **Done:** committed with evidence.
+
