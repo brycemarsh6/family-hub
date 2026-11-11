@@ -99,10 +99,12 @@ Wide pages: the
      (`@min-[768px]:`, the Month grid's lanes, pills and "+N more") and
      `TimelineDayColumn.tsx` (`@min-[128px]:`, a narrow column's title size
      and time line), and the Calendar body's month panel
-     (`@min-[700px]:`, `MONTH_PANEL_BESIDE_MIN_PX` in `gridClasses.ts`: the
-     panel beside the view on an iPad at every Text size; an upright iPad's
-     body is 736px, mission-72). A new px container threshold outside this list, or a
-     rem one put back in these two files, is a BLOCKER. (Added mission-58, on
+     (`MONTH_PANEL_BESIDE_MIN_PX`, 700px, compared in JavaScript against
+     the body's measured width by `monthPanelBeside` in `gridClasses.ts`,
+     which also needs room for seven usable columns at the live root font
+     size: an upright iPad's body is 736px, mission-72). A new px container
+     threshold outside this list, or a rem one put back in these files, is
+     a BLOCKER. (Added mission-58, on
      Captain's ruling; Bryce approved 2026-11-09.)
   3. **A row never stretches past a readable width.** More columns, more
      panels or a wider grid; never one 1148px row. One exception: the

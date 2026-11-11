@@ -66,19 +66,28 @@ docs/history/structure-rationale.md under the same name.
   built from `monthGridDays` for navigation is a BLOCKER; `MonthGrid`/
   `MonthCell` and `YearView` draw events and are not navigation grids.
 - **The month panel** is `src/components/MonthJumpPanel.tsx`, opened and
-  closed by the title. Below `MONTH_PANEL_BESIDE_MIN_PX` (700px of the
-  Calendar body's width, `gridClasses.ts`; px by design, layout.md rule 2)
-  it drops down above the view and its state is a plain `useState` that
-  starts closed (Bryce: the phone never remembers it). From that width, on
-  Schedule, Day, 3 Day and Week it is a column beside the view, and its
-  state is `useMonthPanelOpen(viewerId)` (`src/lib/monthPanelOpen.ts`): one
-  boolean per person per device in localStorage, read with
-  `useSyncExternalStore`, closed on the server and with no viewer. Month
-  and Year show only its chip row, above the view. Its root carries
-  `data-month-panel="open"` only while it sits beside the view; that marker
-  is the only signal the app chrome reads (layout.md, "The month panel
-  marker"). Beside-only on purpose: the squeeze only ever widens a body
-  that is already wide, so it cannot flip the layout back.
+  closed by the title; its state and layout decisions live in
+  `useMonthPanel` (`src/lib/monthPanelOpen.ts`). **Remembering:** below
+  `MONTH_PANEL_BESIDE_MIN_PX` (700px of the Calendar body's width,
+  `gridClasses.ts`; px by design, layout.md rule 2) the state is a plain
+  boolean that starts closed (Bryce: the phone never remembers it); from
+  700px it is one boolean per person per device in localStorage
+  (`useMonthPanelOpen`, `useSyncExternalStore`, closed on the server and
+  with no viewer). **Layout:** `monthPanelBeside` (`gridClasses.ts`, pure,
+  tested) puts it in a `MONTH_PANEL_SIDE_REM` column beside the view only
+  on Schedule, Day, 3 Day and Week, from 700px, and only when the view
+  keeps room for seven 49px columns and the hour gutter at the live root
+  font size; otherwise it drops down above the view, as on Month and Year
+  (chip row only). Its root carries `data-month-panel="open"` only while it
+  sits beside the view; that marker is the only signal the app chrome
+  reads (layout.md, "The month panel marker"). Beside-only on purpose: the
+  squeeze only ever widens a body that is already wide, so it cannot flip
+  the layout back. **Place:** opening or closing never moves the reader's
+  place (a layout effect in `useMonthPanel` scrolls by however far the
+  view's top edge moved, when the page is scrolled); on Schedule the panel
+  is sticky under the pinned header (`scheduleChromeHeightPx`,
+  `ScheduleView.tsx`, the one formula); the phone closes before a day
+  tap scrolls.
 - **Schedule's day in view has one tracker,** `useScheduleDayInView`;
   ScheduleView reports it up (`onDayInViewChange`) only while the panel is
   open (`trackDayInView`), for the ring, and the panel's day tap scrolls
