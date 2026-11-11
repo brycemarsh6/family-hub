@@ -20,7 +20,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser } from "@/lib/dal";
-import { MANAGER_ROLES } from "@/lib/constants";
+import { HOUSEHOLD_TIME_ZONE, MANAGER_ROLES } from "@/lib/constants";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import { getCalendarEventsInRange, getEventSyncViews } from "@/lib/calendarEventQuery";
 import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
@@ -28,10 +28,19 @@ import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
 import { pushEventCopies, removeEventCopies } from "@/lib/calendarEventPush";
 import { busyColumn, cleanRequestedIds } from "@/lib/calendarSyncRules";
+import { parseMoveStart, planMove } from "@/lib/calendarMoveRules";
 import type { CalendarEventSyncView, CalendarEventView, CalendarHabitDayView } from "@/lib/types";
 
 function refreshCalendarViews() {
   revalidatePath("/calendar");
+}
+
+/** The step after an existing event is saved, shared by edit and drag so both
+ * reach Google the same way. Undefined `requestedIds` keeps today's copies
+ * and updates them; a Google failure lands on the sync row, never here. */
+async function afterEventSaved(eventId: string, requestedIds?: string[]) {
+  await pushEventCopies({ eventId, requestedIds });
+  refreshCalendarViews();
 }
 
 export type CalendarEventActionResult = { error?: string };
@@ -245,9 +254,43 @@ export async function updateCalendarEvent(
     throw error;
   }
 
-  await pushEventCopies({ eventId: id, requestedIds: cleanRequestedIds(input.syncCalendarIds) });
+  await afterEventSaved(id, cleanRequestedIds(input.syncCalendarIds));
+  return {};
+}
 
-  refreshCalendarViews();
+/**
+ * Drag to reschedule (mission 70). Only the new start crosses the wire, as
+ * ISO text; the end is the stored length added on (`planMove`), so no
+ * request can change how long an event is. Writes only the two times, then
+ * the same after-save step as an edit. People are not re-checked: a move
+ * never touches them.
+ */
+export async function moveCalendarEvent(id: string, newStartIso: string): Promise<CalendarEventActionResult> {
+  const user = await getVerifiedUser();
+  if (!user || !MANAGER_ROLES.includes(user.role)) {
+    return { error: "Only parents can do that." };
+  }
+
+  const newStart = parseMoveStart(newStartIso);
+  if (typeof id !== "string" || !newStart) return { error: "That's not a valid time." };
+
+  const stored = await db.calendarEvent.findUnique({
+    where: { id },
+    select: { startAt: true, endAt: true, allDay: true },
+  });
+  if (!stored) return { error: "That event no longer exists." };
+
+  const plan = planMove(stored, newStart, HOUSEHOLD_TIME_ZONE);
+  if ("error" in plan) return { error: plan.error };
+
+  try {
+    await db.calendarEvent.update({ where: { id }, data: { startAt: plan.startAt, endAt: plan.endAt } });
+  } catch (error) {
+    if (isMissingRowError(error)) return { error: "That event no longer exists." };
+    throw error;
+  }
+
+  await afterEventSaved(id);
   return {};
 }
 
