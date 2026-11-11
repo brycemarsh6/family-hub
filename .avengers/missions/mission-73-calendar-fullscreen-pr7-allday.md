@@ -132,6 +132,8 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
 
 ### C2 - the all-day row (two lanes, "+2" / "2 more", the chevron)
 
+- **Status:** DONE 7a6209d (strip 424 to 261 lines, bars extracted, chevron in TimelineGrid and Day corner, one expand state; 2030 tests, build ok)
+
 1. **Objective:** the timeline's all-day row shows `TIMELINE_ALL_DAY_LANES`
    lanes, the count under each busy column, and a chevron in the left
    corner that opens and closes every lane; pills grow with the zoom.
