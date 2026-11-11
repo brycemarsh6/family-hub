@@ -12,7 +12,7 @@
 // effects for the caller to carry out. It touches no DOM, no timer, no React.
 //
 // CARRIED FROM usePageSwipe.ts / SwipeActions.tsx, BY NAME:
-//   - DIRECTION_LOCK_PX = 8, the undecided zone (one definition, here).
+//   - the undecided zone is DIRECTION_LOCK_PX (8px; one definition, here).
 //   - The tie rule (usePageSwipe.ts `nextGestureMode`): at exactly equal
 //     travel the slide wins, because only a STRICTLY larger vertical travel
 //     reads as a scroll. Same comparison as SwipeActions.tsx.

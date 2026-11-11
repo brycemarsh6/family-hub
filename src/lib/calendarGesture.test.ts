@@ -80,7 +80,7 @@ test("diagonal where vertical wins scrolls: no capture, no swallow", () => {
   assert.equal(run([down(), move(110, 125, 10), up(110, 125, 20), { type: "click" }]).state.kind, "idle");
 });
 
-test("an exact tie slides, as usePageSwipe does today", () => {
+test("an exact tie slides, as the old page swipe did", () => {
   assert.equal(run([down(), move(110, 110, 10)]).state.kind, "sliding");
 });
 

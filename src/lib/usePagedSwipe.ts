@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import { flushSync } from "react-dom";
 import {
   gestureStep,
@@ -27,11 +27,14 @@ import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 // fires) `commit` runs: glide off, `onTurn(dir)` inside flushSync, variable
 // back to 0, all in the same task, so no frame shows the old page at 0 or
 // the new page at a page's width. The tracks key their panels by position
-// (prev, current, next), so after the flush the current panel already shows
-// the new period. Until then new touches are ignored.
+// (prev, current, next), so after the flush the panels (which stay) show
+// contents shifted by one period. Until then new touches are ignored.
+//
+// A turn in flight when the page key changes from OUTSIDE (Today, the chips,
+// the back button) is aborted: see the `pageKey` effect.
 
-/** How long the glide runs (matches PagedTrack's duration class). */
-const GLIDE_MS = 260;
+/** How long the glide runs. PagedTrack's transition duration reads this too. */
+export const GLIDE_MS = 260;
 /** If transitionend never arrives (an interrupted transition), commit anyway. */
 const GLIDE_TIMEOUT_MS = GLIDE_MS + 140;
 
@@ -40,6 +43,11 @@ export type PagedSwipeOptions = {
   varRef: RefObject<HTMLElement | null>;
   /** Called, inside flushSync, when a page turn commits. 1 = next. */
   onTurn: (direction: 1 | -1) => void;
+  /** The element whose `clientWidth` is one page (default `varRef`). */
+  widthRef?: RefObject<HTMLElement | null>;
+  /** Changes whenever the shown period changes. A change not caused by this
+   * hook's own commit aborts a turn in flight. */
+  pageKey?: string | number;
   /** True when the press began on something that could be held (PR 4). */
   isOnBlock?: (target: EventTarget) => boolean;
 };
@@ -59,7 +67,13 @@ export type PagedSwipe = {
   springBack: () => void;
 };
 
-export function usePagedSwipe({ varRef, onTurn, isOnBlock }: PagedSwipeOptions): PagedSwipe {
+export function usePagedSwipe({
+  varRef,
+  onTurn,
+  isOnBlock,
+  widthRef,
+  pageKey,
+}: PagedSwipeOptions): PagedSwipe {
   const reduceMotion = usePrefersReducedMotion();
   const machine = useRef<GestureState>(IDLE_GESTURE);
   // The latest props, read by handlers that outlive a render (timers).
@@ -72,9 +86,15 @@ export function usePagedSwipe({ varRef, onTurn, isOnBlock }: PagedSwipeOptions):
   // True from the release that turns a page until its commit.
   const turning = useRef(false);
   const cleanupTurn = useRef<(() => void) | null>(null);
+  const cleanupSpring = useRef<(() => void) | null>(null);
+  // True only while commit's own flushSync runs, so the pageKey effect can
+  // tell this hook's turn from a change made elsewhere.
+  const committing = useRef(false);
+  // Where a press that interrupted a spring-back picked the track up (px).
+  const baseDx = useRef(0);
 
   function getPageWidth() {
-    return varRef.current?.clientWidth ?? 0;
+    return (widthRef ?? varRef).current?.clientWidth ?? 0;
   }
 
   function writeDx(dx: number) {
@@ -88,7 +108,7 @@ export function usePagedSwipe({ varRef, onTurn, isOnBlock }: PagedSwipeOptions):
 
   // Coalesces moves: the latest offset is written once per frame.
   function scheduleDx(dx: number) {
-    pendingDx.current = dx;
+    pendingDx.current = baseDx.current + dx;
     if (frame.current) return;
     frame.current = requestAnimationFrame(() => {
       frame.current = 0;
@@ -105,13 +125,42 @@ export function usePagedSwipe({ varRef, onTurn, isOnBlock }: PagedSwipeOptions):
 
   function springBack() {
     cancelFrame();
-    if (latest.current.reduceMotion) {
+    cleanupSpring.current?.();
+    cleanupSpring.current = null;
+    baseDx.current = 0;
+    const el = varRef.current;
+    if (latest.current.reduceMotion || !el) {
       setGlide(false);
       writeDx(0);
       return;
     }
+    // Glide stays on only until the ease ends (or a timeout if it never fires).
+    const end = () => {
+      cleanupSpring.current?.();
+      cleanupSpring.current = null;
+      if (!turning.current) setGlide(false);
+    };
+    const onEnd = (event: TransitionEvent) => {
+      if (event.propertyName === "transform") end();
+    };
+    el.addEventListener("transitionend", onEnd);
+    const timer = window.setTimeout(end, GLIDE_TIMEOUT_MS);
+    cleanupSpring.current = () => {
+      el.removeEventListener("transitionend", onEnd);
+      window.clearTimeout(timer);
+    };
     setGlide(true);
     writeDx(0);
+  }
+
+  // Where the track is drawn right now, read from the first track's computed
+  // transform (the variable itself does not animate, the transform does).
+  function currentTrackDx() {
+    const track = varRef.current?.querySelector("[data-paged-track]");
+    if (!track) return 0;
+    const transform = getComputedStyle(track).transform;
+    if (!transform || transform === "none") return 0;
+    return new DOMMatrixReadOnly(transform).m41;
   }
 
   function commit(direction: 1 | -1) {
@@ -119,14 +168,37 @@ export function usePagedSwipe({ varRef, onTurn, isOnBlock }: PagedSwipeOptions):
     cleanupTurn.current = null;
     // Glide off BEFORE the variable resets, or the reset would animate.
     setGlide(false);
-    flushSync(() => latest.current.onTurn(direction));
+    committing.current = true;
+    try {
+      flushSync(() => latest.current.onTurn(direction));
+    } finally {
+      committing.current = false;
+    }
     writeDx(0);
     turning.current = false;
   }
 
+  // A period change that did not come from commit (Today, a chip, back)
+  // while a turn is gliding: drop the turn, or its commit would step again
+  // from the new period. The new page is already current, so glide off and
+  // the variable to 0 show it at rest.
+  useLayoutEffect(() => {
+    if (!turning.current || committing.current) return;
+    cleanupTurn.current?.();
+    cleanupTurn.current = null;
+    setGlide(false);
+    writeDx(0);
+    turning.current = false;
+    // Only a key change is the trigger; the helpers read refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageKey]);
+
   function startTurn(direction: 1 | -1) {
     turning.current = true;
     cancelFrame();
+    cleanupSpring.current?.();
+    cleanupSpring.current = null;
+    baseDx.current = 0;
     const el = varRef.current;
     if (latest.current.reduceMotion || !el) {
       commit(direction);
@@ -209,6 +281,7 @@ export function usePagedSwipe({ varRef, onTurn, isOnBlock }: PagedSwipeOptions):
     () => () => {
       cancelFrame();
       cleanupTurn.current?.();
+      cleanupSpring.current?.();
     },
     // Teardown only.
     [],
@@ -219,7 +292,14 @@ export function usePagedSwipe({ varRef, onTurn, isOnBlock }: PagedSwipeOptions):
       // A turn is in flight: its commit must land before anything new starts.
       if (turning.current) return;
       // A new press during a spring-back takes the track from where it is.
-      if (machine.current.kind === "idle") setGlide(false);
+      if (machine.current.kind === "idle") {
+        const held = currentTrackDx();
+        cleanupSpring.current?.();
+        cleanupSpring.current = null;
+        setGlide(false);
+        baseDx.current = held;
+        writeDx(held);
+      }
       feed(
         {
           type: "down",
