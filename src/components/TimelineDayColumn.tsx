@@ -39,6 +39,7 @@ import { formatTimeRange, isPast } from "@/lib/calendarDates";
 import { showsTimeLine, titleFitsFullSize } from "@/lib/timelineZoom";
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
+import { isSameDay } from "@/lib/mealPlanDates";
 import type { CalendarEventView } from "@/lib/types";
 
 // `bandedBackground` (src/lib/color.ts, up to 3 diagonal bands — Month's
@@ -80,6 +81,8 @@ type TimelineDayColumnProps = {
    * per block (D5); see the block-rendering section below. */
   compact: boolean;
   onOpenEvent: (event: CalendarEventView, day: Date) => void;
+  /** Mission 70: the viewer may move events, so blocks may lift. */
+  canDrag: boolean;
 };
 
 export function TimelineDayColumn({
@@ -92,9 +95,10 @@ export function TimelineDayColumn({
   pxPerMinute,
   compact,
   onOpenEvent,
+  canDrag,
 }: TimelineDayColumnProps) {
   return (
-    <div className="@container relative border-l border-line">
+    <div data-day-column className="@container relative border-l border-line">
       {Array.from({ length: hoursPerDay }, (_, hour) => (
         <div
           key={hour}
@@ -135,10 +139,14 @@ export function TimelineDayColumn({
         // (this box's height) must never stand in for a fact (how
         // long this really is) when the two disagree.
         const trueDurationMinutes = (event.endAt.getTime() - event.startAt.getTime()) / 60000;
+        // Mission 70: only a block that starts and ends on one day may lift
+        // (useTimelineDrag.ts); one running past midnight draws clipped here.
+        const draggable = canDrag && isSameDay(event.startAt, new Date(event.endAt.getTime() - 1));
         return (
           <button
             key={slot.block.id}
             type="button"
+            data-drag-id={draggable ? event.id : undefined}
             onClick={() => onOpenEvent(event, day)}
             // D5 ("contrast by border, not alpha" — C7's Month-pill
             // ruling applies here too): the fill alone (0.05/0.10
@@ -164,7 +172,11 @@ export function TimelineDayColumn({
             // route for anyone who wants one. What the ruling did
             // NOT accept is the abutment between two such
             // blocks — see `drawnHeightPx` above for that fix.
-            className={`absolute flex flex-col justify-start overflow-hidden rounded-md border px-1 text-left leading-tight ${
+            // Mission 70: no text selection or iPhone long-press menu; the
+            // lifted look (data-lifted, set by useTimelineDrag.ts) is the
+            // approved mock's: bigger, a shadow, a 2px accent outline. Its
+            // glide home eases `transform`; while lifted it follows in steps.
+            className={`absolute flex flex-col justify-start overflow-hidden rounded-md border px-1 text-left leading-tight select-none [-webkit-touch-callout:none] transition-[transform,scale,box-shadow] duration-200 ease-out data-lifted:z-15 data-lifted:scale-104 data-lifted:shadow-lg data-lifted:outline-2 data-lifted:outline-accent data-lifted:transition-[scale,box-shadow] ${
               past ? "border-muted text-muted" : "border-fg text-fg"
             }`}
             style={{
@@ -225,7 +237,7 @@ export function TimelineDayColumn({
                 timelineZoom.ts), so zoomed out the block shows its
                 title only, like Google. */}
             {showsTimeLine(heightPx, trueDurationMinutes) && (
-              <span className={`block truncate text-[0.5625rem] ${compact ? "hidden @min-[128px]:block" : ""}`}>{formatTimeRange(event.startAt, event.endAt)}</span>
+              <span data-drag-time className={`block truncate text-[0.5625rem] ${compact ? "hidden @min-[128px]:block" : ""}`}>{formatTimeRange(event.startAt, event.endAt)}</span>
             )}
             {!compact && heightPx >= 72 && event.location && (
               <span className="block truncate text-[0.5625rem]">{event.location}</span>

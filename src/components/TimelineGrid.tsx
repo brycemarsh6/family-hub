@@ -90,6 +90,7 @@ import { isSameDay } from "@/lib/mealPlanDates";
 import { PAGE_BLEED_CLASSES } from "@/lib/gridClasses";
 import { useTimelineZoom } from "@/lib/useTimelineZoom";
 import { usePagedSwipe } from "@/lib/usePagedSwipe";
+import { isOnDragBlock, useTimelineDrag } from "@/lib/useTimelineDrag";
 import { neighbourAnchor } from "@/lib/useCalendarPeriod";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
@@ -174,6 +175,10 @@ type TimelineGridProps = {
   /** The signed-in person's id, the key for their remembered zoom (mission-65).
    * `null` means no saved zoom: the default hour height, nothing written. */
   viewerId: string | null;
+  /** Mission 70: parents and admins may hold a block and drag it. */
+  canManage?: boolean;
+  /** A drag that lands somewhere new (C4 saves it). Missing: it glides back. */
+  onDropEvent?: (eventId: string, newStart: Date) => void;
 };
 
 export function TimelineGrid({
@@ -193,6 +198,8 @@ export function TimelineGrid({
   onOpenTask,
   chromeOffsetPx,
   viewerId,
+  canManage = false,
+  onDropEvent,
 }: TimelineGridProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   // The hour rail, so the zoom can measure where it starts below the sticky header.
@@ -211,11 +218,21 @@ export function TimelineGrid({
   // the gutter's right edge in 3 Day and Week, and spans the root in Day).
   const columnsViewportRef = useRef<HTMLDivElement>(null);
   const isDay = view === "day";
+  // Mission 70: the lifted block's header tint and gutter marker, written by useTimelineDrag.
+  const tintRef = useRef<HTMLDivElement>(null);
+  const markerRef = useRef<HTMLDivElement>(null);
+  const onDrag = useTimelineDrag({
+    rootRef, scrollerRef, stickyHeaderRef, railRef, tintRef, markerRef,
+    columnDays, events, pxPerMinute, onDrop: onDropEvent,
+  });
   const { handlers } = usePagedSwipe({
     varRef: rootRef,
     widthRef: columnsViewportRef,
     onTurn,
     pageKey: `${view}:${anchor.getTime()}:${scrollToNowSignal}`,
+    holdEnabled: canManage,
+    isOnBlock: isOnDragBlock,
+    onDrag,
   });
   const previousDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, -1));
   const nextDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, 1));
@@ -322,6 +339,7 @@ export function TimelineGrid({
       pxPerMinute={pxPerMinute}
       onOpenEvent={onOpenEvent}
       ownGutter={isDay}
+      canDrag={canManage}
     />
   );
 
@@ -356,6 +374,7 @@ export function TimelineGrid({
             never add a band); in Day there is no corner here, the date rides
             in each header page. */}
         <div ref={stickyHeaderRef} className="sticky top-0 z-20 flex border-b border-line bg-bg">
+          <div ref={tintRef} aria-hidden="true" className="pointer-events-none absolute inset-y-0 bg-accent/15" style={{ display: "none" }} />
           {!isDay && <div aria-hidden="true" className="shrink-0" style={{ width: GUTTER_WIDTH_PX }} />}
           <div className="min-w-0 flex-1 overflow-hidden">
             <PagedTrack
@@ -369,7 +388,10 @@ export function TimelineGrid({
         {/* The hour rail. 3 Day and Week: one plain gutter of 24 labels, then
             the viewport holding the columns' three pages. Day: no gutter
             here, each page brings its own labels. */}
-        <div ref={railRef} className="flex" style={{ height: `calc(var(--hour-height) * ${HOURS_PER_DAY})` }}>
+        <div ref={railRef} className="relative flex" style={{ height: `calc(var(--hour-height) * ${HOURS_PER_DAY})` }}>
+          <div ref={markerRef} aria-hidden="true" className="pointer-events-none absolute left-0 z-20 -translate-y-1/2 justify-end pr-0.5" style={{ display: "none", width: GUTTER_WIDTH_PX }}>
+            <span className="bg-bg px-0.5 text-[0.6875rem] font-bold tabular-nums text-accent" />
+          </div>
           {!isDay && <TimelineHourLabels />}
           <div ref={columnsViewportRef} className="min-w-0 flex-1 overflow-hidden">
             <PagedTrack

@@ -344,6 +344,7 @@ export function CalendarViews({
             onOpenTask={(task) => setSelectedTask(task)}
             chromeOffsetPx={chromeOffsetPx}
             viewerId={viewerId}
+            canManage={canManage}
           />
         )
       );

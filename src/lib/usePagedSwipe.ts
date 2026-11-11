@@ -32,6 +32,11 @@ import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 //
 // A turn in flight when the page key changes from OUTSIDE (Today, the chips,
 // the back button) is aborted: see the `pageKey` effect.
+//
+// HOLD AND DRAG (mission 70, C3). With `holdEnabled`, this hook runs the
+// machine's ONE hold timer and hands holdStarted / dragMove / dragDrop /
+// dragCancel to `onDrag`. It moves nothing itself: useTimelineDrag.ts does
+// the DOM side of a lifted block.
 
 /** How long the glide runs. PagedTrack's transition duration reads this too. */
 export const GLIDE_MS = 260;
@@ -50,6 +55,17 @@ export type PagedSwipeOptions = {
   pageKey?: string | number;
   /** True when the press began on something that could be held (PR 4). */
   isOnBlock?: (target: EventTarget) => boolean;
+  /** Turns the machine's hold and drag on (mission 70). */
+  holdEnabled?: boolean;
+  onDrag?: DragCallbacks;
+};
+
+/** What a lifted block is told; every hold ends in one dragDrop or dragCancel. */
+export type DragCallbacks = {
+  holdStarted: (press: { x: number; y: number; target: EventTarget | null }) => void;
+  dragMove: (x: number, y: number) => void;
+  dragDrop: (x: number, y: number) => void;
+  dragCancel: () => void;
 };
 
 export type PagedSwipe = {
@@ -73,14 +89,20 @@ export function usePagedSwipe({
   isOnBlock,
   widthRef,
   pageKey,
+  holdEnabled = false,
+  onDrag,
 }: PagedSwipeOptions): PagedSwipe {
   const reduceMotion = usePrefersReducedMotion();
   const machine = useRef<GestureState>(IDLE_GESTURE);
   // The latest props, read by handlers that outlive a render (timers).
-  const latest = useRef({ onTurn, reduceMotion });
+  const latest = useRef({ onTurn, reduceMotion, holdEnabled, onDrag });
   useEffect(() => {
-    latest.current = { onTurn, reduceMotion };
+    latest.current = { onTurn, reduceMotion, holdEnabled, onDrag };
   });
+  // The one hold timer, and the press it belongs to (the timer's holdFired has
+  // no React event, so capture needs the element kept from pointerdown).
+  const holdTimer = useRef(0);
+  const press = useRef<{ el: HTMLElement; target: EventTarget | null } | null>(null);
   const frame = useRef(0);
   const pendingDx = useRef(0);
   // True from the release that turns a page until its commit.
@@ -224,28 +246,35 @@ export function usePagedSwipe({
     writeDx(-direction * getPageWidth());
   }
 
-  function apply(effects: GestureEffect[], event: React.SyntheticEvent) {
-    const target = event.currentTarget as HTMLElement;
+  function clearHold() {
+    window.clearTimeout(holdTimer.current);
+    holdTimer.current = 0;
+  }
+
+  // `event` is missing only for the hold timer's holdFired.
+  function apply(effects: GestureEffect[], event?: React.SyntheticEvent) {
+    const target = (event?.currentTarget as HTMLElement | undefined) ?? press.current?.el;
+    const drag = latest.current.onDrag;
     for (const effect of effects) {
       switch (effect.type) {
         case "capture":
           // setPointerCapture throws when the pointer is not current.
           try {
-            target.setPointerCapture(effect.pointerId);
+            target?.setPointerCapture(effect.pointerId);
           } catch {
             // Not capturable: carry on uncaptured.
           }
           break;
         case "releaseCapture":
           try {
-            target.releasePointerCapture(effect.pointerId);
+            target?.releasePointerCapture(effect.pointerId);
           } catch {
             // Already released.
           }
           break;
         case "swallowClick":
-          event.preventDefault();
-          event.stopPropagation();
+          event?.preventDefault();
+          event?.stopPropagation();
           break;
         case "setOffset":
           scheduleDx(effect.dx);
@@ -263,16 +292,36 @@ export function usePagedSwipe({
         case "springBack":
           springBack();
           break;
+        case "startHoldTimer":
+          clearHold();
+          holdTimer.current = window.setTimeout(() => {
+            holdTimer.current = 0;
+            feed({ type: "holdFired" });
+          }, effect.ms);
+          break;
+        case "clearHoldTimer":
+          clearHold();
+          break;
+        case "holdStarted":
+          drag?.holdStarted({ x: machine.current.startX, y: machine.current.startY, target: press.current?.target ?? null });
+          break;
+        case "dragMove":
+        case "dragDrop":
+          drag?.[effect.type](effect.x, effect.y);
+          break;
+        case "dragCancel":
+          drag?.dragCancel();
+          break;
         // armSwallow: the machine keeps the flag. handToPinch: the zoom owns
-        // the touch. Hold and drag effects: off until PR 4.
+        // the touch.
         default:
           break;
       }
     }
   }
 
-  function feed(gesture: GestureEvent, event: React.SyntheticEvent) {
-    const result = gestureStep(machine.current, gesture);
+  function feed(gesture: GestureEvent, event?: React.SyntheticEvent) {
+    const result = gestureStep(machine.current, gesture, { holdEnabled: latest.current.holdEnabled });
     machine.current = result.state;
     apply(result.effects, event);
     // A press that picked the track up mid spring-back ended without sliding
@@ -283,6 +332,7 @@ export function usePagedSwipe({
 
   useEffect(
     () => () => {
+      clearHold();
       cancelFrame();
       cleanupTurn.current?.();
       cleanupSpring.current?.();
@@ -304,6 +354,7 @@ export function usePagedSwipe({
         baseDx.current = held;
         writeDx(held);
       }
+      press.current = { el: event.currentTarget as HTMLElement, target: event.target };
       feed(
         {
           type: "down",
