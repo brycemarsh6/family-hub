@@ -892,8 +892,8 @@ amendment id.
   paging moved to `PagedPeriodViews.tsx`, mission-69; the drop and Undo bar
   added 8, mission-70), `TimelineGrid.tsx` 411 / 178 code (was 471; one
   page of columns moved to `TimelinePage.tsx`, mission-69; drag wiring,
-  mission-70), `useTimelineDrag.ts` 344 / 271 code (mission-70; 6 under
-  the soft cap, its next touch is a split candidate), `usePagedSwipe.ts` 393 / 302 code (was 342; a split
+  mission-70), `useTimelineDrag.ts` 358 / 275 code (mission-70; 8 over
+  the soft cap, a split candidate on its next touch), `usePagedSwipe.ts` 393 / 302 code (was 342; a split
   candidate: its next touch moves the page-turn animation, `springBack`,
   `commit`, `startTurn` and their `transitionend` cleanups, into
   `src/lib/pagedTurn.ts`), `actions/calendar.ts` 463 / 228 code (not a
