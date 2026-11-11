@@ -261,3 +261,6 @@ it is done. The pre-cleanup text is in
   them, stop working around it and build them.
 - Untracked `.agents/skills/avengers/` and `.codex/` in the main checkout were made
   by Bryce's Grok bot. Left uncommitted on purpose.
+- Calendar full screen PR 1 follow-ups (mission 67 Delivery): Day view's
+  all-day habit pills are 26px beside 24px event bars (`HabitDayPill.tsx`,
+  a small code fix); iPad Largest hour labels wrap (PR 7).

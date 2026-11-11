@@ -316,6 +316,8 @@ share one worktree).
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 3 | Strange (HEAD 3ba8609) | PASS | none | Pass 2 blocker cleared: at 393 with Refresh "Jan 2027" 77/77, "Feb 2027" 78/78, "Sep 2027" 80/80 on Day, 3 Day, Week, Month and Schedule; "November", "September" in full. Day corner event bar 24px; Week, 3 Day 24px. + 56px, 16px clear right and bottom at 393 and 1024; grids 0px edge gap. Notes: Day corner habit pills still 26px (`HabitDayPill.tsx`, follow-up); Schedule 2027 pinned title measured in place, not by scrolling (no 2027 dev data); pre-load frame marks Week (older) |
+| 3 | Vision (HEAD 3ba8609) | PASS | none | Gauntlet re-run: 1819 Denver, 1812 pass plus 7 DST skips in UTC (same 7 on main); build exit 0; boundaries clean; year-boundary cases hold. Notes: DESIGN.md bottom-left sentence lost the non-wide-from-md case (Fury fixed); "always fits" rests on Strange's measure (done); Schedule null-today frame still uses `formatMonthTitle` briefly |
 | 2 | Strange (HEAD 229d626) | BLOCK | Next-year titles truncate at 393 for logins that see Refresh ("January 20..." on Schedule; "February 2027", "September 2027" on every view): the year is what gets cut. A wording call, asked of Bryce 2026-11-10 (recommend "Jan 2027" when the year shows) | B2 cleared (4.74:1 light, 6.51:1 dark); B3 cleared; this year's months fit with Refresh. Notes: Day all-day bars 26px not 24px (border; `h-6` fixes); corner label right; pre-load frame marks Week (older); edge to edge still 0px |
 | 2 | Vision (HEAD 229d626) | PASS | none | Gauntlet green (1819 both zones, build exit 0); every rulebook claim checked true against code; Schedule title correct at null today and year boundary. Notes: first frame of a cold Schedule load shows "November 2026" then "November"; DESIGN.md "36px on an iPad at Largest" was computed, not measured; bottom-left sentence could read "every other page" |
 | 1 | Strange (HEAD d2b19d7) | BLOCK | (1) Schedule's "September 2026" truncates at 393 for logins that see Refresh; (2) view row unselected text 4.33:1 in light; (3) `CalendarViewRow` is a second view switcher without a vocabulary entry | Edge to edge 0px on both sides everywhere; title fits without Refresh; row shows at 1024 Normal/Large, falls back at 1024 Larger/Largest and 768; + bottom right on all views, Month last row 32px clear; Schedule flip within 1 to 4px; zoom floor 0px band in 7 iPad states. Notes: skeleton controls slide 52px for logins without Refresh (Fury: accept until PR 9); Month skeleton taller than grid (older); iPad Largest hour labels wrap and touch the edge (older px gutter; PR 7 follow-up); Day single all-day bar stretches (fixed in C4); 768 Normal shows the circle; kid, Tablet and pinned menu not seen |
@@ -341,9 +343,21 @@ share one worktree).
 - 2026-11-10: Bryce: "use Jan 2027 when the year shows". C5 written; Fury
   updated DESIGN.md (example, the bottom-left sentence, dropped the
   unmeasured 36px).
+- 2026-11-10: gate pass 3: Strange PASS, Vision PASS. Delivery next.
 
 ## Delivery
 
-- **Shipped:**
-- **Shipped check:**
-- **Deliberate leftovers:**
+- **Shipped:** C1 to C5 on `claude/calendar-fullscreen-pr1`: one-row top
+  bar (month title, Today, View, Refresh), iPad view row from 48rem, the +
+  bottom right at every width, edge to edge grids, the Day label in the
+  corner, matching loading frame, "Jan 2027" when the year shows. Rulebook
+  updates in DESIGN.md, STRUCTURE.md, `docs/structure/layout.md`,
+  `.avengers/plans/calendar-v2.md`; phone test in `.avengers/status.md`.
+- **Gates:** Captain PASS (pass 1), Vision PASS (pass 3), Strange PASS
+  (pass 3).
+- **Shipped check:** see the PR and the deploy check in the Handoff log.
+- **Deliberate leftovers:** Day corner habit pills 26px (`HabitDayPill.tsx`);
+  skeleton controls slide 52px for logins without Refresh (until PR 9);
+  iPad portrait shows the View circle; iPad Largest hour labels wrap (PR 7);
+  Month skeleton taller than the grid (older); cold Schedule first frame
+  shows the full month and year until `today` resolves.

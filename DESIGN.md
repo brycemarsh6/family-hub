@@ -187,8 +187,8 @@ tell when a rule's reason has expired.
   floating hamburger's row) use `--app-nav-width` as their left edge so they
   line up with the content. On a wide page (`data-page-width`, from `md`)
   the round + sits at the bottom-right corner of the content area, where a
-  right thumb lands on an iPad (mission-53). Below `md` it stays bottom-left on
-  every page but the Calendar, clear of a row's check and of the Recipes A-Z
+  right thumb lands on an iPad (mission-53). Below `md`, and on pages that are not
+  wide, it stays bottom-left on every page but the Calendar, clear of a row's check and of the Recipes A-Z
   rail; on wide pages that rail ends above the button (mission-52,
   decision 266). **The Calendar is the one exception: its + sits bottom
   right at every width, phone included** (`placement="right"`; Bryce,
