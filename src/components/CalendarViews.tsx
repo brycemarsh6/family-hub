@@ -11,7 +11,9 @@ import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
 import { TimelineGrid } from "./TimelineGrid";
 import { PagedMonth, PagedYear } from "./PagedPeriodViews";
 import { UndoBar } from "./UndoBar";
+import { RepeatMoveSheet } from "./RepeatMoveSheet";
 import { moveCalendarEvent } from "@/app/actions/calendar";
+import { moveCalendarSeries } from "@/app/actions/calendarSeries";
 import { useEventMoves } from "@/lib/useEventMoves";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
@@ -138,7 +140,8 @@ export function CalendarViews({
   // `today !== null` covers it too.
   const now = useNowMinute();
   // Mission 70 (C4): a dropped event shows at its new time at once; `events` below is that list.
-  const { events, drop, bar, closeBar } = useEventMoves(serverEvents, moveCalendarEvent);
+  // Mission 71: a repeating one asks first (`repeatSheet`).
+  const { events, drop, bar, closeBar, repeatSheet } = useEventMoves(serverEvents, moveCalendarEvent, moveCalendarSeries);
   const chromeOffsetPx = useHamburgerRowHeight();
 
   // Mission 69: each tap of Today bumps this, so the timeline scrolls to now
@@ -452,6 +455,7 @@ export function CalendarViews({
       {/* The round + (mission 67) and its Event/Task bubbles (mission 68), bottom right on all six views, for logins that can add. */}
       {canManage && <CalendarAddDial dateParam={addSheetDateParam} />}
       {bar && <UndoBar key={bar.id} {...bar} onClose={closeBar} />}
+      {repeatSheet && <RepeatMoveSheet {...repeatSheet} />}
 
       {/* mission-19/C1 — the view picker, event-detail, and
           task-detail sheets were extracted verbatim into CalendarSheets

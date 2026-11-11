@@ -6,7 +6,15 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { applyMove, movedToText } from "./useEventMoves";
+import {
+  applyMove,
+  applySeriesShift,
+  movedAllText,
+  movedToText,
+  seriesShiftMinutes,
+  seriesUndoRequest,
+  shiftWallClock,
+} from "./useEventMoves";
 import type { CalendarEventView } from "./types";
 
 test("movedToText names the weekday and the clock time", () => {
@@ -47,4 +55,65 @@ test("applyMove with an unknown id changes nothing", () => {
   const list = [event("a", 9)];
   const moved = applyMove(list, { id: "gone", startAt: new Date(), endAt: new Date() });
   assert.deepEqual(moved, list);
+});
+
+// Mission 71: the pure parts of "All of them". Instants are real UTC instants
+// for Denver wall times (MST is UTC-7, MDT UTC-6), so they read the same under
+// both TZ runs.
+const at = (iso: string) => new Date(iso);
+const day = (id: string, seriesId: string | null, startIso: string, endIso: string): CalendarEventView => ({
+  ...event(id, 7),
+  seriesId,
+  startAt: at(startIso),
+  endAt: at(endIso),
+});
+
+test("movedAllText names the series and the new clock time", () => {
+  assert.equal(movedAllText("Wake Up", new Date(2026, 10, 12, 7, 30)), "Moved every Wake Up to 7:30 AM");
+});
+
+test("seriesShiftMinutes is the wall-clock change on the same household day", () => {
+  const wake = day("a", "s", "2026-11-12T14:00:00Z", "2026-11-12T14:45:00Z"); // Thu 7:00 AM Denver
+  assert.equal(seriesShiftMinutes(wake, at("2026-11-12T14:30:00Z")), 30);
+  assert.equal(seriesShiftMinutes(wake, at("2026-11-12T13:00:00Z")), -60);
+});
+
+test("seriesShiftMinutes is null on another household day, even a few minutes after midnight", () => {
+  const wake = day("a", "s", "2026-11-12T14:00:00Z", "2026-11-12T14:45:00Z");
+  assert.equal(seriesShiftMinutes(wake, at("2026-11-13T14:30:00Z")), null);
+  // Thu 11:50 PM Denver to Fri 12:10 AM Denver: a new day, not +20.
+  const late = day("b", "s", "2026-11-13T06:50:00Z", "2026-11-13T07:30:00Z");
+  assert.equal(seriesShiftMinutes(late, at("2026-11-13T07:10:00Z")), null);
+});
+
+test("shiftWallClock keeps the clock reading across both clock changes", () => {
+  // Sun 8 Mar 2026, the spring change (2 AM becomes 3 AM): 1:30 AM MST + 90 is 3:00 AM MDT.
+  assert.equal(shiftWallClock(at("2026-03-08T08:30:00Z"), 90).toISOString(), "2026-03-08T09:00:00.000Z");
+  // Sun 1 Nov 2026, the fall change: 7:00 AM MST + 30 is 7:30 AM MST.
+  assert.equal(shiftWallClock(at("2026-11-01T14:00:00Z"), 30).toISOString(), "2026-11-01T14:30:00.000Z");
+  // A summer day: 7:00 AM MDT + 30 is 7:30 AM MDT.
+  assert.equal(shiftWallClock(at("2026-07-01T13:00:00Z"), 30).toISOString(), "2026-07-01T13:30:00.000Z");
+});
+
+test("applySeriesShift moves every day of the series by the same wall clock and nothing else", () => {
+  const winter = day("w", "s", "2026-11-12T14:00:00Z", "2026-11-12T14:45:00Z");
+  const summer = day("u", "s", "2026-07-01T13:00:00Z", "2026-07-01T13:45:00Z");
+  const other = day("o", "t", "2026-11-12T14:00:00Z", "2026-11-12T15:00:00Z");
+  const plain = day("p", null, "2026-11-12T14:00:00Z", "2026-11-12T15:00:00Z");
+  const list = [winter, summer, other, plain];
+  const moved = applySeriesShift(list, { seriesId: "s", minutes: 30 });
+  assert.equal(moved[0].startAt.toISOString(), "2026-11-12T14:30:00.000Z");
+  assert.equal(moved[0].endAt.toISOString(), "2026-11-12T15:15:00.000Z");
+  assert.equal(moved[1].startAt.toISOString(), "2026-07-01T13:30:00.000Z");
+  assert.equal(moved[2], other, "another series is untouched");
+  assert.equal(moved[3], plain, "an event that does not repeat is untouched");
+  assert.equal(list[0].startAt.toISOString(), "2026-11-12T14:00:00.000Z", "the server's list is not changed");
+});
+
+test("seriesUndoRequest sends the server's event id and original start, shifting back", () => {
+  assert.deepEqual(seriesUndoRequest({ eventId: "new-id", startIso: "2026-11-12T14:00:00.000Z" }, 30), {
+    eventId: "new-id",
+    startIso: "2026-11-12T14:00:00.000Z",
+    minutes: -30,
+  });
 });

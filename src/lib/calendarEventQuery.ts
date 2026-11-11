@@ -31,6 +31,8 @@ const EVENT_SYNC_SELECT = {
   failReason: true,
   linkedCalendarId: true,
   linkedCalendar: { select: { name: true } },
+  // Mission 71: read only to fill the view's `seriesId`; toEventSyncViews leaves it out.
+  googleSeriesId: true,
 } as const;
 
 // Mission 60: the source calendar's id and name (Marshee's row id, never a
@@ -49,6 +51,7 @@ type EventSyncRow = {
   failReason: string | null;
   linkedCalendarId: string;
   linkedCalendar: { name: string };
+  googleSeriesId: string | null;
 };
 
 /** Builds the sheet's sync list field by field; the one mapping for it. */
@@ -137,6 +140,9 @@ export function toCalendarEventView(row: CalendarEventRow): CalendarEventView {
     syncs: toEventSyncViews(row.syncs),
     sourceCalendarName: row.sourceLinkedCalendar?.name ?? null,
     sourceLinkedCalendarId: row.sourceLinkedCalendar?.id ?? null,
+    // Mission 71: the source calendar's own sync row says which series this is.
+    seriesId:
+      row.syncs.find((sync) => sync.linkedCalendarId === row.sourceLinkedCalendar?.id)?.googleSeriesId ?? null,
   };
 }
 
