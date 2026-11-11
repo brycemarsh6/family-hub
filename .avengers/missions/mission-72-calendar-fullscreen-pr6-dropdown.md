@@ -454,6 +454,60 @@ HEAD` after.
   measurements above with screenshot paths.
 - **Done:** every measurement above as expected, gauntlet green.
 
+### F2 - Pass 2 fixes (Vision and Strange blockers)
+- **Status:** PENDING
+- **Objective:** a landscape iPad with a pinned Sidebar decides beside as if
+  the Sidebar were already the rail; on Schedule a stacked panel never hides
+  the row Schedule scrolls to, the ring's day or today's visibility.
+- **Boundaries:** may touch `src/lib/monthPanelOpen.ts`,
+  `src/lib/monthPanelOpen.test.ts`, `src/lib/gridClasses.ts`,
+  `src/lib/gridClasses.test.ts`, `src/components/CalendarViews.tsx`,
+  `src/components/ScheduleView.tsx`, `src/lib/useScheduleDayInView.ts`.
+  Must not touch: `PinnedNav.tsx`, `AppChrome.tsx`, `appChrome.ts` (read its
+  exports only), `TimelineGrid.tsx`, `useFillViewportHeight.ts`,
+  `usePagedSwipe.ts`, the rulebooks and DESIGN.md (Fury).
+- **Work:**
+  1. **Beside allows for the squeeze (Strange B).** While the panel is not
+     beside, if the pinned Sidebar is what is showing, `monthPanelBeside`
+     gets the body width plus the difference between the Sidebar and the
+     rail widths (`NAV_SIDEBAR_WIDTH` and `NAV_RAIL_WIDTH` from
+     `appChrome.ts`, parsed to px; no new numbers). Detect "Sidebar
+     showing" from the page itself, not from `navMode` props threading
+     through the page: e.g. read the inherited `--app-nav-width` custom
+     property on the body element (it is set only at lg and only for a
+     pinned menu; 256px means the Sidebar is showing). Once beside, the
+     measured width already includes the rail, so no flip. Make the width
+     adjustment a pure function with tests: 1024 landscape Sidebar at Large
+     and Largest goes beside; 1180 Sidebar Largest beside; 768 upright at
+     Large stacks; the beside state with rail width stays beside.
+  2. **One reveal line on Schedule (Vision B).** When Schedule shows a
+     stacked (not beside) open panel, measure the panel wrapper's height
+     (ResizeObserver; 0 otherwise) and pass it to ScheduleView as one prop
+     (e.g. `revealExtraPx`). Schedule uses `scheduleChromeHeight +
+     revealExtraPx` everywhere it means "the line under the pinned chrome":
+     the rows' `scrollMarginTop`, the `useScheduleDayInView` line, the
+     landed-short check, and the Today-visible observer's top rootMargin.
+     The panel's sticky `top` stays the chrome height alone.
+  3. **Hold only when something changes (Vision note).** `toggle` records
+     the held top only when the open state will really change (with no
+     viewer on a wide body nothing changes, so nothing is held).
+  4. **Header comment (Captain note).** `monthPanelOpen.ts`'s header says
+     the file owns both the stored value and `useMonthPanel`.
+  **Size:** CalendarViews.tsx at or under 494; ScheduleView.tsx at or under
+  565 (a prop and one shared line value; no logic copied).
+- **Verification:** the five gauntlet commands. Then the harness in the
+  session scratchpad `strange/` (Strange's `p2*.mjs` and `css-p2.mjs`,
+  `build.mjs`): 1024x768 and 1180x820 pinned Sidebar at Normal, Large,
+  Larger, Largest on Week: beside, rail 72px, page scroll 0, timeline gap 0;
+  768x1024 Normal beside, Large and Largest stacked; on Schedule with a
+  stacked open panel (phone, and 768 Large): tap a day in the little month
+  (iPad) and tap Today (phone) and report the target row's top against the
+  panel's bottom (must be at or below it), and that the Today circle is
+  enabled while today's row is hidden behind the panel.
+- **Evidence:** exit codes and counts, `wc -l` before and after, the
+  measurements with screenshot paths.
+- **Done:** every measurement as expected, gauntlet green.
+
 **Fury's calls after F1:** accepted the one missed measurement (1024x768, pinned Sidebar, Largest: the panel stacks, 535px tall, the timeline hits its 320px floor and the page scrolls 234px; returns to 0 on close; nothing hidden; told to Bryce). Accepted the sticky top at exactly the chrome height (the +0.5rem let list text show through) and sticky on Schedule only. Rulebooks updated to the JS `monthPanelBeside` decision.
 
 (Rulebooks: Fury lands Captain's drafts in calendar.md, layout.md and
@@ -463,6 +517,9 @@ STRUCTURE.md after C4; Strange drafts the DESIGN.md exception at the gate.)
 
 | Pass | Gate | Verdict | Findings |
 |---|---|---|---|
+| 2 | Strange (HEAD b8b4180) | BLOCK | All F1 fixes measured PASS (Schedule hold and sticky on phone and iPad, phone tap closes first, 44.42x44 days, 768 Normal beside 53px / Largest stacked 103px, timeline gap 0 everywhere but one, dot clear, line full width). B: landscape iPad with a pinned Sidebar at any size above Normal stacks (1024x768 Large 52px / Larger 166 / Largest 234px page scroll; 1180x820 Largest 182), because `monthPanelBeside` is given the width measured with the 256px Sidebar, before the squeeze to the 72px rail; Rail rows show beside fits (54 to 74px columns). B (text): DESIGN.md parenthetical (768 upright stacks from Large) and "stays in view while the page scrolls" (Schedule only). Notes: phone Schedule dropdown covers the list top (reads fine), empty day rings the next |
+| 2 | Vision (HEAD b8b4180) | BLOCK | Gauntlet green (build 0, tsc 0, lint 0, test 2012, UTC 2002 + 10 skips); boundary clean; pass 1 B1 and B2 fixed. New B (introduced by F1): a stacked panel on Schedule is sticky at the chrome height, but Schedule still reveals rows at the chrome height, so a scrolled-to row lands behind the panel: upright iPad at Large and above (wide but stacked, stays open) day tap; phone Today with the dropdown open; the Today-visible observer and the day-in-view ring read behind the panel. Fix: one reveal line, `scheduleChromeHeight + revealExtraPx` (the stacked panel's measured height on Schedule) for scrollMarginTop, the day-in-view line, the landed-short check and the Today observer's rootMargin. Notes: null-viewer hold on a wide body; Month/Year not sticky (accepted); upright iPad stacks at Large too |
+| 2 | Captain (HEAD b8b4180) | PASS | Blocker fixed. JS `monthPanelBeside` from the measured container is allowed by layout.md rule 2 (wording right); `scheduleChromeHeightPx` in ScheduleView fine (one formula). Notes: monthPanelOpen.ts header out of date; `BESIDE_VIEW_MIN_PX`'s 48 copies `GUTTER_WIDTH_PX` (move it to lib on next timeline touch); DESIGN.md "stays in view while the page scrolls" broader than sticky-on-Schedule |
 | 1 | Strange (HEAD 6639dd8) | BLOCK | Harness of real AppChrome + CalendarViews with production CSS, 128 shots in the session scratchpad `strange/`. PASS: timeline gap 0px closed/open/re-closed at zoom 32/96/192; rail squeeze 256 to 72 with fixed bars; arrow and aria-expanded; chips 44px; no bleed overlap; Month at rest no chips; phone close and swipe; iPad remember; dots. B1 Schedule: `MonthChips` `scrollIntoView` scrolls the document (list jumped from December to Oct 1); phone dropdown 4110px above the screen; iPad side panel not sticky (old one was). B2: side-panel days 38x44 at Normal (under the 44 floor); 768 Largest beside leaves Week columns 38px. Notes: no slide (fine, Bryce's call); 6-row months; dot under ringed day hides in the ring; phone dropdown line inset 16px; Year chip highlights a month; Schedule empty day rings the next day. DESIGN.md text drafted |
 | 1 | Vision (HEAD 6639dd8) | BLOCK | Gauntlet all green (build 0, tsc 0, lint 0, test 2006, UTC 1996 + 10 skips); boundaries clean. B1: on Schedule the panel is an ordinary block at the page top while the page scrolls: iPad beside, a day tap scrolls the panel away (the old ScheduleMiniMonth was `sticky self-start`); phone mid-list, the dropdown opens above the screen and the list jumps ~350px (Schedule turns scroll anchoring off). B2: phone `pickDay` scrolls then closes, so the picked day ends ~350px above the header. Notes: RO loop warning once per toggle (harmless); phone held sideways (body ~900) counts as wide and remembers; panel's shown month not reset when the anchor's month changes; `daysWithItems` 62-day cap from start, thin tests; PinnedNav both bodies mounted |
 | 1 | Captain (HEAD 6639dd8) | BLOCK | B: `gridClasses.ts:45-52` px threshold comment must name mission-58 and why (layout.md Wide pages rule 2). Notes: layout.md "these two files" should be "these files"; CalendarViews:425 Year chip comment sits above `pickDay`; ScheduleView 447-482 dedented one level too far; PinnedNav keeps both bodies mounted in sidebar mode (as ruled). Sizes, one source of truth, dependency direction, rulebooks all PASS |
