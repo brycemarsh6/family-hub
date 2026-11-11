@@ -9,10 +9,9 @@ it is done. The pre-cleanup text is in
 - **Calendar repeating events, "This one" or "All of them" (mission 71,
   PR 5 of 9)**, about 5 minutes, signed in as yourself (a parent). **Start
   on a throwaway event, never a real one.** In Google Calendar make an
-  event that repeats every day at 7 AM, called "Test repeat". Wait up to a
-  day for Marshee to learn which events repeat (the first full check runs
-  after the deploy, then the daily one), or open Calendar and tap Refresh.
-  Its blocks show a small repeat mark. Drag one day to 7:30 AM: the sheet
+  event that repeats every day at 7 AM, called "Test repeat". Open
+  Calendar in Marshee and tap Refresh until it shows. Its blocks show a
+  small repeat mark. Drag one day to 7:30 AM: the sheet
   asks "This one", "All of them" or Cancel. Cancel: it goes back, nothing
   saved. Drag again, pick "This one": only that day moves, in Marshee and
   in Google. Drag a different day to 8 AM and pick "All of them": every
