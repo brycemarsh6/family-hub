@@ -1,6 +1,6 @@
 # Mission 71: Calendar full screen PR 5, repeating events ("This one" or "All of them")
 
-- **Status:** PAUSED before C2 (second pause, Bryce asked 2026-11-11; nothing of C2 written). Resume: dispatch Stark on C2 as written; worktree has its own `node_modules` (npm ci) and a generated Prisma client; no `.env` here (export from the main checkout, hostname only). (Bryce OK'd the mock 2026-11-11: "Looks good, build it", after asking for a draggable mock)
+- **Status:** BUILDING C2 (resumed after two pauses, 2026-11-11; worktree has its own `node_modules` (npm ci) and a generated Prisma client; no `.env` here (export from the main checkout, hostname only). (Bryce OK'd the mock 2026-11-11: "Looks good, build it", after asking for a draggable mock)
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 5: Repeating events, "This one" or "All of them" (decision 22; small call I; Q1, Q2)"
 - **Branch:** `claude/calendar-fullscreen-pr5-dc232e`, cut from `origin/main` `6656fed` (PR 4 merged as #112)
@@ -196,7 +196,27 @@ touched; STRUCTURE.md caps apply.
 - **Done:** all of the above, one commit.
 
 ### C2: The "All of them" action, server side
-- **Status:** PENDING (after C1)
+- **Status:** DONE `ec0389f` (new `calendarSeriesRules.ts` 113, `calendarSeriesMove.ts` 123, action `actions/calendarSeries.ts` 101 holding the db and Google bindings; `runPull`/`pullCalendars` take `onlyCalendarId`; `deletePulledEvent` exported from calendarEventPull.ts = the pull's `writeDelete`; `listInstances` in calendarEventCalls.ts 244; npm test 1988, UTC 1978 + 10 skips, tsc, lint, build green; captured PATCH `{"start":{"dateTime":"2026-06-01T07:30:00-06:00","timeZone":"America/Denver"},...}` to the parent with If-Match. `revalidatePath("/calendar")` direct (`refreshCalendarViews` is private in calendar.ts). Stark's note led to C2a)
+
+### C2a: The pull after "All of them" is never skipped by the lease
+- **Status:** PENDING
+- **Why:** the series pull goes through the 30 second force lease. Opening
+  the Calendar pulls, so a drop within 30 seconds finds the lease taken: no
+  pull, the page refresh redraws the old times over the optimistic move, and
+  no Undo comes back. Concrete and likely.
+- **May touch:** `src/lib/calendarPullRun.ts`, `src/lib/calendarEventPull.ts`,
+  `src/lib/calendarSeriesMove.ts` only if its pull dep's shape changes,
+  `src/app/actions/calendarSeries.ts` (binding only), their tests.
+- **Work:** the one-calendar pull used by the series action claims the
+  calendar whatever the lease says (it still stamps the lease, so the
+  regular pull waits behind it). Existing callers unchanged. A second pull
+  running at the same moment is acceptable: writes are keyed by the unique
+  (calendar, Google id) pair, a clash counts as a failed write, the token is
+  then not saved and the next pull settles it; say so in a comment.
+- **Verification:** gauntlet; a test that a calendar claimed 5 seconds ago
+  is still pulled by the series path and still skipped by the normal force
+  pull.
+
 - **Objective:** `moveCalendarSeries(eventId, newStartIso)` shifts the
   whole Google series by the drop's wall-clock minutes, with one Google
   write, then makes Marshee match Google.
