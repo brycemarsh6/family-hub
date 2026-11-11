@@ -108,6 +108,7 @@ calendar is touched by any agent.
 ## Contracts
 
 ### C1 — The pure parts (machine on, drop maths)
+- **Status:** DONE `6b9ad33` (55 new tests: 41 in timelineDrag.test.ts (27 ported, 14 `resolveDrop`), 14 in calendarGesture.test.ts; npm test 1858 to 1913 counting C2's 13; UTC run 10 skips = the 7 before plus 3 ported DST skips; `dragCancel` is the one put-down for every hold exit except a lifted drag; `resolveDrop` also takes `visibleHeightPx` to tell "outside the grid"; `npm run build` not run)
 - **Objective:** switch hold and drag on in the gesture machine and bring the
   drop maths over, all pure and tested.
 - **Boundaries:** may touch `src/lib/calendarGesture.ts`, `src/lib/calendarGesture.test.ts`,
