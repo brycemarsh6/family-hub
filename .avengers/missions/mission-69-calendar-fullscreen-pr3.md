@@ -1,6 +1,6 @@
 # Mission 69: Calendar full screen PR 3, the sliding swipe
 
-- **Status:** AT-THE-GATES (C1 to C4 committed; gate pass 1 dispatched 2026-11-10)
+- **Status:** AT-THE-GATES (gate pass 2: Captain PASS, Vision BLOCK, Strange BLOCK; F3 done, gate pass 3 (the last) dispatched)
 - **Started:** 2026-11-10 · **Updated:** 2026-11-10
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 3: Sliding swipe (decision 7; small call A)"
 - **Branch:** `claude/calendar-fullscreen-pr3-096354`, synced to `origin/main` `2c2d7df` (PR 1 #109 and PR 2 #110 merged)
@@ -225,7 +225,7 @@ pushes to `main`.
 
 ### F1 - Pass 1 fixes for the shared track (Month bleed, in-flight turn, notes)
 
-- **Status:** dispatched 2026-11-10
+- **Status:** DONE `8365f16` (usePagedSwipe 338; `pageKey` required on PagedSwipeArea; gauntlet green per Stark, also LA zone; greps clean; not run on a device)
 - **Objective:** Fix Captain's Month bleed BLOCKER and Vision's in-flight turn BLOCKER in the shared track, plus the cheap notes on the same files.
 - **Boundaries:** may touch: `src/lib/usePagedSwipe.ts`,
   `src/components/PagedTrack.tsx`, `src/components/PagedPeriodViews.tsx`,
@@ -308,6 +308,45 @@ pushes to `main`.
 - **Evidence:** gauntlet tails, line counts, how the zoom's refs map to the new DOM.
 - **Done:** gauntlet green; Strange pass 2 measures a real-finger turn and no blank band.
 
+### F3 - Pass 2 fixes (glide-only transition, stuck pickup, Today key, tidy notes)
+
+- **Status:** dispatched 2026-11-10
+- **Objective:** Fix the two F1 regressions Vision and Strange found in pass 2, plus four one-line notes.
+- **Boundaries:** may touch: `src/components/PagedTrack.tsx`,
+  `src/lib/usePagedSwipe.ts`, `src/components/PagedPeriodViews.tsx`,
+  `src/components/TimelineGrid.tsx`, `src/components/TimelinePage.tsx`,
+  `src/components/CalendarViews.tsx` (pass the existing `todayTaps` to
+  `PagedMonth` and `PagedYear` only)
+  · must not touch: `src/lib/calendarGesture.ts`, `src/lib/pageSettle.ts`,
+  `src/lib/useTimelineZoom.ts`, `src/components/TimelineAllDayStrip.tsx`,
+  `STRUCTURE.md`, `docs/**`.
+- **Work:**
+  1. Vision B1 and Strange B1: the track's transition applies only while
+     `data-glide=true`. Put `--glide-ms` (from `GLIDE_MS`) in the inline
+     style and use `[[data-glide=true]_&]:duration-(--glide-ms)` with
+     `transition-transform` only under the glide; at rest the computed
+     transition is none or 0s.
+  2. Vision B2: when the machine returns to idle from a gesture that never
+     reached sliding (tap, vertical scroll, cancel, pinch from undecided)
+     and `baseDx` is not 0, spring back to 0.
+  3. Vision note: the timeline's `pageKey` includes `scrollToNowSignal`, and
+     `PagedMonth`/`PagedYear` take the same Today counter into their
+     `pageKey`, so Today during a glide on the current period aborts the
+     turn.
+  4. Captain notes: one gutter decision passed from `TimelineGrid` into both
+     page components (e.g. `ownGutter={isDay}`) instead of the second
+     `columnDays.length > 1` test; `timelineGridTemplate`'s comment matches
+     what 3 Day and Week actually do (or the columns go through it too);
+     the hour-label count derives from `MINUTES_PER_DAY / 60`.
+- **Verification:** the gauntlet; `wc -l` on every touched file
+  (usePagedSwipe under 350 preferred, CalendarViews at or under 481 plus
+  the two props).
+- **Evidence:** gauntlet tails, line counts, the idle spring-back path
+  quoted, the computed-style reasoning for item 1.
+- **Done:** gauntlet green; gate pass 3 measures m41 going from minus a page
+  to 0 in one frame at hand-over, m41 equal to `--page-dx` in every drag
+  frame, and `--page-dx` 0 after a tap or scroll during a spring-back.
+
 ## Execution log
 
 - 2026-11-10: synced to `origin/main` `2c2d7df`. Banner brief in. Mock sent
@@ -331,7 +370,7 @@ pushes to `main`.
   (spring-forward Mar 8 and fall-back Nov 1, in the fetch chunking and the
   timeline rail) that skip on purpose under UTC ("ambient zone has no
   fall-back transition") and pass in the Denver run. Pre-existing, not a
-  failure. UTC run: tests 1855, pass 1848, skipped 7, fail 0, exit 0.
+  failure. UTC run at that point (before C4): tests 1855, pass 1848, skipped 7, fail 0, exit 0. After C4: 1845, 1838, 7.
 
 ## Gate verdicts
 
@@ -340,6 +379,9 @@ pushes to `main`.
 | 1 | Captain (HEAD cbecb1e) | BLOCK | Month bleed clipped: `PagedSwipeArea` is `overflow-hidden` and `MonthGrid`'s `-mx-4` hangs outside it (layout.md "Edge to edge"). Fix: bleed on `PagedSwipeArea` via `PagedMonth`, drop it from `MonthGrid`, check the Month skeleton | Machine count exactly two (PASS); one `DIRECTION_LOCK_PX`; step sizes and settle one source; lib imports clean. Notes: TimelineGrid 382 total / 156 code; `GLIDE_MS` 260 duplicated in `PagedTrack` class; second JS reduce-motion reader in `HabitConfetti` (amendment drafted, needs Bryce); rename `calendarGesture.ts` when SwipeActions migrates; test name at `calendarGesture.test.ts:83` names a deleted file. Drafts for STRUCTURE.md 676-706 and 903 and layout.md 258 held by Fury |
 | 1 | Vision (HEAD cbecb1e) | BLOCK | (1) timeline scroller has implicit overflow-x auto, so a sideways drag scrolls the hours box natively, pointercancel fires, no turn (proved with real CDP touch input; fix `overflow-x-hidden` on the scroller); (2) neighbour headers not clipped to the current header height (fix `overflow-hidden` on the sticky header); (3) Today or any navigation during the 260ms glide is overridden by the delayed commit stepping from the new period (fix: `pageKey` option, abort an in-flight turn when it changes outside the commit) | Gauntlet re-run green (1845; UTC 1838 + 7 DST skips; build 0); boundaries clean. Notes: `calendarGesture.ts:15` comment makes the one-definition grep return 2; gutter overlay covers half the now-line dot; page width from root `clientWidth` vs track width (classic scrollbars); `data-glide` lingers after spring-back; PagedTrack comment on DOM reuse inaccurate; Month and Year now inside overflow-hidden (focus rings); log line UTC count pre-C4 |
 | 1 | Strange (HEAD cbecb1e) | BLOCK | (1) Vision's sideways-scroll blocker, seen with real CDP touch; (2) mid-drag does not match the approved mock: header labels slide over the gutter corner while their columns hide under it, and a 48px blank band sits between pages (fix: the mock's structure, fixed corner, clipped track viewports, pages of day columns only) | Tracks agree to 0px in every frame (about 110 per drag, five viewport sets); no flash at hand-over; scrollTop holds on turns, goes to now on Today and opening; Month and Year slide with a real finger; not-loaded glyph on the Jan 2027 neighbour before refetch; reduce motion zero glide frames; pinch mid-slide springs back, zoom takes over; cancel springs back; + placement unchanged, Tablet draws none. Notes: now-line dot 3px under the gutter; Month pages abut (as the mock); press during spring-back snaps; Month swipes only on the grid (as main). Not seen: kid login, pinned menu, real iOS |
+| 2 | Captain (HEAD b57ffba) | PASS | none | B1 fixed, Month skeleton still matches; drafts applied as written; history moved word for word; TimelineHourLabels placement, one isDay switch and one GLIDE_MS approved. Notes: two gutter tests (`isDay` vs `columnDays.length > 1`); `timelineGridTemplate` comment now inaccurate for 3 Day/Week; hardcoded 24 hours in TimelinePage; usePagedSwipe 338 near the soft cap; trend line lacks usePagedSwipe and TimelinePage |
+| 2 | Vision (HEAD b57ffba) | BLOCK | (1) F1 regression: `PagedTrack` sets `transitionDuration` inline and always on with property `all`, so every `--page-dx` write eases: the reset to 0 after a turn animates (the next panel shows for about 250ms: slide, jump a page, slide back) and the track lags the finger mid-drag (fix: scope the duration to the glide, e.g. a `--glide-ms` variable used only under `data-glide`); (2) F1 regression: the spring-back pickup writes `--page-dx = held` on any press, but a tap, a vertical scroll, a cancel or a pinch from undecided never springs back, so the track stays shifted (reproduced, -24px after a tap; fix: when the machine returns to idle without having slid and `baseDx` is not 0, spring back) | All three pass-1 blockers fixed and proved with real touch; gauntlet re-run green; boundaries clean; docs claims all check out. Notes: Today during a glide while already on today's period still commits (add `todayTaps` to the timeline `pageKey`); pickup settle uses raw dx (debatable, not wrong); all-day bars sit 6px right in 3 Day/Week, same as before F2 |
+| 2 | Strange (HEAD b57ffba) | BLOCK | F1 regression (same as Vision 1): inline always-on 260ms transition, so after a turn the day after the target flashes and slides back, and the drag trails the finger (-111 at a -192 finger) | Real-finger turns on Day, 3 Day, Week both ways at every viewport and Tablet; tracks agree 0px; no blank band; Day matches Bryce's Google picture; 3 Day/Week match the mock; header clipped; hours hold on turns, go to now on open, Today, view change; pinch zooms with labels 0px from gridlines; now-line dot whole; Month reaches both edges (Captain B1 fixed); spring-back pickup smooth. Notes: 3 Day/Week all-day bars 6px right, pre-existing; Month skeleton not seen rendered; Month swipes only on the grid (as main) |
 
 ## Delivery
 
