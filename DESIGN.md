@@ -232,7 +232,9 @@ tell when a rule's reason has expired.
   drops down under the top bar and pushes the calendar down. On an iPad,
   on Schedule, Day, 3 Day and Week, it is a column on the left and the
   calendar moves over, when the calendar keeps room for usable day columns
-  (an upright iPad at the largest Text sizes gets the drop down instead).
+  (an upright iPad at any Text size above Normal gets the drop down
+  instead; held sideways it stays beside, a pinned Sidebar squeezing to
+  the rail to make room).
   On Month and Year only the chip row drops down, because the big month is
   already on screen. The reason: you keep seeing the calendar you are
   jumping from, and on the iPad the little month can stay open while you
@@ -240,9 +242,10 @@ tell when a rule's reason has expired.
   again, and on the phone also when you pick a day. The phone always
   starts closed; the iPad remembers it for each person. While it sits
   beside the calendar, a pinned Sidebar shows as the icon rail, and your
-  Menu style does not change. It stays in view while the page scrolls,
-  and opening or closing it never moves your place in the list. Any other
-  picker is still a sheet.
+  Menu style does not change. On Schedule it stays in view while the list
+  scrolls, and opening or closing it never moves your place in the list
+  (mid-list on a phone it covers the top of the list rather than pushing
+  it down). Any other picker is still a sheet.
 
 ## Brand
 
