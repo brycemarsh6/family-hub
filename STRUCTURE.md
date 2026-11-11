@@ -898,8 +898,9 @@ amendment id.
   about 361 code (89% of the hard cap; the next Schedule feature extracts
   the two-panel wrapper), `CalendarViews.tsx` 490 total / 194 code (was 502; Month and Year
   paging moved to `PagedPeriodViews.tsx`, mission-69; the drop and Undo bar
-  added 8, mission-70; the repeat sheet added 4 more, 494 total,
-  mission-71), `useEventMoves.ts` 310 total (mission-71, was 136; its next
+  added 8, mission-70; the repeat sheet added 4 more, 494 total / 197
+  code, mission-71), `useEventMoves.ts` 310 / 219 code (mission-71, was
+  136; its next
   feature moves the series half, `applySeriesShift`, the series save and
   the repeat sheet's props, into `src/lib/useSeriesMove.ts`), `TimelineGrid.tsx` 411 / 178 code (was 471; one
   page of columns moved to `TimelinePage.tsx`, mission-69; drag wiring,

@@ -49,7 +49,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   (`server-only`, no auth) is the only reader of both tables for pages,
   actions, routes and lib modules, including `loadSyncTargets`,
   `loadPushCalendars`, `loadPullCalendars`, `loadAccountCalendarIds`,
-  `loadCalendarPullState` and `loadSiblingCalendars`;
+  `loadCalendarPullState`, `loadSeriesCalendar` and `loadSiblingCalendars`;
   `loadSyncedCalendarsPage` never selects `encryptedRefreshToken`, and
   `loadRefreshToken` is the one read that decrypts. The exceptions are
   `EVENT_SYNC_SELECT` (a calendar's `name`; the sync row's own
@@ -106,18 +106,20 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   field on the sync row (never the event, its `updatedAt` or the etag). A
   fill never counts as a change, and a failed fill leaves the sync token
   unsaved so the next pull tries again. A handover (`adoptSiblingPulls`)
-  moves it with its row. The push never reads or writes it. Its readers
-  are `EVENT_SYNC_SELECT`, only for `toCalendarEventView`'s `seriesId`
+  moves it with its row. The push never reads or writes it. Besides the
+  pull itself (`loadKnown` in `calendarEventPull.ts`, so `planPull` can tell
+  when a fill is due), its readers are `EVENT_SYNC_SELECT`, only for `toCalendarEventView`'s `seriesId`
   (`toEventSyncViews` leaves it out), and `moveCalendarSeries` (rules:
   docs/structure/calendar.md, "A repeating series belongs to Google").
   Mission 71 added it (the migration also cleared the "Both ways" sync
   tokens so one full pull backfills old rows).
-  `exceptLinkedCalendarId` is passed only by the pull: its push out, with
-  the event's source calendar, so Google's original is never patched with
-  Marshee's fields, and its delete (`writeDelete(del, calendarId)`, also
-  used by the series move's cleanup through `deletePulledEvent`), with the
-  pulled calendar, whose copy Google already removed; a push back (Marshee
-  won) passes none.
+  `exceptLinkedCalendarId` is passed only by `calendarEventPull.ts`: its
+  push out, with the event's source calendar, so Google's original is never
+  patched with Marshee's fields; its delete (`writeDelete(del, calendarId)`,
+  also used by the series move's cleanup through `deletePulledEvent`), with
+  the pulled calendar, whose copy Google already removed; and
+  `removePulledEvents`, with each event's source calendar, whose copy is
+  Google's own. A push back (Marshee won) passes none.
   **The pull (mission-60).** `src/lib/calendarSyncPull.ts` is pure (no `db`,
   no network, no clock: `now` is passed in) and is the only home of the pull
   decisions: `planPull` (inserts, updates, deletes, conflicts, skipped Google

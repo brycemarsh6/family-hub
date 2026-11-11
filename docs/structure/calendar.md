@@ -95,7 +95,7 @@ docs/history/structure-rationale.md under the same name.
 - **Google owns a repeating series.** A pulled event whose source sync row
   has `googleSeriesId` set is one day of a Google series. Marshee changes
   the whole series only through `moveCalendarSeries`
-  (`src/app/actions/calendarSeries.ts`, parents only): it patches the
+  (`src/app/actions/calendarSeries.ts`, parents and admins): it patches the
   series parent's `start` and `end` in Google once, If-Match its etag, then
   pulls that calendar. It never writes a `CalendarEvent` row itself, never
   calls `afterEventSaved` or `pushEventCopies`, and never patches one
