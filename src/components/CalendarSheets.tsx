@@ -1,9 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CalendarDays, ListChecks } from "lucide-react";
 import { RadioSheet } from "./RadioSheet";
-import { ActionSheet } from "./ActionSheet";
 import { EventDetailSheet } from "./EventDetailSheet";
 import { TaskDetailSheet } from "./TaskDetailSheet";
 import { MonthJumpSheet } from "./MonthJumpSheet";
@@ -11,14 +9,14 @@ import { CALENDAR_VIEW_OPTIONS, type CalendarPeriodView } from "@/lib/calendarVi
 import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 /**
- * mission-19/C1 — the four sheets `CalendarViews.tsx` mounts (view picker,
- * Add, event detail, task detail), extracted verbatim ahead of CV6 growing
+ * mission-19/C1 — the sheets `CalendarViews.tsx` mounts (view picker,
+ * event detail, task detail), extracted verbatim ahead of CV6 growing
  * that file further (it's the only file in this arc with a rising
  * multi-mission trend — see the mission's "Known risk" note). No behaviour
  * change: every prop below is exactly what `CalendarViews.tsx` already
  * held as local state or received as its own prop: `pickingView`,
- * `addingEvent`, `selected`, and `selectedTask` are FOUR INDEPENDENT
- * pieces of state — none of the four sheets below reads another's — which
+ * `selected`, and `selectedTask` are INDEPENDENT pieces of state — none of
+ * the sheets below reads another's — which
  * is what makes this an extraction rather than a redesign (verified by
  * re-reading the block before moving it, per the contract's instruction to
  * check the claim rather than trust it).
@@ -28,9 +26,12 @@ import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/
  * component calls it, so this is not a fifth piece of state to keep in
  * sync with the caller, just a second read of one that already exists.
  *
- * mission-19/C3 added a FIFTH sheet, `MonthJumpSheet` — `pickingMonth`,
+ * mission 68 removed the Add sheet: the Calendar's + now opens
+ * `CalendarAddDial`'s bubbles, which keep their own open state.
+ *
+ * mission-19/C3 added `MonthJumpSheet` — `pickingMonth`,
  * `onClosePickingMonth`, `anchor`, `today`, and `onJumpToDay` below are its
- * own props, independent of the original four exactly the way those four
+ * own props, independent of the others exactly the way they
  * are independent of each other. `anchor`/`today` are read-only values
  * (not state this component owns or sets) so the sheet can seed its own
  * grid and highlight the real "today" without duplicating
@@ -52,13 +53,6 @@ type CalendarSheetsProps = {
   onSelectView: (view: CalendarPeriodView) => void;
   pickingView: boolean;
   onClosePickingView: () => void;
-
-  addingEvent: boolean;
-  onCloseAdding: () => void;
-  /** `?date=...` built from the currently anchored day, or `""` — the
-   * exact string `CalendarViews.tsx` already computed for its Add sheet's
-   * "new event"/"new task" links. */
-  addSheetDateParam: string;
 
   selected: { event: CalendarEventView; day: Date } | null;
   onCloseSelected: () => void;
@@ -91,9 +85,6 @@ export function CalendarSheets({
   onSelectView,
   pickingView,
   onClosePickingView,
-  addingEvent,
-  onCloseAdding,
-  addSheetDateParam,
   selected,
   onCloseSelected,
   selectedTask,
@@ -117,31 +108,6 @@ export function CalendarSheets({
           selected={view}
           onSelect={onSelectView}
           onClose={onClosePickingView}
-        />
-      )}
-
-      {addingEvent && (
-        <ActionSheet
-          title="Add"
-          onClose={onCloseAdding}
-          items={[
-            {
-              label: "Event",
-              icon: <CalendarDays aria-hidden="true" size={18} />,
-              onClick: () => {
-                onCloseAdding();
-                router.push(`/calendar/new${addSheetDateParam}`);
-              },
-            },
-            {
-              label: "Task",
-              icon: <ListChecks aria-hidden="true" size={18} />,
-              onClick: () => {
-                onCloseAdding();
-                router.push(`/calendar/new/task${addSheetDateParam}`);
-              },
-            },
-          ]}
         />
       )}
 

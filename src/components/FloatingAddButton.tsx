@@ -1,7 +1,8 @@
 "use client";
 
+import type { Ref } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 /**
  * The Recipes page's "+" (it replaced the old header New button).
@@ -29,23 +30,32 @@ import { Plus } from "lucide-react";
  *
  * It is a button (`onClick`) or a link (`href`); `label` is what a screen
  * reader says.
+ *
+ * `expanded` is for a + that opens a menu (the Calendar's, mission 68): when
+ * it is set the button reports `aria-expanded`, shows an X while true, and
+ * lifts above the page dim (z-[61]; the dim is z-[60]). `buttonRef` lets that
+ * menu send focus back to the button. Left unset, nothing changes.
  */
 export function FloatingAddButton({
   onClick,
   href,
   label = "Add",
   placement = "auto",
+  expanded,
+  buttonRef,
 }: {
   onClick?: () => void;
   href?: string;
   label?: string;
   placement?: "auto" | "right";
+  expanded?: boolean;
+  buttonRef?: Ref<HTMLButtonElement>;
 }) {
   const className =
     "pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-fg shadow-lg transition-opacity active:opacity-80";
   return (
     <div
-      className="pointer-events-none fixed right-0 left-[var(--app-nav-width,0px)] z-40 flex justify-center"
+      className={`pointer-events-none fixed right-0 left-[var(--app-nav-width,0px)] ${expanded ? "z-[61]" : "z-40"} flex justify-center`}
       style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
     >
       <div
@@ -60,8 +70,16 @@ export function FloatingAddButton({
             <Plus aria-hidden="true" size={26} />
           </Link>
         ) : (
-          <button type="button" onClick={onClick} aria-label={label} className={className}>
-            <Plus aria-hidden="true" size={26} />
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={onClick}
+            aria-label={label}
+            aria-expanded={expanded}
+            aria-haspopup={expanded === undefined ? undefined : "menu"}
+            className={className}
+          >
+            {expanded ? <X aria-hidden="true" size={26} /> : <Plus aria-hidden="true" size={26} />}
           </button>
         )}
       </div>

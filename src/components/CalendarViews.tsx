@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CalendarHeader } from "./CalendarHeader";
 import { CalendarSheets } from "./CalendarSheets";
 import { DaySection } from "./DaySection";
-import { FloatingAddButton } from "./FloatingAddButton";
+import { CalendarAddDial } from "./CalendarAddDial";
 import { MonthChips } from "./MonthChips";
 import { MonthGrid } from "./MonthGrid";
 import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
@@ -152,10 +152,9 @@ export function CalendarViews({
   });
 
   const [pickingView, setPickingView] = useState(false);
-  const [addingEvent, setAddingEvent] = useState(false);
   // mission-19/C3 — the month-jump sheet CalendarHeader's title control
-  // opens. A fifth independent boolean, same shape as `pickingView`/
-  // `addingEvent` above (CalendarHeader also flips this one — see the
+  // opens. Another independent boolean, same shape as `pickingView`
+  // above (CalendarHeader also flips this one — see the
   // header's own `onOpenMonthJump` prop).
   const [pickingMonth, setPickingMonth] = useState(false);
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
@@ -459,20 +458,20 @@ export function CalendarViews({
           in `renderPeriodContent`, above; see that function's own comment. */}
       <div className="flex flex-col gap-4">{renderPeriodContent()}</div>
 
-      {/* The round + (mission 67), bottom right on all six views, for logins that can add. */}
-      {canManage && <FloatingAddButton placement="right" label="Add" onClick={() => setAddingEvent(true)} />}
+      {/* The round + (mission 67) and its Event/Task bubbles (mission 68), bottom right on all six views, for logins that can add. */}
+      {canManage && <CalendarAddDial dateParam={addSheetDateParam} />}
 
-      {/* mission-19/C1 — the view picker, Add, event-detail, and
+      {/* mission-19/C1 — the view picker, event-detail, and
           task-detail sheets were extracted verbatim into CalendarSheets
           (see that file's own header comment for why and what's shared).
-          The four booleans/values below and their setters stay HERE,
-          unmoved: `pickingView`/`addingEvent` are also set from
+          The booleans/values below and their setters stay HERE,
+          unmoved: `pickingView` is also set from
           CalendarHeader above, and `selected`/`selectedTask` are also set
           from renderPeriodContent()'s onOpenEvent/onOpenTask callbacks —
-          so this component remains the one place all four are read from
+          so this component remains the one place all are read from
           and written to, exactly as before this extraction.
 
-          mission-19/C3 added a FIFTH: `pickingMonth`, also set from
+          mission-19/C3 added another: `pickingMonth`, also set from
           CalendarHeader (its new `onOpenMonthJump`), plus the two
           read-only values (`anchor`, `today`) and the one action
           (`jumpToDay`) MonthJumpSheet needs — none of which are new state,
@@ -482,9 +481,6 @@ export function CalendarViews({
         onSelectView={setView}
         pickingView={pickingView}
         onClosePickingView={() => setPickingView(false)}
-        addingEvent={addingEvent}
-        onCloseAdding={() => setAddingEvent(false)}
-        addSheetDateParam={addSheetDateParam}
         selected={selected}
         onCloseSelected={() => setSelected(null)}
         selectedTask={selectedTask}

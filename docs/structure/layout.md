@@ -243,7 +243,10 @@ Wide pages: the
   `onClick` or `href`, `label`, and `placement` (`"auto"`, the default,
   follows the rule above; `"right"` sits bottom right at every width).
   Only the Calendar uses `"right"` (mission-67; DESIGN.md records why it
-  may cover events). Wide scroll areas reserve room for it
+  may cover events). Two more optional props serve a + that opens a
+  menu (only `CalendarAddDial`, mission-68): `expanded` (sets
+  `aria-expanded`, shows an X, lifts the button above the z-[60] dim) and
+  `buttonRef` (focus returns to it on close). Unset, they change nothing. Wide scroll areas reserve room for it
   (`pb-20`). There is no + on the tablet. A fixed element that must clear
   it follows rule 4 above.
   **Edge to edge (the Calendar, mission-67, Captain's ruling).** A
