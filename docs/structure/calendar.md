@@ -77,7 +77,8 @@ docs/history/structure-rationale.md under the same name.
   tested) puts it in a `MONTH_PANEL_SIDE_REM` column beside the view only
   on Schedule, Day, 3 Day and Week, from 700px, and only when the view
   keeps room for seven 49px columns and the hour gutter at the live root
-  font size; otherwise it drops down above the view, as on Month and Year
+  font size, counting a pinned Sidebar as the rail it squeezes to
+  (`widthWithRailNav`, from the live `--app-nav-width`); otherwise it drops down above the view, as on Month and Year
   (chip row only). Its root carries `data-month-panel="open"` only while it
   sits beside the view; that marker is the only signal the app chrome
   reads (layout.md, "The month panel marker"). Beside-only on purpose: the
@@ -86,7 +87,10 @@ docs/history/structure-rationale.md under the same name.
   place (a layout effect in `useMonthPanel` scrolls by however far the
   view's top edge moved, when the page is scrolled); on Schedule the panel
   is sticky under the pinned header (`scheduleChromeHeightPx`,
-  `ScheduleView.tsx`, the one formula); the phone closes before a day
+  `ScheduleView.tsx`, the one formula), and while a stacked panel is open
+  there Schedule's one reveal line is the chrome plus the panel's measured
+  height (`revealExtraPx`: scroll margins, the day-in-view line, the
+  landed-short check, the Today observer); the phone closes before a day
   tap scrolls.
 - **Schedule's day in view has one tracker,** `useScheduleDayInView`;
   ScheduleView reports it up (`onDayInViewChange`) only while the panel is
