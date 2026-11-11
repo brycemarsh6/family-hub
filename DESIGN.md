@@ -194,7 +194,8 @@ tell when a rule's reason has expired.
   right at every width, phone included** (`placement="right"`; Bryce,
   2026-11-10, mission-67). The Calendar has no row check and no letter
   rail at its right edge to clear. Only logins that can add (`canManage`)
-  see it; it opens the Add sheet (Event or Task).
+  see it; it opens the Event and Task bubbles (mission-68, the exception
+  under "Sheets are the house dialog").
 - **The drawer reaches every destination directly; there are no landing
   pages.** `BackLink` is the one edge back up from a page below a drawer
   destination (recipe detail to Recipes), never on a destination itself.

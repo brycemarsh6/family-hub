@@ -6,6 +6,13 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar + bubbles (mission 68, PR 2 of 9)**, about 1 minute, on
+  your phone: open Calendar, tap the + (bottom right). The page dims, Task
+  and Event pop up above it and the + turns into an X. Tap Task: the task
+  form opens for the day you were on. Come back, tap + again, then tap the
+  dark area: it closes. Check the bubbles look clear in dark mode too
+  (Strange noted they are faint against the dim in dark; the words are
+  crisp).
 - **Calendar full screen layout (mission 67, PR 1 of 9)**, about 4
   minutes on your iPhone and the iPad. Open Calendar: no box and no side
   margins, "November" at the top left (no < > arrows), Today, View and

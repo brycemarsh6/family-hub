@@ -1,6 +1,6 @@
 # Mission 68: Calendar full screen PR 2, the + bubbles
 
-- **Status:** BUILDING (Bryce OK'd the mock 2026-11-10: "Yes")
+- **Status:** DELIVERING (gates passed 2026-11-10)
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 2: The + bubbles (decision 6)"
 - **Branch:** `claude/calendar-fullscreen-pr2`, cut from `origin/main` (`ffd0c94`, PR 1 merged)
 - **Chat:** run in the PR 1 chat at Bryce's request (2026-11-10, "Just do the PR in this chat"), because Remote Control could not open a new chat.
@@ -114,6 +114,8 @@ above Event (Event nearest the thumb), the house dim (`bg-black/40`).
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Strange (HEAD e31394d) | PASS | none | Pills 48px (72 at Largest), 12px apart, 20px above the X, right edges aligned; X exactly where the + was in all 11 states; dim covers top bar and menu on six views at 393, 1024, 768; contrast light 7.88/5.75/5.08, dark 13.68/8.39/7.93; X, dim, Escape close and focus returns; Task from Day lands on 11/20, Event from Month on 12/03; Recipes and Habits + unchanged. Notes: DESIGN.md:197 still said "Add sheet" (Fury fixed); Event to X gap 20px vs the mock's 12px (accepted, the + spot is PR 1's); dark pills faint against the dim (labels crisp; `ring-1 ring-line` if Bryce wants more); kid, Tablet and pinned menu checked in code only |
+| 1 | Vision (HEAD e31394d) | PASS | none | Gauntlet re-run green (1819; UTC 1812 plus 7 DST skips; build exit 0); boundaries clean; Add sheet state fully gone; date param unchanged; z-order checked; ARIA valid. Notes: `role="menu"` without arrow keys; no focus trap (keyboard only, same as ActionSheet); two "Close" buttons for a screen reader (house pattern) |
 
 ## Handoff log
 
@@ -121,9 +123,18 @@ above Event (Event nearest the thumb), the house dim (`bg-black/40`).
   (none on `origin/main`). Mock drawn and sent to Bryce.
 - 2026-11-10: Bryce: "Yes". C1 written, preflight 0 hard failures, Stark DONE.
   Fury wrote the DESIGN.md exception and the layout.md prop sentence.
+- 2026-11-10: gate pass 1: Vision PASS, Strange PASS. Fury fixed the
+  DESIGN.md + paragraph ("Add sheet" became the bubbles). Delivery next.
 
 ## Delivery
 
-- **Shipped:**
-- **Shipped check:**
-- **Deliberate leftovers:**
+- **Shipped:** C1 on `claude/calendar-fullscreen-pr2`: the Calendar + opens
+  Task and Event bubbles over the house dim and turns into an X; the Add
+  sheet is gone. DESIGN.md exception and + paragraph, layout.md props,
+  phone test in `.avengers/status.md`, CLAUDE.md status (PR 3 next).
+- **Gates:** Vision PASS, Strange PASS (pass 1). No Captain (assembled
+  without).
+- **Shipped check:** the PR and the deploy check, below in the Handoff log.
+- **Deliberate leftovers:** Event to X gap 20px (mock 12px); dark mode
+  pills faint against the dim; keyboard-only notes (no arrow keys in the
+  menu, no focus trap); kid and Tablet checked in code only.
