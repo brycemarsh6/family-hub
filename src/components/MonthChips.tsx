@@ -54,6 +54,7 @@ export function MonthChips({ anchor, onPickMonth }: MonthChipsProps) {
   }
 
   const selectedRef = useRef<HTMLButtonElement | null>(null);
+  const stripRef = useRef<HTMLDivElement | null>(null);
 
   // Hoisted out of the effect's own dependency array (mission-18/C5) so
   // exhaustive-deps can name them directly rather than being suppressed:
@@ -72,12 +73,19 @@ export function MonthChips({ anchor, onPickMonth }: MonthChipsProps) {
   // unrelated navigation. "instant", not "smooth" — the same call CLAUDE.md
   // already settled for the Recipes A–Z rail: a strip meant to snap to
   // wherever the user just tapped shouldn't queue a competing animation.
+  //
+  // Mission 72: the strip's own scrollLeft, never `scrollIntoView`, which also
+  // scrolls the page (opening the panel must never move the reader's place).
+  // The strip is `relative` so the chip's `offsetLeft` is measured from it.
   useEffect(() => {
-    selectedRef.current?.scrollIntoView({ inline: "center", block: "nearest", behavior: "instant" });
+    const strip = stripRef.current;
+    const chip = selectedRef.current;
+    if (!strip || !chip) return;
+    strip.scrollTo({ left: chip.offsetLeft - (strip.clientWidth - chip.offsetWidth) / 2, behavior: "instant" });
   }, [year, month]);
 
   return (
-    <div className="-mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div ref={stripRef} className="relative -mx-4 mb-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="flex w-max gap-2">
         {months.map((month) => {
           const selected = isSameMonth(month, anchor);

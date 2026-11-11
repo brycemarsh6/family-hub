@@ -7,7 +7,7 @@ import { CalendarSheets } from "./CalendarSheets";
 import { DaySection } from "./DaySection";
 import { CalendarAddDial } from "./CalendarAddDial";
 import { MonthJumpPanel } from "./MonthJumpPanel";
-import { ScheduleView, type ScheduleViewHandle } from "./ScheduleView";
+import { ScheduleView, scheduleChromeHeightPx, type ScheduleViewHandle } from "./ScheduleView";
 import { TimelineGrid } from "./TimelineGrid";
 import { PagedMonth, PagedYear } from "./PagedPeriodViews";
 import { UndoBar } from "./UndoBar";
@@ -21,11 +21,16 @@ import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import { toLocalDateString } from "@/lib/mealPlanDates";
 import { useNowMinute } from "@/lib/useNowMinute";
-import { useHamburgerRowHeight } from "@/lib/appChrome";
-import { useContainerWidth } from "@/lib/useContainerWidth";
-import { useMonthPanelOpen } from "@/lib/monthPanelOpen";
+import { useHamburgerInsetPx, useHamburgerRowHeight } from "@/lib/appChrome";
+import { useMonthPanel } from "@/lib/monthPanelOpen";
 import { daysWithItems } from "@/lib/monthLayout";
-import { MONTH_PANEL_BESIDE_MIN_PX, MONTH_PANEL_BESIDE_VIEW_CLASSES, MONTH_PANEL_ROW_CLASSES, MONTH_PANEL_SIDE_CLASSES } from "@/lib/gridClasses";
+import {
+  MONTH_PANEL_BESIDE_VIEW_CLASSES,
+  MONTH_PANEL_ROW_CLASSES,
+  MONTH_PANEL_SIDE_CLASSES,
+  MONTH_PANEL_STACKED_CLASSES,
+  MONTH_PANEL_STICKY_CLASSES,
+} from "@/lib/gridClasses";
 import type { CalendarEventView, CalendarHabitDayView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
@@ -154,14 +159,6 @@ export function CalendarViews({
   const [todayTaps, setTodayTaps] = useState(0);
 
   const [pickingView, setPickingView] = useState(false);
-  // Mission 72: the month panel the title toggles. Phone (Calendar body under
-  // 700px): a plain boolean, always starts closed. Wider: remembered per
-  // person per device (`useMonthPanelOpen`). Measured on the body, never the window.
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const wide = useContainerWidth(bodyRef) >= MONTH_PANEL_BESIDE_MIN_PX;
-  const [storedOpen, setStoredOpen] = useMonthPanelOpen(viewerId);
-  const [phoneOpen, setPhoneOpen] = useState(false);
-  const panelOpen = wide ? storedOpen : phoneOpen;
   const dotDays = useMemo(() => daysWithItems(events, tasks), [events, tasks]);
   const [selected, setSelected] = useState<{ event: CalendarEventView; day: Date } | null>(null);
   // mission-14/C4 — the sheet TaskCard/DaySection's onOpenTask now opens
@@ -180,6 +177,11 @@ export function CalendarViews({
   const [scheduleDay, setScheduleDay] = useState<number | null>(null); // Mission 72: the panel's ring on Schedule
 
   const config = VIEW_CONFIG[view];
+  // Mission 72: the month panel's state and choices live in `useMonthPanel`.
+  const chipsOnly = config.renderer === "month" || config.renderer === "year";
+  const isSchedule = config.renderer === "schedule";
+  const { insetPx, rootPx } = useHamburgerInsetPx();
+  const { bodyRef, viewRef, open: panelOpen, beside, toggle, closeNow } = useMonthPanel(viewerId, rootPx, !chipsOnly);
   // The null-guards below are about `today` not having resolved yet — NOT
   // about which view is active, which is why they stay here rather than
   // moving into VIEW_CONFIG (every row would carry the same null check).
@@ -420,13 +422,13 @@ export function CalendarViews({
     }
   }
 
-  const chipsOnly = config.renderer === "month" || config.renderer === "year";
-  const beside = wide && panelOpen && !chipsOnly;
-  // Year: a chip shows that year (its 1st). Elsewhere a day jumps in the same view; the phone's dropdown then closes.
+  // A day jumps in the same view. The phone's dropdown closes first, so the day lands under the header.
   const pickDay = (day: Date) => {
-    if (!(config.renderer === "schedule" && scheduleRef.current?.scrollToDay(day))) jumpToDay(day);
-    if (!wide) setPhoneOpen(false);
+    closeNow();
+    if (!(isSchedule && scheduleRef.current?.scrollToDay(day))) jumpToDay(day);
   };
+  // On Schedule the panel sticks under the pinned bar (ScheduleView's chrome height).
+  const panelClasses = `${chipsOnly || !beside ? MONTH_PANEL_STACKED_CLASSES : MONTH_PANEL_SIDE_CLASSES} ${isSchedule ? MONTH_PANEL_STICKY_CLASSES : ""}`;
 
   return (
     <div>
@@ -438,22 +440,20 @@ export function CalendarViews({
         isCurrentPeriod={headerIsCurrentPeriod}
         onToday={handleToday}
         title={title}
-        onToggleMonthPanel={() => (wide ? setStoredOpen(!storedOpen) : setPhoneOpen(!phoneOpen))}
+        onToggleMonthPanel={toggle}
         monthPanelOpen={panelOpen}
       />
 
-      {/* Mission 72: the month panel and the view share one `@container` box
-          (`data-calendar-body`, which the timeline's height hook also watches).
-          The sheets, + dial and bars stay outside it. The render switch itself
-          lives in `renderPeriodContent`, above. */}
+      {/* Mission 72: the panel and the view share one `@container` box (`data-calendar-body`,
+          which the timeline's height hook also watches); sheets, + dial and bars stay outside. */}
       <div ref={bodyRef} data-calendar-body className="@container">
-        <div className={chipsOnly ? undefined : MONTH_PANEL_ROW_CLASSES}>
+        <div className={beside ? MONTH_PANEL_ROW_CLASSES : undefined}>
           {panelOpen && today !== null && anchor !== null && (
-            <div className={chipsOnly ? "mb-4 border-b border-line" : MONTH_PANEL_SIDE_CLASSES}>
+            <div className={panelClasses} style={isSchedule ? { top: scheduleChromeHeightPx(insetPx, rootPx) } : undefined}>
               <MonthJumpPanel
                 anchor={anchor}
                 today={today}
-                selected={config.renderer === "schedule" && scheduleDay !== null ? new Date(scheduleDay) : anchor}
+                selected={isSchedule && scheduleDay !== null ? new Date(scheduleDay) : anchor}
                 dotDays={dotDays}
                 chipsOnly={chipsOnly}
                 beside={beside}
@@ -462,7 +462,7 @@ export function CalendarViews({
               />
             </div>
           )}
-          <div className={`flex flex-col gap-4 ${beside ? MONTH_PANEL_BESIDE_VIEW_CLASSES : ""}`}>
+          <div ref={viewRef} className={`flex flex-col gap-4 ${beside ? MONTH_PANEL_BESIDE_VIEW_CLASSES : ""}`}>
             {renderPeriodContent()}
           </div>
         </div>

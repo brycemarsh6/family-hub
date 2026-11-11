@@ -33,10 +33,19 @@ export function MonthJumpPanel({
   /** Sitting beside the view (not above it): the only time the chrome squeezes to the rail. */
   beside: boolean;
   onPickDay: (day: Date) => void;
-  /** Chips only: a chip tap navigates (Month and Year). */
+  /** Chips only: a chip tap navigates (Month: that month; Year: the year of that month's 1st). */
   onPickMonth: (firstOfMonth: Date) => void;
 }) {
   const [shown, setShown] = useState(() => shiftMonth(anchor, 0));
+  // The little month follows the calendar: when the anchor's month changes
+  // (Today, a swipe, another view) it reframes to it. Set during render, the
+  // documented way to reset state from a changing prop.
+  const anchorMonth = anchor.getFullYear() * 12 + anchor.getMonth();
+  const [seenAnchorMonth, setSeenAnchorMonth] = useState(anchorMonth);
+  if (seenAnchorMonth !== anchorMonth) {
+    setSeenAnchorMonth(anchorMonth);
+    setShown(shiftMonth(anchor, 0));
+  }
   const page = (month: Date) => (
     <MiniMonth month={month} today={today} selected={selected} dotDays={dotDays} onPickDay={onPickDay} />
   );

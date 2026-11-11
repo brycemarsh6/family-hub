@@ -7,7 +7,10 @@
 // a wide container (an iPad) honours the stored value; the phone's dropdown
 // always starts closed, and that rule is applied at the call site.
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { flushSync } from "react-dom";
+import { monthPanelBeside, MONTH_PANEL_BESIDE_MIN_PX } from "@/lib/gridClasses";
+import { useContainerWidth } from "@/lib/useContainerWidth";
 
 export const MONTH_PANEL_KEY_PREFIX = "marshee:calendar-month-panel:";
 
@@ -70,4 +73,56 @@ export function useMonthPanelOpen(viewerId: string | null): [boolean, (open: boo
     [viewerId],
   );
   return [open, setOpen];
+}
+
+/**
+ * Everything CalendarViews decides about the month panel (mission-72), kept
+ * out of that file. Attach `bodyRef` to the box holding the panel and the
+ * view (measured, never the window) and `viewRef` to the view's own wrapper.
+ *
+ * - `wide` (body at least 700px): the open state is the remembered one. Under
+ *   it (a phone) it is a plain boolean that always starts closed.
+ * - `beside`: open, on a view with columns, with room left for them
+ *   (`monthPanelBeside`). Only then is the chrome squeezed to the rail.
+ * - `toggle` / `closeNow` hold the reader's place: if the page is scrolled,
+ *   the view's top edge is recorded before the change and the scroll is
+ *   moved by however far that edge moved, before paint. Measuring the view's
+ *   own edge (not the document height) stays right whether or not the
+ *   browser's native scroll anchoring already helped.
+ * - `closeNow` closes a phone dropdown before the caller scrolls, so the
+ *   picked day lands under the header (a no-op on a wide body).
+ */
+export function useMonthPanel(viewerId: string | null, rootPx: number, canBeside: boolean) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<HTMLDivElement>(null);
+  const width = useContainerWidth(bodyRef);
+  const wide = width >= MONTH_PANEL_BESIDE_MIN_PX;
+  const [storedOpen, setStoredOpen] = useMonthPanelOpen(viewerId);
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const open = wide ? storedOpen : phoneOpen;
+  const beside = open && monthPanelBeside(canBeside, width, rootPx);
+
+  const heldTop = useRef<number | null>(null);
+  const hold = () => {
+    heldTop.current = window.scrollY > 0 ? (viewRef.current?.getBoundingClientRect().top ?? null) : null;
+  };
+  useLayoutEffect(() => {
+    const before = heldTop.current;
+    if (before === null) return;
+    heldTop.current = null;
+    const shift = (viewRef.current?.getBoundingClientRect().top ?? before) - before;
+    if (shift !== 0) window.scrollTo({ top: window.scrollY + shift, behavior: "instant" });
+  });
+
+  const toggle = () => {
+    hold();
+    if (wide) setStoredOpen(!storedOpen);
+    else setPhoneOpen(!phoneOpen);
+  };
+  const closeNow = () => {
+    if (wide) return;
+    hold();
+    flushSync(() => setPhoneOpen(false));
+  };
+  return { bodyRef, viewRef, open, beside, toggle, closeNow };
 }

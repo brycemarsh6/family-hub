@@ -144,6 +144,8 @@ function TodayEmptyRow({ day }: { day: Date }) {
   );
 }
 
+/** The chrome Schedule pins above its list: inset + bar. One source for the scroll margins and the month panel's sticky top (mission 72). */
+export const scheduleChromeHeightPx = (insetPx: number, rootPx: number) => insetPx + SCHEDULE_HEADER_BAR_HEIGHT_REM * rootPx;
 export function ScheduleView({
   initialDay,
   people,
@@ -207,10 +209,9 @@ export function ScheduleView({
   // Schedule bar, measured from the screen's top edge. The hook measures
   // the hamburger's bottom edge (safe-area inset + the 3.5rem row, which
   // follows the Text size), so swapping that row for the bar's own height
-  // leaves inset + bar. `useHamburgerInsetPx` gives that inset and the live root font size,
-  // and the bar is rem too (86px at 16, 129px at Largest, 5.375rem).
+  // leaves inset + bar (`scheduleChromeHeightPx`: 86px bar at 16, 129px at Largest).
   const { insetPx, rootPx } = useHamburgerInsetPx();
-  const scheduleChromeHeight = insetPx + SCHEDULE_HEADER_BAR_HEIGHT_REM * rootPx;
+  const scheduleChromeHeight = scheduleChromeHeightPx(insetPx, rootPx);
 
   // mission-15/C10 (Strange's blocker) — re-arms the one-shot below
   // whenever `initialDayTime` genuinely changes, mirroring
@@ -328,8 +329,7 @@ export function ScheduleView({
     SCHEDULE_TITLE_SLOT_ID,
   );
 
-  // Mission 72: the day in view goes up to the month panel's ring. The hook
-  // reads rows only while the panel is open; the +2 absorbs sub-pixel rounding.
+  // Mission 72: the day in view feeds the panel's ring (rows read only while open; +2 absorbs rounding).
   const dayInViewTime = useScheduleDayInView(dayRefs, months, scheduleChromeHeight + 2, trackDayInView, initialDay);
   useEffect(() => onDayInViewChange(dayInViewTime), [dayInViewTime, onDayInViewChange]);
 
@@ -444,42 +444,42 @@ export function ScheduleView({
         </div>
       ) : (
         <>
-        {/* Sentinels sit OUTSIDE the loaded content, not between rows —
-            rootMargin: "100% 0px" (set in the hook) means a fetch starts
-            a full viewport before the sentinel is literally on screen,
-            so the next chunk is usually ready before the reader reaches
-            the edge. */}
-        <div ref={topSentinelRef} aria-hidden="true" />
-        {loadingBackward && (
-          <div className="flex flex-col gap-2 pb-2">
-            <SkeletonBlock className="h-[46px] w-full" />
-          </div>
-        )}
-        {/* Only shown once a direction has genuinely stopped (D2/the
-            hook's own applyChunkResult) — never while it's merely
-            between fetches, which is what `loadingBackward` above
-            already covers separately. */}
-        {!hasMoreBackward && !loadingBackward && (
-          <p className="pb-2 text-center text-xs text-muted">That&apos;s as far back as this loads.</p>
-        )}
+          {/* Sentinels sit OUTSIDE the loaded content, not between rows —
+              rootMargin: "100% 0px" (set in the hook) means a fetch starts
+              a full viewport before the sentinel is literally on screen,
+              so the next chunk is usually ready before the reader reaches
+              the edge. */}
+          <div ref={topSentinelRef} aria-hidden="true" />
+          {loadingBackward && (
+            <div className="flex flex-col gap-2 pb-2">
+              <SkeletonBlock className="h-[46px] w-full" />
+            </div>
+          )}
+          {/* Only shown once a direction has genuinely stopped (D2/the
+              hook's own applyChunkResult) — never while it's merely
+              between fetches, which is what `loadingBackward` above
+              already covers separately. */}
+          {!hasMoreBackward && !loadingBackward && (
+            <p className="pb-2 text-center text-xs text-muted">That&apos;s as far back as this loads.</p>
+          )}
 
-        {habitDaysFailed && (
-          <p role="alert" className="px-1 pb-2 text-sm text-warn">
-            Couldn&apos;t load your planned habit days.
-          </p>
-        )}
+          {habitDaysFailed && (
+            <p role="alert" className="px-1 pb-2 text-sm text-warn">
+              Couldn&apos;t load your planned habit days.
+            </p>
+          )}
 
-        {months.map(renderMonth)}
+          {months.map(renderMonth)}
 
-        {!hasMoreForward && !loadingForward && (
-          <p className="pt-2 text-center text-xs text-muted">That&apos;s as far ahead as this loads.</p>
-        )}
-        {loadingForward && (
-          <div className="flex flex-col gap-2 pt-2">
-            <SkeletonBlock className="h-[46px] w-full" />
-          </div>
-        )}
-        <div ref={bottomSentinelRef} aria-hidden="true" />
+          {!hasMoreForward && !loadingForward && (
+            <p className="pt-2 text-center text-xs text-muted">That&apos;s as far ahead as this loads.</p>
+          )}
+          {loadingForward && (
+            <div className="flex flex-col gap-2 pt-2">
+              <SkeletonBlock className="h-[46px] w-full" />
+            </div>
+          )}
+          <div ref={bottomSentinelRef} aria-hidden="true" />
         </>
       )}
 

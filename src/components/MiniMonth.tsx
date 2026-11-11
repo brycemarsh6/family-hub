@@ -46,14 +46,14 @@ export function MiniMonth({
               className="relative flex h-11 flex-col items-center justify-center text-sm"
             >
               <span
-                className={`flex h-[2.125rem] w-[2.125rem] items-center justify-center rounded-full transition-colors ${
+                className={`mb-1 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
                   isToday ? "bg-accent font-bold text-accent-fg" : "font-medium text-fg active:bg-surface-2"
                 } ${isShowing ? "ring-2 ring-accent" : ""}`}
               >
                 {day.getDate()}
               </span>
               {!isToday && dotDays?.has(toLocalDateString(day)) && (
-                <span aria-hidden="true" className="absolute bottom-0.5 h-1 w-1 rounded-full bg-muted" />
+                <span aria-hidden="true" className="absolute bottom-[0.0625rem] h-1 w-1 rounded-full bg-muted" />
               )}
             </button>
           );
