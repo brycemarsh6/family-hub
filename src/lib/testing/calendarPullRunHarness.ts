@@ -56,7 +56,7 @@ export function fake(
     loadKnown: async () => EMPTY_KNOWN,
     writeInsert: async (i) => void calls.push(`insert:${i.googleEventId}`),
     writeUpdate: async (_c, u) => void calls.push(`update:${u.googleEventId}`),
-    writeDelete: async (d) => void calls.push(`delete:${d.eventId}`),
+    writeDelete: async (d, calendarId) => void calls.push(`delete:${d.eventId}:${calendarId}`),
     writeSeriesFill: async (_c, f) => void calls.push(`seriesFill:${f.eventId}:${f.googleSeriesId}`),
     pushBack: async (id, except) => void calls.push(except ? `pushBack:${id}:except=${except}` : `pushBack:${id}`),
     now: () => NOW,

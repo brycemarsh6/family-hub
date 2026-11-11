@@ -3,7 +3,8 @@
 import { useEffect, useLayoutEffect, useOptimistic, useRef, useState } from "react";
 import { formatClockTime } from "./calendarDates";
 import { HOUSEHOLD_TIME_ZONE } from "./constants";
-import { calendarDateInZone, calendarDaysBetween, minuteOfDayInZone, zoneOffsetMs } from "./householdDate";
+import { shiftWallClockInZone } from "./householdDate";
+import { planSeriesShift, SHIFT_NOTHING_ERROR } from "./calendarSeriesRules";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
 import { useOptimisticRun } from "./useOptimisticRun";
 import type { CalendarEventView } from "./types";
@@ -60,22 +61,23 @@ export function movedAllText(title: string, start: Date): string {
 
 /**
  * How many wall-clock minutes a drop moves the whole series by, or null when
- * the drop is on another household day (then only "This one" is offered).
- * The same rule as the server's planSeriesShift, read in the household zone.
+ * "All of them" can't be offered (the drop is on another household day, or
+ * can't be shifted at all). The rule is the server's own, planSeriesShift.
  */
 export function seriesShiftMinutes(event: CalendarEventView, newStart: Date): number | null {
-  const zone = HOUSEHOLD_TIME_ZONE;
-  const days = calendarDaysBetween(calendarDateInZone(event.startAt, zone), calendarDateInZone(newStart, zone));
-  if (days !== 0) return null;
-  return minuteOfDayInZone(newStart, zone) - minuteOfDayInZone(event.startAt, zone);
+  const plan = planSeriesShift(event, newStart, HOUSEHOLD_TIME_ZONE);
+  return "minutes" in plan ? plan.minutes : null;
 }
 
-/** One instant moved by wall-clock minutes in the household zone (7:00 is 7:30 after +30 on any day, clock changes included); the server's arithmetic. */
+/** True when a drop of this series day changes nothing (same minute, same day): no sheet, nothing saved. */
+export function isSeriesNoShift(event: CalendarEventView, newStart: Date): boolean {
+  const plan = planSeriesShift(event, newStart, HOUSEHOLD_TIME_ZONE);
+  return "error" in plan && plan.error === SHIFT_NOTHING_ERROR;
+}
+
+/** One instant moved by wall-clock minutes in the household zone; the server's arithmetic (householdDate.ts). */
 export function shiftWallClock(instant: Date, minutes: number): Date {
-  const zone = HOUSEHOLD_TIME_ZONE;
-  const target = instant.getTime() + zoneOffsetMs(instant, zone) + minutes * 60000;
-  const first = target - zoneOffsetMs(new Date(target), zone);
-  return new Date(target - zoneOffsetMs(new Date(first), zone));
+  return shiftWallClockInZone(instant, minutes, HOUSEHOLD_TIME_ZONE);
 }
 
 /** The events with every day of one series shifted; the others are the same objects. */
@@ -273,6 +275,7 @@ export function useEventMoves(events: CalendarEventView[], move: MoveAction, mov
     // newer drop decides where it is drawn now, so that glide is dropped.
     glide.current = glide.current.filter((g) => g.id !== eventId);
     setBar(null);
+    if (event.seriesId && isSeriesNoShift(event, newStart)) return; // dropped where it was: no sheet, nothing saved
     if (event.seriesId) setPending({ event, newStart });
     else save(event, newStart, false);
   }

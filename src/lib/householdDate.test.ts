@@ -11,6 +11,9 @@ import {
   formatShortCalendarDate,
   formatWeekTitle,
   hourInZone,
+  instantAtWallClock,
+  shiftWallClockInZone,
+  wallClockMs,
   minuteOfDayInZone,
   parseDateParam,
   startOfMonth,
@@ -204,4 +207,26 @@ test("formatHouseholdClock uses a plain ASCII space, never U+202F", () => {
     assert.doesNotMatch(formatHouseholdClock(mst(18, 30), DENVER, options), /\u202f/);
     assert.match(formatHouseholdClock(mst(18, 30), DENVER, options), /^6:30 PM$/);
   }
+});
+
+test("wallClockMs and instantAtWallClock are inverses in Denver, summer and winter", () => {
+  for (const iso of ["2026-07-01T13:00:00Z", "2026-11-12T14:00:00Z", "2026-03-08T08:30:00Z", "2026-11-01T14:00:00Z"]) {
+    const instant = new Date(iso);
+    assert.equal(instantAtWallClock(wallClockMs(instant, DENVER), DENVER).toISOString(), instant.toISOString());
+  }
+  // 7:00 AM on the wall is 13:00Z in July (MDT) and 14:00Z in November (MST).
+  assert.equal(instantAtWallClock(Date.UTC(2026, 6, 1, 7), DENVER).toISOString(), "2026-07-01T13:00:00.000Z");
+  assert.equal(instantAtWallClock(Date.UTC(2026, 10, 12, 7), DENVER).toISOString(), "2026-11-12T14:00:00.000Z");
+});
+
+test("shiftWallClockInZone keeps the clock reading across both 2026 clock changes", () => {
+  // Spring change (2 AM becomes 3 AM): 1:30 AM MST + 90 minutes is 3:00 AM MDT.
+  assert.equal(shiftWallClockInZone(new Date("2026-03-08T08:30:00Z"), 90, DENVER).toISOString(), "2026-03-08T09:00:00.000Z");
+  // Fall change: 7:00 AM MST + 30 is 7:30 AM MST; and 1:30 AM MDT + 60 is 2:30 AM MST (the wall clock, not 60 real minutes).
+  assert.equal(shiftWallClockInZone(new Date("2026-11-01T14:00:00Z"), 30, DENVER).toISOString(), "2026-11-01T14:30:00.000Z");
+  assert.equal(shiftWallClockInZone(new Date("2026-11-01T07:30:00Z"), 60, DENVER).toISOString(), "2026-11-01T09:30:00.000Z");
+  // Summer, and a negative shift.
+  assert.equal(shiftWallClockInZone(new Date("2026-07-01T13:00:00Z"), -30, DENVER).toISOString(), "2026-07-01T12:30:00.000Z");
+  // Same answer for any process TZ: only the zone argument matters.
+  assert.equal(shiftWallClockInZone(new Date("2026-07-01T13:00:00Z"), 30, "UTC").toISOString(), "2026-07-01T13:30:00.000Z");
 });

@@ -71,7 +71,7 @@ describe("runPull: writes", () => {
     const result = await runPull(f.deps, { force: false });
     assert.deepEqual(result, { changed: true, failed: 0, checked: 1 });
     const order = f.calls.filter((c) => /^(update|delete|pushBack)/.test(c));
-    assert.deepEqual(order, ["update:gwin", "delete:evDel", "pushBack:evWin"]);
+    assert.deepEqual(order, ["update:gwin", "delete:evDel:c1", "pushBack:evWin"]);
   });
 });
 
@@ -107,7 +107,7 @@ describe("runPull: rewindow collects the token's changes first", () => {
     });
     const result = await runPull(f.deps, { force: true, rewindow: true });
     assert.deepEqual(result, { changed: true, failed: 0, checked: 1 });
-    assert.equal(f.calls.includes("delete:evDel"), true);
+    assert.equal(f.calls.includes("delete:evDel:c1"), true);
     assert.equal(f.calls.at(-1), "saveToken:c1:tok-full");
   });
 });

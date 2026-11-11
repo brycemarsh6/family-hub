@@ -11,6 +11,7 @@ import {
   applySeriesShift,
   movedAllText,
   movedToText,
+  isSeriesNoShift,
   seriesShiftMinutes,
   seriesUndoRequest,
   shiftWallClock,
@@ -84,6 +85,14 @@ test("seriesShiftMinutes is null on another household day, even a few minutes af
   // Thu 11:50 PM Denver to Fri 12:10 AM Denver: a new day, not +20.
   const late = day("b", "s", "2026-11-13T06:50:00Z", "2026-11-13T07:30:00Z");
   assert.equal(seriesShiftMinutes(late, at("2026-11-13T07:10:00Z")), null);
+});
+
+test("a drop that changes nothing is no shift: no sheet, and the minutes rule is the server's", () => {
+  const wake = day("a", "s", "2026-11-12T14:00:00Z", "2026-11-12T14:45:00Z");
+  assert.equal(isSeriesNoShift(wake, at("2026-11-12T14:00:00Z")), true);
+  assert.equal(isSeriesNoShift(wake, at("2026-11-12T14:30:00Z")), false);
+  assert.equal(isSeriesNoShift(wake, at("2026-11-13T14:00:00Z")), false);
+  assert.equal(seriesShiftMinutes(wake, at("2026-11-12T14:00:00Z")), null);
 });
 
 test("shiftWallClock keeps the clock reading across both clock changes", () => {

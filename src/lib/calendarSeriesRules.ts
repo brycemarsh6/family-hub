@@ -8,11 +8,14 @@
 // is the same whatever the process's TZ is (days and clocks are read in the
 // zone passed in, never with process-local getters).
 
-import { calendarDateInZone, calendarDaysBetween, minuteOfDayInZone, zoneOffsetMs } from "./householdDate";
+import { calendarDateInZone, calendarDaysBetween, instantAtWallClock, minuteOfDayInZone, wallClockMs } from "./householdDate";
 import { planMove, type StoredTimes } from "./calendarMoveRules";
 import type { GoogleTimesPatch } from "./google/types";
 
 const MS_PER_MINUTE = 60 * 1000;
+
+/** The refusal for a drop that lands on the minute it started at: nothing to shift, so nothing is sent to Google. */
+export const SHIFT_NOTHING_ERROR = "That's already its time.";
 
 export type SeriesShiftPlan = { error: string } | { minutes: number };
 
@@ -21,14 +24,17 @@ export type SeriesShiftPlan = { error: string } | { minutes: number };
  * is +30 on any day, including the two clock-change days), or the plain line
  * saying why it can't. The refusals for all-day, multi-day and out-of-range
  * drops are `planMove`'s own; a drop to another day is refused here, since a
- * whole series has no single "other day" to move to.
+ * whole series has no single "other day" to move to, and so is a drop that
+ * changes nothing (0 minutes).
  */
 export function planSeriesShift(stored: StoredTimes, newStart: Date, timeZone: string): SeriesShiftPlan {
   const move = planMove(stored, newStart, timeZone);
   if ("error" in move) return { error: move.error };
   const sameDay = calendarDaysBetween(calendarDateInZone(stored.startAt, timeZone), calendarDateInZone(newStart, timeZone)) === 0;
   if (!sameDay) return { error: "Only this one can move to another day." };
-  return { minutes: minuteOfDayInZone(newStart, timeZone) - minuteOfDayInZone(stored.startAt, timeZone) };
+  const minutes = minuteOfDayInZone(newStart, timeZone) - minuteOfDayInZone(stored.startAt, timeZone);
+  if (minutes === 0) return { error: SHIFT_NOTHING_ERROR };
+  return { minutes };
 }
 
 /** Google's wall clock as if it were UTC: a text with an offset is read at that offset's instant, one without is taken as written. */
@@ -36,7 +42,7 @@ function wallMsOf(dateTime: string, timeZone: string): number | null {
   const hasOffset = /(Z|[+-]\d{2}:\d{2})$/.test(dateTime);
   const parsed = Date.parse(hasOffset ? dateTime : `${dateTime}Z`);
   if (Number.isNaN(parsed)) return null;
-  return hasOffset ? parsed + zoneOffsetMs(new Date(parsed), timeZone) : parsed;
+  return hasOffset ? wallClockMs(new Date(parsed), timeZone) : parsed;
 }
 
 function pad(n: number, width = 2): string {
@@ -45,10 +51,7 @@ function pad(n: number, width = 2): string {
 
 /** A wall-clock reading in `timeZone` as RFC 3339 text with its own offset, so it is never ambiguous. */
 function dateTimeAt(wallMs: number, timeZone: string): string {
-  // Same two-step fixed point as zoneMidnightInstant: guess, then re-read the offset at the guess.
-  const first = wallMs - zoneOffsetMs(new Date(wallMs), timeZone);
-  const instant = wallMs - zoneOffsetMs(new Date(first), timeZone);
-  const offsetMin = Math.round((wallMs - instant) / MS_PER_MINUTE);
+  const offsetMin = Math.round((wallMs - instantAtWallClock(wallMs, timeZone).getTime()) / MS_PER_MINUTE);
   const wall = new Date(wallMs);
   const sign = offsetMin < 0 ? "-" : "+";
   const abs = Math.abs(offsetMin);

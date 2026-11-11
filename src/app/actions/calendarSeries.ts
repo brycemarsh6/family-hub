@@ -14,11 +14,9 @@ import { getVerifiedUser } from "@/lib/dal";
 import { HOUSEHOLD_TIME_ZONE, MANAGER_ROLES } from "@/lib/constants";
 import { parseMoveStart } from "@/lib/calendarMoveRules";
 import { moveSeries, type SeriesMoveDeps, type SeriesMoveResult } from "@/lib/calendarSeriesMove";
-import { deletePulledEvent, pullCalendars } from "@/lib/calendarEventPull";
-import { loadRefreshToken } from "@/lib/linkedCalendarsRead";
-import { refreshAccessToken } from "@/lib/google/oauth";
-import { getGoogleEvent, updateGoogleEvent } from "@/lib/google/calendarApi";
-import { listInstances } from "@/lib/google/calendarEventCalls";
+import { deletePulledEvent, getAccountAccessToken, pullCalendars } from "@/lib/calendarEventPull";
+import { loadSeriesCalendar } from "@/lib/linkedCalendarsRead";
+import { getGoogleEvent, listGoogleInstances, updateGoogleEvent } from "@/lib/google/calendarApi";
 
 const realDeps: SeriesMoveDeps = {
   now: () => new Date(),
@@ -36,31 +34,14 @@ const realDeps: SeriesMoveDeps = {
       : null;
     return { ...event, googleSeriesId: sync?.googleSeriesId ?? null };
   },
-  async loadCalendar(calendarId) {
-    const calendar = await db.linkedCalendar.findUnique({
-      where: { id: calendarId },
-      select: { id: true, googleCalendarId: true, accountId: true, direction: true, account: { select: { status: true } } },
-    });
-    if (!calendar) return null;
-    const { account, ...rest } = calendar;
-    return { ...rest, accountStatus: account.status };
-  },
-  async getAccessToken(accountId) {
-    try {
-      const refreshToken = await loadRefreshToken(accountId);
-      if (refreshToken === null) return { ok: false };
-      const refreshed = await refreshAccessToken(refreshToken);
-      return refreshed.ok ? { ok: true, accessToken: refreshed.accessToken } : { ok: false };
-    } catch {
-      // Deliberately drops the error: it could quote a token.
-      return { ok: false };
-    }
-  },
+  loadCalendar: loadSeriesCalendar,
+  getAccessToken: getAccountAccessToken,
   getEvent: getGoogleEvent,
   updateEvent: updateGoogleEvent,
-  listInstances: (...args) => listInstances((url, init) => fetch(url, init), ...args),
+  listInstances: listGoogleInstances,
   async pullCalendar(calendarId) {
-    await pullCalendars({ force: true, onlyCalendarId: calendarId, ignoreLease: true });
+    const { failed } = await pullCalendars({ force: true, onlyCalendarId: calendarId, ignoreLease: true });
+    return { failed };
   },
   async loadSeriesRows(calendarId, googleSeriesId, from, to) {
     const rows = await db.calendarEventSync.findMany({

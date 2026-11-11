@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { planSeriesCleanup, planSeriesShift, shiftParentTimes, type SeriesRow } from "./calendarSeriesRules";
+import { planSeriesCleanup, planSeriesShift, shiftParentTimes, SHIFT_NOTHING_ERROR, type SeriesRow } from "./calendarSeriesRules";
 
 // Pure rules, so every case runs the same under TZ=America/Denver and TZ=UTC
 // (the Gauntlet runs both): nothing here reads the process's zone.
@@ -38,6 +38,16 @@ describe("planSeriesShift", () => {
     });
     assert.deepEqual(planSeriesShift(stored("2026-07-01T13:00:00Z", "2026-07-01T14:00:00Z"), at("2026-07-02T13:00:00Z"), DENVER), {
       error: "Only this one can move to another day.",
+    });
+  });
+
+  it("refuses a drop on the minute it started at, so a no-op never reaches Google", () => {
+    assert.deepEqual(planSeriesShift(stored("2026-07-01T13:00:00Z", "2026-07-01T14:00:00Z"), at("2026-07-01T13:00:00Z"), DENVER), {
+      error: SHIFT_NOTHING_ERROR,
+    });
+    // The fall-back hour: 1:30 AM MDT and 1:30 AM MST are the same wall minute, a zero shift too.
+    assert.deepEqual(planSeriesShift(stored("2026-11-01T07:30:00Z", "2026-11-01T08:00:00Z"), at("2026-11-01T08:30:00Z"), DENVER), {
+      error: SHIFT_NOTHING_ERROR,
     });
   });
 

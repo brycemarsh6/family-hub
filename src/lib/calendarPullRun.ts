@@ -58,7 +58,8 @@ export type PullRunDeps = {
   writeInsert: (insert: PullInsert) => Promise<void>;
   writeUpdate: (calendarId: string, update: PullUpdate) => Promise<void>;
   /** Takes the event's copies off other calendars, then deletes the event. */
-  writeDelete: (del: PullDelete) => Promise<void>;
+  /** `calendarId` is the pulled calendar: Google already removed the event there, so it is not asked to again. */
+  writeDelete: (del: PullDelete, calendarId: string) => Promise<void>;
   /** Writes only the sync row's googleSeriesId: never the event, its updatedAt or the etag. */
   writeSeriesFill: (calendarId: string, fill: PullSeriesFill) => Promise<void>;
   /** Push the event's Marshee version out; `exceptLinkedCalendarId` is a copy to leave alone. */
@@ -120,7 +121,7 @@ async function applyListed(
     // Only a change that was saved goes out: a failed write would push the old version over Google's.
     if (update.pushOut && failed === before) pushOuts.push(update.eventId);
   }
-  for (const del of plan.deletes) await attempt(() => deps.writeDelete(del), true);
+  for (const del of plan.deletes) await attempt(() => deps.writeDelete(del, calendar.id), true);
   // The series id changes nothing a person sees, so it never counts as a change.
   for (const fill of plan.seriesFills) await attempt(() => deps.writeSeriesFill(calendar.id, fill), false);
   // A push back keeps the source (Marshee won). A push out carries Google's own version, so

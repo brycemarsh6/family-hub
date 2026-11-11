@@ -158,9 +158,11 @@ const deps: PullRunDeps = {
       data: { googleSeriesId },
     });
   },
-  async writeDelete({ eventId }) {
+  async writeDelete({ eventId }, calendarId) {
     // Its copies come off other calendars first; the delete then cascades the rows.
-    await removeEventCopies(eventId);
+    // The pulled calendar is excepted: Google already dropped the event there, and a
+    // DELETE (with its token refresh) at the source would be a real write for nothing.
+    await removeEventCopies(eventId, { exceptLinkedCalendarId: calendarId });
     await db.calendarEvent.deleteMany({ where: { id: eventId } });
   },
   async pushBack(eventId, exceptLinkedCalendarId) {
@@ -185,9 +187,31 @@ export async function pullCalendars(opts: { force: boolean; rewindow?: boolean; 
   return result;
 }
 
-/** Deletes one pulled row exactly as the pull does for a cancelled event: its copies come off first. */
-export function deletePulledEvent(del: PullDelete): Promise<void> {
-  return deps.writeDelete(del);
+/**
+ * Deletes one pulled row exactly as the pull does for a cancelled event: its copies come
+ * off other calendars first, never the `calendarId` one (the series cleanup calls this
+ * for rows Google has already dropped there, so it sends Google nothing for them).
+ */
+export function deletePulledEvent(del: PullDelete, calendarId: string): Promise<void> {
+  return deps.writeDelete(del, calendarId);
+}
+
+/**
+ * An access token for a linked account, for the callers that act outside the pull ("All of
+ * them"). Same refresh and same token-failure handling as the pull: a grant Google refuses
+ * marks the account needs-relink. Never throws; the answer carries no token on failure.
+ */
+export async function getAccountAccessToken(accountId: string): Promise<{ ok: true; accessToken: string } | { ok: false }> {
+  const token = await getAccessToken(accountId);
+  if (token.ok) return token;
+  if (token.reason === "reconnect") {
+    try {
+      await markAccountNeedsRelink(accountId);
+    } catch {
+      // Deliberately drops the error; the next pull marks it.
+    }
+  }
+  return { ok: false };
 }
 
 /**

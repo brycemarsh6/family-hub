@@ -49,12 +49,12 @@ export type SeriesMoveDeps = {
     timeMin: string,
     timeMax: string,
   ) => Promise<ListEventsResult>;
-  /** Pull that one linked calendar now (force lease). Never throws. */
-  pullCalendar: (calendarId: string) => Promise<void>;
+  /** Pull that one linked calendar now (force lease). Never throws; `failed` is the count the pull reported. */
+  pullCalendar: (calendarId: string) => Promise<{ failed: number }>;
   /** Marshee rows of the series on the calendar whose start is in [from, to). */
   loadSeriesRows: (calendarId: string, googleSeriesId: string, from: Date, to: Date) => Promise<SeriesRow[]>;
-  /** The pull's own delete (copies off other calendars first). */
-  deleteRow: (del: PullDelete) => Promise<void>;
+  /** The pull's own delete, the source calendar excepted: Marshee's row and its other copies go, Google is sent nothing for this calendar. */
+  deleteRow: (del: PullDelete, calendarId: string) => Promise<void>;
   /** The id of the series row on the calendar that starts exactly then, if any. */
   findRowAt: (calendarId: string, googleSeriesId: string, startAt: Date) => Promise<string | null>;
 };
@@ -95,14 +95,18 @@ export async function moveSeries(
   if (!written.ok) return { error: GOOGLE_FAILED };
 
   // Google is changed for good now, so what follows only makes Marshee match it.
-  await deps.pullCalendar(calendar.id);
+  const pulled = await deps.pullCalendar(calendar.id);
 
   const now = deps.now();
   const from = new Date(now.getTime() - PULL_WINDOW_DAYS * DAY_MS);
   const to = new Date(now.getTime() + PULL_HORIZON_DAYS * DAY_MS);
-  const listed = await deps.listInstances(token, calendar.googleCalendarId, seriesId, from.toISOString(), to.toISOString());
+  // A pull that failed part-way never reached every row, so cleaning up beside it would judge by half a picture.
+  const listed =
+    pulled.failed === 0
+      ? await deps.listInstances(token, calendar.googleCalendarId, seriesId, from.toISOString(), to.toISOString())
+      : null;
   // A list that failed says nothing about what is missing, so nothing is removed on it.
-  if (listed.ok) {
+  if (listed?.ok) {
     const rows = await deps.loadSeriesRows(calendar.id, seriesId, from, to);
     const stale = planSeriesCleanup(
       rows,
@@ -111,7 +115,7 @@ export async function moveSeries(
     );
     for (const del of stale) {
       try {
-        await deps.deleteRow(del);
+        await deps.deleteRow(del, calendar.id);
       } catch {
         // One stale row that won't go must not hide the others; the next pull sees it again.
       }

@@ -30,12 +30,14 @@ type Over = Partial<SeriesMoveDeps> & {
   instances?: ListEventsResult;
   rows?: SeriesRow[];
   movedRowId?: string | null;
+  pullFailed?: number;
 };
 
 function fake(over: Over = {}) {
   const calls: string[] = [];
   const patches: { googleEventId: string; patch: GoogleTimesPatch; ifMatch?: string }[] = [];
   const deleted: string[] = [];
+  const deletedOn: string[] = [];
   const deps: SeriesMoveDeps = {
     now: () => new Date("2026-11-09T18:00:00Z"),
     loadEvent: async () => (over.event === undefined ? EVENT : over.event),
@@ -57,14 +59,18 @@ function fake(over: Over = {}) {
       calls.push("listInstances");
       return over.instances ?? { ok: true, events: [], nextSyncToken: null };
     },
-    pullCalendar: async (id) => void calls.push(`pull:${id}`),
+    pullCalendar: async (id) => {
+      calls.push(`pull:${id}`);
+      return { failed: over.pullFailed ?? 0 };
+    },
     loadSeriesRows: async () => {
       calls.push("loadSeriesRows");
       return over.rows ?? [];
     },
-    deleteRow: async (d) => {
+    deleteRow: async (d, calendarId) => {
       calls.push(`delete:${d.eventId}`);
       deleted.push(d.eventId);
+      deletedOn.push(calendarId);
     },
     findRowAt: async (_c, _s, startAt) => {
       calls.push(`findRowAt:${startAt.toISOString()}`);
@@ -72,7 +78,7 @@ function fake(over: Over = {}) {
     },
     ...over,
   };
-  return { deps, calls, patches, deleted };
+  return { deps, calls, patches, deleted, deletedOn };
 }
 
 const run = (f: ReturnType<typeof fake>, start = NEW_START) => moveSeries(f.deps, "e1", start, DENVER);
@@ -215,6 +221,21 @@ describe("moveSeries: success", () => {
     const f = fake({ rows, instances: { ok: true, events: [{ id: "S_new1" }], nextSyncToken: null } });
     await run(f);
     assert.deepEqual(f.deleted, ["stale1"]);
+  });
+
+  it("every cleanup delete names the source calendar, so no copy of it is sent to Google", async () => {
+    const rows: SeriesRow[] = ["a", "b"].map((id) => ({ eventId: id, googleEventId: `S_${id}`, linkedCalendarId: "c1", googleSeriesId: "S" }));
+    const f = fake({ rows });
+    await run(f);
+    assert.deepEqual(f.deleted, ["a", "b"]);
+    assert.deepEqual(f.deletedOn, ["c1", "c1"]);
+  });
+
+  it("a pull that reported failures lists and deletes nothing, and the move still reports", async () => {
+    const rows: SeriesRow[] = [{ eventId: "stale1", googleEventId: "S_old1", linkedCalendarId: "c1", googleSeriesId: "S" }];
+    const f = fake({ rows, pullFailed: 2 });
+    assert.deepEqual(await run(f), { undo: { eventId: "moved-row", startIso: "2026-07-01T13:00:00.000Z" } });
+    assert.deepEqual(f.calls.filter((c) => c === "listInstances" || c === "loadSeriesRows" || c.startsWith("delete:")), []);
   });
 
   it("a failed instance list deletes nothing but the move still reports", async () => {
