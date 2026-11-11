@@ -227,7 +227,8 @@ export function TimelineDayColumn({
                   first and the title keeps its room. */}
               {event.seriesId && (
                 <>
-                  <Repeat aria-hidden="true" className="ml-0.5 inline-block size-[1em] align-[-0.125em] text-muted" />
+                  {/* zoom: 1 beats globals.css's Largest svg.lucide zoom; the icon is 1em, so it already follows Text size through the title's rem font. */}
+                  <Repeat aria-hidden="true" style={{ zoom: 1 }} className="ml-0.5 inline-block size-[1em] align-[-0.125em] text-muted" />
                   <span className="sr-only">, repeats</span>
                 </>
               )}
