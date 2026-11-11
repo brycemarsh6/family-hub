@@ -142,6 +142,19 @@ change is Bryce's phone test, on a throwaway event first.
 - The action does not call `afterEventSaved`; it writes Google once (the
   parent), then pulls. One Google write per drop.
 
+## Fury's calls on pass 1
+
+- **The migration's token clear stays.** Vision: safe for Marshee's data,
+  but unneeded and it drops an unread token. It is already applied on the
+  dev branch; editing an applied migration makes a checksum mismatch, and
+  `prisma migrate dev` on drift offers a reset of the dev branch (the
+  danger register). The loss needs an event moved far outside the window
+  in the minutes between the last pull and the deploy, the same exposure as
+  a 410 restart. Kept, recorded here.
+- **A dead Google grant during "All of them"** (Captain, the action's own
+  `getAccessToken` drops `tokenFailReason`): fixed in F1 by marking the
+  account needs-relink the way the pull does.
+
 ## Contracts
 
 Common to every contract: the danger register above binds; stage by
@@ -334,7 +347,60 @@ touched; STRUCTURE.md caps apply.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Strange (HEAD cacb6c1) | PASS | none | 48px at Normal, 72 at Largest, nothing covers them; bottom sheet on phone (thumb zone), centred dialog on iPad; words match the mock; warn bar warn tokens, never red; reduce motion instant; lifted look kept. Harness had no `<main>` padding (artifact, fixed in Strange's copy). N1: on iPad the centred dialog covers the dropped block (ask Bryce: dock at bottom from md up?). N2: the mock's repeat mark is not on blocks (ask Bryce). N3: no gutter marker or tint while the sheet asks (write into DESIGN.md). N4: focus stays on body (as ConfirmSheet); px gutter wraps at Largest (pre-existing). DESIGN.md `RepeatMoveSheet` bullet drafted |
+| 1 | Vision (HEAD cacb6c1) | BLOCK | `deletePulledEvent` (calendarEventPull.ts:201) runs `removeEventCopies` with no exception, so the series cleanup sends a real Google DELETE (and a token refresh) to the source calendar for every stale row: a renamed daily series is ~395 calls in one request, breaks one-write-per-drop, can outlive the function so the client glides back after Google already moved (a retry shifts twice). Fix: exclude the source calendar in the series cleanup (and in the pull's `writeDelete`), test zero Google calls | Gauntlet re-run green (1995; UTC 1985 + 10 skips; build 0); boundaries clean. Token clear in the migration: no data loss, but unneeded (the daily `rewindow` cron backfills) and drops an unread token (tiny loss window); Fury keeps it, see below. Cleanup runs even if the pull failed (gate on `failed === 0`). Zero-minute shift on the fall-back hour PATCHes a no-op (refuse 0 both sides). Spring-forward gap on a parent first dated 2026-03-08 moves end only (extreme). Regular-pull race can resurrect old rows (accepted in C2a). Un-backfilled rows invisible to cleanup. Client and server shifts agree on every probe |
+| 1 | Captain (HEAD cacb6c1) | BLOCK | (1) `actions/calendarSeries.ts:40` reads `LinkedCalendar` itself; calendar-sync.md makes `linkedCalendarsRead.ts` the only reader (fix: `loadSeriesCalendar`). (2) `:21,:61` imports `listInstances` and gives it `fetch`; only `calendarApi.ts` may (fix: `listGoogleInstances` there). (3) wall-clock fixed point three times (`zoneMidnightInstant`, `dateTimeAt`, `shiftWallClock`); STRUCTURE.md `householdDate.ts` rule (fix: `wallClockMs`, `instantAtWallClock`, `shiftWallClockInZone` in householdDate.ts, tests there) | Hook should call `planSeriesShift` instead of restating it; action holding bindings allowed; `getAccessToken` third copy and drops `tokenFailReason` (a dead grant never marks needs-relink: Vision's call); `seriesId` in the browser breaks no rule, write it down; rulebook must name `deletePulledEvent`, `planSeriesCleanup`, `onlyCalendarId`/`ignoreLease`; trend lines useEventMoves 307/218, CalendarViews 494/214. Drafts (a) calendar.md series section and (b) calendar-sync.md edits saved for Bryce |
 
 ## Delivery
 
 (pending)
+
+### F1: Pass 1 fixes (Vision and Captain blockers, Vision notes)
+- **Status:** IN PROGRESS
+- **Objective:** the series cleanup never touches Google; the series move
+  follows the readers and Google-call rules; the wall-clock shift has one
+  home.
+- **May touch:** `src/lib/calendarEventPull.ts`, `src/lib/calendarPullRun.ts`,
+  `src/lib/calendarSyncPull.ts` (only if `writeDelete`'s input needs the
+  calendar id), `src/lib/calendarSeriesMove.ts`, `src/lib/calendarSeriesRules.ts`,
+  `src/app/actions/calendarSeries.ts`, `src/lib/google/calendarApi.ts`,
+  `src/lib/linkedCalendarsRead.ts`, `src/lib/householdDate.ts`,
+  `src/lib/useEventMoves.ts`, and the tests of each
+  (`householdDate.test.ts`, `calendarSeriesMove.test.ts`,
+  `calendarSeriesRules.test.ts`, `calendarPullRun*.test.ts`,
+  `useEventMoves.test.ts`), `src/lib/testing/calendarPullRunHarness.ts`.
+- **Must not touch:** docs, DESIGN.md, STRUCTURE.md (Fury applies the
+  approved text), components, the gesture files, `prisma/`.
+- **Work:**
+  1. (Vision blocker) The series cleanup removes only Marshee rows: delete
+     with the series' own calendar excluded from `removeEventCopies`
+     (`exceptLinkedCalendarId`), then the event row. A row with no other
+     copies makes no token call and no Google call. The pull's own
+     `writeDelete` for a cancelled item excludes the pulled calendar the
+     same way (Google already removed it there). Test: a cleanup of a row
+     whose only sync row is the source makes zero Google calls (through
+     fake push deps or the binding).
+  2. (Vision note) The cleanup runs only when the pull reported
+     `failed === 0`; `pullCalendar` returns the result.
+  3. (Vision note) A shift of 0 minutes is refused on the server
+     (`planSeriesShift`: "That's already its time.") and on the client the
+     drop puts the block back with nothing saved and no sheet.
+  4. (Captain 1) `loadSeriesCalendar(calendarId)` in
+     `linkedCalendarsRead.ts`; the action uses it.
+  5. (Captain 2) `listGoogleInstances` in `calendarApi.ts`; the action
+     stops importing `calendarEventCalls.ts`.
+  6. (Captain 3) `wallClockMs`, `instantAtWallClock` and
+     `shiftWallClockInZone` in `householdDate.ts` (`zoneMidnightInstant`
+     uses `instantAtWallClock`), tests there across both 2026 clock
+     changes; `shiftParentTimes` uses them and keeps only Google's text
+     parsing and RFC 3339 formatting; `useEventMoves.ts` calls
+     `shiftWallClockInZone` with `HOUSEHOLD_TIME_ZONE` and reads a drop's
+     minutes through `planSeriesShift` (no restated rule).
+  7. (Captain note, Fury's call) A dead grant during "All of them" marks
+     the account needs-relink, reusing the pull's token-failure handling
+     (no new copy of that step; if that needs a shared helper, it goes in a
+     `server-only` lib file the pull and the action both use).
+- **Verification:** full gauntlet; all series tests green in both TZ runs;
+  `wc -l` of touched files.
+- **Done:** committed, evidence reported.
+
