@@ -101,3 +101,48 @@ export function showsTimeLine(heightPx: number, trueDurationMinutes: number): bo
 export function titleFitsFullSize(heightPx: number): boolean {
   return heightPx >= 20;
 }
+
+/** The most the text grows when zoomed all the way in (mission-73): 1.5x at
+ * MAX_HOUR_HEIGHT_PX. */
+export const ZOOM_TEXT_SCALE_MAX = 1.5;
+
+/** How much the event text scales at a given hour height: 1 at or below the
+ * default 48px, rising in a straight line to ZOOM_TEXT_SCALE_MAX at 192px,
+ * and held there above it. A non-finite height means no scaling (1). */
+export function zoomTextScale(hourHeightPx: number): number {
+  if (!Number.isFinite(hourHeightPx) || hourHeightPx <= DEFAULT_HOUR_HEIGHT_PX) return 1;
+  if (hourHeightPx >= MAX_HOUR_HEIGHT_PX) return ZOOM_TEXT_SCALE_MAX;
+  const progress = (hourHeightPx - DEFAULT_HOUR_HEIGHT_PX) / (MAX_HOUR_HEIGHT_PX - DEFAULT_HOUR_HEIGHT_PX);
+  return 1 + progress * (ZOOM_TEXT_SCALE_MAX - 1);
+}
+
+/** How many whole title lines fit in `availablePx`. Never below 1 (a title
+ * always gets a line); a zero, negative or non-finite line height gives 1. */
+export function titleLineCount({
+  availablePx,
+  lineHeightPx,
+}: {
+  availablePx: number;
+  lineHeightPx: number;
+}): number {
+  if (!Number.isFinite(availablePx) || !Number.isFinite(lineHeightPx) || lineHeightPx <= 0) return 1;
+  return Math.max(1, Math.floor(availablePx / lineHeightPx));
+}
+
+/** Whether one title line plus one time line plus padding fit in a block's
+ * real height. Measured in pixels, not guessed from the Normal text size. */
+export function timeLineFits({
+  heightPx,
+  titleLinePx,
+  timeLinePx,
+  paddingPx,
+}: {
+  heightPx: number;
+  titleLinePx: number;
+  timeLinePx: number;
+  paddingPx: number;
+}): boolean {
+  const needed = titleLinePx + timeLinePx + paddingPx;
+  if (!Number.isFinite(heightPx) || !Number.isFinite(needed)) return false;
+  return heightPx >= needed;
+}

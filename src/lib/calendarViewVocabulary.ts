@@ -158,3 +158,18 @@ export function toBuiltCalendarView(
  * missing renderer, and nothing that renders can be missing from it. */
 export const CALENDAR_VIEW_OPTIONS: { value: CalendarPeriodView; label: string }[] =
   BUILT_CALENDAR_VIEWS.map((view) => ({ value: view, label: VIEW_LABELS[view] }));
+
+/** The all-day row's "more" button text (mission-73): "+2" in 3 Day and Week,
+ * where columns are narrow, "2 more" in Day, which has room. */
+export function allDayMoreLabel(count: number, inDay: boolean): string {
+  return inDay ? `${count} more` : `+${count}`;
+}
+
+/** What a screen reader says for that button, whatever it shows. */
+export function allDayMoreAriaLabel(count: number): string {
+  return count === 1 ? "Show 1 more all-day item" : `Show ${count} more all-day items`;
+}
+
+/** The all-day row's chevron, closed and open. */
+export const ALL_DAY_EXPAND_LABEL = "Show all all-day items";
+export const ALL_DAY_COLLAPSE_LABEL = "Show fewer all-day items";

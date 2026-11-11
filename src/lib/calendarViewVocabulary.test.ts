@@ -11,11 +11,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  ALL_DAY_COLLAPSE_LABEL,
+  ALL_DAY_EXPAND_LABEL,
   BUILT_CALENDAR_VIEWS,
   BUILT_VIEWS,
   CALENDAR_VIEW_OPTIONS,
   DEFAULT_CALENDAR_VIEW,
   VIEW_LABELS,
+  allDayMoreAriaLabel,
+  allDayMoreLabel,
   toBuiltCalendarView,
   type CalendarPeriodView,
 } from "./calendarViewVocabulary";
@@ -96,4 +100,20 @@ test("toBuiltCalendarView is immune to prototype keys — `in` would not have be
   for (const key of ["toString", "constructor", "valueOf", "hasOwnProperty", "__proto__"]) {
     assert.equal(toBuiltCalendarView(key), null, `rejected: ${key}`);
   }
+});
+
+test("allDayMoreLabel: +N in 3 Day and Week, N more in Day", () => {
+  assert.equal(allDayMoreLabel(2, false), "+2");
+  assert.equal(allDayMoreLabel(2, true), "2 more");
+  assert.equal(allDayMoreLabel(14, false), "+14");
+});
+
+test("allDayMoreAriaLabel: says what the button does, singular for one", () => {
+  assert.equal(allDayMoreAriaLabel(2), "Show 2 more all-day items");
+  assert.equal(allDayMoreAriaLabel(1), "Show 1 more all-day item");
+});
+
+test("all-day chevron labels", () => {
+  assert.equal(ALL_DAY_EXPAND_LABEL, "Show all all-day items");
+  assert.equal(ALL_DAY_COLLAPSE_LABEL, "Show fewer all-day items");
 });

@@ -18,6 +18,10 @@ import {
   showsTimeLine,
   minHourHeightFor,
   titleFitsFullSize,
+  ZOOM_TEXT_SCALE_MAX,
+  zoomTextScale,
+  titleLineCount,
+  timeLineFits,
 } from "./timelineZoom";
 
 test("range constants: 32 to 192 with a 48 default", () => {
@@ -138,4 +142,34 @@ test("titleFitsFullSize: 20px and up keeps the normal title", () => {
   assert.equal(titleFitsFullSize(20), true);
   assert.equal(titleFitsFullSize(16), false);
   assert.equal(titleFitsFullSize(24), true);
+});
+
+test("zoomTextScale: 1 up to 48, linear to the 1.5 ceiling at 192, clamped above", () => {
+  assert.equal(ZOOM_TEXT_SCALE_MAX, 1.5);
+  assert.equal(zoomTextScale(32), 1);
+  assert.equal(zoomTextScale(48), 1);
+  assert.equal(zoomTextScale(120), 1.25);
+  assert.equal(zoomTextScale(192), 1.5);
+  assert.equal(zoomTextScale(300), 1.5);
+  assert.equal(zoomTextScale(Number.NaN), 1);
+  assert.equal(zoomTextScale(Number.POSITIVE_INFINITY), 1);
+  assert.ok(zoomTextScale(49) > 1 && zoomTextScale(191) < 1.5);
+});
+
+test("titleLineCount: whole lines that fit, never below one", () => {
+  assert.equal(titleLineCount({ availablePx: 60, lineHeightPx: 15 }), 4);
+  assert.equal(titleLineCount({ availablePx: 44, lineHeightPx: 15 }), 2);
+  assert.equal(titleLineCount({ availablePx: 5, lineHeightPx: 15 }), 1);
+  assert.equal(titleLineCount({ availablePx: -10, lineHeightPx: 15 }), 1);
+  assert.equal(titleLineCount({ availablePx: 60, lineHeightPx: 0 }), 1);
+  assert.equal(titleLineCount({ availablePx: 60, lineHeightPx: Number.NaN }), 1);
+  assert.equal(titleLineCount({ availablePx: Number.NaN, lineHeightPx: 15 }), 1);
+});
+
+test("timeLineFits: one title line, one time line and padding must fit", () => {
+  const rest = { titleLinePx: 16, timeLinePx: 14, paddingPx: 4 };
+  assert.equal(timeLineFits({ heightPx: 34, ...rest }), true);
+  assert.equal(timeLineFits({ heightPx: 33.9, ...rest }), false);
+  assert.equal(timeLineFits({ heightPx: 24, ...rest }), false);
+  assert.equal(timeLineFits({ heightPx: Number.NaN, ...rest }), false);
 });
