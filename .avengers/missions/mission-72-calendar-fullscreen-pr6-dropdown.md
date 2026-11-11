@@ -230,7 +230,7 @@ HEAD` after.
   hook, and TimelineGrid shorter.
 
 ### C2 - the pinned menu squeezes to the rail while the panel is open
-- **Status:** PENDING
+- **Status:** DONE 2126158 (tsc, lint, test 2004 pass, UTC 0 fail, build all exit 0; compiled override has !important; Chrome 1024x768: sidebar 256px, marker 72px, rail 72px both ways)
 - **Objective:** while `[data-month-panel=open]` is anywhere on the page, a
   pinned **sidebar** draws as the icon rail (with its "Show menu names"
   button and drawer), and every fixed bar follows; `navMode` never changes.
