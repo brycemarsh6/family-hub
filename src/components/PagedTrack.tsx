@@ -24,7 +24,7 @@ export function PagedTrack({
   return (
     <div
       data-paged-track
-      className="relative will-change-transform [[data-glide=true]_&]:transition-transform [[data-glide=true]_&]:duration-(--glide-ms) [[data-glide=true]_&]:ease-out"
+      className="relative will-change-transform transition-none [[data-glide=true]_&]:transition-transform [[data-glide=true]_&]:duration-(--glide-ms) [[data-glide=true]_&]:ease-out"
       style={{
         transform: "translateX(var(--page-dx, 0px))",
         "--glide-ms": `${GLIDE_MS}ms`,
