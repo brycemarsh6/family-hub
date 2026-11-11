@@ -6,6 +6,23 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar repeating events, "This one" or "All of them" (mission 71,
+  PR 5 of 9)**, about 5 minutes, signed in as yourself (a parent). **Start
+  on a throwaway event, never a real one.** In Google Calendar make an
+  event that repeats every day at 7 AM, called "Test repeat". Wait up to a
+  day for Marshee to learn which events repeat (the first full check runs
+  after the deploy, then the daily one), or open Calendar and tap Refresh.
+  Its blocks show a small repeat mark. Drag one day to 7:30 AM: the sheet
+  asks "This one", "All of them" or Cancel. Cancel: it goes back, nothing
+  saved. Drag again, pick "This one": only that day moves, in Marshee and
+  in Google. Drag a different day to 8 AM and pick "All of them": every
+  day moves to 8 AM in Marshee and in Google, and the bar says "Moved
+  every Test repeat to 8:00 AM" with Undo. **Write down what happened to
+  the day you moved first** (did it stay at 7:30 or jump to 8?): Google's
+  documents don't say, and the mission file needs the answer. Tap Undo:
+  every day goes back to 7 AM. Drag one onto another day: only "This one"
+  is offered, with a line saying why. On the iPad the sheet sits at the
+  bottom. Only after all that, try it on a real repeating event.
 - **Calendar drag to reschedule (mission 70, PR 4 of 9)**, about 5
   minutes, with a screen recording, on your iPhone and then the iPad,
   signed in as yourself (a parent). Use a throwaway event for the moves.
