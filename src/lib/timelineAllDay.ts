@@ -7,7 +7,7 @@
 import { addDays } from "./mealPlanDates";
 import { allDayInstantToLocalDay, localDayToAllDayInstant } from "./calendarDates";
 import { assignLanes, type MonthLayoutEvent } from "./monthLayout";
-import type { TimelineEvent } from "./timelineLayout";
+import { partitionForTimeline, type TimelineEvent } from "./timelineLayout";
 import type { CalendarHabitDayView, CalendarTaskView } from "./types";
 
 /** Lanes the all-day row shows before it says "more", on every width. */
@@ -43,4 +43,18 @@ export function timelineAllDayItems(
 export function allDayHiddenCount(columnDays: Date[], items: MonthLayoutEvent[]): number {
   const { overflowByDay } = assignLanes(columnDays, items, TIMELINE_ALL_DAY_LANES);
   return overflowByDay.reduce((sum, count) => sum + count, 0);
+}
+
+/** How many all-day items one page hides, from the raw inputs: partitions the
+ * events, builds the items with `timelineAllDayItems` (never a second copy of
+ * that code) and counts what is past the lanes. TimelineGrid asks this to
+ * decide whether the chevron shows. */
+export function pageAllDayHiddenCount(
+  columnDays: Date[],
+  events: TimelineEvent[],
+  tasks: CalendarTaskView[],
+  habitDays: CalendarHabitDayView[],
+): number {
+  const { allDayRow } = partitionForTimeline(columnDays, events);
+  return allDayHiddenCount(columnDays, timelineAllDayItems(allDayRow, tasks, habitDays));
 }

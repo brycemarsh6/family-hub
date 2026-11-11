@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import {
   TIMELINE_ALL_DAY_LANES,
   allDayHiddenCount,
+  pageAllDayHiddenCount,
   timelineAllDayItems,
 } from "./timelineAllDay";
 import { localDayToAllDayInstant } from "./calendarDates";
@@ -93,4 +94,10 @@ test("allDayHiddenCount: items outside the columns do not count", () => {
   const far = new Date(2026, 11, 20);
   const items = [allDayEvent("a", far), allDayEvent("b", far), allDayEvent("c", far)];
   assert.equal(allDayHiddenCount(COLUMNS, items), 0);
+});
+
+test("pageAllDayHiddenCount: counts events and tasks past two lanes from raw inputs", () => {
+  const events = [allDayEvent("a", DAY_ONE), allDayEvent("b", DAY_ONE)];
+  assert.equal(pageAllDayHiddenCount(COLUMNS, events, [], []), 0);
+  assert.equal(pageAllDayHiddenCount(COLUMNS, events, [task("t", DAY_ONE)], []), 1);
 });

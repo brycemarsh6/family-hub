@@ -48,18 +48,26 @@
 // (monthLayout.ts) are structurally identical `{id, startAt, endAt, allDay}`
 // shapes for exactly this reason, so `allDayRow` passes straight through
 // with no conversion step.
+//
+// Mission 73: the strip shows TIMELINE_ALL_DAY_LANES lanes and a count button
+// ("+2" / "2 more") under each busy column; the expand state moved UP to
+// TimelineGrid (one state for the whole visible page, so the chevron in the
+// gutter corner and these buttons agree). The old "− Show less" row and the
+// "+N more" container-query tiers are gone: the chevron closes, and the count
+// text is short enough ("+2") that it no longer needs them. The item-building
+// code now lives once, in `timelineAllDayItems` (src/lib/timelineAllDay.ts).
+// The event and task bars moved to ./TimelineAllDayBar.tsx. Row heights and
+// pill text are rem times `--zoom-text-scale` instead of 24px, so Text size
+// now grows the row too.
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { HabitDayPill } from "./HabitDayPill";
-import { assignLanes, type MonthLayoutEvent } from "@/lib/monthLayout";
+import { AllDayEventBar, AllDayTaskBar, ALL_DAY_ROW_HEIGHT } from "./TimelineAllDayBar";
+import { assignLanes } from "@/lib/monthLayout";
 import { addDays } from "@/lib/mealPlanDates";
-import {
-  allDayInstantToLocalDay,
-  daysEventCovers,
-  localDayToAllDayInstant,
-} from "@/lib/calendarDates";
-import { avatarColorHex } from "@/lib/constants";
-import { bandedBackground } from "@/lib/color";
+import { daysEventCovers } from "@/lib/calendarDates";
+import { TIMELINE_ALL_DAY_LANES, timelineAllDayItems } from "@/lib/timelineAllDay";
+import { allDayMoreAriaLabel, allDayMoreLabel } from "@/lib/calendarViewVocabulary";
 import type { TimelineEvent } from "@/lib/timelineLayout";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
 
@@ -93,6 +101,11 @@ type TimelineAllDayStripProps = {
    * and Week, whose labels sit in their own row above. The strip renders when
    * it has lanes OR a corner. */
   corner?: ReactNode;
+  /** Every lane shows when true; otherwise TIMELINE_ALL_DAY_LANES. Owned by
+   * TimelineGrid (neighbour pages are always collapsed). */
+  expanded?: boolean;
+  /** A count button was tapped: open every lane. */
+  onExpand?: () => void;
 };
 
 export function TimelineAllDayStrip({
@@ -105,103 +118,39 @@ export function TimelineAllDayStrip({
   onOpenTask,
   gridTemplateColumns,
   corner,
+  expanded = false,
+  onExpand,
 }: TimelineAllDayStripProps) {
-  const columnDaysKey = columnDays.map((day) => day.getTime()).join(",");
-
-  // mission-17/C5 — tasks join the all-day row, reshaped into the same
-  // `{id, startAt, endAt: +1 day, allDay: true}` layout shape
-  // MonthGrid.tsx's own `taskAsMonthEvent` already builds for Month's
-  // identical row (D1/D4: no second packer, no second reshape convention
-  // either). `startAt` is `task.dueDate` directly — that field IS already
-  // the due day's UTC-midnight "all-day instant" (Task.dueDate's own schema
-  // comment), so no re-derivation is needed there; `endAt` is the day
-  // AFTER's own midnight instant, the same EXCLUSIVE end every other
-  // all-day span in this app uses (`daysEventCovers`/`eventDaySpan` both
-  // expect it). Kept in a SEPARATE map (`taskById`) from `eventById`,
-  // checked FIRST in the render loop below, so a task id is never even
-  // looked up against `eventById` — belt-and-braces on top of the fact that
-  // the two id spaces can't actually collide (separate cuid-keyed tables).
+  // mission-17/C5 — tasks join the all-day row (reshaped by
+  // `timelineAllDayItems`). Looked up in a SEPARATE map (`taskById`) from
+  // `eventById`, checked FIRST in the render loop below, so a task id is
+  // never even looked up against `eventById` — belt-and-braces on top of the
+  // fact that the two id spaces can't actually collide (separate cuid-keyed
+  // tables).
   const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
-  const taskLayoutEvents: MonthLayoutEvent[] = useMemo(
-    () =>
-      tasks.map((task) => ({
-        id: task.id,
-        startAt: task.dueDate,
-        endAt: localDayToAllDayInstant(addDays(allDayInstantToLocalDay(task.dueDate), 1)),
-        allDay: true,
-      })),
-    [tasks],
-  );
   // Planned habit days (decision 146) pack the same way, as single-day spans.
   const habitDayById = useMemo(() => new Map(habitDays.map((item) => [item.id, item])), [habitDays]);
-  const habitLayoutEvents: MonthLayoutEvent[] = useMemo(
-    () =>
-      habitDays.map((item) => ({
-        id: item.id,
-        startAt: item.dayInstant,
-        endAt: localDayToAllDayInstant(addDays(allDayInstantToLocalDay(item.dayInstant), 1)),
-        allDay: true,
-      })),
-    [habitDays],
-  );
   const allDayItems = useMemo(
-    () => [...allDayRow, ...taskLayoutEvents, ...habitLayoutEvents],
-    [allDayRow, taskLayoutEvents, habitLayoutEvents],
+    () => timelineAllDayItems(allDayRow, tasks, habitDays),
+    [allDayRow, tasks, habitDays],
   );
-
-  // "+N more" used to be a dead end (see TimelineGrid.tsx's own header for
-  // the circular dead-end Strange traced) — tapping it now expands the
-  // strip to every lane instead of capping at 3, via `assignLanes`'s own
-  // `visibleLanes` argument (monthLayout.ts). Reset whenever the column set
-  // changes (paging to a new day/week) so a family member who expanded
-  // Tuesday doesn't find Wednesday pre-expanded too.
-  //
-  // Reset by ADJUSTING STATE DURING RENDER (React's own documented pattern
-  // for "reset some state when a prop changes"), not inside a `useEffect` —
-  // an effect body calling `setState` unconditionally on every dependency
-  // change is exactly what `react-hooks/set-state-in-effect` exists to
-  // flag: it costs an extra commit-then-recommit render cycle whenever the
-  // reset actually needs to fire. Keying the stored flag to the column set
-  // it was computed for means a stale flag from the PREVIOUS column set is
-  // detected and corrected in the same render pass, before anything paints.
-  const [allDayExpandedFor, setAllDayExpandedFor] = useState({
-    key: columnDaysKey,
-    expanded: false,
-  });
-  if (allDayExpandedFor.key !== columnDaysKey) {
-    setAllDayExpandedFor({ key: columnDaysKey, expanded: false });
-  }
-  const allDayExpanded = allDayExpandedFor.key === columnDaysKey && allDayExpandedFor.expanded;
-  function expandAllDay() {
-    setAllDayExpandedFor({ key: columnDaysKey, expanded: true });
-  }
-  // mission-17/C7, item 3 (Strange) — expanding used to have no way back:
-  // the sticky header grew from 156px to 234px (a 3-lane strip) with
-  // nothing to shrink it again except paging away and back, which resets
-  // the state as a SIDE EFFECT of navigation rather than offering collapse
-  // as a real action (DESIGN.md: "never a dead end"). Same setter, same
-  // shape as `expandAllDay` above, just the other value.
-  function collapseAllDay() {
-    setAllDayExpandedFor({ key: columnDaysKey, expanded: false });
-  }
 
   const { spans: allDaySpans, overflowByDay } = useMemo(
-    () => assignLanes(columnDays, allDayItems, allDayExpanded ? Number.POSITIVE_INFINITY : undefined),
-    [columnDays, allDayItems, allDayExpanded],
+    () => assignLanes(columnDays, allDayItems, expanded ? Number.POSITIVE_INFINITY : TIMELINE_ALL_DAY_LANES),
+    [columnDays, allDayItems, expanded],
   );
   const maxAllDayLane = allDaySpans.reduce((max, span) => Math.max(max, span.lane), -1);
 
   // Only rendered with real height when there's something to show
   // (mission-8/K2's own "an empty state must not claim space a real one
-  // would" discipline) — an empty grid with zero rows collapses to nothing,
-  // exactly like Month's own "+N more" line only appearing when
-  // overflow > 0. All hooks above run unconditionally on every render
-  // (Rules of Hooks) before this early return.
+  // would" discipline) — an empty grid with zero rows collapses to nothing.
+  // All hooks above run unconditionally on every render (Rules of Hooks)
+  // before this early return.
   if (maxAllDayLane < 0 && !corner) return null;
 
-  // Rows the corner spans: one per lane, plus the "+N more" / "− Show less"
-  // row when it is drawn. At least one, so a corner alone still has a row.
-  const hasMoreRow = maxAllDayLane >= 0 && (allDayExpanded || overflowByDay.some((count) => count > 0));
+  // Rows the corner spans: one per lane, plus the count row when it is
+  // drawn. At least one, so a corner alone still has a row.
+  const hasMoreRow = maxAllDayLane >= 0 && !expanded && overflowByDay.some((count) => count > 0);
   const cornerRows = Math.max(1, maxAllDayLane + 1 + (hasMoreRow ? 1 : 0));
 
   const dayBeforeSet = addDays(columnDays[0], -1);
@@ -217,13 +166,17 @@ export function TimelineAllDayStrip({
       // the default 48px hour), and this bar has no duration to be faithful to at
       // all — `18px` was a free constant, not arithmetic, so it gets no
       // such defense and is raised to match rather than kept shorter for
-      // no reason.
+      // no reason. Mission 73: that 24px is now `1.5rem` times the zoom text
+      // scale (ALL_DAY_ROW_HEIGHT).
       // With a corner the rows may grow to fit its label (Largest text);
-      // without one they stay a fixed 24px as before.
+      // without one they stay a fixed ALL_DAY_ROW_HEIGHT as before.
       // With a corner, `items-start` on the grid keeps every bar (event,
-      // task, habit pill) at its 24px at the top of its row instead of
+      // task, habit pill) at its row height at the top of its row instead of
       // stretching to the corner's height.
-      style={{ gridTemplateColumns, gridAutoRows: corner ? "minmax(24px, auto)" : "24px" }}
+      style={{
+        gridTemplateColumns,
+        gridAutoRows: corner ? `minmax(${ALL_DAY_ROW_HEIGHT}, auto)` : ALL_DAY_ROW_HEIGHT,
+      }}
     >
       {corner ? (
         <div className="py-1" style={{ gridColumn: 1, gridRow: `1 / span ${cornerRows}` }}>
@@ -233,68 +186,28 @@ export function TimelineAllDayStrip({
         <span aria-hidden="true" />
       )}
       {allDaySpans.map((span) => {
+        const gridColumn = `${span.startCol + 2} / ${span.endCol + 3}`;
+        const gridRow = span.lane + 1;
         // mission-17/C5 — tasks first, and ONLY against `taskById`: see
-        // this file's own header for why a task id is never even looked up
+        // the comment above for why a task id is never even looked up
         // against `eventById`.
         const habitDay = habitDayById.get(span.event.id);
         if (habitDay) {
           return (
-            <HabitDayPill
-              key={span.event.id}
-              habitDay={habitDay}
-              gridColumn={`${span.startCol + 2} / ${span.endCol + 3}`}
-              gridRow={span.lane + 1}
-            />
+            <HabitDayPill key={span.event.id} habitDay={habitDay} gridColumn={gridColumn} gridRow={gridRow} />
           );
         }
         const task = taskById.get(span.event.id);
         if (task) {
-          const completed = task.completedAt !== null;
-          const colors = task.people.slice(0, 3).map((p) => avatarColorHex(p.avatarColor));
-          // A task is always single-day (CalendarTaskView's own comment:
-          // "exactly one due date, never a span"), so unlike an event bar it
-          // never has an open/continuing edge to draw — always fully
-          // rounded on both sides.
           return (
-            <button
+            <AllDayTaskBar
               key={span.event.id}
-              type="button"
-              onClick={() => onOpenTask(task, columnDays[span.startCol])}
-              // `line-through` (a purely visual text-decoration) is not
-              // announced by assistive tech, so "completed" is also said in
-              // words here via aria-label — the same reasoning
-              // TaskCard.tsx's own aria-label already documents for the
-              // identical fact.
-              aria-label={completed ? `${task.title}, completed` : task.title}
-              className={`truncate rounded border px-1 text-left text-[0.5625rem] font-semibold ${
-                corner ? "h-6 leading-[1.375rem]" : "leading-[1.5rem]"
-              } ${
-                completed ? "border-muted text-muted" : "border-fg text-fg"
-              }`}
-              style={{
-                gridColumn: `${span.startCol + 2} / ${span.endCol + 3}`,
-                gridRow: span.lane + 1,
-                background: bandedBackground(colors, completed ? 0.05 : 0.1),
-              }}
-            >
-              {/* MonthCell.tsx's own open/completed checkbox glyph
-                  vocabulary (✓ / ☐) — see that component's own comment for
-                  the full reasoning on why a glyph exists at all. Paired
-                  with `line-through` on the title HERE, unlike MonthCell:
-                  this strip's title is a real visible string at every width
-                  this file renders (never `sr-only` below `md` the way
-                  MonthCell's phone-width pill is), so the reason MonthCell
-                  reaches for a glyph INSTEAD of `line-through` — its title
-                  is invisible below `md` — doesn't apply here, and both can
-                  carry the "done" fact together. No `past`-based dimming
-                  (unlike an event bar, and unlike MonthCell's own task
-                  handling): TaskCard.tsx's own rule is "only completedAt
-                  changes how this renders," and that is the one this code
-                  follows directly rather than replicating MonthCell's
-                  separate `past` check. */}
-              <span aria-hidden="true">{completed ? "✓ " : "☐ "}</span>
-              <span className={completed ? "line-through" : ""}>{task.title}</span>
-            </button>
+              task={task}
+              gridColumn={gridColumn}
+              gridRow={gridRow}
+              hasCorner={!!corner}
+              onOpen={() => onOpenTask(task, columnDays[span.startCol])}
+            />
           );
         }
 
@@ -304,121 +217,45 @@ export function TimelineAllDayStrip({
           daysEventCovers(event.startAt, event.endAt, event.allDay, [dayBeforeSet]).length > 0;
         const continuesAfter =
           daysEventCovers(event.startAt, event.endAt, event.allDay, [dayAfterSet]).length > 0;
-        const colors = event.people.slice(0, 3).map((p) => avatarColorHex(p.avatarColor));
         // The representative day for this bar's tap target — the first
         // column it actually touches in THIS render, not necessarily the
         // event's true start (a bar continuing from before `columnDays[0]`
         // still needs a real day to open the detail sheet against).
         const representativeDay = columnDays[span.startCol];
         return (
-          <button
+          <AllDayEventBar
             key={span.event.id}
-            type="button"
-            onClick={() => onOpenEvent(event, representativeDay)}
-            className={`truncate border-y px-1 text-left text-[0.5625rem] font-semibold text-fg border-fg ${
-              corner ? "h-6 leading-[1.375rem]" : "leading-[1.5rem]"
-            } ${
-              continuesBefore ? "" : "rounded-l border-l"
-            } ${continuesAfter ? "" : "rounded-r border-r"}`}
-            style={{
-              gridColumn: `${span.startCol + 2} / ${span.endCol + 3}`,
-              gridRow: span.lane + 1,
-              background: bandedBackground(colors, 0.1),
-            }}
-          >
-            {event.title}
-          </button>
+            event={event}
+            gridColumn={gridColumn}
+            gridRow={gridRow}
+            hasCorner={!!corner}
+            continuesBefore={continuesBefore}
+            continuesAfter={continuesAfter}
+            onOpen={() => onOpenEvent(event, representativeDay)}
+          />
         );
       })}
-      {/* mission-17/C7 — item 1 (Vision) and item 3 (Strange), both on this
-          row. Item 1: C5's `whitespace-nowrap` (added to fix the round-1
-          two-line wrap) turned the escape HORIZONTAL instead of closing it —
-          measured with `Range.getClientRects` (a bounding-box probe reports
-          this clean, and is WRONG: the same instrument error Strange
-          corrected at round 1), "+2 more" spilled 4.6px and "+10 more"
-          8.8px past a Week column's ~31px box at 320px, with ADJACENT
-          days' ink actually overlapping. `min-w-0 overflow-hidden` keeps
-          the ink inside the box no matter the label length (a grid item's
-          default `min-width: auto` is what let it escape at all) — that part
-          is unconditional and still true below. C7 additionally shortened
-          the label to "+N" whenever `columnDays.length === 7` (Week), which
-          mission-17/C8 (round 3, Strange) found INVERTS: measured live,
-          1280px puts `+23 more` in a 96px Month cell (a different
-          component) next to `+23` in a 98px Week column — the WIDER box got
-          the SHORTER label — and at 320px a 74.7px 3 Day column shows the
-          full label while a ~185px Week column at 1024px does not. It also
-          over-fired: "+2 more" is 35.4px of ink inside a 38.7px Week column
-          at 375px — it already fit. `columnDays.length === 7` was a stand-in
-          for "this column is narrow," and view identity has no causal
-          relationship to a column's actual rendered width (Day's own column
-          is hundreds of pixels wide at every viewport this file supports —
-          D5 — so no flat viewport breakpoint could be right for it either).
-          The ACCESSIBLE name never shortens — every button keeps a real
-          "+N more" aria-label regardless of what its visible text says, per
-          the contract's own instruction that the control must keep saying
-          what it does.
-          Item 3: expanding used to have no collapse affordance anywhere —
-          the only way back was paging away and returning, which resets the
-          state as a side effect rather than offering it as an action
-          (DESIGN.md: "never a dead end"). One "− Show less" button, not one
-          per day: expanding/collapsing is a single strip-wide toggle (there
-          is no per-day axis on `allDayExpandedFor`), so it spans every day
-          column via `gridColumn: "2 / -1"` rather than sitting in one — which
-          also sidesteps item 1's narrow-column problem outright, since
-          "− Show less" comfortably fits the full row width at every size
-          this file renders and needs no further shortening. */}
-      {allDayExpanded ? (
-        <button
-          type="button"
-          onClick={collapseAllDay}
-          className="min-w-0 overflow-hidden whitespace-nowrap text-left text-[0.5625rem] leading-[1.5rem] text-muted underline decoration-dotted"
-          style={{ gridColumn: "2 / -1", gridRow: maxAllDayLane + 2 }}
-        >
-          − Show less
-        </button>
-      ) : (
+      {/* The count under each column with hidden items ("+2" in 3 Day and
+          Week, "2 more" in Day). Its accessible name always says what it
+          does, whatever the visible text. `min-w-0 overflow-hidden` keeps the
+          ink inside a narrow Week column. One tap opens every column. */}
+      {!expanded &&
         columnDays.map((day, col) => {
           const count = overflowByDay[col];
           if (count <= 0) return null;
-          const overflowLabel = `+${count} more`;
-          // mission-17/C8 (round 3, Strange) — the noun goes, not the whole
-          // label, and it goes based on THIS BUTTON'S OWN rendered width,
-          // never the view it happens to be in. `@container` below sets
-          // `container-type: inline-size` on the button itself, so it
-          // becomes its own query context; the child `<span>` asks "is my
-          // nearest container (this button) at least this wide," which is
-          // the one question `columnDays.length === 7` was standing in for
-          // and got backwards. Day's column stays hundreds of pixels wide
-          // at every width this file supports, so its container query never
-          // fires there regardless of viewport — the flat viewport
-          // breakpoint Strange's own note also offered would have shortened
-          // Day too below 360px, which is wrong for a box that never needs
-          // it.
-          //
-          // Three tiers, not one, because the ink that has to fit grows
-          // with the digit count — measured directly against this button's
-          // own font (`text-[0.5625rem] font-semibold`), not assumed: "+9 more"
-          // is 35.8px of ink, "+99 more" is 41.4px, "+999 more" is 45.3px.
-          // A single threshold sized for one digit would clip the trailing
-          // "e" off a two- or three-digit count in a column just wide
-          // enough for the shorter case.
-          const shortAt =
-            count >= 100 ? "@min-[47px]:inline" : count >= 10 ? "@min-[42px]:inline" : "@min-[36px]:inline";
           return (
             <button
               key={`overflow-${day.getTime()}`}
               type="button"
-              onClick={expandAllDay}
-              aria-label={overflowLabel}
-              className="@container min-w-0 overflow-hidden whitespace-nowrap text-left text-[0.5625rem] leading-[1.5rem] text-muted underline decoration-dotted"
-              style={{ gridColumn: col + 2, gridRow: maxAllDayLane + 2 }}
+              onClick={onExpand}
+              aria-label={allDayMoreAriaLabel(count)}
+              className="min-w-0 overflow-hidden whitespace-nowrap text-left text-[0.6875rem] font-semibold text-muted"
+              style={{ gridColumn: col + 2, gridRow: maxAllDayLane + 2, minHeight: ALL_DAY_ROW_HEIGHT }}
             >
-              <span>+{count}</span>
-              <span className={`hidden ${shortAt}`}> more</span>
+              {allDayMoreLabel(count, columnDays.length === 1)}
             </button>
           );
-        })
-      )}
+        })}
     </div>
   );
 }

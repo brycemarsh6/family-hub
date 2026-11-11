@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { HabitIcon } from "./HabitIcon";
+import { ALL_DAY_FONT_SIZE, ALL_DAY_ROW_HEIGHT } from "./TimelineAllDayBar";
 import type { CalendarHabitDayView } from "@/lib/types";
 
 // A planned habit day as a one-line pill in the all-day strip (decision 146).
@@ -9,10 +10,10 @@ export function HabitDayPill({ habitDay, gridColumn, gridRow }: { habitDay: Cale
     <Link
       href={`/habits/${habitDay.habitId}`}
       aria-label={habitDay.done ? `${habitDay.title}, done` : habitDay.title}
-      className={`flex items-center gap-0.5 truncate rounded border px-1 text-left text-[0.5625rem] font-semibold leading-[1.5rem] ${
+      className={`flex items-center gap-0.5 truncate rounded border px-1 text-left font-semibold ${
         habitDay.done ? "border-muted text-muted" : "border-fg text-fg"
       }`}
-      style={{ gridColumn, gridRow, background: "var(--surface-2)" }}
+      style={{ gridColumn, gridRow, background: "var(--surface-2)", fontSize: ALL_DAY_FONT_SIZE, lineHeight: ALL_DAY_ROW_HEIGHT }}
     >
       <span aria-hidden="true" className="flex shrink-0">
         <HabitIcon name={habitDay.icon} kind={habitDay.kind} size={10} />
