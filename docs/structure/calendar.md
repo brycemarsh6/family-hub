@@ -21,7 +21,8 @@ docs/history/structure-rationale.md under the same name.
   and moves nothing itself.
 - **`src/lib/useTimelineDrag.ts` is the DOM side of a lifted block, never
   a machine.** It acts only on `DragCallbacks`, writing the lift straight
-  to the DOM (transform, time line, header tint, gutter marker, edge
+  to the DOM (`translate`, never `transform`, so the lift's `scale`
+  never stretches the move; time line, header tint, gutter marker, edge
   scroll). It must not read pointer events, keep a gesture state of its
   own, run a hold timer, or decide whether a touch is a hold, a drag or a
   scroll. Its only timers are the put-back glide's tidy-up and the edge
@@ -30,7 +31,7 @@ docs/history/structure-rationale.md under the same name.
   lifted. Where a drop lands is `resolveDrop` (`src/lib/timelineDrag.ts`,
   pure), fed the live `pxPerMinute`.
 - **Which blocks may lift** is `canLiftOnTimeline(event)` in
-  `src/lib/timelineDrag.ts` (timed, starting and ending on one day; an
+  `src/lib/timelineDrag.ts` (timed, so never `allDay`, starting and ending on one day; an
   event that crosses midnight draws clipped on two days and does not
   lift). `TimelineDayColumn.tsx` sets `data-drag-id` from it, only when
   the viewer can manage events, and that attribute is how
