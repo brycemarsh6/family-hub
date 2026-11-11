@@ -189,7 +189,7 @@ needed; stage by explicit path; one commit per contract; `git show --stat
 HEAD` after.
 
 ### C1 - the open-state hook and the height hook
-- **Status:** PENDING
+- **Status:** DONE `585cae5` (tsc, lint, npm test 2004 pass, UTC line all exit 0; build left to Fury; TimelineGrid 411 to 375 lines)
 - **Objective:** add `useMonthPanelOpen` and move the timeline's height
   measurement into `useFillViewportHeight`, which also re-measures when the
   calendar body above or around the timeline changes size.
