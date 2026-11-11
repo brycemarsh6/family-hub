@@ -1,6 +1,6 @@
 # Mission 71: Calendar full screen PR 5, repeating events ("This one" or "All of them")
 
-- **Status:** GATES pass 2/3 (C1, C2, C2a, C3, F1, F2 built; rulebook applied; worktree has its own `node_modules` (npm ci) and a generated Prisma client; no `.env` here (export from the main checkout, hostname only). (Bryce OK'd the mock 2026-11-11: "Looks good, build it", after asking for a draggable mock)
+- **Status:** DELIVERING (all gates PASS: Vision pass 3, Captain pass 2, Strange pass 3) (Bryce OK'd the mock 2026-11-11: "Looks good, build it"; rulebook and N1, N2 approved: "I agree with all those recommendations")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 5: Repeating events, "This one" or "All of them" (decision 22; small call I; Q1, Q2)"
 - **Branch:** `claude/calendar-fullscreen-pr5-dc232e`, cut from `origin/main` `6656fed` (PR 4 merged as #112)
@@ -347,6 +347,7 @@ touched; STRUCTURE.md caps apply.
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 3 | Strange (HEAD 7f42a8b, scoped to F3) | PASS | none | Mark height = title font size everywhere (18 on 18 at Largest, 12 on 12 Normal); title line = no-icon baseline within 0.5px; title still wins when short (17/17 phone Week blocks show no mark); Normal unchanged; 30 runs, 0 failures. Note: 15-minute block's time line clips at Largest (pre-existing, in status.md) |
 | 2 | Strange (HEAD 10cee5e) | BLOCK | The repeat mark is `size-[1em]` (already follows the title's rem) and globals.css also zooms `svg.lucide` 1.5 at Largest: the mark is 27px on an 18px title, the title line 30px instead of 24, the 15-minute block's title crowded out; breaks DESIGN.md "the title wins". Fix: inline `style={{ zoom: 1 }}` on the `<Repeat>` with a comment (checked in the browser: 18 on 18, line height unchanged) | Docked sheet passes everywhere (bottom = screen, 448/672 wide, 48/72px buttons, block visible on 768x1024); DESIGN.md bullet matches; mark at Normal: same size as title, `text-muted`, centred, cut first when short; reduce motion instant. Note: 15-minute blocks unreadable at Largest with or without the mark (mission-65 small-title rule, follow-up) |
 | 2 | Captain (HEAD 10cee5e) | PASS | none | Pass-1 blockers closed (loadSeriesCalendar; calendarEventCalls imported only by calendarApi.ts and its test; wall-clock maths in householdDate.ts only). Applied rulebook text true on every grepped name. Wording notes applied by Fury: `exceptLinkedCalendarId` sentence names `removePulledEvents`; googleSeriesId readers name the pull's `loadKnown`; trend line counts from preflight `lineCounts` (CalendarViews 494 / 197, useEventMoves 310 / 219); "parents and admins"; `loadSeriesCalendar` in the loads list. Note: F1 changed the pull's cancelled-delete path for ordinary events too (tested by Vision) |
 | 3 | Vision (HEAD 10cee5e, scoped to F2, rulebook, status.md) | PASS | none | Gauntlet re-run green (2001; UTC 1991 + 10 skips; build exit 0). F2 touched only its two files. Every backticked name in the rulebook text exists (`useSeriesMove.ts` is the named future split). Phone test: repeat mark after a Refresh is true (insert writes the series id); the bar says "8 AM", not "8:00 AM" (Fury fixed status.md). Notes: the repeat mark's legibility on the event colour is Strange's; a never-ending daily test event leans on the mission-60 page cap, so the test event ends after two weeks |
@@ -357,7 +358,41 @@ touched; STRUCTURE.md caps apply.
 
 ## Delivery
 
-(pending)
+- **Gates:** Vision PASS (pass 2 after F1; pass 3 scoped to F2, the
+  rulebook and status.md), Captain PASS (pass 2), Strange PASS (pass 1;
+  pass 2 blocked the doubled repeat mark, pass 3 PASS after F3). F3 is one
+  inline style; Fury re-ran the whole gauntlet on the final HEAD rather
+  than a fourth Vision pass: tsc 0, lint 0, npm test 2001 pass, UTC 1991
+  pass + 10 skips, build 0.
+- **Built:** `CalendarEventSync.googleSeriesId` (additive migration, plus
+  the one-time "Both ways" token clear, kept on purpose; see Fury's calls),
+  filled by the pull on insert, update and a fill for unchanged rows;
+  `moveCalendarSeries` (one If-Match PATCH of the Google series parent by
+  wall-clock minutes in its own zone, then a lease-ignoring pull of that
+  calendar, then a cleanup of renamed days that never calls Google, gated
+  on a clean pull; Undo is the same action from the dragged day's new row);
+  `RepeatMoveSheet` (This one, All of them, Cancel; another day offers This
+  one only; docked at the bottom at every width); the Lucide `Repeat` mark
+  on repeating blocks; wall-clock helpers in `householdDate.ts`.
+- **Bryce's design calls:** the draggable mock ("Looks good, build it");
+  the sheet at the bottom on the iPad; the repeat mark in this PR; the
+  rulebook text ("I agree with all those recommendations").
+- **Rulebook:** docs/structure/calendar.md "A repeating series belongs to
+  Google" and the replaced "Outside this rule"; calendar-sync.md (the
+  column, the readers, the pull options, `deletePulledEvent`,
+  `exceptLinkedCalendarId`, dependency lines); STRUCTURE.md headline,
+  householdDate sentence, trend lines; DESIGN.md `RepeatMoveSheet`.
+- **Tests:** npm test 1923 (fresh worktree baseline, 1 load failure from a
+  missing Prisma client) to 2001; UTC 1991 pass + 10 DST skips.
+- **Not proven by any agent:** a real Google series change, the real
+  actions (no agent can sign in), and what Google does to a day already
+  moved by hand when the series moves (the phone test records it).
+- **Accepted limits:** on the iPad held sideways at Largest the sheet can
+  cover a block dropped low on screen; the fall-back hour drop (1:30 MDT to
+  1:30 MST) is ignored; a regular pull racing the series pull can bring old
+  rows back until the next pull.
+- **Phone test:** in `.avengers/status.md` (throwaway two-week "Test
+  repeat" first). Follow-ups there too.
 
 ### F1: Pass 1 fixes (Vision and Captain blockers, Vision notes)
 - **Status:** DONE `ab3c648` (all seven items; `writeDelete(del, calendarId)` excludes the pulled calendar, so the pull's cancelled delete and the series cleanup never call Google for the source; cleanup gated on the pull's `failed === 0`; `SHIFT_NOTHING_ERROR` "That's already its time." and the client's `isSeriesNoShift`; `loadSeriesCalendar` in linkedCalendarsRead.ts; `listGoogleInstances` in calendarApi.ts; `wallClockMs`, `instantAtWallClock`, `shiftWallClockInZone` in householdDate.ts (zoneMidnightInstant uses it; the hook uses `planSeriesShift`); `getAccountAccessToken` in calendarEventPull.ts marks needs-relink. npm test 2001, UTC 1991 + 10 skips, tsc, lint, build ran (exit not captured; Vision re-runs). useEventMoves 310)
