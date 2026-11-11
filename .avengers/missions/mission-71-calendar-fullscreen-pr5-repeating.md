@@ -1,6 +1,6 @@
 # Mission 71: Calendar full screen PR 5, repeating events ("This one" or "All of them")
 
-- **Status:** MOCK SENT, waiting on Bryce's OK (no builder dispatched)
+- **Status:** BUILDING (Bryce OK'd the mock 2026-11-11: "Looks good, build it", after asking for a draggable mock)
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 5: Repeating events, "This one" or "All of them" (decision 22; small call I; Q1, Q2)"
 - **Branch:** `claude/calendar-fullscreen-pr5-dc232e`, cut from `origin/main` `6656fed` (PR 4 merged as #112)
@@ -144,13 +144,168 @@ change is Bryce's phone test, on a throwaway event first.
 
 ## Contracts
 
-(written after Bryce's OK on the mock)
+Common to every contract: the danger register above binds; stage by
+explicit path; `git show --stat HEAD` after each commit; commit message
+ends with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. No
+agent calls the real Google API: every Google call is tested with an
+injected fake `fetchFn` or fake deps. Sizes: report `wc -l` for every file
+touched; STRUCTURE.md caps apply.
+
+### C1: The series id column, the pull fills it, the one-time backfill
+- **Status:** PENDING
+- **Objective:** every pulled event row knows its Google series id, for
+  new pulls and for rows already here, without deleting or rewriting
+  anything else.
+- **May touch:** `prisma/schema.prisma` (one field on `CalendarEventSync`:
+  `googleSeriesId String?`), a new migration folder
+  `prisma/migrations/20261120000000_calendar_series_id/migration.sql`,
+  `src/lib/google/types.ts` (`GoogleEventIn` gains `recurringEventId?`,
+  `originalStartTime?`, `start.timeZone?`/`end.timeZone?`),
+  `src/lib/calendarSyncPull.ts`, `src/lib/calendarEventPull.ts`,
+  `src/lib/calendarPullRun.ts` (only if the deps type needs the new write),
+  their tests (`calendarSyncPull.test.ts`, `calendarPullRun*.test.ts`),
+  `src/lib/testing/calendarPullRunHarness.ts`,
+  `docs/structure/calendar-sync.md` (the column and who fills it).
+- **Must not touch:** anything under `src/app/`, `src/components/`, the
+  push path (`calendarEventPush.ts`, `calendarSyncPlan.ts`,
+  `calendarSyncRules.ts`), `User` anything, `package.json`.
+- **Work:**
+  1. Migration SQL, two statements only: `ALTER TABLE "CalendarEventSync"
+     ADD COLUMN "googleSeriesId" TEXT;` and the backfill trigger
+     `UPDATE "LinkedCalendar" SET "syncToken" = NULL WHERE "direction" =
+     'twoWay';` (a cleared token makes the next pull a full-window pull;
+     the token is rebuilt by that pull; nothing is deleted). Show the SQL
+     in the report. Apply to the dev branch with `npx prisma migrate
+     deploy` only after `.env`'s host is confirmed the dev branch (print
+     the hostname only). Then `npx prisma generate`.
+  2. `planPull`: inserts and updates carry `googleSeriesId` (Google's
+     `recurringEventId`, or null). A row whose etag is unchanged but whose
+     stored `googleSeriesId` differs from Google's gets a new plan entry
+     that writes **only the sync row's `googleSeriesId`** (never
+     `CalendarEvent`, never `updatedAt` of the event, never `etag`). The
+     known-row shape `planPull` reads gains `googleSeriesId`. A second
+     identical run plans nothing for those rows.
+  3. `calendarEventPull.ts` performs that write.
+- **Verification:** gauntlet (all five commands). New tests: insert carries
+  the id; update carries it; unchanged etag with missing id writes the id
+  only; unchanged etag with the id already set plans nothing; a
+  non-repeating event stays null; cancelled items still delete as before.
+  `npx prisma migrate status` on the dev branch shows it applied.
+- **Evidence:** the SQL text; test names and counts before and after (npm
+  test and the UTC run); `prisma migrate status` output; `wc -l`.
+- **Done:** all of the above, one commit.
+
+### C2: The "All of them" action, server side
+- **Status:** PENDING (after C1)
+- **Objective:** `moveCalendarSeries(eventId, newStartIso)` shifts the
+  whole Google series by the drop's wall-clock minutes, with one Google
+  write, then makes Marshee match Google.
+- **May touch:** new `src/lib/calendarSeriesRules.ts` (pure) and test; new
+  `src/lib/calendarSeriesMove.ts` (the body, deps injected so tests use
+  fakes) and test; new `src/app/actions/calendarSeries.ts` (`"use server"`,
+  guard plus a thin call); `src/lib/google/calendarEventCalls.ts` and its
+  test (add `listInstances(calendarId, eventId, timeMin, timeMax)` if
+  needed, and `getEvent` / `updateEvent` reuse); `src/lib/google/types.ts`
+  (only what C1 did not add); `src/lib/calendarEventPull.ts` and
+  `src/lib/calendarPullRun.ts` (an option to pull **one** linked calendar
+  by id, force lease; the existing callers unchanged); their tests.
+- **Must not touch:** `src/app/actions/calendar.ts`, `src/components/`,
+  the push path, `prisma/`.
+- **Rules (pure, in `calendarSeriesRules.ts`):**
+  - `planSeriesShift(stored, newStart, timeZone)`: refuses all-day and
+    multi-day (reuse `planMove`'s refusals from `calendarMoveRules.ts`,
+    never copy them); refuses a different household day with **"Only this
+    one can move to another day."**; returns the shift as wall-clock
+    minutes (7:00 to 7:30 is +30 on any day, including the clock-change
+    days).
+  - `shiftParentTimes(parent, minutes)`: moves the parent's `start` and
+    `end` `dateTime` by those wall-clock minutes **in the parent's own
+    `timeZone`** (fall back to the household zone if Google sends none),
+    keeping the `timeZone` field. Refuses an all-day parent.
+  - `planSeriesCleanup(rows, googleInstanceIds)`: the Marshee rows of that
+    series and calendar whose Google id Google no longer lists.
+- **The body, in order:** read the row (`startAt`, `endAt`, `allDay`,
+  `sourceLinkedCalendarId`, its sync row's `googleSeriesId`); no series id
+  means **"That event doesn't repeat."**; the source calendar must exist,
+  be `twoWay` and its account ok, else **"That calendar isn't syncing
+  both ways any more."**; `planSeriesShift`; get an access token; `getEvent`
+  the parent (`googleSeriesId`); `shiftParentTimes`; `updateEvent` the
+  parent (PATCH start and end only, If-Match its etag). Any Google failure
+  returns **"Couldn't change Google Calendar. Nothing moved."** and writes
+  nothing to the database. On success: pull that one calendar; then list
+  the series' instances for the pull window and delete (through the pull's
+  `writeDelete`, which takes copies off first) only the rows from
+  `planSeriesCleanup`; then find the dragged day's row after the pull (same
+  calendar and series, `startAt` equal to the new start) and return
+  `{ undo: { eventId, startIso } }` with `startIso` the original start, or
+  `{}` with no undo if that row is not found. **It never calls
+  `afterEventSaved` or `pushEventCopies`** (one Google write per drop).
+- **The action:** `getVerifiedUser` and `MANAGER_ROLES` exactly as
+  `moveCalendarEvent` ("Only parents can do that."), `parseMoveStart`,
+  then the body, then `revalidatePath` the calendar the same way
+  `afterEventSaved` does (import, do not copy, if a shared helper exists).
+  Returns `{ error?: string; undo?: { eventId: string; startIso: string } }`.
+- **Verification:** gauntlet. Tests with fakes: kid refused (guard path by
+  reading is acceptable; the body's tests take a role-free path);
+  non-repeating refused; Off and unlinked calendar refused; different day
+  refused; Google 412/404/500 on get or patch writes nothing (assert the
+  fake db saw no write); success makes exactly one PATCH, to the parent
+  id, with start and end moved +30 wall-clock minutes and `timeZone`
+  kept; shift across 2026-03-08 and 2026-11-01 in America/Denver (a
+  parent first dated in summer, drop in winter, and the reverse) under
+  both `TZ` runs; cleanup deletes only listed-missing rows of that series
+  and calendar; Undo is the same call with the opposite drop and gives the
+  original times back; no call to the push path.
+- **Evidence:** test names and counts; the PATCH body a test captured;
+  `wc -l`.
+- **Done:** one or two commits, all above.
+
+### C3: The sheet, the client side
+- **Status:** PENDING (after C2)
+- **Objective:** a drop of a repeating event asks "This one", "All of
+  them", Cancel, as in the approved mock.
+- **May touch:** `src/lib/types.ts` (`CalendarEventView.seriesId?:
+  string | null`), `src/lib/calendarEventQuery.ts` (select and map it from
+  the source calendar's sync row), `src/lib/useEventMoves.ts` and its test,
+  new `src/components/RepeatMoveSheet.tsx`, `src/components/CalendarViews.tsx`
+  (wiring only, stay within its size), `src/components/ConfirmSheet.tsx`
+  only if a shared piece is lifted out of it, DESIGN.md text drafted by
+  Strange later (not this contract).
+- **Must not touch:** server files from C1 and C2 except importing
+  `moveCalendarSeries`; the gesture machine files.
+- **Work:** a drop of an event with a `seriesId` pauses: the block stays
+  where it was dropped, lifted look kept, and `RepeatMoveSheet` opens with
+  title "Move a repeating event", line "<title>, to <Thu 7:30 AM>.", and
+  buttons **This one** (accent, top), **All of them**, **Cancel**, each 48px
+  or more. Scrim tap = Cancel. Cancel glides the block back, saves
+  nothing. Drop on another household day: no All of them, and the line
+  "Only this one can move to another day. To move every <title>, drop it on
+  the same day at the new time." **This one** = PR 4's save unchanged.
+  **All of them**: every visible event with that `seriesId` shifts
+  optimistically by the same wall-clock minutes; the action runs; success
+  shows the UndoBar "Moved every <title> to <7:30 AM>" with Undo, which
+  calls `moveCalendarSeries(undo.eventId, undo.startIso)` (no Undo button
+  when the server returned none); failure puts every block back (glide)
+  and shows the warn bar with the server's words. Kids and the Tablet
+  never reach this (no drag). Events without a `seriesId` behave exactly as
+  in PR 4. Reduce motion: no animation.
+- **Verification:** gauntlet; unit tests for the new pure bits in
+  `useEventMoves` (which events shift, the bar text, the undo call
+  arguments); a real-touch probe on a harness page mounting the real
+  `TimelineGrid`, `useEventMoves`, `RepeatMoveSheet` and `UndoBar` with
+  stubbed actions (ok, refused, slow), the mission 70 harness pattern, at
+  393x852 and 1024x768, light and dark: hold, drag, drop, sheet; each
+  button; scrim; another day; non-repeating event never sees the sheet.
+- **Evidence:** test counts; probe output; screenshots path; `wc -l`.
+- **Done:** all above, committed.
 
 ## Execution log
 
 - 2026-11-11: branch already at `origin/main` `6656fed`; mission 70 record
   fixed (DELIVERED, PR #112); Banner dispatched; Google docs read; mock
   sent to Bryce.
+- 2026-11-11: Bryce asked for a draggable mock (done), then "Looks good,
+  build it". Contracts C1 to C3 written.
 
 ## Gate verdicts
 
