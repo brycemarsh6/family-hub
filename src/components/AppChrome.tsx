@@ -11,6 +11,7 @@ import { PinnedNav } from "@/components/PinnedNav";
 import { ScreensaverHost } from "@/components/ScreensaverHost";
 import {
   HAMBURGER_ROW_HEIGHT,
+  NAV_RAIL_WIDTH,
   pinnedNavWidth,
   WORDMARK_HEADER_ACTIONS_ID,
   showsWordmarkHeader,
@@ -134,10 +135,23 @@ export function AppChrome({
   return (
     // `--app-nav-width-lg` carries the number; the `lg:` class turns it into
     // `--app-nav-width` only at 1024px and up. Below that the variable stays
-    // unset and the fixed bars fall back to 0.
+    // unset and the fixed bars fall back to 0. mission-72: in sidebar mode,
+    // while a page holds `data-month-panel="open"`, the last class swaps the
+    // number for the rail's, so PinnedNav's aside and every fixed bar move
+    // together. The `!` is the chrome's one !important: it must beat the
+    // inline variable below. docs/structure/layout.md, "The month panel marker".
     <div
-      className="flex flex-1 flex-col lg:flex-row lg:[--app-nav-width:var(--app-nav-width-lg)]"
-      style={{ "--app-nav-width-lg": pinnedNavWidth(pinnedMode) } as React.CSSProperties}
+      className={`flex flex-1 flex-col lg:flex-row lg:[--app-nav-width:var(--app-nav-width-lg)] ${
+        pinnedMode === "sidebar"
+          ? "lg:[body:has([data-month-panel=open])_&]:[--app-nav-width-lg:var(--app-nav-rail-width)]!"
+          : ""
+      }`}
+      style={
+        {
+          "--app-nav-width-lg": pinnedNavWidth(pinnedMode),
+          "--app-nav-rail-width": NAV_RAIL_WIDTH,
+        } as React.CSSProperties
+      }
     >
       <PinnedNav mode={pinnedMode} onSendFeedback={openFeedback} />
       <div className="flex min-w-0 flex-1 flex-col">{page}</div>
