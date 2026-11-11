@@ -82,15 +82,31 @@ export function formatHouseholdClock(instant: Date, timeZone: string, options: {
   return `${time} ${part("dayPeriod")}`.replace(/\s/g, " ");
 }
 
+/** An instant's wall clock in `timeZone` read as if it were UTC (ms): the zone's offset added on. */
+export function wallClockMs(instant: Date, timeZone: string): number {
+  return instant.getTime() + zoneOffsetMs(instant, timeZone);
+}
+
+/**
+ * The instant whose wall clock in `timeZone` reads `wallMs` (a wall clock as if
+ * it were UTC). Two-step fixed point: guess with the offset at the naive
+ * instant, then re-read the offset at the guess. Correct for any zone whose
+ * transition doesn't straddle the reading (true of America/Denver and every US
+ * zone, except a reading inside the spring-forward gap, which lands an hour on).
+ */
+export function instantAtWallClock(wallMs: number, timeZone: string): Date {
+  const first = wallMs - zoneOffsetMs(new Date(wallMs), timeZone);
+  return new Date(wallMs - zoneOffsetMs(new Date(first), timeZone));
+}
+
+/** One instant moved by wall-clock minutes in `timeZone` (7:00 is 7:30 after +30 on any day, clock changes included). */
+export function shiftWallClockInZone(instant: Date, minutes: number, timeZone: string): Date {
+  return instantAtWallClock(wallClockMs(instant, timeZone) + minutes * 60 * 1000, timeZone);
+}
+
 /** The UTC instant at which `date` begins in `timeZone`. */
 export function zoneMidnightInstant(date: CalendarDate, timeZone: string): Date {
-  const wallAsUtc = Date.UTC(date.year, date.month - 1, date.day);
-  // Two-step fixed point: guess with the offset at the naive instant, then
-  // re-read the offset at the guess. Correct for any zone whose transition
-  // doesn't straddle local midnight (true of America/Denver and every US zone).
-  const first = wallAsUtc - zoneOffsetMs(new Date(wallAsUtc), timeZone);
-  const second = wallAsUtc - zoneOffsetMs(new Date(first), timeZone);
-  return new Date(second);
+  return instantAtWallClock(Date.UTC(date.year, date.month - 1, date.day), timeZone);
 }
 
 /** Strict `YYYY-MM-DD`; null for anything else, including impossible dates. */

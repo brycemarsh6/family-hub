@@ -70,9 +70,12 @@ docs/history/structure-rationale.md under the same name.
   into `src/lib/calendarEventWrites.ts` (the `<domain>Writes.ts` rule) in
   that same contract, and both callers use it. Never a copy.
 - **Outside this rule:** creating an event (`createCalendarEvent`, a new
-  row, not a time change) and the pull (`calendarEventPull.ts`, which
-  writes Google's times into Marshee, the other direction). PR 5's
-  "All of them" brings its own rule.
+  row, not a time change), the pull (`calendarEventPull.ts`, which writes
+  Google's times into Marshee, the other direction) and "All of them" on a
+  repeating event (`moveCalendarSeries`, which writes no event row itself:
+  it changes Google's series and the pull brings the rows in line; see "A
+  repeating series belongs to Google" below). "This one" is the plain
+  `moveCalendarEvent` and stays under this rule.
 - **The move's rules are pure, in `src/lib/calendarMoveRules.ts`:**
   `parseMoveStart` (ISO text with an explicit zone), `MOVE_EARLIEST` and
   `MOVE_LATEST` (the date bound), `planMove` (the end is the new start
@@ -86,3 +89,50 @@ docs/history/structure-rationale.md under the same name.
   the same commit. A third copy is a BLOCKER. (Same precedent as
   `formatWeekTitle` and `formatWeekRange` in STRUCTURE.md.)
   (Added mission-70, on Captain's ruling; Bryce approved 2026-11-10.)
+
+## A repeating series belongs to Google
+
+- **Google owns a repeating series.** A pulled event whose source sync row
+  has `googleSeriesId` set is one day of a Google series. Marshee changes
+  the whole series only through `moveCalendarSeries`
+  (`src/app/actions/calendarSeries.ts`, parents and admins): it patches the
+  series parent's `start` and `end` in Google once, If-Match its etag, then
+  pulls that calendar. It never writes a `CalendarEvent` row itself, never
+  calls `afterEventSaved` or `pushEventCopies`, and never patches one
+  instance in Google (that makes exceptions). Moving the days of a series
+  row by row (a loop of `moveCalendarEvent`, `updateCalendarEvent` or
+  `db.calendarEvent.update`), or a second action that changes a series, is
+  a BLOCKER.
+- **Steps and rules.** The steps are `moveSeries` in
+  `src/lib/calendarSeriesMove.ts` (pure, every database and Google call
+  injected, the `calendarPullRun.ts` shape). The decisions are pure in
+  `src/lib/calendarSeriesRules.ts`: `planSeriesShift` (the shift in
+  wall-clock minutes; it refuses another household day and a shift of
+  nothing, and reuses `planMove`'s refusals, never copying them),
+  `shiftParentTimes` (the only builder of the parent's times patch, moved
+  in the parent's own `timeZone`, only `start` and `end` sent) and
+  `planSeriesCleanup` (the rows of this series on this calendar that
+  Google no longer lists). The action holds the guard and the bindings; its
+  Google calls go through `calendarApi.ts`, its `LinkedCalendar` read
+  through `loadSeriesCalendar` in `linkedCalendarsRead.ts`, its token
+  through `getAccountAccessToken` and its deletes through
+  `deletePulledEvent(del, calendarId)` in `calendarEventPull.ts`, which
+  never sends Google anything for the series' own calendar. The cleanup
+  runs only after a pull with no failures. The pull it runs is
+  `pullCalendars({ force: true, onlyCalendarId, ignoreLease: true })`; no
+  other caller passes `onlyCalendarId` or `ignoreLease`.
+- **The wall-clock shift has one home.** Moving an instant by wall-clock
+  minutes in a zone is `shiftWallClockInZone` in `src/lib/householdDate.ts`
+  (beside `wallClockMs` and `instantAtWallClock`, which
+  `zoneMidnightInstant` also uses). The server's `shiftParentTimes` and the
+  browser's optimistic shift in `useEventMoves.ts` both call it, and the
+  browser reads a drop's minutes through `planSeriesShift` with
+  `HOUSEHOLD_TIME_ZONE`, because the server decides in that zone. A second
+  copy of either is a BLOCKER.
+- **The browser groups by `CalendarEventView.seriesId`**, filled only by
+  `toCalendarEventView` from the source calendar's sync row. It is the one
+  Google-derived id a view may carry, used only to group the days of one
+  series; the browser never sends it, and the server reads its own
+  `googleSeriesId` from the stored row. `CalendarEventSyncView` still
+  never carries a Google id.
+  (Added mission-71, on Captain's ruling; Bryce approved 2026-11-11.)

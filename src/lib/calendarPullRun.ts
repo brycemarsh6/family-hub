@@ -4,6 +4,7 @@ import {
   type PullDelete,
   type PullInsert,
   type PullKnown,
+  type PullSeriesFill,
   type PullUpdate,
 } from "@/lib/calendarSyncPull";
 
@@ -57,7 +58,10 @@ export type PullRunDeps = {
   writeInsert: (insert: PullInsert) => Promise<void>;
   writeUpdate: (calendarId: string, update: PullUpdate) => Promise<void>;
   /** Takes the event's copies off other calendars, then deletes the event. */
-  writeDelete: (del: PullDelete) => Promise<void>;
+  /** `calendarId` is the pulled calendar: Google already removed the event there, so it is not asked to again. */
+  writeDelete: (del: PullDelete, calendarId: string) => Promise<void>;
+  /** Writes only the sync row's googleSeriesId: never the event, its updatedAt or the etag. */
+  writeSeriesFill: (calendarId: string, fill: PullSeriesFill) => Promise<void>;
   /** Push the event's Marshee version out; `exceptLinkedCalendarId` is a copy to leave alone. */
   pushBack: (eventId: string, exceptLinkedCalendarId?: string | null) => Promise<void>;
   now: () => Date;
@@ -117,7 +121,9 @@ async function applyListed(
     // Only a change that was saved goes out: a failed write would push the old version over Google's.
     if (update.pushOut && failed === before) pushOuts.push(update.eventId);
   }
-  for (const del of plan.deletes) await attempt(() => deps.writeDelete(del), true);
+  for (const del of plan.deletes) await attempt(() => deps.writeDelete(del, calendar.id), true);
+  // The series id changes nothing a person sees, so it never counts as a change.
+  for (const fill of plan.seriesFills) await attempt(() => deps.writeSeriesFill(calendar.id, fill), false);
   // A push back keeps the source (Marshee won). A push out carries Google's own version, so
   // the calendar it came from is left alone: its original is never patched with our fields.
   for (const eventId of plan.pushBacks) await attempt(() => deps.pushBack(eventId), false);
@@ -178,13 +184,23 @@ async function pullOne(
   return { changed: (tokenPass?.changed ?? false) || full.changed, failed: full.failed };
 }
 
-/** Pulls every "Both ways" calendar that is due. Never throws; touches nothing when Google is not set up. */
-export async function runPull(deps: PullRunDeps, opts: { force: boolean; rewindow?: boolean }): Promise<PullRunResult> {
+/** Pulls every "Both ways" calendar that is due (or only `onlyCalendarId`, when given). Never throws; touches nothing when Google is not set up. */
+export async function runPull(
+  deps: PullRunDeps,
+  opts: { force: boolean; rewindow?: boolean; onlyCalendarId?: string; ignoreLease?: boolean },
+): Promise<PullRunResult> {
   const total: PullRunResult = { changed: false, failed: 0, checked: 0 };
   if (!deps.isConfigured()) return total;
   try {
     const now = deps.now();
-    const staleBefore = new Date(now.getTime() - (opts.force ? PULL_FORCE_LEASE_MS : PULL_LEASE_MS));
+    // `ignoreLease` (the "All of them" pull) claims whatever the lease says: a stamp from a moment
+    // ago (opening the Calendar) must not leave Marshee on the old times. It still stamps the lease,
+    // so the regular pulls wait behind it. If a regular pull is running at the same moment, both
+    // may write: writes are keyed by the unique (calendar, Google id) pair, a clash counts as one
+    // failed write, the sync token is then not saved, and the next pull settles it.
+    const staleBefore = opts.ignoreLease
+      ? new Date(now.getTime() + 1)
+      : new Date(now.getTime() - (opts.force ? PULL_FORCE_LEASE_MS : PULL_LEASE_MS));
     // One Google calendar linked twice is pulled once: the oldest link, then the lowest id.
     const byAge = [...(await deps.loadCalendars())].sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id),
@@ -193,7 +209,7 @@ export async function runPull(deps: PullRunDeps, opts: { force: boolean; rewindo
     const calendars = byAge.filter((c) => {
       if (seenGoogle.has(c.googleCalendarId)) return false;
       seenGoogle.add(c.googleCalendarId);
-      return true;
+      return opts.onlyCalendarId === undefined || c.id === opts.onlyCalendarId;
     });
     // One access token per account per run, even when it fails.
     const access = new Map<string, PullAccessResult>();

@@ -35,6 +35,12 @@ export type GoogleEventPayload = {
   extendedProperties: { private: { marsheeEventId: string } };
 };
 
+/** A series change: only the two times, so the PATCH leaves every other field of the parent alone. */
+export type GoogleTimesPatch = {
+  start: { dateTime: string; timeZone: string };
+  end: { dateTime: string; timeZone: string };
+};
+
 export type EventCallFailReason = "conflict" | "changed" | "gone" | "unauthorized" | "network";
 
 export type EventCallResult = { ok: true; etag: string | null } | { ok: false; reason: EventCallFailReason };
@@ -54,8 +60,12 @@ export type GoogleEventIn = {
   location?: string;
   eventType?: string;
   transparency?: string;
-  start?: { date?: string; dateTime?: string };
-  end?: { date?: string; dateTime?: string };
+  start?: { date?: string; dateTime?: string; timeZone?: string };
+  end?: { date?: string; dateTime?: string; timeZone?: string };
+  /** Set on an instance of a repeating event: the series parent's id. */
+  recurringEventId?: string;
+  /** Where the repeat rule put an instance, even if it was moved. */
+  originalStartTime?: { date?: string; dateTime?: string; timeZone?: string };
   extendedProperties?: { private?: { marsheeEventId?: string } };
 };
 

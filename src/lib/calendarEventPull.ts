@@ -8,7 +8,7 @@ import { claimCalendarForPull, markAccountNeedsRelink, markPulledOk, saveSyncTok
 import { pushEventCopies, removeEventCopies } from "@/lib/calendarEventPush";
 import { tokenFailReason } from "@/lib/calendarSyncRules";
 import { runPull, type PullAccessResult, type PullRunDeps, type PullRunResult } from "@/lib/calendarPullRun";
-import type { EventFields, KnownEvent, PullKnown } from "@/lib/calendarSyncPull";
+import type { EventFields, KnownEvent, PullDelete, PullKnown } from "@/lib/calendarSyncPull";
 import type { GoogleEventIn } from "@/lib/google/types";
 
 // Binds calendarPullRun.ts to the real database and Google (mission 60). No
@@ -53,13 +53,14 @@ type KnownEventRow = {
 
 function knownFrom(
   event: KnownEventRow,
-  sync: { etag: string | null; lastPushedAt: Date | null; lastPulledAt: Date | null } | null,
+  sync: { etag: string | null; googleSeriesId: string | null; lastPushedAt: Date | null; lastPulledAt: Date | null } | null,
   hasOtherCopies = false,
 ): KnownEvent {
   return {
     eventId: event.id,
     hasRow: sync !== null,
     etag: sync?.etag ?? null,
+    googleSeriesId: sync?.googleSeriesId ?? null,
     lastPushedAt: sync?.lastPushedAt ?? null,
     lastPulledAt: sync?.lastPulledAt ?? null,
     eventUpdatedAt: event.updatedAt,
@@ -88,6 +89,7 @@ async function loadKnown(calendar: { id: string }, events: GoogleEventIn[]): Pro
     select: {
       googleEventId: true,
       etag: true,
+      googleSeriesId: true,
       lastPushedAt: true,
       lastPulledAt: true,
       event: {
@@ -149,9 +151,18 @@ const deps: PullRunDeps = {
       }
     });
   },
-  async writeDelete({ eventId }) {
+  async writeSeriesFill(calendarId, { eventId, googleSeriesId }) {
+    // Only this one field: the event, its updatedAt and the etag stay as they are.
+    await db.calendarEventSync.update({
+      where: { eventId_linkedCalendarId: { eventId, linkedCalendarId: calendarId } },
+      data: { googleSeriesId },
+    });
+  },
+  async writeDelete({ eventId }, calendarId) {
     // Its copies come off other calendars first; the delete then cascades the rows.
-    await removeEventCopies(eventId);
+    // The pulled calendar is excepted: Google already dropped the event there, and a
+    // DELETE (with its token refresh) at the source would be a real write for nothing.
+    await removeEventCopies(eventId, { exceptLinkedCalendarId: calendarId });
     await db.calendarEvent.deleteMany({ where: { id: eventId } });
   },
   async pushBack(eventId, exceptLinkedCalendarId) {
@@ -164,8 +175,9 @@ const deps: PullRunDeps = {
  * Pull every due "Both ways" calendar. `force` is Refresh (a 30 second
  * lease); otherwise a calendar is pulled at most every 5 minutes. Never
  * throws; does nothing at all when Google or the key is missing.
+ * `onlyCalendarId` pulls just that linked calendar; `ignoreLease` claims it even if it was pulled a moment ago.
  */
-export async function pullCalendars(opts: { force: boolean; rewindow?: boolean }): Promise<PullRunResult> {
+export async function pullCalendars(opts: { force: boolean; rewindow?: boolean; onlyCalendarId?: string; ignoreLease?: boolean }): Promise<PullRunResult> {
   const reasons: string[] = [];
   const result = await runPull({ ...deps, noteFailure: (reason) => reasons.push(reason) }, opts);
   // Reason words, statuses and Prisma codes only (see noteFailure): safe for the log.
@@ -173,6 +185,33 @@ export async function pullCalendars(opts: { force: boolean; rewindow?: boolean }
     console.warn(`[calendar pull] ${result.failed} failed of ${result.checked} checked: ${reasons.slice(0, 10).join(", ")}`);
   }
   return result;
+}
+
+/**
+ * Deletes one pulled row exactly as the pull does for a cancelled event: its copies come
+ * off other calendars first, never the `calendarId` one (the series cleanup calls this
+ * for rows Google has already dropped there, so it sends Google nothing for them).
+ */
+export function deletePulledEvent(del: PullDelete, calendarId: string): Promise<void> {
+  return deps.writeDelete(del, calendarId);
+}
+
+/**
+ * An access token for a linked account, for the callers that act outside the pull ("All of
+ * them"). Same refresh and same token-failure handling as the pull: a grant Google refuses
+ * marks the account needs-relink. Never throws; the answer carries no token on failure.
+ */
+export async function getAccountAccessToken(accountId: string): Promise<{ ok: true; accessToken: string } | { ok: false }> {
+  const token = await getAccessToken(accountId);
+  if (token.ok) return token;
+  if (token.reason === "reconnect") {
+    try {
+      await markAccountNeedsRelink(accountId);
+    } catch {
+      // Deliberately drops the error; the next pull marks it.
+    }
+  }
+  return { ok: false };
 }
 
 /**

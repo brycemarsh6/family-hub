@@ -30,6 +30,8 @@ export type KnownEvent = {
   hasRow: boolean;
   /** The row's etag; null when there is no row or none was saved. */
   etag: string | null;
+  /** The row's Google series id; null when there is no row or none was saved. */
+  googleSeriesId?: string | null;
   lastPushedAt: Date | null;
   lastPulledAt: Date | null;
   /** CalendarEvent.updatedAt. */
@@ -71,6 +73,8 @@ export type PullInsert = {
     linkedCalendarId: string;
     googleEventId: string;
     etag: string | null;
+    /** Google's recurringEventId; null when the event does not repeat. */
+    googleSeriesId: string | null;
     status: "ok";
     lastPulledAt: Date;
   };
@@ -78,6 +82,8 @@ export type PullInsert = {
 
 export type PullRowPatch = {
   etag: string | null;
+  /** Google's recurringEventId; null when the event does not repeat. */
+  googleSeriesId: string | null;
   lastPulledAt: Date;
   /** Set when Google's change is taken or the row is new; absent when Marshee keeps a newer edit. */
   status?: "ok";
@@ -101,6 +107,9 @@ export type PullUpdate = {
 
 export type PullDelete = { eventId: string; googleEventId: string };
 
+/** An unchanged row that lacks Google's series id: the binding writes that one field on the sync row and nothing else. */
+export type PullSeriesFill = { eventId: string; googleEventId: string; googleSeriesId: string | null };
+
 export const PULL_SKIP_REASONS = [
   "echo",
   "marshee-only",
@@ -115,6 +124,7 @@ export type PullPlan = {
   inserts: PullInsert[];
   updates: PullUpdate[];
   deletes: PullDelete[];
+  seriesFills: PullSeriesFill[];
   /** Event ids Marshee won a conflict for: the binding pushes them with pushEventCopies. */
   pushBacks: string[];
   skipped: { googleEventId: string; reason: PullSkipReason }[];
@@ -162,7 +172,7 @@ function lastPerId(events: GoogleEventIn[]): GoogleEventIn[] {
 
 export function planPull(input: PullInput): PullPlan {
   const { calendar, linkerId, windowStart, known, now } = input;
-  const plan: PullPlan = { inserts: [], updates: [], deletes: [], pushBacks: [], skipped: [] };
+  const plan: PullPlan = { inserts: [], updates: [], deletes: [], seriesFills: [], pushBacks: [], skipped: [] };
   const skip = (googleEventId: string, reason: PullSkipReason) => plan.skipped.push({ googleEventId, reason });
 
   for (const raw of lastPerId(input.googleEvents)) {
@@ -188,6 +198,7 @@ export function planPull(input: PullInput): PullPlan {
       allDay: ev.allDay,
     };
 
+    const seriesId = raw.recurringEventId ?? null;
     const match = hit ?? (ev.marsheeEventId ? known.byMarsheeId.get(ev.marsheeEventId) : undefined);
     if (!match) {
       // A Marshee-made copy whose event is gone must not come back to life.
@@ -204,7 +215,7 @@ export function planPull(input: PullInput): PullPlan {
             showBusyOnGoogle: ev.showBusyOnGoogle,
             updatedAt: now,
           },
-          sync: { linkedCalendarId: calendar.id, googleEventId: ev.id, etag: ev.etag, status: "ok", lastPulledAt: now },
+          sync: { linkedCalendarId: calendar.id, googleEventId: ev.id, etag: ev.etag, googleSeriesId: seriesId, status: "ok", lastPulledAt: now },
         });
       }
       continue;
@@ -219,12 +230,16 @@ export function planPull(input: PullInput): PullPlan {
         changed: false,
         pushOut: false,
         createRow: true,
-        row: { etag: ev.etag, lastPulledAt: now, status: "ok" },
+        row: { etag: ev.etag, googleSeriesId: seriesId, lastPulledAt: now, status: "ok" },
       });
       continue;
     }
 
     if (!googleChanged(match, ev.etag)) {
+      // Nothing else changed, but a row saved before the series id existed learns it here (once).
+      if ((match.googleSeriesId ?? null) !== seriesId) {
+        plan.seriesFills.push({ eventId: match.eventId, googleEventId: ev.id, googleSeriesId: seriesId });
+      }
       skip(ev.id, marsheeChanged(match) ? "marshee-only" : "echo");
       continue;
     }
@@ -240,6 +255,7 @@ export function planPull(input: PullInput): PullPlan {
         pushOut: changed && match.hasOtherCopies === true,
         row: {
           etag: ev.etag,
+          googleSeriesId: seriesId,
           lastPulledAt: now,
           status: "ok",
           ...(marsheeChanged(match) ? { previousJson: fieldsJson(match.current) } : {}),
@@ -252,7 +268,7 @@ export function planPull(input: PullInput): PullPlan {
         fields: null,
         changed: false,
         pushOut: false,
-        row: { etag: ev.etag, lastPulledAt: now, previousJson: fieldsJson(theirs) },
+        row: { etag: ev.etag, googleSeriesId: seriesId, lastPulledAt: now, previousJson: fieldsJson(theirs) },
       });
       plan.pushBacks.push(match.eventId);
     }

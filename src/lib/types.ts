@@ -136,6 +136,13 @@ export type CalendarEventView = {
    */
   sourceCalendarName?: string | null;
   sourceLinkedCalendarId?: string | null;
+  /**
+   * Mission 71: Google's id for the repeating series this event is one day
+   * of, from the source calendar's sync row. Null or absent when it does not
+   * repeat. Used only to group the days of one series (the drop sheet's "All
+   * of them"); the browser never sends it anywhere, the server reads its own.
+   */
+  seriesId?: string | null;
 };
 
 /** One Google copy of an event: which calendar, how it went, and why not. */

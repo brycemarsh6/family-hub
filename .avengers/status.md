@@ -6,6 +6,23 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar repeating events, "This one" or "All of them" (mission 71,
+  PR 5 of 9)**, about 5 minutes, signed in as yourself (a parent). **Start
+  on a throwaway event, never a real one.** In Google Calendar make an
+  event that repeats every day at 7 AM for two weeks, called "Test
+  repeat". Open
+  Calendar in Marshee and tap Refresh until it shows. Its blocks show a
+  small repeat mark. Drag one day to 7:30 AM: the sheet
+  asks "This one", "All of them" or Cancel. Cancel: it goes back, nothing
+  saved. Drag again, pick "This one": only that day moves, in Marshee and
+  in Google. Drag a different day to 8 AM and pick "All of them": every
+  day moves to 8 AM in Marshee and in Google, and the bar says "Moved
+  every Test repeat to 8 AM" with Undo. **Write down what happened to
+  the day you moved first** (did it stay at 7:30 or jump to 8?): Google's
+  documents don't say, and the mission file needs the answer. Tap Undo:
+  every day goes back to 7 AM. Drag one onto another day: only "This one"
+  is offered, with a line saying why. On the iPad the sheet sits at the
+  bottom. Only after all that, try it on a real repeating event.
 - **Calendar drag to reschedule (mission 70, PR 4 of 9)**, about 5
   minutes, with a screen recording, on your iPhone and then the iPad,
   signed in as yourself (a parent). Use a throwaway event for the moves.
@@ -259,6 +276,14 @@ it is done. The pre-cleanup text is in
 **Open, not scheduled:**
 - Calendar drag follow-ups (mission 70 Delivery): `usePagedSwipe.ts` and
   `useTimelineDrag.ts` are over the soft cap (split on next touch).
+- Calendar repeating follow-ups (mission 71 Delivery): at Largest text on
+  the iPad a 15-minute block's title and time overlap (mission-65's
+  small-title rule assumes Normal; best fixed in the all-day row PR, which
+  touches the blocks). On the iPad held sideways at Largest, the docked
+  sheet can cover a block dropped low on screen (the sheet's line still
+  says the time). `useEventMoves.ts` splits its series half into
+  `useSeriesMove.ts` on its next feature. Still to decide later: "This one
+  or All of them" in the edit form and on delete, and "This and following".
 - **Calendar zoom first-frame flicker (mission 65, Strange pass 3 NOTE):**
   on a fresh iPad load the hour lines may jump once. Fix: move the
   `useTimelineZoom` call in `TimelineGrid.tsx` below its sizing layout

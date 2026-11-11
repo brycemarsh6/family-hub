@@ -131,6 +131,19 @@ export async function loadRefreshToken(accountId: string): Promise<string | null
   return account ? decryptSecret(account.encryptedRefreshToken) : null;
 }
 
+/** One linked calendar and its account's status, for "All of them" (the series move checks both before it touches Google). */
+export async function loadSeriesCalendar(
+  calendarId: string,
+): Promise<{ id: string; googleCalendarId: string; accountId: string; direction: string; accountStatus: string } | null> {
+  const calendar = await db.linkedCalendar.findUnique({
+    where: { id: calendarId },
+    select: { id: true, googleCalendarId: true, accountId: true, direction: true, account: { select: { status: true } } },
+  });
+  if (!calendar) return null;
+  const { account, ...rest } = calendar;
+  return { ...rest, accountStatus: account.status };
+}
+
 /** Every linked calendar as the push needs it (not filtered: the plan decides what is pushable). */
 export async function loadPushCalendars(): Promise<PlanCalendar[]> {
   const calendars = await db.linkedCalendar.findMany({
