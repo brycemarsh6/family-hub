@@ -179,7 +179,11 @@ calendar is touched by any agent.
   `dragCancel` to callbacks. The lift: scale and shadow and accent outline
   per the mock, transform follows the finger snapped to 15 minutes and to a
   column, the time line text updated directly, the target day's header
-  tinted. Edge strips (44px) at top and bottom scroll the hours with
+  tinted. A gutter marker (Bryce, 2026-11-10, from a Google Calendar
+  screenshot): while lifted, a small accent time ("4:30", no AM/PM) sits in
+  the hour column at the block's new start and moves with it in 15-minute
+  steps; an hour label it would overlap is hidden until the drop. Written
+  directly to the DOM like the block, no React render per move. Edge strips (44px) at top and bottom scroll the hours with
   `requestAnimationFrame` while held there. While lifted the page cannot
   slide and the scroller cannot scroll natively. iOS decides "this touch
   scrolls" at touchstart, so toggling `touch-action` after the hold does

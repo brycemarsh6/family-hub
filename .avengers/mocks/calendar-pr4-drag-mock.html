@@ -28,6 +28,8 @@ p.note{color:var(--muted);margin:0 0 10px;font-size:13px;line-height:1.45}
 .body{display:flex;position:relative}
 .gutter{width:var(--gut);flex:none;position:relative;height:calc(var(--hh)*24)}
 .gutter span{position:absolute;right:6px;font-size:10px;color:var(--muted);transform:translateY(-50%)}
+.gmark{position:absolute;right:4px;transform:translateY(-50%);font-size:11px;font-weight:700;color:var(--accent);background:var(--bg);padding:1px 2px;z-index:2;display:none;font-variant-numeric:tabular-nums}
+.gutter span.hide{visibility:hidden}
 .cols{flex:1;display:flex;position:relative}
 .col{flex:1;border-left:1px solid var(--line);position:relative;height:calc(var(--hh)*24);
  background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--hh) - 1px),var(--line) calc(var(--hh) - 1px),var(--line) var(--hh))}
@@ -63,7 +65,7 @@ label.o{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13p
 </style></head><body>
 <div class="wrap">
 <h1>Drag to reschedule (PR 4 mock)</h1>
-<p class="note">Press and hold an event for about half a second. It lifts: a little bigger, a shadow, an outline, and its new time where its time used to be. Drag up or down (it snaps to 15 minutes) or across to another day. Hold near the top or bottom of the hours and they scroll. Let go: it stays, and a bar says "Moved to ..." with Undo for 5 seconds. A quick touch still scrolls, swipes or opens, as now.</p>
+<p class="note">Press and hold an event for about half a second. It lifts: a little bigger, a shadow, an outline, and its new time where its time used to be. A small orange time also rides down the hours on the left, at the new start, like Google. Drag up or down (it snaps to 15 minutes) or across to another day. Hold near the top or bottom of the hours and they scroll. Let go: it stays, and a bar says "Moved to ..." with Undo for 5 seconds. A quick touch still scrolls, swipes or opens, as now.</p>
 <div class="phone" id="phone">
   <div class="top"><span class="title">November</span><button class="btn">Today</button></div>
   <div class="views" id="views"></div>
@@ -118,6 +120,7 @@ function render(){
  days.forEach((d,i)=>{const c=document.createElement("div");c.className="hcell"+(dayIndex(d)===0?" today":"");c.dataset.i=i;c.innerHTML="<small>"+DOW[d.getDay()]+"</small><b>"+d.getDate()+"</b>";head.appendChild(c);
   const a=document.createElement("div");a.className="c";allday.filter(x=>x.day===dayIndex(d)).forEach(x=>{const e=document.createElement("div");e.className="ev allday";e.textContent=x.t;e.onclick=()=>say("Opened "+x.t+" (all-day events open, they do not lift)");a.appendChild(e)});ad.appendChild(a)});
  const g=document.getElementById("gutter");g.innerHTML="";for(let h=1;h<24;h++){const s=document.createElement("span");s.style.top="calc(var(--hh)*"+h+")";s.textContent=fmt(h*60).replace(":00","");g.appendChild(s)}
+ const mk=document.createElement("div");mk.className="gmark";mk.id="gmark";g.appendChild(mk);
  colsEl.innerHTML="";
  days.forEach(d=>{const c=document.createElement("div");c.className="col";const di=dayIndex(d);
   events.filter(e=>e.day===di).forEach(e=>{const b=document.createElement("div");b.className="ev"+(e.task?" task":"");b.dataset.id=e.id;
@@ -145,7 +148,7 @@ function lift(pid){
  scroller.classList.add("locked");
  const e=events.find(x=>x.id==b.dataset.id);g.ev=e;g.origDay=e.day;g.origStart=e.start;g.newDay=e.day;g.newStart=e.start;
  const r=b.getBoundingClientRect();g.offY=g.y-r.top;
- if(navigator.vibrate)navigator.vibrate(10);
+ marker(e.start);if(navigator.vibrate)navigator.vibrate(10);
  say("Lifted. Drag it to a new time or day.");
 }
 window.addEventListener("pointermove",ev=>{
@@ -166,7 +169,11 @@ function place(){
  b.style.transform="translate("+tx+"px,"+ty+"px)";
  b.querySelector("small").textContent=range(m,e.len);
  document.querySelectorAll(".hcell").forEach((h,i)=>h.classList.toggle("target",i===ci&&ci!==origCol));
+ marker(m);
 }
+function marker(m){const mk=document.getElementById("gmark");if(m==null){mk.style.display="none";document.querySelectorAll(".gutter span").forEach(x=>x.classList.remove("hide"));return}
+ const H=hh();mk.style.display="block";mk.style.top=(m/60*H)+"px";mk.textContent=fmt(m).slice(0,-3);
+ document.querySelectorAll(".gutter span").forEach((x,i)=>x.classList.toggle("hide",Math.abs((i+1)*H-m/60*H)<14));}
 function edgeScroll(){
  const r=scroller.getBoundingClientRect(),headH=document.querySelector(".sticky").offsetHeight;
  const nearTop=g.cy<r.top+headH+EDGE,nearBot=g.cy>r.bottom-EDGE;
@@ -177,7 +184,7 @@ function edgeScroll(){
 function end(ev,cancel){
  if(!g||ev.pointerId!==g.id)return;clearTimeout(timer);cancelAnimationFrame(raf);
  document.querySelectorAll(".edge").forEach(x=>x.classList.remove("on"));document.querySelectorAll(".hcell").forEach(h=>h.classList.remove("target"));
- scroller.classList.remove("locked");
+ scroller.classList.remove("locked");marker(null);
  const b=g.block;
  if(g.kind==="undecided"&&b&&!cancel){b.classList.remove("pressing");const e=events.find(x=>x.id==b.dataset.id);say("Opened "+e.t+" (a quick tap opens, as now)")}
  if(g.kind==="holding"){b.classList.remove("lifted");say("Put back down without moving.")}
