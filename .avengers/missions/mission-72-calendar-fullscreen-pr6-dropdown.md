@@ -1,6 +1,6 @@
 # Mission 72: Calendar full screen PR 6, the month dropdown and the iPad side panel
 
-- **Status:** CONTRACTED (Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
+- **Status:** AT-THE-GATES (C1 to C4 DONE; Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 6: The month dropdown (decisions 8, 12, 14; small calls D, E)"
 - **Branch:** `claude/calendar-fullscreen-pr6-0e927b`, cut from `origin/main` `a1bd34a` (PR 5 merged as #113)
