@@ -260,7 +260,7 @@ HEAD` after.
 - **Done:** the widths above, and NavList untouched.
 
 ### C3 - the month panel replaces the sheet
-- **Status:** PENDING (after C1)
+- **Status:** DONE `9aca236` (tsc, lint, npm test 2005 pass, UTC line all exit 0; build left to Fury; CalendarViews 494 to 493)
 - **Objective:** tapping the title toggles an inline `MonthJumpPanel` built
   from one new `MiniMonth`; `MonthJumpSheet` is deleted.
 - **Boundaries:** may touch new `src/components/MiniMonth.tsx`,
