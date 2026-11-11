@@ -1,6 +1,6 @@
 # Mission 73: Calendar full screen PR 7, the all-day row like Google and text that zooms
 
-- **Status:** BUILDING (Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
+- **Status:** AT-THE-GATES (Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 7: The all-day row like Google, and text that zooms (decisions 9, 13; answer 4)"
 - **Branch:** `claude/calendar-fullscreen-pr7-ba468d`, cut from `origin/main` `c466dc7` (PR 6 merged as #114)
@@ -46,7 +46,9 @@ deploys to the family. No database writes in this PR.
 - Stark + Vision (always).
 - Strange: all of it is visible; the plan's checks are his (anchor with a
   tall row, nothing cut mid-letter).
-- Captain: out unless the diff passes ~300 lines or a new file appears
+- Captain: **in** (Fury, after C2: four new files, `timelineAllDay.ts`,
+  `TimelineAllDayBar.tsx`, `AllDayToggle.tsx`, `useRootFontPx.ts`, and
+  `TimelineGrid.tsx` sits at exactly 400 lines). Original note: out unless the diff passes ~300 lines or a new file appears
   beyond a vocabulary module; `TimelineAllDayStrip.tsx` is at 424 lines
   (soft cap), so the contracts extract before they add. Vision carries the
   size check.
@@ -226,5 +228,13 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
    title is cut mid-line; labels never wrap.
 
 ## Gate log
+
+- **Fury's ruling before the gates (C3's flagged conflict):** a true
+  15-minute event at Normal text and 48px an hour now shows its title only
+  (the time line no longer fits whole in a 20px content box; before, it
+  showed clipped mid-line). Kept: Bryce's recommendation 6, "the time line
+  shows under the title only when there is room for it", which he approved.
+  Strange to confirm on screen.
+- Pass 1: Vision, Strange and Captain dispatched in parallel at `841c0cb`.
 
 ## Delivery
