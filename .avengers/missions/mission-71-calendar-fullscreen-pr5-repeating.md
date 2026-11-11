@@ -1,6 +1,6 @@
 # Mission 71: Calendar full screen PR 5, repeating events ("This one" or "All of them")
 
-- **Status:** BUILDING (Bryce OK'd the mock 2026-11-11: "Looks good, build it", after asking for a draggable mock)
+- **Status:** PAUSED before C2 (Bryce restarting his computer, 2026-11-11). Resume: dispatch Stark on C2 as written; worktree has its own `node_modules` (npm ci) and a generated Prisma client; no `.env` here (export from the main checkout, hostname only). (Bryce OK'd the mock 2026-11-11: "Looks good, build it", after asking for a draggable mock)
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 5: Repeating events, "This one" or "All of them" (decision 22; small call I; Q1, Q2)"
 - **Branch:** `claude/calendar-fullscreen-pr5-dc232e`, cut from `origin/main` `6656fed` (PR 4 merged as #112)
@@ -306,6 +306,9 @@ touched; STRUCTURE.md caps apply.
   sent to Bryce.
 - 2026-11-11: Bryce asked for a draggable mock (done), then "Looks good,
   build it". Contracts C1 to C3 written.
+- 2026-11-11: C1 done (`15cf257`). `npm ci` in the worktree. C2 dispatched,
+  then stopped before it wrote anything when Bryce asked to pause for a
+  restart. Next: C2, then C3, then the gates.
 
 ## Gate verdicts
 
