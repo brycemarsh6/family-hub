@@ -1,6 +1,6 @@
 # Mission 69: Calendar full screen PR 3, the sliding swipe
 
-- **Status:** DELIVERING (all gates PASS: Captain pass 2, Vision pass 4, Strange pass 4)
+- **Status:** DELIVERED (all gates PASS: Captain pass 2, Vision pass 4, Strange pass 4)
 - **Started:** 2026-11-10 · **Updated:** 2026-11-10
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 3: Sliding swipe (decision 7; small call A)"
 - **Branch:** `claude/calendar-fullscreen-pr3-096354`, synced to `origin/main` `2c2d7df` (PR 1 #109 and PR 2 #110 merged)
@@ -408,6 +408,8 @@ pushes to `main`.
 
 ## Delivery
 
+- **Merged:** as PR #111 (merge commit `f8289db`), Gauntlet green, Vercel
+  production deployment succeeded (deployment 7700852857, 2026-11-10).
 - **Gates:** Captain PASS (pass 2), Vision PASS (pass 4), Strange PASS
   (pass 4). Pass 4 was a fourth, focused pass Bryce allowed
   (2026-11-10, "Yes, one more round") after Strange's pass-3 blocker on
