@@ -199,7 +199,7 @@ touched; STRUCTURE.md caps apply.
 - **Status:** DONE `ec0389f` (new `calendarSeriesRules.ts` 113, `calendarSeriesMove.ts` 123, action `actions/calendarSeries.ts` 101 holding the db and Google bindings; `runPull`/`pullCalendars` take `onlyCalendarId`; `deletePulledEvent` exported from calendarEventPull.ts = the pull's `writeDelete`; `listInstances` in calendarEventCalls.ts 244; npm test 1988, UTC 1978 + 10 skips, tsc, lint, build green; captured PATCH `{"start":{"dateTime":"2026-06-01T07:30:00-06:00","timeZone":"America/Denver"},...}` to the parent with If-Match. `revalidatePath("/calendar")` direct (`refreshCalendarViews` is private in calendar.ts). Stark's note led to C2a)
 
 ### C2a: The pull after "All of them" is never skipped by the lease
-- **Status:** PENDING
+- **Status:** DONE `e8f0b87` (`runPull` option `ignoreLease`: claim with staleBefore now+1 ms, still stamps the lease and still needs twoWay; the series action passes it; +1 test (claimed 5 s ago: series path pulls, plain force skips); npm test 1989, UTC 1979 + 10 skips, tsc, lint, build green)
 - **Why:** the series pull goes through the 30 second force lease. Opening
   the Calendar pulls, so a drop within 30 seconds finds the lease taken: no
   pull, the page refresh redraws the old times over the optimistic move, and
@@ -281,7 +281,7 @@ touched; STRUCTURE.md caps apply.
 - **Done:** one or two commits, all above.
 
 ### C3: The sheet, the client side
-- **Status:** PENDING (after C2)
+- **Status:** IN PROGRESS
 - **Objective:** a drop of a repeating event asks "This one", "All of
   them", Cancel, as in the approved mock.
 - **May touch:** `src/lib/types.ts` (`CalendarEventView.seriesId?:
