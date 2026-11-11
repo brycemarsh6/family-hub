@@ -329,7 +329,7 @@ HEAD` after.
   above at or under their old sizes where required.
 
 ### C4 - Schedule's little month moves into the panel
-- **Status:** PENDING
+- **Status:** DONE `fc27454` (tsc, lint, test 2006 pass, UTC 0 fail 10 skipped, build all exit 0; CalendarViews 493 to 494, ScheduleView 580 to 559; rg finds nothing)
 - **Objective:** (A) the side panel's container cutoff becomes 700px; (B) the wide Schedule's right-hand `ScheduleMiniMonth` and its
   two-column wrapper go; the panel rings Schedule's day in view and a day
   tap scrolls the list (or jumps).
