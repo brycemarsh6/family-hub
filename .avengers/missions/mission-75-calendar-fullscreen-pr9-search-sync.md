@@ -371,3 +371,42 @@ job; never `git add`; no database writes; no migration.
 4. **Evidence:** new test names, counts in both TZ runs, gauntlet tails,
    `git grep -n "Last checked\|Refresh button" -- src` output.
 5. **Done:** all five blockers gone with evidence; nothing outside the list.
+
+### Pass 2 (2026-11-12, HEAD 9fc2012)
+
+- **Captain: PASS.** K1 and K2 fixed. Notes: `HighlightedText` still splits
+  words its own way ("O'Brien" matches but is not highlighted; proposed a
+  pure `highlightParts`); "which calendars get pulled" is now written three
+  times (proposed `isPullableCalendar`); `forms()` is a search-only plural
+  rule; no direct `rawTokens` test; roster copies and page-guard debt carried.
+- **Strange: PASS.** S1 fixed (7 day groups stay under "Searching...");
+  Try again 48px and works; a failed Show more keeps the list. Notes: the
+  alert wraps the button (a screen reader says "Try again" twice); the dark
+  highlight is quiet (1.23:1 fill); pass 1 carry-overs.
+- **Vision: BLOCKED.** Gauntlet green with exit codes (build exit 0). V1,
+  V2 cleared; S1 states traced, none lies.
+  - V3 BLOCKER (present since C2, missed at pass 1): accented letters are
+    dropped by `normalize`, so "cafe" misses "Café lunch", "zoe" misses
+    "Zoë's recital", "pinata" misses "Piñata party"; "me" matches "Crème
+    brûlée" through a stray piece with no highlight.
+  - Notes: lenient false positives ("plus" finds "Plumber", declared);
+    Show more on a stale list asks the live text (harmless).
+
+### F2 - accents fold (last pass)
+
+1. **Objective:** clear V3, plus two cheap notes.
+2. **Boundaries.** May touch: `src/lib/calendarSearch.ts` and its test,
+   `src/components/EventCard.tsx` (`HighlightedText` split regex only),
+   `src/components/CalendarSearch.tsx` (`SearchError`'s `role="alert"` on
+   the `<p>` only; Show more shown only when the answer on screen is the
+   current one). Must not touch `match.ts` or anything else.
+   - A private `fold(text)` (`normalize("NFD")`, strip `\p{M}`) applied
+     before `rawTokens` / `tokens` in `searchWords`, to the joined fields in
+     `matchesSearch`, and to the `word` argument in `matchedPrefixLength`.
+     `HighlightedText` splits on `/([\p{L}\p{M}\p{N}]+)/u`.
+   - Tests: "zoe" finds "Zoë's recital", "pinata" finds "Piñata party",
+     "cafe" finds "Café lunch", `matchedPrefixLength("Café", ["caf"])` is 3,
+     "me" does not match "Crème brûlée".
+3. **Verification:** the full gauntlet, exit codes captured.
+4. **Evidence:** test names, counts both TZ, each command's exit code.
+5. **Done:** V3 gone; nothing outside the list.
