@@ -181,15 +181,21 @@ export function EventDetailSheet({
                 {error}
               </p>
             )}
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={pending}
-              className="flex min-h-14 items-center gap-3 rounded-xl px-3 text-left text-base font-medium text-danger transition-colors active:bg-surface-2 disabled:opacity-50"
-            >
-              <Trash2 aria-hidden="true" size={18} />
-              {pending ? "Deleting…" : "Delete"}
-            </button>
+            {event.deleteBlockedMessage ? (
+              <p className="rounded-xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+                {event.deleteBlockedMessage}
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={pending}
+                className="flex min-h-14 items-center gap-3 rounded-xl px-3 text-left text-base font-medium text-danger transition-colors active:bg-surface-2 disabled:opacity-50"
+              >
+                <Trash2 aria-hidden="true" size={18} />
+                {pending ? "Deleting…" : "Delete"}
+              </button>
+            )}
           </div>
         ) : (
           <>

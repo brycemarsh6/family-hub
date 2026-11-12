@@ -153,7 +153,7 @@ export async function loadCalendarWidget(viewer: HabitActor, today: CalendarDate
   const first = addCalendarDays(today, -1);
   const after = addCalendarDays(today, 10);
   const [events, tasks, habitDays] = await Promise.all([
-    getCalendarEventsInRange(zoneMidnightInstant(first, HOUSEHOLD_TIME_ZONE), zoneMidnightInstant(after, HOUSEHOLD_TIME_ZONE)),
+    getCalendarEventsInRange(zoneMidnightInstant(first, HOUSEHOLD_TIME_ZONE), zoneMidnightInstant(after, HOUSEHOLD_TIME_ZONE), viewer.userId),
     getTasksInDueRange(utcMidnightInstant(first), utcMidnightInstant(after), viewer.userId),
     loadPlannedHabitDays(viewer, utcMidnightInstant(first), utcMidnightInstant(after)),
   ]);

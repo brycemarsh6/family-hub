@@ -143,6 +143,13 @@ export type CalendarEventView = {
    * of them"); the browser never sends it anywhere, the server reads its own.
    */
   seriesId?: string | null;
+  /**
+   * Mission 76: the warn note ("Only Emily can delete this.") when the viewer
+   * may not delete this event, built server-side from the verified viewer by
+   * calendarDeleteRules.ts so the browser never re-implements the rule. Null
+   * or absent means the Delete row shows. deleteCalendarEvent re-checks.
+   */
+  deleteBlockedMessage?: string | null;
 };
 
 /** One linked Google account and its calendars, for the Calendar filter sheet (mission 78). Names and Marshee row ids only. */
@@ -197,6 +204,8 @@ export type CalendarTaskView = {
    * gating purposes" / "hiding UI is never the gate."
    */
   isMine: boolean;
+  /** Mission 76: same as CalendarEventView's: the note that replaces Delete, or null/absent. */
+  deleteBlockedMessage?: string | null;
 };
 
 /**
