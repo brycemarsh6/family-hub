@@ -165,3 +165,77 @@ export function locationLineFits({
   if (!Number.isFinite(heightPx) || !Number.isFinite(needed)) return false;
   return heightPx >= needed;
 }
+
+// Today's rem line heights (font size times leading-tight's 1.25), kept in rem
+// so the pixel maths matches the CSS. CHANGE TOGETHER with the class strings
+// on the title, time and location spans in TimelineDayColumn.tsx: the full
+// title's text-[length:calc(0.75rem*...)], the compact narrow tier's
+// calc(0.625rem*...), the small tier's min(calc(0.75rem*...),12px) leading and
+// the time line's calc(0.5625rem*...).
+export const TITLE_LINE_REM = 0.9375;
+export const COMPACT_NARROW_TITLE_LINE_REM = 0.78125;
+export const SMALL_TITLE_LINE_REM = 0.75;
+export const TIME_LINE_REM = 0.703125;
+/** The small tier never grows past mission 65's 12px line (10px font). */
+export const SMALL_TITLE_LINE_MAX_PX = 12;
+
+export type BlockTextFit = {
+  /** "small" is the 10px font on a 12px line; "full" is the normal size. */
+  tier: "small" | "full";
+  /** Whole title lines in a wide column (and always outside compact mode). */
+  titleLines: number;
+  /** Whole title lines in a compact column under 128px, where the time line is
+   * hidden by CSS and so reserves no room. Equals titleLines when not compact. */
+  titleLinesNarrow: number;
+  timeShown: boolean;
+  locationShown: boolean;
+};
+
+/** Everything a timeline block's text needs decided, in real pixels: which
+ * title tier, how many whole title lines, and whether the time and location
+ * lines show. The component only renders this answer. `heightPx` is the block's
+ * computed height (before the 2px trim); the content box is that minus the 2px
+ * trim and the two 1px borders. Lines x line height + time + location never
+ * exceed the content box, and the title always gets at least one line. */
+export function blockTextFit({
+  heightPx,
+  trueDurationMinutes,
+  rootPx,
+  scale,
+  compact,
+  hasLocation,
+}: {
+  heightPx: number;
+  trueDurationMinutes: number;
+  rootPx: number;
+  scale: number;
+  /** 3 Day and Week columns; the Day view is not compact. */
+  compact: boolean;
+  hasLocation: boolean;
+}): BlockTextFit {
+  const contentPx = Math.max(0, heightPx - 2) - 2;
+  const fullLinePx = TITLE_LINE_REM * rootPx * scale;
+  // The small tier also applies when a full title line would not fit the content
+  // box, so g, y and p never lose their tails.
+  const small = !titleFitsFullSize(heightPx) || fullLinePx > contentPx;
+  const smallLinePx = Math.min(SMALL_TITLE_LINE_REM * rootPx * scale, SMALL_TITLE_LINE_MAX_PX);
+  const titleLinePx = small ? smallLinePx : fullLinePx;
+  const timeLinePx = TIME_LINE_REM * rootPx * scale;
+  const timeShown =
+    showsTimeLine(heightPx, trueDurationMinutes) &&
+    timeLineFits({ heightPx: contentPx, titleLinePx, timeLinePx, paddingPx: 0 });
+  const locationShown =
+    !compact &&
+    hasLocation &&
+    heightPx >= 72 &&
+    locationLineFits({ heightPx: contentPx, titleLinePx, timeLinePx, timeShown });
+  const titleLines = titleLineCount({
+    availablePx: contentPx - (timeShown ? timeLinePx : 0) - (locationShown ? timeLinePx : 0),
+    lineHeightPx: titleLinePx,
+  });
+  const narrowLinePx = small ? smallLinePx : COMPACT_NARROW_TITLE_LINE_REM * rootPx * scale;
+  const titleLinesNarrow = compact
+    ? titleLineCount({ availablePx: contentPx, lineHeightPx: narrowLinePx })
+    : titleLines;
+  return { tier: small ? "small" : "full", titleLines, titleLinesNarrow, timeShown, locationShown };
+}

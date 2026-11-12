@@ -34,10 +34,11 @@
 // copy of either is exactly the kind of drift this mission's own report
 // (`GUTTER_WIDTH_PX`, and the old bottom-nav height) keeps finding.
 
+import type { CSSProperties } from "react";
 import { Repeat } from "lucide-react";
 import { minutesOfDay, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
 import { formatTimeRange, isPast } from "@/lib/calendarDates";
-import { locationLineFits, showsTimeLine, timeLineFits, titleFitsFullSize, titleLineCount, zoomTextScale } from "@/lib/timelineZoom";
+import { blockTextFit, zoomTextScale } from "@/lib/timelineZoom";
 import { useRootFontPx } from "@/lib/useRootFontPx";
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
@@ -64,15 +65,6 @@ import type { CalendarEventView } from "@/lib/types";
 // `./TimelineAllDayStrip.tsx`; mission-18/C1 moved this timed-block use
 // here, out of TimelineGrid.tsx, which is what makes this file — not that
 // one — the place documenting it now.
-
-// Today's rem line heights (font size times leading-tight's 1.25), kept in rem
-// so the pixel maths below matches the CSS. CHANGE TOGETHER: the class strings
-// on the title and time spans below (text-[0.75rem], 0.625rem with its 0.75rem
-// leading, 0.5625rem) mirror these three numbers; edit one side, edit the other. The title's compact tier is
-// 0.78125rem on a narrow column; counting with the wider tier is the safe side.
-const TITLE_LINE_REM = 0.9375;
-const SMALL_TITLE_LINE_REM = 0.75;
-const TIME_LINE_REM = 0.703125;
 
 type TimelineDayColumnProps = {
   day: Date;
@@ -113,7 +105,6 @@ export function TimelineDayColumn({
   // the same numbers in real pixels, so they use the live root font size.
   const rootPx = useRootFontPx();
   const scale = zoomTextScale(pxPerMinute * 60);
-  const timeLinePx = TIME_LINE_REM * rootPx * scale;
   return (
     <div data-day-column className="@container relative border-l border-line">
       {Array.from({ length: hoursPerDay }, (_, hour) => (
@@ -159,26 +150,12 @@ export function TimelineDayColumn({
         // Mission 70: only a timed block on one day may lift
         // (canLiftOnTimeline, timelineDrag.ts; useTimelineDrag.ts lifts it).
         const draggable = canDrag && canLiftOnTimeline(event);
-        // Mission 73: whole title lines in real pixels. The time line shows only
-        // if it truly fits beside one title line (the Largest 15-minute fix), and
-        // whatever shows below the title keeps its room out of the title's lines.
-        const contentPx = drawnHeightPx - 2; // the 1px borders
-        // The small tier also applies when a full title line (22.5px at Largest)
-        // would not fit the content box, so g, y and p never lose their tails.
-        const smallTitle = !titleFitsFullSize(heightPx) || TITLE_LINE_REM * rootPx * scale > contentPx;
-        const titleLinePx = (smallTitle ? SMALL_TITLE_LINE_REM : TITLE_LINE_REM) * rootPx * scale;
-        const timeShown =
-          showsTimeLine(heightPx, trueDurationMinutes) &&
-          timeLineFits({ heightPx: contentPx, titleLinePx, timeLinePx, paddingPx: 0 });
-        const locationShown =
-          !compact &&
-          heightPx >= 72 &&
-          !!event.location &&
-          locationLineFits({ heightPx: contentPx, titleLinePx, timeLinePx, timeShown });
-        const titleLines = titleLineCount({
-          availablePx: contentPx - (timeShown ? timeLinePx : 0) - (locationShown ? timeLinePx : 0),
-          lineHeightPx: titleLinePx,
-        });
+        // Mission 73: one pure function (timelineZoom.ts blockTextFit) decides the
+        // title tier, the whole title lines, and whether the time and location
+        // lines fit in real pixels; this file only renders its answer.
+        const fit = blockTextFit({ heightPx, trueDurationMinutes, rootPx, scale, compact, hasLocation: !!event.location });
+        const { timeShown, locationShown } = fit;
+        const oneLine = fit.titleLines === 1 && fit.titleLinesNarrow === 1;
         return (
           <button
             key={slot.block.id}
@@ -247,17 +224,27 @@ export function TimelineDayColumn({
                 flex-shrink only touches the cross axis (height)
                 here, not the width truncation depends on. */}
             {/* @min-[128px] is px on purpose (mission-58): in rem it would move with Text size. */}
-            {/* mission-65: under 20px tall the title takes a 12px line so it fits whole. */}
+            {/* mission-65: under 20px tall the title takes a 12px line so it fits whole; mission-73 caps the small tier there at every zoom and Text size. */}
+            {/* Mission 73: a compact column under 128px hides the time line, so it gets its own, larger line count. CHANGE TOGETHER with timelineZoom.ts's *_LINE_REM: the classes below are text-[length:calc(0.75rem*...)] (full), calc(0.625rem*...) (compact narrow), min(calc(0.625rem*...),10px) with a min(calc(0.75rem*...),12px) leading (small) and calc(0.5625rem*...) (time and location). */}
             <span
-              className={`font-semibold break-words hyphens-auto ${
-                smallTitle
-                  ? "text-[length:calc(0.625rem*var(--zoom-text-scale,1))] leading-[calc(0.75rem*var(--zoom-text-scale,1))]"
+              className={`font-semibold break-words [-webkit-line-clamp:var(--clamp-narrow)] @min-[128px]:[-webkit-line-clamp:var(--clamp-wide)] ${
+                oneLine ? "hyphens-manual" : "hyphens-auto"
+              } ${
+                fit.tier === "small"
+                  ? "text-[length:min(calc(0.625rem*var(--zoom-text-scale,1)),10px)] leading-[min(calc(0.75rem*var(--zoom-text-scale,1)),12px)]"
                   : compact
                     ? "text-[length:calc(0.625rem*var(--zoom-text-scale,1))] @min-[128px]:text-[length:calc(0.75rem*var(--zoom-text-scale,1))]"
                     : "text-[length:calc(0.75rem*var(--zoom-text-scale,1))]"
               }`}
-              // Mission 73: a line clamp of whole lines, not one truncated line.
-              style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: titleLines, overflow: "hidden" }}
+              style={
+                {
+                  display: "-webkit-box",
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  "--clamp-narrow": fit.titleLinesNarrow,
+                  "--clamp-wide": fit.titleLines,
+                } as CSSProperties
+              }
             >
               {event.title}
               {/* Mission 71: a repeating event's mark. It sits inside the
