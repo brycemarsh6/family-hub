@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { RadioSheet } from "./RadioSheet";
 import { EventDetailSheet } from "./EventDetailSheet";
-import { TaskDetailSheet } from "./TaskDetailSheet";
+import { CalendarTaskSheet } from "./CalendarTaskSheet";
 import { CALENDAR_VIEW_OPTIONS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
@@ -28,15 +28,8 @@ import type { CalendarEventView, CalendarPersonView, CalendarTaskView } from "@/
  * mission 68 removed the Add sheet: the Calendar's + now opens
  * `CalendarAddDial`'s bubbles, which keep their own open state.
  *
- * `ScheduleView.tsx` mounts its OWN `EventDetailSheet`/`TaskDetailSheet`
- * (its own comment says "same as CalendarViews.tsx already does") — this
- * component does not replace that copy. Routed to Captain as a
- * one-source-of-truth question for a later contract; fixing it isn't this
- * one's job. The prop names below are deliberately about WHAT closes and
- * WHAT changed (`onCloseSelected`, `onCloseTask`) rather than anything
- * specific to `CalendarViews`' own state variable names, so a future
- * contract collapsing the two copies has a prop surface to reuse rather
- * than one welded to this caller.
+ * `ScheduleView.tsx` mounts its own `EventDetailSheet`; the task sheet is the one
+ * `CalendarTaskSheet` mount both share (mission 75).
  */
 type CalendarSheetsProps = {
   view: CalendarPeriodView;
@@ -103,26 +96,15 @@ export function CalendarSheets({
       )}
 
       {selectedTask && (
-        <TaskDetailSheet
+        <CalendarTaskSheet
           task={selectedTask}
           people={people}
           canManage={canManage}
           isTablet={isTablet}
           onClose={onCloseTask}
-          onChanged={() => {
-            clearTaskDone(selectedTask.id);
-            router.refresh();
-          }}
-          onCompleted={() => {
-            onCloseTask();
-            router.refresh();
-            onTaskCompleted(selectedTask.id, () => router.refresh());
-          }}
-          onDeleted={() => {
-            clearTaskDone(selectedTask.id);
-            onCloseTask();
-            router.refresh();
-          }}
+          onTaskCompleted={onTaskCompleted}
+          clearTaskDone={clearTaskDone}
+          refresh={() => router.refresh()}
         />
       )}
     </>
