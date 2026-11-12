@@ -79,6 +79,8 @@ type ScheduleViewProps = {
   applyDone: (tasks: CalendarTaskView[]) => CalendarTaskView[];
   /** Any other change to a task drops its optimistic tick before the refresh. */
   clearTaskDone: (taskId: string) => void;
+  /** Hands the loaded rows' tasks up so an override the server's rows agree with drops (also outside the page's window). */
+  pruneTaskDoneWith: (tasks: CalendarTaskView[]) => void;
   /**
    * mission-15/C8 (B1) — reports whether TODAY's own row is genuinely on
    * screen right now. CalendarViews.tsx forwards this straight into the
@@ -164,6 +166,7 @@ export function ScheduleView({
   onTaskCompleted,
   applyDone,
   clearTaskDone,
+  pruneTaskDoneWith,
   onTodayVisibleChange,
   onDayInViewChange,
   trackDayInView,
@@ -194,6 +197,11 @@ export function ScheduleView({
   } = useScheduleWindow(initialDay, today, fetchers);
   // Planned habit days (decision 146), folded into the loaded months.
   const { months, habitDaysLoaded, habitDaysFailed } = useScheduleHabitDays(loadedMonths, windowStart, windowEnd, fetchHabitDays);
+
+  // Mission 74 (F3): the rows are the server's answer for these days; an override they agree with drops.
+  // `months` gets a new identity often, but the prune returns the same map when nothing drops: no loop.
+  const loadedTasks = useMemo(() => months.flatMap((m) => m.days.flatMap((d) => d.tasks)), [months]);
+  useEffect(() => pruneTaskDoneWith(loadedTasks), [loadedTasks, pruneTaskDoneWith]);
 
   // Until the habit days load (or fail, which shows its own line), today's
   // row cannot be called empty.

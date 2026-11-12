@@ -37,24 +37,25 @@ export type TaskCompletedBar = {
   showBar: ShowBar;
   closeBar: () => void;
   taskId: string;
-  /** When the tick happened, put back if an Undo is refused or fails. */
-  completedAt: Date;
   /** Redraws the task from the server. */
   refresh: () => void;
   /** The server action behind the sheet's "Mark not complete" (CalendarViews hands in `uncompleteTask`). */
   uncomplete: (taskId: string) => Promise<{ error?: string }>;
   /** The optimistic tick (taskDoneOverrides.ts): a Date draws it done, null not done. */
   setDone: (taskId: string, completedAt: Date | null) => void;
+  /** Drops the task's optimistic tick so the server's answer shows (CalendarViews' `clearTaskDone`). */
+  clearDone: (taskId: string) => void;
 };
 
 /**
  * The bar after "Mark complete": "Task completed" with Undo. Undo un-ticks the
  * task at once, then calls `uncomplete` (the server decides who may: parents
  * any time, a person on the task within 60 seconds, src/lib/taskUndoRules.ts)
- * and `refresh()` redraws it. A refusal or a thrown error puts the tick back
- * and shows a warn bar. No new bar follows a successful Undo.
+ * and `refresh()` redraws it. A refusal or a thrown error drops the override
+ * (`clearDone`), redraws from the server, and shows a warn bar, so no guessed
+ * tick outlives the server's answer. No new bar follows a successful Undo.
  */
-export function showTaskCompleted({ showBar, closeBar, taskId, completedAt, refresh, uncomplete, setDone }: TaskCompletedBar) {
+export function showTaskCompleted({ showBar, closeBar, taskId, refresh, uncomplete, setDone, clearDone }: TaskCompletedBar) {
   showBar({
     message: "Task completed",
     tone: "neutral",
@@ -62,13 +63,14 @@ export function showTaskCompleted({ showBar, closeBar, taskId, completedAt, refr
     onAction: () => {
       closeBar();
       setDone(taskId, null);
-      const putBack = (message: string) => {
-        setDone(taskId, completedAt);
+      const fail = (message: string) => {
+        clearDone(taskId);
+        refresh();
         showBar({ message, tone: "warn" });
       };
       uncomplete(taskId).then(
-        (result) => (result.error ? putBack(result.error) : refresh()),
-        () => putBack("Couldn't undo. Try again."),
+        (result) => (result.error ? fail(result.error) : refresh()),
+        () => fail("Couldn't undo. Try again."),
       );
     },
   });

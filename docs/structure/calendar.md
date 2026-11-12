@@ -241,11 +241,14 @@ docs/history/structure-rationale.md under the same name.
   imports from `app/`.
 - **Ticks are optimistic.** `CalendarViews` holds one `Map<taskId, Date | null>`
   (`taskDoneOverrides.ts`): Mark complete and Undo set it at once, every view
-  draws `applyTaskDone(tasks, map)` (Schedule through its `applyDone` prop),
-  and the map is pruned when a fresh `tasks` prop agrees. A refused or failed
-  Undo puts the tick back with a warn bar. Any other change (Mark not
-  complete, Edit, Delete) calls `clearTaskDone(taskId)` from both sheet mounts
-  first, so a stale tick never hides the server's answer.
+  draws `applyTaskDone(tasks, map)` (Schedule through its `applyDone` prop).
+  An override never outlives the server's answer: it is pruned when a fresh
+  `tasks` prop agrees, and when Schedule's own loaded rows agree
+  (`pruneTaskDoneWith`, which also covers days outside the page's window). A
+  refused or failed Undo drops the override (`clearDone`), refreshes and shows
+  a warn bar. Any other change (Mark not complete, Edit, Delete) calls
+  `clearTaskDone(taskId)` from both sheet mounts first, which also closes that
+  task's own "Task completed" bar (never a move's).
 - **Who may undo** is `taskUndoRules.ts` (`uncompleteRefusal`,
   `TASK_UNDO_WINDOW_MS` = 60 s), enforced by the server action: parents any
   time, a person on the task (or the Tablet) within 60 seconds. What the
