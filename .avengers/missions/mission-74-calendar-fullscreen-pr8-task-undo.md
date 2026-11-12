@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** BUILDING F4 (Bryce allowed one extra fix and a fourth Vision pass, 2026-11-11: "Okay let's run it") (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** AT-THE-GATES Vision pass 4, F4 DONE (Bryce allowed one extra fix and a fourth Vision pass, 2026-11-11: "Okay let's run it") (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -437,3 +437,5 @@ reasons: say so, do not hide it).
    `git show --stat HEAD`, the sequence walk-through with line numbers.
 6. **Done:** a re-render alone never prunes; Strange's pass 3 behaviours
    unchanged.
+
+- **F4 status:** DONE (Stark: `taskStatesKey` from the raw rows drives the prune effect; new `pruneTaskDoneByState` with 4 tests; npm test 2060 pass, build 0 captured directly; ScheduleView 603).
