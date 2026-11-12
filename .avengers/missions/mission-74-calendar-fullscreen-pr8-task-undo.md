@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** AT-THE-GATES (C1, C2 DONE) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** BUILDING F1 (gate pass 1: Vision PASS, Captain BLOCKED, Strange BLOCKED) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -196,4 +196,90 @@ reasons: say so, do not hide it).
 
 ## Gates
 
-(pass 1 dispatched 2026-11-11)
+### Pass 1 (2026-11-11, HEAD 24c6703)
+
+- **Vision: PASS.** Gauntlet re-run green (tsc 0, lint 0, 2048 pass, UTC
+  2038 + 10 skips, build 0); boundaries clean. Notes: `useUndoBar.ts`
+  Undo has no `.catch` (a network failure is silent); `tabletRules.ts`
+  comment still says un-complete is parent-only; by design a person on
+  the task (or the Tablet) can undo someone else's tick within 60 s
+  (answer 3); the crossed-out look waits for the refresh.
+- **Captain: BLOCKED.** BLOCKER: `src/lib/useUndoBar.ts` imports the
+  `uncompleteTask` Server Action from `app/` (STRUCTURE.md Layout map,
+  `src/lib/` "What never lives here"; `useEventMoves.ts` takes its actions
+  as closures). Notes: `assertCanCompleteTask` repeats the `NOT_ON_TASK`
+  string; the Tablet's undo reuses `tabletMayCompleteAnyTask` (flag for
+  Tablet PR B: one switch flips both); `mayCompleteTask` lives in an
+  undo-named file (rename to `taskRules.ts` if a third rule arrives); the
+  STRUCTURE.md Calendar trend list is stale (amendment wording given);
+  `docs/structure/calendar.md` is now 249 lines.
+- **Strange: BLOCKED.** BLOCKER: the list contradicts the bar for a
+  server round trip. After Mark complete the bar says "Task completed"
+  while the task is still drawn unchecked until the refresh lands; after
+  Undo the bar closes and the task stays crossed out for two round trips
+  (DESIGN.md "Instant feedback": a reversible state flip must be
+  optimistic). Notes: bar placement passes everywhere (16px clear of the
+  +, above the safe area, never over the pinned sidebar; Undo 64x48 on
+  the phone, 96x72 on the Tablet at Largest); kid and Tablet logins have
+  no + so the bar keeps an empty right gap (fine); the warn refusal
+  matches the mock; who sees which button matches the mock. Harness and
+  shots: this session's scratchpad `strange/`.
+
+## Fix contracts
+
+### F1 - optimistic task ticks, the action handed in, the notes folded in
+
+1. **Objective:** the list flips at once on Mark complete and on Undo
+   (reverting on refusal or failure), `useUndoBar.ts` no longer imports
+   from `app/`, and the cheap gate notes are folded in.
+2. **Boundaries:**
+   - May touch: `src/lib/useUndoBar.ts`, new `src/lib/taskDoneOverrides.ts`,
+     new `src/lib/taskDoneOverrides.test.ts`, `src/components/CalendarViews.tsx`,
+     `src/components/ScheduleView.tsx`, `src/app/actions/tasks.ts` (the
+     `NOT_ON_TASK` import only), `src/lib/tabletRules.ts` (its doc comment
+     only), `docs/structure/calendar.md`, `STRUCTURE.md` (the Calendar
+     trend list under "Soft cap: 350 lines" only).
+   - Must not touch: `DESIGN.md`, `src/components/UndoBar.tsx`,
+     `src/components/TaskDetailSheet.tsx`, `src/components/CalendarSheets.tsx`,
+     `src/lib/taskUndoRules.ts`, `TimelineGrid.tsx`, `prisma/`, `package.json`.
+3. **Work:**
+   - Optimistic layer: a pure module `src/lib/taskDoneOverrides.ts` (new)
+     with `applyTaskDone(tasks, overrides)` (returns tasks with each
+     overridden `completedAt` swapped in; same array when no override
+     touches it) and `pruneTaskDone(overrides, serverTasks)` (drops an
+     override once the server's task agrees on done/not done; keeps it
+     otherwise), plus tests. `CalendarViews` holds one
+     `Map<taskId, Date | null>` in state, prunes it when the `tasks` prop
+     changes, and hands `applyTaskDone(tasks, overrides)` to every view
+     it renders; `ScheduleView` gets the map (or an apply function) and
+     applies it to its own windowed `row.tasks` too.
+   - `onTaskCompleted` sets the task done in the map before refreshing.
+   - `showTaskCompleted` takes the action and the setter as arguments
+     (an options object is fine): `uncomplete: (id) => Promise<{ error?: string }>`
+     and `setDone(id, completedAt | null)`. Undo: `closeBar()`, set not
+     done at once, call `uncomplete`; on success refresh; on refusal put
+     back the completed time and show the warn bar with the server's
+     message; on a thrown error (network) put it back and show the warn
+     bar "Couldn't undo. Try again." (Fury: the app's own "Couldn't ...
+     Try again." pattern; reported to Bryce). `CalendarViews` imports
+     `uncompleteTask` and passes it in; delete the import from
+     `useUndoBar.ts` and fix its comments.
+   - `tasks.ts`: `assertCanCompleteTask` returns the imported `NOT_ON_TASK`.
+   - `tabletRules.ts`: the comment now says the Tablet may also undo a
+     completion within `TASK_UNDO_WINDOW_MS` (`taskUndoRules.ts`).
+   - `docs/structure/calendar.md`: "Only `TaskDetailSheet.tsx` and
+     `CalendarViews.tsx` import `uncompleteTask`; `CalendarViews` hands it
+     to `showTaskCompleted`, so `useUndoBar.ts` never imports from `app/`",
+     and one line on the overrides map.
+   - `STRUCTURE.md` trend list: update the `ScheduleView.tsx`,
+     `CalendarViews.tsx` and `useEventMoves.ts` entries and add
+     `TaskDetailSheet.tsx` and `actions/tasks.ts` entries with the real
+     after-F1 counts (Captain's wording in the Gates section is the model).
+4. **Verification:** gauntlet as above; `grep -rn "@/app" src/lib` shows
+   no import (comments aside); line counts of every touched file
+   before/after (CalendarViews and ScheduleView stay under 650).
+5. **Evidence:** test names and the new total, the grep, line counts,
+   `git show --stat HEAD`.
+6. **Done:** in Strange's harness the task is crossed out the moment the
+   sheet closes and un-crossed the moment Undo is tapped; a refusal puts
+   the tick back with the warn bar.
