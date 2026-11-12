@@ -1,6 +1,6 @@
 # Mission 73: Calendar full screen PR 7, the all-day row like Google and text that zooms
 
-- **Status:** AT-THE-GATES (Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
+- **Status:** DELIVERING (all gates PASS: Vision pass 3, Strange pass 3 scoped, Captain pass 1) (Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 7: The all-day row like Google, and text that zooms (decisions 9, 13; answer 4)"
 - **Branch:** `claude/calendar-fullscreen-pr7-ba468d`, cut from `origin/main` `c466dc7` (PR 6 merged as #114)
@@ -385,5 +385,76 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
   compact titles lose a line to a hidden time line (N2); "Piano les-..."
   hyphen before an ellipsis (N3); location is Day only by design.
 - Fix batch F2 dispatched (Vision's blocker plus N2, N3).
+- Pass 3: Vision full, Strange scoped (F2 only), at `14a7293`.
+- **Vision pass 3: PASS.** Gauntlet all exit 0 (2036; UTC 2026 + 10
+  skips; build 0); boundary clean; independent sweep of 1,355,904 cases
+  over `blockTextFit` plus the rendered CSS: 0 overflows (positive control
+  without the CSS cap: 8,226). NOTEs: one-line hyphenation still `auto`
+  in compact columns 128px and wider when only the wide count is 1
+  (cosmetic, later: split `hyphens-*` by the same `@min-[128px]`); the JS
+  `Math.min` cap has no effect on any output today (only the CSS cap
+  matters, and no unit test can see CSS); an unused CSS class generated
+  from this mission file's own contract text (harmless).
+- **Strange pass 3 (scoped to F2): PASS.** 141 screens, 0 cuts, 0
+  console errors; at the Largest pinch floor (32 and 43 px an hour) the
+  small tier is exactly 10px on 12px, one line, whole; narrow Week
+  columns gained lines (72 blocks gained, 0 lost); one-line titles no
+  longer end "les-..."; no regressions in the 48 shared configs. NOTEs:
+  a two-line clamp can end "pre-..." (cosmetic, later: `hyphens-manual`
+  up to two lines, check Safari first); "Denti|st" breaks without a
+  hyphen in 38px columns (unchanged, Safari may differ).
 
 ## Delivery
+
+- **Gates:** Vision PASS (pass 3), Strange PASS (pass 3, scoped to F2),
+  Captain PASS (pass 1). Fix contracts F1 (location from real pixels,
+  `break-words hyphens-auto`, small tier from real pixels, cached root
+  font size) and F2 (one pure `blockTextFit` with a 56,672-case grid
+  test, the small tier capped at a 12px line, narrow compact clamp,
+  `hyphens-manual` on one line).
+- **Built:** `TIMELINE_ALL_DAY_LANES = 2`, `timelineAllDayItems`,
+  `allDayHiddenCount`, `pageAllDayHiddenCount` (`src/lib/timelineAllDay.ts`);
+  `zoomTextScale` (1 at 48px an hour and below, 1.5 at 192), `titleLineCount`,
+  `timeLineFits`, `locationLineFits`, `blockTextFit` (`timelineZoom.ts`);
+  `allDayMoreLabel`, `allDayMoreAriaLabel`, the chevron labels
+  (`calendarViewVocabulary.ts`); `AllDayToggle.tsx` (the chevron);
+  `TimelineAllDayBar.tsx` (bars moved out of the strip, 424 to 261 lines);
+  one open state per page owned by `TimelineGrid.tsx`, which sets
+  `--zoom-text-scale` beside `--hour-height`; `useRootFontPx.ts`
+  (`readRootFontPx`); hour labels `whitespace-nowrap` and
+  `text-[min(0.625rem,12px)]`.
+- **Bryce's design calls:** the mock and all seven recommendations
+  ("Yes", 2026-11-11). Fury's ruling inside recommendation 6: a true
+  15-minute event at Normal and 48px an hour shows its title only.
+- **Folded in:** iPad Largest hour labels wrapping (mission 67, 70
+  notes); the Largest 15-minute title and time overlap (mission 71);
+  short titles losing letter tails at Largest (mission 65).
+- **Tests:** npm test 2017 to 2036; UTC 2026 pass + 10 skips.
+- **Not proven by any agent:** real iOS Safari (hyphenation and word
+  breaks may differ from Chrome) and the signed-in app; visuals came from
+  Strange's harness mounting the real components with production CSS
+  (this session's scratchpad `strange/`).
+- **Left for later:** a clamp of one or two lines can end "pre-..." in
+  some columns (`hyphens-manual` up to two lines, split by `@min-[128px]`);
+  Month still says "+3 more" (decision 13: "3 more"; its words move into
+  `calendarViewVocabulary.ts`, never a second inline copy);
+  `TimelineGrid.tsx` at 400 lines (next feature moves the all-day open
+  state, the key reset and the hidden count into `src/lib/useAllDayExpand.ts`);
+  `appChrome.ts` keeps its own root font read (switch to `readRootFontPx`
+  on its next touch); the all-day count button is 24px tall (DESIGN.md
+  timeline exception (c); the 44px chevron does the same job); the JS
+  `Math.min` cap has no test that can see the CSS one.
+- **Phone test:** in `.avengers/status.md`.
+
+### Hand-over for PR 8 (Task completed, Undo)
+
+- Read the plan's "PR 8" section, `docs/structure/calendar.md`, and the
+  shared undo bar from the drag PR (`UndoBar`, mission 70) before writing
+  a new one: the plan says to reuse it.
+- `TimelineGrid.tsx` is at 400 lines and `CalendarViews.tsx` at 494: PR 8
+  should not need either, but if it does, extract first (the
+  `useAllDayExpand.ts` seam above).
+- The all-day row now opens tasks through `AllDayTaskBar` in
+  `TimelineAllDayBar.tsx`; `TaskDetailSheet` is mounted in
+  `CalendarSheets` and `ScheduleView` (plan).
+- Take the next mission number from `origin/main` (expect 74).
