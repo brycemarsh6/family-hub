@@ -139,7 +139,7 @@ files named beside it.
 - **Calendar**: Month, Year, Schedule and hour-timeline views, tasks, a
   month dropdown (an iPad side panel, 72), sliding swipe (69), pinch zoom
   (65), drag (70) and its This one or All of them (71), task Undo (74),
-  Search (75), no Refresh. Read `.avengers/plans/calendar-fullscreen-v1.md`
+  Search (75), a Filter by person and calendar (78), no Refresh. Read `.avengers/plans/calendar-fullscreen-v1.md`
   and `docs/structure/calendar.md` (plus `calendar-tasks-search.md`) before any calendar work.
 - **Google Calendar link** (`/settings/calendars`, parents and admins): link
   Google accounts, choose each calendar's sync direction. Refresh tokens are

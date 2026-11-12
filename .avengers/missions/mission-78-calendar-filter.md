@@ -139,6 +139,7 @@ C1 then C2, sequential (C2 imports C1's files).
 - 2026-11-12: pass 1: Captain PASS, Vision and Strange BLOCKED (stale-id trap; phone title). C3 written and dispatched. Open question for Bryce: does anyone use a 375-wide phone (iPhone mini or SE)?
 - 2026-11-12: C3 DONE (f59034c). Gates pass 2: Vision and Strange. Captain not re-run (C3 applied his own NOTEs; Vision carries the structure subset).
 - 2026-11-12: Bryce: "No small iPhone in the family" (375 truncation left as is). Pass 2: Vision PASS, Strange PASS. All gates pass. Next: sync with main, PR, Gauntlet, merge.
+- 2026-11-12: merged origin/main (mission 76, PR #119; it split calendar.md into calendar-tasks-search.md) cleanly; full gauntlet on the merge: npm test 2125/2125, TZ=UTC 2115 pass 0 fail, tsc, eslint, build exit 0. Top bar note, CLAUDE.md calendar line and Bryce's phone test added.
 
 ## Delivery
 
