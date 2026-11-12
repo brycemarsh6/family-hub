@@ -3,11 +3,13 @@
 // hoisted it out of MonthCell.tsx and EventCard.tsx's two byte-identical
 // private copies. mission-17/C5 added `bandedBackground` for the same
 // reason: MonthCell.tsx's `pillBackground` and TimelineGrid.tsx's
-// `blockBackground` were a second byte-identical pair.
+// `blockBackground` were a second byte-identical pair. Mission 77 replaced
+// that with `personFill` (solid when live, a wash plus stripe when faded).
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { hexToRgba, bandedBackground } from "./color";
+import { hexToRgba, personFill } from "./color";
+import { AVATAR_COLORS } from "./constants";
 
 test("hexToRgba: converts a 6-digit hex string with the given alpha", () => {
   assert.equal(hexToRgba("#000000", 0.1), "rgba(0, 0, 0, 0.1)");
@@ -26,23 +28,56 @@ test("hexToRgba: passes alpha through unchanged, including 0", () => {
   assert.equal(hexToRgba("#336699", 0.05), "rgba(51, 102, 153, 0.05)");
 });
 
-test("bandedBackground: an empty color list falls back to a flat surface, not an empty gradient", () => {
-  assert.equal(bandedBackground([], 0.1), "var(--surface-2)");
+test("personFill: no people is today's flat fallback with no text treatment of its own", () => {
+  for (const faded of [false, true]) {
+    const fill = personFill([], faded, 4);
+    assert.equal(fill.look, "none");
+    assert.equal(fill.background, "var(--surface-2)");
+    assert.equal(fill.textClass, "");
+    assert.deepEqual(fill.style, { background: "var(--surface-2)" });
+  }
 });
 
-test("bandedBackground: one color is one full-width band over the opaque surface backdrop", () => {
-  const result = bandedBackground(["#336699"], 0.1);
-  assert.equal(
-    result,
-    "linear-gradient(135deg, rgba(51, 102, 153, 0.1) 0%, rgba(51, 102, 153, 0.1) 100%), var(--surface)",
-  );
+test("personFill: live with people is solid bands at full strength, white text, no stripe", () => {
+  const fill = personFill(["#000000", "#ffffff"], false, 4);
+  assert.equal(fill.look, "solid");
+  assert.equal(fill.textClass, "text-white");
+  assert.equal(fill.background, "linear-gradient(135deg, #000000 0%, #000000 50%, #ffffff 50%, #ffffff 100%)");
+  assert.equal(fill.style.borderLeftColor, undefined);
+  assert.equal(fill.style.borderLeftWidth, undefined);
 });
 
-test("bandedBackground: two colors split into two equal-width bands, in the order given", () => {
-  const result = bandedBackground(["#000000", "#ffffff"], 0.1);
+test("personFill: faded is a 15% wash over the surface, muted-strong text, stripe in the FIRST hex", () => {
+  const fill = personFill(["#336699", "#ffffff"], true, 4);
+  assert.equal(fill.look, "faded");
+  assert.equal(fill.textClass, "text-muted-strong");
   assert.equal(
-    result,
-    "linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.1) 50%, " +
-      "rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.1) 100%), var(--surface)",
+    fill.background,
+    "linear-gradient(135deg, rgba(51, 102, 153, 0.15) 0%, rgba(51, 102, 153, 0.15) 50%, " +
+      "rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 100%), var(--surface)",
   );
+  assert.equal(fill.style.borderLeftColor, "#336699");
+  assert.equal(fill.style.borderLeftWidth, "4px");
+});
+
+test("personFill: a stripe width of 0 draws no stripe (a Month bar's continuing segment)", () => {
+  const fill = personFill(["#336699"], true, 0);
+  assert.equal(fill.look, "faded");
+  assert.equal(fill.style.borderLeftColor, undefined);
+  assert.equal(fill.style.borderLeftWidth, undefined);
+});
+
+function luminance(hex: string): number {
+  const channel = (i: number) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+}
+
+test("AVATAR_COLORS: white text clears 4.5:1 on every swatch", () => {
+  for (const { name, hex } of AVATAR_COLORS) {
+    const ratio = 1.05 / (luminance(hex) + 0.05);
+    assert.ok(ratio >= 4.5, `${name} ${hex} is ${ratio.toFixed(2)}:1`);
+  }
 });

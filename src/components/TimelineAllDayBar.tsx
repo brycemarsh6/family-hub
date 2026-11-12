@@ -9,7 +9,7 @@
 
 import type { CSSProperties } from "react";
 import { avatarColorHex } from "@/lib/constants";
-import { bandedBackground } from "@/lib/color";
+import { personFill } from "@/lib/color";
 import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
 
 const ZOOM = "var(--zoom-text-scale, 1)";
@@ -43,6 +43,7 @@ export function AllDayTaskBar({
 }) {
   const completed = task.completedAt !== null;
   const colors = task.people.slice(0, 3).map((p) => avatarColorHex(p.avatarColor));
+  const fill = personFill(colors, completed, 3);
   // A task is always single-day (CalendarTaskView's own comment:
   // "exactly one due date, never a span"), so unlike an event bar it
   // never has an open/continuing edge to draw — always fully
@@ -58,12 +59,14 @@ export function AllDayTaskBar({
       // identical fact.
       aria-label={completed ? `${task.title}, completed` : task.title}
       className={`truncate rounded border px-1 text-left font-semibold ${
-        completed ? "border-muted text-muted" : "border-fg text-fg"
+        fill.look === "none"
+          ? completed ? "border-muted text-muted" : "border-fg text-fg"
+          : `border-transparent ${fill.textClass}`
       }`}
       style={{
         gridColumn,
         gridRow,
-        background: bandedBackground(colors, completed ? 0.05 : 0.1),
+        ...fill.style,
         ...allDayPillSize(hasCorner),
       }}
     >
@@ -106,14 +109,19 @@ export function AllDayEventBar({
   onOpen: () => void;
 }) {
   const colors = event.people.slice(0, 3).map((p) => avatarColorHex(p.avatarColor));
+  // Mission 77: all-day events have no past look today, so they stay solid.
+  // The border is transparent (it keeps the box size) unless nobody is on it.
+  const fill = personFill(colors, false);
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={`truncate border-y px-1 text-left font-semibold text-fg border-fg ${
+      className={`truncate border-y px-1 text-left font-semibold ${
+        fill.look === "none" ? "text-fg border-fg" : `border-transparent ${fill.textClass}`
+      } ${
         continuesBefore ? "" : "rounded-l border-l"
       } ${continuesAfter ? "" : "rounded-r border-r"}`}
-      style={{ gridColumn, gridRow, background: bandedBackground(colors, 0.1), ...allDayPillSize(hasCorner) }}
+      style={{ gridColumn, gridRow, ...fill.style, ...allDayPillSize(hasCorner) }}
     >
       {event.title}
     </button>

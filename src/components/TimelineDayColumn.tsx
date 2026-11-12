@@ -41,30 +41,16 @@ import { formatTimeRange, isPast } from "@/lib/calendarDates";
 import { blockTextFit, zoomTextScale } from "@/lib/timelineZoom";
 import { useRootFontPx } from "@/lib/useRootFontPx";
 import { avatarColorHex } from "@/lib/constants";
-import { bandedBackground } from "@/lib/color";
+import { personFill } from "@/lib/color";
 import { canLiftOnTimeline } from "@/lib/timelineDrag";
 import type { CalendarEventView } from "@/lib/types";
 
-// `bandedBackground` (src/lib/color.ts, up to 3 diagonal bands — Month's
-// own cap, EventCard.tsx's own comment for why THIS pill is capped tighter
-// than EventCard's uncapped list version) used to be a private copy inside
-// TimelineGrid.tsx named `blockBackground`, under a comment claiming it was
-// "a private, minimal variant, not a copy." That claim was WRONG — Fury
-// diffed it against MonthCell.tsx's own `pillBackground` and found the two
-// byte-for-byte identical, only reachable because mission-17's C2/C3
-// contracts put the two files in DIFFERENT boundaries, neither allowed to
-// touch the other's. mission-17/C5 hoisted it into color.ts; see that
-// file's own header for the fuller reasoning and why EventCard.tsx's
-// `bandBackground` stays a genuinely separate function. `alpha`/opaque
-// `var(--surface)` backdrop and the two alpha values used below (0.10 live
-// / 0.05 past-or-done) are EventCard's own already-measured numbers
-// (mission-8/Strange: worst case 4.64:1 light / 5.53:1 dark across all 8
-// AVATAR_COLORS) — reusing the identical inputs is what makes reusing that
-// finding valid here too, with no new contrast pass needed. mission-17/C6
-// moved the all-day strip's own use of this function to
-// `./TimelineAllDayStrip.tsx`; mission-18/C1 moved this timed-block use
-// here, out of TimelineGrid.tsx, which is what makes this file — not that
-// one — the place documenting it now.
+// Mission 77: a block is painted by `personFill` (src/lib/color.ts), up to 3
+// diagonal bands (Month's own cap). Live: solid bands, white text. Past: a 15%
+// wash, a 4px stripe in the first person's colour, `text-muted-strong`. No
+// people: today's flat look. (This file took the timed-block use from
+// TimelineGrid.tsx in mission-18/C1; the all-day strip's lives in
+// TimelineAllDayBar.tsx.)
 
 type TimelineDayColumnProps = {
   day: Date;
@@ -121,6 +107,7 @@ export function TimelineDayColumn({
         if (!event) return null; // defensive; every block came from `timed`/`eventById`
         const past = isPast(event.endAt, now); // real "now", not day-granular `today` — see above
         const colors = event.people.slice(0, 3).map((p) => avatarColorHex(p.avatarColor));
+        const fill = personFill(colors, past, 4);
         // The library's own padded geometry — used for "is there
         // room for a second/third line" thresholds below, which
         // care about the box's real computed size, not the 2px
@@ -162,11 +149,9 @@ export function TimelineDayColumn({
             type="button"
             data-drag-id={draggable ? event.id : undefined}
             onClick={() => onOpenEvent(event, day)}
-            // D5 ("contrast by border, not alpha" — C7's Month-pill
-            // ruling applies here too): the fill alone (0.05/0.10
-            // alpha) measures under WCAG's 3:1 non-text floor by
-            // itself, so a solid `border-fg`/`border-muted` carries
-            // the real contrast, exactly MonthCell's own technique.
+            // Mission 77: the fill is solid (live) or a wash plus a left stripe
+            // (past), so the border is transparent: it only keeps the box size.
+            // With no people the old border-fg/border-muted outline stays.
             //
             // 44px NOTE — Strange's ruling (mission-17, gate round
             // 1): "accept the height, reject the abutment." At the
@@ -195,7 +180,9 @@ export function TimelineDayColumn({
             // `scale` does not multiply the move; its glide home eases
             // `translate`; while lifted it follows in steps.
             className={`absolute flex flex-col justify-start overflow-hidden rounded-md border px-1 text-left leading-tight select-none [-webkit-touch-callout:none] transition-[translate,scale,box-shadow] duration-200 ease-out data-lifted:z-15 data-lifted:origin-top-left data-lifted:scale-104 data-lifted:shadow-lg data-lifted:outline-2 data-lifted:outline-accent data-lifted:transition-[scale,box-shadow] ${
-              past ? "border-muted text-muted" : "border-fg text-fg"
+              fill.look === "none"
+                ? past ? "border-muted text-muted" : "border-fg text-fg"
+                : `border-transparent ${fill.textClass}`
             }`}
             style={{
               top: `${slot.block.topMinutes * pxPerMinute}px`,
@@ -206,7 +193,7 @@ export function TimelineDayColumn({
               // a real gap between two side-by-side blocks in the
               // same overlap cluster, not just top-to-bottom ones.
               width: `calc(100% / ${slot.columnCount} - 2px)`,
-              background: bandedBackground(colors, past ? 0.05 : 0.1),
+              ...fill.style,
             }}
           >
             {/* `<button>` elements are vertically centered by the
@@ -253,7 +240,7 @@ export function TimelineDayColumn({
               {event.seriesId && (
                 <>
                   {/* zoom: 1 beats globals.css's Largest svg.lucide zoom; the icon is 1em, so it already follows Text size through the title's rem font. */}
-                  <Repeat aria-hidden="true" style={{ zoom: 1 }} className="ml-0.5 inline-block size-[1em] align-[-0.125em] text-muted" />
+                  <Repeat aria-hidden="true" style={{ zoom: 1 }} className={`ml-0.5 inline-block size-[1em] align-[-0.125em] ${fill.look === "none" ? "text-muted" : ""}`} />
                   <span className="sr-only">, repeats</span>
                 </>
               )}

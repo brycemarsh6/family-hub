@@ -25,7 +25,7 @@ import { avatarColorHex } from "@/lib/constants";
  * against all 8 colors," and that verification was wrong: three of the
  * then-current swatches actually failed WCAG AA against white (green
  * 3.30:1, amber 3.19:1, teal 3.74:1). Every swatch in the palette today
- * clears 4.6:1, computed. If you change a swatch, compute the ratio —
+ * clears 4.6:1, computed (mission 77's vivid set: green 4.60, slate 7.48). If you change a swatch, compute the ratio —
  * looking at it is exactly how this was missed before.
  */
 export function AvatarBadge({
