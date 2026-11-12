@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parent delete rule</title>
+<style>
+:root{--bg:#f6f5f2;--surface:#fff;--fg:#1d1d1f;--muted:#6b6b70;--warn:#9a5b00;--warn-soft:#fdf1dc;--danger:#c0392b;--ok:#1f7a45;--line:#e4e2dc}
+@media (prefers-color-scheme:dark){:root{--bg:#141416;--surface:#1f1f22;--fg:#f2f2f2;--muted:#a0a0a6;--warn:#f0b357;--warn-soft:#3a2c14;--danger:#ff6b5e;--ok:#5fd08d;--line:#333}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 -apple-system,system-ui,sans-serif;padding:16px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:17px;margin:24px 0 8px}
+p{margin:0 0 8px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:12px;overflow:hidden;font-size:15px}
+td,th{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:13px;color:var(--muted)}
+.yes{color:var(--ok);font-weight:600}.no{color:var(--warn);font-weight:600}
+.wrap{display:flex;gap:16px;flex-wrap:wrap}
+.sheet{background:var(--surface);border-radius:20px;padding:16px;width:300px;box-shadow:0 2px 10px #0002}
+.sheet b{display:block;font-size:18px;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 12px;border-radius:12px;font-weight:500}
+.del{color:var(--danger)}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:12px 16px;font-size:14px;font-weight:500}
+.cap{font-size:13px;color:var(--muted);margin-top:8px}
+</style></head><body>
+<h1>Who can delete a calendar item</h1>
+<p>"Belongs to" means the people on the item (the faces on it), not who typed it in.</p>
+
+<h2>Examples (Bryce tapping Delete)</h2>
+<table>
+<tr><th>Item</th><th>People on it</th><th>Bryce can delete?</th></tr>
+<tr><td>Bryce's dentist</td><td>Bryce</td><td class="yes">Yes, it's his</td></tr>
+<tr><td>Emily's book club</td><td>Emily</td><td class="no">No, Emily's</td></tr>
+<tr><td>Ledger's soccer</td><td>Ledger (kid)</td><td class="yes">Yes, kid only</td></tr>
+<tr><td>Emily + Ledger, doctor</td><td>Emily, Ledger</td><td class="no">No, Emily is on it</td></tr>
+<tr><td>Date night</td><td>Bryce, Emily</td><td class="yes">Yes, he's on it too</td></tr>
+<tr><td>Trash day</td><td>Nobody</td><td class="yes">Yes, nobody's</td></tr>
+<tr><td>Event from Emily's Google</td><td>Emily</td><td class="no">No, Emily's</td></tr>
+</table>
+<p class="cap">Same for tasks. Editing is not changed: Bryce can still edit Emily's items.</p>
+
+<h2>What Bryce sees on Emily's book club</h2>
+<div class="wrap">
+<div class="sheet"><b>Today (works)</b>
+<div class="row del">🗑 Delete</div>
+<p class="cap">Ledger's soccer: one tap deletes, no "are you sure", same as now.</p>
+</div>
+<div class="sheet"><b>Emily's item (blocked)</b>
+<div class="note">Only Emily can delete this.</div>
+<p class="cap">The red Delete row is replaced by this amber note, so there is no button that doesn't work. The server refuses too, with the same words.</p>
+</div>
+</div>
+</body></html>
