@@ -1,7 +1,7 @@
 # Mission 77: more vibrant person colours
 
 **Project:** family-hub (Marshee)
-**Status:** DELIVERING (gates passed; PR open)
+**Status:** DELIVERED (PR #120 merged 2026-11-12, production deploy READY)
 **Started:** 2026-11-12 · **Updated:** 2026-11-12
 **Branch:** `claude/calendar-vibrant-person-colors-4bde43` (own worktree)
 
@@ -247,6 +247,8 @@ same); dark halo against slate/amber/teal is low but the line carries it.
 
 ## Delivery
 
+- Merged as PR #120 (merge commit c689c71); the Gauntlet check was green on
+  GitHub; the Vercel production deploy for c689c71 is READY.
 - Gates: Vision PASS (pass 2), Strange PASS (pass 2). Captain not assembled.
 - Synced with main after mission 76 merged; one conflict in
   `docs/structure/calendar.md` (76 split the tasks and search rules into
