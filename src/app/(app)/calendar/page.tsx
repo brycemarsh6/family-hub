@@ -88,7 +88,7 @@ export default async function CalendarPage({
     // the Schedule view's endless scroll. See that module's own comment for
     // why (the personInfo.ts precedent, and why this one carries
     // `server-only` when personInfo.ts doesn't).
-    getCalendarEventsInRange(windowStart, windowEnd),
+    getCalendarEventsInRange(windowStart, windowEnd, user ? user.userId : null),
     // Tasks in the same padded window (calendarTaskQuery.ts says why the
     // bounds need no separate skew handling, and owns `isMine`).
     getTasksInDueRange(windowStart, windowEnd, user ? user.userId : null),

@@ -20,6 +20,7 @@
 
 import "server-only";
 import { db } from "./db";
+import { deleteBlockedMessage } from "./calendarDeleteRules";
 import { toSyncFailReason, toSyncRowStatus } from "./calendarSyncVocabulary";
 import type { CalendarEventSyncView, CalendarEventView } from "./types";
 
@@ -85,7 +86,7 @@ export const CALENDAR_EVENT_SELECT = {
   allDay: true,
   people: {
     select: {
-      user: { select: { id: true, displayName: true, avatarColor: true } },
+      user: { select: { id: true, displayName: true, avatarColor: true, role: true, deactivatedAt: true } },
     },
   },
   // Narrow select, never the full row — see the module comment.
@@ -107,7 +108,9 @@ export type CalendarEventRow = {
   startAt: Date;
   endAt: Date;
   allDay: boolean;
-  people: { user: { id: string; displayName: string; avatarColor: string } }[];
+  people: {
+    user: { id: string; displayName: string; avatarColor: string; role: string; deactivatedAt: Date | null };
+  }[];
   createdBy: { displayName: string } | null;
   syncs: EventSyncRow[];
   sourceLinkedCalendar: { id: string; name: string } | null;
@@ -119,7 +122,10 @@ export type CalendarEventRow = {
  * some future feature) can't leak through here unnoticed. Same discipline,
  * same reason, as personInfo.ts's `toPersonInfo`.
  */
-export function toCalendarEventView(row: CalendarEventRow): CalendarEventView {
+export function toCalendarEventView(
+  row: CalendarEventRow,
+  viewerUserId?: string | null,
+): CalendarEventView {
   return {
     id: row.id,
     title: row.title,
@@ -143,6 +149,19 @@ export function toCalendarEventView(row: CalendarEventRow): CalendarEventView {
     // Mission 71: the source calendar's own sync row says which series this is.
     seriesId:
       row.syncs.find((sync) => sync.linkedCalendarId === row.sourceLinkedCalendar?.id)?.googleSeriesId ?? null,
+    // Mission 76: left out for readers that pass no viewer (briefing, summary).
+    deleteBlockedMessage:
+      viewerUserId === undefined
+        ? null
+        : deleteBlockedMessage(
+            viewerUserId ?? "",
+            row.people.map((person) => ({
+              userId: person.user.id,
+              displayName: person.user.displayName,
+              role: person.user.role,
+              deactivated: person.user.deactivatedAt !== null,
+            })),
+          ),
   };
 }
 
@@ -153,11 +172,13 @@ export function toCalendarEventView(row: CalendarEventRow): CalendarEventView {
  * `windowStart` but still runs into it. Ordered by start time. This is the
  * exact query `(app)/calendar/page.tsx` used to run inline; both it and the
  * new `fetchCalendarEvents` action call this now, so the where-clause and
- * select can't drift between the two.
+ * select can't drift between the two. `viewerUserId` (mission 76) is the
+ * verified viewer, for the delete-rule note; omit it where no sheet opens.
  */
 export async function getCalendarEventsInRange(
   windowStart: Date,
   windowEnd: Date,
+  viewerUserId?: string | null,
 ): Promise<CalendarEventView[]> {
   const rows = await db.calendarEvent.findMany({
     where: {
@@ -167,7 +188,7 @@ export async function getCalendarEventsInRange(
     orderBy: { startAt: "asc" },
     select: CALENDAR_EVENT_SELECT,
   });
-  return rows.map(toCalendarEventView);
+  return rows.map((row) => toCalendarEventView(row, viewerUserId));
 }
 
 /**
@@ -215,11 +236,14 @@ export async function getEventSearchRows(): Promise<
 }
 
 /** The events with these ids as full views, same select and mapper as the range query. Order is not promised. */
-export async function getCalendarEventsByIds(ids: string[]): Promise<CalendarEventView[]> {
+export async function getCalendarEventsByIds(
+  ids: string[],
+  viewerUserId?: string | null,
+): Promise<CalendarEventView[]> {
   if (ids.length === 0) return [];
   const rows = await db.calendarEvent.findMany({
     where: { id: { in: ids } },
     select: CALENDAR_EVENT_SELECT,
   });
-  return rows.map(toCalendarEventView);
+  return rows.map((row) => toCalendarEventView(row, viewerUserId));
 }

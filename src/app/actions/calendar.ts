@@ -26,6 +26,7 @@ import { getCalendarEventsInRange, getEventSyncViews } from "@/lib/calendarEvent
 import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
+import { deleteBlockedMessage } from "@/lib/calendarDeleteRules";
 import { pushEventCopies, removeEventCopies } from "@/lib/calendarEventPush";
 import { busyColumn, cleanRequestedIds } from "@/lib/calendarSyncRules";
 import { parseMoveStart, planMove } from "@/lib/calendarMoveRules";
@@ -309,6 +310,28 @@ export async function deleteCalendarEvent(
     return { error: "Only parents can do that." };
   }
 
+  // Mission 76: another parent's event is theirs to delete. Read the people
+  // fresh, and refuse BEFORE removeEventCopies so Google's copies stay. A
+  // missing event falls through to "already gone".
+  const stored = await db.calendarEvent.findUnique({
+    where: { id },
+    select: {
+      people: { select: { user: { select: { id: true, displayName: true, role: true, deactivatedAt: true } } } },
+    },
+  });
+  if (stored) {
+    const blocked = deleteBlockedMessage(
+      user.userId,
+      stored.people.map((person) => ({
+        userId: person.user.id,
+        displayName: person.user.displayName,
+        role: person.user.role,
+        deactivated: person.user.deactivatedAt !== null,
+      })),
+    );
+    if (blocked) return { error: blocked };
+  }
+
   // Ask Google first: deleting the event cascades its sync rows away, and
   // they hold the ids needed to find the copies. The event is deleted either
   // way, and the person is told if a copy may remain.
@@ -436,7 +459,7 @@ export async function fetchCalendarEvents(
 
   // Whatever this returns — including a genuinely empty array — is a real
   // answer about the requested range, not a refusal.
-  return getCalendarEventsInRange(windowStart, windowEnd);
+  return getCalendarEventsInRange(windowStart, windowEnd, session.userId);
 }
 
 /**

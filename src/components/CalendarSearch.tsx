@@ -24,7 +24,7 @@ const DEBOUNCE_MS = 300;
  * arrives); results are Schedule's own cards, one `DaySection` per day. The words are
  * the mock's (`.avengers/mocks/calendar-pr9-search-mock.html`). After any change
  * made in a sheet the current search runs again. This page has its own single
- * `UndoBar` and `useTaskDone`, like `CalendarViews` (docs/structure/calendar.md).
+ * `UndoBar` and `useTaskDone`, like `CalendarViews` (docs/structure/calendar-tasks-search.md).
  */
 export function CalendarSearch({
   people,
