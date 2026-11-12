@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** AT-THE-GATES pass 3 (F3 DONE; Captain PASS pass 2, Strange PASS pass 2) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** STOPPED (Vision's 3-pass budget used, BLOCKED at pass 3; asked Bryce 2026-11-11 whether to allow a fourth pass for fix F4) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -248,6 +248,25 @@ reasons: say so, do not hide it).
   ±61 day window never appears in `serverTasks`, so its override lives
   forever and hides later changes. Note: a late refusal can replace a
   newer task bar.
+
+### Pass 3 (2026-11-11, HEAD 792a3ba)
+
+- **Vision: BLOCKED (budget used).** Gauntlet green with exit codes
+  captured directly (build 0); boundaries clean; pass 2 scenarios 1 and 2
+  ended. BLOCKER (a regression F3 introduced): ScheduleView's prune
+  effect runs on every render, because `useToday()` returns a new Date
+  each render and so `months` and `loadedTasks` change identity. Tick in
+  Schedule, then Undo before the tick's refresh lands: the effect prunes
+  the new `null` override against the stale not-done rows ("agree"),
+  drops it, and the tick's refresh then redraws the task crossed out for
+  1 to 2 s until the Undo's refresh lands. Mirror case on a quick
+  re-tick. Reproduced with the real pure functions (scratchpad `sim.ts`).
+  Fix offered: prune only when the rows' task states change (a content
+  key of id and done, plus a `pruneTaskDoneByState` helper with a test).
+  Notes: an override can still outlive a lost refetch or a sub-second
+  race with another device (needs a failed fetch; a generation counter
+  later); `taskBarFor` is not reset when the bar closes itself (cosmetic).
+- **Strange pass 3:** running at the time of the stop.
 
 ## Fix contracts
 
