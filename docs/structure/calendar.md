@@ -291,3 +291,14 @@ docs/history/structure-rationale.md under the same name.
   mount), the page's own `useUndoBar` + `useTaskDone` and one `UndoBar`. After a
   change the current search runs again (`rerun`); there is no `router.refresh`
   because the results are client state.
+
+## Parents can't delete each other's items (mission 76)
+
+- The rule and its words live only in `src/lib/calendarDeleteRules.ts`: an
+  admin or parent may delete unless another active adult is on the item and
+  they are not. Kid-only, nobody, or only deactivated adults: allowed.
+- `deleteCalendarEvent` and `deleteTask` read the item's people fresh and
+  refuse with the rule's words. The event check runs before
+  `removeEventCopies`, so a refused delete leaves Google's copies alone.
+- The views carry `deleteBlockedMessage`, built from the verified viewer in
+  the mappers; both sheets show it as a warn note in place of Delete.

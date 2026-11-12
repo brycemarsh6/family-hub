@@ -8,6 +8,7 @@
 
 import "server-only";
 import { db } from "./db";
+import { deleteBlockedMessage } from "./calendarDeleteRules";
 import type { CalendarTaskView } from "./types";
 
 /** The one Task select behind every CalendarTaskView. */
@@ -20,7 +21,7 @@ const CALENDAR_TASK_SELECT = {
   people: {
     select: {
       user: {
-        select: { id: true, displayName: true, avatarColor: true, deactivatedAt: true },
+        select: { id: true, displayName: true, avatarColor: true, role: true, deactivatedAt: true },
       },
     },
   },
@@ -33,7 +34,13 @@ type CalendarTaskRow = {
   dueDate: Date;
   completedAt: Date | null;
   people: {
-    user: { id: string; displayName: string; avatarColor: string; deactivatedAt: Date | null };
+    user: {
+      id: string;
+      displayName: string;
+      avatarColor: string;
+      role: string;
+      deactivatedAt: Date | null;
+    };
   }[];
 };
 
@@ -52,6 +59,16 @@ function toCalendarTaskView(task: CalendarTaskRow, viewerUserId: string | null):
       deactivated: person.user.deactivatedAt !== null,
     })),
     isMine: viewerUserId !== null && task.people.some((person) => person.user.id === viewerUserId),
+    // Mission 76: the note that replaces Delete (the server re-checks).
+    deleteBlockedMessage: deleteBlockedMessage(
+      viewerUserId ?? "",
+      task.people.map((person) => ({
+        userId: person.user.id,
+        displayName: person.user.displayName,
+        role: person.user.role,
+        deactivated: person.user.deactivatedAt !== null,
+      })),
+    ),
   };
 }
 
