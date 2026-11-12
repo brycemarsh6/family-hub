@@ -909,8 +909,8 @@ amendment id.
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,
   Bryce approved.) (Story: docs/history/structure-rationale.md, "Housekeeping note".)
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (Story: docs/history/structure-rationale.md, "Soft cap: the groceries.ts split".)
-  Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 599 total
-  (was 578; mission-72 removed the two-panel wrapper and its small month; mission-74 added the task bar and the optimistic tick, 564 to 586; its override clearing and pruning, 599), `CalendarViews.tsx` 551 total (was 502; Month and Year
+  Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 603 total
+  (was 578; mission-72 removed the two-panel wrapper and its small month; mission-74 added the task bar and the optimistic tick, 564 to 586; its override clearing and pruning, 599; pruning only on a task-state change, 603), `CalendarViews.tsx` 551 total (was 502; Month and Year
   paging moved to `PagedPeriodViews.tsx`, mission-69; the drop and Undo bar
   added 8, mission-70; the repeat sheet added 4 more, 494 total / 197
   code, mission-71; the month panel held it at 494, mission-72; the task bar and the optimistic tick took it to 523, their clearing and pruning to 551, mission-74), `useEventMoves.ts` 301 total (mission-71 grew it to 310 / 219 code from 136; the bar state moved out

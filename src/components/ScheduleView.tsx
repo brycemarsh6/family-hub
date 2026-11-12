@@ -79,8 +79,8 @@ type ScheduleViewProps = {
   applyDone: (tasks: CalendarTaskView[]) => CalendarTaskView[];
   /** Any other change to a task drops its optimistic tick before the refresh. */
   clearTaskDone: (taskId: string) => void;
-  /** Hands the loaded rows' tasks up so an override the server's rows agree with drops (also outside the page's window). */
-  pruneTaskDoneWith: (tasks: CalendarTaskView[]) => void;
+  /** Hands the loaded rows' done states up so an override the server's rows agree with drops (also outside the page's window). */
+  pruneTaskDoneWith: (done: ReadonlyMap<string, boolean>) => void;
   /**
    * mission-15/C8 (B1) — reports whether TODAY's own row is genuinely on
    * screen right now. CalendarViews.tsx forwards this straight into the
@@ -198,10 +198,14 @@ export function ScheduleView({
   // Planned habit days (decision 146), folded into the loaded months.
   const { months, habitDaysLoaded, habitDaysFailed } = useScheduleHabitDays(loadedMonths, windowStart, windowEnd, fetchHabitDays);
 
-  // Mission 74 (F3): the rows are the server's answer for these days; an override they agree with drops.
-  // `months` gets a new identity often, but the prune returns the same map when nothing drops: no loop.
-  const loadedTasks = useMemo(() => months.flatMap((m) => m.days.flatMap((d) => d.tasks)), [months]);
-  useEffect(() => pruneTaskDoneWith(loadedTasks), [loadedTasks, pruneTaskDoneWith]);
+  // Mission 74 (F4): the rows are the server's answer for these days; an override they agree with drops.
+  // The key is the RAW rows' task states, so a plain re-render (`useToday()` makes `months` a new array every
+  // render) never prunes; only a fetch that changes a task's done state does.
+  const taskStatesKey = useMemo(
+    () => JSON.stringify(loadedMonths.flatMap((m) => m.days.flatMap((d) => d.tasks.map((t) => [t.id, t.completedAt !== null])))),
+    [loadedMonths],
+  );
+  useEffect(() => pruneTaskDoneWith(new Map(JSON.parse(taskStatesKey) as [string, boolean][])), [taskStatesKey, pruneTaskDoneWith]);
 
   // Until the habit days load (or fail, which shows its own line), today's
   // row cannot be called empty.

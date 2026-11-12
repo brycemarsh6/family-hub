@@ -17,7 +17,7 @@ import { moveCalendarSeries } from "@/app/actions/calendarSeries";
 import { uncompleteTask } from "@/app/actions/tasks";
 import { useEventMoves } from "@/lib/useEventMoves";
 import { showTaskCompleted, useUndoBar, type ShowBar } from "@/lib/useUndoBar";
-import { applyTaskDone, pruneTaskDone, type TaskDoneOverrides } from "@/lib/taskDoneOverrides";
+import { applyTaskDone, pruneTaskDone, pruneTaskDoneByState, type TaskDoneOverrides } from "@/lib/taskDoneOverrides";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
 import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
@@ -191,8 +191,8 @@ export function CalendarViews({
     });
   };
   // Schedule's own fetched rows are a second server answer (it reaches past the page's window):
-  // it hands them here so an override they agree with drops. Same map back when none does.
-  const pruneTaskDoneWith = useCallback((list: CalendarTaskView[]) => setTaskDone((prev) => pruneTaskDone(prev, list)), []);
+  // it hands their done states here (only when those change) so an override they agree with drops.
+  const pruneTaskDoneWith = useCallback((done: ReadonlyMap<string, boolean>) => setTaskDone((prev) => pruneTaskDoneByState(prev, done)), []);
   // Both task sheet mounts raise "Task completed, Undo" on the one bar.
   const onTaskCompleted = (taskId: string, refresh: () => void) => {
     const completedAt = new Date();

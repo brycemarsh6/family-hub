@@ -43,3 +43,20 @@ export function pruneTaskDone(overrides: TaskDoneOverrides, serverTasks: Calenda
   }
   return next ?? overrides;
 }
+
+/**
+ * Same rule as `pruneTaskDone`, against a done-by-id map instead of task rows
+ * (Schedule hands this a map rebuilt from a content key, so it never prunes
+ * on a plain re-render). Returns the SAME map when nothing is dropped.
+ */
+export function pruneTaskDoneByState(overrides: TaskDoneOverrides, serverDone: ReadonlyMap<string, boolean>): TaskDoneOverrides {
+  if (overrides.size === 0) return overrides;
+  let next: Map<string, Date | null> | null = null;
+  for (const [id, completedAt] of overrides) {
+    if (serverDone.get(id) === (completedAt !== null)) {
+      next ??= new Map(overrides);
+      next.delete(id);
+    }
+  }
+  return next ?? overrides;
+}

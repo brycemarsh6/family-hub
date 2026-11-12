@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { applyTaskDone, pruneTaskDone } from "./taskDoneOverrides";
+import { applyTaskDone, pruneTaskDone, pruneTaskDoneByState } from "./taskDoneOverrides";
 import type { CalendarTaskView } from "./types";
 
 const done = new Date("2026-11-11T12:00:00Z");
@@ -69,4 +69,35 @@ test("pruneTaskDone drops an override once the server agrees, keeping the rest",
 test("pruneTaskDone returns the same map when it is empty", () => {
   const overrides = new Map<string, Date | null>();
   assert.equal(pruneTaskDone(overrides, [task("a", null)]), overrides);
+});
+
+test("pruneTaskDoneByState keeps an override while the state disagrees or is missing", () => {
+  const overrides = new Map<string, Date | null>([["a", null]]);
+  assert.equal(pruneTaskDoneByState(overrides, new Map([["a", true]])), overrides);
+  assert.equal(pruneTaskDoneByState(overrides, new Map([["b", false]])), overrides);
+});
+
+test("pruneTaskDoneByState drops an override once the state agrees, keeping the rest", () => {
+  const overrides = new Map<string, Date | null>([
+    ["a", done],
+    ["b", null],
+  ]);
+  const out = pruneTaskDoneByState(overrides, new Map([["a", true], ["b", true]]));
+  assert.deepEqual([...out.keys()], ["b"]);
+  assert.equal(overrides.size, 2);
+});
+
+test("pruneTaskDoneByState returns the same map when it is empty", () => {
+  const overrides = new Map<string, Date | null>();
+  assert.equal(pruneTaskDoneByState(overrides, new Map([["a", false]])), overrides);
+});
+
+test("pruneTaskDoneByState: the Undo-inside-the-round-trip sequence keeps the null override until the not-done rows land", () => {
+  // Rows start not done; tick then Undo sets null. A stale not-done state would drop it, so the
+  // caller must not prune until the rows change: done (tick refresh) disagrees, not done (Undo refresh) agrees.
+  const overrides = new Map<string, Date | null>([["a", null]]);
+  const afterTick = pruneTaskDoneByState(overrides, new Map([["a", true]]));
+  assert.equal(afterTick, overrides);
+  const afterUndo = pruneTaskDoneByState(afterTick, new Map([["a", false]]));
+  assert.equal(afterUndo.size, 0);
 });

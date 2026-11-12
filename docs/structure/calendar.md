@@ -244,7 +244,8 @@ docs/history/structure-rationale.md under the same name.
   draws `applyTaskDone(tasks, map)` (Schedule through its `applyDone` prop).
   An override never outlives the server's answer: it is pruned when a fresh
   `tasks` prop agrees, and when Schedule's own loaded rows agree
-  (`pruneTaskDoneWith`, which also covers days outside the page's window). A
+  (`pruneTaskDoneWith`, which also covers days outside the page's window, and
+  runs only when those rows' done states change, never on a plain re-render). A
   refused or failed Undo drops the override (`clearDone`), refreshes and shows
   a warn bar. Any other change (Mark not complete, Edit, Delete) calls
   `clearTaskDone(taskId)` from both sheet mounts first, which also closes that
