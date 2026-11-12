@@ -284,3 +284,90 @@ job; never `git add`; no database writes; no migration.
   `loading.tsx` for `/calendar/search` (it inherits the Calendar's month
   skeleton); `HighlightedText` lives in `EventCard.tsx` and `TaskCard`
   imports it.
+
+## Gates
+
+### Pass 1 (2026-11-12, HEAD e8c0b89)
+
+- **Vision: BLOCKED.** Gauntlet green (tsc, lint, 2083 Denver, UTC 2073 +
+  10 skips, build lists `/calendar/search`); boundaries clean.
+  - V1 BLOCKER: prefix match runs on singularised words ("movies" becomes
+    "movy"), so "movie" misses "Movies at the park", "cookies" misses
+    "Cookie swap", "serie" misses "World Series".
+  - V2 BLOCKER: `rerun` in `CalendarSearch.tsx` asks the text captured when
+    the sheet acted; an Undo after typing more leaves "Searching..." forever.
+  - Notes: Sync button shows even when every account needs relinking; each
+    search reads every row (watch); stale "Last checked" comments. Owned
+    checks passed: signed-out refusal, same set, timer and Tablet rules, no
+    focus loop, C1 behaviour kept, forced pull managers only.
+- **Captain: BLOCKED.**
+  - K1 BLOCKER: `calendar/search/page.tsx` uses the null-returning
+    `getVerifiedUser()`; pages use `requireVerifiedUser`.
+  - K2 BLOCKER: `HighlightedText` and `CalendarSearch` redefine the prefix
+    and words rules outside `calendarSearch.ts`.
+  - Notes: STRUCTURE.md's task-select sentence and the ScheduleView /
+    CalendarViews size record are stale; calendar-sync.md "only caller" is
+    false; calendar.md's `uncompleteTask` line; `calendarPull.ts` header
+    still names Refresh; the roster query now exists three times (proposed
+    `loadCalendarRoster`); seven older pages carry the same guard debt.
+- **Strange: BLOCKED.**
+  - S1 BLOCKER: each new letter blanks the list until the answer arrives;
+    the mock's frame 2 keeps the earlier results under "Searching...".
+  - Notes: the error line has nothing to tap and a failed "Show more"
+    wipes results; the highlight borrows `--warn-soft` (job: running low);
+    Settings button sits below the card in grey, the mock had it above in
+    green (Bryce's call); iPhone autofocus may not raise the keyboard;
+    DESIGN.md's CalendarHeader entry still says Refresh.
+
+## Fix contracts
+
+### F1 - the four blockers and the cheap notes
+
+1. **Objective:** clear V1, V2, K1, K2, S1 and fold in the listed notes.
+2. **Boundaries.** May touch: `src/lib/calendarSearch.ts` and its test,
+   `src/lib/match.ts` (one new small export only, if needed; no behaviour
+   change to existing exports), `src/components/CalendarSearch.tsx`,
+   `src/components/EventCard.tsx`, `src/components/TaskCard.tsx`,
+   `src/app/(app)/calendar/search/page.tsx`, `src/app/globals.css` (one
+   `--highlight` token, light and dark, same values as `--warn-soft` today,
+   plus its Tailwind theme entry wherever the other colour tokens are
+   registered), `src/components/SyncedCalendarsList.tsx` and
+   `src/lib/linkedCalendarsRead.ts` (only for the Sync-button visibility),
+   comments only in `src/app/actions/calendarPull.ts`,
+   `src/lib/calendarPullRun.ts`, `src/lib/calendarPullRun.test.ts` (a test
+   title), `src/lib/linkedCalendarWrites.ts`; docs: `STRUCTURE.md`,
+   `DESIGN.md`, `docs/structure/calendar.md`,
+   `docs/structure/calendar-sync.md`. Must not touch anything else.
+   - V1 + K2: one exported pure helper in `calendarSearch.ts` (for example
+     `matchedPrefixLength(word, typedWords)`) that compares each typed word
+     in raw normalised and singular form against each field word in raw
+     normalised and singular form; `matchesSearch` and `HighlightedText`
+     both use it, and the highlight length comes from the raw written word.
+     `CalendarSearch.tsx` gets its highlight words from `searchWords`, no
+     direct `match.ts` import. Tests: "movie" finds "Movies at the park",
+     "movies" finds "Movie night", "cookies" finds "Cookie swap", "serie"
+     finds "World Series", "berry" against "Berries" highlights the right
+     length; existing tests stay green. One header line: the matcher is
+     lenient on purpose (visible results).
+   - V2: the live trimmed query in a ref; `rerun` and Show more read it and
+     ask only when `searchWords` accepts it.
+   - S1: keep the latest answer on screen while a newer one is pending
+     (Strange's recipe: render from the latest answer; "Searching..." while
+     `answer.asked !== query`; failed and nothing-found only for the
+     current answer). A failed Show more keeps the previous result and
+     shows the error line under the list.
+   - Error line gains a 48px "Try again" button that re-asks the live query.
+   - K1: `requireVerifiedUser()`; search stays open to every login.
+   - Highlight uses the new `--highlight` token.
+   - Sync button shows only when a "Both ways" calendar sits on an account
+     whose status is ok and Google is configured (the old Refresh rule).
+   - Docs and comments: Captain's wording for STRUCTURE.md's task select
+     sentence and the size record (558 / 321, 512 / 245), the
+     `calendar-sync.md` caller sentence, `calendar.md`'s `uncompleteTask`
+     line, DESIGN.md's CalendarHeader entry (Search, not Refresh) plus one
+     vocabulary line for `HighlightedText`, "Last checked" and the Refresh
+     caller in comments.
+3. **Verification:** the full gauntlet including `npm run build`.
+4. **Evidence:** new test names, counts in both TZ runs, gauntlet tails,
+   `git grep -n "Last checked\|Refresh button" -- src` output.
+5. **Done:** all five blockers gone with evidence; nothing outside the list.
