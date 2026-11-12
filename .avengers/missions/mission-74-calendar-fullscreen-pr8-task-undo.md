@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** DELIVERING (all gates PASS: Vision pass 4 with Bryce's extra pass, Strange pass 3, Captain pass 2) (Bryce allowed one extra fix and a fourth Vision pass, 2026-11-11: "Okay let's run it") (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** DELIVERED (merged as PR #116, merge commit 11811fd, 2026-11-11) (all gates PASS: Vision pass 4 with Bryce's extra pass, Strange pass 3, Captain pass 2) (Bryce allowed one extra fix and a fourth Vision pass, 2026-11-11: "Okay let's run it") (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -454,6 +454,9 @@ reasons: say so, do not hide it).
 
 ## Delivery
 
+- **Merged:** PR #116, merge commit `11811fd` (auto-merge after the Gauntlet
+  passed), Vercel production deployment 7730366724 succeeded. Recorded by
+  the PR 9 chat (mission 75).
 - **Gates:** Vision PASS (pass 4; Bryce allowed one pass past the budget
   of 3), Strange PASS (pass 3), Captain PASS (pass 2). Contracts C1, C2;
   fixes F1 (optimistic ticks, the Undo action handed in), F2 (other

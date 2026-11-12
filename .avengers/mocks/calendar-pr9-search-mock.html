@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calendar search mock (PR 9)</title>
+<style>
+:root{--bg:#f6f0e8;--fg:#4e5256;--muted:#7a756b;--line:#e2dacd;--surface:#fff;--accent:#5a6b4f;--accent-fg:#f6f0e8}
+*{box-sizing:border-box}
+body{margin:0;background:#ddd6ca;color:var(--fg);font:15px -apple-system,system-ui,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:14px}
+h1{font-size:19px;margin:0 0 4px}
+p.note{margin:0 0 14px;font-size:14px;line-height:1.5;max-width:720px}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.frame h2{font-size:15px;margin:0 0 6px;max-width:330px}
+.dev{width:330px;height:640px;background:var(--bg);border:6px solid #222;border-radius:28px;overflow:hidden;position:relative}
+.top{height:52px;display:flex;align-items:center;gap:8px;padding:0 10px;font-weight:700;font-size:19px}
+.top .sp{flex:1}
+.circ{width:44px;height:44px;border-radius:999px;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+.back{padding:4px 14px;font-size:15px;color:var(--fg);min-height:44px;display:flex;align-items:center;gap:6px}
+.input{margin:4px 12px 8px;min-height:52px;border:2px solid var(--accent);border-radius:12px;background:var(--surface);display:flex;align-items:center;gap:8px;padding:0 12px;font-size:16px}
+.input .ph{color:var(--muted)}
+.input .x{margin-left:auto;color:var(--muted);font-size:18px;width:36px;text-align:center}
+.hint{padding:24px 24px;text-align:center;color:var(--muted);font-size:14px;line-height:1.5}
+.status{padding:0 16px 4px;font-size:12px;color:var(--muted)}
+.day{padding:10px 14px 0;font-size:13px;font-weight:700;color:var(--muted)}
+.sect{padding:16px 14px 0;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;border-top:1px solid var(--line);margin-top:12px}
+.card{margin:6px 12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;min-height:52px}
+.ev{border-left:4px solid #8a6d88}.ev2{border-left:4px solid #5b7a8c}
+.box{width:22px;height:22px;border:2px solid var(--muted);border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--accent-fg)}
+.box.done{background:var(--muted)}
+.t{font-weight:600}.t.done{color:var(--muted);text-decoration:line-through;font-weight:500}
+.sub{font-size:12px;color:var(--muted)}
+mark{background:#efe2b8;color:inherit;border-radius:3px;padding:0 1px}
+.more{margin:10px 12px;min-height:48px;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:600;background:var(--surface)}
+.kb{position:absolute;left:0;right:0;bottom:0;height:200px;background:#cfd3d9;display:flex;align-items:center;justify-content:center;color:#666;font-size:13px}
+.home{position:absolute;left:50%;bottom:6px;width:120px;height:5px;border-radius:9px;background:#222;transform:translateX(-50%)}
+.tap{outline:3px dashed #c2410c;outline-offset:3px}
+.settings{width:420px;background:var(--bg);border:6px solid #222;border-radius:22px;padding:14px;min-height:300px}
+.settings h3{margin:4px 0 10px;font-size:20px}
+.btn{min-height:52px;border-radius:12px;background:var(--accent);color:var(--accent-fg);display:flex;align-items:center;justify-content:center;font-weight:700;gap:8px}
+.acct{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.qs{margin-top:22px;background:#fff;border-radius:14px;padding:14px 18px;max-width:980px;line-height:1.5}
+.qs li{margin-bottom:10px}
+</style></head><body><div class="wrap">
+<h1>PR 9 mock: Calendar search, and syncing without Refresh</h1>
+<p class="note">Phone, light mode. Orange dashed outline = the tap. Cards are the same cards Schedule uses today, and tapping one opens the same sheet Schedule opens. iPad gets the same page in the wide layout.</p>
+<div class="row">
+
+<div class="frame"><h2>0. Top bar: Search takes Refresh's spot</h2>
+<div class="dev">
+  <div class="top">☰ November ▾<span class="sp"></span><span class="circ">Today</span><span class="circ">▦</span><span class="circ tap">🔍</span></div>
+  <div class="day">TODAY · WED, NOV 12</div>
+  <div class="card ev"><div><div class="t">Piano lesson</div><div class="sub">4:00 PM to 4:45 PM</div></div></div>
+  <div class="card"><div class="box"></div><div><div class="t">Take out the recycling</div><div class="sub">Task · Kid</div></div></div>
+  <div class="home"></div>
+</div></div>
+
+<div class="frame"><h2>1. Empty: the box is ready to type in</h2>
+<div class="dev">
+  <div class="back">← Calendar</div>
+  <div class="input"><span>🔍</span><span class="ph">Search events and tasks</span></div>
+  <div class="hint">Find any event or task by a word in its title, place or notes. Past and upcoming.</div>
+  <div class="kb">keyboard</div>
+  <div class="home"></div>
+</div></div>
+
+<div class="frame"><h2>2. Typing: results follow you, a short pause after each letter</h2>
+<div class="dev">
+  <div class="back">← Calendar</div>
+  <div class="input"><span>🔍</span><span>pia</span><span class="x">✕</span></div>
+  <div class="status">Searching...</div>
+  <div class="day">TODAY · WED, NOV 12</div>
+  <div class="card ev"><div><div class="t"><mark>Pia</mark>no lesson</div><div class="sub">4:00 PM to 4:45 PM · Repeats</div></div></div>
+  <div class="kb">keyboard</div>
+  <div class="home"></div>
+</div></div>
+
+<div class="frame"><h2>3. Results: upcoming nearest first, then Past</h2>
+<div class="dev">
+  <div class="back">← Calendar</div>
+  <div class="input"><span>🔍</span><span>piano</span><span class="x">✕</span></div>
+  <div class="day">TODAY · WED, NOV 12</div>
+  <div class="card ev tap"><div><div class="t">Piano lesson</div><div class="sub">4:00 PM to 4:45 PM · Repeats</div></div></div>
+  <div class="day">SAT, DEC 13</div>
+  <div class="card ev2"><div><div class="t">Piano recital</div><div class="sub">2:00 PM to 3:30 PM · Lincoln Hall</div></div></div>
+  <div class="card"><div class="box"></div><div><div class="t">Buy recital flowers</div><div class="sub">Task · Mom</div></div></div>
+  <div class="sect">Past</div>
+  <div class="day">MON, OCT 6</div>
+  <div class="card"><div class="box done">✓</div><div><div class="t done">Tune the piano</div><div class="sub">Task · Dad</div></div></div>
+  <div class="day">SAT, MAY 17</div>
+  <div class="card ev2"><div><div class="t">Spring piano recital</div><div class="sub">1:00 PM to 2:00 PM</div></div></div>
+  <div class="more">Show more past</div>
+  <div class="home"></div>
+</div></div>
+
+<div class="frame"><h2>4. Nothing found</h2>
+<div class="dev">
+  <div class="back">← Calendar</div>
+  <div class="input"><span>🔍</span><span>trombone</span><span class="x">✕</span></div>
+  <div class="hint">No events or tasks match "trombone".</div>
+  <div class="kb">keyboard</div>
+  <div class="home"></div>
+</div></div>
+
+<div class="frame"><h2>5. Settings, Synced calendars (parents and admins)</h2>
+<div class="settings">
+  <div class="back" style="padding:0">← Settings</div>
+  <h3>Synced calendars</h3>
+  <div class="btn tap">⟳ Sync calendars now</div>
+  <div class="sub" style="margin-top:6px;text-align:center">Last synced 3 minutes ago</div>
+  <div class="acct"><b>family@gmail.com</b>
+    <div style="margin-top:8px">Family · Both ways</div>
+    <div class="sub">Last synced 3 minutes ago</div>
+    <div style="margin-top:8px">Soccer · Both ways</div>
+    <div class="sub">Last synced 3 minutes ago</div>
+  </div>
+  <div class="sub" style="margin-top:12px">After tapping: "Up to date" or "Couldn't reach Google. Try again." under the button for 4 seconds, the same notes Refresh shows today.</div>
+</div></div>
+
+</div>
+<ol class="qs">
+<li><b>Repeating events:</b> one row per repeating event, on its next date, with "Repeats" in grey (frame 2). Not every Tuesday listed. If it has no future date left, it shows its last date under Past. <i>Recommend yes: otherwise one weekly lesson fills the whole list.</i></li>
+<li><b>Order:</b> upcoming first (nearest at top), then a "Past" heading with the most recent first. 25 of each, then a "Show more" button. Completed tasks show crossed out, like Schedule. <i>Recommend yes: the thing you usually want is the next one.</i></li>
+<li><b>Who can search:</b> everyone who can see the Calendar (kids and the wall tablet too), since they already see every event and task. Kids and the tablet open the same view-only sheets they open today. <i>Recommend yes.</i></li>
+<li><b>Wording:</b> "Last synced" replaces today's "Last checked" on each calendar too, so the page uses one phrase that matches the button. <i>Recommend yes.</i></li>
+<li><b>Automatic sync:</b> Marshee checks Google when the Calendar opens (as now), when you come back to the app, and every 5 minutes while the Calendar is on screen. The kitchen tablet does the 5-minute check only if someone touched it in the last 10 minutes (your earlier answer). 5 minutes matches the limit the server already enforces. <i>Recommend 5 minutes.</i></li>
+<li><b>Small, my call unless you object:</b> the matching word is highlighted in yellow (frame 2); results need 2 or more letters; nothing changes in the dashboard Calendar tile.</li>
+</ol>
+</div></body></html>
