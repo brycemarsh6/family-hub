@@ -52,6 +52,9 @@ type CalendarSheetsProps = {
 
   people: CalendarPersonView[];
   canManage: boolean;
+  isTablet: boolean;
+  /** Mission 74: a task was just marked complete; shows the bar. `refresh` redraws after its Undo. */
+  onTaskCompleted: (taskId: string, refresh: () => void) => void;
 };
 
 export function CalendarSheets({
@@ -65,6 +68,8 @@ export function CalendarSheets({
   onCloseTask,
   people,
   canManage,
+  isTablet,
+  onTaskCompleted,
 }: CalendarSheetsProps) {
   const router = useRouter();
 
@@ -99,8 +104,14 @@ export function CalendarSheets({
           task={selectedTask}
           people={people}
           canManage={canManage}
+          isTablet={isTablet}
           onClose={onCloseTask}
           onChanged={() => router.refresh()}
+          onCompleted={() => {
+            onCloseTask();
+            router.refresh();
+            onTaskCompleted(selectedTask.id, () => router.refresh());
+          }}
           onDeleted={() => {
             onCloseTask();
             router.refresh();

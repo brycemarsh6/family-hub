@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
+import { tabletMayCompleteAnyTask } from "@/lib/tabletRules";
 import { resolveServerFetchWindow } from "@/lib/calendarPaging";
 import { getCalendarEventsInRange } from "@/lib/calendarEventQuery";
 import { getTasksInDueRange } from "@/lib/calendarTaskQuery";
@@ -55,6 +56,7 @@ export default async function CalendarPage({
   // (app) layout above already does for the header.
   const user = await getVerifiedUser();
   const canManage = user !== null && MANAGER_ROLES.includes(user.role);
+  const isTablet = user !== null && tabletMayCompleteAnyTask(user.role);
 
   const { date: rawDate } = await searchParams;
   // A repeated "?date=" key made this coerce to "X,X" (failing
@@ -160,6 +162,7 @@ export default async function CalendarPage({
           habitDays={habitDays}
           people={people}
           canManage={canManage}
+          isTablet={isTablet}
           windowStart={windowStart}
           windowEnd={windowEnd}
           viewerId={user?.userId ?? null}

@@ -71,6 +71,10 @@ type ScheduleViewProps = {
    * TaskDetailSheet's edit view, same as CalendarViews.tsx already does. */
   people: CalendarPersonView[];
   canManage: boolean;
+  /** The Tablet login (`tabletMayCompleteAnyTask`): TaskDetailSheet draws Mark complete for it. */
+  isTablet: boolean;
+  /** Mission 74: a task was just marked complete; shows the bar. `refresh` redraws after its Undo. */
+  onTaskCompleted: (taskId: string, refresh: () => void) => void;
   /**
    * mission-15/C8 (B1) — reports whether TODAY's own row is genuinely on
    * screen right now. CalendarViews.tsx forwards this straight into the
@@ -152,6 +156,8 @@ export function ScheduleView({
   initialDay,
   people,
   canManage,
+  isTablet,
+  onTaskCompleted,
   onTodayVisibleChange,
   onDayInViewChange,
   trackDayInView,
@@ -516,7 +522,20 @@ export function ScheduleView({
           task={selectedTask}
           people={people}
           canManage={canManage}
+          isTablet={isTablet}
           onClose={() => setSelectedTask(null)}
+          onCompleted={() => {
+            // Mission 74: close, redraw the task's day and show the bar; its
+            // Undo redraws the same way.
+            const dueDay = allDayInstantToLocalDay(selectedTask.dueDate);
+            const refresh = () => {
+              refreshDay(dueDay);
+              router.refresh();
+            };
+            setSelectedTask(null);
+            refresh();
+            onTaskCompleted(selectedTask.id, refresh);
+          }}
           onChanged={(updated) => {
             // mission-15/C7 — the vanishing-task fix. `selectedTask` is a
             // snapshot captured when the sheet was opened (see its own

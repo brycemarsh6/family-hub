@@ -7,6 +7,7 @@ import { shiftWallClockInZone } from "./householdDate";
 import { planSeriesShift, SHIFT_NOTHING_ERROR } from "./calendarSeriesRules";
 import { SHORT_DAY_NAMES } from "./mealPlanDates";
 import { useOptimisticRun } from "./useOptimisticRun";
+import type { ShowBar } from "./useUndoBar";
 import type { CalendarEventView } from "./types";
 
 // Mission 70 (C4): what happens after a lifted block is let go on the hour
@@ -112,15 +113,6 @@ export type RepeatSheetProps = {
   onCancel: () => void;
 };
 
-/** The one bar on screen (UndoBar's props). A new `id` replaces the old bar. */
-export type MoveBar = {
-  id: number;
-  message: string;
-  tone: "neutral" | "warn";
-  actionLabel?: string;
-  onAction?: () => void;
-};
-
 /** Where a refused block was shown, so it can glide from there to home. */
 type GlideBack = { id: string; homeStartMs: number; left: number; top: number };
 
@@ -137,23 +129,22 @@ function glideFrom(event: CalendarEventView): GlideBack | null {
   return rect ? { id: event.id, homeStartMs: event.startAt.getTime(), left: rect.left, top: rect.top } : null;
 }
 
-export function useEventMoves(events: CalendarEventView[], move: MoveAction, moveSeries: SeriesAction) {
+export function useEventMoves(
+  events: CalendarEventView[],
+  move: MoveAction,
+  moveSeries: SeriesAction,
+  showBar: ShowBar,
+  closeBar: () => void,
+) {
   const [shown, applyOptimistic] = useOptimistic(events, applyChange);
   const { run } = useOptimisticRun(applyOptimistic);
-  const [bar, setBar] = useState<MoveBar | null>(null);
   // A repeating event's drop waiting on the sheet. It stays drawn where it was dropped.
   const [pending, setPending] = useState<{ event: CalendarEventView; newStart: Date } | null>(null);
-  const barId = useRef(0);
   const glide = useRef<GlideBack[]>([]);
   const latest = useRef(events);
   useEffect(() => {
     latest.current = events;
   });
-
-  function showBar(next: Omit<MoveBar, "id">) {
-    barId.current += 1;
-    setBar({ ...next, id: barId.current });
-  }
 
   // `undo` is true for the Undo button's own move back: no new Undo is offered.
   function save(event: CalendarEventView, newStart: Date, undo: boolean) {
@@ -170,7 +161,7 @@ export function useEventMoves(events: CalendarEventView[], move: MoveAction, mov
           tone: "neutral",
           actionLabel: "Undo",
           onAction: () => {
-            setBar(null);
+            closeBar();
             save({ ...event, startAt: target.startAt, endAt: target.endAt }, from, true);
           },
         });
@@ -205,7 +196,7 @@ export function useEventMoves(events: CalendarEventView[], move: MoveAction, mov
           actionLabel: back ? "Undo" : undefined,
           onAction: back
             ? () => {
-                setBar(null);
+                closeBar();
                 const request = seriesUndoRequest(back, minutes);
                 saveSeries(request.eventId, seriesId, title, new Date(request.startIso), request.minutes, true);
               }
@@ -274,7 +265,7 @@ export function useEventMoves(events: CalendarEventView[], move: MoveAction, mov
     // A refused earlier drop of this event still waiting to glide home: this
     // newer drop decides where it is drawn now, so that glide is dropped.
     glide.current = glide.current.filter((g) => g.id !== eventId);
-    setBar(null);
+    closeBar();
     if (event.seriesId && isSeriesNoShift(event, newStart)) return; // dropped where it was: no sheet, nothing saved
     if (event.seriesId) setPending({ event, newStart });
     else save(event, newStart, false);
@@ -306,5 +297,5 @@ export function useEventMoves(events: CalendarEventView[], move: MoveAction, mov
     };
   }
 
-  return { events: displayed, drop, bar, closeBar: () => setBar(null), repeatSheet };
+  return { events: displayed, drop, repeatSheet };
 }

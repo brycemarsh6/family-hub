@@ -6,6 +6,7 @@ import { AvatarBadge } from "./AvatarBadge";
 import { TaskForm } from "./TaskForm";
 import { completeTask, deleteTask, uncompleteTask } from "@/app/actions/tasks";
 import { allDayInstantToLocalDay } from "@/lib/calendarDates";
+import { mayCompleteTask } from "@/lib/taskUndoRules";
 import { formatDayLabel } from "@/lib/mealPlanDates";
 import type { CalendarPersonView, CalendarTaskView } from "@/lib/types";
 
@@ -32,8 +33,10 @@ export function TaskDetailSheet({
   task,
   people,
   canManage,
+  isTablet,
   onClose,
   onChanged,
+  onCompleted,
   onDeleted,
 }: {
   /** `task.isMine` (per D3, computed server-side in page.tsx) is what
@@ -64,6 +67,9 @@ export function TaskDetailSheet({
    * below, which is what actually reaches TaskForm. */
   people: CalendarPersonView[];
   canManage: boolean;
+  /** The Tablet login: it may check off any task (`tabletMayCompleteAnyTask`,
+   * computed in page.tsx). Like `canManage`, it decides only what is drawn. */
+  isTablet: boolean;
   onClose: () => void;
   /** Called after a successful mark-complete/uncomplete/edit — the parent
    * refreshes the page's own data (there's no client-side task list to
@@ -78,6 +84,10 @@ export function TaskDetailSheet({
    * argument and the caller's existing single-day refresh is still
    * correct for them. */
   onChanged: (updated?: { dueDate: Date }) => void;
+  /** Mission 74: called after a successful mark-complete instead of
+   * `onChanged`. The parent closes the sheet, refreshes and shows the
+   * "Task completed, Undo" bar. */
+  onCompleted: () => void;
   /** Called after a successful delete — the parent closes this sheet AND
    * refreshes, same split EventDetailSheet's onDeleted/onClose make. */
   onDeleted: () => void;
@@ -119,12 +129,12 @@ export function TaskDetailSheet({
 
   const completed = current.completedAt !== null;
   // Per the permission model (D3, actions/tasks.ts's own header comment):
-  // a manager can complete anything; anyone else only a task they're
-  // genuinely a person on. Un-complete is manager-only, full stop — a kid
-  // gets "complete only," never able to undo their own or a parent's
-  // completion. Both booleans decide only what's DRAWN; the actions'
-  // own guards (MANAGER_ROLES / assertCanCompleteTask) are the real gate.
-  const canComplete = canManage || current.isMine;
+  // a manager or the Tablet can complete anything; anyone else only a task
+  // they're genuinely a person on. This button's un-complete is parents only;
+  // a kid's or the Tablet's own Undo is the bar's, within 60 seconds
+  // (mission 74, taskUndoRules.ts). Both booleans decide only what's DRAWN;
+  // the actions' own guards are the real gate.
+  const canComplete = mayCompleteTask({ canManage, isMine: current.isMine, isTablet });
   const canUncomplete = canManage;
 
   // mission-16/C1: flip first, call the action, revert on refusal — the
@@ -149,7 +159,7 @@ export function TaskDetailSheet({
         setError(result.error);
         return;
       }
-      onChanged();
+      onCompleted();
     });
   }
 

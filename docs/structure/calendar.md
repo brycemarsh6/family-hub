@@ -226,3 +226,24 @@ docs/history/structure-rationale.md under the same name.
   component writing its own zoom variable, or a block fit decided outside
   `blockTextFit` is a BLOCKER.
   (Added mission-73, on Captain's ruling; Bryce approved 2026-11-11.)
+
+## Task completed, Undo (mission 74)
+
+- **One bar, one owner.** `CalendarViews.tsx` calls `useUndoBar()`
+  (`src/lib/useUndoBar.ts`) once and mounts the only `<UndoBar>`. The event
+  moves (`useEventMoves.ts`) and the task bar both raise it through
+  `showBar`/`closeBar`; a second `<UndoBar>` mount or bar state is a BLOCKER.
+- **Mark complete** closes `TaskDetailSheet` (its `onCompleted`, not
+  `onChanged`) and `showTaskCompleted` shows "Task completed, Undo". Undo
+  calls `uncompleteTask`, the same action as the sheet's "Mark not complete".
+  Only `TaskDetailSheet.tsx` and `useUndoBar.ts` call it.
+- **Who may undo** is `taskUndoRules.ts` (`uncompleteRefusal`,
+  `TASK_UNDO_WINDOW_MS` = 60 s), enforced by the server action: parents any
+  time, a person on the task (or the Tablet) within 60 seconds. What the
+  sheet draws is `mayCompleteTask`; the sheet's own "Mark not complete" stays
+  parents only.
+- **Both mounts.** `CalendarSheets.tsx` (router refresh) and the sheet inside
+  `ScheduleView.tsx` (refreshes the task's day chunk, then router refresh)
+  each close the sheet and call `onTaskCompleted(taskId, refresh)`, which
+  `CalendarViews.tsx` passes to both. `isTablet` comes from `page.tsx`
+  (`tabletMayCompleteAnyTask`).

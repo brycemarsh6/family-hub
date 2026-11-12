@@ -15,6 +15,7 @@ import { RepeatMoveSheet } from "./RepeatMoveSheet";
 import { moveCalendarEvent } from "@/app/actions/calendar";
 import { moveCalendarSeries } from "@/app/actions/calendarSeries";
 import { useEventMoves } from "@/lib/useEventMoves";
+import { showTaskCompleted, useUndoBar } from "@/lib/useUndoBar";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
 import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
@@ -85,6 +86,8 @@ type CalendarViewsProps = {
    * anyway would still be refused server-side.
    */
   canManage: boolean;
+  /** The Tablet login (`tabletMayCompleteAnyTask`, page.tsx): it sees Mark complete on any task. */
+  isTablet: boolean;
   /**
    * The bounds of page.tsx's one server fetch — built (mission-9/C6) from
    * the "?date=" param useCalendarNavigation keeps in sync, not a fixed span
@@ -123,6 +126,7 @@ export function CalendarViews({
   habitDays,
   people,
   canManage,
+  isTablet,
   windowStart,
   windowEnd,
   viewerId,
@@ -150,7 +154,10 @@ export function CalendarViews({
   const now = useNowMinute();
   // Mission 70 (C4): a dropped event shows at its new time at once; `events` below is that list.
   // Mission 71: a repeating one asks first (`repeatSheet`).
-  const { events, drop, bar, closeBar, repeatSheet } = useEventMoves(serverEvents, moveCalendarEvent, moveCalendarSeries);
+  const { bar, showBar, closeBar } = useUndoBar();
+  const { events, drop, repeatSheet } = useEventMoves(serverEvents, moveCalendarEvent, moveCalendarSeries, showBar, closeBar);
+  // Mission 74: both task sheet mounts raise "Task completed, Undo" on the one bar.
+  const onTaskCompleted = (taskId: string, refresh: () => void) => showTaskCompleted(showBar, closeBar, taskId, refresh);
   const chromeOffsetPx = useHamburgerRowHeight();
 
   // Mission 69: each tap of Today bumps this, so the timeline scrolls to now
@@ -397,6 +404,8 @@ export function CalendarViews({
               initialDay={anchor}
               people={people}
               canManage={canManage}
+              isTablet={isTablet}
+              onTaskCompleted={onTaskCompleted}
               onTodayVisibleChange={setScheduleTodayVisible}
               onDayInViewChange={setScheduleDay}
               trackDayInView={panelOpen} revealExtraPx={stackedHeightPx}
@@ -488,6 +497,8 @@ export function CalendarViews({
         onCloseTask={() => setSelectedTask(null)}
         people={people}
         canManage={canManage}
+        isTablet={isTablet}
+        onTaskCompleted={onTaskCompleted}
       />
     </div>
   );
