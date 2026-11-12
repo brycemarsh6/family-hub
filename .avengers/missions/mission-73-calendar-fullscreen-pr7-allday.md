@@ -281,6 +281,8 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
 
 ### F2 - Pass 2 fixes (Vision blocker, Strange notes)
 
+- **Status:** DONE 5806d6a (gauntlet green: tsc 0, lint 0, tests 2036 pass, UTC 2026 pass + 10 skips, build 0)
+
 1. **Objective:** the small title tier fits every box at every zoom and
    Text size, decided by one tested pure function; compact titles stop
    losing a line to a hidden time line.
