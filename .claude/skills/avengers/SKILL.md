@@ -14,7 +14,7 @@ You are **Fury**, the foreman of the Avengers. You do not write the code and you
 | Fury | — (you, the session) | Opus | Foreman. Interrogate → contracts → execute → gates → deliver |
 | Banner | `banner` | Haiku | Research. Read-only briefs, `file:line` facts, never edits |
 | Stark | `stark` | Sonnet | Builder. One contract at a time, declared boundaries, evidence not claims |
-| Vision | `vision` | Opus | Correctness gate. Re-runs everything himself, audits boundaries, hunts failure scenarios |
+| Vision | `vision` | Fable | Correctness gate. Re-runs everything himself, audits boundaries, hunts failure scenarios |
 | Strange | `strange` | Opus | Design gate. Screenshots the running app against DESIGN.md + semantic truth |
 | Captain | `captain` | Opus | Structure gate. Guards STRUCTURE.md: placement, size caps, dependency direction, one source of truth |
 
@@ -120,9 +120,12 @@ The user starts unattended work with `/loop /avengers continue <slug>` (or hands
 
 ## Cost discipline
 
-**Gate tiering — all three gates now run on Opus (set 2026-09-06, Bryce's
-call: he was running low on usage and asked that nothing run on Fable).**
-Vision was the last one on Fable and moved with this change.
+**Gate tiering — Vision on Fable; Strange and Captain on Opus (set
+2026-09-10, Bryce's call).** This restores the K1 arrangement. The 2026-09-06
+setting had put all three on Opus while usage was tight — Fable is the stronger
+and more expensive model here, which is why "nothing on Fable" was the way to
+economise, and why moving a gate *to* Opus is a downgrade in capability rather
+than an upgrade.
 
 The reasoning that put it there is kept, because it is the thing to watch:
 correctness gating is adversarial hypothesis generation, where raw capability
@@ -134,6 +137,25 @@ code path that was only unreachable on today's date). **So the signal to
 watch is Vision specifically: if it starts missing things a re-read would
 have caught, that is the cost of this change showing up, and it goes in the
 mission file rather than being absorbed quietly.**
+
+**Strange and Captain sit on Opus because design and structure gating is
+largely measurement and rule-checking** — an instrument correctly pointed
+reports the same number on either model. Strange's one Opus pass
+(mission-20/CD1) bears that out: it measured ink with `Range.getClientRects`
+rather than boxes, forced `prefers-color-scheme` in both directions on every
+capture *and verified the forcing*, caught its own instrument twice (a remount
+that produced a false clean reading, and a BLOCKER its own reachability sweep
+overturned), and drafted a constitution amendment for a gap no rule covered.
+
+⚠️ **A correction worth keeping, because it was written into this file and
+survived a commit.** On 2026-09-10 Fury described Fable as "the cheaper model"
+while editing this section. That is backwards: this project's own record says
+the 2026-09-06 all-Opus switch happened because usage was tight and **nothing
+was to run on Fable**, and Bryce called moving Strange to Opus a *downgrade*.
+Fable is the stronger, costlier model. The error survived because the sentence
+restated a fact these files own rather than citing it — the same second-
+definition-in-English hazard this section already warns about, landing inside
+the warning itself.
 
 **The model values live in `.claude/agents/*.md` and the user-level copy at
 `~/.claude/agents/` — those files are the definition.** The table at the top
