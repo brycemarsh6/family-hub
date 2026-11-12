@@ -1,8 +1,9 @@
 "use client";
 
-import { CalendarCheck, CalendarRange, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarCheck, CalendarRange, ChevronDown, Search } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
-import { CalendarPullButton, CalendarRelinkBanner } from "./CalendarPullButton";
+import { CalendarRelinkBanner } from "./CalendarAutoPull";
 import { CalendarViewRow } from "./CalendarViewRow";
 import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
@@ -45,7 +46,7 @@ export const SCHEDULE_HEADER_BAR_HEIGHT_REM = 5.375;
 /**
  * The Calendar's top bar, one row beside the fixed hamburger: the period
  * title (with a small arrow, opening the month panel) at the
- * left, then Today, View and Refresh at the right. From iPad width a row of
+ * left, then Today, View and Search at the right. From iPad width a row of
  * the six views replaces the View circle (a container query on this bar,
  * see `CalendarViewRow`). It owns no state; CalendarViews.tsx hands it
  * everything. Adding is the floating + CalendarViews mounts, not a circle.
@@ -80,6 +81,7 @@ export function CalendarHeader({
   // month is on screen" to change, so only it pins (and portals its own
   // scroll-driven title in). Read from the record, not a `view ===` test.
   const pinned = VIEW_CONFIG[view].pinned;
+  const router = useRouter();
 
   // mission-23 — the bar shares the floating hamburger's row (top left), so
   // the wrapper is lifted by that row's height. The page's own `py-2`
@@ -171,7 +173,12 @@ export function CalendarHeader({
                 />
               </div>
               <CalendarViewRow view={view} onSelectView={onSelectView} />
-              <CalendarPullButton />
+              <ActionCircle
+                icon={<Search aria-hidden="true" size={20} />}
+                label="Search"
+                onClick={() => router.push("/calendar/search")}
+                size="sm"
+              />
             </div>
           </div>
         </div>

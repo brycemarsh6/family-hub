@@ -2,6 +2,7 @@
 
 import { LinkedAccountCard } from "@/components/LinkedAccountCard";
 import { EmptyState } from "@/components/EmptyState";
+import { SyncNowButton } from "@/components/SyncNowButton";
 import { startGoogleLink } from "@/app/actions/linkedCalendars";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
 import { SYNCED_CALENDARS_EXTRA_WORDS, SYNCED_CALENDARS_WORDS } from "@/lib/calendarSyncVocabulary";
@@ -24,6 +25,13 @@ export function SyncedCalendarsList({
   configured: boolean;
 }) {
   const link = useOptimisticRun<never>(() => {});
+  // The button shows only when some calendar is "Both ways"; its time is the newest good pull of those.
+  const twoWay = accounts.flatMap((account) => account.calendars).filter((calendar) => calendar.direction === "twoWay");
+  const lastSyncedAt = twoWay.reduce<Date | null>(
+    (newest, calendar) =>
+      calendar.lastPulledOkAt && (!newest || calendar.lastPulledOkAt > newest) ? calendar.lastPulledOkAt : newest,
+    null,
+  );
 
   function startLink() {
     link.run(null, async () => {
@@ -49,6 +57,8 @@ export function SyncedCalendarsList({
           ))}
         </div>
       )}
+
+      {twoWay.length > 0 && <SyncNowButton lastSyncedAt={lastSyncedAt} />}
 
       {configured ? (
         <button

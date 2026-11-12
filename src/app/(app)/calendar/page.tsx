@@ -9,7 +9,7 @@ import { loadPlannedHabitDays } from "@/lib/habitsStatsRead";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
 import { CalendarViews } from "@/components/CalendarViews";
-import { CalendarPullProvider } from "@/components/CalendarPullButton";
+import { CalendarPullProvider } from "@/components/CalendarAutoPull";
 import { loadCalendarPullState } from "@/lib/linkedCalendarsRead";
 import type { CalendarPersonView } from "@/lib/types";
 
@@ -130,12 +130,8 @@ export default async function CalendarPage({
           localDayToAllDayInstant(startOfDay(windowEnd)),
         )
       : Promise.resolve([]),
-    // The Refresh button and the reconnect banner (mission 60): two small
-    // reads in the same round trip. Refresh is for parents and admins, never
-    // a device login (the action refuses anyone else too).
-    user
-      ? loadCalendarPullState(user.userId, canManage && !user.isDevice)
-      : Promise.resolve({ showRefresh: false, relinkEmails: [] }),
+    // The reconnect banner (mission 60): one small read in the same round trip.
+    user ? loadCalendarPullState(user.userId) : Promise.resolve({ relinkEmails: [] }),
   ]);
 
   const people: CalendarPersonView[] = roster.map((person) => ({
@@ -155,7 +151,7 @@ export default async function CalendarPage({
   // mission-46).
   return (
     <div data-page-width="wide" className="py-2 has-[[data-fills-viewport]]:pb-0">
-      <CalendarPullProvider showRefresh={pullState.showRefresh} relinkEmails={pullState.relinkEmails}>
+      <CalendarPullProvider isTablet={isTablet} relinkEmails={pullState.relinkEmails}>
         <CalendarViews
           events={eventViews}
           tasks={taskViews}

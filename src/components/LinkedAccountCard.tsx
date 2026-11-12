@@ -17,7 +17,7 @@ import {
   alreadySyncedThrough,
   calendarsSummary,
   isReadOnlyRole,
-  lastCheckedLine,
+  lastSyncedLine,
   linkedByLine,
   relinkLine,
   type SyncDirection,
@@ -45,7 +45,7 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
   const [open, setOpen] = useState(false);
   const [pickingId, setPickingId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
-  // Null on the server and the first paint, so "Last checked" never mismatches.
+  // Null on the server and the first paint, so "Last synced" never mismatches.
   const now = useNowMinute();
 
   const [directions, setDirection] = useOptimistic(
@@ -106,7 +106,7 @@ export function LinkedAccountCard({ account, viewerId }: { account: SyncedAccoun
                   <span className="truncate text-base">{calendar.name}</span>
                   {direction === "twoWay" && calendar.lastPulledOkAt && now && (
                     <span className="text-sm text-muted-strong">
-                      {lastCheckedLine(feedbackTimeAgo(calendar.lastPulledOkAt, now))}
+                      {lastSyncedLine(feedbackTimeAgo(calendar.lastPulledOkAt, now))}
                     </span>
                   )}
                   {lockedBy && (

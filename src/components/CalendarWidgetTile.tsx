@@ -9,7 +9,7 @@ import { EventCard } from "./EventCard";
 import { HabitDayCard } from "./HabitDayCard";
 import { TaskCard } from "./TaskCard";
 import { SkeletonBlock } from "./Skeleton";
-import { useOpenPull } from "./CalendarPullButton";
+import { useOpenPull } from "./CalendarAutoPull";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
 import {
   calendarDayItems,

@@ -9,6 +9,7 @@ import {
   isReadOnlyRole,
   onGoogleLine,
   ownerLine,
+  lastSyncedLine,
   linkedByLine,
   linkErrorMessage,
   PULL_WORDS,
@@ -225,5 +226,16 @@ describe("round 3 words (Bryce, 2026-11-09)", () => {
       PULL_WORDS.sourceStaysOn,
       "The calendar it came from stays on, so editing here changes it in Google too.",
     );
+  });
+});
+
+describe("sync without a button (mission 75)", () => {
+  it("pins the Settings button's words", () => {
+    assert.equal(PULL_WORDS.syncNowLabel, "Sync calendars now");
+  });
+
+  it("writes Last synced, with a Just now case", () => {
+    assert.equal(lastSyncedLine("Just now"), "Last synced just now");
+    assert.equal(lastSyncedLine("5 min ago"), "Last synced 5 min ago");
   });
 });
