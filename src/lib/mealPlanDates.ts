@@ -140,3 +140,12 @@ export function formatMonthHeading(day: Date, today: Date): string {
     ? FULL_MONTH_NAMES[day.getMonth()]
     : `${MONTH_NAMES[day.getMonth()]} ${day.getFullYear()}`;
 }
+
+/** "November" becomes "Nov": a leading full month name in its three-letter
+ * form (from `MONTH_NAMES`, so there is no second list), for a phone-width
+ * title. "Jan 2027" and "2026" have no full month name to shorten and come
+ * back unchanged. */
+export function shortMonthHeading(title: string): string {
+  const index = FULL_MONTH_NAMES.findIndex((name) => title === name || title.startsWith(`${name} `));
+  return index === -1 ? title : `${MONTH_NAMES[index]}${title.slice(FULL_MONTH_NAMES[index].length)}`;
+}

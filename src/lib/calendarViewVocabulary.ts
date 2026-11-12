@@ -174,3 +174,15 @@ export function allDayMoreAriaLabel(count: number): string {
 /** The all-day row's chevron, closed and open. */
 export const ALL_DAY_EXPAND_LABEL = "Show all all-day items";
 export const ALL_DAY_COLLAPSE_LABEL = "Show fewer all-day items";
+
+/** The Calendar filter's words (mission 78): the top-bar circle and its sheet. */
+export const CALENDAR_FILTER_LABELS = {
+  button: "Filter",
+  buttonOn: "Filtered",
+  title: "Filter",
+  showAll: "Show all",
+  done: "Done",
+  people: "People",
+  calendars: "Calendars",
+  marshee: "Made in Marshee",
+} as const;

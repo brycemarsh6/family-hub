@@ -27,6 +27,7 @@ import {
   formatShortDayHeader,
   formatWeekRange,
   isSameMonth,
+  shortMonthHeading,
   toLocalDateString,
 } from "./mealPlanDates";
 
@@ -109,4 +110,18 @@ test("formatMonthHeading: Dec 31 and Jan 1 edges follow the year, not the month"
   assert.equal(formatMonthHeading(d(2027, 0, 1), d(2026, 11, 31)), "Jan 2027");
   assert.equal(formatMonthHeading(d(2026, 11, 31), d(2027, 0, 1)), "Dec 2026");
   assert.equal(formatMonthHeading(d(2027, 0, 1), d(2027, 0, 1)), "January");
+});
+
+// ---------------------------------------------------------------------------
+// shortMonthHeading
+
+test("shortMonthHeading: a full month name becomes its three-letter form", () => {
+  assert.equal(shortMonthHeading("November"), "Nov");
+  assert.equal(shortMonthHeading("May"), "May");
+  assert.equal(shortMonthHeading("September 2026"), "Sep 2026");
+});
+
+test("shortMonthHeading: already short or a bare year is unchanged", () => {
+  assert.equal(shortMonthHeading("Jan 2027"), "Jan 2027");
+  assert.equal(shortMonthHeading("2026"), "2026");
 });

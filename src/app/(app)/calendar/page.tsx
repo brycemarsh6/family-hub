@@ -10,7 +10,7 @@ import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
 import { CalendarViews } from "@/components/CalendarViews";
 import { CalendarPullProvider } from "@/components/CalendarAutoPull";
-import { loadCalendarPullState } from "@/lib/linkedCalendarsRead";
+import { loadCalendarPullState, loadFilterCalendars } from "@/lib/linkedCalendarsRead";
 import type { CalendarPersonView } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +79,7 @@ export default async function CalendarPage({
   // cross-country round trip (CLAUDE.md's performance section, from the
   // Inventory fix this mirrors) — batching keeps this page at ONE round
   // trip's worth of latency for three queries, not three.
-  const [eventViews, taskViews, roster, habitDays, pullState] = await Promise.all([
+  const [eventViews, taskViews, roster, habitDays, pullState, filterCalendars] = await Promise.all([
     // Events joined with their people in the same round trip (Prisma's
     // nested `select`, not a second query) — the select and the
     // row→CalendarEventView mapping both moved to calendarEventQuery.ts in
@@ -132,6 +132,8 @@ export default async function CalendarPage({
       : Promise.resolve([]),
     // The reconnect banner (mission 60): one small read in the same round trip.
     user ? loadCalendarPullState(user.userId) : Promise.resolve({ relinkEmails: [] }),
+    // The Filter sheet's calendar list (mission 78): names only, same round trip.
+    loadFilterCalendars(),
   ]);
 
   const people: CalendarPersonView[] = roster.map((person) => ({
@@ -157,6 +159,7 @@ export default async function CalendarPage({
           tasks={taskViews}
           habitDays={habitDays}
           people={people}
+          filterCalendars={filterCalendars}
           canManage={canManage}
           isTablet={isTablet}
           windowStart={windowStart}

@@ -34,7 +34,13 @@ import {
   MONTH_PANEL_STACKED_CLASSES,
   MONTH_PANEL_STICKY_CLASSES,
 } from "@/lib/gridClasses";
-import type { CalendarEventView, CalendarHabitDayView, CalendarPersonView, CalendarTaskView } from "@/lib/types";
+import type {
+  CalendarEventView,
+  CalendarFilterAccountView,
+  CalendarHabitDayView,
+  CalendarPersonView,
+  CalendarTaskView,
+} from "@/lib/types";
 
 // CalendarEventView / CalendarPersonView live in src/lib/types.ts, not here
 // — this file, DaySection.tsx, and EventCard.tsx all import them from that
@@ -80,6 +86,8 @@ type CalendarViewsProps = {
    * it. Unused by every other branch below; passed through, not read here.
    */
   people: CalendarPersonView[];
+  /** The linked calendars the Filter sheet lists (mission 78); not read yet. */
+  filterCalendars: CalendarFilterAccountView[];
   /**
    * True for admin/parent sessions, computed server-side in page.tsx —
    * gates the floating + and the detail sheet's Edit/⋯. Per STRUCTURE.md,
