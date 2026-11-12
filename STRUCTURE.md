@@ -267,6 +267,14 @@ amendment id.
   its own bounds rule and the module takes bounds as given. A second
   `db.task.findMany` that builds a `CalendarTaskView` is a BLOCKER
   (`briefingRead.ts`'s narrow task query builds no view, so it is not one).
+- **The Calendar search** (mission-75): the rules (words, prefix match,
+  series collapse, upcoming and past, caps) are pure in
+  `src/lib/calendarSearch.ts`; the only action is `searchCalendar` in
+  `actions/calendarSearch.ts`. It reads slim text rows from
+  `getEventSearchRows` / `getTaskSearchRows` and loads full views with
+  `getCalendarEventsByIds` / `getTasksByIds`, which reuse each query
+  module's one select and mapper. A second search query or a second
+  `CalendarEventView` / `CalendarTaskView` select is a BLOCKER.
 - **`compareEvents` in `src/lib/scheduleWindow.ts`** is the only order for
   events within a day (start, then id), used by Schedule and the Calendar
   widget. **`formatClockTime` in `calendarDates.ts`** is the only

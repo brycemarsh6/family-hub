@@ -169,3 +169,57 @@ export async function getCalendarEventsInRange(
   });
   return rows.map(toCalendarEventView);
 }
+
+/**
+ * Mission 75: the Calendar search's slim text read, EVERY event with only what
+ * matching and arranging need. `seriesId` is the source calendar's own sync
+ * row's, the same rule `toCalendarEventView` applies. The search action
+ * matches in memory, then loads the chosen ids through `getCalendarEventsByIds`.
+ */
+export async function getEventSearchRows(): Promise<
+  {
+    id: string;
+    title: string;
+    location: string | null;
+    notes: string | null;
+    startAt: Date;
+    endAt: Date;
+    allDay: boolean;
+    seriesId: string | null;
+  }[]
+> {
+  const rows = await db.calendarEvent.findMany({
+    select: {
+      id: true,
+      title: true,
+      location: true,
+      notes: true,
+      startAt: true,
+      endAt: true,
+      allDay: true,
+      sourceLinkedCalendarId: true,
+      syncs: { select: { linkedCalendarId: true, googleSeriesId: true } },
+    },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    location: row.location,
+    notes: row.notes,
+    startAt: row.startAt,
+    endAt: row.endAt,
+    allDay: row.allDay,
+    seriesId:
+      row.syncs.find((sync) => sync.linkedCalendarId === row.sourceLinkedCalendarId)?.googleSeriesId ?? null,
+  }));
+}
+
+/** The events with these ids as full views, same select and mapper as the range query. Order is not promised. */
+export async function getCalendarEventsByIds(ids: string[]): Promise<CalendarEventView[]> {
+  if (ids.length === 0) return [];
+  const rows = await db.calendarEvent.findMany({
+    where: { id: { in: ids } },
+    select: CALENDAR_EVENT_SELECT,
+  });
+  return rows.map(toCalendarEventView);
+}
