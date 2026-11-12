@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** BUILDING C2 (C1 DONE) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** AT-THE-GATES (C1, C2 DONE) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -44,7 +44,8 @@ deploys to the family. No database writes by any agent.
 - Stark + Vision (always). Vision owns the permission rule.
 - Strange: the bar is visible (placement against the + and home indicator,
   phone and iPad, Tablet at Largest).
-- Captain: out unless a new component file appears or the diff passes ~300
+- Captain: **in** (Fury, after C2: two new lib files, `useUndoBar.ts` and
+  `taskUndoRules.ts`, and the diff passed ~350 lines). Original note: out unless a new component file appears or the diff passes ~300
   lines; a new `src/lib/` rule file follows the `tabletRules.ts` precedent.
   Vision carries the size check (`tasks.ts` 445, `ScheduleView.tsx` 564,
   `CalendarViews.tsx` 494 lines at the start).
@@ -191,3 +192,8 @@ reasons: say so, do not hide it).
    `UndoBar` still mounted once.
 6. **Done:** both mounts show the bar after complete; Undo un-completes
    and refreshes; the move bar unchanged; the Tablet sees Mark complete.
+- **C2 status:** DONE (Stark: tsc 0, lint 0, npm test 2048 pass, UTC 2038 + 10 skips, build 0; CalendarViews 494 to 505, ScheduleView 564 to 583, useEventMoves 310 to 301, useUndoBar new 56; not exercised in a browser).
+
+## Gates
+
+(pass 1 dispatched 2026-11-11)
