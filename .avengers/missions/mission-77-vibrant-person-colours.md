@@ -160,3 +160,54 @@ main too). Boundary clean. Notes:
   drain"), so it stays out of scope; follow-up for status.md.
 - Stale `bandedBackground` comment at `TimelineGrid.tsx:120`: fix batch.
 - MonthCell 352 lines (2 over soft cap, shrank as required).
+
+### Strange pass 1 (691cde5): BLOCKED
+
+Measured in a component harness (no agent login exists), phone and iPad,
+both themes forced and verified. All text contrast passes: live white 4.60
+worst (green), faded muted-strong 4.58 light / 6.35 dark, highlight 6.65 /
+11.15, habits columns 4.81 / 6.55. Screens in the scratchpad `strange/shots/`.
+- BLOCKER: the now-line (`--danger`, the one colour no block used) vanishes
+  over solid blocks (1.15 to 1.40:1 light). Fix: surface-coloured halo.
+- BLOCKER: past all-day events in the timeline strip stay solid while every
+  other past event fades. Fury had scoped this out (Vision note); Strange
+  holds it as a semantic failure under the contract's own Faded rule. Fixed
+  rather than argued.
+- NOTE for Bryce: Day/3 Day/Week fade by the minute, Schedule/Search/widget/
+  Month fade from the next day. Now far more visible. Recommend one meaning.
+- NOTES: dark faded slate is low-key; dark highlight chip is a dark patch
+  (taste); red person colour reads as a person, not danger.
+
+### C2 - fix batch after pass 1
+
+**Objective:** clear Strange's two blockers and Vision's notes.
+
+**Boundaries:** May touch: `src/components/TimelineDayColumn.tsx`,
+`src/components/TimelineAllDayBar.tsx`, `src/lib/color.ts`,
+`src/lib/color.test.ts`, `src/components/MonthCell.tsx`,
+`src/components/EventCard.tsx`, `src/components/TimelineGrid.tsx` (the stale
+comment at about line 120 only), `docs/structure/calendar.md`. Must not
+touch anything else.
+
+1. Now-line in `TimelineDayColumn.tsx`: dot `size-2.5 rounded-full bg-danger
+   ring-2 ring-surface`; line `h-0.5 flex-1 bg-danger
+   shadow-[0_0_0_1px_var(--surface)]`. Keep its position maths correct for
+   the thicker line (centre on the minute).
+2. `AllDayEventBar` (`TimelineAllDayBar.tsx`): fade a past all-day event with
+   `useToday()` and `isPast(event.endAt, today)` (null today means not past),
+   stripe 3px only on the bar that starts the event (`continuesBefore` false),
+   `font-medium` when faded, as Month does.
+3. `personFill`: stop mixing the `background` shorthand with a
+   `backgroundOrigin` longhand in one style object (React re-renders reset
+   it). Either the `bg-origin-border` class on each painted element or
+   longhands only (`backgroundImage` + `backgroundColor` + origin). Tests
+   follow.
+4. Stale `bandedBackground` comment in `TimelineGrid.tsx`: point at
+   `personFill`.
+5. `docs/structure/calendar.md` "Person colours": all-day events fade too.
+
+**Verification:** the Gauntlet, all green.
+
+**Evidence required:** Gauntlet last lines, test counts, `git show --stat HEAD`.
+
+**Done criteria:** the diff shows all five; no other file changed.
