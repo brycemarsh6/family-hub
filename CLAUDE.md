@@ -138,14 +138,16 @@ files named beside it.
   admins, Recompute streaks. Plan: `.avengers/plans/habits-chores-v1.md`.
 - **Calendar**: Month, Year, Schedule and hour-timeline views, tasks, a
   month dropdown (an iPad side panel, 72), sliding swipe (69), pinch zoom
-  (65), drag (70) and its This one or All of them (71), task Undo (74).
-  Read `.avengers/plans/calendar-v2.md` first.
+  (65), drag (70) and its This one or All of them (71), task Undo (74),
+  Search (75), no Refresh. Read `.avengers/plans/calendar-fullscreen-v1.md`
+  and `docs/structure/calendar.md` before any calendar work.
 - **Google Calendar link** (`/settings/calendars`, parents and admins): link
   Google accounts, choose each calendar's sync direction. Refresh tokens are
   encrypted. **Marshee to Google works** (PR 2): the event form's "Sync to"
   copies an event to chosen calendars and keeps the copies updated and
   deleted. **Google to Marshee works** (PR 3): "Both ways" calendars pull on
-  opening Calendar, on Refresh and a daily cron; one link per Google
+  opening Calendar, on return to the app, every 5 minutes on screen, a
+  daily cron and Settings' "Sync calendars now"; one link per Google
   calendar. Any new code that writes a `CalendarEvent` must call the push.
   Plan: `.avengers/plans/calendar-sync-v1.md`.
 - **iPad landscape**: wide pages use a per-page opt-in rule (a container that
@@ -229,7 +231,7 @@ Lucide outline icons only, secondary row actions behind a right-to-left swipe
 (destructive last), every page below a drawer destination has a `BackLink`, and
 browser-only reads use `useSyncExternalStore`.
 
-## Current status (updated 2026-11-10)
+## Current status (updated 2026-11-12)
 
 Replace this section, don't append. It lists only work that is **not merged
 yet** or is next. Everything merged is in its mission file.
@@ -239,11 +241,9 @@ yet** or is next. Everything merged is in its mission file.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
   parent rule) and PR C (per-person habits tiles) are next:
   `.avengers/missions/mission-39-tablet-login.md`.
-- **Calendar full screen rebuild** (nine PRs, approved, PR 9 is next):
-  read `.avengers/plans/calendar-fullscreen-v1.md` and
-  `docs/structure/calendar.md` before any calendar work.
-- **Winnie next:** calendar and tasks (after the drag PR), then replacing the app's
-  Claude features with her (needs a two-way link; parked by Bryce).
+- **Calendar full screen rebuild: finished** (all nine PRs); follow-ups in its plan.
+- **Winnie next:** calendar and tasks, then replacing the app's Claude
+  features with her (needs a two-way link; parked by Bryce).
 - **Bryce's phone checklist, things waiting on him, and open follow-ups:**
   [.avengers/status.md](.avengers/status.md).
 

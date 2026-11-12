@@ -6,6 +6,21 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar Search and syncing without Refresh (mission 75, PR 9 of 9,
+  the last one)**, about 3 minutes, on your iPhone and the iPad. Tap the
+  Search circle (top right, where Refresh was). Does the keyboard come up
+  by itself? (iPhones sometimes need a tap in the box.) Type a word from
+  an old event, then one from a future event: upcoming results show
+  first, then "Past". Keep typing: the list stays on screen under
+  "Searching...". Try a word without its accent ("cafe") and a plural
+  ("movie" for "Movies"). A repeating event shows once, marked "Repeats".
+  Tap a result: its sheet opens; complete a task from there and Undo it.
+  **Sync:** add an event in Google Calendar on your phone, switch back to
+  Marshee's Calendar and wait a few seconds: it appears with no button.
+  Then Settings, Synced calendars: tap "Sync calendars now" ("Up to date"
+  shows) and check "Last synced". **Your call when you see it:** the
+  button sits below the account card in grey; say if you want it on top.
+  **Kitchen tablet:** the Search circle is there too.
 - **Calendar Task completed, Undo (mission 74, PR 8 of 9)**, about 3
   minutes, on your iPhone, as a parent and then as a kid login, plus the
   kitchen tablet. Use a throwaway task (add one for today and put the kid
