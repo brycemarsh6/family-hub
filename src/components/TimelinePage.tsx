@@ -22,6 +22,7 @@ import { isSameDay } from "@/lib/mealPlanDates";
 import { isOutsideWindow } from "@/lib/calendarDates";
 import { MINUTES_PER_DAY } from "@/lib/timelineLayout";
 import { TimelineAllDayStrip } from "./TimelineAllDayStrip";
+import { AllDayToggle } from "./AllDayToggle";
 import { TimelineDayHeaderRow, TimelineDayLabel } from "./TimelineDayHeader";
 import { TimelineDayColumn } from "./TimelineDayColumn";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
@@ -49,7 +50,8 @@ export function TimelineHourLabels() {
         <span
           key={hour}
           data-hour-label={hour}
-          className="absolute right-1 -translate-y-1/2 text-[0.625rem] text-muted"
+          // whitespace-nowrap + min(): mission 70's marker precedent, so "10 AM" never wraps at Largest.
+          className="absolute right-1 -translate-y-1/2 whitespace-nowrap text-[min(0.625rem,12px)] text-muted"
           style={{ top: `calc(var(--hour-height) * ${hour})` }}
         >
           {hour === 0 ? "" : label}
@@ -92,6 +94,11 @@ type TimelinePageHeaderProps = {
   onOpenTask: (task: CalendarTaskView, day: Date) => void;
   /** Day only: this page carries its own gutter corner (the date). */
   ownGutter: boolean;
+  /** Mission 73: the all-day row's open state, owned by TimelineGrid. Only the
+   * current page gets it; neighbour pages are always collapsed. `showToggle`
+   * is whether the chevron shows (something hidden, or open). In Day the
+   * chevron sits under the date in this page's corner. */
+  allDay?: { expanded: boolean; showToggle: boolean; onToggle: () => void };
 };
 
 export function TimelinePageHeader({
@@ -105,6 +112,7 @@ export function TimelinePageHeader({
   onOpenEvent,
   onOpenTask,
   ownGutter,
+  allDay,
 }: TimelinePageHeaderProps) {
   const columnDaysKey = dayKey(columnDays);
   const eventById = useMemo(() => new Map(events.map((event) => [event.id, event])), [events]);
@@ -166,13 +174,20 @@ export function TimelinePageHeader({
         onOpenEvent={onOpenEvent}
         onOpenTask={onOpenTask}
         gridTemplateColumns={gridTemplateColumns}
+        expanded={allDay?.expanded ?? false}
+        onExpand={allDay?.onToggle}
         corner={
           ownGutter ? (
-            <TimelineDayLabel
-              day={columnDays[0]}
-              today={today}
-              notLoaded={outsideColumns[0]}
-            />
+            <>
+              <TimelineDayLabel
+                day={columnDays[0]}
+                today={today}
+                notLoaded={outsideColumns[0]}
+              />
+              {allDay?.showToggle && (
+                <AllDayToggle expanded={allDay.expanded} onToggle={allDay.onToggle} />
+              )}
+            </>
           ) : undefined
         }
       />

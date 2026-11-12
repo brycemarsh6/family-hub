@@ -6,6 +6,21 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar all-day row and zooming text (mission 73, PR 7 of 9)**, about
+  3 minutes, on your iPhone and the iPad. Pick a day with four all-day
+  items (add two throwaway all-day events if needed). In 3 Day or Week:
+  two rows show, then "+2" under that day, and a down arrow sits at the
+  left. Tap "+2": every all-day item shows and the arrow points up; tap
+  the up arrow: back to two rows. Open it again and swipe to the next
+  page: it comes back closed. In Day the same day says "2 more" and the
+  arrow sits under the date. Pinch in on the hours: event titles and the
+  all-day items grow (up to one and a half times); pinch out: back to
+  today's size, never smaller. Long event names wrap onto more lines when
+  the event is tall enough, and no letter is ever cut in half. A 15
+  minute event shows only its title at the normal zoom (zoom in or tap it
+  to see the time). **iPad at Largest text:** "10 AM" stays on one line.
+  Narrow Week columns may break a long word across lines; say if Safari
+  makes that look odd.
 - **Calendar month dropdown and iPad side panel (mission 72, PR 6 of
   9)**, about 4 minutes. **iPhone:** in Day, tap "November": chips and a
   little month drop down and push the calendar down, the arrow turns up.
@@ -85,8 +100,8 @@ it is done. The pre-cleanup text is in
   the six views sit in a row at the top; held upright, or at a bigger Text
   size, the View circle comes back instead (say if you want the row
   upright too). On the kitchen tablet signed in as Tablet there is no +.
-  Known and left for later: at Largest text on the iPad, "10 AM" wraps to
-  two lines in the hour column (PR 7 fixes text sizes there).
+  At Largest text on the iPad, "10 AM" now stays on one line (fixed in
+  PR 7, mission 73).
 - **Calendar pinch to zoom (mission 65)**, about 5 minutes on your iPhone
   and the iPad. The 8 steps are in the mission file's "Phone test for
   Bryce": pinch on 2 PM and it stays under your fingers; in to about 3.5
@@ -293,12 +308,17 @@ it is done. The pre-cleanup text is in
   Giving a kid a password is a separate decision.
 
 **Open, not scheduled:**
+- Calendar all-day row follow-ups (mission 73 Delivery): one-line and
+  two-line titles can still end "pre-..." (a hyphen before the ...) in
+  some columns; Month still says "+3 more" (decision 13 wants "3 more",
+  words go in `calendarViewVocabulary.ts`); `TimelineGrid.tsx` is at 400
+  lines (next feature moves the all-day open state to
+  `src/lib/useAllDayExpand.ts`); `appChrome.ts` should use
+  `readRootFontPx`.
 - Calendar drag follow-ups (mission 70 Delivery): `usePagedSwipe.ts` and
   `useTimelineDrag.ts` are over the soft cap (split on next touch).
-- Calendar repeating follow-ups (mission 71 Delivery): at Largest text on
-  the iPad a 15-minute block's title and time overlap (mission-65's
-  small-title rule assumes Normal; best fixed in the all-day row PR, which
-  touches the blocks). On the iPad held sideways at Largest, the docked
+- Calendar repeating follow-ups (mission 71 Delivery): the Largest
+  15-minute overlap was fixed in PR 7 (mission 73). On the iPad held sideways at Largest, the docked
   sheet can cover a block dropped low on screen (the sheet's line still
   says the time). `useEventMoves.ts` splits its series half into
   `useSeriesMove.ts` on its next feature. Still to decide later: "This one
@@ -306,8 +326,8 @@ it is done. The pre-cleanup text is in
 - **Calendar zoom first-frame flicker (mission 65, Strange pass 3 NOTE):**
   on a fresh iPad load the hour lines may jump once. Fix: move the
   `useTimelineZoom` call in `TimelineGrid.tsx` below its sizing layout
-  effect, or `flushSync` the ResizeObserver callback. Also: short titles at
-  Largest text size on a tablet can lose letter tails (DESIGN.md names it).
+  effect, or `flushSync` the ResizeObserver callback. (Short titles losing
+  letter tails at Largest was fixed in PR 7, mission 73.)
 - Dev only, fixed 2026-11-08: the "X is not defined" crash from a type
   re-exported in a "use server" file (`PersonInfo`, `HabitInput`, then
   `RecipeIngredientSuggestion` and the put-away types). None are left, and
@@ -342,4 +362,4 @@ it is done. The pre-cleanup text is in
   by Bryce's Grok bot. Left uncommitted on purpose.
 - Calendar full screen PR 1 follow-ups (mission 67 Delivery): Day view's
   all-day habit pills are 26px beside 24px event bars (`HabitDayPill.tsx`,
-  a small code fix); iPad Largest hour labels wrap (PR 7).
+  a small code fix). (iPad Largest hour labels: fixed in PR 7, mission 73.)

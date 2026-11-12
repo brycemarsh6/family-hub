@@ -90,15 +90,17 @@ tell when a rule's reason has expired.
   neighbour or reintroduce the ambiguous tap the floor exists to prevent,
   and a fixed rail tall enough to clear 44px would cost most of the visible
   day on the app's most-used view; zoom puts that trade in the reader's
-  hands instead. Under 20px the title drops to a 0.75rem line, which fits
-  whole at Normal text size; at larger Text sizes on a tablet a short
-  title can still lose its letter tails (a known limit, mission 65). The boundary: **(a)** every block
+  hands instead. When the full title line does not fit the block (under
+  20px, or a big Text size), the title drops to a small line capped at
+  12px, so it fits whole at every zoom and Text size (mission 73; the
+  mission 65 known limit is closed). The boundary: **(a)** every block
   stays a real `<button>` with a real accessible name; **(b)** consecutive
   blocks never abut — each draws 2px shorter and 2px narrower than its
   computed geometry, so a near-miss lands on a non-interactive seam instead
-  of opening the wrong event; **(c)** the all-day strip's bars, its
-  "+N more", **and its "− Show less" collapse counterpart** share that same
-  24px as a **floor, not a derivation** — they
+  of opening the wrong event; **(c)** the all-day strip's bars and its
+  "+N" / "N more" count share that same 24px (it grows with zoom) as a
+  **floor, not a derivation**; the 44px chevron in the left corner does
+  the same job as the count and closes the row again (mission 73) — they
   have no duration to be faithful to, which is why 24px is the minimum they
   may be and never a licence to go under it; **(d)** Schedule (112px
   full-width rows, listing everything) is the conforming route and must

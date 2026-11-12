@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>All-day row and zoom mock (PR 7)</title>
+<style>
+:root{--bg:#1c1b16;--fg:#ece8df;--muted:#9a958a;--line:#3a3830;--accent:#8fb08a;--ev:#2e3a2f;--evb:#6d8a6f;--ev2:#3a2f3a;--evb2:#8a6d88;--surface:#26251f;--hh:48px;--gut:48px;--s:1}
+*{box-sizing:border-box}
+html,body{margin:0;background:#111;color:var(--fg);font:14px -apple-system,system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+.wrap{max-width:900px;margin:0 auto;padding:14px}
+h1{font-size:18px;margin:0 0 4px}
+h2{font-size:16px;margin:26px 0 4px}
+p.note{color:var(--muted);margin:0 0 10px;font-size:13px;line-height:1.5;max-width:620px}
+.row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.tabs{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
+.tabs button{min-height:40px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;padding:0 14px}
+.tabs button.on{background:var(--accent);color:#1c1b16;border-color:var(--accent);font-weight:600}
+.dev{width:393px;height:640px;background:var(--bg);border:6px solid #000;border-radius:26px;overflow:hidden;display:flex;flex-direction:column}
+.top{height:52px;display:flex;align-items:center;gap:8px;padding:0 10px;flex:none}
+.burger{width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--muted)}
+.title{font-weight:700;font-size:19px}.title small{font-size:12px;color:var(--muted)}
+.sp{flex:1}.circ{width:40px;height:40px;border-radius:999px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
+.head{display:flex;flex:none}
+.corner{width:var(--gut);flex:none;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px}
+.corner .dl{font-size:10px;color:var(--muted);text-align:center}.corner .dl b{display:block;font-size:17px;color:var(--accent)}
+.arrow{width:44px;height:44px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--fg);cursor:pointer}
+.arrow svg{width:20px;height:20px;transition:transform 180ms}
+.arrow.up svg{transform:rotate(180deg)}
+.cols{flex:1;display:flex;min-width:0}
+.col{flex:1;min-width:0;border-left:1px solid var(--line);display:flex;flex-direction:column}
+.dh{text-align:center;padding:4px 0}.dh b{display:block;font-size:17px}.dh small{font-size:10px;color:var(--muted)}
+.dh.today b{color:var(--accent)}
+.lanes{padding:0 2px;display:flex;flex-direction:column;gap:2px}
+.pill{height:calc(24px * var(--s));line-height:calc(24px * var(--s));font-size:calc(9px * var(--s));font-weight:600;background:var(--ev);border:1px solid var(--evb);border-radius:5px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill.p2{background:var(--ev2);border-color:var(--evb2)}
+.more{min-height:24px;font-size:11px;color:var(--muted);text-align:left;padding:2px 4px;cursor:pointer;font-weight:600}
+.more.hide{visibility:hidden}
+.adwrap{border-bottom:1px solid var(--line)}
+.grid{flex:1;display:flex;overflow:auto;position:relative}
+.gutter{width:var(--gut);flex:none;position:relative}
+.gutter span{position:absolute;right:4px;font-size:10px;color:var(--muted);transform:translateY(-50%);white-space:nowrap}
+.gcols{flex:1;display:flex;position:relative}
+.gcol{flex:1;border-left:1px solid var(--line);position:relative;background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--hh) - 1px),var(--line) calc(var(--hh) - 1px),var(--line) var(--hh))}
+.blk{position:absolute;left:2px;right:2px;background:var(--ev);border:1px solid var(--evb);border-radius:6px;padding:2px 4px;overflow:hidden}
+.blk.p2{background:var(--ev2);border-color:var(--evb2)}
+.blk .t{font-weight:600;font-size:calc(12px * var(--s));line-height:calc(15px * var(--s));display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.blk .tm{font-size:calc(9px * var(--s));line-height:calc(12px * var(--s));color:var(--muted);white-space:nowrap;overflow:hidden}
+.zoom{display:flex;align-items:center;gap:10px;margin:8px 0;max-width:393px}
+.zoom input{flex:1}
+.lab{font-size:13px;color:var(--muted)}
+.cmp{display:flex;gap:16px;flex-wrap:wrap}
+.gbox{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;width:200px}
+.gbox .g{position:relative;height:120px;border-right:1px solid var(--line)}
+.gbox .g span{position:absolute;right:4px;color:var(--muted);transform:translateY(-50%)}
+.gbox h3{margin:0 0 8px;font-size:13px}
+.bad{color:#d98b6f}.good{color:var(--accent)}
+.recs{max-width:640px;font-size:13px;line-height:1.55}
+.recs li{margin-bottom:6px}
+</style></head><body><div class="wrap">
+<h1>PR 7 mock: the all-day row like Google, and text that zooms</h1>
+<p class="note">A pretend phone. Tap "+2" (or "2 more" in Day), or the arrow at the left, to open every all-day item. The up arrow closes it. Drag the zoom slider to see titles and the all-day row grow. Colors are placeholders; the real app keeps its own.</p>
+
+<div class="tabs" id="views"><button data-v="3" class="on">3 Day</button><button data-v="1">Day</button><button data-v="7">Week</button></div>
+<div class="zoom"><span class="lab">Zoom</span><input id="z" type="range" min="32" max="192" value="48"><span class="lab" id="zl">48px an hour (today's size)</span></div>
+
+<div class="row">
+<div class="dev" id="dev">
+  <div class="top"><div class="burger">&#9776;</div><div class="title">November <small>&#9662;</small></div><div class="sp"></div><div class="circ">Today</div><div class="circ">View</div><div class="circ">&#9906;</div></div>
+  <div class="adwrap"><div class="head" id="head"></div></div>
+  <div class="grid" id="grid"></div>
+</div>
+</div>
+
+<h2>The hour labels at Largest text on the iPad</h2>
+<p class="note">Today "10 AM" breaks onto two lines and touches the edge, because the hour column is a fixed width and the text grows with Text size. Fix: the label never wraps, and its size stops growing at 12px (the same fix PR 4 gave the drag time marker), so the day columns keep their width.</p>
+<div class="cmp">
+ <div class="gbox"><h3 class="bad">Today, Largest</h3><div class="g" style="width:48px"><span style="top:30px;font-size:15px;width:42px;text-align:right;line-height:1.1">10 AM</span><span style="top:90px;font-size:15px;width:42px;text-align:right;line-height:1.1">11 AM</span></div></div>
+ <div class="gbox"><h3 class="good">After PR 7, Largest</h3><div class="g" style="width:48px"><span style="top:30px;font-size:12px;white-space:nowrap">10 AM</span><span style="top:90px;font-size:12px;white-space:nowrap">11 AM</span></div></div>
+</div>
+
+<h2>What I recommend (say "yes" or change any)</h2>
+<ol class="recs">
+<li><b>Two all-day rows on every width</b> (phone and iPad), then the count under the busy column. Month keeps its own rows, untouched. <i>Why: it is your decision 9, and one rule is easier to learn on both devices.</i></li>
+<li><b>Wording:</b> "+2" under a column in 3 Day and Week, "2 more" in Day (decision 13). Tapping either, or the arrow, opens all columns at once; the up arrow closes. <i>Why: like Google, and one tap shows the whole week's all-day items.</i></li>
+<li><b>The arrow shows only when something is hidden</b> (or while open, to close). A day with two or fewer all-day items shows no arrow. <i>Why: an arrow that does nothing is a lie on screen.</i></li>
+<li><b>It closes again when you swipe to another page</b>, as it does today. <i>Why: the next page may have nothing hidden, so a stuck-open row would just waste space.</i></li>
+<li><b>Zoom grows text up to one and a half times.</b> At today's zoom and below, nothing changes. Fully zoomed in, titles are 1.5 times bigger and the all-day pills grow with them. Text size still applies on top. <i>Why: bigger than 1.5 makes Week columns on a phone show only a word or two.</i></li>
+<li><b>Long titles wrap</b> to as many whole lines as the block holds, then end with "...". The time line shows under the title only when there is room for it, which also fixes the iPad Largest overlap on 15 minute events. <i>Why: your answer 4, and no letter is ever cut in half.</i></li>
+<li><b>The hour labels fix</b> shown above. <i>Why: smallest change, keeps the columns as wide as they are now.</i></li>
+</ol>
+
+<script>
+const days=[{w:"Tue",d:10},{w:"Wed",d:11,today:1},{w:"Thu",d:12},{w:"Fri",d:13},{w:"Sat",d:14},{w:"Sun",d:15},{w:"Mon",d:16}];
+const allday={11:["Veterans Day","Ella's field trip","Bryce in Fresno","Trash night"],12:["Bryce in Fresno"],13:["Pay rent","Bryce in Fresno","Book fair"]};
+const timed={10:[[9,1,"Dentist"]],11:[[7,.5,"Wake up and walk the dog"],[10,1.5,"Sales call with the Garcia family about panels",1],[13,.25,"Pick up"]],12:[[8,1,"Soccer practice"]],13:[[9.5,2,"Install crew at the Johnson house in Clovis",1]],14:[[10,1,"Farmers market"]],15:[[11,1,"Church"]],16:[[8,1,"Standup"]]};
+let view=3,open=false,hh=48;
+const scale=h=>h<=48?1:1+0.5*(h-48)/(192-48);
+const chev='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+function render(){
+ const dev=document.getElementById("dev");dev.style.setProperty("--hh",hh+"px");dev.style.setProperty("--s",scale(hh));
+ const cols=view===1?[days[1]]:days.slice(view===3?1:0,view===3?4:7);
+ const hidden=cols.some(c=>(allday[c.d]||[]).length>2);
+ let h="<div class='corner'>";
+ if(view===1)h+=`<div class='dl'>${cols[0].w}<b>${cols[0].d}</b></div>`;
+ if(hidden||open)h+=`<div class='arrow ${open?"up":""}' onclick='tog()' aria-label='${open?"Show fewer all-day items":"Show all all-day items"}'>${chev}</div>`;
+ h+="</div><div class='cols'>";
+ cols.forEach((c,i)=>{const items=allday[c.d]||[];const shown=open?items:items.slice(0,2);const n=items.length-2;
+  h+=`<div class='col'>${view===1?"":`<div class='dh ${c.today?"today":""}'><small>${c.w}</small><b>${c.d}</b></div>`}<div class='lanes'>${shown.map((t,j)=>`<div class='pill ${j%2?"p2":""}'>${t}</div>`).join("")}</div>`;
+  h+=`<div class='more ${(!open&&n>0)?"":"hide"}' onclick='tog()'>${n>0?(view===1?n+" more":"+"+n):""}</div></div>`;});
+ h+="</div>";document.getElementById("head").innerHTML=h;
+ let g="<div class='gutter' style='height:calc(var(--hh)*24)'>";
+ for(let i=1;i<24;i++)g+=`<span style='top:calc(var(--hh)*${i})'>${(i%12)||12} ${i<12?"AM":"PM"}</span>`;
+ g+="</div><div class='gcols'>";
+ const s=scale(hh);
+ cols.forEach(c=>{g+="<div class='gcol' style='height:calc(var(--hh)*24)'>";
+  (timed[c.d]||[]).forEach(([st,dur,t,p])=>{const px=dur*hh-2;const lineH=15*s,timeH=12*s;
+   let lines=Math.max(1,Math.floor((px-4)/lineH));const showTime=px-4>=lineH+timeH;
+   if(showTime)lines=Math.max(1,Math.floor((px-4-timeH)/lineH));
+   const st12=((Math.floor(st)%12)||12)+(st%1?":"+String(Math.round(st%1*60)).padStart(2,"0"):"");
+   g+=`<div class='blk ${p?"p2":""}' style='top:${st*hh+1}px;height:${px}px'><div class='t' style='-webkit-line-clamp:${lines}'>${t}</div>${showTime?`<div class='tm'>${st12} ${st<12?"AM":"PM"}</div>`:""}</div>`;});
+  g+="</div>";});
+ g+="</div>";const grid=document.getElementById("grid");grid.innerHTML=g;
+ document.getElementById("zl").textContent=hh+"px an hour"+(hh<=48?" (today's size, text 1x)":", text "+s.toFixed(2)+"x");
+}
+function tog(){open=!open;render();}
+document.getElementById("views").onclick=e=>{const b=e.target.closest("button");if(!b)return;view=+b.dataset.v;open=false;document.querySelectorAll("#views button").forEach(x=>x.classList.toggle("on",x===b));render();};
+document.getElementById("z").oninput=e=>{hh=+e.target.value;render();};
+render();document.getElementById("grid").scrollTop=6.5*48;
+</script>
+</div></body></html>

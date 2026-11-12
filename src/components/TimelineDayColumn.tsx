@@ -19,7 +19,7 @@
 // below), and — only in today's own column, if present — the live now-line.
 //
 // DEPENDENCY INJECTION, same discipline as TimelineGrid.tsx's own header
-// comment: this component owns no state and calls no hooks. `slots` (this
+// comment: this component owns no state (its one hook only reads the root font size, mission-73). `slots` (this
 // day's own `TimelineColumnSlot<TimelineBlock>[]`, timelineLayout.ts's
 // `assignColumns` output) and `eventById` (the SAME map the caller also
 // hands to `./TimelineAllDayStrip.tsx`) both arrive fully computed — this
@@ -34,10 +34,12 @@
 // copy of either is exactly the kind of drift this mission's own report
 // (`GUTTER_WIDTH_PX`, and the old bottom-nav height) keeps finding.
 
+import type { CSSProperties } from "react";
 import { Repeat } from "lucide-react";
 import { minutesOfDay, type TimelineColumnSlot, type TimelineBlock } from "@/lib/timelineLayout";
 import { formatTimeRange, isPast } from "@/lib/calendarDates";
-import { showsTimeLine, titleFitsFullSize } from "@/lib/timelineZoom";
+import { blockTextFit, zoomTextScale } from "@/lib/timelineZoom";
+import { useRootFontPx } from "@/lib/useRootFontPx";
 import { avatarColorHex } from "@/lib/constants";
 import { bandedBackground } from "@/lib/color";
 import { canLiftOnTimeline } from "@/lib/timelineDrag";
@@ -98,6 +100,11 @@ export function TimelineDayColumn({
   onOpenEvent,
   canDrag,
 }: TimelineDayColumnProps) {
+  // Mission 73: block text grows with the zoom (the CSS reads --zoom-text-scale,
+  // set by TimelineGrid from the same zoomTextScale); the line counts below need
+  // the same numbers in real pixels, so they use the live root font size.
+  const rootPx = useRootFontPx();
+  const scale = zoomTextScale(pxPerMinute * 60);
   return (
     <div data-day-column className="@container relative border-l border-line">
       {Array.from({ length: hoursPerDay }, (_, hour) => (
@@ -143,6 +150,12 @@ export function TimelineDayColumn({
         // Mission 70: only a timed block on one day may lift
         // (canLiftOnTimeline, timelineDrag.ts; useTimelineDrag.ts lifts it).
         const draggable = canDrag && canLiftOnTimeline(event);
+        // Mission 73: one pure function (timelineZoom.ts blockTextFit) decides the
+        // title tier, the whole title lines, and whether the time and location
+        // lines fit in real pixels; this file only renders its answer.
+        const fit = blockTextFit({ heightPx, trueDurationMinutes, rootPx, scale, compact, hasLocation: !!event.location });
+        const { timeShown, locationShown } = fit;
+        const oneLine = fit.titleLines === 1 && fit.titleLinesNarrow === 1;
         return (
           <button
             key={slot.block.id}
@@ -211,15 +224,27 @@ export function TimelineDayColumn({
                 flex-shrink only touches the cross axis (height)
                 here, not the width truncation depends on. */}
             {/* @min-[128px] is px on purpose (mission-58): in rem it would move with Text size. */}
-            {/* mission-65: under 20px tall the title takes a 12px line so it fits whole. */}
+            {/* mission-65: under 20px tall the title takes a 12px line so it fits whole; mission-73 caps the small tier there at every zoom and Text size. */}
+            {/* Mission 73: a compact column under 128px hides the time line, so it gets its own, larger line count. CHANGE TOGETHER with timelineZoom.ts's *_LINE_REM: the classes below are text-[length:calc(0.75rem*...)] (full), calc(0.625rem*...) (compact narrow), min(calc(0.625rem*...),10px) with a min(calc(0.75rem*...),12px) leading (small) and calc(0.5625rem*...) (time and location). */}
             <span
-              className={`block truncate font-semibold ${
-                !titleFitsFullSize(heightPx)
-                  ? "text-[0.625rem] leading-[0.75rem]"
+              className={`font-semibold break-words [-webkit-line-clamp:var(--clamp-narrow)] @min-[128px]:[-webkit-line-clamp:var(--clamp-wide)] ${
+                oneLine ? "hyphens-manual" : "hyphens-auto"
+              } ${
+                fit.tier === "small"
+                  ? "text-[length:min(calc(0.625rem*var(--zoom-text-scale,1)),10px)] leading-[min(calc(0.75rem*var(--zoom-text-scale,1)),12px)]"
                   : compact
-                    ? "text-[0.625rem] @min-[128px]:text-xs"
-                    : "text-xs"
+                    ? "text-[length:calc(0.625rem*var(--zoom-text-scale,1))] @min-[128px]:text-[length:calc(0.75rem*var(--zoom-text-scale,1))]"
+                    : "text-[length:calc(0.75rem*var(--zoom-text-scale,1))]"
               }`}
+              style={
+                {
+                  display: "-webkit-box",
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  "--clamp-narrow": fit.titleLinesNarrow,
+                  "--clamp-wide": fit.titleLines,
+                } as CSSProperties
+              }
             >
               {event.title}
               {/* Mission 71: a repeating event's mark. It sits inside the
@@ -251,11 +276,11 @@ export function TimelineDayColumn({
                 override also needs 24px of room (showsTimeLine,
                 timelineZoom.ts), so zoomed out the block shows its
                 title only, like Google. */}
-            {showsTimeLine(heightPx, trueDurationMinutes) && (
-              <span data-drag-time className={`block truncate text-[0.5625rem] ${compact ? "hidden @min-[128px]:block" : ""}`}>{formatTimeRange(event.startAt, event.endAt)}</span>
+            {timeShown && (
+              <span data-drag-time className={`block truncate text-[length:calc(0.5625rem*var(--zoom-text-scale,1))] ${compact ? "hidden @min-[128px]:block" : ""}`}>{formatTimeRange(event.startAt, event.endAt)}</span>
             )}
-            {!compact && heightPx >= 72 && event.location && (
-              <span className="block truncate text-[0.5625rem]">{event.location}</span>
+            {locationShown && (
+              <span className="block truncate text-[length:calc(0.5625rem*var(--zoom-text-scale,1))]">{event.location}</span>
             )}
           </button>
         );

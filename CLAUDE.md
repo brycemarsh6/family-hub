@@ -239,7 +239,7 @@ yet** or is next. Everything merged is in its mission file.
 - **Tablet login** PR B (the tablet's own dashboard, calendar editing, the
   parent rule) and PR C (per-person habits tiles) are next:
   `.avengers/missions/mission-39-tablet-login.md`.
-- **Calendar full screen rebuild** (nine PRs, approved, PR 7 is next):
+- **Calendar full screen rebuild** (nine PRs, approved, PR 8 is next):
   read `.avengers/plans/calendar-fullscreen-v1.md` and
   `docs/structure/calendar.md` before any calendar work.
 - **Winnie next:** calendar and tasks (after the drag PR), then replacing the app's

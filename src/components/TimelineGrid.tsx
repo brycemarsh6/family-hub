@@ -35,13 +35,13 @@
 // below; `allDayRow` is handed to `./TimelineAllDayStrip.tsx` (mission-17/
 // C6), which is what actually calls the EXISTING `monthLayout.assignLanes`
 // (D4) — no second packer, and this file no longer calls it directly at
-// all. `TimelineEvent` and `MonthLayoutEvent` are structurally identical
-// `{id, startAt, endAt, allDay}` shapes for exactly this reason, so the
-// all-day row's events pass straight through with no conversion step; see
-// the composition test in timelineLayoutPacking.test.ts, which mission-12/
-// Captain flagged as load-bearing STRUCTURE, not incidental coverage — do
-// not delete it just because this is now a real call site (one level
-// removed, through the strip component, rather than direct).
+// all. It asks `pageAllDayHiddenCount` (timelineAllDay.ts) only whether the
+// chevron shows. `TimelineEvent` and `MonthLayoutEvent` are structurally
+// identical `{id, startAt, endAt, allDay}` shapes, so the all-day row's events
+// pass straight through with no conversion step; see the composition test in
+// timelineLayoutPacking.test.ts, which mission-12/Captain flagged as
+// load-bearing STRUCTURE, not incidental coverage: do not delete it just
+// because this is now a real call site (one level removed, via the strip).
 //
 // mission-17/C5 added TASKS to the all-day strip, and the real "+N more"
 // button that replaced the circular dead end Strange traced (Month's own
@@ -84,21 +84,23 @@
 // the per-column not-loaded `sr-only` string — see its own comment, right
 // where the string lives, for the full defect.
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MINUTES_PER_DAY, minutesOfDay } from "@/lib/timelineLayout";
 import { isSameDay } from "@/lib/mealPlanDates";
 import { PAGE_BLEED_CLASSES } from "@/lib/gridClasses";
 import { useTimelineZoom } from "@/lib/useTimelineZoom";
+import { zoomTextScale } from "@/lib/timelineZoom";
 import { useFillViewportHeight } from "@/lib/useFillViewportHeight";
 import { usePagedSwipe } from "@/lib/usePagedSwipe";
 import { isOnDragBlock, useTimelineDrag } from "@/lib/useTimelineDrag";
 import { neighbourAnchor } from "@/lib/useCalendarPeriod";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
 import type { CalendarPeriodView } from "@/lib/calendarViewVocabulary";
+import { pageAllDayHiddenCount } from "@/lib/timelineAllDay";
 import { PagedTrack } from "./PagedTrack";
+import { AllDayToggle } from "./AllDayToggle";
 import { TimelinePageHeader, TimelinePageColumns, TimelineHourLabels, GUTTER_WIDTH_PX } from "./TimelinePage";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "@/lib/types";
-
 // The rail's own scale is LIVE (mission-65): `useTimelineZoom` returns the
 // hour height in px (32 to 192, default 48, changed by a two-finger pinch,
 // never below the height at which the whole day fills the visible rail),
@@ -238,6 +240,23 @@ export function TimelineGrid({
   const previousDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, -1));
   const nextDays = VIEW_CONFIG[view].days(neighbourAnchor(view, anchor, 1));
 
+  // Mission 73: ONE open/closed state for the whole visible all-day row,
+  // owned here so the chevron (the gutter corner here, or under the date in
+  // Day) and the strip's count buttons agree. Reset by ADJUSTING STATE DURING
+  // RENDER (React's documented pattern, not an effect: see
+  // react-hooks/set-state-in-effect): the flag is keyed to the column set it
+  // was set for, so a page turn closes it before anything paints.
+  const columnDaysKey = columnDays.map((day) => day.getTime()).join(",");
+  const [allDayOpenFor, setAllDayOpenFor] = useState({ key: columnDaysKey, expanded: false });
+  if (allDayOpenFor.key !== columnDaysKey) {
+    setAllDayOpenFor({ key: columnDaysKey, expanded: false });
+  }
+  const allDayExpanded = allDayOpenFor.key === columnDaysKey && allDayOpenFor.expanded;
+  const toggleAllDay = () => setAllDayOpenFor({ key: columnDaysKey, expanded: !allDayExpanded });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const allDayHidden = useMemo(() => pageAllDayHiddenCount(columnDays, events, tasks, habitDays), [columnDaysKey, events, tasks, habitDays]);
+  const showAllDayToggle = allDayHidden > 0 || allDayExpanded;
+
   // --- Sizing: this component's own overflow-y-auto scroller, filled to the
   // viewport's bottom by useFillViewportHeight (the seed, the synchronous
   // write the scroll-to-now effect below relies on, and the re-measure when
@@ -279,7 +298,7 @@ export function TimelineGrid({
   // One header page and one columns page per column set: the previous, the
   // current and the next. Neighbours get the same events, tasks and fetch
   // window, so a day outside it shows the not-loaded glyph, as an edge does.
-  const headerPage = (days: Date[]) => (
+  const headerPage = (days: Date[], isCurrent = false) => (
     <TimelinePageHeader
       columnDays={days}
       events={events}
@@ -291,6 +310,7 @@ export function TimelineGrid({
       onOpenEvent={onOpenEvent}
       onOpenTask={onOpenTask}
       ownGutter={isDay}
+      allDay={isCurrent ? { expanded: allDayExpanded, showToggle: showAllDayToggle, onToggle: toggleAllDay } : undefined}
     />
   );
   const columnsPage = (days: Date[]) => (
@@ -311,7 +331,7 @@ export function TimelineGrid({
     <div
       ref={rootRef}
       data-fills-viewport className={`touch-pan-y overflow-hidden ${PAGE_BLEED_CLASSES}`}
-      style={{ ["--hour-height" as string]: `${hourHeightPx}px` }}
+      style={{ ["--hour-height" as string]: `${hourHeightPx}px`, ["--zoom-text-scale" as string]: zoomTextScale(hourHeightPx) }}
       {...handlers}
     >
       <div
@@ -339,11 +359,16 @@ export function TimelineGrid({
             in each header page. */}
         <div ref={stickyHeaderRef} className="sticky top-0 z-20 flex border-b border-line bg-bg">
           <div ref={tintRef} aria-hidden="true" className="pointer-events-none absolute inset-y-0 bg-accent/15" style={{ display: "none" }} />
-          {!isDay && <div aria-hidden="true" className="shrink-0" style={{ width: GUTTER_WIDTH_PX }} />}
+          {!isDay && (
+            // The chevron sits bottom-aligned in the fixed corner (mission 73).
+            <div className="flex shrink-0 items-end justify-center" style={{ width: GUTTER_WIDTH_PX }}>
+              {showAllDayToggle && <AllDayToggle expanded={allDayExpanded} onToggle={toggleAllDay} />}
+            </div>
+          )}
           <div className="min-w-0 flex-1 overflow-hidden">
             <PagedTrack
               previous={headerPage(previousDays)}
-              current={headerPage(columnDays)}
+              current={headerPage(columnDays, true)}
               next={headerPage(nextDays)}
             />
           </div>

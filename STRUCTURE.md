@@ -703,6 +703,13 @@ amendment id.
   `HabitConfetti.tsx`'s direct `matchMedia` read is debt, moved to the
   hook on its next touch. (Proposed 2026-11-10, mission-69, Captain;
   Bryce approved.)
+- **The live root font size has one JS reader.** `src/lib/useRootFontPx.ts`
+  holds the read (`readRootFontPx`, `<html>`'s computed font size, 16 when
+  unreadable) and `useRootFontPx` (`useSyncExternalStore` over attribute
+  changes on `<html>` and window resize) is how a component asks.
+  `appChrome.ts`'s private read inside `useFloatingButtonMeasure` is debt,
+  switched to `readRootFontPx` on its next touch. A third read is a
+  BLOCKER. (Proposed 2026-11-11, mission-73, Captain; Bryce approved.)
 - **A padded month grid's "today" test has one home.** `monthGridDays`
   (`src/lib/monthLayout.ts`) returns 42 days, up to 12 of them belonging to a
   neighbouring month, so a bare `isSameDay(day, today)` circles today on the
@@ -727,8 +734,11 @@ amendment id.
   only pinch listener. `TimelineGrid.tsx` turns the live height into
   `pxPerMinute` once and passes it down; markup sees it only as
   `--hour-height` or that passed-down `pxPerMinute`. A second hour-height constant, a component working out its
-  own px per minute, or a second pinch listener is a BLOCKER. (Added
-  2026-11-10, mission-65, Captain's A-65-1; Bryce approved.)
+  own px per minute, or a second pinch listener is a BLOCKER. Its text
+  scale and line-fit rules (`zoomTextScale`, `blockTextFit`) live there
+  too (mission-73; rules: docs/structure/calendar.md, "The timeline's
+  all-day row and zoom text"). (Added 2026-11-10, mission-65, Captain's
+  A-65-1; Bryce approved.)
 - **Month lane counts have one home.** `PHONE_LANES` (3) and `WIDE_LANES`
   (4) live in `src/lib/monthLayout.ts`. MonthGrid lays each row out once
   with `WIDE_LANES`; the phone's "+N more" is `phoneOverflowByDay` of that
@@ -906,10 +916,14 @@ amendment id.
   code, mission-71; the month panel held it at 494, mission-72), `useEventMoves.ts` 310 / 219 code (mission-71, was
   136; its next
   feature moves the series half, `applySeriesShift`, the series save and
-  the repeat sheet's props, into `src/lib/useSeriesMove.ts`), `TimelineGrid.tsx` 375 (was 471; one
-  page of columns moved to `TimelinePage.tsx`, mission-69; drag wiring,
-  mission-70; its height measurement moved to `useFillViewportHeight.ts`,
-  mission-72), `useTimelineDrag.ts` 358 / 275 code (mission-70; 8 over
+  the repeat sheet's props, into `src/lib/useSeriesMove.ts`), `TimelineGrid.tsx` 400 total / about 205
+  code (was 471; one page of columns moved to `TimelinePage.tsx`,
+  mission-69; drag wiring, mission-70; its height measurement moved to
+  `useFillViewportHeight.ts`, mission-72; the all-day open state, hidden
+  count and zoom text scale added 25, mission-73; its next feature moves
+  the all-day open state, the column-set reset, the toggle and the hidden
+  count into `src/lib/useAllDayExpand.ts`), `TimelinePage.tsx` 310 and
+  `TimelineDayColumn.tsx` 301 (were 295 and 276, mission-73), `useTimelineDrag.ts` 358 / 275 code (mission-70; 8 over
   the soft cap, a split candidate on its next touch), `usePagedSwipe.ts` 393 / 302 code (was 342; a split
   candidate: its next touch moves the page-turn animation, `springBack`,
   `commit`, `startTurn` and their `transitionend` cleanups, into

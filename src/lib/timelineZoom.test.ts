@@ -18,6 +18,17 @@ import {
   showsTimeLine,
   minHourHeightFor,
   titleFitsFullSize,
+  ZOOM_TEXT_SCALE_MAX,
+  zoomTextScale,
+  titleLineCount,
+  timeLineFits,
+  locationLineFits,
+  blockTextFit,
+  TITLE_LINE_REM,
+  COMPACT_NARROW_TITLE_LINE_REM,
+  SMALL_TITLE_LINE_REM,
+  SMALL_TITLE_LINE_MAX_PX,
+  TIME_LINE_REM,
 } from "./timelineZoom";
 
 test("range constants: 32 to 192 with a 48 default", () => {
@@ -138,4 +149,109 @@ test("titleFitsFullSize: 20px and up keeps the normal title", () => {
   assert.equal(titleFitsFullSize(20), true);
   assert.equal(titleFitsFullSize(16), false);
   assert.equal(titleFitsFullSize(24), true);
+});
+
+test("zoomTextScale: 1 up to 48, linear to the 1.5 ceiling at 192, clamped above", () => {
+  assert.equal(ZOOM_TEXT_SCALE_MAX, 1.5);
+  assert.equal(zoomTextScale(32), 1);
+  assert.equal(zoomTextScale(48), 1);
+  assert.equal(zoomTextScale(120), 1.25);
+  assert.equal(zoomTextScale(192), 1.5);
+  assert.equal(zoomTextScale(300), 1.5);
+  assert.equal(zoomTextScale(Number.NaN), 1);
+  assert.equal(zoomTextScale(Number.POSITIVE_INFINITY), 1);
+  assert.ok(zoomTextScale(49) > 1 && zoomTextScale(191) < 1.5);
+});
+
+test("titleLineCount: whole lines that fit, never below one", () => {
+  assert.equal(titleLineCount({ availablePx: 60, lineHeightPx: 15 }), 4);
+  assert.equal(titleLineCount({ availablePx: 44, lineHeightPx: 15 }), 2);
+  assert.equal(titleLineCount({ availablePx: 5, lineHeightPx: 15 }), 1);
+  assert.equal(titleLineCount({ availablePx: -10, lineHeightPx: 15 }), 1);
+  assert.equal(titleLineCount({ availablePx: 60, lineHeightPx: 0 }), 1);
+  assert.equal(titleLineCount({ availablePx: 60, lineHeightPx: Number.NaN }), 1);
+  assert.equal(titleLineCount({ availablePx: Number.NaN, lineHeightPx: 15 }), 1);
+});
+
+test("timeLineFits: one title line, one time line and padding must fit", () => {
+  const rest = { titleLinePx: 16, timeLinePx: 14, paddingPx: 4 };
+  assert.equal(timeLineFits({ heightPx: 34, ...rest }), true);
+  assert.equal(timeLineFits({ heightPx: 33.9, ...rest }), false);
+  assert.equal(timeLineFits({ heightPx: 24, ...rest }), false);
+  assert.equal(timeLineFits({ heightPx: Number.NaN, ...rest }), false);
+});
+
+test("locationLineFits: title, time (when shown) and location lines must all fit", () => {
+  const rest = { titleLinePx: 15, timeLinePx: 11.25 };
+  assert.equal(locationLineFits({ heightPx: 37.5, timeShown: true, ...rest }), true);
+  assert.equal(locationLineFits({ heightPx: 37.4, timeShown: true, ...rest }), false);
+  assert.equal(locationLineFits({ heightPx: 26.25, timeShown: false, ...rest }), true);
+  assert.equal(locationLineFits({ heightPx: 26.2, timeShown: false, ...rest }), false);
+  assert.equal(locationLineFits({ heightPx: Number.NaN, timeShown: false, ...rest }), false);
+});
+
+test("locationLineFits: iPad Largest (root 24), 30 min at 150px/h with a location, worked through", () => {
+  // heightPx 75, drawn 73, content 71. Scale 1 + (150-48)/144*0.5 = 1.354.
+  const scale = zoomTextScale(150);
+  const title = 0.9375 * 24 * scale; // 30.5
+  const time = 0.703125 * 24 * scale; // 22.8
+  // 30.5 + 22.8 + 22.8 = 76.1 > 71: the location line must not show.
+  assert.equal(locationLineFits({ heightPx: 71, titleLinePx: title, timeLinePx: time, timeShown: true }), false);
+});
+
+test("blockTextFit: the small tier line is capped at 12px even at Largest", () => {
+  // Root 24 at scale 1: 0.75rem is 18px, but the tier holds 12px, so a 30 minute
+  // block at 32px an hour (content 12px) still fits its one title line.
+  const fit = blockTextFit({ heightPx: 16, trueDurationMinutes: 30, rootPx: 24, scale: 1, compact: false, hasLocation: false });
+  assert.equal(fit.tier, "small");
+  assert.equal(fit.titleLines, 1);
+  assert.equal(fit.timeShown, false);
+});
+
+test("blockTextFit: a compact column under 128px reserves no room for the hidden time line", () => {
+  // 40px block, root 16, scale 1: content 36. Wide: 15 + 11.25 time = one line.
+  // Narrow: no time line, 12.5px lines, so two whole lines.
+  const fit = blockTextFit({ heightPx: 40, trueDurationMinutes: 60, rootPx: 16, scale: 1, compact: true, hasLocation: false });
+  assert.equal(fit.timeShown, true);
+  assert.equal(fit.titleLines, 1);
+  assert.equal(fit.titleLinesNarrow, 2);
+  const day = blockTextFit({ heightPx: 40, trueDurationMinutes: 60, rootPx: 16, scale: 1, compact: false, hasLocation: false });
+  assert.equal(day.titleLinesNarrow, day.titleLines);
+});
+
+test("blockTextFit: at Normal and 48px an hour a 60 minute Day block keeps today's answer", () => {
+  const fit = blockTextFit({ heightPx: 48, trueDurationMinutes: 60, rootPx: 16, scale: 1, compact: false, hasLocation: true });
+  assert.deepEqual(fit, { tier: "full", titleLines: 2, titleLinesNarrow: 2, timeShown: true, locationShown: false });
+});
+
+test("blockTextFit grid: lines x line + time + location always fit the content box", () => {
+  let cases = 0;
+  for (const rootPx of [16, 17.6, 21.6, 24]) {
+    for (let hourHeight = 32; hourHeight <= 192; hourHeight += 1) {
+      const scale = zoomTextScale(hourHeight);
+      for (let duration = 15; duration <= 120; duration += 5) {
+        const heightPx = (Math.max(duration, 30) * hourHeight) / 60; // padded up to 30 minutes
+        const contentPx = Math.max(0, heightPx - 2) - 2;
+        for (const hasLocation of [false, true]) {
+          for (const compact of [false, true]) {
+            cases++;
+            const fit = blockTextFit({ heightPx, trueDurationMinutes: duration, rootPx, scale, compact, hasLocation });
+            const label = `root ${rootPx} hour ${hourHeight} min ${duration} loc ${hasLocation} compact ${compact}`;
+            const timePx = TIME_LINE_REM * rootPx * scale;
+            const smallPx = Math.min(SMALL_TITLE_LINE_REM * rootPx * scale, SMALL_TITLE_LINE_MAX_PX);
+            const widePx = fit.tier === "small" ? smallPx : TITLE_LINE_REM * rootPx * scale;
+            const narrowPx = fit.tier === "small" ? smallPx : COMPACT_NARROW_TITLE_LINE_REM * rootPx * scale;
+            assert.ok(fit.titleLines >= 1 && fit.titleLinesNarrow >= 1, `lines >= 1: ${label}`);
+            const wide = fit.titleLines * widePx + (fit.timeShown ? timePx : 0) + (fit.locationShown ? timePx : 0);
+            assert.ok(wide <= contentPx + 1e-9, `wide fits: ${label} used ${wide} of ${contentPx}`);
+            // Narrow compact: the time line is hidden by CSS, location never shows when compact.
+            const narrow = fit.titleLinesNarrow * narrowPx;
+            assert.ok(narrow <= contentPx + 1e-9, `narrow fits: ${label} used ${narrow} of ${contentPx}`);
+            if (compact) assert.equal(fit.locationShown, false, label);
+          }
+        }
+      }
+    }
+  }
+  assert.equal(cases, 4 * 161 * 22 * 2 * 2);
 });
