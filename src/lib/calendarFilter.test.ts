@@ -8,14 +8,20 @@ import {
   eventCalendarKeys,
   eventPasses,
   filterRows,
+  filterScheduleMonths,
   habitDaysPass,
   hiddenCount,
+  isCalendarShown,
+  isFilterEmpty,
+  isPersonShown,
+  liveFilter,
   parseStoredFilter,
   taskPasses,
   toggleHiddenCalendar,
   toggleHiddenPerson,
   type CalendarFilter,
 } from "./calendarFilter";
+import type { ScheduleRenderMonthWithHabits } from "./scheduleHabitDays";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "./types";
 
 const person = (userId: string) => ({ userId, displayName: userId, avatarColor: "x", deactivated: false });
@@ -160,4 +166,83 @@ test("parseStoredFilter: a good value comes back as stored", () => {
     hiddenPeople: ["ann"],
     hiddenCalendars: ["marshee"],
   });
+});
+
+test("liveFilter: drops hidden ids the lists no longer hold, keeps the rest", () => {
+  const live = liveFilter(hide({ hiddenPeople: ["ann", "gone"], hiddenCalendars: ["work", "old"] }), ["ann", "bo"], [MARSHEE_CALENDAR_KEY, "work"]);
+  assert.deepEqual(live, { hiddenPeople: ["ann"], hiddenCalendars: ["work"] });
+});
+
+test("live filter: an event from a calendar no longer listed shows, and the count is 0", () => {
+  const stored = hide({ hiddenCalendars: ["old"] });
+  const live = liveFilter(stored, ["ann"], [MARSHEE_CALENDAR_KEY, "work"]);
+  assert.equal(eventPasses(event({ sourceLinkedCalendarId: "old" }), live), true);
+  assert.equal(hiddenCount(stored, ["ann"], [MARSHEE_CALENDAR_KEY, "work"]), 0);
+});
+
+test("live filter: a deactivated person's hidden id hides nothing", () => {
+  const stored = hide({ hiddenPeople: ["dee"] });
+  const live = liveFilter(stored, ["ann"], [MARSHEE_CALENDAR_KEY]);
+  assert.equal(eventPasses(event({ people: [person("dee")] }), live), true);
+  assert.equal(taskPasses(task(["dee"]), live), true);
+  assert.equal(hiddenCount(stored, ["ann"], [MARSHEE_CALENDAR_KEY]), 0);
+});
+
+test("live filter: a calendar listed again is hidden again", () => {
+  const stored = hide({ hiddenCalendars: ["work"] });
+  const evt = event({ sourceLinkedCalendarId: "work" });
+  assert.equal(eventPasses(evt, liveFilter(stored, ["ann"], [MARSHEE_CALENDAR_KEY])), true);
+  const relisted = liveFilter(stored, ["ann"], [MARSHEE_CALENDAR_KEY, "work"]);
+  assert.equal(eventPasses(evt, relisted), false);
+  assert.equal(hiddenCount(stored, ["ann"], [MARSHEE_CALENDAR_KEY, "work"]), 1);
+});
+
+test("isFilterEmpty, isPersonShown, isCalendarShown", () => {
+  assert.equal(isFilterEmpty(EMPTY_CALENDAR_FILTER), true);
+  assert.equal(isFilterEmpty(hide({ hiddenCalendars: ["x"] })), false);
+  assert.equal(isPersonShown(hide({ hiddenPeople: ["ann"] }), "ann"), false);
+  assert.equal(isPersonShown(hide({ hiddenPeople: ["ann"] }), "bo"), true);
+  assert.equal(isCalendarShown(hide({ hiddenCalendars: ["x"] }), "x"), false);
+  assert.equal(isCalendarShown(EMPTY_CALENDAR_FILTER, "x"), true);
+});
+
+const TODAY = new Date(2026, 10, 12);
+const dayRow = (day: number, over: Partial<ScheduleRenderMonthWithHabits["days"][number]> = {}) => ({
+  day: new Date(2026, 10, day),
+  events: [] as CalendarEventView[],
+  tasks: [] as CalendarTaskView[],
+  habitDays: [] as CalendarHabitDayView[],
+  ...over,
+});
+const month = (days: ScheduleRenderMonthWithHabits["days"]): ScheduleRenderMonthWithHabits => ({
+  monthStart: new Date(2026, 10, 1),
+  days,
+});
+const hideAnn = hide({ hiddenPeople: ["ann"] });
+const annEvent = event({ people: [person("ann")] });
+
+test("filterScheduleMonths: a day the filter empties drops out", () => {
+  const out = filterScheduleMonths([month([dayRow(13, { events: [annEvent] }), dayRow(14, { events: [event({ id: "e2", people: [person("bo")] })] })])], hideAnn, null, TODAY);
+  assert.deepEqual(out[0].days.map((row) => row.day.getDate()), [14]);
+});
+
+test("filterScheduleMonths: today's emptied row stays", () => {
+  const out = filterScheduleMonths([month([dayRow(12, { events: [annEvent] })])], hideAnn, null, TODAY);
+  assert.equal(out[0].days.length, 1);
+  assert.equal(out[0].days[0].events.length, 0);
+});
+
+test("filterScheduleMonths: a day that was already empty keeps today's behaviour", () => {
+  const out = filterScheduleMonths([month([dayRow(15)])], hideAnn, null, TODAY);
+  assert.equal(out[0].days.length, 1);
+});
+
+test("filterScheduleMonths: a month left with no days drops out", () => {
+  const out = filterScheduleMonths([month([dayRow(20, { events: [annEvent] })])], hideAnn, null, TODAY);
+  assert.deepEqual(out, []);
+});
+
+test("filterScheduleMonths: an empty filter returns the same array", () => {
+  const months = [month([dayRow(20, { events: [annEvent] })])];
+  assert.equal(filterScheduleMonths(months, EMPTY_CALENDAR_FILTER, null, TODAY), months);
 });

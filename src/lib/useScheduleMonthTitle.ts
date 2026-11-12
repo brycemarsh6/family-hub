@@ -276,7 +276,7 @@ export function useScheduleMonthTitle(
         createElement(
           "span",
           { className: "contents" },
-          createElement("h2", { className: "truncate text-lg font-semibold @min-[30rem]:hidden" }, shortMonthHeading(heading)),
+          createElement("h2", { className: "truncate text-base font-semibold @min-[30rem]:hidden" }, shortMonthHeading(heading)),
           createElement("h2", { className: "hidden truncate text-lg font-semibold @min-[30rem]:block" }, heading),
         ),
         titleSlot,

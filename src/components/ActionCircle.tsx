@@ -27,6 +27,7 @@ export function ActionCircle({
   size = "md",
   badge = 0,
   active = false,
+  ariaLabel,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -35,12 +36,15 @@ export function ActionCircle({
   size?: "md" | "sm";
   badge?: number;
   active?: boolean;
+  /** Spoken name when the visible label plus the chip would read badly (e.g. "1Filtered"). */
+  ariaLabel?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-label={ariaLabel}
       className="flex flex-col items-center gap-1.5 disabled:opacity-40"
     >
       <span
@@ -50,7 +54,7 @@ export function ActionCircle({
       >
         {icon}
         {badge > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-fg px-1 text-[0.6875rem] font-bold leading-none text-bg">
+          <span className="absolute -right-1 -top-1 flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-fg px-1 ring-2 ring-bg text-[0.6875rem] font-bold leading-none text-bg">
             {badge}
           </span>
         )}

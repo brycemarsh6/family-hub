@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { Check } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
-import { MARSHEE_CALENDAR_KEY, type CalendarFilter } from "@/lib/calendarFilter";
+import { MARSHEE_CALENDAR_KEY, isCalendarShown, isPersonShown, type CalendarFilter } from "@/lib/calendarFilter";
 import { CALENDAR_FILTER_LABELS } from "@/lib/calendarViewVocabulary";
 import type { CalendarFilterAccountView, CalendarPersonView } from "@/lib/types";
 
@@ -106,7 +106,7 @@ export function CalendarFilterSheet({
               <CheckRow
                 key={person.userId}
                 label={person.displayName}
-                shown={!filter.hiddenPeople.includes(person.userId)}
+                shown={isPersonShown(filter, person.userId)}
                 onToggle={() => onTogglePerson(person.userId)}
                 lead={<AvatarBadge displayName={person.displayName} avatarColor={person.avatarColor} size={28} />}
               />
@@ -118,7 +118,7 @@ export function CalendarFilterSheet({
           <h3 className={GROUP_LABEL}>{CALENDAR_FILTER_LABELS.calendars}</h3>
           <CheckRow
             label={CALENDAR_FILTER_LABELS.marshee}
-            shown={!filter.hiddenCalendars.includes(MARSHEE_CALENDAR_KEY)}
+            shown={isCalendarShown(filter, MARSHEE_CALENDAR_KEY)}
             onToggle={() => onToggleCalendar(MARSHEE_CALENDAR_KEY)}
           />
           {accounts.map((account) => (
@@ -128,7 +128,7 @@ export function CalendarFilterSheet({
                 <CheckRow
                   key={calendar.id}
                   label={calendar.name}
-                  shown={!filter.hiddenCalendars.includes(calendar.id)}
+                  shown={isCalendarShown(filter, calendar.id)}
                   onToggle={() => onToggleCalendar(calendar.id)}
                   indent
                 />

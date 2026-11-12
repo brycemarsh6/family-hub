@@ -27,8 +27,7 @@ import { useToday } from "@/lib/useToday";
 // why: a lib module reaching into app/ was a real STRUCTURE.md violation).
 import { fetchCalendarEvents, fetchHabitDays } from "@/app/actions/calendar";
 import { fetchTasks } from "@/app/actions/tasks";
-import { filterScheduleMonths } from "@/lib/useCalendarFilterView";
-import type { CalendarFilter } from "@/lib/calendarFilter";
+import { filterScheduleMonths, type CalendarFilter } from "@/lib/calendarFilter";
 import { useScheduleHabitDays } from "@/lib/useScheduleHabitDays";
 import type { ScheduleRenderDayWithHabits, ScheduleRenderMonthWithHabits } from "@/lib/scheduleHabitDays";
 import {

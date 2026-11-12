@@ -5,7 +5,9 @@
 // The filter stores what is HIDDEN, not what is shown, so a person or a
 // calendar that appears later starts out shown.
 
+import { isSameDay } from "./mealPlanDates";
 import type { CalendarEventView, CalendarHabitDayView, CalendarTaskView } from "./types";
+import type { ScheduleRenderMonthWithHabits } from "./scheduleHabitDays";
 
 /** The key for events made in Marshee (LinkedCalendar ids are cuids, so no clash). */
 export const MARSHEE_CALENDAR_KEY = "marshee";
@@ -29,8 +31,22 @@ export function eventCalendarKeys(event: Pick<CalendarEventView, "sourceLinkedCa
   return [...keys];
 }
 
+export function isFilterEmpty(filter: CalendarFilter): boolean {
+  return filter.hiddenPeople.length === 0 && filter.hiddenCalendars.length === 0;
+}
+
+/** True when this person is ticked (shown). */
+export function isPersonShown(filter: CalendarFilter, userId: string): boolean {
+  return !filter.hiddenPeople.includes(userId);
+}
+
+/** True when this calendar key (a LinkedCalendar id or MARSHEE_CALENDAR_KEY) is ticked (shown). */
+export function isCalendarShown(filter: CalendarFilter, key: string): boolean {
+  return !filter.hiddenCalendars.includes(key);
+}
+
 function anyPersonShown(people: { userId: string }[], filter: CalendarFilter): boolean {
-  return people.length === 0 || people.some((person) => !filter.hiddenPeople.includes(person.userId));
+  return people.length === 0 || people.some((person) => isPersonShown(filter, person.userId));
 }
 
 /** People AND calendars must both match; an event on several calendars shows if any is ticked. */
@@ -40,7 +56,7 @@ export function eventPasses(
 ): boolean {
   return (
     anyPersonShown(event.people, filter) &&
-    eventCalendarKeys(event).some((key) => !filter.hiddenCalendars.includes(key))
+    eventCalendarKeys(event).some((key) => isCalendarShown(filter, key))
   );
 }
 
@@ -51,7 +67,7 @@ export function taskPasses(task: Pick<CalendarTaskView, "people">, filter: Calen
 
 /** Planned habit days belong to the viewer, so they follow the viewer's own People tick. */
 export function habitDaysPass(viewerId: string | null, filter: CalendarFilter): boolean {
-  return viewerId === null || !filter.hiddenPeople.includes(viewerId);
+  return viewerId === null || isPersonShown(filter, viewerId);
 }
 
 export function filterRows<
@@ -65,12 +81,52 @@ export function filterRows<
   };
 }
 
+/**
+ * The filter with every hidden id the sheet can no longer list dropped (a
+ * deactivated person, an unlinked or switched-off calendar). Views, the count
+ * and the sheet's ticks all use this, so an id nobody can untick hides nothing.
+ * The STORED filter is left alone: a calendar switched back on comes back hidden.
+ */
+export function liveFilter(filter: CalendarFilter, personIds: string[], calendarKeys: string[]): CalendarFilter {
+  return {
+    hiddenPeople: filter.hiddenPeople.filter((id) => personIds.includes(id)),
+    hiddenCalendars: filter.hiddenCalendars.filter((key) => calendarKeys.includes(key)),
+  };
+}
+
 /** How many hidden ids still exist in today's lists (a stale id never counts). */
 export function hiddenCount(filter: CalendarFilter, personIds: string[], calendarKeys: string[]): number {
-  return (
-    filter.hiddenPeople.filter((id) => personIds.includes(id)).length +
-    filter.hiddenCalendars.filter((key) => calendarKeys.includes(key)).length
-  );
+  const live = liveFilter(filter, personIds, calendarKeys);
+  return live.hiddenPeople.length + live.hiddenCalendars.length;
+}
+
+/**
+ * Schedule's months with the filter applied. A day the filter empties drops out
+ * exactly as a day that never had items does; today's row always stays (the
+ * page shows its "Nothing planned" row), and so does a day that was already
+ * empty. A month left with no days drops out too. An empty filter returns the
+ * same array.
+ */
+export function filterScheduleMonths(
+  months: ScheduleRenderMonthWithHabits[],
+  filter: CalendarFilter,
+  viewerId: string | null,
+  today: Date | null,
+): ScheduleRenderMonthWithHabits[] {
+  if (isFilterEmpty(filter)) return months;
+  return months
+    .map((month) => ({
+      ...month,
+      days: month.days
+        .map((row) => {
+          const kept = filterRows(row, filter, viewerId);
+          const emptied = kept.events.length + kept.tasks.length + kept.habitDays.length === 0;
+          const wasEmpty = row.events.length + row.tasks.length + row.habitDays.length === 0;
+          return emptied && !wasEmpty && !(today !== null && isSameDay(row.day, today)) ? null : kept;
+        })
+        .filter((row): row is NonNullable<typeof row> => row !== null),
+    }))
+    .filter((month) => month.days.length > 0);
 }
 
 function toggle(list: string[], id: string): string[] {

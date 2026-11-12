@@ -7,7 +7,7 @@
 // "storage" event fires only for OTHER tabs.
 
 import { useCallback, useSyncExternalStore } from "react";
-import { EMPTY_CALENDAR_FILTER, parseStoredFilter, type CalendarFilter } from "./calendarFilter";
+import { EMPTY_CALENDAR_FILTER, isFilterEmpty, parseStoredFilter, type CalendarFilter } from "./calendarFilter";
 
 const FILTER_CHANGED = "marshee:calendar-filter-changed";
 
@@ -32,8 +32,7 @@ function readFilter(viewerId: string | null): CalendarFilter {
 
 function writeFilter(viewerId: string | null, filter: CalendarFilter): void {
   if (typeof window === "undefined") return;
-  const empty = filter.hiddenPeople.length === 0 && filter.hiddenCalendars.length === 0;
-  if (empty) window.localStorage.removeItem(storageKey(viewerId));
+  if (isFilterEmpty(filter)) window.localStorage.removeItem(storageKey(viewerId));
   else window.localStorage.setItem(storageKey(viewerId), JSON.stringify(filter));
   window.dispatchEvent(new Event(FILTER_CHANGED));
 }
