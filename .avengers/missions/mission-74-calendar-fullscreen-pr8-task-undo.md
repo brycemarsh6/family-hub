@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** AT-THE-GATES Vision pass 4, F4 DONE (Bryce allowed one extra fix and a fourth Vision pass, 2026-11-11: "Okay let's run it") (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** DELIVERING (all gates PASS: Vision pass 4 with Bryce's extra pass, Strange pass 3, Captain pass 2) (Bryce allowed one extra fix and a fourth Vision pass, 2026-11-11: "Okay let's run it") (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -277,6 +277,18 @@ reasons: say so, do not hide it).
   header caught mid-scroll (not this change). Shots: scratchpad
   `strange/shots3/`.
 
+### Pass 4 (Vision only, Bryce's extra pass, 2026-11-11, HEAD 9a5baf1)
+
+- **Vision: PASS.** Gauntlet re-run with exit codes captured directly
+  (tsc 0, lint 0, npm test 2060 pass, UTC 2050 + 10 skips, build 0);
+  boundaries clean; the pass 3 sequence and its mirror never flip the
+  drawn state (scratchpad `sim4.ts`, `sim4b.ts` against the real
+  `pruneTaskDoneByState`). Notes: Schedule's key covers every loaded task,
+  so a fetch that lands out of order could prune early, which cannot
+  happen while fetches are Server Actions (Next runs them one at a time);
+  the `taskStatesKey` memo rebuilds every render because `loadedMonths`
+  does (cheap, but the memo saves nothing).
+
 ## Fix contracts
 
 ### F1 - optimistic task ticks, the action handed in, the notes folded in
@@ -439,3 +451,53 @@ reasons: say so, do not hide it).
    unchanged.
 
 - **F4 status:** DONE (Stark: `taskStatesKey` from the raw rows drives the prune effect; new `pruneTaskDoneByState` with 4 tests; npm test 2060 pass, build 0 captured directly; ScheduleView 603).
+
+## Delivery
+
+- **Gates:** Vision PASS (pass 4; Bryce allowed one pass past the budget
+  of 3), Strange PASS (pass 3), Captain PASS (pass 2). Contracts C1, C2;
+  fixes F1 (optimistic ticks, the Undo action handed in), F2 (other
+  changes clear the tick), F3 (no override outlives the server's answer,
+  Schedule prunes against its own rows), F4 (Schedule prunes only when its
+  rows' states change).
+- **Built:** `src/lib/taskUndoRules.ts` (`TASK_UNDO_WINDOW_MS` 60 s,
+  `uncompleteRefusal`, `mayCompleteTask`, `NOT_ON_TASK`,
+  `TOO_LATE_TO_UNDO`); `completeTask` sets `completedAt` only when empty;
+  `uncompleteTask`: parents any time, a person on the task or the Tablet
+  within 60 s. `src/lib/useUndoBar.ts` (the one bar's state, moved out of
+  `useEventMoves`, and `showTaskCompleted`); `src/lib/taskDoneOverrides.ts`
+  (the optimistic tick map's pure rules). `TaskDetailSheet` closes on
+  complete and the Tablet sees Mark complete; both sheet mounts show
+  "Task completed, Undo".
+- **Bryce's calls:** the mock and three recommendations ("Yes",
+  2026-11-11); one extra Vision pass ("Okay let's run it"). Fury's call,
+  told to Bryce: the network-failure bar "Couldn't undo. Try again."
+- **Tests:** npm test 2036 (mission 73) to 2060 (+12 C1, +8 F1, +4 F4); UTC 2050 + 10 skips.
+- **Not proven by any agent:** real iOS Safari and the signed-in app
+  against real timing; visuals came from Strange's harness (real
+  components, production CSS, stubbed actions with a 1200 ms lag).
+- **Left for later (notes):** an override can outlive a lost refetch
+  (a generation counter would end it); `taskBarFor` is not reset when the
+  bar closes itself (cosmetic); a late refusal can replace a newer task
+  bar; the Tablet's undo shares `tabletMayCompleteAnyTask` (Tablet PR B
+  may want its own switch); rename `taskUndoRules.ts` to `taskRules.ts`
+  if a third rule arrives; Mark complete still waits for its action
+  ("Saving...") before the sheet closes; a doubled Schedule week header
+  seen mid-scroll in the harness; kid and Tablet bars keep the + gap.
+
+### Hand-over for PR 9 (Search, and syncing without a button)
+
+- Read the plan's "PR 9" section (mock first: the search page) and
+  `docs/structure/calendar.md` ("Task completed, Undo" and "Ticks are
+  optimistic" are new).
+- `ScheduleView.tsx` is 603 lines and `CalendarViews.tsx` 551 (hard cap
+  650): PR 9's search results reuse Schedule's cards and open the existing
+  detail sheets, so extract before adding to either (Captain: move the
+  task sheet mount and its refresh handlers out of ScheduleView first).
+  `docs/structure/calendar.md` is 262 lines, a split candidate past ~300.
+- If search opens `TaskDetailSheet`, its mount needs `onCompleted`,
+  `isTablet` and `clearTaskDone` like the two existing mounts, or the
+  "Task completed, Undo" bar and the optimistic tick will not follow it.
+- The `UndoBar` is still mounted once in `CalendarViews` via `useUndoBar`;
+  reuse it, never add a toast.
+- Take the next mission number from `origin/main` (expect 75).
