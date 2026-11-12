@@ -14,8 +14,10 @@ import { UndoBar } from "./UndoBar";
 import { RepeatMoveSheet } from "./RepeatMoveSheet";
 import { moveCalendarEvent } from "@/app/actions/calendar";
 import { moveCalendarSeries } from "@/app/actions/calendarSeries";
+import { uncompleteTask } from "@/app/actions/tasks";
 import { useEventMoves } from "@/lib/useEventMoves";
 import { showTaskCompleted, useUndoBar } from "@/lib/useUndoBar";
+import { applyTaskDone, pruneTaskDone, type TaskDoneOverrides } from "@/lib/taskDoneOverrides";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
 import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
@@ -122,7 +124,7 @@ type CalendarViewsProps = {
  */
 export function CalendarViews({
   events: serverEvents,
-  tasks,
+  tasks: serverTasks,
   habitDays,
   people,
   canManage,
@@ -156,8 +158,23 @@ export function CalendarViews({
   // Mission 71: a repeating one asks first (`repeatSheet`).
   const { bar, showBar, closeBar } = useUndoBar();
   const { events, drop, repeatSheet } = useEventMoves(serverEvents, moveCalendarEvent, moveCalendarSeries, showBar, closeBar);
-  // Mission 74: both task sheet mounts raise "Task completed, Undo" on the one bar.
-  const onTaskCompleted = (taskId: string, refresh: () => void) => showTaskCompleted(showBar, closeBar, taskId, refresh);
+  // Mission 74: a tick or an Undo shows at once (`taskDone`, taskDoneOverrides.ts) and is
+  // dropped once a fresh `tasks` prop agrees; every view below draws `tasks`, Schedule via `applyDone`.
+  const [taskDone, setTaskDone] = useState<TaskDoneOverrides>(new Map());
+  const [seenTasks, setSeenTasks] = useState(serverTasks);
+  if (seenTasks !== serverTasks) {
+    setSeenTasks(serverTasks);
+    setTaskDone(pruneTaskDone(taskDone, serverTasks));
+  }
+  const tasks = useMemo(() => applyTaskDone(serverTasks, taskDone), [serverTasks, taskDone]);
+  const applyDone = useMemo(() => (list: CalendarTaskView[]) => applyTaskDone(list, taskDone), [taskDone]);
+  const setDone = (taskId: string, completedAt: Date | null) => setTaskDone((prev) => new Map(prev).set(taskId, completedAt));
+  // Both task sheet mounts raise "Task completed, Undo" on the one bar.
+  const onTaskCompleted = (taskId: string, refresh: () => void) => {
+    const completedAt = new Date();
+    setDone(taskId, completedAt);
+    showTaskCompleted({ showBar, closeBar, taskId, completedAt, refresh, uncomplete: uncompleteTask, setDone });
+  };
   const chromeOffsetPx = useHamburgerRowHeight();
 
   // Mission 69: each tap of Today bumps this, so the timeline scrolls to now
@@ -406,6 +423,7 @@ export function CalendarViews({
               canManage={canManage}
               isTablet={isTablet}
               onTaskCompleted={onTaskCompleted}
+              applyDone={applyDone}
               onTodayVisibleChange={setScheduleTodayVisible}
               onDayInViewChange={setScheduleDay}
               trackDayInView={panelOpen} revealExtraPx={stackedHeightPx}

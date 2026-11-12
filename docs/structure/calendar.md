@@ -236,7 +236,14 @@ docs/history/structure-rationale.md under the same name.
 - **Mark complete** closes `TaskDetailSheet` (its `onCompleted`, not
   `onChanged`) and `showTaskCompleted` shows "Task completed, Undo". Undo
   calls `uncompleteTask`, the same action as the sheet's "Mark not complete".
-  Only `TaskDetailSheet.tsx` and `useUndoBar.ts` call it.
+  Only `TaskDetailSheet.tsx` and `CalendarViews.tsx` import `uncompleteTask`;
+  `CalendarViews` hands it to `showTaskCompleted`, so `useUndoBar.ts` never
+  imports from `app/`.
+- **Ticks are optimistic.** `CalendarViews` holds one `Map<taskId, Date | null>`
+  (`taskDoneOverrides.ts`): Mark complete and Undo set it at once, every view
+  draws `applyTaskDone(tasks, map)` (Schedule through its `applyDone` prop),
+  and the map is pruned when a fresh `tasks` prop agrees. A refused or failed
+  Undo puts the tick back with a warn bar.
 - **Who may undo** is `taskUndoRules.ts` (`uncompleteRefusal`,
   `TASK_UNDO_WINDOW_MS` = 60 s), enforced by the server action: parents any
   time, a person on the task (or the Tablet) within 60 seconds. What the

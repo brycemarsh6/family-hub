@@ -38,7 +38,7 @@ import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { tabletMayCompleteAnyTask } from "@/lib/tabletRules";
-import { uncompleteRefusal } from "@/lib/taskUndoRules";
+import { NOT_ON_TASK, uncompleteRefusal } from "@/lib/taskUndoRules";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
@@ -281,7 +281,7 @@ async function assertCanCompleteTask(
     where: { taskId_userId: { taskId, userId: user.userId } },
     select: { id: true },
   });
-  return membership ? null : "You're not assigned to that task.";
+  return membership ? null : NOT_ON_TASK;
 }
 
 /**

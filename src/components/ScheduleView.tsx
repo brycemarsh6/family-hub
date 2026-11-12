@@ -75,6 +75,8 @@ type ScheduleViewProps = {
   isTablet: boolean;
   /** Mission 74: a task was just marked complete; shows the bar. `refresh` redraws after its Undo. */
   onTaskCompleted: (taskId: string, refresh: () => void) => void;
+  /** The optimistic task ticks (taskDoneOverrides.ts), applied to each day's tasks as drawn. */
+  applyDone: (tasks: CalendarTaskView[]) => CalendarTaskView[];
   /**
    * mission-15/C8 (B1) — reports whether TODAY's own row is genuinely on
    * screen right now. CalendarViews.tsx forwards this straight into the
@@ -158,6 +160,7 @@ export function ScheduleView({
   canManage,
   isTablet,
   onTaskCompleted,
+  applyDone,
   onTodayVisibleChange,
   onDayInViewChange,
   trackDayInView,
@@ -429,7 +432,7 @@ export function ScheduleView({
                         day={row.day}
                         today={today}
                         events={row.events}
-                        tasks={row.tasks}
+                        tasks={applyDone(row.tasks)}
                         habitDays={row.habitDays}
                         onOpenEvent={(event, day) => setSelected({ event, day })}
                         onOpenTask={(task) => setSelectedTask(task)}

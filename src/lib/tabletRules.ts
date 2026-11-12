@@ -12,8 +12,9 @@ import type { Role } from "./constants";
 /**
  * The tablet may check off any task, not only ones it is assigned to (a
  * device is never a TaskPerson). It only ever adds `device` to the people
- * who may: a kid still needs to be on the task, and un-completing a task
- * stays parent-only.
+ * who may: a kid still needs to be on the task. The tablet may also undo a
+ * completion within TASK_UNDO_WINDOW_MS (taskUndoRules.ts); past that window
+ * un-completing stays a parent's job.
  */
 export function tabletMayCompleteAnyTask(role: Role): boolean {
   return role === "device";
