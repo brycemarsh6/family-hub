@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** STOPPED (Vision's 3-pass budget used, BLOCKED at pass 3; asked Bryce 2026-11-11 whether to allow a fourth pass for fix F4) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** BUILDING F4 (Bryce allowed one extra fix and a fourth Vision pass, 2026-11-11: "Okay let's run it") (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -406,3 +406,34 @@ reasons: say so, do not hide it).
    pass 2 PASS behaviours (Strange) are unchanged.
 
 - **F3 status:** DONE (Stark: Undo's refusal/error path drops the override and refreshes; Schedule prunes against its own rows; the task bar closes when that task's override is cleared; gauntlet 2056 pass; CalendarViews 551, ScheduleView 599).
+
+### F4 - Schedule prunes only when its rows' task states change
+
+1. **Objective:** ScheduleView's prune runs only when a fetch changes the
+   loaded rows' task states, never on a plain re-render (Vision pass 3).
+2. **Boundaries:**
+   - May touch: `src/components/ScheduleView.tsx`,
+     `src/components/CalendarViews.tsx`, `src/lib/taskDoneOverrides.ts`,
+     `src/lib/taskDoneOverrides.test.ts`, `STRUCTURE.md` (Calendar trend
+     counts only), `docs/structure/calendar.md` ("Ticks are optimistic"
+     bullet only).
+   - Must not touch: `src/lib/useUndoBar.ts`, `src/components/UndoBar.tsx`,
+     `src/components/TaskDetailSheet.tsx`, `src/components/CalendarSheets.tsx`,
+     `src/app/actions/tasks.ts`, `DESIGN.md`, `prisma/`, `package.json`.
+3. **Work (Vision's fix):** in ScheduleView derive a content key from the
+   RAW loaded rows (`id:done` per task, joined), memoised on the rows; the
+   prune effect depends on that key (and the stable prune callback), not
+   on array identity. Add a pure `pruneTaskDoneByState(overrides, Map<id, boolean>)`
+   to `taskDoneOverrides.ts` (same map back when nothing drops) with tests,
+   and have the effect rebuild the done-by-id map from the key so it needs
+   no stale array and stays lint-clean. CalendarViews' prune callback
+   changes to take that map if needed. Prove by reading Vision's sequence:
+   tick, Undo inside the round trip (no prune, rows unchanged), the tick's
+   refresh lands done (disagrees with null, kept), the Undo's refresh
+   lands not done (agrees, dropped); and the mirror (Undo, quick re-tick).
+4. **Verification:** gauntlet as above, with exit codes captured directly
+   (no pipes); line counts before/after.
+5. **Evidence:** test names and the new total, the diff, line counts,
+   `git show --stat HEAD`, the sequence walk-through with line numbers.
+6. **Done:** a re-render alone never prunes; Strange's pass 3 behaviours
+   unchanged.
