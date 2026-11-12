@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** BUILDING F3 (gate pass 2: Captain PASS, Strange PASS, Vision BLOCKED) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** AT-THE-GATES pass 3 (F3 DONE; Captain PASS pass 2, Strange PASS pass 2) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -376,3 +376,5 @@ reasons: say so, do not hide it).
    for each of Vision's two failure scenarios, the line(s) that now end it.
 6. **Done:** Vision's scenarios 1 and 2 cannot leave a stale tick; the
    pass 2 PASS behaviours (Strange) are unchanged.
+
+- **F3 status:** DONE (Stark: Undo's refusal/error path drops the override and refreshes; Schedule prunes against its own rows; the task bar closes when that task's override is cleared; gauntlet 2056 pass; CalendarViews 551, ScheduleView 599).
