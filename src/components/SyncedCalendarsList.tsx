@@ -48,6 +48,9 @@ export function SyncedCalendarsList({
 
   return (
     <div className="mt-4">
+      {/* On top (Bryce, 2026-11-12: "Move it"), grey so "Link a Google account" stays the page's one accent button. */}
+      {configured && twoWay.length > 0 && <SyncNowButton lastSyncedAt={lastSyncedAt} />}
+
       {accounts.length === 0 ? (
         <EmptyState
           emoji="📅"
@@ -61,8 +64,6 @@ export function SyncedCalendarsList({
           ))}
         </div>
       )}
-
-      {configured && twoWay.length > 0 && <SyncNowButton lastSyncedAt={lastSyncedAt} />}
 
       {configured ? (
         <button
