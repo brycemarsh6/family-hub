@@ -34,7 +34,7 @@ test("personFill: no people is today's flat fallback with no text treatment of i
     assert.equal(fill.look, "none");
     assert.equal(fill.background, "var(--surface-2)");
     assert.equal(fill.textClass, "");
-    assert.deepEqual(fill.style, { background: "var(--surface-2)" });
+    assert.deepEqual(fill.style, { backgroundColor: "var(--surface-2)" });
   }
 });
 
@@ -45,6 +45,7 @@ test("personFill: live with people is solid bands at full strength, white text, 
   assert.equal(fill.background, "linear-gradient(135deg, #000000 0%, #000000 50%, #ffffff 50%, #ffffff 100%)");
   assert.equal(fill.style.borderLeftColor, undefined);
   assert.equal(fill.style.borderLeftWidth, undefined);
+  assert.equal(fill.style.backgroundImage, fill.background);
 });
 
 test("personFill: faded is a 15% wash over the surface, muted-strong text, stripe in the FIRST hex", () => {
@@ -58,6 +59,14 @@ test("personFill: faded is a 15% wash over the surface, muted-strong text, strip
   );
   assert.equal(fill.style.borderLeftColor, "#336699");
   assert.equal(fill.style.borderLeftWidth, "4px");
+  assert.equal(fill.style.backgroundColor, "var(--surface)");
+  assert.ok(fill.style.backgroundImage?.startsWith("linear-gradient("));
+});
+
+test("personFill: style never uses the background shorthand (it would reset backgroundOrigin on re-render)", () => {
+  for (const [hexes, faded] of [[[], false], [["#336699"], false], [["#336699"], true]] as const) {
+    assert.equal("background" in personFill([...hexes], faded, 4).style, false);
+  }
 });
 
 test("personFill: a stripe width of 0 draws no stripe (a Month bar's continuing segment)", () => {

@@ -47,7 +47,7 @@ export const FADED_ALPHA = 0.15;
 
 export type PersonFill = {
   look: PersonLook;
-  /** The `background` value. */
+  /** The full `background` value (for reading and tests; paint with `style`). */
   background: string;
   /** Text class every inner line follows: white on solid, muted-strong on
    * faded, "" when the caller keeps today's classes. */
@@ -55,7 +55,8 @@ export type PersonFill = {
   /** Inline styles: background, and for "faded" the left stripe in the first
    * person's hex (`stripePx` wide; 0 draws none). Solid/none add nothing. */
   style: {
-    background: string;
+    backgroundImage?: string;
+    backgroundColor?: string;
     backgroundOrigin?: string;
     borderLeftColor?: string;
     borderLeftWidth?: string;
@@ -69,10 +70,12 @@ export type PersonFill = {
  * blocks and the all-day strip pass at most 3 hexes; EventCard passes
  * everyone). No hexes gives a flat `var(--surface-2)` and `look: "none"`.
  * The border-box origin keeps the bands from tiling into a transparent
- * border. */
+ * border. `style` uses longhands only (never the `background` shorthand next
+ * to `backgroundOrigin`): React re-renders that change just the shorthand
+ * would reset the origin and let a 1px band sliver show. */
 export function personFill(hexes: string[], faded: boolean, stripePx = 0): PersonFill {
   if (hexes.length === 0) {
-    return { look: "none", background: "var(--surface-2)", textClass: "", style: { background: "var(--surface-2)" } };
+    return { look: "none", background: "var(--surface-2)", textClass: "", style: { backgroundColor: "var(--surface-2)" } };
   }
   const bandWidth = 100 / hexes.length;
   const stops = hexes.flatMap((hex, index) => {
@@ -81,7 +84,7 @@ export function personFill(hexes: string[], faded: boolean, stripePx = 0): Perso
   });
   const bands = `linear-gradient(135deg, ${stops.join(", ")})`;
   if (!faded) {
-    return { look: "solid", background: bands, textClass: "text-white", style: { background: bands, backgroundOrigin: "border-box" } };
+    return { look: "solid", background: bands, textClass: "text-white", style: { backgroundImage: bands, backgroundOrigin: "border-box" } };
   }
   const background = `${bands}, var(--surface)`;
   return {
@@ -89,7 +92,8 @@ export function personFill(hexes: string[], faded: boolean, stripePx = 0): Perso
     background,
     textClass: "text-muted-strong",
     style: {
-      background,
+      backgroundImage: `${bands}`,
+      backgroundColor: "var(--surface)",
       backgroundOrigin: "border-box",
       ...(stripePx > 0 ? { borderLeftColor: hexes[0], borderLeftWidth: `${stripePx}px` } : {}),
     },

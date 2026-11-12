@@ -276,11 +276,11 @@ export function TimelineDayColumn({
       {isToday && (
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 z-10 flex items-center"
+          className="absolute inset-x-0 z-10 flex -translate-y-1/2 items-center"
           style={{ top: `${minutesOfDay(now) * pxPerMinute}px` }}
         >
-          <span className="h-2 w-2 rounded-full bg-danger" />
-          <span className="h-px flex-1 bg-danger" />
+          <span className="size-2.5 rounded-full bg-danger ring-2 ring-surface" />
+          <span className="h-0.5 flex-1 bg-danger shadow-[0_0_0_1px_var(--surface)]" />
         </div>
       )}
     </div>

@@ -117,7 +117,7 @@ const HOURS_PER_DAY = MINUTES_PER_DAY / 60;
 
 const MIN_SCROLLER_HEIGHT_PX = 320;
 
-// The timed block's own colour banding (`bandedBackground`, up to 3
+// The timed block's own colour banding (`personFill` in src/lib/color.ts, up to 3
 // diagonal bands, Month's own cap) used to be explained HERE, because this
 // file called it directly. mission-18/C1 moved the timed block's whole
 // render — including that call — into `./TimelineDayColumn.tsx`; see that

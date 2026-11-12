@@ -9,7 +9,9 @@
 
 import type { CSSProperties } from "react";
 import { avatarColorHex } from "@/lib/constants";
+import { isPast } from "@/lib/calendarDates";
 import { personFill } from "@/lib/color";
+import { useToday } from "@/lib/useToday";
 import type { CalendarEventView, CalendarTaskView } from "@/lib/types";
 
 const ZOOM = "var(--zoom-text-scale, 1)";
@@ -109,14 +111,18 @@ export function AllDayEventBar({
   onOpen: () => void;
 }) {
   const colors = event.people.slice(0, 3).map((p) => avatarColorHex(p.avatarColor));
-  // Mission 77: all-day events have no past look today, so they stay solid.
-  // The border is transparent (it keeps the box size) unless nobody is on it.
-  const fill = personFill(colors, false);
+  // Past all-day events fade like every other past event (null today, before
+  // the client knows the date, means not past). The border is transparent (it
+  // keeps the box size) unless nobody is on it; the stripe goes on the bar
+  // that starts the event only.
+  const today = useToday();
+  const past = today !== null && isPast(event.endAt, today);
+  const fill = personFill(colors, past, continuesBefore ? 0 : 3);
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={`truncate border-y px-1 text-left font-semibold ${
+      className={`truncate border-y px-1 text-left ${fill.look === "faded" ? "font-medium" : "font-semibold"} ${
         fill.look === "none" ? "text-fg border-fg" : `border-transparent ${fill.textClass}`
       } ${
         continuesBefore ? "" : "rounded-l border-l"

@@ -303,7 +303,7 @@ anywhere else.
   bands of the person hexes at full strength, `text-white` on every inner line,
   a transparent border (it keeps the box size, so Month spanning bars do not
   shift). Avatars inside a solid `EventCard` get a white ring.
-- **Faded** (past event, completed task): bands at 15% over `var(--surface)`,
+- **Faded** (past event, including all-day events in the timeline strip; completed task): bands at 15% over `var(--surface)`,
   a solid left stripe in the FIRST person's hex (4px hour blocks and
   `EventCard`, 3px Month pills and the all-day strip; a Month bar that spans
   cells stripes only the segment with `roundLeft`), `text-muted-strong` on
