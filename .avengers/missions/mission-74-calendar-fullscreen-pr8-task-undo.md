@@ -266,7 +266,16 @@ reasons: say so, do not hide it).
   Notes: an override can still outlive a lost refetch or a sub-second
   race with another device (needs a failed fetch; a generation counter
   later); `taskBarFor` is not reset when the bar closes itself (cosmetic).
-- **Strange pass 3:** running at the time of the stop.
+- **Strange: PASS (pass 3).** A 16 ms sampler at a 1200 ms lag: no tick
+  bounce from Schedule's prune, warn bars and the tick land together, the
+  task bar closes on a fast Mark not complete, placement unchanged, phone
+  light and dark and the Tablet at Largest. Notes: a harness-only ~430 ms
+  not-done gap on a fast refusal in the Week all-day row (in the real app
+  the action's revalidation should prevent it; fix would be in `fail`);
+  the sheet says "Mark complete" over a still-crossed row for one round
+  trip on a fast Mark not complete (not new); a doubled Schedule week
+  header caught mid-scroll (not this change). Shots: scratchpad
+  `strange/shots3/`.
 
 ## Fix contracts
 
