@@ -402,6 +402,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   sheet holds the Mine / Whole family switch (kept in the URL,
   `?view=family`) and the Time of day, Together only and People filters
   for every column (decisions 257, 261); the button reads "Filter · N".
+- Calendar Filter circle / `CalendarFilterSheet` (mission 78): the fourth circle in the Calendar top bar (`ListFilter` icon). While anything is hidden it is solid `bg-accent` with a count chip and reads "Filtered" (spoken as "Filter, N hidden"); that is the only sign, no banner. Hidden ids the sheet cannot list (a deactivated person, an unlinked calendar) hide nothing and are not counted. The sheet (People and Calendars checkboxes, ticked = shown, 48px rows) applies each tap at once; "Show all" and "Done".
 - Mine (`HabitTodayList`): Morning, Afternoon, Evening and Anytime
   columns, one neutral `bg-surface-2` tint with `bg-surface` cards and the
   time icons telling them apart (decision 256); 1 column on a phone, 2 on
@@ -518,8 +519,11 @@ A new one-off that duplicates one of these jobs is a design violation:
   (mission-72): the first visible day's month, with the year only
   when it is not this year, with the month shortened so the year always
   fits beside the circles ("Jan 2027"; Bryce 2026-11-10), the year itself on Year, and
-  on Schedule the month scrolling past. At the right, the Today, View and
-  Search circles. No < > arrows and no Add circle: moving is swipe, Today
+  on Schedule the month scrolling past. On a phone bar (under 30rem) the
+  title is the short month in `text-base` and the circles sit `gap-1`, so
+  "Jan 2027" fits beside four circles at 393px; from 30rem the full title
+  shows in `text-xl` with `gap-2`. At the right, the Today, View, Search and
+  Filter circles. No < > arrows and no Add circle: moving is swipe, Today
   and the title; adding is the bottom-right + (see the + rule above).
   From a 48rem bar, a container query in rem so a bigger Text size falls
   back by itself, `CalendarViewRow` replaces the View circle: the six

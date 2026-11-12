@@ -152,6 +152,14 @@ export type CalendarEventView = {
   deleteBlockedMessage?: string | null;
 };
 
+/** One linked Google account and its calendars, for the Calendar filter sheet (mission 78). Names and Marshee row ids only. */
+export type CalendarFilterAccountView = {
+  accountId: string;
+  /** The account's label, else its email. */
+  label: string;
+  calendars: { id: string; name: string }[];
+};
+
 /** One Google copy of an event: which calendar, how it went, and why not. */
 export type CalendarEventSyncView = {
   /** Marshee's LinkedCalendar row id (never a Google id). */
