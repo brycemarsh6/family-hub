@@ -144,3 +144,19 @@ changed per component.
 **Done criteria:** Fury can see in the diff that all four components go
 through the one helper, that no `0.1`/`0.05` band alphas remain, and that
 the no-people path is unchanged.
+
+## Gates
+
+### Vision pass 1 (691cde5): PASS
+
+Gauntlet re-run green (2090/2090; UTC 2080 pass, 10 DST skips that exist on
+main too). Boundary clean. Notes:
+- `color.ts` mixes the `background` shorthand with a `backgroundOrigin`
+  longhand; when React changes only `background` (task ticked, block going
+  past while on screen) the origin resets and a 1px band sliver may show.
+  Fix batch: use `bg-origin-border` class or split into longhands.
+- Past all-day events in the timeline's all-day strip stay solid. That strip
+  never drained before (DESIGN.md "The timeline's all-day strip does not yet
+  drain"), so it stays out of scope; follow-up for status.md.
+- Stale `bandedBackground` comment at `TimelineGrid.tsx:120`: fix batch.
+- MonthCell 352 lines (2 over soft cap, shrank as required).
