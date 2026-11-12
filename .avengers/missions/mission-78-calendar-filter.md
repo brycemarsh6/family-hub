@@ -1,6 +1,6 @@
 # Mission 78: Calendar filter by person and synced calendar
 
-- **Status:** BUILDING, fix batch C3 (Bryce approved the mock 2026-11-12 except the strip; see Bryce's answers)
+- **Status:** AT-THE-GATES, pass 2 (Bryce approved the mock 2026-11-12 except the strip; see Bryce's answers)
 - **Started:** 2026-11-12 · **Updated:** 2026-11-12
 - **Branch:** `claude/calendar-filter-people-calendars-dc7840`, cut from `main` `5bbf740` (PR #118 merged)
 - **Mock:** `.avengers/mocks/calendar-filter-mock.html`
@@ -109,10 +109,12 @@ C1 then C2, sequential (C2 imports C1's files).
 |---|---|---|---|---|
 | 1 | Vision | BLOCKED | V1 stale ids still hide (count 0, no way back) | filterScheduleMonths untested; account emails reach every login; tick and empty checks repeated outside calendarFilter.ts |
 | 1 | Strange | BLOCKED | S1 same stale-id trap (stale-offcal-day.png); S2 "Jan 2027" truncates to "Jan 2..." at 393 (DESIGN.md CalendarHeader rule) | DESIGN.md CalendarHeader entry stale; spoken name "1Filtered"; chip low contrast on the solid circle; sheet scrolls at Largest; 375 wide still truncates |
+| 2 | Vision | running | | |
+| 2 | Strange | running | | |
 | 1 | Captain | PASS | none | N1 move filterScheduleMonths to calendarFilter.ts with tests; N4 one isFilterEmpty; tick helpers; trend line numbers |
 
 ### C3 - fix batch for gate pass 1
-- **Status:** DISPATCHED
+- **Status:** DONE (commit f59034c)
 - **Objective:** a hidden id the sheet can no longer list stops hiding anything; the phone title fits "Jan 2027" at 393; every filter rule lives in `calendarFilter.ts` with tests; small honesty and doc fixes.
 - **Boundaries:** may touch: `src/lib/calendarFilter.ts`, `src/lib/calendarFilter.test.ts`, `src/lib/calendarFilterStore.ts`, `src/lib/useCalendarFilterView.ts`, `src/components/CalendarFilterSheet.tsx`, `src/components/CalendarHeader.tsx`, `src/components/ActionCircle.tsx`, `src/lib/useScheduleMonthTitle.ts`, `src/components/ScheduleView.tsx` (import path only, if `filterScheduleMonths` moves), `src/lib/linkedCalendarsRead.ts` (loadFilterCalendars only), `src/lib/calendarViewVocabulary.ts` (one aria label builder), `docs/structure/calendar-filter.md`, `DESIGN.md` (the `CalendarHeader` entry and the filter entry only), `STRUCTURE.md` (the Calendar trend line only). · must not touch: everything else.
 - **What to build:**
@@ -126,7 +128,7 @@ C1 then C2, sequential (C2 imports C1's files).
 - **Verification:** full gauntlet (real build exit code); new tests counted.
 - **Evidence required:** gauntlet tails, test count before and after, `git show --stat HEAD`, commit hash.
 - **Done criteria:** gates pass 2 (Vision, Strange) re-run and pass.
-- **Report:** (pending)
+- **Report:** Stark: 14 files +239/-89; npm test 2104 to 2114 (10 new); tsc, eslint, TZ=UTC run, build exit 0. Also changed the pinned slot's `[&_h2]:text-lg` to `text-base` (it would override the portaled phone h2). No browser check: Strange pass 2 confirms the 393 fit.
 
 ## Handoff log
 
@@ -135,6 +137,7 @@ C1 then C2, sequential (C2 imports C1's files).
 - 2026-11-12: C1 DONE (b0ffe12). C2 dispatched.
 - 2026-11-12: C2 DONE (eeecc4d). Gates pass 1: Vision, Strange, Captain in parallel.
 - 2026-11-12: pass 1: Captain PASS, Vision and Strange BLOCKED (stale-id trap; phone title). C3 written and dispatched. Open question for Bryce: does anyone use a 375-wide phone (iPhone mini or SE)?
+- 2026-11-12: C3 DONE (f59034c). Gates pass 2: Vision and Strange. Captain not re-run (C3 applied his own NOTEs; Vision carries the structure subset).
 
 ## Delivery
 
