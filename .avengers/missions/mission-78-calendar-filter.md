@@ -1,6 +1,6 @@
 # Mission 78: Calendar filter by person and synced calendar
 
-- **Status:** AT-THE-GATES (Bryce approved the mock 2026-11-12 except the strip; see Bryce's answers)
+- **Status:** BUILDING, fix batch C3 (Bryce approved the mock 2026-11-12 except the strip; see Bryce's answers)
 - **Started:** 2026-11-12 · **Updated:** 2026-11-12
 - **Branch:** `claude/calendar-filter-people-calendars-dc7840`, cut from `main` `5bbf740` (PR #118 merged)
 - **Mock:** `.avengers/mocks/calendar-filter-mock.html`
@@ -107,9 +107,26 @@ C1 then C2, sequential (C2 imports C1's files).
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | running | | |
-| 1 | Strange | running | | |
-| 1 | Captain | running | | |
+| 1 | Vision | BLOCKED | V1 stale ids still hide (count 0, no way back) | filterScheduleMonths untested; account emails reach every login; tick and empty checks repeated outside calendarFilter.ts |
+| 1 | Strange | BLOCKED | S1 same stale-id trap (stale-offcal-day.png); S2 "Jan 2027" truncates to "Jan 2..." at 393 (DESIGN.md CalendarHeader rule) | DESIGN.md CalendarHeader entry stale; spoken name "1Filtered"; chip low contrast on the solid circle; sheet scrolls at Largest; 375 wide still truncates |
+| 1 | Captain | PASS | none | N1 move filterScheduleMonths to calendarFilter.ts with tests; N4 one isFilterEmpty; tick helpers; trend line numbers |
+
+### C3 - fix batch for gate pass 1
+- **Status:** DISPATCHED
+- **Objective:** a hidden id the sheet can no longer list stops hiding anything; the phone title fits "Jan 2027" at 393; every filter rule lives in `calendarFilter.ts` with tests; small honesty and doc fixes.
+- **Boundaries:** may touch: `src/lib/calendarFilter.ts`, `src/lib/calendarFilter.test.ts`, `src/lib/calendarFilterStore.ts`, `src/lib/useCalendarFilterView.ts`, `src/components/CalendarFilterSheet.tsx`, `src/components/CalendarHeader.tsx`, `src/components/ActionCircle.tsx`, `src/lib/useScheduleMonthTitle.ts`, `src/components/ScheduleView.tsx` (import path only, if `filterScheduleMonths` moves), `src/lib/linkedCalendarsRead.ts` (loadFilterCalendars only), `src/lib/calendarViewVocabulary.ts` (one aria label builder), `docs/structure/calendar-filter.md`, `DESIGN.md` (the `CalendarHeader` entry and the filter entry only), `STRUCTURE.md` (the Calendar trend line only). · must not touch: everything else.
+- **What to build:**
+  1. (V1, S1) `calendarFilter.ts`: pure `liveFilter(filter, personIds, calendarKeys): CalendarFilter` keeping only hidden ids still in the lists; `hiddenCount` built on it. `useCalendarFilterView` memoises `live` from active people ids and `["marshee", ...listed calendar ids]` and uses it for `filterRows`, for the `filter` handed to ScheduleView, and for the sheet's ticks. The STORED value is untouched (a calendar turned back on comes back hidden and counted). Tests: an event from a calendar no longer listed whose id is hidden shows, count 0; the same for a deactivated person; a re-listed calendar is hidden again.
+  2. (Captain N1) move `filterScheduleMonths` into `calendarFilter.ts` (type-only import of the Schedule row type, the pure `isSameDay`), tests: an emptied day drops; today's emptied row stays; an already empty day keeps today's behaviour; an emptied month drops; an empty filter returns the same array.
+  3. (Captain N4, Vision note) export `isFilterEmpty`, `isPersonShown`, `isCalendarShown` from `calendarFilter.ts`; the store, the hook and the sheet call them instead of inline checks.
+  4. (S2) `CalendarHeader.tsx`: the circle cluster `gap-1 @min-[30rem]:gap-2`; the short (phone) title `text-base` instead of `text-lg`; the same for the short h2 in `useScheduleMonthTitle.ts`. Strange measured this fits "Jan/May/Sep 2027" at 393.
+  5. (Strange notes) the Filter button gets an accessible name from `CALENDAR_FILTER_LABELS` ("Filter" with nothing hidden, "Filter, N hidden" otherwise) so a screen reader does not read "1Filtered"; the chip gets `ring-2 ring-bg`.
+  6. (Vision note, matches the approved mock's "Bryce's Google account") `loadFilterCalendars`: heading = the account's `label`, else "<owner display name>'s Google"; only when one person has two unlabelled accounts, add the email after the second and later ones in parentheses. Select the owner's display name in the same query. Emails otherwise stay off the Calendar page.
+  7. Docs: `DESIGN.md` `CalendarHeader` entry names the Filter circle and the phone title rule; `docs/structure/calendar-filter.md` says the live filter rule and that every rule is in `calendarFilter.ts`; STRUCTURE.md trend line gets the new totals for `CalendarViews.tsx` and `ScheduleView.tsx` (both counts).
+- **Verification:** full gauntlet (real build exit code); new tests counted.
+- **Evidence required:** gauntlet tails, test count before and after, `git show --stat HEAD`, commit hash.
+- **Done criteria:** gates pass 2 (Vision, Strange) re-run and pass.
+- **Report:** (pending)
 
 ## Handoff log
 
@@ -117,6 +134,7 @@ C1 then C2, sequential (C2 imports C1's files).
 - 2026-11-12: Bryce approved all recommendations except the strip (count chip only). C1 and C2 written; C1 next.
 - 2026-11-12: C1 DONE (b0ffe12). C2 dispatched.
 - 2026-11-12: C2 DONE (eeecc4d). Gates pass 1: Vision, Strange, Captain in parallel.
+- 2026-11-12: pass 1: Captain PASS, Vision and Strange BLOCKED (stale-id trap; phone title). C3 written and dispatched. Open question for Bryce: does anyone use a 375-wide phone (iPhone mini or SE)?
 
 ## Delivery
 
