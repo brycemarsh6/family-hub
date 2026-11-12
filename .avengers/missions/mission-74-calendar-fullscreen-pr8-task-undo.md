@@ -275,6 +275,9 @@ reasons: say so, do not hide it).
      `CalendarViews.tsx` and `useEventMoves.ts` entries and add
      `TaskDetailSheet.tsx` and `actions/tasks.ts` entries with the real
      after-F1 counts (Captain's wording in the Gates section is the model).
+     (Preflight flags STRUCTURE.md at 1136 lines against the 650 code cap;
+     Fury: the constitution has its own housekeeping threshold, 1264 per
+     Captain, so the trend-list edit stands.)
 4. **Verification:** gauntlet as above; `grep -rn "@/app" src/lib` shows
    no import (comments aside); line counts of every touched file
    before/after (CalendarViews and ScheduleView stay under 650).
