@@ -1,4 +1,5 @@
 import { AvatarBadge } from "./AvatarBadge";
+import { HighlightedText } from "./EventCard";
 import type { CalendarTaskView } from "@/lib/types";
 
 /**
@@ -33,9 +34,12 @@ import type { CalendarTaskView } from "@/lib/types";
  */
 export function TaskCard({
   task,
+  highlightWords,
   onOpen,
 }: {
   task: CalendarTaskView;
+  /** Search page: the typed words (`tokens(query)`) to mark in the title. */
+  highlightWords?: string[];
   onOpen: () => void;
 }) {
   const completed = task.completedAt !== null;
@@ -79,7 +83,7 @@ export function TaskCard({
             completed ? "font-medium text-muted line-through" : "font-semibold text-fg"
           }`}
         >
-          {task.title}
+          <HighlightedText text={task.title} words={highlightWords} />
         </p>
       </div>
 

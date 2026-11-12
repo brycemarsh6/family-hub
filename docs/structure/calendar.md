@@ -266,3 +266,28 @@ docs/history/structure-rationale.md under the same name.
 - **One task-tick hook.** `useTaskDone` owns the override map, its prune, the
   `taskBarFor` ref and `onTaskCompleted`. Any page with a task sheet and a bar
   calls it with its own `useUndoBar`; the action comes in as an argument.
+
+## The top bar has no Refresh (mission 75)
+
+- The right-hand circles are Today, View (or the row of six) and
+  **Search** (`CalendarHeader.tsx`, `router.push("/calendar/search")`,
+  since `ActionCircle` has no link form). Pulling from Google is
+  automatic; its rules are in docs/structure/calendar-sync.md, "Syncing
+  without a button". A Refresh or pull-down control is a BLOCKER
+  (decision 16).
+
+## The search page (mission 75)
+
+- **`/calendar/search`** is `page.tsx` (roster, `canManage`, `isTablet`, `BackLink`)
+  plus `CalendarSearch.tsx`. The matching and arranging are `calendarSearch.ts`
+  and the `searchCalendar` action; the page only asks, with a 300 ms pause and a
+  request counter so an older answer never replaces a newer one. A page that
+  matches in the browser, or a second search query, is a BLOCKER.
+- **Results are Schedule's cards.** One `DaySection` per day. The search-only
+  look is optional props (`dateLabel`, `repeatingEventIds`, `highlightWords` on
+  `DaySection`; `repeats`, `highlightWords` on `EventCard`; `highlightWords` on
+  `TaskCard`), so no other caller changes. Any new search-only look goes the same way.
+- **Sheets and bar.** `EventDetailSheet` and `CalendarTaskSheet` (the one task
+  mount), the page's own `useUndoBar` + `useTaskDone` and one `UndoBar`. After a
+  change the current search runs again (`rerun`); there is no `router.refresh`
+  because the results are client state.
