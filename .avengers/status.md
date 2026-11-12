@@ -17,6 +17,14 @@ it is done. The pre-cleanup text is in
   phone or the tablet. Untick one Google calendar: its events go. Search
   still finds a hidden event. Tap Filter, then Show all: everything comes
   back and the circle is plain again. Try the tablet at its large text.
+- **Calendar person colours (mission 77)**, about 2 minutes, on your iPhone
+  and the iPad, in light and dark. Month, Day and Week: each person's events
+  are a solid colour with white text, and you can tell people apart at a
+  glance. Yesterday's events (all-day ones too) are pale with a coloured
+  stripe on the left. The red "now" line stands out across any block. Check
+  the dashboard Calendar widget, Schedule, and an avatar circle or two
+  (login, menu, Manage family). Say if any colour looks too close to
+  another, or if amber reads too brown.
 - **Calendar delete rule (mission 76)**, about 2 minutes, on your iPhone,
   light and dark. Open an event that has only Emily on it, tap the three
   dots: an amber note says "Only Emily can delete this." and there is no
@@ -344,6 +352,12 @@ it is done. The pre-cleanup text is in
   the search box appears after the tap has ended. The PR 9 chat
   recommended leaving it (one extra tap); the fix would be opening search
   as an overlay inside the same tap. Bryce hasn't decided.
+- Calendar person colours follow-ups (mission 77 Delivery): fade
+  earlier-today events in Schedule, Search, the widget and Month once over
+  (Bryce said yes, own PR); EventCard comment still says "background
+  shorthand"; AllDayEventBar calls `useToday()` itself (could take `today`
+  as a prop); all-day `isPast` is exact only west of UTC; the now-line may
+  clip 5px at 00:00.
 - Calendar all-day row follow-ups (mission 73 Delivery): one-line and
   two-line titles can still end "pre-..." (a hyphen before the ...) in
   some columns; Month still says "+3 more" (decision 13 wants "3 more",
