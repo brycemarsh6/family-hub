@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { getVerifiedUser } from "@/lib/dal";
+import { requireVerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { tabletMayCompleteAnyTask } from "@/lib/tabletRules";
 import { BackLink } from "@/components/BackLink";
@@ -18,9 +18,9 @@ export const dynamic = "force-dynamic";
  * was since deactivated. The matching itself is the `searchCalendar` action's.
  */
 export default async function CalendarSearchPage() {
-  const user = await getVerifiedUser();
-  const canManage = user !== null && MANAGER_ROLES.includes(user.role);
-  const isTablet = user !== null && tabletMayCompleteAnyTask(user.role);
+  const user = await requireVerifiedUser();
+  const canManage = MANAGER_ROLES.includes(user.role);
+  const isTablet = tabletMayCompleteAnyTask(user.role);
 
   const roster = await db.user.findMany({
     where: { OR: [{ deactivatedAt: null }, { taskPeople: { some: {} } }] },

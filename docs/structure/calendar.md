@@ -237,8 +237,8 @@ docs/history/structure-rationale.md under the same name.
 - **Mark complete** closes `TaskDetailSheet` (its `onCompleted`, not
   `onChanged`) and `showTaskCompleted` shows "Task completed, Undo". Undo
   calls `uncompleteTask`, the same action as the sheet's "Mark not complete".
-  Only `TaskDetailSheet.tsx` and `CalendarViews.tsx` (and later the search page) import `uncompleteTask`;
-  `CalendarViews` hands it to `useTaskDone`, which calls `showTaskCompleted`, so `useUndoBar.ts` never
+  Only `TaskDetailSheet.tsx`, `CalendarViews.tsx` and `CalendarSearch.tsx` import `uncompleteTask`;
+  those two hand it to `useTaskDone`, which calls `showTaskCompleted`, so `useUndoBar.ts` never
   imports from `app/`.
 - **Ticks are optimistic.** `useTaskDone` (`src/lib/useTaskDone.ts`, mission 75)
   holds one `Map<taskId, Date | null>` (`taskDoneOverrides.ts`): Mark complete and Undo set it at once, every view

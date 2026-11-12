@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import {
   arrangeSearch,
   clampLimit,
+  matchedPrefixLength,
   matchesSearch,
   searchWords,
   type SearchEventRow,
@@ -42,6 +43,24 @@ test("a typed word matches the start of a word in the title", () => {
   const words = searchWords("pia")!;
   assert.equal(matchesSearch(words, ["Piano lesson", null]), true);
   assert.equal(matchesSearch(words, ["Spiral", null]), false);
+});
+
+test("a singular word finds the plural, and the plural finds the singular", () => {
+  const finds = (typed: string, field: string) => matchesSearch(searchWords(typed)!, [field, null]);
+  assert.equal(finds("movie", "Movies at the park"), true);
+  assert.equal(finds("movies", "Movie night"), true);
+  assert.equal(finds("cookies", "Cookie swap"), true);
+  assert.equal(finds("serie", "World Series"), true);
+  assert.equal(finds("berry", "Berries"), true);
+  assert.equal(finds("cat", "Dog walk"), false);
+});
+
+test("the highlight length comes from the written word", () => {
+  assert.equal(matchedPrefixLength("Berries", ["berry"]), 4);
+  assert.equal(matchedPrefixLength("Movies", ["movie"]), 5);
+  assert.equal(matchedPrefixLength("Cookie", ["cookies"]), 6);
+  assert.equal(matchedPrefixLength("Piano", ["pia"]), 3);
+  assert.equal(matchedPrefixLength("Spiral", ["pia"]), 0);
 });
 
 test("matches location, notes and task details too", () => {

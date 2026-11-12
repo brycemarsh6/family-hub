@@ -2,12 +2,12 @@ import { AvatarBadge } from "./AvatarBadge";
 import { avatarColorHex } from "@/lib/constants";
 import { formatAllDayLabel, formatTimeRange, isPast } from "@/lib/calendarDates";
 import { hexToRgba } from "@/lib/color";
-import { tokens } from "@/lib/match";
+import { matchedPrefixLength } from "@/lib/calendarSearch";
 import type { CalendarEventView } from "@/lib/types";
 
 /**
  * Mission 75 (search page): `text` with the words that start with one of the typed `words`
- * (already `tokens()` of the query) marked. No `words` renders the text unchanged. Lives
+ * (`searchWords()` of the query) marked. No `words` renders the text unchanged. Lives
  * here so EventCard and TaskCard share it; it needs no state.
  */
 export function HighlightedText({ text, words }: { text: string; words?: string[] }) {
@@ -16,13 +16,11 @@ export function HighlightedText({ text, words }: { text: string; words?: string[
     <>
       {text.split(/([\p{L}\p{N}]+)/u).map((part, index) => {
         if (index % 2 === 0) return part;
-        const stem = tokens(part)[0] ?? "";
-        const typed = words.find((word) => stem.startsWith(word));
-        if (!typed) return part;
-        const length = Math.min(part.length, typed.length);
+        const length = matchedPrefixLength(part, words);
+        if (length === 0) return part;
         return (
           <span key={index}>
-            <mark className="rounded bg-warn-soft text-inherit">{part.slice(0, length)}</mark>
+            <mark className="rounded bg-highlight text-inherit">{part.slice(0, length)}</mark>
             {part.slice(length)}
           </span>
         );

@@ -34,6 +34,7 @@
   --accent-soft: #e4e9dc; /* Sage lightened — tinted background for accent-ish chips; --accent on top of this is 4.65:1 */
   --warn: #8a6410; /* Butter deepened — raw Butter (#f4d26b) is far too light for text; this is 5.37:1 on white / 4.53:1 on --warn-soft */
   --warn-soft: #faebc3; /* Butter lightened — the "running low" badge background */
+  --highlight: #faebc3; /* mission-75 — the Calendar search marks the typed letters with this; same value as --warn-soft today, its own token so the job can change colour alone */
   --danger: #a63a2a; /* a brick red from the Peach family — red still reads as red, but Peach itself (#f3b99e) is too light for text; this is 6.44:1 on white / 5.14:1 on --danger-soft */
   --danger-soft: #f9e1d6; /* Peach lightened — the "eat now" badge on the Expiring page */
   --streak: #8a4b1f; /* mission-32/F1 — a burnt Peach for the streak flame and its count, so a streak no longer shares amber with warnings (Missed days, errors). Derived from Peach (#f3b99e), which is far too light for text; 6.76:1 on white / 5.97:1 on cream / 5.42:1 on --streak-soft */
@@ -74,6 +75,7 @@
     --accent-soft: #2c3324;
     --warn: #f4d26b; /* Butter, brand-exact — the light background it failed on in light mode isn't a problem here; 11.72:1 on --bg, 10.53:1 on --surface */
     --warn-soft: #3d3212;
+    --highlight: #3d3212;
     --danger: #e89078; /* a lighter Peach-family red for a dark background — 7.14:1 on --bg, 6.41:1 on --surface, 5.84:1 on --danger-soft */
     --danger-soft: #472018;
     --streak: #e8a77f; /* a light Peach for dark surfaces — 7.57:1 on --surface, 8.43:1 on --bg, 6.63:1 on --streak-soft (measured) */
@@ -97,6 +99,7 @@
   --color-accent-soft: var(--accent-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-highlight: var(--highlight);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-streak: var(--streak);

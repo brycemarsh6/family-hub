@@ -25,8 +25,12 @@ export function SyncedCalendarsList({
   configured: boolean;
 }) {
   const link = useOptimisticRun<never>(() => {});
-  // The button shows only when some calendar is "Both ways"; its time is the newest good pull of those.
-  const twoWay = accounts.flatMap((account) => account.calendars).filter((calendar) => calendar.direction === "twoWay");
+  // The button shows only when Google is set up and some "Both ways" calendar sits on an account that still
+  // works (the pull skips the rest); its time is the newest good pull of those.
+  const twoWay = accounts
+    .filter((account) => account.status === "ok")
+    .flatMap((account) => account.calendars)
+    .filter((calendar) => calendar.direction === "twoWay");
   const lastSyncedAt = twoWay.reduce<Date | null>(
     (newest, calendar) =>
       calendar.lastPulledOkAt && (!newest || calendar.lastPulledOkAt > newest) ? calendar.lastPulledOkAt : newest,
@@ -58,7 +62,7 @@ export function SyncedCalendarsList({
         </div>
       )}
 
-      {twoWay.length > 0 && <SyncNowButton lastSyncedAt={lastSyncedAt} />}
+      {configured && twoWay.length > 0 && <SyncNowButton lastSyncedAt={lastSyncedAt} />}
 
       {configured ? (
         <button

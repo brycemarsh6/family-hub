@@ -38,7 +38,7 @@ export function TaskCard({
   onOpen,
 }: {
   task: CalendarTaskView;
-  /** Search page: the typed words (`tokens(query)`) to mark in the title. */
+  /** Search page: the typed words (`searchWords(query)`) to mark in the title. */
   highlightWords?: string[];
   onOpen: () => void;
 }) {

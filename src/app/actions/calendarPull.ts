@@ -1,9 +1,10 @@
 "use server";
 
 // The Server Action that pulls Google events into Marshee (mission 60).
-// Two callers: the Calendar opening (any signed-in login, wall tablet
-// included; it only pulls, at most every 5 minutes per calendar) and the
-// Refresh button (parents and admins, a 30 second floor). Every input is an
+// Two callers: the automatic pulls (any signed-in login, wall tablet
+// included; they only pull, at most every 5 minutes per calendar) and the
+// "Sync calendars now" button on Synced calendars (parents and admins, a
+// 30 second floor). Every input is an
 // untrusted claim: `force` is honored only for a manager, and the answer is
 // counts only, never anything from Google.
 
@@ -20,7 +21,7 @@ export async function pullGoogleEvents(force: boolean): Promise<PullActionResult
   const user = await getVerifiedUser();
   if (!user) return NOTHING;
   const manager = !user.isDevice && MANAGER_ROLES.includes(user.role);
-  // Refresh from anyone else is refused, not downgraded: nothing is pulled.
+  // A forced pull from anyone else is refused, not downgraded: nothing is pulled.
   if (force === true && !manager) return NOTHING;
 
   const { changed, failed, checked } = await pullCalendars({ force: force === true });

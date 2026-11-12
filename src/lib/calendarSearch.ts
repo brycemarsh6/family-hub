@@ -4,8 +4,11 @@
 // loads full views for the chosen ids.
 //
 // Matching: every typed word must be the START of some word in the item's
-// text fields ("pia" finds "Piano"), on match.ts's `tokens`. Fewer than two
-// letters in all returns nothing.
+// text fields ("pia" finds "Piano"). The matcher is lenient on purpose (more
+// results are visible, a miss is not): each side is tried as written and in
+// singular form, so "movie" finds "Movies" and "cookies" finds "Cookie". The
+// page's highlight uses the same rule (`matchedPrefixLength`), so what is
+// marked is what matched. Fewer than two letters in all returns nothing.
 //
 // Days are `YYYY-MM-DD` strings, never Dates, so they mean the same thing on
 // the server and in any browser. A timed event's day is its start day in the
@@ -13,7 +16,7 @@
 // instant's own date (calendarDates.ts's all-day convention).
 // householdDate.ts keeps every answer the same whatever the process's TZ is.
 
-import { tokens } from "./match";
+import { rawTokens, tokens } from "./match";
 import { calendarDateInZone, type CalendarDate } from "./householdDate";
 import { compareEvents } from "./scheduleWindow";
 import type { CalendarEventView, CalendarTaskView } from "./types";
@@ -63,17 +66,52 @@ export type CalendarSearchResult = {
   hasMorePast: boolean;
 };
 
-/** The query's words, or null when it holds fewer than two letters or digits in all. */
+/** The query's words as written (lowercased), or null when it holds fewer than two letters or digits in all. */
 export function searchWords(text: string): string[] | null {
-  const words = tokens(text);
+  const words = rawTokens(text);
   const total = words.reduce((sum, word) => sum + word.length, 0);
   return total >= 2 ? words : null;
 }
 
+// A word as written, in singular form, and without a bare trailing "s" ("cookies" gives "cookie").
+function forms(word: string): string[] {
+  const singular = tokens(word)[0] ?? word;
+  const unplural = word.length > 3 && word.endsWith("s") && !word.endsWith("ss") ? word.slice(0, -1) : word;
+  return [...new Set([word, singular, unplural])];
+}
+
+function commonPrefixLength(a: string, b: string): number {
+  let length = 0;
+  while (length < a.length && length < b.length && a[length] === b[length]) length += 1;
+  return length;
+}
+
+/**
+ * How many leading characters of `word` (a word of the item's text, as
+ * written) one of the typed `words` marks; 0 when none of them is the start of
+ * it. Both sides are compared as written and in singular form. The length
+ * counts the letters the typed word and the written word share ("berry"
+ * against "Berries" marks "Berr").
+ */
+export function matchedPrefixLength(word: string, typedWords: string[]): number {
+  const written = rawTokens(word)[0] ?? "";
+  if (written === "") return 0;
+  let best = 0;
+  for (const typed of typedWords) {
+    for (const typedForm of forms(typed)) {
+      for (const writtenForm of forms(written)) {
+        if (!writtenForm.startsWith(typedForm)) continue;
+        best = Math.max(best, commonPrefixLength(typedForm, written), 1);
+      }
+    }
+  }
+  return Math.min(best, word.length);
+}
+
 /** Every query word is the start of some word in the fields. */
 export function matchesSearch(words: string[], fields: (string | null)[]): boolean {
-  const haystack = tokens(fields.filter((field): field is string => field !== null).join(" "));
-  return words.every((word) => haystack.some((candidate) => candidate.startsWith(word)));
+  const haystack = rawTokens(fields.filter((field): field is string => field !== null).join(" "));
+  return words.every((word) => haystack.some((candidate) => matchedPrefixLength(candidate, [word]) > 0));
 }
 
 /** A caller's limit made safe: a whole number from 1 to 500. */

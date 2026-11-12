@@ -24,7 +24,7 @@ export const PULL_WINDOW_DAYS = 30;
 export const PULL_HORIZON_DAYS = 365;
 /** A calendar is pulled at most this often on page open... */
 export const PULL_LEASE_MS = 5 * 60 * 1000;
-/** ...and this often when a parent taps Refresh. */
+/** ...and this often when a parent taps "Sync calendars now". */
 export const PULL_FORCE_LEASE_MS = 30 * 1000;
 
 export type PullCalendarRow = {
@@ -51,7 +51,7 @@ export type PullRunDeps = {
   list: (accessToken: string, googleCalendarId: string, mode: ListEventsMode) => Promise<ListEventsResult>;
   /** Saves the calendar's sync token; null clears it. */
   saveSyncToken: (calendarId: string, token: string | null) => Promise<void>;
-  /** Stamps "Last checked" after a clean pull that returned no token; the saved token is left alone. */
+  /** Stamps "Last synced" after a clean pull that returned no token; the saved token is left alone. */
   markPulledOk: (calendarId: string) => Promise<void>;
   loadKnown: (calendar: { id: string; googleCalendarId: string }, events: GoogleEventIn[]) => Promise<PullKnown>;
   /** Each write is one transaction (event, person, sync row). */
@@ -133,7 +133,7 @@ async function applyListed(
   if (failed === 0) {
     try {
       if (listed.nextSyncToken !== null) await deps.saveSyncToken(calendar.id, listed.nextSyncToken);
-      // No bookmark came back, but the pull worked: "Last checked" still moves, the token stays as it is.
+      // No bookmark came back, but the pull worked: "Last synced" still moves, the token stays as it is.
       else await deps.markPulledOk(calendar.id);
     } catch (error) {
       deps.noteFailure?.(writeFailReason(error).replace("write", "save-token"));

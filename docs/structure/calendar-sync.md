@@ -178,13 +178,14 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   server's own unforced lease), `TABLET_TOUCH_WINDOW_MS` (10 minutes),
   `shouldTimerPull` (never hidden; the Tablet only if touched inside the
   window) and `shouldTouchPull` (the Tablet, after a full quiet window).
-  `CalendarPullProvider` in `CalendarAutoPull.tsx` is the only caller: it
+  `CalendarAutoPull.tsx` holds the only automatic pulls: `CalendarPullProvider`
+  (Calendar page) and `useOpenPull` (the widget, once on mount). The provider
   pulls unforced, one at a time, on mount, when the page becomes visible,
   on the timer (stopped while hidden) and on a Tablet touch after the
   window, and refreshes the page only when something changed. A second
   timer or focus listener that calls `pullGoogleEvents` is a BLOCKER. The
   only forced pull is `SyncNowButton` on `/settings/calendars` (parents and
-  admins; shown when some calendar is "Both ways", with "Last synced" from
+  admins; shown when Google is set up and some "Both ways" calendar sits on an account that still works, with "Last synced" from
   the newest `lastPulledOkAt` of those).
   (Added 2026-11-08, mission-55, on Captain's ruling; Bryce approved. Widened
   2026-11-09, mission-56, on Captain's ruling; Bryce approved. Widened
