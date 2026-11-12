@@ -69,7 +69,7 @@ From AGENTS.md, absolute: no `db:seed` / `db:reset`; never touch the `User` tabl
 C1 then C2, sequential (C2 imports C1's files).
 
 ### C1 - the filter's rules, its memory, and the calendar list on the page
-- **Status:** PENDING
+- **Status:** DONE (commit b0ffe12)
 - **Objective:** pure filter rules with tests, a per-login per-device store, the short month title helper, and the Calendar page reading the calendar list for the sheet; no visible change yet.
 - **Boundaries:** may touch: new `src/lib/calendarFilter.ts`, new `src/lib/calendarFilter.test.ts`, new `src/lib/calendarFilterStore.ts`, `src/lib/linkedCalendarsRead.ts`, `src/lib/types.ts`, `src/lib/mealPlanDates.ts`, `src/lib/mealPlanDates.test.ts`, `src/lib/calendarViewVocabulary.ts`, `src/app/(app)/calendar/page.tsx`, `src/components/CalendarViews.tsx` (ONLY: accept and ignore-for-now a new `filterCalendars` prop, typed). · must not touch: everything else, especially `prisma/schema.prisma` (no migration), `package.json`, `CLAUDE.md`, `STRUCTURE.md`, `DESIGN.md`.
 - **What to build:**
@@ -84,10 +84,10 @@ C1 then C2, sequential (C2 imports C1's files).
 - **Tests required (in `calendarFilter.test.ts`):** pulled event hidden by its source calendar; Marshee event copied to Work stays when only Work is hidden, hides when "marshee" and Work are both hidden; event with no people passes the people check; event whose every person is hidden hides; task rules; habit days hidden when the viewer is hidden, shown for a null viewer; `hiddenCount` ignores stale ids; `parseStoredFilter` on null, `"{"`, `"[]"`, `{"hiddenPeople":5}` and a good value; `shortMonthHeading` cases.
 - **Evidence required:** each gauntlet command with its tail; test count before and after; `git diff --stat`.
 - **Done criteria:** Fury sees the new tests in the `npm test` count, the page still renders the Calendar unchanged (no visible change), and only boundary files changed.
-- **Report:** (pending)
+- **Report:** Stark: 10 files, +424/-3. npm test 2088 to 2104 (16 new), tsc, eslint, TZ=UTC run, build all clean. Setup: ran `npx prisma generate` and `npm ci` in the worktree (gitignored output only). `shortMonthHeading` keeps what follows ("September 2026" becomes "Sep 2026"). Fury read calendarFilter.ts and calendarFilterStore.ts: matches the contract.
 
 ### C2 - the Filter circle, the sheet, and every view obeying it
-- **Status:** PENDING (after C1)
+- **Status:** DISPATCHED
 - **Preflight note (Fury):** preflight hard-fails `STRUCTURE.md` and `DESIGN.md` on the 650 hard cap. Not applicable: STRUCTURE.md "File-size caps" says the caps govern source files, not documents (Markdown is outside them). Recorded, not overridden quietly.
 - **Objective:** a fourth "Filter" circle in the Calendar top bar opens a Filter sheet (People and Calendars checkboxes, Show all, Done); every view hides what is unticked; the circle turns solid with a count chip and reads "Filtered" while anything is hidden.
 - **Boundaries:** may touch: `src/components/ActionCircle.tsx`, `src/components/CalendarHeader.tsx`, new `src/components/CalendarFilterSheet.tsx`, new `src/lib/useCalendarFilterView.ts` (the hook CalendarViews calls so it grows by only a few lines), `src/components/CalendarViews.tsx`, `src/components/ScheduleView.tsx`, `src/lib/useScheduleMonthTitle.ts`, new `docs/structure/calendar-filter.md`, `STRUCTURE.md` (ONE pointer line in the calendar One source of truth area), `DESIGN.md` (ONE short entry for the Filter circle and sheet beside the HabitFilterSheet entry). · must not touch: C1's files except to import them, `CalendarSearch.tsx` and `src/app/actions/calendarSearch.ts` (search ignores the filter), the dashboard Calendar tile, `prisma/`, `package.json`, `CLAUDE.md`.
@@ -112,6 +112,7 @@ C1 then C2, sequential (C2 imports C1's files).
 
 - 2026-11-12: mission opened; existing code checked (no filter exists); mock written and sent to Bryce. Waiting for his answers before contracts.
 - 2026-11-12: Bryce approved all recommendations except the strip (count chip only). C1 and C2 written; C1 next.
+- 2026-11-12: C1 DONE (b0ffe12). C2 dispatched.
 
 ## Delivery
 
