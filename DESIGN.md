@@ -325,14 +325,10 @@ Inter / Cormorant Garamond). Two rules govern how it enters the codebase:
   nutrition). A guess never masquerades as a fact.
 - **`line-through` means *done* — never *past*, never *cancelled*.** A
   completed task is struck through; an event that has merely already
-  happened drains to `--muted` in weight and colour **wherever the app
-  draws past events — the hour rail, Month's pills, and `EventCard`** — and
-  is **never** struck. **The timeline's all-day strip does not yet drain**
-  (`TimelineAllDayStrip.tsx` imports no `isPast`, so a past all-day bar
-  renders identically to a current one — measured, mission-17 round 3).
-  That is a **known gap, not a licence**: a surface that draws past events
-  drains them, and the strip is owed the same treatment whenever it is next
-  opened.
+  happened fades **everywhere the app draws events, the all-day strip
+  included** (mission 77: a 15% person wash, the first person's colour as a
+  stripe on its starting segment, `--muted-strong` text; `personFill` in
+  `src/lib/color.ts`), and is **never** struck.
   "Already happened" and "done" are different facts and must stay tellable
   apart. An overdue but incomplete task does **not** drain — only completion
   changes how a task renders. Struck text is always paired with a ✓/☐ glyph

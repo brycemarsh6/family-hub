@@ -211,3 +211,36 @@ touch anything else.
 **Evidence required:** Gauntlet last lines, test counts, `git show --stat HEAD`.
 
 **Done criteria:** the diff shows all five; no other file changed.
+
+### Vision pass 2 (C2): PASS
+
+Gauntlet green (2091; UTC 10 DST skips; also LA run green). Boundary clean.
+Now-line claim verified (old line drew 4px low; nothing reads its DOM
+position). Hydration safe (timeline mounts client-only). Notes, left as
+follow-ups: EventCard comment still says "background shorthand";
+AllDayEventBar calls `useToday()` itself instead of taking `today` as a prop;
+all-day `isPast` is off by a day for viewers east of UTC (same as Month,
+no Denver impact); just after midnight the centred now-line may clip 5px at
+the column top.
+
+Bryce, 2026-11-12, on Strange's "two meanings of past" note: "Yeah sure that
+looks good". Earlier-today events fade everywhere once over (Schedule,
+Search, dashboard widget, Month), as its own follow-up PR after this one.
+
+### Strange pass 2 (C2): PASS
+
+Now-line centred to 0.01px, red line 6.4:1 against its halo in both themes;
+past all-day events fade with a stripe only on the starting segment; 1540
+painted elements compared with pass 1, the only change is the intended
+"Camp (past)" fade; a done/open flip on the same node leaves no stale style.
+Notes: DESIGN.md's past-events paragraph still called the all-day strip an
+undrained gap (Fury rewrote it in place, shorter, so the cap is not made
+worse); the now-line crosses a block's time text (taste, Google does the
+same); dark halo against slate/amber/teal is low but the line carries it.
+
+## Follow-ups (for status.md)
+
+- Fade earlier-today events everywhere once over (Bryce said yes): own PR.
+- EventCard comment still says "background shorthand"; AllDayEventBar could
+  take `today` as a prop; all-day `isPast` is exact only west of UTC; now-line
+  may clip 5px at 00:00.
