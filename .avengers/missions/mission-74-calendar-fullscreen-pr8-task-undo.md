@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** BUILDING F2 (F1 DONE; gate pass 1: Vision PASS, Captain BLOCKED, Strange BLOCKED) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** AT-THE-GATES pass 2 (F1, F2 DONE) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -309,3 +309,5 @@ reasons: say so, do not hide it).
 5. **Evidence:** diff, gauntlet output, `git show --stat HEAD`.
 6. **Done:** every non-complete change path from both mounts clears the
    override for that task.
+
+- **F2 status:** DONE (Stark: `clearTaskDone` in CalendarViews, called by both mounts' onChanged/onDeleted; gauntlet green, 2056 pass; CalendarViews 534, ScheduleView 591, CalendarSheets 130).
