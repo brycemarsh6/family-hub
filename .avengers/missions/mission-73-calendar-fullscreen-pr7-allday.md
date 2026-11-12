@@ -279,6 +279,47 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
    48px/h).
 5. **Done:** all items in, gauntlet green, files within caps.
 
+### F2 - Pass 2 fixes (Vision blocker, Strange notes)
+
+1. **Objective:** the small title tier fits every box at every zoom and
+   Text size, decided by one tested pure function; compact titles stop
+   losing a line to a hidden time line.
+2. **Boundaries:** May touch: `src/components/TimelineDayColumn.tsx`
+   (must stay under 350 lines), `src/lib/timelineZoom.ts`,
+   `src/lib/timelineZoom.test.ts`. Must not touch: everything F1's
+   must-not list names, plus `TimelineGrid.tsx`, DESIGN.md, STRUCTURE.md,
+   docs.
+   - **B (Vision pass 2):** cap the small tier at mission 65's 12px line:
+     class `text-[min(calc(0.625rem*var(--zoom-text-scale,1)),10px)]
+     leading-[min(calc(0.75rem*var(--zoom-text-scale,1)),12px)]`, and in
+     JS the small line is `Math.min(SMALL_TITLE_LINE_REM * rootPx * scale,
+     12)`. Lift the whole tier, line-count, time-line and location
+     decision into one pure function in `timelineZoom.ts` (for example
+     `blockTextFit({ heightPx, trueDurationMinutes, rootPx, scale,
+     compactNarrow, hasLocation, inDay })` returning tier, title lines,
+     time shown, location shown); the component only renders its answer.
+     Add a grid test: roots 16, 17.6, 21.6, 24; hour heights 32 to 192;
+     durations 15 to 120 in 5 minute steps; with and without location;
+     each tier; asserting lines x line + time + location <= content box
+     and lines >= 1.
+   - **N2 (Strange):** in a compact column under 128px the time line is
+     hidden by CSS but its room is still reserved. Compute two line counts
+     (narrow: no time line, the 0.78125rem compact line; wide: as now) and
+     switch with the container query, e.g. CSS variables
+     `--clamp-narrow` / `--clamp-wide` with `[-webkit-line-clamp:var(--clamp-narrow)]
+     @min-[128px]:[-webkit-line-clamp:var(--clamp-wide)]`. Keep the
+     128px px rule (mission 58 exception).
+   - **N3 (Strange):** `hyphens-manual` when the title is clamped to one
+     line, `hyphens-auto` otherwise (no "Piano les-..." ellipsis).
+   - **N (Vision):** fix the CHANGE TOGETHER comment so it names the
+     classes as they are now written.
+3. **Verification:** the five gauntlet commands, real exit codes.
+4. **Evidence:** the new function and test names, the grid size the test
+   covers, line counts, command results.
+5. **Done:** all four items in; at Normal and 48px an hour the rendered
+   classes and line counts match HEAD before F2 except where N2 gains a
+   line.
+
 ## Gate log
 
 - **Fury's ruling before the gates (C3's flagged conflict):** a true
@@ -325,5 +366,22 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
   harness in this session's scratchpad `strange/`.
 - Fix batch F1 dispatched (all three blockers plus chosen notes).
 - Pass 2: Vision and Strange re-gate F1 (Captain already PASS).
+- **Vision pass 2: BLOCKED.** Gauntlet all exit 0 (2032; UTC 2022 + 10
+  skips; build 0); boundary clean; pass-1 location blocker closed (85,008
+  combination sweep: time and location never overflow). BLOCKER: the small
+  title tier (0.75rem line, 18px at Largest) is taller than the box when
+  zoomed far out at Larger and Largest (hour heights 32 to 43, short
+  events, up to 6px). Pre-existing since mission 65, but F1's objective
+  says any zoom. Fix: cap the small tier at mission 65's 12px line (10px
+  font) in CSS and JS; better, one pure fit function with a grid test.
+  NOTEs: `useRootFontPx` cache correct (one stale frame at worst after a
+  Text size change made with no calendar open); hyphenation works
+  (`lang="en"`); the CHANGE TOGETHER comment names the old class form.
+- **Strange pass 2: PASS.** 120 configurations, 0 cuts (titles, time,
+  location, pills). NOTEs: "Dentis / t" in a 38px phone Week column (all
+  letters whole; acceptable; Safari hyphenation is Bryce's real check);
+  compact titles lose a line to a hidden time line (N2); "Piano les-..."
+  hyphen before an ellipsis (N3); location is Day only by design.
+- Fix batch F2 dispatched (Vision's blocker plus N2, N3).
 
 ## Delivery
