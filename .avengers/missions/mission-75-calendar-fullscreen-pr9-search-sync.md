@@ -1,6 +1,6 @@
 # Mission 75: Calendar full screen PR 9, Search, and syncing without a button
 
-- **Status:** BUILDING (Bryce OK'd the mock and all five recommendations 2026-11-12, relayed word for word from the parent chat: "Yes")
+- **Status:** DELIVERING (all gates PASS: Vision pass 3, Strange pass 2, Captain pass 2) (Bryce OK'd the mock and all five recommendations 2026-11-12, relayed word for word from the parent chat: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 9: Search, and syncing without a button (decisions 15, 16; answer 2)". The last PR of the series.
 - **Branch:** `claude/calendar-fullscreen-pr9-830f04`, cut from `origin/main` `11811fd` (PR 8 merged as #116)
@@ -410,3 +410,47 @@ job; never `git add`; no database writes; no migration.
 3. **Verification:** the full gauntlet, exit codes captured.
 4. **Evidence:** test names, counts both TZ, each command's exit code.
 5. **Done:** V3 gone; nothing outside the list.
+
+### Pass 3 (Vision only, 2026-11-12, HEAD 6053661)
+
+- **Vision: PASS.** Gauntlet green with exit codes (2088 Denver; UTC 2078
+  + 10 skips; build exit 0); F2 boundaries exact. Notes: decomposed accent
+  input can leave the highlight one letter short (the match is right;
+  iOS and Google send precomposed text); letters with no mark to strip
+  ("Søren", "Straße") still miss through `match.ts`.
+
+## Delivery
+
+- **Gates:** Vision PASS (pass 3), Strange PASS (pass 2), Captain PASS
+  (pass 2). Contracts C1 to C4; fixes F1 (plurals, one prefix helper, live
+  query for rerun, results stay while typing, Try again, page guard,
+  `--highlight`, Sync button rule, docs) and F2 (accents fold).
+- **Built:** `/calendar/search` (`CalendarSearch.tsx`, page with
+  `requireVerifiedUser`), `searchCalendar` action, pure
+  `src/lib/calendarSearch.ts` (words, `matchedPrefixLength`, arranging,
+  caps), slim search reads and by-id loaders in `calendarEventQuery.ts` /
+  `calendarTaskQuery.ts`; `CalendarTaskSheet.tsx` (the one task sheet
+  mount) and `useTaskDone.ts`; `CalendarAutoPull.tsx` (was
+  `CalendarPullButton.tsx`) with `src/lib/autoPullRules.ts`;
+  `SyncNowButton.tsx`; "Last synced" everywhere; the Search circle.
+- **Bryce's calls:** the mock and five recommendations ("Yes"); Fury's two
+  wording calls ("Both of those are fine"). **Open, his call on the
+  phone test:** "Sync calendars now" sits below the account card in grey;
+  the mock had it above in green. Fury recommended above, grey.
+- **Tests:** 2060 (mission 74) to 2088 Denver; UTC 2078 + 10 skips.
+- **Not proven by any agent:** real iOS Safari (autofocus raising the
+  keyboard), a real Google pull arriving on return to the app, the Tablet's
+  touch window on the real wall tablet. Visuals came from Strange's harness
+  (real components, production CSS, stubbed actions).
+- **Left for later (notes):** a pure `highlightParts` so the highlight
+  splits words the way the matcher does (apostrophes, decomposed accents);
+  `isPullableCalendar` as the one "which calendars get pulled" rule (three
+  copies now); `loadCalendarRoster` (three roster copies); a grandfathered
+  list for the seven older pages on `getVerifiedUser()`; a direct
+  `rawTokens` test; "Søren"/"Straße" through `match.ts`; a brighter dark
+  `--highlight`; each search reads every row (fine at family scale, watch
+  the Neon hours); stale "Refresh" comments in `calendarEventPull.ts:15,175`;
+  `docs/structure/calendar.md` at about 293 lines (split seam named by
+  Captain: tasks, Undo, top bar and search into their own file).
+- **Series:** this was PR 9 of 9. The plan is marked FINISHED; there is no
+  next PR, so this file's own DELIVERED line is written by this chat.
