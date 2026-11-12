@@ -191,3 +191,38 @@ docs/history/structure-rationale.md under the same name.
   `googleSeriesId` from the stored row. `CalendarEventSyncView` still
   never carries a Google id.
   (Added mission-71, on Captain's ruling; Bryce approved 2026-11-11.)
+
+## The timeline's all-day row and zoom text
+
+- **Lanes and items have one home.** `TIMELINE_ALL_DAY_LANES` (2) lives in
+  `src/lib/timelineAllDay.ts`; Month's caps stay in `monthLayout.ts`. The
+  row's items (all-day events, then tasks, then planned habit days) are
+  built only by `timelineAllDayItems`. The timeline has exactly two callers
+  of `assignLanes`: `TimelineAllDayStrip.tsx` (the layout, capped at
+  `TIMELINE_ALL_DAY_LANES`, or unlimited while open) and
+  `allDayHiddenCount` (`TimelineGrid.tsx` asks `pageAllDayHiddenCount`
+  whether the chevron shows). A third caller, a lane count written in a
+  component, or a second builder of the row's items is a BLOCKER.
+- **One open state per visible page,** owned by `TimelineGrid.tsx` and
+  reset during render when the column set changes; the strip, the header
+  page and `AllDayToggle.tsx` receive it as props and keep none of their
+  own.
+- **Words.** "+N" / "N more", the count button's accessible name and the
+  chevron's two labels are `allDayMoreLabel`, `allDayMoreAriaLabel`,
+  `ALL_DAY_EXPAND_LABEL` and `ALL_DAY_COLLAPSE_LABEL` in
+  `src/lib/calendarViewVocabulary.ts`. `MonthCell.tsx`'s inline "+N more"
+  is known debt: the PR that gives Month decision 13's "3 more" moves its
+  words into that file beside these, never a second inline copy.
+- **Zoom text.** `zoomTextScale` (`timelineZoom.ts`) is the only text
+  scale. `TimelineGrid.tsx` writes `--zoom-text-scale` once, beside
+  `--hour-height`; markup reads only the variable (fallback 1). A component
+  that needs the number in JavaScript calls `zoomTextScale(pxPerMinute *
+  60)` on the passed-down `pxPerMinute`. What a block shows (title tier,
+  title lines, time line, location line) is decided only by `blockTextFit`
+  in real pixels from `useRootFontPx`; its rem constants and the class
+  strings in `TimelineDayColumn.tsx` change together. The all-day sizes are
+  `ALL_DAY_FONT_SIZE` and `ALL_DAY_ROW_HEIGHT` in `TimelineAllDayBar.tsx`,
+  imported by the strip and `HabitDayPill.tsx`. A second scale function, a
+  component writing its own zoom variable, or a block fit decided outside
+  `blockTextFit` is a BLOCKER.
+  (Added mission-73, on Captain's ruling; Bryce approved 2026-11-11.)
