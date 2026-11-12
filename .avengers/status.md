@@ -18,8 +18,8 @@ it is done. The pre-cleanup text is in
   **Sync:** add an event in Google Calendar on your phone, switch back to
   Marshee's Calendar and wait a few seconds: it appears with no button.
   Then Settings, Synced calendars: tap "Sync calendars now" ("Up to date"
-  shows) and check "Last synced". **Your call when you see it:** the
-  button sits below the account card in grey; say if you want it on top.
+  shows) and check "Last synced"; the button sits on top, above the
+  account cards.
   **Kitchen tablet:** the Search circle is there too.
 - **Calendar Task completed, Undo (mission 74, PR 8 of 9)**, about 3
   minutes, on your iPhone, as a parent and then as a kid login, plus the

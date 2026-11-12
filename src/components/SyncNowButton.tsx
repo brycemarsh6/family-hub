@@ -51,7 +51,7 @@ export function SyncNowButton({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
   }
 
   return (
-    <div className="mt-4">
+    <div className="mb-4">
       <button
         type="button"
         onClick={sync}
@@ -63,12 +63,12 @@ export function SyncNowButton({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
         {PULL_WORDS.syncNowLabel}
       </button>
       {note && !pending && (
-        <p role="status" className={`mt-2 text-sm ${note.failed ? "text-warn" : "text-muted-strong"}`}>
+        <p role="status" className={`mt-2 text-center text-sm ${note.failed ? "text-warn" : "text-muted-strong"}`}>
           {note.text}
         </p>
       )}
       {lastSyncedAt && now && (
-        <p className="mt-2 text-sm text-muted-strong">{lastSyncedLine(feedbackTimeAgo(lastSyncedAt, now))}</p>
+        <p className="mt-2 text-center text-sm text-muted-strong">{lastSyncedLine(feedbackTimeAgo(lastSyncedAt, now))}</p>
       )}
     </div>
   );

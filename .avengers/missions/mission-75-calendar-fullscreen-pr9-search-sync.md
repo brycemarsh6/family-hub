@@ -1,6 +1,6 @@
 # Mission 75: Calendar full screen PR 9, Search, and syncing without a button
 
-- **Status:** DELIVERING (all gates PASS: Vision pass 3, Strange pass 2, Captain pass 2) (Bryce OK'd the mock and all five recommendations 2026-11-12, relayed word for word from the parent chat: "Yes")
+- **Status:** DELIVERED (merged as PR #117, merge commit 81f3783, 2026-11-12) (all gates PASS: Vision pass 3, Strange pass 2, Captain pass 2) (Bryce OK'd the mock and all five recommendations 2026-11-12, relayed word for word from the parent chat: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 9: Search, and syncing without a button (decisions 15, 16; answer 2)". The last PR of the series.
 - **Branch:** `claude/calendar-fullscreen-pr9-830f04`, cut from `origin/main` `11811fd` (PR 8 merged as #116)
@@ -421,6 +421,14 @@ job; never `git add`; no database writes; no migration.
 
 ## Delivery
 
+- **Merged:** PR #117, merge commit `81f3783` (auto-merge after the
+  Gauntlet passed). Vercel production deployment
+  `3gsECvwKejGBsHriBrhBzn6ACG8Y` succeeded ("Deployment has completed").
+- **Follow-up PR (same chat, Bryce 2026-11-12 "Move it"):** branch
+  `claude/calendar-sync-button-top` moves "Sync calendars now" above the
+  account cards, grey, its lines centred (Fury's recommendation), and
+  writes this DELIVERED line. Checked by Fury in Strange's harness (phone,
+  iPad landscape at Largest: 48 and 72px tall, the note clears in 4 s).
 - **Gates:** Vision PASS (pass 3), Strange PASS (pass 2), Captain PASS
   (pass 2). Contracts C1 to C4; fixes F1 (plurals, one prefix helper, live
   query for rerun, results stay while typing, Try again, page guard,
@@ -434,9 +442,8 @@ job; never `git add`; no database writes; no migration.
   `CalendarPullButton.tsx`) with `src/lib/autoPullRules.ts`;
   `SyncNowButton.tsx`; "Last synced" everywhere; the Search circle.
 - **Bryce's calls:** the mock and five recommendations ("Yes"); Fury's two
-  wording calls ("Both of those are fine"). **Open, his call on the
-  phone test:** "Sync calendars now" sits below the account card in grey;
-  the mock had it above in green. Fury recommended above, grey.
+  wording calls ("Both of those are fine"); "Sync calendars now" moves
+  above the account cards, grey ("Move it", the follow-up PR).
 - **Tests:** 2060 (mission 74) to 2088 Denver; UTC 2078 + 10 skips.
 - **Not proven by any agent:** real iOS Safari (autofocus raising the
   keyboard), a real Google pull arriving on return to the app, the Tablet's
