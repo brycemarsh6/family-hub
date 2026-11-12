@@ -3,7 +3,7 @@ import { avatarColorHex } from "@/lib/constants";
 import { isPast } from "@/lib/calendarDates";
 import { laneVisibility } from "@/lib/monthLayout";
 import { formatDayLabel } from "@/lib/mealPlanDates";
-import { bandedBackground } from "@/lib/color";
+import { personFill } from "@/lib/color";
 import type { CalendarEventView } from "@/lib/types";
 
 /**
@@ -45,24 +45,11 @@ export type MonthCellSlot = {
   taskStatus: "open" | "completed" | null;
 } | null;
 
-// Up to THREE diagonal color bands, not one-per-person like EventCard's
-// uncapped version — the mission brief's own words ("a multi-person pill
-// shows up to three color bands") are a deliberate, tighter constant for
-// Month's much smaller pill, not a bug inherited from EventCard. Alpha
-// values (0.10 normal / 0.05 past) and the `var(--surface)` opaque backdrop
-// are copied exactly from EventCard's own already-measured numbers
-// (Strange, mission-8, worst case 4.64:1 light / 5.53:1 dark against all 8
-// AVATAR_COLORS) — reusing the identical inputs is what makes reusing that
-// contrast finding valid here too, without a new pass. The cap at three
-// bands lives HERE (this file's own `slice(0, 3)` below), not in
-// `bandedBackground` itself — that function just renders however many
-// colors it's handed. `bandedBackground` (src/lib/color.ts) used to be a
-// private copy in this file named `pillBackground` — mission-17/C5 hoisted
-// it after Fury found it byte-for-byte identical to TimelineGrid.tsx's own
-// `blockBackground`, the same "must-not-touch boundary satisfied by
-// copying" failure color.ts's own header already names for `hexToRgba`, one
-// call stack higher. See that file's header for the full reasoning and why
-// EventCard.tsx's `bandBackground` stays a genuinely separate function.
+// Up to THREE diagonal color bands, a deliberate cap for Month's small pill
+// (the brief: "a multi-person pill shows up to three color bands"). The cap
+// lives HERE (`slice(0, 3)` below); `personFill` (src/lib/color.ts) paints
+// however many it is handed: solid with white text when live, a 15% wash
+// with a 3px stripe and muted-strong text when past or done (mission 77).
 
 /**
  * One day of the Month grid: the day number (adjacent-month muted, today
@@ -174,8 +161,8 @@ export function MonthCell({
             // from a past event being merely over (see EventCard.tsx:63-73's
             // corrected comment — `line-through` means done, and a past
             // event must never carry it). `done` therefore drains weight and
-            // tint the same way `past` already does (same muted/border
-            // classes, same halved fill alpha below) rather than inventing a
+            // tint the same way `past` already does (same faded look from
+            // `personFill` below) rather than inventing a
             // second dimming scale, but is checked independently: a task
             // completed ahead of its due date (not yet `past`) still reads
             // as done, and a task that's merely overdue but not completed
@@ -193,13 +180,17 @@ export function MonthCell({
             // whenever it isn't independently past its due day.
             const openTask = slot.taskStatus === "open";
             const colors = slot.event.people.slice(0, 3).map((p) => avatarColorHex(p.avatarColor));
+            // Mission 77: the stripe belongs to the segment that starts the bar.
+            const fill = personFill(colors, past || done, slot.roundLeft ? 3 : 0);
+            const look =
+              fill.look === "none"
+                ? past || done ? "font-medium text-muted border-muted" : "font-semibold text-fg border-fg"
+                : `${fill.look === "faded" ? "font-medium" : "font-semibold"} ${fill.textClass} border-transparent`;
             return (
               <span
                 key={lane}
-                className={`${laneShow} h-4 truncate border-y px-1 text-[0.5625rem] leading-4 @min-[768px]:h-[1.125rem] @min-[768px]:text-xs @min-[768px]:leading-[1.125rem] ${
-                  past || done ? "font-medium text-muted border-muted" : "font-semibold text-fg border-fg"
-                } ${slot.roundLeft ? "rounded-l border-l" : ""} ${slot.roundRight ? "rounded-r border-r" : ""}`}
-                style={{ background: bandedBackground(colors, past || done ? 0.05 : 0.1) }}
+                className={`${laneShow} h-4 truncate border-y px-1 text-[0.5625rem] leading-4 @min-[768px]:h-[1.125rem] @min-[768px]:text-xs @min-[768px]:leading-[1.125rem] ${look} ${slot.roundLeft ? "rounded-l border-l" : ""} ${slot.roundRight ? "rounded-r border-r" : ""}`}
+                style={fill.style}
               >
                 {/* C3b / mission-18/C2: the title span two lines down used
                     to be `sr-only` below `md` (see B3's comment there) —
@@ -248,13 +239,9 @@ export function MonthCell({
                     for the identical reason), same aria-hidden reasoning
                     (this cell's accessible name is the day button's own
                     aria-label, not this span's text), and it inherits the
-                    SAME color class as the rest of this pill (`text-fg` or
-                    `text-muted`, decided by the `past || done` ternary
-                    above) rather than a color of its own — so its contrast
-                    against the pill background is exactly the border-fg/
-                    border-muted figures already measured in B5's comment
-                    below (6.96:1 light / 15.23:1 dark live, 4.75:1 /
-                    6.81:1 past), not a new pair of numbers to verify.
+                    SAME text color as the rest of this pill (white when
+                    solid, muted-strong when faded, from `personFill`)
+                    rather than a color of its own.
                     `done` and `openTask` can never both be true (taskStatus
                     is one of exactly three values), so this and the
                     checkmark above never render together. */}
@@ -315,15 +302,10 @@ export function MonthCell({
                     glance. The `border-y`/`border-l`/`border-r` above
                     (gated on the SAME roundLeft/roundRight flags that
                     already decide rounding, so a continuing bar's shared
-                    edge between two cells stays seamless) fixes the
-                    CONTRAST problem without touching alpha or `--line`
-                    (both dead ends Strange already measured: fill α 0.40
-                    still only 1.51:1, `--line` is 1.24:1 light). `border-fg`
-                    (6.96:1 light / 15.23:1 dark) and `border-muted` (4.75 /
-                    6.81) both clear 3:1 in both themes — and reusing them
-                    for past-vs-live keeps the ended-event dimming K1 asked
-                    for visible at every width, not just below the old `md`
-                    gate.
+                    edge between two cells stays seamless) keep the box
+                    size; since mission 77 a live pill's solid fill carries
+                    the contrast itself, so those borders are transparent,
+                    and a faded pill's only outline is the 3px stripe.
 
                     B6 (mission-9/C7; the switch this note explains is now
                     historical after mission-18/C2, kept for why `sr-only`

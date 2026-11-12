@@ -233,3 +233,24 @@ Split out on 2026-11-12 (mission 76, the seam Captain named in mission 75):
 "Task completed, Undo", "The top bar has no Refresh", "The search page" and
 "Parents can't delete each other's items" live in
 docs/structure/calendar-tasks-search.md and bind the same way.
+
+## Person colours (mission 77)
+
+One helper, `personFill(hexes, faded, stripePx)` in `src/lib/color.ts`, paints
+every person-coloured block: Month pills, hour blocks, the all-day strip and
+`EventCard` (Schedule, search, the dashboard widget). Never paint bands
+anywhere else.
+
+- **Live** (event not past, task not completed) with people: solid diagonal
+  bands of the person hexes at full strength, `text-white` on every inner line,
+  a transparent border (it keeps the box size, so Month spanning bars do not
+  shift). Avatars inside a solid `EventCard` get a white ring.
+- **Faded** (past event, including all-day events in the timeline strip; completed task): bands at 15% over `var(--surface)`,
+  a solid left stripe in the FIRST person's hex (4px hour blocks and
+  `EventCard`, 3px Month pills and the all-day strip; a Month bar that spans
+  cells stripes only the segment with `roundLeft`), `text-muted-strong` on
+  every line (worst 4.58:1 light, 6.34:1 dark), no other outline.
+- **No people:** the flat `var(--surface-2)` fill and the old border and text
+  classes, unchanged.
+- The palette (`AVATAR_COLORS`, `constants.ts`) keeps its names; the hexes
+  must keep white text at 4.5:1 or better (tested in `color.test.ts`).

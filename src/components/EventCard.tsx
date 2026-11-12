@@ -1,7 +1,7 @@
 import { AvatarBadge } from "./AvatarBadge";
 import { avatarColorHex } from "@/lib/constants";
 import { formatAllDayLabel, formatTimeRange, isPast } from "@/lib/calendarDates";
-import { hexToRgba } from "@/lib/color";
+import { personFill } from "@/lib/color";
 import { matchedPrefixLength } from "@/lib/calendarSearch";
 import type { CalendarEventView } from "@/lib/types";
 
@@ -20,7 +20,7 @@ export function HighlightedText({ text, words }: { text: string; words?: string[
         if (length === 0) return part;
         return (
           <span key={index}>
-            <mark className="rounded bg-highlight text-inherit">{part.slice(0, length)}</mark>
+            <mark className="rounded bg-highlight text-fg">{part.slice(0, length)}</mark>
             {part.slice(length)}
           </span>
         );
@@ -83,61 +83,50 @@ export function EventCard({
 
   const past = isPast(event.endAt, today);
   // Strange's verbatim past-event instruction (mission-8, C4/C8): opacity
-  // is the wrong tool (0.55 measured 2.62:1; even 0.80 left the muted time
-  // line at 3.53) — a tappable card's opacity must stay 1 so it keeps
-  // reading as tappable. Past state is carried by TWO signals instead:
-  // the title drops from text-fg/font-semibold to text-muted/font-medium
-  // (5.38:1 light / 6.12:1 dark, both AA — font-medium restores the
-  // title-over-time weight hierarchy a past card otherwise loses, since
-  // the time line below is already font-normal), and the color bands
-  // halve to 0.05 alpha so the tint drains without touching AvatarBadge,
-  // which stays full color — identity, not state.
+  // is the wrong tool, a tappable card's opacity must stay 1. Mission 77
+  // (style D): a live card is solid person colour with white text; a past
+  // one is a 15% wash with a 4px stripe in the first person's colour and
+  // `text-muted-strong` text, AvatarBadge staying full colour (identity,
+  // not state). All of it comes from `personFill` (src/lib/color.ts), which
+  // paints one band per person, uncapped here.
   //
-  // Deliberately NO line-through here. That vocabulary is real and already
-  // used elsewhere in this app — GroceryRow.tsx strikes a CHECKED grocery
-  // item, TaskCard.tsx (mission-14/C3) strikes a COMPLETED task — and both
-  // mean the same thing: struck off a list, i.e. done. A past event is a
-  // different claim entirely: "already happened" is not "done," so it must
-  // never be styled the way a completed task is, or the two become
-  // impossible to tell apart at a glance. (An earlier version of this
-  // comment said line-through "means cancelled" — that was never true
-  // anywhere in this codebase; corrected in mission-14/C3, per D2.)
-  const background = bandBackground(
-    event.people.map((p) => p.avatarColor),
-    past ? 0.05 : 0.1,
+  // Deliberately NO line-through here. That vocabulary means DONE (a
+  // checked grocery item, a completed task); a past event is "already
+  // happened", a different claim, and must never be styled like a done task.
+  const fill = personFill(
+    event.people.map((p) => avatarColorHex(p.avatarColor)),
+    past,
+    4,
   );
+  const plain = fill.look === "none";
+  // Muted lines inherit the card's text colour once it is painted.
+  const mutedText = plain ? "text-muted" : "";
 
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="w-full rounded-xl border border-line p-3 text-left"
-      // `background` is a gradient of translucent bands ONLY — it needs an
-      // opaque layer underneath for the alpha math bandBackground()'s own
-      // comment describes to mean anything, and that layer has to be named
-      // in this SAME shorthand: a separate `bg-surface` Tailwind class gets
-      // silently overridden by this inline `background` (the more specific
-      // property wins), which is exactly what the pre-fix code did and why
-      // the measured contrast came out wrong in Strange's S2 finding —
-      // without an opaque backdrop, the "alpha over --surface" contrast
-      // math was never what was actually on screen.
-      style={background ? { background: `${background}, var(--surface)` } : undefined}
+      className={`w-full rounded-xl border p-3 text-left ${plain ? "border-line" : `border-transparent ${fill.textClass}`}`}
+      // The faded wash names its opaque `var(--surface)` backdrop inside the
+      // SAME `background` shorthand: a separate `bg-surface` class would be
+      // silently overridden by this inline style (Strange's S2 finding).
+      style={plain ? undefined : fill.style}
     >
       <div className={`flex gap-3 ${compact ? "items-start justify-between" : "flex-col"}`}>
         <div className="min-w-0 flex-1">
           <p
-            className={`text-base ${past ? "font-medium text-muted" : "font-semibold text-fg"} ${
+            className={`text-base ${past ? "font-medium" : "font-semibold"} ${plain ? (past ? "text-muted" : "text-fg") : ""} ${
               compact ? "line-clamp-2" : "break-words"
             }`}
           >
             <HighlightedText text={event.title} words={highlightWords} />
           </p>
-          <p className="mt-0.5 text-sm text-muted">
+          <p className={`mt-0.5 text-sm ${mutedText}`}>
             {badge}
             {repeats && " · Repeats"}
           </p>
           {showLocation && event.location && (
-            <p className={`mt-0.5 text-sm text-muted ${compact ? "truncate" : "break-words"}`}>
+            <p className={`mt-0.5 text-sm ${mutedText} ${compact ? "truncate" : "break-words"}`}>
               <HighlightedText text={event.location} words={highlightWords} />
             </p>
           )}
@@ -162,7 +151,7 @@ export function EventCard({
                 // of the same-first-letter people (E/E, L/L) stay visually
                 // separated rather than reading as one blob — never "+N",
                 // per the plan: five people is the whole household.
-                className={compact ? "ring-2 ring-surface" : ""}
+                className={fill.look === "solid" ? "ring-2 ring-white" : compact ? "ring-2 ring-surface" : ""}
               />
             ))}
           </div>
@@ -170,35 +159,4 @@ export function EventCard({
       </div>
     </button>
   );
-}
-
-/**
- * The "diagonal color bands" background from the K0 walkthrough (Skylight's
- * Week view, screenshot 2): one translucent band per person, hard edges
- * rather than a blend. A single-person event is the same construction with
- * one 100%-wide band, not a separate code path. Returns undefined for a
- * person-less event (there is always at least one person once C4 ships
- * creation, but a defensive fallback costs nothing).
- *
- * `alpha` is now a parameter (C4) rather than a fixed constant — the
- * caller passes 0.05 for a past event, draining the tint the same way the
- * title drops to muted, and 0.10 otherwise. 0.10 is the value mission-8's
- * Strange pass-2 measured across all 8 AVATAR_COLORS in both themes: worst
- * case **4.64:1 light / 5.53:1 dark**, both clear of the 4.5 AA floor, and
- * still readable as visibly different people at 28px. This needs an
- * opaque `var(--surface)` backdrop in the same `background` shorthand to
- * mean anything real (the caller supplies that) — see the caller's own
- * comment for why an earlier version without one measured the wrong thing
- * entirely (compositing over the page's cream `--bg`, not `--surface`).
- */
-function bandBackground(avatarColors: string[], alpha: number): string | undefined {
-  if (avatarColors.length === 0) return undefined;
-  const bandWidth = 100 / avatarColors.length;
-  const stops = avatarColors.flatMap((name, index) => {
-    const color = hexToRgba(avatarColorHex(name), alpha);
-    const start = index * bandWidth;
-    const end = (index + 1) * bandWidth;
-    return [`${color} ${start}%`, `${color} ${end}%`];
-  });
-  return `linear-gradient(135deg, ${stops.join(", ")})`;
 }
