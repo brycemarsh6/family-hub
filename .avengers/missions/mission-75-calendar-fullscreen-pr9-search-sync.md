@@ -278,6 +278,7 @@ job; never `git add`; no database writes; no migration.
 - **Fury's wording calls, told to Bryce:** the search failure line
   "Couldn't search. Try again." (the "Couldn't undo. Try again." pattern);
   a result date in another year adds the year (decision 3's rule).
+  Bryce, 2026-11-12: "Both of those are fine".
 - Notes for the gates: stale "Last checked" in comments only
   (`calendarPullRun.ts`, its test title, `linkedCalendarWrites.ts`); no
   `loading.tsx` for `/calendar/search` (it inherits the Calendar's month
