@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** BUILDING F1 (gate pass 1: Vision PASS, Captain BLOCKED, Strange BLOCKED) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** BUILDING F2 (F1 DONE; gate pass 1: Vision PASS, Captain BLOCKED, Strange BLOCKED) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -286,3 +286,26 @@ reasons: say so, do not hide it).
 6. **Done:** in Strange's harness the task is crossed out the moment the
    sheet closes and un-crossed the moment Undo is tapped; a refusal puts
    the tick back with the warn bar.
+
+- **F1 status:** DONE (Stark: +8 tests, npm test 2056 pass, UTC 2046 + 10 skips, tsc/lint/build 0; no `@/app` import in `src/lib`; CalendarViews 523, ScheduleView 586, useUndoBar 75). Stark flagged a stale-override edge, fixed by F2.
+
+### F2 - clear a task's override on any other change
+
+1. **Objective:** a task's optimistic override never outlives a change made
+   another way (the sheet's "Mark not complete", Edit, Delete).
+2. **Boundaries:**
+   - May touch: `src/components/CalendarViews.tsx`,
+     `src/components/CalendarSheets.tsx`, `src/components/ScheduleView.tsx`,
+     `docs/structure/calendar.md` (the "Ticks are optimistic" bullet only).
+   - Must not touch: `src/components/TaskDetailSheet.tsx`, `src/lib/useUndoBar.ts`,
+     `src/lib/taskDoneOverrides.ts`, `DESIGN.md`, `STRUCTURE.md`, `prisma/`.
+3. **Work:** `CalendarViews` exposes `clearTaskDone(taskId)` (deletes the
+   key; returns the same map when absent). Both sheet mounts call it in
+   `onChanged` and `onDeleted` before refreshing, so the server's answer
+   shows. Scenario to prove by reading: parent ticks (override done), then
+   reopens and taps Mark not complete: the override is cleared, the
+   refresh shows not done.
+4. **Verification:** gauntlet as above; line counts before/after.
+5. **Evidence:** diff, gauntlet output, `git show --stat HEAD`.
+6. **Done:** every non-complete change path from both mounts clears the
+   override for that task.
