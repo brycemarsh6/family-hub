@@ -154,6 +154,12 @@ export function DaySection(
          * Defaults false so every other caller (and every existing test/
          * screenshot) is unaffected. */
         notLoaded?: boolean;
+        /** Search page: the date written out ("Sat, Dec 13") in place of the weekday-and-number header, since results span months. */
+        dateLabel?: string;
+        /** Search page: events that stand for a repeating series (their cards end "Repeats"). */
+        repeatingEventIds?: ReadonlySet<string>;
+        /** Search page: the typed words (`tokens(query)`) to mark in titles. */
+        highlightWords?: string[];
         /** Opens the detail sheet for one event, on the day it's rendered
          * for — see EventCard/EventDetailSheet. Required (mission-9/C2b —
          * the sole caller, CalendarViews.tsx, always passes one; the `?`
@@ -188,13 +194,32 @@ export function DaySection(
     );
   }
 
-  const { day, today, events, tasks, habitDays = [], showLocation, compact, notLoaded, onOpenEvent, onOpenTask } =
-    props;
+  const {
+    day,
+    today,
+    events,
+    tasks,
+    habitDays = [],
+    showLocation,
+    compact,
+    notLoaded,
+    dateLabel,
+    repeatingEventIds,
+    highlightWords,
+    onOpenEvent,
+    onOpenTask,
+  } = props;
   const isToday = isSameDay(day, today);
 
   return (
     <section>
-      <DaySectionHeader day={day} isToday={isToday} />
+      {dateLabel ? (
+        <p className={`mb-2 px-1 text-xs font-semibold uppercase tracking-wide ${isToday ? "text-accent" : "text-muted"}`}>
+          {isToday ? `Today · ${dateLabel}` : dateLabel}
+        </p>
+      ) : (
+        <DaySectionHeader day={day} isToday={isToday} />
+      )}
 
       <div
         className={`flex flex-col gap-2 ${
@@ -219,7 +244,7 @@ export function DaySection(
             below it is the same convention Google/Apple use for all-day
             rows in a day view. */}
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} onOpen={() => onOpenTask(task, day)} />
+          <TaskCard key={task.id} task={task} highlightWords={highlightWords} onOpen={() => onOpenTask(task, day)} />
         ))}
         {habitDays.map((item) => (
           <HabitDayCard key={item.id} item={item} />
@@ -232,6 +257,8 @@ export function DaySection(
             today={today}
             showLocation={showLocation}
             compact={compact}
+            repeats={repeatingEventIds?.has(event.id)}
+            highlightWords={highlightWords}
             onOpen={() => onOpenEvent(event, day)}
           />
         ))}

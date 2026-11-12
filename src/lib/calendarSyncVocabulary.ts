@@ -122,10 +122,10 @@ export function ownerLine(ownerName: string): string {
   return `${ownerName}'s`;
 }
 
-// The pull side (mission 60): the Calendar's Refresh button and note, the
+// The pull side (mission 60): the Sync calendars now button and its note, the
 // reconnect banner, and the event form's locked source row.
 export const PULL_WORDS = {
-  refreshLabel: "Refresh",
+  syncNowLabel: "Sync calendars now",
   upToDate: "Up to date",
   unreachable: "Couldn't reach Google. Try again later.",
   fixLink: "Fix on Synced calendars",
@@ -149,8 +149,8 @@ export function fromGoogleLine(calendarName: string): string {
 }
 
 /** The muted line under a "Both ways" calendar; `ago` is a household "5 min ago" or "Just now". */
-export function lastCheckedLine(ago: string): string {
-  return ago === "Just now" ? "Last checked just now" : `Last checked ${ago}`;
+export function lastSyncedLine(ago: string): string {
+  return ago === "Just now" ? "Last synced just now" : `Last synced ${ago}`;
 }
 
 /** The detail sheet's line for a copy that went through. */

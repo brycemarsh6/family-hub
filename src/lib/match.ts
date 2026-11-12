@@ -68,6 +68,11 @@ export function tokens(text: string): string[] {
   return normalize(text).split(" ").filter(Boolean).map(singular);
 }
 
+/** The same words as `tokens`, as written (lowercased, not made singular). */
+export function rawTokens(text: string): string[] {
+  return normalize(text).split(" ").filter(Boolean);
+}
+
 /**
  * How well a spoken phrase matches one pantry item, 0 (no match) upward.
  *

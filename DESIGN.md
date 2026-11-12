@@ -511,6 +511,11 @@ A new one-off that duplicates one of these jobs is a design violation:
   `--accent`, a small `--muted` dot under days that have something (only
   where events are loaded, never on today). Days outside the month are
   blank. Every day is at least 44px each way.
+- `HighlightedText` (in `EventCard.tsx`, mission-75): the typed letters of a
+  search marked in a result's title or place, on `--highlight` (its own
+  token, not `--warn-soft`, whose job is "running low"). It marks what
+  `matchedPrefixLength` in `calendarSearch.ts` matched, so the mark and the
+  match never disagree; a second prefix rule in a component is a BLOCKER.
 - `CalendarHeader`: the Calendar's one top bar, beside the floating menu
   button (mission-67, Bryce 2026-11-10). At the left, the month title with
   a small arrow that opens the month panel and turns up while it is open
@@ -518,7 +523,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   when it is not this year, with the month shortened so the year always
   fits beside the circles ("Jan 2027"; Bryce 2026-11-10), the year itself on Year, and
   on Schedule the month scrolling past. At the right, the Today, View and
-  Refresh circles. No < > arrows and no Add circle: moving is swipe, Today
+  Search circles. No < > arrows and no Add circle: moving is swipe, Today
   and the title; adding is the bottom-right + (see the + rule above).
   From a 48rem bar, a container query in rem so a bigger Text size falls
   back by itself, `CalendarViewRow` replaces the View circle: the six

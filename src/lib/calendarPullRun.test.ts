@@ -36,7 +36,7 @@ describe("runPull: guards", () => {
     assert.deepEqual(result, { changed: false, failed: 1, checked: 2 });
   });
 
-  it("uses the 30 second lease for Refresh", async () => {
+  it("uses the 30 second lease for a forced pull", async () => {
     const f = fake({ claimResult: false });
     await runPull(f.deps, { force: true });
     assert.ok(f.calls.includes(`claim:c1:${PULL_FORCE_LEASE_MS}`));
@@ -87,7 +87,7 @@ describe("runPull: sync token", () => {
     assert.deepEqual(f.listModes, [{ syncToken: "tok-old" }, WINDOW]);
   });
 
-  it("a clean full pull with no token back stamps Last checked and does not save a token", async () => {
+  it("a clean full pull with no token back stamps Last synced and does not save a token", async () => {
     const f = fake({ lists: [{ ok: true, events: [], nextSyncToken: null }] });
     assert.deepEqual(await runPull(f.deps, { force: false }), { changed: false, failed: 0, checked: 1 });
     assert.equal(f.calls.includes("markOk:c1"), true);

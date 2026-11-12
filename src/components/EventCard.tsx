@@ -2,7 +2,32 @@ import { AvatarBadge } from "./AvatarBadge";
 import { avatarColorHex } from "@/lib/constants";
 import { formatAllDayLabel, formatTimeRange, isPast } from "@/lib/calendarDates";
 import { hexToRgba } from "@/lib/color";
+import { matchedPrefixLength } from "@/lib/calendarSearch";
 import type { CalendarEventView } from "@/lib/types";
+
+/**
+ * Mission 75 (search page): `text` with the words that start with one of the typed `words`
+ * (`searchWords()` of the query) marked. No `words` renders the text unchanged. Lives
+ * here so EventCard and TaskCard share it; it needs no state.
+ */
+export function HighlightedText({ text, words }: { text: string; words?: string[] }) {
+  if (!words || words.length === 0) return <>{text}</>;
+  return (
+    <>
+      {text.split(/([\p{L}\p{M}\p{N}]+)/u).map((part, index) => {
+        if (index % 2 === 0) return part;
+        const length = matchedPrefixLength(part, words);
+        if (length === 0) return part;
+        return (
+          <span key={index}>
+            <mark className="rounded bg-highlight text-inherit">{part.slice(0, length)}</mark>
+            {part.slice(length)}
+          </span>
+        );
+      })}
+    </>
+  );
+}
 
 /**
  * One event, rendered for one specific calendar `day` it's being shown on
@@ -21,6 +46,8 @@ export function EventCard({
   today,
   showLocation = false,
   compact = false,
+  repeats = false,
+  highlightWords,
   onOpen,
 }: {
   event: CalendarEventView;
@@ -39,6 +66,10 @@ export function EventCard({
    * meanings changes. Set by Week explicitly (`compact`); Day leaves it at
    * its default `false`. */
   compact?: boolean;
+  /** Search page: this one row stands for a repeating event, so the time line ends "Repeats". */
+  repeats?: boolean;
+  /** Search page: the typed words (`tokens(query)`) to mark in the title and place. */
+  highlightWords?: string[];
   /** Opens the detail sheet for this event/day pair — see EventDetailSheet
    * and its caller in CalendarViews.tsx. */
   onOpen: () => void;
@@ -99,12 +130,15 @@ export function EventCard({
               compact ? "line-clamp-2" : "break-words"
             }`}
           >
-            {event.title}
+            <HighlightedText text={event.title} words={highlightWords} />
           </p>
-          <p className="mt-0.5 text-sm text-muted">{badge}</p>
+          <p className="mt-0.5 text-sm text-muted">
+            {badge}
+            {repeats && " · Repeats"}
+          </p>
           {showLocation && event.location && (
             <p className={`mt-0.5 text-sm text-muted ${compact ? "truncate" : "break-words"}`}>
-              {event.location}
+              <HighlightedText text={event.location} words={highlightWords} />
             </p>
           )}
         </div>

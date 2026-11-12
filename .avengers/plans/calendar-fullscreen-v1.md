@@ -1,6 +1,6 @@
 # Calendar full screen v1 (the Google-style layout)
 
-Status: **PLAN, approved by Bryce 2026-11-10, every question answered** (written on Fable, in the pinch-zoom chat). Nothing here is built.
+Status: **FINISHED** (all nine PRs merged; PR 9 is mission 75, 2026-11-12). Approved by Bryce 2026-11-10, every question answered (written on Fable, in the pinch-zoom chat). What is left is in "After the series" below and in `.avengers/status.md`.
 
 This file is written for two readers: Bryce (plain English first in every
 section) and the Claude session that builds each PR (the facts and file

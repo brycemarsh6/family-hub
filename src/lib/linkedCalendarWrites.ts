@@ -187,7 +187,7 @@ export async function claimCalendarForPull(calendarId: string, staleBefore: Date
 /**
  * Save Google's bookmark for "what changed since"; null clears it. Saving a
  * real token is the pull's success mark (the run saves one only after every
- * event is written), so it also stamps `lastPulledOkAt`, which "Last checked"
+ * event is written), so it also stamps `lastPulledOkAt`, which "Last synced"
  * reads. Clearing a token does not.
  */
 export async function saveSyncToken(calendarId: string, token: string | null): Promise<void> {

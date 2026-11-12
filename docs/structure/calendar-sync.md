@@ -16,7 +16,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   role lets Marshee write to a calendar), the Synced calendars page's words,
   the event form's and detail sheet's sync words, `linkErrorMessage` (the
   only wording for a callback `?error=` code), the pull's words
-  (`PULL_WORDS`, `relinkLine`, `fromGoogleLine`, `lastCheckedLine`,
+  (`PULL_WORDS`, `relinkLine`, `fromGoogleLine`, `lastSyncedLine`,
   `alreadySyncedThrough`), and Marshee's "For: ..." line both ways:
   `forLine` writes it and `withoutForLine` is the only code that strips it.
   `src/lib/tokenCryptoCore.ts` is pure, with the key passed in, and
@@ -74,7 +74,7 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   sync rows to it through `adoptSiblingPulls` in `linkedCalendarWrites.ts`
   (one transaction; rows are moved, never copied, and `planHandover` picks
   which), so a handover never imports twice. `lastPulledOkAt` is set only by
-  `saveSyncToken` and is what "Last checked" shows; `lastPulledAt` is the
+  `saveSyncToken` and is what "Last synced" shows; `lastPulledAt` is the
   pull lease only. `turnedOnAt` (mission-61) is written only by
   `setCalendarDirection` in `linkedCalendarWrites.ts` (cleared on "off",
   stamped once when turned on), read by that writer itself (to stamp once,
@@ -172,6 +172,21 @@ BLOCKER. Each entry continues the headline kept in STRUCTURE.md.
   for the push plan, `calendarPullRunHarness.ts` for the pull run).
   `src/lib/google/*.test.ts` is in `package.json`'s test script and both CI
   timezone steps.
+  **Syncing without a button (mission-75, Bryce).** There is no Refresh
+  button anywhere. `src/lib/autoPullRules.ts` is pure (clock and visibility
+  passed in) and the only home of `AUTO_PULL_EVERY_MS` (5 minutes, the
+  server's own unforced lease), `TABLET_TOUCH_WINDOW_MS` (10 minutes),
+  `shouldTimerPull` (never hidden; the Tablet only if touched inside the
+  window) and `shouldTouchPull` (the Tablet, after a full quiet window).
+  `CalendarAutoPull.tsx` holds the only automatic pulls: `CalendarPullProvider`
+  (Calendar page) and `useOpenPull` (the widget, once on mount). The provider
+  pulls unforced, one at a time, on mount, when the page becomes visible,
+  on the timer (stopped while hidden) and on a Tablet touch after the
+  window, and refreshes the page only when something changed. A second
+  timer or focus listener that calls `pullGoogleEvents` is a BLOCKER. The
+  only forced pull is `SyncNowButton` on `/settings/calendars` (parents and
+  admins; shown when Google is set up and some "Both ways" calendar sits on an account that still works, with "Last synced" from
+  the newest `lastPulledOkAt` of those).
   (Added 2026-11-08, mission-55, on Captain's ruling; Bryce approved. Widened
   2026-11-09, mission-56, on Captain's ruling; Bryce approved. Widened
   2026-11-09, mission-60, on Captain's ruling; Bryce approved. Widened

@@ -183,26 +183,16 @@ export async function loadAccountCalendarIds(accountId: string, keepGoogleCalend
 }
 
 /**
- * What the Calendar page needs for the pull (mission 60): whether to show
- * Refresh (a manager, Google configured, some "Both ways" calendar on an
- * account that still works) and the emails of the viewer's own accounts Google
- * has locked out (`needs-relink`), for the banner.
+ * What the Calendar page needs for the pull (mission 60): the emails of the
+ * viewer's own accounts Google has locked out (`needs-relink`), for the banner.
  */
-export async function loadCalendarPullState(
-  viewerId: string,
-  isManager: boolean,
-): Promise<{ showRefresh: boolean; relinkEmails: string[] }> {
-  const [twoWay, relink] = await Promise.all([
-    isManager && isCalendarPushConfigured()
-      ? db.linkedCalendar.count({ where: { direction: "twoWay", account: { status: "ok" } } })
-      : Promise.resolve(0),
-    db.linkedAccount.findMany({
-      where: { userId: viewerId, status: "needs-relink" },
-      orderBy: { linkedAt: "asc" },
-      select: { email: true },
-    }),
-  ]);
-  return { showRefresh: twoWay > 0, relinkEmails: relink.map((account) => account.email) };
+export async function loadCalendarPullState(viewerId: string): Promise<{ relinkEmails: string[] }> {
+  const relink = await db.linkedAccount.findMany({
+    where: { userId: viewerId, status: "needs-relink" },
+    orderBy: { linkedAt: "asc" },
+    select: { email: true },
+  });
+  return { relinkEmails: relink.map((account) => account.email) };
 }
 
 /** True when another person has already linked this Google account (its `sub`). */

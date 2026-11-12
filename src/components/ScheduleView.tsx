@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DaySection } from "./DaySection";
 import { EventDetailSheet } from "./EventDetailSheet";
-import { TaskDetailSheet } from "./TaskDetailSheet";
+import { CalendarTaskSheet } from "./CalendarTaskSheet";
 import { SkeletonBlock } from "./Skeleton";
 import { SCHEDULE_TITLE_SLOT_ID, SCHEDULE_HEADER_BAR_HEIGHT_REM } from "./CalendarHeader";
 import { useHamburgerInsetPx } from "@/lib/appChrome";
@@ -21,7 +21,6 @@ import {
 import { useScheduleMonthTitle } from "@/lib/useScheduleMonthTitle";
 import { useScheduleDayInView } from "@/lib/useScheduleDayInView";
 import { useToday } from "@/lib/useToday";
-import { allDayInstantToLocalDay } from "@/lib/calendarDates";
 // mission-15/C5: this component is the boundary that's ALLOWED to know
 // which Server Actions back the Schedule view — useScheduleWindow.ts no
 // longer imports either of these itself (see that file's own header for
@@ -522,13 +521,7 @@ export function ScheduleView({
           onDeleted={() => {
             const day = selected.day;
             setSelected(null);
-            // Schedule's own answer to "so router.refresh() after an edit
-            // flows in" — see useScheduleWindow.ts's refreshDay for why
-            // this is a targeted re-merge rather than a passive prop.
-            // router.refresh() is still called too, for parity with every
-            // other view (revalidates anything server-rendered elsewhere
-            // on the page) even though Schedule's own list is entirely
-            // client-fetched and doesn't depend on it.
+            // refreshDay re-merges this day's chunk (useScheduleWindow.ts); router.refresh() keeps parity with the other views.
             refreshDay(day);
             router.refresh();
           }}
@@ -536,59 +529,21 @@ export function ScheduleView({
       )}
 
       {selectedTask && (
-        <TaskDetailSheet
+        <CalendarTaskSheet
           task={selectedTask}
           people={people}
           canManage={canManage}
           isTablet={isTablet}
           onClose={() => setSelectedTask(null)}
-          onCompleted={() => {
-            // Mission 74: close, redraw the task's day and show the bar; its
-            // Undo redraws the same way.
-            const dueDay = allDayInstantToLocalDay(selectedTask.dueDate);
-            const refresh = () => {
-              refreshDay(dueDay);
-              router.refresh();
-            };
-            setSelectedTask(null);
-            refresh();
-            onTaskCompleted(selectedTask.id, refresh);
-          }}
-          onChanged={(updated) => {
-            // mission-15/C7 — the vanishing-task fix. `selectedTask` is a
-            // snapshot captured when the sheet was opened (see its own
-            // declaration above); an edit that MOVES the due date makes
-            // that snapshot stale the instant the save succeeds. Refreshing
-            // only the OLD day (what this used to do) re-fetches a chunk
-            // centered on the day the task no longer lives on — the new
-            // day's chunk is never touched, so the task renders on no day
-            // at all until the whole view remounts.
-            //
-            // The fix: when `updated` carries a new dueDate (edit only —
-            // mark-complete/uncomplete pass none, see TaskDetailSheet's own
-            // comment), refresh the OLD day and, if it differs, the NEW
-            // day too — and re-seat `selectedTask` to the updated record so
-            // a SECOND edit reads the right "old day" instead of repeating
-            // this same bug one move later. Both conversions go through
-            // allDayInstantToLocalDay for the same UTC-midnight reason the
-            // comment below already explains.
-            clearTaskDone(selectedTask.id);
-            const oldDay = allDayInstantToLocalDay(selectedTask.dueDate);
-            refreshDay(oldDay);
-            if (updated) {
-              const newDay = allDayInstantToLocalDay(updated.dueDate);
-              if (!isSameDay(newDay, oldDay)) refreshDay(newDay);
-              setSelectedTask((prev) => (prev ? { ...prev, dueDate: updated.dueDate } : prev));
-            }
+          onTaskCompleted={onTaskCompleted}
+          clearTaskDone={clearTaskDone}
+          refresh={({ old, next }) => {
+            refreshDay(old);
+            if (next) refreshDay(next);
             router.refresh();
           }}
-          onDeleted={() => {
-            clearTaskDone(selectedTask.id);
-            const dueDay = allDayInstantToLocalDay(selectedTask.dueDate);
-            setSelectedTask(null);
-            refreshDay(dueDay);
-            router.refresh();
-          }}
+          // Re-seat the snapshot so a second edit reads the right "old day" (mission-15/C7).
+          onDueDateChanged={(dueDate) => setSelectedTask((prev) => (prev ? { ...prev, dueDate } : prev))}
         />
       )}
 
