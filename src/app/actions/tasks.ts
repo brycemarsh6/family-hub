@@ -42,6 +42,7 @@ import { NOT_ON_TASK, uncompleteRefusal } from "@/lib/taskUndoRules";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
+import { deleteBlockedMessage } from "@/lib/calendarDeleteRules";
 import { getTasksInDueRange } from "@/lib/calendarTaskQuery";
 import type { CalendarTaskView } from "@/lib/types";
 
@@ -246,6 +247,27 @@ export async function deleteTask(id: string): Promise<TaskActionResult> {
   const user = await getVerifiedUser();
   if (!user || !MANAGER_ROLES.includes(user.role)) {
     return { error: "Only parents can do that." };
+  }
+
+  // Mission 76: another parent's task is theirs to delete (people read fresh).
+  // A missing task falls through to "already gone".
+  const stored = await db.task.findUnique({
+    where: { id },
+    select: {
+      people: { select: { user: { select: { id: true, displayName: true, role: true, deactivatedAt: true } } } },
+    },
+  });
+  if (stored) {
+    const blocked = deleteBlockedMessage(
+      user.userId,
+      stored.people.map((person) => ({
+        userId: person.user.id,
+        displayName: person.user.displayName,
+        role: person.user.role,
+        deactivated: person.user.deactivatedAt !== null,
+      })),
+    );
+    if (blocked) return { error: blocked };
   }
 
   try {

@@ -66,7 +66,10 @@ export async function searchCalendar(input: {
 
   const sides = [...arranged.upcoming, ...arranged.past];
   const [eventViews, taskViews] = await Promise.all([
-    getCalendarEventsByIds(sides.flatMap((day) => day.eventIds)),
+    getCalendarEventsByIds(
+      sides.flatMap((day) => day.eventIds),
+      user.userId,
+    ),
     getTasksByIds(
       sides.flatMap((day) => day.taskIds),
       user.userId,
