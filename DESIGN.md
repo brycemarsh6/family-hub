@@ -406,6 +406,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   sheet holds the Mine / Whole family switch (kept in the URL,
   `?view=family`) and the Time of day, Together only and People filters
   for every column (decisions 257, 261); the button reads "Filter · N".
+- Calendar Filter circle / `CalendarFilterSheet` (mission 78): the fourth circle in the Calendar top bar (`ListFilter` icon). While anything is hidden it is solid `bg-accent` with a count chip and reads "Filtered"; that is the only sign, no banner. The sheet (People and Calendars checkboxes, ticked = shown, 48px rows) applies each tap at once; "Show all" and "Done".
 - Mine (`HabitTodayList`): Morning, Afternoon, Evening and Anytime
   columns, one neutral `bg-surface-2` tint with `bg-surface` cards and the
   time icons telling them apart (decision 256); 1 column on a phone, 2 on

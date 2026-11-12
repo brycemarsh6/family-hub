@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CalendarCheck, CalendarRange, ChevronDown, Search } from "lucide-react";
+import { CalendarCheck, CalendarRange, ChevronDown, ListFilter, Search } from "lucide-react";
 import { ActionCircle } from "./ActionCircle";
 import { CalendarRelinkBanner } from "./CalendarAutoPull";
 import { CalendarViewRow } from "./CalendarViewRow";
-import { VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
+import { CALENDAR_FILTER_LABELS, VIEW_LABELS, type CalendarPeriodView } from "@/lib/calendarViewVocabulary";
 import { VIEW_CONFIG } from "@/lib/calendarViewConfig";
+import { shortMonthHeading } from "@/lib/mealPlanDates";
 import { HAMBURGER_ROW_HEIGHT } from "@/lib/appChrome";
 import { CALENDAR_VIEW_CIRCLE_CLASSES } from "@/lib/gridClasses";
 
@@ -61,6 +62,8 @@ export function CalendarHeader({
   title,
   onToggleMonthPanel,
   monthPanelOpen,
+  filterCount,
+  onOpenFilter,
 }: {
   view: CalendarPeriodView;
   /** Opens the view picker sheet (the circle). */
@@ -76,6 +79,9 @@ export function CalendarHeader({
   /** Opens or closes the month panel (`MonthJumpPanel.tsx`, mounted by CalendarViews.tsx). */
   onToggleMonthPanel: () => void;
   monthPanelOpen: boolean;
+  /** How many people and calendars are hidden by the filter (0 = none); the Filter circle shows it. */
+  filterCount: number;
+  onOpenFilter: () => void;
 }) {
   // Schedule is the one view whose content scrolls far enough for "which
   // month is on screen" to change, so only it pins (and portals its own
@@ -110,8 +116,9 @@ export function CalendarHeader({
                 press fill sits on THIS span, behind the title and arrow (a fill
                 on the button itself would paint over them). `min-w-0` lets a
                 long title truncate, as a last resort; the title is 1.125rem on a phone
-                so "Jan 2027" fits beside the three circles at 393px (a long month
-                plus a year did not), and
+                so a short month ("Nov", `shortMonthHeading`) fits beside the four
+                circles at 393px, and the full title shows from a 30rem bar
+                (two spans swapped by container classes, never a JS width read);
                 1.25rem from a 30rem bar. */}
             <span className="relative flex h-11 min-w-0 items-center gap-1 rounded-lg px-1 transition-colors has-[>button:active]:bg-surface-2">
               {title === null ? (
@@ -127,7 +134,10 @@ export function CalendarHeader({
                   className="flex min-w-0 items-center [&_h2]:text-lg [&_h2]:font-bold @min-[30rem]:[&_h2]:text-xl"
                 />
               ) : (
-                <h2 className="truncate text-lg font-bold @min-[30rem]:text-xl">{title}</h2>
+                <>
+                  <h2 className="truncate text-lg font-bold @min-[30rem]:hidden">{shortMonthHeading(title)}</h2>
+                  <h2 className="hidden truncate text-xl font-bold @min-[30rem]:block">{title}</h2>
+                </>
               )}
 
               {/* A visible hint that the title opens the month panel (turned up while open, instant under reduce motion); a
@@ -178,6 +188,14 @@ export function CalendarHeader({
                 label="Search"
                 onClick={() => router.push("/calendar/search")}
                 size="sm"
+              />
+              <ActionCircle
+                icon={<ListFilter aria-hidden="true" size={20} />}
+                label={filterCount > 0 ? CALENDAR_FILTER_LABELS.buttonOn : CALENDAR_FILTER_LABELS.button}
+                onClick={onOpenFilter}
+                size="sm"
+                badge={filterCount}
+                active={filterCount > 0}
               />
             </div>
           </div>

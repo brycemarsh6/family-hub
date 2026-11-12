@@ -16,6 +16,8 @@ import { moveCalendarEvent } from "@/app/actions/calendar";
 import { moveCalendarSeries } from "@/app/actions/calendarSeries";
 import { uncompleteTask } from "@/app/actions/tasks";
 import { useEventMoves } from "@/lib/useEventMoves";
+import { CalendarFilterSheet } from "./CalendarFilterSheet";
+import { useCalendarFilterView } from "@/lib/useCalendarFilterView";
 import { useUndoBar } from "@/lib/useUndoBar";
 import { useTaskDone } from "@/lib/useTaskDone";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
@@ -86,7 +88,7 @@ type CalendarViewsProps = {
    * it. Unused by every other branch below; passed through, not read here.
    */
   people: CalendarPersonView[];
-  /** The linked calendars the Filter sheet lists (mission 78); not read yet. */
+  /** The linked calendars the Filter sheet lists (mission 78). */
   filterCalendars: CalendarFilterAccountView[];
   /**
    * True for admin/parent sessions, computed server-side in page.tsx —
@@ -133,8 +135,9 @@ type CalendarViewsProps = {
 export function CalendarViews({
   events: serverEvents,
   tasks: serverTasks,
-  habitDays,
+  habitDays: serverHabitDays,
   people,
+  filterCalendars,
   canManage,
   isTablet,
   windowStart,
@@ -167,9 +170,12 @@ export function CalendarViews({
   const { bar, showBar, closeBar } = useUndoBar();
   // Mission 74 / 75: the optimistic task tick and the "Task completed" bar live in `useTaskDone`;
   // every view below draws `tasks`, Schedule via `applyDone`.
-  const { tasks, applyDone, clearTaskDone, pruneTaskDoneWith, onTaskCompleted, showMoveBar } = useTaskDone(serverTasks, { showBar, closeBar, uncomplete: uncompleteTask });
-  const { events, drop, repeatSheet } = useEventMoves(serverEvents, moveCalendarEvent, moveCalendarSeries, showMoveBar, closeBar);
+  const { tasks: allTasks, applyDone, clearTaskDone, pruneTaskDoneWith, onTaskCompleted, showMoveBar } = useTaskDone(serverTasks, { showBar, closeBar, uncomplete: uncompleteTask });
+  const { events: allEvents, drop, repeatSheet } = useEventMoves(serverEvents, moveCalendarEvent, moveCalendarSeries, showMoveBar, closeBar);
   const chromeOffsetPx = useHamburgerRowHeight();
+  // Mission 78: every view below draws these filtered lists (rules: calendarFilter.ts).
+  const filterView = useCalendarFilterView({ viewerId, people, filterCalendars, events: allEvents, tasks: allTasks, habitDays: serverHabitDays });
+  const { events, tasks, habitDays } = filterView;
 
   // Mission 69: each tap of Today bumps this, so the timeline scrolls to now
   // again even when the columns do not change. (Swipe-to-page lives in the
@@ -423,6 +429,7 @@ export function CalendarViews({
               onTodayVisibleChange={setScheduleTodayVisible}
               onDayInViewChange={setScheduleDay}
               trackDayInView={panelOpen} revealExtraPx={stackedHeightPx}
+              filter={filterView.filter} viewerId={viewerId}
             />
           )
         );
@@ -465,6 +472,8 @@ export function CalendarViews({
         title={title}
         onToggleMonthPanel={toggle}
         monthPanelOpen={panelOpen}
+        filterCount={filterView.count}
+        onOpenFilter={() => filterView.setOpen(true)}
       />
 
       {/* Mission 72: the panel and the view share one `@container` box (`data-calendar-body`,
@@ -515,6 +524,7 @@ export function CalendarViews({
         onTaskCompleted={onTaskCompleted}
         clearTaskDone={clearTaskDone}
       />
+      {filterView.open && <CalendarFilterSheet {...filterView.sheet} />}
     </div>
   );
 }

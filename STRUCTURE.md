@@ -266,6 +266,7 @@ amendment id.
   its own bounds rule and the module takes bounds as given. A second
   `db.task.findMany` that builds a `CalendarTaskView` is a BLOCKER
   (`briefingRead.ts`'s narrow task query builds no view, so it is not one).
+- **The Calendar filter** (mission-78): the predicates are `src/lib/calendarFilter.ts` and nowhere else (rules in `docs/structure/calendar-filter.md`); a second copy is a BLOCKER.
 - **The Calendar search** (mission-75): the rules (words, prefix match,
   series collapse, upcoming and past, caps) are pure in
   `src/lib/calendarSearch.ts`; the only action is `searchCalendar` in

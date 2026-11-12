@@ -27,6 +27,8 @@ import { useToday } from "@/lib/useToday";
 // why: a lib module reaching into app/ was a real STRUCTURE.md violation).
 import { fetchCalendarEvents, fetchHabitDays } from "@/app/actions/calendar";
 import { fetchTasks } from "@/app/actions/tasks";
+import { filterScheduleMonths } from "@/lib/useCalendarFilterView";
+import type { CalendarFilter } from "@/lib/calendarFilter";
 import { useScheduleHabitDays } from "@/lib/useScheduleHabitDays";
 import type { ScheduleRenderDayWithHabits, ScheduleRenderMonthWithHabits } from "@/lib/scheduleHabitDays";
 import {
@@ -95,6 +97,9 @@ type ScheduleViewProps = {
   trackDayInView: boolean;
   /** Mission 72: height of a stacked open month panel stuck under the chrome (0 when none); rows reveal below it. */
   revealExtraPx: number;
+  /** Mission 78: the Calendar filter; days it empties drop out of the list (no refetch). */
+  filter: CalendarFilter;
+  viewerId: string | null;
   ref?: Ref<ScheduleViewHandle>;
 };
 
@@ -170,6 +175,8 @@ export function ScheduleView({
   onDayInViewChange,
   trackDayInView,
   revealExtraPx,
+  filter,
+  viewerId,
   ref,
 }: ScheduleViewProps) {
   const router = useRouter();
@@ -195,7 +202,8 @@ export function ScheduleView({
     refreshDay,
   } = useScheduleWindow(initialDay, today, fetchers);
   // Planned habit days (decision 146), folded into the loaded months.
-  const { months, habitDaysLoaded, habitDaysFailed } = useScheduleHabitDays(loadedMonths, windowStart, windowEnd, fetchHabitDays);
+  const { months: allMonths, habitDaysLoaded, habitDaysFailed } = useScheduleHabitDays(loadedMonths, windowStart, windowEnd, fetchHabitDays);
+  const months = filterScheduleMonths(allMonths, filter, viewerId, today);
 
   // Mission 74 (F4): the rows are the server's answer for these days; an override they agree with drops.
   // The key is the RAW rows' task states, so a plain re-render (`useToday()` makes `months` a new array every
