@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** BUILDING C1 (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** BUILDING C2 (C1 DONE) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -139,6 +139,8 @@ reasons: say so, do not hide it).
    `tasks.ts` before/after, `git show --stat HEAD`.
 6. **Done:** the rule and constant exist only in new `src/lib/taskUndoRules.ts`;
    `tasks.ts` imports them; tests cover the 60 000 / 60 001 edge.
+
+- **C1 status:** DONE (Stark: 12 new tests, npm test 2048 pass, tasks.ts 445 to 464 lines; tsc 0 after `npm ci` in the worktree, Fury re-ran).
 
 ### C2 - the sheet closes, the bar shows, Undo works from both mounts
 
