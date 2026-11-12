@@ -22,14 +22,11 @@
 // Captain to draft a STRUCTURE.md amendment and Bryce to approve, same as
 // every other structural change in this repo.
 //
-// uncomplete does NOT share that guard — it's back to the plain
-// MANAGER_ROLES form create/update/delete use. Per
-// .avengers/plans/calendar-v2.md's decision #12 ("Kids can mark their OWN
-// tasks complete — complete only. Parents create/edit/delete/un-complete."),
-// a kid may only ever move a task forward to done, never undo a completion
-// — theirs or a parent's. (mission-13/C4b — the first version of this file
-// gave uncomplete the same membership guard as complete and flagged the
-// tension instead of guessing; this is that tension resolved.)
+// uncomplete does NOT share that guard — its rule is taskUndoRules.ts.
+// Per .avengers/plans/calendar-fullscreen-v1.md decision 10 / answer 3
+// (which replace calendar-v2.md decision #12's "complete only"): parents
+// may un-complete any time; a person on the task (or the kitchen tablet)
+// only within TASK_UNDO_WINDOW_MS of completedAt.
 //
 // `rrule` is accepted as opaque, optional text and stored as-given — K4
 // reads and expands it, nothing here does. TaskForm (CT1) has no control
@@ -41,6 +38,7 @@ import { db } from "@/lib/db";
 import { getVerifiedSession, getVerifiedUser, type VerifiedUser } from "@/lib/dal";
 import { MANAGER_ROLES } from "@/lib/constants";
 import { tabletMayCompleteAnyTask } from "@/lib/tabletRules";
+import { NOT_ON_TASK, uncompleteRefusal } from "@/lib/taskUndoRules";
 import { isMissingRowError } from "@/lib/prismaErrors";
 import { localDayToAllDayInstant } from "@/lib/calendarDates";
 import { startOfDay } from "@/lib/mealPlanDates";
@@ -269,7 +267,7 @@ export async function deleteTask(id: string): Promise<TaskActionResult> {
  * tablet (a device login) may also act on any task, via tabletRules.ts.
  * Returns an
  * error message, or null when the caller is allowed to proceed.
- * uncompleteTask does NOT use this — it's MANAGER_ROLES-only, see the file
+ * uncompleteTask does NOT use this — it has its own rule, see the file
  * header.
  */
 async function assertCanCompleteTask(
@@ -283,14 +281,15 @@ async function assertCanCompleteTask(
     where: { taskId_userId: { taskId, userId: user.userId } },
     select: { id: true },
   });
-  return membership ? null : "You're not assigned to that task.";
+  return membership ? null : NOT_ON_TASK;
 }
 
 /**
  * Mark a task done. Unlike create/update/delete, this is reachable by any
  * verified user — including a kid — as long as they're one of the task's
  * people. That's the point: a kid can complete their own chore without
- * being able to touch anyone else's.
+ * being able to touch anyone else's. completedAt is set only when empty, so
+ * a repeat tap cannot extend the undo window.
  */
 export async function completeTask(id: string): Promise<TaskActionResult> {
   const user = await getVerifiedUser();
@@ -299,26 +298,46 @@ export async function completeTask(id: string): Promise<TaskActionResult> {
   const guardError = await assertCanCompleteTask(user, id);
   if (guardError) return { error: guardError };
 
-  try {
-    await db.task.update({ where: { id }, data: { completedAt: new Date() } });
-  } catch (error) {
-    if (isMissingRowError(error)) return { error: "That task no longer exists." };
-    throw error;
+  const { count } = await db.task.updateMany({
+    where: { id, completedAt: null },
+    data: { completedAt: new Date() },
+  });
+  if (count === 0) {
+    const exists = await db.task.findUnique({ where: { id }, select: { id: true } });
+    if (!exists) return { error: "That task no longer exists." };
   }
 
   refreshCalendarViews();
   return {};
 }
 
-/** The inverse of completeTask — but NOT the same guard. Undoing a
- * completion is a parent-only action (calendar-v2.md decision #12: kids
- * get "complete only"), so this uses the plain MANAGER_ROLES form
- * create/update/delete already use, not assertCanCompleteTask's membership
- * check. */
+/** The inverse of completeTask, with its own rule (taskUndoRules.ts):
+ * parents any time, a person on the task (or the tablet) within the undo
+ * window. Calendar-fullscreen-v1 decision 10 / answer 3 replace
+ * calendar-v2.md #12's "complete only". */
 export async function uncompleteTask(id: string): Promise<TaskActionResult> {
   const user = await getVerifiedUser();
-  if (!user || !MANAGER_ROLES.includes(user.role)) {
-    return { error: "Only parents can do that." };
+  if (!user) return { error: "Sign in to do that." };
+
+  if (!MANAGER_ROLES.includes(user.role)) {
+    const task = await db.task.findUnique({
+      where: { id },
+      select: { completedAt: true },
+    });
+    if (!task) return { error: "That task no longer exists." };
+    const membership = tabletMayCompleteAnyTask(user.role)
+      ? null
+      : await db.taskPerson.findUnique({
+          where: { taskId_userId: { taskId: id, userId: user.userId } },
+          select: { id: true },
+        });
+    const refusal = uncompleteRefusal({
+      role: user.role,
+      isOnTask: membership !== null,
+      completedAt: task.completedAt,
+      now: new Date(),
+    });
+    if (refusal) return { error: refusal };
   }
 
   try {

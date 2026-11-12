@@ -1,6 +1,6 @@
 # Mission 73: Calendar full screen PR 7, the all-day row like Google and text that zooms
 
-- **Status:** DELIVERING (all gates PASS: Vision pass 3, Strange pass 3 scoped, Captain pass 1) (Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
+- **Status:** DELIVERED (all gates PASS: Vision pass 3, Strange pass 3 scoped, Captain pass 1) (Bryce OK'd the mock and all seven recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 7: The all-day row like Google, and text that zooms (decisions 9, 13; answer 4)"
 - **Branch:** `claude/calendar-fullscreen-pr7-ba468d`, cut from `origin/main` `c466dc7` (PR 6 merged as #114)
@@ -406,6 +406,7 @@ contract; `git show --stat HEAD` after. No database. Gauntlet as above
 
 ## Delivery
 
+- **Merged:** PR #115, merge commit `fb43a71`, Gauntlet green, Vercel production deployment 7726436821 succeeded (record fixed in the PR 8 branch, mission 74).
 - **Gates:** Vision PASS (pass 3), Strange PASS (pass 3, scoped to F2),
   Captain PASS (pass 1). Fix contracts F1 (location from real pixels,
   `break-words hyphens-auto`, small tier from real pixels, cached root

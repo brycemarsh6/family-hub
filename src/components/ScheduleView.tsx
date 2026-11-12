@@ -71,6 +71,16 @@ type ScheduleViewProps = {
    * TaskDetailSheet's edit view, same as CalendarViews.tsx already does. */
   people: CalendarPersonView[];
   canManage: boolean;
+  /** The Tablet login (`tabletMayCompleteAnyTask`): TaskDetailSheet draws Mark complete for it. */
+  isTablet: boolean;
+  /** Mission 74: a task was just marked complete; shows the bar. `refresh` redraws after its Undo. */
+  onTaskCompleted: (taskId: string, refresh: () => void) => void;
+  /** The optimistic task ticks (taskDoneOverrides.ts), applied to each day's tasks as drawn. */
+  applyDone: (tasks: CalendarTaskView[]) => CalendarTaskView[];
+  /** Any other change to a task drops its optimistic tick before the refresh. */
+  clearTaskDone: (taskId: string) => void;
+  /** Hands the loaded rows' done states up so an override the server's rows agree with drops (also outside the page's window). */
+  pruneTaskDoneWith: (done: ReadonlyMap<string, boolean>) => void;
   /**
    * mission-15/C8 (B1) — reports whether TODAY's own row is genuinely on
    * screen right now. CalendarViews.tsx forwards this straight into the
@@ -152,6 +162,11 @@ export function ScheduleView({
   initialDay,
   people,
   canManage,
+  isTablet,
+  onTaskCompleted,
+  applyDone,
+  clearTaskDone,
+  pruneTaskDoneWith,
   onTodayVisibleChange,
   onDayInViewChange,
   trackDayInView,
@@ -182,6 +197,15 @@ export function ScheduleView({
   } = useScheduleWindow(initialDay, today, fetchers);
   // Planned habit days (decision 146), folded into the loaded months.
   const { months, habitDaysLoaded, habitDaysFailed } = useScheduleHabitDays(loadedMonths, windowStart, windowEnd, fetchHabitDays);
+
+  // Mission 74 (F4): the rows are the server's answer for these days; an override they agree with drops.
+  // The key is the RAW rows' task states, so a plain re-render (`useToday()` makes `months` a new array every
+  // render) never prunes; only a fetch that changes a task's done state does.
+  const taskStatesKey = useMemo(
+    () => JSON.stringify(loadedMonths.flatMap((m) => m.days.flatMap((d) => d.tasks.map((t) => [t.id, t.completedAt !== null])))),
+    [loadedMonths],
+  );
+  useEffect(() => pruneTaskDoneWith(new Map(JSON.parse(taskStatesKey) as [string, boolean][])), [taskStatesKey, pruneTaskDoneWith]);
 
   // Until the habit days load (or fail, which shows its own line), today's
   // row cannot be called empty.
@@ -423,7 +447,7 @@ export function ScheduleView({
                         day={row.day}
                         today={today}
                         events={row.events}
-                        tasks={row.tasks}
+                        tasks={applyDone(row.tasks)}
                         habitDays={row.habitDays}
                         onOpenEvent={(event, day) => setSelected({ event, day })}
                         onOpenTask={(task) => setSelectedTask(task)}
@@ -516,7 +540,20 @@ export function ScheduleView({
           task={selectedTask}
           people={people}
           canManage={canManage}
+          isTablet={isTablet}
           onClose={() => setSelectedTask(null)}
+          onCompleted={() => {
+            // Mission 74: close, redraw the task's day and show the bar; its
+            // Undo redraws the same way.
+            const dueDay = allDayInstantToLocalDay(selectedTask.dueDate);
+            const refresh = () => {
+              refreshDay(dueDay);
+              router.refresh();
+            };
+            setSelectedTask(null);
+            refresh();
+            onTaskCompleted(selectedTask.id, refresh);
+          }}
           onChanged={(updated) => {
             // mission-15/C7 — the vanishing-task fix. `selectedTask` is a
             // snapshot captured when the sheet was opened (see its own
@@ -535,6 +572,7 @@ export function ScheduleView({
             // this same bug one move later. Both conversions go through
             // allDayInstantToLocalDay for the same UTC-midnight reason the
             // comment below already explains.
+            clearTaskDone(selectedTask.id);
             const oldDay = allDayInstantToLocalDay(selectedTask.dueDate);
             refreshDay(oldDay);
             if (updated) {
@@ -545,6 +583,7 @@ export function ScheduleView({
             router.refresh();
           }}
           onDeleted={() => {
+            clearTaskDone(selectedTask.id);
             const dueDay = allDayInstantToLocalDay(selectedTask.dueDate);
             setSelectedTask(null);
             refreshDay(dueDay);

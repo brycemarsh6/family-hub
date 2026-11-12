@@ -6,6 +6,18 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar Task completed, Undo (mission 74, PR 8 of 9)**, about 3
+  minutes, on your iPhone, as a parent and then as a kid login, plus the
+  kitchen tablet. Use a throwaway task (add one for today and put the kid
+  on it). Open it and tap Mark complete: the sheet closes, the task is
+  crossed out straight away, and a dark "Task completed, Undo" bar shows
+  left of the + for 5 seconds. Tap Undo: the task is un-crossed straight
+  away and stays that way. Complete it again and let the bar go: it stays
+  done. **As the kid:** the same, then complete it, wait over a minute,
+  and open it: there is no "Mark not complete" (only parents have it).
+  **On the tablet:** the task sheet now has Mark complete, and Undo works
+  the same. Try it in Schedule and in Week (the all-day row). Say if
+  anything flickers between crossed and not crossed.
 - **Calendar all-day row and zooming text (mission 73, PR 7 of 9)**, about
   3 minutes, on your iPhone and the iPad. Pick a day with four all-day
   items (add two throwaway all-day events if needed). In 3 Day or Week:

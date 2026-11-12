@@ -909,12 +909,12 @@ amendment id.
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,
   Bryce approved.) (Story: docs/history/structure-rationale.md, "Housekeeping note".)
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (Story: docs/history/structure-rationale.md, "Soft cap: the groceries.ts split".)
-  Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 559 total
-  (was 578; mission-72 removed the two-panel wrapper and its small month), `CalendarViews.tsx` 490 total / 194 code (was 502; Month and Year
+  Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 603 total
+  (was 578; mission-72 removed the two-panel wrapper and its small month; mission-74 added the task bar and the optimistic tick, 564 to 586; its override clearing and pruning, 599; pruning only on a task-state change, 603), `CalendarViews.tsx` 551 total (was 502; Month and Year
   paging moved to `PagedPeriodViews.tsx`, mission-69; the drop and Undo bar
   added 8, mission-70; the repeat sheet added 4 more, 494 total / 197
-  code, mission-71; the month panel held it at 494, mission-72), `useEventMoves.ts` 310 / 219 code (mission-71, was
-  136; its next
+  code, mission-71; the month panel held it at 494, mission-72; the task bar and the optimistic tick took it to 523, their clearing and pruning to 551, mission-74), `useEventMoves.ts` 301 total (mission-71 grew it to 310 / 219 code from 136; the bar state moved out
+  to `useUndoBar.ts`, mission-74; its next
   feature moves the series half, `applySeriesShift`, the series save and
   the repeat sheet's props, into `src/lib/useSeriesMove.ts`), `TimelineGrid.tsx` 400 total / about 205
   code (was 471; one page of columns moved to `TimelinePage.tsx`,
@@ -929,7 +929,9 @@ amendment id.
   `commit`, `startTurn` and their `transitionend` cleanups, into
   `src/lib/pagedTurn.ts`), `actions/calendar.ts` 463 / 228 code (not a
   split candidate; see docs/structure/calendar.md, "One write path for an
-  event's time"), `MonthCell.tsx` 367.
+  event's time"), `MonthCell.tsx` 367, `TaskDetailSheet.tsx` 357 (mission-74,
+  just over; a split candidate on its next touch), `actions/tasks.ts` 464 (mission-74, was 445; the undo rule
+  lives in `src/lib/taskUndoRules.ts`, so it stays out of this file).
   Kitchen trend (mission-52, A-L4-7): `PantryList.tsx` 376 total / about
   300 code (over the soft cap; the next Inventory change extracts the
   search and location chips row), `MealPlanList.tsx` 360 / about 310 code

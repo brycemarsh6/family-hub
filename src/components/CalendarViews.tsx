@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarHeader } from "./CalendarHeader";
 import { CalendarSheets } from "./CalendarSheets";
@@ -14,7 +14,10 @@ import { UndoBar } from "./UndoBar";
 import { RepeatMoveSheet } from "./RepeatMoveSheet";
 import { moveCalendarEvent } from "@/app/actions/calendar";
 import { moveCalendarSeries } from "@/app/actions/calendarSeries";
+import { uncompleteTask } from "@/app/actions/tasks";
 import { useEventMoves } from "@/lib/useEventMoves";
+import { showTaskCompleted, useUndoBar, type ShowBar } from "@/lib/useUndoBar";
+import { applyTaskDone, pruneTaskDone, pruneTaskDoneByState, type TaskDoneOverrides } from "@/lib/taskDoneOverrides";
 import { useCalendarNavigation } from "@/lib/useCalendarNavigation";
 import { buildCalendarSearch } from "@/lib/calendarPaging";
 import { DEFAULT_CALENDAR_VIEW } from "@/lib/calendarViewVocabulary";
@@ -85,6 +88,8 @@ type CalendarViewsProps = {
    * anyway would still be refused server-side.
    */
   canManage: boolean;
+  /** The Tablet login (`tabletMayCompleteAnyTask`, page.tsx): it sees Mark complete on any task. */
+  isTablet: boolean;
   /**
    * The bounds of page.tsx's one server fetch — built (mission-9/C6) from
    * the "?date=" param useCalendarNavigation keeps in sync, not a fixed span
@@ -119,10 +124,11 @@ type CalendarViewsProps = {
  */
 export function CalendarViews({
   events: serverEvents,
-  tasks,
+  tasks: serverTasks,
   habitDays,
   people,
   canManage,
+  isTablet,
   windowStart,
   windowEnd,
   viewerId,
@@ -150,7 +156,50 @@ export function CalendarViews({
   const now = useNowMinute();
   // Mission 70 (C4): a dropped event shows at its new time at once; `events` below is that list.
   // Mission 71: a repeating one asks first (`repeatSheet`).
-  const { events, drop, bar, closeBar, repeatSheet } = useEventMoves(serverEvents, moveCalendarEvent, moveCalendarSeries);
+  const { bar, showBar, closeBar } = useUndoBar();
+  // Mission 74 (F3): which task the bar on screen is "Task completed" for (null = some other bar),
+  // so the sheet's other changes can close exactly that bar and never a move's.
+  const taskBarFor = useRef<string | null>(null);
+  const showMoveBar: ShowBar = (next) => {
+    taskBarFor.current = null;
+    showBar(next);
+  };
+  const { events, drop, repeatSheet } = useEventMoves(serverEvents, moveCalendarEvent, moveCalendarSeries, showMoveBar, closeBar);
+  // Mission 74: a tick or an Undo shows at once (`taskDone`, taskDoneOverrides.ts) and is
+  // dropped once a fresh `tasks` prop agrees; every view below draws `tasks`, Schedule via `applyDone`.
+  const [taskDone, setTaskDone] = useState<TaskDoneOverrides>(new Map());
+  const [seenTasks, setSeenTasks] = useState(serverTasks);
+  if (seenTasks !== serverTasks) {
+    setSeenTasks(serverTasks);
+    setTaskDone(pruneTaskDone(taskDone, serverTasks));
+  }
+  const tasks = useMemo(() => applyTaskDone(serverTasks, taskDone), [serverTasks, taskDone]);
+  const applyDone = useMemo(() => (list: CalendarTaskView[]) => applyTaskDone(list, taskDone), [taskDone]);
+  const setDone = (taskId: string, completedAt: Date | null) => setTaskDone((prev) => new Map(prev).set(taskId, completedAt));
+  // Any other change to a task (Mark not complete, Edit, Delete) drops its tick so the server's answer shows.
+  // Absent key: the same map back, so no state change and no re-render.
+  const clearTaskDone = (taskId: string) => {
+    if (taskBarFor.current === taskId) {
+      taskBarFor.current = null;
+      closeBar();
+    }
+    setTaskDone((prev) => {
+      if (!prev.has(taskId)) return prev;
+      const next = new Map(prev);
+      next.delete(taskId);
+      return next;
+    });
+  };
+  // Schedule's own fetched rows are a second server answer (it reaches past the page's window):
+  // it hands their done states here (only when those change) so an override they agree with drops.
+  const pruneTaskDoneWith = useCallback((done: ReadonlyMap<string, boolean>) => setTaskDone((prev) => pruneTaskDoneByState(prev, done)), []);
+  // Both task sheet mounts raise "Task completed, Undo" on the one bar.
+  const onTaskCompleted = (taskId: string, refresh: () => void) => {
+    const completedAt = new Date();
+    setDone(taskId, completedAt);
+    showTaskCompleted({ showBar, closeBar, taskId, refresh, uncomplete: uncompleteTask, setDone, clearDone: clearTaskDone });
+    taskBarFor.current = taskId;
+  };
   const chromeOffsetPx = useHamburgerRowHeight();
 
   // Mission 69: each tap of Today bumps this, so the timeline scrolls to now
@@ -397,6 +446,11 @@ export function CalendarViews({
               initialDay={anchor}
               people={people}
               canManage={canManage}
+              isTablet={isTablet}
+              onTaskCompleted={onTaskCompleted}
+              applyDone={applyDone}
+              clearTaskDone={clearTaskDone}
+              pruneTaskDoneWith={pruneTaskDoneWith}
               onTodayVisibleChange={setScheduleTodayVisible}
               onDayInViewChange={setScheduleDay}
               trackDayInView={panelOpen} revealExtraPx={stackedHeightPx}
@@ -488,6 +542,9 @@ export function CalendarViews({
         onCloseTask={() => setSelectedTask(null)}
         people={people}
         canManage={canManage}
+        isTablet={isTablet}
+        onTaskCompleted={onTaskCompleted}
+        clearTaskDone={clearTaskDone}
       />
     </div>
   );

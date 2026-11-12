@@ -226,3 +226,37 @@ docs/history/structure-rationale.md under the same name.
   component writing its own zoom variable, or a block fit decided outside
   `blockTextFit` is a BLOCKER.
   (Added mission-73, on Captain's ruling; Bryce approved 2026-11-11.)
+
+## Task completed, Undo (mission 74)
+
+- **One bar, one owner.** `CalendarViews.tsx` calls `useUndoBar()`
+  (`src/lib/useUndoBar.ts`) once and mounts the only `<UndoBar>`. The event
+  moves (`useEventMoves.ts`) and the task bar both raise it through
+  `showBar`/`closeBar`; a second `<UndoBar>` mount or bar state is a BLOCKER.
+- **Mark complete** closes `TaskDetailSheet` (its `onCompleted`, not
+  `onChanged`) and `showTaskCompleted` shows "Task completed, Undo". Undo
+  calls `uncompleteTask`, the same action as the sheet's "Mark not complete".
+  Only `TaskDetailSheet.tsx` and `CalendarViews.tsx` import `uncompleteTask`;
+  `CalendarViews` hands it to `showTaskCompleted`, so `useUndoBar.ts` never
+  imports from `app/`.
+- **Ticks are optimistic.** `CalendarViews` holds one `Map<taskId, Date | null>`
+  (`taskDoneOverrides.ts`): Mark complete and Undo set it at once, every view
+  draws `applyTaskDone(tasks, map)` (Schedule through its `applyDone` prop).
+  An override never outlives the server's answer: it is pruned when a fresh
+  `tasks` prop agrees, and when Schedule's own loaded rows agree
+  (`pruneTaskDoneWith`, which also covers days outside the page's window, and
+  runs only when those rows' done states change, never on a plain re-render). A
+  refused or failed Undo drops the override (`clearDone`), refreshes and shows
+  a warn bar. Any other change (Mark not complete, Edit, Delete) calls
+  `clearTaskDone(taskId)` from both sheet mounts first, which also closes that
+  task's own "Task completed" bar (never a move's).
+- **Who may undo** is `taskUndoRules.ts` (`uncompleteRefusal`,
+  `TASK_UNDO_WINDOW_MS` = 60 s), enforced by the server action: parents any
+  time, a person on the task (or the Tablet) within 60 seconds. What the
+  sheet draws is `mayCompleteTask`; the sheet's own "Mark not complete" stays
+  parents only.
+- **Both mounts.** `CalendarSheets.tsx` (router refresh) and the sheet inside
+  `ScheduleView.tsx` (refreshes the task's day chunk, then router refresh)
+  each close the sheet and call `onTaskCompleted(taskId, refresh)`, which
+  `CalendarViews.tsx` passes to both. `isTablet` comes from `page.tsx`
+  (`tabletMayCompleteAnyTask`).
