@@ -169,6 +169,15 @@ export function CalendarViews({
   const tasks = useMemo(() => applyTaskDone(serverTasks, taskDone), [serverTasks, taskDone]);
   const applyDone = useMemo(() => (list: CalendarTaskView[]) => applyTaskDone(list, taskDone), [taskDone]);
   const setDone = (taskId: string, completedAt: Date | null) => setTaskDone((prev) => new Map(prev).set(taskId, completedAt));
+  // Any other change to a task (Mark not complete, Edit, Delete) drops its tick so the server's answer shows.
+  // Absent key: the same map back, so no state change and no re-render.
+  const clearTaskDone = (taskId: string) =>
+    setTaskDone((prev) => {
+      if (!prev.has(taskId)) return prev;
+      const next = new Map(prev);
+      next.delete(taskId);
+      return next;
+    });
   // Both task sheet mounts raise "Task completed, Undo" on the one bar.
   const onTaskCompleted = (taskId: string, refresh: () => void) => {
     const completedAt = new Date();
@@ -424,6 +433,7 @@ export function CalendarViews({
               isTablet={isTablet}
               onTaskCompleted={onTaskCompleted}
               applyDone={applyDone}
+              clearTaskDone={clearTaskDone}
               onTodayVisibleChange={setScheduleTodayVisible}
               onDayInViewChange={setScheduleDay}
               trackDayInView={panelOpen} revealExtraPx={stackedHeightPx}
@@ -517,6 +527,7 @@ export function CalendarViews({
         canManage={canManage}
         isTablet={isTablet}
         onTaskCompleted={onTaskCompleted}
+        clearTaskDone={clearTaskDone}
       />
     </div>
   );

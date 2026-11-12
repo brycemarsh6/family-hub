@@ -243,7 +243,9 @@ docs/history/structure-rationale.md under the same name.
   (`taskDoneOverrides.ts`): Mark complete and Undo set it at once, every view
   draws `applyTaskDone(tasks, map)` (Schedule through its `applyDone` prop),
   and the map is pruned when a fresh `tasks` prop agrees. A refused or failed
-  Undo puts the tick back with a warn bar.
+  Undo puts the tick back with a warn bar. Any other change (Mark not
+  complete, Edit, Delete) calls `clearTaskDone(taskId)` from both sheet mounts
+  first, so a stale tick never hides the server's answer.
 - **Who may undo** is `taskUndoRules.ts` (`uncompleteRefusal`,
   `TASK_UNDO_WINDOW_MS` = 60 s), enforced by the server action: parents any
   time, a person on the task (or the Tablet) within 60 seconds. What the

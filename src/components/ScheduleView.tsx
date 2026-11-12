@@ -77,6 +77,8 @@ type ScheduleViewProps = {
   onTaskCompleted: (taskId: string, refresh: () => void) => void;
   /** The optimistic task ticks (taskDoneOverrides.ts), applied to each day's tasks as drawn. */
   applyDone: (tasks: CalendarTaskView[]) => CalendarTaskView[];
+  /** Any other change to a task drops its optimistic tick before the refresh. */
+  clearTaskDone: (taskId: string) => void;
   /**
    * mission-15/C8 (B1) — reports whether TODAY's own row is genuinely on
    * screen right now. CalendarViews.tsx forwards this straight into the
@@ -161,6 +163,7 @@ export function ScheduleView({
   isTablet,
   onTaskCompleted,
   applyDone,
+  clearTaskDone,
   onTodayVisibleChange,
   onDayInViewChange,
   trackDayInView,
@@ -557,6 +560,7 @@ export function ScheduleView({
             // this same bug one move later. Both conversions go through
             // allDayInstantToLocalDay for the same UTC-midnight reason the
             // comment below already explains.
+            clearTaskDone(selectedTask.id);
             const oldDay = allDayInstantToLocalDay(selectedTask.dueDate);
             refreshDay(oldDay);
             if (updated) {
@@ -567,6 +571,7 @@ export function ScheduleView({
             router.refresh();
           }}
           onDeleted={() => {
+            clearTaskDone(selectedTask.id);
             const dueDay = allDayInstantToLocalDay(selectedTask.dueDate);
             setSelectedTask(null);
             refreshDay(dueDay);
