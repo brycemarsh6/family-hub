@@ -1,6 +1,6 @@
 # Mission 78: Calendar filter by person and synced calendar
 
-- **Status:** GATES PASSED, delivering (Bryce approved the mock 2026-11-12 except the strip; see Bryce's answers)
+- **Status:** DELIVERED (merged as PR #121, merge commit 57e5861, 2026-11-12) (all gates PASS: Vision pass 2, Strange pass 2, Captain pass 1) (Bryce OK'd the mock 2026-11-12 except the yellow strip)
 - **Started:** 2026-11-12 · **Updated:** 2026-11-12
 - **Branch:** `claude/calendar-filter-people-calendars-dc7840`, cut from `main` `5bbf740` (PR #118 merged)
 - **Mock:** `.avengers/mocks/calendar-filter-mock.html`
@@ -143,4 +143,7 @@ C1 then C2, sequential (C2 imports C1's files).
 
 ## Delivery
 
-Not yet.
+- **Shipped:** the Filter circle, the Filter sheet and the filter rules (`src/lib/calendarFilter.ts`), obeyed by every Calendar view. PR #121, merge commit 57e5861. Gauntlet on the final merge (after missions 76 and 77): npm test 2128/2128, TZ=UTC run 2118 pass 0 fail, tsc, eslint, build exit 0. GitHub Gauntlet check green. Vercel production deploy for 57e5861: success.
+- **Shipped check:** `git log origin/main..HEAD` on the feature branch was empty after the merge.
+- **Bryce's phone test:** in `.avengers/status.md`.
+- **Deliberate leftovers:** 375-wide phones still cut a month plus year title (Bryce: no small iPhone in the family); the older "Not all events loaded" card copy has a dash (not this mission); at Largest text on the tablet the sheet scrolls so Done starts out of sight (a sticky Done is a later idea); a typed account label that matches another account's default heading would read the same; `calendarFilterStore.ts` shares one cache slot across viewer ids (safe with its single caller); `docs/structure/calendar.md` and the companion sizes recorded in STRUCTURE.md's file-size section are stale and are due at the next housekeeping pass.
