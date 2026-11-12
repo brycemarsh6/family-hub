@@ -1,6 +1,6 @@
 # Mission 74: Calendar full screen PR 8, Task completed, Undo
 
-- **Status:** AT-THE-GATES pass 2 (F1, F2 DONE) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
+- **Status:** BUILDING F3 (gate pass 2: Captain PASS, Strange PASS, Vision BLOCKED) (Bryce OK'd the mock and all three recommendations 2026-11-11: "Yes")
 - **Started:** 2026-11-11 · **Updated:** 2026-11-11
 - **Plan:** `.avengers/plans/calendar-fullscreen-v1.md`, "PR 8: Task completed, Undo (decision 10; answer 3)"
 - **Branch:** `claude/calendar-fullscreen-pr8-d7e24d`, cut from `origin/main` `fb43a71` (PR 7 merged as #115)
@@ -225,6 +225,30 @@ reasons: say so, do not hide it).
   matches the mock; who sees which button matches the mock. Harness and
   shots: this session's scratchpad `strange/`.
 
+### Pass 2 (2026-11-11, HEAD c89caf1)
+
+- **Captain: PASS.** Pass 1 blocker fixed (`useUndoBar.ts` imports only
+  react; the action is handed in). Notes: the trend list carries the
+  after-F1 counts (CalendarViews 534, ScheduleView 591 after F2);
+  `docs/structure/calendar.md` 258 lines, a split candidate past ~300;
+  `ScheduleView.tsx` should move something out before its next feature.
+- **Strange: PASS.** At a 1200 ms lag: crossed out the moment the sheet
+  closes (all-day row and Schedule), un-crossed 60 ms after Undo, refusal
+  and thrown error put the tick back with the right warn bar, a parent's
+  Mark not complete after a tick ends un-crossed; placement unchanged.
+  Notes: the "Task completed" bar outlives a parent's Mark not complete
+  inside its 5 s; Mark complete still waits for its action ("Saving...")
+  before the sheet closes; Schedule opening away from today in the harness
+  (check on the phone). Shots: scratchpad `strange/shots2/`.
+- **Vision: BLOCKED.** Gauntlet green, boundaries clean. BLOCKER: an
+  override is dropped only when a new `tasks` prop agrees, so (1) after a
+  failed Undo `putBack` re-sets "done" with no prop change, and a later
+  un-complete from another device stays hidden on that screen (worst on
+  the always-on Tablet); (2) a task ticked in Schedule outside the page's
+  ±61 day window never appears in `serverTasks`, so its override lives
+  forever and hides later changes. Note: a late refusal can replace a
+  newer task bar.
+
 ## Fix contracts
 
 ### F1 - optimistic task ticks, the action handed in, the notes folded in
@@ -311,3 +335,44 @@ reasons: say so, do not hide it).
    override for that task.
 
 - **F2 status:** DONE (Stark: `clearTaskDone` in CalendarViews, called by both mounts' onChanged/onDeleted; gauntlet green, 2056 pass; CalendarViews 534, ScheduleView 591, CalendarSheets 130).
+
+### F3 - overrides never outlive the server's answer
+
+1. **Objective:** no task override survives once the server has answered,
+   on any screen, including Schedule outside the page window.
+2. **Boundaries:**
+   - May touch: `src/lib/useUndoBar.ts`, `src/lib/taskDoneOverrides.ts`,
+     `src/lib/taskDoneOverrides.test.ts`, `src/components/CalendarViews.tsx`,
+     `src/components/ScheduleView.tsx`, `src/components/CalendarSheets.tsx`,
+     `docs/structure/calendar.md` (the "Ticks are optimistic" bullet),
+     `STRUCTURE.md` (the Calendar trend list counts only).
+   - Must not touch: `DESIGN.md`, `src/components/UndoBar.tsx`,
+     `src/components/TaskDetailSheet.tsx`, `src/lib/taskUndoRules.ts`,
+     `src/app/actions/tasks.ts`, `prisma/`, `package.json`.
+3. **Work (Vision's fix, pass 2):**
+   - (a) In `showTaskCompleted`, the refusal and thrown-error paths drop
+     the override (a handed-in `clearDone(taskId)`, which CalendarViews
+     already has as `clearTaskDone`) and call `refresh()`, instead of
+     putting `completedAt` back. The warn bars stay as they are.
+   - (b) CalendarViews exposes `pruneTaskDoneWith(list)`
+     (`setTaskDone(prev => pruneTaskDone(prev, list))`, same map when
+     nothing drops); ScheduleView calls it from an effect whenever its
+     loaded rows' tasks change (flattened `row.tasks`), so an override
+     for a task outside the page window drops once Schedule's fetch
+     agrees. No render loop: the effect depends on the rows, and prune
+     returns the same map when nothing drops.
+   - (c) Strange's note: when a task's override is cleared by the sheet's
+     onChanged/onDeleted, close the bar if it is that task's
+     "Task completed" bar (remember which task the current task bar is
+     for; never close a move's bar).
+   - Tests: the agree-then-later-disagree case for the module, if (a)
+     or (b) changes it.
+   - `docs/structure/calendar.md` bullet and the STRUCTURE.md trend-list
+     counts (`CalendarViews.tsx`, `ScheduleView.tsx`, and any other entry
+     this touches) updated to the real after-F3 `wc -l`.
+4. **Verification:** gauntlet as above; line counts before/after
+   (ScheduleView stays under 650).
+5. **Evidence:** diff, gauntlet output, line counts, `git show --stat HEAD`;
+   for each of Vision's two failure scenarios, the line(s) that now end it.
+6. **Done:** Vision's scenarios 1 and 2 cannot leave a stale tick; the
+   pass 2 PASS behaviours (Strange) are unchanged.
