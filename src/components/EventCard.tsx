@@ -14,7 +14,7 @@ export function HighlightedText({ text, words }: { text: string; words?: string[
   if (!words || words.length === 0) return <>{text}</>;
   return (
     <>
-      {text.split(/([\p{L}\p{N}]+)/u).map((part, index) => {
+      {text.split(/([\p{L}\p{M}\p{N}]+)/u).map((part, index) => {
         if (index % 2 === 0) return part;
         const length = matchedPrefixLength(part, words);
         if (length === 0) return part;

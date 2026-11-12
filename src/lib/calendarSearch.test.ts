@@ -185,3 +185,19 @@ test("limits clamp between 1 and 500", () => {
   assert.equal(clampLimit(25), 25);
   assert.equal(clampLimit(9999), 500);
 });
+
+test("accented letters fold: cafe, zoe and pinata find their accented words", () => {
+  assert.equal(matchesSearch(searchWords("cafe")!, ["Café lunch"]), true);
+  assert.equal(matchesSearch(searchWords("zoe")!, ["Zoë's recital"]), true);
+  assert.equal(matchesSearch(searchWords("pinata")!, ["Piñata party"]), true);
+  assert.equal(matchesSearch(searchWords("café")!, ["Cafe lunch"]), true);
+});
+
+test("the highlight length stays aligned for a precomposed accented word", () => {
+  assert.equal(matchedPrefixLength("Café", ["caf"]), 3);
+  assert.equal(matchedPrefixLength("Café", ["cafe"]), 4);
+});
+
+test("a stray piece of an accented word does not match: me is not in Crème brûlée", () => {
+  assert.equal(matchesSearch(searchWords("me")!, ["Crème brûlée"]), false);
+});

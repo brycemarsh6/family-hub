@@ -66,9 +66,15 @@ export type CalendarSearchResult = {
   hasMorePast: boolean;
 };
 
+// Accents come off ("Café" gives "Cafe", "Zoë" gives "Zoe") so "cafe" finds "Café".
+// A precomposed letter keeps its length, so the highlight still lines up.
+function fold(text: string): string {
+  return text.normalize("NFD").replace(/\p{M}/gu, "");
+}
+
 /** The query's words as written (lowercased), or null when it holds fewer than two letters or digits in all. */
 export function searchWords(text: string): string[] | null {
-  const words = rawTokens(text);
+  const words = rawTokens(fold(text));
   const total = words.reduce((sum, word) => sum + word.length, 0);
   return total >= 2 ? words : null;
 }
@@ -94,7 +100,7 @@ function commonPrefixLength(a: string, b: string): number {
  * against "Berries" marks "Berr").
  */
 export function matchedPrefixLength(word: string, typedWords: string[]): number {
-  const written = rawTokens(word)[0] ?? "";
+  const written = rawTokens(fold(word))[0] ?? "";
   if (written === "") return 0;
   let best = 0;
   for (const typed of typedWords) {
@@ -110,7 +116,7 @@ export function matchedPrefixLength(word: string, typedWords: string[]): number 
 
 /** Every query word is the start of some word in the fields. */
 export function matchesSearch(words: string[], fields: (string | null)[]): boolean {
-  const haystack = rawTokens(fields.filter((field): field is string => field !== null).join(" "));
+  const haystack = rawTokens(fold(fields.filter((field): field is string => field !== null).join(" ")));
   return words.every((word) => haystack.some((candidate) => matchedPrefixLength(candidate, [word]) > 0));
 }
 

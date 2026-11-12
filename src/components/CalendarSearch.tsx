@@ -201,12 +201,12 @@ export function CalendarSearch({
       {result && words !== null && (
         <>
           {renderDays(result.upcoming)}
-          {result.hasMoreUpcoming && <ShowMore label="Show more" busy={moreBusy} onClick={() => showMore("upcoming")} />}
+          {result.hasMoreUpcoming && isCurrent && <ShowMore label="Show more" busy={moreBusy} onClick={() => showMore("upcoming")} />}
           {result.past.length > 0 && (
             <>
               <h2 className="mt-2 border-t border-line px-1 pt-4 text-xs font-extrabold uppercase tracking-wider text-muted">Past</h2>
               {renderDays(result.past)}
-              {result.hasMorePast && <ShowMore label="Show more past" busy={moreBusy} onClick={() => showMore("past")} />}
+              {result.hasMorePast && isCurrent && <ShowMore label="Show more past" busy={moreBusy} onClick={() => showMore("past")} />}
             </>
           )}
           {moreFailed && isCurrent && <SearchError onTryAgain={tryAgain} />}
@@ -245,8 +245,8 @@ export function CalendarSearch({
 
 function SearchError({ onTryAgain }: { onTryAgain: () => void }) {
   return (
-    <div role="alert" className="flex items-center justify-between gap-3 px-1">
-      <p className="text-sm text-warn">Couldn&apos;t search. Try again.</p>
+    <div className="flex items-center justify-between gap-3 px-1">
+      <p role="alert" className="text-sm text-warn">Couldn&apos;t search. Try again.</p>
       <button
         type="button"
         onClick={onTryAgain}
