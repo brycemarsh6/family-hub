@@ -57,9 +57,45 @@ from AGENTS.md, `npm run build`, and the GitHub Gauntlet check.
 Stark + Vision; Strange for the sheet change. Captain only if a new file
 lands outside `src/lib/` patterns.
 
+## Bryce's answers (2026-11-12, "Yes" to all five recommendations)
+
+1. An item belongs to the people on it.
+2. Delete only; editing unchanged.
+3. Admins follow the same rule as parents.
+4. Tablet unchanged (still cannot delete).
+5. A blocked delete shows an amber note "Only Emily can delete this." in
+   place of the red Delete row; the server refuses with the same words.
+
+**The rule, exactly:** the caller (admin or parent) may delete unless the
+item has at least one *other* active adult (role admin or parent, not
+deactivated) on it **and** the caller is not on it. On it yourself, kid-only,
+nobody, or only deactivated adults: allowed. Deactivated adults never block
+(Fury's call: otherwise their items could never be deleted).
+
 ## Contracts
 
-Written after Bryce answers.
+### C1: the rule, on the server and in both sheets
+- **Objective:** one pure rule, enforced by `deleteCalendarEvent` and
+  `deleteTask` from fresh database rows, and used by both sheets to swap the
+  Delete row for the warn note.
+- **May touch:** new `src/lib/calendarDeleteRules.ts` +
+  `src/lib/calendarDeleteRules.test.ts`; `src/app/actions/calendar.ts`;
+  `src/app/actions/tasks.ts`; `src/lib/calendarEventQuery.ts`;
+  `src/lib/calendarTaskQuery.ts`; `src/lib/types.ts`;
+  `src/components/EventDetailSheet.tsx`; `src/components/TaskDetailSheet.tsx`;
+  any file that builds or passes these views (list each in the report);
+  `docs/structure/calendar.md` (a few lines, or a split if it passes 300).
+- **Must not touch:** `prisma/schema.prisma` (no migration),
+  `src/lib/calendarEventPull.ts`, the Assistant API, `CLAUDE.md`,
+  `DESIGN.md`, `STRUCTURE.md`, `package.json`.
+- **Verification:** `npm run lint`, `npx tsc --noEmit`, `npm test`, the
+  direct UTC command from AGENTS.md, `npm run build`, all green.
+- **Evidence:** the outputs above; the test names; the server check placed
+  before `removeEventCopies` (a refused delete must not remove Google copies).
+- **Done:** tests cover own, other parent, other admin, kid-only, nobody,
+  both parents, other parent plus kid, deactivated adult, two other parents
+  (names joined "A and B"); both actions refuse with the rule's words; both
+  sheets show the note instead of Delete when blocked.
 
 ## Gate ledger
 
