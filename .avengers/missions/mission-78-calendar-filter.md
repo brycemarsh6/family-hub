@@ -1,6 +1,6 @@
 # Mission 78: Calendar filter by person and synced calendar
 
-- **Status:** AT-THE-GATES, pass 2 (Bryce approved the mock 2026-11-12 except the strip; see Bryce's answers)
+- **Status:** GATES PASSED, delivering (Bryce approved the mock 2026-11-12 except the strip; see Bryce's answers)
 - **Started:** 2026-11-12 · **Updated:** 2026-11-12
 - **Branch:** `claude/calendar-filter-people-calendars-dc7840`, cut from `main` `5bbf740` (PR #118 merged)
 - **Mock:** `.avengers/mocks/calendar-filter-mock.html`
@@ -109,8 +109,8 @@ C1 then C2, sequential (C2 imports C1's files).
 |---|---|---|---|---|
 | 1 | Vision | BLOCKED | V1 stale ids still hide (count 0, no way back) | filterScheduleMonths untested; account emails reach every login; tick and empty checks repeated outside calendarFilter.ts |
 | 1 | Strange | BLOCKED | S1 same stale-id trap (stale-offcal-day.png); S2 "Jan 2027" truncates to "Jan 2..." at 393 (DESIGN.md CalendarHeader rule) | DESIGN.md CalendarHeader entry stale; spoken name "1Filtered"; chip low contrast on the solid circle; sheet scrolls at Largest; 375 wide still truncates |
-| 2 | Vision | running | | |
-| 2 | Strange | running | | |
+| 2 | Vision | PASS | none | V1 fixed (own probe); toggles keep stale ids; Show all clears the stored key; ring-2 on the badge is a visual change for every badged circle (Strange checked) |
+| 2 | Strange | PASS | none | S1 fixed (stale events show, count 0); S2 fixed at 393 in Month, Week, Day, 3 Day and Schedule; iPad, dark, Tablet at Largest fine; 375 still truncates a year title (Bryce: no small iPhone in the family, so left); older "Not all events loaded" copy has a dash (not this mission) |
 | 1 | Captain | PASS | none | N1 move filterScheduleMonths to calendarFilter.ts with tests; N4 one isFilterEmpty; tick helpers; trend line numbers |
 
 ### C3 - fix batch for gate pass 1
@@ -138,6 +138,7 @@ C1 then C2, sequential (C2 imports C1's files).
 - 2026-11-12: C2 DONE (eeecc4d). Gates pass 1: Vision, Strange, Captain in parallel.
 - 2026-11-12: pass 1: Captain PASS, Vision and Strange BLOCKED (stale-id trap; phone title). C3 written and dispatched. Open question for Bryce: does anyone use a 375-wide phone (iPhone mini or SE)?
 - 2026-11-12: C3 DONE (f59034c). Gates pass 2: Vision and Strange. Captain not re-run (C3 applied his own NOTEs; Vision carries the structure subset).
+- 2026-11-12: Bryce: "No small iPhone in the family" (375 truncation left as is). Pass 2: Vision PASS, Strange PASS. All gates pass. Next: sync with main, PR, Gauntlet, merge.
 
 ## Delivery
 
