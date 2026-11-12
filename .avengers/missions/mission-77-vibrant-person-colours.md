@@ -1,7 +1,7 @@
 # Mission 77: more vibrant person colours
 
 **Project:** family-hub (Marshee)
-**Status:** BUILDING
+**Status:** DELIVERING (gates passed; PR open)
 **Started:** 2026-11-12 · **Updated:** 2026-11-12
 **Branch:** `claude/calendar-vibrant-person-colors-4bde43` (own worktree)
 
@@ -244,3 +244,16 @@ same); dark halo against slate/amber/teal is low but the line carries it.
 - EventCard comment still says "background shorthand"; AllDayEventBar could
   take `today` as a prop; all-day `isPast` is exact only west of UTC; now-line
   may clip 5px at 00:00.
+
+## Delivery
+
+- Gates: Vision PASS (pass 2), Strange PASS (pass 2). Captain not assembled.
+- Synced with main after mission 76 merged; one conflict in
+  `docs/structure/calendar.md` (76 split the tasks and search rules into
+  `calendar-tasks-search.md`), resolved by keeping 76's split note and adding
+  the "Person colours" section after it.
+- Gauntlet after the sync: tsc, eslint clean; `npm test` 2102/2102; UTC
+  2092 pass, 10 DST skips; build exit 0.
+- Bryce's phone test and the follow-ups are in `.avengers/status.md`.
+- Deliberately not done: the follow-ups listed above; DESIGN.md stays over
+  its 650 cap (this mission shrank it by 4 lines).
