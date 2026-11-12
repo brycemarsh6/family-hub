@@ -266,6 +266,7 @@ amendment id.
   its own bounds rule and the module takes bounds as given. A second
   `db.task.findMany` that builds a `CalendarTaskView` is a BLOCKER
   (`briefingRead.ts`'s narrow task query builds no view, so it is not one).
+- **The Calendar filter** (mission-78): the predicates are `src/lib/calendarFilter.ts` and nowhere else (rules in `docs/structure/calendar-filter.md`); a second copy is a BLOCKER.
 - **The Calendar search** (mission-75): the rules (words, prefix match,
   series collapse, upcoming and past, caps) are pure in
   `src/lib/calendarSearch.ts`; the only action is `searchCalendar` in
@@ -916,8 +917,8 @@ amendment id.
   Bryce approved. Widened again 2026-11-09, Captain's mission-59 NOTEs,
   Bryce approved.) (Story: docs/history/structure-rationale.md, "Housekeeping note".)
 - **Soft cap: 350 lines** — a NOTE and a split candidate. (Story: docs/history/structure-rationale.md, "Soft cap: the groceries.ts split".)
-  Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 558 total / 321 code (mission-75: the task sheet moved to `CalendarTaskSheet.tsx`)
-  (was 603; before that 578; mission-72 removed the two-panel wrapper and its small month; mission-74 added the task bar and the optimistic tick, 564 to 586; its override clearing and pruning, 599; pruning only on a task-state change, 603), `CalendarViews.tsx` 512 total / 245 code (mission-75: the tick and bar moved to `useTaskDone.ts`) (was 551; before that 502; Month and Year
+  Calendar trend (mission-46, A-L2-4): `ScheduleView.tsx` 565 total / ~362 code (mission-78: the Calendar filter, 558 to 566, then 565 once `filterScheduleMonths` moved to `calendarFilter.ts`; mission-75: the task sheet moved to `CalendarTaskSheet.tsx`, 558 / 321 code)
+  (was 603; before that 578; mission-72 removed the two-panel wrapper and its small month; mission-74 added the task bar and the optimistic tick, 564 to 586; its override clearing and pruning, 599; pruning only on a task-state change, 603), `CalendarViews.tsx` 530 total / ~268 code (mission-78: the Calendar filter wiring, 512 to 530; mission-75: the tick and bar moved to `useTaskDone.ts`, 512 / 245 code) (was 551; before that 502; Month and Year
   paging moved to `PagedPeriodViews.tsx`, mission-69; the drop and Undo bar
   added 8, mission-70; the repeat sheet added 4 more, 494 total / 197
   code, mission-71; the month panel held it at 494, mission-72; the task bar and the optimistic tick took it to 523, their clearing and pruning to 551, mission-74), `useEventMoves.ts` 301 total (mission-71 grew it to 310 / 219 code from 136; the bar state moved out

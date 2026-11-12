@@ -6,6 +6,17 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar filter (mission 78)**, about 3 minutes, on your iPhone and the
+  iPad, light and dark. Top right of the Calendar there are now four
+  circles: Today, View, Search and Filter, and the month reads "Nov" on
+  the phone. Tap Filter: People (everyone) and Calendars ("Made in
+  Marshee", then each Google account with its calendars under it). Untick
+  Emily: her events leave Month, Week, Day and Schedule at once, and the
+  Filter circle turns solid green with a "1" and reads "Filtered". Close
+  the app and reopen it: still filtered on this phone, but not on Emily's
+  phone or the tablet. Untick one Google calendar: its events go. Search
+  still finds a hidden event. Tap Filter, then Show all: everything comes
+  back and the circle is plain again. Try the tablet at its large text.
 - **Calendar person colours (mission 77)**, about 2 minutes, on your iPhone
   and the iPad, in light and dark. Month, Day and Week: each person's events
   are a solid colour with white text, and you can tell people apart at a

@@ -50,7 +50,8 @@ text here binds exactly like STRUCTURE.md.
   since `ActionCircle` has no link form). Pulling from Google is
   automatic; its rules are in docs/structure/calendar-sync.md, "Syncing
   without a button". A Refresh or pull-down control is a BLOCKER
-  (decision 16).
+  (decision 16). Mission 78 added a fourth circle, **Filter**, after
+  Search; its rules are in docs/structure/calendar-filter.md.
 
 ## The search page (mission 75)
 

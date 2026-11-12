@@ -4,6 +4,7 @@ import { decryptSecret, isTokenKeyConfigured } from "@/lib/tokenCrypto";
 import { isGoogleConfigured } from "@/lib/google/oauth";
 import type { PullCalendarRow } from "@/lib/calendarPullRun";
 import { isPushable, startsTicked, type PlanCalendar } from "@/lib/calendarSyncRules";
+import type { CalendarFilterAccountView } from "@/lib/types";
 import { toAccountStatus, toSyncDirection, type AccountStatus, type SyncDirection } from "@/lib/calendarSyncVocabulary";
 
 // Reads for linked Google accounts (mission 55). The page reader uses an
@@ -80,6 +81,68 @@ export async function loadSyncedCalendarsPage(): Promise<SyncedAccountRow[]> {
       })
       .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.name.localeCompare(b.name)),
   }));
+}
+
+/**
+ * The calendars the Calendar's Filter sheet lists (mission 78): every linked
+ * calendar that is on, any direction, grouped under its account (oldest link
+ * first), primary first then by name. Names and Marshee row ids only: no
+ * Google ids, tokens or etags, and no emails except to tell an owner's second
+ * unlabelled account from the first.
+ */
+export async function loadFilterCalendars(): Promise<CalendarFilterAccountView[]> {
+  const calendars = await db.linkedCalendar.findMany({
+    where: { direction: { not: "off" } },
+    select: {
+      id: true,
+      name: true,
+      isPrimary: true,
+      account: { select: { id: true, label: true, email: true, linkedAt: true, userId: true, user: { select: { displayName: true } } } },
+    },
+  });
+  const accounts = new Map<
+    string,
+    { linkedAt: Date; userId: string; label: string | null; email: string; owner: string; view: CalendarFilterAccountView; primary: Set<string> }
+  >();
+  for (const calendar of calendars) {
+    const { account } = calendar;
+    let entry = accounts.get(account.id);
+    if (!entry) {
+      entry = {
+        linkedAt: account.linkedAt,
+        userId: account.userId,
+        label: account.label,
+        email: account.email,
+        owner: account.user.displayName,
+        view: { accountId: account.id, label: "", calendars: [] },
+        primary: new Set(),
+      };
+      accounts.set(account.id, entry);
+    }
+    entry.view.calendars.push({ id: calendar.id, name: calendar.name });
+    if (calendar.isPrimary) entry.primary.add(calendar.id);
+  }
+  // Heading: the account's label, else "<owner>'s Google"; an owner's second
+  // and later unlabelled accounts add the email, so two never read the same.
+  // Emails otherwise stay off the Calendar page.
+  const unlabelledSeen = new Map<string, number>();
+  return [...accounts.values()]
+    .sort((a, b) => a.linkedAt.getTime() - b.linkedAt.getTime())
+    .map(({ view, primary, label, email, owner, userId }) => {
+      let heading = label;
+      if (heading === null) {
+        const seen = unlabelledSeen.get(userId) ?? 0;
+        unlabelledSeen.set(userId, seen + 1);
+        heading = seen === 0 ? `${owner}'s Google` : `${owner}'s Google (${email})`;
+      }
+      return {
+        ...view,
+        label: heading,
+        calendars: view.calendars.sort(
+          (a, b) => Number(primary.has(b.id)) - Number(primary.has(a.id)) || a.name.localeCompare(b.name),
+        ),
+      };
+    });
 }
 
 /** Who linked this account, for the actions' fresh ownership check. */

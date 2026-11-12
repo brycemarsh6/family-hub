@@ -37,7 +37,7 @@
 
 import { createElement, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { formatMonthHeading, formatMonthTitle } from "@/lib/mealPlanDates";
+import { formatMonthHeading, formatMonthTitle, shortMonthHeading } from "@/lib/mealPlanDates";
 import { useToday } from "@/lib/useToday";
 import type { ScheduleRenderMonth } from "@/lib/scheduleWindowState";
 
@@ -269,12 +269,15 @@ export function useScheduleMonthTitle(
   // established for building an element from a non-JSX-file context.
   // Matches the non-pinned title's own markup exactly (CalendarHeader.tsx),
   // so switching in and out of Schedule shows the identical style.
+  // Mission 78: two spans swapped by the bar's container width, like the header's own title.
+  const heading = today ? formatMonthHeading(visibleMonthAnchor, today) : formatMonthTitle(visibleMonthAnchor);
   const portal = titleSlot
     ? createPortal(
         createElement(
-          "h2",
-          { className: "truncate text-lg font-semibold" },
-          today ? formatMonthHeading(visibleMonthAnchor, today) : formatMonthTitle(visibleMonthAnchor),
+          "span",
+          { className: "contents" },
+          createElement("h2", { className: "truncate text-base font-semibold @min-[30rem]:hidden" }, shortMonthHeading(heading)),
+          createElement("h2", { className: "hidden truncate text-lg font-semibold @min-[30rem]:block" }, heading),
         ),
         titleSlot,
       )

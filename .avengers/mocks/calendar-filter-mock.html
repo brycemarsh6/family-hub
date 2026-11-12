@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calendar filter mock (mission 78)</title>
+<style>
+:root{--bg:#f6f0e8;--fg:#4e5256;--muted:#7a756b;--line:#e2dacd;--surface:#fff;--s2:#efe7db;--accent:#5a6b4f;--accent-fg:#f6f0e8;--warn:#f3e3c3}
+*{box-sizing:border-box}
+body{margin:0;background:#ddd6ca;color:var(--fg);font:15px -apple-system,system-ui,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:14px}
+h1{font-size:19px;margin:0 0 4px}
+p.note{margin:0 0 14px;font-size:14px;line-height:1.5;max-width:760px}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.frame h2{font-size:15px;margin:0 0 6px;max-width:330px}
+.frame .cap{font-size:13px;line-height:1.45;max-width:330px;margin:6px 0 0}
+.dev{width:330px;height:640px;background:var(--bg);border:6px solid #222;border-radius:28px;overflow:hidden;position:relative}
+.top{display:flex;align-items:flex-start;gap:6px;padding:8px 10px 6px}
+.ham{width:40px;height:40px;border-radius:999px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.title{font-weight:700;font-size:18px;height:40px;display:flex;align-items:center;gap:3px;white-space:nowrap;overflow:hidden;flex:1;min-width:0}
+.circs{display:flex;gap:6px;flex:none}
+.c{display:flex;flex-direction:column;align-items:center;width:44px}
+.circ{width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;position:relative}
+.circ.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--fg);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.lbl{font-size:11px;line-height:16px;margin-top:3px}
+.lbl.new{font-weight:700;color:var(--accent)}
+.strip{margin:2px 10px 6px;background:var(--warn);border-radius:10px;padding:8px 10px;font-size:13px;display:flex;align-items:center;gap:8px;min-height:44px}
+.strip b{font-weight:700}
+.strip .btn{margin-left:auto;font-weight:700;color:var(--accent);white-space:nowrap;padding:6px 8px}
+.month{padding:0 4px}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);font-size:11px;color:var(--muted);text-align:center;padding:2px 0}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--line)}
+.d{height:74px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);font-size:11px;padding:2px}
+.d:nth-child(7n){border-right:0}
+.d .n{font-weight:600}
+.p{font-size:9.5px;border-radius:4px;padding:1px 3px;margin-top:2px;white-space:nowrap;overflow:hidden;color:#fff}
+.pa{background:#3d7cc9}.pb{background:#c4467a}.pc{background:#3f9a63}.pd{background:#d08a22}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:70px;background:var(--surface);border-radius:18px 18px 0 0;padding:6px 0 0;overflow:hidden}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 6px}
+.sh{display:flex;align-items:center;padding:0 14px 6px}
+.sh h3{margin:0;font-size:17px;flex:1}
+.sh .lnk{font-weight:700;color:var(--accent);padding:8px}
+.sect{padding:10px 16px 4px;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.acct{padding:8px 16px 2px;font-size:13px;font-weight:700;color:var(--fg)}
+.opt{display:flex;align-items:center;gap:12px;padding:0 16px;min-height:48px;border-bottom:1px solid var(--line)}
+.opt.sub{padding-left:30px}
+.dot{width:14px;height:14px;border-radius:7px;flex:none}
+.box{width:24px;height:24px;border-radius:6px;border:2px solid var(--muted);margin-left:auto;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;flex:none}
+.box.y{background:var(--accent);border-color:var(--accent)}
+.done{position:absolute;left:12px;right:12px;bottom:12px;background:var(--accent);color:var(--accent-fg);border-radius:12px;min-height:50px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.panel{background:var(--surface);margin:0 8px;border-radius:12px;border:1px solid var(--line);padding:8px}
+.mini{display:grid;grid-template-columns:repeat(7,1fr);font-size:11px;text-align:center;gap:4px 0}
+.mini span{padding:4px 0}
+.mini .t{background:var(--accent);color:var(--accent-fg);border-radius:999px}
+.prow{margin-top:8px;border-top:1px solid var(--line);padding-top:8px;display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600}
+.tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--accent);color:var(--accent-fg);display:inline-block;margin-bottom:6px}
+.tag.no{background:#9a8f80}
+table{border-collapse:collapse;background:var(--surface);border-radius:12px;overflow:hidden;max-width:1100px;margin-top:18px;font-size:14px;line-height:1.45}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{background:var(--s2)}
+td.rec{font-weight:600}
+</style></head>
+<body><div class="wrap">
+<h1>Calendar filter (mission 78)</h1>
+<p class="note">Bryce asked for "a filter button that I can filter by user and synced calendar (including sub calendar)". Today the Calendar has no filter at all. This mock shows my recommended version (frames 1 to 3), one alternative spot for the button (frame 4), and the questions with my pick for each at the bottom. Colours here are stand ins: the real ones come from each person's own colour (the colours chat is changing them).</p>
+
+<div class="row">
+
+<div class="frame">
+<span class="tag">Recommended</span>
+<h2>1. A fourth circle: Filter</h2>
+<div class="dev">
+  <div class="top">
+    <div class="ham">☰</div>
+    <div class="title">Nov ▾</div>
+    <div class="circs">
+      <div class="c"><div class="circ">◎</div><div class="lbl">Today</div></div>
+      <div class="c"><div class="circ">▦</div><div class="lbl">Month</div></div>
+      <div class="c"><div class="circ">⚲</div><div class="lbl">Search</div></div>
+      <div class="c"><div class="circ">⚟</div><div class="lbl new">Filter</div></div>
+    </div>
+  </div>
+  <div class="month">
+    <div class="wk"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+    <div class="grid">
+      <div class="d"><span class="n">9</span><div class="p pa">Soccer</div></div>
+      <div class="d"><span class="n">10</span><div class="p pb">Dentist</div><div class="p pc">Site visit</div></div>
+      <div class="d"><span class="n">11</span><div class="p pd">Holiday</div></div>
+      <div class="d"><span class="n">12</span><div class="p pa">Date night</div></div>
+      <div class="d"><span class="n">13</span><div class="p pc">Install</div></div>
+      <div class="d"><span class="n">14</span></div>
+      <div class="d"><span class="n">15</span><div class="p pb">Park</div></div>
+      <div class="d"><span class="n">16</span><div class="p pc">Team call</div></div>
+      <div class="d"><span class="n">17</span><div class="p pa">Piano</div></div>
+      <div class="d"><span class="n">18</span></div>
+      <div class="d"><span class="n">19</span><div class="p pc">Install</div></div>
+      <div class="d"><span class="n">20</span><div class="p pb">Book club</div></div>
+      <div class="d"><span class="n">21</span></div>
+      <div class="d"><span class="n">22</span></div>
+    </div>
+  </div>
+</div>
+<p class="cap">The button sits with Today, View and Search on every screen. On a phone four circles leave less room for the month, so the title shortens to three letters ("Nov", "Jan 2027"). On the iPad there is room, so it stays "November".</p>
+</div>
+
+<div class="frame">
+<span class="tag">Recommended</span>
+<h2>2. Tap Filter: two groups of checkboxes</h2>
+<div class="dev">
+  <div class="top" style="opacity:.5">
+    <div class="ham">☰</div><div class="title">Nov ▾</div>
+  </div>
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sh"><h3>Filter</h3><span class="lnk">Show all</span></div>
+    <div class="sect">People</div>
+    <div class="opt"><span class="dot" style="background:#3d7cc9"></span>Bryce<span class="box y">✓</span></div>
+    <div class="opt"><span class="dot" style="background:#c4467a"></span>Person 2<span class="box y">✓</span></div>
+    <div class="opt"><span class="dot" style="background:#d08a22"></span>Kid 1<span class="box">&nbsp;</span></div>
+    <div class="sect">Calendars</div>
+    <div class="opt">Made in Marshee<span class="box y">✓</span></div>
+    <div class="acct">Bryce's Google account</div>
+    <div class="opt sub"><span class="dot" style="background:#3f9a63"></span>Bryce (main)<span class="box y">✓</span></div>
+    <div class="opt sub"><span class="dot" style="background:#3f9a63"></span>Forthright work<span class="box">&nbsp;</span></div>
+    <div class="opt sub"><span class="dot" style="background:#3f9a63"></span>US holidays<span class="box">&nbsp;</span></div>
+    <div class="done">Done</div>
+  </div>
+</div>
+<p class="cap">People: everyone in the family, kids too. Calendars: "Made in Marshee", then each linked Google account with its own calendars under it (the "sub calendars" from Settings, Calendars). Every tap changes the calendar behind the sheet at once. A new person or a newly linked calendar starts ticked, so nothing new is ever hidden by surprise.</p>
+</div>
+
+<div class="frame">
+<span class="tag">Recommended</span>
+<h2>3. A filter is on: you can always tell</h2>
+<div class="dev">
+  <div class="top">
+    <div class="ham">☰</div>
+    <div class="title">Nov ▾</div>
+    <div class="circs">
+      <div class="c"><div class="circ">◎</div><div class="lbl">Today</div></div>
+      <div class="c"><div class="circ">▦</div><div class="lbl">Month</div></div>
+      <div class="c"><div class="circ">⚲</div><div class="lbl">Search</div></div>
+      <div class="c"><div class="circ on">⚟<span class="badge">3</span></div><div class="lbl new">Filtered</div></div>
+    </div>
+  </div>
+  <div class="strip"><span>Hiding <b>Kid 1</b> and <b>2 calendars</b></span><span class="btn">Show all</span></div>
+  <div class="month">
+    <div class="wk"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+    <div class="grid">
+      <div class="d"><span class="n">9</span></div>
+      <div class="d"><span class="n">10</span><div class="p pb">Dentist</div></div>
+      <div class="d"><span class="n">11</span></div>
+      <div class="d"><span class="n">12</span><div class="p pa">Date night</div></div>
+      <div class="d"><span class="n">13</span></div>
+      <div class="d"><span class="n">14</span></div>
+      <div class="d"><span class="n">15</span><div class="p pb">Park</div></div>
+      <div class="d"><span class="n">16</span></div>
+      <div class="d"><span class="n">17</span></div>
+      <div class="d"><span class="n">18</span></div>
+      <div class="d"><span class="n">19</span></div>
+      <div class="d"><span class="n">20</span><div class="p pb">Book club</div></div>
+      <div class="d"><span class="n">21</span></div>
+      <div class="d"><span class="n">22</span></div>
+    </div>
+  </div>
+</div>
+<p class="cap">Two signs, both needed: the circle turns solid green with a count of what is hidden and reads "Filtered", and a pale strip under the top bar says what is hidden, with one tap to "Show all". The strip shows on every view (Month, Week, Day, Schedule and the rest).</p>
+</div>
+
+<div class="frame">
+<span class="tag no">Alternative, not my pick</span>
+<h2>4. Filter inside the month dropdown</h2>
+<div class="dev">
+  <div class="top">
+    <div class="ham">☰</div>
+    <div class="title">November ▴</div>
+    <div class="circs">
+      <div class="c"><div class="circ">◎</div><div class="lbl">Today</div></div>
+      <div class="c"><div class="circ">▦</div><div class="lbl">Month</div></div>
+      <div class="c"><div class="circ">⚲</div><div class="lbl">Search</div></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="mini">
+      <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+      <span>9</span><span>10</span><span>11</span><span class="t">12</span><span>13</span><span>14</span><span>15</span>
+      <span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span><span>22</span>
+    </div>
+    <div class="prow">⚟ Filter people and calendars <span style="margin-left:auto">›</span></div>
+  </div>
+</div>
+<p class="cap">This keeps the full month name and three circles, and it is how Google does it on the iPad. But you asked for a filter button, and here it is one tap deeper behind the month title, so it is easy to forget it exists. The side drawer (☰) is the whole app's menu, so a calendar filter does not belong there.</p>
+</div>
+
+</div>
+
+<table>
+<tr><th>Question</th><th>Choices</th><th>My recommendation and why</th></tr>
+<tr><td>1. Where the Filter button sits</td><td>A fourth circle (frame 1) · inside the month dropdown (frame 4) · the side drawer</td><td class="rec">A fourth circle. It is the button you asked for, always in sight, the same on phone and iPad. The cost is "Nov" instead of "November" on a phone.</td></tr>
+<tr><td>2. Is the filter remembered?</td><td>Remembered for this login on this device · remembered for the person on every device · never remembered</td><td class="rec">Remembered for this login on this device, like the last view you picked. Hiding your work calendar on your phone then never hides it on your wife's phone or the wall tablet, and the tablet can keep its own filter all day. Frame 3's strip makes a remembered filter impossible to miss.</td></tr>
+<tr><td>3. What counts as a "sub calendar"</td><td>Each Google calendar under a linked account</td><td class="rec">Yes: every calendar that is switched on in Settings, Calendars (any direction), listed under its Google account. Plus "Made in Marshee" for events made here.</td></tr>
+<tr><td>3b. An event on more than one calendar</td><td>Show it if any of its calendars is ticked · hide it if any is unticked</td><td class="rec">Show it if any calendar it is on is ticked. An event made in Marshee and copied to "Forthright work" counts as both, so unticking Work only hides things that are only on Work.</td></tr>
+<tr><td>3c. People and calendars together</td><td>Both must match · either one is enough</td><td class="rec">Both must match: an event shows when one of its people is ticked and one of its calendars is ticked. Events pulled from Google belong to the person who linked that account. An event with nobody on it follows only the calendar boxes.</td></tr>
+<tr><td>3d. Tasks and planned habits</td><td>Follow the People boxes · ignore the filter</td><td class="rec">Follow the People boxes. They live only in Marshee, so the Calendars boxes do not touch them.</td></tr>
+<tr><td>4. Showing a filter is on</td><td>Solid circle with a count · a strip with "Show all" · both</td><td class="rec">Both (frame 3). The circle alone is easy to miss on a busy morning; the strip says exactly what is hidden and undoes it in one tap.</td></tr>
+<tr><td>5. Does Search obey the filter?</td><td>Yes · no</td><td class="rec">No. Search is how you find something you cannot see, so it always looks through everything. The dashboard Calendar tile also ignores the filter (it is a quick glance at the whole family).</td></tr>
+</table>
+</div></body></html>
