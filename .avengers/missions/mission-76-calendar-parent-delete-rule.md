@@ -1,7 +1,7 @@
 # Mission: Calendar parent delete rule (mission 76)
 
 **Project:** family-hub (Marshee)
-**Status:** INTERROGATING (questions out to Bryce, 2026-11-12; no code until he answers)
+**Status:** DELIVERED (2026-11-12)
 **Started:** 2026-11-12 · **Updated:** 2026-11-12
 **Branch:** `claude/calendar-parent-delete-rule-082409`
 
@@ -99,8 +99,37 @@ nobody, or only deactivated adults: allowed. Deactivated adults never block
 
 ## Gate ledger
 
+- **Vision pass 1: PASS.** Re-ran the whole gauntlet (2099 tests; the 10 UTC
+  skips are DST tests that skip themselves, not this change). Confirmed the
+  event check runs before `removeEventCopies`, the caller is always the
+  verified session, kids and the Tablet are still refused by the role check,
+  and the only person deletes are the two guarded actions.
+- **Strange pass 1: PASS** from code, the mock and measured contrast (light
+  4.53:1, dark 8.58:1). No live screenshot: it would need a real sign-in and a
+  test item written to the dev database. Bryce's phone test covers the look.
+- Captain not assembled (one new pure file in `src/lib/`); Fury split
+  `docs/structure/calendar.md` at Captain's mission 75 seam.
+
 ## Handoff log
 
 - 2026-11-12: Bryce's PR 9 phone test recorded in `.avengers/status.md`.
 
 ## Delivery
+
+- **Shipped:** the rule in `src/lib/calendarDeleteRules.ts` (11 tests), both
+  delete actions refuse with its words, both sheets show the amber note in
+  place of Delete. Rules: `docs/structure/calendar-tasks-search.md`, "Parents
+  can't delete each other's items" (split from `calendar.md` this mission).
+- **Leftovers (NOTES, not this mission's job):**
+  - The rule guards against accidents, not a lock: editing is unchanged
+    (Bryce's answer 2), so a parent can edit another parent off an item and
+    then delete it.
+  - An open task sheet keeps its old note after an edit until reopened; the
+    server still gates. A refused delete from stale data leaves Delete
+    showing, with the reason in the warn line.
+  - Google to Marshee sync still deletes an event when its Google original
+    is deleted, whoever is on it (that is the sync, not a person).
+  - When Winnie gets calendar writes, her delete path must call the same
+    rule.
+  - On a blocked item, the "More actions" menu holds only the note.
+  - CLAUDE.md is at the 250-line cap: the next edit must cut first.

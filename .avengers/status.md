@@ -6,6 +6,12 @@ it is done. The pre-cleanup text is in
 `docs/history/claude-md-archive-2026-11-08.md`.
 
 **Bryce's checklist (never blocks work):**
+- **Calendar delete rule (mission 76)**, about 2 minutes, on your iPhone,
+  light and dark. Open an event that has only Emily on it, tap the three
+  dots: an amber note says "Only Emily can delete this." and there is no
+  Delete. Open one with only a kid (or nobody) on it: Delete is there and
+  works in one tap. Open date night (you both on it): Delete works. Try the
+  same with a task. Emily should see the same from her side.
 - **Calendar Task completed, Undo (mission 74, PR 8 of 9)**, about 3
   minutes, on your iPhone, as a parent and then as a kid login, plus the
   kitchen tablet. Use a throwaway task (add one for today and put the kid
