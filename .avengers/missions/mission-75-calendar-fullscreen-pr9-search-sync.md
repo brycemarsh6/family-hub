@@ -262,3 +262,24 @@ job; never `git add`; no database writes; no migration.
 4. **Evidence:** `git grep -n "showRefresh\|Last checked\|CalendarPullButton"`
    returns nothing in `src/`; gauntlet tails; test names.
 5. **Done:** gauntlet green; no Refresh anywhere; the banner unchanged.
+
+## Execution (2026-11-12)
+
+- C1, C2, C3, C4 all DONE; Fury committed each by explicit path
+  (`git log --oneline 11811fd..HEAD`). Stark staged nothing.
+- Sizes: `ScheduleView.tsx` 603 to 558, `CalendarViews.tsx` 551 to 512;
+  `docs/structure/calendar.md` now 293 (split if it passes ~300).
+- Tests: 2060 (mission 74) to 2083 Denver (+13 C2 `calendarSearch.test.ts`,
+  +8 C4 `autoPullRules.test.ts`, +2 C4 vocabulary); UTC 2073 + 10 skips.
+- Environment: the worktree's `node_modules` had been a symlink to the main
+  checkout, which is on an old commit and lacks four packages, so tsc and
+  build failed there. Fury replaced the symlink with `npm ci` in the
+  worktree; C3 then ran `npm run build` green with `/calendar/search` listed.
+- **Fury's wording calls, told to Bryce:** the search failure line
+  "Couldn't search. Try again." (the "Couldn't undo. Try again." pattern);
+  a result date in another year adds the year (decision 3's rule).
+- Notes for the gates: stale "Last checked" in comments only
+  (`calendarPullRun.ts`, its test title, `linkedCalendarWrites.ts`); no
+  `loading.tsx` for `/calendar/search` (it inherits the Calendar's month
+  skeleton); `HighlightedText` lives in `EventCard.tsx` and `TaskCard`
+  imports it.
