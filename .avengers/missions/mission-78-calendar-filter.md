@@ -1,6 +1,6 @@
 # Mission 78: Calendar filter by person and synced calendar
 
-- **Status:** CONTRACTED (Bryce approved the mock 2026-11-12 except the strip; see Bryce's answers)
+- **Status:** AT-THE-GATES (Bryce approved the mock 2026-11-12 except the strip; see Bryce's answers)
 - **Started:** 2026-11-12 · **Updated:** 2026-11-12
 - **Branch:** `claude/calendar-filter-people-calendars-dc7840`, cut from `main` `5bbf740` (PR #118 merged)
 - **Mock:** `.avengers/mocks/calendar-filter-mock.html`
@@ -87,7 +87,7 @@ C1 then C2, sequential (C2 imports C1's files).
 - **Report:** Stark: 10 files, +424/-3. npm test 2088 to 2104 (16 new), tsc, eslint, TZ=UTC run, build all clean. Setup: ran `npx prisma generate` and `npm ci` in the worktree (gitignored output only). `shortMonthHeading` keeps what follows ("September 2026" becomes "Sep 2026"). Fury read calendarFilter.ts and calendarFilterStore.ts: matches the contract.
 
 ### C2 - the Filter circle, the sheet, and every view obeying it
-- **Status:** DISPATCHED
+- **Status:** DONE (commit eeecc4d), browser check NOT done by Stark
 - **Preflight note (Fury):** preflight hard-fails `STRUCTURE.md` and `DESIGN.md` on the 650 hard cap. Not applicable: STRUCTURE.md "File-size caps" says the caps govern source files, not documents (Markdown is outside them). Recorded, not overridden quietly.
 - **Objective:** a fourth "Filter" circle in the Calendar top bar opens a Filter sheet (People and Calendars checkboxes, Show all, Done); every view hides what is unticked; the circle turns solid with a count chip and reads "Filtered" while anything is hidden.
 - **Boundaries:** may touch: `src/components/ActionCircle.tsx`, `src/components/CalendarHeader.tsx`, new `src/components/CalendarFilterSheet.tsx`, new `src/lib/useCalendarFilterView.ts` (the hook CalendarViews calls so it grows by only a few lines), `src/components/CalendarViews.tsx`, `src/components/ScheduleView.tsx`, `src/lib/useScheduleMonthTitle.ts`, new `docs/structure/calendar-filter.md`, `STRUCTURE.md` (ONE pointer line in the calendar One source of truth area), `DESIGN.md` (ONE short entry for the Filter circle and sheet beside the HabitFilterSheet entry). · must not touch: C1's files except to import them, `CalendarSearch.tsx` and `src/app/actions/calendarSearch.ts` (search ignores the filter), the dashboard Calendar tile, `prisma/`, `package.json`, `CLAUDE.md`.
@@ -101,18 +101,22 @@ C1 then C2, sequential (C2 imports C1's files).
 - **Verification:** the full gauntlet; then in the browser (dev server, Bryce's dev login via the project's normal local login, never a password typed by an agent from memory): open `/calendar` at 393x852, see four circles and "Nov"-style title; open Filter, untick a person, see their events leave Month, Week, Day and Schedule; chip shows 1 and label "Filtered"; reload, filter still on; Show all clears it; Search still finds a hidden person's event.
 - **Evidence required:** gauntlet tails; screenshots at 393 wide (bar with no filter, sheet open, bar with chip) and at 1024 wide (iPad landscape bar); line counts total and code (preflight counter) for `CalendarViews.tsx` and `ScheduleView.tsx` before and after.
 - **Done criteria:** Fury re-runs the gauntlet; screenshots match the approved mock frames 1 to 3 minus the strip; `CalendarViews.tsx` grows by 25 lines or fewer and `ScheduleView.tsx` by 15 or fewer.
-- **Report:** (pending)
+- **Report:** Stark: 10 files, +369/-17; tsc, eslint, npm test 2104/2104, TZ=UTC run, build exit 0. CalendarViews 520 to 530, ScheduleView 558 to 566 (wc -l). No browser check: no preview tool and no dev password, so the visuals go to Strange. Open points Stark raised: no test for the pure `filterScheduleMonths` (test file not on the may-touch list); a month plus year title ("Dec 2027") may truncate at 393px beside four circles.
 
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
+| 1 | Vision | running | | |
+| 1 | Strange | running | | |
+| 1 | Captain | running | | |
 
 ## Handoff log
 
 - 2026-11-12: mission opened; existing code checked (no filter exists); mock written and sent to Bryce. Waiting for his answers before contracts.
 - 2026-11-12: Bryce approved all recommendations except the strip (count chip only). C1 and C2 written; C1 next.
 - 2026-11-12: C1 DONE (b0ffe12). C2 dispatched.
+- 2026-11-12: C2 DONE (eeecc4d). Gates pass 1: Vision, Strange, Captain in parallel.
 
 ## Delivery
 
