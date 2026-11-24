@@ -78,7 +78,7 @@ const HABIT_COLUMNS: Record<keyof Habit, ColumnKind> = {
   timeOfDay: "value", schedule: "value", weekdays: "value", times: "value", anchorWeek: "date",
   carryOver: "value", track: "value", weeklyMinutes: "value", paceDays: "value",
   hoursSince: "date", sharing: "value", isPrivate: "value", everyone: "value",
-  archivedAt: "date", createdById: "value", createdAt: "date", updatedAt: "date",
+  archivedAt: "date", createdById: "value", createdAt: "date", updatedAt: "date", stars: "value",
 };
 
 const HABIT_PARTICIPANT_COLUMNS: Record<keyof HabitParticipant, ColumnKind> = {
@@ -88,7 +88,7 @@ const HABIT_PARTICIPANT_COLUMNS: Record<keyof HabitParticipant, ColumnKind> = {
 
 const HABIT_LOG_COLUMNS: Record<keyof HabitLog, ColumnKind> = {
   id: "value", habitId: "value", userId: "value", day: "date", status: "value",
-  loggedById: "value", createdAt: "date",
+  loggedById: "value", createdAt: "date", stars: "value",
 };
 
 const HABIT_TIME_ENTRY_COLUMNS: Record<keyof HabitTimeEntry, ColumnKind> = {
@@ -141,6 +141,15 @@ export const MODELS: Record<UndoModel, { columns: readonly string[]; dates: read
   GoalCheckIn: describe(GOAL_CHECK_IN_COLUMNS),
   PlanItem: describe(PLAN_ITEM_COLUMNS),
   VisionStatement: describe(VISION_STATEMENT_COLUMNS),
+};
+
+/**
+ * Columns added after saved copies existed. A saved copy without one is still
+ * undoable and reads the column as null (see `hasAllColumns` in undoPlan.ts).
+ */
+export const LATE_COLUMNS: Partial<Record<UndoModel, readonly string[]>> = {
+  Habit: ["stars"],
+  HabitLog: ["stars"],
 };
 
 /** Cache columns undo neither matches on nor writes (see the header). */

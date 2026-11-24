@@ -160,3 +160,33 @@ test("streakWork choreUsers: log and hours rows count from either copy, each per
   ]));
   assert.deepEqual(work.choreUsers, ["uA", "uB"]);
 });
+
+test("a HabitLog copy saved before stars existed (no stars key) is still undoable and reads stars as null", () => {
+  const s = steps([change("HabitLog", "l1", "create", null, log("l1", "h1", "uA"))]);
+  assert.equal(s[0].kind, "remove");
+  const old = steps([change("HabitLog", "l1", "delete", log("l1", "h1", "uA"), null)]);
+  assert.equal(old[0].kind, "recreate");
+  assert.equal(fromCopy("HabitLog", old[0].before!).stars, null);
+  assert.equal(sameCopy("HabitLog", log("l1", "h1", "uA"), { ...log("l1", "h1", "uA"), stars: null }), true);
+});
+
+test("a pre-stars Habit copy is still undoable too", () => {
+  const s = steps([change("Habit", "h1", "update", habit("h1"), habit("h1", { title: "ZZZ renamed" }))]);
+  assert.equal(s[0].kind, "restore");
+  assert.equal(fromCopy("Habit", s[0].before!).stars, null);
+});
+
+test("a HabitLog copy with stars round trips, and a different star count is a change", () => {
+  const paid = { ...log("l1", "h1", "uA"), stars: 5 };
+  const s = steps([change("HabitLog", "l1", "delete", paid, null)]);
+  assert.equal(s[0].kind, "recreate");
+  assert.equal(fromCopy("HabitLog", s[0].before!).stars, 5);
+  assert.equal(sameCopy("HabitLog", paid, { ...paid }), true);
+  assert.equal(sameCopy("HabitLog", paid, { ...paid, stars: 3 }), false);
+});
+
+test("a copy missing a non-late column is still not undoable", () => {
+  const broken: Record<string, unknown> = log("l1", "h1", "uA");
+  delete broken.status;
+  assert.equal(plan([change("HabitLog", "l1", "delete", broken, null)]).ok, false);
+});

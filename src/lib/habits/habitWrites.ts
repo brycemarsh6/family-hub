@@ -21,6 +21,8 @@ import type { Habit, HabitTimeEntry, Prisma } from "@/generated/prisma/client";
 import { calendarDateFromUtcMidnight, utcMidnightInstant, type CalendarDate } from "../householdDate";
 import { HOURS_LIMITS, toHabitTrack } from "../habitHoursVocabulary";
 import { toHabitLogStatus, toHabitSchedule, type HabitLogStatus } from "../habitVocabulary";
+import { toLateStars } from "../rewardVocabulary";
+import { starsForLog } from "../rewards/stars";
 import { checkTargetUserIds, habitColumns, scheduleChanged, type HabitFields } from "./habitRows";
 import { choreOwnersOf, clearChoreChanges, recomputeChoreStreaks } from "./choreWrites";
 import { atomically, householdParticipantIds, joinHouseholdToHabit, nextSortOrders, replaceParticipants } from "./participantWrites";
@@ -175,14 +177,18 @@ export async function checkHabit(
   client: Prisma.TransactionClient = db,
 ): Promise<CheckResult> {
   return atomically(client, async (tx) => {
-    const userIds = await targetUserIds(tx, input.habitId, input.forUserId);
+    const { userIds, stars } = await checkTargets(tx, input.habitId, input.forUserId);
     if (userIds.length === 0) return { created: 0, userIds };
+    const status = toHabitLogStatus(input.status ?? "done");
+    const settings = await tx.rewardSettings.findUnique({ where: { id: "household" }, select: { lateStars: true } });
+    const paid = starsForLog(stars, status, toLateStars(settings?.lateStars));
     const { count } = await tx.habitLog.createMany({
       data: userIds.map((userId) => ({
         habitId: input.habitId,
         userId,
         day: utcMidnightInstant(input.day),
-        status: toHabitLogStatus(input.status ?? "done"),
+        status,
+        stars: paid,
         loggedById: input.loggedById,
       })),
       skipDuplicates: true,
@@ -257,12 +263,22 @@ export async function uncheckNewest(
 
 /** Who a write for `forUserId` lands on, read from the habit's sharing and participants. */
 async function targetUserIds(tx: Client, habitId: string, forUserId: string): Promise<string[]> {
+  return (await checkTargets(tx, habitId, forUserId)).userIds;
+}
+
+/** `targetUserIds` plus the habit's star value, from the same single read. */
+async function checkTargets(
+  tx: Client,
+  habitId: string,
+  forUserId: string,
+): Promise<{ userIds: string[]; stars: number | null }> {
   const habit = await tx.habit.findUnique({
     where: { id: habitId },
-    select: { sharing: true, participants: { select: { userId: true } } },
+    select: { sharing: true, stars: true, participants: { select: { userId: true } } },
   });
-  if (!habit) return [];
-  return checkTargetUserIds(habit.sharing, habit.participants.map((p) => p.userId), forUserId);
+  if (!habit) return { userIds: [], stars: null };
+  const userIds = checkTargetUserIds(habit.sharing, habit.participants.map((p) => p.userId), forUserId);
+  return { userIds, stars: habit.stars };
 }
 
 /**

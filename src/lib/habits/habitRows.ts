@@ -11,6 +11,7 @@ import {
   type HabitSchedule,
   type HabitSharing,
 } from "../habitVocabulary";
+import { toStarValue } from "../rewardVocabulary";
 import { HOURS_LIMITS, toHabitTrack, toPaceDays, type HabitTrack, type PaceDays } from "../habitHoursVocabulary";
 import { calendarDateFromUtcMidnight, utcMidnightInstant, type CalendarDate } from "../householdDate";
 import { scheduleFromRow } from "./schedule";
@@ -132,6 +133,8 @@ export type HabitFields = {
   /** Hours habits only: the week's goal in minutes. */
   weeklyMinutes?: number | null;
   paceDays?: PaceDays | null;
+  /** Stars a check pays; null clears. Hours habits never carry stars. */
+  stars?: number | null;
 };
 
 export type HabitColumns = {
@@ -152,6 +155,7 @@ export type HabitColumns = {
   track?: string;
   weeklyMinutes?: number | null;
   paceDays?: string | null;
+  stars?: number | null;
 };
 
 /**
@@ -183,6 +187,7 @@ export function habitColumns(fields: HabitFields): HabitColumns {
   if (fields.createdById !== undefined) out.createdById = fields.createdById;
   if (fields.weeklyMinutes !== undefined) out.weeklyMinutes = fields.weeklyMinutes === null ? null : Math.trunc(fields.weeklyMinutes);
   if (fields.paceDays !== undefined) out.paceDays = fields.paceDays === null ? null : toPaceDays(fields.paceDays);
+  if (fields.stars !== undefined) out.stars = toStarValue(fields.stars);
   if (fields.track !== undefined) {
     out.track = toHabitTrack(fields.track);
     if (out.track === "hours") {
@@ -198,6 +203,7 @@ export function habitColumns(fields: HabitFields): HabitColumns {
         mode: "build",
         sharing: "each",
         carryOver: false,
+        stars: null,
         weeklyMinutes: Math.min(Math.max(minutes, targetMinHours * 60), targetMaxHours * 60),
         paceDays: toPaceDays(fields.paceDays),
       });

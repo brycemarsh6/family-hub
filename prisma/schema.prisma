@@ -996,6 +996,9 @@ model Habit {
 
   carryOver Boolean @default(false)
 
+  /// Stars a check on this habit pays into the bank. Null means no stars.
+  stars Int?
+
   /// "checks" | "hours". An hours habit logs minutes toward a weekly goal in
   /// HabitTimeEntry; it is always stored as schedule "weekly", times 1, kind
   /// "habit", mode "build", sharing "each" (habitColumns forces that shape).
@@ -1085,6 +1088,10 @@ model HabitLog {
 
   /// "done" | "late" | "skipped"
   status String @default("done")
+
+  /// Stars this check paid, a snapshot taken at check time and never
+  /// rewritten. Null means it paid nothing.
+  stars Int?
 
   loggedById String?
   loggedBy   User?   @relation("habitLogsLogged", fields: [loggedById], references: [id], onDelete: SetNull)
@@ -1415,6 +1422,19 @@ model ScreensaverSettings {
   sleepStartMinute   Int     @default(1320)
   sleepEndMinute     Int     @default(360)
   backToBlackMinutes Int     @default(2)
+
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+}
+
+/// The household's reward settings: one row (`id` is always "household"). A
+/// missing row reads as the defaults; the first save creates it. `lateStars`
+/// is what a late check pays: "full" | "half" | "none". `updatedById` is a
+/// plain id, no relation to `User` (same as `ScreensaverSettings`).
+model RewardSettings {
+  id String @id @default("household")
+
+  lateStars String @default("full")
 
   updatedAt   DateTime @updatedAt
   updatedById String?

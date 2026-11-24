@@ -124,6 +124,7 @@ test("habitColumns forces the hours storage shape whatever else was given", () =
     mode: "build",
     sharing: "each",
     carryOver: false,
+    stars: null,
     isPrivate: true,
   });
 });
@@ -169,4 +170,20 @@ test("timeEntryFromRow converts the stored day", () => {
     minutes: 90,
     userId: "a",
   });
+});
+
+test("habitColumns passes stars through the star list: on-list kept, off-list and null clear, absent left out", () => {
+  assert.deepEqual(habitColumns({}), {});
+  assert.deepEqual(habitColumns({ stars: 5 }), { stars: 5 });
+  assert.deepEqual(habitColumns({ stars: 50 }), { stars: 50 });
+  assert.deepEqual(habitColumns({ stars: 0 }), { stars: null });
+  assert.deepEqual(habitColumns({ stars: 7 }), { stars: null });
+  assert.deepEqual(habitColumns({ stars: null }), { stars: null });
+});
+
+test("habitColumns forces stars null on an hours habit, and leaves them alone on checks", () => {
+  assert.equal(habitColumns({ track: "hours", stars: 10 }).stars, null);
+  assert.equal(habitColumns({ track: "hours" }).stars, null);
+  assert.equal(habitColumns({ track: "checks", stars: 10 }).stars, 10);
+  assert.equal("stars" in habitColumns({ track: "checks" }), false);
 });

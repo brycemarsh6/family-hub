@@ -3,6 +3,7 @@
 // same words. Pure: no `server-only`, no database. The one read the old
 // `checkInput` did (who is in the household) is now the caller's to pass in.
 
+import { STAR_REFUSAL, STAR_STEPS } from "./rewardVocabulary";
 import { toLifeArea } from "./goalVocabulary";
 import { HABIT_TRACKS, checkHoursTarget, toHabitTrack, toPaceDays } from "./habitHoursVocabulary";
 import {
@@ -50,6 +51,8 @@ export type HabitInput = {
   weeklyHours: number | null;
   /** Hours only: "monsat" or "every". */
   paceDays: string | null;
+  /** Stars a check pays: null is none, undefined leaves it as is (a kid's save never sends it on). */
+  stars?: number | null;
 };
 
 export type CheckedHabitInput =
@@ -76,6 +79,9 @@ export function checkHabitInput(input: HabitInput, household: readonly string[],
   if (input.icon !== null && !(HABIT_ICONS as readonly unknown[]).includes(input.icon)) return { error: "Pick an icon from the list." };
   if (input.lifeArea !== null && toLifeArea(input.lifeArea) === null) return { error: "Pick a life area from the list." };
   if (input.timeOfDay !== null && !(TIMES_OF_DAY as readonly unknown[]).includes(input.timeOfDay)) return { error: "Pick a time of day from the list." };
+  if (input.stars !== undefined && input.stars !== null && !(STAR_STEPS as readonly unknown[]).includes(input.stars)) {
+    return { error: STAR_REFUSAL };
+  }
   const schedule = hours ? "weekly" : toHabitSchedule(input.schedule);
 
   let weeklyMinutes: number | undefined;
@@ -136,6 +142,7 @@ export function checkHabitInput(input: HabitInput, household: readonly string[],
       sharing: toHabitSharing(input.sharing),
       isPrivate: input.isPrivate === true,
       track: toHabitTrack(input.track),
+      ...(hours ? { stars: null } : input.stars !== undefined ? { stars: input.stars } : {}),
       ...(hours ? { weeklyMinutes, paceDays: toPaceDays(input.paceDays) } : {}),
     },
     participantIds,
