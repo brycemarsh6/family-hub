@@ -5,6 +5,7 @@ import { BackLink } from "@/components/BackLink";
 import { HabitForm } from "@/components/HabitForm";
 import { hoursInitialOf } from "@/lib/habitHoursVocabulary";
 import { requireVerifiedUser } from "@/lib/dal";
+import { canSetStars } from "@/lib/rewards/access";
 import { householdToday } from "@/lib/assistant/today";
 import { loadHabitRoster, loadTodayPage } from "@/lib/habitsRead";
 import { addCalendarDays, formatCalendarDate, startOfWeek } from "@/lib/householdDate";
@@ -39,6 +40,7 @@ export default async function EditHabitPage({ params }: { params: Promise<{ id: 
       <HabitForm
         people={people}
         viewerId={user.userId}
+        canSetStars={canSetStars(user.role)}
         thisSunday={formatCalendarDate(thisSunday)}
         nextSunday={formatCalendarDate(addCalendarDays(thisSunday, 7))}
         initial={{ ...habit, ...hoursInitialOf(habit.hours) }}

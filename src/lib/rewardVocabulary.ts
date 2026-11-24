@@ -28,3 +28,24 @@ export const LATE_STARS_LABELS: Record<LateStars, string> = {
 export function toLateStars(raw: unknown): LateStars {
   return LATE_STARS.find((choice) => choice === raw) ?? "full";
 }
+
+/** The stepper's field on the habit form. */
+export const STARS_FIELD_LABEL = "Stars";
+export const STARS_FIELD_HINT = "Paid into the star bank each time it's checked off";
+
+/** "1 star", "-1 star", "10 stars" (a minus is a take-back). */
+export function starCountText(n: number): string {
+  return n === 1 || n === -1 ? `${n} star` : `${n} stars`;
+}
+
+/** What sits between the stepper's buttons: "None" for no stars, else the count. */
+export function starStepText(value: number | null): string {
+  return value === null ? "None" : starCountText(value);
+}
+
+/** The Rewards section in Settings and its Late checks choice. */
+export const REWARDS_SETTINGS_TITLE = "Rewards";
+export const LATE_STARS_TITLE = "Late checks";
+export const LATE_STARS_HELP = "A late check is a carried-over item checked off the next day. Half rounds up.";
+export const LATE_STARS_REFUSAL = "Only parents and admins can change this.";
+export const LATE_STARS_OFF_LIST = "That choice isn't on the list.";

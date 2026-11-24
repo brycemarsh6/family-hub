@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarSync, ChevronRight, Images, LogOut, MessageSquare, Tablet, Users } from "lucide-react";
 import { AdminPasswordSheet } from "@/components/AdminPasswordSheet";
 import { HabitsChoresSettings } from "@/components/HabitsChoresSettings";
+import { RewardsSettings } from "@/components/RewardsSettings";
 import { SettingsAccountCard } from "@/components/SettingsAccountCard";
 import { NavModeSetting } from "@/components/NavModeSetting";
 import { StartPageSetting } from "@/components/StartPageSetting";
@@ -16,6 +17,8 @@ import { tabletMayChangeWallTablet } from "@/lib/tabletRules";
 import { requireVerifiedUser } from "@/lib/dal";
 import { countNewFeedback } from "@/lib/feedbackRead";
 import { loadVacations } from "@/lib/habitsRead";
+import { canSetStars } from "@/lib/rewards/access";
+import { loadLateStars } from "@/lib/rewardSettingsRead";
 import { TWO_COLUMN_CLASSES } from "@/lib/gridClasses";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { countSlideshowPhotos } from "@/lib/slideshowRead";
@@ -29,15 +32,15 @@ export const dynamic = "force-dynamic";
  * (accounts only: the tablet sets its own on the Wall tablet page), the
  * admin-only doors "Manage family" and "Feedback", the parent and admin doors "Synced calendars"
  * and "Slideshow photos", the "Wall tablet" door (parents, admins and the tablet itself), and last the "Habits & Chores" section
- * and the Vacation mode card (accounts only: a device login never sees them), then
+ * (with the parent and admin "Rewards" section right under it) and the Vacation mode card (accounts only: a device login never sees them), then
  * Sign out last. Your own name, colour and
  * password live on /profile.
  *
  * Wide (a 48rem container, decision 283): two columns. Left: account card,
  * Menu style, Text size, Open Marshee on, Manage family, Synced calendars, Slideshow photos, Wall tablet, Feedback, Sign out. Right:
- * Habits & Chores, Vacation, Winnie. A phone keeps one column in this order:
+ * Habits & Chores (and Rewards), Vacation, Winnie. A phone keeps one column in this order:
  * 1 account card, 2 Menu style, Text size, Open Marshee on, 3 Manage family, Synced calendars, then Slideshow photos and Wall tablet (they
- * share order-3, so source order decides), 4 Feedback, 5 Habits & Chores, 6 Vacation,
+ * share order-3, so source order decides), 4 Feedback, 5 Habits & Chores then Rewards (they share order-5, so source order decides), 6 Vacation,
  * 7 Winnie, 8 Sign out. The column divs dissolve (`contents`) below 48rem and
  * each section's `order-N` sets that order. The two sheets inside (Menu style,
  * the tablet's Sign out) portal to the body, so the container holds none.
@@ -50,6 +53,9 @@ export default async function SettingsPage() {
   // Same people as the calendar link: parents and admins on a real login.
   const canManageSlideshow = canSyncCalendars;
   const slideshowCount = canManageSlideshow ? await countSlideshowPhotos() : 0;
+  // Late checks pay stars, so the Rewards section is for the same people who set them.
+  const canSetRewards = !user.isDevice && canSetStars(user.role);
+  const lateStars = canSetRewards ? await loadLateStars() : "full";
   const newFeedback = user.role === "admin" ? await countNewFeedback() : 0;
 
   return (
@@ -186,6 +192,7 @@ export default async function SettingsPage() {
               <>
                 <div className="order-5">
                   <HabitsChoresSettings showStreaks={user.showStreaks} isAdmin={user.role === "admin"} />
+                  {canSetRewards && <RewardsSettings lateStars={lateStars} />}
                 </div>
                 <div className="order-6">
                   <VacationCard vacations={vacations} today={formatCalendarDate(today)} />

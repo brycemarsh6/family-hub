@@ -67,6 +67,8 @@ export type HabitRowView = Omit<HabitRowState, "participants"> & {
   dueState: DueState;
   /** The missed day this row stands for (carry-over), else null. A tap for it is written "late". */
   carriedFrom: CalendarDate | null;
+  /** Stars each check pays (mission 79); null or left off means none. */
+  stars?: number | null;
   /** The viewer's count in this period (decision 85's start day included); null if the schedule cannot be read. */
   progress: WindowProgress | null;
   /** What the streak counts: days, weeks or months. */
@@ -108,6 +110,8 @@ export type HabitManagerItem = {
   everyone: boolean;
   archived: boolean;
   participantIds: string[];
+  /** Stars each check pays (mission 79); null or left off means none. */
+  stars?: number | null;
   hours: ManagerHours | null; // the weekly goal of an hours habit (decision 199)
 };
 
@@ -146,6 +150,8 @@ export type TodayHabitInput = StoredScheduleFields & Partial<StoredHoursFields> 
   isPrivate: boolean;
   everyone: boolean;
   carryOver: boolean;
+  /** Stars each check pays (mission 79); a Prisma row fits, left off means none. */
+  stars?: number | null;
   /** This week's changes to a weekdays chore (`ChoreWeekOverride` rows fit); left off means none. */
   weekOverrides?: StoredWeekOverride[];
   createdAt: Date;
@@ -285,6 +291,7 @@ export function buildTodayRows(
       everyone: habit.everyone,
       dueState,
       carriedFrom,
+      stars: habit.stars ?? null,
       progress,
       plannedToday,
       plannedLater: spec && dueState !== "none" ? plannedLaterLabel(spec, today, plannedByHabit.get(habit.id) ?? [], SHORT_DAY_NAMES) : null,
@@ -319,6 +326,7 @@ export function managerItem(habit: TodayHabitInput): HabitManagerItem {
     everyone: habit.everyone,
     archived: habit.archivedAt !== null,
     participantIds: habit.participants.map((p) => p.userId),
+    stars: habit.stars ?? null,
     hours: managerHours(habit),
   };
 }
