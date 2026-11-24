@@ -21,7 +21,7 @@ import type { Habit, HabitTimeEntry, Prisma } from "@/generated/prisma/client";
 import { calendarDateFromUtcMidnight, utcMidnightInstant, type CalendarDate } from "../householdDate";
 import { HOURS_LIMITS, toHabitTrack } from "../habitHoursVocabulary";
 import { toHabitLogStatus, toHabitSchedule, type HabitLogStatus } from "../habitVocabulary";
-import { toLateStars } from "../rewardVocabulary";
+import { loadLateStars } from "../rewardSettingsRead";
 import { starsForLog } from "../rewards/stars";
 import { checkTargetUserIds, habitColumns, scheduleChanged, type HabitFields } from "./habitRows";
 import { choreOwnersOf, clearChoreChanges, recomputeChoreStreaks } from "./choreWrites";
@@ -180,8 +180,7 @@ export async function checkHabit(
     const { userIds, stars } = await checkTargets(tx, input.habitId, input.forUserId);
     if (userIds.length === 0) return { created: 0, userIds };
     const status = toHabitLogStatus(input.status ?? "done");
-    const settings = await tx.rewardSettings.findUnique({ where: { id: "household" }, select: { lateStars: true } });
-    const paid = starsForLog(stars, status, toLateStars(settings?.lateStars));
+    const paid = starsForLog(stars, status, await loadLateStars(tx));
     const { count } = await tx.habitLog.createMany({
       data: userIds.map((userId) => ({
         habitId: input.habitId,
