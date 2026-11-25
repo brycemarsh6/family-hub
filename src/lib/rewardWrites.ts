@@ -39,18 +39,6 @@ export type Redeemed = { id: string; title: string; emoji: string | null; cost: 
 const MAX_TRIES = 3;
 
 /**
- * A serialization failure caught when the transaction COMMITS arrives as a
- * bare DriverAdapterError (not a PrismaClientKnownRequestError), so
- * `isWriteConflictError` misses it. Seen live in the dev database with two
- * quick redeems: name "DriverAdapterError", cause.originalCode "40001".
- */
-function isCommitConflict(error: unknown): boolean {
-  if (!(error instanceof Error) || error.name !== "DriverAdapterError") return false;
-  const code = (error as { cause?: { originalCode?: unknown } }).cause?.originalCode;
-  return code === "40001" || code === "40P01";
-}
-
-/**
  * Redeem a reward for its owner. One Serializable transaction reads the
  * reward, re-reads the bank inside it, asks `redeemRefusal`, then writes the
  * redemption, so two quick taps cannot both spend the same stars: the second
@@ -91,7 +79,7 @@ export async function redeemReward(rewardId: string, redeemedById: string): Prom
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
     } catch (error) {
-      if ((isWriteConflictError(error) || isCommitConflict(error)) && attempt < MAX_TRIES) continue;
+      if (isWriteConflictError(error) && attempt < MAX_TRIES) continue;
       throw error;
     }
   }

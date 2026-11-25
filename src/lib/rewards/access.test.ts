@@ -1,4 +1,4 @@
-// Pins access.ts: only admins and parents set stars.
+// Pins access.ts: who sets stars, and who manages and redeems rewards.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
