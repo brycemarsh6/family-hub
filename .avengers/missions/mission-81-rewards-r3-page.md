@@ -242,7 +242,7 @@ person.
   (ties low). `rewardStatus` returns `{ kind, fraction, text }`.
 
 ### C1b - One write-conflict rule
-- **Status:** DISPATCHED 2026-11-24 at 2cc1a00, in parallel with C2 (disjoint files)
+- **Status:** DONE, commit 6a2ab0a
 - **Objective:** `isWriteConflictError` also recognises a serialization or
   deadlock failure that arrives at COMMIT as a bare `DriverAdapterError`,
   so `rewardWrites.ts` drops its local `isCommitConflict`.
@@ -258,10 +258,14 @@ person.
 - **Evidence required:** the diff, test names and counts, probe output,
   `git show --stat HEAD`.
 - **Done criteria:** one commit, only boundary files, gauntlet green.
-- **Report:** -
+- **Report:** DONE, commit 6a2ab0a, 4 files. `isWriteConflictError` now
+  also matches a bare `DriverAdapterError` with `cause.originalCode` 40001 or
+  40P01 (new test); local `isCommitConflict` gone (grep empty). Probe re-run:
+  one redemption of two tries, counts identical. Tests 2195 (Denver), UTC
+  2185 pass, 10 skipped.
 
 ### C2 - The reward sheet, picture picker, redeem sheet and star rain (components only)
-- **Status:** DISPATCHED 2026-11-24 at 2cc1a00
+- **Status:** DONE, commit 66b7ac9
 - **Objective:** The four new client components the page will open, each
   standalone and fed by props.
 - **Boundaries:** may touch: new `src/components/RewardSheet.tsx`, new
@@ -309,10 +313,18 @@ person.
 - **Verification:** full gauntlet; `wc -l` each new file (soft cap 350).
 - **Evidence required:** gauntlet tails, `wc -l`, `git show --stat HEAD`.
 - **Done criteria:** one commit, only boundary files, gauntlet green.
-- **Report:** -
+- **Report:** DONE, commit 66b7ac9, 4 new components (RewardSheet 220,
+  RewardEmojiPicker 124, RedeemSheet 128, StarRain 65 lines). Gauntlet
+  green, build exit 0, tests 2195. Not run in a browser (C3 does that).
+  Inline words left in the components: "Saving...", "Deleting...",
+  "Redeeming...", "Undoing...", "Edit reward", "Reward redeemed" (C3 moves
+  them). `redeemReward` revalidates `/rewards`, so the page must keep the
+  open RedeemSheet's reward as a snapshot in state and never unmount it
+  because the reward became earned or hidden. `RewardSheet` wants
+  `people: { id, displayName }[]`.
 
 ### C3 - The /rewards page, the board, the cards, the drawer row and the rules docs
-- **Status:** PENDING (after C2)
+- **Status:** DISPATCHED 2026-11-24 at 66b7ac9 (+ this record)
 - **Objective:** Put it together: the wide `/rewards` page, one person at
   a time on a phone and one column per person when wide, Earned and Hide
   earned, the drawer row, and the design and structure records.
@@ -324,8 +336,11 @@ person.
   `DESIGN.md` (the emoji exception, `--star-soft`, the redeem rain),
   `docs/structure/rewards.md`, `docs/structure/habits.md` (the confetti
   importer line only), `docs/structure/layout.md` (the wide pages list
-  only) · must not touch: C1's lib and action files (import them), C2's
-  components (use them as they are; a needed change is reported, not
+  only), and word-only edits (moving inline strings into
+  `rewardVocabulary.ts`) to `src/components/RewardSheet.tsx`,
+  `src/components/RewardEmojiPicker.tsx`, `src/components/RedeemSheet.tsx`
+  and `src/components/StarRain.tsx` · must not touch: C1's lib and action files (import them), C2's
+  components beyond those word moves (a needed change is reported, not
   made), `CLAUDE.md`, `STRUCTURE.md` (Fury), `prisma/`.
 - **What to build:**
   - `page.tsx`: `requireVerifiedUser()`; `loadHouseholdPeople()`,
@@ -348,7 +363,9 @@ person.
     `visibleRewards(...)` as `RewardCard`s, then a dashed "Add reward"
     tile when `canManage` (phone: "Add reward for (name)"). Holds the
     sheet state and opens `RewardSheet` (add, or edit on a card tap when
-    `canManage`) and `RedeemSheet`. An empty column says "No rewards yet."
+    `canManage`) and `RedeemSheet`. The open redeem sheet keeps a snapshot of
+    its reward, owner name and bank in state, so the refresh after a redeem
+    (reward now earned or hidden, bank lower) never unmounts it mid-celebration. An empty column says "No rewards yet."
     (parents) or "No rewards yet. Ask a parent to add one." (others).
   - `RewardCard.tsx`: from `rewardStatus`: picture tile (the emoji, or a
     plain tile for No picture), title, a "Repeats" tag when repeatable;
@@ -378,7 +395,8 @@ person.
     line names `StarRain.tsx` as the other importer. `layout.md`: add
     `/rewards` to the wide pages list.
 - **Verification:** full gauntlet (Denver count +0 or more, the start
-  page test now asserts 10). In the running app on the dev branch: the
+  page test now asserts 10). Stark has no browser: the in-app check below
+  is Fury's and Strange's, after the commit. In the running app on the dev branch: the
   drawer shows Rewards; as a parent, add a reward, see it on the card,
   edit it, redeem when the bank covers it, see the celebration, Undo
   redeem; a repeatable bar restarts; a one-time reward shows Earned; Hide
