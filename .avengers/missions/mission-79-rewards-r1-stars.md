@@ -1,7 +1,7 @@
 # Mission: Rewards R1, stars on habits and the star bank
 
 **Project:** family-hub (Marshee)
-**Status:** CONTRACTED (C1 ready to dispatch)
+**Status:** GATING (C1 to C4 and F1 built; re-gate pending)
 **Started:** 2026-11-24 · **Updated:** 2026-11-24
 **Branch:** R1's own session and branch, cut from the Rewards planning
 branch `claude/marshee-rewards-feature-87a687` (Bryce, 2026-11-24: the
@@ -84,7 +84,7 @@ across parallel contracts, contract written here first, real HEAD last,
 ## Contracts
 
 ### C1 - Star data, rules and the check snapshot (no UI)
-- **Status:** PENDING
+- **Status:** DISPATCHED 2026-11-24 at HEAD 4863f19 (preflight re-run in the R1 session: only the exempt schema cap fails)
 - **Objective:** Add `Habit.stars`, `HabitLog.stars` and a household
   `RewardSettings` row, the pure star rules, the snapshot written by every
   check, the input and column plumbing with a parents-only gate, and Winnie
@@ -158,22 +158,323 @@ across parallel contracts, contract written here first, real HEAD last,
   diff of `checkHabit`.
 - **Done criteria:** gauntlet green re-run by Vision; no file outside the
   boundary in `git diff --stat`; one commit, stats checked.
-- **Report:** (pending)
+- **Report:** DONE, commit dcf418b. Migration `20261124000000_reward_stars`
+  applied to the dev branch with `migrate deploy` (SQL reviewed: two
+  ADD COLUMN, one CREATE TABLE); `migrate status` up to date, 40
+  migrations. Tests 2128 to 2150 (Denver) and 2118 to 2140 pass, 10
+  skipped (UTC). Gauntlet green. 20 files, all inside the boundary. Note: a
+  kid who switches a checks habit to hours clears its stars (hours never
+  carry stars, so this follows the rule).
 
-### C2 - Stars on the form and the Late checks setting (UI)
-- **Status:** PENDING (written after C1 reports; boundaries: `HabitForm.tsx`,
-  the new and edit habit pages, a new Settings card and its action, a new
-  `RewardSettings` reader)
+### C1b - One reader for RewardSettings
+- **Status:** DONE, commit a29b7a9 (`loadLateStars(client = db)`, the only `rewardSettings.` read in src; gauntlet green, 2150 tests)
+- **Objective:** One place reads the `RewardSettings` table, so C2 (the
+  Settings card) and C3 (the habits page, for the optimistic late number)
+  can both import it in parallel.
+- **Boundaries:** may touch: new `src/lib/rewardSettingsRead.ts`,
+  `src/lib/habits/habitWrites.ts` (the one `tx.rewardSettings` line only).
+  Must not touch anything else.
+- **What to build:** `src/lib/rewardSettingsRead.ts` (`import "server-only"`,
+  header comment "the only place the RewardSettings table is read; no
+  login check, callers check who is asking", on the `screensaverRead.ts`
+  pattern): `export async function loadLateStars(client: <the Prisma
+  client or transaction type habitWrites already uses> = db):
+  Promise<LateStars>`, a missing row or an off-list value reads as "full"
+  through `toLateStars`. `checkHabit` calls `loadLateStars(tx)` in place of
+  its own `findUnique`.
+- **Verification:** full gauntlet; `grep -rn "rewardSettings\." src | grep -v generated`
+  shows only `rewardSettingsRead.ts`.
+- **Evidence required:** the grep output, the diff, gauntlet tails, `git show --stat HEAD`.
+- **Done criteria:** one commit, two files, gauntlet green, test count unchanged (2150).
+
+### C2 - Stars on the form, the Rewards settings card, and stars on the views (UI)
+- **Status:** DONE (see Report)
+- **Bryce's decisions (2026-11-24, from the mock):** the Stars stepper sits
+  under Icon in the "What" column, label "Stars", hint "Paid into the star
+  bank each time it's checked off", shown as "None", "1 star", "10 stars".
+  "Late checks" sits in a new **Rewards** section in Settings, under Habits
+  and Chores, three tiles Full stars / Half stars / No stars, help line "A
+  late check is a carried-over item checked off the next day. Half rounds
+  up." The star is a filled gold star (new tokens and the DESIGN.md
+  exception land in C3).
+- **Objective:** Parents and admins set a habit's stars on the form; a
+  parents-only Rewards section in Settings sets Late checks; a habit's
+  `stars` reaches every row view and the edit form.
+- **Boundaries:** may touch: `src/lib/rewardVocabulary.ts`,
+  `src/lib/rewardVocabulary.test.ts`, new `src/components/HabitStarsField.tsx`,
+  `src/components/HabitForm.tsx`, `src/app/(app)/habits/new/page.tsx`,
+  `src/app/(app)/habits/[id]/edit/page.tsx`, new
+  `src/components/RewardsSettings.tsx`, new `src/app/actions/rewardSettings.ts`,
+  `src/app/(app)/settings/page.tsx`, `src/lib/habitsToday.ts` (stars
+  plumbing only) · must not touch: `src/lib/habitsRead.ts`,
+  `src/lib/habitsFamily.ts`, `src/lib/habitChanges.ts`, every other
+  component, `src/app/globals.css`, `DESIGN.md`, `STRUCTURE.md`,
+  `prisma/`, the C1 files other than `rewardVocabulary.ts` and its test.
+- **What to build:**
+  - `rewardVocabulary.ts` (+ test): `STARS_FIELD_LABEL` "Stars",
+    `STARS_FIELD_HINT` "Paid into the star bank each time it's checked off",
+    `starCountText(n)` ("1 star", "-1 star", otherwise "N stars"; C3 uses it
+    for screen-reader labels), `starStepText(value)` ("None" for null, else
+    `starCountText`), `REWARDS_SETTINGS_TITLE` "Rewards",
+    `LATE_STARS_TITLE` "Late checks", `LATE_STARS_HELP` (Bryce's line above,
+    word for word), `LATE_STARS_REFUSAL` "Only parents and admins can change
+    this.", and an off-list refusal "That choice isn't on the list." Still no
+    imports.
+  - new `HabitStarsField.tsx`: `Field` (from `HabitFormFields.tsx`) with the
+    label and hint, a `LadderStepper` showing `starStepText(value)`,
+    `atMin` when null, `atMax` at 50, `onStep` through `nextStarStep`.
+  - `HabitForm.tsx`: prop `canSetStars: boolean`; `FormInitial` gains
+    `{ stars?: number | null }`; state from `initial?.stars ?? null`; the
+    field renders right after the Icon field when `canSetStars && !hours`;
+    `toInput()` sends `stars: canSetStars ? (hours ? null : stars) : undefined`.
+    Update the header comment's field order. Keep the file under 350 lines.
+  - both habit pages pass `canSetStars={canSetStars(user.role)}` (from
+    `src/lib/rewards/access.ts`).
+  - `src/lib/habitsToday.ts`: `stars?: number | null` on `TodayHabitInput`,
+    `HabitRowView` and `HabitManagerItem`; `buildTodayRows` and
+    `managerItem` set `stars: habit.stars ?? null`. Nothing else in the file.
+    (Both readers use `include`, so the column already arrives: Banner,
+    habitsRead.ts:141-158, habitsStatsRead.ts:133-137.)
+  - new `src/app/actions/rewardSettings.ts`: `saveLateStars(value: unknown):
+    Promise<{ error?: string }>`. `getVerifiedUser`; refuse unless
+    `!user.isDevice && canSetStars(user.role)`; refuse a value not in
+    `LATE_STARS` (strict, not `toLateStars`); upsert `RewardSettings`
+    id "household" with `updatedById` (the `actions/screensaver.ts`
+    shape); log and return a plain error on a failed write;
+    `revalidatePath("/settings")` and `revalidatePath("/habits")`. (This is
+    the one write; `rewardSettingsRead.ts` stays the one read.)
+  - new `RewardsSettings.tsx`: a `<section className="mt-6">` with an h2
+    `REWARDS_SETTINGS_TITLE` (the `HabitsChoresSettings` heading look), then
+    one card on the `TextSizeSetting` pattern: Lucide `Star` outline
+    `text-muted` + `LATE_STARS_TITLE`, a `role="radiogroup"` of three
+    `role="radio"` tiles (labels from `LATE_STARS_LABELS`, the selected
+    tile `border-accent bg-accent-soft`, min 48px tall), the help line,
+    and the error under it. Optimistic through `useOptimisticRun`.
+  - `settings/page.tsx`: when `!user.isDevice && canSetStars(user.role)`,
+    load `loadLateStars()` and render `<RewardsSettings>` in the right
+    column right after Habits and Chores, sharing its `order-5` (source order
+    keeps it after Habits and Chores on a phone). Update the page's header
+    comment (the section list and phone order).
+- **Verification:** full gauntlet; test count up from 2150 in both runs.
+  In the running app (dev server, dev database), logged in as a parent:
+  the Stars stepper shows under Icon, walks None, 1 to 5, 10 to 50, hides
+  when Track is Hours; a saved value comes back on Edit; Settings shows
+  the Rewards section and a tap on Half stars survives a reload (then set
+  it back to Full stars). Use only existing logins; if you cannot log in as
+  a parent and a kid in the dev app, say so and skip the in-app part
+  rather than create or change any account.
+- **Evidence required:** `wc -l` of touched files, test names and counts,
+  gauntlet tails, `git show --stat HEAD`, and what the in-app check showed
+  (or why it was skipped).
+- **Done criteria:** one commit, only boundary files, gauntlet green.
+- **Report:** DONE, one commit, 10 files, all in the boundary. Tests 2150
+  to 2153 (Denver) and 2140 to 2143 pass, 10 skipped (UTC). Gauntlet green.
+  `rewardSettings.` appears only in the one write (`actions/rewardSettings.ts`)
+  and the one read (`rewardSettingsRead.ts`). In-app check skipped (no
+  test logins without touching accounts): Strange checks the stepper, Hours
+  hiding, the Edit round trip and the Half stars tap. `habitsToday.ts` now
+  361 lines (was 353, already over the soft cap): a NOTE for Captain.
 
 ### C3 - Star chip, star bank and the optimistic number (UI)
-- **Status:** PENDING (written after Banner's display-path brief; disjoint
-  from C2)
+- **Status:** DONE (see Report)
+- **Bryce's decisions (2026-11-24, design mock "Marshee star bank on
+  Mine"):** on Mine the bank sits at the right end of the count line, and
+  the word "Mine" comes off that line: it reads "2 of 5 done" (then the
+  streak if shown) with "★ 42" at the right. On Whole family (phone and
+  iPad) the bank sits at the right of each person's header. A row with
+  stars shows a small chip "★ 10" beside the streak; no chip without
+  stars; hours rows never. The star is a filled gold star.
+- **Objective:** Show each habit's stars on its row, each person's star
+  bank in Habits & Chores, and move the bank number at once on a tap.
+- **Boundaries:** may touch: new `src/lib/starBankRead.ts`, new
+  `src/lib/rewards/starDiff.ts`, new `src/lib/rewards/starDiff.test.ts`,
+  new `src/components/StarBank.tsx`, new `src/components/StarChip.tsx`,
+  `src/components/HabitRow.tsx`, `src/components/HabitFamilyColumn.tsx`,
+  `src/components/HabitFamilyWideColumn.tsx`,
+  `src/components/HabitFamilyWide.tsx`, `src/components/HabitFamilyView.tsx`,
+  `src/components/HabitTodayList.tsx`, `src/components/HabitsDayView.tsx`,
+  `src/app/(app)/habits/page.tsx`, `src/app/globals.css` (one new token
+  pair), `DESIGN.md` (the star rules only) · must not touch:
+  `src/lib/habitChanges.ts`, `src/lib/habitsToday.ts`,
+  `src/lib/habitsRead.ts`, `src/lib/habitsFamily.ts`,
+  `src/lib/habitsStatsRead.ts`, `src/components/LogButton.tsx` (C4),
+  `src/components/HabitsTile.tsx`, every C1/C2 file, `STRUCTURE.md`,
+  `prisma/`.
+- **What to build:**
+  - `src/app/globals.css`: a `--star` token (light and dark), the filled
+    star's colour, a gold from the Butter family; measured at 3:1 or more
+    against `--surface` and `--bg` in both themes (it is a graphic, not
+    text; the number beside it stays `text-fg`). Comment the ratios the
+    way the file already does, and map `--color-star`.
+  - `DESIGN.md`: the exception to "Outline icons only": one filled star,
+    `--star`, used only for stars (the row chip and the star bank), and
+    the `--star` token entry with its ratios. Record Bryce's two layout
+    decisions above and that "Mine" left the count line (Bryce,
+    2026-11-24, overriding the "Mine · 2 of 7 done" wording).
+  - `StarChip.tsx`: `{ stars: number }`, a Lucide `Star` with
+    `fill="currentColor"` in `text-star`, size 14, then the number in
+    `text-sm font-semibold text-fg`, the streak chip's shape
+    (`HabitRow.tsx:74-79`); `aria-label` from `starCountText`. Never
+    rendered for null or 0.
+  - `StarBank.tsx`: `{ stars: number }`, the same star at 20 and the
+    number `text-lg font-bold tabular-nums`; `aria-label` from
+    `starCountText`. A negative number shows as is.
+  - `src/lib/starBankRead.ts` (`server-only`, the `rewardSettingsRead.ts`
+    header style): `loadStarBanks(userIds: string[]): Promise<Record<string,
+    number>>`, one `habitLog.groupBy` by `userId` summing `stars`, every
+    asked id present (0 when none). Later PRs add adjustments and
+    redemptions here.
+  - `src/lib/rewards/starDiff.ts` (+ test): `starDiff(server, shown,
+    lateStars)` over rows shaped `{ id, stars?, carriedFrom, participants:
+    { userId, done }[] }` returns `Record<userId, delta>`. Each habit id
+    counts once (the family page holds a Together habit in `together` and
+    in columns, and an Each habit in several columns). For each
+    participant whose `done` flips: pay is `starsForLog(stars, carriedFrom ?
+    "late" : "done", lateStars) ?? 0`, plus when it turns on, minus when
+    it turns off. Tests: Each check pays only that person; Together pays
+    every participant; a habit present twice counts once; late under full,
+    half (rounded up) and none; un-check takes back; skip (done stays
+    false) pays nothing; no stars pays nothing; rows unchanged give an
+    empty or all-zero result. Check that the real family row shapes fit
+    (Banner: `FamilyRow`, `applyToPage` in `HabitFamilyView.tsx:16-22`).
+  - `habits/page.tsx`: load `loadLateStars()` and `loadStarBanks(ids)`
+    (family: every column's person id; Mine: `[user.userId]`), pass
+    `banks` and `lateStars` to `HabitsDayView`, which passes them on.
+  - `HabitTodayList.tsx`: drop `HABITS_VIEW_LABELS.mine` and its " · "
+    from the subtitle (leave the word in the vocabulary: the view switch
+    still uses it); the count line shows the bank at its right end:
+    `banks[viewer] + starDiff(rows, live, lateStars)[viewer]`. Fix the
+    comment that quotes "Mine · 2 of 7 done". If the `bar(subtitle)` shape
+    makes "right end" awkward, put the bank in the subtitle node as a
+    `ml-auto` item and say what you did.
+  - `HabitFamilyView.tsx` computes the diff once from its server page and
+    optimistic page and hands each column `bank`; `HabitFamilyColumn.tsx`
+    and `HabitFamilyWideColumn.tsx` render `StarBank` at the right of
+    the header (`HabitFamilyColumn.tsx:162-177`,
+    `HabitFamilyWideColumn.tsx:42-66`); `HabitFamilyWide.tsx` passes it.
+  - `HabitRow.tsx` and `FamilyHabitRow` (`HabitFamilyColumn.tsx:42-134`):
+    `StarChip` beside the streak when `row.stars`. Hours rows untouched.
+    The dashboard tiles get the chip through `HabitRow` (no tile change).
+- **Verification:** full gauntlet; test count up from 2153 in both runs;
+  every touched file under 350 lines (say any that is not).
+- **Evidence required:** the token values and measured ratios (show the
+  calculation or tool), test names and counts, `wc -l`, gauntlet tails,
+  `git show --stat HEAD`.
+- **Done criteria:** one commit, only boundary files, gauntlet green.
+- **Report:** DONE, commit 20cb7b7, 15 files in the boundary. `--star`
+  light #a87500 (4.03:1 surface, 3.56:1 bg, 3.25:1 surface-2), dark
+  #f4d26b (10.53 / 11.72 / 9.33). Tests 2153 to 2163 (Denver), 2143 to
+  2153 pass, 10 skipped (UTC); 10 starDiff tests including one through the
+  real `applyHabitChange`. Gauntlet green. Added a `viewerId` prop to
+  `HabitsDayView` and `HabitTodayList` (TodayPage has none). Open for
+  Strange: from `md` up the Mine bank sits just after the count line, not
+  at the far right edge, because `HabitsBar.tsx` (outside C3) sizes that
+  block to its content.
+
+### C4 - Smaller check circles (UI)
+- **Status:** DONE (see Report)
+- **Bryce's decision (2026-11-24, on the design mock):** the check circle
+  is drawn about 30px, everywhere (Mine, Whole family, the tablet, the
+  dashboard tiles, Plans rows), and the skip and hours buttons that share
+  its shape follow. The tap area stays 44px.
+- **Objective:** Every habit check circle draws a 30px circle inside an
+  unchanged 44px tap target.
+- **Boundaries:** may touch: `src/components/LogButton.tsx`,
+  `src/components/HabitRow.tsx` and `src/components/HabitFamilyColumn.tsx`
+  (their read-only done markers only), `src/components/HoursHabitRow.tsx`
+  (only if it draws its own circle), `DESIGN.md` (the check size wording
+  only) · must not touch anything else.
+- **What to build:** in `LogButton.tsx` keep the button `h-11 w-11` (44px)
+  and draw the visible circle as an inner 30px (`h-[1.875rem]`, rem per
+  the text-size rule) span: empty ring, done fill with `Check` at about
+  16, plus with `Plus` at about 16, the dashed skip marker at the same 30px
+  with a smaller icon. Export one small `CheckMarker` (the read-only done
+  or not-done circle) from `LogButton.tsx` and use it for the two
+  duplicated read-only markers (`HabitRow.tsx:180-187`,
+  `HabitFamilyColumn.tsx:122-129`), same 44px box, same 30px circle,
+  same screen-reader text. Update DESIGN.md wherever it says the check is
+  44px so it says a 30px circle in a 44px target (Bryce, 2026-11-24).
+- **Verification:** full gauntlet, test count unchanged; `grep` shows no
+  habit check circle left at `h-11 w-11` as its drawn size.
+- **Evidence required:** the diff, gauntlet tails, `git show --stat HEAD`.
+- **Done criteria:** one commit, only boundary files, gauntlet green.
+- **Report:** DONE, commit 8e48e79, 5 files in the boundary. `LogButton` keeps
+  the 44px button and draws a 30px circle (Check and Plus at 16, skip icon
+  14); new `CheckMarker` replaces the two duplicated read-only markers;
+  `HoursLogButton` drew its own 48px circle and now draws 30px inside its
+  48px target. DESIGN.md wording updated in three entries. Tests unchanged
+  (2163; UTC 2153 pass, 10 skipped). Gauntlet green.
+
+### F1 - Gate fixes (Vision pass 2 blocker, Captain notes)
+- **Status:** DONE, commit 9204265 (see Report)
+- **Objective:** The optimistic bank pays late by the tapped person's own
+  carry, and the gates' cheap notes are cleared.
+- **Boundaries:** may touch: `src/lib/rewards/starDiff.ts`,
+  `src/lib/rewards/starDiff.test.ts`, `src/components/StarChip.tsx`,
+  `src/components/HabitRow.tsx` and `src/components/HabitFamilyColumn.tsx`
+  (the chip guard only), `src/components/HabitTodayList.tsx` and
+  `src/components/HabitFamilyView.tsx` (the shown-bank addition only),
+  `src/components/LogButton.tsx`, `src/components/HoursHabitRow.tsx`,
+  `src/app/actions/rewardSettings.ts`, `src/app/(app)/settings/page.tsx`
+  (the device test only) · must not touch anything else (Fury writes the
+  STRUCTURE.md and docs/structure changes).
+- **What to fix:**
+  1. **BLOCKER (Vision, `starDiff.ts:33`).** Pay is taken from the first
+     server copy's `carriedFrom`, but on the family page each column's copy
+     of an Each habit is built for that column's person, and the server
+     decides late for the tapped person (`habitTapWrites.ts:103`).
+     Scenario: Each habit, 4 stars, carry-over, Dad's column first, only
+     Kid's copy carried; the tablet taps Kid: Half shows +4 then +2, None
+     +4 then 0; reverse case under None the bank does not move on the tap.
+     Fix: optional `viewerId?: string` on `StarDiffRow`; while scanning
+     `server`, record each copy's `carriedFrom` per habit id per
+     `viewerId`; pay each flipped participant with
+     `starsForLog(stars, (carried for that habit and that participant ??
+     the first copy's carriedFrom) ? "late" : "done", lateStars) ?? 0`;
+     keep counting each habit id's flips once. Tests: Each copies that
+     differ in `carriedFrom`, under half and none, both directions, plus
+     the kid-first control. (Vision's probes:
+     scratchpad/probe/carried.test.ts and reverse.test.ts.)
+  2. One shown-bank rule (Captain): `shownBanks(banks, diff)` (or one
+     equivalent helper) beside `starDiff` in `starDiff.ts`, used by both
+     `HabitTodayList` and `HabitFamilyView` in place of their inline
+     additions; a test.
+  3. One chip rule (Captain): `StarChip` takes `stars?: number | null` and
+     draws nothing below 1; `HabitRow.tsx` and `FamilyHabitRow` render it
+     without their own test (hours rows still never reach it).
+  4. One circle size (Captain): one exported class constant for the 30px
+     circle in `LogButton.tsx`, used at its three sites and in
+     `HoursHabitRow.tsx`; put `rounded-full` back on the `HoursLogButton`
+     button so its focus ring is round (Vision).
+  5. Drop the redundant `user.isDevice ||` in
+     `actions/rewardSettings.ts:17` and the device half of the Settings
+     page test (`canSetStars` already refuses the device role; Captain).
+- **Verification:** full gauntlet; tests up from 2163; Vision's two
+  scenarios pass.
+- **Evidence required:** test names and counts, gauntlet tails, `git show --stat HEAD`.
+- **Done criteria:** one commit, only boundary files, gauntlet green.
+- **Report:** DONE. One commit, 11 boundary files (+84 / -22).
+  `StarDiffRow.viewerId` (set by `habitsToday.ts` from `viewer.userId`;
+  `habitsFamily.ts` builds each column for its person), per-person carry
+  in `starDiff`, `shownBanks` used by both views, `StarChip` owns the
+  below-1 rule, `CHECK_CIRCLE_CLASS` at all four sites, `rounded-full`
+  back on `HoursLogButton`, both device tests dropped. tsc and eslint
+  exit 0; `npm test` 2171 pass (up 8 from 2163); UTC 2161 pass, 10
+  skipped; build exit 0. Stark did not show the new tests failing on the
+  old code (Vision's probes did that at pass 2).
+- **Docs (Fury, Captain's amendments, Bryce approved):**
+  `docs/structure/habits.md` (the `loadStarBanks` exception, the
+  engine's rewards imports, size watch), `STRUCTURE.md` (Rewards
+  headline, Forms trend, companion sizes), new
+  `docs/structure/rewards.md` (108 lines).
 
 ## Gate ledger
 
 | Pass | Gate | Verdict | Blockers | Notes |
 |---|---|---|---|---|
-| 1 | Vision | — | — | — |
+| 2 | Vision (C3, C4) | FAIL | starDiff late pay from the first copy, not the tapped person (F1.1) | un-check takes back current value, corrects on refresh; past day shows today's bank; iPad tint contrast 3.30:1 min, passes; HoursLogButton square focus ring (F1.4) |
+| 1 | Captain (whole branch) | FAIL | habit engine imports rewards files; starBankRead is a third HabitLog reader. Both fixed by amendment (Bryce approved 2026-11-24: update the rules) | habitsToday 361, HabitForm 339; redundant device test (F1.5); two chip guards (F1.3); two shown-bank additions (F1.2); 30px typed four times (F1.4); plan names rewardsRead.ts for R3 |
+| 1 | Vision (C1, C1b, C2) | PASS | none | habitsToday.ts 361 lines (soft cap); C1b's import-line change needed by its one line; loadLateStars runs on every check even with no stars; signed-out saveLateStars wording |
 
 ## Handoff log
 
