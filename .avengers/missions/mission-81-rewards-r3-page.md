@@ -101,7 +101,7 @@ page). New rewards default to 20 stars, One time, owner = the column's
 person.
 
 ### C1 - Reward tables, rules, bank, reads, writes and actions (no UI)
-- **Status:** DISPATCHED 2026-11-24 (preflight: only the exempt schema cap fails, STRUCTURE.md:961-967)
+- **Status:** DONE, commit 2cc1a00
 - **Objective:** Add `Reward` and `RewardRedemption`, the pure reward
   rules, redemptions in the star bank, the reward read and write modules
   and the guarded Server Actions, with a redeem that cannot double-spend.
@@ -227,10 +227,41 @@ person.
   output (both tries' results and the before/after row counts).
 - **Done criteria:** one commit, only boundary files, gauntlet green,
   probe shows one redemption of two tries.
+- **Report:** DONE, commit 2cc1a00, 14 files, all in the boundary. Migration
+  `20261125000000_rewards` (two CREATE TABLE, three indexes, five foreign
+  keys on the new tables only) applied with `migrate deploy`; status up to
+  date, 41 migrations. Tests 2174 to 2194 (Denver), UTC 2164 to 2184 pass, 10
+  skipped. Probe: two simultaneous redeems at a bank of 2 and a cost of 2
+  made exactly one redemption (the other refused "needs 2 more stars"); undo
+  put the bank back; probe rows deleted, counts identical. Found by the
+  probe: a serialization failure at COMMIT arrives as a bare
+  `DriverAdapterError` that `isWriteConflictError` misses, so Stark added a
+  local `isCommitConflict` in `rewardWrites.ts` (a second conflict rule:
+  C1b moves it). Not-enough line built by `notEnoughStarsText` ("needs 15
+  more stars"). `nextCostStep` snaps an off-list cost to the nearest step
+  (ties low). `rewardStatus` returns `{ kind, fraction, text }`.
+
+### C1b - One write-conflict rule
+- **Status:** DISPATCHED 2026-11-24 at 2cc1a00, in parallel with C2 (disjoint files)
+- **Objective:** `isWriteConflictError` also recognises a serialization or
+  deadlock failure that arrives at COMMIT as a bare `DriverAdapterError`,
+  so `rewardWrites.ts` drops its local `isCommitConflict`.
+- **Boundaries:** may touch: `src/lib/prismaErrors.ts`,
+  `src/lib/prismaErrors.test.ts`, `src/lib/rewardWrites.ts`,
+  `src/lib/rewards/access.test.ts` (its stale first-line comment only) ·
+  must not touch anything else (C2 is building components at the same time).
+- **Verification:** full gauntlet; a new test in `prismaErrors.test.ts`
+  for the bare error shape (name `DriverAdapterError`, `cause.originalCode`
+  40001 and 40P01 true, another code false); `grep -rn "isCommitConflict"
+  src` prints nothing; re-run C1's scratchpad probe and show one redemption
+  of two tries again.
+- **Evidence required:** the diff, test names and counts, probe output,
+  `git show --stat HEAD`.
+- **Done criteria:** one commit, only boundary files, gauntlet green.
 - **Report:** -
 
 ### C2 - The reward sheet, picture picker, redeem sheet and star rain (components only)
-- **Status:** PENDING (after C1)
+- **Status:** DISPATCHED 2026-11-24 at 2cc1a00
 - **Objective:** The four new client components the page will open, each
   standalone and fed by props.
 - **Boundaries:** may touch: new `src/components/RewardSheet.tsx`, new
@@ -380,6 +411,13 @@ person.
   token yet). Mock at `.avengers/mocks/rewards-r3-page-mock.html` sent to
   Bryce with the layout, emoji list, cost steps and the DESIGN.md emoji
   exception.
+- 2026-11-24 - C1 dispatched to Stark at 4f5a441. Bryce went to bed and put
+  **Hill in the command seat** for the rest of the mission, on **Opus 5.5
+  high effort** (Bryce, 2026-11-24; passed as model and effort overrides on
+  each Hill dispatch, `.claude/agents/hill.md` unchanged). Content and
+  design calls that would wait for Bryce go to Hill and are recorded as
+  "decided by Hill"; logins, real-device tests, money and the danger
+  register still wait for Bryce. Merge does not wait (2026-11-05 rule).
 
 ## Delivery
 
