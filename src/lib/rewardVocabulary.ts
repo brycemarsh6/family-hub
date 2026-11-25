@@ -1,5 +1,6 @@
-// The words and limits of star rewards (mission 79): the values a habit can
-// pay, what a late check pays, and the refusal text. No imports, so any lib
+// The words and limits of star rewards (mission 79, 81): the values a habit
+// can pay, what a late check pays, what a reward can cost, and the refusal
+// text. No imports, so any lib
 // file may take words from it without risking a cycle (the same rule as
 // habitVocabulary.ts).
 
@@ -49,3 +50,88 @@ export const LATE_STARS_TITLE = "Late checks";
 export const LATE_STARS_HELP = "A late check is a carried-over item checked off the next day. Half rounds up.";
 export const LATE_STARS_REFUSAL = "Only parents and admins can change this.";
 export const LATE_STARS_OFF_LIST = "That choice isn't on the list.";
+
+/** What a reward can cost, in the order the cost stepper walks them. Not having a cost is null (a wish, R4). */
+export const COST_STEPS = [
+  5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 125, 150, 200, 250, 300, 400, 500, 750, 1000,
+] as const;
+export type CostStep = (typeof COST_STEPS)[number];
+
+/** Anything not on the list is null: no valid cost. */
+export function toRewardCost(raw: unknown): CostStep | null {
+  return COST_STEPS.find((step) => step === raw) ?? null;
+}
+
+/** A new reward starts here. */
+export const DEFAULT_REWARD_COST = 20;
+export const REWARD_TITLE_MAX = 60;
+
+/** The Rewards page and its sheet's fields. */
+export const REWARDS_PAGE_TITLE = "Rewards";
+export const REWARD_ADD_LABEL = "Add reward";
+export const REWARD_PICTURE_LABEL = "Picture";
+export const REWARD_NAME_LABEL = "Name";
+export const REWARD_COST_LABEL = "Cost";
+export const REWARD_REPEAT_LABEL = "After it's redeemed";
+export const REWARD_ONE_TIME_LABEL = "One time";
+export const REWARD_REPEATABLE_LABEL = "Repeatable";
+export const REWARD_OWNER_LABEL = "For";
+export const REWARD_NO_PICTURE_LABEL = "No picture";
+export const REWARD_REPEATS_TAG = "Repeats";
+export const REWARD_EARNED_LABEL = "Earned";
+export const REWARD_HIDE_EARNED_LABEL = "Hide earned";
+export const REWARD_ASK_A_PARENT = "Ask a parent";
+export const REWARD_CANCEL_LABEL = "Cancel";
+export const REWARD_DONE_LABEL = "Done";
+export const REWARD_UNDO_LABEL = "Undo redeem";
+export const REWARD_CELEBRATION_HEADING = "Great work!";
+
+/** The Any emoji tile: it opens the device's emoji keyboard. */
+export const ANY_EMOJI_LABEL = "Any emoji";
+export const ANY_EMOJI_HINT = "Tap the smiley or globe key for emoji";
+
+/** Refusals. */
+export const REWARD_NAME_REFUSAL = "Give the reward a name.";
+export const REWARD_COST_REFUSAL = "Pick a cost from the list.";
+export const REWARD_EMOJI_REFUSAL = "Pick an emoji, or No picture.";
+export const REWARD_NOT_EMOJI_REFUSAL = "That isn't an emoji.";
+export const REWARD_PARENT_REFUSAL = "Only parents and admins can do this.";
+export const REWARD_GONE_REFUSAL = "That reward is gone.";
+export const REWARD_EARNED_REFUSAL = "Already earned.";
+export const REWARD_NEEDS_COST_REFUSAL = "This reward needs a cost first.";
+export const REWARD_SAVE_FAILED = "That didn't save. Please try again.";
+
+/** "Ellie needs 15 more stars." */
+export function notEnoughStarsText(name: string, short: number): string {
+  return `${name} needs ${short} more ${short === 1 ? "star" : "stars"}.`;
+}
+
+/** The redeem sheet's question: "Redeem Cupcake for Ellie?" */
+export function redeemQuestionText(title: string, name: string): string {
+  return `Redeem ${title} for ${name}?`;
+}
+
+/** The redeem sheet's spend line: "This spends 20 of Ellie's 55 stars. 35 left after." */
+export function redeemSpendText(cost: number, name: string, bank: number): string {
+  return `This spends ${cost} of ${name}'s ${bank} stars. ${bank - cost} left after.`;
+}
+
+/** The redeem button: "Redeem 20 stars". */
+export function redeemButtonText(cost: number): string {
+  return `Redeem ${starCountText(cost)}`;
+}
+
+/** The celebration's second line: "Cupcake redeemed." */
+export function redeemedTitleText(title: string): string {
+  return `${title} redeemed.`;
+}
+
+/** The celebration's third line: "By Ellie for 20 stars on Tuesday, November 24." */
+export function redeemedByText(name: string, cost: number, dateText: string): string {
+  return `By ${name} for ${starCountText(cost)} on ${dateText}.`;
+}
+
+/** A card's progress: "55 of 150" (a negative bank reads 0). */
+export function progressText(bank: number, cost: number): string {
+  return `${Math.max(bank, 0)} of ${cost}`;
+}
