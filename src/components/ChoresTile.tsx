@@ -5,6 +5,7 @@ import DashboardTile from "./DashboardTile";
 import { HabitTileRows } from "./HabitsTile";
 import type { HabitRowView } from "@/lib/habitsRead";
 import { streakLabel } from "@/lib/habitVocabulary";
+import type { LateStars } from "@/lib/rewardVocabulary";
 
 /**
  * The dashboard's "Chores today" tile (decision 133): chores due or done today,
@@ -18,6 +19,7 @@ export default function ChoresTile({
   choreStreak,
   showStreaks,
   limit,
+  lateStars,
 }: {
   rows: HabitRowView[];
   todayRows: HabitRowView[];
@@ -25,6 +27,8 @@ export default function ChoresTile({
   choreStreak: number;
   showStreaks: boolean;
   limit?: number;
+  /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
+  lateStars: LateStars;
 }) {
   return (
     <DashboardTile
@@ -41,7 +45,7 @@ export default function ChoresTile({
         ) : undefined
       }
     >
-      <HabitTileRows rows={rows} todayRows={todayRows} empty={empty} showStreaks={showStreaks} limit={limit} />
+      <HabitTileRows rows={rows} todayRows={todayRows} empty={empty} showStreaks={showStreaks} limit={limit} lateStars={lateStars} />
     </DashboardTile>
   );
 }

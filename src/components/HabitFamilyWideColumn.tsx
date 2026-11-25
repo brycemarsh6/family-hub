@@ -27,7 +27,7 @@ export function HabitFamilyWideColumn({
   fits = false,
   keep,
   onToggle,
-  lateStars = "full",
+  lateStars,
 }: {
   column: FamilyColumn;
   /** The person's star bank, drawn at the right of the header. */
@@ -41,7 +41,7 @@ export function HabitFamilyWideColumn({
   keep: (row: FamilyRow) => boolean;
   onToggle: (row: FamilyRow) => void;
   /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
-  lateStars?: LateStars;
+  lateStars: LateStars;
 }) {
   const groups = groupColumnRows(column, together, keep);
   const streak = showStreaks ? streakLabel(column.choreStreak, "days") : null;

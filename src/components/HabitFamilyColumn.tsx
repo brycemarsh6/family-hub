@@ -50,7 +50,7 @@ export function FamilyHabitRow({
   together = false,
   tag = null,
   layout = "row",
-  lateStars = "full",
+  lateStars,
 }: {
   row: FamilyRow;
   showStreaks: boolean;
@@ -62,7 +62,7 @@ export function FamilyHabitRow({
   /** "card" (the wide columns): a tall card with the icon on top. "row" (the phone cards): one line. */
   layout?: "row" | "card";
   /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
-  lateStars?: LateStars;
+  lateStars: LateStars;
 }) {
   const card = layout === "card";
   const finished = row.doneToday || isExcused(row);
@@ -148,7 +148,7 @@ export function HabitFamilyColumn({
   showStreaks,
   keep = () => true,
   onToggle,
-  lateStars = "full",
+  lateStars,
 }: {
   column: FamilyColumn;
   /** The person's star bank, drawn at the right of the header. */
@@ -160,7 +160,7 @@ export function HabitFamilyColumn({
   keep?: (row: FamilyRow) => boolean;
   onToggle: (row: FamilyRow) => void;
   /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
-  lateStars?: LateStars;
+  lateStars: LateStars;
 }) {
   const groups = groupColumnRows(column, together, keep);
   const streak = showStreaks ? streakLabel(column.choreStreak, "days") : null;

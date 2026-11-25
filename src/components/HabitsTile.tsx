@@ -12,6 +12,7 @@ import { keepShownRows } from "@/lib/habitsDashboard";
 import { DASHBOARD_WIDGET_WORDS } from "@/lib/dashboardWidgets";
 import { formatCalendarDate } from "@/lib/householdDate";
 import { useOptimisticRun } from "@/lib/useOptimisticRun";
+import type { LateStars } from "@/lib/rewardVocabulary";
 
 /**
  * The three taps of one Today row, shared by Today's list and the dashboard
@@ -54,6 +55,7 @@ export function HabitTileRows({
   empty,
   showStreaks,
   limit,
+  lateStars,
 }: {
   rows: HabitRowView[];
   /** The server's full Today rows for this tile's kind, for a shown row the tile filter drops. */
@@ -62,6 +64,8 @@ export function HabitTileRows({
   showStreaks: boolean;
   /** Most rows to list; the rest become a "+N more" line. Without it every row shows. */
   limit?: number;
+  /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
+  lateStars: LateStars;
 }) {
   // Fixed at load: which rows this tile shows, the rows as the last saved tap
   // left them (for a row the server stops sending), and the empty line to fall back on.
@@ -91,7 +95,7 @@ export function HabitTileRows({
         <ul className={`-mx-4 divide-y divide-line border-t border-line ${error || hidden > 0 ? "border-b" : "-mb-4"}`}>
           {shown.map((row) => (
             <li key={row.id}>
-              <HabitRow row={row} showStreaks={showStreaks} {...habitRowTaps(row, (change, action) => keep(change, action), (hoursRow) => {
+              <HabitRow row={row} showStreaks={showStreaks} lateStars={lateStars} {...habitRowTaps(row, (change, action) => keep(change, action), (hoursRow) => {
                 setError(null);
                 setLoggingId(hoursRow.id);
               })} />
@@ -134,6 +138,7 @@ export default function HabitsTile({
   empty,
   showStreaks,
   limit,
+  lateStars,
 }: {
   rows: HabitRowView[];
   todayRows: HabitRowView[];
@@ -141,6 +146,8 @@ export default function HabitsTile({
   empty: string | null;
   showStreaks: boolean;
   limit?: number;
+  /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
+  lateStars: LateStars;
 }) {
   return (
     <DashboardTile
@@ -150,7 +157,7 @@ export default function HabitsTile({
       title="Habits"
     >
       {label && <p className="mb-1 text-sm text-muted">{label}</p>}
-      <HabitTileRows rows={rows} todayRows={todayRows} empty={empty} showStreaks={showStreaks} limit={limit} />
+      <HabitTileRows rows={rows} todayRows={todayRows} empty={empty} showStreaks={showStreaks} limit={limit} lateStars={lateStars} />
     </DashboardTile>
   );
 }

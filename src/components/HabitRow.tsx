@@ -40,7 +40,7 @@ export function HabitRow({
   readOnly = false,
   layout = "row",
   tag = null,
-  lateStars = "full",
+  lateStars,
 }: {
   row: HabitRowView;
   /** Check it, or undo the check when it is already done. An hours habit's row opens the log sheet instead; it has no check. */
@@ -57,7 +57,7 @@ export function HabitRow({
   /** "Chore" (`familyRowTag`): drawn as a small tag under the title. Only the "auto" layout shows it. */
   tag?: string | null;
   /** The household's Late checks setting: a carried row's chip shows what the late tap pays. */
-  lateStars?: LateStars;
+  lateStars: LateStars;
 }) {
   if (row.hours) return <HoursHabitRow row={row} hours={row.hours} onLog={onToggle} showStreaks={showStreaks} readOnly={readOnly} layout={layout} />;
   const card = layout === "auto";
