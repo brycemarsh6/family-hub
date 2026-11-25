@@ -2,13 +2,13 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Check, Flame, Plane, Trophy } from "lucide-react";
+import { Flame, Plane, Trophy } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { HoursLeftLine, HoursLogButton } from "./HoursHabitRow";
 import { TIME_ICONS } from "./HabitFilterChips";
 import { QUIT_TAG_CLASS } from "./HabitRow";
-import { LogButton } from "./LogButton";
+import { CheckMarker, LogButton } from "./LogButton";
 import { ProgressBar } from "./ProgressBar";
 import { StarBank } from "./StarBank";
 import { StarChip } from "./StarChip";
@@ -123,14 +123,7 @@ export function FamilyHabitRow({
         ) : row.canLog ? (
           <LogButton done={row.doneToday} label={row.title} forName={together ? undefined : who} idle="empty" onClick={onToggle} />
         ) : (
-          <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-              row.doneToday ? "bg-accent text-accent-fg" : "border-2 border-line-strong"
-            }`}
-          >
-            {row.doneToday && <Check aria-hidden="true" size={22} />}
-            <span className="sr-only">{row.doneToday ? `${row.title} is done` : `${row.title} is not done yet`}</span>
-          </span>
+          <CheckMarker done={row.doneToday} srText={row.doneToday ? `${row.title} is done` : `${row.title} is not done yet`} />
         )}
       </div>
     </div>

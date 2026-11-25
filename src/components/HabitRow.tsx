@@ -2,11 +2,11 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Check, Flame, SkipForward, Undo2 } from "lucide-react";
+import { Flame, SkipForward, Undo2 } from "lucide-react";
 import { AvatarBadge } from "./AvatarBadge";
 import { HabitIcon } from "./HabitIcon";
 import { HoursHabitRow } from "./HoursHabitRow";
-import { LogButton } from "./LogButton";
+import { CheckMarker, LogButton } from "./LogButton";
 import { StarChip } from "./StarChip";
 import { SwipeActions, type SwipeAction } from "./SwipeActions";
 import { ANYTIME_LABEL, ON_VACATION_LABEL, PLANNED_FOR_TODAY_LABEL, SKIPPED_THIS_WEEK_LABEL, SKIPPED_TODAY_LABEL, TIME_OF_DAY_LABELS, habitWhoLabel } from "@/lib/habitVocabulary";
@@ -182,14 +182,7 @@ export function HabitRow({
       </Link>
       {checkSlot(
         readOnly && !skippedMark ? (
-          <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-              row.doneToday ? "bg-accent text-accent-fg" : "border-2 border-line-strong"
-            }`}
-          >
-            {row.doneToday && <Check aria-hidden="true" size={22} />}
-            <span className="sr-only">{row.doneToday ? `${row.title} is done` : `${row.title} is not done`}</span>
-          </span>
+          <CheckMarker done={row.doneToday} srText={row.doneToday ? `${row.title} is done` : `${row.title} is not done`} />
         ) : (
           <LogButton done={row.doneToday} label={row.title} idle="empty" skipped={skippedMark} skippedLabel={row.skippedToday ? SKIPPED_TODAY_LABEL : SKIPPED_THIS_WEEK_LABEL} onClick={onToggle} />
         ),

@@ -8,7 +8,7 @@ import type { HoursRowView } from "@/lib/habitsHours";
 import type { HabitRowView } from "@/lib/habitsRead";
 
 /**
- * The 48px round tap on an hours row (decision 189): an outlined + until the
+ * The 48px tap (drawing a 30px circle) on an hours row (decision 189): an outlined + until the
  * week's goal is met, then a filled check. Either way it opens the log sheet;
  * it never writes a check. `forName` names whose time it is on a shared screen.
  */
@@ -18,11 +18,15 @@ export function HoursLogButton({ hours, title, forName, onClick }: { hours: Hour
       type="button"
       onClick={onClick}
       aria-label={`Add time to ${title}${forName ? ` for ${forName}` : ""}`}
-      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors ${
-        hours.met ? "bg-accent text-accent-fg" : "border-2 border-accent bg-surface text-accent"
-      }`}
+      className="flex h-12 w-12 shrink-0 items-center justify-center"
     >
-      {hours.met ? <Check aria-hidden="true" size={22} /> : <Plus aria-hidden="true" size={22} />}
+      <span
+        className={`flex h-[1.875rem] w-[1.875rem] items-center justify-center rounded-full transition-colors ${
+          hours.met ? "bg-accent text-accent-fg" : "border-2 border-accent bg-surface text-accent"
+        }`}
+      >
+        {hours.met ? <Check aria-hidden="true" size={16} /> : <Plus aria-hidden="true" size={16} />}
+      </span>
     </button>
   );
 }

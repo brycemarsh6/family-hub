@@ -406,7 +406,7 @@ A new one-off that duplicates one of these jobs is a design violation:
 - `SortableList`: the one drag-to-reorder list (dnd-kit; a grip handle only,
   so finger scrolling anywhere else on a row still scrolls). A new reorderable
   list wraps its rows in it rather than wiring dnd-kit again
-- `HabitRow`: one line of the Habits & Chores Today list (44px check, title,
+- `HabitRow`: one line of the Habits & Chores Today list (30px check circle in a 44px tap, title,
   tags, swipe left for Skip today). `HabitForm` is the one New and Edit form for
   a habit or chore, built from `ParticipantPicker`, `HabitIconPicker` and
   `HabitScheduleField` and the small fields in `HabitFormFields` (`Field`,
@@ -438,7 +438,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   strip. `HabitFamilyColumn` is one card (avatar,
   name, "x of y done" with skipped rows in neither number) and holds
   `FamilyHabitRow`, the compact line: icon and title linking
-  to the stats page, streak label, 44px check. A row the viewer may not tick for
+  to the stats page, streak label, 30px check circle in a 44px tap. A row the viewer may not tick for
   shows its state in a plain marker that is not a button; a Together row's
   check does not name one person. The chore streak is a
   `--streak` flame and "N days" in Mine's subtitle and next to each
@@ -650,7 +650,7 @@ A new one-off that duplicates one of these jobs is a design violation:
   because two rows can share a date
 - `ProgressBar` — the only way to show a fraction
 - `ToggleSwitch`: the only on/off switch (`DashboardItemPicker`, `HabitForm`, `GoalForm` and `HabitsChoresSettings` use it)
-- `LogButton` — the 44px round log/undo control for habits
+- `LogButton` — the round log/undo control for habits (a 30px circle in a 44px tap target, Bryce 2026-11-24); `CheckMarker` is its read-only twin
 - The sheet family: `RadioSheet` (pick one), `ActionSheet` (⋯ menus),
   `ConfirmSheet` (the two count-confirm deletes), `TitleSheet` (name a thing)
 
